@@ -1,10 +1,12 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { METADATA_TYPES_WITH_NESTED_FOLDERS } from '@jetstream/shared/constants';
-import { listMetadata as listMetadataApi, queryAll, queryWithCache } from '@jetstream/shared/data';
+import { listMetadata as listMetadataApi, queryAll, queryAllWithCache, queryWithCache } from '@jetstream/shared/data';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { groupByFlat, orderObjectsBy, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { ListMetadataQuery, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
+import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import { formatRelative } from 'date-fns/formatRelative';
+import { parseISO } from 'date-fns/parseISO';
 import uniqWith from 'lodash/uniqWith';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -41,6 +43,14 @@ interface FolderRecord {
     | 'EmailTemplate'
     | 'ActionCadence'
     | 'AnalyticAssetCollection';
+}
+
+export interface CustomMetadataTypeRecord {
+  Id: string;
+  DeveloperName: string;
+  NamespacePrefix: string | null;
+  QualifiedApiName: string;
+  SystemModstamp: string;
 }
 
 const getFolderSoqlQuery = (type: string) => {
@@ -97,6 +107,48 @@ async function fetchListMetadata(
     } catch (ex) {
       // IsPersonType is only available in orgs where this feature is enabled - so if it fails we don't need to monkey-patch
       logger.error('Error monkey-patching PersonAccount record types', ex);
+    }
+  }
+
+  /**
+   * Special handling for CustomMetadata to add in the correct audit field information
+   *
+   */
+  if (item.type === 'CustomMetadata') {
+    try {
+      const queries = Array.from(
+        new Set(
+          items.map(({ fullName, namespacePrefix }) => `${namespacePrefix ? `${namespacePrefix}__` : ''}${fullName.split('.')[0]}__mdt`),
+        ),
+      ).map((objectName) => ({
+        objectName,
+        query: composeQuery({
+          fields: [getField('Id'), getField('QualifiedApiName'), getField('SystemModstamp')],
+          sObject: objectName,
+        }),
+      }));
+      const customMetadataRecordsByFullName: Record<string, Record<string, CustomMetadataTypeRecord>> = {};
+
+      for (const { query, objectName } of queries) {
+        customMetadataRecordsByFullName[objectName.replace('__mdt', '')] = groupByFlat(
+          await queryAllWithCache<CustomMetadataTypeRecord>(selectedOrg, query).then((response) => response.data.queryResults.records),
+          'QualifiedApiName',
+        );
+      }
+
+      items.forEach((item) => {
+        let [objectName, recordName] = item.fullName.split('.');
+        if (item.namespacePrefix) {
+          objectName = `${item.namespacePrefix}__${objectName}`;
+          recordName = `${item.namespacePrefix}__${recordName}`;
+        }
+        const record = customMetadataRecordsByFullName[objectName]?.[recordName];
+        if (record) {
+          item.lastModifiedDate = parseISO(record.SystemModstamp);
+        }
+      });
+    } catch (ex) {
+      logger.error('Error enriching SystemModstamp on Custom Metadata Record', ex);
     }
   }
 
