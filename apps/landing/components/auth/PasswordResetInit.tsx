@@ -40,7 +40,7 @@ export function PasswordResetInit({ csrfToken }: PasswordResetInitProps) {
   const captchaRef = useRef<{ reset: () => void }>(null);
   const [{ rememberedEmail }] = useState(getLastUsedLoginMethod);
 
-  const emailHint = searchParams.get('email') || rememberedEmail || '';
+  const emailHint = searchParams?.get('email') || rememberedEmail || '';
 
   const {
     register,

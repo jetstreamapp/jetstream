@@ -85,8 +85,8 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
   const searchParams = useSearchParams();
   const [{ lastUsedLogin, rememberedEmail }] = useState(getLastUsedLoginMethod);
 
-  const emailHint = searchParams.get('email') || (action === 'login' ? rememberedEmail : null);
-  const returnUrl = searchParams.get('returnUrl');
+  const emailHint = searchParams?.get('email') || (action === 'login' ? rememberedEmail : null);
+  const returnUrl = searchParams?.get('returnUrl');
 
   const {
     register,
@@ -268,12 +268,10 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
               }}
             >
               {action !== 'register' && (
-                <>
-                  <div className="flex items-center justify-between">
-                    <Checkbox inputProps={{ ...register('rememberMe') }}>Remember Me</Checkbox>
-                    <ShowPasswordButton isActive={showPasswordActive} onClick={() => setShowPasswordActive(!showPasswordActive)} />
-                  </div>
-                </>
+                <div className="flex items-center justify-between">
+                  <Checkbox inputProps={{ ...register('rememberMe') }}>Remember Me</Checkbox>
+                  <ShowPasswordButton isActive={showPasswordActive} onClick={() => setShowPasswordActive(!showPasswordActive)} />
+                </div>
               )}
             </Input>
 

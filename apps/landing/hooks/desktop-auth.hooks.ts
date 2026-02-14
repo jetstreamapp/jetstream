@@ -97,8 +97,8 @@ function reducer(state: State, action: Action): State {
 
 export function useDesktopAuthState() {
   const searchParams = useSearchParams();
-  const deviceId = searchParams.get('deviceId');
-  const token = searchParams.get('token');
+  const deviceId = searchParams?.get('deviceId');
+  const token = searchParams?.get('token');
 
   const [{ status, errorMessage }, dispatch] = useReducer(reducer, {
     status: 'loading',
