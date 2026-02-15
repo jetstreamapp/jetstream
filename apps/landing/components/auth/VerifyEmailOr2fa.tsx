@@ -63,7 +63,7 @@ export function VerifyEmailOr2fa({ csrfToken, email, pendingVerifications }: Ver
   } = useForm({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      code: searchParams.get('code') || '',
+      code: searchParams?.get('code') || '',
       csrfToken,
       captchaToken: '',
       type: activeFactor,

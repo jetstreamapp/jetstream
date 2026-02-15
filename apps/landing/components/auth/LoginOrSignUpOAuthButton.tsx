@@ -1,4 +1,5 @@
 import type { Provider, Providers } from '@jetstream/auth/types';
+import { Maybe } from '@jetstream/types';
 import classNames from 'classnames';
 import { useMemo } from 'react';
 
@@ -6,7 +7,7 @@ interface LoginOrSignUpOAuthButtonProps {
   action: 'login' | 'register';
   provider: Provider;
   csrfToken: string;
-  returnUrl: string | null;
+  returnUrl?: Maybe<string>;
   lastUsedLogin: keyof Providers | null;
   setLastUsed: (data: { lastUsedLogin?: keyof Providers | null; rememberedEmail?: string | null }) => void;
 }
