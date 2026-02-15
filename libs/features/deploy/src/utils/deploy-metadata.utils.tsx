@@ -1,6 +1,6 @@
 import { getMetadataLabelFromFullName, ListMetadataResultItem } from '@jetstream/connected-ui';
 import { logger } from '@jetstream/shared/client-logger';
-import { INDEXED_DB } from '@jetstream/shared/constants';
+import { DATE_FORMATS, INDEXED_DB } from '@jetstream/shared/constants';
 import { logErrorToRollbar } from '@jetstream/shared/ui-utils';
 import {
   ensureArray,
@@ -16,17 +16,30 @@ import {
   DeployOptions,
   DeployResult,
   ListMetadataResult,
+  Maybe,
   SalesforceDeployHistoryItem,
   SalesforceDeployHistoryType,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import { ColumnWithFilter, Grid, Icon, SelectFormatter, SelectHeaderGroupRenderer, setColumnFromType, Spinner } from '@jetstream/ui';
+import {
+  ColumnWithFilter,
+  Grid,
+  Icon,
+  SelectFormatter,
+  SelectHeaderGroupRenderer,
+  setColumnFromType,
+  Spinner,
+  Tooltip,
+} from '@jetstream/ui';
 import { composeQuery, getField, Query } from '@jetstreamapp/soql-parser-js';
+import { formatDate } from 'date-fns/format';
 import { formatISO } from 'date-fns/formatISO';
 import { parseISO } from 'date-fns/parseISO';
 import JSZip from 'jszip';
 import localforage from 'localforage';
+import isDate from 'lodash/isDate';
 import isString from 'lodash/isString';
+import { ReactNode } from 'react';
 import { SELECT_COLUMN_KEY, SelectColumn } from 'react-data-grid';
 
 const MAX_HISTORY_ITEMS = 500;
@@ -295,6 +308,7 @@ export function getColumnDefinitions(): ColumnWithFilter<DeployMetadataTableRow>
     },
     {
       ...setColumnFromType('lastModifiedDate', 'date'),
+      renderCell: ({ row }) => dataTableDateFormatter(row.lastModifiedDate),
       name: 'Last Modified',
       key: 'lastModifiedDate',
       width: 202,
@@ -307,6 +321,7 @@ export function getColumnDefinitions(): ColumnWithFilter<DeployMetadataTableRow>
     },
     {
       ...setColumnFromType('createdDate', 'date'),
+      renderCell: ({ row }) => dataTableDateFormatter(row.createdDate),
       name: 'Created',
       key: 'createdDate',
       width: 202,
@@ -321,6 +336,46 @@ export function getColumnDefinitions(): ColumnWithFilter<DeployMetadataTableRow>
 
   return output;
 }
+
+const dataTableDateFormatter = (dateOrDateTime: Maybe<Date | string>): ReactNode => {
+  if (!dateOrDateTime) {
+    return null;
+  }
+  try {
+    let showWarning = false;
+    let value: string;
+    if (isDate(dateOrDateTime)) {
+      value = formatDate(dateOrDateTime, DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a);
+      showWarning = dateOrDateTime.getFullYear() <= 1970;
+    } else if (dateOrDateTime.length === 28) {
+      const date = parseISO(dateOrDateTime);
+      value = formatDate(date, DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a);
+      showWarning = date.getFullYear() <= 1970;
+    } else {
+      return dateOrDateTime;
+    }
+
+    if (showWarning) {
+      return (
+        <Grid verticalAlign="center">
+          <div>{value}</div>
+          <Tooltip content="Accurate date is not available for this item, this is a Salesforce limitation.">
+            <Icon
+              type="utility"
+              icon="warning"
+              className="slds-icon slds-icon-text-warning slds-icon_x-small slds-m-left_xx-small"
+              containerClassname="slds-icon_container slds-icon-utility-warning"
+            />
+          </Tooltip>
+        </Grid>
+      );
+    }
+    return value;
+  } catch (ex) {
+    logger.warn('[DEPLOY][METADATA TABLE][DATE FORMAT ERROR]', ex, { inputValue: dateOrDateTime });
+    return String(dateOrDateTime);
+  }
+};
 
 export function getRows(listMetadataItems: Record<string, ListMetadataResultItem>): DeployMetadataTableRow[] {
   const output: DeployMetadataTableRow[] = [];

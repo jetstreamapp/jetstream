@@ -17,7 +17,7 @@ export const dataTableDateFormatter = (dateOrDateTime: Maybe<Date | string>): st
     if (!dateOrDateTime) {
       return null;
     } else if (isDate(dateOrDateTime)) {
-      return formatDate(dateOrDateTime as Date, DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a);
+      return formatDate(dateOrDateTime, DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a);
     } else if (dateOrDateTime.length === 28) {
       return formatDate(parseISO(dateOrDateTime), DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a);
     } else if (dateOrDateTime.length === 10) {

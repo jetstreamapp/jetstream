@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { METADATA_TYPES_WITH_NESTED_FOLDERS } from '@jetstream/shared/constants';
-import { listMetadata as listMetadataApi, queryAll, queryAllWithCache, queryWithCache } from '@jetstream/shared/data';
+import { listMetadata as listMetadataApi, queryAll, queryWithCache } from '@jetstream/shared/data';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { groupByFlat, orderObjectsBy, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { ListMetadataQuery, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
@@ -8,6 +8,7 @@ import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import { formatRelative } from 'date-fns/formatRelative';
 import { parseISO } from 'date-fns/parseISO';
 import uniqWith from 'lodash/uniqWith';
+import PQueue from 'p-queue';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 // https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_listmetadata.htm
@@ -47,8 +48,6 @@ interface FolderRecord {
 
 export interface CustomMetadataTypeRecord {
   Id: string;
-  DeveloperName: string;
-  NamespacePrefix: string | null;
   QualifiedApiName: string;
   SystemModstamp: string;
 }
@@ -113,12 +112,18 @@ async function fetchListMetadata(
   /**
    * Special handling for CustomMetadata to add in the correct audit field information
    *
+   * Note: For managed components, the namespacePrefix exists for installed packages but is not included
+   * in the org that has declared the namespace since we call the API with callOptions.defaultNamespace
+   *
    */
   if (item.type === 'CustomMetadata') {
     try {
       const queries = Array.from(
         new Set(
-          items.map(({ fullName, namespacePrefix }) => `${namespacePrefix ? `${namespacePrefix}__` : ''}${fullName.split('.')[0]}__mdt`),
+          items.map(
+            ({ fullName, namespacePrefix }) =>
+              `${namespacePrefix && !fullName.startsWith(namespacePrefix) ? `${namespacePrefix}__` : ''}${fullName.split('.')[0]}__mdt`,
+          ),
         ),
       ).map((objectName) => ({
         objectName,
@@ -129,22 +134,32 @@ async function fetchListMetadata(
       }));
       const customMetadataRecordsByFullName: Record<string, Record<string, CustomMetadataTypeRecord>> = {};
 
-      for (const { query, objectName } of queries) {
-        customMetadataRecordsByFullName[objectName.replace('__mdt', '')] = groupByFlat(
-          await queryAllWithCache<CustomMetadataTypeRecord>(selectedOrg, query).then((response) => response.data.queryResults.records),
-          'QualifiedApiName',
-        );
-      }
+      const queue = new PQueue({ concurrency: 4 });
 
-      items.forEach((item) => {
-        let [objectName, recordName] = item.fullName.split('.');
-        if (item.namespacePrefix) {
-          objectName = `${item.namespacePrefix}__${objectName}`;
-          recordName = `${item.namespacePrefix}__${recordName}`;
+      await Promise.all(
+        queries.map(({ query, objectName }) =>
+          queue.add(async () => {
+            try {
+              customMetadataRecordsByFullName[objectName.replace('__mdt', '')] = groupByFlat(
+                await queryAll<CustomMetadataTypeRecord>(selectedOrg, query).then((response) => response.queryResults.records),
+                'QualifiedApiName',
+              );
+            } catch (ex) {
+              logger.error(`Error fetching Custom Metadata Records for ${objectName}`, ex);
+            }
+          }),
+        ),
+      );
+
+      items.forEach((metadataItem) => {
+        let [objectName, recordName] = metadataItem.fullName.split('.');
+        if (metadataItem.namespacePrefix && !metadataItem.fullName.startsWith(metadataItem.namespacePrefix)) {
+          objectName = `${metadataItem.namespacePrefix}__${objectName}`;
+          recordName = `${metadataItem.namespacePrefix}__${recordName}`;
         }
         const record = customMetadataRecordsByFullName[objectName]?.[recordName];
         if (record) {
-          item.lastModifiedDate = parseISO(record.SystemModstamp);
+          metadataItem.lastModifiedDate = parseISO(record.SystemModstamp);
         }
       });
     } catch (ex) {

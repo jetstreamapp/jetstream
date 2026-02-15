@@ -338,6 +338,7 @@
     "next-images": "^1.4.0",
     "numeral": "^2.0.6",
     "oauth4webapi": "^3.8.4",
+    "p-queue": "^9.1.0",
     "papaparse": "^5.5.3",
     "pg": "^8.16.3",
     "pino": "^8.19.0",
