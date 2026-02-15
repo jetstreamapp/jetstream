@@ -203,6 +203,7 @@ export interface FlowViewRecord extends Omit<SystemFields, 'CreatedDate' | 'Crea
   IsTemplate: boolean;
   LatestVersionId: string;
   LastModifiedBy: string;
+  NamespacePrefix: string | null;
   ProcessType: 'AutoLaunchedFlow' | 'Workflow' | 'InvocableProcess';
   // ID of the object or platform event that triggers this flow. This field is available in API version 53.0 and later.
   TriggerObjectOrEventId?: string;

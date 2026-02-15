@@ -4,6 +4,7 @@ import {
   genericRequest,
   getCacheItemNonHttp,
   query,
+  queryAll,
   retrieveMetadataFromListMetadata,
   saveCacheItemNonHttp,
 } from '@jetstream/shared/data';
@@ -227,7 +228,7 @@ export async function getApexTriggersMetadata(selectedOrg: SalesforceOrgUi, sobj
   const apexClassRecords = (
     await Promise.all(
       splitArrayToMaxSize(sobjects, 300).map((currSobjects) =>
-        query<ToolingApexTriggerRecord>(selectedOrg, getApexTriggersQuery(currSobjects), true),
+        query<ToolingApexTriggerRecord>(selectedOrg, getApexTriggersQuery(currSobjects, selectedOrg.orgNamespacePrefix), true),
       ),
     )
   ).flatMap(({ queryResults }) => queryResults.records);
@@ -239,7 +240,7 @@ export async function getDuplicateRules(selectedOrg: SalesforceOrgUi, sobjects: 
   const apexClassRecords = (
     await Promise.all(
       splitArrayToMaxSize(sobjects, 300).map((currSobjects) =>
-        query<DuplicateRuleRecord>(selectedOrg, getDuplicateRuleQuery(currSobjects), false),
+        query<DuplicateRuleRecord>(selectedOrg, getDuplicateRuleQuery(currSobjects, selectedOrg.orgNamespacePrefix), false),
       ),
     )
   ).flatMap(({ queryResults }) => queryResults.records);
@@ -260,7 +261,7 @@ export async function getValidationRulesMetadata(
   const validationRuleRecords = (
     await Promise.all(
       splitArrayToMaxSize(sobjects, 300).map((currSobjects) =>
-        query<ToolingValidationRuleRecord>(selectedOrg, getValidationRulesQuery(currSobjects), true),
+        query<ToolingValidationRuleRecord>(selectedOrg, getValidationRulesQuery(currSobjects, selectedOrg.orgNamespacePrefix), true),
       ),
     )
   ).flatMap(({ queryResults }) => queryResults.records);
@@ -300,7 +301,7 @@ export async function getWorkflowRulesMetadata(
   const workflowRuleRecords = (
     await Promise.all(
       splitArrayToMaxSize(sobjects, 300).map((currSobjects) =>
-        query<ToolingWorkflowRuleRecord>(selectedOrg, getWorkflowRulesQuery(currSobjects), true),
+        query<ToolingWorkflowRuleRecord>(selectedOrg, getWorkflowRulesQuery(currSobjects, selectedOrg.orgNamespacePrefix), true),
       ),
     )
   ).flatMap(({ queryResults }) => queryResults.records);
@@ -331,11 +332,19 @@ export async function getFlowsMetadata(selectedOrg: SalesforceOrgUi, sobjects: s
   // NOTE: this is NOT tooling
   const flowMetadataRecords = (
     await Promise.all(
-      splitArrayToMaxSize(sobjects, 300).map((currSobjects) => query<FlowViewRecord>(selectedOrg, getFlowsQuery(currSobjects), false)),
+      splitArrayToMaxSize(sobjects, 300).map((currSobjects) => queryAll<FlowViewRecord>(selectedOrg, getFlowsQuery(currSobjects), false)),
     )
   )
     .flatMap(({ queryResults }) => queryResults.records)
-    .filter((record) => record.ManageableState === 'unmanaged' || record.ManageableState === 'installedEditable' || record.IsTemplate);
+    .filter(
+      (record) =>
+        // WHERE clause filtering does not work correctly for the ManageableState field - this is a Salesforce bug
+        (record.NamespacePrefix && record.NamespacePrefix === selectedOrg.orgNamespacePrefix) ||
+        record.ManageableState === 'unmanaged' ||
+        record.ManageableState === 'deprecatedEditable' ||
+        record.ManageableState === 'installedEditable' ||
+        record.IsTemplate,
+    );
   return flowMetadataRecords;
 }
 
@@ -360,7 +369,8 @@ export async function getProcessBuildersMetadata(
 ) {
   // this list will be filtered based on the sobject and will artificially have TriggerObjectOrEvent.QualifiedApiName added
   const sobjectSet = new Set(sobjects);
-  let workflowRuleRecords = (await query<FlowViewRecord>(selectedOrg, getProcessBuildersQuery(), false)).queryResults.records;
+  let workflowRuleRecords = (await query<FlowViewRecord>(selectedOrg, getProcessBuildersQuery(selectedOrg.orgNamespacePrefix), false))
+    .queryResults.records;
 
   let flowIdToSobject: Record<string, string>;
   const flowIdToSobjectCache = skipCache ? null : await getCacheItemNonHttp<Record<string, string>>(selectedOrg, PROCESS_BUILDER_CACHE_ID);
