@@ -13,8 +13,8 @@ export default function Page() {
 
   const searchParams = useSearchParams();
 
-  const email = searchParams.get('email') || '';
-  const token = searchParams.get('code') || '';
+  const email = searchParams?.get('email') || '';
+  const token = searchParams?.get('code') || '';
 
   useEffect(() => {
     if (isLoading) {

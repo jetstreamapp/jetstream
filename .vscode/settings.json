@@ -18,6 +18,7 @@
   "search.exclude": {
     "apps/api/src/assets/js": true,
     "**/monaco/vs/**": true,
+    "**/node_modules/**": true,
     "dist": true,
     "logs": true,
     "tmp": true

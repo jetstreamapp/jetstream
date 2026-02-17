@@ -142,17 +142,15 @@ export const Navigation = ({ className, inverse, omitLinks = [], userProfile }: 
           </div>
           <div className="hidden md:flex md:items-center md:space-x-6">
             {userProfile?.isLoggedIn && !userProfile?.pendingVerifications ? (
-              <>
-                <a
-                  href={ENVIRONMENT.CLIENT_URL}
-                  className={classNames('inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md', {
-                    'text-white bg-gray-600 hover:bg-gray-700': inverse,
-                    'bg-linear-to-r from-teal-500 to-cyan-600 text-white font-medium hover:from-teal-600 hover:to-cyan-700': !inverse,
-                  })}
-                >
-                  Go to Jetstream
-                </a>
-              </>
+              <a
+                href={ENVIRONMENT.CLIENT_URL}
+                className={classNames('inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md', {
+                  'text-white bg-gray-600 hover:bg-gray-700': inverse,
+                  'bg-linear-to-r from-teal-500 to-cyan-600 text-white font-medium hover:from-teal-600 hover:to-cyan-700': !inverse,
+                })}
+              >
+                Go to Jetstream
+              </a>
             ) : (
               <>
                 {' '}

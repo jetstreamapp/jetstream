@@ -1,30 +1,39 @@
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 
-export default function LayoutHead({ title = 'Jetstream' }: { title?: string }) {
+const DESCRIPTION =
+  'Jetstream is a powerful suite of Salesforce administration tools built for Salesforce admins, developers, and power users. Manage, query, and update Salesforce data faster with an advanced SOQL query builder, a high-performance data loader, and productivity features designed for real-world Salesforce workflows.';
+
+const OG_IMAGE = 'https://res.cloudinary.com/getjetstream/image/upload/v1771094335/public/jetstream-og-image_chejpi.png';
+const SITE_URL = 'https://getjetstream.app';
+
+export default function LayoutHead({ title = 'Jetstream', url }: { title?: string; url?: string }) {
+  const router = useRouter();
+  const fullTitle = title === 'Jetstream' ? title : `${title} | Jetstream`;
+  // Automatically construct the canonical URL from the current route if not provided
+  const canonicalUrl = url || `${SITE_URL}${router.asPath}`;
+
   return (
     <Head>
-      <title>{title}</title>
-      <meta
-        name="description"
-        content="Jetstream is a set of tools that supercharge your administration of Salesforce.com. Jetstream is built for administrators, developers, quality assurance, or power users that want to speed up your management of Salesforce. Jetstream comes with an advanced query builder for viewing records, a powerful data loader for making changes to your record data, and many more features!"
-      />
-      <meta
-        name="og:description"
-        content="Jetstream is a set of tools that supercharge your administration of Salesforce.com. Jetstream is built for administrators, developers, quality assurance, or power users that want to speed up your management of Salesforce. Jetstream comes with an advanced query builder for viewing records, a powerful data loader for making changes to your record data, and many more features!"
-      />
+      <title>{fullTitle}</title>
+      <meta name="description" content={DESCRIPTION} />
+      <link rel="canonical" href={canonicalUrl} />
 
-      <meta
-        name="image"
-        content="https://res.cloudinary.com/getjetstream/image/upload/b_rgb:ffffff,bo_3px_solid_rgb:ffffff,pg_1/v1634516631/public/jetstream-logo-1200w.png"
-      />
-      <meta
-        name="og:image"
-        content="https://res.cloudinary.com/getjetstream/image/upload/b_rgb:ffffff,bo_3px_solid_rgb:ffffff,pg_1/v1634516631/public/jetstream-logo-1200w.png"
-      />
-      <meta
-        name="twitter:image"
-        content="https://res.cloudinary.com/getjetstream/image/upload/b_rgb:ffffff,bo_3px_solid_rgb:ffffff,pg_1/v1634516631/public/jetstream-logo-1200w.png"
-      />
+      {/* Open Graph */}
+      <meta property="og:title" content={fullTitle} />
+      <meta property="og:description" content={DESCRIPTION} />
+      <meta property="og:type" content="website" />
+      <meta property="og:url" content={canonicalUrl} />
+      <meta property="og:site_name" content="Jetstream" />
+      <meta property="og:image" content={OG_IMAGE} />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
+
+      {/* Twitter Card */}
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content={fullTitle} />
+      <meta name="twitter:description" content={DESCRIPTION} />
+      <meta name="twitter:image" content={OG_IMAGE} />
 
       <link rel="icon" type="image/png" href="/images/favicon.ico"></link>
       <meta charSet="UTF-8" />
@@ -51,6 +60,27 @@ export default function LayoutHead({ title = 'Jetstream' }: { title?: string }) 
       <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicon-32x32.png" />
       <link rel="icon" type="image/png" sizes="96x96" href="/assets/images/favicon-96x96.png" />
       <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16x16.png" />
+
+      {/* Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'SoftwareApplication',
+            name: 'Jetstream',
+            description: DESCRIPTION,
+            applicationCategory: 'BusinessApplication',
+            operatingSystem: 'Web, Windows, macOS, Linux',
+            offers: {
+              '@type': 'Offer',
+              price: '0',
+              priceCurrency: 'USD',
+            },
+            url: 'https://getjetstream.app',
+          }),
+        }}
+      />
     </Head>
   );
 }
