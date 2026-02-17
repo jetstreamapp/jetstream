@@ -1,11 +1,47 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
+import { Maybe } from '@jetstream/types';
+import { composeQuery, getField, WhereClause } from '@jetstreamapp/soql-parser-js';
 
 /**
  * SOQL QUERIES
  */
 
-export function getApexTriggersQuery(sobjects: string[]) {
+/**
+ * filtering is broken on Salesforce for some ManageableState values (e.g. released)
+ */
+function getNamespaceWhereClause(orgNamespacePrefix: Maybe<string>): WhereClause {
+  if (!orgNamespacePrefix) {
+    return {
+      left: {
+        field: 'NamespacePrefix',
+        operator: '=',
+        value: 'NULL',
+        literalType: 'NULL',
+      },
+    } satisfies WhereClause;
+  }
+  return {
+    left: {
+      openParen: 1,
+      field: 'NamespacePrefix',
+      operator: '=',
+      value: 'NULL',
+      literalType: 'NULL',
+    },
+    operator: 'OR',
+    right: {
+      left: {
+        closeParen: 1,
+        field: 'NamespacePrefix',
+        operator: '=',
+        value: orgNamespacePrefix,
+        literalType: 'STRING',
+      },
+    },
+  } satisfies WhereClause;
+}
+
+export function getApexTriggersQuery(sobjects: string[], orgNamespacePrefix: Maybe<string>) {
   const soql = composeQuery({
     fields: [
       getField('Id'),
@@ -32,14 +68,7 @@ export function getApexTriggersQuery(sobjects: string[]) {
         literalType: 'STRING',
       },
       operator: 'AND',
-      right: {
-        left: {
-          field: 'ManageableState',
-          operator: '=',
-          value: 'unmanaged',
-          literalType: 'STRING',
-        },
-      },
+      right: getNamespaceWhereClause(orgNamespacePrefix),
     },
     orderBy: [
       {
@@ -54,7 +83,7 @@ export function getApexTriggersQuery(sobjects: string[]) {
   return soql;
 }
 
-export function getDuplicateRuleQuery(sobjects: string[]) {
+export function getDuplicateRuleQuery(sobjects: string[], orgNamespacePrefix: Maybe<string>) {
   const soql = composeQuery({
     fields: [
       getField('Id'),
@@ -82,14 +111,7 @@ export function getDuplicateRuleQuery(sobjects: string[]) {
         literalType: 'STRING',
       },
       operator: 'AND',
-      right: {
-        left: {
-          field: 'NamespacePrefix',
-          operator: '=',
-          value: 'NULL',
-          literalType: 'NULL',
-        },
-      },
+      right: getNamespaceWhereClause(orgNamespacePrefix),
     },
     orderBy: [
       {
@@ -104,7 +126,7 @@ export function getDuplicateRuleQuery(sobjects: string[]) {
   return soql;
 }
 
-export function getValidationRulesQuery(sobjects: string[]) {
+export function getValidationRulesQuery(sobjects: string[], orgNamespacePrefix: Maybe<string>) {
   const soql = composeQuery({
     fields: [
       getField('Id'),
@@ -134,14 +156,7 @@ export function getValidationRulesQuery(sobjects: string[]) {
         literalType: 'STRING',
       },
       operator: 'AND',
-      right: {
-        left: {
-          field: 'ManageableState',
-          operator: '=',
-          value: 'unmanaged',
-          literalType: 'STRING',
-        },
-      },
+      right: getNamespaceWhereClause(orgNamespacePrefix),
     },
     orderBy: [
       {
@@ -157,7 +172,7 @@ export function getValidationRulesQuery(sobjects: string[]) {
 }
 
 // TODO: there is no active flag for these without getting all metadata - WTF
-export function getWorkflowRulesQuery(sobjects: string[]) {
+export function getWorkflowRulesQuery(sobjects: string[], orgNamespacePrefix: Maybe<string>) {
   const soql = composeQuery({
     fields: [
       getField('Id'),
@@ -182,14 +197,7 @@ export function getWorkflowRulesQuery(sobjects: string[]) {
         literalType: 'STRING',
       },
       operator: 'AND',
-      right: {
-        left: {
-          field: 'ManageableState',
-          operator: '=',
-          value: 'unmanaged',
-          literalType: 'STRING',
-        },
-      },
+      right: getNamespaceWhereClause(orgNamespacePrefix),
     },
     orderBy: [
       {
@@ -219,6 +227,7 @@ export function getFlowsQuery(sobjects: string[]) {
       getField('LastModifiedBy'),
       getField('FORMAT(LastModifiedDate)'),
       getField('LatestVersionId'),
+      getField('NamespacePrefix'),
       getField('ProcessType'),
       getField('TriggerObjectOrEventId'),
       getField('TriggerObjectOrEvent.QualifiedApiName'),
@@ -240,20 +249,12 @@ export function getFlowsQuery(sobjects: string[]) {
       operator: 'AND',
       right: {
         left: {
-          field: 'ManageableState',
+          field: 'TriggerType',
           operator: 'IN',
-          value: ['unmanaged', 'installedEditable', 'installed'],
+          value: ['RecordBeforeSave', 'RecordBeforeDelete', 'RecordAfterSave'],
           literalType: 'STRING',
         },
-        operator: 'AND',
-        right: {
-          left: {
-            field: 'TriggerType',
-            operator: 'IN',
-            value: ['RecordBeforeSave', 'RecordBeforeDelete', 'RecordAfterSave'],
-            literalType: 'STRING',
-          },
-        },
+        // these records are filtered after being queried
       },
     },
     orderBy: [
@@ -269,7 +270,7 @@ export function getFlowsQuery(sobjects: string[]) {
   return soql;
 }
 
-export function getProcessBuildersQuery() {
+export function getProcessBuildersQuery(orgNamespacePrefix: Maybe<string>) {
   const soql = composeQuery({
     fields: [
       getField('Id'),
@@ -300,6 +301,8 @@ export function getProcessBuildersQuery() {
         value: 'Workflow',
         literalType: 'STRING',
       },
+      operator: 'AND',
+      right: getNamespaceWhereClause(orgNamespacePrefix),
     },
     orderBy: [
       {
