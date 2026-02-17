@@ -1,13 +1,13 @@
 import { SoapNil } from './misc.types';
 
 export interface AnonymousApexSoapResponse {
-  'soapenv:Envelope': {
-    'soapenv:Header': {
+  Envelope: {
+    Header: {
       DebuggingInfo: {
         debugLog: string;
       };
     };
-    'soapenv:Body': {
+    Body: {
       executeAnonymousResponse: {
         result: {
           column: string | SoapNil;

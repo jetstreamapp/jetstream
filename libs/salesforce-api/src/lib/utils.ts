@@ -241,14 +241,14 @@ export function correctDeployMetadataResultTypes(results: DeployResult) {
 export function correctRecordResultSoapXmlResponse(results: RecordResult | RecordResult[]): RecordResult[] {
   return ensureArray(results).map((row: RecordResult) => ({
     ...row,
-    errors: (row.success as any) === 'true' ? undefined : ensureArray((row as any).errors),
+    errors: row.success ? undefined : ensureArray(row.errors),
     success: ensureBoolean(row.success),
   })) as RecordResult[];
 }
 
 export function correctInvalidArrayXmlResponseTypes<T = any>(item: T[] | T): T[] {
   if (!Array.isArray(item)) {
-    if (!item || (isObject(item) && item?.['@xsi:nil'] === 'true')) {
+    if (!item || (isObject(item) && item?.['@_nil'] === 'true')) {
       return []; // null response
     }
     item = [item] as any;
@@ -257,7 +257,7 @@ export function correctInvalidArrayXmlResponseTypes<T = any>(item: T[] | T): T[]
 }
 
 export function correctInvalidXmlResponseTypes<T = any>(item: T): T {
-  if (isObject(item) && (item?.['@xsi:nil'] === 'true' || isEmpty(item))) {
+  if (isObject(item) && (item?.['@_nil'] === 'true' || isEmpty(item))) {
     return null as any;
   }
   // TODO: what about number types?
@@ -265,7 +265,7 @@ export function correctInvalidXmlResponseTypes<T = any>(item: T): T {
     if (
       !Array.isArray((item as any)[key]) &&
       isObject((item as any)[key]) &&
-      ((item as any)[key]?.['@xsi:nil'] === 'true' || isEmpty((item as any)[key]))
+      ((item as any)[key]?.['@_nil'] === 'true' || isEmpty((item as any)[key]))
     ) {
       (item as any)[key] = null;
     } else if (isString((item as any)[key]) && ((item as any)[key] === 'true' || (item as any)[key] === 'false')) {

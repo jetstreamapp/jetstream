@@ -1,6 +1,5 @@
-import { getValueOrSoapNull, toBoolean, unSanitizeXml } from '@jetstream/shared/utils';
+import { getValueOrSoapNull, unSanitizeXml } from '@jetstream/shared/utils';
 import { AnonymousApexResponse, ApexCompletionResponse, Maybe } from '@jetstream/types';
-import toNumber from 'lodash/toNumber';
 import { ApiConnection } from './connection';
 import { SalesforceApi } from './utils';
 
@@ -29,7 +28,7 @@ export class ApiApex extends SalesforceApi {
     };
 
     return this.apiRequest<{
-      'ns1:Envelope': {
+      Envelope: {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         Body: Record<string, any>;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -45,18 +44,18 @@ export class ApiApex extends SalesforceApi {
       }),
     }).then((soapResponse) => {
       // FIXME: if we fail here, we should return a proper error
-      const header = soapResponse['ns1:Envelope']?.['Header'];
-      const body = soapResponse['ns1:Envelope']?.['Body']?.executeAnonymousResponse?.result || {};
+      const header = soapResponse.Envelope?.Header;
+      const body = soapResponse.Envelope?.Body?.executeAnonymousResponse?.result || {};
       const results: AnonymousApexResponse = {
         debugLog: header?.DebuggingInfo?.debugLog || '',
         result: {
-          column: toNumber(getValueOrSoapNull(body.column) || -1),
-          compileProblem: getValueOrSoapNull(body.compileProblem) || null,
-          compiled: toBoolean(getValueOrSoapNull(body.compiled)) || false,
-          exceptionMessage: getValueOrSoapNull(body.exceptionMessage) || null,
-          exceptionStackTrace: getValueOrSoapNull(body.exceptionStackTrace) || null,
-          line: toNumber(getValueOrSoapNull(body.line)) || -1,
-          success: toBoolean(getValueOrSoapNull(body.success)) || false,
+          column: (getValueOrSoapNull(body.column) as number) || -1,
+          compileProblem: (getValueOrSoapNull(body.compileProblem) as string) || null,
+          compiled: (getValueOrSoapNull(body.compiled) as boolean) || false,
+          exceptionMessage: (getValueOrSoapNull(body.exceptionMessage) as string) || null,
+          exceptionStackTrace: (getValueOrSoapNull(body.exceptionStackTrace) as string) || null,
+          line: (getValueOrSoapNull(body.line) as number) || -1,
+          success: (getValueOrSoapNull(body.success) as boolean) || false,
         },
       };
       if (typeof results.debugLog !== 'string') {

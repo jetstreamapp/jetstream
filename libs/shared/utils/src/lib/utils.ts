@@ -579,9 +579,12 @@ export function getHttpMethod(type: InsertUpdateUpsertDelete): HttpMethod {
   }
 }
 
-export function getValueOrSoapNull(value?: string | SoapNil, unSanitize = true): string | null {
+export function getValueOrSoapNull(value?: string | number | boolean | SoapNil, unSanitize = true): string | number | boolean | null {
   if (isString(value)) {
     return unSanitize ? unSanitizeXml(value) : value;
+  }
+  if (isNumber(value) || isBoolean(value)) {
+    return value;
   }
   return null;
 }

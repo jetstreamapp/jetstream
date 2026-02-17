@@ -1,6 +1,6 @@
 import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
+import { XMLParser } from 'fast-xml-parser';
 import isObject from 'lodash/isObject';
-import { convert as xmlConverter } from 'xmlbuilder2';
 import { ApiRequestOptions, ApiRequestOutputType, BulkXmlErrorResponse, FetchFn, FetchResponse, Logger, SoapErrorResponse } from './types';
 
 const SOAP_API_AUTH_ERROR_REGEX = /<faultcode>[a-zA-Z]+:INVALID_SESSION_ID<\/faultcode>/;
@@ -24,6 +24,16 @@ export class ApiRequestError extends Error {
       this.type = response.type;
     }
   }
+}
+
+function parseXml(value: string) {
+  const response = new XMLParser({
+    trimValues: true,
+    ignoreAttributes: false,
+    removeNSPrefix: true,
+    attributeNamePrefix: '@_',
+  }).parse(value);
+  return response;
 }
 
 /**
@@ -87,9 +97,9 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
             } else if (outputType === 'stream') {
               return response.body;
             } else if (outputType === 'xml') {
-              return response.text().then((text) => xmlConverter(text, { format: 'object', wellFormed: true }) as Response);
+              return response.text().then((text) => parseXml(text));
             } else if (outputType === 'soap') {
-              return response.text().then((text) => xmlConverter(text, { format: 'object', wellFormed: true }));
+              return response.text().then((text) => parseXml(text));
             } else if (outputType === 'response') {
               return response;
             } else if (outputType === 'void') {
@@ -155,8 +165,8 @@ function handleSalesforceApiError(outputType: ApiRequestOutputType, responseText
     output = output || responseText;
   } else if (outputType === 'soap' && typeof responseText === 'string') {
     try {
-      const tempResult = xmlConverter(responseText, { format: 'object', wellFormed: true }) as unknown as SoapErrorResponse;
-      output = tempResult['soapenv:Envelope']['soapenv:Body']['soapenv:Fault']['faultstring'];
+      const tempResult = parseXml(responseText) as unknown as SoapErrorResponse;
+      output = tempResult.Envelope.Body.Fault.faultstring;
     } catch {
       output = responseText;
     }
@@ -167,7 +177,7 @@ function handleSalesforceApiError(outputType: ApiRequestOutputType, responseText
     responseText.includes(`xmlns="http://www.force.com/2009/06/asyncapi/dataload"`)
   ) {
     try {
-      const tempResult = xmlConverter(responseText, { format: 'object', wellFormed: true }) as unknown as BulkXmlErrorResponse;
+      const tempResult = parseXml(responseText) as unknown as BulkXmlErrorResponse;
       output = tempResult.error.exceptionMessage;
     } catch {
       output = responseText;

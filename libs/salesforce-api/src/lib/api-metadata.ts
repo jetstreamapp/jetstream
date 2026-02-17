@@ -29,7 +29,7 @@ export class ApiMetadata extends SalesforceApi {
   async describe(): Promise<DescribeMetadataResult> {
     // for some types, if folder is null then no data will be returned
     return this.apiRequest<{
-      'ns1:Envelope': {
+      Envelope: {
         Body: {
           describeMetadataResponse: {
             result: DescribeMetadataResult;
@@ -44,9 +44,10 @@ export class ApiMetadata extends SalesforceApi {
         },
       }),
     )
-      .then((response) => correctInvalidXmlResponseTypes(response['ns1:Envelope'].Body.describeMetadataResponse.result))
+      .then((response) => correctInvalidXmlResponseTypes(response.Envelope.Body.describeMetadataResponse.result))
       .then((response) => {
-        response.organizationNamespace = isString(response.organizationNamespace) ? response.organizationNamespace : null;
+        response.organizationNamespace =
+          isString(response.organizationNamespace) && response.organizationNamespace ? response.organizationNamespace : null;
         response.partialSaveAllowed = correctInvalidXmlResponseTypes(response.partialSaveAllowed);
         response.testRequired = correctInvalidXmlResponseTypes(response.testRequired);
         response.metadataObjects = correctInvalidArrayXmlResponseTypes(response.metadataObjects).map((item) => {
@@ -72,7 +73,7 @@ export class ApiMetadata extends SalesforceApi {
           },
         },
       }),
-    ).then((response) => correctInvalidArrayXmlResponseTypes(response['ns1:Envelope'].Body.listMetadataResponse?.result || []));
+    ).then((response) => correctInvalidArrayXmlResponseTypes(response.Envelope.Body.listMetadataResponse?.result || []));
   }
 
   async read(type: string, fullNames: ReadMetadataRequest['fullNames']): Promise<MetadataInfo[]> {
@@ -90,7 +91,7 @@ export class ApiMetadata extends SalesforceApi {
               },
             }),
           ).then((response) => {
-            return correctInvalidArrayXmlResponseTypes(response['ns1:Envelope'].Body.readMetadataResponse?.result.records || []);
+            return correctInvalidArrayXmlResponseTypes(response.Envelope.Body.readMetadataResponse?.result.records || []);
           }),
         ),
       )
@@ -132,7 +133,7 @@ export class ApiMetadata extends SalesforceApi {
         },
       }),
     )
-      .then((result) => result['ns1:Envelope'].Body.deployResponse.result)
+      .then((result) => result.Envelope.Body.deployResponse.result)
       .then(correctInvalidXmlResponseTypes);
   }
 
@@ -148,7 +149,7 @@ export class ApiMetadata extends SalesforceApi {
         },
       }),
     )
-      .then((result) => result['ns1:Envelope'].Body.checkDeployStatusResponse.result)
+      .then((result) => result.Envelope.Body.checkDeployStatusResponse.result)
       .then(correctDeployMetadataResultTypes);
   }
 
@@ -164,7 +165,7 @@ export class ApiMetadata extends SalesforceApi {
       .then((results) => {
         return results;
       })
-      .then((result) => correctInvalidXmlResponseTypes(result['ns1:Envelope'].Body.retrieveResponse.result));
+      .then((result) => correctInvalidXmlResponseTypes(result.Envelope.Body.retrieveResponse.result));
   }
 
   async checkRetrieveStatus(asyncProcessId: string) {
@@ -176,7 +177,7 @@ export class ApiMetadata extends SalesforceApi {
         },
       }),
     )
-      .then((result) => result['ns1:Envelope'].Body.checkRetrieveStatusResponse.result)
+      .then((result) => result.Envelope.Body.checkRetrieveStatusResponse.result)
       .then((results) => {
         results.fileProperties = ensureArray(results.fileProperties);
         results.messages = ensureArray(results.messages);

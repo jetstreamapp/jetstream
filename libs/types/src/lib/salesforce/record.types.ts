@@ -499,7 +499,7 @@ export interface RecordTypeMetadataToolingPicklistValue {
 }
 
 export interface ReadMetadataRecordType {
-  '@xsi:type'?: 'RecordType';
+  '@_type'?: 'RecordType';
   active: boolean;
   businessProcess?: string;
   compactLayoutAssignment?: string;
