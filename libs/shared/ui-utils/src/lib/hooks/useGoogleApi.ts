@@ -1,5 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { Maybe } from '@jetstream/types';
+import { googleGetUserinfo } from '@jetstream/shared/data';
+import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { GoogleUserInfo, Maybe } from '@jetstream/types';
 import { addSeconds } from 'date-fns/addSeconds';
 import { isAfter } from 'date-fns/isAfter';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -19,11 +21,13 @@ if (!globalThis.__IS_BROWSER_EXTENSION__) {
 let _apiLoaded = false;
 let _tokenClient: Maybe<google.accounts.oauth2.TokenClient>;
 let _tokenResponse: Maybe<google.accounts.oauth2.TokenResponse>;
+let _userInfo: Maybe<GoogleUserInfo>;
 let _tokenExpiration: Maybe<Date>;
 
 export const SCOPES = {
   'drive.file': 'https://www.googleapis.com/auth/drive.file',
-};
+  email: 'https://www.googleapis.com/auth/userinfo.email',
+} as const;
 
 export interface GoogleApiClientConfig {
   appId: string;
@@ -36,10 +40,11 @@ export interface GoogleApiClientConfig {
  * Handles loading Google API via script tag and loading individual libraries
  * @returns
  */
-export function useGoogleApi({ clientId, scopes = [SCOPES['drive.file']] }: GoogleApiClientConfig) {
+export function useGoogleApi({ clientId, scopes = [SCOPES['drive.file'], SCOPES.email] }: GoogleApiClientConfig) {
   const rollbar = useRollbar();
   const tokenClient = useRef<Maybe<google.accounts.oauth2.TokenClient>>(_tokenClient);
   const tokenResponse = useRef<Maybe<google.accounts.oauth2.TokenResponse>>(_tokenResponse);
+  const userInfo = useRef<Maybe<GoogleUserInfo>>(_userInfo);
   const tokenCallback = useRef<
     | {
         resolve: (value: google.accounts.oauth2.TokenResponse) => void;
@@ -74,31 +79,54 @@ export function useGoogleApi({ clientId, scopes = [SCOPES['drive.file']] }: Goog
     }
   }, [gapiScriptLoadError, gisScriptLoadError, rollbar]);
 
-  const callback = useCallback((response: google.accounts.oauth2.TokenResponse) => {
-    logger.log('[GOOGLE] access token obtained');
-    tokenResponse.current = response;
-    _tokenResponse = tokenResponse.current;
+  const callback = useCallback(
+    async (response: google.accounts.oauth2.TokenResponse) => {
+      try {
+        logger.log('[GOOGLE] access token obtained');
+        tokenResponse.current = response;
+        _tokenResponse = tokenResponse.current;
 
-    if (response.error !== undefined) {
-      _tokenExpiration = null;
-      tokenExpiration.current = _tokenExpiration;
-      setCurrentTokenExpiration(tokenExpiration.current);
-      setError(response.error);
-      if (tokenCallback.current) {
-        tokenCallback.current.reject(response);
-        tokenCallback.current = null;
+        if (response.error !== undefined) {
+          _tokenExpiration = null;
+          tokenExpiration.current = _tokenExpiration;
+          setCurrentTokenExpiration(tokenExpiration.current);
+          setError(response.error);
+          if (tokenCallback.current) {
+            tokenCallback.current.reject(response);
+            tokenCallback.current = null;
+          }
+        } else {
+          await googleGetUserinfo(response.access_token)
+            .then((userInfoResponse) => {
+              _userInfo = userInfoResponse;
+              userInfo.current = _userInfo;
+            })
+            .catch((ex) => {
+              logger.error('[GOOGLE] Error fetching user info', ex);
+              rollbar.error('Google Sign In error fetching user info', getErrorMessageAndStackObj(ex));
+            });
+
+          _tokenExpiration = addSeconds(new Date(), Number(response.expires_in));
+          tokenExpiration.current = _tokenExpiration;
+          setCurrentTokenExpiration(tokenExpiration.current);
+          setError(null);
+          if (tokenCallback.current) {
+            tokenCallback.current.resolve(response);
+            tokenCallback.current = null;
+          }
+        }
+      } catch (ex) {
+        logger.error('[GOOGLE] Error in token callback', ex);
+        setError('There was an error during Google sign in');
+        rollbar.error('Google Sign In error in token callback', getErrorMessageAndStackObj(ex));
+        if (tokenCallback.current) {
+          tokenCallback.current.reject(ex);
+          tokenCallback.current = null;
+        }
       }
-    } else {
-      _tokenExpiration = addSeconds(new Date(), Number(response.expires_in));
-      tokenExpiration.current = _tokenExpiration;
-      setCurrentTokenExpiration(tokenExpiration.current);
-      setError(null);
-      if (tokenCallback.current) {
-        tokenCallback.current.resolve(response);
-        tokenCallback.current = null;
-      }
-    }
-  }, []);
+    },
+    [rollbar],
+  );
 
   useNonInitialEffect(() => {
     if (hasApisLoaded && gapi && google?.accounts?.oauth2) {
@@ -163,21 +191,20 @@ export function useGoogleApi({ clientId, scopes = [SCOPES['drive.file']] }: Goog
   }, []);
 
   const revokeToken = useCallback(async () => {
-    if (tokenResponse.current && tokenResponse.current.access_token) {
-      google.accounts.oauth2.revoke(tokenResponse.current.access_token, () => {
-        logger.log('Revoked: ' + tokenResponse.current?.access_token);
-      });
-    }
     tokenResponse.current = null;
     _tokenResponse = tokenResponse.current;
     _tokenExpiration = null;
-    tokenExpiration.current = _tokenExpiration;
+    _userInfo = null;
+    tokenClient.current = null;
+    tokenExpiration.current = null;
+    userInfo.current = null;
     setCurrentTokenExpiration(tokenExpiration.current);
   }, []);
 
   return {
     loading,
     error,
+    userInfo: userInfo.current,
     isTokenValid,
     getToken,
     revokeToken,

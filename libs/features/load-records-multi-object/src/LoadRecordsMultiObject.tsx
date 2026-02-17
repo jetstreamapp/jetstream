@@ -2,7 +2,7 @@ import { ANALYTICS_KEYS, DATE_FORMATS, INPUT_ACCEPT_FILETYPES, TITLES } from '@j
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { formatNumber, initXlsx, useNonInitialEffect, useTitle } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
-import { InputReadFileContent, InputReadGoogleSheet, LocalOrGoogle } from '@jetstream/types';
+import { InputReadFileContent, InputReadGoogleSheet, LocalOrGoogle, Maybe } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Checkbox,
@@ -45,7 +45,7 @@ export const LoadRecordsMultiObject = () => {
   const selectedOrg = useAtomValue(selectedOrgState);
   const orgType = useAtomValue(selectedOrgType);
 
-  const [inputFilename, setInputFilename] = useState<string | null>(null);
+  const [inputFilename, setInputFilename] = useState<Maybe<string>>(null);
   const [inputFileType, setInputFileType] = useState<LocalOrGoogle>();
   const [inputFileData, setInputFileData] = useState<XLSX.WorkBook>();
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);

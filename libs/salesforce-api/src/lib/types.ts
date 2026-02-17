@@ -14,7 +14,7 @@ export interface SessionInfo {
 export type SoapNamespace = 'http://soap.sforce.com/2006/04/metadata' | 'http://soap.sforce.com/2006/08/apex';
 
 export type SoapResponse<Key extends string, T> = {
-  'ns1:Envelope': {
+  Envelope: {
     Body: Record<Key, { result: T }>;
     Header?: any;
   };
@@ -87,11 +87,9 @@ export interface ApiRequestOptions {
 export type ApiRequestOutputType = 'json' | 'text' | 'xml' | 'soap' | 'arrayBuffer' | 'stream' | 'void' | 'response';
 
 export interface SoapErrorResponse {
-  'soapenv:Envelope': {
-    '@xmlns:soapenv': string;
-    '@xmlns:sf': string;
-    'soapenv:Body': {
-      'soapenv:Fault': {
+  Envelope: {
+    Body: {
+      Fault: {
         faultcode: string;
         faultstring: string;
       };

@@ -52,7 +52,8 @@ describe('buildPackageXml', () => {
     <name>ApexPage</name>
   </types>
   <version>60.0</version>
-</Package>`);
+</Package>
+`);
   });
 });
 
@@ -61,13 +62,19 @@ describe('getRetrieveRequestFromManifest', () => {
     expect(
       getRetrieveRequestFromManifest(`<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
+  <!--Comments should be ignored 1-->
   <types>
     <members>AccountOverrideControllerExt</members>
     <members>AccountTriggerHandler</members>
     <members>AddPrimaryContact</members>
-    <members>ApexUtilsTest</members>
+    <members>
+      <!--Spaces and whitespace should be trimmed-->
+      ApexUtilsTest
+    </members>
     <members>SBQQ__AccountExtController</members>
-    <name>ApexClass</name>
+    <!--Spaces and whitespace should be trimmed-->
+    <name>   ApexClass
+    </name>
   </types>
   <types>
     <members>SiteFooter</members>
@@ -77,6 +84,7 @@ describe('getRetrieveRequestFromManifest', () => {
     <members>AnswersHome</members>
     <name>ApexPage</name>
   </types>
+  <!--Comments should be ignored 2-->
   <version>60.0</version>
 </Package>`),
     ).toEqual({

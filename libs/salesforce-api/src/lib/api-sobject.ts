@@ -160,7 +160,7 @@ export class ApiSObject extends SalesforceApi {
             body: { undelete: { ids } },
           }),
         ).then((response) => {
-          return correctRecordResultSoapXmlResponse(response['ns1:Envelope'].Body.undeleteResponse.result);
+          return correctRecordResultSoapXmlResponse(response.Envelope.Body.undeleteResponse.result);
         });
         break;
       }

@@ -105,6 +105,7 @@ export async function handleExternalRequest<T = any>(config: AxiosRequestConfig)
       });
       let message = 'An unknown error has occurred';
       if (error.isAxiosError && error.response) {
+        const response = error.response;
         message = error.message || 'An unknown error has occurred';
         logger.error(`[HTTP][RES][${response.config.method?.toUpperCase()}][${response.status}]`, response.config.url, {
           response: response.data,

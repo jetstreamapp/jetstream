@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { GoogleApiClientConfig, useGoogleApi } from './useGoogleApi';
 
 export interface PickerConfigurationNew {
@@ -7,7 +7,7 @@ export interface PickerConfigurationNew {
   viewGroups?: google.picker.ViewGroup[];
   views: { view: google.picker.DocsView | google.picker.DocsUploadView | google.picker.ViewId; label?: string }[];
   features?: google.picker.Feature[];
-  locale?: string;
+  locale?: google.picker.Locales;
   /** If true, then the picker will not build itself, allowing the user to perform any desired actions */
   skipBuild?: boolean;
 }
@@ -38,13 +38,9 @@ function setViewLabel(view: google.picker.DocsView | google.picker.DocsUploadVie
 export function useDrivePicker(apiConfig: GoogleApiClientConfig) {
   const picker = useRef<google.picker.PickerBuilder>(null);
   const pickerInstance = useRef<google.picker.Picker>(null);
-  const { error, getToken, loading } = useGoogleApi(apiConfig);
+  const { error, getToken, userInfo, loading } = useGoogleApi(apiConfig);
   const [callBackInfo, setCallBackInfo] = useState<google.picker.ResponseObject>();
   const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    logger.log('[GOOGLE][PICKER][RENDERED]');
-  });
 
   const pickerCallback = useCallback((data: google.picker.ResponseObject) => {
     logger.log('[GOOGLE][PICKER]', data);
@@ -61,7 +57,7 @@ export function useDrivePicker(apiConfig: GoogleApiClientConfig) {
 
   const openPicker = useCallback(
     async ({ views, viewGroups, features, locale = 'en', title, skipBuild }: PickerConfigurationNew) => {
-      logger.log('[GOOGLE][PICKER][RENDERED] openPicker()');
+      logger.log('[GOOGLE][PICKER] openPicker()');
 
       pickerInstance.current?.dispose();
 
@@ -118,6 +114,7 @@ export function useDrivePicker(apiConfig: GoogleApiClientConfig) {
     loading,
     error,
     data: callBackInfo,
+    userInfo,
     openPicker,
     isVisible,
   };

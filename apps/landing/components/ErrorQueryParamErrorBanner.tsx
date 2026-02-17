@@ -13,11 +13,11 @@ interface ErrorQueryParamErrorBannerProps {
 }
 
 export function ErrorQueryParamErrorBanner({ error, message, success }: ErrorQueryParamErrorBannerProps) {
-  const params = useSearchParams();
+  const searchParams = useSearchParams();
 
-  error = error ?? params.get('error');
-  message = message ?? params.get('message');
-  success = success ?? params.get('success');
+  error = error ?? searchParams?.get('error');
+  message = message ?? searchParams?.get('message');
+  success = success ?? searchParams?.get('success');
 
   if (error) {
     return (
