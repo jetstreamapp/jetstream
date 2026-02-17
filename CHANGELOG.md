@@ -1,5 +1,17 @@
 # Changelog
 
+## [8.24.0](https://github.com/jetstreamapp/jetstream/compare/v8.23.1...v8.24.0) (2026-02-17)
+
+### Features
+
+* add warning icon for invalid metadata audit info ([0820d9d](https://github.com/jetstreamapp/jetstream/commit/0820d9d8114b779bd98ead0c92465a7b599def21))
+* inject last modified date to custom metadata records ([5468a7e](https://github.com/jetstreamapp/jetstream/commit/5468a7ea791a41a363ac075c0810e60a2fef9860)), closes [#1544](https://github.com/jetstreamapp/jetstream/issues/1544)
+* remember google folder selection ([e13115a](https://github.com/jetstreamapp/jetstream/commit/e13115aa38d8f785a241438d5db4fe663381dd55))
+
+### Bug Fixes
+
+* fix automation control in orgs with namespace ([91fa3f7](https://github.com/jetstreamapp/jetstream/commit/91fa3f7eddd1647fc27be951504477c7f4b7946a))
+
 ## [8.23.1](https://github.com/jetstreamapp/jetstream/compare/v8.23.0...v8.23.1) (2026-02-13)
 
 ### Bug Fixes
