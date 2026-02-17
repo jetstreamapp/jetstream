@@ -393,3 +393,13 @@ export type AddOrgHandlerFn = (
   options: { serverUrl: string; loginUrl: string; addLoginTrue?: boolean; orgGroupId?: Maybe<string>; loginHint?: string },
   callback: (org: SalesforceOrgUi) => void,
 ) => void;
+
+export type GoogleUserInfo = {
+  id: string;
+  email: string;
+  verified_email: boolean;
+  name?: string;
+  given_name?: string;
+  family_name?: string;
+  picture?: string;
+};

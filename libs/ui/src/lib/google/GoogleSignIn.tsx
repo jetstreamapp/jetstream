@@ -1,6 +1,8 @@
 import { GoogleApiClientConfig, useGoogleApi } from '@jetstream/shared/ui-utils';
+import { GoogleUserInfo, Maybe } from '@jetstream/types';
 import classNames from 'classnames';
 import { FunctionComponent, ReactNode, useEffect } from 'react';
+import Grid from '../grid/Grid';
 import Icon from '../widgets/Icon';
 
 export interface GoogleProfile {
@@ -15,6 +17,7 @@ export interface GoogleSignInProps {
   disabled?: boolean;
   onError?: (error: string) => void;
   onSignInChanged?: (signedIn: boolean) => void;
+  onUserInfoChange?: (userInfo: Maybe<GoogleUserInfo>) => void;
   children?: ReactNode;
 }
 
@@ -25,8 +28,9 @@ export const GoogleSignIn: FunctionComponent<GoogleSignInProps> = ({
   children,
   onError,
   onSignInChanged,
+  onUserInfoChange,
 }) => {
-  const { getToken, error, loading, isTokenValid } = useGoogleApi(apiConfig);
+  const { getToken, error, loading, userInfo, isTokenValid, revokeToken } = useGoogleApi(apiConfig);
 
   useEffect(() => {
     if (error) {
@@ -37,6 +41,10 @@ export const GoogleSignIn: FunctionComponent<GoogleSignInProps> = ({
   useEffect(() => {
     onSignInChanged && onSignInChanged(isTokenValid());
   }, [isTokenValid, onSignInChanged]);
+
+  useEffect(() => {
+    onUserInfoChange && onUserInfoChange(userInfo);
+  }, [userInfo, onUserInfoChange]);
 
   async function handleSignIn() {
     try {
@@ -65,7 +73,26 @@ export const GoogleSignIn: FunctionComponent<GoogleSignInProps> = ({
           )}
         </div>
       )}
-      {isTokenValid() && children}
+      {isTokenValid() && (
+        <div>
+          {userInfo && (
+            <Grid verticalAlign="center">
+              {userInfo?.picture && (
+                <div className="slds-m-right_x-small">
+                  <span className="slds-avatar slds-avatar_circle slds-avatar_medium">
+                    <img alt="Google Profile" src={userInfo.picture} title="Avatar" />
+                  </span>
+                </div>
+              )}
+              <p className="slds-text-heading_small">{userInfo.name}</p>
+              <button type="button" className="slds-button slds-m-left_small" onClick={revokeToken}>
+                Sign Out
+              </button>
+            </Grid>
+          )}
+          {children}
+        </div>
+      )}
     </div>
   );
 };

@@ -34,6 +34,7 @@ import {
   FileNameFormat,
   GenericRequestPayload,
   GoogleFileApiResponse,
+  GoogleUserInfo,
   HttpMethod,
   InputReadFileContent,
   JetstreamPricesByLookupKey,
@@ -1113,6 +1114,19 @@ export async function apexCompletions(org: SalesforceOrgUi, type: 'apex' | 'visu
 
 export async function salesforceApiReq(): Promise<SalesforceApiRequest[]> {
   return handleRequest({ method: 'GET', url: `/api/salesforce-api/requests` }, { useCache: true }).then(unwrapResponseIgnoreCache);
+}
+
+export async function googleGetUserinfo(accessToken: string): Promise<GoogleUserInfo> {
+  return await handleExternalRequest<GoogleUserInfo>({
+    method: 'GET',
+    url: `https://www.googleapis.com/oauth2/v1/userinfo`,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    params: {
+      alt: 'json',
+    },
+  }).then((response) => response.data);
 }
 
 export async function googleUploadFile(

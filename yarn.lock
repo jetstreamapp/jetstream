@@ -9873,10 +9873,10 @@
   dependencies:
     "@types/node" "*"
 
-"@types/gapi.auth2@^0.0.60":
-  version "0.0.60"
-  resolved "https://registry.yarnpkg.com/@types/gapi.auth2/-/gapi.auth2-0.0.60.tgz#a1623ef3ca6f47535d7445ff8691de2da030c846"
-  integrity sha512-KQiyTHRyAcat6marTRAixrkHhkS7mqclcbQvInfxyp7IeUDSUzLBlgH1s0SFaLl1m1jRY6b+qh4NMlmVm0wPEw==
+"@types/gapi.auth2@^0.0.61":
+  version "0.0.61"
+  resolved "https://registry.yarnpkg.com/@types/gapi.auth2/-/gapi.auth2-0.0.61.tgz#a01c1878915eef270a9b91a01bfbf46bff9be334"
+  integrity sha512-cn+omiRoE/LTxZncnVl1QhcLggOT0sJ8Yz9RXIsw5R2zLyRf+0o6kaZzJ/Gr3Sxz6i7J/+PbXAF8yeZipCaiWw==
   dependencies:
     "@types/gapi" "*"
 
@@ -9904,15 +9904,15 @@
   resolved "https://registry.npmjs.org/@types/gapi/-/gapi-0.0.42.tgz"
   integrity sha512-kskWpouTGqutaIVRo/swiGnMVoRxOYdRwvaDrh0yavfR9vQoHvJJ7Enp4KE9MEGS8qF7F5KiP6bRNOYcCgRXCA==
 
-"@types/google.accounts@^0.0.2":
-  version "0.0.2"
-  resolved "https://registry.yarnpkg.com/@types/google.accounts/-/google.accounts-0.0.2.tgz#4e03bd249fe490f004f4f8d6423343fc51f5614a"
-  integrity sha512-wmnbDIiGZNr3dJ+NCGiWme78rhsf5gn1YJM6uRjf3FCb8lrRptybQeAnHQ+GDfKSo+z2hRxhS32VRDXJEAvCmg==
+"@types/google.accounts@^0.0.18":
+  version "0.0.18"
+  resolved "https://registry.yarnpkg.com/@types/google.accounts/-/google.accounts-0.0.18.tgz#13dc6a49630c7e54c662539ec5cbe81e64a8227a"
+  integrity sha512-yHaPznll97ZnMJlPABHyeiIlLn3u6gQaUjA5k/O9lrrpgFB9VT10CKPLuKM0qTHMl50uXpW5sIcG+utm8jMOHw==
 
-"@types/google.picker@^0.0.42":
-  version "0.0.42"
-  resolved "https://registry.yarnpkg.com/@types/google.picker/-/google.picker-0.0.42.tgz#91285c47c3c15a57060a3c7d16b2ec3a2937bd19"
-  integrity sha512-7Ut1zDLCGNhyN+0fuIcncpBP9eUsIjLKz6qmVKvdkBUi1EzAskxTcIZcU/w2cO1ens/hEXlqeLd5qAKs/Kqqyw==
+"@types/google.picker@^0.0.52":
+  version "0.0.52"
+  resolved "https://registry.yarnpkg.com/@types/google.picker/-/google.picker-0.0.52.tgz#028e23ead7eb2644037f47b4d4a1b1d421d14be8"
+  integrity sha512-k0HyW8HxJePomM2r0JWq9nE9XG6qY93lVpoVnaV4WjQggDHrGwDKq3G8CGpcBWhQlJBTxX9jDIrI7RQnqjM63w==
 
 "@types/har-format@*":
   version "1.2.15"
@@ -10158,10 +10158,10 @@
   resolved "https://registry.npmjs.org/@types/range-parser/-/range-parser-1.2.4.tgz"
   integrity sha512-EEhsLsD6UsDM1yFhAvy0Cjr6VwmpMWqFBCb9w07wVugF7w9nfajxLuVmngTIpgS6svCnm6Vaw+MZhoDCKnOfsw==
 
-"@types/react-dom@^19.1.6":
-  version "19.1.6"
-  resolved "https://registry.yarnpkg.com/@types/react-dom/-/react-dom-19.1.6.tgz#4af629da0e9f9c0f506fc4d1caa610399c595d64"
-  integrity sha512-4hOiT/dwO8Ko0gV1m/TJZYk3y0KBnY9vzDh7W+DH17b2HFSOGgdj33dhihPeuy3l0q23+4e+hoXHV6hCC4dCXw==
+"@types/react-dom@^19.2.3":
+  version "19.2.3"
+  resolved "https://registry.yarnpkg.com/@types/react-dom/-/react-dom-19.2.3.tgz#c1e305d15a52a3e508d54dca770d202cb63abf2c"
+  integrity sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ==
 
 "@types/react-router-dom@5.3.3":
   version "5.3.3"
@@ -10196,12 +10196,12 @@
     "@types/scheduler" "*"
     csstype "^3.0.2"
 
-"@types/react@^19.1.8":
-  version "19.1.8"
-  resolved "https://registry.yarnpkg.com/@types/react/-/react-19.1.8.tgz#ff8395f2afb764597265ced15f8dddb0720ae1c3"
-  integrity sha512-AwAfQ2Wa5bCx9WP8nZL2uMZWod7J7/JSplxbTmBQ5ms6QpqNYm672H0Vu9ZVKVngQ+ii4R/byguVEUZQyeg44g==
+"@types/react@^19.2.14":
+  version "19.2.14"
+  resolved "https://registry.yarnpkg.com/@types/react/-/react-19.2.14.tgz#39604929b5e3957e3a6fa0001dafb17c7af70bad"
+  integrity sha512-ilcTH/UniCkMdtexkoCN0bI7pMcJDvmQFPvuPvmEaYA/NSfFTAgdUSLAoVjaRJm7+6PvcM+q1zYOwS4wTYMF9w==
   dependencies:
-    csstype "^3.0.2"
+    csstype "^3.2.2"
 
 "@types/readdir-glob@*":
   version "1.1.5"
@@ -14035,6 +14035,11 @@ csstype@^3.0.2:
   resolved "https://registry.npmjs.org/csstype/-/csstype-3.1.0.tgz"
   integrity sha512-uX1KG+x9h5hIJsaKR9xHUeUraxf8IODOwq9JLNPq6BwB04a/xgpq3rcx47l5BZu5zBPlgD342tdke3Hom/nJRA==
 
+csstype@^3.2.2:
+  version "3.2.3"
+  resolved "https://registry.yarnpkg.com/csstype/-/csstype-3.2.3.tgz#ec48c0f3e993e50648c86da559e2610995cf989a"
+  integrity sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==
+
 damerau-levenshtein@^1.0.8:
   version "1.0.8"
   resolved "https://registry.npmjs.org/damerau-levenshtein/-/damerau-levenshtein-1.0.8.tgz"
@@ -15862,12 +15867,7 @@ eslint-plugin-playwright@^1.6.2:
   dependencies:
     globals "^13.23.0"
 
-eslint-plugin-react-hooks@^5.2.0:
-  version "5.2.0"
-  resolved "https://registry.yarnpkg.com/eslint-plugin-react-hooks/-/eslint-plugin-react-hooks-5.2.0.tgz#1be0080901e6ac31ce7971beed3d3ec0a423d9e3"
-  integrity sha512-+f15FfK64YQwZdJNELETdn5ibXEUQmW1DZL6KXhNnc2heoy/sg9VJJeT7n8TlMWouzWqSWavFkIhHyIbIAEapg==
-
-eslint-plugin-react-hooks@^7.0.0:
+eslint-plugin-react-hooks@^7.0.0, eslint-plugin-react-hooks@^7.0.1:
   version "7.0.1"
   resolved "https://registry.yarnpkg.com/eslint-plugin-react-hooks/-/eslint-plugin-react-hooks-7.0.1.tgz#66e258db58ece50723ef20cc159f8aa908219169"
   integrity sha512-O0d0m04evaNzEPoSW+59Mezf8Qt0InfgGIBJnpC0h3NH/WjUAR7BIKUfysC6todmtiZ/A0oUVS8Gce0WhBrHsA==
@@ -15878,7 +15878,7 @@ eslint-plugin-react-hooks@^7.0.0:
     zod "^3.25.0 || ^4.0.0"
     zod-validation-error "^3.5.0 || ^4.0.0"
 
-eslint-plugin-react@^7.37.0:
+eslint-plugin-react@^7.37.0, eslint-plugin-react@^7.37.5:
   version "7.37.5"
   resolved "https://registry.yarnpkg.com/eslint-plugin-react/-/eslint-plugin-react-7.37.5.tgz#2975511472bdda1b272b34d779335c9b0e877065"
   integrity sha512-Qteup0SqU15kdocexFNAJMvCJEfa2xUKNV4CC1xsVMrIIqEy3SQ/rqyxCWNzfrd3/ldy6HMlD2e0JDVpDg2qIA==
@@ -15894,30 +15894,6 @@ eslint-plugin-react@^7.37.0:
     jsx-ast-utils "^2.4.1 || ^3.0.0"
     minimatch "^3.1.2"
     object.entries "^1.1.9"
-    object.fromentries "^2.0.8"
-    object.values "^1.2.1"
-    prop-types "^15.8.1"
-    resolve "^2.0.0-next.5"
-    semver "^6.3.1"
-    string.prototype.matchall "^4.0.12"
-    string.prototype.repeat "^1.0.0"
-
-eslint-plugin-react@^7.37.4:
-  version "7.37.4"
-  resolved "https://registry.yarnpkg.com/eslint-plugin-react/-/eslint-plugin-react-7.37.4.tgz#1b6c80b6175b6ae4b26055ae4d55d04c414c7181"
-  integrity sha512-BGP0jRmfYyvOyvMoRX/uoUeW+GqNj9y16bPQzqAHf3AYII/tDs+jMN0dBVkl88/OZwNGwrVFxE7riHsXVfy/LQ==
-  dependencies:
-    array-includes "^3.1.8"
-    array.prototype.findlast "^1.2.5"
-    array.prototype.flatmap "^1.3.3"
-    array.prototype.tosorted "^1.1.4"
-    doctrine "^2.1.0"
-    es-iterator-helpers "^1.2.1"
-    estraverse "^5.3.0"
-    hasown "^2.0.2"
-    jsx-ast-utils "^2.4.1 || ^3.0.0"
-    minimatch "^3.1.2"
-    object.entries "^1.1.8"
     object.fromentries "^2.0.8"
     object.values "^1.2.1"
     prop-types "^15.8.1"
@@ -21350,15 +21326,6 @@ object.assign@^4.1.7:
     es-object-atoms "^1.0.0"
     has-symbols "^1.1.0"
     object-keys "^1.1.1"
-
-object.entries@^1.1.8:
-  version "1.1.8"
-  resolved "https://registry.yarnpkg.com/object.entries/-/object.entries-1.1.8.tgz#bffe6f282e01f4d17807204a24f8edd823599c41"
-  integrity sha512-cmopxi8VwRIAw/fkijJohSfpef5PdN0pMQJN6VC/ZKvn0LIknWD8KtgY6KlQdEc4tIjcQ3HxSMmnvtzIscdaYQ==
-  dependencies:
-    call-bind "^1.0.7"
-    define-properties "^1.2.1"
-    es-object-atoms "^1.0.0"
 
 object.entries@^1.1.9:
   version "1.1.9"

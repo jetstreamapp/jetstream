@@ -1,7 +1,8 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { GoogleApiClientConfig, useDrivePicker } from '@jetstream/shared/ui-utils';
 import classNames from 'classnames';
 import uniqueId from 'lodash/uniqueId';
-import { FunctionComponent, useCallback, useEffect, useState } from 'react';
+import { FunctionComponent, useCallback, useEffect, useEffectEvent, useState } from 'react';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
 import Spinner from '../../widgets/Spinner';
@@ -21,7 +22,7 @@ export interface GoogleFolderSelectorProps {
   isRequired?: boolean;
   disabled?: boolean;
   onSelectorVisible?: (isVisible: boolean) => void;
-  onSelected?: (data: google.picker.DocumentObject) => void;
+  onSelected: (data: google.picker.DocumentObject) => void;
   onError?: (error: string) => void;
 }
 
@@ -47,6 +48,10 @@ export const GoogleFolderSelector: FunctionComponent<GoogleFolderSelectorProps> 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [{ managedFilename: managedName, filenameTruncated }, setManagedName] = useFilename(folderName);
 
+  const onSelectedEvent = useEffectEvent((item: google.picker.DocumentObject) => {
+    onSelected(item);
+  });
+
   useEffect(() => {
     if (errorMessage && onError) {
       onError(errorMessage);
@@ -65,34 +70,50 @@ export const GoogleFolderSelector: FunctionComponent<GoogleFolderSelectorProps> 
     }
   }, [scriptLoadError, errorMessage]);
 
-  const handleFolderSelected = useCallback(async (data: google.picker.ResponseObject) => {
-    if (Array.isArray(data.docs) && data.docs.length > 0) {
-      const selectedItem = data.docs[0];
-      setSelectedFolder(selectedItem);
-      onSelected && onSelected(selectedItem);
-      setManagedName(selectedItem.name);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   useEffect(() => {
-    if (data) {
-      handleFolderSelected(data);
+    if (data && Array.isArray(data.docs) && data.docs.length > 0) {
+      const selectedItem = data.docs[0];
+
+      setSelectedFolder(selectedItem);
+      setManagedName(selectedItem.name ?? 'Selected folder');
+
+      onSelectedEvent(selectedItem);
     }
-  }, [data, handleFolderSelected]);
+  }, [data, setManagedName]);
 
   const handleOpenPicker = useCallback(() => {
     openPicker({
       title: 'Select a folder',
       views: [
-        { view: new google.picker.DocsView(window.google.picker.ViewId.FOLDERS).setSelectFolderEnabled(true).setParent('root') },
+        // .setParent('root')
         {
-          view: new google.picker.DocsView(window.google.picker.ViewId.FOLDERS).setSelectFolderEnabled(true).setStarred(true),
+          view: new google.picker.DocsView(window.google.picker.ViewId.FOLDERS)
+            .setSelectFolderEnabled(true)
+            .setMode(window.google.picker.DocsViewMode.LIST)
+            .setOwnedByMe(true),
+          label: 'My folders',
+        },
+        {
+          view: new google.picker.DocsView(window.google.picker.ViewId.FOLDERS)
+            .setSelectFolderEnabled(true)
+            .setMode(window.google.picker.DocsViewMode.LIST)
+            .setStarred(true),
           label: 'Starred folders',
         },
-        { view: new google.picker.DocsView(window.google.picker.ViewId.FOLDERS).setSelectFolderEnabled(true).setEnableDrives(true) },
+        {
+          view: new google.picker.DocsView(window.google.picker.ViewId.FOLDERS)
+            .setSelectFolderEnabled(true)
+            .setMode(window.google.picker.DocsViewMode.LIST)
+            .setOwnedByMe(false),
+          label: 'Shared with me',
+        },
+        {
+          view: new google.picker.DocsView(window.google.picker.ViewId.FOLDERS)
+            .setSelectFolderEnabled(true)
+            .setMode(window.google.picker.DocsViewMode.LIST)
+            .setEnableDrives(true),
+        },
       ],
-      features: [window.google.picker.Feature.SUPPORT_DRIVES],
     });
   }, [openPicker]);
 
@@ -115,7 +136,6 @@ export const GoogleFolderSelector: FunctionComponent<GoogleFolderSelectorProps> 
             disabled={googleApiLoading || disabled}
             aria-labelledby={`${labelId}`}
             aria-describedby="folder-input-help"
-            // title={apiData?.signedIn ? `Signed in as ${apiData.gapiAuthInstance.currentUser.get().getBasicProfile().getEmail()}` : ''}
           >
             <Icon type="doctype" icon="gdrive" className="slds-button__icon slds-button__icon_left" omitContainer />
             {buttonLabel}

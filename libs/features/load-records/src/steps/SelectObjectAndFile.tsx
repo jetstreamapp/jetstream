@@ -137,6 +137,9 @@ export const LoadRecordsSelectObjectAndFile = ({
 
   async function handleGoogleFile({ workbook, selectedFile }: InputReadGoogleSheet) {
     try {
+      if (!selectedFile.name) {
+        throw new Error('Selected Google file is missing a name.');
+      }
       const { data, headers } = await parseWorkbook(workbook, { onParsedMultipleWorkbooks });
       onFileChange(data, headers, selectedFile.name, 'google', selectedFile);
     } catch (ex) {
