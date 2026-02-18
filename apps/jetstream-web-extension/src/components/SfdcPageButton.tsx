@@ -4,12 +4,11 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { useInterval } from '@jetstream/shared/ui-utils';
 import type { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, OutsideClickHandler, Tabs } from '@jetstream/ui';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useAtomValue, useSetAtom } from 'jotai';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import browser from 'webextension-polyfill';
 import '../sfdc-styles-shim.scss';
 import { chromeStorageOptions, chromeSyncStorage } from '../utils/extension.store';
@@ -97,7 +96,6 @@ function getActionLink(sfHost: string, pageLink: PageLink, objectName?: string) 
 }
 
 export function SfdcPageButton() {
-  const currentPathname = useRef<string>(location.pathname);
   const options = useAtomValue(chromeStorageOptions);
   const { authTokens, buttonPosition } = useAtomValue(chromeSyncStorage);
   const [isOnSalesforcePage] = useState(
@@ -123,15 +121,27 @@ export function SfdcPageButton() {
     }
   }, []);
 
-  // TODO: figure out if there is a better way to listen for url change events
-  useInterval(() => {
-    if (currentPathname.current === location.pathname) {
-      return;
-    }
-    currentPathname.current = location.pathname;
-    setRecordId(() => getRecordPageRecordId(location.pathname));
-    setObjectName(() => getRecordPageObject(location.pathname));
-  }, 5000);
+  // Listen for URL changes in Salesforce SPA navigation
+  useEffect(() => {
+    const handleUrlChange = () => {
+      setRecordId(getRecordPageRecordId(location.pathname));
+      setObjectName(getRecordPageObject(location.pathname));
+    };
+
+    // Salesforce Lightning uses its own navigation - listen for URL changes via polling as fallback
+    // Check every 500ms
+    let lastPathname = location.pathname;
+    const pollInterval = setInterval(() => {
+      if (lastPathname !== location.pathname) {
+        lastPathname = location.pathname;
+        handleUrlChange();
+      }
+    }, 500);
+
+    return () => {
+      clearInterval(pollInterval);
+    };
+  }, []);
 
   useEffect(() => {
     if (isOnSalesforcePage) {
