@@ -27,7 +27,7 @@ export interface AddToChangesetConfigModalProps {
   onChangesetPackages: (changesetPackages: ListItem<string, ChangeSet>[]) => void;
   onSelection: (changesetPackage: string) => void;
   onClose: () => void;
-  onDeploy: (changesetPackage: string, changesetDescription: string, deployOptions: DeployOptions, changeset?: Maybe<ChangeSet>) => void;
+  onDeploy: (packageName: string, changesetDescription: string, deployOptions: DeployOptions, changeset?: Maybe<ChangeSet>) => void;
 }
 
 export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigModalProps> = ({
