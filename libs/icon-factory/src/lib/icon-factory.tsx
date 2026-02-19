@@ -123,6 +123,7 @@ import UtilityIcon_Preview from './icons/utility/Preview';
 import UtilityIcon_ProfileAlt from './icons/utility/ProfileAlt';
 import UtilityIcon_PromptEdit from './icons/utility/PromptEdit';
 import UtilityIcon_QuotationMarks from './icons/utility/QuotationMarks';
+import UtilityIcon_RecordAlt from './icons/utility/RecordAlt';
 import UtilityIcon_RecordCreate from './icons/utility/RecordCreate';
 import UtilityIcon_RecordDelete from './icons/utility/RecordDelete';
 import UtilityIcon_RecordLookup from './icons/utility/RecordLookup';
@@ -317,6 +318,7 @@ const utilityIcons = {
   profile_alt: UtilityIcon_ProfileAlt,
   prompt_edit: UtilityIcon_PromptEdit,
   quotation_marks: UtilityIcon_QuotationMarks,
+  record_alt: UtilityIcon_RecordAlt,
   record_create: UtilityIcon_RecordCreate,
   record_delete: UtilityIcon_RecordDelete,
   record_lookup: UtilityIcon_RecordLookup,

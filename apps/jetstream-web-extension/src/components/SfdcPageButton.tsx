@@ -18,6 +18,7 @@ import JetstreamLogo from './icons/JetstreamLogo';
 import { SfdcPageButtonOrgInfo } from './SfdcPageButtonOrgInfo';
 import { SfdcPageButtonRecordSearch } from './SfdcPageButtonRecordSearch';
 import { SfdcPageButtonUserSearch } from './SfdcPageButtonUserSearch';
+import { SfdcPageRecordQuickViewButton } from './SfdcPageRecordQuickView';
 interface PageLink {
   link: string;
   label: string;
@@ -180,6 +181,18 @@ export function SfdcPageButton() {
     }
   }, [isOnSalesforcePage, setSalesforceOrgs, setSelectedOrgId]);
 
+  // Close panel on escape key (quick view takes precedence via stopImmediatePropagation)
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen]);
+
   if (!options.enabled || !authTokens?.loggedIn) {
     return null;
   }
@@ -287,6 +300,11 @@ export function SfdcPageButton() {
 
                       {recordId && (
                         <>
+                          {objectName && (
+                            <GridCol className="slds-m-bottom_x-small" css={ItemColStyles}>
+                              <SfdcPageRecordQuickViewButton sfHost={sfHost} recordId={recordId} sobject={objectName} />
+                            </GridCol>
+                          )}
                           <GridCol className="slds-m-bottom_x-small" css={ItemColStyles}>
                             <a
                               href={`${browser.runtime.getURL('app.html')}?host=${sfHost}&action=VIEW_RECORD&actionValue=${recordId}`}
