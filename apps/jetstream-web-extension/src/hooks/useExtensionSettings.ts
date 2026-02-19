@@ -8,12 +8,14 @@ import { sendMessage } from '../utils/web-extension.utils';
 export const useExtensionSettings = () => {
   const { authTokens, soqlQueryFormatOptions: _soqlQueryFormatOptions } = useAtomValue(chromeSyncStorage);
   const options = useAtomValue(chromeStorageOptions);
-  const [enabled, setEnabled] = useState(options.enabled);
-  const [recordSyncEnabled, setRecordSyncEnabled] = useState(options.recordSyncEnabled);
   const [soqlQueryFormatOptions, setSoqlQueryFormatOptions] = useState(_soqlQueryFormatOptions);
   const [authError, setAuthError] = useState<string | null>(null);
 
   const loggedIn = !!authTokens?.loggedIn;
+
+  // Use atom values directly instead of copying to local state
+  const enabled = options.enabled;
+  const recordSyncEnabled = options.recordSyncEnabled;
 
   useEffect(() => {
     sendMessage({ message: 'VERIFY_AUTH' }).catch((err) => {
@@ -21,16 +23,13 @@ export const useExtensionSettings = () => {
     });
   }, [authTokens]);
 
-  useNonInitialEffect(() => {
-    (async () => {
-      try {
-        const options = await browser.storage.local.get('options');
-        await browser.storage.local.set({ options: { ...options, enabled, recordSyncEnabled } });
-      } catch (ex) {
-        console.warn('Error setting options', ex);
-      }
-    })();
-  }, [enabled, recordSyncEnabled]);
+  const setEnabled = async (value: boolean) => {
+    await browser.storage.local.set({ options: { enabled: value, recordSyncEnabled } });
+  };
+
+  const setRecordSyncEnabled = async (value: boolean) => {
+    await browser.storage.local.set({ options: { enabled, recordSyncEnabled: value } });
+  };
 
   useNonInitialEffect(() => {
     (async () => {
