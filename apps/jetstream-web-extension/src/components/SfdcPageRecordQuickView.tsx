@@ -45,37 +45,51 @@ export function SfdcPageRecordQuickView({ sfHost, recordId, sobject, onClose }: 
   const searchTermDebounced = useDebounce(searchTerm, 300);
 
   useEffect(() => {
-    if (sfHost && recordId) {
+    if (!sfHost || !recordId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadRecord = async () => {
       setLoading(true);
       setErrorMessage(null);
 
-      getApiClientFromHost(sfHost)
-        .then(async (apiConnection) => {
-          const record = await apiConnection.sobject
-            .recordOperation({ operation: 'retrieve', ids: [recordId], sobject })
-            .then((response) => response[0]);
+      try {
+        const apiConnection = await getApiClientFromHost(sfHost);
+        const record = await apiConnection.sobject
+          .recordOperation({ operation: 'retrieve', ids: [recordId], sobject })
+          .then((response) => response[0]);
 
-          // Transform record into fields array
-          const fields: RecordField[] = orderObjectsBy(
-            Object.entries(record)
-              .filter(([key]) => key !== 'attributes')
-              .map(([apiName, value]) => ({
-                apiName,
-                value,
-                displayValue: formatFieldValue(value),
-              })),
-            ['apiName'],
-          );
+        if (cancelled) return;
 
-          setRecordData(fields);
-          setLoading(false);
-        })
-        .catch((err) => {
-          logger.error(err);
-          setErrorMessage(`Failed to load record: ${err.message}`);
-          setLoading(false);
-        });
-    }
+        // Transform record into fields array
+        const fields: RecordField[] = orderObjectsBy(
+          Object.entries(record)
+            .filter(([key]) => key !== 'attributes')
+            .map(([apiName, value]) => ({
+              apiName,
+              value,
+              displayValue: formatFieldValue(value),
+            })),
+          ['apiName'],
+        );
+
+        setRecordData(fields);
+        setLoading(false);
+      } catch (err) {
+        if (cancelled) return;
+        logger.error(err);
+        setErrorMessage(`Failed to load record: ${err.message}`);
+        setLoading(false);
+      }
+    };
+
+    loadRecord();
+
+    return () => {
+      cancelled = true;
+    };
   }, [sfHost, recordId, sobject]);
 
   // Close on escape key

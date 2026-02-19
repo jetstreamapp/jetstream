@@ -3,7 +3,7 @@ import { AxiosAdapterConfig } from '@jetstream/shared/data';
 import { AppToast, ConfirmationServiceProvider } from '@jetstream/ui';
 import { AppLoading, ViewEditCloneRecordWrapper } from '@jetstream/ui-core';
 import '@salesforce-ux/design-system/assets/styles/salesforce-lightning-design-system.css';
-import { useAtomValue } from 'jotai';
+import { Provider, useAtomValue } from 'jotai';
 import { ReactNode, Suspense } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -12,7 +12,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { environment } from '../environments/environment';
 import '../main.scss';
 import { browserExtensionAxiosAdapter } from '../utils/extension-axios-adapter';
-import { chromeStorageLoading } from '../utils/extension.store';
+import { chromeStorageLoading, extensionStateStore } from '../utils/extension.store';
 import '../utils/monaco-loader';
 import AppInitializer from './AppInitializer';
 
@@ -22,7 +22,7 @@ if (!environment.production) {
 
 AxiosAdapterConfig.adapter = browserExtensionAxiosAdapter;
 
-export function AppWrapper({ allowWithoutSalesforceOrg, children }: { allowWithoutSalesforceOrg?: boolean; children: ReactNode }) {
+function AppWrapperInner({ allowWithoutSalesforceOrg, children }: { allowWithoutSalesforceOrg?: boolean; children: ReactNode }) {
   const isLoading = useAtomValue(chromeStorageLoading);
   if (isLoading) {
     return <AppLoading />;
@@ -42,5 +42,13 @@ export function AppWrapper({ allowWithoutSalesforceOrg, children }: { allowWitho
         </MemoryRouter>
       </Suspense>
     </ConfirmationServiceProvider>
+  );
+}
+
+export function AppWrapper({ allowWithoutSalesforceOrg, children }: { allowWithoutSalesforceOrg?: boolean; children: ReactNode }) {
+  return (
+    <Provider store={extensionStateStore}>
+      <AppWrapperInner allowWithoutSalesforceOrg={allowWithoutSalesforceOrg}>{children}</AppWrapperInner>
+    </Provider>
   );
 }

@@ -1,13 +1,26 @@
 import { enableLogger } from '@jetstream/shared/client-logger';
 import '@salesforce-ux/design-system/assets/styles/salesforce-lightning-design-system.css';
+import { Provider, useAtomValue } from 'jotai';
 import localforage from 'localforage';
 import { ReactNode, Suspense, useEffect, useState } from 'react';
 import { environment } from '../environments/environment';
 import '../main.scss';
+import { chromeStorageLoading, extensionStateStore } from '../utils/extension.store';
 import { LOCAL_DRIVER_NAME, localDriver } from '../utils/web-extension-localforage-driver';
 
 if (!environment.production) {
   enableLogger(true);
+}
+
+function AppWrapperInner({ children }: { children: ReactNode }) {
+  const isStorageLoading = useAtomValue(chromeStorageLoading);
+
+  // Wait for storage to load before rendering to avoid reading stale fallback values
+  if (isStorageLoading) {
+    return <div>Loading...</div>;
+  }
+
+  return <Suspense fallback={'Loading...'}>{children}</Suspense>;
 }
 
 /**
@@ -45,5 +58,9 @@ export function AppWrapperNotJetstreamOwnedPage({ children }: { children: ReactN
     return null;
   }
 
-  return <Suspense fallback={'Loading...'}>{children}</Suspense>;
+  return (
+    <Provider store={extensionStateStore}>
+      <AppWrapperInner>{children}</AppWrapperInner>
+    </Provider>
+  );
 }
