@@ -12,11 +12,8 @@
     "node": ">=22 <23",
     "yarn": ">=1.22 <2"
   },
-  "// fast-xml-parser": "Remove this once aws-sdk is updated to a version that uses fast-xml-parser 5.3.6 or later",
   "resolutions": {
-    "conventional-changelog-conventionalcommits": "8.0.0",
-    "@aws-sdk/xml-builder/fast-xml-parser": "^5.3.6",
-    "fast-xml-parser": "^5.3.6"
+    "conventional-changelog-conventionalcommits": "8.0.0"
   },
   "scripts": {
     "postinstall": "prisma generate",
@@ -231,7 +228,7 @@
     "git-revision-webpack-plugin": "^5.0.0",
     "html-webpack-plugin": "^5.6.5",
     "husky": "^9.1.7",
-    "jsdom": "22.1.0",
+    "jsdom": "^28.1.0",
     "jsonc-eslint-parser": "^2.1.0",
     "next-sitemap": "^4.2.3",
     "npm-run-all": "^4.1.5",
@@ -257,14 +254,14 @@
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "4.0.9",
     "web-ext": "^8.4.0",
-    "webpack": "5.101.3",
+    "webpack": "^5.105.2",
     "webpack-merge": "^5.8.0",
     "worker-loader": "^2.0.0",
     "zx": "^8.8.5"
   },
   "dependencies": {
     "@amplitude/analytics-browser": "2.9.2",
-    "@aws-sdk/client-s3": "^3.992.0",
+    "@aws-sdk/client-s3": "^3.994.0",
     "@casl/ability": "^6.8.0",
     "@casl/react": "^5.0.1",
     "@emotion/react": "11.14.0",
@@ -289,7 +286,7 @@
     "@socket.io/cluster-adapter": "^0.3.0",
     "@socket.io/sticky": "^1.0.4",
     "@tanstack/react-virtual": "^3.13.12",
-    "axios": "^1.13.2",
+    "axios": "^1.13.5",
     "bcryptjs": "^3.0.3",
     "body-parser": "^2.2.1",
     "bowser": "^2.12.1",
@@ -331,7 +328,7 @@
     "jszip": "^3.10.1",
     "jwt-decode": "^4.0.0",
     "localforage": "^1.10.0",
-    "lodash": "^4.17.21",
+    "lodash": "^4.17.23",
     "lru-cache": "^11.2.2",
     "mailgun.js": "^12.1.1",
     "maxmind": "^4.3.23",
@@ -368,7 +365,7 @@
     "socket.io-client": "^4.8.3",
     "split.js": "^1.6.5",
     "stripe": "^17.7.0",
-    "tar": "^7.5.7",
+    "tar": "^7.5.9",
     "tiny-request-router": "^1.2.2",
     "tslib": "^2.3.0",
     "unzipper": "^0.12.3",
