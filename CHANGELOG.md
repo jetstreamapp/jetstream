@@ -1,5 +1,16 @@
 # Changelog
 
+## [8.25.0](https://github.com/jetstreamapp/jetstream/compare/v8.24.0...v8.25.0) (2026-02-19)
+
+### Features
+
+* **browser-extension:** add quick record view ([d4330f5](https://github.com/jetstreamapp/jetstream/commit/d4330f5a815f82efe3a924e6f97d2e464eb30972))
+
+### Bug Fixes
+
+* **browser-extension:** fix browser extension state ([a541fea](https://github.com/jetstreamapp/jetstream/commit/a541fead0d9360438faeb90e80d721f672482a04)), closes [#1549](https://github.com/jetstreamapp/jetstream/issues/1549)
+* **web-extension:** improve view/edit current record ([880150b](https://github.com/jetstreamapp/jetstream/commit/880150bcc18302b29cfae7b29f4c216d34ec5e8c))
+
 ## [8.24.0](https://github.com/jetstreamapp/jetstream/compare/v8.23.1...v8.24.0) (2026-02-17)
 
 ### Features
