@@ -55,7 +55,7 @@ export const AddToChangeset = ({ className, selectedOrg, loading, selectedRows }
     deployOptions: DeployOptions,
     changeset?: Maybe<ChangeSet>,
   ) {
-    setChangesetPackageName(packageName);
+    setChangesetPackageName(encodeURIComponent(packageName));
     setChangesetPackageDescription(changesetDescription);
     setDeployOptions(deployOptions);
     setSelectedChangeset(changeset);
