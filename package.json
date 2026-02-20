@@ -269,7 +269,6 @@
     "@casl/react": "^5.0.1",
     "@emotion/react": "11.14.0",
     "@emotion/styled": "11.14.1",
-    "@express-rate-limit/cluster-memory-store": "^0.3.1",
     "@floating-ui/react": "^0.27.16",
     "@fullhuman/postcss-purgecss": "^2.2.0",
     "@heroicons/react": "^2.2.0",
