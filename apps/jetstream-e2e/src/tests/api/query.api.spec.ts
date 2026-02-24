@@ -88,8 +88,6 @@ test.describe('API - Query', () => {
       ),
     ]);
 
-    console.log(querySuccess);
-
     expect(querySuccess).toBeTruthy();
     expect(querySuccess.parsedQuery).toBeTruthy();
     expect(querySuccess.parsedQuery?.fields?.length).toEqual(5);
@@ -130,7 +128,6 @@ test.describe('API - Query', () => {
       'GET',
       `/api/query-more?${new URLSearchParams({
         isTooling: 'false',
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         nextRecordsUrl: initialQuery.queryResults.nextRecordsUrl!,
       }).toString()}`,
     );

@@ -1,2 +1,8 @@
 @charset "UTF-8";
 @import './tailwind.css';
+
+@layer base {
+  button {
+    @apply cursor-pointer;
+  }
+}

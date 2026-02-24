@@ -1,4 +1,4 @@
-import { expect, test } from '../../fixtures/fixtures';
+import { expect, test } from '../../../fixtures/fixtures';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -71,7 +71,9 @@ test.describe('Login 3', () => {
 
       // Should be redirected to login page with error message
       await page.waitForURL(authenticationPage.routes.login(true));
-      await expect(page.getByText('This email address is already in use. Log in using an existing method or reset your password.')).toBeVisible();
+      await expect(
+        page.getByText('This email address is already in use. Log in using an existing method or reset your password.'),
+      ).toBeVisible();
     });
 
     await test.step('Attempt to register with same email address, using email with uppercase', async () => {
@@ -85,7 +87,9 @@ test.describe('Login 3', () => {
 
       // Should be redirected to login page with error message
       await page.waitForURL(authenticationPage.routes.login(true));
-      await expect(page.getByText('This email address is already in use. Log in using an existing method or reset your password.')).toBeVisible();
+      await expect(
+        page.getByText('This email address is already in use. Log in using an existing method or reset your password.'),
+      ).toBeVisible();
     });
   });
 });

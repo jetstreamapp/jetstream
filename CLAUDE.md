@@ -41,75 +41,46 @@ libs/
 prisma/                    # Database schema and migrations
 ```
 
-## Essential Commands
+## Commands
 
-### Development Setup
+There are a number of commands in our package.json that you can use.
 
-```bash
-yarn                     # Install dependencies
-yarn init:project        # Initialize .env file
-yarn db:generate         # Generate Prisma client
-yarn db:migrate          # Run database migrations
-yarn db:seed             # Seed database with initial data
-```
-
-### Development Servers
+You can also use standard `nx` commands as well depending on the task.
 
 ```bash
-# Core development (run in separate terminals)
-yarn start:api          # Backend API (http://localhost:3333)
-yarn start              # Frontend dev server (http://localhost:4200)
+yarn build:core               # Build all core apps
+yarn build:client             # Build frontend only
+yarn build:api                # Build backend only
+yarn build:desktop            # Build desktop app
+yarn build:web-extension      # Build browser extension
+yarn nx run {project}:build   # Build a specific application (libraries are NOT buildable)
 
-# Optional services
-yarn start:desktop:client # Desktop app renderer
-yarn start:desktop      # Desktop app main process
-
-# Web extension
-yarn start:web-ext:watch   # Watch mode for extension
-yarn start:web-ext:chrome  # Run in Chrome
-yarn start:web-ext:firefox  # Run in Firefox
-```
-
-### Building
-
-```bash
-yarn build               # Build all core apps
-yarn build:client        # Build frontend only
-yarn build:api           # Build backend only
-yarn build:desktop       # Build desktop app
-yarn build:web-extension # Build browser extension
-```
-
-### Testing & Quality
-
-```bash
-# Run tests
-yarn test [project]            # Test specific project (nx project name)
-yarn test [folder]             # Test a specific folder
-  --testNamePattern="testName" # Run a specific test
-
+# Testing
 yarn test:all                  # Test all projects
 yarn test:affected             # Test affected by changes
+yarn nx run {project}:test     # Test a specific application or library
 
 # Linting
 yarn lint:all                  # Lint all projects
 yarn lint:affected             # Lint affected projects
+yarn nx run {project}:list     # Test a specific application or library
 
-# E2E tests
-yarn playwright:test           # Run Playwright tests
-yarn e2e                       # Run E2E tests
-
-# Format code
-yarn format                    # Auto-format code
-```
-
-### Nx Commands
-
-```bash
 yarn nx show projects      # Show a list of all projects
 yarn nx dep-graph --print  # View dependency graph
 yarn nx affected:build     # Build affected projects
 yarn nx affected:test      # Test affected projects
+```
+
+## Important Project Build Notes
+
+NONE of the libraries are buildable, so never try to build a library.
+
+## Essential Commands
+
+### Database Operations
+
+```bash
+yarn db:generate         # Generate Prisma client
 ```
 
 ## Architecture Patterns
@@ -133,10 +104,23 @@ yarn nx affected:test      # Test affected projects
 - Make decisions that favor future code readability
 - Add function level or block level comments where it adds to code readability, skip it for trivial functions or things where the function name explains everything a developer would ever need to know
 - For logic (e.g. within a function) don't add trivial comments to every line for no reason, only add comments where warranted to aid in future understanding "at a glance"
+- Avoid if statements without curly brackets
+
+```typescript
+// ❌ DON'T DO THIS
+if (true) return x;
+
+// ✅ DO THIS
+if (true) {
+  return x;
+}
+```
+
 - Avoid single letter variable names and prefer verbose variables names except for `i` as in index.
   - e.g. `providers.map(provider => provider.value)`
 - Prefer destructuring while looping where it makes sense to avoid having to choose a variable name (favor clarity if needed)
   - e.g. `providers.map(({value}) => value)`
+- Always run prettier after working on a code file
 
 ## Imports
 
@@ -144,36 +128,35 @@ Never import anything cross-module, always use imports defined in `tsconfig.base
 
 This project does NOT use `@salesforce/design-system-react`, all components were built by hand and generally come from `@jetstream/ui`.
 
-Prefer using Salesforce lightning design system CSS classes when applicable, but `import { css } from '@emotion/react'` where needed.
+Prefer using Salesforce lightning design system CSS classes when applicable, but can use `import { css } from '@emotion/react'` where needed.
 
 ## Testing Approach
 
-- Unit tests with Vitest (co-located with source files as `*.spec.ts`)
+- Unit tests with Vitest (co-located with source files, but in a `__tests__` folder example: `__tests__/*.spec.ts`)
 - E2E tests with Playwright in `apps/*-e2e/` directories
-- Run affected tests before committing: `yarn test:affected`
 - Always run linting: `yarn lint:affected`
+- Always ensure that there are no type errors
 
 ## Common Development Tasks
 
 ### Working with Database
 
+Never create migration files unless explicitly asked to.
+If you are asked to create a migration file, always use the prisma cli and never create them manually.
+
+After updating the DB schema, generate types.
+
+If needed, you can apply the DB changes using `yarn prisma db push` so that we can test and iterate prior to creating the migration
+
 ```bash
 yarn db:generate        # Regenerate Prisma client after schema changes
-yarn db:migrate         # Apply pending migrations
-npx prisma studio       # Open database GUI
 ```
 
 ### Adding New Features
 
-1. Generate new library: `yarn nx generate @nx/react:library --directory=libs/feature/feature-name --name=feature-name --component=false --importPath=@jetstream/features/feature-name --tags=scope:browser --no-interactive`
+1. Generate new library: `yarn nx generate @nx/react:library --directory=libs/features/feature-name --name=feature-name --component=false --importPath=@jetstream/feature/feature-name --tags=scope:browser --no-interactive`
 2. Export from library's index.ts
-3. Import in apps as `@jetstream/features/feature-name`
-
-### Debugging
-
-- Backend: Start with `yarn start:api` and attach debugger to port 9229
-- Frontend: Use browser DevTools with source maps
-- Desktop: `yarn start:desktop` with `--inspect=9229`
+3. Import in apps as `@jetstream/feature/feature-name`
 
 ## Key Files to Understand
 

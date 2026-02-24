@@ -7,10 +7,13 @@ import {
   LoginConfiguration,
   LoginConfigurationSchema,
   OauthProviderType,
+  ProviderType,
   ProviderTypeCredentials,
   ProviderTypeOauth,
+  ProviderTypeSso,
   ProviderUser,
   SessionData,
+  SsoProviderType,
   TokenSource,
   TwoFactorType,
   TwoFactorTypeOtp,
@@ -39,6 +42,7 @@ import { actionDisplayName, methodDisplayName } from './auth-logging.db.service'
 import {
   DELETE_AUTH_ACTIVITY_DAYS,
   DELETE_EMAIL_ACTIVITY_DAYS,
+  DELETE_EXPIRED_DOMAIN_VERIFICATION_DAYS,
   DELETE_MAILGUN_WEBHOOK_DAYS,
   DELETE_TOKEN_DAYS,
   PASSWORD_RESET_DURATION_MINUTES,
@@ -79,7 +83,7 @@ export const PLACEHOLDER_USER = AuthenticatedUserSchema.parse({
 } satisfies AuthenticatedUser);
 
 // Mirrors AuthenticatedUserSchema
-const AuthenticatedUserSelect = {
+export const AuthenticatedUserSelect = {
   id: true,
   userId: true,
   name: true,
@@ -138,6 +142,13 @@ export async function pruneExpiredRecords() {
       createdAt: { lte: addDays(startOfDay(new Date()), -DELETE_MAILGUN_WEBHOOK_DAYS) },
     },
   });
+  // Delete domain verification records that have expired and were never verified
+  await prisma.domainVerification.deleteMany({
+    where: {
+      status: 'PENDING',
+      expiresAt: { lte: addDays(startOfDay(new Date()), -DELETE_EXPIRED_DOMAIN_VERIFICATION_DAYS) },
+    },
+  });
 }
 
 async function findUserByProviderId(provider: OauthProviderType, providerAccountId: string) {
@@ -182,82 +193,48 @@ export function clearLoginConfigurationCacheItem(key: string) {
   LOGIN_CONFIGURATION_CACHE.delete(key);
 }
 
-export async function getLoginConfiguration(
-  options: { email: string; skipCache?: boolean } | { teamId: string; skipCache?: false },
-): Promise<LoginConfiguration | null> {
-  const { skipCache = false } = options;
-
-  if ('teamId' in options) {
-    const { teamId } = options;
-    return prisma.team
-      .findFirst({
-        select: {
-          loginConfig: {
-            select: {
-              id: true,
-              allowedMfaMethods: true,
-              allowedProviders: true,
-              requireMfa: true,
-              allowIdentityLinking: true,
-              autoAddToTeam: true,
-              team: {
-                select: {
-                  id: true,
-                },
+export async function getLoginConfiguration({ teamId }: { teamId: string; skipCache?: false }): Promise<LoginConfiguration | null> {
+  return prisma.team
+    .findFirst({
+      select: {
+        loginConfig: {
+          select: {
+            id: true,
+            allowedMfaMethods: true,
+            allowedProviders: true,
+            allowIdentityLinking: true,
+            autoAddToTeam: true,
+            domains: true,
+            requireMfa: true,
+            ssoRequireMfa: true,
+            ssoBypassEnabled: true,
+            ssoEnabled: true,
+            ssoJitProvisioningEnabled: true,
+            ssoProvider: true,
+            samlConfiguration: {
+              select: { id: true },
+            },
+            oidcConfiguration: {
+              select: { id: true },
+            },
+            team: {
+              select: {
+                id: true,
               },
             },
           },
         },
-        where: { id: teamId },
-      })
-      .then((team) => {
-        const config = team?.loginConfig;
-        if (!config) {
-          return null;
-        }
-        const value = LoginConfigurationSchema.parse(config);
-        return value;
-      });
-  } else {
-    // TODO: after we launch teams, deprecate login config which is not used by a team
-    const { email } = options;
-    const domain = email?.split('@')[1]?.toLowerCase();
-
-    if (!domain) {
-      return null;
-    }
-
-    const cachedValue = skipCache ? undefined : LOGIN_CONFIGURATION_CACHE.get(domain);
-    if (cachedValue) {
-      return cachedValue.value;
-    }
-
-    return prisma.loginConfiguration
-      .findFirst({
-        select: {
-          id: true,
-          allowedMfaMethods: true,
-          allowedProviders: true,
-          requireMfa: true,
-          allowIdentityLinking: true,
-          autoAddToTeam: true,
-          team: {
-            select: {
-              id: true,
-            },
-          },
-        },
-        where: { domains: { has: domain } },
-      })
-      .then((config) => {
-        if (!config) {
-          return null;
-        }
-        const value = LoginConfigurationSchema.parse(config);
-        LOGIN_CONFIGURATION_CACHE.set(domain, { value });
-        return value;
-      });
-  }
+      },
+      where: { id: teamId },
+    })
+    .then((team) => {
+      const config = team?.loginConfig;
+      if (!config) {
+        return null;
+      }
+      const value = LoginConfigurationSchema.parse(config);
+      return value;
+    });
 }
 
 export async function setUserEmailVerified(id: string) {
@@ -424,9 +401,7 @@ async function checkMfaActionAllowedOrThrow(
 ) {
   const userId = user.id;
 
-  const loginConfiguration = user.teamMembership?.teamId
-    ? await getLoginConfiguration({ teamId: user.teamMembership.teamId })
-    : await getLoginConfiguration({ email: user.email, skipCache: true });
+  const loginConfiguration = user.teamMembership?.teamId ? await getLoginConfiguration({ teamId: user.teamMembership.teamId }) : null;
 
   if (!loginConfiguration) {
     return null;
@@ -772,6 +747,8 @@ export async function getTeamUserActivity({ teamId, limit, cursor }: { teamId: s
     throw new Error('Invalid teamId');
   }
 
+  // For backwards compatibility - we did not always capture teamId in events
+  // This can be removed after ~March 2027
   const userIds = await prisma.teamMember
     .findMany({ where: { teamId }, select: { userId: true } })
     .then((teamMember) => teamMember.map(({ userId }) => userId));
@@ -795,7 +772,9 @@ export async function getTeamUserActivity({ teamId, limit, cursor }: { teamId: s
           },
         },
       },
-      where: { userId: { in: userIds }, method: { notIn: ['OAUTH_INIT', 'DELETE_ACCOUNT'] } },
+      // Filter by teamId directly — captures pre-auth events (SSO_DISCOVER, SSO_START) that have no userId,
+      // and preserves history for users who have since been removed from the team.
+      where: { OR: [{ userId: { in: userIds } }, { teamId }], action: { notIn: ['OAUTH_INIT', 'DELETE_ACCOUNT'] } },
       cursor,
       take: clamp(limit ?? 25, 1, 100),
       skip: cursor ? 1 : 0, // Skip the cursor
@@ -1385,6 +1364,48 @@ function throwIfInactiveUser(user: AuthenticatedUser | null) {
   }
 }
 
+function throwIfInvalidSsoConfig({
+  providerType,
+  loginConfiguration,
+  user,
+}: {
+  loginConfiguration: Maybe<LoginConfiguration>;
+  providerType: ProviderType;
+  user: AuthenticatedUser;
+}) {
+  if (loginConfiguration && loginConfiguration.ssoEnabled && loginConfiguration.ssoProvider !== 'NONE') {
+    if (!user.teamMembership?.role) {
+      logger.warn(
+        { userId: user.id, providerType, loginConfigurationId: loginConfiguration.id },
+        'Cannot validate SSO bypass roles because user has no team membership role',
+      );
+      throw new ProviderNotAllowed('SSO is required for this team. Login using SSO.');
+    }
+
+    if (!loginConfiguration.ssoBypassEnabled) {
+      logger.warn(
+        { userId: user.id, providerType, loginConfigurationId: loginConfiguration.id },
+        'Cannot bypass SSO because SSO bypass is not enabled in login configuration',
+      );
+      throw new ProviderNotAllowed('SSO is required for this team. Login using SSO.');
+    }
+
+    if (!loginConfiguration.ssoBypassEnabledRoles.includes(user.teamMembership.role)) {
+      logger.warn(
+        {
+          userId: user.id,
+          providerType,
+          loginConfigurationId: loginConfiguration.id,
+          userRole: user.teamMembership.role,
+          allowedRoles: loginConfiguration.ssoBypassEnabledRoles,
+        },
+        'Cannot bypass SSO because user role is not allowed to bypass SSO',
+      );
+      throw new ProviderNotAllowed('SSO is required for this team. Login using SSO.');
+    }
+  }
+}
+
 async function getTeamInviteConfiguration({ email, teamInvite }: { email: string; teamInvite: Maybe<{ token: string; teamId: string }> }) {
   if (!teamInvite || !email) {
     return null;
@@ -1407,8 +1428,11 @@ async function getTeamInviteConfiguration({ email, teamInvite }: { email: string
               allowedMfaMethods: true,
               allowedProviders: true,
               allowIdentityLinking: true,
-              autoAddToTeam: true,
               domains: true,
+              autoAddToTeam: true,
+              ssoProvider: true,
+              ssoEnabled: true,
+              ssoJitProvisioningEnabled: true,
               requireMfa: true,
               team: { select: { id: true } },
             },
@@ -1453,8 +1477,8 @@ export async function handleSignInOrRegistration(
 ): Promise<{
   user: AuthenticatedUser;
   sessionDetails?: SessionData['sessionDetails'];
-  providerType: ProviderTypeOauth | ProviderTypeCredentials;
-  provider: OauthProviderType | 'credentials';
+  providerType: ProviderTypeOauth | ProviderTypeSso | ProviderTypeCredentials;
+  provider: OauthProviderType | SsoProviderType | 'credentials';
   isNewUser: boolean;
   teamInviteResponse: Awaited<ReturnType<typeof getTeamInviteConfiguration>>;
   mfaEnrollmentRequired:
@@ -1497,11 +1521,7 @@ export async function handleSignInOrRegistration(
 
     // Don't allow login/register if login configuration disallows it
     // this will be checked again in case there is a team without domains configured
-    let loginConfiguration =
-      teamInviteResponse?.loginConfiguration ||
-      (providerType === 'oauth'
-        ? await getLoginConfiguration({ email: payload.providerUser.email })
-        : await getLoginConfiguration({ email: payload.email }));
+    let loginConfiguration = teamInviteResponse?.loginConfiguration || null;
 
     if (loginConfiguration && !loginConfiguration.allowedProviders.has(provider)) {
       throw new ProviderNotAllowed();
@@ -1515,7 +1535,7 @@ export async function handleSignInOrRegistration(
       throwIfInactiveUser(user);
 
       if (!user) {
-        // FIXME:
+        // FIXME: JIT provisioning flow if allowed by team login configuration
         /**
          * 1. see if new user can be auto-added to team based on domain
          * 2. ensure provider is allowed, based on team membership or email domain
@@ -1561,10 +1581,15 @@ export async function handleSignInOrRegistration(
           user = await addIdentityToUser(existingUser.id, providerUser, provider);
         }
       } else {
+        if (!loginConfiguration && user.teamMembership?.teamId) {
+          loginConfiguration = await getLoginConfiguration({ teamId: user.teamMembership.teamId });
+        }
+        throwIfInvalidSsoConfig({ providerType, loginConfiguration, user });
         // Update provider information
         await updateIdentityAttributesFromProvider(user.id, providerUser, provider);
       }
       if (!user) {
+        // FIXME: jit provisioning flow here maybe?
         /**
          * Create user with identity
          */
@@ -1582,8 +1607,6 @@ export async function handleSignInOrRegistration(
         throw new InvalidCredentials('Missing Password');
       }
 
-      const loginConfiguration = await getLoginConfiguration({ email });
-
       if (action === 'login') {
         const userOrError = await getUserAndVerifyPassword(email, password);
         if (userOrError.error) {
@@ -1593,6 +1616,10 @@ export async function handleSignInOrRegistration(
         }
         user = userOrError.user;
         throwIfInactiveUser(user);
+        if (!loginConfiguration && user.teamMembership?.teamId) {
+          loginConfiguration = await getLoginConfiguration({ teamId: user.teamMembership.teamId });
+        }
+        throwIfInvalidSsoConfig({ providerType, loginConfiguration, user });
       } else if (action === 'register') {
         const usersWithEmail = await findUsersByEmail(email);
         // Email already in use - go to verification flow with placeholder user, user will never be able to complete the process
@@ -1616,7 +1643,7 @@ export async function handleSignInOrRegistration(
           };
         }
 
-        // FIXME:
+        // FIXME: jit provisioning flow if allowed by team login configuration
         /**
          * 1. see if new user can be auto-added to team based on domain
          * 2. ensure provider is allowed, based on team membership or email domain
@@ -1638,9 +1665,7 @@ export async function handleSignInOrRegistration(
 
     loginConfiguration =
       teamInviteResponse?.loginConfiguration ||
-      (user.teamMembership?.teamId
-        ? await getLoginConfiguration({ teamId: user.teamMembership.teamId })
-        : await getLoginConfiguration({ email: user.email }));
+      (user.teamMembership?.teamId ? await getLoginConfiguration({ teamId: user.teamMembership.teamId }) : null);
 
     /**
      * Check if login is allowed for the provider
@@ -1794,6 +1819,74 @@ export async function linkIdentityToUser({
   } catch (ex) {
     throw ensureAuthError(ex, new InvalidCredentials());
   }
+}
+
+/**
+ * SSO-related database functions
+ */
+
+/**
+ * Discover SSO configuration by email domain
+ * Returns team and SSO configuration if email domain matches a team's configured domains
+ */
+export async function discoverSsoByDomain(domain: string): Promise<{
+  teamId: string;
+  teamName: string;
+  loginConfig: LoginConfiguration;
+} | null> {
+  if (!domain) {
+    return null;
+  }
+
+  // Find login configuration with matching domain and SSO enabled
+  const loginConfig = await prisma.loginConfiguration.findFirst({
+    where: {
+      domains: {
+        has: domain,
+      },
+      ssoEnabled: true,
+      ssoProvider: {
+        not: 'NONE',
+      },
+    },
+    include: {
+      team: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+  if (!loginConfig?.team) {
+    return null;
+  }
+
+  return {
+    teamId: loginConfig.team.id,
+    teamName: loginConfig.team.name,
+    loginConfig: LoginConfigurationSchema.parse(loginConfig),
+  };
+}
+
+/**
+ * Get team's login configuration with SSO details
+ */
+export async function getTeamLoginConfigWithSso(teamId: string) {
+  const team = await prisma.team.findUnique({
+    where: { id: teamId },
+    select: {
+      loginConfig: {
+        select: {
+          samlConfiguration: true,
+          oidcConfiguration: true,
+        },
+      },
+    },
+  });
+
+  return team;
 }
 
 /**

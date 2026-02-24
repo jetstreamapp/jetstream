@@ -149,7 +149,13 @@ export const Tabs = forwardRef<unknown, TabsProps>(
           {children}
           {filterVisible && position === 'vertical' && (
             <div className="slds-p-bottom--xx-small">
-              <SearchInput id="accordion-input-filter" placeholder={filterPlaceholder} autoFocus onChange={handleFilterChange} />
+              <SearchInput
+                id="accordion-input-filter"
+                placeholder={filterPlaceholder}
+                autoFocus
+                onChange={handleFilterChange}
+                // onArrowKeyUpDown={handleSearchKeyboard}
+              />
               <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
                 Showing {formatNumber(filteredTabs.length)} of {formatNumber(tabs.length)} items
               </div>

@@ -25,13 +25,6 @@ export const httpLogger = pinoHttp<express.Request, express.Response>({
     ignore: (req) =>
       ignoreLogsFileExtensions.test(req.url) || req.url === '/healthz' || req.url === '/api/heartbeat' || req.url === '/api/analytics',
   },
-  customLogLevel(_, res) {
-    if (res.statusCode > 400) {
-      // these are manually logged in the request handler
-      return 'silent';
-    }
-    return ENV.LOG_LEVEL;
-  },
   customSuccessMessage(req, res) {
     if (res.statusCode === 404) {
       return `[404] [${req.method}] ${req.url}`;
@@ -74,8 +67,8 @@ export const httpLogger = pinoHttp<express.Request, express.Response>({
   },
   customProps(req) {
     return {
-      userId: req.session?.user?.id,
-      sessionId: req.session?.id,
+      userId: (req as any).session?.user?.id,
+      sessionId: (req as any).session?.id,
     };
   },
 });

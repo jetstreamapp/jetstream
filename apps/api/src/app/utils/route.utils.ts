@@ -1,13 +1,40 @@
-import { getExceptionLog, rollbarServer } from '@jetstream/api-config';
+import { ENV, getExceptionLog, rollbarServer } from '@jetstream/api-config';
 import { Request, Response } from '@jetstream/api-types';
 import { getApiAddressFromReq } from '@jetstream/auth/server';
 import { AuthenticatedUser, CookieOptions, UserProfileSession } from '@jetstream/auth/types';
 import { ApiConnection } from '@jetstream/salesforce-api';
+import { HTTP } from '@jetstream/shared/constants';
 import { Maybe } from '@jetstream/types';
 import { NextFunction } from 'express';
+import { ipKeyGenerator, type ValueDeterminingMiddleware } from 'express-rate-limit';
 import { z } from 'zod';
 import { findByUniqueId_UNSAFE } from '../db/salesforce-org.db';
 import { isKnownError, UserFacingError } from './error-handler';
+
+const DEV_CI_MAX_REQUESTS = 10000;
+
+export function rateLimitGetMaxRequests(maxRequests: number): ValueDeterminingMiddleware<number> {
+  return (req) => {
+    const isDevOrCi = ENV.ENVIRONMENT === 'development' || ENV.CI;
+    const noDevBypass = req.header(HTTP.HEADERS.X_DEV_NO_RATE_LIMIT_BYPASS) === '1';
+    // Higher limits in development unless header is passed in to opt out (used in tests to verify rate limiting behavior)
+    if (isDevOrCi && !noDevBypass) {
+      return DEV_CI_MAX_REQUESTS;
+    }
+    return maxRequests;
+  };
+}
+
+export function rateLimitGetKeyGenerator(): ValueDeterminingMiddleware<string> {
+  return (req) => {
+    const isDevOrCi = ENV.ENVIRONMENT === 'development' || ENV.CI;
+    const rateLimitKey = req.header(HTTP.HEADERS.X_DEV_RATE_LIMIT_KEY);
+    if (isDevOrCi && rateLimitKey) {
+      return rateLimitKey;
+    }
+    return ipKeyGenerator(req.ip);
+  };
+}
 
 // FIXME: when these were used, createRoute did not properly infer types
 // export type RouteValidator = Parameters<typeof createRoute>[0];

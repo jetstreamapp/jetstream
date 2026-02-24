@@ -178,8 +178,7 @@ test.describe('Profile', () => {
       page.reload();
       await expect(page.getByText('Test User')).toBeVisible();
 
-      // eslint-disable-next-line playwright/prefer-web-first-assertions
-      expect(await page.getByRole('button', { name: 'Password Options' }).isVisible()).toBe(false);
+      await expect(page.getByRole('button', { name: 'Password Options' })).toBeVisible();
 
       await expect(page.getByText('This authentication factor is')).toHaveCount(1);
 

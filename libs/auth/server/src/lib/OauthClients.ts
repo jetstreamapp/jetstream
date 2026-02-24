@@ -1,8 +1,5 @@
-import { ENV, logger } from '@jetstream/api-config';
-import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { ENV } from '@jetstream/api-config';
 import type * as oauth from 'oauth4webapi';
-
-const oauthPromise = import('oauth4webapi');
 
 export interface OauthClientProvider {
   authorizationServer: oauth.AuthorizationServer;
@@ -11,89 +8,23 @@ export interface OauthClientProvider {
 
 export class OauthClients {
   private static instance: OauthClients | null = null;
-  private static initPromise: Promise<OauthClients> | null = null;
 
   public google!: OauthClientProvider;
   public salesforce!: OauthClientProvider;
 
-  private providers = {
-    salesforce: new URL('https://login.salesforce.com'),
-    google: new URL('https://accounts.google.com'),
-  } as const;
+  private constructor() {
+    this.google = this.getClient(getGoogleAuthServer(), ENV.AUTH_GOOGLE_CLIENT_ID, ENV.AUTH_GOOGLE_CLIENT_SECRET);
+    this.salesforce = this.getClient(getSalesforceAuthServer(), ENV.AUTH_SFDC_CLIENT_ID, ENV.AUTH_SFDC_CLIENT_SECRET);
+  }
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  private constructor() {}
-
-  static getInstance(): Promise<OauthClients> {
+  static getInstance(): OauthClients {
     if (!OauthClients.instance) {
-      if (!OauthClients.initPromise) {
-        const instance = new OauthClients();
-        OauthClients.initPromise = instance.init().then(() => {
-          OauthClients.instance = instance;
-          return instance;
-        });
-      }
-      return OauthClients.initPromise;
+      OauthClients.instance = new OauthClients();
     }
-    return Promise.resolve(OauthClients.instance);
-  }
-
-  private async init() {
-    const oauth = await oauthPromise;
-    const [salesforceClient, googleClient] = await Promise.all([
-      this.discoveryRequestWithRetry(oauth, this.providers.salesforce)
-        .then((response) => oauth.processDiscoveryResponse(this.providers.salesforce, response))
-        .then((authorizationServer) => this.getClient(authorizationServer, ENV.AUTH_SFDC_CLIENT_ID, ENV.AUTH_SFDC_CLIENT_SECRET))
-        .catch((err) => {
-          logger.error(getErrorMessageAndStackObj(err), 'FATAL INIT ERROR - could not load salesforce oauth client');
-          throw err;
-        }),
-      this.discoveryRequestWithRetry(oauth, this.providers.google)
-        .then((response) => oauth.processDiscoveryResponse(this.providers.google, response))
-        .then((authorizationServer) => this.getClient(authorizationServer, ENV.AUTH_GOOGLE_CLIENT_ID, ENV.AUTH_GOOGLE_CLIENT_SECRET))
-        .catch((err) => {
-          logger.error(getErrorMessageAndStackObj(err), 'FATAL INIT ERROR - could not load google oauth client');
-          throw err;
-        }),
-    ]);
-    this.salesforce = salesforceClient;
-    this.google = googleClient;
-  }
-
-  private async discoveryRequestWithRetry(oauth: typeof import('oauth4webapi'), provider: URL, maxRetries = 3): Promise<Response> {
-    let lastError: Error | null = null;
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        logger.info({ provider: provider.toString(), attempt }, 'Attempting OAuth discovery request');
-        const response = await oauth.discoveryRequest(provider);
-        logger.info({ provider: provider.toString(), attempt }, 'OAuth discovery request successful');
-        return response;
-      } catch (error) {
-        lastError = error as Error;
-        logger.warn(
-          {
-            provider: provider.toString(),
-            attempt,
-            maxRetries,
-            error: lastError.message,
-            stack: lastError.stack,
-          },
-          'OAuth discovery request failed, retrying...',
-        );
-
-        if (attempt < maxRetries) {
-          // Exponential backoff: 1s, 2s, 4s
-          await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt - 1) * 1000));
-        }
-      }
-    }
-
-    throw lastError || new Error('OAuth discovery request failed after maximum retries');
+    return OauthClients.instance;
   }
 
   private getClient(authorizationServer: oauth.AuthorizationServer, clientId: string, clientSecret: string): OauthClientProvider {
-    // test
     return {
       authorizationServer,
       client: {
@@ -112,10 +43,121 @@ export class OauthClients {
   }
 }
 
-// eager init, skip in tests
-if (!process.env.VITEST_WORKER_ID) {
-  OauthClients.getInstance().catch((err) => {
-    logger.error(getErrorMessageAndStackObj(err), 'FATAL INIT ERROR - could not load oauth clients');
-    process.exit(1);
-  });
+function getGoogleAuthServer(): oauth.AuthorizationServer {
+  /**
+   * To avoid having to callout to Google's discovery endpoint,
+   * https://accounts.google.com/.well-known/openid-configuration
+   */
+  const authServer: oauth.AuthorizationServer = {
+    issuer: 'https://accounts.google.com',
+    authorization_endpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
+    device_authorization_endpoint: 'https://oauth2.googleapis.com/device/code',
+    token_endpoint: 'https://oauth2.googleapis.com/token',
+    userinfo_endpoint: 'https://openidconnect.googleapis.com/v1/userinfo',
+    revocation_endpoint: 'https://oauth2.googleapis.com/revoke',
+    jwks_uri: 'https://www.googleapis.com/oauth2/v3/certs',
+    response_types_supported: ['code', 'token', 'id_token', 'code token', 'code id_token', 'token id_token', 'code token id_token', 'none'],
+    response_modes_supported: ['query', 'fragment', 'form_post'],
+    subject_types_supported: ['public'],
+    id_token_signing_alg_values_supported: ['RS256'],
+    scopes_supported: ['openid', 'email', 'profile'],
+    token_endpoint_auth_methods_supported: ['client_secret_post', 'client_secret_basic'],
+    claims_supported: ['aud', 'email', 'email_verified', 'exp', 'family_name', 'given_name', 'iat', 'iss', 'name', 'picture', 'sub'],
+    code_challenge_methods_supported: ['plain', 'S256'],
+    grant_types_supported: [
+      'authorization_code',
+      'refresh_token',
+      'urn:ietf:params:oauth:grant-type:device_code',
+      'urn:ietf:params:oauth:grant-type:jwt-bearer',
+    ],
+  };
+
+  return authServer;
+}
+
+function getSalesforceAuthServer(): oauth.AuthorizationServer {
+  /**
+   * To avoid having to callout to Salesforce's discovery endpoint,
+   * https://login.salesforce.com/.well-known/openid-configuration
+   */
+  const authServer: oauth.AuthorizationServer = {
+    issuer: 'https://login.salesforce.com',
+    authorization_endpoint: 'https://login.salesforce.com/services/oauth2/authorize',
+    token_endpoint: 'https://login.salesforce.com/services/oauth2/token',
+    revocation_endpoint: 'https://login.salesforce.com/services/oauth2/revoke',
+    userinfo_endpoint: 'https://login.salesforce.com/services/oauth2/userinfo',
+    jwks_uri: 'https://login.salesforce.com/id/keys',
+    registration_endpoint: 'https://login.salesforce.com/services/oauth2/register',
+    introspection_endpoint: 'https://login.salesforce.com/services/oauth2/introspect',
+    scopes_supported: [
+      'cdp_ingest_api',
+      'custom_permissions',
+      'cdp_segment_api',
+      'content',
+      'cdp_api',
+      'chatbot_api',
+      'cdp_identityresolution_api',
+      'interaction_api',
+      'wave_api',
+      'web',
+      'cdp_calculated_insight_api',
+      'einstein_gpt_api',
+      'offline_access',
+      'id',
+      'api',
+      'eclair_api',
+      'email',
+      'pardot_api',
+      'lightning',
+      'visualforce',
+      'cdp_query_api',
+      'sfap_api',
+      'address',
+      'openid',
+      'profile',
+      'scrt_api',
+      'cdp_profile_api',
+      'refresh_token',
+      'phone',
+      'user_registration_api',
+      'pwdless_login_api',
+      'chatter_api',
+      'mcp_api',
+      'full',
+      'forgot_password',
+    ],
+    response_types_supported: ['code', 'token', 'token id_token'],
+    subject_types_supported: ['public'],
+    id_token_signing_alg_values_supported: ['RS256'],
+    display_values_supported: ['page', 'popup', 'touch'],
+    token_endpoint_auth_methods_supported: ['client_secret_post', 'client_secret_basic', 'private_key_jwt'],
+    claims_supported: [
+      'active',
+      'address',
+      'email',
+      'email_verified',
+      'family_name',
+      'given_name',
+      'is_app_installed',
+      'language',
+      'locale',
+      'name',
+      'nickname',
+      'organization_id',
+      'phone_number',
+      'phone_number_verified',
+      'photos',
+      'picture',
+      'preferred_username',
+      'profile',
+      'sub',
+      'updated_at',
+      'urls',
+      'user_id',
+      'user_type',
+      'zoneinfo',
+    ],
+  };
+
+  return authServer;
 }

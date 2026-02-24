@@ -3,12 +3,14 @@ import { raw } from 'body-parser';
 import express, { Router } from 'express';
 import { routeDefinition as billingController } from '../controllers/billing.controller';
 import { routeDefinition as mailgunWebhookController } from '../controllers/mailgun-webhook.controller';
+import { rateLimitGetKeyGenerator, rateLimitGetMaxRequests } from '../utils/route.utils';
 
 const routes: express.Router = Router();
 
 const webhookRateLimit = createRateLimit('webhook', {
   windowMs: 1000 * 60 * 1, // 1 minute
-  limit: 1000,
+  limit: rateLimitGetMaxRequests(1000),
+  keyGenerator: rateLimitGetKeyGenerator(),
 });
 
 routes.use(raw({ type: 'application/json' }));

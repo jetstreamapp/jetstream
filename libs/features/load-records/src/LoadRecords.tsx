@@ -499,9 +499,6 @@ export const LoadRecords = () => {
                   loadType={loadType}
                   data={inputFileData}
                   header={inputFileHeader}
-                  inputZipFileData={inputZipFileData}
-                  allowBinaryAttachment={!!allowBinaryAttachment}
-                  binaryAttachmentBodyField={binaryAttachmentBodyField}
                 />
               </LoadRecordsSelectObjectAndFile>
             )}

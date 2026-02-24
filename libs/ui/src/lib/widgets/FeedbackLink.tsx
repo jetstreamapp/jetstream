@@ -3,12 +3,19 @@ import Icon from './Icon';
 
 export interface FeedbackLinkProps {
   type: 'GH_ISSUE' | 'GH_DISCUSSION' | 'DISCORD' | 'EMAIL';
+  emailLinkParams?: { subject: string; body?: string };
   label?: ReactNode;
   omitInNewWindowIcon?: boolean;
   onClick?: () => void;
 }
 
-export const FeedbackLink: FunctionComponent<FeedbackLinkProps> = ({ type, label: _label, omitInNewWindowIcon, onClick }) => {
+export const FeedbackLink: FunctionComponent<FeedbackLinkProps> = ({
+  type,
+  label: _label,
+  emailLinkParams,
+  omitInNewWindowIcon,
+  onClick,
+}) => {
   let link = '';
   let label: ReactNode;
 
@@ -25,10 +32,18 @@ export const FeedbackLink: FunctionComponent<FeedbackLinkProps> = ({ type, label
       link = 'https://discord.gg/sfxd';
       label = _label || 'SFXD Discord Community';
       break;
-    case 'EMAIL':
-      link = 'mailto:support@getjetstream.app';
+    case 'EMAIL': {
+      let params = '';
+      if (emailLinkParams?.subject) {
+        params += `?subject=${encodeURIComponent(emailLinkParams.subject)}`;
+        if (emailLinkParams.body) {
+          params += `&body=${encodeURIComponent(emailLinkParams.body)}`;
+        }
+      }
+      link = `mailto:support@getjetstream.app${params}`;
       label = _label || 'support@getjetstream.app';
       break;
+    }
     default:
       return null;
   }

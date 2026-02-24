@@ -1,6 +1,6 @@
 import { HTTP } from '@jetstream/shared/constants';
 import { v4 as uuid } from 'uuid';
-import { expect, test } from '../../fixtures/fixtures';
+import { expect, test } from '../../../fixtures/fixtures';
 
 test.describe.configure({ mode: 'parallel' });
 
@@ -165,7 +165,17 @@ test.describe('Desktop / Web-Extension Authentication - Not Logged In', () => {
 });
 
 test.describe('Desktop / Web-Extension Authentication - No Access', () => {
-  test('Desktop Authentication - no subscription', async ({ page }) => {
+  // Use a fresh unauthenticated state and sign up a new user without any team/entitlements.
+  // This avoids relying on the default storageState (which can expire) and ensures the user
+  // has no desktop subscription, which is required for these "no access" tests.
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  test.beforeEach(async ({ page, authenticationPage }) => {
+    await page.goto('/');
+    await authenticationPage.acceptCookieBanner();
+  });
+
+  test('Desktop Authentication - no subscription', async ({ page, newUser: _newUser }) => {
     const deviceId = uuid();
     const token = uuid();
 
@@ -173,13 +183,13 @@ test.describe('Desktop / Web-Extension Authentication - No Access', () => {
     await expect(page.getByText('You do not have a valid subscription to use the desktop application')).toBeVisible();
   });
 
-  test('Desktop Authentication - Missing query params', async ({ page }) => {
+  test('Desktop Authentication - Missing query params', async ({ page, newUser: _newUser }) => {
     await page.goto(`/desktop-app/auth/`);
     await expect(page.getByText('Error communicating with desktop application, is the application open?')).toBeVisible();
   });
 
   // TODO: we don't have a way to test this currently since the extension is not installed
-  test('Web Extension - Extension not installed', async ({ page }) => {
+  test('Web Extension - Extension not installed', async ({ page, newUser: _newUser }) => {
     await page.goto(`/web-extension/auth/`);
     await expect(page.getByText('Authentication in progress...')).toBeVisible();
   });

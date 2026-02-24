@@ -1,7 +1,10 @@
 import { Maybe } from '@jetstream/types';
 import 'express';
 import 'express-session';
-import { SessionData as JetstreamSessionData, UserProfileSession } from './auth-types';
+import { SessionData as JetstreamSessionData, UserProfileSession } from '../libs/auth/types/src';
+
+// Augment Express Request interface
+// This is here so that apps and libraries can both share it and avoid circular dependencies
 
 declare module 'express' {
   interface Request {

@@ -56,7 +56,7 @@ export class ProfilePage {
   }
 
   async goToProfilePage() {
-    const navigationPromise = this.page.waitForURL('/app/profile');
+    const navigationPromise = this.page.waitForURL('**/app/profile');
     this.playwrightPage.goToProfile();
     await navigationPromise;
   }

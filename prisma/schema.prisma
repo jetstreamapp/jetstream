@@ -38,6 +38,7 @@ model User {
   entitlements        Entitlement?
   identities          AuthIdentity[]
   loginActivity       LoginActivity[]
+  auditLogs           AuditLog[]
   organizations       JetstreamOrganization[]
   passwordHistory     PasswordHistory[]
   passwordResetTokens PasswordResetToken[]
@@ -48,7 +49,6 @@ model User {
   syncData            UserSyncData[]
   teamMembership      TeamMember?
   webExtensionTokens  WebExtensionToken[]
-  // AuditLog            AuditLog[]
 
   loginConfigurationCreatedBy   LoginConfiguration[]   @relation("LoginConfigurationCreatedBy")
   loginConfigurationUpdatedBy   LoginConfiguration[]   @relation("LoginConfigurationUpdatedBy")
@@ -86,12 +86,13 @@ model Team {
   updatedAt     DateTime           @updatedAt
   updatedById   String?            @db.Uuid
 
-  members        TeamMember[]
-  sharedOrgs     SalesforceOrg[]        @relation("TeamSharedOrgs")
-  subscriptions  TeamSubscription[]
-  billingAccount TeamBillingAccount?
-  invitations    TeamMemberInvitation[]
-  entitlements   TeamEntitlement?
+  members             TeamMember[]
+  sharedOrgs          SalesforceOrg[]        @relation("TeamSharedOrgs")
+  subscriptions       TeamSubscription[]
+  billingAccount      TeamBillingAccount?
+  invitations         TeamMemberInvitation[]
+  entitlements        TeamEntitlement?
+  domainVerifications DomainVerification[]
 
   createdByUser User? @relation("TeamCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   updatedByUser User? @relation("TeamUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
@@ -158,13 +159,23 @@ model TeamMemberInvitation {
 
 model LoginConfiguration {
   id                   String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  // Populated from verified domains in DomainVerification table
   domains              String[]       @default([]) @db.VarChar(255)
-  requireMfa           Boolean        @default(false)
-  allowIdentityLinking Boolean        @default(true)
+  requireMfa           Boolean        @default(true)
+  allowIdentityLinking Boolean        @default(false)
   allowedMfaMethods    AuthFactor[]   @default([otp, email])
   allowedProviders     AuthProvider[] @default([credentials, google, salesforce])
   autoAddToTeam        Boolean        @default(false)
   team                 Team?
+
+  // SSO Configuration
+  ssoProvider               SsoProvider @default(NONE)
+  ssoEnabled                Boolean     @default(false)
+  // TODO: should we use autoAddToTeam and allow it to apply everywhere? Or is SSO different enough to warrant its own field?
+  ssoJitProvisioningEnabled Boolean     @default(false)
+  ssoBypassEnabled          Boolean     @default(true) // Allow users to login with other providers even when SSO is configured
+  ssoBypassEnabledRoles     String[]    @default(["ADMIN"]) @db.VarChar(50) // 'ADMIN' | 'MEMBER' | 'BILLING'
+  ssoRequireMfa             Boolean     @default(false) // Require Jetstream MFA after SSO login (in addition to IdP auth)
 
   createdAt   DateTime @default(now())
   createdById String?  @db.Uuid
@@ -173,6 +184,10 @@ model LoginConfiguration {
 
   createdByUser User? @relation("LoginConfigurationCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   updatedByUser User? @relation("LoginConfigurationUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  // SSO Relations
+  samlConfiguration SamlConfiguration?
+  oidcConfiguration OidcConfiguration?
 
   @@index([domains])
   @@map("login_configuration")
@@ -187,6 +202,14 @@ enum AuthProvider {
   credentials
   google
   salesforce
+  saml
+  oidc
+}
+
+enum SsoProvider {
+  NONE
+  SAML
+  OIDC
 }
 
 model PasswordResetToken {
@@ -293,10 +316,15 @@ model AuthIdentity {
   familyName        String?
   picture           String?
 
+  samlConfigurationId String? @db.Uuid
+  oidcConfigurationId String? @db.Uuid
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  samlConfiguration SamlConfiguration? @relation(fields: [samlConfigurationId], references: [id], onDelete: Cascade)
+  oidcConfiguration OidcConfiguration? @relation(fields: [oidcConfigurationId], references: [id], onDelete: Cascade)
 
   @@id([provider, providerAccountId])
 }
@@ -316,6 +344,8 @@ model LoginActivity {
   method       String?
   email        String?
   userId       String?  @db.Uuid
+  // teamId is intentionally NOT a relation - audit records must survive team deletion
+  teamId       String?  @db.Uuid
   user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   ipAddress    String?
   userAgent    String?
@@ -326,6 +356,8 @@ model LoginActivity {
 
   // For queries filtering by userId and sorting by createdAt,id
   @@index([userId, createdAt, id])
+  // For team-scoped audit queries (captures pre-auth events that have no userId)
+  @@index([teamId, createdAt, id])
 }
 
 model EmailActivity {
@@ -586,6 +618,8 @@ model UserSyncData {
 model AuditLog {
   id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   userId     String?  @db.Uuid
+  // teamId is intentionally NOT a relation — audit records must survive team deletion
+  teamId     String?  @db.Uuid
   action     String   @db.VarChar(255)
   resource   String   @db.VarChar(255)
   resourceId String?  @db.VarChar(255)
@@ -594,8 +628,102 @@ model AuditLog {
   userAgent  String?  @db.VarChar(500)
   createdAt  DateTime @default(now()) @db.Timestamp(6)
 
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
   @@index([userId, createdAt])
+  @@index([teamId, createdAt])
   @@index([action, createdAt])
   @@index([resource, resourceId, createdAt])
   @@map("audit_log")
+}
+
+// SSO Configuration Tables
+
+model SamlConfiguration {
+  id                 String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name               String             @default("SAML Configuration") @db.VarChar(255)
+  loginConfigId      String             @unique @db.Uuid
+  loginConfiguration LoginConfiguration @relation(fields: [loginConfigId], references: [id], onDelete: Cascade)
+
+  // Service Provider (SP) Configuration - Jetstream
+  entityId        String // SP entity ID (e.g., "jetstream-team-{teamId}")
+  acsUrl          String // Assertion Consumer Service URL
+  singleLogoutUrl String? // Single Logout URL (optional)
+
+  // Identity Provider (IdP) Configuration
+  idpEntityId    String // IdP entity ID
+  idpSsoUrl      String // IdP SSO URL (where to redirect for login)
+  idpCertificate String  @db.Text // X.509 certificate for signature validation
+  idpMetadataXml String? @db.Text // Full IdP metadata (if uploaded)
+  idpMetadataUrl String? @db.Text // URL to IdP metadata XML (can use for auto-refresh of certificate)
+
+  // SAML Options
+  nameIdFormat         String  @default("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
+  signRequests         Boolean @default(false)
+  wantAssertionsSigned Boolean @default(true)
+
+  // Jetstream SP Certificate/Key (for signing requests if needed)
+  spCertificate String? @db.Text
+  spPrivateKey  String? @db.Text // Encrypted with JETSTREAM_AUTH_SSO_SECRET
+
+  // Attribute Mapping (SAML attributes -> Jetstream user fields)
+  attributeMapping Json // { email: "email", firstName: "firstName", lastName: "lastName" }
+
+  // Parsed from idpCertificate for expiration notifications (populated on save)
+  idpCertificateExpiresAt DateTime? // can use to notify admins of upcoming IdP certificate expiration
+
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  authIdentities AuthIdentity[]
+
+  @@map("sso_saml_configurations")
+}
+
+model OidcConfiguration {
+  id                 String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name               String             @default("OIDC Configuration") @db.VarChar(255)
+  loginConfigId      String             @unique @db.Uuid
+  loginConfiguration LoginConfiguration @relation(fields: [loginConfigId], references: [id], onDelete: Cascade)
+
+  // OIDC Provider Configuration
+  issuer       String // OIDC issuer URL
+  clientId     String // OAuth client ID
+  clientSecret String // Encrypted with JETSTREAM_AUTH_SSO_SECRET
+
+  // OIDC Endpoints (can be auto-discovered)
+  authorizationEndpoint String
+  tokenEndpoint         String
+  userinfoEndpoint      String?
+  jwksUri               String
+  endSessionEndpoint    String? // For logout
+
+  // OIDC Options
+  scopes       String[] @default(["openid", "email", "profile"])
+  responseType String   @default("code")
+
+  // Attribute Mapping (OIDC claims -> Jetstream user fields)
+  attributeMapping Json // { email: "email", firstName: "given_name", lastName: "family_name" }
+
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  authIdentities AuthIdentity[]
+
+  @@map("sso_oidc_configurations")
+}
+
+model DomainVerification {
+  id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  domain           String    @db.VarChar(255)
+  teamId           String    @db.Uuid
+  status           String    @default("PENDING") @db.VarChar(50) // 'PENDING' | 'VERIFIED'
+  verificationCode String    @db.VarChar(255)
+  verifiedAt       DateTime?
+  expiresAt        DateTime  @default(dbgenerated("now() + interval '7 days'"))
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([domain])
+  @@map("domain_verification")
 }

@@ -6,5 +6,5 @@
     "types": ["node", "google.accounts", "google.picker", "gapi.auth2"]
   },
   "exclude": ["src/**/*.spec.ts", "src/**/*.test.ts"],
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "../../custom-express-typings"]
 }

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export type TeamGlobalAction = 'view-auth-activity' | 'view-user-sessions' | 'team-member-invite';
+export type TeamGlobalAction = 'view-auth-activity' | 'view-user-sessions' | 'team-member-invite' | 'view-audit-log';
 export type TeamUserAction = 'deactivate' | 'reactivate' | 'edit';
 export type TeamInvitationAction = 'cancel-invite' | 'resend-invite';
 
@@ -82,6 +82,8 @@ export const TeamUserSchema = z.object({
       provider: z.string(),
       isPrimary: z.boolean(),
       type: z.string(),
+      samlConfiguration: z.object({ name: z.string() }).nullable(),
+      oidcConfiguration: z.object({ name: z.string() }).nullable(),
     })
     .array(),
 });
@@ -117,8 +119,8 @@ export const TeamLoginConfigSchema = z.object({
   allowedMfaMethods: z.enum(['otp', 'email']).array().optional().default(['email', 'otp']),
   allowedProviders: z.enum(['credentials', 'google', 'salesforce']).array().optional().default(['credentials', 'google', 'salesforce']),
   allowIdentityLinking: z.boolean().optional().default(true),
-  domains: z.string().toLowerCase().array().optional().default([]),
   requireMfa: z.boolean().optional().default(false),
+  ssoRequireMfa: z.boolean().optional().default(false),
   autoAddToTeam: z.boolean().optional().default(false),
 });
 export const TeamLoginConfigRequestSchema = TeamLoginConfigSchema;
@@ -230,6 +232,21 @@ export interface TeamInviteVerificationResponse {
   };
 }
 
+export const TeamVerificationStatusSchema = z.enum(['PENDING', 'VERIFIED']);
+export type TeamVerificationStatus = z.infer<typeof TeamVerificationStatusSchema>;
+
+export const DomainVerificationSchema = z.object({
+  id: z.string(),
+  domain: z.string(),
+  teamId: z.string(),
+  status: TeamVerificationStatusSchema,
+  verificationCode: z.string(),
+  verifiedAt: DateStringSchema.nullable(),
+  createdAt: DateStringSchema,
+  updatedAt: DateStringSchema,
+});
+export type DomainVerification = z.infer<typeof DomainVerificationSchema>;
+
 export type Feature = z.infer<typeof FeatureSchema>;
 export type TeamMemberRole = z.infer<typeof TeamMemberRoleSchema>;
 export type TeamStatus = z.infer<typeof TeamStatusSchema>;
@@ -247,3 +264,20 @@ export type TeamSubscription = z.infer<typeof TeamSubscriptionSchema>;
 export type TeamInviteUserFacing = z.infer<typeof TeamInviteUserFacingSchema>;
 
 export type VerifyInvitationResponse = { success: true; inviteVerification: TeamInviteVerificationResponse } | { success: false };
+
+export interface AuditLogUserFacing {
+  id: string;
+  action: string;
+  resource: string;
+  resourceId: string | null;
+  metadata: Record<string, unknown> | null;
+  performedBy: { id: string; name: string; email: string } | null;
+  ipAddress: string | null;
+  createdAt: string; // ISO string
+}
+
+export interface AuditLogPageResponse {
+  records: AuditLogUserFacing[];
+  hasMore: boolean;
+  nextCursor: string | null;
+}

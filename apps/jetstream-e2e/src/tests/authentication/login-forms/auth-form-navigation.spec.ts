@@ -1,5 +1,5 @@
 import { PASSWORD_MIN_LENGTH } from '@jetstream/types';
-import { expect, test } from '../../fixtures/fixtures';
+import { expect, test } from '../../../fixtures/fixtures';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -28,6 +28,13 @@ test.describe('Auth Page Navigation', () => {
     await authenticationPage.signUpFromFormLink.click();
     await page.waitForURL(authenticationPage.routes.signup());
     expect(page.url()).toContain(authenticationPage.routes.signup());
+
+    // "Forgot password?" is on the login page behind the Continue step — navigate there first
+    await authenticationPage.signInFromFormLink.click();
+    await page.waitForURL(authenticationPage.routes.login());
+    await authenticationPage.emailInput.fill('test@example.com');
+    await authenticationPage.continueButton.click();
+
     await authenticationPage.forgotPasswordLink.click();
     await page.waitForURL(authenticationPage.routes.passwordReset());
     expect(page.url()).toContain(authenticationPage.routes.passwordReset());
@@ -60,25 +67,20 @@ test.describe('Auth Page Navigation', () => {
 test.describe('Auth Form Validation', () => {
   test('login form validation', async ({ page, authenticationPage }) => {
     const LOGIN_PASSWORD_MIN_LENGTH = 8;
-    await test.step('Invalid email and password', async () => {
-      await authenticationPage.fillOutLoginForm('inva lid @email.com', '');
+    await test.step('Invalid email', async () => {
+      // With the two-step flow (email → continue → password), an invalid email prevents
+      // the form from advancing so only email validation can be tested here.
+      await authenticationPage.submitLoginEmailStep('inva lid @email.com');
       await expect(authenticationPage.emailInput).toHaveAttribute('aria-invalid', 'true');
       await expect(authenticationPage.emailInput).toHaveAttribute('aria-describedby');
       await expect(page.getByText('A valid email address is required')).toBeVisible();
-      await expect(authenticationPage.passwordInput).toHaveAttribute('aria-invalid', 'true');
-      await expect(authenticationPage.passwordInput).toHaveAttribute('aria-describedby');
-      await expect(page.getByText(`Password must be at least ${LOGIN_PASSWORD_MIN_LENGTH} characters`)).toBeVisible();
     });
 
-    await test.step('Invalid email', async () => {
-      await authenticationPage.fillOutLoginForm('test @email.com', 'password123');
+    await test.step('Invalid email (with password intent)', async () => {
+      await authenticationPage.submitLoginEmailStep('test @email.com');
       await expect(authenticationPage.emailInput).toHaveAttribute('aria-invalid', 'true');
       await expect(authenticationPage.emailInput).toHaveAttribute('aria-describedby');
       await expect(page.getByText('A valid email address is required')).toBeVisible();
-      await expect(authenticationPage.passwordInput).toHaveAttribute('aria-invalid', 'false');
-      await expect(authenticationPage.passwordInput).not.toHaveAttribute('aria-describedby');
-      await expect(page.getByText(`Password must be at least ${LOGIN_PASSWORD_MIN_LENGTH} characters`)).toHaveCount(0);
-      await expect(page.getByText('Password must be at most 255 characters')).toHaveCount(0);
     });
 
     await test.step('Invalid password length', async () => {
@@ -91,35 +93,12 @@ test.describe('Auth Form Validation', () => {
   });
 
   test('Signup form validation', async ({ page, authenticationPage }) => {
-    // Invalid email and password
-    await authenticationPage.fillOutSignUpForm('inva lid @email.com', '', '', '');
+    // Invalid email - with the two-step flow (email → continue → registration fields),
+    // an invalid email prevents the form from advancing so only email validation can be tested here.
+    await authenticationPage.submitSignUpEmailStep('inva lid @email.com');
     await expect(authenticationPage.emailInput).toHaveAttribute('aria-invalid', 'true');
     await expect(authenticationPage.emailInput).toHaveAttribute('aria-describedby');
     await expect(page.getByText('A valid email address is required')).toBeVisible();
-    await expect(authenticationPage.fullNameInput).toHaveAttribute('aria-invalid', 'true');
-    await expect(authenticationPage.fullNameInput).toHaveAttribute('aria-describedby');
-    await expect(page.getByText('Name is required')).toBeVisible();
-    await expect(authenticationPage.passwordInput).toHaveAttribute('aria-invalid', 'true');
-    await expect(authenticationPage.passwordInput).toHaveAttribute('aria-describedby');
-    await expect(page.getByText(`Password must be at least ${PASSWORD_MIN_LENGTH} characters`)).toHaveCount(2);
-    await expect(authenticationPage.confirmPasswordInput).toHaveAttribute('aria-invalid', 'true');
-    await expect(authenticationPage.confirmPasswordInput).toHaveAttribute('aria-describedby');
-    await expect(page.getByText(`Password must be at least ${PASSWORD_MIN_LENGTH} characters`)).toHaveCount(2);
-
-    // Invalid email
-    await authenticationPage.fillOutSignUpForm('inva lid @email.com', 'Test Person', 'Password123', 'Password123');
-    await expect(authenticationPage.emailInput).toHaveAttribute('aria-invalid', 'true');
-    await expect(authenticationPage.emailInput).toHaveAttribute('aria-describedby');
-    await expect(page.getByText('A valid email address is required')).toBeVisible();
-    await expect(authenticationPage.fullNameInput).toHaveAttribute('aria-invalid', 'false');
-    await expect(authenticationPage.fullNameInput).not.toHaveAttribute('aria-describedby');
-    await expect(authenticationPage.passwordInput).toHaveAttribute('aria-invalid', 'false');
-    await expect(authenticationPage.passwordInput).not.toHaveAttribute('aria-describedby');
-    await expect(authenticationPage.confirmPasswordInput).toHaveAttribute('aria-invalid', 'false');
-    await expect(authenticationPage.confirmPasswordInput).not.toHaveAttribute('aria-describedby');
-    await expect(page.getByText('Name is required')).toHaveCount(0);
-    await expect(page.getByText(`Password must be at least ${PASSWORD_MIN_LENGTH} characters`)).toHaveCount(0);
-    await expect(page.getByText('Password must be at most 255 characters')).toHaveCount(0);
 
     // Invalid password - too short
     await authenticationPage.fillOutSignUpForm('invalid@email.com', 'Test Person', 'pwd', 'pwd');
@@ -177,6 +156,10 @@ test.describe('Auth Form Validation', () => {
     await authenticationPage.goToSignUp();
 
     const testEmail = 'test@example.com';
+
+    // Fill email and click Continue to reveal the full registration form
+    await authenticationPage.emailInput.fill(testEmail);
+    await authenticationPage.continueButton.click();
 
     await test.step('Weak password - missing requirements', async () => {
       await authenticationPage.emailInput.fill(testEmail);

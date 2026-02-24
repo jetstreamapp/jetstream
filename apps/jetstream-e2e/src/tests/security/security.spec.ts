@@ -1,5 +1,8 @@
 import { prisma } from '@jetstream/api-config';
+import { randomBytes } from 'node:crypto';
 import { expect, test } from '../../fixtures/fixtures';
+
+const serverUrl = process.env.NX_PUBLIC_SERVER_URL || process.env.JETSTREAM_SERVER_URL || 'http://localhost:3333';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/app');
@@ -16,14 +19,14 @@ test.describe('Security Checks', () => {
 
     const { salesforceOrg, jetstreamOrg } = await test.step('Sign up and verify email', async () => {
       const userId = 'BAAAAAAA-1000-1000-1000-BAAAAAAAAAAA';
-      const email = `test-example-${new Date().getTime()}@getjetstream.app`;
+      const email = `test-${new Date().getTime()}.${randomBytes(8).toString('hex')}@getjetstream.app`;
       const jetstreamUserId = `test|${userId}`;
 
       const otherUser = await prisma.user.create({
         data: {
           id: userId,
           userId: jetstreamUserId,
-          email: `test-example-${new Date().getTime()}@getjetstream.app`,
+          email,
           emailVerified: true,
           name: 'Test User',
           lastLoggedIn: new Date(),
@@ -32,7 +35,7 @@ test.describe('Security Checks', () => {
           salesforceOrgs: {
             create: {
               jetstreamUserId,
-              jetstreamUrl: 'https://localhost:3333',
+              jetstreamUrl: serverUrl,
               jetstreamOrganization: {
                 create: {
                   name: 'Test Org',

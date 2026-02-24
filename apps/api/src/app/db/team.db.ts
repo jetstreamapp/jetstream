@@ -1,9 +1,17 @@
-import { logger, prisma } from '@jetstream/api-config';
+import { ENV, logger, prisma } from '@jetstream/api-config';
 import { clearLoginConfigurationCacheItem } from '@jetstream/auth/server';
-import { SessionData, UserProfileSession } from '@jetstream/auth/types';
+import {
+  LoginConfigurationWithCallbacks,
+  LoginConfigurationWithCallbacksSchema,
+  OidcConfigurationRequest,
+  SamlConfigurationRequest,
+  SessionData,
+  UserProfileSession,
+} from '@jetstream/auth/types';
 import { Prisma } from '@jetstream/prisma';
 import {
   BILLABLE_ROLES,
+  DomainVerificationSchema,
   Maybe,
   TEAM_MEMBER_ROLE_ADMIN,
   TEAM_MEMBER_ROLE_BILLING,
@@ -27,7 +35,9 @@ import {
   TeamSubscriptionSchema,
   TeamUserFacing,
   TeamUserFacingSchema,
+  TeamVerificationStatusSchema,
 } from '@jetstream/types';
+import { X509Certificate } from 'crypto';
 import { addDays, endOfDay } from 'date-fns';
 import { groupBy, isString } from 'lodash';
 import { NotFoundError, UserFacingError } from '../utils/error-handler';
@@ -71,6 +81,8 @@ const SELECT_TEAM_MEMBER = {
           provider: true,
           isPrimary: true,
           type: true,
+          samlConfiguration: { select: { name: true } },
+          oidcConfiguration: { select: { name: true } },
         },
       },
       authFactors: {
@@ -122,6 +134,10 @@ const SELECT_WITH_RELATED = {
       autoAddToTeam: true,
       domains: true,
       requireMfa: true,
+      ssoProvider: true,
+      ssoEnabled: true,
+      ssoRequireMfa: true,
+      ssoJitProvisioningEnabled: true,
     },
   },
   subscriptions: {
@@ -322,6 +338,8 @@ export const createTeam = async ({
       data: {
         name,
         status,
+        createdByUser: { connect: { id: userId } },
+        updatedByUser: { connect: { id: userId } },
         members: {
           create: {
             userId,
@@ -397,6 +415,8 @@ export const upsertTeamWithBillingAccount = async ({
     data: {
       name: name || user.email,
       status,
+      createdByUser: { connect: { id: userId } },
+      updatedByUser: { connect: { id: userId } },
       members: {
         create: {
           userId,
@@ -461,22 +481,20 @@ export const updateLoginConfiguration = async ({
     where: { id: teamId },
   });
 
-  // TODO: this is not yet implemented on UI
-  // const domains = loginConfiguration.autoAddToTeam ? loginConfiguration.domains : [];
-
-  // if (domains.length > 0) {
-  //   const domainAlreadyInUse = await prisma.loginConfiguration.count({
-  //     where: {
-  //       OR: [{ team: null }, { team: { NOT: { id: team.id } } }],
-  //       domains: {
-  //         hasSome: domains,
-  //       },
-  //     },
-  //   });
-  //   if (domainAlreadyInUse > 0) {
-  //     throw new UserFacingError(`One or more domains you specified is already in use, contact support for assistance.`);
-  //   }
-  // }
+  // Capture previous config values for audit log diff
+  const previousLoginConfig = team.loginConfigId
+    ? await prisma.loginConfiguration.findUnique({
+        where: { id: team.loginConfigId },
+        select: {
+          requireMfa: true,
+          allowIdentityLinking: true,
+          autoAddToTeam: true,
+          allowedMfaMethods: true,
+          allowedProviders: true,
+          ssoRequireMfa: true,
+        },
+      })
+    : null;
 
   if (!team.loginConfigId) {
     await prisma.loginConfiguration.create({
@@ -485,9 +503,7 @@ export const updateLoginConfiguration = async ({
         allowedProviders: loginConfiguration.allowedProviders,
         allowIdentityLinking: loginConfiguration.allowIdentityLinking,
         requireMfa: loginConfiguration.requireMfa,
-        // TODO: not MVP, ignore these attributes for now
-        // autoAddToTeam: loginConfiguration.autoAddToTeam,
-        // domains,
+        ssoRequireMfa: loginConfiguration.ssoRequireMfa,
         updatedById: runningUserId,
         createdById: runningUserId,
         team: {
@@ -503,8 +519,7 @@ export const updateLoginConfiguration = async ({
         allowedProviders: loginConfiguration.allowedProviders,
         allowIdentityLinking: loginConfiguration.allowIdentityLinking,
         requireMfa: loginConfiguration.requireMfa,
-        // autoAddToTeam: loginConfiguration.autoAddToTeam,
-        // domains,
+        ssoRequireMfa: loginConfiguration.ssoRequireMfa,
         updatedById: runningUserId,
       },
     });
@@ -512,10 +527,17 @@ export const updateLoginConfiguration = async ({
 
   clearLoginConfigurationCacheItem(team.id);
 
-  return findById({ teamId: team.id, runningUserId });
+  const updatedTeam = await findById({ teamId: team.id, runningUserId });
+  return { team: updatedTeam, previousLoginConfig };
 };
 
-export async function revokeSessionThatViolateLoginConfiguration({ teamId, skipUserIds }: { teamId: string; skipUserIds?: string[] }) {
+export async function revokeSessionThatViolateLoginConfiguration({
+  teamId,
+  skipUserIds,
+}: {
+  teamId: string;
+  skipUserIds?: string[];
+}): Promise<number> {
   const team = await prisma.team.findFirstOrThrow({
     select: {
       loginConfig: {
@@ -542,7 +564,7 @@ export async function revokeSessionThatViolateLoginConfiguration({ teamId, skipU
   });
 
   if (!team.loginConfig) {
-    return;
+    return 0;
   }
 
   const { loginConfig, members } = team;
@@ -581,6 +603,8 @@ export async function revokeSessionThatViolateLoginConfiguration({ teamId, skipU
     logger.info(`Revoking ${sessionsToRevoke.size} sessions for team ${teamId} that violate login configuration`);
     await prisma.sessions.deleteMany({ where: { sid: { in: Array.from(sessionsToRevoke) } } });
   }
+
+  return sessionsToRevoke.size;
 }
 
 export async function updateTeamMemberRole({
@@ -595,13 +619,14 @@ export async function updateTeamMemberRole({
   data: TeamMemberUpdateRequest;
 }): Promise<{
   teamMember: TeamMember;
+  previousMember: { role: string; features: string[]; email: string };
   /**
    * Indicates if billing needs to be updated due to this action
    */
   isBillableAction: boolean;
 }> {
   const teamMember = await prisma.teamMember.findUniqueOrThrow({
-    select: { role: true, status: true },
+    select: { role: true, status: true, features: true, user: { select: { email: true } } },
     where: { teamId_userId: { teamId, userId } },
   });
 
@@ -621,6 +646,7 @@ export async function updateTeamMemberRole({
         data: { ...TeamMemberUpdateRequestSchema.parse(data), updatedById: runningUserId },
       })
       .then((member) => TeamMemberSchema.parse(member)),
+    previousMember: { role: teamMember.role, features: teamMember.features as string[], email: teamMember.user.email },
     isBillableAction: BILLABLE_ROLES.has(teamMember.role),
   };
 }
@@ -644,15 +670,18 @@ export async function updateTeamMemberStatusAndRole({
   role?: Maybe<TeamMemberRole>;
 }): Promise<{
   teamMember: TeamMember;
+  previousMember: { role: string; status: string; email: string };
   /**
    * Indicates if billing needs to be updated due to this action
    */
   isBillableAction: boolean;
 }> {
   const teamMember = await prisma.teamMember.findUniqueOrThrow({
-    select: { role: true, status: true },
+    select: { role: true, status: true, user: { select: { email: true } } },
     where: { teamId_userId: { teamId, userId } },
   });
+
+  const previousMember = { role: teamMember.role, status: teamMember.status, email: teamMember.user.email };
 
   // NOOP if status is not changing
   if (teamMember.status === status && (!role || teamMember.role === role)) {
@@ -663,6 +692,7 @@ export async function updateTeamMemberStatusAndRole({
           where: { teamId_userId: { teamId, userId } },
         })
         .then((member) => TeamMemberSchema.parse(member)),
+      previousMember,
       isBillableAction: false,
     };
   }
@@ -686,6 +716,7 @@ export async function updateTeamMemberStatusAndRole({
         data: { status, role, updatedById: runningUserId },
       })
       .then((member) => TeamMemberSchema.parse(member)),
+    previousMember,
     isBillableAction: BILLABLE_ROLES.has(role),
   };
 }
@@ -878,6 +909,9 @@ export async function verifyTeamInvitation({
               autoAddToTeam: true,
               domains: true,
               requireMfa: true,
+              ssoProvider: true,
+              ssoEnabled: true,
+              ssoJitProvisioningEnabled: true,
             },
           },
         },
@@ -904,10 +938,10 @@ export async function verifyTeamInvitation({
  * NOTE: there is also a path in auth.db.service - ideally we combine to remove code duplication
  */
 export async function acceptTeamInvitation({ user, teamId, token }: { user: UserProfileSession; teamId: string; token: string }): Promise<{
-  /**
-   * Indicates if billing needs to be updated due to this action
-   */
   isBillableAction: boolean;
+  email: string;
+  role: string;
+  features: string[];
 }> {
   const existingInvitation = await verifyTeamInvitation({ user, teamId, token });
 
@@ -929,12 +963,17 @@ export async function acceptTeamInvitation({ user, teamId, token }: { user: User
     }),
   ]);
 
-  return { isBillableAction: BILLABLE_ROLES.has(existingInvitation.role) };
+  return {
+    isBillableAction: BILLABLE_ROLES.has(existingInvitation.role),
+    email: existingInvitation.email,
+    role: existingInvitation.role,
+    features: existingInvitation.features as string[],
+  };
 }
 
 export async function revokeTeamInvitation({ id, teamId }: { id: string; teamId: string }) {
   const existingInvitation = await prisma.teamMemberInvitation.findFirst({
-    select: { id: true, role: true, features: true, expiresAt: true, lastSentAt: true },
+    select: { id: true, email: true, role: true, features: true, expiresAt: true, lastSentAt: true },
     where: { teamId, id },
   });
 
@@ -945,4 +984,531 @@ export async function revokeTeamInvitation({ id, teamId }: { id: string; teamId:
   await prisma.teamMemberInvitation.delete({
     where: { id },
   });
+
+  return existingInvitation;
 }
+
+/**
+ * SSO Configuration CRUD Functions
+ */
+
+export async function getSsoConfiguration(teamId: string): Promise<LoginConfigurationWithCallbacks> {
+  const team = await prisma.team.findUnique({
+    where: { id: teamId },
+    select: {
+      id: true,
+      loginConfig: {
+        select: {
+          id: true,
+          ssoProvider: true,
+          ssoEnabled: true,
+          ssoJitProvisioningEnabled: true,
+          ssoBypassEnabled: true,
+          ssoBypassEnabledRoles: true,
+          ssoRequireMfa: true,
+          samlConfiguration: true,
+          oidcConfiguration: true,
+        },
+      },
+    },
+  });
+
+  if (!team) {
+    throw new NotFoundError('Team not found');
+  }
+
+  return LoginConfigurationWithCallbacksSchema.parse({
+    ...team.loginConfig,
+    // Add callback URLs for configuration
+    callbackUrls: {
+      oidc: `${ENV.JETSTREAM_SERVER_URL}/api/auth/sso/oidc/${teamId}/callback`,
+      saml: `${ENV.JETSTREAM_SERVER_URL}/api/auth/sso/saml/${teamId}/acs`,
+      samlMetadata: `${ENV.JETSTREAM_SERVER_URL}/api/auth/sso/saml/${teamId}/metadata`,
+      spEntityId: `${ENV.JETSTREAM_SAML_SP_ENTITY_ID_PREFIX}/${teamId}`,
+    },
+  });
+}
+
+/**
+ * Parse the expiration date from a base64-encoded X.509 certificate (no PEM headers).
+ * Returns null if parsing fails so a bad cert doesn't block saving the config.
+ */
+function parseCertificateExpiresAt(certBase64: string): Date | null {
+  try {
+    const lines = certBase64.match(/.{1,64}/g) || [];
+    const pem = `-----BEGIN CERTIFICATE-----\n${lines.join('\n')}\n-----END CERTIFICATE-----`;
+    const cert = new X509Certificate(pem);
+    return new Date(cert.validTo);
+  } catch {
+    return null;
+  }
+}
+
+export async function createOrUpdateSamlConfiguration(teamId: string, userId: string, data: SamlConfigurationRequest) {
+  const team = await prisma.team.findUnique({
+    where: { id: teamId },
+    select: {
+      loginConfigId: true,
+      loginConfig: {
+        select: {
+          samlConfiguration: true,
+        },
+      },
+    },
+  });
+
+  if (!team) {
+    throw new NotFoundError('Team not found');
+  }
+
+  const previousSamlConfig = team.loginConfig.samlConfiguration;
+  const isNew = !previousSamlConfig;
+
+  // Generate SP entity ID and ACS URL
+  const entityId = `${ENV.JETSTREAM_SAML_SP_ENTITY_ID_PREFIX}/${teamId}`;
+  const acsUrl = `${ENV.JETSTREAM_SERVER_URL}${ENV.JETSTREAM_SAML_ACS_PATH_PREFIX}/${teamId}/acs`;
+
+  const samlData = {
+    name: data.name,
+    entityId,
+    acsUrl,
+    idpEntityId: data.idpEntityId,
+    idpSsoUrl: data.idpSsoUrl,
+    idpCertificate: data.idpCertificate,
+    idpMetadataXml: data.idpMetadataXml,
+    idpMetadataUrl: data.idpMetadataUrl ?? null,
+    nameIdFormat: data.nameIdFormat || 'urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified',
+    signRequests: data.signRequests ?? false,
+    wantAssertionsSigned: data.wantAssertionsSigned ?? true,
+    spCertificate: data.spCertificate,
+    spPrivateKey: data.spPrivateKey,
+    attributeMapping: data.attributeMapping,
+  };
+
+  if (samlData.idpCertificate) {
+    // Strip headers and whitespace from certificate if present
+    samlData.idpCertificate = samlData.idpCertificate
+      .replace(/-----BEGIN CERTIFICATE-----/g, '')
+      .replace(/-----END CERTIFICATE-----/g, '')
+      .replace(/\s/g, '');
+  }
+
+  const idpCertificateExpiresAt = samlData.idpCertificate ? parseCertificateExpiresAt(samlData.idpCertificate) : null;
+
+  if (!isNew) {
+    // Update existing
+    await prisma.samlConfiguration.update({
+      where: { loginConfigId: team.loginConfigId },
+      data: { ...samlData, idpCertificateExpiresAt },
+    });
+  } else {
+    // Create new
+    await prisma.samlConfiguration.create({
+      data: {
+        ...samlData,
+        idpCertificateExpiresAt,
+        loginConfigId: team.loginConfigId,
+      },
+    });
+  }
+
+  // Update LoginConfiguration to set SAML as the provider
+  await prisma.loginConfiguration.update({
+    where: { id: team.loginConfigId },
+    data: {
+      ssoProvider: 'SAML',
+      updatedById: userId,
+    },
+  });
+
+  clearLoginConfigurationCacheItem(teamId);
+
+  return { isNew, previous: previousSamlConfig, result: await getSsoConfiguration(teamId) };
+}
+
+export async function createOrUpdateOidcConfiguration(teamId: string, userId: string, data: OidcConfigurationRequest) {
+  const team = await prisma.team.findUnique({
+    where: { id: teamId },
+    select: {
+      loginConfigId: true,
+      loginConfig: {
+        select: {
+          oidcConfiguration: true,
+        },
+      },
+    },
+  });
+
+  if (!team) {
+    throw new NotFoundError('Team not found');
+  }
+
+  const previousOidcConfig = team.loginConfig.oidcConfiguration;
+  const isNew = !previousOidcConfig;
+
+  const oidcData = {
+    name: data.name,
+    issuer: data.issuer,
+    clientId: data.clientId,
+    clientSecret: data.clientSecret ?? undefined,
+    authorizationEndpoint: data.authorizationEndpoint,
+    tokenEndpoint: data.tokenEndpoint,
+    userinfoEndpoint: data.userinfoEndpoint,
+    jwksUri: data.jwksUri,
+    endSessionEndpoint: data.endSessionEndpoint,
+    scopes: data.scopes || ['openid', 'email', 'profile'],
+    responseType: 'code',
+    attributeMapping: data.attributeMapping,
+  };
+
+  if (!isNew) {
+    // Update existing
+    await prisma.oidcConfiguration.update({
+      where: { loginConfigId: team.loginConfigId },
+      data: oidcData,
+    });
+  } else {
+    if (!oidcData.clientSecret) {
+      throw new UserFacingError('Client secret is required for new OIDC configuration');
+    }
+    // Create new
+    await prisma.oidcConfiguration.create({
+      data: {
+        ...oidcData,
+        clientSecret: oidcData.clientSecret,
+        loginConfigId: team.loginConfigId,
+      },
+    });
+  }
+
+  // Update LoginConfiguration to set OIDC as the provider
+  await prisma.loginConfiguration.update({
+    where: { id: team.loginConfigId },
+    data: {
+      ssoProvider: 'OIDC',
+      updatedById: userId,
+    },
+  });
+
+  clearLoginConfigurationCacheItem(teamId);
+
+  return { isNew, previous: previousOidcConfig, result: await getSsoConfiguration(teamId) };
+}
+
+export async function updateSsoSettings(
+  teamId: string,
+  userId: string,
+  data: {
+    ssoEnabled: boolean;
+    ssoJitProvisioningEnabled: boolean;
+    ssoBypassEnabled: boolean;
+    ssoBypassEnabledRoles: TeamMemberRole[];
+  },
+) {
+  const team = await prisma.team.findUnique({
+    where: { id: teamId },
+    select: {
+      loginConfigId: true,
+      loginConfig: {
+        select: {
+          ssoProvider: true,
+          ssoEnabled: true,
+          ssoJitProvisioningEnabled: true,
+          ssoBypassEnabled: true,
+          ssoBypassEnabledRoles: true,
+          ssoRequireMfa: true,
+          samlConfiguration: { select: { id: true } },
+          oidcConfiguration: { select: { id: true } },
+        },
+      },
+    },
+  });
+
+  if (!team) {
+    throw new NotFoundError('Team not found');
+  }
+
+  const previousSettings = {
+    ssoEnabled: team.loginConfig.ssoEnabled,
+    ssoJitProvisioningEnabled: team.loginConfig.ssoJitProvisioningEnabled,
+    ssoBypassEnabled: team.loginConfig.ssoBypassEnabled,
+    ssoBypassEnabledRoles: team.loginConfig.ssoBypassEnabledRoles as string[],
+    ssoRequireMfa: team.loginConfig.ssoRequireMfa,
+  };
+
+  // Validate that a provider configuration exists before allowing SSO to be enabled
+  if (data.ssoEnabled) {
+    const { ssoProvider, samlConfiguration, oidcConfiguration } = team.loginConfig;
+    if (ssoProvider === 'NONE') {
+      throw new UserFacingError('Cannot enable SSO without first configuring an SSO provider (SAML or OIDC)');
+    }
+    if (ssoProvider === 'SAML' && !samlConfiguration) {
+      throw new UserFacingError('Cannot enable SSO: SAML is selected as the provider but no SAML configuration exists');
+    }
+    if (ssoProvider === 'OIDC' && !oidcConfiguration) {
+      throw new UserFacingError('Cannot enable SSO: OIDC is selected as the provider but no OIDC configuration exists');
+    }
+  }
+
+  await prisma.loginConfiguration.update({
+    where: { id: team.loginConfigId },
+    data: {
+      ssoEnabled: data.ssoEnabled,
+      ssoJitProvisioningEnabled: data.ssoJitProvisioningEnabled,
+      ssoBypassEnabled: data.ssoBypassEnabled,
+      ssoBypassEnabledRoles: data.ssoBypassEnabledRoles,
+      updatedById: userId,
+    },
+  });
+
+  clearLoginConfigurationCacheItem(teamId);
+
+  return { previousSettings, result: await getSsoConfiguration(teamId) };
+}
+
+export async function deleteSamlConfiguration(teamId: string, userId: string) {
+  const team = await prisma.team.findUnique({
+    where: { id: teamId },
+    select: {
+      loginConfigId: true,
+      loginConfig: {
+        select: {
+          samlConfiguration: {
+            select: { id: true, idpEntityId: true, idpCertificateExpiresAt: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (!team) {
+    throw new NotFoundError('Team not found');
+  }
+
+  const deletedConfig = team.loginConfig.samlConfiguration;
+
+  // Delete AuthIdentity records for this provider type for all users in the team
+  // This prevents identity reuse if the team switches to a different SAML provider
+  const teamMembers = await prisma.teamMember.findMany({
+    where: { teamId },
+    select: { userId: true },
+  });
+  const memberUserIds = teamMembers.map(({ userId }) => userId);
+
+  let affectedIdentitiesCount = 0;
+  if (memberUserIds.length > 0) {
+    const result = await prisma.authIdentity.deleteMany({
+      where: {
+        userId: { in: memberUserIds },
+        provider: 'saml',
+      },
+    });
+    affectedIdentitiesCount = result.count;
+  }
+
+  await prisma.samlConfiguration.deleteMany({
+    where: { loginConfigId: team.loginConfigId },
+  });
+
+  // Reset SSO provider to NONE
+  await prisma.loginConfiguration.update({
+    where: { id: team.loginConfigId },
+    data: {
+      ssoProvider: 'NONE',
+      ssoEnabled: false,
+      updatedById: userId,
+    },
+  });
+
+  clearLoginConfigurationCacheItem(teamId);
+
+  return { deletedConfig, affectedIdentitiesCount };
+}
+
+export async function deleteOidcConfiguration(teamId: string, userId: string) {
+  const team = await prisma.team.findUnique({
+    where: { id: teamId },
+    select: {
+      loginConfigId: true,
+      loginConfig: {
+        select: {
+          oidcConfiguration: {
+            select: { id: true, issuer: true, clientId: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (!team) {
+    throw new NotFoundError('Team not found');
+  }
+
+  const deletedConfig = team.loginConfig.oidcConfiguration;
+
+  // Delete AuthIdentity records for this provider type for all users in the team
+  // This prevents identity reuse if the team switches to a different OIDC provider
+  const teamMembers = await prisma.teamMember.findMany({
+    where: { teamId },
+    select: { userId: true },
+  });
+  const memberUserIds = teamMembers.map(({ userId }) => userId);
+
+  let affectedIdentitiesCount = 0;
+  if (memberUserIds.length > 0) {
+    const result = await prisma.authIdentity.deleteMany({
+      where: {
+        userId: { in: memberUserIds },
+        provider: 'oidc',
+      },
+    });
+    affectedIdentitiesCount = result.count;
+  }
+
+  await prisma.oidcConfiguration.deleteMany({
+    where: { loginConfigId: team.loginConfigId },
+  });
+
+  // Reset SSO provider to NONE
+  await prisma.loginConfiguration.update({
+    where: { id: team.loginConfigId },
+    data: {
+      ssoProvider: 'NONE',
+      ssoEnabled: false,
+      updatedById: userId,
+    },
+  });
+
+  clearLoginConfigurationCacheItem(teamId);
+
+  return { deletedConfig, affectedIdentitiesCount };
+}
+
+export const hasVerifiedDomain = async (teamId: string) => {
+  return prisma.domainVerification
+    .count({ where: { teamId, status: TeamVerificationStatusSchema.enum.VERIFIED } })
+    .then((count) => count > 0);
+};
+
+export const saveDomainVerification = async (teamId: string, domain: string, verificationCode: string) => {
+  const existing = await prisma.domainVerification.findUnique({ where: { domain } });
+  if (existing) {
+    if (existing.teamId !== teamId) {
+      throw new UserFacingError('Domain is already claimed by another team');
+    }
+    return prisma.domainVerification
+      .update({
+        where: { domain },
+        data: { verificationCode, status: TeamVerificationStatusSchema.enum.PENDING, verifiedAt: null },
+      })
+      .then((items) => DomainVerificationSchema.parse(items));
+  }
+
+  return prisma.domainVerification
+    .create({
+      data: { teamId, domain, verificationCode, status: TeamVerificationStatusSchema.enum.PENDING },
+    })
+    .then((items) => DomainVerificationSchema.parse(items));
+};
+
+export const getDomainVerification = async (teamId: string, domainId: string) => {
+  const verification = await prisma.domainVerification.findUnique({
+    where: { id: domainId, teamId },
+  });
+
+  if (!verification) {
+    return null;
+  }
+
+  return DomainVerificationSchema.parse(verification);
+};
+
+export const verifyDomainVerification = async (teamId: string, domainId: string) => {
+  return prisma
+    .$transaction(async (tx) => {
+      const verification = await tx.domainVerification.update({
+        where: { id: domainId, teamId },
+        data: { status: 'VERIFIED', verifiedAt: new Date() },
+      });
+
+      // Update login configuration with verified domains
+      const domains = await tx.domainVerification
+        .findMany({
+          where: { teamId, status: TeamVerificationStatusSchema.enum.VERIFIED },
+        })
+        .then((items) => items.map((item) => item.domain));
+
+      const team = await tx.team.findUnique({
+        where: { id: teamId },
+        select: {
+          loginConfig: { select: { id: true, domains: true } },
+        },
+      });
+
+      if (team?.loginConfig) {
+        await tx.loginConfiguration.update({
+          where: { id: team.loginConfig.id },
+          data: { domains },
+        });
+      }
+      return verification;
+    })
+    .then((items) => DomainVerificationSchema.parse(items));
+};
+
+export const deleteDomainVerification = async (teamId: string, domainId: string) => {
+  return prisma.$transaction(async (tx) => {
+    const record = await tx.domainVerification.findUnique({
+      where: { id: domainId, teamId },
+    });
+
+    if (!record) {
+      throw new NotFoundError('Domain verification record not found');
+    }
+
+    await tx.domainVerification.delete({
+      where: { id: domainId, teamId },
+    });
+
+    // Update login configuration with verified domains
+    const domains = await tx.domainVerification
+      .findMany({
+        where: { teamId, status: TeamVerificationStatusSchema.enum.VERIFIED },
+      })
+      .then((items) => items.map((item) => item.domain));
+
+    const team = await tx.team.findUnique({
+      where: { id: teamId },
+      select: { loginConfig: { select: { id: true, domains: true } } },
+    });
+
+    if (team?.loginConfig) {
+      await tx.loginConfiguration.update({
+        where: { id: team.loginConfig.id },
+        data: { domains },
+      });
+    }
+
+    return DomainVerificationSchema.parse(record);
+  });
+};
+
+/**
+ * Look up the userId associated with a session. Used for audit logging before session deletion.
+ */
+export const getSessionUserId = async (sessionId: string): Promise<string | null> => {
+  const session = await prisma.sessions.findUnique({
+    where: { sid: sessionId },
+    select: { userId: true },
+  });
+  return session?.userId ?? null;
+};
+
+export const getDomainVerifications = async (teamId: string) => {
+  return prisma.domainVerification
+    .findMany({
+      where: { teamId },
+      orderBy: { createdAt: 'desc' },
+    })
+    .then((items) => DomainVerificationSchema.array().parse(items));
+};

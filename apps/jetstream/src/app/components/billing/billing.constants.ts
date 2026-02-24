@@ -28,11 +28,12 @@ export const teamFeatures = [
   'Everything in Professional',
   'Manage team members',
   'Up to 20 team members',
+  'SSO via OIDC and SAML',
   'View & Manage team member session activity',
   'Role-based access control',
 ];
 
-export const teamFeaturesComingSoon = ['SOC 2', 'SSO via Okta', 'Share orgs between team members', 'Audit logs'];
+export const teamFeaturesComingSoon = ['SOC 2 (in progress)', 'Share orgs between team members', 'Audit logs'];
 
 export const enterpriseFeatures = [
   'Everything in Team',

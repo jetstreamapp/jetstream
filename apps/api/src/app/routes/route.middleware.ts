@@ -2,6 +2,7 @@ import { createRateLimit, ENV, getExceptionLog, logger } from '@jetstream/api-co
 import {
   AuthError,
   checkUserAgentSimilarity,
+  createUserActivityFromReq,
   ExpiredVerificationToken,
   generateHMACDoubleCSRFToken,
   getApiAddressFromReq,
@@ -32,6 +33,7 @@ export function basicAuthMiddleware(req: express.Request, res: express.Response,
   try {
     const authHeader = req.headers.authorization;
     if (typeof authHeader !== 'string') {
+      (res.log || logger).warn('Missing Authorization header for basic auth protected route');
       return res.status(401).send('Unauthorized');
     }
     const [type, token] = authHeader.split(' ');
@@ -39,11 +41,12 @@ export function basicAuthMiddleware(req: express.Request, res: express.Response,
       return res.status(401).send('Unauthorized');
     }
     if (!ENV.BASIC_AUTH_USERNAME || !ENV.BASIC_AUTH_PASSWORD) {
-      logger.error('BASIC_AUTH_USERNAME/BASIC_AUTH_PASSWORD environment variables are not set');
+      (res.log || logger).error('BASIC_AUTH_USERNAME/BASIC_AUTH_PASSWORD environment variables are not set');
       return res.status(401).send('Unauthorized');
     }
     const [username, password] = Buffer.from(token, 'base64').toString().split(':');
     if (username !== ENV.BASIC_AUTH_USERNAME || password !== ENV.BASIC_AUTH_PASSWORD) {
+      (res.log || logger).warn('Invalid BASIC_AUTH_USERNAME/BASIC_AUTH_PASSWORD');
       return res.status(401).send('Unauthorized');
     }
     next();
@@ -417,6 +420,13 @@ export function verifyCaptcha(req: express.Request, res: express.Response, next:
   }
   const token = req.body?.[ENV.CAPTCHA_PROPERTY];
   if (!token) {
+    (res.log || logger).warn({ token, reason: 'Missing captcha token' }, '[CAPTCHA][FAILED]');
+    createUserActivityFromReq(req, res, {
+      action: 'CAPTCHA_FAILED',
+      method: 'UNAUTHENTICATED',
+      success: false,
+      errorMessage: 'Missing captcha token',
+    });
     return next(new InvalidCaptcha());
   }
 
@@ -432,17 +442,23 @@ export function verifyCaptcha(req: express.Request, res: express.Response, next:
       'Content-Type': 'application/json',
     },
   })
-    .then((res) => {
-      if (res.ok) {
-        return res.json();
+    .then((fetchRes) => {
+      if (fetchRes.ok) {
+        return fetchRes.json();
       }
       throw new InvalidCaptcha();
     })
-    .then((res) => {
-      if (res.success) {
+    .then((fetchData) => {
+      if (fetchData.success) {
         return next();
       }
-      (res.log || logger).warn({ token, res }, '[CAPTCHA][FAILED]');
+      (res.log || logger).warn({ token, fetchData, reason: 'Captcha verification failed' }, '[CAPTCHA][FAILED]');
+      createUserActivityFromReq(req, res, {
+        action: 'CAPTCHA_FAILED',
+        method: 'UNAUTHENTICATED',
+        success: false,
+        errorMessage: fetchData['error-codes']?.join(', ') || 'Captcha verification failed',
+      });
       throw new InvalidCaptcha();
     })
     .catch(() => {

@@ -5,7 +5,6 @@ import {
   base64ToArrayBuffer,
   buildDateFromString,
   dateFromTimestamp,
-  findInvisibleUnicode,
   flattenRecord,
   getErrorMessage,
   getExcelSafeSheetName,
@@ -165,6 +164,42 @@ describe('utils.nullifyEmptyStrings', () => {
   it('should return the same map if it is null or undefined', () => {
     expect(nullifyEmptyStrings(null as any)).toBeNull();
     expect(nullifyEmptyStrings(undefined as any)).toBeUndefined();
+  });
+
+  it('should handle arrays of strings correctly', () => {
+    const input = {
+      tags: ['foo', 'bar', '  ', ''],
+      nested: {
+        items: ['hello', '', '  world  '],
+      },
+    };
+
+    const expectedOutput = {
+      tags: ['foo', 'bar', null, null],
+      nested: {
+        items: ['hello', null, 'world'],
+      },
+    };
+
+    expect(nullifyEmptyStrings(input)).toEqual(expectedOutput);
+  });
+
+  it('should handle arrays with nested objects', () => {
+    const input = {
+      users: [
+        { name: 'John', email: '' },
+        { name: '  Jane  ', email: 'jane@example.com' },
+      ],
+    };
+
+    const expectedOutput = {
+      users: [
+        { name: 'John', email: null },
+        { name: 'Jane', email: 'jane@example.com' },
+      ],
+    };
+
+    expect(nullifyEmptyStrings(input)).toEqual(expectedOutput);
   });
 });
 
@@ -1193,104 +1228,5 @@ describe('utils.base64ToArrayBuffer', () => {
     const decoder = new TextDecoder('utf-8');
     const decodedString = decoder.decode(arrayBuffer);
     expect(decodedString).toEqual('Hello, World!');
-  });
-});
-
-describe('utils.findInvisibleUnicode', () => {
-  it('should return empty array for string with no invisible unicode characters', () => {
-    const input = 'Hello, World!';
-    const result = findInvisibleUnicode(input);
-    expect(result).toEqual([]);
-  });
-
-  it('should find a single invisible unicode character', () => {
-    const input = 'Hello\u00A0World';
-    const result = findInvisibleUnicode(input);
-    expect(result).toEqual([
-      {
-        char: '\u00A0',
-        codePoint: 'U+A0',
-        index: 5,
-      },
-    ]);
-  });
-
-  it('should find multiple invisible unicode characters', () => {
-    const input = 'Hello\u00A0World\u200BTest\u3000End';
-    const result = findInvisibleUnicode(input);
-    expect(result).toEqual([
-      {
-        char: '\u00A0',
-        codePoint: 'U+A0',
-        index: 5,
-      },
-      {
-        char: '\u200B',
-        codePoint: 'U+200B',
-        index: 11,
-      },
-      {
-        char: '\u3000',
-        codePoint: 'U+3000',
-        index: 16,
-      },
-    ]);
-  });
-
-  it('should return empty array for empty string', () => {
-    const input = '';
-    const result = findInvisibleUnicode(input);
-    expect(result).toEqual([]);
-  });
-
-  it('should find zero-width characters', () => {
-    const input = 'Test\u200CString\u200D';
-    const result = findInvisibleUnicode(input);
-    expect(result).toEqual([
-      {
-        char: '\u200C',
-        codePoint: 'U+200C',
-        index: 4,
-      },
-      {
-        char: '\u200D',
-        codePoint: 'U+200D',
-        index: 11,
-      },
-    ]);
-  });
-
-  it('should find various invisible space characters', () => {
-    const input = 'A\u2000B\u2009C\u202FD';
-    const result = findInvisibleUnicode(input);
-    expect(result).toEqual([
-      {
-        char: '\u2000',
-        codePoint: 'U+2000',
-        index: 1,
-      },
-      {
-        char: '\u2009',
-        codePoint: 'U+2009',
-        index: 3,
-      },
-      {
-        char: '\u202F',
-        codePoint: 'U+202F',
-        index: 5,
-      },
-    ]);
-  });
-
-  it('should find BOM character', () => {
-    const input = '\uFEFFHello World';
-    const result = findInvisibleUnicode(input);
-    expect(result).toEqual([
-      {
-        char: '\uFEFF',
-        codePoint: 'U+FEFF',
-        index: 0,
-      },
-    ]);
   });
 });

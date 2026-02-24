@@ -7,6 +7,7 @@ import { Fragment, FunctionComponent, ReactNode, useState } from 'react';
 import Icon from '../widgets/Icon';
 
 export interface AccordionProps {
+  className?: string;
   initOpenIds: string[];
   sections: UiSection[];
   allowMultiple?: boolean;
@@ -21,6 +22,7 @@ export interface AccordionProps {
 }
 
 export const Accordion: FunctionComponent<AccordionProps> = ({
+  className,
   sections,
   initOpenIds,
   allowMultiple = true,
@@ -72,12 +74,17 @@ export const Accordion: FunctionComponent<AccordionProps> = ({
       {allowMultiple && showExpandCollapseAll && (
         <div className={expandAllContainerClassName}>
           {openIds.size < sections.length ? (
-            <button className={classNames(expandAllClassName, 'slds-button')} title="Expand All" onClick={handleExpandAll}>
+            <button type="button" className={classNames(expandAllClassName, 'slds-button')} title="Expand All" onClick={handleExpandAll}>
               <Icon type="utility" icon="expand_all" className="slds-button__icon slds-button__icon_left" omitContainer />
               Expand All
             </button>
           ) : (
-            <button className={classNames(expandAllClassName, 'slds-button')} title="Collapse All" onClick={handleCollapseAll}>
+            <button
+              type="button"
+              className={classNames(expandAllClassName, 'slds-button')}
+              title="Collapse All"
+              onClick={handleCollapseAll}
+            >
               <Icon type="utility" icon="collapse_all" className="slds-button__icon slds-button__icon_left" omitContainer />
               Collapse All
             </button>
@@ -85,7 +92,7 @@ export const Accordion: FunctionComponent<AccordionProps> = ({
           {expandAllExtraContent}
         </div>
       )}
-      <ul className="slds-accordion">
+      <ul className={classNames('slds-accordion', className)}>
         {sections.map((item) => {
           const isOpen = openIds.has(item.id);
           let content = item.content;
@@ -103,6 +110,7 @@ export const Accordion: FunctionComponent<AccordionProps> = ({
                 <div className="slds-accordion__summary">
                   <h3 className="slds-accordion__summary-heading">
                     <button
+                      type="button"
                       data-testid={item.testId}
                       aria-controls={item.id}
                       aria-expanded={isOpen}

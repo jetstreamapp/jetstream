@@ -1,6 +1,6 @@
 import { prisma } from '@jetstream/api-config';
 import { getPasswordResetToken } from '@jetstream/test/e2e-utils';
-import { expect, test } from '../../fixtures/fixtures';
+import { expect, test } from '../../../fixtures/fixtures';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');

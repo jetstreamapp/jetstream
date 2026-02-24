@@ -1,12 +1,10 @@
 import { prisma } from '@jetstream/api-config';
-import { groupByFlat } from '@jetstream/shared/utils';
+import { delay, groupByFlat } from '@jetstream/shared/utils';
 import { AuthenticationPage, TeamDashboardPage } from '@jetstream/test/e2e-utils';
 import { Page } from '@playwright/test';
-import { expect, test } from '../../fixtures/fixtures';
+import { expect, test } from '../../../fixtures/fixtures';
 
-// test.beforeAll(async () => {
-
-// });
+const baseUrl = process.env.NX_PUBLIC_SERVER_URL || process.env.JETSTREAM_SERVER_URL || 'http://localhost:3333';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/app');
@@ -105,8 +103,8 @@ test.describe('Team Dashboard', () => {
 
     await test.step('Verify login configuration', async () => {
       await expect(page.getByText(team.name)).toBeVisible();
-      await expect(teamDashboardPage.loginConfigRequireMfaCheckbox).toBeChecked({ checked: false });
-      await expect(teamDashboardPage.loginConfigAllowIdentityLinkingCheckbox).toBeChecked({ checked: true });
+      await expect(teamDashboardPage.loginConfigRequireMfaCheckbox).toBeChecked({ checked: true });
+      await expect(teamDashboardPage.loginConfigAllowIdentityLinkingCheckbox).toBeChecked({ checked: false });
       await expect(teamDashboardPage.loginConfigAuthenticatorAppCheckbox).toBeChecked({ checked: true });
       await expect(teamDashboardPage.loginConfigEmailCheckbox).toBeChecked({ checked: true });
       await expect(teamDashboardPage.loginConfigUsernamePasswordCheckbox).toBeChecked({ checked: true });
@@ -199,7 +197,7 @@ test.describe('Team Dashboard', () => {
       // make sure session gets revoked
       await billingMember1Page.reload();
       // ensure user is logged out since session is expired
-      await expect(billingMember1Page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
+      await expect(billingMember1Page.getByRole('button', { name: 'Continue', exact: true })).toBeVisible();
       await billingMember1Page.close();
     });
 
@@ -366,7 +364,7 @@ test.describe('Team Dashboard', () => {
       return await browser.newContext({ storageState: { cookies: [], origins: [] } }).then((context) => {
         return context.newPage().then(async (page) => {
           const link = getEmailLink({
-            baseUrl: process.env.JETSTREAM_SERVER_URL || 'http://localhost:3333',
+            baseUrl,
             email: user1Email,
             teamId: teamCreationUtils.team.id,
             token: teamInvites[user1Email].token,
@@ -399,7 +397,7 @@ test.describe('Team Dashboard', () => {
       return await browser.newContext({ storageState: { cookies: [], origins: [] } }).then((context) => {
         return context.newPage().then(async (page) => {
           const link = getEmailLink({
-            baseUrl: process.env.JETSTREAM_SERVER_URL || 'http://localhost:3333',
+            baseUrl,
             email: user2Email,
             teamId: teamCreationUtils.team.id,
             token: teamInvites[user2Email].token,
@@ -433,7 +431,7 @@ test.describe('Team Dashboard', () => {
       // Verify user is auto-added to team when they sign up via invite link
       const page = await existingUser1Context.newPage();
       const link = getEmailLink({
-        baseUrl: process.env.JETSTREAM_SERVER_URL || 'http://localhost:3333',
+        baseUrl,
         email: existingUser1.email,
         teamId: teamCreationUtils.team.id,
         token: teamInvites[existingUser1.email].token,
@@ -463,7 +461,7 @@ test.describe('Team Dashboard', () => {
       // Verify user is auto-added to team when they sign up via invite link
       const page = await existingUser2Context.newPage();
       const link = getEmailLink({
-        baseUrl: process.env.JETSTREAM_SERVER_URL || 'http://localhost:3333',
+        baseUrl,
         email: existingUser2.email,
         teamId: teamCreationUtils.team.id,
         token: teamInvites[existingUser2.email].token,
@@ -490,6 +488,116 @@ test.describe('Team Dashboard', () => {
         await expect(row.getByText('Authenticator App')).toBeVisible();
         await expect(row.getByText('Username/Password')).toBeVisible();
       }
+    });
+  });
+
+  test('OTP MFA enrollment is continued if user abandons process', async ({
+    browser,
+    page,
+    authenticationPage,
+    teamDashboardPage,
+    teamCreationUtils1User: teamCreationUtils,
+  }) => {
+    const { team } = teamCreationUtils;
+
+    await test.step('Go to team dashboard and require OTP-only MFA', async () => {
+      await teamDashboardPage.goToTeamDashboardPage();
+      await teamDashboardPage.loginConfigRequireMfaCheckbox.check();
+      await teamDashboardPage.loginConfigEmailCheckbox.uncheck();
+      await teamDashboardPage.loginConfigAllowIdentityLinkingCheckbox.uncheck();
+      await teamDashboardPage.loginConfigSaveButton.click();
+      await page.reload();
+    });
+
+    const { user, context: userContext } = await test.step('Invite user and sign up - pause at OTP enrollment', async () => {
+      const userEmail = authenticationPage.generateTestEmail();
+      teamCreationUtils.userEmails.push(userEmail);
+
+      await teamDashboardPage.inviteTeamMember(userEmail);
+
+      // Wait for invite row to appear in the table, confirming the record is saved to the DB
+      const inviteRow = teamDashboardPage.teamInviteTable.getByTestId(`team-member-row-invite-${userEmail}`);
+      await expect(inviteRow.getByText(userEmail)).toBeVisible();
+      await expect(inviteRow.getByText('Pending')).toBeVisible();
+
+      const teamInvite = await prisma.teamMemberInvitation.findFirstOrThrow({
+        select: { token: true },
+        where: { email: userEmail, teamId: team.id },
+      });
+
+      const link = getEmailLink({
+        baseUrl,
+        email: userEmail,
+        teamId: team.id,
+        token: teamInvite.token,
+      });
+
+      const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+      const newPage = await context.newPage();
+      const user = await new AuthenticationPage(newPage).signUpAndVerifyEmailPauseBeforeEnrollInOtp(userEmail, link);
+      teamCreationUtils.users.push(user);
+
+      expect(newPage.url()).toContain('/auth/mfa-enroll');
+      await newPage.close();
+      return { user, context };
+    });
+
+    await test.step('Navigating to app with abandoned enrollment redirects to enrollment page', async () => {
+      const newPage = await userContext.newPage();
+      await newPage.goto('/app');
+      expect(newPage.url()).toContain('/auth/mfa-enroll/');
+      await expect(newPage.getByRole('heading', { name: 'Scan the QR code with your' })).toBeVisible();
+      await newPage.close();
+    });
+
+    await test.step('Logging in again still redirects to enrollment page', async () => {
+      const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+      const newPage = await context.newPage();
+      const auth = new AuthenticationPage(newPage);
+      await auth.fillOutLoginForm(user.email, user.password);
+      await delay(1000); // ensure session is initialized
+      await auth.verifyEmail(user.email, false, '**/auth/mfa-enroll/');
+      await expect(newPage.getByRole('heading', { name: 'Scan the QR code with your' })).toBeVisible();
+      await newPage.getByRole('link', { name: 'Logout' }).click();
+      await context.close();
+    });
+
+    await test.step('Completing enrollment grants access to app', async () => {
+      const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+      const newPage = await context.newPage();
+      const auth = new AuthenticationPage(newPage);
+      await auth.fillOutLoginForm(user.email, user.password);
+      await delay(1000); // ensure session is initialized
+      await auth.verifyEmail(user.email, false, '**/auth/mfa-enroll/');
+      await expect(newPage.getByRole('heading', { name: 'Scan the QR code with your' })).toBeVisible();
+      await auth.enrollInOtp(user.email);
+      expect(newPage.url()).toContain('/app');
+      await context.close();
+    });
+  });
+
+  test('Allowed providers are enforced', async ({ browser, page, teamDashboardPage, teamCreationUtils3Users: teamCreationUtils }) => {
+    const [member1] = teamCreationUtils.members;
+
+    await test.step('Go to team dashboard', async () => {
+      await teamDashboardPage.goToTeamDashboardPage();
+      expect(page.getByRole('heading', { name: 'Team Dashboard' })).toBeTruthy();
+    });
+
+    await test.step('Disable username/password as an allowed login provider', async () => {
+      await teamDashboardPage.loginConfigUsernamePasswordCheckbox.uncheck();
+      await teamDashboardPage.loginConfigSaveButton.click();
+      await page.reload();
+      await expect(teamDashboardPage.loginConfigUsernamePasswordCheckbox).toBeChecked({ checked: false });
+    });
+
+    await test.step('Team member cannot log in with credentials after provider is disabled', async () => {
+      const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+      const memberPage = await context.newPage();
+      const memberAuth = new AuthenticationPage(memberPage);
+      await memberAuth.fillOutLoginForm(member1.user.email, member1.user.password);
+      await expect(memberPage.getByText('method is not allowed')).toBeVisible();
+      await context.close();
     });
   });
 

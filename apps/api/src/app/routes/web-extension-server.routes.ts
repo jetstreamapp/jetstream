@@ -1,28 +1,28 @@
-import { createRateLimit, ENV } from '@jetstream/api-config';
+import { createRateLimit } from '@jetstream/api-config';
 import express, { Router } from 'express';
 import helmet from 'helmet';
 import * as userFeedbackController from '../controllers/user-feedback.controller';
 import * as webExtensionController from '../controllers/web-extension.controller';
 import * as externalAuthService from '../services/external-auth.service';
+import { rateLimitGetKeyGenerator, rateLimitGetMaxRequests } from '../utils/route.utils';
 import { deprecatedRouteMiddleware, feedbackRateLimit, feedbackUploadMiddleware } from './route.middleware';
-
-function getMaxRequests(value: number) {
-  return ENV.CI || ENV.ENVIRONMENT === 'development' ? 10000 : value;
-}
 
 export const LAX_AuthRateLimit = createRateLimit('web-ext_lax', {
   windowMs: 1000 * 60 * 1, // 1 minutes
-  limit: getMaxRequests(25),
+  limit: rateLimitGetMaxRequests(25),
+  keyGenerator: rateLimitGetKeyGenerator(),
 });
 
 const STRICT_AuthRateLimit = createRateLimit('web-ext_strict', {
   windowMs: 1000 * 60 * 5, // 5 minutes
-  limit: getMaxRequests(20),
+  limit: rateLimitGetMaxRequests(20),
+  keyGenerator: rateLimitGetKeyGenerator(),
 });
 
 const STRICT_2X_AuthRateLimit = createRateLimit('web-ext_strict_2x', {
   windowMs: 1000 * 60 * 15, // 15 minutes
-  limit: getMaxRequests(10),
+  limit: rateLimitGetMaxRequests(10),
+  keyGenerator: rateLimitGetKeyGenerator(),
 });
 
 export const routes: express.Router = Router();

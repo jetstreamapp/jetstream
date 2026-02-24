@@ -1,8 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type {
   LoginActivityUserFacing,
+  LoginConfiguration,
   LoginConfigurationUI,
+  LoginConfigurationWithCallbacks,
+  OidcConfiguration,
   Providers,
+  SamlConfiguration,
   TwoFactorTypeWithoutEmail,
   UserProfileAuthFactor,
   UserProfileUiWithIdentities,
@@ -18,6 +22,7 @@ import {
   ApiResponse,
   AppInfo,
   AsyncResult,
+  AuditLogPageResponse,
   BulkApiCreateJobRequestPayload,
   BulkApiDownloadType,
   BulkJob,
@@ -31,6 +36,7 @@ import {
   DescribeGlobalResult,
   DescribeMetadataResult,
   DescribeSObjectResult,
+  DomainVerification,
   FileNameFormat,
   GenericRequestPayload,
   GoogleFileApiResponse,
@@ -189,6 +195,71 @@ export async function resendInvitation(teamId: string, invitationId: string): Pr
 
 export async function cancelInvitation(teamId: string, invitationId: string): Promise<void> {
   return handleRequest({ method: 'DELETE', url: `/api/teams/${teamId}/invitations/${invitationId}` }).then(unwrapResponseIgnoreCache);
+}
+
+/**
+ * SSO Configuration API Functions
+ */
+
+export async function discoverSso(email: string): Promise<{
+  found: boolean;
+  teamId?: string;
+  ssoProvider?: 'SAML' | 'OIDC';
+  ssoEnabled?: boolean;
+  ssoBypassEnabled?: boolean;
+}> {
+  return handleRequest({ method: 'POST', url: '/api/auth/sso/discover', data: { email } }).then(unwrapResponseIgnoreCache);
+}
+
+export async function getSsoConfiguration(teamId: string): Promise<LoginConfigurationWithCallbacks> {
+  return handleRequest({ method: 'GET', url: `/api/teams/${teamId}/sso/config` }).then(unwrapResponseIgnoreCache);
+}
+
+export async function discoverOidcConfig(teamId: string, issuer: string): Promise<Partial<OidcConfiguration>> {
+  return handleRequest({ method: 'POST', url: `/api/teams/${teamId}/sso/oidc/discover`, data: { issuer } }).then(unwrapResponseIgnoreCache);
+}
+
+export async function saveOidcConfig(teamId: string, config: Partial<OidcConfiguration>): Promise<LoginConfiguration> {
+  return handleRequest({ method: 'POST', url: `/api/teams/${teamId}/sso/oidc/config`, data: config }).then(unwrapResponseIgnoreCache);
+}
+
+export async function parseSamlMetadata(
+  teamId: string,
+  payload: { metadataXml: string } | { metadataUrl: string },
+): Promise<{
+  entityId: string;
+  ssoUrl: string;
+  sloUrl?: string;
+  certificate: string;
+  claimMapping?: Maybe<{
+    email: Maybe<string>;
+    userName?: Maybe<string>;
+    firstName?: Maybe<string>;
+    lastName?: Maybe<string>;
+  }>;
+}> {
+  return handleRequest({ method: 'POST', url: `/api/teams/${teamId}/sso/saml/parse-metadata`, data: payload }).then(
+    unwrapResponseIgnoreCache,
+  );
+}
+
+export async function saveSamlConfig(teamId: string, config: Partial<SamlConfiguration>): Promise<LoginConfiguration> {
+  return handleRequest({ method: 'POST', url: `/api/teams/${teamId}/sso/saml/config`, data: config }).then(unwrapResponseIgnoreCache);
+}
+
+export async function updateSsoSettings(
+  teamId: string,
+  settings: { ssoEnabled: boolean; ssoJitProvisioningEnabled: boolean; ssoBypassEnabled: boolean },
+): Promise<LoginConfigurationWithCallbacks> {
+  return handleRequest({ method: 'PUT', url: `/api/teams/${teamId}/sso/settings`, data: settings }).then(unwrapResponseIgnoreCache);
+}
+
+export async function deleteSamlConfig(teamId: string): Promise<void> {
+  return handleRequest({ method: 'DELETE', url: `/api/teams/${teamId}/sso/saml/config` }).then(unwrapResponseIgnoreCache);
+}
+
+export async function deleteOidcConfig(teamId: string): Promise<void> {
+  return handleRequest({ method: 'DELETE', url: `/api/teams/${teamId}/sso/oidc/config` }).then(unwrapResponseIgnoreCache);
 }
 
 export async function getUserProfile(): Promise<UserProfileUi> {
@@ -1209,6 +1280,60 @@ export async function downloadBinaryAttachmentsZip_WEB_EXTENSION(
       return response as any;
     },
   );
+}
+
+export async function getDomainVerifications(teamId: string): Promise<DomainVerification[]> {
+  return handleRequest({ method: 'GET', url: `/api/teams/${teamId}/domain-verification` }).then(unwrapResponseIgnoreCache);
+}
+
+export async function saveDomainVerification(teamId: string, domain: string): Promise<DomainVerification> {
+  return handleRequest({ method: 'POST', url: `/api/teams/${teamId}/domain-verification`, data: { domain } }).then(
+    unwrapResponseIgnoreCache,
+  );
+}
+
+export async function verifyDomain(
+  teamId: string,
+  domainId: string,
+): Promise<{ success: boolean; verification?: DomainVerification; message?: string }> {
+  return handleRequest({ method: 'POST', url: `/api/teams/${teamId}/domain-verification/${domainId}/verify` }).then(
+    unwrapResponseIgnoreCache,
+  );
+}
+
+export async function deleteDomainVerification(teamId: string, domainId: string): Promise<void> {
+  return handleRequest({ method: 'DELETE', url: `/api/teams/${teamId}/domain-verification/${domainId}` }).then(unwrapResponseIgnoreCache);
+}
+
+export async function getTeamAuditLogs(
+  teamId: string,
+  params?: { limit?: number; cursorId?: string; startDate?: string; endDate?: string },
+): Promise<AuditLogPageResponse> {
+  return handleRequest({ method: 'GET', url: `/api/teams/${teamId}/audit-logs`, params }).then(unwrapResponseIgnoreCache);
+}
+
+/**
+ * Downloads audit logs as CSV for the given date range.
+ * Uses native fetch since the response is CSV text, not JSON.
+ */
+export async function downloadTeamAuditLogsCsv(teamId: string, params?: { startDate?: string; endDate?: string }): Promise<string> {
+  const url = new URL(`/api/teams/${teamId}/audit-logs`, window.location.origin);
+  if (params?.startDate) {
+    url.searchParams.set('startDate', params.startDate);
+  }
+  if (params?.endDate) {
+    url.searchParams.set('endDate', params.endDate);
+  }
+
+  const response = await fetch(url.toString(), {
+    headers: { Accept: 'text/csv' },
+    credentials: 'same-origin',
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to download audit logs');
+  }
+  return response.text();
 }
 
 export async function submitUserFeedback({

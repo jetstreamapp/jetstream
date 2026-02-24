@@ -324,7 +324,21 @@ export function nullifyEmptyStrings<T extends Record<string, unknown>>(value: T,
     if (obj[key] === '') {
       obj[key] = null;
     }
-    if (isObject(obj[key])) {
+    // Handle arrays before checking isObject since arrays are also objects
+    if (Array.isArray(obj[key])) {
+      obj[key] = (obj[key] as unknown[]).map((item) => {
+        if (trimStrings && isString(item)) {
+          item = (item as string).trim();
+        }
+        if (item === '') {
+          return null;
+        }
+        if (isObject(item)) {
+          return nullifyEmptyStrings(item as Record<string, unknown>, trimStrings);
+        }
+        return item;
+      }) as unknown;
+    } else if (isObject(obj[key])) {
       obj[key] = nullifyEmptyStrings(obj[key] as Record<string, unknown>, trimStrings) as unknown;
     }
     return obj;
@@ -1283,16 +1297,3 @@ export const fileExtensionFromMimeType = (mimeType: string): Maybe<string> => {
       return null;
   }
 };
-
-// eslint-disable-next-line no-misleading-character-class
-const INVISIBLE_UNICODE_REGEX = /[\u00A0\u1680\u180E\u2000-\u200A\u200B\u200C\u200D\u202F\u205F\u2060\u3000\uFEFF]/g;
-
-export function findInvisibleUnicode(input: string) {
-  const matches = [...input.matchAll(INVISIBLE_UNICODE_REGEX)];
-
-  return matches.map((m) => ({
-    char: m[0],
-    codePoint: `U+${m[0].codePointAt(0)?.toString(16).toUpperCase()}`,
-    index: m.index,
-  }));
-}

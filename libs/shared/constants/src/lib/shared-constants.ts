@@ -57,6 +57,8 @@ export const HTTP = {
     X_CACHE_KEY: 'X-CACHE-KEY',
     X_CACHE_AGE: 'X-CACHE-AGE',
     X_CACHE_EXP: 'X-CACHE-ECP',
+    X_DEV_NO_RATE_LIMIT_BYPASS: 'X-DEV-NO-RATE-LIMIT-BYPASS',
+    X_DEV_RATE_LIMIT_KEY: 'X-DEV-RATE-LIMIT-KEY',
     /**
      * @deprecated - use X_EXT_DEVICE_ID instead
      */
@@ -1054,3 +1056,72 @@ export const METADATA_TYPES_WITH_FOLDERS = new Set([
 export const MAX_BINARY_DOWNLOAD_RECORDS_FREE_USER = 250;
 export const MAX_BINARY_DOWNLOAD_RECORDS_PAID_USER = 2_000;
 export const MAX_BINARY_DOWNLOAD_SIZE_BYTES = 1024 * 1024 * 1000; // 1GB
+
+/**
+ * Public email provider domains that cannot be claimed for SSO domain verification.
+ * Prevents domain squatting and ensures no one can force SSO for shared email providers.
+ */
+export const BLOCKED_PUBLIC_EMAIL_DOMAINS = new Set([
+  // Google
+  'gmail.com',
+  'googlemail.com',
+  // Microsoft
+  'outlook.com',
+  'hotmail.com',
+  'live.com',
+  'msn.com',
+  // Yahoo
+  'yahoo.com',
+  'ymail.com',
+  'rocketmail.com',
+  // Apple
+  'icloud.com',
+  'me.com',
+  'mac.com',
+  // AOL / Verizon
+  'aol.com',
+  'aim.com',
+  // Other major providers
+  'protonmail.com',
+  'proton.me',
+  'zoho.com',
+  'mail.com',
+  'gmx.com',
+  'gmx.net',
+  'yandex.com',
+  'fastmail.com',
+  'tutanota.com',
+  'tuta.com',
+  'hey.com',
+  'pm.me',
+]);
+
+export const AUTH_ERROR_MESSAGES = {
+  AccountLocked: 'Account is locked due to too many failed login attempts. Try again later or reset your password.',
+  AuthError: 'Check your details and try again.',
+  ExpiredVerificationToken: 'Your verification token has expired, sign in again.',
+  IdentityLinkingNotAllowed: 'Linking identities is not allowed, Sign in with the same account you used originally.',
+  InactiveUser: 'Your account is inactive. Contact support for assistance.',
+  InvalidAccessToken: 'Your session is invalid, Sign in again.',
+  InvalidAction: 'The form is invalid, refresh the page and start over.',
+  InvalidCaptcha: 'Invalid captcha verification, refresh and try again to confirm you are not a bot.',
+  InvalidCredentials: 'Sign in failed. Check the details you provided are correct.',
+  InvalidCsrfToken: 'The action is invalid, refresh the page and start over.',
+  InvalidOrExpiredResetToken: 'Your reset token is invalid, Restart the reset process.',
+  InvalidParameters: 'There was a problem with your submission, refresh the page and try again.',
+  InvalidProvider: 'Your login provider is invalid or is not supported for your user.',
+  InvalidRegistration: 'This email address is already in use. Log in using an existing method or reset your password.',
+  InvalidSession: 'Your session is invalid, Sign in again.',
+  InvalidVerificationToken: 'Your verification token is invalid.',
+  InvalidVerificationType: 'The form is invalid, refresh the page and start over.',
+  LoginWithExistingIdentity: 'To confirm your identity, sign in with the same account you used originally.',
+  MissingEntitlement: `You are not permitted to access this feature.`,
+  PasswordResetRequired: 'You must reset your password before signing in.',
+  PasswordReused: 'You cannot reuse your previously used passwords. Choose a different password.',
+  ProviderEmailNotVerified: 'You must first verify your email address with the provider in order to register.',
+  ProviderNotAllowed: `This login method is not allowed, login using an approved method.`,
+  SsoAutoProvisioningDisabled: 'You are not a member of this team. Ask an admin to invite you or enable auto-provisioning for SSO.',
+  SsoInvalidAction:
+    'Your credentials are invalid or you are not authorized to perform this action. Contact your administrator for assistance.',
+  TooManyRequests: 'Too many attempts. Please wait a moment before trying again.',
+};

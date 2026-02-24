@@ -155,7 +155,7 @@ export const CreateFieldsImportExport = ({ selectedOrg, rows, onImportRows }: Cr
                 accept={[INPUT_ACCEPT_FILETYPES.CSV, INPUT_ACCEPT_FILETYPES.EXCEL]}
                 userHelpText={<span>The headers are case-sensitive.</span>}
                 onReadFile={handleImport}
-              ></FileSelector>
+              />
               <div>
                 Download the{' '}
                 <button className="slds-button" onClick={() => handleMenuSelection('export-example')}>

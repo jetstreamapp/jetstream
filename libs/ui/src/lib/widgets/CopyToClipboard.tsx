@@ -65,6 +65,7 @@ export const CopyToClipboard: FunctionComponent<CopyToClipboardProps> = ({
       )}
       disabled={disabled || (!skipTransitionIcon && isCopied)}
       onClick={handleCopy}
+      type="button"
     >
       <Icon
         className={classNames(

@@ -20,6 +20,12 @@
   }
 }
 
+@layer base {
+  button {
+    @apply cursor-pointer;
+  }
+}
+
 h1 {
   @apply text-2xl;
   @apply my-2;

@@ -62,7 +62,7 @@ export class TeamDashboardPage {
   }
 
   async goToTeamDashboardPage() {
-    const navigationPromise = this.page.waitForURL('/app/teams');
+    const navigationPromise = this.page.waitForURL('**/app/teams');
     await this.page.getByRole('button', { name: 'Avatar' }).click();
     await this.page.getByRole('menuitem', { name: 'Team Dashboard' }).click();
     await navigationPromise;

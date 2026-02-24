@@ -3,7 +3,7 @@ import { ENV } from '@jetstream/api-config';
 import { expect, test as setup } from '@playwright/test';
 import { join } from 'path';
 
-const baseApiURL = 'http://localhost:3333';
+const baseApiURL = process.env.NX_PUBLIC_SERVER_URL || process.env.JETSTREAM_SERVER_URL || 'http://localhost:3333';
 
 const authFile = join('playwright/.auth/user.json');
 
@@ -32,6 +32,7 @@ setup('login and ensure org exists', async ({ page, request }) => {
   await page.getByRole('link', { name: 'Log in' }).click();
   await page.getByLabel('Email Address').click();
   await page.getByLabel('Email Address').fill(user.email);
+  await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByLabel('Password').click();
   await page.getByLabel('Password').fill(ENV.EXAMPLE_USER_PASSWORD as string);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
