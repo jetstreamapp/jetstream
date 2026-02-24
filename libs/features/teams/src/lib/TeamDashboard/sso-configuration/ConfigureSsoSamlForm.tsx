@@ -39,7 +39,9 @@ type FormValues = z.infer<typeof FormSchema>;
 export function ConfigureSsoSamlForm({ teamId, existingSsoConfig, onSave }: ConfigureSsoSamlFormProps) {
   const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
 
-  const isEditing = !!existingSsoConfig;
+  const samlConfiguration = existingSsoConfig?.samlConfiguration;
+  const callbackUrls = existingSsoConfig?.callbackUrls;
+  const isEditing = !!samlConfiguration;
 
   const {
     register,
@@ -52,18 +54,18 @@ export function ConfigureSsoSamlForm({ teamId, existingSsoConfig, onSave }: Conf
   } = useForm<FormValues>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      name: existingSsoConfig?.samlConfiguration?.name || '',
-      nameIdFormat: existingSsoConfig?.samlConfiguration?.nameIdFormat || 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
-      idpMetadataUrl: existingSsoConfig?.samlConfiguration?.idpMetadataUrl || '',
+      name: samlConfiguration?.name || '',
+      nameIdFormat: samlConfiguration?.nameIdFormat || 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
+      idpMetadataUrl: samlConfiguration?.idpMetadataUrl || '',
       idpMetadataXml: '',
-      idpEntityId: existingSsoConfig?.samlConfiguration?.idpEntityId || '',
-      idpSsoUrl: existingSsoConfig?.samlConfiguration?.idpSsoUrl || '',
-      idpCertificate: existingSsoConfig?.samlConfiguration?.idpCertificate || '',
+      idpEntityId: samlConfiguration?.idpEntityId || '',
+      idpSsoUrl: samlConfiguration?.idpSsoUrl || '',
+      idpCertificate: samlConfiguration?.idpCertificate || '',
       attributeMapping: {
-        email: existingSsoConfig?.samlConfiguration?.attributeMapping.email || 'email',
-        userName: existingSsoConfig?.samlConfiguration?.attributeMapping.userName || 'email',
-        firstName: existingSsoConfig?.samlConfiguration?.attributeMapping.firstName || 'firstName',
-        lastName: existingSsoConfig?.samlConfiguration?.attributeMapping.lastName || 'lastName',
+        email: samlConfiguration?.attributeMapping.email || 'email',
+        userName: samlConfiguration?.attributeMapping.userName || 'email',
+        firstName: samlConfiguration?.attributeMapping.firstName || 'firstName',
+        lastName: samlConfiguration?.attributeMapping.lastName || 'lastName',
       },
     },
   });
@@ -122,30 +124,30 @@ export function ConfigureSsoSamlForm({ teamId, existingSsoConfig, onSave }: Conf
 
   return (
     <form id="sso-form" className="slds-p-around_medium" onSubmit={handleSubmit(onSave)}>
-      {existingSsoConfig?.callbackUrls?.saml && (
+      {callbackUrls?.saml && (
         <div className="slds-m-bottom_medium">
           <ScopedNotification theme="light">
             <div className="slds-m-bottom_small">
               <strong className="slds-m-bottom_x-small slds-block">Single Sign On URL (ACS):</strong>
               <div className="slds-m-top_xx-small">
-                {existingSsoConfig.callbackUrls.saml}
-                <CopyToClipboard content={existingSsoConfig.callbackUrls.saml} />
+                {callbackUrls.saml}
+                <CopyToClipboard content={callbackUrls.saml} />
               </div>
             </div>
-            {existingSsoConfig?.callbackUrls?.spEntityId && (
-              <div>
-                <strong className="slds-m-bottom_x-small slds-block">Audience URI (SP Entity ID):</strong>
+            {callbackUrls?.spEntityId && (
+              <div className="slds-m-bottom_small">
+                <strong className="slds-m-bottom_x-small slds-block">Audience URN (SP Entity ID):</strong>
                 <div className="slds-m-top_xx-small">
-                  {existingSsoConfig.callbackUrls.spEntityId}
-                  <CopyToClipboard content={existingSsoConfig.callbackUrls.spEntityId} />
+                  {callbackUrls.spEntityId}
+                  <CopyToClipboard content={callbackUrls.spEntityId} />
                 </div>
               </div>
             )}
             <div className="slds-m-bottom_small">
               <strong className="slds-m-bottom_x-small slds-block">Metadata URL (Needed by some IdPs):</strong>
               <div className="slds-m-top_xx-small">
-                {existingSsoConfig.callbackUrls.samlMetadata}
-                <CopyToClipboard content={existingSsoConfig.callbackUrls.samlMetadata} />
+                {callbackUrls.samlMetadata}
+                <CopyToClipboard content={callbackUrls.samlMetadata} />
               </div>
               <p className="slds-text-body_small slds-text-color_weak">
                 This will return placeholder data prior to the connection being saved
@@ -306,11 +308,11 @@ export function ConfigureSsoSamlForm({ teamId, existingSsoConfig, onSave }: Conf
           />
         </Input>
 
-        {existingSsoConfig?.samlConfiguration?.idpCertificateExpiresAt && (
+        {samlConfiguration?.idpCertificateExpiresAt && (
           <p className="slds-m-top_xx-small slds-text-body_small slds-text-color_weak">
             Certificate expires:{' '}
             <strong>
-              {new Date(existingSsoConfig.samlConfiguration.idpCertificateExpiresAt).toLocaleDateString(undefined, {
+              {new Date(samlConfiguration.idpCertificateExpiresAt).toLocaleDateString(undefined, {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',

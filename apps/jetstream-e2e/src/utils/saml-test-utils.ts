@@ -1,10 +1,9 @@
+import { resolveSamlIdentifiers } from '@jetstream/auth/server';
 import type { APIRequestContext } from '@playwright/test';
 import { randomUUID } from 'crypto';
 import { promisify } from 'util';
 import { SignedXml } from 'xml-crypto';
 import { inflateRaw } from 'zlib';
-
-const serverUrl = process.env.NX_PUBLIC_SERVER_URL || process.env.JETSTREAM_SERVER_URL || 'http://localhost:3333';
 
 const inflateRawAsync = promisify(inflateRaw);
 
@@ -110,7 +109,7 @@ export function buildSignedSamlResponse(teamId: string, email: string, inRespons
   const notBefore = new Date(Date.now() - 5 * 60 * 1000).toISOString();
   const notOnOrAfter = new Date(Date.now() + 60 * 60 * 1000).toISOString();
   // audience must match the SP entityId configured in the fixture
-  const spEntityId = `https://getjetstream.app/saml/sp/${teamId}`;
+  const { acsUrl, spEntityId } = resolveSamlIdentifiers(teamId);
 
   const assertion = `
     <saml:Assertion xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="${assertionId}" IssueInstant="${issueInstant}" Version="2.0">
@@ -131,7 +130,7 @@ export function buildSignedSamlResponse(teamId: string, email: string, inRespons
     </saml:Assertion>`;
 
   const response = `
-    <samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="${responseId}" Version="2.0" IssueInstant="${issueInstant}" InResponseTo="${inResponseTo}" Destination="${serverUrl}/api/auth/sso/saml/${teamId}/acs">
+    <samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="${responseId}" Version="2.0" IssueInstant="${issueInstant}" InResponseTo="${inResponseTo}" Destination="${acsUrl}">
       ${assertion}
     </samlp:Response>`;
 

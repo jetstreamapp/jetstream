@@ -84,13 +84,13 @@ export class AuthenticationPage {
   }
 
   async acceptCookieBanner(page = this.page) {
-    const cookieBanner = page.getByText('We use cookies to improve');
     const cookieBannerAcceptButton = page.getByRole('button', { name: 'Accept' });
 
-    if (await cookieBanner.isVisible()) {
+    try {
+      await cookieBannerAcceptButton.waitFor({ state: 'visible', timeout: 5000 });
       await cookieBannerAcceptButton.click();
-    } else {
-      console.log('Element not visible, skipping click.');
+    } catch {
+      console.log('Cookie banner not visible, skipping click.');
     }
   }
 

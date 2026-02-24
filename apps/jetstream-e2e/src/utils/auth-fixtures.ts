@@ -1,5 +1,5 @@
 import { prisma } from '@jetstream/api-config';
-import { encryptSecret } from '@jetstream/auth/server';
+import { encryptSecret, resolveSamlIdentifiers } from '@jetstream/auth/server';
 import { randomUUID } from 'crypto';
 import 'dotenv/config';
 
@@ -110,12 +110,14 @@ export async function createSsoFixture(options: SsoFixtureOptions = {}): Promise
   });
 
   if (ssoProvider === 'SAML') {
+    const { acsUrl, spEntityId: entityId } = resolveSamlIdentifiers(team.id);
+
     await prisma.samlConfiguration.create({
       data: {
         loginConfigId: team.loginConfigId!,
         name: 'Test SAML',
-        entityId: `https://getjetstream.app/saml/sp/${team.id}`,
-        acsUrl: `https://getjetstream.app/api/auth/sso/saml/${team.id}/acs`,
+        entityId,
+        acsUrl,
         idpEntityId: 'https://idp.test/metadata',
         idpSsoUrl: 'https://idp.test/sso',
         idpCertificate: samlIdpCertificate || 'MIIBFAKECERT',

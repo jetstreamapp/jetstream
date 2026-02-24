@@ -1293,8 +1293,7 @@ const handleOidcCallback = createRoute(routeDefinition.handleOidcCallback.valida
     const { teamId } = params;
 
     const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const cookies = parseCookie(req.headers.cookie!);
+    const cookies = req.headers.cookie ? parseCookie(req.headers.cookie) : {};
 
     const state = cookies[cookieConfig.state.name];
     const codeVerifier = cookies[cookieConfig.pkceCodeVerifier.name];

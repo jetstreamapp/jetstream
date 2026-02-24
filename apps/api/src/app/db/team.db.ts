@@ -1,5 +1,5 @@
-import { ENV, logger, prisma } from '@jetstream/api-config';
-import { clearLoginConfigurationCacheItem } from '@jetstream/auth/server';
+import { logger, prisma } from '@jetstream/api-config';
+import { clearLoginConfigurationCacheItem, resolveSamlIdentifiers } from '@jetstream/auth/server';
 import {
   LoginConfigurationWithCallbacks,
   LoginConfigurationWithCallbacksSchema,
@@ -1017,15 +1017,12 @@ export async function getSsoConfiguration(teamId: string): Promise<LoginConfigur
     throw new NotFoundError('Team not found');
   }
 
+  const { callbackUrls } = resolveSamlIdentifiers(teamId);
+
   return LoginConfigurationWithCallbacksSchema.parse({
     ...team.loginConfig,
     // Add callback URLs for configuration
-    callbackUrls: {
-      oidc: `${ENV.JETSTREAM_SERVER_URL}/api/auth/sso/oidc/${teamId}/callback`,
-      saml: `${ENV.JETSTREAM_SERVER_URL}/api/auth/sso/saml/${teamId}/acs`,
-      samlMetadata: `${ENV.JETSTREAM_SERVER_URL}/api/auth/sso/saml/${teamId}/metadata`,
-      spEntityId: `${ENV.JETSTREAM_SAML_SP_ENTITY_ID_PREFIX}/${teamId}`,
-    },
+    callbackUrls,
   });
 }
 
@@ -1065,8 +1062,7 @@ export async function createOrUpdateSamlConfiguration(teamId: string, userId: st
   const isNew = !previousSamlConfig;
 
   // Generate SP entity ID and ACS URL
-  const entityId = `${ENV.JETSTREAM_SAML_SP_ENTITY_ID_PREFIX}/${teamId}`;
-  const acsUrl = `${ENV.JETSTREAM_SERVER_URL}${ENV.JETSTREAM_SAML_ACS_PATH_PREFIX}/${teamId}/acs`;
+  const { acsUrl, spEntityId: entityId } = resolveSamlIdentifiers(teamId);
 
   const samlData = {
     name: data.name,

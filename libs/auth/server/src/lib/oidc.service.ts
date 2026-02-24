@@ -29,7 +29,7 @@ export class OidcService {
 
       // Perform discovery (allow HTTP for non-prod/local testing)
       const response = await oauth.discoveryRequest(issuerUrl, {
-        [allowInsecureRequests]: ENV.ENVIRONMENT !== 'production',
+        [allowInsecureRequests]: !ENV.USE_SECURE_COOKIES,
       });
       const authServer = await oauth.processDiscoveryResponse(issuerUrl, response);
 
@@ -116,7 +116,7 @@ export class OidcService {
         params,
         `${ENV.JETSTREAM_SERVER_URL}/api/auth/sso/oidc/${teamId}/callback`,
         codeVerifier,
-        { [allowInsecureRequests]: ENV.ENVIRONMENT !== 'production' },
+        { [allowInsecureRequests]: !ENV.USE_SECURE_COOKIES },
       );
 
       // Process the token response (for OpenID Connect)
@@ -165,7 +165,7 @@ export class OidcService {
       // Optionally fetch from userinfo endpoint for additional claims
       if (authServer.userinfo_endpoint && accessToken) {
         const response = await oauth.userInfoRequest(authServer, client, accessToken, {
-          [allowInsecureRequests]: ENV.ENVIRONMENT !== 'production',
+          [allowInsecureRequests]: !ENV.USE_SECURE_COOKIES,
         });
         const userinfoResponse = await oauth.processUserInfoResponse(authServer, client, claims.sub, response);
         allClaims = { ...allClaims, ...userinfoResponse };

@@ -131,7 +131,7 @@ const envSchema = z.object({
   JETSTREAM_AUTH_WEB_EXT_JWT_SECRET: z.string().optional().default('DEVELOPMENT_SECRET'),
   JETSTREAM_SESSION_SECRET: z.string(),
   // SSO Configuration
-  JETSTREAM_SAML_SP_ENTITY_ID_PREFIX: z.url().default('https://getjetstream.app/saml/sp'),
+  JETSTREAM_SAML_SP_ENTITY_ID_PREFIX: z.string(),
   JETSTREAM_SAML_ACS_PATH_PREFIX: z.string().default('/api/auth/sso/saml'),
   JETSTREAM_SESSION_SECRET_PREV: z
     .string()

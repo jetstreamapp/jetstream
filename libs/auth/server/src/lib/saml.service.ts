@@ -10,6 +10,25 @@ import { AttributeMapping, ParsedIdpMetadata, SsoUserInfo } from './sso.types';
 /** 10 minutes - maximum time between AuthnRequest generation and SAML response */
 const SAML_REQUEST_ID_EXPIRATION_MS = 10 * 60 * 1000;
 
+export function resolveSamlIdentifiers(teamId: string) {
+  const urlPrefix = `${ENV.JETSTREAM_SERVER_URL}${ENV.JETSTREAM_SAML_ACS_PATH_PREFIX}/${teamId}`;
+  const spEntityId = `${ENV.JETSTREAM_SAML_SP_ENTITY_ID_PREFIX}:${teamId}`;
+  const acsUrl = `${urlPrefix}/acs`;
+
+  const callbackUrls = {
+    oidc: `${ENV.JETSTREAM_SERVER_URL}/api/auth/sso/oidc/${teamId}/callback`,
+    saml: acsUrl,
+    samlMetadata: `${urlPrefix}/metadata`,
+    spEntityId,
+  };
+
+  return {
+    spEntityId,
+    acsUrl,
+    callbackUrls,
+  };
+}
+
 /**
  * In-memory cache for SAML AuthnRequest IDs used by node-saml's InResponseTo validation.
  *
@@ -126,9 +145,10 @@ export class SamlService {
   }
 
   generatePlaceholderSamlConfiguration(teamId: string): string {
+    const { acsUrl, spEntityId } = resolveSamlIdentifiers(teamId);
     const saml = new SAML({
-      issuer: `${ENV.JETSTREAM_SAML_SP_ENTITY_ID_PREFIX}/${teamId}`,
-      callbackUrl: `${ENV.JETSTREAM_SERVER_URL}/api/auth/sso/saml/${teamId}/acs`,
+      issuer: spEntityId,
+      callbackUrl: acsUrl,
       entryPoint: 'https://placeholder.invalid', // unused by generateServiceProviderMetadata
       idpCert: 'PLACEHOLDER', // unused by generateServiceProviderMetadata
       identifierFormat: 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
