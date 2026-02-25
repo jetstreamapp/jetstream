@@ -1249,7 +1249,25 @@ const handleSamlCallback = createRoute(routeDefinition.handleSamlCallback.valida
       ENV.JETSTREAM_CLIENT_URL,
     );
 
-    redirect(res, returnUrl);
+    // Send verification email and redirect to verify page if verification is pending (e.g. MFA)
+    if (Array.isArray(req.session.pendingVerification) && req.session.pendingVerification.length > 0) {
+      const initialVerification = req.session.pendingVerification[0];
+      if (initialVerification.type === 'email') {
+        await sendEmailVerification(user.email, initialVerification.token, EMAIL_VERIFICATION_TOKEN_DURATION_HOURS);
+      } else if (initialVerification.type === '2fa-email') {
+        await sendVerificationCode(user.email, initialVerification.token, TOKEN_DURATION_MINUTES);
+      }
+      setCsrfCookie(res);
+      redirect(res, '/auth/verify');
+    } else if (req.session.pendingMfaEnrollment) {
+      redirect(res, '/auth/mfa-enroll');
+    } else {
+      if (req.session.sendNewUserEmailAfterVerify) {
+        req.session.sendNewUserEmailAfterVerify = undefined;
+        await sendWelcomeEmail(user.email);
+      }
+      redirect(res, returnUrl);
+    }
   } catch (ex) {
     res.log.error(getErrorMessageAndStackObj(ex), '[AUTH][SAML_CALLBACK] Error processing SAML callback');
     createUserActivityFromReqWithError(req, res, ex, {
@@ -1342,7 +1360,25 @@ const handleOidcCallback = createRoute(routeDefinition.handleOidcCallback.valida
       success: true,
     });
 
-    redirect(res, returnUrl);
+    // Send verification email and redirect to verify page if verification is pending (e.g. MFA)
+    if (Array.isArray(req.session.pendingVerification) && req.session.pendingVerification.length > 0) {
+      const initialVerification = req.session.pendingVerification[0];
+      if (initialVerification.type === 'email') {
+        await sendEmailVerification(user.email, initialVerification.token, EMAIL_VERIFICATION_TOKEN_DURATION_HOURS);
+      } else if (initialVerification.type === '2fa-email') {
+        await sendVerificationCode(user.email, initialVerification.token, TOKEN_DURATION_MINUTES);
+      }
+      setCsrfCookie(res);
+      redirect(res, '/auth/verify');
+    } else if (req.session.pendingMfaEnrollment) {
+      redirect(res, '/auth/mfa-enroll');
+    } else {
+      if (req.session.sendNewUserEmailAfterVerify) {
+        req.session.sendNewUserEmailAfterVerify = undefined;
+        await sendWelcomeEmail(user.email);
+      }
+      redirect(res, returnUrl);
+    }
   } catch (ex) {
     res.log.error(getErrorMessageAndStackObj(ex), '[AUTH][OIDC_CALLBACK] Error processing OIDC callback');
     createUserActivityFromReqWithError(req, res, ex, {
