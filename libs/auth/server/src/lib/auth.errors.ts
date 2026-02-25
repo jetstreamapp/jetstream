@@ -23,7 +23,8 @@ type ErrorType =
   | 'ProviderNotAllowed'
   | 'ProviderEmailNotVerified'
   | 'SsoAutoProvisioningDisabled'
-  | 'SsoInvalidAction';
+  | 'SsoInvalidAction'
+  | 'SsoLicenseLimitExceeded';
 
 type ErrorOptions = Error | Record<string, unknown>;
 
@@ -163,4 +164,8 @@ export class SsoAutoProvisioningDisabled extends AuthError {
 
 export class SsoInvalidAction extends AuthError {
   static type: ErrorType = 'SsoInvalidAction';
+}
+
+export class SsoLicenseLimitExceeded extends AuthError {
+  static type: ErrorType = 'SsoLicenseLimitExceeded';
 }

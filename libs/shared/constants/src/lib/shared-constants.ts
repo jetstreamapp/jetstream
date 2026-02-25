@@ -1123,5 +1123,7 @@ export const AUTH_ERROR_MESSAGES = {
   SsoAutoProvisioningDisabled: 'You are not a member of this team. Ask an admin to invite you or enable auto-provisioning for SSO.',
   SsoInvalidAction:
     'Your credentials are invalid or you are not authorized to perform this action. Contact your administrator for assistance.',
+  SsoLicenseLimitExceeded:
+    'Your account cannot be provisioned because the team has reached its maximum user count or the account is not active. Please contact your administrator.',
   TooManyRequests: 'Too many attempts. Please wait a moment before trying again.',
 };

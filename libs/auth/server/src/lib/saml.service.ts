@@ -1,7 +1,7 @@
-import { ENV, logger } from '@jetstream/api-config';
+import { DbCacheProvider, ENV, logger } from '@jetstream/api-config';
 import { SamlConfiguration } from '@jetstream/prisma';
-import { getErrorMessage } from '@jetstream/shared/utils';
-import { CacheItem, CacheProvider, Profile, SAML, SamlConfig, ValidateInResponseTo } from '@node-saml/node-saml';
+import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { Profile, SAML, SamlConfig, ValidateInResponseTo } from '@node-saml/node-saml';
 import { LRUCache } from 'lru-cache';
 import { parseStringPromise } from 'xml2js';
 import { decryptSecret } from './sso-crypto.util';
@@ -30,50 +30,18 @@ export function resolveSamlIdentifiers(teamId: string) {
 }
 
 /**
- * In-memory cache for SAML AuthnRequest IDs used by node-saml's InResponseTo validation.
+ * Postgres-backed cache for SAML AuthnRequest IDs used by node-saml's InResponseTo validation.
  *
  * When getAuthorizeUrlAsync is called, node-saml saves the AuthnRequest ID here.
  * When validatePostResponseAsync is called, node-saml checks that the response's
  * InResponseTo matches a cached request ID, then removes it (one-time use).
  * This prevents both CSRF (response must match a request we initiated) and
  * replay attacks (each request ID can only be consumed once).
+ *
+ * Using Postgres (rather than in-memory) so that AuthnRequest IDs generated on one
+ * worker process are visible to whichever worker handles the ACS callback.
  */
-class SamlRequestCacheProvider implements CacheProvider {
-  private cache: LRUCache<string, CacheItem>;
-
-  constructor(expirationMs: number) {
-    this.cache = new LRUCache<string, CacheItem>({
-      max: 10_000,
-      ttl: expirationMs,
-    });
-  }
-
-  async saveAsync(key: string, value: string): Promise<CacheItem | null> {
-    const item: CacheItem = { createdAt: Date.now(), value };
-    this.cache.set(key, item);
-    return item;
-  }
-
-  async getAsync(key: string): Promise<string | null> {
-    const item = this.cache.get(key);
-    return item?.value ?? null;
-  }
-
-  async removeAsync(key: string | null): Promise<string | null> {
-    if (!key) {
-      return null;
-    }
-    const item = this.cache.get(key);
-    this.cache.delete(key);
-    return item?.value ?? null;
-  }
-}
-
-/**
- * Shared cache provider instance — must persist across initializeSamlStrategy calls
- * so that request IDs saved during getAuthorizationUrl are available during validateSamlResponse.
- */
-const sharedSamlCacheProvider = new SamlRequestCacheProvider(SAML_REQUEST_ID_EXPIRATION_MS);
+const sharedSamlCacheProvider = new DbCacheProvider('saml:authn-request', SAML_REQUEST_ID_EXPIRATION_MS);
 
 /**
  * Tracks consumed SAML assertion InResponseTo values as defense-in-depth against replay.
@@ -231,6 +199,11 @@ export class SamlService {
   async validateSamlResponse(samlResponse: string, config: SamlConfiguration, teamId: string): Promise<Profile> {
     const saml = this.initializeSamlStrategy(config, teamId);
 
+    logger.info(
+      { teamId, entityId: config.entityId, acsUrl: config.acsUrl, nameIdFormat: config.nameIdFormat },
+      '[SAML] Validating SAML response',
+    );
+
     try {
       const { profile, loggedOut } = await saml.validatePostResponseAsync({ SAMLResponse: samlResponse });
       if (loggedOut) {
@@ -252,9 +225,10 @@ export class SamlService {
         consumedAssertionCache.set(assertionId, true);
       }
 
+      logger.info({ teamId, nameId: profile.nameID, nameIdFormat: profile.nameIDFormat }, '[SAML] SAML response validated successfully');
       return profile;
     } catch (error) {
-      logger.error({ error, teamId }, 'SAML response validation failed');
+      logger.error({ ...getErrorMessageAndStackObj(error), teamId }, 'SAML response validation failed');
       throw new Error(`SAML validation failed: ${getErrorMessage(error)}`);
     }
   }
@@ -296,6 +270,11 @@ export class SamlService {
   async getAuthorizationUrl(config: SamlConfiguration, teamId: string, returnUrl?: string): Promise<string> {
     const saml = this.initializeSamlStrategy(config, teamId);
 
+    logger.info(
+      { teamId, entityId: config.entityId, acsUrl: config.acsUrl, idpSsoUrl: config.idpSsoUrl, nameIdFormat: config.nameIdFormat },
+      '[SAML] Generating authorization URL',
+    );
+
     try {
       // getAuthorizeUrlAsync(RelayState: string, host: string | undefined, options: AuthOptions)
       const loginUrl = await saml.getAuthorizeUrlAsync(
@@ -303,9 +282,10 @@ export class SamlService {
         undefined, // host - use default from config
         {}, // options - additional SAML options
       );
+      logger.info({ teamId }, '[SAML] Authorization URL generated, AuthnRequest ID saved to cache');
       return loginUrl;
     } catch (error) {
-      logger.error({ error, teamId }, 'Failed to generate SAML authorization URL');
+      logger.error({ ...getErrorMessageAndStackObj(error), teamId }, 'Failed to generate SAML authorization URL');
       throw new Error(`Failed to generate SAML login URL: ${getErrorMessage(error)}`);
     }
   }

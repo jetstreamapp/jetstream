@@ -1,4 +1,4 @@
-import { ENV, logger, prisma } from '@jetstream/api-config';
+import { DbCacheProvider, ENV, logger, prisma } from '@jetstream/api-config';
 import {
   AuthenticatedUser,
   AuthenticatedUserSchema,
@@ -111,6 +111,7 @@ export const AuthenticatedUserSelect = {
   },
 } satisfies Prisma.UserSelect;
 
+// TODO: move this somewhere else as it applies to a lot more than just auth at this point
 export async function pruneExpiredRecords() {
   await prisma.loginActivity.deleteMany({
     where: {
@@ -149,6 +150,7 @@ export async function pruneExpiredRecords() {
       expiresAt: { lte: addDays(startOfDay(new Date()), -DELETE_EXPIRED_DOMAIN_VERIFICATION_DAYS) },
     },
   });
+  await DbCacheProvider.cleanupExpired();
 }
 
 async function findUserByProviderId(provider: OauthProviderType, providerAccountId: string) {

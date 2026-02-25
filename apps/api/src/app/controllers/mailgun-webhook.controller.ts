@@ -1,16 +1,12 @@
-import { ENV, logger, prisma } from '@jetstream/api-config';
+import { DbCacheProvider, ENV, logger, prisma } from '@jetstream/api-config';
 import type { Request, Response } from '@jetstream/api-types';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import crypto from 'crypto';
-import { LRUCache } from 'lru-cache';
 import { z } from 'zod';
 
-// Cache for tracking used webhook tokens to prevent replay attacks
-// Tokens expire after 15 minutes, same as our timestamp validation window
-const WEBHOOK_TOKEN_CACHE = new LRUCache<string, boolean>({
-  max: 10000, // Store up to 10k recent tokens
-  ttl: 1000 * 60 * 15, // 15 minutes
-});
+// Shared cache for tracking used webhook tokens to prevent replay attacks across worker processes.
+// Tokens expire after 15 minutes, same as our timestamp validation window.
+const webhookTokenCache = new DbCacheProvider('mailgun:webhook-token', 1000 * 60 * 15);
 
 // Maximum age for webhook timestamps (in seconds)
 const MAX_TIMESTAMP_AGE_SECONDS = 60 * 15; // 15 minutes
@@ -116,15 +112,12 @@ const mailgunWebhookHandler = async (req: Request, res: Response) => {
       // Check timestamp freshness to prevent replay attacks
       const timestampAge = Math.abs(Date.now() / 1000 - parseInt(signature.timestamp));
       if (timestampAge > MAX_TIMESTAMP_AGE_SECONDS) {
-        logger.warn(
-          { timestamp: signature.timestamp, age: timestampAge },
-          'Mailgun webhook timestamp too old or too far in the future',
-        );
+        logger.warn({ timestamp: signature.timestamp, age: timestampAge }, 'Mailgun webhook timestamp too old or too far in the future');
         return res.status(403).send('Invalid timestamp');
       }
 
       // Check if this token has already been used (replay attack prevention)
-      if (WEBHOOK_TOKEN_CACHE.has(signature.token)) {
+      if ((await webhookTokenCache.getAsync(signature.token)) !== null) {
         logger.warn({ token: signature.token }, 'Mailgun webhook token already used (replay attack)');
         return res.status(403).send('Token already used');
       }
@@ -142,8 +135,8 @@ const mailgunWebhookHandler = async (req: Request, res: Response) => {
         return res.status(403).send('Invalid signature');
       }
 
-      // Cache the token to prevent replay attacks
-      WEBHOOK_TOKEN_CACHE.set(signature.token, true);
+      // Store the token to prevent replay attacks across all worker processes
+      await webhookTokenCache.saveAsync(signature.token, 'used');
     } else {
       logger.warn('Mailgun webhook signing key not configured - skipping signature verification');
       return res.status(500).send('Webhook signing key not configured');

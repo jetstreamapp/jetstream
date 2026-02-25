@@ -20,6 +20,11 @@ vi.mock('@jetstream/api-config', () => ({
   logger: { error: vi.fn() },
   rollbarServer: { error: vi.fn() },
   getExceptionLog: vi.fn((err) => ({ message: err.message })),
+  DbCacheProvider: vi.fn().mockImplementation(function () {
+    this.saveAsync = vi.fn().mockResolvedValue(null);
+    this.getAsync = vi.fn().mockResolvedValue(null);
+    this.removeAsync = vi.fn().mockResolvedValue(null);
+  }),
 }));
 
 describe('salesforce-org-encryption.service', () => {

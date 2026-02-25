@@ -2,10 +2,10 @@ import { ENV, logger, prisma } from '@jetstream/api-config';
 import type { Request } from '@jetstream/api-types';
 import { AuthenticatedUser, AuthenticatedUserSchema, LoginConfiguration, SsoProviderType, TwoFactorType } from '@jetstream/auth/types';
 import { isPrismaError, PrismaUniqueConstraintError, toTypedPrismaError } from '@jetstream/prisma';
-import { TEAM_MEMBER_STATUS_ACTIVE, TeamMemberRole } from '@jetstream/types';
+import { BILLABLE_ROLES, TEAM_BILLING_STATUS_PAST_DUE, TEAM_MEMBER_STATUS_ACTIVE, TeamMemberRole } from '@jetstream/types';
 import { createUserActivity } from './auth-logging.db.service';
 import { AuthenticatedUserSelect, discoverSsoByDomain, getLoginConfiguration } from './auth.db.service';
-import { ProviderNotAllowed, SsoAutoProvisioningDisabled, SsoInvalidAction } from './auth.errors';
+import { ProviderNotAllowed, SsoAutoProvisioningDisabled, SsoInvalidAction, SsoLicenseLimitExceeded } from './auth.errors';
 import { initSession } from './auth.service';
 import { SsoUserInfo } from './sso.types';
 
@@ -75,6 +75,48 @@ function getSsoMfaRequirements(
   }
 
   return { mfaEnrollmentRequired, twoFactor };
+}
+
+/**
+ * Check that the team has not exceeded its license limit before JIT provisioning a new member.
+ *
+ * PAST_DUE always blocks provisioning.
+ * License count is only checked when the user has no invitation, because an invitation
+ * already occupies a slot in the count and converting it to a membership is a no-op for billing.
+ */
+async function checkJitLicenseAvailability(teamId: string, hasInvitation: boolean): Promise<void> {
+  const team = await prisma.team.findUnique({
+    where: { id: teamId },
+    select: {
+      billingStatus: true,
+      billingAccount: { select: { licenseCountLimit: true } },
+    },
+  });
+
+  if (!team) {
+    return;
+  }
+
+  if (team.billingStatus === TEAM_BILLING_STATUS_PAST_DUE) {
+    throw new SsoLicenseLimitExceeded(
+      'Your account cannot be provisioned because the team account is past-due. Please contact your administrator.',
+    );
+  }
+
+  if (!hasInvitation && team.billingAccount?.licenseCountLimit != null) {
+    const existingBillableMemberCount = await prisma.teamMember.count({
+      where: { teamId, status: TEAM_MEMBER_STATUS_ACTIVE, role: { in: Array.from(BILLABLE_ROLES) } },
+    });
+    const existingBillableInvitationCount = await prisma.teamMemberInvitation.count({
+      where: { teamId, role: { in: Array.from(BILLABLE_ROLES) } },
+    });
+
+    if (existingBillableMemberCount + existingBillableInvitationCount >= team.billingAccount.licenseCountLimit) {
+      throw new SsoLicenseLimitExceeded(
+        'Your account cannot be provisioned because the team has reached its maximum user count. Please contact your administrator.',
+      );
+    }
+  }
 }
 
 /**
@@ -159,6 +201,8 @@ export async function handleSsoLogin(
     if (!loginConfig.ssoJitProvisioningEnabled && !invitation) {
       throw new SsoAutoProvisioningDisabled('User not invited. JIT provisioning is disabled for this team.');
     }
+
+    await checkJitLicenseAvailability(teamId, !!invitation);
 
     // Determine role and features for new user
     const role = invitation?.role || 'MEMBER';
@@ -284,6 +328,8 @@ export async function handleSsoLogin(
     if (!invitation && !allowJit) {
       throw new SsoAutoProvisioningDisabled('User is not a member of this team and no invitation was found.');
     }
+
+    await checkJitLicenseAvailability(teamId, !!invitation);
 
     try {
       await prisma.teamMember.create({

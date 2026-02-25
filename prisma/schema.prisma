@@ -711,6 +711,19 @@ model OidcConfiguration {
   @@map("sso_oidc_configurations")
 }
 
+// Generic key-value cache table for sharing short-lived state across worker processes and server instances.
+// Namespaced by key prefix convention (e.g., "saml:authn-request:{id}").
+// Rows are not automatically evicted — callers should delete on use and run periodic cleanup.
+model CacheEntry {
+  key       String   @id @db.VarChar(512)
+  value     String   @db.Text
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([expiresAt])
+  @@map("cache_entry")
+}
+
 model DomainVerification {
   id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   domain           String    @db.VarChar(255)
