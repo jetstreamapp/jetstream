@@ -195,8 +195,8 @@ export async function generate2faTotpSecret() {
 
 export async function verify2faTotpOrThrow(secret: string, code: string) {
   const { decodeHex } = await osloEncodingPromise;
-  const { verifyTOTP } = await osloOtpPromise;
-  const validOTP = verifyTOTP(decodeHex(secret), TOTP_INTERVAL_SEC, TOTP_DIGITS, code);
+  const { verifyTOTPWithGracePeriod } = await osloOtpPromise;
+  const validOTP = verifyTOTPWithGracePeriod(decodeHex(secret), TOTP_INTERVAL_SEC, TOTP_DIGITS, code, TOTP_INTERVAL_SEC);
   if (!validOTP) {
     throw new InvalidVerificationToken();
   }
