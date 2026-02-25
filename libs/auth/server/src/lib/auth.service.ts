@@ -195,8 +195,30 @@ export async function generate2faTotpSecret() {
 
 export async function verify2faTotpOrThrow(secret: string, code: string) {
   const { decodeHex } = await osloEncodingPromise;
-  const { verifyTOTPWithGracePeriod } = await osloOtpPromise;
-  const validOTP = verifyTOTPWithGracePeriod(decodeHex(secret), TOTP_INTERVAL_SEC, TOTP_DIGITS, code, TOTP_INTERVAL_SEC);
+  const { verifyTOTPWithGracePeriod, generateTOTP } = await osloOtpPromise;
+  const decodedSecret = decodeHex(secret);
+  const serverTime = new Date();
+  const currentStep = Math.floor(serverTime.getTime() / 1000 / TOTP_INTERVAL_SEC);
+  // Generate expected codes for current step and neighbors to see what server expects
+  const expectedCodes = [-2, -1, 0, 1, 2].map((offset) => ({
+    offset,
+    code: generateTOTP(decodedSecret, currentStep + offset, TOTP_DIGITS),
+  }));
+  logger.info(
+    {
+      serverTime: serverTime.toISOString(),
+      serverTimeMs: serverTime.getTime(),
+      currentStep,
+      providedCode: code,
+      expectedCodes,
+      secretLength: secret.length,
+      intervalSec: TOTP_INTERVAL_SEC,
+      digits: TOTP_DIGITS,
+    },
+    '[TEMP TOTP DEBUG] verify2faTotpOrThrow'
+  );
+  const validOTP = verifyTOTPWithGracePeriod(decodedSecret, TOTP_INTERVAL_SEC, TOTP_DIGITS, code, TOTP_INTERVAL_SEC);
+  logger.info({ validOTP }, '[TEMP TOTP DEBUG] result');
   if (!validOTP) {
     throw new InvalidVerificationToken();
   }
