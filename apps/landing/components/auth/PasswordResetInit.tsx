@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import type { TurnstileInstance } from '@marsidev/react-turnstile';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
@@ -10,11 +11,10 @@ import { getLastUsedLoginMethod } from '../../utils/utils';
 import Alert from '../Alert';
 import { ErrorQueryParamErrorBanner } from '../ErrorQueryParamErrorBanner';
 import { Input } from '../form/Input';
-import { Captcha } from './Captcha';
+import { Captcha, isCaptchaRequired } from './Captcha';
 
 const FormSchema = z.object({
   csrfToken: z.string(),
-  captchaToken: z.string(),
   email: z
     .email({
       error: 'A valid email address is required',
@@ -35,9 +35,8 @@ export function PasswordResetInit({ csrfToken }: PasswordResetInitProps) {
   const searchParams = useSearchParams();
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [finishedCaptcha, setFinishedCaptcha] = useState(false);
   const [error, setError] = useState<string>();
-  const captchaRef = useRef<{ reset: () => void }>(null);
+  const captchaRef = useRef<TurnstileInstance>(null);
   const [{ rememberedEmail }] = useState(getLastUsedLoginMethod);
 
   const emailHint = searchParams?.get('email') || rememberedEmail || '';
@@ -45,24 +44,33 @@ export function PasswordResetInit({ csrfToken }: PasswordResetInitProps) {
   const {
     register,
     handleSubmit,
-    setValue,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(FormSchema),
     defaultValues: {
       email: emailHint,
       csrfToken,
-      captchaToken: '',
     },
   });
 
   const onSubmit = async (payload: Form) => {
     try {
       setIsSaving(true);
+
+      const params = new URLSearchParams(payload);
+
+      if (isCaptchaRequired() && captchaRef.current) {
+        const captchaToken = await captchaRef.current.getResponsePromise();
+        if (!captchaToken) {
+          throw new Error('Captcha verification is required. Please complete the captcha challenge and try again.');
+        }
+        params.set('captchaToken', captchaToken || '');
+      }
+
       const response = await fetch(ROUTES.AUTH.api_reset_password_init, {
         method: 'POST',
         credentials: 'include',
-        body: new URLSearchParams(payload).toString(),
+        body: params.toString(),
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           Accept: 'application/json',
@@ -126,7 +134,6 @@ export function PasswordResetInit({ csrfToken }: PasswordResetInitProps) {
           {!isSubmitted && (
             <form onSubmit={handleSubmit(onSubmit)} method="POST" noValidate className="space-y-6">
               <input type="hidden" {...register('csrfToken')} />
-              <input type="hidden" {...register('captchaToken')} />
 
               <Input
                 label="Email Address"
@@ -143,19 +150,13 @@ export function PasswordResetInit({ csrfToken }: PasswordResetInitProps) {
                 }}
               />
 
-              <Captcha
-                ref={captchaRef}
-                formError={errors?.captchaToken?.message}
-                action="password-reset-init"
-                onChange={(token) => setValue('captchaToken', token)}
-                onStateChange={setFinishedCaptcha}
-              />
+              <Captcha ref={captchaRef} action="password-reset-init" />
 
               <div>
                 <button
                   type="submit"
                   className="flex w-full justify-center rounded-md bg-blue-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-xs hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-                  disabled={isSaving || !finishedCaptcha}
+                  disabled={isSaving || isSubmitting}
                 >
                   Submit
                 </button>

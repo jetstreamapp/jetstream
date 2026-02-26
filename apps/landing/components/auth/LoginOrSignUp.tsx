@@ -2,6 +2,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import type { Providers } from '@jetstream/auth/types';
 import { containsUserInfo } from '@jetstream/shared/utils';
 import { PASSWORD_MIN_LENGTH, PasswordSchema } from '@jetstream/types';
+import type { TurnstileInstance } from '@marsidev/react-turnstile';
+import classNames from 'classnames';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
@@ -13,7 +15,7 @@ import { getLastUsedLoginMethod, setLastUsedLoginMethod } from '../../utils/util
 import { ErrorQueryParamErrorBanner } from '../ErrorQueryParamErrorBanner';
 import { Checkbox } from '../form/Checkbox';
 import { Input } from '../form/Input';
-import { Captcha } from './Captcha';
+import { Captcha, isCaptchaRequired } from './Captcha';
 import { ForgotPasswordLink } from './ForgotPasswordLink';
 import { LoginOrSignUpOAuthButton } from './LoginOrSignUpOAuthButton';
 import { PasswordStrengthIndicator } from './PasswordStrengthIndicator';
@@ -31,7 +33,6 @@ type SsoDiscoveryResponse = z.infer<typeof SsoDiscoveryResponseSchema>;
 const LoginSchema = z.object({
   action: z.literal('login'),
   csrfToken: z.string(),
-  captchaToken: z.string(),
   email: z
     .email({
       error: 'A valid email address is required',
@@ -88,14 +89,13 @@ interface LoginOrSignUpProps {
 export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpProps) {
   const router = useRouter();
   const [showPasswordActive, setShowPasswordActive] = useState(false);
-  const [finishedCaptcha, setFinishedCaptcha] = useState(false);
   const [{ lastUsedLogin, rememberedEmail }] = useState(getLastUsedLoginMethod);
   const [ssoInfo, setSsoInfo] = useState<SsoDiscoveryResponse['data'] | null>(null);
   const [hasCheckedSso, setHasCheckedSso] = useState(false);
   const [checkingSso, setCheckingSso] = useState(false);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
 
-  const captchaRef = useRef<{ reset: () => void }>(null);
+  const captchaRef = useRef<TurnstileInstance>(null);
   const searchParams = useSearchParams();
 
   const emailHint = searchParams?.get('email') || (action === 'login' ? rememberedEmail : null);
@@ -104,11 +104,10 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
   const {
     register,
     handleSubmit,
-    setValue,
     watch,
     resetField,
     trigger,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(FormSchema),
     defaultValues: {
@@ -118,7 +117,6 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
       password: '',
       confirmPassword: '',
       csrfToken,
-      captchaToken: '',
       rememberMe: true,
     },
   });
@@ -132,63 +130,84 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
     setSsoInfo(null);
     setHasCheckedSso(false);
     setDiscoveryError(null);
-    setFinishedCaptcha(false);
     resetField('password');
     resetField('confirmPassword');
   }, [watchEmail, resetField]);
 
   const onSubmit = async (payload: Form) => {
-    if (!providers) {
-      return;
-    }
-    const url = new URL(providers.credentials.callbackUrl);
-    if (returnUrl) {
-      url.searchParams.set('returnUrl', returnUrl);
-    }
-    const response = await fetch(url, {
-      method: 'POST',
-      credentials: 'include',
+    try {
+      if (!providers) {
+        return;
+      }
+      const url = new URL(providers.credentials.callbackUrl);
+      if (returnUrl) {
+        url.searchParams.set('returnUrl', returnUrl);
+      }
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      body: new URLSearchParams(payload as any).toString(),
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        Accept: 'application/json',
-      },
-    });
-    const responseData: {
-      error?: boolean;
-      errorType?: string;
-      data: {
-        error: boolean;
+      const params = new URLSearchParams(payload as any);
+
+      if (isCaptchaRequired() && captchaRef.current) {
+        const captchaToken = await captchaRef.current.getResponsePromise();
+        if (!captchaToken) {
+          throw new Error('Captcha verification is required. Please complete the captcha challenge and try again.');
+        }
+        params.set('captchaToken', captchaToken || '');
+      }
+
+      const response = await fetch(url, {
+        method: 'POST',
+        credentials: 'include',
+        body: params.toString(),
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Accept: 'application/json',
+        },
+      });
+
+      const responseData: {
+        error?: boolean;
         errorType?: string;
-        redirect?: string;
-      };
-    } = await response.json();
+        data: {
+          error: boolean;
+          errorType?: string;
+          redirect?: string;
+        };
+      } = await response.json();
 
-    const error = responseData.error || responseData.data?.error;
-    const errorType = responseData.errorType || responseData.data?.errorType;
+      const error = responseData.error || responseData.data?.error;
+      const errorType = responseData.errorType || responseData.data?.errorType;
 
-    if (!response.ok || error) {
-      router.push(`${router.pathname}?${new URLSearchParams({ error: errorType || 'UNKNOWN_ERROR' })}`);
+      if (!response.ok || error) {
+        router.push(`${router.pathname}?${new URLSearchParams({ error: errorType || 'UNKNOWN_ERROR' })}`);
+        try {
+          captchaRef?.current?.reset();
+        } catch (ex) {
+          console.error('Error resetting captcha', ex);
+        }
+        return;
+      }
+
+      if (payload.rememberMe) {
+        // For credential login, we don't show last used but we do populate the email address as the cue
+        setLastUsedLoginMethod({ rememberedEmail: payload.email });
+      }
+
+      if (responseData.data.redirect?.startsWith(ROUTES.AUTH._root_path)) {
+        router.push(responseData.data.redirect);
+        return;
+      }
+
+      window.location.href = responseData.data.redirect || ENVIRONMENT.CLIENT_URL;
+    } catch (ex) {
+      console.error('Error during form submission', ex);
+      router.push(`${router.pathname}?${new URLSearchParams({ error: 'UNKNOWN_ERROR' })}`);
       try {
         captchaRef?.current?.reset();
       } catch (ex) {
         console.error('Error resetting captcha', ex);
       }
-      return;
     }
-
-    if (payload.rememberMe) {
-      // For credential login, we don't show last used but we do populate the email address as the cue
-      setLastUsedLoginMethod({ rememberedEmail: payload.email });
-    }
-
-    if (responseData.data.redirect?.startsWith(ROUTES.AUTH._root_path)) {
-      router.push(responseData.data.redirect);
-      return;
-    }
-
-    window.location.href = responseData.data.redirect || ENVIRONMENT.CLIENT_URL;
   };
 
   const checkSso = async (email: string): Promise<SsoDiscoveryResponse['data'] | null> => {
@@ -324,7 +343,6 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
           >
             <input type="hidden" {...register('csrfToken')} />
             <input type="hidden" {...register('action')} />
-            <input type="hidden" {...register('captchaToken')} />
 
             <Input
               label="Email Address"
@@ -389,94 +407,87 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
               </button>
             )}
 
-            {hasCheckedSso && (
-              <>
-                {action === 'register' && (
-                  <Input
-                    label="Full Name"
-                    error={(errors as FieldErrors<RegisterForm>)?.name?.message}
-                    inputProps={{
-                      type: 'text',
-                      required: true,
-                      spellCheck: 'false',
-                      autoComplete: 'name',
-                      ...register('name'),
-                    }}
-                  />
-                )}
+            {!hasCheckedSso && <RegisterOrSignUpLink action={action} emailHint={emailHint} />}
 
+            {/* We want the components to render in the DOM to allow for password auto-fill */}
+            <span className={classNames('space-y-6', { invisible: !hasCheckedSso })}>
+              {action === 'register' && (
                 <Input
-                  label="Password"
-                  error={errors?.password?.message}
+                  label="Full Name"
+                  error={(errors as FieldErrors<RegisterForm>)?.name?.message}
+                  inputProps={{
+                    type: 'text',
+                    required: true,
+                    spellCheck: 'false',
+                    autoComplete: 'name',
+                    ...register('name'),
+                  }}
+                />
+              )}
+
+              <Input
+                label="Password"
+                error={errors?.password?.message}
+                inputProps={{
+                  type: showPasswordActive ? 'text' : 'password',
+                  required: true,
+                  autoComplete: action === 'login' ? 'current-password' : 'new-password',
+                  spellCheck: 'false',
+                  minLength: action === 'register' ? PASSWORD_MIN_LENGTH : 8,
+                  maxLength: 255,
+                  autoFocus: !ssoInfo?.available,
+                  ...register('password'),
+                }}
+              >
+                {action !== 'register' && (
+                  <div className="flex items-center justify-between">
+                    <Checkbox inputProps={{ ...register('rememberMe') }}>Remember Me</Checkbox>
+                    <ShowPasswordButton isActive={showPasswordActive} onClick={() => setShowPasswordActive(!showPasswordActive)} />
+                  </div>
+                )}
+              </Input>
+
+              {action === 'register' && (
+                <Input
+                  label="Confirm Password"
+                  error={(errors as FieldErrors<RegisterForm>)?.confirmPassword?.message}
                   inputProps={{
                     type: showPasswordActive ? 'text' : 'password',
                     required: true,
-                    autoComplete: action === 'login' ? 'current-password' : 'new-password',
-                    spellCheck: 'false',
-                    minLength: action === 'register' ? PASSWORD_MIN_LENGTH : 8,
+                    autoComplete: 'new-password',
+                    minLength: PASSWORD_MIN_LENGTH,
                     maxLength: 255,
-                    autoFocus: !ssoInfo?.available,
-                    ...register('password'),
+                    ...register('confirmPassword'),
                   }}
                 >
-                  {action !== 'register' && (
-                    <div className="flex items-center justify-between">
-                      <Checkbox inputProps={{ ...register('rememberMe') }}>Remember Me</Checkbox>
-                      <ShowPasswordButton isActive={showPasswordActive} onClick={() => setShowPasswordActive(!showPasswordActive)} />
-                    </div>
-                  )}
+                  <div className="flex items-center justify-between">
+                    <Checkbox inputProps={{ ...register('rememberMe') }}>Remember Me</Checkbox>
+                    <ShowPasswordButton isActive={showPasswordActive} onClick={() => setShowPasswordActive(!showPasswordActive)} />
+                  </div>
                 </Input>
+              )}
 
-                {action === 'register' && (
-                  <Input
-                    label="Confirm Password"
-                    error={(errors as FieldErrors<RegisterForm>)?.confirmPassword?.message}
-                    inputProps={{
-                      type: showPasswordActive ? 'text' : 'password',
-                      required: true,
-                      autoComplete: 'new-password',
-                      minLength: PASSWORD_MIN_LENGTH,
-                      maxLength: 255,
-                      ...register('confirmPassword'),
-                    }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <Checkbox inputProps={{ ...register('rememberMe') }}>Remember Me</Checkbox>
-                      <ShowPasswordButton isActive={showPasswordActive} onClick={() => setShowPasswordActive(!showPasswordActive)} />
-                    </div>
-                  </Input>
-                )}
+              {action === 'register' && watchPassword && (
+                <PasswordStrengthIndicator password={watchPassword} confirmPassword={watchConfirmPassword} email={watchEmail} />
+              )}
 
-                {action === 'register' && watchPassword && (
-                  <PasswordStrengthIndicator password={watchPassword} confirmPassword={watchConfirmPassword} email={watchEmail} />
-                )}
+              <div className="flex items-center justify-end">
+                <ForgotPasswordLink />
+              </div>
 
-                <div className="flex items-center justify-end">
-                  <ForgotPasswordLink />
-                </div>
+              <Captcha ref={captchaRef} action={action} />
 
-                <Captcha
-                  ref={captchaRef}
-                  formError={errors?.captchaToken?.message}
-                  action={action}
-                  onChange={(token) => setValue('captchaToken', token)}
-                  onStateChange={setFinishedCaptcha}
-                />
-
-                <div>
-                  <button
-                    type="submit"
-                    className="flex w-full justify-center rounded-md bg-blue-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-xs hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-                    disabled={!finishedCaptcha}
-                  >
-                    {action === 'login' ? 'Sign in' : 'Sign up'}
-                  </button>
-                </div>
-              </>
-            )}
+              <button
+                type="submit"
+                className="flex w-full justify-center rounded-md bg-blue-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-xs hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                disabled={!hasCheckedSso || isSubmitting}
+              >
+                {action === 'login' ? 'Sign in' : 'Sign up'}
+              </button>
+            </span>
           </form>
 
-          <RegisterOrSignUpLink action={action} emailHint={emailHint} />
+          {hasCheckedSso && <RegisterOrSignUpLink action={action} emailHint={emailHint} />}
         </div>
       </div>
     </Fragment>

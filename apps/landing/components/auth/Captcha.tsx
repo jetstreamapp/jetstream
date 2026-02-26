@@ -1,42 +1,25 @@
+import { Maybe } from '@jetstream/types';
 import { Turnstile, TurnstileInstance } from '@marsidev/react-turnstile';
-import { forwardRef, useId, useImperativeHandle, useRef } from 'react';
+import { useId } from 'react';
 import { ENVIRONMENT } from '../../utils/environment';
 
 interface CaptchaProps {
-  formError?: string;
+  ref: React.Ref<TurnstileInstance>;
+  formError?: Maybe<string>;
   action: string;
   onLoad?: () => void;
-  /**
-   * Called once captcha has been successfully completed
-   */
-  onChange: (token: string) => void;
-  /**
-   * Called once captcha has been successfully completed
-   * Called immediately if captcha is disabled
-   */
-  onStateChange: (isFinished: boolean) => void;
+}
+export function isCaptchaRequired() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return ENVIRONMENT.CAPTCHA_KEY && !(window as any)?.playwright;
 }
 
-export const Captcha = forwardRef<{ reset: () => void }, CaptchaProps>(({ action, formError, onLoad, onChange, onStateChange }, ref) => {
-  const turnstileRef = useRef<TurnstileInstance>(null);
+export const Captcha = ({ action, formError, ref, onLoad }: CaptchaProps) => {
   const id = useId();
-
-  useImperativeHandle<unknown, { reset: () => void }>(
-    ref,
-    () => ({
-      reset: () => {
-        onStateChange(false);
-        turnstileRef.current?.reset();
-      },
-    }),
-    [onStateChange],
-  );
 
   // Skip rendering the captcha if we're running in Playwright or if the key is not set
   // In real environments the server will still validate and prevent access if there isn't a valid token
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if (!ENVIRONMENT.CAPTCHA_KEY || (window as any)?.playwright) {
-    onStateChange(true);
+  if (!ENVIRONMENT.CAPTCHA_KEY || !isCaptchaRequired()) {
     return null;
   }
 
@@ -44,7 +27,7 @@ export const Captcha = forwardRef<{ reset: () => void }, CaptchaProps>(({ action
     <>
       <Turnstile
         id={id}
-        ref={turnstileRef}
+        ref={ref}
         siteKey={ENVIRONMENT.CAPTCHA_KEY}
         options={{
           action,
@@ -55,14 +38,6 @@ export const Captcha = forwardRef<{ reset: () => void }, CaptchaProps>(({ action
           feedbackEnabled: true,
         }}
         onWidgetLoad={onLoad}
-        onError={(error) => {
-          console.error('Captcha error:', error);
-          onStateChange(false);
-        }}
-        onSuccess={(token) => {
-          onChange(token);
-          onStateChange(true);
-        }}
       />
       {formError && (
         <p id={`${id}-error`} role="alert" className="mt-2 text-sm text-red-600">
@@ -71,4 +46,4 @@ export const Captcha = forwardRef<{ reset: () => void }, CaptchaProps>(({ action
       )}
     </>
   );
-});
+};
