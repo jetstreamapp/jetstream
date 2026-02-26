@@ -21,7 +21,10 @@ type ErrorType =
   | 'PasswordReused'
   | 'PasswordResetRequired'
   | 'ProviderNotAllowed'
-  | 'ProviderEmailNotVerified';
+  | 'ProviderEmailNotVerified'
+  | 'SsoAutoProvisioningDisabled'
+  | 'SsoInvalidAction'
+  | 'SsoLicenseLimitExceeded';
 
 type ErrorOptions = Error | Record<string, unknown>;
 
@@ -153,4 +156,16 @@ export class AccountLocked extends AuthError {
     super(message);
     this.lockedUntil = lockedUntil;
   }
+}
+
+export class SsoAutoProvisioningDisabled extends AuthError {
+  static type: ErrorType = 'SsoAutoProvisioningDisabled';
+}
+
+export class SsoInvalidAction extends AuthError {
+  static type: ErrorType = 'SsoInvalidAction';
+}
+
+export class SsoLicenseLimitExceeded extends AuthError {
+  static type: ErrorType = 'SsoLicenseLimitExceeded';
 }

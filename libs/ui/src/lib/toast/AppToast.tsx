@@ -1,6 +1,6 @@
-import { useNonInitialEffect, useObservable } from '@jetstream/shared/ui-utils';
+import { useObservable } from '@jetstream/shared/ui-utils';
 import { InfoSuccessWarningError } from '@jetstream/types';
-import React, { FunctionComponent, useState } from 'react';
+import React, { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Subject } from 'rxjs';
 import { Toast } from './Toast';
 
@@ -26,37 +26,43 @@ export interface AppToastMessageWithId extends AppToastMessage {
 export const AppToast: FunctionComponent = () => {
   const newMessage = useObservable(appToastMessage$);
   const [activeMessages, setActiveMessages] = useState<AppToastMessageWithId[]>([]);
-  const [nextId, setNextId] = useState<number>(0);
+  const nextIdRef = useRef(0);
+  const timersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
 
-  useNonInitialEffect(() => {
-    if (newMessage) {
-      setActiveMessages((messages) => [...messages, { id: nextId, ...newMessage }]);
-      setNextId(nextId + 1);
-      autoDismissMessage(nextId, newMessage.duration ?? DEFAULT_DURATION);
+  useEffect(() => {
+    return () => {
+      // Clear any remaining timers on unmount
+      timersRef.current.forEach((timeout) => clearTimeout(timeout));
+      timersRef.current.clear();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!newMessage) {
+      return;
+    }
+
+    const id = nextIdRef.current++;
+    const duration = newMessage.duration ?? DEFAULT_DURATION;
+
+    setActiveMessages((messages) => [...messages, { id, ...newMessage }]);
+
+    if (duration > 0) {
+      const timeout = setTimeout(() => {
+        setActiveMessages((messages) => messages.filter((m) => m.id !== id));
+        timersRef.current.delete(id);
+      }, duration);
+      timersRef.current.set(id, timeout);
     }
   }, [newMessage]);
 
-  function autoDismissMessage(id: number, duration: number) {
-    if (duration && duration > 0) {
-      setTimeout(() => handleClose(id), duration);
-    }
-  }
-
-  function handleClose(id: number) {
-    setActiveMessages((messages) => messages.filter((message) => message.id !== id));
-  }
-
   return (
     <div data-testid="toast-notify-container" className="slds-notify_container">
-      {activeMessages
-        .filter((_, i) => i < 3)
-        .map(({ id, message, type }) => (
-          <Toast key={id} className="" type={type} onClose={() => handleClose(id)} showIcon>
-            {message}
-          </Toast>
-        ))}
+      {activeMessages.slice(0, 3).map(({ id, message, type }) => (
+        <Toast key={id} type={type} onClose={() => setActiveMessages((messages) => messages.filter((m) => m.id !== id))} showIcon>
+          {message}
+        </Toast>
+      ))}
     </div>
   );
 };
-
-export default AppToast;

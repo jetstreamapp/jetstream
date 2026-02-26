@@ -44,6 +44,7 @@ export function MfaEnrollment({ csrfToken, otp2fa, onSaveOtpFactor }: MfaEnrollm
       setError(undefined);
       const { redirectUrl } = await onSaveOtpFactor(payload.csrfToken, payload.secretToken, payload.code);
 
+      // eslint-disable-next-line react-hooks/immutability
       window.location.href = redirectUrl || ENVIRONMENT.CLIENT_URL;
     } catch (error) {
       setError(error?.message ?? 'Unable to validate the code, please try again.');

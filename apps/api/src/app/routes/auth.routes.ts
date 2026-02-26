@@ -1,29 +1,29 @@
-import { createRateLimit, ENV } from '@jetstream/api-config';
+import { createRateLimit } from '@jetstream/api-config';
 import express, { Router } from 'express';
 import * as authController from '../controllers/auth.controller';
+import { rateLimitGetKeyGenerator, rateLimitGetMaxRequests } from '../utils/route.utils';
 import { verifyCaptcha } from './route.middleware';
 
 /**
  * Authentication routes
  */
 
-function getMaxRequests(value: number) {
-  return ENV.CI || ENV.ENVIRONMENT === 'development' ? 10000 : value;
-}
-
 export const LAX_AuthRateLimit = createRateLimit('auth_lax', {
   windowMs: 1000 * 60 * 1, // 1 minutes
-  limit: getMaxRequests(25),
+  limit: rateLimitGetMaxRequests(25),
+  keyGenerator: rateLimitGetKeyGenerator(),
 });
 
 const STRICT_AuthRateLimit = createRateLimit('auth_strict', {
   windowMs: 1000 * 60 * 5, // 5 minutes
-  limit: getMaxRequests(20),
+  limit: rateLimitGetMaxRequests(20),
+  keyGenerator: rateLimitGetKeyGenerator(),
 });
 
 const STRICT_2X_AuthRateLimit = createRateLimit('auth_strict_2x', {
   windowMs: 1000 * 60 * 15, // 15 minutes
-  limit: getMaxRequests(10),
+  limit: rateLimitGetMaxRequests(10),
+  keyGenerator: rateLimitGetKeyGenerator(),
 });
 
 export const routes: express.Router = Router();
@@ -58,5 +58,17 @@ routes.post('/password/reset/verify', STRICT_AuthRateLimit, authController.route
 routes.get('/2fa-otp/enroll', STRICT_AuthRateLimit, authController.routeDefinition.getOtpEnrollmentData.controllerFn());
 // enroll otp factor
 routes.post('/2fa-otp/enroll', STRICT_AuthRateLimit, authController.routeDefinition.enrollOtpFactor.controllerFn());
+
+// SSO Discovery
+routes.post('/sso/discover', STRICT_AuthRateLimit, authController.routeDefinition.discoverSso.controllerFn());
+// Start SSO Login Flow for SAML or OIDC
+routes.post('/sso/start', STRICT_AuthRateLimit, authController.routeDefinition.startSso.controllerFn());
+
+// SAML Login Flow
+routes.post('/sso/saml/:teamId/acs', STRICT_2X_AuthRateLimit, authController.routeDefinition.handleSamlCallback.controllerFn());
+routes.get('/sso/saml/:teamId/metadata', LAX_AuthRateLimit, authController.routeDefinition.getSamlMetadata.controllerFn());
+
+// OIDC Login Flow
+routes.get('/sso/oidc/:teamId/callback', STRICT_2X_AuthRateLimit, authController.routeDefinition.handleOidcCallback.controllerFn());
 
 export default routes;

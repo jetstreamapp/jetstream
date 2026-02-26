@@ -5,7 +5,16 @@ import { acceptInvitation, getUserProfile, verifyInvitation } from '@jetstream/s
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useTitle } from '@jetstream/shared/ui-utils';
 import { TeamInviteVerificationResponse } from '@jetstream/types';
-import { AutoFullHeightContainer, Page, PageHeader, PageHeaderRow, PageHeaderTitle, ScopedNotification, Spinner } from '@jetstream/ui';
+import {
+  AutoFullHeightContainer,
+  fireToast,
+  Page,
+  PageHeader,
+  PageHeaderRow,
+  PageHeaderTitle,
+  ScopedNotification,
+  Spinner,
+} from '@jetstream/ui';
 import { abilityState, fromAppState } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
 import { useEffect, useState } from 'react';
@@ -73,6 +82,10 @@ export function TeamInvitation() {
         } else {
           navigate('/app/home');
         }
+        fireToast({
+          type: 'success',
+          message: 'You have successfully joined the team!',
+        });
       } else {
         setLoadingError('An error occurred while accepting the invitation.');
       }

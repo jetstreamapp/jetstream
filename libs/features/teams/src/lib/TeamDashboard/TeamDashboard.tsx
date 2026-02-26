@@ -1,9 +1,18 @@
+import { LoginConfigurationWithCallbacks } from '@jetstream/auth/types';
 import { TITLES } from '@jetstream/shared/constants';
-import { cancelInvitation, getTeam, resendInvitation, updateTeamLoginConfiguration } from '@jetstream/shared/data';
+import {
+  cancelInvitation,
+  getDomainVerifications,
+  getSsoConfiguration,
+  getTeam,
+  resendInvitation,
+  updateTeamLoginConfiguration,
+} from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useTitle } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import {
+  DomainVerification,
   TEAM_MEMBER_STATUS_ACTIVE,
   TeamBillingStatusSchema,
   TeamGlobalAction,
@@ -30,7 +39,10 @@ import { abilityState, fromAppState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { TeamSSOConfiguration } from './sso-configuration/TeamSSOConfiguration';
 import { TeamMembersTable } from './team-members/TeamMembersTable';
+import { TeamAuditLogModal } from './TeamAuditLogModal';
+import { TeamDomainConfiguration } from './TeamDomainConfiguration';
 import { TeamLoginConfiguration } from './TeamLoginConfiguration';
 import { TeamMemberAuthActivityModal } from './TeamMemberAuthActivityModal';
 import { TeamMemberInviteModal } from './TeamMemberInviteModal';
@@ -53,19 +65,28 @@ export function TeamDashboard() {
   const [team, setTeam] = useState<TeamUserFacing>();
   const [loginConfiguration, setLoginConfiguration] = useState<TeamLoginConfig>();
   const [loginConfigurationKey, setLoginConfigurationKey] = useState(new Date().getTime());
+  const [domains, setDomains] = useState<DomainVerification[] | null>([]);
+  const [ssoConfig, setSsoConfig] = useState<LoginConfigurationWithCallbacks | null>(null);
   const [loadingError, setLoadingError] = useState<string | null>(null);
   const userProfile = useAtomValue(fromAppState.userProfileState);
 
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [teamSessionModalOpen, setTeamSessionModalOpen] = useState(false);
   const [teamAuthActivityModalOpen, setTeamAuthActivityModalOpen] = useState(false);
+  const [teamAuditLogModalOpen, setTeamAuditLogModalOpen] = useState(false);
   const [teamMemberUpdateState, setTeamMemberUpdateState] = useState<TeamMemberEditModalState>({ open: false });
   const [teamMemberStatusUpdateState, setTeamMemberStatusUpdateState] = useState<TeamMemberEditStatusModalState>({ open: false });
 
+  const canReadDomainConfiguration = ability.can('read', 'DomainConfiguration');
+  const canReadSsoConfiguration = ability.can('read', 'SsoConfiguration');
   const canReadAuthActivity = ability.can('read', 'TeamMemberAuthActivity');
   const canReadSession = ability.can('read', 'TeamMemberSession');
+  const canReadAuditLog = ability.can('read', 'AuditLog');
 
   const hasManualBilling = !!team?.billingAccount?.manualBilling;
+  const hasVerifiedDomain = useMemo(() => {
+    return domains?.some((domain) => domain.status === 'VERIFIED') || false;
+  }, [domains]);
 
   const availableLicenses = useMemo(() => {
     const licenseCountLimit = team?.billingAccount?.licenseCountLimit ?? Infinity;
@@ -78,24 +99,51 @@ export function TeamDashboard() {
     return availableLicenses;
   }, [team]);
 
+  const teamId = userProfile.teamMembership?.team?.id;
+  const hasSsoConfigured = !ssoConfig || ssoConfig.ssoProvider !== 'NONE';
+  const configuredSsoProvider = ssoConfig && ssoConfig.ssoProvider !== 'NONE' && ssoConfig.ssoEnabled ? ssoConfig.ssoProvider : null;
+
   const fetchTeam = useCallback(async () => {
     try {
-      if (!userProfile.teamMembership?.team?.id) {
-        return null;
+      if (!teamId) {
+        return;
       }
-      const teamData = await getTeam(userProfile.teamMembership.team.id);
+      const teamData = await getTeam(teamId);
       setTeam(teamData);
       setLoginConfiguration(teamData.loginConfig || TeamLoginConfigSchema.parse({}));
     } catch (error) {
       setLoadingError(getErrorMessage(error));
-    } finally {
-      setLoading(false);
     }
-  }, []);
+  }, [teamId]);
+
+  const fetchSsoConfig = useCallback(async () => {
+    try {
+      if (!teamId || !canReadSsoConfiguration) {
+        return;
+      }
+      const data = await getSsoConfiguration(teamId);
+      setSsoConfig(data);
+    } catch (error) {
+      setLoadingError(getErrorMessage(error));
+    }
+  }, [teamId, canReadSsoConfiguration]);
+
+  const fetchDomains = useCallback(async () => {
+    try {
+      if (!teamId || !canReadDomainConfiguration) {
+        return;
+      }
+      const data = await getDomainVerifications(teamId);
+      setDomains(data);
+    } catch (error) {
+      setLoadingError(getErrorMessage(error));
+    }
+  }, [teamId, canReadDomainConfiguration]);
 
   useEffect(() => {
-    fetchTeam();
-  }, [fetchTeam]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    Promise.allSettled([fetchTeam(), fetchSsoConfig(), fetchDomains()]).finally(() => setLoading(false));
+  }, [fetchTeam, fetchSsoConfig, fetchDomains]);
 
   async function handleLoginConfigurationUpdate(loginConfiguration: TeamLoginConfigRequest) {
     if (!team?.id) {
@@ -121,6 +169,10 @@ export function TeamDashboard() {
       }
       case 'view-user-sessions': {
         setTeamSessionModalOpen(true);
+        break;
+      }
+      case 'view-audit-log': {
+        setTeamAuditLogModalOpen(true);
         break;
       }
     }
@@ -177,6 +229,23 @@ export function TeamDashboard() {
     }
   }
 
+  function handleDomainChange(action: 'ADD' | 'VERIFY' | 'DELETE', domain: DomainVerification) {
+    fetchDomains();
+    setDomains((prevDomains) => {
+      if (!prevDomains) return prevDomains;
+      if (action === 'ADD') {
+        return prevDomains.concat(domain);
+      }
+      if (action === 'VERIFY') {
+        return prevDomains.map((d) => (d.id === domain.id ? domain : d));
+      }
+      if (action === 'DELETE') {
+        return prevDomains.filter(({ id }) => id !== domain.id);
+      }
+      return prevDomains;
+    });
+  }
+
   return (
     <>
       {team && inviteModalOpen && (
@@ -195,6 +264,9 @@ export function TeamDashboard() {
       )}
       {canReadAuthActivity && team && teamAuthActivityModalOpen && (
         <TeamMemberAuthActivityModal teamId={team.id} onClose={() => setTeamAuthActivityModalOpen(false)} />
+      )}
+      {canReadAuditLog && team && teamAuditLogModalOpen && (
+        <TeamAuditLogModal teamId={team.id} onClose={() => setTeamAuditLogModalOpen(false)} />
       )}
       {team && teamMemberUpdateState.open && (
         <TeamMemberUpdateModal
@@ -234,6 +306,11 @@ export function TeamDashboard() {
               docsPath={APP_ROUTES.TEAM_DASHBOARD.DOCS}
             />
             <PageHeaderActions colType="actions" buttonType="separate">
+              {canReadAuditLog && (
+                <button className="slds-button slds-button_neutral" onClick={() => handleTeamGlobalAction('view-audit-log')}>
+                  View Audit Logs
+                </button>
+              )}
               <Link to="/settings/billing" className="slds-button slds-button_neutral">
                 Go to Billing
               </Link>
@@ -273,12 +350,30 @@ export function TeamDashboard() {
               <TeamLoginConfiguration
                 key={loginConfigurationKey}
                 loginConfiguration={loginConfiguration}
+                hasSsoConfigured={hasSsoConfigured}
+                ssoIsActive={hasSsoConfigured && !!ssoConfig?.ssoEnabled}
                 onUpdate={handleLoginConfigurationUpdate}
               />
             )}
           </div>
 
-          <div data-testid="team-member-table-container" className="slds-m-bottom_medium">
+          {team && domains && (
+            <TeamDomainConfiguration teamId={team.id} domains={domains} hasSsoEnabled={hasSsoConfigured} onChange={handleDomainChange} />
+          )}
+
+          {team && ssoConfig && (
+            <div data-testid="team-sso-configuration-container" className="slds-m-bottom_medium">
+              <TeamSSOConfiguration
+                teamId={team.id}
+                hasVerifiedDomain={hasVerifiedDomain}
+                ssoConfig={ssoConfig}
+                onSsoConfigChange={setSsoConfig}
+                reloadConfig={fetchSsoConfig}
+              />
+            </div>
+          )}
+
+          <div data-testid="team-member-table-container" className="slds-m-bottom_xx-large">
             {team && (
               <TeamMembersTable
                 loginConfiguration={team.loginConfig}
@@ -288,6 +383,7 @@ export function TeamDashboard() {
                 teamMembers={team.members}
                 invitations={team.invitations}
                 userProfile={userProfile}
+                configuredSsoProvider={configuredSsoProvider}
                 onGlobalAction={handleTeamGlobalAction}
                 onUserAction={handleUserAction}
               />

@@ -17,6 +17,7 @@ if (ENV.PRISMA_DEBUG) {
 const adapter = new PrismaPg({
   connectionString: process.env.JETSTREAM_POSTGRES_DBURI,
 });
+
 export const prisma = new PrismaClient({
   log,
   adapter,

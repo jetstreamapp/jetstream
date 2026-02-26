@@ -41,16 +41,12 @@ const tiers = [
     description: 'Perfect for individual users',
     features: [
       'Everything in Free plan',
-      <>
-        <Link href={ROUTES.DESKTOP} className="text-cyan-500 hover:underline">
-          Desktop Application
-        </Link>
-      </>,
-      <>
-        <Link href={ROUTES.BROWSER_EXTENSIONS} className="text-cyan-500 hover:underline">
-          Browser Extensions (Chrome & Firefox)
-        </Link>
-      </>,
+      <Link href={ROUTES.DESKTOP} className="text-cyan-500 hover:underline">
+        Desktop Application
+      </Link>,
+      <Link href={ROUTES.BROWSER_EXTENSIONS} className="text-cyan-500 hover:underline">
+        Browser Extensions (Chrome & Firefox)
+      </Link>,
       'Save query history across devices',
       'Save downloads to Google Drive',
       'Load data from Google Drive',
@@ -68,15 +64,11 @@ const tiers = [
       'Everything in Professional',
       'Manage team members',
       'Up to 20 team members',
+      'SSO via OIDC and SAML',
       'View & Manage team member session activity',
       'Role-based access control',
     ],
-    comingSoonFeatures: [
-      'SOC 2 compliance',
-      'SSO via Okta',
-      'Share orgs between team members',
-      'Audit logs',
-    ],
+    comingSoonFeatures: ['SOC 2 compliance (in-progress)', 'Share orgs between team members', 'Audit logs'],
     mostPopular: false,
   },
   {
@@ -155,20 +147,20 @@ export default function Page() {
               </p>
               <div className="mt-6 min-h-10">
                 <Link
-                    href={
-                      tier.isEnterprise
-                        ? tier.href
-                        : `${ROUTES.AUTH.signup}?plan=${tier.name.toLowerCase()}&frequency=${frequency.value.toLowerCase()}`
-                    }
-                    aria-describedby={tier.id}
-                    className={classNames(
-                      tier.mostPopular
-                        ? 'bg-cyan-500 text-white shadow-xs hover:bg-cyan-500 focus-visible:outline-cyan-500'
-                        : 'bg-white/10 text-white hover:bg-white/20 focus-visible:outline-white',
-                      'block rounded-md px-3 py-2 text-center text-sm/6 font-semibold focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2',
-                    )}
-                  >
-                    {tier.isEnterprise ? 'Contact Sales' : 'Start Free'}
+                  href={
+                    tier.isEnterprise
+                      ? tier.href
+                      : `${ROUTES.AUTH.signup}?plan=${tier.name.toLowerCase()}&frequency=${frequency.value.toLowerCase()}`
+                  }
+                  aria-describedby={tier.id}
+                  className={classNames(
+                    tier.mostPopular
+                      ? 'bg-cyan-500 text-white shadow-xs hover:bg-cyan-500 focus-visible:outline-cyan-500'
+                      : 'bg-white/10 text-white hover:bg-white/20 focus-visible:outline-white',
+                    'block rounded-md px-3 py-2 text-center text-sm/6 font-semibold focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2',
+                  )}
+                >
+                  {tier.isEnterprise ? 'Contact Sales' : 'Start Free'}
                 </Link>
               </div>
               <ul className="mt-8 space-y-3 text-sm/6 text-gray-300 xl:mt-10">

@@ -127,8 +127,12 @@ const envSchema = z.object({
   JETSTREAM_AUTH_SECRET: z.string().describe('Used to sign authentication cookies.'),
   // Must be 32 characters
   JETSTREAM_AUTH_OTP_SECRET: z.string(),
+  JETSTREAM_AUTH_SSO_SECRET: z.string(),
   JETSTREAM_AUTH_WEB_EXT_JWT_SECRET: z.string().optional().default('DEVELOPMENT_SECRET'),
   JETSTREAM_SESSION_SECRET: z.string(),
+  // SSO Configuration
+  JETSTREAM_SAML_SP_ENTITY_ID_PREFIX: z.string(),
+  JETSTREAM_SAML_ACS_PATH_PREFIX: z.string().default('/api/auth/sso/saml'),
   JETSTREAM_SESSION_SECRET_PREV: z
     .string()
     .optional()
@@ -265,6 +269,9 @@ const parseResults = envSchema.safeParse({
   EXAMPLE_USER_FULL_PROFILE: ensureBoolean(process.env.EXAMPLE_USER_OVERRIDE) ? EXAMPLE_USER_FULL_PROFILE : null,
   SFDC_API_VERSION: process.env.NX_SFDC_API_VERSION || process.env.SFDC_API_VERSION,
   STRIPE_BILLING_PORTAL_LINK: process.env.NX_PUBLIC_STRIPE_BILLING_PORTAL_LINK,
+  JETSTREAM_CLIENT_URL: process.env.NX_PUBLIC_CLIENT_URL || process.env.JETSTREAM_CLIENT_URL,
+  JETSTREAM_SERVER_URL: process.env.NX_PUBLIC_SERVER_URL || process.env.JETSTREAM_SERVER_URL,
+  JETSTREAM_SERVER_DOMAIN: process.env.NX_PUBLIC_SERVER_DOMAIN || process.env.JETSTREAM_SERVER_DOMAIN,
   VERSION,
 });
 

@@ -87,6 +87,12 @@ export function VerifyEmailOr2fa({ csrfToken, email, pendingVerifications }: Ver
       },
     });
 
+    // Rate limit responses use a different body shape than normal API errors
+    if (response.status === 429) {
+      setError('TooManyRequests');
+      return;
+    }
+
     const { error, errorType, redirect } = await response
       .json()
       .then((res: { data: { error: boolean; errorType?: string; redirect?: string } }) => res.data);

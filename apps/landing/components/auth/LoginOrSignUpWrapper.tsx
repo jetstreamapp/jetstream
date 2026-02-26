@@ -19,7 +19,7 @@ export function LoginOrSignUpWrapper({ action }: LoginOrSignUpWrapperProps) {
 
   useEffect(() => {
     if (isLoggedIn && (!pendingVerifications || !pendingVerifications.length)) {
-      window.location.href = ENVIRONMENT.CLIENT_URL;
+      window.location.href = `${ENVIRONMENT.CLIENT_URL}/home${window.location.search || ''}`;
     } else if (pendingVerifications) {
       router.push(`${ROUTES.AUTH.verify}`);
     }

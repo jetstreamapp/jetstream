@@ -7,6 +7,7 @@ import {
   createRememberDevice,
   createUserActivityFromReq,
   createUserActivityFromReqWithError,
+  discoverSsoConfigByDomain,
   EMAIL_VERIFICATION_TOKEN_DURATION_HOURS,
   ensureAuthError,
   ExpiredVerificationToken,
@@ -18,8 +19,10 @@ import {
   getAuthorizationUrl,
   getCookieConfig,
   getLoginConfiguration,
+  getTeamLoginConfigWithSso,
   getTotpAuthenticationFactor,
   handleSignInOrRegistration,
+  handleSsoLogin,
   hasRememberDeviceRecord,
   IdentityLinkingNotAllowed,
   initSession,
@@ -30,11 +33,13 @@ import {
   InvalidVerificationToken,
   linkIdentityToUser,
   getProviders as listProviders,
+  oidcService,
   PASSWORD_RESET_DURATION_MINUTES,
   PLACEHOLDER_USER_ID,
   ProviderEmailNotVerified,
   ProviderNotAllowed,
   resetUserPassword,
+  samlService,
   setUserEmailVerified,
   timingSafeStringCompare,
   TOKEN_DURATION_MINUTES,
@@ -216,6 +221,45 @@ export const routeDefinition = {
       hasSourceOrg: false,
     },
   },
+  // SSO Routes
+  discoverSso: {
+    controllerFn: () => discoverSso,
+    validators: {
+      body: z.object({ csrfToken: z.string(), email: z.email().toLowerCase() }),
+      hasSourceOrg: false,
+    },
+  },
+  startSso: {
+    controllerFn: () => startSso,
+    validators: {
+      body: z.object({ csrfToken: z.string(), email: z.email().toLowerCase() }),
+      query: z.object({ returnUrl: z.string().optional() }),
+      hasSourceOrg: false,
+    },
+  },
+  handleSamlCallback: {
+    controllerFn: () => handleSamlCallback,
+    validators: {
+      params: z.object({ teamId: z.uuid() }),
+      body: z.object({ SAMLResponse: z.string() }),
+      hasSourceOrg: false,
+    },
+  },
+  getSamlMetadata: {
+    controllerFn: () => getSamlMetadata,
+    validators: {
+      params: z.object({ teamId: z.uuid() }),
+      hasSourceOrg: false,
+    },
+  },
+  handleOidcCallback: {
+    controllerFn: () => handleOidcCallback,
+    validators: {
+      params: z.object({ teamId: z.uuid() }),
+      query: z.object({}).loose(),
+      hasSourceOrg: false,
+    },
+  },
 };
 
 const logout = createRoute(routeDefinition.logout.validators, async ({}, req, res) => {
@@ -298,7 +342,7 @@ const signin = createRoute(routeDefinition.signin.validators, async ({ body, par
 
         const loginConfiguration = req.session.user?.teamMembership
           ? await getLoginConfiguration({ teamId: req.session.user.teamMembership.teamId })
-          : await getLoginConfiguration({ email: req.session.user.email });
+          : null;
         if (loginConfiguration && !loginConfiguration.allowIdentityLinking) {
           throw new IdentityLinkingNotAllowed();
         }
@@ -426,7 +470,7 @@ const callback = createRoute(
         if (req.session.user && cookies[linkIdentityCookie.name] === 'true') {
           const loginConfiguration = req.session.user?.teamMembership
             ? await getLoginConfiguration({ teamId: req.session.user.teamMembership.teamId })
-            : await getLoginConfiguration({ email: userInfo.email });
+            : null;
 
           const providerAllowed = !loginConfiguration || loginConfiguration.allowedProviders.has(provider.provider);
 
@@ -1043,5 +1087,309 @@ const enrollOtpFactor = createRoute(routeDefinition.enrollOtpFactor.validators, 
     });
 
     next(ensureAuthError(ex));
+  }
+});
+
+/**
+ * SSO Controllers
+ */
+
+const discoverSso = createRoute(routeDefinition.discoverSso.validators, async ({ body }, req, res, next) => {
+  const { email, csrfToken } = body;
+  try {
+    const domain = email.split('@')[1];
+
+    await verifyCSRFFromRequestOrThrow(csrfToken, req.headers.cookie || '');
+
+    const ssoConfig = await discoverSsoConfigByDomain(domain);
+
+    if (!ssoConfig || !ssoConfig.ssoEnabled) {
+      res.log.info({ email, ssoDiscoverSuccess: false }, '[AUTH][DISCOVER_SSO] No SSO configuration found for email domain');
+      sendJson(res, { available: false });
+      return;
+    }
+
+    res.log.info({ email, ssoDiscoverSuccess: true }, '[AUTH][DISCOVER_SSO] SSO configuration found for email domain');
+    createUserActivityFromReq(req, res, {
+      action: 'SSO_DISCOVER',
+      method: ssoConfig.ssoProvider,
+      email,
+      teamId: ssoConfig.teamId,
+      success: true,
+    });
+    sendJson(res, { available: true });
+  } catch (ex) {
+    res.log.error(getErrorMessageAndStackObj(ex), '[AUTH][DISCOVER_SSO] Error discovering SSO configuration');
+    createUserActivityFromReqWithError(req, res, ex, {
+      action: 'SSO_DISCOVER',
+      email,
+      errorMessage: getErrorMessage(ex),
+      success: false,
+    });
+    next(ensureAuthError(ex));
+  }
+});
+
+const startSso = createRoute(routeDefinition.startSso.validators, async ({ body, query, setCookie }, req, res, next) => {
+  const { returnUrl } = query;
+  const { email, csrfToken } = body;
+  try {
+    const domain = email.split('@')[1];
+
+    await verifyCSRFFromRequestOrThrow(csrfToken, req.headers.cookie || '');
+
+    const ssoConfig = await discoverSsoConfigByDomain(domain);
+
+    if (!ssoConfig || !ssoConfig.ssoEnabled) {
+      throw new InvalidProvider('SSO not configured for this domain');
+    }
+
+    const { teamId, ssoProvider } = ssoConfig;
+
+    const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
+
+    if (returnUrl) {
+      setCookie(cookieConfig.returnUrl.name, returnUrl, cookieConfig.returnUrl.options);
+    }
+
+    if (ssoProvider === 'OIDC') {
+      const team = await getTeamLoginConfigWithSso(teamId);
+      if (!team?.loginConfig.oidcConfiguration) {
+        throw new InvalidProvider('OIDC not configured for this team');
+      }
+
+      const config = team.loginConfig.oidcConfiguration;
+      const { url, codeVerifier, state, nonce } = await oidcService.getAuthorizationUrl(config, teamId);
+
+      setCookie(cookieConfig.pkceCodeVerifier.name, codeVerifier, cookieConfig.pkceCodeVerifier.options);
+      setCookie(cookieConfig.state.name, state, cookieConfig.state.options);
+      setCookie(cookieConfig.nonce.name, nonce, cookieConfig.nonce.options);
+
+      createUserActivityFromReq(req, res, {
+        action: 'SSO_START',
+        method: ssoProvider,
+        email,
+        teamId,
+        success: true,
+      });
+      sendJson(res, { redirectUrl: url });
+      return;
+    }
+
+    if (ssoProvider === 'SAML') {
+      const team = await getTeamLoginConfigWithSso(teamId);
+      if (!team?.loginConfig.samlConfiguration) {
+        throw new InvalidProvider('SAML not configured for this team');
+      }
+
+      const config = team.loginConfig.samlConfiguration;
+      const redirectUrl = await samlService.getAuthorizationUrl(config, teamId, returnUrl);
+
+      createUserActivityFromReq(req, res, {
+        action: 'SSO_START',
+        method: ssoProvider,
+        email,
+        teamId,
+        success: true,
+      });
+      sendJson(res, { redirectUrl });
+      return;
+    }
+    throw new InvalidProvider('Unsupported SSO provider');
+  } catch (ex) {
+    res.log.error({ email, returnUrl, ...getErrorMessageAndStackObj(ex) }, '[AUTH][START_SSO] Error starting SSO');
+    createUserActivityFromReqWithError(req, res, ex, {
+      action: 'SSO_START',
+      email,
+      success: false,
+    });
+    next(ensureAuthError(ex));
+  }
+});
+
+const handleSamlCallback = createRoute(routeDefinition.handleSamlCallback.validators, async ({ params, body }, req, res, next) => {
+  try {
+    const { teamId } = params;
+    const { SAMLResponse } = body;
+
+    const team = await getTeamLoginConfigWithSso(teamId);
+
+    if (!team?.loginConfig.samlConfiguration) {
+      throw new InvalidProvider('SAML not configured for this team');
+    }
+
+    const config = team.loginConfig.samlConfiguration;
+
+    // Validate SAML response
+    const profile = await samlService.validateSamlResponse(SAMLResponse, config, teamId);
+
+    // Extract user info from SAML assertion
+    const attributeMapping = config.attributeMapping as any;
+    const userInfo = samlService.extractUserInfo(profile, attributeMapping);
+
+    // Handle SSO login (create/update user, add to team, create session)
+    const user = await handleSsoLogin('saml', teamId, userInfo, req as any);
+
+    // Log success
+    createUserActivityFromReq(req, res, {
+      action: 'SSO_LOGIN',
+      method: 'SAML',
+      userId: user.id,
+      email: user.email,
+      teamId,
+      success: true,
+    });
+
+    const { returnUrl: returnUrlCookie } = getCookieConfig(ENV.USE_SECURE_COOKIES);
+    const cookies = req.headers.cookie ? parseCookie(req.headers.cookie) : {};
+    clearOauthCookies(res);
+    const returnUrl = validateRedirectUrl(
+      cookies[returnUrlCookie.name],
+      [ENV.JETSTREAM_CLIENT_URL, ENV.JETSTREAM_SERVER_URL],
+      ENV.JETSTREAM_CLIENT_URL,
+    );
+
+    // Send verification email and redirect to verify page if verification is pending (e.g. MFA)
+    if (Array.isArray(req.session.pendingVerification) && req.session.pendingVerification.length > 0) {
+      const initialVerification = req.session.pendingVerification[0];
+      if (initialVerification.type === 'email') {
+        await sendEmailVerification(user.email, initialVerification.token, EMAIL_VERIFICATION_TOKEN_DURATION_HOURS);
+      } else if (initialVerification.type === '2fa-email') {
+        await sendVerificationCode(user.email, initialVerification.token, TOKEN_DURATION_MINUTES);
+      }
+      setCsrfCookie(res);
+      redirect(res, '/auth/verify');
+    } else if (req.session.pendingMfaEnrollment) {
+      redirect(res, '/auth/mfa-enroll');
+    } else {
+      if (req.session.sendNewUserEmailAfterVerify) {
+        req.session.sendNewUserEmailAfterVerify = undefined;
+        await sendWelcomeEmail(user.email);
+      }
+      redirect(res, returnUrl);
+    }
+  } catch (ex) {
+    res.log.error(getErrorMessageAndStackObj(ex), '[AUTH][SAML_CALLBACK] Error processing SAML callback');
+    createUserActivityFromReqWithError(req, res, ex, {
+      action: 'SSO_LOGIN',
+      method: 'SAML',
+      teamId: params.teamId,
+      success: false,
+    });
+
+    req.session.destroy(() => {
+      next(ensureAuthError(ex));
+    });
+  }
+});
+
+const getSamlMetadata = createRoute(routeDefinition.getSamlMetadata.validators, async ({ params }, req, res, next) => {
+  try {
+    const { teamId } = params;
+
+    const team = await getTeamLoginConfigWithSso(teamId);
+
+    if (!team?.loginConfig.samlConfiguration) {
+      res.set('Content-Type', 'application/xml');
+      res.send(samlService.generatePlaceholderSamlConfiguration(teamId));
+      return;
+    }
+
+    const config = team.loginConfig.samlConfiguration;
+    const metadata = await samlService.generateServiceProviderMetadata(teamId, config);
+
+    res.set('Content-Type', 'application/xml');
+    res.send(metadata);
+  } catch (ex) {
+    res.log.error(getErrorMessageAndStackObj(ex), '[AUTH][SAML_METADATA] Error generating SAML metadata');
+    res.status(500).send('Error generating SAML metadata');
+  }
+});
+
+const handleOidcCallback = createRoute(routeDefinition.handleOidcCallback.validators, async ({ params }, req, res, next) => {
+  try {
+    const { teamId } = params;
+
+    const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
+    const cookies = req.headers.cookie ? parseCookie(req.headers.cookie) : {};
+
+    const state = cookies[cookieConfig.state.name];
+    const codeVerifier = cookies[cookieConfig.pkceCodeVerifier.name];
+    const nonce = cookies[cookieConfig.nonce.name];
+    const returnUrl = validateRedirectUrl(
+      cookies[cookieConfig.returnUrl.name],
+      [ENV.JETSTREAM_CLIENT_URL, ENV.JETSTREAM_SERVER_URL],
+      ENV.JETSTREAM_CLIENT_URL,
+    );
+
+    // Clear cookies
+    clearOauthCookies(res);
+
+    if (!state || !codeVerifier || !nonce) {
+      throw new InvalidSession('Missing or invalid OIDC state');
+    }
+
+    const team = await getTeamLoginConfigWithSso(teamId);
+
+    if (!team?.loginConfig.oidcConfiguration) {
+      throw new InvalidProvider('OIDC not configured for this team');
+    }
+
+    const config = team.loginConfig.oidcConfiguration;
+
+    // Build current URL from request
+    const currentUrl = new URL(`${ENV.JETSTREAM_SERVER_URL}${req.originalUrl}`);
+
+    // Validate callback and exchange code for tokens
+    const { claims, idTokenResult } = await oidcService.validateOidcCallback(config, teamId, currentUrl, state, codeVerifier, nonce);
+
+    // Extract user info from claims
+    const attributeMapping = config.attributeMapping as any;
+    const userInfo = await oidcService.extractUserInfo(config, claims, idTokenResult.access_token, attributeMapping);
+
+    // Handle SSO login (create/update user, add to team, create session)
+    const user = await handleSsoLogin('oidc', teamId, userInfo, req as any);
+
+    // Log success
+    createUserActivityFromReq(req, res, {
+      action: 'SSO_LOGIN',
+      method: 'OIDC',
+      userId: user.id,
+      email: user.email,
+      teamId,
+      success: true,
+    });
+
+    // Send verification email and redirect to verify page if verification is pending (e.g. MFA)
+    if (Array.isArray(req.session.pendingVerification) && req.session.pendingVerification.length > 0) {
+      const initialVerification = req.session.pendingVerification[0];
+      if (initialVerification.type === 'email') {
+        await sendEmailVerification(user.email, initialVerification.token, EMAIL_VERIFICATION_TOKEN_DURATION_HOURS);
+      } else if (initialVerification.type === '2fa-email') {
+        await sendVerificationCode(user.email, initialVerification.token, TOKEN_DURATION_MINUTES);
+      }
+      setCsrfCookie(res);
+      redirect(res, '/auth/verify');
+    } else if (req.session.pendingMfaEnrollment) {
+      redirect(res, '/auth/mfa-enroll');
+    } else {
+      if (req.session.sendNewUserEmailAfterVerify) {
+        req.session.sendNewUserEmailAfterVerify = undefined;
+        await sendWelcomeEmail(user.email);
+      }
+      redirect(res, returnUrl);
+    }
+  } catch (ex) {
+    res.log.error(getErrorMessageAndStackObj(ex), '[AUTH][OIDC_CALLBACK] Error processing OIDC callback');
+    createUserActivityFromReqWithError(req, res, ex, {
+      action: 'SSO_LOGIN',
+      method: 'OIDC',
+      teamId: params.teamId,
+      success: false,
+    });
+
+    req.session.destroy(() => {
+      next(ensureAuthError(ex));
+    });
   }
 });

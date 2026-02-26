@@ -203,6 +203,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
             error: true,
             success: false,
             errorType: err.type,
+            message: err.message,
           },
         });
       }

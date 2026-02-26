@@ -280,13 +280,13 @@ export async function loadBatchApiData(
     if (failedRecords.length) {
       statusCallback(
         failedRecords.map(
-          ({ record, message }): RecordResultWithRecord => ({
+          (record): RecordResultWithRecord => ({
             success: false,
             errors: [
               {
                 fields: [],
-                message: message || `An unknown error has occurred while processing this record.`,
-                statusCode: 'PRE_PROCESSING_ERROR',
+                message: `An unknown error has occurred while processing this record.`,
+                statusCode: 'UNKNOWN',
               },
             ],
             record,
@@ -305,13 +305,13 @@ async function getBatchApiBatches({ data, sObject, batchSize, zipData, binaryBod
   batchRecordMap: Map<number, any[]>;
   batchRecordBlobMap: Map<number, Blob[]>;
   batchRecordBlobNameMap: WeakMap<Blob, { filename: string; binaryPartName: string }>;
-  failedRecords: { record: any; message: string }[];
+  failedRecords: any[];
 }> {
   let batches: SobjectCollectionRequest[] = [];
   const batchRecordMap = new Map<number, any[]>();
   const batchRecordBlobMap = new Map<number, Blob[]>();
   const batchRecordBlobNameMap = new WeakMap<Blob, { filename: string; binaryPartName: string }>();
-  const failedRecords: { record: any; message: string }[] = [];
+  const failedRecords: any[] = [];
 
   /** Batch size is auto-detected when there are attachments to ensure that the load is not too large */
   if (zipData && binaryBodyField) {
@@ -356,8 +356,6 @@ async function getBatchApiBatches({ data, sObject, batchSize, zipData, binaryBod
             }
             batchRecordBlobMap.get(i)?.push(file);
             batchRecordBlobNameMap.set(file, { filename: foundFile.name, binaryPartName });
-          } else {
-            throw new Error(`The file "${record[binaryBodyField]}" could not be found in the ZIP archive.`);
           }
         }
         request.records.push(record);
@@ -366,14 +364,13 @@ async function getBatchApiBatches({ data, sObject, batchSize, zipData, binaryBod
         }
         batchRecordMap.get(i)?.push(_record);
       } catch (ex) {
-        const message = getErrorMessage(ex);
-        logger.error(`Error processing record with binary data: ${message}`, {
+        logger.error(`Error processing record with binary data: ${getErrorMessage(ex)}`, {
           binaryBodyField,
           filePath: _record[binaryBodyField],
           record: _record,
           stackTrace: getErrorStack(ex),
         });
-        failedRecords.push({ record: _record, message });
+        failedRecords.push(_record);
       }
 
       if (currentSize >= THRESHOLD_SIZE_MB || request.records.length >= THRESHOLD_RECORDS) {

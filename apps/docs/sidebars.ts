@@ -23,7 +23,21 @@ const sidebar = {
     {
       type: 'category',
       label: 'Team Management',
-      items: ['team-management/team-management'],
+      items: [
+        'team-management/team-management',
+        {
+          type: 'category',
+          label: 'Single Sign-On (SSO)',
+          items: [
+            'team-management/sso/sso-overview',
+            'team-management/sso/domain-verification',
+            'team-management/sso/sso-azure',
+            'team-management/sso/sso-google',
+            'team-management/sso/sso-okta',
+            'team-management/sso/sso-generic',
+          ],
+        },
+      ],
     },
     {
       type: 'category',

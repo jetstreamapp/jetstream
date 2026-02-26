@@ -1,4 +1,5 @@
 import { prisma } from '@jetstream/api-config';
+import { PasswordSchema } from '@jetstream/types';
 import { expect, Locator, Page } from '@playwright/test';
 import { randomBytes } from 'crypto';
 import {
@@ -83,13 +84,13 @@ export class AuthenticationPage {
   }
 
   async acceptCookieBanner(page = this.page) {
-    const cookieBanner = page.getByText('We use cookies to improve');
     const cookieBannerAcceptButton = page.getByRole('button', { name: 'Accept' });
 
-    if (await cookieBanner.isVisible()) {
+    try {
+      await cookieBannerAcceptButton.waitFor({ state: 'visible', timeout: 5000 });
       await cookieBannerAcceptButton.click();
-    } else {
-      console.log('Element not visible, skipping click.');
+    } catch {
+      console.log('Cookie banner not visible, skipping click.');
     }
   }
 
@@ -132,7 +133,12 @@ export class AuthenticationPage {
   }
 
   generateTestPassword() {
-    return `PWD-${new Date().getTime()}!${randomBytes(8).toString('hex')}`;
+    let password = `PWD-${new Date().getTime()}!${randomBytes(8).toString('hex')}`;
+    // Regenerate password if it doesn't meet the schema requirements, to avoid test failures due to invalid passwords
+    while (!PasswordSchema.safeParse(password).success) {
+      password = `PWD-${new Date().getTime()}!${randomBytes(8).toString('hex')}`;
+    }
+    return password;
   }
 
   async signUpWithoutEmailVerification(emailOverride?: string, initialLoginPage?: string) {
@@ -370,18 +376,59 @@ export class AuthenticationPage {
     await this.goToLogin();
 
     await expect(this.signUpFromFormLink).toBeVisible();
-    await expect(this.forgotPasswordLink).toBeVisible();
-    await expect(this.signInButton).toBeVisible();
     await expect(this.googleAuthButton).toBeVisible();
     await expect(this.salesforceAuthButton).toBeVisible();
 
     await this.emailInput.click();
     await this.emailInput.fill(email);
 
+    // Continue triggers SSO discovery; password field and form controls appear after
+    await this.continueButton.click();
+
+    await expect(this.forgotPasswordLink).toBeVisible();
+    await expect(this.signInButton).toBeVisible();
+    await expect(this.passwordInput).toBeVisible();
+
     await this.passwordInput.click();
     await this.passwordInput.fill(password);
 
     await this.signInButton.click();
+  }
+
+  /**
+   * Fills in the email and clicks Continue without expecting the password step to appear.
+   * Use this for testing email validation, where an invalid email prevents the form from advancing.
+   */
+  async submitLoginEmailStep(email: string) {
+    await this.goToLogin();
+
+    await expect(this.signUpFromFormLink).toBeVisible();
+    await expect(this.googleAuthButton).toBeVisible();
+    await expect(this.salesforceAuthButton).toBeVisible();
+
+    await this.emailInput.click();
+    await this.emailInput.fill(email);
+    await this.continueButton.click();
+  }
+
+  /**
+   * Fills in the email on the sign-up form and clicks Continue without expecting the
+   * registration fields to appear. Use this for testing email validation where an invalid
+   * email prevents the form from advancing.
+   */
+  async submitSignUpEmailStep(email: string) {
+    await this.goToSignUp();
+
+    await this.page.goto('/');
+    await this.signUpFromHomePageButton.click();
+
+    await expect(this.signInFromFormLink).toBeVisible();
+    await expect(this.googleAuthButton).toBeVisible();
+    await expect(this.salesforceAuthButton).toBeVisible();
+
+    await this.emailInput.click();
+    await this.emailInput.fill(email);
+    await this.continueButton.click();
   }
 
   async fillOutSignUpForm(email: string, name: string, password: string, confirmPassword: string, initialLoginPage?: string) {
@@ -391,13 +438,16 @@ export class AuthenticationPage {
     await this.signUpFromHomePageButton.click();
 
     await expect(this.signInFromFormLink).toBeVisible();
-    await expect(this.forgotPasswordLink).toBeVisible();
-    await expect(this.signUpButton).toBeVisible();
     await expect(this.googleAuthButton).toBeVisible();
     await expect(this.salesforceAuthButton).toBeVisible();
 
     await this.emailInput.click();
     await this.emailInput.fill(email);
+
+    // Continue triggers SSO discovery; registration fields appear after
+    await this.continueButton.click();
+
+    await expect(this.signUpButton).toBeVisible();
 
     await this.fullNameInput.click();
     await this.fullNameInput.fill(name);
@@ -421,6 +471,10 @@ export class AuthenticationPage {
   async fillOutResetPasswordForm(email: string) {
     await this.page.goto('/');
     await this.signInFromHomePageButton.click();
+
+    // Fill email and click Continue to trigger SSO discovery, which reveals the forgot password link
+    await this.emailInput.fill(email);
+    await this.continueButton.click();
 
     await this.forgotPasswordLink.click();
 

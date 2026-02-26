@@ -1,3 +1,5 @@
+import { AUTH_ERROR_MESSAGES } from '@jetstream/shared/constants';
+
 export const ENVIRONMENT = {
   BILLING_ENABLED: process.env.NX_PUBLIC_BILLING_ENABLED === 'true',
   CLIENT_URL: process.env.NX_PUBLIC_CLIENT_URL || 'https://getjetstream.app/app',
@@ -43,6 +45,8 @@ export const ROUTES = {
     api_verify_resend: `/api/auth/verify/resend`,
     api_reset_password_init: `/api/auth/password/reset/init`,
     api_reset_password_verify: `/api/auth/password/reset/verify`,
+    api_sso_discover: `/api/auth/sso/discover`,
+    api_sso_start: `/api/auth/sso/start`,
   },
   API: {
     desktop_downloads: `${process.env.NX_PUBLIC_SERVER_URL || 'https://getjetstream.app'}/desktop-assets/downloads`,
@@ -50,28 +54,6 @@ export const ROUTES = {
 };
 
 export const SIGN_IN_ERRORS = {
+  ...AUTH_ERROR_MESSAGES,
   default: 'Check your details and try again.',
-  AccountLocked: 'Account is locked due to too many failed login attempts. Please try again later or reset your password.',
-  AuthError: 'Check your details and try again.',
-  ExpiredVerificationToken: 'Your verification token has expired, sign in again.',
-  IdentityLinkingNotAllowed: 'Linking identities is not allowed, please sign in with the same account you used originally.',
-  InactiveUser: 'Your account is inactive. Please contact support for assistance.',
-  InvalidAccessToken: 'Your session is invalid, please sign in again.',
-  InvalidAction: 'The form is invalid, refresh the page and start over.',
-  InvalidCaptcha: 'Invalid captcha verification, refresh and try again to confirm you are not a bot.',
-  InvalidCredentials: 'Sign in failed. Check the details you provided are correct.',
-  InvalidCsrfToken: 'The form is invalid, refresh the page and start over.',
-  InvalidOrExpiredResetToken: 'Your reset token is invalid, please restart the reset process.',
-  InvalidParameters: 'The form is invalid, refresh the page and start over.',
-  InvalidProvider: 'The form is invalid, refresh the page and start over.',
-  InvalidRegistration: 'This email address is already in use. Log in using an existing method or reset your password.',
-  InvalidSession: 'Your session is invalid, please sign in again.',
-  InvalidVerificationToken: 'Your verification token is invalid.',
-  InvalidVerificationType: 'The form is invalid, refresh the page and start over.',
-  LoginWithExistingIdentity: 'To confirm your identity, sign in with the same account you used originally.',
-  MissingEntitlement: `You are not permitted to access this feature.`,
-  PasswordResetRequired: 'You must reset your password before signing in.',
-  PasswordReused: 'You cannot reuse your previously used passwords. Choose a different password.',
-  ProviderEmailNotVerified: 'You must first verify your email address with the provider in order to register.',
-  ProviderNotAllowed: `This login method is not allowed, login using an approved method.`,
 };

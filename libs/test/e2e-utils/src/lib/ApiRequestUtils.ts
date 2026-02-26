@@ -13,7 +13,7 @@ export class ApiRequestUtils {
   selectedOrgId: string;
 
   constructor(page: Page, e2eLoginUsername: string) {
-    this.BASE_URL = process.env.JETSTREAM_SERVER_URL;
+    this.BASE_URL = process.env.NX_PUBLIC_SERVER_URL || process.env.JETSTREAM_SERVER_URL || 'http://localhost:3333';
     this.page = page;
     this.E2E_LOGIN_USERNAME = e2eLoginUsername;
     this.request = page.request;

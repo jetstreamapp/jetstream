@@ -5,3 +5,8 @@ export * from './lib/auth.errors';
 export * from './lib/auth.service';
 export * from './lib/auth.utils';
 export { OauthClients } from './lib/OauthClients';
+export * from './lib/oidc.service';
+export * from './lib/saml.service';
+export * from './lib/sso-auth.service';
+export * from './lib/sso-crypto.util';
+export * from './lib/sso.types';

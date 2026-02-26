@@ -26,7 +26,12 @@ export type Action =
   | 'DESKTOP_LOGIN_TOKEN_ISSUED'
   | 'DESKTOP_LOGIN_TOKEN_REUSED'
   | 'WEB_EXTENSION_LOGIN_TOKEN_ISSUED'
-  | 'WEB_EXTENSION_LOGIN_TOKEN_REUSED';
+  | 'WEB_EXTENSION_LOGIN_TOKEN_REUSED'
+  | 'SSO_LOGIN'
+  | 'SSO_DISCOVER'
+  | 'SSO_START'
+  | 'SSO_JIT_PROVISIONED'
+  | 'CAPTCHA_FAILED';
 
 export const actionDisplayName: Record<Action, string> = {
   LOGIN: 'Login Attempt',
@@ -51,12 +56,19 @@ export const actionDisplayName: Record<Action, string> = {
   DESKTOP_LOGIN_TOKEN_REUSED: 'Desktop Login Token Reused',
   WEB_EXTENSION_LOGIN_TOKEN_ISSUED: 'Web Extension Login Token Issued',
   WEB_EXTENSION_LOGIN_TOKEN_REUSED: 'Web Extension Login Token Reused',
+  SSO_LOGIN: 'SSO Login',
+  SSO_DISCOVER: 'SSO Discovery Attempt',
+  SSO_START: 'SSO Login Start',
+  SSO_JIT_PROVISIONED: 'SSO JIT User Provisioned',
+  CAPTCHA_FAILED: 'Captcha Verification Failed',
 };
 
 export const methodDisplayName: Record<string, string> = {
   CREDENTIALS: 'Username/Password',
   GOOGLE: 'Google',
   SALESFORCE: 'Salesforce',
+  SAML: 'SAML SSO',
+  OIDC: 'OIDC SSO',
 };
 
 interface LoginActivity {
@@ -65,6 +77,7 @@ interface LoginActivity {
   success: boolean;
   email?: Maybe<string>;
   userId?: Maybe<string>;
+  teamId?: Maybe<string>;
   ipAddress?: Maybe<string>;
   userAgent?: Maybe<string>;
   errorMessage?: Maybe<string>;

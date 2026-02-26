@@ -75,3 +75,5 @@ vitest.config.*.timestamp*
 certificates
 
 *.tsbuildinfo
+
+.claude/worktrees

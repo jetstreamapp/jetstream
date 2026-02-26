@@ -36,7 +36,7 @@ import { AxiosError } from 'axios';
 import { z } from 'zod';
 import * as userDbService from '../db/user.db';
 import * as stripeService from '../services/stripe.service';
-import { UserFacingError } from '../utils/error-handler';
+import { AuthenticationError, UserFacingError } from '../utils/error-handler';
 import { redirect, sendJson } from '../utils/response.handlers';
 import { createRoute } from '../utils/route.utils';
 
@@ -220,9 +220,16 @@ export const routeDefinition = {
   },
 };
 
-const getUserProfile = createRoute(routeDefinition.getUserProfile.validators, async ({ user }, _, res) => {
-  const userProfile = await userDbService.findIdByUserIdUserFacing({ userId: user.id });
-  sendJson(res, userProfile);
+const getUserProfile = createRoute(routeDefinition.getUserProfile.validators, async ({ user }, req, res, next) => {
+  try {
+    const userProfile = await userDbService.findIdByUserIdUserFacing({ userId: user.id });
+    sendJson(res, userProfile);
+  } catch (ex) {
+    res.log.error(getExceptionLog(ex), 'Error fetching user profile');
+    req.session.destroy(() => {
+      next(new AuthenticationError('Unable to get user profile, please log in again'));
+    });
+  }
 });
 
 const getFullUserProfile = createRoute(routeDefinition.getFullUserProfile.validators, async ({ user }, _, res) => {
@@ -317,40 +324,42 @@ const revokeAllSessions = createRoute(routeDefinition.revokeAllSessions.validato
   });
 });
 
-const getUserLoginConfiguration = createRoute(
-  routeDefinition.getUserLoginConfiguration.validators,
-  async ({ user, teamMembership }, _, res) => {
-    const loginConfiguration = await getLoginConfiguration(
-      teamMembership?.teamId ? { teamId: teamMembership.teamId } : { email: user.email },
-    ).then((response): LoginConfigurationUI => {
-      if (!response) {
-        return {
-          isPasswordAllowed: true,
-          isGoogleAllowed: true,
-          isSalesforceAllowed: true,
-          requireMfa: false,
-          allowIdentityLinking: true,
-          allowedMfaMethods: {
-            email: true,
-            otp: true,
-          },
-        };
-      }
-      return {
-        isPasswordAllowed: response.allowedProviders.has('credentials'),
-        isGoogleAllowed: response.allowedProviders.has('google'),
-        isSalesforceAllowed: response.allowedProviders.has('salesforce'),
-        requireMfa: response.requireMfa,
-        allowIdentityLinking: response.allowIdentityLinking,
-        allowedMfaMethods: {
-          email: response.allowedMfaMethods.has('2fa-email'),
-          otp: response.allowedMfaMethods.has('2fa-otp'),
-        },
-      };
-    });
-    sendJson(res, loginConfiguration);
-  },
-);
+const getUserLoginConfiguration = createRoute(routeDefinition.getUserLoginConfiguration.validators, async ({ teamMembership }, _, res) => {
+  const defaultLoginConfiguration: LoginConfigurationUI = {
+    isPasswordAllowed: true,
+    isGoogleAllowed: true,
+    isSalesforceAllowed: true,
+    requireMfa: false,
+    allowIdentityLinking: true,
+    allowedMfaMethods: {
+      email: true,
+      otp: true,
+    },
+  };
+
+  if (!teamMembership?.teamId) {
+    sendJson(res, defaultLoginConfiguration);
+    return;
+  }
+
+  const loginConfiguration = await getLoginConfiguration({ teamId: teamMembership.teamId }).then((response): LoginConfigurationUI => {
+    if (!response) {
+      return defaultLoginConfiguration;
+    }
+    return {
+      isPasswordAllowed: response.allowedProviders.has('credentials'),
+      isGoogleAllowed: response.allowedProviders.has('google'),
+      isSalesforceAllowed: response.allowedProviders.has('salesforce'),
+      requireMfa: response.requireMfa,
+      allowIdentityLinking: response.allowIdentityLinking,
+      allowedMfaMethods: {
+        email: response.allowedMfaMethods.has('2fa-email'),
+        otp: response.allowedMfaMethods.has('2fa-otp'),
+      },
+    };
+  });
+  sendJson(res, loginConfiguration);
+});
 
 const getOtpQrCode = createRoute(routeDefinition.getOtpQrCode.validators, async ({ user }, _, res) => {
   const { secret, imageUri, uri } = await generate2faTotpUrl(user.id);

@@ -20,6 +20,11 @@ vi.mock('@jetstream/email', () => {
 vi.mock('@jetstream/api-config', () => {
   return {
     sendEmail: vi.fn(),
+    DbCacheProvider: vi.fn().mockImplementation(function () {
+      this.saveAsync = vi.fn().mockResolvedValue(null);
+      this.getAsync = vi.fn().mockResolvedValue(null);
+      this.removeAsync = vi.fn().mockResolvedValue(null);
+    }),
   };
 });
 

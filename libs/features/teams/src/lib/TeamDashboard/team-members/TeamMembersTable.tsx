@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { LoginConfigurationWithCallbacks } from '@jetstream/auth/types';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { TeamGlobalAction, TeamTableAction, TeamUserFacing, UserProfileUi } from '@jetstream/types';
@@ -17,6 +18,7 @@ export interface TeamMembersTableProps {
   teamMembers: TeamUserFacing['members'];
   invitations: TeamUserFacing['invitations'];
   userProfile: UserProfileUi;
+  configuredSsoProvider?: LoginConfigurationWithCallbacks['ssoProvider'] | null;
   onGlobalAction: (action: TeamGlobalAction) => Promise<void>;
   onUserAction: (payload: TeamTableAction) => Promise<unknown>;
 }
@@ -29,6 +31,7 @@ export function TeamMembersTable({
   hasManualBilling,
   invitations,
   userProfile,
+  configuredSsoProvider,
   onGlobalAction,
   onUserAction,
 }: TeamMembersTableProps) {
@@ -143,6 +146,7 @@ export function TeamMembersTable({
               allowIdentityLinking={allowIdentityLinking}
               member={member}
               isCurrentUser={userProfile.id === member.userId}
+              configuredSsoProvider={configuredSsoProvider}
               onUserAction={onUserAction}
             />
           ))}

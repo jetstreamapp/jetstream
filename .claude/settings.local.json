@@ -6,12 +6,18 @@
       "Bash(yarn nx build:*)",
       "Bash(yarn nx test:*)",
       "Bash(yarn nx:*)",
-      "Bash(yarn test:*)"
+      "Bash(npx nx test:*)",
+      "Bash(npx nx show:*)",
+      "Bash(yarn db:generate:*)",
+      "Bash(yarn build:*)",
+      "Bash(yarn test:*)",
+      "Bash(yarn build:api:*)",
+      "Bash(npx tsc:*)",
+      "Bash(yarn prettier:*)",
+      "Bash(npx prettier:*)"
     ],
     "deny": [],
     "ask": []
   },
-  "enabledMcpjsonServers": [
-    "nx-mcp"
-  ]
+  "enabledMcpjsonServers": ["nx-mcp"]
 }

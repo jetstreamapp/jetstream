@@ -27,6 +27,15 @@ type TeamMemberSessionSubjects = 'TeamMemberSession';
 type TeamMemberAuthActivityActions = 'read';
 type TeamMemberAuthActivitySubjects = 'TeamMemberAuthActivity';
 
+type DomainConfigurationActions = 'read' | 'update' | 'delete';
+type DomainConfigurationSubjects = 'DomainConfiguration';
+
+type SsoConfigurationActions = 'read' | 'update' | 'delete';
+type SsoConfigurationSubjects = 'SsoConfiguration';
+
+type AuditLogActions = 'read';
+type AuditLogSubjects = 'AuditLog';
+
 export type AppAbility = MongoAbility<
   | [Actions, Subjects]
   | [EntitlementActions, EntitlementSubjects]
@@ -34,6 +43,9 @@ export type AppAbility = MongoAbility<
   | [TeamMemberActions, TeamMemberSubjects]
   | [TeamMemberSessionActions, TeamMemberSessionSubjects]
   | [TeamMemberAuthActivityActions, TeamMemberAuthActivitySubjects]
+  | [DomainConfigurationActions, DomainConfigurationSubjects]
+  | [SsoConfigurationActions, SsoConfigurationSubjects]
+  | [AuditLogActions, AuditLogSubjects]
 >;
 
 const createAppAbility = createMongoAbility as CreateAbility<AppAbility>;
@@ -82,7 +94,7 @@ function getAbilityRules({ isBrowserExtension, isDesktop, user }: GetAbilityOpti
 
     if (activeTeamMembership) {
       if (isTeamsBillingOrAdmin) {
-        can(['read'], ['Team', 'TeamMemberSession', 'TeamMemberAuthActivity', 'TeamMember']);
+        can(['read'], ['Team', 'TeamMemberSession', 'TeamMemberAuthActivity', 'TeamMember', 'DomainConfiguration', 'SsoConfiguration']);
         can('update', ['Team', 'TeamMember']);
 
         can('invite', 'TeamMember');
@@ -93,6 +105,9 @@ function getAbilityRules({ isBrowserExtension, isDesktop, user }: GetAbilityOpti
         cannot('update', 'TeamMember', { role: TeamMemberRoleSchema.enum.ADMIN });
       }
       if (isAdminRole) {
+        can(['read'], 'AuditLog');
+        can(['update', 'delete'], 'DomainConfiguration');
+        can(['update', 'delete'], 'SsoConfiguration');
         can('delete', 'TeamMemberSession');
       }
     }

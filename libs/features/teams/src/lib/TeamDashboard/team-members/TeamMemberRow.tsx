@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import { TwoFactorTypeWithoutEmail } from '@jetstream/auth/types';
+import { LoginConfigurationWithCallbacks, TwoFactorTypeWithoutEmail } from '@jetstream/auth/types';
 import { orderObjectsBy } from '@jetstream/shared/utils';
 import { DropDownItem, TeamLoginConfig, TeamUserAction, TeamUserFacing } from '@jetstream/types';
 import { Badge, DropDown, Grid, GridCol, Icon, Tooltip } from '@jetstream/ui';
@@ -13,6 +13,7 @@ import { TeamMembersTableProps } from './TeamMembersTable';
 export const TeamMemberRow = ({
   allowedMfaMethods,
   allowedProviders,
+  configuredSsoProvider,
   requireMfa,
   allowIdentityLinking,
   member,
@@ -21,6 +22,7 @@ export const TeamMemberRow = ({
 }: {
   allowedMfaMethods: Set<TeamLoginConfig['allowedMfaMethods'][number]>;
   allowedProviders: Set<TeamLoginConfig['allowedProviders'][number]>;
+  configuredSsoProvider?: LoginConfigurationWithCallbacks['ssoProvider'] | null;
   requireMfa: TeamLoginConfig['requireMfa'];
   allowIdentityLinking: TeamLoginConfig['allowIdentityLinking'];
   member: TeamUserFacing['members'][number];
@@ -57,6 +59,7 @@ export const TeamMemberRow = ({
         <Identities
           allowedProviders={allowedProviders}
           allowIdentityLinking={allowIdentityLinking}
+          configuredSsoProvider={configuredSsoProvider}
           identities={member.user.identities}
           hasPasswordSet={member.user.hasPasswordSet}
         />
@@ -80,17 +83,30 @@ export const TeamMemberRow = ({
 const Identities = ({
   allowedProviders,
   allowIdentityLinking,
+  configuredSsoProvider,
   identities,
   hasPasswordSet,
 }: {
   allowedProviders: Set<TeamLoginConfig['allowedProviders'][number]>;
   allowIdentityLinking: TeamLoginConfig['allowIdentityLinking'];
+  configuredSsoProvider?: LoginConfigurationWithCallbacks['ssoProvider'] | null;
   identities: TeamUserFacing['members'][number]['user']['identities'];
   hasPasswordSet: boolean;
 }) => {
+  function getIdentity(identity: TeamUserFacing['members'][number]['user']['identities'][number]) {
+    if (identity.provider === 'saml' && identity.samlConfiguration?.name) {
+      return identity.samlConfiguration.name;
+    }
+    if (identity.provider === 'oidc' && identity.oidcConfiguration?.name) {
+      return identity.oidcConfiguration.name;
+    }
+    return identity.provider;
+  }
+
+  const ssoProvider = configuredSsoProvider?.toLowerCase();
   const sortedIdentities = orderObjectsBy(identities, ['isPrimary', 'provider', 'email', 'username'], ['desc', 'asc', 'asc', 'asc']);
   const doesNotHaveValidProvider =
-    sortedIdentities.every(({ provider }) => !allowedProviders.has(provider as any)) &&
+    sortedIdentities.every(({ provider }) => !allowedProviders.has(provider as any) && provider !== ssoProvider) &&
     (!allowedProviders.has('credentials') || !hasPasswordSet);
   return (
     <div>
@@ -102,8 +118,8 @@ const Identities = ({
             text-wrap: auto;
           `}
         >
-          {identity.provider} ({identity.username || identity.email})
-          {!allowedProviders.has(identity.provider as any) && (
+          {getIdentity(identity)} ({identity.username || identity.email})
+          {!allowedProviders.has(identity.provider as any) && identity.provider !== ssoProvider && (
             <Tooltip content="This login method is not allowed and will not be available for use even though is it set up.">
               <Icon
                 type="utility"
@@ -129,9 +145,11 @@ const Identities = ({
       {doesNotHaveValidProvider && (
         <Tooltip
           content={
-            allowIdentityLinking
-              ? 'This user does not have a valid login provider and they will not be able to login. Temporarily allow identity linking, remove the user and re-invite them, or contact support for assistance.'
-              : 'This user does not have a valid login provider and they will not be able to login. Temporarily allow identity linking or contact support for assistance.'
+            ssoProvider
+              ? 'This provider does not have a valid login provider. They will be able to login via SSO, otherwise ensure account linking and another allowed provider is set up for this user.'
+              : allowIdentityLinking
+                ? 'This user does not have a valid login provider and they will not be able to login. Temporarily allow identity linking, remove the user and re-invite them, or contact support for assistance.'
+                : 'This user does not have a valid login provider and they will not be able to login. Temporarily allow identity linking or contact support for assistance.'
           }
         >
           <Icon

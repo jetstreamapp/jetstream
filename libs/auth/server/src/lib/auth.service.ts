@@ -1,13 +1,13 @@
 import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
 import type { Request, Response } from '@jetstream/api-types';
-import { OauthAndLocalProviders, OauthProviderType, Providers, ResponseLocalsCookies, SessionIpData } from '@jetstream/auth/types';
+import { OauthProviderType, Providers, ResponseLocalsCookies, SessionIpData } from '@jetstream/auth/types';
 import { parseCookie } from 'cookie';
 import * as crypto from 'crypto';
 import { addHours, addMinutes } from 'date-fns';
 import * as QRCode from 'qrcode';
 import { OauthClientProvider, OauthClients } from './OauthClients';
 import { EMAIL_VERIFICATION_TOKEN_DURATION_HOURS, TOKEN_DURATION_MINUTES } from './auth.constants';
-import { findUserById_UNSAFE, getLoginConfiguration, handleSignInOrRegistration } from './auth.db.service';
+import { findUserById_UNSAFE, handleSignInOrRegistration } from './auth.db.service';
 import { AuthError, InvalidCsrfToken, InvalidVerificationToken, InvalidVerificationType } from './auth.errors';
 import { generateHMACDoubleCSRFToken, getApiAddressFromReq, getCookieConfig, validateCSRFToken } from './auth.utils';
 
@@ -103,7 +103,7 @@ export function clearOauthCookies(res: Response) {
 
 export async function getAuthorizationUrl(provider: OauthProviderType) {
   const oauth = await oauthPromise;
-  const oauthClients = await OauthClients.getInstance();
+  const oauthClients = OauthClients.getInstance();
 
   const code_challenge_method = 'S256';
   /**
@@ -148,25 +148,13 @@ export async function getAuthorizationUrl(provider: OauthProviderType) {
   };
 }
 
-export async function isProviderAllowed(
-  options: { email: string; provider: OauthAndLocalProviders } | { teamId: string; provider: OauthAndLocalProviders },
-): Promise<boolean> {
-  const { provider } = options;
-  const loginConfiguration =
-    'teamId' in options ? await getLoginConfiguration({ teamId: options.teamId }) : await getLoginConfiguration({ email: options.email });
-  if (!loginConfiguration) {
-    return true;
-  }
-  return loginConfiguration.allowedProviders.has(provider);
-}
-
 export async function validateCallback(
   provider: OauthProviderType,
   parameters: URL | URLSearchParams,
   codeVerifier: string,
   nonce?: string,
 ) {
-  const oauthClients = await OauthClients.getInstance();
+  const oauthClients = OauthClients.getInstance();
 
   const clientProvider = oauthClients[provider];
   const { claims, idTokenResult } = await handleOauthCallback(clientProvider, provider, parameters, codeVerifier, nonce);
@@ -207,8 +195,8 @@ export async function generate2faTotpSecret() {
 
 export async function verify2faTotpOrThrow(secret: string, code: string) {
   const { decodeHex } = await osloEncodingPromise;
-  const { verifyTOTP } = await osloOtpPromise;
-  const validOTP = verifyTOTP(decodeHex(secret), TOTP_INTERVAL_SEC, TOTP_DIGITS, code);
+  const { verifyTOTPWithGracePeriod } = await osloOtpPromise;
+  const validOTP = verifyTOTPWithGracePeriod(decodeHex(secret), TOTP_INTERVAL_SEC, TOTP_DIGITS, code, TOTP_INTERVAL_SEC);
   if (!validOTP) {
     throw new InvalidVerificationToken();
   }

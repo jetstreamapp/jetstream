@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 import * as dotenv from 'dotenv';
 
 import {
@@ -59,6 +60,14 @@ type MyFixtures = {
 export const test = base.extend<MyFixtures>({
   environment: async ({}, use) => {
     await use(environmentSchema.parse(process.env));
+  },
+  page: async ({ page }, use) => {
+    // Automatically dismiss the cookie consent banner whenever it appears,
+    // so tests don't need to handle it explicitly and it never blocks UI interactions.
+    await page.addLocatorHandler(page.getByText('We use cookies to improve your experience'), async () => {
+      await page.getByRole('button', { name: 'Accept' }).click();
+    });
+    await use(page);
   },
   teamCreationUtils1User: async ({ browser, page, environment }, use) => {
     const teamCreationUtils = new TeamCreationUtils();

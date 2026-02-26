@@ -22,7 +22,7 @@ export class OrgGroupPage {
 
   async goToOrgGroupPage() {
     await this.page.goto('/app/home');
-    const navigationPromise = this.page.waitForURL('/app/org-groups');
+    const navigationPromise = this.page.waitForURL('**/app/org-groups');
     await this.page.getByRole('link', { name: 'Manage Org Groups' }).click();
     await navigationPromise;
   }

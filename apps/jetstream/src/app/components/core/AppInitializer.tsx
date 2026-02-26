@@ -1,8 +1,9 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { HTTP } from '@jetstream/shared/constants';
+import { AUTH_ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
 import { checkHeartbeat, disconnectSocket, initSocket, registerMiddleware, updateUserProfile } from '@jetstream/shared/data';
 import { useObservable, useRollbar } from '@jetstream/shared/ui-utils';
 import { Announcement, JetstreamEventSaveSoqlQueryFormatOptionsPayload, SalesforceOrgUi } from '@jetstream/types';
+import { fireToast } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { CookieConsentBanner, useConditionalGoogleAnalytics } from '@jetstream/ui/cookie-consent-banner';
@@ -11,6 +12,7 @@ import { AxiosResponse } from 'axios';
 import { useAtom, useAtomValue } from 'jotai';
 import localforage from 'localforage';
 import React, { Fragment, FunctionComponent, useCallback, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Observable, Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
@@ -46,11 +48,20 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onAnnou
     fromJetstreamEvents.getObservable('saveSoqlQueryFormatOptions') as Observable<JetstreamEventSaveSoqlQueryFormatOptionsPayload>,
   );
   const [analytics, setAnalytics] = useAtom(fromAppState.analyticsState);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const errorParam = searchParams.get('error');
 
   useConditionalGoogleAnalytics(environment.googleAnalyticsSiteId, analytics === 'accepted');
 
   const recordSyncEntitlementEnabled = ability.can('access', 'RecordSync');
   const recordSyncEnabled = recordSyncEntitlementEnabled && userProfile.preferences.recordSyncEnabled;
+
+  useEffect(() => {
+    if (errorParam && AUTH_ERROR_MESSAGES[errorParam]) {
+      fireToast({ type: 'error', message: AUTH_ERROR_MESSAGES[errorParam] });
+      setSearchParams({});
+    }
+  }, [errorParam, setSearchParams]);
 
   useEffect(() => {
     console.log(

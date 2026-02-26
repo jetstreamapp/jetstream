@@ -66,7 +66,6 @@ export function useCsrfToken() {
   const [csrfTokenError, setCsrfTokenError] = useState<string>();
 
   useEffect(() => {
-    setIsLoadingCsrfToken(true);
     fetch(ROUTES.AUTH.api_csrf)
       .then((response) => {
         if (response.ok) {
