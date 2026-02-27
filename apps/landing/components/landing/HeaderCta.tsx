@@ -33,11 +33,8 @@ export const HeaderCta = () => (
       <div className="text-center">
         <div className="hidden sm:mb-8 sm:flex sm:justify-center">
           <div className="relative rounded-full px-3 py-1 text-sm/6 text-gray-400 ring-1 ring-white/10 hover:ring-white/20">
-            Announcing Jetstream for Teams{' '}
-            <span role="img" aria-label="desktop computer emoji">
-              🚀
-            </span>{' '}
-            <Link href={ROUTES.blogPost('jetstream-for-teams')} className="font-semibold text-white ml-2">
+            SSO is now available
+            <Link href={ROUTES.blogPost('jetstream-sso')} className="font-semibold text-white ml-2">
               <span aria-hidden="true" className="absolute inset-0" />
               Read more <span aria-hidden="true">&rarr;</span>
             </Link>
