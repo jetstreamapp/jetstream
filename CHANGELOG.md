@@ -1,5 +1,20 @@
 # Changelog
 
+## [9.0.0](https://github.com/jetstreamapp/jetstream/compare/v8.25.0...v9.0.0) (2026-02-27)
+
+### Features
+
+* add persisted cache provider for saml + others ([e72546e](https://github.com/jetstreamapp/jetstream/commit/e72546ef6ba1c726b6d7f33bab811424196b6a23))
+* add SSO support with SAML and OIDC configurations ([11fcba7](https://github.com/jetstreamapp/jetstream/commit/11fcba7f22b57889290aa5def73f54e21381265e))
+* **docs:** implement saml and oidc sso ([cf3c5c0](https://github.com/jetstreamapp/jetstream/commit/cf3c5c03acb6c6d19f0aa1ff7291d88331d56af4))
+* improve sso login form ([342a730](https://github.com/jetstreamapp/jetstream/commit/342a730e26509ca536c519fc1864375d02a8d421))
+
+### Bug Fixes
+
+* add totp grace period ([aba04a7](https://github.com/jetstreamapp/jetstream/commit/aba04a75cdc4ac999e563dc40093d83ef22f6bd3))
+* ensure package name is encoded ([9f2bf5c](https://github.com/jetstreamapp/jetstream/commit/9f2bf5c238eebbb04dee8d1168035f1be12d8f27))
+* improve cookie banner dismissal in e2e tests ([e8264de](https://github.com/jetstreamapp/jetstream/commit/e8264de282cf6b770c6ac57390f69165198abd71))
+
 ## [8.25.0](https://github.com/jetstreamapp/jetstream/compare/v8.24.0...v8.25.0) (2026-02-19)
 
 ### Features
