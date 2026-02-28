@@ -1,5 +1,7 @@
 # Changelog
 
+## [9.0.1](https://github.com/jetstreamapp/jetstream/compare/v9.0.0...v9.0.1) (2026-02-28)
+
 ## [9.0.0](https://github.com/jetstreamapp/jetstream/compare/v8.25.0...v9.0.0) (2026-02-27)
 
 ### Features
