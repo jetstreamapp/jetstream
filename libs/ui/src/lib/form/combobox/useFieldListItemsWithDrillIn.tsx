@@ -39,7 +39,15 @@ export function useFieldListItemsWithDrillIn(selectedOrg: SalesforceOrgUi) {
       if (!Array.isArray(field.referenceTo) || field.referenceTo.length <= 0) {
         return [];
       }
-      const { data } = await describeSObject(selectedOrg, field.referenceTo?.[0] || '');
+      // For polymorphic lookups, the object is stored in the secondary label
+      const referenceTo =
+        field.referenceTo.length > 1
+          ? field.referenceTo.find((sobject) => sobject === item.secondaryLabel) || field.referenceTo?.[0]
+          : field.referenceTo[0];
+      if (!referenceTo) {
+        return [];
+      }
+      const { data } = await describeSObject(selectedOrg, referenceTo);
       const allFieldMetadata = sortQueryFields(data.fields);
       const childFields = getListItemsFromFieldWithRelatedItems(allFieldMetadata, item.id);
 
