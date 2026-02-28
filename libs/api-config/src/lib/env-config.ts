@@ -226,12 +226,6 @@ const envSchema = z.object({
   GOOGLE_API_KEY: z.string().optional(),
   GOOGLE_CLIENT_ID: z.string().optional(),
   /**
-   * HONEYCOMB
-   * This is used for logging node application metrics
-   */
-  HONEYCOMB_ENABLED: booleanSchema,
-  HONEYCOMB_API_KEY: z.string().optional(),
-  /**
    * GEO-IP API (private service basic auth)
    */
   GEO_IP_API_USERNAME: z.string().optional(),
