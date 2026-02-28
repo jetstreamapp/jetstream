@@ -1,3 +1,5 @@
+import { AnalyticStat } from '@jetstream/types';
+import AnalyticsSummary from './AnalyticsSummary';
 import ConnectWithTeam from './ConnectWithTeam';
 import FeatureGrid from './FeatureGrid';
 import FeatureScreenshot from './FeatureScreenshot';
@@ -7,13 +9,12 @@ import Learn from './Learn';
 import PersonaFeatures from './PersonaFeatures';
 import Testimonial from './Testimonial';
 
-export const LandingPage = () => (
+export const LandingPage = ({ stats }: { stats?: AnalyticStat[] | null }) => (
   <div className="bg-gray-900">
     <main>
       <HeaderCta />
       <PersonaFeatures />
-      {/* Analytics tracking has been broken for some time - these numbers are not accurate */}
-      {/* <AnalyticsSummary stats={stats} /> */}
+      {stats && stats.length > 0 && <AnalyticsSummary stats={stats} />}
       <ConnectWithTeam />
       <FeatureScreenshot />
       <FeatureGrid />
