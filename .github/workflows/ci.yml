@@ -5,6 +5,11 @@ on:
       - main
   pull_request:
 
+# Cancel in-progress runs on the same ref (branch or PR) to avoid redundant runs and save CI resources
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
