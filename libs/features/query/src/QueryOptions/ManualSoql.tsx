@@ -1,4 +1,5 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
+import { sanitizePastedEditorText, useDisposables } from '@jetstream/shared/ui-utils';
 import { SoqlQueryFormatOptions } from '@jetstream/types';
 import { CheckboxToggle, Grid, GridCol, Icon, Popover, PopoverRef, Spinner, Textarea } from '@jetstream/ui';
 import { fromJetstreamEvents, RestoreQuery, SoqlQueryFormatConfigPopover, SoqlValidIndicator, useAmplitude } from '@jetstream/ui-core';
@@ -20,6 +21,7 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
   const isMounted = useRef(true);
   const popoverRef = useRef<PopoverRef>(null);
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
+  const { addDisposable } = useDisposables();
   const navigate = useNavigate();
   const { trackEvent } = useAmplitude();
   const [soql, setSoql] = useState<string>('');
@@ -68,35 +70,53 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
     fromJetstreamEvents.emit({ type: 'saveSoqlQueryFormatOptions', payload: { value: options } });
   }
 
+  const userToolingRef = useRef(userTooling);
+  // eslint-disable-next-line react-hooks/refs
+  userToolingRef.current = userTooling;
+
+  const setSoqlRef = useRef(setSoql);
+  // eslint-disable-next-line react-hooks/refs
+  setSoqlRef.current = setSoql;
+
+  const soqlQueryFormatOptionsRef = useRef(soqlQueryFormatOptions);
+  // eslint-disable-next-line react-hooks/refs
+  soqlQueryFormatOptionsRef.current = soqlQueryFormatOptions;
+
   const handleEditorMount: OnMount = (currEditor, monaco) => {
     editorRef.current = currEditor;
     currEditor.focus();
 
+    addDisposable(sanitizePastedEditorText(currEditor));
+
     const modelRange = currEditor.getModel()?.getFullModelRange();
     modelRange && currEditor.setSelection(modelRange);
 
-    editorRef.current.addAction({
-      id: 'modifier-enter',
-      label: 'Submit',
-      keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
-      run: (currEditor) => {
-        navigate(`results`, {
-          state: {
-            isTooling: userTooling,
-            soql: currEditor.getValue(),
-          },
-        });
-      },
-    });
-    editorRef.current.addAction({
-      id: 'format',
-      label: 'Format',
-      keybindings: [monaco?.KeyMod.Shift | monaco?.KeyMod.Alt | monaco?.KeyCode.KeyF],
-      contextMenuGroupId: '9_cutcopypaste',
-      run: (currEditor) => {
-        setSoql(formatQuery(currEditor.getValue(), soqlQueryFormatOptions));
-      },
-    });
+    addDisposable(
+      editorRef.current.addAction({
+        id: 'modifier-enter',
+        label: 'Submit',
+        keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
+        run: (currEditor) => {
+          navigate(`results`, {
+            state: {
+              isTooling: userToolingRef.current,
+              soql: currEditor.getValue(),
+            },
+          });
+        },
+      }),
+    );
+    addDisposable(
+      editorRef.current.addAction({
+        id: 'format',
+        label: 'Format',
+        keybindings: [monaco?.KeyMod.Shift | monaco?.KeyMod.Alt | monaco?.KeyCode.KeyF],
+        contextMenuGroupId: '9_cutcopypaste',
+        run: (currEditor) => {
+          setSoqlRef.current(formatQuery(currEditor.getValue(), soqlQueryFormatOptionsRef.current));
+        },
+      }),
+    );
   };
 
   function handlePopoverChange(isOpen: boolean) {

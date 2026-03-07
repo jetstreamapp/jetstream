@@ -1,10 +1,11 @@
 import { css } from '@emotion/react';
 import { HTTP, MIME_TYPES } from '@jetstream/shared/constants';
-import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { sanitizePastedEditorText, useDebounce, useDisposables, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { HttpMethod, SalesforceApiHistoryRequest, SalesforceApiRequest as SalesforceApiReqSample, SalesforceOrgUi } from '@jetstream/types';
 import {
   Card,
+  getModifierKey,
   Grid,
   HelpText,
   Icon,
@@ -13,9 +14,8 @@ import {
   RadioGroup,
   Tooltip,
   ViewDocsLink,
-  getModifierKey,
 } from '@jetstream/ui';
-import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
+import Editor, { OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { FunctionComponent, useReducer, useRef, useState } from 'react';
 import SalesforceApiExamplesModal from './SalesforceApiExamplesModal';
@@ -87,6 +87,7 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
 }) => {
   const headerRef = useRef<editor.IStandaloneCodeEditor>(null);
   const bodyRef = useRef<editor.IStandaloneCodeEditor>(null);
+  const { addDisposable } = useDisposables();
   const [url, setUrl] = useState(() => getDefaultUrl(selectedOrg, defaultApiVersion));
   const [method, setMethod] = useState<HttpMethod>(_priorRequest?.method || 'GET');
   const [headers, setHeaders] = useState(() => _priorRequest?.headers || JSON.stringify(DEFAULT_HEADERS, null, 2));
@@ -94,7 +95,6 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
   const [{ headersErrorMessage, bodyErrorMessage }, dispatch] = useReducer(errorMessageReducer, {});
   const [bodyType, setBodyType] = useState<JsonText>(_priorRequest?.bodyType || 'JSON');
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
-  const monaco = useMonaco();
 
   const debouncedUrl = useDebounce(url, 300);
   const debouncedHeaders = useDebounce(headers, 300);
@@ -111,35 +111,12 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
   useNonInitialEffect(() => {
     _priorRequest = {
       url: debouncedUrl,
-      method: method,
+      method,
       headers: debouncedHeaders,
       body: debouncedBody,
-      bodyType: bodyType,
+      bodyType,
     };
   }, [debouncedUrl, debouncedHeaders, debouncedBody, method, bodyType]);
-
-  // this is required otherwise the action has stale variables in scope
-  useNonInitialEffect(() => {
-    if (monaco && headerRef.current && bodyRef.current) {
-      headerRef.current.addAction({
-        id: 'modifier-enter',
-        label: 'Submit',
-        keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
-        run: (currEditor) => {
-          handleSubmit({ headers: currEditor.getValue() });
-        },
-      });
-      bodyRef.current.addAction({
-        id: 'modifier-enter',
-        label: 'Submit',
-        keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
-        run: (currEditor) => {
-          setBody(currEditor.getValue());
-          handleSubmit({ body: currEditor.getValue() });
-        },
-      });
-    }
-  }, [selectedOrg, url, headers, body, method, bodyType, headersErrorMessage, bodyErrorMessage]);
 
   function handleSubmit(values?: { headers?: string; body?: string }) {
     if (!loading && !headersErrorMessage && !bodyErrorMessage) {
@@ -179,29 +156,47 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
     setBodyType(request.header?.includes('application/json') ? 'JSON' : 'TEXT');
   }
 
+  const handleSubmitRef = useRef(handleSubmit);
+  // eslint-disable-next-line react-hooks/refs
+  handleSubmitRef.current = handleSubmit;
+
+  const setBodyRef = useRef(setBody);
+  // eslint-disable-next-line react-hooks/refs
+  setBodyRef.current = setBody;
+
   const handleHeaderEditorMount: OnMount = (currEditor, monaco) => {
     headerRef.current = currEditor;
-    headerRef.current.addAction({
-      id: 'modifier-enter',
-      label: 'Submit',
-      keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
-      run: (currEditor) => {
-        handleSubmit({ headers: currEditor.getValue() });
-      },
-    });
+
+    addDisposable(sanitizePastedEditorText(currEditor));
+
+    addDisposable(
+      headerRef.current.addAction({
+        id: 'modifier-enter',
+        label: 'Submit',
+        keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
+        run: (currEditor) => {
+          handleSubmitRef.current({ headers: currEditor.getValue() });
+        },
+      }),
+    );
   };
 
   const handleBodyEditorMount: OnMount = (currEditor, monaco) => {
     bodyRef.current = currEditor;
-    bodyRef.current.addAction({
-      id: 'modifier-enter',
-      label: 'Submit',
-      keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
-      run: (currEditor) => {
-        setBody(currEditor.getValue());
-        handleSubmit({ body: currEditor.getValue() });
-      },
-    });
+
+    addDisposable(sanitizePastedEditorText(currEditor));
+
+    addDisposable(
+      bodyRef.current.addAction({
+        id: 'modifier-enter',
+        label: 'Submit',
+        keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
+        run: (currEditor) => {
+          setBodyRef.current(currEditor.getValue());
+          handleSubmitRef.current({ body: currEditor.getValue() });
+        },
+      }),
+    );
   };
 
   return (

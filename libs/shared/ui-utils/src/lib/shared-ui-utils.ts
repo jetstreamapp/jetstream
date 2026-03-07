@@ -10,7 +10,7 @@ import {
   checkMetadataRetrieveResults,
   checkMetadataRetrieveResultsAndDeployToTarget,
 } from '@jetstream/shared/data';
-import { NOOP, REGEX, delay, ensureBoolean, orderObjectsBy } from '@jetstream/shared/utils';
+import { NOOP, REGEX, delay, ensureArray, ensureBoolean, orderObjectsBy } from '@jetstream/shared/utils';
 import type {
   AddOrgHandlerFn,
   AndOr,
@@ -60,6 +60,7 @@ import isFunction from 'lodash/isFunction';
 import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';
 import isUndefined from 'lodash/isUndefined';
+import type { IDisposable, editor } from 'monaco-editor';
 import numeral from 'numeral';
 import { UnparseConfig, parse as parseCsv, unparse, unparse as unparseCsv } from 'papaparse';
 import * as XLSX from 'xlsx';
@@ -1742,4 +1743,43 @@ export function filterCreateSobjects(sobject: DescribeGlobalSObjectResult | Desc
     !sobject.name.endsWith('__Tag') &&
     !sobject.name.endsWith('__Feed')
   );
+}
+
+export function sanitizePastedEditorText(currEditor: editor.IStandaloneCodeEditor) {
+  return currEditor.onDidPaste(() => {
+    try {
+      const model = currEditor.getModel();
+      if (!model) {
+        return;
+      }
+      const value = model.getValue();
+      const sanitized = value.replace(/[\u00A0\u202F\u2007\u2008\u2009\u200A\u3000]/g, ' ');
+      if (sanitized !== value) {
+        const position = currEditor.getPosition();
+        model.setValue(sanitized);
+        if (position) {
+          currEditor.setPosition(position);
+        }
+      }
+    } catch (ex) {
+      logger.warn('Error sanitizing pasted text', ex);
+    }
+  });
+}
+
+export function disposeEditorRefs(disposables: Maybe<IDisposable | IDisposable[]>) {
+  try {
+    if (!disposables) {
+      return;
+    }
+    ensureArray(disposables).forEach((disposable) => {
+      try {
+        disposable.dispose();
+      } catch (ex) {
+        logger.warn('Error disposing editor ref', ex);
+      }
+    });
+  } catch (ex) {
+    logger.warn('Error disposing editor refs', ex);
+  }
 }

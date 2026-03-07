@@ -2,7 +2,14 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { clearCacheForOrg } from '@jetstream/shared/data';
-import { hasModifierKey, isEnterKey, useGlobalEventHandler, useNonInitialEffect, useTitle } from '@jetstream/shared/ui-utils';
+import {
+  hasModifierKey,
+  isEnterKey,
+  sanitizePastedEditorText,
+  useDisposables,
+  useGlobalEventHandler,
+  useTitle,
+} from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { DescribeGlobalSObjectResult } from '@jetstream/types';
@@ -35,7 +42,7 @@ import {
   registerCompletions,
   useAmplitude,
 } from '@jetstream/ui-core';
-import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
+import { selectedOrgState } from '@jetstream/ui/app-state';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
 import * as formulon from 'formulon';
 import { useAtom, useAtomValue } from 'jotai';
@@ -66,6 +73,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
   useTitle(TITLES.FORMULA_EVALUATOR);
   const isMounted = useRef(true);
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
+  const { addDisposable } = useDisposables();
   const sobjectComboRef = useRef<SobjectComboboxRef>(null);
   const fieldsComboRef = useRef<SobjectFieldComboboxRef>(null);
   const { trackEvent } = useAmplitude();
@@ -83,7 +91,6 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
   const [numberNullBehavior, setNumberNullBehavior] = useAtom(fromFormulaState.numberNullBehaviorState);
   const [bannerDismissed, setBannerDismissed] = useAtom(fromFormulaState.bannerDismissedState);
   const [deployModalOpen, setDeployModalOpen] = useState(false);
-  const [{ serverUrl }] = useAtom(applicationCookieState);
 
   const [results, setResults] = useState<{ formulaFields: formulon.FormulaData; parsedFormula: formulon.FormulaResult } | null>(null);
 
@@ -176,56 +183,6 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
 
   useGlobalEventHandler('keydown', onKeydown);
 
-  // this is required otherwise the action has stale variables in scope
-  useNonInitialEffect(() => {
-    if (monaco && editorRef.current) {
-      editorRef.current.addAction({
-        id: 'modifier-enter',
-        label: 'Submit',
-        keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
-        run: (currEditor) => {
-          handleTestFormula(currEditor.getValue());
-        },
-      });
-    }
-  }, [handleTestFormula, monaco, selectedOrg]);
-
-  function handleEditorChange(value?: string, event?: unknown) {
-    setFormulaValue(value || '');
-  }
-
-  const handleApexEditorMount: OnMount = (currEditor, monaco) => {
-    editorRef.current = currEditor;
-    if (sourceType === 'EXISTING' && selectedField) {
-      editorRef.current?.setValue(selectedField.calculatedFormula || '');
-    }
-    // this did not run on initial render if used in useEffect
-    editorRef.current.addAction({
-      id: 'modifier-enter',
-      label: 'Submit',
-      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
-      run: (currEditor) => {
-        handleTestFormula(currEditor.getValue());
-      },
-    });
-    editorRef.current.addAction({
-      id: 'format',
-      label: 'Format',
-      contextMenuGroupId: '9_cutcopypaste',
-      run: (currEditor) => {
-        handleFormat(currEditor.getValue());
-      },
-    });
-  };
-
-  const handleRefreshMetadata = async () => {
-    setRefreshLoading(true);
-    await clearCacheForOrg(selectedOrg);
-    sobjectComboRef.current?.reload();
-    fieldsComboRef.current?.reload();
-    setRefreshLoading(false);
-  };
-
   const handleFormat = async (value = formulaValue) => {
     try {
       if (!editorRef.current || !value) {
@@ -249,6 +206,54 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
     } catch (ex) {
       logger.warn('failed to format', ex);
     }
+  };
+
+  const handleTestFormulaRef = useRef(handleTestFormula);
+  handleTestFormulaRef.current = handleTestFormula;
+
+  const handleFormatRef = useRef(handleFormat);
+  handleFormatRef.current = handleFormat;
+
+  function handleEditorChange(value?: string, event?: unknown) {
+    setFormulaValue(value || '');
+  }
+
+  const handleApexEditorMount: OnMount = (currEditor, monaco) => {
+    editorRef.current = currEditor;
+    addDisposable(sanitizePastedEditorText(currEditor));
+
+    if (sourceType === 'EXISTING' && selectedField) {
+      editorRef.current?.setValue(selectedField.calculatedFormula || '');
+    }
+    // this did not run on initial render if used in useEffect
+    addDisposable(
+      editorRef.current.addAction({
+        id: 'modifier-enter',
+        label: 'Submit',
+        keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
+        run: (currEditor) => {
+          handleTestFormulaRef.current(currEditor.getValue());
+        },
+      }),
+    );
+    addDisposable(
+      editorRef.current.addAction({
+        id: 'format',
+        label: 'Format',
+        contextMenuGroupId: '9_cutcopypaste',
+        run: (currEditor) => {
+          handleFormatRef.current(currEditor.getValue());
+        },
+      }),
+    );
+  };
+
+  const handleRefreshMetadata = async () => {
+    setRefreshLoading(true);
+    await clearCacheForOrg(selectedOrg);
+    sobjectComboRef.current?.reload();
+    fieldsComboRef.current?.reload();
+    setRefreshLoading(false);
   };
 
   const handleDeployModalClose = () => {

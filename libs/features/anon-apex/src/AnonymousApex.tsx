@@ -4,9 +4,11 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, INDEXED_DB, LOG_LEVELS, TITLES } from '@jetstream/shared/constants';
 import { anonymousApex } from '@jetstream/shared/data';
 import {
+  sanitizePastedEditorText,
   setItemInLocalStorage,
   useBrowserNotifications,
   useDebounce,
+  useDisposables,
   useNonInitialEffect,
   useRollbar,
   useTitle,
@@ -31,7 +33,7 @@ import {
 } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
 import { STORAGE_KEYS, applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
-import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
+import Editor, { OnMount } from '@monaco-editor/react';
 import { useAtom, useAtomValue } from 'jotai';
 import localforage from 'localforage';
 import escapeRegExp from 'lodash/escapeRegExp';
@@ -60,6 +62,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   const isMounted = useRef(true);
   const apexRef = useRef<editor.IStandaloneCodeEditor>(null);
   const logRef = useRef<editor.IStandaloneCodeEditor>(null);
+  const { addDisposable } = useDisposables();
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
   const { serverUrl } = useAtomValue(applicationCookieState);
@@ -75,7 +78,6 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   const [loading, setLoading] = useState(false);
   const [historyItems, setHistoryItems] = useAtom(fromApexState.apexHistoryState);
   const debouncedApex = useDebounce(apex, 1000);
-  const monaco = useMonaco();
 
   /** Add trace for 1 hour so that any background jobs are logged even if dev console is not open */
   useSetTraceFlag(selectedOrg, 1);
@@ -97,7 +99,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
     if (logRef.current) {
       logRef.current.revealPosition({ column: 0, lineNumber: 0 });
     }
-  }, [textFilter, logRef.current]);
+  }, [textFilter]);
 
   useNonInitialEffect(() => {
     // TODO: local storage allows a max of 6mb across all keys - so  it is possible this could cause issues
@@ -133,20 +135,6 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
     }
     setVisibleResults(currResults.join('\n'));
   }, [results, userDebug, textFilter]);
-
-  // this is required otherwise the action has stale variables in scope
-  useNonInitialEffect(() => {
-    if (monaco && apexRef.current) {
-      apexRef.current.addAction({
-        id: 'modifier-enter',
-        label: 'Submit',
-        keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
-        run: (currEditor) => {
-          onSubmit(currEditor.getValue());
-        },
-      });
-    }
-  }, [selectedOrg]);
 
   const onSubmit = useCallback(
     async (value: string) => {
@@ -191,24 +179,30 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
         setLoading(false);
       }
     },
-    [historyItems, selectedOrg, logLevel, setHistoryItems, trackEvent],
+    [selectedOrg, logLevel, trackEvent, notifyUser, setHistoryItems, rollbar],
   );
 
   function handleEditorChange(value?: string, event?: unknown) {
     setApex(value || '');
   }
 
+  const onSubmitRef = useRef(onSubmit);
+  onSubmitRef.current = onSubmit;
+
   const handleApexEditorMount: OnMount = (currEditor, monaco) => {
     apexRef.current = currEditor;
+    addDisposable(sanitizePastedEditorText(currEditor));
     // this did not run on initial render if used in useEffect
-    apexRef.current.addAction({
-      id: 'modifier-enter',
-      label: 'Submit',
-      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
-      run: (currEditor) => {
-        onSubmit(currEditor.getValue());
-      },
-    });
+    addDisposable(
+      apexRef.current.addAction({
+        id: 'modifier-enter',
+        label: 'Submit',
+        keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
+        run: (currEditor) => {
+          onSubmitRef.current(currEditor.getValue());
+        },
+      }),
+    );
   };
 
   function handleLogEditorMount(ed: editor.IStandaloneCodeEditor) {
