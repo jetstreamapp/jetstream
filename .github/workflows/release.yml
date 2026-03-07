@@ -1,0 +1,166 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump type"
+        required: true
+        default: "patch"
+        type: choice
+        options: [patch, minor, major]
+
+      release_web:
+        description: "True to release core web application"
+        required: true
+        type: boolean
+
+      release_web_extension:
+        description: "True to release web extension"
+        required: true
+        type: boolean
+
+      release_desktop:
+        description: "True to release desktop application"
+        required: true
+        type: boolean
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+# Many of these are only needed for tests in CI environment
+env:
+  NODE_OPTIONS: "--max_old_space_size=4096"
+  NX_CLOUD_DISTRIBUTED_EXECUTION: false
+  AUTH_SFDC_CLIENT_ID: ${{ secrets.SFDC_CONSUMER_KEY }}
+  AUTH_SFDC_CLIENT_SECRET: ${{ secrets.SFDC_CONSUMER_SECRET }}
+  CONTENTFUL_HOST: cdn.contentful.com
+  CONTENTFUL_SPACE: wuv9tl5d77ll
+  CONTENTFUL_TOKEN: ${{ secrets.CONTENTFUL_TOKEN }}
+  GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+  GOOGLE_APP_ID: ${{ secrets.GOOGLE_APP_ID }}
+  GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+  GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+  JETSTREAM_AUTH_OTP_SECRET: ${{ secrets.JETSTREAM_AUTH_OTP_SECRET }}
+  JETSTREAM_AUTH_SECRET: ${{ secrets.JETSTREAM_AUTH_SECRET }}
+  JETSTREAM_AUTH_SSO_SECRET: ${{ secrets.JETSTREAM_AUTH_SSO_SECRET }}
+  JETSTREAM_CLIENT_URL: http://localhost:3333/app
+  JETSTREAM_POSTGRES_DBURI: postgres://postgres:postgres@localhost:5432/postgres
+  JETSTREAM_SAML_SP_ENTITY_ID_PREFIX: urn:jetstream:test
+  JETSTREAM_SERVER_DOMAIN: localhost:3333
+  JETSTREAM_SERVER_URL: http://localhost:3333
+  JETSTREAM_SESSION_SECRET: ${{ secrets.JETSTREAM_SESSION_SECRET }}
+  NX_PUBLIC_AMPLITUDE_KEY: ${{ secrets.NX_PUBLIC_AMPLITUDE_KEY }}
+  NX_PUBLIC_CLIENT_URL: "http://localhost:3333/app"
+  NX_PUBLIC_ROLLBAR_KEY: ${{ secrets.NX_PUBLIC_ROLLBAR_KEY }}
+  NX_PUBLIC_SERVER_URL: "http://localhost:3333"
+  SFDC_API_VERSION: "65.0"
+  SFDC_CALLBACK_URL: http://localhost:3333/oauth/sfdc/callback
+  SFDC_CONSUMER_KEY: ${{ secrets.SFDC_CONSUMER_KEY }}
+  SFDC_CONSUMER_SECRET: ${{ secrets.SFDC_CONSUMER_SECRET }}
+  SFDC_ENCRYPTION_KEY: ${{ secrets.SFDC_ENCRYPTION_KEY }}
+  JWT_ENCRYPTION_KEY: ${{ secrets.JWT_ENCRYPTION_KEY }}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: production
+
+    steps:
+      - name: Validate inputs
+        run: |
+          if [[ "${{ github.ref_name }}" != "main" ]]; then
+            echo "Error: This workflow can only be run on the main branch. Current branch: ${{ github.ref_name }}"
+            exit 1
+          fi
+          if [[ "${{ inputs.release_web }}" != "true" && "${{ inputs.release_web_extension }}" != "true" && "${{ inputs.release_desktop }}" != "true" ]]; then
+            echo "Error: At least one of release_web, release_web_extension, or release_desktop must be true."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # PAT required so release-it can push the version bump commit to protected main
+          token: ${{ secrets.GH_RELEASE_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "yarn"
+
+      - name: Configure git identity
+        run: |
+          git config user.email "release-bot@jetstreamapp.com"
+          git config user.name "Jetstream Release Bot"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run tests
+        run: yarn test:all
+
+      # ENSURE BUILD SUCCEEDS BEFORE CREATING ANY RELEASES
+      - name: Build Web
+        if: ${{ inputs.release_web }}
+        run: yarn build
+        env:
+          SKIP_ROLLBAR: true
+
+      - name: Build Web Extension
+        if: ${{ inputs.release_web_extension }}
+        run: npx nx run-many --output-style=static --target=build --parallel=3 --projects=jetstream-web-extension --configuration=production
+
+      - name: Build Desktop
+        if: ${{ inputs.release_desktop }}
+        run: npx nx run-many --output-style=static --target=build --parallel=3 --projects=jetstream-desktop,jetstream-desktop-client --configuration=production
+
+      # RELEASE CORE WEB APPLICATION
+      # NOTE: Each application has its own tag format - so it is safe to have release-it run multiple times
+      - name: Release Web
+        if: ${{ inputs.release_web }}
+        run: npx release-it ${{ inputs.bump }} --ci --config .release-it.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_RELEASE_TOKEN }}
+
+      # NOTE: hotfix process goes to master, so we don't need to worry about release branch being out of date
+      # we force-push just to avoid any issues with rebasing or merge commits on the release branch
+      - name: Push to release branch (triggers Render deploy)
+        if: ${{ inputs.release_web }}
+        run: |
+          git checkout release
+          git reset --hard main
+          git push origin release --force
+          git checkout main
+
+      - name: Create Rollbar deploy record
+        if: ${{ inputs.release_web }}
+        continue-on-error: true
+        run: yarn rollbar:create-deploy
+        env:
+          ROLLBAR_ACCESS_TOKEN: ${{ secrets.ROLLBAR_ACCESS_TOKEN }}
+
+      # RELEASE WEB EXTENSION
+      # NOTE: Each application has its own tag format - so it is safe to have release-it run multiple times
+      - name: Release Web Extension
+        if: ${{ inputs.release_web_extension }}
+        run: npx release-it ${{ inputs.bump }} --ci --config .release-it-web-ext.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_RELEASE_TOKEN }}
+          WEB_EXTENSION_ID_CHROME: ${{ secrets.WEB_EXTENSION_ID_CHROME }}
+          GOOGLE_WEB_EXT_PUBLISH_CLIENT_ID: ${{ secrets.GOOGLE_WEB_EXT_PUBLISH_CLIENT_ID }}
+          GOOGLE_WEB_EXT_PUBLISH_CLIENT_SECRET: ${{ secrets.GOOGLE_WEB_EXT_PUBLISH_CLIENT_SECRET }}
+          GOOGLE_WEB_EXT_PUBLISH_REFRESH_TOKEN: ${{ secrets.GOOGLE_WEB_EXT_PUBLISH_REFRESH_TOKEN }}
+
+      # RELEASE DESKTOP
+      # NOTE: Each application has its own tag format - so it is safe to have release-it run multiple times
+      - name: Release Desktop
+        if: ${{ inputs.release_desktop }}
+        run: npx release-it ${{ inputs.bump }} --ci --config .release-it-desktop.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_RELEASE_TOKEN }}

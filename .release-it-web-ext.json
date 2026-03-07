@@ -25,6 +25,7 @@
     "releaseName": "Jetstream Web Extension ${version}"
   },
   "hooks": {
+    "before:init": "if [ \"$CI\" != \"true\" ]; then echo 'Local releases are disabled; run releases via CI only.'; exit 1; fi",
     "after:bump": [
       "npx prettier --write apps/jetstream-web-extension/src/manifest.json",
       "yarn build:web-extension",
