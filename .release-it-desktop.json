@@ -25,7 +25,7 @@
     "releaseName": "Jetstream Desktop ${version}"
   },
   "hooks": {
-    "before:init": ["yarn test:all"],
+    "before:init": "if [ \"$CI\" != \"true\" ]; then echo 'Local releases are disabled; run releases via CI only.'; exit 1; fi",
     "after:bump": ["npx prettier --write apps/jetstream-desktop/package.json"],
     "after:release": "echo Successfully released ${name} v${version}."
   }

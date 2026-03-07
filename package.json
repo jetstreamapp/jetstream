@@ -80,7 +80,6 @@
     "scripts:copy-monaco-assets:desktop": "node scripts/copy-monaco-assets.mjs --target desktop",
     "scripts:copy-monaco-assets:web-extension": "node scripts/copy-monaco-assets.mjs --target web-extension",
     "release": "dotenv -- release-it -V",
-    "release:build": "zx ./scripts/build-release.mjs",
     "release:desktop": "dotenv -- release-it --config .release-it-desktop.json",
     "release:web-extension": "dotenv -- release-it --config .release-it-web-ext.json",
     "bundle-analyzer:client": "npx webpack-bundle-analyzer dist/apps/jetstream/stats.json",
