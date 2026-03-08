@@ -34,7 +34,6 @@ const OUTPUT_FILENAME = `web-extension.zip`;
 const OUTPUT_PATH = join(OUTPUT_DIR, OUTPUT_FILENAME);
 
 const SOURCE_OUTPUT_FILENAME = `web-extension-source.zip`;
-const SOURCE_TEMP_DIR = join(process.cwd(), 'tmp/jetstream-web-extension-source');
 const SOURCE_OUTPUT_PATH = join(OUTPUT_DIR, SOURCE_OUTPUT_FILENAME);
 
 async function archiveDist() {
@@ -64,10 +63,7 @@ async function archiveDist() {
 }
 
 async function archiveSource() {
-  console.log(chalk.blue(`🔥 Cloning repo to:`), SOURCE_TEMP_DIR);
-  await $`rm -rf ${SOURCE_TEMP_DIR}`;
-  await $`git clone --depth 1 git@github.com:jetstreamapp/jetstream.git ${SOURCE_TEMP_DIR}`;
-
+  const sourceDir = process.cwd();
   console.log(chalk.blue(`💾 Saving source output file to:`), SOURCE_OUTPUT_PATH);
 
   const output = fs.createWriteStream(SOURCE_OUTPUT_PATH);
@@ -86,11 +82,9 @@ async function archiveSource() {
   archive.pipe(output);
 
   archive.glob('**/*', {
-    cwd: SOURCE_TEMP_DIR,
-    ignore: ['**/.git/**', '**/node_modules/**', '**/dist/**', '**/.gitignore'],
+    cwd: sourceDir,
+    ignore: ['**/.git/**', '**/node_modules/**', '**/dist/**', '**/.gitignore', '**/tmp/**'],
   });
-
-  archive.directory(SOURCE_TEMP_DIR, false);
 
   await archive.finalize();
 }

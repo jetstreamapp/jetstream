@@ -166,6 +166,14 @@ jobs:
           GOOGLE_WEB_EXT_PUBLISH_CLIENT_SECRET: ${{ secrets.GOOGLE_WEB_EXT_PUBLISH_CLIENT_SECRET }}
           GOOGLE_WEB_EXT_PUBLISH_REFRESH_TOKEN: ${{ secrets.GOOGLE_WEB_EXT_PUBLISH_REFRESH_TOKEN }}
 
+      - name: Upload web extension zips
+        if: ${{ inputs.release_web_extension }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-extension-zips
+          path: dist/web-extension-build/*.zip
+          retention-days: 30
+
       # RELEASE DESKTOP
       # NOTE: Each application has its own tag format - so it is safe to have release-it run multiple times
       - name: Release Desktop
