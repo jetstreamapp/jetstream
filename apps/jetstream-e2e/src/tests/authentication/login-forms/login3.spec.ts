@@ -16,7 +16,7 @@ test.describe('Login 3', () => {
   });
 
   test('Pending Email Verification should not allow any other activity', async ({ page, authenticationPage, apiRequestUtils }) => {
-    const { email, password } = await test.step('Sign up without email verification', async () => {
+    const { email } = await test.step('Sign up without email verification', async () => {
       return await authenticationPage.signUpWithoutEmailVerification();
     });
 

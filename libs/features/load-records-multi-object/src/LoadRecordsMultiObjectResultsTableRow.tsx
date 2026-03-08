@@ -21,7 +21,7 @@ export const LoadRecordsMultiObjectResultsTableRow: FunctionComponent<LoadRecord
   row,
   onDownloadResults,
 }) => {
-  const { loading, started, finished, errorMessage, data, results, dataWithResultsByGraphId, recordWithResponseByRefId } = row;
+  const { loading, started, finished, errorMessage, results, recordWithResponseByRefId } = row;
 
   const [{ successCount, failureCount }, setSuccessFailureCount] = useState({ successCount: 0, failureCount: 0 });
   const [startTime, setStartTime] = useState<string | null>(null);

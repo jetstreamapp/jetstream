@@ -163,7 +163,6 @@ export const QueryResults = React.memo(() => {
 
   // ensure that on a page refresh, the query is restored from browser state if it exists
   useEffect(() => {
-    const soql = window.history?.state?.state?.soql;
     if (locationState) {
       return;
     }
@@ -439,7 +438,7 @@ export const QueryResults = React.memo(() => {
   }
 
   async function handleDelete(record?: SalesforceRecord) {
-    const label = record.Name || record.Name || record.Id || getRecordIdFromAttributes(record);
+    const label = record.Name || record.Id || getRecordIdFromAttributes(record);
     await confirm({
       content: (
         <div className="slds-m-around_medium">
@@ -477,7 +476,7 @@ export const QueryResults = React.memo(() => {
   }
 
   async function handleUndelete(record?: SalesforceRecord) {
-    const label = record.Name || record.Name || record.Id || getRecordIdFromAttributes(record);
+    const label = record.Name || record.Id || getRecordIdFromAttributes(record);
     await confirm({
       content: (
         <div className="slds-m-around_medium">

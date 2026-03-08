@@ -89,9 +89,7 @@ function getActionLink(sfHost: string, pageLink: PageLink, objectName?: string) 
   const searchParams = new URLSearchParams({ host: sfHost, url: pageLink.link });
 
   if (pageLink.includeCurrentRecord && objectName) {
-    if (objectName) {
-      searchParams.set('url', `${pageLink.link}?objectName=${objectName}`);
-    }
+    searchParams.set('url', `${pageLink.link}?objectName=${objectName}`);
   }
   return `${browser.runtime.getURL('app.html')}?${searchParams.toString()}`;
 }

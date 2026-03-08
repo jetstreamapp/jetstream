@@ -87,7 +87,7 @@ export function useAddItemsToChangeset(
 ) {
   const isMounted = useRef(true);
 
-  const [{ hasLoaded, loading, hasError, errorMessage, status, deployId, results }, dispatch] = useReducer(reducer, {
+  const [{ loading, hasError, errorMessage, status, deployId, results }, dispatch] = useReducer(reducer, {
     hasLoaded: false,
     loading: false,
     hasError: false,

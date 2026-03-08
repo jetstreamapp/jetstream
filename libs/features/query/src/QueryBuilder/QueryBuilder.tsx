@@ -114,7 +114,7 @@ export const QueryBuilder = () => {
   const resetQueryChildRelationships = useResetAtom(fromQueryState.queryChildRelationships);
   const resetQueryIncludeDeletedRecordsState = useResetAtom(fromQueryState.queryIncludeDeletedRecordsState);
 
-  const [pageTitle, setPageTitle] = useState(isTooling ? METADATA_QUERY_TITLE : SOBJECT_QUERY_TITLE);
+  const [, setPageTitle] = useState(isTooling ? METADATA_QUERY_TITLE : SOBJECT_QUERY_TITLE);
 
   const [showWalkthrough, setShowWalkthrough] = useState(false);
 

@@ -271,7 +271,7 @@ test.describe('Team Dashboard', () => {
   });
 
   test('Team invitations', async ({ authenticationPage, teamDashboardPage, teamCreationUtils1User: teamCreationUtils, page, browser }) => {
-    const { adminUser, team } = teamCreationUtils;
+    const { team } = teamCreationUtils;
 
     await test.step('Go to team dashboard', async () => {
       await teamDashboardPage.goToTeamDashboardPage();

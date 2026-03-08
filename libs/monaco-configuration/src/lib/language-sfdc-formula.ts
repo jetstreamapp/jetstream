@@ -207,7 +207,7 @@ export const language = <monaco.languages.IMonarchLanguage>{
   digits: /\d+(_+\d+)*/,
   octaldigits: /[0-7]+(_+[0-7]+)*/,
   binarydigits: /[0-1]+(_+[0-1]+)*/,
-  hexdigits: /[[0-9a-fA-F]+(_+[0-9a-fA-F]+)*/,
+  hexdigits: /[0-9a-fA-F]+(_+[0-9a-fA-F]+)*/,
   regexpctl: /[(){}\[\]\$\^|\-*+?\.]/,
   regexpesc: /\\(?:[bBdDfnrstvwWn0\\\/]|@regexpctl|c[A-Z]|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4})/,
   tokenizer: {

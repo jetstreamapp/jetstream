@@ -85,7 +85,6 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
   function handleSelection(selectedItem: ListItem<string, ChangeSet>) {
     setChangesetPackage(selectedItem.value || '');
     setChangesetDescription(selectedItem.meta?.description || '');
-    // FIXME: do we want to parse the id from the link?
     setSelectedChangeset(selectedItem.meta as ChangeSet);
   }
 
@@ -198,14 +197,7 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
                     />
                   </div>
                   <div className="slds-m-horizontal_small">
-                    <button
-                      css={css`
-                        margin-top: 25px;
-                      `}
-                      className="slds-button slds-button_neutral"
-                      onClick={() => loadPackages()}
-                      disabled={loading}
-                    >
+                    <button className="slds-button slds-button_neutral slds-m-top_large" onClick={() => loadPackages()} disabled={loading}>
                       Refresh
                     </button>
                   </div>
