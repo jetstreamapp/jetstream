@@ -124,9 +124,18 @@ jobs:
       # NOTE: Each application has its own tag format - so it is safe to have release-it run multiple times
       - name: Release Web
         if: ${{ inputs.release_web }}
+        id: release_web
         run: npx release-it ${{ inputs.bump }} --ci --config .release-it.json
         env:
           GITHUB_TOKEN: ${{ secrets.GH_RELEASE_TOKEN }}
+
+      - name: Debug dirty working dir
+        if: failure() && steps.release_web.outcome == 'failure'
+        run: |
+          echo "=== git status ==="
+          git status
+          echo "=== git diff ==="
+          git diff
 
       # NOTE: hotfix process goes to master, so we don't need to worry about release branch being out of date
       # we force-push just to avoid any issues with rebasing or merge commits on the release branch
