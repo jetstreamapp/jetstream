@@ -58,7 +58,7 @@ export const syncDriver = createDriver('webExtensionSyncStorage', 'sync');
  * pass with mocked browser and chrome objects
  */
 function getStorage() {
-  return (typeof browser !== 'undefined' && browser.storage) || (typeof browser !== 'undefined' && browser.storage);
+  return (typeof browser !== 'undefined' && browser.storage) || (typeof chrome !== 'undefined' && chrome.storage);
 }
 
 /**
