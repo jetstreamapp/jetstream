@@ -51,6 +51,7 @@ package-lock.json
 
 # Next.js
 .next
+**/next-env.d.ts
 
 # Playwright
 **/test-results
