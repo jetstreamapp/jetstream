@@ -56,7 +56,7 @@ export const MassUpdateRecordsDeploymentRow = ({
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
 
-  const { done, processingErrors, status, jobInfo, processingEndTime, processingStartTime } = deployResults;
+  const { done, processingErrors, status, fatalErrorMessage, jobInfo, processingEndTime, processingStartTime } = deployResults;
 
   useEffect(() => {
     onModalOpenChange && onModalOpenChange(downloadModalData.open || resultsModalData.open);
@@ -260,7 +260,7 @@ export const MassUpdateRecordsDeploymentRow = ({
         )}
         {status === 'Error' && (
           <ScopedNotification theme="error" className="slds-m-around_small">
-            <SupportLink />
+            {fatalErrorMessage || <SupportLink />}
           </ScopedNotification>
         )}
       </Card>
