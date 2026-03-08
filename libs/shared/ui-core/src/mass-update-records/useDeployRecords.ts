@@ -176,6 +176,7 @@ export function useDeployRecords(
             processingStartTime: row.deployResults.processingStartTime || convertDateToLocale(new Date()),
             processingEndTime: convertDateToLocale(new Date()),
             status: 'Error',
+            fatalErrorMessage: getErrorMessage(ex),
           };
 
           isMounted.current && onDeployResults(row.sobject, deployResults);
@@ -261,6 +262,7 @@ export function useDeployRecords(
           processingStartTime: deployResults.processingStartTime || convertDateToLocale(new Date()),
           processingEndTime: convertDateToLocale(new Date()),
           status: 'Error',
+          fatalErrorMessage: getErrorMessage(ex),
         };
 
         onDeployResults(sobject, newDeployResults);

@@ -32,6 +32,7 @@ export interface DeployResults {
   processingStartTime?: Maybe<string>;
   processingEndTime?: Maybe<string>;
   lastChecked?: string; // {formatDate(lastChecked, 'h:mm:ss')}
+  fatalErrorMessage?: Maybe<string>;
 }
 
 export interface ValidationResults {
