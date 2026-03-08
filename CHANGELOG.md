@@ -1,5 +1,24 @@
 # Changelog
 
+## [9.1.0](https://github.com/jetstreamapp/jetstream/compare/v9.0.1...v9.1.0) (2026-03-08)
+
+### Features
+
+* implement text sanitization for pasted content in editors ([66680e7](https://github.com/jetstreamapp/jetstream/commit/66680e7518a6c804b873bd1946a01c3f544ad542))
+
+### Bug Fixes
+
+* cancel in-flight ci jobs on prs ([1b1d15f](https://github.com/jetstreamapp/jetstream/commit/1b1d15f368c852654f6b12b97c08faa4a304b1d8))
+* fix api tests after hyperforce migration ([2900a16](https://github.com/jetstreamapp/jetstream/commit/2900a1621db9376c085344dbeaae6a5813affc69))
+* fix duplicated getstorage check ([f6d0a5a](https://github.com/jetstreamapp/jetstream/commit/f6d0a5af7c245e4ac564602ca0918bb62072aacf))
+* fix editor line number reset position ([f634dd0](https://github.com/jetstreamapp/jetstream/commit/f634dd040c9403c35e58d5f1c37acb636762e0f4))
+* fix error message and loading state ([7439dcc](https://github.com/jetstreamapp/jetstream/commit/7439dcc596edfae05d765002f114319b7378a4c2))
+* fix invalid export path ([f690d2d](https://github.com/jetstreamapp/jetstream/commit/f690d2dce6e389a08c8f05c5fbb4ff8615aaae12))
+* fix invalid icon types ([ca66298](https://github.com/jetstreamapp/jetstream/commit/ca6629894f8281d9d0e47f4fe29f61a00ccc54ed))
+* fix malformed ids ([ccc8862](https://github.com/jetstreamapp/jetstream/commit/ccc886267189ccc26a9f1b1d5321cceddf079ea1))
+* handle errors ins stream processing ([68e7033](https://github.com/jetstreamapp/jetstream/commit/68e7033e2c22c1e1472aa87e0ecb0c9ddee432e8))
+* show actual error on bulk update failure ([2e4b70c](https://github.com/jetstreamapp/jetstream/commit/2e4b70c854ba4ded4a921b146cae4ab36ab3a17c))
+
 ## [9.0.1](https://github.com/jetstreamapp/jetstream/compare/v9.0.0...v9.0.1) (2026-02-28)
 
 ## [9.0.0](https://github.com/jetstreamapp/jetstream/compare/v8.25.0...v9.0.0) (2026-02-27)
