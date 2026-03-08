@@ -96,7 +96,7 @@ jobs:
 
       - name: Configure git identity
         run: |
-          git config user.email "release-bot@jetstreamapp.com"
+          git config user.email "release-bot@getjetstream.app"
           git config user.name "Jetstream Release Bot"
 
       - name: Install dependencies
