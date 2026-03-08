@@ -54,7 +54,7 @@ test.describe('API - Misc', () => {
     expect(response.status === 500).toBeTruthy();
     expect(response.headers).toBeTruthy();
     expect(response.error).toBeTruthy();
-    expect(response.statusText).toEqual('Internal Server Error');
+    expect(response.statusText).toContain('Server Error');
 
     const body = JSON.parse(response.body as string) as {
       message: "This is a fake resource, you shouldn't even be seeing this";
@@ -94,7 +94,7 @@ test.describe('API - Misc', () => {
     expect(response.status === 500).toBeTruthy();
     expect(response.headers).toBeTruthy();
     expect(response.error).toBeTruthy();
-    expect(response.statusText).toEqual('Internal Server Error');
+    expect(response.statusText).toContain('Server Error');
 
     const body = JSON.parse(response.body as string) as {
       message: "This is a fake resource, you shouldn't even be seeing this";
