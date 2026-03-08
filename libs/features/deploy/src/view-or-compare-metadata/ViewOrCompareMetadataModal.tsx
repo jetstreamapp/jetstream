@@ -135,13 +135,13 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
 
   useNonInitialEffect(() => {
     if (editorType === 'SOURCE' && editorRef.current) {
-      editorRef.current.revealPosition({ column: 0, lineNumber: 0 });
+      editorRef.current.revealPosition({ column: 1, lineNumber: 1 });
     }
   }, [editorType, activeSourceContent]);
 
   useNonInitialEffect(() => {
     if (editorType === 'TARGET' && editorRef.current) {
-      editorRef.current.revealPosition({ column: 0, lineNumber: 0 });
+      editorRef.current.revealPosition({ column: 1, lineNumber: 1 });
     }
   }, [editorType, activeTargetContent]);
 
@@ -160,7 +160,7 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
     // navigate to first difference
     addDisposable(
       ed.onDidUpdateDiff(() => {
-        ed.revealPosition({ column: 0, lineNumber: 0 });
+        ed.revealPosition({ column: 1, lineNumber: 1 });
         // Toggle off and on to ensure that the toggle is actually collapsed
         if (hideUnchangedRegions) {
           toggleHideUnchangedRegions(ed);
@@ -169,7 +169,7 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
           if (diff?.length) {
             ed.revealLineInCenter(diff[0].originalStartLineNumber);
           } else {
-            ed.revealPosition({ column: 0, lineNumber: 0 });
+            ed.revealPosition({ column: 1, lineNumber: 1 });
           }
         }
       }),
