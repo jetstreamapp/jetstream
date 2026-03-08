@@ -26,7 +26,7 @@ export const HeaderCta = () => (
           clipPath:
             'polygon(73.6% 51.7%, 91.7% 11.8%, 100% 46.4%, 97.4% 82.2%, 92.5% 84.9%, 75.7% 64%, 55.3% 47.5%, 46.5% 49.4%, 45% 62.9%, 50.3% 87.2%, 21.3% 64.1%, 0.1% 100%, 5.4% 51.1%, 21.4% 63.9%, 58.9% 0.2%, 73.6% 51.7%)',
         }}
-        className="aspect-1108/632 w-277 bg-linear-to-r from-[#80caff] to-[#4f46e5] opacity-20"
+        className="aspect-[1108/632] w-[277px] bg-gradient-to-r from-[#80caff] to-[#4f46e5] opacity-20"
       />
     </div>
     <div className="mx-auto max-w-2xl py-32 sm:py-48 lg:py-56">
@@ -47,7 +47,7 @@ export const HeaderCta = () => (
         <div className="mt-10 flex items-center justify-center gap-x-6">
           <Link
             href={ROUTES.AUTH.signup}
-            className="py-3 px-4 rounded-md shadow-sm bg-linear-to-r from-teal-500 to-cyan-600 text-white font-medium hover:from-teal-600 hover:to-cyan-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-cyan-400 focus:ring-offset-gray-900"
+            className="py-3 px-4 rounded-md shadow-sm bg-gradient-to-r from-teal-500 to-cyan-600 text-white font-medium hover:from-teal-600 hover:to-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-400 focus:ring-offset-gray-900"
           >
             Get started for free
           </Link>
