@@ -232,18 +232,22 @@ const downloadResults = createRoute(routeDefinition.downloadResults.validators, 
       },
     });
 
+    streamParsedCsvAsJson(res, csvParseStream);
+
     if (isQuery) {
       const resultIds = await jetstreamConn.bulk.getQueryResultsJobIds(jobId, batchId);
       const results = await jetstreamConn.bulk.downloadRecords(jobId, batchId, type, resultIds[0]);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      Readable.fromWeb(results as any).pipe(csvParseStream);
+      const readable = Readable.fromWeb(results as any);
+      readable.on('error', (err) => csvParseStream.destroy(err));
+      readable.pipe(csvParseStream);
     } else {
       const results = await jetstreamConn.bulk.downloadRecords(jobId, batchId, type);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      Readable.fromWeb(results as any).pipe(csvParseStream);
+      const readable = Readable.fromWeb(results as any);
+      readable.on('error', (err) => csvParseStream.destroy(err));
+      readable.pipe(csvParseStream);
     }
-
-    streamParsedCsvAsJson(res, csvParseStream);
   } catch (ex) {
     next(new UserFacingError(ex));
   }
@@ -296,6 +300,7 @@ const downloadAllResults = createRoute(
 
       // initiate stream response through passthrough stream
       streamParsedCsvAsJson(res, csvParseStream);
+      combinedStream.on('error', (err) => csvParseStream.destroy(err));
       combinedStream.pipe(csvParseStream);
 
       let isFirstBatch = true;
