@@ -195,16 +195,16 @@
 
 * fix accessibility issues ([28ff1aa](https://github.com/jetstreamapp/jetstream/commit/28ff1aa102f2df50186da0ec696a7a594eb510a9))
 
-## [8.12.1](///compare/v8.12.0...v8.12.1) (2025-12-12)
+## [8.12.1](https://github.com/jetstreamapp/jetstream/compare/v8.12.0...v8.12.1) (2025-12-12)
 
 ### Bug Fixes
 
-* Fix multiple feedback file attachments 22cfa41
+* Fix multiple feedback file attachments ([22cfa41](https://github.com/jetstreamapp/jetstream/commit/22cfa41))
 
-## [8.12.0](///compare/v8.11.0...v8.12.0) (2025-12-12)
+## [8.12.0](https://github.com/jetstreamapp/jetstream/compare/v8.11.0...v8.12.0) (2025-12-12)
 
 ### Features
 
-* Introduce in-app feedback 2064bc9
+* Introduce in-app feedback ([2064bc9](https://github.com/jetstreamapp/jetstream/commit/2064bc9))
 
 # Release Changelog
