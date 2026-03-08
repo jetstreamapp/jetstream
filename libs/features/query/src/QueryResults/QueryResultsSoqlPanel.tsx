@@ -1,9 +1,9 @@
-import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { sanitizePastedEditorText, useDebounce, useDisposables } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi, SoqlQueryFormatOptions } from '@jetstream/types';
 import { CheckboxToggle, Grid, Icon, Panel, Textarea, Tooltip } from '@jetstream/ui';
 import { fromQueryHistoryState, SoqlQueryFormatConfigPopover } from '@jetstream/ui-core';
 import { formatQuery, parseQuery } from '@jetstreamapp/soql-parser-js';
-import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
+import Editor, { OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { FunctionComponent, useEffect, useReducer, useRef, useState } from 'react';
 import SaveFavoriteSoql from '../QueryOptions/SaveFavoriteSoql';
@@ -76,6 +76,7 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
   onSaveSoqlQueryFormatOptions,
 }) => {
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
+  const { addDisposable } = useDisposables();
   const [userSoql, setUserSoql] = useState<string>(soql);
   const [userTooling, setUserTooling] = useState<boolean>(isTooling);
   const [{ formattedSoql, isValid, sobjectName }, dispatch] = useReducer(reducer, {
@@ -84,7 +85,6 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
     sobjectName: sObject,
   });
 
-  const monaco = useMonaco();
   const debouncedSoql = useDebounce(userSoql);
 
   useEffect(() => {
@@ -106,20 +106,6 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
     setUserTooling(isTooling);
   }, [isTooling]);
 
-  // this is required otherwise the action has stale variables in scope
-  useNonInitialEffect(() => {
-    if (monaco && editorRef.current) {
-      editorRef.current.addAction({
-        id: 'modifier-enter',
-        label: 'Submit',
-        keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
-        run: (currEditor) => {
-          submitQuery(currEditor.getValue());
-        },
-      });
-    }
-  }, [executeQuery]);
-
   function handleFormat() {
     dispatch({ type: 'FORMAT_SOQL', payload: { soql: userSoql, soqlQueryFormatOptions } });
   }
@@ -129,25 +115,40 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
     executeQuery(currSoql, userTooling);
   }
 
+  const submitQueryRef = useRef(submitQuery);
+  // eslint-disable-next-line react-hooks/refs
+  submitQueryRef.current = submitQuery;
+
+  const setUserSoqlRef = useRef(setUserSoql);
+  // eslint-disable-next-line react-hooks/refs
+  setUserSoqlRef.current = setUserSoql;
+
   const handleEditorMount: OnMount = (currEditor, monaco) => {
     editorRef.current = currEditor;
-    editorRef.current.addAction({
-      id: 'modifier-enter',
-      label: 'Submit',
-      keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
-      run: (currEditor) => {
-        submitQuery(currEditor.getValue());
-      },
-    });
-    editorRef.current.addAction({
-      id: 'format',
-      label: 'Format',
-      keybindings: [monaco?.KeyMod.Shift | monaco?.KeyMod.Alt | monaco?.KeyCode.KeyF],
-      contextMenuGroupId: '9_cutcopypaste',
-      run: (currEditor) => {
-        setUserSoql(formatQuery(currEditor.getValue(), soqlQueryFormatOptions));
-      },
-    });
+
+    addDisposable(sanitizePastedEditorText(currEditor));
+
+    addDisposable(
+      editorRef.current.addAction({
+        id: 'modifier-enter',
+        label: 'Submit',
+        keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
+        run: (currEditor) => {
+          submitQueryRef.current(currEditor.getValue());
+        },
+      }),
+    );
+    addDisposable(
+      editorRef.current.addAction({
+        id: 'format',
+        label: 'Format',
+        keybindings: [monaco?.KeyMod.Shift | monaco?.KeyMod.Alt | monaco?.KeyCode.KeyF],
+        contextMenuGroupId: '9_cutcopypaste',
+        run: (currEditor) => {
+          setUserSoqlRef.current(formatQuery(currEditor.getValue(), soqlQueryFormatOptions));
+        },
+      }),
+    );
   };
 
   return (

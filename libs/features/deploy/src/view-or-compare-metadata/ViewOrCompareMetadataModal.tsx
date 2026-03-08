@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { isBrowserExtension, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { isBrowserExtension, useDisposables, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { delay, unSanitizeXml } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { FileExtAllTypes, ListMetadataResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
@@ -32,6 +32,7 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
   const diffEditorRef = useRef<editor.IStandaloneDiffEditor>(null);
+  const { addDisposable } = useDisposables();
   const [targetOrg, setTargetOrg] = useState<SalesforceOrgUi | null>(null);
 
   const [activeFile, setActiveFile] = useState<TreeItems<FileItemMetadata> | null>(null);
@@ -118,12 +119,14 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
 
   useEffect(() => {
     if (activeFile) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveFileContent(activeFile);
     }
   }, [activeFile, setActiveFileContent, sourceResults, targetResults]);
 
   useEffect(() => {
     if (sourceResults && targetResults) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setEditorType('DIFF');
     } else if (sourceResults) {
       setEditorType('SOURCE');
@@ -132,13 +135,13 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
 
   useNonInitialEffect(() => {
     if (editorType === 'SOURCE' && editorRef.current) {
-      editorRef.current.revealPosition({ column: 0, lineNumber: 0 });
+      editorRef.current.revealPosition({ column: 1, lineNumber: 1 });
     }
   }, [editorType, activeSourceContent]);
 
   useNonInitialEffect(() => {
     if (editorType === 'TARGET' && editorRef.current) {
-      editorRef.current.revealPosition({ column: 0, lineNumber: 0 });
+      editorRef.current.revealPosition({ column: 1, lineNumber: 1 });
     }
   }, [editorType, activeTargetContent]);
 
@@ -155,20 +158,22 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
   function handleDiffEditorMount(ed: editor.IStandaloneDiffEditor) {
     diffEditorRef.current = ed;
     // navigate to first difference
-    ed.onDidUpdateDiff(() => {
-      ed.revealPosition({ column: 0, lineNumber: 0 });
-      // Toggle off and on to ensure that the toggle is actually collapsed
-      if (hideUnchangedRegions) {
-        toggleHideUnchangedRegions(ed);
-      } else {
-        const diff = ed.getLineChanges();
-        if (diff?.length) {
-          ed.revealLineInCenter(diff[0].originalStartLineNumber);
+    addDisposable(
+      ed.onDidUpdateDiff(() => {
+        ed.revealPosition({ column: 1, lineNumber: 1 });
+        // Toggle off and on to ensure that the toggle is actually collapsed
+        if (hideUnchangedRegions) {
+          toggleHideUnchangedRegions(ed);
         } else {
-          ed.revealPosition({ column: 0, lineNumber: 0 });
+          const diff = ed.getLineChanges();
+          if (diff?.length) {
+            ed.revealLineInCenter(diff[0].originalStartLineNumber);
+          } else {
+            ed.revealPosition({ column: 1, lineNumber: 1 });
+          }
         }
-      }
-    });
+      }),
+    );
   }
 
   /**

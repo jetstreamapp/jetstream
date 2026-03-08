@@ -1,5 +1,12 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { hasModifierKey, hasShiftModifierKey, isEKey, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
+import {
+  hasModifierKey,
+  hasShiftModifierKey,
+  isEKey,
+  sanitizePastedEditorText,
+  useDisposables,
+  useGlobalEventHandler,
+} from '@jetstream/shared/ui-utils';
 import { QueryHistoryItem, SoqlQueryFormatOptions } from '@jetstream/types';
 import {
   CheckboxToggle,
@@ -35,6 +42,7 @@ export const QuickQueryPopover = () => {
   const { trackEvent } = useAmplitude();
   const popoverRef = useRef<PopoverRef>(null);
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
+  const { addDisposable } = useDisposables();
   const navigate = useNavigate();
   const selectedOrg = useAtomValue(selectedOrgState);
 
@@ -66,6 +74,7 @@ export const QuickQueryPopover = () => {
   );
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setQueryIsValid(!!soql && isQueryValid(soql));
   }, [soql]);
 
@@ -129,32 +138,50 @@ export const QuickQueryPopover = () => {
     }
   }
 
+  const handleExecuteRef = useRef(handleExecute);
+  // eslint-disable-next-line react-hooks/refs
+  handleExecuteRef.current = handleExecute;
+
+  const setSoqlRef = useRef(setSoql);
+  // eslint-disable-next-line react-hooks/refs
+  setSoqlRef.current = setSoql;
+
+  const soqlQueryFormatOptionsRef = useRef(soqlQueryFormatOptions);
+  // eslint-disable-next-line react-hooks/refs
+  soqlQueryFormatOptionsRef.current = soqlQueryFormatOptions;
+
   const handleEditorMount: OnMount = (currEditor, monaco) => {
     editorRef.current = currEditor;
     currEditor.focus();
 
+    addDisposable(sanitizePastedEditorText(currEditor));
+
     const modelRange = currEditor.getModel()?.getFullModelRange();
     modelRange && currEditor.setSelection(modelRange);
 
-    editorRef.current.addAction({
-      id: 'modifier-enter',
-      label: 'Submit',
-      keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
-      run: () => {
-        handleExecute(currEditor.getValue());
-        trackEvent(ANALYTICS_KEYS.quick_query_Execute, { method: 'keyboard', location: 'editor' });
-      },
-    });
-    editorRef.current.addAction({
-      id: 'format',
-      label: 'Format',
-      keybindings: [monaco?.KeyMod.Shift | monaco?.KeyMod.Alt | monaco?.KeyCode.KeyF],
-      contextMenuGroupId: '9_cutcopypaste',
-      run: (currEditor) => {
-        setSoql(formatQuery(currEditor.getValue(), soqlQueryFormatOptions));
-        trackEvent(ANALYTICS_KEYS.quick_query_Format, { method: 'editor-shortcut' });
-      },
-    });
+    addDisposable(
+      editorRef.current.addAction({
+        id: 'modifier-enter',
+        label: 'Submit',
+        keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
+        run: () => {
+          handleExecuteRef.current(currEditor.getValue());
+          trackEvent(ANALYTICS_KEYS.quick_query_Execute, { method: 'keyboard', location: 'editor' });
+        },
+      }),
+    );
+    addDisposable(
+      editorRef.current.addAction({
+        id: 'format',
+        label: 'Format',
+        keybindings: [monaco?.KeyMod.Shift | monaco?.KeyMod.Alt | monaco?.KeyCode.KeyF],
+        contextMenuGroupId: '9_cutcopypaste',
+        run: (currEditor) => {
+          setSoqlRef.current(formatQuery(currEditor.getValue(), soqlQueryFormatOptionsRef.current));
+          trackEvent(ANALYTICS_KEYS.quick_query_Format, { method: 'editor-shortcut' });
+        },
+      }),
+    );
   };
 
   const isDisabled = !queryIsValid || isRestoring;

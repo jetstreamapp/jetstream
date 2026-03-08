@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { sanitizePastedEditorText, useDisposables } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { Field, FieldType, Maybe, NullNumberBehavior, SalesforceOrgUi } from '@jetstream/types';
@@ -44,6 +44,7 @@ export const CreateFieldsFormulaEditor = forwardRef<unknown, CreateFieldsFormula
     const { value, touched, errorMessage } = valueState;
     const isMounted = useRef(true);
     const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
+    const { addDisposable } = useDisposables();
     const { trackEvent } = useAmplitude();
 
     const [isOpen, setIsOpen] = useState(false);
@@ -193,18 +194,8 @@ export const CreateFieldsFormulaEditor = forwardRef<unknown, CreateFieldsFormula
       ],
     );
 
-    useNonInitialEffect(() => {
-      if (monaco && editorRef.current) {
-        editorRef.current.addAction({
-          id: 'modifier-enter',
-          label: 'Submit',
-          keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
-          run: (currEditor) => {
-            handleTestFormula(currEditor.getValue());
-          },
-        });
-      }
-    }, [handleTestFormula, monaco, selectedOrg]);
+    const handleTestFormulaRef = useRef(handleTestFormula);
+    handleTestFormulaRef.current = handleTestFormula;
 
     function handleEditorChange(value?: string, event?: unknown) {
       setFormulaValue(value || '');
@@ -212,15 +203,18 @@ export const CreateFieldsFormulaEditor = forwardRef<unknown, CreateFieldsFormula
 
     const handleApexEditorMount: OnMount = (currEditor, monaco) => {
       editorRef.current = currEditor;
+      addDisposable(sanitizePastedEditorText(currEditor));
       // this did not run on initial render if used in useEffect
-      editorRef.current.addAction({
-        id: 'modifier-enter',
-        label: 'Submit',
-        keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
-        run: (currEditor) => {
-          handleTestFormula(currEditor.getValue());
-        },
-      });
+      addDisposable(
+        editorRef.current.addAction({
+          id: 'modifier-enter',
+          label: 'Submit',
+          keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
+          run: (currEditor) => {
+            handleTestFormulaRef.current(currEditor.getValue());
+          },
+        }),
+      );
     };
 
     function handleClose() {

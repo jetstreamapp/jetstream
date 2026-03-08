@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { sanitizePastedEditorText, useDisposables } from '@jetstream/shared/ui-utils';
 import { DescribeGlobalSObjectResult, SalesforceOrgUi, SoqlQueryFormatOptions } from '@jetstream/types';
 import { Grid, GridCol, Textarea } from '@jetstream/ui';
 import { fromQueryHistoryState, SoqlQueryFormatConfigPopover } from '@jetstream/ui-core';
@@ -23,10 +24,13 @@ export interface SoqlTextareaProps {
 export const SoqlTextarea: FunctionComponent<SoqlTextareaProps> = memo(
   ({ soql, isTooling, selectedOrg, selectedSObject, soqlQueryFormatOptions, onOpenHistory, onSaveSoqlQueryFormatOptions }) => {
     const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
+    const { addDisposable } = useDisposables();
 
     const handleEditorMount: OnMount = (currEditor, monaco) => {
       editorRef.current = currEditor;
       editorRef.current.layout();
+
+      addDisposable(sanitizePastedEditorText(currEditor));
     };
 
     const handleResize = useCallback(() => {
