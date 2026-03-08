@@ -1,6 +1,5 @@
 import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { useRollbar } from '@jetstream/shared/ui-utils';
 import { REGEX, getErrorMessage } from '@jetstream/shared/utils';
 import { GlobalValueSetRequest, SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, Grid, GridCol, Input, Modal, ScopedNotification, Spinner, Textarea } from '@jetstream/ui';
@@ -55,7 +54,6 @@ export interface CreateNewGlobalPicklistModalProps {
 
 export const CreateNewGlobalPicklistModal: FunctionComponent<CreateNewGlobalPicklistModalProps> = ({ selectedOrg, onCreated }) => {
   const { trackEvent } = useAmplitude();
-  const rollbar = useRollbar();
   const [{ defaultApiVersion }] = useAtom(applicationCookieState);
   const [isOpen, setIsOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);

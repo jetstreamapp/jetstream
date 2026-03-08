@@ -160,7 +160,7 @@ export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = 
                   </GridCol>
                   <GridCol size={6}>
                     <ReadOnlyFormElement
-                      id="Created By"
+                      id="CreatedBy"
                       label="Created By"
                       className="slds-p-bottom_x-small"
                       value={record.CreatedBy?.Name || record.CreatedById}
@@ -169,7 +169,7 @@ export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = 
                   </GridCol>
                   <GridCol size={6}>
                     <ReadOnlyFormElement
-                      id="Created Date"
+                      id="CreatedDate"
                       label="Created Date"
                       className="slds-p-bottom_x-small"
                       value={dataTableDateFormatter(record.CreatedDate)}
@@ -178,7 +178,7 @@ export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = 
                   </GridCol>
                   <GridCol size={6}>
                     <ReadOnlyFormElement
-                      id="LastModified By"
+                      id="LastModifiedBy"
                       label="LastModified By"
                       className="slds-p-bottom_x-small"
                       value={record.LastModifiedBy?.Name || record.LastModifiedById}
@@ -187,7 +187,7 @@ export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = 
                   </GridCol>
                   <GridCol size={6}>
                     <ReadOnlyFormElement
-                      id="Last Modified Date"
+                      id="LastModifiedDate"
                       label="Last Modified Date"
                       className="slds-p-bottom_x-small"
                       value={dataTableDateFormatter(record.LastModifiedDate)}

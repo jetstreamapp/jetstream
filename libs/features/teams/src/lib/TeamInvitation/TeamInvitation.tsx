@@ -30,7 +30,7 @@ export function TeamInvitation() {
   const [accepting, setAccepting] = useState(false);
   const [loadingError, setLoadingError] = useState<string | null>(null);
   const [teamVerification, setTeamVerification] = useState<TeamInviteVerificationResponse>();
-  const [userProfile, setUserProfile] = useAtom(fromAppState.userProfileState);
+  const [, setUserProfile] = useAtom(fromAppState.userProfileState);
 
   const [searchParams] = useSearchParams();
 

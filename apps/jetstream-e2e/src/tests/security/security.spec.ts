@@ -22,7 +22,7 @@ test.describe('Security Checks', () => {
       const email = `test-${new Date().getTime()}.${randomBytes(8).toString('hex')}@getjetstream.app`;
       const jetstreamUserId = `test|${userId}`;
 
-      const otherUser = await prisma.user.create({
+      await prisma.user.create({
         data: {
           id: userId,
           userId: jetstreamUserId,

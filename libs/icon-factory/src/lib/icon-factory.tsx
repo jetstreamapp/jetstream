@@ -419,9 +419,9 @@ export function getIconTypes(type: Omit<IconType, 'action' | 'custom'>): IconNam
     case 'action':
       return Object.keys(actionIcons) as ActionIcon[];
     case 'doctype':
-      return Object.keys(doctypeIcons) as StandardIcon[];
+      return Object.keys(doctypeIcons) as DoctypeIcon[];
     case 'standard':
-      return Object.keys(standardIcons) as DoctypeIcon[];
+      return Object.keys(standardIcons) as StandardIcon[];
     case 'brand':
       return Object.keys(brandIcons) as BrandIcon[];
     case 'utility':

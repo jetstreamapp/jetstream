@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import type { TurnstileInstance } from '@marsidev/react-turnstile';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -104,9 +105,9 @@ export function PasswordResetInit({ csrfToken }: PasswordResetInitProps) {
 
       setIsSubmitted(true);
     } catch (error) {
-      setError(error?.message ?? 'Unable to initialize the reset process');
+      setError(getErrorMessage(error) ?? 'Unable to initialize the reset process');
     } finally {
-      setIsSaving(true);
+      setIsSaving(false);
     }
   };
 

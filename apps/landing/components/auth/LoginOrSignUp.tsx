@@ -152,7 +152,7 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
         if (!captchaToken) {
           throw new Error('Captcha verification is required. Please complete the captcha challenge and try again.');
         }
-        params.set('captchaToken', captchaToken || '');
+        params.set('captchaToken', captchaToken);
       }
 
       const response = await fetch(url, {

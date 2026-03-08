@@ -100,7 +100,6 @@ export const LoadRecords = () => {
   const [currentStepIdx, setCurrentStepIdx] = useState<number>(0);
   const [currentStepText, setCurrentStepText] = useState<string>('');
   const [nextStepDisabled, setNextStepDisabled] = useState<boolean>(true);
-  const [hasNextStep, setHasNextStep] = useState<boolean>(true);
   const [loadSummaryText, setLoadSummaryText] = useState<string>('');
 
   const resetLoadExistingRecordCount = useResetAtom(fromLoadRecordsState.loadExistingRecordCount);
@@ -324,7 +323,6 @@ export const LoadRecords = () => {
     }
     setCurrentStepText(currStepButtonText);
     setNextStepDisabled(isNextStepDisabled);
-    setHasNextStep(hasNextStep);
   }, [currentStep, selectedSObject, inputFileData, loadType, externalId, fieldMapping, loadingFields]);
 
   useEffect(() => {
