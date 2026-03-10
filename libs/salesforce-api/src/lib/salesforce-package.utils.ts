@@ -1,6 +1,7 @@
 import { ensureArray, getFullNameFromListMetadata, orderObjectsBy } from '@jetstream/shared/utils';
 import { ListMetadataResult, Maybe, PackageTypeMembers, RetrieveRequest } from '@jetstream/types';
-import { XMLBuilder, XMLParser } from 'fast-xml-parser';
+import XMLBuilder from 'fast-xml-builder';
+import { XMLParser } from 'fast-xml-parser';
 import lodashGet from 'lodash/get';
 import isObjectLike from 'lodash/isObjectLike';
 import isString from 'lodash/isString';
