@@ -88,13 +88,13 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           # PAT required so release-it can push the version bump commit to protected main
           token: ${{ secrets.GH_RELEASE_TOKEN }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: "yarn"
@@ -175,7 +175,7 @@ jobs:
 
       - name: Upload web extension zips
         if: ${{ inputs.release_web_extension }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: web-extension-zips
           path: dist/web-extension-build/*.zip
