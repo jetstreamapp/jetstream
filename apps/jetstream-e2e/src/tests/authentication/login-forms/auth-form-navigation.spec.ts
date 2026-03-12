@@ -32,6 +32,7 @@ test.describe('Auth Page Navigation', () => {
     // "Forgot password?" is on the login page behind the Continue step — navigate there first
     await authenticationPage.signInFromFormLink.click();
     await page.waitForURL(authenticationPage.routes.login());
+    await authenticationPage.emailInput.click();
     await authenticationPage.emailInput.fill('test@example.com');
     await authenticationPage.continueButton.click();
 
@@ -67,6 +68,7 @@ test.describe('Auth Page Navigation', () => {
 test.describe('Auth Form Validation', () => {
   test('login form validation', async ({ page, authenticationPage }) => {
     const LOGIN_PASSWORD_MIN_LENGTH = 8;
+
     await test.step('Invalid email', async () => {
       // With the two-step flow (email → continue → password), an invalid email prevents
       // the form from advancing so only email validation can be tested here.
