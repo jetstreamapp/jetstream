@@ -31,6 +31,10 @@
           {
             "entryName": "salesforce-org-expiration",
             "entryPath": "apps/cron-tasks/src/salesforce-org-expiration.ts"
+          },
+          {
+            "entryName": "stats-summary",
+            "entryPath": "apps/cron-tasks/src/stats-summary.ts"
           }
         ],
         "tsConfig": "apps/cron-tasks/tsconfig.app.json",

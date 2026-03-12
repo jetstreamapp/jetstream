@@ -16,6 +16,7 @@ import { VerifyEmail } from './email-templates/auth/VerifyEmail';
 import { WelcomeEmail } from './email-templates/auth/WelcomeEmail';
 import { WelcomeToProEmail } from './email-templates/auth/WelcomeToProEmail';
 import { OrgExpirationWarningEmail } from './email-templates/org/OrgExpirationWarningEmail';
+import { StatsSummaryEmail, StatsSummaryEmailProps } from './email-templates/admin/StatsSummaryEmail';
 
 function renderComponent(component: JSX.Element) {
   return Promise.all([render(component, { plainText: false }), render(component, { plainText: true })]);
@@ -221,6 +222,29 @@ export async function sendTeamInviteEmail({
     });
   } catch (error) {
     logger.error({ ...getErrorMessageAndStackObj(error) }, 'Error sending user feedback email');
+  }
+}
+
+export async function sendStatsSummaryEmail({
+  to,
+  stats,
+  securityResults,
+  generatedAt,
+}: {
+  to: string;
+} & StatsSummaryEmailProps) {
+  try {
+    const component = <StatsSummaryEmail stats={stats} securityResults={securityResults} generatedAt={generatedAt} />;
+    const [html, text] = await renderComponent(component);
+
+    const hasFindings = securityResults.some((result) => result.rows.length > 0);
+    const subject = hasFindings
+      ? `⚠ Jetstream Stats Summary — Security Findings Detected (${generatedAt})`
+      : `Jetstream Stats Summary — ${generatedAt}`;
+
+    await sendEmail({ to, subject, text, html });
+  } catch (error) {
+    logger.error({ ...getErrorMessageAndStackObj(error) }, 'Error sending stats summary email');
   }
 }
 
