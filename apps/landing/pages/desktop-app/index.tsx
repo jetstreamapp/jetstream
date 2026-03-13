@@ -3,7 +3,6 @@ import {
   CloudArrowDownIcon,
   CpuChipIcon,
   DevicePhoneMobileIcon,
-  ExclamationTriangleIcon,
   LockClosedIcon,
   ShieldCheckIcon,
   StarIcon,
@@ -38,42 +37,6 @@ export default function DesktopDownloadPage() {
               <Link href={ROUTES.PRICING} className="ml-2 text-sm text-cyan-400 hover:text-cyan-300 underline">
                 View pricing
               </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* Beta Notice */}
-        <div className="mt-6 mx-auto max-w-2xl">
-          <div className="rounded-lg bg-linear-to-r from-amber-900/20 to-orange-900/20 border border-amber-500/20 p-6">
-            <div className="flex items-start">
-              <ExclamationTriangleIcon className="h-5 w-5 text-amber-400 mr-3 mt-0.5 shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-amber-300 mb-2">Early Release</p>
-                <p className="text-sm text-amber-200 mb-3">This feature is in early release. You may encounter bugs or missing features.</p>
-                <div className="flex flex-wrap gap-4 text-sm">
-                  <div className="flex flex-wrap gap-4 text-sm">
-                    <a
-                      href={ROUTES.EXTERNAL.GITHUB_ISSUE}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-amber-300 hover:text-amber-200 underline"
-                    >
-                      Report issues on GitHub
-                    </a>
-                    <a
-                      href={ROUTES.EXTERNAL.DISCORD}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-amber-300 hover:text-amber-200 underline"
-                    >
-                      Share feedback on Discord
-                    </a>
-                    <a href={ROUTES.EXTERNAL.SUPPORT_EMAIL} className="text-amber-300 hover:text-amber-200 underline">
-                      Email support
-                    </a>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -274,7 +237,7 @@ export default function DesktopDownloadPage() {
 
           <div className="mt-16 mx-auto max-w-4xl">
             <p className="text-gray-300 text-sm">
-              *You can opt-in to syncing your history data with Jetstream so it is available across devices.
+              *You can opt-in to syncing your history data with Jetstream so it is available across all your platforms and devices.
             </p>
           </div>
         </div>
