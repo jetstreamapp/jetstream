@@ -69,28 +69,28 @@ import { parseCookie } from 'cookie';
 import { addMinutes } from 'date-fns/addMinutes';
 import { z } from 'zod';
 import { redirect, sendJson, setCsrfCookie } from '../utils/response.handlers';
-import { createRoute } from '../utils/route.utils';
+import { createRoute, RouteValidator } from '../utils/route.utils';
 
 export const routeDefinition = {
   logout: {
     controllerFn: () => logout,
     validators: {
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   getProviders: {
     controllerFn: () => getProviders,
     responseType: ProvidersSchema,
     validators: {
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   getCsrfToken: {
     controllerFn: () => getCsrfToken,
     responseType: z.object({ csrfToken: z.string() }),
     validators: {
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   getSession: {
     controllerFn: () => getSession,
@@ -105,7 +105,7 @@ export const routeDefinition = {
     }),
     validators: {
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   signin: {
     controllerFn: () => signin,
@@ -114,7 +114,7 @@ export const routeDefinition = {
       query: z.object({ returnUrl: z.string().nullish(), isAccountLink: z.literal('true').nullish() }),
       body: z.object({ csrfToken: z.string(), callbackUrl: z.string().url() }),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   callback: {
     controllerFn: () => callback,
@@ -143,7 +143,7 @@ export const routeDefinition = {
         z.object({}).nullish(),
       ]),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   verification: {
     controllerFn: () => verification,
@@ -160,7 +160,7 @@ export const routeDefinition = {
         type: z.enum(['email', '2fa-otp', '2fa-email']),
       }),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   verifyEmailViaLink: {
     controllerFn: () => verifyEmailViaLink,
@@ -170,7 +170,7 @@ export const routeDefinition = {
         code: z.string(),
       }),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   resendVerification: {
     controllerFn: () => resendVerification,
@@ -178,7 +178,7 @@ export const routeDefinition = {
     validators: {
       body: z.object({ captchaToken: z.string().nullish(), csrfToken: z.string(), type: z.enum(['email', '2fa-email']) }),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   requestPasswordReset: {
     controllerFn: () => requestPasswordReset,
@@ -186,7 +186,7 @@ export const routeDefinition = {
     validators: {
       body: z.object({ captchaToken: z.string().nullish(), email: z.string().toLowerCase(), csrfToken: z.string() }),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   validatePasswordReset: {
     controllerFn: () => validatePasswordReset,
@@ -200,14 +200,14 @@ export const routeDefinition = {
         captchaToken: z.string().nullish(),
       }),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   getOtpEnrollmentData: {
     controllerFn: () => getOtpEnrollmentData,
     responseType: z.object({ secret: z.string(), secretToken: z.string(), imageUri: z.string(), uri: z.string() }),
     validators: {
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   enrollOtpFactor: {
     controllerFn: () => enrollOtpFactor,
@@ -219,7 +219,7 @@ export const routeDefinition = {
         csrfToken: z.string(),
       }),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   // SSO Routes
   discoverSso: {
@@ -227,7 +227,7 @@ export const routeDefinition = {
     validators: {
       body: z.object({ csrfToken: z.string(), email: z.email().toLowerCase() }),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   startSso: {
     controllerFn: () => startSso,
@@ -235,7 +235,7 @@ export const routeDefinition = {
       body: z.object({ csrfToken: z.string(), email: z.email().toLowerCase() }),
       query: z.object({ returnUrl: z.string().optional() }),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   handleSamlCallback: {
     controllerFn: () => handleSamlCallback,
@@ -243,14 +243,14 @@ export const routeDefinition = {
       params: z.object({ teamId: z.uuid() }),
       body: z.object({ SAMLResponse: z.string() }),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   getSamlMetadata: {
     controllerFn: () => getSamlMetadata,
     validators: {
       params: z.object({ teamId: z.uuid() }),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   handleOidcCallback: {
     controllerFn: () => handleOidcCallback,
@@ -258,7 +258,7 @@ export const routeDefinition = {
       params: z.object({ teamId: z.uuid() }),
       query: z.object({}).loose(),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
 };
 

@@ -20,6 +20,8 @@ export interface RequestOptions {
   urlOverride?: URL;
 }
 
+export type RouteValidator = Parameters<typeof createRoute>[0];
+
 export type ControllerFunction<TParamsSchema extends z.ZodTypeAny, TBodySchema extends z.ZodTypeAny, TQuerySchema extends z.ZodTypeAny> = (
   data: {
     params: z.infer<TParamsSchema>;

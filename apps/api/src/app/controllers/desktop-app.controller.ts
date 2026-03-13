@@ -20,7 +20,7 @@ import { emitRecordSyncEventsToOtherClients, SyncEvent } from '../services/data-
 import * as externalAuthService from '../services/external-auth.service';
 import { decryptJwtTokenOrPlaintext } from '../services/jwt-token-encryption.service';
 import { redirect, sendJson } from '../utils/response.handlers';
-import { createRoute } from '../utils/route.utils';
+import { createRoute, RouteValidator } from '../utils/route.utils';
 import { routeDefinition as dataSyncController } from './data-sync.controller';
 
 export const routeDefinition = {
@@ -28,7 +28,7 @@ export const routeDefinition = {
     controllerFn: () => initAuthMiddleware,
     validators: {
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   logout: {
     controllerFn: () => logout,
@@ -45,14 +45,14 @@ export const routeDefinition = {
         })
         .optional(),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   initSession: {
     controllerFn: () => initSession,
     responseType: z.object({ accessToken: z.string() }),
     validators: {
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   verifyToken: {
     controllerFn: () => verifyToken,
@@ -69,21 +69,21 @@ export const routeDefinition = {
         })
         .optional(),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   dataSyncPull: {
     controllerFn: () => dataSyncPull,
     responseType: z.any(),
     validators: {
       ...dataSyncController.pull.validators,
-    },
+    } satisfies RouteValidator,
   },
   dataSyncPush: {
     controllerFn: () => dataSyncPush,
     responseType: z.any(),
     validators: {
       ...dataSyncController.push.validators,
-    },
+    } satisfies RouteValidator,
   },
   notifications: {
     controllerFn: () => notifications,
@@ -91,7 +91,7 @@ export const routeDefinition = {
     validators: {
       query: z.object({ os: z.string(), version: z.string(), isPackaged: z.union([z.string(), z.boolean()]).optional().default(true) }),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
 };
 

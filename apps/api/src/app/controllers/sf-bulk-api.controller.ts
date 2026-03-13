@@ -6,7 +6,7 @@ import { PassThrough, Readable, Transform } from 'stream';
 import { z } from 'zod';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson, streamParsedCsvAsJson } from '../utils/response.handlers';
-import { createRoute } from '../utils/route.utils';
+import { createRoute, RouteValidator } from '../utils/route.utils';
 
 export const routeDefinition = {
   createJob: {
@@ -14,21 +14,21 @@ export const routeDefinition = {
     responseType: z.any(),
     validators: {
       body: CreateJobRequestSchema,
-    },
+    } satisfies RouteValidator,
   },
   getJob: {
     controllerFn: () => getJob,
     responseType: z.any(),
     validators: {
       params: z.object({ jobId: z.string().min(1) }),
-    },
+    } satisfies RouteValidator,
   },
   closeOrAbortJob: {
     controllerFn: () => closeOrAbortJob,
     responseType: z.any(),
     validators: {
       params: z.object({ jobId: z.string().min(1), action: z.enum(['close', 'abort']).nullish() }),
-    },
+    } satisfies RouteValidator,
   },
   downloadResults: {
     controllerFn: () => downloadResults,
@@ -42,7 +42,7 @@ export const routeDefinition = {
         type: z.enum(['request', 'result']),
         isQuery: BooleanQueryParamSchema,
       }),
-    },
+    } satisfies RouteValidator,
   },
   downloadAllResults: {
     controllerFn: () => downloadAllResults,
@@ -61,7 +61,7 @@ export const routeDefinition = {
           .nullish()
           .transform((val) => new Set(val?.split(',') || [])),
       }),
-    },
+    } satisfies RouteValidator,
   },
   downloadResultsFile: {
     controllerFn: () => downloadResultsFile,
@@ -76,7 +76,7 @@ export const routeDefinition = {
         isQuery: BooleanQueryParamSchema,
         fileName: z.string().nullish(),
       }),
-    },
+    } satisfies RouteValidator,
   },
   addBatchToJob: {
     controllerFn: () => addBatchToJob,
@@ -87,7 +87,7 @@ export const routeDefinition = {
       query: z.object({
         closeJob: BooleanQueryParamSchema,
       }),
-    },
+    } satisfies RouteValidator,
   },
   addBatchToJobWithBinaryAttachment: {
     controllerFn: () => addBatchToJobWithBinaryAttachment,
@@ -98,7 +98,7 @@ export const routeDefinition = {
       query: z.object({
         closeJob: BooleanQueryParamSchema,
       }),
-    },
+    } satisfies RouteValidator,
   },
 };
 

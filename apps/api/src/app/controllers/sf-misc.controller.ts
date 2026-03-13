@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { isPaidUser } from '../db/user.db';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
-import { createRoute } from '../utils/route.utils';
+import { createRoute, RouteValidator } from '../utils/route.utils';
 
 export const routeDefinition = {
   getFrontdoorLoginUrl: {
@@ -16,7 +16,7 @@ export const routeDefinition = {
     responseType: z.any(),
     validators: {
       query: z.object({ returnUrl: z.string().min(1) }),
-    },
+    } satisfies RouteValidator,
   },
   streamFileDownload: {
     controllerFn: () => streamFileDownload,
@@ -25,7 +25,7 @@ export const routeDefinition = {
       query: z.object({
         url: z.string().min(1),
       }),
-    },
+    } satisfies RouteValidator,
   },
   streamFileDownloadToZip: {
     controllerFn: () => streamFileDownloadToZip,
@@ -39,21 +39,21 @@ export const routeDefinition = {
       body: z.object({
         recordIds: z.preprocess(ensureArray, z.array(z.string().min(15).max(18)).min(1).max(MAX_BINARY_DOWNLOAD_RECORDS_PAID_USER)),
       }),
-    },
+    } satisfies RouteValidator,
   },
   salesforceRequest: {
     controllerFn: () => salesforceRequest,
     responseType: z.any(),
     validators: {
       body: SalesforceApiRequestSchema,
-    },
+    } satisfies RouteValidator,
   },
   salesforceRequestManual: {
     controllerFn: () => salesforceRequestManual,
     responseType: z.any(),
     validators: {
       body: SalesforceRequestManualRequestSchema,
-    },
+    } satisfies RouteValidator,
   },
 };
 

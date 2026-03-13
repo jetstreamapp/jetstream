@@ -3,7 +3,7 @@ import { app } from 'electron';
 import { z } from 'zod';
 import { ENV } from '../config/environment';
 import { getAppData } from '../services/persistence.service';
-import { createRoute, handleErrorResponse } from '../utils/route.utils';
+import { createRoute, handleErrorResponse, RouteValidator } from '../utils/route.utils';
 
 /**
  * FIXME: this file needs to be worked on
@@ -15,7 +15,7 @@ export const routeDefinition = {
     validators: {
       query: z.any(),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   push: {
     controllerFn: () => push,
@@ -23,7 +23,7 @@ export const routeDefinition = {
       query: z.any(),
       body: z.any(),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
 };
 

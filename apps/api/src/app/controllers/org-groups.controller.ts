@@ -2,7 +2,7 @@ import { z } from 'zod';
 import * as orgGroupsDb from '../db/organization.db';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
-import { createRoute } from '../utils/route.utils';
+import { createRoute, RouteValidator } from '../utils/route.utils';
 
 export const routeDefinition = {
   getOrganizations: {
@@ -10,7 +10,7 @@ export const routeDefinition = {
     responseType: z.any().array(),
     validators: {
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   createOrganization: {
     controllerFn: () => createOrgGroup,
@@ -21,7 +21,7 @@ export const routeDefinition = {
         description: z.string().optional(),
       }),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   updateOrganization: {
     controllerFn: () => updateOrgGroup,
@@ -35,7 +35,7 @@ export const routeDefinition = {
         description: z.string().optional(),
       }),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   deleteOrganization: {
     controllerFn: () => deleteOrgGroup,
@@ -45,7 +45,7 @@ export const routeDefinition = {
         id: z.uuid(),
       }),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   deleteOrganizationWithOrgs: {
     controllerFn: () => deleteOrgGroupAndAllOrgs,
@@ -55,7 +55,7 @@ export const routeDefinition = {
         id: z.uuid(),
       }),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
 };
 

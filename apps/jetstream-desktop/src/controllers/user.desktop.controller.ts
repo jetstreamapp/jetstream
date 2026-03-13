@@ -4,20 +4,20 @@ import { app } from 'electron';
 import { z } from 'zod';
 import { ENV } from '../config/environment';
 import * as dataService from '../services/persistence.service';
-import { createRoute, handleErrorResponse, handleJsonResponse } from '../utils/route.utils';
+import { createRoute, handleErrorResponse, handleJsonResponse, RouteValidator } from '../utils/route.utils';
 
 export const routeDefinition = {
   getUserProfile: {
     controllerFn: () => getUserProfile,
     validators: {
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   getFullUserProfile: {
     controllerFn: () => getUserProfile,
     validators: {
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   updateProfile: {
     controllerFn: () => updateProfile,
@@ -26,7 +26,7 @@ export const routeDefinition = {
       body: z.object({
         preferences: DesktopUserPreferencesSchema,
       }),
-    },
+    } satisfies RouteValidator,
   },
   sendUserFeedbackEmail: {
     controllerFn: () => sendUserFeedbackEmail,
@@ -34,7 +34,7 @@ export const routeDefinition = {
       hasSourceOrg: false,
       skipBodyParsing: true,
       body: z.any(),
-    },
+    } satisfies RouteValidator,
   },
 };
 

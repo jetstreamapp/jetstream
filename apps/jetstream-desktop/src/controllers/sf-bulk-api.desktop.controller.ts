@@ -3,26 +3,26 @@ import { HTTP } from '@jetstream/shared/constants';
 import { ensureBoolean, toBoolean } from '@jetstream/shared/utils';
 import { parse as parseCsv } from 'papaparse';
 import { z } from 'zod';
-import { createRoute, handleErrorResponse, handleJsonResponse } from '../utils/route.utils';
+import { createRoute, handleErrorResponse, handleJsonResponse, RouteValidator } from '../utils/route.utils';
 
 export const routeDefinition = {
   createJob: {
     controllerFn: () => createJob,
     validators: {
       body: CreateJobRequestSchema,
-    },
+    } satisfies RouteValidator,
   },
   getJob: {
     controllerFn: () => getJob,
     validators: {
       params: z.object({ jobId: z.string().min(1) }),
-    },
+    } satisfies RouteValidator,
   },
   closeOrAbortJob: {
     controllerFn: () => closeOrAbortJob,
     validators: {
       params: z.object({ jobId: z.string().min(1), action: z.enum(['close', 'abort']).nullish() }),
-    },
+    } satisfies RouteValidator,
   },
   downloadResults: {
     controllerFn: () => downloadResults,
@@ -35,7 +35,7 @@ export const routeDefinition = {
         type: z.enum(['request', 'result']),
         isQuery: BooleanQueryParamSchema,
       }),
-    },
+    } satisfies RouteValidator,
   },
   downloadResultsFile: {
     controllerFn: () => downloadResultsFile,
@@ -49,7 +49,7 @@ export const routeDefinition = {
         isQuery: BooleanQueryParamSchema,
         fileName: z.string().nullish(),
       }),
-    },
+    } satisfies RouteValidator,
   },
   addBatchToJob: {
     controllerFn: () => addBatchToJob,
@@ -59,7 +59,7 @@ export const routeDefinition = {
       query: z.object({
         closeJob: BooleanQueryParamSchema,
       }),
-    },
+    } satisfies RouteValidator,
   },
   addBatchToJobWithBinaryAttachment: {
     controllerFn: () => addBatchToJobWithBinaryAttachment,
@@ -69,7 +69,7 @@ export const routeDefinition = {
       query: z.object({
         closeJob: BooleanQueryParamSchema,
       }),
-    },
+    } satisfies RouteValidator,
   },
 };
 

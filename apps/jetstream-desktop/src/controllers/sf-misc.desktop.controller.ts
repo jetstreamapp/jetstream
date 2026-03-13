@@ -2,7 +2,7 @@ import { SalesforceApiRequestSchema, SalesforceRequestManualRequestSchema } from
 import { FetchResponse } from '@jetstream/salesforce-api';
 import { type ManualRequestResponse } from '@jetstream/types';
 import { z } from 'zod';
-import { createRoute, handleErrorResponse, handleJsonResponse } from '../utils/route.utils';
+import { createRoute, handleErrorResponse, handleJsonResponse, RouteValidator } from '../utils/route.utils';
 
 export const routeDefinition = {
   streamFileDownload: {
@@ -11,19 +11,19 @@ export const routeDefinition = {
       query: z.object({
         url: z.string().min(1),
       }),
-    },
+    } satisfies RouteValidator,
   },
   salesforceRequest: {
     controllerFn: () => salesforceRequest,
     validators: {
       body: SalesforceApiRequestSchema,
-    },
+    } satisfies RouteValidator,
   },
   salesforceRequestManual: {
     controllerFn: () => salesforceRequestManual,
     validators: {
       body: SalesforceRequestManualRequestSchema,
-    },
+    } satisfies RouteValidator,
   },
 };
 

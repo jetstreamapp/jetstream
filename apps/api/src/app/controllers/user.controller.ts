@@ -38,7 +38,7 @@ import * as userDbService from '../db/user.db';
 import * as stripeService from '../services/stripe.service';
 import { AuthenticationError, UserFacingError } from '../utils/error-handler';
 import { redirect, sendJson } from '../utils/response.handlers';
-import { createRoute } from '../utils/route.utils';
+import { createRoute, RouteValidator } from '../utils/route.utils';
 
 export const routeDefinition = {
   getUserProfile: {
@@ -47,7 +47,7 @@ export const routeDefinition = {
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
-    },
+    } satisfies RouteValidator,
   },
   initPassword: {
     controllerFn: () => initPassword,
@@ -58,14 +58,14 @@ export const routeDefinition = {
       }),
       hasSourceOrg: false,
       logErrorToBugTracker: true,
-    },
+    } satisfies RouteValidator,
   },
   initResetPassword: {
     controllerFn: () => initResetPassword,
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
-    },
+    } satisfies RouteValidator,
   },
   deletePassword: {
     controllerFn: () => deletePassword,
@@ -73,7 +73,7 @@ export const routeDefinition = {
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
-    },
+    } satisfies RouteValidator,
   },
   getFullUserProfile: {
     controllerFn: () => getFullUserProfile,
@@ -81,7 +81,7 @@ export const routeDefinition = {
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
-    },
+    } satisfies RouteValidator,
   },
   getSessions: {
     controllerFn: () => getSessions,
@@ -89,7 +89,7 @@ export const routeDefinition = {
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
-    },
+    } satisfies RouteValidator,
   },
   revokeSession: {
     controllerFn: () => revokeSession,
@@ -103,7 +103,7 @@ export const routeDefinition = {
       }),
       hasSourceOrg: false,
       logErrorToBugTracker: true,
-    },
+    } satisfies RouteValidator,
   },
   revokeAllSessions: {
     controllerFn: () => revokeAllSessions,
@@ -116,7 +116,7 @@ export const routeDefinition = {
         .nullish(),
       hasSourceOrg: false,
       logErrorToBugTracker: true,
-    },
+    } satisfies RouteValidator,
   },
   updateProfile: {
     controllerFn: () => updateProfile,
@@ -134,7 +134,7 @@ export const routeDefinition = {
           })
           .optional(),
       }),
-    },
+    } satisfies RouteValidator,
   },
   getUserLoginConfiguration: {
     controllerFn: () => getUserLoginConfiguration,
@@ -142,7 +142,7 @@ export const routeDefinition = {
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
-    },
+    } satisfies RouteValidator,
   },
   getOtpQrCode: {
     controllerFn: () => getOtpQrCode,
@@ -150,7 +150,7 @@ export const routeDefinition = {
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
-    },
+    } satisfies RouteValidator,
   },
   saveOtpAuthFactor: {
     controllerFn: () => saveOtpAuthFactor,
@@ -161,7 +161,7 @@ export const routeDefinition = {
         secretToken: z.string().min(32).max(32),
       }),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   toggleEnableDisableAuthFactor: {
     controllerFn: () => toggleEnableDisableAuthFactorRoute,
@@ -173,7 +173,7 @@ export const routeDefinition = {
       }),
       hasSourceOrg: false,
       logErrorToBugTracker: true,
-    },
+    } satisfies RouteValidator,
   },
   deleteAuthFactor: {
     controllerFn: () => deleteAuthFactorRoute,
@@ -184,7 +184,7 @@ export const routeDefinition = {
       }),
       hasSourceOrg: false,
       logErrorToBugTracker: true,
-    },
+    } satisfies RouteValidator,
   },
   unlinkIdentity: {
     controllerFn: () => unlinkIdentity,
@@ -196,7 +196,7 @@ export const routeDefinition = {
         provider: OauthProviderTypeSchema,
         providerAccountId: z.string().min(1),
       }),
-    },
+    } satisfies RouteValidator,
   },
   linkIdentity: {
     controllerFn: () => linkIdentity,
@@ -206,7 +206,7 @@ export const routeDefinition = {
       query: z.object({
         provider: OauthProviderTypeSchema,
       }),
-    },
+    } satisfies RouteValidator,
   },
   deleteAccount: {
     controllerFn: () => deleteAccount,
@@ -216,7 +216,7 @@ export const routeDefinition = {
       body: z.object({
         reason: z.string().nullish(),
       }),
-    },
+    } satisfies RouteValidator,
   },
 };
 

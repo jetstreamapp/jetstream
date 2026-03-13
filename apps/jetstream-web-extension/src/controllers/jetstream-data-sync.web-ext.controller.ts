@@ -3,7 +3,7 @@ import browser from 'webextension-polyfill';
 import { z } from 'zod';
 import { environment } from '../environments/environment';
 import { ChromeStorageState } from '../utils/extension.types';
-import { createRoute, handleErrorResponse } from './route.utils';
+import { createRoute, handleErrorResponse, RouteValidator } from './route.utils';
 
 export const routeDefinition = {
   pull: {
@@ -11,7 +11,7 @@ export const routeDefinition = {
     validators: {
       query: z.any(),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   push: {
     controllerFn: () => push,
@@ -19,7 +19,7 @@ export const routeDefinition = {
       query: z.any(),
       body: z.any(),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
 };
 
