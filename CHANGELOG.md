@@ -1,5 +1,16 @@
 # Changelog
 
+## [9.2.0](https://github.com/jetstreamapp/jetstream/compare/v9.1.0...v9.2.0) (2026-03-13)
+
+### Features
+
+* refresh landing page ([4bd2d60](https://github.com/jetstreamapp/jetstream/commit/4bd2d601be50672d196a865727253545ac7a3bd7))
+
+### Bug Fixes
+
+* avoid interpolation in ci commands ([b0a8e24](https://github.com/jetstreamapp/jetstream/commit/b0a8e2413c2ff593b16448379401b49f0bd568c9))
+* correct malformed urls and unlinked commit references in changelog.md ([7edcfa0](https://github.com/jetstreamapp/jetstream/commit/7edcfa095c4bcf8346c6907e7eacb665fcf72f6b))
+
 ## [9.1.0](https://github.com/jetstreamapp/jetstream/compare/v9.0.1...v9.1.0) (2026-03-08)
 
 ### Features
