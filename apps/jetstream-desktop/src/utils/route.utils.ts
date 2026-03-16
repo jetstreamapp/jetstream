@@ -7,7 +7,7 @@ import { safeStorage } from 'electron';
 import logger from 'electron-log';
 import { z } from 'zod';
 import { ENV } from '../config/environment';
-import { getSalesforceOrgById, updateAccessTokens, updateSalesforceOrg_UNSAFE } from '../services/persistence.service';
+import { getAppData, getSalesforceOrgById, updateAccessTokens, updateSalesforceOrg_UNSAFE } from '../services/persistence.service';
 
 export interface RequestOptions {
   request: Request;
@@ -232,4 +232,14 @@ export function initApiConnection(
   );
 
   return { org, jetstreamConn };
+}
+
+export function getTokens() {
+  const { accessToken, deviceId } = getAppData();
+
+  if (!accessToken || !deviceId) {
+    throw new Error('Unauthorized');
+  }
+
+  return { authTokens: { accessToken }, extIdentifier: { id: deviceId } };
 }

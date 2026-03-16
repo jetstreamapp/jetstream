@@ -71,6 +71,13 @@ export const routeDefinition = {
       hasSourceOrg: false,
     } satisfies RouteValidator,
   },
+  getOrgs: {
+    controllerFn: () => getOrgs,
+    responseType: z.any(),
+    validators: {
+      hasSourceOrg: false,
+    } satisfies RouteValidator,
+  },
   dataSyncPull: {
     controllerFn: () => dataSyncPull,
     responseType: z.any(),
@@ -206,6 +213,17 @@ const logout = createRoute(routeDefinition.logout.validators, async ({ user }, _
   } catch (ex) {
     res.log.error({ userId: user?.id, deviceId, ...getErrorMessageAndStackObj(ex) }, 'Error logging out of desktop app');
     sendJson(res, { success: false, error: 'Invalid session' }, 401);
+  }
+});
+
+const getOrgs = createRoute(routeDefinition.getOrgs.validators, async ({ user }, _, res, next) => {
+  try {
+    const orgs = await salesforceOrgsDb.findByUserId(user.id);
+    const organizations = await orgGroupsDb.findByUserId({ userId: user.id });
+
+    sendJson(res, { orgs, organizations });
+  } catch (ex) {
+    next(new UserFacingError(ex));
   }
 });
 

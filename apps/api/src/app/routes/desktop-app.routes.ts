@@ -78,6 +78,8 @@ routes.delete('/auth/logout', STRICT_AuthRateLimit, authMiddleware, desktopAppCo
 /**
  * Other Routes
  */
+routes.get('/orgs', authMiddleware, desktopAppController.routeDefinition.getOrgs.controllerFn());
+
 routes.get('/data-sync/pull', authMiddleware, desktopAppController.routeDefinition.dataSyncPull.controllerFn());
 routes.post('/data-sync/push', authMiddleware, desktopAppController.routeDefinition.dataSyncPush.controllerFn());
 

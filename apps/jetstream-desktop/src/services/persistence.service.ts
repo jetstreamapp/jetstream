@@ -12,7 +12,8 @@ import {
   SalesforceOrgServer,
   UserProfileUiDesktop,
 } from '@jetstream/desktop/types';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { groupByFlat } from '@jetstream/shared/utils';
+import { Maybe, OrgsWithGroupResponse, SalesforceOrgUi } from '@jetstream/types';
 import { randomUUID } from 'crypto';
 import { fromUnixTime } from 'date-fns';
 import { app, safeStorage } from 'electron';
@@ -30,7 +31,10 @@ const USER_PREFERENCES_FILE = join(userData, 'preferences.json');
 let APP_DATA: AppData;
 let SALESFORCE_ORGS: SalesforceOrgServer[];
 let JETSTREAM_ORGS: JetstreamOrganizationServer[];
+let SALESFORCE_ORGS_TO_IGNORE_SYNC_FROM_WEB: string[] = [];
 let USER_PREFERENCES: DesktopUserPreferences;
+
+export const WEB_ORG_SYNC_CONNECTION_ERR_MESSAGE = 'This org was synced from the Jetstream web application and must be reconnected';
 
 function writeFile(path: string, data: string, encrypt = false) {
   let _data: string | Buffer = data;
@@ -202,25 +206,38 @@ export function updateUserPreferences(preferences: Partial<DesktopUserPreference
 function readOrgs(): OrgsPersistence {
   try {
     if (JETSTREAM_ORGS && SALESFORCE_ORGS) {
-      return { jetstreamOrganizations: JETSTREAM_ORGS, salesforceOrgs: SALESFORCE_ORGS };
+      return {
+        jetstreamOrganizations: JETSTREAM_ORGS,
+        salesforceOrgs: SALESFORCE_ORGS,
+        salesforceOrgsToIgnoreSyncFromWeb: SALESFORCE_ORGS_TO_IGNORE_SYNC_FROM_WEB ?? [],
+      };
     }
     if (!existsSync(SFDC_ORGS_FILE)) {
-      writeFile(SFDC_ORGS_FILE, JSON.stringify({ jetstreamOrganizations: [], salesforceOrgs: [] }), true);
+      writeFile(
+        SFDC_ORGS_FILE,
+        JSON.stringify({ jetstreamOrganizations: [], salesforceOrgs: [], salesforceOrgsToIgnoreSyncFromWeb: [] } satisfies OrgsPersistence),
+        true,
+      );
     }
     const orgsRaw = JSON.parse(readFile(SFDC_ORGS_FILE, true));
-    const { jetstreamOrganizations, salesforceOrgs } = OrgsPersistenceSchema.parse(orgsRaw);
+    const { jetstreamOrganizations, salesforceOrgs, salesforceOrgsToIgnoreSyncFromWeb } = OrgsPersistenceSchema.parse(orgsRaw);
     JETSTREAM_ORGS = jetstreamOrganizations;
     SALESFORCE_ORGS = salesforceOrgs;
-    return { jetstreamOrganizations, salesforceOrgs };
+    SALESFORCE_ORGS_TO_IGNORE_SYNC_FROM_WEB = salesforceOrgsToIgnoreSyncFromWeb;
+    return { jetstreamOrganizations, salesforceOrgs, salesforceOrgsToIgnoreSyncFromWeb };
   } catch (ex) {
     logger.error('Error reading orgs file', ex);
-    return { jetstreamOrganizations: [], salesforceOrgs: [] };
+    return { jetstreamOrganizations: [], salesforceOrgs: [], salesforceOrgsToIgnoreSyncFromWeb: [] };
   }
 }
 
 function saveOrgs() {
   try {
-    const data = { jetstreamOrganizations: JETSTREAM_ORGS, salesforceOrgs: SALESFORCE_ORGS };
+    const data = {
+      jetstreamOrganizations: JETSTREAM_ORGS,
+      salesforceOrgs: SALESFORCE_ORGS,
+      salesforceOrgsToIgnoreSyncFromWeb: SALESFORCE_ORGS_TO_IGNORE_SYNC_FROM_WEB,
+    };
     writeFile(SFDC_ORGS_FILE, JSON.stringify(data), true);
   } catch (ex) {
     logger.error('Error saving orgs file', ex);
@@ -237,16 +254,25 @@ export function getOrgGroups() {
   return JETSTREAM_ORGS || readOrgs().jetstreamOrganizations;
 }
 
-export function createOrgGroup(payload: { name: string; description: string | null }) {
+export function createOrgGroup(payload: { id?: string; name: string; description: string | null }) {
+  const jetstreamOrganizations = getOrgGroups();
+
+  // If an id is provided, check for an existing group with that id to prevent duplicates
+  if (payload.id) {
+    const existing = jetstreamOrganizations.find((org) => org.id === payload.id);
+    if (existing) {
+      return existing;
+    }
+  }
+
   const newJetstreamOrg: JetstreamOrganizationServer = {
-    id: randomUUID(),
+    id: payload.id || randomUUID(),
     ...payload,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     orgs: [],
   };
   const jetstreamOrganization = JetstreamOrganizationSchema.parse(newJetstreamOrg);
-  const jetstreamOrganizations = getOrgGroups();
   jetstreamOrganizations.push(jetstreamOrganization);
 
   JETSTREAM_ORGS = jetstreamOrganizations;
@@ -296,12 +322,21 @@ export function deleteOrgGroup(id: string) {
 export function deleteOrgGroupAndAllOrgs(id: string) {
   const jetstreamOrganizations = getOrgGroups().filter((org) => org.id !== id);
 
-  const salesforceOrgs = getSalesforceOrgs().filter((org) => {
+  const allOrgs = getSalesforceOrgs();
+  const deletedWebOrgIds = allOrgs.filter((org) => org.jetstreamOrganizationId === id && org.source === 'WEB').map((org) => org.uniqueId);
+
+  const salesforceOrgs = allOrgs.filter((org) => {
     return org.jetstreamOrganizationId !== id;
   });
 
   JETSTREAM_ORGS = jetstreamOrganizations;
   SALESFORCE_ORGS = salesforceOrgs;
+
+  if (deletedWebOrgIds.length > 0) {
+    SALESFORCE_ORGS_TO_IGNORE_SYNC_FROM_WEB.push(...deletedWebOrgIds);
+    SALESFORCE_ORGS_TO_IGNORE_SYNC_FROM_WEB = Array.from(new Set(SALESFORCE_ORGS_TO_IGNORE_SYNC_FROM_WEB));
+  }
+
   saveOrgs();
   return jetstreamOrganizations;
 }
@@ -313,7 +348,14 @@ export function moveSalesforceOrgToJetstreamOrg({ orgGroupId, uniqueId }: { uniq
     } else {
       org.orgs = org.orgs.filter((org) => org.uniqueId !== uniqueId);
     }
-    org.orgs = Array.from(new Set(org.orgs));
+    const seen = new Set<string>();
+    org.orgs = org.orgs.filter(({ uniqueId: uid }) => {
+      if (seen.has(uid)) {
+        return false;
+      }
+      seen.add(uid);
+      return true;
+    });
     return org;
   });
 
@@ -342,6 +384,7 @@ export function getSalesforceOrgs() {
 
 export function removeSalesforceOrg(uniqueId: string) {
   let { jetstreamOrganizations, salesforceOrgs } = readOrgs();
+  const excludeFromSync = salesforceOrgs.some((org) => org.uniqueId === uniqueId && org.source === 'WEB');
   salesforceOrgs = salesforceOrgs.filter((org) => org.uniqueId !== uniqueId);
   jetstreamOrganizations = jetstreamOrganizations.map((org) => {
     org.orgs = org.orgs.filter((org) => org.uniqueId !== uniqueId);
@@ -349,6 +392,13 @@ export function removeSalesforceOrg(uniqueId: string) {
   });
   JETSTREAM_ORGS = jetstreamOrganizations;
   SALESFORCE_ORGS = salesforceOrgs;
+
+  // If org from web, ensure we ignore on future sync attempts to prevent it from coming back
+  if (excludeFromSync) {
+    SALESFORCE_ORGS_TO_IGNORE_SYNC_FROM_WEB.push(uniqueId);
+    SALESFORCE_ORGS_TO_IGNORE_SYNC_FROM_WEB = Array.from(new Set(SALESFORCE_ORGS_TO_IGNORE_SYNC_FROM_WEB));
+  }
+
   saveOrgs();
   return salesforceOrgs;
 }
@@ -378,6 +428,81 @@ export function updateAccessTokens(uniqueId: string, payload: { accessToken: str
   return orgs;
 }
 
+export function mergeWebAppOrgsWithDesktopOrgs(webAppOrgs: Maybe<OrgsWithGroupResponse>) {
+  if (!webAppOrgs) {
+    return getSalesforceOrgs();
+  }
+  try {
+    const { jetstreamOrganizations, salesforceOrgs, salesforceOrgsToIgnoreSyncFromWeb } = readOrgs();
+
+    const orgGroupMap = new Map();
+    const orgGroupsToCreate = new Map();
+
+    const webAppOrgsById = new Map(Object.entries(groupByFlat(webAppOrgs.orgs, 'uniqueId')));
+    const webAppGroupsByName = new Map(Object.entries(groupByFlat(webAppOrgs.organizations, 'name')));
+    const webAppGroupsById = new Map(Object.entries(groupByFlat(webAppOrgs.organizations, 'id')));
+
+    // Ignore any orgs that were previously deleted from desktop
+    salesforceOrgsToIgnoreSyncFromWeb.forEach((uniqueId) => {
+      webAppOrgsById.delete(uniqueId);
+    });
+
+    // Ignore any orgs that already exist on desktop
+    salesforceOrgs.forEach((org) => {
+      if (webAppOrgsById.has(org.uniqueId)) {
+        webAppOrgsById.delete(org.uniqueId);
+      }
+    });
+
+    // Figure out which groups already exist - matched by id or name and set mapping of server id to desktop id
+    jetstreamOrganizations.forEach((group) => {
+      const matchingGroup = webAppGroupsById.get(group.id) || webAppGroupsByName.get(group.name);
+      if (matchingGroup) {
+        orgGroupMap.set(matchingGroup.id, group.id);
+      }
+    });
+
+    // Figure out all the groups we need to create
+    webAppOrgsById.forEach((webAppOrg) => {
+      // if no group or group exists on desktop, ignore
+      if (!webAppOrg.jetstreamOrganizationId || orgGroupMap.has(webAppOrg.jetstreamOrganizationId)) {
+        return;
+      }
+      const group = webAppGroupsById.get(webAppOrg.jetstreamOrganizationId);
+      if (!group) {
+        return;
+      }
+      orgGroupsToCreate.set(webAppOrg.jetstreamOrganizationId, group);
+    });
+
+    // Create any new groups and update mapping with new ids
+    orgGroupsToCreate.forEach((group, groupId) => {
+      const createdGroup = createOrgGroup({
+        id: group.id, // retain same id to make future sync easier
+        name: group.name,
+        description: group.description,
+      });
+      orgGroupsToCreate.set(groupId, createdGroup);
+      orgGroupMap.set(groupId, createdGroup.id);
+    });
+
+    webAppOrgsById.forEach((webAppOrg) => {
+      // this sets it on the group automatically
+      createOrUpdateSalesforceOrg(
+        {
+          ...webAppOrg,
+          accessToken: 'invalid',
+          source: 'WEB',
+        },
+        { connectionError: WEB_ORG_SYNC_CONNECTION_ERR_MESSAGE },
+      );
+    });
+  } catch (ex) {
+    logger.error('Error merging web app orgs with desktop orgs', ex);
+  }
+  return getSalesforceOrgs();
+}
+
 /**
  * Update any property of the org, internal use only
  */
@@ -397,7 +522,10 @@ export function getSalesforceOrgById(uniqueId: string): SalesforceOrgUi | undefi
   return getSalesforceOrgs().find((org) => org.uniqueId === uniqueId) as SalesforceOrgUi;
 }
 
-export function createOrUpdateSalesforceOrg(salesforceOrgUi: Partial<SalesforceOrgUi>) {
+export function createOrUpdateSalesforceOrg(
+  salesforceOrgUi: Partial<SalesforceOrgUi>,
+  { connectionError }: { connectionError?: string } = {},
+) {
   let newOrg: SalesforceOrgServer;
   const existingOrg = getSalesforceOrgById(salesforceOrgUi.uniqueId!);
   if (existingOrg) {
@@ -423,8 +551,10 @@ export function createOrUpdateSalesforceOrg(salesforceOrgUi: Partial<SalesforceO
       orgLanguageLocaleKey: salesforceOrgUi.orgLanguageLocaleKey ?? existingOrg.orgLanguageLocaleKey,
       orgNamespacePrefix: salesforceOrgUi.orgNamespacePrefix ?? existingOrg.orgNamespacePrefix,
       orgTrialExpirationDate: salesforceOrgUi.orgTrialExpirationDate ?? existingOrg.orgTrialExpirationDate,
-      filterText: salesforceOrgUi.filterText ?? `${salesforceOrgUi.username}${salesforceOrgUi.orgName}${salesforceOrgUi.label}`,
-      connectionError: null,
+      filterText: salesforceOrgUi.filterText ?? existingOrg.filterText,
+      source: salesforceOrgUi.source ?? existingOrg.source ?? 'DESKTOP',
+      // Clear error unless explicitly passed in
+      connectionError: connectionError ?? null,
     };
   } else {
     newOrg = {
@@ -449,8 +579,11 @@ export function createOrUpdateSalesforceOrg(salesforceOrgUi: Partial<SalesforceO
       orgLanguageLocaleKey: salesforceOrgUi.orgLanguageLocaleKey,
       orgNamespacePrefix: salesforceOrgUi.orgNamespacePrefix,
       orgTrialExpirationDate: salesforceOrgUi.orgTrialExpirationDate,
-      connectionError: null,
-      filterText: `${salesforceOrgUi.username}${salesforceOrgUi.orgName}${salesforceOrgUi.label}`,
+      filterText:
+        salesforceOrgUi.filterText || `${salesforceOrgUi.username || ''}${salesforceOrgUi.orgName || ''}${salesforceOrgUi.label || ''}`,
+      source: salesforceOrgUi.source ?? 'DESKTOP',
+      // Clear error unless explicitly passed in
+      connectionError: connectionError ?? null,
     };
   }
   let orgs = getSalesforceOrgs();

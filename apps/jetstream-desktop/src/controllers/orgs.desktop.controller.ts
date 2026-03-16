@@ -1,9 +1,12 @@
 import { ApiRequestError } from '@jetstream/salesforce-api';
-import { ERROR_MESSAGES } from '@jetstream/shared/constants';
-import { SObjectOrganization } from '@jetstream/types';
+import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
+import { OrgsWithGroupResponse, SObjectOrganization } from '@jetstream/types';
+import { app } from 'electron';
+import logger from 'electron-log';
 import { z } from 'zod';
+import { ENV } from '../config/environment';
 import * as dataService from '../services/persistence.service';
-import { createRoute, handleErrorResponse, handleJsonResponse, RouteValidator } from '../utils/route.utils';
+import { createRoute, getTokens, handleErrorResponse, handleJsonResponse, RouteValidator } from '../utils/route.utils';
 
 export const routeDefinition = {
   getOrgs: {
@@ -52,7 +55,30 @@ export const routeDefinition = {
 
 const getOrgs = createRoute(routeDefinition.getOrgs.validators, async ({}) => {
   try {
-    const orgs = dataService.getSalesforceOrgs().map((org) => ({ ...org, accessToken: undefined }));
+    const { authTokens, extIdentifier } = getTokens();
+
+    const webAppOrgs = await fetch(`${ENV.SERVER_URL}/desktop-app/orgs`, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${authTokens?.accessToken}`,
+        [HTTP.HEADERS.X_EXT_DEVICE_ID]: extIdentifier.id,
+        [HTTP.HEADERS.X_APP_VERSION]: app.getVersion(),
+      },
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          logger.warn('Failed to fetch orgs from web app', { error: await res.text().catch(() => 'Unable to read response body') });
+          return null;
+        }
+        return (res.json() as Promise<{ data: OrgsWithGroupResponse }>).then(({ data }) => data);
+      })
+      .catch((ex) => {
+        logger.warn('Failed to fetch orgs from web app', { error: ex });
+        return null;
+      });
+
+    const orgs = dataService.mergeWebAppOrgsWithDesktopOrgs(webAppOrgs).map((org) => ({ ...org, accessToken: undefined }));
 
     return handleJsonResponse(orgs);
   } catch (ex) {
