@@ -36,13 +36,7 @@ export function rateLimitGetKeyGenerator(): ValueDeterminingMiddleware<string> {
   };
 }
 
-// FIXME: when these were used, createRoute did not properly infer types
-// export type RouteValidator = Parameters<typeof createRoute>[0];
-// export type RouteDefinition = {
-//   controllerFn: () => ReturnType<typeof createRoute>;
-//   validators: RouteValidator;
-// };
-// export type RouteDefinitions = Record<string, RouteDefinition>;
+export type RouteValidator = Parameters<typeof createRoute>[0];
 
 export type ControllerFunction<TParamsSchema extends z.ZodTypeAny, TBodySchema extends z.ZodTypeAny, TQuerySchema extends z.ZodTypeAny> = (
   data: {

@@ -25,7 +25,7 @@ import * as teamService from '../services/team.service';
 import { NotAllowedError, NotFoundError } from '../utils/error-handler';
 import { assertDomainResolvesToPublicIp } from '../utils/network.utils';
 import { sendJson } from '../utils/response.handlers';
-import { createRoute } from '../utils/route.utils';
+import { createRoute, RouteValidator } from '../utils/route.utils';
 
 export const routeDefinition = {
   verifyInvitation: {
@@ -38,7 +38,7 @@ export const routeDefinition = {
         teamId: z.uuid(),
         token: z.uuid(),
       }),
-    },
+    } satisfies RouteValidator,
   },
   acceptInvitation: {
     controllerFn: () => acceptInvitation,
@@ -50,7 +50,7 @@ export const routeDefinition = {
         teamId: z.uuid(),
         token: z.uuid(),
       }),
-    },
+    } satisfies RouteValidator,
   },
   getTeam: {
     controllerFn: () => getTeam,
@@ -58,7 +58,7 @@ export const routeDefinition = {
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
-    },
+    } satisfies RouteValidator,
   },
   updateTeam: {
     controllerFn: () => updateTeam,
@@ -72,7 +72,7 @@ export const routeDefinition = {
       body: z.object({
         name: z.string().trim().min(2).max(255),
       }),
-    },
+    } satisfies RouteValidator,
   },
   getUserSessions: {
     controllerFn: () => getUserSessions,
@@ -99,7 +99,7 @@ export const routeDefinition = {
         limit: z.coerce.number().min(1).max(100).optional(),
         cursorId: z.coerce.string().optional(),
       }),
-    },
+    } satisfies RouteValidator,
   },
   revokeUserSession: {
     controllerFn: () => revokeUserSession,
@@ -111,7 +111,7 @@ export const routeDefinition = {
         teamId: z.uuid(),
         sessionId: z.string(),
       }),
-    },
+    } satisfies RouteValidator,
   },
   getUserAuthActivity: {
     controllerFn: () => getUserAuthActivity,
@@ -139,7 +139,7 @@ export const routeDefinition = {
         limit: z.coerce.number().min(1).max(100).optional(),
         cursorId: z.coerce.number().optional(),
       }),
-    },
+    } satisfies RouteValidator,
   },
   updateLoginConfiguration: {
     controllerFn: () => updateLoginConfiguration,
@@ -151,7 +151,7 @@ export const routeDefinition = {
         teamId: z.uuid(),
       }),
       body: TeamLoginConfigRequestSchema,
-    },
+    } satisfies RouteValidator,
   },
   updateTeamMember: {
     controllerFn: () => updateTeamMember,
@@ -164,7 +164,7 @@ export const routeDefinition = {
         userId: z.uuid(),
       }),
       body: TeamMemberUpdateRequestSchema,
-    },
+    } satisfies RouteValidator,
   },
   updateTeamMemberStatusAndRole: {
     controllerFn: () => updateTeamMemberStatusAndRole,
@@ -177,7 +177,7 @@ export const routeDefinition = {
         userId: z.uuid(),
       }),
       body: TeamMemberStatusUpdateRequestSchema,
-    },
+    } satisfies RouteValidator,
   },
   getInvitations: {
     controllerFn: () => getInvitations,
@@ -188,7 +188,7 @@ export const routeDefinition = {
       params: z.object({
         teamId: z.uuid(),
       }),
-    },
+    } satisfies RouteValidator,
   },
   createInvitation: {
     controllerFn: () => createInvitation,
@@ -200,7 +200,7 @@ export const routeDefinition = {
         teamId: z.uuid(),
       }),
       body: TeamInvitationRequestSchema,
-    },
+    } satisfies RouteValidator,
   },
   resendInvitation: {
     controllerFn: () => resendInvitation,
@@ -213,7 +213,7 @@ export const routeDefinition = {
         id: z.uuid(),
       }),
       body: TeamInvitationUpdateRequestSchema,
-    },
+    } satisfies RouteValidator,
   },
   cancelInvitation: {
     controllerFn: () => cancelInvitation,
@@ -225,7 +225,7 @@ export const routeDefinition = {
         teamId: z.uuid(),
         id: z.uuid(),
       }),
-    },
+    } satisfies RouteValidator,
   },
   // SSO Configuration
   getSsoConfig: {
@@ -234,7 +234,7 @@ export const routeDefinition = {
     validators: {
       hasSourceOrg: false,
       params: z.object({ teamId: z.uuid() }),
-    },
+    } satisfies RouteValidator,
   },
   parseSamlMetadata: {
     controllerFn: () => parseSamlMetadata,
@@ -247,7 +247,7 @@ export const routeDefinition = {
         .refine((data) => data.metadataXml || data.metadataUrl, {
           message: 'Either metadataXml or metadataUrl is required',
         }),
-    },
+    } satisfies RouteValidator,
   },
   createOrUpdateSamlConfig: {
     controllerFn: () => createOrUpdateSamlConfig,
@@ -257,7 +257,7 @@ export const routeDefinition = {
       logErrorToBugTracker: true,
       params: z.object({ teamId: z.uuid() }),
       body: SamlConfigurationRequestSchema,
-    },
+    } satisfies RouteValidator,
   },
   discoverOidcConfig: {
     controllerFn: () => discoverOidcConfig,
@@ -266,7 +266,7 @@ export const routeDefinition = {
       hasSourceOrg: false,
       params: z.object({ teamId: z.uuid() }),
       body: z.object({ issuer: z.url() }),
-    },
+    } satisfies RouteValidator,
   },
   createOrUpdateOidcConfig: {
     controllerFn: () => createOrUpdateOidcConfig,
@@ -276,7 +276,7 @@ export const routeDefinition = {
       logErrorToBugTracker: true,
       params: z.object({ teamId: z.uuid() }),
       body: OidcConfigurationRequestSchema,
-    },
+    } satisfies RouteValidator,
   },
   updateSsoSettings: {
     controllerFn: () => updateSsoSettings,
@@ -291,7 +291,7 @@ export const routeDefinition = {
         ssoBypassEnabled: z.boolean(),
         ssoBypassEnabledRoles: TeamMemberRoleSchema.array(),
       }),
-    },
+    } satisfies RouteValidator,
   },
   deleteSamlConfig: {
     controllerFn: () => deleteSamlConfig,
@@ -299,7 +299,7 @@ export const routeDefinition = {
     validators: {
       hasSourceOrg: false,
       params: z.object({ teamId: z.uuid() }),
-    },
+    } satisfies RouteValidator,
   },
   deleteOidcConfig: {
     controllerFn: () => deleteOidcConfig,
@@ -307,7 +307,7 @@ export const routeDefinition = {
     validators: {
       hasSourceOrg: false,
       params: z.object({ teamId: z.uuid() }),
-    },
+    } satisfies RouteValidator,
   },
   getDomainVerifications: {
     controllerFn: () => getDomainVerifications,
@@ -318,7 +318,7 @@ export const routeDefinition = {
       params: z.object({
         teamId: z.uuid(),
       }),
-    },
+    } satisfies RouteValidator,
   },
   saveDomainVerification: {
     controllerFn: () => saveDomainVerification,
@@ -332,7 +332,7 @@ export const routeDefinition = {
       body: z.object({
         domain: z.string().toLowerCase().regex(z.regexes.domain).min(1).max(255),
       }),
-    },
+    } satisfies RouteValidator,
   },
   verifyDomain: {
     controllerFn: () => verifyDomain,
@@ -344,7 +344,7 @@ export const routeDefinition = {
         teamId: z.uuid(),
         domainId: z.uuid(),
       }),
-    },
+    } satisfies RouteValidator,
   },
   deleteDomainVerification: {
     controllerFn: () => deleteDomainVerification,
@@ -356,7 +356,7 @@ export const routeDefinition = {
         teamId: z.uuid(),
         domainId: z.uuid(),
       }),
-    },
+    } satisfies RouteValidator,
   },
   getTeamAuditLogs: {
     controllerFn: () => getTeamAuditLogs,
@@ -371,7 +371,7 @@ export const routeDefinition = {
         startDate: z.coerce.date().optional(),
         endDate: z.coerce.date().optional(),
       }),
-    },
+    } satisfies RouteValidator,
   },
 };
 

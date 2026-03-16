@@ -1,14 +1,14 @@
 import { BooleanQueryParamSchema, CreateQueryJobRequestSchema } from '@jetstream/api-types';
 import { ensureBoolean } from '@jetstream/shared/utils';
 import { z } from 'zod';
-import { createRoute, handleErrorResponse, handleJsonResponse } from './route.utils';
+import { createRoute, handleErrorResponse, handleJsonResponse, RouteValidator } from './route.utils';
 
 export const routeDefinition = {
   createJob: {
     controllerFn: () => createJob,
     validators: {
       body: CreateQueryJobRequestSchema,
-    },
+    } satisfies RouteValidator,
   },
   getJobs: {
     controllerFn: () => getJobs,
@@ -19,25 +19,25 @@ export const routeDefinition = {
         concurrencyMode: z.enum(['parallel']).nullish(),
         queryLocator: z.string().nullish(),
       }),
-    },
+    } satisfies RouteValidator,
   },
   getJob: {
     controllerFn: () => getJob,
     validators: {
       params: z.object({ jobId: z.string().min(1) }),
-    },
+    } satisfies RouteValidator,
   },
   abortJob: {
     controllerFn: () => abortJob,
     validators: {
       params: z.object({ jobId: z.string().min(1) }),
-    },
+    } satisfies RouteValidator,
   },
   deleteJob: {
     controllerFn: () => deleteJob,
     validators: {
       params: z.object({ jobId: z.string().min(1) }),
-    },
+    } satisfies RouteValidator,
   },
   downloadResults: {
     controllerFn: () => downloadResults,
@@ -55,7 +55,7 @@ export const routeDefinition = {
           }, 'maxRecords must be an integer')
           .transform((val) => (val ? parseInt(val, 10) : undefined)),
       }),
-    },
+    } satisfies RouteValidator,
   },
 };
 

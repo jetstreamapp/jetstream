@@ -3,7 +3,7 @@ import browser from 'webextension-polyfill';
 import { z } from 'zod';
 import { environment } from '../environments/environment';
 import { ChromeStorageState } from '../utils/extension.types';
-import { createRoute, handleErrorResponse } from './route.utils';
+import { createRoute, handleErrorResponse, RouteValidator } from './route.utils';
 
 export const routeDefinition = {
   sendUserFeedbackEmail: {
@@ -12,7 +12,7 @@ export const routeDefinition = {
       hasSourceOrg: false,
       skipBodyParsing: true,
       body: z.any(),
-    },
+    } satisfies RouteValidator,
   },
 };
 

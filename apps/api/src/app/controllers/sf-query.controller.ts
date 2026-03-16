@@ -2,7 +2,7 @@ import { BooleanQueryParamSchema } from '@jetstream/api-types';
 import { z } from 'zod';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
-import { createRoute } from '../utils/route.utils';
+import { createRoute, RouteValidator } from '../utils/route.utils';
 
 export const routeDefinition = {
   describe: {
@@ -10,7 +10,7 @@ export const routeDefinition = {
     responseType: z.any(),
     validators: {
       query: z.object({ isTooling: BooleanQueryParamSchema }),
-    },
+    } satisfies RouteValidator,
   },
   describeSObject: {
     controllerFn: () => describeSObject,
@@ -18,7 +18,7 @@ export const routeDefinition = {
     validators: {
       query: z.object({ isTooling: BooleanQueryParamSchema }),
       params: z.object({ sobject: z.string().min(1).max(255) }),
-    },
+    } satisfies RouteValidator,
   },
   query: {
     controllerFn: () => query,
@@ -29,7 +29,7 @@ export const routeDefinition = {
         isTooling: BooleanQueryParamSchema,
         includeDeletedRecords: BooleanQueryParamSchema,
       }),
-    },
+    } satisfies RouteValidator,
   },
   queryMore: {
     controllerFn: () => queryMore,
@@ -38,7 +38,7 @@ export const routeDefinition = {
       query: z.object({
         nextRecordsUrl: z.string().min(1),
       }),
-    },
+    } satisfies RouteValidator,
   },
 };
 

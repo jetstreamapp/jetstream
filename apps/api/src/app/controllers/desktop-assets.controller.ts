@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/api-config';
 import z from 'zod';
 import { getLatestDesktopVersion, PlatformArch, PlatformArchSchema } from '../services/desktop-asset.service';
-import { createRoute } from '../utils/route.utils';
+import { createRoute, RouteValidator } from '../utils/route.utils';
 
 export const routeDefinition = {
   getDownloadLink: {
@@ -14,7 +14,7 @@ export const routeDefinition = {
     validators: {
       params: PlatformArchSchema,
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   getAllDownloadLinks: {
     controllerFn: () => getAllDownloadLinks,
@@ -49,7 +49,7 @@ export const routeDefinition = {
     }),
     validators: {
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
 };
 

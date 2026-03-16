@@ -3,13 +3,13 @@ import { ApiConnection, ApiRequestError, getApiRequestFactoryFn } from '@jetstre
 import * as oauthService from '@jetstream/salesforce-oauth';
 import { ERROR_MESSAGES } from '@jetstream/shared/constants';
 import { getErrorMessage } from '@jetstream/shared/utils';
-import { Maybe, SObjectOrganization, SalesforceOrgUi } from '@jetstream/types';
+import { Maybe, SalesforceOrgUi, SObjectOrganization } from '@jetstream/types';
 import { ResponseBodyError } from 'oauth4webapi';
 import { z } from 'zod';
 import * as jetstreamOrganizationsDb from '../db/organization.db';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import * as sfdcEncService from '../services/salesforce-org-encryption.service';
-import { createRoute } from '../utils/route.utils';
+import { createRoute, RouteValidator } from '../utils/route.utils';
 
 export interface OauthLinkParams {
   type: 'auth' | 'salesforce';
@@ -41,14 +41,14 @@ export const routeDefinition = {
         jetstreamOrganizationId: z.string().optional(),
       }),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   salesforceOauthCallback: {
     controllerFn: () => salesforceOauthCallback,
     validators: {
       query: z.record(z.string(), z.string()),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
 };
 

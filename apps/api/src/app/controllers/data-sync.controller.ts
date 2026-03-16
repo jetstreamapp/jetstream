@@ -7,7 +7,7 @@ import { z } from 'zod';
 import * as userSyncDbService from '../db/data-sync.db';
 import { emitRecordSyncEventsToOtherClients, SyncEvent } from '../services/data-sync-broadcast.service';
 import { sendJson } from '../utils/response.handlers';
-import { createRoute } from '../utils/route.utils';
+import { createRoute, RouteValidator } from '../utils/route.utils';
 
 // FIXME: TEMPORARY UNTIL ALL CLIENTS HAVE BEEN BACKFILLED
 export const SyncRecordOperationSchemaFillHashedKey = z
@@ -61,7 +61,7 @@ export const routeDefinition = {
         lastKey: z.string().nullish(),
       }),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   push: {
     controllerFn: () => push,
@@ -88,7 +88,7 @@ export const routeDefinition = {
       // Original code:
       // body: SyncRecordOperationSchema.array().max(userSyncDbService.MAX_SYNC),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
 };
 

@@ -4,7 +4,7 @@ import { StripBlobFilename } from '@jetstream/shared/node-utils';
 import { z } from 'zod';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
-import { createRoute } from '../utils/route.utils';
+import { createRoute, RouteValidator } from '../utils/route.utils';
 
 export const routeDefinition = {
   binaryUpload: {
@@ -17,7 +17,7 @@ export const routeDefinition = {
         isTooling: z.coerce.boolean().optional().default(false),
         assignmentRuleId: z.string().optional().default('FALSE'),
       }),
-    },
+    } satisfies RouteValidator,
   },
   recordOperation: {
     controllerFn: () => recordOperation,
@@ -32,7 +32,7 @@ export const routeDefinition = {
         externalId: z.string().nullish(),
         allOrNone: BooleanQueryParamSchema,
       }),
-    },
+    } satisfies RouteValidator,
   },
 };
 

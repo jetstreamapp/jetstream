@@ -1,13 +1,13 @@
 import { z } from 'zod';
 import * as dataService from '../services/persistence.service';
-import { createRoute, handleErrorResponse, handleJsonResponse } from '../utils/route.utils';
+import { createRoute, handleErrorResponse, handleJsonResponse, RouteValidator } from '../utils/route.utils';
 
 export const routeDefinition = {
   getOrganizations: {
     controllerFn: () => getOrgGroups,
     validators: {
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   createOrganization: {
     controllerFn: () => createOrgGroup,
@@ -17,7 +17,7 @@ export const routeDefinition = {
         description: z.string().optional().nullable().default(null),
       }),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   updateOrganization: {
     controllerFn: () => updateOrgGroup,
@@ -30,7 +30,7 @@ export const routeDefinition = {
         description: z.string().optional().nullable().default(null),
       }),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   deleteOrganization: {
     controllerFn: () => deleteOrgGroup,
@@ -39,7 +39,7 @@ export const routeDefinition = {
         id: z.uuid(),
       }),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   deleteOrganizationWithOrgs: {
     controllerFn: () => deleteOrganizationWithOrgs,
@@ -48,7 +48,7 @@ export const routeDefinition = {
         id: z.uuid(),
       }),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
 };
 

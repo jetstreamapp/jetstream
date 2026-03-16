@@ -6,13 +6,13 @@ import { z } from 'zod';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
-import { createRoute } from '../utils/route.utils';
+import { createRoute, RouteValidator } from '../utils/route.utils';
 
 export const routeDefinition = {
   getOrgs: {
     controllerFn: () => getOrgs,
     responseType: z.any().array(),
-    validators: { hasSourceOrg: false },
+    validators: { hasSourceOrg: false } satisfies RouteValidator,
   },
   updateOrg: {
     controllerFn: () => updateOrg,
@@ -26,7 +26,7 @@ export const routeDefinition = {
         color: z.string().nullish(),
       }),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   deleteOrg: {
     controllerFn: () => deleteOrg,
@@ -36,11 +36,11 @@ export const routeDefinition = {
         uniqueId: z.string().min(1),
       }),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   checkOrgHealth: {
     controllerFn: () => checkOrgHealth,
-    validators: {},
+    validators: {} satisfies RouteValidator,
   },
   moveOrg: {
     controllerFn: () => moveOrg,
@@ -55,7 +55,7 @@ export const routeDefinition = {
         jetstreamOrganizationId: z.uuid().nullish(),
       }),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
 };
 

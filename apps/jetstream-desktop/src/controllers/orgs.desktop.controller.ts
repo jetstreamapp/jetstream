@@ -3,12 +3,12 @@ import { ERROR_MESSAGES } from '@jetstream/shared/constants';
 import { SObjectOrganization } from '@jetstream/types';
 import { z } from 'zod';
 import * as dataService from '../services/persistence.service';
-import { createRoute, handleErrorResponse, handleJsonResponse } from '../utils/route.utils';
+import { createRoute, handleErrorResponse, handleJsonResponse, RouteValidator } from '../utils/route.utils';
 
 export const routeDefinition = {
   getOrgs: {
     controllerFn: () => getOrgs,
-    validators: { hasSourceOrg: false },
+    validators: { hasSourceOrg: false } satisfies RouteValidator,
   },
   updateOrg: {
     controllerFn: () => updateOrg,
@@ -21,7 +21,7 @@ export const routeDefinition = {
         color: z.string().nullish(),
       }),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   deleteOrg: {
     controllerFn: () => deleteOrg,
@@ -30,11 +30,11 @@ export const routeDefinition = {
         uniqueId: z.string().min(1),
       }),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
   checkOrgHealth: {
     controllerFn: () => checkOrgHealth,
-    validators: {},
+    validators: {} satisfies RouteValidator,
   },
   moveOrg: {
     controllerFn: () => moveOrg,
@@ -46,7 +46,7 @@ export const routeDefinition = {
         orgGroupId: z.uuid().nullish(),
       }),
       hasSourceOrg: false,
-    },
+    } satisfies RouteValidator,
   },
 };
 

@@ -1,7 +1,7 @@
 import { BooleanQueryParamSchema, RecordOperationRequestSchema, SalesforceApiRequestSchema } from '@jetstream/api-types';
 import { HTTP } from '@jetstream/shared/constants';
 import { z } from 'zod';
-import { createRoute, handleErrorResponse, handleJsonResponse } from '../utils/route.utils';
+import { createRoute, handleErrorResponse, handleJsonResponse, RouteValidator } from '../utils/route.utils';
 
 export const routeDefinition = {
   binaryUpload: {
@@ -15,7 +15,7 @@ export const routeDefinition = {
         isTooling: z.coerce.boolean().optional().default(false),
         assignmentRuleId: z.string().optional().default('FALSE'),
       }),
-    },
+    } satisfies RouteValidator,
   },
   recordOperation: {
     controllerFn: () => recordOperation,
@@ -29,7 +29,7 @@ export const routeDefinition = {
         externalId: z.string().nullish(),
         allOrNone: BooleanQueryParamSchema,
       }),
-    },
+    } satisfies RouteValidator,
   },
 };
 

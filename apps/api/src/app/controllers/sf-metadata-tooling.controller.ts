@@ -18,20 +18,20 @@ import { isString } from 'lodash';
 import { z } from 'zod';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
-import { createRoute } from '../utils/route.utils';
+import { createRoute, RouteValidator } from '../utils/route.utils';
 
 export const routeDefinition = {
   describeMetadata: {
     controllerFn: () => describeMetadata,
     responseType: z.any(),
-    validators: {},
+    validators: {} satisfies RouteValidator,
   },
   listMetadata: {
     controllerFn: () => listMetadata,
     responseType: z.any(),
     validators: {
       body: ListMetadataRequestSchema,
-    },
+    } satisfies RouteValidator,
   },
   readMetadata: {
     controllerFn: () => readMetadata,
@@ -39,14 +39,14 @@ export const routeDefinition = {
     validators: {
       params: z.object({ type: z.string() }),
       body: ReadMetadataRequestSchema,
-    },
+    } satisfies RouteValidator,
   },
   deployMetadata: {
     controllerFn: () => deployMetadata,
     responseType: z.any(),
     validators: {
       body: DeployMetadataRequestSchema,
-    },
+    } satisfies RouteValidator,
   },
   deployMetadataZip: {
     controllerFn: () => deployMetadataZip,
@@ -54,7 +54,7 @@ export const routeDefinition = {
     validators: {
       body: z.any(),
       query: z.object({ options: z.string() }),
-    },
+    } satisfies RouteValidator,
   },
   checkMetadataResults: {
     controllerFn: () => checkMetadataResults,
@@ -62,35 +62,35 @@ export const routeDefinition = {
     validators: {
       params: z.object({ id: z.string().min(15).max(18) }),
       query: z.object({ includeDetails: BooleanQueryParamSchema }),
-    },
+    } satisfies RouteValidator,
   },
   retrievePackageFromLisMetadataResults: {
     controllerFn: () => retrievePackageFromLisMetadataResults,
     responseType: z.any(),
     validators: {
       body: RetrievePackageFromLisMetadataResultsRequestSchema,
-    },
+    } satisfies RouteValidator,
   },
   retrievePackageFromExistingServerPackages: {
     controllerFn: () => retrievePackageFromExistingServerPackages,
     responseType: z.any(),
     validators: {
       body: RetrievePackageFromExistingServerPackagesRequestSchema,
-    },
+    } satisfies RouteValidator,
   },
   retrievePackageFromManifest: {
     controllerFn: () => retrievePackageFromManifest,
     responseType: z.any(),
     validators: {
       body: z.object({ packageManifest: z.string() }),
-    },
+    } satisfies RouteValidator,
   },
   checkRetrieveStatus: {
     controllerFn: () => checkRetrieveStatus,
     responseType: z.any(),
     validators: {
       query: z.object({ id: z.string().min(15).max(18) }),
-    },
+    } satisfies RouteValidator,
   },
   checkRetrieveStatusAndRedeploy: {
     controllerFn: () => checkRetrieveStatusAndRedeploy,
@@ -99,21 +99,21 @@ export const routeDefinition = {
       hasTargetOrg: true,
       query: z.object({ id: z.string().min(15).max(18) }),
       body: CheckRetrieveStatusAndRedeployRequestSchema,
-    },
+    } satisfies RouteValidator,
   },
   getPackageXml: {
     controllerFn: () => getPackageXml,
     responseType: z.any(),
     validators: {
       body: GetPackageXmlSchema,
-    },
+    } satisfies RouteValidator,
   },
   anonymousApex: {
     controllerFn: () => anonymousApex,
     responseType: z.any(),
     validators: {
       body: AnonymousApexSchema,
-    },
+    } satisfies RouteValidator,
   },
   apexCompletions: {
     controllerFn: () => apexCompletions,
@@ -122,7 +122,7 @@ export const routeDefinition = {
       params: z.object({
         type: z.enum(['apex', 'visualforce']),
       }),
-    },
+    } satisfies RouteValidator,
   },
 };
 

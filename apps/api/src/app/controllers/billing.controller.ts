@@ -9,7 +9,7 @@ import * as userDbService from '../db/user.db';
 import * as stripeService from '../services/stripe.service';
 import { NotFoundError, UserFacingError } from '../utils/error-handler';
 import { redirect, sendJson } from '../utils/response.handlers';
-import { createRoute } from '../utils/route.utils';
+import { createRoute, RouteValidator } from '../utils/route.utils';
 
 export const routeDefinition = {
   webhook: {
@@ -17,7 +17,7 @@ export const routeDefinition = {
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
-    },
+    } satisfies RouteValidator,
   },
   fetchPrices: {
     controllerFn: () => fetchPrices,
@@ -25,7 +25,7 @@ export const routeDefinition = {
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
-    },
+    } satisfies RouteValidator,
   },
   createCheckoutSession: {
     controllerFn: () => createCheckoutSessionHandler,
@@ -36,7 +36,7 @@ export const routeDefinition = {
       body: z.object({
         priceLookupKey: z.enum(STRIPE_PRICE_KEYS),
       }),
-    },
+    } satisfies RouteValidator,
   },
   processCheckoutSuccess: {
     controllerFn: () => processCheckoutSuccessHandler,
@@ -53,7 +53,7 @@ export const routeDefinition = {
         userId: z.string(),
         teamId: z.string().optional(),
       }),
-    },
+    } satisfies RouteValidator,
   },
   getSubscriptions: {
     controllerFn: () => getSubscriptionsHandler,
@@ -67,14 +67,14 @@ export const routeDefinition = {
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
-    },
+    } satisfies RouteValidator,
   },
   createBillingPortalSession: {
     controllerFn: () => createBillingPortalSession,
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
-    },
+    } satisfies RouteValidator,
   },
 };
 

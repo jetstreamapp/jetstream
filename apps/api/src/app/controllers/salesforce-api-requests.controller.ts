@@ -2,13 +2,13 @@ import z from 'zod';
 import * as salesforceApiDb from '../db/salesforce-api.db';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
-import { createRoute } from '../utils/route.utils';
+import { createRoute, RouteValidator } from '../utils/route.utils';
 
 export const routeDefinition = {
   getSalesforceApiRequests: {
     controllerFn: () => getSalesforceApiRequests,
     responseType: z.any().array(),
-    validators: { hasSourceOrg: false },
+    validators: { hasSourceOrg: false } satisfies RouteValidator,
   },
 };
 

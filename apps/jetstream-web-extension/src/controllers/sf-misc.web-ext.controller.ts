@@ -2,7 +2,7 @@ import { SalesforceApiRequestSchema, SalesforceRequestManualRequestSchema } from
 import { FetchResponse, getBinaryFileRecordQueryMap } from '@jetstream/salesforce-api';
 import { BinaryDownloadCompatibleObjectsSchema, FileNameFormatSchema, type ManualRequestResponse } from '@jetstream/types';
 import { z } from 'zod';
-import { createRoute, handleErrorResponse, handleJsonResponse } from './route.utils';
+import { createRoute, handleErrorResponse, handleJsonResponse, RouteValidator } from './route.utils';
 
 export const routeDefinition = {
   // getFrontdoorLoginUrl: {
@@ -17,7 +17,7 @@ export const routeDefinition = {
       query: z.object({
         url: z.string().min(1),
       }),
-    },
+    } satisfies RouteValidator,
   },
   streamFileDownloadToZip: {
     controllerFn: () => streamFileDownloadToZip,
@@ -28,19 +28,19 @@ export const routeDefinition = {
         recordIds: z.array(z.string().min(15).max(18)).min(1),
         nameFormat: FileNameFormatSchema.default('name'),
       }),
-    },
+    } satisfies RouteValidator,
   },
   salesforceRequest: {
     controllerFn: () => salesforceRequest,
     validators: {
       body: SalesforceApiRequestSchema,
-    },
+    } satisfies RouteValidator,
   },
   salesforceRequestManual: {
     controllerFn: () => salesforceRequestManual,
     validators: {
       body: SalesforceRequestManualRequestSchema,
-    },
+    } satisfies RouteValidator,
   },
 };
 

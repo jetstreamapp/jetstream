@@ -3,7 +3,7 @@ import { ensureBoolean } from '@jetstream/shared/utils';
 import { z } from 'zod';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
-import { createRoute } from '../utils/route.utils';
+import { createRoute, RouteValidator } from '../utils/route.utils';
 
 export const routeDefinition = {
   createJob: {
@@ -11,7 +11,7 @@ export const routeDefinition = {
     responseType: z.any(),
     validators: {
       body: CreateQueryJobRequestSchema,
-    },
+    } satisfies RouteValidator,
   },
   getJobs: {
     controllerFn: () => getJobs,
@@ -23,28 +23,28 @@ export const routeDefinition = {
         concurrencyMode: z.enum(['parallel']).nullish(),
         queryLocator: z.string().nullish(),
       }),
-    },
+    } satisfies RouteValidator,
   },
   getJob: {
     controllerFn: () => getJob,
     responseType: z.any(),
     validators: {
       params: z.object({ jobId: z.string().min(1) }),
-    },
+    } satisfies RouteValidator,
   },
   abortJob: {
     controllerFn: () => abortJob,
     responseType: z.any(),
     validators: {
       params: z.object({ jobId: z.string().min(1) }),
-    },
+    } satisfies RouteValidator,
   },
   deleteJob: {
     controllerFn: () => deleteJob,
     responseType: z.any(),
     validators: {
       params: z.object({ jobId: z.string().min(1) }),
-    },
+    } satisfies RouteValidator,
   },
   downloadResults: {
     controllerFn: () => downloadResults,
@@ -63,7 +63,7 @@ export const routeDefinition = {
           }, 'maxRecords must be an integer')
           .transform((val) => (val ? parseInt(val, 10) : undefined)),
       }),
-    },
+    } satisfies RouteValidator,
   },
 };
 
