@@ -19,6 +19,7 @@ import {
   eventPayload,
   ExternalIdentifier,
   ExtIdentifierStorage,
+  GetGoogleConfig,
   GetPageUrl,
   GetSession,
   GetSfHost,
@@ -297,6 +298,12 @@ browser.runtime.onMessage.addListener(
           .catch(handleError(sendResponse));
         return true; // indicate that sendResponse will be called asynchronously
       }
+      case 'GET_GOOGLE_CONFIG': {
+        handleGetGoogleConfig(sender)
+          .then((data) => handleResponse(data, sendResponse))
+          .catch(handleError(sendResponse));
+        return true;
+      }
       default:
         logger.warn(`Unknown message`, request);
         return;
@@ -547,4 +554,29 @@ async function handleInitOrg(
   const response = await initApiClientAndOrg(sessionInfo);
   await setConnection(response.org.uniqueId, { sessionInfo, org: response.org });
   return response;
+}
+
+async function handleGetGoogleConfig(sender: browser.Runtime.MessageSender): Promise<GetGoogleConfig['response']> {
+  await initStorageSyncCache;
+  const { authTokens, extIdentifier } = storageSyncCache;
+  if (!authTokens?.accessToken || !extIdentifier?.id) {
+    throw new Error('You must be logged in to use Google Drive');
+  }
+  const response = await fetch(`${environment.serverUrl}/web-extension/google-config`, {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${authTokens.accessToken}`,
+      [HTTP.HEADERS.X_EXT_DEVICE_ID]: extIdentifier.id,
+      [HTTP.HEADERS.X_APP_VERSION]: browser.runtime.getManifest().version,
+    },
+  });
+  if (!response.ok) {
+    throw new Error('Failed to fetch Google configuration');
+  }
+  const { data } = await response.json();
+  if (!data?.appId || !data?.apiKey || !data?.clientId) {
+    throw new Error('Invalid Google configuration response');
+  }
+  return data;
 }

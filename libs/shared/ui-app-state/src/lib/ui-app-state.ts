@@ -48,7 +48,7 @@ export const DEFAULT_PROFILE: UserProfileUi = {
   },
   // FIXME: we want these true for the browser extension
   entitlements: {
-    googleDrive: false,
+    googleDrive: true,
     chromeExtension: false,
     desktop: false,
     recordSync: false,
@@ -246,7 +246,8 @@ export const googleDriveAccessState = atom((get) => {
   const isChromeExtension = get(isBrowserExtensionState);
   const ability = get(abilityState);
   return {
-    hasGoogleDriveAccess: !isChromeExtension && !isDesktop() && ability.can('access', 'GoogleDrive'),
+    hasGoogleDriveAccess: ability.can('access', 'GoogleDrive'),
+    // Only show upgrade prompt on web (desktop/extension users already have access)
     googleShowUpgradeToPro: !isChromeExtension && !isDesktop() && ability.cannot('access', 'GoogleDrive'),
   };
 });

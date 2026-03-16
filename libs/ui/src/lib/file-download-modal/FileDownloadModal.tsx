@@ -1,7 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, MIME_TYPES } from '@jetstream/shared/constants';
-import { getFilename, isEnterKey, prepareCsvFile, prepareExcelFile, saveFile } from '@jetstream/shared/ui-utils';
+import {
+  getFilename,
+  isBrowserExtension,
+  isDesktop,
+  isEnterKey,
+  prepareCsvFile,
+  prepareExcelFile,
+  saveFile,
+} from '@jetstream/shared/ui-utils';
 import {
   AsyncJobNew,
   FileExtAllTypes,
@@ -118,7 +126,9 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
   transformData,
 }) => {
   const hasGoogleInputConfigured =
-    googleIntegrationEnabled && !!google_apiKey && !!google_appId && !!google_clientId && !!emitUploadToGoogleEvent;
+    isDesktop() ||
+    isBrowserExtension() ||
+    (googleIntegrationEnabled && !!google_apiKey && !!google_appId && !!google_clientId && !!emitUploadToGoogleEvent);
   const [allowedTypesSet, setAllowedTypesSet] = useState<Set<string>>(() => new Set(allowedTypes));
   const [fileFormat, setFileFormat] = useState(() => getInitialDownloadFileFormat(allowedTypes, LS_KEY));
   const [fileName, setFileName] = useState(getFilename(org, fileNameParts));
@@ -364,11 +374,11 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
             <GoogleSelectedProUpgradeButton trackEvent={trackEvent} source={source} />
           )}
         </RadioGroup>
-        {fileFormat === 'gdrive' && googleIntegrationEnabled && google_apiKey && google_appId && google_clientId && (
+        {fileFormat === 'gdrive' && hasGoogleInputConfigured && (
           <FileDownloadGoogle
-            google_apiKey={google_apiKey}
-            google_appId={google_appId}
-            google_clientId={google_clientId}
+            google_apiKey={google_apiKey || ''}
+            google_appId={google_appId || ''}
+            google_clientId={google_clientId || ''}
             onFolderSelected={handleFolderSelected}
           />
         )}

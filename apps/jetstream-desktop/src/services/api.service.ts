@@ -66,6 +66,29 @@ export async function logout({ accessToken, deviceId }: { deviceId: string; acce
   return results.data;
 }
 
+export async function fetchGoogleConfig({ accessToken, deviceId }: { deviceId: string; accessToken: string }) {
+  const response = await net.fetch(`${ENV.SERVER_URL}/desktop-app/google-config`, {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+      [HTTP.HEADERS.X_APP_VERSION]: app.getVersion(),
+      [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch Google configuration');
+  }
+
+  const { data } = await response.json();
+  const parsed = z.object({ appId: z.string(), apiKey: z.string(), clientId: z.string() }).safeParse(data);
+  if (!parsed.success) {
+    throw new Error('Invalid Google configuration response');
+  }
+  return parsed.data;
+}
+
 export async function checkNotifications({
   accessToken,
   deviceId,

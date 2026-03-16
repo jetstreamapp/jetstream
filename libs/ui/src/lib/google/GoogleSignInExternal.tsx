@@ -1,9 +1,12 @@
-import { GoogleApiClientConfig, useGoogleApi } from '@jetstream/shared/ui-utils';
+import { useDriveExternalPicker } from '@jetstream/shared/ui-utils';
 import { GoogleUserInfo, Maybe } from '@jetstream/types';
+import { applicationCookieState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
+import { useAtomValue } from 'jotai';
 import { FunctionComponent, ReactNode, useEffect } from 'react';
 import Grid from '../grid/Grid';
 import Icon from '../widgets/Icon';
+import Spinner from '../widgets/Spinner';
 
 export interface GoogleProfile {
   name: string;
@@ -11,8 +14,7 @@ export interface GoogleProfile {
   imageUrl: string;
 }
 
-export interface GoogleSignInProps {
-  apiConfig: GoogleApiClientConfig;
+export interface GoogleSignInExternalProps {
   className?: string;
   disabled?: boolean;
   onError?: (error: string) => void;
@@ -21,8 +23,11 @@ export interface GoogleSignInProps {
   children?: ReactNode;
 }
 
-export const GoogleSignIn: FunctionComponent<GoogleSignInProps> = ({
-  apiConfig,
+/**
+ * Wrapper component to handle signing in to Google Drive via the external picker flow
+ * (desktop app via Electron IPC, browser extension via popup window).
+ */
+export const GoogleSignInExternal: FunctionComponent<GoogleSignInExternalProps> = ({
   className,
   disabled,
   children,
@@ -30,7 +35,8 @@ export const GoogleSignIn: FunctionComponent<GoogleSignInProps> = ({
   onSignInChanged,
   onUserInfoChange,
 }) => {
-  const { getToken, error, loading, userInfo, isTokenValid, revokeToken } = useGoogleApi(apiConfig);
+  const { serverUrl } = useAtomValue(applicationCookieState);
+  const { openPicker, signOut, isAuthorized, userInfo, loading, error } = useDriveExternalPicker(serverUrl);
 
   useEffect(() => {
     if (error) {
@@ -39,34 +45,31 @@ export const GoogleSignIn: FunctionComponent<GoogleSignInProps> = ({
   }, [error, onError]);
 
   useEffect(() => {
-    onSignInChanged && onSignInChanged(isTokenValid());
-  }, [isTokenValid, onSignInChanged]);
-
-  useEffect(() => {
-    onUserInfoChange && onUserInfoChange(userInfo);
+    onUserInfoChange?.(userInfo);
   }, [userInfo, onUserInfoChange]);
 
-  async function handleSignIn() {
-    try {
-      await getToken();
-      onSignInChanged && onSignInChanged(true);
-    } catch {
-      onSignInChanged && onSignInChanged(false);
-    }
-  }
+  // Signal sign-in state to parent
+  useEffect(() => {
+    onSignInChanged?.(isAuthorized);
+  }, [isAuthorized, onSignInChanged]);
 
   return (
     <div className={className}>
-      {!isTokenValid() && (
+      {!isAuthorized && (
         <div className={classNames('slds-m-left_x-small slds-m-top_xx-small', className)}>
-          <button className="slds-is-relative slds-button slds-button_neutral" onClick={handleSignIn} disabled={disabled || loading}>
+          <button
+            className="slds-is-relative slds-button slds-button_neutral"
+            onClick={() => openPicker('auth')}
+            disabled={disabled || loading}
+          >
             <Icon type="doctype" icon="gdrive" className="slds-button__icon slds-button__icon_left" omitContainer />
             Authorize Google Drive
+            {loading && <Spinner size="x-small" />}
           </button>
           {error && <p className="slds-text-color_error slds-m-top_xx-small">{error}</p>}
         </div>
       )}
-      {isTokenValid() && (
+      {isAuthorized && (
         <div>
           {userInfo && (
             <Grid verticalAlign="center">
@@ -78,7 +81,7 @@ export const GoogleSignIn: FunctionComponent<GoogleSignInProps> = ({
                 </div>
               )}
               <p className="slds-text-heading_small">{userInfo.name}</p>
-              <button type="button" className="slds-button slds-m-left_small" onClick={revokeToken}>
+              <button type="button" className="slds-button slds-m-left_small" onClick={signOut}>
                 Sign Out
               </button>
             </Grid>
@@ -90,4 +93,4 @@ export const GoogleSignIn: FunctionComponent<GoogleSignInProps> = ({
   );
 };
 
-export default GoogleSignIn;
+export default GoogleSignInExternal;

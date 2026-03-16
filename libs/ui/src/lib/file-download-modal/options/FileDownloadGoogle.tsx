@@ -1,12 +1,14 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { isBrowserExtension, isDesktop, isExternalGoogleAccessTokenValid, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { GoogleUserInfo, Maybe } from '@jetstream/types';
-import { FunctionComponent, useCallback, useEffectEvent, useState } from 'react';
+import { FunctionComponent, useCallback, useEffect, useEffectEvent, useState } from 'react';
 import z from 'zod';
 import GoogleFolderSelector from '../../form/file-selector/GoogleFolderSelector';
+import { GoogleFolderSelectorExternalButton } from '../../form/file-selector/GoogleFolderSelectorExternalButton';
 import RadioButton from '../../form/radio/RadioButton';
 import RadioGroup from '../../form/radio/RadioGroup';
 import GoogleSignIn from '../../google/GoogleSignIn';
+import GoogleSignInExternal from '../../google/GoogleSignInExternal';
 import GridCol from '../../grid/GridCol';
 
 const WhichFolderSchema = z.enum(['root', 'specified']);
@@ -90,7 +92,107 @@ export interface FileDownloadGoogleProps {
   onSelectorVisible?: (isVisible: boolean) => void;
 }
 
-export const FileDownloadGoogle: FunctionComponent<FileDownloadGoogleProps> = ({
+export const FileDownloadGoogle: FunctionComponent<FileDownloadGoogleProps> = (props) => {
+  if (isDesktop() || isBrowserExtension()) {
+    return <FileDownloadGoogleExternal {...props} />;
+  }
+  return <FileDownloadGoogleWeb {...props} />;
+};
+
+const FileDownloadGoogleExternal: FunctionComponent<FileDownloadGoogleProps> = ({
+  google_apiKey,
+  google_appId,
+  google_clientId,
+  disabled,
+  onSignInChanged,
+  onFolderSelected,
+}) => {
+  const [userInfo, setUserInfo] = useState<Maybe<GoogleUserInfo>>(null);
+  const [isAuthorized, setIsAuthorized] = useState(() => isExternalGoogleAccessTokenValid());
+  const [googleFolder, setGoogleFolder] = useState<Maybe<FolderSelection>>(() => getFolderSelectionFromStorage(userInfo));
+  const [whichFolder, setWhichFolder] = useState<WhichFolder>(() => getWhichFolderFromStorage(userInfo));
+  const [apiConfig] = useState({ apiKey: google_apiKey, appId: google_appId, clientId: google_clientId });
+
+  const onFolderSelectedEvent = useEffectEvent(onFolderSelected);
+
+  // Signal sign-in state to parent
+  useEffect(() => {
+    onSignInChanged?.(isAuthorized);
+  }, [isAuthorized, onSignInChanged]);
+
+  const handleUserInfoChange = useCallback((user: Maybe<GoogleUserInfo>) => {
+    setUserInfo(user);
+    if (user) {
+      setWhichFolder(getWhichFolderFromStorage(user));
+      setGoogleFolder(getFolderSelectionFromStorage(user));
+    }
+  }, []);
+
+  useNonInitialEffect(() => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    onFolderSelectedEvent(whichFolder === 'root' ? undefined : googleFolder?.folderId);
+  }, [whichFolder, googleFolder]);
+
+  function handleGoogleFolderSelected(data: google.picker.DocumentObject) {
+    if (!data.name || !data.id) {
+      return;
+    }
+    const folderData = { name: data.name, folderId: data.id };
+    setGoogleFolder(folderData);
+    userInfo && saveFolderSelectionToStorage(userInfo, folderData);
+    // Folder picker also refreshes the auth token
+    setIsAuthorized(true);
+  }
+
+  const handleSignInChange = useCallback((authorized) => {
+    setIsAuthorized(authorized);
+  }, []);
+
+  return (
+    <div className="slds-p-horizontal_medium slds-p-bottom_medium">
+      <GoogleSignInExternal onSignInChanged={handleSignInChange} onUserInfoChange={handleUserInfoChange}>
+        <GridCol size={12}>
+          <RadioGroup label="Which Google Drive folder would you like to save to?" isButtonGroup>
+            <RadioButton
+              name="which-google-folder"
+              label="Do not store in a folder"
+              value="root"
+              checked={whichFolder === 'root'}
+              onChange={() => {
+                setWhichFolder('root');
+                userInfo && saveWhichFolderToStorage(userInfo, 'root');
+              }}
+              disabled={disabled}
+            />
+            <RadioButton
+              name="which-google-folder"
+              label="Choose a folder"
+              value="specified"
+              checked={whichFolder === 'specified'}
+              onChange={() => {
+                setWhichFolder('specified');
+                userInfo && saveWhichFolderToStorage(userInfo, 'specified');
+              }}
+              disabled={disabled}
+            />
+          </RadioGroup>
+        </GridCol>
+        {whichFolder === 'specified' && (
+          <GoogleFolderSelectorExternalButton
+            apiConfig={apiConfig}
+            id={'load-google-drive-folder'}
+            label="Google Drive"
+            folderName={googleFolder?.name}
+            disabled={disabled}
+            onSelected={handleGoogleFolderSelected}
+          />
+        )}
+      </GoogleSignInExternal>
+    </div>
+  );
+};
+
+const FileDownloadGoogleWeb: FunctionComponent<FileDownloadGoogleProps> = ({
   google_apiKey,
   google_appId,
   google_clientId,

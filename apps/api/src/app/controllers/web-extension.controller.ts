@@ -84,6 +84,13 @@ export const routeDefinition = {
       ...dataSyncController.push.validators,
     } satisfies RouteValidator,
   },
+  googleConfig: {
+    controllerFn: () => googleConfig,
+    responseType: z.object({ appId: z.string(), apiKey: z.string(), clientId: z.string() }),
+    validators: {
+      hasSourceOrg: false,
+    } satisfies RouteValidator,
+  },
 };
 
 /**
@@ -228,4 +235,12 @@ const dataSyncPush = createRoute(routeDefinition.dataSyncPush.validators, async 
   emitRecordSyncEventsToOtherClients(deviceId, syncEvent);
 
   sendJson(res, response);
+});
+
+const googleConfig = createRoute(routeDefinition.googleConfig.validators, async (_params, _req, res) => {
+  sendJson(res, {
+    appId: ENV.GOOGLE_APP_ID,
+    apiKey: ENV.GOOGLE_API_KEY,
+    clientId: ENV.GOOGLE_CLIENT_ID,
+  });
 });

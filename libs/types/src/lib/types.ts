@@ -6,6 +6,7 @@ import { SalesforceOrgEdition } from './salesforce/misc.types';
 import { QueryResult } from './salesforce/query.types';
 import { InsertUpdateUpsertDeleteQuery } from './salesforce/record.types';
 import { TeamBillingStatusSchema, TeamMemberRoleSchema, TeamMemberStatusSchema } from './team.types';
+import { OrgGroup } from './ui/organization.types';
 
 export interface AppInfo {
   announcements: Announcement[];
@@ -307,9 +308,12 @@ export interface SalesforceOrgUi {
   updatedAt?: Maybe<string>;
   lastActivityAt?: Maybe<string>;
   expirationScheduledFor?: Maybe<string>;
+  source?: 'DESKTOP' | 'WEB';
 }
 
 export type SalesforceOrgUiType = 'Sandbox' | 'Developer' | 'Production';
+
+export type OrgsWithGroupResponse = { orgs: SalesforceOrgUi[]; organizations: OrgGroup[] };
 
 export interface GenericRequestPayload {
   url: string;
