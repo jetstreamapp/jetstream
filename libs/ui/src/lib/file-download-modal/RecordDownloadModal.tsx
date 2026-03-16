@@ -2,7 +2,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, MIME_TYPES } from '@jetstream/shared/constants';
-import { formatNumber, getFilename, isEnterKey, prepareCsvFile, prepareExcelFile, saveFile, useRollbar } from '@jetstream/shared/ui-utils';
+import {
+  formatNumber,
+  getFilename,
+  isBrowserExtension,
+  isDesktop,
+  isEnterKey,
+  prepareCsvFile,
+  prepareExcelFile,
+  saveFile,
+  useRollbar,
+} from '@jetstream/shared/ui-utils';
 import { flattenRecords, getMapOfBaseAndSubqueryRecords } from '@jetstream/shared/utils';
 import {
   FileExtCsv,
@@ -117,7 +127,8 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
 }) => {
   const rollbar = useRollbar();
   const hasGoogleInputConfigured =
-    googleIntegrationEnabled && !!google_apiKey && !!google_appId && !!google_clientId && !!onDownloadFromServer;
+    (isDesktop() || isBrowserExtension() || (googleIntegrationEnabled && !!google_apiKey && !!google_appId && !!google_clientId)) &&
+    !!onDownloadFromServer;
   const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(false);
   const [downloadRecordsValue, setDownloadRecordsValue] = useState<string>(hasMoreRecords ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);
   const [fileFormat, setFileFormat] = useState(() => getInitialDownloadFileFormat(allowedTypes, LS_KEY));

@@ -54,11 +54,17 @@ export const initDeepLink = () => {
 };
 
 /**
- * Parse custom URL and emit event to any listeners
+ * Parse custom URL and emit event to any listeners.
+ *
+ * Sensitive params (e.g., access tokens) are sent in the URL hash fragment
+ * so they don't appear in system logs or URL caches. The hash is merged
+ * into the query object before dispatching to listeners, then discarded.
  */
 const handleCustomUrl = (targetUrl: string) => {
   try {
-    logger.error(`Deep link: attempting to handle: ${targetUrl}`);
+    // Log the URL without hash fragment to avoid leaking tokens
+    const sanitizedUrl = targetUrl.split('#')[0];
+    logger.info(`Deep link: attempting to handle: ${sanitizedUrl}`);
     const url = new URL(targetUrl);
 
     if (url.protocol !== 'jetstream:') {
@@ -70,6 +76,14 @@ const handleCustomUrl = (targetUrl: string) => {
     logger.info(`Deep link: action found: ${action}`);
 
     const query = Object.fromEntries(url.searchParams.entries());
+
+    // Merge hash fragment params (sensitive data like tokens) into the query object
+    if (url.hash && url.hash.length > 1) {
+      const hashParams = new URLSearchParams(url.hash.slice(1));
+      for (const [key, value] of hashParams.entries()) {
+        query[key] = value;
+      }
+    }
 
     const emitCount = listeners.emit(action, query);
     logger.info(`Deep link: emitted for ${emitCount} listeners`);
@@ -135,5 +149,6 @@ export const deepLink = {
       listener(query);
     };
     deepLink.on(event, onceListener);
+    return () => deepLink.remove(event, onceListener);
   },
 };

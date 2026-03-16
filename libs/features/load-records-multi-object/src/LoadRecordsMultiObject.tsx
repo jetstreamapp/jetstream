@@ -1,6 +1,6 @@
 import { ANALYTICS_KEYS, DATE_FORMATS, INPUT_ACCEPT_FILETYPES, TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { formatNumber, initXlsx, useNonInitialEffect, useTitle } from '@jetstream/shared/ui-utils';
+import { formatNumber, initXlsx, isBrowserExtension, isDesktop, useNonInitialEffect, useTitle } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { InputReadFileContent, InputReadGoogleSheet, LocalOrGoogle, Maybe } from '@jetstream/types';
 import {
@@ -237,7 +237,8 @@ export const LoadRecordsMultiObject = () => {
               </select>
             </Select>
             <FileOrGoogleSelector
-              omitGoogle={!hasGoogleDriveAccess}
+              omitGoogle={!hasGoogleDriveAccess && !isDesktop() && !isBrowserExtension()}
+              hasExternalGoogleDriveAccess={isDesktop() || isBrowserExtension()}
               googleShowUpgradeToPro={googleShowUpgradeToPro}
               fileSelectorProps={{
                 id: 'upload-load-template',
@@ -251,6 +252,7 @@ export const LoadRecordsMultiObject = () => {
                 apiConfig: googleApiConfig,
                 id: 'load-google-drive-file',
                 label: 'Google Drive',
+                buttonLabel: 'Choose Google Sheet',
                 filename: inputFileType === 'google' ? inputFilename : undefined,
                 disabled: fileProcessingLoading || dataLoadLoading,
                 onReadFile: handleGoogleFile,

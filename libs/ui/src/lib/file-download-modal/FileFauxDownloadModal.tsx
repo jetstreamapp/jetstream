@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ANALYTICS_KEYS, MIME_TYPES } from '@jetstream/shared/constants';
-import { getFilename, isEnterKey } from '@jetstream/shared/ui-utils';
+import { getFilename, isBrowserExtension, isDesktop, isEnterKey } from '@jetstream/shared/ui-utils';
 import {
   FileExtAllTypes,
   FileExtCsv,
@@ -80,7 +80,8 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
   onCancel,
   onDownload,
 }) => {
-  const hasGoogleInputConfigured = googleIntegrationEnabled && !!google_apiKey && !!google_appId && !!google_clientId;
+  const hasGoogleInputConfigured =
+    isDesktop() || isBrowserExtension() || (googleIntegrationEnabled && !!google_apiKey && !!google_appId && !!google_clientId);
   const [allowedTypesSet, setAllowedTypesSet] = useState<Set<string>>(() => new Set(allowedTypes));
   const [fileFormat, setFileFormat] = useState(() => getInitialDownloadFileFormat(allowedTypes, LS_KEY));
   const [fileName, setFileName] = useState(getFilename(org, fileNameParts));
@@ -255,7 +256,7 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
             />
           )}
         </RadioGroup>
-        {fileFormat === 'gdrive' && google_apiKey && google_appId && google_clientId && (
+        {fileFormat === 'gdrive' && hasGoogleInputConfigured && (
           <FileDownloadGoogle
             google_apiKey={google_apiKey}
             google_appId={google_appId}
