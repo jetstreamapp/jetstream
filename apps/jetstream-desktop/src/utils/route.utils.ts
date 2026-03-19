@@ -3,11 +3,15 @@ import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api
 import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
 import { ensureBoolean, getErrorMessage } from '@jetstream/shared/utils';
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { safeStorage } from 'electron';
 import logger from 'electron-log';
 import { z } from 'zod';
 import { ENV } from '../config/environment';
-import { getSalesforceOrgById, updateAccessTokens, updateSalesforceOrg_UNSAFE } from '../services/persistence.service';
+import {
+  decryptTokenPortable,
+  getSalesforceOrgById,
+  updateAccessTokens,
+  updateSalesforceOrg_UNSAFE,
+} from '../services/persistence.service';
 
 export interface RequestOptions {
   request: Request;
@@ -190,7 +194,13 @@ export function initApiConnection(
     callOptions = { ...callOptions, defaultNamespace: org.orgNamespacePrefix };
   }
 
-  const [accessToken, refreshToken] = safeStorage.decryptString(Buffer.from(org.accessToken, 'base64')).split(' ');
+  const plaintext = decryptTokenPortable(org.accessToken);
+  const spaceIndex = plaintext.indexOf(' ');
+  if (spaceIndex === -1) {
+    throw new Error('Decrypted token is missing the expected space separator between access and refresh tokens');
+  }
+  const accessToken = plaintext.slice(0, spaceIndex);
+  const refreshToken = plaintext.slice(spaceIndex + 1);
 
   const handleRefresh = async (accessToken: string, refreshToken: string) => {
     // Refresh event will be fired when renewed access token

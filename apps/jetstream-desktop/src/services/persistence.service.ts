@@ -13,11 +13,11 @@ import {
   UserProfileUiDesktop,
 } from '@jetstream/desktop/types';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { randomUUID } from 'crypto';
+import { createCipheriv, createDecipheriv, randomBytes, randomUUID } from 'crypto';
 import { fromUnixTime } from 'date-fns';
 import { app, safeStorage } from 'electron';
 import logger from 'electron-log';
-import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'fs';
 import { jwtDecode } from 'jwt-decode';
 import { join } from 'path';
 import writeFileAtomic from 'write-file-atomic';
@@ -27,10 +27,123 @@ const APP_DATA_FILE = join(userData, 'app-data.json');
 const SFDC_ORGS_FILE = join(userData, 'orgs.json');
 const USER_PREFERENCES_FILE = join(userData, 'preferences.json');
 
+/** Magic bytes identifying the portable AES-256-GCM encryption format */
+const JSEK_MAGIC = Buffer.from('JSEK');
+
 let APP_DATA: AppData;
 let SALESFORCE_ORGS: SalesforceOrgServer[];
 let JETSTREAM_ORGS: JetstreamOrganizationServer[];
 let USER_PREFERENCES: DesktopUserPreferences;
+
+/** Per-user portable encryption key (in memory only, never persisted to disk) */
+let ORG_ENCRYPTION_KEY: Buffer | null = null;
+
+/**
+ * Set to true once we confirm the on-disk file uses the JSEK portable format.
+ * Prevents saveOrgs from downgrading the file back to safeStorage format if the
+ * encryption key is temporarily unavailable (e.g. network failure during auth).
+ */
+let ORG_FILE_IS_PORTABLE = false;
+
+/**
+ * Sets the portable org encryption key derived from the server.
+ * Must be called after successful authentication before reading/writing org data.
+ */
+export function setOrgEncryptionKey(hexKey: string): void {
+  if (!/^[0-9a-f]{64}$/i.test(hexKey)) {
+    throw new Error(`Invalid org encryption key: expected 64 hex characters (32 bytes), got ${hexKey.length} characters`);
+  }
+  ORG_ENCRYPTION_KEY = Buffer.from(hexKey, 'hex');
+  // Once a portable key is loaded, all future writes must use the portable format.
+  ORG_FILE_IS_PORTABLE = true;
+  // Invalidate in-memory cache so the next readOrgs() re-decrypts from disk with the new key.
+  // Without this, a previously-cached empty result (from before the key was available) would persist.
+  SALESFORCE_ORGS = undefined as unknown as SalesforceOrgServer[];
+  JETSTREAM_ORGS = undefined as unknown as JetstreamOrganizationServer[];
+}
+
+export function isOrgEncryptionKeyLoaded(): boolean {
+  return ORG_ENCRYPTION_KEY !== null;
+}
+
+/**
+ * Clears all in-memory org state and the encryption key.
+ * Must be called on logout to prevent leaking one user's data into the next session,
+ * which is especially important in VDI/AVD hot-desk environments.
+ */
+export function clearOrgState(): void {
+  ORG_ENCRYPTION_KEY = null;
+  // ORG_FILE_IS_PORTABLE intentionally NOT reset — it reflects on-disk state,
+  // preventing saveOrgs from downgrading the file to safeStorage after logout.
+  // Set to undefined (not []) so getSalesforceOrgs/getOrgGroups will re-read from disk
+  // on next access, preventing a stale empty array from being written over the on-disk data.
+  SALESFORCE_ORGS = undefined as unknown as SalesforceOrgServer[];
+  JETSTREAM_ORGS = undefined as unknown as JetstreamOrganizationServer[];
+}
+
+/**
+ * Encrypts org data using AES-256-GCM with the portable key.
+ * Format: [4-byte magic 'JSEK'][12-byte IV][16-byte authTag][ciphertext]
+ */
+function encryptOrgsData(data: string): Buffer {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv('aes-256-gcm', ORG_ENCRYPTION_KEY!, iv);
+  const encrypted = Buffer.concat([cipher.update(data, 'utf8'), cipher.final()]);
+  const authTag = cipher.getAuthTag();
+  return Buffer.concat([JSEK_MAGIC, iv, authTag, encrypted]);
+}
+
+/**
+ * Decrypts org data encrypted with the portable AES-256-GCM format.
+ */
+function decryptOrgsData(data: Buffer): string {
+  const iv = data.subarray(4, 16);
+  const authTag = data.subarray(16, 32);
+  const encrypted = data.subarray(32);
+  const decipher = createDecipheriv('aes-256-gcm', ORG_ENCRYPTION_KEY!, iv);
+  decipher.setAuthTag(authTag);
+  return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
+}
+
+/** Prefix identifying a portably-encrypted token string (vs legacy safeStorage base64) */
+const PORTABLE_TOKEN_PREFIX = 'jsek:';
+
+/**
+ * Encrypts a token string using the portable AES-256-GCM key.
+ * Returns a prefixed base64 string: "jsek:<base64(iv + authTag + ciphertext)>"
+ * Falls back to safeStorage if the portable key is not available.
+ */
+export function encryptTokenPortable(plaintext: string): string {
+  if (ORG_ENCRYPTION_KEY) {
+    const iv = randomBytes(12);
+    const cipher = createCipheriv('aes-256-gcm', ORG_ENCRYPTION_KEY, iv);
+    const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+    const authTag = cipher.getAuthTag();
+    return PORTABLE_TOKEN_PREFIX + Buffer.concat([iv, authTag, encrypted]).toString('base64');
+  }
+  return safeStorage.encryptString(plaintext).toString('base64');
+}
+
+/**
+ * Decrypts a token string, auto-detecting portable vs legacy safeStorage format.
+ * Tries portable first (prefixed with "jsek:"), then falls back to safeStorage.
+ */
+export function decryptTokenPortable(encoded: string): string {
+  if (encoded.startsWith(PORTABLE_TOKEN_PREFIX)) {
+    if (!ORG_ENCRYPTION_KEY) {
+      throw new Error('Portable encryption key not available to decrypt token');
+    }
+    const data = Buffer.from(encoded.slice(PORTABLE_TOKEN_PREFIX.length), 'base64');
+    const iv = data.subarray(0, 12);
+    const authTag = data.subarray(12, 28);
+    const encrypted = data.subarray(28);
+    const decipher = createDecipheriv('aes-256-gcm', ORG_ENCRYPTION_KEY, iv);
+    decipher.setAuthTag(authTag);
+    return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
+  }
+  // Legacy safeStorage format
+  return safeStorage.decryptString(Buffer.from(encoded, 'base64'));
+}
 
 function writeFile(path: string, data: string, encrypt = false) {
   let _data: string | Buffer = data;
@@ -205,13 +318,96 @@ function readOrgs(): OrgsPersistence {
       return { jetstreamOrganizations: JETSTREAM_ORGS, salesforceOrgs: SALESFORCE_ORGS };
     }
     if (!existsSync(SFDC_ORGS_FILE)) {
-      writeFile(SFDC_ORGS_FILE, JSON.stringify({ jetstreamOrganizations: [], salesforceOrgs: [] }), true);
+      const emptyData = JSON.stringify({ jetstreamOrganizations: [], salesforceOrgs: [] });
+      if (ORG_ENCRYPTION_KEY) {
+        const encrypted = encryptOrgsData(emptyData);
+        writeFileAtomic.sync(SFDC_ORGS_FILE, encrypted);
+      } else {
+        writeFile(SFDC_ORGS_FILE, emptyData, true);
+      }
     }
-    const orgsRaw = JSON.parse(readFile(SFDC_ORGS_FILE, true));
-    const { jetstreamOrganizations, salesforceOrgs } = OrgsPersistenceSchema.parse(orgsRaw);
+
+    const rawData = readFileSync(SFDC_ORGS_FILE);
+    let orgsJson: string;
+
+    if (rawData.subarray(0, 4).equals(JSEK_MAGIC)) {
+      // Portable AES-256-GCM format
+      if (!ORG_ENCRYPTION_KEY) {
+        // Key not yet available (e.g. app started but auth not complete) — return empty and let caller retry after auth
+        logger.warn('Org data is in portable format but encryption key is not yet set');
+        ORG_FILE_IS_PORTABLE = true;
+        return { jetstreamOrganizations: [], salesforceOrgs: [] };
+      }
+      try {
+        orgsJson = decryptOrgsData(rawData);
+        ORG_FILE_IS_PORTABLE = true;
+      } catch (decryptError) {
+        // Decryption failed — wrong key (e.g. server secret rotated) or file corruption.
+        // Rename the unreadable file to a timestamped backup for postmortem debugging,
+        // then the next write starts clean with the portable format.
+        logger.warn('Unable to decrypt portable orgs file (wrong key or corruption). Backing up and starting fresh.', decryptError);
+        ORG_FILE_IS_PORTABLE = true; // was portable on disk, prevent downgrade to safeStorage
+        const corruptBackupPath = `${SFDC_ORGS_FILE}.corrupt-${Date.now()}`;
+        try {
+          renameSync(SFDC_ORGS_FILE, corruptBackupPath);
+          logger.info(`Backed up unreadable portable orgs file to ${corruptBackupPath}`);
+        } catch (renameError) {
+          logger.error('Failed to back up unreadable portable orgs file, attempting delete', renameError);
+          try {
+            unlinkSync(SFDC_ORGS_FILE);
+          } catch (unlinkError) {
+            logger.error('Failed to delete unreadable portable orgs file', unlinkError);
+          }
+        }
+        return { jetstreamOrganizations: [], salesforceOrgs: [] };
+      }
+    } else {
+      // Legacy safeStorage format — attempt to read and migrate
+      try {
+        orgsJson = safeStorage.decryptString(rawData);
+      } catch {
+        // safeStorage decryption failed, most likely because the file was encrypted on a different
+        // machine (common in AVD/VDI environments). Rename the unreadable file to a timestamped
+        // backup for postmortem debugging, then the next write starts clean with the portable format.
+        logger.warn('Unable to decrypt orgs file with safeStorage (likely a different machine). Backing up and starting fresh.');
+        const safeStorageBackupPath = `${SFDC_ORGS_FILE}.corrupt-${Date.now()}`;
+        try {
+          renameSync(SFDC_ORGS_FILE, safeStorageBackupPath);
+          logger.info(`Backed up unreadable safeStorage orgs file to ${safeStorageBackupPath}`);
+        } catch (renameError) {
+          logger.error('Failed to back up unreadable orgs file, attempting delete', renameError);
+          try {
+            unlinkSync(SFDC_ORGS_FILE);
+          } catch (unlinkError) {
+            logger.error('Failed to delete unreadable orgs file', unlinkError);
+          }
+        }
+        return { jetstreamOrganizations: [], salesforceOrgs: [] };
+      }
+    }
+
+    const { jetstreamOrganizations, salesforceOrgs } = OrgsPersistenceSchema.parse(JSON.parse(orgsJson));
     JETSTREAM_ORGS = jetstreamOrganizations;
     SALESFORCE_ORGS = salesforceOrgs;
-    return { jetstreamOrganizations, salesforceOrgs };
+
+    // Migrate: if we just read a legacy safeStorage file and the portable key is available,
+    // re-encrypt per-org tokens portably and re-save the file in the new format.
+    if (!rawData.subarray(0, 4).equals(JSEK_MAGIC) && ORG_ENCRYPTION_KEY) {
+      logger.info('Migrating orgs file to portable encryption format');
+      SALESFORCE_ORGS = SALESFORCE_ORGS.map((org) => {
+        try {
+          // Decrypt the legacy safeStorage token and re-encrypt with the portable key
+          const tokenPlaintext = safeStorage.decryptString(Buffer.from(org.accessToken, 'base64'));
+          return { ...org, accessToken: encryptTokenPortable(tokenPlaintext) };
+        } catch {
+          logger.warn({ uniqueId: org.uniqueId }, 'Failed to migrate token for org — token will need re-auth');
+          return org;
+        }
+      });
+      saveOrgs();
+    }
+
+    return { jetstreamOrganizations: JETSTREAM_ORGS, salesforceOrgs: SALESFORCE_ORGS };
   } catch (ex) {
     logger.error('Error reading orgs file', ex);
     return { jetstreamOrganizations: [], salesforceOrgs: [] };
@@ -220,8 +416,26 @@ function readOrgs(): OrgsPersistence {
 
 function saveOrgs() {
   try {
+    // Refuse to downgrade a portable-format file to safeStorage if the key is temporarily unavailable.
+    // This prevents silent data loss when, e.g., a token refresh triggers saveOrgs before the encryption
+    // key has been fetched (network failure on startup).
+    if (!ORG_ENCRYPTION_KEY && ORG_FILE_IS_PORTABLE) {
+      logger.error('saveOrgs: portable format required but encryption key is unavailable — skipping write to prevent data loss');
+      return;
+    }
     const data = { jetstreamOrganizations: JETSTREAM_ORGS, salesforceOrgs: SALESFORCE_ORGS };
-    writeFile(SFDC_ORGS_FILE, JSON.stringify(data), true);
+    if (ORG_ENCRYPTION_KEY) {
+      const encrypted = encryptOrgsData(JSON.stringify(data));
+      try {
+        writeFileAtomic.sync(SFDC_ORGS_FILE, encrypted);
+      } catch (error) {
+        logger.error('Error writing orgs file (atomic):', error);
+        writeFileSync(SFDC_ORGS_FILE, new Uint8Array(encrypted));
+      }
+      ORG_FILE_IS_PORTABLE = true;
+    } else {
+      writeFile(SFDC_ORGS_FILE, JSON.stringify(data), true);
+    }
   } catch (ex) {
     logger.error('Error saving orgs file', ex);
   }
@@ -366,7 +580,7 @@ export function updateSalesforceOrg(uniqueId: string, payload: { label: string; 
 }
 
 export function updateAccessTokens(uniqueId: string, payload: { accessToken: string; refreshToken: string }) {
-  const accessToken = safeStorage.encryptString(`${payload.accessToken} ${payload.refreshToken}`).toString('base64');
+  const accessToken = encryptTokenPortable(`${payload.accessToken} ${payload.refreshToken}`);
   const orgs = getSalesforceOrgs().map((org) => {
     if (org.uniqueId === uniqueId) {
       return { ...org, accessToken };
