@@ -45,7 +45,7 @@ interface LastUpdatedProps {
     | 29
     | 30
     | 31;
-  year: 2023 | 2024 | 2025;
+  year: 2023 | 2024 | 2025 | 2026;
 }
 
 export default function LastUpdated({ className, day, month, year }: LastUpdatedProps) {
