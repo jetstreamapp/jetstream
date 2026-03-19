@@ -5,6 +5,12 @@ import { ROUTES } from '../../utils/environment';
 
 const email = 'support@getjetstream.app';
 
+/**
+ * ANY CHANGES TO THIS DOCUMENT MUST BE APPROVED BY LEGAL AND THE LEADERSHIP TEAM.
+ * CURRENT_TOS_VERSION MUST BE UPDATED IN libs/auth/server/src/lib/auth.constants.ts
+ * WHEN ANY MATERIAL UPDATE IS MADE TO THIS DOCUMENT.
+ */
+
 export default function Page() {
   return (
     <div className="m-8">

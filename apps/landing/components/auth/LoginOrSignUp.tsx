@@ -57,6 +57,10 @@ const RegisterSchema = LoginSchema.omit({ action: true, password: true }).extend
     }),
   password: PasswordSchema,
   confirmPassword: PasswordSchema,
+  tosVersion: z.string(),
+  tosAccepted: z.boolean().refine((val) => val === true, {
+    message: 'You must accept the Terms of Service and Privacy Policy to continue',
+  }),
 });
 
 const FormSchema = z.discriminatedUnion('action', [LoginSchema, RegisterSchema]).superRefine((data, ctx) => {
@@ -84,9 +88,10 @@ interface LoginOrSignUpProps {
   action: 'login' | 'register';
   providers: Providers;
   csrfToken: string;
+  currentTosVersion: string;
 }
 
-export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpProps) {
+export function LoginOrSignUp({ action, providers, csrfToken, currentTosVersion }: LoginOrSignUpProps) {
   const router = useRouter();
   const [showPasswordActive, setShowPasswordActive] = useState(false);
   const [{ lastUsedLogin, rememberedEmail }] = useState(getLastUsedLoginMethod);
@@ -118,6 +123,8 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
       confirmPassword: '',
       csrfToken,
       rememberMe: true,
+      tosVersion: currentTosVersion,
+      tosAccepted: false,
     },
   });
 
@@ -323,6 +330,20 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
             />
           </div>
 
+          {action === 'register' && (
+            <p className="text-xs text-center text-gray-500">
+              By signing in with Google or Salesforce, you agree to our{' '}
+              <a href={ROUTES.TERMS_OF_SERVICE} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-500 underline">
+                Terms of Service
+              </a>{' '}
+              and{' '}
+              <a href={ROUTES.PRIVACY} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-500 underline">
+                Privacy Policy
+              </a>
+              .
+            </p>
+          )}
+
           <div>
             <div className="relative mt-10">
               <div aria-hidden="true" className="absolute inset-0 flex items-center">
@@ -343,6 +364,7 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
           >
             <input type="hidden" {...register('csrfToken')} />
             <input type="hidden" {...register('action')} />
+            {action === 'register' && <input type="hidden" {...register('tosVersion')} />}
 
             <Input
               label="Email Address"
@@ -469,6 +491,29 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
 
               {action === 'register' && watchPassword && (
                 <PasswordStrengthIndicator password={watchPassword} confirmPassword={watchConfirmPassword} email={watchEmail} />
+              )}
+
+              {action === 'register' && (
+                <div className="space-y-1">
+                  <Checkbox inputProps={{ ...register('tosAccepted') }}>
+                    I agree to the{' '}
+                    <a
+                      href={ROUTES.TERMS_OF_SERVICE}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-blue-600 hover:text-blue-500 underline"
+                    >
+                      Terms of Service
+                    </a>{' '}
+                    and{' '}
+                    <a href={ROUTES.PRIVACY} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-500 underline">
+                      Privacy Policy
+                    </a>
+                  </Checkbox>
+                  {(errors as FieldErrors<RegisterForm>)?.tosAccepted && (
+                    <p className="text-sm text-red-600">{(errors as FieldErrors<RegisterForm>).tosAccepted?.message}</p>
+                  )}
+                </div>
               )}
 
               <div className="flex items-center justify-end">

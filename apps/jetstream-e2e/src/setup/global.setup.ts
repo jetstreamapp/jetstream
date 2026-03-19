@@ -1,4 +1,4 @@
-/* eslint-disable playwright/no-standalone-expect */
+/* eslint-disable playwright/no-conditional-in-test */
 import { ENV } from '@jetstream/api-config';
 import { expect, test as setup } from '@playwright/test';
 import { join } from 'path';
@@ -37,7 +37,17 @@ setup('login and ensure org exists', async ({ page, request }) => {
   await page.getByLabel('Password').fill(ENV.EXAMPLE_USER_PASSWORD as string);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
 
-  await page.waitForURL(`${baseApiURL}/app`);
+  // Handle TOS acceptance gate if the example user hasn't accepted the current version yet
+  const onTosPage = await page
+    .waitForURL(`${baseApiURL}/auth/accept-terms**`, { timeout: 3000 })
+    .then(() => true)
+    .catch(() => false);
+  if (onTosPage) {
+    await page.getByRole('checkbox', { name: 'I have read and agree to the' }).check();
+    await page.getByRole('button', { name: 'Accept and Continue' }).click();
+  }
+
+  page.url().includes('/app') || (await page.waitForURL(`${baseApiURL}/app`));
 
   await expect(page.getByRole('button', { name: 'Avatar' })).toBeVisible();
 

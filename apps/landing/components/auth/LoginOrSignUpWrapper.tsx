@@ -14,7 +14,7 @@ export function LoginOrSignUpWrapper({ action }: LoginOrSignUpWrapperProps) {
   const router = useRouter();
   const [providers, setProviders] = useState<Providers>();
   const [error, setError] = useState<string>();
-  const { isLoading, pendingVerifications, isLoggedIn } = useUserProfile();
+  const { isLoading, pendingVerifications, isLoggedIn, pendingTosAcceptance, currentTosVersion } = useUserProfile();
   const { csrfToken, csrfTokenError } = useCsrfToken();
 
   useEffect(() => {
@@ -22,8 +22,10 @@ export function LoginOrSignUpWrapper({ action }: LoginOrSignUpWrapperProps) {
       window.location.href = `${ENVIRONMENT.CLIENT_URL}/home${window.location.search || ''}`;
     } else if (pendingVerifications) {
       router.push(`${ROUTES.AUTH.verify}`);
+    } else if (pendingTosAcceptance) {
+      router.push(ROUTES.AUTH.accept_terms);
     }
-  }, [isLoggedIn, pendingVerifications, router]);
+  }, [isLoggedIn, pendingVerifications, pendingTosAcceptance, router]);
 
   useEffect(() => {
     fetch(ROUTES.AUTH.api_providers)
@@ -56,5 +58,5 @@ export function LoginOrSignUpWrapper({ action }: LoginOrSignUpWrapperProps) {
     return null;
   }
 
-  return <LoginOrSignUp action={action} csrfToken={csrfToken} providers={providers} />;
+  return <LoginOrSignUp action={action} csrfToken={csrfToken} providers={providers} currentTosVersion={currentTosVersion} />;
 }

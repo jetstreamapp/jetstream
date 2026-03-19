@@ -8,6 +8,7 @@ import * as bcrypt from 'bcryptjs';
 import * as Bowser from 'bowser';
 import { Request as ExpressRequest } from 'express';
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { CURRENT_TOS_VERSION } from './auth.constants';
 
 export const REMEMBER_DEVICE_DAYS = 30;
 
@@ -249,13 +250,15 @@ export function checkUserAgentSimilarity(sessionUserAgent: string, currentUserAg
   );
 }
 
-export const convertUserProfileToSession = (user: UserProfileUi): UserProfileSession => {
+export const convertUserProfileToSession_External = (user: UserProfileUi): UserProfileSession => {
   return {
     id: user.id,
     userId: user.userId || user.id,
     name: user.name,
     email: user.email,
     emailVerified: user.emailVerified,
+    // Assume TOS is accepted at login/registration - this is used for other cases (e.g. see if user is still logged in desktop app)
+    tosAcceptedVersion: CURRENT_TOS_VERSION,
     authFactors: [],
   };
 };

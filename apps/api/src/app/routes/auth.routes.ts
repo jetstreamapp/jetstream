@@ -44,6 +44,8 @@ routes.post('/callback/:provider', STRICT_AuthRateLimit, verifyCaptcha, authCont
 // 2FA and email verification
 routes.post('/verify', STRICT_AuthRateLimit, authController.routeDefinition.verification.controllerFn());
 routes.post('/verify/resend', STRICT_2X_AuthRateLimit, authController.routeDefinition.resendVerification.controllerFn());
+// Terms of Service acceptance gate
+routes.post('/accept-terms', LAX_AuthRateLimit, authController.routeDefinition.acceptTerms.controllerFn());
 // Request a password reset
 routes.post(
   '/password/reset/init',

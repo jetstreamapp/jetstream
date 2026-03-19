@@ -51,6 +51,13 @@ export class AuthenticationPage {
   readonly mfaTotpMenuButton: Locator;
   readonly mfaEmailMenuButton: Locator;
 
+  /** Checkbox on the sign-up form */
+  readonly tosCheckbox: Locator;
+  /** Checkbox on the /auth/accept-terms gate page */
+  readonly acceptTermsCheckbox: Locator;
+  /** Submit button on the /auth/accept-terms gate page */
+  readonly acceptTermsButton: Locator;
+
   constructor(page: Page) {
     this.page = page;
     this.signInFromHomePageButton = page.getByRole('link', { name: 'Log in', exact: true });
@@ -81,6 +88,10 @@ export class AuthenticationPage {
 
     this.mfaTotpMenuButton = page.getByTestId('mfa-totp-menu-button');
     this.mfaEmailMenuButton = page.getByTestId('mfa-email-menu-button');
+
+    this.tosCheckbox = page.getByLabel('I agree to the Terms of Service and Privacy Policy');
+    this.acceptTermsCheckbox = page.getByLabel('I have read and agree to the Terms of Service and Privacy Policy');
+    this.acceptTermsButton = page.getByRole('button', { name: 'Accept and Continue' });
   }
 
   async acceptCookieBanner(page = this.page) {
@@ -92,6 +103,13 @@ export class AuthenticationPage {
     } catch {
       console.log('Cookie banner not visible, skipping click.');
     }
+  }
+
+  /** Accepts TOS on the /auth/accept-terms gate page and waits for redirect to /app */
+  async acceptTosGatePage() {
+    await this.acceptTermsCheckbox.check();
+    await this.acceptTermsButton.click();
+    await this.page.waitForURL(`**/app/**`);
   }
 
   async goToSignUp(viaHomePage = true) {
@@ -180,7 +198,12 @@ export class AuthenticationPage {
     await this.verificationCodeInput.fill(token);
     await this.continueButton.click();
 
-    await this.page.waitForURL(`**/app/**`);
+    // After email verification, the user may be redirected to the TOS acceptance gate
+    // before reaching the app — handle both cases.
+    await this.page.waitForURL(/\/(app\/|auth\/accept-terms)/);
+    if (this.page.url().includes('/auth/accept-terms')) {
+      await this.acceptTosGatePage();
+    }
 
     await verifyEmailLogEntryExists(email, 'Welcome to Jetstream');
 
@@ -457,6 +480,8 @@ export class AuthenticationPage {
 
     await this.confirmPasswordInput.click();
     await this.confirmPasswordInput.fill(confirmPassword);
+
+    await this.tosCheckbox.check();
 
     await this.signUpButton.click();
   }

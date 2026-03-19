@@ -1,5 +1,5 @@
 import { prisma } from '@jetstream/api-config';
-import { encryptSecret, resolveSamlIdentifiers } from '@jetstream/auth/server';
+import { CURRENT_TOS_VERSION, encryptSecret, resolveSamlIdentifiers } from '@jetstream/auth/server';
 import { randomUUID } from 'crypto';
 import 'dotenv/config';
 
@@ -52,6 +52,7 @@ export async function createSsoFixture(options: SsoFixtureOptions = {}): Promise
         userId: `credentials|${email}`,
         password: await hash(password),
         emailVerified: true,
+        tosAcceptedVersion: CURRENT_TOS_VERSION,
         name: 'Test User',
         preferences: { create: { skipFrontdoorLogin: false } },
         entitlements: { create: { chromeExtension: false, recordSync: false, googleDrive: false, desktop: false } },

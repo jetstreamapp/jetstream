@@ -3,11 +3,16 @@ import LastUpdated from '../../components/LastUpdated';
 import Layout from '../../components/layouts/Layout';
 import { ROUTES } from '../../utils/environment';
 
+/**
+ * ANY CHANGES TO THIS DOCUMENT MUST BE APPROVED BY LEGAL AND THE LEADERSHIP TEAM.
+ * CURRENT_TOS_VERSION MUST BE UPDATED IN libs/auth/server/src/lib/auth.constants.ts
+ * WHEN ANY MATERIAL UPDATE IS MADE TO THIS DOCUMENT.
+ */
 export default function Page() {
-  const email = 'support@getjetstream.app';
+  const email = 'privacy@getjetstream.app';
   return (
     <div className="m-8">
-      <LastUpdated className="text-gray-500" day={2} month="November" year={2025} />
+      <LastUpdated className="text-gray-500" day={17} month="March" year={2026} />
       <h1>Privacy Policy</h1>
       <p className="mb-2 pl-2">
         This Privacy Policy describes how your personal information is collected, used, and shared when you visit or make a purchase from
@@ -21,7 +26,9 @@ export default function Page() {
         </li>
         <li>We never store any of your Salesforce record data.</li>
         <li>We use browser-based caching to avoid having to store any metadata on our server.</li>
-        <li>We will never make API requests to Salesforce without explicit action from a user, such as executing a query.</li>
+        <li>
+          We will never make API requests to access any Salesforce data without explicit action from a user, such as executing a query.
+        </li>
         <li>
           All data stored by Jetstream is{' '}
           <a
@@ -36,7 +43,8 @@ export default function Page() {
         </li>
         <li>
           Some metadata, such as Object and Field names may be included in log entries for up to 1 year with our logging provider. This is
-          used only for the purpose of troubleshooting errors and ensuring auditability for security purposes.
+          used only for the purpose of troubleshooting errors and ensuring auditability for security purposes. We make every reasonable
+          effort to avoid including any sensitive information in our logs at the application level and via log redaction.
         </li>
         <li>
           If there is a fatal error with the application, our bug tracker may store metadata and error messages based on whatever Salesforce
@@ -65,7 +73,11 @@ export default function Page() {
         products that you view, what websites or search terms referred you to the Site, and information about how you interact with the
         Site. We refer to this automatically-collected information as “Device Information.”
       </p>
-      <p className="mb-2 pl-2">We collect Device Information using the following technologies:</p>
+      <p className="mb-2 pl-2">
+        We collect Device Information using the following technologies. Where consent is required, such as for analytics cookies, we will
+        ask for your explicit consent before collecting this information. You may withdraw or change your consent at any time through the
+        application settings.
+      </p>
       <ul className="list-disc pl-6">
         <li>
           “Cookies” are data files that are placed on your device or computer and often include an anonymous unique identifier. For more
@@ -87,6 +99,10 @@ export default function Page() {
       <p className="mb-2 pl-2">
         When we talk about “Personal Information” in this Privacy Policy, we are talking both about Device Information and Order
         Information.
+      </p>
+      <p className="mb-2 pl-2">
+        When you sign in using a third-party identity provider such as Google or Salesforce, we receive certain profile information from
+        that provider, including your name and email address, which is used solely to create and manage your account.
       </p>
       <h2>SALESFORCE DATA</h2>
       <p className="mb-2 pl-2">
@@ -140,23 +156,37 @@ export default function Page() {
       </p>
       <h2>YOUR RIGHTS</h2>
       <p className="mb-2 pl-2">
-        If you are a European resident, you have the right to access personal information we hold about you and to ask that your personal
-        information be corrected, updated, or deleted. If you would like to exercise this right, contact us through the contact information
-        below.
+        You have the right to access personal information we hold about you and to ask that your personal information be corrected, updated,
+        or deleted. If you would like to exercise this right, please contact us at the email address below. We take reasonable steps to
+        ensure that personal information we hold is accurate and up to date.
       </p>
-      Additionally, if you are a European resident we note that we are processing your information in order to fulfill contracts we might
-      have with you (for example if you make an order through the Site), or otherwise to pursue our legitimate business interests listed
-      above. Additionally, please note that your information will be transferred outside of Europe, to the United States.
+      <p className="mb-2 pl-2">
+        If you are a European resident, we note that we are processing your information in order to fulfill contracts we might have with you
+        (for example if you make an order through the Site), or otherwise to pursue our legitimate business interests listed above.
+        Additionally, please note that your information will be transferred outside of Europe, to the United States.
+      </p>
       <h2>DATA RETENTION</h2>
       <p className="mb-2 pl-2">
-        We will store information in our logs for up to 14 days. We will store information related to errors for up to 30 days.
+        We will store application log information for up to 1 year. We will store login and access audit events for at least 1 year. We will
+        store information related to errors for up to 30 days. After these retention periods, data is securely deleted or anonymized.
       </p>
       <h2>MINORS</h2>
       <p className="mb-2 pl-2">The Site is not intended for individuals under the age of 13.</p>
+      <h2>MONITORING AND ENFORCEMENT</h2>
+      <p className="mb-2 pl-2">
+        We periodically review this privacy policy and our privacy practices to ensure ongoing compliance. If you have a privacy-related
+        complaint or concern, please contact us at{' '}
+        <a className="underline" href={`mailto:${email}?subject=Privacy Complaint`} target="_blank" rel="noreferrer">
+          {email}
+        </a>
+        . We will acknowledge your complaint and respond in a timely manner.
+      </p>
       <h2>CHANGES</h2>
       <p className="mb-2 pl-2">
         We may update this privacy policy from time to time in order to reflect, for example, changes to our practices or for other
-        operational, legal or regulatory reasons.
+        operational, legal or regulatory reasons. We may make non-material changes to this Privacy Policy without prior notice. If we make
+        material changes to this Privacy Policy, or begin collecting new categories of personal information, we will notify you either
+        through the email address you have provided us, or by placing a prominent notice on our website.
       </p>
       <h2>CONTACT US</h2>
       <p className="mb-2 pl-2">

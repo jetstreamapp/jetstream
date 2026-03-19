@@ -13,6 +13,8 @@ interface AuthState {
   email?: Maybe<string>;
   pendingVerifications: Array<TwoFactorType> | false;
   isVerificationExpired: boolean;
+  pendingTosAcceptance: boolean;
+  currentTosVersion: string;
 }
 
 export function useUserProfile() {
@@ -20,6 +22,8 @@ export function useUserProfile() {
     isLoggedIn: false,
     pendingVerifications: false,
     isVerificationExpired: false,
+    pendingTosAcceptance: false,
+    currentTosVersion: '',
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -43,6 +47,8 @@ export function useUserProfile() {
             isLoggedIn: boolean;
             pendingVerifications: TwoFactorType[] | false;
             isVerificationExpired: boolean;
+            pendingTosAcceptance: boolean;
+            currentTosVersion: string;
           };
         }) => {
           setAuthState(data);

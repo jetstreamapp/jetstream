@@ -31,7 +31,8 @@ export type Action =
   | 'SSO_DISCOVER'
   | 'SSO_START'
   | 'SSO_JIT_PROVISIONED'
-  | 'CAPTCHA_FAILED';
+  | 'CAPTCHA_FAILED'
+  | 'TOS_ACCEPTED';
 
 export const actionDisplayName: Record<Action, string> = {
   LOGIN: 'Login Attempt',
@@ -61,6 +62,7 @@ export const actionDisplayName: Record<Action, string> = {
   SSO_START: 'SSO Login Start',
   SSO_JIT_PROVISIONED: 'SSO JIT User Provisioned',
   CAPTCHA_FAILED: 'Captcha Verification Failed',
+  TOS_ACCEPTED: 'Terms of Service Accepted',
 };
 
 export const methodDisplayName: Record<string, string> = {
