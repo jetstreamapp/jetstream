@@ -137,7 +137,7 @@ export function ConfigureSsoOidcForm({ teamId, existingSsoConfig, onSave }: Conf
             label="Issuer URL"
             isRequired
             labelHelp="Only OIDC compliant issuers are supported and a discovery document must be available at {issuer}/.well-known/openid-configuration"
-            helpText="The OIDC issuer URL (e.g., https://{id}.okta.com, https://login.google.com, https://login.microsoftonline.com/{tenant-id}/v2.0)"
+            helpText="The OIDC issuer URL (e.g., https://{id}.okta.com, https://accounts.google.com, https://login.microsoftonline.com/{tenant-id}/v2.0)"
             hasError={!!errors?.issuer}
             errorMessage={errors?.issuer?.message}
           >
