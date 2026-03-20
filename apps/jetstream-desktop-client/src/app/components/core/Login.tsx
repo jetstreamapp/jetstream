@@ -1,10 +1,11 @@
 import { css } from '@emotion/react';
 import { AuthenticatePayload, DesktopAuthInfo } from '@jetstream/desktop/types';
 import { logger } from '@jetstream/shared/client-logger';
+import { getOrgs } from '@jetstream/shared/data';
 import { Grid } from '@jetstream/ui';
 import { AppLoading, JetstreamLogoInverse } from '@jetstream/ui-core';
 import { DEFAULT_PROFILE, fromAppState } from '@jetstream/ui/app-state';
-import { useAtom } from 'jotai';
+import { useAtom, useSetAtom } from 'jotai';
 import { useCallback, useEffect, useState } from 'react';
 
 // 12 hours in milliseconds
@@ -18,18 +19,25 @@ export function Login({ children }: LoginProps) {
   const [loading, setLoading] = useState(true);
   const [authInfo, setAuthInfo] = useState<DesktopAuthInfo>();
   const [userProfile, setUserProfile] = useAtom(fromAppState.userProfileState);
+  const setOrgs = useSetAtom(fromAppState.salesforceOrgsState);
 
   const authenticationEventHandler = useCallback(
-    (response: AuthenticatePayload) => {
+    async (response: AuthenticatePayload) => {
       if (response.success) {
         setUserProfile(response.userProfile);
         setAuthInfo(response.authInfo);
+        // Re-fetch orgs now that the encryption key is set on the main process
+        try {
+          setOrgs(await getOrgs());
+        } catch (ex) {
+          logger.warn('Error refreshing orgs after login', ex);
+        }
       } else {
         // TODO: handle else case and show error message
         logger.warn('Login failed', response);
       }
     },
-    [setUserProfile],
+    [setUserProfile, setOrgs],
   );
 
   const handleLogout = useCallback(() => {
@@ -48,11 +56,18 @@ export function Login({ children }: LoginProps) {
 
     window.electronAPI
       .checkAuth()
-      .then((response) => {
+      .then(async (response) => {
         if (response) {
           const { authInfo, userProfile } = response;
           setAuthInfo(authInfo);
           setUserProfile(userProfile);
+          // Re-fetch orgs after auth completes — the encryption key is now set
+          // on the main process, so orgs can be decrypted successfully.
+          try {
+            setOrgs(await getOrgs());
+          } catch (ex) {
+            logger.warn('Error refreshing orgs after auth check', ex);
+          }
         }
       })
       .finally(() => setLoading(false));
@@ -75,7 +90,7 @@ export function Login({ children }: LoginProps) {
       clearInterval(interval);
       unsubscribeAuth();
     };
-  }, [authenticationEventHandler, setUserProfile]);
+  }, [authenticationEventHandler, setUserProfile, setOrgs]);
 
   function handleLogin() {
     window.electronAPI?.login();

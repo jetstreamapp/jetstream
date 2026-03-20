@@ -255,6 +255,15 @@ const envSchema = z.object({
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   STRIPE_BILLING_PORTAL_LINK: z.string().optional(),
   /**
+   * Desktop App
+   * Secret used to derive per-user encryption keys for portable org data encryption.
+   * Treat like a signing secret — rotating this invalidates all existing portable-encrypted org files.
+   */
+  DESKTOP_ORG_ENCRYPTION_SECRET: z.string().min(32, {
+    message: 'DESKTOP_ORG_ENCRYPTION_SECRET must be at least 32 characters (generate with: openssl rand -base64 32)',
+  }),
+
+  /**
    * BackBlaze B2
    */
   BACKBLAZE_ACCESS_KEY_ID: z.string().default(''),

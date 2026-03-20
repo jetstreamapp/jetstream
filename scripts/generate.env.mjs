@@ -46,6 +46,7 @@ const replacements = [
   ['EXAMPLE_USER_OVERRIDE=', `EXAMPLE_USER_OVERRIDE='${enableExampleUser}'`],
   ['SFDC_ENCRYPTION_KEY=', `SFDC_ENCRYPTION_KEY='${generateRandomBase64(32)}'`],
   ['JWT_ENCRYPTION_KEY=', `JWT_ENCRYPTION_KEY='${generateRandomBase64(32)}'`],
+  ['DESKTOP_ORG_ENCRYPTION_SECRET=', `DESKTOP_ORG_ENCRYPTION_SECRET='${generateRandomBase64(32)}'`],
 ];
 
 // for each line in file, see if line starts with a replacement string

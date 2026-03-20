@@ -6,10 +6,14 @@ import logger from 'electron-log';
 import { z } from 'zod';
 import { ENV } from '../config/environment';
 
-const AuthResponseSuccessSchema = z.object({ success: z.literal(true), userProfile: UserProfileUiSchema });
+const AuthResponseSuccessSchema = z.object({
+  success: z.literal(true),
+  userProfile: UserProfileUiSchema,
+  encryptionKey: z.string().length(64),
+});
 const AuthResponseErrorSchema = z.object({ success: z.literal(false), error: z.string() });
 const SuccessOrErrorSchema = z.union([AuthResponseSuccessSchema, AuthResponseErrorSchema]);
-const SuccessWithoutUserProfileOrErrorSchema = z.union([AuthResponseSuccessSchema.omit({ userProfile: true }), AuthResponseErrorSchema]);
+const LogoutResponseSchema = z.union([z.object({ success: z.literal(true) }), AuthResponseErrorSchema]);
 
 export type AuthResponseSuccess = z.infer<typeof AuthResponseSuccessSchema>;
 export type AuthResponseError = z.infer<typeof AuthResponseErrorSchema>;
@@ -51,7 +55,7 @@ export async function logout({ accessToken, deviceId }: { deviceId: string; acce
     },
   });
 
-  const results = SuccessWithoutUserProfileOrErrorSchema.safeParse(
+  const results = LogoutResponseSchema.safeParse(
     await response
       .json()
       .then((value) => value?.data)

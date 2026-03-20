@@ -123,11 +123,17 @@ const handleLoginEvent: MainIpcHandler<'login'> = async (event) => {
       const response = await verifyAuthToken({ accessToken, deviceId });
 
       if (response.success) {
+        const successResponse = response as AuthResponseSuccess;
         const { userProfile } = dataService.saveAuthResponseToAppData({
           deviceId,
           accessToken,
-          userProfile: (response as AuthResponseSuccess).userProfile,
+          userProfile: successResponse.userProfile,
         });
+
+        if (successResponse.encryptionKey) {
+          dataService.setOrgEncryptionKey(successResponse.encryptionKey);
+        }
+
         const payload: AuthenticateSuccessPayload = {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           userProfile: userProfile as any,
@@ -173,6 +179,8 @@ const handleLogoutEvent: MainIpcHandler<'logout'> = async () => {
     expiresAt: undefined,
     lastChecked: undefined,
   });
+
+  dataService.clearOrgState();
 };
 
 const handleAddOrgEvent: MainIpcHandler<'addOrg'> = async (event, payload) => {
@@ -257,7 +265,11 @@ const handleCheckAuthEvent: MainIpcHandler<'checkAuth'> = async (): Promise<
   const { deviceId, accessToken, lastChecked } = appData;
   if (accessToken && userProfile) {
     // TODO: implement a refresh token flow
-    if (!lastChecked || lastChecked < addHours(new Date(), -AUTH_CHECK_INTERVAL_HOURS).getTime()) {
+    if (
+      !lastChecked ||
+      lastChecked < addHours(new Date(), -AUTH_CHECK_INTERVAL_HOURS).getTime() ||
+      !dataService.isOrgEncryptionKeyLoaded()
+    ) {
       const response = await verifyAuthToken({ accessToken, deviceId });
       if (!response.success) {
         logger.error('Authentication error', response.error);
@@ -270,13 +282,18 @@ const handleCheckAuthEvent: MainIpcHandler<'checkAuth'> = async (): Promise<
         });
         return;
       }
+      const successResponse = response as AuthResponseSuccess;
       logger.info('Authentication check successful');
       dataService.setAppData({
         ...appData,
-        userProfile: (response as AuthResponseSuccess).userProfile,
+        userProfile: successResponse.userProfile,
         lastChecked: Date.now(),
       });
+      if (successResponse.encryptionKey) {
+        dataService.setOrgEncryptionKey(successResponse.encryptionKey);
+      }
     }
+
     return { userProfile, authInfo: { deviceId, accessToken } };
   }
 };
