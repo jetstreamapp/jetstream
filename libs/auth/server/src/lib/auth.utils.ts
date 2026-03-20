@@ -249,13 +249,17 @@ export function checkUserAgentSimilarity(sessionUserAgent: string, currentUserAg
   );
 }
 
-export const convertUserProfileToSession = (user: UserProfileUi): UserProfileSession => {
+export const convertUserProfileToSession_External = (user: UserProfileUi): UserProfileSession => {
   return {
     id: user.id,
     userId: user.userId || user.id,
     name: user.name,
     email: user.email,
     emailVerified: user.emailVerified,
+    // TODO: External auth (desktop/extension) does not currently carry tosAcceptedVersion from the DB.
+    // Setting to null to avoid falsely representing acceptance status.
+    // A follow-up PR should propagate the real value from the DB and enforce ToS acceptance for external clients.
+    tosAcceptedVersion: null,
     authFactors: [],
   };
 };

@@ -38,6 +38,7 @@ const EXAMPLE_USER: UserProfileSession = {
   emailVerified: true,
   userId: 'test|aaaaaaaa-0000-0000-0000-aaaaaaaaaaaa',
   authFactors: [],
+  tosAcceptedVersion: 'test-tos-version',
 };
 
 const EXAMPLE_USER_FULL_PROFILE: UserProfileUiWithIdentities = {
@@ -87,6 +88,7 @@ const envSchema = z.object({
       name: z.string(),
       email: z.string(),
       emailVerified: z.boolean(),
+      tosAcceptedVersion: z.string().nullish(),
       authFactors: z
         .object({
           type: z.string(),

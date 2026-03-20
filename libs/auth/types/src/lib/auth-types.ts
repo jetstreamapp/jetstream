@@ -170,6 +170,7 @@ export interface SessionData {
    * This is not a valid session and is not to be treated as authenticated.
    */
   sessionDetails?: { isTemporary: boolean };
+  pendingTosAcceptance?: boolean | null;
   sendNewUserEmailAfterVerify?: boolean;
   orgAuth?: { code_verifier: string; nonce: string; state: string; loginUrl: string; orgGroupId?: Maybe<string> };
   // SSO state
@@ -221,6 +222,7 @@ export const AuthenticatedUserSchema = z.object({
   name: z.string(),
   email: z.string(),
   emailVerified: z.boolean(),
+  tosAcceptedVersion: z.string().nullable(),
   authFactors: z.array(
     z.object({
       type: z.enum(['email', '2fa-otp', '2fa-email']),

@@ -1,6 +1,6 @@
 import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
 import type { Request, Response } from '@jetstream/api-types';
-import { convertUserProfileToSession } from '@jetstream/auth/server';
+import { convertUserProfileToSession_External } from '@jetstream/auth/server';
 import { HTTP, HTTP_SOURCE_DESKTOP } from '@jetstream/shared/constants';
 import { SocketEvent } from '@jetstream/types';
 import { createAdapter } from '@socket.io/cluster-adapter';
@@ -51,7 +51,7 @@ function getExternalDeviceAuthMiddleware(audience: externalAuthService.Audience)
     const accessToken = authorizationHeader.split(' ')[1];
     externalAuthService
       .verifyToken({ token: accessToken, deviceId }, audience)
-      .then((decodedJwt) => convertUserProfileToSession(decodedJwt.userProfile))
+      .then((decodedJwt) => convertUserProfileToSession_External(decodedJwt.userProfile))
       .then((user) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (socket.request as any).session = { ...(socket.request as any).session, user, deviceId };

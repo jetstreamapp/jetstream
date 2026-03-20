@@ -40,6 +40,7 @@ import clamp from 'lodash/clamp';
 import { LRUCache } from 'lru-cache';
 import { actionDisplayName, methodDisplayName } from './auth-logging.db.service';
 import {
+  CURRENT_TOS_VERSION,
   DELETE_AUTH_ACTIVITY_DAYS,
   DELETE_EMAIL_ACTIVITY_DAYS,
   DELETE_EXPIRED_DOMAIN_VERIFICATION_DAYS,
@@ -80,6 +81,7 @@ export const PLACEHOLDER_USER = AuthenticatedUserSchema.parse({
   emailVerified: false,
   authFactors: [],
   teamMembership: null,
+  tosAcceptedVersion: 'invalid',
 } satisfies AuthenticatedUser);
 
 // Mirrors AuthenticatedUserSchema
@@ -89,6 +91,7 @@ export const AuthenticatedUserSelect = {
   name: true,
   email: true,
   emailVerified: true,
+  tosAcceptedVersion: true,
   appMetadata: false,
   authFactors: {
     select: {
@@ -1289,7 +1292,13 @@ async function updateIdentityAttributesFromProvider(userId: string, providerUser
   }
 }
 
-async function createUserFromUserInfo(email: string, name: string, password: string, loginConfiguration: Maybe<LoginConfiguration>) {
+async function createUserFromUserInfo(
+  email: string,
+  name: string,
+  password: string,
+  loginConfiguration: Maybe<LoginConfiguration>,
+  tosVersion: typeof CURRENT_TOS_VERSION,
+) {
   email = email.toLowerCase();
 
   const passwordHash = await hashPassword(password);
@@ -1306,6 +1315,8 @@ async function createUserFromUserInfo(email: string, name: string, password: str
           password: passwordHash,
           passwordUpdatedAt: new Date(),
           lastLoggedIn: new Date(),
+          tosAcceptedVersion: tosVersion,
+          tosAcceptedAt: new Date(),
           preferences: { create: { skipFrontdoorLogin: false } },
           entitlements: { create: { chromeExtension: false, recordSync: false, googleDrive: false, desktop: false } },
           authFactors: {
@@ -1474,6 +1485,7 @@ export async function handleSignInOrRegistration(
         email: string;
         name: string;
         password: string;
+        tosVersion: typeof CURRENT_TOS_VERSION;
         teamInvite: Maybe<{ token: string; teamId: string }>;
       },
 ): Promise<{
@@ -1652,7 +1664,7 @@ export async function handleSignInOrRegistration(
          * 3. see if users with this email domain can sign up on their own (based on login configuration, domain may not allow users to sign up outside their team)
          */
 
-        user = await createUserFromUserInfo(payload.email, payload.name, password, loginConfiguration);
+        user = await createUserFromUserInfo(payload.email, payload.name, password, loginConfiguration, payload.tosVersion);
         isNewUser = true;
       } else {
         throw new InvalidAction(action);
@@ -1777,6 +1789,13 @@ async function acceptInviteAndAddUserToTeam(
     );
   }
   return null;
+}
+
+export async function acceptTos(userId: string, version: typeof CURRENT_TOS_VERSION): Promise<void> {
+  await prisma.user.update({
+    data: { tosAcceptedVersion: version, tosAcceptedAt: new Date() },
+    where: { id: userId },
+  });
 }
 
 export async function setLastLoginDate(userId: string) {

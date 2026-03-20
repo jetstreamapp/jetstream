@@ -47,6 +47,8 @@ export const ROUTES = {
     api_reset_password_verify: `/api/auth/password/reset/verify`,
     api_sso_discover: `/api/auth/sso/discover`,
     api_sso_start: `/api/auth/sso/start`,
+    accept_terms: `/auth/accept-terms`,
+    api_accept_terms: `/api/auth/accept-terms`,
   },
   API: {
     desktop_downloads: `${process.env.NX_PUBLIC_SERVER_URL || 'https://getjetstream.app'}/desktop-assets/downloads`,

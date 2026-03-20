@@ -166,6 +166,21 @@ export async function redirectIfPendingVerificationMiddleware(req: express.Reque
   next();
 }
 
+export async function redirectIfPendingTosAcceptanceMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
+  if (req.session?.pendingTosAcceptance) {
+    const isJson = (req.get(HTTP.HEADERS.ACCEPT) || '').includes(HTTP.CONTENT_TYPE.JSON);
+
+    if (!isJson) {
+      res.redirect(302, `/auth/accept-terms`);
+      return;
+    } else {
+      next(new AuthError('Pending Terms of Service acceptance'));
+      return;
+    }
+  }
+  next();
+}
+
 export async function redirectIfMfaEnrollmentRequiredMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
   if (req.session?.pendingMfaEnrollment) {
     const isJson = (req.get(HTTP.HEADERS.ACCEPT) || '').includes(HTTP.CONTENT_TYPE.JSON);
