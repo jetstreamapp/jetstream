@@ -88,13 +88,31 @@ Go to **Directory > Users** and add a new user or select an existing one.
 
 Within the selected user, click **Change organizational unit** and choose the applicable unit.
 
-Go to **Security > Access and data control > API controls** in the left-hand navigation and click **Manage Third-Party App Access**.
+1. Go to **Security** > **Access and data control** > **API Controls**
+2. Click on **Manage App Access**
+3. Click on **Configure new app**
+4. Paste in your **Client ID** in the search bar and hit enter
+5. Click on the **Jetstream App** that you created from the search results
+6. Select the specific organization unit or add one.
+7. Select your access control
+8. Click **Finish** to complete the configuration.
 
-Select **Add app**, then **OAuth App Name Or Client ID**.
-
-Paste the **Client ID** from the application you created in the search field and Search.
-
-Click on the selected app and **Access to Google** data to assign organization units access and **Save**.
+<img
+  src={require('./images/sso-google-access-configure-1.png').default}
+  alt="Google Admin Console – API Controls – Configure new app screen"
+/>
+<img
+  src={require('./images/sso-google-access-configure-2.png').default}
+  alt="Google Admin Console – Manage app access – App selected after searching by client ID"
+/>
+<img
+  src={require('./images/sso-google-access-configure-3.png').default}
+  alt="Google Admin Console – App access settings – Choose organizational unit and access control"
+/>
+<img
+  src={require('./images/sso-google-access-configure-4.png').default}
+  alt="Google Admin Console – App access configuration summary with Finish button"
+/>
 
 ### Enable the connection
 
