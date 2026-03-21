@@ -182,6 +182,7 @@ export const Navigation = ({ className, inverse, omitLinks = [], userProfile }: 
         <FloatingPortal>
           <FloatingFocusManager context={context} modal={false} returnFocus={false}>
             <div
+              // eslint-disable-next-line react-hooks/refs
               ref={refs.setFloating}
               style={{ ...floatingStyles, ...transitionStyles }}
               {...getFloatingProps()}
