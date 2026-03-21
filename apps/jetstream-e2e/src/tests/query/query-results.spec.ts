@@ -75,7 +75,7 @@ test.describe('QUERY RESULTS', () => {
     // await queryPage.waitForQueryResults(query3);
 
     await queryPage.performQueryHistoryAction(query2, 'RESTORE');
-    page.getByTestId('query-builder-page').getByText('Query Records');
+    await expect(page.getByTestId('query-builder-page').getByText('Query Records')).toBeVisible();
 
     await queryPage.validateQueryByLine([
       'SELECT Id, Name',

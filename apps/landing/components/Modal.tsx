@@ -72,6 +72,7 @@ export const Modal = ({
             &#8203;
           </span>
           <FloatingFocusManager context={context} modal returnFocus>
+            {/* eslint-disable-next-line react-hooks/refs */}
             <div ref={refs.setFloating} className={bodyClassName} style={transitionStyles} {...getFloatingProps()}>
               <div className="hidden sm:block absolute top-0 right-0 pt-2 pr-2">
                 <button

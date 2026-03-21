@@ -52,13 +52,7 @@ export const useValidateLoadFile = (org: SalesforceOrgUi, apiVersion: string, op
     };
   }, []);
 
-  useEffect(() => {
-    if (dataSet && !errors.length) {
-      processFileGraph();
-    }
-  }, [errors, dataSet, dateFormat, insertNulls]);
-
-  function processFileGraph() {
+  const processFileGraph = useCallback(() => {
     if (!dataSet) {
       return;
     }
@@ -88,7 +82,13 @@ export const useValidateLoadFile = (org: SalesforceOrgUi, apiVersion: string, op
         });
       }
     }
-  }
+  }, [dataSet, apiVersion, dateFormat, insertNulls]);
+
+  useEffect(() => {
+    if (dataSet && !errors.length) {
+      processFileGraph();
+    }
+  }, [errors, dataSet, processFileGraph]);
 
   function reset() {
     dispatch({ type: 'INIT', payload: { loading: false } });
