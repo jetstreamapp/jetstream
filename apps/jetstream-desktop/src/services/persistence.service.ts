@@ -45,6 +45,33 @@ let ORG_ENCRYPTION_KEY: Buffer | null = null;
  */
 let ORG_FILE_IS_PORTABLE = false;
 
+/** Number of decryption retries before giving up and backing up the file.
+ * Retries help with VDI roaming profile sync races where the file may be
+ * partially written when first read. */
+const DECRYPT_RETRY_ATTEMPTS = 3;
+const DECRYPT_RETRY_DELAY_MS = 1000;
+
+/** Synchronous sleep for use in retry loops (main process only). */
+function sleepSync(ms: number): void {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+/** Renames a corrupt/unreadable file to a timestamped backup for postmortem debugging. */
+function backupCorruptFile(filePath: string): void {
+  const backupPath = `${filePath}.corrupt-${Date.now()}`;
+  try {
+    renameSync(filePath, backupPath);
+    logger.info(`Backed up unreadable file to ${backupPath}`);
+  } catch (renameError) {
+    logger.error('Failed to back up unreadable file, attempting delete', renameError);
+    try {
+      unlinkSync(filePath);
+    } catch (unlinkError) {
+      logger.error('Failed to delete unreadable file', unlinkError);
+    }
+  }
+}
+
 /**
  * Sets the portable org encryption key derived from the server.
  * Must be called after successful authentication before reading/writing org data.
@@ -178,16 +205,46 @@ export function getAppData(): AppData {
     }
     if (!existsSync(APP_DATA_FILE)) {
       const appData = AppDataSchema.parse({});
-      writeFile(APP_DATA_FILE, JSON.stringify(appData), true);
+      writeFile(APP_DATA_FILE, JSON.stringify(appData));
+      APP_DATA = appData;
+      return appData;
     }
-    const maybeAppData = AppDataSchema.safeParse(JSON.parse(readFile(APP_DATA_FILE, true)));
+
+    // Try plain JSON first (current format), then safeStorage fallback (legacy format).
+    // This allows app-data.json to be read on any VM without machine-bound DPAPI keys.
+    let appDataRaw: string;
+    let needsMigration = false;
+    try {
+      appDataRaw = readFileSync(APP_DATA_FILE, 'utf8');
+      JSON.parse(appDataRaw); // Validate it's parseable JSON
+    } catch {
+      // Not valid UTF-8 JSON — try safeStorage decryption (legacy format)
+      try {
+        appDataRaw = safeStorage.decryptString(readFileSync(APP_DATA_FILE));
+        needsMigration = true;
+        logger.info('Migrating app-data.json from safeStorage to plain JSON');
+      } catch {
+        logger.warn('Unable to read app-data.json (not valid JSON and safeStorage decryption failed). Starting fresh.');
+        const appData = AppDataSchema.parse({});
+        writeFile(APP_DATA_FILE, JSON.stringify(appData));
+        APP_DATA = appData;
+        return appData;
+      }
+    }
+
+    const maybeAppData = AppDataSchema.safeParse(JSON.parse(appDataRaw));
     const appData = maybeAppData.success ? maybeAppData.data : AppDataSchema.parse({});
     APP_DATA = appData;
+    if (needsMigration) {
+      // Re-save as plain JSON to complete migration from safeStorage
+      writeFile(APP_DATA_FILE, JSON.stringify(appData));
+    }
     return appData;
   } catch (ex) {
     logger.error('Error reading app data file', ex);
     const appData = AppDataSchema.parse({});
-    writeFile(APP_DATA_FILE, JSON.stringify(appData), true);
+    writeFile(APP_DATA_FILE, JSON.stringify(appData));
+    APP_DATA = appData;
     return appData;
   }
 }
@@ -196,9 +253,9 @@ export function setAppData(appData: AppData) {
   try {
     appData = AppDataSchema.parse(appData);
     APP_DATA = appData;
-    writeFile(APP_DATA_FILE, JSON.stringify(appData), true);
+    writeFile(APP_DATA_FILE, JSON.stringify(appData));
   } catch (ex) {
-    logger.error('Error reading app data file', ex);
+    logger.error('Error saving app data file', ex);
     return false;
   }
 }
@@ -328,7 +385,9 @@ function readOrgs(): OrgsPersistence {
     }
 
     const rawData = readFileSync(SFDC_ORGS_FILE);
-    let orgsJson: string;
+    logger.debug({ fileSize: rawData.length, magic: rawData.subarray(0, 4).toString('hex') }, 'Reading orgs file');
+    // Definite assignment: all failure paths in the decryption branches return early
+    let orgsJson!: string;
 
     if (rawData.subarray(0, 4).equals(JSEK_MAGIC)) {
       // Portable AES-256-GCM format
@@ -338,50 +397,61 @@ function readOrgs(): OrgsPersistence {
         ORG_FILE_IS_PORTABLE = true;
         return { jetstreamOrganizations: [], salesforceOrgs: [] };
       }
-      try {
-        orgsJson = decryptOrgsData(rawData);
-        ORG_FILE_IS_PORTABLE = true;
-      } catch (decryptError) {
-        // Decryption failed — wrong key (e.g. server secret rotated) or file corruption.
-        // Rename the unreadable file to a timestamped backup for postmortem debugging,
-        // then the next write starts clean with the portable format.
-        logger.warn('Unable to decrypt portable orgs file (wrong key or corruption). Backing up and starting fresh.', decryptError);
-        ORG_FILE_IS_PORTABLE = true; // was portable on disk, prevent downgrade to safeStorage
-        const corruptBackupPath = `${SFDC_ORGS_FILE}.corrupt-${Date.now()}`;
+      // Retry decryption to handle VDI roaming profile sync races where the file
+      // may be partially written when first read.
+      let lastDecryptError: unknown;
+      for (let attempt = 1; attempt <= DECRYPT_RETRY_ATTEMPTS; attempt++) {
         try {
-          renameSync(SFDC_ORGS_FILE, corruptBackupPath);
-          logger.info(`Backed up unreadable portable orgs file to ${corruptBackupPath}`);
-        } catch (renameError) {
-          logger.error('Failed to back up unreadable portable orgs file, attempting delete', renameError);
-          try {
-            unlinkSync(SFDC_ORGS_FILE);
-          } catch (unlinkError) {
-            logger.error('Failed to delete unreadable portable orgs file', unlinkError);
+          // Re-read file on retries in case the profile sync completed since last attempt
+          const fileData = attempt === 1 ? rawData : readFileSync(SFDC_ORGS_FILE);
+          orgsJson = decryptOrgsData(fileData);
+          ORG_FILE_IS_PORTABLE = true;
+          lastDecryptError = null;
+          break;
+        } catch (err) {
+          lastDecryptError = err;
+          if (attempt < DECRYPT_RETRY_ATTEMPTS) {
+            logger.warn(
+              `Portable decryption attempt ${attempt}/${DECRYPT_RETRY_ATTEMPTS} failed, retrying in ${DECRYPT_RETRY_DELAY_MS}ms...`,
+            );
+            sleepSync(DECRYPT_RETRY_DELAY_MS);
           }
         }
+      }
+      if (lastDecryptError) {
+        logger.warn(
+          `Unable to decrypt portable orgs file after ${DECRYPT_RETRY_ATTEMPTS} attempts (wrong key or corruption). Backing up and starting fresh.`,
+          lastDecryptError,
+        );
+        ORG_FILE_IS_PORTABLE = true; // was portable on disk, prevent downgrade to safeStorage
+        backupCorruptFile(SFDC_ORGS_FILE);
         return { jetstreamOrganizations: [], salesforceOrgs: [] };
       }
     } else {
-      // Legacy safeStorage format — attempt to read and migrate
-      try {
-        orgsJson = safeStorage.decryptString(rawData);
-      } catch {
-        // safeStorage decryption failed, most likely because the file was encrypted on a different
-        // machine (common in AVD/VDI environments). Rename the unreadable file to a timestamped
-        // backup for postmortem debugging, then the next write starts clean with the portable format.
-        logger.warn('Unable to decrypt orgs file with safeStorage (likely a different machine). Backing up and starting fresh.');
-        const safeStorageBackupPath = `${SFDC_ORGS_FILE}.corrupt-${Date.now()}`;
+      // Legacy safeStorage format — attempt to read and migrate.
+      // Retry to handle VDI profile sync races (partially-written file).
+      let lastSafeStorageError: unknown;
+      for (let attempt = 1; attempt <= DECRYPT_RETRY_ATTEMPTS; attempt++) {
         try {
-          renameSync(SFDC_ORGS_FILE, safeStorageBackupPath);
-          logger.info(`Backed up unreadable safeStorage orgs file to ${safeStorageBackupPath}`);
-        } catch (renameError) {
-          logger.error('Failed to back up unreadable orgs file, attempting delete', renameError);
-          try {
-            unlinkSync(SFDC_ORGS_FILE);
-          } catch (unlinkError) {
-            logger.error('Failed to delete unreadable orgs file', unlinkError);
+          const fileData = attempt === 1 ? rawData : readFileSync(SFDC_ORGS_FILE);
+          orgsJson = safeStorage.decryptString(fileData);
+          lastSafeStorageError = null;
+          break;
+        } catch (err) {
+          lastSafeStorageError = err;
+          if (attempt < DECRYPT_RETRY_ATTEMPTS) {
+            logger.warn(
+              `safeStorage decryption attempt ${attempt}/${DECRYPT_RETRY_ATTEMPTS} failed, retrying in ${DECRYPT_RETRY_DELAY_MS}ms...`,
+            );
+            sleepSync(DECRYPT_RETRY_DELAY_MS);
           }
         }
+      }
+      if (lastSafeStorageError) {
+        logger.warn(
+          `Unable to decrypt orgs file with safeStorage after ${DECRYPT_RETRY_ATTEMPTS} attempts (likely a different machine). Backing up and starting fresh.`,
+        );
+        backupCorruptFile(SFDC_ORGS_FILE);
         return { jetstreamOrganizations: [], salesforceOrgs: [] };
       }
     }
