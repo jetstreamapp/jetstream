@@ -370,7 +370,6 @@
     "update-electron-app": "^3.1.2",
     "uuid": "^9.0.1",
     "webextension-polyfill": "^0.12.0",
-    "worker-loader": "^3.0.8",
     "write-file-atomic": "^7.0.1",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^4.3.6",
