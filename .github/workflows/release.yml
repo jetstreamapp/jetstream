@@ -233,6 +233,10 @@ jobs:
               echo "✅ Released"
             elif [[ "$outcome" == "failure" ]]; then
               echo "❌ Failed"
+            elif [[ "$outcome" == "skipped" ]]; then
+              echo "⏭️ Skipped"
+            elif [[ "$outcome" == "cancelled" ]]; then
+              echo "🚫 Cancelled"
             else
               echo "⚠️ Unknown"
             fi
