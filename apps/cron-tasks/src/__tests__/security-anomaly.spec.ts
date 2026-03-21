@@ -249,69 +249,69 @@ describe('Security Anomaly Checks Integration Tests', () => {
     });
   });
 
-  describe('Login Token Reuse (7 days)', () => {
-    let check: SecurityCheck;
+  // describe('Login Token Reuse (7 days)', () => {
+  //   let check: SecurityCheck;
 
-    beforeAll(() => {
-      check = getCheckByTitle('Token Reuse');
-    });
+  //   beforeAll(() => {
+  //     check = getCheckByTitle('Token Reuse');
+  //   });
 
-    it('should return empty when no token reuse events exist', async () => {
-      const results = await check.query(prisma);
-      const testResults = results.filter((r) => String(r.ipAddress).startsWith(TEST_IP_PREFIX));
-      expect(testResults).toHaveLength(0);
-    });
+  //   it('should return empty when no token reuse events exist', async () => {
+  //     const results = await check.query(prisma);
+  //     const testResults = results.filter((r) => String(r.ipAddress).startsWith(TEST_IP_PREFIX));
+  //     expect(testResults).toHaveLength(0);
+  //   });
 
-    it('should return desktop token reuse events', async () => {
-      await createLoginActivity({
-        action: 'DESKTOP_LOGIN_TOKEN_REUSED',
-        email: `${TEST_PREFIX}-token@test.com`,
-        success: true,
-        userAgent: 'Jetstream Desktop',
-      });
-      const results = await check.query(prisma);
-      const testResults = results.filter((r) => String(r.ipAddress).startsWith(TEST_IP_PREFIX));
-      expect(testResults).toHaveLength(1);
-      expect(testResults[0]).toEqual(
-        expect.objectContaining({
-          action: 'DESKTOP_LOGIN_TOKEN_REUSED',
-          email: `${TEST_PREFIX}-token@test.com`,
-        }),
-      );
-      expect(testResults[0]).toHaveProperty('ipAddress');
-      expect(testResults[0]).toHaveProperty('userAgent');
-      expect(testResults[0]).toHaveProperty('createdAt');
-    });
+  //   it('should return desktop token reuse events', async () => {
+  //     await createLoginActivity({
+  //       action: 'DESKTOP_LOGIN_TOKEN_REUSED',
+  //       email: `${TEST_PREFIX}-token@test.com`,
+  //       success: true,
+  //       userAgent: 'Jetstream Desktop',
+  //     });
+  //     const results = await check.query(prisma);
+  //     const testResults = results.filter((r) => String(r.ipAddress).startsWith(TEST_IP_PREFIX));
+  //     expect(testResults).toHaveLength(1);
+  //     expect(testResults[0]).toEqual(
+  //       expect.objectContaining({
+  //         action: 'DESKTOP_LOGIN_TOKEN_REUSED',
+  //         email: `${TEST_PREFIX}-token@test.com`,
+  //       }),
+  //     );
+  //     expect(testResults[0]).toHaveProperty('ipAddress');
+  //     expect(testResults[0]).toHaveProperty('userAgent');
+  //     expect(testResults[0]).toHaveProperty('createdAt');
+  //   });
 
-    it('should return web extension token reuse events', async () => {
-      await createLoginActivity({
-        action: 'WEB_EXTENSION_LOGIN_TOKEN_REUSED',
-        email: `${TEST_PREFIX}-webtoken@test.com`,
-        success: true,
-        userAgent: 'Chrome Extension',
-      });
-      const results = await check.query(prisma);
-      const testResults = results.filter((r) => String(r.ipAddress).startsWith(TEST_IP_PREFIX));
-      expect(testResults).toHaveLength(1);
-      expect(testResults[0]).toEqual(
-        expect.objectContaining({
-          action: 'WEB_EXTENSION_LOGIN_TOKEN_REUSED',
-        }),
-      );
-    });
+  //   it('should return web extension token reuse events', async () => {
+  //     await createLoginActivity({
+  //       action: 'WEB_EXTENSION_LOGIN_TOKEN_REUSED',
+  //       email: `${TEST_PREFIX}-webtoken@test.com`,
+  //       success: true,
+  //       userAgent: 'Chrome Extension',
+  //     });
+  //     const results = await check.query(prisma);
+  //     const testResults = results.filter((r) => String(r.ipAddress).startsWith(TEST_IP_PREFIX));
+  //     expect(testResults).toHaveLength(1);
+  //     expect(testResults[0]).toEqual(
+  //       expect.objectContaining({
+  //         action: 'WEB_EXTENSION_LOGIN_TOKEN_REUSED',
+  //       }),
+  //     );
+  //   });
 
-    it('should return empty when events are outside time window', async () => {
-      await createLoginActivity({
-        action: 'DESKTOP_LOGIN_TOKEN_REUSED',
-        email: `${TEST_PREFIX}-token@test.com`,
-        success: true,
-        createdAt: subDays(new Date(), 8),
-      });
-      const results = await check.query(prisma);
-      const testResults = results.filter((r) => String(r.ipAddress).startsWith(TEST_IP_PREFIX));
-      expect(testResults).toHaveLength(0);
-    });
-  });
+  //   it('should return empty when events are outside time window', async () => {
+  //     await createLoginActivity({
+  //       action: 'DESKTOP_LOGIN_TOKEN_REUSED',
+  //       email: `${TEST_PREFIX}-token@test.com`,
+  //       success: true,
+  //       createdAt: subDays(new Date(), 8),
+  //     });
+  //     const results = await check.query(prisma);
+  //     const testResults = results.filter((r) => String(r.ipAddress).startsWith(TEST_IP_PREFIX));
+  //     expect(testResults).toHaveLength(0);
+  //   });
+  // });
 
   describe('Login Failure Rate (7 days)', () => {
     let check: SecurityCheck;

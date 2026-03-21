@@ -78,29 +78,30 @@ export const SECURITY_CHECKS: SecurityCheck[] = [
       }));
     },
   },
-  {
-    title: 'Login Token Reuse (7 days)',
-    description: 'Desktop or web extension login tokens that were reused — may indicate token theft',
-    severity: 'high',
-    query: async (prisma) => {
-      const last7d = subDays(new Date(), 7);
-      const rows = await prisma.loginActivity.findMany({
-        where: {
-          action: { in: ['DESKTOP_LOGIN_TOKEN_REUSED', 'WEB_EXTENSION_LOGIN_TOKEN_REUSED'] },
-          createdAt: { gt: last7d },
-        },
-        select: { action: true, email: true, ipAddress: true, userAgent: true, createdAt: true },
-        orderBy: { createdAt: 'desc' },
-      });
-      return rows.map((row) => ({
-        action: row.action,
-        email: row.email ?? null,
-        ipAddress: row.ipAddress ?? null,
-        userAgent: row.userAgent ?? null,
-        createdAt: row.createdAt.toISOString(),
-      }));
-    },
-  },
+  // Token reuse is a common flow as they are long-lived tokens
+  // {
+  //   title: 'Login Token Reuse (7 days)',
+  //   description: 'Desktop or web extension login tokens that were reused — may indicate token theft',
+  //   severity: 'high',
+  //   query: async (prisma) => {
+  //     const last7d = subDays(new Date(), 7);
+  //     const rows = await prisma.loginActivity.findMany({
+  //       where: {
+  //         action: { in: ['DESKTOP_LOGIN_TOKEN_REUSED', 'WEB_EXTENSION_LOGIN_TOKEN_REUSED'] },
+  //         createdAt: { gt: last7d },
+  //       },
+  //       select: { action: true, email: true, ipAddress: true, userAgent: true, createdAt: true },
+  //       orderBy: { createdAt: 'desc' },
+  //     });
+  //     return rows.map((row) => ({
+  //       action: row.action,
+  //       email: row.email ?? null,
+  //       ipAddress: row.ipAddress ?? null,
+  //       userAgent: row.userAgent ?? null,
+  //       createdAt: row.createdAt.toISOString(),
+  //     }));
+  //   },
+  // },
   {
     title: 'Login Failure Rate (7 days)',
     description: 'Overall login failure rate for the past 7 days — high values may indicate a coordinated attack',

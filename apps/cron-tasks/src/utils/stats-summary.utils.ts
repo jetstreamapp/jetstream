@@ -40,8 +40,8 @@ export async function gatherAndSendStatsSummary(prisma: PrismaClient): Promise<v
     prisma.salesforceOrg.count(),
     prisma.salesforceOrg.count({ where: { createdAt: { gt: sevenDaysAgo } } }),
     prisma.salesforceOrg.count({ where: { createdAt: { gt: thirtyDaysAgo } } }),
-    prisma.billingAccount.count({ where: { subscriptions: { some: { status: 'active' } } } }),
-    prisma.teamBillingAccount.count({ where: { subscriptions: { some: { status: 'active' } } } }),
+    prisma.billingAccount.count({ where: { subscriptions: { some: { status: 'ACTIVE' } } } }),
+    prisma.teamBillingAccount.count({ where: { subscriptions: { some: { status: 'ACTIVE' } } } }),
     prisma.loginActivity.count({ where: { action: 'PASSWORD_RESET_REQUEST', createdAt: { gt: sevenDaysAgo } } }),
     // Use findMany with distinct to count unique active users
     prisma.loginActivity.findMany({
