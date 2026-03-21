@@ -65,7 +65,7 @@
       "executor": "@nx/vitest:test",
       "outputs": ["{options.reportsDirectory}"],
       "options": {
-        "reportsDirectory": "../../coverage/apps/geo-ip-api"
+        "reportsDirectory": "{projectRoot}/../../coverage/apps/geo-ip-api"
       }
     }
   }

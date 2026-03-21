@@ -13,7 +13,7 @@
       "executor": "@nx/vitest:test",
       "outputs": ["{options.reportsDirectory}"],
       "options": {
-        "reportsDirectory": "../../coverage/libs/api-types"
+        "reportsDirectory": "{projectRoot}/../../coverage/libs/api-types"
       }
     }
   }

@@ -66,7 +66,7 @@
       "executor": "@nx/vitest:test",
       "outputs": ["{options.reportsDirectory}"],
       "options": {
-        "reportsDirectory": "../../coverage/apps/jetstream-desktop"
+        "reportsDirectory": "{projectRoot}/../../coverage/apps/jetstream-desktop"
       }
     }
   }

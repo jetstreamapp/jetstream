@@ -9,7 +9,7 @@
       "executor": "@nx/vitest:test",
       "outputs": ["{options.reportsDirectory}"],
       "options": {
-        "reportsDirectory": "../../../coverage/libs/features/deploy"
+        "reportsDirectory": "{projectRoot}/../../../coverage/libs/features/deploy"
       }
     }
   }

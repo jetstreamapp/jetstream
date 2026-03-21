@@ -25,7 +25,7 @@
       "executor": "@nx/vitest:test",
       "outputs": ["{options.reportsDirectory}"],
       "options": {
-        "reportsDirectory": "../../coverage/libs/salesforce-api"
+        "reportsDirectory": "{projectRoot}/../../coverage/libs/salesforce-api"
       }
     }
   }
