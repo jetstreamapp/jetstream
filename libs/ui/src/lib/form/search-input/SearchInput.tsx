@@ -51,6 +51,22 @@ export const SearchInput: FunctionComponent<SearchInputProps> = ({
     onChange(debouncedFilters || '');
   }, [onChange, debouncedFilters]);
 
+  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    // Stop propagation for keys that should be handled natively by the text input.
+    // This prevents parent components (e.g. data grids) from intercepting cursor navigation shortcuts
+    // like Cmd/Ctrl+Left/Right (jump to start/end of word/line), Home, End, and Ctrl/Cmd+A (select all).
+    const { key, ctrlKey, metaKey } = event;
+    if (
+      key === 'ArrowLeft' ||
+      key === 'ArrowRight' ||
+      key === 'Home' ||
+      key === 'End' ||
+      ((ctrlKey || metaKey) && (key === 'a' || key === 'A'))
+    ) {
+      event.stopPropagation();
+    }
+  }
+
   function handleKeyUp(event: KeyboardEvent<HTMLInputElement>) {
     if (onArrowKeyUpDown) {
       let direction: UpDown | undefined = undefined;
@@ -88,6 +104,7 @@ export const SearchInput: FunctionComponent<SearchInputProps> = ({
         autoComplete="off"
         disabled={disabled}
         onChange={(event) => setValue(event.currentTarget.value)}
+        onKeyDown={handleKeyDown}
         onKeyUp={handleKeyUp}
       />
       {children}
