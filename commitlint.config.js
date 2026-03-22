@@ -18,5 +18,9 @@ module.exports = {
         'revert', // Revert a previous commit
       ],
     ],
+    'subject-case': [0],
+    'header-max-length': [2, 'always', 120],
+    'body-max-line-length': [0],
+    'footer-max-line-length': [0],
   },
 };
