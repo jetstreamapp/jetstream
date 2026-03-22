@@ -13,7 +13,7 @@
       "executor": "@nx/vitest:test",
       "outputs": ["{options.reportsDirectory}"],
       "options": {
-        "reportsDirectory": "../../coverage/libs/icon-factory"
+        "reportsDirectory": "{projectRoot}/../../coverage/libs/icon-factory"
       }
     }
   }

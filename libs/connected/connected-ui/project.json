@@ -12,7 +12,7 @@
       "executor": "@nx/vitest:test",
       "outputs": ["{options.reportsDirectory}"],
       "options": {
-        "reportsDirectory": "../../../coverage/libs/connected/connected-ui"
+        "reportsDirectory": "{projectRoot}/../../../coverage/libs/connected/connected-ui"
       }
     }
   }

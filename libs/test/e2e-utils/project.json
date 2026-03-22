@@ -9,7 +9,7 @@
       "executor": "@nx/vitest:test",
       "outputs": ["{options.reportsDirectory}"],
       "options": {
-        "reportsDirectory": "../../../coverage/libs/test/e2e-utils"
+        "reportsDirectory": "{projectRoot}/../../../coverage/libs/test/e2e-utils"
       }
     }
   }

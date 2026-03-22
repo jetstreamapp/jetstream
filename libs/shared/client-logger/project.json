@@ -13,7 +13,7 @@
       "executor": "@nx/vitest:test",
       "outputs": ["{options.reportsDirectory}"],
       "options": {
-        "reportsDirectory": "../../../coverage/libs/shared/client-logger"
+        "reportsDirectory": "{projectRoot}/../../../coverage/libs/shared/client-logger"
       }
     }
   }
