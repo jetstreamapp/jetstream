@@ -37,17 +37,39 @@ export interface StatsSummaryEmailProps {
   generatedAt: string;
 }
 
-const SEVERITY_COLOR: Record<'high' | 'medium' | 'low', string> = {
+/** Colors used when a check HAS findings */
+const FINDING_COLOR: Record<'high' | 'medium' | 'low', string> = {
   high: '#dc2626',
   medium: '#d97706',
-  low: '#2563eb',
+  low: '#d97706',
 };
 
-const SEVERITY_BG: Record<'high' | 'medium' | 'low', string> = {
+const FINDING_BG: Record<'high' | 'medium' | 'low', string> = {
   high: '#fef2f2',
   medium: '#fffbeb',
-  low: '#eff6ff',
+  low: '#fffbeb',
 };
+
+/** Colors used when a check has NO findings */
+const CLEAR_COLOR = '#16a34a';
+const CLEAR_BG = '#f0fdf4';
+
+/**
+ * For the "Login Failure Rate" check, escalate severity based on the actual percentage:
+ *   >15% → high (red), >7% → medium (yellow), otherwise keep original severity.
+ */
+function getEffectiveSeverity(result: SecurityCheckResult): 'high' | 'medium' | 'low' {
+  if (result.title === 'Login Failure Rate (7 days)' && result.rows.length > 0) {
+    const pct = parseFloat(String(result.rows[0].failureRatePct ?? '0'));
+    if (pct > 15) {
+      return 'high';
+    }
+    if (pct > 7) {
+      return 'medium';
+    }
+  }
+  return result.severity;
+}
 
 /** Formats a camelCase or snake_case key into a human-readable label */
 function formatColumnLabel(key: string): string {
@@ -142,13 +164,16 @@ export const StatsSummaryEmail = ({ stats, securityResults, generatedAt }: Stats
 
             {securityResults.map((result, index) => {
               const displayColumns = getDisplayColumns(result.rows);
+              const hasFindings = result.rows.length > 0;
+              const effectiveSeverity = getEffectiveSeverity(result);
+              const bgColor = hasFindings ? FINDING_BG[effectiveSeverity] : CLEAR_BG;
+              const badgeColor = hasFindings ? FINDING_COLOR[effectiveSeverity] : CLEAR_COLOR;
 
               return (
-                <Section key={index} style={{ ...checkSectionStyle, backgroundColor: SEVERITY_BG[result.severity] }}>
+                <Section key={index} style={{ ...checkSectionStyle, backgroundColor: bgColor }}>
                   <Row>
                     <Text style={checkTitleStyle}>
-                      <span style={{ color: SEVERITY_COLOR[result.severity], fontWeight: 700 }}>[{result.severity.toUpperCase()}]</span>{' '}
-                      {result.title}
+                      <span style={{ color: badgeColor, fontWeight: 700 }}>[{result.severity.toUpperCase()}]</span> {result.title}
                     </Text>
                   </Row>
                   <Text style={checkDescriptionStyle}>{result.description}</Text>

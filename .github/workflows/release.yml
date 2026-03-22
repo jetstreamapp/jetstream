@@ -165,6 +165,7 @@ jobs:
       # NOTE: Each application has its own tag format - so it is safe to have release-it run multiple times
       - name: Release Web Extension
         if: ${{ inputs.release_web_extension }}
+        id: release_web_ext
         env:
           GITHUB_TOKEN: ${{ secrets.GH_RELEASE_TOKEN }}
           BUMP: ${{ inputs.bump }}
@@ -186,7 +187,84 @@ jobs:
       # NOTE: Each application has its own tag format - so it is safe to have release-it run multiple times
       - name: Release Desktop
         if: ${{ inputs.release_desktop }}
+        id: release_desktop
         env:
           GITHUB_TOKEN: ${{ secrets.GH_RELEASE_TOKEN }}
           BUMP: ${{ inputs.bump }}
         run: npx release-it "$BUMP" --ci --config .release-it-desktop.json
+
+      # CAPTURE VERSIONS FOR SUMMARY
+      - name: Capture web version
+        if: ${{ always() && inputs.release_web && steps.release_web.outcome == 'success' }}
+        id: capture_web_version
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Capture web extension version
+        if: ${{ always() && inputs.release_web_extension && steps.release_web_ext.outcome == 'success' }}
+        id: capture_web_ext_version
+        run: echo "version=$(node -p "require('./apps/jetstream-web-extension/src/manifest.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Capture desktop version
+        if: ${{ always() && inputs.release_desktop && steps.release_desktop.outcome == 'success' }}
+        id: capture_desktop_version
+        run: echo "version=$(node -p "require('./apps/jetstream-desktop/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      # GENERATE RELEASE SUMMARY
+      - name: Generate release summary
+        if: always()
+        env:
+          RELEASE_WEB: ${{ inputs.release_web }}
+          RELEASE_WEB_EXT: ${{ inputs.release_web_extension }}
+          RELEASE_DESKTOP: ${{ inputs.release_desktop }}
+          WEB_VERSION: ${{ steps.capture_web_version.outputs.version }}
+          WEB_EXT_VERSION: ${{ steps.capture_web_ext_version.outputs.version }}
+          DESKTOP_VERSION: ${{ steps.capture_desktop_version.outputs.version }}
+          WEB_OUTCOME: ${{ steps.release_web.outcome }}
+          WEB_EXT_OUTCOME: ${{ steps.release_web_ext.outcome }}
+          DESKTOP_OUTCOME: ${{ steps.release_desktop.outcome }}
+          BUMP: ${{ inputs.bump }}
+          REPO: ${{ github.repository }}
+        run: |
+          get_status() {
+            local requested="$1" outcome="$2"
+            if [[ "$requested" != "true" ]]; then
+              echo "⏭️ Skipped"
+            elif [[ "$outcome" == "success" ]]; then
+              echo "✅ Released"
+            elif [[ "$outcome" == "failure" ]]; then
+              echo "❌ Failed"
+            elif [[ "$outcome" == "skipped" ]]; then
+              echo "⏭️ Skipped"
+            elif [[ "$outcome" == "cancelled" ]]; then
+              echo "🚫 Cancelled"
+            else
+              echo "⚠️ Unknown"
+            fi
+          }
+
+          get_release_link() {
+            local requested="$1" outcome="$2" version="$3" tag_prefix="$4"
+            if [[ "$requested" == "true" && "$outcome" == "success" && -n "$version" ]]; then
+              echo "[${tag_prefix}${version}](https://github.com/${REPO}/releases/tag/${tag_prefix}${version})"
+            else
+              echo "-"
+            fi
+          }
+
+          WEB_STATUS=$(get_status "$RELEASE_WEB" "$WEB_OUTCOME")
+          WEB_EXT_STATUS=$(get_status "$RELEASE_WEB_EXT" "$WEB_EXT_OUTCOME")
+          DESKTOP_STATUS=$(get_status "$RELEASE_DESKTOP" "$DESKTOP_OUTCOME")
+
+          WEB_LINK=$(get_release_link "$RELEASE_WEB" "$WEB_OUTCOME" "$WEB_VERSION" "v")
+          WEB_EXT_LINK=$(get_release_link "$RELEASE_WEB_EXT" "$WEB_EXT_OUTCOME" "$WEB_EXT_VERSION" "web-ext-v")
+          DESKTOP_LINK=$(get_release_link "$RELEASE_DESKTOP" "$DESKTOP_OUTCOME" "$DESKTOP_VERSION" "desktop-v")
+
+          {
+            echo "## 🚀 Release Summary (\`${BUMP}\`)"
+            echo ""
+            echo "| Component | Status | Version | Release |"
+            echo "|-----------|--------|---------|---------|"
+            echo "| Web | ${WEB_STATUS} | ${WEB_VERSION:-\`-\`} | ${WEB_LINK} |"
+            echo "| Web Extension | ${WEB_EXT_STATUS} | ${WEB_EXT_VERSION:-\`-\`} | ${WEB_EXT_LINK} |"
+            echo "| Desktop | ${DESKTOP_STATUS} | ${DESKTOP_VERSION:-\`-\`} | ${DESKTOP_LINK} |"
+          } >> "$GITHUB_STEP_SUMMARY"

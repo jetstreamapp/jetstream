@@ -1,9 +1,7 @@
 const baseConfig = require('../../eslint.config.js');
-const nx = require('@nx/eslint-plugin');
 
 module.exports = [
   ...baseConfig,
-  ...nx.configs['flat/react'],
   {
     ignores: ['src/assets/**/*'],
   },
