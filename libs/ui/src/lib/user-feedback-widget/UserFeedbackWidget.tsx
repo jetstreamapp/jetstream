@@ -2,9 +2,10 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { submitUserFeedback } from '@jetstream/shared/data';
 import { InputReadFileContent } from '@jetstream/types';
+import { useGlobalEventHandler } from '@jetstream/shared/ui-utils';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Checkbox from '../form/checkbox/Checkbox';
 import FileSelector from '../form/file-selector/FileSelector';
 import { RadioButton } from '../form/radio/RadioButton';
@@ -23,6 +24,7 @@ export type FeedbackPosition = 'bottom-right' | 'bottom-left' | 'top-right' | 't
 
 const STORAGE_KEY = 'jetstream-feedback-widget-position';
 const HIDDEN_STORAGE_KEY = 'jetstream-feedback-widget-hidden';
+const POSITIONS: FeedbackPosition[] = ['bottom-right', 'bottom-left', 'top-right', 'top-left'];
 
 const allowFromClipboardAcceptType = /^image\/(png|jpg|jpeg|gif)$/;
 
@@ -65,12 +67,13 @@ export const UserFeedbackWidget = () => {
   const [showContextMenu, setShowContextMenu] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const menuItemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const { version: clientVersion } = useAtomValue(fromAppState.appInfoState);
 
   // Load position from localStorage on mount
   useEffect(() => {
     const savedPosition = localStorage.getItem(STORAGE_KEY);
-    if (savedPosition && ['bottom-right', 'bottom-left', 'top-right', 'top-left'].includes(savedPosition)) {
+    if (savedPosition && (POSITIONS as string[]).includes(savedPosition)) {
       setPosition(savedPosition as FeedbackPosition);
     }
   }, []);
@@ -102,7 +105,79 @@ export const UserFeedbackWidget = () => {
     }
   }, [showContextMenu]);
 
+  // Focus first menu item when context menu opens
+  useEffect(() => {
+    if (showContextMenu) {
+      requestAnimationFrame(() => {
+        menuItemRefs.current[0]?.focus();
+      });
+    }
+  }, [showContextMenu]);
+
+  // Global keyboard shortcut to open feedback widget
+  const handleGlobalKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key === '.') {
+        event.preventDefault();
+        if (!isHidden) {
+          handleOpen();
+        }
+      }
+    },
+    [isHidden],
+  );
+
+  useGlobalEventHandler('keydown', handleGlobalKeyDown);
+
+  // Keyboard navigation for context menu, scoped to the menu container
+  const handleMenuKeyDown = (event: React.KeyboardEvent) => {
+    const menuItems = menuItemRefs.current.filter((ref): ref is HTMLButtonElement => ref !== null);
+    const currentIndex = menuItems.indexOf(document.activeElement as HTMLButtonElement);
+
+    switch (event.key) {
+      case 'Escape':
+        event.preventDefault();
+        event.stopPropagation();
+        setShowContextMenu(false);
+        buttonRef.current?.focus();
+        break;
+      case 'ArrowDown':
+        event.preventDefault();
+        event.stopPropagation();
+        if (currentIndex === -1 || currentIndex >= menuItems.length - 1) {
+          menuItems[0]?.focus();
+        } else {
+          menuItems[currentIndex + 1]?.focus();
+        }
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        event.stopPropagation();
+        if (currentIndex <= 0) {
+          menuItems[menuItems.length - 1]?.focus();
+        } else {
+          menuItems[currentIndex - 1]?.focus();
+        }
+        break;
+      case 'Home':
+        event.preventDefault();
+        event.stopPropagation();
+        menuItems[0]?.focus();
+        break;
+      case 'End':
+        event.preventDefault();
+        event.stopPropagation();
+        menuItems[menuItems.length - 1]?.focus();
+        break;
+      case 'Tab':
+        // Close the menu and allow natural tab focus flow per ARIA menu pattern
+        setShowContextMenu(false);
+        break;
+    }
+  };
+
   const handleOpen = () => {
+    setShowContextMenu(false);
     setIsOpen(true);
     setSubmitError(null);
   };
@@ -187,6 +262,14 @@ export const UserFeedbackWidget = () => {
     setShowContextMenu(true);
   };
 
+  const handleFeedbackButtonKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    // Allow opening the context menu via keyboard (ContextMenu key or Shift+F10)
+    if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) {
+      event.preventDefault();
+      setShowContextMenu(true);
+    }
+  };
+
   const canSubmit = message.trim().length > 0;
   const positionStyles = getPositionStyles(position);
 
@@ -201,9 +284,12 @@ export const UserFeedbackWidget = () => {
       <button
         ref={buttonRef}
         aria-label="Send Feedback"
+        aria-haspopup="menu"
+        aria-expanded={showContextMenu}
         className="slds-button slds-button_icon slds-button_icon-container slds-button_icon-border-filled"
         onClick={handleOpen}
         onContextMenu={handleContextMenu}
+        onKeyDown={handleFeedbackButtonKeyDown}
         css={css`
           position: fixed;
           ${positionStyles.top ? `top: ${positionStyles.top}` : ''};
@@ -232,7 +318,7 @@ export const UserFeedbackWidget = () => {
         `}
       >
         <Tooltip
-          content={isOpen || showContextMenu ? undefined : 'Send us your feedback. Right click for positioning options.'}
+          content={isOpen || showContextMenu ? undefined : 'Send us your feedback (⌘/Ctrl+Shift+.). Right click for positioning options.'}
           openDelay={300}
         >
           <Icon type="standard" icon="feedback" className="" omitContainer />
@@ -244,6 +330,9 @@ export const UserFeedbackWidget = () => {
       {showContextMenu && (
         <div
           ref={contextMenuRef}
+          role="menu"
+          aria-label="Widget position options"
+          onKeyDown={handleMenuKeyDown}
           css={css`
             position: fixed;
             ${positionStyles.top ? `top: calc(${positionStyles.top} + 4rem)` : ''};
@@ -258,57 +347,67 @@ export const UserFeedbackWidget = () => {
             padding: 0.5rem 0;
           `}
         >
-          <div
-            css={css`
-              padding: 0.5rem 1rem;
-              font-size: 0.75rem;
-              font-weight: 600;
-              color: #3e3e3c;
-              text-transform: uppercase;
-              letter-spacing: 0.025em;
-            `}
-          >
-            Button Position
-          </div>
-          {(['bottom-right', 'bottom-left', 'top-right', 'top-left'] as FeedbackPosition[]).map((pos) => (
-            <button
-              key={pos}
-              onClick={() => handlePositionChange(pos)}
+          <div role="group" aria-label="Button Position">
+            <div
+              role="presentation"
               css={css`
-                display: flex;
-                align-items: center;
-                width: 100%;
                 padding: 0.5rem 1rem;
-                border: none;
-                background: ${pos === position ? '#f3f2f2' : 'transparent'};
-                text-align: left;
-                cursor: pointer;
-                font-size: 0.875rem;
-                color: #181818;
-                transition: background-color 0.1s ease;
-
-                &:hover {
-                  background-color: #f3f2f2;
-                }
+                font-size: 0.75rem;
+                font-weight: 600;
+                color: #3e3e3c;
+                text-transform: uppercase;
+                letter-spacing: 0.025em;
               `}
             >
-              {pos === position && (
-                <Icon
-                  type="utility"
-                  icon="check"
-                  className="slds-icon slds-icon-text-success slds-icon_xx-small"
-                  containerClassname="slds-m-right_x-small"
-                />
-              )}
-              <span style={{ marginLeft: pos === position ? '0' : '1.25rem' }}>
-                {pos
-                  .split('-')
-                  .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                  .join(' ')}
-              </span>
-            </button>
-          ))}
+              Button Position
+            </div>
+            {POSITIONS.map((pos, index) => (
+              <button
+                key={pos}
+                ref={(el) => {
+                  menuItemRefs.current[index] = el;
+                }}
+                role="menuitemradio"
+                aria-checked={pos === position}
+                tabIndex={-1}
+                onClick={() => handlePositionChange(pos)}
+                css={css`
+                  display: flex;
+                  align-items: center;
+                  width: 100%;
+                  padding: 0.5rem 1rem;
+                  border: none;
+                  background: ${pos === position ? '#f3f2f2' : 'transparent'};
+                  text-align: left;
+                  cursor: pointer;
+                  font-size: 0.875rem;
+                  color: #181818;
+                  transition: background-color 0.1s ease;
+
+                  &:hover {
+                    background-color: #f3f2f2;
+                  }
+                `}
+              >
+                {pos === position && (
+                  <Icon
+                    type="utility"
+                    icon="check"
+                    className="slds-icon slds-icon-text-success slds-icon_xx-small"
+                    containerClassname="slds-m-right_x-small"
+                  />
+                )}
+                <span style={{ marginLeft: pos === position ? '0' : '1.25rem' }}>
+                  {pos
+                    .split('-')
+                    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ')}
+                </span>
+              </button>
+            ))}
+          </div>
           <div
+            role="separator"
             css={css`
               height: 1px;
               background-color: #dddbda;
@@ -316,6 +415,11 @@ export const UserFeedbackWidget = () => {
             `}
           />
           <button
+            ref={(el) => {
+              menuItemRefs.current[POSITIONS.length] = el;
+            }}
+            role="menuitem"
+            tabIndex={-1}
             onClick={handleHideForSession}
             css={css`
               display: flex;
