@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { sanitizePastedEditorText, useDisposables } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { NOOP, getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { Field, FieldType, Maybe, NullNumberBehavior, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, KeyboardShortcut, Modal, Spinner, Tabs, Textarea } from '@jetstream/ui';
@@ -13,15 +13,19 @@ import {
   FieldValues,
   FormulaEvaluatorRecordSearch,
   FormulaEvaluatorResults,
+  FormulaEvaluatorReturnTypeCombobox,
   FormulaEvaluatorUserSearch,
   ManualFormulaRecord,
   SalesforceFieldType,
+  convertFormulaSecondaryTypeToEvaluatorType,
+  fieldTypeToReturnType,
   getFormulaData,
   registerCompletions,
   useAmplitude,
 } from '@jetstream/ui-core';
+import type { FieldSchema, FormulaContext, FormulaValue } from '@jetstreamapp/sf-formula-parser';
+import { evaluateFormula, extractFields, extractFieldsByCategory } from '@jetstreamapp/sf-formula-parser';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
-import * as formulon from 'formulon';
 import type { editor } from 'monaco-editor';
 import { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
 import CreateFieldsFormulaEditorManualField from './CreateFieldsFormulaEditorManualField';
@@ -59,12 +63,18 @@ export const CreateFieldsFormulaEditor = forwardRef<unknown, CreateFieldsFormula
     const [formulaFields, setFormulaFields] = useState<string[]>([]);
     const [formulaFieldValues, setFormulaFieldValues] = useState<ManualFormulaRecord>({});
 
-    const [results, setResults] = useState<{ formulaFields: formulon.FormulaData; parsedFormula: formulon.FormulaResult } | null>(null);
+    const [results, setResults] = useState<{
+      context: FormulaContext;
+      result: FormulaValue;
+      returnType: ReturnType<typeof fieldTypeToReturnType>;
+    } | null>(null);
 
     const [selectedUserId, setSelectedUserId] = useState('');
     const [recordId, setRecordId] = useState('');
 
     const monaco = useMonaco();
+
+    const formulaReturnType = convertFormulaSecondaryTypeToEvaluatorType(allValues.secondaryType.value as SalesforceFieldType);
 
     useEffect(() => {
       isMounted.current = true;
@@ -85,7 +95,7 @@ export const CreateFieldsFormulaEditor = forwardRef<unknown, CreateFieldsFormula
     useEffect(() => {
       setFormulaFields((prevValue) => {
         try {
-          const fields = formulon.extract(formulaValue || '');
+          const fields = extractFields(formulaValue || '');
           return fields;
         } catch (ex) {
           return prevValue;
@@ -124,23 +134,25 @@ export const CreateFieldsFormulaEditor = forwardRef<unknown, CreateFieldsFormula
           setFormulaErrorMessage(null);
           setResults(null);
 
-          let formulaFieldResults: formulon.FormulaData = {};
+          const categorizedFields = extractFieldsByCategory(value);
+          let context: FormulaContext = { record: {} };
+          let schema: Record<string, FieldSchema[]> | undefined;
+
           if (formulaFields.length) {
             let payload: Parameters<typeof getFormulaData>[0] = {
-              fields: formulaFields,
+              categorizedFields,
               recordId,
               selectedOrg,
               selectedUserId,
               sobjectName: selectedSObjects[0] || '',
-              numberNullBehavior: (allValues.formulaTreatBlanksAs.value as NullNumberBehavior) || 'BLANK',
             };
 
             if (testMethod === 'MANUAL' || !recordId) {
-              // ensure all fields are included in record
+              // Ensure all object fields are included in record with defaults
               const record = {
                 ...formulaFieldValues,
               };
-              formulaFields.forEach((field) => {
+              categorizedFields.objectFields.forEach((field) => {
                 if (!record[field]) {
                   record[field] = {
                     type: 'string',
@@ -149,13 +161,12 @@ export const CreateFieldsFormulaEditor = forwardRef<unknown, CreateFieldsFormula
                 }
               });
               payload = {
-                fields: formulaFields,
+                categorizedFields,
                 type: 'PROVIDED_RECORD',
                 record,
                 selectedOrg,
                 selectedUserId,
                 sobjectName: selectedSObjects[0] || '',
-                numberNullBehavior: (allValues.formulaTreatBlanksAs.value as NullNumberBehavior) || 'BLANK',
               };
             }
 
@@ -164,14 +175,17 @@ export const CreateFieldsFormulaEditor = forwardRef<unknown, CreateFieldsFormula
               setFieldErrorMessage(response.message);
               return;
             }
-            formulaFieldResults = response.formulaFields;
+            context = response.context;
+            schema = response.schema;
           }
-          const parsedFormula = formulon.parse(value, formulaFieldResults);
-          logger.log('results', parsedFormula);
-          setResults({
-            formulaFields: formulaFieldResults,
-            parsedFormula,
+
+          const result = evaluateFormula(value, context, {
+            treatBlanksAsZeroes: (allValues.formulaTreatBlanksAs.value as NullNumberBehavior) !== 'BLANK',
+            returnType: formulaReturnType || undefined,
+            schema,
           });
+          logger.log('results', result);
+          setResults({ context, result, returnType: formulaReturnType });
           trackEvent(ANALYTICS_KEYS.sobj_create_field_formula_execute, { success: true, fieldCount: formulaFields.length, testMethod });
         } catch (ex) {
           logger.warn(ex);
@@ -183,8 +197,9 @@ export const CreateFieldsFormulaEditor = forwardRef<unknown, CreateFieldsFormula
       },
       [
         allValues.formulaTreatBlanksAs.value,
+        allValues.secondaryType.value,
         formulaFieldValues,
-        formulaFields,
+        formulaFields.length,
         recordId,
         selectedOrg,
         selectedSObjects,
@@ -360,6 +375,9 @@ export const CreateFieldsFormulaEditor = forwardRef<unknown, CreateFieldsFormula
                     ]}
                   ></Tabs>
                   <hr className="slds-m-vertical_small" />
+
+                  <FormulaEvaluatorReturnTypeCombobox comboboxProps={{ disabled: true }} returnType={formulaReturnType} onChange={NOOP} />
+
                   <FormulaEvaluatorUserSearch selectedOrg={selectedOrg} disabled={loading} onSelectedRecord={setSelectedUserId} />
                   <button className="slds-button slds-button_brand" onClick={() => handleTestFormula(formulaValue)}>
                     Test Formula

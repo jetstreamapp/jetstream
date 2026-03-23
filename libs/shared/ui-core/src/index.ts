@@ -29,6 +29,7 @@ export * from './formula-evaluator/formula-evaluator.types';
 export * from './formula-evaluator/formula-evaluator.utils';
 export * from './formula-evaluator/FormulaEvaluatorRecordSearch';
 export * from './formula-evaluator/FormulaEvaluatorResults';
+export * from './formula-evaluator/FormulaEvaluatorReturnTypeCombobox';
 export * from './formula-evaluator/FormulaEvaluatorUserSearch';
 export * from './icons/JetstreamIcon';
 export * from './icons/JetstreamLogo';

@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
+import { ANALYTICS_KEYS, SFDC_BLANK_PICKLIST_VALUE, TITLES } from '@jetstream/shared/constants';
 import { clearCacheForOrg } from '@jetstream/shared/data';
 import {
   hasModifierKey,
@@ -12,7 +12,7 @@ import {
 } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { DescribeGlobalSObjectResult } from '@jetstream/types';
+import { DescribeGlobalSObjectResult, Field } from '@jetstream/types';
 import {
   Alert,
   AutoFullHeightContainer,
@@ -36,15 +36,18 @@ import {
 import {
   FormulaEvaluatorRecordSearch,
   FormulaEvaluatorResults,
+  FormulaEvaluatorReturnTypeCombobox,
   FormulaEvaluatorUserSearch,
+  fieldTypeToReturnType,
   fromFormulaState,
   getFormulaData,
   registerCompletions,
   useAmplitude,
 } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
+import type { FieldSchema, FormulaContext, FormulaValue } from '@jetstreamapp/sf-formula-parser';
+import { evaluateFormula, extractFieldsByCategory } from '@jetstreamapp/sf-formula-parser';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
-import * as formulon from 'formulon';
 import { useAtom, useAtomValue } from 'jotai';
 import type { editor } from 'monaco-editor';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
@@ -89,10 +92,15 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
   const [sourceType, setSourceType] = useAtom(fromFormulaState.sourceTypeState);
   const [recordId, setRecordId] = useAtom(fromFormulaState.recordIdState);
   const [numberNullBehavior, setNumberNullBehavior] = useAtom(fromFormulaState.numberNullBehaviorState);
+  const [returnType, setReturnType] = useAtom(fromFormulaState.returnTypeState);
   const [bannerDismissed, setBannerDismissed] = useAtom(fromFormulaState.bannerDismissedState);
   const [deployModalOpen, setDeployModalOpen] = useState(false);
 
-  const [results, setResults] = useState<{ formulaFields: formulon.FormulaData; parsedFormula: formulon.FormulaResult } | null>(null);
+  const [results, setResults] = useState<{
+    context: FormulaContext;
+    result: FormulaValue;
+    returnType: fromFormulaState.FormulaReturnTypeWithEmptyState;
+  } | null>(null);
 
   const deployFormulaDisabled = loading || !selectedSObject || !formulaValue;
   const testFormulaDisabled = loading || !selectedSObject || !selectedUserId || !recordId || !formulaValue;
@@ -117,8 +125,19 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
   useEffect(() => {
     if (sourceType === 'EXISTING' && selectedField) {
       editorRef.current?.setValue(selectedField.calculatedFormula || '');
+      setReturnType(fieldTypeToReturnType(selectedField.type));
     }
-  }, [sourceType, selectedSObject, selectedField]);
+  }, [sourceType, selectedSObject, selectedField, setReturnType]);
+
+  const handleSelectedFieldChange = useCallback(
+    (field: Field | null) => {
+      setSelectedField(field);
+      if (field) {
+        setReturnType(fieldTypeToReturnType(field.type));
+      }
+    },
+    [setSelectedField, setReturnType],
+  );
 
   const handleTestFormula = useCallback(
     async (value: string) => {
@@ -132,32 +151,46 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
         setErrorMessage(null);
         setResults(null);
 
-        const fields = formulon.extract(value);
-        let formulaFields: formulon.FormulaData = {};
+        const categorizedFields = extractFieldsByCategory(value);
+        let context: FormulaContext = { record: {} };
+        let schema: Record<string, FieldSchema[]> | undefined;
 
-        if (fields.length) {
+        const hasFields =
+          categorizedFields.objectFields.length > 0 ||
+          categorizedFields.customMetadata.length > 0 ||
+          categorizedFields.customLabels.length > 0 ||
+          categorizedFields.customSettings.length > 0 ||
+          categorizedFields.customPermissions.length > 0 ||
+          Object.values(categorizedFields.globals).some((fields) => fields.length > 0);
+
+        if (hasFields) {
           const response = await getFormulaData({
-            fields,
+            categorizedFields,
             recordId,
             selectedOrg,
             selectedUserId,
             sobjectName: selectedSObject?.name || '',
-            numberNullBehavior,
           });
           if (response.type === 'error') {
             setFieldErrorMessage(response.message);
             return;
           }
-          formulaFields = response.formulaFields;
+          context = response.context;
+          schema = response.schema;
         }
 
-        const parsedFormula = formulon.parse(value, formulaFields);
-        logger.log('results', parsedFormula);
-        setResults({
-          formulaFields,
-          parsedFormula,
+        const result = evaluateFormula(value, context, {
+          treatBlanksAsZeroes: numberNullBehavior === 'ZERO',
+          returnType: !returnType || returnType === SFDC_BLANK_PICKLIST_VALUE ? undefined : returnType,
+          schema,
         });
-        trackEvent(ANALYTICS_KEYS.formula_execute, { success: true, fieldCount: fields.length, objectPrefix: recordId.substring(0, 3) });
+        logger.log('results', result);
+        setResults({ context, result, returnType });
+        trackEvent(ANALYTICS_KEYS.formula_execute, {
+          success: true,
+          fieldCount: categorizedFields.objectFields.length,
+          objectPrefix: recordId.substring(0, 3),
+        });
       } catch (ex) {
         logger.error(ex);
         setErrorMessage(getErrorMessage(ex));
@@ -166,7 +199,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
         setLoading(false);
       }
     },
-    [testFormulaDisabled, trackEvent, recordId, selectedOrg, selectedSObject?.name, numberNullBehavior],
+    [testFormulaDisabled, numberNullBehavior, returnType, trackEvent, recordId, selectedOrg, selectedUserId, selectedSObject?.name],
   );
 
   const onKeydown = useCallback(
@@ -214,7 +247,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
   const handleFormatRef = useRef(handleFormat);
   handleFormatRef.current = handleFormat;
 
-  function handleEditorChange(value?: string, event?: unknown) {
+  function handleEditorChange(value?: string) {
     setFormulaValue(value || '');
   }
 
@@ -281,7 +314,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
       >
         {!bannerDismissed && (
           <Alert type="info" leadingIcon="info" className="slds-m-bottom_xx-small" allowClose onClose={() => setBannerDismissed(true)}>
-            Formulas in Jetstream may evaluate different from Salesforce and not every formula function is supported.
+            Formulas in Jetstream may evaluate differently from Salesforce, and not every formula function is supported.
           </Alert>
         )}
         <Split
@@ -371,11 +404,16 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
                         selectedField={selectedField}
                         disabled={loading}
                         filterFn={(field) => !!field.calculatedFormula}
-                        onSelectField={setSelectedField}
+                        onSelectField={handleSelectedFieldChange}
                       />
                     )}
                   </Grid>
                 )}
+                <FormulaEvaluatorReturnTypeCombobox
+                  comboboxProps={{ disabled: loading }}
+                  returnType={returnType}
+                  onChange={setReturnType}
+                />
               </Grid>
 
               <Grid className="slds-m-top_x-small" align="spread">

@@ -1,6 +1,7 @@
 export * from './lib/ApiRequestUtils';
 export * from './lib/e2e-database-validation.utils';
 export * from './lib/pageObjectModels/AuthenticationPage.model';
+export * from './lib/pageObjectModels/FormulaEvaluatorPage.model';
 export * from './lib/pageObjectModels/LoadSingleObjectPage.model';
 export * from './lib/pageObjectModels/LoadWithoutFilePage.model';
 export * from './lib/pageObjectModels/OrgGroupPage.model';
