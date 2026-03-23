@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { sobjectOperation } from '@jetstream/shared/data';
+import { sobjectOperation, updatePermissionSetRecords } from '@jetstream/shared/data';
 import { isErrorResponse } from '@jetstream/shared/ui-utils';
 import { splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
@@ -259,44 +259,7 @@ export async function savePermissionRecords<RecordType, DirtyPermType>(
   return permissionSaveResults;
 }
 
-/**
- * Update profile and permission set records - this just marks the record as updated without changing anything
- * used to ensure sfdx knows that a change was made to the record
- *
- * @param org
- * @param recordIds
- */
-export async function updatePermissionSetRecords(
-  org: SalesforceOrgUi,
-  { profileIds, permissionSetIds }: { profileIds: string[]; permissionSetIds: string[] },
-) {
-  await Promise.all([
-    ...splitArrayToMaxSize(
-      profileIds.map((id) => ({
-        attributes: { type: 'Profile' },
-        Id: id,
-      })),
-      200,
-    ).map((records) => {
-      if (records.length === 0) {
-        return Promise.resolve();
-      }
-      return sobjectOperation(org, 'Profile', 'update', { records }, { allOrNone: false });
-    }),
-    ...splitArrayToMaxSize(
-      permissionSetIds.map((id) => ({
-        attributes: { type: 'PermissionSet' },
-        Id: id,
-      })),
-      200,
-    ).map((records) => {
-      if (records.length === 0) {
-        return Promise.resolve();
-      }
-      return sobjectOperation(org, 'PermissionSet', 'update', { records }, { allOrNone: false });
-    }),
-  ]);
-}
+export { updatePermissionSetRecords };
 
 export function collectProfileAndPermissionIds(
   dirtyPermissions: PermissionTableCellPermission[],

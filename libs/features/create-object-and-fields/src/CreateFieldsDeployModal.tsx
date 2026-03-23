@@ -51,6 +51,7 @@ export const CreateFieldsDeployModal = ({
     selectedOrg,
     profiles,
     permissionSets,
+    profilesAndPermSetsById,
     sObjects,
   });
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);

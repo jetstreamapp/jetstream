@@ -1,8 +1,16 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { genericRequest, sobjectOperation } from '@jetstream/shared/data';
+import { genericRequest, sobjectOperation, updatePermissionSetRecords } from '@jetstream/shared/data';
 import { useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
 import { REGEX, getSuccessOrFailureChar, groupByFlat, pluralizeFromNumber, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { CompositeGraphResponseBodyData, CompositeResponse, ErrorResult, RecordResult, SalesforceOrgUi } from '@jetstream/types';
+import {
+  CompositeGraphResponseBodyData,
+  CompositeResponse,
+  ErrorResult,
+  PermissionSetNoProfileRecord,
+  PermissionSetWithProfileRecord,
+  RecordResult,
+  SalesforceOrgUi,
+} from '@jetstream/types';
 import { useCallback, useEffect, useState } from 'react';
 import { FieldDefinitionMetadata, FieldPermissionRecord, FieldValues, LayoutResult, SalesforceFieldType } from './create-fields-types';
 import { deployLayouts, getFieldPermissionRecords, prepareCreateFieldsCompositeRequests, preparePayload } from './create-fields-utils';
@@ -54,10 +62,19 @@ interface UseCreateFieldsOptions {
   selectedOrg: SalesforceOrgUi;
   profiles: string[];
   permissionSets: string[];
+  profilesAndPermSetsById: Record<string, PermissionSetWithProfileRecord | PermissionSetNoProfileRecord>;
   sObjects: string[];
 }
 
-export function useCreateFields({ apiVersion, serverUrl, selectedOrg, profiles, permissionSets, sObjects }: UseCreateFieldsOptions) {
+export function useCreateFields({
+  apiVersion,
+  serverUrl,
+  selectedOrg,
+  profiles,
+  permissionSets,
+  profilesAndPermSetsById,
+  sObjects,
+}: UseCreateFieldsOptions) {
   const rollbar = useRollbar();
   const { notifyUser } = useBrowserNotifications(serverUrl);
   const [loading, setLoading] = useState(false);
@@ -293,6 +310,22 @@ export function useCreateFields({ apiVersion, serverUrl, selectedOrg, profiles, 
           await deployFieldPermissions(_resultsById, permissionRecords);
         }
 
+        // Update records so that SFDX is aware of the changes to profiles and permission sets
+        if (profiles.length || permissionSets.length) {
+          try {
+            const profileIds = profiles
+              .map((id) => {
+                const record = profilesAndPermSetsById[id];
+                return record?.IsOwnedByProfile ? record.ProfileId : null;
+              })
+              .filter(Boolean) as string[];
+
+            await updatePermissionSetRecords(selectedOrg, { profileIds, permissionSetIds: permissionSets });
+          } catch (ex) {
+            logger.error('Error flagging permissions as updated for change tracking', ex);
+          }
+        }
+
         const deployedFields = Object.values(_resultsById)
           .filter(({ state }) => state === 'LOADING')
           .map(({ field }) => field);
@@ -367,7 +400,7 @@ export function useCreateFields({ apiVersion, serverUrl, selectedOrg, profiles, 
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [apiVersion, deployFieldMetadata, deployFieldPermissions, rollbar, selectedOrg],
+    [apiVersion, deployFieldMetadata, deployFieldPermissions, permissionSets, profiles, profilesAndPermSetsById, rollbar, selectedOrg],
   );
 
   function sendBrowserNotification(resultsById: Record<string, CreateFieldsResults>) {

@@ -81,6 +81,7 @@ export const FormulaEvaluatorDeployModal = ({
       selectedOrg,
       permissionSets: selectedPermissionSets,
       profiles: selectedProfiles,
+      profilesAndPermSetsById: permissionData.profilesAndPermSetsById,
       sObjects,
     });
 
