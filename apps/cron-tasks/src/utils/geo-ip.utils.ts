@@ -81,6 +81,38 @@ export async function lookupIpAddresses(ips: string[]): Promise<Map<string, GeoI
 }
 
 /**
+ * Returns the great-circle distance in kilometres between two lat/lon points (haversine formula).
+ */
+export function haversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth radius in km
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/**
+ * Given a list of GeoIpResults, returns the maximum pairwise distance in km.
+ * Returns 0 if fewer than 2 results have valid coordinates.
+ */
+export function maxPairwiseDistanceKm(geos: Array<GeoIpResult | null | undefined>): number {
+  const coords = geos.filter(
+    (geo): geo is GeoIpResult & { latitude: number; longitude: number } => geo != null && geo.latitude != null && geo.longitude != null,
+  );
+  let maxDist = 0;
+  for (let i = 0; i < coords.length; i++) {
+    for (let j = i + 1; j < coords.length; j++) {
+      const dist = haversineDistanceKm(coords[i].latitude, coords[i].longitude, coords[j].latitude, coords[j].longitude);
+      if (dist > maxDist) {
+        maxDist = dist;
+      }
+    }
+  }
+  return maxDist;
+}
+
+/**
  * Formats a geo-IP result as a short location string, e.g. "San Francisco, US"
  */
 export function formatLocation(geo: GeoIpResult | null | undefined): string {

@@ -61,7 +61,7 @@ const CLEAR_BG = '#f0fdf4';
 function getEffectiveSeverity(result: SecurityCheckResult): 'high' | 'medium' | 'low' {
   if (result.title === 'Login Failure Rate (7 days)' && result.rows.length > 0) {
     const pct = parseFloat(String(result.rows[0].failureRatePct ?? '0'));
-    if (pct > 15) {
+    if (pct >= 15) {
       return 'high';
     }
     if (pct > 7) {
@@ -112,6 +112,11 @@ function renderCellValue(_key: string, value: unknown): string {
 export const StatsSummaryEmail = ({ stats, securityResults, generatedAt }: StatsSummaryEmailProps): React.ReactElement => {
   const hasAnySecurityFindings = securityResults.some((result) => result.rows.length > 0);
 
+  const wideContainer: React.CSSProperties = {
+    ...EMAIL_STYLES.container,
+    width: '720px',
+  };
+
   const platformStatRows: Array<[string, string | number]> = [
     ['Active Sessions', stats.activeSessions],
     ['New Users (7 days)', stats.newUsersLast7d],
@@ -131,7 +136,7 @@ export const StatsSummaryEmail = ({ stats, securityResults, generatedAt }: Stats
       <Head />
       <Preview>Jetstream Platform Stats — {generatedAt}</Preview>
       <Body style={EMAIL_STYLES.main}>
-        <Container style={EMAIL_STYLES.container}>
+        <Container style={wideContainer}>
           <EmailLogo />
           <Heading style={EMAIL_STYLES.title}>Platform Stats Summary</Heading>
           <Text style={subtitleText}>Generated {generatedAt}</Text>
@@ -252,16 +257,23 @@ StatsSummaryEmail.PreviewProps = {
       rows: [{ email: 'user@example.com', failedLoginAttempts: 6, lockedUntil: '2026-03-11T14:30:00.000Z' }],
     },
     {
-      title: 'Login Token Reuse (7 days)',
-      description: 'Desktop or web extension login tokens that were reused',
-      severity: 'high',
-      rows: [],
-    },
-    {
       title: 'Login Failure Rate (7 days)',
       description: 'Overall login failure rate for the past 7 days',
       severity: 'low',
       rows: [],
+    },
+    {
+      title: 'Multi-IP Active Sessions (current)',
+      description: 'Users with active sessions from multiple distinct IP addresses',
+      severity: 'high',
+      rows: [
+        {
+          email: 'user@example.com',
+          distinctIps: 3,
+          ipAddresses: '1.2.3.4, 5.6.7.8, 9.10.11.12',
+          locations: 'New York, US | Moscow, RU | Tokyo, JP',
+        },
+      ],
     },
   ],
 } as StatsSummaryEmailProps;
