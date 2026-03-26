@@ -114,8 +114,6 @@ const envSchema = z.object({
   USE_SECURE_COOKIES: booleanSchema,
   CAPTCHA_SECRET_KEY: z.string().optional(),
   CAPTCHA_PROPERTY: z.literal('captchaToken').optional().default('captchaToken'),
-  IP_API_KEY: z.string().optional().describe('API Key used to get location information from IP address'),
-  IP_API_SERVICE: z.enum(['IP-API', 'LOCAL']).optional().describe('API Key used to get location information from IP address'),
   VERSION: z.string().optional(),
   ROLLBAR_SERVER_TOKEN: z.string().optional(),
 

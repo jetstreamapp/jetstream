@@ -1,27 +1,14 @@
+import { GeoIpLookupResponse } from '@jetstream/types';
 import { ENV } from '../config/env-config';
 import { logger } from '../config/logger.config';
 
 export interface GeoIpResult {
-  city?: string;
-  country?: string;
-  countryCode?: string;
-  region?: string;
-  latitude?: number;
-  longitude?: number;
-}
-
-interface GeoIpLookupResponse {
-  success: boolean;
-  results: Array<{
-    ipAddress: string;
-    isValid: boolean;
-    city?: string;
-    country?: string;
-    countryCode?: string;
-    region?: string;
-    latitude?: number;
-    longitude?: number;
-  }>;
+  city: string | null;
+  country: string | null;
+  countryCode: string | null;
+  region: string | null;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 /**
@@ -69,8 +56,8 @@ export async function lookupIpAddresses(ips: string[]): Promise<Map<string, GeoI
         country: entry.country,
         countryCode: entry.countryCode,
         region: entry.region,
-        latitude: entry.latitude,
-        longitude: entry.longitude,
+        latitude: entry.lat,
+        longitude: entry.lon,
       });
     }
   } catch (error) {
@@ -97,9 +84,9 @@ export function haversineDistanceKm(lat1: number, lon1: number, lat2: number, lo
  * Returns 0 if fewer than 2 results have valid coordinates.
  */
 export function maxPairwiseDistanceKm(geos: Array<GeoIpResult | null | undefined>): number {
-  const coords = geos.filter(
-    (geo): geo is GeoIpResult & { latitude: number; longitude: number } => geo != null && geo.latitude != null && geo.longitude != null,
-  );
+  const coords = geos.filter((geo): geo is GeoIpResult & { latitude: number; longitude: number } => {
+    return geo != null && geo.latitude != null && geo.longitude != null;
+  });
   let maxDist = 0;
   for (let i = 0; i < coords.length; i++) {
     for (let j = i + 1; j < coords.length; j++) {

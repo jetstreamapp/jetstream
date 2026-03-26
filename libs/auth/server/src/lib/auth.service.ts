@@ -1,6 +1,7 @@
 import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
 import type { Request, Response } from '@jetstream/api-types';
 import { OauthProviderType, Providers, ResponseLocalsCookies, SessionIpData } from '@jetstream/auth/types';
+import { GeoIpLookupResponse } from '@jetstream/types';
 import { parseCookie } from 'cookie';
 import * as crypto from 'crypto';
 import { addHours, addMinutes } from 'date-fns';
@@ -272,13 +273,19 @@ async function getUserInfo({ authorizationServer, client }: OauthClientProvider,
   return userInfo;
 }
 
-export async function lookupGeoLocationFromIpAddresses(ipAddresses: string[]) {
+export async function lookupGeoLocationFromIpAddresses(
+  ipAddresses: string[],
+): Promise<Array<{ ipAddress: string; location: SessionIpData | null }>> {
   if (!ipAddresses || ipAddresses.length === 0) {
     return [];
   }
-  let response: Awaited<ReturnType<typeof fetch>> | null = null;
-  if (ENV.IP_API_SERVICE === 'LOCAL' && ENV.GEO_IP_API_USERNAME && ENV.GEO_IP_API_PASSWORD && ENV.GEO_IP_API_HOSTNAME) {
-    response = await fetch(`${ENV.GEO_IP_API_HOSTNAME}/api/lookup`, {
+
+  if (!ENV.GEO_IP_API_USERNAME || !ENV.GEO_IP_API_PASSWORD || !ENV.GEO_IP_API_HOSTNAME) {
+    return ipAddresses.map((ipAddress) => ({ ipAddress, location: null }));
+  }
+
+  try {
+    const response = await fetch(`${ENV.GEO_IP_API_HOSTNAME}/api/lookup`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -286,33 +293,37 @@ export async function lookupGeoLocationFromIpAddresses(ipAddresses: string[]) {
       },
       body: JSON.stringify({ ips: ipAddresses }),
     });
-  } else if (ENV.IP_API_KEY) {
-    const params = new URLSearchParams({
-      fields: 'status,country,countryCode,region,regionName,city,isp,lat,lon,query',
-      key: ENV.IP_API_KEY,
-    });
 
-    response = await fetch(`https://pro.ip-api.com/batch?${params.toString()}`, {
-      method: 'POST',
-      body: JSON.stringify(ipAddresses),
-    });
-  }
-  if (response?.ok) {
-    const locations = (await response.json()) as
-      | { success: true; results: SessionIpData[] }
-      | { success: false; message: string; details?: string };
-
-    if (locations.success) {
-      return ipAddresses.map((ipAddress, i) => ({
-        ipAddress,
-        location: locations.results[i],
-      }));
+    if (!response.ok) {
+      return ipAddresses.map((ipAddress) => ({ ipAddress, location: null }));
     }
+
+    const data = (await response.json()) as GeoIpLookupResponse;
+
+    return data.results.map((result) => {
+      if (!result.isValid) {
+        return { ipAddress: result.ipAddress, location: { status: 'fail' as const, query: result.ipAddress } };
+      }
+      return {
+        ipAddress: result.ipAddress,
+        location: {
+          status: 'success' as const,
+          country: result.country,
+          countryCode: result.countryCode,
+          region: result.region,
+          regionName: result.regionName,
+          city: result.city,
+          isp: result.isp,
+          lat: result.lat,
+          lon: result.lon,
+          query: result.ipAddress,
+        },
+      };
+    });
+  } catch (ex) {
+    logger.warn(getExceptionLog(ex, true), 'Geo-IP lookup failed');
+    return ipAddresses.map((ipAddress) => ({ ipAddress, location: null }));
   }
-  return ipAddresses.map((ipAddress) => ({
-    ipAddress,
-    location: null,
-  }));
 }
 
 export function initSession(

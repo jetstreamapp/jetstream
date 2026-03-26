@@ -98,6 +98,39 @@ export type Environment = Production | Test | Development;
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
+/** Geo data returned by the geo-ip-api service for a resolved IP */
+export interface GeoIpData {
+  continent: string | null;
+  continentCode: string | null;
+  country: string | null;
+  countryCode: string | null;
+  region: string | null;
+  regionName: string | null;
+  city: string | null;
+  zip: string | null;
+  lat: number | null;
+  lon: number | null;
+  timezone: string | null;
+  isEU: boolean;
+  isp: string | null;
+  org: string | null;
+  proxy: boolean;
+}
+
+/** Result from the geo-ip-api /api/lookup endpoint for a single IP */
+export type GeoIpLookupResult = ({ ipAddress: string; isValid: true } & GeoIpData) | { ipAddress: string; isValid: false };
+
+export interface GeoIpLookupResponse {
+  success: true;
+  results: GeoIpLookupResult[];
+}
+
+export interface GeoIpLookupErrorResponse {
+  success: false;
+  message: string;
+  details?: unknown;
+}
+
 export interface ApplicationState {
   serverUrl: string;
   environment: Environment;
