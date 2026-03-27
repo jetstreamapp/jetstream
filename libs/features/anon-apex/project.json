@@ -9,7 +9,7 @@
       "executor": "@nx/vitest:test",
       "outputs": ["{options.reportsDirectory}"],
       "options": {
-        "reportsDirectory": "../../../coverage/libs/features/anon-apex"
+        "reportsDirectory": "{projectRoot}/../../../coverage/libs/features/anon-apex"
       }
     }
   }

@@ -1,9 +1,8 @@
 import { ApiConnection, ApiRequestError } from '@jetstream/salesforce-api';
 import { ERROR_MESSAGES } from '@jetstream/shared/constants';
 import { Maybe, SalesforceOrgUi, SObjectOrganization } from '@jetstream/types';
-import { safeStorage } from 'electron';
 import logger from 'electron-log';
-import { createOrUpdateSalesforceOrg } from './persistence.service';
+import { createOrUpdateSalesforceOrg, encryptTokenPortable } from './persistence.service';
 
 export async function initConnectionFromOAuthResponse({
   jetstreamConn,
@@ -33,10 +32,7 @@ export async function initConnectionFromOAuthResponse({
 
   const salesforceOrgUi: Partial<SalesforceOrgUi> = {
     uniqueId: `${jetstreamConn.sessionInfo.organizationId}-${jetstreamConn.sessionInfo.userId}`,
-    // TODO: we also need to store the refresh token - we can encrypt, but we don't have a way to securely store the key
-    accessToken: safeStorage
-      .encryptString(`${jetstreamConn.sessionInfo.accessToken} ${jetstreamConn.sessionInfo.refreshToken}`)
-      .toString('base64'),
+    accessToken: encryptTokenPortable(`${jetstreamConn.sessionInfo.accessToken} ${jetstreamConn.sessionInfo.refreshToken}`),
     instanceUrl: jetstreamConn.sessionInfo.instanceUrl,
     loginUrl: jetstreamConn.sessionInfo.instanceUrl,
     userId: identity.user_id,

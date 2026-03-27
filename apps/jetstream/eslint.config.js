@@ -1,4 +1,3 @@
-const nx = require('@nx/eslint-plugin');
 const baseConfig = require('../../eslint.config.js');
 const eslintPluginImport = require('eslint-plugin-import');
 const eslintPluginJsxA11y = require('eslint-plugin-jsx-a11y');
@@ -7,7 +6,6 @@ const eslintPluginReactHooks = require('eslint-plugin-react-hooks');
 
 module.exports = [
   ...baseConfig,
-  ...nx.configs['flat/react'],
   {
     plugins: {
       import: eslintPluginImport,

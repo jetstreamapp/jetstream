@@ -1385,3 +1385,40 @@ export async function submitUserFeedback({
     },
   }).then(unwrapResponseIgnoreCache);
 }
+
+/**
+ * Update profile and permission set records with a no-op update.
+ * This marks the records as updated without changing anything,
+ * ensuring SFDX change tracking is aware of the modifications.
+ */
+export async function updatePermissionSetRecords(
+  org: SalesforceOrgUi,
+  { profileIds, permissionSetIds }: { profileIds: string[]; permissionSetIds: string[] },
+) {
+  await Promise.all([
+    ...splitArrayToMaxSize(
+      profileIds.map((id) => ({
+        attributes: { type: 'Profile' },
+        Id: id,
+      })),
+      200,
+    ).map((records) => {
+      if (records.length === 0) {
+        return Promise.resolve();
+      }
+      return sobjectOperation(org, 'Profile', 'update', { records }, { allOrNone: false });
+    }),
+    ...splitArrayToMaxSize(
+      permissionSetIds.map((id) => ({
+        attributes: { type: 'PermissionSet' },
+        Id: id,
+      })),
+      200,
+    ).map((records) => {
+      if (records.length === 0) {
+        return Promise.resolve();
+      }
+      return sobjectOperation(org, 'PermissionSet', 'update', { records }, { allOrNone: false });
+    }),
+  ]);
+}

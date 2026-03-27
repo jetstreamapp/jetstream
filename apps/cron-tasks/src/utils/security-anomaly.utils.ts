@@ -78,29 +78,30 @@ export const SECURITY_CHECKS: SecurityCheck[] = [
       }));
     },
   },
-  {
-    title: 'Login Token Reuse (7 days)',
-    description: 'Desktop or web extension login tokens that were reused — may indicate token theft',
-    severity: 'high',
-    query: async (prisma) => {
-      const last7d = subDays(new Date(), 7);
-      const rows = await prisma.loginActivity.findMany({
-        where: {
-          action: { in: ['DESKTOP_LOGIN_TOKEN_REUSED', 'WEB_EXTENSION_LOGIN_TOKEN_REUSED'] },
-          createdAt: { gt: last7d },
-        },
-        select: { action: true, email: true, ipAddress: true, userAgent: true, createdAt: true },
-        orderBy: { createdAt: 'desc' },
-      });
-      return rows.map((row) => ({
-        action: row.action,
-        email: row.email ?? null,
-        ipAddress: row.ipAddress ?? null,
-        userAgent: row.userAgent ?? null,
-        createdAt: row.createdAt.toISOString(),
-      }));
-    },
-  },
+  // Token reuse is a common flow as they are long-lived tokens
+  // {
+  //   title: 'Login Token Reuse (7 days)',
+  //   description: 'Desktop or web extension login tokens that were reused — may indicate token theft',
+  //   severity: 'high',
+  //   query: async (prisma) => {
+  //     const last7d = subDays(new Date(), 7);
+  //     const rows = await prisma.loginActivity.findMany({
+  //       where: {
+  //         action: { in: ['DESKTOP_LOGIN_TOKEN_REUSED', 'WEB_EXTENSION_LOGIN_TOKEN_REUSED'] },
+  //         createdAt: { gt: last7d },
+  //       },
+  //       select: { action: true, email: true, ipAddress: true, userAgent: true, createdAt: true },
+  //       orderBy: { createdAt: 'desc' },
+  //     });
+  //     return rows.map((row) => ({
+  //       action: row.action,
+  //       email: row.email ?? null,
+  //       ipAddress: row.ipAddress ?? null,
+  //       userAgent: row.userAgent ?? null,
+  //       createdAt: row.createdAt.toISOString(),
+  //     }));
+  //   },
+  // },
   {
     title: 'Login Failure Rate (7 days)',
     description: 'Overall login failure rate for the past 7 days — high values may indicate a coordinated attack',
@@ -112,8 +113,8 @@ export const SECURITY_CHECKS: SecurityCheck[] = [
         prisma.loginActivity.count({ where: { action: 'LOGIN', success: false, createdAt: { gt: last7d } } }),
       ]);
       const failureRatePct = total > 0 ? ((failed / total) * 100).toFixed(1) : '0.0';
-      // Only report if failure rate is noteworthy (>5%)
-      if (total === 0 || parseFloat(failureRatePct) < 5) {
+      // Only report if failure rate is noteworthy (>=7%) — the email template escalates severity (>7% medium, >15% high)
+      if (total === 0 || parseFloat(failureRatePct) < 7) {
         return [];
       }
       return [{ period: 'Last 7 days', totalAttempts: total, failedAttempts: failed, failureRatePct: `${failureRatePct}%` }];
@@ -197,6 +198,30 @@ export const SECURITY_CHECKS: SecurityCheck[] = [
       return rows.map((row) => ({
         email: row.email,
         resetRequests: row._count.id,
+      }));
+    },
+  },
+  {
+    title: 'Multi-IP Active Sessions (current)',
+    description: 'Users with active sessions from multiple distinct IP addresses — may indicate session hijacking or account compromise',
+    severity: 'high',
+    query: async (prisma) => {
+      const rows = await prisma.$queryRaw<Array<{ email: string; userId: string; distinctIps: bigint; ipAddresses: string }>>`
+        SELECT u.email, s.user_id AS "userId",
+               COUNT(DISTINCT s.sess->>'ipAddress') AS "distinctIps",
+               STRING_AGG(DISTINCT s.sess->>'ipAddress', ', ' ORDER BY s.sess->>'ipAddress') AS "ipAddresses"
+        FROM sessions s
+        JOIN "User" u ON u.id = s.user_id
+        WHERE s.expire > NOW()
+          AND s.sess->>'ipAddress' IS NOT NULL
+        GROUP BY u.email, s.user_id
+        HAVING COUNT(DISTINCT s.sess->>'ipAddress') >= 2
+        ORDER BY "distinctIps" DESC
+      `;
+      return rows.map((row) => ({
+        email: row.email,
+        distinctIps: Number(row.distinctIps),
+        ipAddresses: row.ipAddresses,
       }));
     },
   },

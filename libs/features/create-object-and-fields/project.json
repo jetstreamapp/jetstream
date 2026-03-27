@@ -9,7 +9,7 @@
       "executor": "@nx/vitest:test",
       "outputs": ["{options.reportsDirectory}"],
       "options": {
-        "reportsDirectory": "../../../coverage/libs/features/create-object-and-fields"
+        "reportsDirectory": "{projectRoot}/../../../coverage/libs/features/create-object-and-fields"
       }
     }
   }

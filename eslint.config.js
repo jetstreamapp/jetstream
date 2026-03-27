@@ -19,6 +19,7 @@ module.exports = [
   {
     files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
     rules: {
+      'react-hooks/set-state-in-effect': 'warn',
       'no-empty-pattern': 'off',
       'object-shorthand': 'warn',
       '@typescript-eslint/explicit-module-boundary-types': 'off',

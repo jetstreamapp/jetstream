@@ -37,17 +37,39 @@ export interface StatsSummaryEmailProps {
   generatedAt: string;
 }
 
-const SEVERITY_COLOR: Record<'high' | 'medium' | 'low', string> = {
+/** Colors used when a check HAS findings */
+const FINDING_COLOR: Record<'high' | 'medium' | 'low', string> = {
   high: '#dc2626',
   medium: '#d97706',
-  low: '#2563eb',
+  low: '#d97706',
 };
 
-const SEVERITY_BG: Record<'high' | 'medium' | 'low', string> = {
+const FINDING_BG: Record<'high' | 'medium' | 'low', string> = {
   high: '#fef2f2',
   medium: '#fffbeb',
-  low: '#eff6ff',
+  low: '#fffbeb',
 };
+
+/** Colors used when a check has NO findings */
+const CLEAR_COLOR = '#16a34a';
+const CLEAR_BG = '#f0fdf4';
+
+/**
+ * For the "Login Failure Rate" check, escalate severity based on the actual percentage:
+ *   >15% → high (red), >7% → medium (yellow), otherwise keep original severity.
+ */
+function getEffectiveSeverity(result: SecurityCheckResult): 'high' | 'medium' | 'low' {
+  if (result.title === 'Login Failure Rate (7 days)' && result.rows.length > 0) {
+    const pct = parseFloat(String(result.rows[0].failureRatePct ?? '0'));
+    if (pct >= 15) {
+      return 'high';
+    }
+    if (pct > 7) {
+      return 'medium';
+    }
+  }
+  return result.severity;
+}
 
 /** Formats a camelCase or snake_case key into a human-readable label */
 function formatColumnLabel(key: string): string {
@@ -90,6 +112,11 @@ function renderCellValue(_key: string, value: unknown): string {
 export const StatsSummaryEmail = ({ stats, securityResults, generatedAt }: StatsSummaryEmailProps): React.ReactElement => {
   const hasAnySecurityFindings = securityResults.some((result) => result.rows.length > 0);
 
+  const wideContainer: React.CSSProperties = {
+    ...EMAIL_STYLES.container,
+    width: '720px',
+  };
+
   const platformStatRows: Array<[string, string | number]> = [
     ['Active Sessions', stats.activeSessions],
     ['New Users (7 days)', stats.newUsersLast7d],
@@ -109,7 +136,7 @@ export const StatsSummaryEmail = ({ stats, securityResults, generatedAt }: Stats
       <Head />
       <Preview>Jetstream Platform Stats — {generatedAt}</Preview>
       <Body style={EMAIL_STYLES.main}>
-        <Container style={EMAIL_STYLES.container}>
+        <Container style={wideContainer}>
           <EmailLogo />
           <Heading style={EMAIL_STYLES.title}>Platform Stats Summary</Heading>
           <Text style={subtitleText}>Generated {generatedAt}</Text>
@@ -142,13 +169,16 @@ export const StatsSummaryEmail = ({ stats, securityResults, generatedAt }: Stats
 
             {securityResults.map((result, index) => {
               const displayColumns = getDisplayColumns(result.rows);
+              const hasFindings = result.rows.length > 0;
+              const effectiveSeverity = getEffectiveSeverity(result);
+              const bgColor = hasFindings ? FINDING_BG[effectiveSeverity] : CLEAR_BG;
+              const badgeColor = hasFindings ? FINDING_COLOR[effectiveSeverity] : CLEAR_COLOR;
 
               return (
-                <Section key={index} style={{ ...checkSectionStyle, backgroundColor: SEVERITY_BG[result.severity] }}>
+                <Section key={index} style={{ ...checkSectionStyle, backgroundColor: bgColor }}>
                   <Row>
                     <Text style={checkTitleStyle}>
-                      <span style={{ color: SEVERITY_COLOR[result.severity], fontWeight: 700 }}>[{result.severity.toUpperCase()}]</span>{' '}
-                      {result.title}
+                      <span style={{ color: badgeColor, fontWeight: 700 }}>[{result.severity.toUpperCase()}]</span> {result.title}
                     </Text>
                   </Row>
                   <Text style={checkDescriptionStyle}>{result.description}</Text>
@@ -227,16 +257,23 @@ StatsSummaryEmail.PreviewProps = {
       rows: [{ email: 'user@example.com', failedLoginAttempts: 6, lockedUntil: '2026-03-11T14:30:00.000Z' }],
     },
     {
-      title: 'Login Token Reuse (7 days)',
-      description: 'Desktop or web extension login tokens that were reused',
-      severity: 'high',
-      rows: [],
-    },
-    {
       title: 'Login Failure Rate (7 days)',
       description: 'Overall login failure rate for the past 7 days',
       severity: 'low',
       rows: [],
+    },
+    {
+      title: 'Multi-IP Active Sessions (current)',
+      description: 'Users with active sessions from multiple distinct IP addresses',
+      severity: 'high',
+      rows: [
+        {
+          email: 'user@example.com',
+          distinctIps: 3,
+          ipAddresses: '1.2.3.4, 5.6.7.8, 9.10.11.12',
+          locations: 'New York, US | Moscow, RU | Tokyo, JP',
+        },
+      ],
     },
   ],
 } as StatsSummaryEmailProps;

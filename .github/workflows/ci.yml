@@ -39,6 +39,7 @@ env:
   NX_PUBLIC_CLIENT_URL: "http://localhost:3333/app"
   NX_PUBLIC_ROLLBAR_KEY: ${{ secrets.NX_PUBLIC_ROLLBAR_KEY }}
   NX_PUBLIC_SERVER_URL: "http://localhost:3333"
+  DESKTOP_ORG_ENCRYPTION_SECRET: ${{ secrets.DESKTOP_ORG_ENCRYPTION_SECRET }}
   SFDC_API_VERSION: "65.0"
   SFDC_CALLBACK_URL: http://localhost:3333/oauth/sfdc/callback
   SFDC_CONSUMER_KEY: ${{ secrets.SFDC_CONSUMER_KEY }}

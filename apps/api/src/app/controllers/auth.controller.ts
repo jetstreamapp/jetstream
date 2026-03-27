@@ -1,5 +1,6 @@
 import { ENV, getExceptionLog } from '@jetstream/api-config';
 import {
+  acceptTos,
   AuthError,
   clearOauthCookies,
   convertBase32ToHex,
@@ -7,6 +8,7 @@ import {
   createRememberDevice,
   createUserActivityFromReq,
   createUserActivityFromReqWithError,
+  CURRENT_TOS_VERSION,
   discoverSsoConfigByDomain,
   EMAIL_VERIFICATION_TOKEN_DURATION_HOURS,
   ensureAuthError,
@@ -102,6 +104,8 @@ export const routeDefinition = {
         .nullable()
         .or(z.literal(false)),
       isVerificationExpired: z.boolean(),
+      pendingTosAcceptance: z.boolean(),
+      currentTosVersion: z.string(),
     }),
     validators: {
       hasSourceOrg: false,
@@ -138,6 +142,7 @@ export const routeDefinition = {
             email: z.email().max(255).toLowerCase(),
             name: z.string().min(1).max(255).trim(),
             password: PasswordSchema,
+            tosVersion: z.literal(CURRENT_TOS_VERSION),
           }),
         ]),
         z.object({}).nullish(),
@@ -260,6 +265,14 @@ export const routeDefinition = {
       hasSourceOrg: false,
     } satisfies RouteValidator,
   },
+  acceptTerms: {
+    controllerFn: () => acceptTerms,
+    responseType: z.object({ error: z.boolean(), redirect: z.string() }).nullable(),
+    validators: {
+      body: z.object({ csrfToken: z.string(), tosVersion: z.literal(CURRENT_TOS_VERSION) }),
+      hasSourceOrg: false,
+    } satisfies RouteValidator,
+  },
 };
 
 const logout = createRoute(routeDefinition.logout.validators, async ({}, req, res) => {
@@ -299,13 +312,15 @@ const getSession = createRoute(routeDefinition.getSession.validators, async (_, 
     }
 
     sendJson(res, {
-      isLoggedIn: !!req.session.user && !req.session.pendingVerification?.length,
+      isLoggedIn: !!req.session.user && !req.session.pendingVerification?.length && !req.session.pendingTosAcceptance,
       email:
         req.session.user?.email && req.session.pendingVerification?.some(({ type }) => type === 'email' || type === '2fa-email')
           ? req.session.user.email
           : null,
       pendingVerifications: req.session.pendingVerification?.map(({ type }) => type) || false,
       isVerificationExpired,
+      pendingTosAcceptance: !!req.session.pendingTosAcceptance,
+      currentTosVersion: CURRENT_TOS_VERSION,
     });
   } catch (ex) {
     next(ensureAuthError(ex));
@@ -537,6 +552,7 @@ const callback = createRoute(
                 email,
                 name: body.name,
                 password,
+                tosVersion: body.tosVersion,
               });
 
         isNewUser = sessionData.isNewUser;
@@ -601,6 +617,14 @@ const callback = createRoute(
           redirect(res, `/auth/mfa-enroll`);
         } else {
           sendJson(res, { error: false, redirect: `/auth/mfa-enroll` });
+        }
+      } else if (req.session.pendingTosAcceptance) {
+        setCsrfCookie(res);
+        if (provider.type === 'oauth') {
+          await new Promise<void>((resolve, reject) => req.session.save((err) => (err ? reject(err) : resolve())));
+          redirect(res, `/auth/accept-terms`);
+        } else {
+          sendJson(res, { error: false, redirect: `/auth/accept-terms` });
         }
       } else {
         if (isNewUser) {
@@ -1261,6 +1285,9 @@ const handleSamlCallback = createRoute(routeDefinition.handleSamlCallback.valida
       redirect(res, '/auth/verify');
     } else if (req.session.pendingMfaEnrollment) {
       redirect(res, '/auth/mfa-enroll');
+    } else if (req.session.pendingTosAcceptance) {
+      setCsrfCookie(res);
+      redirect(res, '/auth/accept-terms');
     } else {
       if (req.session.sendNewUserEmailAfterVerify) {
         req.session.sendNewUserEmailAfterVerify = undefined;
@@ -1372,6 +1399,9 @@ const handleOidcCallback = createRoute(routeDefinition.handleOidcCallback.valida
       redirect(res, '/auth/verify');
     } else if (req.session.pendingMfaEnrollment) {
       redirect(res, '/auth/mfa-enroll');
+    } else if (req.session.pendingTosAcceptance) {
+      setCsrfCookie(res);
+      redirect(res, '/auth/accept-terms');
     } else {
       if (req.session.sendNewUserEmailAfterVerify) {
         req.session.sendNewUserEmailAfterVerify = undefined;
@@ -1391,5 +1421,38 @@ const handleOidcCallback = createRoute(routeDefinition.handleOidcCallback.valida
     req.session.destroy(() => {
       next(ensureAuthError(ex));
     });
+  }
+});
+
+const acceptTerms = createRoute(routeDefinition.acceptTerms.validators, async ({ body }, req, res, next) => {
+  try {
+    if (!req.session.user) {
+      throw new InvalidSession('Not authenticated');
+    }
+
+    if (!req.session.pendingTosAcceptance) {
+      throw new InvalidAction('No pending ToS acceptance');
+    }
+
+    const { csrfToken, tosVersion } = body;
+    await verifyCSRFFromRequestOrThrow(csrfToken, req.headers.cookie || '');
+
+    if (tosVersion !== CURRENT_TOS_VERSION) {
+      throw new InvalidParameters('Invalid ToS version');
+    }
+
+    await acceptTos(req.session.user.id, tosVersion);
+    req.session.user = { ...req.session.user, tosAcceptedVersion: tosVersion };
+    req.session.pendingTosAcceptance = undefined;
+
+    createUserActivityFromReq(req, res, {
+      action: 'TOS_ACCEPTED',
+      success: true,
+    });
+
+    const safeRedirectUrl = validateRedirectUrl(null, [ENV.JETSTREAM_CLIENT_URL, ENV.JETSTREAM_SERVER_URL], ENV.JETSTREAM_CLIENT_URL);
+    sendJson(res, { error: false, redirect: safeRedirectUrl });
+  } catch (ex) {
+    next(ensureAuthError(ex));
   }
 });

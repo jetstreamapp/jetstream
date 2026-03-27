@@ -33,6 +33,10 @@ model User {
   forcePasswordReset  Boolean   @default(false)
   passwordResetReason String?   @db.VarChar(500)
 
+  // Terms of Service acceptance tracking
+  tosAcceptedVersion String?   @db.VarChar(20)
+  tosAcceptedAt      DateTime?
+
   authFactors         AuthFactors[]
   billingAccount      BillingAccount?
   entitlements        Entitlement?

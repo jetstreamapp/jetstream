@@ -1,5 +1,5 @@
 import { ENV } from '@jetstream/api-config';
-import { convertUserProfileToSession, InvalidAccessToken } from '@jetstream/auth/server';
+import { convertUserProfileToSession_External, InvalidAccessToken } from '@jetstream/auth/server';
 import { UserProfileSession } from '@jetstream/auth/types';
 import { HTTP } from '@jetstream/shared/constants';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
@@ -108,10 +108,10 @@ export async function getUserAndDeviceIdForExternalAuth(
       const userFromCache = cache.get(cacheKey);
       if (!userFromCache || userFromCache.exp < Date.now() / 1000) {
         const decodedJwtToken = await verifyToken({ token: accessToken, deviceId }, audience);
-        user = convertUserProfileToSession(decodedJwtToken.userProfile);
+        user = convertUserProfileToSession_External(decodedJwtToken.userProfile);
         cache.set(cacheKey, decodedJwtToken);
       } else {
-        user = convertUserProfileToSession(userFromCache.userProfile);
+        user = convertUserProfileToSession_External(userFromCache.userProfile);
       }
     }
     return { user, deviceId };

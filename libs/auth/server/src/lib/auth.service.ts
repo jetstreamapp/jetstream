@@ -6,7 +6,7 @@ import * as crypto from 'crypto';
 import { addHours, addMinutes } from 'date-fns';
 import * as QRCode from 'qrcode';
 import { OauthClientProvider, OauthClients } from './OauthClients';
-import { EMAIL_VERIFICATION_TOKEN_DURATION_HOURS, TOKEN_DURATION_MINUTES } from './auth.constants';
+import { CURRENT_TOS_VERSION, EMAIL_VERIFICATION_TOKEN_DURATION_HOURS, TOKEN_DURATION_MINUTES } from './auth.constants';
 import { findUserById_UNSAFE, handleSignInOrRegistration } from './auth.db.service';
 import { AuthError, InvalidCsrfToken, InvalidVerificationToken, InvalidVerificationType } from './auth.errors';
 import { generateHMACDoubleCSRFToken, getApiAddressFromReq, getCookieConfig, validateCSRFToken } from './auth.utils';
@@ -354,6 +354,7 @@ export function initSession(
         req.session.user = user;
         req.session.pendingMfaEnrollment = undefined;
         req.session.pendingVerification = undefined;
+        req.session.pendingTosAcceptance = undefined;
 
         // Generate and set HMAC CSRF token (same token used for both cookie and header validation)
         const csrfToken = generateHMACDoubleCSRFToken(ENV.JETSTREAM_SESSION_SECRET, req.session.id);
@@ -386,6 +387,13 @@ export function initSession(
             });
           }
         }
+
+        // Set ToS acceptance gate for users who haven't accepted the current version.
+        // Skip for placeholder/temporary sessions (e.g., email-already-in-use during registration).
+        if (!sessionDetails?.isTemporary && user.tosAcceptedVersion !== CURRENT_TOS_VERSION) {
+          req.session.pendingTosAcceptance = true;
+        }
+
         resolve();
       } catch (ex) {
         logger.error({ ...getExceptionLog(ex) }, '[AUTH][INIT_SESSION][ERROR] Error initializing session');

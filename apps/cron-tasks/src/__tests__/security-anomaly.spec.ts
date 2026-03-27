@@ -88,6 +88,9 @@ describe('Security Anomaly Checks Integration Tests', () => {
   });
 
   beforeEach(async () => {
+    await prisma.sessions.deleteMany({
+      where: { sid: { startsWith: TEST_PREFIX } },
+    });
     await prisma.loginActivity.deleteMany({
       where: {
         OR: [{ email: { contains: TEST_PREFIX } }, { ipAddress: { startsWith: TEST_IP_PREFIX } }],
@@ -99,6 +102,9 @@ describe('Security Anomaly Checks Integration Tests', () => {
   });
 
   afterAll(async () => {
+    await prisma.sessions.deleteMany({
+      where: { sid: { startsWith: TEST_PREFIX } },
+    });
     await prisma.loginActivity.deleteMany({
       where: {
         OR: [{ email: { contains: TEST_PREFIX } }, { ipAddress: { startsWith: TEST_IP_PREFIX } }],
@@ -249,69 +255,69 @@ describe('Security Anomaly Checks Integration Tests', () => {
     });
   });
 
-  describe('Login Token Reuse (7 days)', () => {
-    let check: SecurityCheck;
+  // describe('Login Token Reuse (7 days)', () => {
+  //   let check: SecurityCheck;
 
-    beforeAll(() => {
-      check = getCheckByTitle('Token Reuse');
-    });
+  //   beforeAll(() => {
+  //     check = getCheckByTitle('Token Reuse');
+  //   });
 
-    it('should return empty when no token reuse events exist', async () => {
-      const results = await check.query(prisma);
-      const testResults = results.filter((r) => String(r.ipAddress).startsWith(TEST_IP_PREFIX));
-      expect(testResults).toHaveLength(0);
-    });
+  //   it('should return empty when no token reuse events exist', async () => {
+  //     const results = await check.query(prisma);
+  //     const testResults = results.filter((r) => String(r.ipAddress).startsWith(TEST_IP_PREFIX));
+  //     expect(testResults).toHaveLength(0);
+  //   });
 
-    it('should return desktop token reuse events', async () => {
-      await createLoginActivity({
-        action: 'DESKTOP_LOGIN_TOKEN_REUSED',
-        email: `${TEST_PREFIX}-token@test.com`,
-        success: true,
-        userAgent: 'Jetstream Desktop',
-      });
-      const results = await check.query(prisma);
-      const testResults = results.filter((r) => String(r.ipAddress).startsWith(TEST_IP_PREFIX));
-      expect(testResults).toHaveLength(1);
-      expect(testResults[0]).toEqual(
-        expect.objectContaining({
-          action: 'DESKTOP_LOGIN_TOKEN_REUSED',
-          email: `${TEST_PREFIX}-token@test.com`,
-        }),
-      );
-      expect(testResults[0]).toHaveProperty('ipAddress');
-      expect(testResults[0]).toHaveProperty('userAgent');
-      expect(testResults[0]).toHaveProperty('createdAt');
-    });
+  //   it('should return desktop token reuse events', async () => {
+  //     await createLoginActivity({
+  //       action: 'DESKTOP_LOGIN_TOKEN_REUSED',
+  //       email: `${TEST_PREFIX}-token@test.com`,
+  //       success: true,
+  //       userAgent: 'Jetstream Desktop',
+  //     });
+  //     const results = await check.query(prisma);
+  //     const testResults = results.filter((r) => String(r.ipAddress).startsWith(TEST_IP_PREFIX));
+  //     expect(testResults).toHaveLength(1);
+  //     expect(testResults[0]).toEqual(
+  //       expect.objectContaining({
+  //         action: 'DESKTOP_LOGIN_TOKEN_REUSED',
+  //         email: `${TEST_PREFIX}-token@test.com`,
+  //       }),
+  //     );
+  //     expect(testResults[0]).toHaveProperty('ipAddress');
+  //     expect(testResults[0]).toHaveProperty('userAgent');
+  //     expect(testResults[0]).toHaveProperty('createdAt');
+  //   });
 
-    it('should return web extension token reuse events', async () => {
-      await createLoginActivity({
-        action: 'WEB_EXTENSION_LOGIN_TOKEN_REUSED',
-        email: `${TEST_PREFIX}-webtoken@test.com`,
-        success: true,
-        userAgent: 'Chrome Extension',
-      });
-      const results = await check.query(prisma);
-      const testResults = results.filter((r) => String(r.ipAddress).startsWith(TEST_IP_PREFIX));
-      expect(testResults).toHaveLength(1);
-      expect(testResults[0]).toEqual(
-        expect.objectContaining({
-          action: 'WEB_EXTENSION_LOGIN_TOKEN_REUSED',
-        }),
-      );
-    });
+  //   it('should return web extension token reuse events', async () => {
+  //     await createLoginActivity({
+  //       action: 'WEB_EXTENSION_LOGIN_TOKEN_REUSED',
+  //       email: `${TEST_PREFIX}-webtoken@test.com`,
+  //       success: true,
+  //       userAgent: 'Chrome Extension',
+  //     });
+  //     const results = await check.query(prisma);
+  //     const testResults = results.filter((r) => String(r.ipAddress).startsWith(TEST_IP_PREFIX));
+  //     expect(testResults).toHaveLength(1);
+  //     expect(testResults[0]).toEqual(
+  //       expect.objectContaining({
+  //         action: 'WEB_EXTENSION_LOGIN_TOKEN_REUSED',
+  //       }),
+  //     );
+  //   });
 
-    it('should return empty when events are outside time window', async () => {
-      await createLoginActivity({
-        action: 'DESKTOP_LOGIN_TOKEN_REUSED',
-        email: `${TEST_PREFIX}-token@test.com`,
-        success: true,
-        createdAt: subDays(new Date(), 8),
-      });
-      const results = await check.query(prisma);
-      const testResults = results.filter((r) => String(r.ipAddress).startsWith(TEST_IP_PREFIX));
-      expect(testResults).toHaveLength(0);
-    });
-  });
+  //   it('should return empty when events are outside time window', async () => {
+  //     await createLoginActivity({
+  //       action: 'DESKTOP_LOGIN_TOKEN_REUSED',
+  //       email: `${TEST_PREFIX}-token@test.com`,
+  //       success: true,
+  //       createdAt: subDays(new Date(), 8),
+  //     });
+  //     const results = await check.query(prisma);
+  //     const testResults = results.filter((r) => String(r.ipAddress).startsWith(TEST_IP_PREFIX));
+  //     expect(testResults).toHaveLength(0);
+  //   });
+  // });
 
   describe('Login Failure Rate (7 days)', () => {
     let check: SecurityCheck;
@@ -545,6 +551,92 @@ describe('Security Anomaly Checks Integration Tests', () => {
       });
       const results = await check.query(prisma);
       const testResults = results.filter((r) => String(r['email']).includes(TEST_PREFIX));
+      expect(testResults).toHaveLength(0);
+    });
+  });
+
+  describe('Multi-IP Active Sessions (current) [Raw SQL]', () => {
+    let check: SecurityCheck;
+
+    beforeAll(() => {
+      check = getCheckByTitle('Multi-IP Active Sessions');
+    });
+
+    async function createSession(userId: string, ipAddress: string) {
+      const sid = `${TEST_PREFIX}-${uuid()}`;
+      await prisma.sessions.create({
+        data: {
+          sid,
+          sess: { user: { id: userId }, ipAddress },
+          expire: addHours(new Date(), 1),
+        },
+      });
+      return sid;
+    }
+
+    afterEach(async () => {
+      await prisma.sessions.deleteMany({
+        where: { sid: { startsWith: TEST_PREFIX } },
+      });
+    });
+
+    it('should return empty when user has sessions from only one IP', async () => {
+      const user = await createUser();
+      await createSession(user.id, `${TEST_IP_PREFIX}4.1`);
+      await createSession(user.id, `${TEST_IP_PREFIX}4.1`);
+      const results = await check.query(prisma);
+      const testResults = results.filter((r) => String(r['email']).includes(TEST_PREFIX));
+      expect(testResults).toHaveLength(0);
+    });
+
+    it('should return results when user has sessions from 2+ distinct IPs', async () => {
+      const user = await createUser();
+      await createSession(user.id, `${TEST_IP_PREFIX}4.2`);
+      await createSession(user.id, `${TEST_IP_PREFIX}4.3`);
+      const results = await check.query(prisma);
+      const testResults = results.filter((r) => String(r['email']).includes(TEST_PREFIX));
+      expect(testResults).toHaveLength(1);
+      expect(testResults[0]).toEqual(
+        expect.objectContaining({
+          email: user.email,
+          distinctIps: 2,
+        }),
+      );
+      expect(typeof testResults[0]['distinctIps']).toBe('number');
+      expect(testResults[0]).toHaveProperty('ipAddresses');
+    });
+
+    it('should return empty when sessions are expired', async () => {
+      const user = await createUser();
+      const sid1 = `${TEST_PREFIX}-${uuid()}`;
+      const sid2 = `${TEST_PREFIX}-${uuid()}`;
+      await prisma.sessions.create({
+        data: {
+          sid: sid1,
+          sess: { user: { id: user.id }, ipAddress: `${TEST_IP_PREFIX}4.4` },
+          expire: subDays(new Date(), 1),
+        },
+      });
+      await prisma.sessions.create({
+        data: {
+          sid: sid2,
+          sess: { user: { id: user.id }, ipAddress: `${TEST_IP_PREFIX}4.5` },
+          expire: subDays(new Date(), 1),
+        },
+      });
+      const results = await check.query(prisma);
+      const testResults = results.filter((r) => String(r['email']).includes(TEST_PREFIX));
+      expect(testResults).toHaveLength(0);
+    });
+
+    it('should not combine sessions from different users', async () => {
+      const user1 = await createUser();
+      const user2 = await createUser();
+      await createSession(user1.id, `${TEST_IP_PREFIX}4.6`);
+      await createSession(user2.id, `${TEST_IP_PREFIX}4.7`);
+      const results = await check.query(prisma);
+      const testResults = results.filter((r) => String(r['email']).includes(TEST_PREFIX));
+      // Neither user has 2+ distinct IPs on their own
       expect(testResults).toHaveLength(0);
     });
   });

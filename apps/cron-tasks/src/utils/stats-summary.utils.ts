@@ -3,7 +3,7 @@ import { PrismaClient } from '@jetstream/prisma';
 import { startOfYear, subDays } from 'date-fns';
 import { ENV } from '../config/env-config';
 import { logger } from '../config/logger.config';
-import { formatLocation, lookupIpAddresses } from './geo-ip.utils';
+import { formatLocation, lookupIpAddresses, maxPairwiseDistanceKm } from './geo-ip.utils';
 import { SECURITY_CHECKS, SecurityCheckRow } from './security-anomaly.utils';
 
 export async function gatherAndSendStatsSummary(prisma: PrismaClient): Promise<void> {
@@ -40,8 +40,8 @@ export async function gatherAndSendStatsSummary(prisma: PrismaClient): Promise<v
     prisma.salesforceOrg.count(),
     prisma.salesforceOrg.count({ where: { createdAt: { gt: sevenDaysAgo } } }),
     prisma.salesforceOrg.count({ where: { createdAt: { gt: thirtyDaysAgo } } }),
-    prisma.billingAccount.count({ where: { subscriptions: { some: { status: 'active' } } } }),
-    prisma.teamBillingAccount.count({ where: { subscriptions: { some: { status: 'active' } } } }),
+    prisma.billingAccount.count({ where: { subscriptions: { some: { status: 'ACTIVE' } } } }),
+    prisma.teamBillingAccount.count({ where: { subscriptions: { some: { status: 'ACTIVE' } } } }),
     prisma.loginActivity.count({ where: { action: 'PASSWORD_RESET_REQUEST', createdAt: { gt: sevenDaysAgo } } }),
     // Use findMany with distinct to count unique active users
     prisma.loginActivity.findMany({
@@ -89,22 +89,60 @@ export async function gatherAndSendStatsSummary(prisma: PrismaClient): Promise<v
       if (row.ipAddress && typeof row.ipAddress === 'string') {
         allIps.add(row.ipAddress);
       }
+      // Also collect IPs from comma-separated ipAddresses field (multi-IP session check)
+      if (row.ipAddresses && typeof row.ipAddresses === 'string') {
+        for (const ip of row.ipAddresses.split(',')) {
+          const trimmed = ip.trim();
+          if (trimmed) {
+            allIps.add(trimmed);
+          }
+        }
+      }
     }
   }
 
   const geoIpMap = await lookupIpAddresses(Array.from(allIps));
 
+  const MIN_DISTANCE_KM = 500;
+
   const enrichedResults = checkResults.map(({ check, rows }) => ({
     title: check.title,
     description: check.description,
     severity: check.severity,
-    rows: rows.map((row) => {
-      if (!row.ipAddress || typeof row.ipAddress !== 'string') {
-        return row;
-      }
-      const geo = geoIpMap.get(row.ipAddress);
-      return { ...row, location: formatLocation(geo) || null };
-    }),
+    rows: rows
+      .map((row) => {
+        // For rows with a comma-separated ipAddresses field, build a location string per IP
+        if (row.ipAddresses && typeof row.ipAddresses === 'string') {
+          const ips = row.ipAddresses
+            .split(',')
+            .map((ip) => ip.trim())
+            .filter(Boolean);
+          const geos = ips.map((ip) => geoIpMap.get(ip) ?? null);
+          const coordCount = geos.filter((geo) => geo?.latitude != null && geo?.longitude != null).length;
+          const maxDistKm = maxPairwiseDistanceKm(geos);
+          // Only filter out if we have enough geo data to make a distance determination
+          if (coordCount >= 2 && maxDistKm < MIN_DISTANCE_KM) {
+            return null;
+          }
+          const locations = ips
+            .map((ip) => {
+              const geo = geoIpMap.get(ip);
+              return formatLocation(geo) || ip;
+            })
+            .join(' | ');
+          return {
+            ...row,
+            locations,
+            maxDistanceKm: coordCount >= 2 ? Math.round(maxDistKm) : 'unknown',
+          };
+        }
+        if (!row.ipAddress || typeof row.ipAddress !== 'string') {
+          return row;
+        }
+        const geo = geoIpMap.get(row.ipAddress);
+        return { ...row, location: formatLocation(geo) || null };
+      })
+      .filter((row): row is NonNullable<typeof row> => row !== null),
   }));
 
   const findingCounts = enrichedResults.filter((result) => result.rows.length > 0).length;

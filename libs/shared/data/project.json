@@ -13,7 +13,7 @@
       "executor": "@nx/vitest:test",
       "outputs": ["{options.reportsDirectory}"],
       "options": {
-        "reportsDirectory": "../../../coverage/libs/shared/data"
+        "reportsDirectory": "{projectRoot}/../../../coverage/libs/shared/data"
       }
     }
   }

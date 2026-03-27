@@ -1,5 +1,15 @@
 # Changelog
 
+## [9.3.0](https://github.com/jetstreamapp/jetstream/compare/v9.2.0...v9.3.0) (2026-03-20)
+
+### Features
+
+* **auth:** implement Terms of Service acceptance flow ([b2a0888](https://github.com/jetstreamapp/jetstream/commit/b2a0888f950d7365ec3d83a0e2b4ed6eb1b963fd))
+
+### Bug Fixes
+
+* implement per-user encryption for desktop org data ([283760d](https://github.com/jetstreamapp/jetstream/commit/283760d4fd25d80bb04093b1de0d35241235ff58)), closes [#1595](https://github.com/jetstreamapp/jetstream/issues/1595)
+
 ## [9.2.0](https://github.com/jetstreamapp/jetstream/compare/v9.1.0...v9.2.0) (2026-03-13)
 
 ### Features

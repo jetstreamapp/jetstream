@@ -10,6 +10,7 @@ import { NotificationMessageV1Response } from '@jetstream/desktop/types';
 import { HTTP } from '@jetstream/shared/constants';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { UserProfileUiSchema } from '@jetstream/types';
+import { createHmac } from 'crypto';
 import { fromUnixTime } from 'date-fns';
 import { z } from 'zod';
 import * as userSyncDbService from '../db/data-sync.db';
@@ -59,7 +60,17 @@ export const routeDefinition = {
   },
   verifyToken: {
     controllerFn: () => verifyToken,
-    responseType: z.object({ success: z.boolean(), error: z.string().nullish(), userProfile: UserProfileUiSchema.optional() }),
+    responseType: z.discriminatedUnion('success', [
+      z.object({
+        success: z.literal(true),
+        userProfile: UserProfileUiSchema,
+        encryptionKey: z.string(),
+      }),
+      z.object({
+        success: z.literal(false),
+        error: z.string().nullish(),
+      }),
+    ]),
     validators: {
       /**
        * @deprecated, prefer headers for passing deviceId and accessToken
@@ -203,7 +214,11 @@ const verifyToken = createRoute(routeDefinition.verifyToken.validators, async ({
     const userProfile = await userDbService.findIdByUserIdUserFacing({ userId: user.id, omitSubscriptions: true });
     res.log.info({ userId: userProfile.id, deviceId }, 'Desktop App token verified');
 
-    sendJson(res, { success: true, userProfile });
+    // Derive a per-user portable encryption key for local org data encryption on the desktop app.
+    // The key is the same on any machine the user logs into; org data never leaves the device.
+    const encryptionKey = createHmac('sha256', ENV.DESKTOP_ORG_ENCRYPTION_SECRET).update(user.id).digest('hex');
+
+    sendJson(res, { success: true, userProfile, encryptionKey });
   } catch (ex) {
     res.log.error({ userId: user?.id, deviceId, ...getErrorMessageAndStackObj(ex) }, 'Error verifying Desktop App token');
     sendJson(res, { success: false, error: 'Invalid session' }, 401);

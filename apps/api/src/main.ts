@@ -39,6 +39,7 @@ import {
   destroySessionIfPendingVerificationIsExpired,
   notFoundMiddleware,
   redirectIfMfaEnrollmentRequiredMiddleware,
+  redirectIfPendingTosAcceptanceMiddleware,
   redirectIfPendingVerificationMiddleware,
   setApplicationCookieMiddleware,
   setCacheControlForApiRoutes,
@@ -365,6 +366,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
       '/app',
       spaRateLimit,
       redirectIfPendingVerificationMiddleware,
+      redirectIfPendingTosAcceptanceMiddleware,
       redirectIfMfaEnrollmentRequiredMiddleware,
       // Allow Google to frame /app routes for Google Picker functionality
       (_: express.Request, res: express.Response, next: express.NextFunction) => {

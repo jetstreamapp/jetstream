@@ -38,6 +38,7 @@ const EXAMPLE_USER: UserProfileSession = {
   emailVerified: true,
   userId: 'test|aaaaaaaa-0000-0000-0000-aaaaaaaaaaaa',
   authFactors: [],
+  tosAcceptedVersion: 'test-tos-version',
 };
 
 const EXAMPLE_USER_FULL_PROFILE: UserProfileUiWithIdentities = {
@@ -87,6 +88,7 @@ const envSchema = z.object({
       name: z.string(),
       email: z.string(),
       emailVerified: z.boolean(),
+      tosAcceptedVersion: z.string().nullish(),
       authFactors: z
         .object({
           type: z.string(),
@@ -226,12 +228,6 @@ const envSchema = z.object({
   GOOGLE_API_KEY: z.string().optional(),
   GOOGLE_CLIENT_ID: z.string().optional(),
   /**
-   * HONEYCOMB
-   * This is used for logging node application metrics
-   */
-  HONEYCOMB_ENABLED: booleanSchema,
-  HONEYCOMB_API_KEY: z.string().optional(),
-  /**
    * GEO-IP API (private service basic auth)
    */
   GEO_IP_API_USERNAME: z.string().optional(),
@@ -252,6 +248,15 @@ const envSchema = z.object({
   STRIPE_API_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   STRIPE_BILLING_PORTAL_LINK: z.string().optional(),
+  /**
+   * Desktop App
+   * Secret used to derive per-user encryption keys for portable org data encryption.
+   * Treat like a signing secret — rotating this invalidates all existing portable-encrypted org files.
+   */
+  DESKTOP_ORG_ENCRYPTION_SECRET: z.string().min(32, {
+    message: 'DESKTOP_ORG_ENCRYPTION_SECRET must be at least 32 characters (generate with: openssl rand -base64 32)',
+  }),
+
   /**
    * BackBlaze B2
    */

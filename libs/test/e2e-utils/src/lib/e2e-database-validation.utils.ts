@@ -52,3 +52,16 @@ export async function getUserSessionById(sessionId: string) {
   });
   return session.sess as unknown as SessionData;
 }
+
+export async function getUserByEmail(email: string) {
+  email = email.toLowerCase();
+  return await prisma.user.findFirstOrThrow({ where: { email } });
+}
+
+export async function clearUserTosAcceptance(email: string) {
+  email = email.toLowerCase();
+  await prisma.user.updateMany({
+    where: { email },
+    data: { tosAcceptedVersion: null, tosAcceptedAt: null },
+  });
+}

@@ -9,7 +9,7 @@
       "executor": "@nx/vitest:test",
       "outputs": ["{options.reportsDirectory}"],
       "options": {
-        "reportsDirectory": "../../../coverage/libs/shared/ui-db"
+        "reportsDirectory": "{projectRoot}/../../../coverage/libs/shared/ui-db"
       }
     }
   }
