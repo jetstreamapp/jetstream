@@ -2,8 +2,7 @@ import { HTTP } from '@jetstream/shared/constants';
 import { app } from 'electron';
 import { z } from 'zod';
 import { ENV } from '../config/environment';
-import { getAppData } from '../services/persistence.service';
-import { createRoute, handleErrorResponse, RouteValidator } from '../utils/route.utils';
+import { createRoute, getTokens, handleErrorResponse, RouteValidator } from '../utils/route.utils';
 
 /**
  * FIXME: this file needs to be worked on
@@ -26,16 +25,6 @@ export const routeDefinition = {
     } satisfies RouteValidator,
   },
 };
-
-function getTokens() {
-  const { accessToken, deviceId } = getAppData();
-
-  if (!accessToken || !deviceId) {
-    throw new Error('Unauthorized');
-  }
-
-  return { authTokens: { accessToken }, extIdentifier: { id: deviceId } };
-}
 
 const pull = createRoute(routeDefinition.pull.validators, async ({ query }) => {
   try {

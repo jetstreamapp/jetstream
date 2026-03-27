@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { ENV } from '../config/environment';
 import {
   decryptTokenPortable,
+  getAppData,
   getSalesforceOrgById,
   updateAccessTokens,
   updateSalesforceOrg_UNSAFE,
@@ -242,4 +243,14 @@ export function initApiConnection(
   );
 
   return { org, jetstreamConn };
+}
+
+export function getTokens() {
+  const { accessToken, deviceId } = getAppData();
+
+  if (!accessToken || !deviceId) {
+    throw new Error('Unauthorized');
+  }
+
+  return { authTokens: { accessToken }, extIdentifier: { id: deviceId } };
 }

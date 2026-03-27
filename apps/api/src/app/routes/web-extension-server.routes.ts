@@ -36,12 +36,19 @@ routes.use(
         blockAllMixedContent: [],
         fontSrc: ["'self'", 'https:'],
         frameAncestors: ["'self'"],
-        imgSrc: ["'self'", '*.cloudinary.com'],
+        frameSrc: ["'self'", 'https://accounts.google.com', 'https://docs.google.com', 'https://drive.google.com'],
+        imgSrc: ["'self'", '*.cloudinary.com', '*.googleusercontent.com'],
         objectSrc: ["'none'"],
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        scriptSrc: ["'self'", (_, res) => `'nonce-${(res as any)?.locals?.nonce}'`],
+        scriptSrc: [
+          "'self'",
+          'https://apis.google.com',
+          'https://accounts.google.com',
+          (_, res) => `'nonce-${(res as any)?.locals?.nonce}'`,
+        ],
         scriptSrcAttr: ["'none'"],
         styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
+        connectSrc: ["'self'", 'https://www.googleapis.com', 'https://oauth2.googleapis.com'],
         upgradeInsecureRequests: [],
       },
     },
@@ -99,6 +106,8 @@ routes.delete('/auth/logout', STRICT_AuthRateLimit, authMiddleware, webExtension
  */
 routes.get('/data-sync/pull', authMiddleware, webExtensionController.routeDefinition.dataSyncPull.controllerFn());
 routes.post('/data-sync/push', authMiddleware, webExtensionController.routeDefinition.dataSyncPush.controllerFn());
+
+routes.get('/google-config', LAX_AuthRateLimit, authMiddleware, webExtensionController.routeDefinition.googleConfig.controllerFn());
 
 routes.post(
   '/feedback',

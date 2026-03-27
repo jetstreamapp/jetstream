@@ -6,6 +6,7 @@ import {
   DownloadFileResult,
   DownloadZipPayload,
   ElectronApiRequestResponse,
+  GooglePickerResult,
   IcpResponse,
   IpcEventChannel,
 } from '@jetstream/desktop/types';
@@ -23,7 +24,7 @@ import { checkForUpdates, getCurrentUpdateStatus, installUpdate } from '../confi
 import { ENV } from '../config/environment';
 import { desktopRoutes } from '../controllers/desktop.routes';
 import { getOrgFromHeaderOrQuery, initApiConnection } from '../utils/route.utils';
-import { AuthResponseSuccess, logout, verifyAuthToken } from './api.service';
+import { AuthResponseSuccess, fetchGoogleConfig, logout, verifyAuthToken } from './api.service';
 import { deepLink } from './deep-link.service';
 import { downloadAndZipFilesToDisk, downloadBulkApiFileAndSaveToDisk } from './file-download.service';
 import * as dataService from './persistence.service';
@@ -83,6 +84,8 @@ export function registerIpc(): void {
   registerHandler('checkForUpdates', handleCheckForUpdatesEvent);
   registerHandler('getUpdateStatus', handleGetUpdateStatusEvent);
   registerHandler('installUpdate', handleInstallUpdateEvent);
+  // Handle Google Picker
+  registerHandler('openGooglePicker', handleOpenGooglePickerEvent);
 }
 
 const handleSelectFolderEvent: MainIpcHandler<'selectFolder'> = async () => {
@@ -252,6 +255,114 @@ const handleAddOrgEvent: MainIpcHandler<'addOrg'> = async (event, payload) => {
   // Remove the listener if it was not already removed - e.g. auth flow did not completed within 15 minutes
   const timeout = setTimeout(() => {
     deepLink.remove('addOrg', handleCallback);
+  }, 900000); // 15 minutes in milliseconds
+};
+
+const handleOpenGooglePickerEvent: MainIpcHandler<'openGooglePicker'> = async (event, payload) => {
+  const { mode } = payload;
+  const { deviceId, accessToken } = dataService.getAppData();
+
+  if (!accessToken || !deviceId) {
+    event.sender.send(IpcEventChannel.toastMessage, {
+      type: 'error',
+      message: 'You must be logged in to use Google Drive integration',
+    });
+    return;
+  }
+
+  let googleConfig: { appId: string; apiKey: string; clientId: string };
+  try {
+    googleConfig = await fetchGoogleConfig({ accessToken, deviceId });
+  } catch (ex) {
+    logger.error('Error fetching Google config', ex);
+    event.sender.send(IpcEventChannel.toastMessage, {
+      type: 'error',
+      message: 'Failed to load Google Drive configuration. Please try again.',
+    });
+    return;
+  }
+
+  const nonce = crypto.randomUUID();
+  const pickerParams = new URLSearchParams({
+    mode,
+    nonce,
+    appId: googleConfig.appId,
+    apiKey: googleConfig.apiKey,
+    clientId: googleConfig.clientId,
+  });
+  if (payload.accessToken) {
+    pickerParams.set('accessToken', payload.accessToken);
+  }
+  if (payload.accessTokenExpiresAt) {
+    pickerParams.set('accessTokenExpiresAt', `${payload.accessTokenExpiresAt}`);
+  }
+  const pickerUrl = `${ENV.SERVER_URL}/desktop-app/google-picker?${pickerParams.toString()}`;
+
+  await shell.openExternal(pickerUrl);
+
+  const handleCallback = async (queryParams: Record<string, string>) => {
+    try {
+      const parsed = z
+        .discriminatedUnion('status', [
+          z.object({
+            nonce: z.literal(nonce),
+            status: z.literal('success'),
+            mode: z.enum(['file', 'folder', 'auth']).default(mode),
+            googleAccessToken: z.string(),
+            googleAccessTokenExpiresAt: z.coerce.number().optional(),
+            fileId: z.string().optional(),
+            fileName: z.string().optional(),
+            mimeType: z.string().optional(),
+            folderId: z.string().optional(),
+            folderName: z.string().optional(),
+          }),
+          z.object({
+            nonce: z.literal(nonce),
+            status: z.literal('cancelled'),
+          }),
+          z.object({
+            nonce: z.literal(nonce),
+            status: z.literal('error'),
+            errorMessage: z.string().optional(),
+          }),
+        ])
+        .parse(queryParams);
+
+      let result: GooglePickerResult;
+
+      if (parsed.status === 'cancelled') {
+        result = { status: 'cancelled' };
+      } else if (parsed.status === 'error') {
+        result = { status: 'error', error: parsed.errorMessage || 'Unknown error' };
+      } else {
+        result = {
+          status: 'success',
+          mode: parsed.mode || mode,
+          googleAccessToken: parsed.googleAccessToken,
+          googleAccessTokenExpiresAt: parsed.googleAccessTokenExpiresAt,
+          fileId: parsed.fileId,
+          fileName: parsed.fileName,
+          mimeType: parsed.mimeType,
+          folderId: parsed.folderId,
+          folderName: parsed.folderName,
+        };
+      }
+
+      event.sender.send(IpcEventChannel.googlePickerResult, result);
+    } catch (ex) {
+      logger.error('Error handling Google Picker callback', ex);
+      const result: GooglePickerResult = { status: 'error', error: 'Invalid response from Google Picker' };
+      event.sender.send(IpcEventChannel.googlePickerResult, result);
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
+
+  deepLink.once('googlePicker', handleCallback);
+
+  // Remove the listener if it was not already removed - e.g. picker flow did not complete within 15 minutes
+  const timeout = setTimeout(() => {
+    deepLink.remove('googlePicker', handleCallback);
   }, 900000); // 15 minutes in milliseconds
 };
 

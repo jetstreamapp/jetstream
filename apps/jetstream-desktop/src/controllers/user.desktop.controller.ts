@@ -4,7 +4,7 @@ import { app } from 'electron';
 import { z } from 'zod';
 import { ENV } from '../config/environment';
 import * as dataService from '../services/persistence.service';
-import { createRoute, handleErrorResponse, handleJsonResponse, RouteValidator } from '../utils/route.utils';
+import { createRoute, getTokens, handleErrorResponse, handleJsonResponse, RouteValidator } from '../utils/route.utils';
 
 export const routeDefinition = {
   getUserProfile: {
@@ -58,16 +58,6 @@ const updateProfile = createRoute(routeDefinition.updateProfile.validators, asyn
     return handleErrorResponse(ex);
   }
 });
-
-function getTokens() {
-  const { accessToken, deviceId } = dataService.getAppData();
-
-  if (!accessToken || !deviceId) {
-    throw new Error('Unauthorized');
-  }
-
-  return { authTokens: { accessToken }, extIdentifier: { id: deviceId } };
-}
 
 const sendUserFeedbackEmail = createRoute(routeDefinition.sendUserFeedbackEmail.validators, async ({}, req) => {
   try {

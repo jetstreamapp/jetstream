@@ -14,12 +14,15 @@ import { createHmac } from 'crypto';
 import { fromUnixTime } from 'date-fns';
 import { z } from 'zod';
 import * as userSyncDbService from '../db/data-sync.db';
+import * as orgGroupsDb from '../db/organization.db';
+import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import * as userDbService from '../db/user.db';
 import { checkUserEntitlement } from '../db/user.db';
 import * as webExtDb from '../db/web-extension.db';
 import { emitRecordSyncEventsToOtherClients, SyncEvent } from '../services/data-sync-broadcast.service';
 import * as externalAuthService from '../services/external-auth.service';
 import { decryptJwtTokenOrPlaintext } from '../services/jwt-token-encryption.service';
+import { UserFacingError } from '../utils/error-handler';
 import { redirect, sendJson } from '../utils/response.handlers';
 import { createRoute, RouteValidator } from '../utils/route.utils';
 import { routeDefinition as dataSyncController } from './data-sync.controller';
@@ -82,6 +85,13 @@ export const routeDefinition = {
       hasSourceOrg: false,
     } satisfies RouteValidator,
   },
+  getOrgs: {
+    controllerFn: () => getOrgs,
+    responseType: z.any(),
+    validators: {
+      hasSourceOrg: false,
+    } satisfies RouteValidator,
+  },
   dataSyncPull: {
     controllerFn: () => dataSyncPull,
     responseType: z.any(),
@@ -101,6 +111,13 @@ export const routeDefinition = {
     responseType: z.any(),
     validators: {
       query: z.object({ os: z.string(), version: z.string(), isPackaged: z.union([z.string(), z.boolean()]).optional().default(true) }),
+      hasSourceOrg: false,
+    } satisfies RouteValidator,
+  },
+  googleConfig: {
+    controllerFn: () => googleConfig,
+    responseType: z.object({ appId: z.string(), apiKey: z.string(), clientId: z.string() }),
+    validators: {
       hasSourceOrg: false,
     } satisfies RouteValidator,
   },
@@ -224,6 +241,17 @@ const logout = createRoute(routeDefinition.logout.validators, async ({ user }, _
   }
 });
 
+const getOrgs = createRoute(routeDefinition.getOrgs.validators, async ({ user }, _, res, next) => {
+  try {
+    const orgs = await salesforceOrgsDb.findByUserId(user.id);
+    const organizations = await orgGroupsDb.findByUserId({ userId: user.id });
+
+    sendJson(res, { orgs, organizations });
+  } catch (ex) {
+    next(new UserFacingError(ex));
+  }
+});
+
 const dataSyncPull = createRoute(routeDefinition.dataSyncPull.validators, async ({ user, query }, _, res) => {
   const { lastKey, updatedAt, limit } = query;
   const response = await userSyncDbService.findByUpdatedAt({
@@ -257,6 +285,14 @@ const dataSyncPush = createRoute(routeDefinition.dataSyncPush.validators, async 
   emitRecordSyncEventsToOtherClients(deviceId, syncEvent);
 
   sendJson(res, response);
+});
+
+const googleConfig = createRoute(routeDefinition.googleConfig.validators, async (_params, _req, res) => {
+  sendJson(res, {
+    appId: ENV.GOOGLE_APP_ID,
+    apiKey: ENV.GOOGLE_API_KEY,
+    clientId: ENV.GOOGLE_CLIENT_ID,
+  });
 });
 
 const notifications = createRoute(routeDefinition.notifications.validators, async ({ query, user }, req, res) => {

@@ -38,6 +38,11 @@ const API: ElectronAPI = {
     ipcRenderer.on(IpcEventChannel.openSettings, handler);
     return () => ipcRenderer.removeListener(IpcEventChannel.openSettings, handler);
   },
+  onGooglePickerResult: (callback) => {
+    const handler = (_event, payload) => callback(payload);
+    ipcRenderer.on(IpcEventChannel.googlePickerResult, handler);
+    return () => ipcRenderer.removeListener(IpcEventChannel.googlePickerResult, handler);
+  },
   // One-Way from Client
   login: () => ipcRenderer.invoke('login'),
   logout: () => ipcRenderer.invoke('logout'),
@@ -55,6 +60,7 @@ const API: ElectronAPI = {
   checkForUpdates: (userInitiated) => ipcRenderer.invoke('checkForUpdates', userInitiated),
   getUpdateStatus: () => ipcRenderer.invoke('getUpdateStatus'),
   installUpdate: () => ipcRenderer.invoke('installUpdate'),
+  openGooglePicker: (payload) => ipcRenderer.invoke('openGooglePicker', payload),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', API);

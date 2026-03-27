@@ -54,7 +54,8 @@ export type Message =
   | GetSession
   | GetPageUrl
   | InitOrg
-  | GetOrgConnection;
+  | GetOrgConnection
+  | GetGoogleConfig;
 
 export type MessageRequest = Message['request'];
 
@@ -162,6 +163,17 @@ export interface GetOrgConnection {
     data: { sfHost: string } | { uniqueId: string };
   };
   response: OrgAndSessionInfo;
+}
+
+export interface GetGoogleConfig {
+  request: {
+    message: 'GET_GOOGLE_CONFIG';
+  };
+  response: {
+    appId: string;
+    apiKey: string;
+    clientId: string;
+  };
 }
 
 export interface OrgAndSessionInfo {

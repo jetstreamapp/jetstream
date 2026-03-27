@@ -4,7 +4,16 @@ import { DownloadFileResult } from '@jetstream/desktop/types';
 import { logger } from '@jetstream/shared/client-logger';
 import { fileExtToGoogleDriveMimeType, fileExtToMimeType, MIME_TYPES } from '@jetstream/shared/constants';
 import { googleUploadFile } from '@jetstream/shared/data';
-import { formatNumber, isDesktop, saveFile, useBrowserNotifications, useObservable, useRollbar } from '@jetstream/shared/ui-utils';
+import {
+  formatNumber,
+  getExternalGoogleAccessToken,
+  isBrowserExtension,
+  isDesktop,
+  saveFile,
+  useBrowserNotifications,
+  useObservable,
+  useRollbar,
+} from '@jetstream/shared/ui-utils';
 import { getErrorMessage, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import {
   AsyncJob,
@@ -40,6 +49,14 @@ export interface WorkerCompatibleShim {
 }
 
 const jobsWorker = new WorkerAdapter();
+
+/** Get Google access token from either external store (desktop/extension) or gapi client */
+function getGoogleAccessToken(): string | undefined {
+  if (isDesktop() || isBrowserExtension()) {
+    return getExternalGoogleAccessToken()?.accessToken ?? undefined;
+  }
+  return gapi?.client?.getToken()?.access_token;
+}
 
 export const Jobs: FunctionComponent = () => {
   const popoverRef = useRef<PopoverRef>(null);
@@ -138,8 +155,21 @@ export const Jobs: FunctionComponent = () => {
       fileData: any;
       fileType: FileExtCsvXLSX | 'zip';
     }) => {
+      const accessToken = getGoogleAccessToken();
+      if (!accessToken) {
+        handleGoogleUploadFailure({ fileData, fileName, fileType }, newJob);
+        setJobs((prevJobs) => ({
+          ...prevJobs,
+          [newJob.id]: {
+            ...newJob,
+            finished: new Date(),
+            lastActivity: new Date(),
+          },
+        }));
+        return Promise.resolve();
+      }
       return googleUploadFile(
-        gapi.client.getToken().access_token,
+        accessToken,
         {
           fileMimeType: fileType === 'xlsx' ? MIME_TYPES.XLSX_OPEN_OFFICE : fileExtToMimeType[fileType].replace(';charset=utf-8', ''),
           filename: fileName,
@@ -299,7 +329,7 @@ export const Jobs: FunctionComponent = () => {
               };
               if (useBulkApi) {
                 if (results) {
-                  if (fileFormat === 'gdrive' && gapi?.client?.getToken()?.access_token) {
+                  if (fileFormat === 'gdrive' && getGoogleAccessToken()) {
                     fetch(results)
                       .then(async (response) => {
                         if (!response.ok || !response.body) {
@@ -357,7 +387,7 @@ export const Jobs: FunctionComponent = () => {
                 } else {
                   // TODO: handle error
                 }
-              } else if (fileFormat === 'gdrive' && gapi?.client?.getToken()?.access_token) {
+              } else if (fileFormat === 'gdrive' && getGoogleAccessToken()) {
                 // show status of uploading to Google
                 setJobs((prevJobs) => ({
                   ...prevJobs,
@@ -372,7 +402,7 @@ export const Jobs: FunctionComponent = () => {
                 newJob = {
                   ...newJob,
                   status: 'success',
-                  statusMessage: 'Records downloaded and saved to Google successfully',
+                  statusMessage: 'Saved to Google successfully',
                 };
 
                 uploadToGoogleDrive({ fileData, fileName, googleFolder, newJob, fileType: 'xlsx' });
@@ -381,7 +411,7 @@ export const Jobs: FunctionComponent = () => {
                   // Failed to upload to google, save locally
                   mimeType = MIME_TYPES.XLSX;
                   fileName = `${fileName}.xlsx`;
-                  newJob.statusMessage = 'Records downloaded and saved to computer, saving to Google failed.';
+                  newJob.statusMessage = 'Saved to computer, saving to Google failed.';
                   newJob.status = 'finished-warning';
                 }
                 saveFile(fileData, fileName, mimeType);
@@ -422,7 +452,7 @@ export const Jobs: FunctionComponent = () => {
             statusMessage: 'Records downloaded and saved to Google successfully',
           };
 
-          if (gapi?.client?.getToken()?.access_token) {
+          if (getGoogleAccessToken()) {
             uploadToGoogleDrive({ fileData, fileName, googleFolder, fileType, newJob });
           } else {
             handleGoogleUploadFailure({ fileData, fileName, fileType }, newJob);
@@ -497,7 +527,7 @@ export const Jobs: FunctionComponent = () => {
                 statusMessage: 'Package saved to Google successfully',
               };
 
-              if (gapi?.client?.getToken()?.access_token) {
+              if (getGoogleAccessToken()) {
                 const targetMimeType = (fileExtToGoogleDriveMimeType as any)[fileFormat];
                 uploadToGoogleDrive({
                   fileData,
