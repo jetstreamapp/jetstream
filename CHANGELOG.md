@@ -1,5 +1,17 @@
 # Changelog
 
+## [9.4.0](https://github.com/jetstreamapp/jetstream/compare/v9.3.0...v9.4.0) (2026-03-27)
+
+### Features
+
+* add keyboard navigation to FeedbackWidget context menu ([#1532](https://github.com/jetstreamapp/jetstream/issues/1532)) ([07eb45e](https://github.com/jetstreamapp/jetstream/commit/07eb45e2520a7ab298b8ff525e3480d4c49d063f))
+* enhance geo-IP utilities and email summary with distance calculations and multi-IP session checks ([71e1fd7](https://github.com/jetstreamapp/jetstream/commit/71e1fd793c95a5110ca98042973e8a94be894327))
+* implement external google drive picker integration ([ac92aa3](https://github.com/jetstreamapp/jetstream/commit/ac92aa35845e4107ec67a1247fe1072b8b5bf976))
+
+### Bug Fixes
+
+* sfdx change tracking after creating new fields with permissions ([c9ddc03](https://github.com/jetstreamapp/jetstream/commit/c9ddc031f0258383f8b679667d030a4162dcfa6a)), closes [#1587](https://github.com/jetstreamapp/jetstream/issues/1587)
+
 ## [9.3.0](https://github.com/jetstreamapp/jetstream/compare/v9.2.0...v9.3.0) (2026-03-20)
 
 ### Features
