@@ -7,15 +7,18 @@ import { getErrorMessage } from '@jetstream/shared/utils';
 import { JetstreamEventSaveSoqlQueryFormatOptionsPayload, UserProfileUi } from '@jetstream/types';
 import { ScopedNotification } from '@jetstream/ui';
 import { AppLoading, fromJetstreamEvents } from '@jetstream/ui-core';
+import { getDefaultAppState } from '@jetstream/shared/utils';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { initDexieDb } from '@jetstream/ui/db';
 import { useObservable } from 'dexie-react-hooks';
+import { getBrowserExtensionVersion } from '@jetstream/shared/ui-utils';
 import { useAtomValue, useSetAtom } from 'jotai';
 import localforage from 'localforage';
 import React, { FunctionComponent, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Observable } from 'rxjs';
 import browser from 'webextension-polyfill';
+import { environment } from '../environments/environment';
 import { chromeLocalStorage, chromeSyncStorage, UserProfileState } from '../utils/extension.store';
 import { sendMessage } from '../utils/web-extension.utils';
 import { GlobalExtensionError } from './GlobalExtensionError';
@@ -41,6 +44,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
   const { options } = useAtomValue(chromeLocalStorage);
   const chromeUserProfile = useAtomValue(UserProfileState);
   const { serverUrl } = useAtomValue(fromAppState.applicationCookieState);
+  const setAppInfo = useSetAtom(fromAppState.appInfoState);
   const setUserProfile = useSetAtom(fromAppState.userProfileState);
 
   const setSelectedOrgId = useSetAtom(fromAppState.selectedOrgIdState);
@@ -52,6 +56,19 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
   );
 
   const [fatalError, setFatalError] = useState<string>();
+
+  // Ensure the appInfoState has the correct serverUrl from the extension environment
+  // The default is 'https://getjetstream.app' which is incorrect in dev
+  useEffect(() => {
+    setAppInfo({
+      appInfo: getDefaultAppState({
+        serverUrl: environment.serverUrl,
+        environment: environment.production ? 'production' : 'development',
+      }),
+      version: getBrowserExtensionVersion(),
+      announcements: [],
+    });
+  }, [setAppInfo]);
 
   useEffect(() => {
     // wait until this data has initialized before proceeding

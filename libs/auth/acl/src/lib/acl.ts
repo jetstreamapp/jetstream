@@ -123,10 +123,12 @@ function getAbilityRules({ isBrowserExtension, isDesktop, user }: GetAbilityOpti
   if (user.entitlements.desktop) {
     can('access', 'Desktop');
   }
-  if (user.entitlements.googleDrive) {
+  // Desktop and extension require paid tier, so they always get access to Google Drive
+  if (user.entitlements.googleDrive || isBrowserExtension || isDesktop) {
     can('access', 'GoogleDrive');
   }
-  if (user.entitlements.recordSync) {
+  // Desktop and extension require paid tier, so they always get access to record sync
+  if (user.entitlements.recordSync || isBrowserExtension || isDesktop) {
     can('access', 'RecordSync');
   }
 

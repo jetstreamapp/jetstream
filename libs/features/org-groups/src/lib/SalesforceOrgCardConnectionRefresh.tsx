@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { checkOrgHealth, getOrgs } from '@jetstream/shared/data';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
-import { AddOrgHandlerFn, BadgeType, SalesforceOrgUi } from '@jetstream/types';
+import { AddOrgHandlerFn, BadgeType, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Badge, ConfirmationModalPromise, Grid, Icon, Spinner, Tooltip, fireToast } from '@jetstream/ui';
 import { AddOrg, OrgExpirationStatus, useOrgExpiration, useUpdateOrgs } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
@@ -19,7 +19,8 @@ interface SalesforceOrgCardConnectionRefreshProps {
   onRemoveOrg: ReturnType<typeof useUpdateOrgs>['handleRemoveOrg'];
 }
 
-function getConnectionState(orgExpiration: OrgExpirationStatus, hasConnectionError: boolean) {
+function getConnectionState(orgExpiration: OrgExpirationStatus, connectionError: Maybe<string>) {
+  const hasConnectionError = !!connectionError;
   const connectionState = {
     badge: {
       isVisible: !!orgExpiration.isExpiring,
@@ -33,7 +34,7 @@ function getConnectionState(orgExpiration: OrgExpirationStatus, hasConnectionErr
       isVisible: (hasConnectionError && !orgExpiration.isExpired) || orgExpiration.isExpiring,
       tooltip: orgExpiration.isExpiring
         ? 'Refresh the connection to remove the pending expiration'
-        : 'There was an error connecting to this org. You can try refreshing the connection otherwise you will need to reconnect the org.',
+        : `There was an error connecting to this org. You can try refreshing the connection otherwise you will need to reconnect the org. Error: ${connectionError}`,
     },
     reconnectOrg: {
       isVisible: hasConnectionError || orgExpiration.isExpired,
@@ -43,8 +44,7 @@ function getConnectionState(orgExpiration: OrgExpirationStatus, hasConnectionErr
   if (!connectionState.badge.isVisible && hasConnectionError) {
     connectionState.badge.isVisible = true;
     connectionState.badge.label = 'Connection Error';
-    connectionState.badge.tooltip =
-      'There was an error connecting to this org. You can try refreshing the connection otherwise you will need to reconnect the org.';
+    connectionState.badge.tooltip = `There was an error connecting to this org. You can try refreshing the connection otherwise you will need to reconnect the org. Error: ${connectionError}`;
     connectionState.badge.badgeType = 'error';
   }
 
@@ -93,7 +93,7 @@ export function SalesforceOrgCardConnectionRefresh({
     return null;
   }
 
-  const { badge, refreshIcon, reconnectOrg } = getConnectionState(orgExpiration, !!org.connectionError);
+  const { badge, refreshIcon, reconnectOrg } = getConnectionState(orgExpiration, org.connectionError);
 
   return (
     <Grid verticalAlign="center" className="slds-m-top_xx-small">
