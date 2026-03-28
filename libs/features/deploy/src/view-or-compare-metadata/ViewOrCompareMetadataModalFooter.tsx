@@ -10,7 +10,7 @@ export interface ViewOrCompareMetadataModalFooterProps {
   sourceLastChecked: Date | null;
   targetLoading: boolean;
   targetLastChecked: Date | null;
-  isChromeExtension: boolean;
+  isSingleOrgMode: boolean;
   reloadMetadata?: () => void;
   onDownloadPackage: (which: OrgType) => void;
   onExportSummary: () => void;
@@ -26,7 +26,7 @@ export const ViewOrCompareMetadataModalFooter: FunctionComponent<ViewOrCompareMe
   sourceLastChecked,
   targetLoading,
   targetLastChecked,
-  isChromeExtension,
+  isSingleOrgMode,
   reloadMetadata,
   onDownloadPackage,
   onExportSummary,
@@ -79,7 +79,7 @@ export const ViewOrCompareMetadataModalFooter: FunctionComponent<ViewOrCompareMe
           Source Package
         </button>
 
-        {!isChromeExtension && (
+        {!isSingleOrgMode && (
           <>
             <button
               className="slds-button slds-button_neutral"

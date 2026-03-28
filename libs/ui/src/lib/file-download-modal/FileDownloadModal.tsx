@@ -4,6 +4,7 @@ import { ANALYTICS_KEYS, MIME_TYPES } from '@jetstream/shared/constants';
 import {
   getFilename,
   isBrowserExtension,
+  isCanvasApp,
   isDesktop,
   isEnterKey,
   prepareCsvFile,
@@ -126,7 +127,10 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
   transformData,
 }) => {
   const hasGoogleInputConfigured =
-    (isDesktop() || isBrowserExtension() || (googleIntegrationEnabled && !!google_apiKey && !!google_appId && !!google_clientId)) &&
+    (isDesktop() ||
+      isBrowserExtension() ||
+      isCanvasApp() ||
+      (googleIntegrationEnabled && !!google_apiKey && !!google_appId && !!google_clientId)) &&
     !!emitUploadToGoogleEvent;
   const [allowedTypesSet, setAllowedTypesSet] = useState<Set<string>>(() => new Set(allowedTypes));
   const [fileFormat, setFileFormat] = useState(() => getInitialDownloadFileFormat(allowedTypes, LS_KEY));

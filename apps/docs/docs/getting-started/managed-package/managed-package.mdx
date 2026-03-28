@@ -1,0 +1,80 @@
+---
+id: managed-package
+title: Using via Managed Package
+description: Instructions for installing and using the Salesforce Managed Package, which allows you to access Jetstream features directly within Salesforce.
+keywords: [
+    salesforce,
+    salesforce admin,
+    salesforce developer,
+    salesforce automation,
+    salesforce workbench
+    create field,
+    update field,
+    field level security,
+    page layout,
+    fls,
+  ]
+sidebar_label: Salesforce Managed Package
+slug: /managed-package
+---
+
+import { JetstreamProLogo } from '@site/src/shared-components/JetstreamProLogo';
+
+:::tip
+
+The Canvas App is currently in early access. If you're interested in using the Canvas App or want to learn more,
+reach out to our support team or your account manager for more information and to request access.
+
+:::
+
+<JetstreamProLogo width="200px" />
+
+**The Salesforce Managed Package requires a subscription and is available on a per-user basis or on an org-wide basis.**
+
+## What is the Salesforce Managed Package?
+
+The Salesforce Managed Package is a Salesforce Canvas application that allows you to access Jetstream features directly within the Salesforce interface.
+With the Managed Package, you can run queries, view results, and manage your Jetstream data without leaving Salesforce.
+
+When using the connected app, none of your Salesforce record data is processed via Jetstream's servers.
+Instead, the app uses Salesforce's Canvas SDK to make API calls directly from your browser to Salesforce, ensuring that your data remains secure and private.
+
+Jetstream never stores any Salesforce access tokens or data from the connected app, and all interactions with Salesforce are handled securely through the Canvas SDK.
+
+## Known Limitations
+
+While the Managed Package provides convenient access to Jetstream features within Salesforce, there are some limitations to be aware of:
+
+- Working with multiple orgs at the same time is not currently supported within the Canvas app.
+  - For deployment features that work with multiple orgs, you will need to download the metadata and then re-upload in the target org.
+- Ability to sync query history between different orgs and platforms (we plan on delivering this as an opt-in feature in the future)
+
+## Getting Started
+
+Reach out to our [support team](mailto:sales@getjetstream.app) for installation instructions.
+
+After installing the package, an administrator will need to configure access by pre-authorizing users or allowing users to self-authorize.
+
+We recommend pre-authorizing users to provide a smoother experience, but the self-authorization flow is also available if needed.
+
+The Self-authorization flow allows users to authorize themselves to access the Jetstream Canvas App without requiring administrator intervention.
+
+### Configuring Access
+
+1. Navigate to **Setup > External Client App Manager** in Salesforce
+2. Find **Jetstream Canvas App** in the list and click on the name
+3. Click **Edit** on the **Policies** tab
+4. Add the **Jetstream** Permission Set to the list of **Selected Permission Sets**
+5. Expand the **Oauth Policies** accordion and change the **Permission Users** to **Admin approved users are pre-authorized**
+
+<img src={require('./managed-package-eca-permission.png').default} alt="External Client Application Configuration" />
+
+## Accessing the App
+
+Jetstream is available as a tab within Salesforce, but can also be accessed in full-screen mode by navigating directly to the application URL.
+
+`https://{your-domain}.my.salesforce.com/apex/jetstream__JetstreamPage`
+
+Bookmark this page or create a link or button to easily navigate here from within Salesforce.
+
+You can access Jetstream from the App Launcher in Salesforce. Simply search for "Jetstream".

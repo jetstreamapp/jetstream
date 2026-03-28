@@ -6,6 +6,7 @@ import {
   formatNumber,
   getFilename,
   isBrowserExtension,
+  isCanvasApp,
   isDesktop,
   isEnterKey,
   prepareCsvFile,
@@ -127,7 +128,10 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
 }) => {
   const rollbar = useRollbar();
   const hasGoogleInputConfigured =
-    (isDesktop() || isBrowserExtension() || (googleIntegrationEnabled && !!google_apiKey && !!google_appId && !!google_clientId)) &&
+    (isDesktop() ||
+      isBrowserExtension() ||
+      isCanvasApp() ||
+      (googleIntegrationEnabled && !!google_apiKey && !!google_appId && !!google_clientId)) &&
     !!onDownloadFromServer;
   const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(false);
   const [downloadRecordsValue, setDownloadRecordsValue] = useState<string>(hasMoreRecords ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);

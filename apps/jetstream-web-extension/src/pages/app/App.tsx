@@ -64,7 +64,7 @@ export function App() {
       <ErrorBoundary FallbackComponent={ErrorBoundaryEmptyFallback}>
         <UserFeedbackWidget />
       </ErrorBoundary>
-      <HeaderNavbar isBillingEnabled={false} isChromeExtension />
+      <HeaderNavbar isBillingEnabled={false} isEmbeddedApp />
       <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
         <Suspense fallback={<AppLoading />}>
           <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>

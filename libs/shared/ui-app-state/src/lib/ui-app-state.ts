@@ -6,6 +6,7 @@ import {
   getBrowserExtensionVersion,
   getOrgType,
   isBrowserExtension,
+  isCanvasApp,
   isDesktop,
   parseJsonCookie,
   setItemInLocalStorage,
@@ -72,7 +73,13 @@ type RecentlySelectedOrgsMap = Record<string, string>;
  */
 function getAppInfo(): ApplicationState {
   const appState = parseJsonCookie<ApplicationState>(HTTP.COOKIE.JETSTREAM);
-  return getDefaultAppState(appState);
+  const defaultState = getDefaultAppState(appState);
+  // Canvas app: use the current origin as serverUrl since the canvas app
+  // and landing page are served from the same host
+  if (isCanvasApp()) {
+    defaultState.serverUrl = window.location.origin;
+  }
+  return defaultState;
 }
 
 function ensureUserProfileInit(pref?: Maybe<UserProfilePreferences>): UserProfilePreferences {
@@ -93,7 +100,8 @@ async function getUserPreferences(): Promise<UserProfilePreferences> {
 
 async function getOrgsFromStorage(): Promise<SalesforceOrgUi[]> {
   try {
-    const orgs = isBrowserExtension() ? [] : await getOrgs();
+    const isSingleOrgMode = isBrowserExtension() || isCanvasApp();
+    const orgs = isSingleOrgMode ? [] : await getOrgs();
     return orgs || [];
   } catch {
     return [];
@@ -102,7 +110,8 @@ async function getOrgsFromStorage(): Promise<SalesforceOrgUi[]> {
 
 async function fetchOrgGroups(): Promise<OrgGroup[]> {
   try {
-    const orgs = isBrowserExtension() ? [] : await getOrgGroups();
+    const isSingleOrgMode = isBrowserExtension() || isCanvasApp();
+    const orgs = isSingleOrgMode ? [] : await getOrgGroups();
     return orgs || [];
   } catch {
     return [];
@@ -178,7 +187,7 @@ const DEFAULT_APP_INFO: AppInfo = { appInfo: getAppInfo(), version: 'unknown', a
 
 async function fetchAppInfo(): Promise<AppInfo> {
   try {
-    return isBrowserExtension()
+    return isBrowserExtension() || isCanvasApp()
       ? { appInfo: getAppInfo(), version: getBrowserExtensionVersion(), announcements: [] }
       : await checkHeartbeat();
   } catch {
@@ -187,7 +196,7 @@ async function fetchAppInfo(): Promise<AppInfo> {
 }
 
 async function fetchUserProfile(): Promise<UserProfileUi> {
-  if (isBrowserExtension()) {
+  if (isBrowserExtension() || isCanvasApp()) {
     return DEFAULT_PROFILE;
   }
   return await getUserProfile().catch(() => DEFAULT_PROFILE);
@@ -226,6 +235,7 @@ export const abilityState = atom((get) => {
   return getUserAbility({
     isBrowserExtension: isBrowserExtension(),
     isDesktop: isDesktop(),
+    isCanvasApp: isCanvasApp(),
     user: userProfile,
   });
 });
@@ -244,7 +254,7 @@ export const googleDriveAccessState = atom((get) => {
   return {
     hasGoogleDriveAccess: ability.can('access', 'GoogleDrive'),
     // Only show upgrade prompt on web (desktop/extension users already have access)
-    googleShowUpgradeToPro: !isChromeExtension && !isDesktop() && ability.cannot('access', 'GoogleDrive'),
+    googleShowUpgradeToPro: !isChromeExtension && !isDesktop() && !isCanvasApp() && ability.cannot('access', 'GoogleDrive'),
   };
 });
 

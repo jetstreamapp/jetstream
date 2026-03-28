@@ -21,6 +21,7 @@ import {
   apiRoutes,
   authRoutes,
   billingRoutes,
+  canvasRoutes,
   desktopAppRoutes,
   desktopAssetsRoutes,
   oauthRoutes,
@@ -332,6 +333,14 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   app.use('/web-extension', setCacheControlForApiRoutes, webExtensionRoutes);
   app.use('/desktop-app', setCacheControlForApiRoutes, desktopAppRoutes);
   app.use('/openapi', setCacheControlForApiRoutes, openApiRoutes);
+  app.use(
+    '/canvas',
+    (_: express.Request, res: express.Response, next: express.NextFunction) => {
+      res.setHeader('Content-Security-Policy', "frame-ancestors 'self' *.force.com *.salesforce.com *.salesforce-setup.com;");
+      next();
+    },
+    canvasRoutes,
+  );
 
   if (ENV.ENVIRONMENT !== 'production' || ENV.CI) {
     app.use('/test', testRoutes);

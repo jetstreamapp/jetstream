@@ -15,7 +15,7 @@ export interface ViewOrCompareMetadataSidebarProps {
   hasTargetResults: boolean;
   sourceError?: Maybe<string>;
   targetError?: Maybe<string>;
-  isChromeExtension: boolean;
+  isSingleOrgMode: boolean;
   treeSettingsContent?: React.ReactNode;
   onEditorTypeChange: (value: 'SOURCE' | 'TARGET' | 'DIFF') => void;
   onSelectedFile: (item: TreeItems<FileItemMetadata>) => void;
@@ -31,7 +31,7 @@ export const ViewOrCompareMetadataSidebar: FunctionComponent<ViewOrCompareMetada
   hasTargetResults,
   sourceError,
   targetError,
-  isChromeExtension,
+  isSingleOrgMode,
   treeSettingsContent,
   onEditorTypeChange,
   onSelectedFile,
@@ -47,7 +47,7 @@ export const ViewOrCompareMetadataSidebar: FunctionComponent<ViewOrCompareMetada
 
   return (
     <>
-      {!isChromeExtension && (
+      {!isSingleOrgMode && (
         <>
           <div className="slds-is-relative slds-m-bottom_x-small slds-m-right_x-small">
             {targetLoading && <Spinner />}

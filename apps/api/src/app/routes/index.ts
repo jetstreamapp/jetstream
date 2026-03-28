@@ -1,6 +1,7 @@
 import apiRoutes from './api.routes';
 import authRoutes from './auth.routes';
 import billingRoutes from './billing.routes';
+import canvasRoutes from './canvas.routes';
 import desktopAppRoutes from './desktop-app.routes';
 import desktopAssetsRoutes from './desktop-assets.routes';
 import oauthRoutes from './oauth.routes';
@@ -17,6 +18,7 @@ export {
   apiRoutes,
   authRoutes,
   billingRoutes,
+  canvasRoutes,
   desktopAppRoutes,
   desktopAssetsRoutes,
   oauthRoutes,

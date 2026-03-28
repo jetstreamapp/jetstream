@@ -293,6 +293,24 @@ export async function updateUserProfile<T = UserProfileUiWithIdentities>(userPro
   return handleRequest({ method: 'POST', url: '/api/me/profile', data: userProfile }).then(unwrapResponseIgnoreCache);
 }
 
+/**
+ * Canvas app preference functions.
+ * These pass the org so the canvas-axios-adapter receives the X_SFDC_ID header
+ * and provides jetstreamConn to the route handler.
+ */
+export async function getCanvasPreferences(
+  org: SalesforceOrgUi,
+): Promise<{ skipFrontdoorLogin?: boolean; recordSyncEnabled?: boolean; soqlQueryFormatOptions?: SoqlQueryFormatOptions }> {
+  return handleRequest({ method: 'GET', url: '/api/me/preferences' }, { org }).then(unwrapResponseIgnoreCache);
+}
+
+export async function updateCanvasPreferences(
+  org: SalesforceOrgUi,
+  preferences: { skipFrontdoorLogin?: boolean; recordSyncEnabled?: boolean; soqlQueryFormatOptions?: SoqlQueryFormatOptions },
+): Promise<void> {
+  return handleRequest({ method: 'PATCH', url: '/api/me/preferences', data: { preferences } }, { org }).then(unwrapResponseIgnoreCache);
+}
+
 export async function getUserSessions(): Promise<UserSessionAndExtTokensAndActivityWithLocation> {
   return handleRequest({ method: 'GET', url: '/api/me/profile/sessions' }).then(unwrapResponseIgnoreCache);
 }

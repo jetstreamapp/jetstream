@@ -1,5 +1,7 @@
 import { Maybe, SalesforceUserInfo } from '@jetstream/types';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import * as oauth from 'oauth4webapi';
+import z from 'zod';
 
 type OauthParams = {
   loginUrl: string;
@@ -115,6 +117,7 @@ export async function salesforceOauthInit({
   authorizationUrl.searchParams.set('response_type', 'code');
   authorizationUrl.searchParams.set('state', state);
   authorizationUrl.searchParams.set('scope', 'api web refresh_token');
+  authorizationUrl.searchParams.set('display', 'popup');
   authorizationUrl.searchParams.set('prompt', 'login');
   authorizationUrl.searchParams.set('nonce', nonce);
   authorizationUrl.searchParams.set('code_challenge', code_challenge);
@@ -198,6 +201,104 @@ export async function salesforceOauthRefresh(
   const { access_token } = tokenSet;
   return {
     access_token,
+  };
+}
+
+const CanvasAuthStateSchema = z.object({
+  originalState: z.string(),
+  code_verifier: z.string(),
+  nonce: z.string(),
+  loginUrl: z.string(),
+});
+
+const SignedCanvasAuthStateSchema = z.object({
+  payload: z.string(),
+  signature: z.string(),
+});
+
+function signState(stateJson: string, secret: string): string {
+  const signature = createHmac('sha256', secret).update(stateJson).digest('base64');
+  const signed = JSON.stringify({ payload: stateJson, signature });
+  return Buffer.from(signed).toString('base64');
+}
+
+function verifyAndParseState(encodedState: string, secret: string) {
+  const { payload, signature } = SignedCanvasAuthStateSchema.parse(JSON.parse(Buffer.from(encodedState, 'base64').toString('utf-8')));
+  const expectedSignature = createHmac('sha256', secret).update(payload).digest('base64');
+
+  const sigBuffer = Buffer.from(signature);
+  const expectedBuffer = Buffer.from(expectedSignature);
+  if (sigBuffer.length !== expectedBuffer.length || !timingSafeEqual(sigBuffer, expectedBuffer)) {
+    throw new Error('State parameter signature verification failed — possible tampering.');
+  }
+
+  return CanvasAuthStateSchema.parse(JSON.parse(payload));
+}
+
+export async function SalesforceCanvasOauthInit({ clientId, clientSecret, loginUrl, redirectUri }: OauthInitParams) {
+  const { authServer } = getSalesforceAuthClientAndServer({ clientId, clientSecret, loginUrl });
+
+  const nonce = oauth.generateRandomNonce();
+  const code_verifier = oauth.generateRandomCodeVerifier();
+  const originalState = oauth.generateRandomState();
+  const code_challenge = await oauth.calculatePKCECodeChallenge(code_verifier);
+
+  const authorizationUrl = new URL(authServer.authorization_endpoint!);
+  authorizationUrl.searchParams.set('client_id', clientId);
+  authorizationUrl.searchParams.set('redirect_uri', redirectUri);
+  authorizationUrl.searchParams.set('response_type', 'code');
+  authorizationUrl.searchParams.set('scope', 'api web refresh_token');
+  authorizationUrl.searchParams.set('display', 'popup');
+  authorizationUrl.searchParams.set('prompt', 'login');
+  authorizationUrl.searchParams.set('nonce', nonce);
+  authorizationUrl.searchParams.set('code_challenge', code_challenge);
+  authorizationUrl.searchParams.set('code_challenge_method', 'S256');
+
+  // Encode PKCE values in the state parameter, signed with HMAC to prevent tampering
+  const stateData = CanvasAuthStateSchema.parse({
+    originalState,
+    code_verifier,
+    nonce,
+    loginUrl,
+  });
+
+  const state = JSON.stringify(stateData);
+  authorizationUrl.searchParams.set('state', signState(state, clientSecret!));
+
+  return { code_verifier, nonce, state, authorizationUrl };
+}
+
+export async function salesforceCanvasOauthCallback(
+  { clientId, clientSecret, redirectUri }: Omit<OauthCallbackParams, 'loginUrl'>,
+  callbackQueryParams: URLSearchParams,
+  state: string,
+) {
+  const { code_verifier, loginUrl } = verifyAndParseState(state, clientSecret!);
+
+  const { authClient, authServer, clientAuth } = getSalesforceAuthClientAndServer({ clientId, clientSecret, loginUrl });
+
+  const params = oauth.validateAuthResponse(authServer, authClient, callbackQueryParams, state);
+
+  const response = await oauth.authorizationCodeGrantRequest(authServer, authClient, clientAuth, params, redirectUri, code_verifier);
+
+  const tokenSet = await oauth.processAuthorizationCodeResponse(authServer, authClient, response);
+
+  const { id, access_token } = tokenSet;
+  if (!access_token) {
+    throw new Error('Missing access_token in token response');
+  }
+  const userInfoResponse = await oauth.userInfoRequest(authServer, authClient, tokenSet.access_token);
+  const userInfo = (await oauth.processUserInfoResponse(
+    authServer,
+    authClient,
+    id as string,
+    userInfoResponse,
+  )) as unknown as SalesforceUserInfo;
+
+  return {
+    access_token,
+    // refresh_token,
+    userInfo,
   };
 }
 

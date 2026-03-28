@@ -1,4 +1,4 @@
-import { detectDateFormatForLocale, formatNumber, isBrowserExtension, isDesktop } from '@jetstream/shared/ui-utils';
+import { detectDateFormatForLocale, formatNumber, isBrowserExtension, isCanvasApp, isDesktop } from '@jetstream/shared/ui-utils';
 import { ApiMode, DescribeGlobalSObjectResult, FieldMapping, InsertUpdateUpsertDelete, LocalOrGoogle, Maybe } from '@jetstream/types';
 import { hasPaidPlanState } from '@jetstream/ui/app-state';
 import { atom } from 'jotai';
@@ -93,7 +93,7 @@ const loadApiLimitsState = atom((get) => {
   const API_MAX_CALLS_FREE = 1000;
   const API_MAX_CALLS_PAID = 5000;
 
-  if (isDesktop() || isBrowserExtension()) {
+  if (isDesktop() || isBrowserExtension() || isCanvasApp()) {
     return {
       warningApiCalls: API_WARNING_CALLS,
       maxApiCalls: Infinity,
