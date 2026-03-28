@@ -15,12 +15,40 @@ import { EventMessageUnsuccessful, PlatformEventObject } from './platform-event-
 import * as platformEventUtils from './platform-event-monitor.utils';
 
 export type MessagesByChannel = Record<string, { replayId?: number; channel: string; messages: PlatformEventMessagePayload[] }>;
+
+export type SubscribeOverrideFn = (
+  setMessagesByChannel: (value: React.SetStateAction<MessagesByChannel>) => void,
+  onEvent: (replayId?: number) => (message: PlatformEventMessage) => void,
+) => (channel: string, replayId?: number) => Promise<void>;
+
+export type UnsubscribeOverrideFn = (
+  setMessagesByChannel: (value: React.SetStateAction<MessagesByChannel>) => void,
+) => (channel: string) => Promise<void>;
+
 export interface PlatformEventDownloadData {
   headers: Record<string, string[]>;
   worksheets: Record<string, any[]>;
 }
 
-export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi }) {
+export function usePlatformEvent({
+  selectedOrg,
+  subscribeOverrideFn: maybeSubscribeOverrideFn,
+  unsubscribeOverrideFn: maybeUnsubscribeOverrideFn,
+}: {
+  selectedOrg: SalesforceOrgUi;
+  /**
+   * Override function for subscribing to platform events
+   * This is used in environments that do not use CometD directly, such as Canvas apps
+   * The functions passed in must be stable
+   */
+  subscribeOverrideFn?: SubscribeOverrideFn;
+  /**
+   * Override function for unsubscribing to platform events
+   * This is used in environments that do not use CometD directly, such as Canvas apps
+   * The functions passed in must be stable
+   */
+  unsubscribeOverrideFn?: UnsubscribeOverrideFn;
+}) {
   const isMounted = useRef(true);
   const cometD = useRef<CometD>(null);
   const rollbar = useRollbar();
@@ -212,18 +240,26 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
     [selectedOrg, trackEvent],
   );
 
+  const subscribeOverrideRef = useRef(maybeSubscribeOverrideFn ? maybeSubscribeOverrideFn(setMessagesByChannel, onEvent) : undefined);
+  const unsubscribeOverrideRef = useRef(maybeUnsubscribeOverrideFn ? maybeUnsubscribeOverrideFn(setMessagesByChannel) : undefined);
+
   const clearAndUnsubscribeFromAll = useCallback(async (): Promise<void> => {
     try {
       if (cometD.current) {
         const cometd = cometD.current;
         platformEventUtils.unsubscribeAll({ cometd });
-        setMessagesByChannel({});
-        trackEvent(ANALYTICS_KEYS.platform_event_clear_all, { user_initiated: true });
+      } else if (unsubscribeOverrideRef.current) {
+        const channels = Object.keys(messagesByChannel);
+        for (const channel of channels) {
+          await unsubscribeOverrideRef.current(channel);
+        }
       }
+      setMessagesByChannel({});
+      trackEvent(ANALYTICS_KEYS.platform_event_clear_all, { user_initiated: true });
     } catch (ex) {
       logger.warn('[PLATFORM EVENT][ERROR] unsubscribing', getErrorMessage(ex));
     }
-  }, [trackEvent]);
+  }, [messagesByChannel, trackEvent]);
 
   const clearAllEvents = useCallback(async (): Promise<void> => {
     setMessagesByChannel((prevValue) => {
@@ -269,7 +305,7 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
     fetchPlatformEvents,
     prepareDownloadData,
     publish,
-    subscribe,
-    unsubscribe,
+    subscribe: subscribeOverrideRef.current || subscribe,
+    unsubscribe: unsubscribeOverrideRef.current || unsubscribe,
   };
 }

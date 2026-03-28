@@ -175,7 +175,7 @@ const salesforceRequestManual = createRoute(
       const results = await jetstreamConn.request.manualRequest<FetchResponse>(payload, 'response').then(async (apiResponse) => {
         const { status, statusText, headers } = apiResponse;
         const response: ManualRequestResponse = {
-          error: status < 200 || status > 300,
+          error: status < 200 || status >= 300,
           status,
           statusText,
           headers: JSON.stringify(Object.fromEntries(headers.entries()) || {}, null, 2),

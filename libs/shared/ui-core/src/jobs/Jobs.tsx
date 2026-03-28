@@ -8,6 +8,7 @@ import {
   formatNumber,
   getExternalGoogleAccessToken,
   isBrowserExtension,
+  isCanvasApp,
   isDesktop,
   saveFile,
   useBrowserNotifications,
@@ -50,9 +51,9 @@ export interface WorkerCompatibleShim {
 
 const jobsWorker = new WorkerAdapter();
 
-/** Get Google access token from either external store (desktop/extension) or gapi client */
+/** Get Google access token from either external store (desktop/extension/canvas) or gapi client */
 function getGoogleAccessToken(): string | undefined {
-  if (isDesktop() || isBrowserExtension()) {
+  if (isDesktop() || isBrowserExtension() || isCanvasApp()) {
     return getExternalGoogleAccessToken()?.accessToken ?? undefined;
   }
   return gapi?.client?.getToken()?.access_token;

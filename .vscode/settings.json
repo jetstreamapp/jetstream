@@ -21,7 +21,10 @@
     "**/node_modules/**": true,
     "dist": true,
     "logs": true,
-    "tmp": true
+    "tmp": true,
+    "**/node_modules": true,
+    "**/.sf": true,
+    "**/.sfdx": true
   },
   "files.watcherExclude": {
     "**/.git": true,
@@ -30,7 +33,9 @@
     "**/.DS_Store": true,
     "**/node_modules/**": true,
     "**/monaco/vs/**": true,
-    "apps/api/src/assets/js": true
+    "apps/api/src/assets/js": true,
+    "**/.sf": true,
+    "**/.sfdx": true
   },
   "[typescript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"

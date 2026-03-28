@@ -1,14 +1,16 @@
 import { SerializedStyles } from '@emotion/react';
 import { AppAbility } from '@jetstream/acl';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
+import { isCanvasApp } from '@jetstream/shared/ui-utils';
 import { AddOrgHandlerFn, DropDownItem, UserProfileUi } from '@jetstream/types';
-import { Header, Navbar, UpgradeToProButton } from '@jetstream/ui';
+import { Header, Icon, Navbar, UpgradeToProButton } from '@jetstream/ui';
 import {
   abilityState,
   applicationCookieState,
   hasPaidPlanState,
   isReadOnlyUserState,
   selectUserPreferenceState,
+  selectedOrgStateWithoutPlaceholder,
   userProfileState,
 } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
@@ -32,8 +34,10 @@ import NotificationsRequestModal from './NotificationsRequestModal';
 
 export interface HeaderNavbarProps {
   isBillingEnabled: boolean;
-  isChromeExtension?: boolean;
+  isEmbeddedApp?: boolean;
   isDesktop?: boolean;
+  /** When true, the "Open Fullscreen" button is hidden (canvas app is already fullscreen). */
+  isFullscreen?: boolean;
   logoCss?: SerializedStyles;
   onAddOrgHandlerFn?: AddOrgHandlerFn;
   onLogoutHandlerFn?: () => void;
@@ -89,8 +93,9 @@ function getMenuItems({
 
 export const HeaderNavbar = ({
   isBillingEnabled,
-  isChromeExtension = false,
+  isEmbeddedApp = false,
   isDesktop = false,
+  isFullscreen = false,
   logoCss,
   onAddOrgHandlerFn,
   onLogoutHandlerFn,
@@ -100,6 +105,7 @@ export const HeaderNavbar = ({
   const ability = useAtomValue(abilityState);
   const userProfile = useAtomValue(userProfileState);
   const isReadOnlyUser = useAtomValue(isReadOnlyUserState);
+  const selectedOrg = useAtomValue(selectedOrgStateWithoutPlaceholder);
   const hasPaidPlan = useAtomValue(hasPaidPlanState);
   const applicationState = useAtomValue(applicationCookieState);
   const { deniedNotifications } = useAtomValue(selectUserPreferenceState);
@@ -157,13 +163,33 @@ export const HeaderNavbar = ({
     }
   };
 
+  // Show "Open Fullscreen" button in canvas app when not already on the fullscreen VF page
+  const showFullscreenLink = isCanvasApp() && !isFullscreen;
+  const instanceUrl = selectedOrg?.instanceUrl;
+
   const rightHandMenuItems = useMemo(() => {
     if (isReadOnlyUser) {
       return [<HeaderHelpPopover />];
     }
 
-    if (isChromeExtension || isDesktop) {
-      const items = [<QuickQueryPopover />, <RecordSearchPopover />, <UserSearchPopover />, <Jobs />];
+    if (isEmbeddedApp || isDesktop) {
+      const items: React.ReactNode[] = [];
+
+      if (showFullscreenLink && instanceUrl) {
+        items.push(
+          <a
+            href={`${instanceUrl}/apex/jetstream__JetstreamPage`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="slds-button slds-button_neutral slds-button_small"
+          >
+            <Icon type="utility" icon="new_window" className="slds-button__icon slds-button__icon_left" omitContainer />
+            Open Fullscreen
+          </a>,
+        );
+      }
+
+      items.push(<QuickQueryPopover />, <RecordSearchPopover />, <UserSearchPopover />, <Jobs />);
 
       // Add update notification for desktop
       if (isDesktop) {
@@ -197,7 +223,7 @@ export const HeaderNavbar = ({
     }
 
     return [<QuickQueryPopover />, <RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />];
-  }, [isReadOnlyUser, isChromeExtension, isDesktop, isBillingEnabled, hasPaidPlan, trackEvent]);
+  }, [isReadOnlyUser, isEmbeddedApp, isDesktop, isBillingEnabled, hasPaidPlan, trackEvent, showFullscreenLink, instanceUrl]);
 
   return (
     <Fragment>
@@ -205,12 +231,12 @@ export const HeaderNavbar = ({
       <Header
         userProfile={userProfile}
         isReadOnlyUser={isReadOnlyUser}
-        logo={isChromeExtension || isDesktop || hasPaidPlan ? LogoPro : Logo}
+        logo={isEmbeddedApp || isDesktop || hasPaidPlan ? LogoPro : Logo}
         logoCss={logoCss}
-        orgs={isChromeExtension ? <SelectedOrgReadOnly /> : <OrgsDropdown onAddOrgHandlerFn={onAddOrgHandlerFn} />}
+        orgs={isEmbeddedApp ? <SelectedOrgReadOnly /> : <OrgsDropdown onAddOrgHandlerFn={onAddOrgHandlerFn} />}
         userMenuItems={userMenuItems}
         rightHandMenuItems={rightHandMenuItems}
-        isChromeExtension={isChromeExtension}
+        isEmbeddedApp={isEmbeddedApp}
         onUserMenuItemSelected={handleUserMenuSelection}
       >
         <Navbar>
