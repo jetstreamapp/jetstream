@@ -1,0 +1,14 @@
+{
+  "orgName": "Jetstream Canvas",
+  "edition": "Professional",
+  "release": "preview",
+  "features": ["EnableSetPasswordInApi", "ExternalClientApps"],
+  "settings": {
+    "lightningExperienceSettings": {
+      "enableS1DesktopEnabled": true
+    },
+    "mobileSettings": {
+      "enableS1EncryptedStoragePref2": false
+    }
+  }
+}

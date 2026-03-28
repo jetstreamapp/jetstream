@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>SubqueryParensOnOwnLine__c</fullName>
+    <defaultValue>true</defaultValue>
+    <description>When enabled, subquery parentheses are placed on their own line in SOQL formatting</description>
+    <externalId>false</externalId>
+    <label>SOQL Subquery Parens On Own Line</label>
+    <type>Checkbox</type>
+</CustomField>

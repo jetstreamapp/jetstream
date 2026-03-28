@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ExternalClientApplication xmlns="http://soap.sforce.com/2006/04/metadata">
+    <contactEmail>support@getjetstream.app</contactEmail>
+    <distributionState>Packaged</distributionState>
+    <iconUrl>https://getjetstream.app/assets/images/jetstream-icon-pro-128.png</iconUrl>
+    <isProtected>false</isProtected>
+    <label>Jetstream Canvas</label>
+    <logoUrl>https://getjetstream.app/assets/images/jetstream-icon-pro-128.png</logoUrl>
+    <orgScopedExternalApp>00D4S000000pHDFUA2:Jetstream_Canvas</orgScopedExternalApp>
+</ExternalClientApplication>
