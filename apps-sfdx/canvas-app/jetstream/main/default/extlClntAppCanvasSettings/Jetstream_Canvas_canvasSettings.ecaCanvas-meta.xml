@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ExtlClntAppCanvasSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <accessMethod>Post</accessMethod>
+    <canvasLocationOptions>Visualforce</canvasLocationOptions>
+    <canvasLocationOptions>Aura</canvasLocationOptions>
+    <canvasUrl>https://getjetstream.app/canvas/app</canvasUrl>
+    <externalClientApplication>Jetstream_Canvas</externalClientApplication>
+    <label>Jetstream_Canvas_canvasSettings</label>
+    <samlInitiationMethod>None</samlInitiationMethod>
+</ExtlClntAppCanvasSettings>

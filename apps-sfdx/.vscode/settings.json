@@ -1,0 +1,89 @@
+{
+  "editor.rulers": [140],
+  "editor.tabSize": 2,
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit"
+  },
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/.DS_Store": true,
+    "**/.classpath": true,
+    "**/.project": true,
+    "**/.settings": true,
+    "**/.factorypath": true
+  },
+  "search.exclude": {
+    "apps/api/src/assets/js": true,
+    "**/monaco/vs/**": true,
+    "**/node_modules/**": true,
+    "dist": true,
+    "logs": true,
+    "tmp": true,
+    "**/node_modules": true,
+    "**/.sf": true,
+    "**/.sfdx": true
+  },
+  "files.watcherExclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/.DS_Store": true,
+    "**/node_modules/**": true,
+    "**/monaco/vs/**": true,
+    "apps/api/src/assets/js": true,
+    "**/.sf": true,
+    "**/.sfdx": true
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[markdown]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[xml]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "editor.tabCompletion": "on",
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "git.branchProtection": ["main", "release"],
+  "eslint.useFlatConfig": true,
+  "workbench.colorCustomizations": {
+    "activityBar.activeBackground": "#032D60",
+    "activityBar.activeBorder": "#1B96FF",
+    "activityBar.background": "#032D60",
+    "activityBar.foreground": "#e7e7e7",
+    "activityBar.inactiveForeground": "#e7e7e799",
+    "activityBarBadge.background": "#1B96FF",
+    "activityBarBadge.foreground": "#ffffff",
+    "statusBar.background": "#032D60",
+    "statusBar.foreground": "#e7e7e7",
+    "statusBarItem.hoverBackground": "#0B5CAB",
+    "titleBar.activeBackground": "#032D60",
+    "titleBar.activeForeground": "#e7e7e7",
+    "titleBar.inactiveBackground": "#032D6099",
+    "titleBar.inactiveForeground": "#e7e7e799",
+    "sash.hoverBorder": "#1B96FF",
+    "statusBarItem.remoteBackground": "#0B5CAB",
+    "statusBarItem.remoteForeground": "#e7e7e7",
+    "commandCenter.border": "#e7e7e799"
+  },
+  "xml.preferences.showSchemaDocumentationType": "none"
+}

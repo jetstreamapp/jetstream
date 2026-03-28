@@ -1,0 +1,44 @@
+<apex:page docType="html-5.0" showHeader="false" sidebar="false" standardStylesheets="false" controller="JetstreamPageController">
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+  </style>
+
+  <apex:canvasApp
+    developerName="Jetstream_Canvas"
+    namespacePrefix="jetstream"
+    height="100%"
+    width="100%"
+    scrolling="yes"
+    parameters="{!getCanvasParameters}"
+  />
+
+  <script>
+    function resizeCanvas() {
+      // apex:canvasApp renders as a double iframe (outer wraps inner)
+      // Target the outer iframe which is in our VF page's DOM
+      var iframe = document.querySelector('iframe[id^="canvas-outer-"]');
+      if (!iframe) {
+        return;
+      }
+
+      // innerHeight = viewport height without browser chrome
+      var availableHeight = window.innerHeight;
+
+      // Account for iframe's position on the page (e.g. if there's a header above it)
+      var rect = iframe.getBoundingClientRect();
+      var heightMinusOffset = availableHeight - rect.top;
+
+      iframe.style.height = heightMinusOffset + 'px';
+      iframe.style.width = '100%';
+    }
+
+    window.addEventListener('load', resizeCanvas);
+    window.addEventListener('resize', resizeCanvas);
+  </script>
+</apex:page>
