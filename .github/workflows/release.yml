@@ -159,7 +159,7 @@ jobs:
         continue-on-error: true
         run: yarn rollbar:create-deploy
         env:
-          ROLLBAR_ACCESS_TOKEN: ${{ secrets.ROLLBAR_ACCESS_TOKEN }}
+          ROLLBAR_SERVER_TOKEN: ${{ secrets.ROLLBAR_ACCESS_TOKEN }}
 
       # RELEASE WEB EXTENSION
       # NOTE: Each application has its own tag format - so it is safe to have release-it run multiple times
