@@ -109,7 +109,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
 export type RouteValidator = Parameters<typeof createRoute>[0];
 
 export function handleJsonResponse(data?: unknown, options: ResponseInit = {}) {
-  return new Response(JSON.stringify({ data: data || {} }), {
+  return new Response(JSON.stringify({ data: data ?? {} }), {
     headers: {
       'Content-Type': 'application/json',
     },
