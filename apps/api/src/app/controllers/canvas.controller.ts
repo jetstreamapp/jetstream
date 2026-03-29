@@ -1,11 +1,9 @@
 import { ENV } from '@jetstream/api-config';
-import { timingSafeStringCompare } from '@jetstream/auth/server';
 import { salesforceCanvasOauthCallback, SalesforceCanvasOauthInit } from '@jetstream/salesforce-oauth';
 import { getErrorMessage, urlSearchParamsToJson } from '@jetstream/shared/utils';
-import crypto from 'node:crypto';
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { Canvas } from '@jetstream/types';
 import z from 'zod';
+import { escapeJsonForScript, getCanvasIndexFile, verifyAndDecodeAsJson } from '../utils/canvas.utils';
 import { createRoute } from '../utils/route.utils';
 
 const INVALID_ACCESS = 'invalid';
@@ -50,82 +48,6 @@ export const routeDefinition = {
     },
   },
 };
-
-/**
- * Escapes a JSON string for safe embedding inside an HTML <script> tag.
- * Prevents script breakout via </script> and <!-- sequences.
- */
-function escapeJsonForScript(json: string): string {
-  return json.replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/\//g, '\\u002f');
-}
-
-/**
- * Splits the signed request into signature and envelope parts
- */
-function getParts(signedRequest: string): [string, string] {
-  const parts = signedRequest.split('.', 2);
-  if (parts.length !== 2) {
-    throw new Error('Invalid signed request format. Expected format: signature.envelope');
-  }
-  return [parts[0], parts[1]];
-}
-
-/**
- * Verifies the signature using HMAC-SHA256
- */
-function verify(secret: string, algorithm: string, encodedEnvelope: string, encodedSig: string): void {
-  // Only support HMAC-SHA256
-  if (algorithm !== 'HMACSHA256') {
-    throw new Error(`Unsupported algorithm: ${algorithm}. Only HMACSHA256 is supported.`);
-  }
-
-  // Create HMAC signature of the encoded envelope
-  const hmac = crypto.createHmac('sha256', secret);
-  hmac.update(encodedEnvelope);
-  const expectedSig = hmac.digest('base64');
-
-  // Normalize both to standard Base64 for comparison, since Salesforce Canvas
-  // may use URL-safe Base64 (- and _ instead of + and /) in the signed request
-  const normalizeBase64 = (s: string) => s.replace(/-/g, '+').replace(/_/g, '/');
-  if (!timingSafeStringCompare(normalizeBase64(expectedSig), normalizeBase64(encodedSig))) {
-    throw new Error('Signature verification failed. The signed request was not signed with the correct consumer secret.');
-  }
-}
-
-/**
- * Verifies and decodes a Salesforce Canvas signed request
- * Returns the decoded JSON context if verification succeeds
- */
-function verifyAndDecodeAsJson(signedRequest: string, secret: string): Record<string, unknown> {
-  // Split into signature and envelope
-  const [encodedSig, encodedEnvelope] = getParts(signedRequest);
-
-  // Base64 decode the envelope to get JSON
-  // Note: Canvas uses URL-safe Base64, so we need to handle that
-  const jsonEnvelope = Buffer.from(encodedEnvelope, 'base64').toString('utf-8');
-
-  // Parse the JSON to extract algorithm and context
-  let envelope: Record<string, unknown>;
-  let algorithm: string;
-
-  try {
-    envelope = JSON.parse(jsonEnvelope);
-    algorithm = envelope.algorithm as string;
-
-    if (!algorithm) {
-      throw new Error('Algorithm not found in envelope');
-    }
-  } catch (error) {
-    throw new Error(`Error deserializing JSON: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-
-  // Verify the signature
-  verify(secret, algorithm, encodedEnvelope, encodedSig);
-
-  // If we got this far, the request was not tampered with
-  // Return the context
-  return envelope;
-}
 
 /**
  * This flow is only required if the user is not pre-authorized
@@ -177,8 +99,12 @@ const appHandler = createRoute(routeDefinition.appHandler.validators, async ({ b
     const { signed_request } = body;
     // eslint-disable-next-line prefer-const
     let { _sfdc_canvas_auth, loginUrl } = query;
-    let context: Record<string, unknown> = {};
+    let envelope: Partial<Canvas.SfdcCanvasSignedRequest> = {};
 
+    /**
+     * This path happens if user is not pre-authorized by their admin.
+     * The user will login using OAuth
+     */
     if (_sfdc_canvas_auth === 'user_approval_required') {
       throwIfEnvNotConfigured();
       loginUrl = `${decodeURIComponent(loginUrl || 'https://login.salesforce.com')}`;
@@ -196,20 +122,33 @@ const appHandler = createRoute(routeDefinition.appHandler.validators, async ({ b
         redirectUri: callbackUrl,
       });
 
-      context.loginParams = urlSearchParamsToJson(authorizationUrl.searchParams);
+      envelope.loginParams = urlSearchParamsToJson(authorizationUrl.searchParams);
     } else if (signed_request) {
       // Verify and decode the signed request
-      context = verifyAndDecodeAsJson(signed_request, clientSecret);
+      envelope = verifyAndDecodeAsJson(signed_request, clientSecret);
+      res.log.info(
+        {
+          authType: envelope?.context?.application?.authType,
+          appName: envelope?.context?.application?.name,
+          version: envelope?.context?.application?.version,
+          organizationId: envelope?.context?.organization?.organizationId,
+          loginUrl: envelope?.client?.instanceUrl,
+          userId: envelope?.context?.user?.userId,
+          userName: envelope?.context?.user?.userName,
+          email: envelope?.context?.user?.email,
+        },
+        '[CANVAS][SIGNED_REQUEST_VERIFIED]',
+      );
     }
 
     // we could also use login.salesforce.com
-    const fileContents = await getIndexFile().then((file) =>
+    const fileContents = await getCanvasIndexFile().then((file) =>
       file
         .replace(
           '<%=canvasImportScriptUrl%>',
-          `${(context as any)?.client?.instanceUrl || loginUrl}/canvas/sdk/js/${ENV.SFDC_API_VERSION}/canvas-all.js`,
+          `${(envelope as any)?.client?.instanceUrl || loginUrl}/canvas/sdk/js/${ENV.SFDC_API_VERSION}/canvas-all.js`,
         )
-        .replace('<%=signedRequestJson%>', escapeJsonForScript(JSON.stringify(context))),
+        .replace('<%=signedRequestJson%>', escapeJsonForScript(JSON.stringify(envelope))),
     );
 
     res.status(200).send(fileContents);
@@ -221,8 +160,3 @@ const appHandler = createRoute(routeDefinition.appHandler.validators, async ({ b
     });
   }
 });
-
-async function getIndexFile(): Promise<string> {
-  const filePath = join(__dirname, '../jetstream-canvas/index.html');
-  return await readFile(filePath, 'utf-8');
-}
