@@ -1,4 +1,5 @@
 import { logger } from '@jetstream/api-config';
+import { GeoIpData } from '@jetstream/types';
 import fs from 'fs';
 import maxMind, { AsnResponse, CityResponse, Reader } from 'maxmind';
 import path from 'path';
@@ -95,7 +96,7 @@ export async function downloadMaxMindDb(rootDir: string): Promise<void> {
   await initMaxMind(rootDir, true);
 }
 
-export function lookupIpAddress(ipAddress: string) {
+export function lookupIpAddress(ipAddress: string): GeoIpData | null {
   if (!lookupAsn || !lookupCity) {
     throw new Error('MaxMind DB not initialized');
   }
@@ -103,15 +104,10 @@ export function lookupIpAddress(ipAddress: string) {
   const asnResults = lookupAsn.get(ipAddress);
   const cityResults = lookupCity.get(ipAddress);
   if (!cityResults) {
-    return {
-      query: ipAddress,
-      status: 'fail',
-    };
+    return null;
   }
 
   return {
-    query: ipAddress,
-    status: 'success',
     continent: cityResults.continent?.names?.en ?? null,
     continentCode: cityResults.continent?.code ?? null,
     country: cityResults.country?.names?.en ?? null,

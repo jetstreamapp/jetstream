@@ -1,4 +1,5 @@
 import { ENV, getExceptionLog, httpLogger, logger } from '@jetstream/api-config';
+import { GeoIpLookupResult } from '@jetstream/types';
 import { json, urlencoded } from 'body-parser';
 import express from 'express';
 import { z, ZodError } from 'zod';
@@ -83,8 +84,11 @@ app.get(
         res.status(400).json({ success: false, message: 'IP address is invalid' });
         return;
       }
-      const results = lookupIpAddress(ipAddress);
-      res.status(200).json({ success: true, results });
+      const geoData = lookupIpAddress(ipAddress);
+      const result: GeoIpLookupResult = geoData
+        ? { ipAddress, isValid: true as const, ...geoData }
+        : { ipAddress, isValid: false as const };
+      res.status(200).json({ success: true, results: [result] });
     } catch (ex) {
       res.log.error(getExceptionLog(ex, true), 'Failed to lookup IP address');
       next(ex);
@@ -102,13 +106,15 @@ app.post(
       const ipAddresses = body.ips;
       await initMaxMind(DISK_PATH);
 
-      const results = ipAddresses.map((ipAddress) => {
-        const isValid = validateIpAddress(ipAddress);
-        return {
-          ipAddress,
-          isValid,
-          ...(isValid ? lookupIpAddress(ipAddress) : null),
-        };
+      const results: GeoIpLookupResult[] = ipAddresses.map((ipAddress) => {
+        if (!validateIpAddress(ipAddress)) {
+          return { ipAddress, isValid: false as const };
+        }
+        const geoData = lookupIpAddress(ipAddress);
+        if (!geoData) {
+          return { ipAddress, isValid: false as const };
+        }
+        return { ipAddress, isValid: true as const, ...geoData };
       });
 
       res.status(200).json({ success: true, results });
@@ -126,7 +132,7 @@ app.use((_, res) => {
   });
 });
 
-app.use((err: Error | ZodError, _: express.Request, res: express.Response) => {
+app.use((err: Error | ZodError, _: express.Request, res: express.Response, _next: express.NextFunction) => {
   res.log.error({ ...getExceptionLog(err) }, 'Unhandled error');
 
   if (err instanceof ZodError) {
