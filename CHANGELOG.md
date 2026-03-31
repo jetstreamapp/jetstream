@@ -1,5 +1,20 @@
 # Changelog
 
+## [9.4.1](https://github.com/jetstreamapp/jetstream/compare/v9.4.0...v9.4.1) (2026-03-31)
+
+### Features
+
+* enhance geo-IP functionality with improved data structures and error handling ([adc6456](https://github.com/jetstreamapp/jetstream/commit/adc6456b5ab4be121aec5d514b8d312ec4677888))
+* use jwt auth for e2e org ([b34e07e](https://github.com/jetstreamapp/jetstream/commit/b34e07e060b1e5bab28e5b78f1ed3f0f25274b56))
+
+### Bug Fixes
+
+* handle empty body in Salesforce API request ([49aafb6](https://github.com/jetstreamapp/jetstream/commit/49aafb6cfc2974ec7caa9c5d2f37bc7ef90727e5))
+* orgs and groups not showing in desktop app ([2d543af](https://github.com/jetstreamapp/jetstream/commit/2d543af4babb9ead5eccfde5dc26f01c7ad91bb3)), closes [#1615](https://github.com/jetstreamapp/jetstream/issues/1615)
+* update apex test and disable entity processing in XML parsing ([cfcc664](https://github.com/jetstreamapp/jetstream/commit/cfcc6645c5f0ddf52074fed6118e5a7a3f18a83f))
+* update Rollbar token environment variable in release workflow ([f9f5eba](https://github.com/jetstreamapp/jetstream/commit/f9f5eba9ded0df595fb3d7121f79b8bd73425fdf))
+* upgrade vulnerable dependencies ([3fb3449](https://github.com/jetstreamapp/jetstream/commit/3fb344929e81cc0248de797ba2792d7b3f8d1bcd))
+
 ## [9.4.0](https://github.com/jetstreamapp/jetstream/compare/v9.3.0...v9.4.0) (2026-03-27)
 
 ### Features
