@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { AuthenticatePayload, DesktopAuthInfo } from '@jetstream/desktop/types';
 import { logger } from '@jetstream/shared/client-logger';
-import { getOrgs } from '@jetstream/shared/data';
+import { getOrgGroups, getOrgs } from '@jetstream/shared/data';
 import { Grid } from '@jetstream/ui';
 import { AppLoading, JetstreamLogoInverse } from '@jetstream/ui-core';
 import { DEFAULT_PROFILE, fromAppState } from '@jetstream/ui/app-state';
@@ -20,24 +20,35 @@ export function Login({ children }: LoginProps) {
   const [authInfo, setAuthInfo] = useState<DesktopAuthInfo>();
   const [userProfile, setUserProfile] = useAtom(fromAppState.userProfileState);
   const setOrgs = useSetAtom(fromAppState.salesforceOrgsState);
+  const setOrgGroups = useSetAtom(fromAppState.orgGroupsState);
+
+  const refreshOrgsAndGroups = useCallback(async () => {
+    const [orgsResult, orgGroupsResult] = await Promise.allSettled([getOrgs(), getOrgGroups()]);
+    if (orgsResult.status === 'fulfilled') {
+      setOrgs(orgsResult.value);
+    } else {
+      logger.warn('Error refreshing orgs', orgsResult.reason);
+    }
+    if (orgGroupsResult.status === 'fulfilled') {
+      setOrgGroups(orgGroupsResult.value);
+    } else {
+      logger.warn('Error refreshing org groups', orgGroupsResult.reason);
+    }
+  }, [setOrgs, setOrgGroups]);
 
   const authenticationEventHandler = useCallback(
     async (response: AuthenticatePayload) => {
       if (response.success) {
         setUserProfile(response.userProfile);
         setAuthInfo(response.authInfo);
-        // Re-fetch orgs now that the encryption key is set on the main process
-        try {
-          setOrgs(await getOrgs());
-        } catch (ex) {
-          logger.warn('Error refreshing orgs after login', ex);
-        }
+        // Re-fetch orgs and org groups now that the encryption key is set on the main process
+        await refreshOrgsAndGroups();
       } else {
         // TODO: handle else case and show error message
         logger.warn('Login failed', response);
       }
     },
-    [setUserProfile, setOrgs],
+    [setUserProfile, refreshOrgsAndGroups],
   );
 
   const handleLogout = useCallback(() => {
@@ -61,13 +72,9 @@ export function Login({ children }: LoginProps) {
           const { authInfo, userProfile } = response;
           setAuthInfo(authInfo);
           setUserProfile(userProfile);
-          // Re-fetch orgs after auth completes — the encryption key is now set
-          // on the main process, so orgs can be decrypted successfully.
-          try {
-            setOrgs(await getOrgs());
-          } catch (ex) {
-            logger.warn('Error refreshing orgs after auth check', ex);
-          }
+          // Re-fetch orgs and org groups after auth completes — the encryption key
+          // is now set on the main process, so orgs can be decrypted successfully.
+          await refreshOrgsAndGroups();
         }
       })
       .finally(() => setLoading(false));
@@ -90,7 +97,7 @@ export function Login({ children }: LoginProps) {
       clearInterval(interval);
       unsubscribeAuth();
     };
-  }, [authenticationEventHandler, setUserProfile, setOrgs]);
+  }, [authenticationEventHandler, setUserProfile, refreshOrgsAndGroups]);
 
   function handleLogin() {
     window.electronAPI?.login();
