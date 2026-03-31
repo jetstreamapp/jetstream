@@ -135,7 +135,7 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
     setUrl(request.url);
     setMethod(request.method);
     setHeaders(JSON.stringify(request.headers, null, 2));
-    setBody(request.body);
+    setBody(request.body || '');
     setBodyType(request.bodyType);
     if (doExecute) {
       onSubmit({
@@ -152,7 +152,7 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
     setUrl(request.url);
     setMethod(request.method);
     setHeaders(JSON.stringify({ ...JSON.parse(request.header || '{}'), ['X-PrettyPrint']: '1' }, null, 2));
-    setBody(request.body);
+    setBody(request.body || '');
     setBodyType(request.header?.includes('application/json') ? 'JSON' : 'TEXT');
   }
 
