@@ -114,6 +114,7 @@ export function getRetrieveRequestFromManifest(packageManifest: string) {
       ignoreAttributes: true,
       removeNSPrefix: true,
       parseTagValue: false,
+      processEntities: false,
     }).parse(packageManifest);
   } catch {
     throw new Error('The package manifest format is invalid');

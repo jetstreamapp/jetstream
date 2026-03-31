@@ -574,6 +574,65 @@ describe('callout-adapter XML parsing', () => {
     });
   });
 
+  describe('XML entity expansion protection', () => {
+    it('should not expand XML entities when processEntities is disabled', async () => {
+      const xmlWithEntity = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE foo [
+  <!ENTITY xxe "ENTITY_EXPANDED">
+]>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns="http://soap.sforce.com/2006/04/metadata">
+  <soapenv:Body>
+    <testResponse>
+      <result>&xxe;</result>
+    </testResponse>
+  </soapenv:Body>
+</soapenv:Envelope>`;
+
+      const mockFetch = createMockFetch({
+        '/services/Soap/m/': { status: 200, body: xmlWithEntity },
+      });
+
+      const apiRequest = getApiRequestFactoryFn(mockFetch)();
+      const result = await apiRequest({
+        url: '/services/Soap/m/65.0',
+        method: 'POST',
+        sessionInfo: mockSessionInfo,
+        outputType: 'soap',
+      });
+
+      const body = getSoapBody(result);
+      // The entity should NOT be expanded to "ENTITY_EXPANDED"
+      expect(body.testResponse.result).not.toBe('ENTITY_EXPANDED');
+    });
+
+    it('should safely handle standard XML entities without expansion', async () => {
+      const xmlWithStandardEntities = `<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns="http://soap.sforce.com/2006/04/metadata">
+  <soapenv:Body>
+    <testResponse>
+      <result>value with &amp; and &lt;tag&gt;</result>
+    </testResponse>
+  </soapenv:Body>
+</soapenv:Envelope>`;
+
+      const mockFetch = createMockFetch({
+        '/services/Soap/m/': { status: 200, body: xmlWithStandardEntities },
+      });
+
+      const apiRequest = getApiRequestFactoryFn(mockFetch)();
+      const result = await apiRequest({
+        url: '/services/Soap/m/65.0',
+        method: 'POST',
+        sessionInfo: mockSessionInfo,
+        outputType: 'soap',
+      });
+
+      const body = getSoapBody(result);
+      // Standard entities should still be handled (not cause errors)
+      expect(body.testResponse.result).toBeDefined();
+    });
+  });
+
   describe('Edge cases and special characters', () => {
     it('should handle XML with attributes on elements', async () => {
       const mockFetch = createMockFetch({

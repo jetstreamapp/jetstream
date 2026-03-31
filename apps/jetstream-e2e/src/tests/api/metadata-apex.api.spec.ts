@@ -16,7 +16,13 @@ test.describe('API - Apex', () => {
           logLevel: 'DEBUG',
         }),
         apiRequestUtils.makeRequest<AnonymousApexResponse>('POST', `/api/apex/anonymous`, {
-          apex: `System.debug('Hello World');`,
+          apex: `
+System.debug('test');
+List<Account> accounts = [SELECT Id, Name FROM Account LIMIT 1000];
+
+for(Account account : accounts) {
+  System.debug(account.Name);
+}`,
         }),
         apiRequestUtils.makeRequest<AnonymousApexResponse>('POST', `/api/apex/anonymous`, {
           apex: `List<Account> accounts = [SELECT Id from Account LIMIT 0];`,

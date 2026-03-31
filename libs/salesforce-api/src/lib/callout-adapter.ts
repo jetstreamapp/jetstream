@@ -32,6 +32,7 @@ function parseXml(value: string) {
     ignoreAttributes: false,
     removeNSPrefix: true,
     attributeNamePrefix: '@_',
+    processEntities: false,
   }).parse(value);
   return response;
 }
