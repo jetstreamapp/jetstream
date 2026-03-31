@@ -92,6 +92,8 @@ jobs:
       E2E_LOGIN_PASSWORD: ${{ secrets.E2E_LOGIN_PASSWORD }}
       E2E_LOGIN_URL: "https://jetstream-e2e-dev-ed.develop.my.salesforce.com"
       E2E_LOGIN_USERNAME: "integration@jetstream.app.e2e"
+      SFDC_CI_CONSUMER_KEY: ${{ secrets.SFDC_CI_CONSUMER_KEY }}
+      SFDC_CI_PRIVATE_KEY_BASE64: ${{ secrets.SFDC_CI_PRIVATE_KEY_BASE64 }}
       EXAMPLE_USER_OVERRIDE: true
       EXAMPLE_USER_PASSWORD: "EXAMPLE_123!"
 

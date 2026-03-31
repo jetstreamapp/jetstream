@@ -206,21 +206,17 @@ export async function salesforceOauthRefresh(
  *
  * This is only used in tests to get an access_token to avoid having to go through OAuth+redirect flow
  */
-export async function salesforceLoginUsernamePassword_UNSAFE(
-  {
-    clientId,
-    clientSecret,
-    loginUrl,
-    redirectUri,
-  }: {
-    clientId: string;
-    clientSecret: string;
-    loginUrl: string;
-    redirectUri: string;
-  },
-  username: string,
-  password: string,
-): Promise<{
+export async function salesforceLoginJwtBearer({
+  clientId,
+  privateKey,
+  loginUrl,
+  username,
+}: {
+  clientId: string;
+  privateKey: string;
+  loginUrl: string;
+  username: string;
+}): Promise<{
   access_token: string;
   instance_url: string;
   id: string;
@@ -228,18 +224,41 @@ export async function salesforceLoginUsernamePassword_UNSAFE(
   issued_at: string;
   signature: string;
 }> {
-  return await fetch(`${loginUrl}/services/oauth2/token`, {
+  const header = { alg: 'RS256' };
+  const now = Math.floor(Date.now() / 1000);
+  const claims = {
+    iss: clientId,
+    sub: username,
+    aud: loginUrl,
+    exp: now + 300,
+  };
+
+  const encode = (obj: Record<string, unknown>) => Buffer.from(JSON.stringify(obj)).toString('base64url');
+  const signingInput = `${encode(header)}.${encode(claims)}`;
+
+  const { createSign } = await import('node:crypto');
+  const sign = createSign('RSA-SHA256');
+  sign.update(signingInput);
+  const signature = sign.sign(privateKey, 'base64url');
+
+  const assertion = `${signingInput}.${signature}`;
+
+  const response = await fetch(`${loginUrl}/services/oauth2/token`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
     },
     body: new URLSearchParams({
-      grant_type: 'password',
-      username,
-      password,
-      client_id: clientId,
-      client_secret: clientSecret,
-      redirect_uri: redirectUri,
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion,
     }).toString(),
-  }).then((res) => res.json());
+  });
+
+  const body = await response.json();
+
+  if (!response.ok || !body.access_token) {
+    throw new Error(`Salesforce JWT login failed: ${JSON.stringify(body)}`);
+  }
+
+  return body;
 }
