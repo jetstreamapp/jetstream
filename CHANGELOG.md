@@ -1,5 +1,12 @@
 # Changelog
 
+## [9.5.0](https://github.com/jetstreamapp/jetstream/compare/v9.4.1...v9.5.0) (2026-04-01)
+
+### Features
+
+* enhance persistence service with logging and improved app data handling ([11fd29f](https://github.com/jetstreamapp/jetstream/commit/11fd29f98464178bd77d5a6a6f9d76d29d59ee6d))
+* Replace formulon with sf-formula-parser for formula evaluation ([3abab4d](https://github.com/jetstreamapp/jetstream/commit/3abab4d87e76a1d4a72aacbc49ea461df0e3fadd))
+
 ## [9.4.1](https://github.com/jetstreamapp/jetstream/compare/v9.4.0...v9.4.1) (2026-03-31)
 
 ### Features
