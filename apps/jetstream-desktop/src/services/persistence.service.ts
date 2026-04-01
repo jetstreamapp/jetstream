@@ -60,6 +60,7 @@ export function setOrgEncryptionKey(hexKey: string): void {
   // Without this, a previously-cached empty result (from before the key was available) would persist.
   SALESFORCE_ORGS = undefined as unknown as SalesforceOrgServer[];
   JETSTREAM_ORGS = undefined as unknown as JetstreamOrganizationServer[];
+  logger.info('Portable org encryption key set — in-memory org cache invalidated');
 }
 
 export function isOrgEncryptionKeyLoaded(): boolean {
@@ -72,6 +73,7 @@ export function isOrgEncryptionKeyLoaded(): boolean {
  * which is especially important in VDI/AVD hot-desk environments.
  */
 export function clearOrgState(): void {
+  logger.info('Clearing org state (logout)');
   ORG_ENCRYPTION_KEY = null;
   // ORG_FILE_IS_PORTABLE intentionally NOT reset — it reflects on-disk state,
   // preventing saveOrgs from downgrading the file to safeStorage after logout.
@@ -178,16 +180,40 @@ export function getAppData(): AppData {
     }
     if (!existsSync(APP_DATA_FILE)) {
       const appData = AppDataSchema.parse({});
-      writeFile(APP_DATA_FILE, JSON.stringify(appData), true);
+      writeFile(APP_DATA_FILE, JSON.stringify(appData));
+      APP_DATA = appData;
+      return appData;
     }
-    const maybeAppData = AppDataSchema.safeParse(JSON.parse(readFile(APP_DATA_FILE, true)));
-    const appData = maybeAppData.success ? maybeAppData.data : AppDataSchema.parse({});
+    // Try plain JSON first (new format), then safeStorage (legacy) for backward compat.
+    // safeStorage uses OS credentials (DPAPI on Windows) which don't persist across
+    // VDI/AVD sessions, so new writes always use plain JSON.
+    let appData: AppData;
+    try {
+      // New format: plain JSON
+      const text = readFileSync(APP_DATA_FILE, 'utf8');
+      const result = AppDataSchema.safeParse(JSON.parse(text));
+      appData = result.success ? result.data : AppDataSchema.parse({});
+    } catch {
+      // Plain JSON read/parse failed — try safeStorage (legacy encrypted format).
+      // readFileSync(path, 'utf8') on binary data doesn't throw, but JSON.parse will,
+      // so we land here for both missing-file and safeStorage-encrypted-file cases.
+      try {
+        const text = safeStorage.decryptString(readFileSync(APP_DATA_FILE));
+        logger.info('Read app-data from legacy safeStorage format — will migrate to plain JSON on next write');
+        const result = AppDataSchema.safeParse(JSON.parse(text));
+        appData = result.success ? result.data : AppDataSchema.parse({});
+      } catch (safeStorageError) {
+        logger.warn('Unable to read app-data (not valid JSON and safeStorage decrypt failed). Starting fresh.', safeStorageError);
+        appData = AppDataSchema.parse({});
+        writeFile(APP_DATA_FILE, JSON.stringify(appData));
+      }
+    }
     APP_DATA = appData;
     return appData;
   } catch (ex) {
     logger.error('Error reading app data file', ex);
     const appData = AppDataSchema.parse({});
-    writeFile(APP_DATA_FILE, JSON.stringify(appData), true);
+    writeFile(APP_DATA_FILE, JSON.stringify(appData));
     return appData;
   }
 }
@@ -196,9 +222,9 @@ export function setAppData(appData: AppData) {
   try {
     appData = AppDataSchema.parse(appData);
     APP_DATA = appData;
-    writeFile(APP_DATA_FILE, JSON.stringify(appData), true);
+    writeFile(APP_DATA_FILE, JSON.stringify(appData));
   } catch (ex) {
-    logger.error('Error reading app data file', ex);
+    logger.error('Error saving app data file', ex);
     return false;
   }
 }
@@ -318,12 +344,23 @@ function readOrgs(): OrgsPersistence {
       return { jetstreamOrganizations: JETSTREAM_ORGS, salesforceOrgs: SALESFORCE_ORGS };
     }
     if (!existsSync(SFDC_ORGS_FILE)) {
-      const emptyData = JSON.stringify({ jetstreamOrganizations: [], salesforceOrgs: [] });
       if (ORG_ENCRYPTION_KEY) {
+        // Create an empty portable-encrypted file so subsequent reads find it
+        const emptyData = JSON.stringify({ jetstreamOrganizations: [], salesforceOrgs: [] });
         const encrypted = encryptOrgsData(emptyData);
-        writeFileAtomic.sync(SFDC_ORGS_FILE, encrypted);
+        try {
+          writeFileAtomic.sync(SFDC_ORGS_FILE, encrypted);
+        } catch (error) {
+          logger.error('Error writing initial orgs file (atomic):', error);
+          writeFileSync(SFDC_ORGS_FILE, new Uint8Array(encrypted));
+        }
+        ORG_FILE_IS_PORTABLE = true;
       } else {
-        writeFile(SFDC_ORGS_FILE, emptyData, true);
+        // No key yet (auth not complete) — return empty without creating a safeStorage file.
+        // A safeStorage file would be machine-specific and unreadable on other VDI sessions.
+        // The file will be created on the first saveOrgs() after the encryption key is available.
+        logger.info('Orgs file does not exist and encryption key is not yet available — returning empty');
+        return { jetstreamOrganizations: [], salesforceOrgs: [] };
       }
     }
 
@@ -389,6 +426,7 @@ function readOrgs(): OrgsPersistence {
     const { jetstreamOrganizations, salesforceOrgs } = OrgsPersistenceSchema.parse(JSON.parse(orgsJson));
     JETSTREAM_ORGS = jetstreamOrganizations;
     SALESFORCE_ORGS = salesforceOrgs;
+    logger.info(`readOrgs: loaded ${salesforceOrgs.length} orgs and ${jetstreamOrganizations.length} groups from disk`);
 
     // Migrate: if we just read a legacy safeStorage file and the portable key is available,
     // re-encrypt per-org tokens portably and re-save the file in the new format.
@@ -423,6 +461,8 @@ function saveOrgs() {
       logger.error('saveOrgs: portable format required but encryption key is unavailable — skipping write to prevent data loss');
       return;
     }
+    const orgCount = SALESFORCE_ORGS?.length ?? 0;
+    const groupCount = JETSTREAM_ORGS?.length ?? 0;
     const data = { jetstreamOrganizations: JETSTREAM_ORGS, salesforceOrgs: SALESFORCE_ORGS };
     if (ORG_ENCRYPTION_KEY) {
       const encrypted = encryptOrgsData(JSON.stringify(data));
@@ -433,8 +473,10 @@ function saveOrgs() {
         writeFileSync(SFDC_ORGS_FILE, new Uint8Array(encrypted));
       }
       ORG_FILE_IS_PORTABLE = true;
+      logger.info(`saveOrgs: wrote ${orgCount} orgs and ${groupCount} groups (portable encryption)`);
     } else {
       writeFile(SFDC_ORGS_FILE, JSON.stringify(data), true);
+      logger.info(`saveOrgs: wrote ${orgCount} orgs and ${groupCount} groups (safeStorage fallback)`);
     }
   } catch (ex) {
     logger.error('Error saving orgs file', ex);
