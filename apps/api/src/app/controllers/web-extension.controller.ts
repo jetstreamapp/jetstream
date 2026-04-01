@@ -9,6 +9,7 @@ import {
 import { HTTP } from '@jetstream/shared/constants';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { fromUnixTime } from 'date-fns';
+import { UserProfileUiSchema } from '@jetstream/types';
 import { z } from 'zod';
 import { routeDefinition as dataSyncController } from '../controllers/data-sync.controller';
 import * as userSyncDbService from '../db/data-sync.db';
@@ -55,7 +56,17 @@ export const routeDefinition = {
   },
   verifyToken: {
     controllerFn: () => verifyToken,
-    responseType: z.object({ success: z.boolean(), error: z.string().nullish() }),
+    responseType: z.discriminatedUnion('success', [
+      z.object({
+        success: z.literal(true),
+        userProfile: UserProfileUiSchema,
+        accessToken: z.string().optional(),
+      }),
+      z.object({
+        success: z.literal(false),
+        error: z.string().nullish(),
+      }),
+    ]),
     validators: {
       /**
        * @deprecated, prefer headers for passing deviceId and accessToken
@@ -143,7 +154,11 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
   }
 
   // Issue new token if none exists or about to expire
-  const accessToken = await externalAuthService.issueAccessToken(userProfile, externalAuthService.AUDIENCE_WEB_EXT);
+  const accessToken = await externalAuthService.issueAccessToken(
+    userProfile,
+    externalAuthService.AUDIENCE_WEB_EXT,
+    externalAuthService.TOKEN_EXPIRATION_SHORT,
+  );
   await webExtDb.create(user.id, {
     type: webExtDb.TOKEN_TYPE_AUTH,
     source: webExtDb.TOKEN_SOURCE_BROWSER_EXTENSION,
@@ -162,23 +177,49 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
   });
 });
 
-const verifyToken = createRoute(routeDefinition.verifyToken.validators, async ({ user }, _, res) => {
+const verifyToken = createRoute(routeDefinition.verifyToken.validators, async ({ user }, req, res) => {
   const { deviceId } = res.locals;
   try {
     if (!user) {
       throw new InvalidSession();
     }
     const userProfile = await userDbService.findIdByUserIdUserFacing({ userId: user.id, omitSubscriptions: true });
-    res.log.info({ userId: userProfile.id, deviceId }, 'Web extension token verified');
 
-    sendJson(res, { success: true, userProfile });
+    // Token rotation: if the client supports it, issue a new short-lived JWT and replace the old one.
+    const supportsRotation = req.get(HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION) === '1';
+    let rotatedAccessToken: string | undefined;
+    if (supportsRotation && deviceId) {
+      const oldAccessToken = req.get('Authorization')?.split(' ')[1];
+      if (oldAccessToken) {
+        rotatedAccessToken = await externalAuthService.rotateToken({
+          userProfile,
+          audience: externalAuthService.AUDIENCE_WEB_EXT,
+          source: webExtDb.TOKEN_SOURCE_BROWSER_EXTENSION,
+          deviceId,
+          oldAccessToken,
+          ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
+          userAgent: req.get('User-Agent') || 'unknown',
+        });
+        if (rotatedAccessToken) {
+          res.log.info({ userId: userProfile.id, deviceId }, 'Web extension token verified and rotated');
+        } else {
+          res.log.info({ userId: userProfile.id, deviceId }, 'Web extension token verified (rotation skipped — concurrent race)');
+        }
+      }
+    }
+
+    if (!supportsRotation) {
+      res.log.info({ userId: userProfile.id, deviceId }, 'Web extension token verified');
+    }
+
+    sendJson(res, { success: true, userProfile, accessToken: rotatedAccessToken });
   } catch (ex) {
     res.log.error({ userId: user?.id, deviceId, ...getErrorMessageAndStackObj(ex) }, 'Error verifying web extension token');
     sendJson(res, { success: false, error: 'Invalid session' }, 401);
   }
 });
 
-const logout = createRoute(routeDefinition.logout.validators, async ({ user }, _, res) => {
+const logout = createRoute(routeDefinition.logout.validators, async ({ user }, req, res) => {
   const { deviceId } = res.locals;
   try {
     if (!deviceId || !user) {
@@ -186,6 +227,12 @@ const logout = createRoute(routeDefinition.logout.validators, async ({ user }, _
     }
     // This validates the token against the database record
     await webExtDb.deleteByUserIdAndDeviceId({ userId: user.id, deviceId, type: webExtDb.TOKEN_TYPE_AUTH });
+    // Invalidate the LRU cache so the token is rejected immediately rather than serving from cache
+    // Check both Authorization header and body for legacy clients that send accessToken in the body
+    const accessToken = req.get('Authorization')?.split(' ')[1] || (req.body as { accessToken?: string } | undefined)?.accessToken;
+    if (accessToken) {
+      externalAuthService.invalidateCacheEntry(accessToken, deviceId);
+    }
     res.log.info({ userId: user.id, deviceId }, 'User logged out of browser extension');
 
     sendJson(res, { success: true });

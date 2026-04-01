@@ -10,6 +10,7 @@ const AuthResponseSuccessSchema = z.object({
   success: z.literal(true),
   userProfile: UserProfileUiSchema,
   encryptionKey: z.string().length(64),
+  accessToken: z.string().optional(),
 });
 const AuthResponseErrorSchema = z.object({ success: z.literal(false), error: z.string() });
 const SuccessOrErrorSchema = z.union([AuthResponseSuccessSchema, AuthResponseErrorSchema]);
@@ -26,6 +27,7 @@ export async function verifyAuthToken({ accessToken, deviceId }: { deviceId: str
       Authorization: `Bearer ${accessToken}`,
       [HTTP.HEADERS.X_APP_VERSION]: app.getVersion(),
       [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
+      [HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION]: '1',
     },
   });
 

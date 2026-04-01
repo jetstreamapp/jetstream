@@ -14,9 +14,10 @@ import { ApiConnection, getApiRequestFactoryFn, getBinaryFileRecordQueryMap } fr
 import * as oauthService from '@jetstream/salesforce-oauth';
 import { HTTP } from '@jetstream/shared/constants';
 import { JetstreamEventStreamFilePayload, UserProfileUi } from '@jetstream/types';
-import { addHours } from 'date-fns';
+import { addHours, fromUnixTime } from 'date-fns';
 import { app, dialog, ipcMain, shell } from 'electron';
 import logger from 'electron-log';
+import { jwtDecode } from 'jwt-decode';
 import { ResponseBodyError } from 'oauth4webapi';
 import { Method } from 'tiny-request-router';
 import { z } from 'zod';
@@ -127,9 +128,11 @@ const handleLoginEvent: MainIpcHandler<'login'> = async (event) => {
 
       if (response.success) {
         const successResponse = response as AuthResponseSuccess;
+        // Use the rotated token if the server provided one, otherwise keep the original token
+        const activeAccessToken = successResponse.accessToken || accessToken;
         const { userProfile } = dataService.saveAuthResponseToAppData({
           deviceId,
-          accessToken,
+          accessToken: activeAccessToken,
           userProfile: successResponse.userProfile,
         });
 
@@ -140,7 +143,7 @@ const handleLoginEvent: MainIpcHandler<'login'> = async (event) => {
         const payload: AuthenticateSuccessPayload = {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           userProfile: userProfile as any,
-          authInfo: { deviceId, accessToken },
+          authInfo: { deviceId, accessToken: activeAccessToken },
           success: true,
         };
         event.sender.send(IpcEventChannel.authenticate, payload);
@@ -367,7 +370,6 @@ const handleCheckAuthEvent: MainIpcHandler<'checkAuth'> = async (): Promise<
   const userProfile = dataService.getFullUserProfile();
   const { deviceId, accessToken, lastChecked } = appData;
   if (accessToken && userProfile) {
-    // TODO: implement a refresh token flow
     if (
       !lastChecked ||
       lastChecked < addHours(new Date(), -AUTH_CHECK_INTERVAL_HOURS).getTime() ||
@@ -386,15 +388,32 @@ const handleCheckAuthEvent: MainIpcHandler<'checkAuth'> = async (): Promise<
         return;
       }
       const successResponse = response as AuthResponseSuccess;
-      logger.info('Authentication check successful');
+      // Use the rotated token if the server provided one, otherwise keep the current token
+      const activeAccessToken = successResponse.accessToken || accessToken;
+      logger.info('Authentication check successful', successResponse.accessToken ? '(token rotated)' : '');
+      // If the token was rotated, decode the new expiry from the JWT
+      let expiresAt = appData.expiresAt;
+      if (successResponse.accessToken) {
+        try {
+          const decoded = jwtDecode<{ exp?: number }>(successResponse.accessToken);
+          if (typeof decoded.exp === 'number' && Number.isFinite(decoded.exp)) {
+            expiresAt = fromUnixTime(decoded.exp).getTime();
+          }
+        } catch {
+          // If decode fails, keep the old expiresAt
+        }
+      }
       dataService.setAppData({
         ...appData,
+        accessToken: activeAccessToken,
         userProfile: successResponse.userProfile,
+        expiresAt,
         lastChecked: Date.now(),
       });
       if (successResponse.encryptionKey) {
         dataService.setOrgEncryptionKey(successResponse.encryptionKey);
       }
+      return { userProfile: successResponse.userProfile, authInfo: { deviceId, accessToken: activeAccessToken } };
     }
 
     return { userProfile, authInfo: { deviceId, accessToken } };

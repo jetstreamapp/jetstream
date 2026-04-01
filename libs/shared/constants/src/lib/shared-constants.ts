@@ -65,6 +65,7 @@ export const HTTP = {
     X_WEB_EXTENSION_DEVICE_ID: 'X-Web-Extension-Device-Identifier',
     X_EXT_DEVICE_ID: 'X-Ext-Id',
     X_APP_VERSION: 'X-App-Version',
+    X_SUPPORTS_TOKEN_ROTATION: 'X-Supports-Token-Rotation',
     CONTENT_TYPE: 'Content-Type',
     X_MOCK_KEY: 'X-MOCK-KEY',
     X_FORWARDED_FOR: 'X-FORWARDED-FOR',

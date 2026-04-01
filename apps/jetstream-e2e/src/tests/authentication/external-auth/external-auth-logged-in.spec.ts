@@ -148,6 +148,206 @@ test.describe('Desktop / Web-Extension Authentication', () => {
   });
 });
 
+test.describe('Desktop / Web-Extension Token Rotation', () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  test.beforeEach(async ({ page, authenticationPage }) => {
+    await page.goto('/');
+    await authenticationPage.acceptCookieBanner();
+  });
+
+  test('Desktop token rotation - rotated token works, old token is invalidated', async ({
+    page,
+    teamCreationUtils1User,
+    apiRequestUtils,
+  }) => {
+    const deviceId = uuid();
+
+    // 1. Create session and get original token
+    const sessionResponse = await apiRequestUtils.request.post(`/desktop-app/auth/session`, {
+      headers: { [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId },
+    });
+    expect(sessionResponse.status()).toBe(200);
+    const { accessToken: originalToken } = await sessionResponse.json().then(({ data }) => data);
+    expect(typeof originalToken).toBe('string');
+
+    // 2. Verify with rotation header — should get a new token
+    const rotateResponse = await apiRequestUtils.request.post(`/desktop-app/auth/verify`, {
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${originalToken}`,
+        [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
+        [HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION]: '1',
+      },
+    });
+    expect(rotateResponse.status()).toBe(200);
+    const rotateData = await rotateResponse.json().then(({ data }) => data);
+    expect(rotateData.success).toBe(true);
+    expect(rotateData.accessToken).toBeDefined();
+    expect(rotateData.accessToken).not.toBe(originalToken);
+    const rotatedToken = rotateData.accessToken;
+
+    // 3. Rotated token works for subsequent verify
+    const verifyWithRotated = await apiRequestUtils.request.post(`/desktop-app/auth/verify`, {
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${rotatedToken}`,
+        [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
+        [HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION]: '1',
+      },
+    });
+    expect(verifyWithRotated.status()).toBe(200);
+
+    // 4. Original token is now invalid (its hash was replaced in the DB)
+    const verifyWithOriginal = await apiRequestUtils.request.post(`/desktop-app/auth/verify`, {
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${originalToken}`,
+        [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
+      },
+    });
+    expect(verifyWithOriginal.status()).toBe(401);
+  });
+
+  test('Web extension token rotation - rotated token works, old token is invalidated', async ({
+    page,
+    teamCreationUtils1User,
+    apiRequestUtils,
+  }) => {
+    const deviceId = uuid();
+
+    // 1. Create session and get original token
+    const sessionResponse = await apiRequestUtils.request.post(`/web-extension/auth/session`, {
+      headers: { [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId },
+    });
+    expect(sessionResponse.status()).toBe(200);
+    const { accessToken: originalToken } = await sessionResponse.json().then(({ data }) => data);
+    expect(typeof originalToken).toBe('string');
+
+    // 2. Verify with rotation header — should get a new token
+    const rotateResponse = await apiRequestUtils.request.post(`/web-extension/auth/verify`, {
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${originalToken}`,
+        [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
+        [HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION]: '1',
+      },
+    });
+    expect(rotateResponse.status()).toBe(200);
+    const rotateData = await rotateResponse.json().then(({ data }) => data);
+    expect(rotateData.success).toBe(true);
+    expect(rotateData.accessToken).toBeDefined();
+    expect(rotateData.accessToken).not.toBe(originalToken);
+    const rotatedToken = rotateData.accessToken;
+
+    // 3. Rotated token works
+    const verifyWithRotated = await apiRequestUtils.request.post(`/web-extension/auth/verify`, {
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${rotatedToken}`,
+        [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
+        [HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION]: '1',
+      },
+    });
+    expect(verifyWithRotated.status()).toBe(200);
+
+    // 4. Original token is now invalid
+    const verifyWithOriginal = await apiRequestUtils.request.post(`/web-extension/auth/verify`, {
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${originalToken}`,
+        [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
+      },
+    });
+    expect(verifyWithOriginal.status()).toBe(401);
+  });
+
+  test('No rotation without header (backward compat)', async ({ page, teamCreationUtils1User, apiRequestUtils }) => {
+    const deviceId = uuid();
+
+    // 1. Create session
+    const sessionResponse = await apiRequestUtils.request.post(`/desktop-app/auth/session`, {
+      headers: { [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId },
+    });
+    expect(sessionResponse.status()).toBe(200);
+    const { accessToken } = await sessionResponse.json().then(({ data }) => data);
+
+    // 2. Verify WITHOUT rotation header — should not include accessToken in response
+    const verifyResponse = await apiRequestUtils.request.post(`/desktop-app/auth/verify`, {
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+        [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
+      },
+    });
+    expect(verifyResponse.status()).toBe(200);
+    const verifyData = await verifyResponse.json().then(({ data }) => data);
+    expect(verifyData.success).toBe(true);
+    expect(verifyData.accessToken).toBeUndefined();
+
+    // 3. Same token still works (was not rotated)
+    const verifyAgain = await apiRequestUtils.request.post(`/desktop-app/auth/verify`, {
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+        [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
+      },
+    });
+    expect(verifyAgain.status()).toBe(200);
+  });
+
+  test('Logout invalidates rotated token', async ({ page, teamCreationUtils1User, apiRequestUtils }) => {
+    const deviceId = uuid();
+
+    // 1. Create session
+    const sessionResponse = await apiRequestUtils.request.post(`/desktop-app/auth/session`, {
+      headers: { [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId },
+    });
+    const { accessToken: originalToken } = await sessionResponse.json().then(({ data }) => data);
+
+    // 2. Rotate the token
+    const rotateResponse = await apiRequestUtils.request.post(`/desktop-app/auth/verify`, {
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${originalToken}`,
+        [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
+        [HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION]: '1',
+      },
+    });
+    const { accessToken: rotatedToken } = await rotateResponse.json().then(({ data }) => data);
+
+    // 3. Logout with the rotated token
+    const logoutResponse = await apiRequestUtils.request.delete(`/desktop-app/auth/logout`, {
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${rotatedToken}`,
+        [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
+      },
+    });
+    expect(logoutResponse.status()).toBe(200);
+
+    // 4. Rotated token is now invalid
+    const verifyAfterLogout = await apiRequestUtils.request.post(`/desktop-app/auth/verify`, {
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${rotatedToken}`,
+        [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
+      },
+    });
+    expect(verifyAfterLogout.status()).toBe(401);
+  });
+});
+
 test.describe('Desktop / Web-Extension Authentication - Not Logged In', () => {
   test.use({ storageState: { cookies: [], origins: [] } });
   test('Desktop Authentication Redirected to Login', async ({ page }) => {

@@ -466,7 +466,7 @@ async function handleVerifyAuth(sender: browser.Runtime.MessageSender): Promise<
       return { hasTokens: true, loggedIn: true };
     }
 
-    const results: { success: true } | { success: false; error: string } = await fetch(
+    const results: { success: true; accessToken?: string } | { success: false; error: string } = await fetch(
       `${environment.serverUrl}/web-extension/auth/verify`,
       {
         method: 'POST',
@@ -475,6 +475,7 @@ async function handleVerifyAuth(sender: browser.Runtime.MessageSender): Promise<
           Authorization: `Bearer ${authTokens.accessToken}`,
           [HTTP.HEADERS.X_EXT_DEVICE_ID]: extIdentifier.id,
           [HTTP.HEADERS.X_APP_VERSION]: browser.runtime.getManifest().version,
+          [HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION]: '1',
         },
       },
     ).then((res) =>
@@ -492,7 +493,21 @@ async function handleVerifyAuth(sender: browser.Runtime.MessageSender): Promise<
       storageSyncCache.authTokens = undefined;
       return { hasTokens: true, loggedIn: false, error: results.error };
     }
-    const syncState = { ...authTokens, loggedIn: true, lastChecked: Date.now() };
+    // Use the rotated token if the server provided one, otherwise keep the current token
+    const activeAccessToken = results.accessToken || authTokens.accessToken;
+    // If the token was rotated, decode the new expiry from the JWT payload
+    let expiresAt = authTokens.expiresAt;
+    if (results.accessToken) {
+      try {
+        const payload = jwtDecode<{ exp: number }>(results.accessToken);
+        if (isNumber(payload.exp) && Number.isFinite(payload.exp)) {
+          expiresAt = payload.exp * 1000;
+        }
+      } catch {
+        // If decode fails, keep the old expiresAt
+      }
+    }
+    const syncState = { ...authTokens, accessToken: activeAccessToken, expiresAt, loggedIn: true, lastChecked: Date.now() };
     await browser.storage.sync.set({ [storageTypes.authTokens.key]: syncState });
     storageSyncCache.authTokens = syncState;
     return { hasTokens: true, loggedIn: true };

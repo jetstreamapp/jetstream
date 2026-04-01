@@ -62,6 +62,7 @@ export const routeDefinition = {
         success: z.literal(true),
         userProfile: UserProfileUiSchema,
         encryptionKey: z.string(),
+        accessToken: z.string().optional(),
       }),
       z.object({
         success: z.literal(false),
@@ -141,7 +142,7 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
 
   const userProfile = await userDbService.findIdByUserIdUserFacing({ userId: user.id, omitSubscriptions: true });
 
-  // Check for existing valid token with refresh buffer (7 days)
+  // Check for existing valid token with refresh buffer (TOKEN_AUTO_REFRESH_DAYS)
   const existingTokenRecord = await webExtDb.findByUserIdAndDeviceId({
     userId: user.id,
     deviceId,
@@ -166,7 +167,11 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
   }
 
   // Issue new token if none exists or about to expire
-  const accessToken = await externalAuthService.issueAccessToken(userProfile, externalAuthService.AUDIENCE_DESKTOP);
+  const accessToken = await externalAuthService.issueAccessToken(
+    userProfile,
+    externalAuthService.AUDIENCE_DESKTOP,
+    externalAuthService.TOKEN_EXPIRATION_SHORT,
+  );
   await webExtDb.create(user.id, {
     type: webExtDb.TOKEN_TYPE_AUTH,
     source: webExtDb.TOKEN_SOURCE_DESKTOP,
@@ -187,7 +192,7 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
   });
 });
 
-const verifyToken = createRoute(routeDefinition.verifyToken.validators, async ({ user }, _, res) => {
+const verifyToken = createRoute(routeDefinition.verifyToken.validators, async ({ user }, req, res) => {
   const { deviceId } = res.locals;
   try {
     if (!user) {
@@ -195,26 +200,59 @@ const verifyToken = createRoute(routeDefinition.verifyToken.validators, async ({
     }
 
     const userProfile = await userDbService.findIdByUserIdUserFacing({ userId: user.id, omitSubscriptions: true });
-    res.log.info({ userId: userProfile.id, deviceId }, 'Desktop App token verified');
 
     // Derive a per-user portable encryption key for local org data encryption on the desktop app.
     // The key is the same on any machine the user logs into; org data never leaves the device.
     const encryptionKey = createHmac('sha256', ENV.DESKTOP_ORG_ENCRYPTION_SECRET).update(user.id).digest('hex');
 
-    sendJson(res, { success: true, userProfile, encryptionKey });
+    // Token rotation: if the client supports it, issue a new short-lived JWT and replace the old one.
+    // This limits exposure from the JWT being stored in plain text on disk (VDI environments).
+    const supportsRotation = req.get(HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION) === '1';
+    let rotatedAccessToken: string | undefined;
+    if (supportsRotation && deviceId) {
+      const oldAccessToken = req.get('Authorization')?.split(' ')[1];
+      if (oldAccessToken) {
+        rotatedAccessToken = await externalAuthService.rotateToken({
+          userProfile,
+          audience: externalAuthService.AUDIENCE_DESKTOP,
+          source: webExtDb.TOKEN_SOURCE_DESKTOP,
+          deviceId,
+          oldAccessToken,
+          ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
+          userAgent: req.get('User-Agent') || 'unknown',
+        });
+        if (rotatedAccessToken) {
+          res.log.info({ userId: userProfile.id, deviceId }, 'Desktop App token verified and rotated');
+        } else {
+          res.log.info({ userId: userProfile.id, deviceId }, 'Desktop App token verified (rotation skipped — concurrent race)');
+        }
+      }
+    }
+
+    if (!supportsRotation) {
+      res.log.info({ userId: userProfile.id, deviceId }, 'Desktop App token verified');
+    }
+
+    sendJson(res, { success: true, userProfile, encryptionKey, accessToken: rotatedAccessToken });
   } catch (ex) {
     res.log.error({ userId: user?.id, deviceId, ...getErrorMessageAndStackObj(ex) }, 'Error verifying Desktop App token');
     sendJson(res, { success: false, error: 'Invalid session' }, 401);
   }
 });
 
-const logout = createRoute(routeDefinition.logout.validators, async ({ user }, _, res) => {
+const logout = createRoute(routeDefinition.logout.validators, async ({ user }, req, res) => {
   const { deviceId } = res.locals;
   try {
     if (!deviceId || !user) {
       throw new InvalidSession();
     }
     await webExtDb.deleteByUserIdAndDeviceId({ userId: user.id, deviceId, type: webExtDb.TOKEN_TYPE_AUTH });
+    // Invalidate the LRU cache so the token is rejected immediately rather than serving from cache
+    // Check both Authorization header and body for legacy clients that send accessToken in the body
+    const accessToken = req.get('Authorization')?.split(' ')[1] || (req.body as { accessToken?: string } | undefined)?.accessToken;
+    if (accessToken) {
+      externalAuthService.invalidateCacheEntry(accessToken, deviceId);
+    }
     res.log.info({ userId: user.id, deviceId }, 'User logged out of desktop app');
 
     sendJson(res, { success: true });
