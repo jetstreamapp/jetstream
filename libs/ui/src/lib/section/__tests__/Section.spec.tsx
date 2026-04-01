@@ -1,6 +1,9 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { Section } from '../Section';
 
+// Note: Section.tsx sets aria-expanded={!expanded} on the toggle button,
+// which is inverted from the ARIA spec convention. These tests reflect the
+// actual component behavior.
 describe('Section', () => {
   test('renders label text', () => {
     render(
@@ -20,18 +23,17 @@ describe('Section', () => {
     expect(screen.getByText('Section Content')).toBeTruthy();
   });
 
-  test('is expanded by default (initialExpanded defaults to true)', () => {
+  test('toggle button aria-expanded is false when section is open (initialExpanded defaults to true)', () => {
     render(
       <Section id="sec-1" label="Label">
         <p>Content</p>
       </Section>,
     );
     const button = screen.getByRole('button');
-    // aria-expanded reflects whether the section is CLOSED (inverted in implementation)
     expect(button.getAttribute('aria-expanded')).toBe('false');
   });
 
-  test('initialExpanded=false starts collapsed', () => {
+  test('toggle button aria-expanded is true when section is closed (initialExpanded=false)', () => {
     render(
       <Section id="sec-1" label="Label" initialExpanded={false}>
         <p>Content</p>
@@ -41,7 +43,7 @@ describe('Section', () => {
     expect(button.getAttribute('aria-expanded')).toBe('true');
   });
 
-  test('clicking the toggle button expands a collapsed section', () => {
+  test('clicking the toggle button opens a closed section', () => {
     render(
       <Section id="sec-1" label="Label" initialExpanded={false}>
         <p>Content</p>
@@ -53,7 +55,7 @@ describe('Section', () => {
     expect(button.getAttribute('aria-expanded')).toBe('false');
   });
 
-  test('clicking the toggle button collapses an expanded section', () => {
+  test('clicking the toggle button closes an open section', () => {
     render(
       <Section id="sec-1" label="Label" initialExpanded>
         <p>Content</p>
