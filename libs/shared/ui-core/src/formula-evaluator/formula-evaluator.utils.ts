@@ -1,313 +1,284 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { query, queryAll, readMetadata } from '@jetstream/shared/data';
+import { describeSObject, query, queryAll, readMetadata } from '@jetstream/shared/data';
 import { groupByFlat } from '@jetstream/shared/utils';
 import {
   Field,
-  FormulaFieldsByType,
+  FieldType,
   Maybe,
-  NullNumberBehavior,
   PermissionSetMetadataRecord,
   ProfileMetadataRecord,
   QueryResultsColumn,
   QueryResultsColumns,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import { fetchMetadataFromSoql } from '@jetstream/ui-core/shared';
+import type {
+  ExtractedFields,
+  FieldSchema,
+  FormulaContext,
+  FormulaRecord,
+  FormulaReturnType,
+  FormulaValue,
+  SfTime,
+} from '@jetstreamapp/sf-formula-parser';
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import { parseISO } from 'date-fns/parseISO';
 import { startOfDay } from 'date-fns/startOfDay';
-import * as formulon from 'formulon';
-import { DataType, FormulaDataValue } from 'formulon';
 import lodashGet from 'lodash/get';
-import isNil from 'lodash/isNil';
-import isString from 'lodash/isString';
-import { ManualFormulaRecord } from '../create-fields/create-fields-types';
+import lodashSet from 'lodash/set';
+import { ManualFormulaFieldType, ManualFormulaRecord } from '../create-fields/create-fields-types';
 
-const MATCH_FORMULA_SPECIAL_LABEL = /^\$[a-zA-Z]+\./;
+const MATCH_FORMULA_SPECIAL_PREFIX = /^\$[a-zA-Z]+\./;
 
-export function getFormulonTypeFromColumnType(col: QueryResultsColumn): DataType {
-  if (col.booleanType) {
-    return 'checkbox';
-  } else if (col.numberType) {
-    return 'number';
-  } else if (col.apexType === 'Date') {
-    return 'date';
-  } else if (col.apexType === 'Time') {
-    return 'time';
-  } else if (col.apexType === 'Datetime') {
-    return 'datetime';
-  } else if (col.apexType === 'Location') {
-    return 'geolocation';
-  }
-  return 'text';
+const FIELD_TYPE_TO_RETURN_TYPE: Partial<Record<FieldType, FormulaReturnType>> = {
+  string: 'string',
+  textarea: 'string',
+  phone: 'string',
+  url: 'string',
+  email: 'string',
+  picklist: 'string',
+  multipicklist: 'string',
+  encryptedstring: 'string',
+  id: 'string',
+  reference: 'string',
+  combobox: 'string',
+  boolean: 'boolean',
+  int: 'number',
+  double: 'number',
+  currency: 'number',
+  percent: 'number',
+  date: 'date',
+  datetime: 'datetime',
+  time: 'time',
+};
+
+/** Map a Salesforce field type to a formula return type for the returnType option. */
+export function fieldTypeToReturnType(fieldType: FieldType): FormulaReturnType | null {
+  return FIELD_TYPE_TO_RETURN_TYPE[fieldType] ?? null;
 }
 
-export function getFormulonTypeFromMetadata<T extends { type: Field['type'] }>(col: T): DataType {
-  if (col.type === 'boolean') {
-    return 'checkbox';
-  } else if (col.type === 'double' || col.type === 'currency' || col.type === 'percent' || col.type === 'int') {
-    return 'number';
-  } else if (col.type === 'date') {
-    return 'date';
-  } else if (col.type === 'time') {
-    return 'time';
-  } else if (col.type === 'datetime') {
-    return 'datetime';
-  } else if (col.type === 'location') {
-    return 'geolocation';
-  } else if (col.type === 'picklist') {
-    return 'picklist';
-  } else if (col.type === 'multipicklist') {
-    return 'multipicklist';
+/** The global variable keys that map to describable SObjects. */
+const GLOBAL_SOBJECT_MAP: Record<string, string> = {
+  $User: 'User',
+  $Organization: 'Organization',
+  $Profile: 'Profile',
+  $UserRole: 'UserRole',
+};
+
+/**
+ * Convert a SOQL query result value to a FormulaValue based on column type.
+ * Dates and times need explicit conversion from ISO strings; everything else passes through.
+ */
+function convertQueryValue(col: QueryResultsColumn, value: unknown): FormulaValue {
+  if (value == null) {
+    return null;
   }
-  return 'text';
+  if (col.apexType === 'Date' && typeof value === 'string') {
+    return startOfDay(parseISO(value));
+  }
+  if (col.apexType === 'Datetime' && typeof value === 'string') {
+    return parseISO(value);
+  }
+  if (col.apexType === 'Time' && typeof value === 'string') {
+    return parseSfTime(value);
+  }
+  return value as FormulaValue;
 }
 
 /**
- * Function that determines if the provided value is of type QueryResultsColumn or Field
+ * Convert a manually-provided field value based on its Salesforce field type.
  */
-function isQueryResultsColumn(col: QueryResultsColumn | Field | { type: Field['type'] }): col is QueryResultsColumn {
-  return (col as QueryResultsColumn).booleanType !== undefined;
+function convertManualValue(fieldType: ManualFormulaFieldType, value: unknown): FormulaValue {
+  if (value == null) {
+    return null;
+  }
+  if (fieldType === 'date' && typeof value === 'string') {
+    return startOfDay(parseISO(value));
+  }
+  if (fieldType === 'datetime' && typeof value === 'string') {
+    return parseISO(value);
+  }
+  if (fieldType === 'time' && typeof value === 'string') {
+    return parseSfTime(value);
+  }
+  return value as FormulaValue;
 }
 
-export function getFormulonData(
-  col: QueryResultsColumn | Field | { type: Field['type'] },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  value: any,
-  numberNullBehavior = 'ZERO',
-): FormulaDataValue {
-  const dataType = isQueryResultsColumn(col) ? getFormulonTypeFromColumnType(col) : getFormulonTypeFromMetadata(col);
-  if (dataType === 'text') {
-    return {
-      type: 'literal',
-      dataType,
-      value: value || '',
-      options: {
-        length: value?.length || 0,
-      },
-    };
-  }
-  if (dataType === 'number') {
-    const { length, scale } =
-      isQueryResultsColumn(col) || !('precision' in col) || !('scale' in col)
-        ? {
-            length: getPrecision(value) - 18,
-            scale: getPrecision(value),
-          }
-        : {
-            length: (isNil(col.precision) ? getPrecision(value) : col.precision) - col.scale,
-            scale: col.scale,
-          };
-    return {
-      type: 'literal',
-      dataType,
-      value: isNil(value) ? (numberNullBehavior === 'ZERO' ? 0 : '') : value,
-      options: {
-        length,
-        scale,
-      },
-    };
-  }
-  if (dataType === 'date') {
-    return {
-      type: 'literal',
-      dataType,
-      value: isNil(value) ? null : startOfDay(parseISO(value)),
-      options: {},
-    };
-  }
-  if (dataType === 'datetime') {
-    return {
-      type: 'literal',
-      dataType,
-      value: isNil(value) ? null : parseISO(value),
-      options: {},
-    };
-  }
-  if (dataType === 'picklist' || dataType === 'multipicklist') {
-    return {
-      type: 'literal',
-      dataType,
-      value: value || '',
-      options: {
-        values: (col as Field).picklistValues?.map(({ value }) => value) || [],
-      },
-    };
-  }
-  return {
-    type: 'literal',
-    dataType,
-    value,
-  };
-}
-
-function getPrecision(a: number | string) {
-  a = isString(a) ? Number(a) : a;
-  if (!isFinite(a)) {
-    return 0;
-  }
-  let e = 1;
-  let p = 0;
-  while (Math.round(a * e) / e !== a) {
-    e *= 10;
-    p++;
-  }
-  return p;
+/** Parse a Salesforce time string (HH:mm:ss.SSS[Z]) to an SfTime object */
+function parseSfTime(value: string): SfTime {
+  const parts = value.split(':');
+  const hours = Number(parts[0] || 0);
+  const minutes = Number(parts[1] || 0);
+  const secondsParts = (parts[2] || '0').split('.');
+  const seconds = Number((secondsParts[0] || '0').replace(/\D/g, '') || 0);
+  const fractionDigits = (secondsParts[1] || '').replace(/\D/g, '');
+  const ms = fractionDigits ? Number((fractionDigits + '000').slice(0, 3)) : 0;
+  return { timeInMillis: (hours * 3600 + minutes * 60 + seconds) * 1000 + ms };
 }
 
 interface FormulaDataProps {
   selectedOrg: SalesforceOrgUi;
   selectedUserId: string;
-  fields: string[];
+  categorizedFields: ExtractedFields;
   /**
-   * If recordId is provided, the record will be queried from the org
-   * In this case, type can be omitted, if provided it should be 'QUERY_RECORD'
+   * If recordId is provided, the record will be queried from the org.
+   * In this case, type can be omitted, if provided it should be 'QUERY_RECORD'.
    */
   type?: 'QUERY_RECORD';
   recordId: string;
   record?: never;
   sobjectName: string;
-  numberNullBehavior: NullNumberBehavior;
 }
 
 interface FormulaDataProvidedRecordProps {
   selectedOrg: SalesforceOrgUi;
   selectedUserId: string;
-  fields: string[];
+  categorizedFields: ExtractedFields;
   /**
-   * If record is provided, the record will be used directly instead of querying from the org
+   * If record is provided, the record will be used directly instead of querying from the org.
    */
   type: 'PROVIDED_RECORD';
   recordId?: never;
   record: ManualFormulaRecord;
   sobjectName: string;
-  numberNullBehavior: NullNumberBehavior;
 }
 
 export async function getFormulaData({
   selectedOrg,
   selectedUserId,
-  fields,
+  categorizedFields,
   type = 'QUERY_RECORD',
   recordId,
   record,
   sobjectName,
-  numberNullBehavior = 'ZERO',
 }: FormulaDataProps | FormulaDataProvidedRecordProps): Promise<
   | { type: 'error'; message: string }
-  | { type: 'success'; formulaFields: formulon.FormulaData; warnings: { type: string; message: string }[] }
+  | { type: 'success'; context: FormulaContext; schema: Record<string, FieldSchema[]>; warnings: { type: string; message: string }[] }
 > {
   try {
-    const formulaFields: formulon.FormulaData = {};
-    const warnings = [];
+    const formulaRecord: FormulaRecord = {};
+    const globals: Record<string, FormulaRecord> = {};
+    const warnings: { type: string; message: string }[] = [];
+    const schema: Record<string, FieldSchema[]> = {};
 
-    const {
-      objectFields,
-      apiFields,
-      customMetadata,
-      customLabels,
-      organization,
-      customPermissions,
-      profile,
-      customSettings,
-      system,
-      user,
-      userRole,
-    } = fields.reduce(
-      (output: FormulaFieldsByType, field) => {
-        if (!field.startsWith('$')) {
-          output.objectFields.push(field);
-        } else {
-          const identifier = field.toLowerCase().split('.')[0];
-          switch (identifier) {
-            case '$api':
-              output.apiFields.push(field);
-              break;
-            case '$custommetadata':
-              output.customMetadata.push(field);
-              break;
-            case '$label':
-              output.customLabels.push(field);
-              break;
-            case '$organization':
-              output.organization.push(field);
-              break;
-            case '$permission':
-              output.customPermissions.push(field);
-              break;
-            case '$profile':
-              output.profile.push(field);
-              break;
-            case '$setup':
-              output.customSettings.push(field);
-              break;
-            case '$system':
-              output.system.push(field);
-              break;
-            case '$user':
-              output.user.push(field);
-              break;
-            case '$userrole':
-              output.userRole.push(field);
-              break;
-            default:
-              break;
-          }
-        }
-        return output;
-      },
-      {
-        objectFields: [],
-        apiFields: [],
-        customMetadata: [],
-        customLabels: [],
-        organization: [],
-        customPermissions: [],
-        profile: [],
-        customSettings: [],
-        system: [],
-        user: [],
-        userRole: [],
-      },
-    );
+    const { objectFields, globals: globalFields, customMetadata, customLabels, customSettings, customPermissions } = categorizedFields;
 
-    // TODO: this is a good candidate for unit tests
-    // TODO: collect warnings
-    // These should also be somewhat forgiving
+    const userFields = globalFields['$User'] || [];
+    const organizationFields = globalFields['$Organization'] || [];
+    const profileFields = globalFields['$Profile'] || [];
+    const userRoleFields = globalFields['$UserRole'] || [];
+    const apiFields = globalFields['$Api'] || [];
+    const systemFields = globalFields['$System'] || [];
+
+    // Collect schema metadata for the root SObject and any related/global objects
+    await collectSchema({ selectedOrg, sobjectName, objectFields, globalFields, schema });
+
     if (type === 'QUERY_RECORD' && recordId) {
-      await collectBaseQueriedRecordFields({ selectedOrg, fields: objectFields, recordId, sobjectName, formulaFields, numberNullBehavior });
+      await collectBaseQueriedRecordFields({ selectedOrg, fields: objectFields, recordId, sobjectName, output: formulaRecord });
     } else {
-      await collectBaseRecordFields({
-        fields,
-        record: record || {},
-        formulaFields,
-        numberNullBehavior,
-      });
+      collectBaseRecordFields({ fields: objectFields, manualRecord: record || {}, output: formulaRecord });
     }
 
-    collectApiFields({ selectedOrg, fields: apiFields, formulaFields, numberNullBehavior });
-    await collectCustomMetadata({ selectedOrg, fields: customMetadata, formulaFields, numberNullBehavior });
-    await collectCustomSettingFields({ selectedOrg, selectedUserId, fields: customSettings, formulaFields, numberNullBehavior });
-    await collectCustomPermissions({ selectedOrg, selectedUserId, fields: customPermissions, formulaFields, numberNullBehavior });
-    await collectLabels({ selectedOrg, fields: customLabels, formulaFields, numberNullBehavior });
-    await collectOrganizationFields({ selectedOrg, fields: organization, formulaFields, numberNullBehavior });
+    collectApiFields({ selectedOrg, fields: apiFields, globals });
+    await collectCustomMetadata({ selectedOrg, fields: customMetadata, globals });
+    await collectCustomSettingFields({ selectedOrg, selectedUserId, fields: customSettings, globals });
+    await collectCustomPermissions({ selectedOrg, selectedUserId, fields: customPermissions, globals });
+    await collectLabels({ selectedOrg, fields: customLabels, globals });
+    await collectOrganizationFields({ selectedOrg, fields: organizationFields, globals });
     await collectUserProfileAndRoleFields({
       selectedOrg,
       selectedUserId,
-      userFields: user,
-      profileFields: profile,
-      roleFields: userRole,
-      formulaFields,
-      numberNullBehavior,
+      userFields,
+      profileFields,
+      roleFields: userRoleFields,
+      globals,
     });
-    await collectSystemFields({ fields: system, formulaFields });
+    collectSystemFields({ fields: systemFields, globals });
 
-    logger.log({ formulaFields, warnings });
+    const context: FormulaContext = { record: formulaRecord };
+    if (Object.keys(globals).length) {
+      context.globals = globals;
+    }
 
-    return { type: 'success', formulaFields, warnings };
+    logger.log({ context, schema, warnings });
+
+    return { type: 'success', context, schema, warnings };
   } catch (ex) {
     logger.error(ex);
     throw ex;
+  }
+}
+
+/**
+ * Collect schema metadata for the root SObject, any related objects referenced in objectFields,
+ * and any global variables ($User, $Organization, etc.) referenced in globalFields.
+ *
+ * The schema map uses '$record' for the root object, relationship names for related objects,
+ * and '$'-prefixed names for globals — matching the sf-formula-parser SchemaInput format.
+ */
+async function collectSchema({
+  selectedOrg,
+  sobjectName,
+  objectFields,
+  globalFields,
+  schema,
+}: {
+  selectedOrg: SalesforceOrgUi;
+  sobjectName: string;
+  objectFields: string[];
+  globalFields: Record<string, string[]>;
+  schema: Record<string, FieldSchema[]>;
+}) {
+  const describeCache: Record<string, Field[]> = {};
+
+  async function describeFields(sObjectName: string): Promise<Field[]> {
+    if (describeCache[sObjectName]) {
+      return describeCache[sObjectName];
+    }
+    try {
+      const { data } = await describeSObject(selectedOrg, sObjectName);
+      describeCache[sObjectName] = data.fields;
+      return data.fields;
+    } catch (ex) {
+      logger.warn(`Could not describe ${sObjectName} for schema validation`, ex);
+      return [];
+    }
+  }
+
+  // Root SObject — always describe so we can validate direct field references
+  const rootFields = await describeFields(sobjectName);
+  if (rootFields.length) {
+    schema['$record'] = rootFields;
+  }
+
+  // Related objects referenced via dot-notation in objectFields (e.g. "Account.Name", "Owner.Profile.Name")
+  const relationshipNames = new Set<string>();
+  for (const field of objectFields) {
+    const dotIndex = field.indexOf('.');
+    if (dotIndex > -1) {
+      relationshipNames.add(field.substring(0, dotIndex));
+    }
+  }
+
+  for (const relationshipName of relationshipNames) {
+    const relField = rootFields.find(
+      (field) => field.relationshipName && field.relationshipName.toLowerCase() === relationshipName.toLowerCase(),
+    );
+    if (relField?.referenceTo?.length) {
+      const relatedFields = await describeFields(relField.referenceTo[0]);
+      if (relatedFields.length) {
+        schema[relationshipName] = relatedFields;
+      }
+    }
+  }
+
+  // Global variables that map to describable SObjects
+  for (const [globalKey, sObjectName] of Object.entries(GLOBAL_SOBJECT_MAP)) {
+    if (globalFields[globalKey]?.length) {
+      const fields = await describeFields(sObjectName);
+      if (fields.length) {
+        schema[globalKey] = fields;
+      }
+    }
   }
 }
 
@@ -316,21 +287,19 @@ async function collectBaseQueriedRecordFields({
   fields,
   recordId,
   sobjectName,
-  formulaFields,
-  numberNullBehavior,
+  output,
 }: {
   selectedOrg: SalesforceOrgUi;
   fields: string[];
   recordId: string;
   sobjectName: string;
-  formulaFields: formulon.FormulaData;
-  numberNullBehavior: NullNumberBehavior;
+  output: FormulaRecord;
 }) {
   if (!fields.length) {
     return;
   }
 
-  const { queryResults, columns, parsedQuery } = await query(
+  const { queryResults, columns } = await query(
     selectedOrg,
     composeQuery({
       fields: fields.map(getField),
@@ -351,69 +320,55 @@ async function collectBaseQueriedRecordFields({
   }
 
   const fieldsByName = getFieldsByName(columns);
-  let lowercaseFieldMap: Record<string, Field> = {};
-  if (parsedQuery) {
-    lowercaseFieldMap = (await fetchMetadataFromSoql(selectedOrg, parsedQuery)).lowercaseFieldMap;
-  }
 
+  output['Id'] = recordId;
   fields.forEach((field) => {
-    // Prefer to get field from actual metadata, otherwise picklist is not handled and can cause formula errors
-    const column = lowercaseFieldMap[field.toLowerCase()] || fieldsByName[field.toLowerCase()];
-    if (!column || !fieldsByName[field.toLowerCase()]) {
+    const column = fieldsByName[field.toLowerCase()];
+    if (!column) {
       throw new Error(`Field ${field} does not exist on ${sobjectName}.`);
     }
-    formulaFields['Id'] = { type: 'literal', dataType: 'text', value: recordId, options: { length: 18 } };
-    formulaFields[field] = getFormulonData(
-      column,
-      lodashGet(queryResults.records[0], fieldsByName[field.toLowerCase()].columnFullPath),
-      numberNullBehavior,
-    );
+    lodashSet(output, field, convertQueryValue(column, lodashGet(queryResults.records[0], column.columnFullPath)));
   });
 }
 
-async function collectBaseRecordFields({
+function collectBaseRecordFields({
   fields,
-  record,
-  formulaFields,
-  numberNullBehavior,
+  manualRecord,
+  output,
 }: {
   fields: string[];
-  record: ManualFormulaRecord;
-  formulaFields: formulon.FormulaData;
-  numberNullBehavior: NullNumberBehavior;
+  manualRecord: ManualFormulaRecord;
+  output: FormulaRecord;
 }) {
   if (!fields.length) {
     return;
   }
 
   fields.forEach((field) => {
-    // Prefer to get field from actual metadata, otherwise picklist is not handled and can cause formula errors
-    const recordValue = record[field];
+    const recordValue = manualRecord[field];
     if (!recordValue) {
       throw new Error(`Field ${field} does not exist in provided record data.`);
     }
-    const { type, value } = recordValue;
-
-    formulaFields[field] = getFormulonData({ type }, value, numberNullBehavior);
+    output[field] = convertManualValue(recordValue.type, recordValue.value);
   });
 }
 
 function collectApiFields({
   selectedOrg,
   fields,
-  formulaFields,
+  globals,
 }: {
   selectedOrg: SalesforceOrgUi;
   fields: string[];
-  formulaFields: formulon.FormulaData;
-  numberNullBehavior: NullNumberBehavior;
+  globals: Record<string, FormulaRecord>;
 }) {
   if (!fields.length) {
     return;
   }
 
+  const apiGlobals: FormulaRecord = {};
   fields.forEach((fieldWithIdentifier) => {
-    const field = fieldWithIdentifier.replace(MATCH_FORMULA_SPECIAL_LABEL, '');
+    const field = fieldWithIdentifier.replace(MATCH_FORMULA_SPECIAL_PREFIX, '');
     let value: string;
     if (field.toLowerCase() === 'session_id') {
       value = '*****';
@@ -425,21 +380,19 @@ function collectApiFields({
         apiVersion.length - 1,
       )}.0/${selectedOrg.organizationId.substring(0, 15)}`;
     }
-
-    formulaFields[fieldWithIdentifier] = { type: 'literal', dataType: 'text', value, options: { length: value.length } };
+    apiGlobals[field] = value;
   });
+  globals['$Api'] = apiGlobals;
 }
 
 async function collectCustomMetadata({
   selectedOrg,
   fields,
-  formulaFields,
-  numberNullBehavior,
+  globals,
 }: {
   selectedOrg: SalesforceOrgUi;
   fields: string[];
-  formulaFields: formulon.FormulaData;
-  numberNullBehavior: NullNumberBehavior;
+  globals: Record<string, FormulaRecord>;
 }) {
   if (!fields.length) {
     return;
@@ -462,13 +415,13 @@ async function collectCustomMetadata({
     {},
   );
 
-  // Query each metadata object, extract fields, and add to formulaFields
+  const customMetadataGlobals: FormulaRecord = {};
+
   for (const metadataObject of Object.keys(data)) {
     const { records } = data[metadataObject];
-    const { queryResults, parsedQuery, columns } = await query(
+    const { queryResults, columns } = await query(
       selectedOrg,
       composeQuery({
-        // we could use actual fields instead of all if these has performance issues
         fields: [{ type: 'FieldFunctionExpression', functionName: 'FIELDS', parameters: ['ALL'], rawValue: 'FIELDS(ALL)' }],
         sObject: metadataObject,
         where: {
@@ -483,42 +436,37 @@ async function collectCustomMetadata({
       }),
     );
 
-    // Group records by Api name, then get value of each used field in record
     const fieldsByName = getFieldsByName(columns);
-    let lowercaseFieldMap: Record<string, Field> = {};
-    if (parsedQuery) {
-      lowercaseFieldMap = (await fetchMetadataFromSoql(selectedOrg, parsedQuery)).lowercaseFieldMap;
-    }
     const recordsByApiName = getRecordsByLowercaseField(queryResults.records, 'QualifiedApiName');
 
+    // Build nested structure: Type__mdt → Record → Field__c
+    const objectRecord: FormulaRecord = {};
     Object.values(records).forEach(({ fields, record }) => {
       const metadataRecord = recordsByApiName[record.toLowerCase()];
-      fields.forEach(({ field, fullField }) => {
-        // Prefer to get field from actual metadata, otherwise picklist is not handled and can cause formula errors
-        const column = lowercaseFieldMap[field.toLowerCase()] || fieldsByName[field.toLowerCase()];
-        if (!column || !fieldsByName[field.toLowerCase()]) {
+      const recordFields: FormulaRecord = {};
+      fields.forEach(({ field }) => {
+        const column = fieldsByName[field.toLowerCase()];
+        if (!column) {
           throw new Error(`Field ${field} does not exist on ${metadataObject}.`);
         }
-        formulaFields[fullField] = getFormulonData(
-          column,
-          lodashGet(metadataRecord, fieldsByName[field.toLowerCase()].columnFullPath),
-          numberNullBehavior,
-        );
+        recordFields[field] = convertQueryValue(column, lodashGet(metadataRecord, column.columnFullPath));
       });
+      objectRecord[record] = recordFields;
     });
+    customMetadataGlobals[metadataObject] = objectRecord;
   }
+
+  globals['$CustomMetadata'] = customMetadataGlobals;
 }
 
 async function collectLabels({
   selectedOrg,
   fields,
-  formulaFields,
-  numberNullBehavior,
+  globals,
 }: {
   selectedOrg: SalesforceOrgUi;
   fields: string[];
-  formulaFields: formulon.FormulaData;
-  numberNullBehavior: NullNumberBehavior;
+  globals: Record<string, FormulaRecord>;
 }) {
   if (!fields.length) {
     return;
@@ -527,7 +475,6 @@ async function collectLabels({
   const { queryResults } = await query(
     selectedOrg,
     composeQuery({
-      // we could use actual fields instead of all if these has performance issues
       fields: [getField('Name'), getField('Value')],
       sObject: 'ExternalString',
       where: {
@@ -544,35 +491,31 @@ async function collectLabels({
   );
 
   const recordsByApiName = getRecordsByLowercaseField(queryResults.records, 'Name');
+  const labelGlobals: FormulaRecord = {};
 
   fields.forEach((fieldWithIdentifier) => {
-    const field = fieldWithIdentifier.replace(MATCH_FORMULA_SPECIAL_LABEL, '');
-    const recordName = field.toLowerCase();
+    const field = fieldWithIdentifier.replace(MATCH_FORMULA_SPECIAL_PREFIX, '');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const record: Record<string, any> | undefined = recordsByApiName[recordName];
-    formulaFields[fieldWithIdentifier] = {
-      type: 'literal',
-      dataType: 'text',
-      value: record?.Value || '',
-      options: { length: record?.Value?.length || 0 },
-    };
+    const record: Record<string, any> | undefined = recordsByApiName[field.toLowerCase()];
+    labelGlobals[field] = record?.Value || '';
   });
+
+  globals['$Label'] = labelGlobals;
 }
 
 async function collectOrganizationFields({
   selectedOrg,
   fields,
-  formulaFields,
-  numberNullBehavior,
+  globals,
 }: {
   selectedOrg: SalesforceOrgUi;
   fields: string[];
-  formulaFields: formulon.FormulaData;
-  numberNullBehavior: NullNumberBehavior;
+  globals: Record<string, FormulaRecord>;
 }) {
   if (!fields.length) {
     return;
   }
+
   const { queryResults, columns } = await query(
     selectedOrg,
     composeQuery({
@@ -583,17 +526,18 @@ async function collectOrganizationFields({
   );
 
   const fieldsByName = getFieldsByName(columns);
+  const orgGlobals: FormulaRecord = {};
 
   fields.forEach((fieldWithIdentifier) => {
-    const field = fieldWithIdentifier.replace(MATCH_FORMULA_SPECIAL_LABEL, '');
-    const fieldName = field.toLowerCase();
-    const column = fieldsByName[fieldName];
-    formulaFields[fieldWithIdentifier] = getFormulonData(
-      column,
-      lodashGet(queryResults.records[0], column.columnFullPath),
-      numberNullBehavior,
-    );
+    const field = fieldWithIdentifier.replace(MATCH_FORMULA_SPECIAL_PREFIX, '');
+    const column = fieldsByName[field.toLowerCase()];
+    if (!column) {
+      throw new Error(`Invalid Organization field in formula: ${field}`);
+    }
+    orgGlobals[field] = convertQueryValue(column, lodashGet(queryResults.records[0], column.columnFullPath));
   });
+
+  globals['$Organization'] = orgGlobals;
 }
 
 async function collectUserProfileAndRoleFields({
@@ -602,20 +546,19 @@ async function collectUserProfileAndRoleFields({
   userFields,
   profileFields,
   roleFields,
-  formulaFields,
-  numberNullBehavior,
+  globals,
 }: {
   selectedOrg: SalesforceOrgUi;
   selectedUserId: string;
   userFields: string[];
   profileFields: string[];
   roleFields: string[];
-  formulaFields: formulon.FormulaData;
-  numberNullBehavior: NullNumberBehavior;
+  globals: Record<string, FormulaRecord>;
 }) {
   if (!userFields.length && !profileFields.length && !roleFields.length) {
     return;
   }
+
   const { queryResults, columns } = await query(
     selectedOrg,
     composeQuery({
@@ -643,49 +586,64 @@ async function collectUserProfileAndRoleFields({
   );
 
   const { Profile, UserRole, ...User } = queryResults.records[0];
-
   const fieldsByName = getFieldsByName(columns);
 
-  userFields.forEach((fieldWithIdentifier) => {
-    const field = fieldWithIdentifier.replace(MATCH_FORMULA_SPECIAL_LABEL, '');
-    const fieldName = field.toLowerCase();
-    const column = fieldsByName[fieldName];
-    formulaFields[fieldWithIdentifier] = getFormulonData(column, lodashGet(User, column.columnName), numberNullBehavior);
-  });
+  if (userFields.length) {
+    const userGlobals: FormulaRecord = {};
+    userFields.forEach((fieldWithIdentifier) => {
+      const field = fieldWithIdentifier.replace(MATCH_FORMULA_SPECIAL_PREFIX, '');
+      const column = fieldsByName[field.toLowerCase()];
+      if (!column) {
+        throw new Error(`Invalid User field in formula: ${field}`);
+      }
+      userGlobals[field] = convertQueryValue(column, lodashGet(User, column.columnName));
+    });
+    globals['$User'] = userGlobals;
+  }
 
-  profileFields.forEach((fieldWithIdentifier) => {
-    const field = fieldWithIdentifier.replace(MATCH_FORMULA_SPECIAL_LABEL, '');
-    const fieldName = field.toLowerCase();
-    const column = fieldsByName[`profile.${fieldName}`];
-    formulaFields[fieldWithIdentifier] = getFormulonData(column, lodashGet(Profile, column.columnName), numberNullBehavior);
-  });
+  if (profileFields.length) {
+    const profileGlobals: FormulaRecord = {};
+    profileFields.forEach((fieldWithIdentifier) => {
+      const field = fieldWithIdentifier.replace(MATCH_FORMULA_SPECIAL_PREFIX, '');
+      const column = fieldsByName[`profile.${field.toLowerCase()}`];
+      if (!column) {
+        throw new Error(`Invalid Profile field in formula: ${field}`);
+      }
+      profileGlobals[field] = convertQueryValue(column, lodashGet(Profile, column.columnName));
+    });
+    globals['$Profile'] = profileGlobals;
+  }
 
-  roleFields.forEach((fieldWithIdentifier) => {
-    const field = fieldWithIdentifier.replace(MATCH_FORMULA_SPECIAL_LABEL, '');
-    const fieldName = field.toLowerCase();
-    const column = fieldsByName[`userrole.${fieldName}`];
-    formulaFields[fieldWithIdentifier] = getFormulonData(column, lodashGet(UserRole, column.columnName), numberNullBehavior);
-  });
+  if (roleFields.length) {
+    const roleGlobals: FormulaRecord = {};
+    roleFields.forEach((fieldWithIdentifier) => {
+      const field = fieldWithIdentifier.replace(MATCH_FORMULA_SPECIAL_PREFIX, '');
+      const column = fieldsByName[`userrole.${field.toLowerCase()}`];
+      if (!column) {
+        throw new Error(`Invalid UserRole field in formula: ${field}`);
+      }
+      roleGlobals[field] = convertQueryValue(column, lodashGet(UserRole, column.columnName));
+    });
+    globals['$UserRole'] = roleGlobals;
+  }
 }
 
 /**
- * Fetch all assigned permission sets (which also include the user's profile)
- * read metadata for each assigned permission set (slow)
- * Get all the customPermissions assigned to the profile/permission sets
- * compare with the formula's custom permission
+ * Fetch all assigned permission sets (which also include the user's profile),
+ * read metadata for each assigned permission set,
+ * get all the customPermissions assigned to the profile/permission sets,
+ * and compare with the formula's custom permission.
  */
 async function collectCustomPermissions({
   selectedOrg,
   selectedUserId,
   fields,
-  formulaFields,
-  numberNullBehavior,
+  globals,
 }: {
   selectedOrg: SalesforceOrgUi;
   selectedUserId: string;
   fields: string[];
-  formulaFields: formulon.FormulaData;
-  numberNullBehavior: NullNumberBehavior;
+  globals: Record<string, FormulaRecord>;
 }) {
   if (!fields.length) {
     return;
@@ -754,35 +712,30 @@ async function collectCustomPermissions({
   );
 
   // Calculate if custom permission is enabled
+  const permissionGlobals: FormulaRecord = {};
   fields.forEach((field) => {
     const permissionName = field.split('.')[1];
-    formulaFields[field] = {
-      type: 'literal',
-      dataType: 'checkbox',
-      value: customPermissions.has(permissionName),
-    };
+    permissionGlobals[permissionName] = customPermissions.has(permissionName);
   });
+  globals['$Permission'] = permissionGlobals;
 }
 
 async function collectCustomSettingFields({
   selectedOrg,
   selectedUserId,
   fields,
-  formulaFields,
-  numberNullBehavior,
+  globals,
 }: {
   selectedOrg: SalesforceOrgUi;
   selectedUserId: string;
   fields: string[];
-  formulaFields: formulon.FormulaData;
-  numberNullBehavior: NullNumberBehavior;
+  globals: Record<string, FormulaRecord>;
 }) {
   if (!fields.length) {
     return;
   }
-  // going to be similar to custom metadata BUT will need to apply hierarchy
 
-  const { queryResults } = await query(
+  const { queryResults: userQueryResults } = await query(
     selectedOrg,
     composeQuery({
       fields: Array.from(new Set([getField('Id'), getField('ProfileId')])),
@@ -799,7 +752,7 @@ async function collectCustomSettingFields({
     }),
   );
 
-  const { Id, ProfileId } = queryResults.records[0];
+  const { Id, ProfileId } = userQueryResults.records[0];
 
   const data = fields.reduce((output: Record<string, { object: string; fields: { field: string; fullField: string }[] }>, fullField) => {
     const [, object, field] = fullField.split('.');
@@ -808,13 +761,14 @@ async function collectCustomSettingFields({
     return output;
   }, {});
 
-  // Query each metadata object, extract fields, and add to formulaFields
+  const setupGlobals: FormulaRecord = {};
+
+  // Query each custom setting, apply hierarchy logic, and extract fields
   for (const customSettingObject of Object.keys(data)) {
     const { fields } = data[customSettingObject];
     const { queryResults, columns } = await query(
       selectedOrg,
       composeQuery({
-        // we could use actual fields instead of all if these has performance issues
         fields: [{ type: 'FieldFunctionExpression', functionName: 'FIELDS', parameters: ['ALL'], rawValue: 'FIELDS(ALL)' }],
         sObject: customSettingObject,
         where: {
@@ -833,28 +787,29 @@ async function collectCustomSettingFields({
     const recordsBySetupId = groupByFlat(queryResults.records, 'SetupOwnerId');
     const record = recordsBySetupId[Id] || recordsBySetupId[ProfileId] || recordsBySetupId[selectedOrg.organizationId];
 
-    fields.forEach(({ field, fullField }) => {
-      const column = fieldsByName[field];
-      formulaFields[fullField] = getFormulonData(column, lodashGet(record, field), numberNullBehavior);
+    const settingRecord: FormulaRecord = {};
+    fields.forEach(({ field }) => {
+      const column = fieldsByName[field.toLowerCase()];
+      if (!column) {
+        throw new Error(`Invalid custom setting field in formula: ${customSettingObject}.${field}`);
+      }
+      settingRecord[field] = convertQueryValue(column, lodashGet(record, column.columnName));
     });
+    setupGlobals[customSettingObject] = settingRecord;
   }
+
+  globals['$Setup'] = setupGlobals;
 }
 
-async function collectSystemFields({ fields, formulaFields }: { fields: string[]; formulaFields: formulon.FormulaData }) {
+function collectSystemFields({ fields, globals }: { fields: string[]; globals: Record<string, FormulaRecord> }) {
   if (!fields.length) {
     return;
   }
-  // hard-code date
-  formulaFields['$System.OriginDateTime'] = {
-    type: 'literal',
-    dataType: 'datetime',
-    value: new Date(1900, 1, 1),
-  };
+  globals['$System'] = { OriginDateTime: new Date(1900, 1, 1) };
 }
 
-/** get columns by field name in lowercase */
+/** Get columns by field name in lowercase */
 function getFieldsByName(columns: Maybe<QueryResultsColumns>) {
-  // get columns by field name in lowercase
   return (
     columns?.columns?.reduce((output: Record<string, QueryResultsColumn>, item) => {
       output[item.columnFullPath.toLowerCase()] = item;
@@ -872,45 +827,49 @@ function getRecordsByLowercaseField(records: Record<string, string>[], field: st
 
 export const formulaFunctions = [
   'ABS',
-  'ADD',
   'ADDMONTHS',
   'AND',
+  'ASCII',
   'BEGINS',
   'BLANKVALUE',
   'BR',
   'CASE',
   'CASESAFEID',
   'CEILING',
+  'CHR',
   'CONTAINS',
-  // 'CURRENCYRATE', // NOT IMPLEMENTED
   'DATE',
   'DATETIMEVALUE',
   'DATEVALUE',
   'DAY',
+  'DAYOFYEAR',
   'DISTANCE',
-  'DIVIDE',
-  'EQUAL',
   'EXP',
-  'EXPONENTIATE',
   'FIND',
   'FLOOR',
+  'FROMUNIXTIME',
   'GEOLOCATION',
   'GETSESSIONID',
-  'GREATERTHAN',
-  'GREATERTHANOREQUAL',
   'HOUR',
+  'HTMLENCODE',
   'HYPERLINK',
   'IF',
+  'IFERROR',
+  'IFS',
   'IMAGE',
   'INCLUDES',
+  'INITCAP',
   'ISBLANK',
-  // 'ISNULL', // NOT IMPLEMENTED
-  // 'ISNUMBER', // NOT IMPLEMENTED
+  'ISCHANGED',
+  'ISCLONE',
+  'ISNEW',
+  'ISNULL',
+  'ISNUMBER',
   'ISPICKVAL',
+  'JSENCODE',
+  'JSINHTMLENCODE',
   'LEFT',
   'LEN',
-  'LESSTHAN',
-  'LESSTHANOREQUAL',
   'LN',
   'LOG',
   'LOWER',
@@ -924,11 +883,14 @@ export const formulaFunctions = [
   'MINUTE',
   'MOD',
   'MONTH',
-  'MULTIPLY',
   'NOT',
   'NOW',
-  // 'NULLVALUE', // NOT IMPLEMENTED
+  'NULLVALUE',
   'OR',
+  'PI',
+  'POWER',
+  'PRIORVALUE',
+  'RAND',
   'REGEX',
   'RIGHT',
   'ROUND',
@@ -936,14 +898,15 @@ export const formulaFunctions = [
   'SECOND',
   'SQRT',
   'SUBSTITUTE',
-  'SUBTRACT',
   'TEXT',
   'TIMENOW',
   'TIMEVALUE',
   'TODAY',
   'TRIM',
-  'UNEQUAL',
+  'TRUNC',
+  'UNIXTIMESTAMP',
   'UPPER',
+  'URLENCODE',
   'VALUE',
   'WEEKDAY',
   'YEAR',

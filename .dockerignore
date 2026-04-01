@@ -17,7 +17,6 @@
 !/.gitignore
 !/babel.config.json
 !/Dockerfile
-!/formulon.d.ts
 !/LICENSE.md
 !/next-sitemap.config.js
 !/nx.json

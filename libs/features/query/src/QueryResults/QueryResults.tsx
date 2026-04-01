@@ -511,7 +511,7 @@ export const QueryResults = React.memo(() => {
 
   function handleGetAsApex(record: any) {
     setGetRecordAsApex({
-      record: record,
+      record,
       sobjectName: getSObjectNameFromAttributes(record),
     });
   }

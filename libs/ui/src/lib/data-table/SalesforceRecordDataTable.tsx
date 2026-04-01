@@ -320,7 +320,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
       (
         allRows: RowSalesforceRecordWithKey[],
         filteredRows: RowSalesforceRecordWithKey[],
-        data: RowsChangeData<RowSalesforceRecordWithKey>,
+        _data: RowsChangeData<RowSalesforceRecordWithKey>,
       ) => {
         const rowsByKey = groupByFlat(filteredRows, '_key');
         const newRows = allRows.map((row) => rowsByKey[row._key] || row);

@@ -4,6 +4,7 @@ import * as dotenv from 'dotenv';
 import {
   ApiRequestUtils,
   AuthenticationPage,
+  FormulaEvaluatorPage,
   LoadSingleObjectPage,
   LoadWithoutFilePage,
   OrgGroupPage,
@@ -48,6 +49,7 @@ type MyFixtures = {
   playwrightPage: PlaywrightPage;
   authenticationPage: AuthenticationPage;
   newUser: Awaited<ReturnType<AuthenticationPage['signUpAndVerifyEmail']>>;
+  formulaEvaluatorPage: FormulaEvaluatorPage;
   queryPage: QueryPage;
   loadSingleObjectPage: LoadSingleObjectPage;
   orgGroupPage: OrgGroupPage;
@@ -114,6 +116,10 @@ export const test = base.extend<MyFixtures>({
   },
   newUser: async ({ authenticationPage }, use) => {
     await use(await authenticationPage.signUpAndVerifyEmail());
+  },
+  formulaEvaluatorPage: async ({ page, apiRequestUtils }, use) => {
+    await apiRequestUtils.selectDefaultOrg();
+    await use(new FormulaEvaluatorPage(page, apiRequestUtils));
   },
   queryPage: async ({ page, apiRequestUtils }, use) => {
     await apiRequestUtils.selectDefaultOrg();

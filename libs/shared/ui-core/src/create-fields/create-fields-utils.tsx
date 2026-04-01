@@ -12,6 +12,7 @@ import {
   SalesforceOrgUi,
   ToolingApiResponse,
 } from '@jetstream/types';
+import { FormulaReturnType } from '@jetstreamapp/sf-formula-parser';
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import isBoolean from 'lodash/isBoolean';
 import isNil from 'lodash/isNil';
@@ -72,6 +73,18 @@ export function ensureValidSecondaryType(type: string): string {
     return type as SalesforceFieldType;
   }
   return 'Text';
+}
+
+export function convertFormulaSecondaryTypeToEvaluatorType(type: SalesforceFieldType): FormulaReturnType {
+  return ({
+    checkbox: 'boolean',
+    currency: 'number',
+    date: 'date',
+    datetime: 'datetime',
+    number: 'number',
+    percent: 'number',
+    time: 'time',
+  }[type.toLowerCase()] || 'string') as FormulaReturnType;
 }
 
 export const fieldDefinitions: FieldDefinitions = {
