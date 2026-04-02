@@ -1,3 +1,12 @@
+// Mock the app state module to prevent HTTP requests during module initialization.
+// The Popover imports Tooltip from the ui barrel index which transitively loads
+// NotSeeingRecentMetadataPopover and UserFeedbackWidget, both of which import from
+// @jetstream/ui/app-state. That module calls fetchUserProfile() at init time, which
+// fails in the test environment and causes an unhandled rejection.
+vi.mock('@jetstream/ui/app-state', () => ({
+  fromAppState: {},
+}));
+
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Popover } from '../Popover';
 

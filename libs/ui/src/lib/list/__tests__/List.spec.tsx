@@ -99,32 +99,33 @@ describe('List', () => {
   });
 
   test('keyboard ArrowDown moves focus to next item', () => {
-    const onSelected = vi.fn();
     render(
       <List
         items={items}
         isActive={(item) => item.id === 'item-1'}
         getContent={getContent}
-        onSelected={onSelected}
+        onSelected={() => {}}
       />,
     );
     const listbox = screen.getByRole('listbox');
+    const options = screen.getAllByRole('option');
     fireEvent.keyDown(listbox, { key: 'ArrowDown', code: 'ArrowDown' });
-    // No error means keyboard handler ran successfully
+    expect(document.activeElement).toBe(options[1]);
   });
 
   test('keyboard Home moves focus to first item', () => {
     render(
       <List
         items={items}
-        isActive={() => false}
+        isActive={(item) => item.id === 'item-3'}
         getContent={getContent}
         onSelected={() => {}}
       />,
     );
     const listbox = screen.getByRole('listbox');
+    const options = screen.getAllByRole('option');
     fireEvent.keyDown(listbox, { key: 'Home', code: 'Home' });
-    // No error means keyboard handler ran successfully
+    expect(document.activeElement).toBe(options[0]);
   });
 });
 

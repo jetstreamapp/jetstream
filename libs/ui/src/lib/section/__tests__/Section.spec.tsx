@@ -1,9 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { Section } from '../Section';
 
-// Note: Section.tsx sets aria-expanded={!expanded} on the toggle button,
-// which is inverted from the ARIA spec convention. These tests reflect the
-// actual component behavior.
 describe('Section', () => {
   test('renders label text', () => {
     render(
@@ -23,24 +20,24 @@ describe('Section', () => {
     expect(screen.getByText('Section Content')).toBeTruthy();
   });
 
-  test('toggle button aria-expanded is false when section is open (initialExpanded defaults to true)', () => {
+  test('toggle button aria-expanded is true when section is open (initialExpanded defaults to true)', () => {
     render(
       <Section id="sec-1" label="Label">
         <p>Content</p>
       </Section>,
     );
     const button = screen.getByRole('button');
-    expect(button.getAttribute('aria-expanded')).toBe('false');
+    expect(button.getAttribute('aria-expanded')).toBe('true');
   });
 
-  test('toggle button aria-expanded is true when section is closed (initialExpanded=false)', () => {
+  test('toggle button aria-expanded is false when section is closed (initialExpanded=false)', () => {
     render(
       <Section id="sec-1" label="Label" initialExpanded={false}>
         <p>Content</p>
       </Section>,
     );
     const button = screen.getByRole('button');
-    expect(button.getAttribute('aria-expanded')).toBe('true');
+    expect(button.getAttribute('aria-expanded')).toBe('false');
   });
 
   test('clicking the toggle button opens a closed section', () => {
@@ -50,9 +47,9 @@ describe('Section', () => {
       </Section>,
     );
     const button = screen.getByRole('button');
-    expect(button.getAttribute('aria-expanded')).toBe('true');
-    fireEvent.click(button);
     expect(button.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(button);
+    expect(button.getAttribute('aria-expanded')).toBe('true');
   });
 
   test('clicking the toggle button closes an open section', () => {
@@ -62,8 +59,9 @@ describe('Section', () => {
       </Section>,
     );
     const button = screen.getByRole('button');
-    fireEvent.click(button);
     expect(button.getAttribute('aria-expanded')).toBe('true');
+    fireEvent.click(button);
+    expect(button.getAttribute('aria-expanded')).toBe('false');
   });
 
   test('button has aria-controls pointing to content id', () => {
