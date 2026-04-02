@@ -1,5 +1,11 @@
 # Changelog
 
+## [9.7.0](https://github.com/jetstreamapp/jetstream/compare/v9.6.0...v9.7.0) (2026-04-02)
+
+### Features
+
+* update Terms of Service with new LastUpdated date and add compliance reporting information ([b2661ed](https://github.com/jetstreamapp/jetstream/commit/b2661eddbd88988458d5882c11e8b68f18579710))
+
 ## [9.6.0](https://github.com/jetstreamapp/jetstream/compare/v9.5.0...v9.6.0) (2026-04-02)
 
 ### Features
