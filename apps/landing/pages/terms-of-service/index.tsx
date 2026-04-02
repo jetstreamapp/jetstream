@@ -14,7 +14,7 @@ const email = 'support@getjetstream.app';
 export default function Page() {
   return (
     <div className="m-8">
-      <LastUpdated className="text-gray-500" day={19} month="March" year={2026} />
+      <LastUpdated className="text-gray-500" day={2} month="April" year={2026} />
       <h1>TERMS OF SERVICE</h1>
       <h2>OVERVIEW</h2>
       <p className="mb-2 pl-2">
@@ -252,6 +252,17 @@ export default function Page() {
         Questions about the Terms of Service should be sent to us at{' '}
         <a className="underline" href={`mailto:${email}?subject=Question about Terms of Service`} target="_blank" rel="noreferrer">
           {email}
+        </a>
+        .
+      </p>
+      <p className="mb-2 pl-2">
+        To report concerns regarding security, ethics, or compliance, contact{' '}
+        <a className="underline" href="mailto:compliance@getjetstream.app" target="_blank" rel="noreferrer">
+          compliance@getjetstream.app
+        </a>
+        . You may also submit a report anonymously using our{' '}
+        <a className="underline" href="https://forms.gle/TrN2hL8m8m4Lkpfb7" target="_blank" rel="noreferrer">
+          confidential reporting form
         </a>
         .
       </p>
