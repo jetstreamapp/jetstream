@@ -79,3 +79,8 @@ certificates
 
 .claude/worktrees
 .claude/settings.local.json
+
+.sf/
+.sfdx/
+**/.sf/
+**/.sfdx/
