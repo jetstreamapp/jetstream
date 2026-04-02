@@ -1,12 +1,24 @@
 import { ensureArray, getFullNameFromListMetadata, orderObjectsBy } from '@jetstream/shared/utils';
 import { ListMetadataResult, Maybe, PackageTypeMembers, RetrieveRequest } from '@jetstream/types';
-import XMLBuilder from 'fast-xml-builder';
-import { XMLParser } from 'fast-xml-parser';
+import { build, parse } from '@jetstreamapp/simple-xml';
 import lodashGet from 'lodash/get';
 import isObjectLike from 'lodash/isObjectLike';
 import isString from 'lodash/isString';
 
 const VALID_PACKAGE_VERSION = /^[0-9]+\.[0-9]+$/;
+
+export const PACKAGE_MANIFEST_PARSE_OPTIONS = {
+  trimValues: true,
+  ignoreAttributes: true,
+  removeNSPrefix: true,
+  parseTagValue: false,
+  processEntities: false,
+} as const;
+
+export const PACKAGE_BUILD_OPTIONS = {
+  ignoreAttributes: false,
+  attributeNamePrefix: '@',
+} as const;
 
 /**
  * Mutates the input types by moving "Folder" types to their parent type.
@@ -46,26 +58,29 @@ export function buildPackageXml(
 ) {
   mutateFolderMetadataTypes(types);
 
-  let xmlString = new XMLBuilder({ format: prettyPrint, ignoreAttributes: false, attributeNamePrefix: '@' }).build({
-    Package: {
-      '@xmlns': 'http://soap.sforce.com/2006/04/metadata',
-      types: Object.keys(types).map((metadataType) => {
-        const members = orderObjectsBy(types[metadataType], 'fullName');
-        return {
-          members: members.map(({ fullName, namespacePrefix }) => {
-            return getFullNameFromListMetadata({
-              fullName,
-              metadataType,
-              namespace: namespacePrefix,
-            });
-          }),
-          name: metadataType,
-        };
-      }),
-      ...otherFields,
-      version,
+  let xmlString = build(
+    {
+      Package: {
+        '@xmlns': 'http://soap.sforce.com/2006/04/metadata',
+        types: Object.keys(types).map((metadataType) => {
+          const members = orderObjectsBy(types[metadataType], 'fullName');
+          return {
+            members: members.map(({ fullName, namespacePrefix }) => {
+              return getFullNameFromListMetadata({
+                fullName,
+                metadataType,
+                namespace: namespacePrefix,
+              });
+            }),
+            name: metadataType,
+          };
+        }),
+        ...otherFields,
+        version,
+      },
     },
-  });
+    { ...PACKAGE_BUILD_OPTIONS, format: prettyPrint },
+  );
 
   xmlString = `<?xml version="1.0" encoding="UTF-8"?>\n${xmlString}`;
 
@@ -109,13 +124,7 @@ export function getRetrieveRequestFromListMetadata(
 export function getRetrieveRequestFromManifest(packageManifest: string) {
   let manifestXml;
   try {
-    manifestXml = new XMLParser({
-      trimValues: true,
-      ignoreAttributes: true,
-      removeNSPrefix: true,
-      parseTagValue: false,
-      processEntities: false,
-    }).parse(packageManifest);
+    manifestXml = parse(packageManifest, PACKAGE_MANIFEST_PARSE_OPTIONS);
   } catch {
     throw new Error('The package manifest format is invalid');
   }
