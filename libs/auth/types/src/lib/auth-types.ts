@@ -483,6 +483,7 @@ export const LoginConfigurationWithCallbacksSchema = LoginConfigurationSchema.pi
   callbackUrls: z
     .object({
       oidc: z.string(),
+      oidcInitiateLogin: z.string(),
       saml: z.string(),
       samlMetadata: z.string(),
       spEntityId: z.string(),

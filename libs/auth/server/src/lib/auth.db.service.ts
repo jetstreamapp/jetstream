@@ -1900,6 +1900,7 @@ export async function getTeamLoginConfigWithSso(teamId: string) {
     select: {
       loginConfig: {
         select: {
+          ssoEnabled: true,
           samlConfiguration: true,
           oidcConfiguration: true,
         },

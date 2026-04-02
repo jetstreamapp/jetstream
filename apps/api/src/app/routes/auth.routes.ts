@@ -71,6 +71,7 @@ routes.post('/sso/saml/:teamId/acs', STRICT_2X_AuthRateLimit, authController.rou
 routes.get('/sso/saml/:teamId/metadata', LAX_AuthRateLimit, authController.routeDefinition.getSamlMetadata.controllerFn());
 
 // OIDC Login Flow
+routes.get('/sso/oidc/:teamId/initiate', STRICT_AuthRateLimit, authController.routeDefinition.initiateOidcLogin.controllerFn());
 routes.get('/sso/oidc/:teamId/callback', STRICT_2X_AuthRateLimit, authController.routeDefinition.handleOidcCallback.controllerFn());
 
 export default routes;

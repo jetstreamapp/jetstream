@@ -265,6 +265,13 @@ export const routeDefinition = {
       hasSourceOrg: false,
     } satisfies RouteValidator,
   },
+  initiateOidcLogin: {
+    controllerFn: () => initiateOidcLogin,
+    validators: {
+      params: z.object({ teamId: z.uuid() }),
+      hasSourceOrg: false,
+    } satisfies RouteValidator,
+  },
   acceptTerms: {
     controllerFn: () => acceptTerms,
     responseType: z.object({ error: z.boolean(), redirect: z.string() }).nullable(),
@@ -1330,6 +1337,48 @@ const getSamlMetadata = createRoute(routeDefinition.getSamlMetadata.validators, 
   } catch (ex) {
     res.log.error(getErrorMessageAndStackObj(ex), '[AUTH][SAML_METADATA] Error generating SAML metadata');
     res.status(500).send('Error generating SAML metadata');
+  }
+});
+
+/**
+ * IdP-initiated OIDC login: the IdP redirects here, and we kick off a normal SP-initiated flow.
+ * This allows users to click the Jetstream tile in their IdP dashboard (e.g. Okta) and get logged in.
+ */
+const initiateOidcLogin = createRoute(routeDefinition.initiateOidcLogin.validators, async ({ params, setCookie }, req, res, next) => {
+  try {
+    const { teamId } = params;
+
+    const team = await getTeamLoginConfigWithSso(teamId);
+
+    if (!team?.loginConfig.ssoEnabled || !team?.loginConfig.oidcConfiguration) {
+      throw new InvalidProvider('OIDC not configured for this team');
+    }
+
+    const config = team.loginConfig.oidcConfiguration;
+    const { url, codeVerifier, state, nonce } = await oidcService.getAuthorizationUrl(config, teamId);
+
+    const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
+    setCookie(cookieConfig.pkceCodeVerifier.name, codeVerifier, cookieConfig.pkceCodeVerifier.options);
+    setCookie(cookieConfig.state.name, state, cookieConfig.state.options);
+    setCookie(cookieConfig.nonce.name, nonce, cookieConfig.nonce.options);
+
+    createUserActivityFromReq(req, res, {
+      action: 'SSO_START',
+      method: 'OIDC',
+      teamId,
+      success: true,
+    });
+
+    redirect(res, url);
+  } catch (ex) {
+    res.log.error(getErrorMessageAndStackObj(ex), '[AUTH][OIDC_INITIATE] Error initiating OIDC login');
+    createUserActivityFromReqWithError(req, res, ex, {
+      action: 'SSO_START',
+      method: 'OIDC',
+      teamId: params.teamId,
+      success: false,
+    });
+    next(ensureAuthError(ex));
   }
 });
 

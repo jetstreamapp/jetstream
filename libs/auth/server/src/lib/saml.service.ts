@@ -17,6 +17,7 @@ export function resolveSamlIdentifiers(teamId: string) {
 
   const callbackUrls = {
     oidc: `${ENV.JETSTREAM_SERVER_URL}/api/auth/sso/oidc/${teamId}/callback`,
+    oidcInitiateLogin: `${ENV.JETSTREAM_SERVER_URL}/api/auth/sso/oidc/${teamId}/initiate`,
     saml: acsUrl,
     samlMetadata: `${urlPrefix}/metadata`,
     spEntityId,

@@ -123,11 +123,24 @@ export function ConfigureSsoOidcForm({ teamId, existingSsoConfig, onSave }: Conf
         {existingSsoConfig?.callbackUrls?.oidc && (
           <div className="slds-m-bottom_medium">
             <ScopedNotification theme="light">
-              <strong className="slds-m-bottom_x-small slds-block">Configure this callback URL in your OIDC provider:</strong>
-              <div className="slds-m-top_xx-small">
-                {existingSsoConfig.callbackUrls.oidc}
-                <CopyToClipboard content={existingSsoConfig.callbackUrls.oidc} />
+              <div className="slds-m-bottom_small">
+                <strong className="slds-m-bottom_x-small slds-block">Configure this callback URL in your OIDC provider:</strong>
+                <div className="slds-m-top_xx-small">
+                  {existingSsoConfig.callbackUrls.oidc}
+                  <CopyToClipboard content={existingSsoConfig.callbackUrls.oidc} />
+                </div>
               </div>
+              {existingSsoConfig.callbackUrls.oidcInitiateLogin && (
+                <div className="slds-m-bottom_small">
+                  <strong className="slds-m-bottom_x-small slds-block">
+                    Initiate Login URI (optional - allows users to launch Jetstream from your IdP dashboard):
+                  </strong>
+                  <div className="slds-m-top_xx-small">
+                    {existingSsoConfig.callbackUrls.oidcInitiateLogin}
+                    <CopyToClipboard content={existingSsoConfig.callbackUrls.oidcInitiateLogin} />
+                  </div>
+                </div>
+              )}
             </ScopedNotification>
           </div>
         )}

@@ -120,6 +120,16 @@ After saving the connection, make sure to check the "Enable SSO" checkbox to ena
 
 You can optionally allow users with specific roles to bypass SSO, by default this is enabled for administrators.
 
+### Enable IdP-Initiated Login (Optional)
+
+Google Workspace does not natively support an "Initiate Login URI" for OIDC apps in the same way as other identity providers. However, you can use the **Initiate Login URI** from the Jetstream Team Dashboard as a custom link or bookmark for users. It will be in the format:
+
+```
+https://getjetstream.app/api/auth/sso/oidc/{uuid}/initiate
+```
+
+If you prefer users to launch Jetstream directly from the Google Workspace app launcher, consider using [SAML SSO](#configure-google-workspace-for-saml-sso) instead, which supports IdP-initiated login natively.
+
 ## Configure Google Workspace for SAML SSO
 
 ### Add SSO provider in Jetstream
