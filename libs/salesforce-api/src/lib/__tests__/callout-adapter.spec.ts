@@ -314,9 +314,9 @@ describe('callout-adapter XML parsing', () => {
       const body = getSoapBody(result);
       const response = body.retrieveResponse;
       expect(response).toHaveProperty('result');
-      expect(response.result).toHaveProperty('done');
-      expect(response.result).toHaveProperty('id');
-      expect(response.result).toHaveProperty('state');
+      expect(response.result.done).toBe(false);
+      expect(response.result.id).toBe('09SKf000002knYIMAY');
+      expect(response.result.state).toBe('Queued');
     });
 
     it('should parse checkRetrieveStatus SOAP response with zipFile', async () => {
@@ -336,10 +336,14 @@ describe('callout-adapter XML parsing', () => {
       const body = getSoapBody(result);
       const response = body.checkRetrieveStatusResponse;
       expect(response).toHaveProperty('result');
-      expect(response.result).toHaveProperty('done');
-      expect(response.result).toHaveProperty('fileProperties');
-      expect(response.result).toHaveProperty('zipFile');
-      expect(response.result.zipFile).toBeTruthy();
+      expect(response.result.done).toBe(true);
+      expect(response.result.success).toBe(true);
+      expect(response.result.status).toBe('Succeeded');
+      expect(response.result.id).toBe('09SKf000002knYIMAY');
+      expect(response.result.zipFile).toBe('UEsDBBQACAgIAJl8TFwAAAA=');
+      expect(response.result.fileProperties).toBeDefined();
+      expect(response.result.fileProperties.fullName).toBe('AddPrimaryContactTest');
+      expect(response.result.fileProperties.type).toBe('ApexClass');
     });
 
     it('should parse executeAnonymous SOAP response with header', async () => {
@@ -439,9 +443,14 @@ describe('callout-adapter XML parsing', () => {
       const data = result as any;
       expect(data).toHaveProperty('jobInfo');
       expect(data.jobInfo.state).toBe('Closed');
+      expect(data.jobInfo.operation).toBe('update');
+      expect(data.jobInfo.object).toBe('Account');
       expect(data.jobInfo.numberBatchesCompleted).toBe(1);
+      expect(data.jobInfo.numberBatchesFailed).toBe(0);
+      expect(data.jobInfo.numberBatchesTotal).toBe(1);
       expect(data.jobInfo.numberRecordsProcessed).toBe(251);
       expect(data.jobInfo.numberRecordsFailed).toBe(251);
+      expect(data.jobInfo.totalProcessingTime).toBe(741);
     });
 
     it('should parse Bulk API batchInfo', async () => {
@@ -694,10 +703,15 @@ describe('callout-adapter XML parsing', () => {
       const body = getSoapBody(result);
       const resultData = body.executeAnonymousResponse.result;
 
-      // Elements with xsi:nil="true" should be present (may be null/undefined or have @_nil attribute)
-      expect(resultData).toHaveProperty('compileProblem');
-      expect(resultData).toHaveProperty('exceptionMessage');
-      expect(resultData).toHaveProperty('exceptionStackTrace');
+      // Elements with xsi:nil="true" produce objects with @_nil attribute
+      expect(resultData.compileProblem).toEqual({ '@_nil': 'true' });
+      expect(resultData.exceptionMessage).toEqual({ '@_nil': 'true' });
+      expect(resultData.exceptionStackTrace).toEqual({ '@_nil': 'true' });
+      // Boolean and numeric values are coerced
+      expect(resultData.compiled).toBe(true);
+      expect(resultData.success).toBe(true);
+      expect(resultData.column).toBe(-1);
+      expect(resultData.line).toBe(-1);
     });
   });
 

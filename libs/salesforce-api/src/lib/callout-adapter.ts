@@ -1,5 +1,5 @@
 import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
-import { XMLParser } from 'fast-xml-parser';
+import { parse } from '@jetstreamapp/simple-xml';
 import isObject from 'lodash/isObject';
 import { ApiRequestOptions, ApiRequestOutputType, BulkXmlErrorResponse, FetchFn, FetchResponse, Logger, SoapErrorResponse } from './types';
 
@@ -26,15 +26,17 @@ export class ApiRequestError extends Error {
   }
 }
 
+export const CALLOUT_ADAPTER_PARSE_OPTIONS = {
+  trimValues: true,
+  ignoreAttributes: false,
+  removeNSPrefix: true,
+  attributeNamePrefix: '@_',
+  processEntities: false,
+  parseTagValue: true,
+} as const;
+
 function parseXml(value: string) {
-  const response = new XMLParser({
-    trimValues: true,
-    ignoreAttributes: false,
-    removeNSPrefix: true,
-    attributeNamePrefix: '@_',
-    processEntities: false,
-  }).parse(value);
-  return response;
+  return parse(value, CALLOUT_ADAPTER_PARSE_OPTIONS);
 }
 
 /**
