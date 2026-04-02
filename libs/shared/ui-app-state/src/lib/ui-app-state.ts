@@ -190,10 +190,7 @@ async function fetchUserProfile(): Promise<UserProfileUi> {
   if (isBrowserExtension()) {
     return DEFAULT_PROFILE;
   }
-  if (isDesktop()) {
-    return await getUserProfile().catch(() => DEFAULT_PROFILE);
-  }
-  return await getUserProfile();
+  return await getUserProfile().catch(() => DEFAULT_PROFILE);
 }
 
 const userPreferenceState = atom<Promise<UserProfilePreferences>>(getUserPreferences());
