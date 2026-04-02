@@ -283,7 +283,11 @@ export const QueryResults = React.memo(() => {
 
   async function handleSaveSoqlQueryFormatOptions(options: SoqlQueryFormatOptions): Promise<void> {
     setSoqlQueryFormatOptions(options);
-    setSoql(formatQuery(soql, options));
+    try {
+      setSoql(formatQuery(soql, options));
+    } catch {
+      // Ignore format errors for invalid SOQL
+    }
     fromJetstreamEvents.emit({ type: 'saveSoqlQueryFormatOptions', payload: { value: options } });
   }
 

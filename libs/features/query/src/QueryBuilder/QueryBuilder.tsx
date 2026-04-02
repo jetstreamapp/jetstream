@@ -171,7 +171,11 @@ export const QueryBuilder = () => {
 
   function handleSaveSoqlQueryFormatOptions(options: SoqlQueryFormatOptions): void {
     setSoqlQueryFormatOptions(options);
-    setSoql(formatQuery(soql, options));
+    try {
+      setSoql(formatQuery(soql, options));
+    } catch {
+      // Ignore formatting errors for invalid SOQL
+    }
     fromJetstreamEvents.emit({ type: 'saveSoqlQueryFormatOptions', payload: { value: options } });
   }
 

@@ -145,7 +145,11 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
         keybindings: [monaco?.KeyMod.Shift | monaco?.KeyMod.Alt | monaco?.KeyCode.KeyF],
         contextMenuGroupId: '9_cutcopypaste',
         run: (currEditor) => {
-          setUserSoqlRef.current(formatQuery(currEditor.getValue(), soqlQueryFormatOptions));
+          try {
+            setUserSoqlRef.current(formatQuery(currEditor.getValue(), soqlQueryFormatOptions));
+          } catch {
+            // Ignore formatting errors for invalid SOQL
+          }
         },
       }),
     );
