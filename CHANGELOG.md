@@ -1,5 +1,15 @@
 # Changelog
 
+## [9.6.0](https://github.com/jetstreamapp/jetstream/compare/v9.5.0...v9.6.0) (2026-04-02)
+
+### Features
+
+* replace fast-xml-parser and fast-xml-builder with @jetstreamapp/simple-xml for XML parsing and building ([2db670a](https://github.com/jetstreamapp/jetstream/commit/2db670ad888be7d3add2243e42e932da365c7783))
+
+### Bug Fixes
+
+* simplify fetchUserProfile error handling to return DEFAULT_PROFILE on failure ([fda5665](https://github.com/jetstreamapp/jetstream/commit/fda5665510da26ee63e8f3ecc1b5c04ed6b6f514))
+
 ## [9.5.0](https://github.com/jetstreamapp/jetstream/compare/v9.4.1...v9.5.0) (2026-04-01)
 
 ### Features
