@@ -44,7 +44,6 @@
     "start:desktop": "npx nx run-many --target=build --parallel=2 --projects=jetstream-desktop --configuration=production && yarn electron --inspect=9229 \"dist/apps/jetstream-desktop/main.js\"",
     "start:desktop:prod": "cross-env ENV=production yarn electron dist/desktop-build/main.js",
     "build": "cross-env NODE_ENV=production npm-run-all db:generate build:core build:landing generate:version",
-    "build:pre-deploy": "cross-env NODE_ENV=production npm-run-all --parallel rollbar:upload-sourcemaps db:migrate",
     "build:core": "cross-env NODE_OPTIONS=--max_old_space_size=8192 nx run-many --output-style=dynamic --target=build --parallel=3 --projects=jetstream,api --configuration=production",
     "build:ci": "npx nx run-many --output-style=static --target=build --parallel=3 --projects=jetstream,api,landing,jetstream-web-extension,jetstream-desktop,jetstream-desktop-client --configuration=production",
     "build:affected": "nx affected --target=build --parallel=3 --configuration=production",
