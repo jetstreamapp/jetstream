@@ -81,7 +81,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
     try {
       const data = {
         params: params ? params.parse(req.params) : undefined,
-        body: body && parsedBody ? body.parse(parsedBody) : undefined,
+        body: body && parsedBody !== undefined ? body.parse(parsedBody) : undefined,
         query: query ? query.parse(queryParams) : undefined,
         jetstreamConn: req.jetstreamConn,
         targetJetstreamConn: req.targetJetstreamConn,

@@ -2,7 +2,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { getCanvasPreferences, updateCanvasPreferences } from '@jetstream/shared/data';
 import { useObservable } from '@jetstream/shared/ui-utils';
-import { JetstreamEventSaveSoqlQueryFormatOptionsPayload, UserProfileUi } from '@jetstream/types';
+import { JetstreamEventSaveSoqlQueryFormatOptionsPayload } from '@jetstream/types';
 import { AppLoading, fromJetstreamEvents } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { initDexieDb } from '@jetstream/ui/db';
@@ -59,10 +59,18 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
         const org = getCanvasOrg();
         const preferences = await getCanvasPreferences(org);
         if (preferences && Object.keys(preferences).length > 0) {
-          setUserProfile((prev: UserProfileUi) => ({
-            ...prev,
-            preferences: { ...prev.preferences, ...preferences },
-          }));
+          setUserProfile((prev) => {
+            if (prev instanceof Promise) {
+              return prev.then((resolved) => ({
+                ...resolved,
+                preferences: { ...resolved.preferences, ...preferences },
+              }));
+            }
+            return {
+              ...prev,
+              preferences: { ...prev.preferences, ...preferences },
+            };
+          });
         }
       } catch (ex) {
         logger.error('Error loading canvas preferences', ex);
@@ -78,10 +86,18 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
           const org = getCanvasOrg();
           const soqlQueryFormatOptions = onSaveSoqlQueryFormatOptions.value;
           await updateCanvasPreferences(org, { soqlQueryFormatOptions });
-          setUserProfile((prev: UserProfileUi) => ({
-            ...prev,
-            preferences: { ...prev.preferences, soqlQueryFormatOptions },
-          }));
+          setUserProfile((prev) => {
+            if (prev instanceof Promise) {
+              return prev.then((resolved) => ({
+                ...resolved,
+                preferences: { ...resolved.preferences, soqlQueryFormatOptions },
+              }));
+            }
+            return {
+              ...prev,
+              preferences: { ...prev.preferences, soqlQueryFormatOptions },
+            };
+          });
         } catch (ex) {
           logger.error('Error saving query format options', ex);
         }

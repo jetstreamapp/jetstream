@@ -7,11 +7,12 @@ import { OrgAndApiConnection } from './canvas.types';
 export const fetchFn: Parameters<typeof getApiRequestFactoryFn>[0] = (url, options) => {
   return new Promise<Response>((resolve, reject) => {
     const headers = (options.headers as Record<string, string>) || {};
+    const contentType = Object.entries(headers).find(([key]) => key.toLowerCase() === 'content-type')?.[1] || 'application/json';
     window.Sfdc.canvas.client.ajax(url, {
       client: sr.client,
       method: options.method,
       async: true,
-      contentType: headers['content-type'] || 'application/json',
+      contentType,
       headers,
       data: options.body,
       // targetOrigin
@@ -21,8 +22,8 @@ export const fetchFn: Parameters<typeof getApiRequestFactoryFn>[0] = (url, optio
         // based on the caller-specified `outputType`, not content-type headers.
         resolve(new Response(payload, { status, statusText }));
       },
-      failure: ({ status, statusText }) => {
-        reject(new Error(`Canvas AJAX failed: ${status} ${statusText}`));
+      failure: (responseText, xhr) => {
+        reject(new Error(`Canvas AJAX failed: ${xhr.status} ${responseText}`));
       },
     });
   });
