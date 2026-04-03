@@ -112,9 +112,6 @@ class RollbarConfig {
           }
         },
         payload: {
-          server: {
-            root: 'webpack:///./',
-          },
           client: {
             javascript: {
               source_map_enabled: true,

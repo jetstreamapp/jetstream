@@ -61,12 +61,20 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
   }
 
   function handleFormat() {
-    setSoql(formatQuery(soql, soqlQueryFormatOptions));
+    try {
+      setSoql(formatQuery(soql, soqlQueryFormatOptions));
+    } catch {
+      // Ignore formatting errors for invalid SOQL
+    }
   }
 
   function handleSaveSoqlQueryFormatOptions(options: SoqlQueryFormatOptions): void {
     setSoqlQueryFormatOptions(options);
-    setSoql(formatQuery(soql, options));
+    try {
+      setSoql(formatQuery(soql, options));
+    } catch {
+      // Ignore formatting errors for invalid SOQL
+    }
     fromJetstreamEvents.emit({ type: 'saveSoqlQueryFormatOptions', payload: { value: options } });
   }
 
@@ -113,7 +121,11 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
         keybindings: [monaco?.KeyMod.Shift | monaco?.KeyMod.Alt | monaco?.KeyCode.KeyF],
         contextMenuGroupId: '9_cutcopypaste',
         run: (currEditor) => {
-          setSoqlRef.current(formatQuery(currEditor.getValue(), soqlQueryFormatOptionsRef.current));
+          try {
+            setSoqlRef.current(formatQuery(currEditor.getValue(), soqlQueryFormatOptionsRef.current));
+          } catch {
+            // Ignore formatting errors for invalid SOQL
+          }
         },
       }),
     );
