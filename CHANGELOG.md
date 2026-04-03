@@ -1,5 +1,17 @@
 # Changelog
 
+## [9.8.0](https://github.com/jetstreamapp/jetstream/compare/v9.7.0...v9.8.0) (2026-04-03)
+
+### Features
+
+* add IdP-initiated OIDC login support and update documentation ([162f127](https://github.com/jetstreamapp/jetstream/commit/162f1276d9d217686095461f04c253409418c29b))
+
+### Bug Fixes
+
+* handle invalid SOQL syntax gracefully by ignoring formatting errors ([fc6882a](https://github.com/jetstreamapp/jetstream/commit/fc6882a8080f8620cefdaa079a0c5bf8255904a7))
+* remove unnecessary server root configuration from Rollbar setup ([9540522](https://github.com/jetstreamapp/jetstream/commit/95405227905b123f351478c0ef2951e6fb4501a3))
+* **ui:** correct aria-expanded in Section and add keyboard focus assertions ([3c1f581](https://github.com/jetstreamapp/jetstream/commit/3c1f5810ea4008e3dee69835cf9aefff83a3d3c7))
+
 ## [9.7.0](https://github.com/jetstreamapp/jetstream/compare/v9.6.0...v9.7.0) (2026-04-02)
 
 ### Features
