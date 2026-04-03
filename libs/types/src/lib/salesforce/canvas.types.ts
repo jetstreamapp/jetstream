@@ -614,6 +614,14 @@ export interface SfdcCanvasXd {
 /** `Sfdc.canvas.client.ajax` settings inferred from defaults + code */
 export interface SfdcCanvasClientAjaxSettings {
   success: (response: SfdcCanvasClientResponse<any>) => void;
+  /** Called when the XHR returns a non-2xx/304 status or on network error. */
+  failure?: (responseText: string, xhr: XMLHttpRequest, config: SfdcCanvasClientAjaxSettings) => void;
+  /** Called before the request is sent. Return `false` to cancel. */
+  beforerequest?: () => boolean;
+  /** Called after success or failure, regardless of outcome. */
+  complete?: (responseText: string, xhr: XMLHttpRequest, config: SfdcCanvasClientAjaxSettings) => void;
+  /** The `this` context used when invoking success/failure/complete callbacks. */
+  context?: any;
 
   client: SfdcCanvasOAuthClient;
 
