@@ -69,6 +69,22 @@ After saving the connection, make sure to check the "Enable SSO" checkbox to ena
 
 You can optionally allow users with specific roles to bypass SSO, by default this is enabled for administrators.
 
+### Enable IdP-Initiated Login (Optional)
+
+To allow users to launch Jetstream directly from the Okta dashboard by clicking the Jetstream app tile, configure the **Initiate Login URI** in Okta.
+
+1. In Okta, go to your Jetstream application and navigate to **General Settings**.
+2. Under **Login**, find the **Initiate login URI** field.
+3. Copy the **Initiate Login URI** shown in the Jetstream Team Dashboard SSO configuration and paste it into the Okta field. It will be in the format:
+
+```
+https://getjetstream.app/api/auth/sso/oidc/{uuid}/initiate
+```
+
+4. Save the changes.
+
+Now users can click the Jetstream tile in their Okta dashboard and be automatically logged in.
+
 ## Configure Okta Workspace for SAML SSO
 
 ### Add SSO provider in Jetstream

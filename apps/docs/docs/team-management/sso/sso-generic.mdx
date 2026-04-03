@@ -67,6 +67,18 @@ After saving the connection, make sure to check the "Enable SSO" checkbox to ena
 
 You can optionally allow users with specific roles to bypass SSO, by default this is enabled for administrators.
 
+### Enable IdP-Initiated Login (Optional)
+
+If your identity provider supports IdP-initiated login (sometimes called "app launcher" or "app tile" login), you can configure it so users can launch Jetstream directly from their identity provider's dashboard.
+
+Copy the **Initiate Login URI** shown in the Jetstream Team Dashboard SSO configuration and configure it in your identity provider. It will be in the format:
+
+```
+https://getjetstream.app/api/auth/sso/oidc/{uuid}/initiate
+```
+
+When a user clicks the Jetstream app in their identity provider's dashboard, they will be redirected to this URL, which initiates the OIDC login flow and logs them in automatically.
+
 ## Configure SSO for SAML Providers
 
 In Jetstream, choose "Add SSO Provider" from your Team Dashboard and select "SAML" as the provider.

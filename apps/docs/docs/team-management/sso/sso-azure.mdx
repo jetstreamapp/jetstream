@@ -67,6 +67,18 @@ After saving the connection, make sure to check the "Enable SSO" checkbox to ena
 
 You can optionally allow users with specific roles to bypass SSO, by default this is enabled for administrators.
 
+### Enable IdP-Initiated Login (Optional)
+
+To allow users to launch Jetstream directly from the Microsoft Entra ID app launcher (My Apps portal), you can configure a redirect URI for the application.
+
+Copy the **Initiate Login URI** shown in the Jetstream Team Dashboard SSO configuration. It will be in the format:
+
+```
+https://getjetstream.app/api/auth/sso/oidc/{uuid}/initiate
+```
+
+In your app registration under **Authentication**, add this URL as an additional redirect URI. Then, under **Branding & properties**, set the **Home page URL** to this same URL so users clicking the Jetstream tile in the My Apps portal are logged in automatically.
+
 ## Configure Azure AD for SAML SSO
 
 ### Add SSO provider in Jetstream
