@@ -33,7 +33,7 @@ export const Section: FunctionComponent<SectionProps> = ({
       <h3 className="slds-section__title">
         <button
           aria-controls={id}
-          aria-expanded={!expanded}
+          aria-expanded={expanded}
           className="slds-button slds-section__title-action"
           onClick={() => setExpanded(!expanded)}
         >
