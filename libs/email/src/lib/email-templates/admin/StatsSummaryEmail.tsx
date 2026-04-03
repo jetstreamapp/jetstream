@@ -6,6 +6,7 @@ import { EMAIL_STYLES } from '../../shared-styles';
 
 export interface PlatformStats {
   activeSessions: number;
+  activeSessionUsers: number;
   newUsersLast7d: number;
   newUsersLast30d: number;
   newUsersYtd: number;
@@ -80,33 +81,43 @@ function formatColumnLabel(key: string): string {
     .trim();
 }
 
-/** Gets the ordered display columns for a set of rows, always putting ipAddress + location first */
+/** Gets the ordered display columns for a set of rows, putting userId, email, ipAddress, and location first */
 function getDisplayColumns(rows: EnrichedSecurityCheckRow[]): string[] {
+  const priorityColumns = ['userId', 'email', 'ipAddress', 'location'];
   const allKeys = new Set<string>();
   for (const row of rows) {
     for (const key of Object.keys(row)) {
       allKeys.add(key);
     }
   }
-  allKeys.delete('ipAddress');
-  allKeys.delete('location');
+  for (const col of priorityColumns) {
+    allKeys.delete(col);
+  }
 
   const ordered: string[] = [];
-  if (rows.some((row) => 'ipAddress' in row)) {
-    ordered.push('ipAddress');
-  }
-  if (rows.some((row) => 'location' in row)) {
-    ordered.push('location');
+  for (const col of priorityColumns) {
+    if (rows.some((row) => col in row)) {
+      ordered.push(col);
+    }
   }
   ordered.push(...Array.from(allKeys));
   return ordered;
 }
 
-function renderCellValue(_key: string, value: unknown): string {
+function renderCellValue(_key: string, value: unknown): React.ReactNode {
   if (value === null || value === undefined) {
     return '—';
   }
-  return String(value);
+  const str = String(value);
+  if (str.includes('\n')) {
+    return str.split('\n').map((line, index) => (
+      <React.Fragment key={index}>
+        {index > 0 && <br />}
+        {line}
+      </React.Fragment>
+    ));
+  }
+  return str;
 }
 
 export const StatsSummaryEmail = ({ stats, securityResults, generatedAt }: StatsSummaryEmailProps): React.ReactElement => {
@@ -114,11 +125,12 @@ export const StatsSummaryEmail = ({ stats, securityResults, generatedAt }: Stats
 
   const wideContainer: React.CSSProperties = {
     ...EMAIL_STYLES.container,
-    width: '720px',
+    width: '960px',
   };
 
   const platformStatRows: Array<[string, string | number]> = [
     ['Active Sessions', stats.activeSessions],
+    ['Active Session Users', stats.activeSessionUsers],
     ['New Users (7 days)', stats.newUsersLast7d],
     ['New Users (30 days)', stats.newUsersLast30d],
     ['New Users (YTD)', stats.newUsersYtd],
@@ -226,6 +238,7 @@ StatsSummaryEmail.PreviewProps = {
   generatedAt: new Date().toLocaleString(),
   stats: {
     activeSessions: 412,
+    activeSessionUsers: 287,
     newUsersLast7d: 18,
     newUsersLast30d: 74,
     newUsersYtd: 312,
@@ -254,7 +267,14 @@ StatsSummaryEmail.PreviewProps = {
       title: 'Currently Locked Accounts',
       description: 'Accounts locked due to too many failed login attempts',
       severity: 'medium',
-      rows: [{ email: 'user@example.com', failedLoginAttempts: 6, lockedUntil: '2026-03-11T14:30:00.000Z' }],
+      rows: [
+        {
+          userId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+          email: 'user@example.com',
+          failedLoginAttempts: 6,
+          lockedUntil: '2026-03-11T14:30:00.000Z',
+        },
+      ],
     },
     {
       title: 'Login Failure Rate (7 days)',
@@ -264,14 +284,19 @@ StatsSummaryEmail.PreviewProps = {
     },
     {
       title: 'Multi-IP Active Sessions (current)',
-      description: 'Users with active sessions from multiple distinct IP addresses',
+      description:
+        'Users with active sessions from multiple distinct IP addresses AND multiple distinct user agents — may indicate account sharing or compromise',
       severity: 'high',
       rows: [
         {
+          userId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
           email: 'user@example.com',
           distinctIps: 3,
+          distinctUserAgents: 2,
           ipAddresses: '1.2.3.4, 5.6.7.8, 9.10.11.12',
           locations: 'New York, US | Moscow, RU | Tokyo, JP',
+          sessionDetails:
+            '1.2.3.4 [google] — Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120\n5.6.7.8 [credentials] — Mozilla/5.0 (Macintosh; Intel Mac OS X) Safari/17\n9.10.11.12 [google] — Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120',
         },
       ],
     },

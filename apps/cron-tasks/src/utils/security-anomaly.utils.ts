@@ -68,10 +68,11 @@ export const SECURITY_CHECKS: SecurityCheck[] = [
     query: async (prisma) => {
       const rows = await prisma.user.findMany({
         where: { lockedUntil: { gt: new Date() } },
-        select: { email: true, failedLoginAttempts: true, lockedUntil: true },
+        select: { id: true, email: true, failedLoginAttempts: true, lockedUntil: true },
         orderBy: { lockedUntil: 'desc' },
       });
       return rows.map((row) => ({
+        userId: row.id,
         email: row.email,
         failedLoginAttempts: row.failedLoginAttempts,
         lockedUntil: row.lockedUntil?.toISOString() ?? null,
@@ -145,12 +146,12 @@ export const SECURITY_CHECKS: SecurityCheck[] = [
   },
   {
     title: 'Successful Login After Repeated Failures (24h)',
-    description: 'Accounts where 3+ failures were followed by a success within 1 hour — potential breach',
+    description: 'Accounts where 5+ failures were followed by a success within 1 hour — potential breach',
     severity: 'high',
     query: async (prisma) => {
       const last24h = subHours(new Date(), 24);
       const rows = await prisma.$queryRaw<
-        Array<{ email: string; ipAddress: string | null; failCount: bigint; lastFail: Date; successfulLogin: Date }>
+        Array<{ userId: string | null; email: string; ipAddress: string | null; failCount: bigint; lastFail: Date; successfulLogin: Date }>
       >`
         WITH failed AS (
           SELECT email, "ipAddress", COUNT(*) AS fail_count, MAX("createdAt") AS last_fail
@@ -158,9 +159,9 @@ export const SECURITY_CHECKS: SecurityCheck[] = [
           WHERE action = 'LOGIN' AND success = false
             AND "createdAt" > ${last24h}
           GROUP BY email, "ipAddress"
-          HAVING COUNT(*) >= 3
+          HAVING COUNT(*) >= 5
         )
-        SELECT f.email, f."ipAddress", f.fail_count AS "failCount", f.last_fail AS "lastFail",
+        SELECT s."userId", f.email, f."ipAddress", f.fail_count AS "failCount", f.last_fail AS "lastFail",
                s."createdAt" AS "successfulLogin"
         FROM failed f
         JOIN "LoginActivity" s
@@ -170,6 +171,7 @@ export const SECURITY_CHECKS: SecurityCheck[] = [
         ORDER BY f.fail_count DESC
       `;
       return rows.map((row) => ({
+        userId: row.userId,
         email: row.email,
         ipAddress: row.ipAddress,
         failedAttempts: Number(row.failCount),
@@ -184,44 +186,65 @@ export const SECURITY_CHECKS: SecurityCheck[] = [
     severity: 'medium',
     query: async (prisma) => {
       const last24h = subHours(new Date(), 24);
-      const rows = await prisma.loginActivity.groupBy({
-        by: ['email'],
-        where: {
-          action: 'PASSWORD_RESET_REQUEST',
-          createdAt: { gt: last24h },
-          email: { not: null },
-        },
-        _count: { id: true },
-        having: { id: { _count: { gte: 3 } } },
-        orderBy: { _count: { id: 'desc' } },
-      });
+      const rows = await prisma.$queryRaw<Array<{ userId: string | null; email: string; resetRequests: bigint }>>`
+        SELECT MAX(la."userId"::text)::uuid AS "userId", la.email, COUNT(*) AS "resetRequests"
+        FROM "LoginActivity" la
+        WHERE la.action = 'PASSWORD_RESET_REQUEST'
+          AND la."createdAt" > ${last24h}
+          AND la.email IS NOT NULL
+        GROUP BY la.email
+        HAVING COUNT(*) >= 3
+        ORDER BY "resetRequests" DESC
+      `;
       return rows.map((row) => ({
+        userId: row.userId,
         email: row.email,
-        resetRequests: row._count.id,
+        resetRequests: Number(row.resetRequests),
       }));
     },
   },
   {
     title: 'Multi-IP Active Sessions (current)',
-    description: 'Users with active sessions from multiple distinct IP addresses — may indicate session hijacking or account compromise',
+    description:
+      'Users with active sessions from multiple distinct IP addresses AND multiple distinct user agents — may indicate account sharing or compromise',
     severity: 'high',
     query: async (prisma) => {
-      const rows = await prisma.$queryRaw<Array<{ email: string; userId: string; distinctIps: bigint; ipAddresses: string }>>`
+      const rows = await prisma.$queryRaw<
+        Array<{
+          email: string;
+          userId: string;
+          distinctIps: bigint;
+          distinctUserAgents: bigint;
+          ipAddresses: string;
+          sessionDetails: string;
+        }>
+      >`
         SELECT u.email, s.user_id AS "userId",
                COUNT(DISTINCT s.sess->>'ipAddress') AS "distinctIps",
-               STRING_AGG(DISTINCT s.sess->>'ipAddress', ', ' ORDER BY s.sess->>'ipAddress') AS "ipAddresses"
+               COUNT(DISTINCT s.sess->>'userAgent') AS "distinctUserAgents",
+               STRING_AGG(DISTINCT s.sess->>'ipAddress', ', ' ORDER BY s.sess->>'ipAddress') AS "ipAddresses",
+               STRING_AGG(
+                 DISTINCT (s.sess->>'ipAddress')
+                   || ' [' || COALESCE(s.sess->>'provider', 'unknown') || ']'
+                   || ' — ' || COALESCE(LEFT(s.sess->>'userAgent', 80), 'unknown'),
+                 E'\n'
+               ) AS "sessionDetails"
         FROM sessions s
         JOIN "User" u ON u.id = s.user_id
         WHERE s.expire > NOW()
           AND s.sess->>'ipAddress' IS NOT NULL
         GROUP BY u.email, s.user_id
         HAVING COUNT(DISTINCT s.sess->>'ipAddress') >= 2
+          AND COUNT(DISTINCT s.sess->>'userAgent') >= 2
         ORDER BY "distinctIps" DESC
       `;
       return rows.map((row) => ({
+        userId: row.userId,
         email: row.email,
         distinctIps: Number(row.distinctIps),
+        distinctUserAgents: Number(row.distinctUserAgents),
         ipAddresses: row.ipAddresses,
+        sessionDetails: row.sessionDetails,
       }));
     },
   },
