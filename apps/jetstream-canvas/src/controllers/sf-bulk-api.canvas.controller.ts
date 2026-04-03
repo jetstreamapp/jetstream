@@ -185,8 +185,6 @@ const downloadResults = createRoute(routeDefinition.downloadResults.validators, 
     const type = query.type;
     const isQuery = ensureBoolean(query.isQuery);
 
-    // IN THE MIDDLE OF THIS - giving some issues
-
     let results: ReadableStream<Uint8Array>;
     if (isQuery) {
       const resultIds = await jetstreamConn!.bulk.getQueryResultsJobIds(jobId, batchId);
