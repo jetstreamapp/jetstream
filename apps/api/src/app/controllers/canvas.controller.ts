@@ -139,15 +139,36 @@ const appHandler = createRoute(routeDefinition.appHandler.validators, async ({ b
         },
         '[CANVAS][SIGNED_REQUEST_VERIFIED]',
       );
+    } else {
+      res.status(400).send({
+        status: 'error',
+        message: 'Missing required Canvas parameters. Expected either a signed_request or user_approval_required auth flow.',
+      });
+      return;
     }
 
-    // we could also use login.salesforce.com
+    const canvasScriptBaseUrl = (envelope as any)?.client?.instanceUrl || loginUrl;
+    if (!canvasScriptBaseUrl) {
+      res.status(400).send({
+        status: 'error',
+        message: 'Unable to determine Salesforce instance URL for Canvas SDK.',
+      });
+      return;
+    }
+
+    const canvasScriptUrl = new URL(`${canvasScriptBaseUrl}/canvas/sdk/js/${ENV.SFDC_API_VERSION}/canvas-all.js`);
+
+    if (!canvasScriptUrl.hostname.endsWith('.salesforce.com')) {
+      res.status(400).send({
+        status: 'error',
+        message: 'Invalid Salesforce instance URL for Canvas SDK.',
+      });
+      return;
+    }
+
     const fileContents = await getCanvasIndexFile().then((file) =>
       file
-        .replace(
-          '<%=canvasImportScriptUrl%>',
-          `${(envelope as any)?.client?.instanceUrl || loginUrl}/canvas/sdk/js/${ENV.SFDC_API_VERSION}/canvas-all.js`,
-        )
+        .replace('<%=canvasImportScriptUrl%>', canvasScriptUrl.toString())
         .replace('<%=signedRequestJson%>', escapeJsonForScript(JSON.stringify(envelope))),
     );
 

@@ -12,7 +12,7 @@ import './core/monaco-loader';
 
 const Sfdc = window.Sfdc;
 
-// The fullscreen VF page passes { isFullscreen: true } via the apex:canvasApp parameters attribute
+// The fullscreen VF page passes { isFullScreen: true } via the apex:canvasApp parameters attribute
 const isFullscreen = z.coerce.boolean().default(true).parse(sr.context?.environment?.parameters?.isFullScreen);
 
 export const App = () => {
