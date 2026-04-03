@@ -42,8 +42,6 @@ export default defineConfig(() => ({
       },
     }),
     nxViteTsPaths(),
-    // FIXME: this plugin only needs to be completed for the main entry point
-    // baseHrefPlugin(),
   ],
   define: {
     'import.meta.vitest': undefined,
