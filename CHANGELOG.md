@@ -1,5 +1,11 @@
 # Changelog
 
+## [9.9.0](https://github.com/jetstreamapp/jetstream/compare/v9.8.1...v9.9.0) (2026-04-04)
+
+### Features
+
+* **api:** implement deferred response middleware for long-running requests ([c936fe9](https://github.com/jetstreamapp/jetstream/commit/c936fe959fecf6b314e52795b9f939a2b6ff0ef2))
+
 ## [9.8.1](https://github.com/jetstreamapp/jetstream/compare/v9.8.0...v9.8.1) (2026-04-04)
 
 ### Bug Fixes
