@@ -1,5 +1,12 @@
 # Changelog
 
+## [9.8.1](https://github.com/jetstreamapp/jetstream/compare/v9.8.0...v9.8.1) (2026-04-04)
+
+### Bug Fixes
+
+* add empty data object to resendInvitation API request ([ea25480](https://github.com/jetstreamapp/jetstream/commit/ea254804e5b8556fb3545846ed3b0674e2b30c4b))
+* change bot route status code from 403 to 444 ([1806360](https://github.com/jetstreamapp/jetstream/commit/18063606d98a5a7178dc0b6bf95a525d2ba136f2))
+
 ## [9.8.0](https://github.com/jetstreamapp/jetstream/compare/v9.7.0...v9.8.0) (2026-04-03)
 
 ### Features
