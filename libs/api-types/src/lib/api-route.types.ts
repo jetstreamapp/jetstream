@@ -21,6 +21,18 @@ export type Request<
   }
 > & { log: pino.Logger };
 
+/**
+ * Deferred response state for Cloudflare timeout prevention.
+ * Set by deferredResponseMiddleware on SF API routes.
+ */
+export interface DeferredResponseState {
+  active: boolean;
+  timer: NodeJS.Timeout | null;
+  keepaliveInterval: NodeJS.Timeout | null;
+  startTime: number;
+  keepaliveCount: number;
+}
+
 export type Response<ResBody = unknown> = ExpressResponse<
   ResBody,
   {
@@ -41,5 +53,6 @@ export type Response<ResBody = unknown> = ExpressResponse<
      * Used for desktop and web-extension requests to track the device ID
      */
     deviceId?: string;
+    _deferred?: DeferredResponseState;
   }
 > & { log: pino.Logger };

@@ -100,6 +100,11 @@ const envSchema = z.object({
   EXAMPLE_USER_PASSWORD: z.string().nullish(),
   EXAMPLE_USER_FULL_PROFILE: z.record(z.string(), z.any()).nullish(),
   IS_LOCAL_DOCKER: booleanSchema,
+  ENABLE_TEST_ENDPOINTS: booleanSchema,
+  DEFERRED_RESPONSE_ENABLED: booleanSchema,
+  // Defaults are applied in the middleware (45000ms / 25000ms) since numberSchema transforms undefined → null
+  DEFERRED_RESPONSE_THRESHOLD_MS: numberSchema,
+  DEFERRED_RESPONSE_KEEPALIVE_MS: numberSchema,
   // SYSTEM
   NODE_ENV: z
     .enum(['development', 'test', 'production'])

@@ -69,6 +69,7 @@ export const HTTP = {
     X_MOCK_KEY: 'X-MOCK-KEY',
     X_FORWARDED_FOR: 'X-FORWARDED-FOR',
     CONTENT_DISPOSITION: 'Content-Disposition',
+    X_DEFERRED_RESPONSE: 'X-Deferred-Response',
     CF_Connecting_IP: 'CF-Connecting-IP',
     CF_IPCountry: 'CF-IPCountry',
   },

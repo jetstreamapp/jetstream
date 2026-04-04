@@ -147,9 +147,11 @@ const createCheckoutSessionHandler = createRoute(
 
     if (req.accepts('json')) {
       sendJson(res, { url: session.url });
-    } else {
+    } else if (session.url) {
       // Legacy path - TODO: remove once everything is deployed
       redirect(res, session.url);
+    } else {
+      throw new Error('No URL found for checkout session');
     }
   },
 );
