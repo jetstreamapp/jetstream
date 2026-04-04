@@ -287,6 +287,29 @@ function responseInterceptor<T>(options: RequestOptions): (response: AxiosRespon
       });
     }
 
+    // Deferred response mode: server returned 200 but body may contain an error
+    // (status code was committed before the SF call completed)
+    const isDeferredResponse = getHeader(response.headers, HTTP.HEADERS.X_DEFERRED_RESPONSE) === '1';
+    if (isDeferredResponse) {
+      logger.info(`[HTTP][RES][DEFERRED]`, response.config.url);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const deferredBody = response.data as any;
+      if (deferredBody && deferredBody.error === true) {
+        // Handle org connection errors that would normally come via X-SFDC-ORG-CONNECTION-ERROR header
+        // Synthesize the header so errorMiddleware can read it in the same way as non-deferred responses
+        if (deferredBody.orgConnectionError && org) {
+          response.headers[HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR.toLowerCase()] = deferredBody.orgConnectionError;
+          errorMiddleware.forEach((middleware) => middleware(response, org));
+        }
+        // Handle auth errors that would normally trigger logout via X-AUTH-LOGOUT header
+        if (deferredBody.logout) {
+          window.location.href = deferredBody.logoutUrl || '/auth/login';
+          throw new Error(deferredBody.message || 'Session expired');
+        }
+        throw new Error(deferredBody.message || 'An unknown error has occurred');
+      }
+    }
+
     const body: ApiResponse<T> = response.data;
     const responseData = body ? body.data : undefined;
 
@@ -316,11 +339,15 @@ function responseErrorInterceptor(options: {
   useQueryParamsInCacheKey?: boolean;
   useBodyInCacheKey?: boolean;
 }) {
-  return (error: AxiosError) => {
+  return (error: AxiosError | Error) => {
+    // Re-throw non-Axios errors (e.g., deferred response errors thrown from responseInterceptor)
+    if (!axios.isAxiosError(error)) {
+      throw error instanceof Error ? error : new Error('An unknown error has occurred');
+    }
     const { org } = options;
     logger.error('[HTTP][RESPONSE][ERROR]', error.name, error.message);
     let message = 'An unknown error has occurred';
-    if (error.isAxiosError && error.response) {
+    if (error.response) {
       const response = error.response as AxiosResponse<{ error: boolean; message: string }>;
       logger.error(`[HTTP][RES][${response.config.method?.toUpperCase()}][${response.status}]`, response.config.url, {
         clientRequestId: response.headers['x-client-request-id'],

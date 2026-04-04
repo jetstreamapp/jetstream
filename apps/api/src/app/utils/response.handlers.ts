@@ -3,11 +3,13 @@ import type { Response } from '@jetstream/api-types';
 import { AuthError, createCSRFToken, getCookieConfig } from '@jetstream/auth/server';
 import { isPrismaError, Prisma, SalesforceOrg, toTypedPrismaError } from '@jetstream/prisma';
 import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import { Maybe } from '@jetstream/types';
 import { stringifySetCookie } from 'cookie';
 import * as express from 'express';
 import { Duplex } from 'stream';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
+import { clearDeferredTimers, writeDeferredResponse, type DeferredResponseState } from './deferred-response.middleware';
 import { AuthenticationError, NotFoundError, UserFacingError } from './error-handler';
 
 export async function healthCheck(_: express.Request, res: express.Response) {
@@ -23,7 +25,7 @@ export async function healthCheck(_: express.Request, res: express.Response) {
       error: true,
       success: false,
       uptime: process.uptime(),
-      message: `Unhealthy: ${ex.message}`,
+      message: `Unhealthy: ${getErrorMessage(ex)}`,
     });
   }
 }
@@ -44,7 +46,7 @@ export function setCsrfCookie(res: Response) {
  * Sets all cookies stored in res.locals to actual headers
  * This is centralized here to ensure all cookies are set and to avoid clearing and setting the same cookie
  */
-function setCookieHeaders(res: Response) {
+export function setCookieHeaders(res: Response) {
   try {
     Object.values(res.locals?.cookies || {}).forEach(({ name, options, clear, value }) => {
       try {
@@ -62,7 +64,7 @@ function setCookieHeaders(res: Response) {
   }
 }
 
-export function redirect(res: Response, url, status = 302) {
+export function redirect(res: Response, url: string, status = 302) {
   setCookieHeaders(res);
   res.redirect(status, url);
 }
@@ -74,6 +76,21 @@ export function sendHtml(res: Response, html: string, status = 200) {
 }
 
 export function sendJson<ResponseType = unknown>(res: Response, content?: ResponseType, status = 200) {
+  const deferred = res.locals._deferred;
+
+  // Deferred response mode: write body to the existing chunked stream
+  if (deferred?.active) {
+    const elapsedMs = Date.now() - deferred.startTime;
+    res.log.info({ requestId: res.locals.requestId, elapsedMs }, '[DEFERRED][COMPLETE] Deferred response completed successfully');
+    writeDeferredResponse(res, { data: content || {} });
+    return;
+  }
+
+  // Clear the deferred timer on fast responses to avoid holding req/res references for 45s
+  if (deferred) {
+    clearDeferredTimers(deferred);
+  }
+
   if (res.headersSent) {
     res.log.warn('Response headers already sent');
     try {
@@ -133,10 +150,109 @@ export function blockBotHandler(_: express.Request, res: express.Response) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
 export async function uncaughtErrorHandler(err: any, req: express.Request, res: express.Response, next: express.NextFunction) {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setCookieHeaders(res as any);
+    // Only set cookies if headers haven't been committed yet (e.g., not in deferred mode)
+    if (!res.headersSent) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setCookieHeaders(res as any);
+    }
     // Logger is not added to the response object in all cases depending on where error is encountered
     const responseLogger = res.log || logger;
+
+    // If org had a connection error, ensure that the database is updated
+    // This runs before the headersSent/deferred checks so the DB side effect always happens
+    // TODO: what about alternate org?
+    if (
+      (err.message === ERROR_MESSAGES.SFDC_EXPIRED_TOKEN ||
+        err.message === ERROR_MESSAGES.SFDC_EXPIRED_SESSION ||
+        err.message === ERROR_MESSAGES.SFDC_EXPIRED_TOKEN_VALIDITY ||
+        ERROR_MESSAGES.SFDC_ORG_DOES_NOT_EXIST.test(err.message)) &&
+      !!res.locals?.org
+    ) {
+      try {
+        if (!res.headersSent) {
+          res.set(HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR, ERROR_MESSAGES.SFDC_EXPIRED_TOKEN);
+        }
+        const org = res.locals.org as SalesforceOrg;
+        await salesforceOrgsDb.updateOrg_UNSAFE(org, { connectionError: ERROR_MESSAGES.SFDC_EXPIRED_TOKEN });
+      } catch (ex) {
+        responseLogger.warn(getExceptionLog(ex), '[RESPONSE][ERROR UPDATING INVALID ORG]');
+      }
+    } else if (ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED.test(err.message) && !!res.locals?.org) {
+      try {
+        if (!res.headersSent) {
+          res.set(HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR, ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED_MSG);
+        }
+        const org = res.locals.org as SalesforceOrg;
+        await salesforceOrgsDb.updateOrg_UNSAFE(org, { connectionError: ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED_MSG });
+      } catch (ex) {
+        responseLogger.warn(getExceptionLog(ex), '[RESPONSE][ERROR UPDATING INVALID ORG]');
+      }
+    }
+
+    // Deferred response mode: write error body to the existing chunked stream
+    // Headers are already committed (200), so error details must go in the body
+    const deferred = (res.locals as { _deferred?: DeferredResponseState })?._deferred;
+    if (deferred?.active) {
+      const elapsedMs = Date.now() - deferred.startTime;
+      const errorMessage = err.message || 'An unknown error has occurred';
+      responseLogger.error(
+        {
+          requestId: res.locals.requestId,
+          method: req.method,
+          url: req.originalUrl,
+          elapsedMs,
+          errorMessage,
+          ...getExceptionLog(err, true),
+        },
+        '[DEFERRED][ERROR] Deferred response completed with error',
+      );
+
+      // Build deferred error body with fields that would normally be sent as headers
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const deferredErrorBody: Record<string, any> = {
+        error: true,
+        success: false,
+        message: errorMessage,
+        data:
+          err instanceof UserFacingError || err instanceof AuthenticationError || err instanceof NotFoundError
+            ? err.additionalData
+            : undefined,
+      };
+
+      // Include org connection error info that would normally be sent via X-SFDC-ORG-CONNECTION-ERROR header
+      if (
+        err.message === ERROR_MESSAGES.SFDC_EXPIRED_TOKEN ||
+        err.message === ERROR_MESSAGES.SFDC_EXPIRED_SESSION ||
+        err.message === ERROR_MESSAGES.SFDC_EXPIRED_TOKEN_VALIDITY ||
+        ERROR_MESSAGES.SFDC_ORG_DOES_NOT_EXIST.test(err.message)
+      ) {
+        deferredErrorBody.orgConnectionError = ERROR_MESSAGES.SFDC_EXPIRED_TOKEN;
+      } else if (ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED.test(err.message)) {
+        deferredErrorBody.orgConnectionError = ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED_MSG;
+      }
+
+      // Include auth error type so client can trigger logout if needed
+      if (err instanceof AuthenticationError && !err.skipLogout) {
+        deferredErrorBody.logout = true;
+        let logoutUrl = `${ENV.JETSTREAM_SERVER_URL}/auth/login`;
+        if (req.session?.pendingVerification && req.session.pendingVerification.some(({ exp }) => exp > Date.now())) {
+          logoutUrl = `${ENV.JETSTREAM_SERVER_URL}/auth/verify?type=${req.session.pendingVerification[0].type}`;
+        }
+        deferredErrorBody.logoutUrl = logoutUrl;
+      } else if (err instanceof AuthError) {
+        deferredErrorBody.errorType = err.type;
+        deferredErrorBody.logout = true;
+        deferredErrorBody.logoutUrl = `${ENV.JETSTREAM_SERVER_URL}/auth/login/?${new URLSearchParams({ error: err.type }).toString()}`;
+      }
+
+      writeDeferredResponse(res, deferredErrorBody);
+      return;
+    }
+
+    // Clear the deferred timer on fast responses to avoid holding req/res references for 45s
+    if (deferred) {
+      clearDeferredTimers(deferred);
+    }
 
     if (res.headersSent) {
       responseLogger.warn('Response headers already sent');
@@ -162,32 +278,6 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
     let status = err.status as Maybe<number>;
     if (typeof err?.status === 'number') {
       res.status(err.status);
-    }
-
-    // If org had a connection error, ensure that the database is updated
-    // TODO: what about alternate org?
-    if (
-      (err.message === ERROR_MESSAGES.SFDC_EXPIRED_TOKEN ||
-        err.message === ERROR_MESSAGES.SFDC_EXPIRED_SESSION ||
-        err.message === ERROR_MESSAGES.SFDC_EXPIRED_TOKEN_VALIDITY ||
-        ERROR_MESSAGES.SFDC_ORG_DOES_NOT_EXIST.test(err.message)) &&
-      !!res.locals?.org
-    ) {
-      try {
-        res.set(HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR, ERROR_MESSAGES.SFDC_EXPIRED_TOKEN);
-        const org = res.locals.org as SalesforceOrg;
-        await salesforceOrgsDb.updateOrg_UNSAFE(org, { connectionError: ERROR_MESSAGES.SFDC_EXPIRED_TOKEN });
-      } catch (ex) {
-        responseLogger.warn(getExceptionLog(ex), '[RESPONSE][ERROR UPDATING INVALID ORG');
-      }
-    } else if (ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED.test(err.message) && !!res.locals?.org) {
-      try {
-        res.set(HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR, ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED_MSG);
-        const org = res.locals.org as SalesforceOrg;
-        await salesforceOrgsDb.updateOrg_UNSAFE(org, { connectionError: ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED_MSG });
-      } catch (ex) {
-        responseLogger.warn(getExceptionLog(ex), '[RESPONSE][ERROR UPDATING INVALID ORG');
-      }
     }
 
     if (err instanceof AuthError) {

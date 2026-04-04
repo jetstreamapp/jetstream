@@ -15,9 +15,12 @@ import { routeDefinition as queryController } from '../controllers/sf-query.cont
 import { routeDefinition as recordController } from '../controllers/sf-record.controller';
 import * as userFeedbackController from '../controllers/user-feedback.controller';
 import { routeDefinition as userController } from '../controllers/user.controller';
+import { routeDefinition as testController } from '../controllers/test.controller';
+import { deferredResponseMiddleware as dfr } from '../utils/deferred-response.middleware';
 import { sendJson } from '../utils/response.handlers';
 import {
   addOrgsToLocal,
+  basicAuthMiddleware,
   checkAuth,
   ensureTargetOrgExists,
   feedbackRateLimit,
@@ -123,35 +126,36 @@ routes.delete('/orgs/groups/:id/with-orgs', orgGroupController.deleteOrganizatio
  * queryController Routes
  * ************************************
  */
-routes.get('/describe', queryController.describe.controllerFn());
-routes.get('/describe/:sobject', queryController.describeSObject.controllerFn());
-routes.post('/query', queryController.query.controllerFn());
-routes.get('/query-more', queryController.queryMore.controllerFn());
+routes.get('/describe', dfr, queryController.describe.controllerFn());
+routes.get('/describe/:sobject', dfr, queryController.describeSObject.controllerFn());
+routes.post('/query', dfr, queryController.query.controllerFn());
+routes.get('/query-more', dfr, queryController.queryMore.controllerFn());
 
 /**
  * ************************************
  * metadataToolingController Routes
  * ************************************
  */
-routes.get('/metadata/describe', metadataToolingController.describeMetadata.controllerFn());
-routes.post('/metadata/list', metadataToolingController.listMetadata.controllerFn());
-routes.post('/metadata/read/:type', metadataToolingController.readMetadata.controllerFn());
-routes.post('/metadata/deploy', metadataToolingController.deployMetadata.controllerFn());
+routes.get('/metadata/describe', dfr, metadataToolingController.describeMetadata.controllerFn());
+routes.post('/metadata/list', dfr, metadataToolingController.listMetadata.controllerFn());
+routes.post('/metadata/read/:type', dfr, metadataToolingController.readMetadata.controllerFn());
+routes.post('/metadata/deploy', dfr, metadataToolingController.deployMetadata.controllerFn());
 // Content-Type=Application/zip
-routes.post('/metadata/deploy-zip', metadataToolingController.deployMetadataZip.controllerFn());
-routes.get('/metadata/deploy/:id', metadataToolingController.checkMetadataResults.controllerFn());
-routes.post('/metadata/retrieve/list-metadata', metadataToolingController.retrievePackageFromLisMetadataResults.controllerFn());
-routes.post('/metadata/retrieve/package-names', metadataToolingController.retrievePackageFromExistingServerPackages.controllerFn());
-routes.post('/metadata/retrieve/manifest', metadataToolingController.retrievePackageFromManifest.controllerFn());
-routes.get('/metadata/retrieve/check-results', metadataToolingController.checkRetrieveStatus.controllerFn());
+routes.post('/metadata/deploy-zip', dfr, metadataToolingController.deployMetadataZip.controllerFn());
+routes.get('/metadata/deploy/:id', dfr, metadataToolingController.checkMetadataResults.controllerFn());
+routes.post('/metadata/retrieve/list-metadata', dfr, metadataToolingController.retrievePackageFromLisMetadataResults.controllerFn());
+routes.post('/metadata/retrieve/package-names', dfr, metadataToolingController.retrievePackageFromExistingServerPackages.controllerFn());
+routes.post('/metadata/retrieve/manifest', dfr, metadataToolingController.retrievePackageFromManifest.controllerFn());
+routes.get('/metadata/retrieve/check-results', dfr, metadataToolingController.checkRetrieveStatus.controllerFn());
 routes.post(
   '/metadata/retrieve/check-and-redeploy',
   ensureTargetOrgExists,
+  dfr,
   metadataToolingController.checkRetrieveStatusAndRedeploy.controllerFn(),
 );
-routes.post('/metadata/package-xml', metadataToolingController.getPackageXml.controllerFn());
-routes.post('/apex/anonymous', metadataToolingController.anonymousApex.controllerFn());
-routes.get('/apex/completions/:type', metadataToolingController.apexCompletions.controllerFn());
+routes.post('/metadata/package-xml', dfr, metadataToolingController.getPackageXml.controllerFn());
+routes.post('/apex/anonymous', dfr, metadataToolingController.anonymousApex.controllerFn());
+routes.get('/apex/completions/:type', dfr, metadataToolingController.apexCompletions.controllerFn());
 
 /**
  * ************************************
@@ -160,8 +164,8 @@ routes.get('/apex/completions/:type', metadataToolingController.apexCompletions.
  */
 routes.get('/file/stream-download', miscController.streamFileDownload.controllerFn());
 routes.post('/file/stream-download/zip', miscController.streamFileDownloadToZip.controllerFn());
-routes.post('/request', miscController.salesforceRequest.controllerFn());
-routes.post('/request-manual', miscController.salesforceRequestManual.controllerFn());
+routes.post('/request', dfr, miscController.salesforceRequest.controllerFn());
+routes.post('/request-manual', dfr, miscController.salesforceRequestManual.controllerFn());
 
 /**
  * ************************************
@@ -169,19 +173,20 @@ routes.post('/request-manual', miscController.salesforceRequestManual.controller
  * ************************************
  */
 // handle multipart/form-data for binary uploads
-routes.post('/record/upload', recordController.binaryUpload.controllerFn());
-routes.post('/record/:operation/:sobject', recordController.recordOperation.controllerFn());
+routes.post('/record/upload', dfr, recordController.binaryUpload.controllerFn());
+routes.post('/record/:operation/:sobject', dfr, recordController.recordOperation.controllerFn());
 
 /**
  * ************************************
  * bulkApiController Routes
  * ************************************
  */
-routes.post('/bulk', bulkApiController.createJob.controllerFn());
-routes.get('/bulk/:jobId', bulkApiController.getJob.controllerFn());
-routes.delete('/bulk/:jobId/:action', bulkApiController.closeOrAbortJob.controllerFn());
-routes.post('/bulk/:jobId', bulkApiController.addBatchToJob.controllerFn());
-routes.post('/bulk/zip/:jobId', bulkApiController.addBatchToJobWithBinaryAttachment.controllerFn());
+routes.post('/bulk', dfr, bulkApiController.createJob.controllerFn());
+routes.get('/bulk/:jobId', dfr, bulkApiController.getJob.controllerFn());
+routes.delete('/bulk/:jobId/:action', dfr, bulkApiController.closeOrAbortJob.controllerFn());
+routes.post('/bulk/:jobId', dfr, bulkApiController.addBatchToJob.controllerFn());
+routes.post('/bulk/zip/:jobId', dfr, bulkApiController.addBatchToJobWithBinaryAttachment.controllerFn());
+// Streaming routes - no deferred middleware (data already flows as chunks)
 routes.get('/bulk/download-all/:jobId', bulkApiController.downloadAllResults.controllerFn());
 routes.get('/bulk/:jobId/:batchId', bulkApiController.downloadResults.controllerFn());
 
@@ -191,12 +196,13 @@ routes.get('/bulk/:jobId/:batchId', bulkApiController.downloadResults.controller
  * These use the Bulk Query 2.0 API
  * ************************************
  */
-routes.post('/bulk-query', bulkQuery20ApiController.createJob.controllerFn());
-routes.get('/bulk-query', bulkQuery20ApiController.getJobs.controllerFn());
+routes.post('/bulk-query', dfr, bulkQuery20ApiController.createJob.controllerFn());
+routes.get('/bulk-query', dfr, bulkQuery20ApiController.getJobs.controllerFn());
+// Streaming route - no deferred middleware (data flows as CSV chunks)
 routes.get('/bulk-query/:jobId/results', bulkQuery20ApiController.downloadResults.controllerFn());
-routes.get('/bulk-query/:jobId', bulkQuery20ApiController.getJob.controllerFn());
-routes.post('/bulk-query/:jobId/abort', bulkQuery20ApiController.abortJob.controllerFn());
-routes.delete('/bulk-query/:jobId', bulkQuery20ApiController.deleteJob.controllerFn());
+routes.get('/bulk-query/:jobId', dfr, bulkQuery20ApiController.getJob.controllerFn());
+routes.post('/bulk-query/:jobId/abort', dfr, bulkQuery20ApiController.abortJob.controllerFn());
+routes.delete('/bulk-query/:jobId', dfr, bulkQuery20ApiController.deleteJob.controllerFn());
 
 /**
  * ************************************
@@ -211,5 +217,14 @@ routes.get('/salesforce-api/requests', salesforceApiReqController.getSalesforceA
  * ************************************
  */
 routes.post('/feedback', feedbackRateLimit, feedbackUploadMiddleware.array('screenshots', 5), userFeedbackController.sendUserFeedbackEmail);
+
+/**
+ * ************************************
+ * Test Endpoints (gated behind ENABLE_TEST_ENDPOINTS env var)
+ * ************************************
+ */
+if (ENV.ENABLE_TEST_ENDPOINTS) {
+  routes.get('/test/deferred-response', basicAuthMiddleware, dfr, testController.deferredResponse.controllerFn());
+}
 
 export default routes;
