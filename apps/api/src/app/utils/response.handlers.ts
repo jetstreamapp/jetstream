@@ -127,7 +127,7 @@ export function streamParsedCsvAsJson(res: express.Response, csvParseStream: Dup
 
 export function blockBotHandler(_: express.Request, res: express.Response) {
   res.log.debug('[BLOCKED REQUEST]');
-  res.status(403).send('Forbidden');
+  res.status(444).end();
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
