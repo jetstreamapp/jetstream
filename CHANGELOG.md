@@ -1,5 +1,15 @@
 # Changelog
 
+## [9.9.1](https://github.com/jetstreamapp/jetstream/compare/v9.9.0...v9.9.1) (2026-04-05)
+
+### Features
+
+* **security:** add Cloudflare Insights to CSP script sources ([0fc90c9](https://github.com/jetstreamapp/jetstream/commit/0fc90c9f95449575b2a0bc5e76ce99d370b36841))
+
+### Bug Fixes
+
+* **landing:** update SSO blog post link to use correct route ([56002cf](https://github.com/jetstreamapp/jetstream/commit/56002cff5c745b2e34d37e316d990aa5b2d0a5bd))
+
 ## [9.9.0](https://github.com/jetstreamapp/jetstream/compare/v9.8.1...v9.9.0) (2026-04-04)
 
 ### Features
