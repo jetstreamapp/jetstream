@@ -66,11 +66,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
     if (req.request.method !== 'GET' && !skipBodyParsing) {
       const contentType = req.request.headers.get('content-type') ?? '';
       if (contentType.startsWith('application/json')) {
-        try {
-          parsedBody = await req.request.json();
-        } catch {
-          // headers may not have been correct, just ignore and continue
-        }
+        parsedBody = await req.request.json();
       } else if (contentType.startsWith('application/zip')) {
         parsedBody = await req.request.arrayBuffer();
       } else {
@@ -81,7 +77,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
     try {
       const data = {
         params: params ? params.parse(req.params) : undefined,
-        body: body && parsedBody !== undefined ? body.parse(parsedBody) : undefined,
+        body: body ? body.parse(parsedBody) : undefined,
         query: query ? query.parse(queryParams) : undefined,
         jetstreamConn: req.jetstreamConn,
         targetJetstreamConn: req.targetJetstreamConn,
