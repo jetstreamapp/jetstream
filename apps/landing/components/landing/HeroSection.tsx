@@ -7,7 +7,7 @@ export const HeroSection = () => (
       {/* Announcement pill */}
       <div className="flex justify-center">
         <Link
-          href={ROUTES.blogPost('sso')}
+          href={ROUTES.blogPost('jetstream-sso')}
           className="inline-flex items-center gap-x-2 rounded-full bg-white/5 px-4 py-1.5 text-sm text-gray-300 ring-1 ring-white/10 transition hover:ring-white/20"
         >
           Now with <span className="font-semibold text-cyan-400">SSO</span> support
