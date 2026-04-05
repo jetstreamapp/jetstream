@@ -1,6 +1,15 @@
-import { SalesforceOrgUi } from '@jetstream/types';
-import { ColumnWithFilter, DataTable, setColumnFromType } from '@jetstream/ui';
-import { forwardRef, useMemo } from 'react';
+import { ContextMenuItem, SalesforceOrgUi } from '@jetstream/types';
+import {
+  ColumnWithFilter,
+  ContextAction,
+  ContextMenuActionData,
+  DataTable,
+  RowWithKey,
+  TABLE_CONTEXT_MENU_ITEMS,
+  copyGenericTableDataToClipboard,
+  setColumnFromType,
+} from '@jetstream/ui';
+import { forwardRef, useCallback, useMemo } from 'react';
 import { isTableRow } from './automation-control-data-utils';
 import { AdditionalDetailRenderer, ExpandingLabelRenderer, LoadingAndActiveRenderer } from './automation-control-table-renderers';
 import { TableRowOrItemOrChild } from './automation-control-types';
@@ -104,7 +113,16 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
           renderCell: AdditionalDetailRenderer,
         },
       ] as ColumnWithFilter<TableRowOrItemOrChild>[];
-    }, []);
+    }, [serverUrl, selectedOrg, toggleRowExpand, updateIsActiveFlag]);
+
+    const fields = useMemo(() => columns.map((col) => col.key), [columns]);
+
+    const handleContextMenuAction = useCallback(
+      (item: ContextMenuItem<ContextAction>, data: ContextMenuActionData<RowWithKey>) => {
+        copyGenericTableDataToClipboard(item.value, fields, data);
+      },
+      [fields],
+    );
 
     return (
       <div className="h-100">
@@ -123,6 +141,8 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
           ignoreRowInSetFilter={isTableRow}
           rowAlwaysVisible={isTableRow}
           onSortedAndFilteredRowsChange={onSortedAndFilteredRowsChange}
+          contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
+          contextMenuAction={handleContextMenuAction}
         />
       </div>
     );

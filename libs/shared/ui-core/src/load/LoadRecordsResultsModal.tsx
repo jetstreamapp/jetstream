@@ -2,10 +2,12 @@
 import { css } from '@emotion/react';
 import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { ContextMenuItem, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ColumnWithFilter,
+  ContextAction,
+  ContextMenuActionData,
   CopyRecordsToClipboardButton,
   CopyToClipboardWithToolTip,
   DataTable,
@@ -13,8 +15,11 @@ import {
   Grid,
   Icon,
   Modal,
+  RowWithKey,
   setColumnFromType,
   Spinner,
+  TABLE_CONTEXT_MENU_ITEMS,
+  copyGenericTableDataToClipboard,
 } from '@jetstream/ui';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
@@ -103,6 +108,13 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const getRowKey = useCallback((row: any) => rowsMap.get(row)!, [rowsMap]);
 
+  const handleContextMenuAction = useCallback(
+    (item: ContextMenuItem<ContextAction>, data: ContextMenuActionData<RowWithKey>) => {
+      copyGenericTableDataToClipboard(item.value, header, data);
+    },
+    [header],
+  );
+
   function handleDownload() {
     // TODO: allow user to choose filtered records to download
     onDownload(type, rows, header);
@@ -151,6 +163,8 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
                 getRowKey={getRowKey}
                 rowHeight={getRowHeight}
                 context={{ defaultApiVersion }}
+                contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
+                contextMenuAction={handleContextMenuAction}
               />
             )}
           </AutoFullHeightContainer>
