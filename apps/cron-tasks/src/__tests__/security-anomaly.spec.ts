@@ -437,11 +437,13 @@ describe('Security Anomaly Checks Integration Tests', () => {
       check = getCheckByTitle('Successful Login After');
     });
 
-    it('should return empty when below failure threshold (2 failures)', async () => {
+    it('should return empty when below failure threshold (4 failures)', async () => {
       const email = `${TEST_PREFIX}-breach-below@test.com`;
       const ip = `${TEST_IP_PREFIX}2.1`;
       const now = new Date();
-      // 2 failures
+      // 4 failures (below threshold of 5)
+      await createLoginActivity({ email, ipAddress: ip, createdAt: subMinutes(now, 50) });
+      await createLoginActivity({ email, ipAddress: ip, createdAt: subMinutes(now, 40) });
       await createLoginActivity({ email, ipAddress: ip, createdAt: subMinutes(now, 30) });
       await createLoginActivity({ email, ipAddress: ip, createdAt: subMinutes(now, 20) });
       // 1 success shortly after
@@ -451,16 +453,18 @@ describe('Security Anomaly Checks Integration Tests', () => {
       expect(testResults).toHaveLength(0);
     });
 
-    it('should return results when 3+ failures followed by success within 1 hour', async () => {
+    it('should return results when 5+ failures followed by success within 1 hour', async () => {
       const email = `${TEST_PREFIX}-breach@test.com`;
       const ip = `${TEST_IP_PREFIX}2.2`;
       const now = new Date();
-      // 3 failures
+      // 5 failures
+      await createLoginActivity({ email, ipAddress: ip, createdAt: subMinutes(now, 55) });
       await createLoginActivity({ email, ipAddress: ip, createdAt: subMinutes(now, 50) });
       await createLoginActivity({ email, ipAddress: ip, createdAt: subMinutes(now, 40) });
       await createLoginActivity({ email, ipAddress: ip, createdAt: subMinutes(now, 30) });
+      await createLoginActivity({ email, ipAddress: ip, createdAt: subMinutes(now, 20) });
       // Success 10 minutes after last failure (within 1 hour)
-      await createLoginActivity({ email, ipAddress: ip, success: true, createdAt: subMinutes(now, 20) });
+      await createLoginActivity({ email, ipAddress: ip, success: true, createdAt: subMinutes(now, 10) });
       const results = await check.query(prisma);
       const testResults = results.filter((r) => String(r['email']).includes(TEST_PREFIX));
       expect(testResults).toHaveLength(1);
@@ -471,6 +475,7 @@ describe('Security Anomaly Checks Integration Tests', () => {
         }),
       );
       expect(typeof testResults[0]['failedAttempts']).toBe('number');
+      expect(testResults[0]).toHaveProperty('userId');
       expect(testResults[0]).toHaveProperty('lastFailure');
       expect(testResults[0]).toHaveProperty('successfulLogin');
     });
@@ -479,7 +484,9 @@ describe('Security Anomaly Checks Integration Tests', () => {
       const email = `${TEST_PREFIX}-breach-late@test.com`;
       const ip = `${TEST_IP_PREFIX}2.3`;
       const now = new Date();
-      // 3 failures close together
+      // 5 failures close together
+      await createLoginActivity({ email, ipAddress: ip, createdAt: subMinutes(now, 200) });
+      await createLoginActivity({ email, ipAddress: ip, createdAt: subMinutes(now, 190) });
       await createLoginActivity({ email, ipAddress: ip, createdAt: subMinutes(now, 180) });
       await createLoginActivity({ email, ipAddress: ip, createdAt: subMinutes(now, 170) });
       await createLoginActivity({ email, ipAddress: ip, createdAt: subMinutes(now, 160) });
@@ -494,6 +501,8 @@ describe('Security Anomaly Checks Integration Tests', () => {
       const email = `${TEST_PREFIX}-breach-old@test.com`;
       const ip = `${TEST_IP_PREFIX}2.4`;
       const oldTime = subHours(new Date(), 26);
+      await createLoginActivity({ email, ipAddress: ip, createdAt: subMinutes(oldTime, 50) });
+      await createLoginActivity({ email, ipAddress: ip, createdAt: subMinutes(oldTime, 40) });
       await createLoginActivity({ email, ipAddress: ip, createdAt: subMinutes(oldTime, 30) });
       await createLoginActivity({ email, ipAddress: ip, createdAt: subMinutes(oldTime, 20) });
       await createLoginActivity({ email, ipAddress: ip, createdAt: subMinutes(oldTime, 10) });
@@ -562,12 +571,12 @@ describe('Security Anomaly Checks Integration Tests', () => {
       check = getCheckByTitle('Multi-IP Active Sessions');
     });
 
-    async function createSession(userId: string, ipAddress: string) {
+    async function createSession(userId: string, ipAddress: string, userAgent = 'Mozilla/5.0 Default', provider = 'credentials') {
       const sid = `${TEST_PREFIX}-${uuid()}`;
       await prisma.sessions.create({
         data: {
           sid,
-          sess: { user: { id: userId }, ipAddress },
+          sess: { user: { id: userId }, ipAddress, userAgent, provider },
           expire: addHours(new Date(), 1),
         },
       });
@@ -582,17 +591,26 @@ describe('Security Anomaly Checks Integration Tests', () => {
 
     it('should return empty when user has sessions from only one IP', async () => {
       const user = await createUser();
-      await createSession(user.id, `${TEST_IP_PREFIX}4.1`);
-      await createSession(user.id, `${TEST_IP_PREFIX}4.1`);
+      await createSession(user.id, `${TEST_IP_PREFIX}4.1`, 'Mozilla/5.0 Agent A');
+      await createSession(user.id, `${TEST_IP_PREFIX}4.1`, 'Mozilla/5.0 Agent B');
       const results = await check.query(prisma);
       const testResults = results.filter((r) => String(r['email']).includes(TEST_PREFIX));
       expect(testResults).toHaveLength(0);
     });
 
-    it('should return results when user has sessions from 2+ distinct IPs', async () => {
+    it('should return empty when user has multiple IPs but only one user agent', async () => {
       const user = await createUser();
-      await createSession(user.id, `${TEST_IP_PREFIX}4.2`);
-      await createSession(user.id, `${TEST_IP_PREFIX}4.3`);
+      await createSession(user.id, `${TEST_IP_PREFIX}4.2`, 'Mozilla/5.0 Same Agent');
+      await createSession(user.id, `${TEST_IP_PREFIX}4.3`, 'Mozilla/5.0 Same Agent');
+      const results = await check.query(prisma);
+      const testResults = results.filter((r) => String(r['email']).includes(TEST_PREFIX));
+      expect(testResults).toHaveLength(0);
+    });
+
+    it('should return results when user has 2+ distinct IPs and 2+ distinct user agents', async () => {
+      const user = await createUser();
+      await createSession(user.id, `${TEST_IP_PREFIX}4.2`, 'Mozilla/5.0 Agent A');
+      await createSession(user.id, `${TEST_IP_PREFIX}4.3`, 'Mozilla/5.0 Agent B');
       const results = await check.query(prisma);
       const testResults = results.filter((r) => String(r['email']).includes(TEST_PREFIX));
       expect(testResults).toHaveLength(1);
@@ -600,10 +618,14 @@ describe('Security Anomaly Checks Integration Tests', () => {
         expect.objectContaining({
           email: user.email,
           distinctIps: 2,
+          distinctUserAgents: 2,
         }),
       );
       expect(typeof testResults[0]['distinctIps']).toBe('number');
+      expect(testResults[0]).toHaveProperty('userId');
       expect(testResults[0]).toHaveProperty('ipAddresses');
+      expect(testResults[0]).toHaveProperty('sessionDetails');
+      expect(String(testResults[0]['sessionDetails'])).toContain('[credentials]');
     });
 
     it('should return empty when sessions are expired', async () => {
@@ -613,14 +635,14 @@ describe('Security Anomaly Checks Integration Tests', () => {
       await prisma.sessions.create({
         data: {
           sid: sid1,
-          sess: { user: { id: user.id }, ipAddress: `${TEST_IP_PREFIX}4.4` },
+          sess: { user: { id: user.id }, ipAddress: `${TEST_IP_PREFIX}4.4`, userAgent: 'Mozilla/5.0 Agent A' },
           expire: subDays(new Date(), 1),
         },
       });
       await prisma.sessions.create({
         data: {
           sid: sid2,
-          sess: { user: { id: user.id }, ipAddress: `${TEST_IP_PREFIX}4.5` },
+          sess: { user: { id: user.id }, ipAddress: `${TEST_IP_PREFIX}4.5`, userAgent: 'Mozilla/5.0 Agent B' },
           expire: subDays(new Date(), 1),
         },
       });
@@ -632,8 +654,8 @@ describe('Security Anomaly Checks Integration Tests', () => {
     it('should not combine sessions from different users', async () => {
       const user1 = await createUser();
       const user2 = await createUser();
-      await createSession(user1.id, `${TEST_IP_PREFIX}4.6`);
-      await createSession(user2.id, `${TEST_IP_PREFIX}4.7`);
+      await createSession(user1.id, `${TEST_IP_PREFIX}4.6`, 'Mozilla/5.0 Agent A');
+      await createSession(user2.id, `${TEST_IP_PREFIX}4.7`, 'Mozilla/5.0 Agent B');
       const results = await check.query(prisma);
       const testResults = results.filter((r) => String(r['email']).includes(TEST_PREFIX));
       // Neither user has 2+ distinct IPs on their own

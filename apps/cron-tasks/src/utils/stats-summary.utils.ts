@@ -22,6 +22,7 @@ export async function gatherAndSendStatsSummary(prisma: PrismaClient): Promise<v
   // --- Platform stats (run in parallel) ---
   const [
     activeSessions,
+    activeSessionUsers,
     newUsersLast7d,
     newUsersLast30d,
     newUsersYtd,
@@ -34,6 +35,11 @@ export async function gatherAndSendStatsSummary(prisma: PrismaClient): Promise<v
     activeUserIds,
   ] = await Promise.all([
     prisma.sessions.count({ where: { expire: { gt: now } } }),
+    prisma.$queryRaw<Array<{ count: bigint | number }>>`
+      SELECT COUNT(DISTINCT "user_id") AS count
+      FROM "sessions"
+      WHERE "expire" > ${now}
+    `.then((rows) => Number(rows[0]?.count ?? 0)),
     prisma.user.count({ where: { createdAt: { gt: sevenDaysAgo } } }),
     prisma.user.count({ where: { createdAt: { gt: thirtyDaysAgo } } }),
     prisma.user.count({ where: { createdAt: { gt: ytdStart } } }),
@@ -53,6 +59,7 @@ export async function gatherAndSendStatsSummary(prisma: PrismaClient): Promise<v
 
   const stats = {
     activeSessions,
+    activeSessionUsers,
     newUsersLast7d,
     newUsersLast30d,
     newUsersYtd,
