@@ -3,13 +3,26 @@ import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { REGEX, groupByFlat } from '@jetstream/shared/utils';
-import { DescribeGlobalSObjectResult, InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { Alert, AutoFullHeightContainer, DataTable, Grid, GridCol, RowWithKey, Spinner, getColumnsForGenericTable } from '@jetstream/ui';
+import { ContextMenuItem, DescribeGlobalSObjectResult, InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import {
+  Alert,
+  AutoFullHeightContainer,
+  ContextAction,
+  ContextMenuActionData,
+  DataTable,
+  Grid,
+  GridCol,
+  RowWithKey,
+  Spinner,
+  TABLE_CONTEXT_MENU_ITEMS,
+  copyGenericTableDataToClipboard,
+  getColumnsForGenericTable,
+} from '@jetstream/ui';
 import { ErrorBoundaryFallback, fromLoadRecordsState } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
 import isNil from 'lodash/isNil';
-import { FunctionComponent, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { Column } from 'react-data-grid';
 import { ErrorBoundary } from 'react-error-boundary';
 
@@ -90,6 +103,7 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
   const [totalRecordCount, setTotalRecordCount] = useAtom(fromLoadRecordsState.loadExistingRecordCount);
   const [omitTotalRecordCount, setOmitTotalRecordCount] = useState(true);
   const [columns, setColumns] = useState<Maybe<Column<RowWithKey>[]>>(null);
+  const [fields, setFields] = useState<string[]>([]);
   const [rows, setRows] = useState<Maybe<RowWithKey[]>>(null);
   const [loading, setLoading] = useState(false);
 
@@ -153,11 +167,20 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
       _rows = _rows.map((row, i) => ({ ...row, [NUM_COLUMN]: i + 1 }));
       setRows(_rows);
       setColumns(getColumnDefinitions(headersWithLabel, _rows.length));
+      setFields([NUM_COLUMN, ...headersWithLabel.map(({ key }) => key)]);
     } else {
       setColumns(null);
+      setFields([]);
       setRows(null);
     }
   }, [data, header]);
+
+  const handleContextMenuAction = useCallback(
+    (item: ContextMenuItem<ContextAction>, data: ContextMenuActionData<RowWithKey>) => {
+      copyGenericTableDataToClipboard(item.value, fields, data);
+    },
+    [fields],
+  );
 
   const tooLargeToShowPreview = data && data.length > MAX_RECORD_FOR_PREVIEW;
 
@@ -205,6 +228,8 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
                     columns={columns}
                     data={rows}
                     getRowKey={getRowId}
+                    contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
+                    contextMenuAction={handleContextMenuAction}
                   />
                 </AutoFullHeightContainer>
               </ErrorBoundary>

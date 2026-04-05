@@ -1,7 +1,18 @@
 import { css } from '@emotion/react';
-import { ApexLogWithViewed } from '@jetstream/types';
-import { AutoFullHeightContainer, ColumnWithFilter, DataTable, Icon, setColumnFromType } from '@jetstream/ui';
-import { FunctionComponent, ReactNode, useEffect, useRef } from 'react';
+import { ApexLogWithViewed, ContextMenuItem } from '@jetstream/types';
+import {
+  AutoFullHeightContainer,
+  ColumnWithFilter,
+  ContextAction,
+  ContextMenuActionData,
+  DataTable,
+  Icon,
+  RowWithKey,
+  TABLE_CONTEXT_MENU_ITEMS,
+  copyGenericTableDataToClipboard,
+  setColumnFromType,
+} from '@jetstream/ui';
+import { FunctionComponent, ReactNode, useCallback, useEffect, useRef } from 'react';
 import { CellMouseArgs, RenderCellProps } from 'react-data-grid';
 
 export const LogViewedRenderer = ({ row }: RenderCellProps<ApexLogWithViewed>): ReactNode => {
@@ -76,6 +87,8 @@ const COLUMNS: ColumnWithFilter<ApexLogWithViewed>[] = [
   },
 ];
 
+const FIELDS = COLUMNS.filter((col) => col.key !== 'viewed').map((col) => col.key);
+
 function getRowId({ Id }: ApexLogWithViewed): string {
   return Id;
 }
@@ -101,6 +114,10 @@ export const DebugLogViewerTable: FunctionComponent<DebugLogViewerTableProps> = 
     }
   }
 
+  const handleContextMenuAction = useCallback((item: ContextMenuItem<ContextAction>, data: ContextMenuActionData<RowWithKey>) => {
+    copyGenericTableDataToClipboard(item.value, FIELDS, data);
+  }, []);
+
   return (
     <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={75}>
       <DataTable
@@ -109,6 +126,8 @@ export const DebugLogViewerTable: FunctionComponent<DebugLogViewerTableProps> = 
         getRowKey={getRowId}
         initialSortColumns={INITIAL_SORT}
         onCellClick={handleSelectionChanged}
+        contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
+        contextMenuAction={handleContextMenuAction}
       />
     </AutoFullHeightContainer>
   );

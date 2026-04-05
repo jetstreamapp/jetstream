@@ -11,7 +11,14 @@ export * from './lib/confirmation-dialog/ConfirmationDialog';
 export * from './lib/data-table/data-table-context';
 export * from './lib/data-table/data-table-formatters';
 export type { ColumnWithFilter, ContextAction, ContextMenuActionData, DataTableRef, RowWithKey } from './lib/data-table/data-table-types';
-export { getColumnsForGenericTable, getRowTypeFromValue, getSfdcRetUrl, setColumnFromType } from './lib/data-table/data-table-utils';
+export {
+  TABLE_CONTEXT_MENU_ITEMS,
+  copyGenericTableDataToClipboard,
+  getColumnsForGenericTable,
+  getRowTypeFromValue,
+  getSfdcRetUrl,
+  setColumnFromType,
+} from './lib/data-table/data-table-utils';
 export * from './lib/data-table/DataTable';
 export * from './lib/data-table/DataTableRenderers';
 export * from './lib/data-table/DataTree';

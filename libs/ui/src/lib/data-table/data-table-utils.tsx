@@ -731,12 +731,90 @@ export const TABLE_CONTEXT_MENU_ITEMS: ContextMenuItem<ContextAction>[] = [
   { label: 'Copy cell to clipboard', value: 'COPY_CELL', trailingDivider: true },
   { label: 'Copy row to clipboard (Excel)', value: 'COPY_ROW_EXCEL' },
   { label: 'Copy row to clipboard (JSON)', value: 'COPY_ROW_JSON', trailingDivider: true },
+  { label: 'Copy column to values clipboard', value: 'COPY_COL_NO_HEADER' },
   { label: 'Copy column to clipboard (Excel)', value: 'COPY_COL' },
-  { label: 'Copy column to clipboard (JSON)', value: 'COPY_COL_JSON' },
-  { label: 'Copy column to clipboard without header', value: 'COPY_COL_NO_HEADER', trailingDivider: true },
+  { label: 'Copy column to clipboard (JSON)', value: 'COPY_COL_JSON', trailingDivider: true },
   { label: 'Copy table to clipboard (Excel)', value: 'COPY_TABLE' },
   { label: 'Copy table to clipboard (JSON)', value: 'COPY_TABLE_JSON' },
 ];
+
+/**
+ * Generic function to copy table data to clipboard
+ * Works with any row data - uses row data directly (no _record indirection)
+ */
+export function copyGenericTableDataToClipboard<T extends Record<string, any>>(
+  action: ContextAction,
+  fields: string[],
+  { row, rows, column, columns }: ContextMenuActionData<T>,
+) {
+  let includeHeader = true;
+  let recordsToCopy: unknown[] = [];
+  const fieldsSet = new Set(fields);
+  let fieldsToCopy = columns.map((column) => column.key).filter((field) => fieldsSet.has(field));
+  let format: 'plain' | 'excel' | 'json' = 'plain';
+
+  switch (action) {
+    case 'COPY_CELL':
+      includeHeader = false;
+      fieldsToCopy = [column.key];
+      recordsToCopy = [row];
+      break;
+
+    case 'COPY_ROW_EXCEL':
+      format = 'excel';
+      recordsToCopy = [row];
+      break;
+
+    case 'COPY_ROW_JSON':
+      recordsToCopy = [row];
+      format = 'json';
+      break;
+
+    case 'COPY_COL':
+      fieldsToCopy = fieldsToCopy.filter((field) => field === column.key);
+      recordsToCopy = rows.map((row) => ({ [column.key]: row[column.key] }));
+      format = 'excel';
+      break;
+
+    case 'COPY_COL_JSON':
+      fieldsToCopy = fieldsToCopy.filter((field) => field === column.key);
+      recordsToCopy = rows.map((row) => ({ [column.key]: row[column.key] }));
+      format = 'json';
+      break;
+
+    case 'COPY_COL_NO_HEADER':
+      includeHeader = false;
+      fieldsToCopy = fieldsToCopy.filter((field) => field === column.key);
+      recordsToCopy = rows.map((row) => ({ [column.key]: row[column.key] }));
+      format = 'plain';
+      break;
+
+    case 'COPY_TABLE':
+      recordsToCopy = rows;
+      break;
+
+    case 'COPY_TABLE_JSON':
+      recordsToCopy = rows;
+      format = 'json';
+      break;
+
+    default:
+      break;
+  }
+  if (recordsToCopy.length) {
+    if (format === 'json') {
+      const filteredRecords = recordsToCopy.map((record) =>
+        fieldsToCopy.reduce<Record<string, unknown>>((output, field) => {
+          output[field] = (record as Record<string, unknown>)[field];
+          return output;
+        }, {}),
+      );
+      copyRecordsToClipboard(filteredRecords, 'json');
+    } else {
+      copyRecordsToClipboard(recordsToCopy, 'excel', fieldsToCopy, includeHeader);
+    }
+  }
+}
 
 /**
  * FOR USE IN SALESFORCE RECORDS ONLY (assumes _record property)
@@ -806,7 +884,13 @@ export function copySalesforceRecordTableDataToClipboard(
   }
   if (recordsToCopy.length) {
     if (format === 'json') {
-      copyRecordsToClipboard(recordsToCopy, 'json');
+      const filteredRecords = recordsToCopy.map((record) =>
+        fieldsToCopy.reduce<Record<string, unknown>>((output, field) => {
+          output[field] = (record as Record<string, unknown>)[field];
+          return output;
+        }, {}),
+      );
+      copyRecordsToClipboard(filteredRecords, 'json');
     } else {
       copyRecordsToClipboard(recordsToCopy, 'excel', fieldsToCopy, includeHeader);
     }

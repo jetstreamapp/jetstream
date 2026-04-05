@@ -1,7 +1,18 @@
-import { FieldMapping, InsertUpdateUpsertDelete, Maybe } from '@jetstream/types';
-import { Alert, AutoFullHeightContainer, DataTable, Modal, RowWithKey, getColumnsForGenericTable } from '@jetstream/ui';
+import { ContextMenuItem, FieldMapping, InsertUpdateUpsertDelete, Maybe } from '@jetstream/types';
+import {
+  Alert,
+  AutoFullHeightContainer,
+  ContextAction,
+  ContextMenuActionData,
+  DataTable,
+  Modal,
+  RowWithKey,
+  TABLE_CONTEXT_MENU_ITEMS,
+  copyGenericTableDataToClipboard,
+  getColumnsForGenericTable,
+} from '@jetstream/ui';
 import { checkForDuplicateRecords } from '@jetstream/ui-core';
-import { FunctionComponent, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { Column } from 'react-data-grid';
 
 const DUPE_COLUMN = '_DUPLICATE';
@@ -36,6 +47,7 @@ export const LoadRecordsDuplicateWarning: FunctionComponent<LoadRecordsDuplicate
 }) => {
   const isMounted = useRef(true);
   const [columns, setColumns] = useState<Maybe<Column<RowWithKey>[]>>(null);
+  const [fields, setFields] = useState<string[]>([]);
   const [rows, setRows] = useState<Maybe<RowWithKey[]>>(null);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -60,12 +72,22 @@ export const LoadRecordsDuplicateWarning: FunctionComponent<LoadRecordsDuplicate
           )
           .map((row, i) => ({ ...row, _key: i })),
       );
-      setColumns(getColumnDefinitions(inputFileHeader, duplicates.duplicateKey));
+      const columnDefs = getColumnDefinitions(inputFileHeader, duplicates.duplicateKey);
+      setColumns(columnDefs);
+      setFields([DUPE_COLUMN, ...inputFileHeader]);
     } else {
       setColumns(null);
+      setFields([]);
       setRows(null);
     }
   }, [duplicates, inputFileHeader]);
+
+  const handleContextMenuAction = useCallback(
+    (item: ContextMenuItem<ContextAction>, data: ContextMenuActionData<RowWithKey>) => {
+      copyGenericTableDataToClipboard(item.value, fields, data);
+    },
+    [fields],
+  );
 
   if (!duplicates?.duplicateRecords.length) {
     return null;
@@ -104,7 +126,15 @@ export const LoadRecordsDuplicateWarning: FunctionComponent<LoadRecordsDuplicate
         >
           <div className="slds-is-relative slds-scrollable_x">
             <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={300}>
-              {rows && columns && <DataTable columns={columns} data={rows} getRowKey={getRowId} />}
+              {rows && columns && (
+                <DataTable
+                  columns={columns}
+                  data={rows}
+                  getRowKey={getRowId}
+                  contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
+                  contextMenuAction={handleContextMenuAction}
+                />
+              )}
             </AutoFullHeightContainer>
           </div>
         </Modal>
