@@ -62,8 +62,23 @@ export const CreateFieldsImportExport = ({ selectedOrg, rows, onImportRows }: Cr
     });
     if (errors.length) {
       fireToast({
-        message: 'There were errors reading your import file.',
+        message: (
+          <div>
+            <p>There were errors reading your import file.</p>
+            <ul className="slds-list_dotted slds-m-left_medium">
+              {errors.slice(0, 3).map((error, i) => (
+                <li key={i}>{error}</li>
+              ))}
+            </ul>
+            {errors.length > 3 && (
+              <p>
+                And {errors.length - 3} more error{errors.length - 3 > 1 ? 's' : ''}.
+              </p>
+            )}
+          </div>
+        ),
         type: 'error',
+        duration: 10000,
       });
     }
     // ensure all keys are lowercase to match up with expected field names
