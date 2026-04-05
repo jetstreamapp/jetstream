@@ -313,7 +313,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
                     scrollBeyondLastLine: false,
                     scrollbar: {
                       alwaysConsumeMouseWheel: false,
-                      handleMouseWheel: isEditing,
+                      handleMouseWheel: lineCount * REM_PER_LINE > 11 || isEditing,
                     },
                   }}
                 />
