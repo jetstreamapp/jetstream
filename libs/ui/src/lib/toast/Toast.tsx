@@ -56,7 +56,11 @@ export const Toast: FunctionComponent<ToastProps> = ({
           `}
           className="slds-notify__content"
         >
-          <h2 className={headingClassName}>{children}</h2>
+          {typeof children === 'string' ? (
+            <h2 className={headingClassName}>{children}</h2>
+          ) : (
+            <div className={headingClassName}>{children}</div>
+          )}
         </div>
         {onClose && (
           <div
