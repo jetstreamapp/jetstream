@@ -15,6 +15,7 @@ export type ExtendedFieldDefinition =
   | 'BusinessOwnerId'
   | 'BusinessStatus'
   | 'ComplianceGroup'
+  | 'Description'
   | 'IsFieldHistoryTracked'
   | 'IsFlsEnabled'
   | 'SecurityClassification';
@@ -25,11 +26,12 @@ export interface FieldDefinitionRecord {
   EntityDefinition: {
     QualifiedApiName: string;
   };
-  BusinessStatus: string;
-  ComplianceGroup: string;
+  BusinessStatus: string | null;
+  ComplianceGroup: string | null;
+  Description: string | null;
   IsFieldHistoryTracked: boolean;
   IsFlsEnabled: boolean;
-  SecurityClassification: string;
+  SecurityClassification: string | null;
 }
 
 export interface SobjectExportField {
