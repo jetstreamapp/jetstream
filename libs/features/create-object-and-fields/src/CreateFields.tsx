@@ -23,6 +23,7 @@ import { Link } from 'react-router-dom';
 import CreateFieldsDeployModal from './CreateFieldsDeployModal';
 import CreateFieldsImportExport from './CreateFieldsImportExport';
 import CreateFieldsRow from './CreateFieldsRow';
+import { LoadExistingFieldsModal } from './LoadExistingFieldsModal';
 import * as fromCreateFieldsState from './create-fields.state';
 import { useFieldValues } from './useFieldValues';
 
@@ -95,6 +96,7 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
     useFieldValues();
 
   const [deployModalOpen, setDeployModalOpen] = useState(false);
+  const [loadFieldsModalOpen, setLoadFieldsModalOpen] = useState(false);
 
   function handleReset() {
     resetRows();
@@ -115,7 +117,15 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
       resetSelectedSObjectsState();
       resetFieldRowsState();
     }
-  }, []);
+  }, [
+    resetFieldRowsState,
+    resetPermissionSetsState,
+    resetProfilesState,
+    resetSObjectsState,
+    resetSelectedPermissionSetsState,
+    resetSelectedProfilesPermSetState,
+    resetSelectedSObjectsState,
+  ]);
 
   function handleSubmit() {
     setDeployModalOpen(true);
@@ -144,6 +154,14 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
           onClose={handleCloseModal}
         />
       )}
+      {loadFieldsModalOpen && (
+        <LoadExistingFieldsModal
+          selectedOrg={selectedOrg}
+          selectedSObjects={selectedSObjects}
+          onLoadFields={importRows}
+          onClose={() => setLoadFieldsModalOpen(false)}
+        />
+      )}
       <RequireMetadataApiBanner />
       <Toolbar>
         <ToolbarItemGroup>
@@ -163,7 +181,12 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
             <span>Start Over</span>
           </button>
-          <CreateFieldsImportExport selectedOrg={selectedOrg} rows={rows} onImportRows={importRows} />
+          <CreateFieldsImportExport
+            selectedOrg={selectedOrg}
+            rows={rows}
+            onImportRows={importRows}
+            onLoadFromOrg={() => setLoadFieldsModalOpen(true)}
+          />
         </ToolbarItemGroup>
         <ToolbarItemActions>
           <button
@@ -177,7 +200,7 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
           <Tooltip content={allValid ? '' : 'All fields must be fully configured'}>
             <button className="slds-button slds-button_brand" onClick={() => handleSubmit()} disabled={!allValid}>
               <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" omitContainer />
-              Create Fields
+              Upsert Fields
             </button>
           </Tooltip>
         </ToolbarItemActions>
