@@ -169,7 +169,12 @@ export function getColumnDefinitions(
 
   // Base fields
   const parentColumns: ColumnWithFilter<RowWithKey>[] = getFlattenedFields(results.parsedQuery || {}).map((field, i) =>
-    getQueryResultColumn({ field, queryColumnsByPath, isSubquery: isFieldSubquery(results.parsedQuery?.[i]), fieldMetadata }),
+    getQueryResultColumn({
+      field,
+      queryColumnsByPath,
+      isSubquery: isFieldSubquery(results.parsedQuery?.fields?.[i]),
+      fieldMetadata,
+    }),
   );
 
   // set checkbox as first column
@@ -207,7 +212,7 @@ export function getColumnDefinitions(
           queryColumnsByPath,
           isSubquery: false,
           allowEdit: false,
-          fieldMetadata: fieldMetadataSubquery?.[field],
+          fieldMetadata: fieldMetadataSubquery?.[parentField.subquery.relationshipName.toLowerCase()],
         }),
       );
     });
