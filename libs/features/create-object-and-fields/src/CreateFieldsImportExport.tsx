@@ -39,7 +39,7 @@ export const CreateFieldsImportExport = ({ selectedOrg, rows, onImportRows }: Cr
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const popoverRef = useRef<PopoverRef>(null);
-  const [exportData, setExportData] = useState<any[]>(rows);
+  const [exportData, setExportData] = useState<FieldValues[]>(rows);
   const [exportModalOpen, setExportModalOpen] = useState(false);
 
   function handleCloseModal() {
@@ -53,7 +53,6 @@ export const CreateFieldsImportExport = ({ selectedOrg, rows, onImportRows }: Cr
   }
 
   async function handleImport({ content }: InputReadFileContent) {
-    // eslint-disable-next-line prefer-const
     let { data, errors } = await parseFile(content, { onParsedMultipleWorkbooks });
     trackEvent(ANALYTICS_KEYS.sobj_create_field_import_fields, {
       numFields: data.length,
