@@ -136,7 +136,7 @@ export function getDeployMetadataFromComparisonTree(files: TreeItems<FileItemMet
   return files
     .map((metadata) => ({
       type: metadata.treeItems?.[0]?.meta?.type as string,
-      items: metadata.treeItems?.map((item) => item.meta) || [],
+      items: metadata.treeItems?.map((item) => item.meta)?.filter((meta): meta is FileItemMetadata => meta != null) ?? [],
     }))
     .filter((item) => item.type);
 }
