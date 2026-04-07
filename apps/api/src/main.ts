@@ -173,6 +173,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
             "'sha256-AS526U4qXJy7/SohgsysWUxi77DtcgSmP0hNfTo6/Hs='", // Google Analytics (Docs)
             "'sha256-7mNBpJaHD4L73RpSf1pEaFD17uW3H/9+P1AYhm+j/Dg='", // Monaco unhandledrejection script
             "'sha256-U1ZWk/Nvev4hBoGjgXSP/YN1w4VGTmd4NTYtXEr58xI='", // __IS_BROWSER_EXTENSION__ script
+            "'sha256-jBfR+0PfmxShw9+YQcGOVUvuIRJ/l4iIy3h5ooYnDJg='", // Cloudflare Web Analytics beacon inline script
             'blob:',
             '*.google.com',
             '*.gstatic.com',
