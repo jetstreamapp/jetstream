@@ -19,6 +19,100 @@ export interface PlatformStats {
   passwordResetRequests7d: number;
 }
 
+const subtitleText: React.CSSProperties = {
+  textAlign: 'center',
+  color: '#6b7280',
+  fontSize: 12,
+  marginTop: 0,
+};
+
+const sectionStyle: React.CSSProperties = {
+  marginTop: 24,
+  marginBottom: 8,
+};
+
+const sectionHeading: React.CSSProperties = {
+  fontSize: 16,
+  fontWeight: 700,
+  color: '#111827',
+  marginBottom: 8,
+  marginTop: 0,
+};
+
+const tableStyle: React.CSSProperties = {
+  width: '100%',
+  borderCollapse: 'collapse',
+  fontSize: 13,
+};
+
+const tableRowStyle: React.CSSProperties = {
+  borderBottom: '1px solid #e5e7eb',
+};
+
+const tableLabelCell: React.CSSProperties = {
+  padding: '6px 8px',
+  color: '#374151',
+  fontWeight: 500,
+  textAlign: 'left',
+  width: '60%',
+};
+
+const tableValueCell: React.CSSProperties = {
+  padding: '6px 8px',
+  color: '#111827',
+  fontWeight: 700,
+  textAlign: 'right',
+};
+
+const tableHeaderCell: React.CSSProperties = {
+  padding: '6px 8px',
+  backgroundColor: '#f3f4f6',
+  color: '#374151',
+  fontWeight: 700,
+  fontSize: 11,
+  textTransform: 'uppercase',
+  textAlign: 'left',
+  letterSpacing: '0.05em',
+};
+
+const tableDataCell: React.CSSProperties = {
+  padding: '6px 8px',
+  color: '#374151',
+  fontSize: 12,
+  textAlign: 'left',
+  verticalAlign: 'top',
+  wordBreak: 'break-word',
+};
+
+const checkSectionStyle: React.CSSProperties = {
+  borderRadius: 4,
+  padding: '10px 12px',
+  marginBottom: 12,
+  border: '1px solid #e5e7eb',
+};
+
+const checkTitleStyle: React.CSSProperties = {
+  fontSize: 14,
+  fontWeight: 600,
+  color: '#111827',
+  margin: 0,
+  marginBottom: 2,
+};
+
+const checkDescriptionStyle: React.CSSProperties = {
+  fontSize: 12,
+  color: '#6b7280',
+  margin: 0,
+  marginBottom: 8,
+};
+
+const noIssuesStyle: React.CSSProperties = {
+  fontSize: 13,
+  color: '#16a34a',
+  fontWeight: 600,
+  margin: 0,
+};
+
 export interface EnrichedSecurityCheckRow {
   ipAddress?: string | null;
   location?: string | null;
@@ -161,7 +255,7 @@ export const StatsSummaryEmail = ({ stats, securityResults, generatedAt }: Stats
                 {platformStatRows.map(([label, value]) => (
                   <tr key={label} style={tableRowStyle}>
                     <td style={tableLabelCell}>{label}</td>
-                    <td style={tableValueCell}>{value.toLocaleString()}</td>
+                    <td style={tableValueCell}>{typeof value === 'number' ? value.toLocaleString() : value}</td>
                   </tr>
                 ))}
               </tbody>
@@ -190,7 +284,7 @@ export const StatsSummaryEmail = ({ stats, securityResults, generatedAt }: Stats
                 <Section key={index} style={{ ...checkSectionStyle, backgroundColor: bgColor }}>
                   <Row>
                     <Text style={checkTitleStyle}>
-                      <span style={{ color: badgeColor, fontWeight: 700 }}>[{result.severity.toUpperCase()}]</span> {result.title}
+                      <span style={{ color: badgeColor, fontWeight: 700 }}>[{effectiveSeverity.toUpperCase()}]</span> {result.title}
                     </Text>
                   </Row>
                   <Text style={checkDescriptionStyle}>{result.description}</Text>
@@ -302,98 +396,3 @@ StatsSummaryEmail.PreviewProps = {
     },
   ],
 } as StatsSummaryEmailProps;
-
-// Styles
-const subtitleText: React.CSSProperties = {
-  textAlign: 'center',
-  color: '#6b7280',
-  fontSize: 12,
-  marginTop: 0,
-};
-
-const sectionStyle: React.CSSProperties = {
-  marginTop: 24,
-  marginBottom: 8,
-};
-
-const sectionHeading: React.CSSProperties = {
-  fontSize: 16,
-  fontWeight: 700,
-  color: '#111827',
-  marginBottom: 8,
-  marginTop: 0,
-};
-
-const tableStyle: React.CSSProperties = {
-  width: '100%',
-  borderCollapse: 'collapse',
-  fontSize: 13,
-};
-
-const tableRowStyle: React.CSSProperties = {
-  borderBottom: '1px solid #e5e7eb',
-};
-
-const tableLabelCell: React.CSSProperties = {
-  padding: '6px 8px',
-  color: '#374151',
-  fontWeight: 500,
-  textAlign: 'left',
-  width: '60%',
-};
-
-const tableValueCell: React.CSSProperties = {
-  padding: '6px 8px',
-  color: '#111827',
-  fontWeight: 700,
-  textAlign: 'right',
-};
-
-const tableHeaderCell: React.CSSProperties = {
-  padding: '6px 8px',
-  backgroundColor: '#f3f4f6',
-  color: '#374151',
-  fontWeight: 700,
-  fontSize: 11,
-  textTransform: 'uppercase',
-  textAlign: 'left',
-  letterSpacing: '0.05em',
-};
-
-const tableDataCell: React.CSSProperties = {
-  padding: '6px 8px',
-  color: '#374151',
-  fontSize: 12,
-  textAlign: 'left',
-  verticalAlign: 'top',
-  wordBreak: 'break-word',
-};
-
-const checkSectionStyle: React.CSSProperties = {
-  borderRadius: 4,
-  padding: '10px 12px',
-  marginBottom: 12,
-  border: '1px solid #e5e7eb',
-};
-
-const checkTitleStyle: React.CSSProperties = {
-  fontSize: 14,
-  fontWeight: 600,
-  color: '#111827',
-  margin: 0,
-  marginBottom: 2,
-};
-
-const checkDescriptionStyle: React.CSSProperties = {
-  fontSize: 12,
-  color: '#6b7280',
-  margin: 0,
-  marginBottom: 8,
-};
-
-const noIssuesStyle: React.CSSProperties = {
-  fontSize: 13,
-  color: '#16a34a',
-  fontWeight: 600,
-  margin: 0,
-};
