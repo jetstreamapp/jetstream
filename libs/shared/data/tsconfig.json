@@ -4,8 +4,6 @@
     "jsx": "react-jsx",
     "jsxImportSource": "@emotion/react",
     "allowJs": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
     "strictNullChecks": true,
     "types": ["node"]
   },

@@ -3,8 +3,6 @@
   "compilerOptions": {
     "jsx": "preserve",
     "allowJs": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
     "types": ["node", "google.accounts", "google.picker", "gapi.auth2"],
     "strict": false,
     "forceConsistentCasingInFileNames": true,

@@ -8,8 +8,7 @@
     "noPropertyAccessFromIndexSignature": false,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "jsx": "react",
-    "esModuleInterop": true
+    "jsx": "react"
   },
   "files": [],
   "include": [],

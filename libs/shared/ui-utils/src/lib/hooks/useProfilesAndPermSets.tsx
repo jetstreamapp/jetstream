@@ -113,7 +113,7 @@ export function useProfilesAndPermSets(
           setPermissionSets(output.permissionSets);
         }
       } catch (ex) {
-        logger.warn('[useProfilesAndPermSets][ERROR]', ex.message);
+        logger.info('[useProfilesAndPermSets][ERROR]', ex.message);
         if (isMounted.current) {
           setHasError(true);
         }

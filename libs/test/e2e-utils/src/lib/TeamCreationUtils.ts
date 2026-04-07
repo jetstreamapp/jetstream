@@ -4,7 +4,7 @@ import { TeamBillingStatusSchema, TeamMemberRole, TeamMemberRoleSchema, TeamMemb
 import { encodeHexLowerCase, encodeHexUpperCase } from '@oslojs/encoding';
 import { Browser, BrowserContext, Page } from '@playwright/test';
 import { AuthenticationPage } from './pageObjectModels/AuthenticationPage.model';
-import chalk = require('chalk');
+import chalk from 'chalk';
 
 type Team = Awaited<ReturnType<TeamCreationUtils['createTeam']>>;
 type TeamMember = Awaited<ReturnType<TeamCreationUtils['createTeam']>>['members'][number];

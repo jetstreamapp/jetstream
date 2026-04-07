@@ -4,6 +4,31 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const path = require('path');
 const webpack = require('webpack');
+const { readFileSync } = require('fs');
+
+/**
+ * Build webpack resolve.alias from tsconfig paths.
+ * This replaces tsconfig-paths-webpack-plugin which requires the deprecated baseUrl option.
+ *
+ * Uses webpack's '$' exact-match suffix for aliases that are prefixes of other aliases
+ * (e.g. '@jetstream/ui$' so it doesn't greedily match '@jetstream/ui/app-state').
+ */
+function getTsconfigPathAliases() {
+  const tsconfig = JSON.parse(readFileSync(path.resolve(__dirname, '../../tsconfig.base.json'), 'utf-8'));
+  const paths = tsconfig.compilerOptions?.paths || {};
+  const rootDir = path.resolve(__dirname, '../..');
+  const aliasKeys = Object.keys(paths);
+  const aliases = {};
+  for (const [alias, targets] of Object.entries(paths)) {
+    if (targets.length > 0) {
+      const resolvedPath = path.resolve(rootDir, targets[0]);
+      // If this alias is a prefix of another alias, use exact matching
+      const isPrefix = aliasKeys.some((other) => other !== alias && other.startsWith(alias + '/'));
+      aliases[isPrefix ? `${alias}$` : alias] = resolvedPath;
+    }
+  }
+  return aliases;
+}
 
 // @ts-expect-error withReact is complaining about the type of the config - but works on some machines just fine
 module.exports = composePlugins(withNx(), withReact(), (config, { configuration }) => {
@@ -25,6 +50,12 @@ module.exports = composePlugins(withNx(), withReact(), (config, { configuration 
   };
   config.resolve = {
     ...config.resolve,
+    alias: {
+      ...config.resolve?.alias,
+      ...getTsconfigPathAliases(),
+    },
+    // Remove tsconfig-paths-webpack-plugin since it requires the deprecated baseUrl option
+    plugins: (config.resolve?.plugins || []).filter((plugin) => plugin?.constructor?.name !== 'TsconfigPathsPlugin'),
   };
   // if runtime chunk is enabled, then the service worker will not work
   config.optimization = {
