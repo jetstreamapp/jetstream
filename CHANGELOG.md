@@ -122,7 +122,7 @@
 * fix invalid export path ([f690d2d](https://github.com/jetstreamapp/jetstream/commit/f690d2dce6e389a08c8f05c5fbb4ff8615aaae12))
 * fix invalid icon types ([ca66298](https://github.com/jetstreamapp/jetstream/commit/ca6629894f8281d9d0e47f4fe29f61a00ccc54ed))
 * fix malformed ids ([ccc8862](https://github.com/jetstreamapp/jetstream/commit/ccc886267189ccc26a9f1b1d5321cceddf079ea1))
-* handle errors ins stream processing ([68e7033](https://github.com/jetstreamapp/jetstream/commit/68e7033e2c22c1e1472aa87e0ecb0c9ddee432e8))
+* handle errors in stream processing ([68e7033](https://github.com/jetstreamapp/jetstream/commit/68e7033e2c22c1e1472aa87e0ecb0c9ddee432e8))
 * show actual error on bulk update failure ([2e4b70c](https://github.com/jetstreamapp/jetstream/commit/2e4b70c854ba4ded4a921b146cae4ab36ab3a17c))
 
 ## [9.0.1](https://github.com/jetstreamapp/jetstream/compare/v9.0.0...v9.0.1) (2026-02-28)
