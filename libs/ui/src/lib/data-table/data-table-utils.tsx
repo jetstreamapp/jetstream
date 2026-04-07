@@ -135,28 +135,37 @@ export function getColumnDefinitions(
     subqueryColumns: {},
   };
 
+  // Build a set of subquery relationship names for reliable lookup
+  // (positional index is unreliable because getFlattenedFields uses flatMap, e.g. TYPEOF expands to multiple entries)
+  const subqueryRelationshipNames = new Set(
+    results.parsedQuery?.fields?.filter(isFieldSubquery).map((f) => f.subquery.relationshipName.toLowerCase()) || [],
+  );
+
   // map each field to the returned metadata from SFDC
   let queryColumnsByPath: Record<string, QueryResultsColumn> = {};
   if (results.columns?.columns) {
-    queryColumnsByPath = results.columns.columns.reduce((out, curr, i) => {
-      out[curr.columnFullPath.toLowerCase()] = curr;
-      // some subqueries (e.x. TYPEOF) is not returned from the salesforce "column.childColumnPaths"
-      // in this case, we need to mock the response structure
-      // https://github.com/paustint/jetstream/issues/3#issuecomment-728028624
-      if (!Array.isArray(curr.childColumnPaths) && results.parsedQuery?.fields?.[i] && isFieldSubquery(results.parsedQuery.fields[i])) {
-        curr.childColumnPaths = [];
-      }
+    queryColumnsByPath = results.columns.columns.reduce(
+      (out, curr) => {
+        out[curr.columnFullPath.toLowerCase()] = curr;
+        // some subqueries (e.x. TYPEOF) is not returned from the salesforce "column.childColumnPaths"
+        // in this case, we need to mock the response structure
+        // https://github.com/paustint/jetstream/issues/3#issuecomment-728028624
+        if (!Array.isArray(curr.childColumnPaths) && subqueryRelationshipNames.has(curr.columnFullPath.toLowerCase())) {
+          curr.childColumnPaths = [];
+        }
 
-      if (Array.isArray(curr.childColumnPaths)) {
-        curr.childColumnPaths.forEach((subqueryField) => {
-          out[subqueryField.columnFullPath.toLowerCase()] = {
-            ...subqueryField,
-            columnFullPath: subqueryField.columnFullPath.split('.').slice(1).join('.'), // remove child relationship name
-          } as QueryResultsColumn;
-        });
-      }
-      return out;
-    }, {});
+        if (Array.isArray(curr.childColumnPaths)) {
+          curr.childColumnPaths.forEach((subqueryField) => {
+            out[subqueryField.columnFullPath.toLowerCase()] = {
+              ...subqueryField,
+              columnFullPath: subqueryField.columnFullPath.split('.').slice(1).join('.'), // remove child relationship name
+            } as QueryResultsColumn;
+          });
+        }
+        return out;
+      },
+      {} as Record<string, QueryResultsColumn>,
+    );
   }
   // If there is a FIELDS('') clause in the query, then we know the data will not be shown
   // in this case, fall back to Salesforce column data instead of the query results
@@ -168,11 +177,11 @@ export function getColumnDefinitions(
   }
 
   // Base fields
-  const parentColumns: ColumnWithFilter<RowWithKey>[] = getFlattenedFields(results.parsedQuery || {}).map((field, i) =>
+  const parentColumns: ColumnWithFilter<RowWithKey>[] = getFlattenedFields(results.parsedQuery || {}).map((field) =>
     getQueryResultColumn({
       field,
       queryColumnsByPath,
-      isSubquery: isFieldSubquery(results.parsedQuery?.fields?.[i]),
+      isSubquery: subqueryRelationshipNames.has(field.toLowerCase()),
       fieldMetadata,
     }),
   );
@@ -205,15 +214,16 @@ export function getColumnDefinitions(
   results.parsedQuery?.fields
     ?.filter((field) => isFieldSubquery(field))
     .forEach((parentField: FieldSubquery) => {
-      output.subqueryColumns[parentField.subquery.relationshipName] = getFlattenedFields(parentField.subquery || {}).map((field) =>
-        getQueryResultColumn({
-          field,
-          subqueryRelationshipName: parentField.subquery.relationshipName,
-          queryColumnsByPath,
-          isSubquery: false,
-          allowEdit: false,
-          fieldMetadata: fieldMetadataSubquery?.[parentField.subquery.relationshipName.toLowerCase()],
-        }),
+      output.subqueryColumns[parentField.subquery.relationshipName.toLowerCase()] = getFlattenedFields(parentField.subquery || {}).map(
+        (field) =>
+          getQueryResultColumn({
+            field,
+            subqueryRelationshipName: parentField.subquery.relationshipName,
+            queryColumnsByPath,
+            isSubquery: false,
+            allowEdit: false,
+            fieldMetadata: fieldMetadataSubquery?.[parentField.subquery.relationshipName.toLowerCase()],
+          }),
       );
     });
 
@@ -677,7 +687,8 @@ export function getSfdcRetUrl(record: any, id?: string, skipFrontdoorLoginOverri
   try {
     id = id || getIdFromRecordUrl(record?.attributes?.url || record?._record?.attributes?.url);
     const baseRecordType = record?.attributes?.type || record?._record?.attributes?.type;
-    const relatedRecordType = RECORD_PREFIX_MAP[(id || '').substring(0, 3)] || null;
+    const recordPrefix = (id || '').substring(0, 3) as keyof typeof RECORD_PREFIX_MAP;
+    const relatedRecordType = RECORD_PREFIX_MAP[recordPrefix] || null;
 
     if (baseRecordType === 'Group') {
       return {
@@ -713,7 +724,7 @@ export function getSearchTextByRow<T>(rows: T[], columns: ColumnWithFilter<T>[],
       if (key) {
         columns.forEach((column) => {
           if (column.key) {
-            let value = row[column.key];
+            let value = (row as Record<string, unknown>)[column.key];
             if (column.getValue) {
               value = column.getValue({ row, column });
             }

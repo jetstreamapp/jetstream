@@ -137,7 +137,7 @@ export const SubqueryRenderer = ({ column, row, onRowChange }: RenderCellProps<R
           google_clientId,
         } = props;
 
-        const columns = columnDefinitions?.[column.key];
+        const columns = columnDefinitions?.[column.key.toLowerCase()];
 
         if (!columns) {
           return null;
