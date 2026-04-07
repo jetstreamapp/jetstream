@@ -19,6 +19,44 @@ export interface PlatformStats {
   passwordResetRequests7d: number;
 }
 
+const subtitleText: React.CSSProperties = {
+  textAlign: 'center',
+  color: '#6b7280',
+  fontSize: 12,
+  marginTop: 0,
+};
+
+const sectionStyle: React.CSSProperties = {
+  marginTop: 24,
+  marginBottom: 8,
+};
+
+const sectionHeading: React.CSSProperties = {
+  fontSize: 16,
+  fontWeight: 700,
+  color: '#111827',
+  marginBottom: 8,
+  marginTop: 0,
+};
+
+const tableStyle: React.CSSProperties = {
+  width: '100%',
+  borderCollapse: 'collapse',
+  fontSize: 13,
+};
+
+const tableRowStyle: React.CSSProperties = {
+  borderBottom: '1px solid #e5e7eb',
+};
+
+const tableLabelCell: React.CSSProperties = {
+  padding: '6px 8px',
+  color: '#374151',
+  fontWeight: 500,
+  textAlign: 'left',
+  width: '60%',
+};
+
 const tableValueCell: React.CSSProperties = {
   padding: '6px 8px',
   color: '#111827',
@@ -358,42 +396,3 @@ StatsSummaryEmail.PreviewProps = {
     },
   ],
 } as StatsSummaryEmailProps;
-
-// Styles
-const subtitleText: React.CSSProperties = {
-  textAlign: 'center',
-  color: '#6b7280',
-  fontSize: 12,
-  marginTop: 0,
-};
-
-const sectionStyle: React.CSSProperties = {
-  marginTop: 24,
-  marginBottom: 8,
-};
-
-const sectionHeading: React.CSSProperties = {
-  fontSize: 16,
-  fontWeight: 700,
-  color: '#111827',
-  marginBottom: 8,
-  marginTop: 0,
-};
-
-const tableStyle: React.CSSProperties = {
-  width: '100%',
-  borderCollapse: 'collapse',
-  fontSize: 13,
-};
-
-const tableRowStyle: React.CSSProperties = {
-  borderBottom: '1px solid #e5e7eb',
-};
-
-const tableLabelCell: React.CSSProperties = {
-  padding: '6px 8px',
-  color: '#374151',
-  fontWeight: 500,
-  textAlign: 'left',
-  width: '60%',
-};
