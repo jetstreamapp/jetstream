@@ -23,6 +23,7 @@ import {
   FieldDefinitionType,
   FieldDefinitions,
   FieldPermissionRecord,
+  FieldValue,
   FieldValueDependencies,
   FieldValues,
   GlobalPicklistRecord,
@@ -1179,7 +1180,7 @@ export function getRowsForExport(fieldValues: FieldValues[]) {
         }
       }
       return output;
-    }, {}),
+    }, {} as Partial<Record<FieldDefinitionType, FieldValue>>),
   );
 }
 
