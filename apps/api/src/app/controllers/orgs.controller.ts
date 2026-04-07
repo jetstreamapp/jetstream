@@ -1,6 +1,7 @@
 import { getExceptionLog } from '@jetstream/api-config';
 import { ApiRequestError } from '@jetstream/salesforce-api';
 import { ERROR_MESSAGES } from '@jetstream/shared/constants';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import { SObjectOrganization } from '@jetstream/types';
 import { z } from 'zod';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
@@ -104,7 +105,7 @@ const checkOrgHealth = createRoute(routeDefinition.checkOrgHealth.validators, as
       req.log.warn('[ORG CHECK][VALID ORG][IDENTITY]');
     } catch (ex) {
       connectionError = ERROR_MESSAGES.SFDC_EXPIRED_TOKEN;
-      req.log.warn(getExceptionLog(ex), '[ORG CHECK][INVALID ORG] %s', ex.message);
+      req.log.warn(getExceptionLog(ex), '[ORG CHECK][INVALID ORG] %s', getErrorMessage(ex));
     }
 
     // Ensure full API access, identity API works even without API access
@@ -115,9 +116,9 @@ const checkOrgHealth = createRoute(routeDefinition.checkOrgHealth.validators, as
         connectionError = null;
         req.log.warn('[ORG CHECK][VALID ORG][API ACCESS]');
       } catch (ex) {
-        if (ex instanceof ApiRequestError && ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED.test(ex.message)) {
+        if (ex instanceof ApiRequestError && ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED.test(getErrorMessage(ex))) {
           connectionError = ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED_MSG;
-          req.log.warn(getExceptionLog(ex), '[ORG CHECK][INVALID ORG] %s', ex.message);
+          req.log.warn(getExceptionLog(ex), '[ORG CHECK][INVALID ORG] %s', getErrorMessage(ex));
         }
       }
     }
@@ -127,7 +128,7 @@ const checkOrgHealth = createRoute(routeDefinition.checkOrgHealth.validators, as
         await salesforceOrgsDb.updateOrg_UNSAFE(org, { connectionError });
       }
     } catch (ex) {
-      req.log.warn({ orgId: org?.id, ...getExceptionLog(ex) }, '[ERROR UPDATING INVALID ORG] %s', ex.message);
+      req.log.warn({ orgId: org?.id, ...getExceptionLog(ex) }, '[ERROR UPDATING INVALID ORG] %s', getErrorMessage(ex));
     }
 
     if (connectionError) {

@@ -245,7 +245,7 @@
     "tailwindcss": "^4.1.17",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
-    "typescript": "5.9.3",
+    "typescript": "6.0.2",
     "typescript-eslint": "8.46.2",
     "vite": "7.1.11",
     "vite-plugin-dts": "4.5.4",

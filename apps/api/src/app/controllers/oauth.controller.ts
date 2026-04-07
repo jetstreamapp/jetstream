@@ -150,7 +150,7 @@ const salesforceOauthCallback = createRoute(
     } catch (ex) {
       let errorLogObj = getExceptionLog(ex) as any;
 
-      returnParams.error = ex.message || 'Unexpected Error';
+      returnParams.error = getErrorMessage(ex) || 'Unexpected Error';
       returnParams.message = queryParams.error_description
         ? (queryParams.error_description as string)
         : 'There was an error authenticating with Salesforce.';
@@ -196,7 +196,7 @@ export async function initConnectionFromOAuthResponse({
     }
   } catch (ex) {
     logger.warn({ userId, ...getExceptionLog(ex) }, 'Error getting org info %o', ex);
-    if (ex instanceof ApiRequestError && ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED.test(ex.message)) {
+    if (ex instanceof ApiRequestError && ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED.test(getErrorMessage(ex))) {
       throw new Error(ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED_MSG);
     }
   }

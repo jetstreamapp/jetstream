@@ -2,7 +2,6 @@
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
     "strictNullChecks": true,
-    "esModuleInterop": true,
     "types": ["node"]
   },
   "include": [],
