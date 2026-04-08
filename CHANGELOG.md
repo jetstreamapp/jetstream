@@ -1,5 +1,22 @@
 # Changelog
 
+## [9.10.0](https://github.com/jetstreamapp/jetstream/compare/v9.9.1...v9.10.0) (2026-04-08)
+
+### Features
+
+* **create-fields:** add LoadExistingFieldsModal and integrate field loading functionality ([b94edf9](https://github.com/jetstreamapp/jetstream/commit/b94edf9c00c3cc3ae42a68dd9d6bfbe9ac5fb491)), closes [#1636](https://github.com/jetstreamapp/jetstream/issues/1636)
+* **csp:** add Cloudflare Web Analytics beacon inline script to CSP ([d9fc355](https://github.com/jetstreamapp/jetstream/commit/d9fc355b45f0622796cbd085b1482b1445c08b19))
+* **load-records:** add context menu actions and clipboard functionality for duplicate records table ([750d46a](https://github.com/jetstreamapp/jetstream/commit/750d46afa9a87be1c2698db9ef414c3dfbbcd9dd)), closes [#1635](https://github.com/jetstreamapp/jetstream/issues/1635)
+* **query-history:** update mouse wheel handling logic for scrollbar ([b124350](https://github.com/jetstreamapp/jetstream/commit/b1243509848f730d152f8d189a94285519f6ea46)), closes [#1502](https://github.com/jetstreamapp/jetstream/issues/1502)
+* **sobject-export:** add 'Description' field to export selections and definitions ([53d20b5](https://github.com/jetstreamapp/jetstream/commit/53d20b5eacece7bad715032c17ae30dada7cfe54))
+
+### Bug Fixes
+
+* **create-fields:** enhance error handling by displaying detailed import errors ([1ac867b](https://github.com/jetstreamapp/jetstream/commit/1ac867b643c4134ca5304e288d738e2988963ecf)), closes [#1638](https://github.com/jetstreamapp/jetstream/issues/1638)
+* **dependencies:** update fast-jwt to version 6.2.0 ([3eaaf54](https://github.com/jetstreamapp/jetstream/commit/3eaaf540f31d819e8c32d34bd97d9627d881dcfc))
+* **email:** fix toLocaleString runtime error, severity badge mismatch, and move style constants ([69f3816](https://github.com/jetstreamapp/jetstream/commit/69f381620722cc89d893559ff05821f200514798))
+* **getDeployMetadataFromComparisonTree:** filter out null metadata items ([656a871](https://github.com/jetstreamapp/jetstream/commit/656a8716724472de683f58157b136e99c49e15d7))
+
 ## [9.9.1](https://github.com/jetstreamapp/jetstream/compare/v9.9.0...v9.9.1) (2026-04-05)
 
 ### Features
