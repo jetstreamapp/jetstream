@@ -32,9 +32,10 @@ export interface CreateFieldsImportExportProps {
   selectedOrg: SalesforceOrgUi;
   rows: FieldValues[];
   onImportRows: (rows: FieldValues[]) => void;
+  onLoadFromOrg: () => void;
 }
 
-export const CreateFieldsImportExport = ({ selectedOrg, rows, onImportRows }: CreateFieldsImportExportProps) => {
+export const CreateFieldsImportExport = ({ selectedOrg, rows, onImportRows, onLoadFromOrg }: CreateFieldsImportExportProps) => {
   const { trackEvent } = useAmplitude();
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
@@ -154,6 +155,14 @@ export const CreateFieldsImportExport = ({ selectedOrg, rows, onImportRows }: Cr
       <ButtonGroupContainer>
         <button
           className="slds-button slds-button_neutral slds-button_first collapsible-button collapsible-button-lg"
+          onClick={onLoadFromOrg}
+          title="Load existing fields from the org to edit"
+        >
+          <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+          <span>Load from Org</span>
+        </button>
+        <button
+          className="slds-button slds-button_neutral slds-button_middle collapsible-button collapsible-button-lg"
           onClick={() => handleExport()}
         >
           <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />

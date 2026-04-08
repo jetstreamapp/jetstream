@@ -152,7 +152,7 @@ export const CreateFieldsDeployModal = ({
                   Close
                 </button>
                 <button className="slds-button slds-button_brand" onClick={handleDeploy} disabled={loading}>
-                  Create Fields
+                  Upsert Fields
                 </button>
               </div>
             </Grid>

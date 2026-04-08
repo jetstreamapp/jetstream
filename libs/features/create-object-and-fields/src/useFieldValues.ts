@@ -44,14 +44,26 @@ function reducer(state: State, action: Action): State {
       };
     }
     case 'IMPORT_ROWS': {
-      const newRows = [
-        ...state.rows,
-        ...action.payload.rows.map((row, i) => ({
-          ...row,
-          _key: fromCreateFieldsState.getNextKey(),
-          _picklistGlobalValueSet: !!row.globalValueSet.value,
-        })),
-      ];
+      const incomingRows = action.payload.rows.map((row) => ({
+        ...row,
+        _key: fromCreateFieldsState.getNextKey(),
+        _picklistGlobalValueSet: !!row.globalValueSet.value,
+      }));
+
+      // Build a set of incoming fullNames (lowercased) to detect duplicates
+      const incomingFullNames = new Set(
+        incomingRows.filter((row) => row.fullName.value).map((row) => String(row.fullName.value).toLowerCase()),
+      );
+
+      // Filter existing rows: remove duplicates that will be replaced by incoming rows,
+      // and remove blank/default rows (no label and no fullName)
+      const existingRows = state.rows.filter((row) => {
+        const isBlank = !row.label.value && !row.fullName.value;
+        const isDuplicate = row.fullName.value && incomingFullNames.has(String(row.fullName.value).toLowerCase());
+        return !isBlank && !isDuplicate;
+      });
+
+      const newRows = [...existingRows, ...incomingRows];
       const { rows, allValid } = calculateFieldValidity(newRows);
       return {
         ...state,

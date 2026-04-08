@@ -18,6 +18,7 @@ export const FIELD_DEFINITION_API_FIELDS = new Set<ExtendedFieldDefinition>([
   'BusinessOwnerId',
   'BusinessStatus',
   'ComplianceGroup',
+  'Description',
   'IsFieldHistoryTracked',
   'IsFlsEnabled',
   'SecurityClassification',
@@ -384,6 +385,11 @@ export function getAttributes(): SobjectExportField[] {
       name: 'deprecatedAndHidden',
       label: 'Deprecated And Hidden',
       description: 'Reserved for future use.',
+    },
+    {
+      name: 'Description',
+      label: 'Description',
+      description: 'The description of the field.',
     },
     {
       name: 'digits',

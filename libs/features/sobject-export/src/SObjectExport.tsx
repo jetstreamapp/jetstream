@@ -57,10 +57,12 @@ const FIELD_ATTRIBUTES: ListItem<SobjectExportFieldName>[] = getAttributes().map
   tertiaryLabel,
 }));
 
+// Extended FieldDefinition fields use PascalCase (e.g. 'Description'), while keyof Field entries are camelCase
 const DEFAULT_SELECTION: SobjectExportFieldName[] = [
   'calculatedFormula',
   'createable',
   'custom',
+  'Description',
   'externalId',
   'formula',
   'label',

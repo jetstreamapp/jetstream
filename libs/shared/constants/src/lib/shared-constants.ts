@@ -285,6 +285,7 @@ export const ANALYTICS_KEYS = {
   sobj_create_field_export_results: 'sobj_create_field_export_results',
   sobj_create_field_global_picklist: 'sobj_create_field_global_picklist',
   sobj_create_field_formula_execute: 'sobj_create_field_formula_execute',
+  sobj_create_field_load_from_org: 'sobj_create_field_load_from_org',
   /** RECORD TYPE PICKLIST */
   record_type_picklist_toggle_view_mode: 'record_type_picklist_toggle_view_mode',
   record_type_picklist_deploy: 'record_type_picklist_deploy',

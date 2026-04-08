@@ -178,3 +178,52 @@ export interface EntityParticleRecord {
   DurableId: string;
   QualifiedApiName: string;
 }
+
+export interface CustomFieldRecord {
+  Id: string;
+  DeveloperName: string;
+  FullName: string;
+  NamespacePrefix: string | null;
+  Metadata: CustomFieldMetadata;
+}
+
+export interface CustomFieldMetadata {
+  type: string;
+  label: string;
+  description: string | null;
+  inlineHelpText: string | null;
+  formula: string | null;
+  formulaTreatBlanksAs: string | null;
+  defaultValue: string | boolean | null;
+  length: number | null;
+  precision: number | null;
+  scale: number | null;
+  required: boolean;
+  unique: boolean;
+  externalId: boolean;
+  referenceTo: string | null;
+  relationshipName: string | null;
+  deleteConstraint: string | null;
+  writeRequiresMasterRead: boolean | null;
+  reparentableMasterDetail: boolean | null;
+  displayFormat: string | null;
+  populateExistingRows: boolean | null;
+  startingNumber: number | null;
+  visibleLines: number | null;
+  trackHistory: boolean;
+  trackTrending: boolean;
+  valueSet: {
+    valueSetName?: string;
+    restricted?: boolean;
+    valueSetDefinition?: {
+      sorted: boolean;
+      value: Array<{
+        fullName?: string;
+        valueName?: string;
+        label: string;
+        default: boolean;
+        isActive?: boolean | null;
+      }>;
+    };
+  } | null;
+}

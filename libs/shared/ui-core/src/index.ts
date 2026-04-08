@@ -15,6 +15,7 @@ export * from './app/HeaderUpdateNotification';
 export * from './app/NotificationsRequestModal';
 export * from './app/PromptNavigation';
 export * from './app/RequireMetadataApiBanner';
+export * from './create-fields/create-fields-load-utils';
 export * from './create-fields/create-fields-types';
 export * from './create-fields/create-fields-utils';
 export * from './create-fields/useCreateFields';
