@@ -316,7 +316,7 @@
     "express-http-proxy": "^2.1.2",
     "express-rate-limit": "^8.3.1",
     "express-session": "^1.19.0",
-    "fast-jwt": "^6.1.0",
+    "fast-jwt": "^6.2.0",
     "file-saver": "^2.0.5",
     "filesize": "^11.0.13",
     "fs-extra": "^9.0.1",
