@@ -1,0 +1,31 @@
+{
+  "packageDirectories": [
+    {
+      "package": "Jetstream Canvas",
+      "path": "canvas-app/jetstream",
+      "default": true,
+      "versionNumber": "1.0.0",
+      "versionName": "v1.0.0"
+    },
+    {
+      "path": "canvas-app/unpackaged"
+    }
+  ],
+  "name": "jetstream-canvas",
+  "namespace": "jetstream",
+  "sfdcLoginUrl": "https://login.salesforce.com",
+  "sourceApiVersion": "66.0",
+  "replacements": [
+    {
+      "filename": "main/default/extlClntAppCanvasSettings/Jetstream_Canvas_canvasSettings.ecaCanvas-meta.xml",
+      "stringToReplace": "https://getjetstream.app",
+      "replaceWithEnv": "JETSTREAM_CANVAS_BASE_URL",
+      "replaceWhenEnv": [
+        {
+          "env": "SFDX_ENV",
+          "value": "DEVELOPMENT"
+        }
+      ]
+    }
+  ]
+}

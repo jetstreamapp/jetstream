@@ -2,6 +2,9 @@
   "name": "docs",
   "version": "0.0.0",
   "private": true,
+  "resolutions": {
+    "@babel/traverse": ">=7.23.2"
+  },
   "scripts": {
     "docusaurus": "docusaurus",
     "start": "docusaurus start",

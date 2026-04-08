@@ -93,7 +93,7 @@ export const routeDefinition = {
     controllerFn: () => addBatchToJobWithBinaryAttachment,
     responseType: z.any(),
     validators: {
-      params: z.object({ jobId: z.string().min(1), batchId: z.string().min(1) }),
+      params: z.object({ jobId: z.string().min(1) }),
       body: z.any(),
       query: z.object({
         closeJob: BooleanQueryParamSchema,

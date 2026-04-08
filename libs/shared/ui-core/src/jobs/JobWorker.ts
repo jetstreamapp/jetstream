@@ -16,6 +16,7 @@ import {
 import {
   getOrgUrlParams,
   isBrowserExtension,
+  isCanvasApp,
   pollBulkApiJobUntilDone,
   pollRetrieveMetadataResultsUntilDone,
   prepareCsvFile,
@@ -201,7 +202,7 @@ export class JobWorker {
             /**
              * In the browser extension, we cannot stream the file, so we download the results directly
              */
-            if (isBrowserExtension()) {
+            if (isBrowserExtension() || isCanvasApp()) {
               downloadedRecords = await bulkApiGetRecords(org, jobId, batchResult.id, 'result', true);
             } else {
               const results = {

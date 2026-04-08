@@ -2,6 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import {
   GoogleApiClientConfig,
   isBrowserExtension,
+  isCanvasApp,
   isDesktop,
   isExternalGoogleAccessTokenValid,
   useNonInitialEffect,
@@ -99,7 +100,7 @@ export interface FileDownloadGoogleProps {
 }
 
 export const FileDownloadGoogle: FunctionComponent<FileDownloadGoogleProps> = (props) => {
-  if (isDesktop() || isBrowserExtension()) {
+  if (isDesktop() || isBrowserExtension() || isCanvasApp()) {
     return <FileDownloadGoogleExternal {...props} />;
   }
   return <FileDownloadGoogleWeb {...props} />;

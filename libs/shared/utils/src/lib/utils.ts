@@ -1297,3 +1297,20 @@ export const fileExtensionFromMimeType = (mimeType: string): Maybe<string> => {
       return null;
   }
 };
+
+/**
+ * Converts URLSearchParams to a JSON object
+ * @param params
+ * @param encode
+ * @returns
+ */
+export function urlSearchParamsToJson(params: URLSearchParams, encode = false): Record<string, string> {
+  const result: Record<string, string> = {};
+
+  for (const [key, value] of params.entries()) {
+    const decodedValue = encode ? encodeURIComponent(value) : value;
+    result[key] = decodedValue;
+  }
+
+  return result;
+}

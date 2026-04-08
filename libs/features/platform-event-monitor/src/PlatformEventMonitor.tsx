@@ -13,12 +13,18 @@ import { PlatformEventMonitorListenerCard } from './PlatformEventMonitorListener
 import { PlatformEventMonitorPublisherCard } from './PlatformEventMonitorPublisherCard';
 import { PlatformEventMonitorSubscribeNotAvailableCard } from './PlatformEventMonitorSubscribeNotAvailableCard';
 import { PlatformEventObject } from './platform-event-monitor.types';
-import { PlatformEventDownloadData, usePlatformEvent } from './usePlatformEvent';
+import { PlatformEventDownloadData, SubscribeOverrideFn, UnsubscribeOverrideFn, usePlatformEvent } from './usePlatformEvent';
 
-export const PlatformEventMonitor = () => {
+export const PlatformEventMonitor = ({
+  subscribeOverrideFn,
+  unsubscribeOverrideFn,
+}: {
+  subscribeOverrideFn?: SubscribeOverrideFn;
+  unsubscribeOverrideFn?: UnsubscribeOverrideFn;
+}) => {
   useTitle(TITLES.PLATFORM_EVENTS);
   const { trackEvent } = useAmplitude();
-  const [chromeExtension] = useState(() => isBrowserExtension());
+  const [isWebExtension] = useState(() => isBrowserExtension());
   const { serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const isMounted = useRef(true);
@@ -36,7 +42,7 @@ export const PlatformEventMonitor = () => {
     publish,
     subscribe,
     unsubscribe,
-  } = usePlatformEvent({ selectedOrg });
+  } = usePlatformEvent({ selectedOrg, subscribeOverrideFn, unsubscribeOverrideFn });
   const [platformEventsListSubscriptions, setPlatformEventsListSubscriptions] = useState<ListItemGroup<string, PlatformEventObject>[]>([]);
   const [platformEventsListPublisher, setPlatformEventsListPublisher] = useState<ListItem<string, PlatformEventObject>[]>([]);
   const [subscribedPlatformEventsList, setSubscribedPlatformEventsList] = useState<ListItem<string, PlatformEventObject>[]>([]);
@@ -163,7 +169,7 @@ export const PlatformEventMonitor = () => {
           `}
         >
           <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-grid slds-grid_vertical">
-            {chromeExtension ? (
+            {isWebExtension ? (
               <PlatformEventMonitorSubscribeNotAvailableCard />
             ) : (
               <PlatformEventMonitorListenerCard

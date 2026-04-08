@@ -5,8 +5,6 @@ import dns from 'dns';
 import { defineConfig } from 'vite';
 import { baseHrefPlugin } from './vite.plugins';
 
-// import replaceFiles from '@nx/vite/plugins/rollup-replace-files.plugin';
-
 dns.setDefaultResultOrder('verbatim');
 
 export default defineConfig(() => ({

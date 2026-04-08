@@ -2,6 +2,7 @@ export * from './lib/billing.types';
 export * from './lib/jobs/types';
 export * from './lib/salesforce/apex.types';
 export * from './lib/salesforce/bulk.types';
+export * as Canvas from './lib/salesforce/canvas.types';
 export * from './lib/salesforce/metadata.types';
 export * from './lib/salesforce/misc.types';
 export * from './lib/salesforce/query.types';

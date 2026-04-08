@@ -53,6 +53,7 @@ const createAppAbility = createMongoAbility as CreateAbility<AppAbility>;
 type GetAbilityOptions = {
   user?: Pick<UserProfileUi, 'teamMembership' | 'entitlements'>;
   isBrowserExtension?: boolean;
+  isCanvasApp?: boolean;
   isDesktop?: boolean;
 };
 
@@ -62,14 +63,14 @@ type GetAbilityOptions = {
  * @see https://casl.js.org/v6/en/guide/define-rules
  * @param options
  */
-function getAbilityRules({ isBrowserExtension, isDesktop, user }: GetAbilityOptions) {
+function getAbilityRules({ isBrowserExtension, isDesktop, isCanvasApp, user }: GetAbilityOptions) {
   const { can, cannot, rules } = new AbilityBuilder<AppAbility>(createMongoAbility);
 
   if (!user) {
     return rules;
   }
 
-  const isWebApp = !isBrowserExtension && !isDesktop;
+  const isWebApp = !isBrowserExtension && !isDesktop && !isCanvasApp;
   const activeTeamMembership = user.teamMembership?.status === TeamMemberStatusSchema.enum.ACTIVE;
   const isBillingRole = user.teamMembership?.role === TeamMemberRoleSchema.enum.BILLING;
   const isAdminRole = user.teamMembership?.role === TeamMemberRoleSchema.enum.ADMIN;
@@ -123,8 +124,8 @@ function getAbilityRules({ isBrowserExtension, isDesktop, user }: GetAbilityOpti
   if (user.entitlements.desktop) {
     can('access', 'Desktop');
   }
-  // Desktop and extension require paid tier, so they always get access to Google Drive
-  if (user.entitlements.googleDrive || isBrowserExtension || isDesktop) {
+  // Desktop, extension, and canvas require paid tier, so they always get access to Google Drive
+  if (user.entitlements.googleDrive || isBrowserExtension || isDesktop || isCanvasApp) {
     can('access', 'GoogleDrive');
   }
   // Desktop and extension require paid tier, so they always get access to record sync

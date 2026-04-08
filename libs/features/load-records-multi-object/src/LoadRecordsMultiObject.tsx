@@ -1,6 +1,14 @@
 import { ANALYTICS_KEYS, DATE_FORMATS, INPUT_ACCEPT_FILETYPES, TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { formatNumber, initXlsx, isBrowserExtension, isDesktop, useNonInitialEffect, useTitle } from '@jetstream/shared/ui-utils';
+import {
+  formatNumber,
+  initXlsx,
+  isBrowserExtension,
+  isCanvasApp,
+  isDesktop,
+  useNonInitialEffect,
+  useTitle,
+} from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { InputReadFileContent, InputReadGoogleSheet, LocalOrGoogle, Maybe } from '@jetstream/types';
 import {
@@ -237,8 +245,8 @@ export const LoadRecordsMultiObject = () => {
               </select>
             </Select>
             <FileOrGoogleSelector
-              omitGoogle={!hasGoogleDriveAccess && !isDesktop() && !isBrowserExtension()}
-              hasExternalGoogleDriveAccess={isDesktop() || isBrowserExtension()}
+              omitGoogle={!hasGoogleDriveAccess && !isDesktop() && !isBrowserExtension() && !isCanvasApp()}
+              hasExternalGoogleDriveAccess={isDesktop() || isBrowserExtension() || isCanvasApp()}
               googleShowUpgradeToPro={googleShowUpgradeToPro}
               fileSelectorProps={{
                 id: 'upload-load-template',

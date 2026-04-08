@@ -21,6 +21,7 @@ import {
   apiRoutes,
   authRoutes,
   billingRoutes,
+  canvasRoutes,
   desktopAppRoutes,
   desktopAssetsRoutes,
   oauthRoutes,
@@ -333,6 +334,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   app.use('/web-extension', setCacheControlForApiRoutes, webExtensionRoutes);
   app.use('/desktop-app', setCacheControlForApiRoutes, desktopAppRoutes);
   app.use('/openapi', setCacheControlForApiRoutes, openApiRoutes);
+  app.use('/canvas', canvasRoutes);
 
   if (ENV.ENVIRONMENT !== 'production' || ENV.CI) {
     app.use('/test', testRoutes);
