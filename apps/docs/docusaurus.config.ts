@@ -29,7 +29,7 @@ const config: Config = {
   projectName: 'jetstream', // Usually your repo name.
   trailingSlash: false,
   future: {
-    experimental_faster: true,
+    faster: true,
     v4: true,
   },
   markdown: {
