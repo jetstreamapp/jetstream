@@ -2,8 +2,7 @@
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
     "module": "ESNext",
-    "moduleResolution": "Node",
-    "allowSyntheticDefaultImports": true,
+    "moduleResolution": "bundler",
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "noImplicitOverride": true,

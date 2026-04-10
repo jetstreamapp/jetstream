@@ -31,6 +31,7 @@ import {
   sendInternalAccountDeletionEmail,
   sendPasswordReset,
 } from '@jetstream/email';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import { PasswordSchema, SoqlQueryFormatOptionsSchema, UserProfileUiSchema } from '@jetstream/types';
 import { AxiosError } from 'axios';
 import { z } from 'zod';
@@ -558,7 +559,7 @@ const deleteAccount = createRoute(routeDefinition.deleteAccount.validators, asyn
       await sendGoodbyeEmail(user.email, billingPortalLinkText);
       await sendInternalAccountDeletionEmail(user.id, reason, billingResultsJson);
     } catch (ex) {
-      req.log.error('[ACCOUNT DELETE][ERROR SENDING EMAIL SUMMARY] %s', ex.message);
+      req.log.error('[ACCOUNT DELETE][ERROR SENDING EMAIL SUMMARY] %s', getErrorMessage(ex));
     }
 
     createUserActivityFromReq(req, res, {

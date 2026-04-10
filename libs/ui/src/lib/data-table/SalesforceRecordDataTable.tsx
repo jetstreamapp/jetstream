@@ -294,7 +294,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
         // oops. show the user an error
         setIsLoadingMore(false);
         setLoadMoreErrorMessage('There was a problem loading the rest of the records.');
-        rollbar.error('Load Remaining Records failed', { message: ex.message, stack: ex.stack });
+        rollbar.warn('Load Remaining Records failed', { message: ex.message, stack: ex.stack });
       }
     }
 
