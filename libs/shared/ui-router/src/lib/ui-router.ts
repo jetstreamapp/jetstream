@@ -44,7 +44,7 @@ function getRoutePath(path: string): Pick<RouteItem, 'ROUTE' | 'SEARCH_PARAM'> {
    */
   if (globalThis.__IS_BROWSER_EXTENSION__) {
     const searchParams = new URLSearchParams(globalThis?.location?.search);
-    searchParams.set('url', path);
+    searchParams.set('url', `${path}.html`);
     return {
       ROUTE: `${path}.html`,
       SEARCH_PARAM: searchParams.toString(),

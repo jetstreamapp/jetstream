@@ -6,55 +6,37 @@
   "tags": ["scope:server"],
   "targets": {
     "build": {
-      "executor": "@nx/webpack:webpack",
+      "executor": "@nx/esbuild:esbuild",
       "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
       "options": {
+        "platform": "node",
         "outputPath": "dist/apps/cron-tasks",
-        "main": "apps/cron-tasks/main.ts",
+        "format": ["cjs"],
+        "bundle": true,
+        "main": "apps/cron-tasks/src/main.ts",
         "additionalEntryPoints": [
-          {
-            "entryName": "clean-up-user-sync-history",
-            "entryPath": "apps/cron-tasks/src/clean-up-user-sync-history.ts"
-          },
-          {
-            "entryName": "save-analytics-summary",
-            "entryPath": "apps/cron-tasks/src/save-analytics-summary.ts"
-          },
-          {
-            "entryName": "geo-ip-api-updater",
-            "entryPath": "apps/cron-tasks/src/geo-ip-api-updater.ts"
-          },
-          {
-            "entryName": "geo-ip-db-updater",
-            "entryPath": "apps/cron-tasks/src/geo-ip-db-updater.ts"
-          },
-          {
-            "entryName": "salesforce-org-expiration",
-            "entryPath": "apps/cron-tasks/src/salesforce-org-expiration.ts"
-          },
-          {
-            "entryName": "stats-summary",
-            "entryPath": "apps/cron-tasks/src/stats-summary.ts"
-          }
+          "apps/cron-tasks/src/clean-up-user-sync-history.ts",
+          "apps/cron-tasks/src/save-analytics-summary.ts",
+          "apps/cron-tasks/src/geo-ip-api-updater.ts",
+          "apps/cron-tasks/src/geo-ip-db-updater.ts",
+          "apps/cron-tasks/src/salesforce-org-expiration.ts",
+          "apps/cron-tasks/src/stats-summary.ts"
         ],
         "tsConfig": "apps/cron-tasks/tsconfig.app.json",
         "assets": [],
-        "target": "node",
-        "compiler": "tsc",
-        "webpackConfig": "apps/cron-tasks/webpack.config.js"
+        "generatePackageJson": true,
+        "sourcemap": true,
+        "esbuildOptions": {
+          "sourcemap": true,
+          "outExtension": {
+            ".js": ".js"
+          }
+        }
       },
       "configurations": {
-        "production": {
-          "optimization": false,
-          "extractLicenses": false,
-          "inspect": false,
-          "fileReplacements": [
-            {
-              "replace": "apps/cron-tasks/src/environments/environment.ts",
-              "with": "apps/cron-tasks/src/environments/environment.prod.ts"
-            }
-          ]
-        }
+        "development": {},
+        "production": {}
       }
     },
     "serve": {

@@ -26,7 +26,6 @@
 !/seed-salesforce-api.ts
 !/seed.sh
 !/tsconfig.base.json
-!/webpack-server.config.js
 
 # Ignore unnecessary files inside allowed directories
 *#
