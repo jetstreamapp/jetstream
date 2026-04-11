@@ -137,6 +137,8 @@ export interface LoadDataBulkApi {
 export interface LoadDataBulkApiStatusPayload {
   jobInfo: BulkJobWithBatches;
   totalBatches: number;
+  /** Number of batches actually submitted to Salesforce (excludes skipped batches) */
+  submittedBatchCount: number;
   batchSummary: Omit<LoadDataBulkApi, 'data'>[];
 }
 

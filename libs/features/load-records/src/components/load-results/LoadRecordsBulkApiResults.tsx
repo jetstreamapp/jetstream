@@ -110,6 +110,7 @@ export const LoadRecordsBulkApiResults = ({
 }: LoadRecordsBulkApiResultsProps) => {
   const isMounted = useRef(true);
   const isAborted = useRef(false);
+  const pollingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
   const { serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
@@ -141,6 +142,10 @@ export const LoadRecordsBulkApiResults = ({
     isMounted.current = true;
     return () => {
       isMounted.current = false;
+      if (pollingTimerRef.current !== null) {
+        clearTimeout(pollingTimerRef.current);
+        pollingTimerRef.current = null;
+      }
     };
   }, []);
 
@@ -166,7 +171,7 @@ export const LoadRecordsBulkApiResults = ({
    */
   useEffect(() => {
     if (jobInfo && status !== STATUSES.ERROR && status !== STATUSES.FINISHED && batchSummary && preparedData) {
-      const isDone = checkIfBulkApiJobIsDone(jobInfo, batchSummary.totalBatches);
+      const isDone = checkIfBulkApiJobIsDone(jobInfo, batchSummary.submittedBatchCount);
       if (isDone) {
         setStatus(STATUSES.FINISHED);
         const numSuccess = jobInfo.numberRecordsProcessed - jobInfo.numberRecordsFailed;
@@ -183,27 +188,41 @@ export const LoadRecordsBulkApiResults = ({
           tag: 'load-records',
         });
       } else if (status === STATUSES.PROCESSING && intervalCount < MAX_INTERVAL_CHECK_COUNT) {
-        // we need to wait until all data is uploaded?
-        setTimeout(async () => {
+        pollingTimerRef.current = setTimeout(async () => {
+          pollingTimerRef.current = null;
           if (!isMounted.current || !batchIdByIndex || !jobInfo.id) {
             return;
           }
-          const jobInfoWithBatches = await bulkApiGetJob(selectedOrg, jobInfo.id);
-          if (!isMounted.current) {
-            return;
+          try {
+            const jobInfoWithBatches = await bulkApiGetJob(selectedOrg, jobInfo.id);
+            if (!isMounted.current) {
+              return;
+            }
+            const batches: BulkJobBatchInfo[] = [];
+            // re-order (if needed) while keeping the array dense
+            jobInfoWithBatches.batches.forEach((batch) => {
+              batches[batchIdByIndex[batch.id]] = batch;
+            });
+            jobInfoWithBatches.batches = batches.filter(Boolean);
+            setJobInfo(jobInfoWithBatches);
+          } catch (ex) {
+            logger.warn('Error polling bulk API job status', ex);
+            if (!isMounted.current) {
+              return;
+            }
+            // Set a new jobInfo reference to re-trigger the polling effect
+            setJobInfo({ ...jobInfo });
           }
-          // jobInfoWithBatches.batches = orderBy(jobInfoWithBatches.batches, ['createdDate']);
-          const batches: BulkJobBatchInfo[] = [];
-          // re-order (if needed)
-          jobInfoWithBatches.batches.forEach((batch) => {
-            batches[batchIdByIndex[batch.id]] = batch;
-          });
-          jobInfoWithBatches.batches = batches;
-          setJobInfo(jobInfoWithBatches);
           setIntervalCount(intervalCount + 1);
         }, CHECK_INTERVAL);
       }
     }
+    return () => {
+      if (pollingTimerRef.current !== null) {
+        clearTimeout(pollingTimerRef.current);
+        pollingTimerRef.current = null;
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobInfo, status]);
 
@@ -378,7 +397,11 @@ export const LoadRecordsBulkApiResults = ({
     ) {
       return '';
     }
-    return `Uploading batch ${batchSummary.batchSummary.filter((item) => item.completed).length + 1} of ${batchSummary.totalBatches}`;
+    const completedCount = batchSummary.batchSummary.filter((item) => item.completed).length;
+    if (completedCount >= batchSummary.totalBatches) {
+      return '';
+    }
+    return `Uploading batch ${completedCount + 1} of ${batchSummary.totalBatches}`;
   }
 
   async function handleDownloadOrViewRecords({

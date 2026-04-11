@@ -56,6 +56,24 @@ export async function prepareData(payloadData: PrepareDataPayload, progressCallb
   return preparedData;
 }
 
+// Salesforce errors that indicate the job will never accept more batches
+// Reference: https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/asynch_api_reference_errors.htm
+const FATAL_BULK_ERROR_PATTERNS = [
+  /ApiBatchItems Limit exceeded/i,
+  /InvalidBatch/i,
+  /InvalidJob/i,
+  /ExceededQuota/i,
+  /Job is in invalid state/i,
+  /Job already (aborted|closed|completed)/i,
+];
+
+const MAX_CONSECUTIVE_FAILURES = 5;
+
+function isFatalBulkApiError(error: unknown): boolean {
+  const message = getErrorMessage(error);
+  return FATAL_BULK_ERROR_PATTERNS.some((pattern) => pattern.test(message));
+}
+
 /**
  * Load data using the BULK API
  *
@@ -77,16 +95,23 @@ export async function loadBulkApiData(
       .map((batch) => generateCsv(batch, { delimiter: ',' }))
       .map((data, i) => ({ data, batchNumber: i, completed: false, success: false }));
 
-    statusCallback(getBatchSummary(results, batches));
+    let submittedBatchCount = 0;
+
+    statusCallback(getBatchSummary(results, batches, submittedBatchCount));
     let currItem = 1;
     let fatalError = false;
+    let stoppedEarly = false;
+    let stoppedEarlyReason: 'aborted' | 'fatal-error' | 'consecutive-failures' | null = null;
+    let consecutiveFailures = 0;
     const loadErrors: Error[] = [];
     const batchOrderMap: Record<string, number> = {};
     for (const batch of batches) {
+      if (checkIfAborted()) {
+        stoppedEarly = true;
+        stoppedEarlyReason = 'aborted';
+        break;
+      }
       try {
-        if (checkIfAborted()) {
-          throw new Error('Aborted');
-        }
         const batchResult = await bulkApiAddBatchToJob(org, jobId, batch.data, currItem === batches.length);
         batchOrderMap[batchResult.id] = currItem - 1;
         results.batches = results.batches || [];
@@ -94,15 +119,48 @@ export async function loadBulkApiData(
         batch.id = batchResult.id;
         batch.completed = true;
         batch.success = true;
+        submittedBatchCount++;
+        consecutiveFailures = 0;
       } catch (ex) {
         batch.completed = true;
         batch.success = false;
         batch.errorMessage = getErrorMessage(ex);
-        loadErrors.push(ex as unknown as Error);
+        loadErrors.push(ex instanceof Error ? ex : new Error(getErrorMessage(ex)));
+
+        if (isFatalBulkApiError(ex) || checkIfAborted()) {
+          stoppedEarly = true;
+          stoppedEarlyReason = checkIfAborted() ? 'aborted' : 'fatal-error';
+          break;
+        }
+
+        consecutiveFailures++;
+        if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+          stoppedEarly = true;
+          stoppedEarlyReason = 'consecutive-failures';
+          break;
+        }
       } finally {
-        statusCallback(getBatchSummary(results, batches));
+        statusCallback(getBatchSummary(results, batches, submittedBatchCount));
       }
       currItem++;
+    }
+
+    // Mark remaining un-submitted batches as skipped
+    if (stoppedEarly) {
+      const skipMessage =
+        stoppedEarlyReason === 'aborted'
+          ? 'Batch not submitted — data load was aborted'
+          : stoppedEarlyReason === 'consecutive-failures'
+            ? `Batch not submitted — ${MAX_CONSECUTIVE_FAILURES} consecutive batch failures stopped processing`
+            : 'Batch not submitted — earlier batch failure stopped processing';
+      for (const batch of batches) {
+        if (!batch.completed) {
+          batch.completed = true;
+          batch.success = false;
+          batch.errorMessage = skipMessage;
+        }
+      }
+      statusCallback(getBatchSummary(results, batches, submittedBatchCount));
     }
 
     const jobInfoWithBatches = await bulkApiGetJob(org, jobId);
@@ -114,12 +172,16 @@ export async function loadBulkApiData(
     // just in case a batch failed and the is a gap in the array
     jobInfoWithBatches.batches = sortedBatches.filter(Boolean);
 
-    if (jobInfoWithBatches.batches.length !== batches.length) {
-      // we know that at least one batch failed!
+    if (jobInfoWithBatches.batches.length !== submittedBatchCount) {
+      // At least one submitted batch was not returned in the final job details.
       fatalError = true;
     }
 
-    if (jobInfoWithBatches.state === 'Open') {
+    if (stoppedEarlyReason === 'aborted') {
+      loadErrors.push(new Error('Data load aborted by user'));
+    }
+
+    if (jobInfoWithBatches.state === 'Open' && stoppedEarlyReason !== 'aborted') {
       // close job last so user does not have to wait for this since it does not matter
       bulkApiCloseJob(org, jobId).catch((ex) => {
         logger.warn('Error closing job', ex);
@@ -399,11 +461,22 @@ async function getBatchApiBatches({ data, sObject, batchSize, zipData, binaryBod
   return { batches, batchRecordMap, batchRecordBlobMap, batchRecordBlobNameMap, failedRecords };
 }
 
-function getBatchSummary(results: BulkJobWithBatches, batches: LoadDataBulkApi[]): LoadDataBulkApiStatusPayload {
+function getBatchSummary(
+  results: BulkJobWithBatches,
+  batches: LoadDataBulkApi[],
+  submittedBatchCount: number,
+): LoadDataBulkApiStatusPayload {
   return {
     jobInfo: results,
     totalBatches: batches.length,
-    batchSummary: batches.map(({ id, batchNumber, completed, success }) => ({ id, batchNumber, completed, success })),
+    submittedBatchCount,
+    batchSummary: batches.map(({ id, batchNumber, completed, success, errorMessage }) => ({
+      id,
+      batchNumber,
+      completed,
+      success,
+      errorMessage,
+    })),
   };
 }
 
