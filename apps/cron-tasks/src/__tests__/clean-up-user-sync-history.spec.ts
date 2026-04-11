@@ -222,7 +222,7 @@ describe('UserSyncData Cleanup Integration Test', () => {
       userId,
       orgId,
       isFavorite: false,
-      updatedAt: addDays(new Date(), Math.floor(Math.random() * OLDER_THAN_THRESHOLD + OLDER_THAN_THRESHOLD) * -1),
+      updatedAt: addDays(new Date(), (Math.floor(Math.random() * OLDER_THAN_THRESHOLD) + OLDER_THAN_THRESHOLD + 1) * -1),
       deletedAt: null,
     });
 
@@ -265,7 +265,7 @@ describe('UserSyncData Cleanup Integration Test', () => {
       userId,
       orgId,
       isFavorite: true,
-      updatedAt: addDays(new Date(), Math.floor(Math.random() * OLDER_THAN_THRESHOLD + OLDER_THAN_THRESHOLD) * -1),
+      updatedAt: addDays(new Date(), (Math.floor(Math.random() * OLDER_THAN_THRESHOLD) + OLDER_THAN_THRESHOLD + 1) * -1),
       deletedAt: null,
     });
 
@@ -275,7 +275,7 @@ describe('UserSyncData Cleanup Integration Test', () => {
       userId,
       orgId,
       isFavorite: false,
-      updatedAt: addDays(new Date(), Math.floor(Math.random() * OLDER_THAN_THRESHOLD + OLDER_THAN_THRESHOLD) * -1),
+      updatedAt: addDays(new Date(), (Math.floor(Math.random() * OLDER_THAN_THRESHOLD) + OLDER_THAN_THRESHOLD + 1) * -1),
       deletedAt: null,
     });
 
@@ -368,7 +368,7 @@ describe('UserSyncData Cleanup Integration Test', () => {
       userId: userId1,
       orgId,
       isFavorite: false,
-      updatedAt: addDays(new Date(), Math.floor(Math.random() * OLDER_THAN_THRESHOLD + OLDER_THAN_THRESHOLD) * -1),
+      updatedAt: addDays(new Date(), (Math.floor(Math.random() * OLDER_THAN_THRESHOLD) + OLDER_THAN_THRESHOLD + 1) * -1),
       deletedAt: null,
     });
     const user1_savedMappingToKeep = generateSyncRecords({
@@ -386,7 +386,7 @@ describe('UserSyncData Cleanup Integration Test', () => {
       userId: userId1,
       orgId,
       isFavorite: false,
-      updatedAt: addDays(new Date(), Math.floor(Math.random() * OLDER_THAN_THRESHOLD + OLDER_THAN_THRESHOLD) * -1),
+      updatedAt: addDays(new Date(), (Math.floor(Math.random() * OLDER_THAN_THRESHOLD) + OLDER_THAN_THRESHOLD + 1) * -1),
       deletedAt: null,
     });
 
@@ -396,7 +396,7 @@ describe('UserSyncData Cleanup Integration Test', () => {
       userId: userId2,
       orgId,
       isFavorite: false,
-      updatedAt: addDays(new Date(), Math.floor(Math.random() * OLDER_THAN_THRESHOLD + OLDER_THAN_THRESHOLD) * -1),
+      updatedAt: addDays(new Date(), (Math.floor(Math.random() * OLDER_THAN_THRESHOLD) + OLDER_THAN_THRESHOLD + 1) * -1),
       deletedAt: null,
     });
     const user2_savedMapping = generateSyncRecords({
@@ -405,7 +405,7 @@ describe('UserSyncData Cleanup Integration Test', () => {
       userId: userId2,
       orgId,
       isFavorite: false,
-      updatedAt: addDays(new Date(), Math.floor(Math.random() * OLDER_THAN_THRESHOLD + OLDER_THAN_THRESHOLD) * -1),
+      updatedAt: addDays(new Date(), (Math.floor(Math.random() * OLDER_THAN_THRESHOLD) + OLDER_THAN_THRESHOLD + 1) * -1),
       deletedAt: null,
     });
     const user3_queryHistory = generateSyncRecords({
@@ -414,7 +414,7 @@ describe('UserSyncData Cleanup Integration Test', () => {
       userId: userId3,
       orgId,
       isFavorite: false,
-      updatedAt: addDays(new Date(), Math.floor(Math.random() * OLDER_THAN_THRESHOLD + OLDER_THAN_THRESHOLD) * -1),
+      updatedAt: addDays(new Date(), (Math.floor(Math.random() * OLDER_THAN_THRESHOLD) + OLDER_THAN_THRESHOLD + 1) * -1),
       deletedAt: null,
     });
 
