@@ -169,7 +169,7 @@ export async function loadBulkApiData(
     jobInfoWithBatches.batches.forEach((batch) => {
       sortedBatches[batchOrderMap[batch.id]] = batch;
     });
-    // just in case a batch failed and the is a gap in the array
+    // just in case a batch failed and there is a gap in the array
     jobInfoWithBatches.batches = sortedBatches.filter(Boolean);
 
     if (jobInfoWithBatches.batches.length !== submittedBatchCount) {
