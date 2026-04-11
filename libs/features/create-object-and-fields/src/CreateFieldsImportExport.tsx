@@ -40,7 +40,7 @@ export const CreateFieldsImportExport = ({ selectedOrg, rows, onImportRows, onLo
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const popoverRef = useRef<PopoverRef>(null);
-  const [exportData, setExportData] = useState<any[]>(rows);
+  const [exportData, setExportData] = useState<ReturnType<typeof getRowsForExport>>(() => getRowsForExport(rows));
   const [exportModalOpen, setExportModalOpen] = useState(false);
 
   function handleCloseModal() {
