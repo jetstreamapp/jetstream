@@ -172,7 +172,7 @@ jobs:
           retention-days: 1
 
   merge-e2e-reports:
-    if: ${{ !cancelled() }}
+    if: ${{ always() && !cancelled() }}
     needs: [e2e]
     runs-on: ubuntu-latest
     steps:
