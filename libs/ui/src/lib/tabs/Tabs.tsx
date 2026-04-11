@@ -22,6 +22,12 @@ export interface TabsProps {
   style?: React.CSSProperties;
   ulStyle?: React.CSSProperties;
   emptyState?: React.ReactNode;
+  /**
+   * When true, every tab's content is rendered simultaneously and the inactive tabs are hidden
+   * with `slds-hide` instead of being unmounted. Use this when child components hold state that
+   * must survive tab switches (e.g. in-progress network requests, accumulated results).
+   */
+  renderAllContent?: boolean;
   onFilterValueChange?: (value: string) => void;
   onChange?: (activeId: string) => void;
   children?: ReactNode;
@@ -40,6 +46,7 @@ export const Tabs = forwardRef<unknown, TabsProps>(
       style,
       ulStyle,
       emptyState = <h3 className="slds-text-heading_medium slds-m-around_medium">Select an item to continue</h3>,
+      renderAllContent = false,
       onFilterValueChange,
       onChange,
       children,
@@ -100,6 +107,23 @@ export const Tabs = forwardRef<unknown, TabsProps>(
     }
 
     function getContent() {
+      if (renderAllContent && tabs && tabs.length > 0) {
+        return tabs.map((tab) => (
+          <div
+            key={tab.id}
+            id={tab.id}
+            className={classNames(
+              { 'slds-tabs_default__content': isHorizontal, 'slds-vertical-tabs__content': !isHorizontal },
+              tab.id === activeId ? 'slds-show' : 'slds-hide',
+              contentClassname,
+            )}
+            role="tabpanel"
+            aria-labelledby={`tab-${tab.id}`}
+          >
+            {tab.content}
+          </div>
+        ));
+      }
       if (activeTab) {
         return (
           <div

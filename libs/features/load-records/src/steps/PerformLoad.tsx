@@ -1,22 +1,50 @@
 import { ANALYTICS_KEYS, DATE_FORMATS, TITLES } from '@jetstream/shared/constants';
 import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
-import { FieldMapping, InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
-import { Badge, Checkbox, ConfirmationModalPromise, Grid, Input, Radio, RadioButton, RadioGroup } from '@jetstream/ui';
+import {
+  ApiMode,
+  FieldMapping,
+  InsertUpdateUpsertDelete,
+  Maybe,
+  SalesforceOrgUi,
+  SalesforceOrgUiType,
+  UiTabSection,
+} from '@jetstream/types';
+import { Badge, Checkbox, ConfirmationModalPromise, Grid, Input, Radio, RadioButton, RadioGroup, Spinner, Tabs } from '@jetstream/ui';
 import { ConfirmPageChange, fromLoadRecordsState, getMaxBatchSize, useAmplitude } from '@jetstream/ui-core';
 import { useAtom, useAtomValue } from 'jotai';
 import startCase from 'lodash/startCase';
-import { ChangeEvent, FunctionComponent, useEffect, useState } from 'react';
+import { ChangeEvent, FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import LoadRecordsAssignmentRules from '../components/LoadRecordsAssignmentRules';
 import LoadRecordsDuplicateWarning from '../components/LoadRecordsDuplicateWarning';
 import LoadRecordsResults from '../components/load-results/LoadRecordsResults';
 
+interface LoadRun {
+  id: number;
+  label: string;
+  isRetry: boolean;
+  /** The API mode at the time this run was created — used to render the correct result component */
+  apiMode: ApiMode;
+  /** The batch size at the time this run was created */
+  batchSize: number;
+  /** For retries, this is the already-prepared record data */
+  preparedInputData?: any[];
+  /** For non-retry runs, this is the raw input file data */
+  inputData: any[];
+  /** Required when retrying prepared records that reference binary attachments */
+  inputZipFileData?: Maybe<ArrayBuffer>;
+  result?: {
+    success: number;
+    failure: number;
+    failedRecords: any[];
+  };
+}
+
 interface LoadState {
   loading: boolean;
-  loadInProgress: boolean;
+  /** Trial run state — kept separate from the runs model */
   loadInProgressTrialRun: boolean;
   hasLoadResultsTrialRun: boolean;
-  hasLoadResults: boolean;
   inputFileDataTrialRun: any[];
   inputFileDataToLoad: any[];
 }
@@ -48,8 +76,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
 }) => {
   const hasZipAttachment = !!inputZipFileData;
   const { trackEvent } = useAmplitude();
-  const [loadNumber, setLoadNumber] = useState<number>(0);
-  const [loadNumberTrialRun, setLoadNumberTrialRun] = useState<number>(0);
+  const runIdCounter = useRef(0);
 
   const [apiMode, setApiMode] = useAtom(fromLoadRecordsState.apiModeState);
   const [batchSize, setBatchSize] = useAtom(fromLoadRecordsState.batchSizeState);
@@ -70,18 +97,29 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
 
   const loadTypeLabel = startCase(loadType.toLowerCase());
   const [assignmentRuleId, setAssignmentRuleId] = useState<Maybe<string>>(null);
-  const [
-    { loading, loadInProgress, loadInProgressTrialRun, hasLoadResultsTrialRun, hasLoadResults, inputFileDataTrialRun, inputFileDataToLoad },
-    setLoadState,
-  ] = useState<LoadState>(() => ({
-    loading: false,
-    loadInProgress: false,
-    loadInProgressTrialRun: false,
-    hasLoadResultsTrialRun: false,
-    hasLoadResults: false,
-    inputFileDataTrialRun: trialRun && trialRunSize ? inputFileData.slice(0, trialRunSize) : [],
-    inputFileDataToLoad: trialRun && trialRunSize ? inputFileData.slice(trialRunSize || 0) : inputFileData,
-  }));
+
+  // Runs model: tracks all load attempts (original + retries)
+  const [runs, setRuns] = useState<LoadRun[]>([]);
+  const [activeRunId, setActiveRunId] = useState<string | null>(null);
+
+  // Trial run tracking (kept separate from the runs model for simplicity)
+  const [trialRunLoadNumber, setTrialRunLoadNumber] = useState(0);
+  const [{ loading, loadInProgressTrialRun, hasLoadResultsTrialRun, inputFileDataTrialRun, inputFileDataToLoad }, setLoadState] =
+    useState<LoadState>(() => ({
+      loading: false,
+      loadInProgressTrialRun: false,
+      hasLoadResultsTrialRun: false,
+      inputFileDataTrialRun: trialRun && trialRunSize ? inputFileData.slice(0, trialRunSize) : [],
+      inputFileDataToLoad: trialRun && trialRunSize ? inputFileData.slice(trialRunSize || 0) : inputFileData,
+    }));
+
+  const hasAnyRunInProgress = runs.some((run) => !run.result);
+  const loadInProgress = loading || hasAnyRunInProgress;
+
+  // Find the active run for retry purposes
+  const activeRun = runs.find((run) => String(run.id) === activeRunId);
+  const activeRunHasFailures = activeRun?.result && activeRun.result.failure > 0 && activeRun.result.failedRecords.length > 0;
+  const canRetry = activeRunHasFailures && !hasAnyRunInProgress;
 
   const numRecordsImpactedLabel = formatNumber(inputFileDataToLoad.length);
   const numRecordsImpactedTrialRunLabel = formatNumber(inputFileDataTrialRun.length);
@@ -95,11 +133,16 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
 
   useNonInitialEffect(() => {
     setBatchSize(getMaxBatchSize(apiMode));
+    setRuns([]);
+    setActiveRunId(null);
+    // Reset `loading` alongside `runs` — an in-flight run that gets orphaned here would
+    // otherwise leave `loading: true` forever since its unmounted child can't call onFinish.
     setLoadState((prevState) => ({
       ...prevState,
-      hasLoadResults: false,
+      loading: false,
       hasLoadResultsTrialRun: false,
     }));
+    onIsLoading(false);
     if (apiMode === 'BATCH' && !serialMode) {
       setSerialMode(true);
     } else if (apiMode === 'BULK' && serialMode) {
@@ -109,13 +152,18 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   }, [apiMode]);
 
   useNonInitialEffect(() => {
+    setRuns([]);
+    setActiveRunId(null);
+    // Same rationale as the apiMode effect above — any in-flight run is orphaned here.
     setLoadState((prevState) => ({
       ...prevState,
-      hasLoadResults: false,
+      loading: false,
       hasLoadResultsTrialRun: false,
       inputFileDataTrialRun: trialRun && trialRunSize ? inputFileData.slice(0, trialRunSize) : [],
       inputFileDataToLoad: trialRun && trialRunSize ? inputFileData.slice(trialRunSize || 0) : inputFileData,
     }));
+    onIsLoading(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trialRun, trialRunSize, inputFileData]);
 
   function handleBatchSize(event: ChangeEvent<HTMLInputElement>) {
@@ -137,23 +185,44 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   }
 
   async function handleStartLoad(isTrialRun = false) {
+    // Defensive guard: ignore rapid double-clicks or re-entrant calls while a load is starting or already running.
+    // Button `disabled` covers most cases, but the ConfirmationModalPromise await below leaves a race window.
+    if (loading || hasAnyRunInProgress || loadInProgressTrialRun) {
+      return;
+    }
+    const isFirstLoad = runs.length === 0;
     if (
-      loadNumber === 0 ||
+      isFirstLoad ||
       (await ConfirmationModalPromise({
         content: 'This file has already been loaded, are you sure you want to load it again?',
       }))
     ) {
       if (isTrialRun) {
-        setLoadNumberTrialRun(loadNumberTrialRun + 1);
+        setTrialRunLoadNumber(trialRunLoadNumber + 1);
+        setLoadState((prevState) => ({
+          ...prevState,
+          loading: true,
+          loadInProgressTrialRun: true,
+          hasLoadResultsTrialRun: false,
+        }));
       } else {
-        setLoadNumber(loadNumber + 1);
+        const newRunId = ++runIdCounter.current;
+        // Label counts only non-retry runs so "Run N" reflects how many times the full file
+        // has been submitted, independent of any intermediate retries.
+        const runCount = runs.filter((run) => !run.isRetry).length + 1;
+        const newRun: LoadRun = {
+          id: newRunId,
+          label: `Run ${runCount}`,
+          isRetry: false,
+          apiMode,
+          batchSize: batchSize ?? getMaxBatchSize(apiMode),
+          inputData: inputFileDataToLoad,
+          inputZipFileData,
+        };
+        setRuns((prev) => [...prev, newRun]);
+        setActiveRunId(String(newRunId));
+        setLoadState((prevState) => ({ ...prevState, loading: true }));
       }
-      setLoadState((prevState) => {
-        if (isTrialRun) {
-          return { ...prevState, loading: true, loadInProgressTrialRun: true, hasLoadResultsTrialRun: false, hasLoadResults: false };
-        }
-        return { ...prevState, loading: true, loadInProgress: true, hasLoadResults: false };
-      });
       onIsLoading(true);
       trackEvent(ANALYTICS_KEYS.load_Submitted, {
         loadType,
@@ -167,30 +236,165 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
         isTrialRun,
         trialRunSize,
         hasZipAttachment: !!hasZipAttachment,
-        timesSameDataSubmitted: loadNumber + 1,
+        timesSameDataSubmitted: runs.length + 1,
         numStaticFields: Object.values(fieldMapping).filter(({ type }) => type === 'STATIC').length,
       });
       document.title = `Loading Records | ${TITLES.BAR_JETSTREAM}`;
     }
   }
 
-  function handleFinishLoad({ success, failure }: { success: number; failure: number }, isTrialRun = false) {
-    setLoadState((prevState) => {
-      if (isTrialRun) {
-        return { ...prevState, loading: false, loadInProgressTrialRun: false, hasLoadResultsTrialRun: true };
-      }
-      return { ...prevState, loading: false, loadInProgress: false, hasLoadResults: true };
-    });
+  const handleFinishLoad = useCallback(
+    (results: { success: number; failure: number; failedRecords: any[] }, runId: number) => {
+      setRuns((prev) => prev.map((run) => (run.id === runId ? { ...run, result: results } : run)));
+      setLoadState((prevState) => ({ ...prevState, loading: false }));
+      onIsLoading(false);
+      document.title = `${formatNumber(results.success)} Success - ${formatNumber(results.failure)} Failed ${TITLES.BAR_JETSTREAM}`;
+    },
+    [onIsLoading],
+  );
+
+  function handleFinishTrialRun({ success, failure }: { success: number; failure: number; failedRecords: any[] }) {
+    setLoadState((prevState) => ({
+      ...prevState,
+      loading: false,
+      loadInProgressTrialRun: false,
+      hasLoadResultsTrialRun: true,
+    }));
     onIsLoading(false);
     document.title = `${formatNumber(success)} Success - ${formatNumber(failure)} Failed ${TITLES.BAR_JETSTREAM}`;
   }
+
+  const handleRetryFailedRecords = useCallback(
+    (failedRecords?: any[]) => {
+      // Defensive guard: prevent concurrent retries even if the UI fails to gate the callback
+      if (runs.some((run) => !run.result)) {
+        return;
+      }
+
+      const recordsToRetry = failedRecords ?? activeRun?.result?.failedRecords;
+      if (!recordsToRetry || recordsToRetry.length === 0) {
+        return;
+      }
+
+      const retryCount = runs.filter((run) => run.isRetry).length + 1;
+      const newRunId = ++runIdCounter.current;
+      const newRun: LoadRun = {
+        id: newRunId,
+        label: `Retry ${retryCount}`,
+        isRetry: true,
+        apiMode,
+        batchSize: batchSize ?? getMaxBatchSize(apiMode),
+        preparedInputData: recordsToRetry,
+        inputData: recordsToRetry,
+        inputZipFileData: activeRun?.inputZipFileData ?? inputZipFileData,
+      };
+      setRuns((prev) => [...prev, newRun]);
+      setActiveRunId(String(newRunId));
+      setLoadState((prevState) => ({ ...prevState, loading: true }));
+      onIsLoading(true);
+      trackEvent(ANALYTICS_KEYS.load_Submitted, {
+        loadType,
+        apiMode,
+        numRecords: recordsToRetry.length,
+        batchSize,
+        insertNulls,
+        serialMode,
+        hasDateFieldMapped,
+        dateFormat,
+        isTrialRun: false,
+        isRetry: true,
+        retryCount,
+        hasZipAttachment: !!(activeRun?.inputZipFileData ?? inputZipFileData),
+        timesSameDataSubmitted: runs.length + 1,
+        numStaticFields: Object.values(fieldMapping).filter(({ type }) => type === 'STATIC').length,
+      });
+      document.title = `Loading Records | ${TITLES.BAR_JETSTREAM}`;
+    },
+    [
+      activeRun,
+      runs,
+      onIsLoading,
+      trackEvent,
+      loadType,
+      apiMode,
+      batchSize,
+      insertNulls,
+      serialMode,
+      hasDateFieldMapped,
+      dateFormat,
+      fieldMapping,
+      inputZipFileData,
+    ],
+  );
 
   function hasDataInputError(): boolean {
     return !!batchSizeError || !!batchApiLimitError || (trialRun && !!trialRunSizeError);
   }
 
+  // Build tab sections — each tab owns its own LoadRecordsResults panel. The Tabs component is
+  // rendered with `renderAllContent` so every panel stays mounted across tab changes, preserving
+  // per-run state (processed records, polling timers, etc.).
+  const runTabs: UiTabSection[] = useMemo(() => {
+    return runs.map((run) => {
+      const isActiveRun = String(run.id) === activeRunId;
+      const loading = !run.result;
+      return {
+        id: String(run.id),
+        title: (
+          <span className="slds-is-relative">
+            {run.label}
+            {run.result && (
+              <span className="slds-text-color_weak">
+                — {formatNumber(run.result.success)} success, {formatNumber(run.result.failure)} failed
+              </span>
+            )}
+            {loading && <Spinner size="small" />}
+          </span>
+        ),
+        titleText: run.label,
+        content: (
+          <LoadRecordsResults
+            selectedOrg={selectedOrg}
+            selectedSObject={selectedSObject}
+            fieldMapping={fieldMapping}
+            inputFileData={run.inputData}
+            inputZipFileData={run.inputZipFileData ?? null}
+            apiMode={run.apiMode}
+            loadType={loadType}
+            externalId={externalId}
+            batchSize={run.batchSize}
+            insertNulls={insertNulls}
+            assignmentRuleId={assignmentRuleId}
+            serialMode={serialMode}
+            dateFormat={dateFormat}
+            preparedInputData={run.preparedInputData}
+            onFinish={(results) => handleFinishLoad(results, run.id)}
+            onRetrySelected={canRetry && isActiveRun ? handleRetryFailedRecords : undefined}
+            onRetryAll={canRetry && isActiveRun ? () => handleRetryFailedRecords() : undefined}
+            failedRecordCount={run.result?.failedRecords.length ?? 0}
+          />
+        ),
+      };
+    });
+  }, [
+    runs,
+    activeRunId,
+    canRetry,
+    selectedOrg,
+    selectedSObject,
+    fieldMapping,
+    loadType,
+    externalId,
+    insertNulls,
+    assignmentRuleId,
+    serialMode,
+    dateFormat,
+    handleFinishLoad,
+    handleRetryFailedRecords,
+  ]);
+
   return (
-    <div>
+    <div style={{ overflow: 'hidden', maxWidth: '80vw' }}>
       <ConfirmPageChange actionInProgress={loadInProgress} />
       <LoadRecordsDuplicateWarning
         className="slds-m-vertical_x-small"
@@ -386,43 +590,47 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
       <div className="slds-p-around_small">
         {/* DRY RUN LOAD */}
         {trialRun && (loadInProgressTrialRun || hasLoadResultsTrialRun) && (
-          <LoadRecordsResults
-            key={`trial-run-${loadNumberTrialRun}`}
-            selectedOrg={selectedOrg}
-            selectedSObject={selectedSObject}
-            fieldMapping={fieldMapping}
-            inputFileData={inputFileDataTrialRun}
-            inputZipFileData={inputZipFileData}
-            apiMode={apiMode}
-            loadType={loadType}
-            externalId={externalId}
-            batchSize={batchSize ?? getMaxBatchSize(apiMode)}
-            insertNulls={insertNulls}
-            serialMode={serialMode}
-            dateFormat={dateFormat}
-            assignmentRuleId={assignmentRuleId}
-            onFinish={(results) => handleFinishLoad(results, true)}
-          />
+          <div className="slds-m-bottom_medium">
+            <h2 className="slds-text-heading_small slds-m-bottom_x-small">Trial Run</h2>
+            <LoadRecordsResults
+              key={`trial-run-${trialRunLoadNumber}`}
+              selectedOrg={selectedOrg}
+              selectedSObject={selectedSObject}
+              fieldMapping={fieldMapping}
+              inputFileData={inputFileDataTrialRun}
+              inputZipFileData={inputZipFileData}
+              apiMode={apiMode}
+              loadType={loadType}
+              externalId={externalId}
+              batchSize={batchSize ?? getMaxBatchSize(apiMode)}
+              insertNulls={insertNulls}
+              assignmentRuleId={assignmentRuleId}
+              serialMode={serialMode}
+              dateFormat={dateFormat}
+              onFinish={(results) => handleFinishTrialRun(results)}
+            />
+          </div>
         )}
-        {/* STANDARD LOAD */}
-        {(loadInProgress || hasLoadResults) && (
-          <LoadRecordsResults
-            key={loadNumber}
-            selectedOrg={selectedOrg}
-            selectedSObject={selectedSObject}
-            fieldMapping={fieldMapping}
-            inputFileData={inputFileDataToLoad}
-            inputZipFileData={inputZipFileData}
-            apiMode={apiMode}
-            loadType={loadType}
-            externalId={externalId}
-            batchSize={batchSize ?? getMaxBatchSize(apiMode)}
-            insertNulls={insertNulls}
-            serialMode={serialMode}
-            dateFormat={dateFormat}
-            assignmentRuleId={assignmentRuleId}
-            onFinish={(results) => handleFinishLoad(results)}
-          />
+        {/* STANDARD LOAD + RETRIES */}
+        {runTabs.length > 0 && (
+          <div style={{ maxWidth: '100%', minWidth: 0 }}>
+            <Tabs
+              tabs={runTabs}
+              initialActiveId={activeRunId ?? undefined}
+              onChange={setActiveRunId}
+              renderAllContent
+              style={{ maxWidth: '100%', minWidth: 0 }}
+              // Hide the tab nav when there's only one run; a single-tab header adds UI noise
+              // without value. The tabs themselves stay rendered so React preserves panel state
+              // when a retry adds a second tab.
+              ulStyle={{
+                display: runTabs.length > 1 ? 'flex' : 'none',
+                overflowX: 'auto',
+                overflowY: 'hidden',
+                flexWrap: 'nowrap',
+              }}
+            />
+          </div>
         )}
       </div>
     </div>

@@ -17,7 +17,8 @@
       "Bash(npx prettier:*)",
       "Bash(npx nx run landing:build)",
       "Bash(npx nx:*)",
-      "Bash(yarn build:ci)"
+      "Bash(yarn build:ci)",
+      "Bash(yarn tsc:*)"
     ],
     "deny": [],
     "ask": []

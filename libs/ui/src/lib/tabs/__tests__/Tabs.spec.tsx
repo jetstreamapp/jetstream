@@ -79,4 +79,52 @@ describe('Tabs', () => {
     const tabLinks = screen.getAllByRole('tab');
     expect(tabLinks).toHaveLength(3);
   });
+
+  describe('renderAllContent', () => {
+    test('renders every tab panel simultaneously', () => {
+      render(<Tabs tabs={tabs} renderAllContent />);
+
+      const tabPanels = screen.getAllByRole('tabpanel');
+      expect(tabPanels).toHaveLength(3);
+      expect(tabPanels[0].textContent).toContain('Alpha Content');
+      expect(tabPanels[1].textContent).toContain('Beta Content');
+      expect(tabPanels[2].textContent).toContain('Gamma Content');
+    });
+
+    test('active panel has slds-show and inactive panels have slds-hide', () => {
+      render(<Tabs tabs={tabs} renderAllContent initialActiveId="tab-beta" />);
+
+      const tabPanels = screen.getAllByRole('tabpanel');
+      const alphaPanel = tabPanels.find((panel) => panel.id === 'tab-alpha')!;
+      const betaPanel = tabPanels.find((panel) => panel.id === 'tab-beta')!;
+      const gammaPanel = tabPanels.find((panel) => panel.id === 'tab-gamma')!;
+
+      expect(alphaPanel.className).toContain('slds-hide');
+      expect(betaPanel.className).toContain('slds-show');
+      expect(gammaPanel.className).toContain('slds-hide');
+    });
+
+    test('clicking a tab toggles slds-show/slds-hide without unmounting others', () => {
+      render(<Tabs tabs={tabs} renderAllContent />);
+
+      // Initially alpha is active, gamma is hidden but still mounted.
+      const initialPanels = screen.getAllByRole('tabpanel');
+      expect(initialPanels).toHaveLength(3);
+
+      // Click gamma tab
+      const tabLinks = screen.getAllByRole('tab');
+      const gammaTab = tabLinks.find((tab) => tab.getAttribute('aria-controls') === 'tab-gamma')!;
+      fireEvent.click(gammaTab);
+
+      // All panels should still be in the DOM
+      const afterClickPanels = screen.getAllByRole('tabpanel');
+      expect(afterClickPanels).toHaveLength(3);
+
+      // Gamma should now be visible, alpha hidden
+      const alphaPanel = afterClickPanels.find((panel) => panel.id === 'tab-alpha')!;
+      const gammaPanel = afterClickPanels.find((panel) => panel.id === 'tab-gamma')!;
+      expect(alphaPanel.className).toContain('slds-hide');
+      expect(gammaPanel.className).toContain('slds-show');
+    });
+  });
 });

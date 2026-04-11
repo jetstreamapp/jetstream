@@ -118,11 +118,23 @@ export class LoadSingleObjectPage {
       await this.page.getByRole('button', { name: 'Continue' }).click();
     }
 
-    // ensure page is in loading state
-    await expect(this.page.getByRole('heading', { name: /(Processing)|(Uploading) Data/ })).toBeVisible({ timeout: 30000 });
+    await this.waitForLoadToFinish();
+  }
+
+  async waitForLoadToFinish() {
+    // ensure page is in loading state — match any of the intermediate statuses (Preparing/Uploading/Processing)
+    await expect(this.page.getByRole('heading', { name: /(Preparing|Processing|Uploading) Data/ })).toBeVisible({ timeout: 30000 });
     await this.validateHeaderButtonState(false, false, false);
 
-    await expect(this.page.getByRole('heading', { name: 'Finished' })).toBeVisible();
+    await expect(this.page.getByRole('heading', { name: 'Finished' })).toBeVisible({ timeout: 60000 });
     await this.validateHeaderButtonState(true, true, false);
+  }
+
+  async retryFailedRecords() {
+    const retryButton = this.page.getByRole('button', { name: /Retry Failed Records/ });
+    await expect(retryButton).toBeVisible();
+    await retryButton.click();
+
+    await this.waitForLoadToFinish();
   }
 }
