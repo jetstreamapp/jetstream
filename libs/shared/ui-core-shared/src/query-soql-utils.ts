@@ -117,11 +117,13 @@ export async function fetchMetadataFromSoql(
 
   for (const childRelationship in parsableFields.subqueries) {
     const foundRelationship = rootSobjectDescribe.childRelationships.find(
-      (currChildRelationship) => currChildRelationship.relationshipName === childRelationship,
+      (currChildRelationship) => currChildRelationship.relationshipName?.toLowerCase() === childRelationship.toLowerCase(),
     );
-    if (foundRelationship) {
+    if (foundRelationship && foundRelationship.relationshipName) {
+      // Use the canonical relationship name from Salesforce metadata for consistent downstream lookups
+      const canonicalRelationshipName = foundRelationship.relationshipName;
       const rootSobjectChildDescribe = await describeSObjectWithLocalCache(org, foundRelationship.childSObject, isTooling, describeCache);
-      output.childMetadata[childRelationship] = {
+      output.childMetadata[canonicalRelationshipName] = {
         objectMetadata: rootSobjectChildDescribe,
         metadataTree: await fetchAllMetadata(
           org,
@@ -129,15 +131,15 @@ export async function fetchMetadataFromSoql(
           rootSobjectChildDescribe,
           parsableFields.subqueries[childRelationship],
           describeCache,
-          childRelationship,
+          canonicalRelationshipName,
         ),
         lowercaseFieldMap: getLowercaseFieldMap(rootSobjectChildDescribe.fields),
       };
 
       // add entries to lowercaseFieldMap for all related objects
       getLowercaseFieldMapWithFullPath(
-        output.childMetadata[childRelationship].metadataTree,
-        output.childMetadata[childRelationship].lowercaseFieldMap,
+        output.childMetadata[canonicalRelationshipName].metadataTree,
+        output.childMetadata[canonicalRelationshipName].lowercaseFieldMap,
       );
     }
   }

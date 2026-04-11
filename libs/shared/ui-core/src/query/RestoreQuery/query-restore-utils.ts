@@ -210,6 +210,8 @@ function processFields(data: SoqlFetchMetadataOutput, stateItems: Partial<QueryR
   setSelectedFields(baseKey, data.selectedSobjectMetadata.sobject.fields, queryFields, data.metadata, stateItems);
 
   // process subqueries
+  const childMetadataKeys = new Set(Object.keys(data.childMetadata).map((key) => key.toLowerCase()));
+
   Object.keys(data.childMetadata).forEach((relationshipName) => {
     const { objectMetadata, metadataTree } = data.childMetadata[relationshipName];
     const childBaseKey = getSubqueryFieldBaseKey(objectMetadata.name, relationshipName);
@@ -233,11 +235,18 @@ function processFields(data: SoqlFetchMetadataOutput, stateItems: Partial<QueryR
         stateItems,
         relationshipName,
       );
-    } else {
-      // ERROR - this should not happen (confirm if it is possible or not and remove this path if so)
-      // otherwise handle error
     }
   });
+
+  // Track subquery relationships from the query that were not found in metadata
+  queryFields
+    .filter((field): field is FieldSubquery => field.type === 'FieldSubquery')
+    .forEach((field) => {
+      if (!childMetadataKeys.has(field.subquery.relationshipName.toLowerCase())) {
+        stateItems.missingMisc = stateItems.missingMisc || [];
+        stateItems.missingMisc.push(`Child relationship '${field.subquery.relationshipName}' was not found`);
+      }
+    });
 }
 
 /**
