@@ -1,13 +1,16 @@
-import { ENV } from '@jetstream/api-config';
+import { ENV, logger } from '@jetstream/api-config';
 import { convertUserProfileToSession_External, InvalidAccessToken } from '@jetstream/auth/server';
-import { UserProfileSession } from '@jetstream/auth/types';
+import { TokenSource, UserProfileSession } from '@jetstream/auth/types';
 import { HTTP } from '@jetstream/shared/constants';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { Maybe, UserProfileUi } from '@jetstream/types';
+import { randomUUID } from 'crypto';
+import { fromUnixTime } from 'date-fns';
 import * as express from 'express';
 import jwt from 'fast-jwt';
 import { LRUCache } from 'lru-cache';
 import * as webExtDb from '../db/web-extension.db';
+import { hashToken } from '../services/jwt-token-encryption.service';
 import { AuthenticationError } from '../utils/error-handler';
 
 const cache = new LRUCache<string, JwtDecodedPayload>({ max: 500 });
@@ -16,8 +19,9 @@ export const AUDIENCE_WEB_EXT = 'https://getjetstream.app/web-extension';
 export const AUDIENCE_DESKTOP = 'https://getjetstream.app/desktop-app';
 const ISSUER = 'https://getjetstream.app';
 
-export const TOKEN_AUTO_REFRESH_DAYS = 7;
+export const TOKEN_AUTO_REFRESH_DAYS = 2;
 const TOKEN_EXPIRATION = 60 * 60 * 24 * 90 * 1000; // 90 days
+export const TOKEN_EXPIRATION_SHORT = 60 * 60 * 24 * 7 * 1000; // 7 days
 
 export type Audience = typeof AUDIENCE_WEB_EXT | typeof AUDIENCE_DESKTOP;
 
@@ -30,7 +34,7 @@ export interface JwtDecodedPayload {
   exp: number;
 }
 
-function prepareJwtFns(userId: string, durationMs, audience) {
+function prepareJwtFns(userId: string, durationMs: number, audience: string) {
   const jwtSigner = jwt.createSigner({
     key: async () => ENV.JETSTREAM_AUTH_WEB_EXT_JWT_SECRET,
     algorithm: 'HS256',
@@ -54,12 +58,69 @@ function prepareJwtFns(userId: string, durationMs, audience) {
 
 async function generateJwt({ payload, durationMs }: { payload: UserProfileUi; durationMs: number }, audience: Audience) {
   const { jwtSigner } = prepareJwtFns(payload.id, durationMs, audience);
-  const token = await jwtSigner({ userProfile: payload });
+  const token = await jwtSigner({ userProfile: payload, jti: randomUUID() });
   return token;
 }
 
-export async function issueAccessToken(payload: UserProfileUi, audience: Audience) {
-  return await generateJwt({ payload, durationMs: TOKEN_EXPIRATION }, audience);
+export async function issueAccessToken(payload: UserProfileUi, audience: Audience, durationMs?: number) {
+  return await generateJwt({ payload, durationMs: durationMs ?? TOKEN_EXPIRATION }, audience);
+}
+
+export function invalidateCacheEntry(accessToken: string, deviceId: string): void {
+  const cacheKey = `${accessToken}-${deviceId}`;
+  cache.delete(cacheKey);
+}
+
+/**
+ * Issue a new short-lived JWT, replace the old token in the DB, and invalidate the LRU cache.
+ * Used by both desktop and web extension controllers during /auth/verify when the client
+ * sends the X-Supports-Token-Rotation header.
+ *
+ * Uses a conditional update (checking the old tokenHash) to prevent a race where two
+ * concurrent requests both rotate the same token — the second attempt returns undefined
+ * instead of silently overwriting the first rotation's token.
+ */
+export async function rotateToken({
+  userProfile,
+  audience,
+  source,
+  deviceId,
+  oldAccessToken,
+  ipAddress,
+  userAgent,
+  durationMs,
+}: {
+  userProfile: UserProfileUi;
+  audience: Audience;
+  source: TokenSource;
+  deviceId: string;
+  oldAccessToken: string;
+  ipAddress: string;
+  userAgent: string;
+  durationMs?: number;
+}): Promise<string | undefined> {
+  const newAccessToken = await issueAccessToken(userProfile, audience, durationMs ?? TOKEN_EXPIRATION_SHORT);
+  const oldTokenHash = hashToken(oldAccessToken);
+  const wasReplaced = await webExtDb.replaceTokenIfCurrent(userProfile.id, oldTokenHash, {
+    type: webExtDb.TOKEN_TYPE_AUTH,
+    source,
+    token: newAccessToken,
+    deviceId,
+    ipAddress,
+    userAgent,
+    expiresAt: fromUnixTime(decodeToken(newAccessToken).exp),
+  });
+  // Always invalidate the old token from cache — whether we won or lost the race,
+  // the old token hash is no longer current in the DB and should not be served from cache.
+  invalidateCacheEntry(oldAccessToken, deviceId);
+  if (!wasReplaced) {
+    // Another concurrent request already rotated this token — skip to avoid invalidating the winner's token.
+    // Note: if the rotation response is lost (network failure), the client will hold a stale token and must re-login.
+    // This is an accepted trade-off to avoid the complexity of dual-token grace periods.
+    logger.warn({ userId: userProfile.id, deviceId, audience }, 'rotateToken: race lost — token already rotated by another request');
+    return undefined;
+  }
+  return newAccessToken;
 }
 
 export function decodeToken(token: string): JwtDecodedPayload {
@@ -154,7 +215,7 @@ export function getExternalAuthMiddleware(audience: Audience) {
       res.locals.deviceId = deviceId;
       next();
     } catch (ex) {
-      req.log.info('[DESKTOP-AUTH][AUTH ERROR] Error decoding token', ex);
+      req.log.info('[EXTERNAL AUTH ERROR] Error decoding token', ex);
       next(new AuthenticationError('Unauthorized', { skipLogout: true }));
     }
   };

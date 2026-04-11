@@ -228,6 +228,8 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
     HTTP.HEADERS.AUTHORIZATION,
     HTTP.HEADERS.X_EXT_DEVICE_ID,
     HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID,
+    HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION,
+    HTTP.HEADERS.X_APP_VERSION,
   ].join(', ');
   app.use('/web-extension/*splat', (req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (

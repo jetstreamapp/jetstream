@@ -2,7 +2,7 @@ import { ApiConnection } from '@jetstream/salesforce-api';
 import type { Maybe, SalesforceOrgUi, SoqlQueryFormatOptions, UserProfileUi } from '@jetstream/types';
 import { z } from 'zod';
 
-export const AUTH_CHECK_INTERVAL_MIN = 5;
+export const AUTH_CHECK_INTERVAL_MIN = 180;
 
 export const DEFAULT_BUTTON_POSITION: ButtonPosition = {
   location: 'right',

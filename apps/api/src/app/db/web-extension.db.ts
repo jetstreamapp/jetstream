@@ -141,6 +141,48 @@ export const create = async (
   });
 };
 
+/**
+ * Conditionally replace a token only if the current tokenHash matches oldTokenHash.
+ * Prevents a race where two concurrent rotation requests both replace the same token,
+ * leaving one client with an invalid token.
+ * Returns true if the token was replaced, false if it was already rotated by another request.
+ */
+export const replaceTokenIfCurrent = async (
+  userId: string,
+  oldTokenHash: string,
+  payload: {
+    type: TokenType;
+    source: TokenSource;
+    token: string;
+    deviceId: string;
+    ipAddress: string;
+    userAgent: string;
+    expiresAt: Date;
+  },
+): Promise<boolean> => {
+  const token = encryptJwtToken(payload.token);
+  const tokenHash = hashToken(payload.token);
+
+  const result = await prisma.webExtensionToken.updateMany({
+    where: {
+      type: payload.type,
+      userId,
+      deviceId: payload.deviceId,
+      tokenHash: oldTokenHash,
+    },
+    data: {
+      token,
+      tokenHash,
+      source: payload.source,
+      ipAddress: payload.ipAddress,
+      userAgent: payload.userAgent,
+      expiresAt: payload.expiresAt,
+    },
+  });
+
+  return result.count > 0;
+};
+
 export const deleteByUserIdAndDeviceId = async ({ userId, deviceId, type }: { userId: string; deviceId: string; type: TokenType }) => {
   await prisma.webExtensionToken.deleteMany({
     where: { type, userId, deviceId },
