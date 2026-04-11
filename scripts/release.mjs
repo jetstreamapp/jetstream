@@ -208,3 +208,31 @@ if (releaseExtension) {
 console.log('');
 console.log(`  ${chalk.dim('url')}  ${chalk.underline.blue(runUrl)}`);
 console.log('');
+
+// ── Watch the run ─────────────────────────────────────────────────────────
+console.log(chalk.bold('Watching workflow run...\n'));
+try {
+  await $`gh run watch ${runId} --repo ${REPO} --exit-status`;
+} catch (error) {
+  // User cancelled (ctrl+c) or the run failed
+  console.log(chalk.red('\nWorkflow run did not complete successfully.'));
+  process.exit(1);
+}
+
+// ── Download web extension zips ───────────────────────────────────────────
+if (releaseExtension) {
+  console.log('');
+  console.log(chalk.bold('Downloading web extension zips...'));
+  try {
+    await $`rm -rf dist/web-extension-build && gh run download ${runId} --name web-extension-zips --dir dist/web-extension-build --repo ${REPO}`;
+    console.log(chalk.green('Downloaded to dist/web-extension-build'));
+  } catch (error) {
+    console.log(chalk.red('Failed to download web extension zips.'));
+    console.log(
+      '  ' +
+        chalk.cyan(
+          `rm -rf dist/web-extension-build && gh run download ${runId} --name web-extension-zips --dir dist/web-extension-build --repo ${REPO}`,
+        ),
+    );
+  }
+}
