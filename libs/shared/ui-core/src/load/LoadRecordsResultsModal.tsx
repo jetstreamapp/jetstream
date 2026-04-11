@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { css } from '@emotion/react';
-import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { ContextMenuItem, SalesforceOrgUi } from '@jetstream/types';
 import {
@@ -23,7 +23,9 @@ import {
 } from '@jetstream/ui';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
-import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, useCallback, useMemo, useState } from 'react';
+import type { Key } from 'react';
+import { SelectColumn } from 'react-data-grid';
 
 const COL_WIDTH_MAP = {
   _id: 195,
@@ -33,12 +35,18 @@ const COL_WIDTH_MAP = {
 
 const getRowHeight = (row: any) => (row?._errors ? 75 : 25);
 
+const getDefaultSelectedRows = (rows: any[], selectable: boolean): ReadonlySet<Key> =>
+  selectable ? new Set(rows.map((_row, i) => `id-${i}`)) : new Set();
+
 export interface LoadRecordsResultsModalProps {
   org: SalesforceOrgUi;
   type: 'results' | 'failures';
   loading?: boolean;
   header: string[];
   rows: any[];
+  /** When true, shows checkboxes for row selection and a "Retry Selected" button */
+  selectable?: boolean;
+  onRetrySelected?: (selectedRows: any[]) => void;
   onDownload: (type: 'results' | 'failures', rows: any[], header: string[]) => void;
   onClose: () => void;
 }
@@ -49,61 +57,72 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
   header,
   rows,
   org,
+  selectable = false,
+  onRetrySelected,
   onDownload,
   onClose,
 }) => {
   const { serverUrl, defaultApiVersion } = useAtomValue(applicationCookieState);
   const skipFrontdoorLogin = useAtomValue(selectSkipFrontdoorAuth);
-  const [columns, setColumns] = useState<ColumnWithFilter<any>[] | null>(null);
   // Store each row as key and the index as a value to use as a unique id for the row
-  const [rowsMap, setRowsMap] = useState<WeakMap<any, string>>(() => new WeakMap(rows.map((row, i) => [row, `id-${i}`])));
-  const firstRow = useRef(rows?.[0]);
-  firstRow.current = rows?.[0];
-
-  useEffect(() => {
-    if (header) {
-      setColumns(
-        header.map((item) => {
-          const baseColumn = setColumnFromType(
-            item,
-            item === '_id' ? 'salesforceId' : getRowTypeFromValue(firstRow.current?.[item], false),
-          );
-          return {
-            ...baseColumn,
-            name: item,
-            key: item,
-            field: item,
-            resizable: true,
-            width: COL_WIDTH_MAP[item],
-            formatter:
-              item === '_errors'
-                ? ({ row }) => (
-                    <p
-                      css={css`
-                        white-space: pre-wrap;
-                        line-height: normal;
-                      `}
-                    >
-                      {row._errors && (
-                        <CopyToClipboardWithToolTip
-                          content={row._errors}
-                          icon={{ type: 'utility', icon: 'error', description: 'Click to copy to clipboard' }}
-                          className="slds-text-color_error slds-p-right_x-small"
-                        />
-                      )}
-                      {row?._errors}
-                    </p>
-                  )
-                : baseColumn.renderCell,
-          };
-        }),
-      );
+  const rowsMap = useMemo(() => new WeakMap(rows.map((row, i) => [row, `id-${i}`])), [rows]);
+  const firstRow = rows?.[0];
+  const columns = useMemo<ColumnWithFilter<any>[] | null>(() => {
+    if (!header) {
+      return null;
     }
-  }, [header]);
 
-  useNonInitialEffect(() => {
-    setRowsMap(new WeakMap(rows.map((row, i) => [row, `id-${i}`])));
-  }, [rows]);
+    const baseColumns: ColumnWithFilter<any>[] = header.map((item) => {
+      const baseColumn = setColumnFromType(item, item === '_id' ? 'salesforceId' : getRowTypeFromValue(firstRow?.[item], false));
+      return {
+        ...baseColumn,
+        name: item,
+        key: item,
+        field: item,
+        resizable: true,
+        width: COL_WIDTH_MAP[item],
+        formatter:
+          item === '_errors'
+            ? ({ row }) => (
+                <p
+                  css={css`
+                    white-space: pre-wrap;
+                    line-height: normal;
+                  `}
+                >
+                  {row._errors && (
+                    <CopyToClipboardWithToolTip
+                      content={row._errors}
+                      icon={{ type: 'utility', icon: 'error', description: 'Click to copy to clipboard' }}
+                      className="slds-text-color_error slds-p-right_x-small"
+                    />
+                  )}
+                  {row?._errors}
+                </p>
+              )
+            : baseColumn.renderCell,
+      };
+    });
+
+    if (selectable) {
+      baseColumns.unshift({ ...SelectColumn, resizable: false } as ColumnWithFilter<any>);
+    }
+
+    return baseColumns;
+  }, [firstRow, header, selectable]);
+  const defaultSelectedRows = useMemo(() => getDefaultSelectedRows(rows, selectable), [rows, selectable]);
+  const [selectedRowsState, setSelectedRowsState] = useState<{
+    rows: any[];
+    selectable: boolean;
+    keys: ReadonlySet<Key>;
+  }>(() => ({
+    rows,
+    selectable,
+    keys: getDefaultSelectedRows(rows, selectable),
+  }));
+  const selectedRows =
+    selectedRowsState.rows === rows && selectedRowsState.selectable === selectable ? selectedRowsState.keys : defaultSelectedRows;
+  const selectedCount = selectable ? selectedRows.size : 0;
 
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const getRowKey = useCallback((row: any) => rowsMap.get(row)!, [rowsMap]);
@@ -120,6 +139,19 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
     onDownload(type, rows, header);
   }
 
+  const selectedRowData = useMemo(() => {
+    if (!selectable) {
+      return [];
+    }
+    return rows.filter((row) => selectedRows.has(getRowKey(row)));
+  }, [selectable, rows, selectedRows, getRowKey]);
+
+  function handleRetrySelected() {
+    if (onRetrySelected && selectedRowData.length > 0) {
+      onRetrySelected(selectedRowData);
+    }
+  }
+
   return (
     <div>
       <Modal
@@ -133,10 +165,21 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
               {Array.isArray(rows) && (
                 <>
                   {formatNumber(rows.length)} {pluralizeFromNumber('Record', rows.length)}
+                  {selectable && <> ({formatNumber(selectedCount)} selected)</>}
                 </>
               )}
             </div>
             <Grid verticalAlign="center" align="end">
+              {selectable && onRetrySelected && (
+                <button
+                  className="slds-button slds-button_neutral slds-m-left_x-small"
+                  onClick={handleRetrySelected}
+                  disabled={loading || selectedCount === 0}
+                >
+                  <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
+                  Retry Selected ({formatNumber(selectedCount)})
+                </button>
+              )}
               <CopyRecordsToClipboardButton containerClassName="slds-m-right_xx-small" fields={header} records={rows} />
               <button className="slds-button slds-button_neutral slds-m-left_x-small" onClick={onClose}>
                 Close
@@ -165,6 +208,8 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
                 context={{ defaultApiVersion }}
                 contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
                 contextMenuAction={handleContextMenuAction}
+                selectedRows={selectable ? selectedRows : undefined}
+                onSelectedRowsChange={selectable ? (keys) => setSelectedRowsState({ rows, selectable, keys }) : undefined}
               />
             )}
           </AutoFullHeightContainer>

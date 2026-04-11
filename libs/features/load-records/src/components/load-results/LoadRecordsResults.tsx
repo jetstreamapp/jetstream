@@ -17,7 +17,15 @@ export interface LoadRecordsResultsProps {
   assignmentRuleId?: Maybe<string>;
   serialMode: boolean;
   dateFormat: string;
-  onFinish: (results: { success: number; failure: number }) => void;
+  /** Already-prepared records for retry — skips prepareData when provided */
+  preparedInputData?: any[];
+  onFinish: (results: { success: number; failure: number; failedRecords: any[] }) => void;
+  /** Called when user selects specific records to retry from the results modal */
+  onRetrySelected?: (selectedRows: any[]) => void;
+  /** Called to retry all failed records from this run */
+  onRetryAll?: () => void;
+  /** Number of failed records available for retry — used for button label */
+  failedRecordCount?: number;
 }
 
 export const LoadRecordsResults: FunctionComponent<LoadRecordsResultsProps> = ({
@@ -34,7 +42,11 @@ export const LoadRecordsResults: FunctionComponent<LoadRecordsResultsProps> = ({
   assignmentRuleId,
   serialMode,
   dateFormat,
+  preparedInputData,
   onFinish,
+  onRetrySelected,
+  onRetryAll,
+  failedRecordCount,
 }) => {
   return (
     <div className="slds-m-bottom_medium">
@@ -53,7 +65,11 @@ export const LoadRecordsResults: FunctionComponent<LoadRecordsResultsProps> = ({
           assignmentRuleId={assignmentRuleId}
           serialMode={serialMode}
           dateFormat={dateFormat}
+          preparedInputData={preparedInputData}
           onFinish={onFinish}
+          onRetrySelected={onRetrySelected}
+          onRetryAll={onRetryAll}
+          failedRecordCount={failedRecordCount}
         />
       )}
       {apiMode === 'BATCH' && (
@@ -71,7 +87,11 @@ export const LoadRecordsResults: FunctionComponent<LoadRecordsResultsProps> = ({
           assignmentRuleId={assignmentRuleId}
           serialMode={serialMode}
           dateFormat={dateFormat}
+          preparedInputData={preparedInputData}
           onFinish={onFinish}
+          onRetrySelected={onRetrySelected}
+          onRetryAll={onRetryAll}
+          failedRecordCount={failedRecordCount}
         />
       )}
     </div>

@@ -2,7 +2,13 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { bulkApiAbortJob, bulkApiGetJob, bulkApiGetRecords, bulkApiGetRecordsFromAllBatches } from '@jetstream/shared/data';
-import { checkIfBulkApiJobIsDone, convertDateToLocale, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
+import {
+  checkIfBulkApiJobIsDone,
+  convertDateToLocale,
+  formatNumber,
+  useBrowserNotifications,
+  useRollbar,
+} from '@jetstream/shared/ui-utils';
 import {
   decodeHtmlEntity,
   getErrorMessage,
@@ -52,6 +58,7 @@ import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth
 import { useAtomValue } from 'jotai';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { LoadTypeDisplayNames, loadBulkApiData, prepareData } from '../../utils/load-records-process';
+import { extractRetryRecords, registerRetryRecord } from './retry-record-map';
 
 type Status = 'Preparing Data' | 'Uploading Data' | 'Processing Data' | 'Aborting' | 'Finished' | 'Error';
 
@@ -89,7 +96,15 @@ export interface LoadRecordsBulkApiResultsProps {
   assignmentRuleId?: Maybe<string>;
   serialMode: boolean;
   dateFormat: string;
-  onFinish: (results: { success: number; failure: number }) => void;
+  /** Already-prepared records for retry — skips prepareData when provided */
+  preparedInputData?: any[];
+  onFinish: (results: { success: number; failure: number; failedRecords: any[] }) => void;
+  /** Called when user selects specific records to retry from the results modal */
+  onRetrySelected?: (selectedRows: any[]) => void;
+  /** Called to retry all failed records from this run */
+  onRetryAll?: () => void;
+  /** Number of failed records available for retry — used for button label */
+  failedRecordCount?: number;
 }
 
 export const LoadRecordsBulkApiResults = ({
@@ -106,11 +121,18 @@ export const LoadRecordsBulkApiResults = ({
   assignmentRuleId,
   serialMode,
   dateFormat,
+  preparedInputData,
   onFinish,
+  onRetrySelected,
+  onRetryAll,
+  failedRecordCount,
 }: LoadRecordsBulkApiResultsProps) => {
   const isMounted = useRef(true);
   const isAborted = useRef(false);
   const pollingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ref to avoid stale closures in stable useCallback/useEffect — always call onFinishRef.current
+  const onFinishRef = useRef(onFinish);
+  onFinishRef.current = onFinish;
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
   const { serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
@@ -176,7 +198,6 @@ export const LoadRecordsBulkApiResults = ({
         setStatus(STATUSES.FINISHED);
         const numSuccess = jobInfo.numberRecordsProcessed - jobInfo.numberRecordsFailed;
         const numFailure = jobInfo.numberRecordsFailed + preparedData.errors.length;
-        onFinish({ success: numSuccess, failure: numFailure });
         notifyUser(`Your ${jobInfo.operation} data load is finished`, {
           body: `${getSuccessOrFailureChar('success', numSuccess)} ${numSuccess.toLocaleString()} ${pluralizeFromNumber(
             'record',
@@ -187,7 +208,85 @@ export const LoadRecordsBulkApiResults = ({
           )} failed`,
           tag: 'load-records',
         });
-      } else if (status === STATUSES.PROCESSING && intervalCount < MAX_INTERVAL_CHECK_COUNT) {
+
+        // Fetch failed records for retry capability
+        if (numFailure > 0 && jobInfo.id) {
+          (async () => {
+            try {
+              const failedRecords: any[] = [];
+              const isDelete = loadType === 'DELETE' || loadType === 'HARD_DELETE';
+              const splitRecords = splitArrayToMaxSize(preparedData.data, batchSize);
+
+              const completedBatchIds = jobInfo.batches
+                .filter((batch) => batch.state === 'Completed')
+                .map((batch) => batch.id)
+                .filter((batchId): batchId is string => !!batchId);
+              const batchNumberById = new Map(
+                batchSummary.batchSummary.filter((batch) => batch.id).map((batch) => [batch.id as string, batch.batchNumber]),
+              );
+              const jobId = jobInfo.id;
+
+              if (completedBatchIds.length > 0 && jobId) {
+                const completedBatchResults: { batchId: string; results: BulkJobResultRecord[] }[] = [];
+
+                for (const batchIdChunk of splitArrayToMaxSize(completedBatchIds, 5)) {
+                  const batchResults = await Promise.all(
+                    batchIdChunk.map(async (batchId) => ({
+                      batchId,
+                      results: await bulkApiGetRecords<BulkJobResultRecord>(selectedOrg, jobId, batchId, 'result'),
+                    })),
+                  );
+                  completedBatchResults.push(...batchResults);
+                }
+
+                const completedBatchNumbers = new Set<number>();
+                completedBatchResults.forEach(({ batchId, results }) => {
+                  const originalBatchIndex = batchNumberById.get(batchId);
+                  if (typeof originalBatchIndex === 'number' && splitRecords[originalBatchIndex]) {
+                    const batchIndex = originalBatchIndex;
+                    const recordsForBatch = splitRecords[batchIndex];
+                    const recordsWithIds = recordsForBatch.filter((record: Record<string, unknown>) => !!record.Id);
+                    const resultsExcludeMissingIdRecords =
+                      isDelete && results.length === recordsWithIds.length && recordsWithIds.length !== recordsForBatch.length;
+                    const recordsForResults = resultsExcludeMissingIdRecords ? recordsWithIds : recordsForBatch;
+                    completedBatchNumbers.add(batchIndex);
+
+                    results.forEach((resultRecord, i) => {
+                      if (!resultRecord.Success && recordsForResults[i]) {
+                        failedRecords.push(recordsForResults[i]);
+                      }
+                    });
+
+                    if (resultsExcludeMissingIdRecords) {
+                      failedRecords.push(...recordsForBatch.filter((record: Record<string, unknown>) => !record.Id));
+                    }
+                  }
+                });
+
+                // Include all records from failed/unsubmitted/skipped batches.
+                splitRecords.forEach((records, index) => {
+                  if (!completedBatchNumbers.has(index)) {
+                    failedRecords.push(...records);
+                  }
+                });
+              } else {
+                failedRecords.push(...splitRecords.flat());
+              }
+
+              if (isMounted.current) {
+                onFinishRef.current({ success: numSuccess, failure: numFailure, failedRecords });
+              }
+            } catch (ex) {
+              logger.warn('Failed to fetch failed records for retry', ex);
+              if (isMounted.current) {
+                onFinishRef.current({ success: numSuccess, failure: numFailure, failedRecords: [] });
+              }
+            }
+          })();
+        } else {
+          onFinishRef.current({ success: numSuccess, failure: numFailure, failedRecords: [] });
+        }
+      } else if ((status === STATUSES.PROCESSING || status === STATUSES.ABORTING) && intervalCount < MAX_INTERVAL_CHECK_COUNT) {
         pollingTimerRef.current = setTimeout(async () => {
           pollingTimerRef.current = null;
           if (!isMounted.current || !batchIdByIndex || !jobInfo.id) {
@@ -231,6 +330,22 @@ export const LoadRecordsBulkApiResults = ({
       setStatus(STATUSES.PREPARING);
       setProcessingStartTime(convertDateToLocale(new Date(), { timeStyle: 'medium' }));
       setFatalError(null);
+
+      // For retry: data is already prepared, skip transformation
+      if (preparedInputData) {
+        const dateString = convertDateToLocale(new Date(), { timeStyle: 'medium' });
+        const preparedDataResponse: PrepareDataResponse = {
+          data: preparedInputData,
+          errors: [],
+          queryErrors: [],
+        };
+        setStatus(STATUSES.UPLOADING);
+        setPreparedData(preparedDataResponse);
+        setProcessingEndTime(dateString);
+        setPrepareDataProgress(100);
+        return preparedDataResponse;
+      }
+
       const prepareDataPayload: PrepareDataPayload = {
         org: selectedOrg,
         data: inputFileData,
@@ -284,7 +399,7 @@ export const LoadRecordsBulkApiResults = ({
           totalProcessingTime: 0,
           batches: [],
         });
-        onFinish({ success: 0, failure: inputFileData.length });
+        onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
         notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
           body: `❌ Pre-processing records failed.`,
           tag: 'load-records',
@@ -300,7 +415,7 @@ export const LoadRecordsBulkApiResults = ({
       logger.error('ERROR', ex);
       setStatus(STATUSES.ERROR);
       setFatalError(getErrorMessage(ex));
-      onFinish({ success: 0, failure: inputFileData.length });
+      onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
       notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
         body: `❌ ${getErrorMessage(ex)}`,
         tag: 'load-records',
@@ -353,7 +468,7 @@ export const LoadRecordsBulkApiResults = ({
           setStatus(STATUSES.PROCESSING);
         } else {
           setStatus(STATUSES.ERROR);
-          onFinish({ success: 0, failure: inputFileData.length });
+          onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
           notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
             body: `❌ ${loadError.message}`,
             tag: 'load-records',
@@ -375,7 +490,7 @@ export const LoadRecordsBulkApiResults = ({
       logger.error('ERROR', ex);
       setFatalError(getErrorMessage(ex));
       setStatus(STATUSES.ERROR);
-      onFinish({ success: 0, failure: inputFileData.length });
+      onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
       notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
         body: `❌ ${getErrorMessage(ex)}`,
         tag: 'load-records',
@@ -475,12 +590,14 @@ export const LoadRecordsBulkApiResults = ({
       results.forEach((resultRecord, i) => {
         // show all if results, otherwise just include errors
         if (type === 'results' || !resultRecord.Success) {
-          combinedResults.push({
+          const resultRow = {
             _id: resultRecord.Id || records[i].Id || null,
             _success: resultRecord.Success,
             _errors: decodeHtmlEntity(resultRecord.Error),
             ...records[i],
-          });
+          };
+          registerRetryRecord(resultRow, records[i]);
+          combinedResults.push(resultRow);
         }
       });
       logger.debug({ combinedResults, results });
@@ -592,6 +709,25 @@ export const LoadRecordsBulkApiResults = ({
           type={resultsModalData.type}
           header={resultsModalData.header}
           rows={resultsModalData.data}
+          selectable={resultsModalData.type === 'failures' && !!onRetrySelected}
+          onRetrySelected={
+            onRetrySelected
+              ? (selectedRows) => {
+                  // Recover the original prepared records — rows without a registered original are skipped
+                  const preparedRecords = extractRetryRecords(selectedRows);
+                  if (preparedRecords.length !== selectedRows.length) {
+                    logger.warn('Some selected rows were missing their original prepared record and will be skipped for retry', {
+                      selected: selectedRows.length,
+                      recovered: preparedRecords.length,
+                    });
+                  }
+                  if (preparedRecords.length > 0) {
+                    onRetrySelected(preparedRecords);
+                    handleViewModalClose();
+                  }
+                }
+              : undefined
+          }
           onDownload={handleDownloadRecordsFromModal}
           onClose={handleViewModalClose}
         />
@@ -648,41 +784,6 @@ export const LoadRecordsBulkApiResults = ({
           )}
         </div>
         <div>
-          {batchSummary && status === STATUSES.FINISHED && batchSummary.totalBatches > 1 && (
-            <div className="slds-is-relative">
-              {downloadState === 'all' && <Spinner size="small" />}
-              <ButtonGroupContainer>
-                <button
-                  className="slds-button slds-button_neutral"
-                  disabled={!!downloadState}
-                  onClick={() =>
-                    handleDownloadOrViewRecords({
-                      scope: 'all',
-                      action: 'download',
-                      type: 'results',
-                    })
-                  }
-                >
-                  <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-                  Download All
-                </button>
-                <button
-                  className="slds-button slds-button_neutral slds-m-left_x-small"
-                  disabled={!!downloadState}
-                  onClick={() =>
-                    handleDownloadOrViewRecords({
-                      scope: 'all',
-                      action: 'view',
-                      type: 'results',
-                    })
-                  }
-                >
-                  <Icon type="utility" icon="preview" className="slds-button__icon slds-button__icon_left" omitContainer />
-                  View All
-                </button>
-              </ButtonGroupContainer>
-            </div>
-          )}
           {ABORTABLE_STATUSES.has(status) && (
             <Tooltip content="Any batches in progress may not be able to be aborted.">
               <button
@@ -694,6 +795,51 @@ export const LoadRecordsBulkApiResults = ({
                 Abort Job
               </button>
             </Tooltip>
+          )}
+          {status === STATUSES.FINISHED && (
+            <div className="slds-is-relative">
+              {downloadState === 'all' && <Spinner size="small" />}
+              <ButtonGroupContainer className="slds-m-bottom_xx-small">
+                {onRetryAll && (failedRecordCount ?? 0) > 0 && (
+                  <button className="slds-button slds-button_neutral" onClick={onRetryAll}>
+                    <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
+                    Retry Failed Records ({formatNumber(failedRecordCount)})
+                  </button>
+                )}
+                {batchSummary && batchSummary.totalBatches > 1 && (
+                  <>
+                    <button
+                      className="slds-button slds-button_neutral"
+                      disabled={!!downloadState}
+                      onClick={() =>
+                        handleDownloadOrViewRecords({
+                          scope: 'all',
+                          action: 'download',
+                          type: 'results',
+                        })
+                      }
+                    >
+                      <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+                      Download All
+                    </button>
+                    <button
+                      className="slds-button slds-button_neutral"
+                      disabled={!!downloadState}
+                      onClick={() =>
+                        handleDownloadOrViewRecords({
+                          scope: 'all',
+                          action: 'view',
+                          type: 'results',
+                        })
+                      }
+                    >
+                      <Icon type="utility" icon="preview" className="slds-button__icon slds-button__icon_left" omitContainer />
+                      View All
+                    </button>
+                  </>
+                )}
+              </ButtonGroupContainer>
+            </div>
           )}
         </div>
       </Grid>
