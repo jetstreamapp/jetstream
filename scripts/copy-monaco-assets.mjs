@@ -14,7 +14,7 @@ const destinationConfigs = {
     includeAll: true,
   },
   'web-extension': {
-    path: join(__dirname, '..', 'apps', 'jetstream-web-extension', 'src', 'assets', 'js', 'monaco', 'vs'),
+    path: join(__dirname, '..', 'apps', 'jetstream-web-extension', 'public', 'assets', 'js', 'monaco', 'vs'),
     includeAll: false,
     includeLanguages: ['apex', 'css', 'html', 'javascript', 'xml'],
   },
