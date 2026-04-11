@@ -1,5 +1,3 @@
-import '../../utils/extension-public-path';
-
 import { css } from '@emotion/react';
 import { CheckboxToggle, FeedbackLink, Grid, ScopedNotification } from '@jetstream/ui';
 import browser from 'webextension-polyfill';

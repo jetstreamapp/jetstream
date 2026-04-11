@@ -6,42 +6,24 @@
   "tags": ["scope:browser"],
   "targets": {
     "build": {
-      "executor": "@nx/webpack:webpack",
+      "executor": "@nx/vite:build",
       "outputs": ["{options.outputPath}"],
       "defaultConfiguration": "production",
       "options": {
-        "compiler": "babel",
-        "outputPath": "dist/apps/jetstream-web-extension",
-        "baseHref": "/",
-        "tsConfig": "apps/jetstream-web-extension/tsconfig.app.json",
-        "assets": ["apps/jetstream-web-extension/src/assets"],
-        "styles": [],
-        "scripts": [],
-        "webpackConfig": "apps/jetstream-web-extension/webpack.config.js"
+        "outputPath": "dist/apps/jetstream-web-extension"
       },
       "configurations": {
         "development": {
-          "fileReplacements": [],
-          "optimization": true,
-          "outputHashing": "none",
-          "sourceMap": true,
-          "namedChunks": false,
-          "extractLicenses": false,
-          "vendorChunk": false
+          "mode": "development"
         },
         "staging": {
+          "mode": "staging",
           "fileReplacements": [
             {
               "replace": "apps/jetstream-web-extension/src/environments/environment.ts",
               "with": "apps/jetstream-web-extension/src/environments/environment.staging.ts"
             }
-          ],
-          "optimization": true,
-          "outputHashing": "none",
-          "sourceMap": true,
-          "namedChunks": false,
-          "extractLicenses": false,
-          "vendorChunk": false
+          ]
         },
         "production": {
           "fileReplacements": [
@@ -49,36 +31,12 @@
               "replace": "apps/jetstream-web-extension/src/environments/environment.ts",
               "with": "apps/jetstream-web-extension/src/environments/environment.prod.ts"
             }
-          ],
-          "optimization": true,
-          "outputHashing": "none",
-          "sourceMap": true,
-          "namedChunks": false,
-          "extractLicenses": false,
-          "vendorChunk": false
+          ]
         }
       }
     },
     "serve": {
-      "executor": "@nx/webpack:dev-server",
-      "defaultConfiguration": "development",
-      "options": {
-        "buildTarget": "jetstream-web-extension:build",
-        "hmr": true
-      },
-      "configurations": {
-        "development": {
-          "buildTarget": "jetstream-web-extension:build:development"
-        },
-        "production": {
-          "buildTarget": "jetstream-web-extension:build:production",
-          "hmr": false
-        },
-        "staging": {
-          "buildTarget": "jetstream-web-extension:build:staging",
-          "hmr": false
-        }
-      }
+      "command": "nx build jetstream-web-extension --configuration=development --watch"
     },
     "test": {
       "executor": "@nx/vitest:test",
