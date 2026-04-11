@@ -211,9 +211,9 @@ export const LoadRecordsBulkApiResults = ({
               return;
             }
             // Set a new jobInfo reference to re-trigger the polling effect
-            setJobInfo({ ...jobInfo });
+            setJobInfo((currentJobInfo) => (currentJobInfo ? { ...currentJobInfo } : currentJobInfo));
           }
-          setIntervalCount(intervalCount + 1);
+          setIntervalCount((currentIntervalCount) => currentIntervalCount + 1);
         }, CHECK_INTERVAL);
       }
     }
