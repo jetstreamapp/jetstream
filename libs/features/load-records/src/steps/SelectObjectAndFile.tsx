@@ -8,6 +8,7 @@ import {
   isDesktop,
   parseFile,
   parseWorkbook,
+  removeEmptyRows,
 } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
@@ -109,7 +110,14 @@ export const LoadRecordsSelectObjectAndFile = ({
 
   async function handleFile({ content, filename, isPasteFromClipboard, extension }: InputReadFileContent) {
     try {
-      const { data, headers, errors } = await parseFile(content, { onParsedMultipleWorkbooks, isPasteFromClipboard, extension });
+      const { data: rawData, headers, errors } = await parseFile(content, { onParsedMultipleWorkbooks, isPasteFromClipboard, extension });
+      const { data, removedCount } = removeEmptyRows(rawData);
+      if (removedCount > 0) {
+        fireToast({
+          message: `${removedCount} empty row${removedCount === 1 ? ' was' : 's were'} removed from your file.`,
+          type: 'info',
+        });
+      }
       onFileChange(data, headers, filename, 'local');
       if (errors.length > 0) {
         logger.warn(errors);
@@ -142,7 +150,14 @@ export const LoadRecordsSelectObjectAndFile = ({
       if (!selectedFile.name) {
         throw new Error('Selected Google file is missing a name.');
       }
-      const { data, headers } = await parseWorkbook(workbook, { onParsedMultipleWorkbooks });
+      const { data: rawData, headers } = await parseWorkbook(workbook, { onParsedMultipleWorkbooks });
+      const { data, removedCount } = removeEmptyRows(rawData);
+      if (removedCount > 0) {
+        fireToast({
+          message: `${removedCount} empty row${removedCount === 1 ? ' was' : 's were'} removed from your file.`,
+          type: 'info',
+        });
+      }
       onFileChange(data, headers, selectedFile.name, 'google', selectedFile);
     } catch (ex) {
       fireToast({
