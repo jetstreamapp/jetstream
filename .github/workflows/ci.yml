@@ -168,7 +168,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: blob-report-${{ matrix.shardIndex }}
-          path: blob-report
+          path: apps/jetstream-e2e/blob-report
           retention-days: 1
 
   merge-e2e-reports:
@@ -190,7 +190,9 @@ jobs:
           pattern: blob-report-*
           merge-multiple: true
       - name: Merge into HTML Report
-        run: npx playwright merge-reports --reporter html ./all-blob-reports
+        run: |
+          mkdir -p all-blob-reports
+          npx playwright merge-reports --reporter html ./all-blob-reports
       - name: Upload HTML report
         uses: actions/upload-artifact@v6
         with:
