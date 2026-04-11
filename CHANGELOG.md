@@ -1,5 +1,20 @@
 # Changelog
 
+## [9.11.0](https://github.com/jetstreamapp/jetstream/compare/v9.10.0...v9.11.0) (2026-04-11)
+
+### Features
+
+* implement JWT token rotation for desktop and web extension authentication ([d04b6a0](https://github.com/jetstreamapp/jetstream/commit/d04b6a0b787eaa6b1f972ee6131410f86c612701))
+
+### Bug Fixes
+
+* correct isFieldSubquery and fieldMetadataSubquery lookups in data-table-utils ([fd7669a](https://github.com/jetstreamapp/jetstream/commit/fd7669a1b9c420c499d1ada8ed66c57a3e8b4593))
+* **create-fields:** enhance error handling by displaying detailed import errors ([09c3325](https://github.com/jetstreamapp/jetstream/commit/09c3325acb5bb7b30c74edcd8a6e8f1d9641dd2d)), closes [#1638](https://github.com/jetstreamapp/jetstream/issues/1638)
+* enhance subquery processing by tracking missing relationships in metadata ([08c16a8](https://github.com/jetstreamapp/jetstream/commit/08c16a8b62c22d274ea061de23bdc217f9a8c4cc))
+* improve handling of subquery fields and refactor query column mapping ([f0f341f](https://github.com/jetstreamapp/jetstream/commit/f0f341f927b4827540b7d47478405bb74acb66a6))
+* replace any[] with FieldValues[] and remove unnecessary eslint-disable comment in CreateFieldsImportExport ([20c99c0](https://github.com/jetstreamapp/jetstream/commit/20c99c070f43ffe03a541459f36f2160e44bc098))
+* use Partial<Record<FieldDefinitionType, FieldValue>>[] for exportData state and type getRowsForExport accumulator ([790ebe3](https://github.com/jetstreamapp/jetstream/commit/790ebe3de950a212a6daa0159a1fd7bf07ec2c31))
+
 ## [9.10.0](https://github.com/jetstreamapp/jetstream/compare/v9.9.1...v9.10.0) (2026-04-08)
 
 ### Features
