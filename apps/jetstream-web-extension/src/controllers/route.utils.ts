@@ -29,8 +29,6 @@ export type ControllerFunction<TParamsSchema extends z.ZodTypeAny, TBodySchema e
     query: z.infer<TQuerySchema>;
     jetstreamConn?: ApiConnection;
     targetJetstreamConn?: Maybe<ApiConnection>;
-    // user: SalesforceOrgUi;// TODO:
-    // requestId: string;
     org?: SalesforceOrgUi;
     targetOrg?: SalesforceOrgUi;
   },

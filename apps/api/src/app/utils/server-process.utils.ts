@@ -3,7 +3,137 @@ import { ENV, getExceptionLog, logger, pgPool, prisma } from '@jetstream/api-con
 import { hashPassword, pruneExpiredRecords } from '@jetstream/auth/server';
 import '@jetstream/auth/types';
 import { AsyncIntervalTimer } from '@jetstream/shared/node-utils';
-import cluster from 'node:cluster';
+import cluster, { Worker } from 'node:cluster';
+
+// Worker respawn backoff — guards against tight fork loops when a worker crashes on
+// startup (bad env, DB unreachable). After too many consecutive rapid failures the
+// primary exits and the platform supervisor (Render) replaces the container.
+const WORKER_BACKOFF_MIN_MS = 1_000;
+const WORKER_BACKOFF_MAX_MS = 30_000;
+const WORKER_FAILURE_RESET_MS = 60_000;
+const WORKER_MAX_CONSECUTIVE_FAILURES = 10;
+
+let recentWorkerFailureCount = 0;
+let lastWorkerFailureTime = 0;
+let isPrimaryShuttingDown = false;
+const pendingRespawnTimers = new Set<NodeJS.Timeout>();
+
+/**
+ * Respawn a worker after it dies, with exponential backoff on rapid consecutive failures.
+ * Wired via `cluster.on('exit', handleWorkerExit)` in the primary branch.
+ * First failure respawns immediately; subsequent rapid failures (within
+ * WORKER_FAILURE_RESET_MS) back off exponentially up to WORKER_BACKOFF_MAX_MS; after
+ * WORKER_MAX_CONSECUTIVE_FAILURES the primary exits for the supervisor to take over.
+ */
+export function handleWorkerExit(worker: Worker, code: number | null, signal: string | null): void {
+  if (isPrimaryShuttingDown) {
+    return;
+  }
+
+  // Clean exits (future code: intentional rotation, memory-threshold restart, etc.)
+  // respawn immediately and don't feed the spin-loop counter.
+  const isCleanExit = code === 0 && signal === null;
+  if (isCleanExit) {
+    logger.info({ code, signal, pid: worker.process.pid }, `worker ${worker.process.pid} exited cleanly, respawning`);
+    cluster.fork();
+    return;
+  }
+
+  const now = Date.now();
+  if (now - lastWorkerFailureTime > WORKER_FAILURE_RESET_MS) {
+    recentWorkerFailureCount = 0;
+  }
+  recentWorkerFailureCount += 1;
+  lastWorkerFailureTime = now;
+
+  logger.info({ code, signal, pid: worker.process.pid, recentWorkerFailureCount }, `worker ${worker.process.pid} died, respawning`);
+
+  if (recentWorkerFailureCount >= WORKER_MAX_CONSECUTIVE_FAILURES) {
+    logger.error(
+      { recentWorkerFailureCount },
+      'Too many consecutive worker failures — exiting primary so the platform supervisor can replace the container',
+    );
+    process.exit(1);
+  }
+
+  const backoffMs =
+    recentWorkerFailureCount <= 1 ? 0 : Math.min(WORKER_BACKOFF_MIN_MS * 2 ** (recentWorkerFailureCount - 2), WORKER_BACKOFF_MAX_MS);
+
+  if (backoffMs > 0) {
+    logger.info({ backoffMs, recentWorkerFailureCount }, 'Delaying worker respawn');
+    // Track the pending timer so shutdownPrimaryGracefully can cancel it if SIGTERM
+    // arrives during the backoff window. Also re-check the flag inside the callback
+    // as a belt-and-suspenders guard: if the shutdown path didn't cancel in time
+    // (e.g. the timer was in the tail of Node's queue), we still bail before forking
+    // an orphan worker that would outlive the primary's graceful shutdown.
+    const timer = setTimeout(() => {
+      pendingRespawnTimers.delete(timer);
+      if (isPrimaryShuttingDown) {
+        return;
+      }
+      cluster.fork();
+    }, backoffMs);
+    pendingRespawnTimers.add(timer);
+  } else {
+    cluster.fork();
+  }
+}
+
+/**
+ * Forward SIGTERM from the primary to all workers and wait for them to exit cleanly.
+ * Each worker has its own SIGTERM handler (see main.ts worker branch) that drains in-flight
+ * requests and closes the pg pool. The primary exits once all workers have exited, or after
+ * `timeoutMs` if any worker hangs.
+ */
+export function shutdownPrimaryGracefully(timeoutMs = 30_000): void {
+  if (isPrimaryShuttingDown) {
+    return;
+  }
+  isPrimaryShuttingDown = true;
+
+  // Cancel any pending worker respawn scheduled by handleWorkerExit — otherwise a
+  // timer armed up to WORKER_BACKOFF_MAX_MS ago could fire after this function has
+  // already snapshotted cluster.workers, spawning an orphan worker that is never
+  // sent SIGTERM and outlives the primary's process.exit().
+  for (const timer of pendingRespawnTimers) {
+    clearTimeout(timer);
+  }
+  pendingRespawnTimers.clear();
+
+  logger.info('Primary received SIGTERM, forwarding to workers');
+
+  const workers = Object.values(cluster.workers || {}).filter((worker): worker is Worker => worker !== undefined);
+
+  // Branch explicitly so there's no fall-through path after `process.exit(0)`. A plain
+  // early-out with `return` is cleaner to read, but TypeScript sees `process.exit` as
+  // `never` and would treat the trailing return as unreachable — deleting it (or a
+  // future refactor that stubs `process.exit` for tests) would silently re-introduce
+  // the footgun where we kick off a 30s setTimeout after a "shutdown."
+  if (workers.length === 0) {
+    logger.info('No workers to shut down, exiting primary');
+    process.exit(0);
+  } else {
+    let exitedCount = 0;
+    const onWorkerExit = () => {
+      exitedCount += 1;
+      logger.info({ exitedCount, total: workers.length }, 'worker exited during shutdown');
+      if (exitedCount >= workers.length) {
+        logger.info('All workers exited cleanly, shutting down primary');
+        process.exit(0);
+      }
+    };
+
+    for (const worker of workers) {
+      worker.once('exit', onWorkerExit);
+      worker.kill('SIGTERM');
+    }
+
+    setTimeout(() => {
+      logger.error({ exitedCount, total: workers.length }, 'Workers did not exit in time, forcing primary shutdown');
+      process.exit(1);
+    }, timeoutMs);
+  }
+}
 
 export async function primaryClusterInitSideEffects() {
   if (!cluster.isPrimary) {

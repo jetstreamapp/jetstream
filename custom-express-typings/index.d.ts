@@ -6,6 +6,15 @@ import { SessionData as JetstreamSessionData, UserProfileSession } from '../libs
 // Augment Express Request interface
 // This is here so that apps and libraries can both share it and avoid circular dependencies
 
+declare global {
+  namespace Express {
+    interface Locals {
+      requestId: string;
+      cspNonce: string;
+    }
+  }
+}
+
 declare module 'express' {
   interface Request {
     /**

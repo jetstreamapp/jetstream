@@ -29,22 +29,21 @@ export const routes: express.Router = Router();
 
 routes.use(
   helmet({
+    crossOriginOpenerPolicy: false,
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
         baseUri: ["'self'"],
-        blockAllMixedContent: [],
         fontSrc: ["'self'", 'https:'],
         frameAncestors: ["'self'"],
         frameSrc: ["'self'", 'https://accounts.google.com', 'https://docs.google.com', 'https://drive.google.com'],
         imgSrc: ["'self'", '*.cloudinary.com', '*.googleusercontent.com'],
         objectSrc: ["'none'"],
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         scriptSrc: [
           "'self'",
           'https://apis.google.com',
           'https://accounts.google.com',
-          (_, res) => `'nonce-${(res as any)?.locals?.nonce}'`,
+          (_req: express.Request, res: express.Response) => `'nonce-${res.locals.cspNonce}'`,
         ],
         scriptSrcAttr: ["'none'"],
         styleSrc: ["'self'", 'https:', "'unsafe-inline'"],

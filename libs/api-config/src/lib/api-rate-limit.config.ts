@@ -4,6 +4,12 @@ import cluster from 'cluster';
 import { MemoryStore, Options, rateLimit } from 'express-rate-limit';
 import { logger } from './api-logger';
 
+// Each ClusterMemoryStoreWorker instance attaches a `message` listener to cluster.worker
+// on init. Increase the limit for some breathing room
+if (!cluster.isPrimary && cluster.worker) {
+  cluster.worker.setMaxListeners(Math.max(cluster.worker.getMaxListeners(), 24));
+}
+
 export function createRateLimit(prefix: string, options: Partial<Options>) {
   return rateLimit({
     // cluster.isPrimary will be true on development and production master process

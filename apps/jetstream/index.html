@@ -31,18 +31,17 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="96x96" href="/assets/images/favicon-96x96.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16x16.png" />
-    <!-- Monaco throws error when hovering on a completion  -->
-    <!-- any changes need to be adjusted in CSP hash -->
-    <script>
+    <!-- Monaco throws error when hovering on a completion -->
+    <script nonce="__CSP_NONCE__">
       window.addEventListener('unhandledrejection', (event) => {
         if (event && event.reason && event.reason.stack && event.reason.stack.includes && event.reason.stack.includes('monaco')) {
           event.stopImmediatePropagation();
         }
       });
     </script>
-    <!-- any changes need to be adjusted in CSP hash -->
-    <!-- prettier-ignore -->
-    <script>__IS_BROWSER_EXTENSION__ = false;</script>
+    <script nonce="__CSP_NONCE__">
+      __IS_BROWSER_EXTENSION__ = false;
+    </script>
   </head>
   <body>
     <div id="root"></div>
