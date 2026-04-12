@@ -143,7 +143,7 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
     const decoded = externalAuthService.decodeToken(decryptedToken);
     const expiresAt = fromUnixTime(decoded.exp);
 
-    res.log.info({ userId: user.id, deviceId, expiresAt }, 'Reusing existing web extension token');
+    res.log.debug({ userId: user.id, deviceId, expiresAt }, 'Reusing existing web extension token');
 
     sendJson(res, { accessToken: decryptedToken });
     createUserActivityFromReq(req, res, {
@@ -201,15 +201,15 @@ const verifyToken = createRoute(routeDefinition.verifyToken.validators, async ({
           userAgent: req.get('User-Agent') || 'unknown',
         });
         if (rotatedAccessToken) {
-          res.log.info({ userId: userProfile.id, deviceId }, 'Web extension token verified and rotated');
+          res.log.debug({ userId: userProfile.id, deviceId }, 'Web extension token verified and rotated');
         } else {
-          res.log.info({ userId: userProfile.id, deviceId }, 'Web extension token verified (rotation skipped — concurrent race)');
+          res.log.debug({ userId: userProfile.id, deviceId }, 'Web extension token verified (rotation skipped — concurrent race)');
         }
       }
     }
 
     if (!supportsRotation) {
-      res.log.info({ userId: userProfile.id, deviceId }, 'Web extension token verified');
+      res.log.debug({ userId: userProfile.id, deviceId }, 'Web extension token verified');
     }
 
     sendJson(res, { success: true, userProfile, accessToken: rotatedAccessToken });

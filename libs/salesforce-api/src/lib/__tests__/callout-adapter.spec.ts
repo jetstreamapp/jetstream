@@ -758,4 +758,62 @@ describe('callout-adapter XML parsing', () => {
       expect(results[0]).toHaveProperty('fullName');
     });
   });
+
+  describe('request logging', () => {
+    it('does not log request or response details when logging is disabled', async () => {
+      const mockFetch = createMockFetch({
+        '/services/data/': { status: 200, body: 'ok' },
+      });
+      const mockLogger = {
+        trace: vi.fn(),
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+      };
+
+      const apiRequest = getApiRequestFactoryFn(mockFetch)(mockLogger, undefined, undefined, false);
+      const result = await apiRequest({
+        url: '/services/data/v65.0/test',
+        method: 'GET',
+        sessionInfo: mockSessionInfo,
+        outputType: 'text',
+      });
+
+      await Promise.resolve();
+
+      expect(result).toBe('ok');
+      expect(mockLogger.trace).not.toHaveBeenCalled();
+      expect(mockLogger.debug).not.toHaveBeenCalled();
+    });
+
+    it('logs request, response, and optional response body details at trace', async () => {
+      const mockFetch = createMockFetch({
+        '/services/data/': { status: 200, body: 'ok' },
+      });
+      const mockLogger = {
+        trace: vi.fn(),
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+      };
+
+      const apiRequest = getApiRequestFactoryFn(mockFetch)(mockLogger, undefined, undefined, true);
+      const result = await apiRequest({
+        url: '/services/data/v65.0/test',
+        method: 'GET',
+        sessionInfo: mockSessionInfo,
+        outputType: 'text',
+      });
+
+      await Promise.resolve();
+
+      expect(result).toBe('ok');
+      expect(mockLogger.trace).toHaveBeenCalledWith('[API REQUEST]: GET https://test.salesforce.com/services/data/v65.0/test');
+      expect(mockLogger.trace).toHaveBeenCalledWith('[API RESPONSE]: 200');
+      expect(mockLogger.trace).toHaveBeenCalledWith({ responseBody: 'ok' });
+      expect(mockLogger.debug).not.toHaveBeenCalled();
+    });
+  });
 });

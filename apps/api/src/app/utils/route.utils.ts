@@ -120,11 +120,11 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         },
       };
       if (hasSourceOrg && !data.jetstreamConn) {
-        logger.info('[INIT-ORG][ERROR] A source org did not exist on locals');
+        logger.warn('[INIT-ORG][ERROR] A source org did not exist on locals');
         return next(new UserFacingError('An org is required for this action'));
       }
       if (hasTargetOrg && !data.targetJetstreamConn) {
-        logger.info('[INIT-ORG][ERROR] A target org did not exist on locals');
+        logger.warn('[INIT-ORG][ERROR] A target org did not exist on locals');
         return next(new UserFacingError('A source and target org are required for this action'));
       }
       try {
@@ -150,7 +150,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         next(new UserFacingError(ex));
       }
     } catch (ex) {
-      logger.error(getExceptionLog(ex), '[ROUTE][VALIDATION ERROR]');
+      logger.warn(getExceptionLog(ex), '[ROUTE][VALIDATION ERROR]');
       if (logErrorToBugTracker) {
         rollbarServer.error(ex, req, {
           ...getExceptionLog(ex, true),

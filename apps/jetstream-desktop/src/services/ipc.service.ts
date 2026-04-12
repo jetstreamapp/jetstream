@@ -227,7 +227,7 @@ const handleAddOrgEvent: MainIpcHandler<'addOrg'> = async (event, payload) => {
         instanceUrl: userInfo.urls.custom_domain || payload.loginUrl,
         refreshToken: refresh_token,
         logger: logger as any,
-        logging: false,
+        enableLogging: false,
       });
 
       const salesforceOrg = await initConnectionFromOAuthResponse({

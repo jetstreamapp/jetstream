@@ -156,7 +156,7 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
     const decoded = externalAuthService.decodeToken(decryptedToken);
     const expiresAt = fromUnixTime(decoded.exp);
 
-    res.log.info({ userId: user.id, deviceId, expiresAt }, 'Reusing existing desktop token');
+    res.log.debug({ userId: user.id, deviceId, expiresAt }, 'Reusing existing desktop token');
 
     sendJson(res, { accessToken: decryptedToken });
     createUserActivityFromReq(req, res, {
@@ -222,15 +222,15 @@ const verifyToken = createRoute(routeDefinition.verifyToken.validators, async ({
           userAgent: req.get('User-Agent') || 'unknown',
         });
         if (rotatedAccessToken) {
-          res.log.info({ userId: userProfile.id, deviceId }, 'Desktop App token verified and rotated');
+          res.log.debug({ userId: userProfile.id, deviceId }, 'Desktop App token verified and rotated');
         } else {
-          res.log.info({ userId: userProfile.id, deviceId }, 'Desktop App token verified (rotation skipped — concurrent race)');
+          res.log.debug({ userId: userProfile.id, deviceId }, 'Desktop App token verified (rotation skipped — concurrent race)');
         }
       }
     }
 
     if (!supportsRotation) {
-      res.log.info({ userId: userProfile.id, deviceId }, 'Desktop App token verified');
+      res.log.debug({ userId: userProfile.id, deviceId }, 'Desktop App token verified');
     }
 
     sendJson(res, { success: true, userProfile, encryptionKey, accessToken: rotatedAccessToken });

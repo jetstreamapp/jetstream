@@ -102,10 +102,10 @@ const checkOrgHealth = createRoute(routeDefinition.checkOrgHealth.validators, as
     try {
       await jetstreamConn.org.identity();
       connectionError = null;
-      req.log.warn('[ORG CHECK][VALID ORG][IDENTITY]');
+      res.log.debug('[ORG CHECK][VALID ORG][IDENTITY]');
     } catch (ex) {
       connectionError = ERROR_MESSAGES.SFDC_EXPIRED_TOKEN;
-      req.log.warn(getExceptionLog(ex), '[ORG CHECK][INVALID ORG] %s', getErrorMessage(ex));
+      res.log.debug(getExceptionLog(ex), '[ORG CHECK][INVALID ORG] %s', getErrorMessage(ex));
     }
 
     // Ensure full API access, identity API works even without API access
@@ -114,11 +114,11 @@ const checkOrgHealth = createRoute(routeDefinition.checkOrgHealth.validators, as
       try {
         await jetstreamConn.query.query<SObjectOrganization>(`SELECT Id, TrialExpirationDate FROM Organization`);
         connectionError = null;
-        req.log.warn('[ORG CHECK][VALID ORG][API ACCESS]');
+        res.log.debug('[ORG CHECK][VALID ORG][API ACCESS]');
       } catch (ex) {
         if (ex instanceof ApiRequestError && ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED.test(getErrorMessage(ex))) {
           connectionError = ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED_MSG;
-          req.log.warn(getExceptionLog(ex), '[ORG CHECK][INVALID ORG] %s', getErrorMessage(ex));
+          res.log.debug(getExceptionLog(ex), '[ORG CHECK][INVALID ORG] %s', getErrorMessage(ex));
         }
       }
     }
@@ -128,7 +128,7 @@ const checkOrgHealth = createRoute(routeDefinition.checkOrgHealth.validators, as
         await salesforceOrgsDb.updateOrg_UNSAFE(org, { connectionError });
       }
     } catch (ex) {
-      req.log.warn({ orgId: org?.id, ...getExceptionLog(ex) }, '[ERROR UPDATING INVALID ORG] %s', getErrorMessage(ex));
+      res.log.warn({ orgId: org?.id, ...getExceptionLog(ex) }, '[ERROR UPDATING INVALID ORG] %s', getErrorMessage(ex));
     }
 
     if (connectionError) {

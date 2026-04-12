@@ -45,10 +45,10 @@ function parseXml(value: string) {
  */
 export function getApiRequestFactoryFn(fetch: FetchFn) {
   return (
+    logger: Logger,
     onRefresh?: (accessToken: string) => void,
     onConnectionError?: (accessToken: string) => void,
     enableLogging?: boolean,
-    logger: Logger = console,
   ) => {
     const apiRequest = async <Response = unknown>(options: ApiRequestOptions, attemptRefresh = true): Promise<Response> => {
       // eslint-disable-next-line prefer-const
@@ -61,7 +61,9 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
         body = JSON.stringify(body);
       }
 
-      logger.debug(`[API REQUEST]: ${method} ${url}`);
+      if (enableLogging) {
+        logger.trace(`[API REQUEST]: ${method} ${url}`);
+      }
 
       return fetch(url, {
         method,
@@ -78,13 +80,13 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
         },
       })
         .then(async (response) => {
-          logger.debug(`[API RESPONSE]: ${response.status}`);
           if (enableLogging) {
+            logger.trace(`[API RESPONSE]: ${response.status}`);
             if (response.status !== 204) {
               response
                 .clone()
                 .text()
-                .then((responseBody) => logger.debug({ responseBody }))
+                .then((responseBody) => logger.trace({ responseBody }))
                 // eslint-disable-next-line @typescript-eslint/no-empty-function
                 .catch(() => {});
             }

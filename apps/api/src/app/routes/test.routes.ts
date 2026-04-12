@@ -56,7 +56,8 @@ routes.post('/e2e-integration-org', async (_: express.Request, res: express.Resp
     accessToken: access_token,
     apiVersion: ENV.SFDC_API_VERSION,
     instanceUrl: instance_url,
-    logging: false,
+    enableLogging: false,
+    logger,
   });
 
   const salesforceOrg = await initConnectionFromOAuthResponse({

@@ -95,7 +95,7 @@ const salesforceOauthCallback = createRoute(
         returnParams.message = queryParams.error_description
           ? (queryParams.error_description as string)
           : 'There was an error authenticating with Salesforce.';
-        req.log.info({ ...queryParams, requestId: res.locals.requestId, queryParams }, '[OAUTH][ERROR] %s', queryParams.error);
+        res.log.warn({ ...queryParams, requestId: res.locals.requestId, queryParams }, '[OAUTH][ERROR] %s', queryParams.error);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
       } else if (!orgAuth) {
@@ -103,7 +103,7 @@ const salesforceOauthCallback = createRoute(
         returnParams.message = queryParams.error_description
           ? (queryParams.error_description as string)
           : 'There was an error authenticating with Salesforce.';
-        req.log.info({ ...queryParams, requestId: res.locals.requestId, queryParams }, '[OAUTH][ERROR] Missing orgAuth from session');
+        res.log.warn({ ...queryParams, requestId: res.locals.requestId, queryParams }, '[OAUTH][ERROR] Missing orgAuth from session');
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
       }
@@ -135,7 +135,7 @@ const salesforceOauthCallback = createRoute(
         instanceUrl: (userInfo.urls?.custom_domain as string) || loginUrl,
         refreshToken: refresh_token,
         logger: res.log || req.log || logger,
-        logging: ENV.LOG_LEVEL === 'trace',
+        enableLogging: ENV.LOG_LEVEL === 'trace',
       });
 
       const salesforceOrg = await initConnectionFromOAuthResponse({
@@ -167,7 +167,7 @@ const salesforceOauthCallback = createRoute(
         };
       }
 
-      req.log.info({ ...errorLogObj }, '[OAUTH][ERROR]');
+      res.log.warn({ ...errorLogObj }, '[OAUTH][ERROR]');
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);

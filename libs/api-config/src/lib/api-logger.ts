@@ -4,6 +4,7 @@ import pino from 'pino';
 import pinoHttp from 'pino-http';
 import { v4 as uuid } from 'uuid';
 import { ENV } from './env-config';
+import { getHttpLogLevel } from './logging-policy';
 
 export const logger = pino({
   level: ENV.LOG_LEVEL,
@@ -20,6 +21,7 @@ const ignoreLogsFileExtensions = /.*\.(js|map|css|png|jpg|jpeg|gif|svg|ico|woff|
 export const httpLogger = pinoHttp<express.Request, express.Response>({
   logger,
   genReqId: (_, res) => res.locals.requestId || uuid(),
+  customLogLevel: getHttpLogLevel,
   autoLogging: {
     // ignore static files based on file extension
     ignore: (req) =>

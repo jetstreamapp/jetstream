@@ -6,6 +6,7 @@ import { readFileSync } from 'fs-extra';
 import isNumber from 'lodash/isNumber';
 import { join } from 'path';
 import { z } from 'zod';
+import { resolveLogLevel } from './logging-policy';
 
 dotenv.config();
 
@@ -23,6 +24,10 @@ function ensureBoolean(value: Maybe<string | boolean>): boolean {
     return value.toLowerCase().startsWith('t');
   }
   return false;
+}
+
+function writeEnvConfigWarning(message: string) {
+  process.stderr.write(`${message}\n`);
 }
 
 /**
@@ -76,7 +81,13 @@ const envSchema = z.object({
   LOG_LEVEL: z
     .enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent'])
     .optional()
-    .transform((value) => value ?? 'debug'),
+    .transform((value) =>
+      resolveLogLevel({
+        logLevel: value,
+        environment: process.env.ENVIRONMENT,
+        nodeEnv: process.env.NODE_ENV,
+      }),
+    ),
   PRETTY_LOGS: booleanSchema,
   CI: booleanSchema,
   // LOCAL OVERRIDE
@@ -154,7 +165,7 @@ const envSchema = z.object({
     .optional()
     .transform((val) => {
       if (!val) {
-        console.warn('AUTH_SFDC_CLIENT_ID is not set - Logging in with Salesforce will not be available');
+        writeEnvConfigWarning('AUTH_SFDC_CLIENT_ID is not set - Logging in with Salesforce will not be available');
       }
       return val || '';
     }),
@@ -163,7 +174,7 @@ const envSchema = z.object({
     .optional()
     .transform((val) => {
       if (!val) {
-        console.warn('AUTH_SFDC_CLIENT_SECRET is not set - Logging in with Salesforce will not be available');
+        writeEnvConfigWarning('AUTH_SFDC_CLIENT_SECRET is not set - Logging in with Salesforce will not be available');
       }
       return val || '';
     }),
@@ -172,7 +183,7 @@ const envSchema = z.object({
     .optional()
     .transform((val) => {
       if (!val) {
-        console.warn('AUTH_GOOGLE_CLIENT_ID is not set - Logging in with Google will not be available');
+        writeEnvConfigWarning('AUTH_GOOGLE_CLIENT_ID is not set - Logging in with Google will not be available');
       }
       return val || '';
     }),
@@ -181,7 +192,7 @@ const envSchema = z.object({
     .optional()
     .transform((val) => {
       if (!val) {
-        console.warn('AUTH_GOOGLE_CLIENT_SECRET is not set - Logging in with Google will not be available');
+        writeEnvConfigWarning('AUTH_GOOGLE_CLIENT_SECRET is not set - Logging in with Google will not be available');
       }
       return val || '';
     }),
@@ -284,7 +295,7 @@ const parseResults = envSchema.safeParse({
 });
 
 if (!parseResults.success) {
-  console.error(`❌ ${chalk.red('Error parsing environment variables:')}
+  process.stderr.write(`❌ ${chalk.red('Error parsing environment variables:')}
 ${chalk.yellow(JSON.stringify(z.treeifyError(parseResults.error), null, 2))}
 `);
   process.exit(1);
