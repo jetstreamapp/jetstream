@@ -17,6 +17,7 @@ import { WelcomeEmail } from './email-templates/auth/WelcomeEmail';
 import { WelcomeToProEmail } from './email-templates/auth/WelcomeToProEmail';
 import { OrgExpirationWarningEmail } from './email-templates/org/OrgExpirationWarningEmail';
 import { StatsSummaryEmail, StatsSummaryEmailProps } from './email-templates/admin/StatsSummaryEmail';
+import { CloudflareSecurityAlertEmail, CloudflareSecurityAlertEmailProps } from './email-templates/admin/CloudflareSecurityAlertEmail';
 
 function renderComponent(component: JSX.Element) {
   return Promise.all([render(component, { plainText: false }), render(component, { plainText: true })]);
@@ -245,6 +246,34 @@ export async function sendStatsSummaryEmail({
     await sendEmail({ to, subject, text, html });
   } catch (error) {
     logger.error({ ...getErrorMessageAndStackObj(error) }, 'Error sending stats summary email');
+  }
+}
+
+/**
+ * Substring that appears in every Cloudflare WAF spike alert email subject.
+ * Exported so the cron-task spike detector can query `email_activity` for cooldown without
+ * duplicating the literal — keeping the email subject and the cooldown query in lockstep.
+ */
+export const CLOUDFLARE_SPIKE_SUBJECT_FRAGMENT = 'WAF spike detected';
+
+export async function sendCloudflareSecurityAlertEmail({
+  to,
+  ...props
+}: {
+  to: string;
+} & CloudflareSecurityAlertEmailProps) {
+  try {
+    const component = <CloudflareSecurityAlertEmail {...props} />;
+    const [html, text] = await renderComponent(component);
+
+    const subject =
+      props.mode === 'spike'
+        ? `⚠ Jetstream Security Alert — ${CLOUDFLARE_SPIKE_SUBJECT_FRAGMENT} (${props.generatedAt})`
+        : `Jetstream WAF Daily Digest — ${props.generatedAt}`;
+
+    await sendEmail({ to, subject, text, html });
+  } catch (error) {
+    logger.error({ ...getErrorMessageAndStackObj(error) }, 'Error sending Cloudflare security alert email');
   }
 }
 

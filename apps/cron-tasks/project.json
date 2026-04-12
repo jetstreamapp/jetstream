@@ -21,7 +21,9 @@
           "apps/cron-tasks/src/geo-ip-api-updater.ts",
           "apps/cron-tasks/src/geo-ip-db-updater.ts",
           "apps/cron-tasks/src/salesforce-org-expiration.ts",
-          "apps/cron-tasks/src/stats-summary.ts"
+          "apps/cron-tasks/src/stats-summary.ts",
+          "apps/cron-tasks/src/cloudflare-spike-detector.ts",
+          "apps/cron-tasks/src/cloudflare-daily-digest.ts"
         ],
         "tsConfig": "apps/cron-tasks/tsconfig.app.json",
         "assets": [],
