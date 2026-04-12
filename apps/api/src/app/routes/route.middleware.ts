@@ -20,10 +20,10 @@ import { parseCookie } from 'cookie';
 import { addDays, getUnixTime, isBefore } from 'date-fns';
 import express, { Request } from 'express';
 import multer from 'multer';
+import { randomBytes } from 'node:crypto';
 import os from 'node:os';
 import pino from 'pino';
 import { v4 as uuid } from 'uuid';
-import { environment } from '../../environments/environment';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { checkUserEntitlement } from '../db/user.db';
 import * as sfdcEncService from '../services/salesforce-org-encryption.service';
@@ -58,6 +58,8 @@ export function basicAuthMiddleware(req: express.Request, res: express.Response,
 
 export function addContextMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
   res.locals.requestId = res.locals.requestId || req.get('rndr-id') || uuid();
+  // Per-request CSP nonce consumed by Helmet's script-src directive
+  res.locals.cspNonce = randomBytes(16).toString('base64');
   const clientReqId = req.header(HTTP.HEADERS.X_CLIENT_REQUEST_ID);
   if (clientReqId) {
     res.setHeader(HTTP.HEADERS.X_CLIENT_REQUEST_ID, clientReqId);
@@ -98,37 +100,6 @@ export function deprecatedRouteMiddleware(req: express.Request, res: express.Res
 export function notFoundMiddleware(_: express.Request, __: express.Response, next: express.NextFunction) {
   const error = new NotFoundError('Route not found');
   next(error);
-}
-
-/**
- * Check user agent and block if it does not appear to be a browser
- * @param req
- * @param res
- * @param next
- * @returns
- */
-export function blockBotByUserAgentMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
-  const userAgent = req.get('User-Agent');
-  if (userAgent?.toLocaleLowerCase().includes('python')) {
-    (res.log || logger).debug(
-      {
-        blocked: true,
-        method: req.method,
-        url: req.originalUrl,
-        requestId: res.locals.requestId,
-        agent: req.get('User-Agent'),
-        referrer: req.get('Referrer'),
-        ip: req.headers[HTTP.HEADERS.CF_Connecting_IP] || req.headers[HTTP.HEADERS.X_FORWARDED_FOR] || req.connection.remoteAddress,
-        country: req.headers[HTTP.HEADERS.CF_IPCountry],
-        userAgent,
-      },
-      '[BLOCKED REQUEST][USER AGENT] %s %s',
-      req.method,
-      req.originalUrl,
-    );
-    return res.status(403).send('Forbidden');
-  }
-  next();
 }
 
 export function destroySessionIfPendingVerificationIsExpired(req: express.Request, _: express.Response, next: express.NextFunction) {
@@ -603,16 +574,6 @@ export function setPermissionPolicy(_req: express.Request, res: express.Response
   next();
 }
 
-/**
- * Only set this for static assets that should not be loaded by other origins
- */
-export function setCrossOriginResourcePolicy(_req: express.Request, res: express.Response, next: express.NextFunction) {
-  // "Production" is true in all environments except local dev
-  if (environment.production) {
-    res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
-  }
-  next();
-}
 
 export function setCacheControlForApiRoutes(_req: express.Request, res: express.Response, next: express.NextFunction) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');

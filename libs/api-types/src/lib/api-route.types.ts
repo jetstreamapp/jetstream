@@ -5,6 +5,10 @@ import type { ApiConnection } from '@jetstream/salesforce-api';
 import type { Request as ExpressRequest, Response as ExpressResponse } from 'express';
 import type pino from 'pino';
 
+// Only declare route-specific locals here. Globally populated fields (requestId, cspNonce)
+// live on the Express.Locals augmentation in custom-express-typings/index.d.ts and are
+// merged in via intersection — do not duplicate them here.
+
 export type Request<
   Params extends Record<string, string> | unknown = Record<string, string>,
   ReqBody = unknown,
@@ -15,7 +19,6 @@ export type Request<
   ReqBody,
   Query,
   {
-    requestId: string;
     jetstreamConn: ApiConnection;
     targetJetstreamConn?: ApiConnection;
   }
@@ -36,7 +39,6 @@ export interface DeferredResponseState {
 export type Response<ResBody = unknown> = ExpressResponse<
   ResBody,
   {
-    requestId: string;
     jetstreamConn: ApiConnection;
     org: SalesforceOrg;
     targetJetstreamConn?: ApiConnection;

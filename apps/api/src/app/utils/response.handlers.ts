@@ -142,11 +142,6 @@ export function streamParsedCsvAsJson(res: express.Response, csvParseStream: Dup
   });
 }
 
-export function blockBotHandler(_: express.Request, res: express.Response) {
-  res.log.debug('[BLOCKED REQUEST]');
-  res.status(444).end();
-}
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
 export async function uncaughtErrorHandler(err: any, req: express.Request, res: express.Response, next: express.NextFunction) {
   try {
