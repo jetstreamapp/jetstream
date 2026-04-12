@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { convertDateToLocale, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
+import { convertDateToLocale, formatNumber, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
 import {
   decodeHtmlEntity,
   flattenRecord,
@@ -24,13 +24,14 @@ import {
   SalesforceOrgUi,
   ViewModalData,
 } from '@jetstream/types';
-import { FileDownloadModal, Grid, ProgressRing, Spinner, Tooltip } from '@jetstream/ui';
+import { FileDownloadModal, Grid, Icon, ProgressRing, Spinner, Tooltip } from '@jetstream/ui';
 import { fromJetstreamEvents, getFieldHeaderFromMapping, LoadRecordsResultsModal, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { loadBatchApiData, LoadTypeDisplayNames, prepareData } from '../../utils/load-records-process';
 import LoadRecordsBatchApiResultsTable from './LoadRecordsBatchApiResultsTable';
+import { extractRetryRecords, registerRetryRecord } from './retry-record-map';
 
 type Status = 'Preparing Data' | 'Processing Data' | 'Aborting' | 'Finished' | 'Error';
 
@@ -64,7 +65,15 @@ export interface LoadRecordsBatchApiResultsProps {
   assignmentRuleId?: Maybe<string>;
   serialMode: boolean;
   dateFormat: string;
-  onFinish: (results: { success: number; failure: number }) => void;
+  /** Already-prepared records for retry — skips prepareData when provided */
+  preparedInputData?: any[];
+  onFinish: (results: { success: number; failure: number; failedRecords: any[] }) => void;
+  /** Called when user selects specific records to retry from the results modal */
+  onRetrySelected?: (selectedRows: any[]) => void;
+  /** Called to retry all failed records from this run */
+  onRetryAll?: () => void;
+  /** Number of failed records available for retry — used for button label */
+  failedRecordCount?: number;
 }
 
 export const LoadRecordsBatchApiResults = ({
@@ -81,13 +90,21 @@ export const LoadRecordsBatchApiResults = ({
   assignmentRuleId,
   serialMode,
   dateFormat,
+  preparedInputData,
   onFinish,
+  onRetrySelected,
+  onRetryAll,
+  failedRecordCount,
 }: LoadRecordsBatchApiResultsProps) => {
   const isMounted = useRef(true);
   const isAborted = useRef(false);
+  // Ref to avoid stale closures in stable useCallback/useEffect — always call onFinishRef.current
+  const onFinishRef = useRef(onFinish);
+  onFinishRef.current = onFinish;
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
   const processingStatusRef = useRef<{ success: number; failure: number }>({ success: 0, failure: 0 });
+  const processedRecordsRef = useRef<RecordResultWithRecord[]>([]);
   const [preparedData, setPreparedData] = useState<PrepareDataResponse>();
   const [prepareDataProgress, setPrepareDataProgress] = useState(0);
   const [status, setStatus] = useState<Status>(STATUSES.PREPARING);
@@ -120,6 +137,23 @@ export const LoadRecordsBatchApiResults = ({
       setStatus(STATUSES.PREPARING);
       setProcessingStartTime(convertDateToLocale(new Date(), { timeStyle: 'medium' }));
       setFatalError(null);
+
+      // For retry: data is already prepared, skip transformation
+      if (preparedInputData) {
+        const dateString = convertDateToLocale(new Date(), { timeStyle: 'medium' });
+        const preparedDataResponse: PrepareDataResponse = {
+          data: preparedInputData,
+          errors: [],
+          queryErrors: [],
+        };
+        setStatus(STATUSES.PROCESSING);
+        setPreparedData(preparedDataResponse);
+        setStartTime(dateString);
+        setProcessingEndTime(dateString);
+        setPrepareDataProgress(100);
+        return preparedDataResponse;
+      }
+
       const prepareDataPayload: PrepareDataPayload = {
         org: selectedOrg,
         data: inputFileData,
@@ -146,11 +180,11 @@ export const LoadRecordsBatchApiResults = ({
         }
 
         setStatus(STATUSES.ERROR);
-        setPreparedData(preparedData);
+        setPreparedData(preparedDataResponse);
         setProcessingEndTime(dateString);
         setStartTime(dateString);
         setEndTime(dateString);
-        onFinish({ success: 0, failure: inputFileData.length });
+        onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
         notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
           body: `❌ Pre-processing records failed.`,
           tag: 'load-records',
@@ -167,7 +201,7 @@ export const LoadRecordsBatchApiResults = ({
       logger.error('ERROR', ex);
       setStatus(STATUSES.ERROR);
       setFatalError(getErrorMessage(ex));
-      onFinish({ success: 0, failure: inputFileData.length });
+      onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
       notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
         body: `❌ ${getErrorMessage(ex)}`,
         tag: 'load-records',
@@ -205,21 +239,27 @@ export const LoadRecordsBatchApiResults = ({
       await loadBatchApiData(
         loadDataPayload,
         (records) => {
+          processedRecordsRef.current = processedRecordsRef.current.concat(records || []);
           setProcessedRecords((previousProcessedRecords) => previousProcessedRecords.concat(records || []));
         },
         () => isAborted.current,
       );
 
       const dateString = convertDateToLocale(new Date(), { timeStyle: 'medium' });
+      const failedRecords = processedRecordsRef.current.filter((record) => !record.success).map((record) => record.record);
+      // Compute counts directly from the ref — processingStatusRef may be stale since it's updated in a useEffect
+      const successCount = processedRecordsRef.current.filter((record) => record.success).length;
+      const prepareFailureCount = preparedDataResponse.errors.length;
+      const failureCount = processedRecordsRef.current.length - successCount + prepareFailureCount;
 
       setStatus(STATUSES.FINISHED);
-      onFinish({ success: processingStatusRef.current.success, failure: processingStatusRef.current.failure });
+      onFinishRef.current({ success: successCount, failure: failureCount, failedRecords });
       setEndTime(dateString);
     } catch (ex) {
       const dateString = convertDateToLocale(new Date(), { timeStyle: 'medium' });
       logger.error('ERROR', ex);
       setStatus(STATUSES.ERROR);
-      onFinish({ success: 0, failure: inputFileData.length });
+      onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
       setEndTime(dateString);
       notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
         body: `❌ ${getErrorMessage(ex)}`,
@@ -272,7 +312,7 @@ export const LoadRecordsBatchApiResults = ({
 
     processedRecords.forEach((record) => {
       if (type === 'results' ? true : !record.success) {
-        combinedResults.push({
+        const resultRow = {
           _id: record.success ? record.id : (record as any)['Id'] || '',
           _success: record.success,
           _errors:
@@ -280,7 +320,9 @@ export const LoadRecordsBatchApiResults = ({
               ? record.errors.map((error) => `${error.statusCode}: ${decodeHtmlEntity(error.message)}`).join('\n')
               : '',
           ...flattenRecord(record.record, fields),
-        });
+        };
+        registerRetryRecord(resultRow, record.record);
+        combinedResults.push(resultRow);
       }
     });
 
@@ -301,7 +343,7 @@ export const LoadRecordsBatchApiResults = ({
 
     processedRecords.forEach((record) => {
       if (type === 'results' ? true : !record.success) {
-        combinedResults.push({
+        const resultRow = {
           _id: record.success ? record.id : (record as any)['Id'] || '',
           _success: record.success,
           _errors:
@@ -309,7 +351,11 @@ export const LoadRecordsBatchApiResults = ({
               ? record.errors.map((error) => `${error.statusCode}: ${decodeHtmlEntity(error.message)}`).join('\n')
               : '',
           ...flattenRecord(record.record, fields),
-        });
+        };
+        // Register the unflattened prepared record so "Retry Selected" from the view modal
+        // can recover the correct payload (flattenRecord JSON-stringifies nested objects).
+        registerRetryRecord(resultRow, record.record);
+        combinedResults.push(resultRow);
       }
     });
 
@@ -392,6 +438,25 @@ export const LoadRecordsBatchApiResults = ({
           type={resultsModalData.type}
           header={resultsModalData.header}
           rows={resultsModalData.data}
+          selectable={resultsModalData.type === 'failures' && !!onRetrySelected}
+          onRetrySelected={
+            onRetrySelected
+              ? (selectedRows) => {
+                  // Recover the original prepared records — rows without a registered original are skipped
+                  const preparedRecords = extractRetryRecords(selectedRows);
+                  if (preparedRecords.length !== selectedRows.length) {
+                    logger.warn('Some selected rows were missing their original prepared record and will be skipped for retry', {
+                      selected: selectedRows.length,
+                      recovered: preparedRecords.length,
+                    });
+                  }
+                  if (preparedRecords.length > 0) {
+                    onRetrySelected(preparedRecords);
+                    handleViewModalClose();
+                  }
+                }
+              : undefined
+          }
           onDownload={handleDownloadRecordsFromModal}
           onClose={handleViewModalClose}
         />
@@ -441,6 +506,12 @@ export const LoadRecordsBatchApiResults = ({
                 Abort Job
               </button>
             </Tooltip>
+          )}
+          {status === STATUSES.FINISHED && onRetryAll && (failedRecordCount ?? 0) > 0 && (
+            <button className="slds-button slds-button_neutral slds-m-bottom_xx-small" onClick={onRetryAll}>
+              <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
+              Retry Failed Records ({formatNumber(failedRecordCount)})
+            </button>
           )}
         </div>
       </Grid>
