@@ -6,6 +6,9 @@ name: Release Debug
 # Delete this file once the release flow is verified working.
 
 on:
+  push:
+    branches:
+      - "chore/debug-release-*"
   workflow_dispatch:
 
 permissions:
