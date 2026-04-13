@@ -1,0 +1,144 @@
+name: Release Debug
+
+# TEMPORARY — diagnostic workflow for the release App-token + ruleset bypass.
+# Safe to run: does NOT modify main, does NOT cut a release, does NOT bump versions.
+# It pushes one empty commit to a throwaway branch and immediately deletes it.
+# Delete this file once the release flow is verified working.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Resolve App identity
+        id: app-user
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+        run: |
+          USER_ID=$(gh api "/users/${APP_SLUG}[bot]" --jq .id)
+          echo "user-id=${USER_ID}" >> "$GITHUB_OUTPUT"
+          echo "App slug:  ${APP_SLUG}"
+          echo "User ID:   ${USER_ID}"
+          echo "Bot email: ${USER_ID}+${APP_SLUG}[bot]@users.noreply.github.com"
+
+      - name: Installation repositories (what can this token see?)
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          echo "=== GET /installation/repositories ==="
+          echo "This lists every repo the current installation token has access to."
+          echo "jetstreamapp/jetstream MUST appear in this list."
+          gh api /installation/repositories \
+            | jq '{total_count, repos: [.repositories[].full_name]}'
+
+      - name: Repository readability
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "=== GET /repos/${REPO} ==="
+          gh api "/repos/${REPO}" | jq '{full_name, private, default_branch, permissions}'
+
+      - name: Rules that apply to main (as this App)
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "=== GET /repos/${REPO}/rules/branches/main ==="
+          echo "KEY DIAGNOSTIC: this endpoint returns the rules that would be"
+          echo "ENFORCED against the authenticated caller when pushing to main."
+          echo "Rules the caller already bypasses are omitted from the list."
+          echo ""
+          echo "If the App's bypass is working, you should see an empty array []"
+          echo "or rules that don't block pushes (e.g. metadata rules)."
+          echo "If you see 'update', 'required_linear_history', 'non_fast_forward',"
+          echo "or similar, the bypass is NOT taking effect for this identity."
+          echo ""
+          gh api "/repos/${REPO}/rules/branches/main" | jq '.'
+
+      - name: Repository rulesets (as this App)
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "=== GET /repos/${REPO}/rulesets ==="
+          echo "Lists rulesets visible to this token. If the main-branch ruleset"
+          echo "does not appear here, this token cannot see it — which often"
+          echo "correlates with bypass evaluation problems."
+          gh api "/repos/${REPO}/rulesets" | jq '.'
+
+      - name: Configure git with App token
+        env:
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+          USER_ID: ${{ steps.app-user.outputs.user-id }}
+          APP_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          git config user.name "${APP_SLUG}[bot]"
+          git config user.email "${USER_ID}+${APP_SLUG}[bot]@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${APP_TOKEN}@github.com/${REPO}.git"
+          echo "=== git config ==="
+          echo "user.name:  $(git config --get user.name)"
+          echo "user.email: $(git config --get user.email)"
+          echo "=== git remote (token redacted) ==="
+          git remote -v | sed -E 's|x-access-token:[^@]+@|x-access-token:***@|g'
+
+      - name: Smoke test — git ls-remote
+        run: |
+          echo "=== git ls-remote origin main ==="
+          echo "Minimal auth test. If this fails, the App token itself is bad."
+          git ls-remote origin main
+
+      - name: Push a throwaway branch (real write, immediately cleaned up)
+        env:
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          BRANCH="debug/app-token-test-${RUN_ID}"
+          echo "=== Creating empty commit ==="
+          git commit --allow-empty -m "debug: app token push test (run ${RUN_ID})"
+          git log -1 --format='%h %an <%ae> %s'
+
+          echo ""
+          echo "=== Pushing to refs/heads/${BRANCH} ==="
+          echo "This confirms the App token can push ANY ref. If this step fails,"
+          echo "the problem is App token auth, not the main-branch ruleset."
+          if git push origin "HEAD:refs/heads/${BRANCH}"; then
+            echo ""
+            echo "Push to throwaway branch succeeded."
+            echo "=== Deleting ${BRANCH} ==="
+            git push origin --delete "${BRANCH}" \
+              || echo "WARNING: delete failed; clean up manually: ${BRANCH}"
+          else
+            EXIT=$?
+            echo ""
+            echo "Push to throwaway branch FAILED with exit $EXIT."
+            exit $EXIT
+          fi
+
+      - name: Dry-run push to main (reports, never writes)
+        run: |
+          echo "=== git push --dry-run origin HEAD:main ==="
+          echo "NOTE: --dry-run does NOT send updates to the server, so GitHub's"
+          echo "ruleset enforcement may not run. Treat a successful dry-run as"
+          echo "evidence of reachability, not of bypass correctness. The"
+          echo "rules/branches/main endpoint above is the authoritative check."
+          git push --dry-run origin HEAD:main || echo "(dry-run returned non-zero — captured, not fatal)"
