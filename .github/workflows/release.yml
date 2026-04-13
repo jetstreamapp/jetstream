@@ -161,7 +161,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           BUMP: ${{ inputs.bump }}
-        run: npx release-it "$BUMP" --ci --config .release-it.json
+        run: npx release-it "$BUMP" --ci -VV --config .release-it.json
 
       - name: Debug dirty working dir
         if: failure() && steps.release_web.outcome == 'failure'
@@ -200,7 +200,7 @@ jobs:
           GOOGLE_WEB_EXT_PUBLISH_CLIENT_ID: ${{ secrets.GOOGLE_WEB_EXT_PUBLISH_CLIENT_ID }}
           GOOGLE_WEB_EXT_PUBLISH_CLIENT_SECRET: ${{ secrets.GOOGLE_WEB_EXT_PUBLISH_CLIENT_SECRET }}
           GOOGLE_WEB_EXT_PUBLISH_REFRESH_TOKEN: ${{ secrets.GOOGLE_WEB_EXT_PUBLISH_REFRESH_TOKEN }}
-        run: npx release-it "$BUMP" --ci --config .release-it-web-ext.json
+        run: npx release-it "$BUMP" --ci -VV --config .release-it-web-ext.json
 
       - name: Upload web extension zips
         if: ${{ inputs.release_web_extension }}
@@ -218,7 +218,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           BUMP: ${{ inputs.bump }}
-        run: npx release-it "$BUMP" --ci --config .release-it-desktop.json
+        run: npx release-it "$BUMP" --ci -VV --config .release-it-desktop.json
 
       # CAPTURE VERSIONS FOR SUMMARY
       - name: Capture web version
