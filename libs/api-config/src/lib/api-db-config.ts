@@ -5,7 +5,7 @@ import { getExceptionLog, logger } from './api-logger';
 import { ENV } from './env-config';
 
 process.on('uncaughtException', function (err) {
-  console.log(err);
+  logger.error(getExceptionLog(err, true), '[PROCESS][UNCAUGHT_EXCEPTION]');
 });
 
 const log: Array<Prisma.LogLevel | Prisma.LogDefinition> = ['info'];

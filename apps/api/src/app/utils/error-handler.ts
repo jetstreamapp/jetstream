@@ -43,7 +43,7 @@ export class UserFacingError extends Error {
       this.stack = message.stack;
     } else if (message instanceof Error) {
       if (message.message.startsWith('<?xml')) {
-        console.warn('[XML ERROR]', { message: message.message });
+        logger.warn({ message: message.message }, '[XML ERROR]');
         message.message = 'An unexpected error has occurred';
       }
       super(message.message);
@@ -52,7 +52,7 @@ export class UserFacingError extends Error {
       this.stack = message.stack;
     } else {
       if (message.startsWith('<?xml')) {
-        console.warn('[XML ERROR]', { message });
+        logger.warn({ message }, '[XML ERROR]');
         message = 'An unexpected error has occurred';
       }
       super(message);

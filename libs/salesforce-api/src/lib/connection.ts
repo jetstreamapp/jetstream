@@ -19,10 +19,10 @@ export interface ApiConnectionOptions {
   refreshToken?: string;
   apiVersion: string;
   callOptions?: Record<string, string | boolean | number>;
-  logging?: boolean;
+  enableLogging?: boolean;
   sfdcClientId?: string;
   sfdcClientSecret?: string;
-  logger?: Logger;
+  logger: Logger;
 }
 
 export class ApiConnection {
@@ -52,16 +52,16 @@ export class ApiConnection {
       accessToken,
       refreshToken,
       callOptions,
-      logging,
+      enableLogging = false,
       sfdcClientId,
       sfdcClientSecret,
-      logger = console,
+      logger,
     }: ApiConnectionOptions,
     refreshCallback?: (accessToken: string, refreshToken: string) => void,
     onConnectionError?: (error: string) => void,
   ) {
     this.logger = logger;
-    this.apiRequest = apiRequestAdapter(this.handleRefresh.bind(this), this.handleConnectionError.bind(this), logging, logger);
+    this.apiRequest = apiRequestAdapter(logger, this.handleRefresh.bind(this), this.handleConnectionError.bind(this), enableLogging);
     this.refreshCallback = refreshCallback;
     this.onConnectionError = onConnectionError;
     this.sessionInfo = {

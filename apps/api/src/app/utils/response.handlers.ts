@@ -340,7 +340,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
         return res.redirect(`/?${params}`); // TODO: can we show an error message to the user on this page or redirect to alternate page?
       }
     } else if (err instanceof NotFoundError) {
-      responseLogger.warn({ ...getExceptionLog(err), statusCode: 404 }, '[RESPONSE][ERROR]');
+      responseLogger.debug({ ...getExceptionLog(err), statusCode: 404 }, '[RESPONSE][ERROR]');
       res.status(status || 404);
       if (isJson) {
         return res.json({
@@ -358,11 +358,11 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
     }
 
     const errorMessage = 'There was an error processing the request';
-    if (!status || status < 100 || status > 500) {
+    if (!status || status < 100 || status > 599) {
       status = 500;
     }
     res.status(status);
-    responseLogger.warn({ ...getExceptionLog(err, true), statusCode: 500 }, '[RESPONSE][ERROR]');
+    responseLogger.error({ ...getExceptionLog(err, true), statusCode: status }, '[RESPONSE][ERROR]');
     // Return JSON error response for all other scenarios
     return res.json({
       error: errorMessage,
@@ -395,7 +395,7 @@ function getPrismaErrorMessage(
 ) {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     const prismaError = toTypedPrismaError(error);
-    logger.error({ error: error.message, code: error.code }, '[DB][PRISMA][ERROR]');
+    logger.warn({ error: error.message, code: error.code }, '[DB][PRISMA][WARN]');
     if (prismaError.code === 'P2002') {
       return `A record with the same unique field already exists.`;
     } else if (prismaError.code === 'P2022') {

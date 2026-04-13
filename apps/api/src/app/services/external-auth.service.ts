@@ -177,7 +177,7 @@ export async function getUserAndDeviceIdForExternalAuth(
     }
     return { user, deviceId };
   } catch (ex) {
-    req.log.info({ audience, deviceId, ...getErrorMessageAndStackObj(ex) }, '[EXTERNAL-AUTH][AUTH ERROR] Error decoding token');
+    res.log.warn({ audience, deviceId, ...getErrorMessageAndStackObj(ex) }, '[EXTERNAL-AUTH][AUTH ERROR] Error decoding token');
     return { user: null, deviceId };
   }
 }
@@ -215,7 +215,10 @@ export function getExternalAuthMiddleware(audience: Audience) {
       res.locals.deviceId = deviceId;
       next();
     } catch (ex) {
-      req.log.info('[EXTERNAL AUTH ERROR] Error decoding token', ex);
+      res.log.warn(
+        { audience, deviceId: getDeviceId(req, res), ...getErrorMessageAndStackObj(ex) },
+        '[EXTERNAL AUTH ERROR] Error decoding token',
+      );
       next(new AuthenticationError('Unauthorized', { skipLogout: true }));
     }
   };

@@ -175,10 +175,10 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
 
   if (req.session.userAgent && req.session.userAgent !== userAgent) {
     if (!checkUserAgentSimilarity(req.session.userAgent, userAgent || '')) {
-      req.log.error(`[AUTH][UNAUTHORIZED] User-Agent mismatch: ${req.session.userAgent} !== ${userAgent}`);
+      res.log.warn(`[AUTH][UNAUTHORIZED] User-Agent mismatch: ${req.session.userAgent} !== ${userAgent}`);
       req.session.destroy((err) => {
         if (err) {
-          (res.log || logger).error({ ...getExceptionLog(err) }, '[AUTH][UNAUTHORIZED][ERROR] Error destroying session');
+          (res.log || req.log || logger).error({ ...getExceptionLog(err) }, '[AUTH][UNAUTHORIZED][ERROR] Error destroying session');
         }
         // TODO: Send email to user about potential suspicious activity
         next(new AuthenticationError('Unauthorized'));
@@ -191,7 +191,7 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
     return next();
   }
 
-  req.log.error('[AUTH][UNAUTHORIZED]');
+  res.log.warn('[AUTH][UNAUTHORIZED]');
   next(new AuthenticationError('Unauthorized'));
 }
 
@@ -230,7 +230,7 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
       }
     }
   } catch (ex) {
-    req.log.warn(getExceptionLog(ex), '[INIT-ORG][ERROR]');
+    res.log.warn(getExceptionLog(ex), '[INIT-ORG][ERROR]');
     if (ex instanceof NotFoundError) {
       return next(ex);
     }
@@ -260,17 +260,17 @@ export const verifyEntitlement =
     }
   };
 
-export function ensureOrgExists(req: express.Request, res: express.Response, next: express.NextFunction) {
+export function ensureOrgExists(_req: express.Request, res: express.Response, next: express.NextFunction) {
   if (!res.locals?.jetstreamConn) {
-    req.log.info('[INIT-ORG][ERROR] An org did not exist on locals');
+    res.log.warn('[INIT-ORG][ERROR] An org did not exist on locals');
     return next(new UserFacingError('An org is required for this action'));
   }
   next();
 }
 
-export function ensureTargetOrgExists(req: express.Request, res: express.Response, next: express.NextFunction) {
+export function ensureTargetOrgExists(_req: express.Request, res: express.Response, next: express.NextFunction) {
   if (!res.locals?.targetJetstreamConn) {
-    req.log.info('[INIT-ORG][ERROR] A target org did not exist on locals');
+    res.log.warn('[INIT-ORG][ERROR] A target org did not exist on locals');
     return next(new UserFacingError('A target org is required for this action'));
   }
   next();
@@ -388,7 +388,7 @@ export async function getOrgForRequest(
       callOptions,
       instanceUrl,
       refreshToken,
-      logging: ENV.LOG_LEVEL === 'trace',
+      enableLogging: ENV.LOG_LEVEL === 'trace',
       logger,
       sfdcClientId: ENV.SFDC_CONSUMER_KEY,
       sfdcClientSecret: ENV.SFDC_CONSUMER_SECRET,

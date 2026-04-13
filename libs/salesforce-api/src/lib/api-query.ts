@@ -36,14 +36,14 @@ export class ApiQuery extends SalesforceApi {
         columns: tempColumns.columnMetadata?.flatMap((column) => flattenQueryColumn(column)),
       };
     } catch (ex) {
-      this.logger.warn({ message: getErrorMessage(ex) }, 'Error fetching columns');
+      this.logger.debug({ message: getErrorMessage(ex) }, 'Error fetching columns');
     }
 
     // Attempt to parse columns from query
     try {
       parsedQuery = parseQuery(soql);
     } catch (ex) {
-      this.logger.warn({ message: getErrorMessage(ex) }, 'Error parsing query');
+      this.logger.debug({ message: getErrorMessage(ex) }, 'Error parsing query');
     }
 
     return { queryResults, columns, parsedQuery };

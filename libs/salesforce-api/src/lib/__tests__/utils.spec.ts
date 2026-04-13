@@ -1,5 +1,6 @@
 import { vi } from 'vitest';
 import { ApiConnection } from '../connection';
+import { Logger } from '../types';
 import {
   SalesforceApi,
   correctInvalidArrayXmlResponseTypes,
@@ -10,6 +11,15 @@ import {
   toSoapXML,
 } from '../utils';
 
+const NOOP_LOG = () => undefined;
+const testLogger: Logger = {
+  trace: NOOP_LOG,
+  debug: NOOP_LOG,
+  info: NOOP_LOG,
+  warn: NOOP_LOG,
+  error: NOOP_LOG,
+};
+
 describe('getRestApiUrl', () => {
   const apiConnection = new ApiConnection({
     accessToken: 'test',
@@ -19,8 +29,9 @@ describe('getRestApiUrl', () => {
     organizationId: 'test',
     userId: 'test',
     callOptions: {},
-    logging: false,
+    enableLogging: false,
     refreshToken: 'test',
+    logger: testLogger,
   });
   const sfdcApi = new SalesforceApi(apiConnection);
   it('should return correct URL for non-tooling case', () => {
@@ -66,8 +77,9 @@ describe('getRestApiUrl', () => {
     organizationId: 'test',
     userId: 'test',
     callOptions: {},
-    logging: false,
+    enableLogging: false,
     refreshToken: 'test',
+    logger: testLogger,
   });
   const sfdcApi = new SalesforceApi(apiConnection);
   it('should return correct URL for non-tooling case', () => {
@@ -135,8 +147,9 @@ describe('getRestApiUrl', () => {
     organizationId: 'test',
     userId: 'test',
     callOptions: {},
-    logging: false,
+    enableLogging: false,
     refreshToken: 'test',
+    logger: testLogger,
   });
   const sfdcApi = new SalesforceApi(apiConnection);
   it('should return correct URL for non-tooling case', () => {

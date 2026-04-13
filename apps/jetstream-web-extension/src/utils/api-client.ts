@@ -14,7 +14,7 @@ export function initApiClient({ key: accessToken, hostname }: SessionInfo): ApiC
     instanceUrl,
     // refreshToken: refresh_token,
     logger,
-    logging: false,
+    enableLogging: false,
   });
 }
 
