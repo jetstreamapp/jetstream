@@ -144,6 +144,27 @@ await $`gh api repos/${REPO}/actions/runs/${runId}/pending_deployments \
 
 console.log(chalk.green('approved'));
 
+// ── Print recovery commands early ──────────────────────────────────────────
+// Print these before the status check / watch so they remain available in
+// scrollback even if the user cancels (Ctrl+C) the watch step below.
+const runUrl = `https://github.com/${REPO}/actions/runs/${runId}`;
+console.log('');
+console.log(chalk.dim('  To check again:'));
+console.log('  ' + chalk.cyan(`gh run view ${runId} --repo ${REPO}`));
+if (releaseExtension) {
+  console.log('');
+  console.log(chalk.dim('  Download web extension zips:'));
+  console.log(
+    '  ' +
+      chalk.cyan(
+        `rm -rf dist/web-extension-build && gh run download ${runId} --name web-extension-zips --dir dist/web-extension-build --repo ${REPO}`,
+      ),
+  );
+}
+console.log('');
+console.log(`  ${chalk.dim('url')}  ${chalk.underline.blue(runUrl)}`);
+console.log('');
+
 // ── Initial status check ───────────────────────────────────────────────────
 process.stdout.write(chalk.dim('Checking run status... '));
 await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -188,31 +209,17 @@ if (firstJobId) {
   }
 }
 
-const runUrl = `https://github.com/${REPO}/actions/runs/${runId}`;
-console.log('');
-console.log(chalk.dim('  To check again:'));
-console.log('  ' + chalk.cyan(`gh run view ${runId} --repo ${REPO}`));
 if (firstJobId) {
-  console.log('  ' + chalk.cyan(`gh run view --job=${firstJobId} --repo ${REPO}`));
-}
-if (releaseExtension) {
   console.log('');
-  console.log(chalk.dim('  Download web extension zips:'));
-  console.log(
-    '  ' +
-      chalk.cyan(
-        `rm -rf dist/web-extension-build && gh run download ${runId} --name web-extension-zips --dir dist/web-extension-build --repo ${REPO}`,
-      ),
-  );
+  console.log(chalk.dim('  Job command:'));
+  console.log('  ' + chalk.cyan(`gh run view --job=${firstJobId} --repo ${REPO}`));
+  console.log('');
 }
-console.log('');
-console.log(`  ${chalk.dim('url')}  ${chalk.underline.blue(runUrl)}`);
-console.log('');
 
 // ── Watch the run ─────────────────────────────────────────────────────────
 console.log(chalk.bold('Watching workflow run...\n'));
 try {
-  await $`gh run watch ${runId} --repo ${REPO} --exit-status`;
+  await $({ stdio: 'inherit' })`gh run watch ${runId} --repo ${REPO} --exit-status`;
 } catch (error) {
   // User cancelled (ctrl+c) or the run failed
   console.log(chalk.red('\nWorkflow run did not complete successfully.'));
