@@ -204,9 +204,6 @@ export function initApiConnection(
     // Refresh event will be fired when renewed access token
     // to store it in your storage for next request
     try {
-      if (!refreshToken) {
-        return;
-      }
       await updateAccessTokens(org.uniqueId, { accessToken, refreshToken });
     } catch (ex) {
       logger.error('[ORG][REFRESH] Error saving refresh token', getErrorMessage(ex));
@@ -218,6 +215,27 @@ export function initApiConnection(
       await updateSalesforceOrg_UNSAFE(org.uniqueId, { connectionError });
     } catch (ex) {
       logger.error('[ORG][UPDATE] Error updating connection error on org', getErrorMessage(ex));
+    }
+  };
+
+  // Re-reads current tokens from the in-memory store so concurrent requests that lose the
+  // refresh token rotation race can retry with the tokens written by the request that won.
+  const getFreshTokens = async () => {
+    try {
+      const freshOrg = getSalesforceOrgById(org.uniqueId);
+      if (!freshOrg) {
+        return null;
+      }
+      const plaintext = decryptTokenPortable(freshOrg.accessToken);
+      const spaceIndex = plaintext.indexOf(' ');
+      if (spaceIndex === -1) {
+        logger.warn('[ORG][REFRESH] Fresh token payload is malformed and missing expected separator');
+        return null;
+      }
+      return { accessToken: plaintext.slice(0, spaceIndex), refreshToken: plaintext.slice(spaceIndex + 1) };
+    } catch (ex) {
+      logger.error('[ORG][REFRESH] Error fetching fresh tokens for race condition check', getErrorMessage(ex));
+      return null;
     }
   };
 
@@ -234,6 +252,7 @@ export function initApiConnection(
       logger: logger as any,
       enableLogging: false,
       sfdcClientId: ENV.DESKTOP_SFDC_CLIENT_ID,
+      getFreshTokens,
     },
     handleRefresh,
     handleConnectionError,

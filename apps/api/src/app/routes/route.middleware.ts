@@ -361,9 +361,6 @@ export async function getOrgForRequest(
     // Refresh event will be fired when renewed access token
     // to store it in your storage for next request
     try {
-      if (!refreshToken) {
-        return;
-      }
       await salesforceOrgsDb.updateAccessToken_UNSAFE({ accessToken, refreshToken, org, userId: user.id });
     } catch (ex) {
       logger.error({ requestId, ...getExceptionLog(ex) }, '[ORG][REFRESH] Error saving refresh token');
@@ -375,6 +372,30 @@ export async function getOrgForRequest(
       await salesforceOrgsDb.updateOrg_UNSAFE(org, { connectionError: error });
     } catch (ex) {
       logger.error({ requestId, ...getExceptionLog(ex) }, '[ORG][UPDATE] Error updating connection error on org');
+    }
+  };
+
+  // Re-reads current tokens from DB so concurrent workers that lose the refresh token rotation race
+  // can retry with the tokens written by the worker that won.
+  const getFreshTokens = async () => {
+    try {
+      const freshOrg = await salesforceOrgsDb.findByUniqueId_UNSAFE(user.id, uniqueId);
+      if (!freshOrg) {
+        return null;
+      }
+      const [freshAccessToken, freshRefreshToken] = await sfdcEncService.decryptAccessToken({
+        encryptedAccessToken: freshOrg.accessToken,
+        userId: user.id,
+      });
+      // Decryption failed - treat as "no fresh tokens" so the caller falls through to onConnectionError
+      // and the org gets flagged, instead of retrying with the literal sentinel as the bearer token.
+      if (freshAccessToken === sfdcEncService.DUMMY_INVALID_ENCRYPTED_TOKEN) {
+        return null;
+      }
+      return { accessToken: freshAccessToken, refreshToken: freshRefreshToken };
+    } catch (ex) {
+      logger.error({ requestId, ...getExceptionLog(ex) }, '[ORG][REFRESH] Error fetching fresh tokens for race condition check');
+      return null;
     }
   };
 
@@ -392,6 +413,7 @@ export async function getOrgForRequest(
       logger,
       sfdcClientId: ENV.SFDC_CONSUMER_KEY,
       sfdcClientSecret: ENV.SFDC_CONSUMER_SECRET,
+      getFreshTokens,
     },
     handleRefresh,
     handleConnectionError,
@@ -573,7 +595,6 @@ export function setPermissionPolicy(_req: express.Request, res: express.Response
   );
   next();
 }
-
 
 export function setCacheControlForApiRoutes(_req: express.Request, res: express.Response, next: express.NextFunction) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
