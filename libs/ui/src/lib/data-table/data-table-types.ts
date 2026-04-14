@@ -21,6 +21,7 @@ export type ColumnType =
   | 'boolean'
   | 'address'
   | 'salesforceId'
+  | 'salesforceName'
   | 'textOrSalesforceId';
 export type FilterType = 'TEXT' | 'NUMBER' | 'DATE' | 'TIME' | 'SET' | 'BOOLEAN_SET';
 export const FILTER_SET_TYPES = new Set<FilterType>(['SET', 'BOOLEAN_SET']);
