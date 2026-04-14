@@ -189,6 +189,20 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
       ],
       scriptSrcAttr: ["'none'"],
       styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
+      // Several forms POST to our API and are then 302'd to a third-party URL:
+      //   - /api/auth/signin/google       -> accounts.google.com
+      //   - /api/auth/signin/salesforce   -> login.salesforce.com (production only)
+      //   - /api/billing/portal           -> billing.stripe.com
+      // Chrome enforces form-action through redirects, so the final redirect targets must
+      // also be allow-listed here. ENV.JETSTREAM_SERVER_URL is included alongside 'self'
+      // because signinUrl is built from it at runtime and may differ from the page origin.
+      formAction: [
+        "'self'",
+        ENV.JETSTREAM_SERVER_URL,
+        'https://accounts.google.com',
+        'https://login.salesforce.com',
+        'https://billing.stripe.com',
+      ],
       upgradeInsecureRequests: ENV.ENVIRONMENT === 'development' ? null : [],
     }) satisfies NonNullable<Parameters<typeof helmet.contentSecurityPolicy>[0]>['directives'];
 
