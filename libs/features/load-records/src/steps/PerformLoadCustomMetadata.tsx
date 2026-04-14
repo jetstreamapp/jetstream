@@ -102,7 +102,7 @@ export const PerformLoadCustomMetadata = ({
     if (
       loadNumber === 0 ||
       (await ConfirmationModalPromise({
-        content: 'This file has already been loaded, are you sure you want to load it again?',
+        content: 'This file has already been loaded, are you sure you want to load the full file again?',
       }))
     ) {
       try {

@@ -18,7 +18,8 @@
       "Bash(npx nx run landing:build)",
       "Bash(npx nx:*)",
       "Bash(yarn build:ci)",
-      "Bash(gh api:*)"
+      "Bash(gh api:*)",
+      "Bash(yarn tsc:*)"
     ],
     "deny": [],
     "ask": []

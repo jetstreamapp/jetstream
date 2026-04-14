@@ -58,18 +58,18 @@ export async function prepareData(payloadData: PrepareDataPayload, progressCallb
 
 // Salesforce errors that indicate the job will never accept more batches
 // Reference: https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/asynch_api_reference_errors.htm
-const FATAL_BULK_ERROR_PATTERNS = [
+export const FATAL_BULK_ERROR_PATTERNS: ReadonlyArray<RegExp> = Object.freeze([
   /ApiBatchItems Limit exceeded/i,
   /InvalidBatch/i,
   /InvalidJob/i,
   /ExceededQuota/i,
   /Job is in invalid state/i,
   /Job already (aborted|closed|completed)/i,
-];
+]);
 
-const MAX_CONSECUTIVE_FAILURES = 5;
+export const MAX_CONSECUTIVE_FAILURES = 5;
 
-function isFatalBulkApiError(error: unknown): boolean {
+export function isFatalBulkApiError(error: unknown): boolean {
   const message = getErrorMessage(error);
   return FATAL_BULK_ERROR_PATTERNS.some((pattern) => pattern.test(message));
 }

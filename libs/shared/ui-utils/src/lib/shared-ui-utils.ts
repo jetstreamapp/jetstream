@@ -1281,6 +1281,30 @@ export async function parseWorkbook(
   };
 }
 
+/**
+ * Filters out entries that are either:
+ *  - not plain objects (null, undefined, primitives), or
+ *  - objects where every value is null, undefined, empty string, or whitespace-only.
+ * Returns the filtered data and the count of removed entries.
+ */
+export function removeEmptyRows(data: any[]): { data: any[]; removedCount: number } {
+  const filtered = data.filter((row) => {
+    if (row == null || typeof row !== 'object') {
+      return false;
+    }
+    return Object.values(row).some((value) => {
+      if (value == null) {
+        return false;
+      }
+      if (typeof value === 'string') {
+        return value.trim() !== '';
+      }
+      return true;
+    });
+  });
+  return { data: filtered, removedCount: data.length - filtered.length };
+}
+
 export function generateCsv(data: any[], options: UnparseConfig = {}): string {
   options = options || {};
   options.newline = options.newline || '\n';
