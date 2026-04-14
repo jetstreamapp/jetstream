@@ -608,15 +608,22 @@ const callback = createRoute(
 
         // Suppress verification emails for placeholder sessions (e.g. registration with an already-registered email).
         // The verify flow for a placeholder user is a dead-end that destroys the session, so the email would be
-        // pointless and would spam the real owner of the inbox. The /auth/verify redirect still happens below, so
-        // the enumeration defense (attacker sees the same response either way) is preserved.
+        // pointless and would spam the real owner of the inbox. To avoid introducing a timing side-channel between
+        // placeholder and real-user flows, do not await email delivery here; dispatch it in the background for
+        // non-placeholder users so both branches return with comparable latency.
         const isPlaceholderUser = !!req.session.sessionDetails?.isTemporary || req.session.user.id === PLACEHOLDER_USER_ID;
 
         if (!isPlaceholderUser) {
           if (initialVerification.type === 'email') {
-            await sendEmailVerification(req.session.user.email, initialVerification.token, EMAIL_VERIFICATION_TOKEN_DURATION_HOURS);
+            void sendEmailVerification(req.session.user.email, initialVerification.token, EMAIL_VERIFICATION_TOKEN_DURATION_HOURS).catch(
+              (error) => {
+                console.error('Failed to send email verification', getExceptionLog(error));
+              }
+            );
           } else if (initialVerification.type === '2fa-email') {
-            await sendVerificationCode(req.session.user.email, initialVerification.token, TOKEN_DURATION_MINUTES);
+            void sendVerificationCode(req.session.user.email, initialVerification.token, TOKEN_DURATION_MINUTES).catch((error) => {
+              console.error('Failed to send verification code', getExceptionLog(error));
+            });
           }
         }
 
@@ -862,8 +869,8 @@ const resendVerification = createRoute(routeDefinition.resendVerification.valida
     });
 
     // Suppress verification emails for placeholder sessions (e.g. registration with an already-registered email).
-    // See the matching guard in the login handler above for details — the verify flow is a dead-end for these
-    // sessions and the email would only spam the real owner of the inbox.
+    // See the matching guard in the callback handler for credentials login/register for details — the verify
+    // flow is a dead-end for these sessions and the email would only spam the real owner of the inbox.
     const isPlaceholderUser = !!req.session.sessionDetails?.isTemporary || req.session.user.id === PLACEHOLDER_USER_ID;
 
     if (!isPlaceholderUser) {

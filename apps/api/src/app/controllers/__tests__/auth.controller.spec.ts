@@ -215,6 +215,8 @@ describe('auth.controller - placeholder session email suppression', () => {
     authServerMocks.ensureAuthError.mockImplementation((error: unknown) => error);
     authServerMocks.getApiAddressFromReq.mockReturnValue('127.0.0.1');
     authServerMocks.validateRedirectUrl.mockImplementation((url: string) => url || 'https://client.test');
+    emailMocks.sendEmailVerification.mockResolvedValue(undefined);
+    emailMocks.sendVerificationCode.mockResolvedValue(undefined);
   });
 
   describe('register callback', () => {
