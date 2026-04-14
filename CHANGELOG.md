@@ -1,5 +1,20 @@
 # Changelog
 
+## [9.12.0](https://github.com/jetstreamapp/jetstream/compare/v9.11.0...v9.12.0) (2026-04-14)
+
+### Features
+
+* enhance bulk API error handling and add polling mechanism ([5be2ad7](https://github.com/jetstreamapp/jetstream/commit/5be2ad711eeda7c765f7b5f420af3f2917ec1971))
+* enhance CSP and server setup with nonce support and worker management improvements ([a126f33](https://github.com/jetstreamapp/jetstream/commit/a126f33302d8309862d2c44caff73696456bf9c7))
+* monitor waf traffic via cron job ([d96a631](https://github.com/jetstreamapp/jetstream/commit/d96a6317e31d4917050c8242cc5ba86595eae3fe))
+
+### Bug Fixes
+
+* adjust updatedAt calculation in user sync records generation test ([e3fdd77](https://github.com/jetstreamapp/jetstream/commit/e3fdd7700ef1430e080bd4db697848a6e5b1d739))
+* correct typo in comment for batch processing in loadBulkApiData ([aff3c3b](https://github.com/jetstreamapp/jetstream/commit/aff3c3ba1f8f8cd63fe30dd94bb458786b9dc731))
+* improve jobInfo and intervalCount state updates in LoadRecordsBulkApiResults ([8709f54](https://github.com/jetstreamapp/jetstream/commit/8709f54850d76d192f7ae4c0bfd9b5f1f87d6269))
+* update web extension asset path to public directory ([73d8c65](https://github.com/jetstreamapp/jetstream/commit/73d8c656da8b5cc23cdefbb07c8da3c8663f623c))
+
 ## [9.11.0](https://github.com/jetstreamapp/jetstream/compare/v9.10.0...v9.11.0) (2026-04-11)
 
 ### Features
