@@ -1,5 +1,15 @@
 # Changelog
 
+## [9.12.1](https://github.com/jetstreamapp/jetstream/compare/v9.12.0...v9.12.1) (2026-04-14)
+
+### Features
+
+* add ability to retry failed data loads ([741ff12](https://github.com/jetstreamapp/jetstream/commit/741ff128ba934f90ca45953d5d4c3580ff68ad48))
+
+### Bug Fixes
+
+* add form-action directives to content security policy for third-party redirects ([4bc14f2](https://github.com/jetstreamapp/jetstream/commit/4bc14f2b671ed0a48c77a2fb9a8f87a322d9e8f3))
+
 ## [9.12.0](https://github.com/jetstreamapp/jetstream/compare/v9.11.0...v9.12.0) (2026-04-14)
 
 ### Features
