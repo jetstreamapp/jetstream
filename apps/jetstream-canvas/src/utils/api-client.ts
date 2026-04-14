@@ -39,7 +39,7 @@ export function initApiClient(): ApiConnection {
     instanceUrl: window.sr.client.instanceUrl,
     // refreshToken: window.sr.client.refreshToken, // TODO: do we need/want to use this?
     logger,
-    logging: false,
+    enableLogging: false,
   });
 }
 
