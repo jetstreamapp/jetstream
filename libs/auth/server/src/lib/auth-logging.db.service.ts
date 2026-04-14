@@ -1,6 +1,7 @@
 import { logger, prisma } from '@jetstream/api-config';
 import { Maybe } from '@jetstream/types';
 import type { Request, Response } from 'express';
+import { PLACEHOLDER_USER_ID } from './auth.constants';
 import { AuthError } from './auth.errors';
 import { getApiAddressFromReq } from './auth.utils';
 
@@ -94,7 +95,10 @@ export async function createUserActivityFromReq(
   try {
     const ipAddress = getApiAddressFromReq(req);
     const userAgent = req.get('user-agent');
-    const userId = data.userId || req.session?.user?.id;
+    const resolvedUserId = data.userId || req.session?.user?.id;
+    // Placeholder sessions (e.g., registering with an already-in-use email) have no real User row,
+    // so the FK on LoginActivity.userId would reject the insert. Drop the id but keep the audit row.
+    const userId = resolvedUserId === PLACEHOLDER_USER_ID ? null : resolvedUserId;
     const email = data.email || req.session?.user?.email;
     const requestId = data.requestId || res.locals?.['requestId'];
 

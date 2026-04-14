@@ -47,6 +47,7 @@ import {
   DELETE_MAILGUN_WEBHOOK_DAYS,
   DELETE_TOKEN_DAYS,
   PASSWORD_RESET_DURATION_MINUTES,
+  PLACEHOLDER_USER_ID,
 } from './auth.constants';
 import {
   AccountLocked,
@@ -72,7 +73,6 @@ const LOGIN_CONFIGURATION_CACHE = new LRUCache<string, { value: LoginConfigurati
   ttl: 1000 * 60,
 });
 
-export const PLACEHOLDER_USER_ID = '00000000-0000-0000-0000-000000000000';
 export const PLACEHOLDER_USER = AuthenticatedUserSchema.parse({
   id: PLACEHOLDER_USER_ID,
   userId: `invalid|${PLACEHOLDER_USER_ID}`,
