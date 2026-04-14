@@ -606,10 +606,18 @@ const callback = createRoute(
       if (Array.isArray(req.session.pendingVerification) && req.session.pendingVerification.length > 0) {
         const initialVerification = req.session.pendingVerification[0];
 
-        if (initialVerification.type === 'email') {
-          await sendEmailVerification(req.session.user.email, initialVerification.token, EMAIL_VERIFICATION_TOKEN_DURATION_HOURS);
-        } else if (initialVerification.type === '2fa-email') {
-          await sendVerificationCode(req.session.user.email, initialVerification.token, TOKEN_DURATION_MINUTES);
+        // Suppress verification emails for placeholder sessions (e.g. registration with an already-registered email).
+        // The verify flow for a placeholder user is a dead-end that destroys the session, so the email would be
+        // pointless and would spam the real owner of the inbox. The /auth/verify redirect still happens below, so
+        // the enumeration defense (attacker sees the same response either way) is preserved.
+        const isPlaceholderUser = !!req.session.sessionDetails?.isTemporary || req.session.user.id === PLACEHOLDER_USER_ID;
+
+        if (!isPlaceholderUser) {
+          if (initialVerification.type === 'email') {
+            await sendEmailVerification(req.session.user.email, initialVerification.token, EMAIL_VERIFICATION_TOKEN_DURATION_HOURS);
+          } else if (initialVerification.type === '2fa-email') {
+            await sendVerificationCode(req.session.user.email, initialVerification.token, TOKEN_DURATION_MINUTES);
+          }
         }
 
         setCsrfCookie(res);
@@ -853,17 +861,24 @@ const resendVerification = createRoute(routeDefinition.resendVerification.valida
       }
     });
 
-    switch (type) {
-      case 'email': {
-        await sendEmailVerification(req.session.user.email, token, EMAIL_VERIFICATION_TOKEN_DURATION_HOURS);
-        break;
-      }
-      case '2fa-email': {
-        await sendVerificationCode(req.session.user.email, token, TOKEN_DURATION_MINUTES);
-        break;
-      }
-      default: {
-        break;
+    // Suppress verification emails for placeholder sessions (e.g. registration with an already-registered email).
+    // See the matching guard in the login handler above for details — the verify flow is a dead-end for these
+    // sessions and the email would only spam the real owner of the inbox.
+    const isPlaceholderUser = !!req.session.sessionDetails?.isTemporary || req.session.user.id === PLACEHOLDER_USER_ID;
+
+    if (!isPlaceholderUser) {
+      switch (type) {
+        case 'email': {
+          await sendEmailVerification(req.session.user.email, token, EMAIL_VERIFICATION_TOKEN_DURATION_HOURS);
+          break;
+        }
+        case '2fa-email': {
+          await sendVerificationCode(req.session.user.email, token, TOKEN_DURATION_MINUTES);
+          break;
+        }
+        default: {
+          break;
+        }
       }
     }
 
