@@ -80,8 +80,8 @@ jobs:
           RELEASE_WEB_EXTENSION: ${{ inputs.release_web_extension }}
           RELEASE_DESKTOP: ${{ inputs.release_desktop }}
         run: |
-          if [[ "$REF_NAME" != "main" ]]; then
-            echo "Error: This workflow can only be run on the main branch. Current branch: $REF_NAME"
+          if [[ "$REF_NAME" != "main" && ! "$REF_NAME" =~ ^hotfix/ ]]; then
+            echo "Error: This workflow can only be run on 'main' or a 'hotfix/*' branch. Current branch: $REF_NAME"
             exit 1
           fi
           if [[ "$RELEASE_WEB" != "true" && "$RELEASE_WEB_EXTENSION" != "true" && "$RELEASE_DESKTOP" != "true" ]]; then
@@ -171,15 +171,13 @@ jobs:
           echo "=== git diff ==="
           git diff
 
-      # NOTE: hotfix process goes to master, so we don't need to worry about release branch being out of date
-      # we force-push just to avoid any issues with rebasing or merge commits on the release branch
+      # Point the 'release' branch at the HEAD of whichever branch triggered this run
+      # (main for normal releases, hotfix/* for hotfixes). Force-push avoids merge commits
+      # and any divergence from prior runs. After a hotfix release, the hotfix/* branch
+      # should be merged back to main via PR so the fix is preserved in main's history.
       - name: Push to release branch (triggers Render deploy)
         if: ${{ inputs.release_web }}
-        run: |
-          git checkout release
-          git reset --hard main
-          git push origin release --force
-          git checkout main
+        run: git push origin HEAD:release --force
 
       - name: Create Rollbar deploy record
         if: ${{ inputs.release_web }}

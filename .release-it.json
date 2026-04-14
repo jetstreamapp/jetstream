@@ -18,7 +18,7 @@
     "commitMessage": "chore: release ${version}",
     "tag": true,
     "tagName": "v${version}",
-    "requireBranch": "main"
+    "requireBranch": ["main", "hotfix/*"]
   },
   "npm": {
     "publish": false

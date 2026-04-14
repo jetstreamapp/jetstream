@@ -17,7 +17,8 @@
     "tagAnnotation": "Release web extension ${version}",
     "commitMessage": "chore: release web extension ${version}",
     "tag": true,
-    "tagName": "web-ext-v${version}"
+    "tagName": "web-ext-v${version}",
+    "requireBranch": ["main", "hotfix/*"]
   },
   "npm": false,
   "github": {
