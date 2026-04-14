@@ -14,18 +14,35 @@ const ICON_URL = '/assets/images/jetstream-icon-white-bg.png';
 export function useBrowserNotifications(serverUrl: string, isFocused?: () => boolean) {
   const notification = useRef<Notification>(null);
 
-  const visibilitychange = useCallback((event: Event) => {
-    if (notification.current && !document.hidden) {
-      notification.current.close();
+  const closeNotification = useCallback(() => {
+    try {
+      if (notification.current && typeof notification.current.close === 'function') {
+        notification.current.close();
+        notification.current = null;
+      }
+    } catch (ex) {
+      logger.error('[NOTIFICATION][CLOSE][ERROR]', ex);
+    } finally {
+      notification.current = null;
     }
   }, []);
 
+  const visibilitychange = useCallback(
+    (_event: Event) => {
+      if (!document.hidden) {
+        closeNotification();
+      }
+    },
+    [closeNotification],
+  );
+
   // ensure that notifications are cleared if browser tab is closed
-  const handleUnload = useCallback((event: Event) => {
-    if (notification.current) {
-      notification.current.close();
-    }
-  }, []);
+  const handleUnload = useCallback(
+    (_event: Event) => {
+      closeNotification();
+    },
+    [closeNotification],
+  );
 
   /**
    * Send notification to user if permission exists and the tab is not visible
