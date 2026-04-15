@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { describeGlobal, describeSObject, queryWithCache } from '@jetstream/shared/data';
 import { appActionObservable, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { CloneEditView, RecordWithAuditFields, SalesforceOrgUi } from '@jetstream/types';
-import { FunctionComponent, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, ReactNode, useEffect, useRef, useState } from 'react';
 import { dataTableDateFormatter } from '../data-table/data-table-formatters';
 import ReadOnlyFormElement from '../form/readonly-form-element/ReadOnlyFormElement';
 import Grid from '../grid/Grid';
@@ -21,6 +21,8 @@ export interface RecordLookupPopoverProps {
   skipFrontDoorAuth?: boolean;
   returnUrl?: string;
   isTooling?: boolean;
+  /** Custom content to render as the popover trigger. Defaults to the recordId. */
+  displayValue?: ReactNode;
   onRecordAction?: (action: CloneEditView, recordId: string, sobjectName: string) => void;
 }
 
@@ -31,6 +33,7 @@ export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = 
   skipFrontDoorAuth,
   returnUrl,
   isTooling,
+  displayValue,
   onRecordAction,
 }) => {
   const isMounted = useRef(true);
@@ -250,7 +253,7 @@ export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = 
           }
         }}
       >
-        {recordId}
+        {displayValue ?? recordId}
       </span>
     </Popover>
   );

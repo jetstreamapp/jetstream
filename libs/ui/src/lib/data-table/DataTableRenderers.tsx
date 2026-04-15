@@ -2,12 +2,13 @@
 import { css } from '@emotion/react';
 import { IconName } from '@jetstream/icon-factory';
 import { isValidSalesforceRecordId, useDebounce } from '@jetstream/shared/ui-utils';
-import { multiWordStringFilter } from '@jetstream/shared/utils';
+import { getIdFromRecordUrl, multiWordStringFilter } from '@jetstream/shared/utils';
 import { CloneEditView, ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import classNames from 'classnames';
 import { formatISO } from 'date-fns/formatISO';
 import { parseISO } from 'date-fns/parseISO';
+import lodashGet from 'lodash/get';
 import isBoolean from 'lodash/isBoolean';
 import isFunction from 'lodash/isFunction';
 import isString from 'lodash/isString';
@@ -598,6 +599,43 @@ export const IdLinkRenderer = ({ column, row }: RenderCellProps<RowWithKey, unkn
   );
 };
 dataTableRenderFnMap.set(IdLinkRenderer, 'IdLinkRenderer');
+
+/**
+ * Render a Name field (primary or via relationship like Account.Name) as a clickable
+ * record-lookup popover, showing the Name text as the cell content instead of the id.
+ * Falls back to plain text when no related record id can be resolved.
+ */
+export const NameLinkRenderer = ({ column, row }: RenderCellProps<RowWithKey, unknown>): ReactNode => {
+  const { onRecordAction } = useContext(DataTableGenericContext) as {
+    onRecordAction?: (action: CloneEditView, recordId: string, sobjectName: string) => void;
+  };
+  const nameValue = row[column.key];
+  // For "Account.Owner.Name" the parent path is "Account.Owner"; for bare "Name" it is the row's record itself.
+  const parentPath = column.key.includes('.') ? column.key.split('.').slice(0, -1).join('.') : '';
+  const relatedRecord = parentPath ? lodashGet(row._record, parentPath) : row._record;
+  const relatedRecordUrl = relatedRecord?.attributes?.url;
+  const recordId: string | undefined = relatedRecord?.Id || (relatedRecordUrl ? getIdFromRecordUrl(relatedRecordUrl) : undefined);
+
+  if (nameValue == null || !recordId) {
+    return <div className="slds-truncate">{nameValue}</div>;
+  }
+
+  const { skipFrontDoorAuth, url } = getSfdcRetUrl(relatedRecord, recordId, _skipFrontdoorLogin);
+
+  return (
+    <RecordLookupPopover
+      org={_org}
+      serverUrl={_serverUrl}
+      recordId={recordId}
+      skipFrontDoorAuth={skipFrontDoorAuth}
+      returnUrl={url}
+      isTooling={false}
+      onRecordAction={onRecordAction}
+      displayValue={<span className="slds-truncate">{nameValue}</span>}
+    />
+  );
+};
+dataTableRenderFnMap.set(NameLinkRenderer, 'NameLinkRenderer');
 
 export function TextOrIdLinkRenderer(RenderCellProps: RenderCellProps<RowWithKey>): ReactNode {
   const { column, row } = RenderCellProps;

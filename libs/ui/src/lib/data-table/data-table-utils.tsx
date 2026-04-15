@@ -34,6 +34,7 @@ import {
   GenericRenderer,
   HeaderFilter,
   IdLinkRenderer,
+  NameLinkRenderer,
   TextOrIdLinkRenderer,
 } from './DataTableRenderers';
 import { SubqueryRenderer } from './DataTableSubqueryRenderer';
@@ -280,22 +281,38 @@ function getQueryResultColumn({
   if (subqueryRelationshipName) {
     fieldLowercase = `${subqueryRelationshipName.toLowerCase()}.${fieldLowercase}`;
   }
-  if (queryColumnsByPath[fieldLowercase]) {
-    const col = queryColumnsByPath[fieldLowercase];
-    column.name = col.columnFullPath;
-    column.key = col.columnFullPath;
-    updateColumnFromType(column, getColumnTypeFromQueryResultsColumn(col));
+  const queryResultColumn = queryColumnsByPath[fieldLowercase];
+  let resolvedType: ColumnType = 'text';
+  if (queryResultColumn) {
+    column.name = queryResultColumn.columnFullPath;
+    column.key = queryResultColumn.columnFullPath;
+    resolvedType = getColumnTypeFromQueryResultsColumn(queryResultColumn);
+    updateColumnFromType(column, resolvedType);
     // exclude related records from edit mode
-    if (allowEdit && !col.columnFullPath?.includes('.')) {
-      updateColumnWithEditMode(column, col, fieldMetadata);
+    if (allowEdit && !queryResultColumn.columnFullPath?.includes('.')) {
+      updateColumnWithEditMode(column, queryResultColumn, fieldMetadata);
     }
-  } else {
-    if (field.endsWith('Id')) {
-      updateColumnFromType(column, 'salesforceId');
-    } else if (isSubquery) {
-      updateColumnFromType(column, 'subquery');
-    }
+  } else if (field.endsWith('Id')) {
+    resolvedType = 'salesforceId';
+    updateColumnFromType(column, 'salesforceId');
+  } else if (isSubquery) {
+    resolvedType = 'subquery';
+    updateColumnFromType(column, 'subquery');
   }
+
+  // Upgrade plain-text Name / relationship Name columns (e.g. Name, Account.Name, Account.Owner.Name)
+  // to a clickable record-lookup popover, mirroring the IdLinkRenderer behavior.
+  // Skipped for subquery child columns, aggregate (GROUP BY) columns, and anything that already
+  // resolved to a non-text type (salesforceId, boolean, date, etc).
+  // Use the canonical resolved column path when available so Name-field detection does not depend
+  // on the original query casing from getFlattenedFields(results.parsedQuery).
+  const canonicalColumnPath = queryResultColumn?.columnFullPath ?? column.key;
+  const isNameField =
+    !!fieldMetadata?.[field.toLowerCase()]?.nameField || canonicalColumnPath === 'Name' || canonicalColumnPath.endsWith('.Name');
+  if (!subqueryRelationshipName && !queryResultColumn?.aggregate && resolvedType === 'text' && isNameField) {
+    updateColumnFromType(column, 'salesforceName');
+  }
+
   return column;
 }
 
@@ -415,6 +432,9 @@ export function updateColumnFromType(column: Mutable<ColumnWithFilter<any>>, fie
     case 'salesforceId':
       column.renderCell = IdLinkRenderer;
       column.width = 175;
+      break;
+    case 'salesforceName':
+      column.renderCell = NameLinkRenderer;
       break;
     case 'textOrSalesforceId':
       column.renderCell = TextOrIdLinkRenderer;
