@@ -269,6 +269,53 @@ describe('auth.controller - placeholder session email suppression', () => {
       expect(emailMocks.sendVerificationCode).not.toHaveBeenCalled();
     });
 
+    it('does not send a 2fa-email verification code for a placeholder session', async () => {
+      authServerMocks.handleSignInOrRegistration.mockResolvedValue({
+        user: {
+          id: authServerMocks.PLACEHOLDER_USER_ID,
+          email: 'existing@example.com',
+          userId: 'invalid|existing@example.com',
+          name: 'Invalid User',
+          emailVerified: false,
+          authFactors: [],
+          teamMembership: null,
+          tosAcceptedVersion: 'invalid',
+        },
+        sessionDetails: { isTemporary: true },
+        isNewUser: false,
+        providerType: 'credentials',
+        provider: 'credentials',
+        mfaEnrollmentRequired: false,
+        teamInviteResponse: null,
+        verificationRequired: { email: true, twoFactor: [] },
+      });
+      authServerMocks.initSession.mockImplementation(async (req: any, sessionData: any) => {
+        req.session.user = sessionData.user;
+        req.session.sessionDetails = sessionData.sessionDetails;
+        req.session.pendingVerification = [{ type: '2fa-email', exp: Date.now() + 60_000, token: '123456' }];
+      });
+
+      const req = makeReq({
+        body: {
+          action: 'register',
+          csrfToken: 'csrf-token',
+          email: 'existing@example.com',
+          name: 'Test User',
+          password: VALID_PASSWORD,
+          tosVersion: 'v1',
+        },
+      });
+      const res = makeRes();
+      const next = vi.fn();
+
+      const handler = routeDefinition.callback.controllerFn();
+      await handler(req as never, res as never, next);
+
+      expect(next).not.toHaveBeenCalled();
+      expect(emailMocks.sendEmailVerification).not.toHaveBeenCalled();
+      expect(emailMocks.sendVerificationCode).not.toHaveBeenCalled();
+    });
+
     it('sends a verification email for a legitimate new-user registration', async () => {
       authServerMocks.handleSignInOrRegistration.mockResolvedValue({
         user: {
@@ -315,6 +362,53 @@ describe('auth.controller - placeholder session email suppression', () => {
       expect(emailMocks.sendEmailVerification).toHaveBeenCalledTimes(1);
       expect(emailMocks.sendEmailVerification).toHaveBeenCalledWith('new@example.com', '123456', expect.any(Number));
     });
+
+    it('sends a 2fa-email verification code for a legitimate new-user registration', async () => {
+      authServerMocks.handleSignInOrRegistration.mockResolvedValue({
+        user: {
+          id: 'real-user-id',
+          email: 'new@example.com',
+          userId: 'userid|real-user-id',
+          name: 'Real User',
+          emailVerified: false,
+          authFactors: [],
+          teamMembership: null,
+          tosAcceptedVersion: 'v1',
+        },
+        sessionDetails: undefined,
+        isNewUser: true,
+        providerType: 'credentials',
+        provider: 'credentials',
+        mfaEnrollmentRequired: false,
+        teamInviteResponse: null,
+        verificationRequired: { email: true, twoFactor: [] },
+      });
+      authServerMocks.initSession.mockImplementation(async (req: any, sessionData: any) => {
+        req.session.user = sessionData.user;
+        req.session.sessionDetails = sessionData.sessionDetails;
+        req.session.pendingVerification = [{ type: '2fa-email', exp: Date.now() + 60_000, token: '123456' }];
+      });
+
+      const req = makeReq({
+        body: {
+          action: 'register',
+          csrfToken: 'csrf-token',
+          email: 'new@example.com',
+          name: 'New User',
+          password: VALID_PASSWORD,
+          tosVersion: 'v1',
+        },
+      });
+      const res = makeRes();
+      const next = vi.fn();
+
+      const handler = routeDefinition.callback.controllerFn();
+      await handler(req as never, res as never, next);
+
+      expect(next).not.toHaveBeenCalled();
+      expect(emailMocks.sendVerificationCode).toHaveBeenCalledTimes(1);
+      expect(emailMocks.sendVerificationCode).toHaveBeenCalledWith('new@example.com', '123456', expect.any(Number));
+    });
   });
 
   describe('resendVerification', () => {
@@ -331,6 +425,32 @@ describe('auth.controller - placeholder session email suppression', () => {
           },
           sessionDetails: { isTemporary: true },
           pendingVerification: [{ type: 'email', exp: Date.now() + 60_000, token: 'old-token' }],
+        },
+      });
+      const res = makeRes();
+      const next = vi.fn();
+
+      const handler = routeDefinition.resendVerification.controllerFn();
+      await handler(req as never, res as never, next);
+
+      expect(next).not.toHaveBeenCalled();
+      expect(emailMocks.sendEmailVerification).not.toHaveBeenCalled();
+      expect(emailMocks.sendVerificationCode).not.toHaveBeenCalled();
+    });
+
+    it('does not re-send a 2fa-email verification code for a placeholder session', async () => {
+      const req = makeReq({
+        body: { csrfToken: 'csrf-token', type: '2fa-email' },
+        session: {
+          id: 'session-id',
+          destroy: vi.fn(),
+          save: vi.fn(),
+          user: {
+            id: authServerMocks.PLACEHOLDER_USER_ID,
+            email: 'existing@example.com',
+          },
+          sessionDetails: { isTemporary: true },
+          pendingVerification: [{ type: '2fa-email', exp: Date.now() + 60_000, token: 'old-token' }],
         },
       });
       const res = makeRes();
@@ -368,6 +488,32 @@ describe('auth.controller - placeholder session email suppression', () => {
       expect(next).not.toHaveBeenCalled();
       expect(emailMocks.sendEmailVerification).toHaveBeenCalledTimes(1);
       expect(emailMocks.sendEmailVerification).toHaveBeenCalledWith('real@example.com', '123456', expect.any(Number));
+    });
+
+    it('re-sends a 2fa-email verification code for a real user session', async () => {
+      const req = makeReq({
+        body: { csrfToken: 'csrf-token', type: '2fa-email' },
+        session: {
+          id: 'session-id',
+          destroy: vi.fn(),
+          save: vi.fn(),
+          user: {
+            id: 'real-user-id',
+            email: 'real@example.com',
+          },
+          sessionDetails: undefined,
+          pendingVerification: [{ type: '2fa-email', exp: Date.now() + 60_000, token: 'old-token' }],
+        },
+      });
+      const res = makeRes();
+      const next = vi.fn();
+
+      const handler = routeDefinition.resendVerification.controllerFn();
+      await handler(req as never, res as never, next);
+
+      expect(next).not.toHaveBeenCalled();
+      expect(emailMocks.sendVerificationCode).toHaveBeenCalledTimes(1);
+      expect(emailMocks.sendVerificationCode).toHaveBeenCalledWith('real@example.com', '123456', expect.any(Number));
     });
   });
 });
