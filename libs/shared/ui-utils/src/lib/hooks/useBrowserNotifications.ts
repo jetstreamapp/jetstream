@@ -12,13 +12,12 @@ const ICON_URL = '/assets/images/jetstream-icon-white-bg.png';
  * @returns
  */
 export function useBrowserNotifications(serverUrl: string, isFocused?: () => boolean) {
-  const notification = useRef<Notification>(null);
+  const notification = useRef<Notification | null>(null);
 
   const closeNotification = useCallback(() => {
     try {
       if (notification.current && typeof notification.current.close === 'function') {
         notification.current.close();
-        notification.current = null;
       }
     } catch (ex) {
       logger.error('[NOTIFICATION][CLOSE][ERROR]', ex);
