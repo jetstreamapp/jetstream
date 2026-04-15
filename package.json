@@ -86,6 +86,8 @@
     "scripts:copy-monaco-assets:desktop": "node scripts/copy-monaco-assets.mjs --target desktop",
     "scripts:copy-monaco-assets:web-extension": "node scripts/copy-monaco-assets.mjs --target web-extension",
     "release": "node scripts/release.mjs",
+    "release:preview": "node scripts/release-preview.mjs",
+    "hotfix": "node scripts/create-hotfix.mjs",
     "docs:index": "docker run -it -e APPLICATION_ID=21D7I5RB7N -e API_KEY=$ALGOLIA_API_KEY -e \"CONFIG=$(cat ./apps/docs/algolia-config.json | jq -r tostring)\" algolia/docsearch-scraper",
     "rollbar:upload-sourcemaps": "yarn generate:version && nx ./scripts/upload-source-maps.mjs",
     "rollbar:create-deploy": "yarn generate:version && zx ./scripts/generate-rollbar-deploy.mjs",
