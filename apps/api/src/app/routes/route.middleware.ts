@@ -167,6 +167,22 @@ export async function redirectIfMfaEnrollmentRequiredMiddleware(req: express.Req
   next();
 }
 
+/**
+ * Must run AFTER the pending-* gates (pendingVerification, pendingTosAcceptance, pendingMfaEnrollment)
+ * so that sessions still in a mid-auth state (including temporary/placeholder sessions with pendingVerification)
+ * are routed to their appropriate flow before falling through to /auth/login.
+ */
+export async function redirectIfNotAuthenticatedMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const user = req.session.user;
+
+  if (!user || user.id === PLACEHOLDER_USER_ID) {
+    res.redirect(302, '/auth/login');
+    return;
+  }
+
+  next();
+}
+
 export async function checkAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
   const userAgent = req.get('User-Agent');
 
