@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ExtlClntAppConfigurablePolicies xmlns="http://soap.sforce.com/2006/04/metadata">
+    <externalClientApplication>Jetstream_Canvas</externalClientApplication>
+    <isCanvasPluginEnabled>true</isCanvasPluginEnabled>
+    <isEnabled>true</isEnabled>
+    <isOauthPluginEnabled>true</isOauthPluginEnabled>
+    <label>Jetstream_Canvas_plcy</label>
+    <startPage>None</startPage>
+</ExtlClntAppConfigurablePolicies>

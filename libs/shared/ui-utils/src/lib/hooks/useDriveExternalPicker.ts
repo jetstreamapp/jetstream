@@ -11,6 +11,7 @@ import {
   subscribeToTokenChanges,
 } from '../google-access-token';
 import { isBrowserExtension } from '../shared-browser-extension-helpers';
+import { isCanvasApp } from '../shared-canvas-helpers';
 
 export interface UseDriveExternalPickerReturn {
   openPicker: (mode?: 'file' | 'folder' | 'auth') => void;
@@ -37,6 +38,9 @@ const pendingNonces = new Map<string, PickerResultCallback>();
 let ipcListenerCleanup: (() => void) | null = null;
 let messageListenerRef: ((event: MessageEvent) => void) | null = null;
 let expectedMessageOrigin: string | null = null;
+let broadcastChannelRef: BroadcastChannel | null = null;
+
+const BROADCAST_CHANNEL_NAME = 'jetstream-google-picker';
 
 function ensureDesktopListener() {
   if (ipcListenerCleanup || !window.electronAPI) {
@@ -74,6 +78,38 @@ function handleExtensionMessage(event: MessageEvent) {
   callback({ ...event.data, _origin: event.origin });
 }
 
+/**
+ * BroadcastChannel fallback for same-origin contexts (e.g., canvas app in iframe)
+ * where window.opener may not be available.
+ * BroadcastChannel is same-origin by design, so no origin validation is needed.
+ */
+function ensureBroadcastChannelListener() {
+  if (broadcastChannelRef) {
+    return;
+  }
+  try {
+    broadcastChannelRef = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
+    broadcastChannelRef.onmessage = (event) => {
+      if (event.data?.type !== 'GOOGLE_PICKER_RESULT') {
+        return;
+      }
+      const nonce = event.data.nonce as string | undefined;
+      if (!nonce) {
+        return;
+      }
+      const callback = pendingNonces.get(nonce);
+      if (!callback) {
+        return;
+      }
+      pendingNonces.delete(nonce);
+      // BroadcastChannel is same-origin, so use our own origin
+      callback({ ...event.data, _origin: window.location.origin });
+    };
+  } catch {
+    // BroadcastChannel not supported
+  }
+}
+
 function ensureExtensionListener(serverUrl?: string) {
   // Update the expected origin if a serverUrl is provided (defense-in-depth for postMessage)
   if (serverUrl) {
@@ -90,6 +126,10 @@ function ensureExtensionListener(serverUrl?: string) {
 
   messageListenerRef = handleExtensionMessage;
   window.addEventListener('message', messageListenerRef);
+
+  // Also set up BroadcastChannel as fallback for iframe contexts (e.g., canvas app)
+  // where window.opener may not be available in the popup
+  ensureBroadcastChannelListener();
 }
 
 function registerNonce(nonce: string, callback: PickerResultCallback) {
@@ -125,7 +165,7 @@ export function useDriveExternalPicker(serverUrl?: string): UseDriveExternalPick
   const popupRef = useRef<Window | null>(null);
   const popupPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const [isExtension] = useState(() => isBrowserExtension());
+  const [usesPopupFlow] = useState(() => isBrowserExtension() || isCanvasApp());
 
   const clearLoadingTimeout = useCallback(() => {
     if (loadingTimeoutRef.current) {
@@ -229,7 +269,7 @@ export function useDriveExternalPicker(serverUrl?: string): UseDriveExternalPick
 
   // Desktop: ensure the single module-level IPC listener is set up
   useEffect(() => {
-    if (isExtension) {
+    if (usesPopupFlow) {
       return;
     }
     isMounted.current = true;
@@ -244,11 +284,11 @@ export function useDriveExternalPicker(serverUrl?: string): UseDriveExternalPick
         nonceRef.current = null;
       }
     };
-  }, [isExtension, clearLoadingTimeout]);
+  }, [usesPopupFlow, clearLoadingTimeout]);
 
   // Browser extension: ensure the single module-level message listener is set up
   useEffect(() => {
-    if (!isExtension) {
+    if (!usesPopupFlow) {
       return;
     }
     isMounted.current = true;
@@ -266,12 +306,12 @@ export function useDriveExternalPicker(serverUrl?: string): UseDriveExternalPick
         popupPollRef.current = null;
       }
     };
-  }, [isExtension, serverUrl, clearLoadingTimeout]);
+  }, [usesPopupFlow, serverUrl, clearLoadingTimeout]);
 
   const openPicker = useCallback(
     (mode: 'file' | 'folder' | 'auth' = 'file') => {
       // Desktop: delegate to Electron IPC
-      if (!isExtension) {
+      if (!usesPopupFlow) {
         if (!window.electronAPI) {
           setError('Google Drive picker is not available in this environment');
           return;
@@ -434,7 +474,7 @@ export function useDriveExternalPicker(serverUrl?: string): UseDriveExternalPick
         }, 1000);
       }
     },
-    [isExtension, serverUrl, clearLoadingTimeout, handlePickerResult],
+    [usesPopupFlow, serverUrl, clearLoadingTimeout, handlePickerResult],
   );
 
   const signOut = useCallback(() => {

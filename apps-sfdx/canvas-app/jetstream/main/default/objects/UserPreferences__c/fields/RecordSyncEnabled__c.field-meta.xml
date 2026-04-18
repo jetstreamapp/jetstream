@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>RecordSyncEnabled__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>When enabled, record sync is active for this user</description>
+    <externalId>false</externalId>
+    <label>Record Sync Enabled</label>
+    <type>Checkbox</type>
+</CustomField>

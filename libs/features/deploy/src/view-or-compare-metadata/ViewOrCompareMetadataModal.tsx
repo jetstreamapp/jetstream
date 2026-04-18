@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { isBrowserExtension, useDisposables, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { isBrowserExtension, isCanvasApp, useDisposables, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { delay, unSanitizeXml } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { FileExtAllTypes, ListMetadataResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
@@ -27,7 +27,7 @@ export interface ViewOrCompareMetadataModalProps {
 
 export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClose }: ViewOrCompareMetadataModalProps) => {
   const { trackEvent } = useAmplitude();
-  const [chromeExtension] = useState(() => isBrowserExtension());
+  const [isSingleOrgMode] = useState(() => isBrowserExtension() || isCanvasApp());
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
@@ -286,7 +286,7 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
       )}
       {mainModalOpen && (
         <Modal
-          header={chromeExtension ? 'View Metadata' : 'View or Compare Metadata'}
+          header={isSingleOrgMode ? 'View Metadata' : 'View or Compare Metadata'}
           footer={
             <ViewOrCompareMetadataModalFooter
               hasSourceMetadata={!!sourceResults}
@@ -296,7 +296,7 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
               sourceLastChecked={sourceLastChecked}
               targetLoading={targetLoading}
               targetLastChecked={targetLastChecked}
-              isChromeExtension={chromeExtension}
+              isSingleOrgMode={isSingleOrgMode}
               reloadMetadata={handleReload}
               onDownloadPackage={handleDownload}
               onExportSummary={handleExport}
@@ -337,7 +337,7 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
                     hasTargetResults={!!targetResults}
                     sourceError={sourceError}
                     targetError={targetError}
-                    isChromeExtension={chromeExtension}
+                    isSingleOrgMode={isSingleOrgMode}
                     onEditorTypeChange={setEditorType}
                     onSelectedFile={setActiveFile}
                     onTargetOrgChange={handleTargetOrg}

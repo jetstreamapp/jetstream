@@ -66,21 +66,19 @@ export default function Page() {
       setErrorHeading(params.error);
       setStatus(params.message || STATUS_MAP[params.type]?.genericError || STATUS_MAP.fallback.genericError);
       setHasError(true);
-    } else {
-      if (window.opener) {
-        try {
-          const data = params.data || '';
-          window.opener.postMessage(decodeURIComponent(data), clientUrl);
-        } catch (ex) {
-          console.error(ex);
-          setStatus(STATUS_MAP[params.type]?.postMessageError || STATUS_MAP.fallback.postMessageError);
-          setHasError(true);
-        }
-      } else {
-        console.error('ERROR - window.opener is not defined');
+    } else if (window.opener) {
+      try {
+        const data = params.data || '';
+        window.opener.postMessage(decodeURIComponent(data), clientUrl);
+      } catch (ex) {
+        console.error(ex);
         setStatus(STATUS_MAP[params.type]?.postMessageError || STATUS_MAP.fallback.postMessageError);
         setHasError(true);
       }
+    } else {
+      console.error('ERROR - window.opener is not defined');
+      setStatus(STATUS_MAP[params.type]?.postMessageError || STATUS_MAP.fallback.postMessageError);
+      setHasError(true);
     }
   }, []);
 
@@ -102,7 +100,7 @@ export default function Page() {
                   rel="noreferrer"
                 >
                   refer to the documentation
-                </a>
+                </a>{' '}
                 for troubleshooting tips.
               </p>
               <p>

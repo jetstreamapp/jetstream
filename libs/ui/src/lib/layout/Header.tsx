@@ -13,7 +13,7 @@ export interface HeaderProps {
   userMenuItems: DropDownItem[];
   rightHandMenuItems?: ReactNode;
   // notification?: ReactNode;
-  isChromeExtension?: boolean;
+  isEmbeddedApp?: boolean;
   onUserMenuItemSelected: (id: string) => void;
   children?: React.ReactNode;
 }
@@ -26,7 +26,7 @@ export const Header: FunctionComponent<HeaderProps> = ({
   orgs,
   rightHandMenuItems,
   userMenuItems,
-  isChromeExtension,
+  isEmbeddedApp,
   onUserMenuItemSelected,
   children,
 }) => {
@@ -41,7 +41,7 @@ export const Header: FunctionComponent<HeaderProps> = ({
           orgs={orgs}
           rightHandMenuItems={rightHandMenuItems}
           userMenuItems={userMenuItems}
-          isChromeExtension={isChromeExtension}
+          isEmbeddedApp={isEmbeddedApp}
           onUserMenuItemSelected={onUserMenuItemSelected}
         />
       </div>
@@ -58,7 +58,7 @@ const HeaderContent: FunctionComponent<Omit<HeaderProps, 'children'>> = ({
   orgs,
   rightHandMenuItems,
   userMenuItems,
-  isChromeExtension,
+  isEmbeddedApp,
   onUserMenuItemSelected,
 }) => {
   const [avatarSrc, setAvatarSrc] = useState(userProfile?.picture || Avatar);
@@ -115,7 +115,7 @@ const HeaderContent: FunctionComponent<Omit<HeaderProps, 'children'>> = ({
           ) : (
             <li className="slds-global-actions__item non-draggable">{rightHandMenuItems}</li>
           )}
-          {!isChromeExtension && (
+          {!isEmbeddedApp && (
             <li
               className="slds-global-actions__item non-draggable"
               css={css`

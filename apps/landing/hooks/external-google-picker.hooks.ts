@@ -13,16 +13,20 @@ import {
 } from './google-picker-shared';
 
 /**
- * DATA FLOW (Web Extension):
- * 1. Extension opens this page in a popup window with mode and nonce as query params
+ * DATA FLOW (Web Extension / Canvas App):
+ * 1. Extension or canvas app opens this page in a popup window with mode and nonce as query params
  * 2. Page reads Google config (appId, apiKey, clientId) from build-time environment variables
  * 3. Page loads Google API scripts and initializes OAuth + Picker using the config
  * 4. User clicks "Authorize" button to trigger Google OAuth (requires user gesture for popup)
  * 5. User authenticates with Google and selects a file/folder
- * 6. Page sends results back to the extension via window.opener.postMessage()
+ * 6. Page sends results back to the opener via window.opener.postMessage()
+ *    with BroadcastChannel as a fallback for iframe contexts (e.g., canvas app)
+ *    where window.opener may not be available
  */
 
-export function useWebExtensionGooglePickerState() {
+const BROADCAST_CHANNEL_NAME = 'jetstream-google-picker';
+
+export function useExternalGooglePickerState() {
   const searchParams = useSearchParams();
   const mode = searchParams?.get('mode') as 'file' | 'folder' | 'auth' | null;
   const nonce = searchParams?.get('nonce');
@@ -41,18 +45,56 @@ export function useWebExtensionGooglePickerState() {
   const configRef = useRef<GoogleConfig | null>(null);
 
   const isTrustedOrigin = (origin: string | undefined) => {
-    // Only allow extension origins or other trusted origins
-    // Example: chrome-extension://<id>
-    return !!origin && (origin.startsWith('chrome-extension://') || origin.startsWith('moz-extension://'));
+    if (!origin) {
+      return false;
+    }
+    // Allow browser extension origins
+    if (origin.startsWith('chrome-extension://') || origin.startsWith('moz-extension://')) {
+      return true;
+    }
+    // Allow HTTPS origins (canvas app may be on a different subdomain/origin than the landing page).
+    // Security is enforced by the nonce — only the opener that generated the nonce can match the callback.
+    // The openerOrigin is used as the targetOrigin for postMessage, scoping delivery to that window.
+    if (origin.startsWith('https://')) {
+      return true;
+    }
+    return false;
   };
 
   const sendResultToOpener = useCallback(
     (params: Record<string, string>) => {
+      console.log('[GOOGLE_PICKER] sendResultToOpener called', {
+        nonce,
+        openerOrigin,
+        isTrusted: isTrustedOrigin(openerOrigin || undefined),
+        hasOpener: !!window.opener,
+        params,
+      });
+
       if (!nonce || !openerOrigin || !isTrustedOrigin(openerOrigin)) {
+        console.warn('[GOOGLE_PICKER] Bailing: missing nonce/origin or untrusted', { nonce, openerOrigin });
         return;
       }
+
+      const payload = { type: 'GOOGLE_PICKER_RESULT', nonce, ...params };
+
+      // Primary: postMessage to opener window
       if (window.opener) {
-        window.opener.postMessage({ type: 'GOOGLE_PICKER_RESULT', nonce, ...params }, openerOrigin);
+        console.log('[GOOGLE_PICKER] Sending via postMessage to', openerOrigin);
+        window.opener.postMessage(payload, openerOrigin);
+      } else {
+        console.warn('[GOOGLE_PICKER] window.opener is null, skipping postMessage');
+      }
+
+      // Fallback: BroadcastChannel for iframe contexts (e.g., canvas app)
+      // where window.opener may not be available
+      try {
+        const channel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
+        console.log('[GOOGLE_PICKER] Sending via BroadcastChannel');
+        channel.postMessage(payload);
+        channel.close();
+      } catch (ex) {
+        console.warn('[GOOGLE_PICKER] BroadcastChannel failed', ex);
       }
     },
     [nonce, openerOrigin],

@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { ListMetadataResultItem, useListMetadata } from '@jetstream/connected-ui';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { copyRecordsToClipboard, formatNumber, isBrowserExtension } from '@jetstream/shared/ui-utils';
+import { copyRecordsToClipboard, formatNumber, isBrowserExtension, isCanvasApp } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { DeployMetadataTableRow, ListMetadataResult, SidePanelType } from '@jetstream/types';
 import {
@@ -89,7 +89,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
   const [viewOrCompareModalOpen, setViewOrCompareModalOpen] = useState(false);
   const [deleteMetadataModalOpen, setDeleteMetadataModalOpen] = useState(false);
 
-  const [chromeExtension] = useState(() => isBrowserExtension());
+  const [isSingleOrgMode] = useState(() => isBrowserExtension() || isCanvasApp());
 
   const listMetadataFilterFn = useCallback(
     (item: ListMetadataResult) => {
@@ -313,7 +313,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
               loading={loading}
               selectedRows={selectedRows}
             />
-            {!chromeExtension && <DeployMetadataToOrg selectedOrg={selectedOrg} loading={loading} selectedRows={selectedRows} />}
+            {!isSingleOrgMode && <DeployMetadataToOrg selectedOrg={selectedOrg} loading={loading} selectedRows={selectedRows} />}
             <DropDown
               className="slds-button_last"
               position="right"

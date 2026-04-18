@@ -1,9 +1,9 @@
 import { GooglePickerContent } from '../../../components/GooglePickerContent';
 import Layout from '../../../components/layouts/Layout';
-import { useWebExtensionGooglePickerState } from '../../../hooks/web-extension-google-picker.hooks';
+import { useExternalGooglePickerState } from '../../../hooks/external-google-picker.hooks';
 
 export default function Page() {
-  const pickerState = useWebExtensionGooglePickerState();
+  const pickerState = useExternalGooglePickerState();
   return <GooglePickerContent {...pickerState} />;
 }
 

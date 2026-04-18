@@ -5,6 +5,7 @@ import {
   GoogleApiClientConfig,
   filterLoadSobjects,
   isBrowserExtension,
+  isCanvasApp,
   isDesktop,
   parseFile,
   parseWorkbook,
@@ -103,10 +104,11 @@ export const LoadRecordsSelectObjectAndFile = ({
   const hasGoogleInputConfigured =
     isDesktop() ||
     isBrowserExtension() ||
+    isCanvasApp() ||
     (hasGoogleDriveAccess && !!googleApiConfig?.apiKey && !!googleApiConfig?.appId && !!googleApiConfig?.clientId);
 
   // Desktop and browser extension have unlimited, pro users have 1GB, free users have 10MB
-  const filesizeLimit = isDesktop() || isBrowserExtension() ? Infinity : hasGoogleDriveAccess ? 1000 : 50;
+  const filesizeLimit = isDesktop() || isBrowserExtension() || isCanvasApp() ? Infinity : hasGoogleDriveAccess ? 1000 : 50;
 
   async function handleFile({ content, filename, isPasteFromClipboard, extension }: InputReadFileContent) {
     try {
@@ -217,7 +219,7 @@ export const LoadRecordsSelectObjectAndFile = ({
               <GridCol>
                 <FileOrGoogleSelector
                   omitGoogle={!hasGoogleInputConfigured}
-                  hasExternalGoogleDriveAccess={isDesktop() || isBrowserExtension()}
+                  hasExternalGoogleDriveAccess={isDesktop() || isBrowserExtension() || isCanvasApp()}
                   googleShowUpgradeToPro={googleShowUpgradeToPro}
                   initialSelectedTab={hasGoogleInputConfigured && inputFileType === 'google' && inputFilename ? 'google' : 'local'}
                   fileSelectorProps={{

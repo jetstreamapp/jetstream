@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>SkipFrontdoorLogin__c</fullName>
+    <defaultValue>true</defaultValue>
+    <description>When enabled, skip the frontdoor login redirect when navigating to Salesforce</description>
+    <externalId>false</externalId>
+    <label>Skip Frontdoor Login</label>
+    <type>Checkbox</type>
+</CustomField>

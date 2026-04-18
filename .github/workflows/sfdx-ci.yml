@@ -1,0 +1,71 @@
+name: SFDX CI
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "apps-sfdx/**"
+  pull_request:
+    paths:
+      - "apps-sfdx/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test-managed-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v6
+        name: Checkout
+
+      - name: Install Salesforce CLI
+        run: npm install -g @salesforce/cli
+
+      - name: Decode JWT key
+        run: echo "${{ secrets.SFDX_JWT_KEY_BASE64 }}" | base64 --decode > server.key
+
+      - name: Authenticate to Dev Hub
+        run: |
+          sf org login jwt \
+            --client-id ${{ secrets.SFDX_CONSUMER_KEY }} \
+            --jwt-key-file server.key \
+            --username ${{ secrets.SFDX_DEVHUB_USERNAME }} \
+            --set-default-dev-hub \
+            --alias devhub
+
+      - name: Create Scratch Org
+        run: |
+          sf org create scratch \
+            --definition-file apps-sfdx/config/project-scratch-def.json \
+            --set-default \
+            --alias ci-scratch \
+            --no-track-source \
+            --duration-days 1 \
+            --wait 10
+
+      - name: Deploy Source
+        working-directory: apps-sfdx
+        run: sf project deploy start --source-dir canvas-app/jetstream
+
+      - name: Run Apex Tests
+        run: |
+          sf apex run test \
+            --test-level RunLocalTests \
+            --wait 10 \
+            --result-format human \
+            --code-coverage
+
+      - name: Delete Scratch Org
+        if: always()
+        run: sf org delete scratch --no-prompt --target-org ci-scratch || true
+
+      - name: Remove key file
+        if: always()
+        run: rm -f server.key
