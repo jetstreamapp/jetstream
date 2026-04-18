@@ -96,20 +96,6 @@ export function parseQueryParams<T = any>(queryString: string): T {
   }, {}) as T;
 }
 
-export function parseJsonCookie<T>(cookieName: string): T | null {
-  const cookieStrRegex: RegExpExecArray | null = RegExp(`${cookieName}[^;]+`).exec(document.cookie);
-  const cookieStr = decodeURIComponent(cookieStrRegex ? cookieStrRegex.toString().replace(/^[^=]+./, '') : '');
-  if (cookieStr.startsWith('j:')) {
-    try {
-      return JSON.parse(cookieStr.slice(2));
-    } catch {
-      logger.warn('Could not parse cookie');
-      return null;
-    }
-  }
-  return cookieStr as T;
-}
-
 export function eraseCookies() {
   document.cookie.split(';').forEach((cookie) => {
     const [name] = cookie.trim().split('=');

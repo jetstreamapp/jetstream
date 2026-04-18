@@ -1,6 +1,6 @@
 import { getUserAbility } from '@jetstream/acl';
 import { logger } from '@jetstream/shared/client-logger';
-import { HTTP, INDEXED_DB } from '@jetstream/shared/constants';
+import { INDEXED_DB } from '@jetstream/shared/constants';
 import { checkHeartbeat, getOrgGroups, getOrgs, getUserProfile } from '@jetstream/shared/data';
 import {
   getBrowserExtensionVersion,
@@ -8,7 +8,6 @@ import {
   isBrowserExtension,
   isCanvasApp,
   isDesktop,
-  parseJsonCookie,
   setItemInLocalStorage,
   setItemInSessionStorage,
 } from '@jetstream/shared/ui-utils';
@@ -68,12 +67,20 @@ const NO_GROUP_KEY = 'NO_GROUP';
 
 type RecentlySelectedOrgsMap = Record<string, string>;
 
+function getWebServerUrl(): string {
+  return import.meta.env.NX_PUBLIC_SERVER_URL || 'https://getjetstream.app';
+}
+
 /**
- * Parse application state with a fallback in case there is an issue parsing
+ * Desktop's main process hardcodes SERVER_URL based on `app.isPackaged`, so the
+ * renderer must not rely on any inlined `NX_PUBLIC_SERVER_URL` during bootstrap
+ * — a local package build may still bake in localhost. The packaged app's
+ * heartbeat returns the correct URL; use production as the pre-heartbeat
+ * fallback.
  */
-function getAppInfo(): ApplicationState {
-  const appState = parseJsonCookie<ApplicationState>(HTTP.COOKIE.JETSTREAM);
-  const defaultState = getDefaultAppState(appState);
+function getBootstrapAppInfo(): ApplicationState {
+  const serverUrl = isDesktop() ? 'https://getjetstream.app' : getWebServerUrl();
+  const defaultState = getDefaultAppState({ serverUrl });
   // Canvas app: use the current origin as serverUrl since the canvas app
   // and landing page are served from the same host
   if (isCanvasApp()) {
@@ -183,13 +190,14 @@ export function getRecentlySelectedOrgForGroup(groupId: Maybe<string>): Maybe<st
   return map[groupId || NO_GROUP_KEY] || null;
 }
 
-const DEFAULT_APP_INFO: AppInfo = { appInfo: getAppInfo(), version: 'unknown', announcements: [] as Announcement[] };
+const DEFAULT_APP_INFO: AppInfo = { appInfo: getBootstrapAppInfo(), version: 'unknown', announcements: [] as Announcement[] };
 
 async function fetchAppInfo(): Promise<AppInfo> {
   try {
-    return isBrowserExtension() || isCanvasApp()
-      ? { appInfo: getAppInfo(), version: getBrowserExtensionVersion(), announcements: [] }
-      : await checkHeartbeat();
+    if (isBrowserExtension() || isCanvasApp()) {
+      return { appInfo: getBootstrapAppInfo(), version: getBrowserExtensionVersion(), announcements: [] };
+    }
+    return await checkHeartbeat();
   } catch {
     return DEFAULT_APP_INFO;
   }

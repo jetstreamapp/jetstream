@@ -15,7 +15,7 @@ import {
 import { UserProfileSession } from '@jetstream/auth/types';
 import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import { HTTP } from '@jetstream/shared/constants';
-import { ensureBoolean, getDefaultAppState, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { ensureBoolean, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { parseCookie } from 'cookie';
 import { addDays, getUnixTime, isBefore } from 'date-fns';
 import express, { Request } from 'express';
@@ -65,30 +65,6 @@ export function addContextMiddleware(req: express.Request, res: express.Response
     res.setHeader(HTTP.HEADERS.X_CLIENT_REQUEST_ID, clientReqId);
   }
   res.setHeader(HTTP.HEADERS.X_REQUEST_ID, res.locals.requestId);
-  next();
-}
-
-/**
- * Set's cookie that is used by front-end application
- * @param req
- * @param res
- * @param next
- */
-export function setApplicationCookieMiddleware(_: express.Request, res: express.Response, next: express.NextFunction) {
-  const useSecureCookies = ENV.USE_SECURE_COOKIES;
-  const appCookie = getDefaultAppState({
-    serverUrl: ENV.JETSTREAM_SERVER_URL,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    environment: ENV.ENVIRONMENT as any,
-    defaultApiVersion: `v${ENV.SFDC_API_VERSION}`,
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    google_appId: ENV.GOOGLE_APP_ID!,
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    google_apiKey: ENV.GOOGLE_API_KEY!,
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    google_clientId: ENV.GOOGLE_CLIENT_ID!,
-  });
-  res.cookie(HTTP.COOKIE.JETSTREAM, appCookie, { httpOnly: false, sameSite: 'strict', secure: useSecureCookies });
   next();
 }
 
