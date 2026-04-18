@@ -35,6 +35,7 @@ import {
   InvalidVerificationToken,
   linkIdentityToUser,
   getProviders as listProviders,
+  MAX_VERIFICATION_ATTEMPTS,
   oidcService,
   PASSWORD_RESET_DURATION_MINUTES,
   PLACEHOLDER_USER_ID,
@@ -45,6 +46,7 @@ import {
   setUserEmailVerified,
   timingSafeStringCompare,
   TOKEN_DURATION_MINUTES,
+  TooManyVerificationAttempts,
   validateCallback,
   validateRedirectUrl,
   verify2faTotpOrThrow,
@@ -199,7 +201,7 @@ export const routeDefinition = {
     validators: {
       body: z.object({
         email: z.email().toLowerCase(),
-        token: z.string(),
+        token: z.uuid(),
         password: PasswordSchema,
         csrfToken: z.string(),
         captchaToken: z.string().nullish(),
@@ -711,35 +713,66 @@ const verification = createRoute(
         throw new ExpiredVerificationToken(`Pending verification is expired: ${pendingVerification.exp}`);
       }
 
-      switch (pendingVerification.type) {
-        case 'email': {
-          const { token } = pendingVerification;
-          if (!timingSafeStringCompare(token, code)) {
-            throw new InvalidVerificationToken('Provided code does not match');
+      try {
+        switch (pendingVerification.type) {
+          case 'email': {
+            const { token } = pendingVerification;
+            if (!timingSafeStringCompare(token, code)) {
+              throw new InvalidVerificationToken('Provided code does not match');
+            }
+            if (!isPlaceholderUser) {
+              req.session.user = (await setUserEmailVerified(req.session.user.id)) as UserProfileSession;
+            }
+            break;
           }
-          if (!isPlaceholderUser) {
-            req.session.user = (await setUserEmailVerified(req.session.user.id)) as UserProfileSession;
+          case '2fa-email': {
+            const { token } = pendingVerification;
+            if (!timingSafeStringCompare(token, code)) {
+              throw new InvalidVerificationToken('Provided code does not match');
+            }
+            rememberDeviceId = rememberDevice ? generateRandomString(32) : undefined;
+            break;
           }
-          break;
-        }
-        case '2fa-email': {
-          const { token } = pendingVerification;
-          if (!timingSafeStringCompare(token, code)) {
-            throw new InvalidVerificationToken('Provided code does not match');
+          case '2fa-otp': {
+            const { secret } = await getTotpAuthenticationFactor(req.session.user.id);
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            await verify2faTotpOrThrow(secret!, code);
+            rememberDeviceId = rememberDevice ? generateRandomString(32) : undefined;
+            break;
           }
-          rememberDeviceId = rememberDevice ? generateRandomString(32) : undefined;
-          break;
+          default: {
+            throw new InvalidVerificationToken(`Invalid verification type`);
+          }
         }
-        case '2fa-otp': {
-          const { secret } = await getTotpAuthenticationFactor(req.session.user.id);
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          await verify2faTotpOrThrow(secret!, code);
-          rememberDeviceId = rememberDevice ? generateRandomString(32) : undefined;
-          break;
+      } catch (verifyEx) {
+        // Only bad-code errors count against the attempt budget; session/CSRF/expired errors bail early above.
+        if (verifyEx instanceof InvalidVerificationToken) {
+          const nextAttempts = (req.session.pendingVerificationAttempts ?? 0) + 1;
+          if (nextAttempts >= MAX_VERIFICATION_ATTEMPTS) {
+            // Capture before destroy so the audit row for the abuse event remains attributable.
+            const userIdForAudit = req.session.user?.id;
+            res.log.warn(
+              {
+                userId: userIdForAudit,
+                email: req.session.user?.email,
+                type: pendingVerification.type,
+                attempts: nextAttempts,
+              },
+              '[AUTH][VERIFY][TOO_MANY_ATTEMPTS] Session destroyed after exceeding attempt budget',
+            );
+            await new Promise<void>((resolve) => {
+              req.session.destroy((destroyErr) => {
+                if (destroyErr) {
+                  res.log.error({ ...getExceptionLog(destroyErr) }, '[AUTH][TOO_MANY_ATTEMPTS][ERROR] Error destroying session');
+                }
+                resolve();
+              });
+            });
+            throw new TooManyVerificationAttempts('Too many failed verification attempts', { userId: userIdForAudit });
+          }
+          req.session.pendingVerificationAttempts = nextAttempts;
         }
-        default: {
-          throw new InvalidVerificationToken(`Invalid verification type`);
-        }
+        throw verifyEx;
       }
 
       // Redirect back to sign in page
@@ -768,6 +801,7 @@ const verification = createRoute(
       }
 
       req.session.pendingVerification = null;
+      req.session.pendingVerificationAttempts = 0;
 
       if (req.session.sendNewUserEmailAfterVerify && req.session.user) {
         req.session.sendNewUserEmailAfterVerify = undefined;
@@ -834,6 +868,9 @@ const resendVerification = createRoute(routeDefinition.resendVerification.valida
     await verifyCSRFFromRequestOrThrow(csrfToken, req.headers.cookie || '');
     const exp = addMinutes(new Date(), TOKEN_DURATION_MINUTES).getTime();
     const token = generateRandomCode(6);
+
+    // Resending a code issues a fresh challenge — reset the per-session attempt budget.
+    req.session.pendingVerificationAttempts = 0;
 
     // Refresh all pending verifications
     req.session.pendingVerification = req.session.pendingVerification.map((item) => {

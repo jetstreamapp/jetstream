@@ -46,6 +46,7 @@ import {
   DELETE_EXPIRED_DOMAIN_VERIFICATION_DAYS,
   DELETE_MAILGUN_WEBHOOK_DAYS,
   DELETE_TOKEN_DAYS,
+  MAX_VERIFICATION_ATTEMPTS,
   PASSWORD_RESET_DURATION_MINUTES,
   PLACEHOLDER_USER_ID,
 } from './auth.constants';
@@ -64,7 +65,7 @@ import {
   ProviderNotAllowed,
 } from './auth.errors';
 import { ensureAuthError, lookupGeoLocationFromIpAddresses } from './auth.service';
-import { checkUserAgentSimilarity, hashPassword, REMEMBER_DEVICE_DAYS, verifyPassword } from './auth.utils';
+import { checkUserAgentSimilarity, hashPassword, REMEMBER_DEVICE_DAYS, timingSafeStringCompare, verifyPassword } from './auth.utils';
 
 // This is potentially accessed multiple times in a transaction for a user, cache data to avoid DB access
 const LOGIN_CONFIGURATION_CACHE = new LRUCache<string, { value: LoginConfiguration | null }>({
@@ -930,22 +931,71 @@ export const generatePasswordResetToken = async (email: string) => {
 export const resetUserPassword = async (email: string, token: string, password: string) => {
   email = email.toLowerCase();
 
-  const resetToken = await prisma.passwordResetToken.findUnique({
+  // Load every row for this email so we can (a) detect bad-token attempts and charge them against the
+  // per-row attempt budget, and (b) tolerate the race where two concurrent generatePasswordResetToken
+  // calls leave multiple live rows (delete+insert is not transactional, and email is not uniquely
+  // constrained on its own). Prefer the row whose token matches the submitted value; fall back to the
+  // newest row so the attempt counter is charged against something deterministic.
+  const resetTokens = await prisma.passwordResetToken.findMany({
     select: {
+      token: true,
       userId: true,
       expiresAt: true,
       user: {
         select: { teamMembership: { select: { status: true } } },
       },
     },
-    where: { email_token: { email, token } },
+    where: { email },
+    // Secondary `token` order breaks ties when two concurrent generatePasswordResetToken calls
+    // land on the same `expiresAt` timestamp, so the charged attempt row stays deterministic.
+    orderBy: [{ expiresAt: 'desc' }, { token: 'desc' }],
   });
 
-  if (!resetToken) {
-    throw new InvalidOrExpiredResetToken('Missing reset token');
+  // Generic message used for all invalid/expired/inactive cases below to avoid leaking
+  // whether a reset token is currently active for the supplied email over the API.
+  // Server-side `logger.warn` at each branch preserves context for ops/debug.
+  const GENERIC_INVALID_RESET_TOKEN_MESSAGE = 'Invalid or expired reset token';
+
+  if (resetTokens.length === 0) {
+    logger.warn({ email }, '[AUTH][PASSWORD_RESET][NO_TOKEN] No reset token exists for email');
+    throw new InvalidOrExpiredResetToken(GENERIC_INVALID_RESET_TOKEN_MESSAGE);
   }
 
-  const { expiresAt, user, userId } = resetToken;
+  const matchingToken = resetTokens.find(({ token: stored }) => timingSafeStringCompare(stored, token));
+  const resetToken = matchingToken ?? resetTokens[0];
+
+  const { expiresAt, user, userId, token: storedToken } = resetToken;
+
+  if (!matchingToken) {
+    // Atomic increment — concurrent bad-token attempts must each advance the counter,
+    // otherwise parallelized guesses would never push it past MAX_VERIFICATION_ATTEMPTS.
+    try {
+      const { attempts: updatedAttempts } = await prisma.passwordResetToken.update({
+        where: { token: storedToken },
+        data: { attempts: { increment: 1 } },
+        select: { attempts: true },
+      });
+      if (updatedAttempts >= MAX_VERIFICATION_ATTEMPTS) {
+        logger.warn(
+          { email, userId, attempts: updatedAttempts, expiresAt },
+          '[AUTH][PASSWORD_RESET][TOO_MANY_ATTEMPTS] Reset token invalidated after exceeding attempt budget',
+        );
+        await prisma.passwordResetToken.deleteMany({ where: { email } });
+        throw new InvalidOrExpiredResetToken(GENERIC_INVALID_RESET_TOKEN_MESSAGE);
+      }
+    } catch (ex) {
+      if (ex instanceof InvalidOrExpiredResetToken) {
+        throw ex;
+      }
+      // Row was replaced/deleted by a concurrent password-reset request — treat as invalid.
+      if (!(ex instanceof Prisma.PrismaClientKnownRequestError) || ex.code !== 'P2025') {
+        throw ex;
+      }
+    }
+    logger.warn({ email, userId }, '[AUTH][PASSWORD_RESET][MISMATCH] Provided reset token does not match stored token');
+    throw new InvalidOrExpiredResetToken(GENERIC_INVALID_RESET_TOKEN_MESSAGE);
+  }
+
   const { teamMembership } = user;
 
   // Used only if password re-use caused the failure
@@ -956,17 +1006,26 @@ export const resetUserPassword = async (email: string, token: string, password: 
     });
   }
 
-  // delete token - we don't need it anymore and if we fail later, the user will need to reset again
-  await prisma.passwordResetToken.delete({
-    where: { email_token: { email, token } },
+  // Delete all reset tokens for this email — concurrent generatePasswordResetToken calls can leave
+  // multiple live rows (see findMany above). We must invalidate all of them so a successful reset
+  // cannot be followed by another reset using a sibling token from the same burst. If the password
+  // change fails downstream (e.g. password reuse), restoreResetTokenOnPasswordReuse re-creates the
+  // matched token so the user can retry.
+  await prisma.passwordResetToken.deleteMany({
+    where: { email },
   });
 
   if (teamMembership && teamMembership.status !== TEAM_MEMBER_STATUS_ACTIVE) {
-    throw new InvalidOrExpiredResetToken('User is inactive and their password cannot be reset');
+    logger.warn(
+      { email, userId, teamStatus: teamMembership.status },
+      '[AUTH][PASSWORD_RESET][INACTIVE_USER] User is inactive and their password cannot be reset',
+    );
+    throw new InvalidOrExpiredResetToken(GENERIC_INVALID_RESET_TOKEN_MESSAGE);
   }
 
   if (expiresAt < new Date()) {
-    throw new InvalidOrExpiredResetToken(`Expired at ${expiresAt.toISOString()}`);
+    logger.warn({ email, userId, expiresAt }, '[AUTH][PASSWORD_RESET][EXPIRED] Reset token is expired');
+    throw new InvalidOrExpiredResetToken(GENERIC_INVALID_RESET_TOKEN_MESSAGE);
   }
 
   await changeUserPassword(userId, password, restoreResetTokenOnPasswordReuse);

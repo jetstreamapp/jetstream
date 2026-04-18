@@ -13,9 +13,9 @@ import { routeDefinition as metadataToolingController } from '../controllers/sf-
 import { routeDefinition as miscController } from '../controllers/sf-misc.controller';
 import { routeDefinition as queryController } from '../controllers/sf-query.controller';
 import { routeDefinition as recordController } from '../controllers/sf-record.controller';
+import { routeDefinition as testController } from '../controllers/test.controller';
 import * as userFeedbackController from '../controllers/user-feedback.controller';
 import { routeDefinition as userController } from '../controllers/user.controller';
-import { routeDefinition as testController } from '../controllers/test.controller';
 import { deferredResponseMiddleware as dfr } from '../utils/deferred-response.middleware';
 import { sendJson } from '../utils/response.handlers';
 import {
@@ -25,6 +25,7 @@ import {
   ensureTargetOrgExists,
   feedbackRateLimit,
   feedbackUploadMiddleware,
+  passwordResetEmailRateLimit,
   validateDoubleCSRF,
   verifyEntitlement,
 } from './route.middleware';
@@ -70,7 +71,7 @@ routes.delete('/me/profile/sessions', userController.revokeAllSessions.controlle
  * Password Management Routes
  */
 routes.post('/me/profile/password/init', userController.initPassword.controllerFn());
-routes.post('/me/profile/password/reset', userController.initResetPassword.controllerFn());
+routes.post('/me/profile/password/reset', passwordResetEmailRateLimit, userController.initResetPassword.controllerFn());
 // TODO: should we allow users to remove their password if they have social login?
 routes.delete('/me/profile/password', userController.deletePassword.controllerFn());
 /**

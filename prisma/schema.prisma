@@ -221,6 +221,7 @@ model PasswordResetToken {
   email     String
   token     String   @unique @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   expiresAt DateTime
+  attempts  Int      @default(0)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

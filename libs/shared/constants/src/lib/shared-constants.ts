@@ -1129,4 +1129,5 @@ export const AUTH_ERROR_MESSAGES = {
   SsoLicenseLimitExceeded:
     'Your account cannot be provisioned because the team has reached its maximum user count or the account is not active. Please contact your administrator.',
   TooManyRequests: 'Too many attempts. Please wait a moment before trying again.',
+  TooManyVerificationAttempts: 'Too many incorrect attempts. Please sign in again to request a new code.',
 };

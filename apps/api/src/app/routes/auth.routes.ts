@@ -1,4 +1,5 @@
 import { createRateLimit } from '@jetstream/api-config';
+import { MAX_VERIFICATION_ATTEMPTS } from '@jetstream/auth/server';
 import express, { Router } from 'express';
 import * as authController from '../controllers/auth.controller';
 import { rateLimitGetKeyGenerator, rateLimitGetMaxRequests } from '../utils/route.utils';
@@ -26,6 +27,20 @@ const STRICT_2X_AuthRateLimit = createRateLimit('auth_strict_2x', {
   keyGenerator: rateLimitGetKeyGenerator(),
 });
 
+// Session-scoped cap on /auth/verify: bounds parallel bursts so concurrent requests can't exceed
+// MAX_VERIFICATION_ATTEMPTS even when the session-stored attempt counter races under last-write-wins.
+// This rate-limit window (15 min) does NOT reset when a user requests a resend — resend clears
+// req.session.pendingVerificationAttempts, but the rate-limit counter persists. That's intentional:
+// it prevents resend-as-counter-reset abuse by keeping the hard ceiling of MAX_VERIFICATION_ATTEMPTS
+// /verify calls per session per 15-min window regardless of how many resends occur. Falls back to IP
+// only in the defensive case of a missing session (verify always requires one in normal flow).
+const verifyIpKeyGenerator = rateLimitGetKeyGenerator();
+const VerifyAttemptRateLimit = createRateLimit('auth_verify_attempt', {
+  windowMs: 1000 * 60 * 15, // 15 minutes
+  limit: rateLimitGetMaxRequests(MAX_VERIFICATION_ATTEMPTS),
+  keyGenerator: (req, res) => req.sessionID || verifyIpKeyGenerator(req, res),
+});
+
 export const routes: express.Router = Router();
 
 routes.get('/logout', LAX_AuthRateLimit, authController.routeDefinition.logout.controllerFn());
@@ -42,7 +57,7 @@ routes.post('/signin/:provider', STRICT_AuthRateLimit, authController.routeDefin
 routes.get('/callback/:provider', STRICT_AuthRateLimit, authController.routeDefinition.callback.controllerFn());
 routes.post('/callback/:provider', STRICT_AuthRateLimit, verifyCaptcha, authController.routeDefinition.callback.controllerFn());
 // 2FA and email verification
-routes.post('/verify', STRICT_AuthRateLimit, authController.routeDefinition.verification.controllerFn());
+routes.post('/verify', STRICT_AuthRateLimit, VerifyAttemptRateLimit, authController.routeDefinition.verification.controllerFn());
 routes.post('/verify/resend', STRICT_2X_AuthRateLimit, authController.routeDefinition.resendVerification.controllerFn());
 // Terms of Service acceptance gate
 routes.post('/accept-terms', LAX_AuthRateLimit, authController.routeDefinition.acceptTerms.controllerFn());
