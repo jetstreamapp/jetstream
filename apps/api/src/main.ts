@@ -39,6 +39,7 @@ import {
   destroySessionIfPendingVerificationIsExpired,
   notFoundMiddleware,
   redirectIfMfaEnrollmentRequiredMiddleware,
+  redirectIfNotAuthenticatedMiddleware,
   redirectIfPendingTosAcceptanceMiddleware,
   redirectIfPendingVerificationMiddleware,
   setApplicationCookieMiddleware,
@@ -430,6 +431,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
       redirectIfPendingVerificationMiddleware,
       redirectIfPendingTosAcceptanceMiddleware,
       redirectIfMfaEnrollmentRequiredMiddleware,
+      redirectIfNotAuthenticatedMiddleware,
       helmet.contentSecurityPolicy({
         directives: buildCspDirectives(['*.google.com', '*.googleusercontent.com', 'accounts.google.com']),
       }),
