@@ -13,12 +13,23 @@ import { isKnownError, UserFacingError } from './error-handler';
 
 const DEV_CI_MAX_REQUESTS = 10000;
 
+/**
+ * When TEST_ENABLE_SCANNER_ROUTES=true (staging-only scan mode), relax rate limits
+ * the same way dev/CI already does. See apps/api/src/app/routes/scanner.routes.ts
+ * for the gate. The X_DEV_NO_RATE_LIMIT_BYPASS header still opts out, so tests
+ * can verify rate-limit behavior even in scan mode.
+ */
+function isScannerModeEnabled(): boolean {
+  return String(process.env.TEST_ENABLE_SCANNER_ROUTES || '').toLowerCase() === 'true';
+}
+
 export function rateLimitGetMaxRequests(maxRequests: number): ValueDeterminingMiddleware<number> {
   return (req) => {
     const isDevOrCi = ENV.ENVIRONMENT === 'development' || ENV.CI;
+    const scannerModeEnabled = isScannerModeEnabled();
     const noDevBypass = req.header(HTTP.HEADERS.X_DEV_NO_RATE_LIMIT_BYPASS) === '1';
-    // Higher limits in development unless header is passed in to opt out (used in tests to verify rate limiting behavior)
-    if (isDevOrCi && !noDevBypass) {
+    // Higher limits in development / scanner mode unless header opts out (used in tests to verify rate limiting)
+    if ((isDevOrCi || scannerModeEnabled) && !noDevBypass) {
       return DEV_CI_MAX_REQUESTS;
     }
     return maxRequests;

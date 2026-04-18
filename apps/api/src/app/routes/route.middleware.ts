@@ -189,7 +189,10 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
   const user = req.session.user;
   const pendingVerification = req.session.pendingVerification;
 
-  if (req.session.userAgent && req.session.userAgent !== userAgent) {
+  // Scanner sessions (minted by scanner.routes.ts behind TEST_ENABLE_SCANNER_ROUTES
+  // + non-production server URL + basic auth) intentionally skip the UA similarity
+  // guard so scanners that rotate their User-Agent do not self-destruct their session.
+  if (req.session.userAgent && req.session.userAgent !== userAgent && !req.session.isScannerSession) {
     if (!checkUserAgentSimilarity(req.session.userAgent, userAgent || '')) {
       res.log.warn(`[AUTH][UNAUTHORIZED] User-Agent mismatch: ${req.session.userAgent} !== ${userAgent}`);
       req.session.destroy((err) => {

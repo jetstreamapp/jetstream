@@ -172,6 +172,14 @@ export interface SessionData {
   sessionDetails?: { isTemporary: boolean };
   pendingTosAcceptance?: boolean | null;
   sendNewUserEmailAfterVerify?: boolean;
+  /**
+   * Marks a session that was minted by the automated-scanner bootstrap endpoint.
+   * Only checked to bypass the User-Agent similarity guard in checkAuth so a
+   * scanner rotating its UA does not continually destroy its own session.
+   * Can only be set by apps/api/src/app/routes/scanner.routes.ts, which itself
+   * requires TEST_ENABLE_SCANNER_ROUTES + non-production server URL + basic auth.
+   */
+  isScannerSession?: boolean;
   orgAuth?: { code_verifier: string; nonce: string; state: string; loginUrl: string; orgGroupId?: Maybe<string> };
   // SSO state
   ssoReturnUrl?: string;
