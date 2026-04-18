@@ -15,6 +15,7 @@
   "resolutions": {
     "@babel/traverse": ">=7.23.2 <8.0.0",
     "**/connect-pg-simple/@types/express-session": "^1.18.2",
+    "dompurify": "^3.3.2",
     "axios": "^1.15.0",
     "handlebars": "4.7.9",
     "next-images/**/loader-utils": "2.0.4"
