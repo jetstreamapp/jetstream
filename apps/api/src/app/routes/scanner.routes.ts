@@ -1,6 +1,5 @@
 import { ENV, logger } from '@jetstream/api-config';
-import { generateHMACDoubleCSRFToken, getCookieConfig } from '@jetstream/auth/server';
-import type { UserProfileSession } from '@jetstream/auth/types';
+import { findUserById_UNSAFE, generateHMACDoubleCSRFToken, getCookieConfig } from '@jetstream/auth/server';
 import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import { salesforceLoginJwtBearer } from '@jetstream/salesforce-oauth';
 import { HTTP } from '@jetstream/shared/constants';
@@ -30,6 +29,7 @@ import { basicAuthMiddleware } from './route.middleware';
  * Staging-specific env vars (read directly from process.env to keep this file
  * self-contained; intentionally not in env-config.ts):
  *   - TEST_ENABLE_SCANNER_ROUTES      → router gate ('true' to enable)
+ *   - TEST_SCANNER_USER_ID            → DB id of a real persisted user to impersonate
  *   - TEST_SFDC_LOGIN_URL             → optional Salesforce login URL for org preload
  *   - TEST_SFDC_LOGIN_USERNAME        → optional JWT-bearer subject
  *   - TEST_SFDC_PRIVATE_KEY_BASE64    → optional JWT signing key (base64)
@@ -59,30 +59,27 @@ interface InitSessionResponse {
 
 routes.post('/init-session', async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   try {
-    if (!ENV.EXAMPLE_USER) {
-      return res.status(500).json({ error: true, message: 'EXAMPLE_USER is not configured' });
+    const scannerUserId = process.env.TEST_SCANNER_USER_ID;
+    if (!scannerUserId) {
+      return res.status(500).json({ error: true, message: 'TEST_SCANNER_USER_ID is not configured' });
+    }
+
+    let scannerUser: Awaited<ReturnType<typeof findUserById_UNSAFE>>;
+    try {
+      scannerUser = await findUserById_UNSAFE(scannerUserId);
+    } catch (ex) {
+      logger.warn({ err: ex, scannerUserId }, '[SCANNER][INIT_SESSION] Failed to load scanner user from DB');
+      return res.status(500).json({ error: true, message: 'Scanner user not found in DB' });
     }
 
     const userAgent = req.get('User-Agent') || 'scanner';
-    const exampleUser: UserProfileSession = {
-      id: ENV.EXAMPLE_USER.id,
-      userId: ENV.EXAMPLE_USER.userId,
-      name: ENV.EXAMPLE_USER.name,
-      email: ENV.EXAMPLE_USER.email,
-      emailVerified: ENV.EXAMPLE_USER.emailVerified,
-      tosAcceptedVersion: ENV.EXAMPLE_USER.tosAcceptedVersion ?? null,
-      authFactors: ENV.EXAMPLE_USER.authFactors.map(({ type, enabled }) => ({
-        type: type as UserProfileSession['authFactors'][number]['type'],
-        enabled,
-      })),
-    };
 
     await new Promise<void>((resolve, reject) => {
       req.session.regenerate((error) => {
         if (error) {
           return reject(error);
         }
-        req.session.user = exampleUser;
+        req.session.user = scannerUser;
         req.session.userAgent = userAgent;
         req.session.loginTime = Date.now();
         req.session.provider = 'credentials';
@@ -123,7 +120,7 @@ routes.post('/init-session', async (req: express.Request, res: express.Response,
         });
         const salesforceOrg = await initConnectionFromOAuthResponse({
           jetstreamConn,
-          userId: exampleUser.id,
+          userId: scannerUser.id,
         });
         org = { uniqueId: salesforceOrg.uniqueId };
       } catch (ex) {
@@ -136,7 +133,7 @@ routes.post('/init-session', async (req: express.Request, res: express.Response,
       csrfCookieName: cookieConfig.doubleCSRFToken.name,
       csrfHeaderName: HTTP.HEADERS.X_CSRF_TOKEN,
       csrfToken,
-      user: { id: exampleUser.id, email: exampleUser.email },
+      user: { id: scannerUser.id, email: scannerUser.email },
       org,
     };
 
