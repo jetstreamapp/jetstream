@@ -9,6 +9,7 @@ import platformEventRoutes from './platform-event.routes';
 import redirectRoutes from './redirect.routes';
 import staticAuthenticatedRoutes from './static-authenticated.routes';
 import teamRoutes from './team.routes';
+import scannerRoutes from './scanner.routes';
 import testRoutes from './test.routes';
 import webExtensionRoutes from './web-extension-server.routes';
 import webhookRoutes from './webhook.routes';
@@ -23,6 +24,7 @@ export {
   openApiRoutes,
   platformEventRoutes,
   redirectRoutes,
+  scannerRoutes,
   staticAuthenticatedRoutes,
   teamRoutes,
   testRoutes,

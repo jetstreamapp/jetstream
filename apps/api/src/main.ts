@@ -30,6 +30,7 @@ import {
   redirectRoutes,
   staticAuthenticatedRoutes,
   teamRoutes,
+  scannerRoutes,
   testRoutes,
   webExtensionRoutes,
   webhookRoutes,
@@ -353,6 +354,10 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
 
   app.use('/healthz', setCacheControlForApiRoutes, healthCheck);
   app.use('/redirect', setCacheControlForApiRoutes, redirectRoutes);
+  // Automated-scanner bootstrap — self-gated (TEST_ENABLE_SCANNER_ROUTES + non-prod server URL + basic auth)
+  // Mounted before /api so it bypasses checkAuth / validateDoubleCSRF, which is the whole point
+  // (it has to run before a session exists). See apps/api/src/app/routes/scanner.routes.ts.
+  app.use('/api/test/scanner', setCacheControlForApiRoutes, scannerRoutes);
   app.use('/api/auth', setCacheControlForApiRoutes, authRoutes);
   app.use('/api/teams', setCacheControlForApiRoutes, teamRoutes);
   app.use('/api/billing', setCacheControlForApiRoutes, billingRoutes);
