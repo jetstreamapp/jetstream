@@ -1,4 +1,5 @@
 import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
+import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { parse } from '@jetstreamapp/simple-xml';
 import isObject from 'lodash/isObject';
 import { ApiRequestOptions, ApiRequestOutputType, BulkXmlErrorResponse, FetchFn, FetchResponse, Logger, SoapErrorResponse } from './types';
@@ -46,9 +47,14 @@ function parseXml(value: string) {
 export function getApiRequestFactoryFn(fetch: FetchFn) {
   return (
     logger: Logger,
-    onRefresh?: (accessToken: string) => void,
-    onConnectionError?: (accessToken: string) => void,
+    onRefresh?: (accessToken: string, refreshToken?: string, skipPersistence?: boolean) => Promise<void> | void,
+    onConnectionError?: (error: string) => void,
+    /**
+     * Enable logging only applies to request/response data
+     * other logging for refresh flow and logic errors will still be logged
+     */
     enableLogging?: boolean,
+    getFreshTokens?: () => Promise<{ accessToken: string; refreshToken: string } | null>,
   ) => {
     const apiRequest = async <Response = unknown>(options: ApiRequestOptions, attemptRefresh = true): Promise<Response> => {
       // eslint-disable-next-line prefer-const
@@ -125,9 +131,10 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
             sessionInfo.refreshToken
           ) {
             try {
-              // if 401 and we have a refresh token, then attempt to refresh the token
-              const { access_token: newAccessToken } = await exchangeRefreshToken(fetch, sessionInfo);
-              onRefresh?.(newAccessToken);
+              logger.debug({ url, method, status: response.status }, '[TOKEN REFRESH] Attempting token refresh');
+              const { access_token: newAccessToken, refresh_token: newRefreshToken } = await exchangeRefreshToken(fetch, sessionInfo);
+              logger.debug({ url, method, tokenRotated: !!newRefreshToken }, '[TOKEN REFRESH] Token refresh successful');
+              await onRefresh?.(newAccessToken, newRefreshToken);
               // replace token in body
               if (typeof options.body === 'string' && options.body.includes(accessToken)) {
                 // if the response is soap, we need to return the response as is
@@ -135,8 +142,37 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
               }
 
               return apiRequest({ ...options, sessionInfo: { ...sessionInfo, accessToken: newAccessToken } }, false);
-            } catch {
-              logger.warn('Unable to refresh accessToken');
+            } catch (ex) {
+              logger.warn({ url, method, ...getErrorMessageAndStackObj(ex) }, '[TOKEN REFRESH] Unable to refresh accessToken');
+
+              // Check if another worker already refreshed (race condition on token rotation).
+              // If the DB has a different access token, a concurrent request won the race — retry with fresh tokens.
+              // `return await` (not bare `return`) is deliberate: it keeps the recursive retry inside this
+              // try/catch so a second failure still falls through to onConnectionError below.
+              if (getFreshTokens) {
+                try {
+                  const freshTokens = await getFreshTokens();
+                  if (freshTokens && freshTokens.accessToken !== accessToken) {
+                    logger.info({ url, method }, '[TOKEN REFRESH] Concurrent refresh detected — retrying with tokens from another worker');
+                    // Sync the connection's canonical session state without re-persisting (DB already has these
+                    // tokens — that's how we got them). Also mutates the shared sessionInfo reference so
+                    // subsequent requests on this connection stop hitting the stale token path.
+                    await onRefresh?.(freshTokens.accessToken, freshTokens.refreshToken, true);
+                    // replace token in body
+                    if (typeof options.body === 'string' && options.body.includes(accessToken)) {
+                      // if the response is soap, we need to return the response as is
+                      options.body = options.body.replace(accessToken, freshTokens.accessToken);
+                    }
+                    return await apiRequest({ ...options, sessionInfo: { ...sessionInfo, ...freshTokens } }, false);
+                  }
+                } catch (freshEx) {
+                  logger.warn(
+                    { url, method, ...getErrorMessageAndStackObj(freshEx) },
+                    '[TOKEN REFRESH] Failed to retrieve fresh tokens for race condition check',
+                  );
+                }
+              }
+
               responseText = ERROR_MESSAGES.SFDC_EXPIRED_TOKEN;
               onConnectionError?.(ERROR_MESSAGES.SFDC_EXPIRED_TOKEN);
             }
@@ -192,7 +228,10 @@ function handleSalesforceApiError(outputType: ApiRequestOutputType, responseText
   return output;
 }
 
-function exchangeRefreshToken(fetch: FetchFn, sessionInfo: ApiRequestOptions['sessionInfo']): Promise<{ access_token: string }> {
+function exchangeRefreshToken(
+  fetch: FetchFn,
+  sessionInfo: ApiRequestOptions['sessionInfo'],
+): Promise<{ access_token: string; refresh_token?: string }> {
   const searchParams = new URLSearchParams({
     grant_type: 'refresh_token',
   });
@@ -221,6 +260,6 @@ function exchangeRefreshToken(fetch: FetchFn, sessionInfo: ApiRequestOptions['se
     })
     .then((response) => response.json())
     .then((response) => {
-      return response as { access_token: string };
+      return response as { access_token: string; refresh_token?: string };
     });
 }
