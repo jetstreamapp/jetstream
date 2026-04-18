@@ -243,6 +243,8 @@ const initPassword = createRoute(routeDefinition.initPassword.validators, async 
   if ('error' in results) {
     throw new UserFacingError(results.error);
   }
+  // Revoke other sessions so an attacker with a stolen session loses access when the legitimate user rotates credentials.
+  await revokeAllUserSessions(user.id, req.session.id);
   sendJson(res, await userDbService.findUserWithIdentitiesById(user.id));
 
   createUserActivityFromReq(req, res, {
@@ -265,6 +267,9 @@ const initResetPassword = createRoute(routeDefinition.initResetPassword.validato
 
 const deletePassword = createRoute(routeDefinition.deletePassword.validators, async ({ user }, req, res) => {
   await removePasswordFromUser(user.id);
+
+  // Revoke other sessions so an attacker with a stolen session loses access when the legitimate user rotates credentials.
+  await revokeAllUserSessions(user.id, req.session.id);
 
   await sendAuthenticationChangeConfirmation(user.email, 'Your password has been removed from your account', {
     heading: 'You have removed your password as a login method',
