@@ -1,5 +1,5 @@
 import { ANALYTICS_KEYS, DATE_FORMATS, TITLES } from '@jetstream/shared/constants';
-import { formatNumber, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
+import { formatNumber, tracker, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { getErrorMessageAndStackObj, groupByFlat, isProductionOrg } from '@jetstream/shared/utils';
 import {
   DeployMessage,
@@ -60,7 +60,6 @@ export const PerformLoadCustomMetadata = ({
   inputFileData,
   onIsLoading,
 }: PerformLoadCustomMetadataProps) => {
-  const rollbar = useRollbar();
   const isProduction = isProductionOrg(selectedOrg);
   const { trackEvent } = useAmplitude();
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
@@ -126,7 +125,7 @@ export const PerformLoadCustomMetadata = ({
         document.title = `Loading Records | ${TITLES.BAR_JETSTREAM}`;
       } catch (ex) {
         setDeployMetadataError('There was a problem preparing the Custom Metadata for deployment. Please check your file and try again.');
-        rollbar.error('Problem preparing custom metadata', getErrorMessageAndStackObj(ex));
+        tracker.error('Problem preparing custom metadata', getErrorMessageAndStackObj(ex));
       }
     }
   }

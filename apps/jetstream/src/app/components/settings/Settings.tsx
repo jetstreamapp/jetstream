@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { deleteUserProfile, getFullUserProfile, getUserProfile as getUserProfileUi, updateUserProfile } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { eraseCookies, useRollbar, useTitle } from '@jetstream/shared/ui-utils';
+import { eraseCookies, tracker, useTitle } from '@jetstream/shared/ui-utils';
 import { SoqlQueryFormatOptions, SoqlQueryFormatOptionsSchema } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -31,7 +31,6 @@ export const Settings = () => {
   useTitle(TITLES.SETTINGS);
   const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
-  const rollbar = useRollbar();
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState(false);
   const [userProfile, setUserProfile] = useAtom(userProfileState);
@@ -61,18 +60,16 @@ export const Settings = () => {
       setLoadingError(false);
       setFullUserProfile(await getFullUserProfile());
     } catch (ex) {
-      rollbar.error('Settings: Error fetching user', { stack: ex.stack, message: ex.message });
+      tracker.error('Settings: Error fetching user', { stack: ex.stack, message: ex.message });
       setLoadingError(true);
     } finally {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     getUserProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [getUserProfile]);
 
   useEffect(() => {
     if (fullUserProfile) {
@@ -100,7 +97,7 @@ export const Settings = () => {
         message: 'There was a problem updating your user. Try again or file a support ticket for assistance.',
         type: 'error',
       });
-      rollbar.error('Settings: Error updating user', { stack: ex.stack, message: ex.message });
+      tracker.error('Settings: Error updating user', { stack: ex.stack, message: ex.message });
     } finally {
       setLoading(false);
     }

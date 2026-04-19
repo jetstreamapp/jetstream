@@ -12,7 +12,7 @@ import {
   prepareCsvFile,
   prepareExcelFile,
   saveFile,
-  useRollbar,
+  tracker,
 } from '@jetstream/shared/ui-utils';
 import { flattenRecords, getMapOfBaseAndSubqueryRecords } from '@jetstream/shared/utils';
 import {
@@ -126,7 +126,6 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   onDownloadFromServer,
   children,
 }) => {
-  const rollbar = useRollbar();
   const hasGoogleInputConfigured =
     (isDesktop() ||
       isBrowserExtension() ||
@@ -328,7 +327,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
     } catch (ex) {
       // TODO: show error message somewhere
       logger.error('Error downloading file', ex);
-      rollbar.error('Record download error', { message: ex.message, stack: ex.stack });
+      tracker.error('Record download error', { message: ex.message, stack: ex.stack });
       setErrorMessage('There was a problem preparing your file download.');
     }
   }

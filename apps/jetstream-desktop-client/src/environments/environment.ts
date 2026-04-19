@@ -5,7 +5,7 @@ export const environment = {
   name: 'JetstreamDev',
   production: false,
   // FIXME: we do want these in
-  rollbarClientAccessToken: undefined,
+  sentryDsn: undefined,
   amplitudeToken: undefined,
   STRIPE_PUBLIC_KEY: '',
   BILLING_ENABLED: false,

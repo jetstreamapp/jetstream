@@ -88,7 +88,7 @@ const webSubProcessors = [
     salesforceCanvas: true,
   },
   {
-    name: 'Rollbar',
+    name: 'Better Stack',
     function: 'Bug reporting and tracking',
     location: 'US',
     optional: NoIcon,

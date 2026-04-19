@@ -23,7 +23,7 @@
  * SOFTWARE.
  */
 
-import { logErrorToRollbar, setItemInSessionStorage } from '@jetstream/shared/ui-utils';
+import { tracker, setItemInSessionStorage } from '@jetstream/shared/ui-utils';
 import { ComponentType, createElement, forwardRef, lazy } from 'react';
 
 export type PreloadableComponent<T extends ComponentType<unknown>> = T & {
@@ -60,7 +60,7 @@ export default function lazyWithPreload<T extends ComponentType<unknown>>(
         })
         .catch((ex) => {
           console.error('Failed to preload component', ex);
-          logErrorToRollbar('Preload route failed', {
+          tracker.error('Preload route failed', {
             message: ex.message,
             stack: ex.stack,
           });
@@ -75,7 +75,6 @@ export default function lazyWithPreload<T extends ComponentType<unknown>>(
 /**
  * Retry loading a chunk to avoid chunk load error for out of date code
  * This wraps the react lazy function and will throw if a refresh fails to load a chunk a second time
- *
  *
  * {@link https://www.codemzy.com/blog/fix-chunkloaderror-react}
  *

@@ -5,7 +5,7 @@ import { getPicklistValuesForRecordAndRecordType, UiRecordForm } from '@jetstrea
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, SOBJECT_NAME_FIELD_MAP } from '@jetstream/shared/constants';
 import { clearCacheForOrg, describeGlobal, describeSObject, query, sobjectOperation } from '@jetstream/shared/data';
-import { copyRecordsToClipboard, isErrorResponse, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
+import { copyRecordsToClipboard, isErrorResponse, tracker, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import {
   AsyncJobNew,
@@ -141,7 +141,6 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   const { trackEvent } = useAmplitude();
   const isMounted = useRef(true);
   const modalBodyRef = useRef<HTMLDivElement>(null);
-  const rollbar = useRollbar();
   // If user was ever in view mode, clicking cancel will take back to view instead of close
   const hasEverBeenInViewMode = useRef(false);
   hasEverBeenInViewMode.current = action === 'view' || hasEverBeenInViewMode.current;
@@ -281,7 +280,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
       } catch (ex) {
         if (isMounted.current) {
           logger.error('Error fetching metadata', ex);
-          rollbar.error('Error fetching record metadata', getErrorMessageAndStackObj(ex));
+          tracker.error('Error fetching record metadata', getErrorMessageAndStackObj(ex));
           setFormErrors({
             hasErrors: true,
             fieldErrors: {},

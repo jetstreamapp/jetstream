@@ -40,7 +40,7 @@ export default defineConfig(() => ({
     commonjsOptions: { transformMixedEsModules: true },
     // Put all assets at the root of the app instead of under /assets
     assetsDir: './',
-    sourcemap: true,
+    sourcemap: 'hidden',
     emptyOutDir: true,
     rollupOptions: {},
   },

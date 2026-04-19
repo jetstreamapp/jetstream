@@ -13,7 +13,7 @@ import {
   saveFile,
   useBrowserNotifications,
   useObservable,
-  useRollbar,
+  tracker,
 } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import {
@@ -63,7 +63,6 @@ export const Jobs: FunctionComponent = () => {
   const popoverRef = useRef<PopoverRef>(null);
   const isOpen = useRef<boolean>(false);
   const [{ serverUrl, defaultApiVersion }] = useAtom(applicationCookieState);
-  const rollbar = useRollbar();
   const setJobs = useSetAtom(jobsState);
   const jobsUnread = useAtomValue(jobsUnreadState);
   const [jobs, setJobsArr] = useAtom(selectJobs);
@@ -184,7 +183,7 @@ export const Jobs: FunctionComponent = () => {
         })
         .catch((err) => {
           handleGoogleUploadFailure({ fileData, fileName, fileType }, newJob);
-          rollbar.error('Error saving to Google Drive', { err, message: err?.message });
+          tracker.error('Error saving to Google Drive', { err, message: err?.message });
         })
         .finally(() => {
           setJobs((prevJobs) => ({
