@@ -1,5 +1,20 @@
 # Changelog
 
+## [9.14.0](https://github.com/jetstreamapp/jetstream/compare/v9.13.0...v9.14.0) (2026-04-19)
+
+### Features
+
+* add ProfileOrPermSetPopover component and integrate it into various selection components ([0001090](https://github.com/jetstreamapp/jetstream/commit/00010903b2ee802dbc9e225f75ebe17b1ddb1091))
+* implement security headers and improve cookie handling; add tests for auth storage privacy ([e113cf0](https://github.com/jetstreamapp/jetstream/commit/e113cf0ec46378c0d3ebf07e013b5ce5b2010ed0))
+
+### Bug Fixes
+
+* add additional sources to CSP directives for enhanced security ([2e434ef](https://github.com/jetstreamapp/jetstream/commit/2e434efcd1094c21860ae19ffec0589ffaa560b9))
+* address review feedback - fire-and-forget email sends and fix comment wording ([c524a96](https://github.com/jetstreamapp/jetstream/commit/c524a96edeb4db7bd3a9284d4d8f94582745401d))
+* address second round of review feedback on placeholder email suppression ([ce42376](https://github.com/jetstreamapp/jetstream/commit/ce42376eadba34b95346b1f54ba0e6c6c4ccb449))
+* suppress verification emails for placeholder sessions in auth flow ([ad1a14e](https://github.com/jetstreamapp/jetstream/commit/ad1a14e8e3765977db941af8c8a63ade0ad300af))
+* update CSP policy to include additional image sources and https ([4702c22](https://github.com/jetstreamapp/jetstream/commit/4702c224576b1a5ee8d58b49cde52ff851031b01))
+
 ## [9.13.0](https://github.com/jetstreamapp/jetstream/compare/v9.12.1...v9.13.0) (2026-04-19)
 
 ### Features
