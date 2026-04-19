@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { query } from '@jetstream/shared/data';
 import { appActionObservable, hasModifierKey, isUKey, useDebounce, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
-import { QueryResults } from '@jetstream/types';
+import { QueryResults, SalesforceOrgUi } from '@jetstream/types';
 import {
   CopyToClipboard,
   getModifierKey,
@@ -13,6 +13,7 @@ import {
   List,
   Popover,
   PopoverRef,
+  ProfileOrPermSetPopover,
   SalesforceLogin,
   ScopedNotification,
   SearchInput,
@@ -169,7 +170,13 @@ export const UserSearchPopover: FunctionComponent = () => {
                 getContent={(user: User) => ({
                   key: user.Id,
                   id: user.Id,
-                  heading: getListItemContent({ user, onCopy: (type) => trackEvent(ANALYTICS_KEYS.user_search_copy_item, { type }) }),
+                  heading: getListItemContent({
+                    user,
+                    org: selectedOrg,
+                    serverUrl,
+                    skipFrontDoorAuth,
+                    onCopy: (type) => trackEvent(ANALYTICS_KEYS.user_search_copy_item, { type }),
+                  }),
                   children: (
                     <Grid align="spread">
                       <SalesforceLogin
@@ -204,7 +211,19 @@ export const UserSearchPopover: FunctionComponent = () => {
   );
 };
 
-function getListItemContent({ user, onCopy }: { user: User; onCopy: (type: string) => void }) {
+function getListItemContent({
+  user,
+  org,
+  serverUrl,
+  skipFrontDoorAuth,
+  onCopy,
+}: {
+  user: User;
+  org: SalesforceOrgUi;
+  serverUrl: string;
+  skipFrontDoorAuth: boolean;
+  onCopy: (type: string) => void;
+}) {
   const { Alias, Email, Id, IsActive, Name, Profile, Username, UserType, UserRole } = user;
   return (
     <div>
@@ -225,11 +244,19 @@ function getListItemContent({ user, onCopy }: { user: User; onCopy: (type: strin
         <CopyToClipboard content={Username} copied={() => onCopy('username')} />
         {Username}
       </p>
-      {Profile?.Name && (
-        <p>
-          <span className="text-bold">Profile: </span>
-          {Profile.Name}
-        </p>
+      {Profile?.Id && Profile?.Name && (
+        <Grid verticalAlign="center">
+          <span className="text-bold slds-m-right_xx-small">Profile: </span>
+          <ProfileOrPermSetPopover
+            org={org}
+            serverUrl={serverUrl}
+            skipFrontDoorAuth={skipFrontDoorAuth}
+            recordId={Profile.Id}
+            recordType="Profile"
+            displayValue={<span>{Profile.Name}</span>}
+            buttonTitle={`View ${Profile.Name} details`}
+          />
+        </Grid>
       )}
       {UserRole?.Name && (
         <p>

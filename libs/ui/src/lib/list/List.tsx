@@ -38,6 +38,7 @@ export interface ListProps {
     testId?: string;
     heading?: Maybe<string | ReactNode>;
     subheading?: Maybe<string>;
+    trailingHeader?: ReactNode;
     children?: ReactNode;
   };
   onSelected: (key: string) => void;
@@ -182,7 +183,7 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
             onKeyDown={handleKeyDown}
           >
             {items.map((item, i) => {
-              const { key, id, testId, heading, subheading, children } = getContent(item);
+              const { key, id, testId, heading, subheading, trailingHeader, children } = getContent(item);
               return useCheckbox ? (
                 <ListItemCheckbox
                   inputRef={elRefs.current[i] as RefObject<HTMLInputElement>}
@@ -208,6 +209,7 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
                   isActive={isActive(item)}
                   heading={heading}
                   subheading={subheading}
+                  trailingHeader={trailingHeader}
                   subheadingPlaceholder={subheadingPlaceholder}
                   searchTerm={searchTerm}
                   highlightText={highlightText}

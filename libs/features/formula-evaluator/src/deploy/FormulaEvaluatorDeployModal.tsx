@@ -278,6 +278,7 @@ export const FormulaEvaluatorDeployModal = ({
                   titleText: 'Field Permissions',
                   content: (
                     <FormulaEvaluatorPermissions
+                      selectedOrg={selectedOrg}
                       hasError={permissionData.hasError}
                       lastRefreshed={permissionData.lastRefreshed}
                       loading={permissionData.loading}

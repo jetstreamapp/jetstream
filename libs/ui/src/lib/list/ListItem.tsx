@@ -10,6 +10,11 @@ export interface ListItemProps {
   testId?: Maybe<string>;
   heading?: Maybe<string | ReactNode>;
   subheading?: Maybe<string>;
+  /**
+   * Optional node rendered on the right side of the heading row.
+   * Clicks inside this node should stop propagation if row selection is to be avoided.
+   */
+  trailingHeader?: ReactNode;
   isActive?: boolean;
   subheadingPlaceholder?: boolean;
   searchTerm?: string;
@@ -25,6 +30,7 @@ export const ListItem = memo<ListItemProps>(
     testId,
     heading = '',
     subheading,
+    trailingHeader,
     isActive,
     subheadingPlaceholder,
     searchTerm,
@@ -37,6 +43,13 @@ export const ListItem = memo<ListItemProps>(
     const highlightedSubHeading = useHighlightedText(subheading, searchTerm, {
       ignoreHighlight: !highlightText,
     });
+    const headingContent = isString(heading) ? (
+      <div className="slds-truncate" title={heading}>
+        {highlightedHeading}
+      </div>
+    ) : (
+      heading
+    );
     return (
       <li
         ref={liRef}
@@ -51,12 +64,13 @@ export const ListItem = memo<ListItemProps>(
           !disabled && onSelected && onSelected();
         }}
       >
-        {isString(heading) ? (
-          <div className="slds-truncate" title={heading}>
-            {highlightedHeading}
+        {trailingHeader ? (
+          <div className="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+            <div className="slds-truncate slds-grow">{headingContent}</div>
+            <div className="slds-no-flex slds-m-left_xx-small">{trailingHeader}</div>
           </div>
         ) : (
-          heading
+          headingContent
         )}
         {subheading && (
           <div className="slds-text-body_small slds-text-color_weak slds-truncate" title={subheading}>
