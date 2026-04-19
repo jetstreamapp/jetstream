@@ -29,8 +29,11 @@ vi.mock('@jetstream/api-config', () => ({
     warn: vi.fn(),
   },
   prisma: {},
-  rollbarServer: {
+  errorTracker: {
+    error: vi.fn(),
     warn: vi.fn(),
+    critical: vi.fn(),
+    info: vi.fn(),
   },
 }));
 

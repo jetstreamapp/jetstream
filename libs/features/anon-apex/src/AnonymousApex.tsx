@@ -10,7 +10,7 @@ import {
   useDebounce,
   useDisposables,
   useNonInitialEffect,
-  useRollbar,
+  tracker,
   useTitle,
 } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
@@ -64,7 +64,6 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   const logRef = useRef<editor.IStandaloneCodeEditor>(null);
   const { addDisposable } = useDisposables();
   const { trackEvent } = useAmplitude();
-  const rollbar = useRollbar();
   const { serverUrl } = useAtomValue(applicationCookieState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
   const selectedOrg = useAtomValue(selectedOrgState);
@@ -168,7 +167,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
             })
             .catch((ex) => {
               logger.warn('[ERROR] Could not save history', ex);
-              rollbar.error('Error saving apex history', getErrorMessageAndStackObj(ex));
+              tracker.error('Error saving apex history', getErrorMessageAndStackObj(ex));
             });
         }
         trackEvent(ANALYTICS_KEYS.apex_Submitted, { success: result.success });
@@ -179,7 +178,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
         setLoading(false);
       }
     },
-    [selectedOrg, logLevel, trackEvent, notifyUser, setHistoryItems, rollbar],
+    [selectedOrg, logLevel, trackEvent, notifyUser, setHistoryItems],
   );
 
   function handleEditorChange(value?: string, event?: unknown) {

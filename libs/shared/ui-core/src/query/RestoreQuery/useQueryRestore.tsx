@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { useRollbar } from '@jetstream/shared/ui-utils';
+import { tracker } from '@jetstream/shared/ui-utils';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { Maybe } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
@@ -33,8 +33,6 @@ export const useQueryRestore = (
   soql = soql || '';
   options = options || {};
   const { silent, startRestore, endRestore } = options;
-
-  const rollbar = useRollbar();
 
   const isMounted = useRef(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -163,7 +161,7 @@ export const useQueryRestore = (
         } else {
           logger.warn('[QUERY RESTORE][ERROR]', ex);
           setErrorMessage('An unknown error has ocurred while restoring your query');
-          rollbar.error('Query Restore Error', { ...getErrorMessageAndStackObj(ex), query: currSoql });
+          tracker.error('Query Restore Error', { ...getErrorMessageAndStackObj(ex), query: currSoql });
         }
         endRestore(true, toolingOverride ?? isTooling);
       }

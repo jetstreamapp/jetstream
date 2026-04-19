@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { AUTH_ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
 import { checkHeartbeat, disconnectSocket, initSocket, registerMiddleware, updateUserProfile } from '@jetstream/shared/data';
-import { useObservable, useRollbar } from '@jetstream/shared/ui-utils';
+import { initErrorTracker, setErrorTrackerUser, tracker, useObservable } from '@jetstream/shared/ui-utils';
 import { Announcement, JetstreamEventSaveSoqlQueryFormatOptionsPayload, SalesforceOrgUi } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
@@ -99,12 +99,14 @@ APP VERSION ${version}
     announcements && onAnnouncements && onAnnouncements(announcements);
   }, [announcements, onAnnouncements]);
 
-  const rollbar = useRollbar({
-    accessToken: environment.rollbarClientAccessToken,
-    environment: appInfo.environment,
-    userProfile,
-    version,
-  });
+  useEffect(() => {
+    initErrorTracker({ dsn: environment.sentryDsn, environment: appInfo.environment, version });
+  }, [appInfo.environment, version]);
+
+  useEffect(() => {
+    setErrorTrackerUser(userProfile);
+  }, [userProfile]);
+
   useAmplitude(analytics !== 'accepted');
 
   useEffect(() => {
@@ -114,11 +116,11 @@ APP VERSION ${version}
           const soqlQueryFormatOptions = onSaveSoqlQueryFormatOptions.value;
           await updateUserProfile({ preferences: { soqlQueryFormatOptions } });
         } catch (ex) {
-          rollbar.error('Error saving query format options', { stack: ex.stack, message: ex.message });
+          tracker.error('Error saving query format options', { stack: ex.stack, message: ex.message });
         }
       })();
     }
-  }, [onSaveSoqlQueryFormatOptions, rollbar]);
+  }, [onSaveSoqlQueryFormatOptions]);
 
   useEffect(() => {
     if (invalidOrg) {

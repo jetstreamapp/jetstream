@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { SFDC_BLANK_PICKLIST_VALUE } from '@jetstream/shared/constants';
 import { describeSObject, readMetadata } from '@jetstream/shared/data';
-import { useRollbar } from '@jetstream/shared/ui-utils';
+import { tracker } from '@jetstream/shared/ui-utils';
 import { getErrorMessageAndStackObj, groupByFlat, orderValues, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { DescribeSObjectResult, ReadMetadataRecordType, ReadMetadataRecordTypeExtended } from '@jetstream/types';
 import { fromRecordTypeManagerState } from '@jetstream/ui-core';
@@ -26,7 +26,6 @@ const ignoredPicklistSuffix = ['StateCode', 'CountryCode', 'GeocodeAccuracy', 'S
 
 export function useLoadRecordTypeData() {
   const isMounted = useRef(true);
-  const rollbar = useRollbar();
 
   const selectedOrg = useAtomValue(selectedOrgState);
   const selectedRecordTypes = useAtomValue(fromRecordTypeManagerState.selectedRecordTypes);
@@ -88,13 +87,13 @@ export function useLoadRecordTypeData() {
           _sobjects[sobject] = await describeSObject(selectedOrg, sobject).then((item) => item.data);
         } catch (ex) {
           logger.warn(`Error loading object ${sobject}`, ex);
-          rollbar.error('Record Type Manager: Error loading object', sobject, getErrorMessageAndStackObj(ex));
+          tracker.error('Record Type Manager: Error loading object', sobject, getErrorMessageAndStackObj(ex));
         }
       }
       setSobjects(_sobjects);
       return _sobjects;
     },
-    [rollbar, selectedOrg],
+    [selectedOrg],
   );
 
   const loadData = useCallback(async () => {
@@ -190,9 +189,9 @@ export function useLoadRecordTypeData() {
     } catch (ex) {
       setHasError(true);
       logger.error('Error loading record types', ex);
-      rollbar.error('Record Type Manager: Error loading record types', getErrorMessageAndStackObj(ex));
+      tracker.error('Record Type Manager: Error loading record types', getErrorMessageAndStackObj(ex));
     }
-  }, [loadObjectMetadata, loadRecordTypePicklist, rollbar]);
+  }, [loadObjectMetadata, loadRecordTypePicklist]);
 
   const resetData = useCallback(async () => {
     dispatch({ type: 'RESET' });

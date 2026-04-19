@@ -12,7 +12,7 @@ import {
   updateUserProfile,
 } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
+import { tracker, useTitle } from '@jetstream/shared/ui-utils';
 import {
   AutoFullHeightContainer,
   fireToast,
@@ -42,7 +42,6 @@ export const Profile = () => {
   useTitle(TITLES.PROFILE);
   const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
-  const rollbar = useRollbar();
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState(false);
   const [userProfile, setUserProfile] = useAtom(userProfileState);
@@ -69,13 +68,13 @@ export const Profile = () => {
         setFullUserProfile(await getFullUserProfile());
         setLoginConfigAbility(getLoginConfigurationAbility({ user: userProfile, loginConfiguration }));
       } catch (ex) {
-        rollbar.error('Settings: Error fetching user', { stack: ex.stack, message: ex.message });
+        tracker.error('Settings: Error fetching user', { stack: ex.stack, message: ex.message });
         setLoadingError(true);
       } finally {
         setLoading(false);
       }
     })();
-  }, [rollbar, userProfile]);
+  }, [userProfile]);
 
   useEffect(() => {
     if (fullUserProfile) {
@@ -100,7 +99,7 @@ export const Profile = () => {
         message: 'There was a problem updating your user. Try again or file a support ticket for assistance.',
         type: 'error',
       });
-      rollbar.error('Settings: Error updating user', { stack: ex.stack, message: ex.message });
+      tracker.error('Settings: Error updating user', { stack: ex.stack, message: ex.message });
     } finally {
       setLoading(false);
       setEditMode(false);
@@ -132,7 +131,7 @@ export const Profile = () => {
         message: ex.message || 'There was a problem resetting your password. Try again or file a support ticket for assistance.',
         type: 'error',
       });
-      rollbar.error('Settings: Error setting password', { stack: ex.stack, message: ex.message });
+      tracker.error('Settings: Error setting password', { stack: ex.stack, message: ex.message });
     }
   }
 
@@ -150,7 +149,7 @@ export const Profile = () => {
         message: ex.message || 'There was a problem resetting your password. Try again or file a support ticket for assistance.',
         type: 'error',
       });
-      rollbar.error('Settings: Error resetting password', { stack: ex.stack, message: ex.message });
+      tracker.error('Settings: Error resetting password', { stack: ex.stack, message: ex.message });
     }
   }
 
@@ -164,7 +163,7 @@ export const Profile = () => {
         message: 'There was a problem removing your password. Try again or file a support ticket for assistance.',
         type: 'error',
       });
-      rollbar.error('Settings: Error removing password', { stack: ex.stack, message: ex.message });
+      tracker.error('Settings: Error removing password', { stack: ex.stack, message: ex.message });
     }
   }
 

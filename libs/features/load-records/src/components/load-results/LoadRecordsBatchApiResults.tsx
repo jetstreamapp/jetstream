@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { convertDateToLocale, formatNumber, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
+import { convertDateToLocale, formatNumber, useBrowserNotifications, tracker } from '@jetstream/shared/ui-utils';
 import {
   decodeHtmlEntity,
   flattenRecord,
@@ -102,7 +102,6 @@ export const LoadRecordsBatchApiResults = ({
   const onFinishRef = useRef(onFinish);
   onFinishRef.current = onFinish;
   const { trackEvent } = useAmplitude();
-  const rollbar = useRollbar();
   const processingStatusRef = useRef<{ success: number; failure: number }>({ success: 0, failure: 0 });
   const processedRecordsRef = useRef<RecordResultWithRecord[]>([]);
   const [preparedData, setPreparedData] = useState<PrepareDataResponse>();
@@ -206,7 +205,7 @@ export const LoadRecordsBatchApiResults = ({
         body: `❌ ${getErrorMessage(ex)}`,
         tag: 'load-records',
       });
-      rollbar.error('Error preparing batch api data', getErrorMessageAndStackObj(ex));
+      tracker.error('Error preparing batch api data', getErrorMessageAndStackObj(ex));
       return;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -271,7 +270,7 @@ export const LoadRecordsBatchApiResults = ({
         body: `❌ ${getErrorMessage(ex)}`,
         tag: 'load-records',
       });
-      rollbar.error('Error loading batches', getErrorMessageAndStackObj(ex));
+      tracker.error('Error loading batches', getErrorMessageAndStackObj(ex));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

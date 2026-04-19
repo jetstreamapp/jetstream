@@ -7,7 +7,7 @@ import {
   sortQueryFields,
   unFlattenedListItemsById,
   useNonInitialEffect,
-  useRollbar,
+  tracker,
 } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { DescribeSObjectResult, Field, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
@@ -295,7 +295,6 @@ function reducer(state: State, action: Action): State {
 export function useMassUpdateFieldItems(org: SalesforceOrgUi, selectedSObjects: string[]) {
   const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
-  const rollbar = useRollbar();
   const currentSelectedObjects = useRef(new Set<string>());
 
   const rows = useAtomValue(fromMassUpdateState.rowsState);
@@ -352,7 +351,7 @@ export function useMassUpdateFieldItems(org: SalesforceOrgUi, selectedSObjects: 
             dispatch({ type: 'METADATA_LOADED', payload: { sobject, metadata: metadata.data } });
           }
         } catch (ex) {
-          rollbar.error('Error fetching metadata for update records', getErrorMessageAndStackObj(ex));
+          tracker.error('Error fetching metadata for update records', getErrorMessageAndStackObj(ex));
           logger.warn('Could not fetch metadata for object', ex);
           if (isMounted.current) {
             dispatch({ type: 'METADATA_ERROR', payload: { sobject, error: getErrorMessage(ex) } });
@@ -360,7 +359,7 @@ export function useMassUpdateFieldItems(org: SalesforceOrgUi, selectedSObjects: 
         }
       }
     },
-    [org, rollbar],
+    [org],
   );
 
   const validateRowRecords = useCallback(
