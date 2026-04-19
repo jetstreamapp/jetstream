@@ -608,10 +608,19 @@ const callback = createRoute(
       if (Array.isArray(req.session.pendingVerification) && req.session.pendingVerification.length > 0) {
         const initialVerification = req.session.pendingVerification[0];
 
-        if (initialVerification.type === 'email') {
-          await sendEmailVerification(req.session.user.email, initialVerification.token, EMAIL_VERIFICATION_TOKEN_DURATION_HOURS);
-        } else if (initialVerification.type === '2fa-email') {
-          await sendVerificationCode(req.session.user.email, initialVerification.token, TOKEN_DURATION_MINUTES);
+        // Suppress verification emails for placeholder sessions (e.g. registration with an already-registered email).
+        // The verify flow for a placeholder user is a dead-end that destroys the session, so the email would be
+        // pointless and would spam the real owner of the inbox. For non-placeholder users, await delivery so
+        // failures continue to surface through the existing route error handling instead of redirecting to
+        // /auth/verify when no verification message was sent.
+        const isPlaceholderUser = !!req.session.sessionDetails?.isTemporary || req.session.user.id === PLACEHOLDER_USER_ID;
+
+        if (!isPlaceholderUser) {
+          if (initialVerification.type === 'email') {
+            await sendEmailVerification(req.session.user.email, initialVerification.token, EMAIL_VERIFICATION_TOKEN_DURATION_HOURS);
+          } else if (initialVerification.type === '2fa-email') {
+            await sendVerificationCode(req.session.user.email, initialVerification.token, TOKEN_DURATION_MINUTES);
+          }
         }
 
         setCsrfCookie(res);
@@ -890,19 +899,30 @@ const resendVerification = createRoute(routeDefinition.resendVerification.valida
       }
     });
 
-    switch (type) {
-      case 'email': {
-        await sendEmailVerification(req.session.user.email, token, EMAIL_VERIFICATION_TOKEN_DURATION_HOURS);
-        break;
-      }
-      case '2fa-email': {
-        await sendVerificationCode(req.session.user.email, token, TOKEN_DURATION_MINUTES);
-        break;
-      }
-      default: {
-        break;
-      }
-    }
+    // Suppress verification emails for placeholder sessions (e.g. registration with an already-registered email).
+    // See the matching guard in the callback handler for credentials login/register for details — the verify
+    // flow is a dead-end for these sessions and the email would only spam the real owner of the inbox.
+    // Fire-and-forget so both placeholder and non-placeholder branches return with comparable latency.
+    const isPlaceholderUser = !!req.session.sessionDetails?.isTemporary || req.session.user.id === PLACEHOLDER_USER_ID;
+    const resendVerificationEmailPromise = isPlaceholderUser
+      ? Promise.resolve()
+      : (() => {
+          switch (type) {
+            case 'email': {
+              return sendEmailVerification(req.session.user.email, token, EMAIL_VERIFICATION_TOKEN_DURATION_HOURS);
+            }
+            case '2fa-email': {
+              return sendVerificationCode(req.session.user.email, token, TOKEN_DURATION_MINUTES);
+            }
+            default: {
+              return Promise.resolve();
+            }
+          }
+        })();
+
+    void resendVerificationEmailPromise.catch((error) => {
+      res.log.error({ ...getExceptionLog(error), userId: req.session.user?.id, type }, 'Failed to resend verification message');
+    });
 
     createUserActivityFromReq(req, res, {
       action: '2FA_RESEND_VERIFICATION',
