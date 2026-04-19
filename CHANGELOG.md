@@ -1,5 +1,25 @@
 # Changelog
 
+## [9.13.0](https://github.com/jetstreamapp/jetstream/compare/v9.12.1...v9.13.0) (2026-04-19)
+
+### Features
+
+* add automated-scanner routes and session handling for testing purposes ([f1d14fc](https://github.com/jetstreamapp/jetstream/commit/f1d14fc83876388a13a2e32da40a1c1adcda34b7))
+* add NameLinkRenderer for clickable record-lookup popover and update column type handling ([43c8c83](https://github.com/jetstreamapp/jetstream/commit/43c8c835cd630178ac608bf2011cb2ce151ea163))
+* add redirectIfNotAuthenticatedMiddleware to enforce authentication before accessing app routes ([e6db530](https://github.com/jetstreamapp/jetstream/commit/e6db530c883a0ae9cd3188de1e10d6bf423b2628))
+* enable refresh token rotation for salesforce ([1a60190](https://github.com/jetstreamapp/jetstream/commit/1a601904338a4f487af25787c6507d744dc09c07))
+* implement verification attempt limits for authentication flows ([fb8a8cb](https://github.com/jetstreamapp/jetstream/commit/fb8a8cb7774537c09491fe46664ea6f21baa30de))
+* introduce canvas application ([f0e27ba](https://github.com/jetstreamapp/jetstream/commit/f0e27ba48496425aea860f6e7b09a5e2453452ad))
+* introduce jetstream managed package ([c8e9990](https://github.com/jetstreamapp/jetstream/commit/c8e99909e069af4c4e4f37d6af36f4d3d46bd762))
+* revoke other sessions on password change to enhance security ([fffc08f](https://github.com/jetstreamapp/jetstream/commit/fffc08f59ab8147598deb2a558be6ce2573a21c8))
+
+### Bug Fixes
+
+* enhance error handling in canvas controller and update fullscreen parameter comment ([25a74be](https://github.com/jetstreamapp/jetstream/commit/25a74bef5d320519ca807252234a47e79045d25f))
+* ensure @babel/traverse is on minimum patched version ([a62cedb](https://github.com/jetstreamapp/jetstream/commit/a62cedb9fd68d2d5220f00f895ee009f9c885c35))
+* handle placeholder user ID in user activity logging and constants ([bee11b3](https://github.com/jetstreamapp/jetstream/commit/bee11b3d941147d5a40c0bd2619f382389e8e755))
+* update release configurations to allow hotfix branches ([f1f265a](https://github.com/jetstreamapp/jetstream/commit/f1f265a7139d7dcc3f3ec6b93e2319eb192286e2))
+
 ## [9.12.1](https://github.com/jetstreamapp/jetstream/compare/v9.12.0...v9.12.1) (2026-04-14)
 
 ### Features
