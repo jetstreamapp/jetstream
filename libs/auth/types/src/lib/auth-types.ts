@@ -160,6 +160,12 @@ export interface SessionData {
         exp: number;
       }
   > | null;
+  /**
+   * Count of failed /auth/verify submissions for the current pendingVerification.
+   * Reset on resend and on successful verification. Session is destroyed once the
+   * counter reaches MAX_VERIFICATION_ATTEMPTS.
+   */
+  pendingVerificationAttempts?: number;
   loginTime: number;
   provider: OauthProviderType | SsoProviderType | 'credentials';
   // TODO: lastActivity: number;

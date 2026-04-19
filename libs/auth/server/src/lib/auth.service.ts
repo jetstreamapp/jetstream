@@ -365,6 +365,7 @@ export function initSession(
         req.session.user = user;
         req.session.pendingMfaEnrollment = undefined;
         req.session.pendingVerification = undefined;
+        req.session.pendingVerificationAttempts = 0;
         req.session.pendingTosAcceptance = undefined;
 
         // Generate and set HMAC CSRF token (same token used for both cookie and header validation)

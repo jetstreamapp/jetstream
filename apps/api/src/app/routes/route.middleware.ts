@@ -28,6 +28,7 @@ import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { checkUserEntitlement } from '../db/user.db';
 import * as sfdcEncService from '../services/salesforce-org-encryption.service';
 import { AuthenticationError, NotFoundError, UserFacingError } from '../utils/error-handler';
+import { rateLimitGetKeyGenerator, rateLimitGetMaxRequests } from '../utils/route.utils';
 
 export function basicAuthMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
   try {
@@ -620,9 +621,18 @@ export function setCacheControlForApiRoutes(_req: express.Request, res: express.
   next();
 }
 
+const feedbackIpKeyGenerator = rateLimitGetKeyGenerator();
 export const feedbackRateLimit = createRateLimit('api_feedback_submission', {
   windowMs: 1000 * 60 * 15, // 15 minutes
   limit: ENV.CI || ENV.ENVIRONMENT === 'development' ? 10000 : 5,
+  keyGenerator: (req, res) => (req as Request).externalAuth?.user?.id || req.session.user?.id || feedbackIpKeyGenerator(req, res),
+});
+
+const passwordResetEmailIpKeyGenerator = rateLimitGetKeyGenerator();
+export const passwordResetEmailRateLimit = createRateLimit('api_password_reset_email', {
+  windowMs: 1000 * 60 * 15, // 15 minutes
+  limit: rateLimitGetMaxRequests(3),
+  keyGenerator: (req, res) => req.session.user?.id || passwordResetEmailIpKeyGenerator(req, res),
 });
 
 // User uploads files and they are stored on disk temporarily, we delete them after processing

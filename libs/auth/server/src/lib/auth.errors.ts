@@ -24,7 +24,8 @@ type ErrorType =
   | 'ProviderEmailNotVerified'
   | 'SsoAutoProvisioningDisabled'
   | 'SsoInvalidAction'
-  | 'SsoLicenseLimitExceeded';
+  | 'SsoLicenseLimitExceeded'
+  | 'TooManyVerificationAttempts';
 
 type ErrorOptions = Error | Record<string, unknown>;
 
@@ -114,6 +115,10 @@ export class InvalidVerificationToken extends AuthError {
 
 export class InvalidOrExpiredResetToken extends AuthError {
   static type: ErrorType = 'InvalidOrExpiredResetToken';
+}
+
+export class TooManyVerificationAttempts extends AuthError {
+  static type: ErrorType = 'TooManyVerificationAttempts';
 }
 
 export class InactiveUser extends AuthError {
