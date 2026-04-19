@@ -51,6 +51,8 @@ describe('security headers', () => {
     expect(directives.formAction).toContain('https://accounts.google.com');
     expect(directives.frameAncestors).toContain('accounts.google.com');
     expect(directives.fontSrc).not.toContain("'unsafe-inline'");
+    expect(directives.frameSrc).toContain('https://*.googleapis.com');
+    expect(directives.manifestSrc).toEqual(["'self'", 'https://*.cloudflareaccess.com']);
     expect(directives.objectSrc).toEqual(["'none'"]);
     expect(directives.scriptSrcAttr).toEqual(["'none'"]);
     expect(directives.styleSrc).toEqual(["'self'", 'https:', "'unsafe-inline'"]);

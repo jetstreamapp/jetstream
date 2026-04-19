@@ -114,6 +114,7 @@ export function sendJson<ResponseType = unknown>(res: Response, content?: Respon
  */
 export function streamParsedCsvAsJson(res: express.Response, csvParseStream: Duplex) {
   let isFirstChunk = true;
+  const _logger = res.log || logger;
 
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
 
@@ -131,11 +132,11 @@ export function streamParsedCsvAsJson(res: express.Response, csvParseStream: Dup
   csvParseStream.on('finish', () => {
     res.write(isFirstChunk ? '{"data":[]}' : ']}');
     res.end();
-    res.log.info({ requestId: res.locals.requestId }, 'Finished streaming CSV');
+    _logger.debug({ requestId: res.locals.requestId }, 'Finished streaming CSV');
   });
 
   csvParseStream.on('error', (err) => {
-    res.log.warn({ requestId: res.locals.requestId, ...getExceptionLog(err) }, 'Error streaming CSV.');
+    _logger.warn({ requestId: res.locals.requestId, ...getExceptionLog(err) }, 'Error streaming CSV.');
     if (!res.headersSent) {
       res.status(400).json({ error: true, success: false, message: 'Error streaming CSV' });
     } else {

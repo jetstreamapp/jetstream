@@ -1172,12 +1172,12 @@ const discoverSso = createRoute(routeDefinition.discoverSso.validators, async ({
     const ssoConfig = await discoverSsoConfigByDomain(domain);
 
     if (!ssoConfig || !ssoConfig.ssoEnabled) {
-      res.log.info({ email, ssoDiscoverSuccess: false }, '[AUTH][DISCOVER_SSO] No SSO configuration found for email domain');
+      res.log.debug({ email, ssoDiscoverSuccess: false }, '[AUTH][DISCOVER_SSO] No SSO configuration found for email domain');
       sendJson(res, { available: false });
       return;
     }
 
-    res.log.info({ email, ssoDiscoverSuccess: true }, '[AUTH][DISCOVER_SSO] SSO configuration found for email domain');
+    res.log.debug({ email, ssoDiscoverSuccess: true }, '[AUTH][DISCOVER_SSO] SSO configuration found for email domain');
     createUserActivityFromReq(req, res, {
       action: 'SSO_DISCOVER',
       method: ssoConfig.ssoProvider,

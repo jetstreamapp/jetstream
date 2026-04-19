@@ -1,5 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
 import { PassThrough } from 'node:stream';
+import { describe, expect, it, vi } from 'vitest';
+import { AuthenticationError, NotFoundError, UserFacingError } from '../error-handler';
+import { streamParsedCsvAsJson, uncaughtErrorHandler } from '../response.handlers';
 
 const prismaMocks = vi.hoisted(() => {
   class PrismaClientKnownRequestError extends Error {
@@ -56,9 +58,6 @@ vi.mock('@jetstream/prisma', () => ({
 vi.mock('../../db/salesforce-org.db', () => ({
   updateOrg_UNSAFE: vi.fn(),
 }));
-
-import { AuthenticationError, NotFoundError, UserFacingError } from '../error-handler';
-import { streamParsedCsvAsJson, uncaughtErrorHandler } from '../response.handlers';
 
 function createMockReq() {
   return {
@@ -178,6 +177,8 @@ function createMockStreamRes() {
       requestId: 'request-id',
     },
     log: {
+      debug: vi.fn(),
+      error: vi.fn(),
       info: vi.fn(),
       warn: vi.fn(),
     },
