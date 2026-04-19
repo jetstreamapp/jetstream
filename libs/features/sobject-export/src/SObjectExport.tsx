@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB, TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
+import { tracker, useTitle } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { DescribeGlobalSObjectResult, ListItem, Maybe } from '@jetstream/types';
@@ -91,7 +91,6 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
   useTitle(TITLES.EXPORT_OBJECT_METADATA);
   const { trackEvent } = useAmplitude();
   const selectedOrg = useAtomValue(selectedOrgState);
-  const rollbar = useRollbar();
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
 
@@ -205,7 +204,7 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
     } catch (ex) {
       logger.error(ex);
       setErrorMessage(getErrorMessage(ex));
-      rollbar.error('Error preparing sobject export', getErrorMessageAndStackObj(ex));
+      tracker.error('Error preparing sobject export', getErrorMessageAndStackObj(ex));
     } finally {
       setLoading(false);
       recentHistoryItemsDb.addItemToRecentHistoryItems(selectedOrg.uniqueId, 'sobject', selectedSObjects);

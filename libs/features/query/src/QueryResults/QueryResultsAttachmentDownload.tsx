@@ -14,7 +14,7 @@ import {
   isDesktop,
   saveFile,
   useNonInitialEffect,
-  useRollbar,
+  tracker,
 } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getErrorMessageAndStackObj, getRecordIdFromAttributes } from '@jetstream/shared/utils';
 import { AsyncJobNew, BinaryDownloadCompatibleObjectsSchema, Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
@@ -57,7 +57,6 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
   hasPaidPlan,
 }) => {
   sobjectName = sobjectName?.toLowerCase() || null;
-  const rollbar = useRollbar();
   const { trackEvent } = useAmplitude();
   const [csrfToken] = useState(() => getCsrfTokenFromCookie());
   const [modalOpen, setModalOpen] = useState(false);
@@ -135,7 +134,7 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
         'There was a problem initiating the download, your browser may not support this capability. Try refreshing the page and trying again.',
       );
       trackEvent(ANALYTICS_KEYS.attachment_Error, { selectedRecords: selectedRecords.length, sobjectName, error: getErrorMessage(ex) });
-      rollbar.error('Error initiating zip download', getErrorMessageAndStackObj(ex));
+      tracker.error('Error initiating zip download', getErrorMessageAndStackObj(ex));
     }
   }
 
@@ -174,7 +173,7 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
           logger.error('[ERROR] Desktop download failed!');
           logger.error(ex);
           trackEvent(ANALYTICS_KEYS.attachment_Error, { selectedRecords: selectedRecords.length, sobjectName, error: getErrorMessage(ex) });
-          rollbar.error('Error in desktop zip download', getErrorMessageAndStackObj(ex));
+          tracker.error('Error in desktop zip download', getErrorMessageAndStackObj(ex));
         }
       } else if (isBrowserExtension()) {
         // For browser extension, we fetch the data and save the file directly (streaming download not supported)
@@ -226,7 +225,7 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
       setErrorMessage('There was a problem initiating the download.');
       setIsDownloading(false);
       trackEvent(ANALYTICS_KEYS.attachment_Error, { selectedRecords: selectedRecords.length, sobjectName, error: getErrorMessage(ex) });
-      rollbar.error('Error initiating zip download', getErrorMessageAndStackObj(ex));
+      tracker.error('Error initiating zip download', getErrorMessageAndStackObj(ex));
     }
   }
 

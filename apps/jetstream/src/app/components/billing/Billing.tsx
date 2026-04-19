@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, HTTP, TITLES } from '@jetstream/shared/constants';
 import { getCsrfTokenFromCookie, getSubscriptions, initCheckoutSession } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
+import { tracker, useTitle } from '@jetstream/shared/ui-utils';
 import { JetstreamPricesByLookupKey, Maybe, StripePriceKey, StripeUserFacingCustomer } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -40,7 +40,6 @@ const HEIGHT_BUFFER = 170;
 export const Billing = () => {
   useTitle(TITLES.BILLING);
   const { trackEvent } = useAmplitude();
-  const rollbar = useRollbar();
   const [userProfile, setUserProfile] = useAtom(fromAppState.userProfileState);
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState(false);
@@ -95,7 +94,6 @@ export const Billing = () => {
       setHasManualBilling(hasManualBilling);
     } catch (ex) {
       logger.error('Settings: Error fetching user', { stack: ex.stack, message: ex.message });
-      rollbar.error('Settings: Error fetching user', { stack: ex.stack, message: ex.message });
       setLoadingError(true);
     } finally {
       setLoading(false);
@@ -132,7 +130,7 @@ export const Billing = () => {
       // Track analytics for enterprise contact
       trackEvent(ANALYTICS_KEYS.billing_session, { action: 'create_session', priceId: selectedPlan });
     } catch (ex) {
-      rollbar.error('There was an error initiating your checkout session', { stack: ex.stack, message: ex.message });
+      tracker.error('There was an error initiating your checkout session', ex);
       setCheckoutSessionError('There was an error initiating your checkout session, please contact support for assistance.');
     } finally {
       setCheckoutSessionLoading(false);

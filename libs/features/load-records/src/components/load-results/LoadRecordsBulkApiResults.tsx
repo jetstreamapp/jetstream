@@ -7,12 +7,11 @@ import {
   convertDateToLocale,
   formatNumber,
   useBrowserNotifications,
-  useRollbar,
+  tracker,
 } from '@jetstream/shared/ui-utils';
 import {
   decodeHtmlEntity,
   getErrorMessage,
-  getErrorMessageAndStackObj,
   getSuccessOrFailureChar,
   pluralizeFromNumber,
   splitArrayToMaxSize,
@@ -243,7 +242,6 @@ export const LoadRecordsBulkApiResults = ({
   const onFinishRef = useRef(onFinish);
   onFinishRef.current = onFinish;
   const { trackEvent } = useAmplitude();
-  const rollbar = useRollbar();
   const { serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
@@ -470,7 +468,7 @@ export const LoadRecordsBulkApiResults = ({
         body: `❌ ${getErrorMessage(ex)}`,
         tag: 'load-records',
       });
-      rollbar.error('Error preparing bulk api data', getErrorMessageAndStackObj(ex));
+      tracker.error('Error preparing bulk api data', ex);
       return;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -524,7 +522,7 @@ export const LoadRecordsBulkApiResults = ({
             tag: 'load-records',
           });
         }
-        rollbar.error('Error loading batches', {
+        tracker.error('Error loading batches', {
           message: loadError.message,
           stack: loadError.stack,
           specificErrors: loadError.additionalErrors.map((error) => ({

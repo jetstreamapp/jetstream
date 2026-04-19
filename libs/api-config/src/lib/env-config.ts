@@ -131,7 +131,8 @@ const envSchema = z.object({
   CAPTCHA_SECRET_KEY: z.string().optional(),
   CAPTCHA_PROPERTY: z.literal('captchaToken').optional().default('captchaToken'),
   VERSION: z.string().optional(),
-  ROLLBAR_SERVER_TOKEN: z.string().optional(),
+  SENTRY_DSN: z.string().optional(),
+  SENTRY_AUTH_TOKEN: z.string().optional(),
 
   // Legacy Auth0 - Used to allow JIT password migration
   AUTH0_CLIENT_ID: z.string().nullish(),

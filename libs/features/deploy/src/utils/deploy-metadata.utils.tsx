@@ -1,7 +1,7 @@
 import { getMetadataLabelFromFullName, ListMetadataResultItem } from '@jetstream/connected-ui';
 import { logger } from '@jetstream/shared/client-logger';
 import { DATE_FORMATS, INDEXED_DB } from '@jetstream/shared/constants';
-import { logErrorToRollbar } from '@jetstream/shared/ui-utils';
+import { tracker } from '@jetstream/shared/ui-utils';
 import {
   ensureArray,
   getErrorMessage,
@@ -108,7 +108,7 @@ export async function saveHistory({
       } catch (ex) {
         logger.warn('[DEPLOY][HISTORY][ZIP PROCESSING ERROR]', ex);
         file = null;
-        logErrorToRollbar(getErrorMessage(ex), {
+        tracker.error(getErrorMessage(ex), {
           ...getErrorMessageAndStackObj(ex),
           place: 'DeployMetadataHistory',
           type: 'error generating zip from base64',

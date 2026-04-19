@@ -11,11 +11,11 @@ import {
 import {
   getOrgType,
   getToolingRecords,
-  logErrorToRollbar,
   pollMetadataResultsUntilDone,
   pollRetrieveMetadataResultsUntilDone,
+  tracker,
 } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, getErrorMessageAndStackObj, groupByFlat, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { getErrorMessage, groupByFlat, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { CompositeRequest, CompositeRequestBody, CompositeResponse, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { formatRelative } from 'date-fns/formatRelative';
 import JSZip from 'jszip';
@@ -407,15 +407,10 @@ export async function getProcessBuildersMetadata(
           }
         } catch (ex) {
           logger.warn('Error processing flow metadata', ex);
-          logErrorToRollbar(
-            getErrorMessage(ex),
-            {
-              ...getErrorMessageAndStackObj(ex),
-              place: 'AutomationControl',
-              type: 'getProcessBuildersMetadata()',
-            },
-            'warn',
-          );
+          tracker.warn(getErrorMessage(ex), ex, {
+            place: 'AutomationControl',
+            type: 'getProcessBuildersMetadata()',
+          });
         }
         return output;
       }, {});

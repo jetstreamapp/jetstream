@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { manualRequest } from '@jetstream/shared/data';
-import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
+import { tracker, useTitle } from '@jetstream/shared/ui-utils';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { ManualRequestPayload, ManualRequestResponse, Maybe, SalesforceApiHistoryRequest } from '@jetstream/types';
@@ -22,7 +22,6 @@ export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
   const isMounted = useRef(true);
   const [{ defaultApiVersion }] = useAtom(applicationCookieState);
   const { trackEvent } = useAmplitude();
-  const rollbar = useRollbar();
   const selectedOrg = useAtomValue(selectedOrgState);
   const [request, setRequest] = useState<Maybe<SalesforceApiHistoryRequest>>();
   const [results, setResults] = useState<Maybe<ManualRequestResponse>>(null);
@@ -64,7 +63,7 @@ export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
           })
           .catch((ex) => {
             logger.warn('[ERROR] Could not save history', ex);
-            rollbar.error('Error saving apex history', getErrorMessageAndStackObj(ex));
+            tracker.error('Error saving apex history', getErrorMessageAndStackObj(ex));
           });
       } catch (ex) {
         setResults({
@@ -78,7 +77,7 @@ export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
         setLoading(false);
       }
     },
-    [selectedOrg, trackEvent, rollbar],
+    [selectedOrg, trackEvent],
   );
 
   return (

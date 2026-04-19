@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, MIME_TYPES } from '@jetstream/shared/constants';
-import { saveFile, useRollbar } from '@jetstream/shared/ui-utils';
+import { saveFile, tracker } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getErrorMessageAndStackObj, groupByFlat, multiWordObjectFilter } from '@jetstream/shared/utils';
 import {
   AsyncJobNew,
@@ -107,7 +107,6 @@ export interface ManagePermissionsEditorProps {}
 
 export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorProps> = () => {
   const { trackEvent } = useAmplitude();
-  const rollbar = useRollbar();
   const isMounted = useRef(true);
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
@@ -450,7 +449,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
       setFileDownloadModalOpen(false);
     } catch (ex) {
       logger.error('Error exporting permission data', ex);
-      rollbar.error('Error exporting permission data', getErrorMessageAndStackObj(ex));
+      tracker.error('Error exporting permission data', getErrorMessageAndStackObj(ex));
       fireToast({ message: `There was an error preparing the data for export: ${getErrorMessage(ex)}`, type: 'error' });
     }
   };
