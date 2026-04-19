@@ -3,7 +3,7 @@ import { formatNumber } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter, NOOP, orderValues, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { ListItem as ListItemType, Maybe, UpDown } from '@jetstream/types';
 import uniqueId from 'lodash/uniqueId';
-import { createRef, Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { createRef, Fragment, FunctionComponent, ReactNode, useEffect, useState } from 'react';
 import Checkbox from '../form/checkbox/Checkbox';
 import SearchInput from '../form/search-input/SearchInput';
 import Grid from '../grid/Grid';
@@ -32,6 +32,11 @@ export interface ListWithFilterMultiSelectProps {
   allowRefresh?: boolean;
   lastRefreshed?: Maybe<string>;
   autoFillContainerProps?: AutoFullHeightContainerProps;
+  /**
+   * Optional renderer for a trailing action (e.g. a popover trigger) on each row.
+   * Clicks inside the rendered node are prevented from bubbling up, so row selection is unaffected.
+   */
+  itemTrailingRenderer?: (item: ListItemType) => ReactNode;
   onSelected: (items: string[]) => void;
   errorReattempt?: () => void;
   onRefresh?: () => void;
@@ -52,6 +57,7 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
   allowRefresh,
   lastRefreshed,
   autoFillContainerProps,
+  itemTrailingRenderer,
   onSelected,
   errorReattempt,
   onRefresh = NOOP,
@@ -65,7 +71,7 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
     }
     return items;
   });
-  const [searchInputId] = useState(`${labels.descriptorSingular}-filter-${Date.now()}`);
+  const [searchInputId] = useState(() => `${labels.descriptorSingular}-filter-${Date.now()}`);
   const ulRef = createRef<HTMLUListElement>();
 
   useEffect(() => {
@@ -201,11 +207,27 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
                 isMultiSelect
                 isActive={(item: ListItemType) => selectedItemsSet.has(item.id)}
                 onSelected={handleSelection}
-                getContent={(item: ListItemType) => ({
-                  key: item.id,
-                  heading: item.label,
-                  subheading: item.secondaryLabel,
-                })}
+                getContent={(item: ListItemType) => {
+                  const trailing = itemTrailingRenderer?.(item);
+                  return {
+                    key: item.id,
+                    heading: item.label,
+                    subheading: item.secondaryLabel,
+                    // Stop click/keyboard propagation so the trailing action doesn't toggle row selection.
+                    trailingHeader: trailing ? (
+                      <span
+                        onClick={(event) => event.stopPropagation()}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.stopPropagation();
+                          }
+                        }}
+                      >
+                        {trailing}
+                      </span>
+                    ) : undefined,
+                  };
+                }}
                 searchTerm={searchTerm}
                 highlightText
                 disabled={disabled}

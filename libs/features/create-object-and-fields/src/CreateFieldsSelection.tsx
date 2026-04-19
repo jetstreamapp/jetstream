@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useNonInitialEffect, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { DescribeGlobalSObjectResult } from '@jetstream/types';
+import { DescribeGlobalSObjectResult, ListItem, PermissionSetNoProfileRecord, PermissionSetWithProfileRecord } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ConnectedSobjectListMultiSelect,
@@ -14,9 +14,11 @@ import {
   PageHeaderActions,
   PageHeaderRow,
   PageHeaderTitle,
+  ProfileOrPermSetPopover,
+  ProfileOrPermSetRecordType,
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, filterCreateFieldsSobjects } from '@jetstream/ui-core';
-import { selectedOrgState } from '@jetstream/ui/app-state';
+import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useAtom, useAtomValue } from 'jotai';
 import { FunctionComponent, useEffect, useRef } from 'react';
@@ -31,6 +33,19 @@ export interface CreateFieldsSelectionProps {}
 export const CreateFieldsSelection: FunctionComponent<CreateFieldsSelectionProps> = () => {
   const sobjectListRef = useRef<ConnectedSobjectListMultiSelectRef>(null);
   const selectedOrg = useAtomValue(selectedOrgState);
+  const { serverUrl } = useAtomValue(applicationCookieState);
+  const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
+
+  const renderPopoverTrigger = (recordType: ProfileOrPermSetRecordType) => (item: ListItem) => (
+    <ProfileOrPermSetPopover
+      org={selectedOrg}
+      serverUrl={serverUrl}
+      skipFrontDoorAuth={skipFrontDoorAuth}
+      recordId={item.id}
+      recordType={recordType}
+      meta={item.meta as PermissionSetWithProfileRecord | PermissionSetNoProfileRecord | undefined}
+    />
+  );
 
   const [profiles, setProfiles] = useAtom(fromCreateFieldsState.profilesState);
   const [selectedProfiles, setSelectedProfiles] = useAtom(fromCreateFieldsState.selectedProfilesPermSetState);
@@ -156,6 +171,7 @@ export const CreateFieldsSelection: FunctionComponent<CreateFieldsSelectionProps
               allowRefresh
               lastRefreshed={profilesAndPermSetsData.lastRefreshed}
               loading={profilesAndPermSetsData.loading}
+              itemTrailingRenderer={renderPopoverTrigger('Profile')}
               onSelected={setSelectedProfiles}
               errorReattempt={profilesAndPermSetsData.fetchMetadata}
               onRefresh={() => profilesAndPermSetsData.fetchMetadata(true)}
@@ -174,6 +190,7 @@ export const CreateFieldsSelection: FunctionComponent<CreateFieldsSelectionProps
               lastRefreshed={profilesAndPermSetsData.lastRefreshed}
               selectedItems={selectedPermissionSets}
               loading={profilesAndPermSetsData.loading}
+              itemTrailingRenderer={renderPopoverTrigger('PermissionSet')}
               onSelected={setSelectedPermissionSets}
               errorReattempt={profilesAndPermSetsData.fetchMetadata}
               onRefresh={() => profilesAndPermSetsData.fetchMetadata(true)}

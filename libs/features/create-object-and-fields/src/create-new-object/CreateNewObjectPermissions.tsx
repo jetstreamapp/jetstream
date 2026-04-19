@@ -1,6 +1,16 @@
 import { useNonInitialEffect, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
-import { SalesforceOrgUi } from '@jetstream/types';
-import { EmptyState, Grid, GridCol, ListWithFilterMultiSelect, Radio, RadioGroup } from '@jetstream/ui';
+import { ListItem, PermissionSetNoProfileRecord, PermissionSetWithProfileRecord, SalesforceOrgUi } from '@jetstream/types';
+import {
+  EmptyState,
+  Grid,
+  GridCol,
+  ListWithFilterMultiSelect,
+  ProfileOrPermSetPopover,
+  ProfileOrPermSetRecordType,
+  Radio,
+  RadioGroup,
+} from '@jetstream/ui';
+import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
 import { Fragment, useEffect } from 'react';
 import { CreateNewObjectPermissionsCheckboxes } from './CreateNewObjectPermissionsCheckboxes';
@@ -25,6 +35,9 @@ export interface CreateNewObjectPermissionsProps {
 }
 
 export const CreateNewObjectPermissions = ({ selectedOrg, loading }: CreateNewObjectPermissionsProps) => {
+  const { serverUrl } = useAtomValue(applicationCookieState);
+  const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
+
   const [profiles, setProfiles] = useAtom(fromCreateObjectState.profilesState);
   const [selectedProfiles, setSelectedProfiles] = useAtom(fromCreateObjectState.selectedProfilesState);
 
@@ -36,6 +49,17 @@ export const CreateNewObjectPermissions = ({ selectedOrg, loading }: CreateNewOb
   const selectedProfilesPermSets = useAtomValue(fromCreateObjectState.selectedProfileAndPermLesWithLabelSelector);
 
   const profilesAndPermSetsData = useProfilesAndPermSets(selectedOrg, profiles, permissionSets);
+
+  const renderPopoverTrigger = (recordType: ProfileOrPermSetRecordType) => (item: ListItem) => (
+    <ProfileOrPermSetPopover
+      org={selectedOrg}
+      serverUrl={serverUrl}
+      skipFrontDoorAuth={skipFrontDoorAuth}
+      recordId={item.id}
+      recordType={recordType}
+      meta={item.meta as PermissionSetWithProfileRecord | PermissionSetNoProfileRecord | undefined}
+    />
+  );
 
   // When profiles are selected or de-selected, keep the permissions in sync
   useEffect(() => {
@@ -129,6 +153,7 @@ export const CreateNewObjectPermissions = ({ selectedOrg, loading }: CreateNewOb
           lastRefreshed={profilesAndPermSetsData.lastRefreshed}
           loading={profilesAndPermSetsData.loading}
           disabled={loading}
+          itemTrailingRenderer={renderPopoverTrigger('Profile')}
           onSelected={setSelectedProfiles}
           errorReattempt={profilesAndPermSetsData.fetchMetadata}
           onRefresh={() => profilesAndPermSetsData.fetchMetadata(true)}
@@ -149,6 +174,7 @@ export const CreateNewObjectPermissions = ({ selectedOrg, loading }: CreateNewOb
           selectedItems={selectedPermissionSets}
           loading={profilesAndPermSetsData.loading}
           disabled={loading}
+          itemTrailingRenderer={renderPopoverTrigger('PermissionSet')}
           onSelected={setSelectedPermissionSets}
           errorReattempt={profilesAndPermSetsData.fetchMetadata}
           onRefresh={() => profilesAndPermSetsData.fetchMetadata(true)}

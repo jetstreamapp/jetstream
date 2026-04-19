@@ -724,6 +724,18 @@ export function getSfdcRetUrl(record: any, id?: string, skipFrontdoorLoginOverri
           url: `/lightning/setup/ObjectManager/${relatedRecordType}/RecordTypes/${id}/view`,
         };
       }
+      case 'Profile': {
+        return {
+          skipFrontDoorAuth: skipFrontdoorLoginOverride ?? false,
+          url: `/lightning/setup/EnhancedProfiles/page?address=${encodeURIComponent(`/${id}?noredirect=1`)}`,
+        };
+      }
+      case 'PermissionSet': {
+        return {
+          skipFrontDoorAuth: skipFrontdoorLoginOverride ?? false,
+          url: `/lightning/setup/PermSets/page?address=${encodeURIComponent(`/${id}?noredirect=1`)}`,
+        };
+      }
       default:
         return { skipFrontDoorAuth: skipFrontdoorLoginOverride ?? false, url: `/${id}` };
     }
