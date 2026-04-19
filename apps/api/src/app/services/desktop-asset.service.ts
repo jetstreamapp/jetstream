@@ -59,7 +59,9 @@ export async function getLatestDesktopVersion({ arch, platform }: PlatformArch):
   }
 
   if (!ENV.BACKBLAZE_ACCESS_KEY_ID || !ENV.BACKBLAZE_SECRET_ACCESS_KEY) {
-    throw new Error('BackBlaze credentials are not set in environment variables');
+    logger.warn(`BackBlaze credentials are not set; desktop downloads are unavailable for ${platform}/${arch}`);
+    versionCache.set(cacheKey, { data: null, expiry: Date.now() + CACHE_DURATION_MS });
+    return null;
   }
 
   const s3Client = new S3Client({

@@ -103,7 +103,7 @@ export function LoginOrSignUp({ action, providers, csrfToken, currentTosVersion 
   const captchaRef = useRef<TurnstileInstance>(null);
   const searchParams = useSearchParams();
 
-  const emailHint = searchParams?.get('email') || (action === 'login' ? rememberedEmail : null);
+  const emailHint = action === 'login' ? rememberedEmail : null;
   const returnUrl = searchParams?.get('returnUrl');
 
   const {
@@ -122,7 +122,7 @@ export function LoginOrSignUp({ action, providers, csrfToken, currentTosVersion 
       password: '',
       confirmPassword: '',
       csrfToken,
-      rememberMe: true,
+      rememberMe: false,
       tosVersion: currentTosVersion,
       tosAccepted: false,
     },
@@ -198,6 +198,8 @@ export function LoginOrSignUp({ action, providers, csrfToken, currentTosVersion 
       if (payload.rememberMe) {
         // For credential login, we don't show last used but we do populate the email address as the cue
         setLastUsedLoginMethod({ rememberedEmail: payload.email });
+      } else {
+        setLastUsedLoginMethod();
       }
 
       if (responseData.data.redirect?.startsWith(ROUTES.AUTH._root_path)) {
@@ -286,7 +288,6 @@ export function LoginOrSignUp({ action, providers, csrfToken, currentTosVersion 
 
     setLastUsedLoginMethod({
       lastUsedLogin: 'sso',
-      rememberedEmail: watchEmail,
       ssoAvailable: ssoInfo?.available,
     });
     window.location.href = redirectUrl;
@@ -429,7 +430,7 @@ export function LoginOrSignUp({ action, providers, csrfToken, currentTosVersion 
               </button>
             )}
 
-            {!hasCheckedSso && <RegisterOrSignUpLink action={action} emailHint={emailHint} />}
+            {!hasCheckedSso && <RegisterOrSignUpLink action={action} />}
 
             {/* We want the components to render in the DOM to allow for password auto-fill */}
             <span className={classNames('space-y-6', { invisible: !hasCheckedSso })}>
@@ -532,7 +533,7 @@ export function LoginOrSignUp({ action, providers, csrfToken, currentTosVersion 
             </span>
           </form>
 
-          {hasCheckedSso && <RegisterOrSignUpLink action={action} emailHint={emailHint} />}
+          {hasCheckedSso && <RegisterOrSignUpLink action={action} />}
         </div>
       </div>
     </Fragment>

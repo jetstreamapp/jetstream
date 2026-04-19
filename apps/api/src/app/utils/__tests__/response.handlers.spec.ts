@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { PassThrough } from 'node:stream';
 
 const prismaMocks = vi.hoisted(() => {
   class PrismaClientKnownRequestError extends Error {
@@ -57,7 +58,7 @@ vi.mock('../../db/salesforce-org.db', () => ({
 }));
 
 import { AuthenticationError, NotFoundError, UserFacingError } from '../error-handler';
-import { uncaughtErrorHandler } from '../response.handlers';
+import { streamParsedCsvAsJson, uncaughtErrorHandler } from '../response.handlers';
 
 function createMockReq() {
   return {
@@ -167,5 +168,62 @@ describe('uncaughtErrorHandler logging levels', () => {
       expect.objectContaining({ error: 'Upstream unavailable', statusCode: 503 }),
       '[RESPONSE][ERROR]',
     );
+  });
+});
+
+function createMockStreamRes() {
+  const chunks: string[] = [];
+  const res = {
+    locals: {
+      requestId: 'request-id',
+    },
+    log: {
+      info: vi.fn(),
+      warn: vi.fn(),
+    },
+    setHeader: vi.fn(),
+    status: vi.fn(),
+    json: vi.fn(),
+    write: vi.fn((data: string) => {
+      chunks.push(data);
+      return true;
+    }),
+    end: vi.fn(),
+    headersSent: false,
+    _chunks: chunks,
+  };
+  res.status.mockReturnValue(res);
+  res.json.mockReturnValue(res);
+  return res;
+}
+
+describe('streamParsedCsvAsJson', () => {
+  it('sets JSON content type and streams rows as a data array', async () => {
+    const res = createMockStreamRes();
+    const stream = new PassThrough({ objectMode: true });
+    const done = new Promise<void>((resolve) => res.end.mockImplementation(() => resolve()));
+
+    streamParsedCsvAsJson(res as any, stream);
+    stream.write({ Id: '001' });
+    stream.write({ Id: '002' });
+    stream.end();
+
+    await done;
+
+    expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'application/json; charset=utf-8');
+    expect(res._chunks.join('')).toBe('{"data":[{"Id":"001"},{"Id":"002"}]}');
+  });
+
+  it('streams an empty data array when there are no rows', async () => {
+    const res = createMockStreamRes();
+    const stream = new PassThrough({ objectMode: true });
+    const done = new Promise<void>((resolve) => res.end.mockImplementation(() => resolve()));
+
+    streamParsedCsvAsJson(res as any, stream);
+    stream.end();
+
+    await done;
+
+    expect(res._chunks.join('')).toBe('{"data":[]}');
   });
 });

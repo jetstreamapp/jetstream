@@ -29,9 +29,9 @@ import {
   openApiRoutes,
   platformEventRoutes,
   redirectRoutes,
+  scannerRoutes,
   staticAuthenticatedRoutes,
   teamRoutes,
-  scannerRoutes,
   testRoutes,
   webExtensionRoutes,
   webhookRoutes,
@@ -49,6 +49,7 @@ import {
   setPermissionPolicy,
 } from './app/routes/route.middleware';
 import { healthCheck, uncaughtErrorHandler } from './app/utils/response.handlers';
+import { buildCspDirectives, buildHstsConfig } from './app/utils/security-headers';
 import { handleWorkerExit, primaryClusterInitSideEffects, shutdownPrimaryGracefully } from './app/utils/server-process.utils';
 import { environment } from './environments/environment';
 
@@ -127,88 +128,6 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   // Setup session
   app.use(sessionMiddleware);
 
-  // Shared CSP directives builder. `frame-ancestors` is the only per-route knob —
-  // /app loosens it so Google Picker can embed the SPA in an iframe.
-  const buildCspDirectives = (extraFrameAncestors: string[] = []) =>
-    ({
-      defaultSrc: [
-        "'self'",
-        'https://*.google-analytics.com',
-        'https://*.google.com',
-        'https://*.googleapis.com',
-        'https://*.gstatic.com',
-        'https://*.rollbar.com',
-        'https://api.amplitude.com',
-        'https://api.cloudinary.com',
-        'https://challenges.cloudflare.com',
-        'https://cloudflareinsights.com',
-        'https://maps.googleapis.com',
-        'https://checkout.stripe.com',
-        'https://connect-js.stripe.com',
-        'https://js.stripe.com',
-        'https://api.stripe.com',
-        'https://*.js.stripe.com',
-        'https://hooks.stripe.com',
-        'https://releases.getjetstream.app',
-      ],
-      baseUri: ["'self'"],
-      fontSrc: ["'self'", 'https:', "'unsafe-inline'", 'data:', 'https://checkout.stripe.com'],
-      frameAncestors: ["'self'", ...extraFrameAncestors],
-      imgSrc: [
-        "'self'",
-        'data:',
-        'https://*.cloudinary.com',
-        'https://*.ctfassets.net',
-        'https://*.documentforce.com',
-        'https://*.force.com',
-        'https://*.githubusercontent.com',
-        'https://*.google-analytics.com',
-        'https://*.googletagmanager.com',
-        'https://*.googleusercontent.com',
-        'https://*.gravatar.com',
-        'https://*.gstatic.com',
-        'https://*.salesforce.com',
-        'https://*.wp.com',
-        'https://*.stripe.com',
-      ],
-      objectSrc: ["'none'"],
-      scriptSrc: [
-        "'self'",
-        // Per-request nonce covers our inline SPA scripts AND Cloudflare's auto-injected
-        // scripts (CF's pipeline parses the CSP header and adopts the nonce).
-        (_req: express.Request, res: express.Response) => `'nonce-${res.locals.cspNonce}'`,
-        'blob:',
-        'https://*.google.com',
-        'https://*.gstatic.com',
-        'https://*.google-analytics.com',
-        'https://*.googletagmanager.com',
-        'https://maps.googleapis.com',
-        'https://challenges.cloudflare.com',
-        'https://checkout.stripe.com',
-        'https://connect-js.stripe.com',
-        'https://*.js.stripe.com',
-        'https://js.stripe.com',
-        'https://static.cloudflareinsights.com',
-      ],
-      scriptSrcAttr: ["'none'"],
-      styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
-      // Several forms POST to our API and are then 302'd to a third-party URL:
-      //   - /api/auth/signin/google       -> accounts.google.com
-      //   - /api/auth/signin/salesforce   -> login.salesforce.com (production only)
-      //   - /api/billing/portal           -> billing.stripe.com
-      // Chrome enforces form-action through redirects, so the final redirect targets must
-      // also be allow-listed here. ENV.JETSTREAM_SERVER_URL is included alongside 'self'
-      // because signinUrl is built from it at runtime and may differ from the page origin.
-      formAction: [
-        "'self'",
-        ENV.JETSTREAM_SERVER_URL,
-        'https://accounts.google.com',
-        'https://login.salesforce.com',
-        'https://billing.stripe.com',
-      ],
-      upgradeInsecureRequests: ENV.ENVIRONMENT === 'development' ? null : [],
-    }) satisfies NonNullable<Parameters<typeof helmet.contentSecurityPolicy>[0]>['directives'];
-
   // `crossOriginOpenerPolicy: false` is load-bearing. Any COOP value — including the
   // looser `same-origin-allow-popups` — causes the browser to isolate popups into a new
   // browsing-context group when they navigate cross-origin, and the opener reference is
@@ -220,14 +139,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
     helmet({
       contentSecurityPolicy: { directives: buildCspDirectives() },
       crossOriginOpenerPolicy: false,
-      hsts:
-        ENV.ENVIRONMENT === 'production'
-          ? {
-              maxAge: 15_552_000, // 180 days in seconds
-              includeSubDomains: true,
-              preload: true,
-            }
-          : false,
+      hsts: buildHstsConfig(),
     }),
   );
 
