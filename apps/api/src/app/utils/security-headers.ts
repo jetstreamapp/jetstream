@@ -38,6 +38,8 @@ export function buildCspDirectives(extraFrameAncestors: string[] = []): CspDirec
     frameSrc: [
       "'self'",
       'https://*.google.com',
+      // required for Google Picker API iframe
+      'https://*.googleapis.com',
       'https://*.googleusercontent.com',
       'https://accounts.google.com',
       'https://challenges.cloudflare.com',
@@ -63,6 +65,8 @@ export function buildCspDirectives(extraFrameAncestors: string[] = []): CspDirec
       'https://*.wp.com',
       'https://*.stripe.com',
     ],
+    // cloudflareaccess.com required when the app is fronted by Cloudflare Access, which rewrites the manifest URL
+    manifestSrc: ["'self'", 'https://*.cloudflareaccess.com'],
     objectSrc: ["'none'"],
     scriptSrc: [
       "'self'",
