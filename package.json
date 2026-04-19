@@ -262,6 +262,7 @@
     "@aws-sdk/client-s3": "^3.999.0",
     "@casl/ability": "^6.8.0",
     "@casl/react": "^5.0.1",
+    "@emotion/cache": "11.14.0",
     "@emotion/react": "11.14.0",
     "@emotion/styled": "11.14.1",
     "@express-rate-limit/cluster-memory-store": "^0.3.1",

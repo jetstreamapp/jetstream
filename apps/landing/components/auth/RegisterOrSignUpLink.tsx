@@ -1,19 +1,15 @@
-import { Maybe } from '@jetstream/types';
 import Link from 'next/link';
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { ROUTES } from '../../utils/environment';
 
-export function RegisterOrSignUpLink({ action, emailHint }: { action: 'login' | 'register'; emailHint?: Maybe<string> }) {
+export function RegisterOrSignUpLink({ action }: { action: 'login' | 'register' }) {
   const url = useMemo(() => {
     let output = new URL(ROUTES.AUTH.login, window.location.origin);
     if (action === 'login') {
       output = new URL(ROUTES.AUTH.signup, window.location.origin);
     }
-    if (emailHint) {
-      output.searchParams.set('email', emailHint);
-    }
     return output;
-  }, [action, emailHint]);
+  }, [action]);
 
   if (action === 'login') {
     return (

@@ -2,6 +2,7 @@ import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
 import { HTTP } from '@jetstream/shared/constants';
 import express, { Router } from 'express';
 import https from 'https';
+import { normalizePlatformEventSetCookie } from '../utils/proxy-cookie.utils';
 import { checkAuth, getOrgFromHeaderOrQuery } from './route.middleware';
 
 const routes: express.Router = Router();
@@ -51,11 +52,9 @@ routes.use('/', async (req: express.Request, res: express.Response, next: expres
           headers,
         })
         .on('response', (proxyResponse) => {
-          // re-write cookie path to match Jetstream's path
+          // Re-write Salesforce cookies for Jetstream's same-origin CometD proxy.
           if (proxyResponse.headers['set-cookie']) {
-            proxyResponse.headers['set-cookie'] = proxyResponse.headers['set-cookie'].map((cookie) =>
-              cookie.replaceAll('/cometd/', '/platform-event'),
-            );
+            proxyResponse.headers['set-cookie'] = proxyResponse.headers['set-cookie'].map(normalizePlatformEventSetCookie);
           }
           // stream response back to user
           res.writeHead(proxyResponse.statusCode || 500, { ...proxyResponse.headers, 'Access-Control-Allow-Credentials': 'true' });
