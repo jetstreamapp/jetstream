@@ -8,7 +8,7 @@ export const isWindows = () => process.platform === 'win32';
 export const isLinux = () => process.platform === 'linux';
 
 const CspPolicy = {
-  'default-src': [`'self'`, '*.google.com', '*.googleapis.com', '*.gstatic.com'],
+  'default-src': [`'self'`, 'https://*.google.com', 'https://*.googleapis.com', 'https://*.gstatic.com'],
   'base-uri': [`'self'`],
   'block-all-mixed-content': [],
   'connect-src': [
@@ -21,10 +21,10 @@ const CspPolicy = {
     'https://www.googleapis.com',
   ],
   'font-src': [`'self'`, 'data:'],
-  'frame-ancestors': ["'self'", 'getjetstream.app', '*.google.com', '*.googleapis.com', '*.gstatic.com'],
+  'frame-ancestors': ["'self'", 'https://getjetstream.app', 'https://*.google.com', 'https://*.googleapis.com', 'https://*.gstatic.com'],
   // 'frame-src': [`'self'`, '*.google.com', '*.googleapis.com', '*.gstatic.com'],
-  'img-src': [`'self'`, 'data:', '*.googleusercontent.com'],
-  'script-src': [`'self'`, `'unsafe-inline'`, '*.google.com'],
+  'img-src': [`'self'`, 'data:', 'https://*.googleusercontent.com', 'https://res.cloudinary.com', 'https://*.gravatar.com'],
+  'script-src': [`'self'`, `'unsafe-inline'`, 'https://*.google.com'],
   'script-src-attr': ['none'],
   'style-src': [`'self'`, `'unsafe-inline'`],
   'worker-src': [`'self'`, 'blob:'],
