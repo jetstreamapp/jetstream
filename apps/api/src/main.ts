@@ -44,7 +44,6 @@ import {
   redirectIfNotAuthenticatedMiddleware,
   redirectIfPendingTosAcceptanceMiddleware,
   redirectIfPendingVerificationMiddleware,
-  setApplicationCookieMiddleware,
   setCacheControlForApiRoutes,
   setPermissionPolicy,
 } from './app/routes/route.middleware';
@@ -243,8 +242,6 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
       }),
     );
   }
-
-  app.use(setApplicationCookieMiddleware);
 
   app.use(httpLogger);
 

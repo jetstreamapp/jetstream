@@ -30,7 +30,6 @@ export const INPUT_ACCEPT_FILETYPES: {
 
 export const HTTP = {
   COOKIE: {
-    JETSTREAM: 'jetstream',
     CSRF_SUFFIX: 'jetstream-csrf' as const,
   },
   BODY: {
