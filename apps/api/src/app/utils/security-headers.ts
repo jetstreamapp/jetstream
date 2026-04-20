@@ -18,7 +18,7 @@ export function buildCspDirectives(extraFrameAncestors: string[] = []): CspDirec
       'https://*.google.com',
       'https://*.googleapis.com',
       'https://*.gstatic.com',
-      'https://*.rollbar.com',
+      'https://*.betterstackdata.com',
       'https://api.amplitude.com',
       'https://api.cloudinary.com',
       'https://api.stripe.com',

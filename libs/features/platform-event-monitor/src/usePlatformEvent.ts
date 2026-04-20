@@ -1,8 +1,8 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { clearCacheForOrg, describeGlobal, sobjectOperation } from '@jetstream/shared/data';
-import { useDebounce, useRollbar } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, getErrorMessageAndStackObj, orderValues } from '@jetstream/shared/utils';
+import { tracker, useDebounce } from '@jetstream/shared/ui-utils';
+import { getErrorMessage, orderValues } from '@jetstream/shared/utils';
 import { Maybe, PlatformEventMessage, PlatformEventMessagePayload, SalesforceOrgUi } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
@@ -51,7 +51,6 @@ export function usePlatformEvent({
 }) {
   const isMounted = useRef(true);
   const cometD = useRef<CometD>(null);
-  const rollbar = useRollbar();
   const { trackEvent } = useAmplitude();
   const [{ serverUrl, defaultApiVersion }] = useAtom(applicationCookieState);
   const [platformEvents, setPlatformEvents] = useState<PlatformEventObject[]>([]);
@@ -110,10 +109,10 @@ export function usePlatformEvent({
         }
       } catch (ex) {
         setPlatformEventFetchError(getErrorMessage(ex));
-        rollbar.error(`Fetch platform event error`, getErrorMessageAndStackObj(ex));
+        tracker.error('Fetch platform event error', ex);
       }
     },
-    [rollbar, selectedOrg],
+    [selectedOrg],
   );
 
   useEffect(() => {

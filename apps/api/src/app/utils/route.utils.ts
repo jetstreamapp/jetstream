@@ -1,4 +1,4 @@
-import { ENV, getExceptionLog, rollbarServer } from '@jetstream/api-config';
+import { ENV, errorTracker, getExceptionLog } from '@jetstream/api-config';
 import { Request, Response } from '@jetstream/api-types';
 import { getApiAddressFromReq } from '@jetstream/auth/server';
 import { AuthenticatedUser, CookieOptions, UserProfileSession } from '@jetstream/auth/types';
@@ -144,8 +144,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
       } catch (ex) {
         if (logErrorToBugTracker) {
           logger.error(getExceptionLog(ex), 'Logging error to bug tracker');
-          rollbarServer.error(ex, req, {
-            ...getExceptionLog(ex, true),
+          errorTracker.error(ex, req, {
             url: req.url,
             params: req.params,
             query: req.query,
@@ -163,8 +162,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
     } catch (ex) {
       logger.warn(getExceptionLog(ex), '[ROUTE][VALIDATION ERROR]');
       if (logErrorToBugTracker) {
-        rollbarServer.error(ex, req, {
-          ...getExceptionLog(ex, true),
+        errorTracker.error(ex, req, {
           url: req.url,
           params: req.params,
           query: req.query,

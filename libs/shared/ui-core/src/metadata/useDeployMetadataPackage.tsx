@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { deployMetadataZip } from '@jetstream/shared/data';
-import { pollMetadataResultsUntilDone, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
+import { pollMetadataResultsUntilDone, tracker, useBrowserNotifications } from '@jetstream/shared/ui-utils';
 import { getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { DeployOptions, DeployResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
@@ -97,7 +97,6 @@ function reducer(state: State, action: Action): State {
  */
 export function useDeployMetadataPackage(serverUrl: string, onFinished?: () => void) {
   const isMounted = useRef(true);
-  const rollbar = useRollbar();
   const [{ hasLoaded, loading, hasError, errorMessage, deployId, results }, dispatch] = useReducer(reducer, {
     hasLoaded: false,
     loading: false,
@@ -147,13 +146,13 @@ export function useDeployMetadataPackage(serverUrl: string, onFinished?: () => v
         }
       } catch (ex) {
         logger.warn('[useDeployMetadataPackage][ERROR]', ex.message);
-        rollbar.error('Problem deploying custom metadata', { message: ex.message, stack: ex.stack, deployOptions });
+        tracker.error('Problem deploying custom metadata', ex, { deployOptions });
         if (isMounted.current) {
           dispatch({ type: 'ERROR', payload: { errorMessage: ex.message } });
         }
       }
     },
-    [notifyUser, onFinished, rollbar],
+    [notifyUser, onFinished],
   );
 
   return { deployMetadata, results, deployId, hasLoaded, loading, lastChecked, hasError, errorMessage };

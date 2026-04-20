@@ -1,4 +1,4 @@
-import { ENV, getExceptionLog, logger, prisma, rollbarServer } from '@jetstream/api-config';
+import { ENV, errorTracker, getExceptionLog, logger, prisma } from '@jetstream/api-config';
 import type { Response } from '@jetstream/api-types';
 import { AuthError, createCSRFToken, getCookieConfig } from '@jetstream/auth/server';
 import { isPrismaError, Prisma, SalesforceOrg, toTypedPrismaError } from '@jetstream/prisma';
@@ -94,13 +94,13 @@ export function sendJson<ResponseType = unknown>(res: Response, content?: Respon
   if (res.headersSent) {
     res.log.warn('Response headers already sent');
     try {
-      rollbarServer.warn('Response not handled by sendJson, headers already sent', new Error('headers already sent'), {
+      errorTracker.warn('Response not handled by sendJson, headers already sent', new Error('headers already sent'), {
         context: `route#sendJson`,
         requestId: res.locals.requestId,
         status,
       });
     } catch (ex) {
-      res.log.error(getExceptionLog(ex), 'Error sending to Rollbar');
+      res.log.error(getExceptionLog(ex), 'Error sending to error tracker');
     }
     return;
   }
@@ -255,9 +255,8 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
     if (res.headersSent) {
       responseLogger.warn('Response headers already sent');
       try {
-        rollbarServer.warn('Error not handled by error handler, headers already sent', req, {
+        errorTracker.warn('Error not handled by error handler, headers already sent', req, err, {
           context: `route#errorHandler`,
-          ...getExceptionLog(err, true),
           url: req.url,
           params: req.params,
           query: req.query,
@@ -266,7 +265,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
           requestId: res.locals.requestId,
         });
       } catch (ex) {
-        responseLogger.error(getExceptionLog(ex), 'Error sending to Rollbar');
+        responseLogger.error(getExceptionLog(ex), 'Error sending to error tracker');
       }
       return;
     }
@@ -379,9 +378,8 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
     });
   } catch (ex) {
     try {
-      rollbarServer.warn('Exception in error handler', req, {
+      errorTracker.warn('Exception in error handler', req, ex, {
         context: `route#errorHandler`,
-        ...getExceptionLog(ex, true),
         originalError: getExceptionLog(err, true),
         url: req.url,
         params: req.params,
@@ -390,8 +388,8 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
         userId: req.session.user?.id,
         requestId: res.locals.requestId,
       });
-    } catch (rollbarEx) {
-      logger.error(getExceptionLog(rollbarEx), 'Error sending to Rollbar');
+    } catch (trackerEx) {
+      logger.error(getExceptionLog(trackerEx), 'Error sending to error tracker');
     }
     logger.error(getExceptionLog(ex, true), 'Error in uncaughtErrorHandler');
     res.status(500).json({ error: true, success: false, message: 'Internal Server Error' });

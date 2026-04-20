@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { clearCacheForOrg } from '@jetstream/shared/data';
-import { convertDateToLocale, filterLoadSobjects, formatNumber, useRollbar } from '@jetstream/shared/ui-utils';
-import { getErrorMessageAndStackObj, getRecordIdFromAttributes, pluralizeFromNumber } from '@jetstream/shared/utils';
+import { convertDateToLocale, filterLoadSobjects, formatNumber, tracker } from '@jetstream/shared/ui-utils';
+import { getRecordIdFromAttributes, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { ListItem, Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import {
   Checkbox,
@@ -84,7 +84,6 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
   totalRecordCount,
   onModalClose,
 }) => {
-  const rollbar = useRollbar();
   const [loading, setLoading] = useState(false);
   const [refreshLoading, setRefreshLoading] = useState(false);
   const [isValid, setIsValid] = useState(false);
@@ -229,7 +228,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
       pollResultsUntilDone(getDeploymentResults);
     } catch (ex) {
       setFatalError('There was a problem loading records. Please try again.');
-      rollbar.error('Error bulk updating records', getErrorMessageAndStackObj(ex));
+      tracker.error('Error bulk updating records', ex);
     } finally {
       setLoading(false);
     }

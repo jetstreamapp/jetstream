@@ -1,4 +1,4 @@
-import { ENV, getExceptionLog, logger, rollbarServer } from '@jetstream/api-config';
+import { ENV, errorTracker, getExceptionLog, logger } from '@jetstream/api-config';
 import { sendUserFeedbackEmail } from '@jetstream/email';
 import { Request } from 'express';
 import fs from 'node:fs/promises';
@@ -112,9 +112,8 @@ export async function cleanupFeedbackAttachments(req: Request, loggerInfo: Recor
     (req.log || logger).info({ filePaths, ...loggerInfo }, 'Temp feedback attachment files cleaned up');
   } catch (ex) {
     (req.log || logger).error({ ...getExceptionLog(ex), ...loggerInfo }, 'Error during cleanup of feedback attachments');
-    rollbarServer.error('Error during cleanup of feedback attachments', req, {
+    errorTracker.error('Error during cleanup of feedback attachments', req, ex, {
       context: `user-feedback.service#cleanupFeedbackAttachments`,
-      ...getExceptionLog(ex, true),
       ...loggerInfo,
       userId: req.session.user?.id,
     });

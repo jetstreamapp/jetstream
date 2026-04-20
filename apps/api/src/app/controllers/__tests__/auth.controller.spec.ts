@@ -131,7 +131,7 @@ vi.mock('@jetstream/api-config', () => ({
   getExceptionLog: (error: unknown) => ({ error: error instanceof Error ? error.message : error }),
   logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
   prisma: {},
-  rollbarServer: { error: vi.fn(), warn: vi.fn() },
+  errorTracker: { error: vi.fn(), warn: vi.fn(), critical: vi.fn(), info: vi.fn() },
 }));
 
 vi.mock('@jetstream/auth/server', () => authServerMocks);

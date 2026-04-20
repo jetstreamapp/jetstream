@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { queryWithCache } from '@jetstream/shared/data';
-import { useRollbar } from '@jetstream/shared/ui-utils';
+import { tracker } from '@jetstream/shared/ui-utils';
 import { FieldWrapper, SalesforceOrgUi } from '@jetstream/types';
 import copyToClipboard from 'copy-to-clipboard';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
@@ -49,7 +49,6 @@ const TooltipContent = ({
   onContent: _onContent,
 }: SobjectFieldListTypeRollupSummaryDetailsProps & { onContent: (value: string) => void }) => {
   const isMounted = useRef(true);
-  const rollbar = useRollbar();
   const [content, setContent] = useState<{ label: string; items: string[] }>();
   const [loading, setLoading] = useState(false);
   const onContent = useRef(_onContent);
@@ -98,11 +97,7 @@ const TooltipContent = ({
         });
       }
     } catch (ex) {
-      rollbar.error('Error getting tooltip content', {
-        query,
-        message: ex.message,
-        stack: ex.stack,
-      });
+      tracker.error('Error getting tooltip content', ex, { query });
       if (isMounted.current) {
         setContent({ label: `Oops. There was a problem getting the Roll-Up Summary content.`, items: [] });
       }

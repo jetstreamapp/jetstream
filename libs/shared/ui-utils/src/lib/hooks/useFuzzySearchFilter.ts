@@ -1,5 +1,5 @@
 import Fuse, { IFuseOptions } from 'fuse.js';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useDebounce } from './useDebounce';
 
 const DEFAULT_OPTIONS: IFuseOptions<unknown> = {
@@ -16,7 +16,7 @@ export function useFuzzySearchFilter<T extends object>(items: T[], filter: strin
   const filterText = useDebounce(filter, 300);
   const [visibleItems, setVisibleItems] = useState(items);
 
-  useMemo(() => {
+  useEffect(() => {
     if (filterText) {
       const result = fuse.search(filterText);
       setVisibleItems(result.map(({ item }) => item));

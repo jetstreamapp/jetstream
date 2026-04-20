@@ -1,4 +1,4 @@
-import { ENV, getExceptionLog, logger, rollbarServer } from '@jetstream/api-config';
+import { ENV, errorTracker, getExceptionLog, logger } from '@jetstream/api-config';
 import { EXPIRED_TOKEN_PLACEHOLDER } from '@jetstream/shared/constants';
 import { decryptString, encryptString, hexToBase64 } from '@jetstream/shared/node-utils';
 import { createHash, pbkdf2, randomBytes } from 'crypto';
@@ -146,10 +146,9 @@ export async function decryptAccessToken({
     }
   } catch (error) {
     logger.error({ userId, ...getExceptionLog(error) }, 'Failed to decrypt token, it may be corrupted');
-    rollbarServer.error('Failed to decrypt token', {
+    errorTracker.error('Failed to decrypt token', error, {
       context: `salesforce-org-encryption.service#decryptAccessToken`,
       userId,
-      ...getExceptionLog(error, true),
     });
     // return invalid data to allow the org to get marked as having invalid credentials once we attempt use them for Salesforce connection
     return [DUMMY_INVALID_ENCRYPTED_TOKEN, DUMMY_INVALID_ENCRYPTED_TOKEN];

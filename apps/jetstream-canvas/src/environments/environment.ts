@@ -4,7 +4,7 @@
 export const environment = {
   production: false,
   serverUrl: 'http://localhost:3333',
-  rollbarClientAccessToken: null,
+  sentryDsn: null,
   amplitudeToken: null,
   isWebExtension: false,
 };

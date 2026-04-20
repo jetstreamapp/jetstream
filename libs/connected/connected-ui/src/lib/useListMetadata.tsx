@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { METADATA_TYPES_WITH_NESTED_FOLDERS } from '@jetstream/shared/constants';
 import { listMetadata as listMetadataApi, queryAll, queryWithCache } from '@jetstream/shared/data';
-import { useRollbar } from '@jetstream/shared/ui-utils';
+import { tracker } from '@jetstream/shared/ui-utils';
 import { groupByFlat, orderObjectsBy, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { ListMetadataQuery, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
@@ -326,7 +326,6 @@ export async function getFullFolderPathByFolderDeveloperName(
  */
 export function useListMetadata(selectedOrg: SalesforceOrgUi) {
   const isMounted = useRef(true);
-  const rollbar = useRollbar();
   const [listMetadataItems, setListMetadataItems] = useState<Record<string, ListMetadataResultItem>>();
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -456,7 +455,7 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
         setInitialLoadFinished(true);
       } catch (ex) {
         logger.error(ex);
-        rollbar.error('List Metadata Failed', { message: ex.message, stack: ex.stack });
+        tracker.error('List Metadata Failed', ex);
         if (!isMounted.current) {
           return;
         }

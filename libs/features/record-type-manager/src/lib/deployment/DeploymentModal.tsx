@@ -1,8 +1,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, MIME_TYPES } from '@jetstream/shared/constants';
-import { saveFile, useRollbar } from '@jetstream/shared/ui-utils';
-import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { saveFile, tracker } from '@jetstream/shared/ui-utils';
 import { ReadMetadataRecordTypeExtended } from '@jetstream/types';
 import { Grid, GridCol, Icon, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
 import {
@@ -27,7 +26,6 @@ interface DeploymentModalProps {
 }
 
 export function DeploymentModal({ modifiedValues, recordTypeMetadataByFullName, viewMode, onClose }: DeploymentModalProps) {
-  const rollbar = useRollbar();
   const { trackEvent } = useAmplitude();
   const { defaultApiVersion: apiVersion, serverUrl } = useAtomValue(applicationCookieState);
   const selectedOrg = useAtomValue(selectedOrgState);
@@ -73,7 +71,7 @@ export function DeploymentModal({ modifiedValues, recordTypeMetadataByFullName, 
     } catch (ex) {
       logger.error('Error preparing deployment package', ex);
       setPrepareError(true);
-      rollbar.error('Record Type Picklist: Error preparing deployment package', getErrorMessageAndStackObj(ex));
+      tracker.error('Record Type Picklist: Error preparing deployment package', ex);
     } finally {
       setInProgress(false);
     }

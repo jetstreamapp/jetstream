@@ -1,4 +1,4 @@
-import { ENV, getExceptionLog, logger, rollbarServer } from '@jetstream/api-config';
+import { ENV, errorTracker, getExceptionLog, logger } from '@jetstream/api-config';
 import { decryptString, encryptString } from '@jetstream/shared/node-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { createHash } from 'crypto';
@@ -33,9 +33,8 @@ export function encryptJwtToken(token: string): string {
     return encryptString(token, encryptionKey);
   } catch (error) {
     logger.error({ ...getExceptionLog(error) }, 'Failed to encrypt JWT token');
-    rollbarServer.error('Failed to encrypt JWT token', {
+    errorTracker.error('Failed to encrypt JWT token', error, {
       context: 'jwt-token-encryption.service#encryptJwtToken',
-      ...getExceptionLog(error, true),
     });
     throw new Error('Failed to encrypt token');
   }
@@ -62,9 +61,8 @@ export function decryptJwtToken(encryptedToken: string): string {
     return decryptString(encryptedToken, encryptionKey);
   } catch (error) {
     logger.error({ ...getExceptionLog(error) }, 'Failed to decrypt JWT token');
-    rollbarServer.error('Failed to decrypt JWT token', {
+    errorTracker.error('Failed to decrypt JWT token', error, {
       context: 'jwt-token-encryption.service#decryptJwtToken',
-      ...getExceptionLog(error, true),
     });
     throw new Error('Failed to decrypt token');
   }

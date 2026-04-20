@@ -1,13 +1,12 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { googleGetUserinfo } from '@jetstream/shared/data';
-import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { GoogleUserInfo, Maybe } from '@jetstream/types';
 import { addSeconds } from 'date-fns/addSeconds';
 import { isAfter } from 'date-fns/isAfter';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { tracker } from '../errorTracker';
 import { getUseInjectScript } from './useInjectScript';
 import { useNonInitialEffect } from './useNonInitialEffect';
-import { useRollbar } from './useRollbar';
 
 let useInjectScriptGapi: () => [boolean, boolean] = () => [false, false];
 let useInjectScriptGis: () => [boolean, boolean] = () => [false, false];
@@ -41,7 +40,6 @@ export interface GoogleApiClientConfig {
  * @returns
  */
 export function useGoogleApi({ clientId, scopes = [SCOPES['drive.file'], SCOPES.email] }: GoogleApiClientConfig) {
-  const rollbar = useRollbar();
   const tokenClient = useRef<Maybe<google.accounts.oauth2.TokenClient>>(_tokenClient);
   const tokenResponse = useRef<Maybe<google.accounts.oauth2.TokenResponse>>(_tokenResponse);
   const userInfo = useRef<Maybe<GoogleUserInfo>>(_userInfo);
@@ -75,9 +73,9 @@ export function useGoogleApi({ clientId, scopes = [SCOPES['drive.file'], SCOPES.
   useEffect(() => {
     if (gapiScriptLoadError || gisScriptLoadError) {
       setError('There was an error initializing Google');
-      rollbar?.critical('Error loading Google API script from Network');
+      tracker.critical('Error loading Google API script from Network');
     }
-  }, [gapiScriptLoadError, gisScriptLoadError, rollbar]);
+  }, [gapiScriptLoadError, gisScriptLoadError]);
 
   const callback = useCallback(
     async (response: google.accounts.oauth2.TokenResponse) => {
@@ -103,7 +101,7 @@ export function useGoogleApi({ clientId, scopes = [SCOPES['drive.file'], SCOPES.
             })
             .catch((ex) => {
               logger.error('[GOOGLE] Error fetching user info', ex);
-              rollbar.error('Google Sign In error fetching user info', getErrorMessageAndStackObj(ex));
+              tracker.error('Google Sign In error fetching user info', ex);
             });
 
           _tokenExpiration = addSeconds(new Date(), Number(response.expires_in));
@@ -118,14 +116,14 @@ export function useGoogleApi({ clientId, scopes = [SCOPES['drive.file'], SCOPES.
       } catch (ex) {
         logger.error('[GOOGLE] Error in token callback', ex);
         setError('There was an error during Google sign in');
-        rollbar.error('Google Sign In error in token callback', getErrorMessageAndStackObj(ex));
+        tracker.error('Google Sign In error in token callback', ex);
         if (tokenCallback.current) {
           tokenCallback.current.reject(ex);
           tokenCallback.current = null;
         }
       }
     },
-    [rollbar],
+    [],
   );
 
   useNonInitialEffect(() => {
@@ -165,12 +163,12 @@ export function useGoogleApi({ clientId, scopes = [SCOPES['drive.file'], SCOPES.
       } catch (ex) {
         logger.error('[GOOGLE] Error loading library', ex);
         setError('There was a problem loading Google');
-        rollbar?.critical('Google Sign In error', { message: ex.message || ex.error, stack: ex.stack, ex });
+        tracker.critical('Google Sign In error', ex, { googleErrorCode: ex.error });
       } finally {
         setLoading(false);
       }
     }
-  }, [rollbar]);
+  }, []);
 
   const isTokenValid = useCallback(() => {
     return !!tokenClient.current && !!tokenResponse.current && !!currentTokenExpiration && isAfter(currentTokenExpiration, new Date());

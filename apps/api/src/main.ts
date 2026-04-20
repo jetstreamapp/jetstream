@@ -1,6 +1,8 @@
+// this gets imported first to ensure some items that require early initialization run first
+import '@jetstream/api-config';
+
 import { ClusterMemoryStorePrimary } from '@express-rate-limit/cluster-memory-store';
-import '@jetstream/api-config'; // this gets imported first to ensure as some items require early initialization
-import { createRateLimit, ENV, getExceptionLog, httpLogger, logger, pgPool } from '@jetstream/api-config';
+import { createRateLimit, ENV, getExceptionLog, httpLogger, logger, pgPool, sentryRequestContextMiddleware } from '@jetstream/api-config';
 import '@jetstream/auth/types';
 import { HTTP, SESSION_EXP_DAYS } from '@jetstream/shared/constants';
 import { setupPrimary } from '@socket.io/cluster-adapter';
@@ -126,6 +128,10 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
 
   // Setup session
   app.use(sessionMiddleware);
+
+  // Stamp user/IP/URL onto Sentry's isolation scope so any error captured during
+  // this request — including from services that don't receive `req` — carries full context.
+  app.use(sentryRequestContextMiddleware);
 
   // `crossOriginOpenerPolicy: false` is load-bearing. Any COOP value — including the
   // looser `same-origin-allow-popups` — causes the browser to isolate popups into a new

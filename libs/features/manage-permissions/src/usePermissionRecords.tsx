@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { describeSObject, queryAll, queryAllUsingOffset } from '@jetstream/shared/data';
-import { useRollbar } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, getErrorMessageAndStackObj, groupByFlat } from '@jetstream/shared/utils';
+import { tracker } from '@jetstream/shared/ui-utils';
+import { getErrorMessage, groupByFlat } from '@jetstream/shared/utils';
 import {
   EntityParticlePermissionsRecord,
   FieldPermissionDefinitionMap,
@@ -27,7 +27,6 @@ const INVALID_ID_PREFIX = '000';
 
 export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: string[], profilePermSetIds: string[], permSetIds: string[]) {
   const isMounted = useRef(true);
-  const rollbar = useRollbar();
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
@@ -109,7 +108,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
       }
     } catch (ex) {
       logger.warn('[useProfilesAndPermSets][ERROR]', getErrorMessage(ex));
-      rollbar.error('[useProfilesAndPermSets][ERROR]', getErrorMessageAndStackObj(ex));
+      tracker.error('[useProfilesAndPermSets][ERROR]', ex);
       if (isMounted.current) {
         setHasError(true);
       }
