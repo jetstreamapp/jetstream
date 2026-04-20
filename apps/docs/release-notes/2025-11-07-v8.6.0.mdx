@@ -1,0 +1,32 @@
+---
+slug: v8.6.0
+title: 8.6.0 - Opt-in analytics with cookie consent
+date: '2025-11-07'
+authors: [jetstream]
+tags: [web, desktop, extension]
+versions:
+  web: 8.6.0
+  desktop: 3.4.0
+  extension: 2.5.0
+summary: Analytics are now opt-in via a cookie consent banner for GDPR compliance, plus dependency upgrades and a desktop and extension version bump.
+highlights:
+  - title: Cookie consent banner
+    description: Analytics cookies are now opt-in with an in-app consent banner, aligned with GDPR expectations.
+  - title: Dependency upgrades
+    description: Broad dependency refresh across the monorepo and project cleanup.
+  - title: Desktop and extension rebuilds
+    description: Desktop 3.4.0 and Web Extension 2.5.0 were published alongside this web release to pick up the dependency upgrades.
+    platforms: [desktop, extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Opt-in analytics
+
+Analytics cookies now require explicit consent via a banner. Declining the banner keeps analytics off, and accepting enables them. Log storage moved to an updated BetterStack location as part of the subprocessor list refresh.
+
+### Dependency upgrades
+
+A monorepo-wide dependency bump landed with this release. No functional changes are expected, but the desktop and extension builds were re-published (desktop 3.4.0, web extension 2.5.0) so they ride the same versions.

@@ -1,0 +1,49 @@
+---
+slug: v9.4.0
+title: 9.4.0 - Google Drive picker on desktop and extension
+date: '2026-03-27'
+authors: [jetstream]
+tags: [web, desktop, extension]
+versions:
+  web: 9.4.0
+  desktop: 3.18.0
+  extension: 2.20.0
+summary: Pick files and folders from Google Drive inside the desktop app and browser extension, plus a fix for SFDX change tracking after creating fields with permissions.
+highlights:
+  - title: Google Drive picker on desktop and extension
+    description: Select files and folders from Google Drive when downloading or loading data, now available from the desktop app and browser extension via an external auth flow.
+    docLink: /load/load
+    platforms: [desktop, extension]
+  - title: SFDX change tracking for new fields with permissions
+    description: Creating fields with profiles or permission sets selected now touches those records so SFDX CLI picks up the change.
+    docLink: /deploy/deploy-fields
+    platforms: [web, desktop, extension]
+  - title: Keyboard navigation on the feedback widget
+    description: The feedback widget context menu supports arrow keys, Home/End, Escape, and Shift+F10 without needing a mouse.
+    platforms: [web, desktop, extension]
+  - title: Permissions Manager filter input shortcuts
+    description: Cmd/Ctrl+A, Home, End, and arrow keys in the header filter input now edit the text instead of navigating the grid.
+    docLink: /permissions/permissions
+    platforms: [web, desktop, extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Google Drive picker on desktop and extension
+
+The Google Drive file picker is now wired up for the desktop app and browser extension through an external authentication flow. You can select files for download or upload directly from your Drive without leaving Jetstream. Web users already had this, so now all three platforms behave consistently.
+
+### Field creation plays nice with SFDX change tracking
+
+When you created fields and assigned them to profiles or permission sets, SFDX CLI wouldn't detect the permission changes because the underlying Profile and PermissionSet records weren't modified. We now perform a no-op update on those records after deployment to bump `LastModifiedDate`, matching how the Permissions Manager already handles this. If the tracking touch fails, the deployment still succeeds.
+
+### Accessibility fixes
+
+- The feedback widget context menu (right-click or Shift+F10) now supports arrow-key navigation, Home/End, and Escape to close. The first item is focused automatically when the menu opens.
+- The header filter input in Permissions Manager no longer loses native text-editing shortcuts (Cmd/Ctrl+A, Home, End, arrow keys) to the underlying data grid.
+
+### Under the hood
+
+- Admin security-alert emails now include geo-IP distance calculations and multi-IP session checks for better anomaly detection.

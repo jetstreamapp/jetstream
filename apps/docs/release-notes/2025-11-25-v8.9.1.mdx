@@ -1,0 +1,25 @@
+---
+slug: v8.9.1
+title: 8.9.1 - Fix metadata download regression
+date: '2025-11-25'
+authors: [jetstream]
+tags: [web, desktop, extension]
+versions:
+  web: 8.9.1
+  desktop: 3.6.0
+  extension: 2.7.0
+summary: Patch release that restores metadata downloads after a regression in base64 handling.
+highlights:
+  - title: Metadata downloads work again
+    description: A recent refactor broke base64-to-ArrayBuffer conversion, which caused metadata downloads to fail. The conversion path is fixed.
+    docLink: /deploy/deploy-metadata
+    platforms: [web, desktop, extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Metadata download fix
+
+A code change introduced in 8.9.0 destructured a string primitive inside `base64ToArrayBuffer`, which caused metadata downloads to throw. The function was corrected and downloads work again across retrieve, package, and deploy flows.

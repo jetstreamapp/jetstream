@@ -1,0 +1,53 @@
+---
+slug: v8.11.0
+title: 8.11.0 - Bug bash fixes and API version bump
+date: '2025-12-05'
+authors: [jetstream]
+tags: [web, desktop, extension]
+versions:
+  web: 8.11.0
+summary: A batch of bug fixes from an internal bug bash, XML comment support in package manifests, clearer deployment terminology, and an API version bump.
+highlights:
+  - title: Package.xml comment support
+    description: Comments inside an XML package manifest no longer break parsing during deploy and retrieve operations.
+    docLink: /deploy/deploy-metadata
+    platforms: [web, desktop, extension]
+  - title: Editing orgs on the deployment page
+    description: Fixed a bug where editing an org from the deployment page would break navigation to the next step.
+    docLink: /deploy/deploy-metadata
+    platforms: [web, desktop, extension]
+  - title: Unmanaged terminology
+    description: References to "non-managed" tests and fields were updated to "unmanaged" across the UI and docs for consistency with Salesforce.
+    platforms: [web, desktop, extension]
+  - title: Production test level warning
+    description: The deployment options screen now shows an inline error when an invalid test level is picked for a production org.
+    docLink: /deploy/deploy-metadata
+    platforms: [web, desktop, extension]
+  - title: Salesforce API 65.0
+    description: Bumped the default Salesforce API version from 64.0 to 65.0.
+    platforms: [web, desktop, extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Package.xml comments
+
+XML comments inside a `package.xml` manifest are now tolerated by the parser, so manually-authored manifests with inline notes work in both deploy and retrieve flows.
+
+### Deployment page fixes
+
+- Editing an org from inside the deployment wizard no longer breaks the next step.
+- The deployment options screen surfaces an inline error when a production org is given an invalid test level.
+- Terminology was unified: "non-managed" tests and fields are now "unmanaged" everywhere.
+
+### Stability
+
+- Fixed an application crash that could occur when a resolved item was missing.
+- Fixed a missing dependency import.
+- Refactored uncaught-exception logging on the server so exceptions thrown from inside the error handler itself are reported cleanly.
+
+### Salesforce API version
+
+The Salesforce API version used for new org connections was bumped to 65.0.

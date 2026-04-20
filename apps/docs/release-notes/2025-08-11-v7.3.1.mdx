@@ -1,0 +1,27 @@
+---
+slug: v7.3.1
+title: 7.3.1 - Login session hardening
+date: '2025-08-11'
+authors: [jetstream]
+tags: [web]
+versions:
+  web: 7.3.1
+summary: Patch release that regenerates the session on login and cleans up server logs that could include sensitive values.
+highlights:
+  - title: Session regenerated on login
+    description: The login flow now always returns a fresh session so cached state from the pre-login request cannot carry over.
+  - title: Cleaner server logs
+    description: Removed log statements that could include sensitive header or identity values.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Login session regeneration
+
+Login now runs session regeneration as a promise-backed step, guaranteeing the session is fully rebuilt before the response is sent. A duplicate header-access bug introduced during the refactor was also fixed.
+
+### Log hygiene
+
+Removed several log lines that could echo sensitive identity or header data.

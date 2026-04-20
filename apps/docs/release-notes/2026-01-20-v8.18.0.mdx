@@ -1,0 +1,54 @@
+---
+slug: v8.18.0
+title: 8.18.0 - Zip preview for data loads, attachment error handling
+date: '2026-01-20'
+authors: [jetstream]
+tags: [web, desktop, extension]
+versions:
+  web: 8.18.0
+  desktop: 3.13.0
+  extension: 2.14.0
+summary: Data loads with attachments now preview the zip file and warn about mismatched filenames before the job runs.
+highlights:
+  - title: Zip preview on data loads with attachments
+    description: When you attach a zip file to a load, Jetstream now previews its contents, warns about invalid filenames, and flags files that do not match any row in the data file.
+    docLink: /load/load
+    platforms: [web, desktop, extension]
+  - title: Missing attachments marked as row errors
+    description: If a referenced binary file is not found in the zip, that record is now flagged as an error instead of silently succeeding with no attachment.
+    docLink: /load/load
+    platforms: [web, desktop, extension]
+  - title: Aborted downloads handled cleanly
+    description: Cancelling a server download job no longer triggers closure errors, and completion events include more log context.
+    platforms: [web]
+  - title: Team management docs
+    description: The team management page is now linked from the docs sidebar.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Data load zip preview
+
+When you pair a CSV with a zip of attachments, the Load Records preview now shows a dedicated zip-file tab. You'll see:
+
+- The list of files in the zip.
+- Warnings for filenames that contain characters Salesforce will reject.
+- Warnings for files in the zip that do not match any row in the data file.
+
+Catching these up front saves the usual round of "why did half my attachments fail" debugging after the job runs.
+
+### Attachment error handling
+
+If a record points at a binary file that is missing from the zip, that row is now marked as an error instead of being sent without the attachment.
+
+### Server reliability
+
+- Aborted download jobs no longer try to close already-closed streams, and completion logs include more context for debugging.
+- Login activity logs are retained for 365 days and email activity logs for 180 days for better audit visibility.
+- Upgraded the `tar` dependency to resolve a known vulnerability.
+
+### Docs
+
+The team management page is now in the sidebar so it is actually discoverable.

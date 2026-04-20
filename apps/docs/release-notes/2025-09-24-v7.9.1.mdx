@@ -1,0 +1,30 @@
+---
+slug: v7.9.1
+title: 7.9.1 - Permission manager column fix and desktop download link
+date: '2025-09-24'
+authors: [jetstream]
+tags: [web]
+versions:
+  web: 7.9.1
+summary: Fixes the View All Records column width in Manage Permissions and corrects the x64 desktop download link.
+highlights:
+  - title: View All Records column width
+    description: The View All Records column in the permission manager grid now renders with the correct width.
+    docLink: /permissions/permissions
+    platforms: [web, desktop, extension]
+  - title: Correct x64 desktop download link
+    description: The desktop download page now points at the right x64 installer asset.
+    platforms: [web]
+---
+
+{/* truncate */}
+
+## What's new
+
+### View All Records column width
+
+The new View All Fields column introduced in 7.9.0 was causing the View All Records column in the Manage Permissions grid to render at the wrong width. The column sizing was corrected.
+
+### Correct x64 desktop download link
+
+The download link for the x64 desktop installer was pointing at the wrong asset. The download resolver was updated so the correct Windows x64 build is served.

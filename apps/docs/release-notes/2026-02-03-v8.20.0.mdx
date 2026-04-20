@@ -1,0 +1,38 @@
+---
+slug: v8.20.0
+title: 8.20.0 - Permission export improvements
+date: '2026-02-03'
+authors: [jetstream]
+tags: [web]
+versions:
+  web: 8.20.0
+summary: Permission manager exports are more reliable, show real errors on failure, and now offer CSV as a fallback format.
+highlights:
+  - title: More reliable permission exports
+    description: Export data is now prepared after you choose a download format, and XLSX settings were tuned to reduce generation failures.
+    docLink: /permissions/permissions
+    platforms: [web]
+  - title: CSV fallback for permission exports
+    description: Added CSV as an export option so you can fall back when XLSX generation fails on very large exports.
+    docLink: /permissions/permissions
+    platforms: [web]
+  - title: Real error messages on export failure
+    description: Export failures now surface an error to the user instead of silently doing nothing.
+    platforms: [web]
+---
+
+{/* truncate */}
+
+## What's new
+
+### More reliable permission exports
+
+Permission manager downloads had a few rough edges when exporting large permission sets. Export data is now prepared after you choose a download format rather than up front, and the XLSX generation settings were tuned to reduce failures.
+
+### CSV fallback for permission exports
+
+Added CSV as a new export option in the permission manager. If XLSX generation struggles with a large export, CSV gives you a reliable fallback.
+
+### Real error messages on export failure
+
+If an export fails, you now see an error message explaining that it failed instead of the download silently doing nothing.

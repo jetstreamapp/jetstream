@@ -1,0 +1,60 @@
+---
+slug: v7.0.0
+title: 7.0.0 - React 19, Jotai state, and better datatable keyboard navigation
+date: '2025-07-27'
+authors: [jetstream]
+tags: [web, extension]
+versions:
+  web: 7.0.0
+  extension: 2.0.0
+summary: Major foundation update. Jetstream now runs on React 19 with Jotai for state and Floating UI for popovers, plus meaningful wins for keyboard users in the datatable.
+highlights:
+  - title: Improved datatable keyboard navigation
+    description: Tab now cycles through action and record Id cells, Enter opens the record popover, and inline editing matches SLDS styles.
+    docLink: /query/query-results
+    platforms: [web, extension]
+  - title: Tooltips respond to keyboard focus
+    description: Focusing a button or icon with the keyboard now shows its tooltip, matching the behavior you get with a mouse hover.
+    platforms: [web, extension]
+  - title: Bulk update from query results fixed
+    description: The bulk update job from query results no longer fails because of a stale polling callback, so jobs complete and surface their status correctly.
+    docLink: /query/query-results
+    platforms: [web, extension]
+  - title: Dropdowns close reliably on outside click
+    description: Clicking outside a dropdown now closes it in the cases where it was previously staying open.
+    platforms: [web, extension]
+  - title: Modernized popovers and tooltips
+    description: Popovers and tooltips moved to Floating UI, which fixes several nested portal and positioning glitches across modals and popovers.
+    platforms: [web, extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Datatable keyboard navigation
+
+Tabbing through the query and load datatables now behaves more predictably. The action column and the Id column are reachable with Tab, and pressing Enter on an Id cell opens the record popover. Copying a cell with the keyboard gets a visible focus style, and inline cell editing has been cleaned up to match SLDS. These changes apply anywhere the datatable is used, including query results and the web extension.
+
+### Tooltips with keyboard focus
+
+Tooltips now open when a control receives keyboard focus, not just when the mouse hovers. This makes icon-only buttons discoverable without a pointer.
+
+### Bulk update from query results
+
+Fixed a bug where the bulk update job launched from query results would silently fail because the polling callback captured stale state and never attached the job id to the tracked data. Polling now reads fresh state on each tick.
+
+### Foundation upgrades
+
+Under the hood this release rebuilds several foundations:
+
+- Upgraded to React 19.
+- Migrated state management from Recoil (unmaintained) to Jotai.
+- Migrated tooltips and popovers from Tippy and Popper.js to Floating UI, which resolved a handful of nested-portal and positioning bugs in modals and popovers.
+- Upgraded the react-data-grid library.
+
+No action is required. If you notice any regression in tooltips, popovers, dropdowns, or inline editing after updating, please let us know.
+
+### Web extension 2.0.0
+
+The browser extension was bumped alongside the web release and picks up all of the above: React 19, Jotai, Floating UI, and the datatable keyboard improvements.

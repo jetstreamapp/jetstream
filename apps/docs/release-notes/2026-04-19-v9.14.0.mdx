@@ -1,0 +1,40 @@
+---
+slug: v9.14.0
+title: 9.14.0 - Profile and Permission Set info popover
+date: '2026-04-19'
+authors: [jetstream]
+tags: [web, desktop, extension]
+versions:
+  web: 9.14.0
+  desktop: 3.20.0
+  extension: 2.22.0
+summary: A new info popover on Profile and Permission Set rows shows assigned users and a direct link to Setup, plus security header and CSP improvements.
+highlights:
+  - title: Profile and Permission Set info popover
+    description: An info trigger on Profile and Permission Set list rows opens a popover with the record label, assigned active users (searchable), and a Setup link.
+    docLink: /permissions/permissions
+  - title: Tighter security headers and cookie handling
+    description: Server sends hardened security headers and no longer relies on the legacy jetstream cookie for data access.
+  - title: CSP updates
+    description: Allow additional image and script sources needed for login and embedded content while keeping the tightened policy in place.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Profile and Permission Set info popover
+
+Profile and Permission Set rows in Manage Permissions, Create Fields selection, Create New Object Permissions, Formula Evaluator permissions, and the User search popover now have a small info trigger. Clicking it opens a popover that shows the record label, a searchable list of assigned active users (for profiles) or active assignees (for permission sets), and a direct link to the record in Salesforce Setup.
+
+### Security headers and cookie cleanup
+
+- The legacy `JETSTREAM` cookie has been removed; the app now reads `serverUrl` from environment configuration instead.
+- Added a dedicated security-headers module on the API with tests covering auth storage and proxy-cookie behavior.
+- Suppresses verification emails that would otherwise be sent for placeholder login sessions.
+
+### CSP adjustments
+
+- Added image sources (for example Cloudinary, Gravatar) so avatars and embedded images render under the tightened policy.
+- Desktop CSP expanded to cover additional image sources.
+- Additional script and connect sources added to support login flows.

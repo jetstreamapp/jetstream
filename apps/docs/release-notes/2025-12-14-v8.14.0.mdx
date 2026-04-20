@@ -1,0 +1,30 @@
+---
+slug: v8.14.0
+title: 8.14.0 - Record lookup in query filters
+date: '2025-12-14'
+authors: [jetstream]
+tags: [web, desktop]
+versions:
+  web: 8.14.0
+summary: Query filter values now support a record lookup so you can search for the record you want to filter on instead of hunting for an ID.
+highlights:
+  - title: Record lookup in query filters
+    description: When building a query filter on a reference field, search for the related record and have the ID inserted into your SOQL.
+    docLink: /query/query-results
+    platforms: [web, desktop, extension]
+  - title: Lookup clear button fix
+    description: The clear button now works correctly when the lookup editor is in manual text entry mode.
+    platforms: [web, desktop, extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Record lookup in query filters
+
+The query builder's filter value now accepts a record lookup for reference fields. Search for the record you want, and Jetstream writes the correct ID into the generated SOQL. This makes ad-hoc filters faster when you know the record by name but not by ID.
+
+### Lookup clear button fix
+
+Fixed an issue where the clear button did not reset the value while the lookup editor was in manual text entry mode.

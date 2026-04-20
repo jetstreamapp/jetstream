@@ -1,0 +1,33 @@
+---
+slug: v8.1.0
+title: 8.1.0 - Login configuration and email verification fixes
+date: '2025-10-13'
+authors: [jetstream]
+tags: [web]
+versions:
+  web: 8.1.0
+summary: Fixes login configuration lookup for individual users and repairs the email-link verification flow used during 2FA.
+highlights:
+  - title: Correct login configuration lookup
+    description: Individual accounts no longer inherit team login rules because of an argument-shape bug in the configuration lookup.
+  - title: Verify email via link works again
+    description: Restores the 2FA email-verification link flow, which was rejecting valid codes due to a mis-wired validator.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Correct login configuration lookup
+
+The server was always falling back to the team login configuration, even for users without a team, because of a bug in how a polymorphic lookup argument was built. Individual accounts now resolve their own configuration, and team members continue to inherit their team's rules.
+
+### Verify email via link
+
+The email-verification link used during 2FA was wired up to the wrong Zod validator, which caused valid codes to be rejected. The correct validator is now used end-to-end.
+
+### Under the hood
+
+- Upgraded to Zod 4 across the API, with an OpenAPI spec generated from the route validators.
+- Upgraded `react-hook-form` and related validators.
+- Fixed geo-IP lookup and improved error logging for client-discovery requests.
