@@ -38,6 +38,11 @@ interface FlaggedZone {
   currentHourEnd: Date;
 }
 
+interface ZoneEvaluationFailure {
+  zoneId: string;
+  message: string;
+}
+
 function getNumberEnv(value: string | undefined, fallback: number): number {
   if (!value) {
     return fallback;
@@ -87,6 +92,16 @@ function computeMeanStdev(values: number[]): { mean: number; stdev: number } {
   return { mean, stdev: Math.sqrt(variance) };
 }
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'string') {
+    return error;
+  }
+  return 'Unknown error';
+}
+
 export async function detectFirewallSpike(prisma: PrismaClient): Promise<SpikeDetectionResult> {
   if (!ENV.CLOUDFLARE_API_TOKEN) {
     throw new Error('CLOUDFLARE_API_TOKEN is not configured');
@@ -106,13 +121,15 @@ export async function detectFirewallSpike(prisma: PrismaClient): Promise<SpikeDe
   // We look at "current hour" = the most recently COMPLETED hour.
   const currentHourEnd = floorToHour(now);
   const currentHourStart = addHours(currentHourEnd, -1);
-  // Baseline window: the 24 hours before that. Query 25h back so we can separate the current hour from the baseline.
-  const windowStart = addHours(currentHourEnd, -25);
+  // Baseline window: the 24 hours before the current hour.
+  // We issue two separate queries (baseline + current hour) so neither exceeds
+  // Cloudflare's 1-day maximum query window.
+  const baselineStart = addHours(currentHourStart, -24);
 
   logger.info(
     {
       zones: zoneIds.length,
-      windowStart: windowStart.toISOString(),
+      baselineStart: baselineStart.toISOString(),
       currentHourStart: currentHourStart.toISOString(),
       currentHourEnd: currentHourEnd.toISOString(),
       thresholdStdev,
@@ -122,11 +139,16 @@ export async function detectFirewallSpike(prisma: PrismaClient): Promise<SpikeDe
   );
 
   const flaggedZones: FlaggedZone[] = [];
+  const failedZones: ZoneEvaluationFailure[] = [];
 
   for (const zoneId of zoneIds) {
     try {
-      const rows = await queryHourlyBlockCounts(zoneId, windowStart, currentHourEnd);
-      const totalsByHour = sumHourly(rows);
+      // Two queries to stay within Cloudflare's 1-day limit per request.
+      const [baselineRows, currentRows] = await Promise.all([
+        queryHourlyBlockCounts(zoneId, baselineStart, currentHourStart),
+        queryHourlyBlockCounts(zoneId, currentHourStart, currentHourEnd),
+      ]);
+      const totalsByHour = sumHourly([...baselineRows, ...currentRows]);
 
       const currentHourMs = currentHourStart.getTime();
       const currentCount = totalsByHour.get(currentHourMs) ?? 0;
@@ -178,8 +200,22 @@ export async function detectFirewallSpike(prisma: PrismaClient): Promise<SpikeDe
         });
       }
     } catch (error) {
-      logger.error({ error, zoneId }, 'Failed to evaluate zone for spike detection');
+      const message = getErrorMessage(error);
+      failedZones.push({ zoneId, message });
+      logger.error({ err: error, zoneId, errorMessage: message }, 'Failed to evaluate zone for spike detection');
     }
+  }
+
+  if (failedZones.length > 0) {
+    const failureSummary = failedZones.map(({ zoneId, message }) => `${zoneId}: ${message}`).join('; ');
+    logger.error(
+      {
+        failedZoneCount: failedZones.length,
+        failedZoneIds: failedZones.map(({ zoneId }) => zoneId),
+      },
+      'Cloudflare spike detection failed for one or more zones',
+    );
+    throw new Error(`Cloudflare spike detection aborted due to zone evaluation failures: ${failureSummary}`);
   }
 
   if (flaggedZones.length === 0) {
@@ -303,7 +339,6 @@ export async function detectFirewallSpike(prisma: PrismaClient): Promise<SpikeDe
 }
 
 function formatHourWindow(start: Date, end: Date): string {
-  const fmt = (date: Date) =>
-    `${date.getUTCHours().toString().padStart(2, '0')}:${date.getUTCMinutes().toString().padStart(2, '0')}`;
+  const fmt = (date: Date) => `${date.getUTCHours().toString().padStart(2, '0')}:${date.getUTCMinutes().toString().padStart(2, '0')}`;
   return `Last hour (UTC ${fmt(start)}–${fmt(end)})`;
 }

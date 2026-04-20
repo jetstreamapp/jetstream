@@ -1,13 +1,8 @@
 import { sendCloudflareSecurityAlertEmail } from '@jetstream/email';
 import type { PrismaClient } from '@jetstream/prisma';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  queryHourlyBlockCounts,
-  queryTopDimension,
-  queryTopRules,
-  queryTotalsByAction,
-} from '../utils/cloudflare.utils';
 import { detectFirewallSpike } from '../utils/cloudflare-spike-detector.utils';
+import { queryHourlyBlockCounts, queryTopDimension, queryTopRules, queryTotalsByAction } from '../utils/cloudflare.utils';
 
 // Fixed "now" for every test so `new Date()` inside the SUT agrees with the test's expectations.
 // Chose a time well clear of any hour boundary so fake-timer rounding has no surprises.
@@ -54,8 +49,7 @@ vi.mock('../utils/cloudflare.utils', () => ({
     }
     return { blocked, challenged, managed, total: blocked + challenged + managed };
   },
-  sortAndLimit: <T extends { count: number }>(rows: T[], limit: number) =>
-    [...rows].sort((a, b) => b.count - a.count).slice(0, limit),
+  sortAndLimit: <T extends { count: number }>(rows: T[], limit: number) => [...rows].sort((a, b) => b.count - a.count).slice(0, limit),
 }));
 
 vi.mock('../utils/geo-ip.utils', () => ({
@@ -81,7 +75,24 @@ function toCloudflareHour(date: Date): string {
   return date.toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
 
-function buildHourlyRows({
+function buildBaselineRows(currentHourStart: Date, baselineCounts: number[]) {
+  const rows: Array<{ datetimeHour: string; action: string; count: number }> = [];
+  for (let i = 0; i < baselineCounts.length; i++) {
+    const hour = new Date(currentHourStart.getTime() - (i + 1) * 60 * 60 * 1000);
+    rows.push({ datetimeHour: toCloudflareHour(hour), action: 'block', count: baselineCounts[i] });
+  }
+  return rows;
+}
+
+function buildCurrentHourRows(currentHourStart: Date, currentCount: number) {
+  return [{ datetimeHour: toCloudflareHour(currentHourStart), action: 'block', count: currentCount }];
+}
+
+/**
+ * Sets up the mock for queryHourlyBlockCounts to return baseline rows on the first call
+ * and current-hour rows on the second call, matching the two-query split in the SUT.
+ */
+function mockHourlyCounts({
   currentHourStart,
   currentCount,
   baselineCounts,
@@ -90,14 +101,9 @@ function buildHourlyRows({
   currentCount: number;
   baselineCounts: number[];
 }) {
-  const rows: Array<{ datetimeHour: string; action: string; count: number }> = [
-    { datetimeHour: toCloudflareHour(currentHourStart), action: 'block', count: currentCount },
-  ];
-  for (let i = 0; i < baselineCounts.length; i++) {
-    const hour = new Date(currentHourStart.getTime() - (i + 1) * 60 * 60 * 1000);
-    rows.push({ datetimeHour: toCloudflareHour(hour), action: 'block', count: baselineCounts[i] });
-  }
-  return rows;
+  mockQueryHourly
+    .mockResolvedValueOnce(buildBaselineRows(currentHourStart, baselineCounts))
+    .mockResolvedValueOnce(buildCurrentHourRows(currentHourStart, currentCount));
 }
 
 // Matches the SUT's `currentHourEnd = floorToHour(now); currentHourStart = currentHourEnd - 1h`.
@@ -139,9 +145,7 @@ describe('detectFirewallSpike', () => {
     const currentHourStart = getCurrentHourStart();
     // Baseline mean ~100, stdev ~10 → threshold ~130. Current = 110 → no spike.
     const baseline = Array.from({ length: 24 }, (_, i) => 100 + (i % 5) * 2);
-    mockQueryHourly.mockResolvedValue(
-      buildHourlyRows({ currentHourStart, currentCount: 110, baselineCounts: baseline }),
-    );
+    mockHourlyCounts({ currentHourStart, currentCount: 110, baselineCounts: baseline });
 
     const prisma = buildPrismaMock();
     const result = await detectFirewallSpike(prisma);
@@ -155,9 +159,7 @@ describe('detectFirewallSpike', () => {
     // Quiet baseline (mostly zero, a couple of 1s), current = 10 → well above threshold
     // but below the 50-event floor.
     const baseline = [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    mockQueryHourly.mockResolvedValue(
-      buildHourlyRows({ currentHourStart, currentCount: 10, baselineCounts: baseline }),
-    );
+    mockHourlyCounts({ currentHourStart, currentCount: 10, baselineCounts: baseline });
 
     const prisma = buildPrismaMock();
     const result = await detectFirewallSpike(prisma);
@@ -172,9 +174,7 @@ describe('detectFirewallSpike', () => {
     // (not "missing history") so it still fires when the current hour crosses the min-event
     // floor. Before this fix, such zones were skipped entirely.
     const currentHourStart = getCurrentHourStart();
-    mockQueryHourly.mockResolvedValue(
-      buildHourlyRows({ currentHourStart, currentCount: 500, baselineCounts: [] }),
-    );
+    mockHourlyCounts({ currentHourStart, currentCount: 500, baselineCounts: [] });
 
     const prisma = buildPrismaMock();
     const result = await detectFirewallSpike(prisma);
@@ -190,9 +190,7 @@ describe('detectFirewallSpike', () => {
   it('alerts when a true spike is detected', async () => {
     const currentHourStart = getCurrentHourStart();
     const baseline = Array.from({ length: 24 }, () => 50);
-    mockQueryHourly.mockResolvedValue(
-      buildHourlyRows({ currentHourStart, currentCount: 5000, baselineCounts: baseline }),
-    );
+    mockHourlyCounts({ currentHourStart, currentCount: 5000, baselineCounts: baseline });
 
     const prisma = buildPrismaMock();
     const result = await detectFirewallSpike(prisma);
@@ -213,9 +211,7 @@ describe('detectFirewallSpike', () => {
   it('suppresses the email when the cooldown window is active', async () => {
     const currentHourStart = getCurrentHourStart();
     const baseline = Array.from({ length: 24 }, () => 50);
-    mockQueryHourly.mockResolvedValue(
-      buildHourlyRows({ currentHourStart, currentCount: 5000, baselineCounts: baseline }),
-    );
+    mockHourlyCounts({ currentHourStart, currentCount: 5000, baselineCounts: baseline });
 
     const prisma = buildPrismaMock({
       recentSpikeEmail: {
@@ -231,14 +227,13 @@ describe('detectFirewallSpike', () => {
     expect(mockSendEmail).not.toHaveBeenCalled();
   });
 
-  it('catches per-zone GraphQL errors and completes the run', async () => {
+  it('fails the run when any zone evaluation throws', async () => {
     mockQueryHourly.mockRejectedValue(new Error('cloudflare boom'));
 
     const prisma = buildPrismaMock();
-    const result = await detectFirewallSpike(prisma);
-
-    // Per-zone errors are caught and logged, not rethrown. We should still complete the run.
-    expect(result).toEqual({ zonesChecked: 1, spikesDetected: 0, emailSent: false, cooldownActive: false });
+    await expect(detectFirewallSpike(prisma)).rejects.toThrow(
+      /Cloudflare spike detection aborted due to zone evaluation failures: zone-abc: cloudflare boom/,
+    );
     expect(mockSendEmail).not.toHaveBeenCalled();
   });
 });
