@@ -32,7 +32,9 @@ export default defineConfig({
   maxFailures: process.env.CI ? 2 : 0,
   timeout: 120000,
   workers: process.env.CI ? 1 : undefined,
-  reporter: [['html', { outputFolder: 'playwright-report', open: process.env.CI ? 'never' : 'on-failure' }]],
+  reporter: process.env.CI
+    ? [['blob', { outputDir: 'blob-report' }]]
+    : [['html', { outputFolder: 'playwright-report', open: 'on-failure' }]],
   use: {
     actionTimeout: THIRTY_SECONDS,
     navigationTimeout: THIRTY_SECONDS,

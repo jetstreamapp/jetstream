@@ -87,7 +87,13 @@ jobs:
           path: dist
 
   e2e:
+    needs: [build-and-test]
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shardIndex: [1, 2, 3, 4]
+        shardTotal: [4]
     env:
       E2E_LOGIN_PASSWORD: ${{ secrets.E2E_LOGIN_PASSWORD }}
       E2E_LOGIN_URL: "https://jetstream-e2e-dev-ed.develop.my.salesforce.com"
@@ -126,8 +132,11 @@ jobs:
       - name: install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Build
-        run: yarn build:ci
+      - name: Download build artifacts
+        uses: actions/download-artifact@v6
+        with:
+          name: dist-artifacts
+          path: dist
 
       - name: Install Playwright dependencies
         run: npx playwright install --with-deps
@@ -149,13 +158,44 @@ jobs:
           PGDATABASE: postgres
 
       - name: Run E2E tests
-        run: yarn playwright:test:with-server
+        run: >-
+          yarn start-server-and-test --expect 200
+          'yarn start:e2e' http://localhost:3333
+          'yarn playwright test src --config apps/jetstream-e2e/playwright.config.ts --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}'
 
-      - name: Upload test results
-        if: always() # This ensures step will always run even if prior steps fail
+      - name: Upload blob report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: blob-report-${{ matrix.shardIndex }}
+          path: apps/jetstream-e2e/blob-report
+          retention-days: 1
+
+  merge-e2e-reports:
+    if: ${{ always() && !cancelled() }}
+    needs: [e2e]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: "yarn"
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      - name: Download blob reports
+        uses: actions/download-artifact@v6
+        with:
+          path: all-blob-reports
+          pattern: blob-report-*
+          merge-multiple: true
+      - name: Merge into HTML Report
+        run: |
+          mkdir -p all-blob-reports
+          npx playwright merge-reports --reporter html ./all-blob-reports
+      - name: Upload HTML report
         uses: actions/upload-artifact@v6
         with:
           name: playwright-report
-          path: |
-            apps/jetstream-e2e/playwright-report
-            test-results
+          path: playwright-report
+          retention-days: 14
