@@ -168,7 +168,7 @@ export function useDataTable<T = RowWithKey>({
       // Apply global filter
       const key = getRowKey(row);
       if (quickFilterNeedle && key && rowFilterText[key]) {
-        return isVisible && rowFilterText[key].toLowerCase().includes(quickFilterNeedle);
+        return isVisible && rowFilterText[key].includes(quickFilterNeedle);
       }
       return isVisible;
     });

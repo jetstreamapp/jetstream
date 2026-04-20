@@ -1,5 +1,4 @@
 import { act, renderHook } from '@testing-library/react';
-import { useRef } from 'react';
 import { describe, expect, test } from 'vitest';
 import { ColumnWithFilter, DataTableRef } from '../data-table-types';
 import { useDataTable } from '../useDataTable';
@@ -45,8 +44,7 @@ describe('useDataTable quick filter', () => {
     // Simulate a user pasting an entire tab-separated row including regex-sensitive characters.
     // Reproduces the production crash where building `new RegExp(escapeRegExp(...))` threw
     // "Invalid regular expression" during the first `.test()` call on massive input.
-    const giantPaste =
-      'Id\tName\tNotes\t' + '2026-04-17T11:46:03.000+0000 | V4 - step.failed (see error) . | '.repeat(400);
+    const giantPaste = 'Id\tName\tNotes\t' + '2026-04-17T11:46:03.000+0000 | V4 - step.failed (see error) . | '.repeat(400);
     const props = buildProps({ quickFilterText: giantPaste });
     expect(() => {
       const { result } = renderHook(() => useDataTable(props));

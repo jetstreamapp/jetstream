@@ -1,3 +1,5 @@
+import { rollbarServer } from '@jetstream/api-config';
+import { EXPIRED_TOKEN_PLACEHOLDER } from '@jetstream/shared/constants';
 import { decryptString, encryptString } from '@jetstream/shared/node-utils';
 import { Mock, vi } from 'vitest';
 import { decryptAccessToken, encryptAccessToken } from '../salesforce-org-encryption.service';
@@ -112,6 +114,14 @@ describe('salesforce-org-encryption.service', () => {
       const result = await decryptAccessToken({ encryptedAccessToken, userId });
 
       expect(result).toEqual(['invalid', 'invalid']);
+    });
+
+    it('should return ["invalid", "invalid"] without alerting for the expired-org sentinel', async () => {
+      const result = await decryptAccessToken({ encryptedAccessToken: EXPIRED_TOKEN_PLACEHOLDER, userId });
+
+      expect(result).toEqual(['invalid', 'invalid']);
+      expect(decryptString).not.toHaveBeenCalled();
+      expect(rollbarServer.error).not.toHaveBeenCalled();
     });
   });
 });
