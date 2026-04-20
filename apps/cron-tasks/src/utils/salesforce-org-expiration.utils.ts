@@ -10,6 +10,8 @@ const INACTIVITY_DAYS = 90;
 const WARNING_PERIOD_DAYS = 30; // Grace period after inactivity before expiration
 const NOTIFICATION_DAYS = [30, 7, 3, 0];
 const USER_INACTIVITY_DAYS = 90; // Skip email if user hasn't logged in for this many days
+// Must stay in sync with EXPIRED_TOKEN_PLACEHOLDER in apps/api salesforce-org-encryption.service.ts,
+// which detects this value and short-circuits decryption without alerting.
 const DUMMY_ENCRYPTED_TOKEN = 'v2:EXPIRED_TOKEN_PLACEHOLDER';
 const CONNECTION_ERROR_MESSAGE = 'Credentials expired due to inactivity';
 
