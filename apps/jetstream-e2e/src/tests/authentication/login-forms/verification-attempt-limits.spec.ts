@@ -35,10 +35,12 @@ test.describe('Verification attempt limits', () => {
       await expect(page.getByText(invalidVerificationMessage)).toBeVisible();
     }
 
-    // Final attempt trips the session-scoped budget: session is destroyed and the
-    // TooManyVerificationAttempts message is surfaced.
+    // Final attempt trips the session-scoped budget: session is destroyed and the user is bounced
+    // to the login page with the lockout message preserved as a query param. The redirect matters
+    // because a refresh on /auth/verify would silently lose the error context.
     await authenticationPage.verificationCodeInput.fill(BAD_CODE);
     await authenticationPage.continueButton.click();
+    await page.waitForURL(/\/auth\/login.*[?&]error=TooManyVerificationAttempts/);
     await expect(page.getByText(tooManyVerificationAttemptsMessage)).toBeVisible();
 
     // Session should no longer carry a pendingVerification for this user.

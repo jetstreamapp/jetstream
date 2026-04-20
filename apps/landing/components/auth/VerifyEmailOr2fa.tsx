@@ -59,7 +59,7 @@ export function VerifyEmailOr2fa({ csrfToken, email, pendingVerifications }: Ver
     handleSubmit,
     setValue,
     watch,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(FormSchema),
     defaultValues: {
@@ -98,6 +98,14 @@ export function VerifyEmailOr2fa({ csrfToken, email, pendingVerifications }: Ver
       .then((res: { data: { error: boolean; errorType?: string; redirect?: string } }) => res.data);
 
     if (!response.ok || error) {
+      // Session-ending errors (e.g. too many failed attempts) destroy the pending verification on
+      // the server. Refreshing this page would silently bounce the user to login with no context,
+      // so redirect now with the error preserved as a query param. This also covers the multi-tab
+      // case where the session was killed by another tab and this tab sees InvalidSession.
+      if (errorType === 'TooManyVerificationAttempts' || errorType === 'InvalidSession') {
+        router.push(`${ROUTES.AUTH.login}?${new URLSearchParams({ error: errorType })}`);
+        return;
+      }
       setError(errorType || 'UNKNOWN_ERROR');
       return;
     }
@@ -177,6 +185,7 @@ export function VerifyEmailOr2fa({ csrfToken, email, pendingVerifications }: Ver
             <div>
               <button
                 type="submit"
+                disabled={isSubmitting}
                 className="flex w-full justify-center rounded-md bg-blue-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-xs hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
               >
                 Continue

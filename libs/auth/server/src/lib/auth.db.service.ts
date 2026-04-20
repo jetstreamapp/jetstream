@@ -846,8 +846,9 @@ export async function revokeAllUserSessions(userId: string, exceptId?: Maybe<str
         }
       : { userId },
   });
+  // exceptId refers to a session sid, never a webExtensionToken UUID — always clear all of the user's tokens.
   await prisma.webExtensionToken.deleteMany({
-    where: exceptId ? { userId, NOT: { id: exceptId } } : { userId },
+    where: { userId },
   });
 }
 
