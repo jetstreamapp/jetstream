@@ -9,6 +9,14 @@ import { promisify } from 'util';
  */
 export const DUMMY_INVALID_ENCRYPTED_TOKEN = 'invalid';
 
+/**
+ * Sentinel written by the expiration cron (cron-tasks/salesforce-org-expiration.utils.ts)
+ * when scrubbing tokens from orgs expired due to inactivity. Matched in decryptAccessToken
+ * so the decrypt path short-circuits without alerting on a known-bad value.
+ * Must stay in sync with DUMMY_ENCRYPTED_TOKEN in the cron.
+ */
+export const EXPIRED_TOKEN_PLACEHOLDER = 'v2:EXPIRED_TOKEN_PLACEHOLDER';
+
 const pbkdf2Async = promisify(pbkdf2);
 
 /**
@@ -112,6 +120,12 @@ export async function decryptAccessToken({
   encryptedAccessToken: string;
   userId: string;
 }): Promise<[string, string]> {
+  // Known sentinel from the expiration cron — not decryptable by design.
+  // Caller checks DUMMY_INVALID_ENCRYPTED_TOKEN + expirationScheduledFor and surfaces a reconnect prompt.
+  if (encryptedAccessToken === EXPIRED_TOKEN_PLACEHOLDER) {
+    return [DUMMY_INVALID_ENCRYPTED_TOKEN, DUMMY_INVALID_ENCRYPTED_TOKEN];
+  }
+
   try {
     // Check if this is the new format (version:salt:data)
     if (encryptedAccessToken.startsWith('v2:')) {

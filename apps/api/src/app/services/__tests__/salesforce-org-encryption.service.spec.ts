@@ -1,6 +1,7 @@
 import { decryptString, encryptString } from '@jetstream/shared/node-utils';
 import { Mock, vi } from 'vitest';
-import { decryptAccessToken, encryptAccessToken } from '../salesforce-org-encryption.service';
+import { rollbarServer } from '@jetstream/api-config';
+import { decryptAccessToken, encryptAccessToken, EXPIRED_TOKEN_PLACEHOLDER } from '../salesforce-org-encryption.service';
 
 vi.mock('@jetstream/shared/node-utils', () => ({
   encryptString: vi.fn(),
@@ -112,6 +113,14 @@ describe('salesforce-org-encryption.service', () => {
       const result = await decryptAccessToken({ encryptedAccessToken, userId });
 
       expect(result).toEqual(['invalid', 'invalid']);
+    });
+
+    it('should return ["invalid", "invalid"] without alerting for the expired-org sentinel', async () => {
+      const result = await decryptAccessToken({ encryptedAccessToken: EXPIRED_TOKEN_PLACEHOLDER, userId });
+
+      expect(result).toEqual(['invalid', 'invalid']);
+      expect(decryptString).not.toHaveBeenCalled();
+      expect(rollbarServer.error).not.toHaveBeenCalled();
     });
   });
 });
