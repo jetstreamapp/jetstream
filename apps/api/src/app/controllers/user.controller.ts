@@ -472,7 +472,10 @@ const unlinkIdentity = createRoute(routeDefinition.unlinkIdentity.validators, as
   try {
     const { provider, providerAccountId } = query;
 
-    await removeIdentityFromUser(user.id, provider, providerAccountId);
+    // Atomically remove the identity and revoke sessions/tokens authenticated via it so an
+    // attacker with a stolen OAuth session loses access when the legitimate user unlinks.
+    // The current session is preserved so the user stays signed in on the device unlinking.
+    await removeIdentityFromUser(user.id, provider, providerAccountId, req.session.id);
     const updatedUser = await userDbService.findUserWithIdentitiesById(user.id);
 
     sendJson(res, updatedUser);

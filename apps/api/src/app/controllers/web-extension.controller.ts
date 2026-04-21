@@ -8,8 +8,8 @@ import {
 } from '@jetstream/auth/server';
 import { HTTP } from '@jetstream/shared/constants';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
-import { fromUnixTime } from 'date-fns';
 import { UserProfileUiSchema } from '@jetstream/types';
+import { fromUnixTime } from 'date-fns';
 import { z } from 'zod';
 import { routeDefinition as dataSyncController } from '../controllers/data-sync.controller';
 import * as userSyncDbService from '../db/data-sync.db';
@@ -167,6 +167,8 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
     ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
     userAgent: req.get('User-Agent') || 'unknown',
     expiresAt: fromUnixTime(externalAuthService.decodeToken(accessToken).exp),
+    provider: req.session.provider,
+    providerAccountId: req.session.providerAccountId,
   });
 
   sendJson(res, { accessToken });

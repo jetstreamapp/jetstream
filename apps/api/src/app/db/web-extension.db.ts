@@ -1,5 +1,5 @@
 import { logger, prisma } from '@jetstream/api-config';
-import { TokenSource, TokenSourceBrowserExtensions, TokenSourceDesktop } from '@jetstream/auth/types';
+import { OauthProviderType, SsoProviderType, TokenSource, TokenSourceBrowserExtensions, TokenSourceDesktop } from '@jetstream/auth/types';
 import { Prisma } from '@jetstream/prisma';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { addDays } from 'date-fns';
@@ -125,6 +125,8 @@ export const create = async (
     ipAddress: string;
     userAgent: string;
     expiresAt: Date;
+    provider?: OauthProviderType | SsoProviderType | 'credentials';
+    providerAccountId?: string;
   },
 ) => {
   // Encrypt the token before storing and create hash for lookup
@@ -134,7 +136,15 @@ export const create = async (
   return await prisma.webExtensionToken.upsert({
     select: SELECT,
     create: { userId, ...payload, token, tokenHash },
-    update: { userId, ...payload, token, tokenHash },
+    update: {
+      userId,
+      ...payload,
+      token,
+      tokenHash,
+      // Coerce undefined to null so a re-login with a different auth method doesn't leave stale values
+      provider: payload.provider ?? null,
+      providerAccountId: payload.providerAccountId ?? null,
+    },
     where: {
       type_userId_deviceId: { type: payload.type, userId, deviceId: payload.deviceId },
     },
