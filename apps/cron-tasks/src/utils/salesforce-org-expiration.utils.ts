@@ -2,6 +2,7 @@ import { sendEmail } from '@jetstream/api-config';
 import { AuditLogAction, AuditLogResource, createAuditLog } from '@jetstream/audit-logs';
 import { sendOrgExpirationWarningEmail } from '@jetstream/email';
 import { Prisma, PrismaClient } from '@jetstream/prisma';
+import { EXPIRED_TOKEN_PLACEHOLDER } from '@jetstream/shared/constants';
 import { addDays, endOfDay } from 'date-fns';
 import Papa from 'papaparse';
 import { logger } from '../config/logger.config';
@@ -10,7 +11,6 @@ const INACTIVITY_DAYS = 90;
 const WARNING_PERIOD_DAYS = 30; // Grace period after inactivity before expiration
 const NOTIFICATION_DAYS = [30, 7, 3, 0];
 const USER_INACTIVITY_DAYS = 90; // Skip email if user hasn't logged in for this many days
-const DUMMY_ENCRYPTED_TOKEN = 'v2:EXPIRED_TOKEN_PLACEHOLDER';
 const CONNECTION_ERROR_MESSAGE = 'Credentials expired due to inactivity';
 
 /**
@@ -274,7 +274,7 @@ export async function manageOrgExpiration(prisma: PrismaClient, initialDate = ne
   // 3. Expire orgs (invalidate access tokens)
   const orgsToExpireWhere: Prisma.SalesforceOrgWhereInput = {
     expirationScheduledFor: { lte: now },
-    accessToken: { not: DUMMY_ENCRYPTED_TOKEN },
+    accessToken: { not: EXPIRED_TOKEN_PLACEHOLDER },
     connectionError: null,
   };
 
@@ -298,7 +298,7 @@ export async function manageOrgExpiration(prisma: PrismaClient, initialDate = ne
           id: { in: orgsToExpire.map(({ id }) => id) },
         },
         data: {
-          accessToken: DUMMY_ENCRYPTED_TOKEN,
+          accessToken: EXPIRED_TOKEN_PLACEHOLDER,
           connectionError: CONNECTION_ERROR_MESSAGE,
         },
       });

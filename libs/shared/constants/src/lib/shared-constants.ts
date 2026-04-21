@@ -9,6 +9,13 @@ import type {
 
 export const ORG_VERSION_PLACEHOLDER = '_DEFAULT_VERSION_';
 
+/**
+ * Sentinel written by the expiration cron when scrubbing access tokens
+ * from orgs expired due to inactivity. Detected by decryptAccessToken to
+ * short-circuit the decrypt path without alerting on a known-bad value.
+ */
+export const EXPIRED_TOKEN_PLACEHOLDER = 'v2:EXPIRED_TOKEN_PLACEHOLDER';
+
 export const SESSION_EXP_DAYS = 2;
 export const SFDC_BULK_API_NULL_VALUE = '#N/A';
 export const SFDC_BLANK_PICKLIST_VALUE = '--None--';

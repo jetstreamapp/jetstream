@@ -376,29 +376,41 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
               </tr>
             </thead>
             <tbody>
-              {visibleHeaders.map((header, i) => (
-                <LoadRecordsFieldMappingRow
-                  key={`${keyPrefix}-csv-${i}`}
-                  org={org}
-                  isCustomMetadataObject={isCustomMetadataObject}
-                  fields={fields}
-                  fieldMappingItem={fieldMapping[header] as FieldMappingItemCsv}
-                  csvField={header}
-                  csvRowData={activeRow[header]}
-                  onSelectionChanged={handleFieldMappingChange}
-                />
-              ))}
-              {staticRowHeaders.map((header, i) => (
-                <LoadRecordsFieldMappingStaticRow
-                  key={`${keyPrefix}-static-${i}`}
-                  org={org}
-                  fields={fields}
-                  fieldMappingItem={fieldMapping[header] as FieldMappingItemStatic}
-                  isCustomMetadata={isCustomMetadataObject}
-                  onSelectionChanged={(value) => handleFieldMappingChange(header, value)}
-                  onRemoveRow={() => handleRemoveRow(header)}
-                />
-              ))}
+              {visibleHeaders.map((header, i) => {
+                const mappingItem = fieldMapping[header] as FieldMappingItemCsv | undefined;
+                if (!mappingItem) {
+                  return null;
+                }
+                return (
+                  <LoadRecordsFieldMappingRow
+                    key={`${keyPrefix}-csv-${i}`}
+                    org={org}
+                    isCustomMetadataObject={isCustomMetadataObject}
+                    fields={fields}
+                    fieldMappingItem={mappingItem}
+                    csvField={header}
+                    csvRowData={activeRow?.[header]}
+                    onSelectionChanged={handleFieldMappingChange}
+                  />
+                );
+              })}
+              {staticRowHeaders.map((header, i) => {
+                const mappingItem = fieldMapping[header] as FieldMappingItemStatic | undefined;
+                if (!mappingItem) {
+                  return null;
+                }
+                return (
+                  <LoadRecordsFieldMappingStaticRow
+                    key={`${keyPrefix}-static-${i}`}
+                    org={org}
+                    fields={fields}
+                    fieldMappingItem={mappingItem}
+                    isCustomMetadata={isCustomMetadataObject}
+                    onSelectionChanged={(value) => handleFieldMappingChange(header, value)}
+                    onRemoveRow={() => handleRemoveRow(header)}
+                  />
+                );
+              })}
             </tbody>
           </table>
           <Tooltip content="Manually set a provided value for all records for fields not included in your file.">

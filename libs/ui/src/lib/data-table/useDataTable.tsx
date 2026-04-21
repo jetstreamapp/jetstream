@@ -5,7 +5,6 @@ import { hasCtrlOrMeta, isArrowKey, isCKey, isEnterKey, isTabKey, isVKey, useNon
 import { orderObjectsBy, orderValues } from '@jetstream/shared/utils';
 import { ContextMenuItem, SalesforceOrgUi } from '@jetstream/types';
 import copyToClipboard from 'copy-to-clipboard';
-import escapeRegExp from 'lodash/escapeRegExp';
 import isArray from 'lodash/isArray';
 import isNil from 'lodash/isNil';
 import isObject from 'lodash/isObject';
@@ -141,14 +140,7 @@ export function useDataTable<T = RowWithKey>({
   }, [data, sortColumns]);
 
   const filteredRows = useMemo((): readonly RowWithKey[] => {
-    let quickFilterRegex: RegExp;
-    if (includeQuickFilter && quickFilterText) {
-      try {
-        quickFilterRegex = new RegExp(escapeRegExp(quickFilterText), 'i');
-      } catch (ex) {
-        logger.warn('Invalid quick filter text', ex);
-      }
-    }
+    const quickFilterNeedle = includeQuickFilter && quickFilterText ? quickFilterText.toLowerCase() : null;
     return sortedRows.filter((row) => {
       if (rowAlwaysVisible && rowAlwaysVisible(row)) {
         return true;
@@ -175,8 +167,8 @@ export function useDataTable<T = RowWithKey>({
         });
       // Apply global filter
       const key = getRowKey(row);
-      if (quickFilterRegex && key && rowFilterText[key]) {
-        return isVisible && quickFilterRegex.test(rowFilterText[key]);
+      if (quickFilterNeedle && key && rowFilterText[key]) {
+        return isVisible && rowFilterText[key].includes(quickFilterNeedle);
       }
       return isVisible;
     });

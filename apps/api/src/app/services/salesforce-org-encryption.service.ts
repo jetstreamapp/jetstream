@@ -1,4 +1,5 @@
 import { ENV, getExceptionLog, logger, rollbarServer } from '@jetstream/api-config';
+import { EXPIRED_TOKEN_PLACEHOLDER } from '@jetstream/shared/constants';
 import { decryptString, encryptString, hexToBase64 } from '@jetstream/shared/node-utils';
 import { createHash, pbkdf2, randomBytes } from 'crypto';
 import { LRUCache } from 'lru-cache';
@@ -112,6 +113,12 @@ export async function decryptAccessToken({
   encryptedAccessToken: string;
   userId: string;
 }): Promise<[string, string]> {
+  // Known sentinel from the expiration cron — not decryptable by design.
+  // Caller checks DUMMY_INVALID_ENCRYPTED_TOKEN + expirationScheduledFor and surfaces a reconnect prompt.
+  if (encryptedAccessToken === EXPIRED_TOKEN_PLACEHOLDER) {
+    return [DUMMY_INVALID_ENCRYPTED_TOKEN, DUMMY_INVALID_ENCRYPTED_TOKEN];
+  }
+
   try {
     // Check if this is the new format (version:salt:data)
     if (encryptedAccessToken.startsWith('v2:')) {
