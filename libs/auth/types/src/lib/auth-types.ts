@@ -76,6 +76,7 @@ export interface UserSession {
   userAgent: string;
   ipAddress: string;
   provider: OauthProviderType | SsoProviderType | 'credentials';
+  providerAccountId?: string;
   loginTime: string;
   createdAt: string;
 }
@@ -168,6 +169,7 @@ export interface SessionData {
   pendingVerificationAttempts?: number;
   loginTime: number;
   provider: OauthProviderType | SsoProviderType | 'credentials';
+  providerAccountId?: string;
   // TODO: lastActivity: number;
   ipAddress: string;
   userAgent: string;

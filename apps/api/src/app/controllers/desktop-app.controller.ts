@@ -180,6 +180,8 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
     ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
     userAgent: req.get('User-Agent') || 'unknown',
     expiresAt: fromUnixTime(externalAuthService.decodeToken(accessToken).exp),
+    provider: req.session.provider,
+    providerAccountId: req.session.providerAccountId,
   });
 
   res.log.info({ userId: user.id, deviceId }, 'Issued new desktop token');

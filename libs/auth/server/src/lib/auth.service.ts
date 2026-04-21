@@ -341,6 +341,7 @@ export function initSession(
     mfaEnrollmentRequired,
     verificationRequired,
     provider,
+    providerAccountId,
   }: Awaited<ReturnType<typeof handleSignInOrRegistration>>,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -368,6 +369,7 @@ export function initSession(
         req.session.ipAddress = getApiAddressFromReq(req);
         req.session.loginTime = new Date().getTime();
         req.session.provider = provider;
+        req.session.providerAccountId = providerAccountId;
         req.session.user = user;
         req.session.pendingMfaEnrollment = undefined;
         req.session.pendingVerification = undefined;

@@ -1062,7 +1062,7 @@ export const removePasswordFromUser = async (id: string) => {
 
 function convertSessionToUserSession(session: { sid: string; sess: unknown; expire: Date; createdAt: Date; userId: string }): UserSession {
   const { sid, sess, expire, createdAt, userId } = session;
-  const { ipAddress, loginTime, provider, userAgent } = sess as unknown as SessionData;
+  const { ipAddress, loginTime, provider, providerAccountId, userAgent } = sess as unknown as SessionData;
   return {
     userId,
     sessionId: sid,
@@ -1071,6 +1071,7 @@ function convertSessionToUserSession(session: { sid: string; sess: unknown; expi
     ipAddress,
     loginTime: new Date(loginTime).toISOString(),
     provider,
+    providerAccountId,
     createdAt: createdAt.toISOString(),
   };
 }
@@ -1163,37 +1164,58 @@ async function addIdentityToUser(userId: string, providerUser: ProviderUser, pro
     .then((user) => AuthenticatedUserSchema.parse(user));
 }
 
-export async function removeIdentityFromUser(userId: string, provider: OauthProviderType, providerAccountId: string) {
-  const { hasPasswordSet, identities } = await prisma.user.findFirstOrThrow({
-    where: { id: userId },
-    select: {
-      hasPasswordSet: true,
-      identities: {
-        select: {
-          provider: true,
-          providerAccountId: true,
+/**
+ * Remove an OAuth identity and atomically revoke any web sessions / WebExtensionTokens
+ * authenticated via that identity. Doing this in one transaction ensures we can't leave
+ * an identity detached from the user while attacker-held sessions minted by it survive.
+ * The caller's `currentSessionId` is preserved so the user stays signed in on the device
+ * performing the unlink. Sessions authenticated by other means (password, other providers,
+ * other accounts of the same provider) are preserved. Legacy sessions/tokens minted before
+ * provider tracking existed won't match and are left to expire naturally.
+ */
+export async function removeIdentityFromUser(
+  userId: string,
+  provider: OauthProviderType,
+  providerAccountId: string,
+  currentSessionId?: Maybe<string>,
+): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    const { hasPasswordSet, identities } = await tx.user.findFirstOrThrow({
+      where: { id: userId },
+      select: {
+        hasPasswordSet: true,
+        identities: {
+          select: {
+            provider: true,
+            providerAccountId: true,
+          },
         },
       },
-    },
+    });
+
+    if (identities.length === 1 && !hasPasswordSet) {
+      throw new Error('Cannot remove the last identity without a password set');
+    }
+
+    await tx.authIdentity.delete({
+      where: {
+        userId,
+        provider_providerAccountId: { provider, providerAccountId },
+      },
+    });
+
+    await tx.sessions.deleteMany({
+      where: {
+        userId: { equals: userId },
+        AND: [{ sess: { path: ['provider'], equals: provider } }, { sess: { path: ['providerAccountId'], equals: providerAccountId } }],
+        ...(currentSessionId ? { NOT: { sid: currentSessionId } } : {}),
+      },
+    });
+
+    await tx.webExtensionToken.deleteMany({
+      where: { userId, provider, providerAccountId },
+    });
   });
-
-  if (identities.length === 1 && !hasPasswordSet) {
-    throw new Error('Cannot remove the last identity without a password set');
-  }
-
-  await prisma.authIdentity.delete({
-    where: {
-      userId,
-      provider_providerAccountId: { provider, providerAccountId },
-    },
-  });
-
-  return prisma.user
-    .findFirstOrThrow({
-      select: AuthenticatedUserSelect,
-      where: { id: userId },
-    })
-    .then((user) => AuthenticatedUserSchema.parse(user));
 }
 
 async function createUserFromProvider(
@@ -1553,6 +1575,7 @@ export async function handleSignInOrRegistration(
   sessionDetails?: SessionData['sessionDetails'];
   providerType: ProviderTypeOauth | ProviderTypeSso | ProviderTypeCredentials;
   provider: OauthProviderType | SsoProviderType | 'credentials';
+  providerAccountId?: string;
   isNewUser: boolean;
   teamInviteResponse: Awaited<ReturnType<typeof getTeamInviteConfiguration>>;
   mfaEnrollmentRequired:
@@ -1577,6 +1600,7 @@ export async function handleSignInOrRegistration(
     let isNewUser = false;
     let user: AuthenticatedUser | null = null;
     let provider: OauthProviderType | 'credentials' = payload.providerType === 'oauth' ? payload.provider : 'credentials';
+    const providerAccountId: string | undefined = payload.providerType === 'oauth' ? payload.providerUser.id : undefined;
     let mfaEnrollmentRequired: { factor: TwoFactorTypeOtp } | false = false;
 
     /**
@@ -1793,6 +1817,7 @@ export async function handleSignInOrRegistration(
       isNewUser,
       providerType,
       provider,
+      providerAccountId,
       mfaEnrollmentRequired,
       teamInviteResponse,
       verificationRequired: {
