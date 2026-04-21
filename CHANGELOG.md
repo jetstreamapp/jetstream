@@ -1,5 +1,21 @@
 # Changelog
 
+## [9.15.0](https://github.com/jetstreamapp/jetstream/compare/v9.14.0...v9.15.0) (2026-04-21)
+
+### Features
+
+* add provider and providerAccountId to session management and token handling ([b05c8fd](https://github.com/jetstreamapp/jetstream/commit/b05c8fdea57292a11d373ab12cb4447634364465))
+
+### Bug Fixes
+
+* add handling for expired access tokens in decryptAccessToken and update tests ([c6c5306](https://github.com/jetstreamapp/jetstream/commit/c6c5306db103352f588da2303ab14290b5bc4f2c))
+* add state parameter to OAuth flow for improved security and validation ([9f5520a](https://github.com/jetstreamapp/jetstream/commit/9f5520ae2c61f71ed0482c2e6b81d6b53f10884f))
+* enhance error handling in firewall spike detection and improve query structure ([3554c0a](https://github.com/jetstreamapp/jetstream/commit/3554c0a8750bfaa210855b3f6f6123d41d9276d6))
+* ensure all user tokens are cleared during session revocation ([7377ca2](https://github.com/jetstreamapp/jetstream/commit/7377ca24ead59efa047dd7ac695ab481b9912521))
+* handle undefined field mapping items in LoadRecordsFieldMapping ([132b2f0](https://github.com/jetstreamapp/jetstream/commit/132b2f02e101db4ea1f28a07dce62e46d4922a46))
+* improve quick filter functionality in useDataTable to handle invalid regex inputs ([95eac41](https://github.com/jetstreamapp/jetstream/commit/95eac41d0c5c371407276bbbd527ddc078587f5f))
+* preserve error context during session-ending errors in verification process ([d3e7eee](https://github.com/jetstreamapp/jetstream/commit/d3e7eee08a8b057ea99ce0d58c0b1a155c3c1d6d))
+
 ## [9.14.0](https://github.com/jetstreamapp/jetstream/compare/v9.13.0...v9.14.0) (2026-04-19)
 
 ### Features
