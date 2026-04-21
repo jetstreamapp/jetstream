@@ -109,11 +109,13 @@ export async function getAuthorizationUrl(provider: OauthProviderType) {
   const code_challenge_method = 'S256';
   /**
    * The following MUST be generated for every redirect to the authorization_endpoint. You must store
-   * the code_verifier and nonce in the end-user session such that it can be recovered as the user
-   * gets redirected from the authorization server back to your application.
+   * the code_verifier, state, and nonce in cookies (that is, in per-user state that survives the
+   * redirect) such that they can be recovered as the user gets redirected from the authorization
+   * server back to your application.
    */
   const code_verifier = oauth.generateRandomCodeVerifier();
   const code_challenge = await oauth.calculatePKCECodeChallenge(code_verifier);
+  const state = oauth.generateRandomState();
   let nonce: string | undefined;
 
   const { authorizationServer, client } = oauthClients[provider];
@@ -125,6 +127,7 @@ export async function getAuthorizationUrl(provider: OauthProviderType) {
   authorizationUrl.searchParams.set('scope', 'openid profile email');
   authorizationUrl.searchParams.set('code_challenge', code_challenge);
   authorizationUrl.searchParams.set('code_challenge_method', code_challenge_method);
+  authorizationUrl.searchParams.set('state', state);
   if (provider === 'salesforce') {
     authorizationUrl.searchParams.set('prompt', 'login');
   }
@@ -144,6 +147,7 @@ export async function getAuthorizationUrl(provider: OauthProviderType) {
   return {
     code_verifier,
     code_challenge,
+    state,
     nonce,
     authorizationUrl,
   };
@@ -153,12 +157,13 @@ export async function validateCallback(
   provider: OauthProviderType,
   parameters: URL | URLSearchParams,
   codeVerifier: string,
+  expectedState: string,
   nonce?: string,
 ) {
   const oauthClients = OauthClients.getInstance();
 
   const clientProvider = oauthClients[provider];
-  const { claims, idTokenResult } = await handleOauthCallback(clientProvider, provider, parameters, codeVerifier, nonce);
+  const { claims, idTokenResult } = await handleOauthCallback(clientProvider, provider, parameters, codeVerifier, expectedState, nonce);
   const userInfo = await getUserInfo(clientProvider, idTokenResult.access_token, claims.sub);
 
   return { claims, idTokenResult, userInfo };
@@ -231,12 +236,13 @@ async function handleOauthCallback(
   provider: OauthProviderType,
   parameters: URL | URLSearchParams,
   codeVerifier: string,
+  expectedState: string,
   nonce?: string,
 ) {
   const oauth = await oauthPromise;
   // TODO: should move to function to support other providers
   const clientAuth = oauth.ClientSecretPost(provider === 'salesforce' ? ENV.AUTH_SFDC_CLIENT_SECRET : ENV.AUTH_GOOGLE_CLIENT_SECRET);
-  const params = oauth.validateAuthResponse(authorizationServer, client, parameters);
+  const params = oauth.validateAuthResponse(authorizationServer, client, parameters, expectedState);
 
   const response = await oauth.authorizationCodeGrantRequest(
     authorizationServer,

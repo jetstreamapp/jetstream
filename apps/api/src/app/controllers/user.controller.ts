@@ -504,10 +504,11 @@ const linkIdentity = createRoute(routeDefinition.linkIdentity.validators, async 
     const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
 
     clearOauthCookies(res);
-    const { authorizationUrl, code_verifier, nonce } = await getAuthorizationUrl(provider);
+    const { authorizationUrl, code_verifier, state, nonce } = await getAuthorizationUrl(provider);
     if (code_verifier) {
       setCookie(cookieConfig.pkceCodeVerifier.name, code_verifier, cookieConfig.pkceCodeVerifier.options);
     }
+    setCookie(cookieConfig.state.name, state, cookieConfig.state.options);
     if (nonce) {
       setCookie(cookieConfig.nonce.name, nonce, cookieConfig.nonce.options);
     }

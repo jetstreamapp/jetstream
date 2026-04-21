@@ -373,10 +373,11 @@ const signin = createRoute(routeDefinition.signin.validators, async ({ body, par
         setCookie(cookieConfig.linkIdentity.name, 'true', cookieConfig.linkIdentity.options);
       }
 
-      const { authorizationUrl, code_verifier, nonce } = await getAuthorizationUrl(provider.provider as OauthProviderType);
+      const { authorizationUrl, code_verifier, state, nonce } = await getAuthorizationUrl(provider.provider as OauthProviderType);
       if (code_verifier) {
         setCookie(cookieConfig.pkceCodeVerifier.name, code_verifier, cookieConfig.pkceCodeVerifier.options);
       }
+      setCookie(cookieConfig.state.name, state, cookieConfig.state.options);
       if (nonce) {
         setCookie(cookieConfig.nonce.name, nonce, cookieConfig.nonce.options);
       }
@@ -430,6 +431,7 @@ const callback = createRoute(
       let isNewUser = false;
       const {
         pkceCodeVerifier,
+        state: stateCookie,
         nonce,
         linkIdentity: linkIdentityCookie,
         returnUrl: returnUrlCookie,
@@ -461,13 +463,24 @@ const callback = createRoute(
           throw new InvalidSession('Missing PKCE code verifier - invalid OAuth flow. Please start the login process again.');
         }
 
+        const expectedState = cookies[stateCookie.name];
+        if (!expectedState) {
+          throw new InvalidSession('Missing OAuth state - invalid OAuth flow. Please start the login process again.');
+        }
+
         // Validate OAuth callback has required parameters
         const queryParams = new URLSearchParams(query as Record<string, string>);
         if (!queryParams.has('code') && !queryParams.has('error')) {
           throw new InvalidParameters('Missing OAuth callback parameters. Please start the login process again.');
         }
 
-        const { userInfo } = await validateCallback(provider.provider as OauthProviderType, queryParams, pkce, cookies[nonce.name]);
+        const { userInfo } = await validateCallback(
+          provider.provider as OauthProviderType,
+          queryParams,
+          pkce,
+          expectedState,
+          cookies[nonce.name],
+        );
 
         if (!userInfo.email) {
           throw new InvalidParameters('Missing email from OAuth provider');
