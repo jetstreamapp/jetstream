@@ -4,6 +4,35 @@ on:
     branches:
       - main
   pull_request:
+    paths-ignore:
+      - "apps/docs/**"
+      - "apps/cron-tasks/**"
+      - "apps-sfdx/**"
+      - "build-resources/**"
+      - "scripts/**"
+      - "tools/**"
+      - ".agents/**"
+      - ".claude/**"
+      - ".husky/**"
+      - ".vscode/**"
+      - ".editorconfig"
+      - ".env.example"
+      - ".gitignore"
+      - ".mcp.json"
+      - ".nvmrc"
+      - ".nxignore"
+      - ".prettierrc"
+      - ".prettierignore"
+      - ".release-it*.json"
+      - ".svgo-config.json"
+      - "README.md"
+      - "LICENSE.md"
+      - "SECURITY.md"
+      - "CHANGELOG.md"
+      - "CONTRIBUTING.md"
+      - "DESKTOP_EULA.md"
+      - "AGENTS.md"
+      - "CLAUDE.md"
 
 # Cancel in-progress runs on the same ref (branch or PR) to avoid redundant runs and save CI resources
 concurrency:
