@@ -38,6 +38,39 @@ const currentBranch = (await $`git rev-parse --abbrev-ref HEAD`.quiet()).stdout.
 const isHotfix = currentBranch.startsWith('hotfix/');
 const releaseRef = isHotfix ? currentBranch : 'main';
 
+// ── Fetch tags ─────────────────────────────────────────────────────────────
+// Ensure compare links reference the actual latest release, not a stale local tag.
+process.stdout.write(chalk.dim('  Fetching tags... '));
+try {
+  await $`git fetch origin --tags --prune --quiet`.quiet();
+  console.log(chalk.green('done'));
+} catch {
+  console.log(chalk.yellow('skipped (offline?)'));
+}
+
+// ── Compare links ──────────────────────────────────────────────────────────
+async function latestTag(pattern) {
+  const result = await $`git tag --list ${pattern} --sort=-v:refname`.quiet();
+  return (
+    result.stdout
+      .split('\n')
+      .find((line) => line.trim().length > 0)
+      ?.trim() ?? null
+  );
+}
+
+const [webTag, extensionTag, desktopTag] = await Promise.all([latestTag('v[0-9]*'), latestTag('web-ext-v*'), latestTag('desktop-v*')]);
+
+function compareUrl(tag) {
+  return tag ? `https://github.com/${REPO}/compare/${tag}...${releaseRef}` : chalk.dim('(no prior tag found)');
+}
+
+console.log(chalk.dim('  Compare with latest release:'));
+console.log(`  ${chalk.dim('web')}       ${chalk.underline.blue(compareUrl(webTag))}`);
+console.log(`  ${chalk.dim('extension')} ${chalk.underline.blue(compareUrl(extensionTag))}`);
+console.log(`  ${chalk.dim('desktop')}   ${chalk.underline.blue(compareUrl(desktopTag))}`);
+console.log('');
+
 // ── Prompt: bump type ──────────────────────────────────────────────────────
 const bump = isHotfix
   ? 'patch'
