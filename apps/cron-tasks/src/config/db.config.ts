@@ -37,3 +37,28 @@ pgPool.on('error', (err) => {
   logger.error(getExceptionLog(err), '[DB][POOL][ERROR] Unexpected error on idle client');
   process.exit(-1);
 });
+
+/**
+ * Pool for the standalone Cloudflare analytics archive database (separate from the
+ * primary Jetstream Postgres). Lazily configured — readers should fail loudly if
+ * the connection string is missing rather than letting other cron tasks break.
+ */
+export const cloudflareAnalyticsPool = ENV.CLOUDFLARE_ANALYTICS_DBURI
+  ? new Pool({
+      connectionString: ENV.CLOUDFLARE_ANALYTICS_DBURI,
+      connectionTimeoutMillis: 5000,
+      idleTimeoutMillis: 10000,
+      max: 4,
+    })
+  : null;
+
+cloudflareAnalyticsPool?.on('error', (err) => {
+  logger.error(getExceptionLog(err), '[DB][CLOUDFLARE_ANALYTICS_POOL][ERROR] Unexpected error on idle client');
+});
+
+export function getCloudflareAnalyticsPool(): Pool {
+  if (!cloudflareAnalyticsPool) {
+    throw new Error('CLOUDFLARE_ANALYTICS_DBURI is not configured');
+  }
+  return cloudflareAnalyticsPool;
+}
