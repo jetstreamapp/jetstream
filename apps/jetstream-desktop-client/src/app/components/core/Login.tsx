@@ -18,6 +18,7 @@ interface LoginProps {
 export function Login({ children }: LoginProps) {
   const [loading, setLoading] = useState(true);
   const [authInfo, setAuthInfo] = useState<DesktopAuthInfo>();
+  const [loginError, setLoginError] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useAtom(fromAppState.userProfileState);
   const setOrgs = useSetAtom(fromAppState.salesforceOrgsState);
   const setOrgGroups = useSetAtom(fromAppState.orgGroupsState);
@@ -39,13 +40,14 @@ export function Login({ children }: LoginProps) {
   const authenticationEventHandler = useCallback(
     async (response: AuthenticatePayload) => {
       if (response.success) {
+        setLoginError(null);
         setUserProfile(response.userProfile);
         setAuthInfo(response.authInfo);
         // Re-fetch orgs and org groups now that the encryption key is set on the main process
         await refreshOrgsAndGroups();
       } else {
-        // TODO: handle else case and show error message
         logger.warn('Login failed', response);
+        setLoginError(response.error || 'Unable to complete sign in. Please try again.');
       }
     },
     [setUserProfile, refreshOrgsAndGroups],
@@ -53,6 +55,7 @@ export function Login({ children }: LoginProps) {
 
   const handleLogout = useCallback(() => {
     window.electronAPI?.logout();
+    setLoginError(null);
     setUserProfile(DEFAULT_PROFILE);
   }, [setUserProfile]);
 
@@ -100,6 +103,7 @@ export function Login({ children }: LoginProps) {
   }, [authenticationEventHandler, setUserProfile, refreshOrgsAndGroups]);
 
   function handleLogin() {
+    setLoginError(null);
     window.electronAPI?.login();
   }
 
@@ -139,6 +143,22 @@ export function Login({ children }: LoginProps) {
         `}
       >
         <JetstreamLogoInverse className="slds-m-bottom_xx-large" />
+        {loginError && (
+          <div
+            role="alert"
+            className="slds-m-bottom_medium"
+            css={css`
+              background-color: #7f1d1d;
+              color: #fee2e2;
+              padding: 0.75rem 1rem;
+              border-radius: 0.25rem;
+              text-align: center;
+              app-region: no-drag;
+            `}
+          >
+            {loginError}
+          </div>
+        )}
         <button
           css={css`
             background-image: linear-gradient(to right, #14b8a6, #0891b2);

@@ -19,6 +19,14 @@ const emailMocks = vi.hoisted(() => ({
   sendAuthenticationChangeConfirmation: vi.fn(),
 }));
 
+const responseHandlerMocks = vi.hoisted(() => ({
+  redirect: vi.fn(),
+  sendJson: vi.fn(),
+  setCsrfCookie: vi.fn(),
+  sendHtml: vi.fn(),
+  setCookieHeaders: vi.fn(),
+}));
+
 const authServerMocks = vi.hoisted(() => {
   const PLACEHOLDER_USER_ID = '00000000-0000-0000-0000-000000000000';
   class AuthError extends Error {
@@ -88,9 +96,19 @@ const authServerMocks = vi.hoisted(() => {
     getProviders: vi.fn(() => ({
       credentials: { type: 'credentials', provider: 'credentials' },
     })),
-    oidcService: {},
+    oidcService: {
+      getAuthorizationUrl: vi.fn(),
+      validateOidcCallback: vi.fn(),
+      extractUserInfo: vi.fn(),
+    },
     resetUserPassword: vi.fn(),
-    samlService: {},
+    samlService: {
+      getAuthorizationUrl: vi.fn(),
+      validateSamlResponse: vi.fn(),
+      extractUserInfo: vi.fn(),
+      generateServiceProviderMetadata: vi.fn(),
+      generatePlaceholderSamlConfiguration: vi.fn(),
+    },
     setUserEmailVerified: vi.fn(),
     timingSafeStringCompare: vi.fn((left: string, right: string) => left === right),
     validateCallback: vi.fn(),
@@ -137,13 +155,7 @@ vi.mock('../../db/salesforce-org.db', () => ({
 }));
 
 // Stub the response helpers — we only need to observe them, not actually write to a socket.
-vi.mock('../../utils/response.handlers', () => ({
-  redirect: vi.fn(),
-  sendJson: vi.fn(),
-  setCsrfCookie: vi.fn(),
-  sendHtml: vi.fn(),
-  setCookieHeaders: vi.fn(),
-}));
+vi.mock('../../utils/response.handlers', () => responseHandlerMocks);
 
 type MockRequest = {
   method: string;
@@ -517,5 +529,114 @@ describe('auth.controller - placeholder session email suppression', () => {
       expect(emailMocks.sendVerificationCode).toHaveBeenCalledTimes(1);
       expect(emailMocks.sendVerificationCode).toHaveBeenCalledWith('real@example.com', '123456', expect.any(Number));
     });
+  });
+});
+
+/**
+ * Regression coverage for post-login redirect resolution in the SAML and OIDC callback handlers.
+ * These tests pin down: (1) SAML uses RelayState because SameSite=Lax cookies are dropped on the
+ * IdP's cross-site POST back to the ACS endpoint, (2) OIDC falls back to the `redirectUrl` cookie
+ * when the `returnUrl` cookie is missing (the desktop login interstitial only sets `redirectUrl`),
+ * and (3) `normalizeRedirectCandidate` collapses the `/app/app` path that the frontend sometimes
+ * emits, so post-login navigation lands on a real route.
+ */
+describe('auth.controller - SSO callback redirect resolution', () => {
+  const TEAM_ID = '550e8400-e29b-41d4-a716-446655440000';
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    authServerMocks.getCookieConfig.mockReturnValue({
+      csrfToken: { name: 'csrfToken', options: {} },
+      doubleCSRFToken: { name: 'doubleCSRFToken', options: {} },
+      pkceCodeVerifier: { name: 'pkceCodeVerifier', options: {} },
+      state: { name: 'state', options: {} },
+      nonce: { name: 'nonce', options: {} },
+      linkIdentity: { name: 'linkIdentity', options: {} },
+      returnUrl: { name: 'returnUrl', options: {} },
+      rememberDevice: { name: 'rememberDevice', options: {} },
+      redirectUrl: { name: 'redirectUrl', options: {} },
+      teamInviteState: { name: 'teamInviteState', options: {} },
+    } as never);
+    authServerMocks.ensureAuthError.mockImplementation((error: unknown) => error);
+    authServerMocks.validateRedirectUrl.mockImplementation((url: string) => url || 'https://client.test');
+    authServerMocks.getApiAddressFromReq.mockReturnValue('127.0.0.1');
+    authServerMocks.handleSsoLogin.mockResolvedValue({ id: 'sso-user-id', email: 'sso@example.com' } as never);
+    authServerMocks.getTeamLoginConfigWithSso.mockResolvedValue({
+      loginConfig: {
+        ssoEnabled: true,
+        samlConfiguration: { attributeMapping: {} },
+        oidcConfiguration: { attributeMapping: {} },
+      },
+    } as never);
+    authServerMocks.samlService.validateSamlResponse.mockResolvedValue({} as never);
+    authServerMocks.samlService.extractUserInfo.mockReturnValue({ email: 'sso@example.com' } as never);
+    authServerMocks.oidcService.validateOidcCallback.mockResolvedValue({
+      claims: {},
+      idTokenResult: { access_token: 'access-token' },
+    } as never);
+    authServerMocks.oidcService.extractUserInfo.mockResolvedValue({ email: 'sso@example.com' } as never);
+  });
+
+  it('SAML callback: uses RelayState as the post-login returnUrl, taking precedence over cookies', async () => {
+    const relayStateUrl = 'https://server.test/desktop-app/auth?foo=bar';
+    const req = makeReq({
+      headers: { cookie: 'returnUrl=https://client.test/should-be-ignored; redirectUrl=https://client.test/also-ignored' },
+      params: { teamId: TEAM_ID },
+      body: { SAMLResponse: 'fake-saml-response', RelayState: relayStateUrl },
+    });
+    const res = makeRes();
+    const next = vi.fn();
+
+    const handler = routeDefinition.handleSamlCallback.controllerFn();
+    await handler(req as never, res as never, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(authServerMocks.validateRedirectUrl).toHaveBeenCalledWith(relayStateUrl, expect.any(Array), expect.any(String));
+    expect(responseHandlerMocks.redirect).toHaveBeenCalledWith(res, relayStateUrl);
+  });
+
+  it('OIDC callback: falls back to the redirectUrl cookie when returnUrl cookie is absent', async () => {
+    const desktopReturnUrl = 'https://server.test/desktop-app/auth?os=darwin';
+    const req = makeReq({
+      headers: {
+        cookie: `state=state-val; pkceCodeVerifier=pkce-val; nonce=nonce-val; redirectUrl=${desktopReturnUrl}`,
+      },
+      params: { teamId: TEAM_ID },
+      query: { code: 'auth-code', state: 'state-val' },
+      body: {},
+    });
+    (req as MockRequest & { originalUrl: string }).originalUrl = '/api/auth/sso/oidc/callback?code=auth-code&state=state-val';
+    const res = makeRes();
+    const next = vi.fn();
+
+    const handler = routeDefinition.handleOidcCallback.controllerFn();
+    await handler(req as never, res as never, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(authServerMocks.validateRedirectUrl).toHaveBeenCalledWith(desktopReturnUrl, expect.any(Array), expect.any(String));
+    expect(responseHandlerMocks.redirect).toHaveBeenCalledWith(res, desktopReturnUrl);
+  });
+
+  it('normalizeRedirectCandidate: collapses /app/app paths from relative redirect candidates', async () => {
+    // Drive normalization through the SAML callback by passing a relative RelayState — the helper
+    // prefixes it with the client URL, then collapses /app/app to /app before validateRedirectUrl runs.
+    const req = makeReq({
+      headers: { cookie: '' },
+      params: { teamId: TEAM_ID },
+      body: { SAMLResponse: 'fake-saml-response', RelayState: '/app/app/query' },
+    });
+    const res = makeRes();
+    const next = vi.fn();
+
+    const handler = routeDefinition.handleSamlCallback.controllerFn();
+    await handler(req as never, res as never, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(authServerMocks.validateRedirectUrl).toHaveBeenCalledWith(
+      'https://client.test/app/query',
+      expect.any(Array),
+      expect.any(String),
+    );
+    expect(responseHandlerMocks.redirect).toHaveBeenCalledWith(res, 'https://client.test/app/query');
   });
 });

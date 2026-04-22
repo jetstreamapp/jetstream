@@ -115,9 +115,15 @@ const initAuthMiddleware = createRoute(routeDefinition.initAuthMiddleware.valida
   // redirect to login flow if user is not signed in
   if (!req.session.user) {
     const queryParams = new URLSearchParams(req.query as Record<string, string>).toString();
+    const desktopAuthUrl = `${ENV.JETSTREAM_SERVER_URL}/desktop-app/auth`;
+    const desktopReturnUrl = queryParams ? `${desktopAuthUrl}?${queryParams}` : desktopAuthUrl;
     const { redirectUrl: redirectUrlCookie } = getCookieConfig(ENV.USE_SECURE_COOKIES);
-    setCookie(redirectUrlCookie.name, `${ENV.JETSTREAM_SERVER_URL}/desktop-app/auth?${queryParams}`, redirectUrlCookie.options);
-    redirect(res, '/auth/login/');
+    // Keep the cookie for OAuth/credentials flows that read it server-side. The query param is
+    // needed specifically for SSO: SAML's cross-site POST back from the IdP drops SameSite=Lax
+    // cookies, so the frontend must pass returnUrl forward to /api/auth/sso/start where it can
+    // be threaded into SAML RelayState (and the OIDC returnUrl cookie).
+    setCookie(redirectUrlCookie.name, desktopReturnUrl, redirectUrlCookie.options);
+    redirect(res, `/auth/login/?returnUrl=${encodeURIComponent(desktopReturnUrl)}`);
     return;
   }
   next();

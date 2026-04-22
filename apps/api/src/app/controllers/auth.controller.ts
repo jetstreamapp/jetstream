@@ -75,6 +75,19 @@ import { z } from 'zod';
 import { redirect, sendJson, setCsrfCookie } from '../utils/response.handlers';
 import { createRoute, RouteValidator } from '../utils/route.utils';
 
+/**
+ * Normalize a post-login redirect candidate (from a cookie, query string, or SAML RelayState):
+ * prefix relative paths with the client URL, and collapse the occasional `/app/app` path that
+ * shows up from the frontend. Output is still passed through `validateRedirectUrl` at the call site.
+ */
+function normalizeRedirectCandidate(value: string | undefined): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+  const absolute = value.startsWith('/') ? `${ENV.JETSTREAM_CLIENT_URL}${value}` : value;
+  return absolute.replace('/app/app', '/app');
+}
+
 export const routeDefinition = {
   logout: {
     controllerFn: () => logout,
@@ -248,7 +261,7 @@ export const routeDefinition = {
     controllerFn: () => handleSamlCallback,
     validators: {
       params: z.object({ teamId: z.uuid() }),
-      body: z.object({ SAMLResponse: z.string() }),
+      body: z.object({ SAMLResponse: z.string(), RelayState: z.string().optional() }),
       hasSourceOrg: false,
     } satisfies RouteValidator,
   },
@@ -666,10 +679,9 @@ const callback = createRoute(
 
         const redirectValue = cookies[redirectUrlCookie.name];
         if (!returnUrl && redirectValue) {
-          redirectUrl = redirectValue.startsWith('/') ? `${ENV.JETSTREAM_CLIENT_URL}${redirectValue}` : redirectValue;
-          redirectUrl = redirectUrl.replace('/app/app', '/app');
-          clearCookie(redirectUrlCookie.name, redirectUrlCookie.options);
-        } else if (cookies[redirectUrlCookie.name]) {
+          redirectUrl = normalizeRedirectCandidate(redirectValue) ?? redirectUrl;
+        }
+        if (cookies[redirectUrlCookie.name]) {
           clearCookie(redirectUrlCookie.name, redirectUrlCookie.options);
         }
 
@@ -838,8 +850,7 @@ const verification = createRoute(
 
       const redirectValue = cookies[cookieConfig.redirectUrl.name];
       if (redirectValue) {
-        redirectUrl = redirectValue.startsWith('/') ? `${ENV.JETSTREAM_CLIENT_URL}${redirectValue}` : redirectValue;
-        redirectUrl = redirectUrl.replace('/app/app', '/app');
+        redirectUrl = normalizeRedirectCandidate(redirectValue) ?? redirectUrl;
         clearCookie(cookieConfig.redirectUrl.name, cookieConfig.redirectUrl.options);
       }
 
@@ -1044,8 +1055,7 @@ const verifyEmailViaLink = createRoute(
 
       const redirectValue = cookies[cookieConfig.redirectUrl.name];
       if (redirectValue) {
-        redirectUrl = redirectValue.startsWith('/') ? `${ENV.JETSTREAM_CLIENT_URL}${redirectValue}` : redirectValue;
-        redirectUrl = redirectUrl.replace('/app/app', '/app');
+        redirectUrl = normalizeRedirectCandidate(redirectValue) ?? redirectUrl;
         clearCookie(cookieConfig.redirectUrl.name, cookieConfig.redirectUrl.options);
       }
 
@@ -1163,8 +1173,7 @@ const enrollOtpFactor = createRoute(routeDefinition.enrollOtpFactor.validators, 
     let redirectUrl = ENV.JETSTREAM_CLIENT_URL;
     const redirectValue = cookies[cookieConfig.redirectUrl.name];
     if (redirectValue) {
-      redirectUrl = redirectValue.startsWith('/') ? `${ENV.JETSTREAM_CLIENT_URL}${redirectValue}` : redirectValue;
-      redirectUrl = redirectUrl.replace('/app/app', '/app');
+      redirectUrl = normalizeRedirectCandidate(redirectValue) ?? redirectUrl;
       clearCookie(cookieConfig.redirectUrl.name, cookieConfig.redirectUrl.options);
     }
 
@@ -1308,84 +1317,100 @@ const startSso = createRoute(routeDefinition.startSso.validators, async ({ body,
   }
 });
 
-const handleSamlCallback = createRoute(routeDefinition.handleSamlCallback.validators, async ({ params, body }, req, res, next) => {
-  try {
-    const { teamId } = params;
-    const { SAMLResponse } = body;
+const handleSamlCallback = createRoute(
+  routeDefinition.handleSamlCallback.validators,
+  async ({ params, body, clearCookie }, req, res, next) => {
+    try {
+      const { teamId } = params;
+      const { SAMLResponse } = body;
 
-    const team = await getTeamLoginConfigWithSso(teamId);
+      const team = await getTeamLoginConfigWithSso(teamId);
 
-    if (!team?.loginConfig.samlConfiguration) {
-      throw new InvalidProvider('SAML not configured for this team');
-    }
-
-    const config = team.loginConfig.samlConfiguration;
-
-    // Validate SAML response
-    const profile = await samlService.validateSamlResponse(SAMLResponse, config, teamId);
-
-    // Extract user info from SAML assertion
-    const attributeMapping = config.attributeMapping as any;
-    const userInfo = samlService.extractUserInfo(profile, attributeMapping);
-
-    // Handle SSO login (create/update user, add to team, create session)
-    const user = await handleSsoLogin('saml', teamId, userInfo, req as any);
-
-    // Log success
-    createUserActivityFromReq(req, res, {
-      action: 'SSO_LOGIN',
-      method: 'SAML',
-      userId: user.id,
-      email: user.email,
-      teamId,
-      success: true,
-    });
-
-    const { returnUrl: returnUrlCookie } = getCookieConfig(ENV.USE_SECURE_COOKIES);
-    const cookies = req.headers.cookie ? parseCookie(req.headers.cookie) : {};
-    clearOauthCookies(res);
-    const returnUrl = validateRedirectUrl(
-      cookies[returnUrlCookie.name],
-      [ENV.JETSTREAM_CLIENT_URL, ENV.JETSTREAM_SERVER_URL],
-      ENV.JETSTREAM_CLIENT_URL,
-    );
-
-    // Send verification email and redirect to verify page if verification is pending (e.g. MFA)
-    if (Array.isArray(req.session.pendingVerification) && req.session.pendingVerification.length > 0) {
-      const initialVerification = req.session.pendingVerification[0];
-      if (initialVerification.type === 'email') {
-        await sendEmailVerification(user.email, initialVerification.token, EMAIL_VERIFICATION_TOKEN_DURATION_HOURS);
-      } else if (initialVerification.type === '2fa-email') {
-        await sendVerificationCode(user.email, initialVerification.token, TOKEN_DURATION_MINUTES);
+      if (!team?.loginConfig.samlConfiguration) {
+        throw new InvalidProvider('SAML not configured for this team');
       }
-      setCsrfCookie(res);
-      redirect(res, '/auth/verify');
-    } else if (req.session.pendingMfaEnrollment) {
-      redirect(res, '/auth/mfa-enroll');
-    } else if (req.session.pendingTosAcceptance) {
-      setCsrfCookie(res);
-      redirect(res, '/auth/accept-terms');
-    } else {
-      if (req.session.sendNewUserEmailAfterVerify) {
-        req.session.sendNewUserEmailAfterVerify = undefined;
-        await sendWelcomeEmail(user.email);
-      }
-      redirect(res, returnUrl);
-    }
-  } catch (ex) {
-    res.log.error(getErrorMessageAndStackObj(ex), '[AUTH][SAML_CALLBACK] Error processing SAML callback');
-    createUserActivityFromReqWithError(req, res, ex, {
-      action: 'SSO_LOGIN',
-      method: 'SAML',
-      teamId: params.teamId,
-      success: false,
-    });
 
-    req.session.destroy(() => {
-      next(ensureAuthError(ex));
-    });
-  }
-});
+      const config = team.loginConfig.samlConfiguration;
+
+      // Validate SAML response
+      const profile = await samlService.validateSamlResponse(SAMLResponse, config, teamId);
+
+      // Extract user info from SAML assertion
+      const attributeMapping = config.attributeMapping as any;
+      const userInfo = samlService.extractUserInfo(profile, attributeMapping);
+
+      // Handle SSO login (create/update user, add to team, create session)
+      const user = await handleSsoLogin('saml', teamId, userInfo, req as any);
+
+      // Log success
+      createUserActivityFromReq(req, res, {
+        action: 'SSO_LOGIN',
+        method: 'SAML',
+        userId: user.id,
+        email: user.email,
+        teamId,
+        success: true,
+      });
+
+      const { returnUrl: returnUrlCookie, redirectUrl: redirectUrlCookie } = getCookieConfig(ENV.USE_SECURE_COOKIES);
+      const cookies = req.headers.cookie ? parseCookie(req.headers.cookie) : {};
+      clearOauthCookies(res);
+      // SAML RelayState is the authoritative carrier of post-login redirect intent for SAML —
+      // cookies with SameSite=Lax (which the returnUrl and redirectUrl cookies use) are dropped
+      // by browsers on the IdP's cross-site auto-POST back to our ACS endpoint, so any returnUrl
+      // set before the IdP hop is invisible here via cookies. We passed RelayState on the way out
+      // (saml.service.ts:getAuthorizationUrl); the IdP echoes it back in the POST body.
+      // Cookie fallbacks are retained as defense-in-depth for same-site POSTs / tests.
+      const relayState = typeof body.RelayState === 'string' && body.RelayState.length > 0 ? body.RelayState : undefined;
+      const returnUrlCandidate = normalizeRedirectCandidate(
+        relayState || cookies[returnUrlCookie.name] || cookies[redirectUrlCookie.name],
+      );
+      if (cookies[redirectUrlCookie.name]) {
+        clearCookie(redirectUrlCookie.name, redirectUrlCookie.options);
+      }
+      const returnUrl = validateRedirectUrl(
+        returnUrlCandidate,
+        [ENV.JETSTREAM_CLIENT_URL, ENV.JETSTREAM_SERVER_URL],
+        ENV.JETSTREAM_CLIENT_URL,
+      );
+
+      // Send verification email and redirect to verify page if verification is pending (e.g. MFA)
+      if (Array.isArray(req.session.pendingVerification) && req.session.pendingVerification.length > 0) {
+        const initialVerification = req.session.pendingVerification[0];
+        if (initialVerification.type === 'email') {
+          await sendEmailVerification(user.email, initialVerification.token, EMAIL_VERIFICATION_TOKEN_DURATION_HOURS);
+        } else if (initialVerification.type === '2fa-email') {
+          await sendVerificationCode(user.email, initialVerification.token, TOKEN_DURATION_MINUTES);
+        }
+        setCsrfCookie(res);
+        redirect(res, '/auth/verify');
+      } else if (req.session.pendingMfaEnrollment) {
+        redirect(res, '/auth/mfa-enroll');
+      } else if (req.session.pendingTosAcceptance) {
+        setCsrfCookie(res);
+        redirect(res, '/auth/accept-terms');
+      } else {
+        if (req.session.sendNewUserEmailAfterVerify) {
+          req.session.sendNewUserEmailAfterVerify = undefined;
+          await sendWelcomeEmail(user.email);
+        }
+        redirect(res, returnUrl);
+      }
+    } catch (ex) {
+      res.log.error(getErrorMessageAndStackObj(ex), '[AUTH][SAML_CALLBACK] Error processing SAML callback');
+      createUserActivityFromReqWithError(req, res, ex, {
+        action: 'SSO_LOGIN',
+        method: 'SAML',
+        teamId: params.teamId,
+        success: false,
+      });
+
+      req.session.destroy(() => {
+        next(ensureAuthError(ex));
+      });
+    }
+  },
+);
 
 const getSamlMetadata = createRoute(routeDefinition.getSamlMetadata.validators, async ({ params }, req, res, next) => {
   try {
@@ -1452,7 +1477,7 @@ const initiateOidcLogin = createRoute(routeDefinition.initiateOidcLogin.validato
   }
 });
 
-const handleOidcCallback = createRoute(routeDefinition.handleOidcCallback.validators, async ({ params }, req, res, next) => {
+const handleOidcCallback = createRoute(routeDefinition.handleOidcCallback.validators, async ({ params, clearCookie }, req, res, next) => {
   try {
     const { teamId } = params;
 
@@ -1462,8 +1487,18 @@ const handleOidcCallback = createRoute(routeDefinition.handleOidcCallback.valida
     const state = cookies[cookieConfig.state.name];
     const codeVerifier = cookies[cookieConfig.pkceCodeVerifier.name];
     const nonce = cookies[cookieConfig.nonce.name];
+    // Fall back to the `redirectUrl` cookie when `returnUrl` is absent — this is what the desktop
+    // login middleware (desktop-app.controller.ts) and other pre-login interstitials set, and what
+    // the credentials/OAuth callbacks already honor. Without this, desktop SSO users land on /app
+    // instead of /desktop-app/auth and have to log in a second time.
+    const returnUrlCandidate = normalizeRedirectCandidate(
+      cookies[cookieConfig.returnUrl.name] || cookies[cookieConfig.redirectUrl.name],
+    );
+    if (cookies[cookieConfig.redirectUrl.name]) {
+      clearCookie(cookieConfig.redirectUrl.name, cookieConfig.redirectUrl.options);
+    }
     const returnUrl = validateRedirectUrl(
-      cookies[cookieConfig.returnUrl.name],
+      returnUrlCandidate,
       [ENV.JETSTREAM_CLIENT_URL, ENV.JETSTREAM_SERVER_URL],
       ENV.JETSTREAM_CLIENT_URL,
     );
