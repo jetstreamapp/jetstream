@@ -77,6 +77,11 @@ export class SamlService {
       // Many IdPs (Okta, Google, etc.) sign only the assertion, not the response envelope.
       // Assertion-level signing is sufficient when wantAssertionsSigned is true.
       wantAuthnResponseSigned: false,
+      // Delegate authentication-strength decisions to the IdP. node-saml defaults to
+      // requesting PasswordProtectedTransport, which rejects users authenticating via
+      // certificates, FIDO2, passwordless, etc. and triggers errors like Azure's AADSTS75011.
+      // Letting the IdP enforce its own conditional-access / MFA policy is the modern norm.
+      disableRequestedAuthnContext: true,
 
       // InResponseTo validation: ensures SAML responses correspond to requests we initiated
       // and that each response can only be consumed once (anti-replay).
