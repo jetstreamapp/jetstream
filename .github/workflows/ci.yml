@@ -75,12 +75,23 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Test all projects
+        if: github.event_name == 'push'
         run: yarn test:all
 
+      - name: Test affected projects
+        if: github.event_name == 'pull_request'
+        run: yarn test:affected
+
       - name: Build
+        if: github.event_name == 'push'
         run: yarn build:ci
 
+      - name: Build affected
+        if: github.event_name == 'pull_request'
+        run: yarn build:affected
+
       - name: Uploading artifacts
+        if: github.event_name == 'push'
         uses: actions/upload-artifact@v6
         with:
           name: dist-artifacts
