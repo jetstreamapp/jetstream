@@ -22,6 +22,7 @@ type ErrorType =
   | 'PasswordResetRequired'
   | 'ProviderNotAllowed'
   | 'ProviderEmailNotVerified'
+  | 'SsoAmbiguousAccount'
   | 'SsoAutoProvisioningDisabled'
   | 'SsoInvalidAction'
   | 'SsoLicenseLimitExceeded'
@@ -161,6 +162,10 @@ export class AccountLocked extends AuthError {
     super(message);
     this.lockedUntil = lockedUntil;
   }
+}
+
+export class SsoAmbiguousAccount extends AuthError {
+  static type: ErrorType = 'SsoAmbiguousAccount';
 }
 
 export class SsoAutoProvisioningDisabled extends AuthError {

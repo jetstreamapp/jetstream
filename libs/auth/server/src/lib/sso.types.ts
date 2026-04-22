@@ -13,6 +13,9 @@ export interface SsoUserInfo {
   userName: string;
   firstName?: Maybe<string>;
   lastName?: Maybe<string>;
+  // Stable IdP-issued identifier (SAML NameID / OIDC sub). Preferred over email
+  // for identity lookups since email can change and is not unique per user.
+  subject?: Maybe<string>;
 }
 
 export interface SsoDiscoveryResult {

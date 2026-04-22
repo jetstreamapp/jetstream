@@ -1129,6 +1129,7 @@ export const AUTH_ERROR_MESSAGES = {
   PasswordReused: 'You cannot reuse your previously used passwords. Choose a different password.',
   ProviderEmailNotVerified: 'You must first verify your email address with the provider in order to register.',
   ProviderNotAllowed: `This login method is not allowed, login using an approved method.`,
+  SsoAmbiguousAccount: 'Your account cannot be uniquely identified. Please contact your administrator for assistance.',
   SsoAutoProvisioningDisabled: 'You are not a member of this team. Ask an admin to invite you or enable auto-provisioning for SSO.',
   SsoInvalidAction:
     'Your credentials are invalid or you are not authorized to perform this action. Contact your administrator for assistance.',

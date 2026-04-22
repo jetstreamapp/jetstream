@@ -186,6 +186,7 @@ export class OidcService {
         userName,
         firstName,
         lastName,
+        subject: claims.sub,
       };
     } catch (error) {
       logger.error({ error }, 'Failed to extract user info from OIDC token');
