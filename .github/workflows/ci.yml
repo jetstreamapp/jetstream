@@ -57,7 +57,7 @@ jobs:
     services:
       # Used for integration tests (notably cron job tests)
       postgres:
-        image: postgres
+        image: postgres:16.1-alpine
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -130,7 +130,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres
+        image: postgres:16.1-alpine
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
