@@ -255,7 +255,7 @@ browser.runtime.onMessage.addListener(
           handleResponse({ hasTokens: true, loggedIn: true }, sendResponse);
           return; // handle response synchronously
         }
-        handleVerifyAuth(sender)
+        runVerifyAuth(sender)
           .then((data) => {
             browser.storage.session.set({ authState: data }).catch((err) => {
               logger.error('Error setting session tokens', err);
@@ -447,6 +447,20 @@ async function handleLogout(sender: browser.Runtime.MessageSender): Promise<Logo
     // TODO: should we use a specific error message
     return { hasTokens: false, loggedIn: false, error: ex.message };
   }
+}
+
+// Collapses concurrent VERIFY_AUTH calls from popup/standalone/content-script into one server round-trip.
+// Without this, two tabs verifying at the same time can trigger the server's token-rotation race: one
+// wins and returns a rotated token, the other returns success with no token. The loser's sync-storage
+// write then overwrites the winner's new token with the old (now invalid) one, causing the next verify
+// to 401 and log the user out.
+let inFlightVerifyAuth: Promise<VerifyAuth['response']> | null = null;
+
+function runVerifyAuth(sender: browser.Runtime.MessageSender): Promise<VerifyAuth['response']> {
+  inFlightVerifyAuth ??= handleVerifyAuth(sender).finally(() => {
+    inFlightVerifyAuth = null;
+  });
+  return inFlightVerifyAuth;
 }
 
 /**
