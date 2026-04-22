@@ -1,7 +1,6 @@
 import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
 import {
   AuthError,
-  clearOauthCookies,
   convertBase32ToHex,
   createOrUpdateOtpAuthFactor,
   createUserActivityFromReq,
@@ -10,8 +9,6 @@ import {
   generate2faTotpUrl,
   generatePasswordResetToken,
   getAllSessions,
-  getAuthorizationUrl,
-  getCookieConfig,
   getLoginConfiguration,
   InvalidVerificationToken,
   PASSWORD_RESET_DURATION_MINUTES,
@@ -38,7 +35,7 @@ import { z } from 'zod';
 import * as userDbService from '../db/user.db';
 import * as stripeService from '../services/stripe.service';
 import { AuthenticationError, UserFacingError } from '../utils/error-handler';
-import { redirect, sendJson } from '../utils/response.handlers';
+import { sendJson } from '../utils/response.handlers';
 import { createRoute, RouteValidator } from '../utils/route.utils';
 
 export const routeDefinition = {
@@ -196,16 +193,6 @@ export const routeDefinition = {
       query: z.object({
         provider: OauthProviderTypeSchema,
         providerAccountId: z.string().min(1),
-      }),
-    } satisfies RouteValidator,
-  },
-  linkIdentity: {
-    controllerFn: () => linkIdentity,
-    validators: {
-      hasSourceOrg: false,
-      logErrorToBugTracker: true,
-      query: z.object({
-        provider: OauthProviderTypeSchema,
       }),
     } satisfies RouteValidator,
   },
@@ -498,43 +485,6 @@ const unlinkIdentity = createRoute(routeDefinition.unlinkIdentity.validators, as
     });
 
     throw new UserFacingError('There was an error unlinking the account');
-  }
-});
-
-const linkIdentity = createRoute(routeDefinition.linkIdentity.validators, async ({ query, user, setCookie }, req, res) => {
-  try {
-    const { provider } = query;
-    const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
-
-    clearOauthCookies(res);
-    const { authorizationUrl, code_verifier, state, nonce } = await getAuthorizationUrl(provider);
-    if (code_verifier) {
-      setCookie(cookieConfig.pkceCodeVerifier.name, code_verifier, cookieConfig.pkceCodeVerifier.options);
-    }
-    setCookie(cookieConfig.state.name, state, cookieConfig.state.options);
-    if (nonce) {
-      setCookie(cookieConfig.nonce.name, nonce, cookieConfig.nonce.options);
-    }
-    setCookie(cookieConfig.linkIdentity.name, '1', cookieConfig.linkIdentity.options);
-    setCookie(cookieConfig.returnUrl.name, `${ENV.JETSTREAM_CLIENT_URL}/app/profile`, cookieConfig.returnUrl.options);
-    redirect(res, authorizationUrl.toString());
-
-    await sendAuthenticationChangeConfirmation(user.email, 'A new identity has been linked to your account', {
-      heading: 'A new login method has been added to your account',
-    });
-
-    createUserActivityFromReq(req, res, {
-      action: 'LINK_IDENTITY_INIT',
-      method: 'USER_PROFILE',
-      success: true,
-    });
-  } catch (ex) {
-    createUserActivityFromReqWithError(req, res, ex, {
-      action: 'LINK_IDENTITY_INIT',
-      method: 'USER_PROFILE',
-      success: false,
-    });
-    throw new UserFacingError('There was an error linking the identity');
   }
 });
 
