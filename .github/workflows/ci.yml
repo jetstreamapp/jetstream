@@ -4,35 +4,6 @@ on:
     branches:
       - main
   pull_request:
-    paths-ignore:
-      - "apps/docs/**"
-      - "apps/cron-tasks/**"
-      - "apps-sfdx/**"
-      - "build-resources/**"
-      - "scripts/**"
-      - "tools/**"
-      - ".agents/**"
-      - ".claude/**"
-      - ".husky/**"
-      - ".vscode/**"
-      - ".editorconfig"
-      - ".env.example"
-      - ".gitignore"
-      - ".mcp.json"
-      - ".nvmrc"
-      - ".nxignore"
-      - ".prettierrc"
-      - ".prettierignore"
-      - ".release-it*.json"
-      - ".svgo-config.json"
-      - "README.md"
-      - "LICENSE.md"
-      - "SECURITY.md"
-      - "CHANGELOG.md"
-      - "CONTRIBUTING.md"
-      - "DESKTOP_EULA.md"
-      - "AGENTS.md"
-      - "CLAUDE.md"
 
 # Cancel in-progress runs on the same ref (branch or PR) to avoid redundant runs and save CI resources
 concurrency:
@@ -104,12 +75,23 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Test all projects
+        if: github.event_name == 'push'
         run: yarn test:all
 
+      - name: Test affected projects
+        if: github.event_name == 'pull_request'
+        run: yarn test:affected
+
       - name: Build
+        if: github.event_name == 'push'
         run: yarn build:ci
 
+      - name: Build affected
+        if: github.event_name == 'pull_request'
+        run: yarn build:affected
+
       - name: Uploading artifacts
+        if: github.event_name == 'push'
         uses: actions/upload-artifact@v6
         with:
           name: dist-artifacts
