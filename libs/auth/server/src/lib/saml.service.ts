@@ -267,6 +267,7 @@ export class SamlService {
       userName,
       firstName,
       lastName,
+      subject: profile.nameID,
     };
   }
 
