@@ -32,16 +32,24 @@ function colorStatus(value) {
 // ── Header ─────────────────────────────────────────────────────────────────
 console.log('\n' + chalk.bold.cyan('  Jetstream Release') + '\n');
 
+// ── Detect branch ──────────────────────────────────────────────────────────
+// Hotfix branches release themselves (patch only). Everything else releases main.
+const currentBranch = (await $`git rev-parse --abbrev-ref HEAD`.quiet()).stdout.trim();
+const isHotfix = currentBranch.startsWith('hotfix/');
+const releaseRef = isHotfix ? currentBranch : 'main';
+
 // ── Prompt: bump type ──────────────────────────────────────────────────────
-const bump = await select({
-  message: 'Version bump type',
-  choices: [
-    { value: 'patch', name: 'patch  – bug fixes' },
-    { value: 'minor', name: 'minor  – new features' },
-    { value: 'major', name: 'major  – breaking changes' },
-  ],
-  default: 'patch',
-});
+const bump = isHotfix
+  ? 'patch'
+  : await select({
+      message: 'Version bump type',
+      choices: [
+        { value: 'patch', name: 'patch  – bug fixes' },
+        { value: 'minor', name: 'minor  – new features' },
+        { value: 'major', name: 'major  – breaking changes' },
+      ],
+      default: 'patch',
+    });
 
 // ── Prompt: platforms ─────────────────────────────────────────────────────
 const platforms = await checkbox({
@@ -64,6 +72,7 @@ const releaseDesktop = platforms.includes('desktop');
 console.log('');
 console.log(chalk.bold('  Release summary'));
 console.log(chalk.dim('  ─────────────────────────'));
+console.log(`  ${chalk.dim('branch')}    ${chalk.cyan(releaseRef)}${isHotfix ? chalk.dim(' (hotfix)') : ''}`);
 console.log(`  ${chalk.dim('bump')}      ${chalk.cyan(bump)}`);
 console.log(`  ${chalk.dim('web')}       ${releaseWeb ? chalk.green('yes') : chalk.dim('no')}`);
 console.log(`  ${chalk.dim('extension')} ${releaseExtension ? chalk.green('yes') : chalk.dim('no')}`);
@@ -81,6 +90,7 @@ console.log('\n' + chalk.bold('Triggering workflow...'));
 
 await $`gh workflow run ${WORKFLOW} \
   --repo ${REPO} \
+  --ref ${releaseRef} \
   -f bump=${bump} \
   -f release_web=${String(releaseWeb)} \
   -f release_web_extension=${String(releaseExtension)} \
