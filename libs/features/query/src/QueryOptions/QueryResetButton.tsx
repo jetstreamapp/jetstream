@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { Icon } from '@jetstream/ui';
 import { fromQueryState, useAmplitude } from '@jetstream/ui-core';
@@ -22,6 +20,10 @@ export const QueryResetButton: FunctionComponent<QueryResetButtonProps> = ({ cla
     useResetAtom(fromQueryState.queryFieldsMapState),
     useResetAtom(fromQueryState.selectedQueryFieldsState),
     useResetAtom(fromQueryState.selectedSubqueryFieldsState),
+    useResetAtom(fromQueryState.querySubqueryFiltersState),
+    useResetAtom(fromQueryState.querySubqueryOrderByState),
+    useResetAtom(fromQueryState.querySubqueryLimitState),
+    useResetAtom(fromQueryState.subqueryConfigPanelState),
     useResetAtom(fromQueryState.filterQueryFieldsState),
     useResetAtom(fromQueryState.orderByQueryFieldsState),
     useResetAtom(fromQueryState.queryFiltersState),

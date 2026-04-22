@@ -74,6 +74,9 @@ interface QueryRestoreStateItems extends QueryRestoreErrors {
   queryFieldsMapState: Record<string, QueryFields>;
   selectedQueryFieldsState: QueryFieldWithPolymorphic[];
   selectedSubqueryFieldsState: Record<string, QueryFieldWithPolymorphic[]>;
+  querySubqueryFiltersState: Record<string, ExpressionType>;
+  querySubqueryOrderByState: Record<string, QueryOrderByClause[]>;
+  querySubqueryLimitState: Record<string, string>;
   fieldFilterFunctions: fromQueryState.FieldFilterFunction[];
   filterQueryFieldsState: ListItem[];
   orderByQueryFieldsState: ListItem[];
@@ -182,6 +185,7 @@ async function queryRestoreBuildState(org: SalesforceOrgUi, query: Query, data: 
   processHavingClause(outputStateItems, query, fieldWrapperWithParentKey);
   processOrderBy(outputStateItems, query, fieldWrapperWithParentKey);
   processLimit(outputStateItems, query);
+  processSubqueryOptions(outputStateItems, query, data);
 
   return outputStateItems as QueryRestoreStateItems;
 }
@@ -535,6 +539,126 @@ function processLimit(stateItems: Partial<QueryRestoreStateItems>, query: Query)
 }
 
 /**
+ * Walk every FieldSubquery in the query and populate per-relationship filter / orderBy / limit state.
+ * Restores SOQL features that were previously silently dropped during restore.
+ */
+function processSubqueryOptions(stateItems: Partial<QueryRestoreStateItems>, query: Query, data: SoqlFetchMetadataOutput) {
+  stateItems.querySubqueryFiltersState = {};
+  stateItems.querySubqueryOrderByState = {};
+  stateItems.querySubqueryLimitState = {};
+
+  const subqueryFields = (query.fields || []).filter((field): field is FieldSubquery => field.type === 'FieldSubquery');
+  if (subqueryFields.length === 0) {
+    return;
+  }
+  const childMetadataByLowerName = Object.keys(data.childMetadata).reduce((acc: Record<string, { canonicalName: string }>, name) => {
+    acc[name.toLowerCase()] = { canonicalName: name };
+    return acc;
+  }, {});
+  const queryFieldsMap = stateItems.queryFieldsMapState || {};
+
+  subqueryFields.forEach((subqueryField) => {
+    const { subquery } = subqueryField;
+    const matchedChild = childMetadataByLowerName[subquery.relationshipName.toLowerCase()];
+    if (!matchedChild) {
+      return;
+    }
+    const relationshipName = matchedChild.canonicalName;
+    const childMeta = data.childMetadata[relationshipName];
+    const childBaseKey = getSubqueryFieldBaseKey(childMeta.objectMetadata.name, relationshipName);
+    const fieldWrapperForSubquery = getFieldWrapperPathForSubquery(queryFieldsMap, childBaseKey);
+
+    if (subquery.where) {
+      const missingForSubquery: string[] = [];
+      const rows = flattenWhereClause(missingForSubquery, fieldWrapperForSubquery, subquery.where, 0);
+      if (rows.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        stateItems.querySubqueryFiltersState![relationshipName] = {
+          action: isWhereClauseWithRightCondition(subquery.where) && subquery.where.operator === 'OR' ? 'OR' : 'AND',
+          rows,
+        };
+      }
+      if (missingForSubquery.length > 0) {
+        stateItems.missingMisc = stateItems.missingMisc || [];
+        missingForSubquery.forEach((message) => {
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          stateItems.missingMisc!.push(`Subquery '${relationshipName}': ${message}`);
+        });
+      }
+    }
+
+    if (subquery.orderBy) {
+      const orderByClauses = (Array.isArray(subquery.orderBy) ? subquery.orderBy : [subquery.orderBy]) as QueryOrderByClause[];
+      const restoredOrderBys = orderByClauses
+        .map((orderBy, i) => {
+          if (!isOrderByField(orderBy)) {
+            return null;
+          }
+          const foundField = fieldWrapperForSubquery[orderBy.field.toLowerCase()];
+          if (!foundField) {
+            stateItems.missingMisc = stateItems.missingMisc || [];
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            stateItems.missingMisc!.push(`Subquery '${relationshipName}': Order By ${orderBy.field} was not found`);
+            return null;
+          }
+          const { fieldMetadata, fieldKey, parentKey } = foundField;
+          const [base, path] = parentKey.split('|');
+          const groupLabel = path ? path.substring(0, path.length - 1) : base;
+          if (!fieldMetadata) {
+            return null;
+          }
+          return {
+            key: i,
+            field: fieldKey,
+            fieldLabel: `${groupLabel} - ${fieldMetadata.label} (${fieldMetadata.name})`,
+            order: orderBy.order,
+            nulls: orderBy.nulls || null,
+          } as QueryOrderByClause;
+        })
+        .filter((orderBy): orderBy is QueryOrderByClause => !!orderBy);
+
+      if (restoredOrderBys.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        stateItems.querySubqueryOrderByState![relationshipName] = restoredOrderBys;
+      }
+    }
+
+    if (subquery.limit) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      stateItems.querySubqueryLimitState![relationshipName] = `${subquery.limit}`;
+    }
+  });
+}
+
+/**
+ * Sibling of getFieldWrapperPath, scoped to a single subquery's base key.
+ * Walks every queryFieldsMap entry under `${childBaseKey}...` and returns a
+ * lowercase-field → FieldWrapperWithParentKey lookup usable by flattenWhereClause.
+ */
+function getFieldWrapperPathForSubquery(
+  queryFields: Record<string, QueryFields>,
+  childBaseKey: string,
+): Record<string, FieldWrapperWithParentKey> {
+  return Object.keys(queryFields)
+    .filter((key) => key.startsWith(childBaseKey))
+    .reduce((output: Record<string, FieldWrapperWithParentKey>, key) => {
+      const queryField = queryFields[key];
+      // Keys for subqueries look like `${childSobject}~${relationshipName}|{optional.path.}`.
+      // The "path" portion (after the pipe) is what should prefix each field key,
+      // matching how soql-parser-js emits dotted field paths in subquery WHERE/ORDER BY.
+      const fieldPath = key.slice(childBaseKey.length);
+      Object.keys(queryField.fields).forEach((fieldName) => {
+        output[`${fieldPath}${fieldName}`.toLowerCase()] = {
+          parentKey: queryField.key,
+          fieldKey: `${fieldPath}${fieldName}`,
+          fieldMetadata: queryField.fields[fieldName],
+        };
+      });
+      return output;
+    }, {});
+}
+
+/**
  * Attempt to find each field in query and mark as selected
  * This is called for base query and each subquery individually
  *
@@ -728,3 +852,8 @@ function getFieldWrapperPath(queryFields: Record<string, QueryFields>): Record<s
       return output;
     }, {});
 }
+
+export const __TEST_EXPORTS__ = {
+  processSubqueryOptions,
+  getFieldWrapperPathForSubquery,
+};

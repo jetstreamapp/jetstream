@@ -1,10 +1,11 @@
+import { css } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { ChildRelationship, QueryFieldWithPolymorphic, SalesforceOrgUi } from '@jetstream/types';
-import { Accordion, Badge, DesertIllustration, EmptyState, Grid, GridCol, SearchInput } from '@jetstream/ui';
+import { Accordion, Badge, DesertIllustration, EmptyState, Grid, GridCol, Icon, SearchInput } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
-import { useAtomValue } from 'jotai';
-import { Fragment, FunctionComponent, ReactNode, useState } from 'react';
+import { useAtomValue, useSetAtom } from 'jotai';
+import { Fragment, FunctionComponent, ReactNode, useRef, useState } from 'react';
 import QueryChildFields from './QueryChildFields';
 
 export interface QuerySubquerySObjectsProps {
@@ -23,13 +24,16 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
   onSelectionChanged,
 }) => {
   const [visibleChildRelationships, setVisibleChildRelationships] = useState<ChildRelationship[]>(childRelationships);
-  const [childRelationshipContent, setChildRelationshipContent] = useState<Record<string, ReactNode | ChildRelationship>>({});
+  const childRelationshipContentRef = useRef<Record<string, ReactNode>>({});
   const [textFilter, setTextFilter] = useState<string>('');
   const selectedFieldState = useAtomValue(fromQueryState.selectedSubqueryFieldsState);
+  const subquerySummary = useAtomValue(fromQueryState.subqueryOptionsSummaryState);
+  const setConfigPanel = useSetAtom(fromQueryState.subqueryConfigPanelState);
 
   useNonInitialEffect(() => {
     setVisibleChildRelationships(childRelationships);
     setTextFilter('');
+    childRelationshipContentRef.current = {};
   }, [childRelationships]);
 
   useNonInitialEffect(() => {
@@ -42,30 +46,90 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
     }
   }, [textFilter]);
 
+  function buildSummaryParts(summary: { filterCount: number; hasOrderBy: boolean; limit: string | null } | undefined) {
+    const parts: string[] = [];
+    if (summary?.filterCount) {
+      parts.push(`${summary.filterCount} ${pluralizeFromNumber('filter', summary.filterCount)}`);
+    }
+    if (summary?.hasOrderBy) {
+      parts.push('sorted');
+    }
+    if (summary?.limit) {
+      parts.push(`limit ${summary.limit}`);
+    }
+    return parts;
+  }
+
   function getContent(childRelationship: ChildRelationship) {
     return () => {
-      let content: ReactNode | ChildRelationship;
       if (!childRelationship.relationshipName) {
         return;
       }
-      if (childRelationshipContent[childRelationship.relationshipName]) {
-        content = childRelationshipContent[childRelationship.relationshipName];
-      } else {
-        content = (
+      // The "Configure" header is re-rendered each time because it depends on the latest
+      // summary atom; the (heavier) field picker below is memoized in childRelationshipContentRef.
+      const relationshipName = childRelationship.relationshipName;
+      const summary = subquerySummary[relationshipName];
+      let fieldPicker = childRelationshipContentRef.current[relationshipName];
+      if (!fieldPicker) {
+        fieldPicker = (
           <QueryChildFields
             org={org}
             serverUrl={serverUrl}
             isTooling={isTooling}
             selectedSObject={childRelationship.childSObject}
-            parentRelationshipName={childRelationship.relationshipName}
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            onSelectionChanged={(fields: QueryFieldWithPolymorphic[]) => onSelectionChanged(childRelationship.relationshipName!, fields)}
+            parentRelationshipName={relationshipName}
+            onSelectionChanged={(fields: QueryFieldWithPolymorphic[]) => onSelectionChanged(relationshipName, fields)}
           />
         );
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        setTimeout(() => setChildRelationshipContent({ ...childRelationshipContent, [childRelationship.relationshipName!]: content }));
+        childRelationshipContentRef.current[relationshipName] = fieldPicker;
       }
-      return content;
+      return (
+        <Fragment>
+          <div className="slds-p-around_x-small slds-border_bottom">
+            <Grid verticalAlign="center" gutters guttersSize="x-small" wrap>
+              <GridCol growNone>
+                <button
+                  className="slds-button slds-button_neutral"
+                  type="button"
+                  title={`Configure filter, order by, and limit for ${relationshipName}`}
+                  onClick={() => setConfigPanel({ relationshipName, childSObject: childRelationship.childSObject })}
+                >
+                  <Icon type="utility" icon="settings" className="slds-button__icon slds-button__icon_left" omitContainer />
+                  Filter / Order By / Limit
+                </button>
+              </GridCol>
+              {summary?.filterCount ? (
+                <GridCol growNone className="slds-text-body_small slds-text-color_weak">
+                  <Icon
+                    type="utility"
+                    icon="filterList"
+                    className="slds-icon slds-icon_xx-small slds-icon-text-default slds-m-right_xx-small"
+                    omitContainer
+                  />
+                  {summary.filterCount} {pluralizeFromNumber('filter', summary.filterCount)}
+                </GridCol>
+              ) : null}
+              {summary?.hasOrderBy ? (
+                <GridCol growNone className="slds-text-body_small slds-text-color_weak">
+                  <Icon
+                    type="utility"
+                    icon="arrowdown"
+                    className="slds-icon slds-icon_xx-small slds-icon-text-default slds-m-right_xx-small"
+                    omitContainer
+                  />
+                  sorted
+                </GridCol>
+              ) : null}
+              {summary?.limit ? (
+                <GridCol growNone className="slds-text-body_small slds-text-color_weak">
+                  limit {summary.limit}
+                </GridCol>
+              ) : null}
+            </Grid>
+          </div>
+          {fieldPicker}
+        </Fragment>
+      );
     };
   }
 
@@ -74,14 +138,42 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
       return;
     }
     const queryFields = selectedFieldState[childRelationship.relationshipName];
-    if (Array.isArray(queryFields)) {
-      return (
-        <Badge className="slds-truncate text-uppercase slds-m-top_xx-small">
-          {queryFields.length} {pluralizeFromNumber('field', queryFields.length)} selected
-        </Badge>
-      );
+    const summary = subquerySummary[childRelationship.relationshipName];
+
+    if (!Array.isArray(queryFields) && !summary) {
+      return;
     }
-    return;
+
+    const summaryText = buildSummaryParts(summary).join(' · ');
+
+    return (
+      <span
+        css={css`
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+        `}
+      >
+        {Array.isArray(queryFields) && (
+          <Badge className="slds-truncate text-uppercase">
+            {queryFields.length} {pluralizeFromNumber('field', queryFields.length)} selected
+          </Badge>
+        )}
+        {summaryText && (
+          <span
+            className="slds-icon_container"
+            css={css`
+              display: inline-flex;
+              align-items: center;
+            `}
+            title={`Configured: ${summaryText}`}
+            aria-label={`Configured: ${summaryText}`}
+          >
+            <Icon type="utility" icon="filterList" className="slds-icon slds-icon_xx-small slds-icon-text-default" omitContainer />
+          </span>
+        )}
+      </span>
+    );
   }
 
   return (

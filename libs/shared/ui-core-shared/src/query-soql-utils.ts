@@ -4,6 +4,7 @@ import { getFieldKey } from '@jetstream/shared/ui-utils';
 import { orderValues } from '@jetstream/shared/utils';
 import { DescribeGlobalSObjectResult, DescribeSObjectResult, Field, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import {
+  OrderByClause,
   Query,
   FieldType as QueryFieldType,
   WhereClause,
@@ -151,17 +152,17 @@ function getFieldsFromAllPartsOfQuery(query: Query): ParsableFields {
   const parsableFields = getParsableFields(query.fields || []);
 
   parsableFields.fields = parsableFields.fields.concat(getParsableFieldsFromFilter(query.where));
-
-  if (query.orderBy) {
-    const orderBy = Array.isArray(query.orderBy) ? query.orderBy : [query.orderBy];
-    orderBy.forEach((orderBy) => {
-      if (isOrderByField(orderBy)) {
-        parsableFields.fields.push(orderBy.field);
-      }
-    });
-  }
+  parsableFields.fields = parsableFields.fields.concat(getParsableFieldsFromOrderBy(query.orderBy));
 
   return parsableFields;
+}
+
+function getParsableFieldsFromOrderBy(orderBy: Maybe<OrderByClause | OrderByClause[]>): string[] {
+  if (!orderBy) {
+    return [];
+  }
+  const clauses = Array.isArray(orderBy) ? orderBy : [orderBy];
+  return clauses.filter(isOrderByField).map((clause) => clause.field);
 }
 
 /**
@@ -190,7 +191,12 @@ function getParsableFields(fields: QueryFieldType[]): ParsableFields {
           output.fields.push(`${firstCondition.objectType}${TYPEOF_SEPARATOR}${field.field}.${typeofField}`),
         );
       } else if (field.type === 'FieldSubquery') {
-        output.subqueries[field.subquery.relationshipName] = getParsableFields(field.subquery.fields || []).fields;
+        const subqueryFields = getParsableFields(field.subquery.fields || []).fields;
+        const subqueryFilterFields = getParsableFieldsFromFilter(field.subquery.where).map((fieldName) => fieldName.toLowerCase());
+        const subqueryOrderByFields = getParsableFieldsFromOrderBy(field.subquery.orderBy).map((fieldName) => fieldName.toLowerCase());
+        output.subqueries[field.subquery.relationshipName] = orderValues(
+          Array.from(new Set([...subqueryFields, ...subqueryFilterFields, ...subqueryOrderByFields])),
+        );
       }
       return output;
     },
@@ -396,6 +402,7 @@ export const __TEST_EXPORTS__ = {
   getFieldsFromAllPartsOfQuery,
   getParsableFields,
   getParsableFieldsFromFilter,
+  getParsableFieldsFromOrderBy,
   fetchAllMetadata,
   findRequiredRelationships,
   fetchRecursiveMetadata,
