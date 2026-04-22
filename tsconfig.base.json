@@ -48,6 +48,7 @@
       "@jetstream/monaco": ["./libs/monaco-configuration/src/index.ts"],
       "@jetstream/prisma": ["./libs/prisma/src/index.ts"],
       "@jetstream/record-form": ["./libs/shared/ui-record-form/src/index.ts"],
+      "@jetstream/release-notes": ["./libs/release-notes/src/index.ts"],
       "@jetstream/salesforce-api": ["./libs/salesforce-api/src/index.ts"],
       "@jetstream/shared/client-logger": ["./libs/shared/client-logger/src/index.ts"],
       "@jetstream/shared/constants": ["./libs/shared/constants/src/index.ts"],

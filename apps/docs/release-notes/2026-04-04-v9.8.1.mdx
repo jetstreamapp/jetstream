@@ -1,0 +1,29 @@
+---
+slug: v9.8.1
+title: 9.8.1 - Resend invitation fix
+date: '2026-04-04'
+authors: [jetstream]
+tags: [web]
+versions:
+  web: 9.8.1
+summary: Fixed an invalid-input error when resending team invitations, and tuned the bot-block response on the API edge.
+highlights:
+  - title: Resend invitation works again
+    description: Resending a team invitation no longer fails with an invalid input error.
+    platforms: [web]
+  - title: Bot route returns 444
+    description: Blocked bot traffic now receives status 444 instead of 403 to reduce retry traffic.
+    platforms: [web]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Resend invitation fix
+
+An empty body was being sent to the `resendInvitation` API, which was rejected as invalid input. The request now includes an empty data object so invitations resend correctly.
+
+### Bot route status code
+
+The bot-block route now responds with HTTP 444 (connection closed without response) instead of 403. This cuts down on retry storms from abusive clients.

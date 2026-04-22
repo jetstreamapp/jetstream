@@ -1,0 +1,45 @@
+---
+slug: v7.7.0
+title: 7.7.0 - CSRF protection and UI polish
+date: '2025-09-11'
+authors: [jetstream]
+tags: [web]
+versions:
+  web: 7.7.0
+summary: Adds CSRF double-submit token protection to API requests, cleans up the field mapping dropdown, and fixes several small UI issues.
+highlights:
+  - title: CSRF double-submit token protection
+    description: API requests now carry a CSRF token validated against a signed cookie, protecting against cross-site request forgery.
+    platforms: [web]
+  - title: Cleaner field mapping dropdown
+    description: The load records field mapping dropdown now shows the field type as tertiary text, matching the rest of the app.
+    docLink: /load/load
+    platforms: [web, desktop, extension]
+  - title: Combobox sizing fix
+    description: The virtualized combobox no longer miscalculates its size in certain layouts.
+    platforms: [web, desktop, extension]
+  - title: XML sanitizer and extension domain detection
+    description: The XML sanitizer was fixed and the Chrome extension now detects Salesforce domains more reliably.
+    platforms: [web, extension]
+  - title: Error popover styling
+    description: The error popover nubbin color now matches the popover background.
+    platforms: [web, desktop, extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### CSRF double-submit token protection
+
+All authenticated API requests now use a CSRF double-submit cookie pattern. The client reads the token from a cookie and sends it in a header that the server validates, blocking cross-site request forgery attempts. Existing sessions automatically get a new CSRF cookie issued if they don't have one.
+
+### Cleaner field mapping dropdown
+
+In the load records field mapping, the field type used to render as a badge that crowded polymorphic lookups. It now shows as tertiary text next to the field name, matching how field types are displayed everywhere else in the app.
+
+### Smaller UI fixes
+
+- The virtualized combobox control now sizes correctly in layouts where it was previously miscalculating.
+- The error popover's nubbin is now the right color so it blends with the popover body.
+- The XML sanitizer has been fixed and the Chrome extension does a better job of detecting when you're on a Salesforce domain.

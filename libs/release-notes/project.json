@@ -1,0 +1,33 @@
+{
+  "name": "release-notes",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/release-notes/src",
+  "projectType": "library",
+  "tags": ["scope:shared"],
+  "implicitDependencies": [],
+  "generators": {},
+  "targets": {
+    "build-data": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "{workspaceRoot}/apps/docs/release-notes/**/*.mdx",
+        "{workspaceRoot}/scripts/generate-release-notes.ts",
+        "{projectRoot}/src/lib/release-notes.types.ts"
+      ],
+      "outputs": ["{projectRoot}/src/lib/release-notes.generated.json"],
+      "options": {
+        "command": "zx ./scripts/generate-release-notes.ts"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    },
+    "test": {
+      "executor": "@nx/vitest:test",
+      "outputs": ["{options.reportsDirectory}"],
+      "options": {
+        "reportsDirectory": "{projectRoot}/../../coverage/libs/release-notes"
+      }
+    }
+  }
+}

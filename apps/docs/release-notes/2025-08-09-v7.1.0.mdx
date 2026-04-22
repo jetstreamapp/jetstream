@@ -1,0 +1,52 @@
+---
+slug: v7.1.0
+title: 7.1.0 - Diff editor toggle, folder metadata fixes
+date: '2025-08-09'
+authors: [jetstream]
+tags: [web, extension]
+versions:
+  web: 7.1.0
+  extension: 2.0.1
+summary: Compare metadata got an option to hide unchanged lines, folder metadata types are now retrieved correctly, and several datatable and popover bugs are fixed.
+highlights:
+  - title: Toggle unchanged lines in the metadata diff editor
+    description: When comparing metadata between orgs you can now collapse unchanged lines, which makes larger files much easier to scan.
+    docLink: /deploy/deploy-metadata
+    platforms: [web, extension]
+  - title: Folder metadata types work correctly
+    description: Document, Email, Report, and Dashboard folders now appear in the metadata picker and retrieve the correct metadata from Salesforce.
+    docLink: /deploy/deploy-metadata
+    platforms: [web, extension]
+  - title: Datatable tab navigation fix
+    description: Fixed an edge case where tab navigation inside the datatable could misidentify custom cell renderers after minification.
+    platforms: [web, extension]
+  - title: Monaco editor upgrade
+    description: Upgraded the embedded code editor, which powers the Apex, SOQL, and metadata editors across Jetstream.
+    platforms: [web, extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Toggle unchanged lines when comparing metadata
+
+The view-and-compare metadata modal now has a control to hide unchanged lines, so you can focus on the parts of a file that actually differ. Filename sorting in that view was also fixed so files list in a stable order.
+
+### Folder metadata types
+
+Document, Email, Report, and Dashboard folders are now included when you list metadata, and folder paths are sent to Salesforce in the format the API expects (with the trailing slash). This resolves cases where folder-based metadata was missing from the deploy or compare workflows.
+
+### Datatable tab navigation
+
+The datatable identifies certain columns (action and Id columns) by the name of their renderer function. After minification that name could change, causing tab navigation to treat them as normal cells. We now tag the renderers explicitly so tab navigation works the same in development and production builds.
+
+### Under the hood
+
+- Upgraded the Monaco editor and now serve its worker assets from node_modules rather than a checked-in copy on the server.
+- Removed the react-aria and headless-ui dependencies in favor of the Floating UI stack introduced in 7.0.0. The Chrome Web Store flagged obfuscated code inside react-aria, so this unblocks future extension updates and cuts a dependency from the bundle.
+- Fixed a scroll-lock glitch on the landing page and tightened portal root handling so popovers and modals render in the right container.
+
+### Web extension 2.0.1
+
+The browser extension picked up the react-aria and headless-ui removal and the scroll-lock and portal fixes.

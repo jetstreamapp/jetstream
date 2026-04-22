@@ -23,6 +23,8 @@
   "scripts": {
     "postinstall": "prisma generate",
     "init:project": "zx ./scripts/init-project.mjs",
+    "release-notes:generate": "zx ./scripts/generate-release-notes.ts",
+    "new-release-note": "zx ./scripts/new-release-note.mjs",
     "nx": "nx",
     "start": "nx serve",
     "start:api": "nx serve api",
@@ -228,6 +230,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
     "fishery": "^2.4.0",
+    "gray-matter": "^4.0.3",
     "husky": "^9.1.7",
     "jsdom": "^29.0.1",
     "jsonc-eslint-parser": "^2.1.0",

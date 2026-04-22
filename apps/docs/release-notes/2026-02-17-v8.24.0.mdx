@@ -1,0 +1,40 @@
+---
+slug: v8.24.0
+title: 8.24.0 - Metadata audit signals and Google folder memory
+date: '2026-02-17'
+authors: [jetstream]
+tags: [web]
+versions:
+  web: 8.24.0
+summary: Custom metadata records now show a last-modified date, invalid metadata timestamps are flagged with a warning, and Jetstream remembers your recent Google Drive folder.
+highlights:
+  - title: Last modified on custom metadata records
+    description: Custom metadata records now surface SystemModstamp since Salesforce does not return standard audit fields for them.
+    docLink: /deploy/deploy-metadata
+  - title: Warning for invalid metadata timestamps
+    description: When Salesforce returns an invalid audit timestamp, a warning icon now tells you the correct data is not available instead of showing a misleading date.
+  - title: Remembered Google folder selection
+    description: When exporting or uploading to Google Drive, your recent folder choice is remembered so repeat uploads take fewer clicks.
+  - title: Automation Control works in namespaced orgs
+    description: Orgs that have their own namespace can now manage components inside their managed package from Automation Control.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Better metadata audit info
+
+Salesforce does not return the normal CreatedBy / LastModifiedBy fields for custom metadata records via listMetadata. Jetstream now injects the available SystemModstamp so you at least see when the record was last touched. Separately, when Salesforce returns an invalid or zero timestamp on any metadata record, Jetstream shows a warning icon instead of formatting a bogus date.
+
+### Google Drive folder memory
+
+Loading or exporting to the same Google Drive folder repeatedly used to mean re-picking the folder every time. Jetstream now remembers the most recent folder selection per workflow so you can keep exports flowing into the same place.
+
+### Automation Control in namespaced orgs
+
+If your org has its own namespace, Automation Control previously could not act on components owned by the org's managed package. Those components are now reachable.
+
+### Under the hood
+
+- Swapped the XML library used during metadata parsing so browser-side flows keep working with the latest releases.

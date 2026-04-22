@@ -66,6 +66,27 @@ const config: Config = {
       } satisfies Preset.Options,
     ],
   ],
+  plugins: [
+    [
+      '@docusaurus/plugin-content-blog',
+      {
+        id: 'release-notes',
+        routeBasePath: 'release-notes',
+        path: './release-notes',
+        blogTitle: 'Release notes',
+        blogDescription: "What's new in Jetstream.",
+        blogSidebarTitle: 'All releases',
+        blogSidebarCount: 'ALL',
+        showReadingTime: false,
+        editUrl: 'https://github.com/jetstreamapp/jetstream/tree/main/apps/docs/',
+        feedOptions: {
+          type: 'all',
+          title: 'Jetstream release notes',
+          copyright: `Copyright © ${new Date().getFullYear()} Jetstream.`,
+        },
+      },
+    ],
+  ],
   themeConfig: {
     colorMode: {
       defaultMode: 'dark',
@@ -89,6 +110,11 @@ const config: Config = {
         srcDark: 'img/jetstream-logo-inverse.svg',
       },
       items: [
+        {
+          to: '/release-notes',
+          label: 'Release notes',
+          position: 'right',
+        },
         {
           href: 'https://getjetstream.app',
           label: 'Jetstream',

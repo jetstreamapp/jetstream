@@ -1,0 +1,45 @@
+---
+slug: v8.3.0
+title: 8.3.0 - Better related-object loading and assorted bug fixes
+date: '2025-10-21'
+authors: [jetstream]
+tags: [web, desktop]
+versions:
+  web: 8.3.0
+  desktop: 3.1.0
+summary: Load Records now shows every related object on polymorphic lookups and fetches related-field metadata on demand. Also fixes Firefox drag in the query builder and a create-organization regression.
+highlights:
+  - title: All related objects on polymorphic lookups
+    description: Field mapping on Load Records now shows every related object for polymorphic relationships instead of capping the list at five.
+    docLink: /load/load
+  - title: On-demand related-field metadata
+    description: Related-object fields are now fetched only when the object is selected in mapping, with a manual retry when a fetch fails.
+    docLink: /load/load
+  - title: Firefox query builder drag
+    description: Condition rows in the query builder can be dragged on Firefox again after swapping the drag handle from a button to a span.
+    docLink: /query/query-results
+  - title: Create organization from selected org
+    description: Creating a new organization no longer silently reuses the currently selected organization state, which could block the create flow.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Improved related-object loading
+
+When a Salesforce lookup is polymorphic, the Load Records field-mapping UI now lists every related object it could point to, not just the first five. Metadata for those related objects is fetched on demand when you pick the target object, which makes the initial load faster and avoids pre-fetching a lot of data you never use. If a fetch fails, you can retry without restarting the load.
+
+When auto-mapping fields, related-object metadata is still pre-fetched up front based on the CSV headers.
+
+### Firefox query builder drag
+
+Firefox does not allow dragging native buttons, so the query builder's condition drag handle now uses a span. Reordering conditions works again across all supported browsers.
+
+### Create organization fix
+
+Creating a new organization while another organization was selected in the switcher could fail because the create modal reused the selected-organization state for its form. The modal now keeps its own state, so create and edit flows stay independent.
+
+### Desktop 3.1.0
+
+The desktop app is bumped to 3.1.0 with the same underlying fixes.

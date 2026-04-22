@@ -1,0 +1,58 @@
+---
+slug: v7.6.0
+title: 7.6.0 - Record modal anywhere, changeset options, Google Sheet refresh
+date: '2025-08-30'
+authors: [jetstream]
+tags: [web, desktop, extension]
+versions:
+  web: 7.6.0
+  desktop: 1.2.0
+  extension: 2.2.0
+summary: View, edit, and clone any record from anywhere in the app, refresh Google Sheet data on the load page, and control rollback behavior when adding metadata to a changeset.
+highlights:
+  - title: View/Edit/Clone record modal, app-wide
+    description: The record modal is now managed at the app level, so viewing or editing a record works consistently from any screen and updates your recent records list automatically.
+    platforms: [web, desktop, extension]
+  - title: Refresh Google Sheet data on Load Records
+    description: Re-pull data from your selected Google Sheet even after navigating forward and backward through the load steps.
+    docLink: /load/load
+    platforms: [web, desktop, extension]
+  - title: Changeset upload options
+    description: When adding metadata to an outbound changeset, you can now adjust deploy options and Jetstream defaults to "rollback on failure" for production orgs.
+    docLink: /deploy/deploy-metadata
+    platforms: [web, desktop, extension]
+  - title: Date picker closes on outside click
+    description: The date picker now dismisses correctly when you click outside of it in most contexts.
+    platforms: [web, desktop, extension]
+  - title: Recent records stays in sync
+    description: Opening a record from anywhere in the app now updates the recent records list, so it is easier to jump back to what you were just working on.
+    platforms: [web, desktop, extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### View, edit, and clone records from anywhere
+
+The View / Edit / Clone record modal is now managed at the application level instead of being wired into each individual component. Any feature can open the modal by emitting an event, so the experience is consistent whether you launch it from query results, the formula evaluator, a lookup popover, or elsewhere. As a bonus, opening a record always updates your recent records list.
+
+### Refresh Google Sheet data on the Load Records page
+
+If you pick a Google Sheet as your source on the Load Records page, you can now refresh the data from the sheet even after navigating forward through the steps and coming back. Previously the refresh button was only reliable on the initial selection.
+
+### Changeset upload options and safer production defaults
+
+When adding metadata to an outbound changeset, you can now adjust the deploy options used for the upload. For production orgs, Jetstream defaults to rolling back the deployment on failure. This matters for the small number of users who build outbound changesets from a production org and want the safer default.
+
+### Date picker behavior
+
+The date picker now closes on outside click in the common cases. A couple of edge cases remain inside modals and on inline editable data tables where clicking away closes the picker popup but not the surrounding editor - we will keep chipping at those.
+
+### Recent records cache fix
+
+A follow-up patch corrected the storage key used for the recent records cache. Existing recent-record history is reset once when upgrading, after which the list tracks correctly going forward.
+
+## Desktop 1.2.0 and Web Extension 2.2.0
+
+Desktop and the web extension were cut at the same time as 7.6.0 and pick up all of the above.

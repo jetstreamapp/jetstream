@@ -1,0 +1,54 @@
+---
+slug: v8.21.0
+title: 8.21.0 - Higher load and download limits
+date: '2026-02-07'
+authors: [jetstream]
+tags: [web, desktop, extension]
+versions:
+  web: 8.21.0
+  desktop: 3.14.0
+  extension: 2.15.0
+summary: Higher limits for data loads and attachment downloads, a movable feedback widget, and a fix that keeps permission manager filter text across tab changes.
+highlights:
+  - title: Higher data load batch limits
+    description: Paid users can now run more batches in a single data load, with a higher ceiling than free users.
+    docLink: /load/load
+    platforms: [web, desktop, extension]
+  - title: Larger attachment downloads
+    description: Paid web users can download up to 2000 attachments at a time, free users up to 250, and the total size limit was raised from 500MB to 1GB.
+    platforms: [web]
+  - title: No download limits on desktop and extension
+    description: Desktop and browser extension users have no imposed attachment download limits since the work happens locally.
+    platforms: [desktop, extension]
+  - title: Movable feedback widget
+    description: The feedback widget can now be moved or hidden so it does not cover content, and the query builder SOQL editor has extra scroll space underneath.
+    platforms: [web, desktop, extension]
+  - title: Permission manager filter persistence
+    description: The filter text you type in the permission manager is now retained when you switch tabs.
+    docLink: /permissions/permissions
+    platforms: [web, desktop, extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Higher data load batch limits
+
+The maximum number of batches you can submit in a single data load has been raised. Paid users get a higher limit than free users so large loads do not need to be broken into as many separate jobs.
+
+### Larger attachment downloads
+
+For the web application, paid users can now download up to 2000 attachments at a time, and free users can download up to 250. The total size limit across a single download was also raised from 500MB to 1GB.
+
+Desktop and browser extension users do not have an imposed attachment download limit because the downloads run locally and do not use server resources.
+
+### Movable feedback widget
+
+The feedback widget can now be moved to a different position or hidden entirely if it gets in the way. The query builder SOQL editor also has extra scroll space underneath it so the widget no longer covers the end of a query.
+
+The feedback email itself was also improved so the message preview and opening line display better in common email clients.
+
+### Permission manager filter persistence
+
+When you have filter text entered in the permission manager and switch between tabs, the filter is now retained instead of clearing. The rows stay filtered, so keeping the filter text matches what you see.

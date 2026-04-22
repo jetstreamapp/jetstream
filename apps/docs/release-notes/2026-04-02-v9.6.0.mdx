@@ -1,0 +1,31 @@
+---
+slug: v9.6.0
+title: 9.6.0 - New XML parser, safer user profile handling
+date: '2026-04-02'
+authors: [jetstream]
+tags: [web, desktop]
+versions:
+  web: 9.6.0
+summary: Swapped the XML parsing and building libraries for our own @jetstreamapp/simple-xml to reduce supply-chain risk, plus safer user profile fetch.
+highlights:
+  - title: In-house XML parser
+    description: Replaced fast-xml-parser and fast-xml-builder with @jetstreamapp/simple-xml to eliminate a class of vulnerability and breaking-change risks.
+    platforms: [web, desktop, extension]
+  - title: Safer profile fetch
+    description: If the user profile call fails, Jetstream now falls back to a default profile instead of surfacing a confusing error.
+    platforms: [web, desktop, extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### New XML parser and builder
+
+We replaced `fast-xml-parser` and `fast-xml-builder` with `@jetstreamapp/simple-xml`, a library we built ourselves to cover exactly the cases Jetstream needs. The upstream libraries had repeated vulnerability reports and a history of breaking changes shipped as patch releases. Swapping to our own library reduces both bloat and supply-chain exposure.
+
+Metadata deploys, profile/permission-set exports, and every other place Jetstream reads or writes Salesforce XML now route through the new parser. There should be no visible difference in behavior.
+
+### Profile fetch fallback
+
+If `fetchUserProfile` fails (network blip, auth hiccup), the app now returns a sane default profile object instead of throwing. Small change, but it smooths out a few edge-case error screens at login.

@@ -1,0 +1,43 @@
+---
+slug: v7.6.2
+title: 7.6.2 - Bigger attachment uploads and desktop download fix
+date: '2025-09-05'
+authors: [jetstream]
+tags: [web, desktop, extension]
+versions:
+  web: 7.6.2
+  desktop: 1.3.0
+  extension: 2.3.0
+summary: Raises the binary attachment upload limit, fixes attachment downloads in the desktop app, and ships a matching web extension release.
+highlights:
+  - title: Larger binary attachment uploads
+    description: Paid users can upload up to 1 GB of attachments, and the desktop app and browser extension have no upload limit.
+    docLink: /load/load
+    platforms: [web, desktop, extension]
+  - title: Attachment downloads fixed on desktop
+    description: Zip downloads of query result attachments now work in the desktop app via a custom protocol handler.
+    platforms: [desktop]
+  - title: Safer zip attachment fetches
+    description: The download service worker now validates fetch URLs before requesting zip attachments.
+    platforms: [web, desktop, extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Larger binary attachment uploads
+
+Uploading records with binary attachments now supports much larger payloads. Paid web users can upload up to 1 GB in a single load, and the desktop app and browser extension have no upload limit at all. The load docs were updated to reflect the new thresholds.
+
+### Attachment downloads fixed on desktop
+
+Downloading query result attachments as a zip file was failing in the desktop app. The download pipeline was reworked to use a custom protocol handler so attachment zips download correctly in the desktop app.
+
+### Safer zip attachment fetches
+
+The download zip service worker now validates fetch URLs before issuing requests, and the server controllers tightened null checking on the attachment endpoint.
+
+### Web extension 2.3.0
+
+The web extension was also published at 2.3.0 in this window, picking up the same download pipeline changes.

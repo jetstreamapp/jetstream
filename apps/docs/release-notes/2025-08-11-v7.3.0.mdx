@@ -1,0 +1,43 @@
+---
+slug: v7.3.0
+title: 7.3.0 - Windows desktop app and in-app desktop/extension promotion
+date: '2025-08-11'
+authors: [jetstream]
+tags: [web, desktop]
+versions:
+  web: 7.3.0
+  desktop: 1.1.0
+summary: The desktop app now installs and auto-updates on Windows (code-signed), and the web app surfaces links to the desktop and browser extension builds from the home screen.
+highlights:
+  - title: Windows desktop app
+    description: Desktop 1.1.0 ships a signed Windows installer with proper install, update, and Start Menu shortcut handling.
+    docLink: /getting-started/desktop-app
+    platforms: [desktop]
+  - title: Alternative app formats on the home screen
+    description: The home screen now shows a card pointing entitled users to the desktop app and browser extension.
+    platforms: [web]
+  - title: Desktop entitlement fix
+    description: Desktop was missing from entitlement checks, so paid users could be blocked from the desktop build. This is corrected.
+    platforms: [web, desktop]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Windows desktop app
+
+Desktop 1.1.0 adds Windows support alongside macOS. The Windows build is signed via a cloud HSM and handles Squirrel install, update, and uninstall events correctly, including Start Menu shortcuts. If you tried the desktop app previously on Windows, grab the new installer.
+
+### Home screen links to desktop and extension
+
+When you have access to the desktop app or browser extension, the app home screen now shows a card linking to those builds so you can discover and install them without leaving Jetstream.
+
+### Entitlement fix
+
+The desktop entitlement was missing from the user profile entitlement list, which could block access for paid users. Desktop is now a first-class entitlement.
+
+### Other improvements
+
+- Added a documentation page for the desktop app.
+- Desktop app can now receive notifications from the server.

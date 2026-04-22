@@ -1,0 +1,24 @@
+---
+slug: v8.17.1
+title: 8.17.1 - Manage Permissions handles invalid FieldPermission records
+date: '2026-01-15'
+authors: [jetstream]
+tags: [web, desktop, extension]
+versions:
+  web: 8.17.1
+  extension: 2.13.1
+summary: Fixes a Manage Permissions failure caused by invalid FieldPermission records that Salesforce had started returning.
+highlights:
+  - title: Manage Permissions no longer fails on invalid records
+    description: Salesforce had started returning FieldPermission rows with invalid IDs; Manage Permissions now skips them instead of erroring out.
+    docLink: /permissions/permissions
+    platforms: [web, desktop, extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Manage Permissions fix
+
+Some orgs had FieldPermission records with invalid IDs saved by Salesforce, which caused Manage Permissions to fail when loading them. Jetstream now filters those records out so the page loads and saves reliably.

@@ -9,6 +9,7 @@
       "executor": "@nx/vite:build",
       "outputs": ["{options.outputPath}"],
       "defaultConfiguration": "production",
+      "dependsOn": ["^build", "release-notes:build-data"],
       "options": {
         "outputPath": "dist/apps/jetstream-desktop-client"
       },

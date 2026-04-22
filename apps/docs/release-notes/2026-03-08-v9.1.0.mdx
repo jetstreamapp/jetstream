@@ -1,0 +1,45 @@
+---
+slug: v9.1.0
+title: 9.1.0 - Paste sanitization and bulk-update errors
+date: '2026-03-08'
+authors: [jetstream]
+tags: [web, extension]
+versions:
+  web: 9.1.0
+  extension: 2.17.0
+summary: Editors now strip invisible characters from pasted text, and bulk update failures surface the real server error instead of a generic message.
+highlights:
+  - title: Sanitize pasted text in editors
+    description: Invisible characters from copied content are removed on paste so Salesforce won't reject the value.
+    platforms: [web, extension]
+  - title: Real error messages on bulk update failures
+    description: When updating records without a file, the actual server error is shown instead of a generic one.
+    docLink: /load/load
+    platforms: [web, extension]
+  - title: Editor line-number reset
+    description: Anonymous Apex and the metadata compare modal no longer jump to an odd scroll position when the editor re-renders.
+    docLink: /developer/anonymous-apex
+    platforms: [web, extension]
+  - title: Stream error handling in bulk API
+    description: Errors during bulk API stream processing are surfaced instead of silently aborting.
+    platforms: [web]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Paste sanitization in editors
+
+Invisible and non-printable characters that sneak in when copying text from web pages, PDFs, or chat apps are now stripped when you paste into any Jetstream editor. Salesforce treats those characters as invalid, so removing them up front saves a round trip of confusing save errors.
+
+### Better errors on bulk update
+
+If a bulk update without a file fails, you now see the actual error message returned by Salesforce instead of a generic fallback. Much easier to figure out what to fix.
+
+### Fixes
+
+- Editor line numbers no longer reset to an incorrect scroll position after state changes in Anonymous Apex and the metadata compare modal.
+- Bulk API stream processing surfaces errors instead of silently finishing.
+- Corrected invalid icon types, malformed record IDs in lookup popovers, and a duplicated storage check.
+- Fixed an invalid export path in the shared UI utilities library.

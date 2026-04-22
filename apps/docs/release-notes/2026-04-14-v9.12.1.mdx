@@ -1,0 +1,28 @@
+---
+slug: v9.12.1
+title: 9.12.1 - Retry failed rows on a data load
+date: '2026-04-14'
+authors: [jetstream]
+tags: [web]
+versions:
+  web: 9.12.1
+summary: Retry just the failed rows from a data load without re-running the whole job, plus a CSP fix for third-party redirects.
+highlights:
+  - title: Retry failed rows from the load-failures modal
+    description: Select failed rows in the results modal and retry them with the same configuration instead of re-running the full file.
+    docLink: /load/load
+  - title: CSP form-action fix
+    description: Adds form-action directives so third-party redirects (for example OAuth flows) work under the tightened CSP.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Retry failed rows
+
+The load-failures modal now supports row selection with a Retry Selected action. Pick the rows you want to re-run and Jetstream kicks off a new load using the existing mapping and options, without forcing you to export the failures and start over.
+
+### CSP form-action directive
+
+Adds `form-action` directives to the Content Security Policy so form-POST redirects to third-party origins (for example during OAuth) are not blocked.

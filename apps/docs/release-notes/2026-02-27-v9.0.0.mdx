@@ -1,0 +1,64 @@
+---
+slug: v9.0.0
+title: 9.0.0 - SAML and OIDC single sign-on for teams
+date: '2026-02-27'
+authors: [jetstream]
+tags: [web]
+versions:
+  web: 9.0.0
+summary: Teams can now configure SAML and OIDC single sign-on with domain-based login discovery, plus audit logging on all team record changes and rate-limit hardening.
+highlights:
+  - title: SAML and OIDC SSO for teams
+    description: Team owners can configure SAML or OIDC providers (Okta, Azure, Google, generic), verify domains, and route members to SSO at login.
+    docLink: /team-management/sso/sso-overview
+  - title: Domain discovery at login
+    description: Enter your email and Jetstream routes you to the right SSO provider based on verified domains without extra clicks.
+  - title: Team audit log
+    description: All team-related record changes now write audit entries you can review from the team dashboard.
+  - title: Rate-limit and security hardening
+    description: Auth endpoints got tighter rate limiting and additional guards around SSO redirect safety and start-flow validation.
+  - title: TOTP grace period
+    description: TOTP verification now allows a 30 second grace window so codes on the edge of a rotation no longer fail.
+  - title: Improved SSO login form
+    description: You can submit the form before Turnstile finishes; the login waits for completion on submit. Better for password managers and autofill.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Single sign-on for teams
+
+Jetstream now supports single sign-on through SAML and OIDC. Team owners configure a provider (Okta, Microsoft Entra / Azure, Google Workspace, or a generic SAML/OIDC provider), verify one or more domains, and optionally enforce SSO for members. When members log in, Jetstream matches their email domain to a verified SSO configuration and sends them to the right identity provider.
+
+See the [SSO overview](/team-management/sso/sso-overview) for setup walkthroughs per provider.
+
+### Audit logging on team changes
+
+Every team related record update now creates an audit log entry. Team owners can review who changed what and when, including member role changes, SSO configuration edits, and domain verification updates.
+
+### Security and rate limits
+
+Auth and team endpoints received additional hardening:
+
+- Tighter rate limits on sensitive auth endpoints.
+- SSO start and callback flows validate redirect targets and block unsafe redirects.
+- Added a database-backed cache provider so SAML state and similar short-lived data works correctly across instances and processes.
+- Moved the SAML ACS identifier from URI to URN for standards compliance.
+
+### TOTP grace period
+
+If your TOTP code rotates right as you submit it, Jetstream now allows a 30 second grace window instead of rejecting immediately. You should see far fewer "invalid code" errors at rotation boundaries.
+
+### Login form quality of life
+
+The SSO login form no longer blocks submission on Turnstile completion. You can submit right away; Jetstream waits for the challenge before kicking off the login. This makes password manager and autofill flows more reliable.
+
+### Other fixes
+
+- Outbound package names in Add to Changeset are now URL-encoded so "No package.xml found" errors no longer trip on special characters.
+- Dependency upgrades across the stack.
+
+### Why 9.0?
+
+This is a major version bump because SSO changes how login, session, and team auth flow through the product, and it introduces persistent state shared across server instances. Existing users are unaffected. Sign-in still works exactly as before unless your team enrolls in SSO.
