@@ -3,7 +3,7 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/cron-tasks/src",
   "projectType": "application",
-  "tags": ["scope:server"],
+  "tags": ["scope:server", "scope:cron-tasks"],
   "targets": {
     "build": {
       "executor": "@nx/esbuild:esbuild",
