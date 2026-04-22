@@ -129,6 +129,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup branch tracking
+        if: success() && github.ref != 'refs/heads/main'
+        run: git branch --track main origin/main
+
+      - name: Derive appropriate SHAs for base and head for `nx affected` commands
+        uses: nrwl/nx-set-shas@v4
+
       - uses: actions/setup-node@v6
         with:
           node-version: "22"
@@ -137,19 +144,46 @@ jobs:
       - name: install dependencies
         run: yarn install --frozen-lockfile
 
+      # Gate the slow E2E work on "is api or jetstream actually affected by this change?"
+      # For push-to-main we always run (full-regression safety net). The job itself still
+      # completes (exit 0) when skipped so branch protection stays satisfied.
+      - id: guard
+        name: Check if api or jetstream is affected
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Running E2E — push event always runs the full suite"
+            exit 0
+          fi
+          affected=$(npx nx show projects --affected --type=app)
+          echo "Affected apps:"
+          echo "$affected"
+          if echo "$affected" | grep -qE '^(api|jetstream)$'; then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Running E2E — api or jetstream is affected"
+          else
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping E2E — neither api nor jetstream is affected"
+          fi
+
       - name: Build
+        if: steps.guard.outputs.should_run == 'true'
         run: yarn build:ci
 
       - name: Install Playwright dependencies
+        if: steps.guard.outputs.should_run == 'true'
         run: npx playwright install --with-deps
 
       - name: Generate database
+        if: steps.guard.outputs.should_run == 'true'
         run: yarn db:generate
 
       - name: Run database migration
+        if: steps.guard.outputs.should_run == 'true'
         run: yarn db:migrate
 
       - name: Seed DB
+        if: steps.guard.outputs.should_run == 'true'
         run: yarn db:seed
         env:
           POSTGRES_HOST: localhost
@@ -160,10 +194,12 @@ jobs:
           PGDATABASE: postgres
 
       - name: Run E2E tests
+        if: steps.guard.outputs.should_run == 'true'
         run: yarn playwright:test:with-server
 
       - name: Upload test results
-        if: always() # This ensures step will always run even if prior steps fail
+        # Upload even on failure, but only when the suite actually ran.
+        if: always() && steps.guard.outputs.should_run == 'true'
         uses: actions/upload-artifact@v6
         with:
           name: playwright-report
