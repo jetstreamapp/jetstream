@@ -47,6 +47,9 @@ export const useQueryRestore = (
   const setQueryFieldsMapState = useSetAtom(fromQueryState.queryFieldsMapState);
   const setSelectedQueryFieldsState = useSetAtom(fromQueryState.selectedQueryFieldsState);
   const setSelectedSubqueryFieldsState = useSetAtom(fromQueryState.selectedSubqueryFieldsState);
+  const setQuerySubqueryFiltersState = useSetAtom(fromQueryState.querySubqueryFiltersState);
+  const setQuerySubqueryOrderByState = useSetAtom(fromQueryState.querySubqueryOrderByState);
+  const setQuerySubqueryLimitState = useSetAtom(fromQueryState.querySubqueryLimitState);
   const setFilterQueryFieldsState = useSetAtom(fromQueryState.filterQueryFieldsState);
   const setQueryRestoreKeyState = useSetAtom(fromQueryState.queryRestoreKeyState);
   const setQueryFiltersState = useSetAtom(fromQueryState.queryFiltersState);
@@ -61,6 +64,9 @@ export const useQueryRestore = (
 
   const resetSelectedSObjectState = useResetAtom(fromQueryState.selectedSObjectState);
 
+  const resetQuerySubqueryFiltersState = useResetAtom(fromQueryState.querySubqueryFiltersState);
+  const resetQuerySubqueryOrderByState = useResetAtom(fromQueryState.querySubqueryOrderByState);
+  const resetQuerySubqueryLimitState = useResetAtom(fromQueryState.querySubqueryLimitState);
   const resetFieldFilterFunctions = useResetAtom(fromQueryState.fieldFilterFunctions);
   const resetQueryFiltersState = useResetAtom(fromQueryState.queryFiltersState);
   const resetQueryHavingState = useResetAtom(fromQueryState.queryHavingState);
@@ -122,6 +128,15 @@ export const useQueryRestore = (
         setQueryChildRelationships(results.queryChildRelationships);
         setSelectedQueryFieldsState(results.selectedQueryFieldsState);
         setSelectedSubqueryFieldsState(results.selectedSubqueryFieldsState);
+        results.querySubqueryFiltersState && Object.keys(results.querySubqueryFiltersState).length
+          ? setQuerySubqueryFiltersState(results.querySubqueryFiltersState)
+          : resetQuerySubqueryFiltersState();
+        results.querySubqueryOrderByState && Object.keys(results.querySubqueryOrderByState).length
+          ? setQuerySubqueryOrderByState(results.querySubqueryOrderByState)
+          : resetQuerySubqueryOrderByState();
+        results.querySubqueryLimitState && Object.keys(results.querySubqueryLimitState).length
+          ? setQuerySubqueryLimitState(results.querySubqueryLimitState)
+          : resetQuerySubqueryLimitState();
 
         // This must come last to ensure components are not rendered prior to data being set
         setSelectedSObjectState(results.selectedSObjectState);

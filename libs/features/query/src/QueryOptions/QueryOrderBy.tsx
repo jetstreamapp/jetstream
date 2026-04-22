@@ -1,14 +1,14 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { AscDesc, FirstLast, ListItem, QueryOrderByClause } from '@jetstream/types';
 import { Icon } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
-import { useAtom } from 'jotai';
-import React, { Fragment, FunctionComponent, useState } from 'react';
+import React, { Fragment, FunctionComponent } from 'react';
 import QueryOrderByRow from './QueryOrderByRow';
 
 export interface QueryOrderByContainerProps {
   sobject: string;
   fields: ListItem[];
+  orderByClauses: QueryOrderByClause[];
+  setOrderByClauses: (clauses: QueryOrderByClause[]) => void;
   onLoadRelatedFields: (item: ListItem) => Promise<ListItem[]>;
 }
 
@@ -24,25 +24,24 @@ const nulls: ListItem<FirstLast | null>[] = [
 ];
 
 export const QueryOrderByContainer: FunctionComponent<QueryOrderByContainerProps> = React.memo(
-  ({ sobject, fields, onLoadRelatedFields }) => {
-    const [orderByClauses, setOrderByClauses] = useAtom(fromQueryState.queryOrderByState);
-    const [nextKey, setNextKey] = useState(1);
+  ({ sobject, fields, orderByClauses, setOrderByClauses, onLoadRelatedFields }) => {
+    function getNextKey(clauses: QueryOrderByClause[]) {
+      return clauses.reduce((max, clause) => Math.max(max, clause.key), -1) + 1;
+    }
 
     function handleUpdate(orderby: QueryOrderByClause) {
       setOrderByClauses(orderByClauses.map((currOrderBy) => (currOrderBy.key === orderby.key ? orderby : currOrderBy)));
     }
 
     function handleAdd() {
-      setOrderByClauses(orderByClauses.concat(fromQueryState.initOrderByClause(nextKey)));
-      setNextKey(nextKey + 1);
+      setOrderByClauses(orderByClauses.concat(fromQueryState.initOrderByClause(getNextKey(orderByClauses))));
     }
 
     function handleDelete(deletedOrderby: QueryOrderByClause) {
       const tempOrderByClauses = orderByClauses.filter((orderBy) => orderBy.key !== deletedOrderby.key);
       // ensure there is always at least one order by
       if (tempOrderByClauses.length === 0) {
-        tempOrderByClauses.push(fromQueryState.initOrderByClause(nextKey));
-        setNextKey(nextKey + 1);
+        tempOrderByClauses.push(fromQueryState.initOrderByClause(getNextKey(orderByClauses)));
       }
       setOrderByClauses(tempOrderByClauses);
     }

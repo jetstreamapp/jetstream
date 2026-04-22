@@ -253,17 +253,18 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
       if (disabled || preventOpen) {
         return;
       }
+      if (isEscapeKey(event)) {
+        // Escape is handled on keydown (see handleInputKeyDown) so it can preempt an ancestor's
+        // keydown listener (e.g. a Panel with closeOnEscape). Ignore it here so it does not fall
+        // through to the onInputChange/onFilterInputChange branch below.
+        return;
+      }
       if (isArrowUpKey(event)) {
         !isOpen && setIsOpen(true);
         onKeyboardNavigation('up');
       } else if (isArrowDownKey(event)) {
         !isOpen && setIsOpen(true);
         onKeyboardNavigation('down');
-      } else if (isEscapeKey(event)) {
-        event.stopPropagation();
-        event.preventDefault();
-        setIsOpen(false);
-        onClose && onClose();
       } else if (isEnterKey(event) && isOpen && onInputEnter) {
         onInputEnter();
       } else {
@@ -274,6 +275,23 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
         }
         onInputChange && onInputChange(event.currentTarget.value);
         onFilterInputChange && onFilterInputChange(event.currentTarget.value);
+      }
+    }
+
+    /**
+     * Handle Escape on keydown so an open dropdown closes before any ancestor keydown listener
+     * (e.g. a Panel with closeOnEscape) reacts. When the dropdown is already closed, Escape is left
+     * to bubble so the ancestor can handle it.
+     */
+    function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+      if (disabled || preventOpen) {
+        return;
+      }
+      if (isEscapeKey(event) && isOpen) {
+        event.stopPropagation();
+        event.preventDefault();
+        setIsOpen(false);
+        onClose && onClose();
       }
     }
 
@@ -412,6 +430,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                       placeholder={placeholder}
                       disabled={disabled}
                       readOnly={preventOpen}
+                      onKeyDown={handleInputKeyDown}
                       onKeyUp={handleInputKeyUp}
                       onChange={(event) => setValue(event.target.value)}
                       value={value}

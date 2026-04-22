@@ -1,11 +1,103 @@
-import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { css } from '@emotion/react';
+import { formatNumber, queryFilterHasValue, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter, pluralizeFromNumber } from '@jetstream/shared/utils';
-import { ChildRelationship, QueryFieldWithPolymorphic, SalesforceOrgUi } from '@jetstream/types';
-import { Accordion, Badge, DesertIllustration, EmptyState, Grid, GridCol, SearchInput } from '@jetstream/ui';
+import {
+  ChildRelationship,
+  ExpressionConditionType,
+  ExpressionType,
+  QueryFieldWithPolymorphic,
+  QueryOrderByClause,
+  SalesforceOrgUi,
+} from '@jetstream/types';
+import {
+  Accordion,
+  Badge,
+  DesertIllustration,
+  EmptyState,
+  Grid,
+  GridCol,
+  Icon,
+  isExpressionConditionType,
+  SearchInput,
+  Tooltip,
+} from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
-import { useAtomValue } from 'jotai';
-import { Fragment, FunctionComponent, ReactNode, useState } from 'react';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { Fragment, FunctionComponent, ReactNode, useEffect, useRef, useState } from 'react';
 import QueryChildFields from './QueryChildFields';
+
+const FILTER_OPERATOR_LABELS: Record<string, string> = {
+  eq: '=',
+  ne: '!=',
+  lt: '<',
+  lte: '<=',
+  gt: '>',
+  gte: '>=',
+  contains: 'contains',
+  doesNotContain: 'does not contain',
+  startsWith: 'starts with',
+  doesNotStartWith: 'does not start with',
+  endsWith: 'ends with',
+  doesNotEndWith: 'does not end with',
+  isNull: 'is null',
+  isNotNull: 'is not null',
+  in: 'in',
+  notIn: 'not in',
+  includes: 'includes',
+  excludes: 'excludes',
+};
+
+function getFilterRowText(row: ExpressionConditionType): string {
+  const { resource, operator, value } = row.selected;
+  const operatorLabel = (operator && FILTER_OPERATOR_LABELS[operator]) || operator || '';
+  if (operator === 'isNull' || operator === 'isNotNull') {
+    return `${resource} ${operatorLabel}`.trim();
+  }
+  const displayValue = Array.isArray(value) ? value.join(', ') : value;
+  return `${resource} ${operatorLabel} ${displayValue}`.trim();
+}
+
+function getOrderByText(orderBy: QueryOrderByClause): string {
+  let output = `${orderBy.fieldLabel || orderBy.field} ${orderBy.order === 'ASC' ? 'ASC (A to Z)' : 'DESC (Z to A)'}`;
+  if (orderBy.nulls) {
+    output += ` Nulls ${orderBy.nulls === 'FIRST' ? 'First' : 'Last'}`;
+  }
+  return output;
+}
+
+function buildSummaryTooltip(lines: { key: string | number; text: string }[]): ReactNode {
+  if (!lines.length) {
+    return null;
+  }
+  return (
+    <ul
+      css={css`
+        max-width: 22rem;
+      `}
+    >
+      {lines.map(({ key, text }) => (
+        <li key={key} className="slds-truncate" title={text}>
+          {text}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function buildFilterTooltip(filter: ExpressionType | undefined): ReactNode {
+  const lines = (filter?.rows ?? [])
+    .flatMap((row) => (isExpressionConditionType(row) ? row : row.rows))
+    .filter((row) => queryFilterHasValue(row))
+    .map((row) => ({ key: row.key, text: getFilterRowText(row) }));
+  return buildSummaryTooltip(lines);
+}
+
+function buildOrderByTooltip(orderByClauses: QueryOrderByClause[] | undefined): ReactNode {
+  const lines = (orderByClauses ?? [])
+    .filter((orderBy) => !!orderBy.field)
+    .map((orderBy) => ({ key: orderBy.key, text: getOrderByText(orderBy) }));
+  return buildSummaryTooltip(lines);
+}
 
 export interface QuerySubquerySObjectsProps {
   org: SalesforceOrgUi;
@@ -23,13 +115,41 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
   onSelectionChanged,
 }) => {
   const [visibleChildRelationships, setVisibleChildRelationships] = useState<ChildRelationship[]>(childRelationships);
-  const [childRelationshipContent, setChildRelationshipContent] = useState<Record<string, ReactNode | ChildRelationship>>({});
+  const childRelationshipContentRef = useRef<Record<string, ReactNode>>({});
+  // Field pickers are memoized in childRelationshipContentRef, so the picker created on first
+  // expand permanently captures whatever onSelectionChanged was passed then. The parent recreates
+  // that callback each render (it closes over the latest selected-fields state), so the cached
+  // picker must call the latest handler via a ref to avoid overwriting newer subquery selections.
+  const onSelectionChangedRef = useRef(onSelectionChanged);
+  useEffect(() => {
+    onSelectionChangedRef.current = onSelectionChanged;
+  }, [onSelectionChanged]);
   const [textFilter, setTextFilter] = useState<string>('');
   const selectedFieldState = useAtomValue(fromQueryState.selectedSubqueryFieldsState);
+  const subquerySummary = useAtomValue(fromQueryState.subqueryOptionsSummaryState);
+  const [subqueryFilters, setSubqueryFilters] = useAtom(fromQueryState.querySubqueryFiltersState);
+  const [subqueryOrderBys, setSubqueryOrderBys] = useAtom(fromQueryState.querySubqueryOrderByState);
+  const setSubqueryLimit = useSetAtom(fromQueryState.querySubqueryLimitState);
+  const setConfigPanel = useSetAtom(fromQueryState.subqueryConfigPanelState);
+
+  function clearSubqueryOptions(relationshipName: string) {
+    const omitRelationship = <T,>(prev: Record<string, T>): Record<string, T> => {
+      if (!(relationshipName in prev)) {
+        return prev;
+      }
+      const next = { ...prev };
+      delete next[relationshipName];
+      return next;
+    };
+    setSubqueryFilters(omitRelationship);
+    setSubqueryOrderBys(omitRelationship);
+    setSubqueryLimit(omitRelationship);
+  }
 
   useNonInitialEffect(() => {
     setVisibleChildRelationships(childRelationships);
     setTextFilter('');
+    childRelationshipContentRef.current = {};
   }, [childRelationships]);
 
   useNonInitialEffect(() => {
@@ -42,30 +162,147 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
     }
   }, [textFilter]);
 
+  function buildSummaryParts(summary: { filterCount: number; hasOrderBy: boolean; limit: string | null } | undefined) {
+    const parts: string[] = [];
+    if (summary?.filterCount) {
+      parts.push(`${summary.filterCount} ${pluralizeFromNumber('filter', summary.filterCount)}`);
+    }
+    if (summary?.hasOrderBy) {
+      parts.push('sorted');
+    }
+    if (summary?.limit) {
+      parts.push(`limit ${summary.limit}`);
+    }
+    return parts;
+  }
+
   function getContent(childRelationship: ChildRelationship) {
     return () => {
-      let content: ReactNode | ChildRelationship;
       if (!childRelationship.relationshipName) {
         return;
       }
-      if (childRelationshipContent[childRelationship.relationshipName]) {
-        content = childRelationshipContent[childRelationship.relationshipName];
-      } else {
-        content = (
+      // The "Configure" header is re-rendered each time because it depends on the latest
+      // summary atom; the (heavier) field picker below is memoized in childRelationshipContentRef.
+      const relationshipName = childRelationship.relationshipName;
+      const summary = subquerySummary[relationshipName];
+      let fieldPicker = childRelationshipContentRef.current[relationshipName];
+      if (!fieldPicker) {
+        fieldPicker = (
           <QueryChildFields
             org={org}
             serverUrl={serverUrl}
             isTooling={isTooling}
             selectedSObject={childRelationship.childSObject}
-            parentRelationshipName={childRelationship.relationshipName}
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            onSelectionChanged={(fields: QueryFieldWithPolymorphic[]) => onSelectionChanged(childRelationship.relationshipName!, fields)}
+            parentRelationshipName={relationshipName}
+            onSelectionChanged={(fields: QueryFieldWithPolymorphic[]) => onSelectionChangedRef.current(relationshipName, fields)}
           />
         );
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        setTimeout(() => setChildRelationshipContent({ ...childRelationshipContent, [childRelationship.relationshipName!]: content }));
+        childRelationshipContentRef.current[relationshipName] = fieldPicker;
       }
-      return content;
+      const hasSummary = !!summary && (!!summary.filterCount || summary.hasOrderBy || !!summary.limit);
+      const hasSelectedFields = (selectedFieldState[relationshipName]?.length ?? 0) > 0;
+      return (
+        <Fragment>
+          <div className="slds-p-around_x-small slds-border_bottom">
+            <Grid verticalAlign="center" gutters guttersSize="x-small">
+              <GridCol>
+                {/* Wrapper span carries the title so a disabled button (which does not fire mouse events) still surfaces the hint on hover */}
+                <span
+                  css={css`
+                    display: block;
+                  `}
+                  title={hasSelectedFields ? undefined : 'Select at least one field before configuring filter, order by, and limit'}
+                >
+                  <button
+                    className="slds-button slds-button_neutral slds-button_stretch"
+                    type="button"
+                    disabled={!hasSelectedFields}
+                    title={hasSelectedFields ? `Configure filter, order by, and limit for ${relationshipName}` : undefined}
+                    onClick={() => setConfigPanel({ relationshipName, childSObject: childRelationship.childSObject })}
+                    css={
+                      hasSelectedFields
+                        ? undefined
+                        : css`
+                            pointer-events: none;
+                          `
+                    }
+                  >
+                    <Icon type="utility" icon="settings" className="slds-button__icon slds-button__icon_left" omitContainer />
+                    Filter / Order By / Limit
+                  </button>
+                </span>
+              </GridCol>
+              {hasSummary && (
+                <GridCol growNone>
+                  <button
+                    className="slds-button slds-button_icon slds-button_icon-border-filled"
+                    type="button"
+                    title={`Clear filter, order by, and limit for ${relationshipName}`}
+                    onClick={() => clearSubqueryOptions(relationshipName)}
+                  >
+                    <Icon type="utility" icon="close" className="slds-button__icon" omitContainer />
+                    <span className="slds-assistive-text">Clear subquery options for {relationshipName}</span>
+                  </button>
+                </GridCol>
+              )}
+            </Grid>
+            {hasSummary && (
+              <Grid align="spread" verticalAlign="center" wrap className="slds-m-top_x-small">
+                <GridCol growNone>
+                  <Grid verticalAlign="center" gutters guttersSize="small" wrap>
+                    {summary?.filterCount ? (
+                      <GridCol growNone>
+                        <Tooltip content={buildFilterTooltip(subqueryFilters[relationshipName])}>
+                          <span
+                            className="slds-text-body_small slds-text-color_weak"
+                            css={css`
+                              cursor: help;
+                            `}
+                          >
+                            <Icon
+                              type="utility"
+                              icon="filterList"
+                              className="slds-icon slds-icon_xx-small slds-icon-text-default slds-m-right_xx-small"
+                              omitContainer
+                            />
+                            {summary.filterCount} {pluralizeFromNumber('filter', summary.filterCount)}
+                          </span>
+                        </Tooltip>
+                      </GridCol>
+                    ) : null}
+                    {summary?.hasOrderBy ? (
+                      <GridCol growNone>
+                        <Tooltip content={buildOrderByTooltip(subqueryOrderBys[relationshipName])}>
+                          <span
+                            className="slds-text-body_small slds-text-color_weak"
+                            css={css`
+                              cursor: help;
+                            `}
+                          >
+                            <Icon
+                              type="utility"
+                              icon="arrowdown"
+                              className="slds-icon slds-icon_xx-small slds-icon-text-default slds-m-right_xx-small"
+                              omitContainer
+                            />
+                            sorted
+                          </span>
+                        </Tooltip>
+                      </GridCol>
+                    ) : null}
+                  </Grid>
+                </GridCol>
+                {summary?.limit ? (
+                  <GridCol growNone className="slds-text-body_small slds-text-color_weak">
+                    limit {formatNumber(Number(summary.limit))}
+                  </GridCol>
+                ) : null}
+              </Grid>
+            )}
+          </div>
+          {fieldPicker}
+        </Fragment>
+      );
     };
   }
 
@@ -74,14 +311,42 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
       return;
     }
     const queryFields = selectedFieldState[childRelationship.relationshipName];
-    if (Array.isArray(queryFields)) {
-      return (
-        <Badge className="slds-truncate text-uppercase slds-m-top_xx-small">
-          {queryFields.length} {pluralizeFromNumber('field', queryFields.length)} selected
-        </Badge>
-      );
+    const summary = subquerySummary[childRelationship.relationshipName];
+
+    if (!Array.isArray(queryFields) && !summary) {
+      return;
     }
-    return;
+
+    const summaryText = buildSummaryParts(summary).join(' · ');
+
+    return (
+      <span
+        css={css`
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+        `}
+      >
+        {Array.isArray(queryFields) && (
+          <Badge className="slds-truncate text-uppercase">
+            {queryFields.length} {pluralizeFromNumber('field', queryFields.length)} selected
+          </Badge>
+        )}
+        {summaryText && (
+          <span
+            className="slds-icon_container"
+            css={css`
+              display: inline-flex;
+              align-items: center;
+            `}
+            title={`Configured: ${summaryText}`}
+            aria-label={`Configured: ${summaryText}`}
+          >
+            <Icon type="utility" icon="filterList" className="slds-icon slds-icon_xx-small slds-icon-text-default" omitContainer />
+          </span>
+        )}
+      </span>
+    );
   }
 
   return (
