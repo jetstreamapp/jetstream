@@ -1,5 +1,11 @@
 # Changelog
 
+## [9.15.1](https://github.com/jetstreamapp/jetstream/compare/v9.15.0...v9.15.1) (2026-04-22)
+
+### Features
+
+* delegate authentication-strength decisions to IdP by disabling requestedAuthnContext ([fc6a886](https://github.com/jetstreamapp/jetstream/commit/fc6a8867a27487371758b452292fdd2698b52b8b))
+
 ## [9.15.0](https://github.com/jetstreamapp/jetstream/compare/v9.14.0...v9.15.0) (2026-04-21)
 
 ### Features
