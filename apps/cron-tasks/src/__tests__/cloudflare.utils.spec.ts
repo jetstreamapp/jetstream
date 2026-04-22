@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   cloudflareGraphQL,
   getConfiguredZoneIds,
+  queryFirewallEventGroupsByDimensions,
   queryHourlyBlockCounts,
   queryTopDimension,
   queryTopRules,
@@ -151,6 +152,87 @@ describe('cloudflare.utils', () => {
         { action: 'block', ruleId: 'rule-1', source: 'firewallManaged', count: 300 },
         { action: 'managed_challenge', ruleId: null, source: null, count: 50 },
       ]);
+    });
+
+    it('parses multi-dimension firewall event groups for the analytics archiver', async () => {
+      mockFetchOnce({
+        data: {
+          viewer: {
+            zones: [
+              {
+                firewallEventsAdaptiveGroups: [
+                  {
+                    count: 42,
+                    dimensions: {
+                      datetimeHour: '2026-04-21T13:00:00Z',
+                      ruleId: 'rule-xyz',
+                      source: 'firewallManaged',
+                      action: 'block',
+                      clientIP: '1.2.3.4',
+                      clientAsn: 64500,
+                      clientASNDescription: 'TEST-ASN',
+                      clientCountryName: 'US',
+                      clientRequestHTTPHost: 'getjetstream.app',
+                      clientRequestPath: '/api/login',
+                    },
+                  },
+                  {
+                    count: 5,
+                    dimensions: {
+                      datetimeHour: '2026-04-21T13:00:00Z',
+                      ruleId: '',
+                      source: '',
+                      action: 'managed_challenge',
+                      clientIP: '',
+                      clientAsn: '',
+                      clientASNDescription: '',
+                      clientCountryName: '',
+                      clientRequestHTTPHost: '',
+                      clientRequestPath: '',
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      });
+
+      const rows = await queryFirewallEventGroupsByDimensions(
+        'zone-abc',
+        new Date('2026-04-21T13:00:00Z'),
+        new Date('2026-04-21T14:00:00Z'),
+        1000,
+      );
+
+      expect(rows).toHaveLength(2);
+      expect(rows[0]).toEqual({
+        hourBucket: new Date('2026-04-21T13:00:00Z'),
+        ruleId: 'rule-xyz',
+        ruleSource: 'firewallManaged',
+        action: 'block',
+        clientIp: '1.2.3.4',
+        clientAsn: 64500,
+        clientAsnDescription: 'TEST-ASN',
+        clientCountry: 'US',
+        httpHost: 'getjetstream.app',
+        requestPath: '/api/login',
+        count: 42,
+      });
+      // empty strings normalize to null for nullable columns; host/path stay as ''
+      expect(rows[1]).toEqual({
+        hourBucket: new Date('2026-04-21T13:00:00Z'),
+        ruleId: null,
+        ruleSource: null,
+        action: 'managed_challenge',
+        clientIp: null,
+        clientAsn: null,
+        clientAsnDescription: null,
+        clientCountry: null,
+        httpHost: '',
+        requestPath: '',
+        count: 5,
+      });
     });
 
     it('parses top dimension rows by the requested dimension name', async () => {

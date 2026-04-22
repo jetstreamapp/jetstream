@@ -40,6 +40,7 @@
     "start:cron:salesforce-org-expiration:test-mode": "TEST_MODE=true node dist/apps/cron-tasks/salesforce-org-expiration.js",
     "start:cron:cloudflare-spike-detector": "node dist/apps/cron-tasks/cloudflare-spike-detector.js",
     "start:cron:cloudflare-daily-digest": "node dist/apps/cron-tasks/cloudflare-daily-digest.js",
+    "start:cron:cloudflare-analytics-archiver": "node dist/apps/cron-tasks/cloudflare-analytics-archiver.js",
     "start:web-ext:watch": "nx watch --projects=jetstream-web-extension -- nx run jetstream-web-extension:build --configuration=development",
     "start:web-ext:firefox": "web-ext run --source-dir=dist/apps/jetstream-web-extension --artifacts-dir=dist/web-extension-build --target=firefox-desktop --browser-console --devtools",
     "start:web-ext:chrome": "web-ext run --source-dir=dist/apps/jetstream-web-extension --artifacts-dir=dist/web-extension-build --target=chromium --browser-console --devtools",

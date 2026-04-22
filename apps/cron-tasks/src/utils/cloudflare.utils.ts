@@ -30,6 +30,20 @@ export interface TopDimensionRow {
   count: number;
 }
 
+export interface FirewallEventGroupRow {
+  hourBucket: Date;
+  ruleId: string | null;
+  ruleSource: string | null;
+  action: string;
+  clientIp: string | null;
+  clientAsn: number | null;
+  clientAsnDescription: string | null;
+  clientCountry: string | null;
+  httpHost: string;
+  requestPath: string;
+  count: number;
+}
+
 export interface AggregatedActionTotals {
   blocked: number;
   challenged: number;
@@ -388,4 +402,118 @@ export async function queryTopDimension(
     value: group.dimensions[dimension] ?? '',
     count: group.count,
   }));
+}
+
+const FIREWALL_EVENT_GROUPS_BY_DIMENSIONS_QUERY = /* GraphQL */ `
+  query FirewallEventGroupsByDimensions(
+    $zoneTag: String!
+    $since: Time!
+    $until: Time!
+    $actions: [String!]!
+    $limit: Int!
+  ) {
+    viewer {
+      zones(filter: { zoneTag: $zoneTag }) {
+        firewallEventsAdaptiveGroups(
+          filter: { datetime_geq: $since, datetime_lt: $until, action_in: $actions }
+          limit: $limit
+          orderBy: [count_DESC]
+        ) {
+          count
+          dimensions {
+            datetimeHour
+            ruleId
+            source
+            action
+            clientIP
+            clientAsn
+            clientASNDescription
+            clientCountryName
+            clientRequestHTTPHost
+            clientRequestPath
+          }
+        }
+      }
+    }
+  }
+`;
+
+interface FirewallEventGroupRawDimensions {
+  datetimeHour: string;
+  ruleId?: string | null;
+  source?: string | null;
+  action: string;
+  clientIP?: string | null;
+  clientAsn?: number | string | null;
+  clientASNDescription?: string | null;
+  clientCountryName?: string | null;
+  clientRequestHTTPHost?: string | null;
+  clientRequestPath?: string | null;
+}
+
+/**
+ * Returns one row per (hour, rule, action, IP, ASN, country, host, path) combination
+ * for the requested window. Used by the analytics archiver — callers should query a
+ * single hour at a time so the response cap (1000 rows per call) doesn't truncate
+ * the long tail.
+ */
+export async function queryFirewallEventGroupsByDimensions(
+  zoneTag: string,
+  since: Date,
+  until: Date,
+  limit: number,
+): Promise<FirewallEventGroupRow[]> {
+  const data = await cloudflareGraphQL<{
+    viewer: {
+      zones: Array<{
+        firewallEventsAdaptiveGroups: Array<{
+          count: number;
+          dimensions: FirewallEventGroupRawDimensions;
+        }>;
+      }>;
+    };
+  }>(FIREWALL_EVENT_GROUPS_BY_DIMENSIONS_QUERY, {
+    zoneTag,
+    since: toIsoZ(since),
+    until: toIsoZ(until),
+    actions: [...BLOCKED_ACTIONS],
+    limit,
+  });
+
+  const groups = data.viewer.zones[0]?.firewallEventsAdaptiveGroups ?? [];
+  return groups.map((group) => normalizeFirewallEventGroupRow(group.count, group.dimensions));
+}
+
+function normalizeFirewallEventGroupRow(count: number, dimensions: FirewallEventGroupRawDimensions): FirewallEventGroupRow {
+  return {
+    hourBucket: new Date(dimensions.datetimeHour),
+    ruleId: emptyToNull(dimensions.ruleId),
+    ruleSource: emptyToNull(dimensions.source),
+    action: dimensions.action,
+    clientIp: emptyToNull(dimensions.clientIP),
+    clientAsn: parseAsn(dimensions.clientAsn),
+    clientAsnDescription: emptyToNull(dimensions.clientASNDescription),
+    clientCountry: emptyToNull(dimensions.clientCountryName),
+    httpHost: dimensions.clientRequestHTTPHost ?? '',
+    requestPath: dimensions.clientRequestPath ?? '',
+    count,
+  };
+}
+
+function emptyToNull(value: string | null | undefined): string | null {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+  return value;
+}
+
+function parseAsn(value: number | string | null | undefined): number | null {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+  const parsed = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+  return Math.trunc(parsed);
 }
