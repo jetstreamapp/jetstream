@@ -352,12 +352,17 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
           message: err.message,
           data: err.additionalData,
         });
-      } else {
-        if (req.hostname === 'localhost') {
-          return res.send('404');
-        }
-        return res.redirect('/404/');
       }
+      // Serve the landing 404 page inline with a real 404 status so the URL stays
+      // visible in the access log (previously a 302 → /404/ redirect masked it).
+      const notFoundHtml = req.app.locals.notFoundHtml as string | null | undefined;
+      res.setHeader('Cache-Control', 'no-store');
+      if (notFoundHtml) {
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        return res.send(notFoundHtml);
+      }
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      return res.send('404');
     }
 
     const errorMessage = 'There was an error processing the request';

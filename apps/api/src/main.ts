@@ -297,6 +297,22 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   app.use('/fonts', express.static(join(__dirname, './assets/fonts')));
   app.use(express.static(join(__dirname, '../landing')));
 
+  // Load the landing site's 404 page so uncaughtErrorHandler can serve it inline
+  // with a real 404 status (instead of redirecting to /404/, which logged as 302
+  // and masked which URLs were actually missing). Next.js export emits either
+  // `404/index.html` (trailingSlash) or `404.html` depending on build config.
+  let notFoundHtml: string | null = null;
+  try {
+    notFoundHtml = readFileSync(join(__dirname, '../landing/404/index.html'), 'utf8');
+  } catch {
+    try {
+      notFoundHtml = readFileSync(join(__dirname, '../landing/404.html'), 'utf8');
+    } catch (error) {
+      logger.error(getExceptionLog(error), '[404] Failed to read landing 404 page — 404 responses will fall back to plain text');
+    }
+  }
+  app.locals.notFoundHtml = notFoundHtml;
+
   if (environment.production || ENV.CI || ENV.JETSTREAM_CLIENT_URL.replace('/app', '') === ENV.JETSTREAM_SERVER_URL) {
     // Rate limiter for SPA entry point - lenient to allow frequent refreshes and asset loading
     // Most assets should be cached at the edge, so this generally should not matter
