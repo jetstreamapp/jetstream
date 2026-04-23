@@ -1,4 +1,4 @@
-import { queryFilterHasValue } from '@jetstream/shared/ui-utils';
+import { convertFiltersToWhereClause, queryFilterHasValue } from '@jetstream/shared/ui-utils';
 import { convertFieldWithPolymorphicToQueryFields, orderValues } from '@jetstream/shared/utils';
 import {
   ChildRelationship,
@@ -18,6 +18,7 @@ import {
   OrderByClause,
   OrderByFieldClause,
   Subquery,
+  WhereClause,
   getField,
 } from '@jetstreamapp/soql-parser-js';
 import { atom } from 'jotai';
@@ -34,6 +35,26 @@ export const queryFieldsMapState = atomWithReset<Record<string, QueryFields>>({}
 export const selectedQueryFieldsState = atomWithReset<QueryFieldWithPolymorphic[]>([]);
 export const selectedSubqueryFieldsState = atomWithReset<Record<string, QueryFieldWithPolymorphic[]>>({});
 
+export const querySubqueryFiltersState = atomWithReset<Record<string, ExpressionType>>({});
+export const querySubqueryOrderByState = atomWithReset<Record<string, QueryOrderByClause[]>>({});
+export const querySubqueryLimitState = atomWithReset<Record<string, string>>({});
+
+/** Drives the page-level subquery config side panel. null = closed. */
+export const subqueryConfigPanelState = atomWithReset<{ relationshipName: string; childSObject: string } | null>(null);
+
+function orderByClausesToSoql(orderByClauses: QueryOrderByClause[]): OrderByClause[] {
+  return orderByClauses
+    .filter((orderBy) => !!orderBy.field)
+    .map(
+      (orderBy): OrderByFieldClause => ({
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        field: orderBy.field!,
+        nulls: orderBy.nulls || undefined,
+        order: orderBy.order,
+      }),
+    );
+}
+
 export const selectQueryField = atom<FieldType[]>((get) => {
   const filterFieldFns = get(fieldFilterFunctions).reduce((acc: Record<string, { fn: string; alias: string | null }>, item) => {
     if (!!item.selectedField && !!item.selectedFunction) {
@@ -43,20 +64,64 @@ export const selectQueryField = atom<FieldType[]>((get) => {
   }, {});
   let fields = convertFieldWithPolymorphicToQueryFields(get(selectedQueryFieldsState), filterFieldFns);
   const fieldsByChildRelName = get(selectedSubqueryFieldsState);
+  const subqueryFilters = get(querySubqueryFiltersState);
+  const subqueryOrderBys = get(querySubqueryOrderByState);
+  const subqueryLimits = get(querySubqueryLimitState);
   // Concat subquery fields
   fields = fields.concat(
     orderValues(Object.keys(fieldsByChildRelName))
       // remove subquery if no fields
       .filter((relationshipName) => fieldsByChildRelName[relationshipName].length > 0)
       .map((relationshipName) => {
+        const where = subqueryFilters[relationshipName]
+          ? convertFiltersToWhereClause<WhereClause>(subqueryFilters[relationshipName])
+          : undefined;
+        const orderBy = subqueryOrderBys[relationshipName] ? orderByClausesToSoql(subqueryOrderBys[relationshipName]) : undefined;
+        const limitRaw = subqueryLimits[relationshipName];
+        const limit = limitRaw && limitRaw.trim() ? Number(limitRaw) : undefined;
+
         const subquery: Subquery = {
           fields: convertFieldWithPolymorphicToQueryFields(fieldsByChildRelName[relationshipName]),
           relationshipName,
+          ...(where ? { where } : {}),
+          ...(orderBy && orderBy.length ? { orderBy } : {}),
+          ...(typeof limit === 'number' && !Number.isNaN(limit) ? { limit } : {}),
         };
         return getField({ subquery });
       }),
   );
   return fields;
+});
+
+export type SubqueryOptionsSummary = {
+  filterCount: number;
+  hasOrderBy: boolean;
+  limit: string | null;
+};
+
+/**
+ * Per-relationship summary of configured subquery options.
+ * Drives the collapsed-accordion badge and any "is configured" checks.
+ */
+export const subqueryOptionsSummaryState = atom<Record<string, SubqueryOptionsSummary>>((get) => {
+  const filters = get(querySubqueryFiltersState);
+  const orderBys = get(querySubqueryOrderByState);
+  const limits = get(querySubqueryLimitState);
+  const keys = new Set<string>([...Object.keys(filters), ...Object.keys(orderBys), ...Object.keys(limits)]);
+  const result: Record<string, SubqueryOptionsSummary> = {};
+  keys.forEach((key) => {
+    const filter = filters[key];
+    const filterCount =
+      filter?.rows?.flatMap((row) => (isExpressionConditionType(row) ? row : row.rows)).filter((row) => queryFilterHasValue(row)).length ||
+      0;
+    const hasOrderBy = (orderBys[key] || []).some((orderBy) => !!orderBy.field);
+    const limitValue = limits[key]?.trim();
+    const limit = limitValue ? limitValue : null;
+    if (filterCount || hasOrderBy || limit) {
+      result[key] = { filterCount, hasOrderBy, limit };
+    }
+  });
+  return result;
 });
 
 export const filterQueryFieldsState = atomWithReset<ListItem[]>([]);

@@ -1,7 +1,13 @@
 import { FieldType as QueryFieldType, parseQuery } from '@jetstreamapp/soql-parser-js';
 import { SoqlMetadataTree, __TEST_EXPORTS__ } from '../query-soql-utils';
 
-const { getParsableFields, getParsableFieldsFromFilter, findRequiredRelationships, getLowercaseFieldMapWithFullPath } = __TEST_EXPORTS__;
+const {
+  getParsableFields,
+  getParsableFieldsFromFilter,
+  getParsableFieldsFromOrderBy,
+  findRequiredRelationships,
+  getLowercaseFieldMapWithFullPath,
+} = __TEST_EXPORTS__;
 
 describe('getParsableFields', () => {
   it('should return an empty array when given an empty array of fields', () => {
@@ -89,6 +95,35 @@ describe('getParsableFieldsFromFilter', () => {
     ).where;
     const result = getParsableFieldsFromFilter(filter);
     expect(result).toEqual([]);
+  });
+});
+
+describe('getParsableFieldsFromOrderBy', () => {
+  it('returns an empty array when orderBy is null/undefined', () => {
+    expect(getParsableFieldsFromOrderBy(null)).toEqual([]);
+    expect(getParsableFieldsFromOrderBy(undefined)).toEqual([]);
+  });
+
+  it('extracts fields from a single OrderBy clause', () => {
+    const orderBy = parseQuery(`SELECT Id FROM Account ORDER BY Name DESC`).orderBy;
+    expect(getParsableFieldsFromOrderBy(orderBy)).toEqual(['Name']);
+  });
+
+  it('extracts fields from multiple OrderBy clauses', () => {
+    const orderBy = parseQuery(`SELECT Id FROM Account ORDER BY Name ASC, CreatedDate DESC`).orderBy;
+    expect(getParsableFieldsFromOrderBy(orderBy)).toEqual(['Name', 'CreatedDate']);
+  });
+});
+
+describe('getParsableFields — subquery with WHERE and ORDER BY', () => {
+  it('collects fields from subquery SELECT + WHERE + ORDER BY', () => {
+    const query = parseQuery(
+      `SELECT Id, (SELECT Id, Name FROM Contacts WHERE Email != null AND Account.Industry = 'media' ORDER BY CreatedDate DESC LIMIT 5) FROM Account`,
+    );
+    const result = getParsableFields(query.fields || []);
+    expect(result.subqueries['Contacts']).toEqual(expect.arrayContaining(['id', 'name', 'email', 'account.industry', 'createddate']));
+    // Should not leak subquery fields into the top-level fields list
+    expect(result.fields).not.toContain('email');
   });
 });
 

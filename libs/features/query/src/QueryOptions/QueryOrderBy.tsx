@@ -1,14 +1,14 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { AscDesc, FirstLast, ListItem, QueryOrderByClause } from '@jetstream/types';
 import { Icon } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
-import { useAtom } from 'jotai';
 import React, { Fragment, FunctionComponent, useState } from 'react';
 import QueryOrderByRow from './QueryOrderByRow';
 
 export interface QueryOrderByContainerProps {
   sobject: string;
   fields: ListItem[];
+  orderByClauses: QueryOrderByClause[];
+  setOrderByClauses: (clauses: QueryOrderByClause[]) => void;
   onLoadRelatedFields: (item: ListItem) => Promise<ListItem[]>;
 }
 
@@ -24,8 +24,7 @@ const nulls: ListItem<FirstLast | null>[] = [
 ];
 
 export const QueryOrderByContainer: FunctionComponent<QueryOrderByContainerProps> = React.memo(
-  ({ sobject, fields, onLoadRelatedFields }) => {
-    const [orderByClauses, setOrderByClauses] = useAtom(fromQueryState.queryOrderByState);
+  ({ sobject, fields, orderByClauses, setOrderByClauses, onLoadRelatedFields }) => {
     const [nextKey, setNextKey] = useState(1);
 
     function handleUpdate(orderby: QueryOrderByClause) {
