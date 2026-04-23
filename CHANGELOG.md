@@ -1,5 +1,22 @@
 # Changelog
 
+## [9.15.2](https://github.com/jetstreamapp/jetstream/compare/v9.15.1...v9.15.2) (2026-04-23)
+
+### Features
+
+* add Cloudflare analytics archiver with database schema, cron entrypoint, and utility functions ([e9e7e2b](https://github.com/jetstreamapp/jetstream/commit/e9e7e2b97368520b528d54f83277f9c74cad716a))
+* add compare links for latest release tags in release script ([dd71a61](https://github.com/jetstreamapp/jetstream/commit/dd71a61303ac7874371d7f9c040774ac2eddd84a))
+* implement SSO user resolution and identity linking with error handling for ambiguous accounts ([6b2030f](https://github.com/jetstreamapp/jetstream/commit/6b2030fa2d35c8e17508924ade384ae67d2aa982))
+
+### Bug Fixes
+
+* add PostgreSQL service for integration tests and run database migration ([dd97a6d](https://github.com/jetstreamapp/jetstream/commit/dd97a6d7d0d82e2f8c7d6c5f80110ea5576a4d7b))
+* enhance CI workflow to conditionally run E2E tests based on affected projects ([a68bad6](https://github.com/jetstreamapp/jetstream/commit/a68bad63f0d33e07c9f21f2c34e82da61ab1ec6f))
+* enhance SSO authentication flow and error handling in desktop app ([2000d6e](https://github.com/jetstreamapp/jetstream/commit/2000d6e50e35d551395ece217c32a6b38d2adbc7))
+* exclude specific projects from affected build and test commands ([6aa4cdf](https://github.com/jetstreamapp/jetstream/commit/6aa4cdf948afd09cc06367ace0eab6b4a8c145e7))
+* implement inline 404 handling with landing page response and add regression test ([aff84e1](https://github.com/jetstreamapp/jetstream/commit/aff84e16812b34b0623bff80eab8a8be3cf1ac51))
+* remove dead-code that was the source of confusion ([2df6be1](https://github.com/jetstreamapp/jetstream/commit/2df6be1829ca46149b11d8043eab44532c06ddec))
+
 ## [9.15.1](https://github.com/jetstreamapp/jetstream/compare/v9.15.0...v9.15.1) (2026-04-22)
 
 ### Features
