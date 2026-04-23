@@ -1,4 +1,4 @@
-import { ENV, errorTracker, getExceptionLog, logger } from '@jetstream/api-config';
+import { ENV, errorTracker, logger } from '@jetstream/api-config';
 import { EXPIRED_TOKEN_PLACEHOLDER } from '@jetstream/shared/constants';
 import { decryptString, encryptString, hexToBase64 } from '@jetstream/shared/node-utils';
 import { createHash, pbkdf2, randomBytes } from 'crypto';
@@ -145,7 +145,7 @@ export async function decryptAccessToken({
       throw new Error('Unable to decrypt access token');
     }
   } catch (error) {
-    logger.error({ userId, ...getExceptionLog(error) }, 'Failed to decrypt token, it may be corrupted');
+    logger.error({ userId, err: error }, 'Failed to decrypt token, it may be corrupted');
     errorTracker.error('Failed to decrypt token', error, {
       context: `salesforce-org-encryption.service#decryptAccessToken`,
       userId,

@@ -1,4 +1,4 @@
-import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
+import { ENV, logger } from '@jetstream/api-config';
 import { ApiConnection, ApiRequestError, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import * as oauthService from '@jetstream/salesforce-oauth';
 import { ERROR_MESSAGES } from '@jetstream/shared/constants';
@@ -148,7 +148,7 @@ const salesforceOauthCallback = createRoute(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
     } catch (ex) {
-      let errorLogObj = getExceptionLog(ex) as any;
+      let errorLogObj: Record<string, any> = { err: ex };
 
       returnParams.error = getErrorMessage(ex) || 'Unexpected Error';
       returnParams.message = queryParams.error_description
@@ -167,7 +167,7 @@ const salesforceOauthCallback = createRoute(
         };
       }
 
-      res.log.warn({ ...errorLogObj }, '[OAUTH][ERROR]');
+      res.log.warn(errorLogObj, '[OAUTH][ERROR]');
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
@@ -195,7 +195,7 @@ export async function initConnectionFromOAuthResponse({
       companyInfoRecord = results.records[0];
     }
   } catch (ex) {
-    logger.warn({ userId, ...getExceptionLog(ex) }, 'Error getting org info %o', ex);
+    logger.warn({ userId, err: ex }, 'Error getting org info %o', ex);
     if (ex instanceof ApiRequestError && ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED.test(getErrorMessage(ex))) {
       throw new Error(ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED_MSG);
     }
@@ -235,7 +235,7 @@ export async function initConnectionFromOAuthResponse({
       salesforceOrgUi.jetstreamOrganizationId = (await jetstreamOrganizationsDb.findById({ id: orgGroupId, userId })).id;
     } catch (ex) {
       logger.warn(
-        { userId, jetstreamOrganizationId: orgGroupId, ...getExceptionLog(ex) },
+        { userId, jetstreamOrganizationId: orgGroupId, err: ex },
         'Error getting jetstream org with provided id %s',
         getErrorMessage(ex),
       );

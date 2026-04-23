@@ -1,4 +1,3 @@
-import { getExceptionLog } from '@jetstream/api-config';
 import type { Request as ExpressRequest, Response as ExpressResponse } from 'express';
 import { NextFunction } from 'express';
 import type pino from 'pino';
@@ -49,7 +48,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         next(ex);
       }
     } catch (ex) {
-      req.log.error(getExceptionLog(ex), '[ROUTE][VALIDATION ERROR]');
+      req.log.error({ err: ex }, '[ROUTE][VALIDATION ERROR]');
       res.status(400);
       next(ex);
     }

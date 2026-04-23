@@ -1,4 +1,4 @@
-import { ENV, errorTracker, getExceptionLog, logger, prisma } from '@jetstream/api-config';
+import { ENV, errorTracker, logger, prisma } from '@jetstream/api-config';
 import type { Response } from '@jetstream/api-types';
 import { AuthError, createCSRFToken, getCookieConfig } from '@jetstream/auth/server';
 import { isPrismaError, Prisma, SalesforceOrg, toTypedPrismaError } from '@jetstream/prisma';
@@ -56,11 +56,11 @@ export function setCookieHeaders(res: Response) {
         }
         res.appendHeader('Set-Cookie', stringifySetCookie(name, value, options));
       } catch (ex) {
-        logger.error({ ...getExceptionLog(ex) }, 'Error setting cookie: %s', name);
+        logger.error({ err: ex }, 'Error setting cookie: %s', name);
       }
     });
   } catch (ex) {
-    logger.error({ ...getExceptionLog(ex) }, 'Error setting cookies');
+    logger.error({ err: ex }, 'Error setting cookies');
   }
 }
 
@@ -100,7 +100,7 @@ export function sendJson<ResponseType = unknown>(res: Response, content?: Respon
         status,
       });
     } catch (ex) {
-      res.log.error(getExceptionLog(ex), 'Error sending to error tracker');
+      res.log.error({ err: ex }, 'Error sending to error tracker');
     }
     return;
   }
@@ -136,7 +136,7 @@ export function streamParsedCsvAsJson(res: express.Response, csvParseStream: Dup
   });
 
   csvParseStream.on('error', (err) => {
-    _logger.warn({ requestId: res.locals.requestId, ...getExceptionLog(err) }, 'Error streaming CSV.');
+    _logger.warn({ requestId: res.locals.requestId, err }, 'Error streaming CSV.');
     if (!res.headersSent) {
       res.status(400).json({ error: true, success: false, message: 'Error streaming CSV' });
     } else {
@@ -173,7 +173,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
         const org = res.locals.org as SalesforceOrg;
         await salesforceOrgsDb.updateOrg_UNSAFE(org, { connectionError: ERROR_MESSAGES.SFDC_EXPIRED_TOKEN });
       } catch (ex) {
-        responseLogger.warn(getExceptionLog(ex), '[RESPONSE][ERROR UPDATING INVALID ORG]');
+        responseLogger.warn({ err: ex }, '[RESPONSE][ERROR UPDATING INVALID ORG]');
       }
     } else if (ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED.test(err.message) && !!res.locals?.org) {
       try {
@@ -183,7 +183,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
         const org = res.locals.org as SalesforceOrg;
         await salesforceOrgsDb.updateOrg_UNSAFE(org, { connectionError: ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED_MSG });
       } catch (ex) {
-        responseLogger.warn(getExceptionLog(ex), '[RESPONSE][ERROR UPDATING INVALID ORG]');
+        responseLogger.warn({ err: ex }, '[RESPONSE][ERROR UPDATING INVALID ORG]');
       }
     }
 
@@ -200,7 +200,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
           url: req.originalUrl,
           elapsedMs,
           errorMessage,
-          ...getExceptionLog(err, true),
+          err,
         },
         '[DEFERRED][ERROR] Deferred response completed with error',
       );
@@ -265,7 +265,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
           requestId: res.locals.requestId,
         });
       } catch (ex) {
-        responseLogger.error(getExceptionLog(ex), 'Error sending to error tracker');
+        responseLogger.error({ err: ex }, 'Error sending to error tracker');
       }
       return;
     }
@@ -280,7 +280,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
     if (err instanceof AuthError) {
       res.status(status || 400);
       // These errors are emitted during the authentication process
-      responseLogger.warn({ ...getExceptionLog(err, true), type: err.type }, '[RESPONSE][AUTH_ERROR]');
+      responseLogger.warn({ err, type: err.type }, '[RESPONSE][AUTH_ERROR]');
       if (isJson) {
         return res.json({
           error: true,
@@ -300,7 +300,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       // Attempt to use response code from 3rd party request if we have it available
       const statusCode = err.apiRequestError?.status || status || 400;
       res.status(statusCode);
-      responseLogger.debug({ ...getExceptionLog(err, true), statusCode }, '[RESPONSE][ERROR]');
+      responseLogger.debug({ err, res: { statusCode } }, '[RESPONSE][ERROR]');
       return res.json({
         error: true,
         success: false,
@@ -309,7 +309,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       });
     } else if (isPrismaError(err)) {
       const message = getPrismaErrorMessage(err);
-      responseLogger.warn({ ...getExceptionLog(err), statusCode: 400 }, '[RESPONSE][ERROR][DATABASE]');
+      responseLogger.warn({ err, res: { statusCode: 400 } }, '[RESPONSE][ERROR][DATABASE]');
       res.status(status || 400);
       return res.json({
         error: true,
@@ -318,7 +318,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       });
     } else if (err instanceof AuthenticationError) {
       // This error is emitted when a user attempts to make a request that requires authentication, but the user is not logged in
-      responseLogger.warn({ ...getExceptionLog(err), statusCode: 401 }, '[RESPONSE][ERROR]');
+      responseLogger.warn({ err, res: { statusCode: 401 } }, '[RESPONSE][ERROR]');
       res.status(status || 401);
       if (!err.skipLogout) {
         res.set(HTTP.HEADERS.X_LOGOUT, '1');
@@ -342,7 +342,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
         return res.redirect(`/?${params}`); // TODO: can we show an error message to the user on this page or redirect to alternate page?
       }
     } else if (err instanceof NotFoundError) {
-      responseLogger.debug({ ...getExceptionLog(err), statusCode: 404 }, '[RESPONSE][ERROR]');
+      responseLogger.debug({ err, res: { statusCode: 404 } }, '[RESPONSE][ERROR]');
       res.status(status || 404);
       if (isJson) {
         return res.json({
@@ -369,7 +369,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       status = 500;
     }
     res.status(status);
-    responseLogger.error({ ...getExceptionLog(err, true), statusCode: status }, '[RESPONSE][ERROR]');
+    responseLogger.error({ err, res: { statusCode: status } }, '[RESPONSE][ERROR]');
     // Return JSON error response for all other scenarios
     return res.json({
       error: errorMessage,
@@ -380,7 +380,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
     try {
       errorTracker.warn('Exception in error handler', req, ex, {
         context: `route#errorHandler`,
-        originalError: getExceptionLog(err, true),
+        originalError: err,
         url: req.url,
         params: req.params,
         query: req.query,
@@ -389,9 +389,9 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
         requestId: res.locals.requestId,
       });
     } catch (trackerEx) {
-      logger.error(getExceptionLog(trackerEx), 'Error sending to error tracker');
+      logger.error({ err: trackerEx }, 'Error sending to error tracker');
     }
-    logger.error(getExceptionLog(ex, true), 'Error in uncaughtErrorHandler');
+    logger.error({ err: ex }, 'Error in uncaughtErrorHandler');
     res.status(500).json({ error: true, success: false, message: 'Internal Server Error' });
   }
 }

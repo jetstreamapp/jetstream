@@ -1,5 +1,5 @@
 import '@jetstream/api-config'; // this gets imported first to ensure as some items require early initialization
-import { ENV, getExceptionLog, logger, pgPool, prisma } from '@jetstream/api-config';
+import { ENV, logger, pgPool, prisma } from '@jetstream/api-config';
 import { hashPassword, pruneExpiredRecords } from '@jetstream/auth/server';
 import '@jetstream/auth/types';
 import { AsyncIntervalTimer } from '@jetstream/shared/node-utils';
@@ -162,7 +162,7 @@ JETSTREAM_CLIENT_URL=${ENV.JETSTREAM_CLIENT_URL}
     await pgPool.query('SELECT 1');
     logger.info('Primary process: Database connection successful');
   } catch (error) {
-    logger.error(getExceptionLog(error), 'Primary process: Database connection failed - application will not start');
+    logger.error({ err: error }, 'Primary process: Database connection failed - application will not start');
     process.exit(1);
   }
 
@@ -206,7 +206,7 @@ async function initExampleUserIfRequired() {
       });
     }
   } catch (ex) {
-    logger.error(getExceptionLog(ex), '[EXAMPLE_USER][ERROR] Fatal error, could not upsert example user');
+    logger.error({ err: ex }, '[EXAMPLE_USER][ERROR] Fatal error, could not upsert example user');
     process.exit(1);
   }
 }

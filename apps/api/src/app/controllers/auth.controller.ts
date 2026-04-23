@@ -1,4 +1,4 @@
-import { ENV, getExceptionLog } from '@jetstream/api-config';
+import { ENV } from '@jetstream/api-config';
 import {
   acceptTos,
   AuthError,
@@ -300,7 +300,7 @@ export const routeDefinition = {
 const logout = createRoute(routeDefinition.logout.validators, async ({}, req, res) => {
   req.session.destroy((err) => {
     if (err) {
-      res.log.error({ ...getExceptionLog(err) }, '[AUTH][LOGOUT][ERROR] Error destroying session');
+      res.log.error({ err }, '[AUTH][LOGOUT][ERROR] Error destroying session');
     }
     redirect(res, ENV.JETSTREAM_SERVER_URL);
   });
@@ -797,7 +797,7 @@ const verification = createRoute(
             await new Promise<void>((resolve) => {
               req.session.destroy((destroyErr) => {
                 if (destroyErr) {
-                  res.log.error({ ...getExceptionLog(destroyErr) }, '[AUTH][TOO_MANY_ATTEMPTS][ERROR] Error destroying session');
+                  res.log.error({ err: destroyErr }, '[AUTH][TOO_MANY_ATTEMPTS][ERROR] Error destroying session');
                 }
                 resolve();
               });
@@ -816,7 +816,7 @@ const verification = createRoute(
         );
         req.session.destroy((err) => {
           if (err) {
-            res.log.error({ ...getExceptionLog(err) }, '[AUTH][PLACEHOLDER_USER][ERROR] Error destroying session');
+            res.log.error({ err }, '[AUTH][PLACEHOLDER_USER][ERROR] Error destroying session');
           }
           const searchParams = new URLSearchParams({ error: 'InvalidRegistration' });
           sendJson(res, { error: false, redirect: `/auth/login/?${searchParams.toString()}` });
@@ -945,7 +945,7 @@ const resendVerification = createRoute(routeDefinition.resendVerification.valida
         })();
 
     void resendVerificationEmailPromise.catch((error) => {
-      res.log.error({ ...getExceptionLog(error), userId: req.session.user?.id, type }, 'Failed to resend verification message');
+      res.log.error({ err: error, userId: req.session.user?.id, type }, 'Failed to resend verification message');
     });
 
     createUserActivityFromReq(req, res, {
@@ -1362,9 +1362,7 @@ const handleSamlCallback = createRoute(
       // (saml.service.ts:getAuthorizationUrl); the IdP echoes it back in the POST body.
       // Cookie fallbacks are retained as defense-in-depth for same-site POSTs / tests.
       const relayState = typeof body.RelayState === 'string' && body.RelayState.length > 0 ? body.RelayState : undefined;
-      const returnUrlCandidate = normalizeRedirectCandidate(
-        relayState || cookies[returnUrlCookie.name] || cookies[redirectUrlCookie.name],
-      );
+      const returnUrlCandidate = normalizeRedirectCandidate(relayState || cookies[returnUrlCookie.name] || cookies[redirectUrlCookie.name]);
       if (cookies[redirectUrlCookie.name]) {
         clearCookie(redirectUrlCookie.name, redirectUrlCookie.options);
       }
@@ -1491,9 +1489,7 @@ const handleOidcCallback = createRoute(routeDefinition.handleOidcCallback.valida
     // login middleware (desktop-app.controller.ts) and other pre-login interstitials set, and what
     // the credentials/OAuth callbacks already honor. Without this, desktop SSO users land on /app
     // instead of /desktop-app/auth and have to log in a second time.
-    const returnUrlCandidate = normalizeRedirectCandidate(
-      cookies[cookieConfig.returnUrl.name] || cookies[cookieConfig.redirectUrl.name],
-    );
+    const returnUrlCandidate = normalizeRedirectCandidate(cookies[cookieConfig.returnUrl.name] || cookies[cookieConfig.redirectUrl.name]);
     if (cookies[cookieConfig.redirectUrl.name]) {
       clearCookie(cookieConfig.redirectUrl.name, cookieConfig.redirectUrl.options);
     }

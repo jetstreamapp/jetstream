@@ -1,4 +1,4 @@
-import { getExceptionLog, logger, prisma } from '@jetstream/api-config';
+import { logger, prisma } from '@jetstream/api-config';
 import { UserProfileSession } from '@jetstream/auth/types';
 import { Entitlement, Prisma } from '@jetstream/prisma';
 import {
@@ -312,7 +312,7 @@ export async function updateUser(
     });
     return updatedUser;
   } catch (ex) {
-    logger.error({ user, ...getExceptionLog(ex) }, '[DB][USER][UPDATE][ERROR]');
+    logger.error({ user, err: ex }, '[DB][USER][UPDATE][ERROR]');
     throw ex;
   }
 }

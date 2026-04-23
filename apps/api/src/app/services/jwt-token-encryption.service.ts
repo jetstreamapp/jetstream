@@ -1,4 +1,4 @@
-import { ENV, errorTracker, getExceptionLog, logger } from '@jetstream/api-config';
+import { ENV, errorTracker, logger } from '@jetstream/api-config';
 import { decryptString, encryptString } from '@jetstream/shared/node-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { createHash } from 'crypto';
@@ -32,7 +32,7 @@ export function encryptJwtToken(token: string): string {
   try {
     return encryptString(token, encryptionKey);
   } catch (error) {
-    logger.error({ ...getExceptionLog(error) }, 'Failed to encrypt JWT token');
+    logger.error({ err: error }, 'Failed to encrypt JWT token');
     errorTracker.error('Failed to encrypt JWT token', error, {
       context: 'jwt-token-encryption.service#encryptJwtToken',
     });
@@ -60,7 +60,7 @@ export function decryptJwtToken(encryptedToken: string): string {
   try {
     return decryptString(encryptedToken, encryptionKey);
   } catch (error) {
-    logger.error({ ...getExceptionLog(error) }, 'Failed to decrypt JWT token');
+    logger.error({ err: error }, 'Failed to decrypt JWT token');
     errorTracker.error('Failed to decrypt JWT token', error, {
       context: 'jwt-token-encryption.service#decryptJwtToken',
     });

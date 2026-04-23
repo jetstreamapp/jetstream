@@ -56,14 +56,21 @@ export const httpLogger = pinoHttp<express.Request, express.Response>({
       };
     }),
     res: pino.stdSerializers.wrapResponseSerializer((res) => {
+      // `wrapResponseSerializer` wraps to `{ statusCode, headers, raw }` where `raw` is the
+      // original value. For live Express responses `raw.headers` exists; for plain objects
+      // logged explicitly (e.g. `{ res: { statusCode: 401 } }` from uncaughtErrorHandler)
+      // it doesn't — without this guard, reading `raw.headers[...]` throws during logging
+      // and escapes into the outer error handler as a 500.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rawHeaders: Record<string, string> | undefined = (res.raw as any)?.headers;
       return {
-        statusCode: res.raw.statusCode,
-        headers: {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          'content-type': (res.raw as any).headers['content-type'],
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          'content-length': (res.raw as any).headers['content-length'],
-        },
+        statusCode: res.raw?.statusCode ?? res.statusCode,
+        headers: rawHeaders
+          ? {
+              'content-type': rawHeaders['content-type'],
+              'content-length': rawHeaders['content-length'],
+            }
+          : undefined,
       };
     }),
   },
@@ -74,18 +81,3 @@ export const httpLogger = pinoHttp<express.Request, express.Response>({
     };
   },
 });
-
-export function getExceptionLog(error: unknown, includeStack = false) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const status = (error as any) /** UserFacingError */?.apiRequestError?.status || (error as any) /** ApiRequestError */?.status;
-  if (error instanceof Error) {
-    return {
-      error: error.message,
-      status,
-      stack: includeStack ? error.stack : undefined,
-    };
-  }
-  return {
-    error,
-  };
-}

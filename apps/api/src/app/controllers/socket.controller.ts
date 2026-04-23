@@ -1,4 +1,4 @@
-import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
+import { ENV, logger } from '@jetstream/api-config';
 import type { Request, Response } from '@jetstream/api-types';
 import { convertUserProfileToSession_External } from '@jetstream/auth/server';
 import { HTTP, HTTP_SOURCE_DESKTOP } from '@jetstream/shared/constants';
@@ -33,7 +33,7 @@ export function emitSocketEvent({
     }
     broadcastOperator.emit(event, payload);
   } catch (ex) {
-    logger.error({ ...getExceptionLog(ex), userId, event }, 'Error emitting socket event');
+    logger.error({ err: ex, userId, event }, 'Error emitting socket event');
   }
 }
 
@@ -58,7 +58,7 @@ function getExternalDeviceAuthMiddleware(audience: externalAuthService.Audience)
         next();
       })
       .catch((err) => {
-        logger.error({ ...getExceptionLog(err) }, '[SOCKET] Error verifying token');
+        logger.error({ err }, '[SOCKET] Error verifying token');
         next(new Error('Unauthorized'));
       });
   };
@@ -156,7 +156,7 @@ export function initSocketServer(
     });
 
     socket.on('error', (err) => {
-      logger.error({ socketId: socket.id, userId: userId || 'unknown', ...getExceptionLog(err) }, '[SOCKET][ERROR] %s', err.message);
+      logger.error({ socketId: socket.id, userId: userId || 'unknown', err }, '[SOCKET][ERROR] %s', err.message);
     });
   });
 

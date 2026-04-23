@@ -1,4 +1,4 @@
-import { ENV, errorTracker, getExceptionLog } from '@jetstream/api-config';
+import { ENV, errorTracker } from '@jetstream/api-config';
 import { Request, Response } from '@jetstream/api-types';
 import { getApiAddressFromReq } from '@jetstream/auth/server';
 import { AuthenticatedUser, CookieOptions, UserProfileSession } from '@jetstream/auth/types';
@@ -143,7 +143,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         await controllerFn(data as any, req, res, next);
       } catch (ex) {
         if (logErrorToBugTracker) {
-          logger.error(getExceptionLog(ex), 'Logging error to bug tracker');
+          logger.error({ err: ex }, 'Logging error to bug tracker');
           errorTracker.error(ex, req, {
             url: req.url,
             params: req.params,
@@ -160,7 +160,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         next(new UserFacingError(ex));
       }
     } catch (ex) {
-      logger.warn(getExceptionLog(ex), '[ROUTE][VALIDATION ERROR]');
+      logger.warn({ err: ex }, '[ROUTE][VALIDATION ERROR]');
       if (logErrorToBugTracker) {
         errorTracker.error(ex, req, {
           url: req.url,

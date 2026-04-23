@@ -57,7 +57,7 @@ export async function initConnectionFromOAuthResponse({
     //   salesforceOrgUi.jetstreamOrganizationId = (await jetstreamOrganizationsDb.findById({ id: jetstreamOrganizationId, userId })).id;
     // } catch (ex) {
     //   logger.warn(
-    //     { userId, jetstreamOrganizationId, ...getExceptionLog(ex) },
+    //     { userId, jetstreamOrganizationId, err: ex },
     //     'Error getting jetstream org with provided id %s',
     //     getErrorMessage(ex)
     //   );

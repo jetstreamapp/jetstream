@@ -1,4 +1,4 @@
-import { ENV, getExceptionLog, httpLogger, logger } from '@jetstream/api-config';
+import { ENV, httpLogger, logger } from '@jetstream/api-config';
 import { GeoIpLookupResult } from '@jetstream/types';
 import { json, urlencoded } from 'body-parser';
 import express from 'express';
@@ -65,7 +65,7 @@ app.post(
         timeTaken,
       });
     } catch (ex) {
-      res.log.error(getExceptionLog(ex, true), 'Failed to download MaxMind database');
+      res.log.error({ err: ex }, 'Failed to download MaxMind database');
       next(ex);
     }
   }),
@@ -90,7 +90,7 @@ app.get(
         : { ipAddress, isValid: false as const };
       res.status(200).json({ success: true, results: [result] });
     } catch (ex) {
-      res.log.error(getExceptionLog(ex, true), 'Failed to lookup IP address');
+      res.log.error({ err: ex }, 'Failed to lookup IP address');
       next(ex);
     }
   }),
@@ -119,7 +119,7 @@ app.post(
 
       res.status(200).json({ success: true, results });
     } catch (ex) {
-      res.log.error(getExceptionLog(ex, true), 'Failed to lookup IP address');
+      res.log.error({ err: ex }, 'Failed to lookup IP address');
       next(ex);
     }
   }),
@@ -133,7 +133,7 @@ app.use((_, res) => {
 });
 
 app.use((err: Error | ZodError, _: express.Request, res: express.Response, _next: express.NextFunction) => {
-  res.log.error({ ...getExceptionLog(err) }, 'Unhandled error');
+  res.log.error({ err }, 'Unhandled error');
 
   if (err instanceof ZodError) {
     res.status(400);
@@ -162,7 +162,7 @@ const server = app.listen(port, () => {
 });
 
 server.on('error', (error) => {
-  logger.error(getExceptionLog(error, true), 'Server error: %s', error.message);
+  logger.error({ err: error }, 'Server error: %s', error.message);
 });
 
 process.on('SIGTERM', () => {

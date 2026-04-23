@@ -1,4 +1,4 @@
-import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
+import { ENV, logger } from '@jetstream/api-config';
 import { HTTP } from '@jetstream/shared/constants';
 import express, { Router } from 'express';
 import https from 'https';
@@ -64,12 +64,12 @@ routes.use('/', async (req: express.Request, res: express.Response, next: expres
           proxyResponse.pipe(res, { end: true });
         })
         .on('error', (err) => {
-          logger.error(getExceptionLog(err), '[PROXY][EXCEPTION]');
+          logger.error({ err }, '[PROXY][EXCEPTION]');
           next(err);
         }),
     );
   } catch (err) {
-    logger.error(getExceptionLog(err), '[PROXY][EXCEPTION]');
+    logger.error({ err }, '[PROXY][EXCEPTION]');
     next(err);
   }
 });

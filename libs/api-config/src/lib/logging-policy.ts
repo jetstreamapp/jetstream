@@ -23,7 +23,10 @@ export function resolveLogLevel({
 }
 
 export function getHttpLogLevel(_: unknown, res: { statusCode?: number }, error?: Error): pino.LevelWithSilent {
-  if (error || (res.statusCode ?? 0) >= 500) {
+  if ((res.statusCode ?? 0) >= 500) {
+    return 'silent';
+  }
+  if (error) {
     return 'error';
   }
   return 'info';

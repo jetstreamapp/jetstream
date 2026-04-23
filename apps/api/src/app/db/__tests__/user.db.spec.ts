@@ -9,7 +9,6 @@ const prismaMock = vi.hoisted(() => ({
 }));
 
 vi.mock('@jetstream/api-config', () => ({
-  getExceptionLog: (error: unknown) => ({ error: error instanceof Error ? error.message : error }),
   logger: {
     error: vi.fn(),
   },

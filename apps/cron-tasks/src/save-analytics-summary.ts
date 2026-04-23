@@ -1,7 +1,6 @@
 import { prisma } from './config/db.config';
 import { logger } from './config/logger.config';
 import { getAmplitudeChart } from './utils/amplitude-dashboard-api';
-import { getExceptionLog } from './utils/utils';
 
 const CHART_IDS = {
   LOAD: {
@@ -70,7 +69,7 @@ const CHART_IDS = {
 
     logger.info('[ANALYTICS SUMMARY] Done');
   } catch (ex) {
-    logger.error(getExceptionLog(ex), '[ANALYTICS SUMMARY][ERROR]');
+    logger.error({ err: ex }, '[ANALYTICS SUMMARY][ERROR]');
     logger.error(ex.stack);
   }
 })();

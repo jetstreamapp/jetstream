@@ -5,7 +5,6 @@ import { Open } from 'unzipper';
 import { promisify } from 'util';
 import { ENV } from './config/env-config';
 import { logger } from './config/logger.config';
-import { getExceptionLog } from './utils/utils';
 
 /**
 
@@ -90,7 +89,7 @@ async function importCSVToTable(csvPath: string, tableName: string, schema: stri
     logger.info(`Importing ${csvPath} to ${fullTempTableName}`);
     await execAsync(`psql "${ENV.JETSTREAM_POSTGRES_DBURI}" -c "\\COPY ${fullTempTableName} FROM '${csvPath}' WITH (FORMAT CSV, HEADER)"`);
   } catch (error) {
-    logger.error(getExceptionLog(error), `Error importing ${csvPath}: %s`, error.message);
+    logger.error({ err: error }, `Error importing ${csvPath}: %s`, error.message);
     throw error;
   }
 }
@@ -112,7 +111,7 @@ async function swapTables(tableName: string, schema: string): Promise<void> {
     `);
     logger.info(`Successfully swapped ${fullTempTableName} to ${fullTableName}`);
   } catch (error) {
-    logger.error(getExceptionLog(error), `Error swapping tables: %s`, error.message);
+    logger.error({ err: error }, `Error swapping tables: %s`, error.message);
     // Cleanup temp table if it exists
     await execAsync(`psql "${ENV.JETSTREAM_POSTGRES_DBURI}" -c "DROP TABLE IF EXISTS ${fullTempTableName}"`).catch(() => {
       logger.warn(`Failed to drop table ${fullTempTableName}`);
@@ -276,12 +275,12 @@ async function main() {
 
     logger.info('GeoIP database update completed successfully');
   } catch (error) {
-    logger.error(getExceptionLog(error), 'Error updating GeoIP database: %s', error.message);
+    logger.error({ err: error }, 'Error updating GeoIP database: %s', error.message);
     throw error;
   }
 }
 
 main().catch((error) => {
-  logger.error(getExceptionLog(error), 'Fatal error: %s', error.message);
+  logger.error({ err: error }, 'Fatal error: %s', error.message);
   process.exit(1);
 });

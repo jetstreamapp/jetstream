@@ -1,4 +1,4 @@
-import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
+import { ENV, logger } from '@jetstream/api-config';
 import {
   AuthError,
   convertBase32ToHex,
@@ -213,7 +213,7 @@ const getUserProfile = createRoute(routeDefinition.getUserProfile.validators, as
     const userProfile = await userDbService.findIdByUserIdUserFacing({ userId: user.id });
     sendJson(res, userProfile);
   } catch (ex) {
-    res.log.error(getExceptionLog(ex), 'Error fetching user profile');
+    res.log.error({ err: ex }, 'Error fetching user profile');
     req.session.destroy(() => {
       next(new AuthenticationError('Unable to get user profile, please log in again'));
     });
@@ -510,7 +510,7 @@ const deleteAccount = createRoute(routeDefinition.deleteAccount.validators, asyn
     // Destroy session - don't wait for response
     req.session.destroy((error) => {
       if (error) {
-        req.log.error({ requestId, ...getExceptionLog(error) }, '[ACCOUNT DELETE][ERROR DESTROYING SESSION]');
+        req.log.error({ requestId, err: error }, '[ACCOUNT DELETE][ERROR DESTROYING SESSION]');
       }
     });
 
@@ -540,9 +540,9 @@ const deleteAccount = createRoute(routeDefinition.deleteAccount.validators, asyn
     if (ex.isAxiosError) {
       const error: AxiosError = ex;
       if (error.response) {
-        req.log.error(getExceptionLog(ex), '[ACCOUNT DELETE][FATAL ERROR] %o', error.response.data);
+        req.log.error({ err: ex }, '[ACCOUNT DELETE][FATAL ERROR] %o', error.response.data);
       } else if (error.request) {
-        req.log.error(getExceptionLog(ex), '[ACCOUNT DELETE][FATAL ERROR] %s', error.message || 'An unknown error has occurred.');
+        req.log.error({ err: ex }, '[ACCOUNT DELETE][FATAL ERROR] %s', error.message || 'An unknown error has occurred.');
       }
     }
     throw new UserFacingError('There was a problem deleting your account, contact support@getjetstream.app for assistance.');
