@@ -1,3 +1,4 @@
+import { Prisma } from '@jetstream/prisma';
 import { NOOP } from '@jetstream/shared/utils';
 import { CacheItem, CacheProvider } from '@node-saml/node-saml';
 import { prisma } from './api-db-config';
@@ -71,6 +72,36 @@ export class DbCacheProvider implements CacheProvider {
     } catch {
       // Entry already gone — not an error
       return null;
+    }
+  }
+
+  /**
+   * Atomically record a one-time-use key. Returns true if this call was the first to record it
+   * within the current TTL window, false if an unexpired row for the key is already present.
+   *
+   * Use for replay detection where two workers must not both observe "not yet consumed" for the
+   * same key — the primary-key INSERT is the atomicity boundary, so the get+remove race that
+   * exists in the stock CacheProvider interface cannot occur here. Expired rows are reclaimed in
+   * the same transaction so a stale "consumed" marker past its TTL does not block a new first use
+   * if `cleanupExpired()` has not run recently.
+   */
+  async consumeOnceAsync(key: string): Promise<boolean> {
+    const dbKey = this.buildKey(key);
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + this.ttlMs);
+    try {
+      await prisma.$transaction(async (tx) => {
+        await tx.cacheEntry.deleteMany({ where: { key: dbKey, expiresAt: { lt: now } } });
+        await tx.cacheEntry.create({
+          data: { key: dbKey, value: '1', createdAt: now, expiresAt },
+        });
+      });
+      return true;
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        return false;
+      }
+      throw err;
     }
   }
 

@@ -123,7 +123,18 @@ export async function updateTeamMember({
   userId: string;
   data: TeamMemberUpdateRequest;
 }): Promise<{ team: TeamUserFacing; previousMember: { role: string; features: string[]; email: string } }> {
-  const { isBillableAction, previousMember } = await teamDbService.updateTeamMemberRole({ teamId, userId, data, runningUserId });
+  const { teamMember, isBillableAction, previousMember } = await teamDbService.updateTeamMemberRole({ teamId, userId, data, runningUserId });
+
+  await authDbService
+    .updateUserSessionTeamMembership({
+      userId,
+      // teamId comes from the function arg — TeamMemberSchema strips non-schema fields, so
+      // `teamMember.teamId` is undefined at runtime even though SELECT_TEAM_MEMBER includes it.
+      teamMembership: { teamId, role: teamMember.role, status: teamMember.status },
+    })
+    .catch((ex) => {
+      logger.error({ userId, teamId, error: getErrorMessage(ex) }, 'Error updating user sessions after team member role change');
+    });
 
   const team = await teamDbService.findByUserId({ userId: runningUserId });
 
@@ -162,6 +173,15 @@ export async function updateTeamMemberStatusAndRole({
       logger.error({ userId, error: getErrorMessage(ex) }, 'Error revoking user sessions after deactivating team member');
     });
     allSessionsRevoked = true;
+  } else {
+    await authDbService
+      .updateUserSessionTeamMembership({
+        userId,
+        teamMembership: { teamId, role: teamMember.role, status: teamMember.status },
+      })
+      .catch((ex) => {
+        logger.error({ userId, teamId, error: getErrorMessage(ex) }, 'Error updating user sessions after team member status or role change');
+      });
   }
 
   const team = await teamDbService.findByUserId({ userId: runningUserId });
@@ -219,16 +239,19 @@ export async function resendInvitation({
   runningUserId,
   teamId,
   invitationId,
+  expectedRole,
   request,
 }: {
   runningUserId: string;
   teamId: string;
   invitationId: string;
+  expectedRole: string;
   request: TeamInvitationUpdateRequest;
 }): Promise<{ invitations: TeamInviteUserFacing[]; updatedInvitation: { id: string; email: string; role: string } }> {
   const updatedInvitation = await teamDbService.updateTeamInvitation({
     id: invitationId,
     teamId,
+    expectedRole,
     request,
     runningUserId,
   });
@@ -342,20 +365,15 @@ export async function verifyTeamInvitation({
 export async function revokeTeamInvitation({
   id,
   teamId,
+  expectedRole,
 }: {
   id: string;
   teamId: string;
-}): Promise<{ invitations: TeamInviteUserFacing[]; deletedInvitation: { id: string; email: string; role: string } }> {
-  const deletedInvitation = await teamDbService.revokeTeamInvitation({ id, teamId });
+  expectedRole: string;
+}): Promise<{ invitations: TeamInviteUserFacing[] }> {
+  await teamDbService.revokeTeamInvitation({ id, teamId, expectedRole });
   const invitations = await teamDbService.getTeamInvitations({ teamId });
-  return {
-    invitations,
-    deletedInvitation: {
-      id: deletedInvitation.id,
-      email: deletedInvitation.email,
-      role: deletedInvitation.role,
-    },
-  };
+  return { invitations };
 }
 
 export async function acceptTeamInvitation({

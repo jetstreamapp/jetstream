@@ -101,6 +101,11 @@ test.describe('TOS Acceptance', () => {
       await expect(authenticationPage.acceptTermsButton).toBeDisabled();
     });
 
+    await test.step('Pending TOS session cannot call protected APIs', async () => {
+      const heartbeatResponse = await page.request.get('/api/heartbeat', { headers: { Accept: 'application/json' } });
+      expect(heartbeatResponse.status()).toBe(401);
+    });
+
     await test.step('Accept TOS and verify redirect to app', async () => {
       await authenticationPage.acceptTosGatePage();
       expect(page.url()).toContain('/app');

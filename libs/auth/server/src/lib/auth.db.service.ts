@@ -852,6 +852,36 @@ export async function revokeAllUserSessions(userId: string, exceptId?: Maybe<str
   });
 }
 
+export async function updateUserSessionTeamMembership({
+  userId,
+  teamMembership,
+}: {
+  userId: string;
+  teamMembership: AuthenticatedUser['teamMembership'] | null;
+}) {
+  if (!userId) {
+    throw new Error('Invalid parameters');
+  }
+
+  // Targeted JSONB patch — rewrite ONLY the sess->'user'->'teamMembership' path rather than
+  // read-modify-writing the entire sess blob. Writing back the whole snapshot races with
+  // express-session's rolling-cookie touch, CSRF rotation, and any other in-flight mutation
+  // on the same session row, silently reverting concurrent writes.
+  //
+  // jsonb_set with create_if_missing=true handles sessions where sess.user exists but
+  // teamMembership was never set. Sessions whose sess.user is absent (or has a different id)
+  // are filtered out by the user_id predicate — that column is a generated expression of
+  // (sess->'user'->>'id')::uuid and is NULL when sess.user is missing.
+  const serializedMembership = teamMembership == null ? 'null' : JSON.stringify(teamMembership);
+
+  return prisma.$executeRaw`
+    UPDATE sessions
+    SET sess = jsonb_set(sess, '{user,teamMembership}', ${serializedMembership}::jsonb, true)
+    WHERE user_id = ${userId}::uuid
+      AND sess ? 'user'
+  `;
+}
+
 export async function setPasswordForUser(id: string, password: string) {
   const UNSAFE_userWithPassword = await prisma.user.findUnique({
     select: { id: true, password: true, email: true },

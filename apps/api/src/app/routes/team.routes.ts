@@ -1,10 +1,9 @@
 import { Request, Response } from '@jetstream/api-types';
-import * as authService from '@jetstream/auth/server';
 import { TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING, TeamMemberRole, TeamMemberRoleSchema } from '@jetstream/types';
 import express, { Router } from 'express';
 import { routeDefinition as teamController } from '../controllers/team.controller';
-import { checkTeamRole } from '../db/team.db';
-import { checkAuth } from './route.middleware';
+import { findActiveTeamMembershipForRoles } from '../db/team.db';
+import { checkAuth, validateDoubleCSRF } from './route.middleware';
 
 /**
  * Route Prefix: /api/teams
@@ -29,8 +28,8 @@ function validateTeamRoleMiddlewareFn(roles: TeamMemberRole[]) {
       );
       return res.status(400).json({ error: 'Invalid request' });
     }
-    const hasValidRole = await checkTeamRole({ teamId: req.params.teamId, userId: req.session.user.id, roles });
-    if (!hasValidRole) {
+    const teamMembership = await findActiveTeamMembershipForRoles({ teamId: req.params.teamId, userId: req.session.user.id, roles });
+    if (!teamMembership) {
       res.log.warn(
         { path: req.path, method: req.method, userId: req.session.user.id, teamId: req.params.teamId },
         'User does not have required team role for this route',
@@ -38,16 +37,16 @@ function validateTeamRoleMiddlewareFn(roles: TeamMemberRole[]) {
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
-    if (!req.session.user.teamMembership) {
-      // Team does not exist on session, refresh session (e.g. team membership was assigned after user logged in)
-      await authService.refreshSessionUser(req);
-    }
+    // findActiveTeamMembershipForRoles returns Prisma's raw row (role/status as plain string);
+    // the DB is constrained to the enum values so the cast is safe.
+    req.session.user.teamMembership = teamMembership as typeof req.session.user.teamMembership;
 
     next();
   };
 }
 
 routes.use(checkAuth);
+routes.use(validateDoubleCSRF);
 
 routes.get('/:teamId/invitations/:token/verify', teamController.verifyInvitation.controllerFn());
 routes.post('/:teamId/invitations/:token/accept', teamController.acceptInvitation.controllerFn());

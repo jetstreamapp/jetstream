@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { ENV, logger } from '@jetstream/api-config';
 import type { OidcConfiguration } from '@jetstream/prisma';
+import { assertDomainResolvesToPublicIp } from '@jetstream/shared/node-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { LRUCache } from 'lru-cache';
 import { AuthorizationServer, allowInsecureRequests } from 'oauth4webapi';
@@ -25,6 +26,13 @@ export class OidcService {
       const cached = discoveryCache.get(issuerUrl.toString());
       if (cached) {
         return cached;
+      }
+
+      // SSRF protection: re-check at runtime (not just at save time) so DNS rebinding
+      // against a previously-public issuer cannot reach internal infrastructure.
+      // In dev/CI we allow insecure requests (loopback/private), so skip the check there too.
+      if (ENV.USE_SECURE_COOKIES) {
+        await assertDomainResolvesToPublicIp(issuerUrl.hostname);
       }
 
       // Perform discovery (allow HTTP for non-prod/local testing)
@@ -169,6 +177,18 @@ export class OidcService {
         });
         const userinfoResponse = await oauth.processUserInfoResponse(authServer, client, claims.sub, response);
         allClaims = { ...allClaims, ...userinfoResponse };
+      }
+
+      // OIDC `email_verified` is optional: Azure AD workforce and other enterprise IdPs
+      // legitimately omit it. Trust boundary here is the customer-configured IdP plus the
+      // team-verified domain check in sso-auth.service; we only reject the explicit-false
+      // case where a compliant IdP tells us the email is not verified.
+      if (allClaims.email_verified === false) {
+        logger.warn(
+          { sub: claims.sub, issuer: config.issuer },
+          '[SSO][OIDC] Rejecting login: provider reported email_verified=false',
+        );
+        throw new Error('OIDC provider reported the email address as unverified');
       }
 
       // Extract user info using attribute mapping with fallbacks to standard claims

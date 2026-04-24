@@ -1,7 +1,11 @@
 import * as dns from 'dns/promises';
 import { assertDomainResolvesToPublicIp } from '../network.utils';
 
-vi.mock('dns/promises');
+// jsdom-environment tests can't auto-mock `dns/promises`, so stub the two functions we use.
+vi.mock('dns/promises', () => ({
+  resolve4: vi.fn(),
+  resolve6: vi.fn(),
+}));
 
 const mockedDns = vi.mocked(dns);
 

@@ -1,4 +1,6 @@
 import { prisma } from '@jetstream/api-config';
+import type { SessionData } from '@jetstream/auth/types';
+import type { Prisma } from '@jetstream/prisma';
 import { delay, groupByFlat } from '@jetstream/shared/utils';
 import { AuthenticationPage, TeamDashboardPage } from '@jetstream/test/e2e-utils';
 import { Page } from '@playwright/test';
@@ -491,6 +493,47 @@ test.describe('Team Dashboard', () => {
     });
   });
 
+  test('Stale admin session cannot update invitations after demotion to billing', async ({ teamCreationUtils3Users: teamCreationUtils }) => {
+    const { team } = teamCreationUtils;
+    const [, staleAdmin] = teamCreationUtils.members;
+
+    const invitation = await test.step('Create stale admin session with DB billing role', async () => {
+      await prisma.teamMember.update({
+        where: { teamId_userId: { teamId: team.id, userId: staleAdmin.userId } },
+        data: { role: 'BILLING' },
+      });
+
+      const sessions = await prisma.sessions.findMany({ where: { userId: staleAdmin.userId } });
+      for (const session of sessions) {
+        const sess = session.sess as unknown as SessionData;
+        sess.user.teamMembership = { teamId: team.id, role: 'ADMIN', status: 'ACTIVE' };
+        await prisma.sessions.update({ where: { sid: session.sid }, data: { sess: sess as unknown as Prisma.InputJsonValue } });
+      }
+
+      return prisma.teamMemberInvitation.create({
+        data: {
+          teamId: team.id,
+          email: `invite-${Date.now()}@playwright.getjetstream.app`,
+          role: 'MEMBER',
+          features: ['ALL'],
+          expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+          lastSentAt: new Date(),
+          createdById: teamCreationUtils.adminUser.userId,
+          updatedById: teamCreationUtils.adminUser.userId,
+        },
+      });
+    });
+
+    await test.step('Billing role from DB controls resend/update role assignment', async () => {
+      const response = await staleAdmin.context.request.put(`/api/teams/${team.id}/invitations/${invitation.id}`, {
+        data: { role: 'ADMIN' },
+      });
+
+      expect(response.status()).toBe(403);
+      await expect.poll(() => prisma.teamMemberInvitation.findUniqueOrThrow({ where: { id: invitation.id } }).then(({ role }) => role)).toBe('MEMBER');
+    });
+  });
+
   test('OTP MFA enrollment is continued if user abandons process', async ({
     browser,
     page,
@@ -538,6 +581,8 @@ test.describe('Team Dashboard', () => {
       teamCreationUtils.users.push(user);
 
       expect(newPage.url()).toContain('/auth/mfa-enroll');
+      const heartbeatResponse = await newPage.request.get('/api/heartbeat', { headers: { Accept: 'application/json' } });
+      expect(heartbeatResponse.status()).toBe(401);
       await newPage.close();
       return { user, context };
     });
@@ -598,6 +643,36 @@ test.describe('Team Dashboard', () => {
       await memberAuth.fillOutLoginForm(member1.user.email, member1.user.password);
       await expect(memberPage.getByText('method is not allowed')).toBeVisible();
       await context.close();
+    });
+  });
+
+  test('Double-CSRF middleware is installed on /api/teams and /api/billing route groups', async ({
+    page,
+    teamCreationUtils1User: teamCreationUtils,
+  }) => {
+    // Proves the middleware is WIRED (not just that happy-path clients happen to include the header).
+    // Sending an authenticated POST with an obviously-wrong X-Csrf-Token must be rejected with 403 —
+    // if the middleware were missing, the wrong header would be ignored and the request would
+    // progress to the controller and fail for a different reason (or succeed).
+    // teamCreationUtils1User drives the admin through the shared `page` fixture (not a
+    // dedicated browser context), so use `page.request` to issue authenticated API calls.
+    const { team } = teamCreationUtils;
+    const request = page.request;
+
+    await test.step('/api/teams rejects mutating requests with a wrong CSRF token', async () => {
+      const response = await request.post(`/api/teams/${team.id}/invitations`, {
+        headers: { 'X-Csrf-Token': 'obviously-wrong' },
+        data: { email: `csrf-probe-${Date.now()}@playwright.getjetstream.app`, role: 'MEMBER', features: ['ALL'] },
+      });
+      expect(response.status()).toBe(403);
+    });
+
+    await test.step('/api/billing rejects mutating requests with a wrong CSRF token', async () => {
+      const response = await request.post(`/api/billing/portal`, {
+        headers: { 'X-Csrf-Token': 'obviously-wrong' },
+        data: {},
+      });
+      expect(response.status()).toBe(403);
     });
   });
 
@@ -703,6 +778,41 @@ test.describe('Team Dashboard', () => {
       });
       expect(response.ok()).toBeFalsy();
       expect(response.status()).toBe(403);
+    });
+
+    await test.step('Ensure billing user cannot modify an ADMIN-scoped invitation', async () => {
+      // An ADMIN invitation is created directly; a BILLING caller must not be able to demote
+      // its role, "touch" it (resend/extend), or cancel it — regardless of what role is in the body.
+      const adminInvitation = await prisma.teamMemberInvitation.create({
+        data: {
+          teamId: team.id,
+          email: `admin-invite-${Date.now()}@playwright.getjetstream.app`,
+          role: 'ADMIN',
+          features: ['ALL'],
+          expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+          lastSentAt: new Date(),
+          createdById: adminUser.userId,
+          updatedById: adminUser.userId,
+        },
+      });
+
+      const demoteResponse = await request.put(`/api/teams/${team.id}/invitations/${adminInvitation.id}`, {
+        data: { role: 'MEMBER' },
+      });
+      expect(demoteResponse.status()).toBe(403);
+
+      const touchResponse = await request.put(`/api/teams/${team.id}/invitations/${adminInvitation.id}`, {
+        data: {},
+      });
+      expect(touchResponse.status()).toBe(403);
+
+      const cancelResponse = await request.delete(`/api/teams/${team.id}/invitations/${adminInvitation.id}`);
+      expect(cancelResponse.status()).toBe(403);
+
+      // The invitation must still exist with the original ADMIN role and creator.
+      const persisted = await prisma.teamMemberInvitation.findUniqueOrThrow({ where: { id: adminInvitation.id } });
+      expect(persisted.role).toBe('ADMIN');
+      expect(persisted.lastSentAt.getTime()).toBe(adminInvitation.lastSentAt.getTime());
     });
   });
 });

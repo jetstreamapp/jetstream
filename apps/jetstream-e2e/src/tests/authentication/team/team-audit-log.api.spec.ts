@@ -1,4 +1,6 @@
 import { prisma } from '@jetstream/api-config';
+import { HTTP } from '@jetstream/shared/constants';
+import type { APIRequestContext, Page } from '@playwright/test';
 import { randomUUID } from 'crypto';
 import { expect, test } from '../../../fixtures/fixtures';
 
@@ -14,6 +16,28 @@ async function waitForAuditLog(query: () => ReturnType<typeof prisma.auditLog.fi
     await new Promise((resolve) => setTimeout(resolve, delayMs));
   }
   return null;
+}
+
+/**
+ * The /api/teams and /api/billing route groups enforce HMAC double-submit CSRF —
+ * the client normally reads the `jetstream-csrf` cookie and echoes it in the
+ * X-Csrf-Token header via an axios interceptor, but raw `page.request` calls
+ * bypass that code path. This wrapper mirrors the interceptor so API-only tests
+ * exercise the real middleware rather than tripping it.
+ */
+type MutatingMethod = 'post' | 'put' | 'delete';
+type MutatingFn = (url: string, options?: Parameters<APIRequestContext['post']>[1]) => ReturnType<APIRequestContext['post']>;
+async function csrfRequest(page: Page): Promise<Record<MutatingMethod, MutatingFn>> {
+  const cookies = await page.context().cookies();
+  const csrfToken = cookies.find(({ name }) => name.endsWith(HTTP.COOKIE.CSRF_SUFFIX))?.value ?? '';
+  const wrap =
+    (method: MutatingMethod): MutatingFn =>
+    (url, options = {}) =>
+      page.request[method](url, {
+        ...options,
+        headers: { ...options.headers, [HTTP.HEADERS.X_CSRF_TOKEN]: csrfToken },
+      });
+  return { post: wrap('post'), put: wrap('put'), delete: wrap('delete') };
 }
 
 test.describe('Team Audit Log', () => {
@@ -35,11 +59,12 @@ test.describe('Team Audit Log', () => {
     const { team } = tc;
     const [member1] = tc.members;
     const teamId = team.id;
+    const request = await csrfRequest(page);
 
     try {
       await test.step('TEAM_UPDATED is logged when the team is renamed', async () => {
         const newName = `Audit Test Team ${randomUUID().slice(0, 6)}`;
-        const res = await page.request.put(`/api/teams/${teamId}`, { data: { name: newName } });
+        const res = await request.put(`/api/teams/${teamId}`, { data: { name: newName } });
         expect(res.ok()).toBeTruthy();
 
         const log = await waitForAuditLog(() =>
@@ -56,7 +81,7 @@ test.describe('Team Audit Log', () => {
       await test.step('LOGIN_CONFIG_UPDATED is logged with a changes diff', async () => {
         // DB defaults: requireMfa=true, allowIdentityLinking=false
         // Send requireMfa=false to produce a diff entry
-        const res = await page.request.post(`/api/teams/${teamId}/login-configuration`, {
+        const res = await request.post(`/api/teams/${teamId}/login-configuration`, {
           data: {
             requireMfa: false,
             allowIdentityLinking: false,
@@ -79,7 +104,7 @@ test.describe('Team Audit Log', () => {
       });
 
       await test.step('TEAM_MEMBER_ROLE_UPDATED is logged when a member role changes', async () => {
-        const res = await page.request.put(`/api/teams/${teamId}/members/${member1.userId}`, {
+        const res = await request.put(`/api/teams/${teamId}/members/${member1.userId}`, {
           data: { role: 'BILLING', features: ['ALL'] },
         });
         expect(res.ok()).toBeTruthy();
@@ -99,7 +124,7 @@ test.describe('Team Audit Log', () => {
       const inviteeEmail = `audit-invite-${randomUUID().slice(0, 8)}@example.test`;
 
       await test.step('TEAM_INVITATION_CREATED is logged when an invitation is sent', async () => {
-        const res = await page.request.post(`/api/teams/${teamId}/invitations`, {
+        const res = await request.post(`/api/teams/${teamId}/invitations`, {
           data: { email: inviteeEmail, role: 'MEMBER', features: ['ALL'] },
         });
         expect(res.ok()).toBeTruthy();
@@ -119,7 +144,7 @@ test.describe('Team Audit Log', () => {
         const invite = await prisma.teamMemberInvitation.findFirstOrThrow({
           where: { teamId, email: inviteeEmail },
         });
-        const res = await page.request.delete(`/api/teams/${teamId}/invitations/${invite.id}`);
+        const res = await request.delete(`/api/teams/${teamId}/invitations/${invite.id}`);
         expect(res.ok()).toBeTruthy();
 
         const log = await waitForAuditLog(() =>
@@ -142,6 +167,7 @@ test.describe('Team Audit Log', () => {
   test('SSO and domain operations create audit log records', async ({ teamCreationUtils1User: tc, page }) => {
     const { team } = tc;
     const teamId = team.id;
+    const request = await csrfRequest(page);
 
     // Seed a verified domain so the SSO config endpoints don't reject the request.
     // We replicate the state that teamDb.verifyDomainVerification would produce.
@@ -161,7 +187,7 @@ test.describe('Team Audit Log', () => {
       let newDomainRecordId!: string;
 
       await test.step('DOMAIN_VERIFICATION_ADDED is logged when a domain is saved', async () => {
-        const res = await page.request.post(`/api/teams/${teamId}/domain-verification`, {
+        const res = await request.post(`/api/teams/${teamId}/domain-verification`, {
           data: { domain: newDomain },
         });
         expect(res.ok()).toBeTruthy();
@@ -181,7 +207,7 @@ test.describe('Team Audit Log', () => {
       });
 
       await test.step('DOMAIN_DELETED is logged when a domain verification is removed', async () => {
-        const res = await page.request.delete(`/api/teams/${teamId}/domain-verification/${newDomainRecordId}`);
+        const res = await request.delete(`/api/teams/${teamId}/domain-verification/${newDomainRecordId}`);
         expect(res.ok()).toBeTruthy();
 
         const log = await waitForAuditLog(() =>
@@ -195,7 +221,7 @@ test.describe('Team Audit Log', () => {
       });
 
       await test.step('SSO_SAML_CONFIG_CREATED is logged when SAML config is created', async () => {
-        const res = await page.request.post(`/api/teams/${teamId}/sso/saml/config`, {
+        const res = await request.post(`/api/teams/${teamId}/sso/saml/config`, {
           data: {
             name: 'Test SAML Provider',
             nameIdFormat: 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
@@ -219,7 +245,7 @@ test.describe('Team Audit Log', () => {
       });
 
       await test.step('SSO_SAML_CONFIG_UPDATED is logged when SAML config is changed', async () => {
-        const res = await page.request.post(`/api/teams/${teamId}/sso/saml/config`, {
+        const res = await request.post(`/api/teams/${teamId}/sso/saml/config`, {
           data: {
             name: 'Test SAML Provider',
             nameIdFormat: 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
@@ -246,7 +272,7 @@ test.describe('Team Audit Log', () => {
       });
 
       await test.step('SSO_SAML_CONFIG_DELETED is logged when SAML config is deleted', async () => {
-        const res = await page.request.delete(`/api/teams/${teamId}/sso/saml/config`);
+        const res = await request.delete(`/api/teams/${teamId}/sso/saml/config`);
         expect(res.ok()).toBeTruthy();
 
         const log = await waitForAuditLog(() =>

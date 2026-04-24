@@ -1,6 +1,54 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ApiRequestError, getApiRequestFactoryFn } from '../callout-adapter';
+import { ApiRequestError, getApiRequestFactoryFn, sanitizeCallerHeaders } from '../callout-adapter';
 import type { FetchFn } from '../types';
+
+describe('sanitizeCallerHeaders', () => {
+  it('returns undefined when no headers are provided (caller omitted the field entirely)', () => {
+    expect(sanitizeCallerHeaders(undefined)).toBeUndefined();
+  });
+
+  it('returns an empty object when given an empty object (preserves caller-intent)', () => {
+    expect(sanitizeCallerHeaders({})).toEqual({});
+  });
+
+  it('passes through headers not in the deny list unchanged', () => {
+    const input = { 'X-Custom': 'value', 'X-Request-Id': 'abc', 'Accept-Language': 'en' };
+    expect(sanitizeCallerHeaders(input)).toEqual(input);
+  });
+
+  it('strips all denied headers regardless of case', () => {
+    const input: Record<string, string> = {
+      Authorization: 'Bearer attacker',
+      AUTHORIZATION: 'Basic attacker',
+      Cookie: 'sessionid=attacker',
+      COOKIE: 'sessionid=attacker',
+      Host: 'attacker.example.com',
+      host: 'attacker.example.com',
+      'X-SFDC-Session': 'attacker-session',
+      'x-sfdc-session': 'attacker-session',
+      'X-Sfdc-Session': 'attacker-session',
+    };
+    const output = sanitizeCallerHeaders(input);
+    expect(Object.keys(output ?? {})).toHaveLength(0);
+  });
+
+  it('strips only denied headers while preserving the rest', () => {
+    const input = {
+      Authorization: 'Bearer attacker',
+      'X-Custom': 'keep-me',
+      Cookie: 'sessionid=attacker',
+      'Content-Type': 'application/json',
+    };
+    const output = sanitizeCallerHeaders(input);
+    expect(output).toEqual({ 'X-Custom': 'keep-me', 'Content-Type': 'application/json' });
+  });
+
+  it('does not mutate the caller-supplied headers object', () => {
+    const input = { Authorization: 'Bearer attacker', 'X-Custom': 'keep' };
+    sanitizeCallerHeaders(input);
+    expect(input).toEqual({ Authorization: 'Bearer attacker', 'X-Custom': 'keep' });
+  });
+});
 
 // Mock XML responses from Salesforce
 const MOCK_RESPONSES = {

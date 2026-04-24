@@ -40,6 +40,23 @@ function parseXml(value: string) {
   return parse(value, CALLOUT_ADAPTER_PARSE_OPTIONS);
 }
 
+// Headers that must always come from the server-bound session — caller-supplied values are dropped
+// so the proxy cannot be coerced into using a different bearer/session/cookie/host.
+const DENIED_CALLER_HEADERS = new Set(['authorization', 'cookie', 'host', 'x-sfdc-session']);
+
+export function sanitizeCallerHeaders(headers: Record<string, string> | undefined): Record<string, string> | undefined {
+  if (!headers) {
+    return headers;
+  }
+  const sanitized: Record<string, string> = {};
+  for (const [name, value] of Object.entries(headers)) {
+    if (!DENIED_CALLER_HEADERS.has(name.toLowerCase())) {
+      sanitized[name] = value;
+    }
+  }
+  return sanitized;
+}
+
 /**
  * Factory function to get api request
  * Requires a fetch compatible function to avoid relying any specific fetch implementation
@@ -76,13 +93,14 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
         body,
         duplex,
         headers: {
-          Authorization: `Bearer ${accessToken}`,
           // default headers, can be overridden by caller
           [HTTP.HEADERS.CONTENT_TYPE]: 'application/json; charset=UTF-8',
           [HTTP.HEADERS.ACCEPT]: 'application/json; charset=UTF-8',
+          // caller-provided overrides (auth/session/cookie/host stripped)
+          ...sanitizeCallerHeaders(headers),
+          // Server-bound credentials are set AFTER caller headers so they always win
+          Authorization: `Bearer ${accessToken}`,
           [HTTP.HEADERS.X_SFDC_Session]: accessToken,
-          // caller provided headers
-          ...headers,
         },
       })
         .then(async (response) => {
