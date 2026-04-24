@@ -1,11 +1,11 @@
 import { Prisma, PrismaClient } from '@jetstream/prisma';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
-import { getExceptionLog, logger } from './api-logger';
+import { logger } from './api-logger';
 import { ENV } from './env-config';
 
 process.on('uncaughtException', function (err) {
-  logger.error(getExceptionLog(err, true), '[PROCESS][UNCAUGHT_EXCEPTION]');
+  logger.error({ err }, '[PROCESS][UNCAUGHT_EXCEPTION]');
 });
 
 const log: Array<Prisma.LogLevel | Prisma.LogDefinition> = ['info'];
@@ -31,11 +31,11 @@ export const pgPool = new Pool({
 
 pgPool.on('connect', (client) => {
   client.on('error', (err) => {
-    logger.error(getExceptionLog(err), '[DB][CLIENT][ERROR] Unexpected error on client.');
+    logger.error({ err }, '[DB][CLIENT][ERROR] Unexpected error on client.');
   });
 });
 
 pgPool.on('error', (err) => {
-  logger.error(getExceptionLog(err), '[DB][POOL][ERROR] Unexpected error on idle client.');
+  logger.error({ err }, '[DB][POOL][ERROR] Unexpected error on idle client.');
   process.exit(-1);
 });

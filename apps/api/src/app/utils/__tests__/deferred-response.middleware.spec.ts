@@ -3,7 +3,6 @@ import { EventEmitter } from 'events';
 import { deferredResponseMiddleware, writeDeferredResponse, type DeferredResponseState } from '../deferred-response.middleware';
 
 vi.mock('@jetstream/api-config', () => ({
-  getExceptionLog: (ex: unknown) => ({ message: ex instanceof Error ? ex.message : String(ex) }),
   ENV: {
     DEFERRED_RESPONSE_ENABLED: true,
     DEFERRED_RESPONSE_THRESHOLD_MS: 75_000,

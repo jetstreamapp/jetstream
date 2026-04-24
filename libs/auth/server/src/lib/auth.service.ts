@@ -1,4 +1,4 @@
-import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
+import { ENV, logger } from '@jetstream/api-config';
 import type { Request, Response } from '@jetstream/api-types';
 import { OauthProviderType, Providers, ResponseLocalsCookies, SessionIpData } from '@jetstream/auth/types';
 import { GeoIpLookupResponse } from '@jetstream/types';
@@ -184,7 +184,7 @@ export async function verifyCSRFFromRequestOrThrow(csrfToken: string, cookieStri
       throw new InvalidCsrfToken();
     }
   } catch (ex) {
-    logger.error(getExceptionLog(ex), '[ERROR] verifyCSRFFromRequestOrThrow');
+    logger.error({ err: ex }, '[ERROR] verifyCSRFFromRequestOrThrow');
     throw new InvalidCsrfToken();
   }
 }
@@ -327,7 +327,7 @@ export async function lookupGeoLocationFromIpAddresses(
       };
     });
   } catch (ex) {
-    logger.warn(getExceptionLog(ex, true), 'Geo-IP lookup failed');
+    logger.warn({ err: ex }, 'Geo-IP lookup failed');
     return ipAddresses.map((ipAddress) => ({ ipAddress, location: null }));
   }
 }
@@ -349,7 +349,7 @@ export function initSession(
     req.session.regenerate((error) => {
       try {
         if (error) {
-          logger.error({ ...getExceptionLog(error) }, '[AUTH][INIT_SESSION][ERROR] Error regenerating session');
+          logger.error({ err: error }, '[AUTH][INIT_SESSION][ERROR] Error regenerating session');
           reject(new AuthError('Error initializing session'));
           return;
         }
@@ -416,7 +416,7 @@ export function initSession(
 
         resolve();
       } catch (ex) {
-        logger.error({ ...getExceptionLog(ex) }, '[AUTH][INIT_SESSION][ERROR] Error initializing session');
+        logger.error({ err: ex }, '[AUTH][INIT_SESSION][ERROR] Error initializing session');
         reject(new AuthError('Error initializing session'));
       }
     });

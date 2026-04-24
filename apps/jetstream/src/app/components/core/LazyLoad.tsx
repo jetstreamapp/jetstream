@@ -23,7 +23,7 @@
  * SOFTWARE.
  */
 
-import { logErrorToRollbar, setItemInSessionStorage } from '@jetstream/shared/ui-utils';
+import { tracker, setItemInSessionStorage } from '@jetstream/shared/ui-utils';
 import { ComponentType, createElement, forwardRef, lazy } from 'react';
 
 export type PreloadableComponent<T extends ComponentType<unknown>> = T & {
@@ -60,10 +60,7 @@ export default function lazyWithPreload<T extends ComponentType<unknown>>(
         })
         .catch((ex) => {
           console.error('Failed to preload component', ex);
-          logErrorToRollbar('Preload route failed', {
-            message: ex.message,
-            stack: ex.stack,
-          });
+          tracker.error('Preload route failed', ex);
         });
     }
 

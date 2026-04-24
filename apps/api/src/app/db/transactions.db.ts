@@ -1,4 +1,4 @@
-import { getExceptionLog, logger, prisma } from '@jetstream/api-config';
+import { logger, prisma } from '@jetstream/api-config';
 import { Prisma } from '@jetstream/prisma';
 
 /**
@@ -40,7 +40,7 @@ export async function hardDeleteUserAndOrgs(userId: string) {
       await prisma.$transaction(dbTransactions);
     }
   } catch (ex) {
-    logger.error({ userId, ...getExceptionLog(ex) }, '[DB][TX][DEL_ORGS_AND_USER][ERROR] %o', ex);
+    logger.error({ userId, err: ex }, '[DB][TX][DEL_ORGS_AND_USER][ERROR] %o', ex);
     throw ex;
   }
 }

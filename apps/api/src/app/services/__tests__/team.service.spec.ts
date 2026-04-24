@@ -42,8 +42,7 @@ vi.mock('@jetstream/api-config', () => ({
     SFDC_CONSUMER_SECRET: 'legacy-secret',
   },
   logger: { error: vi.fn() },
-  rollbarServer: { error: vi.fn() },
-  getExceptionLog: vi.fn((err) => ({ message: err.message })),
+  errorTracker: { error: vi.fn(), warn: vi.fn(), critical: vi.fn(), info: vi.fn() },
   DbCacheProvider: vi.fn().mockImplementation(function () {
     this.saveAsync = vi.fn().mockResolvedValue(null);
     this.getAsync = vi.fn().mockResolvedValue(null);

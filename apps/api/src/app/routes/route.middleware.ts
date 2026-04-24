@@ -1,4 +1,4 @@
-import { createRateLimit, ENV, getExceptionLog, logger } from '@jetstream/api-config';
+import { createRateLimit, ENV, logger } from '@jetstream/api-config';
 import {
   AuthError,
   checkUserAgentSimilarity,
@@ -180,7 +180,7 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
       res.log.warn(`[AUTH][UNAUTHORIZED] User-Agent mismatch: ${req.session.userAgent} !== ${userAgent}`);
       req.session.destroy((err) => {
         if (err) {
-          (res.log || req.log || logger).error({ ...getExceptionLog(err) }, '[AUTH][UNAUTHORIZED][ERROR] Error destroying session');
+          (res.log || req.log || logger).error({ err }, '[AUTH][UNAUTHORIZED][ERROR] Error destroying session');
         }
         // TODO: Send email to user about potential suspicious activity
         next(new AuthenticationError('Unauthorized'));
@@ -241,7 +241,7 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
       }
     }
   } catch (ex) {
-    res.log.warn(getExceptionLog(ex), '[INIT-ORG][ERROR]');
+    res.log.warn({ err: ex }, '[INIT-ORG][ERROR]');
     if (ex instanceof NotFoundError) {
       return next(ex);
     }
@@ -346,14 +346,14 @@ export async function getOrgForRequest(
   // This should be done after decryption so that the org stays expired if decryption failed (we use placeholder decryption token)
   if (org.expirationScheduledFor) {
     salesforceOrgsDb.clearExpiration(org.id, user.id).catch((err) => {
-      logger.error({ orgId: org.id, userId: user.id, ...getExceptionLog(err) }, '[ORG][UPDATE] Error clearing expirationScheduledFor');
+      logger.error({ orgId: org.id, userId: user.id, err }, '[ORG][UPDATE] Error clearing expirationScheduledFor');
     });
   } else {
     // Only update lastActivityAt if it's null or older than 1 day to reduce DB writes
     const oneDayAgo = addDays(new Date(), -1);
     if (!org.lastActivityAt || isBefore(new Date(org.lastActivityAt), oneDayAgo)) {
       salesforceOrgsDb.updateLastActivity(org.id).catch((err) => {
-        logger.error({ orgId: org.id, userId: user.id, ...getExceptionLog(err) }, '[ORG][UPDATE] Error updating lastActivityAt');
+        logger.error({ orgId: org.id, userId: user.id, err }, '[ORG][UPDATE] Error updating lastActivityAt');
       });
     }
   }
@@ -374,7 +374,7 @@ export async function getOrgForRequest(
     try {
       await salesforceOrgsDb.updateAccessToken_UNSAFE({ accessToken, refreshToken, org, userId: user.id });
     } catch (ex) {
-      logger.error({ requestId, ...getExceptionLog(ex) }, '[ORG][REFRESH] Error saving refresh token');
+      logger.error({ requestId, err: ex }, '[ORG][REFRESH] Error saving refresh token');
     }
   };
 
@@ -382,7 +382,7 @@ export async function getOrgForRequest(
     try {
       await salesforceOrgsDb.updateOrg_UNSAFE(org, { connectionError: error });
     } catch (ex) {
-      logger.error({ requestId, ...getExceptionLog(ex) }, '[ORG][UPDATE] Error updating connection error on org');
+      logger.error({ requestId, err: ex }, '[ORG][UPDATE] Error updating connection error on org');
     }
   };
 
@@ -405,7 +405,7 @@ export async function getOrgForRequest(
       }
       return { accessToken: freshAccessToken, refreshToken: freshRefreshToken };
     } catch (ex) {
-      logger.error({ requestId, ...getExceptionLog(ex) }, '[ORG][REFRESH] Error fetching fresh tokens for race condition check');
+      logger.error({ requestId, err: ex }, '[ORG][REFRESH] Error fetching fresh tokens for race condition check');
       return null;
     }
   };

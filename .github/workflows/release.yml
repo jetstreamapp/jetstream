@@ -8,7 +8,7 @@ on:
         required: true
         default: "patch"
         type: choice
-        options: [patch, minor, major]
+        options: [ patch, minor, major ]
 
       release_web:
         description: "True to release core web application"
@@ -57,7 +57,7 @@ env:
   JETSTREAM_SESSION_SECRET: ${{ secrets.JETSTREAM_SESSION_SECRET }}
   NX_PUBLIC_AMPLITUDE_KEY: ${{ secrets.NX_PUBLIC_AMPLITUDE_KEY }}
   NX_PUBLIC_CLIENT_URL: "http://localhost:3333/app"
-  NX_PUBLIC_ROLLBAR_KEY: ${{ secrets.NX_PUBLIC_ROLLBAR_KEY }}
+  NX_PUBLIC_SENTRY_DSN: ${{ secrets.NX_PUBLIC_SENTRY_DSN }}
   NX_PUBLIC_SERVER_URL: "http://localhost:3333"
   SFDC_API_VERSION: "65.0"
   SFDC_CALLBACK_URL: http://localhost:3333/oauth/sfdc/callback
@@ -131,16 +131,17 @@ jobs:
       - name: Build Web
         if: ${{ inputs.release_web }}
         run: yarn build
-        env:
-          SKIP_ROLLBAR: true
 
       - name: Build Web Extension
         if: ${{ inputs.release_web_extension }}
-        run: npx nx run-many --output-style=static --target=build --parallel=3 --projects=jetstream-web-extension --configuration=production
+        run: npx nx run-many --output-style=static --target=build --parallel=3
+          --projects=jetstream-web-extension --configuration=production
 
       - name: Build Desktop
         if: ${{ inputs.release_desktop }}
-        run: npx nx run-many --output-style=static --target=build --parallel=3 --projects=jetstream-desktop,jetstream-desktop-client --configuration=production
+        run: npx nx run-many --output-style=static --target=build --parallel=3
+          --projects=jetstream-desktop,jetstream-desktop-client
+          --configuration=production
 
       # Generate a GitHub App installation token for git pushes.
       # The App's bot account is on the main-branch ruleset bypass list, which a PAT is not.
@@ -199,13 +200,6 @@ jobs:
         if: ${{ inputs.release_web }}
         run: git push origin HEAD:release --force
 
-      - name: Create Rollbar deploy record
-        if: ${{ inputs.release_web }}
-        continue-on-error: true
-        run: yarn rollbar:create-deploy
-        env:
-          ROLLBAR_SERVER_TOKEN: ${{ secrets.ROLLBAR_ACCESS_TOKEN }}
-
       # RELEASE WEB EXTENSION
       # NOTE: Each application has its own tag format - so it is safe to have release-it run multiple times
       - name: Release Web Extension
@@ -240,19 +234,27 @@ jobs:
 
       # CAPTURE VERSIONS FOR SUMMARY
       - name: Capture web version
-        if: ${{ always() && inputs.release_web && steps.release_web.outcome == 'success' }}
+        if: ${{ always() && inputs.release_web && steps.release_web.outcome == 'success'
+          }}
         id: capture_web_version
-        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(node -p "require('./package.json').version")" >>
+          "$GITHUB_OUTPUT"
 
       - name: Capture web extension version
-        if: ${{ always() && inputs.release_web_extension && steps.release_web_ext.outcome == 'success' }}
+        if: ${{ always() && inputs.release_web_extension &&
+          steps.release_web_ext.outcome == 'success' }}
         id: capture_web_ext_version
-        run: echo "version=$(node -p "require('./apps/jetstream-web-extension/src/manifest.json').version")" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(node -p
+          "require('./apps/jetstream-web-extension/src/manifest.json').version")"
+          >> "$GITHUB_OUTPUT"
 
       - name: Capture desktop version
-        if: ${{ always() && inputs.release_desktop && steps.release_desktop.outcome == 'success' }}
+        if: ${{ always() && inputs.release_desktop && steps.release_desktop.outcome ==
+          'success' }}
         id: capture_desktop_version
-        run: echo "version=$(node -p "require('./apps/jetstream-desktop/package.json').version")" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(node -p
+          "require('./apps/jetstream-desktop/package.json').version")" >>
+          "$GITHUB_OUTPUT"
 
       # GENERATE RELEASE SUMMARY
       - name: Generate release summary

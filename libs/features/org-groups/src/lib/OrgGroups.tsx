@@ -10,8 +10,8 @@ import {
   updateOrgGroup,
 } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { formatNumber, useRollbar, useTitle } from '@jetstream/shared/ui-utils';
-import { getErrorMessageAndStackObj, pluralizeIfMultiple } from '@jetstream/shared/utils';
+import { formatNumber, tracker, useTitle } from '@jetstream/shared/ui-utils';
+import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { AddOrgHandlerFn, Maybe, OrgGroup, OrgGroupCreateUpdatePayload, OrgGroupWithOrgs } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -37,7 +37,6 @@ import { SalesforceOrgsActions } from './SalesforceOrgsActions';
 
 export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHandlerFn }) {
   useTitle(TITLES.ORG_GROUPS);
-  const rollbar = useRollbar();
   const { trackEvent } = useAmplitude();
   const selectedOrg = useAtomValue(fromAppState.selectedOrgStateWithoutPlaceholder);
   const setSelectedOrgId = useSetAtom(fromAppState.selectedOrgIdState);
@@ -111,11 +110,11 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
           message: `Oops! There was a problem moving the Salesforce Org to the Group. Please try again.`,
           type: 'error',
         });
-        rollbar.error('Org Group: Error moving org to group', getErrorMessageAndStackObj(ex));
+        tracker.error('Org Group: Error moving org to group', ex);
         logger.error('Org Group: Error moving org to group', ex);
       }
     },
-    [allOrgs, groups, rollbar, selectedOrg?.uniqueId, setGroups, setOrgGroupsFromDb, setOrgs, setSelectedOrgId, trackEvent],
+    [allOrgs, groups, selectedOrg?.uniqueId, setGroups, setOrgGroupsFromDb, setOrgs, setSelectedOrgId, trackEvent],
   );
 
   const handleCreateOrUpdate = async (orgGroup: OrgGroupCreateUpdatePayload, groupToUpdateId?: string) => {
@@ -196,7 +195,7 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
           type: 'success',
         });
       } catch (ex) {
-        rollbar.error('Org Group: Error deleting group with orgs', getErrorMessageAndStackObj(ex));
+        tracker.error('Org Group: Error deleting group with orgs', ex);
         logger.error('Org Group: Error deleting group with orgs', ex);
         fireToast({
           message: `Failed to delete group. Please try again.`,

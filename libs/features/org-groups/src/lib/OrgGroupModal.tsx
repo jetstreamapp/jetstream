@@ -1,5 +1,5 @@
-import { useRollbar } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { tracker } from '@jetstream/shared/ui-utils';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import { Maybe, OrgGroupCreateUpdatePayload, OrgGroupWithOrgs } from '@jetstream/types';
 import { fireToast, Grid, Input, Modal, Textarea } from '@jetstream/ui';
 import { ConfirmPageChange } from '@jetstream/ui-core';
@@ -13,7 +13,6 @@ interface OrgGroupModalProps {
 
 export function OrgGroupModal({ orgGroup, onSubmit, onClose }: OrgGroupModalProps) {
   const isMounted = useRef(true);
-  const rollbar = useRollbar();
   const [loading, setLoading] = useState(false);
   const [updatedOrg, setUpdatedOrg] = useState(() => ({
     name: orgGroup?.name || '',
@@ -34,7 +33,7 @@ export function OrgGroupModal({ orgGroup, onSubmit, onClose }: OrgGroupModalProp
       onClose();
     } catch (ex) {
       fireToast({ message: `There was an error creating the organization. ${getErrorMessage(ex)}`, type: 'error' });
-      rollbar.error('SalesforceGroupModal: Error creating organization', getErrorMessageAndStackObj(ex));
+      tracker.error('SalesforceGroupModal: Error creating organization', ex);
     } finally {
       setLoading(false);
     }

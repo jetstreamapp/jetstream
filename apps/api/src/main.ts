@@ -1,6 +1,8 @@
+// this gets imported first to ensure some items that require early initialization run first
+import '@jetstream/api-config';
+
 import { ClusterMemoryStorePrimary } from '@express-rate-limit/cluster-memory-store';
-import '@jetstream/api-config'; // this gets imported first to ensure as some items require early initialization
-import { createRateLimit, ENV, getExceptionLog, httpLogger, logger, pgPool } from '@jetstream/api-config';
+import { createRateLimit, ENV, httpLogger, logger, pgPool, sentryRequestContextMiddleware } from '@jetstream/api-config';
 import '@jetstream/auth/types';
 import { HTTP, SESSION_EXP_DAYS } from '@jetstream/shared/constants';
 import { setupPrimary } from '@socket.io/cluster-adapter';
@@ -126,6 +128,10 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
 
   // Setup session
   app.use(sessionMiddleware);
+
+  // Stamp user/IP/URL onto Sentry's isolation scope so any error captured during
+  // this request — including from services that don't receive `req` — carries full context.
+  app.use(sentryRequestContextMiddleware);
 
   // `crossOriginOpenerPolicy: false` is load-bearing. Any COOP value — including the
   // looser `same-origin-allow-popups` — causes the browser to isolate popups into a new
@@ -308,7 +314,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
     try {
       notFoundHtml = readFileSync(join(__dirname, '../landing/404.html'), 'utf8');
     } catch (error) {
-      logger.error(getExceptionLog(error), '[404] Failed to read landing 404 page — 404 responses will fall back to plain text');
+      logger.error({ err: error }, '[404] Failed to read landing 404 page — 404 responses will fall back to plain text');
     }
   }
   app.locals.notFoundHtml = notFoundHtml;
@@ -328,7 +334,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
       jetstreamIndexHtml = readFileSync(join(__dirname, '../jetstream/index.html'), 'utf8');
     } catch (error) {
       logger.error(
-        getExceptionLog(error),
+        { err: error },
         '[SPA] Failed to read jetstream/index.html at startup — /app will return 503 until a valid build is available',
       );
     }
@@ -405,10 +411,10 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if ((error as any).code === 'EADDRINUSE') {
       logger.info('Kill with: lsof -ti:3333 | xargs kill -9');
-      logger.error(getExceptionLog(error), `Port ${ENV.PORT} is already in use`);
+      logger.error({ err: error }, `Port ${ENV.PORT} is already in use`);
       process.exit(1);
     } else {
-      logger.error(getExceptionLog(error), '[SERVER][ERROR]');
+      logger.error({ err: error }, '[SERVER][ERROR]');
     }
   });
 

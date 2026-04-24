@@ -1,4 +1,4 @@
-import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
+import { ENV, logger } from '@jetstream/api-config';
 import { getApiAddressFromReq } from '@jetstream/auth/server';
 import { HTTP } from '@jetstream/shared/constants';
 import express from 'express';
@@ -41,7 +41,7 @@ export const sendUserFeedbackEmail = async (req: express.Request, res: express.R
     res.json({ success: true });
   } catch (error) {
     await cleanupFeedbackAttachments(req, { userEmail: 'unknown', userId: 'unknown', requestId: res.locals?.requestId });
-    (res.log || logger).error({ ...getExceptionLog(error) }, 'Error processing feedback submission');
+    (res.log || logger).error({ err: error }, 'Error processing feedback submission');
     next(error);
   }
 };

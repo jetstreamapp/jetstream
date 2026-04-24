@@ -2,7 +2,7 @@ import { DesktopAuthInfo } from '@jetstream/desktop/types';
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
 import { disconnectSocket, initSocket, registerMiddleware } from '@jetstream/shared/data';
-import { useObservable, useRollbar } from '@jetstream/shared/ui-utils';
+import { initErrorTracker, setErrorTrackerUser, tracker, useObservable } from '@jetstream/shared/ui-utils';
 import { Announcement, JetstreamEventSaveSoqlQueryFormatOptionsPayload, SalesforceOrgUi } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
@@ -105,12 +105,14 @@ APP VERSION ${version}
     }
   }, []);
 
-  const rollbar = useRollbar({
-    accessToken: environment.rollbarClientAccessToken,
-    environment: appInfo.environment,
-    userProfile,
-    version,
-  });
+  useEffect(() => {
+    initErrorTracker({ dsn: environment.sentryDsn, environment: appInfo.environment, version });
+  }, [appInfo.environment, version]);
+
+  useEffect(() => {
+    setErrorTrackerUser(userProfile);
+  }, [userProfile]);
+
   useAmplitude();
 
   useEffect(() => {
@@ -128,11 +130,11 @@ APP VERSION ${version}
           });
           setUserProfile((prev) => ({ ...prev, preferences: updatedPreferences }));
         } catch (ex) {
-          rollbar.error('Error saving query format options', { stack: ex.stack, message: ex.message });
+          tracker.error('Error saving query format options', ex);
         }
       })();
     }
-  }, [onSaveSoqlQueryFormatOptions, rollbar, setUserProfile]);
+  }, [onSaveSoqlQueryFormatOptions, setUserProfile]);
 
   useEffect(() => {
     if (invalidOrg) {

@@ -1,7 +1,6 @@
 import { Prisma, PrismaClient } from '@jetstream/prisma';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
-import { getExceptionLog } from '../utils/utils';
 import { ENV } from './env-config';
 import { logger } from './logger.config';
 
@@ -29,12 +28,12 @@ export const pgPool = new Pool({
 pgPool.on('connect', (client) => {
   // logger.info('[DB][POOL] Connected');
   client.on('error', (err) => {
-    logger.error(getExceptionLog(err), '[DB][CLIENT][ERROR] Unexpected error on client');
+    logger.error({ err }, '[DB][CLIENT][ERROR] Unexpected error on client');
   });
 });
 
 pgPool.on('error', (err) => {
-  logger.error(getExceptionLog(err), '[DB][POOL][ERROR] Unexpected error on idle client');
+  logger.error({ err }, '[DB][POOL][ERROR] Unexpected error on idle client');
   process.exit(-1);
 });
 
@@ -53,7 +52,7 @@ export const cloudflareAnalyticsPool = ENV.CLOUDFLARE_ANALYTICS_DBURI
   : null;
 
 cloudflareAnalyticsPool?.on('error', (err) => {
-  logger.error(getExceptionLog(err), '[DB][CLOUDFLARE_ANALYTICS_POOL][ERROR] Unexpected error on idle client');
+  logger.error({ err }, '[DB][CLOUDFLARE_ANALYTICS_POOL][ERROR] Unexpected error on idle client');
 });
 
 export function getCloudflareAnalyticsPool(): Pool {

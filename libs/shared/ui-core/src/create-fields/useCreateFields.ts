@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { genericRequest, sobjectOperation, updatePermissionSetRecords } from '@jetstream/shared/data';
-import { useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
+import { tracker, useBrowserNotifications } from '@jetstream/shared/ui-utils';
 import { REGEX, getSuccessOrFailureChar, groupByFlat, pluralizeFromNumber, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
   CompositeGraphResponseBodyData,
@@ -75,7 +75,6 @@ export function useCreateFields({
   profilesAndPermSetsById,
   sObjects,
 }: UseCreateFieldsOptions) {
-  const rollbar = useRollbar();
   const { notifyUser } = useBrowserNotifications(serverUrl);
   const [loading, setLoading] = useState(false);
   const [_results, setResults] = useState<CreateFieldsResults[]>([]);
@@ -128,16 +127,13 @@ export function useCreateFields({
         } catch (ex) {
           setFatalError(true);
           setFatalErrorMessage('There was a problem preparing the data for deployment');
-          rollbar.critical('Create fields - prepare payload error', {
-            message: ex.message,
-            stack: ex.stack,
-          });
+          tracker.critical('Create fields - prepare payload error', ex);
           return false;
         }
       }
       return false;
     },
-    [rollbar, sObjects, selectedOrg.orgNamespacePrefix],
+    [sObjects, selectedOrg.orgNamespacePrefix],
   );
 
   /**
@@ -254,10 +250,7 @@ export function useCreateFields({
                 originalRecord.Errors = result.flsErrors.join('\n');
               } catch (ex) {
                 logger.warn('Error getting FLS errors');
-                rollbar.error('Create fields - error getting FLS results', {
-                  message: ex.message,
-                  stack: ex.stack,
-                });
+                tracker.error('Create fields - error getting FLS results', ex);
               }
             } else {
               originalRecord.Id = record.id;
@@ -270,7 +263,7 @@ export function useCreateFields({
         });
       }
     },
-    [rollbar, selectedOrg],
+    [selectedOrg],
   );
 
   /**
@@ -357,10 +350,7 @@ export function useCreateFields({
           } catch (ex) {
             setLayoutErrorMessage('There was an unexpected error updating page layouts');
             pageLayoutStatus = 'FAILED';
-            rollbar.error('Create fields - page layouts - error', {
-              message: ex.message,
-              stack: ex.stack,
-            });
+            tracker.error('Create fields - page layouts - error', ex);
           }
         }
 
@@ -387,10 +377,7 @@ export function useCreateFields({
             'key',
           ),
         );
-        rollbar.error('Create fields error', {
-          message: ex.message,
-          stack: ex.stack,
-        });
+        tracker.error('Create fields error', ex);
         notifyUser(`There was an error deploying your fields`, {
           body: `An unexpected error has occurred. ${ex.message}`,
           tag: 'create-fields',
@@ -400,7 +387,7 @@ export function useCreateFields({
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [apiVersion, deployFieldMetadata, deployFieldPermissions, permissionSets, profiles, profilesAndPermSetsById, rollbar, selectedOrg],
+    [apiVersion, deployFieldMetadata, deployFieldPermissions, permissionSets, profiles, profilesAndPermSetsById, selectedOrg],
   );
 
   function sendBrowserNotification(resultsById: Record<string, CreateFieldsResults>) {

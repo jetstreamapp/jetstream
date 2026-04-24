@@ -21,10 +21,6 @@ vi.mock('@jetstream/api-config', () => ({
   ENV: {
     JETSTREAM_SERVER_URL: 'https://getjetstream.app',
   },
-  getExceptionLog: (error: unknown, includeStack = false) => ({
-    error: error instanceof Error ? error.message : error,
-    stack: includeStack && error instanceof Error ? error.stack : undefined,
-  }),
   logger: {
     debug: vi.fn(),
     error: vi.fn(),
@@ -32,8 +28,11 @@ vi.mock('@jetstream/api-config', () => ({
     warn: vi.fn(),
   },
   prisma: {},
-  rollbarServer: {
+  errorTracker: {
+    error: vi.fn(),
     warn: vi.fn(),
+    critical: vi.fn(),
+    info: vi.fn(),
   },
 }));
 
@@ -110,7 +109,10 @@ describe('uncaughtErrorHandler logging levels', () => {
     const { res } = await handleError(new UserFacingError('Invalid SOQL'));
 
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.log.debug).toHaveBeenCalledWith(expect.objectContaining({ error: 'Invalid SOQL', statusCode: 400 }), '[RESPONSE][ERROR]');
+    expect(res.log.debug).toHaveBeenCalledWith(
+      { err: expect.objectContaining({ message: 'Invalid SOQL' }), res: { statusCode: 400 } },
+      '[RESPONSE][ERROR]',
+    );
     expect(res.log.warn).not.toHaveBeenCalled();
     expect(res.log.error).not.toHaveBeenCalled();
   });
@@ -123,7 +125,7 @@ describe('uncaughtErrorHandler logging levels', () => {
 
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.log.warn).toHaveBeenCalledWith(
-      expect.objectContaining({ error: 'Unique constraint failed', statusCode: 400 }),
+      { err: expect.objectContaining({ message: 'Unique constraint failed' }), res: { statusCode: 400 } },
       '[RESPONSE][ERROR][DATABASE]',
     );
     expect(res.log.error).not.toHaveBeenCalled();
@@ -133,7 +135,10 @@ describe('uncaughtErrorHandler logging levels', () => {
     const { res } = await handleError(new AuthenticationError('Unauthorized'));
 
     expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.log.warn).toHaveBeenCalledWith(expect.objectContaining({ error: 'Unauthorized', statusCode: 401 }), '[RESPONSE][ERROR]');
+    expect(res.log.warn).toHaveBeenCalledWith(
+      { err: expect.objectContaining({ message: 'Unauthorized' }), res: { statusCode: 401 } },
+      '[RESPONSE][ERROR]',
+    );
     expect(res.log.error).not.toHaveBeenCalled();
   });
 
@@ -141,7 +146,10 @@ describe('uncaughtErrorHandler logging levels', () => {
     const { res } = await handleError(new NotFoundError('Route not found'));
 
     expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.log.debug).toHaveBeenCalledWith(expect.objectContaining({ error: 'Route not found', statusCode: 404 }), '[RESPONSE][ERROR]');
+    expect(res.log.debug).toHaveBeenCalledWith(
+      { err: expect.objectContaining({ message: 'Route not found' }), res: { statusCode: 404 } },
+      '[RESPONSE][ERROR]',
+    );
     expect(res.log.warn).not.toHaveBeenCalled();
     expect(res.log.error).not.toHaveBeenCalled();
   });
@@ -151,7 +159,7 @@ describe('uncaughtErrorHandler logging levels', () => {
 
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.log.error).toHaveBeenCalledWith(
-      expect.objectContaining({ error: 'Database unavailable', statusCode: 500 }),
+      { err: expect.objectContaining({ message: 'Database unavailable' }), res: { statusCode: 500 } },
       '[RESPONSE][ERROR]',
     );
   });
@@ -164,7 +172,7 @@ describe('uncaughtErrorHandler logging levels', () => {
 
     expect(res.status).toHaveBeenCalledWith(503);
     expect(res.log.error).toHaveBeenCalledWith(
-      expect.objectContaining({ error: 'Upstream unavailable', statusCode: 503 }),
+      { err: expect.objectContaining({ message: 'Upstream unavailable' }), res: { statusCode: 503 } },
       '[RESPONSE][ERROR]',
     );
   });

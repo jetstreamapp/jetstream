@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { ENV } from './config/env-config';
 import { logger } from './config/logger.config';
-import { getExceptionLog } from './utils/utils';
 
 const GEO_IP_API_HOSTNAME = ENV.GEO_IP_API_HOSTNAME!;
 const GEO_IP_API_USERNAME = ENV.GEO_IP_API_USERNAME!;
@@ -41,6 +40,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  logger.error(getExceptionLog(error), 'Fatal error: %s', error.message);
+  logger.error({ err: error }, 'Fatal error: %s', error.message);
   process.exit(1);
 });

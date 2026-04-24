@@ -1,4 +1,4 @@
-import { ENV, getExceptionLog } from '@jetstream/api-config';
+import { ENV } from '@jetstream/api-config';
 import type { DeferredResponseState, Response } from '@jetstream/api-types';
 import { HTTP } from '@jetstream/shared/constants';
 import type { NextFunction, Request, Response as ExpressResponse } from 'express';
@@ -68,7 +68,7 @@ export function deferredResponseMiddleware(req: Request, res: Response, next: Ne
         deferred.keepaliveCount++;
       } catch (ex) {
         res.log.error(
-          { requestId: res.locals.requestId, elapsedMs: Date.now() - deferred.startTime, ...getExceptionLog(ex) },
+          { requestId: res.locals.requestId, elapsedMs: Date.now() - deferred.startTime, err: ex },
           '[DEFERRED][WRITE_ERROR] Failed to write initial keepalive',
         );
         cleanupDeferred(deferred);
@@ -96,7 +96,7 @@ export function deferredResponseMiddleware(req: Request, res: Response, next: Ne
             );
           } catch (ex) {
             res.log.error(
-              { requestId: res.locals.requestId, elapsedMs: Date.now() - deferred.startTime, ...getExceptionLog(ex) },
+              { requestId: res.locals.requestId, elapsedMs: Date.now() - deferred.startTime, err: ex },
               '[DEFERRED][WRITE_ERROR] Failed to write keepalive, destroying stream',
             );
             cleanupDeferred(deferred);
@@ -158,7 +158,7 @@ export function writeDeferredResponse(res: Response | ExpressResponse, body: unk
   } catch (ex) {
     deferred.active = false;
     resLog?.error(
-      { requestId: res.locals?.requestId, elapsedMs, ...getExceptionLog(ex) },
+      { requestId: res.locals?.requestId, elapsedMs, err: ex },
       '[DEFERRED][WRITE_ERROR] Failed to write deferred response body',
     );
     try {
