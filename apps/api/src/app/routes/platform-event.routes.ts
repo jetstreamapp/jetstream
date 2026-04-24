@@ -2,7 +2,7 @@ import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
 import { HTTP } from '@jetstream/shared/constants';
 import express, { Router } from 'express';
 import https from 'https';
-import { normalizePlatformEventSetCookie } from '../utils/proxy-cookie.utils';
+import { normalizePlatformEventSetCookie, stripJetstreamCookies } from '../utils/proxy-cookie.utils';
 import { checkAuth, getOrgFromHeaderOrQuery } from './route.middleware';
 
 const routes: express.Router = Router();
@@ -32,13 +32,16 @@ routes.use('/', async (req: express.Request, res: express.Response, next: expres
 
     res.log.debug({ proxyUrl }, '[PROXY][REQUEST]');
 
-    const headers = {
+    const forwardedCookie = stripJetstreamCookies(req.headers.cookie);
+    const headers: Record<string, string | string[] | undefined> = {
       Authorization: `Bearer ${jetstreamConn.sessionInfo.accessToken}`,
       Accept: req.headers.accept || '*/*',
       'Accept-Encoding': req.headers['accept-encoding'] || 'gzip, deflate, br, zstd',
-      Cookie: req.headers.cookie,
       'user-agent': req.get('user-agent'),
     };
+    if (forwardedCookie) {
+      headers.Cookie = forwardedCookie;
+    }
 
     if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
       headers['Content-Type'] = req.headers['content-type'];

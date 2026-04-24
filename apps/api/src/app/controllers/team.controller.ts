@@ -3,6 +3,7 @@ import { AuditLogAction, AuditLogResource, createTeamAuditLog } from '@jetstream
 import * as authService from '@jetstream/auth/server';
 import { encryptSecret, oidcService, samlService } from '@jetstream/auth/server';
 import { OidcConfigurationRequestSchema, SamlConfigurationRequestSchema } from '@jetstream/auth/types';
+import { assertDomainResolvesToPublicIp } from '@jetstream/shared/node-utils';
 import { BLOCKED_PUBLIC_EMAIL_DOMAINS } from '@jetstream/shared/constants';
 import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import {
@@ -23,9 +24,85 @@ import { z } from 'zod';
 import * as teamDb from '../db/team.db';
 import * as teamService from '../services/team.service';
 import { NotAllowedError, NotFoundError } from '../utils/error-handler';
-import { assertDomainResolvesToPublicIp } from '../utils/network.utils';
 import { sendJson } from '../utils/response.handlers';
 import { createRoute, RouteValidator } from '../utils/route.utils';
+
+/**
+ * Strip stored SSO secrets before sending a config to the browser.
+ * Applied on every endpoint that returns a SAML/OIDC config so the encrypted
+ * spPrivateKey / clientSecret blobs never leave the server — internal callers
+ * of teamDb.getSsoConfiguration (e.g. the OIDC update-preserve path) read them
+ * directly from the DB layer.
+ */
+export function maskSsoSecrets<
+  T extends {
+    samlConfiguration?: { spPrivateKey?: string | null } | null;
+    oidcConfiguration?: { clientSecret?: string | null } | null;
+  },
+>(config: T): T {
+  const masked = { ...config };
+  if (masked.samlConfiguration) {
+    masked.samlConfiguration = { ...masked.samlConfiguration, spPrivateKey: null };
+  }
+  if (masked.oidcConfiguration) {
+    masked.oidcConfiguration = { ...masked.oidcConfiguration, clientSecret: null };
+  }
+  return masked;
+}
+
+const SAML_METADATA_MAX_REDIRECTS = 5;
+const SAML_METADATA_TIMEOUT_MS = 10_000;
+
+/**
+ * Fetch a SAML metadata URL while defending against SSRF on both the initial hostname and
+ * any subsequent redirect target. Legitimate IdPs (Okta regional routing, Azure AD Front
+ * Door, CDNs that normalize trailing slashes) rely on 3xx responses, so blanket-rejecting
+ * redirects breaks real providers; instead we follow them manually and re-validate each
+ * hop's hostname against the public-IP check before issuing the next request.
+ */
+export async function fetchSamlMetadata(initialUrl: string): Promise<Response> {
+  // Total-time budget shared across all hops (intentionally, not per-hop): a per-hop timeout
+  // would let a pathological or attacker-controlled IdP stall near the limit at each hop and
+  // consume ~MAX_REDIRECTS × TIMEOUT of worker time per request. The shared deadline bounds
+  // worst-case wall time regardless of redirect depth.
+  const signal = AbortSignal.timeout(SAML_METADATA_TIMEOUT_MS);
+  let currentUrl = initialUrl;
+  for (let hop = 0; hop <= SAML_METADATA_MAX_REDIRECTS; hop++) {
+    // In dev/CI (USE_SECURE_COOKIES=false) we allow loopback/private targets so the local mock
+    // IdP (mock-idp/docker-compose.yml, http://localhost:4000/api/saml/metadata) is reachable.
+    // Parallels the OIDC runtime discovery path in libs/auth/server/src/lib/oidc.service.ts.
+    if (ENV.USE_SECURE_COOKIES) {
+      await assertDomainResolvesToPublicIp(currentUrl);
+    }
+    let response: Response;
+    try {
+      response = await fetch(currentUrl, {
+        signal,
+        headers: { Accept: 'application/xml, text/xml, */*' },
+        redirect: 'manual',
+      });
+    } catch (err) {
+      // AbortSignal.timeout's thrown error can surface as TimeoutError OR AbortError depending
+      // on the Node/undici version — checking signal.aborted is deterministic, and since this
+      // signal was created via AbortSignal.timeout() the only reason it fires is the timeout.
+      if (signal.aborted || (err instanceof Error && err.name === 'TimeoutError')) {
+        throw new Error(
+          `Failed to fetch metadata URL: total timeout of ${SAML_METADATA_TIMEOUT_MS / 1000}s exceeded (including redirects)`,
+        );
+      }
+      throw err;
+    }
+    if (response.status < 300 || response.status >= 400) {
+      return response;
+    }
+    const location = response.headers.get('location');
+    if (!location) {
+      throw new Error(`Failed to fetch metadata URL: redirect (HTTP ${response.status}) missing Location header`);
+    }
+    currentUrl = new URL(location, currentUrl).toString();
+  }
+  throw new Error(`Failed to fetch metadata URL: exceeded maximum redirect hops (${SAML_METADATA_MAX_REDIRECTS})`);
+}
 
 export const routeDefinition = {
   verifyInvitation: {
@@ -655,10 +732,27 @@ const createInvitation = createRoute(routeDefinition.createInvitation.validators
 
 const resendInvitation = createRoute(routeDefinition.resendInvitation.validators, async ({ params, body, user }, req, res) => {
   const { teamId, id } = params;
+  const existingInvitation = await teamDb.findTeamInvitationById({ teamId, id });
+  // Prisma types role as plain string (schema is VARCHAR); the DB constraint narrows to the
+  // TeamMemberRole enum so the cast is safe and matches how createInvitation already treats body.role.
+  const existingRole = existingInvitation.role as TeamMemberRole;
+  const invitationRole = body.role || existingRole;
+  const allowedRoleUpdates = new Set(
+    (TEAM_MEMBER_ROLE_ACCESS[user.teamMembership?.role || TEAM_MEMBER_ROLE_MEMBER] || []) as TeamMemberRole[],
+  );
+
+  // Caller must be authorized to (a) act on the invitation's CURRENT role — otherwise e.g. a
+  // BILLING caller could silently demote an ADMIN invitation to MEMBER, or just "touch" it
+  // (extend expiry, resend email, overwrite features) — and (b) assign the target role.
+  if (!allowedRoleUpdates.has(existingRole) || !allowedRoleUpdates.has(invitationRole)) {
+    throw new NotAllowedError('You are not allowed to modify an invitation for the specified role');
+  }
+
   const { invitations, updatedInvitation } = await teamService.resendInvitation({
     runningUserId: user.id,
     teamId,
     invitationId: id,
+    expectedRole: existingInvitation.role,
     request: body,
   });
   sendJson(res, invitations);
@@ -677,7 +771,18 @@ const resendInvitation = createRoute(routeDefinition.resendInvitation.validators
 
 const cancelInvitation = createRoute(routeDefinition.cancelInvitation.validators, async ({ params, user }, req, res) => {
   const { teamId, id } = params;
-  const { invitations, deletedInvitation } = await teamService.revokeTeamInvitation({ id, teamId });
+  const existingInvitation = await teamDb.findTeamInvitationById({ teamId, id });
+  const existingRole = existingInvitation.role as TeamMemberRole;
+  const allowedRoleUpdates = new Set(
+    (TEAM_MEMBER_ROLE_ACCESS[user.teamMembership?.role || TEAM_MEMBER_ROLE_MEMBER] || []) as TeamMemberRole[],
+  );
+
+  // Block billing users from cancelling an admin-scoped invitation (denial-of-workflow vector)
+  if (!allowedRoleUpdates.has(existingRole)) {
+    throw new NotAllowedError('You are not allowed to cancel an invitation for the specified role');
+  }
+
+  const { invitations } = await teamService.revokeTeamInvitation({ id, teamId, expectedRole: existingInvitation.role });
   sendJson(res, invitations);
 
   createTeamAuditLog({
@@ -686,7 +791,7 @@ const cancelInvitation = createRoute(routeDefinition.cancelInvitation.validators
     action: AuditLogAction.TEAM_INVITATION_CANCELLED,
     resource: AuditLogResource.TEAM_INVITATION,
     resourceId: id,
-    metadata: { inviteeEmail: deletedInvitation.email, role: deletedInvitation.role },
+    metadata: { inviteeEmail: existingInvitation.email, role: existingInvitation.role },
     ipAddress: req.ip,
     userAgent: req.headers['user-agent'] as string,
   });
@@ -699,7 +804,7 @@ const cancelInvitation = createRoute(routeDefinition.cancelInvitation.validators
 const getSsoConfig = createRoute(routeDefinition.getSsoConfig.validators, async ({ params }, _, res) => {
   const { teamId } = params;
   const config = await teamDb.getSsoConfiguration(teamId);
-  sendJson(res, config);
+  sendJson(res, maskSsoSecrets(config));
 });
 
 const parseSamlMetadata = createRoute(routeDefinition.parseSamlMetadata.validators, async ({ body }, _, res, next) => {
@@ -707,15 +812,7 @@ const parseSamlMetadata = createRoute(routeDefinition.parseSamlMetadata.validato
     let xml: string;
 
     if (body.metadataUrl) {
-      const metadataUrl = body.metadataUrl;
-
-      // SSRF protection: resolve hostname and reject private/internal IPs
-      await assertDomainResolvesToPublicIp(metadataUrl);
-
-      const response = await fetch(metadataUrl, {
-        signal: AbortSignal.timeout(10_000),
-        headers: { Accept: 'application/xml, text/xml, */*' },
-      });
+      const response = await fetchSamlMetadata(body.metadataUrl);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch metadata URL: HTTP ${response.status}`);
@@ -764,7 +861,7 @@ const createOrUpdateSamlConfig = createRoute(
         result: config,
       } = await teamDb.createOrUpdateSamlConfiguration(teamId, user.id, configData as any);
 
-      sendJson(res, config);
+      sendJson(res, maskSsoSecrets(config));
 
       if (isNew) {
         createTeamAuditLog({
@@ -837,8 +934,12 @@ const createOrUpdateSamlConfig = createRoute(
 const discoverOidcConfig = createRoute(routeDefinition.discoverOidcConfig.validators, async ({ body }, _, res, next) => {
   try {
     const { issuer } = body;
-    // SSRF protection: resolve hostname and reject private/internal IPs
-    await assertDomainResolvesToPublicIp(issuer);
+    // SSRF protection: resolve hostname and reject private/internal IPs. Skipped in dev/CI
+    // (USE_SECURE_COOKIES=false) so local IdPs are reachable — matches the runtime discovery
+    // gate in libs/auth/server/src/lib/oidc.service.ts and the SAML save-time fetch above.
+    if (ENV.USE_SECURE_COOKIES) {
+      await assertDomainResolvesToPublicIp(issuer);
+    }
     const discovered = await oidcService.getDiscoveredConfigForSaving(issuer);
     sendJson(res, discovered);
   } catch (ex) {
@@ -880,7 +981,7 @@ const createOrUpdateOidcConfig = createRoute(
         clientSecret: encryptedSecret,
       });
 
-      sendJson(res, config);
+      sendJson(res, maskSsoSecrets(config));
 
       if (isNew) {
         createTeamAuditLog({
@@ -936,7 +1037,7 @@ const updateSsoSettings = createRoute(routeDefinition.updateSsoSettings.validato
   try {
     const { teamId } = params;
     const { previousSettings, result: config } = await teamDb.updateSsoSettings(teamId, user.id, body);
-    sendJson(res, config);
+    sendJson(res, maskSsoSecrets(config));
 
     const changes: Record<string, { from: unknown; to: unknown }> = {};
     if (previousSettings.ssoEnabled !== body.ssoEnabled) changes.ssoEnabled = { from: previousSettings.ssoEnabled, to: body.ssoEnabled };

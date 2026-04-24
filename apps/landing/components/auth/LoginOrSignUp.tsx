@@ -103,7 +103,7 @@ export function LoginOrSignUp({ action, providers, csrfToken, currentTosVersion 
   const captchaRef = useRef<TurnstileInstance>(null);
   const searchParams = useSearchParams();
 
-  const emailHint = action === 'login' ? rememberedEmail : null;
+  const emailHint = searchParams?.get('email') || (action === 'login' ? rememberedEmail : null);
   const returnUrl = searchParams?.get('returnUrl');
 
   const {
@@ -122,7 +122,7 @@ export function LoginOrSignUp({ action, providers, csrfToken, currentTosVersion 
       password: '',
       confirmPassword: '',
       csrfToken,
-      rememberMe: false,
+      rememberMe: true,
       tosVersion: currentTosVersion,
       tosAccepted: false,
     },
@@ -288,6 +288,7 @@ export function LoginOrSignUp({ action, providers, csrfToken, currentTosVersion 
 
     setLastUsedLoginMethod({
       lastUsedLogin: 'sso',
+      rememberedEmail: watchEmail,
       ssoAvailable: ssoInfo?.available,
     });
     window.location.href = redirectUrl;
@@ -430,7 +431,7 @@ export function LoginOrSignUp({ action, providers, csrfToken, currentTosVersion 
               </button>
             )}
 
-            {!hasCheckedSso && <RegisterOrSignUpLink action={action} />}
+            {!hasCheckedSso && <RegisterOrSignUpLink action={action} emailHint={emailHint} />}
 
             {/* We want the components to render in the DOM to allow for password auto-fill */}
             <span className={classNames('space-y-6', { invisible: !hasCheckedSso })}>
@@ -533,7 +534,7 @@ export function LoginOrSignUp({ action, providers, csrfToken, currentTosVersion 
             </span>
           </form>
 
-          {hasCheckedSso && <RegisterOrSignUpLink action={action} />}
+          {hasCheckedSso && <RegisterOrSignUpLink action={action} emailHint={emailHint} />}
         </div>
       </div>
     </Fragment>

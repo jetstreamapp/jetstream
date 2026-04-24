@@ -1,6 +1,6 @@
 import express, { Router } from 'express';
 import { routeDefinition as billingController } from '../controllers/billing.controller';
-import { checkAuth } from './route.middleware';
+import { checkAuth, validateDoubleCSRF } from './route.middleware';
 
 /**
  * Route Prefix: /api/billing
@@ -9,6 +9,7 @@ import { checkAuth } from './route.middleware';
 const routes: express.Router = Router();
 
 routes.use(checkAuth);
+routes.use(validateDoubleCSRF);
 
 /**
  * ************************************

@@ -68,8 +68,21 @@ function getSsoMfaRequirements(
     }
   }
 
+  // Drop enabled factors whose MFA method is no longer allowed by the team config. Without this,
+  // a stale 2fa-email factor (enabled before the admin removed email from allowedMfaMethods)
+  // populates pendingVerification in initSession, and the SAML/OIDC callback redirects to
+  // /auth/verify before ever checking pendingMfaEnrollment — letting the user satisfy MFA via
+  // email code instead of enrolling in the required OTP.
   const twoFactor = user.authFactors
-    .filter(({ enabled }) => enabled)
+    .filter(({ enabled, type }) => {
+      if (!enabled) {
+        return false;
+      }
+      if (type === '2fa-otp' || type === '2fa-email') {
+        return loginConfig.allowedMfaMethods.has(type);
+      }
+      return true;
+    })
     .sort((a, b) => {
       const priority: Record<string, number> = { '2fa-otp': 1, '2fa-email': 2, email: 3 };
       return (priority[a.type] || 4) - (priority[b.type] || 4);
@@ -211,7 +224,9 @@ export async function resolveSsoUser(params: {
               { err, userId: byLegacyEmail.id, provider, email, subject },
               'SSO identity migration blocked: another row already owns (provider, subject). Possible account collision.',
             );
-            throw new SsoAmbiguousAccount('Your SSO identity is in conflict with another account. Please contact your administrator for assistance.');
+            throw new SsoAmbiguousAccount(
+              'Your SSO identity is in conflict with another account. Please contact your administrator for assistance.',
+            );
           }
           // Returning byLegacyEmail after a failed migration would cause the downstream
           // upsert in handleSsoLogin to create a second subject-keyed row (the where-clause
@@ -558,7 +573,9 @@ export async function handleSsoLogin(
       { existingUserId: existingIdentity.userId, currentUserId: user.id, provider, providerAccountId },
       'SSO login blocked: identity row already belongs to a different user',
     );
-    throw new SsoAmbiguousAccount('Your SSO identity is in conflict with another account. Please contact your administrator for assistance.');
+    throw new SsoAmbiguousAccount(
+      'Your SSO identity is in conflict with another account. Please contact your administrator for assistance.',
+    );
   }
 
   // Update last login
@@ -655,7 +672,9 @@ export async function linkSsoIdentity(
       { existingUserId: existingIdentity.userId, newUserId: userId, provider, providerAccountId },
       'SSO identity link blocked: row exists for a different user',
     );
-    throw new SsoAmbiguousAccount('Your SSO identity is in conflict with another account. Please contact your administrator for assistance.');
+    throw new SsoAmbiguousAccount(
+      'Your SSO identity is in conflict with another account. Please contact your administrator for assistance.',
+    );
   }
 
   if (!existingIdentity) {

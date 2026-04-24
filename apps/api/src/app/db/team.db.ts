@@ -40,7 +40,7 @@ import {
 import { X509Certificate } from 'crypto';
 import { addDays, endOfDay } from 'date-fns';
 import { groupBy, isString } from 'lodash';
-import { NotFoundError, UserFacingError } from '../utils/error-handler';
+import { NotAllowedError, NotFoundError, UserFacingError } from '../utils/error-handler';
 
 export const TEAM_INVITE_EXPIRES_DAYS = 14;
 
@@ -261,6 +261,44 @@ export const checkTeamRole = async ({ teamId, userId, roles }: { teamId: string;
       },
     })
     .then((count) => count > 0);
+};
+
+export const findActiveTeamMembershipForRoles = async ({
+  teamId,
+  userId,
+  roles,
+}: {
+  teamId: string;
+  userId: string;
+  roles: TeamMemberRole[];
+}) => {
+  return prisma.teamMember.findFirst({
+    select: { teamId: true, role: true, status: true },
+    where: {
+      teamId,
+      userId,
+      team: { status: TeamStatusSchema.enum.ACTIVE },
+      role: { in: roles },
+      status: TEAM_MEMBER_STATUS_ACTIVE,
+    },
+  });
+};
+
+/**
+ * Lightweight lookup of the caller's active team membership (a user has at most one team).
+ * Use this when a caller only needs the current role/teamId for authorization — it avoids
+ * pulling the full team + subscriptions + billingAccount graph that findByUserIdWithSubscriptions
+ * returns, which is wasted work when the caller is a MEMBER and the controller short-circuits.
+ */
+export const findActiveTeamMembershipByUserId = async ({ userId }: { userId: string }) => {
+  return prisma.teamMember.findFirst({
+    select: { teamId: true, role: true, status: true },
+    where: {
+      userId,
+      status: TEAM_MEMBER_STATUS_ACTIVE,
+      team: { status: TeamStatusSchema.enum.ACTIVE },
+    },
+  });
 };
 
 export const findEntitlements = async ({ teamId }: { teamId: string }) => {
@@ -647,7 +685,9 @@ export async function updateTeamMemberRole({
       })
       .then((member) => TeamMemberSchema.parse(member)),
     previousMember: { role: teamMember.role, features: teamMember.features as string[], email: teamMember.user.email },
-    isBillableAction: BILLABLE_ROLES.has(teamMember.role),
+    // Trigger a Stripe sync whenever billable membership crosses in either direction
+    // (e.g. BILLING→ADMIN/MEMBER would otherwise be skipped by only looking at the previous role).
+    isBillableAction: BILLABLE_ROLES.has(teamMember.role) || (!!data.role && BILLABLE_ROLES.has(data.role)),
   };
 }
 
@@ -717,7 +757,9 @@ export async function updateTeamMemberStatusAndRole({
       })
       .then((member) => TeamMemberSchema.parse(member)),
     previousMember,
-    isBillableAction: BILLABLE_ROLES.has(role),
+    // Trigger a Stripe sync whenever billable membership crosses in either direction
+    // (e.g. MEMBER→BILLING would otherwise be skipped by only looking at the new role).
+    isBillableAction: BILLABLE_ROLES.has(role) || BILLABLE_ROLES.has(teamMember.role),
   };
 }
 
@@ -835,16 +877,56 @@ export async function canAddBillableMember({
 export async function updateTeamInvitation({
   id,
   teamId,
+  expectedRole,
   request,
   runningUserId,
 }: {
   id: string;
   teamId: string;
+  /**
+   * Role snapshot from the controller's authorization check. The UPDATE is gated on this value
+   * so a concurrent role elevation between auth and write cannot be stamped by a caller who was
+   * authorized against the stale role.
+   */
+  expectedRole: string;
   request: TeamInvitationUpdateRequest;
   runningUserId: string;
 }) {
+  // Atomic compare-and-set on role: if another admin changed the role since the controller read,
+  // count will be 0 and we abort rather than applying a write authorized against a stale value.
+  const result = await prisma.teamMemberInvitation.updateMany({
+    where: { id, teamId, role: expectedRole },
+    data: {
+      // Only write role/features if the caller provided an explicit value; otherwise leave them untouched.
+      ...(request.role ? { role: request.role } : {}),
+      ...(request.features ? { features: request.features } : {}),
+      expiresAt: addDays(new Date(), TEAM_INVITE_EXPIRES_DAYS),
+      lastSentAt: new Date(),
+      updatedById: runningUserId,
+    },
+  });
+
+  if (result.count === 0) {
+    const stillExists = await prisma.teamMemberInvitation.findFirst({ select: { id: true }, where: { teamId, id } });
+    if (!stillExists) {
+      throw new NotFoundError(`No existing invitation found with id ${id}.`);
+    }
+    throw new NotAllowedError('This invitation was modified by another admin. Refresh and try again.');
+  }
+
+  // Read-back after the compare-and-set. Using findFirst (not findFirstOrThrow) so a concurrent
+  // cancelInvitation that deletes the row between our successful UPDATE and this SELECT does not
+  // surface as a 500 — it becomes the same "modified concurrently" 403 as the role-mismatch path.
+  const updated = await prisma.teamMemberInvitation.findFirst({ select: INVITE_SELECT, where: { id } });
+  if (!updated) {
+    throw new NotAllowedError('This invitation was modified by another admin. Refresh and try again.');
+  }
+  return updated;
+}
+
+export async function findTeamInvitationById({ id, teamId }: { id: string; teamId: string }) {
   const existingInvitation = await prisma.teamMemberInvitation.findFirst({
-    select: { id: true, role: true, features: true, expiresAt: true, lastSentAt: true },
+    select: { id: true, email: true, role: true, features: true, expiresAt: true, lastSentAt: true },
     where: { teamId, id },
   });
 
@@ -852,17 +934,7 @@ export async function updateTeamInvitation({
     throw new NotFoundError(`No existing invitation found with id ${id}.`);
   }
 
-  return await prisma.teamMemberInvitation.update({
-    select: INVITE_SELECT,
-    where: { id },
-    data: {
-      role: request.role || existingInvitation.role,
-      expiresAt: addDays(new Date(), TEAM_INVITE_EXPIRES_DAYS),
-      features: request.features || existingInvitation.features,
-      lastSentAt: new Date(),
-      updatedById: runningUserId,
-    },
-  });
+  return existingInvitation;
 }
 
 export async function verifyTeamInvitation({
@@ -971,21 +1043,30 @@ export async function acceptTeamInvitation({ user, teamId, token }: { user: User
   };
 }
 
-export async function revokeTeamInvitation({ id, teamId }: { id: string; teamId: string }) {
-  const existingInvitation = await prisma.teamMemberInvitation.findFirst({
-    select: { id: true, email: true, role: true, features: true, expiresAt: true, lastSentAt: true },
-    where: { teamId, id },
+export async function revokeTeamInvitation({
+  id,
+  teamId,
+  expectedRole,
+}: {
+  id: string;
+  teamId: string;
+  /**
+   * Role snapshot from the controller's authorization check; the DELETE is gated on this value
+   * to prevent a concurrent role elevation from turning an authorized delete into an unauthorized one.
+   */
+  expectedRole: string;
+}) {
+  const result = await prisma.teamMemberInvitation.deleteMany({
+    where: { id, teamId, role: expectedRole },
   });
 
-  if (!existingInvitation) {
-    throw new NotFoundError(`No existing invitation found with id ${id}.`);
+  if (result.count === 0) {
+    const stillExists = await prisma.teamMemberInvitation.findFirst({ select: { id: true }, where: { teamId, id } });
+    if (!stillExists) {
+      throw new NotFoundError(`No existing invitation found with id ${id}.`);
+    }
+    throw new NotAllowedError('This invitation was modified by another admin. Refresh and try again.');
   }
-
-  await prisma.teamMemberInvitation.delete({
-    where: { id },
-  });
-
-  return existingInvitation;
 }
 
 /**

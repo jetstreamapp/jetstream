@@ -2,7 +2,6 @@ import { DbCacheProvider, ENV, logger } from '@jetstream/api-config';
 import { SamlConfiguration } from '@jetstream/prisma';
 import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { Profile, SAML, SamlConfig, ValidateInResponseTo } from '@node-saml/node-saml';
-import { LRUCache } from 'lru-cache';
 import { parseStringPromise } from 'xml2js';
 import { decryptSecret } from './sso-crypto.util';
 import { AttributeMapping, ParsedIdpMetadata, SsoUserInfo } from './sso.types';
@@ -45,15 +44,15 @@ export function resolveSamlIdentifiers(teamId: string) {
 const sharedSamlCacheProvider = new DbCacheProvider('saml:authn-request', SAML_REQUEST_ID_EXPIRATION_MS);
 
 /**
- * Tracks consumed SAML assertion InResponseTo values as defense-in-depth against replay.
- * Even though node-saml removes request IDs from the cache after validation, this provides
- * an additional layer: if an assertion somehow passes node-saml's check, we reject it here
- * if the InResponseTo value was already used.
+ * Tracks consumed SAML assertion IDs across all workers as defense-in-depth against replay.
+ *
+ * Why DB-backed (not in-memory LRU): for IdP-initiated assertions (no InResponseTo), node-saml's
+ * AuthnRequest cache is not consulted — so this is the ONLY replay defense. An in-memory LRU
+ * is per-worker, which means a captured assertion could be replayed once per worker before
+ * expiry. DbCacheProvider.consumeOnceAsync performs an atomic INSERT whose primary-key conflict
+ * detects any prior consumption across the whole cluster in a single round-trip.
  */
-const consumedAssertionCache = new LRUCache<string, true>({
-  max: 50_000,
-  ttl: SAML_REQUEST_ID_EXPIRATION_MS,
-});
+const consumedAssertionCache = new DbCacheProvider('saml:consumed-assertion', SAML_REQUEST_ID_EXPIRATION_MS);
 
 export class SamlService {
   /**
@@ -219,16 +218,18 @@ export class SamlService {
         throw new Error('No profile returned in SAML response');
       }
 
-      // Defense-in-depth: check that this assertion's InResponseTo hasn't been consumed before.
-      // node-saml already removes the request ID from the cache after validation, but this
-      // guards against edge cases (e.g. race conditions between concurrent requests).
-      // profile.ID is the assertion ID set by node-saml from the parsed response
+      // Defense-in-depth: atomically record the assertion ID across all workers. For
+      // IdP-initiated assertions (no InResponseTo) node-saml's AuthnRequest cache is not
+      // consulted, so this is the primary replay gate in that case. consumeOnceAsync folds
+      // the existence check and the write into a single INSERT whose PK conflict is the
+      // atomicity boundary — there is no get→set race across concurrent workers.
+      // profile.ID is the assertion ID set by node-saml from the parsed response.
       const assertionId = typeof profile.ID === 'string' ? profile.ID : undefined;
       if (assertionId) {
-        if (consumedAssertionCache.has(assertionId)) {
+        const wasFirstUse = await consumedAssertionCache.consumeOnceAsync(assertionId);
+        if (!wasFirstUse) {
           throw new Error('SAML assertion has already been consumed (replay detected)');
         }
-        consumedAssertionCache.set(assertionId, true);
       }
 
       logger.info({ teamId, nameId: profile.nameID, nameIdFormat: profile.nameIDFormat }, '[SAML] SAML response validated successfully');

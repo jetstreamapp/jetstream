@@ -178,11 +178,15 @@ const processCheckoutSuccessHandler = createRoute(
   },
 );
 
-const getSubscriptionsHandler = createRoute(routeDefinition.getSubscriptions.validators, async ({ user, teamMembership }, _, res) => {
+const getSubscriptionsHandler = createRoute(routeDefinition.getSubscriptions.validators, async ({ user }, _, res) => {
   stripeService.ensureStripeIsInitialized();
 
-  const teamId = teamMembership?.teamId;
-  const teamRole = teamMembership?.role;
+  // /api/billing does not pass through validateTeamRoleMiddleware, so the caller's teamMembership
+  // on the session may be stale — read the current role from the DB before any authz decision.
+  // We only need role/teamId here; the downstream Stripe sync fetches its own data.
+  const membership = await teamDbService.findActiveTeamMembershipByUserId({ userId: user.id });
+  const teamId = membership?.teamId;
+  const teamRole = membership?.role;
 
   if (teamId && teamRole !== 'ADMIN' && teamRole !== 'BILLING') {
     sendJson(res, { customer: null, pricesByLookupKey: null, didUpdate: false });

@@ -164,7 +164,13 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
   const userAgent = req.get('User-Agent');
 
   const user = req.session.user;
-  const pendingVerification = req.session.pendingVerification;
+  // Treat any non-nullish pendingVerification as "still pending" — matches the old
+  // `!req.session.pendingVerification` gate and the other readers at auth.controller.ts.
+  // Using truthy (not `.length > 0`) so that a corrupted / unexpectedly-empty array
+  // still blocks rather than silently letting the request through the auth gate.
+  const hasPendingVerification = !!req.session.pendingVerification;
+  const hasPendingMfaEnrollment = !!req.session.pendingMfaEnrollment;
+  const hasPendingTosAcceptance = !!req.session.pendingTosAcceptance;
 
   // Scanner sessions (minted by scanner.routes.ts behind TEST_ENABLE_SCANNER_ROUTES
   // + non-production server URL + basic auth) intentionally skip the UA similarity
@@ -183,11 +189,20 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
     }
   }
 
-  if (user && user.id !== PLACEHOLDER_USER_ID && !pendingVerification) {
+  if (user && user.id !== PLACEHOLDER_USER_ID && !hasPendingVerification && !hasPendingMfaEnrollment && !hasPendingTosAcceptance) {
     return next();
   }
 
-  res.log.warn('[AUTH][UNAUTHORIZED]');
+  res.log.warn(
+    {
+      hasUser: !!user,
+      isPlaceholderUser: user?.id === PLACEHOLDER_USER_ID,
+      hasPendingVerification,
+      hasPendingMfaEnrollment,
+      hasPendingTosAcceptance,
+    },
+    '[AUTH][UNAUTHORIZED]',
+  );
   next(new AuthenticationError('Unauthorized'));
 }
 

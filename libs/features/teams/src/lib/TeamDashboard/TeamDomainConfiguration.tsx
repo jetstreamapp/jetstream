@@ -84,8 +84,8 @@ export function TeamDomainConfiguration({ teamId, domains, hasSsoEnabled, onChan
           </p>
         ) : (
           <ul className="slds-list">
-            {verifiedDomains.map((domain) => (
-              <li key={domain.id}>
+            {verifiedDomains.map((domain, index) => (
+              <li key={domain.id} className={index > 0 ? 'slds-p-top_x-small' : undefined}>
                 <Grid verticalAlign="center">
                   <Grid verticalAlign="center">
                     <Badge type="success" className="slds-m-right_small">
@@ -112,8 +112,8 @@ export function TeamDomainConfiguration({ teamId, domains, hasSsoEnabled, onChan
 
         {pendingDomains.length > 0 && (
           <ul className="slds-list">
-            {pendingDomains.map((domain) => (
-              <li key={domain.id}>
+            {pendingDomains.map((domain, index) => (
+              <li key={domain.id} className={index > 0 ? 'slds-p-top_x-small' : undefined}>
                 <Grid verticalAlign="center">
                   <GridCol className="slds-col">
                     <Grid verticalAlign="center">
