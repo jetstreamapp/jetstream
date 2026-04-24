@@ -81,7 +81,7 @@ jobs:
         run: git branch --track main origin/main
 
       - name: Derive appropriate SHAs for base and head for `nx affected` commands
-        uses: nrwl/nx-set-shas@v4
+        uses: nrwl/nx-set-shas@v5
 
       - uses: actions/setup-node@v6
         with:
@@ -154,7 +154,7 @@ jobs:
         run: git branch --track main origin/main
 
       - name: Derive appropriate SHAs for base and head for `nx affected` commands
-        uses: nrwl/nx-set-shas@v4
+        uses: nrwl/nx-set-shas@v5
 
       - uses: actions/setup-node@v6
         with:
