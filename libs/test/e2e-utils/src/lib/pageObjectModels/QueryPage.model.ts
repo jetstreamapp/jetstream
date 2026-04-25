@@ -1,10 +1,16 @@
-import { formatNumber } from '@jetstream/shared/ui-utils';
 import { isRecordWithId } from '@jetstream/shared/utils';
 import { QueryFilterOperator, QueryResults } from '@jetstream/types';
 import { Locator, Page, expect } from '@playwright/test';
 import { isNumber } from 'lodash';
 import type { editor } from 'monaco-editor';
 import { ApiRequestUtils } from '../ApiRequestUtils';
+
+// Inlined to avoid pulling the `@jetstream/shared/ui-utils` barrel (which loads `@sentry/react`)
+// into the Playwright Node loader, where its dual-package CJS/ESM resolution throws
+// "exports is not defined in ES module scope".
+const numberFormatter = new Intl.NumberFormat('en-US');
+const formatNumber = (value?: number) => numberFormatter.format(value ?? 0);
+
 declare global {
   interface Window {
     monaco: { editor: typeof editor };

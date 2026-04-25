@@ -8,7 +8,7 @@ type RequestWithSession = Request & { session?: { user?: { id?: string; email?: 
 
 type Severity = 'error' | 'warning' | 'fatal' | 'info';
 
-const isEnabled = !!ENV.SENTRY_DSN && ENV.ENVIRONMENT !== 'development';
+const isEnabled = !!ENV.SENTRY_DSN && ENV.ENVIRONMENT !== 'development' && !ENV.DISABLE_ERROR_REPORTING;
 
 if (isEnabled) {
   Sentry.init({

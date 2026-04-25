@@ -87,6 +87,11 @@ export function initErrorTracker(options: InitOptions): void {
   if (initialized || optedOut || !options.dsn || !options.environment) {
     return;
   }
+  // Build-time kill switch (e.g. staging pen tests). Backend reads DISABLE_ERROR_REPORTING.
+  if (import.meta.env.NX_PUBLIC_DISABLE_ERROR_REPORTING === 'true') {
+    optedOut = true;
+    return;
+  }
   Sentry.init({
     dsn: options.dsn,
     release: options.version,

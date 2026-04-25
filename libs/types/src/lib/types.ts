@@ -96,6 +96,9 @@ export type Test = 'test';
 export type Development = 'development';
 export type Environment = Production | Test | Development;
 
+// Orthogonal to Environment. Used to branch minor logic for deployments that otherwise behave like prod.
+export type Stage = 'production' | 'staging' | 'development';
+
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 /** Geo data returned by the geo-ip-api service for a resolved IP */
@@ -134,6 +137,7 @@ export interface GeoIpLookupErrorResponse {
 export interface ApplicationState {
   serverUrl: string;
   environment: Environment;
+  stage: Stage;
   defaultApiVersion: string;
   google_appId: string;
   google_apiKey: string;
