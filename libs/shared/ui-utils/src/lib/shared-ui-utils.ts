@@ -61,7 +61,6 @@ import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';
 import isUndefined from 'lodash/isUndefined';
 import type { IDisposable, editor } from 'monaco-editor';
-import numeral from 'numeral';
 import { UnparseConfig, parse as parseCsv, unparse, unparse as unparseCsv } from 'papaparse';
 import * as XLSX from 'xlsx';
 
@@ -84,8 +83,9 @@ export function initXlsx(_xlsx: typeof import('xlsx')) {
   }
 }
 
+const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 export function formatNumber(number?: number) {
-  return numeral(number || 0).format('0,0');
+  return numberFormatter.format(number || 0);
 }
 export function parseQueryParams<T = any>(queryString: string): T {
   const pairs = (queryString[0] === '?' ? queryString.substring(1) : queryString).split('&');
