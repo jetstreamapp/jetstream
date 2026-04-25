@@ -7,3 +7,5 @@
 /.nx/cache
 /.nx/workspace-data
 **/monaco/vs/
+
+.nx/self-healing
