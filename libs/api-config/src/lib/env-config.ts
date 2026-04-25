@@ -125,6 +125,12 @@ const envSchema = z.object({
     .enum(['development', 'production'])
     .optional()
     .transform((value) => value ?? 'production'),
+  // Orthogonal to ENVIRONMENT. Use to branch minor logic in deployments that otherwise behave like prod
+  // (e.g. staging ≈ production but with small differences). Default is 'production' so existing deploys are unaffected.
+  STAGE: z
+    .enum(['development', 'staging', 'production'])
+    .optional()
+    .transform((value) => value ?? 'production'),
   PORT: numberSchema.default(3333),
   // Set based on environment and server url protocol
   USE_SECURE_COOKIES: booleanSchema,
@@ -132,6 +138,9 @@ const envSchema = z.object({
   CAPTCHA_PROPERTY: z.literal('captchaToken').optional().default('captchaToken'),
   VERSION: z.string().optional(),
   SENTRY_DSN: z.string().optional(),
+  // Kill switch for Sentry reporting (e.g. during staging pen tests). Client bundle reads NX_PUBLIC_DISABLE_ERROR_REPORTING instead.
+  // use NX_PUBLIC_DISABLE_ERROR_REPORTING to also disable error reporting in the client (e.g. for staging pen tests) - if either is true, reporting is disabled
+  DISABLE_ERROR_REPORTING: booleanSchema,
 
   // Legacy Auth0 - Used to allow JIT password migration
   AUTH0_CLIENT_ID: z.string().nullish(),
@@ -291,6 +300,7 @@ const parseResults = envSchema.safeParse({
   JETSTREAM_CLIENT_URL: process.env.NX_PUBLIC_CLIENT_URL || process.env.JETSTREAM_CLIENT_URL,
   JETSTREAM_SERVER_URL: process.env.NX_PUBLIC_SERVER_URL || process.env.JETSTREAM_SERVER_URL,
   JETSTREAM_SERVER_DOMAIN: process.env.NX_PUBLIC_SERVER_DOMAIN || process.env.JETSTREAM_SERVER_DOMAIN,
+  DISABLE_ERROR_REPORTING: process.env.NX_PUBLIC_DISABLE_ERROR_REPORTING || process.env.DISABLE_ERROR_REPORTING,
   VERSION,
 });
 

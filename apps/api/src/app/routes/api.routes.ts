@@ -44,6 +44,7 @@ routes.get('/heartbeat', (_: express.Request, res: express.Response) => {
     appInfo: getDefaultAppState({
       serverUrl: ENV.JETSTREAM_SERVER_URL,
       environment: ENV.ENVIRONMENT,
+      stage: ENV.STAGE,
       defaultApiVersion: `v${ENV.SFDC_API_VERSION}`,
       google_appId: ENV.GOOGLE_APP_ID || 'unset',
       google_apiKey: ENV.GOOGLE_API_KEY || 'unset',
