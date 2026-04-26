@@ -71,7 +71,6 @@ const authServerMocks = vi.hoisted(() => {
     generatePasswordResetToken: vi.fn(),
     generateRandomCode: vi.fn(() => '123456'),
     generateRandomString: vi.fn(() => 'random-string'),
-    getApiAddressFromReq: vi.fn(() => '127.0.0.1'),
     getAuthorizationUrl: vi.fn(),
     getCookieConfig: vi.fn(() => ({
       csrfToken: { name: 'csrfToken', options: {} },
@@ -166,6 +165,7 @@ type MockRequest = {
   get: (name: string) => string | undefined;
   log: { info: ReturnType<typeof vi.fn>; warn: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn>; debug: ReturnType<typeof vi.fn> };
   ip: string;
+  ipAddress: string;
 };
 
 function makeReq(overrides: Partial<MockRequest> = {}): MockRequest {
@@ -183,13 +183,14 @@ function makeReq(overrides: Partial<MockRequest> = {}): MockRequest {
     get: vi.fn(() => undefined),
     log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
     ip: '127.0.0.1',
+    ipAddress: '127.0.0.1',
     ...overrides,
   };
 }
 
 function makeRes() {
   const res = {
-    locals: { cookies: {}, requestId: 'request-id', ipAddress: '127.0.0.1' },
+    locals: { cookies: {}, requestId: 'request-id' },
     log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
     json: vi.fn(),
     status: vi.fn(),
@@ -226,7 +227,6 @@ describe('auth.controller - placeholder session email suppression', () => {
     } as never);
     authServerMocks.generateRandomCode.mockReturnValue('123456');
     authServerMocks.ensureAuthError.mockImplementation((error: unknown) => error);
-    authServerMocks.getApiAddressFromReq.mockReturnValue('127.0.0.1');
     authServerMocks.validateRedirectUrl.mockImplementation((url: string) => url || 'https://client.test');
     emailMocks.sendEmailVerification.mockResolvedValue(undefined);
     emailMocks.sendVerificationCode.mockResolvedValue(undefined);
@@ -558,7 +558,6 @@ describe('auth.controller - SSO callback redirect resolution', () => {
     } as never);
     authServerMocks.ensureAuthError.mockImplementation((error: unknown) => error);
     authServerMocks.validateRedirectUrl.mockImplementation((url: string) => url || 'https://client.test');
-    authServerMocks.getApiAddressFromReq.mockReturnValue('127.0.0.1');
     authServerMocks.handleSsoLogin.mockResolvedValue({ id: 'sso-user-id', email: 'sso@example.com' } as never);
     authServerMocks.getTeamLoginConfigWithSso.mockResolvedValue({
       loginConfig: {

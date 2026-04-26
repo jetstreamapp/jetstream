@@ -1,5 +1,4 @@
 import { ENV, logger } from '@jetstream/api-config';
-import { getApiAddressFromReq } from '@jetstream/auth/server';
 import { HTTP } from '@jetstream/shared/constants';
 import express from 'express';
 import z from 'zod';
@@ -18,12 +17,10 @@ export const sendUserFeedbackEmail = async (req: express.Request, res: express.R
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const ipAddress = getApiAddressFromReq(req);
-
     const parsedPayload = UserFeedbackPayloadSchema.safeParse({
       ...req.body,
       deviceId: req.get(HTTP.HEADERS.X_EXT_DEVICE_ID),
-      ipAddress,
+      ipAddress: req.ipAddress,
       requestId: res.locals?.requestId,
       serverVersion: ENV.VERSION,
       userAgent: req.headers['user-agent'],

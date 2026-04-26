@@ -23,7 +23,7 @@ export function createRateLimit(prefix: string, options: Partial<Options>) {
     standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
     handler: (req, res, next, options) => {
-      logger.warn({ ip: req.ip, path: req.path, method: req.method, prefix }, '[RATE_LIMIT] Request rate limit exceeded');
+      logger.warn({ ip: req.ipAddress, path: req.path, method: req.method, prefix }, '[RATE_LIMIT] Request rate limit exceeded');
       const isJson = (req.get(HTTP.HEADERS.ACCEPT) || '').includes(HTTP.CONTENT_TYPE.JSON);
       if (isJson) {
         res.status(options.statusCode).json({

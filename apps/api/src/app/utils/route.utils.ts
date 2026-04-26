@@ -1,6 +1,5 @@
 import { ENV, errorTracker } from '@jetstream/api-config';
 import { Request, Response } from '@jetstream/api-types';
-import { getApiAddressFromReq } from '@jetstream/auth/server';
 import { AuthenticatedUser, CookieOptions, UserProfileSession } from '@jetstream/auth/types';
 import { ApiConnection } from '@jetstream/salesforce-api';
 import { HTTP } from '@jetstream/shared/constants';
@@ -43,7 +42,7 @@ export function rateLimitGetKeyGenerator(): ValueDeterminingMiddleware<string> {
     if (isDevOrCi && rateLimitKey) {
       return rateLimitKey;
     }
-    return ipKeyGenerator(req.ip);
+    return ipKeyGenerator(req.ipAddress);
   };
 }
 
@@ -101,7 +100,6 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
   return async (req: Request<unknown, unknown, unknown>, res: Response, next: NextFunction) => {
     const logger = res.log || req.log;
     try {
-      res.locals.ipAddress = getApiAddressFromReq(req);
       res.locals.cookies = res.locals.cookies || {};
       const data = {
         params: params ? params.parse(req.params) : undefined,

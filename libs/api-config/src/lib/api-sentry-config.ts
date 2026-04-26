@@ -105,16 +105,6 @@ function getFirstHeaderValue(value: string | string[] | undefined): string | und
   return Array.isArray(value) ? value[0] : value;
 }
 
-function getRequestIp(req: Request): string | undefined {
-  const headers = req.headers || {};
-  const ip =
-    getFirstHeaderValue(headers['cf-connecting-ip']) ||
-    getFirstHeaderValue(headers['x-forwarded-for'])?.split(',')[0]?.trim() ||
-    req.socket?.remoteAddress ||
-    req.ip;
-  return ip || undefined;
-}
-
 function getFullUrl(req: Request): string | undefined {
   const host = req.get?.('host') ?? getFirstHeaderValue(req.headers?.host);
   if (!host) {
@@ -129,7 +119,7 @@ function applyRequestScope(scope: Sentry.Scope, req: Request) {
   const userId = (req as RequestWithSession).session?.user?.id;
   const userEmail = (req as RequestWithSession).session?.user?.email;
   const userAgent = req.get('user-agent');
-  const ip = getRequestIp(req);
+  const ip = req.ipAddress;
   if (userId || userEmail) {
     scope.setUser({ id: userId, email: userEmail, ...(ip ? { ip_address: ip } : {}) });
   } else if (ip) {

@@ -25,6 +25,14 @@ declare module 'express' {
       user: UserProfileSession;
       deviceId?: Maybe<string>;
     };
+    /**
+     * Resolved client IP address. Prefers Cloudflare's `cf-connecting-ip` header (which CF
+     * sets directly and clients cannot spoof when traffic actually transits CF) and falls
+     * back to `req.ip` (which respects `app.set('trust proxy', ...)`).
+     * Populated globally by `setIpAddress` middleware — safe to assume present on any
+     * request that has reached a route handler.
+     */
+    ipAddress: string;
   }
 }
 

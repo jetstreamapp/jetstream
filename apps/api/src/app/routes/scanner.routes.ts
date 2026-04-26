@@ -83,7 +83,7 @@ routes.post('/init-session', async (req: express.Request, res: express.Response,
         req.session.userAgent = userAgent;
         req.session.loginTime = Date.now();
         req.session.provider = 'credentials';
-        req.session.ipAddress = req.ip || '';
+        req.session.ipAddress = req.ipAddress;
         req.session.pendingMfaEnrollment = undefined;
         req.session.pendingVerification = undefined;
         req.session.pendingTosAcceptance = undefined;

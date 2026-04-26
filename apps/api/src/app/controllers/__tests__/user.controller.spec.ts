@@ -36,7 +36,6 @@ const authServerMocks = vi.hoisted(() => {
     generate2faTotpUrl: vi.fn(),
     generatePasswordResetToken: vi.fn(),
     getAllSessions: vi.fn(),
-    getApiAddressFromReq: vi.fn(() => '127.0.0.1'),
     getAuthorizationUrl: vi.fn(),
     getCookieConfig: vi.fn(() => ({})),
     getLoginConfiguration: vi.fn(),
@@ -116,6 +115,7 @@ type MockRequest = {
   get: (name: string) => string | undefined;
   log: { info: ReturnType<typeof vi.fn>; warn: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn>; debug: ReturnType<typeof vi.fn> };
   ip: string;
+  ipAddress: string;
 };
 
 function makeReq(overrides: Partial<MockRequest> = {}): MockRequest {
@@ -134,13 +134,14 @@ function makeReq(overrides: Partial<MockRequest> = {}): MockRequest {
     get: vi.fn(() => undefined),
     log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
     ip: '127.0.0.1',
+    ipAddress: '127.0.0.1',
     ...overrides,
   };
 }
 
 function makeRes() {
   const res = {
-    locals: { cookies: {}, requestId: 'request-id', ipAddress: '127.0.0.1' },
+    locals: { cookies: {}, requestId: 'request-id' },
     log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
     json: vi.fn(),
     status: vi.fn(),

@@ -1,12 +1,10 @@
 import { logger } from '@jetstream/api-config';
-import { Request } from '@jetstream/api-types';
 import { CookieConfig, CreateCSRFTokenParams, UserProfileSession, ValidateCSRFTokenParams } from '@jetstream/auth/types';
 import { HTTP } from '@jetstream/shared/constants';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { UserProfileUi } from '@jetstream/types';
 import * as bcrypt from 'bcryptjs';
 import * as Bowser from 'bowser';
-import { Request as ExpressRequest } from 'express';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
 export const REMEMBER_DEVICE_DAYS = 30;
@@ -263,19 +261,6 @@ export const convertUserProfileToSession_External = (user: UserProfileUi): UserP
     authFactors: [],
   };
 };
-
-export function getApiAddressFromReq(req: Request<unknown, unknown, unknown> | ExpressRequest<unknown, unknown, unknown, unknown>): string {
-  try {
-    const ipAddress = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
-    if (Array.isArray(ipAddress)) {
-      return ipAddress[ipAddress.length - 1];
-    }
-    return ipAddress;
-  } catch (ex) {
-    logger.error('Error fetching IP address', ex);
-    return `unknown-${new Date().getTime()}`;
-  }
-}
 
 /**
  * Validates a redirect URL to prevent open redirect vulnerabilities.

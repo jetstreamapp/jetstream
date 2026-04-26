@@ -5,7 +5,7 @@ import * as userFeedbackController from '../controllers/user-feedback.controller
 import * as webExtensionController from '../controllers/web-extension.controller';
 import * as externalAuthService from '../services/external-auth.service';
 import { rateLimitGetKeyGenerator, rateLimitGetMaxRequests } from '../utils/route.utils';
-import { deprecatedRouteMiddleware, feedbackRateLimit, feedbackUploadMiddleware } from './route.middleware';
+import { deprecatedRouteMiddleware, feedbackRateLimit, feedbackScreenshotsUploadMiddleware } from './route.middleware';
 
 export const LAX_AuthRateLimit = createRateLimit('web-ext_lax', {
   windowMs: 1000 * 60 * 1, // 1 minutes
@@ -110,7 +110,7 @@ routes.post(
   '/feedback',
   feedbackRateLimit,
   authMiddleware,
-  feedbackUploadMiddleware.array('screenshots', 5),
+  feedbackScreenshotsUploadMiddleware,
   userFeedbackController.sendUserFeedbackEmail,
 );
 

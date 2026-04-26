@@ -24,7 +24,7 @@ import {
   checkAuth,
   ensureTargetOrgExists,
   feedbackRateLimit,
-  feedbackUploadMiddleware,
+  feedbackScreenshotsUploadMiddleware,
   passwordResetEmailRateLimit,
   validateDoubleCSRF,
   verifyEntitlement,
@@ -217,7 +217,7 @@ routes.get('/salesforce-api/requests', salesforceApiReqController.getSalesforceA
  * User Feedback Routes
  * ************************************
  */
-routes.post('/feedback', feedbackRateLimit, feedbackUploadMiddleware.array('screenshots', 5), userFeedbackController.sendUserFeedbackEmail);
+routes.post('/feedback', feedbackRateLimit, feedbackScreenshotsUploadMiddleware, userFeedbackController.sendUserFeedbackEmail);
 
 /**
  * ************************************
