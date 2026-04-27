@@ -30,6 +30,7 @@ export const routes: express.Router = Router();
 routes.use(
   helmet({
     crossOriginOpenerPolicy: false,
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],

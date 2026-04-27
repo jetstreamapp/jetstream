@@ -142,8 +142,9 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   // popup-based third-party auth.
   app.use(
     helmet({
-      contentSecurityPolicy: { directives: buildCspDirectives() },
       crossOriginOpenerPolicy: false,
+      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+      contentSecurityPolicy: { directives: buildCspDirectives() },
       hsts: buildHstsConfig(),
     }),
   );
