@@ -64,6 +64,7 @@ export function useDrivePicker(apiConfig: GoogleApiClientConfig) {
       const token = await getToken();
 
       picker.current = new google.picker.PickerBuilder()
+        .setOrigin(`${window.location.protocol}//${window.location.host}`)
         .setAppId(apiConfig.appId)
         .setDeveloperKey(apiConfig.apiKey)
         .setOAuthToken(token.access_token)

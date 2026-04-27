@@ -258,6 +258,7 @@ export async function runPickerFlow(
       };
 
       const pickerBuilder = new google.picker.PickerBuilder()
+        .setOrigin(`${window.location.protocol}//${window.location.host}`)
         .setAppId(config.appId)
         .setDeveloperKey(config.apiKey)
         .setOAuthToken(googleAccessToken)
