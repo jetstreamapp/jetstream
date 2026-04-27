@@ -60,6 +60,8 @@ package-lock.json
 
 .nx/cache
 .nx/workspace-data
+.nx/polygraph
+
 **/playwright/**/*
 !**/playwright/.gitkeep
 
