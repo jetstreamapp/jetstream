@@ -280,10 +280,11 @@ const ScopeBadgesCollapsible: FunctionComponent<ScopeBadgesCollapsibleProps> = (
     }
 
     function measureCollapsedOverflow(): void {
-      if (expanded) {
+      const node = wrapRef.current;
+      if (!node || expanded) {
         return;
       }
-      setCanExpand(el.scrollHeight > el.clientHeight + 1);
+      setCanExpand(node.scrollHeight > node.clientHeight + 1);
     }
 
     measureCollapsedOverflow();

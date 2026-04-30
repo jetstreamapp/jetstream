@@ -15,12 +15,15 @@ import {
   Tooltip,
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner } from '@jetstream/ui-core';
-import { selectedOrgState } from '@jetstream/ui/app-state';
+import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { formatAnalysisJobStatusForDisplay } from './analysis-job-status-display';
+import { PermissionAnalysisExportGrid } from './PermissionAnalysisExportGrid';
 import { PermissionAnalysisHistoryModal } from './PermissionAnalysisHistoryModal';
+import { PermissionAnalysisIssuesTab } from './PermissionAnalysisIssuesTab';
+import { parsePermissionExportResult } from './permission-export-result-view';
 
 const HEIGHT_BUFFER = 170;
 
@@ -37,6 +40,8 @@ function formatJobResult(result: unknown): string {
  */
 export const PermissionAnalysisView: FunctionComponent = () => {
   const selectedOrg = useAtomValue(selectedOrgState);
+  const { serverUrl, defaultApiVersion } = useAtomValue(applicationCookieState);
+  const skipFrontdoorLogin = useAtomValue(selectSkipFrontdoorAuth);
   const [searchParams, setSearchParams] = useSearchParams();
   const jobId = searchParams.get('job');
 
@@ -104,74 +109,281 @@ export const PermissionAnalysisView: FunctionComponent = () => {
     (jobStatusNormalized === null || jobStatusNormalized === 'pending' || jobStatusNormalized === 'running'),
   );
 
-  const tabs = useMemo(
-    () => [
+  const parsedExport = useMemo(() => {
+    if (!jobRecord?.result) {
+      return null;
+    }
+    return parsePermissionExportResult(jobRecord.result);
+  }, [jobRecord]);
+
+  const findingsCount = parsedExport?.findings.length ?? 0;
+
+  const resultTabs = useMemo(() => {
+    if (!selectedOrg || !parsedExport) {
+      return null;
+    }
+
+    const { export: exportBundle, truncated, findings } = parsedExport;
+    const counts = parsedExport.counts;
+
+    const gridProps = {
+      org: selectedOrg,
+      serverUrl,
+      skipFrontdoorLogin,
+      defaultApiVersion,
+    };
+
+    return [
       {
-        id: 'export-job',
+        id: 'permission-sets',
         title: (
           <Fragment>
             <span className="slds-tabs__left-icon">
               <Icon
                 type="standard"
-                icon="portal"
-                containerClassname="slds-icon_container slds-icon-standard-portal"
+                icon="user"
+                containerClassname="slds-icon_container slds-icon-standard-user"
                 className="slds-icon slds-icon_small"
               />
             </span>
-            Export job{statusDisplay ? ` (${statusDisplay})` : ''}
+            Permission Sets{counts.permissionSets != null ? ` (${counts.permissionSets})` : ''}
           </Fragment>
         ),
-        titleText: statusDisplay ? `Export job (${statusDisplay})` : 'Export job',
+        titleText: 'Permission Sets',
         content: (
-          <div className="slds-p-around_medium">
-            {showSpinnerForJobLifecycle && (
-              <div className="slds-m-bottom_medium">
-                <Spinner />
-              </div>
+          <div
+            className="slds-grid slds-grid_vertical slds-p-around_x-small"
+            css={css`
+              height: 100%;
+            `}
+          >
+            {truncated && (
+              <ScopedNotification theme="warning" className="slds-m-bottom_small">
+                Export hit the row limit; some Salesforce rows may be missing from these tables.
+              </ScopedNotification>
             )}
-            {jobRecord && (
-              <dl className="slds-dl_horizontal">
-                <dt className="slds-dl_horizontal__label">
-                  <p className="slds-truncate">Status</p>
-                </dt>
-                <dd className="slds-dl_horizontal__detail">
-                  <p className="slds-truncate">{statusDisplay ?? '—'}</p>
-                </dd>
-                <dt className="slds-dl_horizontal__label">
-                  <p className="slds-truncate">Job type</p>
-                </dt>
-                <dd className="slds-dl_horizontal__detail">
-                  <p className="slds-truncate">{jobRecord.jobType != null ? String(jobRecord.jobType) : '—'}</p>
-                </dd>
-                {jobRecord.errorMessage != null && String(jobRecord.errorMessage).length > 0 && (
-                  <>
-                    <dt className="slds-dl_horizontal__label">
-                      <p className="slds-truncate">Error</p>
-                    </dt>
-                    <dd className="slds-dl_horizontal__detail">
-                      <p>{String(jobRecord.errorMessage)}</p>
-                    </dd>
-                  </>
-                )}
-              </dl>
-            )}
-            {jobRecord?.result != null && (
-              <pre
-                className="slds-box slds-m-top_medium slds-scrollable_y"
-                css={css`
-                  max-height: 360px;
-                  font-size: 0.75rem;
-                `}
-              >
-                {formatJobResult(jobRecord.result)}
-              </pre>
-            )}
+            <PermissionAnalysisExportGrid rows={exportBundle.permissionSets} {...gridProps} />
           </div>
         ),
       },
-    ],
-    [jobRecord, showSpinnerForJobLifecycle, statusDisplay],
-  );
+      {
+        id: 'assignments',
+        title: (
+          <Fragment>
+            <span className="slds-tabs__left-icon">
+              <Icon
+                type="standard"
+                icon="customer_portal_users"
+                containerClassname="slds-icon_container slds-icon-standard-customer-portal-users"
+                className="slds-icon slds-icon_small"
+              />
+            </span>
+            Assignments{counts.permissionSetAssignments != null ? ` (${counts.permissionSetAssignments})` : ''}
+          </Fragment>
+        ),
+        titleText: 'Assignments',
+        content: (
+          <div
+            className="slds-p-around_x-small"
+            css={css`
+              height: 100%;
+            `}
+          >
+            <PermissionAnalysisExportGrid rows={exportBundle.permissionSetAssignments} {...gridProps} />
+          </div>
+        ),
+      },
+      {
+        id: 'permission-set-groups',
+        title: (
+          <Fragment>
+            <span className="slds-tabs__left-icon">
+              <Icon
+                type="standard"
+                icon="groups"
+                containerClassname="slds-icon_container slds-icon-standard-groups"
+                className="slds-icon slds-icon_small"
+              />
+            </span>
+            Permission Set Groups
+            {counts.permissionSetGroups != null ? ` (${counts.permissionSetGroups})` : ''}
+          </Fragment>
+        ),
+        titleText: 'Permission Set Groups',
+        content: (
+          <div
+            className="slds-grid slds-grid_vertical slds-gutters_x-small slds-p-around_x-small"
+            css={css`
+              height: 100%;
+            `}
+          >
+            <div>
+              <h2 className="slds-text-heading_small slds-m-bottom_x-small">Groups</h2>
+              <PermissionAnalysisExportGrid rows={exportBundle.permissionSetGroups} {...gridProps} />
+            </div>
+            <div>
+              <h2 className="slds-text-heading_small slds-m-bottom_x-small">Group components</h2>
+              <PermissionAnalysisExportGrid rows={exportBundle.permissionSetGroupComponents} {...gridProps} />
+            </div>
+            <div>
+              <h2 className="slds-text-heading_small slds-m-bottom_x-small">Muting permission sets</h2>
+              <PermissionAnalysisExportGrid rows={exportBundle.mutingPermissionSets} {...gridProps} />
+            </div>
+          </div>
+        ),
+      },
+      {
+        id: 'object-permissions',
+        title: (
+          <Fragment>
+            <span className="slds-tabs__left-icon">
+              <Icon
+                type="standard"
+                icon="entity"
+                containerClassname="slds-icon_container slds-icon-standard-entity"
+                className="slds-icon slds-icon_small"
+              />
+            </span>
+            Object Permissions{counts.objectPermissions != null ? ` (${counts.objectPermissions})` : ''}
+          </Fragment>
+        ),
+        titleText: 'Object Permissions',
+        content: (
+          <div
+            className="slds-p-around_x-small"
+            css={css`
+              height: 100%;
+            `}
+          >
+            <PermissionAnalysisExportGrid rows={exportBundle.objectPermissions} {...gridProps} />
+          </div>
+        ),
+      },
+      {
+        id: 'tab-visibility',
+        title: (
+          <Fragment>
+            <span className="slds-tabs__left-icon">
+              <Icon
+                type="standard"
+                icon="portal_roles_and_subordinates"
+                containerClassname="slds-icon_container slds-icon-standard-portal-roles-and-subordinates"
+                className="slds-icon slds-icon_small"
+              />
+            </span>
+            Tab Visibility{counts.permissionSetTabSettings != null ? ` (${counts.permissionSetTabSettings})` : ''}
+          </Fragment>
+        ),
+        titleText: 'Tab Visibility',
+        content: (
+          <div
+            className="slds-p-around_x-small"
+            css={css`
+              height: 100%;
+            `}
+          >
+            <PermissionAnalysisExportGrid rows={exportBundle.permissionSetTabSettings} {...gridProps} />
+          </div>
+        ),
+      },
+      {
+        id: 'field-permissions',
+        title: (
+          <Fragment>
+            <span className="slds-tabs__left-icon">
+              <Icon
+                type="standard"
+                icon="multi_picklist"
+                containerClassname="slds-icon_container slds-icon-standard-multi-picklist"
+                className="slds-icon slds-icon_small"
+              />
+            </span>
+            Field Permissions{counts.fieldPermissions != null ? ` (${counts.fieldPermissions})` : ''}
+          </Fragment>
+        ),
+        titleText: 'Field Permissions',
+        content: (
+          <div
+            className="slds-p-around_x-small"
+            css={css`
+              height: 100%;
+            `}
+          >
+            <PermissionAnalysisExportGrid rows={exportBundle.fieldPermissions} {...gridProps} />
+          </div>
+        ),
+      },
+      {
+        id: 'issues',
+        title: (
+          <Fragment>
+            <span className="slds-tabs__left-icon">
+              <Icon
+                type="standard"
+                icon="incident"
+                containerClassname="slds-icon_container slds-icon-standard-incident"
+                className="slds-icon slds-icon_small"
+              />
+            </span>
+            Issues{findingsCount > 0 ? ` (${findingsCount})` : ''}
+          </Fragment>
+        ),
+        titleText: 'Issues',
+        content: (
+          <PermissionAnalysisIssuesTab
+            findings={findings}
+            permissionSetAssignments={exportBundle.permissionSetAssignments}
+            org={selectedOrg}
+            serverUrl={serverUrl}
+            skipFrontdoorLogin={skipFrontdoorLogin}
+            defaultApiVersion={defaultApiVersion}
+            searchParams={searchParams}
+            setSearchParams={setSearchParams}
+          />
+        ),
+      },
+      {
+        id: 'raw-json',
+        title: (
+          <Fragment>
+            <span className="slds-tabs__left-icon">
+              <Icon
+                type="standard"
+                icon="apex"
+                containerClassname="slds-icon_container slds-icon-standard-apex"
+                className="slds-icon slds-icon_small"
+              />
+            </span>
+            Raw JSON
+          </Fragment>
+        ),
+        titleText: 'Raw JSON',
+        content: (
+          <div className="slds-p-around_medium">
+            <pre
+              className="slds-box slds-scrollable_y"
+              css={css`
+                max-height: min(560px, 70vh);
+                font-size: 0.75rem;
+              `}
+            >
+              {formatJobResult(jobRecord?.result)}
+            </pre>
+          </div>
+        ),
+      },
+    ];
+  }, [
+    selectedOrg,
+    parsedExport,
+    serverUrl,
+    skipFrontdoorLogin,
+    defaultApiVersion,
+    jobRecord,
+    searchParams,
+    setSearchParams,
+    findingsCount,
+  ]);
 
   return (
     <div>
@@ -226,7 +438,74 @@ export const PermissionAnalysisView: FunctionComponent = () => {
           </div>
         )}
         {jobId && fetchError && <Toast type="error">{fetchError}</Toast>}
-        {jobId && !fetchError && <Tabs initialActiveId="export-job" renderAllContent tabs={tabs} />}
+        {jobId && !fetchError && jobStatusNormalized === 'failed' && jobRecord?.errorMessage != null && (
+          <div className="slds-p-around_medium">
+            <Toast type="error">{String(jobRecord.errorMessage)}</Toast>
+          </div>
+        )}
+        {jobId && !fetchError && !isTerminal && (
+          <div className="slds-p-around_medium">
+            {showSpinnerForJobLifecycle && (
+              <div className="slds-m-bottom_medium">
+                <Spinner />
+              </div>
+            )}
+            {jobRecord && (
+              <dl className="slds-dl_horizontal">
+                <dt className="slds-dl_horizontal__label">
+                  <p className="slds-truncate">Status</p>
+                </dt>
+                <dd className="slds-dl_horizontal__detail">
+                  <p className="slds-truncate">{statusDisplay ?? '—'}</p>
+                </dd>
+                <dt className="slds-dl_horizontal__label">
+                  <p className="slds-truncate">Job type</p>
+                </dt>
+                <dd className="slds-dl_horizontal__detail">
+                  <p className="slds-truncate">{jobRecord.jobType != null ? String(jobRecord.jobType) : '—'}</p>
+                </dd>
+              </dl>
+            )}
+          </div>
+        )}
+        {jobId && !fetchError && isTerminal && jobStatusNormalized === 'completed' && parsedExport && selectedOrg && resultTabs && (
+          <Fragment>
+            {parsedExport.summary && (
+              <div className="slds-p-horizontal_medium slds-p-top_x-small">
+                <p className="slds-text-body_small slds-text-color_weak">{parsedExport.summary}</p>
+              </div>
+            )}
+            <Tabs initialActiveId="object-permissions" tabs={resultTabs} />
+          </Fragment>
+        )}
+        {jobId && !fetchError && isTerminal && jobStatusNormalized === 'completed' && !parsedExport && jobRecord && (
+          <div className="slds-p-around_medium">
+            <ScopedNotification theme="warning" className="slds-m-bottom_medium">
+              This job result does not include a structured permission export payload. Showing raw JSON only.
+            </ScopedNotification>
+            <Tabs
+              initialActiveId="legacy-json"
+              tabs={[
+                {
+                  id: 'legacy-json',
+                  title: 'Raw JSON',
+                  titleText: 'Raw JSON',
+                  content: (
+                    <pre
+                      className="slds-box slds-scrollable_y slds-m-around_small"
+                      css={css`
+                        max-height: 560px;
+                        font-size: 0.75rem;
+                      `}
+                    >
+                      {formatJobResult(jobRecord.result)}
+                    </pre>
+                  ),
+                },
+              ]}
+            />
+          </div>
+        )}
       </AutoFullHeightContainer>
     </div>
   );
