@@ -140,6 +140,19 @@ function splitPascalCaseToTitle(pascal: string): string {
  * @param fieldKey API field name from a row key.
  * @returns Label for the column header; `fieldKey` unchanged when not a `Permissions*` column.
  */
+/**
+ * Default boolean columns use a narrow width; OLS/FLS permission headers need more room.
+ * (react-data-grid uses `width` / `minWidth` from the column definition.)
+ */
+const PERMISSIONS_COLUMN_MIN_WIDTH_PX = 200;
+const PERMISSIONS_COLUMN_HEADER_CHAR_PX = 9;
+const PERMISSIONS_COLUMN_HEADER_PADDING_PX = 48;
+
+function permissionsColumnWidthForLabel(headerLabel: string): number {
+  const fromLabel = Math.ceil(headerLabel.length * PERMISSIONS_COLUMN_HEADER_CHAR_PX + PERMISSIONS_COLUMN_HEADER_PADDING_PX);
+  return Math.max(PERMISSIONS_COLUMN_MIN_WIDTH_PX, fromLabel);
+}
+
 export function getExportColumnHeaderLabel(fieldKey: string): string {
   if (!fieldKey.startsWith('Permissions')) {
     return fieldKey;
@@ -175,12 +188,15 @@ export function buildDynamicExportColumns(rows: PermissionExportRow[]): ColumnWi
   return keys.map((key) => {
     const fieldType = key === 'Id' || key === 'ParentId' || key.endsWith('Id') ? 'salesforceId' : getRowTypeFromValue(firstRow[key], false);
     const base = setColumnFromType(key, fieldType);
+    const headerLabel = getExportColumnHeaderLabel(key);
+    const permissionsWidthPx = key.startsWith('Permissions') ? permissionsColumnWidthForLabel(headerLabel) : undefined;
     return {
       ...base,
-      name: getExportColumnHeaderLabel(key),
+      name: headerLabel,
       key,
       field: key,
       resizable: true,
+      ...(permissionsWidthPx !== undefined ? { width: permissionsWidthPx, minWidth: permissionsWidthPx } : {}),
     } as ColumnWithFilter<RowWithKey>;
   });
 }
