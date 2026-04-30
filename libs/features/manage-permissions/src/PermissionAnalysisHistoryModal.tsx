@@ -616,10 +616,25 @@ export const PermissionAnalysisHistoryModal: FunctionComponent<PermissionAnalysi
             </div>
           </Grid>
           {scopeFilterParentId && activeScopeFilterLabel && (
-            <div className="slds-m-bottom_x-small slds-text-body_small">
-              <span className="slds-text-color_weak">Showing runs that include </span>
-              <strong title={scopeFilterParentId}>{activeScopeFilterLabel}</strong>
-              <button type="button" className="slds-button slds-button_reset slds-m-left_xx-small" onClick={handleClearScopeFilter}>
+            <div
+              className="slds-m-bottom_x-small slds-text-body_small"
+              css={css`
+                display: flex;
+                flex-wrap: wrap;
+                align-items: baseline;
+                column-gap: 0.35rem;
+                row-gap: 0.125rem;
+              `}
+            >
+              <span>
+                <span className="slds-text-color_weak">Showing runs that include </span>
+                <strong title={scopeFilterParentId}>{activeScopeFilterLabel}</strong>
+              </span>
+              <button
+                type="button"
+                className="slds-button slds-button_reset slds-text-link_reset slds-text-link"
+                onClick={handleClearScopeFilter}
+              >
                 Clear
               </button>
             </div>
