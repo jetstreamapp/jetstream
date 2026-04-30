@@ -53,6 +53,7 @@ model User {
   syncData            UserSyncData[]
   teamMembership      TeamMember?
   webExtensionTokens  WebExtensionToken[]
+  analysisJobs AnalysisJob[]
 
   loginConfigurationCreatedBy   LoginConfiguration[]   @relation("LoginConfigurationCreatedBy")
   loginConfigurationUpdatedBy   LoginConfiguration[]   @relation("LoginConfigurationUpdatedBy")
@@ -533,6 +534,24 @@ model TeamSubscription {
   // Speeds filtering active/past-due by team
   @@index([teamId, status])
   @@map("team_subscription")
+}
+
+/// Long-running analysis jobs (permission export, field usage). Large payloads stay out of `result` when possible.
+model AnalysisJob {
+  id                 String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId             String   @db.Uuid
+  salesforceOrgUniqueId String @db.VarChar
+  jobType            String   @db.VarChar(64)
+  status             String   @default("pending") @db.VarChar(32)
+  result             Json?    @db.JsonB
+  errorMessage       String?  @db.VarChar(2000)
+  createdAt          DateTime @default(now()) @db.Timestamp(6)
+  updatedAt          DateTime @updatedAt @db.Timestamp(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, salesforceOrgUniqueId, createdAt(sort: Desc)])
+  @@map("analysis_job")
 }
 
 model SalesforceOrg {
