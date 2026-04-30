@@ -23,7 +23,11 @@ import { formatAnalysisJobStatusForDisplay } from './analysis-job-status-display
 import { PermissionAnalysisExportGrid } from './PermissionAnalysisExportGrid';
 import { PermissionAnalysisHistoryModal } from './PermissionAnalysisHistoryModal';
 import { PermissionAnalysisIssuesTab } from './PermissionAnalysisIssuesTab';
-import { parsePermissionExportResult } from './permission-export-result-view';
+import {
+  filterPermissionSetExportRowsById,
+  parsePermissionExportRequestScope,
+  parsePermissionExportResult,
+} from './permission-export-result-view';
 
 const HEIGHT_BUFFER = 170;
 
@@ -133,39 +137,98 @@ export const PermissionAnalysisView: FunctionComponent = () => {
       defaultApiVersion,
     };
 
+    const requestScope = parsePermissionExportRequestScope(jobRecord?.result);
+    const hasExplicitScope = requestScope.profilePermissionSetIds.length > 0 || requestScope.permissionSetIds.length > 0;
+    const profileIdSet = new Set(requestScope.profilePermissionSetIds);
+    const permissionSetIdSet = new Set(requestScope.permissionSetIds);
+    const profilePermissionSetRows = filterPermissionSetExportRowsById(exportBundle.permissionSets, profileIdSet);
+    let standalonePermissionSetRows = filterPermissionSetExportRowsById(exportBundle.permissionSets, permissionSetIdSet);
+    let showProfilesTab = requestScope.profilePermissionSetIds.length > 0;
+    let showPermissionSetsTab = requestScope.permissionSetIds.length > 0;
+
+    if (!hasExplicitScope && exportBundle.permissionSets.length > 0) {
+      showProfilesTab = false;
+      showPermissionSetsTab = true;
+      standalonePermissionSetRows = exportBundle.permissionSets;
+    }
+
+    const showPermissionSetGroupsTab =
+      exportBundle.permissionSetGroups.length > 0 ||
+      exportBundle.permissionSetGroupComponents.length > 0 ||
+      exportBundle.mutingPermissionSets.length > 0;
+
+    function renderTruncationNotice() {
+      if (!truncated) {
+        return null;
+      }
+      return (
+        <ScopedNotification theme="warning" className="slds-m-bottom_small">
+          Export hit the row limit; some Salesforce rows may be missing from these tables.
+        </ScopedNotification>
+      );
+    }
+
+    const profilesTab = {
+      id: 'profiles',
+      title: (
+        <Fragment>
+          <span className="slds-tabs__left-icon">
+            <Icon
+              type="standard"
+              icon="customers"
+              containerClassname="slds-icon_container slds-icon-standard-customers"
+              className="slds-icon slds-icon_small"
+            />
+          </span>
+          Profiles ({profilePermissionSetRows.length})
+        </Fragment>
+      ),
+      titleText: 'Profiles',
+      content: (
+        <div
+          className="slds-grid slds-grid_vertical slds-p-around_x-small"
+          css={css`
+            height: 100%;
+          `}
+        >
+          {renderTruncationNotice()}
+          <PermissionAnalysisExportGrid rows={profilePermissionSetRows} {...gridProps} />
+        </div>
+      ),
+    };
+
+    const permissionSetsTab = {
+      id: 'permission-sets',
+      title: (
+        <Fragment>
+          <span className="slds-tabs__left-icon">
+            <Icon
+              type="standard"
+              icon="user"
+              containerClassname="slds-icon_container slds-icon-standard-user"
+              className="slds-icon slds-icon_small"
+            />
+          </span>
+          Permission Sets ({standalonePermissionSetRows.length})
+        </Fragment>
+      ),
+      titleText: 'Permission Sets',
+      content: (
+        <div
+          className="slds-grid slds-grid_vertical slds-p-around_x-small"
+          css={css`
+            height: 100%;
+          `}
+        >
+          {renderTruncationNotice()}
+          <PermissionAnalysisExportGrid rows={standalonePermissionSetRows} {...gridProps} />
+        </div>
+      ),
+    };
+
     return [
-      {
-        id: 'permission-sets',
-        title: (
-          <Fragment>
-            <span className="slds-tabs__left-icon">
-              <Icon
-                type="standard"
-                icon="user"
-                containerClassname="slds-icon_container slds-icon-standard-user"
-                className="slds-icon slds-icon_small"
-              />
-            </span>
-            Permission Sets{counts.permissionSets != null ? ` (${counts.permissionSets})` : ''}
-          </Fragment>
-        ),
-        titleText: 'Permission Sets',
-        content: (
-          <div
-            className="slds-grid slds-grid_vertical slds-p-around_x-small"
-            css={css`
-              height: 100%;
-            `}
-          >
-            {truncated && (
-              <ScopedNotification theme="warning" className="slds-m-bottom_small">
-                Export hit the row limit; some Salesforce rows may be missing from these tables.
-              </ScopedNotification>
-            )}
-            <PermissionAnalysisExportGrid rows={exportBundle.permissionSets} {...gridProps} />
-          </div>
-        ),
-      },
+      ...(showProfilesTab ? [profilesTab] : []),
+      ...(showPermissionSetsTab ? [permissionSetsTab] : []),
       {
         id: 'assignments',
         title: (
@@ -189,49 +252,55 @@ export const PermissionAnalysisView: FunctionComponent = () => {
               height: 100%;
             `}
           >
+            {renderTruncationNotice()}
             <PermissionAnalysisExportGrid rows={exportBundle.permissionSetAssignments} {...gridProps} />
           </div>
         ),
       },
-      {
-        id: 'permission-set-groups',
-        title: (
-          <Fragment>
-            <span className="slds-tabs__left-icon">
-              <Icon
-                type="standard"
-                icon="groups"
-                containerClassname="slds-icon_container slds-icon-standard-groups"
-                className="slds-icon slds-icon_small"
-              />
-            </span>
-            Permission Set Groups
-            {counts.permissionSetGroups != null ? ` (${counts.permissionSetGroups})` : ''}
-          </Fragment>
-        ),
-        titleText: 'Permission Set Groups',
-        content: (
-          <div
-            className="slds-grid slds-grid_vertical slds-gutters_x-small slds-p-around_x-small"
-            css={css`
-              height: 100%;
-            `}
-          >
-            <div>
-              <h2 className="slds-text-heading_small slds-m-bottom_x-small">Groups</h2>
-              <PermissionAnalysisExportGrid rows={exportBundle.permissionSetGroups} {...gridProps} />
-            </div>
-            <div>
-              <h2 className="slds-text-heading_small slds-m-bottom_x-small">Group components</h2>
-              <PermissionAnalysisExportGrid rows={exportBundle.permissionSetGroupComponents} {...gridProps} />
-            </div>
-            <div>
-              <h2 className="slds-text-heading_small slds-m-bottom_x-small">Muting permission sets</h2>
-              <PermissionAnalysisExportGrid rows={exportBundle.mutingPermissionSets} {...gridProps} />
-            </div>
-          </div>
-        ),
-      },
+      ...(showPermissionSetGroupsTab
+        ? [
+            {
+              id: 'permission-set-groups',
+              title: (
+                <Fragment>
+                  <span className="slds-tabs__left-icon">
+                    <Icon
+                      type="standard"
+                      icon="groups"
+                      containerClassname="slds-icon_container slds-icon-standard-groups"
+                      className="slds-icon slds-icon_small"
+                    />
+                  </span>
+                  Permission Set Groups
+                  {counts.permissionSetGroups != null ? ` (${counts.permissionSetGroups})` : ''}
+                </Fragment>
+              ),
+              titleText: 'Permission Set Groups',
+              content: (
+                <div
+                  className="slds-grid slds-grid_vertical slds-gutters_x-small slds-p-around_x-small"
+                  css={css`
+                    height: 100%;
+                  `}
+                >
+                  {renderTruncationNotice()}
+                  <div>
+                    <h2 className="slds-text-heading_small slds-m-bottom_x-small">Groups</h2>
+                    <PermissionAnalysisExportGrid rows={exportBundle.permissionSetGroups} {...gridProps} />
+                  </div>
+                  <div>
+                    <h2 className="slds-text-heading_small slds-m-bottom_x-small">Group components</h2>
+                    <PermissionAnalysisExportGrid rows={exportBundle.permissionSetGroupComponents} {...gridProps} />
+                  </div>
+                  <div>
+                    <h2 className="slds-text-heading_small slds-m-bottom_x-small">Muting permission sets</h2>
+                    <PermissionAnalysisExportGrid rows={exportBundle.mutingPermissionSets} {...gridProps} />
+                  </div>
+                </div>
+              ),
+            },
+          ]
+        : []),
       {
         id: 'object-permissions',
         title: (
@@ -255,6 +324,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
               height: 100%;
             `}
           >
+            {renderTruncationNotice()}
             <PermissionAnalysisExportGrid rows={exportBundle.objectPermissions} {...gridProps} />
           </div>
         ),
@@ -282,6 +352,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
               height: 100%;
             `}
           >
+            {renderTruncationNotice()}
             <PermissionAnalysisExportGrid rows={exportBundle.permissionSetTabSettings} {...gridProps} />
           </div>
         ),
@@ -309,6 +380,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
               height: 100%;
             `}
           >
+            {renderTruncationNotice()}
             <PermissionAnalysisExportGrid rows={exportBundle.fieldPermissions} {...gridProps} />
           </div>
         ),
@@ -475,7 +547,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
                 <p className="slds-text-body_small slds-text-color_weak">{parsedExport.summary}</p>
               </div>
             )}
-            <Tabs initialActiveId="object-permissions" tabs={resultTabs} />
+            <Tabs key={resultTabs.map((tab) => tab.id).join('|')} initialActiveId={resultTabs[0]?.id ?? 'assignments'} tabs={resultTabs} />
           </Fragment>
         )}
         {jobId && !fetchError && isTerminal && jobStatusNormalized === 'completed' && !parsedExport && jobRecord && (

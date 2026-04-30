@@ -46,6 +46,47 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return null;
 }
 
+function stringIdArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter((id): id is string => typeof id === 'string');
+}
+
+/**
+ * IDs from the job's `requestPayload` (see permission export analysis jobs).
+ * `profileIds` are the profile **PermissionSet** Ids chosen on the selection screen, not Profile Ids.
+ */
+export interface PermissionExportRequestScope {
+  profilePermissionSetIds: string[];
+  permissionSetIds: string[];
+}
+
+export function parsePermissionExportRequestScope(jobResult: unknown): PermissionExportRequestScope {
+  const root = asRecord(jobResult);
+  if (!root) {
+    return { profilePermissionSetIds: [], permissionSetIds: [] };
+  }
+  const payload = asRecord(root.requestPayload);
+  if (!payload) {
+    return { profilePermissionSetIds: [], permissionSetIds: [] };
+  }
+  return {
+    profilePermissionSetIds: stringIdArray(payload.profileIds),
+    permissionSetIds: stringIdArray(payload.permissionSetIds),
+  };
+}
+
+export function filterPermissionSetExportRowsById(
+  rows: PermissionExportRow[],
+  permissionSetIds: ReadonlySet<string>,
+): PermissionExportRow[] {
+  if (permissionSetIds.size === 0) {
+    return [];
+  }
+  return rows.filter((row) => typeof row.Id === 'string' && permissionSetIds.has(row.Id));
+}
+
 function asRowArray(value: unknown): PermissionExportRow[] {
   if (!Array.isArray(value)) {
     return [];
