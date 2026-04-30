@@ -46,11 +46,15 @@ async function runPermissionExportJob(jobId: string): Promise<void> {
     const nextResult = {
       ...existingResult,
       phase: 'permission_export_v1',
-      summary: `Exported ${exportPayload.counts.permissionSets} permission sets, ${exportPayload.counts.objectPermissions} object permission rows, ${exportPayload.counts.fieldPermissions} field permission rows, ${exportPayload.counts.permissionSetTabSettings} tab settings (truncated=${exportPayload.truncated}).`,
+      summary: `Exported ${exportPayload.counts.permissionSets} permission sets, ${exportPayload.counts.permissionSetAssignments} assignments, ${exportPayload.counts.permissionSetGroups} permission set groups (${exportPayload.counts.permissionSetGroupComponents} components, ${exportPayload.counts.mutingPermissionSets} muting permission sets), ${exportPayload.counts.objectPermissions} object permission rows, ${exportPayload.counts.fieldPermissions} field permission rows, ${exportPayload.counts.permissionSetTabSettings} tab settings (truncated=${exportPayload.truncated}).`,
       truncated: exportPayload.truncated,
       counts: exportPayload.counts,
       export: {
         permissionSets: exportPayload.permissionSets,
+        permissionSetAssignments: exportPayload.permissionSetAssignments,
+        permissionSetGroups: exportPayload.permissionSetGroups,
+        permissionSetGroupComponents: exportPayload.permissionSetGroupComponents,
+        mutingPermissionSets: exportPayload.mutingPermissionSets,
         objectPermissions: exportPayload.objectPermissions,
         fieldPermissions: exportPayload.fieldPermissions,
         permissionSetTabSettings: exportPayload.permissionSetTabSettings,

@@ -1,0 +1,226 @@
+import type { ColumnWithFilter, RowWithKey } from '@jetstream/ui';
+import { getRowTypeFromValue, setColumnFromType } from '@jetstream/ui';
+
+/** Salesforce User Id prefix (15- or 18-char Ids). */
+const USER_ID_PREFIX = '005';
+
+export type PermissionExportRow = Record<string, unknown>;
+
+export interface PermissionExportBundle {
+  permissionSets: PermissionExportRow[];
+  permissionSetAssignments: PermissionExportRow[];
+  permissionSetGroups: PermissionExportRow[];
+  permissionSetGroupComponents: PermissionExportRow[];
+  mutingPermissionSets: PermissionExportRow[];
+  objectPermissions: PermissionExportRow[];
+  fieldPermissions: PermissionExportRow[];
+  permissionSetTabSettings: PermissionExportRow[];
+}
+
+export interface ParsedPermissionExportResult {
+  phase: string | null;
+  summary: string | null;
+  truncated: boolean;
+  counts: Record<string, number>;
+  export: PermissionExportBundle;
+  findings: PermissionAnalysisFinding[];
+  issueCodeSummary: Record<string, unknown> | null;
+}
+
+export interface PermissionAnalysisFinding {
+  severity?: string;
+  code?: string;
+  message?: string;
+  objectApiName?: string;
+  fieldApiName?: string;
+  permissionSetId?: string;
+  parentId?: string;
+  containerId?: string;
+  [key: string]: unknown;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return null;
+}
+
+function asRowArray(value: unknown): PermissionExportRow[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter((row): row is PermissionExportRow => row !== null && typeof row === 'object' && !Array.isArray(row));
+}
+
+/**
+ * Normalizes `analysis_job.result` JSON for permission export jobs.
+ */
+export function parsePermissionExportResult(jobResult: unknown): ParsedPermissionExportResult | null {
+  const root = asRecord(jobResult);
+  if (!root) {
+    return null;
+  }
+
+  const exportBlock = asRecord(root.export);
+  if (!exportBlock) {
+    return null;
+  }
+
+  const countsRaw = asRecord(root.counts);
+  const counts: Record<string, number> = {};
+  if (countsRaw) {
+    for (const [key, value] of Object.entries(countsRaw)) {
+      if (typeof value === 'number' && Number.isFinite(value)) {
+        counts[key] = value;
+      }
+    }
+  }
+
+  const findingsRaw = root.findings;
+  const findings: PermissionAnalysisFinding[] = Array.isArray(findingsRaw)
+    ? findingsRaw.filter((item): item is PermissionAnalysisFinding => item !== null && typeof item === 'object')
+    : [];
+
+  return {
+    phase: root.phase != null ? String(root.phase) : null,
+    summary: root.summary != null ? String(root.summary) : null,
+    truncated: Boolean(root.truncated),
+    counts,
+    export: {
+      permissionSets: asRowArray(exportBlock.permissionSets),
+      permissionSetAssignments: asRowArray(exportBlock.permissionSetAssignments),
+      permissionSetGroups: asRowArray(exportBlock.permissionSetGroups),
+      permissionSetGroupComponents: asRowArray(exportBlock.permissionSetGroupComponents),
+      mutingPermissionSets: asRowArray(exportBlock.mutingPermissionSets),
+      objectPermissions: asRowArray(exportBlock.objectPermissions),
+      fieldPermissions: asRowArray(exportBlock.fieldPermissions),
+      permissionSetTabSettings: asRowArray(exportBlock.permissionSetTabSettings),
+    },
+    findings,
+    issueCodeSummary:
+      root.issueCodeSummary != null && typeof root.issueCodeSummary === 'object' && !Array.isArray(root.issueCodeSummary)
+        ? (root.issueCodeSummary as Record<string, unknown>)
+        : null,
+  };
+}
+
+const COLUMN_KEY_ORDER = ['Id', 'ParentId', 'PermissionSetId', 'PermissionSetGroupId', 'AssigneeId', 'SobjectType', 'Field'];
+
+function sortedColumnKeys(rows: PermissionExportRow[]): string[] {
+  const keys = new Set<string>();
+  for (const row of rows) {
+    for (const key of Object.keys(row)) {
+      keys.add(key);
+    }
+  }
+  const ordered: string[] = [];
+  for (const preferred of COLUMN_KEY_ORDER) {
+    if (keys.has(preferred)) {
+      ordered.push(preferred);
+    }
+  }
+  const rest = [...keys].filter((key) => !COLUMN_KEY_ORDER.includes(key)).sort((a, b) => a.localeCompare(b));
+  ordered.push(...rest);
+  return ordered;
+}
+
+/** Split PascalCase API suffixes into spaced words for column titles (e.g. `ViewAllRecords` → "View All Records"). */
+function splitPascalCaseToTitle(pascal: string): string {
+  return pascal
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    .trim();
+}
+
+/**
+ * Human-readable DataTable header for export SOQL field names.
+ * Salesforce object/field permission booleans use `PermissionsRead`, `PermissionsEdit`, etc.; show "Read", "Edit", …
+ *
+ * @param fieldKey API field name from a row key.
+ * @returns Label for the column header; `fieldKey` unchanged when not a `Permissions*` column.
+ */
+export function getExportColumnHeaderLabel(fieldKey: string): string {
+  if (!fieldKey.startsWith('Permissions')) {
+    return fieldKey;
+  }
+  const suffix = fieldKey.slice('Permissions'.length);
+  if (!suffix) {
+    return fieldKey;
+  }
+  const explicitLabels: Record<string, string> = {
+    Read: 'Read',
+    Create: 'Create',
+    Edit: 'Edit',
+    Delete: 'Delete',
+    ViewAllRecords: 'View All Records',
+    ModifyAllRecords: 'Modify All Records',
+    ViewAllFields: 'View All Fields',
+  };
+  if (explicitLabels[suffix]) {
+    return explicitLabels[suffix];
+  }
+  return splitPascalCaseToTitle(suffix);
+}
+
+/**
+ * Builds read-only DataTable columns from heterogeneous SOQL rows (first row drives types).
+ */
+export function buildDynamicExportColumns(rows: PermissionExportRow[]): ColumnWithFilter<RowWithKey>[] {
+  if (!rows.length) {
+    return [];
+  }
+  const keys = sortedColumnKeys(rows);
+  const firstRow = rows[0];
+  return keys.map((key) => {
+    const fieldType = key === 'Id' || key === 'ParentId' || key.endsWith('Id') ? 'salesforceId' : getRowTypeFromValue(firstRow[key], false);
+    const base = setColumnFromType(key, fieldType);
+    return {
+      ...base,
+      name: getExportColumnHeaderLabel(key),
+      key,
+      field: key,
+      resizable: true,
+    } as ColumnWithFilter<RowWithKey>;
+  });
+}
+
+/**
+ * Permission sets that have at least one direct assignment to a User (`AssigneeId` prefix `005`).
+ */
+export function getPermissionSetIdsWithDirectUserAssignment(assignments: PermissionExportRow[]): Set<string> {
+  const result = new Set<string>();
+  for (const row of assignments) {
+    const permissionSetId = row.PermissionSetId;
+    const assigneeId = row.AssigneeId;
+    if (typeof permissionSetId !== 'string' || typeof assigneeId !== 'string') {
+      continue;
+    }
+    if (assigneeId.startsWith(USER_ID_PREFIX)) {
+      result.add(permissionSetId);
+    }
+  }
+  return result;
+}
+
+export function getFindingContainerId(finding: PermissionAnalysisFinding): string | null {
+  const candidates = [finding.permissionSetId, finding.parentId, finding.containerId];
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.length > 0) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+export const RECORD_FINDING_LABELS: Record<string, string> = {
+  FLS_READ_NO_OBJECT_READ: 'Field can be read at field level but object is not readable.',
+  OLS_READ_NO_FLS_ROWS: 'Object is readable but no field-level rows exist for visibility checks.',
+};
+
+export function getFindingLabelForCode(code: string | undefined): string {
+  if (!code) {
+    return '';
+  }
+  return RECORD_FINDING_LABELS[code] ?? '';
+}
