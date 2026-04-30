@@ -24,6 +24,7 @@ import StandardIcon_AssetRelationship from './icons/standard/AssetRelationship';
 import StandardIcon_Billing from './icons/standard/Billing';
 import StandardIcon_BundleConfig from './icons/standard/BundleConfig';
 import StandardIcon_ConnectedApps from './icons/standard/ConnectedApps';
+import StandardIcon_CustomerPortalUsers from './icons/standard/CustomerPortalUsers';
 import StandardIcon_DataStreams from './icons/standard/DataStreams';
 import StandardIcon_EmployeeOrganization from './icons/standard/EmployeeOrganization';
 import StandardIcon_Entity from './icons/standard/Entity';
@@ -32,6 +33,8 @@ import StandardIcon_Feed from './icons/standard/Feed';
 import StandardIcon_Feedback from './icons/standard/Feedback';
 import StandardIcon_Form from './icons/standard/Form';
 import StandardIcon_Formula from './icons/standard/Formula';
+import StandardIcon_Groups from './icons/standard/Groups';
+import StandardIcon_Incident from './icons/standard/Incident';
 import StandardIcon_MultiPicklist from './icons/standard/MultiPicklist';
 import StandardIcon_Opportunity from './icons/standard/Opportunity';
 import StandardIcon_Outcome from './icons/standard/Outcome';
@@ -201,6 +204,7 @@ const standardIcons = {
   billing: StandardIcon_Billing,
   bundle_config: StandardIcon_BundleConfig,
   connected_apps: StandardIcon_ConnectedApps,
+  customer_portal_users: StandardIcon_CustomerPortalUsers,
   data_streams: StandardIcon_DataStreams,
   employee_organization: StandardIcon_EmployeeOrganization,
   entity: StandardIcon_Entity,
@@ -209,6 +213,8 @@ const standardIcons = {
   feedback: StandardIcon_Feedback,
   form: StandardIcon_Form,
   formula: StandardIcon_Formula,
+  groups: StandardIcon_Groups,
+  incident: StandardIcon_Incident,
   multi_picklist: StandardIcon_MultiPicklist,
   opportunity: StandardIcon_Opportunity,
   outcome: StandardIcon_Outcome,
