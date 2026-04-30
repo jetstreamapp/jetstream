@@ -190,7 +190,9 @@ export async function createInvitation(teamId: string, data: TeamInvitationReque
 }
 
 export async function resendInvitation(teamId: string, invitationId: string): Promise<TeamInviteUserFacing[]> {
-  return handleRequest({ method: 'PUT', url: `/api/teams/${teamId}/invitations/${invitationId}`, data: {} }).then(unwrapResponseIgnoreCache);
+  return handleRequest({ method: 'PUT', url: `/api/teams/${teamId}/invitations/${invitationId}`, data: {} }).then(
+    unwrapResponseIgnoreCache,
+  );
 }
 
 export async function cancelInvitation(teamId: string, invitationId: string): Promise<void> {
@@ -1453,4 +1455,9 @@ export async function createAnalysisJob(
 
 export async function getAnalysisJob(org: SalesforceOrgUi, jobId: string): Promise<{ job: Record<string, unknown> }> {
   return handleRequest({ method: 'GET', url: `/api/analysis/jobs/${jobId}` }, { org }).then(unwrapResponseIgnoreCache);
+}
+
+export async function listAnalysisJobs(org: SalesforceOrgUi, params?: { limit?: number }): Promise<{ jobs: Record<string, unknown>[] }> {
+  const limit = params?.limit ?? 50;
+  return handleRequest({ method: 'GET', url: '/api/analysis/jobs', params: { limit } }, { org }).then(unwrapResponseIgnoreCache);
 }

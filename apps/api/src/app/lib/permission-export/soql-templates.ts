@@ -5,7 +5,7 @@
 
 export function buildPermissionSetByIdSoql(formattedIds: string): string {
   return `
-SELECT Id, Name, Label, IsOwnedByProfile, ProfileId, NamespacePrefix
+SELECT Id, Name, Label, IsOwnedByProfile, ProfileId, NamespacePrefix, Profile.Name
 FROM PermissionSet
 WHERE Id IN (${formattedIds})
 `.trim();
