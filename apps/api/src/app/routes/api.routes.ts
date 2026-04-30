@@ -13,6 +13,7 @@ import { routeDefinition as metadataToolingController } from '../controllers/sf-
 import { routeDefinition as miscController } from '../controllers/sf-misc.controller';
 import { routeDefinition as queryController } from '../controllers/sf-query.controller';
 import { routeDefinition as recordController } from '../controllers/sf-record.controller';
+import { routeDefinition as analysisJobsController } from '../controllers/analysis-jobs.controller';
 import { routeDefinition as testController } from '../controllers/test.controller';
 import * as userFeedbackController from '../controllers/user-feedback.controller';
 import { routeDefinition as userController } from '../controllers/user.controller';
@@ -212,6 +213,13 @@ routes.delete('/bulk-query/:jobId', dfr, bulkQuery20ApiController.deleteJob.cont
  * ************************************
  */
 routes.get('/salesforce-api/requests', salesforceApiReqController.getSalesforceApiRequests.controllerFn());
+
+/**
+ * Analysis jobs (permission export, field usage) — metadata in Postgres; heavy artifacts TBD.
+ */
+routes.post('/analysis/jobs', dfr, analysisJobsController.createJob.controllerFn());
+routes.get('/analysis/jobs', dfr, analysisJobsController.listJobs.controllerFn());
+routes.get('/analysis/jobs/:id', dfr, analysisJobsController.getJob.controllerFn());
 
 /**
  * ************************************

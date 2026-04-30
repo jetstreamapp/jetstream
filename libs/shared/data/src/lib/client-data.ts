@@ -1440,3 +1440,17 @@ export async function updatePermissionSetRecords(
     }),
   ]);
 }
+
+/**
+ * Register an analysis job for permission export or field usage (persisted in Postgres).
+ */
+export async function createAnalysisJob(
+  org: SalesforceOrgUi,
+  body: { jobType: 'permission_export' | 'field_usage'; payload?: Record<string, unknown> },
+): Promise<{ job: Record<string, unknown> }> {
+  return handleRequest({ method: 'POST', url: '/api/analysis/jobs', data: body }, { org }).then(unwrapResponseIgnoreCache);
+}
+
+export async function getAnalysisJob(org: SalesforceOrgUi, jobId: string): Promise<{ job: Record<string, unknown> }> {
+  return handleRequest({ method: 'GET', url: `/api/analysis/jobs/${jobId}` }, { org }).then(unwrapResponseIgnoreCache);
+}
