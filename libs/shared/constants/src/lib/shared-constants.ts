@@ -354,6 +354,8 @@ export const TITLES = {
   FORMULA_EVALUATOR: 'Formula Evaluator | Jetstream',
   LOAD: 'Load | Jetstream',
   MANAGE_PERMISSIONS: 'Manage Permissions | Jetstream',
+  PERMISSION_ANALYSIS: 'Permission Analysis | Jetstream',
+  DATA_ANALYSIS: 'Data Analysis | Jetstream',
   MASS_UPDATE_RECORDS: 'Update Records | Jetstream',
   ORG_GROUPS: 'Manage Org Groups | Jetstream',
   PLATFORM_EVENTS: 'Platform Events | Jetstream',

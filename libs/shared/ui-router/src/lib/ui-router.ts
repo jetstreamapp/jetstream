@@ -10,6 +10,8 @@ type RouteKey =
   | 'LOAD_CREATE_RECORD'
   | 'AUTOMATION_CONTROL'
   | 'PERMISSION_MANAGER'
+  | 'PERMISSION_ANALYSIS'
+  | 'DATA_ANALYSIS'
   | 'DEPLOY_METADATA'
   | 'CREATE_FIELDS'
   | 'FORMULA_EVALUATOR'
@@ -126,6 +128,16 @@ export const APP_ROUTES: RouteMap = {
     DOCS: 'https://docs.getjetstream.app/permissions',
     TITLE: 'Manage Permissions',
     DESCRIPTION: 'View and update object and field permissions',
+  },
+  PERMISSION_ANALYSIS: {
+    ...getRoutePath('/permission-analysis'),
+    TITLE: 'Permission Analysis',
+    DESCRIPTION: 'Read and export permission coverage for profiles and permission sets',
+  },
+  DATA_ANALYSIS: {
+    ...getRoutePath('/data-analysis'),
+    TITLE: 'Data Analysis',
+    DESCRIPTION: 'Field usage and data coverage for selected objects',
   },
   DEPLOY_METADATA: {
     ...getRoutePath('/deploy-metadata'),

@@ -7,7 +7,15 @@ import { DeployMetadata, DeployMetadataDeployment, DeployMetadataSelection } fro
 import { FormulaEvaluator } from '@jetstream/feature/formula-evaluator';
 import { LoadRecords } from '@jetstream/feature/load-records';
 import { LoadRecordsMultiObject } from '@jetstream/feature/load-records-multi-object';
-import { ManagePermissions, ManagePermissionsEditor, ManagePermissionsSelection } from '@jetstream/feature/manage-permissions';
+import { DataAnalysis, DataAnalysisSelection } from '@jetstream/feature/data-analysis';
+import {
+  ManagePermissions,
+  ManagePermissionsEditor,
+  ManagePermissionsSelection,
+  PermissionAnalysis,
+  PermissionAnalysisSelection,
+  PermissionAnalysisView,
+} from '@jetstream/feature/manage-permissions';
 import { PlatformEventMonitor } from '@jetstream/feature/platform-event-monitor';
 import { Query, QueryBuilder, QueryResults } from '@jetstream/feature/query';
 import { RecordTypeManagerSelection } from '@jetstream/feature/record-type-manager';
@@ -85,6 +93,15 @@ export function App() {
               <Route path={APP_ROUTES.PERMISSION_MANAGER.ROUTE} element={<ManagePermissions />}>
                 <Route index element={<ManagePermissionsSelection />} />
                 <Route path="editor" element={<ManagePermissionsEditor />} />
+                <Route path="*" element={<Navigate to=".." />} />
+              </Route>
+              <Route path={APP_ROUTES.PERMISSION_ANALYSIS.ROUTE} element={<PermissionAnalysis />}>
+                <Route index element={<PermissionAnalysisSelection />} />
+                <Route path="analysis" element={<PermissionAnalysisView />} />
+                <Route path="*" element={<Navigate to=".." />} />
+              </Route>
+              <Route path={APP_ROUTES.DATA_ANALYSIS.ROUTE} element={<DataAnalysis />}>
+                <Route index element={<DataAnalysisSelection />} />
                 <Route path="*" element={<Navigate to=".." />} />
               </Route>
               <Route path={APP_ROUTES.DEPLOY_METADATA.ROUTE} element={<DeployMetadata />}>

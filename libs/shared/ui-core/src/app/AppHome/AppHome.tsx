@@ -31,6 +31,11 @@ const HOME_ITEMS = [
     items: [APP_ROUTES.PERMISSION_MANAGER],
   },
   {
+    title: 'Analysis',
+    icon: { type: 'standard', icon: 'data_streams' },
+    items: [APP_ROUTES.PERMISSION_ANALYSIS, APP_ROUTES.DATA_ANALYSIS],
+  },
+  {
     title: 'Deploy',
     icon: { type: 'standard', icon: 'asset_relationship' },
     items: [APP_ROUTES.DEPLOY_METADATA, APP_ROUTES.CREATE_FIELDS, APP_ROUTES.RECORD_TYPE_MANAGER, APP_ROUTES.FORMULA_EVALUATOR],
