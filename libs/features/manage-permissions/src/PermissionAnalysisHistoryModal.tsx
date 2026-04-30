@@ -676,9 +676,7 @@ export const PermissionAnalysisHistoryModal: FunctionComponent<PermissionAnalysi
               })}
             />
           </div>
-          <p className="slds-text-body_small slds-text-color_weak slds-m-top_small">
-            Select a row to open that run in this view (same as Query History: pick an entry to continue).
-          </p>
+          <p className="slds-text-body_small slds-text-color_weak slds-m-top_small">Select a row to open that run in this view.</p>
         </div>
       )}
     </Modal>
