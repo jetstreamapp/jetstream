@@ -1,10 +1,11 @@
 import { logger } from '@jetstream/api-config';
 import type { Prisma } from '@jetstream/prisma';
+import { getOrgForBackgroundJob } from '../routes/route.middleware';
 import { getAnalysisJobById, updateAnalysisJobById } from '../db/analysis-job.db';
+import { runPermissionExportSoql } from './permission-export-query.service';
 
 /**
  * Schedules async processing so the HTTP handler can return immediately after creating the job row.
- * v1: marks permission_export jobs completed with a scaffold summary (no Salesforce export yet).
  */
 export function enqueuePermissionExportJobProcessing(jobId: string): void {
   setImmediate(() => {
@@ -24,21 +25,37 @@ async function runPermissionExportJob(jobId: string): Promise<void> {
 
     await updateAnalysisJobById({ id: jobId, status: 'running' });
 
-    await new Promise((resolve) => setTimeout(resolve, 400));
-
     const existingResult =
       job.result && typeof job.result === 'object' && !Array.isArray(job.result) ? (job.result as Record<string, unknown>) : {};
     const payload = existingResult.requestPayload;
     const profileIds = payload && typeof payload === 'object' && 'profileIds' in payload ? payload.profileIds : undefined;
     const permissionSetIds = payload && typeof payload === 'object' && 'permissionSetIds' in payload ? payload.permissionSetIds : undefined;
-    const profileCount = Array.isArray(profileIds) ? profileIds.length : 0;
-    const permissionSetCount = Array.isArray(permissionSetIds) ? permissionSetIds.length : 0;
+    const profileIdList = Array.isArray(profileIds) ? profileIds.filter((id): id is string => typeof id === 'string') : [];
+    const permissionSetIdList = Array.isArray(permissionSetIds)
+      ? permissionSetIds.filter((id): id is string => typeof id === 'string')
+      : [];
 
-    const nextResult: Prisma.InputJsonValue = {
+    const { jetstreamConn } = await getOrgForBackgroundJob({
+      userId: job.userId,
+      salesforceOrgUniqueId: job.salesforceOrgUniqueId,
+      requestId: jobId,
+    });
+
+    const exportPayload = await runPermissionExportSoql(jetstreamConn, profileIdList, permissionSetIdList);
+
+    const nextResult = {
       ...existingResult,
-      summary: `Permission export job completed (v1 scaffold). Profiles: ${profileCount}, permission sets: ${permissionSetCount}.`,
-      phase: 'v1_staging',
-    };
+      phase: 'permission_export_v1',
+      summary: `Exported ${exportPayload.counts.permissionSets} permission sets, ${exportPayload.counts.objectPermissions} object permission rows, ${exportPayload.counts.fieldPermissions} field permission rows, ${exportPayload.counts.permissionSetTabSettings} tab settings (truncated=${exportPayload.truncated}).`,
+      truncated: exportPayload.truncated,
+      counts: exportPayload.counts,
+      export: {
+        permissionSets: exportPayload.permissionSets,
+        objectPermissions: exportPayload.objectPermissions,
+        fieldPermissions: exportPayload.fieldPermissions,
+        permissionSetTabSettings: exportPayload.permissionSetTabSettings,
+      },
+    } as unknown as Prisma.InputJsonValue;
 
     await updateAnalysisJobById({
       id: jobId,

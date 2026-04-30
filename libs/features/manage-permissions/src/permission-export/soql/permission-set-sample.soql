@@ -1,2 +1,0 @@
--- Sample template for permission export pipeline (Milestone). Copy additional templates from Salesforce-Permissions-Analysis `soql/` as needed.
-SELECT Id, Name FROM PermissionSet WHERE Name IN ({{permissionSetNames}})

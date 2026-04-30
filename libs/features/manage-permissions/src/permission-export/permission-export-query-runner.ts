@@ -4,7 +4,8 @@ export type PermissionExportQueryKind = 'data' | 'tooling';
 
 /**
  * Prepares SOQL from a template string for execution via Jetstream HTTP (not CLI).
- * Batching / pagination mirrors legacy `sf_runner.py` incrementally.
+ * Server-side export jobs run equivalent queries from `apps/api/.../soql-templates.ts`
+ * (see `soql/*.soql` in this folder for reviewer-friendly copies).
  *
  * @param template Raw SOQL with `{{placeholders}}`.
  * @param vars Placeholder values.

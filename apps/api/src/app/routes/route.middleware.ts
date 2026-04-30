@@ -433,6 +433,33 @@ export async function getOrgForRequest(
   return { org, jetstreamConn };
 }
 
+/**
+ * Minimal {@link UserProfileSession} for {@link getOrgForRequest} when only the Prisma {@link User.id}
+ * is known (e.g. async analysis jobs without an HTTP session).
+ */
+export function createUserSessionStubForBackgroundJob(userId: string): UserProfileSession {
+  return {
+    id: userId,
+    userId,
+    name: '',
+    email: '',
+    emailVerified: true,
+    tosAcceptedVersion: null,
+    authFactors: [],
+  };
+}
+
+export async function getOrgForBackgroundJob(params: { userId: string; salesforceOrgUniqueId: string; requestId?: string }) {
+  return getOrgForRequest(
+    createUserSessionStubForBackgroundJob(params.userId),
+    params.salesforceOrgUniqueId,
+    logger,
+    undefined,
+    false,
+    params.requestId,
+  );
+}
+
 export function verifyCaptcha(req: express.Request, res: express.Response, next: express.NextFunction) {
   if (!ENV.CAPTCHA_SECRET_KEY || ENV.CI) {
     return next();
