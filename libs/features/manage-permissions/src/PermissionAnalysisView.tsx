@@ -2,21 +2,11 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { getAnalysisJob } from '@jetstream/shared/data';
 import { getErrorMessage } from '@jetstream/shared/utils';
-import {
-  AutoFullHeightContainer,
-  Icon,
-  ScopedNotification,
-  Spinner,
-  Tabs,
-  Toast,
-  Toolbar,
-  ToolbarItemActions,
-  ToolbarItemGroup,
-} from '@jetstream/ui';
+import { AutoFullHeightContainer, Icon, ScopedNotification, Spinner, Tabs, Toast, Toolbar, ToolbarItemGroup } from '@jetstream/ui';
 import { RequireMetadataApiBanner } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
-import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 const HEIGHT_BUFFER = 170;
@@ -40,31 +30,20 @@ export const PermissionAnalysisView: FunctionComponent = () => {
   const [jobRecord, setJobRecord] = useState<Record<string, unknown> | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
-  const refreshJob = useCallback(async () => {
-    if (!selectedOrg?.uniqueId || !jobId) {
-      return;
-    }
-    try {
-      const { job } = await getAnalysisJob(selectedOrg, jobId);
-      setJobRecord(job);
-      setFetchError(null);
-    } catch (ex) {
-      setFetchError(getErrorMessage(ex));
-      logger.error('Failed to refresh analysis job', ex);
-    }
-  }, [selectedOrg, jobId]);
-
   useEffect(() => {
     if (!selectedOrg?.uniqueId || !jobId) {
       return;
     }
+
+    const orgForPoll = selectedOrg;
+    const jobIdForPoll = jobId;
 
     let cancelled = false;
     const intervalIdRef: { current: ReturnType<typeof setInterval> | undefined } = { current: undefined };
 
     async function pollOnce() {
       try {
-        const { job } = await getAnalysisJob(selectedOrg, jobId);
+        const { job } = await getAnalysisJob(orgForPoll, jobIdForPoll);
         if (cancelled) {
           return;
         }
@@ -100,7 +79,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
 
   const statusLabel = jobRecord?.status != null ? String(jobRecord.status) : null;
   const isTerminal = statusLabel === 'completed' || statusLabel === 'failed';
-  const showSpinner = Boolean(
+  const showSpinnerForJobLifecycle = Boolean(
     jobId && !fetchError && !isTerminal && (statusLabel === null || statusLabel === 'pending' || statusLabel === 'running'),
   );
 
@@ -124,7 +103,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
         titleText: 'Export job',
         content: (
           <div className="slds-p-around_medium">
-            {showSpinner && (
+            {showSpinnerForJobLifecycle && (
               <div className="slds-m-bottom_medium">
                 <Spinner />
               </div>
@@ -170,7 +149,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
         ),
       },
     ],
-    [jobRecord, showSpinner, statusLabel],
+    [jobRecord, showSpinnerForJobLifecycle, statusLabel],
   );
 
   return (
@@ -183,17 +162,6 @@ export const PermissionAnalysisView: FunctionComponent = () => {
             Go Back
           </Link>
         </ToolbarItemGroup>
-        <ToolbarItemActions>
-          <button
-            type="button"
-            className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
-            onClick={() => void refreshJob()}
-            disabled={!jobId}
-          >
-            <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" />
-            <span>Refresh status</span>
-          </button>
-        </ToolbarItemActions>
       </Toolbar>
       <AutoFullHeightContainer
         baseCss={css`
@@ -211,7 +179,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
           </div>
         )}
         {jobId && fetchError && <Toast type="error">{fetchError}</Toast>}
-        {jobId && !fetchError && <Tabs initialActiveId="export-job" tabs={tabs} />}
+        {jobId && !fetchError && <Tabs initialActiveId="export-job" renderAllContent tabs={tabs} />}
       </AutoFullHeightContainer>
     </div>
   );
