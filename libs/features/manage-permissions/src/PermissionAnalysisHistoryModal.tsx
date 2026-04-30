@@ -438,10 +438,15 @@ export const PermissionAnalysisHistoryModal: FunctionComponent<PermissionAnalysi
     max-height: min(50vh, 280px);
     overflow-x: hidden;
     overflow-y: auto;
+
+    /* SLDS adds margin-left between adjacent .slds-button; stack spacing comes from gap above. */
+    .slds-button + .slds-button {
+      margin-left: 0;
+      margin-inline-start: 0;
+    }
   `;
 
   const scopePopoverHeaderCss = css`
-    clear: both;
     margin: 0;
     padding: 0.5rem 0.625rem 0.375rem;
     box-sizing: border-box;
