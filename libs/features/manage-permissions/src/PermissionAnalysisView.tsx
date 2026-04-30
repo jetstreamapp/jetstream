@@ -2,12 +2,25 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { getAnalysisJob } from '@jetstream/shared/data';
 import { getErrorMessage } from '@jetstream/shared/utils';
-import { AutoFullHeightContainer, Icon, ScopedNotification, Spinner, Tabs, Toast, Toolbar, ToolbarItemGroup } from '@jetstream/ui';
+import {
+  AutoFullHeightContainer,
+  Icon,
+  ScopedNotification,
+  Spinner,
+  Tabs,
+  Toast,
+  Toolbar,
+  ToolbarItemActions,
+  ToolbarItemGroup,
+  Tooltip,
+} from '@jetstream/ui';
 import { RequireMetadataApiBanner } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { formatAnalysisJobStatusForDisplay } from './analysis-job-status-display';
+import { PermissionAnalysisHistoryModal } from './PermissionAnalysisHistoryModal';
 
 const HEIGHT_BUFFER = 170;
 
@@ -24,16 +37,19 @@ function formatJobResult(result: unknown): string {
  */
 export const PermissionAnalysisView: FunctionComponent = () => {
   const selectedOrg = useAtomValue(selectedOrgState);
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const jobId = searchParams.get('job');
 
   const [jobRecord, setJobRecord] = useState<Record<string, unknown> | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   useEffect(() => {
     if (!selectedOrg?.uniqueId || !jobId) {
       return;
     }
+
+    setJobRecord(null);
 
     const orgForPoll = selectedOrg;
     const jobIdForPoll = jobId;
@@ -77,10 +93,15 @@ export const PermissionAnalysisView: FunctionComponent = () => {
     };
   }, [selectedOrg, jobId]);
 
-  const statusLabel = jobRecord?.status != null ? String(jobRecord.status) : null;
-  const isTerminal = statusLabel === 'completed' || statusLabel === 'failed';
+  const jobStatusRaw = jobRecord?.status != null ? String(jobRecord.status).trim() : null;
+  const jobStatusNormalized = jobStatusRaw?.toLowerCase() ?? null;
+  const statusDisplay = jobStatusRaw ? formatAnalysisJobStatusForDisplay(jobStatusRaw) : null;
+  const isTerminal = jobStatusNormalized === 'completed' || jobStatusNormalized === 'failed';
   const showSpinnerForJobLifecycle = Boolean(
-    jobId && !fetchError && !isTerminal && (statusLabel === null || statusLabel === 'pending' || statusLabel === 'running'),
+    jobId &&
+    !fetchError &&
+    !isTerminal &&
+    (jobStatusNormalized === null || jobStatusNormalized === 'pending' || jobStatusNormalized === 'running'),
   );
 
   const tabs = useMemo(
@@ -97,10 +118,10 @@ export const PermissionAnalysisView: FunctionComponent = () => {
                 className="slds-icon slds-icon_small"
               />
             </span>
-            Export job{statusLabel ? ` (${statusLabel})` : ''}
+            Export job{statusDisplay ? ` (${statusDisplay})` : ''}
           </Fragment>
         ),
-        titleText: 'Export job',
+        titleText: statusDisplay ? `Export job (${statusDisplay})` : 'Export job',
         content: (
           <div className="slds-p-around_medium">
             {showSpinnerForJobLifecycle && (
@@ -114,7 +135,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
                   <p className="slds-truncate">Status</p>
                 </dt>
                 <dd className="slds-dl_horizontal__detail">
-                  <p className="slds-truncate">{statusLabel ?? '—'}</p>
+                  <p className="slds-truncate">{statusDisplay ?? '—'}</p>
                 </dd>
                 <dt className="slds-dl_horizontal__label">
                   <p className="slds-truncate">Job type</p>
@@ -149,7 +170,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
         ),
       },
     ],
-    [jobRecord, showSpinnerForJobLifecycle, statusLabel],
+    [jobRecord, showSpinnerForJobLifecycle, statusDisplay],
   );
 
   return (
@@ -162,7 +183,33 @@ export const PermissionAnalysisView: FunctionComponent = () => {
             Go Back
           </Link>
         </ToolbarItemGroup>
+        <ToolbarItemActions>
+          <Tooltip ariaRole="label" content="View past permission export runs for this org">
+            <button
+              type="button"
+              aria-label="Export history"
+              className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
+              css={css`
+                padding: 0.5rem;
+              `}
+              disabled={!selectedOrg?.uniqueId}
+              onClick={() => setIsHistoryOpen(true)}
+            >
+              <Icon type="utility" icon="date_time" className="slds-button__icon" omitContainer title="Export history" />
+            </button>
+          </Tooltip>
+        </ToolbarItemActions>
       </Toolbar>
+      {isHistoryOpen && selectedOrg && (
+        <PermissionAnalysisHistoryModal
+          selectedOrg={selectedOrg}
+          currentJobId={jobId}
+          onClose={() => setIsHistoryOpen(false)}
+          onSelectJob={(nextJobId) => {
+            setSearchParams({ job: nextJobId }, { replace: true });
+          }}
+        />
+      )}
       <AutoFullHeightContainer
         baseCss={css`
           background-color: #ffffff;
