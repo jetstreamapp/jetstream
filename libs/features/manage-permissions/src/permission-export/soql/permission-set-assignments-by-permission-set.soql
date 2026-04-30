@@ -1,0 +1,3 @@
+SELECT Id, PermissionSetId, AssigneeId
+FROM PermissionSetAssignment
+WHERE PermissionSetId IN (:parentIds)

@@ -37,3 +37,35 @@ FROM PermissionSetTabSetting
 WHERE ParentId IN (${formattedParentIds})
 `.trim();
 }
+
+export function buildPermissionSetAssignmentsByPermissionSetSoql(formattedPermissionSetIds: string): string {
+  return `
+SELECT Id, PermissionSetId, AssigneeId
+FROM PermissionSetAssignment
+WHERE PermissionSetId IN (${formattedPermissionSetIds})
+`.trim();
+}
+
+export function buildPermissionSetGroupComponentsByPermissionSetSoql(formattedPermissionSetIds: string): string {
+  return `
+SELECT Id, PermissionSetGroupId, PermissionSetId
+FROM PermissionSetGroupComponent
+WHERE PermissionSetId IN (${formattedPermissionSetIds})
+`.trim();
+}
+
+export function buildPermissionSetGroupByIdSoql(formattedGroupIds: string): string {
+  return `
+SELECT Id, DeveloperName, MasterLabel
+FROM PermissionSetGroup
+WHERE Id IN (${formattedGroupIds})
+`.trim();
+}
+
+export function buildMutingPermissionSetsByGroupSoql(formattedGroupIds: string): string {
+  return `
+SELECT Id, PermissionSetGroupId, DeveloperName, MasterLabel
+FROM MutingPermissionSet
+WHERE PermissionSetGroupId IN (${formattedGroupIds})
+`.trim();
+}
