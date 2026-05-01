@@ -27,6 +27,7 @@ import { PermissionAnalysisTabVisibilityTree } from './PermissionAnalysisTabVisi
 import { PermissionAnalysisPermissionSetsTree } from './PermissionAnalysisPermissionSetsTree';
 import { PermissionAnalysisUserAssignmentsTree } from './PermissionAnalysisUserAssignmentsTree';
 import { PermissionAnalysisHistoryModal } from './PermissionAnalysisHistoryModal';
+import { PermissionAnalysisFindingsFiltersBar } from './PermissionAnalysisFindingsFiltersBar';
 import { PermissionAnalysisIssuesTab } from './PermissionAnalysisIssuesTab';
 import {
   buildPermissionSetIdLabelMap,
@@ -797,6 +798,25 @@ export const PermissionAnalysisView: FunctionComponent = () => {
             </button>
           </Tooltip>
         </ToolbarItemActions>
+        {jobId && !fetchError && isTerminal && jobStatusNormalized === 'completed' && parsedExport && selectedOrg && (
+          <ToolbarItemGroup
+            css={css`
+              flex-basis: 100%;
+              width: 100%;
+              padding-top: 0.5rem;
+              margin-top: 0.25rem;
+              border-top: 1px solid var(--slds-g-color-border-base-1, #e5e5e5);
+              align-items: flex-start;
+            `}
+          >
+            <PermissionAnalysisFindingsFiltersBar
+              findings={parsedExport.findings}
+              permissionSetAssignments={parsedExport.export.permissionSetAssignments}
+              searchParams={searchParams}
+              setSearchParams={setSearchParams}
+            />
+          </ToolbarItemGroup>
+        )}
       </Toolbar>
       {isHistoryOpen && selectedOrg && (
         <PermissionAnalysisHistoryModal
