@@ -65,7 +65,7 @@ const LOW_USAGE_PCT_THRESHOLD = 5;
 
 /** One-line explainer for the Low usage tab (threshold lives in {@link LOW_USAGE_PCT_THRESHOLD}). */
 function getFieldUsageLowUsageIntroCopy(pctThreshold: number): string {
-  return `Unmanaged custom fields at or below ${pctThreshold}% population in the rows scanned for this job. Packaged fields with a namespace prefix are not listed here.`;
+  return `Unmanaged Custom Fields at or below ${pctThreshold}% population in the rows scanned for this job. Packaged Custom Fields with a namespace prefix are not listed here.`;
 }
 
 const TREE_GROUP_BY = ['objectApiName'] as const;
@@ -196,14 +196,20 @@ const FIELD_USAGE_POPOVER_PANEL_PROPS = {
   },
 };
 
-interface FieldUsagePopoverOrgProps {
+interface FieldUsageOrgLoginProps {
   serverUrl: string | undefined;
   org: SalesforceOrgUi | null | undefined;
   skipFrontDoorAuth: boolean;
 }
 
-function FieldUsageObjectGroupCell(props: RenderGroupCellProps<FieldUsageTreeRow> & FieldUsagePopoverOrgProps): ReactElement {
-  const { groupKey, childRows, serverUrl, org, skipFrontDoorAuth } = props;
+function FieldUsageObjectGroupCell(
+  props: RenderGroupCellProps<FieldUsageTreeRow> &
+    FieldUsageOrgLoginProps & {
+      /** From parent {@link useHref}; one value for all groups (avoids N identical hook calls). */
+      queryResultsHref: string;
+    },
+): ReactElement {
+  const { groupKey, childRows, serverUrl, org, skipFrontDoorAuth, queryResultsHref } = props;
   const api = String(groupKey);
   const sample = childRows[0];
   const label = sample?.objectLabel?.trim() ? sample.objectLabel.trim() : api;
@@ -212,10 +218,6 @@ function FieldUsageObjectGroupCell(props: RenderGroupCellProps<FieldUsageTreeRow
   const slug = api.replace(/[^a-zA-Z0-9_-]+/g, '-');
   const returnUrl = fieldUsageObjectManagerReturnUrl(api, 'details');
   const canDeepLink = Boolean(org?.uniqueId && serverUrl);
-  const queryResultsHref = useHref({
-    pathname: `${APP_ROUTES.QUERY.ROUTE}/results`,
-    ...(APP_ROUTES.QUERY.SEARCH_PARAM ? { search: `?${APP_ROUTES.QUERY.SEARCH_PARAM}` } : {}),
-  });
 
   const handleOpenQueryResults = useCallback(
     (event: MouseEvent<HTMLButtonElement>) => {
@@ -231,7 +233,12 @@ function FieldUsageObjectGroupCell(props: RenderGroupCellProps<FieldUsageTreeRow
       panelProps={FIELD_USAGE_POPOVER_PANEL_PROPS}
       footer={
         <footer className="slds-popover__footer">
-          <button type="button" className="slds-button slds-button_neutral" onClick={handleOpenQueryResults}>
+          <button
+            type="button"
+            className="slds-button slds-button_neutral"
+            title={`Run this SELECT in Query Records (new tab) for ${label}`}
+            onClick={handleOpenQueryResults}
+          >
             <Icon type="utility" icon="new_window" className="slds-button__icon slds-button__icon_left" omitContainer />
             View query results
           </button>
@@ -255,7 +262,7 @@ function FieldUsageObjectGroupCell(props: RenderGroupCellProps<FieldUsageTreeRow
             <GridCol size={12}>
               <ReadOnlyFormElement
                 id={`field-usage-obj-${slug}-label`}
-                label="Object label"
+                label="Object Label"
                 className="slds-p-bottom_x-small"
                 value={label}
                 bottomBorder
@@ -264,7 +271,7 @@ function FieldUsageObjectGroupCell(props: RenderGroupCellProps<FieldUsageTreeRow
             <GridCol size={12}>
               <ReadOnlyFormElement
                 id={`field-usage-obj-${slug}-api`}
-                label="Object API name"
+                label="Object API Name"
                 className="slds-p-bottom_x-small"
                 value={api}
                 bottomBorder
@@ -273,7 +280,7 @@ function FieldUsageObjectGroupCell(props: RenderGroupCellProps<FieldUsageTreeRow
             <GridCol size={6}>
               <ReadOnlyFormElement
                 id={`field-usage-obj-${slug}-fields`}
-                label="Fields analyzed"
+                label="Fields Analyzed"
                 className="slds-p-bottom_x-small"
                 value={String(formatNumber(analyzedFieldCount))}
                 bottomBorder
@@ -282,7 +289,7 @@ function FieldUsageObjectGroupCell(props: RenderGroupCellProps<FieldUsageTreeRow
             <GridCol size={6}>
               <ReadOnlyFormElement
                 id={`field-usage-obj-${slug}-rows`}
-                label="Rows scanned"
+                label="Rows Scanned"
                 className="slds-p-bottom_x-small"
                 value={String(formatNumber(rowCount))}
                 bottomBorder
@@ -373,7 +380,7 @@ function FieldUsageFieldNameCell({
   skipFrontDoorAuth,
 }: {
   row: FieldUsageTreeRow;
-} & FieldUsagePopoverOrgProps): ReactElement {
+} & FieldUsageOrgLoginProps): ReactElement {
   const slug = `${row.objectApiName}-${row.fieldApiName}`.replace(/[^a-zA-Z0-9_-]+/g, '-');
   const returnUrl = fieldUsageObjectManagerReturnUrl(row.objectApiName, 'fields');
   const canDeepLink = Boolean(org?.uniqueId && serverUrl);
@@ -400,7 +407,7 @@ function FieldUsageFieldNameCell({
             <GridCol size={12}>
               <ReadOnlyFormElement
                 id={`field-usage-f-${slug}-obj`}
-                label="Object"
+                label="Parent Object"
                 className="slds-p-bottom_x-small"
                 value={`${row.objectLabel} (${row.objectApiName})`}
                 bottomBorder
@@ -409,7 +416,7 @@ function FieldUsageFieldNameCell({
             <GridCol size={12}>
               <ReadOnlyFormElement
                 id={`field-usage-f-${slug}-api`}
-                label="Field API name"
+                label="Field API Name"
                 className="slds-p-bottom_x-small"
                 value={row.fieldApiName}
                 bottomBorder
@@ -418,7 +425,7 @@ function FieldUsageFieldNameCell({
             <GridCol size={12}>
               <ReadOnlyFormElement
                 id={`field-usage-f-${slug}-label`}
-                label="Field label"
+                label="Field Label"
                 className="slds-p-bottom_x-small"
                 value={row.fieldLabel}
                 bottomBorder
@@ -504,6 +511,11 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
   const [expandedGroupIds, setExpandedGroupIds] = useState<ReadonlySet<unknown>>(() => new Set());
   const [fieldUsageSelectedRowKeys, setFieldUsageSelectedRowKeys] = useState(() => new Set<string>());
   const [deleteFieldMetadataModalOpen, setDeleteFieldMetadataModalOpen] = useState(false);
+
+  const fieldUsageQueryResultsHref = useHref({
+    pathname: `${APP_ROUTES.QUERY.ROUTE}/results`,
+    ...(APP_ROUTES.QUERY.SEARCH_PARAM ? { search: `?${APP_ROUTES.QUERY.SEARCH_PARAM}` } : {}),
+  });
 
   useEffect(() => {
     if (!selectedOrg?.uniqueId || !jobId) {
@@ -888,7 +900,13 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         width: 340,
         minWidth: 200,
         renderGroupCell: (groupProps) => (
-          <FieldUsageObjectGroupCell {...groupProps} serverUrl={serverUrl} org={selectedOrg} skipFrontDoorAuth={skipFrontDoorAuth} />
+          <FieldUsageObjectGroupCell
+            {...groupProps}
+            serverUrl={serverUrl}
+            org={selectedOrg}
+            skipFrontDoorAuth={skipFrontDoorAuth}
+            queryResultsHref={fieldUsageQueryResultsHref}
+          />
         ),
         renderCell: (p) =>
           p.row.isObjectErrorPlaceholder ? (
@@ -910,7 +928,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
       },
       {
         ...setColumnFromType<FieldUsageTreeRow>('custom', 'text'),
-        name: 'Custom',
+        name: 'Custom Field',
         key: 'custom',
         width: 100,
         minWidth: 80,
@@ -1051,14 +1069,14 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         },
       },
     ],
-    [parsedResult, serverUrl, selectedOrg, skipFrontDoorAuth],
+    [parsedResult, serverUrl, selectedOrg, skipFrontDoorAuth, fieldUsageQueryResultsHref],
   );
 
   const whereUsedColumns: ColumnWithFilter<WhereUsedTableRow>[] = useMemo(
     () => [
       {
         ...setColumnFromType<WhereUsedTableRow>('componentType', 'text'),
-        name: 'Metadata type',
+        name: 'Metadata Type',
         key: 'componentType',
         width: 160,
         maxWidth: 220,
@@ -1072,7 +1090,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
       },
       {
         ...setColumnFromType<WhereUsedTableRow>('flowVersionLabel', 'text'),
-        name: 'Flow ver.',
+        name: 'Flow Ver.',
         key: 'flowVersionLabel',
         width: 88,
         minWidth: 72,
@@ -1136,18 +1154,18 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
             Objects & Fields
           </Fragment>
         ),
-        titleText: 'Objects and Fields',
+        titleText: 'Objects & Fields',
         content: (
           <div className="slds-p-around_small">
             {parsedResult.truncated && (
               <div className="slds-m-bottom_small">
                 <ScopedNotification theme="warning">
-                  At least one object hit the row scan cap; percentages reflect scanned rows only.
+                  At least one Object hit the row scan cap; percentages reflect scanned rows only.
                 </ScopedNotification>
               </div>
             )}
             {treeFieldRows.length === 0 ? (
-              <ScopedNotification theme="info">No object rows in this result.</ScopedNotification>
+              <ScopedNotification theme="info">No Object rows in this result.</ScopedNotification>
             ) : (
               <AutoFullHeightContainer
                 fillHeight
@@ -1158,7 +1176,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
               >
                 <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_x-small">
                   {formatNumber(objectsTabTotals.analyzedFieldCount)} analyzed field
-                  {objectsTabTotals.analyzedFieldCount === 1 ? '' : 's'} across {formatNumber(objectsTabTotals.objectCount)} object
+                  {objectsTabTotals.analyzedFieldCount === 1 ? '' : 's'} across {formatNumber(objectsTabTotals.objectCount)} Object
                   {objectsTabTotals.objectCount === 1 ? '' : 's'}.
                 </p>
                 <DataTree
@@ -1195,10 +1213,10 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
                 className="slds-icon slds-icon_small"
               />
             </span>
-            Low usage (≤{LOW_USAGE_PCT_THRESHOLD}%)
+            Low Usage (≤{LOW_USAGE_PCT_THRESHOLD}%)
           </Fragment>
         ),
-        titleText: 'Low usage custom fields',
+        titleText: 'Low Usage Custom Fields',
         content: (
           <div className="slds-p-around_small">
             <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_small">
@@ -1206,7 +1224,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
             </p>
             {lowUsageTreeRows.length === 0 ? (
               <ScopedNotification theme="info">
-                No unmanaged custom fields at or below {LOW_USAGE_PCT_THRESHOLD}% population for the selected objects in this scan.
+                No unmanaged Custom Fields at or below {LOW_USAGE_PCT_THRESHOLD}% population for the objects in this scan.
               </ScopedNotification>
             ) : (
               <AutoFullHeightContainer
@@ -1338,11 +1356,11 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
                       id: FIELD_USAGE_TABLE_ACTION_DELETE_METADATA,
                       subheader: 'Deploy Actions',
                       icon: { type: 'utility', icon: 'delete', description: 'Delete Selected Custom Fields' },
-                      value: 'Delete selected metadata',
+                      value: 'Delete Selected Metadata',
                       disabled: fieldUsageSelectedDestructiveDeleteCount === 0,
                       title:
                         fieldUsageSelectedDestructiveDeleteCount === 0
-                          ? 'Select unmanaged custom fields (no namespace prefix) on the Objects & Fields or Low usage tab'
+                          ? 'Select unmanaged Custom Fields (no namespace prefix) on the Objects & Fields or Low Usage tab'
                           : 'Same destructive deploy flow as Deploy Metadata (validate or delete from this org)',
                     },
                   ]}
@@ -1364,13 +1382,13 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
                   onClick={() => setLoadAllRecordsModalOpen(true)}
                 >
                   <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
-                  <span>Load all records</span>
+                  <span>Load All Records</span>
                 </button>
               </Tooltip>
-              <Tooltip ariaRole="label" content="View past field usage runs for this org">
+              <Tooltip ariaRole="label" content="View past Field Usage runs for this org">
                 <button
                   type="button"
-                  aria-label="Field usage history"
+                  aria-label="Field Usage history"
                   className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
                   css={css`
                     padding: 0.5rem;
@@ -1378,7 +1396,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
                   disabled={!selectedOrg?.uniqueId}
                   onClick={() => setIsHistoryOpen(true)}
                 >
-                  <Icon type="utility" icon="date_time" className="slds-button__icon" omitContainer title="Field usage history" />
+                  <Icon type="utility" icon="date_time" className="slds-button__icon" omitContainer title="Field Usage history" />
                 </button>
               </Tooltip>
             </ToolbarItemActions>
@@ -1394,8 +1412,8 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
       )}
       {loadAllRecordsModalOpen && (
         <Modal
-          header="Load all records?"
-          tagline="Starts a new field usage job for the same objects without the per-object row scan cap."
+          header="Load All Records?"
+          tagline="Starts a new Field Usage job for the same objects without the per-object row scan cap."
           onClose={() => {
             if (!loadAllRecordsSubmitting) {
               setLoadAllRecordsModalOpen(false);
@@ -1417,14 +1435,14 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
                 disabled={loadAllRecordsSubmitting}
                 onClick={() => void handleConfirmLoadAllRecords()}
               >
-                {loadAllRecordsSubmitting ? 'Starting…' : 'Start full scan'}
+                {loadAllRecordsSubmitting ? 'Starting…' : 'Start Full Scan'}
               </button>
             </Fragment>
           }
         >
           <div className="slds-p-around_medium">
             <ScopedNotification theme="warning">
-              This runs a full row scan for each object in this job. It can take a long time and use many Salesforce API calls (REST query
+              This runs a full row scan for each Object in this job. It can take a long time and use many Salesforce API calls (REST query
               and queryMore), counting against your org&apos;s daily limits.
             </ScopedNotification>
             <p className="slds-m-top_small slds-text-body_regular">
@@ -1447,7 +1465,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
       {whereUsedForKey && (
         <Modal
           header={`Where Used — ${whereUsedForKey}`}
-          tagline="Tooling MetadataComponentDependency references (custom fields). Flow version is Tooling Flow.VersionNumber when available. Open uses your org login."
+          tagline="Tooling MetadataComponentDependency references (Custom Fields). Flow version is Tooling Flow.VersionNumber when available. Open uses your org login."
           size="lg"
           onClose={() => setWhereUsedForKey(null)}
           footer={
@@ -1488,7 +1506,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         {!jobId && (
           <div className="slds-p-around_medium">
             <ScopedNotification theme="warning">
-              No analysis job is linked to this page. Start a field usage job from Data Analysis, then you will be redirected here
+              No analysis job is linked to this page. Start a Field Usage job from Data Analysis, then you will be redirected here
               automatically.
             </ScopedNotification>
           </div>
@@ -1507,7 +1525,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         {jobId && !fetchError && isTerminal && jobStatusNormalized === 'completed' && !parsedResult && (
           <div className="slds-p-around_medium">
             <Toast type="warning">
-              This job completed but the result payload is not a recognized field usage envelope (missing `phase: field_usage_v1`).
+              This job completed but the result payload is not a recognized Field Usage envelope (missing `phase: field_usage_v1`).
             </Toast>
           </div>
         )}

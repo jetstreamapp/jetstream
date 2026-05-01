@@ -137,7 +137,7 @@ export const APP_ROUTES: RouteMap = {
   DATA_ANALYSIS: {
     ...getRoutePath('/data-analysis'),
     TITLE: 'Data Analysis',
-    DESCRIPTION: 'Field usage and data coverage for selected objects',
+    DESCRIPTION: 'Field Usage and data coverage for selected Objects',
   },
   DEPLOY_METADATA: {
     ...getRoutePath('/deploy-metadata'),

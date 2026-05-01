@@ -33,7 +33,7 @@ export const DataAnalysisSelection: FunctionComponent = () => {
 
   const handleStartJob = useCallback(async () => {
     if (!selectedOrg || !selectedSObjects.length) {
-      fireToast({ message: 'Select at least one object.', type: 'error' });
+      fireToast({ message: 'Select at least one Object.', type: 'error' });
       return;
     }
     setSubmitting(true);
@@ -44,7 +44,7 @@ export const DataAnalysisSelection: FunctionComponent = () => {
       });
       const jobId = (job as { id?: string }).id;
       fireToast({
-        message: jobId ? 'Field usage job started. Loading results…' : 'Field usage job registered.',
+        message: jobId ? 'Field Usage job started. Loading results…' : 'Field Usage job registered.',
         type: 'success',
       });
       if (jobId) {
@@ -69,7 +69,7 @@ export const DataAnalysisSelection: FunctionComponent = () => {
               disabled={submitting || !selectedSObjects.length}
               onClick={() => void handleStartJob()}
             >
-              Start field usage analysis
+              Start Field Usage Analysis
               <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" omitContainer />
             </button>
           </PageHeaderActions>

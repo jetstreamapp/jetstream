@@ -569,9 +569,9 @@ export const PermissionAnalysisHistoryModal: FunctionComponent<PermissionAnalysi
     </div>
   );
 
-  const modalHeader = analysisJobType === 'permission_export' ? 'Permission export history' : 'Field usage history';
+  const modalHeader = analysisJobType === 'permission_export' ? 'Permission export history' : 'Field Usage History';
   const modalTagline = 'Runs for this org, newest first.';
-  const emptyHeadline = analysisJobType === 'permission_export' ? 'No export jobs yet' : 'No field usage jobs yet';
+  const emptyHeadline = analysisJobType === 'permission_export' ? 'No export jobs yet' : 'No Field Usage jobs yet';
   const emptySubHeading =
     analysisJobType === 'permission_export'
       ? 'Start a run from Permission Analysis selection, then open history again.'

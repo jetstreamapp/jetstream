@@ -149,11 +149,11 @@ async function runFieldUsageJob(jobId: string): Promise<void> {
 
     const okCount = objectApiNames.filter((o) => !queryOutcome.failedObjects.includes(o) && !queryOutcome.objects[o]?.error).length;
     const summaryParts = [
-      `Field usage for ${okCount}/${objectApiNames.length} object(s).${loadFullScan ? ' No per-object row cap.' : ''}`,
+      `Field Usage for ${okCount}/${objectApiNames.length} Object(s).${loadFullScan ? ' No per-object row cap.' : ''}`,
       queryOutcome.anyQueryTruncated
         ? loadFullScan
           ? 'Some objects may still show truncated scans for very large data sets or API limits.'
-          : `Row scan capped at ${String(FIELD_USAGE_MAX_ROWS_PER_OBJECT)} rows per object where noted.`
+          : `Row scan capped at ${String(FIELD_USAGE_MAX_ROWS_PER_OBJECT)} rows per Object where noted.`
         : '',
       queryOutcome.failedObjects.length > 0 ? `Failed: ${queryOutcome.failedObjects.join(', ')}.` : '',
     ].filter(Boolean);
