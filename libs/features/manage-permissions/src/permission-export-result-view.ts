@@ -25,6 +25,53 @@ export interface SobjectExportDetail {
   description: string | null;
 }
 
+/** Object column copy in finding modals when describe metadata exists. */
+export function formatObjectLabelForModalSummary(
+  apiName: string,
+  sobjectExportDetails: Record<string, SobjectExportDetail> | undefined,
+): { displayLabel: string; showApiInParens: boolean } {
+  const api = apiName.trim();
+  if (!api) {
+    return { displayLabel: '', showApiInParens: false };
+  }
+  const metadataLabel = sobjectExportDetails?.[api]?.label?.trim();
+  if (metadataLabel && metadataLabel !== api) {
+    return { displayLabel: metadataLabel, showApiInParens: true };
+  }
+  return { displayLabel: api, showApiInParens: false };
+}
+
+function permissionSetExportRowLabel(row: PermissionExportRow): string {
+  const label = typeof row.Label === 'string' && row.Label.trim() ? row.Label.trim() : null;
+  const name = typeof row.Name === 'string' && row.Name.trim() ? row.Name.trim() : null;
+  const profileBlock = row.Profile;
+  const profileName =
+    profileBlock &&
+    typeof profileBlock === 'object' &&
+    profileBlock !== null &&
+    typeof (profileBlock as { Name?: unknown }).Name === 'string'
+      ? String((profileBlock as { Name: string }).Name).trim()
+      : null;
+  const isProfile = row.IsOwnedByProfile === true;
+  if (isProfile && profileName) {
+    return `Profile: ${profileName}`;
+  }
+  return label ?? name ?? (typeof row.Id === 'string' ? row.Id : 'Permission set');
+}
+
+/** Map permission set `Id` to a short display label (profiles, permission sets tab, modals). */
+export function buildPermissionSetIdLabelMap(permissionSetRows: PermissionExportRow[]): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const row of permissionSetRows) {
+    const id = row.Id;
+    if (typeof id !== 'string' || id.trim().length === 0) {
+      continue;
+    }
+    map.set(id.trim(), permissionSetExportRowLabel(row));
+  }
+  return map;
+}
+
 export function collectSobjectApiNamesFromPermissionExport(exportBundle: PermissionExportBundle): string[] {
   const names = new Set<string>();
   for (const row of exportBundle.objectPermissions) {
@@ -475,6 +522,216 @@ export function buildObjectPermissionFindingCellHighlights(
   }
 
   return result;
+}
+
+/**
+ * Sentinel field segment for {@link fieldPermissionFindingRowKey} when a finding applies to every
+ * field-permission row for the same permission set + object (e.g. {@link PermissionExportFindingCode.FLS_WITHOUT_OLS_ROW}).
+ */
+export const FIELD_PERMISSION_OBJECT_SCOPE_MARKER = '__FIELD_PERM_OBJECT_SCOPE__';
+
+/** Row key for field-permission export highlights (`ParentId::SobjectType::Field` or scope marker). */
+export function fieldPermissionFindingRowKey(parentId: string, objectApiName: string, fieldSegment: string): string {
+  return `${parentId.trim()}::${objectApiName.trim()}::${fieldSegment.trim()}`;
+}
+
+/**
+ * Field-permission grid column keys highlighted for a given finding `code` (empty when none on this surface).
+ */
+export function getFieldPermissionHighlightColumnKeysForFindingCode(code: string): readonly string[] {
+  const trimmed = code.trim();
+  if (!trimmed || trimmed === PermissionExportFindingCode.FINDINGS_TRUNCATED) {
+    return [];
+  }
+  if (trimmed === PermissionExportFindingCode.FLS_READ_NO_OBJECT_READ) {
+    return ['PermissionsRead'];
+  }
+  if (trimmed === PermissionExportFindingCode.FLS_EDIT_NO_OBJECT_EDIT) {
+    return ['PermissionsEdit'];
+  }
+  if (trimmed === PermissionExportFindingCode.FLS_WITHOUT_OLS_ROW) {
+    return ['Field', 'SobjectType'];
+  }
+  return [];
+}
+
+function severityForFieldPermissionFindingCode(code: string): PermissionObjectFindingCellSeverity | null {
+  return severityForObjectPermissionFindingCode(code);
+}
+
+/**
+ * Findings that highlight this field-permission export cell (same `ParentId` / `SobjectType` / `Field` row).
+ */
+export function listFindingsForFieldPermissionCell(
+  findings: readonly PermissionAnalysisFinding[],
+  parentId: string,
+  objectApiName: string,
+  fieldApiName: string,
+  columnKey: string,
+): PermissionAnalysisFinding[] {
+  const normalizedParent = parentId.trim();
+  const normalizedObject = objectApiName.trim();
+  const normalizedField = fieldApiName.trim();
+  const normalizedColumn = columnKey.trim();
+  const matches: PermissionAnalysisFinding[] = [];
+  for (const finding of findings) {
+    const findingParent = getFindingContainerId(finding)?.trim() ?? '';
+    const findingObject = typeof finding.objectApiName === 'string' ? finding.objectApiName.trim() : '';
+    if (!findingParent || !findingObject || findingParent !== normalizedParent || findingObject !== normalizedObject) {
+      continue;
+    }
+    const codeRaw = typeof finding.code === 'string' ? finding.code.trim() : '';
+    const highlightColumns = getFieldPermissionHighlightColumnKeysForFindingCode(codeRaw);
+    if (!highlightColumns.includes(normalizedColumn)) {
+      continue;
+    }
+    if (codeRaw === PermissionExportFindingCode.FLS_WITHOUT_OLS_ROW) {
+      matches.push(finding);
+      continue;
+    }
+    const findingField = typeof finding.fieldApiName === 'string' ? finding.fieldApiName.trim() : '';
+    if (findingField === normalizedField) {
+      matches.push(finding);
+    }
+  }
+  return matches;
+}
+
+/**
+ * Maps field-permission export rows to cells that should highlight from analysis findings.
+ *
+ * @returns Outer key: {@link fieldPermissionFindingRowKey}; inner key: column name (e.g. `PermissionsRead`).
+ */
+export function buildFieldPermissionFindingCellHighlights(
+  findings: PermissionAnalysisFinding[],
+): Map<string, Map<string, PermissionObjectFindingCellSeverity>> {
+  const result = new Map<string, Map<string, PermissionObjectFindingCellSeverity>>();
+
+  const mergeCell = (rowKey: string, columnKey: string, severity: PermissionObjectFindingCellSeverity): void => {
+    let columnMap = result.get(rowKey);
+    if (!columnMap) {
+      columnMap = new Map();
+      result.set(rowKey, columnMap);
+    }
+    const existing = columnMap.get(columnKey);
+    const next: PermissionObjectFindingCellSeverity = existing === 'error' || severity === 'error' ? 'error' : severity;
+    columnMap.set(columnKey, next);
+  };
+
+  for (const finding of findings) {
+    const codeRaw = typeof finding.code === 'string' ? finding.code.trim() : '';
+    const objectApi = typeof finding.objectApiName === 'string' ? finding.objectApiName.trim() : '';
+    const parentId = getFindingContainerId(finding)?.trim() ?? '';
+    if (!codeRaw || !objectApi || !parentId) {
+      continue;
+    }
+    const highlightColumns = getFieldPermissionHighlightColumnKeysForFindingCode(codeRaw);
+    if (highlightColumns.length === 0) {
+      continue;
+    }
+    const severity = severityForFieldPermissionFindingCode(codeRaw);
+    if (!severity) {
+      continue;
+    }
+    const fieldPart =
+      codeRaw === PermissionExportFindingCode.FLS_WITHOUT_OLS_ROW
+        ? FIELD_PERMISSION_OBJECT_SCOPE_MARKER
+        : typeof finding.fieldApiName === 'string'
+          ? finding.fieldApiName.trim()
+          : '';
+    if (!fieldPart) {
+      continue;
+    }
+    const rowKey = fieldPermissionFindingRowKey(parentId, objectApi, fieldPart);
+    for (const columnKey of highlightColumns) {
+      mergeCell(rowKey, columnKey, severity);
+    }
+  }
+
+  return result;
+}
+
+export function fieldPermissionCellSeverity(
+  highlights: Map<string, Map<string, PermissionObjectFindingCellSeverity>>,
+  parentId: string,
+  objectApiName: string,
+  fieldApiName: string,
+  columnKey: string,
+): PermissionObjectFindingCellSeverity | undefined {
+  const specificKey = fieldPermissionFindingRowKey(parentId, objectApiName, fieldApiName);
+  const scopeKey = fieldPermissionFindingRowKey(parentId, objectApiName, FIELD_PERMISSION_OBJECT_SCOPE_MARKER);
+  const fromSpecific = highlights.get(specificKey)?.get(columnKey);
+  const fromScope = highlights.get(scopeKey)?.get(columnKey);
+  if (fromSpecific === 'error' || fromScope === 'error') {
+    return 'error';
+  }
+  return fromSpecific ?? fromScope;
+}
+
+/**
+ * Max severity per permission-set container Id for profile / permission-set / assignment export rows.
+ */
+export function buildContainerIdFindingSeverity(
+  findings: readonly PermissionAnalysisFinding[],
+): Map<string, PermissionObjectFindingCellSeverity> {
+  const result = new Map<string, PermissionObjectFindingCellSeverity>();
+  for (const finding of findings) {
+    const codeRaw = typeof finding.code === 'string' ? finding.code.trim() : '';
+    if (!codeRaw || codeRaw === PermissionExportFindingCode.FINDINGS_TRUNCATED) {
+      continue;
+    }
+    const containerId = getFindingContainerId(finding)?.trim() ?? '';
+    if (!containerId) {
+      continue;
+    }
+    const def = getPermissionExportFindingDefinition(codeRaw);
+    if (!def) {
+      continue;
+    }
+    const next: PermissionObjectFindingCellSeverity = def.severity === 'error' ? 'error' : 'warning';
+    const existing = result.get(containerId);
+    const merged: PermissionObjectFindingCellSeverity = existing === 'error' || next === 'error' ? 'error' : next;
+    result.set(containerId, merged);
+  }
+  return result;
+}
+
+/**
+ * All findings for a permission-set container (same list as Issues tab), excluding truncation rows.
+ */
+export function listFindingsForExportContainer(
+  findings: readonly PermissionAnalysisFinding[],
+  containerId: string,
+): PermissionAnalysisFinding[] {
+  const id = containerId.trim();
+  if (!id) {
+    return [];
+  }
+  return findings.filter((finding) => {
+    const code = String(finding.code ?? '').trim();
+    if (code === PermissionExportFindingCode.FINDINGS_TRUNCATED) {
+      return false;
+    }
+    return getFindingContainerId(finding)?.trim() === id;
+  });
+}
+
+/** Column keys on permission-set export rows that open the container findings modal (first match wins). */
+export function pickPermissionSetExportClickableColumnKeys(sample: PermissionExportRow): string[] {
+  const preferred = ['Name', 'Label', 'MasterLabel', 'DeveloperName', 'Profile', 'Id'] as const;
+  return preferred.filter((key) => key in sample);
+}
+
+/** Column keys on assignment rows that open findings for the related permission set. */
+export function pickAssignmentExportClickableColumnKeys(sample: PermissionExportRow): string[] {
+  const preferred = ['PermissionSetId', 'AssigneeId', 'Id'] as const;
+  return preferred.filter((key) => key in sample);
+}
+
+/** Column keys on PermissionSetTabSetting rows (`ParentId` = permission set). */
+export function pickTabVisibilityExportClickableColumnKeys(sample: PermissionExportRow): string[] {
+  const preferred = ['ParentId', 'Name', 'Visibility', 'Id'] as const;
+  return preferred.filter((key) => key in sample);
 }
 
 export function getFindingLabelForCode(code: string | undefined): string {
