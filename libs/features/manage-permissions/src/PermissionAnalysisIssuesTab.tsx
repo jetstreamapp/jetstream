@@ -14,23 +14,20 @@ import {
 } from '@jetstream/ui';
 import { FunctionComponent, useCallback, useEffect, useMemo, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import type { RenderCellProps } from 'react-data-grid';
-import type { SetURLSearchParams } from 'react-router-dom';
 import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 import {
   ISSUES_GRID_COLUMN_KEYS,
   ISSUES_GRID_COLUMN_LABELS,
-  type IssueScopeFilterContext,
   type IssuesGridColumnKey,
   type IssuesGroupBy,
+  type UsePermissionAnalysisIssuesFiltersResult,
   isErrorSeverity,
   isWarningSeverity,
-  usePermissionAnalysisIssuesFilters,
 } from './permission-analysis-issues-filters';
 import {
   aggregatePermissionAnalysisFindings,
   formatObjectLabelForModalSummary,
   type PermissionAnalysisFinding,
-  type PermissionExportRow,
   type PermissionFindingCodeRollup,
   type PermissionFindingObjectRollup,
   type SobjectExportDetail,
@@ -42,14 +39,12 @@ export type { IssuesGroupBy } from './permission-analysis-issues-filters';
 
 export interface PermissionAnalysisIssuesTabProps {
   findings: PermissionAnalysisFinding[];
-  permissionSetAssignments: PermissionExportRow[];
+  /** Shared hook result from {@link PermissionAnalysisView} (single filter pipeline with the toolbar). */
+  issuesFilters: UsePermissionAnalysisIssuesFiltersResult;
   org: SalesforceOrgUi;
   serverUrl: string;
   skipFrontdoorLogin: boolean;
   defaultApiVersion: string;
-  searchParams: URLSearchParams;
-  setSearchParams: SetURLSearchParams;
-  issueScopeFilterContext?: IssueScopeFilterContext;
   /** Describe labels for object API names; when absent, rollup titles fall back to API names. */
   sobjectExportDetails?: Record<string, SobjectExportDetail>;
 }
@@ -669,14 +664,11 @@ const IssuesFindingTreeDataGrid: FunctionComponent<IssuesFindingTreeDataGridProp
 
 export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIssuesTabProps> = ({
   findings,
-  permissionSetAssignments,
+  issuesFilters,
   org,
   serverUrl,
   skipFrontdoorLogin,
   defaultApiVersion,
-  searchParams,
-  setSearchParams,
-  issueScopeFilterContext,
   sobjectExportDetails,
 }) => {
   const [aggregatedDetailsModal, setAggregatedDetailsModal] = useState<{
@@ -691,13 +683,7 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
   const [aggregatedIssueCodeSectionExpanded, setAggregatedIssueCodeSectionExpanded] = useState(true);
   const [aggregatedByObjectSectionExpanded, setAggregatedByObjectSectionExpanded] = useState(true);
 
-  const { filteredFindings, groupBy, updateParams, hiddenIssueGridColumns } = usePermissionAnalysisIssuesFilters({
-    findings,
-    permissionSetAssignments,
-    searchParams,
-    setSearchParams,
-    issueScopeFilterContext,
-  });
+  const { filteredFindings, groupBy, updateParams, hiddenIssueGridColumns } = issuesFilters;
 
   const gridColumns = useMemo(() => {
     const filtered = FINDING_COLUMNS.filter((col) => !hiddenIssueGridColumns.has(col.key as IssuesGridColumnKey));
@@ -740,6 +726,7 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
   const sortedFindings = useMemo(() => sortFindings(filteredFindings, groupBy), [filteredFindings, groupBy]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- quick-filter state invalidates when sorted findings change
     setGridFilteredFindings(null);
   }, [sortedFindings]);
 

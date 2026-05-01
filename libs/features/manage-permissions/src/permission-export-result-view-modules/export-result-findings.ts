@@ -1,6 +1,10 @@
 import { getPermissionExportFindingDefinition, PermissionExportFindingCode } from '@jetstream/shared/constants';
 
-import { FIELD_PERMISSION_BOOLEAN_COLUMN_KEYS, type PermissionAnalysisFinding, type PermissionExportRow } from './export-result-core';
+import {
+  FIELD_PERMISSION_BOOLEAN_COLUMN_KEYS,
+  type PermissionAnalysisFinding,
+  type PermissionExportRow,
+} from './export-result-types-labels';
 
 export function getFindingContainerId(finding: PermissionAnalysisFinding): string | null {
   const candidates = [finding.permissionSetId, finding.parentId, finding.containerId];

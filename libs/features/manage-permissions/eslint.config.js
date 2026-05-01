@@ -1,3 +1,4 @@
+// eslint-disable-next-line @nx/enforce-module-boundaries -- workspace root ESLint preset for Nx library projects
 const baseConfig = require('../../../eslint.config.js');
 
 module.exports = [

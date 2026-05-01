@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { getAnalysisJob, queryWithCache } from '@jetstream/shared/data';
+import { describeGlobal, getAnalysisJob, queryWithCache } from '@jetstream/shared/data';
 import { escapeSoqlString } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import {
@@ -122,6 +122,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
       return;
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- switching org/job clears stale record until poll returns
     setJobRecord(null);
 
     const orgForPoll = selectedOrg;
@@ -247,11 +248,13 @@ export const PermissionAnalysisView: FunctionComponent = () => {
     const exportSnapshot = parsedExport;
 
     if (!selectedOrg?.uniqueId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset cached labels when org clears
       setSobjectExportDetails({});
       return;
     }
 
     if (!exportSnapshot) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset when job payload missing
       setSobjectExportDetails({});
       return;
     }
@@ -261,8 +264,9 @@ export const PermissionAnalysisView: FunctionComponent = () => {
     let cancelled = false;
 
     async function loadSobjectExportDetails() {
-      /** Labels/descriptions come from EntityDefinition; API name fallback fills any gaps (skips heavy describeGlobal). */
+      /** Primary labels/descriptions from EntityDefinition; describeGlobal only for APIs missing from ED (odd/large orgs). */
       const details: Record<string, SobjectExportDetail> = {};
+      const returnedFromEntityDefinition = new Set<string>();
 
       if (cancelled) {
         return;
@@ -287,6 +291,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
             if (typeof api !== 'string' || api.trim().length === 0) {
               continue;
             }
+            returnedFromEntityDefinition.add(api);
             const existing = details[api];
             const descriptionFromEd =
               record.Description != null && String(record.Description).trim().length > 0
@@ -301,6 +306,30 @@ export const PermissionAnalysisView: FunctionComponent = () => {
           }
         } catch (entityDefinitionError) {
           logger.warn('EntityDefinition query failed for permission analysis object metadata', entityDefinitionError);
+        }
+      }
+
+      const missingFromEntityDefinition = apiNames.filter((api) => !returnedFromEntityDefinition.has(api));
+      if (missingFromEntityDefinition.length > 0 && !cancelled) {
+        try {
+          const { data } = await describeGlobal(selectedOrg, false);
+          const sobjects = data?.sobjects;
+          if (Array.isArray(sobjects)) {
+            const byName = new Map(sobjects.map((s) => [s.name, s]));
+            for (const api of missingFromEntityDefinition) {
+              const described = byName.get(api);
+              if (described) {
+                const label = typeof described.label === 'string' && described.label.trim().length > 0 ? described.label.trim() : api;
+                details[api] = {
+                  apiName: api,
+                  label,
+                  description: null,
+                };
+              }
+            }
+          }
+        } catch (describeGlobalError) {
+          logger.warn('describeGlobal fallback failed for permission analysis object metadata', describeGlobalError);
         }
       }
 
@@ -324,11 +353,13 @@ export const PermissionAnalysisView: FunctionComponent = () => {
 
   useEffect(() => {
     if (!selectedOrg?.uniqueId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset cached tab labels when org clears
       setTabLabelBySettingName(new Map());
       return;
     }
 
     if (!parsedExport) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset when export snapshot missing
       setTabLabelBySettingName(new Map());
       return;
     }
@@ -381,11 +412,13 @@ export const PermissionAnalysisView: FunctionComponent = () => {
 
   useEffect(() => {
     if (!selectedOrg?.uniqueId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset cached field labels when org clears
       setFieldExportDetails({});
       return;
     }
 
     if (!parsedExport) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset when export snapshot missing
       setFieldExportDetails({});
       return;
     }
@@ -798,14 +831,11 @@ export const PermissionAnalysisView: FunctionComponent = () => {
         content: (
           <PermissionAnalysisIssuesTab
             findings={allFindings}
-            permissionSetAssignments={exportBundle.permissionSetAssignments}
+            issuesFilters={permissionAnalysisIssuesFilters}
             org={selectedOrg}
             serverUrl={serverUrl}
             skipFrontdoorLogin={skipFrontdoorLogin}
             defaultApiVersion={defaultApiVersion}
-            searchParams={searchParams}
-            setSearchParams={setSearchParams}
-            issueScopeFilterContext={issueScopeFilterContext}
             sobjectExportDetails={sobjectExportDetails}
           />
         ),
@@ -848,11 +878,9 @@ export const PermissionAnalysisView: FunctionComponent = () => {
     skipFrontdoorLogin,
     defaultApiVersion,
     jobRecord,
-    searchParams,
-    setSearchParams,
     findingsCount,
     sobjectExportDetails,
-    issueScopeFilterContext,
+    permissionAnalysisIssuesFilters,
     globallyFilteredFindings,
   ]);
 
