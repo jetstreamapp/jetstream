@@ -4,5 +4,7 @@ export * from './ManagePermissionsSelection';
 export * from './PermissionAnalysis';
 export * from './PermissionAnalysisSelection';
 export * from './PermissionAnalysisView';
+export * from './PermissionAnalysisHistoryModal';
+export { formatAnalysisJobStatusForDisplay } from './analysis-job-status-display';
 export { filterPermissionsSobjects } from './utils/permission-manager-utils';
 export * from './permission-export';

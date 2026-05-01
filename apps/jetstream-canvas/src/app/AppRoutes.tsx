@@ -50,6 +50,9 @@ const DataAnalysis = lazy(() => import('@jetstream/feature/data-analysis').then(
 const DataAnalysisSelection = lazy(() =>
   import('@jetstream/feature/data-analysis').then((module) => ({ default: module.DataAnalysisSelection })),
 );
+const FieldUsageAnalysisView = lazy(() =>
+  import('@jetstream/feature/data-analysis').then((module) => ({ default: module.FieldUsageAnalysisView })),
+);
 
 const DeployMetadata = lazy(() => import('@jetstream/feature/deploy').then((module) => ({ default: module.DeployMetadata })));
 const DeployMetadataSelection = lazy(() =>
@@ -155,6 +158,8 @@ export const AppRoutes = () => {
       AutomationControlEditor.preload();
     } else if (location.pathname.includes('/permissions-manager')) {
       ManagePermissionsEditor.preload();
+    } else if (location.pathname.includes('/data-analysis')) {
+      FieldUsageAnalysisView.preload();
     } else if (location.pathname.includes('/deploy-metadata')) {
       DeployMetadataDeployment.preload();
     } else if (location.pathname.includes('/create-fields')) {
@@ -249,6 +254,7 @@ export const AppRoutes = () => {
         }
       >
         <Route index element={<DataAnalysisSelection />} />
+        <Route path="analysis" element={<FieldUsageAnalysisView />} />
         <Route path="*" element={<Navigate to=".." />} />
       </Route>
       <Route

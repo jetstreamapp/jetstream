@@ -22,6 +22,11 @@ const PERM_SET_GROUP_BG = '#e3f7f5';
 const PERM_SET_GROUP_BORDER = '#06a59a';
 const PERM_SET_GROUP_TEXT = '#032f2e';
 
+/** Neutral chip for non-permission scopes (e.g. analyzed Salesforce objects in field usage history). */
+const OBJECT_BG = '#f3f2f2';
+const OBJECT_BORDER = '#c9c9c9';
+const OBJECT_TEXT = '#080707';
+
 const scopeBadgeTruncateCss = css`
   max-width: 14rem;
   overflow: hidden;
@@ -32,6 +37,20 @@ const scopeBadgeTruncateCss = css`
   font-weight: 600;
   border-radius: 0.25rem;
   box-shadow: none;
+`;
+
+const objectDefaultCss = css`
+  ${scopeBadgeTruncateCss}
+  background-color: ${OBJECT_BG};
+  color: ${OBJECT_TEXT};
+  border: 1px solid ${OBJECT_BORDER};
+`;
+
+const objectOnBrandCss = css`
+  ${scopeBadgeTruncateCss}
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.55);
 `;
 
 const profileDefaultCss = css`
@@ -126,13 +145,16 @@ export function permissionAnalysisAssignmentTypeLabelCss(kind: PermissionAnalysi
 }
 
 /**
- * @param kind Profile vs permission set scope.
+ * @param kind Profile vs permission set vs analyzed object (field usage history).
  * @param surface Use `onBrand` when the badge sits on `slds-button_brand` (selected filter row).
  */
 export function permissionScopeBadgeCss(
-  kind: 'profile' | 'permission_set',
+  kind: 'profile' | 'permission_set' | 'object',
   surface: PermissionScopeBadgeSurface = 'default',
 ): SerializedStyles {
+  if (kind === 'object') {
+    return surface === 'onBrand' ? objectOnBrandCss : objectDefaultCss;
+  }
   if (surface === 'onBrand') {
     return kind === 'profile' ? profileOnBrandCss : permissionSetOnBrandCss;
   }

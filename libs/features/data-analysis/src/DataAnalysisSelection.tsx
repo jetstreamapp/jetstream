@@ -16,6 +16,7 @@ import {
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { atom, useAtom, useAtomValue } from 'jotai';
 import { FunctionComponent, useCallback, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const selectedSObjectsAtom = atom<string[]>([]);
 const sobjectsAtom = atom<DescribeGlobalSObjectResult[] | null>(null);
@@ -24,6 +25,7 @@ const sobjectsAtom = atom<DescribeGlobalSObjectResult[] | null>(null);
  * Object selection for field-usage style analysis; registers a **field_usage** job scaffold via API.
  */
 export const DataAnalysisSelection: FunctionComponent = () => {
+  const navigate = useNavigate();
   const selectedOrg = useAtomValue(selectedOrgState);
   const [sobjects, setSobjects] = useAtom(sobjectsAtom);
   const [selectedSObjects, setSelectedSObjects] = useAtom(selectedSObjectsAtom);
@@ -40,16 +42,20 @@ export const DataAnalysisSelection: FunctionComponent = () => {
         jobType: 'field_usage',
         payload: { objectApiNames: selectedSObjects },
       });
+      const jobId = (job as { id?: string }).id;
       fireToast({
-        message: `Job registered (${String((job as { id?: string }).id || 'ok')}). Results UI ships in a follow-up.`,
+        message: jobId ? 'Field usage job started. Loading results…' : 'Field usage job registered.',
         type: 'success',
       });
+      if (jobId) {
+        navigate({ pathname: 'analysis', search: new URLSearchParams({ job: jobId }).toString() });
+      }
     } catch (ex: unknown) {
       fireToast({ message: ex instanceof Error ? ex.message : 'Failed to start job', type: 'error' });
     } finally {
       setSubmitting(false);
     }
-  }, [selectedOrg, selectedSObjects]);
+  }, [navigate, selectedOrg, selectedSObjects]);
 
   return (
     <Page testId="data-analysis-page">

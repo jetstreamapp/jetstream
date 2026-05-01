@@ -7,7 +7,7 @@ import { DeployMetadata, DeployMetadataDeployment, DeployMetadataSelection } fro
 import { FormulaEvaluator } from '@jetstream/feature/formula-evaluator';
 import { LoadRecords } from '@jetstream/feature/load-records';
 import { LoadRecordsMultiObject } from '@jetstream/feature/load-records-multi-object';
-import { DataAnalysis, DataAnalysisSelection } from '@jetstream/feature/data-analysis';
+import { DataAnalysis, DataAnalysisSelection, FieldUsageAnalysisView } from '@jetstream/feature/data-analysis';
 import {
   ManagePermissions,
   ManagePermissionsEditor,
@@ -102,6 +102,7 @@ export function App() {
               </Route>
               <Route path={APP_ROUTES.DATA_ANALYSIS.ROUTE} element={<DataAnalysis />}>
                 <Route index element={<DataAnalysisSelection />} />
+                <Route path="analysis" element={<FieldUsageAnalysisView />} />
                 <Route path="*" element={<Navigate to=".." />} />
               </Route>
               <Route path={APP_ROUTES.DEPLOY_METADATA.ROUTE} element={<DeployMetadata />}>

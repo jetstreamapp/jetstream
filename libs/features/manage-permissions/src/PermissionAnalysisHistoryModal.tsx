@@ -12,7 +12,7 @@ import { FunctionComponent, useCallback, useEffect, useLayoutEffect, useMemo, us
 
 const LIST_LIMIT = 50;
 
-export type PermissionScopeKind = 'profile' | 'permission_set';
+export type PermissionScopeKind = 'profile' | 'permission_set' | 'object';
 
 export type PermissionAnalysisScopeBadge = {
   key: string;
@@ -179,6 +179,28 @@ function buildScopeBadges(
   return badges;
 }
 
+function parseFieldUsageJobScopes(job: Record<string, unknown>): {
+  profileScopeIds: string[];
+  permissionSetScopeIds: string[];
+  scopeBadges: PermissionAnalysisScopeBadge[];
+  scopeSearchText: string;
+} {
+  const result = asRecord(job.result);
+  const payload = result ? asRecord(result.requestPayload) : null;
+  const rawNames = payload?.objectApiNames;
+  const objectApiNames = Array.isArray(rawNames)
+    ? rawNames.filter((name): name is string => typeof name === 'string' && name.trim().length > 0)
+    : [];
+  const scopeBadges: PermissionAnalysisScopeBadge[] = objectApiNames.map((name) => ({
+    key: `object:${name}`,
+    id: name,
+    label: name,
+    kind: 'object',
+  }));
+  const scopeSearchText = objectApiNames.join(' ');
+  return { profileScopeIds: [], permissionSetScopeIds: [], scopeBadges, scopeSearchText };
+}
+
 function parseJobScopes(job: Record<string, unknown>): {
   profileScopeIds: string[];
   permissionSetScopeIds: string[];
@@ -196,14 +218,18 @@ function parseJobScopes(job: Record<string, unknown>): {
   return { profileScopeIds, permissionSetScopeIds, scopeBadges, scopeSearchText };
 }
 
-function mapApiJobsToRows(jobs: Record<string, unknown>[]): PermissionAnalysisHistoryRow[] {
+function mapApiJobsToRows(
+  jobs: Record<string, unknown>[],
+  analysisJobType: 'permission_export' | 'field_usage',
+): PermissionAnalysisHistoryRow[] {
   return jobs
-    .filter((job) => job.jobType === 'permission_export')
+    .filter((job) => job.jobType === analysisJobType)
     .map((job) => {
       const id = typeof job.id === 'string' ? job.id : String(job.id ?? '');
       const status = job.status != null ? String(job.status) : '';
       const jobType = job.jobType != null ? String(job.jobType) : '';
-      const { profileScopeIds, permissionSetScopeIds, scopeBadges, scopeSearchText } = parseJobScopes(job);
+      const { profileScopeIds, permissionSetScopeIds, scopeBadges, scopeSearchText } =
+        analysisJobType === 'field_usage' ? parseFieldUsageJobScopes(job) : parseJobScopes(job);
       return {
         key: id,
         id,
@@ -241,6 +267,8 @@ function uniqueScopeOptionsFromRows(rows: PermissionAnalysisHistoryRow[]): Permi
 
 export interface PermissionAnalysisHistoryModalProps {
   selectedOrg: SalesforceOrgUi;
+  /** Which analysis job family this modal lists (filters `listAnalysisJobs` rows client-side). */
+  analysisJobType: 'permission_export' | 'field_usage';
   currentJobId: string | null;
   onClose: () => void;
   onSelectJob: (jobId: string) => void;
@@ -306,8 +334,8 @@ const ScopeBadgesCollapsible: FunctionComponent<ScopeBadgesCollapsibleProps> = (
           <Badge
             key={badge.key}
             type="default"
-            title={`${badge.kind === 'profile' ? 'Profile' : 'Permission set'} · ${badge.id}`}
-            css={permissionScopeBadgeCss(badge.kind)}
+            title={`${badge.kind === 'profile' ? 'Profile' : badge.kind === 'permission_set' ? 'Permission set' : 'Object'} · ${badge.id}`}
+            css={permissionScopeBadgeCss(badge.kind === 'object' ? 'object' : badge.kind)}
           >
             {badge.label}
           </Badge>
@@ -332,6 +360,7 @@ const ScopeBadgesCollapsible: FunctionComponent<ScopeBadgesCollapsibleProps> = (
 
 export const PermissionAnalysisHistoryModal: FunctionComponent<PermissionAnalysisHistoryModalProps> = ({
   selectedOrg,
+  analysisJobType,
   currentJobId,
   onClose,
   onSelectJob,
@@ -354,7 +383,7 @@ export const PermissionAnalysisHistoryModal: FunctionComponent<PermissionAnalysi
         if (cancelled) {
           return;
         }
-        const nextRows = mapApiJobsToRows(Array.isArray(jobs) ? jobs : []);
+        const nextRows = mapApiJobsToRows(Array.isArray(jobs) ? jobs : [], analysisJobType);
         setRows(nextRows);
         if (currentJobId && nextRows.some((row) => row.key === currentJobId)) {
           setSelectedKey(currentJobId);
@@ -378,7 +407,7 @@ export const PermissionAnalysisHistoryModal: FunctionComponent<PermissionAnalysi
     return () => {
       cancelled = true;
     };
-  }, [selectedOrg, currentJobId]);
+  }, [selectedOrg, currentJobId, analysisJobType]);
 
   const scopeFilterOptions = useMemo(() => uniqueScopeOptionsFromRows(rows), [rows]);
 
@@ -392,7 +421,7 @@ export const PermissionAnalysisHistoryModal: FunctionComponent<PermissionAnalysi
 
   const filteredRows = useMemo(() => {
     let next = rows;
-    if (scopeFilterParentId) {
+    if (analysisJobType === 'permission_export' && scopeFilterParentId) {
       next = next.filter(
         (row) => row.profileScopeIds.includes(scopeFilterParentId) || row.permissionSetScopeIds.includes(scopeFilterParentId),
       );
@@ -401,7 +430,7 @@ export const PermissionAnalysisHistoryModal: FunctionComponent<PermissionAnalysi
       return next;
     }
     return next.filter(multiWordObjectFilter(['id', 'status', 'startedLabel', 'scopeSearchText'], filterValue));
-  }, [rows, filterValue, scopeFilterParentId]);
+  }, [rows, filterValue, scopeFilterParentId, analysisJobType]);
 
   const handleListSelect = useCallback(
     (key: string) => {
@@ -540,10 +569,24 @@ export const PermissionAnalysisHistoryModal: FunctionComponent<PermissionAnalysi
     </div>
   );
 
+  const modalHeader = analysisJobType === 'permission_export' ? 'Permission export history' : 'Field usage history';
+  const modalTagline = 'Runs for this org, newest first.';
+  const emptyHeadline = analysisJobType === 'permission_export' ? 'No export jobs yet' : 'No field usage jobs yet';
+  const emptySubHeading =
+    analysisJobType === 'permission_export'
+      ? 'Start a run from Permission Analysis selection, then open history again.'
+      : 'Start a run from Data Analysis selection, then open history again.';
+  const searchPlaceholder =
+    analysisJobType === 'permission_export'
+      ? 'Filter by job id, status, time, or scope names'
+      : 'Filter by job id, status, time, or object API names';
+  const scopeEmptyDetail =
+    analysisJobType === 'permission_export' ? 'No scope saved for this job.' : 'No objects recorded for this job payload.';
+
   return (
     <Modal
-      header="Permission export history"
-      tagline="Runs for this org, newest first."
+      header={modalHeader}
+      tagline={modalTagline}
       size="md"
       onClose={onClose}
       footer={
@@ -565,58 +608,58 @@ export const PermissionAnalysisHistoryModal: FunctionComponent<PermissionAnalysi
           {loadError}
         </div>
       )}
-      {!loading && !loadError && rows.length === 0 && (
-        <EmptyState headline="No export jobs yet" subHeading="Start a run from Permission Analysis selection, then open history again." />
-      )}
+      {!loading && !loadError && rows.length === 0 && <EmptyState headline={emptyHeadline} subHeading={emptySubHeading} />}
       {!loading && !loadError && rows.length > 0 && (
         <div>
           <Grid verticalAlign="end" className="slds-p-bottom_x-small">
-            <div className="slds-col slds-grow">
+            <div className={analysisJobType === 'permission_export' ? 'slds-col slds-grow' : 'slds-col slds-size_1-of-1'}>
               <SearchInput
-                id="permission-analysis-history-filter"
-                placeholder="Filter by job id, status, time, or scope names"
+                id={analysisJobType === 'permission_export' ? 'permission-analysis-history-filter' : 'field-usage-history-filter'}
+                placeholder={searchPlaceholder}
                 value={filterValue}
                 onChange={setFilterValue}
               />
             </div>
-            <div className="slds-col slds-no-flex slds-m-left_xx-small">
-              <Popover
-                ref={scopePopoverRef}
-                placement="bottom-end"
-                size="medium"
-                panelStyle={{
-                  maxWidth: 'min(18rem, calc(100vw - 2.5rem))',
-                  width: 'min(18rem, calc(100vw - 2.5rem))',
-                  boxSizing: 'border-box',
-                  overflow: 'hidden',
-                }}
-                header={
-                  <header className="slds-popover__header" css={scopePopoverHeaderCss}>
-                    <h2 className="slds-text-heading_small slds-hyphenate" title="Filter by Scope">
-                      Filter by Scope
-                    </h2>
-                  </header>
-                }
-                bodyClassName="slds-popover__body slds-p-around_none"
-                bodyStyle={css`
-                  box-sizing: border-box;
-                  max-width: 100%;
-                  margin: 0;
-                  padding: 0;
-                  overflow-x: hidden;
-                `}
-                content={scopePopoverContent}
-                tooltipProps={{ content: 'Filter runs by profile or permission set included in the export' }}
-                buttonProps={{
-                  className: 'slds-button slds-button_icon slds-button_icon-border-filled',
-                  'aria-label': 'Filter by Scope',
-                }}
-              >
-                <Icon type="utility" icon="filterList" className="slds-button__icon" omitContainer description="Open scope filter" />
-              </Popover>
-            </div>
+            {analysisJobType === 'permission_export' && (
+              <div className="slds-col slds-no-flex slds-m-left_xx-small">
+                <Popover
+                  ref={scopePopoverRef}
+                  placement="bottom-end"
+                  size="medium"
+                  panelStyle={{
+                    maxWidth: 'min(18rem, calc(100vw - 2.5rem))',
+                    width: 'min(18rem, calc(100vw - 2.5rem))',
+                    boxSizing: 'border-box',
+                    overflow: 'hidden',
+                  }}
+                  header={
+                    <header className="slds-popover__header" css={scopePopoverHeaderCss}>
+                      <h2 className="slds-text-heading_small slds-hyphenate" title="Filter by Scope">
+                        Filter by Scope
+                      </h2>
+                    </header>
+                  }
+                  bodyClassName="slds-popover__body slds-p-around_none"
+                  bodyStyle={css`
+                    box-sizing: border-box;
+                    max-width: 100%;
+                    margin: 0;
+                    padding: 0;
+                    overflow-x: hidden;
+                  `}
+                  content={scopePopoverContent}
+                  tooltipProps={{ content: 'Filter runs by profile or permission set included in the export' }}
+                  buttonProps={{
+                    className: 'slds-button slds-button_icon slds-button_icon-border-filled',
+                    'aria-label': 'Filter by Scope',
+                  }}
+                >
+                  <Icon type="utility" icon="filterList" className="slds-button__icon" omitContainer description="Open scope filter" />
+                </Popover>
+              </div>
+            )}
           </Grid>
-          {scopeFilterParentId && activeScopeFilterLabel && (
+          {analysisJobType === 'permission_export' && scopeFilterParentId && activeScopeFilterLabel && (
             <div
               className="slds-m-bottom_x-small slds-text-body_small"
               css={css`
@@ -672,7 +715,7 @@ export const PermissionAnalysisHistoryModal: FunctionComponent<PermissionAnalysi
                   item.scopeBadges.length > 0 ? (
                     <ScopeBadgesCollapsible key={item.key} badges={item.scopeBadges} />
                   ) : (
-                    <p className="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">No scope saved for this job.</p>
+                    <p className="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">{scopeEmptyDetail}</p>
                   ),
               })}
             />

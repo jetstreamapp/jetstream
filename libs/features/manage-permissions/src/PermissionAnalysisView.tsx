@@ -957,6 +957,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
       {isHistoryOpen && selectedOrg && (
         <PermissionAnalysisHistoryModal
           selectedOrg={selectedOrg}
+          analysisJobType="permission_export"
           currentJobId={jobId}
           onClose={() => setIsHistoryOpen(false)}
           onSelectJob={(nextJobId) => {
