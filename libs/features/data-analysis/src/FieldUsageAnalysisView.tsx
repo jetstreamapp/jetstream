@@ -4,7 +4,7 @@ import { PermissionAnalysisHistoryModal } from '@jetstream/feature/manage-permis
 import { logger } from '@jetstream/shared/client-logger';
 import { createAnalysisJob, getAnalysisJob } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { convertDateToLocale, formatNumber } from '@jetstream/shared/ui-utils';
+import { convertDateToLocale, formatNumber, setItemInLocalStorage } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, isCustomFieldApiName } from '@jetstream/shared/utils';
 import {
   AutoFullHeightContainer,
@@ -167,23 +167,20 @@ function buildFieldUsageObjectQuerySoql(objectApiName: string, childRows: readon
 }
 
 /**
- * Opens Query Results in a new tab. Uses `sessionStorage` key `query` because `location.state` is not available to
- * `window.open` the way a same-tab {@link Link} state is (see {@link QueryResults} fallback).
+ * Opens Query Results in a new tab. Writes initial SOQL to `localStorage` under key `query` because `location.state`
+ * is not passed through `window.open`, and `sessionStorage` is not visible in the new tab (each top-level tab has its
+ * own session storage). {@link QueryResults} reads this handoff and clears `localStorage` after applying.
  */
 function openFieldUsageObjectQueryInNewTab(objectApiName: string, objectLabel: string, childRows: readonly FieldUsageTreeRow[]): void {
   const soql = buildFieldUsageObjectQuerySoql(objectApiName, childRows);
-  try {
-    sessionStorage.setItem(
-      'query',
-      JSON.stringify({
-        soql,
-        isTooling: false,
-        sobject: { name: objectApiName, label: objectLabel },
-      }),
-    );
-  } catch {
-    // ignore quota / private mode
-  }
+  setItemInLocalStorage(
+    'query',
+    JSON.stringify({
+      soql,
+      isTooling: false,
+      sobject: { name: objectApiName, label: objectLabel },
+    }),
+  );
   const path = `${APP_ROUTES.QUERY.ROUTE}/results`;
   const search = APP_ROUTES.QUERY.SEARCH_PARAM;
   window.open(search ? `${path}?${search}` : path, '_blank', 'noopener,noreferrer');
