@@ -127,7 +127,7 @@ export interface PermissionAnalysisFindingsFiltersBarProps {
 }
 
 /**
- * Global finding filters (URL-backed) as toolbar buttons; popover body matches DataTable filter panels.
+ * Global issue filters (URL-backed) as toolbar buttons; popover body matches DataTable filter panels.
  */
 export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionAnalysisFindingsFiltersBarProps> = ({
   findings,
@@ -185,7 +185,7 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
                 Export Scope
               </legend>
               <p css={filterPanelHelpTextCss} className="slds-text-body_small slds-text-color_weak">
-                Narrow findings to permission containers that were selected as profiles or as permission sets for this export job.
+                Narrow issues to permission containers that were selected as profiles or as permission sets for this export job.
               </p>
               <div className="slds-form-element__control">
                 {(['all', 'profiles', 'permissionSets'] as const).map((value) => (
@@ -217,7 +217,7 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
           onReset={() => updateParams({ issueDirectAssign: null })}
         >
           <p css={filterPanelHelpTextCss} className="slds-text-body_small">
-            Filter findings to permission sets that have—or lack—a direct assignment to a Salesforce User.
+            Filter issues to permission sets that have—or lack—a direct assignment to a Salesforce User.
           </p>
           <fieldset className="slds-form-element">
             <legend css={filterPanelLegendCss} className="slds-form-element__legend slds-text-title_caps">
@@ -255,7 +255,7 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
         <ToolbarFilterButton label="Severity" filterActive={severityFilter !== 'all'} onReset={() => updateParams({ issueSeverity: null })}>
           <fieldset className="slds-form-element">
             <legend css={filterPanelLegendCss} className="slds-form-element__legend slds-text-title_caps">
-              Finding severity
+              Issue severity
             </legend>
             <div className="slds-form-element__control">
               {(['all', 'errors', 'warnings'] as const).map((value) => (
@@ -283,7 +283,7 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
         <ToolbarFilterButton label="OLS / FLS" filterActive={olsFlsFilter !== 'all'} onReset={() => updateParams({ issueOlsFls: null })}>
           <fieldset className="slds-form-element">
             <legend css={filterPanelLegendCss} className="slds-form-element__legend slds-text-title_caps">
-              Finding security layer
+              Issue security layer
             </legend>
             <div className="slds-form-element__control">
               {(['all', 'ols', 'fls'] as const).map((value) => (
@@ -316,7 +316,7 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
           triggerIcon="feed"
         >
           <p css={filterPanelHelpTextCss} className="slds-text-body_small slds-text-color_weak">
-            Counts for the current toolbar filters ({filteredFindings.length} finding{filteredFindings.length === 1 ? '' : 's'}). Filter by
+            Counts for the current toolbar filters ({filteredFindings.length} issue{filteredFindings.length === 1 ? '' : 's'}). Filter by
             issue using the Issue column on the Issues grid.
           </p>
           <div
@@ -370,7 +370,7 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
                         flex-shrink: 0;
                         align-self: flex-start;
                       `}
-                      title="Finding count"
+                      title="Issue count"
                     >
                       {row.count}
                     </span>
@@ -388,7 +388,7 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
         `}
       >
         Errors: {errorFiltered} / {errorTotal} · Warnings: {warningFiltered} / {warningTotal} · Showing {filteredFindings.length} of{' '}
-        {findings.length} findings
+        {findings.length} issues
         {issueCodeFilter ? (
           <>
             {' '}

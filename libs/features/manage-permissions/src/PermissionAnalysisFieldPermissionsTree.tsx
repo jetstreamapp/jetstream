@@ -574,9 +574,9 @@ export const PermissionAnalysisFieldPermissionsTree: FunctionComponent<Permissio
 
       {cellFindingsModal && (
         <PermissionAnalysisFindingsModal
-          testId="permission-analysis-field-cell-findings-tree"
+          testId="permission-analysis-field-cell-issues-tree"
           open
-          title="Findings for this cell"
+          title="Issues for this cell"
           tagline="From this job's permission export analysis, scoped to the field permission cell you clicked."
           onClose={() => setCellFindingsModal(null)}
           findings={cellFindingsModal.matches}
@@ -601,7 +601,7 @@ export const PermissionAnalysisFieldPermissionsTree: FunctionComponent<Permissio
               <code>{cellFindingsModal.fieldApiName}</code>
               {' · '}
               {labelByParentId.get(cellFindingsModal.parentId) ?? cellFindingsModal.parentId} — {cellFindingsModal.matches.length}{' '}
-              {cellFindingsModal.matches.length === 1 ? 'finding' : 'findings'}
+              {cellFindingsModal.matches.length === 1 ? 'issue' : 'issues'}
             </Fragment>
           }
         />

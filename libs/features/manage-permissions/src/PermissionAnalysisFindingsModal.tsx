@@ -59,10 +59,10 @@ export interface PermissionAnalysisFindingsModalProps {
 }
 
 /**
- * Read-only modal listing structured permission export findings (shared by object tree and export grids).
+ * Read-only modal listing structured permission export issues (shared by object tree and export grids).
  */
 export const PermissionAnalysisFindingsModal: FunctionComponent<PermissionAnalysisFindingsModalProps> = ({
-  testId = 'permission-analysis-findings',
+  testId = 'permission-analysis-issues-modal',
   open,
   title,
   tagline,
@@ -118,7 +118,7 @@ export const PermissionAnalysisFindingsModal: FunctionComponent<PermissionAnalys
             const detailText = findingDetailText(finding, summaryTitle);
             const { accent, tint } = findingBlockChrome(finding);
             return (
-              <div key={`${code || 'finding'}-${index}`}>
+              <div key={`${code || 'issue'}-${index}`}>
                 <div
                   css={css`
                     border-left: 3px solid ${accent};

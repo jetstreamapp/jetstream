@@ -1,5 +1,5 @@
 /**
- * Permission export analysis finding codes and severities (shared by API job processor and UI).
+ * Permission export analysis issue codes and severities (shared by API job processor and UI).
  */
 
 export const PermissionExportFindingSeverity = {
@@ -7,11 +7,10 @@ export const PermissionExportFindingSeverity = {
   Warning: 'warning',
 } as const;
 
-export type PermissionExportFindingSeverityValue =
-  (typeof PermissionExportFindingSeverity)[keyof typeof PermissionExportFindingSeverity];
+export type PermissionExportFindingSeverityValue = (typeof PermissionExportFindingSeverity)[keyof typeof PermissionExportFindingSeverity];
 
 /**
- * Stored on each finding as `code` and referenced by `issueCodeSummary` keys.
+ * Stored on each analysis row as `code` and referenced by `issueCodeSummary` keys.
  */
 export const PermissionExportFindingCode = {
   OLS_READ_NO_FLS_ROWS: 'OLS_READ_NO_FLS_ROWS',
@@ -53,7 +52,7 @@ export const PERMISSION_EXPORT_FINDING_DEFINITIONS: Record<PermissionExportFindi
   },
   [PermissionExportFindingCode.FINDINGS_TRUNCATED]: {
     severity: PermissionExportFindingSeverity.Warning,
-    label: 'Additional findings were omitted to keep the export result size bounded.',
+    label: 'Additional issues were omitted to keep the export result size bounded.',
   },
 };
 

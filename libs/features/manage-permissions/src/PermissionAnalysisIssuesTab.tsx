@@ -368,7 +368,7 @@ const AggregatedIssueCodeRollupCard: FunctionComponent<{
       role="button"
       tabIndex={0}
       css={aggregatedRollupRowInteractiveCss}
-      title="View finding details"
+      title="View issue details"
       onClick={onOpen}
       onKeyDown={aggregatedRollupRowKeyDown(onOpen)}
     >
@@ -392,7 +392,7 @@ const AggregatedIssueCodeRollupCard: FunctionComponent<{
           <div css={aggregatedRollupMetricsFooterCss}>
             <span>
               <span className="slds-text-heading_medium">{row.count}</span>
-              <span className="slds-text-body_small slds-text-color_weak slds-m-left_xx-small">finding{row.count === 1 ? '' : 's'}</span>
+              <span className="slds-text-body_small slds-text-color_weak slds-m-left_xx-small">issue{row.count === 1 ? '' : 's'}</span>
             </span>
             <span className="slds-text-body_small">
               <span className="slds-text-color_error">{row.errorCount} errors</span>
@@ -439,7 +439,7 @@ const AggregatedObjectRollupCard: FunctionComponent<{
 }> = ({ row, sobjectExportDetails, onOpen }) => {
   const hint =
     row.objectApiName === '(no object)' ? (
-      <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_none">These findings are not tied to a specific object.</p>
+      <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_none">These issues are not tied to a specific object.</p>
     ) : null;
 
   return (
@@ -447,7 +447,7 @@ const AggregatedObjectRollupCard: FunctionComponent<{
       role="button"
       tabIndex={0}
       css={aggregatedRollupRowInteractiveCss}
-      title="View finding details"
+      title="View issue details"
       onClick={onOpen}
       onKeyDown={aggregatedRollupRowKeyDown(onOpen)}
     >
@@ -471,7 +471,7 @@ const AggregatedObjectRollupCard: FunctionComponent<{
           <div css={aggregatedRollupMetricsFooterCss}>
             <span>
               <span className="slds-text-heading_medium">{row.count}</span>
-              <span className="slds-text-body_small slds-text-color_weak slds-m-left_xx-small">finding{row.count === 1 ? '' : 's'}</span>
+              <span className="slds-text-body_small slds-text-color_weak slds-m-left_xx-small">issue{row.count === 1 ? '' : 's'}</span>
             </span>
             <span className="slds-text-body_small">
               <span className="slds-text-color_error">{row.errorCount} errors</span>
@@ -757,16 +757,12 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
       const displayCode = codeKey === '(no code)' ? undefined : codeKey;
       const { title: issueTitle } = getFindingCodeDisplayParts(displayCode);
       const title =
-        codeKey === '(no code)'
-          ? 'Findings without issue code'
-          : issueTitle.trim().length > 0
-            ? `Findings: ${issueTitle}`
-            : `Findings: ${codeKey}`;
+        codeKey === '(no code)' ? 'Issues with no code' : issueTitle.trim().length > 0 ? `Issues: ${issueTitle}` : `Issues: ${codeKey}`;
       setAggregatedDetailsModal({
         findings: sortFindings(matches, groupBy),
         title,
         tagline: 'Issue details for the current filters.',
-        summaryLine: `${matches.length} finding${matches.length === 1 ? '' : 's'} for this issue code.`,
+        summaryLine: `${matches.length} issue${matches.length === 1 ? '' : 's'} for this issue code.`,
       });
     },
     [rollupFindings, groupBy],
@@ -779,19 +775,19 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
         const key = objectRaw.length > 0 ? objectRaw : '(no object)';
         return key === objectKey;
       });
-      const title = objectKey === '(no object)' ? 'Findings without object' : `Findings: ${objectKey}`;
+      const title = objectKey === '(no object)' ? 'Issues without object' : `Issues: ${objectKey}`;
       setAggregatedDetailsModal({
         findings: sortFindings(matches, groupBy),
         title,
         tagline: 'Issue details for the current filters.',
-        summaryLine: `${matches.length} finding${matches.length === 1 ? '' : 's'} for this object.`,
+        summaryLine: `${matches.length} issue${matches.length === 1 ? '' : 's'} for this object.`,
       });
     },
     [rollupFindings, groupBy],
   );
 
-  const rowsMap = useMemo(() => new WeakMap(sortedFindings.map((row, index) => [row, `finding-${index}`])), [sortedFindings]);
-  const getRowKey = useCallback((row: PermissionAnalysisFinding) => rowsMap.get(row) ?? 'finding', [rowsMap]);
+  const rowsMap = useMemo(() => new WeakMap(sortedFindings.map((row, index) => [row, `issue-${index}`])), [sortedFindings]);
+  const getRowKey = useCallback((row: PermissionAnalysisFinding) => rowsMap.get(row) ?? 'issue', [rowsMap]);
 
   const issueTreeMountKey = useMemo(() => sortedFindings.map(getRowKey).join('\u001f'), [sortedFindings, getRowKey]);
 
@@ -816,9 +812,9 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
     return (
       <div className="slds-p-around_medium">
         <ScopedNotification theme="info">
-          No findings for this job yet. Run a permission export analysis to evaluate object vs field read access; results include an
-          aggregated summary (opened from the left rail when findings exist), toolbar filters (same style as data table filters), column
-          filters on the grid, and Columns / Group By controls above the grid when findings exist.
+          No issues for this job yet. Run a permission export analysis to evaluate object vs field read access; results include an
+          aggregated summary (opened from the left rail when issues exist), toolbar filters (same style as data table filters), column
+          filters on the grid, and Columns / Group By controls above the grid when issues exist.
         </ScopedNotification>
       </div>
     );
@@ -832,7 +828,7 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
       <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_medium">
         Summary for the rows currently visible in the grid ({rollupFindings.length} row{rollupFindings.length === 1 ? '' : 's'}). Refine
         results with toolbar filters and grid header filters; use Columns and Group By for layout and tree grouping. Select a card below to
-        open full finding messages and metadata.
+        open full issue messages and metadata.
       </p>
       <div css={aggregatedFlyoutSectionsCss}>
         <Card
@@ -942,9 +938,9 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
           <button
             type="button"
             css={issuesAggregatedRailToggleCss}
-            title={aggregatedSidePanelOpen ? 'Collapse Aggregated Findings' : 'Expand Aggregated Findings'}
+            title={aggregatedSidePanelOpen ? 'Collapse Aggregated Issues' : 'Expand Aggregated Issues'}
             aria-expanded={aggregatedSidePanelOpen}
-            aria-controls={aggregatedSidePanelOpen ? 'permission-analysis-aggregated-findings-flyout' : undefined}
+            aria-controls={aggregatedSidePanelOpen ? 'permission-analysis-aggregated-issues-flyout' : undefined}
             onClick={() => setAggregatedSidePanelOpen((open) => !open)}
           >
             <Icon
@@ -953,7 +949,7 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
               omitContainer
               className="slds-icon slds-icon-text-default"
             />
-            <span css={issuesAggregatedRailLabelCss}>Aggregated Findings</span>
+            <span css={issuesAggregatedRailLabelCss}>Aggregated Issues</span>
           </button>
           <span css={issuesAggregatedRailCountCss} aria-hidden="true">
             {rollupFindings.length}
@@ -966,26 +962,26 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
               <button
                 type="button"
                 css={issuesAggregatedBackdropCss}
-                aria-label="Close Aggregated Findings panel"
+                aria-label="Close Aggregated Issues panel"
                 onClick={() => setAggregatedSidePanelOpen(false)}
               />
               <aside
-                id="permission-analysis-aggregated-findings-flyout"
+                id="permission-analysis-aggregated-issues-flyout"
                 css={issuesAggregatedFlyoutCss}
                 className="slds-theme_default"
                 role="dialog"
                 aria-modal="false"
-                aria-labelledby="permission-analysis-aggregated-findings-title"
+                aria-labelledby="permission-analysis-aggregated-issues-title"
               >
                 <div css={issuesAggregatedFlyoutHeaderCss}>
-                  <h2 id="permission-analysis-aggregated-findings-title" className="slds-text-heading_small slds-m-bottom_none">
-                    Aggregated Findings
+                  <h2 id="permission-analysis-aggregated-issues-title" className="slds-text-heading_small slds-m-bottom_none">
+                    Aggregated Issues
                   </h2>
                   <button
                     type="button"
                     className="slds-button slds-button_icon slds-button_icon-border-filled"
                     title="Close panel"
-                    aria-label="Close Aggregated Findings panel"
+                    aria-label="Close Aggregated Issues panel"
                     onClick={() => setAggregatedSidePanelOpen(false)}
                   >
                     <svg className="slds-button__icon" aria-hidden="true" viewBox="0 0 24 24">
@@ -1069,7 +1065,7 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
                 <div className="slds-p-around_small">
                   <fieldset className="slds-form-element">
                     <legend css={issuesTabFilterLegendCss} className="slds-form-element__legend slds-text-title_caps">
-                      Findings group by
+                      Issues group by
                     </legend>
                     <div className="slds-form-element__control">
                       {(
@@ -1108,8 +1104,8 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
           {findings.length > 0 && filteredFindings.length === 0 ? (
             <div className="slds-p-horizontal_small slds-p-vertical_x-small">
               <ScopedNotification theme="info">
-                No findings match the current toolbar filters. Clear them from the summary line under the toolbar, or change filter
-                selections there and in the toolbar popovers.
+                No issues match the current toolbar filters. Clear them from the summary line under the toolbar, or change filter selections
+                there and in the toolbar popovers.
               </ScopedNotification>
             </div>
           ) : null}
@@ -1163,7 +1159,7 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
 
       {aggregatedDetailsModal && (
         <PermissionAnalysisFindingsModal
-          testId="permission-analysis-aggregated-findings-details"
+          testId="permission-analysis-aggregated-issues-details"
           open
           title={aggregatedDetailsModal.title}
           tagline={aggregatedDetailsModal.tagline}

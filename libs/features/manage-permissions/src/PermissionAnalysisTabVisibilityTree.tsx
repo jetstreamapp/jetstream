@@ -184,7 +184,7 @@ function renderTabVisibilityGroupCell(
           <button
             type="button"
             className="slds-button slds-button_icon slds-button_icon-bare"
-            title="View findings for this profile or permission set"
+            title="View issues for this profile or permission set"
             onClick={(event) => {
               event.stopPropagation();
               onOpenFindingsForParent(id);
@@ -195,7 +195,7 @@ function renderTabVisibilityGroupCell(
               icon={severity === 'error' ? 'error' : 'warning'}
               className={severity === 'error' ? 'slds-button__icon slds-icon-text-error' : 'slds-button__icon slds-icon-text-warning'}
               omitContainer
-              description="View findings"
+              description="View issues"
             />
           </button>
         ) : null}
@@ -398,9 +398,9 @@ export const PermissionAnalysisTabVisibilityTree: FunctionComponent<PermissionAn
 
       {findingsModal && (
         <PermissionAnalysisFindingsModal
-          testId="permission-analysis-tab-visibility-findings"
+          testId="permission-analysis-tab-visibility-issues"
           open
-          title="Findings for this permission container"
+          title="Issues for this permission container"
           tagline="From this job's permission export analysis, scoped to the profile or permission set that owns this tab setting."
           onClose={() => setFindingsModal(null)}
           findings={findingsModal.matches}
@@ -408,7 +408,7 @@ export const PermissionAnalysisTabVisibilityTree: FunctionComponent<PermissionAn
             <Fragment>
               <strong>{containerLabelById?.get(findingsModal.parentId) ?? findingsModal.parentId}</strong>
               {' — '}
-              {findingsModal.matches.length} {findingsModal.matches.length === 1 ? 'finding' : 'findings'}
+              {findingsModal.matches.length} {findingsModal.matches.length === 1 ? 'issue' : 'issues'}
             </Fragment>
           }
         />

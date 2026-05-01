@@ -62,7 +62,7 @@ export function fieldPermissionQualifiedFieldShortApi(row: PermissionExportRow):
 /** Field-level permission booleans in the same order as the object-permissions subset (Read, Edit). */
 export const FIELD_PERMISSION_BOOLEAN_COLUMN_KEYS: readonly string[] = ['PermissionsRead', 'PermissionsEdit'];
 
-/** Object column copy in finding modals when describe metadata exists. */
+/** Object column copy in issue detail modals when describe metadata exists. */
 export function formatObjectLabelForModalSummary(
   apiName: string,
   sobjectExportDetails: Record<string, SobjectExportDetail> | undefined,
@@ -1013,7 +1013,7 @@ const OBJECT_FINDING_READ_PATH_COLUMNS = ['PermissionsRead', 'PermissionsViewAll
 const OBJECT_FINDING_EDIT_PATH_COLUMNS = ['PermissionsEdit', 'PermissionsModifyAllRecords'] as const;
 
 /**
- * Object-permission grid column keys highlighted for a given finding `code` (empty when none).
+ * Object-permission grid column keys highlighted for a given issue `code` (empty when none).
  */
 export function getObjectPermissionHighlightColumnKeysForFindingCode(code: string): readonly string[] {
   const trimmed = code.trim();
@@ -1044,7 +1044,7 @@ function severityForObjectPermissionFindingCode(code: string): PermissionObjectF
 }
 
 /**
- * Findings that contribute to highlighting this leaf row cell on the Object Permissions tree.
+ * Issues that contribute to highlighting this leaf row cell on the Object Permissions tree.
  */
 export function listFindingsForObjectPermissionCell(
   findings: readonly PermissionAnalysisFinding[],
@@ -1077,9 +1077,9 @@ export function listFindingsForObjectPermissionCell(
 
 /**
  * Maps object-permission export rows (ParentId + SobjectType) to permission boolean columns that
- * should be highlighted on the Object Permissions tree from analysis findings.
+ * should be highlighted on the Object Permissions tree from analysis issues.
  *
- * @param findings Parsed `analysis_job.result.findings` (same list as the Issues tab).
+ * @param findings Parsed `analysis_job.result.findings` (same issue rows as the Issues tab).
  * @returns Outer key: {@link objectPermissionFindingRowKey}; inner key: `Permissions*` column name.
  */
 export function buildObjectPermissionFindingCellHighlights(
@@ -1123,7 +1123,7 @@ export function buildObjectPermissionFindingCellHighlights(
 }
 
 /**
- * Sentinel field segment for {@link fieldPermissionFindingRowKey} when a finding applies to every
+ * Sentinel field segment for {@link fieldPermissionFindingRowKey} when an issue applies to every
  * field-permission row for the same permission set + object (e.g. {@link PermissionExportFindingCode.FLS_WITHOUT_OLS_ROW}).
  */
 export const FIELD_PERMISSION_OBJECT_SCOPE_MARKER = '__FIELD_PERM_OBJECT_SCOPE__';
@@ -1134,7 +1134,7 @@ export function fieldPermissionFindingRowKey(parentId: string, objectApiName: st
 }
 
 /**
- * Field-permission grid column keys highlighted for a given finding `code` (empty when none on this surface).
+ * Field-permission grid column keys highlighted for a given issue `code` (empty when none on this surface).
  */
 export function getFieldPermissionHighlightColumnKeysForFindingCode(code: string): readonly string[] {
   const trimmed = code.trim();
@@ -1158,7 +1158,7 @@ function severityForFieldPermissionFindingCode(code: string): PermissionObjectFi
 }
 
 /**
- * Findings that highlight this field-permission export cell (same `ParentId` / `SobjectType` / `Field` row).
+ * Issues that highlight this field-permission export cell (same `ParentId` / `SobjectType` / `Field` row).
  */
 export function listFindingsForFieldPermissionCell(
   findings: readonly PermissionAnalysisFinding[],
@@ -1196,7 +1196,7 @@ export function listFindingsForFieldPermissionCell(
 }
 
 /**
- * Maps field-permission export rows to cells that should highlight from analysis findings.
+ * Maps field-permission export rows to cells that should highlight from analysis issues.
  *
  * @returns Outer key: {@link fieldPermissionFindingRowKey}; inner key: column name (e.g. `PermissionsRead`).
  */
@@ -1295,7 +1295,7 @@ export function buildContainerIdFindingSeverity(
 }
 
 /**
- * All findings for a permission-set container (same list as Issues tab), excluding truncation rows.
+ * All issues for a permission-set container (same list as Issues tab), excluding truncation rows.
  */
 export function listFindingsForExportContainer(
   findings: readonly PermissionAnalysisFinding[],
@@ -1314,13 +1314,13 @@ export function listFindingsForExportContainer(
   });
 }
 
-/** Column keys on permission-set export rows that open the container findings modal (first match wins). */
+/** Column keys on permission-set export rows that open the container issues modal (first match wins). */
 export function pickPermissionSetExportClickableColumnKeys(sample: PermissionExportRow): string[] {
   const preferred = ['Label', 'Name', 'MasterLabel', 'DeveloperName', 'Profile', 'Id'] as const;
   return preferred.filter((key) => key in sample);
 }
 
-/** Column keys on assignment rows that open findings for the related permission set. */
+/** Column keys on assignment rows that open issues for the related permission set. */
 export function pickAssignmentExportClickableColumnKeys(sample: PermissionExportRow): string[] {
   const preferred = ['PermissionSetId', 'AssigneeId', 'Id'] as const;
   return preferred.filter((key) => key in sample);
@@ -1347,7 +1347,7 @@ export interface FindingCodeDisplayParts {
 }
 
 /**
- * Splits a finding `code` into a user-facing title vs optional technical identifier.
+ * Splits an issue `code` into a user-facing title vs optional technical identifier.
  */
 export function getFindingCodeDisplayParts(code: string | undefined): FindingCodeDisplayParts {
   const raw = typeof code === 'string' ? code.trim() : '';
@@ -1391,9 +1391,7 @@ function isWarningLikeSeverity(value: unknown): boolean {
   return normalized === 'warning' || normalized === 'warnings';
 }
 
-/**
- * Rolls up the current finding list for summary tiles (Phase B — respects the same rows as the Issues grid filters).
- */
+/** Rolls up the current issue list for summary tiles. */
 export function aggregatePermissionAnalysisFindings(findings: PermissionAnalysisFinding[]): AggregatePermissionFindingsResult {
   const byCodeMap = new Map<string, { count: number; errors: number; warnings: number }>();
   const byObjectMap = new Map<string, { count: number; errors: number; warnings: number }>();

@@ -96,7 +96,7 @@ export interface IssueScopeFilterContext {
   permissionSetIds: ReadonlySet<string>;
 }
 
-/** Query param for filtering the Issues grid (and related views) to one finding code. */
+/** Query param for filtering the Issues grid (and related views) to one issue code. */
 export const PERMISSION_ANALYSIS_ISSUE_CODE_PARAM = 'issueCode';
 
 export function readPermissionAnalysisSearchParam(searchParams: URLSearchParams, key: string, fallback: string): string {
@@ -134,7 +134,7 @@ export function isWarningSeverity(value: string | undefined): boolean {
 }
 
 /**
- * Buckets a finding `code` for OLS vs FLS toolbar filters.
+ * Buckets an issue `code` for OLS vs FLS toolbar filters.
  * Matches {@link PermissionExportFindingCode} prefixes (OLS_… / FLS_…).
  * Meta codes such as FINDINGS_TRUNCATED and blank codes classify as `other` (visible only when filter is All).
  */
@@ -154,7 +154,7 @@ export interface UsePermissionAnalysisIssuesFiltersArgs {
   permissionSetAssignments: PermissionExportRow[];
   searchParams: URLSearchParams;
   setSearchParams: SetURLSearchParams;
-  /** When set, findings can be narrowed to profile permission sets vs standalone permission sets from the job scope. */
+  /** When set, issues can be narrowed to profile permission sets vs standalone permission sets from the job scope. */
   issueScopeFilterContext?: IssueScopeFilterContext;
 }
 

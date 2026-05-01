@@ -36,7 +36,7 @@ const EXPORT_GRID_OBJECT_NAME_FR = 1.65;
 
 export type PermissionAnalysisExportGridVariant = 'default' | 'object_permissions';
 
-/** Which export surface receives finding highlights and cell drill-in (see permission export analysis job). */
+/** Which export surface receives issue highlights and cell drill-in (see permission export analysis job). */
 export type PermissionAnalysisExportFindingSurface =
   | 'none'
   | 'field_permissions'
@@ -54,9 +54,9 @@ export interface PermissionAnalysisExportGridProps {
   sobjectExportDetails?: Record<string, SobjectExportDetail>;
   /** `object_permissions` — hides Id/ParentId/attributes and adds Object Manager link on SobjectType. */
   variant?: PermissionAnalysisExportGridVariant;
-  /** Parsed `analysis_job.result.findings` when this grid should surface them. */
+  /** Parsed `analysis_job.result.findings` when this grid should surface issue rows. */
   findings?: PermissionAnalysisFinding[];
-  /** How findings map onto this grid; defaults to `none`. */
+  /** How issues map onto this grid; defaults to `none`. */
   findingSurface?: PermissionAnalysisExportFindingSurface;
   /** Display names for permission set Ids (modal context lines). */
   containerLabelById?: Map<string, string>;
@@ -232,8 +232,8 @@ function mergeFindingCellClass<T extends RowWithKey>(
 }
 
 /**
- * Read-only SOQL export rows with dynamic columns and quick filter (Phase A).
- * Optional finding highlights for field permissions, permission set / profile rows, and assignments.
+ * Read-only SOQL export rows with dynamic columns and quick filter.
+ * Optional issue highlights for field permissions, permission set / profile rows, and assignments.
  */
 export const PermissionAnalysisExportGrid: FunctionComponent<PermissionAnalysisExportGridProps> = ({
   rows,
@@ -567,9 +567,9 @@ export const PermissionAnalysisExportGrid: FunctionComponent<PermissionAnalysisE
 
       {modalState?.kind === 'field' && (
         <PermissionAnalysisFindingsModal
-          testId="permission-analysis-field-cell-findings"
+          testId="permission-analysis-field-cell-issues"
           open
-          title="Findings for this cell"
+          title="Issues for this cell"
           tagline="From this job's permission export analysis, scoped to the field permission cell you clicked."
           onClose={() => setModalState(null)}
           findings={modalState.matches}
@@ -594,7 +594,7 @@ export const PermissionAnalysisExportGrid: FunctionComponent<PermissionAnalysisE
               <code>{modalState.fieldApiName}</code>
               {' · '}
               {containerLabelById?.get(modalState.parentId) ?? modalState.parentId} — {modalState.matches.length}{' '}
-              {modalState.matches.length === 1 ? 'finding' : 'findings'}
+              {modalState.matches.length === 1 ? 'issue' : 'issues'}
             </Fragment>
           }
         />
@@ -602,9 +602,9 @@ export const PermissionAnalysisExportGrid: FunctionComponent<PermissionAnalysisE
 
       {modalState?.kind === 'container' && (
         <PermissionAnalysisFindingsModal
-          testId="permission-analysis-container-findings"
+          testId="permission-analysis-container-issues"
           open
-          title="Findings for this permission set"
+          title="Issues for this permission set"
           tagline="From this job's permission export analysis, scoped to the permission set (or profile) or tab-setting parent you clicked."
           onClose={() => setModalState(null)}
           findings={modalState.matches}
@@ -613,7 +613,7 @@ export const PermissionAnalysisExportGrid: FunctionComponent<PermissionAnalysisE
               <strong>{modalState.columnLabel}</strong>
               {' · '}
               {containerLabelById?.get(modalState.containerId) ?? modalState.containerId} — {modalState.matches.length}{' '}
-              {modalState.matches.length === 1 ? 'finding' : 'findings'}
+              {modalState.matches.length === 1 ? 'issue' : 'issues'}
             </Fragment>
           }
         />

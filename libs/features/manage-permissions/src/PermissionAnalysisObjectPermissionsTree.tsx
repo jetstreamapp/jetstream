@@ -177,7 +177,7 @@ export interface PermissionAnalysisObjectPermissionsTreeProps {
   skipFrontdoorLogin: boolean;
   defaultApiVersion: string;
   sobjectExportDetails?: Record<string, SobjectExportDetail>;
-  /** When present, highlights object-level permission cells that correspond to each finding. */
+  /** When present, highlights object-level permission cells that correspond to each issue. */
   findings?: PermissionAnalysisFinding[];
 }
 
@@ -402,9 +402,9 @@ export const PermissionAnalysisObjectPermissionsTree: FunctionComponent<Permissi
 
       {cellFindingsModal && (
         <PermissionAnalysisFindingsModal
-          testId="permission-analysis-object-cell-findings"
+          testId="permission-analysis-object-cell-issues"
           open
-          title="Findings for this cell"
+          title="Issues for this cell"
           tagline="From this job's permission export analysis, scoped to the cell you clicked."
           onClose={() => setCellFindingsModal(null)}
           findings={cellFindingsModal.matches}
@@ -427,7 +427,7 @@ export const PermissionAnalysisObjectPermissionsTree: FunctionComponent<Permissi
               ) : null}
               {' · '}
               {labelByParentId.get(cellFindingsModal.parentId) ?? cellFindingsModal.parentId} — {cellFindingsModal.matches.length}{' '}
-              {cellFindingsModal.matches.length === 1 ? 'finding' : 'findings'}
+              {cellFindingsModal.matches.length === 1 ? 'issue' : 'issues'}
             </Fragment>
           }
         />

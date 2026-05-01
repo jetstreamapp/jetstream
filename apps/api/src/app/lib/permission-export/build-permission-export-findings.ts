@@ -1,12 +1,6 @@
-/**
- * Derives permission analysis findings from exported ObjectPermissions and FieldPermissions rows.
- * Used by the permission export analysis job (Phase B — aggregated / record-level checks).
- */
+/** Derives permission analysis issues from exported ObjectPermissions and FieldPermissions rows. */
 
-import {
-  PERMISSION_EXPORT_FINDING_DEFINITIONS,
-  PermissionExportFindingCode,
-} from '@jetstream/shared/constants';
+import { PERMISSION_EXPORT_FINDING_DEFINITIONS, PermissionExportFindingCode } from '@jetstream/shared/constants';
 
 export const MAX_PERMISSION_EXPORT_FINDINGS = 8_000;
 
@@ -45,7 +39,7 @@ function objectGrantsEffectiveEdit(row: Record<string, unknown>): boolean {
 }
 
 /**
- * Builds deterministic findings from SOQL export payloads.
+ * Builds deterministic issue rows from SOQL export payloads.
  *
  * @param objectPermissions ObjectPermissions rows keyed by ParentId + SobjectType.
  * @param fieldPermissions FieldPermissions rows for the same permission sets.
@@ -202,7 +196,7 @@ export function buildPermissionExportFindings(
     findings.push({
       severity: truncatedDef.severity,
       code: PermissionExportFindingCode.FINDINGS_TRUNCATED,
-      message: `${suppressedAfterCap.toLocaleString()} additional findings were not included so the job result stays under ${MAX_PERMISSION_EXPORT_FINDINGS.toLocaleString()} rows. Narrow the permission set selection and re-run if you need full coverage.`,
+      message: `${suppressedAfterCap.toLocaleString()} additional issues were not included so the job result stays under ${MAX_PERMISSION_EXPORT_FINDINGS.toLocaleString()} rows. Narrow the permission set selection and re-run if you need full coverage.`,
       objectApiName: undefined,
       fieldApiName: undefined,
       parentId: undefined,
@@ -221,7 +215,7 @@ export interface IssueCodeSummaryEntry {
 }
 
 /**
- * Rolls up findings by `code` for `analysis_job.result.issueCodeSummary`.
+ * Rolls up issues by `code` for `analysis_job.result.issueCodeSummary`.
  */
 export function buildIssueCodeSummary(findings: PermissionExportFindingRecord[]): Record<string, IssueCodeSummaryEntry> {
   const summary: Record<string, IssueCodeSummaryEntry> = {};

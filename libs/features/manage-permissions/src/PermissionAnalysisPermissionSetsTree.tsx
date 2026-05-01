@@ -305,7 +305,7 @@ function renderPermissionSetGroupCell(
           <button
             type="button"
             className="slds-button slds-button_icon slds-button_icon-bare"
-            title="View findings for this permission set"
+            title="View issues for this permission set"
             onClick={(event) => {
               event.stopPropagation();
               onOpenFindings(permissionSetId);
@@ -316,7 +316,7 @@ function renderPermissionSetGroupCell(
               icon={severity === 'error' ? 'error' : 'warning'}
               className={severity === 'error' ? 'slds-button__icon slds-icon-text-error' : 'slds-button__icon slds-icon-text-warning'}
               omitContainer
-              description="View findings"
+              description="View issues"
             />
           </button>
         )}
@@ -694,9 +694,9 @@ export const PermissionAnalysisPermissionSetsTree: FunctionComponent<PermissionA
 
       {findingsModal && (
         <PermissionAnalysisFindingsModal
-          testId="permission-analysis-perm-set-tree-findings"
+          testId="permission-analysis-perm-set-tree-issues"
           open
-          title="Findings for this permission set"
+          title="Issues for this permission set"
           tagline="From this job's permission export analysis, scoped to the permission set you selected."
           onClose={() => setFindingsModal(null)}
           findings={findingsModal.matches}
@@ -705,7 +705,7 @@ export const PermissionAnalysisPermissionSetsTree: FunctionComponent<PermissionA
               <strong>{findingsModal.columnLabel}</strong>
               {' · '}
               {containerLabelById?.get(findingsModal.containerId) ?? findingsModal.containerId} — {findingsModal.matches.length}{' '}
-              {findingsModal.matches.length === 1 ? 'finding' : 'findings'}
+              {findingsModal.matches.length === 1 ? 'issue' : 'issues'}
             </Fragment>
           }
         />
