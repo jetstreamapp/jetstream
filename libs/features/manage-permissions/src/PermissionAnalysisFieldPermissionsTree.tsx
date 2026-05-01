@@ -4,21 +4,29 @@ import {
   AutoFullHeightContainer,
   ColumnWithFilter,
   DataTree,
+  getProfileOrPermSetSetupUrl,
+  Grid,
+  GridCol,
   Icon,
+  KeyboardShortcut,
+  Popover,
+  ReadOnlyFormElement,
   SalesforceLogin,
   ScopedNotification,
-  Tooltip,
+  salesforceLoginAndRedirect,
   getRowTypeFromValue,
   setColumnFromType,
+  type ProfileOrPermSetRecordType,
 } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
-import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, FunctionComponent, type MouseEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import type { CellMouseArgs, RenderCellProps, RenderGroupCellProps } from 'react-data-grid';
 import { usePermissionAnalysisExportMetadata } from './permission-analysis-export-metadata-context';
 import { permissionAnalysisPermissionContainerGroupTitleLine } from './permission-analysis-tree-group-title';
 import { permissionAnalysisAssignmentTypeLabelCss } from './permission-analysis-viewer-badge.styles';
 import { SobjectTypeCellContent } from './PermissionAnalysisExportGrid';
 import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
+import { buildPermissionSetTooltipFieldsFromExportRow, PermissionSetDetailPopoverContent } from './PermissionAnalysisPermissionSetsTree';
 import {
   FIELD_PERMISSION_BOOLEAN_COLUMN_KEYS,
   buildFieldPermissionFindingCellHighlights,
@@ -54,6 +62,27 @@ const TREE_ROW_HEIGHT_GROUP_PX = 68;
 
 const OBJECT_TYPE_ACTION_BUTTON_CLASSNAME = 'slds-button slds-button_icon slds-button_icon-bare';
 
+const PERMISSION_ANALYSIS_POPOVER_PANEL_PROPS = {
+  onDoubleClick: (event: MouseEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+  },
+};
+
+function resolveSetupTargetForFieldTreeParentRow(
+  permissionSetId: string,
+  row: PermissionExportRow | undefined,
+): { recordType: ProfileOrPermSetRecordType; recordId: string } {
+  if (!row) {
+    return { recordType: 'PermissionSet', recordId: permissionSetId };
+  }
+  const profileId = typeof row.ProfileId === 'string' && row.ProfileId.trim().length > 0 ? row.ProfileId.trim() : null;
+  const isProfileOwned = row.IsOwnedByProfile === true;
+  if (isProfileOwned && profileId) {
+    return { recordType: 'Profile', recordId: profileId };
+  }
+  return { recordType: 'PermissionSet', recordId: permissionSetId };
+}
+
 export type FieldPermissionTreeRow = PermissionExportRow & {
   _treePermSetGroupKey: string;
   _treeObjectGroupKey: string;
@@ -83,6 +112,7 @@ function collectAllFieldPermissionExpandedGroupIds(rows: FieldPermissionTreeRow[
 function renderFieldPermissionPermissionSetGroupCell(
   labelByParentId: Map<string, string>,
   permissionSetRowById: Map<string, PermissionExportRow>,
+  setupLogin: { org: SalesforceOrgUi; serverUrl: string; skipFrontDoorAuth: boolean },
   { groupKey, childRows, isExpanded, toggleGroup }: RenderGroupCellProps<FieldPermissionTreeRow>,
 ) {
   const id = String(groupKey);
@@ -92,60 +122,120 @@ function renderFieldPermissionPermissionSetGroupCell(
   const titleLine = permissionAnalysisPermissionContainerGroupTitleLine(exportLabel, isProfileOwned);
   const typeKind = isProfileOwned ? 'profile' : 'permission_set';
   const typeCaption = isProfileOwned ? 'Profile' : 'Permission set';
+  const detailFields = buildPermissionSetTooltipFieldsFromExportRow(permSetRow) ?? {
+    label: exportLabel,
+    name: '—',
+    description: null,
+    createdWhen: null,
+    createdByName: null,
+    lastModifiedWhen: null,
+    lastModifiedByName: null,
+  };
+  const { recordType, recordId } = resolveSetupTargetForFieldTreeParentRow(id, permSetRow);
+  const returnUrl = getProfileOrPermSetSetupUrl(recordType, recordId);
+  const containerKind: 'Profile' | 'PermissionSet' = recordType === 'Profile' ? 'Profile' : 'PermissionSet';
+  const detailSlug = id.replace(/[^a-zA-Z0-9_-]+/g, '-');
+  const canDeepLink = Boolean(setupLogin.org?.uniqueId && setupLogin.serverUrl);
+
   return (
-    <button
-      type="button"
-      className="slds-button slds-button_reset slds-text-align_left"
+    <div
       css={css`
-        width: 100%;
-        height: 100%;
+        display: flex;
         align-items: flex-start;
         column-gap: 0.25rem;
-        display: flex;
+        width: 100%;
+        height: 100%;
         line-height: 1.35;
         overflow-wrap: anywhere;
         padding: 0.25rem 0.35rem;
         white-space: normal;
         word-break: break-word;
       `}
-      onClick={toggleGroup}
-      title={exportLabel}
     >
-      <Icon
-        type="utility"
-        icon={isExpanded ? 'chevrondown' : 'chevronright'}
-        className="slds-icon slds-icon-text-default slds-icon_x-small"
+      <button
+        type="button"
+        className="slds-button slds-button_reset slds-p-around_xx-small"
+        title={isExpanded ? 'Collapse' : 'Expand'}
+        aria-expanded={isExpanded}
         css={css`
           flex-shrink: 0;
+          line-height: 1;
           margin-top: 0.125rem;
         `}
-        omitContainer
-        description={isExpanded ? 'Collapse' : 'Expand'}
-      />
-      <span
-        css={css`
-          flex: 1;
-          min-width: 0;
-          text-align: left;
-        `}
+        onClick={toggleGroup}
       >
-        <p className="slds-text-body_small slds-m-bottom_xx-small">
-          <span css={permissionAnalysisAssignmentTypeLabelCss(typeKind)}>{typeCaption}</span>
-        </p>
+        <Icon
+          type="utility"
+          icon={isExpanded ? 'chevrondown' : 'chevronright'}
+          className="slds-icon slds-icon-text-default slds-icon_x-small"
+          omitContainer
+          description={isExpanded ? 'Collapse' : 'Expand'}
+        />
+      </button>
+      <Popover
+        size="large"
+        panelProps={PERMISSION_ANALYSIS_POPOVER_PANEL_PROPS}
+        content={
+          <PermissionSetDetailPopoverContent
+            fields={detailFields}
+            containerKind={containerKind}
+            setupLogin={setupLogin}
+            returnUrl={returnUrl}
+            slug={detailSlug}
+          />
+        }
+        buttonProps={{
+          className: 'slds-button slds-button_reset slds-text-align_left',
+        }}
+        buttonStyle={{
+          flex: 1,
+          minWidth: 0,
+          height: 'auto',
+          alignItems: 'flex-start',
+          display: 'flex',
+          padding: 0,
+        }}
+      >
         <span
           css={css`
-            display: flex;
-            align-items: baseline;
-            flex-wrap: wrap;
-            column-gap: 0.35rem;
+            flex: 1;
             min-width: 0;
+            text-align: left;
           `}
+          onClick={(event: MouseEvent<HTMLSpanElement>) => {
+            if (event.shiftKey || event.ctrlKey || event.metaKey) {
+              if (!canDeepLink) {
+                return;
+              }
+              event.stopPropagation();
+              event.preventDefault();
+              salesforceLoginAndRedirect({
+                serverUrl: setupLogin.serverUrl,
+                org: setupLogin.org,
+                returnUrl,
+                skipFrontDoorAuth: setupLogin.skipFrontDoorAuth,
+              });
+            }
+          }}
         >
-          <span className="text-bold slds-truncate">{titleLine}</span>
-          <span className="slds-text-body_small slds-text-color_weak slds-no-flex">({childRows.length})</span>
+          <p className="slds-text-body_small slds-m-bottom_xx-small">
+            <span css={permissionAnalysisAssignmentTypeLabelCss(typeKind)}>{typeCaption}</span>
+          </p>
+          <span
+            css={css`
+              display: flex;
+              align-items: baseline;
+              flex-wrap: wrap;
+              column-gap: 0.35rem;
+              min-width: 0;
+            `}
+          >
+            <span className="text-bold slds-truncate">{titleLine}</span>
+            <span className="slds-text-body_small slds-text-color_weak slds-no-flex">({childRows.length})</span>
+          </span>
         </span>
-      </span>
-    </button>
+      </Popover>
+    </div>
   );
 }
 
@@ -160,96 +250,76 @@ function renderFieldPermissionObjectGroupCell(
   }
   const detail = sobjectExportDetails?.[apiName];
   return (
-    <button
-      type="button"
-      className="slds-button slds-button_reset slds-text-align_left"
+    <div
       css={css`
+        display: flex;
+        align-items: flex-start;
+        column-gap: 0.25rem;
         width: 100%;
         height: 100%;
         padding: 0.125rem 0.35rem 0.25rem;
       `}
-      onClick={toggleGroup}
-      title={apiName}
     >
-      <div
+      <button
+        type="button"
+        className="slds-button slds-button_reset slds-p-around_xx-small"
+        title={isExpanded ? 'Collapse' : 'Expand'}
+        aria-expanded={isExpanded}
         css={css`
-          display: flex;
-          align-items: flex-start;
-          column-gap: 0.25rem;
-          width: 100%;
+          flex-shrink: 0;
+          line-height: 1;
+          margin-top: 0.125rem;
         `}
+        onClick={toggleGroup}
       >
         <Icon
           type="utility"
           icon={isExpanded ? 'chevrondown' : 'chevronright'}
           className="slds-icon slds-icon-text-default slds-icon_x-small"
-          css={css`
-            flex-shrink: 0;
-            margin-top: 0.125rem;
-          `}
           omitContainer
           description={isExpanded ? 'Collapse' : 'Expand'}
         />
+      </button>
+      <div
+        css={css`
+          flex: 1;
+          min-width: 0;
+        `}
+      >
+        <p className="slds-text-body_small slds-m-bottom_xx-small slds-text-color_weak">Object</p>
         <div
           css={css`
-            flex: 1;
-            min-width: 0;
+            display: flex;
+            align-items: center;
+            column-gap: 0.35rem;
+            flex-wrap: wrap;
           `}
         >
-          <p className="slds-text-body_small slds-m-bottom_xx-small slds-text-color_weak">Object</p>
           <div
             css={css`
-              display: flex;
-              align-items: center;
-              column-gap: 0.35rem;
-              flex-wrap: wrap;
+              flex: 1;
+              min-width: 0;
             `}
           >
-            <div
-              css={css`
-                flex: 1;
-                min-width: 0;
-              `}
-            >
-              <SobjectTypeCellContent apiName={apiName} detail={detail} />
-            </div>
-            <span className="slds-text-body_small slds-text-color_weak slds-no-flex">({childRows.length})</span>
-            <SalesforceLogin
-              org={objectManager.org}
-              serverUrl={objectManager.serverUrl}
-              skipFrontDoorAuth={objectManager.skipFrontDoorAuth}
-              returnUrl={`/lightning/setup/ObjectManager/${encodeURIComponent(apiName)}/FieldsAndRelationships/view`}
-              title={`Open Fields & Relationships for ${apiName}`}
-              omitIcon
-              className={OBJECT_TYPE_ACTION_BUTTON_CLASSNAME}
-              onClick={(event) => {
-                event.stopPropagation();
-              }}
-            >
-              <Icon type="utility" icon="new_window" className="slds-button__icon" omitContainer />
-            </SalesforceLogin>
+            <SobjectTypeCellContent apiName={apiName} detail={detail} objectManager={objectManager} />
           </div>
+          <span className="slds-text-body_small slds-text-color_weak slds-no-flex">({childRows.length})</span>
+          <SalesforceLogin
+            org={objectManager.org}
+            serverUrl={objectManager.serverUrl}
+            skipFrontDoorAuth={objectManager.skipFrontDoorAuth}
+            returnUrl={`/lightning/setup/ObjectManager/${encodeURIComponent(apiName)}/FieldsAndRelationships/view`}
+            title={`Open Fields & Relationships for ${apiName}`}
+            omitIcon
+            className={OBJECT_TYPE_ACTION_BUTTON_CLASSNAME}
+            onClick={(event) => {
+              event.stopPropagation();
+            }}
+          >
+            <Icon type="utility" icon="new_window" className="slds-button__icon" omitContainer />
+          </SalesforceLogin>
         </div>
       </div>
-    </button>
-  );
-}
-
-/** Tooltip body matching object field metadata pattern used on export grids. */
-function fieldDetailTooltipBody(apiName: string, label: string, description: string | null) {
-  return (
-    <div
-      css={css`
-        max-width: 22rem;
-        text-align: left;
-      `}
-    >
-      <div className="slds-text-title_caps slds-text-color_inverse-weak">Field API Name</div>
-      <div className="slds-text-body_regular slds-text-color_inverse slds-hyphenate slds-m-bottom_x-small">{apiName}</div>
-      <div className="slds-text-title_caps slds-text-color_inverse-weak">Field Label</div>
-      <div className="slds-text-body_regular slds-text-color_inverse slds-hyphenate slds-m-bottom_x-small">{label}</div>
-      <div className="slds-text-title_caps slds-text-color_inverse-weak">Description</div>
-      <div className="slds-text-body_regular slds-text-color_inverse slds-hyphenate">{description ?? '—'}</div>
     </div>
   );
 }
@@ -339,7 +409,7 @@ export const PermissionAnalysisFieldPermissionsTree: FunctionComponent<Permissio
       width: TREE_COL_PERM_SET,
       minWidth: TREE_MIN_PERM_SET,
       maxWidth: TREE_PERM_SET_MAX_PX,
-      renderGroupCell: (props) => renderFieldPermissionPermissionSetGroupCell(labelByParentId, permissionSetRowById, props),
+      renderGroupCell: (props) => renderFieldPermissionPermissionSetGroupCell(labelByParentId, permissionSetRowById, objectManager, props),
       getValue: ({ row }) => {
         const id = row._treePermSetGroupKey;
         return labelByParentId.get(id) ?? id;
@@ -390,12 +460,15 @@ export const PermissionAnalysisFieldPermissionsTree: FunctionComponent<Permissio
         const label = fd?.label?.trim() ? fd.label.trim() : short || full;
         const apiLine = short || full;
         const descriptionText = fd?.description != null && String(fd.description).trim().length > 0 ? String(fd.description).trim() : null;
-        const tooltipBody = fieldDetailTooltipBody(apiLine, label, descriptionText);
         const durableId = fd?.durableId?.trim() ? fd.durableId.trim() : null;
         const fieldSetupUrl =
           durableId && obj
             ? `/lightning/setup/ObjectManager/${encodeURIComponent(obj)}/FieldsAndRelationships/${encodeURIComponent(durableId)}/view`
             : null;
+        const fieldSlug = `${obj}-${apiLine}`.replace(/[^a-zA-Z0-9_-]+/g, '-');
+        const canFieldDeepLink = Boolean(fieldSetupUrl && objectManager.org?.uniqueId && objectManager.serverUrl);
+        const parentObjectLabel = obj && sobjectExportDetails?.[obj]?.label?.trim() ? String(sobjectExportDetails[obj].label).trim() : obj;
+        const parentObjectSummary = obj ? `${parentObjectLabel} (${obj})` : '—';
 
         if (!label && !full) {
           return <div className="slds-truncate">—</div>;
@@ -409,11 +482,107 @@ export const PermissionAnalysisFieldPermissionsTree: FunctionComponent<Permissio
                 min-width: 0;
               `}
             >
-              <Tooltip content={tooltipBody}>
-                <span className="slds-truncate" title={label !== apiLine ? `${label} (${apiLine})` : label}>
+              <Popover
+                size="large"
+                panelProps={PERMISSION_ANALYSIS_POPOVER_PANEL_PROPS}
+                content={
+                  <div>
+                    {canFieldDeepLink && fieldSetupUrl ? (
+                      <SalesforceLogin
+                        org={objectManager.org}
+                        serverUrl={objectManager.serverUrl}
+                        skipFrontDoorAuth={objectManager.skipFrontDoorAuth}
+                        returnUrl={fieldSetupUrl}
+                      >
+                        View in Salesforce
+                      </SalesforceLogin>
+                    ) : null}
+                    <Grid
+                      wrap
+                      gutters
+                      className={canFieldDeepLink ? 'slds-m-top_x-small' : undefined}
+                      css={css`
+                        min-height: 80px;
+                      `}
+                    >
+                      <GridCol size={12}>
+                        <ReadOnlyFormElement
+                          id={`perm-analysis-field-${fieldSlug}-obj`}
+                          label="Parent Object"
+                          className="slds-p-bottom_x-small"
+                          value={parentObjectSummary}
+                          bottomBorder
+                        />
+                      </GridCol>
+                      <GridCol size={12}>
+                        <ReadOnlyFormElement
+                          id={`perm-analysis-field-${fieldSlug}-api`}
+                          label="Field API Name"
+                          className="slds-p-bottom_x-small"
+                          value={apiLine}
+                          bottomBorder
+                        />
+                      </GridCol>
+                      <GridCol size={12}>
+                        <ReadOnlyFormElement
+                          id={`perm-analysis-field-${fieldSlug}-label`}
+                          label="Field Label"
+                          className="slds-p-bottom_x-small"
+                          value={label}
+                          bottomBorder
+                        />
+                      </GridCol>
+                      <GridCol size={12}>
+                        <ReadOnlyFormElement
+                          id={`perm-analysis-field-${fieldSlug}-desc`}
+                          label="Description"
+                          className="slds-p-bottom_x-small"
+                          value={descriptionText ?? '—'}
+                          bottomBorder
+                        />
+                      </GridCol>
+                      {canFieldDeepLink ? (
+                        <GridCol size={12} className="slds-m-top_small">
+                          <div className="slds-grid slds-text-small slds-text-color_weak">
+                            Use <KeyboardShortcut className="slds-m-left_x-small" keys={['shift', 'click']} /> to skip this popup
+                          </div>
+                        </GridCol>
+                      ) : null}
+                    </Grid>
+                  </div>
+                }
+                buttonProps={{
+                  className: 'slds-button slds-button_reset slds-text-align_left',
+                }}
+                buttonStyle={{
+                  width: '100%',
+                  minWidth: 0,
+                  height: 'auto',
+                  padding: 0,
+                }}
+              >
+                <span
+                  className="slds-truncate"
+                  title={label !== apiLine ? `${label} (${apiLine})` : label}
+                  onClick={(event: MouseEvent<HTMLSpanElement>) => {
+                    if (event.shiftKey || event.ctrlKey || event.metaKey) {
+                      if (!canFieldDeepLink || !fieldSetupUrl) {
+                        return;
+                      }
+                      event.stopPropagation();
+                      event.preventDefault();
+                      salesforceLoginAndRedirect({
+                        serverUrl: objectManager.serverUrl,
+                        org: objectManager.org,
+                        returnUrl: fieldSetupUrl,
+                        skipFrontDoorAuth: objectManager.skipFrontDoorAuth,
+                      });
+                    }
+                  }}
+                >
                   {label || apiLine}
                 </span>
-              </Tooltip>
+              </Popover>
             </div>
             {fieldSetupUrl ? (
               <div className="slds-col slds-no-flex">

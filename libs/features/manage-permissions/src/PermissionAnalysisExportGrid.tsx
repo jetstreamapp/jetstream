@@ -1,8 +1,20 @@
 import { css } from '@emotion/react';
 import type { SalesforceOrgUi } from '@jetstream/types';
-import { AutoFullHeightContainer, DataTable, Icon, SalesforceLogin, ScopedNotification, Tooltip } from '@jetstream/ui';
+import {
+  AutoFullHeightContainer,
+  DataTable,
+  Grid,
+  GridCol,
+  Icon,
+  KeyboardShortcut,
+  Popover,
+  ReadOnlyFormElement,
+  SalesforceLogin,
+  ScopedNotification,
+  salesforceLoginAndRedirect,
+} from '@jetstream/ui';
 import type { ColumnWithFilter, RowWithKey } from '@jetstream/ui';
-import { FunctionComponent, Fragment, useCallback, useMemo, useState } from 'react';
+import { FunctionComponent, Fragment, type MouseEvent, useCallback, useMemo, useState } from 'react';
 import type { CellMouseArgs } from 'react-data-grid';
 import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 import {
@@ -34,6 +46,12 @@ const OBJECT_NAME_COLUMN_MIN_WIDTH_ONE_ACTION = 200;
 /** `minmax` + `fr`: Object column grows; floor keeps label + icon actions usable. */
 const EXPORT_GRID_OBJECT_NAME_FR = 1.65;
 
+const PERMISSION_ANALYSIS_POPOVER_PANEL_PROPS = {
+  onDoubleClick: (event: MouseEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+  },
+};
+
 export type PermissionAnalysisExportGridVariant = 'default' | 'object_permissions';
 
 /** Which export surface receives issue highlights and cell drill-in (see permission export analysis job). */
@@ -62,26 +80,7 @@ export interface PermissionAnalysisExportGridProps {
   containerLabelById?: Map<string, string>;
 }
 
-/** Copy for {@link Tooltip} on dark `slds-popover_tooltip` (inverse text). */
-function objectDetailBlock(apiName: string, label: string, description: string | null) {
-  return (
-    <div
-      css={css`
-        max-width: 22rem;
-        text-align: left;
-      `}
-    >
-      <div className="slds-text-title_caps slds-text-color_inverse-weak">Object API Name</div>
-      <div className="slds-text-body_regular slds-text-color_inverse slds-hyphenate slds-m-bottom_x-small">{apiName}</div>
-      <div className="slds-text-title_caps slds-text-color_inverse-weak">Object Label</div>
-      <div className="slds-text-body_regular slds-text-color_inverse slds-hyphenate slds-m-bottom_x-small">{label}</div>
-      <div className="slds-text-title_caps slds-text-color_inverse-weak">Description</div>
-      <div className="slds-text-body_regular slds-text-color_inverse slds-hyphenate">{description ?? '—'}</div>
-    </div>
-  );
-}
-
-/** Object label (hover for API / label / description) and optional Object Manager link (shared by export grid and OLS tree). */
+/** Object label (click for API / label / description popover, Field Usage–style) and optional Object Manager link. */
 export const SobjectTypeCellContent: FunctionComponent<{
   apiName: string;
   detail: SobjectExportDetail | undefined;
@@ -90,7 +89,9 @@ export const SobjectTypeCellContent: FunctionComponent<{
   const label = detail?.label?.trim() ? detail.label.trim() : apiName;
   const descriptionText =
     detail?.description != null && String(detail.description).trim().length > 0 ? String(detail.description).trim() : null;
-  const detailBodyTooltip = objectDetailBlock(apiName, label, descriptionText);
+  const slug = apiName.replace(/[^a-zA-Z0-9_-]+/g, '-');
+  const objectManagerReturnUrl = `/lightning/setup/ObjectManager/${encodeURIComponent(apiName)}/Details/view`;
+  const canDeepLink = Boolean(objectManager?.org?.uniqueId && objectManager.serverUrl);
 
   return (
     <div className="slds-grid slds-gutters_xx-small slds-grid_vertical-align-center">
@@ -100,11 +101,98 @@ export const SobjectTypeCellContent: FunctionComponent<{
           min-width: 0;
         `}
       >
-        <Tooltip content={detailBodyTooltip}>
-          <span className="slds-truncate" title={label !== apiName ? `${label} (${apiName})` : label}>
+        <Popover
+          size="large"
+          panelProps={PERMISSION_ANALYSIS_POPOVER_PANEL_PROPS}
+          content={
+            <div>
+              {canDeepLink && objectManager ? (
+                <SalesforceLogin
+                  org={objectManager.org}
+                  serverUrl={objectManager.serverUrl}
+                  skipFrontDoorAuth={objectManager.skipFrontDoorAuth}
+                  returnUrl={objectManagerReturnUrl}
+                >
+                  View in Salesforce
+                </SalesforceLogin>
+              ) : null}
+              <Grid
+                wrap
+                gutters
+                className={canDeepLink ? 'slds-m-top_x-small' : undefined}
+                css={css`
+                  min-height: 80px;
+                `}
+              >
+                <GridCol size={12}>
+                  <ReadOnlyFormElement
+                    id={`perm-analysis-obj-${slug}-label`}
+                    label="Object Label"
+                    className="slds-p-bottom_x-small"
+                    value={label}
+                    bottomBorder
+                  />
+                </GridCol>
+                <GridCol size={12}>
+                  <ReadOnlyFormElement
+                    id={`perm-analysis-obj-${slug}-api`}
+                    label="Object API Name"
+                    className="slds-p-bottom_x-small"
+                    value={apiName}
+                    bottomBorder
+                  />
+                </GridCol>
+                <GridCol size={12}>
+                  <ReadOnlyFormElement
+                    id={`perm-analysis-obj-${slug}-desc`}
+                    label="Description"
+                    className="slds-p-bottom_x-small"
+                    value={descriptionText ?? '—'}
+                    bottomBorder
+                  />
+                </GridCol>
+                {canDeepLink ? (
+                  <GridCol size={12} className="slds-m-top_small">
+                    <div className="slds-grid slds-text-small slds-text-color_weak">
+                      Use <KeyboardShortcut className="slds-m-left_x-small" keys={['shift', 'click']} /> to skip this popup
+                    </div>
+                  </GridCol>
+                ) : null}
+              </Grid>
+            </div>
+          }
+          buttonProps={{
+            className: 'slds-button slds-button_reset slds-text-align_left',
+          }}
+          buttonStyle={{
+            width: '100%',
+            minWidth: 0,
+            height: 'auto',
+            padding: 0,
+          }}
+        >
+          <span
+            className="slds-truncate"
+            title={label !== apiName ? `${label} (${apiName})` : label}
+            onClick={(event: MouseEvent<HTMLSpanElement>) => {
+              if (event.shiftKey || event.ctrlKey || event.metaKey) {
+                if (!canDeepLink || !objectManager) {
+                  return;
+                }
+                event.stopPropagation();
+                event.preventDefault();
+                salesforceLoginAndRedirect({
+                  serverUrl: objectManager.serverUrl,
+                  org: objectManager.org,
+                  returnUrl: objectManagerReturnUrl,
+                  skipFrontDoorAuth: objectManager.skipFrontDoorAuth,
+                });
+              }
+            }}
+          >
             {label}
           </span>
-        </Tooltip>
+        </Popover>
       </div>
       {objectManager && (
         <div

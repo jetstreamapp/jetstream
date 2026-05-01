@@ -11,16 +11,31 @@ import {
   dataTableDateFormatter,
   getProfileOrPermSetSetupUrl,
   getSalesforceUserManageSetupUrl,
+  Grid,
+  GridCol,
   Icon,
+  KeyboardShortcut,
+  Popover,
+  ReadOnlyFormElement,
   SalesforceLogin,
   ScopedNotification,
+  salesforceLoginAndRedirect,
   setColumnFromType,
   Spinner,
-  Tooltip,
   type ProfileOrPermSetRecordType,
 } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
-import { Fragment, FunctionComponent, useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import {
+  Fragment,
+  FunctionComponent,
+  type MouseEvent,
+  type ReactElement,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from 'react';
 import type { RenderCellProps, RenderGroupCellProps } from 'react-data-grid';
 import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 import {
@@ -53,6 +68,12 @@ const TREE_ROW_HEIGHT_GROUP_PX = 60;
 
 const OBJECT_TYPE_ACTION_BUTTON_CLASSNAME = 'slds-button slds-button_icon slds-button_icon-bare';
 
+const PERMISSION_ANALYSIS_POPOVER_PANEL_PROPS = {
+  onDoubleClick: (event: MouseEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+  },
+};
+
 interface AssigneeDisplay {
   name: string;
   username: string;
@@ -79,7 +100,7 @@ function collectUniqueUserAssigneeIds(assignments: PermissionExportRow[]): strin
   return [...ids].sort((a, b) => a.localeCompare(b));
 }
 
-interface PermissionSetTooltipFields {
+export interface PermissionSetTooltipFields {
   label: string;
   name: string;
   description: string | null;
@@ -119,22 +140,123 @@ function formatAuditLine(prefix: string, when: string | null, by: string | null)
   return `${prefix} · ${by}`;
 }
 
-function permissionSetTooltipBlock(fields: Pick<PermissionSetTooltipFields, 'label' | 'name' | 'description'>) {
+/** Single permission-set (or profile-owned) export row → metadata for the detail popover. */
+export function buildPermissionSetTooltipFieldsFromExportRow(row: PermissionExportRow | undefined): PermissionSetTooltipFields | null {
+  if (!row) {
+    return null;
+  }
+  const id = row.Id;
+  if (typeof id !== 'string' || !id.trim()) {
+    return null;
+  }
+  const trimmedId = id.trim();
+  const label = typeof row.Label === 'string' && row.Label.trim() ? row.Label.trim() : '';
+  const name = typeof row.Name === 'string' && row.Name.trim() ? row.Name.trim() : '';
+  const rawDescription = row.Description;
+  const description = rawDescription != null && String(rawDescription).trim().length > 0 ? String(rawDescription).trim() : null;
+  return {
+    label: label || name || trimmedId,
+    name: name || '—',
+    description,
+    createdWhen: readIsoDatetimeDisplay(row.CreatedDate),
+    createdByName: readSalesforceRelationshipName(row.CreatedBy),
+    lastModifiedWhen: readIsoDatetimeDisplay(row.LastModifiedDate),
+    lastModifiedByName: readSalesforceRelationshipName(row.LastModifiedBy),
+  };
+}
+
+export function PermissionSetDetailPopoverContent({
+  fields,
+  containerKind,
+  setupLogin,
+  returnUrl,
+  slug,
+}: {
+  fields: PermissionSetTooltipFields;
+  containerKind: 'Profile' | 'PermissionSet';
+  setupLogin: { org: SalesforceOrgUi; serverUrl: string; skipFrontDoorAuth: boolean };
+  returnUrl: string;
+  slug: string;
+}): ReactElement {
+  const labelHeading = containerKind === 'Profile' ? 'Profile Label' : 'Permission Set Label';
+  const apiHeading = containerKind === 'Profile' ? 'Profile API Name' : 'Permission Set API Name';
+  const canDeepLink = Boolean(setupLogin.org?.uniqueId && setupLogin.serverUrl);
+  const createdLine = formatAuditLine('Created', fields.createdWhen, fields.createdByName);
+  const modifiedLine = formatAuditLine('Last Modified', fields.lastModifiedWhen, fields.lastModifiedByName);
+
   return (
-    <div
-      css={css`
-        max-width: 22rem;
-        text-align: left;
-      `}
-    >
-      <div className="slds-text-title_caps slds-text-color_inverse-weak">Permission Set Label</div>
-      <div className="slds-text-body_regular slds-text-color_inverse slds-hyphenate slds-m-bottom_x-small">{fields.label}</div>
-      <div className="slds-text-title_caps slds-text-color_inverse-weak">Permission Set API Name</div>
-      <div className="slds-text-body_regular slds-text-color_inverse slds-hyphenate slds-m-bottom_x-small">
-        <code>{fields.name}</code>
-      </div>
-      <div className="slds-text-title_caps slds-text-color_inverse-weak">Description</div>
-      <div className="slds-text-body_regular slds-text-color_inverse slds-hyphenate slds-m-bottom_x-small">{fields.description ?? '—'}</div>
+    <div>
+      {canDeepLink ? (
+        <SalesforceLogin
+          org={setupLogin.org}
+          serverUrl={setupLogin.serverUrl}
+          skipFrontDoorAuth={setupLogin.skipFrontDoorAuth}
+          returnUrl={returnUrl}
+        >
+          View in Salesforce
+        </SalesforceLogin>
+      ) : null}
+      <Grid
+        wrap
+        gutters
+        className={canDeepLink ? 'slds-m-top_x-small' : undefined}
+        css={css`
+          min-height: 80px;
+        `}
+      >
+        <GridCol size={12}>
+          <ReadOnlyFormElement
+            id={`perm-analysis-container-${slug}-label`}
+            label={labelHeading}
+            className="slds-p-bottom_x-small"
+            value={fields.label}
+            bottomBorder
+          />
+        </GridCol>
+        <GridCol size={12}>
+          <ReadOnlyFormElement
+            id={`perm-analysis-container-${slug}-api`}
+            label={apiHeading}
+            className="slds-p-bottom_x-small"
+            value={fields.name}
+            bottomBorder
+          />
+        </GridCol>
+        <GridCol size={12}>
+          <ReadOnlyFormElement
+            id={`perm-analysis-container-${slug}-desc`}
+            label="Description"
+            className="slds-p-bottom_x-small"
+            value={fields.description ?? '—'}
+            bottomBorder
+          />
+        </GridCol>
+        <GridCol size={12}>
+          <ReadOnlyFormElement
+            id={`perm-analysis-container-${slug}-created`}
+            label="Created"
+            className="slds-p-bottom_x-small"
+            value={createdLine ?? '—'}
+            bottomBorder
+          />
+        </GridCol>
+        <GridCol size={12}>
+          <ReadOnlyFormElement
+            id={`perm-analysis-container-${slug}-modified`}
+            label="Last Modified"
+            className="slds-p-bottom_x-small"
+            value={modifiedLine ?? '—'}
+            bottomBorder
+          />
+        </GridCol>
+        {canDeepLink ? (
+          <GridCol size={12} className="slds-m-top_small">
+            <div className="slds-grid slds-text-small slds-text-color_weak">
+              Use <KeyboardShortcut className="slds-m-left_x-small" keys={['shift', 'click']} /> to skip this popup
+            </div>
+          </GridCol>
+        ) : null}
+      </Grid>
     </div>
   );
 }
@@ -146,20 +268,10 @@ function buildPermissionSetTooltipFieldsById(rows: PermissionExportRow[]): Map<s
     if (typeof id !== 'string' || !id.trim()) {
       continue;
     }
-    const trimmedId = id.trim();
-    const label = typeof row.Label === 'string' && row.Label.trim() ? row.Label.trim() : '';
-    const name = typeof row.Name === 'string' && row.Name.trim() ? row.Name.trim() : '';
-    const rawDescription = row.Description;
-    const description = rawDescription != null && String(rawDescription).trim().length > 0 ? String(rawDescription).trim() : null;
-    map.set(trimmedId, {
-      label: label || name || trimmedId,
-      name: name || '—',
-      description,
-      createdWhen: readIsoDatetimeDisplay(row.CreatedDate),
-      createdByName: readSalesforceRelationshipName(row.CreatedBy),
-      lastModifiedWhen: readIsoDatetimeDisplay(row.LastModifiedDate),
-      lastModifiedByName: readSalesforceRelationshipName(row.LastModifiedBy),
-    });
+    const fields = buildPermissionSetTooltipFieldsFromExportRow(row);
+    if (fields) {
+      map.set(id.trim(), fields);
+    }
   }
   return map;
 }
@@ -198,6 +310,10 @@ function renderPermissionSetGroupCell(
   const { recordType, recordId } = resolveSetupTarget(permissionSetId);
   const returnUrl = getProfileOrPermSetSetupUrl(recordType, recordId);
 
+  const detailSlug = permissionSetId.replace(/[^a-zA-Z0-9_-]+/g, '-');
+  const containerKind: 'Profile' | 'PermissionSet' = recordType === 'Profile' ? 'Profile' : 'PermissionSet';
+  const canDeepLink = Boolean(setupLogin.org?.uniqueId && setupLogin.serverUrl);
+
   return (
     <div
       className={
@@ -216,74 +332,112 @@ function renderPermissionSetGroupCell(
         padding: 0.25rem 0.35rem;
       `}
     >
-      <button
-        type="button"
-        className="slds-button slds-button_reset slds-text-align_left"
+      <div
         css={css`
+          display: flex;
+          align-items: flex-start;
+          column-gap: 0.25rem;
           flex: 1;
           min-width: 0;
-          line-height: 1.35;
-          overflow-wrap: anywhere;
-          white-space: normal;
-          word-break: break-word;
         `}
-        onClick={toggleGroup}
-        title={titleLabel}
       >
-        <span
+        <button
+          type="button"
+          className="slds-button slds-button_reset slds-p-around_xx-small"
+          title={isExpanded ? 'Collapse' : 'Expand'}
+          aria-expanded={isExpanded}
           css={css`
-            column-gap: 0.25rem;
-            display: flex;
-            align-items: flex-start;
+            flex-shrink: 0;
+            line-height: 1;
+            margin-top: 0.125rem;
           `}
+          onClick={toggleGroup}
         >
           <Icon
             type="utility"
             icon={isExpanded ? 'chevrondown' : 'chevronright'}
             className="slds-icon slds-icon-text-default slds-icon_x-small"
-            css={css`
-              flex-shrink: 0;
-              margin-top: 0.125rem;
-            `}
             omitContainer
             description={isExpanded ? 'Collapse' : 'Expand'}
           />
-          <Tooltip content={permissionSetTooltipBlock(tooltipFields)}>
-            <span
-              css={css`
-                flex: 1;
-                min-width: 0;
-                text-align: left;
-              `}
-            >
-              <span className="slds-truncate" title={titleLabel}>
-                <span>{titleLabel}</span>
-                <span className="slds-text-body_small slds-text-color_weak slds-m-left_xx-small">({childRows.length})</span>
-              </span>
-              {(createdLine || modifiedLine) && (
-                <div
-                  className="slds-text-body_small slds-text-color_weak"
-                  css={css`
-                    margin-top: 0.125rem;
-                    line-height: 1.25;
-                  `}
-                >
-                  {createdLine && (
-                    <div className="slds-truncate" title={createdLine}>
-                      {createdLine}
-                    </div>
-                  )}
-                  {modifiedLine && (
-                    <div className="slds-truncate" title={modifiedLine}>
-                      {modifiedLine}
-                    </div>
-                  )}
-                </div>
-              )}
+        </button>
+        <Popover
+          size="large"
+          panelProps={PERMISSION_ANALYSIS_POPOVER_PANEL_PROPS}
+          content={
+            <PermissionSetDetailPopoverContent
+              fields={tooltipFields}
+              containerKind={containerKind}
+              setupLogin={setupLogin}
+              returnUrl={returnUrl}
+              slug={detailSlug}
+            />
+          }
+          buttonProps={{
+            className: 'slds-button slds-button_reset slds-text-align_left',
+          }}
+          buttonStyle={{
+            flex: 1,
+            minWidth: 0,
+            height: 'auto',
+            alignItems: 'flex-start',
+            display: 'flex',
+            lineHeight: 1.35,
+            overflowWrap: 'anywhere',
+            whiteSpace: 'normal',
+            wordBreak: 'break-word',
+            padding: 0,
+          }}
+        >
+          <span
+            css={css`
+              flex: 1;
+              min-width: 0;
+              text-align: left;
+            `}
+            onClick={(event: MouseEvent<HTMLSpanElement>) => {
+              if (event.shiftKey || event.ctrlKey || event.metaKey) {
+                if (!canDeepLink) {
+                  return;
+                }
+                event.stopPropagation();
+                event.preventDefault();
+                salesforceLoginAndRedirect({
+                  serverUrl: setupLogin.serverUrl,
+                  org: setupLogin.org,
+                  returnUrl,
+                  skipFrontDoorAuth: setupLogin.skipFrontDoorAuth,
+                });
+              }
+            }}
+          >
+            <span className="slds-truncate" title={titleLabel}>
+              <span>{titleLabel}</span>
+              <span className="slds-text-body_small slds-text-color_weak slds-m-left_xx-small">({childRows.length})</span>
             </span>
-          </Tooltip>
-        </span>
-      </button>
+            {(createdLine || modifiedLine) && (
+              <div
+                className="slds-text-body_small slds-text-color_weak"
+                css={css`
+                  margin-top: 0.125rem;
+                  line-height: 1.25;
+                `}
+              >
+                {createdLine && (
+                  <div className="slds-truncate" title={createdLine}>
+                    {createdLine}
+                  </div>
+                )}
+                {modifiedLine && (
+                  <div className="slds-truncate" title={modifiedLine}>
+                    {modifiedLine}
+                  </div>
+                )}
+              </div>
+            )}
+          </span>
+        </Popover>
+      </div>
       <div
         className="slds-no-flex"
         css={css`
