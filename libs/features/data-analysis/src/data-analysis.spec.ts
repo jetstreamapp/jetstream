@@ -44,6 +44,35 @@ describe('@jetstream/feature/data-analysis', () => {
     expect(parsed?.whereUsed['Custom__c.Field__c'][0].kind).toBe('automation');
   });
 
+  it('parseFieldUsageJobResult infers apex/automation from metadata type when kind is other (legacy payloads)', () => {
+    const parsed = parseFieldUsageJobResult({
+      phase: 'field_usage_v1',
+      summary: 'ok',
+      truncated: false,
+      failedObjects: [],
+      whereUsed: {
+        'O__c.F__c': [
+          { type: 'ApexClass', name: 'Foo', kind: 'other' },
+          { type: 'Flow', name: 'Bar', kind: 'other' },
+        ],
+      },
+      objects: {
+        O__c: {
+          label: 'O',
+          customizable: true,
+          totalRecords: 0,
+          queryTruncated: false,
+          fieldUsage: { F__c: { filled: 0, pct: 0, latestFilledRowModified: null } },
+          fieldMeta: {
+            F__c: { label: 'F', calculated: false, type: 'string', custom: true, length: 10 },
+          },
+        },
+      },
+    });
+    expect(parsed?.whereUsed['O__c.F__c'][0].kind).toBe('apex');
+    expect(parsed?.whereUsed['O__c.F__c'][1].kind).toBe('automation');
+  });
+
   it('getWhereUsedDepsForFieldKey matches exact key and falls back to case-insensitive map keys', () => {
     const map = {
       'ns__Obj__c.Field__c': [{ type: 'Flow', name: 'F', kind: 'other' as const }],
@@ -56,7 +85,7 @@ describe('@jetstream/feature/data-analysis', () => {
   it('fieldHasWhereUsedDeps is true only when the map has non-empty rows for that field key', () => {
     const map = {
       'A__c.F__c': [{ type: 'Flow', name: 'X', kind: 'other' as const }],
-      'B__c.G__c': [] as { type: string; name: string; kind: 'automation' | 'other' }[],
+      'B__c.G__c': [] as { type: string; name: string; kind: 'automation' | 'apex' | 'other' }[],
     };
     expect(fieldHasWhereUsedDeps(map, 'A__c.F__c')).toBe(true);
     expect(fieldHasWhereUsedDeps(map, 'B__c.G__c')).toBe(false);
@@ -72,7 +101,7 @@ describe('@jetstream/feature/data-analysis', () => {
         { type: 'WorkflowRule', name: 'W1', kind: 'automation' },
         { type: 'ProcessDefinition', name: 'P1', kind: 'automation' },
         { type: 'ApexTrigger', name: 'T1', kind: 'automation' },
-        { type: 'ApexClass', name: 'C1', kind: 'other' },
+        { type: 'ApexClass', name: 'C1', kind: 'apex' },
         { type: 'CustomLabel', name: 'X', kind: 'other' },
       ]),
     ).toEqual({ onLayout: 2, inAutomation: 4, inApex: 1 });

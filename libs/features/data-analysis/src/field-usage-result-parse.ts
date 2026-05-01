@@ -42,7 +42,7 @@ export interface FieldUsageObjectPayloadParsed {
 export interface WhereUsedDependencyRowParsed {
   type: string;
   name: string;
-  kind: 'automation' | 'other';
+  kind: 'automation' | 'apex' | 'other';
 }
 
 export type WhereUsedMapParsed = Record<string, WhereUsedDependencyRowParsed[]>;
@@ -86,8 +86,22 @@ const WHERE_USED_UI_AUTOMATION_TYPES = new Set([
   'ApexTrigger',
 ]);
 
-/** **In Apex** column (Apex classes only; triggers count as automation). */
-const WHERE_USED_UI_APEX_CLASS_TYPES = new Set(['ApexClass']);
+/** **In Apex** column: ApexClass, ApexPage, ApexComponent (same set as API `kind: apex`; triggers stay automation). */
+const WHERE_USED_UI_APEX_TYPES = new Set(['ApexClass', 'ApexPage', 'ApexComponent']);
+
+function inferWhereUsedKindFromMetadataType(metadataType: string): WhereUsedDependencyRowParsed['kind'] | undefined {
+  const trimmed = metadataType.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  if (WHERE_USED_UI_AUTOMATION_TYPES.has(trimmed)) {
+    return 'automation';
+  }
+  if (WHERE_USED_UI_APEX_TYPES.has(trimmed)) {
+    return 'apex';
+  }
+  return undefined;
+}
 
 export interface WhereUsedUiCategoryCounts {
   onLayout: number;
@@ -108,7 +122,7 @@ export function countWhereUsedByUiCategory(deps: WhereUsedDependencyRowParsed[])
       onLayout++;
     } else if (WHERE_USED_UI_AUTOMATION_TYPES.has(metadataType)) {
       inAutomation++;
-    } else if (WHERE_USED_UI_APEX_CLASS_TYPES.has(metadataType)) {
+    } else if (WHERE_USED_UI_APEX_TYPES.has(metadataType)) {
       inApex++;
     }
   }
@@ -263,9 +277,12 @@ function parseWhereUsedMap(value: unknown): WhereUsedMapParsed {
       if (!row) {
         continue;
       }
-      const kind = row.kind === 'automation' || row.kind === 'other' ? row.kind : 'other';
+      const rawKind = row.kind === 'automation' || row.kind === 'apex' || row.kind === 'other' ? row.kind : 'other';
+      const typeStr = row.type != null ? String(row.type) : '';
+      const inferredKind = inferWhereUsedKindFromMetadataType(typeStr);
+      const kind = rawKind === 'automation' || rawKind === 'apex' ? rawKind : (inferredKind ?? rawKind);
       rows.push({
-        type: row.type != null ? String(row.type) : '',
+        type: typeStr,
         name: row.name != null ? String(row.name) : '',
         kind,
       });

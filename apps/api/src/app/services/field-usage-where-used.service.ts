@@ -1,4 +1,5 @@
 import type { ApiConnection } from '@jetstream/salesforce-api';
+import { parseCustomFieldApiNameForTooling } from '@jetstream/shared/utils';
 import { escapeSoqlStringLiteral } from '../lib/field-usage/soql-escape';
 import type { FieldUsageObjectPayload } from './field-usage-query.service';
 
@@ -11,17 +12,36 @@ const WHERE_USED_AUTOMATION_TYPES = new Set([
   'ProcessDefinition',
 ]);
 
+/** Apex code / Visualforce metadata (not triggers — those stay in the automation bucket). */
+const WHERE_USED_APEX_TYPES = new Set(['ApexClass', 'ApexPage', 'ApexComponent']);
+
 export type WhereUsedDependencyRow = {
   type: string;
   name: string;
-  kind: 'automation' | 'other';
+  kind: 'automation' | 'apex' | 'other';
 };
 
 export type WhereUsedMap = Record<string, WhereUsedDependencyRow[]>;
 
-function depKind(componentType: string): 'automation' | 'other' {
+function depKind(componentType: string): WhereUsedDependencyRow['kind'] {
   const t = (componentType || '').trim();
-  return WHERE_USED_AUTOMATION_TYPES.has(t) ? 'automation' : 'other';
+  if (WHERE_USED_AUTOMATION_TYPES.has(t)) {
+    return 'automation';
+  }
+  if (WHERE_USED_APEX_TYPES.has(t)) {
+    return 'apex';
+  }
+  return 'other';
+}
+
+function kindSortOrder(kind: WhereUsedDependencyRow['kind']): number {
+  if (kind === 'automation') {
+    return 0;
+  }
+  if (kind === 'apex') {
+    return 1;
+  }
+  return 2;
 }
 
 async function toolingQueryAll(conn: ApiConnection, soql: string): Promise<Record<string, unknown>[]> {
@@ -44,15 +64,43 @@ async function toolingQueryAll(conn: ApiConnection, soql: string): Promise<Recor
 
 async function getCustomFieldId(conn: ApiConnection, objectName: string, fieldName: string): Promise<string | null> {
   const obj = objectName.trim();
-  const fld = fieldName.trim();
-  if (!obj || !fld || !fld.endsWith('__c')) {
+  const toolingNames = parseCustomFieldApiNameForTooling(fieldName);
+  if (!obj || !toolingNames) {
     return null;
   }
-  const developerName = fld.slice(0, -3);
-  const soql = `SELECT Id FROM CustomField WHERE TableEnumOrId = '${escapeSoqlStringLiteral(obj)}' AND DeveloperName = '${escapeSoqlStringLiteral(developerName)}'`;
-  const rows = await toolingQueryAll(conn, soql);
-  const id = rows[0]?.Id;
-  return typeof id === 'string' ? id : null;
+  const qualifiedObject = escapeSoqlStringLiteral(obj);
+  const developer = escapeSoqlStringLiteral(toolingNames.developerName);
+  const hasNamespace = toolingNames.namespacePrefix != null && toolingNames.namespacePrefix.length > 0;
+  const nsLiteral = hasNamespace ? escapeSoqlStringLiteral(toolingNames.namespacePrefix!) : '';
+
+  /**
+   * Tooling matching is picky: `NamespacePrefix = null` often returns no rows (blank vs null in org data).
+   * Prefer `EntityDefinition.QualifiedApiName` (same pattern as the sobject-field-list Where Used hook),
+   * and only add a NamespacePrefix predicate when the field API name includes a package prefix.
+   */
+  const attempts: string[] = [];
+  if (hasNamespace) {
+    attempts.push(
+      `SELECT Id FROM CustomField WHERE EntityDefinition.QualifiedApiName = '${qualifiedObject}' AND DeveloperName = '${developer}' AND NamespacePrefix = '${nsLiteral}' LIMIT 1`,
+    );
+    attempts.push(
+      `SELECT Id FROM CustomField WHERE TableEnumOrId = '${qualifiedObject}' AND DeveloperName = '${developer}' AND NamespacePrefix = '${nsLiteral}' LIMIT 1`,
+    );
+  } else {
+    attempts.push(
+      `SELECT Id FROM CustomField WHERE EntityDefinition.QualifiedApiName = '${qualifiedObject}' AND DeveloperName = '${developer}' LIMIT 1`,
+    );
+    attempts.push(`SELECT Id FROM CustomField WHERE TableEnumOrId = '${qualifiedObject}' AND DeveloperName = '${developer}' LIMIT 1`);
+  }
+
+  for (const soql of attempts) {
+    const rows = await toolingQueryAll(conn, soql);
+    const id = rows[0]?.Id;
+    if (typeof id === 'string') {
+      return id;
+    }
+  }
+  return null;
 }
 
 async function getFieldDependencies(conn: ApiConnection, refComponentId: string): Promise<WhereUsedDependencyRow[]> {
@@ -70,12 +118,15 @@ async function getFieldDependencies(conn: ApiConnection, refComponentId: string)
     out.push({ type: t, name: n, kind: depKind(t) });
   }
   out.sort((a, b) => {
-    const ka = a.kind === 'automation' ? 0 : 1;
-    const kb = b.kind === 'automation' ? 0 : 1;
+    const ka = kindSortOrder(a.kind);
+    const kb = kindSortOrder(b.kind);
     if (ka !== kb) {
       return ka - kb;
     }
-    return (a.type || '').toLowerCase().localeCompare((b.type || '').toLowerCase()) || (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase());
+    return (
+      (a.type || '').toLowerCase().localeCompare((b.type || '').toLowerCase()) ||
+      (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase())
+    );
   });
   return out;
 }

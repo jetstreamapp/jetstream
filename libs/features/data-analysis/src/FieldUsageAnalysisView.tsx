@@ -410,7 +410,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
       _key: `${row.type}:${row.name}:${String(index)}`,
       componentType: row.type,
       componentName: row.name,
-      kindLabel: row.kind === 'automation' ? 'Automation' : 'Other',
+      kindLabel: row.kind === 'automation' ? 'Automation' : row.kind === 'apex' ? 'Apex' : 'Other',
     }));
   }, [parsedResult, whereUsedForKey]);
 
