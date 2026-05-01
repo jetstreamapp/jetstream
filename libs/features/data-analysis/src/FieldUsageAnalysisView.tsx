@@ -38,7 +38,7 @@ const LOW_USAGE_PCT_THRESHOLD = 5;
 
 const TREE_GROUP_BY = ['objectApiName'] as const;
 
-/** Tall enough for two-line Object/Field cell + padded "Where used" control (react-data-grid clips overflow). */
+/** Tall enough for two-line Object/Field cell + padded "Where Used" control (react-data-grid clips overflow). */
 const TREE_ROW_HEIGHT_LEAF_PX = 56;
 const TREE_ROW_HEIGHT_GROUP_PX = 58;
 
@@ -469,7 +469,8 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         name: '',
         key: 'whereUsed',
         type: 'text',
-        width: 120,
+        width: 180,
+        minWidth: 140,
         sortable: false,
         renderGroupCell: () => null,
         renderCell: (p) =>
@@ -482,7 +483,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
                 className="slds-button slds-button_neutral slds-button_stretch"
                 onClick={() => setWhereUsedForKey(`${p.row.objectApiName}.${p.row.fieldApiName}`)}
               >
-                Where used
+                Where Used
               </button>
             </div>
           ),
@@ -712,7 +713,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
       )}
       {whereUsedForKey && (
         <Modal
-          header={`Where used — ${whereUsedForKey}`}
+          header={`Where Used — ${whereUsedForKey}`}
           tagline="Tooling MetadataComponentDependency references (custom fields)."
           size="lg"
           onClose={() => setWhereUsedForKey(null)}
@@ -724,7 +725,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         >
           {whereUsedRows.length === 0 ? (
             <p className="slds-text-body_regular slds-text-color_weak slds-p-around_small">
-              No dependency rows were returned for this field (or where-used could not be computed for this org).
+              No dependency rows were returned for this field (or Where Used could not be computed for this org).
             </p>
           ) : (
             <div className="slds-p-around_small">
