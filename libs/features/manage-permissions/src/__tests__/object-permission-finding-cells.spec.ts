@@ -7,6 +7,7 @@ import {
   getObjectPermissionHighlightColumnKeysForFindingCode,
   listFindingsForObjectPermissionCell,
   objectPermissionFindingRowKey,
+  sortFieldPermissionExportRowsForAnalysisTree,
   sortObjectPermissionExportRowsForAnalysisTree,
   sortTabSettingExportRowsForAnalysisTree,
   type PermissionAnalysisFinding,
@@ -220,6 +221,21 @@ describe('formatTabSettingVisibilityDisplay', () => {
     expect(formatTabSettingVisibilityDisplay('')).toBe('—');
     expect(formatTabSettingVisibilityDisplay(null)).toBe('—');
     expect(formatTabSettingVisibilityDisplay('Available')).toBe('Available');
+  });
+});
+
+describe('sortFieldPermissionExportRowsForAnalysisTree', () => {
+  const psStandalone = '0PSSTAND00000001';
+
+  it('orders objects then fields within the same permission set parent', () => {
+    const permissionSetRows = [{ Id: psStandalone, Label: 'P', Name: 'P', IsOwnedByProfile: false }];
+    const fieldRows = [
+      { ParentId: psStandalone, SobjectType: 'Zebra__c', Field: 'Zebra__c.B__c', PermissionsRead: true, Id: '1' },
+      { ParentId: psStandalone, SobjectType: 'Alpha__c', Field: 'Alpha__c.A__c', PermissionsRead: true, Id: '2' },
+      { ParentId: psStandalone, SobjectType: 'Alpha__c', Field: 'Alpha__c.Z__c', PermissionsRead: true, Id: '3' },
+    ];
+    const sorted = sortFieldPermissionExportRowsForAnalysisTree(fieldRows, permissionSetRows);
+    expect(sorted.map((row) => row.Field)).toEqual(['Alpha__c.A__c', 'Alpha__c.Z__c', 'Zebra__c.B__c']);
   });
 });
 

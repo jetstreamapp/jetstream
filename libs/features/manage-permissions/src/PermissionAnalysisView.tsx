@@ -21,6 +21,7 @@ import { useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { PermissionAnalysisExportGrid } from './PermissionAnalysisExportGrid';
+import { PermissionAnalysisFieldPermissionsTree } from './PermissionAnalysisFieldPermissionsTree';
 import { PermissionAnalysisObjectPermissionsTree } from './PermissionAnalysisObjectPermissionsTree';
 import { PermissionAnalysisTabVisibilityTree } from './PermissionAnalysisTabVisibilityTree';
 import { PermissionAnalysisPermissionSetsTree } from './PermissionAnalysisPermissionSetsTree';
@@ -31,15 +32,19 @@ import {
   buildPermissionSetIdLabelMap,
   collectSobjectApiNamesFromPermissionExport,
   collectTabSettingNamesFromPermissionExport,
+  fieldExportDetailLookupKey,
+  fieldPermissionQualifiedFieldShortApi,
   filterPermissionSetExportRowsById,
   parsePermissionExportRequestScope,
   parsePermissionExportResult,
+  type FieldExportDetail,
   type SobjectExportDetail,
 } from './permission-export-result-view';
 
 const HEIGHT_BUFFER = 170;
 const ENTITY_DEFINITION_CHUNK_SIZE = 40;
 const TAB_DEFINITION_CHUNK_SIZE = 100;
+const FIELD_DEFINITION_CHUNK_SIZE = 50;
 
 interface ToolingEntityDefinitionRow {
   QualifiedApiName: string;
@@ -50,6 +55,13 @@ interface ToolingEntityDefinitionRow {
 interface ToolingTabDefinitionRow {
   Name: string;
   Label?: string | null;
+}
+
+interface ToolingFieldDefinitionRow {
+  QualifiedApiName: string;
+  Label?: string | null;
+  Description?: string | null;
+  DurableId?: string | null;
 }
 
 function formatJobResult(result: unknown): string {
@@ -75,6 +87,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [sobjectExportDetails, setSobjectExportDetails] = useState<Record<string, SobjectExportDetail>>({});
   const [tabLabelBySettingName, setTabLabelBySettingName] = useState<Map<string, string>>(() => new Map());
+  const [fieldExportDetails, setFieldExportDetails] = useState<Record<string, FieldExportDetail>>({});
 
   useEffect(() => {
     if (!selectedOrg?.uniqueId || !jobId) {
@@ -284,6 +297,93 @@ export const PermissionAnalysisView: FunctionComponent = () => {
     }
 
     void loadTabDefinitionLabels();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedOrg, parsedExport]);
+
+  useEffect(() => {
+    if (!selectedOrg?.uniqueId) {
+      setFieldExportDetails({});
+      return;
+    }
+
+    if (!parsedExport) {
+      setFieldExportDetails({});
+      return;
+    }
+
+    const bundle = parsedExport.export;
+    let cancelled = false;
+
+    async function loadFieldDefinitions() {
+      const fieldsByObject = new Map<string, Set<string>>();
+      for (const row of bundle.fieldPermissions) {
+        const obj = typeof row.SobjectType === 'string' ? row.SobjectType.trim() : '';
+        if (!obj) {
+          continue;
+        }
+        const short = fieldPermissionQualifiedFieldShortApi(row);
+        if (!short) {
+          continue;
+        }
+        let fieldSet = fieldsByObject.get(obj);
+        if (!fieldSet) {
+          fieldSet = new Set();
+          fieldsByObject.set(obj, fieldSet);
+        }
+        fieldSet.add(short);
+      }
+
+      const details: Record<string, FieldExportDetail> = {};
+
+      for (const [objectApi, fieldSet] of fieldsByObject) {
+        const names = [...fieldSet].sort((a, b) => a.localeCompare(b));
+        for (let offset = 0; offset < names.length; offset += FIELD_DEFINITION_CHUNK_SIZE) {
+          if (cancelled) {
+            return;
+          }
+          const chunk = names.slice(offset, offset + FIELD_DEFINITION_CHUNK_SIZE);
+          const inList = chunk.map((name) => `'${escapeSoqlString(name)}'`).join(', ');
+          const soql = `SELECT QualifiedApiName, Label, Description, DurableId FROM FieldDefinition WHERE EntityDefinition.QualifiedApiName = '${escapeSoqlString(objectApi)}' AND QualifiedApiName IN (${inList})`;
+          try {
+            const { data } = await queryWithCache<ToolingFieldDefinitionRow>(selectedOrg, soql, true);
+            const records = data?.queryResults?.records;
+            if (!Array.isArray(records)) {
+              continue;
+            }
+            for (const record of records) {
+              const qn = record.QualifiedApiName;
+              if (typeof qn !== 'string' || qn.trim().length === 0) {
+                continue;
+              }
+              const qualified = qn.trim();
+              const key = fieldExportDetailLookupKey(objectApi, qualified);
+              const labelFromFd = typeof record.Label === 'string' && record.Label.trim().length > 0 ? record.Label.trim() : qualified;
+              const desc =
+                record.Description != null && String(record.Description).trim().length > 0 ? String(record.Description).trim() : null;
+              const durable = typeof record.DurableId === 'string' && record.DurableId.trim().length > 0 ? record.DurableId.trim() : null;
+              details[key] = {
+                objectApiName: objectApi,
+                qualifiedApiName: qualified,
+                label: labelFromFd,
+                description: desc,
+                durableId: durable,
+              };
+            }
+          } catch (fieldDefinitionError) {
+            logger.warn('FieldDefinition query failed for permission analysis field metadata', fieldDefinitionError);
+          }
+        }
+      }
+
+      if (!cancelled) {
+        setFieldExportDetails(details);
+      }
+    }
+
+    void loadFieldDefinitions();
 
     return () => {
       cancelled = true;
@@ -586,11 +686,12 @@ export const PermissionAnalysisView: FunctionComponent = () => {
             `}
           >
             {renderTruncationNotice()}
-            <PermissionAnalysisExportGrid
-              rows={exportBundle.fieldPermissions}
+            <PermissionAnalysisFieldPermissionsTree
+              fieldPermissionRows={exportBundle.fieldPermissions}
+              permissionSetRows={exportBundle.permissionSets}
+              findings={findings}
+              fieldExportDetails={fieldExportDetails}
               {...gridProps}
-              {...exportFindingProps}
-              findingSurface="field_permissions"
             />
           </div>
         ),
@@ -667,6 +768,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
     findingsCount,
     sobjectExportDetails,
     tabLabelBySettingName,
+    fieldExportDetails,
   ]);
 
   return (

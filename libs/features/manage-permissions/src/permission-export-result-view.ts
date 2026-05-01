@@ -25,6 +25,43 @@ export interface SobjectExportDetail {
   description: string | null;
 }
 
+/** Tooling `FieldDefinition` metadata for permission export field cells (label, setup link). */
+export interface FieldExportDetail {
+  objectApiName: string;
+  qualifiedApiName: string;
+  label: string;
+  description: string | null;
+  /** Tooling `FieldDefinition.DurableId` for Lightning Fields & Relationships deep link when present. */
+  durableId: string | null;
+}
+
+/**
+ * Stable lookup key for {@link FieldExportDetail} maps: `objectApiName::qualifiedApiName` (short field API name).
+ */
+export function fieldExportDetailLookupKey(objectApiName: string, qualifiedApiName: string): string {
+  return `${objectApiName.trim()}::${qualifiedApiName.trim()}`;
+}
+
+/**
+ * Short field API name from a `FieldPermissions` export row (`Field` is usually `ObjectApi.FieldApi`).
+ */
+export function fieldPermissionQualifiedFieldShortApi(row: PermissionExportRow): string {
+  const obj = typeof row.SobjectType === 'string' ? row.SobjectType.trim() : '';
+  const full = typeof row.Field === 'string' ? row.Field.trim() : '';
+  if (!obj || !full) {
+    return '';
+  }
+  const prefix = `${obj}.`;
+  if (full.startsWith(prefix)) {
+    return full.slice(prefix.length);
+  }
+  const dot = full.lastIndexOf('.');
+  return dot >= 0 ? full.slice(dot + 1) : full;
+}
+
+/** Field-level permission booleans in the same order as the object-permissions subset (Read, Edit). */
+export const FIELD_PERMISSION_BOOLEAN_COLUMN_KEYS: readonly string[] = ['PermissionsRead', 'PermissionsEdit'];
+
 /** Object column copy in finding modals when describe metadata exists. */
 export function formatObjectLabelForModalSummary(
   apiName: string,
@@ -138,6 +175,87 @@ export function sortObjectPermissionExportRowsForAnalysisTree(
     const objA = typeof rowA.SobjectType === 'string' ? rowA.SobjectType.trim() : '';
     const objB = typeof rowB.SobjectType === 'string' ? rowB.SobjectType.trim() : '';
     return objectSortCompareKey(objA).localeCompare(objectSortCompareKey(objB), undefined, { sensitivity: 'base' });
+  });
+}
+
+/**
+ * Sorts `FieldPermissions` export rows: profile-owned parents first, then permission sets, then object (label),
+ * then field (label when {@link fieldExportDetails} has it, else qualified `Field`).
+ */
+export function sortFieldPermissionExportRowsForAnalysisTree(
+  fieldPermissionRows: PermissionExportRow[],
+  permissionSetRows: PermissionExportRow[],
+  sobjectExportDetails?: Readonly<Record<string, SobjectExportDetail>>,
+  fieldExportDetails?: Readonly<Record<string, FieldExportDetail>>,
+): PermissionExportRow[] {
+  const labelByParentId = buildPermissionSetIdLabelMap(permissionSetRows);
+  const permissionSetById = new Map<string, PermissionExportRow>();
+  for (const row of permissionSetRows) {
+    const id = typeof row.Id === 'string' ? row.Id.trim() : '';
+    if (id) {
+      permissionSetById.set(id, row);
+    }
+  }
+
+  function parentTier(parentId: string): number {
+    if (!parentId) {
+      return 2;
+    }
+    return isProfileOwnedPermissionSetRow(permissionSetById.get(parentId)) ? 0 : 1;
+  }
+
+  function parentLabelCompareKey(parentId: string): string {
+    return labelByParentId.get(parentId) ?? parentId;
+  }
+
+  function objectSortCompareKey(sobjectType: string): string {
+    const api = sobjectType.trim();
+    if (!api) {
+      return '';
+    }
+    const detail = sobjectExportDetails?.[api];
+    const label = detail?.label?.trim() ? detail.label.trim() : api;
+    const primary = label.toLocaleLowerCase();
+    const secondary = api.toLocaleLowerCase();
+    return `${primary}\0${secondary}`;
+  }
+
+  function fieldSortCompareKey(row: PermissionExportRow): string {
+    const obj = typeof row.SobjectType === 'string' ? row.SobjectType.trim() : '';
+    const full = typeof row.Field === 'string' ? row.Field.trim() : '';
+    const short = fieldPermissionQualifiedFieldShortApi(row);
+    const lookupKey = obj && short ? fieldExportDetailLookupKey(obj, short) : '';
+    const detail = lookupKey ? fieldExportDetails?.[lookupKey] : undefined;
+    const label = detail?.label?.trim() ? detail.label.trim() : short || full;
+    const primary = label.toLocaleLowerCase();
+    const secondary = full.toLocaleLowerCase();
+    return `${primary}\0${secondary}`;
+  }
+
+  return [...fieldPermissionRows].sort((rowA, rowB) => {
+    const parentA = typeof rowA.ParentId === 'string' ? rowA.ParentId.trim() : '';
+    const parentB = typeof rowB.ParentId === 'string' ? rowB.ParentId.trim() : '';
+    if (parentA !== parentB) {
+      const tierA = parentTier(parentA);
+      const tierB = parentTier(parentB);
+      if (tierA !== tierB) {
+        return tierA - tierB;
+      }
+      const labelCmp = parentLabelCompareKey(parentA).localeCompare(parentLabelCompareKey(parentB), undefined, {
+        sensitivity: 'base',
+      });
+      if (labelCmp !== 0) {
+        return labelCmp;
+      }
+      return parentA.localeCompare(parentB, undefined, { sensitivity: 'base' });
+    }
+    const objA = typeof rowA.SobjectType === 'string' ? rowA.SobjectType.trim() : '';
+    const objB = typeof rowB.SobjectType === 'string' ? rowB.SobjectType.trim() : '';
+    const objCmp = objectSortCompareKey(objA).localeCompare(objectSortCompareKey(objB), undefined, { sensitivity: 'base' });
+    if (objCmp !== 0) {
+      return objCmp;
+    }
+    return fieldSortCompareKey(rowA).localeCompare(fieldSortCompareKey(rowB), undefined, { sensitivity: 'base' });
   });
 }
 
@@ -1030,7 +1148,7 @@ export function getFieldPermissionHighlightColumnKeysForFindingCode(code: string
     return ['PermissionsEdit'];
   }
   if (trimmed === PermissionExportFindingCode.FLS_WITHOUT_OLS_ROW) {
-    return ['Field', 'SobjectType'];
+    return [...FIELD_PERMISSION_BOOLEAN_COLUMN_KEYS];
   }
   return [];
 }

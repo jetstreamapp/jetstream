@@ -34,7 +34,7 @@ describe('buildFieldPermissionFindingCellHighlights', () => {
     expect(map.get(rowKey)?.get('PermissionsRead')).toBe('error');
   });
 
-  it('maps FLS_WITHOUT_OLS_ROW to object scope marker and Field/SobjectType columns', () => {
+  it('maps FLS_WITHOUT_OLS_ROW to object scope marker and Read/Edit columns', () => {
     const parentId = '0PS2';
     const findings = [
       {
@@ -46,11 +46,11 @@ describe('buildFieldPermissionFindingCellHighlights', () => {
     ];
     const map = buildFieldPermissionFindingCellHighlights(findings);
     const scopeKey = fieldPermissionFindingRowKey(parentId, 'Contact', FIELD_PERMISSION_OBJECT_SCOPE_MARKER);
-    expect(map.get(scopeKey)?.get('Field')).toBe('error');
-    expect(map.get(scopeKey)?.get('SobjectType')).toBe('error');
+    expect(map.get(scopeKey)?.get('PermissionsRead')).toBe('error');
+    expect(map.get(scopeKey)?.get('PermissionsEdit')).toBe('error');
   });
 
-  it('resolves fieldPermissionCellSeverity from scope marker for any field row', () => {
+  it('resolves fieldPermissionCellSeverity from scope marker for any field row on Read', () => {
     const parentId = '0PS3';
     const highlights = buildFieldPermissionFindingCellHighlights([
       {
@@ -60,7 +60,7 @@ describe('buildFieldPermissionFindingCellHighlights', () => {
         parentId,
       },
     ]);
-    const severity = fieldPermissionCellSeverity(highlights, parentId, 'Case', 'Case.Subject', 'Field');
+    const severity = fieldPermissionCellSeverity(highlights, parentId, 'Case', 'Case.Subject', 'PermissionsRead');
     expect(severity).toBe('error');
   });
 });
@@ -76,7 +76,7 @@ describe('listFindingsForFieldPermissionCell', () => {
         parentId,
       },
     ];
-    const matches = listFindingsForFieldPermissionCell(findings, parentId, 'Lead', 'Lead.Company', 'Field');
+    const matches = listFindingsForFieldPermissionCell(findings, parentId, 'Lead', 'Lead.Company', 'PermissionsRead');
     expect(matches).toHaveLength(1);
   });
 
