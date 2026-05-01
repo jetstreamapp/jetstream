@@ -1,6 +1,15 @@
 import { css } from '@emotion/react';
 import type { SalesforceOrgUi } from '@jetstream/types';
-import { AutoFullHeightContainer, ColumnWithFilter, DataTable, RowWithKey, ScopedNotification, setColumnFromType } from '@jetstream/ui';
+import {
+  AutoFullHeightContainer,
+  ColumnWithFilter,
+  DataTable,
+  Icon,
+  Popover,
+  RowWithKey,
+  ScopedNotification,
+  setColumnFromType,
+} from '@jetstream/ui';
 import { FunctionComponent, useCallback, useMemo, useState } from 'react';
 import type { SetURLSearchParams } from 'react-router-dom';
 import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
@@ -130,6 +139,8 @@ function buildFindingColumns(): ColumnWithFilter<RowWithKey>[] {
 
 const FINDING_COLUMNS = buildFindingColumns();
 
+const issuesTabGroupByTriggerClassName = 'slds-button slds-button_neutral';
+
 export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIssuesTabProps> = ({
   findings,
   permissionSetAssignments,
@@ -147,7 +158,7 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
     summaryLine: string;
   } | null>(null);
 
-  const { filteredFindings, groupBy } = usePermissionAnalysisIssuesFilters({
+  const { filteredFindings, groupBy, updateParams } = usePermissionAnalysisIssuesFilters({
     findings,
     permissionSetAssignments,
     searchParams,
@@ -209,7 +220,7 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
       <div className="slds-p-around_medium">
         <ScopedNotification theme="info">
           No findings for this job yet. Run a permission export analysis to evaluate object vs field read access; results include an
-          aggregated summary, toolbar filters, and Issue Codes.
+          aggregated summary, toolbar filters, Issue Codes, and Group By on this tab when findings exist.
         </ScopedNotification>
       </div>
     );
@@ -224,7 +235,8 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
         <h2 className="slds-text-heading_small slds-m-bottom_x-small">Aggregated Findings</h2>
         <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_small">
           Rollups for the current filter set ({filteredFindings.length} row{filteredFindings.length === 1 ? '' : 's'}). Use the toolbar
-          filters to refocus the grid and these totals. Click a row in either table to open full messages and metadata for those findings.
+          filters to refocus the grid and these totals; use Group By above the grid to change grouping. Click a row in either table to open
+          full messages and metadata for those findings.
         </p>
         <div
           css={css`
@@ -321,6 +333,57 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
             )}
           </div>
         </div>
+      </div>
+
+      <div
+        className="slds-p-horizontal_small slds-p-vertical_x-small slds-border_bottom slds-border_color-border"
+        css={css`
+          display: flex;
+          justify-content: flex-end;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        `}
+      >
+        <Popover
+          placement="bottom-end"
+          header="Group By"
+          buttonProps={{ className: issuesTabGroupByTriggerClassName }}
+          content={
+            <div className="slds-p-around_small">
+              <fieldset className="slds-form-element">
+                <legend className="slds-form-element__legend slds-text-title_caps">Findings group by</legend>
+                {(
+                  [
+                    ['none', 'None (default sort)'],
+                    ['severity', 'Severity'],
+                    ['object', 'Object'],
+                    ['code', 'Code'],
+                    ['container', 'Container'],
+                  ] as const
+                ).map(([value, label]) => (
+                  <div key={value} className="slds-radio">
+                    <input
+                      type="radio"
+                      id={`issues-tab-cf-group-${value}`}
+                      name="issuesTabCfGroup"
+                      value={value}
+                      checked={groupBy === value}
+                      onChange={() => updateParams({ cfGroup: value === 'none' ? null : value })}
+                    />
+                    <label className="slds-radio__label" htmlFor={`issues-tab-cf-group-${value}`}>
+                      <span className="slds-radio_faux" />
+                      <span className="slds-form-element__label">{label}</span>
+                    </label>
+                  </div>
+                ))}
+              </fieldset>
+            </div>
+          }
+        >
+          Group By
+          <Icon type="utility" icon="down" className="slds-button__icon slds-button__icon_right" omitContainer />
+        </Popover>
       </div>
 
       <AutoFullHeightContainer

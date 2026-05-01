@@ -776,47 +776,65 @@ export const PermissionAnalysisView: FunctionComponent = () => {
     <div>
       <RequireMetadataApiBanner />
       <Toolbar>
-        <ToolbarItemGroup>
-          <Link className="slds-button slds-button_brand" to="..">
-            <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
-            Go Back
-          </Link>
-        </ToolbarItemGroup>
-        <ToolbarItemActions>
-          <Tooltip ariaRole="label" content="View past permission export runs for this org">
-            <button
-              type="button"
-              aria-label="Export history"
-              className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
-              css={css`
-                padding: 0.5rem;
-              `}
-              disabled={!selectedOrg?.uniqueId}
-              onClick={() => setIsHistoryOpen(true)}
-            >
-              <Icon type="utility" icon="date_time" className="slds-button__icon" omitContainer title="Export history" />
-            </button>
-          </Tooltip>
-        </ToolbarItemActions>
-        {jobId && !fetchError && isTerminal && jobStatusNormalized === 'completed' && parsedExport && selectedOrg && (
-          <ToolbarItemGroup
+        <div
+          css={css`
+            display: flex;
+            width: 100%;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 0.5rem 0.75rem;
+          `}
+        >
+          <ToolbarItemGroup>
+            <Link className="slds-button slds-button_brand" to="..">
+              <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
+              Go Back
+            </Link>
+          </ToolbarItemGroup>
+          <div
             css={css`
-              flex-basis: 100%;
-              width: 100%;
-              padding-top: 0.5rem;
-              margin-top: 0.25rem;
-              border-top: 1px solid var(--slds-g-color-border-base-1, #e5e5e5);
+              flex: 1 1 12rem;
+              display: flex;
+              justify-content: center;
               align-items: flex-start;
+              min-width: 0;
             `}
           >
-            <PermissionAnalysisFindingsFiltersBar
-              findings={parsedExport.findings}
-              permissionSetAssignments={parsedExport.export.permissionSetAssignments}
-              searchParams={searchParams}
-              setSearchParams={setSearchParams}
-            />
-          </ToolbarItemGroup>
-        )}
+            {jobId && !fetchError && isTerminal && jobStatusNormalized === 'completed' && parsedExport && selectedOrg ? (
+              <div
+                css={css`
+                  display: flex;
+                  flex-direction: column;
+                  align-items: center;
+                  max-width: 100%;
+                `}
+              >
+                <PermissionAnalysisFindingsFiltersBar
+                  findings={parsedExport.findings}
+                  permissionSetAssignments={parsedExport.export.permissionSetAssignments}
+                  searchParams={searchParams}
+                  setSearchParams={setSearchParams}
+                />
+              </div>
+            ) : null}
+          </div>
+          <ToolbarItemActions>
+            <Tooltip ariaRole="label" content="View past permission export runs for this org">
+              <button
+                type="button"
+                aria-label="Export history"
+                className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
+                css={css`
+                  padding: 0.5rem;
+                `}
+                disabled={!selectedOrg?.uniqueId}
+                onClick={() => setIsHistoryOpen(true)}
+              >
+                <Icon type="utility" icon="date_time" className="slds-button__icon" omitContainer title="Export history" />
+              </button>
+            </Tooltip>
+          </ToolbarItemActions>
+        </div>
       </Toolbar>
       {isHistoryOpen && selectedOrg && (
         <PermissionAnalysisHistoryModal

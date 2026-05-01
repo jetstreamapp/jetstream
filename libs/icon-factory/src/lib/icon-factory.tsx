@@ -92,6 +92,7 @@ import UtilityIcon_ExpandAll from './icons/utility/ExpandAll';
 import UtilityIcon_ExpandAlt from './icons/utility/ExpandAlt';
 import UtilityIcon_Fallback from './icons/utility/Fallback';
 import UtilityIcon_Favorite from './icons/utility/Favorite';
+import UtilityIcon_Feed from './icons/utility/Feed';
 import UtilityIcon_File from './icons/utility/File';
 import UtilityIcon_Filter from './icons/utility/Filter';
 import UtilityIcon_FilterList from './icons/utility/FilterList';
@@ -291,6 +292,7 @@ const utilityIcons = {
   expand_alt: UtilityIcon_ExpandAlt,
   fallback: UtilityIcon_Fallback,
   favorite: UtilityIcon_Favorite,
+  feed: UtilityIcon_Feed,
   file: UtilityIcon_File,
   filter: UtilityIcon_Filter,
   filterList: UtilityIcon_FilterList,

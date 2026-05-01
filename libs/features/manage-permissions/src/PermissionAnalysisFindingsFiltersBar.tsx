@@ -5,6 +5,8 @@ import type { SetURLSearchParams } from 'react-router-dom';
 import { getFindingCodeDisplayParts, type PermissionAnalysisFinding, type PermissionExportRow } from './permission-export-result-view';
 import { usePermissionAnalysisIssuesFilters } from './permission-analysis-issues-filters';
 
+const popoverNeutralTriggerClassName = 'slds-button slds-button_neutral';
+
 const FindingCodeInline: FunctionComponent<{ code: string | undefined }> = ({ code }) => {
   const { title, technicalCode } = getFindingCodeDisplayParts(code);
   return (
@@ -51,7 +53,6 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
     errorFiltered,
     warningFiltered,
     issueCodeFilter,
-    groupBy,
     updateParams,
     setIssueCodeFilter,
   } = usePermissionAnalysisIssuesFilters({
@@ -63,25 +64,37 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
 
   return (
     <>
-      <Grid verticalAlign="center" wrap className="slds-gutters_x-small">
+      <div
+        css={css`
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: center;
+          gap: 0.25rem 0.5rem;
+        `}
+      >
         <Popover
           placement="bottom-start"
           header="Column / Scope"
+          buttonProps={{ className: popoverNeutralTriggerClassName }}
           content={
             <div className="slds-p-around_small slds-text-body_small">
               Matrix row and container toggles ship with the object-level matrix (Phase C). This control is reserved for that layout.
             </div>
           }
         >
-          <button type="button" className="slds-button slds-button_neutral slds-m-right_xx-small">
-            Column / Scope
-            <Icon type="utility" icon="down" className="slds-button__icon slds-button__icon_right" omitContainer />
-          </button>
+          Column / Scope
+          <Icon type="utility" icon="down" className="slds-button__icon slds-button__icon_right" omitContainer />
         </Popover>
 
         <Popover
           placement="bottom-start"
           header="Direct User Assignments"
+          buttonProps={{
+            className: popoverNeutralTriggerClassName,
+            disabled: !hasAssignmentData,
+            title: !hasAssignmentData ? 'Requires permission set assignment data from export' : undefined,
+          }}
           content={
             <div className="slds-p-around_small">
               <p className="slds-text-body_small slds-m-bottom_small">
@@ -123,20 +136,14 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
             </div>
           }
         >
-          <button
-            type="button"
-            className="slds-button slds-button_neutral slds-m-right_xx-small"
-            disabled={!hasAssignmentData}
-            title={!hasAssignmentData ? 'Requires permission set assignment data from export' : undefined}
-          >
-            Direct User Assignments
-            <Icon type="utility" icon="down" className="slds-button__icon slds-button__icon_right" omitContainer />
-          </button>
+          Direct User Assignments
+          <Icon type="utility" icon="down" className="slds-button__icon slds-button__icon_right" omitContainer />
         </Popover>
 
         <Popover
           placement="bottom-start"
           header="Finding Severity"
+          buttonProps={{ className: popoverNeutralTriggerClassName }}
           content={
             <div className="slds-p-around_small">
               <fieldset className="slds-form-element">
@@ -163,15 +170,14 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
             </div>
           }
         >
-          <button type="button" className="slds-button slds-button_neutral slds-m-right_xx-small">
-            Finding Severity
-            <Icon type="utility" icon="down" className="slds-button__icon slds-button__icon_right" omitContainer />
-          </button>
+          Finding Severity
+          <Icon type="utility" icon="down" className="slds-button__icon slds-button__icon_right" omitContainer />
         </Popover>
 
         <Popover
           placement="bottom-start"
           header="OLS / FLS"
+          buttonProps={{ className: popoverNeutralTriggerClassName }}
           content={
             <div className="slds-p-around_small">
               <fieldset className="slds-form-element">
@@ -198,59 +204,21 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
             </div>
           }
         >
-          <button type="button" className="slds-button slds-button_neutral slds-m-right_xx-small">
-            OLS / FLS
-            <Icon type="utility" icon="down" className="slds-button__icon slds-button__icon_right" omitContainer />
-          </button>
-        </Popover>
-
-        <Popover
-          placement="bottom-start"
-          header="Group By"
-          content={
-            <div className="slds-p-around_small">
-              <fieldset className="slds-form-element">
-                <legend className="slds-form-element__legend slds-text-title_caps">Findings group by</legend>
-                {(
-                  [
-                    ['none', 'None (default sort)'],
-                    ['severity', 'Severity'],
-                    ['object', 'Object'],
-                    ['code', 'Code'],
-                    ['container', 'Container'],
-                  ] as const
-                ).map(([value, label]) => (
-                  <div key={value} className="slds-radio">
-                    <input
-                      type="radio"
-                      id={`toolbar-issue-group-${value}`}
-                      name="toolbarCfGroup"
-                      value={value}
-                      checked={groupBy === value}
-                      onChange={() => updateParams({ cfGroup: value === 'none' ? null : value })}
-                    />
-                    <label className="slds-radio__label" htmlFor={`toolbar-issue-group-${value}`}>
-                      <span className="slds-radio_faux" />
-                      <span className="slds-form-element__label">{label}</span>
-                    </label>
-                  </div>
-                ))}
-              </fieldset>
-            </div>
-          }
-        >
-          <button type="button" className="slds-button slds-button_neutral slds-m-right_xx-small">
-            Group By
-            <Icon type="utility" icon="down" className="slds-button__icon slds-button__icon_right" omitContainer />
-          </button>
+          OLS / FLS
+          <Icon type="utility" icon="down" className="slds-button__icon slds-button__icon_right" omitContainer />
         </Popover>
 
         <button type="button" className="slds-button slds-button_neutral" onClick={() => setIssueCodesOpen(true)}>
-          <Icon type="utility" icon="filterList" className="slds-button__icon slds-button__icon_left" omitContainer />
+          <Icon type="utility" icon="feed" className="slds-button__icon slds-button__icon_left" omitContainer />
           Issue Codes
         </button>
-      </Grid>
-      <div className="slds-m-top_x-small slds-text-body_small">
+      </div>
+      <div
+        className="slds-m-top_xx-small slds-text-body_small"
+        css={css`
+          text-align: center;
+        `}
+      >
         Errors: {errorFiltered} / {errorTotal} · Warnings: {warningFiltered} / {warningTotal} · Showing {filteredFindings.length} of{' '}
         {findings.length} findings
         {issueCodeFilter ? (
