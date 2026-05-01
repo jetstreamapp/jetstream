@@ -298,14 +298,14 @@ function FieldUsageObjectGroupCell(props: RenderGroupCellProps<FieldUsageTreeRow
       }
       buttonProps={{
         className: 'slds-button slds-button_reset slds-text-align_left',
-        style: {
-          width: '100%',
-          height: '100%',
-          alignItems: 'center',
-          display: 'flex',
-          lineHeight: 1.25,
-          padding: '0.25rem 0.5rem 0.25rem 0.25rem',
-        },
+      }}
+      buttonStyle={{
+        width: '100%',
+        height: '100%',
+        alignItems: 'center',
+        display: 'flex',
+        lineHeight: 1.25,
+        padding: '0.25rem 0.5rem 0.25rem 0.25rem',
       }}
     >
       <span
@@ -417,8 +417,8 @@ function FieldUsageFieldNameCell({
       }
       buttonProps={{
         className: 'slds-button slds-button_reset slds-text-align_left',
-        style: { width: '100%', height: '100%', padding: 0 },
       }}
+      buttonStyle={{ width: '100%', height: '100%', padding: 0 }}
     >
       <div
         className="slds-p-vertical_xx-small"
@@ -1217,13 +1217,10 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
                   type="button"
                   className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
                   disabled={!canLoadAllRecords || loadAllRecordsSubmitting}
-                  css={css`
-                    padding: 0.35rem 0.65rem;
-                  `}
                   onClick={() => setLoadAllRecordsModalOpen(true)}
                 >
                   <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
-                  Load all records
+                  <span>Load all records</span>
                 </button>
               </Tooltip>
               <Tooltip ariaRole="label" content="View past field usage runs for this org">

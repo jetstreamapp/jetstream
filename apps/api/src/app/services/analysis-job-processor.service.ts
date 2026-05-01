@@ -118,7 +118,10 @@ async function runFieldUsageJob(jobId: string): Promise<void> {
         ? (payload as { objectApiNames?: unknown }).objectApiNames
         : undefined;
     const objectApiNames = Array.isArray(rawNames) ? rawNames.filter((n): n is string => typeof n === 'string' && n.trim().length > 0) : [];
-    const loadFullScan = payload && typeof payload === 'object' && (payload as { loadFullScan?: unknown }).loadFullScan === true;
+    const loadFullScan: boolean =
+      payload != null && typeof payload === 'object' && !Array.isArray(payload)
+        ? (payload as Record<string, unknown>).loadFullScan === true
+        : false;
 
     if (objectApiNames.length === 0) {
       await updateAnalysisJobById({
