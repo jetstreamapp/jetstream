@@ -8,9 +8,12 @@ import {
   AutoFullHeightContainer,
   ColumnWithFilter,
   DataTable,
+  DataTree,
+  Grid,
   Icon,
   Modal,
   ScopedNotification,
+  setColumnFromType,
   Spinner,
   Tabs,
   Toast,
@@ -21,8 +24,10 @@ import {
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
+import groupBy from 'lodash/groupBy';
 import { useAtomValue } from 'jotai';
-import { Fragment, FunctionComponent, useEffect, useMemo, useState } from 'react';
+import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
+import type { RenderGroupCellProps, SortColumn } from 'react-data-grid';
 import { Link, useSearchParams } from 'react-router-dom';
 import { parseFieldUsageJobResult, type FieldUsageJobResultParsed, type WhereUsedDependencyRowParsed } from './field-usage-result-parse';
 
@@ -31,18 +36,35 @@ const HEIGHT_BUFFER = 170;
 /** Custom fields at or below this fill rate appear on the **Low usage** tab. */
 const LOW_USAGE_PCT_THRESHOLD = 5;
 
-interface ObjectSummaryRow {
-  _key: string;
-  apiName: string;
-  label: string;
-  totalRecords: number;
-  queryTruncated: boolean;
-  customizable: boolean;
-  error?: string;
+const TREE_GROUP_BY = ['objectApiName'] as const;
+
+/** Tall enough for two-line Object/Field cell + padded "Where used" control (react-data-grid clips overflow). */
+const TREE_ROW_HEIGHT_LEAF_PX = 56;
+const TREE_ROW_HEIGHT_GROUP_PX = 58;
+
+/** Same reference every render — new arrays/functions here break TreeDataGrid measurement and can cause an update loop. */
+const FIELD_USAGE_DATA_TREE_GROUP_BY: readonly string[] = TREE_GROUP_BY;
+
+const FIELD_USAGE_TREE_INITIAL_SORT_BY_FIELD: SortColumn[] = [{ columnKey: 'fieldApiName', direction: 'ASC' }];
+
+const FIELD_USAGE_TREE_INITIAL_SORT_BY_PCT: SortColumn[] = [{ columnKey: 'pct', direction: 'ASC' }];
+
+function fieldUsageDataTreeRowHeight({ type }: { type: string }): number {
+  if (type === 'GROUP') {
+    return TREE_ROW_HEIGHT_GROUP_PX;
+  }
+  return TREE_ROW_HEIGHT_LEAF_PX;
 }
 
-interface FieldDetailRow {
+/** Leaf rows for {@link DataTree}, grouped by {@link FieldUsageTreeRow.objectApiName} (same pattern as field permissions editor). */
+interface FieldUsageTreeRow {
   _key: string;
+  objectApiName: string;
+  objectLabel: string;
+  objectTotalRecords: number;
+  objectQueryTruncated: boolean;
+  objectCustomizable: boolean;
+  objectError?: string;
   fieldApiName: string;
   fieldLabel: string;
   type: string;
@@ -50,16 +72,63 @@ interface FieldDetailRow {
   filled: number;
   pct: number;
   latestModified: string | null;
+  /** Synthetic row when the object payload has `error` and no field stats. */
+  isObjectErrorPlaceholder?: boolean;
 }
 
-interface LowUsageRow {
-  _key: string;
-  objectApiName: string;
-  fieldApiName: string;
-  fieldLabel: string;
-  type: string;
-  filled: number;
-  pct: number;
+function renderFieldUsageObjectGroupCell({ groupKey, childRows, isExpanded, toggleGroup }: RenderGroupCellProps<FieldUsageTreeRow>) {
+  const api = String(groupKey);
+  const sample = childRows[0];
+  const label = sample?.objectLabel?.trim() ? sample.objectLabel.trim() : api;
+  const analyzedFieldCount = childRows.filter((row) => !row.isObjectErrorPlaceholder).length;
+  return (
+    <button
+      type="button"
+      className="slds-button slds-button_reset slds-text-align_left"
+      css={css`
+        width: 100%;
+        height: 100%;
+        align-items: flex-start;
+        column-gap: 0.35rem;
+        display: flex;
+        line-height: 1.35;
+        padding: 0.35rem 0.5rem 0.35rem 0.25rem;
+        white-space: normal;
+      `}
+      onClick={toggleGroup}
+      title={api}
+    >
+      <Icon
+        type="utility"
+        icon={isExpanded ? 'chevrondown' : 'chevronright'}
+        className="slds-icon slds-icon-text-default slds-icon_x-small"
+        css={css`
+          flex-shrink: 0;
+          margin-top: 0.125rem;
+        `}
+        omitContainer
+        description={isExpanded ? 'Collapse' : 'Expand'}
+      />
+      <span
+        css={css`
+          flex: 1;
+          min-width: 0;
+          text-align: left;
+        `}
+      >
+        <span className="slds-text-body_small slds-text-bold">{label}</span> <code className="slds-text-body_small">{api}</code>
+        <span className="slds-text-body_small slds-text-color_weak">
+          {' '}
+          · {formatNumber(analyzedFieldCount)} field{analyzedFieldCount === 1 ? '' : 's'}
+          {' · '}
+          {formatNumber(sample?.objectTotalRecords ?? 0)} rows scanned
+          {sample?.objectQueryTruncated ? ' · truncated' : ''}
+          {sample?.objectCustomizable ? '' : ' · not customizable'}
+        </span>
+        {sample?.objectError ? <span className="slds-text-body_small slds-text-color_error"> · {sample.objectError}</span> : null}
+      </span>
+    </button>
+  );
 }
 
 interface WhereUsedTableRow {
@@ -88,8 +157,8 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
   const [jobRecord, setJobRecord] = useState<Record<string, unknown> | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [selectedObjectApiName, setSelectedObjectApiName] = useState<string | null>(null);
   const [whereUsedForKey, setWhereUsedForKey] = useState<string | null>(null);
+  const [expandedGroupIds, setExpandedGroupIds] = useState<ReadonlySet<unknown>>(() => new Set());
 
   useEffect(() => {
     if (!selectedOrg?.uniqueId || !jobId) {
@@ -185,44 +254,58 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
   const jobStatusNormalized = jobRecord?.status != null ? String(jobRecord.status).trim().toLowerCase() : '';
   const isTerminal = jobStatusNormalized === 'completed' || jobStatusNormalized === 'failed';
 
-  const parsedResult: FieldUsageJobResultParsed | null =
-    jobStatusNormalized === 'completed' && jobRecord?.result != null ? parseFieldUsageJobResult(jobRecord.result) : null;
+  /** Must be memoized: a fresh object every render makes `[parsedResult]` effects run forever (setExpandedGroupIds → re-render → parse again). */
+  const parsedResult: FieldUsageJobResultParsed | null = useMemo(() => {
+    if (jobStatusNormalized !== 'completed' || jobRecord?.result == null) {
+      return null;
+    }
+    return parseFieldUsageJobResult(jobRecord.result);
+  }, [jobStatusNormalized, jobRecord?.result]);
 
-  const objectSummaryRows: ObjectSummaryRow[] = useMemo(() => {
+  useEffect(() => {
+    if (!parsedResult) {
+      return;
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset expansion when a new job result loads so object groups start expanded
+    setExpandedGroupIds(new Set(Object.keys(parsedResult.objects)));
+  }, [parsedResult]);
+
+  const treeFieldRows: FieldUsageTreeRow[] = useMemo(() => {
     if (!parsedResult) {
       return [];
     }
-    return Object.keys(parsedResult.objects)
-      .sort((a, b) => a.localeCompare(b))
-      .map((apiName) => {
-        const payload = parsedResult.objects[apiName];
-        return {
-          _key: apiName,
-          apiName,
-          label: payload.label,
-          totalRecords: payload.totalRecords,
-          queryTruncated: payload.queryTruncated,
-          customizable: payload.customizable,
-          ...(payload.error ? { error: payload.error } : {}),
-        };
-      });
-  }, [parsedResult]);
-
-  const fieldRowsForSelection: FieldDetailRow[] = useMemo(() => {
-    if (!parsedResult || !selectedObjectApiName) {
-      return [];
-    }
-    const payload = parsedResult.objects[selectedObjectApiName];
-    if (!payload || payload.error) {
-      return [];
-    }
-    return Object.keys(payload.fieldUsage)
-      .sort((a, b) => a.localeCompare(b))
-      .map((fieldApiName) => {
+    const rows: FieldUsageTreeRow[] = [];
+    for (const objectApiName of Object.keys(parsedResult.objects).sort((a, b) => a.localeCompare(b))) {
+      const payload = parsedResult.objects[objectApiName];
+      const base = {
+        objectApiName,
+        objectLabel: payload.label,
+        objectTotalRecords: payload.totalRecords,
+        objectQueryTruncated: payload.queryTruncated,
+        objectCustomizable: payload.customizable,
+        ...(payload.error ? { objectError: payload.error } : {}),
+      };
+      if (payload.error) {
+        rows.push({
+          _key: `${objectApiName}::__error__`,
+          ...base,
+          fieldApiName: '—',
+          fieldLabel: payload.error,
+          type: '',
+          custom: false,
+          filled: 0,
+          pct: 0,
+          latestModified: null,
+          isObjectErrorPlaceholder: true,
+        });
+        continue;
+      }
+      for (const fieldApiName of Object.keys(payload.fieldUsage).sort((a, b) => a.localeCompare(b))) {
         const stat = payload.fieldUsage[fieldApiName];
         const meta = payload.fieldMeta[fieldApiName];
-        return {
-          _key: `${selectedObjectApiName}.${fieldApiName}`,
+        rows.push({
+          _key: `${objectApiName}.${fieldApiName}`,
+          ...base,
           fieldApiName,
           fieldLabel: meta?.label ?? fieldApiName,
           type: meta?.type ?? '',
@@ -230,15 +313,25 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
           filled: stat.filled,
           pct: stat.pct,
           latestModified: stat.latestFilledRowModified,
-        };
-      });
-  }, [parsedResult, selectedObjectApiName]);
+        });
+      }
+    }
+    return rows;
+  }, [parsedResult]);
 
-  const lowUsageRows: LowUsageRow[] = useMemo(() => {
+  const getTreeRowKey = useCallback((row: FieldUsageTreeRow) => row._key, []);
+
+  const objectsTabTotals = useMemo(() => {
+    const objectCount = parsedResult ? Object.keys(parsedResult.objects).length : 0;
+    const analyzedFieldCount = treeFieldRows.filter((row) => !row.isObjectErrorPlaceholder).length;
+    return { objectCount, analyzedFieldCount };
+  }, [parsedResult, treeFieldRows]);
+
+  const lowUsageTreeRows: FieldUsageTreeRow[] = useMemo(() => {
     if (!parsedResult) {
       return [];
     }
-    const rows: LowUsageRow[] = [];
+    const rows: FieldUsageTreeRow[] = [];
     for (const objectApiName of Object.keys(parsedResult.objects).sort()) {
       const payload = parsedResult.objects[objectApiName];
       if (!payload || payload.error) {
@@ -256,11 +349,17 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         rows.push({
           _key: `${objectApiName}.${fieldApiName}`,
           objectApiName,
+          objectLabel: payload.label,
+          objectTotalRecords: payload.totalRecords,
+          objectQueryTruncated: payload.queryTruncated,
+          objectCustomizable: payload.customizable,
           fieldApiName,
           fieldLabel: meta.label ?? fieldApiName,
           type: meta.type ?? '',
+          custom: true,
           filled: stat.filled,
           pct: stat.pct,
+          latestModified: stat.latestFilledRowModified,
         });
       }
     }
@@ -281,163 +380,112 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
     }));
   }, [parsedResult, whereUsedForKey]);
 
-  const objectColumns: ColumnWithFilter<ObjectSummaryRow>[] = useMemo(
+  const treeColumns: ColumnWithFilter<FieldUsageTreeRow>[] = useMemo(
     () => [
       {
-        name: 'Object API',
-        key: 'apiName',
-        type: 'text',
-        width: 200,
+        ...setColumnFromType<FieldUsageTreeRow>('objectApiName', 'text'),
+        name: '',
+        key: 'objectApiName',
+        width: 40,
+        minWidth: 36,
+        maxWidth: 44,
+        resizable: false,
+        sortable: false,
+        renderGroupCell: ({ isExpanded }) => (
+          <Grid align="end" verticalAlign="center" className="slds-p-right_xx-small h-100">
+            <Icon
+              icon={isExpanded ? 'chevrondown' : 'chevronright'}
+              type="utility"
+              className="slds-icon slds-icon-text-default slds-icon_x-small"
+              title={isExpanded ? 'Expanded' : 'Collapsed'}
+            />
+          </Grid>
+        ),
+        renderCell: () => null,
       },
       {
-        name: 'Label',
-        key: 'label',
-        type: 'text',
-        width: 200,
+        ...setColumnFromType<FieldUsageTreeRow>('fieldApiName', 'text'),
+        name: 'Object / Field',
+        key: 'fieldApiName',
+        width: 340,
+        minWidth: 200,
+        renderGroupCell: renderFieldUsageObjectGroupCell,
+        renderCell: (p) =>
+          p.row.isObjectErrorPlaceholder ? (
+            <span className="slds-text-body_small slds-text-color_error">{p.row.fieldLabel}</span>
+          ) : (
+            <div className="slds-p-vertical_xx-small">
+              <div className="slds-text-body_small">
+                <code>{p.row.fieldApiName}</code>
+              </div>
+              <div className="slds-text-body_small slds-text-color_weak slds-truncate" title={p.row.fieldLabel}>
+                {p.row.fieldLabel}
+              </div>
+            </div>
+          ),
+        getValue: ({ row }) => `${row.fieldApiName} ${row.fieldLabel}`,
       },
       {
-        name: 'Records scanned',
-        key: 'totalRecords',
-        type: 'number',
-        width: 140,
-        renderCell: (p) => <span>{formatNumber(p.row.totalRecords)}</span>,
-      },
-      {
-        name: 'Truncated',
-        key: 'queryTruncated',
-        type: 'text',
-        width: 100,
-        renderCell: (p) => <span>{p.row.queryTruncated ? 'Yes' : 'No'}</span>,
-      },
-      {
-        name: 'Customizable',
-        key: 'customizable',
+        name: 'Type',
+        key: 'type',
         type: 'text',
         width: 120,
-        renderCell: (p) => <span>{p.row.customizable ? 'Yes' : 'No'}</span>,
+        renderGroupCell: () => null,
+        renderCell: (p) => <span>{p.row.isObjectErrorPlaceholder ? '' : p.row.type}</span>,
       },
-      {
-        name: 'Error',
-        key: 'error',
-        type: 'text',
-        width: 220,
-        renderCell: (p) => (
-          <span className="slds-truncate" title={p.row.error}>
-            {p.row.error ?? ''}
-          </span>
-        ),
-      },
-      {
-        name: '',
-        key: 'openFields',
-        type: 'text',
-        width: 130,
-        sortable: false,
-        renderCell: (p) => (
-          <button
-            type="button"
-            className="slds-button slds-button_neutral slds-button_stretch"
-            onClick={() => setSelectedObjectApiName(p.row.apiName)}
-          >
-            Fields
-          </button>
-        ),
-      },
-    ],
-    [],
-  );
-
-  const fieldColumns: ColumnWithFilter<FieldDetailRow>[] = useMemo(
-    () => [
-      { name: 'Field API', key: 'fieldApiName', type: 'text', width: 200 },
-      { name: 'Label', key: 'fieldLabel', type: 'text', width: 180 },
-      { name: 'Type', key: 'type', type: 'text', width: 120 },
       {
         name: 'Custom',
         key: 'custom',
         type: 'text',
-        width: 90,
-        renderCell: (p) => <span>{p.row.custom ? 'Yes' : 'No'}</span>,
+        width: 88,
+        renderGroupCell: () => null,
+        renderCell: (p) => <span>{p.row.isObjectErrorPlaceholder ? '' : p.row.custom ? 'Yes' : 'No'}</span>,
       },
       {
         name: 'Filled',
         key: 'filled',
         type: 'number',
         width: 100,
-        renderCell: (p) => <span>{formatNumber(p.row.filled)}</span>,
+        renderGroupCell: () => null,
+        renderCell: (p) => <span>{p.row.isObjectErrorPlaceholder ? '' : formatNumber(p.row.filled)}</span>,
       },
       {
         name: '% Filled',
         key: 'pct',
         type: 'number',
         width: 100,
-        renderCell: (p) => <span>{p.row.pct.toFixed(1)}%</span>,
+        renderGroupCell: () => null,
+        renderCell: (p) => <span>{p.row.isObjectErrorPlaceholder ? '' : `${p.row.pct.toFixed(1)}%`}</span>,
       },
       {
         name: 'Latest value row mod',
         key: 'latestModified',
         type: 'text',
         width: 200,
-        renderCell: (p) => <span>{p.row.latestModified ?? '—'}</span>,
+        renderGroupCell: () => null,
+        renderCell: (p) => <span>{p.row.isObjectErrorPlaceholder ? '' : (p.row.latestModified ?? '—')}</span>,
       },
       {
         name: '',
         key: 'whereUsed',
         type: 'text',
-        width: 110,
+        width: 120,
         sortable: false,
+        renderGroupCell: () => null,
         renderCell: (p) =>
-          p.row.fieldApiName.endsWith('__c') ? (
-            <button
-              type="button"
-              className="slds-button slds-button_neutral slds-button_stretch"
-              onClick={() => setWhereUsedForKey(`${selectedObjectApiName}.${p.row.fieldApiName}`)}
-            >
-              Where used
-            </button>
-          ) : (
+          p.row.isObjectErrorPlaceholder || !p.row.fieldApiName.endsWith('__c') ? (
             <span className="slds-text-color_weak">—</span>
+          ) : (
+            <div className="slds-p-around_x-small">
+              <button
+                type="button"
+                className="slds-button slds-button_neutral slds-button_stretch"
+                onClick={() => setWhereUsedForKey(`${p.row.objectApiName}.${p.row.fieldApiName}`)}
+              >
+                Where used
+              </button>
+            </div>
           ),
-      },
-    ],
-    [selectedObjectApiName],
-  );
-
-  const lowUsageColumns: ColumnWithFilter<LowUsageRow>[] = useMemo(
-    () => [
-      { name: 'Object', key: 'objectApiName', type: 'text', width: 180 },
-      { name: 'Field', key: 'fieldApiName', type: 'text', width: 200 },
-      { name: 'Label', key: 'fieldLabel', type: 'text', width: 180 },
-      { name: 'Type', key: 'type', type: 'text', width: 120 },
-      {
-        name: 'Filled',
-        key: 'filled',
-        type: 'number',
-        width: 100,
-        renderCell: (p) => <span>{formatNumber(p.row.filled)}</span>,
-      },
-      {
-        name: '% Filled',
-        key: 'pct',
-        type: 'number',
-        width: 100,
-        renderCell: (p) => <span>{p.row.pct.toFixed(1)}%</span>,
-      },
-      {
-        name: '',
-        key: 'wu',
-        type: 'text',
-        width: 110,
-        sortable: false,
-        renderCell: (p) => (
-          <button
-            type="button"
-            className="slds-button slds-button_neutral slds-button_stretch"
-            onClick={() => setWhereUsedForKey(`${p.row.objectApiName}.${p.row.fieldApiName}`)}
-          >
-            Where used
-          </button>
-        ),
       },
     ],
     [],
@@ -469,10 +517,10 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
                 className="slds-icon slds-icon_small"
               />
             </span>
-            Objects & fields
+            Objects & Fields
           </Fragment>
         ),
-        titleText: 'Objects and fields',
+        titleText: 'Objects and Fields',
         content: (
           <div className="slds-p-around_small">
             {parsedResult.truncated && (
@@ -482,41 +530,34 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
                 </ScopedNotification>
               </div>
             )}
-            <h3 className="slds-text-heading_small slds-m-bottom_x-small">Objects</h3>
-            <div
-              css={css`
-                min-height: 200px;
-              `}
-            >
-              <DataTable columns={objectColumns} data={objectSummaryRows} getRowKey={(row) => row._key} includeQuickFilter rowHeight={32} />
-            </div>
-            {selectedObjectApiName && (
-              <div className="slds-m-top_medium">
-                <div className="slds-grid slds-grid_align-spread slds-m-bottom_x-small">
-                  <h3 className="slds-text-heading_small">Fields — {selectedObjectApiName}</h3>
-                  <button
-                    type="button"
-                    className="slds-button slds-button_reset slds-text-link"
-                    onClick={() => setSelectedObjectApiName(null)}
-                  >
-                    Clear selection
-                  </button>
-                </div>
-                <div
-                  css={css`
-                    min-height: 200px;
-                  `}
-                >
-                  <DataTable
-                    columns={fieldColumns}
-                    data={fieldRowsForSelection}
-                    getRowKey={(row) => row._key}
-                    includeQuickFilter
-                    initialSortColumns={[{ columnKey: 'pct', direction: 'ASC' }]}
-                    rowHeight={32}
-                  />
-                </div>
-              </div>
+            {treeFieldRows.length === 0 ? (
+              <ScopedNotification theme="info">No object rows in this result.</ScopedNotification>
+            ) : (
+              <AutoFullHeightContainer
+                fillHeight
+                bottomBuffer={24}
+                baseCss={css`
+                  min-height: 280px;
+                `}
+              >
+                <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_x-small">
+                  {formatNumber(objectsTabTotals.analyzedFieldCount)} analyzed field
+                  {objectsTabTotals.analyzedFieldCount === 1 ? '' : 's'} across {formatNumber(objectsTabTotals.objectCount)} object
+                  {objectsTabTotals.objectCount === 1 ? '' : 's'}.
+                </p>
+                <DataTree
+                  columns={treeColumns}
+                  data={treeFieldRows}
+                  getRowKey={getTreeRowKey}
+                  includeQuickFilter
+                  groupBy={FIELD_USAGE_DATA_TREE_GROUP_BY}
+                  rowGrouper={groupBy}
+                  expandedGroupIds={expandedGroupIds}
+                  onExpandedGroupIdsChange={setExpandedGroupIds}
+                  rowHeight={fieldUsageDataTreeRowHeight}
+                  initialSortColumns={FIELD_USAGE_TREE_INITIAL_SORT_BY_FIELD}
+                />
+              </AutoFullHeightContainer>
             )}
           </div>
         ),
@@ -528,8 +569,8 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
             <span className="slds-tabs__left-icon">
               <Icon
                 type="standard"
-                icon="metrics"
-                containerClassname="slds-icon_container slds-icon-standard-metrics"
+                icon="chart"
+                containerClassname="slds-icon_container slds-icon-standard-chart"
                 className="slds-icon slds-icon_small"
               />
             </span>
@@ -542,20 +583,30 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
             <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_small">
               Custom fields (`__c`) at or below {LOW_USAGE_PCT_THRESHOLD}% population across scanned rows.
             </p>
-            <div
-              css={css`
-                min-height: 240px;
-              `}
-            >
-              <DataTable
-                columns={lowUsageColumns}
-                data={lowUsageRows}
-                getRowKey={(row) => row._key}
-                includeQuickFilter
-                initialSortColumns={[{ columnKey: 'pct', direction: 'ASC' }]}
-                rowHeight={32}
-              />
-            </div>
+            {lowUsageTreeRows.length === 0 ? (
+              <ScopedNotification theme="info">No custom fields at or below this threshold for the selected objects.</ScopedNotification>
+            ) : (
+              <AutoFullHeightContainer
+                fillHeight
+                bottomBuffer={24}
+                baseCss={css`
+                  min-height: 280px;
+                `}
+              >
+                <DataTree
+                  columns={treeColumns}
+                  data={lowUsageTreeRows}
+                  getRowKey={getTreeRowKey}
+                  includeQuickFilter
+                  groupBy={FIELD_USAGE_DATA_TREE_GROUP_BY}
+                  rowGrouper={groupBy}
+                  expandedGroupIds={expandedGroupIds}
+                  onExpandedGroupIdsChange={setExpandedGroupIds}
+                  rowHeight={fieldUsageDataTreeRowHeight}
+                  initialSortColumns={FIELD_USAGE_TREE_INITIAL_SORT_BY_PCT}
+                />
+              </AutoFullHeightContainer>
+            )}
           </div>
         ),
       },
@@ -590,17 +641,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         ),
       },
     ];
-  }, [
-    parsedResult,
-    objectSummaryRows,
-    objectColumns,
-    fieldColumns,
-    fieldRowsForSelection,
-    selectedObjectApiName,
-    lowUsageRows,
-    lowUsageColumns,
-    jobRecord?.result,
-  ]);
+  }, [parsedResult, treeFieldRows, treeColumns, lowUsageTreeRows, expandedGroupIds, getTreeRowKey, objectsTabTotals, jobRecord?.result]);
 
   return (
     <div>
