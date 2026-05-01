@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import classNames from 'classnames';
-import { Grid, Icon, Modal, Popover, ToolbarItemGroup, type PopoverRef } from '@jetstream/ui';
-import { FunctionComponent, ReactNode, useRef, useState } from 'react';
+import { Icon, Popover, ToolbarItemGroup, type PopoverRef } from '@jetstream/ui';
+import { FunctionComponent, ReactNode, useRef } from 'react';
 import type { SetURLSearchParams } from 'react-router-dom';
 import { type IssueScopeFilterContext, usePermissionAnalysisIssuesFilters } from './permission-analysis-issues-filters';
 import { getFindingCodeDisplayParts, type PermissionAnalysisFinding, type PermissionExportRow } from './permission-export-result-view';
@@ -45,12 +45,18 @@ function ToolbarFilterButton({
   filterActive,
   onReset,
   showResetFooter = true,
+  popoverHeaderTitle = 'Filter',
+  triggerIcon = 'filterList',
   children,
 }: {
   label: string;
   filterActive: boolean;
-  onReset: () => void;
+  /** Required when `showResetFooter` is true (default). */
+  onReset?: () => void;
   showResetFooter?: boolean;
+  /** Popover header (filter panels use "Filter"; stats-only panels use a specific title). */
+  popoverHeaderTitle?: string;
+  triggerIcon?: 'filterList' | 'feed';
   children: ReactNode;
 }) {
   const popoverRef = useRef<PopoverRef | null>(null);
@@ -67,7 +73,7 @@ function ToolbarFilterButton({
         ref={popoverRef}
         header={
           <header className="slds-popover__header" onPointerDown={(ev) => ev.stopPropagation()}>
-            <h2 className="slds-text-heading_small">Filter</h2>
+            <h2 className="slds-text-heading_small">{popoverHeaderTitle}</h2>
           </header>
         }
         footer={
@@ -77,7 +83,7 @@ function ToolbarFilterButton({
                 type="button"
                 className="slds-button slds-button_neutral slds-m-top_x-small"
                 onClick={() => {
-                  onReset();
+                  onReset?.();
                   popoverRef.current?.close();
                 }}
               >
@@ -100,7 +106,7 @@ function ToolbarFilterButton({
       >
         <Icon
           type="utility"
-          icon="filterList"
+          icon={triggerIcon}
           className={classNames('slds-button__icon slds-button__icon_left', {
             'slds-text-color_brand': filterActive,
           })}
@@ -130,8 +136,6 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
   setSearchParams,
   issueScopeFilterContext,
 }) => {
-  const [issueCodesOpen, setIssueCodesOpen] = useState(false);
-
   const {
     severityFilter,
     olsFlsFilter,
@@ -309,25 +313,51 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
           </fieldset>
         </ToolbarFilterButton>
 
-        <div onClick={(ev) => ev.stopPropagation()} onPointerDown={(ev) => ev.stopPropagation()} onKeyDown={(ev) => ev.stopPropagation()}>
-          <button
-            type="button"
-            className="slds-button slds-button_neutral"
-            aria-label="Issue Codes"
-            title="Issue Codes"
-            onClick={() => setIssueCodesOpen(true)}
+        <ToolbarFilterButton
+          label="Issue Codes"
+          filterActive={!!issueCodeFilter}
+          showResetFooter={false}
+          popoverHeaderTitle="Issue codes"
+          triggerIcon="feed"
+        >
+          <p css={filterPanelHelpTextCss} className="slds-text-body_small slds-text-color_weak">
+            Counts for the current toolbar filters ({filteredFindings.length} finding{filteredFindings.length === 1 ? '' : 's'}). Filter by
+            issue using the Issue column on the Issues grid.
+          </p>
+          <div
+            css={css`
+              max-height: min(50vh, 280px);
+              overflow: auto;
+            `}
           >
-            <Icon
-              type="utility"
-              icon="feed"
-              className={classNames('slds-button__icon slds-button__icon_left', {
-                'slds-text-color_brand': !!issueCodeFilter,
-              })}
-              omitContainer
-            />
-            <span className="slds-truncate">Issue Codes</span>
-          </button>
-        </div>
+            <table className="slds-table slds-table_cell-buffer slds-table_bordered">
+              <thead>
+                <tr className="slds-line-height_reset">
+                  <th scope="col">Issue</th>
+                  <th scope="col">Count</th>
+                </tr>
+              </thead>
+              <tbody>
+                {issueCodeRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={2} className="slds-text-body_small slds-text-color_weak">
+                      No issue codes in the current filter.
+                    </td>
+                  </tr>
+                ) : (
+                  issueCodeRows.map((row) => (
+                    <tr key={row.code} className="slds-line-height_reset">
+                      <td>
+                        <FindingCodeInline code={row.code === '(no code)' ? undefined : row.code} />
+                      </td>
+                      <td>{row.count}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </ToolbarFilterButton>
       </ToolbarItemGroup>
       <div
         className="slds-m-top_xx-small slds-text-body_small"
@@ -347,67 +377,6 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
           </>
         ) : null}
       </div>
-
-      {issueCodesOpen && (
-        <Modal
-          testId="permission-analysis-issue-codes"
-          size="lg"
-          header="Issue Codes"
-          tagline="Click a row to filter findings to that issue."
-          closeOnBackdropClick
-          directionalFooter
-          footer={
-            <Grid align="end">
-              <button type="button" className="slds-button slds-button_neutral" onClick={() => setIssueCodesOpen(false)}>
-                Close
-              </button>
-            </Grid>
-          }
-          onClose={() => setIssueCodesOpen(false)}
-        >
-          <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_small">
-            Counts for the current finding filters ({filteredFindings.length} row{filteredFindings.length === 1 ? '' : 's'}).
-          </p>
-          <table className="slds-table slds-table_cell-buffer slds-table_bordered">
-            <thead>
-              <tr className="slds-line-height_reset">
-                <th scope="col">Issue</th>
-                <th scope="col">Count</th>
-              </tr>
-            </thead>
-            <tbody>
-              {issueCodeRows.map((row) => (
-                <tr
-                  key={row.code}
-                  className="slds-hint-parent"
-                  css={css`
-                    cursor: pointer;
-                  `}
-                  onClick={() => {
-                    const nextFilter = row.code === '(no code)' ? null : row.code;
-                    const toggled = nextFilter != null && issueCodeFilter === nextFilter ? null : nextFilter;
-                    setIssueCodeFilter(toggled);
-                    setIssueCodesOpen(false);
-                  }}
-                >
-                  <td>
-                    <FindingCodeInline code={row.code === '(no code)' ? undefined : row.code} />
-                  </td>
-                  <td>{row.count}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {issueCodeFilter && (
-            <p className="slds-m-top_small slds-text-body_small">
-              Filtered to <FindingCodeInline code={issueCodeFilter} />.{' '}
-              <button type="button" className="slds-button slds-button_link" onClick={() => setIssueCodeFilter(null)}>
-                Clear issue filter
-              </button>
-            </p>
-          )}
-        </Modal>
-      )}
     </>
   );
 };
