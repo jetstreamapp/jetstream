@@ -43,7 +43,7 @@ import { useAtom, useAtomValue } from 'jotai';
 import type { SalesforceOrgUi } from '@jetstream/types';
 import { Fragment, FunctionComponent, type Key, MouseEvent, type ReactElement, useCallback, useEffect, useMemo, useState } from 'react';
 import { SELECT_COLUMN_KEY, SelectColumn, type RenderGroupCellProps, type SortColumn } from 'react-data-grid';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useHref, useSearchParams } from 'react-router-dom';
 import { fieldUsageRowsToCustomFieldDeleteMetadata, fieldUsageRowEligibleForDestructiveDelete } from './field-usage-destructive-delete';
 import {
   countWhereUsedByUiCategory,
@@ -170,8 +170,14 @@ function buildFieldUsageObjectQuerySoql(objectApiName: string, childRows: readon
  * Opens Query Results in a new tab. Writes initial SOQL to `localStorage` under key `query` because `location.state`
  * is not passed through `window.open`, and `sessionStorage` is not visible in the new tab (each top-level tab has its
  * own session storage). {@link QueryResults} reads this handoff and clears `localStorage` after applying.
+ * `queryResultsHref` must come from {@link useHref} so the path includes the app router basename (e.g. `/app`).
  */
-function openFieldUsageObjectQueryInNewTab(objectApiName: string, objectLabel: string, childRows: readonly FieldUsageTreeRow[]): void {
+function openFieldUsageObjectQueryInNewTab(
+  objectApiName: string,
+  objectLabel: string,
+  childRows: readonly FieldUsageTreeRow[],
+  queryResultsHref: string,
+): void {
   const soql = buildFieldUsageObjectQuerySoql(objectApiName, childRows);
   setItemInLocalStorage(
     'query',
@@ -181,9 +187,7 @@ function openFieldUsageObjectQueryInNewTab(objectApiName: string, objectLabel: s
       sobject: { name: objectApiName, label: objectLabel },
     }),
   );
-  const path = `${APP_ROUTES.QUERY.ROUTE}/results`;
-  const search = APP_ROUTES.QUERY.SEARCH_PARAM;
-  window.open(search ? `${path}?${search}` : path, '_blank', 'noopener,noreferrer');
+  window.open(queryResultsHref, '_blank', 'noopener,noreferrer');
 }
 
 const FIELD_USAGE_POPOVER_PANEL_PROPS = {
@@ -208,13 +212,17 @@ function FieldUsageObjectGroupCell(props: RenderGroupCellProps<FieldUsageTreeRow
   const slug = api.replace(/[^a-zA-Z0-9_-]+/g, '-');
   const returnUrl = fieldUsageObjectManagerReturnUrl(api, 'details');
   const canDeepLink = Boolean(org?.uniqueId && serverUrl);
+  const queryResultsHref = useHref({
+    pathname: `${APP_ROUTES.QUERY.ROUTE}/results`,
+    ...(APP_ROUTES.QUERY.SEARCH_PARAM ? { search: `?${APP_ROUTES.QUERY.SEARCH_PARAM}` } : {}),
+  });
 
   const handleOpenQueryResults = useCallback(
     (event: MouseEvent<HTMLButtonElement>) => {
       event.stopPropagation();
-      openFieldUsageObjectQueryInNewTab(api, label, childRows);
+      openFieldUsageObjectQueryInNewTab(api, label, childRows, queryResultsHref);
     },
-    [api, label, childRows],
+    [api, label, childRows, queryResultsHref],
   );
 
   return (
