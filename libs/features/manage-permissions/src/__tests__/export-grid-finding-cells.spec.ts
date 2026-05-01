@@ -6,10 +6,14 @@ import {
   buildFieldPermissionFindingCellHighlights,
   buildPermissionSetAssigneeIdsByPermissionSetId,
   buildPermissionSetAssignmentsTreeRows,
+  buildPermissionSetGroupLabelMap,
+  buildPermissionSetIdToGroupIdsMap,
+  buildUserAssignmentsTreeRows,
   fieldPermissionCellSeverity,
   fieldPermissionFindingRowKey,
   listFindingsForExportContainer,
   listFindingsForFieldPermissionCell,
+  sortUserAssignmentsTreeRowsByUserDisplay,
 } from '../permission-export-result-view';
 
 describe('buildFieldPermissionFindingCellHighlights', () => {
@@ -172,5 +176,89 @@ describe('buildPermissionSetAssignmentsTreeRows', () => {
     const leaves = buildPermissionSetAssignmentsTreeRows(permSets, []);
     const groupOrder = [...new Set(leaves.map((row) => row._treePermissionSetGroupKey))];
     expect(groupOrder).toEqual([psA, psB]);
+  });
+});
+
+describe('buildUserAssignmentsTreeRows', () => {
+  it('groups by user: profile first, permission sets (alpha), inferred groups, then licenses', () => {
+    const u1 = '005000000000001';
+    const u2 = '005000000000002';
+    const ps1 = '0PS000000000001';
+    const ps2 = '0PS000000000002';
+    const g1 = '0PG000000000001';
+    const assignments = [
+      { PermissionSetId: ps1, AssigneeId: u1 },
+      { PermissionSetId: ps2, AssigneeId: u1 },
+      { PermissionSetId: ps1, AssigneeId: u2 },
+    ];
+    const permissionSets = [
+      { Id: ps1, Label: 'B Perm', Name: 'B_Perm' },
+      { Id: ps2, Label: 'A Perm', Name: 'A_Perm' },
+    ];
+    const groupComponents = [
+      { PermissionSetId: ps1, PermissionSetGroupId: g1 },
+      { PermissionSetId: ps2, PermissionSetGroupId: g1 },
+    ];
+    const groups = [{ Id: g1, MasterLabel: 'My Group', DeveloperName: 'My_Group' }];
+    const licensesByUserId = new Map([
+      [u1, [{ permissionSetLicenseId: '0PL000000000001', label: 'License B' }]],
+      [u2, [{ permissionSetLicenseId: '0PL000000000002', label: 'License A' }]],
+    ]);
+
+    const rows = buildUserAssignmentsTreeRows({
+      assignments,
+      permissionSets,
+      groupComponents: groupComponents,
+      groups,
+      licensesByUserId,
+    });
+
+    const kindsForUser = (userId: string) => rows.filter((row) => row._treeUserGroupKey === userId).map((row) => row._leafKind);
+
+    expect(kindsForUser(u1)).toEqual(['profile', 'permission_set', 'permission_set', 'permission_set_group', 'permission_set_license']);
+    expect(kindsForUser(u2)).toEqual(['profile', 'permission_set', 'permission_set_group', 'permission_set_license']);
+
+    const psLeavesU1 = rows.filter((row) => row._treeUserGroupKey === u1 && row._leafKind === 'permission_set');
+    expect(psLeavesU1.map((row) => row._permissionSetId)).toEqual([ps2, ps1]);
+
+    const groupLeaf = rows.find((row) => row._leafKind === 'permission_set_group' && row._treeUserGroupKey === u1);
+    expect(groupLeaf?._permissionSetGroupId).toBe(g1);
+
+    const licenseLeaf = rows.find((row) => row._leafKind === 'permission_set_license' && row._treeUserGroupKey === u1);
+    expect(licenseLeaf?._licenseLabel).toBe('License B');
+  });
+});
+
+describe('buildPermissionSetIdToGroupIdsMap', () => {
+  it('maps permission set Ids to group Ids', () => {
+    const map = buildPermissionSetIdToGroupIdsMap([
+      { PermissionSetId: '0PS1', PermissionSetGroupId: '0PG1' },
+      { PermissionSetId: '0PS1', PermissionSetGroupId: '0PG2' },
+    ]);
+    expect([...(map.get('0PS1') ?? [])].sort()).toEqual(['0PG1', '0PG2']);
+  });
+});
+
+describe('buildPermissionSetGroupLabelMap', () => {
+  it('prefers MasterLabel over DeveloperName', () => {
+    const map = buildPermissionSetGroupLabelMap([{ Id: '0PG1', MasterLabel: 'Nice', DeveloperName: 'X' }]);
+    expect(map.get('0PG1')).toBe('Nice');
+  });
+});
+
+describe('sortUserAssignmentsTreeRowsByUserDisplay', () => {
+  it('orders user blocks by display label', () => {
+    const rows = [
+      { Id: '1', _treeUserGroupKey: '005B', _leafKind: 'profile' as const },
+      { Id: '2', _treeUserGroupKey: '005A', _leafKind: 'profile' as const },
+    ];
+    const sorted = sortUserAssignmentsTreeRowsByUserDisplay(
+      rows,
+      new Map([
+        ['005A', 'Zebra'],
+        ['005B', 'Alpha'],
+      ]),
+    );
+    expect(sorted.map((row) => row._treeUserGroupKey)).toEqual(['005B', '005A']);
   });
 });

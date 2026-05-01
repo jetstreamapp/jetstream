@@ -46,6 +46,12 @@ export function getProfileOrPermSetSetupUrl(recordType: ProfileOrPermSetRecordTy
   return `/lightning/setup/${basePath}/page?address=${encodeURIComponent(`/${recordId}?noredirect=1`)}`;
 }
 
+/** Setup → Permission Set Groups → group detail. */
+export function getPermissionSetGroupSetupUrl(permissionSetGroupId: string): string {
+  const trimmed = permissionSetGroupId.trim();
+  return `/lightning/setup/PermSetGroups/page?address=${encodeURIComponent(`/${trimmed}?noredirect=1`)}`;
+}
+
 /** Setup → Users → user detail (expects a Salesforce User Id, prefix `005`). */
 export function getSalesforceUserManageSetupUrl(userId: string): string {
   const trimmed = userId.trim();

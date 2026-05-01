@@ -23,6 +23,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { PermissionAnalysisExportGrid } from './PermissionAnalysisExportGrid';
 import { PermissionAnalysisObjectPermissionsTree } from './PermissionAnalysisObjectPermissionsTree';
 import { PermissionAnalysisPermissionSetsTree } from './PermissionAnalysisPermissionSetsTree';
+import { PermissionAnalysisUserAssignmentsTree } from './PermissionAnalysisUserAssignmentsTree';
 import { PermissionAnalysisHistoryModal } from './PermissionAnalysisHistoryModal';
 import { PermissionAnalysisIssuesTab } from './PermissionAnalysisIssuesTab';
 import {
@@ -365,17 +366,20 @@ export const PermissionAnalysisView: FunctionComponent = () => {
         titleText: 'Assignments',
         content: (
           <div
-            className="slds-p-around_x-small"
+            className="slds-grid slds-grid_vertical slds-p-around_x-small"
             css={css`
               height: 100%;
             `}
           >
             {renderTruncationNotice()}
-            <PermissionAnalysisExportGrid
-              rows={exportBundle.permissionSetAssignments}
+            <PermissionAnalysisUserAssignmentsTree
+              permissionSetAssignments={exportBundle.permissionSetAssignments}
+              permissionSets={exportBundle.permissionSets}
+              permissionSetGroupComponents={exportBundle.permissionSetGroupComponents}
+              permissionSetGroups={exportBundle.permissionSetGroups}
+              findings={findings}
+              containerLabelById={containerLabelById}
               {...gridProps}
-              {...exportFindingProps}
-              findingSurface="assignment_row"
             />
           </div>
         ),
