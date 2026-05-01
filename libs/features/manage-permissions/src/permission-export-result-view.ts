@@ -17,6 +17,30 @@ export interface PermissionExportBundle {
   permissionSetTabSettings: PermissionExportRow[];
 }
 
+/** Describe + EntityDefinition metadata for permission export SobjectType cells. */
+export interface SobjectExportDetail {
+  apiName: string;
+  label: string;
+  description: string | null;
+}
+
+export function collectSobjectApiNamesFromPermissionExport(exportBundle: PermissionExportBundle): string[] {
+  const names = new Set<string>();
+  for (const row of exportBundle.objectPermissions) {
+    const value = row.SobjectType;
+    if (typeof value === 'string' && value.trim().length > 0) {
+      names.add(value.trim());
+    }
+  }
+  for (const row of exportBundle.fieldPermissions) {
+    const value = row.SobjectType;
+    if (typeof value === 'string' && value.trim().length > 0) {
+      names.add(value.trim());
+    }
+  }
+  return [...names].sort((a, b) => a.localeCompare(b));
+}
+
 export interface ParsedPermissionExportResult {
   phase: string | null;
   summary: string | null;
@@ -148,7 +172,8 @@ export function parsePermissionExportResult(jobResult: unknown): ParsedPermissio
 
 const COLUMN_KEY_ORDER = ['Id', 'ParentId', 'PermissionSetId', 'PermissionSetGroupId', 'AssigneeId', 'SobjectType', 'Field'];
 
-function sortedColumnKeys(rows: PermissionExportRow[]): string[] {
+/** Column key order for export grids and the object-permissions tree (stable, readable columns). */
+export function sortedExportColumnKeys(rows: PermissionExportRow[]): string[] {
   const keys = new Set<string>();
   for (const row of rows) {
     for (const key of Object.keys(row)) {
@@ -166,6 +191,55 @@ function sortedColumnKeys(rows: PermissionExportRow[]): string[] {
   return ordered;
 }
 
+/**
+ * Salesforce `ObjectPermissions` API fields in grid order: Create, Read, Edit, Delete,
+ * View All Records, Modify All Records, View All Fields.
+ */
+export const OBJECT_PERMISSION_COLUMN_KEY_ORDER = [
+  'PermissionsCreate',
+  'PermissionsRead',
+  'PermissionsEdit',
+  'PermissionsDelete',
+  'PermissionsViewAllRecords',
+  'PermissionsModifyAllRecords',
+  'PermissionsViewAllFields',
+] as const;
+
+function isObjectPermissionsExportSample(sample: PermissionExportRow): boolean {
+  return 'PermissionsDelete' in sample;
+}
+
+/**
+ * `Permissions*` keys present on rows, in {@link OBJECT_PERMISSION_COLUMN_KEY_ORDER}, then any extras (sorted).
+ */
+export function sortedObjectPermissionBooleanKeys(rows: PermissionExportRow[]): string[] {
+  if (!rows.length) {
+    return [];
+  }
+  const keySet = new Set<string>();
+  for (const row of rows) {
+    for (const key of Object.keys(row)) {
+      if (key.startsWith('Permissions')) {
+        keySet.add(key);
+      }
+    }
+  }
+  const orderSet = new Set<string>(OBJECT_PERMISSION_COLUMN_KEY_ORDER);
+  const primary = OBJECT_PERMISSION_COLUMN_KEY_ORDER.filter((key) => keySet.has(key));
+  const rest = [...keySet].filter((key) => !orderSet.has(key)).sort((a, b) => a.localeCompare(b));
+  return [...primary, ...rest];
+}
+
+/** Reorders a full export key list so `Permissions*` on object-permission rows follow {@link OBJECT_PERMISSION_COLUMN_KEY_ORDER}. */
+export function reorderExportKeysForObjectPermissions(keys: string[]): string[] {
+  const nonPerm = keys.filter((key) => !key.startsWith('Permissions'));
+  const perm = keys.filter((key) => key.startsWith('Permissions'));
+  const orderSet = new Set<string>(OBJECT_PERMISSION_COLUMN_KEY_ORDER);
+  const primary = OBJECT_PERMISSION_COLUMN_KEY_ORDER.filter((key) => perm.includes(key));
+  const rest = perm.filter((key) => !orderSet.has(key)).sort((a, b) => a.localeCompare(b));
+  return [...nonPerm, ...primary, ...rest];
+}
+
 /** Split PascalCase API suffixes into spaced words for column titles (e.g. `ViewAllRecords` → "View All Records"). */
 function splitPascalCaseToTitle(pascal: string): string {
   return pascal
@@ -181,10 +255,7 @@ function splitPascalCaseToTitle(pascal: string): string {
  * @param fieldKey API field name from a row key.
  * @returns Label for the column header; `fieldKey` unchanged when not a `Permissions*` column.
  */
-/**
- * Default boolean columns use a narrow width; OLS/FLS permission headers need more room.
- * (react-data-grid uses `width` / `minWidth` from the column definition.)
- */
+// Default boolean columns use a narrow width; OLS/FLS permission headers need more room (react-data-grid width/minWidth).
 const PERMISSIONS_COLUMN_MIN_WIDTH_PX = 200;
 const PERMISSIONS_COLUMN_HEADER_CHAR_PX = 9;
 const PERMISSIONS_COLUMN_HEADER_PADDING_PX = 48;
@@ -195,6 +266,9 @@ function permissionsColumnWidthForLabel(headerLabel: string): number {
 }
 
 export function getExportColumnHeaderLabel(fieldKey: string): string {
+  if (fieldKey === 'SobjectType') {
+    return 'Object';
+  }
   if (!fieldKey.startsWith('Permissions')) {
     return fieldKey;
   }
@@ -217,15 +291,27 @@ export function getExportColumnHeaderLabel(fieldKey: string): string {
   return splitPascalCaseToTitle(suffix);
 }
 
+export interface BuildDynamicExportColumnsOptions {
+  /** Row keys to exclude from the grid (e.g. REST `attributes`, `Id`, `ParentId` on object permission rows). */
+  omitColumnKeys?: ReadonlySet<string>;
+}
+
 /**
  * Builds read-only DataTable columns from heterogeneous SOQL rows (first row drives types).
  */
-export function buildDynamicExportColumns(rows: PermissionExportRow[]): ColumnWithFilter<RowWithKey>[] {
+export function buildDynamicExportColumns(
+  rows: PermissionExportRow[],
+  options?: BuildDynamicExportColumnsOptions,
+): ColumnWithFilter<RowWithKey>[] {
   if (!rows.length) {
     return [];
   }
-  const keys = sortedColumnKeys(rows);
+  const omit = options?.omitColumnKeys ?? new Set<string>();
+  let keys = sortedExportColumnKeys(rows).filter((key) => !omit.has(key));
   const firstRow = rows[0];
+  if (isObjectPermissionsExportSample(firstRow)) {
+    keys = reorderExportKeysForObjectPermissions(keys);
+  }
   return keys.map((key) => {
     const fieldType = key === 'Id' || key === 'ParentId' || key.endsWith('Id') ? 'salesforceId' : getRowTypeFromValue(firstRow[key], false);
     const base = setColumnFromType(key, fieldType);

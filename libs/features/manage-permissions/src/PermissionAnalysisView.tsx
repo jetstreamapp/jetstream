@@ -1,6 +1,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { getAnalysisJob } from '@jetstream/shared/data';
+import { describeGlobal, getAnalysisJob, queryWithCache } from '@jetstream/shared/data';
+import { escapeSoqlString } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import {
   AutoFullHeightContainer,
@@ -21,15 +22,25 @@ import { Fragment, FunctionComponent, useEffect, useMemo, useState } from 'react
 import { Link, useSearchParams } from 'react-router-dom';
 import { formatAnalysisJobStatusForDisplay } from './analysis-job-status-display';
 import { PermissionAnalysisExportGrid } from './PermissionAnalysisExportGrid';
+import { PermissionAnalysisObjectPermissionsTree } from './PermissionAnalysisObjectPermissionsTree';
 import { PermissionAnalysisHistoryModal } from './PermissionAnalysisHistoryModal';
 import { PermissionAnalysisIssuesTab } from './PermissionAnalysisIssuesTab';
 import {
+  collectSobjectApiNamesFromPermissionExport,
   filterPermissionSetExportRowsById,
   parsePermissionExportRequestScope,
   parsePermissionExportResult,
+  type SobjectExportDetail,
 } from './permission-export-result-view';
 
 const HEIGHT_BUFFER = 170;
+const ENTITY_DEFINITION_CHUNK_SIZE = 40;
+
+interface ToolingEntityDefinitionRow {
+  QualifiedApiName: string;
+  Label?: string | null;
+  Description?: string | null;
+}
 
 function formatJobResult(result: unknown): string {
   try {
@@ -52,6 +63,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
   const [jobRecord, setJobRecord] = useState<Record<string, unknown> | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [sobjectExportDetails, setSobjectExportDetails] = useState<Record<string, SobjectExportDetail>>({});
 
   useEffect(() => {
     if (!selectedOrg?.uniqueId || !jobId) {
@@ -120,6 +132,103 @@ export const PermissionAnalysisView: FunctionComponent = () => {
     return parsePermissionExportResult(jobRecord.result);
   }, [jobRecord]);
 
+  useEffect(() => {
+    const exportSnapshot = parsedExport;
+
+    if (!selectedOrg?.uniqueId) {
+      setSobjectExportDetails({});
+      return;
+    }
+
+    if (!exportSnapshot) {
+      setSobjectExportDetails({});
+      return;
+    }
+
+    const exportBundleForSobjects = exportSnapshot.export;
+
+    let cancelled = false;
+
+    async function loadSobjectExportDetails() {
+      const details: Record<string, SobjectExportDetail> = {};
+      try {
+        const describeResponse = await describeGlobal(selectedOrg);
+        if (cancelled) {
+          return;
+        }
+        if (describeResponse.data?.sobjects) {
+          for (const sobject of describeResponse.data.sobjects) {
+            details[sobject.name] = {
+              apiName: sobject.name,
+              label: sobject.label,
+              description: null,
+            };
+          }
+        }
+      } catch (error) {
+        if (!cancelled) {
+          logger.error('Failed to load describe global for permission analysis object metadata', error);
+        }
+      }
+
+      if (cancelled) {
+        return;
+      }
+
+      const apiNames = collectSobjectApiNamesFromPermissionExport(exportBundleForSobjects);
+      for (let offset = 0; offset < apiNames.length; offset += ENTITY_DEFINITION_CHUNK_SIZE) {
+        if (cancelled) {
+          return;
+        }
+        const chunk = apiNames.slice(offset, offset + ENTITY_DEFINITION_CHUNK_SIZE);
+        const inList = chunk.map((name) => `'${escapeSoqlString(name)}'`).join(', ');
+        const soql = `SELECT QualifiedApiName, Label, Description FROM EntityDefinition WHERE QualifiedApiName IN (${inList})`;
+        try {
+          const { data } = await queryWithCache<ToolingEntityDefinitionRow>(selectedOrg, soql, true);
+          const records = data?.queryResults?.records;
+          if (!Array.isArray(records)) {
+            continue;
+          }
+          for (const record of records) {
+            const api = record.QualifiedApiName;
+            if (typeof api !== 'string' || api.trim().length === 0) {
+              continue;
+            }
+            const existing = details[api];
+            const descriptionFromEd =
+              record.Description != null && String(record.Description).trim().length > 0
+                ? String(record.Description).trim()
+                : (existing?.description ?? null);
+            const labelFromEd = typeof record.Label === 'string' && record.Label.trim().length > 0 ? record.Label.trim() : api;
+            details[api] = {
+              apiName: api,
+              label: existing?.label ?? labelFromEd,
+              description: descriptionFromEd,
+            };
+          }
+        } catch (entityDefinitionError) {
+          logger.warn('EntityDefinition query failed for permission analysis object metadata', entityDefinitionError);
+        }
+      }
+
+      for (const api of apiNames) {
+        if (!details[api]) {
+          details[api] = { apiName: api, label: api, description: null };
+        }
+      }
+
+      if (!cancelled) {
+        setSobjectExportDetails(details);
+      }
+    }
+
+    void loadSobjectExportDetails();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedOrg, parsedExport]);
+
   const findingsCount = parsedExport?.findings.length ?? 0;
 
   const resultTabs = useMemo(() => {
@@ -135,6 +244,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
       serverUrl,
       skipFrontdoorLogin,
       defaultApiVersion,
+      sobjectExportDetails,
     };
 
     const requestScope = parsePermissionExportRequestScope(jobRecord?.result);
@@ -325,7 +435,11 @@ export const PermissionAnalysisView: FunctionComponent = () => {
             `}
           >
             {renderTruncationNotice()}
-            <PermissionAnalysisExportGrid rows={exportBundle.objectPermissions} {...gridProps} />
+            <PermissionAnalysisObjectPermissionsTree
+              objectPermissionRows={exportBundle.objectPermissions}
+              permissionSetRows={exportBundle.permissionSets}
+              {...gridProps}
+            />
           </div>
         ),
       },
@@ -455,6 +569,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
     searchParams,
     setSearchParams,
     findingsCount,
+    sobjectExportDetails,
   ]);
 
   return (
