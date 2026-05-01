@@ -18,6 +18,7 @@ import {
   PageHeaderTitle,
   ProfileOrPermSetPopover,
   ProfileOrPermSetRecordType,
+  Tooltip,
   fireToast,
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, fromPermissionsState } from '@jetstream/ui-core';
@@ -27,6 +28,7 @@ import { useAtom, useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
 import { FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { PermissionAnalysisHistoryModal } from './PermissionAnalysisHistoryModal';
 import { filterPermissionsSobjects } from './utils/permission-manager-utils';
 
 const HEIGHT_BUFFER = 170;
@@ -71,6 +73,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
   const resetTabVisibilityPermissionMap = useResetAtom(fromPermissionsState.tabVisibilityPermissionMap);
 
   const [analysisContinueLoading, setAnalysisContinueLoading] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   const profilesAndPermSetsData = useProfilesAndPermSets(selectedOrg, profiles, permissionSets);
 
@@ -162,6 +165,22 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
             docsPath={APP_ROUTES.PERMISSION_MANAGER.DOCS}
           />
           <PageHeaderActions colType="actions" buttonType="separate">
+            {isAnalysis && (
+              <Tooltip ariaRole="label" content="View past permission export runs for this org">
+                <button
+                  type="button"
+                  aria-label="Export history"
+                  className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
+                  css={css`
+                    padding: 0.5rem;
+                  `}
+                  disabled={!selectedOrg?.uniqueId}
+                  onClick={() => setIsHistoryOpen(true)}
+                >
+                  <Icon type="utility" icon="date_time" className="slds-button__icon" omitContainer title="Export history" />
+                </button>
+              </Tooltip>
+            )}
             {!isAnalysis && (
               <Link className="slds-button slds-button_neutral" to={APP_ROUTES.PERMISSION_ANALYSIS.ROUTE}>
                 Open in Permission Analysis
@@ -221,6 +240,18 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
           </div>
         </PageHeaderRow>
       </PageHeader>
+      {isHistoryOpen && selectedOrg && (
+        <PermissionAnalysisHistoryModal
+          selectedOrg={selectedOrg}
+          analysisJobType="permission_export"
+          currentJobId={null}
+          onClose={() => setIsHistoryOpen(false)}
+          onSelectJob={(nextJobId) => {
+            setIsHistoryOpen(false);
+            navigate(`analysis?job=${encodeURIComponent(nextJobId)}`);
+          }}
+        />
+      )}
       <AutoFullHeightContainer
         bottomBuffer={10}
         className="slds-p-horizontal_x-small slds-scrollable_none"

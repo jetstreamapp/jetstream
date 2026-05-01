@@ -31,6 +31,7 @@ export const PermissionAnalysis: FunctionComponent = () => {
   const selectedProfiles = useAtomValue(fromPermissionsState.selectedProfilesPermSetState);
   const selectedPermissionSets = useAtomValue(fromPermissionsState.selectedPermissionSetsState);
   const hasAnalysisSelections = selectedProfiles.length > 0 || selectedPermissionSets.length > 0;
+  const hasJobInUrl = Boolean(new URLSearchParams(location.search).get('job'));
 
   useEffect(() => {
     if (selectedOrg && !priorSelectedOrg) {
@@ -64,7 +65,9 @@ export const PermissionAnalysis: FunctionComponent = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOrg, priorSelectedOrg]);
 
-  return location.pathname.endsWith('/analysis') && !hasAnalysisSelections ? <Navigate to="." /> : <Outlet />;
+  const blockAnalysisWithoutSelections = location.pathname.endsWith('/analysis') && !hasAnalysisSelections && !hasJobInUrl;
+
+  return blockAnalysisWithoutSelections ? <Navigate to="." /> : <Outlet />;
 };
 
 export default PermissionAnalysis;

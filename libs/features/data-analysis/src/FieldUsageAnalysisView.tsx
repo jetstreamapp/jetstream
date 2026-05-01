@@ -60,6 +60,9 @@ const FIELD_USAGE_TABLE_ACTION_DELETE_METADATA = 'field-usage-delete-metadata';
 
 const HEIGHT_BUFFER = 170;
 
+/** True for local Vite dev; false in production builds — used to avoid exposing raw job payloads in prod. */
+const SHOW_RAW_JOB_JSON_UI = import.meta.env.DEV;
+
 /** Custom fields at or below this fill rate appear on the **Low usage** tab. */
 const LOW_USAGE_PCT_THRESHOLD = 5;
 
@@ -1256,36 +1259,40 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
           </div>
         ),
       },
-      {
-        id: 'raw-json',
-        title: (
-          <Fragment>
-            <span className="slds-tabs__left-icon">
-              <Icon
-                type="standard"
-                icon="apex"
-                containerClassname="slds-icon_container slds-icon-standard-apex"
-                className="slds-icon slds-icon_small"
-              />
-            </span>
-            Raw JSON
-          </Fragment>
-        ),
-        titleText: 'Raw JSON',
-        content: (
-          <div className="slds-p-around_medium">
-            <pre
-              className="slds-box slds-scrollable_y"
-              css={css`
-                max-height: min(560px, 70vh);
-                font-size: 0.75rem;
-              `}
-            >
-              {formatJobResultJson(jobRecord?.result)}
-            </pre>
-          </div>
-        ),
-      },
+      ...(SHOW_RAW_JOB_JSON_UI
+        ? [
+            {
+              id: 'raw-json',
+              title: (
+                <Fragment>
+                  <span className="slds-tabs__left-icon">
+                    <Icon
+                      type="standard"
+                      icon="apex"
+                      containerClassname="slds-icon_container slds-icon-standard-apex"
+                      className="slds-icon slds-icon_small"
+                    />
+                  </span>
+                  Raw JSON
+                </Fragment>
+              ),
+              titleText: 'Raw JSON',
+              content: (
+                <div className="slds-p-around_medium">
+                  <pre
+                    className="slds-box slds-scrollable_y"
+                    css={css`
+                      max-height: min(560px, 70vh);
+                      font-size: 0.75rem;
+                    `}
+                  >
+                    {formatJobResultJson(jobRecord?.result)}
+                  </pre>
+                </div>
+              ),
+            },
+          ]
+        : []),
     ];
   }, [
     parsedResult,

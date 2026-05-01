@@ -50,7 +50,7 @@ export interface PermissionAnalysisExportGridProps {
   serverUrl: string;
   skipFrontdoorLogin: boolean;
   defaultApiVersion: string;
-  /** Describe + EntityDefinition metadata for SobjectType cells (label, API name, description). */
+  /** Describe + EntityDefinition metadata for SobjectType cells (label, API Name, description). */
   sobjectExportDetails?: Record<string, SobjectExportDetail>;
   /** `object_permissions` — hides Id/ParentId/attributes and adds Object Manager link on SobjectType. */
   variant?: PermissionAnalysisExportGridVariant;
@@ -71,9 +71,9 @@ function objectDetailBlock(apiName: string, label: string, description: string |
         text-align: left;
       `}
     >
-      <div className="slds-text-title_caps slds-text-color_inverse-weak">API name</div>
+      <div className="slds-text-title_caps slds-text-color_inverse-weak">Object API Name</div>
       <div className="slds-text-body_regular slds-text-color_inverse slds-hyphenate slds-m-bottom_x-small">{apiName}</div>
-      <div className="slds-text-title_caps slds-text-color_inverse-weak">Label</div>
+      <div className="slds-text-title_caps slds-text-color_inverse-weak">Object Label</div>
       <div className="slds-text-body_regular slds-text-color_inverse slds-hyphenate slds-m-bottom_x-small">{label}</div>
       <div className="slds-text-title_caps slds-text-color_inverse-weak">Description</div>
       <div className="slds-text-body_regular slds-text-color_inverse slds-hyphenate">{description ?? '—'}</div>

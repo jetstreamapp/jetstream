@@ -244,9 +244,9 @@ function fieldDetailTooltipBody(apiName: string, label: string, description: str
         text-align: left;
       `}
     >
-      <div className="slds-text-title_caps slds-text-color_inverse-weak">API name</div>
+      <div className="slds-text-title_caps slds-text-color_inverse-weak">Field API Name</div>
       <div className="slds-text-body_regular slds-text-color_inverse slds-hyphenate slds-m-bottom_x-small">{apiName}</div>
-      <div className="slds-text-title_caps slds-text-color_inverse-weak">Label</div>
+      <div className="slds-text-title_caps slds-text-color_inverse-weak">Field Label</div>
       <div className="slds-text-body_regular slds-text-color_inverse slds-hyphenate slds-m-bottom_x-small">{label}</div>
       <div className="slds-text-title_caps slds-text-color_inverse-weak">Description</div>
       <div className="slds-text-body_regular slds-text-color_inverse slds-hyphenate">{description ?? '—'}</div>

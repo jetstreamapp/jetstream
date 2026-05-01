@@ -56,6 +56,9 @@ const FIELD_DEFINITION_CHUNK_SIZE = 50;
 /** Max concurrent per-object FieldDefinition Tooling queries (avoids unbounded parallel requests). */
 const FIELD_DEFINITION_OBJECT_CONCURRENCY = 5;
 
+/** True for local Vite dev; false in production builds — used to avoid exposing raw job payloads in prod. */
+const SHOW_RAW_JOB_JSON_UI = import.meta.env.DEV;
+
 async function mapPool<T>(items: readonly T[], concurrency: number, fn: (item: T) => Promise<void>): Promise<void> {
   if (items.length === 0) {
     return;
@@ -584,11 +587,13 @@ export const PermissionAnalysisView: FunctionComponent = () => {
           `}
         >
           {renderTruncationNotice()}
-          <PermissionAnalysisExportGrid
-            rows={profilePermissionSetRows}
+          <PermissionAnalysisPermissionSetsTree
+            permissionSetRows={profilePermissionSetRows}
+            permissionSetAssignments={exportBundle.permissionSetAssignments}
+            findings={globallyFilteredFindings}
+            containerLabelById={containerLabelById}
+            treePresentation="profiles"
             {...gridProps}
-            {...exportFindingProps}
-            findingSurface="container_row"
           />
         </div>
       ),
@@ -840,36 +845,40 @@ export const PermissionAnalysisView: FunctionComponent = () => {
           />
         ),
       },
-      {
-        id: 'raw-json',
-        title: (
-          <Fragment>
-            <span className="slds-tabs__left-icon">
-              <Icon
-                type="standard"
-                icon="apex"
-                containerClassname="slds-icon_container slds-icon-standard-apex"
-                className="slds-icon slds-icon_small"
-              />
-            </span>
-            Raw JSON
-          </Fragment>
-        ),
-        titleText: 'Raw JSON',
-        content: (
-          <div className="slds-p-around_medium">
-            <pre
-              className="slds-box slds-scrollable_y"
-              css={css`
-                max-height: min(560px, 70vh);
-                font-size: 0.75rem;
-              `}
-            >
-              {formatJobResult(jobRecord?.result)}
-            </pre>
-          </div>
-        ),
-      },
+      ...(SHOW_RAW_JOB_JSON_UI
+        ? [
+            {
+              id: 'raw-json',
+              title: (
+                <Fragment>
+                  <span className="slds-tabs__left-icon">
+                    <Icon
+                      type="standard"
+                      icon="apex"
+                      containerClassname="slds-icon_container slds-icon-standard-apex"
+                      className="slds-icon slds-icon_small"
+                    />
+                  </span>
+                  Raw JSON
+                </Fragment>
+              ),
+              titleText: 'Raw JSON',
+              content: (
+                <div className="slds-p-around_medium">
+                  <pre
+                    className="slds-box slds-scrollable_y"
+                    css={css`
+                      max-height: min(560px, 70vh);
+                      font-size: 0.75rem;
+                    `}
+                  >
+                    {formatJobResult(jobRecord?.result)}
+                  </pre>
+                </div>
+              ),
+            },
+          ]
+        : []),
     ];
   }, [
     selectedOrg,
@@ -1027,30 +1036,38 @@ export const PermissionAnalysisView: FunctionComponent = () => {
         )}
         {jobId && !fetchError && isTerminal && jobStatusNormalized === 'completed' && !parsedExport && jobRecord && (
           <div className="slds-p-around_medium">
-            <ScopedNotification theme="warning" className="slds-m-bottom_medium">
-              This job result does not include a structured permission export payload. Showing raw JSON only.
-            </ScopedNotification>
-            <Tabs
-              initialActiveId="legacy-json"
-              tabs={[
-                {
-                  id: 'legacy-json',
-                  title: 'Raw JSON',
-                  titleText: 'Raw JSON',
-                  content: (
-                    <pre
-                      className="slds-box slds-scrollable_y slds-m-around_small"
-                      css={css`
-                        max-height: 560px;
-                        font-size: 0.75rem;
-                      `}
-                    >
-                      {formatJobResult(jobRecord.result)}
-                    </pre>
-                  ),
-                },
-              ]}
-            />
+            {SHOW_RAW_JOB_JSON_UI ? (
+              <Fragment>
+                <ScopedNotification theme="warning" className="slds-m-bottom_medium">
+                  This job result does not include a structured permission export payload. Showing raw JSON only.
+                </ScopedNotification>
+                <Tabs
+                  initialActiveId="legacy-json"
+                  tabs={[
+                    {
+                      id: 'legacy-json',
+                      title: 'Raw JSON',
+                      titleText: 'Raw JSON',
+                      content: (
+                        <pre
+                          className="slds-box slds-scrollable_y slds-m-around_small"
+                          css={css`
+                            max-height: 560px;
+                            font-size: 0.75rem;
+                          `}
+                        >
+                          {formatJobResult(jobRecord.result)}
+                        </pre>
+                      ),
+                    },
+                  ]}
+                />
+              </Fragment>
+            ) : (
+              <ScopedNotification theme="warning">
+                This job result does not include a structured permission export payload. The result cannot be shown in the analysis UI.
+              </ScopedNotification>
+            )}
           </div>
         )}
       </AutoFullHeightContainer>

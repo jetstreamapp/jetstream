@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import { filterPermissionsSobjects } from '@jetstream/feature/manage-permissions';
+import { PermissionAnalysisHistoryModal, filterPermissionsSobjects } from '@jetstream/feature/manage-permissions';
 import { createAnalysisJob } from '@jetstream/shared/data';
 import { DescribeGlobalSObjectResult } from '@jetstream/types';
 import {
@@ -12,6 +12,7 @@ import {
   PageHeaderActions,
   PageHeaderRow,
   PageHeaderTitle,
+  Tooltip,
 } from '@jetstream/ui';
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { atom, useAtom, useAtomValue } from 'jotai';
@@ -30,6 +31,7 @@ export const DataAnalysisSelection: FunctionComponent = () => {
   const [sobjects, setSobjects] = useAtom(sobjectsAtom);
   const [selectedSObjects, setSelectedSObjects] = useAtom(selectedSObjectsAtom);
   const [submitting, setSubmitting] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   const handleStartJob = useCallback(async () => {
     if (!selectedOrg || !selectedSObjects.length) {
@@ -63,6 +65,20 @@ export const DataAnalysisSelection: FunctionComponent = () => {
         <PageHeaderRow>
           <PageHeaderTitle icon={{ type: 'standard', icon: 'data_streams' }} label="Data Analysis" />
           <PageHeaderActions colType="actions" buttonType="separate">
+            <Tooltip ariaRole="label" content="View past Field Usage runs for this org">
+              <button
+                type="button"
+                aria-label="Field Usage history"
+                className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
+                css={css`
+                  padding: 0.5rem;
+                `}
+                disabled={!selectedOrg?.uniqueId}
+                onClick={() => setIsHistoryOpen(true)}
+              >
+                <Icon type="utility" icon="date_time" className="slds-button__icon" omitContainer title="Field Usage history" />
+              </button>
+            </Tooltip>
             <button
               type="button"
               className="slds-button slds-button_brand"
@@ -80,6 +96,18 @@ export const DataAnalysisSelection: FunctionComponent = () => {
           </span>
         </PageHeaderRow>
       </PageHeader>
+      {isHistoryOpen && selectedOrg && (
+        <PermissionAnalysisHistoryModal
+          selectedOrg={selectedOrg}
+          analysisJobType="field_usage"
+          currentJobId={null}
+          onClose={() => setIsHistoryOpen(false)}
+          onSelectJob={(nextJobId) => {
+            setIsHistoryOpen(false);
+            navigate({ pathname: 'analysis', search: new URLSearchParams({ job: nextJobId }).toString() });
+          }}
+        />
+      )}
       <AutoFullHeightContainer bottomBuffer={24} className="slds-p-horizontal_small">
         <div
           css={css`

@@ -17,6 +17,7 @@ import {
   setColumnFromType,
   Spinner,
   Tooltip,
+  type ProfileOrPermSetRecordType,
 } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
 import { Fragment, FunctionComponent, useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
@@ -126,9 +127,9 @@ function permissionSetTooltipBlock(fields: Pick<PermissionSetTooltipFields, 'lab
         text-align: left;
       `}
     >
-      <div className="slds-text-title_caps slds-text-color_inverse-weak">Label</div>
+      <div className="slds-text-title_caps slds-text-color_inverse-weak">Permission Set Label</div>
       <div className="slds-text-body_regular slds-text-color_inverse slds-hyphenate slds-m-bottom_x-small">{fields.label}</div>
-      <div className="slds-text-title_caps slds-text-color_inverse-weak">Name</div>
+      <div className="slds-text-title_caps slds-text-color_inverse-weak">Permission Set API Name</div>
       <div className="slds-text-body_regular slds-text-color_inverse slds-hyphenate slds-m-bottom_x-small">
         <code>{fields.name}</code>
       </div>
@@ -175,6 +176,9 @@ function renderPermissionSetGroupCell(
   containerSeverity: Map<string, 'error' | 'warning'> | null,
   setupLogin: { org: SalesforceOrgUi; serverUrl: string; skipFrontDoorAuth: boolean },
   onOpenFindings: (permissionSetId: string) => void,
+  resolveSetupTarget: (permissionSetId: string) => { recordType: ProfileOrPermSetRecordType; recordId: string },
+  openInSetupTitle: string,
+  findingsForContainerButtonTitle: string,
   { groupKey, childRows, isExpanded, toggleGroup }: RenderGroupCellProps<PermissionSetAssignmentsTreeRow>,
 ) {
   const permissionSetId = String(groupKey);
@@ -189,9 +193,10 @@ function renderPermissionSetGroupCell(
     lastModifiedByName: null,
   };
   const createdLine = formatAuditLine('Created', tooltipFields.createdWhen, tooltipFields.createdByName);
-  const modifiedLine = formatAuditLine('Last modified', tooltipFields.lastModifiedWhen, tooltipFields.lastModifiedByName);
+  const modifiedLine = formatAuditLine('Last Modified', tooltipFields.lastModifiedWhen, tooltipFields.lastModifiedByName);
   const severity = containerSeverity?.get(permissionSetId);
-  const returnUrl = getProfileOrPermSetSetupUrl('PermissionSet', permissionSetId);
+  const { recordType, recordId } = resolveSetupTarget(permissionSetId);
+  const returnUrl = getProfileOrPermSetSetupUrl(recordType, recordId);
 
   return (
     <div
@@ -292,7 +297,7 @@ function renderPermissionSetGroupCell(
           serverUrl={setupLogin.serverUrl}
           skipFrontDoorAuth={setupLogin.skipFrontDoorAuth}
           returnUrl={returnUrl}
-          title="Open this permission set in Salesforce Setup"
+          title={openInSetupTitle}
           omitIcon
           className={OBJECT_TYPE_ACTION_BUTTON_CLASSNAME}
           onClick={(event) => {
@@ -305,7 +310,7 @@ function renderPermissionSetGroupCell(
           <button
             type="button"
             className="slds-button slds-button_icon slds-button_icon-bare"
-            title="View issues for this permission set"
+            title={findingsForContainerButtonTitle}
             onClick={(event) => {
               event.stopPropagation();
               onOpenFindings(permissionSetId);
@@ -325,6 +330,8 @@ function renderPermissionSetGroupCell(
   );
 }
 
+export type PermissionAnalysisPermissionSetsTreePresentation = 'permission_sets' | 'profiles';
+
 export interface PermissionAnalysisPermissionSetsTreeProps {
   permissionSetRows: PermissionExportRow[];
   permissionSetAssignments: PermissionExportRow[];
@@ -334,10 +341,16 @@ export interface PermissionAnalysisPermissionSetsTreeProps {
   defaultApiVersion: string;
   findings?: PermissionAnalysisFinding[];
   containerLabelById?: Map<string, string>;
+  /**
+   * `profiles` uses Profile Setup URLs (via `ProfileId` on profile-owned permission set rows) and profile-oriented labels.
+   * `permission_sets` (default) matches standalone permission sets.
+   */
+  treePresentation?: PermissionAnalysisPermissionSetsTreePresentation;
 }
 
 /**
- * Permission sets from the export, grouped by permission set with tooltip metadata and expandable user assignment leaves.
+ * Permission sets or profiles (profile-owned permission sets) from the export, grouped by container with tooltip metadata
+ * and expandable user assignment leaves. Use {@link PermissionAnalysisPermissionSetsTreeProps.treePresentation} to match the tab.
  * Groups start expanded.
  */
 export const PermissionAnalysisPermissionSetsTree: FunctionComponent<PermissionAnalysisPermissionSetsTreeProps> = ({
@@ -349,7 +362,40 @@ export const PermissionAnalysisPermissionSetsTree: FunctionComponent<PermissionA
   defaultApiVersion,
   findings = [],
   containerLabelById,
+  treePresentation = 'permission_sets',
 }) => {
+  const isProfilesTree = treePresentation === 'profiles';
+  const groupColumnName = isProfilesTree ? 'Profile' : 'Permission Set';
+  const openInSetupTitle = isProfilesTree ? 'Open this profile in Salesforce Setup' : 'Open this permission set in Salesforce Setup';
+  const findingsForContainerButtonTitle = isProfilesTree ? 'View issues for this profile' : 'View issues for this permission set';
+
+  const rowByPermissionSetId = useMemo(() => {
+    const map = new Map<string, PermissionExportRow>();
+    for (const row of permissionSetRows) {
+      const id = typeof row.Id === 'string' ? row.Id.trim() : '';
+      if (id) {
+        map.set(id, row);
+      }
+    }
+    return map;
+  }, [permissionSetRows]);
+
+  const resolveSetupTarget = useCallback(
+    (permissionSetId: string): { recordType: ProfileOrPermSetRecordType; recordId: string } => {
+      if (!isProfilesTree) {
+        return { recordType: 'PermissionSet', recordId: permissionSetId };
+      }
+      const row = rowByPermissionSetId.get(permissionSetId);
+      const profileId = row && typeof row.ProfileId === 'string' && row.ProfileId.trim().length > 0 ? row.ProfileId.trim() : null;
+      const isProfileOwned = row?.IsOwnedByProfile === true;
+      if (isProfileOwned && profileId) {
+        return { recordType: 'Profile', recordId: profileId };
+      }
+      return { recordType: 'PermissionSet', recordId: permissionSetId };
+    },
+    [isProfilesTree, rowByPermissionSetId],
+  );
+
   const treeRows = useMemo(
     () => buildPermissionSetAssignmentsTreeRows(permissionSetRows, permissionSetAssignments),
     [permissionSetRows, permissionSetAssignments],
@@ -450,11 +496,11 @@ export const PermissionAnalysisPermissionSetsTree: FunctionComponent<PermissionA
       }
       setFindingsModal({
         containerId: id,
-        columnLabel: 'Permission Set',
+        columnLabel: groupColumnName,
         matches,
       });
     },
-    [containerSeverity, findings],
+    [containerSeverity, findings, groupColumnName],
   );
 
   const columns = useMemo((): ColumnWithFilter<PermissionSetAssignmentsTreeRow>[] => {
@@ -463,7 +509,7 @@ export const PermissionAnalysisPermissionSetsTree: FunctionComponent<PermissionA
     }
     const groupCol: ColumnWithFilter<PermissionSetAssignmentsTreeRow> = {
       ...setColumnFromType<PermissionSetAssignmentsTreeRow>('_treePermissionSetGroupKey', 'text'),
-      name: 'Permission Set',
+      name: groupColumnName,
       key: '_treePermissionSetGroupKey',
       field: '_treePermissionSetGroupKey',
       resizable: true,
@@ -477,6 +523,9 @@ export const PermissionAnalysisPermissionSetsTree: FunctionComponent<PermissionA
           containerSeverity,
           setupLogin,
           openFindingsForPermissionSet,
+          resolveSetupTarget,
+          openInSetupTitle,
+          findingsForContainerButtonTitle,
           props,
         ),
       getValue: ({ row }) => {
@@ -636,11 +685,15 @@ export const PermissionAnalysisPermissionSetsTree: FunctionComponent<PermissionA
     return [groupCol, userCol];
   }, [
     treeRows,
+    groupColumnName,
     labelByPermissionSetId,
     tooltipByPermissionSetId,
     containerSeverity,
     setupLogin,
     openFindingsForPermissionSet,
+    resolveSetupTarget,
+    openInSetupTitle,
+    findingsForContainerButtonTitle,
     assigneeDisplayById,
     assigneeDisplayLoading,
   ]);
@@ -655,7 +708,9 @@ export const PermissionAnalysisPermissionSetsTree: FunctionComponent<PermissionA
   if (!permissionSetRows.length) {
     return (
       <div className="slds-p-around_medium">
-        <ScopedNotification theme="info">No permission sets in this export slice.</ScopedNotification>
+        <ScopedNotification theme="info">
+          {isProfilesTree ? 'No profiles in this export slice.' : 'No permission sets in this export slice.'}
+        </ScopedNotification>
       </div>
     );
   }
@@ -663,7 +718,11 @@ export const PermissionAnalysisPermissionSetsTree: FunctionComponent<PermissionA
   if (!treeRows.length) {
     return (
       <div className="slds-p-around_medium">
-        <ScopedNotification theme="info">No permission set rows with Ids were available to build this tree.</ScopedNotification>
+        <ScopedNotification theme="info">
+          {isProfilesTree
+            ? 'No profile rows with Ids were available to build this tree.'
+            : 'No permission set rows with Ids were available to build this tree.'}
+        </ScopedNotification>
       </div>
     );
   }
@@ -696,8 +755,12 @@ export const PermissionAnalysisPermissionSetsTree: FunctionComponent<PermissionA
         <PermissionAnalysisFindingsModal
           testId="permission-analysis-perm-set-tree-issues"
           open
-          title="Issues for this permission set"
-          tagline="From this job's permission export analysis, scoped to the permission set you selected."
+          title={isProfilesTree ? 'Issues for this profile' : 'Issues for this permission set'}
+          tagline={
+            isProfilesTree
+              ? "From this job's permission export analysis, scoped to the profile you selected."
+              : "From this job's permission export analysis, scoped to the permission set you selected."
+          }
           onClose={() => setFindingsModal(null)}
           findings={findingsModal.matches}
           summaryLine={
