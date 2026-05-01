@@ -2,9 +2,8 @@ import { css } from '@emotion/react';
 import classNames from 'classnames';
 import { Icon, Popover, type PopoverRef } from '@jetstream/ui';
 import { FunctionComponent, ReactNode, useRef } from 'react';
-import type { SetURLSearchParams } from 'react-router-dom';
-import { type IssueScopeFilterContext, usePermissionAnalysisIssuesFilters } from './permission-analysis-issues-filters';
-import { type PermissionAnalysisFinding, type PermissionExportRow } from './permission-export-result-view';
+import { type UsePermissionAnalysisIssuesFiltersResult } from './permission-analysis-issues-filters';
+import { type PermissionAnalysisFinding } from './permission-export-result-view';
 
 /** Keeps `<legend>` from sitting inline with the first radio (fieldset default layout). */
 const filterPanelLegendCss = css`
@@ -134,11 +133,10 @@ function ToolbarFilterButton({
 }
 
 export interface PermissionAnalysisFindingsFiltersBarProps {
+  /** Unfiltered findings (total count for toolbar stats). */
   findings: PermissionAnalysisFinding[];
-  permissionSetAssignments: PermissionExportRow[];
-  searchParams: URLSearchParams;
-  setSearchParams: SetURLSearchParams;
-  issueScopeFilterContext?: IssueScopeFilterContext;
+  /** Single hook result from {@link usePermissionAnalysisIssuesFilters} in the parent view. */
+  issuesFilters: UsePermissionAnalysisIssuesFiltersResult;
 }
 
 /**
@@ -146,16 +144,14 @@ export interface PermissionAnalysisFindingsFiltersBarProps {
  */
 export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionAnalysisFindingsFiltersBarProps> = ({
   findings,
-  permissionSetAssignments,
-  searchParams,
-  setSearchParams,
-  issueScopeFilterContext,
+  issuesFilters,
 }) => {
   const {
     severityFilter,
     olsFlsFilter,
     directAssignmentFilter,
     scopeFilter,
+    issueScopeFilterContext,
     hasAssignmentData,
     filteredFindings,
     errorTotal,
@@ -163,13 +159,7 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
     errorFiltered,
     warningFiltered,
     updateParams,
-  } = usePermissionAnalysisIssuesFilters({
-    findings,
-    permissionSetAssignments,
-    searchParams,
-    setSearchParams,
-    issueScopeFilterContext,
-  });
+  } = issuesFilters;
 
   const exportScopeFilterActive = issueScopeFilterContext?.supportsExportScopeFilter === true && scopeFilter !== 'all';
 

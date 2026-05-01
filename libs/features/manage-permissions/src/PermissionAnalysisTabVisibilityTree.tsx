@@ -14,6 +14,8 @@ import {
 import groupBy from 'lodash/groupBy';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
 import type { RenderCellProps, RenderGroupCellProps } from 'react-data-grid';
+import { usePermissionAnalysisExportMetadata } from './permission-analysis-export-metadata-context';
+import { permissionAnalysisPermissionContainerGroupTitleLine } from './permission-analysis-tree-group-title';
 import { permissionAnalysisAssignmentTypeLabelCss } from './permission-analysis-viewer-badge.styles';
 import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 import {
@@ -60,14 +62,6 @@ function collectAllParentGroupKeys(rows: TabVisibilityTreeRow[]): Set<string> {
   return new Set(rows.map((row) => row._treeParentGroupKey));
 }
 
-function tabTreeGroupTitleLine(exportLabel: string, isProfileOwned: boolean): string {
-  if (isProfileOwned && exportLabel.startsWith('Profile: ')) {
-    const rest = exportLabel.slice('Profile: '.length).trim();
-    return rest.length > 0 ? rest : exportLabel;
-  }
-  return exportLabel;
-}
-
 function renderTabVisibilityGroupCell(
   labelByParentId: Map<string, string>,
   permissionSetRowById: Map<string, PermissionExportRow>,
@@ -81,7 +75,7 @@ function renderTabVisibilityGroupCell(
   const severity = containerSeverity?.get(id);
   const permSetRow = permissionSetRowById.get(id);
   const isProfileOwned = permSetRow?.IsOwnedByProfile === true;
-  const titleLine = tabTreeGroupTitleLine(exportLabel, isProfileOwned);
+  const titleLine = permissionAnalysisPermissionContainerGroupTitleLine(exportLabel, isProfileOwned);
   const typeKind = isProfileOwned ? 'profile' : 'permission_set';
   const typeCaption = isProfileOwned ? 'Profile' : 'Permission set';
   const profileId =
@@ -213,8 +207,6 @@ export interface PermissionAnalysisTabVisibilityTreeProps {
   defaultApiVersion: string;
   findings?: PermissionAnalysisFinding[];
   containerLabelById?: Map<string, string>;
-  /** Tooling `TabDefinition`: setting `Name` → human-readable `Label`. */
-  tabLabelBySettingName?: ReadonlyMap<string, string>;
 }
 
 interface TabFindingsModalState {
@@ -236,8 +228,8 @@ export const PermissionAnalysisTabVisibilityTree: FunctionComponent<PermissionAn
   defaultApiVersion,
   findings = [],
   containerLabelById,
-  tabLabelBySettingName,
 }) => {
+  const { tabLabelBySettingName } = usePermissionAnalysisExportMetadata();
   const sortedRows = useMemo(
     () => sortTabSettingExportRowsForAnalysisTree(tabSettingRows, permissionSetRows, tabLabelBySettingName),
     [tabSettingRows, permissionSetRows, tabLabelBySettingName],
@@ -262,6 +254,9 @@ export const PermissionAnalysisTabVisibilityTree: FunctionComponent<PermissionAn
     return buildContainerIdFindingSeverity(findings);
   }, [findings]);
 
+  const [expandedGroupIds, setExpandedGroupIds] = useState<Set<unknown>>(() => new Set());
+  const [findingsModal, setFindingsModal] = useState<TabFindingsModalState | null>(null);
+
   const openFindingsForParent = useCallback(
     (parentId: string) => {
       const matches = listFindingsForExportContainer(findings, parentId);
@@ -270,11 +265,8 @@ export const PermissionAnalysisTabVisibilityTree: FunctionComponent<PermissionAn
       }
       setFindingsModal({ parentId, matches });
     },
-    [findings],
+    [findings, setFindingsModal],
   );
-
-  const [expandedGroupIds, setExpandedGroupIds] = useState<Set<unknown>>(() => new Set());
-  const [findingsModal, setFindingsModal] = useState<TabFindingsModalState | null>(null);
 
   useEffect(() => {
     setExpandedGroupIds(collectAllParentGroupKeys(treeRows));

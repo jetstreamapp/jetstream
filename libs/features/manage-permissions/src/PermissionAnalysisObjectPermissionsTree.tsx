@@ -12,6 +12,7 @@ import {
 import groupBy from 'lodash/groupBy';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
 import type { CellMouseArgs, RenderCellProps, RenderGroupCellProps } from 'react-data-grid';
+import { permissionAnalysisPermissionContainerGroupTitleLine } from './permission-analysis-tree-group-title';
 import { permissionAnalysisAssignmentTypeLabelCss } from './permission-analysis-viewer-badge.styles';
 import { SobjectTypeCellContent } from './PermissionAnalysisExportGrid';
 import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
@@ -83,15 +84,6 @@ function isObjectPermissionLeafRow(row: unknown): row is ObjectPermissionTreeRow
   return typeof record.ParentId === 'string' && record.ParentId.trim().length > 0;
 }
 
-/** Strip the redundant `Profile: ` prefix when showing a profile pill + title on two lines. */
-function objectTreeGroupTitleLine(exportLabel: string, isProfileOwned: boolean): string {
-  if (isProfileOwned && exportLabel.startsWith('Profile: ')) {
-    const rest = exportLabel.slice('Profile: '.length).trim();
-    return rest.length > 0 ? rest : exportLabel;
-  }
-  return exportLabel;
-}
-
 interface CellFindingsModalState {
   parentId: string;
   objectApiName: string;
@@ -109,7 +101,7 @@ function renderPermissionSetGroupCell(
   const exportLabel = labelByParentId.get(id) ?? id;
   const permSetRow = permissionSetRowById.get(id);
   const isProfileOwned = permSetRow?.IsOwnedByProfile === true;
-  const titleLine = objectTreeGroupTitleLine(exportLabel, isProfileOwned);
+  const titleLine = permissionAnalysisPermissionContainerGroupTitleLine(exportLabel, isProfileOwned);
   const typeKind = isProfileOwned ? 'profile' : 'permission_set';
   const typeCaption = isProfileOwned ? 'Profile' : 'Permission set';
   return (

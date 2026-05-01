@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { describeGlobal, getAnalysisJob, queryWithCache } from '@jetstream/shared/data';
+import { getAnalysisJob, queryWithCache } from '@jetstream/shared/data';
 import { escapeSoqlString } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import {
@@ -26,6 +26,7 @@ import { PermissionAnalysisObjectPermissionsTree } from './PermissionAnalysisObj
 import { PermissionAnalysisTabVisibilityTree } from './PermissionAnalysisTabVisibilityTree';
 import { PermissionAnalysisPermissionSetsTree } from './PermissionAnalysisPermissionSetsTree';
 import { PermissionAnalysisUserAssignmentsTree } from './PermissionAnalysisUserAssignmentsTree';
+import { PermissionAnalysisExportMetadataProvider } from './permission-analysis-export-metadata-context';
 import { PermissionAnalysisFindingsFiltersBar } from './PermissionAnalysisFindingsFiltersBar';
 import { PermissionAnalysisHistoryModal } from './PermissionAnalysisHistoryModal';
 import { PermissionAnalysisIssuesTab } from './PermissionAnalysisIssuesTab';
@@ -52,6 +53,26 @@ const HEIGHT_BUFFER = 170;
 const ENTITY_DEFINITION_CHUNK_SIZE = 40;
 const TAB_DEFINITION_CHUNK_SIZE = 100;
 const FIELD_DEFINITION_CHUNK_SIZE = 50;
+/** Max concurrent per-object FieldDefinition Tooling queries (avoids unbounded parallel requests). */
+const FIELD_DEFINITION_OBJECT_CONCURRENCY = 5;
+
+async function mapPool<T>(items: readonly T[], concurrency: number, fn: (item: T) => Promise<void>): Promise<void> {
+  if (items.length === 0) {
+    return;
+  }
+  const workerCount = Math.max(1, Math.min(concurrency, items.length));
+  let nextIndex = 0;
+  async function worker(): Promise<void> {
+    while (true) {
+      const index = nextIndex++;
+      if (index >= items.length) {
+        return;
+      }
+      await fn(items[index]);
+    }
+  }
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+}
 
 interface ToolingEntityDefinitionRow {
   QualifiedApiName: string;
@@ -107,7 +128,29 @@ export const PermissionAnalysisView: FunctionComponent = () => {
     const jobIdForPoll = jobId;
 
     let cancelled = false;
-    const intervalIdRef: { current: ReturnType<typeof setInterval> | undefined } = { current: undefined };
+    let intervalId: ReturnType<typeof setInterval> | undefined;
+    /** Visible-tab polling interval; backs off slightly while the job stays non-terminal. */
+    let pollIntervalMs = 2000;
+    let consecutiveNonTerminalSuccess = 0;
+
+    const clearPolling = () => {
+      if (intervalId !== undefined) {
+        clearInterval(intervalId);
+        intervalId = undefined;
+      }
+    };
+
+    const effectivePollIntervalMs = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+        return Math.max(pollIntervalMs, 12000);
+      }
+      return pollIntervalMs;
+    };
+
+    const schedulePolling = () => {
+      clearPolling();
+      intervalId = setInterval(() => void pollOnce(), effectivePollIntervalMs());
+    };
 
     async function pollOnce() {
       try {
@@ -118,30 +161,50 @@ export const PermissionAnalysisView: FunctionComponent = () => {
         setJobRecord(job);
         setFetchError(null);
         const status = String(job.status ?? '');
-        if ((status === 'completed' || status === 'failed') && intervalIdRef.current) {
-          clearInterval(intervalIdRef.current);
-          intervalIdRef.current = undefined;
+        if (status === 'completed' || status === 'failed') {
+          clearPolling();
+          return;
+        }
+        consecutiveNonTerminalSuccess += 1;
+        const nextMs = Math.min(5000, 2000 + (consecutiveNonTerminalSuccess - 1) * 500);
+        if (nextMs !== pollIntervalMs) {
+          pollIntervalMs = nextMs;
+          schedulePolling();
         }
       } catch (ex) {
         if (!cancelled) {
           setFetchError(getErrorMessage(ex));
           logger.error('Failed to load analysis job', ex);
-          if (intervalIdRef.current) {
-            clearInterval(intervalIdRef.current);
-            intervalIdRef.current = undefined;
-          }
+          clearPolling();
         }
       }
     }
 
+    const onVisibilityChange = () => {
+      if (cancelled) {
+        return;
+      }
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        pollIntervalMs = 2000;
+        consecutiveNonTerminalSuccess = 0;
+        void pollOnce();
+      }
+      schedulePolling();
+    };
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', onVisibilityChange);
+    }
+
     void pollOnce();
-    intervalIdRef.current = setInterval(() => void pollOnce(), 2000);
+    schedulePolling();
 
     return () => {
       cancelled = true;
-      if (intervalIdRef.current) {
-        clearInterval(intervalIdRef.current);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', onVisibilityChange);
       }
+      clearPolling();
     };
   }, [selectedOrg, jobId]);
 
@@ -171,13 +234,14 @@ export const PermissionAnalysisView: FunctionComponent = () => {
 
   const exportObjectScopeNames = useMemo(() => parsePermissionExportRequestScope(jobRecord?.result).objectApiNames, [jobRecord]);
 
-  const { filteredFindings: globallyFilteredFindings } = usePermissionAnalysisIssuesFilters({
+  const permissionAnalysisIssuesFilters = usePermissionAnalysisIssuesFilters({
     findings: parsedExport?.findings ?? EMPTY_PERMISSION_ANALYSIS_FINDINGS,
     permissionSetAssignments: parsedExport?.export.permissionSetAssignments ?? EMPTY_PERMISSION_EXPORT_ASSIGNMENT_ROWS,
     searchParams,
     setSearchParams,
     issueScopeFilterContext,
   });
+  const globallyFilteredFindings = permissionAnalysisIssuesFilters.filteredFindings;
 
   useEffect(() => {
     const exportSnapshot = parsedExport;
@@ -197,26 +261,8 @@ export const PermissionAnalysisView: FunctionComponent = () => {
     let cancelled = false;
 
     async function loadSobjectExportDetails() {
+      /** Labels/descriptions come from EntityDefinition; API name fallback fills any gaps (skips heavy describeGlobal). */
       const details: Record<string, SobjectExportDetail> = {};
-      try {
-        const describeResponse = await describeGlobal(selectedOrg);
-        if (cancelled) {
-          return;
-        }
-        if (describeResponse.data?.sobjects) {
-          for (const sobject of describeResponse.data.sobjects) {
-            details[sobject.name] = {
-              apiName: sobject.name,
-              label: sobject.label,
-              description: null,
-            };
-          }
-        }
-      } catch (error) {
-        if (!cancelled) {
-          logger.error('Failed to load describe global for permission analysis object metadata', error);
-        }
-      }
 
       if (cancelled) {
         return;
@@ -249,7 +295,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
             const labelFromEd = typeof record.Label === 'string' && record.Label.trim().length > 0 ? record.Label.trim() : api;
             details[api] = {
               apiName: api,
-              label: existing?.label ?? labelFromEd,
+              label: labelFromEd,
               description: descriptionFromEd,
             };
           }
@@ -368,8 +414,12 @@ export const PermissionAnalysisView: FunctionComponent = () => {
 
       const details: Record<string, FieldExportDetail> = {};
 
-      for (const [objectApi, fieldSet] of fieldsByObject) {
-        const names = [...fieldSet].sort((a, b) => a.localeCompare(b));
+      const objectWorkItems = [...fieldsByObject.entries()].map(([objectApi, fieldSet]) => ({
+        objectApi,
+        names: [...fieldSet].sort((a, b) => a.localeCompare(b)),
+      }));
+
+      await mapPool(objectWorkItems, FIELD_DEFINITION_OBJECT_CONCURRENCY, async ({ objectApi, names }) => {
         for (let offset = 0; offset < names.length; offset += FIELD_DEFINITION_CHUNK_SIZE) {
           if (cancelled) {
             return;
@@ -406,7 +456,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
             logger.warn('FieldDefinition query failed for permission analysis field metadata', fieldDefinitionError);
           }
         }
-      }
+      });
 
       if (!cancelled) {
         setFieldExportDetails(details);
@@ -421,6 +471,11 @@ export const PermissionAnalysisView: FunctionComponent = () => {
   }, [selectedOrg, parsedExport]);
 
   const findingsCount = parsedExport?.findings.length ?? 0;
+
+  const permissionAnalysisExportMetadata = useMemo(
+    () => ({ fieldExportDetails, tabLabelBySettingName }),
+    [fieldExportDetails, tabLabelBySettingName],
+  );
 
   const resultTabs = useMemo(() => {
     if (!selectedOrg || !parsedExport) {
@@ -686,7 +741,6 @@ export const PermissionAnalysisView: FunctionComponent = () => {
               permissionSetRows={exportBundle.permissionSets}
               findings={globallyFilteredFindings}
               containerLabelById={containerLabelById}
-              tabLabelBySettingName={tabLabelBySettingName}
               {...gridProps}
             />
           </div>
@@ -720,7 +774,6 @@ export const PermissionAnalysisView: FunctionComponent = () => {
               fieldPermissionRows={exportBundle.fieldPermissions}
               permissionSetRows={exportBundle.permissionSets}
               findings={globallyFilteredFindings}
-              fieldExportDetails={fieldExportDetails}
               {...gridProps}
             />
           </div>
@@ -799,8 +852,6 @@ export const PermissionAnalysisView: FunctionComponent = () => {
     setSearchParams,
     findingsCount,
     sobjectExportDetails,
-    tabLabelBySettingName,
-    fieldExportDetails,
     issueScopeFilterContext,
     globallyFilteredFindings,
   ]);
@@ -847,13 +898,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
                   min-height: 0;
                 `}
               >
-                <PermissionAnalysisFindingsFiltersBar
-                  findings={parsedExport.findings}
-                  permissionSetAssignments={parsedExport.export.permissionSetAssignments}
-                  searchParams={searchParams}
-                  setSearchParams={setSearchParams}
-                  issueScopeFilterContext={issueScopeFilterContext}
-                />
+                <PermissionAnalysisFindingsFiltersBar findings={parsedExport.findings} issuesFilters={permissionAnalysisIssuesFilters} />
               </div>
             ) : null}
           </div>
@@ -918,32 +963,38 @@ export const PermissionAnalysisView: FunctionComponent = () => {
           </div>
         )}
         {jobId && !fetchError && isTerminal && jobStatusNormalized === 'completed' && parsedExport && selectedOrg && resultTabs && (
-          <Fragment>
-            {exportObjectScopeNames.length > 0 && (
-              <div className="slds-p-horizontal_medium slds-p-top_x-small">
-                <ScopedNotification theme="info">
-                  Object scope for object and field permissions ({exportObjectScopeNames.length} type
-                  {exportObjectScopeNames.length === 1 ? '' : 's'}
-                  ):
-                  {exportObjectScopeNames.length <= 8 ? (
-                    <> {exportObjectScopeNames.join(', ')}.</>
-                  ) : (
-                    <>
-                      {' '}
-                      {exportObjectScopeNames.slice(0, 8).join(', ')}… and {exportObjectScopeNames.length - 8} more.
-                    </>
-                  )}{' '}
-                  Tab visibility and permission set lists are not filtered by object.
-                </ScopedNotification>
-              </div>
-            )}
-            {parsedExport.summary && (
-              <div className="slds-p-horizontal_medium slds-p-top_x-small">
-                <p className="slds-text-body_small slds-text-color_weak">{parsedExport.summary}</p>
-              </div>
-            )}
-            <Tabs key={resultTabs.map((tab) => tab.id).join('|')} initialActiveId={resultTabs[0]?.id ?? 'assignments'} tabs={resultTabs} />
-          </Fragment>
+          <PermissionAnalysisExportMetadataProvider value={permissionAnalysisExportMetadata}>
+            <Fragment>
+              {exportObjectScopeNames.length > 0 && (
+                <div className="slds-p-horizontal_medium slds-p-top_x-small">
+                  <ScopedNotification theme="info">
+                    Object scope for object and field permissions ({exportObjectScopeNames.length} type
+                    {exportObjectScopeNames.length === 1 ? '' : 's'}
+                    ):
+                    {exportObjectScopeNames.length <= 8 ? (
+                      <> {exportObjectScopeNames.join(', ')}.</>
+                    ) : (
+                      <>
+                        {' '}
+                        {exportObjectScopeNames.slice(0, 8).join(', ')}… and {exportObjectScopeNames.length - 8} more.
+                      </>
+                    )}{' '}
+                    Tab visibility and permission set lists are not filtered by object.
+                  </ScopedNotification>
+                </div>
+              )}
+              {parsedExport.summary && (
+                <div className="slds-p-horizontal_medium slds-p-top_x-small">
+                  <p className="slds-text-body_small slds-text-color_weak">{parsedExport.summary}</p>
+                </div>
+              )}
+              <Tabs
+                key={resultTabs.map((tab) => tab.id).join('|')}
+                initialActiveId={resultTabs[0]?.id ?? 'assignments'}
+                tabs={resultTabs}
+              />
+            </Fragment>
+          </PermissionAnalysisExportMetadataProvider>
         )}
         {jobId && !fetchError && isTerminal && jobStatusNormalized === 'completed' && !parsedExport && jobRecord && (
           <div className="slds-p-around_medium">

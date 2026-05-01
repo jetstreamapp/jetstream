@@ -14,6 +14,8 @@ import {
 import groupBy from 'lodash/groupBy';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
 import type { CellMouseArgs, RenderCellProps, RenderGroupCellProps } from 'react-data-grid';
+import { usePermissionAnalysisExportMetadata } from './permission-analysis-export-metadata-context';
+import { permissionAnalysisPermissionContainerGroupTitleLine } from './permission-analysis-tree-group-title';
 import { permissionAnalysisAssignmentTypeLabelCss } from './permission-analysis-viewer-badge.styles';
 import { SobjectTypeCellContent } from './PermissionAnalysisExportGrid';
 import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
@@ -28,7 +30,6 @@ import {
   getExportColumnHeaderLabel,
   listFindingsForFieldPermissionCell,
   sortFieldPermissionExportRowsForAnalysisTree,
-  type FieldExportDetail,
   type PermissionAnalysisFinding,
   type PermissionExportRow,
   type SobjectExportDetail,
@@ -79,14 +80,6 @@ function collectAllFieldPermissionExpandedGroupIds(rows: FieldPermissionTreeRow[
   return ids;
 }
 
-function fieldTreeGroupTitleLine(exportLabel: string, isProfileOwned: boolean): string {
-  if (isProfileOwned && exportLabel.startsWith('Profile: ')) {
-    const rest = exportLabel.slice('Profile: '.length).trim();
-    return rest.length > 0 ? rest : exportLabel;
-  }
-  return exportLabel;
-}
-
 function renderFieldPermissionPermissionSetGroupCell(
   labelByParentId: Map<string, string>,
   permissionSetRowById: Map<string, PermissionExportRow>,
@@ -96,7 +89,7 @@ function renderFieldPermissionPermissionSetGroupCell(
   const exportLabel = labelByParentId.get(id) ?? id;
   const permSetRow = permissionSetRowById.get(id);
   const isProfileOwned = permSetRow?.IsOwnedByProfile === true;
-  const titleLine = fieldTreeGroupTitleLine(exportLabel, isProfileOwned);
+  const titleLine = permissionAnalysisPermissionContainerGroupTitleLine(exportLabel, isProfileOwned);
   const typeKind = isProfileOwned ? 'profile' : 'permission_set';
   const typeCaption = isProfileOwned ? 'Profile' : 'Permission set';
   return (
@@ -286,7 +279,6 @@ export interface PermissionAnalysisFieldPermissionsTreeProps {
   skipFrontdoorLogin: boolean;
   defaultApiVersion: string;
   sobjectExportDetails?: Record<string, SobjectExportDetail>;
-  fieldExportDetails?: Record<string, FieldExportDetail>;
   findings?: PermissionAnalysisFinding[];
 }
 
@@ -301,9 +293,9 @@ export const PermissionAnalysisFieldPermissionsTree: FunctionComponent<Permissio
   skipFrontdoorLogin,
   defaultApiVersion,
   sobjectExportDetails,
-  fieldExportDetails,
   findings = [],
 }) => {
+  const { fieldExportDetails } = usePermissionAnalysisExportMetadata();
   const sortedRows = useMemo(
     () => sortFieldPermissionExportRowsForAnalysisTree(fieldPermissionRows, permissionSetRows, sobjectExportDetails, fieldExportDetails),
     [fieldPermissionRows, permissionSetRows, sobjectExportDetails, fieldExportDetails],

@@ -159,6 +159,8 @@ export interface UsePermissionAnalysisIssuesFiltersResult {
   olsFlsFilter: IssuesOlsFlsFilter;
   directAssignmentFilter: IssuesDirectAssignmentFilter;
   scopeFilter: IssuesScopeFilter;
+  /** Same reference passed into the hook; used by the toolbar for Export Scope visibility. */
+  issueScopeFilterContext: IssueScopeFilterContext | undefined;
   hiddenIssueGridColumns: ReadonlySet<IssuesGridColumnKey>;
   groupBy: IssuesGroupBy;
   hasAssignmentData: boolean;
@@ -271,6 +273,7 @@ export function usePermissionAnalysisIssuesFilters({
     olsFlsFilter,
     directAssignmentFilter,
     scopeFilter,
+    issueScopeFilterContext,
     hiddenIssueGridColumns,
     groupBy,
     hasAssignmentData,
