@@ -33,6 +33,65 @@ export function parseIssuesOlsFlsFilterFromSearchParams(searchParams: URLSearchP
 export type IssuesDirectAssignmentFilter = 'all' | 'assigned' | 'unassigned';
 export type IssuesGroupBy = 'none' | 'severity' | 'object' | 'code' | 'container';
 
+/** Issues grid column keys (order matches default grid). */
+export const ISSUES_GRID_COLUMN_KEYS = [
+  'severity',
+  'code',
+  'objectApiName',
+  'fieldApiName',
+  'message',
+  'permissionSetId',
+  'parentId',
+  'containerId',
+] as const;
+
+export type IssuesGridColumnKey = (typeof ISSUES_GRID_COLUMN_KEYS)[number];
+
+export const ISSUES_GRID_COLUMN_LABELS: Record<IssuesGridColumnKey, string> = {
+  severity: 'Severity',
+  code: 'Issue',
+  objectApiName: 'Object',
+  fieldApiName: 'Field',
+  message: 'Message',
+  permissionSetId: 'Permission set Id',
+  parentId: 'Parent Id',
+  containerId: 'Container Id',
+};
+
+/** Comma-separated keys in `issueHiddenCols`; unknown segments ignored. */
+export function parseIssueHiddenColumnsFromSearchParams(searchParams: URLSearchParams): Set<IssuesGridColumnKey> {
+  const raw = searchParams.get('issueHiddenCols');
+  if (!raw) {
+    return new Set();
+  }
+  const allowed = new Set<string>(ISSUES_GRID_COLUMN_KEYS);
+  const result = new Set<IssuesGridColumnKey>();
+  for (const part of raw.split(',')) {
+    const key = part.trim();
+    if (allowed.has(key)) {
+      result.add(key as IssuesGridColumnKey);
+    }
+  }
+  return result;
+}
+
+export type IssuesScopeFilter = 'all' | 'profiles' | 'permissionSets';
+
+/** Valid values for `issueScope` when the export used explicit profile vs permission set scope. */
+export function parseIssuesScopeFilterFromSearchParams(searchParams: URLSearchParams): IssuesScopeFilter {
+  const raw = searchParams.get('issueScope');
+  if (raw === 'profiles' || raw === 'permissionSets') {
+    return raw;
+  }
+  return 'all';
+}
+
+export interface IssueScopeFilterContext {
+  hasExplicitScope: boolean;
+  profilePermissionSetIds: ReadonlySet<string>;
+  permissionSetIds: ReadonlySet<string>;
+}
+
 /** Query param for filtering the Issues grid (and related views) to one finding code. */
 export const PERMISSION_ANALYSIS_ISSUE_CODE_PARAM = 'issueCode';
 
@@ -91,12 +150,16 @@ export interface UsePermissionAnalysisIssuesFiltersArgs {
   permissionSetAssignments: PermissionExportRow[];
   searchParams: URLSearchParams;
   setSearchParams: SetURLSearchParams;
+  /** When set, findings can be narrowed to profile permission sets vs standalone permission sets from the job scope. */
+  issueScopeFilterContext?: IssueScopeFilterContext;
 }
 
 export interface UsePermissionAnalysisIssuesFiltersResult {
   severityFilter: IssuesSeverityFilter;
   olsFlsFilter: IssuesOlsFlsFilter;
   directAssignmentFilter: IssuesDirectAssignmentFilter;
+  scopeFilter: IssuesScopeFilter;
+  hiddenIssueGridColumns: ReadonlySet<IssuesGridColumnKey>;
   groupBy: IssuesGroupBy;
   issueCodeFilter: string | null;
   hasAssignmentData: boolean;
@@ -115,9 +178,12 @@ export function usePermissionAnalysisIssuesFilters({
   permissionSetAssignments,
   searchParams,
   setSearchParams,
+  issueScopeFilterContext,
 }: UsePermissionAnalysisIssuesFiltersArgs): UsePermissionAnalysisIssuesFiltersResult {
   const severityFilter = parseIssuesSeverityFilterFromSearchParams(searchParams);
   const olsFlsFilter = parseIssuesOlsFlsFilterFromSearchParams(searchParams);
+  const scopeFilter = parseIssuesScopeFilterFromSearchParams(searchParams);
+  const hiddenIssueGridColumns = useMemo(() => parseIssueHiddenColumnsFromSearchParams(searchParams), [searchParams]);
   const directAssignmentFilter = readPermissionAnalysisSearchParam(
     searchParams,
     'issueDirectAssign',
@@ -179,9 +245,31 @@ export function usePermissionAnalysisIssuesFilters({
       if (issueCodeFilter && String(finding.code ?? '') !== issueCodeFilter) {
         return false;
       }
+      if (issueScopeFilterContext?.hasExplicitScope && scopeFilter !== 'all') {
+        const containerId = getFindingContainerId(finding);
+        if (!containerId) {
+          return false;
+        }
+        if (scopeFilter === 'profiles' && !issueScopeFilterContext.profilePermissionSetIds.has(containerId)) {
+          return false;
+        }
+        if (scopeFilter === 'permissionSets' && !issueScopeFilterContext.permissionSetIds.has(containerId)) {
+          return false;
+        }
+      }
       return true;
     });
-  }, [findings, severityFilter, olsFlsFilter, directAssignmentFilter, hasAssignmentData, permissionSetsWithUsers, issueCodeFilter]);
+  }, [
+    findings,
+    severityFilter,
+    olsFlsFilter,
+    directAssignmentFilter,
+    hasAssignmentData,
+    permissionSetsWithUsers,
+    issueCodeFilter,
+    issueScopeFilterContext,
+    scopeFilter,
+  ]);
 
   const issueCodeRows = useMemo(() => {
     const map = new Map<string, number>();
@@ -211,6 +299,8 @@ export function usePermissionAnalysisIssuesFilters({
     severityFilter,
     olsFlsFilter,
     directAssignmentFilter,
+    scopeFilter,
+    hiddenIssueGridColumns,
     groupBy,
     issueCodeFilter,
     hasAssignmentData,

@@ -3,8 +3,23 @@ import classNames from 'classnames';
 import { Grid, Icon, Modal, Popover, ToolbarItemGroup, type PopoverRef } from '@jetstream/ui';
 import { FunctionComponent, ReactNode, useRef, useState } from 'react';
 import type { SetURLSearchParams } from 'react-router-dom';
-import { usePermissionAnalysisIssuesFilters } from './permission-analysis-issues-filters';
+import { type IssueScopeFilterContext, usePermissionAnalysisIssuesFilters } from './permission-analysis-issues-filters';
 import { getFindingCodeDisplayParts, type PermissionAnalysisFinding, type PermissionExportRow } from './permission-export-result-view';
+
+/** Keeps `<legend>` from sitting inline with the first radio (fieldset default layout). */
+const filterPanelLegendCss = css`
+  display: block;
+  width: 100%;
+  float: none;
+  padding: 0;
+  margin-bottom: 0.375rem;
+`;
+
+const filterPanelHelpTextCss = css`
+  display: block;
+  width: 100%;
+  margin-bottom: 0.5rem;
+`;
 
 const FindingCodeInline: FunctionComponent<{ code: string | undefined }> = ({ code }) => {
   const { title, technicalCode } = getFindingCodeDisplayParts(code);
@@ -102,6 +117,7 @@ export interface PermissionAnalysisFindingsFiltersBarProps {
   permissionSetAssignments: PermissionExportRow[];
   searchParams: URLSearchParams;
   setSearchParams: SetURLSearchParams;
+  issueScopeFilterContext?: IssueScopeFilterContext;
 }
 
 /**
@@ -112,6 +128,7 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
   permissionSetAssignments,
   searchParams,
   setSearchParams,
+  issueScopeFilterContext,
 }) => {
   const [issueCodesOpen, setIssueCodesOpen] = useState(false);
 
@@ -119,6 +136,7 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
     severityFilter,
     olsFlsFilter,
     directAssignmentFilter,
+    scopeFilter,
     hasAssignmentData,
     filteredFindings,
     issueCodeRows,
@@ -134,7 +152,10 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
     permissionSetAssignments,
     searchParams,
     setSearchParams,
+    issueScopeFilterContext,
   });
+
+  const exportScopeFilterActive = issueScopeFilterContext?.hasExplicitScope === true && scopeFilter !== 'all';
 
   return (
     <>
@@ -147,10 +168,48 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
           gap: 0.25rem;
         `}
       >
-        <ToolbarFilterButton label="Column / Scope" filterActive={false} showResetFooter={false} onReset={() => {}}>
-          <p className="slds-text-body_small">
-            Matrix row and container toggles ship with the object-level matrix (Phase C). This control is reserved for that layout.
-          </p>
+        <ToolbarFilterButton
+          label="Export scope"
+          filterActive={exportScopeFilterActive}
+          onReset={() => {
+            updateParams({ issueScope: null });
+          }}
+        >
+          {issueScopeFilterContext?.hasExplicitScope ? (
+            <fieldset className="slds-form-element">
+              <legend css={filterPanelLegendCss} className="slds-form-element__legend slds-text-title_caps">
+                Export scope
+              </legend>
+              <p css={filterPanelHelpTextCss} className="slds-text-body_small slds-text-color_weak">
+                Narrow findings to permission containers that were selected as profiles or as permission sets for this export job.
+              </p>
+              <div className="slds-form-element__control">
+                {(['all', 'profiles', 'permissionSets'] as const).map((value) => (
+                  <div key={value} className="slds-radio">
+                    <input
+                      type="radio"
+                      id={`toolbar-issue-scope-${value}`}
+                      name="toolbarIssueScope"
+                      value={value}
+                      checked={scopeFilter === value}
+                      onChange={() => updateParams({ issueScope: value === 'all' ? null : value })}
+                    />
+                    <label className="slds-radio__label" htmlFor={`toolbar-issue-scope-${value}`}>
+                      <span className="slds-radio_faux" />
+                      <span className="slds-form-element__label">
+                        {value === 'all' ? 'All' : value === 'profiles' ? 'Profiles only' : 'Permission sets only'}
+                      </span>
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </fieldset>
+          ) : (
+            <p css={filterPanelHelpTextCss} className="slds-text-body_small slds-text-color_weak">
+              Scope filtering applies when the export job selected specific profiles and permission sets separately. This run used a single
+              container list; use Direct assignments or column filters on the Issues grid to narrow rows.
+            </p>
+          )}
         </ToolbarFilterButton>
 
         <ToolbarFilterButton
@@ -158,11 +217,13 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
           filterActive={directAssignmentFilter !== 'all'}
           onReset={() => updateParams({ issueDirectAssign: null })}
         >
-          <p className="slds-text-body_small slds-m-bottom_small">
+          <p css={filterPanelHelpTextCss} className="slds-text-body_small">
             Filter findings to permission sets that have—or lack—a direct assignment to a Salesforce User.
           </p>
           <fieldset className="slds-form-element">
-            <legend className="slds-form-element__legend slds-text-title_caps">Include</legend>
+            <legend css={filterPanelLegendCss} className="slds-form-element__legend slds-text-title_caps">
+              Include
+            </legend>
             <div className="slds-form-element__control">
               {(['all', 'assigned', 'unassigned'] as const).map((value) => (
                 <div key={value} className="slds-radio">
@@ -194,7 +255,9 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
 
         <ToolbarFilterButton label="Severity" filterActive={severityFilter !== 'all'} onReset={() => updateParams({ issueSeverity: null })}>
           <fieldset className="slds-form-element">
-            <legend className="slds-form-element__legend slds-text-title_caps">Finding severity</legend>
+            <legend css={filterPanelLegendCss} className="slds-form-element__legend slds-text-title_caps">
+              Finding severity
+            </legend>
             <div className="slds-form-element__control">
               {(['all', 'errors', 'warnings'] as const).map((value) => (
                 <div key={value} className="slds-radio">
@@ -220,7 +283,9 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
 
         <ToolbarFilterButton label="OLS / FLS" filterActive={olsFlsFilter !== 'all'} onReset={() => updateParams({ issueOlsFls: null })}>
           <fieldset className="slds-form-element">
-            <legend className="slds-form-element__legend slds-text-title_caps">Finding security layer</legend>
+            <legend css={filterPanelLegendCss} className="slds-form-element__legend slds-text-title_caps">
+              Finding security layer
+            </legend>
             <div className="slds-form-element__control">
               {(['all', 'ols', 'fls'] as const).map((value) => (
                 <div key={value} className="slds-radio">

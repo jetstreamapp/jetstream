@@ -150,6 +150,19 @@ export const PermissionAnalysisView: FunctionComponent = () => {
     return parsePermissionExportResult(jobRecord.result);
   }, [jobRecord]);
 
+  const issueScopeFilterContext = useMemo(() => {
+    if (!jobRecord?.result) {
+      return undefined;
+    }
+    const scope = parsePermissionExportRequestScope(jobRecord.result);
+    const hasExplicitScope = scope.profilePermissionSetIds.length > 0 || scope.permissionSetIds.length > 0;
+    return {
+      hasExplicitScope,
+      profilePermissionSetIds: new Set(scope.profilePermissionSetIds),
+      permissionSetIds: new Set(scope.permissionSetIds),
+    };
+  }, [jobRecord]);
+
   useEffect(() => {
     const exportSnapshot = parsedExport;
 
@@ -723,6 +736,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
             defaultApiVersion={defaultApiVersion}
             searchParams={searchParams}
             setSearchParams={setSearchParams}
+            issueScopeFilterContext={issueScopeFilterContext}
           />
         ),
       },
@@ -770,6 +784,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
     sobjectExportDetails,
     tabLabelBySettingName,
     fieldExportDetails,
+    issueScopeFilterContext,
   ]);
 
   return (
@@ -814,6 +829,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
                   permissionSetAssignments={parsedExport.export.permissionSetAssignments}
                   searchParams={searchParams}
                   setSearchParams={setSearchParams}
+                  issueScopeFilterContext={issueScopeFilterContext}
                 />
               </div>
             ) : null}

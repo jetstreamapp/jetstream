@@ -14,6 +14,10 @@ import type { RenderCellProps } from 'react-data-grid';
 import type { SetURLSearchParams } from 'react-router-dom';
 import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 import {
+  ISSUES_GRID_COLUMN_KEYS,
+  ISSUES_GRID_COLUMN_LABELS,
+  type IssueScopeFilterContext,
+  type IssuesGridColumnKey,
   type IssuesGroupBy,
   isErrorSeverity,
   isWarningSeverity,
@@ -38,11 +42,26 @@ export interface PermissionAnalysisIssuesTabProps {
   defaultApiVersion: string;
   searchParams: URLSearchParams;
   setSearchParams: SetURLSearchParams;
+  issueScopeFilterContext?: IssueScopeFilterContext;
 }
 
 function normalizeSeverity(value: string | undefined): string {
   return (value ?? '').toLowerCase();
 }
+
+const issuesTabFilterLegendCss = css`
+  display: block;
+  width: 100%;
+  float: none;
+  padding: 0;
+  margin-bottom: 0.375rem;
+`;
+
+const issuesTabFilterHelpCss = css`
+  display: block;
+  width: 100%;
+  margin-bottom: 0.5rem;
+`;
 
 const FindingCodeInline: FunctionComponent<{ code: string | undefined }> = ({ code }) => {
   const { title, technicalCode } = getFindingCodeDisplayParts(code);
@@ -169,6 +188,7 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
   defaultApiVersion,
   searchParams,
   setSearchParams,
+  issueScopeFilterContext,
 }) => {
   const [aggregatedDetailsModal, setAggregatedDetailsModal] = useState<{
     findings: PermissionAnalysisFinding[];
@@ -179,12 +199,34 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
 
   const [gridFilteredFindings, setGridFilteredFindings] = useState<PermissionAnalysisFinding[] | null>(null);
 
-  const { filteredFindings, groupBy, updateParams } = usePermissionAnalysisIssuesFilters({
+  const { filteredFindings, groupBy, updateParams, hiddenIssueGridColumns } = usePermissionAnalysisIssuesFilters({
     findings,
     permissionSetAssignments,
     searchParams,
     setSearchParams,
+    issueScopeFilterContext,
   });
+
+  const gridColumns = useMemo(() => {
+    const filtered = FINDING_COLUMNS.filter((col) => !hiddenIssueGridColumns.has(col.key as IssuesGridColumnKey));
+    return filtered.length > 0 ? filtered : FINDING_COLUMNS;
+  }, [hiddenIssueGridColumns]);
+
+  const setIssueColumnHidden = useCallback(
+    (columnKey: IssuesGridColumnKey, hide: boolean) => {
+      const nextHidden = new Set(hiddenIssueGridColumns);
+      if (hide) {
+        if (ISSUES_GRID_COLUMN_KEYS.length - nextHidden.size <= 1) {
+          return;
+        }
+        nextHidden.add(columnKey);
+      } else {
+        nextHidden.delete(columnKey);
+      }
+      updateParams({ issueHiddenCols: nextHidden.size === 0 ? null : [...nextHidden].sort().join(',') });
+    },
+    [hiddenIssueGridColumns, updateParams],
+  );
 
   const sortedFindings = useMemo(() => sortFindings(filteredFindings, groupBy), [filteredFindings, groupBy]);
 
@@ -251,8 +293,8 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
       <div className="slds-p-around_medium">
         <ScopedNotification theme="info">
           No findings for this job yet. Run a permission export analysis to evaluate object vs field read access; results include an
-          aggregated summary, toolbar filters (same style as data table filters), column filters on the grid, and Group By on this tab when
-          findings exist.
+          aggregated summary, toolbar filters (same style as data table filters), column filters on the grid, and Columns / Group By
+          controls above the grid when findings exist.
         </ScopedNotification>
       </div>
     );
@@ -267,8 +309,8 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
         <h2 className="slds-text-heading_small slds-m-bottom_x-small">Aggregated Findings</h2>
         <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_small">
           Rollups for the rows visible in the grid ({rollupFindings.length} row{rollupFindings.length === 1 ? '' : 's'}). Use the toolbar
-          filters first, then column header filter icons on the grid for finer control; use Group By above the grid to change sort grouping.
-          Click a row in either rollup table to open full messages and metadata for those findings.
+          filters first, then column header filter icons on the grid for finer control; use Columns and Group By above the grid to choose
+          visible columns and sort grouping. Click a row in either rollup table to open full messages and metadata for those findings.
         </p>
         <div
           css={css`
@@ -379,36 +421,85 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
       >
         <Popover
           placement="bottom-end"
+          header="Columns"
+          buttonProps={{ className: issuesTabGroupByTriggerClassName }}
+          content={
+            <div className="slds-p-around_small">
+              <fieldset className="slds-form-element">
+                <legend css={issuesTabFilterLegendCss} className="slds-form-element__legend slds-text-title_caps">
+                  Visible columns
+                </legend>
+                <p css={issuesTabFilterHelpCss} className="slds-text-body_small slds-text-color_weak">
+                  Uncheck to hide a column. At least one column stays visible.
+                </p>
+                <div className="slds-form-element__control">
+                  {ISSUES_GRID_COLUMN_KEYS.map((columnKey) => {
+                    const visible = !hiddenIssueGridColumns.has(columnKey);
+                    const disableUncheck = visible && ISSUES_GRID_COLUMN_KEYS.length - hiddenIssueGridColumns.size <= 1;
+                    return (
+                      <div key={columnKey} className="slds-checkbox">
+                        <input
+                          type="checkbox"
+                          id={`issues-tab-visible-col-${columnKey}`}
+                          checked={visible}
+                          disabled={disableUncheck}
+                          onChange={(ev) => setIssueColumnHidden(columnKey, !ev.target.checked)}
+                        />
+                        <label className="slds-checkbox__label" htmlFor={`issues-tab-visible-col-${columnKey}`}>
+                          <span className="slds-checkbox_faux" />
+                          <span className="slds-form-element__label">{ISSUES_GRID_COLUMN_LABELS[columnKey]}</span>
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
+              </fieldset>
+              <div className="slds-m-top_small">
+                <button type="button" className="slds-button slds-button_neutral" onClick={() => updateParams({ issueHiddenCols: null })}>
+                  Reset
+                </button>
+              </div>
+            </div>
+          }
+        >
+          Columns
+        </Popover>
+        <Popover
+          placement="bottom-end"
           header="Group By"
           buttonProps={{ className: issuesTabGroupByTriggerClassName }}
           content={
             <div className="slds-p-around_small">
               <fieldset className="slds-form-element">
-                <legend className="slds-form-element__legend slds-text-title_caps">Findings group by</legend>
-                {(
-                  [
-                    ['none', 'None (default sort)'],
-                    ['severity', 'Severity'],
-                    ['object', 'Object'],
-                    ['code', 'Code'],
-                    ['container', 'Container'],
-                  ] as const
-                ).map(([value, label]) => (
-                  <div key={value} className="slds-radio">
-                    <input
-                      type="radio"
-                      id={`issues-tab-cf-group-${value}`}
-                      name="issuesTabCfGroup"
-                      value={value}
-                      checked={groupBy === value}
-                      onChange={() => updateParams({ cfGroup: value === 'none' ? null : value })}
-                    />
-                    <label className="slds-radio__label" htmlFor={`issues-tab-cf-group-${value}`}>
-                      <span className="slds-radio_faux" />
-                      <span className="slds-form-element__label">{label}</span>
-                    </label>
-                  </div>
-                ))}
+                <legend css={issuesTabFilterLegendCss} className="slds-form-element__legend slds-text-title_caps">
+                  Findings group by
+                </legend>
+                <div className="slds-form-element__control">
+                  {(
+                    [
+                      ['none', 'None (default sort)'],
+                      ['severity', 'Severity'],
+                      ['object', 'Object'],
+                      ['code', 'Code'],
+                      ['container', 'Container'],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <div key={value} className="slds-radio">
+                      <input
+                        type="radio"
+                        id={`issues-tab-cf-group-${value}`}
+                        name="issuesTabCfGroup"
+                        value={value}
+                        checked={groupBy === value}
+                        onChange={() => updateParams({ cfGroup: value === 'none' ? null : value })}
+                      />
+                      <label className="slds-radio__label" htmlFor={`issues-tab-cf-group-${value}`}>
+                        <span className="slds-radio_faux" />
+                        <span className="slds-form-element__label">{label}</span>
+                      </label>
+                    </div>
+                  ))}
+                </div>
               </fieldset>
             </div>
           }
@@ -428,7 +519,7 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
           org={org}
           serverUrl={serverUrl}
           skipFrontdoorLogin={skipFrontdoorLogin}
-          columns={FINDING_COLUMNS}
+          columns={gridColumns}
           data={sortedFindings}
           getRowKey={getRowKey}
           includeQuickFilter
