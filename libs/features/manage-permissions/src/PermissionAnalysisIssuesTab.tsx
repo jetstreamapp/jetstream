@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { PermissionExportFindingCode } from '@jetstream/shared/constants';
 import type { SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -15,10 +16,11 @@ import {
 import { FunctionComponent, useCallback, useMemo, useState } from 'react';
 import type { SetURLSearchParams } from 'react-router-dom';
 import {
+  aggregatePermissionAnalysisFindings,
   type PermissionAnalysisFinding,
   type PermissionExportRow,
+  getFindingCodeDisplayParts,
   getFindingContainerId,
-  getFindingLabelForCode,
   getPermissionSetIdsWithDirectUserAssignment,
 } from './permission-export-result-view';
 
@@ -80,6 +82,21 @@ function mergeSearchParams(searchParams: URLSearchParams, updates: Record<string
   return next;
 }
 
+const FindingCodeInline: FunctionComponent<{ code: string | undefined }> = ({ code }) => {
+  const { title, technicalCode } = getFindingCodeDisplayParts(code);
+  return (
+    <span>
+      {title}
+      {technicalCode ? (
+        <span className="slds-text-color_weak">
+          {' '}
+          (<code>{technicalCode}</code>)
+        </span>
+      ) : null}
+    </span>
+  );
+};
+
 function sortFindings(rows: PermissionAnalysisFinding[], groupBy: IssuesGroupBy): PermissionAnalysisFinding[] {
   const copy = [...rows];
   const getter = (row: PermissionAnalysisFinding): string => {
@@ -105,12 +122,21 @@ function buildFindingColumns(): ColumnWithFilter<RowWithKey>[] {
   return keys.map((key) => {
     const fieldType = key.endsWith('Id') ? 'salesforceId' : 'text';
     const base = setColumnFromType(key, fieldType);
+    const severityCellClass = (row: RowWithKey) => {
+      const finding = row as PermissionAnalysisFinding;
+      const severityValue = finding.severity as string | undefined;
+      if (isWarningSeverity(severityValue) && !isErrorSeverity(severityValue)) {
+        return 'permission-finding-severity-cell--warning';
+      }
+      return undefined;
+    };
     return {
       ...base,
-      name: key,
+      name: key === 'code' ? 'Issue' : key,
       key,
       field: key,
       resizable: true,
+      ...(key === 'severity' ? { cellClass: severityCellClass } : {}),
       formatter:
         key === 'message'
           ? ({ row }: { row: PermissionAnalysisFinding }) => (
@@ -122,7 +148,24 @@ function buildFindingColumns(): ColumnWithFilter<RowWithKey>[] {
                 {String(row.message ?? '')}
               </span>
             )
-          : base.renderCell,
+          : key === 'code'
+            ? ({ row }: { row: PermissionAnalysisFinding }) => {
+                const rawCode = row.code;
+                const normalized = typeof rawCode === 'string' ? rawCode : undefined;
+                const { title, technicalCode } = getFindingCodeDisplayParts(normalized);
+                return (
+                  <span>
+                    {title}
+                    {technicalCode ? (
+                      <span className="slds-text-color_weak">
+                        {' '}
+                        (<code>{technicalCode}</code>)
+                      </span>
+                    ) : null}
+                  </span>
+                );
+              }
+            : base.renderCell,
     } as ColumnWithFilter<RowWithKey>;
   });
 }
@@ -207,16 +250,19 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
     [filteredFindings],
   );
 
+  const aggregation = useMemo(() => aggregatePermissionAnalysisFindings(filteredFindings), [filteredFindings]);
+
   const issueCodeRows = useMemo(() => {
     const map = new Map<string, number>();
     for (const row of filteredFindings) {
       const code = String(row.code ?? '');
       const key = code.length > 0 ? code : '(no code)';
+      if (key === PermissionExportFindingCode.FINDINGS_TRUNCATED) {
+        continue;
+      }
       map.set(key, (map.get(key) ?? 0) + 1);
     }
-    return [...map.entries()]
-      .map(([code, count]) => ({ code, count, label: getFindingLabelForCode(code === '(no code)' ? undefined : code) }))
-      .sort((a, b) => b.count - a.count || a.code.localeCompare(b.code));
+    return [...map.entries()].map(([code, count]) => ({ code, count })).sort((a, b) => b.count - a.count || a.code.localeCompare(b.code));
   }, [filteredFindings]);
 
   const rowsMap = useMemo(() => new WeakMap(sortedFindings.map((row, index) => [row, `finding-${index}`])), [sortedFindings]);
@@ -226,14 +272,94 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
     return (
       <div className="slds-p-around_medium">
         <ScopedNotification theme="info">
-          No findings for this job yet. When the analyzer returns aggregated issues, they will appear here with filters and Issue Codes.
+          No findings for this job yet. Run a permission export analysis to evaluate object vs field read access; results include an
+          aggregated summary, filters, and Issue Codes.
         </ScopedNotification>
       </div>
     );
   }
 
+  const topCodeRollups = aggregation.byCode.slice(0, 12);
+  const topObjectRollups = aggregation.byObject.slice(0, 12);
+
   return (
     <div className="slds-grid slds-grid_vertical">
+      <div className="slds-box slds-theme_default slds-m-around_small slds-p-around_small">
+        <h2 className="slds-text-heading_small slds-m-bottom_x-small">Aggregated findings</h2>
+        <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_small">
+          Rollups for the current filter set ({filteredFindings.length} row{filteredFindings.length === 1 ? '' : 's'}). Use filters below to
+          refocus the grid and these totals.
+        </p>
+        <div className="slds-grid slds-wrap slds-gutters_small">
+          <div className="slds-col slds-size_1-of-1 slds-large-size_1-of-2">
+            <h3 className="slds-text-title_caps slds-m-bottom_x-small">By issue code</h3>
+            {topCodeRollups.length === 0 ? (
+              <p className="slds-text-body_small slds-text-color_weak">No codes in the current filter.</p>
+            ) : (
+              <table className="slds-table slds-table_cell-buffer slds-table_bordered slds-max-medium-table_stacked">
+                <thead>
+                  <tr className="slds-line-height_reset">
+                    <th scope="col">Issue</th>
+                    <th scope="col">Count</th>
+                    <th scope="col">Errors</th>
+                    <th scope="col">Warnings</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {topCodeRollups.map((row) => (
+                    <tr key={row.code}>
+                      <td data-label="Issue">
+                        <FindingCodeInline code={row.code} />
+                      </td>
+                      <td data-label="Count">{row.count}</td>
+                      <td data-label="Errors">{row.errorCount}</td>
+                      <td data-label="Warnings">{row.warningCount}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            {aggregation.byCode.length > topCodeRollups.length && (
+              <p className="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
+                Showing top {topCodeRollups.length} of {aggregation.byCode.length} codes.
+              </p>
+            )}
+          </div>
+          <div className="slds-col slds-size_1-of-1 slds-large-size_1-of-2">
+            <h3 className="slds-text-title_caps slds-m-bottom_x-small">By object</h3>
+            {topObjectRollups.length === 0 ? (
+              <p className="slds-text-body_small slds-text-color_weak">No objects in the current filter.</p>
+            ) : (
+              <table className="slds-table slds-table_cell-buffer slds-table_bordered slds-max-medium-table_stacked">
+                <thead>
+                  <tr className="slds-line-height_reset">
+                    <th scope="col">Object</th>
+                    <th scope="col">Count</th>
+                    <th scope="col">Errors</th>
+                    <th scope="col">Warnings</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {topObjectRollups.map((row) => (
+                    <tr key={row.objectApiName}>
+                      <td data-label="Object">{row.objectApiName}</td>
+                      <td data-label="Count">{row.count}</td>
+                      <td data-label="Errors">{row.errorCount}</td>
+                      <td data-label="Warnings">{row.warningCount}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            {aggregation.byObject.length > topObjectRollups.length && (
+              <p className="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
+                Showing top {topObjectRollups.length} of {aggregation.byObject.length} objects.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div
         className="slds-p-around_small slds-border_bottom slds-border_color-border"
         css={css`
@@ -451,6 +577,13 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
           getRowKey={getRowKey}
           includeQuickFilter
           context={{ defaultApiVersion }}
+          rowClass={(row) => {
+            const severityValue = (row as PermissionAnalysisFinding).severity as string | undefined;
+            if (isErrorSeverity(severityValue)) {
+              return 'permission-finding-row--error';
+            }
+            return undefined;
+          }}
         />
       </AutoFullHeightContainer>
 
@@ -459,23 +592,26 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
           testId="permission-analysis-issue-codes"
           size="lg"
           header="Issue Codes"
+          tagline="Click a row to filter the findings table to that issue."
           closeOnBackdropClick
+          directionalFooter
           footer={
-            <button type="button" className="slds-button slds-button_neutral" onClick={() => setIssueCodesOpen(false)}>
-              Close
-            </button>
+            <Grid align="end">
+              <button type="button" className="slds-button slds-button_neutral" onClick={() => setIssueCodesOpen(false)}>
+                Close
+              </button>
+            </Grid>
           }
           onClose={() => setIssueCodesOpen(false)}
         >
-          <p className="slds-text-body_small slds-m-bottom_small">
-            Counts grouped by exporter <code>code</code> for the current Issues filters ({filteredFindings.length} rows).
+          <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_small">
+            Counts for the current Issues filters ({filteredFindings.length} row{filteredFindings.length === 1 ? '' : 's'}).
           </p>
           <table className="slds-table slds-table_cell-buffer slds-table_bordered">
             <thead>
               <tr className="slds-line-height_reset">
-                <th scope="col">Code</th>
+                <th scope="col">Issue</th>
                 <th scope="col">Count</th>
-                <th scope="col">Description</th>
               </tr>
             </thead>
             <tbody>
@@ -493,19 +629,18 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
                   }}
                 >
                   <td>
-                    <code>{row.code}</code>
+                    <FindingCodeInline code={row.code === '(no code)' ? undefined : row.code} />
                   </td>
                   <td>{row.count}</td>
-                  <td>{row.label || '—'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
           {issueCodeTableFilter && (
             <p className="slds-m-top_small slds-text-body_small">
-              Table filtered to code <code>{issueCodeTableFilter}</code>.{' '}
+              Table filtered to <FindingCodeInline code={issueCodeTableFilter} />.{' '}
               <button type="button" className="slds-button slds-button_link" onClick={() => setIssueCodeTableFilter(null)}>
-                Clear code filter
+                Clear issue filter
               </button>
             </p>
           )}
