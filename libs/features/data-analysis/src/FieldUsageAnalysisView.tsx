@@ -2,6 +2,7 @@ import { css } from '@emotion/react';
 import { PermissionAnalysisHistoryModal } from '@jetstream/feature/manage-permissions';
 import { logger } from '@jetstream/shared/client-logger';
 import { createAnalysisJob, getAnalysisJob } from '@jetstream/shared/data';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { convertDateToLocale, formatNumber } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import {
@@ -136,6 +137,44 @@ function fieldUsageObjectManagerReturnUrl(objectApiName: string, view: 'details'
   return `/lightning/setup/ObjectManager/${enc}/Details/view`;
 }
 
+/** SOQL for Query Records: analyzed fields plus Id / LastModifiedDate, no WHERE (same shape as field usage scan). */
+function buildFieldUsageObjectQuerySoql(objectApiName: string, childRows: readonly FieldUsageTreeRow[]): string {
+  const analyzedFields = childRows
+    .filter((row) => !row.isObjectErrorPlaceholder && row.objectApiName === objectApiName && row.fieldApiName && row.fieldApiName !== '—')
+    .map((row) => row.fieldApiName);
+  const orderedUnique = [...new Set(analyzedFields)].sort((a, b) => a.localeCompare(b));
+  const selectList: string[] = ['Id', 'LastModifiedDate'];
+  for (const fieldName of orderedUnique) {
+    if (fieldName !== 'Id' && fieldName !== 'LastModifiedDate') {
+      selectList.push(fieldName);
+    }
+  }
+  return `SELECT ${selectList.join(', ')} FROM ${objectApiName}`;
+}
+
+/**
+ * Opens Query Results in a new tab. Uses `sessionStorage` key `query` because `location.state` is not available to
+ * `window.open` the way a same-tab {@link Link} state is (see {@link QueryResults} fallback).
+ */
+function openFieldUsageObjectQueryInNewTab(objectApiName: string, objectLabel: string, childRows: readonly FieldUsageTreeRow[]): void {
+  const soql = buildFieldUsageObjectQuerySoql(objectApiName, childRows);
+  try {
+    sessionStorage.setItem(
+      'query',
+      JSON.stringify({
+        soql,
+        isTooling: false,
+        sobject: { name: objectApiName, label: objectLabel },
+      }),
+    );
+  } catch {
+    // ignore quota / private mode
+  }
+  const path = `${APP_ROUTES.QUERY.ROUTE}/results`;
+  const search = APP_ROUTES.QUERY.SEARCH_PARAM;
+  window.open(search ? `${path}?${search}` : path, '_blank', 'noopener,noreferrer');
+}
+
 const FIELD_USAGE_POPOVER_PANEL_PROPS = {
   onDoubleClick: (event: MouseEvent<HTMLDivElement>) => {
     event.stopPropagation();
@@ -159,10 +198,26 @@ function FieldUsageObjectGroupCell(props: RenderGroupCellProps<FieldUsageTreeRow
   const returnUrl = fieldUsageObjectManagerReturnUrl(api, 'details');
   const canDeepLink = Boolean(org?.uniqueId && serverUrl);
 
+  const handleOpenQueryResults = useCallback(
+    (event: MouseEvent<HTMLButtonElement>) => {
+      event.stopPropagation();
+      openFieldUsageObjectQueryInNewTab(api, label, childRows);
+    },
+    [api, label, childRows],
+  );
+
   return (
     <Popover
       size="large"
       panelProps={FIELD_USAGE_POPOVER_PANEL_PROPS}
+      footer={
+        <footer className="slds-popover__footer">
+          <button type="button" className="slds-button slds-button_neutral" onClick={handleOpenQueryResults}>
+            <Icon type="utility" icon="new_window" className="slds-button__icon slds-button__icon_left" omitContainer />
+            View query results
+          </button>
+        </footer>
+      }
       content={
         <div>
           {canDeepLink && org && serverUrl ? (
