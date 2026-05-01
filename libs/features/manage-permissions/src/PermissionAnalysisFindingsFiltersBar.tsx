@@ -312,7 +312,7 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
           label="Issue Codes"
           filterActive={!!issueCodeFilter}
           showResetFooter={false}
-          popoverHeaderTitle="Issue codes"
+          popoverHeaderTitle="Issue Codes"
           triggerIcon="feed"
         >
           <p css={filterPanelHelpTextCss} className="slds-text-body_small slds-text-color_weak">
@@ -320,37 +320,64 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
             issue using the Issue column on the Issues grid.
           </p>
           <div
+            role="list"
             css={css`
-              max-height: min(50vh, 280px);
-              overflow: auto;
+              max-height: min(50vh, 320px);
+              overflow-y: auto;
+              overflow-x: hidden;
+              display: flex;
+              flex-direction: column;
+              gap: 0.5rem;
+              padding-right: 0.125rem;
             `}
           >
-            <table className="slds-table slds-table_cell-buffer slds-table_bordered">
-              <thead>
-                <tr className="slds-line-height_reset">
-                  <th scope="col">Issue</th>
-                  <th scope="col">Count</th>
-                </tr>
-              </thead>
-              <tbody>
-                {issueCodeRows.length === 0 ? (
-                  <tr>
-                    <td colSpan={2} className="slds-text-body_small slds-text-color_weak">
-                      No issue codes in the current filter.
-                    </td>
-                  </tr>
-                ) : (
-                  issueCodeRows.map((row) => (
-                    <tr key={row.code} className="slds-line-height_reset">
-                      <td>
-                        <FindingCodeInline code={row.code === '(no code)' ? undefined : row.code} />
-                      </td>
-                      <td>{row.count}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+            {issueCodeRows.length === 0 ? (
+              <p className="slds-text-body_small slds-text-color_weak">No Issue Codes match the current filters.</p>
+            ) : (
+              issueCodeRows.map((row) => (
+                <div
+                  key={row.code}
+                  role="listitem"
+                  className="slds-box slds-theme_default"
+                  css={css`
+                    padding: 0.5rem 0.625rem;
+                  `}
+                >
+                  <div
+                    css={css`
+                      display: flex;
+                      flex-wrap: wrap;
+                      align-items: flex-start;
+                      justify-content: space-between;
+                      gap: 0.5rem 0.75rem;
+                    `}
+                  >
+                    <div
+                      css={css`
+                        flex: 1 1 10rem;
+                        min-width: 0;
+                        overflow-wrap: anywhere;
+                        word-break: break-word;
+                        white-space: normal;
+                        line-height: 1.35;
+                      `}
+                    >
+                      <FindingCodeInline code={row.code === '(no code)' ? undefined : row.code} />
+                    </div>
+                    <span
+                      className="slds-badge"
+                      css={css`
+                        flex-shrink: 0;
+                        align-self: flex-start;
+                      `}
+                      title="Finding count"
+                    >
+                      {row.count}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </ToolbarFilterButton>
       </ToolbarItemGroup>
@@ -365,7 +392,7 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
         {issueCodeFilter ? (
           <>
             {' '}
-            · Issue code filter active{' '}
+            · Issue Codes filter active{' '}
             <button type="button" className="slds-button slds-button_link" onClick={() => setIssueCodeFilter(null)}>
               Clear
             </button>
