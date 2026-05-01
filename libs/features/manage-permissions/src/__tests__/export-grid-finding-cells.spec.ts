@@ -115,6 +115,21 @@ describe('buildContainerIdFindingSeverity and listFindingsForExportContainer', (
     expect(listed).toHaveLength(2);
   });
 
+  it('uses row severity when issue code is not in the catalog (forward-compatible jobs)', () => {
+    const id = '0PS77';
+    const findings = [
+      {
+        code: 'FUTURE_ISSUE_CODE_V1',
+        severity: 'error',
+        objectApiName: 'Account',
+        parentId: id,
+        permissionSetId: id,
+      },
+    ];
+    const sev = buildContainerIdFindingSeverity(findings);
+    expect(sev.get(id)).toBe('error');
+  });
+
   it('excludes FINDINGS_TRUNCATED from container drill-in', () => {
     const id = '0PS66';
     const findings = [

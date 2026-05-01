@@ -280,6 +280,33 @@ export function fieldPermissionCellSeverity(
   return fromSpecific ?? fromScope;
 }
 
+function isErrorLikeSeverity(value: unknown): boolean {
+  const normalized = String(value ?? '').toLowerCase();
+  return normalized === 'error' || normalized === 'errors';
+}
+
+function isWarningLikeSeverity(value: unknown): boolean {
+  const normalized = String(value ?? '').toLowerCase();
+  return normalized === 'warning' || normalized === 'warnings';
+}
+
+/**
+ * Severity used for container-level badges (permission set / profile rows), from catalog definition or row payload.
+ */
+function containerSeverityFromFinding(finding: PermissionAnalysisFinding, codeRaw: string): PermissionObjectFindingCellSeverity | null {
+  const def = getPermissionExportFindingDefinition(codeRaw);
+  if (def) {
+    return def.severity === 'error' ? 'error' : 'warning';
+  }
+  if (isErrorLikeSeverity(finding.severity)) {
+    return 'error';
+  }
+  if (isWarningLikeSeverity(finding.severity)) {
+    return 'warning';
+  }
+  return null;
+}
+
 /**
  * Max severity per permission-set container Id for profile / permission-set / assignment export rows.
  */
@@ -296,11 +323,10 @@ export function buildContainerIdFindingSeverity(
     if (!containerId) {
       continue;
     }
-    const def = getPermissionExportFindingDefinition(codeRaw);
-    if (!def) {
+    const next = containerSeverityFromFinding(finding, codeRaw);
+    if (!next) {
       continue;
     }
-    const next: PermissionObjectFindingCellSeverity = def.severity === 'error' ? 'error' : 'warning';
     const existing = result.get(containerId);
     const merged: PermissionObjectFindingCellSeverity = existing === 'error' || next === 'error' ? 'error' : next;
     result.set(containerId, merged);
@@ -393,16 +419,6 @@ export interface PermissionFindingObjectRollup {
 export interface AggregatePermissionFindingsResult {
   byCode: PermissionFindingCodeRollup[];
   byObject: PermissionFindingObjectRollup[];
-}
-
-function isErrorLikeSeverity(value: unknown): boolean {
-  const normalized = String(value ?? '').toLowerCase();
-  return normalized === 'error' || normalized === 'errors';
-}
-
-function isWarningLikeSeverity(value: unknown): boolean {
-  const normalized = String(value ?? '').toLowerCase();
-  return normalized === 'warning' || normalized === 'warnings';
 }
 
 /** Rolls up the current issue list for summary tiles. */
