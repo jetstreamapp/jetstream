@@ -97,7 +97,7 @@ interface FieldUsageTreeRow {
   latestModified: string | null;
   /** Synthetic row when the object payload has `error` and no field stats. */
   isObjectErrorPlaceholder?: boolean;
-  /** Counts from Tooling Where Used, by {@link countWhereUsedByUiCategory} buckets. */
+  /** Where Used row counts by Kind: Layout, Automation, Apex ({@link countWhereUsedByUiCategory}). */
   whereUsedOnLayout: number;
   whereUsedInAutomation: number;
   whereUsedInApex: number;
@@ -410,7 +410,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
       _key: `${row.type}:${row.name}:${String(index)}`,
       componentType: row.type,
       componentName: row.name,
-      kindLabel: row.kind === 'automation' ? 'Automation' : row.kind === 'apex' ? 'Apex' : 'Other',
+      kindLabel: row.kind === 'automation' ? 'Automation' : row.kind === 'apex' ? 'Apex' : row.kind === 'layout' ? 'Layout' : 'Other',
     }));
   }, [parsedResult, whereUsedForKey]);
 

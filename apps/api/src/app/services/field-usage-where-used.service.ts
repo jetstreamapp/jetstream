@@ -1,5 +1,5 @@
 import type { ApiConnection } from '@jetstream/salesforce-api';
-import { parseCustomFieldApiNameForTooling } from '@jetstream/shared/utils';
+import { dedupeFieldUsageWhereUsedRows, parseCustomFieldApiNameForTooling, sortFieldUsageWhereUsedRows } from '@jetstream/shared/utils';
 import { escapeSoqlStringLiteral } from '../lib/field-usage/soql-escape';
 import type { FieldUsageObjectPayload } from './field-usage-query.service';
 
@@ -15,10 +15,13 @@ const WHERE_USED_AUTOMATION_TYPES = new Set([
 /** Apex code / Visualforce metadata (not triggers — those stay in the automation bucket). */
 const WHERE_USED_APEX_TYPES = new Set(['ApexClass', 'ApexPage', 'ApexComponent']);
 
+/** Page UI metadata — **On layout** bucket (classic layout, Lightning page, field sets on layouts). */
+const WHERE_USED_LAYOUT_TYPES = new Set(['Layout', 'FlexiPage', 'FieldSet']);
+
 export type WhereUsedDependencyRow = {
   type: string;
   name: string;
-  kind: 'automation' | 'apex' | 'other';
+  kind: 'automation' | 'apex' | 'layout' | 'other';
 };
 
 export type WhereUsedMap = Record<string, WhereUsedDependencyRow[]>;
@@ -31,17 +34,10 @@ function depKind(componentType: string): WhereUsedDependencyRow['kind'] {
   if (WHERE_USED_APEX_TYPES.has(t)) {
     return 'apex';
   }
+  if (WHERE_USED_LAYOUT_TYPES.has(t)) {
+    return 'layout';
+  }
   return 'other';
-}
-
-function kindSortOrder(kind: WhereUsedDependencyRow['kind']): number {
-  if (kind === 'automation') {
-    return 0;
-  }
-  if (kind === 'apex') {
-    return 1;
-  }
-  return 2;
 }
 
 async function toolingQueryAll(conn: ApiConnection, soql: string): Promise<Record<string, unknown>[]> {
@@ -117,18 +113,7 @@ async function getFieldDependencies(conn: ApiConnection, refComponentId: string)
     }
     out.push({ type: t, name: n, kind: depKind(t) });
   }
-  out.sort((a, b) => {
-    const ka = kindSortOrder(a.kind);
-    const kb = kindSortOrder(b.kind);
-    if (ka !== kb) {
-      return ka - kb;
-    }
-    return (
-      (a.type || '').toLowerCase().localeCompare((b.type || '').toLowerCase()) ||
-      (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase())
-    );
-  });
-  return out;
+  return sortFieldUsageWhereUsedRows(dedupeFieldUsageWhereUsedRows(out));
 }
 
 function collectCustomFieldKeys(objects: Record<string, FieldUsageObjectPayload>): { object: string; field: string }[] {

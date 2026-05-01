@@ -69,8 +69,41 @@ describe('@jetstream/feature/data-analysis', () => {
         },
       },
     });
-    expect(parsed?.whereUsed['O__c.F__c'][0].kind).toBe('apex');
-    expect(parsed?.whereUsed['O__c.F__c'][1].kind).toBe('automation');
+    const legacyRows = parsed?.whereUsed['O__c.F__c'] ?? [];
+    expect(legacyRows.find((row) => row.type === 'ApexClass')?.kind).toBe('apex');
+    expect(legacyRows.find((row) => row.type === 'Flow')?.kind).toBe('automation');
+  });
+
+  it('parseFieldUsageJobResult infers layout kind from Layout / FlexiPage / FieldSet when kind is other (legacy payloads)', () => {
+    const parsed = parseFieldUsageJobResult({
+      phase: 'field_usage_v1',
+      summary: 'ok',
+      truncated: false,
+      failedObjects: [],
+      whereUsed: {
+        'O__c.F__c': [
+          { type: 'Layout', name: 'Account Layout', kind: 'other' },
+          { type: 'FlexiPage', name: 'My_App_Page', kind: 'other' },
+          { type: 'FieldSet', name: 'Task_Fields', kind: 'other' },
+        ],
+      },
+      objects: {
+        O__c: {
+          label: 'O',
+          customizable: true,
+          totalRecords: 0,
+          queryTruncated: false,
+          fieldUsage: { F__c: { filled: 0, pct: 0, latestFilledRowModified: null } },
+          fieldMeta: {
+            F__c: { label: 'F', calculated: false, type: 'string', custom: true, length: 10 },
+          },
+        },
+      },
+    });
+    const layoutRows = parsed?.whereUsed['O__c.F__c'] ?? [];
+    expect(layoutRows.find((row) => row.type === 'Layout')?.kind).toBe('layout');
+    expect(layoutRows.find((row) => row.type === 'FlexiPage')?.kind).toBe('layout');
+    expect(layoutRows.find((row) => row.type === 'FieldSet')?.kind).toBe('layout');
   });
 
   it('getWhereUsedDepsForFieldKey matches exact key and falls back to case-insensitive map keys', () => {
@@ -85,18 +118,19 @@ describe('@jetstream/feature/data-analysis', () => {
   it('fieldHasWhereUsedDeps is true only when the map has non-empty rows for that field key', () => {
     const map = {
       'A__c.F__c': [{ type: 'Flow', name: 'X', kind: 'other' as const }],
-      'B__c.G__c': [] as { type: string; name: string; kind: 'automation' | 'apex' | 'other' }[],
+      'B__c.G__c': [] as { type: string; name: string; kind: 'automation' | 'apex' | 'layout' | 'other' }[],
     };
     expect(fieldHasWhereUsedDeps(map, 'A__c.F__c')).toBe(true);
     expect(fieldHasWhereUsedDeps(map, 'B__c.G__c')).toBe(false);
     expect(fieldHasWhereUsedDeps(map, 'Unknown__c.X__c')).toBe(false);
   });
 
-  it('countWhereUsedByUiCategory buckets Tooling metadata types for grid columns', () => {
+  it('countWhereUsedByUiCategory buckets by kind (matches Kind column)', () => {
     expect(
       countWhereUsedByUiCategory([
-        { type: 'Layout', name: 'L1', kind: 'other' },
-        { type: 'FlexiPage', name: 'FP1', kind: 'other' },
+        { type: 'Layout', name: 'L1', kind: 'layout' },
+        { type: 'FlexiPage', name: 'FP1', kind: 'layout' },
+        { type: 'FieldSet', name: 'FS1', kind: 'layout' },
         { type: 'Flow', name: 'Fl1', kind: 'automation' },
         { type: 'WorkflowRule', name: 'W1', kind: 'automation' },
         { type: 'ProcessDefinition', name: 'P1', kind: 'automation' },
@@ -104,7 +138,45 @@ describe('@jetstream/feature/data-analysis', () => {
         { type: 'ApexClass', name: 'C1', kind: 'apex' },
         { type: 'CustomLabel', name: 'X', kind: 'other' },
       ]),
-    ).toEqual({ onLayout: 2, inAutomation: 4, inApex: 1 });
+    ).toEqual({ onLayout: 3, inAutomation: 4, inApex: 1 });
+  });
+
+  it('countWhereUsedByUiCategory uses kind only (not Tooling type)', () => {
+    expect(countWhereUsedByUiCategory([{ type: 'Layout', name: 'L1', kind: 'other' }])).toEqual({
+      onLayout: 0,
+      inAutomation: 0,
+      inApex: 0,
+    });
+  });
+
+  it('parseFieldUsageJobResult dedupes Flow + FlowDefinition so automation count is per logical flow', () => {
+    const parsed = parseFieldUsageJobResult({
+      phase: 'field_usage_v1',
+      summary: 'ok',
+      truncated: false,
+      failedObjects: [],
+      whereUsed: {
+        'O__c.F__c': [
+          { type: 'Flow', name: 'Dup_Flow-2', kind: 'automation' },
+          { type: 'FlowDefinition', name: 'Dup_Flow', kind: 'automation' },
+        ],
+      },
+      objects: {
+        O__c: {
+          label: 'O',
+          customizable: true,
+          totalRecords: 0,
+          queryTruncated: false,
+          fieldUsage: { F__c: { filled: 0, pct: 0, latestFilledRowModified: null } },
+          fieldMeta: {
+            F__c: { label: 'F', calculated: false, type: 'string', custom: true, length: 10 },
+          },
+        },
+      },
+    });
+    const deps = parsed?.whereUsed['O__c.F__c'] ?? [];
+    expect(deps).toHaveLength(1);
+    expect(countWhereUsedByUiCategory(deps).inAutomation).toBe(1);
   });
 
   it('getFieldUsageTypeLabel capitalizes API type when describe metadata is absent (legacy jobs)', () => {
