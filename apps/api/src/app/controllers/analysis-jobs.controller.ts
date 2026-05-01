@@ -1,7 +1,7 @@
 import type { Prisma } from '@jetstream/prisma';
 import { z } from 'zod';
 import { createAnalysisJob, getAnalysisJobForUser, listAnalysisJobsForUserOrg } from '../db/analysis-job.db';
-import { enqueuePermissionExportJobProcessing } from '../services/analysis-job-processor.service';
+import { enqueueFieldUsageJobProcessing, enqueuePermissionExportJobProcessing } from '../services/analysis-job-processor.service';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
 import { createRoute, RouteValidator } from '../utils/route.utils';
@@ -49,6 +49,9 @@ const createJob = createRoute(routeDefinition.createJob.validators, async ({ bod
     });
     if (body.jobType === 'permission_export') {
       enqueuePermissionExportJobProcessing(job.id);
+    }
+    if (body.jobType === 'field_usage') {
+      enqueueFieldUsageJobProcessing(job.id);
     }
     sendJson(res, { job });
   } catch (ex) {
