@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { PermissionAnalysisHistoryModal } from '@jetstream/feature/manage-permissions';
 import { logger } from '@jetstream/shared/client-logger';
 import { getAnalysisJob } from '@jetstream/shared/data';
-import { formatNumber } from '@jetstream/shared/ui-utils';
+import { convertDateToLocale, formatNumber } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import {
   AutoFullHeightContainer,
@@ -24,12 +24,19 @@ import {
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
+import { isValid } from 'date-fns/isValid';
+import { parseISO } from 'date-fns/parseISO';
 import groupBy from 'lodash/groupBy';
 import { useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
 import type { RenderGroupCellProps, SortColumn } from 'react-data-grid';
 import { Link, useSearchParams } from 'react-router-dom';
-import { parseFieldUsageJobResult, type FieldUsageJobResultParsed, type WhereUsedDependencyRowParsed } from './field-usage-result-parse';
+import {
+  getFieldUsageTypeLabel,
+  parseFieldUsageJobResult,
+  type FieldUsageJobResultParsed,
+  type WhereUsedDependencyRowParsed,
+} from './field-usage-result-parse';
 
 const HEIGHT_BUFFER = 170;
 
@@ -56,6 +63,18 @@ function fieldUsageDataTreeRowHeight({ type }: { type: string }): number {
   return TREE_ROW_HEIGHT_LEAF_PX;
 }
 
+/** Salesforce ISO timestamps shown in the browser locale/time zone (same as {@link convertDateToLocale} elsewhere). */
+function formatFieldUsageLatestModifiedCell(raw: string | null): string {
+  if (raw == null || raw === '') {
+    return '—';
+  }
+  const parsed = parseISO(raw);
+  if (!isValid(parsed)) {
+    return raw;
+  }
+  return convertDateToLocale(raw) ?? raw;
+}
+
 /** Leaf rows for {@link DataTree}, grouped by {@link FieldUsageTreeRow.objectApiName} (same pattern as field permissions editor). */
 interface FieldUsageTreeRow {
   _key: string;
@@ -67,6 +86,7 @@ interface FieldUsageTreeRow {
   objectError?: string;
   fieldApiName: string;
   fieldLabel: string;
+  /** Describe-style type label ({@link getFieldUsageTypeLabel}). */
   type: string;
   custom: boolean;
   filled: number;
@@ -76,7 +96,7 @@ interface FieldUsageTreeRow {
   isObjectErrorPlaceholder?: boolean;
 }
 
-function renderFieldUsageObjectGroupCell({ groupKey, childRows, isExpanded, toggleGroup }: RenderGroupCellProps<FieldUsageTreeRow>) {
+function renderFieldUsageObjectGroupCell({ groupKey, childRows, toggleGroup }: RenderGroupCellProps<FieldUsageTreeRow>) {
   const api = String(groupKey);
   const sample = childRows[0];
   const label = sample?.objectLabel?.trim() ? sample.objectLabel.trim() : api;
@@ -89,7 +109,6 @@ function renderFieldUsageObjectGroupCell({ groupKey, childRows, isExpanded, togg
         width: 100%;
         height: 100%;
         align-items: flex-start;
-        column-gap: 0.35rem;
         display: flex;
         line-height: 1.35;
         padding: 0.35rem 0.5rem 0.35rem 0.25rem;
@@ -98,17 +117,6 @@ function renderFieldUsageObjectGroupCell({ groupKey, childRows, isExpanded, togg
       onClick={toggleGroup}
       title={api}
     >
-      <Icon
-        type="utility"
-        icon={isExpanded ? 'chevrondown' : 'chevronright'}
-        className="slds-icon slds-icon-text-default slds-icon_x-small"
-        css={css`
-          flex-shrink: 0;
-          margin-top: 0.125rem;
-        `}
-        omitContainer
-        description={isExpanded ? 'Collapse' : 'Expand'}
-      />
       <span
         css={css`
           flex: 1;
@@ -308,7 +316,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
           ...base,
           fieldApiName,
           fieldLabel: meta?.label ?? fieldApiName,
-          type: meta?.type ?? '',
+          type: getFieldUsageTypeLabel(meta),
           custom: meta?.custom ?? false,
           filled: stat.filled,
           pct: stat.pct,
@@ -355,7 +363,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
           objectCustomizable: payload.customizable,
           fieldApiName,
           fieldLabel: meta.label ?? fieldApiName,
-          type: meta.type ?? '',
+          type: getFieldUsageTypeLabel(meta),
           custom: true,
           filled: stat.filled,
           pct: stat.pct,
@@ -426,49 +434,65 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         getValue: ({ row }) => `${row.fieldApiName} ${row.fieldLabel}`,
       },
       {
+        ...setColumnFromType<FieldUsageTreeRow>('type', 'text'),
         name: 'Type',
         key: 'type',
-        type: 'text',
-        width: 120,
+        width: 200,
+        minWidth: 104,
         renderGroupCell: () => null,
         renderCell: (p) => <span>{p.row.isObjectErrorPlaceholder ? '' : p.row.type}</span>,
+        getValue: ({ row }) => (row.isObjectErrorPlaceholder ? '' : row.type),
       },
       {
+        ...setColumnFromType<FieldUsageTreeRow>('custom', 'text'),
         name: 'Custom',
         key: 'custom',
-        type: 'text',
         width: 88,
         renderGroupCell: () => null,
         renderCell: (p) => <span>{p.row.isObjectErrorPlaceholder ? '' : p.row.custom ? 'Yes' : 'No'}</span>,
+        getValue: ({ row }) => {
+          if (row.isObjectErrorPlaceholder) {
+            return '';
+          }
+          return row.custom ? 'Yes' : 'No';
+        },
       },
       {
+        ...setColumnFromType<FieldUsageTreeRow>('filled', 'number'),
         name: 'Filled',
         key: 'filled',
-        type: 'number',
         width: 100,
         renderGroupCell: () => null,
         renderCell: (p) => <span>{p.row.isObjectErrorPlaceholder ? '' : formatNumber(p.row.filled)}</span>,
+        getValue: ({ row }) => (row.isObjectErrorPlaceholder ? '' : formatNumber(row.filled)),
       },
       {
+        ...setColumnFromType<FieldUsageTreeRow>('pct', 'number'),
         name: '% Filled',
         key: 'pct',
-        type: 'number',
         width: 100,
         renderGroupCell: () => null,
         renderCell: (p) => <span>{p.row.isObjectErrorPlaceholder ? '' : `${p.row.pct.toFixed(1)}%`}</span>,
+        getValue: ({ row }) => (row.isObjectErrorPlaceholder ? '' : `${row.pct.toFixed(1)}%`),
       },
       {
+        ...setColumnFromType<FieldUsageTreeRow>('latestModified', 'text'),
         name: 'Latest value row mod',
         key: 'latestModified',
-        type: 'text',
         width: 200,
         renderGroupCell: () => null,
-        renderCell: (p) => <span>{p.row.isObjectErrorPlaceholder ? '' : (p.row.latestModified ?? '—')}</span>,
+        renderCell: (p) => <span>{p.row.isObjectErrorPlaceholder ? '' : formatFieldUsageLatestModifiedCell(p.row.latestModified)}</span>,
+        getValue: ({ row }) => {
+          if (row.isObjectErrorPlaceholder) {
+            return '';
+          }
+          return formatFieldUsageLatestModifiedCell(row.latestModified);
+        },
       },
       {
+        ...setColumnFromType<FieldUsageTreeRow>('whereUsed', 'text'),
         name: '',
         key: 'whereUsed',
-        type: 'text',
         width: 180,
         minWidth: 140,
         sortable: false,
@@ -487,6 +511,12 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
               </button>
             </div>
           ),
+        getValue: ({ row }) => {
+          if (row.isObjectErrorPlaceholder || !row.fieldApiName.endsWith('__c')) {
+            return '—';
+          }
+          return 'Where Used';
+        },
       },
     ],
     [],

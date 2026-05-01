@@ -27,6 +27,19 @@ export interface FieldUsageObjectPayload {
       calculated: boolean;
       type: string;
       custom: boolean;
+      autoNumber: boolean;
+      calculatedFormula?: string | null;
+      externalId: boolean;
+      nameField: boolean;
+      extraTypeInfo?: string | null;
+      length: number;
+      precision?: number | null;
+      scale: number;
+      referenceTo?: string[] | null;
+      relationshipName?: string | null;
+      digits?: number | null;
+      /** Present on some describe payloads for auto-number fields (pattern like `ANN-{0000}`). */
+      displayFormat?: string | null;
     }
   >;
   error?: string;
@@ -100,10 +113,7 @@ function isFilledValue(value: unknown): boolean {
 /**
  * Wide SOQL field usage: paginated queries with optional chunked SELECT lists (SOQL length).
  */
-export async function runFieldUsageQueryForObjects(
-  conn: ApiConnection,
-  objectApiNames: string[],
-): Promise<FieldUsageQueryResult> {
+export async function runFieldUsageQueryForObjects(conn: ApiConnection, objectApiNames: string[]): Promise<FieldUsageQueryResult> {
   const objects: Record<string, FieldUsageObjectPayload> = {};
   const failedObjects: string[] = [];
   let anyQueryTruncated = false;
@@ -128,11 +138,24 @@ export async function runFieldUsageQueryForObjects(
       const names = countable.map((f) => f.name);
       const fieldMeta: FieldUsageObjectPayload['fieldMeta'] = {};
       for (const f of countable) {
+        const describeFieldExtras = f as Field & { displayFormat?: string | null };
         fieldMeta[f.name] = {
           label: f.label,
           calculated: f.calculated,
           type: f.type,
           custom: f.custom,
+          autoNumber: f.autoNumber,
+          calculatedFormula: f.calculatedFormula ?? null,
+          externalId: f.externalId,
+          nameField: f.nameField,
+          extraTypeInfo: f.extraTypeInfo ?? null,
+          length: f.length,
+          precision: f.precision ?? null,
+          scale: f.scale,
+          referenceTo: f.referenceTo ?? null,
+          relationshipName: f.relationshipName ?? null,
+          digits: f.digits ?? null,
+          displayFormat: describeFieldExtras.displayFormat ?? null,
         };
       }
 

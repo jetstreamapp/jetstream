@@ -237,10 +237,10 @@ export function polyfillFieldDefinition(field: Field): string {
   let value = '';
 
   if (calculated && calculatedFormula) {
-    prefix = 'Formula(';
+    prefix = 'Formula (';
     suffix = ')';
   } else if (calculated) {
-    prefix = 'Roll-Up Summary(';
+    prefix = 'Roll-Up Summary (';
     suffix = ')';
   } else if (externalId) {
     suffix = ' (External Id)';
@@ -253,36 +253,36 @@ export function polyfillFieldDefinition(field: Field): string {
   } else if (nameField) {
     value = 'Name';
   } else if (type === 'textarea' && extraTypeInfo === 'plaintextarea') {
-    value = `${length > 255 ? 'Long ' : ''}Text Area(${length})`;
+    value = `${length > 255 ? 'Long ' : ''}Text Area (${length})`;
   } else if (type === 'textarea' && extraTypeInfo === 'richtextarea') {
-    value = `Rich Text Area(${length})`;
+    value = `Rich Text Area (${length})`;
   } else if (isRelationshipField(field)) {
     // includes text/reference if referenceTo has data
-    value = `Lookup(${(referenceTo || []).join(',')})`;
+    value = `Lookup (${(referenceTo || []).join(',')})`;
   } else if (type === 'string') {
-    value = `Text(${length})`;
+    value = `Text (${length})`;
   } else if (type === 'boolean') {
     value = 'Checkbox';
   } else if (type === 'datetime') {
     value = 'Date/Time';
   } else if (type === 'currency') {
-    value = `Currency(${precision}, ${scale})`;
+    value = `Currency (${precision}, ${scale})`;
   } else if (calculated && !calculatedFormula && !autoNumber) {
     value = `Number`;
   } else if (type === 'double' || type === 'int') {
     if (calculated) {
       value = `Number`;
     } else {
-      value = `Number(${precision}, ${scale})`;
+      value = `Number (${precision}, ${scale})`;
     }
   } else if (type === 'encryptedstring') {
-    value = `Text (Encrypted)(${length})`;
+    value = `Text (Encrypted) (${length})`;
   } else if (type === 'location') {
     value = 'Geolocation';
   } else if (type === 'percent') {
-    value = `Percent(${precision}, ${scale})`;
+    value = `Percent (${precision}, ${scale})`;
   } else if (type === 'url') {
-    value = `URL(${length})`;
+    value = `URL (${length})`;
   } else {
     // Address, Email, Date, Time, picklist, phone
     value = `${type[0].toUpperCase()}${type.substring(1)}`;
