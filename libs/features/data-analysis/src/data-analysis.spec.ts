@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { getFieldUsageTypeLabel, parseFieldUsageJobResult } from './field-usage-result-parse';
+import {
+  countWhereUsedByUiCategory,
+  fieldHasWhereUsedDeps,
+  getFieldUsageTypeLabel,
+  getWhereUsedDepsForFieldKey,
+  parseFieldUsageJobResult,
+} from './field-usage-result-parse';
 
 describe('@jetstream/feature/data-analysis', () => {
   it('parseFieldUsageJobResult returns null for wrong phase', () => {
@@ -36,6 +42,40 @@ describe('@jetstream/feature/data-analysis', () => {
     expect(parsed?.objects.Custom__c.fieldUsage.Field__c.pct).toBe(20);
     expect(parsed?.whereUsed['Custom__c.Field__c']).toHaveLength(1);
     expect(parsed?.whereUsed['Custom__c.Field__c'][0].kind).toBe('automation');
+  });
+
+  it('getWhereUsedDepsForFieldKey matches exact key and falls back to case-insensitive map keys', () => {
+    const map = {
+      'ns__Obj__c.Field__c': [{ type: 'Flow', name: 'F', kind: 'other' as const }],
+    };
+    expect(getWhereUsedDepsForFieldKey(map, 'ns__Obj__c.Field__c')).toHaveLength(1);
+    expect(getWhereUsedDepsForFieldKey(map, 'NS__Obj__c.Field__c')).toHaveLength(1);
+    expect(getWhereUsedDepsForFieldKey(map, ' missing.Key__c ')).toEqual([]);
+  });
+
+  it('fieldHasWhereUsedDeps is true only when the map has non-empty rows for that field key', () => {
+    const map = {
+      'A__c.F__c': [{ type: 'Flow', name: 'X', kind: 'other' as const }],
+      'B__c.G__c': [] as { type: string; name: string; kind: 'automation' | 'other' }[],
+    };
+    expect(fieldHasWhereUsedDeps(map, 'A__c.F__c')).toBe(true);
+    expect(fieldHasWhereUsedDeps(map, 'B__c.G__c')).toBe(false);
+    expect(fieldHasWhereUsedDeps(map, 'Unknown__c.X__c')).toBe(false);
+  });
+
+  it('countWhereUsedByUiCategory buckets Tooling metadata types for grid columns', () => {
+    expect(
+      countWhereUsedByUiCategory([
+        { type: 'Layout', name: 'L1', kind: 'other' },
+        { type: 'FlexiPage', name: 'FP1', kind: 'other' },
+        { type: 'Flow', name: 'Fl1', kind: 'automation' },
+        { type: 'WorkflowRule', name: 'W1', kind: 'automation' },
+        { type: 'ProcessDefinition', name: 'P1', kind: 'automation' },
+        { type: 'ApexTrigger', name: 'T1', kind: 'automation' },
+        { type: 'ApexClass', name: 'C1', kind: 'other' },
+        { type: 'CustomLabel', name: 'X', kind: 'other' },
+      ]),
+    ).toEqual({ onLayout: 2, inAutomation: 4, inApex: 1 });
   });
 
   it('getFieldUsageTypeLabel capitalizes API type when describe metadata is absent (legacy jobs)', () => {

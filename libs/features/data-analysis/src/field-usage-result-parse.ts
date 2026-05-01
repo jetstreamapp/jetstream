@@ -47,6 +47,74 @@ export interface WhereUsedDependencyRowParsed {
 
 export type WhereUsedMapParsed = Record<string, WhereUsedDependencyRowParsed[]>;
 
+/**
+ * Resolves tooling dependency rows for `ObjectApi.FieldApi`, tolerating stray whitespace or key casing drift in stored JSON.
+ */
+export function getWhereUsedDepsForFieldKey(whereUsed: WhereUsedMapParsed, objectDotField: string): WhereUsedDependencyRowParsed[] {
+  const trimmed = objectDotField.trim();
+  const direct = whereUsed[trimmed];
+  if (direct) {
+    return direct;
+  }
+  const normalized = trimmed.toLowerCase();
+  for (const [storedKey, rows] of Object.entries(whereUsed)) {
+    if (storedKey.trim().toLowerCase() === normalized) {
+      return rows;
+    }
+  }
+  return [];
+}
+
+/** True when the job includes at least one Tooling dependency row for this `Object.Field__c` key. */
+export function fieldHasWhereUsedDeps(whereUsed: WhereUsedMapParsed, objectDotField: string): boolean {
+  return getWhereUsedDepsForFieldKey(whereUsed, objectDotField).length > 0;
+}
+
+/** Tooling `MetadataComponentType` values rolled into the **On layout** column (classic layout + Lightning page). */
+const WHERE_USED_UI_LAYOUT_TYPES = new Set(['Layout', 'FlexiPage']);
+
+/**
+ * Workflow, Process Builder, Flow, and Apex triggers — **In automation** column.
+ * Matches common `MetadataComponentDependency.MetadataComponentType` strings.
+ */
+const WHERE_USED_UI_AUTOMATION_TYPES = new Set([
+  'WorkflowRule',
+  'WorkflowFieldUpdate',
+  'ProcessDefinition',
+  'Flow',
+  'FlowDefinition',
+  'ApexTrigger',
+]);
+
+/** **In Apex** column (Apex classes only; triggers count as automation). */
+const WHERE_USED_UI_APEX_CLASS_TYPES = new Set(['ApexClass']);
+
+export interface WhereUsedUiCategoryCounts {
+  onLayout: number;
+  inAutomation: number;
+  inApex: number;
+}
+
+/**
+ * Counts dependency rows per UI bucket. Types outside these sets are omitted (still visible in the Where Used drill-down).
+ */
+export function countWhereUsedByUiCategory(deps: WhereUsedDependencyRowParsed[]): WhereUsedUiCategoryCounts {
+  let onLayout = 0;
+  let inAutomation = 0;
+  let inApex = 0;
+  for (const dep of deps) {
+    const metadataType = dep.type.trim();
+    if (WHERE_USED_UI_LAYOUT_TYPES.has(metadataType)) {
+      onLayout++;
+    } else if (WHERE_USED_UI_AUTOMATION_TYPES.has(metadataType)) {
+      inAutomation++;
+    } else if (WHERE_USED_UI_APEX_CLASS_TYPES.has(metadataType)) {
+      inApex++;
+    }
+  }
+  return { onLayout, inAutomation, inApex };
+}
+
 export interface FieldUsageJobResultParsed {
   phase: 'field_usage_v1';
   summary: string;

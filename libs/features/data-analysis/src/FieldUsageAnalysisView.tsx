@@ -32,7 +32,10 @@ import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useState 
 import type { RenderGroupCellProps, SortColumn } from 'react-data-grid';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
+  countWhereUsedByUiCategory,
+  fieldHasWhereUsedDeps,
   getFieldUsageTypeLabel,
+  getWhereUsedDepsForFieldKey,
   parseFieldUsageJobResult,
   type FieldUsageJobResultParsed,
   type WhereUsedDependencyRowParsed,
@@ -94,6 +97,24 @@ interface FieldUsageTreeRow {
   latestModified: string | null;
   /** Synthetic row when the object payload has `error` and no field stats. */
   isObjectErrorPlaceholder?: boolean;
+  /** Counts from Tooling Where Used, by {@link countWhereUsedByUiCategory} buckets. */
+  whereUsedOnLayout: number;
+  whereUsedInAutomation: number;
+  whereUsedInApex: number;
+}
+
+function whereUsedUiCountsForField(
+  whereUsed: FieldUsageJobResultParsed['whereUsed'] | undefined,
+  objectApiName: string,
+  fieldApiName: string,
+): { whereUsedOnLayout: number; whereUsedInAutomation: number; whereUsedInApex: number } {
+  if (!whereUsed || !fieldApiName.endsWith('__c')) {
+    return { whereUsedOnLayout: 0, whereUsedInAutomation: 0, whereUsedInApex: 0 };
+  }
+  const { onLayout, inAutomation, inApex } = countWhereUsedByUiCategory(
+    getWhereUsedDepsForFieldKey(whereUsed, `${objectApiName}.${fieldApiName}`),
+  );
+  return { whereUsedOnLayout: onLayout, whereUsedInAutomation: inAutomation, whereUsedInApex: inApex };
 }
 
 function renderFieldUsageObjectGroupCell({ groupKey, childRows, toggleGroup }: RenderGroupCellProps<FieldUsageTreeRow>) {
@@ -305,6 +326,9 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
           pct: 0,
           latestModified: null,
           isObjectErrorPlaceholder: true,
+          whereUsedOnLayout: 0,
+          whereUsedInAutomation: 0,
+          whereUsedInApex: 0,
         });
         continue;
       }
@@ -321,6 +345,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
           filled: stat.filled,
           pct: stat.pct,
           latestModified: stat.latestFilledRowModified,
+          ...whereUsedUiCountsForField(parsedResult.whereUsed, objectApiName, fieldApiName),
         });
       }
     }
@@ -368,6 +393,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
           filled: stat.filled,
           pct: stat.pct,
           latestModified: stat.latestFilledRowModified,
+          ...whereUsedUiCountsForField(parsedResult.whereUsed, objectApiName, fieldApiName),
         });
       }
     }
@@ -379,7 +405,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
     if (!parsedResult || !whereUsedForKey) {
       return [];
     }
-    const deps: WhereUsedDependencyRowParsed[] = parsedResult.whereUsed[whereUsedForKey] ?? [];
+    const deps: WhereUsedDependencyRowParsed[] = getWhereUsedDepsForFieldKey(parsedResult.whereUsed, whereUsedForKey);
     return deps.map((row, index) => ({
       _key: `${row.type}:${row.name}:${String(index)}`,
       componentType: row.type,
@@ -477,7 +503,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
       },
       {
         ...setColumnFromType<FieldUsageTreeRow>('latestModified', 'text'),
-        name: 'Latest value row mod',
+        name: 'Latest Value Row Modified',
         key: 'latestModified',
         width: 200,
         renderGroupCell: () => null,
@@ -490,6 +516,59 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         },
       },
       {
+        ...setColumnFromType<FieldUsageTreeRow>('whereUsedOnLayout', 'number'),
+        name: 'On Layout',
+        key: 'whereUsedOnLayout',
+        width: 104,
+        minWidth: 88,
+        renderGroupCell: () => null,
+        renderCell: (p) => (
+          <span>{p.row.isObjectErrorPlaceholder ? '' : p.row.whereUsedOnLayout > 0 ? formatNumber(p.row.whereUsedOnLayout) : '—'}</span>
+        ),
+        getValue: ({ row }) => {
+          if (row.isObjectErrorPlaceholder) {
+            return '';
+          }
+          return row.whereUsedOnLayout > 0 ? String(row.whereUsedOnLayout) : '';
+        },
+      },
+      {
+        ...setColumnFromType<FieldUsageTreeRow>('whereUsedInAutomation', 'number'),
+        name: 'In Automation',
+        key: 'whereUsedInAutomation',
+        width: 120,
+        minWidth: 96,
+        renderGroupCell: () => null,
+        renderCell: (p) => (
+          <span>
+            {p.row.isObjectErrorPlaceholder ? '' : p.row.whereUsedInAutomation > 0 ? formatNumber(p.row.whereUsedInAutomation) : '—'}
+          </span>
+        ),
+        getValue: ({ row }) => {
+          if (row.isObjectErrorPlaceholder) {
+            return '';
+          }
+          return row.whereUsedInAutomation > 0 ? String(row.whereUsedInAutomation) : '';
+        },
+      },
+      {
+        ...setColumnFromType<FieldUsageTreeRow>('whereUsedInApex', 'number'),
+        name: 'In Apex',
+        key: 'whereUsedInApex',
+        width: 96,
+        minWidth: 80,
+        renderGroupCell: () => null,
+        renderCell: (p) => (
+          <span>{p.row.isObjectErrorPlaceholder ? '' : p.row.whereUsedInApex > 0 ? formatNumber(p.row.whereUsedInApex) : '—'}</span>
+        ),
+        getValue: ({ row }) => {
+          if (row.isObjectErrorPlaceholder) {
+            return '';
+          }
+          return row.whereUsedInApex > 0 ? String(row.whereUsedInApex) : '';
+        },
+      },
+      {
         ...setColumnFromType<FieldUsageTreeRow>('whereUsed', 'text'),
         name: '',
         key: 'whereUsed',
@@ -497,36 +576,61 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         minWidth: 140,
         sortable: false,
         renderGroupCell: () => null,
-        renderCell: (p) =>
-          p.row.isObjectErrorPlaceholder || !p.row.fieldApiName.endsWith('__c') ? (
-            <span className="slds-text-color_weak">—</span>
-          ) : (
+        renderCell: (p) => {
+          if (p.row.isObjectErrorPlaceholder || !p.row.fieldApiName.endsWith('__c')) {
+            return <span className="slds-text-color_weak">—</span>;
+          }
+          const fieldKey = `${p.row.objectApiName}.${p.row.fieldApiName}`;
+          if (!parsedResult || !fieldHasWhereUsedDeps(parsedResult.whereUsed, fieldKey)) {
+            return <span className="slds-text-color_weak">—</span>;
+          }
+          return (
             <div className="slds-p-around_x-small">
               <button
                 type="button"
                 className="slds-button slds-button_neutral slds-button_stretch"
-                onClick={() => setWhereUsedForKey(`${p.row.objectApiName}.${p.row.fieldApiName}`)}
+                onClick={() => setWhereUsedForKey(fieldKey)}
               >
                 Where Used
               </button>
             </div>
-          ),
+          );
+        },
         getValue: ({ row }) => {
           if (row.isObjectErrorPlaceholder || !row.fieldApiName.endsWith('__c')) {
+            return '—';
+          }
+          const fieldKey = `${row.objectApiName}.${row.fieldApiName}`;
+          if (!parsedResult || !fieldHasWhereUsedDeps(parsedResult.whereUsed, fieldKey)) {
             return '—';
           }
           return 'Where Used';
         },
       },
     ],
-    [],
+    [parsedResult],
   );
 
   const whereUsedColumns: ColumnWithFilter<WhereUsedTableRow>[] = useMemo(
     () => [
-      { name: 'Metadata type', key: 'componentType', type: 'text', width: 200 },
-      { name: 'Name', key: 'componentName', type: 'text', width: 280 },
-      { name: 'Kind', key: 'kindLabel', type: 'text', width: 120 },
+      {
+        ...setColumnFromType<WhereUsedTableRow>('componentType', 'text'),
+        name: 'Metadata type',
+        key: 'componentType',
+        width: 200,
+      },
+      {
+        ...setColumnFromType<WhereUsedTableRow>('componentName', 'text'),
+        name: 'Name',
+        key: 'componentName',
+        width: 280,
+      },
+      {
+        ...setColumnFromType<WhereUsedTableRow>('kindLabel', 'text'),
+        name: 'Kind',
+        key: 'kindLabel',
+        width: 120,
+      },
     ],
     [],
   );
@@ -759,7 +863,17 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
             </p>
           ) : (
             <div className="slds-p-around_small">
-              <DataTable columns={whereUsedColumns} data={whereUsedRows} getRowKey={(row) => row._key} includeQuickFilter rowHeight={30} />
+              <div className="slds-scrollable_x">
+                <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={300}>
+                  <DataTable
+                    columns={whereUsedColumns}
+                    data={whereUsedRows}
+                    getRowKey={(row) => row._key}
+                    includeQuickFilter
+                    rowHeight={30}
+                  />
+                </AutoFullHeightContainer>
+              </div>
             </div>
           )}
         </Modal>
