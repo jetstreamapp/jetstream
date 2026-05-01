@@ -118,9 +118,7 @@ function formatAuditLine(prefix: string, when: string | null, by: string | null)
   return `${prefix} · ${by}`;
 }
 
-function permissionSetTooltipBlock(fields: PermissionSetTooltipFields) {
-  const createdLine = formatAuditLine('Created', fields.createdWhen, fields.createdByName);
-  const modifiedLine = formatAuditLine('Last modified', fields.lastModifiedWhen, fields.lastModifiedByName);
+function permissionSetTooltipBlock(fields: Pick<PermissionSetTooltipFields, 'label' | 'name' | 'description'>) {
   return (
     <div
       css={css`
@@ -136,10 +134,6 @@ function permissionSetTooltipBlock(fields: PermissionSetTooltipFields) {
       </div>
       <div className="slds-text-title_caps slds-text-color_inverse-weak">Description</div>
       <div className="slds-text-body_regular slds-text-color_inverse slds-hyphenate slds-m-bottom_x-small">{fields.description ?? '—'}</div>
-      {createdLine && (
-        <div className="slds-text-body_regular slds-text-color_inverse slds-hyphenate slds-m-bottom_x-small">{createdLine}</div>
-      )}
-      {modifiedLine && <div className="slds-text-body_regular slds-text-color_inverse slds-hyphenate">{modifiedLine}</div>}
     </div>
   );
 }
