@@ -15,6 +15,7 @@ import {
 } from '@jetstream/ui';
 import { FunctionComponent, useCallback, useMemo, useState } from 'react';
 import type { SetURLSearchParams } from 'react-router-dom';
+import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 import {
   aggregatePermissionAnalysisFindings,
   type PermissionAnalysisFinding,
@@ -184,6 +185,12 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
 }) => {
   const [issueCodesOpen, setIssueCodesOpen] = useState(false);
   const [issueCodeTableFilter, setIssueCodeTableFilter] = useState<string | null>(null);
+  const [aggregatedDetailsModal, setAggregatedDetailsModal] = useState<{
+    findings: PermissionAnalysisFinding[];
+    title: string;
+    tagline: string;
+    summaryLine: string;
+  } | null>(null);
 
   const severityFilter = readParam(searchParams, 'issueSeverity', 'all') as IssuesSeverityFilter;
   const olsFlsFilter = readParam(searchParams, 'issueOlsFls', 'all') as IssuesOlsFlsFilter;
@@ -252,6 +259,49 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
 
   const aggregation = useMemo(() => aggregatePermissionAnalysisFindings(filteredFindings), [filteredFindings]);
 
+  const openAggregatedDetailsForCode = useCallback(
+    (codeKey: string) => {
+      const matches = filteredFindings.filter((finding) => {
+        const codeRaw = String(finding.code ?? '').trim();
+        const key = codeRaw.length > 0 ? codeRaw : '(no code)';
+        return key === codeKey;
+      });
+      const displayCode = codeKey === '(no code)' ? undefined : codeKey;
+      const { title: issueTitle } = getFindingCodeDisplayParts(displayCode);
+      const title =
+        codeKey === '(no code)'
+          ? 'Findings without issue code'
+          : issueTitle.trim().length > 0
+            ? `Findings: ${issueTitle}`
+            : `Findings: ${codeKey}`;
+      setAggregatedDetailsModal({
+        findings: sortFindings(matches, groupBy),
+        title,
+        tagline: 'Issue details for the current Issues filters.',
+        summaryLine: `${matches.length} finding${matches.length === 1 ? '' : 's'} for this issue code.`,
+      });
+    },
+    [filteredFindings, groupBy],
+  );
+
+  const openAggregatedDetailsForObject = useCallback(
+    (objectKey: string) => {
+      const matches = filteredFindings.filter((finding) => {
+        const objectRaw = String(finding.objectApiName ?? '').trim();
+        const key = objectRaw.length > 0 ? objectRaw : '(no object)';
+        return key === objectKey;
+      });
+      const title = objectKey === '(no object)' ? 'Findings without object' : `Findings: ${objectKey}`;
+      setAggregatedDetailsModal({
+        findings: sortFindings(matches, groupBy),
+        title,
+        tagline: 'Issue details for the current Issues filters.',
+        summaryLine: `${matches.length} finding${matches.length === 1 ? '' : 's'} for this object.`,
+      });
+    },
+    [filteredFindings, groupBy],
+  );
+
   const issueCodeRows = useMemo(() => {
     const map = new Map<string, number>();
     for (const row of filteredFindings) {
@@ -285,12 +335,17 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
   return (
     <div className="slds-grid slds-grid_vertical">
       <div className="slds-box slds-theme_default slds-m-around_small slds-p-around_small">
-        <h2 className="slds-text-heading_small slds-m-bottom_x-small">Aggregated findings</h2>
+        <h2 className="slds-text-heading_small slds-m-bottom_x-small">Aggregated Findings</h2>
         <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_small">
           Rollups for the current filter set ({filteredFindings.length} row{filteredFindings.length === 1 ? '' : 's'}). Use filters below to
-          refocus the grid and these totals.
+          refocus the grid and these totals. Click a row in either table to open full messages and metadata for those findings.
         </p>
-        <div className="slds-grid slds-wrap slds-gutters_small">
+        <div
+          className="slds-grid slds-wrap slds-gutters_medium"
+          css={css`
+            row-gap: var(--slds-g-spacing-medium, 1rem);
+          `}
+        >
           <div className="slds-col slds-size_1-of-1 slds-large-size_1-of-2">
             <h3 className="slds-text-title_caps slds-m-bottom_x-small">By issue code</h3>
             {topCodeRollups.length === 0 ? (
@@ -307,9 +362,17 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
                 </thead>
                 <tbody>
                   {topCodeRollups.map((row) => (
-                    <tr key={row.code}>
+                    <tr
+                      key={row.code}
+                      className="slds-hint-parent"
+                      css={css`
+                        cursor: pointer;
+                      `}
+                      title="View finding details"
+                      onClick={() => openAggregatedDetailsForCode(row.code)}
+                    >
                       <td data-label="Issue">
-                        <FindingCodeInline code={row.code} />
+                        <FindingCodeInline code={row.code === '(no code)' ? undefined : row.code} />
                       </td>
                       <td data-label="Count">{row.count}</td>
                       <td data-label="Errors">{row.errorCount}</td>
@@ -341,7 +404,15 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
                 </thead>
                 <tbody>
                   {topObjectRollups.map((row) => (
-                    <tr key={row.objectApiName}>
+                    <tr
+                      key={row.objectApiName}
+                      className="slds-hint-parent"
+                      css={css`
+                        cursor: pointer;
+                      `}
+                      title="View finding details"
+                      onClick={() => openAggregatedDetailsForObject(row.objectApiName)}
+                    >
                       <td data-label="Object">{row.objectApiName}</td>
                       <td data-label="Count">{row.count}</td>
                       <td data-label="Errors">{row.errorCount}</td>
@@ -586,6 +657,18 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
           }}
         />
       </AutoFullHeightContainer>
+
+      {aggregatedDetailsModal && (
+        <PermissionAnalysisFindingsModal
+          testId="permission-analysis-aggregated-findings-details"
+          open
+          title={aggregatedDetailsModal.title}
+          tagline={aggregatedDetailsModal.tagline}
+          summaryLine={aggregatedDetailsModal.summaryLine}
+          findings={aggregatedDetailsModal.findings}
+          onClose={() => setAggregatedDetailsModal(null)}
+        />
+      )}
 
       {issueCodesOpen && (
         <Modal

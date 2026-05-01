@@ -185,6 +185,18 @@ export const PermissionAnalysisFindingsModal: FunctionComponent<PermissionAnalys
                       {detailText}
                     </p>
                   ) : null}
+                  {typeof finding.objectApiName === 'string' && finding.objectApiName.trim().length > 0 ? (
+                    <p
+                      className="slds-text-body_small slds-text-color_weak"
+                      css={css`
+                        margin: 0.4rem 0 0;
+                        padding-left: 0.65rem;
+                        line-height: 1.45;
+                      `}
+                    >
+                      Object: <code>{finding.objectApiName.trim()}</code>
+                    </p>
+                  ) : null}
                   {typeof finding.fieldApiName === 'string' && finding.fieldApiName.trim().length > 0 ? (
                     <p
                       className="slds-text-body_small slds-text-color_weak"
@@ -195,6 +207,18 @@ export const PermissionAnalysisFindingsModal: FunctionComponent<PermissionAnalys
                       `}
                     >
                       Field: <code>{finding.fieldApiName.trim()}</code>
+                    </p>
+                  ) : null}
+                  {typeof finding.permissionSetId === 'string' && finding.permissionSetId.trim().length > 0 ? (
+                    <p
+                      className="slds-text-body_small slds-text-color_weak"
+                      css={css`
+                        margin: 0.4rem 0 0;
+                        padding-left: 0.65rem;
+                        line-height: 1.45;
+                      `}
+                    >
+                      Permission set Id: <code>{finding.permissionSetId.trim()}</code>
                     </p>
                   ) : null}
                 </div>
