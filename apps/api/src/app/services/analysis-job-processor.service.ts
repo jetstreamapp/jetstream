@@ -35,6 +35,7 @@ async function runPermissionExportJob(jobId: string): Promise<void> {
     const permissionSetIdList = Array.isArray(permissionSetIds)
       ? permissionSetIds.filter((id): id is string => typeof id === 'string')
       : [];
+    const objectApiNames = payload && typeof payload === 'object' && 'objectApiNames' in payload ? payload.objectApiNames : undefined;
 
     const { jetstreamConn } = await getOrgForBackgroundJob({
       userId: job.userId,
@@ -42,7 +43,9 @@ async function runPermissionExportJob(jobId: string): Promise<void> {
       requestId: jobId,
     });
 
-    const exportPayload = await runPermissionExportSoql(jetstreamConn, profileIdList, permissionSetIdList);
+    const exportPayload = await runPermissionExportSoql(jetstreamConn, profileIdList, permissionSetIdList, {
+      objectApiNames,
+    });
 
     const findings = buildPermissionExportFindings(exportPayload.objectPermissions, exportPayload.fieldPermissions);
     const issueCodeSummary = buildIssueCodeSummary(findings);
@@ -50,7 +53,7 @@ async function runPermissionExportJob(jobId: string): Promise<void> {
     const nextResult = {
       ...existingResult,
       phase: 'permission_export_v1',
-      summary: `Exported ${exportPayload.counts.permissionSets} permission sets, ${exportPayload.counts.permissionSetAssignments} assignments, ${exportPayload.counts.permissionSetGroups} permission set groups (${exportPayload.counts.permissionSetGroupComponents} components, ${exportPayload.counts.mutingPermissionSets} muting permission sets), ${exportPayload.counts.objectPermissions} object permission rows, ${exportPayload.counts.fieldPermissions} field permission rows, ${exportPayload.counts.permissionSetTabSettings} tab settings (truncated=${exportPayload.truncated}). ${findings.length} finding(s).`,
+      summary: `Exported ${exportPayload.counts.permissionSets} permission sets, ${exportPayload.counts.permissionSetAssignments} assignments, ${exportPayload.counts.permissionSetGroups} permission set groups (${exportPayload.counts.permissionSetGroupComponents} components, ${exportPayload.counts.mutingPermissionSets} muting permission sets), ${exportPayload.counts.objectPermissions} object permission rows, ${exportPayload.counts.fieldPermissions} field permission rows, ${exportPayload.counts.permissionSetTabSettings} tab settings (truncated=${exportPayload.truncated}). ${findings.length} issue(s).`,
       truncated: exportPayload.truncated,
       counts: exportPayload.counts,
       findings,

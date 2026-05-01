@@ -12,22 +12,26 @@ WHERE Id IN (${formattedIds})
 `.trim();
 }
 
-export function buildObjectPermissionsByParentSoql(formattedParentIds: string): string {
+export function buildObjectPermissionsByParentSoql(formattedParentIds: string, formattedObjectTypes?: string): string {
+  const objectFilter =
+    formattedObjectTypes !== undefined && formattedObjectTypes.length > 0 ? `\nAND SobjectType IN (${formattedObjectTypes})` : '';
   return `
 SELECT Id, ParentId, SobjectType,
   PermissionsRead, PermissionsCreate, PermissionsEdit, PermissionsDelete,
   PermissionsViewAllRecords, PermissionsModifyAllRecords, PermissionsViewAllFields
 FROM ObjectPermissions
-WHERE ParentId IN (${formattedParentIds})
+WHERE ParentId IN (${formattedParentIds})${objectFilter}
 `.trim();
 }
 
-export function buildFieldPermissionsByParentSoql(formattedParentIds: string): string {
+export function buildFieldPermissionsByParentSoql(formattedParentIds: string, formattedObjectTypes?: string): string {
+  const objectFilter =
+    formattedObjectTypes !== undefined && formattedObjectTypes.length > 0 ? `\nAND SobjectType IN (${formattedObjectTypes})` : '';
   return `
 SELECT Id, ParentId, SobjectType, Field,
   PermissionsRead, PermissionsEdit
 FROM FieldPermissions
-WHERE ParentId IN (${formattedParentIds})
+WHERE ParentId IN (${formattedParentIds})${objectFilter}
 `.trim();
 }
 

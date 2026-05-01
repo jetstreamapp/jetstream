@@ -34,7 +34,7 @@ const HEIGHT_BUFFER = 170;
 export type ManagePermissionsSelectionMode = 'manage' | 'permission-analysis';
 
 export interface ManagePermissionsSelectionProps {
-  /** `permission-analysis` disables object selection and only requires profiles / permission sets to continue. */
+  /** `permission-analysis` uses the same object picker to optionally narrow ObjectPermissions / FieldPermissions export rows (via job payload `objectApiNames`). */
   selectionMode?: ManagePermissionsSelectionMode;
 }
 
@@ -119,6 +119,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
         payload: {
           profileIds: selectedProfiles,
           permissionSetIds: selectedPermissionSets,
+          ...(selectedSObjects.length > 0 ? { objectApiNames: selectedSObjects } : {}),
         },
       });
       const jobId = job && typeof job.id === 'string' ? job.id : null;
@@ -135,7 +136,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
     } finally {
       setAnalysisContinueLoading(false);
     }
-  }, [canContinueAnalysis, navigate, selectedOrg, selectedPermissionSets, selectedProfiles]);
+  }, [canContinueAnalysis, navigate, selectedOrg, selectedPermissionSets, selectedProfiles, selectedSObjects]);
 
   function handleContinue() {
     if (!sobjects || !sobjects.length) {
@@ -199,12 +200,22 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
             `}
           >
             {isAnalysis && !continueEnabled && (
-              <span>Select one or more profiles or permission sets. Object scope is not used in Analysis v1.</span>
+              <span>
+                Select at least one profile or one permission set to continue. Objects are optional — use them only if you want to narrow
+                object and field permission rows to specific types.
+              </span>
             )}
             {!isAnalysis && !hasSelectionsMade && <span>Select one or more profiles or permission sets and one or more objects</span>}
-            {isAnalysis && continueEnabled && (
+            {isAnalysis && continueEnabled && selectedSObjects.length === 0 && (
               <span className="slds-text-color_weak">
-                Objects column is visible for context but disabled in v1. Continue to open the Analysis workspace.
+                Ready to continue. Objects are optional: with none selected, the job loads all object and field permission rows for your
+                chosen profiles and permission sets. Add objects in the right column to narrow that export.
+              </span>
+            )}
+            {isAnalysis && continueEnabled && selectedSObjects.length > 0 && (
+              <span className="slds-text-color_weak">
+                Export limited to {selectedSObjects.length} object type{selectedSObjects.length === 1 ? '' : 's'} for object and field
+                permissions.
               </span>
             )}
           </div>
@@ -273,7 +284,6 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
               filterFn={filterPermissionsSobjects}
               onSobjects={handleSobjectChange}
               onSelectedSObjects={setSelectedSObjects}
-              disabled={isAnalysis}
             />
           </div>
         </Split>

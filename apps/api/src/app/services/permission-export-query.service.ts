@@ -1,6 +1,12 @@
 import type { ApiConnection } from '@jetstream/salesforce-api';
 import { queryWithRecordBudget } from '../lib/permission-export/query-with-record-budget';
-import { chunkIds, formatIdsForInClause, uniqueSalesforceIds } from '../lib/permission-export/salesforce-soql';
+import {
+  chunkIds,
+  formatApiNamesForInClause,
+  formatIdsForInClause,
+  sanitizePermissionExportObjectApiNames,
+  uniqueSalesforceIds,
+} from '../lib/permission-export/salesforce-soql';
 import {
   buildFieldPermissionsByParentSoql,
   buildMutingPermissionSetsByGroupSoql,
@@ -14,6 +20,8 @@ import {
 
 const PARENT_ID_CHUNK_SIZE = 200;
 const GROUP_ID_CHUNK_SIZE = 200;
+/** Keeps `SobjectType IN (...)` clauses within typical SOQL length limits when many objects are selected. */
+const OBJECT_SOBJECT_TYPE_IN_CHUNK_SIZE = 80;
 /** Hard cap across all exported rows to keep `analysis_job.result` JSON bounded. */
 const MAX_EXPORT_RECORDS = 50_000;
 
@@ -42,13 +50,20 @@ export interface PermissionExportQueryPayload {
 /**
  * Loads PermissionSet rows plus Object/Field/Tab permission rows for the given PermissionSet Ids
  * (profile permission sets use the same `PermissionSet` parent for child permission objects).
+ * When `objectApiNames` is non-empty, ObjectPermissions and FieldPermissions are restricted to those `SobjectType` values.
  */
 export async function runPermissionExportSoql(
   conn: ApiConnection,
   profilePermissionSetIds: string[],
   permissionSetIds: string[],
+  options?: { objectApiNames?: unknown },
 ): Promise<PermissionExportQueryPayload> {
   const parentIds = uniqueSalesforceIds([...profilePermissionSetIds, ...permissionSetIds]);
+  const objectScope = sanitizePermissionExportObjectApiNames(options?.objectApiNames);
+  const objectTypeInFragments: (string | undefined)[] =
+    objectScope.length === 0
+      ? [undefined]
+      : chunkIds(objectScope, OBJECT_SOBJECT_TYPE_IN_CHUNK_SIZE).map((names) => formatApiNamesForInClause(names));
 
   if (parentIds.length === 0) {
     return {
@@ -101,16 +116,20 @@ export async function runPermissionExportSoql(
 
     const inClause = formatIdsForInClause(chunk);
 
-    const objectSoql = buildObjectPermissionsByParentSoql(inClause);
-    const objectResult = await queryWithRecordBudget(conn, objectSoql, budget, objectPermissions);
-    if (objectResult.truncated) {
-      truncated = true;
+    for (const formattedObjectTypes of objectTypeInFragments) {
+      const objectSoql = buildObjectPermissionsByParentSoql(inClause, formattedObjectTypes);
+      const objectResult = await queryWithRecordBudget(conn, objectSoql, budget, objectPermissions);
+      if (objectResult.truncated) {
+        truncated = true;
+      }
     }
 
-    const fieldSoql = buildFieldPermissionsByParentSoql(inClause);
-    const fieldResult = await queryWithRecordBudget(conn, fieldSoql, budget, fieldPermissions);
-    if (fieldResult.truncated) {
-      truncated = true;
+    for (const formattedObjectTypes of objectTypeInFragments) {
+      const fieldSoql = buildFieldPermissionsByParentSoql(inClause, formattedObjectTypes);
+      const fieldResult = await queryWithRecordBudget(conn, fieldSoql, budget, fieldPermissions);
+      if (fieldResult.truncated) {
+        truncated = true;
+      }
     }
 
     const tabSoql = buildTabSettingsByParentSoql(inClause);

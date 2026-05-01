@@ -412,20 +412,23 @@ function stringIdArray(value: unknown): string[] {
 export interface PermissionExportRequestScope {
   profilePermissionSetIds: string[];
   permissionSetIds: string[];
+  /** When non-empty, the export job limited ObjectPermissions / FieldPermissions rows to these `SobjectType` values. */
+  objectApiNames: string[];
 }
 
 export function parsePermissionExportRequestScope(jobResult: unknown): PermissionExportRequestScope {
   const root = asRecord(jobResult);
   if (!root) {
-    return { profilePermissionSetIds: [], permissionSetIds: [] };
+    return { profilePermissionSetIds: [], permissionSetIds: [], objectApiNames: [] };
   }
   const payload = asRecord(root.requestPayload);
   if (!payload) {
-    return { profilePermissionSetIds: [], permissionSetIds: [] };
+    return { profilePermissionSetIds: [], permissionSetIds: [], objectApiNames: [] };
   }
   return {
     profilePermissionSetIds: stringIdArray(payload.profileIds),
     permissionSetIds: stringIdArray(payload.permissionSetIds),
+    objectApiNames: stringIdArray(payload.objectApiNames),
   };
 }
 

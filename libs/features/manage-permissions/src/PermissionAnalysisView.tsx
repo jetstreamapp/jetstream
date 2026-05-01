@@ -169,6 +169,8 @@ export const PermissionAnalysisView: FunctionComponent = () => {
     };
   }, [jobRecord]);
 
+  const exportObjectScopeNames = useMemo(() => parsePermissionExportRequestScope(jobRecord?.result).objectApiNames, [jobRecord]);
+
   const { filteredFindings: globallyFilteredFindings } = usePermissionAnalysisIssuesFilters({
     findings: parsedExport?.findings ?? EMPTY_PERMISSION_ANALYSIS_FINDINGS,
     permissionSetAssignments: parsedExport?.export.permissionSetAssignments ?? EMPTY_PERMISSION_EXPORT_ASSIGNMENT_ROWS,
@@ -906,6 +908,24 @@ export const PermissionAnalysisView: FunctionComponent = () => {
         )}
         {jobId && !fetchError && isTerminal && jobStatusNormalized === 'completed' && parsedExport && selectedOrg && resultTabs && (
           <Fragment>
+            {exportObjectScopeNames.length > 0 && (
+              <div className="slds-p-horizontal_medium slds-p-top_x-small">
+                <ScopedNotification theme="info">
+                  Object scope for object and field permissions ({exportObjectScopeNames.length} type
+                  {exportObjectScopeNames.length === 1 ? '' : 's'}
+                  ):
+                  {exportObjectScopeNames.length <= 8 ? (
+                    <> {exportObjectScopeNames.join(', ')}.</>
+                  ) : (
+                    <>
+                      {' '}
+                      {exportObjectScopeNames.slice(0, 8).join(', ')}… and {exportObjectScopeNames.length - 8} more.
+                    </>
+                  )}{' '}
+                  Tab visibility and permission set lists are not filtered by object.
+                </ScopedNotification>
+              </div>
+            )}
             {parsedExport.summary && (
               <div className="slds-p-horizontal_medium slds-p-top_x-small">
                 <p className="slds-text-body_small slds-text-color_weak">{parsedExport.summary}</p>

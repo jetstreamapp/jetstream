@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { formatIdsForInClause, isValidSalesforceId, uniqueSalesforceIds } from '../salesforce-soql';
+import {
+  formatApiNamesForInClause,
+  formatIdsForInClause,
+  isValidSalesforceId,
+  sanitizePermissionExportObjectApiNames,
+  uniqueSalesforceIds,
+} from '../salesforce-soql';
 
 describe('salesforce-soql', () => {
   it('validates 15- and 18-character Salesforce ids', () => {
@@ -17,5 +23,20 @@ describe('salesforce-soql', () => {
 
   it('formatIdsForInClause quotes ids', () => {
     expect(formatIdsForInClause(['00e000000000001', '00e000000000002'])).toBe("'00e000000000001','00e000000000002'");
+  });
+
+  it('formatApiNamesForInClause quotes object API names', () => {
+    expect(formatApiNamesForInClause(['Account', 'Custom__c'])).toBe("'Account','Custom__c'");
+  });
+
+  it('sanitizePermissionExportObjectApiNames filters invalid and dedupes', () => {
+    expect(sanitizePermissionExportObjectApiNames(['Account', ' Account ', 'Account', 'bad name', '', 12, 'ns__Obj__c'])).toEqual([
+      'Account',
+      'ns__Obj__c',
+    ]);
+  });
+
+  it('sanitizePermissionExportObjectApiNames returns empty for non-array', () => {
+    expect(sanitizePermissionExportObjectApiNames(null)).toEqual([]);
   });
 });
