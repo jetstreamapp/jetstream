@@ -141,6 +141,85 @@ export function sortObjectPermissionExportRowsForAnalysisTree(
   });
 }
 
+/**
+ * User-facing copy for `PermissionSetTabSetting.Visibility` on analysis grids.
+ */
+export function formatTabSettingVisibilityDisplay(value: unknown): string {
+  const raw = typeof value === 'string' ? value.trim() : '';
+  if (raw === 'DefaultOn') {
+    return 'Visible';
+  }
+  if (raw === 'DefaultOff') {
+    return 'Hidden';
+  }
+  if (raw.length === 0) {
+    return '—';
+  }
+  return raw;
+}
+
+/**
+ * Sorts `PermissionSetTabSetting` export rows for the analysis tree: profile-owned parents first (label order),
+ * then other permission sets (label order), then by tab display label (or {@link Name}) within the same {@link ParentId}.
+ *
+ * @param tabLabelBySettingName Optional `TabDefinition.Name` → `Label` map from Tooling (enriches sort when loaded).
+ */
+export function sortTabSettingExportRowsForAnalysisTree(
+  tabSettingRows: PermissionExportRow[],
+  permissionSetRows: PermissionExportRow[],
+  tabLabelBySettingName?: ReadonlyMap<string, string>,
+): PermissionExportRow[] {
+  const labelByParentId = buildPermissionSetIdLabelMap(permissionSetRows);
+  const permissionSetById = new Map<string, PermissionExportRow>();
+  for (const row of permissionSetRows) {
+    const id = typeof row.Id === 'string' ? row.Id.trim() : '';
+    if (id) {
+      permissionSetById.set(id, row);
+    }
+  }
+
+  function parentTier(parentId: string): number {
+    if (!parentId) {
+      return 2;
+    }
+    return isProfileOwnedPermissionSetRow(permissionSetById.get(parentId)) ? 0 : 1;
+  }
+
+  function parentLabelCompareKey(parentId: string): string {
+    return labelByParentId.get(parentId) ?? parentId;
+  }
+
+  function tabSortCompareKey(row: PermissionExportRow): string {
+    const name = typeof row.Name === 'string' ? row.Name.trim() : '';
+    const label = tabLabelBySettingName?.get(name)?.trim();
+    const primary = (label && label.length > 0 ? label : name).toLocaleLowerCase();
+    const secondary = name.toLocaleLowerCase();
+    return `${primary}\0${secondary}`;
+  }
+
+  return [...tabSettingRows].sort((rowA, rowB) => {
+    const parentA = typeof rowA.ParentId === 'string' ? rowA.ParentId.trim() : '';
+    const parentB = typeof rowB.ParentId === 'string' ? rowB.ParentId.trim() : '';
+    if (parentA !== parentB) {
+      const tierA = parentTier(parentA);
+      const tierB = parentTier(parentB);
+      if (tierA !== tierB) {
+        return tierA - tierB;
+      }
+      const labelCmp = parentLabelCompareKey(parentA).localeCompare(parentLabelCompareKey(parentB), undefined, {
+        sensitivity: 'base',
+      });
+      if (labelCmp !== 0) {
+        return labelCmp;
+      }
+      return parentA.localeCompare(parentB, undefined, { sensitivity: 'base' });
+    }
+    const keyA = tabSortCompareKey(rowA);
+    const keyB = tabSortCompareKey(rowB);
+    return keyA.localeCompare(keyB, undefined, { sensitivity: 'base' });
+  });
+}
+
 export function collectSobjectApiNamesFromPermissionExport(exportBundle: PermissionExportBundle): string[] {
   const names = new Set<string>();
   for (const row of exportBundle.objectPermissions) {
@@ -151,6 +230,20 @@ export function collectSobjectApiNamesFromPermissionExport(exportBundle: Permiss
   }
   for (const row of exportBundle.fieldPermissions) {
     const value = row.SobjectType;
+    if (typeof value === 'string' && value.trim().length > 0) {
+      names.add(value.trim());
+    }
+  }
+  return [...names].sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * Unique tab API names from `PermissionSetTabSetting` rows (for Tooling `TabDefinition` enrichment).
+ */
+export function collectTabSettingNamesFromPermissionExport(exportBundle: PermissionExportBundle): string[] {
+  const names = new Set<string>();
+  for (const row of exportBundle.permissionSetTabSettings) {
+    const value = row.Name;
     if (typeof value === 'string' && value.trim().length > 0) {
       names.add(value.trim());
     }

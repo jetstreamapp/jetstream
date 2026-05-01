@@ -2,11 +2,13 @@ import { PermissionExportFindingCode } from '@jetstream/shared/constants';
 import { describe, expect, it } from 'vitest';
 import {
   buildObjectPermissionFindingCellHighlights,
+  formatTabSettingVisibilityDisplay,
   getFindingCodeDisplayParts,
   getObjectPermissionHighlightColumnKeysForFindingCode,
   listFindingsForObjectPermissionCell,
   objectPermissionFindingRowKey,
   sortObjectPermissionExportRowsForAnalysisTree,
+  sortTabSettingExportRowsForAnalysisTree,
   type PermissionAnalysisFinding,
 } from '../permission-export-result-view';
 
@@ -205,5 +207,63 @@ describe('sortObjectPermissionExportRowsForAnalysisTree', () => {
     ];
     const sorted = sortObjectPermissionExportRowsForAnalysisTree(objectPermissionRows, permissionSetRows, sobjectExportDetails);
     expect(sorted.map((row) => row.SobjectType)).toEqual(['Account', 'Zebra__c']);
+  });
+});
+
+describe('formatTabSettingVisibilityDisplay', () => {
+  it('maps DefaultOn to Visible and DefaultOff to Hidden', () => {
+    expect(formatTabSettingVisibilityDisplay('DefaultOn')).toBe('Visible');
+    expect(formatTabSettingVisibilityDisplay('DefaultOff')).toBe('Hidden');
+  });
+
+  it('returns em dash for empty values and raw string for other picklist values', () => {
+    expect(formatTabSettingVisibilityDisplay('')).toBe('—');
+    expect(formatTabSettingVisibilityDisplay(null)).toBe('—');
+    expect(formatTabSettingVisibilityDisplay('Available')).toBe('Available');
+  });
+});
+
+describe('sortTabSettingExportRowsForAnalysisTree', () => {
+  const psProfile = '0PSPROFILE000001';
+  const psStandalone = '0PSSTAND00000001';
+
+  it('orders profile-owned parents before standalone permission sets', () => {
+    const permissionSetRows = [
+      { Id: psStandalone, Label: 'Zebra', Name: 'Zebra', IsOwnedByProfile: false },
+      { Id: psProfile, Label: 'X', Name: 'X', IsOwnedByProfile: true, Profile: { Name: 'Admin' } },
+    ];
+    const tabRows = [
+      { ParentId: psStandalone, Name: 'TabA', Visibility: 'DefaultOn', Id: 't1' },
+      { ParentId: psProfile, Name: 'TabB', Visibility: 'DefaultOff', Id: 't2' },
+    ];
+    const sorted = sortTabSettingExportRowsForAnalysisTree(tabRows, permissionSetRows);
+    expect(sorted.map((row) => row.ParentId)).toEqual([psProfile, psStandalone]);
+  });
+
+  it('orders tabs by Name within the same parent', () => {
+    const permissionSetRows = [{ Id: psStandalone, Label: 'P', Name: 'P', IsOwnedByProfile: false }];
+    const tabRows = [
+      { ParentId: psStandalone, Name: 'Zebra', Visibility: 'DefaultOn', Id: '1' },
+      { ParentId: psStandalone, Name: 'Alpha', Visibility: 'DefaultOff', Id: '2' },
+    ];
+    const sorted = sortTabSettingExportRowsForAnalysisTree(tabRows, permissionSetRows);
+    expect(sorted.map((row) => row.Name)).toEqual(['Alpha', 'Zebra']);
+  });
+
+  it('orders tabs by TabDefinition label when a label map is provided', () => {
+    const permissionSetRows = [{ Id: psStandalone, Label: 'P', Name: 'P', IsOwnedByProfile: false }];
+    const tabRows = [
+      { ParentId: psStandalone, Name: 'standard-ZebraTab', Visibility: 'DefaultOn', Id: '1' },
+      { ParentId: psStandalone, Name: 'standard-AlphaTab', Visibility: 'DefaultOn', Id: '2' },
+    ];
+    const sortedByApi = sortTabSettingExportRowsForAnalysisTree(tabRows, permissionSetRows);
+    expect(sortedByApi.map((row) => row.Name)).toEqual(['standard-AlphaTab', 'standard-ZebraTab']);
+
+    const labelMap = new Map([
+      ['standard-ZebraTab', 'Zebra label'],
+      ['standard-AlphaTab', 'Alpha label'],
+    ]);
+    const sortedByLabel = sortTabSettingExportRowsForAnalysisTree(tabRows, permissionSetRows, labelMap);
+    expect(sortedByLabel.map((row) => row.Name)).toEqual(['standard-AlphaTab', 'standard-ZebraTab']);
   });
 });

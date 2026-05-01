@@ -22,6 +22,7 @@ import { Fragment, FunctionComponent, useEffect, useMemo, useState } from 'react
 import { Link, useSearchParams } from 'react-router-dom';
 import { PermissionAnalysisExportGrid } from './PermissionAnalysisExportGrid';
 import { PermissionAnalysisObjectPermissionsTree } from './PermissionAnalysisObjectPermissionsTree';
+import { PermissionAnalysisTabVisibilityTree } from './PermissionAnalysisTabVisibilityTree';
 import { PermissionAnalysisPermissionSetsTree } from './PermissionAnalysisPermissionSetsTree';
 import { PermissionAnalysisUserAssignmentsTree } from './PermissionAnalysisUserAssignmentsTree';
 import { PermissionAnalysisHistoryModal } from './PermissionAnalysisHistoryModal';
@@ -29,6 +30,7 @@ import { PermissionAnalysisIssuesTab } from './PermissionAnalysisIssuesTab';
 import {
   buildPermissionSetIdLabelMap,
   collectSobjectApiNamesFromPermissionExport,
+  collectTabSettingNamesFromPermissionExport,
   filterPermissionSetExportRowsById,
   parsePermissionExportRequestScope,
   parsePermissionExportResult,
@@ -37,11 +39,17 @@ import {
 
 const HEIGHT_BUFFER = 170;
 const ENTITY_DEFINITION_CHUNK_SIZE = 40;
+const TAB_DEFINITION_CHUNK_SIZE = 100;
 
 interface ToolingEntityDefinitionRow {
   QualifiedApiName: string;
   Label?: string | null;
   Description?: string | null;
+}
+
+interface ToolingTabDefinitionRow {
+  Name: string;
+  Label?: string | null;
 }
 
 function formatJobResult(result: unknown): string {
@@ -66,6 +74,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [sobjectExportDetails, setSobjectExportDetails] = useState<Record<string, SobjectExportDetail>>({});
+  const [tabLabelBySettingName, setTabLabelBySettingName] = useState<Map<string, string>>(() => new Map());
 
   useEffect(() => {
     if (!selectedOrg?.uniqueId || !jobId) {
@@ -218,6 +227,63 @@ export const PermissionAnalysisView: FunctionComponent = () => {
     }
 
     void loadSobjectExportDetails();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedOrg, parsedExport]);
+
+  useEffect(() => {
+    if (!selectedOrg?.uniqueId) {
+      setTabLabelBySettingName(new Map());
+      return;
+    }
+
+    if (!parsedExport) {
+      setTabLabelBySettingName(new Map());
+      return;
+    }
+
+    const exportBundleForTabs = parsedExport.export;
+    let cancelled = false;
+
+    async function loadTabDefinitionLabels() {
+      const tabNames = collectTabSettingNamesFromPermissionExport(exportBundleForTabs);
+      const labelMap = new Map<string, string>();
+
+      for (let offset = 0; offset < tabNames.length; offset += TAB_DEFINITION_CHUNK_SIZE) {
+        if (cancelled) {
+          return;
+        }
+        const chunk = tabNames.slice(offset, offset + TAB_DEFINITION_CHUNK_SIZE);
+        const inList = chunk.map((name) => `'${escapeSoqlString(name)}'`).join(', ');
+        const soql = `SELECT Name, Label FROM TabDefinition WHERE Name IN (${inList})`;
+        try {
+          const { data } = await queryWithCache<ToolingTabDefinitionRow>(selectedOrg, soql, true);
+          const records = data?.queryResults?.records;
+          if (!Array.isArray(records)) {
+            continue;
+          }
+          for (const record of records) {
+            const api = record.Name;
+            if (typeof api !== 'string' || api.trim().length === 0) {
+              continue;
+            }
+            const trimmedApi = api.trim();
+            const labelFromTd = typeof record.Label === 'string' && record.Label.trim().length > 0 ? record.Label.trim() : trimmedApi;
+            labelMap.set(trimmedApi, labelFromTd);
+          }
+        } catch (tabDefinitionError) {
+          logger.warn('TabDefinition query failed for permission analysis tab labels', tabDefinitionError);
+        }
+      }
+
+      if (!cancelled) {
+        setTabLabelBySettingName(labelMap);
+      }
+    }
+
+    void loadTabDefinitionLabels();
 
     return () => {
       cancelled = true;
@@ -479,17 +545,19 @@ export const PermissionAnalysisView: FunctionComponent = () => {
         titleText: 'Tab Visibility',
         content: (
           <div
-            className="slds-p-around_x-small"
+            className="slds-grid slds-grid_vertical slds-p-around_x-small"
             css={css`
               height: 100%;
             `}
           >
             {renderTruncationNotice()}
-            <PermissionAnalysisExportGrid
-              rows={exportBundle.permissionSetTabSettings}
+            <PermissionAnalysisTabVisibilityTree
+              tabSettingRows={exportBundle.permissionSetTabSettings}
+              permissionSetRows={exportBundle.permissionSets}
+              findings={findings}
+              containerLabelById={containerLabelById}
+              tabLabelBySettingName={tabLabelBySettingName}
               {...gridProps}
-              {...exportFindingProps}
-              findingSurface="tab_visibility_row"
             />
           </div>
         ),
@@ -598,6 +666,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
     setSearchParams,
     findingsCount,
     sobjectExportDetails,
+    tabLabelBySettingName,
   ]);
 
   return (
