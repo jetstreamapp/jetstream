@@ -438,6 +438,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
             <PermissionAnalysisObjectPermissionsTree
               objectPermissionRows={exportBundle.objectPermissions}
               permissionSetRows={exportBundle.permissionSets}
+              findings={findings}
               {...gridProps}
             />
           </div>

@@ -1,3 +1,4 @@
+import { getPermissionExportFindingDefinition, PermissionExportFindingCode } from '@jetstream/shared/constants';
 import type { ColumnWithFilter, RowWithKey } from '@jetstream/ui';
 import { getRowTypeFromValue, setColumnFromType } from '@jetstream/ui';
 
@@ -356,14 +357,242 @@ export function getFindingContainerId(finding: PermissionAnalysisFinding): strin
   return null;
 }
 
-export const RECORD_FINDING_LABELS: Record<string, string> = {
-  FLS_READ_NO_OBJECT_READ: 'Field can be read at field level but object is not readable.',
-  OLS_READ_NO_FLS_ROWS: 'Object is readable but no field-level rows exist for visibility checks.',
-};
+/** Matches {@link buildPermissionExportFindings} row keying: permission-set container + object API name. */
+export function objectPermissionFindingRowKey(parentId: string, objectApiName: string): string {
+  return `${parentId}::${objectApiName}`;
+}
+
+export type PermissionObjectFindingCellSeverity = 'error' | 'warning';
+
+const OBJECT_FINDING_READ_PATH_COLUMNS = ['PermissionsRead', 'PermissionsViewAllRecords', 'PermissionsModifyAllRecords'] as const;
+const OBJECT_FINDING_EDIT_PATH_COLUMNS = ['PermissionsEdit', 'PermissionsModifyAllRecords'] as const;
+
+/**
+ * Object-permission grid column keys highlighted for a given finding `code` (empty when none).
+ */
+export function getObjectPermissionHighlightColumnKeysForFindingCode(code: string): readonly string[] {
+  const trimmed = code.trim();
+  if (!trimmed || trimmed === PermissionExportFindingCode.FINDINGS_TRUNCATED) {
+    return [];
+  }
+  if (trimmed === PermissionExportFindingCode.OLS_READ_NO_FLS_ROWS) {
+    return ['PermissionsRead'];
+  }
+  if (trimmed === PermissionExportFindingCode.OLS_EDIT_NO_FLS_ROWS) {
+    return ['PermissionsEdit'];
+  }
+  if (trimmed === PermissionExportFindingCode.FLS_READ_NO_OBJECT_READ) {
+    return OBJECT_FINDING_READ_PATH_COLUMNS;
+  }
+  if (trimmed === PermissionExportFindingCode.FLS_EDIT_NO_OBJECT_EDIT) {
+    return OBJECT_FINDING_EDIT_PATH_COLUMNS;
+  }
+  return [];
+}
+
+function severityForObjectPermissionFindingCode(code: string): PermissionObjectFindingCellSeverity | null {
+  const def = getPermissionExportFindingDefinition(code);
+  if (!def) {
+    return null;
+  }
+  return def.severity === 'error' ? 'error' : 'warning';
+}
+
+/**
+ * Findings that contribute to highlighting this leaf row cell on the Object Permissions tree.
+ */
+export function listFindingsForObjectPermissionCell(
+  findings: readonly PermissionAnalysisFinding[],
+  parentId: string,
+  objectApiName: string,
+  columnKey: string,
+): PermissionAnalysisFinding[] {
+  const normalizedParent = parentId.trim();
+  const normalizedObject = objectApiName.trim();
+  const normalizedColumn = columnKey.trim();
+  const matches: PermissionAnalysisFinding[] = [];
+  for (const finding of findings) {
+    const findingParent = getFindingContainerId(finding)?.trim() ?? '';
+    const findingObject = typeof finding.objectApiName === 'string' ? finding.objectApiName.trim() : '';
+    if (!findingParent || !findingObject) {
+      continue;
+    }
+    if (findingParent !== normalizedParent || findingObject !== normalizedObject) {
+      continue;
+    }
+    const codeRaw = typeof finding.code === 'string' ? finding.code.trim() : '';
+    const highlightColumns = getObjectPermissionHighlightColumnKeysForFindingCode(codeRaw);
+    if (!highlightColumns.includes(normalizedColumn)) {
+      continue;
+    }
+    matches.push(finding);
+  }
+  return matches;
+}
+
+/**
+ * Maps object-permission export rows (ParentId + SobjectType) to permission boolean columns that
+ * should be highlighted on the Object Permissions tree from analysis findings.
+ *
+ * @param findings Parsed `analysis_job.result.findings` (same list as the Issues tab).
+ * @returns Outer key: {@link objectPermissionFindingRowKey}; inner key: `Permissions*` column name.
+ */
+export function buildObjectPermissionFindingCellHighlights(
+  findings: PermissionAnalysisFinding[],
+): Map<string, Map<string, PermissionObjectFindingCellSeverity>> {
+  const result = new Map<string, Map<string, PermissionObjectFindingCellSeverity>>();
+
+  const mergeCell = (rowKey: string, columnKey: string, severity: PermissionObjectFindingCellSeverity): void => {
+    let columnMap = result.get(rowKey);
+    if (!columnMap) {
+      columnMap = new Map();
+      result.set(rowKey, columnMap);
+    }
+    const existing = columnMap.get(columnKey);
+    const next: PermissionObjectFindingCellSeverity = existing === 'error' || severity === 'error' ? 'error' : severity;
+    columnMap.set(columnKey, next);
+  };
+
+  for (const finding of findings) {
+    const codeRaw = typeof finding.code === 'string' ? finding.code.trim() : '';
+    const objectApi = typeof finding.objectApiName === 'string' ? finding.objectApiName.trim() : '';
+    const parentId = getFindingContainerId(finding)?.trim() ?? '';
+    if (!codeRaw || !objectApi || !parentId) {
+      continue;
+    }
+    const highlightColumns = getObjectPermissionHighlightColumnKeysForFindingCode(codeRaw);
+    if (highlightColumns.length === 0) {
+      continue;
+    }
+    const severity = severityForObjectPermissionFindingCode(codeRaw);
+    if (!severity) {
+      continue;
+    }
+    const rowKey = objectPermissionFindingRowKey(parentId, objectApi);
+    for (const columnKey of highlightColumns) {
+      mergeCell(rowKey, columnKey, severity);
+    }
+  }
+
+  return result;
+}
 
 export function getFindingLabelForCode(code: string | undefined): string {
   if (!code) {
     return '';
   }
-  return RECORD_FINDING_LABELS[code] ?? '';
+  return getPermissionExportFindingDefinition(code)?.label ?? '';
+}
+
+export interface FindingCodeDisplayParts {
+  /** Catalog label when the code is known; otherwise the raw value (or "(no code)"). */
+  title: string;
+  /** Raw exporter `code` for muted parentheses when a catalog label exists. */
+  technicalCode: string | null;
+}
+
+/**
+ * Splits a finding `code` into a user-facing title vs optional technical identifier.
+ */
+export function getFindingCodeDisplayParts(code: string | undefined): FindingCodeDisplayParts {
+  const raw = typeof code === 'string' ? code.trim() : '';
+  if (!raw) {
+    return { title: '(no code)', technicalCode: null };
+  }
+  const catalogLabel = getFindingLabelForCode(raw);
+  if (catalogLabel.length > 0) {
+    return { title: catalogLabel, technicalCode: raw };
+  }
+  return { title: raw, technicalCode: null };
+}
+
+export interface PermissionFindingCodeRollup {
+  code: string;
+  count: number;
+  errorCount: number;
+  warningCount: number;
+  label: string;
+}
+
+export interface PermissionFindingObjectRollup {
+  objectApiName: string;
+  count: number;
+  errorCount: number;
+  warningCount: number;
+}
+
+export interface AggregatePermissionFindingsResult {
+  byCode: PermissionFindingCodeRollup[];
+  byObject: PermissionFindingObjectRollup[];
+}
+
+function isErrorLikeSeverity(value: unknown): boolean {
+  const normalized = String(value ?? '').toLowerCase();
+  return normalized === 'error' || normalized === 'errors';
+}
+
+function isWarningLikeSeverity(value: unknown): boolean {
+  const normalized = String(value ?? '').toLowerCase();
+  return normalized === 'warning' || normalized === 'warnings';
+}
+
+/**
+ * Rolls up the current finding list for summary tiles (Phase B — respects the same rows as the Issues grid filters).
+ */
+export function aggregatePermissionAnalysisFindings(findings: PermissionAnalysisFinding[]): AggregatePermissionFindingsResult {
+  const byCodeMap = new Map<string, { count: number; errors: number; warnings: number }>();
+  const byObjectMap = new Map<string, { count: number; errors: number; warnings: number }>();
+
+  for (const row of findings) {
+    const codeRaw = String(row.code ?? '').trim();
+    const code = codeRaw.length > 0 ? codeRaw : '(no code)';
+    if (code === PermissionExportFindingCode.FINDINGS_TRUNCATED) {
+      continue;
+    }
+    const objectKeyRaw = String(row.objectApiName ?? '').trim();
+    const objectKey = objectKeyRaw.length > 0 ? objectKeyRaw : '(no object)';
+    const isError = isErrorLikeSeverity(row.severity);
+    const isWarning = isWarningLikeSeverity(row.severity);
+
+    const codeAgg = byCodeMap.get(code) ?? { count: 0, errors: 0, warnings: 0 };
+    codeAgg.count += 1;
+    if (isError) {
+      codeAgg.errors += 1;
+    }
+    if (isWarning) {
+      codeAgg.warnings += 1;
+    }
+    byCodeMap.set(code, codeAgg);
+
+    const objectAgg = byObjectMap.get(objectKey) ?? { count: 0, errors: 0, warnings: 0 };
+    objectAgg.count += 1;
+    if (isError) {
+      objectAgg.errors += 1;
+    }
+    if (isWarning) {
+      objectAgg.warnings += 1;
+    }
+    byObjectMap.set(objectKey, objectAgg);
+  }
+
+  const byCode: PermissionFindingCodeRollup[] = [...byCodeMap.entries()]
+    .map(([code, value]) => ({
+      code,
+      count: value.count,
+      errorCount: value.errors,
+      warningCount: value.warnings,
+      label: getFindingLabelForCode(code === '(no code)' ? undefined : code),
+    }))
+    .sort((a, b) => b.count - a.count || a.code.localeCompare(b.code));
+
+  const byObject: PermissionFindingObjectRollup[] = [...byObjectMap.entries()]
+    .map(([objectApiName, value]) => ({
+      objectApiName,
+      count: value.count,
+      errorCount: value.errors,
+      warningCount: value.warnings,
+    }))
+    .sort((a, b) => b.count - a.count || a.objectApiName.localeCompare(b.objectApiName));
+
+  return { byCode, byObject };
 }
