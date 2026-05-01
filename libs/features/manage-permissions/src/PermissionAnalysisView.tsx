@@ -26,6 +26,7 @@ import { PermissionAnalysisObjectPermissionsTree } from './PermissionAnalysisObj
 import { PermissionAnalysisHistoryModal } from './PermissionAnalysisHistoryModal';
 import { PermissionAnalysisIssuesTab } from './PermissionAnalysisIssuesTab';
 import {
+  buildPermissionSetIdLabelMap,
   collectSobjectApiNamesFromPermissionExport,
   filterPermissionSetExportRowsById,
   parsePermissionExportRequestScope,
@@ -239,6 +240,9 @@ export const PermissionAnalysisView: FunctionComponent = () => {
     const { export: exportBundle, truncated, findings } = parsedExport;
     const counts = parsedExport.counts;
 
+    const containerLabelById = buildPermissionSetIdLabelMap(exportBundle.permissionSets);
+    const exportFindingProps = { findings, containerLabelById };
+
     const gridProps = {
       org: selectedOrg,
       serverUrl,
@@ -302,7 +306,12 @@ export const PermissionAnalysisView: FunctionComponent = () => {
           `}
         >
           {renderTruncationNotice()}
-          <PermissionAnalysisExportGrid rows={profilePermissionSetRows} {...gridProps} />
+          <PermissionAnalysisExportGrid
+            rows={profilePermissionSetRows}
+            {...gridProps}
+            {...exportFindingProps}
+            findingSurface="container_row"
+          />
         </div>
       ),
     };
@@ -331,7 +340,12 @@ export const PermissionAnalysisView: FunctionComponent = () => {
           `}
         >
           {renderTruncationNotice()}
-          <PermissionAnalysisExportGrid rows={standalonePermissionSetRows} {...gridProps} />
+          <PermissionAnalysisExportGrid
+            rows={standalonePermissionSetRows}
+            {...gridProps}
+            {...exportFindingProps}
+            findingSurface="container_row"
+          />
         </div>
       ),
     };
@@ -363,7 +377,12 @@ export const PermissionAnalysisView: FunctionComponent = () => {
             `}
           >
             {renderTruncationNotice()}
-            <PermissionAnalysisExportGrid rows={exportBundle.permissionSetAssignments} {...gridProps} />
+            <PermissionAnalysisExportGrid
+              rows={exportBundle.permissionSetAssignments}
+              {...gridProps}
+              {...exportFindingProps}
+              findingSurface="assignment_row"
+            />
           </div>
         ),
       },
@@ -468,7 +487,12 @@ export const PermissionAnalysisView: FunctionComponent = () => {
             `}
           >
             {renderTruncationNotice()}
-            <PermissionAnalysisExportGrid rows={exportBundle.permissionSetTabSettings} {...gridProps} />
+            <PermissionAnalysisExportGrid
+              rows={exportBundle.permissionSetTabSettings}
+              {...gridProps}
+              {...exportFindingProps}
+              findingSurface="tab_visibility_row"
+            />
           </div>
         ),
       },
@@ -496,7 +520,12 @@ export const PermissionAnalysisView: FunctionComponent = () => {
             `}
           >
             {renderTruncationNotice()}
-            <PermissionAnalysisExportGrid rows={exportBundle.fieldPermissions} {...gridProps} />
+            <PermissionAnalysisExportGrid
+              rows={exportBundle.fieldPermissions}
+              {...gridProps}
+              {...exportFindingProps}
+              findingSurface="field_permissions"
+            />
           </div>
         ),
       },
