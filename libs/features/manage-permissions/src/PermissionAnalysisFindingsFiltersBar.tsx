@@ -1,10 +1,10 @@
 import { css } from '@emotion/react';
 import classNames from 'classnames';
-import { Icon, Popover, ToolbarItemGroup, type PopoverRef } from '@jetstream/ui';
+import { Icon, Popover, type PopoverRef } from '@jetstream/ui';
 import { FunctionComponent, ReactNode, useRef } from 'react';
 import type { SetURLSearchParams } from 'react-router-dom';
 import { type IssueScopeFilterContext, usePermissionAnalysisIssuesFilters } from './permission-analysis-issues-filters';
-import { getFindingCodeDisplayParts, type PermissionAnalysisFinding, type PermissionExportRow } from './permission-export-result-view';
+import { type PermissionAnalysisFinding, type PermissionExportRow } from './permission-export-result-view';
 
 /** Keeps `<legend>` from sitting inline with the first radio (fieldset default layout). */
 const filterPanelLegendCss = css`
@@ -21,20 +21,35 @@ const filterPanelHelpTextCss = css`
   margin-bottom: 0.5rem;
 `;
 
-const FindingCodeInline: FunctionComponent<{ code: string | undefined }> = ({ code }) => {
-  const { title, technicalCode } = getFindingCodeDisplayParts(code);
-  return (
-    <span>
-      {title}
-      {technicalCode ? (
-        <span className="slds-text-color_weak">
-          {' '}
-          (<code>{technicalCode}</code>)
-        </span>
-      ) : null}
-    </span>
-  );
-};
+/**
+ * Inline-size container for this toolbar strip so nested `@container` rules track the middle column width,
+ * not the viewport.
+ */
+const findingsFiltersBarRootCss = css`
+  width: 100%;
+  min-width: 0;
+`;
+
+/**
+ * Single horizontal row with the main toolbar (back | filters | history). Parent may scroll on very narrow widths.
+ */
+const findingsFiltersToolbarClusterCss = css`
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.35rem 0.5rem;
+  width: max-content;
+  max-width: none;
+`;
+
+/** Do not flex-shrink (avoids a ~0px box that breaks every word onto its own line). */
+const findingsFiltersStatsCss = css`
+  flex: 0 0 auto;
+  text-align: left;
+  white-space: nowrap;
+`;
 
 /**
  * Toolbar-styled control: neutral SLDS button opens the same popover chrome as DataTable {@link HeaderFilter}
@@ -143,14 +158,11 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
     scopeFilter,
     hasAssignmentData,
     filteredFindings,
-    issueCodeRows,
     errorTotal,
     warningTotal,
     errorFiltered,
     warningFiltered,
-    issueCodeFilter,
     updateParams,
-    setIssueCodeFilter,
   } = usePermissionAnalysisIssuesFilters({
     findings,
     permissionSetAssignments,
@@ -162,16 +174,8 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
   const exportScopeFilterActive = issueScopeFilterContext?.supportsExportScopeFilter === true && scopeFilter !== 'all';
 
   return (
-    <>
-      <ToolbarItemGroup
-        css={css`
-          display: flex;
-          flex-wrap: wrap;
-          align-items: center;
-          justify-content: center;
-          gap: 0.25rem;
-        `}
-      >
+    <div css={findingsFiltersBarRootCss}>
+      <div className="slds-builder-toolbar__item-group" css={findingsFiltersToolbarClusterCss}>
         {issueScopeFilterContext?.supportsExportScopeFilter ? (
           <ToolbarFilterButton
             label="Export Scope"
@@ -308,97 +312,11 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
           </fieldset>
         </ToolbarFilterButton>
 
-        <ToolbarFilterButton
-          label="Issue Codes"
-          filterActive={!!issueCodeFilter}
-          showResetFooter={false}
-          popoverHeaderTitle="Issue Codes"
-          triggerIcon="feed"
-        >
-          <p css={filterPanelHelpTextCss} className="slds-text-body_small slds-text-color_weak">
-            Counts for the current toolbar filters ({filteredFindings.length} issue{filteredFindings.length === 1 ? '' : 's'}). Filter by
-            issue using the Issue column on the Issues grid.
-          </p>
-          <div
-            role="list"
-            css={css`
-              max-height: min(50vh, 320px);
-              overflow-y: auto;
-              overflow-x: hidden;
-              display: flex;
-              flex-direction: column;
-              gap: 0.5rem;
-              padding-right: 0.125rem;
-            `}
-          >
-            {issueCodeRows.length === 0 ? (
-              <p className="slds-text-body_small slds-text-color_weak">No Issue Codes match the current filters.</p>
-            ) : (
-              issueCodeRows.map((row) => (
-                <div
-                  key={row.code}
-                  role="listitem"
-                  className="slds-box slds-theme_default"
-                  css={css`
-                    padding: 0.5rem 0.625rem;
-                  `}
-                >
-                  <div
-                    css={css`
-                      display: flex;
-                      flex-wrap: wrap;
-                      align-items: flex-start;
-                      justify-content: space-between;
-                      gap: 0.5rem 0.75rem;
-                    `}
-                  >
-                    <div
-                      css={css`
-                        flex: 1 1 10rem;
-                        min-width: 0;
-                        overflow-wrap: anywhere;
-                        word-break: break-word;
-                        white-space: normal;
-                        line-height: 1.35;
-                      `}
-                    >
-                      <FindingCodeInline code={row.code === '(no code)' ? undefined : row.code} />
-                    </div>
-                    <span
-                      className="slds-badge"
-                      css={css`
-                        flex-shrink: 0;
-                        align-self: flex-start;
-                      `}
-                      title="Issue count"
-                    >
-                      {row.count}
-                    </span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </ToolbarFilterButton>
-      </ToolbarItemGroup>
-      <div
-        className="slds-m-top_xx-small slds-text-body_small"
-        css={css`
-          text-align: center;
-        `}
-      >
-        Errors: {errorFiltered} / {errorTotal} · Warnings: {warningFiltered} / {warningTotal} · Showing {filteredFindings.length} of{' '}
-        {findings.length} issues
-        {issueCodeFilter ? (
-          <>
-            {' '}
-            · Issue Codes filter active{' '}
-            <button type="button" className="slds-button slds-button_link" onClick={() => setIssueCodeFilter(null)}>
-              Clear
-            </button>
-          </>
-        ) : null}
+        <div className="slds-text-body_small" css={findingsFiltersStatsCss}>
+          Errors: {errorFiltered} / {errorTotal} · Warnings: {warningFiltered} / {warningTotal} · Showing {filteredFindings.length} of{' '}
+          {findings.length} issues
+        </div>
       </div>
-    </>
+    </div>
   );
 };

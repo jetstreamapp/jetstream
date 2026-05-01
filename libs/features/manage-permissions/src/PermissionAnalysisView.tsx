@@ -813,33 +813,38 @@ export const PermissionAnalysisView: FunctionComponent = () => {
           css={css`
             display: flex;
             width: 100%;
-            align-items: flex-start;
-            flex-wrap: wrap;
+            min-width: 0;
+            align-items: center;
+            flex-wrap: nowrap;
             gap: 0.5rem 0.75rem;
           `}
         >
-          <ToolbarItemGroup>
-            <Link className="slds-button slds-button_brand" to="..">
-              <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
-              Go Back
-            </Link>
-          </ToolbarItemGroup>
           <div
             css={css`
-              flex: 1 1 12rem;
-              display: flex;
-              justify-content: center;
-              align-items: flex-start;
+              flex: 0 0 auto;
+            `}
+          >
+            <ToolbarItemGroup>
+              <Link className="slds-button slds-button_brand" to="..">
+                <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
+                Go Back
+              </Link>
+            </ToolbarItemGroup>
+          </div>
+          <div
+            css={css`
+              flex: 1 1 0;
               min-width: 0;
+              overflow-x: auto;
+              overflow-y: hidden;
             `}
           >
             {jobId && !fetchError && isTerminal && jobStatusNormalized === 'completed' && parsedExport && selectedOrg ? (
               <div
                 css={css`
-                  display: flex;
-                  flex-direction: column;
-                  align-items: center;
-                  max-width: 100%;
+                  width: max-content;
+                  min-width: 100%;
+                  min-height: 0;
                 `}
               >
                 <PermissionAnalysisFindingsFiltersBar
@@ -852,22 +857,28 @@ export const PermissionAnalysisView: FunctionComponent = () => {
               </div>
             ) : null}
           </div>
-          <ToolbarItemActions>
-            <Tooltip ariaRole="label" content="View past permission export runs for this org">
-              <button
-                type="button"
-                aria-label="Export history"
-                className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
-                css={css`
-                  padding: 0.5rem;
-                `}
-                disabled={!selectedOrg?.uniqueId}
-                onClick={() => setIsHistoryOpen(true)}
-              >
-                <Icon type="utility" icon="date_time" className="slds-button__icon" omitContainer title="Export history" />
-              </button>
-            </Tooltip>
-          </ToolbarItemActions>
+          <div
+            css={css`
+              flex: 0 0 auto;
+            `}
+          >
+            <ToolbarItemActions>
+              <Tooltip ariaRole="label" content="View past permission export runs for this org">
+                <button
+                  type="button"
+                  aria-label="Export history"
+                  className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
+                  css={css`
+                    padding: 0.5rem;
+                  `}
+                  disabled={!selectedOrg?.uniqueId}
+                  onClick={() => setIsHistoryOpen(true)}
+                >
+                  <Icon type="utility" icon="date_time" className="slds-button__icon" omitContainer title="Export history" />
+                </button>
+              </Tooltip>
+            </ToolbarItemActions>
+          </div>
         </div>
       </Toolbar>
       {isHistoryOpen && selectedOrg && (

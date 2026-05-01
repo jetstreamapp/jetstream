@@ -1,4 +1,3 @@
-import { PermissionExportFindingCode } from '@jetstream/shared/constants';
 import { useCallback, useMemo } from 'react';
 import type { SetURLSearchParams } from 'react-router-dom';
 import {
@@ -96,9 +95,6 @@ export interface IssueScopeFilterContext {
   permissionSetIds: ReadonlySet<string>;
 }
 
-/** Query param for filtering the Issues grid (and related views) to one issue code. */
-export const PERMISSION_ANALYSIS_ISSUE_CODE_PARAM = 'issueCode';
-
 export function readPermissionAnalysisSearchParam(searchParams: URLSearchParams, key: string, fallback: string): string {
   const value = searchParams.get(key);
   return value && value.length > 0 ? value : fallback;
@@ -165,16 +161,13 @@ export interface UsePermissionAnalysisIssuesFiltersResult {
   scopeFilter: IssuesScopeFilter;
   hiddenIssueGridColumns: ReadonlySet<IssuesGridColumnKey>;
   groupBy: IssuesGroupBy;
-  issueCodeFilter: string | null;
   hasAssignmentData: boolean;
   filteredFindings: PermissionAnalysisFinding[];
-  issueCodeRows: { code: string; count: number }[];
   errorTotal: number;
   warningTotal: number;
   errorFiltered: number;
   warningFiltered: number;
   updateParams: (updates: Record<string, string | null | undefined>) => void;
-  setIssueCodeFilter: (next: string | null) => void;
 }
 
 export function usePermissionAnalysisIssuesFilters({
@@ -194,21 +187,12 @@ export function usePermissionAnalysisIssuesFilters({
     'all',
   ) as IssuesDirectAssignmentFilter;
   const groupBy = readPermissionAnalysisSearchParam(searchParams, 'cfGroup', 'none') as IssuesGroupBy;
-  const issueCodeRaw = searchParams.get(PERMISSION_ANALYSIS_ISSUE_CODE_PARAM);
-  const issueCodeFilter = issueCodeRaw != null && issueCodeRaw.length > 0 ? issueCodeRaw : null;
 
   const updateParams = useCallback(
     (updates: Record<string, string | null | undefined>) => {
       setSearchParams(mergePermissionAnalysisSearchParams(searchParams, updates), { replace: true });
     },
     [searchParams, setSearchParams],
-  );
-
-  const setIssueCodeFilter = useCallback(
-    (next: string | null) => {
-      updateParams({ [PERMISSION_ANALYSIS_ISSUE_CODE_PARAM]: next });
-    },
-    [updateParams],
   );
 
   const permissionSetsWithUsers = useMemo(
@@ -246,9 +230,6 @@ export function usePermissionAnalysisIssuesFilters({
           return false;
         }
       }
-      if (issueCodeFilter && String(finding.code ?? '') !== issueCodeFilter) {
-        return false;
-      }
       if (issueScopeFilterContext?.supportsExportScopeFilter && scopeFilter !== 'all') {
         const containerId = getFindingContainerId(finding);
         if (!containerId) {
@@ -270,23 +251,9 @@ export function usePermissionAnalysisIssuesFilters({
     directAssignmentFilter,
     hasAssignmentData,
     permissionSetsWithUsers,
-    issueCodeFilter,
     issueScopeFilterContext,
     scopeFilter,
   ]);
-
-  const issueCodeRows = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const row of filteredFindings) {
-      const code = String(row.code ?? '');
-      const key = code.length > 0 ? code : '(no code)';
-      if (key === PermissionExportFindingCode.FINDINGS_TRUNCATED) {
-        continue;
-      }
-      map.set(key, (map.get(key) ?? 0) + 1);
-    }
-    return [...map.entries()].map(([code, count]) => ({ code, count })).sort((a, b) => b.count - a.count || a.code.localeCompare(b.code));
-  }, [filteredFindings]);
 
   const errorTotal = useMemo(() => findings.filter((f) => isErrorSeverity(f.severity as string | undefined)).length, [findings]);
   const warningTotal = useMemo(() => findings.filter((f) => isWarningSeverity(f.severity as string | undefined)).length, [findings]);
@@ -306,15 +273,12 @@ export function usePermissionAnalysisIssuesFilters({
     scopeFilter,
     hiddenIssueGridColumns,
     groupBy,
-    issueCodeFilter,
     hasAssignmentData,
     filteredFindings,
-    issueCodeRows,
     errorTotal,
     warningTotal,
     errorFiltered,
     warningFiltered,
     updateParams,
-    setIssueCodeFilter,
   };
 }
