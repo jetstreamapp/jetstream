@@ -118,6 +118,7 @@ async function runFieldUsageJob(jobId: string): Promise<void> {
         ? (payload as { objectApiNames?: unknown }).objectApiNames
         : undefined;
     const objectApiNames = Array.isArray(rawNames) ? rawNames.filter((n): n is string => typeof n === 'string' && n.trim().length > 0) : [];
+    const loadFullScan = payload && typeof payload === 'object' && (payload as { loadFullScan?: unknown }).loadFullScan === true;
 
     if (objectApiNames.length === 0) {
       await updateAnalysisJobById({
@@ -134,7 +135,7 @@ async function runFieldUsageJob(jobId: string): Promise<void> {
       requestId: jobId,
     });
 
-    const queryOutcome = await runFieldUsageQueryForObjects(jetstreamConn, objectApiNames);
+    const queryOutcome = await runFieldUsageQueryForObjects(jetstreamConn, objectApiNames, { loadFullScan });
     let whereUsed: Record<string, unknown> = {};
     try {
       whereUsed = (await computeFieldUsageWhereUsed(jetstreamConn, queryOutcome.objects)) as unknown as Record<string, unknown>;
@@ -145,8 +146,12 @@ async function runFieldUsageJob(jobId: string): Promise<void> {
 
     const okCount = objectApiNames.filter((o) => !queryOutcome.failedObjects.includes(o) && !queryOutcome.objects[o]?.error).length;
     const summaryParts = [
-      `Field usage for ${okCount}/${objectApiNames.length} object(s).`,
-      queryOutcome.anyQueryTruncated ? `Row scan capped at ${String(FIELD_USAGE_MAX_ROWS_PER_OBJECT)} rows per object where noted.` : '',
+      `Field usage for ${okCount}/${objectApiNames.length} object(s).${loadFullScan ? ' No per-object row cap.' : ''}`,
+      queryOutcome.anyQueryTruncated
+        ? loadFullScan
+          ? 'Some objects may still show truncated scans for very large data sets or API limits.'
+          : `Row scan capped at ${String(FIELD_USAGE_MAX_ROWS_PER_OBJECT)} rows per object where noted.`
+        : '',
       queryOutcome.failedObjects.length > 0 ? `Failed: ${queryOutcome.failedObjects.join(', ')}.` : '',
     ].filter(Boolean);
 

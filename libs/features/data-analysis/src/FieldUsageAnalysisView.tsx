@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { PermissionAnalysisHistoryModal } from '@jetstream/feature/manage-permissions';
 import { logger } from '@jetstream/shared/client-logger';
-import { getAnalysisJob } from '@jetstream/shared/data';
+import { createAnalysisJob, getAnalysisJob } from '@jetstream/shared/data';
 import { convertDateToLocale, formatNumber } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import {
@@ -26,6 +26,7 @@ import {
   ToolbarItemActions,
   ToolbarItemGroup,
   Tooltip,
+  fireToast,
   salesforceLoginAndRedirect,
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner } from '@jetstream/ui-core';
@@ -423,6 +424,8 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
   const [jobRecord, setJobRecord] = useState<Record<string, unknown> | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [loadAllRecordsModalOpen, setLoadAllRecordsModalOpen] = useState(false);
+  const [loadAllRecordsSubmitting, setLoadAllRecordsSubmitting] = useState(false);
   const [whereUsedForKey, setWhereUsedForKey] = useState<string | null>(null);
   const [expandedGroupIds, setExpandedGroupIds] = useState<ReadonlySet<unknown>>(() => new Set());
 
@@ -596,6 +599,44 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
     const analyzedFieldCount = treeFieldRows.filter((row) => !row.isObjectErrorPlaceholder).length;
     return { objectCount, analyzedFieldCount };
   }, [parsedResult, treeFieldRows]);
+
+  const fieldUsageReloadObjectApiNames = useMemo(() => {
+    if (!parsedResult) {
+      return [];
+    }
+    return Object.keys(parsedResult.objects).sort((a, b) => a.localeCompare(b));
+  }, [parsedResult]);
+
+  const canLoadAllRecords = parsedResult?.truncated === true && fieldUsageReloadObjectApiNames.length > 0 && Boolean(selectedOrg?.uniqueId);
+
+  const handleConfirmLoadAllRecords = useCallback(async () => {
+    if (!selectedOrg || fieldUsageReloadObjectApiNames.length === 0) {
+      return;
+    }
+    setLoadAllRecordsSubmitting(true);
+    try {
+      const { job } = await createAnalysisJob(selectedOrg, {
+        jobType: 'field_usage',
+        payload: { objectApiNames: fieldUsageReloadObjectApiNames, loadFullScan: true },
+      });
+      const newJobId = (job as { id?: string }).id;
+      setLoadAllRecordsModalOpen(false);
+      fireToast({
+        message: newJobId ? 'Full scan job started. Loading results…' : 'Job registered.',
+        type: 'success',
+      });
+      if (newJobId) {
+        setSearchParams({ job: newJobId }, { replace: true });
+      }
+    } catch (ex: unknown) {
+      fireToast({
+        message: ex instanceof Error ? ex.message : 'Failed to start job',
+        type: 'error',
+      });
+    } finally {
+      setLoadAllRecordsSubmitting(false);
+    }
+  }, [selectedOrg, fieldUsageReloadObjectApiNames, setSearchParams]);
 
   const lowUsageTreeRows: FieldUsageTreeRow[] = useMemo(() => {
     if (!parsedResult) {
@@ -1109,6 +1150,27 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
             `}
           >
             <ToolbarItemActions>
+              <Tooltip
+                ariaRole="label"
+                content={
+                  canLoadAllRecords
+                    ? 'Start a new job that scans all rows for these objects (no per-object cap). Confirm to review API impact.'
+                    : 'Shown when the row scan stopped early. Run a full scan only if you need complete counts.'
+                }
+              >
+                <button
+                  type="button"
+                  className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
+                  disabled={!canLoadAllRecords || loadAllRecordsSubmitting}
+                  css={css`
+                    padding: 0.35rem 0.65rem;
+                  `}
+                  onClick={() => setLoadAllRecordsModalOpen(true)}
+                >
+                  <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
+                  Load all records
+                </button>
+              </Tooltip>
               <Tooltip ariaRole="label" content="View past field usage runs for this org">
                 <button
                   type="button"
@@ -1127,6 +1189,47 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
           </div>
         </div>
       </Toolbar>
+      {loadAllRecordsModalOpen && (
+        <Modal
+          header="Load all records?"
+          tagline="Starts a new field usage job for the same objects without the per-object row scan cap."
+          onClose={() => {
+            if (!loadAllRecordsSubmitting) {
+              setLoadAllRecordsModalOpen(false);
+            }
+          }}
+          footer={
+            <Fragment>
+              <button
+                type="button"
+                className="slds-button slds-button_neutral"
+                disabled={loadAllRecordsSubmitting}
+                onClick={() => setLoadAllRecordsModalOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="slds-button slds-button_brand slds-m-left_x-small"
+                disabled={loadAllRecordsSubmitting}
+                onClick={() => void handleConfirmLoadAllRecords()}
+              >
+                {loadAllRecordsSubmitting ? 'Starting…' : 'Start full scan'}
+              </button>
+            </Fragment>
+          }
+        >
+          <div className="slds-p-around_medium">
+            <ScopedNotification theme="warning">
+              This runs a full row scan for each object in this job. It can take a long time and use many Salesforce API calls (REST query
+              and queryMore), counting against your org&apos;s daily limits.
+            </ScopedNotification>
+            <p className="slds-m-top_small slds-text-body_regular">
+              A <strong>new</strong> analysis job will start. When it completes, this page will show that job&apos;s results.
+            </p>
+          </div>
+        </Modal>
+      )}
       {isHistoryOpen && selectedOrg && (
         <PermissionAnalysisHistoryModal
           selectedOrg={selectedOrg}

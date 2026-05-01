@@ -5,6 +5,17 @@ import { queryWithRecordBudget } from '../lib/permission-export/query-with-recor
 /** Aligns with permission export row budget intent — keeps long runs bounded per object. */
 export const FIELD_USAGE_MAX_ROWS_PER_OBJECT = 100_000;
 
+/**
+ * Row budget when the job requests a full scan ({@link FieldUsageQueryOptions.loadFullScan}).
+ * Still paginates until Salesforce returns all rows for the query; can consume many API calls on large objects.
+ */
+export const FIELD_USAGE_FULL_SCAN_ROW_BUDGET = Number.MAX_SAFE_INTEGER;
+
+export interface FieldUsageQueryOptions {
+  /** When true, do not cap the row budget at {@link FIELD_USAGE_MAX_ROWS_PER_OBJECT}. Heavy API usage on large orgs. */
+  loadFullScan?: boolean;
+}
+
 /** Stay under typical REST SOQL URL limits; split field lists when SELECT grows large. */
 const TARGET_SELECT_CLAUSE_CHARS = 9000;
 
@@ -113,10 +124,15 @@ function isFilledValue(value: unknown): boolean {
 /**
  * Wide SOQL field usage: paginated queries with optional chunked SELECT lists (SOQL length).
  */
-export async function runFieldUsageQueryForObjects(conn: ApiConnection, objectApiNames: string[]): Promise<FieldUsageQueryResult> {
+export async function runFieldUsageQueryForObjects(
+  conn: ApiConnection,
+  objectApiNames: string[],
+  options?: FieldUsageQueryOptions,
+): Promise<FieldUsageQueryResult> {
   const objects: Record<string, FieldUsageObjectPayload> = {};
   const failedObjects: string[] = [];
   let anyQueryTruncated = false;
+  const rowBudget = options?.loadFullScan === true ? FIELD_USAGE_FULL_SCAN_ROW_BUDGET : FIELD_USAGE_MAX_ROWS_PER_OBJECT;
 
   for (const objectApiName of objectApiNames) {
     try {
@@ -182,7 +198,7 @@ export async function runFieldUsageQueryForObjects(conn: ApiConnection, objectAp
         const selectClause = ['Id', 'LastModifiedDate', ...chunkNames].join(',');
         const soql = `SELECT ${selectClause} FROM ${objectApiName}`;
         const sink: Record<string, unknown>[] = [];
-        const budget = { remaining: FIELD_USAGE_MAX_ROWS_PER_OBJECT };
+        const budget = { remaining: rowBudget };
         const { truncated } = await queryWithRecordBudget(conn, soql, budget, sink);
         if (truncated) {
           queryTruncated = true;
