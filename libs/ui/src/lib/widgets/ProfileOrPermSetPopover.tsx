@@ -46,6 +46,12 @@ export function getProfileOrPermSetSetupUrl(recordType: ProfileOrPermSetRecordTy
   return `/lightning/setup/${basePath}/page?address=${encodeURIComponent(`/${recordId}?noredirect=1`)}`;
 }
 
+/** Setup → Users → user detail (expects a Salesforce User Id, prefix `005`). */
+export function getSalesforceUserManageSetupUrl(userId: string): string {
+  const trimmed = userId.trim();
+  return `/lightning/setup/ManageUsers/page?address=${encodeURIComponent(`/${trimmed}?noredirect=1`)}`;
+}
+
 // Escape backslash, single quote, percent, and underscore in one pass so SOQL LIKE treats user input literally.
 function escapeSoqlLike(value: string): string {
   if (!value) {

@@ -4,6 +4,8 @@ import {
   FIELD_PERMISSION_OBJECT_SCOPE_MARKER,
   buildContainerIdFindingSeverity,
   buildFieldPermissionFindingCellHighlights,
+  buildPermissionSetAssigneeIdsByPermissionSetId,
+  buildPermissionSetAssignmentsTreeRows,
   fieldPermissionCellSeverity,
   fieldPermissionFindingRowKey,
   listFindingsForExportContainer,
@@ -116,5 +118,59 @@ describe('buildContainerIdFindingSeverity and listFindingsForExportContainer', (
       { code: PermissionExportFindingCode.FINDINGS_TRUNCATED, severity: 'warning', message: 'cap' },
     ];
     expect(listFindingsForExportContainer(findings, id)).toHaveLength(1);
+  });
+});
+
+describe('buildPermissionSetAssigneeIdsByPermissionSetId', () => {
+  it('groups only user assignees (005 prefix), dedupes, and sorts', () => {
+    const psId = '0PS000000000001';
+    const map = buildPermissionSetAssigneeIdsByPermissionSetId([
+      { PermissionSetId: psId, AssigneeId: '005000000000002' },
+      { PermissionSetId: psId, AssigneeId: '005000000000001' },
+      { PermissionSetId: psId, AssigneeId: '005000000000002' },
+      { PermissionSetId: psId, AssigneeId: '00G000000000003' },
+    ]);
+    expect(map.get(psId)).toEqual(['005000000000001', '005000000000002']);
+  });
+});
+
+describe('buildPermissionSetAssignmentsTreeRows', () => {
+  it('emits one leaf per user and a placeholder when there are no user assignees', () => {
+    const psA = '0PS0000000000AA';
+    const psB = '0PS0000000000BB';
+    const permSets = [
+      { Id: psA, Label: 'Alpha', Name: 'Alpha' },
+      { Id: psB, Label: 'Beta', Name: 'Beta' },
+    ];
+    const assignments = [
+      { PermissionSetId: psA, AssigneeId: '005000000000001' },
+      { PermissionSetId: psA, AssigneeId: '005000000000002' },
+    ];
+    const leaves = buildPermissionSetAssignmentsTreeRows(permSets, assignments);
+    const byGroup = new Map<string, string[]>();
+    for (const row of leaves) {
+      const groupKey = String(row._treePermissionSetGroupKey);
+      const list = byGroup.get(groupKey) ?? [];
+      if (row._noDirectUserAssignments) {
+        list.push('placeholder');
+      } else if (typeof row.AssigneeId === 'string') {
+        list.push(row.AssigneeId);
+      }
+      byGroup.set(groupKey, list);
+    }
+    expect(byGroup.get(psA)).toEqual(['005000000000001', '005000000000002']);
+    expect(byGroup.get(psB)).toEqual(['placeholder']);
+  });
+
+  it('orders permission set groups alphabetically by display label', () => {
+    const psA = '0PS0000000000AA';
+    const psB = '0PS0000000000BB';
+    const permSets = [
+      { Id: psB, Label: 'Zebra', Name: 'Zebra' },
+      { Id: psA, Label: 'Alpha', Name: 'Alpha' },
+    ];
+    const leaves = buildPermissionSetAssignmentsTreeRows(permSets, []);
+    const groupOrder = [...new Set(leaves.map((row) => row._treePermissionSetGroupKey))];
+    expect(groupOrder).toEqual([psA, psB]);
   });
 });

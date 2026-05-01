@@ -20,9 +20,9 @@ import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } fro
 import { useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { formatAnalysisJobStatusForDisplay } from './analysis-job-status-display';
 import { PermissionAnalysisExportGrid } from './PermissionAnalysisExportGrid';
 import { PermissionAnalysisObjectPermissionsTree } from './PermissionAnalysisObjectPermissionsTree';
+import { PermissionAnalysisPermissionSetsTree } from './PermissionAnalysisPermissionSetsTree';
 import { PermissionAnalysisHistoryModal } from './PermissionAnalysisHistoryModal';
 import { PermissionAnalysisIssuesTab } from './PermissionAnalysisIssuesTab';
 import {
@@ -117,14 +117,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
 
   const jobStatusRaw = jobRecord?.status != null ? String(jobRecord.status).trim() : null;
   const jobStatusNormalized = jobStatusRaw?.toLowerCase() ?? null;
-  const statusDisplay = jobStatusRaw ? formatAnalysisJobStatusForDisplay(jobStatusRaw) : null;
   const isTerminal = jobStatusNormalized === 'completed' || jobStatusNormalized === 'failed';
-  const showSpinnerForJobLifecycle = Boolean(
-    jobId &&
-    !fetchError &&
-    !isTerminal &&
-    (jobStatusNormalized === null || jobStatusNormalized === 'pending' || jobStatusNormalized === 'running'),
-  );
 
   const parsedExport = useMemo(() => {
     if (!jobRecord?.result) {
@@ -340,11 +333,12 @@ export const PermissionAnalysisView: FunctionComponent = () => {
           `}
         >
           {renderTruncationNotice()}
-          <PermissionAnalysisExportGrid
-            rows={standalonePermissionSetRows}
+          <PermissionAnalysisPermissionSetsTree
+            permissionSetRows={standalonePermissionSetRows}
+            permissionSetAssignments={exportBundle.permissionSetAssignments}
+            findings={findings}
+            containerLabelById={containerLabelById}
             {...gridProps}
-            {...exportFindingProps}
-            findingSurface="container_row"
           />
         </div>
       ),
@@ -662,27 +656,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
         )}
         {jobId && !fetchError && !isTerminal && (
           <div className="slds-p-around_medium">
-            {showSpinnerForJobLifecycle && (
-              <div className="slds-m-bottom_medium">
-                <Spinner />
-              </div>
-            )}
-            {jobRecord && (
-              <dl className="slds-dl_horizontal">
-                <dt className="slds-dl_horizontal__label">
-                  <p className="slds-truncate">Status</p>
-                </dt>
-                <dd className="slds-dl_horizontal__detail">
-                  <p className="slds-truncate">{statusDisplay ?? '—'}</p>
-                </dd>
-                <dt className="slds-dl_horizontal__label">
-                  <p className="slds-truncate">Job type</p>
-                </dt>
-                <dd className="slds-dl_horizontal__detail">
-                  <p className="slds-truncate">{jobRecord.jobType != null ? String(jobRecord.jobType) : '—'}</p>
-                </dd>
-              </dl>
-            )}
+            <Spinner />
           </div>
         )}
         {jobId && !fetchError && isTerminal && jobStatusNormalized === 'completed' && parsedExport && selectedOrg && resultTabs && (

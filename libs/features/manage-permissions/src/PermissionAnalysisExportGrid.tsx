@@ -52,7 +52,7 @@ export interface PermissionAnalysisExportGridProps {
   defaultApiVersion: string;
   /** Describe + EntityDefinition metadata for SobjectType cells (label, API name, description). */
   sobjectExportDetails?: Record<string, SobjectExportDetail>;
-  /** When `object_permissions`, hides Id/ParentId/attributes and adds Object Manager link on SobjectType. */
+  /** `object_permissions` — hides Id/ParentId/attributes and adds Object Manager link on SobjectType. */
   variant?: PermissionAnalysisExportGridVariant;
   /** Parsed `analysis_job.result.findings` when this grid should surface them. */
   findings?: PermissionAnalysisFinding[];
@@ -288,10 +288,10 @@ export const PermissionAnalysisExportGrid: FunctionComponent<PermissionAnalysisE
   }, [findingSurface, rows]);
 
   const baseColumns = useMemo(() => {
-    const base = buildDynamicExportColumns(
-      rows,
-      variant === 'object_permissions' ? { omitColumnKeys: OBJECT_PERMISSIONS_OMIT_KEYS } : undefined,
-    );
+    const dynamicOptions = variant === 'object_permissions' ? { omitColumnKeys: OBJECT_PERMISSIONS_OMIT_KEYS } : undefined;
+
+    const base = buildDynamicExportColumns(rows, dynamicOptions);
+
     const objectManager = variant === 'object_permissions' ? { org, serverUrl, skipFrontDoorAuth: skipFrontdoorLogin } : undefined;
     const detailCount = sobjectExportDetails ? Object.keys(sobjectExportDetails).length : 0;
     if (!objectManager && detailCount === 0) {

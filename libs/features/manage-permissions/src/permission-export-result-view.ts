@@ -317,6 +317,18 @@ export function getExportColumnHeaderLabel(fieldKey: string): string {
   if (fieldKey === 'SobjectType') {
     return 'Object';
   }
+  if (fieldKey === 'CreatedDate') {
+    return 'Created Date';
+  }
+  if (fieldKey === 'LastModifiedDate') {
+    return 'Last Modified Date';
+  }
+  if (fieldKey === 'CreatedBy') {
+    return 'Created By';
+  }
+  if (fieldKey === 'LastModifiedBy') {
+    return 'Last Modified By';
+  }
   if (!fieldKey.startsWith('Permissions')) {
     return fieldKey;
   }
@@ -342,6 +354,114 @@ export function getExportColumnHeaderLabel(fieldKey: string): string {
 export interface BuildDynamicExportColumnsOptions {
   /** Row keys to exclude from the grid (e.g. REST `attributes`, `Id`, `ParentId` on object permission rows). */
   omitColumnKeys?: ReadonlySet<string>;
+}
+
+/**
+ * User Ids (`005…`) assigned to each permission set Id, deduped and sorted (for the Permission Sets tab).
+ */
+export function buildPermissionSetAssigneeIdsByPermissionSetId(assignments: PermissionExportRow[]): Map<string, string[]> {
+  const idSets = new Map<string, Set<string>>();
+  for (const row of assignments) {
+    const permissionSetId = row.PermissionSetId;
+    const assigneeId = row.AssigneeId;
+    if (typeof permissionSetId !== 'string' || typeof assigneeId !== 'string') {
+      continue;
+    }
+    const trimmedPermissionSetId = permissionSetId.trim();
+    const trimmedAssigneeId = assigneeId.trim();
+    if (!trimmedPermissionSetId || !trimmedAssigneeId.startsWith(USER_ID_PREFIX)) {
+      continue;
+    }
+    let assigneeSet = idSets.get(trimmedPermissionSetId);
+    if (!assigneeSet) {
+      assigneeSet = new Set();
+      idSets.set(trimmedPermissionSetId, assigneeSet);
+    }
+    assigneeSet.add(trimmedAssigneeId);
+  }
+  const result = new Map<string, string[]>();
+  for (const [permissionSetId, assigneeSet] of idSets) {
+    result.set(
+      permissionSetId,
+      [...assigneeSet].sort((a, b) => a.localeCompare(b)),
+    );
+  }
+  return result;
+}
+
+/** Leaf rows for the Permission Sets analysis tree (user assignment or “no users” placeholder). */
+export type PermissionSetAssignmentsTreeRow = PermissionExportRow & {
+  _treePermissionSetGroupKey: string;
+  /** Present on a synthetic leaf when there are no direct user (`005…`) assignments. */
+  _noDirectUserAssignments?: boolean;
+};
+
+/** User-assignment leaf (excludes the “no direct user assignments” placeholder row). */
+export type PermissionSetAssignmentsTreeUserLeafRow = PermissionSetAssignmentsTreeRow & {
+  AssigneeId: string;
+};
+
+/**
+ * Builds flat rows for a tree grouped by permission set Id: one leaf per assigned user, or one placeholder leaf.
+ * Permission sets are ordered alphabetically by the same display label as {@link buildPermissionSetIdLabelMap}.
+ */
+export function buildPermissionSetAssignmentsTreeRows(
+  permissionSetRows: PermissionExportRow[],
+  assignments: PermissionExportRow[],
+): PermissionSetAssignmentsTreeRow[] {
+  const labelByPermissionSetId = buildPermissionSetIdLabelMap(permissionSetRows);
+  const permissionSetRowsAlphabetical = [...permissionSetRows].sort((a, b) => {
+    const idA = typeof a.Id === 'string' ? a.Id.trim() : '';
+    const idB = typeof b.Id === 'string' ? b.Id.trim() : '';
+    const labelA = idA ? (labelByPermissionSetId.get(idA) ?? idA) : '';
+    const labelB = idB ? (labelByPermissionSetId.get(idB) ?? idB) : '';
+    return labelA.localeCompare(labelB, undefined, { sensitivity: 'base' });
+  });
+  const userIdsBySetId = buildPermissionSetAssigneeIdsByPermissionSetId(assignments);
+  const result: PermissionSetAssignmentsTreeRow[] = [];
+  for (const permSetRow of permissionSetRowsAlphabetical) {
+    const id = typeof permSetRow.Id === 'string' ? permSetRow.Id.trim() : '';
+    if (!id) {
+      continue;
+    }
+    const userIds = userIdsBySetId.get(id) ?? [];
+    if (userIds.length === 0) {
+      result.push({
+        _treePermissionSetGroupKey: id,
+        _noDirectUserAssignments: true,
+        Id: `__no_users__${id}`,
+      });
+    } else {
+      for (const assigneeId of userIds) {
+        result.push({
+          _treePermissionSetGroupKey: id,
+          PermissionSetId: id,
+          AssigneeId: assigneeId,
+          Id: `__user__${id}__${assigneeId}`,
+        });
+      }
+    }
+  }
+  return result;
+}
+
+export function isPermissionSetAssignmentsTreeUserLeaf(row: unknown): row is PermissionSetAssignmentsTreeUserLeafRow {
+  if (row === null || typeof row !== 'object') {
+    return false;
+  }
+  const record = row as PermissionSetAssignmentsTreeRow;
+  if (record._noDirectUserAssignments === true) {
+    return false;
+  }
+  const assigneeId = record.AssigneeId;
+  return typeof assigneeId === 'string' && assigneeId.startsWith(USER_ID_PREFIX);
+}
+
+export function isPermissionSetAssignmentsTreePlaceholderLeaf(row: unknown): row is PermissionSetAssignmentsTreeRow {
+  if (row === null || typeof row !== 'object') {
+    return false;
+  }
+  return (row as PermissionSetAssignmentsTreeRow)._noDirectUserAssignments === true;
 }
 
 /**
@@ -718,7 +838,7 @@ export function listFindingsForExportContainer(
 
 /** Column keys on permission-set export rows that open the container findings modal (first match wins). */
 export function pickPermissionSetExportClickableColumnKeys(sample: PermissionExportRow): string[] {
-  const preferred = ['Name', 'Label', 'MasterLabel', 'DeveloperName', 'Profile', 'Id'] as const;
+  const preferred = ['Label', 'Name', 'MasterLabel', 'DeveloperName', 'Profile', 'Id'] as const;
   return preferred.filter((key) => key in sample);
 }
 
