@@ -44,6 +44,12 @@ export interface WhereUsedDependencyRowParsed {
   type: string;
   name: string;
   kind: 'automation' | 'apex' | 'layout' | 'other';
+  /** Tooling `MetadataComponentDependency.MetadataComponentId` when present on the job payload. */
+  componentId?: string;
+  /** For Flow dependencies: Tooling `Flow.VersionNumber` when the API resolved the row. */
+  flowVersionNumber?: number | null;
+  /** Relative path in the org to open this component; clients may compute a fallback from `componentId` + `type`. */
+  openInSalesforcePath?: string | null;
 }
 
 export type WhereUsedMapParsed = Record<string, WhereUsedDependencyRowParsed[]>;
@@ -286,10 +292,30 @@ function parseWhereUsedMap(value: unknown): WhereUsedMapParsed {
       const typeStr = row.type != null ? String(row.type) : '';
       const inferredKind = inferWhereUsedKindFromMetadataType(typeStr);
       const kind = rawKind === 'automation' || rawKind === 'apex' || rawKind === 'layout' ? rawKind : (inferredKind ?? rawKind);
+      const componentIdRaw = row.componentId;
+      const componentId = typeof componentIdRaw === 'string' && componentIdRaw.trim() ? componentIdRaw.trim() : undefined;
+      const fv = row.flowVersionNumber;
+      let flowVersionNumberParsed: number | undefined;
+      if (typeof fv === 'number' && Number.isFinite(fv)) {
+        flowVersionNumberParsed = fv;
+      } else if (fv != null && String(fv).trim() !== '') {
+        const coerced = Number(fv);
+        if (Number.isFinite(coerced)) {
+          flowVersionNumberParsed = coerced;
+        }
+      }
+      const pathRaw = row.openInSalesforcePath;
+      const openInSalesforcePathParsed =
+        typeof pathRaw === 'string' ? pathRaw : pathRaw != null && String(pathRaw).trim() ? String(pathRaw) : undefined;
       rows.push({
         type: typeStr,
         name: row.name != null ? String(row.name) : '',
         kind,
+        ...(componentId ? { componentId } : {}),
+        ...(flowVersionNumberParsed !== undefined && Number.isFinite(flowVersionNumberParsed)
+          ? { flowVersionNumber: flowVersionNumberParsed }
+          : {}),
+        ...(openInSalesforcePathParsed !== undefined ? { openInSalesforcePath: openInSalesforcePathParsed } : {}),
       });
     }
     out[fieldKey] = sortFieldUsageWhereUsedRows(dedupeFieldUsageWhereUsedRows(rows));

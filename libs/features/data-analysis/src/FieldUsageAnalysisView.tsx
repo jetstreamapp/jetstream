@@ -10,8 +10,13 @@ import {
   DataTable,
   DataTree,
   Grid,
+  GridCol,
   Icon,
+  KeyboardShortcut,
   Modal,
+  Popover,
+  ReadOnlyFormElement,
+  SalesforceLogin,
   ScopedNotification,
   setColumnFromType,
   Spinner,
@@ -21,14 +26,16 @@ import {
   ToolbarItemActions,
   ToolbarItemGroup,
   Tooltip,
+  salesforceLoginAndRedirect,
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner } from '@jetstream/ui-core';
-import { selectedOrgState } from '@jetstream/ui/app-state';
+import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
 import { isValid } from 'date-fns/isValid';
 import { parseISO } from 'date-fns/parseISO';
 import groupBy from 'lodash/groupBy';
-import { useAtomValue } from 'jotai';
-import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
+import { useAtom, useAtomValue } from 'jotai';
+import type { SalesforceOrgUi } from '@jetstream/types';
+import { Fragment, FunctionComponent, MouseEvent, type ReactElement, useCallback, useEffect, useMemo, useState } from 'react';
 import type { RenderGroupCellProps, SortColumn } from 'react-data-grid';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
@@ -40,6 +47,7 @@ import {
   type FieldUsageJobResultParsed,
   type WhereUsedDependencyRowParsed,
 } from './field-usage-result-parse';
+import { getWhereUsedOpenInSalesforcePath } from './where-used-open-in-salesforce';
 
 const HEIGHT_BUFFER = 170;
 
@@ -50,7 +58,8 @@ const TREE_GROUP_BY = ['objectApiName'] as const;
 
 /** Tall enough for two-line Object/Field cell + padded "Where Used" control (react-data-grid clips overflow). */
 const TREE_ROW_HEIGHT_LEAF_PX = 56;
-const TREE_ROW_HEIGHT_GROUP_PX = 58;
+/** Single-line truncated object summary (see {@link renderFieldUsageObjectGroupCell}). */
+const TREE_ROW_HEIGHT_GROUP_PX = 48;
 
 /** Same reference every render — new arrays/functions here break TreeDataGrid measurement and can cause an update loop. */
 const FIELD_USAGE_DATA_TREE_GROUP_BY: readonly string[] = TREE_GROUP_BY;
@@ -117,46 +126,268 @@ function whereUsedUiCountsForField(
   return { whereUsedOnLayout: onLayout, whereUsedInAutomation: inAutomation, whereUsedInApex: inApex };
 }
 
-function renderFieldUsageObjectGroupCell({ groupKey, childRows, toggleGroup }: RenderGroupCellProps<FieldUsageTreeRow>) {
+/** Lightning Setup → Object Manager deep link (same pattern as permission analysis export). */
+function fieldUsageObjectManagerReturnUrl(objectApiName: string, view: 'details' | 'fields'): string {
+  const enc = encodeURIComponent(objectApiName);
+  if (view === 'fields') {
+    return `/lightning/setup/ObjectManager/${enc}/FieldsAndRelationships/view`;
+  }
+  return `/lightning/setup/ObjectManager/${enc}/Details/view`;
+}
+
+const FIELD_USAGE_POPOVER_PANEL_PROPS = {
+  onDoubleClick: (event: MouseEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+  },
+};
+
+interface FieldUsagePopoverOrgProps {
+  serverUrl: string | undefined;
+  org: SalesforceOrgUi | null | undefined;
+  skipFrontDoorAuth: boolean;
+}
+
+function FieldUsageObjectGroupCell(props: RenderGroupCellProps<FieldUsageTreeRow> & FieldUsagePopoverOrgProps): ReactElement {
+  const { groupKey, childRows, serverUrl, org, skipFrontDoorAuth } = props;
   const api = String(groupKey);
   const sample = childRows[0];
   const label = sample?.objectLabel?.trim() ? sample.objectLabel.trim() : api;
   const analyzedFieldCount = childRows.filter((row) => !row.isObjectErrorPlaceholder).length;
+  const rowCount = sample?.objectTotalRecords ?? 0;
+  const slug = api.replace(/[^a-zA-Z0-9_-]+/g, '-');
+  const returnUrl = fieldUsageObjectManagerReturnUrl(api, 'details');
+  const canDeepLink = Boolean(org?.uniqueId && serverUrl);
+
   return (
-    <button
-      type="button"
-      className="slds-button slds-button_reset slds-text-align_left"
-      css={css`
-        width: 100%;
-        height: 100%;
-        align-items: flex-start;
-        display: flex;
-        line-height: 1.35;
-        padding: 0.35rem 0.5rem 0.35rem 0.25rem;
-        white-space: normal;
-      `}
-      onClick={toggleGroup}
-      title={api}
+    <Popover
+      size="large"
+      panelProps={FIELD_USAGE_POPOVER_PANEL_PROPS}
+      content={
+        <div>
+          {canDeepLink && org && serverUrl ? (
+            <SalesforceLogin org={org} serverUrl={serverUrl} returnUrl={returnUrl} skipFrontDoorAuth={skipFrontDoorAuth}>
+              View in Salesforce
+            </SalesforceLogin>
+          ) : null}
+          <Grid
+            wrap
+            gutters
+            className={canDeepLink ? 'slds-m-top_x-small' : undefined}
+            css={css`
+              min-height: 80px;
+            `}
+          >
+            <GridCol size={12}>
+              <ReadOnlyFormElement
+                id={`field-usage-obj-${slug}-label`}
+                label="Object label"
+                className="slds-p-bottom_x-small"
+                value={label}
+                bottomBorder
+              />
+            </GridCol>
+            <GridCol size={12}>
+              <ReadOnlyFormElement
+                id={`field-usage-obj-${slug}-api`}
+                label="Object API name"
+                className="slds-p-bottom_x-small"
+                value={api}
+                bottomBorder
+              />
+            </GridCol>
+            <GridCol size={6}>
+              <ReadOnlyFormElement
+                id={`field-usage-obj-${slug}-fields`}
+                label="Fields analyzed"
+                className="slds-p-bottom_x-small"
+                value={String(formatNumber(analyzedFieldCount))}
+                bottomBorder
+              />
+            </GridCol>
+            <GridCol size={6}>
+              <ReadOnlyFormElement
+                id={`field-usage-obj-${slug}-rows`}
+                label="Rows scanned"
+                className="slds-p-bottom_x-small"
+                value={String(formatNumber(rowCount))}
+                bottomBorder
+              />
+            </GridCol>
+            <GridCol size={12}>
+              <ReadOnlyFormElement
+                id={`field-usage-obj-${slug}-flags`}
+                label="Notes"
+                className="slds-p-bottom_x-small"
+                value={
+                  [
+                    sample?.objectQueryTruncated ? 'Scan truncated' : null,
+                    sample?.objectCustomizable === false ? 'Not customizable' : null,
+                    sample?.objectError ? sample.objectError : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ') || '—'
+                }
+                bottomBorder
+              />
+            </GridCol>
+            {canDeepLink ? (
+              <GridCol size={12} className="slds-m-top_small">
+                <div className="slds-grid slds-text-small slds-text-color_weak">
+                  Use <KeyboardShortcut className="slds-m-left_x-small" keys={['shift', 'click']} /> to skip this popup
+                </div>
+              </GridCol>
+            ) : null}
+          </Grid>
+        </div>
+      }
+      buttonProps={{
+        className: 'slds-button slds-button_reset slds-text-align_left',
+        style: {
+          width: '100%',
+          height: '100%',
+          alignItems: 'center',
+          display: 'flex',
+          lineHeight: 1.25,
+          padding: '0.25rem 0.5rem 0.25rem 0.25rem',
+        },
+      }}
     >
       <span
+        className="slds-text-body_small slds-truncate"
         css={css`
+          display: block;
           flex: 1;
           min-width: 0;
           text-align: left;
         `}
+        onClick={(event: MouseEvent<HTMLSpanElement>) => {
+          if (event.shiftKey || event.ctrlKey || event.metaKey) {
+            if (!canDeepLink || !org || !serverUrl) {
+              return;
+            }
+            event.stopPropagation();
+            event.preventDefault();
+            salesforceLoginAndRedirect({
+              serverUrl,
+              org,
+              returnUrl,
+              skipFrontDoorAuth,
+            });
+          }
+        }}
       >
-        <span className="slds-text-body_small slds-text-bold">{label}</span> <code className="slds-text-body_small">{api}</code>
-        <span className="slds-text-body_small slds-text-color_weak">
+        <span className="slds-text-bold">{label}</span> <code>{api}</code>
+        <span className="slds-text-color_weak">
           {' '}
           · {formatNumber(analyzedFieldCount)} field{analyzedFieldCount === 1 ? '' : 's'}
           {' · '}
-          {formatNumber(sample?.objectTotalRecords ?? 0)} rows scanned
+          {formatNumber(rowCount)} rows scanned
           {sample?.objectQueryTruncated ? ' · truncated' : ''}
           {sample?.objectCustomizable ? '' : ' · not customizable'}
         </span>
-        {sample?.objectError ? <span className="slds-text-body_small slds-text-color_error"> · {sample.objectError}</span> : null}
+        {sample?.objectError ? <span className="slds-text-color_error"> · {sample.objectError}</span> : null}
       </span>
-    </button>
+    </Popover>
+  );
+}
+
+function FieldUsageFieldNameCell({
+  row,
+  serverUrl,
+  org,
+  skipFrontDoorAuth,
+}: {
+  row: FieldUsageTreeRow;
+} & FieldUsagePopoverOrgProps): ReactElement {
+  const slug = `${row.objectApiName}-${row.fieldApiName}`.replace(/[^a-zA-Z0-9_-]+/g, '-');
+  const returnUrl = fieldUsageObjectManagerReturnUrl(row.objectApiName, 'fields');
+  const canDeepLink = Boolean(org?.uniqueId && serverUrl);
+
+  return (
+    <Popover
+      size="large"
+      panelProps={FIELD_USAGE_POPOVER_PANEL_PROPS}
+      content={
+        <div>
+          {canDeepLink && org && serverUrl ? (
+            <SalesforceLogin org={org} serverUrl={serverUrl} returnUrl={returnUrl} skipFrontDoorAuth={skipFrontDoorAuth}>
+              View in Salesforce
+            </SalesforceLogin>
+          ) : null}
+          <Grid
+            wrap
+            gutters
+            className={canDeepLink ? 'slds-m-top_x-small' : undefined}
+            css={css`
+              min-height: 80px;
+            `}
+          >
+            <GridCol size={12}>
+              <ReadOnlyFormElement
+                id={`field-usage-f-${slug}-obj`}
+                label="Object"
+                className="slds-p-bottom_x-small"
+                value={`${row.objectLabel} (${row.objectApiName})`}
+                bottomBorder
+              />
+            </GridCol>
+            <GridCol size={12}>
+              <ReadOnlyFormElement
+                id={`field-usage-f-${slug}-api`}
+                label="Field API name"
+                className="slds-p-bottom_x-small"
+                value={row.fieldApiName}
+                bottomBorder
+              />
+            </GridCol>
+            <GridCol size={12}>
+              <ReadOnlyFormElement
+                id={`field-usage-f-${slug}-label`}
+                label="Field label"
+                className="slds-p-bottom_x-small"
+                value={row.fieldLabel}
+                bottomBorder
+              />
+            </GridCol>
+            {canDeepLink ? (
+              <GridCol size={12} className="slds-m-top_small">
+                <div className="slds-grid slds-text-small slds-text-color_weak">
+                  Use <KeyboardShortcut className="slds-m-left_x-small" keys={['shift', 'click']} /> to skip this popup
+                </div>
+              </GridCol>
+            ) : null}
+          </Grid>
+        </div>
+      }
+      buttonProps={{
+        className: 'slds-button slds-button_reset slds-text-align_left',
+        style: { width: '100%', height: '100%', padding: 0 },
+      }}
+    >
+      <div
+        className="slds-p-vertical_xx-small"
+        onClick={(event: MouseEvent<HTMLDivElement>) => {
+          if (event.shiftKey || event.ctrlKey || event.metaKey) {
+            if (!canDeepLink || !org || !serverUrl) {
+              return;
+            }
+            event.stopPropagation();
+            event.preventDefault();
+            salesforceLoginAndRedirect({
+              serverUrl,
+              org,
+              returnUrl,
+              skipFrontDoorAuth,
+            });
+          }
+        }}
+      >
+        <div className="slds-text-body_small slds-truncate">
+          <code>{row.fieldApiName}</code>
+        </div>
+        <div className="slds-text-body_small slds-text-color_weak slds-truncate">{row.fieldLabel}</div>
+      </div>
+    </Popover>
   );
 }
 
@@ -165,6 +396,10 @@ interface WhereUsedTableRow {
   componentType: string;
   componentName: string;
   kindLabel: string;
+  /** Flow `VersionNumber` when known; em dash otherwise. */
+  flowVersionLabel: string;
+  /** Relative path for Salesforce login link when opening the dependency in the org. */
+  openInSalesforcePath: string | null;
 }
 
 function formatJobResultJson(result: unknown): string {
@@ -180,6 +415,8 @@ function formatJobResultJson(result: unknown): string {
  */
 export const FieldUsageAnalysisView: FunctionComponent = () => {
   const selectedOrg = useAtomValue(selectedOrgState);
+  const [{ serverUrl }] = useAtom(applicationCookieState);
+  const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
   const [searchParams, setSearchParams] = useSearchParams();
   const jobId = searchParams.get('job');
 
@@ -406,12 +643,18 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
       return [];
     }
     const deps: WhereUsedDependencyRowParsed[] = getWhereUsedDepsForFieldKey(parsedResult.whereUsed, whereUsedForKey);
-    return deps.map((row, index) => ({
-      _key: `${row.type}:${row.name}:${String(index)}`,
-      componentType: row.type,
-      componentName: row.name,
-      kindLabel: row.kind === 'automation' ? 'Automation' : row.kind === 'apex' ? 'Apex' : row.kind === 'layout' ? 'Layout' : 'Other',
-    }));
+    return deps.map((row, index) => {
+      const fv = row.flowVersionNumber;
+      const flowVersionLabel = row.type.trim() === 'Flow' && fv != null && Number.isFinite(Number(fv)) ? String(fv) : '—';
+      return {
+        _key: `${row.type}:${row.name}:${String(index)}`,
+        componentType: row.type,
+        componentName: row.name,
+        kindLabel: row.kind === 'automation' ? 'Automation' : row.kind === 'apex' ? 'Apex' : row.kind === 'layout' ? 'Layout' : 'Other',
+        flowVersionLabel,
+        openInSalesforcePath: getWhereUsedOpenInSalesforcePath(row),
+      };
+    });
   }, [parsedResult, whereUsedForKey]);
 
   const treeColumns: ColumnWithFilter<FieldUsageTreeRow>[] = useMemo(
@@ -425,14 +668,21 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         maxWidth: 44,
         resizable: false,
         sortable: false,
-        renderGroupCell: ({ isExpanded }) => (
+        renderGroupCell: ({ isExpanded, toggleGroup }) => (
           <Grid align="end" verticalAlign="center" className="slds-p-right_xx-small h-100">
-            <Icon
-              icon={isExpanded ? 'chevrondown' : 'chevronright'}
-              type="utility"
-              className="slds-icon slds-icon-text-default slds-icon_x-small"
-              title={isExpanded ? 'Expanded' : 'Collapsed'}
-            />
+            <button
+              type="button"
+              className="slds-button slds-button_reset slds-p-around_xx-small"
+              title={isExpanded ? 'Collapse' : 'Expand'}
+              aria-expanded={isExpanded}
+              onClick={toggleGroup}
+            >
+              <Icon
+                icon={isExpanded ? 'chevrondown' : 'chevronright'}
+                type="utility"
+                className="slds-icon slds-icon-text-default slds-icon_x-small"
+              />
+            </button>
           </Grid>
         ),
         renderCell: () => null,
@@ -443,19 +693,14 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         key: 'fieldApiName',
         width: 340,
         minWidth: 200,
-        renderGroupCell: renderFieldUsageObjectGroupCell,
+        renderGroupCell: (groupProps) => (
+          <FieldUsageObjectGroupCell {...groupProps} serverUrl={serverUrl} org={selectedOrg} skipFrontDoorAuth={skipFrontDoorAuth} />
+        ),
         renderCell: (p) =>
           p.row.isObjectErrorPlaceholder ? (
             <span className="slds-text-body_small slds-text-color_error">{p.row.fieldLabel}</span>
           ) : (
-            <div className="slds-p-vertical_xx-small">
-              <div className="slds-text-body_small">
-                <code>{p.row.fieldApiName}</code>
-              </div>
-              <div className="slds-text-body_small slds-text-color_weak slds-truncate" title={p.row.fieldLabel}>
-                {p.row.fieldLabel}
-              </div>
-            </div>
+            <FieldUsageFieldNameCell row={p.row} serverUrl={serverUrl} org={selectedOrg} skipFrontDoorAuth={skipFrontDoorAuth} />
           ),
         getValue: ({ row }) => `${row.fieldApiName} ${row.fieldLabel}`,
       },
@@ -464,7 +709,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         name: 'Type',
         key: 'type',
         width: 200,
-        minWidth: 104,
+        minWidth: 160,
         renderGroupCell: () => null,
         renderCell: (p) => <span>{p.row.isObjectErrorPlaceholder ? '' : p.row.type}</span>,
         getValue: ({ row }) => (row.isObjectErrorPlaceholder ? '' : row.type),
@@ -473,7 +718,8 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         ...setColumnFromType<FieldUsageTreeRow>('custom', 'text'),
         name: 'Custom',
         key: 'custom',
-        width: 88,
+        width: 100,
+        minWidth: 80,
         renderGroupCell: () => null,
         renderCell: (p) => <span>{p.row.isObjectErrorPlaceholder ? '' : p.row.custom ? 'Yes' : 'No'}</span>,
         getValue: ({ row }) => {
@@ -487,7 +733,8 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         ...setColumnFromType<FieldUsageTreeRow>('filled', 'number'),
         name: 'Filled',
         key: 'filled',
-        width: 100,
+        width: 80,
+        minWidth: 80,
         renderGroupCell: () => null,
         renderCell: (p) => <span>{p.row.isObjectErrorPlaceholder ? '' : formatNumber(p.row.filled)}</span>,
         getValue: ({ row }) => (row.isObjectErrorPlaceholder ? '' : formatNumber(row.filled)),
@@ -497,6 +744,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         name: '% Filled',
         key: 'pct',
         width: 100,
+        minWidth: 100,
         renderGroupCell: () => null,
         renderCell: (p) => <span>{p.row.isObjectErrorPlaceholder ? '' : `${p.row.pct.toFixed(1)}%`}</span>,
         getValue: ({ row }) => (row.isObjectErrorPlaceholder ? '' : `${row.pct.toFixed(1)}%`),
@@ -505,7 +753,8 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         ...setColumnFromType<FieldUsageTreeRow>('latestModified', 'text'),
         name: 'Latest Value Row Modified',
         key: 'latestModified',
-        width: 200,
+        width: 220,
+        minWidth: 100,
         renderGroupCell: () => null,
         renderCell: (p) => <span>{p.row.isObjectErrorPlaceholder ? '' : formatFieldUsageLatestModifiedCell(p.row.latestModified)}</span>,
         getValue: ({ row }) => {
@@ -519,8 +768,8 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         ...setColumnFromType<FieldUsageTreeRow>('whereUsedOnLayout', 'number'),
         name: 'On Layout',
         key: 'whereUsedOnLayout',
-        width: 104,
-        minWidth: 88,
+        width: 120,
+        minWidth: 100,
         renderGroupCell: () => null,
         renderCell: (p) => (
           <span>{p.row.isObjectErrorPlaceholder ? '' : p.row.whereUsedOnLayout > 0 ? formatNumber(p.row.whereUsedOnLayout) : '—'}</span>
@@ -536,8 +785,8 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         ...setColumnFromType<FieldUsageTreeRow>('whereUsedInAutomation', 'number'),
         name: 'In Automation',
         key: 'whereUsedInAutomation',
-        width: 120,
-        minWidth: 96,
+        width: 140,
+        minWidth: 140,
         renderGroupCell: () => null,
         renderCell: (p) => (
           <span>
@@ -555,8 +804,8 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         ...setColumnFromType<FieldUsageTreeRow>('whereUsedInApex', 'number'),
         name: 'In Apex',
         key: 'whereUsedInApex',
-        width: 96,
-        minWidth: 80,
+        width: 100,
+        minWidth: 100,
         renderGroupCell: () => null,
         renderCell: (p) => (
           <span>{p.row.isObjectErrorPlaceholder ? '' : p.row.whereUsedInApex > 0 ? formatNumber(p.row.whereUsedInApex) : '—'}</span>
@@ -572,8 +821,8 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         ...setColumnFromType<FieldUsageTreeRow>('whereUsed', 'text'),
         name: '',
         key: 'whereUsed',
-        width: 180,
-        minWidth: 140,
+        width: 188,
+        minWidth: 160,
         sortable: false,
         renderGroupCell: () => null,
         renderCell: (p) => {
@@ -608,7 +857,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         },
       },
     ],
-    [parsedResult],
+    [parsedResult, serverUrl, selectedOrg, skipFrontDoorAuth],
   );
 
   const whereUsedColumns: ColumnWithFilter<WhereUsedTableRow>[] = useMemo(
@@ -617,22 +866,60 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         ...setColumnFromType<WhereUsedTableRow>('componentType', 'text'),
         name: 'Metadata type',
         key: 'componentType',
-        width: 200,
+        width: 160,
+        maxWidth: 220,
       },
       {
         ...setColumnFromType<WhereUsedTableRow>('componentName', 'text'),
         name: 'Name',
         key: 'componentName',
-        width: 280,
+        width: 480,
+        minWidth: 280,
+      },
+      {
+        ...setColumnFromType<WhereUsedTableRow>('flowVersionLabel', 'text'),
+        name: 'Flow ver.',
+        key: 'flowVersionLabel',
+        width: 88,
+        minWidth: 72,
+        maxWidth: 100,
       },
       {
         ...setColumnFromType<WhereUsedTableRow>('kindLabel', 'text'),
         name: 'Kind',
         key: 'kindLabel',
         width: 120,
+        maxWidth: 140,
+      },
+      {
+        ...setColumnFromType<WhereUsedTableRow>('openInSalesforcePath', 'text'),
+        name: 'Open',
+        key: 'openInSalesforcePath',
+        width: 108,
+        minWidth: 96,
+        sortable: false,
+        renderCell: (p) => {
+          const returnUrl = p.row.openInSalesforcePath;
+          if (!returnUrl || !selectedOrg?.uniqueId || !serverUrl) {
+            return <span className="slds-text-color_weak">—</span>;
+          }
+          return (
+            <SalesforceLogin
+              org={selectedOrg}
+              serverUrl={serverUrl}
+              skipFrontDoorAuth={skipFrontDoorAuth}
+              returnUrl={returnUrl}
+              title="Open in Salesforce"
+              className="slds-text-body_small"
+            >
+              Open
+            </SalesforceLogin>
+          );
+        },
+        getValue: ({ row }) => (row.openInSalesforcePath ? 'Open' : ''),
       },
     ],
-    [],
+    [selectedOrg, serverUrl, skipFrontDoorAuth],
   );
 
   const resultTabs = useMemo(() => {
@@ -691,6 +978,9 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
                   onExpandedGroupIdsChange={setExpandedGroupIds}
                   rowHeight={fieldUsageDataTreeRowHeight}
                   initialSortColumns={FIELD_USAGE_TREE_INITIAL_SORT_BY_FIELD}
+                  org={selectedOrg ?? undefined}
+                  serverUrl={serverUrl}
+                  skipFrontdoorLogin={skipFrontDoorAuth}
                 />
               </AutoFullHeightContainer>
             )}
@@ -739,6 +1029,9 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
                   onExpandedGroupIdsChange={setExpandedGroupIds}
                   rowHeight={fieldUsageDataTreeRowHeight}
                   initialSortColumns={FIELD_USAGE_TREE_INITIAL_SORT_BY_PCT}
+                  org={selectedOrg ?? undefined}
+                  serverUrl={serverUrl}
+                  skipFrontdoorLogin={skipFrontDoorAuth}
                 />
               </AutoFullHeightContainer>
             )}
@@ -848,7 +1141,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
       {whereUsedForKey && (
         <Modal
           header={`Where Used — ${whereUsedForKey}`}
-          tagline="Tooling MetadataComponentDependency references (custom fields)."
+          tagline="Tooling MetadataComponentDependency references (custom fields). Flow version is Tooling Flow.VersionNumber when available. Open uses your org login."
           size="lg"
           onClose={() => setWhereUsedForKey(null)}
           footer={
@@ -870,7 +1163,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
                     data={whereUsedRows}
                     getRowKey={(row) => row._key}
                     includeQuickFilter
-                    rowHeight={30}
+                    rowHeight={34}
                   />
                 </AutoFullHeightContainer>
               </div>

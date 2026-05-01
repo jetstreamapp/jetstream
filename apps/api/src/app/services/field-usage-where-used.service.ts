@@ -1,3 +1,4 @@
+import { logger } from '@jetstream/api-config';
 import type { ApiConnection } from '@jetstream/salesforce-api';
 import { dedupeFieldUsageWhereUsedRows, parseCustomFieldApiNameForTooling, sortFieldUsageWhereUsedRows } from '@jetstream/shared/utils';
 import { escapeSoqlStringLiteral } from '../lib/field-usage/soql-escape';
@@ -22,6 +23,15 @@ export type WhereUsedDependencyRow = {
   type: string;
   name: string;
   kind: 'automation' | 'apex' | 'layout' | 'other';
+  /** Tooling `MetadataComponentDependency.MetadataComponentId` when returned. */
+  componentId?: string;
+  /** Populated for `Flow` rows when Tooling `Flow` can be resolved (same dependency row as a specific version). */
+  flowVersionNumber?: number | null;
+  /**
+   * Relative path in the org (leading `/`) to open this component (Flow Builder, Apex setup, etc.).
+   * Omitted when unknown; clients may fall back from {@link componentId} + {@link type}.
+   */
+  openInSalesforcePath?: string | null;
 };
 
 export type WhereUsedMap = Record<string, WhereUsedDependencyRow[]>;
@@ -58,6 +68,88 @@ async function toolingQueryAll(conn: ApiConnection, soql: string): Promise<Recor
   return out;
 }
 
+function chunkIds<T>(items: T[], chunkSize: number): T[][] {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += chunkSize) {
+    chunks.push(items.slice(index, index + chunkSize));
+  }
+  return chunks;
+}
+
+/**
+ * Fills {@link WhereUsedDependencyRow.flowVersionNumber}, {@link WhereUsedDependencyRow.openInSalesforcePath}
+ * for Flow rows via Tooling `Flow` (`Id` + `VersionNumber` only — not `DurableId`, which is not on Tooling `Flow`),
+ * and generic setup paths when we have a `MetadataComponentId`.
+ */
+async function enrichWhereUsedDependencyRows(conn: ApiConnection, rows: WhereUsedDependencyRow[]): Promise<void> {
+  const flowIds = new Set<string>();
+  for (const row of rows) {
+    if (row.type.trim() === 'Flow' && row.componentId) {
+      flowIds.add(row.componentId);
+    }
+  }
+  const flowVersionById = new Map<string, { versionNumber: number }>();
+  for (const idChunk of chunkIds([...flowIds], 200)) {
+    if (idChunk.length === 0) {
+      continue;
+    }
+    const inList = idChunk.map((id) => `'${escapeSoqlStringLiteral(id)}'`).join(',');
+    const soql = `SELECT Id, VersionNumber FROM Flow WHERE Id IN (${inList})`;
+    const recs = await toolingQueryAll(conn, soql);
+    for (const rec of recs) {
+      const id = rec.Id != null ? String(rec.Id) : '';
+      if (!id) {
+        continue;
+      }
+      const vn = rec.VersionNumber;
+      const versionNumber = typeof vn === 'number' ? vn : Number(vn);
+      flowVersionById.set(id, {
+        versionNumber: Number.isFinite(versionNumber) ? versionNumber : 0,
+      });
+    }
+  }
+
+  for (const row of rows) {
+    const t = row.type.trim();
+    const id = row.componentId?.trim();
+    if (t === 'Flow' && id) {
+      const info = flowVersionById.get(id);
+      if (info) {
+        row.flowVersionNumber = info.versionNumber;
+        row.openInSalesforcePath = `/builder_platform_interaction/flowBuilder.app?flowId=${encodeURIComponent(id)}`;
+        continue;
+      }
+    }
+    if (row.openInSalesforcePath) {
+      continue;
+    }
+    if (t === 'ProcessDefinition') {
+      row.openInSalesforcePath = '/lightning/setup/ProcessAutomation/home';
+      continue;
+    }
+    if (!id) {
+      continue;
+    }
+    if (t === 'ApexClass') {
+      row.openInSalesforcePath = `/lightning/setup/ApexClasses/page?address=${encodeURIComponent(encodeURIComponent(`/${id}`))}`;
+    } else if (t === 'ApexTrigger') {
+      row.openInSalesforcePath = `/lightning/setup/ApexTriggers/page?address=${encodeURIComponent(encodeURIComponent(`/${id}`))}`;
+    } else if (t === 'ApexPage') {
+      row.openInSalesforcePath = `/lightning/setup/ApexPages/page?address=${encodeURIComponent(encodeURIComponent(`/${id}`))}`;
+    } else if (t === 'ApexComponent') {
+      row.openInSalesforcePath = `/lightning/setup/ApexComponents/page?address=${encodeURIComponent(encodeURIComponent(`/${id}`))}`;
+    } else if (t === 'FlexiPage') {
+      row.openInSalesforcePath = `/lightning/setup/FlexiPageList/page?address=${encodeURIComponent(encodeURIComponent(`/${id}`))}`;
+    } else if (t === 'Layout') {
+      row.openInSalesforcePath = `/lightning/setup/LayoutDefinitions/page?address=${encodeURIComponent(encodeURIComponent(`/${id}`))}`;
+    } else if (t === 'FieldSet') {
+      row.openInSalesforcePath = `/lightning/setup/FieldSets/page?address=${encodeURIComponent(encodeURIComponent(`/${id}`))}`;
+    } else if (t === 'WorkflowRule' || t === 'WorkflowFieldUpdate') {
+      row.openInSalesforcePath = `/lightning/setup/WorkflowRules/page?address=${encodeURIComponent(encodeURIComponent(`/${id}`))}`;
+    }
+  }
+}
+
 async function getCustomFieldId(conn: ApiConnection, objectName: string, fieldName: string): Promise<string | null> {
   const obj = objectName.trim();
   const toolingNames = parseCustomFieldApiNameForTooling(fieldName);
@@ -66,8 +158,9 @@ async function getCustomFieldId(conn: ApiConnection, objectName: string, fieldNa
   }
   const qualifiedObject = escapeSoqlStringLiteral(obj);
   const developer = escapeSoqlStringLiteral(toolingNames.developerName);
-  const hasNamespace = toolingNames.namespacePrefix != null && toolingNames.namespacePrefix.length > 0;
-  const nsLiteral = hasNamespace ? escapeSoqlStringLiteral(toolingNames.namespacePrefix!) : '';
+  const nsPrefix = toolingNames.namespacePrefix;
+  const hasNamespace = nsPrefix != null && nsPrefix.length > 0;
+  const nsLiteral = hasNamespace ? escapeSoqlStringLiteral(nsPrefix) : '';
 
   /**
    * Tooling matching is picky: `NamespacePrefix = null` often returns no rows (blank vs null in org data).
@@ -101,7 +194,7 @@ async function getCustomFieldId(conn: ApiConnection, objectName: string, fieldNa
 
 async function getFieldDependencies(conn: ApiConnection, refComponentId: string): Promise<WhereUsedDependencyRow[]> {
   const soql =
-    'SELECT MetadataComponentType, MetadataComponentName FROM MetadataComponentDependency ' +
+    'SELECT MetadataComponentId, MetadataComponentType, MetadataComponentName FROM MetadataComponentDependency ' +
     `WHERE RefMetadataComponentId = '${escapeSoqlStringLiteral(refComponentId)}' AND RefMetadataComponentType = 'CustomField'`;
   const records = await toolingQueryAll(conn, soql);
   const out: WhereUsedDependencyRow[] = [];
@@ -111,7 +204,19 @@ async function getFieldDependencies(conn: ApiConnection, refComponentId: string)
     if (!t && !n) {
       continue;
     }
-    out.push({ type: t, name: n, kind: depKind(t) });
+    const componentIdRaw = r.MetadataComponentId;
+    const componentId = typeof componentIdRaw === 'string' ? componentIdRaw : '';
+    out.push({
+      type: t,
+      name: n,
+      kind: depKind(t),
+      ...(componentId ? { componentId } : {}),
+    });
+  }
+  try {
+    await enrichWhereUsedDependencyRows(conn, out);
+  } catch (err) {
+    logger.warn({ err }, 'field usage where-used enrichment failed; returning dependency rows without paths/versions');
   }
   return sortFieldUsageWhereUsedRows(dedupeFieldUsageWhereUsedRows(out));
 }
