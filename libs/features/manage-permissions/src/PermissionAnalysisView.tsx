@@ -29,6 +29,7 @@ import { PermissionAnalysisUserAssignmentsTree } from './PermissionAnalysisUserA
 import { PermissionAnalysisFindingsFiltersBar } from './PermissionAnalysisFindingsFiltersBar';
 import { PermissionAnalysisHistoryModal } from './PermissionAnalysisHistoryModal';
 import { PermissionAnalysisIssuesTab } from './PermissionAnalysisIssuesTab';
+import { usePermissionAnalysisIssuesFilters } from './permission-analysis-issues-filters';
 import {
   buildPermissionSetIdLabelMap,
   collectSobjectApiNamesFromPermissionExport,
@@ -39,8 +40,13 @@ import {
   parsePermissionExportRequestScope,
   parsePermissionExportResult,
   type FieldExportDetail,
+  type PermissionAnalysisFinding,
+  type PermissionExportRow,
   type SobjectExportDetail,
 } from './permission-export-result-view';
+
+const EMPTY_PERMISSION_ANALYSIS_FINDINGS: PermissionAnalysisFinding[] = [];
+const EMPTY_PERMISSION_EXPORT_ASSIGNMENT_ROWS: PermissionExportRow[] = [];
 
 const HEIGHT_BUFFER = 170;
 const ENTITY_DEFINITION_CHUNK_SIZE = 40;
@@ -162,6 +168,14 @@ export const PermissionAnalysisView: FunctionComponent = () => {
       permissionSetIds: new Set(scope.permissionSetIds),
     };
   }, [jobRecord]);
+
+  const { filteredFindings: globallyFilteredFindings } = usePermissionAnalysisIssuesFilters({
+    findings: parsedExport?.findings ?? EMPTY_PERMISSION_ANALYSIS_FINDINGS,
+    permissionSetAssignments: parsedExport?.export.permissionSetAssignments ?? EMPTY_PERMISSION_EXPORT_ASSIGNMENT_ROWS,
+    searchParams,
+    setSearchParams,
+    issueScopeFilterContext,
+  });
 
   useEffect(() => {
     const exportSnapshot = parsedExport;
@@ -411,11 +425,11 @@ export const PermissionAnalysisView: FunctionComponent = () => {
       return null;
     }
 
-    const { export: exportBundle, truncated, findings } = parsedExport;
+    const { export: exportBundle, truncated, findings: allFindings } = parsedExport;
     const counts = parsedExport.counts;
 
     const containerLabelById = buildPermissionSetIdLabelMap(exportBundle.permissionSets);
-    const exportFindingProps = { findings, containerLabelById };
+    const exportFindingProps = { findings: globallyFilteredFindings, containerLabelById };
 
     const gridProps = {
       org: selectedOrg,
@@ -517,7 +531,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
           <PermissionAnalysisPermissionSetsTree
             permissionSetRows={standalonePermissionSetRows}
             permissionSetAssignments={exportBundle.permissionSetAssignments}
-            findings={findings}
+            findings={globallyFilteredFindings}
             containerLabelById={containerLabelById}
             {...gridProps}
           />
@@ -557,7 +571,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
               permissionSets={exportBundle.permissionSets}
               permissionSetGroupComponents={exportBundle.permissionSetGroupComponents}
               permissionSetGroups={exportBundle.permissionSetGroups}
-              findings={findings}
+              findings={globallyFilteredFindings}
               containerLabelById={containerLabelById}
               {...gridProps}
             />
@@ -635,7 +649,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
             <PermissionAnalysisObjectPermissionsTree
               objectPermissionRows={exportBundle.objectPermissions}
               permissionSetRows={exportBundle.permissionSets}
-              findings={findings}
+              findings={globallyFilteredFindings}
               {...gridProps}
             />
           </div>
@@ -668,7 +682,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
             <PermissionAnalysisTabVisibilityTree
               tabSettingRows={exportBundle.permissionSetTabSettings}
               permissionSetRows={exportBundle.permissionSets}
-              findings={findings}
+              findings={globallyFilteredFindings}
               containerLabelById={containerLabelById}
               tabLabelBySettingName={tabLabelBySettingName}
               {...gridProps}
@@ -703,7 +717,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
             <PermissionAnalysisFieldPermissionsTree
               fieldPermissionRows={exportBundle.fieldPermissions}
               permissionSetRows={exportBundle.permissionSets}
-              findings={findings}
+              findings={globallyFilteredFindings}
               fieldExportDetails={fieldExportDetails}
               {...gridProps}
             />
@@ -728,7 +742,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
         titleText: 'Issues',
         content: (
           <PermissionAnalysisIssuesTab
-            findings={findings}
+            findings={allFindings}
             permissionSetAssignments={exportBundle.permissionSetAssignments}
             org={selectedOrg}
             serverUrl={serverUrl}
@@ -737,6 +751,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
             searchParams={searchParams}
             setSearchParams={setSearchParams}
             issueScopeFilterContext={issueScopeFilterContext}
+            sobjectExportDetails={sobjectExportDetails}
           />
         ),
       },
@@ -785,6 +800,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
     tabLabelBySettingName,
     fieldExportDetails,
     issueScopeFilterContext,
+    globallyFilteredFindings,
   ]);
 
   return (

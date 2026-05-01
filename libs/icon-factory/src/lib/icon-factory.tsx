@@ -60,6 +60,8 @@ import UtilityIcon_Announcement from './icons/utility/Announcement';
 import UtilityIcon_Apex from './icons/utility/Apex';
 import UtilityIcon_ApexPlugin from './icons/utility/ApexPlugin';
 import UtilityIcon_Archive from './icons/utility/Archive';
+import UtilityIcon_ArrowLeft from './icons/utility/ArrowLeft';
+import UtilityIcon_ArrowRight from './icons/utility/ArrowRight';
 import UtilityIcon_Arrowdown from './icons/utility/Arrowdown';
 import UtilityIcon_Arrowup from './icons/utility/Arrowup';
 import UtilityIcon_Back from './icons/utility/Back';
@@ -260,6 +262,8 @@ const utilityIcons = {
   apex_plugin: UtilityIcon_ApexPlugin,
   apex: UtilityIcon_Apex,
   archive: UtilityIcon_Archive,
+  arrow_left: UtilityIcon_ArrowLeft,
+  arrow_right: UtilityIcon_ArrowRight,
   arrowdown: UtilityIcon_Arrowdown,
   arrowup: UtilityIcon_Arrowup,
   back: UtilityIcon_Back,
