@@ -69,7 +69,7 @@ export const DataAnalysisSelection: FunctionComponent = () => {
               disabled={submitting || !selectedSObjects.length}
               onClick={() => void handleStartJob()}
             >
-              Register field usage job
+              Start field usage analysis
               <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" omitContainer />
             </button>
           </PageHeaderActions>
