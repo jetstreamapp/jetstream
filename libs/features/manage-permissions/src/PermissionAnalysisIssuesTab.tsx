@@ -341,12 +341,18 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
           refocus the grid and these totals. Click a row in either table to open full messages and metadata for those findings.
         </p>
         <div
-          className="slds-grid slds-wrap slds-gutters_medium"
           css={css`
-            row-gap: var(--slds-g-spacing-medium, 1rem);
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            align-items: start;
+
+            @media (min-width: 64rem) {
+              grid-template-columns: 1fr 1fr;
+            }
           `}
         >
-          <div className="slds-col slds-size_1-of-1 slds-large-size_1-of-2">
+          <div>
             <h3 className="slds-text-title_caps slds-m-bottom_x-small">By issue code</h3>
             {topCodeRollups.length === 0 ? (
               <p className="slds-text-body_small slds-text-color_weak">No codes in the current filter.</p>
@@ -388,7 +394,7 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
               </p>
             )}
           </div>
-          <div className="slds-col slds-size_1-of-1 slds-large-size_1-of-2">
+          <div>
             <h3 className="slds-text-title_caps slds-m-bottom_x-small">By object</h3>
             {topObjectRollups.length === 0 ? (
               <p className="slds-text-body_small slds-text-color_weak">No objects in the current filter.</p>
