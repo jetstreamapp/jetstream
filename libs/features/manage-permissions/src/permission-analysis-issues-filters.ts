@@ -87,7 +87,11 @@ export function parseIssuesScopeFilterFromSearchParams(searchParams: URLSearchPa
 }
 
 export interface IssueScopeFilterContext {
-  hasExplicitScope: boolean;
+  /**
+   * True when the job selected both profile permission sets and standalone permission sets.
+   * Export Scope filtering (and the toolbar control) applies only in that case.
+   */
+  supportsExportScopeFilter: boolean;
   profilePermissionSetIds: ReadonlySet<string>;
   permissionSetIds: ReadonlySet<string>;
 }
@@ -245,7 +249,7 @@ export function usePermissionAnalysisIssuesFilters({
       if (issueCodeFilter && String(finding.code ?? '') !== issueCodeFilter) {
         return false;
       }
-      if (issueScopeFilterContext?.hasExplicitScope && scopeFilter !== 'all') {
+      if (issueScopeFilterContext?.supportsExportScopeFilter && scopeFilter !== 'all') {
         const containerId = getFindingContainerId(finding);
         if (!containerId) {
           return false;

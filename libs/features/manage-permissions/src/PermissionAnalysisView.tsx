@@ -155,9 +155,9 @@ export const PermissionAnalysisView: FunctionComponent = () => {
       return undefined;
     }
     const scope = parsePermissionExportRequestScope(jobRecord.result);
-    const hasExplicitScope = scope.profilePermissionSetIds.length > 0 || scope.permissionSetIds.length > 0;
+    const supportsExportScopeFilter = scope.profilePermissionSetIds.length > 0 && scope.permissionSetIds.length > 0;
     return {
-      hasExplicitScope,
+      supportsExportScopeFilter,
       profilePermissionSetIds: new Set(scope.profilePermissionSetIds),
       permissionSetIds: new Set(scope.permissionSetIds),
     };

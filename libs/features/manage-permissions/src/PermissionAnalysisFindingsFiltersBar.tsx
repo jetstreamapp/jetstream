@@ -159,7 +159,7 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
     issueScopeFilterContext,
   });
 
-  const exportScopeFilterActive = issueScopeFilterContext?.hasExplicitScope === true && scopeFilter !== 'all';
+  const exportScopeFilterActive = issueScopeFilterContext?.supportsExportScopeFilter === true && scopeFilter !== 'all';
 
   return (
     <>
@@ -172,14 +172,14 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
           gap: 0.25rem;
         `}
       >
-        <ToolbarFilterButton
-          label="Export Scope"
-          filterActive={exportScopeFilterActive}
-          onReset={() => {
-            updateParams({ issueScope: null });
-          }}
-        >
-          {issueScopeFilterContext?.hasExplicitScope ? (
+        {issueScopeFilterContext?.supportsExportScopeFilter ? (
+          <ToolbarFilterButton
+            label="Export Scope"
+            filterActive={exportScopeFilterActive}
+            onReset={() => {
+              updateParams({ issueScope: null });
+            }}
+          >
             <fieldset className="slds-form-element">
               <legend css={filterPanelLegendCss} className="slds-form-element__legend slds-text-title_caps">
                 Export Scope
@@ -208,13 +208,8 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
                 ))}
               </div>
             </fieldset>
-          ) : (
-            <p css={filterPanelHelpTextCss} className="slds-text-body_small slds-text-color_weak">
-              Scope filtering applies when the export job selected specific profiles and permission sets separately. This run used a single
-              container list; use Direct Assignments or column filters on the Issues grid to narrow rows.
-            </p>
-          )}
-        </ToolbarFilterButton>
+          </ToolbarFilterButton>
+        ) : null}
 
         <ToolbarFilterButton
           label="Direct Assignments"
