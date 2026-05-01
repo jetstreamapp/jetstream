@@ -26,8 +26,8 @@ import { PermissionAnalysisObjectPermissionsTree } from './PermissionAnalysisObj
 import { PermissionAnalysisTabVisibilityTree } from './PermissionAnalysisTabVisibilityTree';
 import { PermissionAnalysisPermissionSetsTree } from './PermissionAnalysisPermissionSetsTree';
 import { PermissionAnalysisUserAssignmentsTree } from './PermissionAnalysisUserAssignmentsTree';
-import { PermissionAnalysisHistoryModal } from './PermissionAnalysisHistoryModal';
 import { PermissionAnalysisFindingsFiltersBar } from './PermissionAnalysisFindingsFiltersBar';
+import { PermissionAnalysisHistoryModal } from './PermissionAnalysisHistoryModal';
 import { PermissionAnalysisIssuesTab } from './PermissionAnalysisIssuesTab';
 import {
   buildPermissionSetIdLabelMap,

@@ -4,13 +4,13 @@ import {
   AutoFullHeightContainer,
   ColumnWithFilter,
   DataTable,
-  Icon,
   Popover,
   RowWithKey,
   ScopedNotification,
   setColumnFromType,
 } from '@jetstream/ui';
-import { FunctionComponent, useCallback, useMemo, useState } from 'react';
+import { FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
+import type { RenderCellProps } from 'react-data-grid';
 import type { SetURLSearchParams } from 'react-router-dom';
 import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 import {
@@ -27,12 +27,7 @@ import {
   getFindingContainerId,
 } from './permission-export-result-view';
 
-export type {
-  IssuesSeverityFilter,
-  IssuesOlsFlsFilter,
-  IssuesDirectAssignmentFilter,
-  IssuesGroupBy,
-} from './permission-analysis-issues-filters';
+export type { IssuesGroupBy } from './permission-analysis-issues-filters';
 
 export interface PermissionAnalysisIssuesTabProps {
   findings: PermissionAnalysisFinding[];
@@ -84,57 +79,81 @@ function sortFindings(rows: PermissionAnalysisFinding[], groupBy: IssuesGroupBy)
   return copy;
 }
 
-function buildFindingColumns(): ColumnWithFilter<RowWithKey>[] {
-  const keys = ['severity', 'code', 'objectApiName', 'fieldApiName', 'message', 'permissionSetId', 'parentId', 'containerId'] as const;
-  return keys.map((key) => {
-    const fieldType = key.endsWith('Id') ? 'salesforceId' : 'text';
-    const base = setColumnFromType(key, fieldType);
-    const severityCellClass = (row: RowWithKey) => {
-      const finding = row as PermissionAnalysisFinding;
-      const severityValue = finding.severity as string | undefined;
-      if (isWarningSeverity(severityValue) && !isErrorSeverity(severityValue)) {
-        return 'permission-finding-severity-cell--warning';
-      }
-      return undefined;
-    };
-    return {
-      ...base,
-      name: key === 'code' ? 'Issue' : key,
-      key,
-      field: key,
-      resizable: true,
-      ...(key === 'severity' ? { cellClass: severityCellClass } : {}),
-      formatter:
-        key === 'message'
-          ? ({ row }: { row: PermissionAnalysisFinding }) => (
-              <span
-                css={css`
-                  white-space: pre-wrap;
-                `}
-              >
-                {String(row.message ?? '')}
-              </span>
-            )
-          : key === 'code'
-            ? ({ row }: { row: PermissionAnalysisFinding }) => {
-                const rawCode = row.code;
-                const normalized = typeof rawCode === 'string' ? rawCode : undefined;
-                const { title: codeTitle, technicalCode } = getFindingCodeDisplayParts(normalized);
-                return (
-                  <span>
-                    {codeTitle}
-                    {technicalCode ? (
-                      <span className="slds-text-color_weak">
-                        {' '}
-                        (<code>{technicalCode}</code>)
-                      </span>
-                    ) : null}
+type StandardFindingColumnKey =
+  | 'severity'
+  | 'code'
+  | 'objectApiName'
+  | 'fieldApiName'
+  | 'message'
+  | 'permissionSetId'
+  | 'parentId'
+  | 'containerId';
+
+function mapStandardFindingColumn(key: StandardFindingColumnKey): ColumnWithFilter<RowWithKey> {
+  const fieldType = key.endsWith('Id') ? 'salesforceId' : 'text';
+  const base = setColumnFromType(key, fieldType);
+  const severityCellClass = (row: RowWithKey) => {
+    const finding = row as PermissionAnalysisFinding;
+    const severityValue = finding.severity as string | undefined;
+    if (isWarningSeverity(severityValue) && !isErrorSeverity(severityValue)) {
+      return 'permission-finding-severity-cell--warning';
+    }
+    return undefined;
+  };
+  const renderCell =
+    key === 'message'
+      ? ({ row }: RenderCellProps<RowWithKey, unknown>) => (
+          <span
+            css={css`
+              white-space: pre-wrap;
+            `}
+          >
+            {String((row as PermissionAnalysisFinding).message ?? '')}
+          </span>
+        )
+      : key === 'code'
+        ? ({ row }: RenderCellProps<RowWithKey, unknown>) => {
+            const finding = row as PermissionAnalysisFinding;
+            const rawCode = finding.code;
+            const normalized = typeof rawCode === 'string' ? rawCode : undefined;
+            const { title: codeTitle, technicalCode } = getFindingCodeDisplayParts(normalized);
+            return (
+              <span>
+                {codeTitle}
+                {technicalCode ? (
+                  <span className="slds-text-color_weak">
+                    {' '}
+                    (<code>{technicalCode}</code>)
                   </span>
-                );
-              }
-            : base.renderCell,
-    } as ColumnWithFilter<RowWithKey>;
-  });
+                ) : null}
+              </span>
+            );
+          }
+        : base.renderCell;
+
+  return {
+    ...base,
+    name: key === 'code' ? 'Issue' : key,
+    key,
+    field: key,
+    resizable: true,
+    ...(key === 'severity' ? { cellClass: severityCellClass } : {}),
+    renderCell,
+  } as ColumnWithFilter<RowWithKey>;
+}
+
+function buildFindingColumns(): ColumnWithFilter<RowWithKey>[] {
+  const keys: StandardFindingColumnKey[] = [
+    'severity',
+    'code',
+    'objectApiName',
+    'fieldApiName',
+    'message',
+    'permissionSetId',
+    'parentId',
+    'containerId',
+  ];
+  return keys.map(mapStandardFindingColumn);
 }
 
 const FINDING_COLUMNS = buildFindingColumns();
@@ -158,6 +177,8 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
     summaryLine: string;
   } | null>(null);
 
+  const [gridFilteredFindings, setGridFilteredFindings] = useState<PermissionAnalysisFinding[] | null>(null);
+
   const { filteredFindings, groupBy, updateParams } = usePermissionAnalysisIssuesFilters({
     findings,
     permissionSetAssignments,
@@ -167,11 +188,17 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
 
   const sortedFindings = useMemo(() => sortFindings(filteredFindings, groupBy), [filteredFindings, groupBy]);
 
-  const aggregation = useMemo(() => aggregatePermissionAnalysisFindings(filteredFindings), [filteredFindings]);
+  useEffect(() => {
+    setGridFilteredFindings(null);
+  }, [sortedFindings]);
+
+  const rollupFindings = gridFilteredFindings ?? sortedFindings;
+
+  const aggregation = useMemo(() => aggregatePermissionAnalysisFindings(rollupFindings), [rollupFindings]);
 
   const openAggregatedDetailsForCode = useCallback(
     (codeKey: string) => {
-      const matches = filteredFindings.filter((finding) => {
+      const matches = rollupFindings.filter((finding) => {
         const codeRaw = String(finding.code ?? '').trim();
         const key = codeRaw.length > 0 ? codeRaw : '(no code)';
         return key === codeKey;
@@ -187,16 +214,16 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
       setAggregatedDetailsModal({
         findings: sortFindings(matches, groupBy),
         title,
-        tagline: 'Issue details for the current Issues filters.',
+        tagline: 'Issue details for the current filters.',
         summaryLine: `${matches.length} finding${matches.length === 1 ? '' : 's'} for this issue code.`,
       });
     },
-    [filteredFindings, groupBy],
+    [rollupFindings, groupBy],
   );
 
   const openAggregatedDetailsForObject = useCallback(
     (objectKey: string) => {
-      const matches = filteredFindings.filter((finding) => {
+      const matches = rollupFindings.filter((finding) => {
         const objectRaw = String(finding.objectApiName ?? '').trim();
         const key = objectRaw.length > 0 ? objectRaw : '(no object)';
         return key === objectKey;
@@ -205,22 +232,27 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
       setAggregatedDetailsModal({
         findings: sortFindings(matches, groupBy),
         title,
-        tagline: 'Issue details for the current Issues filters.',
+        tagline: 'Issue details for the current filters.',
         summaryLine: `${matches.length} finding${matches.length === 1 ? '' : 's'} for this object.`,
       });
     },
-    [filteredFindings, groupBy],
+    [rollupFindings, groupBy],
   );
 
   const rowsMap = useMemo(() => new WeakMap(sortedFindings.map((row, index) => [row, `finding-${index}`])), [sortedFindings]);
   const getRowKey = useCallback((row: PermissionAnalysisFinding) => rowsMap.get(row) ?? 'finding', [rowsMap]);
+
+  const handleSortedAndFilteredRowsChange = useCallback((rows: readonly PermissionAnalysisFinding[]) => {
+    setGridFilteredFindings([...rows]);
+  }, []);
 
   if (!findings.length) {
     return (
       <div className="slds-p-around_medium">
         <ScopedNotification theme="info">
           No findings for this job yet. Run a permission export analysis to evaluate object vs field read access; results include an
-          aggregated summary, toolbar filters, Issue Codes, and Group By on this tab when findings exist.
+          aggregated summary, toolbar filters (same style as data table filters), column filters on the grid, and Group By on this tab when
+          findings exist.
         </ScopedNotification>
       </div>
     );
@@ -234,9 +266,9 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
       <div className="slds-box slds-theme_default slds-m-around_small slds-p-around_small">
         <h2 className="slds-text-heading_small slds-m-bottom_x-small">Aggregated Findings</h2>
         <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_small">
-          Rollups for the current filter set ({filteredFindings.length} row{filteredFindings.length === 1 ? '' : 's'}). Use the toolbar
-          filters to refocus the grid and these totals; use Group By above the grid to change grouping. Click a row in either table to open
-          full messages and metadata for those findings.
+          Rollups for the rows visible in the grid ({rollupFindings.length} row{rollupFindings.length === 1 ? '' : 's'}). Use the toolbar
+          filters first, then column header filter icons on the grid for finer control; use Group By above the grid to change sort grouping.
+          Click a row in either rollup table to open full messages and metadata for those findings.
         </p>
         <div
           css={css`
@@ -382,7 +414,6 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
           }
         >
           Group By
-          <Icon type="utility" icon="down" className="slds-button__icon slds-button__icon_right" omitContainer />
         </Popover>
       </div>
 
@@ -402,6 +433,7 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
           getRowKey={getRowKey}
           includeQuickFilter
           context={{ defaultApiVersion }}
+          onSortedAndFilteredRowsChange={handleSortedAndFilteredRowsChange}
           rowClass={(row) => {
             const severityValue = (row as PermissionAnalysisFinding).severity as string | undefined;
             if (isErrorSeverity(severityValue)) {

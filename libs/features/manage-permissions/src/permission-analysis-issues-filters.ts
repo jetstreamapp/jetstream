@@ -1,5 +1,5 @@
 import { PermissionExportFindingCode } from '@jetstream/shared/constants';
-import { useMemo, useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import type { SetURLSearchParams } from 'react-router-dom';
 import {
   type PermissionAnalysisFinding,
@@ -9,7 +9,27 @@ import {
 } from './permission-export-result-view';
 
 export type IssuesSeverityFilter = 'all' | 'errors' | 'warnings';
+
+/** Valid values for `issueSeverity` query param (anything else is treated as `all`). */
+export function parseIssuesSeverityFilterFromSearchParams(searchParams: URLSearchParams): IssuesSeverityFilter {
+  const raw = searchParams.get('issueSeverity');
+  if (raw === 'errors' || raw === 'warnings') {
+    return raw;
+  }
+  return 'all';
+}
+
 export type IssuesOlsFlsFilter = 'all' | 'ols' | 'fls';
+
+/** Valid values for `issueOlsFls` query param (anything else is treated as `all`). */
+export function parseIssuesOlsFlsFilterFromSearchParams(searchParams: URLSearchParams): IssuesOlsFlsFilter {
+  const raw = searchParams.get('issueOlsFls');
+  if (raw === 'ols' || raw === 'fls') {
+    return raw;
+  }
+  return 'all';
+}
+
 export type IssuesDirectAssignmentFilter = 'all' | 'assigned' | 'unassigned';
 export type IssuesGroupBy = 'none' | 'severity' | 'object' | 'code' | 'container';
 
@@ -50,8 +70,13 @@ export function isWarningSeverity(value: string | undefined): boolean {
   return normalized === 'warning' || normalized === 'warnings';
 }
 
+/**
+ * Buckets a finding `code` for OLS vs FLS toolbar filters.
+ * Matches {@link PermissionExportFindingCode} prefixes (OLS_… / FLS_…).
+ * Meta codes such as FINDINGS_TRUNCATED and blank codes classify as `other` (visible only when filter is All).
+ */
 function findingCodeKind(code: string | undefined): 'ols' | 'fls' | 'other' {
-  const upper = (code ?? '').toUpperCase();
+  const upper = (code ?? '').trim().toUpperCase();
   if (upper.startsWith('OLS')) {
     return 'ols';
   }
@@ -91,8 +116,8 @@ export function usePermissionAnalysisIssuesFilters({
   searchParams,
   setSearchParams,
 }: UsePermissionAnalysisIssuesFiltersArgs): UsePermissionAnalysisIssuesFiltersResult {
-  const severityFilter = readPermissionAnalysisSearchParam(searchParams, 'issueSeverity', 'all') as IssuesSeverityFilter;
-  const olsFlsFilter = readPermissionAnalysisSearchParam(searchParams, 'issueOlsFls', 'all') as IssuesOlsFlsFilter;
+  const severityFilter = parseIssuesSeverityFilterFromSearchParams(searchParams);
+  const olsFlsFilter = parseIssuesOlsFlsFilterFromSearchParams(searchParams);
   const directAssignmentFilter = readPermissionAnalysisSearchParam(
     searchParams,
     'issueDirectAssign',
@@ -124,10 +149,12 @@ export function usePermissionAnalysisIssuesFilters({
 
   const filteredFindings = useMemo(() => {
     return findings.filter((finding) => {
-      if (severityFilter === 'errors' && !isErrorSeverity(finding.severity as string | undefined)) {
+      const severityValue = finding.severity as string | undefined;
+      if (severityFilter === 'errors' && !isErrorSeverity(severityValue)) {
         return false;
       }
-      if (severityFilter === 'warnings' && !isWarningSeverity(finding.severity as string | undefined)) {
+      // Warnings-only: keep rows whose severity is warning/warnings (not errors, not unknown/other).
+      if (severityFilter === 'warnings' && !isWarningSeverity(severityValue)) {
         return false;
       }
       if (olsFlsFilter === 'ols' && findingCodeKind(finding.code as string | undefined) !== 'ols') {
