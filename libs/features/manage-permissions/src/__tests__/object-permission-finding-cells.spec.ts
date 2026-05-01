@@ -6,6 +6,7 @@ import {
   getObjectPermissionHighlightColumnKeysForFindingCode,
   listFindingsForObjectPermissionCell,
   objectPermissionFindingRowKey,
+  sortObjectPermissionExportRowsForAnalysisTree,
   type PermissionAnalysisFinding,
 } from '../permission-export-result-view';
 
@@ -146,5 +147,63 @@ describe('getObjectPermissionHighlightColumnKeysForFindingCode', () => {
   it('returns empty for codes that do not map to object-permission cells', () => {
     expect(getObjectPermissionHighlightColumnKeysForFindingCode(PermissionExportFindingCode.FLS_WITHOUT_OLS_ROW)).toEqual([]);
     expect(getObjectPermissionHighlightColumnKeysForFindingCode('UNKNOWN')).toEqual([]);
+  });
+});
+
+describe('sortObjectPermissionExportRowsForAnalysisTree', () => {
+  const psProfile = '0PSPROFILE000001';
+  const psStandalone = '0PSSTAND00000001';
+
+  it('orders profile-owned parents before standalone permission sets, then by parent label', () => {
+    const permissionSetRows = [
+      {
+        Id: psStandalone,
+        Label: 'Zebra Perm',
+        Name: 'Zebra',
+        IsOwnedByProfile: false,
+      },
+      {
+        Id: psProfile,
+        Label: 'X00ignored',
+        Name: 'X',
+        IsOwnedByProfile: true,
+        Profile: { Name: 'Alpha Profile' },
+      },
+    ];
+    const objectPermissionRows = [
+      { ParentId: psStandalone, SobjectType: 'Account', Id: 'op1' },
+      { ParentId: psProfile, SobjectType: 'Contact', Id: 'op2' },
+    ];
+    const sorted = sortObjectPermissionExportRowsForAnalysisTree(objectPermissionRows, permissionSetRows);
+    expect(sorted.map((row) => row.ParentId)).toEqual([psProfile, psStandalone]);
+  });
+
+  it('orders standalone permission sets alphabetically when neither is profile-owned', () => {
+    const psB = '0PSBBBB000000001';
+    const psA = '0PSAAAA000000001';
+    const permissionSetRows = [
+      { Id: psB, Label: 'B Perm', Name: 'B', IsOwnedByProfile: false },
+      { Id: psA, Label: 'A Perm', Name: 'A', IsOwnedByProfile: false },
+    ];
+    const objectPermissionRows = [
+      { ParentId: psB, SobjectType: 'Account', Id: '1' },
+      { ParentId: psA, SobjectType: 'Account', Id: '2' },
+    ];
+    const sorted = sortObjectPermissionExportRowsForAnalysisTree(objectPermissionRows, permissionSetRows);
+    expect(sorted.map((row) => row.ParentId)).toEqual([psA, psB]);
+  });
+
+  it('orders objects by metadata label within the same parent', () => {
+    const permissionSetRows = [{ Id: psStandalone, Label: 'P', Name: 'P', IsOwnedByProfile: false }];
+    const sobjectExportDetails = {
+      Zebra__c: { apiName: 'Zebra__c', label: 'Z', description: null },
+      Account: { apiName: 'Account', label: 'Account', description: null },
+    };
+    const objectPermissionRows = [
+      { ParentId: psStandalone, SobjectType: 'Zebra__c', Id: '1' },
+      { ParentId: psStandalone, SobjectType: 'Account', Id: '2' },
+    ];
+    const sorted = sortObjectPermissionExportRowsForAnalysisTree(objectPermissionRows, permissionSetRows, sobjectExportDetails);
+    expect(sorted.map((row) => row.SobjectType)).toEqual(['Account', 'Zebra__c']);
   });
 });

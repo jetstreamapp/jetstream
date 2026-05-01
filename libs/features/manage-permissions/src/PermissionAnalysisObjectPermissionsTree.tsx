@@ -12,6 +12,7 @@ import {
 import groupBy from 'lodash/groupBy';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
 import type { CellMouseArgs, RenderCellProps, RenderGroupCellProps } from 'react-data-grid';
+import { permissionAnalysisAssignmentTypeLabelCss } from './permission-analysis-viewer-badge.styles';
 import { SobjectTypeCellContent } from './PermissionAnalysisExportGrid';
 import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 import {
@@ -21,13 +22,14 @@ import {
   getExportColumnHeaderLabel,
   listFindingsForObjectPermissionCell,
   objectPermissionFindingRowKey,
+  sortObjectPermissionExportRowsForAnalysisTree,
   sortedObjectPermissionBooleanKeys,
   type PermissionAnalysisFinding,
   type PermissionExportRow,
   type SobjectExportDetail,
 } from './permission-export-result-view';
 
-/** Only permission set is grouped; `TreeDataGrid` clears `renderCell` on every `groupBy` column, so object + actions live on a separate `SobjectType` column. */
+/** Grouped by profile or permission set (`ParentId`); `TreeDataGrid` clears `renderCell` on every `groupBy` column, so object + actions live on a separate `SobjectType` column. */
 const TREE_GROUP_BY = ['_treePermSetGroupKey'] as const;
 
 const OMIT_FROM_LEAF_KEYS = new Set(['attributes', 'Id', 'ParentId', 'SobjectType', '_treePermSetGroupKey', '_treeObjectGroupKey']);
@@ -47,9 +49,9 @@ const TREE_COL_PERMISSION_BOOL = 'minmax(104px, 0.42fr)';
 const TREE_MIN_PERM_SET = TREE_PERM_SET_MIN_PX;
 const TREE_MIN_PERMISSION_BOOL = 104;
 
-/** Default data row height; group rows are taller so wrapped permission set names fit. */
+/** Default data row height; group rows are taller for type pill + title + count. */
 const TREE_ROW_HEIGHT_LEAF_PX = 35;
-const TREE_ROW_HEIGHT_GROUP_PX = 60;
+const TREE_ROW_HEIGHT_GROUP_PX = 68;
 
 export type ObjectPermissionTreeRow = PermissionExportRow & {
   _treePermSetGroupKey: string;
@@ -81,6 +83,15 @@ function isObjectPermissionLeafRow(row: unknown): row is ObjectPermissionTreeRow
   return typeof record.ParentId === 'string' && record.ParentId.trim().length > 0;
 }
 
+/** Strip the redundant `Profile: ` prefix when showing a profile pill + title on two lines. */
+function objectTreeGroupTitleLine(exportLabel: string, isProfileOwned: boolean): string {
+  if (isProfileOwned && exportLabel.startsWith('Profile: ')) {
+    const rest = exportLabel.slice('Profile: '.length).trim();
+    return rest.length > 0 ? rest : exportLabel;
+  }
+  return exportLabel;
+}
+
 interface CellFindingsModalState {
   parentId: string;
   objectApiName: string;
@@ -91,10 +102,16 @@ interface CellFindingsModalState {
 
 function renderPermissionSetGroupCell(
   labelByParentId: Map<string, string>,
+  permissionSetRowById: Map<string, PermissionExportRow>,
   { groupKey, childRows, isExpanded, toggleGroup }: RenderGroupCellProps<ObjectPermissionTreeRow>,
 ) {
   const id = String(groupKey);
-  const label = labelByParentId.get(id) ?? id;
+  const exportLabel = labelByParentId.get(id) ?? id;
+  const permSetRow = permissionSetRowById.get(id);
+  const isProfileOwned = permSetRow?.IsOwnedByProfile === true;
+  const titleLine = objectTreeGroupTitleLine(exportLabel, isProfileOwned);
+  const typeKind = isProfileOwned ? 'profile' : 'permission_set';
+  const typeCaption = isProfileOwned ? 'Profile' : 'Permission set';
   return (
     <button
       type="button"
@@ -112,7 +129,7 @@ function renderPermissionSetGroupCell(
         word-break: break-word;
       `}
       onClick={toggleGroup}
-      title={label}
+      title={exportLabel}
     >
       <Icon
         type="utility"
@@ -132,8 +149,21 @@ function renderPermissionSetGroupCell(
           text-align: left;
         `}
       >
-        <span>{label}</span>
-        <span className="slds-text-body_small slds-text-color_weak slds-m-left_xx-small">({childRows.length})</span>
+        <p className="slds-text-body_small slds-m-bottom_xx-small">
+          <span css={permissionAnalysisAssignmentTypeLabelCss(typeKind)}>{typeCaption}</span>
+        </p>
+        <span
+          css={css`
+            display: flex;
+            align-items: baseline;
+            flex-wrap: wrap;
+            column-gap: 0.35rem;
+            min-width: 0;
+          `}
+        >
+          <span className="text-bold slds-truncate">{titleLine}</span>
+          <span className="slds-text-body_small slds-text-color_weak slds-no-flex">({childRows.length})</span>
+        </span>
       </span>
     </button>
   );
@@ -152,8 +182,9 @@ export interface PermissionAnalysisObjectPermissionsTreeProps {
 }
 
 /**
- * Object permissions from the export, grouped by permission set (ParentId), with Object + actions
- * and CRUD / View All / Modify All columns on leaf rows.
+ * Object permissions from the export, grouped by profile or permission set (`ParentId`), with Object + actions
+ * and CRUD / View All / Modify All columns on leaf rows. Groups sort profile-first then alphabetically; objects sort
+ * alphabetically by label within each group.
  */
 export const PermissionAnalysisObjectPermissionsTree: FunctionComponent<PermissionAnalysisObjectPermissionsTreeProps> = ({
   objectPermissionRows,
@@ -165,8 +196,22 @@ export const PermissionAnalysisObjectPermissionsTree: FunctionComponent<Permissi
   sobjectExportDetails,
   findings = [],
 }) => {
-  const treeRows = useMemo(() => buildObjectPermissionTreeRows(objectPermissionRows), [objectPermissionRows]);
+  const sortedObjectPermissionRows = useMemo(
+    () => sortObjectPermissionExportRowsForAnalysisTree(objectPermissionRows, permissionSetRows, sobjectExportDetails),
+    [objectPermissionRows, permissionSetRows, sobjectExportDetails],
+  );
+  const treeRows = useMemo(() => buildObjectPermissionTreeRows(sortedObjectPermissionRows), [sortedObjectPermissionRows]);
   const labelByParentId = useMemo(() => buildPermissionSetIdLabelMap(permissionSetRows), [permissionSetRows]);
+  const permissionSetRowById = useMemo(() => {
+    const map = new Map<string, PermissionExportRow>();
+    for (const row of permissionSetRows) {
+      const rowId = typeof row.Id === 'string' ? row.Id.trim() : '';
+      if (rowId) {
+        map.set(rowId, row);
+      }
+    }
+    return map;
+  }, [permissionSetRows]);
   const findingCellHighlights = useMemo(() => buildObjectPermissionFindingCellHighlights(findings), [findings]);
 
   const [expandedGroupIds, setExpandedGroupIds] = useState<Set<unknown>>(() => new Set());
@@ -185,14 +230,14 @@ export const PermissionAnalysisObjectPermissionsTree: FunctionComponent<Permissi
     const row0 = treeRows[0];
     const groupPermSetCol: ColumnWithFilter<ObjectPermissionTreeRow> = {
       ...setColumnFromType<ObjectPermissionTreeRow>('_treePermSetGroupKey', 'text'),
-      name: 'Permission Set',
+      name: 'Profile / Permission set',
       key: '_treePermSetGroupKey',
       field: '_treePermSetGroupKey',
       resizable: true,
       width: TREE_COL_PERM_SET,
       minWidth: TREE_MIN_PERM_SET,
       maxWidth: TREE_PERM_SET_MAX_PX,
-      renderGroupCell: (props) => renderPermissionSetGroupCell(labelByParentId, props),
+      renderGroupCell: (props) => renderPermissionSetGroupCell(labelByParentId, permissionSetRowById, props),
       getValue: ({ row }) => {
         const id = row._treePermSetGroupKey;
         return labelByParentId.get(id) ?? id;
@@ -271,7 +316,7 @@ export const PermissionAnalysisObjectPermissionsTree: FunctionComponent<Permissi
     }
 
     return [groupPermSetCol, objectCol, ...permissionCols];
-  }, [treeRows, labelByParentId, sobjectExportDetails, objectManager, findingCellHighlights]);
+  }, [treeRows, labelByParentId, permissionSetRowById, sobjectExportDetails, objectManager, findingCellHighlights]);
 
   const getRowKey = useCallback((row: ObjectPermissionTreeRow) => {
     if (typeof row.Id === 'string' && row.Id.length > 0) {
