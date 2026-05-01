@@ -749,11 +749,11 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         )}
         {jobId && !fetchError && isTerminal && jobStatusNormalized === 'completed' && parsedResult && resultTabs && (
           <Fragment>
-            <div className="slds-p-horizontal_medium slds-p-top_x-small slds-grid slds-grid_vertical-align-center slds-gutters_x-small">
-              <span className="slds-text-body_small slds-text-color_weak">Job</span>
-              <Badge type={badgeTypeForJobStatus('completed')}>{formatAnalysisJobStatusForDisplay('completed')}</Badge>
-              <span className="slds-text-body_small slds-m-left_small slds-text-color_weak">Summary</span>
-              <span className="slds-text-body_small">{parsedResult.summary}</span>
+            <div className="slds-p-horizontal_medium slds-p-top_x-small">
+              <p className="slds-text-body_small">
+                <span className="slds-text-color_weak">Summary </span>
+                {parsedResult.summary}
+              </p>
             </div>
             {parsedResult.failedObjects.length > 0 && (
               <div className="slds-p-horizontal_medium slds-p-top_x-small">
