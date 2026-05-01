@@ -33,3 +33,28 @@ export function parseCustomFieldApiNameForTooling(fieldApiName: string): CustomF
     developerName,
   };
 }
+
+/**
+ * True when the API name parses as a custom field (trailing `__c` with a usable developer name).
+ * False for standard fields, `__r` relationship suffixes, and malformed names.
+ */
+export function isCustomFieldApiName(fieldApiName: string): boolean {
+  return parseCustomFieldApiNameForTooling(fieldApiName) != null;
+}
+
+/**
+ * True for unmanaged custom fields (`Amount__c`). False for packaged (`acme__Amount__c`) and non-custom names.
+ */
+export function isUnmanagedCustomFieldApiName(fieldApiName: string): boolean {
+  const parsed = parseCustomFieldApiNameForTooling(fieldApiName);
+  return parsed != null && parsed.namespacePrefix == null;
+}
+
+/**
+ * True when the field API name includes a namespace prefix (e.g. packaged `acme__Amount__c`).
+ * Unmanaged custom fields (`Amount__c`) return false. Non-custom API names return false.
+ */
+export function customFieldApiNameHasNamespacePrefix(fieldApiName: string): boolean {
+  const parsed = parseCustomFieldApiNameForTooling(fieldApiName);
+  return parsed != null && parsed.namespacePrefix != null;
+}

@@ -1,15 +1,18 @@
 import { css } from '@emotion/react';
+import { DeleteMetadataModal } from '@jetstream/feature/deploy';
 import { PermissionAnalysisHistoryModal } from '@jetstream/feature/manage-permissions';
 import { logger } from '@jetstream/shared/client-logger';
 import { createAnalysisJob, getAnalysisJob } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { convertDateToLocale, formatNumber } from '@jetstream/shared/ui-utils';
-import { getErrorMessage } from '@jetstream/shared/utils';
+import { getErrorMessage, isCustomFieldApiName } from '@jetstream/shared/utils';
 import {
   AutoFullHeightContainer,
   ColumnWithFilter,
   DataTable,
+  DataTableSelectedContext,
   DataTree,
+  DropDown,
   Grid,
   GridCol,
   Icon,
@@ -19,6 +22,7 @@ import {
   ReadOnlyFormElement,
   SalesforceLogin,
   ScopedNotification,
+  SelectFormatter,
   setColumnFromType,
   Spinner,
   Tabs,
@@ -37,9 +41,10 @@ import { parseISO } from 'date-fns/parseISO';
 import groupBy from 'lodash/groupBy';
 import { useAtom, useAtomValue } from 'jotai';
 import type { SalesforceOrgUi } from '@jetstream/types';
-import { Fragment, FunctionComponent, MouseEvent, type ReactElement, useCallback, useEffect, useMemo, useState } from 'react';
-import type { RenderGroupCellProps, SortColumn } from 'react-data-grid';
+import { Fragment, FunctionComponent, type Key, MouseEvent, type ReactElement, useCallback, useEffect, useMemo, useState } from 'react';
+import { SELECT_COLUMN_KEY, SelectColumn, type RenderGroupCellProps, type SortColumn } from 'react-data-grid';
 import { Link, useSearchParams } from 'react-router-dom';
+import { fieldUsageRowsToCustomFieldDeleteMetadata, fieldUsageRowEligibleForDestructiveDelete } from './field-usage-destructive-delete';
 import {
   countWhereUsedByUiCategory,
   fieldHasWhereUsedDeps,
@@ -51,10 +56,17 @@ import {
 } from './field-usage-result-parse';
 import { getWhereUsedOpenInSalesforcePath } from './where-used-open-in-salesforce';
 
+const FIELD_USAGE_TABLE_ACTION_DELETE_METADATA = 'field-usage-delete-metadata';
+
 const HEIGHT_BUFFER = 170;
 
 /** Custom fields at or below this fill rate appear on the **Low usage** tab. */
 const LOW_USAGE_PCT_THRESHOLD = 5;
+
+/** One-line explainer for the Low usage tab (threshold lives in {@link LOW_USAGE_PCT_THRESHOLD}). */
+function getFieldUsageLowUsageIntroCopy(pctThreshold: number): string {
+  return `Unmanaged custom fields at or below ${pctThreshold}% population in the rows scanned for this job. Packaged fields with a namespace prefix are not listed here.`;
+}
 
 const TREE_GROUP_BY = ['objectApiName'] as const;
 
@@ -108,6 +120,8 @@ interface FieldUsageTreeRow {
   latestModified: string | null;
   /** Synthetic row when the object payload has `error` and no field stats. */
   isObjectErrorPlaceholder?: boolean;
+  /** Unmanaged custom field (no namespace prefix) eligible for destructive delete; same rules as `isUnmanagedCustomFieldApiName` in shared utils. */
+  destructiveDeleteEligible?: boolean;
   /** Where Used row counts by Kind: Layout, Automation, Apex ({@link countWhereUsedByUiCategory}). */
   whereUsedOnLayout: number;
   whereUsedInAutomation: number;
@@ -119,7 +133,7 @@ function whereUsedUiCountsForField(
   objectApiName: string,
   fieldApiName: string,
 ): { whereUsedOnLayout: number; whereUsedInAutomation: number; whereUsedInApex: number } {
-  if (!whereUsed || !fieldApiName.endsWith('__c')) {
+  if (!whereUsed || !isCustomFieldApiName(fieldApiName)) {
     return { whereUsedOnLayout: 0, whereUsedInAutomation: 0, whereUsedInApex: 0 };
   }
   const { onLayout, inAutomation, inApex } = countWhereUsedByUiCategory(
@@ -483,6 +497,8 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
   const [loadAllRecordsSubmitting, setLoadAllRecordsSubmitting] = useState(false);
   const [whereUsedForKey, setWhereUsedForKey] = useState<string | null>(null);
   const [expandedGroupIds, setExpandedGroupIds] = useState<ReadonlySet<unknown>>(() => new Set());
+  const [fieldUsageSelectedRowKeys, setFieldUsageSelectedRowKeys] = useState(() => new Set<string>());
+  const [deleteFieldMetadataModalOpen, setDeleteFieldMetadataModalOpen] = useState(false);
 
   useEffect(() => {
     if (!selectedOrg?.uniqueId || !jobId) {
@@ -594,6 +610,11 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
     setExpandedGroupIds(new Set(Object.keys(parsedResult.objects)));
   }, [parsedResult]);
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- new job result invalidates row selection
+    setFieldUsageSelectedRowKeys(new Set());
+  }, [parsedResult]);
+
   const treeFieldRows: FieldUsageTreeRow[] = useMemo(() => {
     if (!parsedResult) {
       return [];
@@ -621,6 +642,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
           pct: 0,
           latestModified: null,
           isObjectErrorPlaceholder: true,
+          destructiveDeleteEligible: false,
           whereUsedOnLayout: 0,
           whereUsedInAutomation: 0,
           whereUsedInApex: 0,
@@ -630,6 +652,11 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
       for (const fieldApiName of Object.keys(payload.fieldUsage).sort((a, b) => a.localeCompare(b))) {
         const stat = payload.fieldUsage[fieldApiName];
         const meta = payload.fieldMeta[fieldApiName];
+        const destructiveDeleteEligible = fieldUsageRowEligibleForDestructiveDelete({
+          isObjectErrorPlaceholder: false,
+          fieldApiName,
+          meta,
+        });
         rows.push({
           _key: `${objectApiName}.${fieldApiName}`,
           ...base,
@@ -640,6 +667,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
           filled: stat.filled,
           pct: stat.pct,
           latestModified: stat.latestFilledRowModified,
+          destructiveDeleteEligible,
           ...whereUsedUiCountsForField(parsedResult.whereUsed, objectApiName, fieldApiName),
         });
       }
@@ -726,6 +754,11 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
           filled: stat.filled,
           pct: stat.pct,
           latestModified: stat.latestFilledRowModified,
+          destructiveDeleteEligible: fieldUsageRowEligibleForDestructiveDelete({
+            isObjectErrorPlaceholder: false,
+            fieldApiName,
+            meta,
+          }),
           ...whereUsedUiCountsForField(parsedResult.whereUsed, objectApiName, fieldApiName),
         });
       }
@@ -733,6 +766,50 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
     rows.sort((a, b) => a.pct - b.pct || a.objectApiName.localeCompare(b.objectApiName));
     return rows;
   }, [parsedResult]);
+
+  const fieldUsageRowByKey = useMemo(() => {
+    const map = new Map<string, FieldUsageTreeRow>();
+    for (const row of treeFieldRows) {
+      map.set(row._key, row);
+    }
+    for (const row of lowUsageTreeRows) {
+      map.set(row._key, row);
+    }
+    return map;
+  }, [treeFieldRows, lowUsageTreeRows]);
+
+  const fieldUsageSelectedDestructiveDeleteCount = useMemo(() => {
+    let count = 0;
+    for (const key of fieldUsageSelectedRowKeys) {
+      if (fieldUsageRowByKey.get(key)?.destructiveDeleteEligible) {
+        count += 1;
+      }
+    }
+    return count;
+  }, [fieldUsageRowByKey, fieldUsageSelectedRowKeys]);
+
+  const fieldUsageDeleteSelectedMetadata = useMemo(() => {
+    const rows = Array.from(fieldUsageSelectedRowKeys)
+      .map((key) => fieldUsageRowByKey.get(key))
+      .filter((row): row is FieldUsageTreeRow => Boolean(row));
+    return fieldUsageRowsToCustomFieldDeleteMetadata(rows);
+  }, [fieldUsageRowByKey, fieldUsageSelectedRowKeys]);
+
+  const handleFieldUsageToolbarDropdown = useCallback(
+    (actionId: string) => {
+      if (actionId === FIELD_USAGE_TABLE_ACTION_DELETE_METADATA) {
+        if (fieldUsageSelectedDestructiveDeleteCount === 0) {
+          return;
+        }
+        setDeleteFieldMetadataModalOpen(true);
+      }
+    },
+    [fieldUsageSelectedDestructiveDeleteCount],
+  );
+
+  const handleFieldUsageSelectedRowsChange = useCallback((next: Set<Key>) => {
+    setFieldUsageSelectedRowKeys(new Set(Array.from(next, (key) => String(key))));
+  }, []);
 
   const whereUsedRows: WhereUsedTableRow[] = useMemo(() => {
     if (!parsedResult || !whereUsedForKey) {
@@ -755,6 +832,22 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
 
   const treeColumns: ColumnWithFilter<FieldUsageTreeRow>[] = useMemo(
     () => [
+      {
+        ...SelectColumn,
+        key: SELECT_COLUMN_KEY,
+        resizable: false,
+        sortable: false,
+        minWidth: 36,
+        width: 40,
+        maxWidth: 44,
+        renderCell: (args) => {
+          if (!args.row.destructiveDeleteEligible) {
+            return null;
+          }
+          return SelectColumn.renderCell?.(args) || <SelectFormatter {...args} />;
+        },
+        renderGroupCell: () => null,
+      },
       {
         ...setColumnFromType<FieldUsageTreeRow>('objectApiName', 'text'),
         name: '',
@@ -922,7 +1015,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         sortable: false,
         renderGroupCell: () => null,
         renderCell: (p) => {
-          if (p.row.isObjectErrorPlaceholder || !p.row.fieldApiName.endsWith('__c')) {
+          if (p.row.isObjectErrorPlaceholder || !isCustomFieldApiName(p.row.fieldApiName)) {
             return <span className="slds-text-color_weak">—</span>;
           }
           const fieldKey = `${p.row.objectApiName}.${p.row.fieldApiName}`;
@@ -942,7 +1035,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
           );
         },
         getValue: ({ row }) => {
-          if (row.isObjectErrorPlaceholder || !row.fieldApiName.endsWith('__c')) {
+          if (row.isObjectErrorPlaceholder || !isCustomFieldApiName(row.fieldApiName)) {
             return '—';
           }
           const fieldKey = `${row.objectApiName}.${row.fieldApiName}`;
@@ -1074,6 +1167,8 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
                   onExpandedGroupIdsChange={setExpandedGroupIds}
                   rowHeight={fieldUsageDataTreeRowHeight}
                   initialSortColumns={FIELD_USAGE_TREE_INITIAL_SORT_BY_FIELD}
+                  selectedRows={fieldUsageSelectedRowKeys}
+                  onSelectedRowsChange={handleFieldUsageSelectedRowsChange}
                   org={selectedOrg ?? undefined}
                   serverUrl={serverUrl}
                   skipFrontdoorLogin={skipFrontDoorAuth}
@@ -1102,10 +1197,12 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         content: (
           <div className="slds-p-around_small">
             <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_small">
-              Custom fields (`__c`) at or below {LOW_USAGE_PCT_THRESHOLD}% population across scanned rows.
+              {getFieldUsageLowUsageIntroCopy(LOW_USAGE_PCT_THRESHOLD)}
             </p>
             {lowUsageTreeRows.length === 0 ? (
-              <ScopedNotification theme="info">No custom fields at or below this threshold for the selected objects.</ScopedNotification>
+              <ScopedNotification theme="info">
+                No unmanaged custom fields at or below {LOW_USAGE_PCT_THRESHOLD}% population for the selected objects in this scan.
+              </ScopedNotification>
             ) : (
               <AutoFullHeightContainer
                 fillHeight
@@ -1125,6 +1222,8 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
                   onExpandedGroupIdsChange={setExpandedGroupIds}
                   rowHeight={fieldUsageDataTreeRowHeight}
                   initialSortColumns={FIELD_USAGE_TREE_INITIAL_SORT_BY_PCT}
+                  selectedRows={fieldUsageSelectedRowKeys}
+                  onSelectedRowsChange={handleFieldUsageSelectedRowsChange}
                   org={selectedOrg ?? undefined}
                   serverUrl={serverUrl}
                   skipFrontdoorLogin={skipFrontDoorAuth}
@@ -1165,7 +1264,18 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         ),
       },
     ];
-  }, [parsedResult, treeFieldRows, treeColumns, lowUsageTreeRows, expandedGroupIds, getTreeRowKey, objectsTabTotals, jobRecord?.result]);
+  }, [
+    parsedResult,
+    treeFieldRows,
+    treeColumns,
+    lowUsageTreeRows,
+    expandedGroupIds,
+    getTreeRowKey,
+    objectsTabTotals,
+    jobRecord?.result,
+    fieldUsageSelectedRowKeys,
+    handleFieldUsageSelectedRowsChange,
+  ]);
 
   return (
     <div>
@@ -1205,6 +1315,35 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
             `}
           >
             <ToolbarItemActions>
+              {parsedResult && treeFieldRows.some((row) => !row.isObjectErrorPlaceholder) && (
+                <DropDown
+                  buttonClassName="slds-button slds-button_neutral slds-button_icon slds-button_icon-border-filled"
+                  buttonContent={
+                    <Icon
+                      type="utility"
+                      icon="settings"
+                      className="slds-button__icon slds-button__icon_hint slds-button__icon_medium"
+                      description="Field Actions"
+                    />
+                  }
+                  position="right"
+                  actionText="Field Actions"
+                  items={[
+                    {
+                      id: FIELD_USAGE_TABLE_ACTION_DELETE_METADATA,
+                      subheader: 'Deploy Actions',
+                      icon: { type: 'utility', icon: 'delete', description: 'Delete Selected Custom Fields' },
+                      value: 'Delete selected metadata',
+                      disabled: fieldUsageSelectedDestructiveDeleteCount === 0,
+                      title:
+                        fieldUsageSelectedDestructiveDeleteCount === 0
+                          ? 'Select unmanaged custom fields (no namespace prefix) on the Objects & Fields or Low usage tab'
+                          : 'Same destructive deploy flow as Deploy Metadata (validate or delete from this org)',
+                    },
+                  ]}
+                  onSelected={handleFieldUsageToolbarDropdown}
+                />
+              )}
               <Tooltip
                 ariaRole="label"
                 content={
@@ -1241,6 +1380,13 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
           </div>
         </div>
       </Toolbar>
+      {deleteFieldMetadataModalOpen && selectedOrg && Object.keys(fieldUsageDeleteSelectedMetadata).length > 0 && (
+        <DeleteMetadataModal
+          selectedOrg={selectedOrg}
+          selectedMetadata={fieldUsageDeleteSelectedMetadata}
+          onClose={() => setDeleteFieldMetadataModalOpen(false)}
+        />
+      )}
       {loadAllRecordsModalOpen && (
         <Modal
           header="Load all records?"
@@ -1361,20 +1507,22 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
           </div>
         )}
         {jobId && !fetchError && isTerminal && jobStatusNormalized === 'completed' && parsedResult && resultTabs && (
-          <Fragment>
-            <div className="slds-p-horizontal_medium slds-p-top_x-small">
-              <p className="slds-text-body_small">
-                <span className="slds-text-color_weak">Summary </span>
-                {parsedResult.summary}
-              </p>
-            </div>
-            {parsedResult.failedObjects.length > 0 && (
+          <DataTableSelectedContext.Provider value={{ selectedRowIds: fieldUsageSelectedRowKeys, getRowKey: getTreeRowKey }}>
+            <Fragment>
               <div className="slds-p-horizontal_medium slds-p-top_x-small">
-                <ScopedNotification theme="error">Objects with errors: {parsedResult.failedObjects.join(', ')}.</ScopedNotification>
+                <p className="slds-text-body_small">
+                  <span className="slds-text-color_weak">Summary </span>
+                  {parsedResult.summary}
+                </p>
               </div>
-            )}
-            <Tabs key={resultTabs.map((tab) => tab.id).join('|')} initialActiveId="objects" tabs={resultTabs} />
-          </Fragment>
+              {parsedResult.failedObjects.length > 0 && (
+                <div className="slds-p-horizontal_medium slds-p-top_x-small">
+                  <ScopedNotification theme="error">Objects with errors: {parsedResult.failedObjects.join(', ')}.</ScopedNotification>
+                </div>
+              )}
+              <Tabs key={resultTabs.map((tab) => tab.id).join('|')} initialActiveId="objects" tabs={resultTabs} />
+            </Fragment>
+          </DataTableSelectedContext.Provider>
         )}
       </AutoFullHeightContainer>
     </div>
