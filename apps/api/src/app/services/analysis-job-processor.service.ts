@@ -2,6 +2,7 @@ import { logger } from '@jetstream/api-config';
 import type { Prisma } from '@jetstream/prisma';
 import { getOrgForBackgroundJob } from '../routes/route.middleware';
 import { getAnalysisJobById, updateAnalysisJobById } from '../db/analysis-job.db';
+import { buildIssueCodeSummary, buildPermissionExportFindings } from '../lib/permission-export/build-permission-export-findings';
 import { runPermissionExportSoql } from './permission-export-query.service';
 
 /**
@@ -43,12 +44,17 @@ async function runPermissionExportJob(jobId: string): Promise<void> {
 
     const exportPayload = await runPermissionExportSoql(jetstreamConn, profileIdList, permissionSetIdList);
 
+    const findings = buildPermissionExportFindings(exportPayload.objectPermissions, exportPayload.fieldPermissions);
+    const issueCodeSummary = buildIssueCodeSummary(findings);
+
     const nextResult = {
       ...existingResult,
       phase: 'permission_export_v1',
-      summary: `Exported ${exportPayload.counts.permissionSets} permission sets, ${exportPayload.counts.permissionSetAssignments} assignments, ${exportPayload.counts.permissionSetGroups} permission set groups (${exportPayload.counts.permissionSetGroupComponents} components, ${exportPayload.counts.mutingPermissionSets} muting permission sets), ${exportPayload.counts.objectPermissions} object permission rows, ${exportPayload.counts.fieldPermissions} field permission rows, ${exportPayload.counts.permissionSetTabSettings} tab settings (truncated=${exportPayload.truncated}).`,
+      summary: `Exported ${exportPayload.counts.permissionSets} permission sets, ${exportPayload.counts.permissionSetAssignments} assignments, ${exportPayload.counts.permissionSetGroups} permission set groups (${exportPayload.counts.permissionSetGroupComponents} components, ${exportPayload.counts.mutingPermissionSets} muting permission sets), ${exportPayload.counts.objectPermissions} object permission rows, ${exportPayload.counts.fieldPermissions} field permission rows, ${exportPayload.counts.permissionSetTabSettings} tab settings (truncated=${exportPayload.truncated}). ${findings.length} finding(s).`,
       truncated: exportPayload.truncated,
       counts: exportPayload.counts,
+      findings,
+      issueCodeSummary,
       export: {
         permissionSets: exportPayload.permissionSets,
         permissionSetAssignments: exportPayload.permissionSetAssignments,
