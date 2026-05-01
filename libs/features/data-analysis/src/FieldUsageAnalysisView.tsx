@@ -1,12 +1,11 @@
 import { css } from '@emotion/react';
-import { formatAnalysisJobStatusForDisplay, PermissionAnalysisHistoryModal } from '@jetstream/feature/manage-permissions';
+import { PermissionAnalysisHistoryModal } from '@jetstream/feature/manage-permissions';
 import { logger } from '@jetstream/shared/client-logger';
 import { getAnalysisJob } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import {
   AutoFullHeightContainer,
-  Badge,
   ColumnWithFilter,
   DataTable,
   Icon,
@@ -76,20 +75,6 @@ function formatJobResultJson(result: unknown): string {
   } catch {
     return String(result);
   }
-}
-
-function badgeTypeForJobStatus(status: string): 'success' | 'error' | 'warning' | 'default' {
-  const normalized = status.trim().toLowerCase();
-  if (normalized === 'completed') {
-    return 'success';
-  }
-  if (normalized === 'failed') {
-    return 'error';
-  }
-  if (normalized === 'running' || normalized === 'pending') {
-    return 'warning';
-  }
-  return 'default';
 }
 
 /**
@@ -731,13 +716,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         )}
         {jobId && !fetchError && !isTerminal && (
           <div className="slds-p-around_medium">
-            <div className="slds-grid slds-grid_vertical-align-center slds-gutters_x-small slds-m-bottom_small">
-              <Spinner />
-              <span className="slds-text-body_regular">
-                Job status:{' '}
-                <Badge type={badgeTypeForJobStatus(jobStatusNormalized)}>{formatAnalysisJobStatusForDisplay(jobRecord?.status)}</Badge>
-              </span>
-            </div>
+            <Spinner />
           </div>
         )}
         {jobId && !fetchError && isTerminal && jobStatusNormalized === 'completed' && !parsedResult && (
