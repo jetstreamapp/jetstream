@@ -174,7 +174,7 @@ export const DeleteMetadataConfigModal: FunctionComponent<DeleteMetadataConfigMo
                   {Object.values(selectedMetadata)
                     .flatMap((items) => items)
                     .map((item) => (
-                      <li key={item.fullName} className="slds-item">
+                      <li key={`${item.type}-${item.fullName}-${item.id}`} className="slds-item">
                         {item.fullName} ({item.type})
                       </li>
                     ))}
