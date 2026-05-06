@@ -81,6 +81,8 @@ export interface FieldMappingItemCsv extends FieldMappingItemBase {
 export interface FieldMappingItemStatic extends FieldMappingItemBase {
   type: 'STATIC';
   staticValue: string | boolean | null;
+  // For picklist target fields: 'picklist' lets the user pick from defined values, 'text' lets them type a value freely
+  valueInputMode?: 'picklist' | 'text';
   mappedToLookup: false;
   selectedReferenceTo?: never;
   relationshipName?: never;
