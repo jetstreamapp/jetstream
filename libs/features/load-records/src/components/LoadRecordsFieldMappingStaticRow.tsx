@@ -2,8 +2,19 @@ import { css } from '@emotion/react';
 import { EditableFields, UiRecordFormField, convertMetadataToEditableFields } from '@jetstream/record-form';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { FieldMappingItemStatic, FieldWithRelatedEntities, ListItem, Maybe, PicklistFieldValues, SalesforceOrgUi } from '@jetstream/types';
-import { ComboboxWithItems, Icon } from '@jetstream/ui';
-import { FunctionComponent, useEffect, useId, useState } from 'react';
+import { ComboboxWithItems, Icon, Picklist } from '@jetstream/ui';
+import { FunctionComponent, useEffect, useId, useMemo, useState } from 'react';
+
+type ValueInputMode = NonNullable<FieldMappingItemStatic['valueInputMode']>;
+
+const VALUE_INPUT_MODE_OPTIONS: ListItem[] = [
+  { id: 'picklist', label: 'Picklist Value', value: 'picklist' },
+  { id: 'text', label: 'Text', value: 'text' },
+];
+
+// Salesforce caps a multipicklist write at 100 selected values, each up to 255 chars
+const MULTIPICKLIST_MAX_TEXT_LENGTH = 100 * 255;
+
 function getComboboxFieldName(item: ListItem) {
   return `${item.label} (${item.value})`;
 }
@@ -44,6 +55,21 @@ export const LoadRecordsFieldMappingStaticRow: FunctionComponent<LoadRecordsFiel
   const errorId = useId();
   const [fieldListItems, setFieldListItems] = useState<ListItem<string, FieldWithRelatedEntities>[]>(() => getFieldListItems(fields));
   const [editableField, setEditableField] = useState<Maybe<EditableFields>>(null);
+  const valueInputMode: ValueInputMode = fieldMappingItem.valueInputMode ?? 'picklist';
+
+  // Source field is derived from the latest `fields` prop so that picklist values stay
+  // fresh after the user reloads metadata. Falls back to the snapshot stored on the
+  // mapping item if the field is no longer present in the refreshed list.
+  const sourceField = useMemo(() => {
+    if (!fieldMappingItem.targetField) {
+      return null;
+    }
+    return fields.find((field) => field.name === fieldMappingItem.targetField)?.field ?? fieldMappingItem.fieldMetadata?.field ?? null;
+  }, [fields, fieldMappingItem.targetField, fieldMappingItem.fieldMetadata]);
+
+  const isPicklistField = sourceField?.type === 'picklist' || sourceField?.type === 'multipicklist';
+  const isMultiPicklistField = sourceField?.type === 'multipicklist';
+  const isRestrictedPicklistField = isPicklistField && sourceField?.restrictedPicklist === true;
 
   useNonInitialEffect(() => {
     setFieldListItems(getFieldListItems(fields));
@@ -60,28 +86,37 @@ export const LoadRecordsFieldMappingStaticRow: FunctionComponent<LoadRecordsFiel
   }, [editableField]);
 
   useEffect(() => {
-    if (fieldMappingItem.fieldMetadata?.field) {
-      const picklistValues: PicklistFieldValues = {};
-      if (fieldMappingItem.fieldMetadata.field.type === 'picklist' || fieldMappingItem.fieldMetadata.field.type === 'multipicklist') {
-        picklistValues[fieldMappingItem.fieldMetadata.field.name] = {
-          controllerValues: {},
-          defaultValue: fieldMappingItem.fieldMetadata.field.picklistValues?.find((value) => value.defaultValue)?.value,
-          eTag: '',
-          url: '',
-          values:
-            fieldMappingItem.fieldMetadata.field.picklistValues?.map(({ value, label }) => ({
-              value,
-              label: label || value,
-              attributes: null,
-              validFor: null,
-            })) || [],
-        };
-      }
-      setEditableField(
-        convertMetadataToEditableFields([fieldMappingItem.fieldMetadata.field], picklistValues, 'create', {}, isCustomMetadata)[0],
-      );
+    if (!sourceField) {
+      return;
     }
-  }, [fieldMappingItem.fieldMetadata, isCustomMetadata]);
+    const picklistValues: PicklistFieldValues = {};
+    let fieldForEditable = sourceField;
+
+    if (valueInputMode === 'text' && isPicklistField) {
+      // Override the type so the form renders a free-text input/textarea instead of a picklist
+      // For multipicklist, allow up to Salesforce's max write size; for single picklist, the original
+      // length reflects the longest defined value, which is the right ceiling for an ad-hoc value
+      fieldForEditable = isMultiPicklistField
+        ? { ...sourceField, type: 'textarea', length: MULTIPICKLIST_MAX_TEXT_LENGTH }
+        : { ...sourceField, type: 'string' };
+    } else if (isPicklistField) {
+      picklistValues[sourceField.name] = {
+        controllerValues: {},
+        defaultValue: sourceField.picklistValues?.find((value) => value.defaultValue)?.value,
+        eTag: '',
+        url: '',
+        values:
+          sourceField.picklistValues?.map(({ value, label }) => ({
+            value,
+            label: label || value,
+            attributes: null,
+            validFor: null,
+          })) || [],
+      };
+    }
+
+    setEditableField(convertMetadataToEditableFields([fieldForEditable], picklistValues, 'create', {}, isCustomMetadata)[0]);
+  }, [sourceField, valueInputMode, isPicklistField, isMultiPicklistField, isCustomMetadata]);
 
   function handleValueChange(field: EditableFields, staticValue: string | boolean | null) {
     onSelectionChanged({
@@ -99,16 +134,38 @@ export const LoadRecordsFieldMappingStaticRow: FunctionComponent<LoadRecordsFiel
         mappedToLookup: false,
         targetLookupField: undefined,
         fieldMetadata: field,
+        valueInputMode: 'picklist',
       });
+    }
+  }
+
+  function handleValueInputModeChange(items: ListItem[]) {
+    const selected = items[0]?.id as ValueInputMode | undefined;
+    if (selected && selected !== valueInputMode) {
+      // Clear the value when switching into picklist mode, keep value when going to manual mode
+      const staticValue = selected === 'picklist' ? null : fieldMappingItem.staticValue;
+      onSelectionChanged({ ...fieldMappingItem, valueInputMode: selected, staticValue });
     }
   }
 
   return (
     <tr>
       <th scope="row" colSpan={2} className="slds-align-top slds-text-color_weak bg-color-backdrop-tint">
+        {isPicklistField && (
+          <Picklist
+            className="slds-p-horizontal_x-small"
+            label="Value Input Type"
+            hideLabel
+            containerClassName="slds-m-bottom_x-small"
+            items={VALUE_INPUT_MODE_OPTIONS}
+            selectedItemIds={[valueInputMode]}
+            allowDeselection={false}
+            onChange={handleValueInputModeChange}
+          />
+        )}
         {editableField && (
           <UiRecordFormField
-            key={fieldMappingItem.targetField}
+            key={`${fieldMappingItem.targetField}-${valueInputMode}`}
             org={org}
             field={editableField}
             hideLabel
@@ -119,6 +176,14 @@ export const LoadRecordsFieldMappingStaticRow: FunctionComponent<LoadRecordsFiel
             usePortal
             onChange={handleValueChange}
           />
+        )}
+        {valueInputMode === 'text' && isMultiPicklistField && (
+          <p className="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">Separate multiple values with a semicolon.</p>
+        )}
+        {valueInputMode === 'text' && isRestrictedPicklistField && (
+          <p className="slds-text-body_small slds-text-color_error slds-m-top_xx-small">
+            This is a restricted picklist — values that aren't defined on the field will be rejected by Salesforce.
+          </p>
         )}
       </th>
       <td className="slds-align-top">
