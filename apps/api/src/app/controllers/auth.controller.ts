@@ -638,7 +638,7 @@ const callback = createRoute(
         // The verify flow for a placeholder user is a dead-end that destroys the session, so the email would be
         // pointless and would spam the real owner of the inbox. For non-placeholder users, await delivery so
         // failures continue to surface through the existing route error handling instead of redirecting to
-        // /auth/verify when no verification message was sent.
+        // /auth/verify/ when no verification message was sent.
         const isPlaceholderUser = !!req.session.sessionDetails?.isTemporary || req.session.user.id === PLACEHOLDER_USER_ID;
 
         if (!isPlaceholderUser) {
@@ -652,23 +652,23 @@ const callback = createRoute(
         setCsrfCookie(res);
 
         if (provider.type === 'oauth') {
-          redirect(res, `/auth/verify`);
+          redirect(res, '/auth/verify/');
         } else {
-          sendJson(res, { error: false, redirect: `/auth/verify` });
+          sendJson(res, { error: false, redirect: '/auth/verify/' });
         }
       } else if (req.session.pendingMfaEnrollment) {
         if (provider.type === 'oauth') {
-          redirect(res, `/auth/mfa-enroll`);
+          redirect(res, '/auth/mfa-enroll/');
         } else {
-          sendJson(res, { error: false, redirect: `/auth/mfa-enroll` });
+          sendJson(res, { error: false, redirect: '/auth/mfa-enroll/' });
         }
       } else if (req.session.pendingTosAcceptance) {
         setCsrfCookie(res);
         if (provider.type === 'oauth') {
           await new Promise<void>((resolve, reject) => req.session.save((err) => (err ? reject(err) : resolve())));
-          redirect(res, `/auth/accept-terms`);
+          redirect(res, '/auth/accept-terms/');
         } else {
-          sendJson(res, { error: false, redirect: `/auth/accept-terms` });
+          sendJson(res, { error: false, redirect: '/auth/accept-terms/' });
         }
       } else {
         if (isNewUser) {
@@ -869,7 +869,7 @@ const verification = createRoute(
 
       if (req.session.pendingMfaEnrollment) {
         setCookie(cookieConfig.redirectUrl.name, safeRedirectUrl, cookieConfig.redirectUrl.options);
-        sendJson(res, { error: false, redirect: '/auth/mfa-enroll' });
+        sendJson(res, { error: false, redirect: '/auth/mfa-enroll/' });
       } else {
         sendJson(res, { error: false, redirect: safeRedirectUrl });
       }
@@ -1069,7 +1069,7 @@ const verifyEmailViaLink = createRoute(
       if (!req.session.pendingVerification?.length) {
         if (req.session.pendingMfaEnrollment) {
           setCookie(cookieConfig.redirectUrl.name, safeRedirectUrl, cookieConfig.redirectUrl.options);
-          redirect(res, '/auth/mfa-enroll');
+          redirect(res, '/auth/mfa-enroll/');
         } else {
           redirect(res, safeRedirectUrl);
         }
@@ -1111,7 +1111,7 @@ const verifyEmailViaLink = createRoute(
 
       if (req.session.pendingMfaEnrollment) {
         setCookie(cookieConfig.redirectUrl.name, safeRedirectUrl, cookieConfig.redirectUrl.options);
-        redirect(res, '/auth/mfa-enroll');
+        redirect(res, '/auth/mfa-enroll/');
       } else {
         redirect(res, safeRedirectUrl);
       }
@@ -1381,12 +1381,12 @@ const handleSamlCallback = createRoute(
           await sendVerificationCode(user.email, initialVerification.token, TOKEN_DURATION_MINUTES);
         }
         setCsrfCookie(res);
-        redirect(res, '/auth/verify');
+        redirect(res, '/auth/verify/');
       } else if (req.session.pendingMfaEnrollment) {
-        redirect(res, '/auth/mfa-enroll');
+        redirect(res, '/auth/mfa-enroll/');
       } else if (req.session.pendingTosAcceptance) {
         setCsrfCookie(res);
-        redirect(res, '/auth/accept-terms');
+        redirect(res, '/auth/accept-terms/');
       } else {
         if (req.session.sendNewUserEmailAfterVerify) {
           req.session.sendNewUserEmailAfterVerify = undefined;
@@ -1546,12 +1546,12 @@ const handleOidcCallback = createRoute(routeDefinition.handleOidcCallback.valida
         await sendVerificationCode(user.email, initialVerification.token, TOKEN_DURATION_MINUTES);
       }
       setCsrfCookie(res);
-      redirect(res, '/auth/verify');
+      redirect(res, '/auth/verify/');
     } else if (req.session.pendingMfaEnrollment) {
-      redirect(res, '/auth/mfa-enroll');
+      redirect(res, '/auth/mfa-enroll/');
     } else if (req.session.pendingTosAcceptance) {
       setCsrfCookie(res);
-      redirect(res, '/auth/accept-terms');
+      redirect(res, '/auth/accept-terms/');
     } else {
       if (req.session.sendNewUserEmailAfterVerify) {
         req.session.sendNewUserEmailAfterVerify = undefined;

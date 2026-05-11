@@ -104,7 +104,7 @@ export async function redirectIfPendingVerificationMiddleware(req: express.Reque
     const isJson = (req.get(HTTP.HEADERS.ACCEPT) || '').includes(HTTP.CONTENT_TYPE.JSON);
 
     if (!isJson) {
-      res.redirect(302, `/auth/verify`);
+      res.redirect(302, '/auth/verify/');
       return;
     } else {
       next(new AuthError('Pending verification token'));
@@ -119,7 +119,7 @@ export async function redirectIfPendingTosAcceptanceMiddleware(req: express.Requ
     const isJson = (req.get(HTTP.HEADERS.ACCEPT) || '').includes(HTTP.CONTENT_TYPE.JSON);
 
     if (!isJson) {
-      res.redirect(302, `/auth/accept-terms`);
+      res.redirect(302, '/auth/accept-terms/');
       return;
     } else {
       next(new AuthError('Pending Terms of Service acceptance'));
@@ -134,7 +134,7 @@ export async function redirectIfMfaEnrollmentRequiredMiddleware(req: express.Req
     const isJson = (req.get(HTTP.HEADERS.ACCEPT) || '').includes(HTTP.CONTENT_TYPE.JSON);
 
     if (!isJson) {
-      res.redirect(302, `/auth/mfa-enroll`);
+      res.redirect(302, '/auth/mfa-enroll/');
       return;
     } else {
       next(new AuthError('Pending Multi-factor authentication enrollment. Login again to finish the enrollment.'));
@@ -153,7 +153,7 @@ export async function redirectIfNotAuthenticatedMiddleware(req: express.Request,
   const user = req.session.user;
 
   if (!user || user.id === PLACEHOLDER_USER_ID) {
-    res.redirect(302, '/auth/login');
+    res.redirect(302, '/auth/login/');
     return;
   }
 

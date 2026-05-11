@@ -303,7 +303,7 @@ function responseInterceptor<T>(options: RequestOptions): (response: AxiosRespon
         }
         // Handle auth errors that would normally trigger logout via X-AUTH-LOGOUT header
         if (deferredBody.logout) {
-          window.location.href = deferredBody.logoutUrl || '/auth/login';
+          window.location.href = deferredBody.logoutUrl || '/auth/login/';
           throw new Error(deferredBody.message || 'Session expired');
         }
         throw new Error(deferredBody.message || 'An unknown error has occurred');
@@ -361,7 +361,7 @@ function responseErrorInterceptor(options: {
       // take user to login page
       if (getHeader(response.headers, HTTP.HEADERS.X_LOGOUT) === '1') {
         // LOG USER OUT
-        const logoutUrl = getHeader(response.headers, HTTP.HEADERS.X_LOGOUT_URL) || '/auth/login';
+        const logoutUrl = getHeader(response.headers, HTTP.HEADERS.X_LOGOUT_URL) || '/auth/login/';
         window.location.href = logoutUrl;
       }
     }

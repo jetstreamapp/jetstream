@@ -232,9 +232,9 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       // Include auth error type so client can trigger logout if needed
       if (err instanceof AuthenticationError && !err.skipLogout) {
         deferredErrorBody.logout = true;
-        let logoutUrl = `${ENV.JETSTREAM_SERVER_URL}/auth/login`;
+        let logoutUrl = `${ENV.JETSTREAM_SERVER_URL}/auth/login/`;
         if (req.session?.pendingVerification && req.session.pendingVerification.some(({ exp }) => exp > Date.now())) {
-          logoutUrl = `${ENV.JETSTREAM_SERVER_URL}/auth/verify?type=${req.session.pendingVerification[0].type}`;
+          logoutUrl = `${ENV.JETSTREAM_SERVER_URL}/auth/verify/?type=${req.session.pendingVerification[0].type}`;
         }
         deferredErrorBody.logoutUrl = logoutUrl;
       } else if (err instanceof AuthError) {
@@ -322,9 +322,9 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       res.status(status || 401);
       if (!err.skipLogout) {
         res.set(HTTP.HEADERS.X_LOGOUT, '1');
-        let redirectUrl = `${ENV.JETSTREAM_SERVER_URL}/auth/login`;
+        let redirectUrl = `${ENV.JETSTREAM_SERVER_URL}/auth/login/`;
         if (req.session?.pendingVerification && req.session.pendingVerification.some(({ exp }) => exp > Date.now())) {
-          redirectUrl = `${ENV.JETSTREAM_SERVER_URL}/auth/verify?type=${req.session.pendingVerification[0].type}`;
+          redirectUrl = `${ENV.JETSTREAM_SERVER_URL}/auth/verify/?type=${req.session.pendingVerification[0].type}`;
         }
         res.set(HTTP.HEADERS.X_LOGOUT_URL, redirectUrl);
       }

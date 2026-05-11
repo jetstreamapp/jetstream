@@ -232,7 +232,7 @@ test.describe('Team Dashboard', () => {
     await test.step('Ensure user1 was logged out and requires OTP enrollment on next login', async () => {
       const authenticationPage = new AuthenticationPage(member1Page);
       await member1Page.reload();
-      expect(member1Page.url()).toContain('/auth/login');
+      expect(member1Page.url()).toContain('/auth/login/');
 
       await authenticationPage.loginAndVerifyEmail(member1.user.email, member1.user.password, true, '**/auth/mfa-enroll/');
       await expect(member1Page.getByRole('heading', { name: 'Scan the QR code with your' })).toBeVisible();
@@ -263,10 +263,10 @@ test.describe('Team Dashboard', () => {
 
     await test.step('Ensure user2 was logged out and is prevented from logging back in', async () => {
       await member2Page.reload();
-      expect(member2Page.url()).toContain('/auth/login');
+      expect(member2Page.url()).toContain('/auth/login/');
       const authenticationPage = new AuthenticationPage(member2Page);
       await authenticationPage.fillOutLoginForm(member2.user.email, member2.user.password);
-      expect(member2Page.url()).toContain('/auth/login');
+      expect(member2Page.url()).toContain('/auth/login/');
       await expect(member2Page.getByText('Your account is inactive.')).toBeVisible();
       await member2Page.close();
     });
@@ -419,7 +419,7 @@ test.describe('Team Dashboard', () => {
     await test.step('Ensure existing members without OTP are logged out and forced to enroll in OTP', async () => {
       const page = await user1Context.newPage();
       await page.goto('/app/home');
-      expect(page.url()).toContain('/auth/login');
+      expect(page.url()).toContain('/auth/login/');
 
       const authenticationPage = new AuthenticationPage(page);
       await authenticationPage.loginAndVerifyEmail(user1.email, user1.password, true, '**/auth/mfa-enroll/');
@@ -493,7 +493,9 @@ test.describe('Team Dashboard', () => {
     });
   });
 
-  test('Stale admin session cannot update invitations after demotion to billing', async ({ teamCreationUtils3Users: teamCreationUtils }) => {
+  test('Stale admin session cannot update invitations after demotion to billing', async ({
+    teamCreationUtils3Users: teamCreationUtils,
+  }) => {
     const { team } = teamCreationUtils;
     const [, staleAdmin] = teamCreationUtils.members;
 
@@ -530,7 +532,9 @@ test.describe('Team Dashboard', () => {
       });
 
       expect(response.status()).toBe(403);
-      await expect.poll(() => prisma.teamMemberInvitation.findUniqueOrThrow({ where: { id: invitation.id } }).then(({ role }) => role)).toBe('MEMBER');
+      await expect
+        .poll(() => prisma.teamMemberInvitation.findUniqueOrThrow({ where: { id: invitation.id } }).then(({ role }) => role))
+        .toBe('MEMBER');
     });
   });
 
@@ -580,7 +584,7 @@ test.describe('Team Dashboard', () => {
       const user = await new AuthenticationPage(newPage).signUpAndVerifyEmailPauseBeforeEnrollInOtp(userEmail, link);
       teamCreationUtils.users.push(user);
 
-      expect(newPage.url()).toContain('/auth/mfa-enroll');
+      expect(newPage.url()).toContain('/auth/mfa-enroll/');
       const heartbeatResponse = await newPage.request.get('/api/heartbeat', { headers: { Accept: 'application/json' } });
       expect(heartbeatResponse.status()).toBe(401);
       await newPage.close();
