@@ -298,7 +298,7 @@ export const ProfileOrPermSetPopover: FunctionComponent<ProfileOrPermSetPopoverP
         </div>
       }
       buttonProps={{
-        className: classNames('slds-button', { 'slds-button_icon slds-button_icon-container': !displayValue }),
+        className: classNames('slds-button', { 'slds-button_icon': !displayValue }),
         title: buttonTitle ?? `View ${recordType === 'Profile' ? 'profile' : 'permission set'} details`,
         onClick: (event) => event.stopPropagation(),
       }}
