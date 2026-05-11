@@ -123,7 +123,7 @@ const initAuthMiddleware = createRoute(routeDefinition.initAuthMiddleware.valida
     // cookies, so the frontend must pass returnUrl forward to /api/auth/sso/start where it can
     // be threaded into SAML RelayState (and the OIDC returnUrl cookie).
     setCookie(redirectUrlCookie.name, desktopReturnUrl, redirectUrlCookie.options);
-    redirect(res, `/auth/login/?returnUrl=${encodeURIComponent(desktopReturnUrl)}`);
+    redirect(res, `/auth/login?returnUrl=${encodeURIComponent(desktopReturnUrl)}`);
     return;
   }
   next();

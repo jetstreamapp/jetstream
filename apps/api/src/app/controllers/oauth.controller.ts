@@ -97,7 +97,7 @@ const salesforceOauthCallback = createRoute(
           : 'There was an error authenticating with Salesforce.';
         res.log.warn({ ...queryParams, requestId: res.locals.requestId, queryParams }, '[OAUTH][ERROR] %s', queryParams.error);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
+        return res.redirect(`/oauth-link?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
       } else if (!orgAuth) {
         returnParams.error = 'Authentication Error';
         returnParams.message = queryParams.error_description
@@ -105,7 +105,7 @@ const salesforceOauthCallback = createRoute(
           : 'There was an error authenticating with Salesforce.';
         res.log.warn({ ...queryParams, requestId: res.locals.requestId, queryParams }, '[OAUTH][ERROR] Missing orgAuth from session');
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
+        return res.redirect(`/oauth-link?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
       }
 
       const { code_verifier, nonce, state, loginUrl, orgGroupId } = orgAuth;
@@ -146,7 +146,7 @@ const salesforceOauthCallback = createRoute(
 
       returnParams.data = JSON.stringify(salesforceOrg);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
+      return res.redirect(`/oauth-link?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
     } catch (ex) {
       let errorLogObj: Record<string, any> = { err: ex };
 
@@ -170,7 +170,7 @@ const salesforceOauthCallback = createRoute(
       res.log.warn(errorLogObj, '[OAUTH][ERROR]');
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
+      return res.redirect(`/oauth-link?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
     }
   },
 );

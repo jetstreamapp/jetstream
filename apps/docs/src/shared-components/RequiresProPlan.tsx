@@ -6,7 +6,7 @@ export const RequiresProPlan = () => {
       <JetstreamProLogo width="250px" />
       <p>
         This feature is only available on the Pro plan.{' '}
-        <a href="https://getjetstream.app/pricing/" target="_blank" rel="noopener noreferrer">
+        <a href="https://getjetstream.app/pricing" target="_blank" rel="noopener noreferrer">
           Upgrade
         </a>
         .

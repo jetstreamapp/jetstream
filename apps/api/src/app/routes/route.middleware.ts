@@ -22,6 +22,7 @@ import express, { Request } from 'express';
 import multer from 'multer';
 import { randomBytes } from 'node:crypto';
 import os from 'node:os';
+import { posix as pathPosix } from 'node:path';
 import pino from 'pino';
 import { v4 as uuid } from 'uuid';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
@@ -77,6 +78,31 @@ export function deprecatedRouteMiddleware(req: express.Request, res: express.Res
 export function notFoundMiddleware(_: express.Request, __: express.Response, next: express.NextFunction) {
   const error = new NotFoundError('Route not found');
   next(error);
+}
+
+/**
+ * Strips trailing slashes from GET/HEAD requests via 301 redirect — needed because
+ * Next.js export with trailingSlash:false emits foo.html (not foo/index.html), and
+ * Express static won't auto-redirect /foo/ → /foo. Preserves old bookmarks and
+ * indexed URLs.
+ *
+ * Collapses runs of slashes before stripping the trailing one — otherwise a request
+ * like `//evil.com/` would yield `Location: //evil.com`, which browsers follow as a
+ * protocol-relative URL to evil.com (open redirect).
+ */
+export function stripTrailingSlashRedirect(req: express.Request, res: express.Response, next: express.NextFunction) {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    return next();
+  }
+  if (req.path === '/' || !req.path.endsWith('/')) {
+    return next();
+  }
+  const newPath = pathPosix.normalize(req.path.replace(/\/+/g, '/')).replace(/\/$/, '');
+  if (!newPath.startsWith('/') || newPath.startsWith('//')) {
+    return next();
+  }
+  const query = req.url.slice(req.path.length);
+  res.redirect(301, newPath + query);
 }
 
 export function destroySessionIfPendingVerificationIsExpired(req: express.Request, _: express.Response, next: express.NextFunction) {

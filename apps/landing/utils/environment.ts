@@ -31,8 +31,8 @@ export const ROUTES = {
   },
   AUTH: {
     _root_path: '/auth/',
-    login: '/auth/login/',
-    signup: '/auth/signup/',
+    login: '/auth/login',
+    signup: '/auth/signup',
     resetPassword: '/auth/password-reset',
     resetPasswordVerify: '/auth/password-reset/verify',
     verify: `/auth/verify`,

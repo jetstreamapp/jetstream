@@ -146,7 +146,7 @@ export default function Page() {
       </p>
       <p className="mb-2 pl-2">
         Refer to our{' '}
-        <a className="underline" href="https://getjetstream.app/subprocessors/" target="_blank" rel="noreferrer">
+        <a className="underline" href="https://getjetstream.app/subprocessors" target="_blank" rel="noreferrer">
           data sub-processors
         </a>{' '}
         for information about our vendors.
