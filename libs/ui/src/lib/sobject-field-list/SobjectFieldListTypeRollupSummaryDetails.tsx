@@ -1,6 +1,5 @@
 import { css } from '@emotion/react';
 import { queryWithCache } from '@jetstream/shared/data';
-import { tracker } from '@jetstream/shared/ui-utils';
 import { FieldWrapper, SalesforceOrgUi } from '@jetstream/types';
 import copyToClipboard from 'copy-to-clipboard';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
@@ -80,10 +79,9 @@ const TooltipContent = ({
       developerName = namespace;
       namespace = '';
     }
-    let query: string | undefined = undefined;
     try {
       setLoading(true);
-      query = `SELECT Id, Metadata FROM CustomField
+      const query = `SELECT Id, Metadata FROM CustomField
       WHERE EntityDefinition.QualifiedApiName = '${field.sobject}'
       AND DeveloperName = '${developerName}'
       ${namespace ? `AND NamespacePrefix = '${namespace}'` : ''}
@@ -96,8 +94,7 @@ const TooltipContent = ({
           items: summaryFilterItems.map(({ field, operation, value }) => `${field} ${operation} ${value}`),
         });
       }
-    } catch (ex) {
-      tracker.error('Error getting tooltip content', ex, { query });
+    } catch {
       if (isMounted.current) {
         setContent({ label: `Oops. There was a problem getting the Roll-Up Summary content.`, items: [] });
       }
