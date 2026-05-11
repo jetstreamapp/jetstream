@@ -1,4 +1,4 @@
-import { logBuffer, logger } from '@jetstream/shared/client-logger';
+import { logger } from '@jetstream/shared/client-logger';
 import { Environment, UserProfileUi } from '@jetstream/types';
 import * as Sentry from '@sentry/react';
 
@@ -10,6 +10,10 @@ const ignoredMessageSubstrings = [
   'ResizeObserver loop completed',
   'ResizeObserver loop limit exceeded',
   '/js/monaco/vs/',
+  'Session expired or invalid',
+  'This session is not valid for use with the REST API',
+  'There was an error reading one or more date fields in your file',
+  'There was an error reading one or more time fields in your file',
 ];
 const ignoredExactMessages = new Set(['Canceled', 'ChunkLoadError', '(unknown)']);
 const extensionUrlPrefixes = ['chrome-extension://', 'moz-extension://', 'safari-web-extension://', 'safari-extension://'];
@@ -71,14 +75,6 @@ function shouldIgnore(event: Sentry.ErrorEvent): boolean {
   return false;
 }
 
-function getRecentLogs(): string {
-  try {
-    return JSON.stringify(logBuffer);
-  } catch (ex) {
-    return `[ERROR GETTING RECENT LOGS: ${ex instanceof Error ? ex.message : String(ex)}]`;
-  }
-}
-
 /**
  * Initialize the error tracker. Safe to call multiple times — only the first call with a non-empty dsn does anything.
  * Call this once at app boot (e.g. AppInitializer) before any errors need to be reported.
@@ -108,7 +104,6 @@ export function initErrorTracker(options: InitOptions): void {
       if (isRateLimited()) {
         return null;
       }
-      event.extra = { ...event.extra, recentLogs: getRecentLogs() };
       return event;
     },
   });
@@ -163,9 +158,15 @@ function capture(severity: Severity, messageOrError: unknown, extras: unknown[])
         Sentry.captureException(messageOrError);
       } else if (errorFromExtras) {
         if (typeof messageOrError === 'string') {
-          scope.setExtra('message', messageOrError);
+          // Wrap so the description becomes the issue title in the tracker,
+          // while preserving the original stack and cause chain.
+          const wrapped = new Error(`${messageOrError}: ${errorFromExtras.message}`, { cause: errorFromExtras });
+          wrapped.name = errorFromExtras.name;
+          wrapped.stack = errorFromExtras.stack;
+          Sentry.captureException(wrapped);
+        } else {
+          Sentry.captureException(errorFromExtras);
         }
-        Sentry.captureException(errorFromExtras);
       } else if (typeof messageOrError === 'string') {
         Sentry.captureMessage(messageOrError, severity);
       } else {
