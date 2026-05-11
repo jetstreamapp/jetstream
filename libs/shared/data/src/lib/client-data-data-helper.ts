@@ -357,7 +357,9 @@ function responseErrorInterceptor(options: {
       // Run middleware for error responses
       errorMiddleware.forEach((middleware) => middleware(response, org));
       const responseBody: { error: boolean; message: string } = response.data || { error: true, message: 'An unknown error has occurred' };
-      message = responseBody?.message || 'An unknown error has occurred';
+      // Include the HTTP status in the fallback so non-JSON error responses (e.g. Cloudflare 524 HTML pages)
+      // surface a diagnosable message instead of the generic literal.
+      message = responseBody?.message || `An unknown error has occurred (HTTP ${response.status})`;
       // take user to login page
       if (getHeader(response.headers, HTTP.HEADERS.X_LOGOUT) === '1') {
         // LOG USER OUT

@@ -34,7 +34,9 @@ function createMockRes() {
   let ended = false;
   const writtenHeaders: Record<string, string> = {};
 
-  const res = {
+  // Extend EventEmitter so writeDeferredResponse's res.once('finish'|'close'|'error') listeners work.
+  const emitter = new EventEmitter();
+  const res = Object.assign(emitter, {
     locals: {
       requestId: 'test-request-id',
     } as Record<string, unknown>,
@@ -65,7 +67,7 @@ function createMockRes() {
     _headersWritten: () => headersWritten,
     _writtenHeaders: writtenHeaders,
     _ended: () => ended,
-  };
+  });
 
   return res;
 }
@@ -451,6 +453,61 @@ describe('writeDeferredResponse', () => {
     expect(deferred.timer).toBeNull();
     expect(deferred.keepaliveInterval).toBeNull();
     vi.useRealTimers();
+  });
+
+  it('should log COMPLETE when the response stream emits finish', () => {
+    const res = createMockRes();
+    const deferred: DeferredResponseState = {
+      active: true,
+      timer: null,
+      keepaliveInterval: null,
+      startTime: Date.now() - 50_000,
+      keepaliveCount: 2,
+    };
+    res.locals._deferred = deferred;
+
+    writeDeferredResponse(res as any, { data: 'test' });
+    res.emit('finish');
+
+    expect(res.log.info).toHaveBeenCalledWith(expect.any(Object), expect.stringContaining('[DEFERRED][COMPLETE]'));
+    expect(res.log.warn).not.toHaveBeenCalledWith(expect.any(Object), expect.stringContaining('[DEFERRED][PREMATURE_CLOSE]'));
+  });
+
+  it('should log PREMATURE_CLOSE when the response stream closes before finish', () => {
+    const res = createMockRes();
+    const deferred: DeferredResponseState = {
+      active: true,
+      timer: null,
+      keepaliveInterval: null,
+      startTime: Date.now() - 50_000,
+      keepaliveCount: 2,
+    };
+    res.locals._deferred = deferred;
+
+    writeDeferredResponse(res as any, { data: 'test' });
+    res.emit('close');
+
+    expect(res.log.warn).toHaveBeenCalledWith(expect.any(Object), expect.stringContaining('[DEFERRED][PREMATURE_CLOSE]'));
+    expect(res.log.info).not.toHaveBeenCalledWith(expect.any(Object), expect.stringContaining('[DEFERRED][COMPLETE]'));
+  });
+
+  it('should not log PREMATURE_CLOSE when close fires after finish', () => {
+    const res = createMockRes();
+    const deferred: DeferredResponseState = {
+      active: true,
+      timer: null,
+      keepaliveInterval: null,
+      startTime: Date.now() - 50_000,
+      keepaliveCount: 2,
+    };
+    res.locals._deferred = deferred;
+
+    writeDeferredResponse(res as any, { data: 'test' });
+    res.emit('finish');
+    res.emit('close');
+
+    expect(res.log.info).toHaveBeenCalledWith(expect.any(Object), expect.stringContaining('[DEFERRED][COMPLETE]'));
+    expect(res.log.warn).not.toHaveBeenCalledWith(expect.any(Object), expect.stringContaining('[DEFERRED][PREMATURE_CLOSE]'));
   });
 });
 

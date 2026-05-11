@@ -202,8 +202,18 @@ export function initializeDexieSync(name: string) {
         // Ongoing sync
         onSuccess({
           async react(changes, baseRevision, partial, onChangesAccepted) {
-            await pushAndPullAllRecords(baseRevision, changes, applyRemoteChanges, onChangesAccepted);
-            retryCount = 0; // Reset retry count on success
+            try {
+              await pushAndPullAllRecords(baseRevision, changes, applyRemoteChanges, onChangesAccepted);
+              retryCount = 0; // Reset retry count on success
+            } catch (ex) {
+              // Without this catch, server-side rejections (e.g. unique-key conflicts from /api/data-sync/push)
+              // escape Dexie's machinery as unhandled promise rejections and get reported to the error tracker.
+              logger.warn('[SYNC][ERROR] Failed to sync records (react)', ex);
+              retryCount++;
+              const backoffDelay = Math.min(BACKOFF_DELAY_INCREMENT_MS * (retryCount + 1), MAX_BACKOFF_DELAY_MS);
+              logger.warn(`[SYNC][RETRY] Retrying in ${backoffDelay}ms (retryCount: ${retryCount})`);
+              onError(ex, backoffDelay);
+            }
           },
           disconnect() {
             retryCount = 0; // Reset retry count on disconnect
