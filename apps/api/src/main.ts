@@ -47,6 +47,7 @@ import {
   redirectIfPendingTosAcceptanceMiddleware,
   redirectIfPendingVerificationMiddleware,
   setCacheControlForApiRoutes,
+  setIpAddress,
   setPermissionPolicy,
 } from './app/routes/route.middleware';
 import { healthCheck, uncaughtErrorHandler } from './app/utils/response.handlers';
@@ -93,6 +94,9 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
 
   const pgSession = pgSimple(session);
 
+  // express-session and connect-pg-simple bundle their own @types/express@4 (which still
+  // has `req.param`), so the returned handler isn't assignable to the v5 RequestHandler that
+  // `app.use` and `initSocketServer` expect. Cast once here so call sites stay clean.
   const sessionMiddleware = session({
     store: new pgSession({
       pool: pgPool,
@@ -115,14 +119,18 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
     // This will extend the cookie expiration date if there is a request of any kind to a logged in user
     rolling: true,
     name: 'sessionid',
-  });
+  }) as unknown as express.RequestHandler;
 
   const app = express();
   const httpServer = initSocketServer(app, { sessionMiddleware });
 
   if (environment.production) {
-    app.set('trust proxy', 1); // required for environments such as heroku / {render?}
+    app.set('trust proxy', 1); // required for environments behind a proxy (like Render) to correctly identify client IPs and set secure cookies
   }
+
+  // Resolves and stamps `req.ipAddress` (prefers `cf-connecting-ip`, falls back to `req.ip`).
+  // Mounted first so logging, Sentry context, rate limiters, and route handlers can rely on it.
+  app.use(setIpAddress);
 
   app.use(addContextMiddleware);
 
@@ -156,9 +164,10 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   } else {
     app.use(
       '/analytics',
+      // express-http-proxy is typed against @types/express@4; cast for v5 compatibility.
       proxy('https://api2.amplitude.com', {
         proxyReqPathResolver: (req) => req.originalUrl.replace('/analytics', '/2/httpapi'),
-      }),
+      }) as unknown as express.RequestHandler,
     );
   }
 

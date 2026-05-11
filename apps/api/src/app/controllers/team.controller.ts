@@ -495,7 +495,7 @@ const acceptInvitation = createRoute(routeDefinition.acceptInvitation.validators
     resource: AuditLogResource.TEAM_MEMBER,
     resourceId: user.id,
     metadata: { inviteeEmail, role, features },
-    ipAddress: req.ip,
+    ipAddress: req.ipAddress,
     userAgent: req.headers['user-agent'] as string,
   });
 });
@@ -519,7 +519,7 @@ const updateTeam = createRoute(routeDefinition.updateTeam.validators, async ({ p
     resource: AuditLogResource.TEAM,
     resourceId: teamId,
     metadata: { previousName: previousTeam.name, newName: team.name },
-    ipAddress: req.ip,
+    ipAddress: req.ipAddress,
     userAgent: req.headers['user-agent'] as string,
   });
 });
@@ -547,7 +547,7 @@ const revokeUserSession = createRoute(routeDefinition.revokeUserSession.validato
       resource: AuditLogResource.TEAM_MEMBER,
       resourceId: targetUserId,
       metadata: { targetUserId, sessionId },
-      ipAddress: req.ip,
+      ipAddress: req.ipAddress,
       userAgent: req.headers['user-agent'] as string,
     });
   }
@@ -599,7 +599,7 @@ const updateLoginConfiguration = createRoute(
       resource: AuditLogResource.TEAM_LOGIN_CONFIG,
       resourceId: team.loginConfigId ?? undefined,
       metadata: { changes, sessionsRevoked },
-      ipAddress: req.ip,
+      ipAddress: req.ipAddress,
       userAgent: req.headers['user-agent'] as string,
     });
   },
@@ -639,7 +639,7 @@ const updateTeamMember = createRoute(routeDefinition.updateTeamMember.validators
       previousFeatures: previousMember.features,
       newFeatures: updatedMember?.features ?? body.features,
     },
-    ipAddress: req.ip,
+    ipAddress: req.ipAddress,
     userAgent: req.headers['user-agent'] as string,
   });
 });
@@ -683,7 +683,7 @@ const updateTeamMemberStatusAndRole = createRoute(
         newRole: updatedMember?.role ?? role ?? previousMember.role,
         allSessionsRevoked,
       },
-      ipAddress: req.ip,
+      ipAddress: req.ipAddress,
       userAgent: req.headers['user-agent'] as string,
     });
   },
@@ -725,7 +725,7 @@ const createInvitation = createRoute(routeDefinition.createInvitation.validators
       features: createdInvitation.features,
       expiresAt: createdInvitation.expiresAt.toISOString(),
     },
-    ipAddress: req.ip,
+    ipAddress: req.ipAddress,
     userAgent: req.headers['user-agent'] as string,
   });
 });
@@ -764,7 +764,7 @@ const resendInvitation = createRoute(routeDefinition.resendInvitation.validators
     resource: AuditLogResource.TEAM_INVITATION,
     resourceId: updatedInvitation.id,
     metadata: { inviteeEmail: updatedInvitation.email, role: updatedInvitation.role },
-    ipAddress: req.ip,
+    ipAddress: req.ipAddress,
     userAgent: req.headers['user-agent'] as string,
   });
 });
@@ -792,7 +792,7 @@ const cancelInvitation = createRoute(routeDefinition.cancelInvitation.validators
     resource: AuditLogResource.TEAM_INVITATION,
     resourceId: id,
     metadata: { inviteeEmail: existingInvitation.email, role: existingInvitation.role },
-    ipAddress: req.ip,
+    ipAddress: req.ipAddress,
     userAgent: req.headers['user-agent'] as string,
   });
 });
@@ -880,7 +880,7 @@ const createOrUpdateSamlConfig = createRoute(
             // nameIdFormat: configData.nameIdFormat,
             // wantAssertionsSigned: configData.wantAssertionsSigned,
           },
-          ipAddress: req.ip,
+          ipAddress: req.ipAddress,
           userAgent: req.headers['user-agent'] as string,
         });
       } else if (previousSamlConfig) {
@@ -919,7 +919,7 @@ const createOrUpdateSamlConfig = createRoute(
           resource: AuditLogResource.TEAM_SSO_CONFIG,
           resourceId: previousSamlConfig.id,
           metadata: { provider: 'SAML', configId: previousSamlConfig.id, changes },
-          ipAddress: req.ip,
+          ipAddress: req.ipAddress,
           userAgent: req.headers['user-agent'] as string,
         });
       }
@@ -997,7 +997,7 @@ const createOrUpdateOidcConfig = createRoute(
             scopes: body.scopes,
             attributeMapping: body.attributeMapping,
           },
-          ipAddress: req.ip,
+          ipAddress: req.ipAddress,
           userAgent: req.headers['user-agent'] as string,
         });
       } else if (previousOidcConfig) {
@@ -1021,7 +1021,7 @@ const createOrUpdateOidcConfig = createRoute(
           resource: AuditLogResource.TEAM_SSO_CONFIG,
           resourceId: previousOidcConfig.id,
           metadata: { provider: 'OIDC', configId: previousOidcConfig.id, changes },
-          ipAddress: req.ip,
+          ipAddress: req.ipAddress,
           userAgent: req.headers['user-agent'] as string,
         });
       }
@@ -1055,7 +1055,7 @@ const updateSsoSettings = createRoute(routeDefinition.updateSsoSettings.validato
       resource: AuditLogResource.TEAM_LOGIN_CONFIG,
       resourceId: config.id,
       metadata: { changes },
-      ipAddress: req.ip,
+      ipAddress: req.ipAddress,
       userAgent: req.headers['user-agent'] as string,
     });
   } catch (ex) {
@@ -1078,7 +1078,7 @@ const deleteSamlConfig = createRoute(routeDefinition.deleteSamlConfig.validators
         resource: AuditLogResource.TEAM_SSO_CONFIG,
         resourceId: deletedConfig.id,
         metadata: { provider: 'SAML', idpEntityId: deletedConfig.idpEntityId, affectedIdentitiesCount },
-        ipAddress: req.ip,
+        ipAddress: req.ipAddress,
         userAgent: req.headers['user-agent'] as string,
       });
     }
@@ -1102,7 +1102,7 @@ const deleteOidcConfig = createRoute(routeDefinition.deleteOidcConfig.validators
         resource: AuditLogResource.TEAM_SSO_CONFIG,
         resourceId: deletedConfig.id,
         metadata: { provider: 'OIDC', issuer: deletedConfig.issuer, clientId: deletedConfig.clientId, affectedIdentitiesCount },
-        ipAddress: req.ip,
+        ipAddress: req.ipAddress,
         userAgent: req.headers['user-agent'] as string,
       });
     }
@@ -1144,7 +1144,7 @@ const saveDomainVerification = createRoute(
         resourceId: result.id,
         // verificationCode intentionally excluded — it is a shared secret
         metadata: { domain, status: 'PENDING' },
-        ipAddress: req.ip,
+        ipAddress: req.ipAddress,
         userAgent: req.headers['user-agent'] as string,
       });
     } catch (ex) {
@@ -1238,7 +1238,7 @@ const verifyDomain = createRoute(routeDefinition.verifyDomain.validators, async 
         resource: AuditLogResource.TEAM_DOMAIN_VERIFICATION,
         resourceId: domainId,
         metadata: { domain: verification.domain, method: verificationMethod, verifiedAt: result.verifiedAt },
-        ipAddress: req.ip,
+        ipAddress: req.ipAddress,
         userAgent: req.headers['user-agent'] as string,
       });
     } else {
@@ -1269,7 +1269,7 @@ const deleteDomainVerification = createRoute(
           wasVerified: deletedRecord.status === 'VERIFIED',
           previousStatus: deletedRecord.status,
         },
-        ipAddress: req.ip,
+        ipAddress: req.ipAddress,
         userAgent: req.headers['user-agent'] as string,
       });
     } catch (ex) {

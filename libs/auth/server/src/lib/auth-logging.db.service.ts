@@ -3,7 +3,6 @@ import { Maybe } from '@jetstream/types';
 import type { Request, Response } from 'express';
 import { PLACEHOLDER_USER_ID } from './auth.constants';
 import { AuthError } from './auth.errors';
-import { getApiAddressFromReq } from './auth.utils';
 
 export type Action =
   | 'LOGIN'
@@ -93,7 +92,7 @@ export async function createUserActivityFromReq(
   data: LoginActivity,
 ) {
   try {
-    const ipAddress = getApiAddressFromReq(req);
+    const ipAddress = req.ipAddress;
     const userAgent = req.get('user-agent');
     const resolvedUserId = data.userId || req.session?.user?.id;
     // Placeholder sessions (e.g., registering with an already-in-use email) have no real User row,

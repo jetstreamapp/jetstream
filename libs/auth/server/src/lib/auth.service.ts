@@ -10,7 +10,7 @@ import { OauthClientProvider, OauthClients } from './OauthClients';
 import { CURRENT_TOS_VERSION, EMAIL_VERIFICATION_TOKEN_DURATION_HOURS, TOKEN_DURATION_MINUTES } from './auth.constants';
 import { findUserById_UNSAFE, handleSignInOrRegistration } from './auth.db.service';
 import { AuthError, InvalidCsrfToken, InvalidVerificationToken, InvalidVerificationType } from './auth.errors';
-import { generateHMACDoubleCSRFToken, getApiAddressFromReq, getCookieConfig, validateCSRFToken } from './auth.utils';
+import { generateHMACDoubleCSRFToken, getCookieConfig, validateCSRFToken } from './auth.utils';
 
 const oauthPromise = import('oauth4webapi');
 const osloEncodingPromise = import('@oslojs/encoding');
@@ -366,7 +366,7 @@ export function initSession(
           req.session.sessionDetails = sessionDetails;
         }
 
-        req.session.ipAddress = getApiAddressFromReq(req);
+        req.session.ipAddress = req.ipAddress;
         req.session.loginTime = new Date().getTime();
         req.session.provider = provider;
         req.session.providerAccountId = providerAccountId;

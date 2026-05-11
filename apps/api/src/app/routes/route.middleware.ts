@@ -1,11 +1,11 @@
 import { createRateLimit, ENV, logger } from '@jetstream/api-config';
+import { Request } from '@jetstream/api-types';
 import {
   AuthError,
   checkUserAgentSimilarity,
   createUserActivityFromReq,
   ExpiredVerificationToken,
   generateHMACDoubleCSRFToken,
-  getApiAddressFromReq,
   getCookieConfig,
   InvalidCaptcha,
   MissingEntitlement,
@@ -18,7 +18,7 @@ import { HTTP } from '@jetstream/shared/constants';
 import { ensureBoolean, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { parseCookie } from 'cookie';
 import { addDays, getUnixTime, isBefore } from 'date-fns';
-import express, { Request } from 'express';
+import express from 'express';
 import multer from 'multer';
 import { randomBytes } from 'node:crypto';
 import os from 'node:os';
@@ -66,6 +66,23 @@ export function addContextMiddleware(req: express.Request, res: express.Response
     res.setHeader(HTTP.HEADERS.X_CLIENT_REQUEST_ID, clientReqId);
   }
   res.setHeader(HTTP.HEADERS.X_REQUEST_ID, res.locals.requestId);
+  next();
+}
+
+/**
+ * Resolve the client IP and stamp it on `req.ipAddress` so downstream code doesn't have to
+ * re-read headers (or worry about `req.ip` being undefined under express v5 types).
+ *
+ * Prefer `cf-connecting-ip` because Cloudflare sets it directly and clients can't spoof it
+ * for traffic that actually transits CF. Falls back to `req.ip`, which respects
+ * `app.set('trust proxy', ...)` and resolves `x-forwarded-for` correctly.
+ *
+ * Must be mounted before any middleware/route that reads `req.ipAddress`.
+ */
+export function setIpAddress(req: express.Request, _res: express.Response, next: express.NextFunction) {
+  const cfConnectingIp = req.headers['cf-connecting-ip'];
+  const headerIp = Array.isArray(cfConnectingIp) ? cfConnectingIp[0] : cfConnectingIp;
+  req.ipAddress = headerIp || req.ip || 'unknown';
   next();
 }
 
@@ -453,8 +470,7 @@ export function verifyCaptcha(req: express.Request, res: express.Response, next:
     body: JSON.stringify({
       secret: ENV.CAPTCHA_SECRET_KEY,
       response: token,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      remoteip: res.locals.ipAddress || getApiAddressFromReq(req as any),
+      remoteip: req.ipAddress,
     }),
     method: 'POST',
     headers: {
@@ -627,12 +643,12 @@ export const passwordResetEmailRateLimit = createRateLimit('api_password_reset_e
 });
 
 // User uploads files and they are stored on disk temporarily, we delete them after processing
-export const feedbackUploadMiddleware = multer({
+const feedbackUploadMiddleware = multer({
   storage: multer.diskStorage({
     // This is the default directory for multer, but we set it explicitly for clarity
     destination: os.tmpdir(),
     filename: (req, _file, cb) => {
-      const user = (req as Request).externalAuth?.user || req.session.user;
+      const user = (req as unknown as Request).externalAuth?.user || req.session.user;
       if (!user) {
         return cb(new Error('Unauthorized'), '');
       }
@@ -653,3 +669,8 @@ export const feedbackUploadMiddleware = multer({
     }
   },
 });
+
+// @types/multer bundles @types/express@4 (still has the deprecated `req.param`),
+// so multer's RequestHandler is not assignable to the v5 RequestHandler used by the routes.
+// Cast once here so the call sites stay clean.
+export const feedbackScreenshotsUploadMiddleware = feedbackUploadMiddleware.array('screenshots', 5) as unknown as express.RequestHandler;

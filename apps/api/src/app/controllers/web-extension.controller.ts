@@ -1,11 +1,5 @@
 import { ENV } from '@jetstream/api-config';
-import {
-  createUserActivityFromReq,
-  getApiAddressFromReq,
-  getCookieConfig,
-  InvalidSession,
-  MissingEntitlement,
-} from '@jetstream/auth/server';
+import { createUserActivityFromReq, getCookieConfig, InvalidSession, MissingEntitlement } from '@jetstream/auth/server';
 import { HTTP } from '@jetstream/shared/constants';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { UserProfileUiSchema } from '@jetstream/types';
@@ -164,7 +158,7 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
     source: webExtDb.TOKEN_SOURCE_BROWSER_EXTENSION,
     token: accessToken,
     deviceId,
-    ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
+    ipAddress: req.ipAddress,
     userAgent: req.get('User-Agent') || 'unknown',
     expiresAt: fromUnixTime(externalAuthService.decodeToken(accessToken).exp),
     provider: req.session.provider,
@@ -199,7 +193,7 @@ const verifyToken = createRoute(routeDefinition.verifyToken.validators, async ({
           source: webExtDb.TOKEN_SOURCE_BROWSER_EXTENSION,
           deviceId,
           oldAccessToken,
-          ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
+          ipAddress: req.ipAddress,
           userAgent: req.get('User-Agent') || 'unknown',
         });
         if (rotatedAccessToken) {

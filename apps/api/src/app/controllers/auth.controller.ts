@@ -17,7 +17,6 @@ import {
   generatePasswordResetToken,
   generateRandomCode,
   generateRandomString,
-  getApiAddressFromReq,
   getAuthorizationUrl,
   getCookieConfig,
   getLoginConfiguration,
@@ -618,7 +617,7 @@ const callback = createRoute(
         const isDeviceRemembered = await hasRememberDeviceRecord({
           userId: req.session.user.id,
           deviceId,
-          ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
+          ipAddress: req.ipAddress,
           userAgent: req.get('User-Agent'),
         });
         if (isDeviceRemembered) {
@@ -828,7 +827,7 @@ const verification = createRoute(
         await createRememberDevice({
           userId: user.id,
           deviceId: rememberDeviceId,
-          ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
+          ipAddress: req.ipAddress,
           userAgent: req.get('User-Agent'),
         });
         setCookie(cookieConfig.rememberDevice.name, rememberDeviceId, cookieConfig.rememberDevice.options);
