@@ -268,21 +268,41 @@ export const syncRecordChanges = async ({
 
   await prisma.$transaction(async (tx) => {
     if (recordsToCreate.length > 0) {
-      const results = await tx.userSyncData.createManyAndReturn({
-        select: { id: true },
-        data: recordsToCreate.map((record) => ({
-          entity: record.entity,
-          userId,
-          orgId: record.orgId || null,
-          key: record.key,
-          hashedKey: record.hashedKey,
-          data: record.data as InputJsonValue,
-          createdAt: now,
-          updatedAt: now,
-          deletedAt: null,
-        })),
-      });
-      recordIds.push(...results.map(({ id }) => id));
+      // INSERT ... ON CONFLICT DO UPDATE makes this idempotent under concurrent pushes.
+      // The existing-record lookup runs outside the transaction, so two pushes racing on the
+      // same baseRevision can both decide to create the same row and hit the
+      // user_hashed_key_org unique index. The conflict path treats the second insert
+      // as an update of the now-existing row instead of bubbling P2002 to the client.
+      // Note: Postgres treats NULL orgId values as distinct, so the conflict only fires
+      // for org-scoped records.
+      const values = recordsToCreate.map(
+        (record) => Prisma.sql`(
+          ${userId}::uuid,
+          ${record.orgId || null},
+          ${record.key},
+          ${record.hashedKey},
+          ${record.entity},
+          ${JSON.stringify(record.data)}::jsonb,
+          ${now},
+          ${now},
+          NULL
+        )`,
+      );
+      const inserted = await tx.$queryRaw<Array<{ id: string }>>`
+        INSERT INTO user_sync_data (
+          "userId", "orgId", "key", "hashedKey", "entity", "data",
+          "createdAt", "updatedAt", "deletedAt"
+        )
+        VALUES ${Prisma.join(values)}
+        ON CONFLICT ("userId", "hashedKey", "orgId") DO UPDATE
+          SET "data" = EXCLUDED."data",
+              "updatedAt" = EXCLUDED."updatedAt",
+              "deletedAt" = NULL
+        RETURNING "id"::text AS id
+      `;
+      for (const { id } of inserted) {
+        recordIds.push(id);
+      }
     }
     if (recordsToDelete.length > 0) {
       await tx.userSyncData.updateMany({
