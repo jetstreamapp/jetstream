@@ -86,3 +86,6 @@ certificates
 .sfdx/
 **/.sf/
 **/.sfdx/
+
+.nx/polygraph
+.nx/self-healing
