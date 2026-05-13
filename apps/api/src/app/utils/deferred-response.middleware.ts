@@ -144,9 +144,54 @@ export function writeDeferredResponse(res: Response | ExpressResponse, body: unk
   // so that if res.write throws and triggers the error handler, it can still detect deferred mode
   clearDeferredTimers(deferred);
 
-  const elapsedMs = Date.now() - deferred.startTime;
+  const writeStartedAt = Date.now();
+  const elapsedMs = writeStartedAt - deferred.startTime;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const resLog = (res as any).log;
+  const requestId = res.locals?.requestId;
+
+  // Attach lifecycle listeners BEFORE writing, so we can tell whether the body actually flushed.
+  // 'finish' = handed off to OS for transmission. 'close' before 'finish' = peer hung up
+  // before we finished writing. The premature-close case is the one we previously logged as
+  // "[DEFERRED][COMPLETE] ... successfully" even though no bytes reached the client.
+  let finished = false;
+  res.once('finish', () => {
+    finished = true;
+    resLog?.info(
+      {
+        requestId,
+        elapsedMs: Date.now() - deferred.startTime,
+        writeMs: Date.now() - writeStartedAt,
+        keepaliveCount: deferred.keepaliveCount,
+      },
+      '[DEFERRED][COMPLETE] Deferred response flushed to socket',
+    );
+  });
+  res.once('close', () => {
+    if (finished) {
+      return;
+    }
+    resLog?.warn(
+      {
+        requestId,
+        elapsedMs: Date.now() - deferred.startTime,
+        writeMs: Date.now() - writeStartedAt,
+        keepaliveCount: deferred.keepaliveCount,
+      },
+      '[DEFERRED][PREMATURE_CLOSE] Connection closed before deferred body finished flushing',
+    );
+  });
+  res.once('error', (err) => {
+    resLog?.error(
+      {
+        requestId,
+        elapsedMs: Date.now() - deferred.startTime,
+        writeMs: Date.now() - writeStartedAt,
+        err,
+      },
+      '[DEFERRED][STREAM_ERROR] Error event on response stream during deferred write',
+    );
+  });
 
   let stringifySucceeded = false;
   try {

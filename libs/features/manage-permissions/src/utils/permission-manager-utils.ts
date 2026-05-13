@@ -33,15 +33,13 @@ import { Query, WhereClause, composeQuery, getField } from '@jetstreamapp/soql-p
 const MAX_OBJ_IN_QUERY = 100;
 
 export function filterPermissionsSobjects(sobject: DescribeGlobalSObjectResult | null) {
-  return (
-    !!sobject &&
-    (sobject.name.endsWith('__e') ||
-      (sobject.createable &&
-        sobject.updateable &&
-        !sobject.name.endsWith('__History') &&
-        !sobject.name.endsWith('__Tag') &&
-        !sobject.name.endsWith('__Share')))
-  );
+  if (!sobject) {
+    return false;
+  }
+  if (sobject.name.endsWith('History') || sobject.name.endsWith('Tag') || sobject.name.endsWith('Share')) {
+    return false;
+  }
+  return sobject.createable || sobject.updateable || sobject.name.endsWith('__e');
 }
 
 export function getFieldDefinitionKey(record: EntityParticlePermissionsRecord) {

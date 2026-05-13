@@ -1,5 +1,21 @@
 # Changelog
 
+## [9.16.0](https://github.com/jetstreamapp/jetstream/compare/v9.15.2...v9.16.0) (2026-05-07)
+
+### Features
+
+* add date shortcuts for quick selection in DateSelection component ([945b103](https://github.com/jetstreamapp/jetstream/commit/945b103714b5a111bed02dd1f89014dd1d7bdd89))
+* allow manual value in picklist static field mapping ([107b18c](https://github.com/jetstreamapp/jetstream/commit/107b18c8d5f3f04201f5906d1240d1bbafbf41bd))
+* enhance error tracking and configuration options ([12f9dfe](https://github.com/jetstreamapp/jetstream/commit/12f9dfe5c294ee5fe6468f856ab7e56d84fee506))
+* migrate from rollbar to betterstack for error tracking ([42a8744](https://github.com/jetstreamapp/jetstream/commit/42a874478e6d3148d81da534ffbad609879cf1f3))
+* security hardening + additional test coverage ([d6d4311](https://github.com/jetstreamapp/jetstream/commit/d6d43115a15ca4d79489b8dbe0f81f92b4c9f348))
+
+### Bug Fixes
+
+* allow referrer header to be set + google drive origin ([a134725](https://github.com/jetstreamapp/jetstream/commit/a1347250b7813bb6bd1d5b1f96a858d0a6ae358f))
+* improve permission filtering logic in filterPermissionsSobjects function ([852ef7d](https://github.com/jetstreamapp/jetstream/commit/852ef7d2d2780e1f12d719a56ff211fcfe65165d))
+* metadata folder name resolution for deploy/compare metadata ([b5a41cc](https://github.com/jetstreamapp/jetstream/commit/b5a41cc5d7301b961e7ebe9ea64ac4f520d37e88))
+
 ## [9.15.2](https://github.com/jetstreamapp/jetstream/compare/v9.15.1...v9.15.2) (2026-04-23)
 
 ### Features

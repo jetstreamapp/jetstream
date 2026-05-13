@@ -81,7 +81,10 @@ export function sendJson<ResponseType = unknown>(res: Response, content?: Respon
   // Deferred response mode: write body to the existing chunked stream
   if (deferred?.active) {
     const elapsedMs = Date.now() - deferred.startTime;
-    res.log.info({ requestId: res.locals.requestId, elapsedMs }, '[DEFERRED][COMPLETE] Deferred response completed successfully');
+    res.log.info(
+      { requestId: res.locals.requestId, elapsedMs },
+      '[DEFERRED][BODY_READY] Controller produced response body, writing to deferred stream',
+    );
     writeDeferredResponse(res, { data: content || {} });
     return;
   }
@@ -202,7 +205,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
           errorMessage,
           err,
         },
-        '[DEFERRED][ERROR] Deferred response completed with error',
+        '[DEFERRED][ERROR_BODY_READY] Error produced, writing to deferred stream',
       );
 
       // Build deferred error body with fields that would normally be sent as headers

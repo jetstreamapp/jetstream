@@ -218,7 +218,10 @@ async function fetchListMetadataForItemsInFolder(
   }
 
   // we need to fetch for each folder, split into sets of 3
-  const folderFullNames = data.filter((folder) => folder.manageableState === 'unmanaged').map(({ fullName }) => fullName);
+  // dedupe folder names — EmailTemplate queries both EmailFolder and EmailTemplateFolder which can share folder names like `unfiled$public`
+  const folderFullNames = Array.from(
+    new Set(data.filter((folder) => folder.manageableState === 'unmanaged').map(({ fullName }) => fullName)),
+  );
   const folderItems = splitArrayToMaxSize(folderFullNames, MAX_FOLDER_REQUESTS);
 
   for (const currFolderItem of folderItems) {
@@ -422,10 +425,13 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
             }
 
             // Some sobjects are in the list twice (Salesforce bug - specifically Account shows up twice)
+            // Include id in the dedup key so Classic and Lightning EmailTemplates that share a fullName but have different ids are both kept
             if (responseItem?.items) {
               responseItem.items = uniqWith(
                 responseItem.items,
-                (currValue, otherValue) => `${currValue.type}:${currValue.fullName}` === `${otherValue.type}:${otherValue.fullName}`,
+                (currValue, otherValue) =>
+                  `${currValue.type}:${currValue.fullName}:${currValue.id}` ===
+                  `${otherValue.type}:${otherValue.fullName}:${otherValue.id}`,
               );
             }
 
@@ -485,7 +491,7 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
             : previousItems,
         );
 
-        let responseItem = await fetchListMetadata(selectedOrg, item, true);
+        let responseItem: ListMetadataResultItem;
         if (inFolder) {
           // handle additional fetches required if type is in folder
           responseItem = await fetchListMetadataForItemsInFolder(selectedOrg, item, true);
@@ -496,6 +502,14 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
         // Ensure nested folders have the full path in their name
         if (item.type.endsWith('Folder')) {
           await mutateFullNameForFolderToIncludeFullPath(selectedOrg, responseItem);
+        }
+
+        if (responseItem?.items) {
+          responseItem.items = uniqWith(
+            responseItem.items,
+            (currValue, otherValue) =>
+              `${currValue.type}:${currValue.fullName}:${currValue.id}` === `${otherValue.type}:${otherValue.fullName}:${otherValue.id}`,
+          );
         }
 
         if (!isMounted.current) {

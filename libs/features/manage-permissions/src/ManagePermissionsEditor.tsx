@@ -473,108 +473,120 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
       })
     ) {
       setLoading(true);
-      let objectPermissionData: PermissionObjectSaveData | undefined = undefined;
-      let fieldPermissionData: PermissionFieldSaveData | undefined = undefined;
-      let tabVisibilityPermissionData: PermissionTabVisibilitySaveData | undefined = undefined;
-      let profileIds: string[] = [];
-      let permissionSetIds: string[] = [];
-
-      if (dirtyObjectCount) {
-        const dirtyPermissions = getDirtyObjectPermissions(dirtyObjectRows);
-        if (dirtyPermissions.length > 0) {
-          objectPermissionData = prepareObjectPermissionSaveData(dirtyPermissions);
-          const ids = collectProfileAndPermissionIds(dirtyPermissions, profilesById, permissionSetsById);
-          profileIds = [...profileIds, ...ids.profileIds];
-          permissionSetIds = [...permissionSetIds, ...ids.permissionSetIds];
-        }
-      }
-      if (dirtyFieldCount) {
-        const dirtyPermissions = getDirtyFieldPermissions(dirtyFieldRows);
-        if (dirtyPermissions.length > 0) {
-          fieldPermissionData = prepareFieldPermissionSaveData(dirtyPermissions);
-          const ids = collectProfileAndPermissionIds(dirtyPermissions, profilesById, permissionSetsById);
-          profileIds = [...profileIds, ...ids.profileIds];
-          permissionSetIds = [...permissionSetIds, ...ids.permissionSetIds];
-        }
-      }
-      if (dirtyTabVisibilityCount) {
-        const dirtyPermissions = getDirtyTabVisibilityPermissions(dirtyTabVisibilityRows);
-        if (dirtyPermissions.length > 0) {
-          tabVisibilityPermissionData = prepareTabVisibilityPermissionSaveData(dirtyPermissions);
-          const ids = collectProfileAndPermissionIds(dirtyPermissions, profilesById, permissionSetsById);
-          profileIds = [...profileIds, ...ids.profileIds];
-          permissionSetIds = [...permissionSetIds, ...ids.permissionSetIds];
-        }
-      }
-
-      let objectSaveResults: PermissionSaveResults<ObjectPermissionRecordForSave, PermissionTableObjectCellPermission>[] | undefined =
-        undefined;
-      let fieldSaveResults: PermissionSaveResults<FieldPermissionRecordForSave, PermissionTableFieldCellPermission>[] | undefined =
-        undefined;
-      let tabVisibilitySaveResults:
-        | PermissionSaveResults<TabVisibilityPermissionRecordForSave, PermissionTableTabVisibilityCellPermission>[]
-        | undefined = undefined;
-
-      if (objectPermissionData) {
-        objectSaveResults = await savePermissionRecords<ObjectPermissionRecordForSave, PermissionTableObjectCellPermission>(
-          selectedOrg,
-          'ObjectPermissions',
-          objectPermissionData,
-        );
-        logger.log({ objectSaveResults });
-      }
-      if (fieldPermissionData) {
-        fieldSaveResults = await savePermissionRecords<FieldPermissionRecordForSave, PermissionTableFieldCellPermission>(
-          selectedOrg,
-          'FieldPermissions',
-          fieldPermissionData,
-        );
-        logger.log({ fieldSaveResults });
-      }
-
-      if (tabVisibilityPermissionData) {
-        tabVisibilitySaveResults = await savePermissionRecords<
-          TabVisibilityPermissionRecordForSave,
-          PermissionTableTabVisibilityCellPermission
-        >(selectedOrg, 'PermissionSetTabSetting', tabVisibilityPermissionData);
-        logger.log({ tabVisibilitySaveResults });
-      }
-
-      // Update records so that SFDX is aware of the changes
       try {
-        await updatePermissionSetRecords(selectedOrg, {
-          permissionSetIds: Array.from(permissionSetIds),
-          profileIds: Array.from(profileIds),
-        });
-      } catch (ex) {
-        logger.error('Error flagging permissions sets as updated', ex);
-      }
+        let objectPermissionData: PermissionObjectSaveData | undefined = undefined;
+        let fieldPermissionData: PermissionFieldSaveData | undefined = undefined;
+        let tabVisibilityPermissionData: PermissionTabVisibilitySaveData | undefined = undefined;
+        const profileIds = new Set<string>();
+        const permissionSetIds = new Set<string>();
 
-      if (isMounted.current) {
-        if (objectSaveResults && objectPermissionMap && objectRows) {
-          const permissionsMap = getUpdatedObjectPermissions(objectPermissionMap, objectSaveResults);
-          const rows = updateObjectRowsAfterSave(objectRows, permissionsMap);
-          setObjectPermissionMap(permissionsMap);
-          setObjectRows(rows);
-          handleObjectBulkRowUpdate(rows);
+        if (dirtyObjectCount) {
+          const dirtyPermissions = getDirtyObjectPermissions(dirtyObjectRows);
+          if (dirtyPermissions.length > 0) {
+            objectPermissionData = prepareObjectPermissionSaveData(dirtyPermissions);
+            const ids = collectProfileAndPermissionIds(dirtyPermissions, profilesById, permissionSetsById);
+            ids.profileIds.forEach((id) => profileIds.add(id));
+            ids.permissionSetIds.forEach((id) => permissionSetIds.add(id));
+          }
         }
-        if (fieldSaveResults && fieldPermissionMap && fieldRows) {
-          const permissionsMap = getUpdatedFieldPermissions(fieldPermissionMap, fieldSaveResults);
-          const rows = updateFieldRowsAfterSave(fieldRows, permissionsMap);
-          setFieldPermissionMap(permissionsMap);
-          setFieldRows(rows);
-          handleFieldBulkRowUpdate(rows);
+        if (dirtyFieldCount) {
+          const dirtyPermissions = getDirtyFieldPermissions(dirtyFieldRows);
+          if (dirtyPermissions.length > 0) {
+            fieldPermissionData = prepareFieldPermissionSaveData(dirtyPermissions);
+            const ids = collectProfileAndPermissionIds(dirtyPermissions, profilesById, permissionSetsById);
+            ids.profileIds.forEach((id) => profileIds.add(id));
+            ids.permissionSetIds.forEach((id) => permissionSetIds.add(id));
+          }
         }
-        if (tabVisibilitySaveResults && tabVisibilityPermissionMap && tabVisibilityRows) {
-          const permissionsMap = getUpdatedTabVisibilityPermissions(tabVisibilityPermissionMap, tabVisibilitySaveResults);
-          const rows = updateTabVisibilityRowsAfterSave(tabVisibilityRows, permissionsMap);
-          setTabVisibilityPermissionMap(permissionsMap);
-          setTabVisibilityRows(rows);
-          handleTabVisibilityBulkRowUpdate(rows);
+        if (dirtyTabVisibilityCount) {
+          const dirtyPermissions = getDirtyTabVisibilityPermissions(dirtyTabVisibilityRows);
+          if (dirtyPermissions.length > 0) {
+            tabVisibilityPermissionData = prepareTabVisibilityPermissionSaveData(dirtyPermissions);
+            const ids = collectProfileAndPermissionIds(dirtyPermissions, profilesById, permissionSetsById);
+            ids.profileIds.forEach((id) => profileIds.add(id));
+            ids.permissionSetIds.forEach((id) => permissionSetIds.add(id));
+          }
         }
-        setLoading(false);
+
+        let objectSaveResults: PermissionSaveResults<ObjectPermissionRecordForSave, PermissionTableObjectCellPermission>[] | undefined =
+          undefined;
+        let fieldSaveResults: PermissionSaveResults<FieldPermissionRecordForSave, PermissionTableFieldCellPermission>[] | undefined =
+          undefined;
+        let tabVisibilitySaveResults:
+          | PermissionSaveResults<TabVisibilityPermissionRecordForSave, PermissionTableTabVisibilityCellPermission>[]
+          | undefined = undefined;
+
+        if (objectPermissionData) {
+          objectSaveResults = await savePermissionRecords<ObjectPermissionRecordForSave, PermissionTableObjectCellPermission>(
+            selectedOrg,
+            'ObjectPermissions',
+            objectPermissionData,
+          );
+          logger.log({ objectSaveResults });
+        }
+        if (fieldPermissionData) {
+          fieldSaveResults = await savePermissionRecords<FieldPermissionRecordForSave, PermissionTableFieldCellPermission>(
+            selectedOrg,
+            'FieldPermissions',
+            fieldPermissionData,
+          );
+          logger.log({ fieldSaveResults });
+        }
+
+        if (tabVisibilityPermissionData) {
+          tabVisibilitySaveResults = await savePermissionRecords<
+            TabVisibilityPermissionRecordForSave,
+            PermissionTableTabVisibilityCellPermission
+          >(selectedOrg, 'PermissionSetTabSetting', tabVisibilityPermissionData);
+          logger.log({ tabVisibilitySaveResults });
+        }
+
+        // Update records so that SFDX is aware of the changes
+        try {
+          await updatePermissionSetRecords(selectedOrg, {
+            permissionSetIds: Array.from(permissionSetIds),
+            profileIds: Array.from(profileIds),
+          });
+        } catch (ex) {
+          logger.error('Error flagging permission sets as updated', ex);
+        }
+
+        if (isMounted.current) {
+          if (objectSaveResults && objectPermissionMap && objectRows) {
+            const permissionsMap = getUpdatedObjectPermissions(objectPermissionMap, objectSaveResults);
+            const rows = updateObjectRowsAfterSave(objectRows, permissionsMap);
+            setObjectPermissionMap(permissionsMap);
+            setObjectRows(rows);
+            handleObjectBulkRowUpdate(rows);
+          }
+          if (fieldSaveResults && fieldPermissionMap && fieldRows) {
+            const permissionsMap = getUpdatedFieldPermissions(fieldPermissionMap, fieldSaveResults);
+            const rows = updateFieldRowsAfterSave(fieldRows, permissionsMap);
+            setFieldPermissionMap(permissionsMap);
+            setFieldRows(rows);
+            handleFieldBulkRowUpdate(rows);
+          }
+          if (tabVisibilitySaveResults && tabVisibilityPermissionMap && tabVisibilityRows) {
+            const permissionsMap = getUpdatedTabVisibilityPermissions(tabVisibilityPermissionMap, tabVisibilitySaveResults);
+            const rows = updateTabVisibilityRowsAfterSave(tabVisibilityRows, permissionsMap);
+            setTabVisibilityPermissionMap(permissionsMap);
+            setTabVisibilityRows(rows);
+            handleTabVisibilityBulkRowUpdate(rows);
+          }
+          setLoading(false);
+        }
+        trackEvent(ANALYTICS_KEYS.permission_manager_saved, { dirtyObjectCount, dirtyFieldCount, dirtyTabVisibilityCount });
+      } catch (ex) {
+        logger.error('Error saving permissions', ex);
+        tracker.error('Error saving permissions', ex, { dirtyObjectCount, dirtyFieldCount, dirtyTabVisibilityCount });
+        if (isMounted.current) {
+          fireToast({
+            message: `There was an error saving permissions: ${getErrorMessage(ex)}. Some changes may have been saved — reload to verify.`,
+            type: 'error',
+          });
+          setLoading(false);
+        }
       }
-      trackEvent(ANALYTICS_KEYS.permission_manager_saved, { dirtyObjectCount, dirtyFieldCount, dirtyTabVisibilityCount });
     } else {
       trackEvent(ANALYTICS_KEYS.permission_manager_save_cancelled);
     }

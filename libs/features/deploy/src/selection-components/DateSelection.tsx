@@ -5,6 +5,8 @@ import { fromDeployMetadataState } from '@jetstream/ui-core';
 import { addDays } from 'date-fns/addDays';
 import { isAfter } from 'date-fns/isAfter';
 import { isSameDay } from 'date-fns/isSameDay';
+import { startOfDay } from 'date-fns/startOfDay';
+import { subDays } from 'date-fns/subDays';
 import { useAtom } from 'jotai';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { RadioButtonItem, RadioButtonSelection } from './RadioButtonSelection';
@@ -20,6 +22,16 @@ const DATE_RANGE_RADIO_BUTTONS: RadioButtonItem<AllUser>[] = [
     label: 'Specific Date',
     value: 'user',
   },
+];
+
+// Each shortcut sets only the start date; combined with the "Modified since" framing this reads as
+// "since today" or "since N days ago" — durations are preferred over single-day labels (e.g. "Yesterday")
+// since end is left null and the filter would otherwise include items modified after that day too
+const DATE_SHORTCUTS: { label: string; getStart: () => Date }[] = [
+  { label: 'Today', getStart: () => startOfDay(new Date()) },
+  { label: 'Last 7 days', getStart: () => startOfDay(subDays(new Date(), 7)) },
+  { label: 'Last 30 days', getStart: () => startOfDay(subDays(new Date(), 30)) },
+  { label: 'Last 90 days', getStart: () => startOfDay(subDays(new Date(), 90)) },
 ];
 export interface DateSelectionProps {
   requireConfirmSelection?: boolean;
@@ -45,6 +57,13 @@ export const DateSelection: FunctionComponent<DateSelectionProps | DateSelection
   const [dateRangeSelection, setDateRangeSelection] = useState(_dateRangeSelection);
   const [dateRangeStart, setDateRangeStart] = useState(_dateRangeStart);
   const [dateRangeEnd, setDateRangeEnd] = useState(_dateRangeEnd);
+  const [datePickerKey, setDatePickerKey] = useState(0);
+
+  function handleShortcutClick(getStart: () => Date) {
+    setDateRangeStart(getStart());
+    setDateRangeEnd(null);
+    setDatePickerKey((prev) => prev + 1);
+  }
 
   useEffect(() => {
     if (dateRangeSelection && !dateRangeStart && !dateRangeEnd) {
@@ -65,19 +84,19 @@ export const DateSelection: FunctionComponent<DateSelectionProps | DateSelection
     if (!requireConfirmSelection) {
       _setDateRangeSelection(dateRangeSelection);
     }
-  }, [dateRangeSelection]);
+  }, [_setDateRangeSelection, dateRangeSelection, requireConfirmSelection]);
 
   useEffect(() => {
     if (!requireConfirmSelection) {
       _setDateRangeStart(dateRangeStart);
     }
-  }, [dateRangeStart]);
+  }, [_setDateRangeStart, dateRangeStart, requireConfirmSelection]);
 
   useEffect(() => {
     if (!requireConfirmSelection) {
       _setDateRangeEnd(dateRangeEnd);
     }
-  }, [dateRangeEnd]);
+  }, [_setDateRangeEnd, dateRangeEnd, requireConfirmSelection]);
 
   function handleSubmit() {
     _setDateRangeSelection(dateRangeSelection);
@@ -111,7 +130,15 @@ export const DateSelection: FunctionComponent<DateSelectionProps | DateSelection
       >
         {dateRangeSelection === 'user' && (
           <Fragment>
+            <Grid className="slds-m-top_small" wrap align="center">
+              {DATE_SHORTCUTS.map(({ label, getStart }) => (
+                <button key={label} type="button" className="slds-button slds-button_neutral" onClick={() => handleShortcutClick(getStart)}>
+                  {label}
+                </button>
+              ))}
+            </Grid>
             <DatePicker
+              key={`modified-start-${datePickerKey}`}
               id="modified-start"
               label="Modified After"
               className="slds-m-top_small slds-form-element_stacked slds-is-editing"
@@ -124,6 +151,7 @@ export const DateSelection: FunctionComponent<DateSelectionProps | DateSelection
               onChange={setDateRangeStart}
             />
             <DatePicker
+              key={`modified-end-${datePickerKey}`}
               id="modified-end"
               label="Modified Before"
               className="slds-m-top_small slds-form-element_stacked slds-is-editing"
