@@ -1,0 +1,39 @@
+---
+slug: v8.10.0
+title: 8.10.0 - Session error detection and SOQL parser bump
+date: '2025-12-01'
+authors: [jetstream]
+tags: [web, desktop, extension]
+versions:
+  web: 8.10.0
+  desktop: 3.6.1
+  extension: 2.7.1
+summary: Better detection of invalid org sessions so connection errors are surfaced promptly, plus a SOQL parser upgrade and regression coverage for base64 conversion.
+highlights:
+  - title: Invalid session detection
+    description: Additional Salesforce error responses now mark the org as having a connection error, so you are prompted to reconnect instead of hitting opaque failures.
+    platforms: [web, desktop, extension]
+  - title: SOQL parser upgrade
+    description: Bumped soql-parser-js to 6.3.0 for improved parsing coverage.
+    docLink: /query/query
+    platforms: [web, desktop, extension]
+  - title: Base64 conversion hardening
+    description: Removed duplicated base64-to-ArrayBuffer code and added regression tests after the 8.9.x download issue.
+    platforms: [web, desktop, extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Invalid session detection
+
+Jetstream now recognizes additional Salesforce error messages that indicate an invalid or expired session, and marks the affected org with a connection error. This means you get the standard "reconnect org" prompt instead of mysterious request failures.
+
+### SOQL parser 6.3.0
+
+`soql-parser-js` was upgraded to 6.3.0, which brings broader support for recent SOQL grammar additions.
+
+### Base64 regression coverage
+
+The shared base64-to-ArrayBuffer helper was consolidated and now has dedicated tests so the 8.9.x download regression cannot recur silently.

@@ -1,0 +1,25 @@
+---
+slug: v8.19.1
+title: 8.19.1 - Field permission correctness fix
+date: '2026-01-23'
+authors: [jetstream]
+tags: [web, desktop, extension]
+versions:
+  web: 8.19.1
+  desktop: 3.13.1
+  extension: 2.14.1
+summary: Fix for field permission records that could save with incorrect values when permissions came from alternative sources.
+highlights:
+  - title: Field permission values fix
+    description: Field permissions are now applied correctly when the source of the permission is not a direct record reference.
+    docLink: /permissions/permissions
+    platforms: [web, desktop, extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Field permission values fix
+
+Fixed a bug where field permission records could be saved with incorrect values when the permission source came from an alternative reference. Records with invalid ids are now ignored while their values are still used so the save completes correctly.

@@ -1,0 +1,31 @@
+---
+slug: v8.15.0
+title: 8.15.0 - Configurable SOQL format options
+date: '2025-12-16'
+authors: [jetstream]
+tags: [web, desktop, extension]
+versions:
+  web: 8.15.0
+  desktop: 3.8.2
+  extension: 2.10.0
+summary: Choose how Jetstream formats generated SOQL to match your preferences, plus a desktop asset fix for the code editor.
+highlights:
+  - title: SOQL format options
+    description: Configure how generated SOQL is formatted, including casing and layout preferences.
+    platforms: [web, desktop, extension]
+  - title: Desktop editor assets fixed
+    description: Resolved missing Monaco editor assets in the desktop build.
+    platforms: [desktop]
+---
+
+{/* truncate */}
+
+## What's new
+
+### SOQL format options
+
+You can now configure how Jetstream formats the SOQL it generates. Pick the casing and layout options you prefer, and the query builder will apply them consistently whenever it writes SOQL on your behalf.
+
+### Desktop editor fix
+
+Fixed a build issue in the desktop app where Monaco editor assets were not packaged correctly, which affected the code editor experience.

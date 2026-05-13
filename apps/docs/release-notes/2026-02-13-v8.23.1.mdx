@@ -1,0 +1,22 @@
+---
+slug: v8.23.1
+title: 8.23.1 - Google export fix for Permissions Manager
+date: '2026-02-13'
+authors: [jetstream]
+tags: [web]
+versions:
+  web: 8.23.1
+summary: Exporting from Permissions Manager to Google Drive now correctly produces an Xlsx file instead of falling back to a local CSV download.
+highlights:
+  - title: Permissions Manager Google export fix
+    description: File-type precedence was reordered so Google exports no longer default to a local CSV download.
+    docLink: /permissions/permissions
+---
+
+{/* truncate */}
+
+## What's new
+
+### Google export from Permissions Manager
+
+When exporting permissions to Google Drive, Jetstream was occasionally picking CSV over Xlsx and triggering a local download instead of uploading to Google. The file-type order has been adjusted so Xlsx takes priority and the export lands in Google Drive as intended.

@@ -1,0 +1,29 @@
+---
+slug: v7.7.1
+title: 7.7.1 - Salesforce login URL fix
+date: '2025-09-13'
+authors: [jetstream]
+tags: [web]
+versions:
+  web: 7.7.1
+summary: Fixes invalid URLs generated when logging in to Salesforce from Jetstream links, and tightens attachment download host handling.
+highlights:
+  - title: Login with Salesforce URL fix
+    description: Links that log you into Salesforce now build URLs properly instead of concatenating strings, avoiding double-slash and other malformed links.
+    platforms: [web, desktop, extension]
+  - title: Attachment download host handling
+    description: The attachment download flow now uses proper URL parsing and validates the expected host.
+    platforms: [web, desktop, extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Login with Salesforce URL fix
+
+Some users reported invalid URLs when clicking "Login with Salesforce" links in Jetstream. The links now build URLs using proper URL parsing instead of string concatenation, and double slashes in the path are no longer possible.
+
+### Attachment download host handling
+
+Related URL handling in the attachment download flow was also hardened so the generated URLs are always well-formed and target the expected host.

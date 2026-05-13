@@ -19,7 +19,10 @@
       "Bash(npx nx:*)",
       "Bash(yarn build:ci)",
       "Bash(gh api:*)",
-      "Bash(yarn tsc:*)"
+      "Bash(yarn tsc:*)",
+      "Bash(gh release *)",
+      "Bash(gh pr *)",
+      "Bash(yarn release-notes:generate)"
     ],
     "deny": [],
     "ask": []

@@ -1,0 +1,41 @@
+---
+slug: v9.11.0
+title: 9.11.0 - JWT rotation for desktop and extension, subquery fixes
+date: '2026-04-11'
+authors: [jetstream]
+tags: [web, desktop, extension]
+versions:
+  web: 9.11.0
+  desktop: 3.19.0
+  extension: 2.21.0
+summary: Desktop app and browser extension now rotate their authentication tokens. Plus subquery column handling fixes in query results.
+highlights:
+  - title: JWT rotation on desktop and extension
+    description: Authentication tokens issued to the desktop app and browser extension are now rotated when refreshed.
+    platforms: [desktop, extension]
+  - title: Subquery column fixes
+    description: Fixes several cases where subquery fields and their metadata were mismatched in query results.
+    docLink: /query/query-results
+---
+
+{/* truncate */}
+
+## What's new
+
+### Rotating authentication tokens on desktop and extension
+
+The desktop app and browser extension now rotate their JWT credentials when tokens are refreshed, shrinking the window that a leaked token remains valid. No user action required.
+
+### Subquery handling in query results
+
+A set of related fixes for subquery columns:
+
+- Correct `isFieldSubquery` and `fieldMetadataSubquery` lookups so subquery columns render with the right metadata.
+- Missing relationship metadata is now tracked rather than silently dropped, which fixes certain column mismatches.
+- Internal refactor of subquery column mapping for consistency.
+
+### Also included
+
+- Desktop and extension pick up the improved Create Fields error messages and other 9.10.0 fixes.
+- TypeScript toolchain bumped to v6 and Vite to v8 (build only, no runtime changes).
+- Security dependency upgrades.

@@ -1,0 +1,50 @@
+---
+slug: v8.17.0
+title: 8.17.0 - Desktop menu upgrades, large XLSX handling
+date: '2026-01-12'
+authors: [jetstream]
+tags: [web, desktop, extension]
+versions:
+  web: 8.17.0
+  desktop: 3.12.0
+  extension: 2.13.0
+summary: The desktop app picks up recent-files and settings menu entries, and large XLSX uploads no longer hit "Invalid Array Length" errors.
+highlights:
+  - title: Recent files in the desktop menu
+    description: The desktop app now lists recently opened files and log files in the menu bar.
+    platforms: [desktop]
+  - title: Open settings from the desktop menu
+    description: Settings are now reachable from a dedicated menu entry instead of only from the in-app nav.
+    platforms: [desktop]
+  - title: Large XLSX files load reliably
+    description: Large spreadsheets that previously failed with "Invalid Array Length" now process by compressing data during conversion.
+    docLink: /load/load
+    platforms: [web, desktop, extension]
+  - title: Desktop bulk query downloads fixed
+    description: Bulk API query downloads now save to disk correctly on the desktop app.
+    platforms: [desktop]
+  - title: Desktop org links open in-app
+    description: '"Open in Salesforce" links now stay inside the desktop app instead of bouncing to the browser.'
+    platforms: [desktop]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Desktop menu gets useful entries
+
+- Recent files and recent log files now appear in the menu bar.
+- A new menu entry opens the settings page.
+- Electron now runs with a larger heap to reduce out-of-memory errors on big jobs.
+- Dev-mode logging no longer writes to the main log file.
+- Electron callbacks now unsubscribe correctly to avoid leaks.
+
+### Large XLSX handling
+
+XLSX uploads above a certain size occasionally failed with an "Invalid Array Length" error because the underlying library tried to build one huge ArrayBuffer. Jetstream now compresses the data during conversion, which is slightly slower but avoids the cap.
+
+### Desktop fixes
+
+- Bulk API query downloads now save the result file correctly on desktop.
+- "Open in Salesforce" and similar org links open inside the desktop app rather than forcing a browser.

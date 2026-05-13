@@ -1,0 +1,31 @@
+---
+slug: v7.6.3
+title: 7.6.3 - Binary file load fixes
+date: '2025-09-07'
+authors: [jetstream]
+tags: [web]
+versions:
+  web: 7.6.3
+  desktop: 1.3.1
+summary: Fixes a file picker conflict on the binary attachment loader and adds better logging when attachment processing fails.
+highlights:
+  - title: Binary attachment file picker fix
+    description: Clicking the "Zip with attachments" input no longer accidentally triggers the main CSV file input.
+    docLink: /load/load
+    platforms: [web, desktop, extension]
+  - title: Better logging for attachment failures
+    description: The loader now logs more context when processing a binary attachment fails, making issues easier to diagnose.
+    platforms: [web, desktop, extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Binary attachment file picker fix
+
+On the load page, clicking the zip attachment input was also triggering the main file input on top of it. The inputs are now properly isolated so only the intended picker opens.
+
+### Attachment processing logs
+
+When processing a binary attachment fails, the loader now writes more diagnostic information so failures are easier to investigate.

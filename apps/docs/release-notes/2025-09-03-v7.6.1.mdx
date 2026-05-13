@@ -1,0 +1,29 @@
+---
+slug: v7.6.1
+title: 7.6.1 - Geo IP routing fix
+date: '2025-09-03'
+authors: [jetstream]
+tags: [web]
+versions:
+  web: 7.6.1
+summary: Fixes a routing regression in the geo IP service after the Express 5 upgrade, plus docs and build script cleanup.
+highlights:
+  - title: Geo IP service routing fix
+    description: Corrected the router configuration for Express 5 so geo IP lookups resolve correctly again.
+    platforms: [web, desktop, extension]
+  - title: Desktop download link fix in docs
+    description: The Windows desktop download link in the connected app docs now points at the correct location.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Geo IP service routing fix
+
+The geo IP API service had a router definition that was incompatible with Express 5 after a recent upgrade. Requests now route correctly again.
+
+### Docs and build cleanups
+
+- The Windows desktop download link in the connected app docs has been corrected.
+- A desktop build script no longer tries to uninstall dependencies that are not present, which was breaking the build.

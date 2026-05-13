@@ -1,0 +1,22 @@
+---
+slug: v7.7.2
+title: 7.7.2 - Billing portal CSRF fix
+date: '2025-09-16'
+authors: [jetstream]
+tags: [web]
+versions:
+  web: 7.7.2
+summary: Fixes the billing portal, which was failing CSRF validation after the 7.7.0 security change.
+highlights:
+  - title: Billing portal CSRF token fix
+    description: Billing pages submit via POST forms, so the CSRF token is now sent in the form body as well as the header.
+    platforms: [web]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Billing portal CSRF token fix
+
+After CSRF protection was introduced in 7.7.0, opening the billing portal failed because it uses form-based POST requests that don't carry the token header. The token is now also included in the request body so billing pages load again.

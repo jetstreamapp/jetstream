@@ -1,0 +1,23 @@
+---
+slug: v7.5.0
+title: 7.5.0 - Accurate record count preview for queries
+date: '2025-08-30'
+authors: [jetstream]
+tags: [web]
+versions:
+  web: 7.5.0
+summary: The record count preview shown before running a query no longer fails when the query includes an ORDER BY clause.
+highlights:
+  - title: Query record count preview works with ORDER BY
+    description: The count preview now strips the incompatible ORDER BY before running, so you get an accurate record total every time.
+    docLink: /query/query-results
+    platforms: [web, desktop, extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Query record count preview works with ORDER BY
+
+When you preview how many records a query will return, Jetstream runs a `COUNT()` query under the hood. Salesforce does not allow `ORDER BY` with `COUNT()`, so any query that included an order clause was failing 100% of the time at the preview step. The order clause is now removed before the count query runs, and the preview works regardless of your sort.

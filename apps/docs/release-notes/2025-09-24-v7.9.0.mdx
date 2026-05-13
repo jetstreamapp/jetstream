@@ -1,0 +1,31 @@
+---
+slug: v7.9.0
+title: 7.9.0 - View All Fields in Manage Permissions
+date: '2025-09-24'
+authors: [jetstream]
+tags: [web]
+versions:
+  web: 7.9.0
+summary: Adds support for the new View All Fields object permission in Manage Permissions and fixes a save bug affecting View All Records.
+highlights:
+  - title: View All Fields object permission
+    description: Grant or revoke the new Salesforce View All Fields permission alongside the other object permissions in Manage Permissions.
+    docLink: /permissions/permissions
+    platforms: [web, desktop, extension]
+  - title: Fix View All Records save value
+    description: Saving permissions no longer writes the dirty-state value to Salesforce for View All Records and View All, so the intended value is persisted.
+    docLink: /permissions/permissions
+    platforms: [web, desktop, extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### View All Fields object permission
+
+Salesforce recently introduced a `viewAllFields` object permission that grants read access to every field on an object. Manage Permissions now lists it alongside Read, Create, Edit, Delete, View All, and Modify All. You can toggle it independently in the grid, the create-new-object flow, and the export, since it has no dependencies on the other permissions.
+
+### Fix View All Records save value
+
+Saving object permission changes was writing the in-memory dirty-state value to Salesforce for View All Records and View All instead of the actual selected value. The fix restores the correct save behavior so changes made in the grid persist as expected.

@@ -1,0 +1,40 @@
+---
+slug: v8.15.1
+title: 8.15.1 - Hard delete in load records
+date: '2025-12-23'
+authors: [jetstream]
+tags: [web, desktop, extension]
+versions:
+  web: 8.15.1
+  desktop: 3.9.0
+  extension: 2.11.0
+summary: Load records now supports hard delete, plus fixes for the picklist space key and the data table lookup editor.
+highlights:
+  - title: Hard delete for load records
+    description: Added a hard delete option to the data loader and query results page alongside the existing delete operation.
+    docLink: /load/load
+    platforms: [web, desktop, extension]
+  - title: Picklist space key fix
+    description: Pressing space in a picklist menu no longer scrolls the page.
+    platforms: [web, desktop, extension]
+  - title: Data table lookup editor fix
+    description: The inline lookup editor in query results no longer closes on the first keypress in manual mode, and remembers your last input mode.
+    docLink: /query/query-results
+    platforms: [web, desktop, extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Hard delete for load records
+
+The load records tool and the query results page now include a hard delete option in addition to the standard delete. Hard deletes skip the Recycle Bin, so use it when you know you want records removed permanently.
+
+### Picklist space key fix
+
+Pressing the space key while a picklist menu was open caused the page behind it to scroll. The menu now captures the space key correctly.
+
+### Data table lookup editor fix
+
+Editing a lookup field inline on the query results grid used to close the editor on the first keypress when in manual mode. The editor now stays open as you type, and remembers whether you last used the lookup search or manual text input so it opens in that mode next time.

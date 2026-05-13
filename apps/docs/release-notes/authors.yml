@@ -1,0 +1,6 @@
+jetstream:
+  name: Jetstream team
+  title: Jetstream
+  url: https://getjetstream.app
+  # image_url: /img/jetstream-logo.svg
+  page: false

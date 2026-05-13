@@ -1,0 +1,56 @@
+---
+slug: v9.10.0
+title: 9.10.0 - Import existing fields, more copy-to-clipboard tables
+date: '2026-04-08'
+authors: [jetstream]
+tags: [web]
+versions:
+  web: 9.10.0
+summary: Preload definitions of existing Salesforce fields into Create Fields, and copy data from more tables with a right-click context menu.
+highlights:
+  - title: Import existing fields into Create Fields
+    description: Pull definitions from fields already on the object into the Create Fields editor as a starting point.
+    docLink: /deploy/deploy-fields
+  - title: Copy-to-clipboard context menu on more tables
+    description: Right-click to copy cells, rows, and columns on the data-load preview, load-failures modal, duplicate-records table, Automation Control editor, and Debug Log viewer.
+    docLink: /load/load
+  - title: Field Description in sObject export
+    description: sObject metadata exports can now include the field-level Description.
+    docLink: /developer/export-object-metadata
+  - title: Scroll fix in query history
+    description: The SOQL preview in a query-history card only captures the mouse wheel when the query is tall enough to actually scroll.
+    docLink: /query/query
+  - title: Clearer Create Fields import errors
+    description: Failed field imports now show the first few validation errors with a count of the remainder instead of a generic failure.
+    docLink: /deploy/deploy-fields
+---
+
+{/* truncate */}
+
+## What's new
+
+### Import existing fields into Create Fields
+
+A new Load Existing Fields modal lets you pick fields already on the selected object and drop their definitions into the Create Fields editor. Useful when you want to clone a handful of fields to another object or use an existing field as a template.
+
+### More tables support right-click copy
+
+The clipboard context menu (copy cell, copy row as Excel or JSON, copy column, copy table) is now wired up on:
+
+- The load-records data preview
+- The load-records failures and results modal
+- The duplicate-records warning table
+- The Automation Control editor table
+- The Debug Log viewer
+
+### sObject export
+
+The field-level `Description` is now selectable in sObject export and is included in the default selection.
+
+### Other fixes
+
+- Query-history card no longer hijacks the page scroll when the SOQL preview is short enough to display without scrolling.
+- Create Fields import errors now list the first three validation failures and summarize any others.
+- Deploy metadata comparison filters out null items that could cause runtime errors.
+- Admin email template fixes for severity badges and number formatting.
+- `fast-jwt` bumped to 6.2.0.

@@ -1,7 +1,8 @@
 import { SerializedStyles } from '@emotion/react';
 import { AppAbility } from '@jetstream/acl';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { isCanvasApp } from '@jetstream/shared/ui-utils';
+import { ReleasePlatform } from '@jetstream/release-notes';
+import { isBrowserExtension, isCanvasApp } from '@jetstream/shared/ui-utils';
 import { AddOrgHandlerFn, DropDownItem, UserProfileUi } from '@jetstream/types';
 import { Header, Icon, Navbar, UpgradeToProButton } from '@jetstream/ui';
 import {
@@ -28,6 +29,7 @@ import HeaderHelpPopover from './HeaderHelpPopover';
 import { HeaderNavbarItems } from './HeaderNavbarItems';
 import { HeaderNavbarBillingUserItems } from './HeaderNavbarReadOnlyUserItems';
 import HeaderUpdateNotification from './HeaderUpdateNotification';
+import HeaderWhatsNewPopover from './HeaderWhatsNewPopover';
 import LogoPro from './jetstream-logo-pro-200w.png';
 import Logo from './jetstream-logo-v1-200w.png';
 import NotificationsRequestModal from './NotificationsRequestModal';
@@ -167,9 +169,11 @@ export const HeaderNavbar = ({
   const showFullscreenLink = isCanvasApp() && !isFullscreen;
   const instanceUrl = selectedOrg?.instanceUrl;
 
+  const releaseNotePlatform: ReleasePlatform = isDesktop ? 'desktop' : isBrowserExtension() ? 'extension' : 'web';
+
   const rightHandMenuItems = useMemo(() => {
     if (isReadOnlyUser) {
-      return [<HeaderHelpPopover />];
+      return [<HeaderWhatsNewPopover platform={releaseNotePlatform} />, <HeaderHelpPopover />];
     }
 
     if (isEmbeddedApp || isDesktop) {
@@ -196,7 +200,7 @@ export const HeaderNavbar = ({
         items.push(<HeaderUpdateNotification onCheckForUpdates={handleCheckForUpdates} onInstallUpdate={handleInstallUpdate} />);
       }
 
-      items.push(<HeaderHelpPopover />);
+      items.push(<HeaderWhatsNewPopover platform={releaseNotePlatform} />, <HeaderHelpPopover />);
       return items;
     }
 
@@ -206,6 +210,7 @@ export const HeaderNavbar = ({
         <RecordSearchPopover />,
         <UserSearchPopover />,
         <Jobs />,
+        <HeaderWhatsNewPopover platform={releaseNotePlatform} />,
         <HeaderHelpPopover />,
         <HeaderDonatePopover />,
       ];
@@ -218,12 +223,30 @@ export const HeaderNavbar = ({
         <RecordSearchPopover />,
         <UserSearchPopover />,
         <Jobs />,
+        <HeaderWhatsNewPopover platform={releaseNotePlatform} />,
         <HeaderHelpPopover />,
       ];
     }
 
-    return [<QuickQueryPopover />, <RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />];
-  }, [isReadOnlyUser, isEmbeddedApp, isDesktop, isBillingEnabled, hasPaidPlan, trackEvent, showFullscreenLink, instanceUrl]);
+    return [
+      <QuickQueryPopover />,
+      <RecordSearchPopover />,
+      <UserSearchPopover />,
+      <Jobs />,
+      <HeaderWhatsNewPopover platform={releaseNotePlatform} />,
+      <HeaderHelpPopover />,
+    ];
+  }, [
+    isReadOnlyUser,
+    isEmbeddedApp,
+    isDesktop,
+    isBillingEnabled,
+    hasPaidPlan,
+    trackEvent,
+    showFullscreenLink,
+    instanceUrl,
+    releaseNotePlatform,
+  ]);
 
   return (
     <Fragment>

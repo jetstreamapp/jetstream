@@ -1,0 +1,2960 @@
+[
+  {
+    "slug": "v9.14.0",
+    "title": "9.14.0 - Profile and Permission Set info popover",
+    "date": "2026-04-19",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "9.14.0",
+      "desktop": "3.20.0",
+      "extension": "2.22.0"
+    },
+    "summary": "A new info popover on Profile and Permission Set rows shows assigned users and a direct link to Setup, plus security header and CSP improvements.",
+    "highlights": [
+      {
+        "title": "Profile and Permission Set info popover",
+        "description": "An info trigger on Profile and Permission Set list rows opens a popover with the record label, assigned active users (searchable), and a Setup link.",
+        "docLink": "/permissions/permissions"
+      },
+      {
+        "title": "Tighter security headers and cookie handling",
+        "description": "Server sends hardened security headers and no longer relies on the legacy jetstream cookie for data access."
+      },
+      {
+        "title": "CSP updates",
+        "description": "Allow additional image and script sources needed for login and embedded content while keeping the tightened policy in place."
+      }
+    ]
+  },
+  {
+    "slug": "v9.13.0",
+    "title": "9.13.0 - Clickable Name links in query results, auth hardening",
+    "date": "2026-04-19",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "9.13.0"
+    },
+    "summary": "Name fields in query results now open the same record-lookup popover as Id links, plus several authentication and session hardening changes.",
+    "highlights": [
+      {
+        "title": "Clickable Name columns in query results",
+        "description": "Name fields (including relationship Names like Account.Name) render as record-lookup popovers, matching the Id link behavior.",
+        "docLink": "/query/query-results"
+      },
+      {
+        "title": "Salesforce refresh token rotation",
+        "description": "Jetstream now stores rotated refresh tokens when Salesforce issues them during a refresh."
+      },
+      {
+        "title": "Verification attempt limits",
+        "description": "OTP, email verification, and password reset tokens now expire after a set number of invalid attempts, with rate limits on internal password reset endpoints."
+      },
+      {
+        "title": "Revoke other sessions on password change",
+        "description": "Setting a new password or removing a password from the profile page now logs out all other active sessions."
+      },
+      {
+        "title": "Require auth before serving the app",
+        "description": "Unauthenticated requests to app routes are redirected up front rather than loading the SPA and redirecting from the client."
+      }
+    ]
+  },
+  {
+    "slug": "v9.12.1",
+    "title": "9.12.1 - Retry failed rows on a data load",
+    "date": "2026-04-14",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "9.12.1"
+    },
+    "summary": "Retry just the failed rows from a data load without re-running the whole job, plus a CSP fix for third-party redirects.",
+    "highlights": [
+      {
+        "title": "Retry failed rows from the load-failures modal",
+        "description": "Select failed rows in the results modal and retry them with the same configuration instead of re-running the full file.",
+        "docLink": "/load/load"
+      },
+      {
+        "title": "CSP form-action fix",
+        "description": "Adds form-action directives so third-party redirects (for example OAuth flows) work under the tightened CSP."
+      }
+    ]
+  },
+  {
+    "slug": "v9.12.0",
+    "title": "9.12.0 - Bulk API error handling improvements",
+    "date": "2026-04-14",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "9.12.0"
+    },
+    "summary": "Bulk API loads now detect fatal errors and retry transient failures instead of plowing ahead, with clearer progress reporting.",
+    "highlights": [
+      {
+        "title": "Smarter Bulk API error handling",
+        "description": "Loads stop early on fatal job errors, back off and retry on transient failures, and update submitted-batch counts as batches are accepted.",
+        "docLink": "/load/load"
+      },
+      {
+        "title": "Web extension asset path fix",
+        "description": "Internal build fix so extension assets resolve from the correct path.",
+        "platforms": [
+          "extension"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v9.11.0",
+    "title": "9.11.0 - JWT rotation for desktop and extension, subquery fixes",
+    "date": "2026-04-11",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "9.11.0",
+      "desktop": "3.19.0",
+      "extension": "2.21.0"
+    },
+    "summary": "Desktop app and browser extension now rotate their authentication tokens. Plus subquery column handling fixes in query results.",
+    "highlights": [
+      {
+        "title": "JWT rotation on desktop and extension",
+        "description": "Authentication tokens issued to the desktop app and browser extension are now rotated when refreshed.",
+        "platforms": [
+          "desktop",
+          "extension"
+        ]
+      },
+      {
+        "title": "Subquery column fixes",
+        "description": "Fixes several cases where subquery fields and their metadata were mismatched in query results.",
+        "docLink": "/query/query-results"
+      }
+    ]
+  },
+  {
+    "slug": "v9.10.0",
+    "title": "9.10.0 - Import existing fields, more copy-to-clipboard tables",
+    "date": "2026-04-08",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "9.10.0"
+    },
+    "summary": "Preload definitions of existing Salesforce fields into Create Fields, and copy data from more tables with a right-click context menu.",
+    "highlights": [
+      {
+        "title": "Import existing fields into Create Fields",
+        "description": "Pull definitions from fields already on the object into the Create Fields editor as a starting point.",
+        "docLink": "/deploy/deploy-fields"
+      },
+      {
+        "title": "Copy-to-clipboard context menu on more tables",
+        "description": "Right-click to copy cells, rows, and columns on the data-load preview, load-failures modal, duplicate-records table, Automation Control editor, and Debug Log viewer.",
+        "docLink": "/load/load"
+      },
+      {
+        "title": "Field Description in sObject export",
+        "description": "sObject metadata exports can now include the field-level Description.",
+        "docLink": "/developer/export-object-metadata"
+      },
+      {
+        "title": "Scroll fix in query history",
+        "description": "The SOQL preview in a query-history card only captures the mouse wheel when the query is tall enough to actually scroll.",
+        "docLink": "/query/query"
+      },
+      {
+        "title": "Clearer Create Fields import errors",
+        "description": "Failed field imports now show the first few validation errors with a count of the remainder instead of a generic failure.",
+        "docLink": "/deploy/deploy-fields"
+      }
+    ]
+  },
+  {
+    "slug": "v9.9.1",
+    "title": "9.9.1 - Cloudflare Insights CSP, SSO blog link fix",
+    "date": "2026-04-05",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "9.9.1"
+    },
+    "summary": "Added Cloudflare Insights to the Content Security Policy and corrected the SSO blog post link on the landing page.",
+    "highlights": [
+      {
+        "title": "Cloudflare Insights in CSP",
+        "description": "Content Security Policy now allows Cloudflare Insights so performance and security monitoring load without console warnings.",
+        "platforms": [
+          "web"
+        ]
+      },
+      {
+        "title": "SSO blog link corrected",
+        "description": "The landing-page link to the Jetstream SSO blog post now points at the correct route.",
+        "platforms": [
+          "web"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v9.9.0",
+    "title": "9.9.0 - Long-running requests no longer hit the 524 timeout",
+    "date": "2026-04-04",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "9.9.0"
+    },
+    "summary": "New deferred-response middleware keeps long-running Salesforce API requests alive past the Cloudflare 524 timeout by streaming keepalive bytes until the real response is ready.",
+    "highlights": [
+      {
+        "title": "Deferred response middleware",
+        "description": "Long-running Salesforce requests no longer die with Cloudflare 524 errors. The API streams keepalive bytes and delivers the final JSON when ready.",
+        "platforms": [
+          "web"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v9.8.1",
+    "title": "9.8.1 - Resend invitation fix",
+    "date": "2026-04-04",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "9.8.1"
+    },
+    "summary": "Fixed an invalid-input error when resending team invitations, and tuned the bot-block response on the API edge.",
+    "highlights": [
+      {
+        "title": "Resend invitation works again",
+        "description": "Resending a team invitation no longer fails with an invalid input error.",
+        "platforms": [
+          "web"
+        ]
+      },
+      {
+        "title": "Bot route returns 444",
+        "description": "Blocked bot traffic now receives status 444 instead of 403 to reduce retry traffic.",
+        "platforms": [
+          "web"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v9.8.0",
+    "title": "9.8.0 - IdP-initiated OIDC login, resilient SOQL formatting",
+    "date": "2026-04-03",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "9.8.0"
+    },
+    "summary": "Log in to Jetstream directly from your identity provider's dashboard, plus the query editor no longer crashes on partially typed SOQL.",
+    "highlights": [
+      {
+        "title": "IdP-initiated OIDC login",
+        "description": "Users can now start login from their identity provider dashboard. Documentation covers the redirect URIs to configure per IdP.",
+        "platforms": [
+          "web"
+        ]
+      },
+      {
+        "title": "SOQL formatter crash fix",
+        "description": "Invalid or in-progress SOQL no longer crashes editors that call the formatter. Formatting errors are caught and ignored.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/query/query-results"
+      }
+    ]
+  },
+  {
+    "slug": "v9.7.0",
+    "title": "9.7.0 - Updated Terms of Service",
+    "date": "2026-04-02",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "9.7.0"
+    },
+    "summary": "Refreshed Terms of Service with a new LastUpdated date and added guidance for reporting security, ethics, or compliance concerns.",
+    "highlights": [
+      {
+        "title": "Updated Terms of Service",
+        "description": "New LastUpdated date and a compliance reporting section describing how to report security, ethics, or compliance concerns.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v9.6.0",
+    "title": "9.6.0 - New XML parser, safer user profile handling",
+    "date": "2026-04-02",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop"
+    ],
+    "versions": {
+      "web": "9.6.0"
+    },
+    "summary": "Swapped the XML parsing and building libraries for our own @jetstreamapp/simple-xml to reduce supply-chain risk, plus safer user profile fetch.",
+    "highlights": [
+      {
+        "title": "In-house XML parser",
+        "description": "Replaced fast-xml-parser and fast-xml-builder with @jetstreamapp/simple-xml to eliminate a class of vulnerability and breaking-change risks.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      },
+      {
+        "title": "Safer profile fetch",
+        "description": "If the user profile call fails, Jetstream now falls back to a default profile instead of surfacing a confusing error.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v9.5.0",
+    "title": "9.5.0 - Better Salesforce formula evaluation, desktop persistence fixes",
+    "date": "2026-04-01",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop"
+    ],
+    "versions": {
+      "web": "9.5.0",
+      "desktop": "3.18.2"
+    },
+    "summary": "Formula evaluation now uses the new sf-formula-parser library for much better Salesforce formula coverage, plus desktop persistence fixes for VDI environments.",
+    "highlights": [
+      {
+        "title": "New formula evaluation engine",
+        "description": "Replaced formulon with our open-source sf-formula-parser library for much broader Salesforce formula support and fewer bugs.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      },
+      {
+        "title": "Desktop persistence reliability",
+        "description": "Desktop app no longer encrypts the JWT token and avoids overwriting org data before a valid access token is obtained, reducing logout loops on Windows VDI.",
+        "platforms": [
+          "desktop"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v9.4.1",
+    "title": "9.4.1 - Desktop org list and Salesforce API fixes",
+    "date": "2026-03-31",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop"
+    ],
+    "versions": {
+      "web": "9.4.1",
+      "desktop": "3.18.1"
+    },
+    "summary": "Fix for orgs and org groups not appearing on first launch of the desktop app, plus safer XML parsing and empty-body handling in the Salesforce API tool.",
+    "highlights": [
+      {
+        "title": "Orgs visible on desktop first launch",
+        "description": "Orgs and org groups now appear immediately on first load of the desktop app instead of requiring a manual refresh.",
+        "platforms": [
+          "desktop"
+        ]
+      },
+      {
+        "title": "Salesforce API request with empty body",
+        "description": "Sending a Salesforce API request with an empty body no longer crashes the Monaco editor.",
+        "platforms": [
+          "web",
+          "desktop"
+        ]
+      },
+      {
+        "title": "Safer XML parsing",
+        "description": "XML entity processing is disabled during parsing, removing a class of potential injection issues.",
+        "platforms": [
+          "web",
+          "desktop"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v9.4.0",
+    "title": "9.4.0 - Google Drive picker on desktop and extension",
+    "date": "2026-03-27",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "9.4.0",
+      "desktop": "3.18.0",
+      "extension": "2.20.0"
+    },
+    "summary": "Pick files and folders from Google Drive inside the desktop app and browser extension, plus a fix for SFDX change tracking after creating fields with permissions.",
+    "highlights": [
+      {
+        "title": "Google Drive picker on desktop and extension",
+        "description": "Select files and folders from Google Drive when downloading or loading data, now available from the desktop app and browser extension via an external auth flow.",
+        "platforms": [
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/load/load"
+      },
+      {
+        "title": "SFDX change tracking for new fields with permissions",
+        "description": "Creating fields with profiles or permission sets selected now touches those records so SFDX CLI picks up the change.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/deploy/deploy-fields"
+      },
+      {
+        "title": "Keyboard navigation on the feedback widget",
+        "description": "The feedback widget context menu supports arrow keys, Home/End, Escape, and Shift+F10 without needing a mouse.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      },
+      {
+        "title": "Permissions Manager filter input shortcuts",
+        "description": "Cmd/Ctrl+A, Home, End, and arrow keys in the header filter input now edit the text instead of navigating the grid.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/permissions/permissions"
+      }
+    ]
+  },
+  {
+    "slug": "v9.3.0",
+    "title": "9.3.0 - Terms of Service acceptance and per-user desktop encryption",
+    "date": "2026-03-20",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "9.3.0",
+      "desktop": "3.17.0",
+      "extension": "2.19.0"
+    },
+    "summary": "New Terms of Service acceptance flow during sign-up and sign-in, plus a fix for desktop users on virtual machines whose saved org credentials were becoming unreadable.",
+    "highlights": [
+      {
+        "title": "Terms of Service acceptance",
+        "description": "Users are prompted to accept the current Terms of Service during registration and login, with acceptance tracked per account.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      },
+      {
+        "title": "Per-user encryption for desktop org data",
+        "description": "Saved org credentials in the desktop app now use per-user encryption instead of machine-bound keys, fixing data loss on virtual desktops that reprovision daily.",
+        "platforms": [
+          "desktop"
+        ]
+      },
+      {
+        "title": "Google SSO setup docs",
+        "description": "Added images and clearer help text for configuring the OIDC issuer URL when setting up Google SSO.",
+        "platforms": [
+          "web"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v9.2.0",
+    "title": "9.2.0 - Landing page refresh",
+    "date": "2026-03-13",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "9.2.0",
+      "desktop": "3.16.0",
+      "extension": "2.18.0"
+    },
+    "summary": "Refreshed marketing landing page plus internal changelog and CI fixes. No user-facing changes inside the app.",
+    "highlights": [
+      {
+        "title": "Landing page refresh",
+        "description": "The getjetstream.app marketing site has been updated with new content and visuals.",
+        "platforms": [
+          "web"
+        ]
+      },
+      {
+        "title": "Changelog link fixes",
+        "description": "Malformed URLs and unlinked commit references in the public changelog have been corrected.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v9.1.0",
+    "title": "9.1.0 - Paste sanitization and bulk-update errors",
+    "date": "2026-03-08",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "extension"
+    ],
+    "versions": {
+      "web": "9.1.0",
+      "extension": "2.17.0"
+    },
+    "summary": "Editors now strip invisible characters from pasted text, and bulk update failures surface the real server error instead of a generic message.",
+    "highlights": [
+      {
+        "title": "Sanitize pasted text in editors",
+        "description": "Invisible characters from copied content are removed on paste so Salesforce won't reject the value.",
+        "platforms": [
+          "web",
+          "extension"
+        ]
+      },
+      {
+        "title": "Real error messages on bulk update failures",
+        "description": "When updating records without a file, the actual server error is shown instead of a generic one.",
+        "platforms": [
+          "web",
+          "extension"
+        ],
+        "docLink": "/load/load"
+      },
+      {
+        "title": "Editor line-number reset",
+        "description": "Anonymous Apex and the metadata compare modal no longer jump to an odd scroll position when the editor re-renders.",
+        "platforms": [
+          "web",
+          "extension"
+        ],
+        "docLink": "/developer/anonymous-apex"
+      },
+      {
+        "title": "Stream error handling in bulk API",
+        "description": "Errors during bulk API stream processing are surfaced instead of silently aborting.",
+        "platforms": [
+          "web"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v9.0.1",
+    "title": "9.0.1 - Maintenance",
+    "date": "2026-02-28",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "9.0.1"
+    },
+    "summary": "Internal maintenance release. No user-visible changes.",
+    "highlights": [
+      {
+        "title": "Maintenance release",
+        "description": "Dependency upgrades and a landing page announcement for the new SSO feature."
+      }
+    ]
+  },
+  {
+    "slug": "v9.0.0",
+    "title": "9.0.0 - SAML and OIDC single sign-on for teams",
+    "date": "2026-02-27",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "9.0.0"
+    },
+    "summary": "Teams can now configure SAML and OIDC single sign-on with domain-based login discovery, plus audit logging on all team record changes and rate-limit hardening.",
+    "highlights": [
+      {
+        "title": "SAML and OIDC SSO for teams",
+        "description": "Team owners can configure SAML or OIDC providers (Okta, Azure, Google, generic), verify domains, and route members to SSO at login.",
+        "docLink": "/team-management/sso/sso-overview"
+      },
+      {
+        "title": "Domain discovery at login",
+        "description": "Enter your email and Jetstream routes you to the right SSO provider based on verified domains without extra clicks."
+      },
+      {
+        "title": "Team audit log",
+        "description": "All team-related record changes now write audit entries you can review from the team dashboard."
+      },
+      {
+        "title": "Rate-limit and security hardening",
+        "description": "Auth endpoints got tighter rate limiting and additional guards around SSO redirect safety and start-flow validation."
+      },
+      {
+        "title": "TOTP grace period",
+        "description": "TOTP verification now allows a 30 second grace window so codes on the edge of a rotation no longer fail."
+      },
+      {
+        "title": "Improved SSO login form",
+        "description": "You can submit the form before Turnstile finishes; the login waits for completion on submit. Better for password managers and autofill."
+      }
+    ]
+  },
+  {
+    "slug": "v8.25.0",
+    "title": "8.25.0 - Quick record view in the browser extension",
+    "date": "2026-02-19",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "8.25.0",
+      "desktop": "3.15.0",
+      "extension": "2.16.0"
+    },
+    "summary": "The browser extension gains a quick record view that opens in the same Salesforce tab, plus faster URL detection and login state fixes.",
+    "highlights": [
+      {
+        "title": "Quick record view in-place",
+        "description": "View a Salesforce record inside the current tab from the browser extension without opening a new one.",
+        "platforms": [
+          "extension"
+        ]
+      },
+      {
+        "title": "Faster URL detection for current-record actions",
+        "description": "The extension now checks the page URL every 0.5 seconds instead of every 5, so the view/edit current record button stays accurate as you navigate.",
+        "platforms": [
+          "extension"
+        ]
+      },
+      {
+        "title": "Extension login state fixes",
+        "description": "The extension correctly reacts to login and logout events, and data-sync storage now matches application state.",
+        "platforms": [
+          "extension"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v8.24.0",
+    "title": "8.24.0 - Metadata audit signals and Google folder memory",
+    "date": "2026-02-17",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "8.24.0"
+    },
+    "summary": "Custom metadata records now show a last-modified date, invalid metadata timestamps are flagged with a warning, and Jetstream remembers your recent Google Drive folder.",
+    "highlights": [
+      {
+        "title": "Last modified on custom metadata records",
+        "description": "Custom metadata records now surface SystemModstamp since Salesforce does not return standard audit fields for them.",
+        "docLink": "/deploy/deploy-metadata"
+      },
+      {
+        "title": "Warning for invalid metadata timestamps",
+        "description": "When Salesforce returns an invalid audit timestamp, a warning icon now tells you the correct data is not available instead of showing a misleading date."
+      },
+      {
+        "title": "Remembered Google folder selection",
+        "description": "When exporting or uploading to Google Drive, your recent folder choice is remembered so repeat uploads take fewer clicks."
+      },
+      {
+        "title": "Automation Control works in namespaced orgs",
+        "description": "Orgs that have their own namespace can now manage components inside their managed package from Automation Control."
+      }
+    ]
+  },
+  {
+    "slug": "v8.23.1",
+    "title": "8.23.1 - Google export fix for Permissions Manager",
+    "date": "2026-02-13",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "8.23.1"
+    },
+    "summary": "Exporting from Permissions Manager to Google Drive now correctly produces an Xlsx file instead of falling back to a local CSV download.",
+    "highlights": [
+      {
+        "title": "Permissions Manager Google export fix",
+        "description": "File-type precedence was reordered so Google exports no longer default to a local CSV download.",
+        "docLink": "/permissions/permissions"
+      }
+    ]
+  },
+  {
+    "slug": "v8.23.0",
+    "title": "8.23.0 - Friendlier record creation and keyboard fixes",
+    "date": "2026-02-12",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "8.23.0"
+    },
+    "summary": "Owner and audit fields are now optional when creating records, with an option to save even when the form reports errors. Keyboard navigation in lookup pickers is fixed.",
+    "highlights": [
+      {
+        "title": "Audit fields treated as optional on create",
+        "description": "Owner and audit fields are no longer blocking on record creation, so Salesforce automation can populate them without your form complaining."
+      },
+      {
+        "title": "Save anyway option",
+        "description": "If the form shows validation errors that may be cleared by Salesforce automation, you can now save the record anyway."
+      },
+      {
+        "title": "Keyboard navigation in lookup combobox",
+        "description": "Tab events are no longer swallowed, so you can move through record lookup and form group dropdowns with the keyboard again."
+      }
+    ]
+  },
+  {
+    "slug": "v8.22.0",
+    "title": "8.22.0 - Auto-select org on group change",
+    "date": "2026-02-09",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "8.22.0"
+    },
+    "summary": "Switching org groups now auto-selects the most recently used org in that group, or the first org if none have been used.",
+    "highlights": [
+      {
+        "title": "Auto-select org when changing groups",
+        "description": "Changing the active org group now picks the most recently used org from that group, or the first org in the list.",
+        "platforms": [
+          "web"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v8.21.0",
+    "title": "8.21.0 - Higher load and download limits",
+    "date": "2026-02-07",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "8.21.0",
+      "desktop": "3.14.0",
+      "extension": "2.15.0"
+    },
+    "summary": "Higher limits for data loads and attachment downloads, a movable feedback widget, and a fix that keeps permission manager filter text across tab changes.",
+    "highlights": [
+      {
+        "title": "Higher data load batch limits",
+        "description": "Paid users can now run more batches in a single data load, with a higher ceiling than free users.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/load/load"
+      },
+      {
+        "title": "Larger attachment downloads",
+        "description": "Paid web users can download up to 2000 attachments at a time, free users up to 250, and the total size limit was raised from 500MB to 1GB.",
+        "platforms": [
+          "web"
+        ]
+      },
+      {
+        "title": "No download limits on desktop and extension",
+        "description": "Desktop and browser extension users have no imposed attachment download limits since the work happens locally.",
+        "platforms": [
+          "desktop",
+          "extension"
+        ]
+      },
+      {
+        "title": "Movable feedback widget",
+        "description": "The feedback widget can now be moved or hidden so it does not cover content, and the query builder SOQL editor has extra scroll space underneath.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      },
+      {
+        "title": "Permission manager filter persistence",
+        "description": "The filter text you type in the permission manager is now retained when you switch tabs.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/permissions/permissions"
+      }
+    ]
+  },
+  {
+    "slug": "v8.20.0",
+    "title": "8.20.0 - Permission export improvements",
+    "date": "2026-02-03",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "8.20.0"
+    },
+    "summary": "Permission manager exports are more reliable, show real errors on failure, and now offer CSV as a fallback format.",
+    "highlights": [
+      {
+        "title": "More reliable permission exports",
+        "description": "Export data is now prepared after you choose a download format, and XLSX settings were tuned to reduce generation failures.",
+        "platforms": [
+          "web"
+        ],
+        "docLink": "/permissions/permissions"
+      },
+      {
+        "title": "CSV fallback for permission exports",
+        "description": "Added CSV as an export option so you can fall back when XLSX generation fails on very large exports.",
+        "platforms": [
+          "web"
+        ],
+        "docLink": "/permissions/permissions"
+      },
+      {
+        "title": "Real error messages on export failure",
+        "description": "Export failures now surface an error to the user instead of silently doing nothing.",
+        "platforms": [
+          "web"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v8.19.2",
+    "title": "8.19.2 - Dependency upgrades",
+    "date": "2026-02-02",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "8.19.2",
+      "desktop": "3.13.2",
+      "extension": "2.14.2"
+    },
+    "summary": "Internal maintenance release with Electron and tar dependency upgrades, including a CVE fix for tar.",
+    "highlights": [
+      {
+        "title": "Maintenance release",
+        "description": "Upgraded Electron and related dependencies, plus a tar upgrade to address a published CVE.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v8.19.1",
+    "title": "8.19.1 - Field permission correctness fix",
+    "date": "2026-01-23",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "8.19.1",
+      "desktop": "3.13.1",
+      "extension": "2.14.1"
+    },
+    "summary": "Fix for field permission records that could save with incorrect values when permissions came from alternative sources.",
+    "highlights": [
+      {
+        "title": "Field permission values fix",
+        "description": "Field permissions are now applied correctly when the source of the permission is not a direct record reference.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/permissions/permissions"
+      }
+    ]
+  },
+  {
+    "slug": "v8.19.0",
+    "title": "8.19.0 - Email log storage",
+    "date": "2026-01-23",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "8.19.0"
+    },
+    "summary": "Internal maintenance release that stores sent emails for better visibility into delivery failures.",
+    "highlights": [
+      {
+        "title": "Email log storage",
+        "description": "Sent emails are now persisted so delivery issues can be investigated beyond the short log retention window.",
+        "platforms": [
+          "web"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v8.18.1",
+    "title": "8.18.1 - Improve email deliverability",
+    "date": "2026-01-23",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "8.18.1"
+    },
+    "summary": "Removes the hidden email preview header that was tripping up some corporate email filters.",
+    "highlights": [
+      {
+        "title": "Better email deliverability",
+        "description": "Removed the invisible preview text in transactional emails so corporate spam filters stop flagging them.",
+        "platforms": [
+          "web"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v8.18.0",
+    "title": "8.18.0 - Zip preview for data loads, attachment error handling",
+    "date": "2026-01-20",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "8.18.0",
+      "desktop": "3.13.0",
+      "extension": "2.14.0"
+    },
+    "summary": "Data loads with attachments now preview the zip file and warn about mismatched filenames before the job runs.",
+    "highlights": [
+      {
+        "title": "Zip preview on data loads with attachments",
+        "description": "When you attach a zip file to a load, Jetstream now previews its contents, warns about invalid filenames, and flags files that do not match any row in the data file.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/load/load"
+      },
+      {
+        "title": "Missing attachments marked as row errors",
+        "description": "If a referenced binary file is not found in the zip, that record is now flagged as an error instead of silently succeeding with no attachment.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/load/load"
+      },
+      {
+        "title": "Aborted downloads handled cleanly",
+        "description": "Cancelling a server download job no longer triggers closure errors, and completion events include more log context.",
+        "platforms": [
+          "web"
+        ]
+      },
+      {
+        "title": "Team management docs",
+        "description": "The team management page is now linked from the docs sidebar."
+      }
+    ]
+  },
+  {
+    "slug": "v8.17.1",
+    "title": "8.17.1 - Manage Permissions handles invalid FieldPermission records",
+    "date": "2026-01-15",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "8.17.1",
+      "extension": "2.13.1"
+    },
+    "summary": "Fixes a Manage Permissions failure caused by invalid FieldPermission records that Salesforce had started returning.",
+    "highlights": [
+      {
+        "title": "Manage Permissions no longer fails on invalid records",
+        "description": "Salesforce had started returning FieldPermission rows with invalid IDs; Manage Permissions now skips them instead of erroring out.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/permissions/permissions"
+      }
+    ]
+  },
+  {
+    "slug": "v8.17.0",
+    "title": "8.17.0 - Desktop menu upgrades, large XLSX handling",
+    "date": "2026-01-12",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "8.17.0",
+      "desktop": "3.12.0",
+      "extension": "2.13.0"
+    },
+    "summary": "The desktop app picks up recent-files and settings menu entries, and large XLSX uploads no longer hit \"Invalid Array Length\" errors.",
+    "highlights": [
+      {
+        "title": "Recent files in the desktop menu",
+        "description": "The desktop app now lists recently opened files and log files in the menu bar.",
+        "platforms": [
+          "desktop"
+        ]
+      },
+      {
+        "title": "Open settings from the desktop menu",
+        "description": "Settings are now reachable from a dedicated menu entry instead of only from the in-app nav.",
+        "platforms": [
+          "desktop"
+        ]
+      },
+      {
+        "title": "Large XLSX files load reliably",
+        "description": "Large spreadsheets that previously failed with \"Invalid Array Length\" now process by compressing data during conversion.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/load/load"
+      },
+      {
+        "title": "Desktop bulk query downloads fixed",
+        "description": "Bulk API query downloads now save to disk correctly on the desktop app.",
+        "platforms": [
+          "desktop"
+        ]
+      },
+      {
+        "title": "Desktop org links open in-app",
+        "description": "\"Open in Salesforce\" links now stay inside the desktop app instead of bouncing to the browser.",
+        "platforms": [
+          "desktop"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v8.16.0",
+    "title": "8.16.0 - Team dashboard in desktop, org delete shortcut",
+    "date": "2026-01-02",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "8.16.0",
+      "desktop": "3.11.0",
+      "extension": "2.12.0"
+    },
+    "summary": "Team admins can now open the team dashboard from the desktop app, and orgs with connection errors get a quick delete shortcut.",
+    "highlights": [
+      {
+        "title": "Team dashboard in the desktop app",
+        "description": "If your account has team access, a new menu link opens the team dashboard from the desktop app.",
+        "platforms": [
+          "desktop"
+        ]
+      },
+      {
+        "title": "Delete button on errored org cards",
+        "description": "Orgs with connection errors now show a delete button directly on the card for faster cleanup.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      },
+      {
+        "title": "Salesforce connection errors surfaced on desktop",
+        "description": "The desktop app now shows an error toast when a Salesforce connection fails.",
+        "platforms": [
+          "desktop"
+        ]
+      },
+      {
+        "title": "Encrypted client tokens",
+        "description": "Stored auth tokens for the desktop app and web extension are now encrypted at rest, with legacy tokens upgraded automatically.",
+        "platforms": [
+          "desktop",
+          "extension"
+        ]
+      },
+      {
+        "title": "Consistent static field dropdown on loads",
+        "description": "The static-value dropdown in field mapping now matches the styling used everywhere else.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v8.15.1",
+    "title": "8.15.1 - Hard delete in load records",
+    "date": "2025-12-23",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "8.15.1",
+      "desktop": "3.9.0",
+      "extension": "2.11.0"
+    },
+    "summary": "Load records now supports hard delete, plus fixes for the picklist space key and the data table lookup editor.",
+    "highlights": [
+      {
+        "title": "Hard delete for load records",
+        "description": "Added a hard delete option to the data loader and query results page alongside the existing delete operation.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/load/load"
+      },
+      {
+        "title": "Picklist space key fix",
+        "description": "Pressing space in a picklist menu no longer scrolls the page.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      },
+      {
+        "title": "Data table lookup editor fix",
+        "description": "The inline lookup editor in query results no longer closes on the first keypress in manual mode, and remembers your last input mode.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/query/query-results"
+      }
+    ]
+  },
+  {
+    "slug": "v8.15.0",
+    "title": "8.15.0 - Configurable SOQL format options",
+    "date": "2025-12-16",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "8.15.0",
+      "desktop": "3.8.2",
+      "extension": "2.10.0"
+    },
+    "summary": "Choose how Jetstream formats generated SOQL to match your preferences, plus a desktop asset fix for the code editor.",
+    "highlights": [
+      {
+        "title": "SOQL format options",
+        "description": "Configure how generated SOQL is formatted, including casing and layout preferences.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      },
+      {
+        "title": "Desktop editor assets fixed",
+        "description": "Resolved missing Monaco editor assets in the desktop build.",
+        "platforms": [
+          "desktop"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v8.14.0",
+    "title": "8.14.0 - Record lookup in query filters",
+    "date": "2025-12-14",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop"
+    ],
+    "versions": {
+      "web": "8.14.0"
+    },
+    "summary": "Query filter values now support a record lookup so you can search for the record you want to filter on instead of hunting for an ID.",
+    "highlights": [
+      {
+        "title": "Record lookup in query filters",
+        "description": "When building a query filter on a reference field, search for the related record and have the ID inserted into your SOQL.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/query/query-results"
+      },
+      {
+        "title": "Lookup clear button fix",
+        "description": "The clear button now works correctly when the lookup editor is in manual text entry mode.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v8.13.1",
+    "title": "8.13.1 - Lookup filter styling fix",
+    "date": "2025-12-13",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "8.13.1",
+      "desktop": "3.8.1",
+      "extension": "2.9.1"
+    },
+    "summary": "Follow-up fix to styling on the new record lookup filter.",
+    "highlights": [
+      {
+        "title": "Lookup filter styles",
+        "description": "Corrected visual styling on the record lookup filter introduced in 8.13.0.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v8.13.0",
+    "title": "8.13.0 - Lookup picker for reference fields",
+    "date": "2025-12-13",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "8.13.0",
+      "desktop": "3.8.0",
+      "extension": "2.9.0"
+    },
+    "summary": "Editing reference fields now offers a lookup search instead of pasting raw IDs, with polymorphic object selection built in.",
+    "highlights": [
+      {
+        "title": "Record lookup for reference fields",
+        "description": "Search for related records when editing lookup fields, including choosing the target object for polymorphic references.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/query/query-results"
+      },
+      {
+        "title": "Accessibility fixes",
+        "description": "Resolved several accessibility issues across the app.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v8.12.1",
+    "title": "8.12.1 - Feedback attachment fix",
+    "date": "2025-12-12",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "8.12.1"
+    },
+    "summary": "Patch release that fixes multiple file attachments in the new in-app feedback widget.",
+    "highlights": [
+      {
+        "title": "Multiple feedback attachments",
+        "description": "The feedback form now supports up to 5 attachments, warns when you exceed the limit, and correctly delivers every attachment in the resulting email.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/getting-started/feedback"
+      }
+    ]
+  },
+  {
+    "slug": "v8.12.0",
+    "title": "8.12.0 - In-app feedback",
+    "date": "2025-12-12",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "8.12.0",
+      "desktop": "3.7.0",
+      "extension": "2.8.0"
+    },
+    "summary": "Send feedback and bug reports directly from inside Jetstream, with support for file attachments on web, desktop, and the browser extension.",
+    "highlights": [
+      {
+        "title": "In-app feedback",
+        "description": "A new feedback widget lets you send questions, bug reports, and suggestions directly from the app instead of filing a GitHub issue.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/getting-started/feedback"
+      },
+      {
+        "title": "Feedback from every form factor",
+        "description": "The feedback flow works on web, desktop, and the browser extension, with attachment support on every platform.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      },
+      {
+        "title": "Web extension binary upload",
+        "description": "The browser extension now uses the same binary upload path as desktop, so file attachments upload reliably.",
+        "platforms": [
+          "extension"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v8.11.0",
+    "title": "8.11.0 - Bug bash fixes and API version bump",
+    "date": "2025-12-05",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "8.11.0"
+    },
+    "summary": "A batch of bug fixes from an internal bug bash, XML comment support in package manifests, clearer deployment terminology, and an API version bump.",
+    "highlights": [
+      {
+        "title": "Package.xml comment support",
+        "description": "Comments inside an XML package manifest no longer break parsing during deploy and retrieve operations.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/deploy/deploy-metadata"
+      },
+      {
+        "title": "Editing orgs on the deployment page",
+        "description": "Fixed a bug where editing an org from the deployment page would break navigation to the next step.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/deploy/deploy-metadata"
+      },
+      {
+        "title": "Unmanaged terminology",
+        "description": "References to \"non-managed\" tests and fields were updated to \"unmanaged\" across the UI and docs for consistency with Salesforce.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      },
+      {
+        "title": "Production test level warning",
+        "description": "The deployment options screen now shows an inline error when an invalid test level is picked for a production org.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/deploy/deploy-metadata"
+      },
+      {
+        "title": "Salesforce API 65.0",
+        "description": "Bumped the default Salesforce API version from 64.0 to 65.0.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v8.10.0",
+    "title": "8.10.0 - Session error detection and SOQL parser bump",
+    "date": "2025-12-01",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "8.10.0",
+      "desktop": "3.6.1",
+      "extension": "2.7.1"
+    },
+    "summary": "Better detection of invalid org sessions so connection errors are surfaced promptly, plus a SOQL parser upgrade and regression coverage for base64 conversion.",
+    "highlights": [
+      {
+        "title": "Invalid session detection",
+        "description": "Additional Salesforce error responses now mark the org as having a connection error, so you are prompted to reconnect instead of hitting opaque failures.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      },
+      {
+        "title": "SOQL parser upgrade",
+        "description": "Bumped soql-parser-js to 6.3.0 for improved parsing coverage.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/query/query"
+      },
+      {
+        "title": "Base64 conversion hardening",
+        "description": "Removed duplicated base64-to-ArrayBuffer code and added regression tests after the 8.9.x download issue.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v8.9.1",
+    "title": "8.9.1 - Fix metadata download regression",
+    "date": "2025-11-25",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "8.9.1",
+      "desktop": "3.6.0",
+      "extension": "2.7.0"
+    },
+    "summary": "Patch release that restores metadata downloads after a regression in base64 handling.",
+    "highlights": [
+      {
+        "title": "Metadata downloads work again",
+        "description": "A recent refactor broke base64-to-ArrayBuffer conversion, which caused metadata downloads to fail. The conversion path is fixed.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/deploy/deploy-metadata"
+      }
+    ]
+  },
+  {
+    "slug": "v8.9.0",
+    "title": "8.9.0 - Auth hardening and edit modal improvements",
+    "date": "2025-11-23",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "8.9.0",
+      "desktop": "3.5.0",
+      "extension": "2.6.0"
+    },
+    "summary": "Major authentication hardening including password history and account lockout, plus View All records access in the edit/create/clone record modal.",
+    "highlights": [
+      {
+        "title": "Auth hardening",
+        "description": "Password history prevents reuse of the last 10 passwords, account lockout protects against repeated reset attempts, and login flows no longer leak whether an email is registered.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      },
+      {
+        "title": "Improved password reset flow",
+        "description": "Changed passwords are tracked in history, the strength indicator shows on reset, reuse errors stay visible, and the login form auto-fills the reset email.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      },
+      {
+        "title": "View All Records on edit modal",
+        "description": "The edit, create, and clone record modal now loads every field instead of only layout-assigned fields.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/query/query-results"
+      },
+      {
+        "title": "Team role safety",
+        "description": "Billing-only users can no longer promote others to admin or modify administrator accounts.",
+        "platforms": [
+          "web"
+        ],
+        "docLink": "/team-management/team-management"
+      },
+      {
+        "title": "Smarter org expiration emails",
+        "description": "The 90-day inactive-org reminder now skips users who do not actively use Jetstream, and test-mode summaries are accurate.",
+        "platforms": [
+          "web"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v8.8.0",
+    "title": "8.8.0 - Org expiration, Organization Groups, bulk org delete",
+    "date": "2025-11-15",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "8.8.0"
+    },
+    "summary": "Unused Salesforce orgs now expire with advance email notice, the Organization page handles refresh/reconnect cleanly, and you can delete orgs in bulk.",
+    "highlights": [
+      {
+        "title": "Org expiration with email notice",
+        "description": "Salesforce orgs unused for 90 days are flagged for expiration, with email notifications summarizing expiring and expired orgs."
+      },
+      {
+        "title": "Easier reconnect for expired orgs",
+        "description": "The Organization page surfaces expiring and expired orgs, and reconnect uses login_hint and pre-filled connection details."
+      },
+      {
+        "title": "Bulk delete Salesforce orgs",
+        "description": "Select and delete multiple connected orgs at once from the Organizations page."
+      },
+      {
+        "title": "Rename to \"Organization Group\"",
+        "description": "What used to be called \"Jetstream Organization\" is now \"Organization Group\" everywhere in the app, to avoid confusion with a Salesforce organization."
+      },
+      {
+        "title": "Download format is remembered",
+        "description": "Your last-used download format (CSV, Excel, JSON, etc.) is remembered per-user as the new default."
+      }
+    ]
+  },
+  {
+    "slug": "v8.7.0",
+    "title": "8.7.0 - Table filter fixes and connected-app onboarding help",
+    "date": "2025-11-13",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "8.7.0"
+    },
+    "summary": "Table filters now stay in sync when data reloads, password reset accepts plus-sign emails, and orgs missing the Jetstream connected app get clearer install guidance.",
+    "highlights": [
+      {
+        "title": "Table filters follow data updates",
+        "description": "When table data reloads, existing filters are retained and their available values update so the filter still matches the new records.",
+        "docLink": "/query/query-results"
+      },
+      {
+        "title": "Numeric column filters fixed",
+        "description": "Filters on numeric fields now behave correctly and no longer drop values on refresh."
+      },
+      {
+        "title": "Password reset with plus-sign emails",
+        "description": "Emails containing a \"+\" no longer get mangled into a space during password reset."
+      },
+      {
+        "title": "Connected app install guidance",
+        "description": "Help links point users to the page where they would install the Jetstream connected app if it is missing, plus a sandbox sync callout."
+      },
+      {
+        "title": "Cookie banner padding fix",
+        "description": "The consent banner no longer throws off in-app alignment while still looking right on the landing page."
+      }
+    ]
+  },
+  {
+    "slug": "v8.6.0",
+    "title": "8.6.0 - Opt-in analytics with cookie consent",
+    "date": "2025-11-07",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "8.6.0",
+      "desktop": "3.4.0",
+      "extension": "2.5.0"
+    },
+    "summary": "Analytics are now opt-in via a cookie consent banner for GDPR compliance, plus dependency upgrades and a desktop and extension version bump.",
+    "highlights": [
+      {
+        "title": "Cookie consent banner",
+        "description": "Analytics cookies are now opt-in with an in-app consent banner, aligned with GDPR expectations."
+      },
+      {
+        "title": "Dependency upgrades",
+        "description": "Broad dependency refresh across the monorepo and project cleanup."
+      },
+      {
+        "title": "Desktop and extension rebuilds",
+        "description": "Desktop 3.4.0 and Web Extension 2.5.0 were published alongside this web release to pick up the dependency upgrades.",
+        "platforms": [
+          "desktop",
+          "extension"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v8.5.0",
+    "title": "8.5.0 - Rebuilt binary attachment downloads",
+    "date": "2025-11-01",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "8.5.0"
+    },
+    "summary": "Binary attachment downloads are rebuilt with server-side streaming, desktop-native progress, and automatic field re-querying so you do not have to think about which fields to include.",
+    "highlights": [
+      {
+        "title": "Server-side streaming for attachment downloads",
+        "description": "Zip creation moved off the browser service worker onto the server with back-pressure and timeout handling, eliminating the refresh-to-fix-it problem.",
+        "docLink": "/query/query-results"
+      },
+      {
+        "title": "Desktop background job with live progress",
+        "description": "On desktop, attachment downloads run as a background job on the main process and save directly to disk with progress notifications.",
+        "platforms": [
+          "desktop"
+        ]
+      },
+      {
+        "title": "StaticResource download support",
+        "description": "StaticResource is now a supported export type alongside Attachment, ContentVersion, and Document."
+      },
+      {
+        "title": "No more required-field guesswork",
+        "description": "Jetstream re-queries records for the fields it needs, so you can pick any query and still export binary files cleanly."
+      }
+    ]
+  },
+  {
+    "slug": "v8.4.0",
+    "title": "8.4.0 - View Record checkbox fix, smoother desktop auto-update",
+    "date": "2025-10-28",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop"
+    ],
+    "versions": {
+      "web": "8.4.0",
+      "desktop": "3.3.0"
+    },
+    "summary": "Fixes checkboxes rendering blank in View Record, improves the desktop auto-update UX, and lets you pick filename formats for zip attachment exports.",
+    "highlights": [
+      {
+        "title": "Checkbox fields render correctly in View Record",
+        "description": "Read-only checkbox fields no longer appear blank when viewing a record."
+      },
+      {
+        "title": "Quieter desktop auto-updates",
+        "description": "Update status lives in a navbar popover instead of an intrusive dialog that could pop up multiple times.",
+        "platforms": [
+          "desktop"
+        ]
+      },
+      {
+        "title": "Duplicate filenames in zip exports",
+        "description": "When downloading binary attachments, you can now choose the filename format to use instead of hitting duplicate-name collisions.",
+        "docLink": "/query/query-results"
+      },
+      {
+        "title": "No stray navbar icons without an org",
+        "description": "Record and user search popovers are hidden until a valid org is selected, avoiding confusing empty states."
+      },
+      {
+        "title": "Desktop login works for team accounts",
+        "description": "Entitlement checks now respect team entitlements and reject logins for users no longer active in a team.",
+        "platforms": [
+          "desktop"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v8.3.0",
+    "title": "8.3.0 - Better related-object loading and assorted bug fixes",
+    "date": "2025-10-21",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop"
+    ],
+    "versions": {
+      "web": "8.3.0",
+      "desktop": "3.1.0"
+    },
+    "summary": "Load Records now shows every related object on polymorphic lookups and fetches related-field metadata on demand. Also fixes Firefox drag in the query builder and a create-organization regression.",
+    "highlights": [
+      {
+        "title": "All related objects on polymorphic lookups",
+        "description": "Field mapping on Load Records now shows every related object for polymorphic relationships instead of capping the list at five.",
+        "docLink": "/load/load"
+      },
+      {
+        "title": "On-demand related-field metadata",
+        "description": "Related-object fields are now fetched only when the object is selected in mapping, with a manual retry when a fetch fails.",
+        "docLink": "/load/load"
+      },
+      {
+        "title": "Firefox query builder drag",
+        "description": "Condition rows in the query builder can be dragged on Firefox again after swapping the drag handle from a button to a span.",
+        "docLink": "/query/query-results"
+      },
+      {
+        "title": "Create organization from selected org",
+        "description": "Creating a new organization no longer silently reuses the currently selected organization state, which could block the create flow."
+      }
+    ]
+  },
+  {
+    "slug": "v8.2.0",
+    "title": "8.2.0 - Bug bash fixes across load, deploy, and automation control",
+    "date": "2025-10-14",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "extension"
+    ],
+    "versions": {
+      "web": "8.2.0",
+      "extension": "2.4.0"
+    },
+    "summary": "Collection of fixes from a bug bash, including deploy-metadata token refresh, a safer default for rollbackOnError in production, and a fix for Automation Control select-all on filtered rows.",
+    "highlights": [
+      {
+        "title": "Safer default for production deploys",
+        "description": "The rollbackOnError option in custom-metadata loads now defaults to true in production orgs, with clearer help text when left off.",
+        "docLink": "/load/load"
+      },
+      {
+        "title": "Deploy Metadata token refresh",
+        "description": "Deploying metadata between orgs now checks each org's session before starting, avoiding a cryptic token-refresh failure mid-deploy.",
+        "docLink": "/deploy/deploy-metadata"
+      },
+      {
+        "title": "Automation Control select-all respects filters",
+        "description": "Enabling or disabling automations from the header checkbox now only affects the rows currently visible in the table."
+      },
+      {
+        "title": "Create new record from query results",
+        "description": "Creating a new record from the query results page no longer fails because of an unnecessary recordId requirement.",
+        "docLink": "/query/query-results"
+      },
+      {
+        "title": "Change debug log levels",
+        "description": "Fixed a case where Salesforce's 204 response caused the debug-log update API to fail while trying to parse an empty body."
+      }
+    ]
+  },
+  {
+    "slug": "v8.1.0",
+    "title": "8.1.0 - Login configuration and email verification fixes",
+    "date": "2025-10-13",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "8.1.0"
+    },
+    "summary": "Fixes login configuration lookup for individual users and repairs the email-link verification flow used during 2FA.",
+    "highlights": [
+      {
+        "title": "Correct login configuration lookup",
+        "description": "Individual accounts no longer inherit team login rules because of an argument-shape bug in the configuration lookup."
+      },
+      {
+        "title": "Verify email via link works again",
+        "description": "Restores the 2FA email-verification link flow, which was rejecting valid codes due to a mis-wired validator."
+      }
+    ]
+  },
+  {
+    "slug": "v8.0.1",
+    "title": "8.0.1 - Fix crash for users without entitlements",
+    "date": "2025-10-08",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "8.0.1"
+    },
+    "summary": "Hotfix for a user profile parsing crash that affected users whose accounts did not yet have an entitlements record after the 8.0.0 upgrade.",
+    "highlights": [
+      {
+        "title": "Fix profile parsing crash",
+        "description": "User profiles without an entitlements or preferences object no longer crash the app on load."
+      }
+    ]
+  },
+  {
+    "slug": "v8.0.0",
+    "title": "8.0.0 - Team plan",
+    "date": "2025-10-08",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop"
+    ],
+    "versions": {
+      "web": "8.0.0",
+      "desktop": "3.0.3"
+    },
+    "summary": "Introduces the new Jetstream Team plan with a team dashboard, member management, login configuration, and auth activity, plus route-validation hardening.",
+    "highlights": [
+      {
+        "title": "Team plan and team dashboard",
+        "description": "Invite teammates, manage members and roles, configure login rules, and review session and authentication activity from a single dashboard."
+      },
+      {
+        "title": "Unified billing experience",
+        "description": "Reworked billing page with clearer plan cards, monthly/annual toggle, and team naming during upgrade."
+      },
+      {
+        "title": "Salesforce route hardening",
+        "description": "Added domain validation on org add/login, an HSTS policy, and an extra ownership check so only the signed-in user can access their own orgs.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      },
+      {
+        "title": "Desktop update fixes",
+        "description": "Windows auto-update now uses a more standard electron-builder configuration, and an unused Squirrel startup path was removed.",
+        "platforms": [
+          "desktop"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v7.10.0",
+    "title": "7.10.0 - Centralized app state and desktop binary upload fix",
+    "date": "2025-09-27",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "7.10.0"
+    },
+    "summary": "Centralizes the application state pipeline across web, desktop, and extension, fixes binary uploads on the desktop app, and documents the upcoming outbound IP address ranges.",
+    "highlights": [
+      {
+        "title": "Centralized application state",
+        "description": "App state and server URL resolution now run through a single pipeline, so the desktop app no longer falls back to localhost when history sync is enabled.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      },
+      {
+        "title": "Binary file uploads on desktop",
+        "description": "Binary attachment uploads from the desktop app now stream as ArrayBuffers directly to Salesforce without body corruption.",
+        "platforms": [
+          "desktop"
+        ],
+        "docLink": "/load/load"
+      },
+      {
+        "title": "Outbound IP address ranges",
+        "description": "The getting started docs now include a dedicated page describing the upcoming API outbound IP address ranges.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/getting-started/overview"
+      }
+    ]
+  },
+  {
+    "slug": "v7.9.1",
+    "title": "7.9.1 - Permission manager column fix and desktop download link",
+    "date": "2025-09-24",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "7.9.1"
+    },
+    "summary": "Fixes the View All Records column width in Manage Permissions and corrects the x64 desktop download link.",
+    "highlights": [
+      {
+        "title": "View All Records column width",
+        "description": "The View All Records column in the permission manager grid now renders with the correct width.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/permissions/permissions"
+      },
+      {
+        "title": "Correct x64 desktop download link",
+        "description": "The desktop download page now points at the right x64 installer asset.",
+        "platforms": [
+          "web"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v7.9.0",
+    "title": "7.9.0 - View All Fields in Manage Permissions",
+    "date": "2025-09-24",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "7.9.0"
+    },
+    "summary": "Adds support for the new View All Fields object permission in Manage Permissions and fixes a save bug affecting View All Records.",
+    "highlights": [
+      {
+        "title": "View All Fields object permission",
+        "description": "Grant or revoke the new Salesforce View All Fields permission alongside the other object permissions in Manage Permissions.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/permissions/permissions"
+      },
+      {
+        "title": "Fix View All Records save value",
+        "description": "Saving permissions no longer writes the dirty-state value to Salesforce for View All Records and View All, so the intended value is persisted.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/permissions/permissions"
+      }
+    ]
+  },
+  {
+    "slug": "v7.8.0",
+    "title": "7.8.0 - Streaming binary uploads and higher free-plan limit",
+    "date": "2025-09-20",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "7.8.0"
+    },
+    "summary": "Rewrites the binary file upload pipeline to stream multipart data end-to-end and raises the free-plan attachment filesize limit.",
+    "highlights": [
+      {
+        "title": "Streaming multipart binary uploads",
+        "description": "Binary attachment loads now stream from the browser through the server to Salesforce instead of using base64, so large files upload reliably.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/load/load"
+      },
+      {
+        "title": "Higher free-plan attachment limit",
+        "description": "The attachment filesize cap on the free plan was raised, and the load docs were updated accordingly.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/load/load"
+      },
+      {
+        "title": "Platform events content-type fix",
+        "description": "Removed an incorrect content-type override that was causing issues when publishing platform events.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v7.7.2",
+    "title": "7.7.2 - Billing portal CSRF fix",
+    "date": "2025-09-16",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "7.7.2"
+    },
+    "summary": "Fixes the billing portal, which was failing CSRF validation after the 7.7.0 security change.",
+    "highlights": [
+      {
+        "title": "Billing portal CSRF token fix",
+        "description": "Billing pages submit via POST forms, so the CSRF token is now sent in the form body as well as the header.",
+        "platforms": [
+          "web"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v7.7.1",
+    "title": "7.7.1 - Salesforce login URL fix",
+    "date": "2025-09-13",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "7.7.1"
+    },
+    "summary": "Fixes invalid URLs generated when logging in to Salesforce from Jetstream links, and tightens attachment download host handling.",
+    "highlights": [
+      {
+        "title": "Login with Salesforce URL fix",
+        "description": "Links that log you into Salesforce now build URLs properly instead of concatenating strings, avoiding double-slash and other malformed links.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      },
+      {
+        "title": "Attachment download host handling",
+        "description": "The attachment download flow now uses proper URL parsing and validates the expected host.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v7.7.0",
+    "title": "7.7.0 - CSRF protection and UI polish",
+    "date": "2025-09-11",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "7.7.0"
+    },
+    "summary": "Adds CSRF double-submit token protection to API requests, cleans up the field mapping dropdown, and fixes several small UI issues.",
+    "highlights": [
+      {
+        "title": "CSRF double-submit token protection",
+        "description": "API requests now carry a CSRF token validated against a signed cookie, protecting against cross-site request forgery.",
+        "platforms": [
+          "web"
+        ]
+      },
+      {
+        "title": "Cleaner field mapping dropdown",
+        "description": "The load records field mapping dropdown now shows the field type as tertiary text, matching the rest of the app.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/load/load"
+      },
+      {
+        "title": "Combobox sizing fix",
+        "description": "The virtualized combobox no longer miscalculates its size in certain layouts.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      },
+      {
+        "title": "XML sanitizer and extension domain detection",
+        "description": "The XML sanitizer was fixed and the Chrome extension now detects Salesforce domains more reliably.",
+        "platforms": [
+          "web",
+          "extension"
+        ]
+      },
+      {
+        "title": "Error popover styling",
+        "description": "The error popover nubbin color now matches the popover background.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v7.6.3",
+    "title": "7.6.3 - Binary file load fixes",
+    "date": "2025-09-07",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "7.6.3",
+      "desktop": "1.3.1"
+    },
+    "summary": "Fixes a file picker conflict on the binary attachment loader and adds better logging when attachment processing fails.",
+    "highlights": [
+      {
+        "title": "Binary attachment file picker fix",
+        "description": "Clicking the \"Zip with attachments\" input no longer accidentally triggers the main CSV file input.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/load/load"
+      },
+      {
+        "title": "Better logging for attachment failures",
+        "description": "The loader now logs more context when processing a binary attachment fails, making issues easier to diagnose.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v7.6.2",
+    "title": "7.6.2 - Bigger attachment uploads and desktop download fix",
+    "date": "2025-09-05",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "7.6.2",
+      "desktop": "1.3.0",
+      "extension": "2.3.0"
+    },
+    "summary": "Raises the binary attachment upload limit, fixes attachment downloads in the desktop app, and ships a matching web extension release.",
+    "highlights": [
+      {
+        "title": "Larger binary attachment uploads",
+        "description": "Paid users can upload up to 1 GB of attachments, and the desktop app and browser extension have no upload limit.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/load/load"
+      },
+      {
+        "title": "Attachment downloads fixed on desktop",
+        "description": "Zip downloads of query result attachments now work in the desktop app via a custom protocol handler.",
+        "platforms": [
+          "desktop"
+        ]
+      },
+      {
+        "title": "Safer zip attachment fetches",
+        "description": "The download service worker now validates fetch URLs before requesting zip attachments.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v7.6.1",
+    "title": "7.6.1 - Geo IP routing fix",
+    "date": "2025-09-03",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "7.6.1"
+    },
+    "summary": "Fixes a routing regression in the geo IP service after the Express 5 upgrade, plus docs and build script cleanup.",
+    "highlights": [
+      {
+        "title": "Geo IP service routing fix",
+        "description": "Corrected the router configuration for Express 5 so geo IP lookups resolve correctly again.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      },
+      {
+        "title": "Desktop download link fix in docs",
+        "description": "The Windows desktop download link in the connected app docs now points at the correct location."
+      }
+    ]
+  },
+  {
+    "slug": "v7.6.0",
+    "title": "7.6.0 - Record modal anywhere, changeset options, Google Sheet refresh",
+    "date": "2025-08-30",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "7.6.0",
+      "desktop": "1.2.0",
+      "extension": "2.2.0"
+    },
+    "summary": "View, edit, and clone any record from anywhere in the app, refresh Google Sheet data on the load page, and control rollback behavior when adding metadata to a changeset.",
+    "highlights": [
+      {
+        "title": "View/Edit/Clone record modal, app-wide",
+        "description": "The record modal is now managed at the app level, so viewing or editing a record works consistently from any screen and updates your recent records list automatically.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      },
+      {
+        "title": "Refresh Google Sheet data on Load Records",
+        "description": "Re-pull data from your selected Google Sheet even after navigating forward and backward through the load steps.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/load/load"
+      },
+      {
+        "title": "Changeset upload options",
+        "description": "When adding metadata to an outbound changeset, you can now adjust deploy options and Jetstream defaults to \"rollback on failure\" for production orgs.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/deploy/deploy-metadata"
+      },
+      {
+        "title": "Date picker closes on outside click",
+        "description": "The date picker now dismisses correctly when you click outside of it in most contexts.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      },
+      {
+        "title": "Recent records stays in sync",
+        "description": "Opening a record from anywhere in the app now updates the recent records list, so it is easier to jump back to what you were just working on.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v7.5.0",
+    "title": "7.5.0 - Accurate record count preview for queries",
+    "date": "2025-08-30",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "7.5.0"
+    },
+    "summary": "The record count preview shown before running a query no longer fails when the query includes an ORDER BY clause.",
+    "highlights": [
+      {
+        "title": "Query record count preview works with ORDER BY",
+        "description": "The count preview now strips the incompatible ORDER BY before running, so you get an accurate record total every time.",
+        "platforms": [
+          "web",
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/query/query-results"
+      }
+    ]
+  },
+  {
+    "slug": "v7.4.0",
+    "title": "7.4.0 - Per-org encryption and Windows desktop login",
+    "date": "2025-08-26",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop"
+    ],
+    "versions": {
+      "web": "7.4.0"
+    },
+    "summary": "Org credentials are now encrypted with a unique key per record, and deep-link login is fixed in Windows desktop development builds.",
+    "highlights": [
+      {
+        "title": "Per-org encryption keys",
+        "description": "Each stored Salesforce org now uses a unique encryption key instead of a single global key, reducing blast radius if a key is ever exposed.",
+        "platforms": [
+          "web",
+          "desktop"
+        ]
+      },
+      {
+        "title": "Windows desktop login fix",
+        "description": "Deep links now open correctly in Windows desktop development builds, so OAuth login completes as expected.",
+        "platforms": [
+          "desktop"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v7.3.5",
+    "title": "7.3.5 - Diff editor collapses unchanged regions after swap",
+    "date": "2025-08-23",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "7.3.5"
+    },
+    "summary": "Fixes the view/compare metadata diff editor so collapsed unchanged regions stay collapsed after swapping the two sides.",
+    "highlights": [
+      {
+        "title": "Diff editor swap fix",
+        "description": "Swapping sides in the view/compare metadata diff now re-renders the editor so unchanged regions collapse as expected.",
+        "docLink": "/deploy/deploy-metadata"
+      }
+    ]
+  },
+  {
+    "slug": "v7.3.4",
+    "title": "7.3.4 - One-click field change in query filters",
+    "date": "2025-08-23",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "7.3.4"
+    },
+    "summary": "Removes the extra clear step when changing the field in a query filter condition.",
+    "highlights": [
+      {
+        "title": "Faster field swap in query filters",
+        "description": "The \"x\" button on a selected filter field is gone, so you can pick a different field in one click instead of two.",
+        "docLink": "/query/query-results"
+      }
+    ]
+  },
+  {
+    "slug": "v7.3.3",
+    "title": "7.3.3 - Connected app guidance and annual pricing fix",
+    "date": "2025-08-21",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "7.3.3"
+    },
+    "summary": "Adds an in-app banner about upcoming Salesforce Connected App changes, updates the related docs, and fixes annual pricing display for existing subscribers.",
+    "highlights": [
+      {
+        "title": "Upcoming Salesforce Connected App notice",
+        "description": "The home screen now shows a banner linking to guidance for preparing for Salesforce's upcoming Connected App changes.",
+        "docLink": "/getting-started/troubleshooting"
+      },
+      {
+        "title": "Annual subscription pricing fix",
+        "description": "Existing annual subscribers now see the correct price on the billing page."
+      },
+      {
+        "title": "Docs refresh",
+        "description": "Overview, security, and troubleshooting docs have been updated with current Connected App install steps."
+      }
+    ]
+  },
+  {
+    "slug": "v7.3.2",
+    "title": "7.3.2 - Fix view-results modal for bulk edits from query",
+    "date": "2025-08-14",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "7.3.2"
+    },
+    "summary": "Fixes a bug where viewing bulk results after bulk editing records from query results did nothing.",
+    "highlights": [
+      {
+        "title": "View bulk results works again",
+        "description": "Bulk editing from query results and then clicking \"view results\" now opens the results modal instead of silently doing nothing.",
+        "docLink": "/query/query-results"
+      }
+    ]
+  },
+  {
+    "slug": "v7.3.1",
+    "title": "7.3.1 - Login session hardening",
+    "date": "2025-08-11",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "7.3.1"
+    },
+    "summary": "Patch release that regenerates the session on login and cleans up server logs that could include sensitive values.",
+    "highlights": [
+      {
+        "title": "Session regenerated on login",
+        "description": "The login flow now always returns a fresh session so cached state from the pre-login request cannot carry over."
+      },
+      {
+        "title": "Cleaner server logs",
+        "description": "Removed log statements that could include sensitive header or identity values."
+      }
+    ]
+  },
+  {
+    "slug": "v7.3.0",
+    "title": "7.3.0 - Windows desktop app and in-app desktop/extension promotion",
+    "date": "2025-08-11",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "desktop"
+    ],
+    "versions": {
+      "web": "7.3.0",
+      "desktop": "1.1.0"
+    },
+    "summary": "The desktop app now installs and auto-updates on Windows (code-signed), and the web app surfaces links to the desktop and browser extension builds from the home screen.",
+    "highlights": [
+      {
+        "title": "Windows desktop app",
+        "description": "Desktop 1.1.0 ships a signed Windows installer with proper install, update, and Start Menu shortcut handling.",
+        "platforms": [
+          "desktop"
+        ],
+        "docLink": "/getting-started/desktop-app"
+      },
+      {
+        "title": "Alternative app formats on the home screen",
+        "description": "The home screen now shows a card pointing entitled users to the desktop app and browser extension.",
+        "platforms": [
+          "web"
+        ]
+      },
+      {
+        "title": "Desktop entitlement fix",
+        "description": "Desktop was missing from entitlement checks, so paid users could be blocked from the desktop build. This is corrected.",
+        "platforms": [
+          "web",
+          "desktop"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v7.2.0",
+    "title": "7.2.0 - Copy load results to clipboard",
+    "date": "2025-08-09",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "extension"
+    ],
+    "versions": {
+      "web": "7.2.0",
+      "extension": "2.1.0"
+    },
+    "summary": "You can now copy load results directly to the clipboard as Excel, CSV, or JSON without downloading a file first.",
+    "highlights": [
+      {
+        "title": "Copy load results to clipboard",
+        "description": "From the load results modal, copy all or selected rows to the clipboard in spreadsheet, CSV, or JSON format.",
+        "platforms": [
+          "web",
+          "extension"
+        ],
+        "docLink": "/load/load"
+      }
+    ]
+  },
+  {
+    "slug": "v7.1.0",
+    "title": "7.1.0 - Diff editor toggle, folder metadata fixes",
+    "date": "2025-08-09",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "extension"
+    ],
+    "versions": {
+      "web": "7.1.0",
+      "extension": "2.0.1"
+    },
+    "summary": "Compare metadata got an option to hide unchanged lines, folder metadata types are now retrieved correctly, and several datatable and popover bugs are fixed.",
+    "highlights": [
+      {
+        "title": "Toggle unchanged lines in the metadata diff editor",
+        "description": "When comparing metadata between orgs you can now collapse unchanged lines, which makes larger files much easier to scan.",
+        "platforms": [
+          "web",
+          "extension"
+        ],
+        "docLink": "/deploy/deploy-metadata"
+      },
+      {
+        "title": "Folder metadata types work correctly",
+        "description": "Document, Email, Report, and Dashboard folders now appear in the metadata picker and retrieve the correct metadata from Salesforce.",
+        "platforms": [
+          "web",
+          "extension"
+        ],
+        "docLink": "/deploy/deploy-metadata"
+      },
+      {
+        "title": "Datatable tab navigation fix",
+        "description": "Fixed an edge case where tab navigation inside the datatable could misidentify custom cell renderers after minification.",
+        "platforms": [
+          "web",
+          "extension"
+        ]
+      },
+      {
+        "title": "Monaco editor upgrade",
+        "description": "Upgraded the embedded code editor, which powers the Apex, SOQL, and metadata editors across Jetstream.",
+        "platforms": [
+          "web",
+          "extension"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v7.0.0",
+    "title": "7.0.0 - React 19, Jotai state, and better datatable keyboard navigation",
+    "date": "2025-07-27",
+    "authors": [
+      "jetstream"
+    ],
+    "tags": [
+      "web",
+      "extension"
+    ],
+    "versions": {
+      "web": "7.0.0",
+      "extension": "2.0.0"
+    },
+    "summary": "Major foundation update. Jetstream now runs on React 19 with Jotai for state and Floating UI for popovers, plus meaningful wins for keyboard users in the datatable.",
+    "highlights": [
+      {
+        "title": "Improved datatable keyboard navigation",
+        "description": "Tab now cycles through action and record Id cells, Enter opens the record popover, and inline editing matches SLDS styles.",
+        "platforms": [
+          "web",
+          "extension"
+        ],
+        "docLink": "/query/query-results"
+      },
+      {
+        "title": "Tooltips respond to keyboard focus",
+        "description": "Focusing a button or icon with the keyboard now shows its tooltip, matching the behavior you get with a mouse hover.",
+        "platforms": [
+          "web",
+          "extension"
+        ]
+      },
+      {
+        "title": "Bulk update from query results fixed",
+        "description": "The bulk update job from query results no longer fails because of a stale polling callback, so jobs complete and surface their status correctly.",
+        "platforms": [
+          "web",
+          "extension"
+        ],
+        "docLink": "/query/query-results"
+      },
+      {
+        "title": "Dropdowns close reliably on outside click",
+        "description": "Clicking outside a dropdown now closes it in the cases where it was previously staying open.",
+        "platforms": [
+          "web",
+          "extension"
+        ]
+      },
+      {
+        "title": "Modernized popovers and tooltips",
+        "description": "Popovers and tooltips moved to Floating UI, which fixes several nested portal and positioning glitches across modals and popovers.",
+        "platforms": [
+          "web",
+          "extension"
+        ]
+      }
+    ]
+  }
+]

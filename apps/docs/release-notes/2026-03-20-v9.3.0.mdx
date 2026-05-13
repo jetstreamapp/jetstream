@@ -1,0 +1,40 @@
+---
+slug: v9.3.0
+title: 9.3.0 - Terms of Service acceptance and per-user desktop encryption
+date: '2026-03-20'
+authors: [jetstream]
+tags: [web, desktop, extension]
+versions:
+  web: 9.3.0
+  desktop: 3.17.0
+  extension: 2.19.0
+summary: New Terms of Service acceptance flow during sign-up and sign-in, plus a fix for desktop users on virtual machines whose saved org credentials were becoming unreadable.
+highlights:
+  - title: Terms of Service acceptance
+    description: Users are prompted to accept the current Terms of Service during registration and login, with acceptance tracked per account.
+    platforms: [web, desktop, extension]
+  - title: Per-user encryption for desktop org data
+    description: Saved org credentials in the desktop app now use per-user encryption instead of machine-bound keys, fixing data loss on virtual desktops that reprovision daily.
+    platforms: [desktop]
+  - title: Google SSO setup docs
+    description: Added images and clearer help text for configuring the OIDC issuer URL when setting up Google SSO.
+    platforms: [web]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Terms of Service acceptance flow
+
+New and returning users will now see a Terms of Service acceptance prompt. Acceptance is recorded against the account so we can prove consent cleanly for audit and compliance purposes. Once accepted, you won't see the prompt again unless the terms change.
+
+### Per-user encryption on the desktop app
+
+If you run the desktop app on a virtual desktop (VDI or similar) where the underlying machine identity changes between sessions, saved orgs would previously become unreadable. Encryption keys are now derived from the logged-in user instead of the machine, so credentials survive VM reprovisioning.
+
+### Docs and policy updates
+
+- Google SSO setup now has screenshots and clearer help text for the OIDC issuer URL field.
+- DPA text was clarified.
+- Terms of Service content and sub-processor list updated.

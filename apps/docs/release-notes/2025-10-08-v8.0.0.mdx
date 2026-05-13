@@ -1,0 +1,50 @@
+---
+slug: v8.0.0
+title: 8.0.0 - Team plan
+date: '2025-10-08'
+authors: [jetstream]
+tags: [web, desktop]
+versions:
+  web: 8.0.0
+  desktop: 3.0.3
+summary: Introduces the new Jetstream Team plan with a team dashboard, member management, login configuration, and auth activity, plus route-validation hardening.
+highlights:
+  - title: Team plan and team dashboard
+    description: Invite teammates, manage members and roles, configure login rules, and review session and authentication activity from a single dashboard.
+  - title: Unified billing experience
+    description: Reworked billing page with clearer plan cards, monthly/annual toggle, and team naming during upgrade.
+  - title: Salesforce route hardening
+    description: Added domain validation on org add/login, an HSTS policy, and an extra ownership check so only the signed-in user can access their own orgs.
+    platforms: [web, desktop, extension]
+  - title: Desktop update fixes
+    description: Windows auto-update now uses a more standard electron-builder configuration, and an unused Squirrel startup path was removed.
+    platforms: [desktop]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Team plan and team dashboard
+
+Jetstream now supports multi-seat teams. Team owners get a new dashboard to invite members, set roles, deactivate users, review each member's login and session history, and configure login rules such as allowed identity providers and required MFA. Subscriptions on the Team plan auto-create a team when the subscription is upgraded.
+
+See the [team management docs](/team-management/team-management) for the full walkthrough.
+
+### Unified billing experience
+
+The billing page was rebuilt around plan cards with a monthly/annual period toggle, a team-name prompt when upgrading to Team, and clearer handling of existing subscriptions. Access control on billing and profile endpoints is also more consistent, and errors now report through the bug tracker for faster triage.
+
+### Salesforce route hardening
+
+Adding or reconnecting an org now validates that the target host is a legitimate Salesforce-controlled domain before issuing a redirect, and all API responses enforce HSTS so browsers stick to HTTPS. An additional server-side check confirms that the org being accessed belongs to the signed-in user, on top of the existing database-level scoping.
+
+### Desktop update and menu cleanup
+
+The Windows auto-update flow was switched to a more default electron-builder configuration to address update failures seen on the prior release. The unused Squirrel startup integration and the orphan Profile component were also removed from the desktop build.
+
+### Quality-of-life
+
+- Fixed a user-linking access bug in the profile linked-accounts panel.
+- Form accessibility improvements across billing and profile screens.
+- Deprecated an unused image upload endpoint.

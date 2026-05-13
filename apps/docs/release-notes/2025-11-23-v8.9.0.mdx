@@ -1,0 +1,62 @@
+---
+slug: v8.9.0
+title: 8.9.0 - Auth hardening and edit modal improvements
+date: '2025-11-23'
+authors: [jetstream]
+tags: [web, desktop, extension]
+versions:
+  web: 8.9.0
+  desktop: 3.5.0
+  extension: 2.6.0
+summary: Major authentication hardening including password history and account lockout, plus View All records access in the edit/create/clone record modal.
+highlights:
+  - title: Auth hardening
+    description: Password history prevents reuse of the last 10 passwords, account lockout protects against repeated reset attempts, and login flows no longer leak whether an email is registered.
+    platforms: [web, desktop, extension]
+  - title: Improved password reset flow
+    description: Changed passwords are tracked in history, the strength indicator shows on reset, reuse errors stay visible, and the login form auto-fills the reset email.
+    platforms: [web, desktop, extension]
+  - title: View All Records on edit modal
+    description: The edit, create, and clone record modal now loads every field instead of only layout-assigned fields.
+    docLink: /query/query-results
+    platforms: [web, desktop, extension]
+  - title: Team role safety
+    description: Billing-only users can no longer promote others to admin or modify administrator accounts.
+    docLink: /team-management/team-management
+    platforms: [web]
+  - title: Smarter org expiration emails
+    description: The 90-day inactive-org reminder now skips users who do not actively use Jetstream, and test-mode summaries are accurate.
+    platforms: [web]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Auth hardening
+
+A sizable security pass landed across the login and signup flows:
+
+- Password history tracks the 10 most recent passwords and blocks reuse.
+- Account lockout protects against repeated password-reset attempts.
+- The signup flow verifies the email address before confirming whether it is already in use, preventing user enumeration.
+- The login page shows a hint for the most recently used login method for your email.
+- If you log in with a password, Jetstream offers to remember the email so the form auto-fills next time.
+
+### Password reset improvements
+
+The reset flow now writes the new password into password history, shows the strength meter during reset, keeps reuse errors visible instead of bouncing back to login, and pre-fills the email field after a successful reset.
+
+### Edit/Create/Clone record modal: View All
+
+The record modal now exposes every field on the object, not just the ones on the user's page layout. This matches the View All behavior in the query results grid.
+
+### Team role restrictions
+
+Billing-only members cannot change another user's role to admin, and cannot modify users who are already administrators.
+
+### Quality-of-life
+
+- Org popover width was corrected so long org names no longer overflow.
+- Expired-org reminder emails skip inactive users and render correctly in test mode.
+- Email-related default environment variables were removed so deployments fail loudly instead of silently sending with the wrong settings.

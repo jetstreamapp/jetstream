@@ -1,0 +1,22 @@
+---
+slug: v8.18.1
+title: 8.18.1 - Improve email deliverability
+date: '2026-01-23'
+authors: [jetstream]
+tags: [web]
+versions:
+  web: 8.18.1
+summary: Removes the hidden email preview header that was tripping up some corporate email filters.
+highlights:
+  - title: Better email deliverability
+    description: Removed the invisible preview text in transactional emails so corporate spam filters stop flagging them.
+    platforms: [web]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Email deliverability fix
+
+Transactional emails were being flagged by some corporate mail filters because the preview-text header inserted a block of invisible characters. The preview header has been removed to keep messages landing in inboxes.

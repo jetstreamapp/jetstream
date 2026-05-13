@@ -1,0 +1,49 @@
+---
+slug: v8.4.0
+title: 8.4.0 - View Record checkbox fix, smoother desktop auto-update
+date: '2025-10-28'
+authors: [jetstream]
+tags: [web, desktop]
+versions:
+  web: 8.4.0
+  desktop: 3.3.0
+summary: Fixes checkboxes rendering blank in View Record, improves the desktop auto-update UX, and lets you pick filename formats for zip attachment exports.
+highlights:
+  - title: Checkbox fields render correctly in View Record
+    description: Read-only checkbox fields no longer appear blank when viewing a record.
+  - title: Quieter desktop auto-updates
+    description: Update status lives in a navbar popover instead of an intrusive dialog that could pop up multiple times.
+    platforms: [desktop]
+  - title: Duplicate filenames in zip exports
+    description: When downloading binary attachments, you can now choose the filename format to use instead of hitting duplicate-name collisions.
+    docLink: /query/query-results
+  - title: No stray navbar icons without an org
+    description: Record and user search popovers are hidden until a valid org is selected, avoiding confusing empty states.
+  - title: Desktop login works for team accounts
+    description: Entitlement checks now respect team entitlements and reject logins for users no longer active in a team.
+    platforms: [desktop]
+---
+
+{/* truncate */}
+
+## What's new
+
+### View Record checkbox fix
+
+Checkbox fields in the read-only View Record view were rendering as blank. They now show the correct true/false value. Resolves #1414.
+
+### Desktop auto-update overhaul
+
+The desktop app's old update flow forced you through a dialog, sometimes multiple times. Update state now lives in a popover in the navbar so you can see progress, trigger installs, and dismiss at your own pace. Shipped in desktop 3.3.0.
+
+### Zip export filename options
+
+When exporting binary attachments, you can pick the filename format, which avoids collisions when records share an attachment name. Resolves #1379.
+
+### Navbar cleanup without an org
+
+Record search and user search icons are hidden until an org is selected, so you no longer see features that cannot work. Resolves #1395.
+
+### Desktop team login
+
+The desktop entitlement check now prefers team entitlements when they exist and refuses login if the user is not active in the team.

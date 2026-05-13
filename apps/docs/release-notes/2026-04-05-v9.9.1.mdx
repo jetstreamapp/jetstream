@@ -1,0 +1,29 @@
+---
+slug: v9.9.1
+title: 9.9.1 - Cloudflare Insights CSP, SSO blog link fix
+date: '2026-04-05'
+authors: [jetstream]
+tags: [web]
+versions:
+  web: 9.9.1
+summary: Added Cloudflare Insights to the Content Security Policy and corrected the SSO blog post link on the landing page.
+highlights:
+  - title: Cloudflare Insights in CSP
+    description: Content Security Policy now allows Cloudflare Insights so performance and security monitoring load without console warnings.
+    platforms: [web]
+  - title: SSO blog link corrected
+    description: The landing-page link to the Jetstream SSO blog post now points at the correct route.
+    platforms: [web]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Cloudflare Insights allowed in CSP
+
+Cloudflare Insights was being blocked by our Content Security Policy. The `script-src` directive now includes the Insights host so analytics load cleanly.
+
+### SSO blog link
+
+The landing page link to the SSO blog post was pointing at a stale route. It now resolves to the current Jetstream SSO post.

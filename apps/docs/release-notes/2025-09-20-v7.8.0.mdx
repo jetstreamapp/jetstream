@@ -1,0 +1,38 @@
+---
+slug: v7.8.0
+title: 7.8.0 - Streaming binary uploads and higher free-plan limit
+date: '2025-09-20'
+authors: [jetstream]
+tags: [web]
+versions:
+  web: 7.8.0
+summary: Rewrites the binary file upload pipeline to stream multipart data end-to-end and raises the free-plan attachment filesize limit.
+highlights:
+  - title: Streaming multipart binary uploads
+    description: Binary attachment loads now stream from the browser through the server to Salesforce instead of using base64, so large files upload reliably.
+    docLink: /load/load
+    platforms: [web, desktop, extension]
+  - title: Higher free-plan attachment limit
+    description: The attachment filesize cap on the free plan was raised, and the load docs were updated accordingly.
+    docLink: /load/load
+    platforms: [web, desktop, extension]
+  - title: Platform events content-type fix
+    description: Removed an incorrect content-type override that was causing issues when publishing platform events.
+    platforms: [web, desktop, extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Streaming multipart binary uploads
+
+The binary attachment upload pipeline moved off base64 and onto streaming multipart uploads. Files are streamed from the browser, through the API, and on to Salesforce without being fully buffered, which lets much larger files upload without timeouts or memory pressure. The server transforms the incoming binary stream so the embedded JSON part matches what the Salesforce API expects, and the desktop app uses a custom axios adapter that generates the multipart boundaries directly.
+
+### Higher free-plan attachment limit
+
+The attachment filesize limit for free-plan users was increased. The load attachments documentation was updated to reflect the new cap.
+
+### Platform events content-type fix
+
+An incorrect content-type header was being set on the client data helper when publishing platform events. That override was removed so platform event requests use the right content type.

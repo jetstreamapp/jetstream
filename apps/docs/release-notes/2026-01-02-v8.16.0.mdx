@@ -1,0 +1,53 @@
+---
+slug: v8.16.0
+title: 8.16.0 - Team dashboard in desktop, org delete shortcut
+date: '2026-01-02'
+authors: [jetstream]
+tags: [web, desktop, extension]
+versions:
+  web: 8.16.0
+  desktop: 3.11.0
+  extension: 2.12.0
+summary: Team admins can now open the team dashboard from the desktop app, and orgs with connection errors get a quick delete shortcut.
+highlights:
+  - title: Team dashboard in the desktop app
+    description: If your account has team access, a new menu link opens the team dashboard from the desktop app.
+    platforms: [desktop]
+  - title: Delete button on errored org cards
+    description: Orgs with connection errors now show a delete button directly on the card for faster cleanup.
+    platforms: [web, desktop, extension]
+  - title: Salesforce connection errors surfaced on desktop
+    description: The desktop app now shows an error toast when a Salesforce connection fails.
+    platforms: [desktop]
+  - title: Encrypted client tokens
+    description: Stored auth tokens for the desktop app and web extension are now encrypted at rest, with legacy tokens upgraded automatically.
+    platforms: [desktop, extension]
+  - title: Consistent static field dropdown on loads
+    description: The static-value dropdown in field mapping now matches the styling used everywhere else.
+    platforms: [web, desktop, extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Team dashboard in the desktop app
+
+Team members can now jump to the team dashboard directly from the desktop menu. If your account does not have team access, the link stays hidden.
+
+### Quicker org cleanup
+
+When an org has a connection error (expired refresh token, revoked access, etc.), the org card now shows a delete button so you can remove it without digging into settings. On desktop, a connection error also surfaces as a toast instead of failing silently.
+
+### Stronger auth handling for clients
+
+- Desktop and web extension tokens are now stored encrypted, with older plaintext tokens upgraded on next access.
+- The Salesforce OAuth flow was consolidated into a shared library so desktop and web behave the same.
+- Valid tokens are reused within a refresh buffer instead of issuing a new token on every call.
+
+### Smaller fixes
+
+- Load Records: the static-value dropdown in field mapping now matches the styling of other field dropdowns.
+- Fixed an incorrect OpenAPI route method.
+- Fixed redirect URL validation.
+- Fixed a typo in the license-assignment error message.

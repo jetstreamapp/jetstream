@@ -1,0 +1,31 @@
+---
+slug: v7.4.0
+title: 7.4.0 - Per-org encryption and Windows desktop login
+date: '2025-08-26'
+authors: [jetstream]
+tags: [web, desktop]
+versions:
+  web: 7.4.0
+summary: Org credentials are now encrypted with a unique key per record, and deep-link login is fixed in Windows desktop development builds.
+highlights:
+  - title: Per-org encryption keys
+    description: Each stored Salesforce org now uses a unique encryption key instead of a single global key, reducing blast radius if a key is ever exposed.
+    platforms: [web, desktop]
+  - title: Windows desktop login fix
+    description: Deep links now open correctly in Windows desktop development builds, so OAuth login completes as expected.
+    platforms: [desktop]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Per-org encryption for stored credentials
+
+We moved to a stronger encryption strategy for Salesforce org credentials. Each stored org now has its own encryption key instead of sharing a single global key across the database. This narrows the impact if a key is ever compromised and brings the access token decryption path into tighter typing on the backend.
+
+No action is required. Existing orgs continue to work.
+
+### Windows desktop login fix
+
+In Windows development builds, the deep link that completes OAuth login back to Jetstream desktop was not being handled correctly. Login now completes as expected when running the desktop app on Windows.

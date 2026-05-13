@@ -1,0 +1,51 @@
+---
+slug: v9.13.0
+title: 9.13.0 - Clickable Name links in query results, auth hardening
+date: '2026-04-19'
+authors: [jetstream]
+tags: [web]
+versions:
+  web: 9.13.0
+summary: Name fields in query results now open the same record-lookup popover as Id links, plus several authentication and session hardening changes.
+highlights:
+  - title: Clickable Name columns in query results
+    description: Name fields (including relationship Names like Account.Name) render as record-lookup popovers, matching the Id link behavior.
+    docLink: /query/query-results
+  - title: Salesforce refresh token rotation
+    description: Jetstream now stores rotated refresh tokens when Salesforce issues them during a refresh.
+  - title: Verification attempt limits
+    description: OTP, email verification, and password reset tokens now expire after a set number of invalid attempts, with rate limits on internal password reset endpoints.
+  - title: Revoke other sessions on password change
+    description: Setting a new password or removing a password from the profile page now logs out all other active sessions.
+  - title: Require auth before serving the app
+    description: Unauthenticated requests to app routes are redirected up front rather than loading the SPA and redirecting from the client.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Name columns act like Id columns
+
+In query results, `Name` and relationship Name columns (for example `Account.Name`, `Owner.Name`) now render as clickable links that open the record-lookup popover, matching how Id columns already behaved. Aggregate columns and subquery child columns are skipped.
+
+### Salesforce refresh token rotation
+
+When Salesforce returns a new refresh token during a token refresh, Jetstream now stores it instead of continuing to use the old one.
+
+### Verification attempt limits
+
+OTP, email verification, and password reset tokens now expire after a set number of invalid attempts as a defense-in-depth measure. Internal password reset endpoints have additional rate limits.
+
+### Password change revokes other sessions
+
+Changing or removing your password from the profile page now deletes all other active sessions for your account.
+
+### Auth gate before the app loads
+
+A new middleware redirects unauthenticated requests to the login page before the app shell is served, avoiding a brief flash of the app for logged-out users.
+
+### Other
+
+- `NotificationClose` failures are swallowed locally instead of being reported to Rollbar.
+- Dependency upgrades including `dompurify` 3.4.0 and a `@babel/traverse` security patch.

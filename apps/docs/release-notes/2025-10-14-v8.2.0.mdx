@@ -1,0 +1,52 @@
+---
+slug: v8.2.0
+title: 8.2.0 - Bug bash fixes across load, deploy, and automation control
+date: '2025-10-14'
+authors: [jetstream]
+tags: [web, extension]
+versions:
+  web: 8.2.0
+  extension: 2.4.0
+summary: Collection of fixes from a bug bash, including deploy-metadata token refresh, a safer default for rollbackOnError in production, and a fix for Automation Control select-all on filtered rows.
+highlights:
+  - title: Safer default for production deploys
+    description: The rollbackOnError option in custom-metadata loads now defaults to true in production orgs, with clearer help text when left off.
+    docLink: /load/load
+  - title: Deploy Metadata token refresh
+    description: Deploying metadata between orgs now checks each org's session before starting, avoiding a cryptic token-refresh failure mid-deploy.
+    docLink: /deploy/deploy-metadata
+  - title: Automation Control select-all respects filters
+    description: Enabling or disabling automations from the header checkbox now only affects the rows currently visible in the table.
+  - title: Create new record from query results
+    description: Creating a new record from the query results page no longer fails because of an unnecessary recordId requirement.
+    docLink: /query/query-results
+  - title: Change debug log levels
+    description: Fixed a case where Salesforce's 204 response caused the debug-log update API to fail while trying to parse an empty body.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Safer default for production deploys
+
+When loading custom metadata into a production org, the `rollbackOnError` checkbox now defaults to on. If you turn it off, the help text is styled as a warning so it's clear Salesforce requires rollback-on-error for production loads.
+
+### Deploy Metadata token refresh
+
+When deploying metadata from one org to another, Jetstream now checks each org's connection health before kicking off the deployment. Previously a stale session in either org surfaced as an opaque token-refresh failure partway through.
+
+### Automation Control select-all respects filters
+
+The select-all checkbox in Automation Control now only toggles rows visible after filtering, instead of silently enabling or disabling every row in the underlying list. Select-all also skips parent rows when none of their children are visible.
+
+### Other fixes
+
+- Creating a new record from the query results page works again; the listener no longer requires a recordId for new-record mode.
+- Changing the debug log level works again after Salesforce returned a 204 with no body.
+- Removed an unnecessary bug-tracker notification on failed global picklist creation.
+- Improved error logging for client-discovery requests and fixed the geo-IP service for Zod 4.
+
+### Web extension 2.4.0
+
+Web extension 2.4.0 ships alongside this release with the same underlying fixes.

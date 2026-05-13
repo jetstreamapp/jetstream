@@ -1,0 +1,35 @@
+---
+slug: v9.5.0
+title: 9.5.0 - Better Salesforce formula evaluation, desktop persistence fixes
+date: '2026-04-01'
+authors: [jetstream]
+tags: [web, desktop]
+versions:
+  web: 9.5.0
+  desktop: 3.18.2
+summary: Formula evaluation now uses the new sf-formula-parser library for much better Salesforce formula coverage, plus desktop persistence fixes for VDI environments.
+highlights:
+  - title: New formula evaluation engine
+    description: Replaced formulon with our open-source sf-formula-parser library for much broader Salesforce formula support and fewer bugs.
+    platforms: [web, desktop, extension]
+  - title: Desktop persistence reliability
+    description: Desktop app no longer encrypts the JWT token and avoids overwriting org data before a valid access token is obtained, reducing logout loops on Windows VDI.
+    platforms: [desktop]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Salesforce formula evaluation, rebuilt
+
+We swapped out the old `formulon` engine for `sf-formula-parser`, a new open-source library we built specifically for Salesforce formula coverage. It handles far more of the real-world Salesforce formula language and fixes a number of long-standing bugs where valid formulas returned wrong values or failed outright.
+
+### Desktop persistence fixes
+
+On some Windows VDI and virtual-machine setups, users were getting logged out or seeing their org list wiped. Two changes in the desktop client:
+
+- The JWT auth token is no longer encrypted at rest, which avoids decryption failures across VM snapshots and profile roaming.
+- Org data writes are guarded so a missing access token during startup won't clobber previously saved orgs.
+
+Additional logging was added to the persistence service to make future issues easier to diagnose.

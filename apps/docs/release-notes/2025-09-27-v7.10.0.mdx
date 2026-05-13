@@ -1,0 +1,42 @@
+---
+slug: v7.10.0
+title: 7.10.0 - Centralized app state and desktop binary upload fix
+date: '2025-09-27'
+authors: [jetstream]
+tags: [web]
+versions:
+  web: 7.10.0
+summary: Centralizes the application state pipeline across web, desktop, and extension, fixes binary uploads on the desktop app, and documents the upcoming outbound IP address ranges.
+highlights:
+  - title: Centralized application state
+    description: App state and server URL resolution now run through a single pipeline, so the desktop app no longer falls back to localhost when history sync is enabled.
+    platforms: [web, desktop, extension]
+  - title: Binary file uploads on desktop
+    description: Binary attachment uploads from the desktop app now stream as ArrayBuffers directly to Salesforce without body corruption.
+    docLink: /load/load
+    platforms: [desktop]
+  - title: Outbound IP address ranges
+    description: The getting started docs now include a dedicated page describing the upcoming API outbound IP address ranges.
+    docLink: /getting-started/overview
+    platforms: [web, desktop, extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Centralized application state
+
+The application state and server URL pipeline was refactored so the web app, desktop app, and browser extension all share one implementation instead of maintaining bespoke copies. This also fixes a bug where the desktop app would default to a localhost websocket server when history sync was enabled because it was falling back to the default cookie value. The application cookie has been largely replaced by the heartbeat API for desktop and extension.
+
+### Binary file uploads on desktop
+
+Binary attachment uploads on the desktop app were failing due to body corruption on the outbound request. The desktop load path now uses ArrayBuffers and streams the multipart body directly to Salesforce from the main process without additional processing.
+
+### Outbound IP address ranges
+
+A new `_ip-address-ranges.mdx` partial was added to the getting started docs and surfaced from the overview, install-connected-app, and troubleshooting pages, along with a notice on the app home page about the upcoming API outbound IP address range changes.
+
+### Desktop menu cleanup
+
+The desktop application menu was trimmed to remove unused items.

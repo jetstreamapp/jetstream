@@ -1,0 +1,22 @@
+---
+slug: v8.19.0
+title: 8.19.0 - Email log storage
+date: '2026-01-23'
+authors: [jetstream]
+tags: [web]
+versions:
+  web: 8.19.0
+summary: Internal maintenance release that stores sent emails for better visibility into delivery failures.
+highlights:
+  - title: Email log storage
+    description: Sent emails are now persisted so delivery issues can be investigated beyond the short log retention window.
+    platforms: [web]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Email log storage
+
+Jetstream now stores a record of outgoing emails so that deliverability issues can be investigated after the short log retention window expires. No user-facing changes.

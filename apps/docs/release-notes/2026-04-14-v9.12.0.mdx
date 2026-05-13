@@ -1,0 +1,36 @@
+---
+slug: v9.12.0
+title: 9.12.0 - Bulk API error handling improvements
+date: '2026-04-14'
+authors: [jetstream]
+tags: [web]
+versions:
+  web: 9.12.0
+summary: Bulk API loads now detect fatal errors and retry transient failures instead of plowing ahead, with clearer progress reporting.
+highlights:
+  - title: Smarter Bulk API error handling
+    description: Loads stop early on fatal job errors, back off and retry on transient failures, and update submitted-batch counts as batches are accepted.
+    docLink: /load/load
+  - title: Web extension asset path fix
+    description: Internal build fix so extension assets resolve from the correct path.
+    platforms: [extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Bulk API loads handle errors more deliberately
+
+When loading records via the Bulk API, Jetstream now:
+
+- Detects fatal job-level errors (invalid job, exceeded quota, job already closed or aborted) and stops submitting further batches instead of repeating the same failure.
+- Tracks consecutive batch-submission failures and stops early after too many in a row.
+- Reports the submitted-batch count as batches are accepted, so progress reflects real state rather than a static total.
+- Returns cleaner errors when a load is aborted versus when it fails.
+
+### Under the hood
+
+- Nonce-based Content Security Policy on the web app.
+- Web extension asset path fix.
+- Server-side logging moved to more granular debug levels.

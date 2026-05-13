@@ -1,0 +1,49 @@
+---
+slug: v8.8.0
+title: 8.8.0 - Org expiration, Organization Groups, bulk org delete
+date: '2025-11-15'
+authors: [jetstream]
+tags: [web]
+versions:
+  web: 8.8.0
+summary: Unused Salesforce orgs now expire with advance email notice, the Organization page handles refresh/reconnect cleanly, and you can delete orgs in bulk.
+highlights:
+  - title: Org expiration with email notice
+    description: Salesforce orgs unused for 90 days are flagged for expiration, with email notifications summarizing expiring and expired orgs.
+  - title: Easier reconnect for expired orgs
+    description: The Organization page surfaces expiring and expired orgs, and reconnect uses login_hint and pre-filled connection details.
+  - title: Bulk delete Salesforce orgs
+    description: Select and delete multiple connected orgs at once from the Organizations page.
+  - title: Rename to "Organization Group"
+    description: What used to be called "Jetstream Organization" is now "Organization Group" everywhere in the app, to avoid confusion with a Salesforce organization.
+  - title: Download format is remembered
+    description: Your last-used download format (CSV, Excel, JSON, etc.) is remembered per-user as the new default.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Org expiration process
+
+Salesforce orgs that have not been used in 90 days now enter an expiration workflow. A daily cron job sends users a consolidated email covering their expiring and expired orgs so nothing disappears without warning.
+
+### Better Organization page
+
+The Organization page now highlights expiring and expired orgs. Reconnecting uses the `login_hint` OAuth parameter and pre-fills the connection details you already had, so you rarely have to re-enter anything.
+
+### Bulk delete orgs
+
+A new delete-orgs modal on the Organizations page lets you remove multiple Salesforce org connections at once. Helpful for cleaning up sandbox clutter.
+
+### "Jetstream Organization" is now "Organization Group"
+
+The old term collided with "Salesforce organization." Everything (UI, docs, API variables) has been renamed to "Organization Group." Existing data is unaffected; it is purely a naming change.
+
+### Remembered download format
+
+Your last-used export format is now saved as your default, instead of falling back to the same built-in choice every time. Resolves #1429-ish workflow request.
+
+### Under the hood
+
+- Added retry and extra logging to the `.well-known` OAuth discovery call, which occasionally failed at startup on staging.

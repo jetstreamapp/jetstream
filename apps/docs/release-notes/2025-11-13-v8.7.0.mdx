@@ -1,0 +1,42 @@
+---
+slug: v8.7.0
+title: 8.7.0 - Table filter fixes and connected-app onboarding help
+date: '2025-11-13'
+authors: [jetstream]
+tags: [web]
+versions:
+  web: 8.7.0
+summary: Table filters now stay in sync when data reloads, password reset accepts plus-sign emails, and orgs missing the Jetstream connected app get clearer install guidance.
+highlights:
+  - title: Table filters follow data updates
+    description: When table data reloads, existing filters are retained and their available values update so the filter still matches the new records.
+    docLink: /query/query-results
+  - title: Numeric column filters fixed
+    description: Filters on numeric fields now behave correctly and no longer drop values on refresh.
+  - title: Password reset with plus-sign emails
+    description: Emails containing a "+" no longer get mangled into a space during password reset.
+  - title: Connected app install guidance
+    description: Help links point users to the page where they would install the Jetstream connected app if it is missing, plus a sandbox sync callout.
+  - title: Cookie banner padding fix
+    description: The consent banner no longer throws off in-app alignment while still looking right on the landing page.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Table filters retain state after refresh
+
+When a table refreshes (for example after a bulk action or a re-query), the filters you set are retained and their available values are recalculated so they still apply to the new data. Numeric-field filters also got a specific fix. Resolves #1421 and related.
+
+### Password reset accepts "+" emails
+
+Emails like `you+tag@example.com` were getting decoded with a space instead of a plus, which failed validation. The reset link now preserves the address correctly.
+
+### Help finding the connected app
+
+Some Salesforce orgs (mainly sandboxes) do not surface the Jetstream connected app in OAuth Usage. The app now links to docs that walk through installing it, and the "add org" popover has a matching docs entry point. There is also a callout for syncing permissions to sandboxes.
+
+### Cookie banner alignment
+
+The consent banner previously used a fixed height that worked on the landing page but misaligned in-app content. That is fixed on both sides. Resolves #1425.

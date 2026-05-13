@@ -1,0 +1,24 @@
+---
+slug: v9.9.0
+title: 9.9.0 - Long-running requests no longer hit the 524 timeout
+date: '2026-04-04'
+authors: [jetstream]
+tags: [web]
+versions:
+  web: 9.9.0
+summary: New deferred-response middleware keeps long-running Salesforce API requests alive past the Cloudflare 524 timeout by streaming keepalive bytes until the real response is ready.
+highlights:
+  - title: Deferred response middleware
+    description: Long-running Salesforce requests no longer die with Cloudflare 524 errors. The API streams keepalive bytes and delivers the final JSON when ready.
+    platforms: [web]
+---
+
+{/* truncate */}
+
+## What's new
+
+### No more 524 timeouts on long requests
+
+Some Salesforce operations (large bulk queries, heavy metadata reads) take longer than Cloudflare's 100-second proxy timeout and would fail with a 524 error. A new `deferredResponseMiddleware` on the API server streams keepalive bytes to the client while the underlying request continues in the background, then writes the final JSON body with `writeDeferredResponse` once it's ready. Errors from the long-running operation are also surfaced through the same deferred channel.
+
+This is enabled per-route and controlled by environment variables for the keepalive threshold, so it only kicks in for routes that actually need it.

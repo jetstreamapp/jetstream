@@ -1,0 +1,45 @@
+---
+slug: v8.5.0
+title: 8.5.0 - Rebuilt binary attachment downloads
+date: '2025-11-01'
+authors: [jetstream]
+tags: [web, desktop, extension]
+versions:
+  web: 8.5.0
+summary: Binary attachment downloads are rebuilt with server-side streaming, desktop-native progress, and automatic field re-querying so you do not have to think about which fields to include.
+highlights:
+  - title: Server-side streaming for attachment downloads
+    description: Zip creation moved off the browser service worker onto the server with back-pressure and timeout handling, eliminating the refresh-to-fix-it problem.
+    docLink: /query/query-results
+  - title: Desktop background job with live progress
+    description: On desktop, attachment downloads run as a background job on the main process and save directly to disk with progress notifications.
+    platforms: [desktop]
+  - title: StaticResource download support
+    description: StaticResource is now a supported export type alongside Attachment, ContentVersion, and Document.
+  - title: No more required-field guesswork
+    description: Jetstream re-queries records for the fields it needs, so you can pick any query and still export binary files cleanly.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Binary attachment downloads, rebuilt
+
+The old attachment download flow relied on a browser service worker that often required a page refresh to register correctly. The whole pipeline is rewritten:
+
+- **Web**: zips are streamed from the server with back-pressure and timeout handling.
+- **Desktop**: downloads run as a background job on the main process and write straight to disk, with a progress notification.
+- **Extension**: zips are built and saved in one step, which is the only option available in that environment.
+
+### StaticResource export
+
+StaticResource joins Attachment, ContentVersion, and Document as a supported object for binary export.
+
+### Fewer footguns
+
+Previously you had to make sure your query included specific fields. Jetstream now re-queries the records to fetch whatever fields the download needs, so any query works. Resolves #1416.
+
+### Under the hood
+
+Job IDs are now required for download jobs so multiple downloads can be in flight at the same time.

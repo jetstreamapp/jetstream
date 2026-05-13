@@ -1,0 +1,26 @@
+---
+slug: v8.12.1
+title: 8.12.1 - Feedback attachment fix
+date: '2025-12-12'
+authors: [jetstream]
+tags: [web, desktop, extension]
+versions:
+  web: 8.12.1
+summary: Patch release that fixes multiple file attachments in the new in-app feedback widget.
+highlights:
+  - title: Multiple feedback attachments
+    description: The feedback form now supports up to 5 attachments, warns when you exceed the limit, and correctly delivers every attachment in the resulting email.
+    docLink: /getting-started/feedback
+    platforms: [web, desktop, extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Feedback attachments
+
+The in-app feedback widget shipped in 8.12.0 had issues when sending more than one attachment. This release:
+
+- Caps attachments at 5 per message, with a warning toast if you try to add more.
+- Buffers attachments server-side so the email provider receives every file, instead of only the first stream.
