@@ -277,7 +277,7 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
                 selectedOrg={selectedOrg}
                 sobjects={sobjects}
                 selectedSObjects={selectedSObjects}
-                allowSelectAll={false}
+                allowSelectAll
                 recentItemsEnabled
                 recentItemsKey="sobject"
                 onSobjects={handleSobjectChange}
