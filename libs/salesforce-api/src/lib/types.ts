@@ -50,6 +50,7 @@ export interface FetchOptions {
   body?: BodyInit | null;
   headers?: [string, string][] | Record<string, string> | Headers;
   duplex?: ApiRequestOptions['duplex'];
+  signal?: AbortSignal;
 }
 
 export interface FetchResponse<T = unknown> {

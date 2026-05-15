@@ -820,7 +820,7 @@ describe('callout-adapter XML parsing', () => {
         error: vi.fn(),
       };
 
-      const apiRequest = getApiRequestFactoryFn(mockFetch)(mockLogger, undefined, undefined, false);
+      const apiRequest = getApiRequestFactoryFn(mockFetch)({ logger: mockLogger, enableLogging: false });
       const result = await apiRequest({
         url: '/services/data/v65.0/test',
         method: 'GET',
@@ -847,7 +847,7 @@ describe('callout-adapter XML parsing', () => {
         error: vi.fn(),
       };
 
-      const apiRequest = getApiRequestFactoryFn(mockFetch)(mockLogger, undefined, undefined, true);
+      const apiRequest = getApiRequestFactoryFn(mockFetch)({ logger: mockLogger, enableLogging: true });
       const result = await apiRequest({
         url: '/services/data/v65.0/test',
         method: 'GET',
@@ -863,5 +863,86 @@ describe('callout-adapter XML parsing', () => {
       expect(mockLogger.trace).toHaveBeenCalledWith({ responseBody: 'ok' });
       expect(mockLogger.debug).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('callout-adapter refresh token rotation', () => {
+  const mockSessionInfo = {
+    accessToken: 'stale-access-token',
+    refreshToken: 'stale-refresh-token',
+    sfdcClientId: 'test-client-id',
+    instanceUrl: 'https://test.salesforce.com',
+    apiVersion: '65.0',
+    userId: 'test-user-id',
+    organizationId: 'test-org-id',
+  };
+
+  const makeJsonResponse = (status: number, body: unknown) =>
+    Promise.resolve({
+      ok: status >= 200 && status < 300,
+      status,
+      statusText: status === 200 ? 'OK' : 'Error',
+      headers: new Headers({ 'content-type': 'application/json' }),
+      type: 'basic' as ResponseType,
+      url: '',
+      text: () => Promise.resolve(typeof body === 'string' ? body : JSON.stringify(body)),
+      json: () => Promise.resolve(body),
+      clone() {
+        return this;
+      },
+    } as any);
+
+  it('collapses N concurrent 401s on the same connection into a single refreshTokens call', async () => {
+    const refreshTokens = vi.fn(async () => ({
+      accessToken: 'new-access-token',
+      refreshToken: 'new-refresh-token',
+    }));
+
+    const mockFetch = vi.fn((_url: string | URL, opts: any) => {
+      const auth = opts?.headers?.Authorization;
+      // First-attempt 401 on the stale bearer; retry succeeds with the rotated bearer.
+      if (auth === `Bearer ${mockSessionInfo.accessToken}`) {
+        return makeJsonResponse(401, { message: 'Session expired or invalid' });
+      }
+      return makeJsonResponse(200, { ok: true });
+    }) as unknown as FetchFn;
+
+    const apiRequest = getApiRequestFactoryFn(mockFetch)({ refreshTokens });
+    const results = await Promise.all(
+      Array.from({ length: 10 }, () =>
+        apiRequest({
+          url: '/services/data/v65.0/sobjects/Account',
+          method: 'GET',
+          sessionInfo: { ...mockSessionInfo },
+          outputType: 'json',
+        }),
+      ),
+    );
+
+    expect(results).toHaveLength(10);
+    expect(refreshTokens).toHaveBeenCalledTimes(1);
+    expect(refreshTokens).toHaveBeenCalledWith(mockSessionInfo.accessToken);
+  });
+
+  it('falls through to onConnectionError when refreshTokens closure rejects', async () => {
+    const refreshTokens = vi.fn(async () => {
+      throw new Error('refresh failed');
+    });
+    const onConnectionError = vi.fn();
+    const fetchTracker = vi.fn(() => makeJsonResponse(401, { message: 'Session expired or invalid' })) as unknown as FetchFn;
+
+    const apiRequest = getApiRequestFactoryFn(fetchTracker)({ refreshTokens, onConnectionError });
+
+    await expect(
+      apiRequest({
+        url: '/services/data/v65.0/sobjects/Account',
+        method: 'GET',
+        sessionInfo: { ...mockSessionInfo },
+        outputType: 'json',
+      }),
+    ).rejects.toThrow();
+
+    expect(refreshTokens).toHaveBeenCalledTimes(1);
+    expect(onConnectionError).toHaveBeenCalledWith('expired access/refresh token');
   });
 });

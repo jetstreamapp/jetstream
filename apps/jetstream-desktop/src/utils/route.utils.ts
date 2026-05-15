@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
+import { ApiConnection, exchangeRefreshToken, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
 import { ensureBoolean, getErrorMessage } from '@jetstream/shared/utils';
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
@@ -200,9 +200,23 @@ export function initApiConnection(
   const accessToken = plaintext.slice(0, spaceIndex);
   const refreshToken = plaintext.slice(spaceIndex + 1);
 
+  const readTokensFromStore = (): { accessToken: string; refreshToken: string } | null => {
+    const freshOrg = getSalesforceOrgById(org.uniqueId);
+    if (!freshOrg) {
+      return null;
+    }
+    const plaintext = decryptTokenPortable(freshOrg.accessToken);
+    const spaceIndex = plaintext.indexOf(' ');
+    if (spaceIndex === -1) {
+      logger.warn('[ORG][REFRESH] Stored token payload is malformed and missing expected separator');
+      return null;
+    }
+    return { accessToken: plaintext.slice(0, spaceIndex), refreshToken: plaintext.slice(spaceIndex + 1) };
+  };
+
+  // Legacy refresh hook retained for the `getFreshTokens` race-recovery path (skipPersistence=true,
+  // in-memory sync only). Primary refresh path runs through `refreshTokens` below.
   const handleRefresh = async (accessToken: string, refreshToken: string) => {
-    // Refresh event will be fired when renewed access token
-    // to store it in your storage for next request
     try {
       await updateAccessTokens(org.uniqueId, { accessToken, refreshToken });
     } catch (ex) {
@@ -218,21 +232,40 @@ export function initApiConnection(
     }
   };
 
-  // Re-reads current tokens from the in-memory store so concurrent requests that lose the
-  // refresh token rotation race can retry with the tokens written by the request that won.
+  /**
+   * Primary refresh path for desktop. Single-process so no cross-process lock is needed — the
+   * in-process single-flight cache inside the adapter already collapses concurrent callers.
+   * Still runs an optimistic check against the in-memory store in case any code path bypasses
+   * the single-flight cache (e.g. independently constructed ApiConnections for the same org).
+   */
+  const refreshTokens = async (currentAccessToken: string) => {
+    const stored = readTokensFromStore();
+    if (!stored) {
+      throw new Error('Stored Salesforce tokens are missing or unreadable — org needs to be reconnected');
+    }
+    if (stored.accessToken !== currentAccessToken) {
+      logger.info('[TOKEN REFRESH] Store already has fresh tokens — concurrent refresh avoided');
+      return stored;
+    }
+    const { access_token: newAccessToken, refresh_token: rotatedRefreshToken } = await exchangeRefreshToken(fetch, {
+      accessToken: currentAccessToken,
+      refreshToken: stored.refreshToken,
+      instanceUrl: org.instanceUrl,
+      apiVersion,
+      userId: org.userId,
+      organizationId: org.organizationId,
+      sfdcClientId: ENV.DESKTOP_SFDC_CLIENT_ID,
+    });
+    const newRefreshToken = rotatedRefreshToken ?? stored.refreshToken;
+    await updateAccessTokens(org.uniqueId, { accessToken: newAccessToken, refreshToken: newRefreshToken });
+    logger.info('[TOKEN REFRESH] Salesforce token rotated and persisted');
+    return { accessToken: newAccessToken, refreshToken: newRefreshToken };
+  };
+
+  // Defense-in-depth fallback used by the legacy refresh path inside the adapter.
   const getFreshTokens = async () => {
     try {
-      const freshOrg = getSalesforceOrgById(org.uniqueId);
-      if (!freshOrg) {
-        return null;
-      }
-      const plaintext = decryptTokenPortable(freshOrg.accessToken);
-      const spaceIndex = plaintext.indexOf(' ');
-      if (spaceIndex === -1) {
-        logger.warn('[ORG][REFRESH] Fresh token payload is malformed and missing expected separator');
-        return null;
-      }
-      return { accessToken: plaintext.slice(0, spaceIndex), refreshToken: plaintext.slice(spaceIndex + 1) };
+      return readTokensFromStore();
     } catch (ex) {
       logger.error('[ORG][REFRESH] Error fetching fresh tokens for race condition check', getErrorMessage(ex));
       return null;
@@ -252,6 +285,7 @@ export function initApiConnection(
       logger: logger as any,
       enableLogging: false,
       sfdcClientId: ENV.DESKTOP_SFDC_CLIENT_ID,
+      refreshTokens,
       getFreshTokens,
     },
     handleRefresh,
