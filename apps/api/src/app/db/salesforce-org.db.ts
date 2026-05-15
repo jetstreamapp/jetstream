@@ -90,6 +90,82 @@ export async function updateAccessToken_UNSAFE({
   });
 }
 
+/**
+ * Coordinates Salesforce refresh-token rotation across cluster workers.
+ *
+ * Holds a per-org Postgres advisory lock for the duration of the transaction. Inside the lock,
+ * re-reads the current encrypted tokens from the source of truth and runs an optimistic check:
+ *   - If the DB's accessToken no longer matches the caller's stale token, another worker already
+ *     completed the rotation. Returns the canonical tokens without calling Salesforce.
+ *   - Otherwise this caller is the chosen refresher: invokes `callSalesforce` with the canonical
+ *     refresh token, encrypts the result, persists, and returns the new tokens.
+ *
+ * The advisory lock is transaction-scoped, so it auto-releases on commit/rollback and survives
+ * worker crashes (released on connection close).
+ *
+ * Pairs with the in-process single-flight cache in `callout-adapter.ts` to fully eliminate
+ * Salesforce-side token-rotation races without losing rotation's security benefit.
+ */
+export async function refreshTokensWithLock({
+  orgId,
+  userId,
+  currentAccessToken,
+  callSalesforce,
+}: {
+  orgId: number;
+  userId: string;
+  currentAccessToken: string;
+  callSalesforce: (currentRefreshToken: string) => Promise<{ access_token: string; refresh_token?: string }>;
+}): Promise<{ accessToken: string; refreshToken: string; refreshed: boolean }> {
+  return prisma.$transaction(
+    async (tx) => {
+      // Per-org advisory lock. Other workers attempting to refresh the same org block here until
+      // this transaction commits or rolls back. Auto-released on transaction end.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(${orgId})`;
+
+      const freshOrg = await tx.salesforceOrg.findUnique({ where: { id: orgId } });
+      if (!freshOrg) {
+        throw new NotFoundError('An org with the provided id does not exist');
+      }
+
+      const [freshAccessToken, freshRefreshToken] = await sfdcEncService.decryptAccessToken({
+        encryptedAccessToken: freshOrg.accessToken,
+        userId,
+      });
+
+      if (freshAccessToken === sfdcEncService.DUMMY_INVALID_ENCRYPTED_TOKEN) {
+        throw new Error('Stored Salesforce tokens are not decryptable — org needs to be reconnected');
+      }
+
+      // Optimistic check: did another worker already rotate while we waited for the lock?
+      if (freshAccessToken !== currentAccessToken) {
+        return { accessToken: freshAccessToken, refreshToken: freshRefreshToken, refreshed: false };
+      }
+
+      const { access_token: newAccessToken, refresh_token: rotatedRefreshToken } = await callSalesforce(freshRefreshToken);
+      // Salesforce returns the rotated refresh token only when rotation is enabled on the Connected
+      // App. When it isn't, keep the existing refresh token.
+      const newRefreshToken = rotatedRefreshToken ?? freshRefreshToken;
+      const encryptedToken = await sfdcEncService.encryptAccessToken({
+        userId,
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
+      });
+      await tx.salesforceOrg.update({
+        where: { id: orgId },
+        data: { accessToken: encryptedToken },
+      });
+      return { accessToken: newAccessToken, refreshToken: newRefreshToken, refreshed: true };
+    },
+    {
+      // The transaction wraps a Salesforce HTTP call (bounded internally by a 15s AbortSignal).
+      // Set the tx timeout slightly above that so the fetch aborts first and we get a clean
+      // "SF auth endpoint is unreachable" error rather than a confusing Prisma P2028.
+      timeout: 20_000,
+    },
+  );
+}
+
 export async function updateOrg_UNSAFE(org: SalesforceOrg, data: Partial<SalesforceOrg>) {
   return await prisma.salesforceOrg.update({
     where: { id: org.id },

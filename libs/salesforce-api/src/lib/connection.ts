@@ -7,7 +7,7 @@ import { ApiOrg } from './api-org';
 import { ApiQuery } from './api-query';
 import { ApiRequest } from './api-request';
 import { ApiSObject } from './api-sobject';
-import { getApiRequestFactoryFn } from './callout-adapter';
+import { getApiRequestFactoryFn, RefreshedTokens, RefreshTokensFn } from './callout-adapter';
 import { Logger, SessionInfo } from './types';
 
 export interface ApiConnectionOptions {
@@ -23,8 +23,18 @@ export interface ApiConnectionOptions {
   sfdcClientId?: string;
   sfdcClientSecret?: string;
   logger: Logger;
-  /** Re-reads current tokens from the source of truth (e.g. DB) to handle concurrent refresh token rotation across workers */
-  getFreshTokens?: () => Promise<{ accessToken: string; refreshToken: string } | null>;
+  /**
+   * Caller-supplied refresh orchestrator. Owns cross-process coordination (advisory lock,
+   * in-memory check), the optimistic re-read, the Salesforce token exchange, and persistence.
+   * Wrapped in a per-process single-flight cache inside the adapter so that N concurrent 401s
+   * collapse to a single Salesforce call.
+   */
+  refreshTokens?: RefreshTokensFn;
+  /**
+   * Defense-in-depth fallback for the legacy refresh path. Almost never fires when
+   * `refreshTokens` is wired up. Kept for safety while we migrate all callers.
+   */
+  getFreshTokens?: () => Promise<RefreshedTokens | null>;
 }
 
 export class ApiConnection {
@@ -58,19 +68,13 @@ export class ApiConnection {
       sfdcClientId,
       sfdcClientSecret,
       logger,
+      refreshTokens,
       getFreshTokens,
     }: ApiConnectionOptions,
     refreshCallback?: (accessToken: string, refreshToken: string) => Promise<void> | void,
     onConnectionError?: (error: string) => void,
   ) {
     this.logger = logger;
-    this.apiRequest = apiRequestAdapter(
-      logger,
-      this.handleRefresh.bind(this),
-      this.handleConnectionError.bind(this),
-      enableLogging,
-      getFreshTokens,
-    );
     this.refreshCallback = refreshCallback;
     this.onConnectionError = onConnectionError;
     this.sessionInfo = {
@@ -84,6 +88,17 @@ export class ApiConnection {
       sfdcClientId,
       sfdcClientSecret,
     };
+    this.apiRequest = apiRequestAdapter({
+      logger,
+      // Legacy hook — preserved while callers without `refreshTokens` finish migrating. Once
+      // `refreshTokens` is wired up, the adapter mutates sessionInfo directly and this callback
+      // is unused for the primary path; it still fires from the `getFreshTokens` fallback.
+      onRefresh: this.handleRefresh.bind(this),
+      onConnectionError: this.handleConnectionError.bind(this),
+      enableLogging,
+      getFreshTokens,
+      refreshTokens,
+    });
 
     this.apex = new ApiApex(this);
     this.binary = new ApiBinaryDownload(this);

@@ -13,7 +13,7 @@ import {
   validateHMACDoubleCSRFToken,
 } from '@jetstream/auth/server';
 import { UserProfileSession } from '@jetstream/auth/types';
-import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
+import { ApiConnection, exchangeRefreshToken, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import { HTTP } from '@jetstream/shared/constants';
 import { ensureBoolean, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { parseCookie } from 'cookie';
@@ -367,14 +367,14 @@ export async function getOrgForRequest(
     callOptions = { ...callOptions, defaultNamespace: orgNamespacePrefix };
   }
 
-  // Handle org refresh - then remove event listener if refreshed
+  // Legacy refresh callback. Retained for the `getFreshTokens` race-recovery path which still
+  // invokes it with `skipPersistence=true` (in-memory sync only). The primary refresh path now
+  // runs through `refreshTokens` below, which holds the advisory lock and writes the DB itself.
   const handleRefresh = async (accessToken: string, refreshToken: string) => {
-    // Refresh event will be fired when renewed access token
-    // to store it in your storage for next request
     try {
       await salesforceOrgsDb.updateAccessToken_UNSAFE({ accessToken, refreshToken, org, userId: user.id });
     } catch (ex) {
-      logger.error({ requestId, err: ex }, '[ORG][REFRESH] Error saving refresh token');
+      logger.error({ requestId, orgId: org.id, userId: user.id, err: ex }, '[ORG][REFRESH] Error saving refresh token');
     }
   };
 
@@ -382,8 +382,44 @@ export async function getOrgForRequest(
     try {
       await salesforceOrgsDb.updateOrg_UNSAFE(org, { connectionError: error });
     } catch (ex) {
-      logger.error({ requestId, err: ex }, '[ORG][UPDATE] Error updating connection error on org');
+      logger.error({ requestId, orgId: org.id, userId: user.id, err: ex }, '[ORG][UPDATE] Error updating connection error on org');
     }
+  };
+
+  /**
+   * Primary refresh path. Coordinated across cluster workers via a Postgres advisory lock and
+   * across same-process concurrent callers via the single-flight cache inside the adapter.
+   */
+  const refreshTokens = async (currentAccessToken: string) => {
+    const result = await salesforceOrgsDb.refreshTokensWithLock({
+      orgId: org.id,
+      userId: user.id,
+      currentAccessToken,
+      callSalesforce: async (currentRefreshToken) =>
+        exchangeRefreshToken(fetch, {
+          // Build the sessionInfo expected by exchangeRefreshToken — only the fields it reads.
+          accessToken: currentAccessToken,
+          refreshToken: currentRefreshToken,
+          instanceUrl,
+          apiVersion,
+          userId: salesforceUserId,
+          organizationId,
+          sfdcClientId: ENV.SFDC_CONSUMER_KEY,
+          sfdcClientSecret: ENV.SFDC_CONSUMER_SECRET,
+        }),
+    });
+    logger.info(
+      {
+        requestId,
+        orgId: org.id,
+        userId: user.id,
+        refreshed: result.refreshed,
+      },
+      result.refreshed
+        ? '[TOKEN REFRESH] Salesforce token rotated and persisted'
+        : '[TOKEN REFRESH] Lock acquired but DB already had fresh tokens — cross-worker race avoided',
+    );
+    return { accessToken: result.accessToken, refreshToken: result.refreshToken };
   };
 
   // Re-reads current tokens from DB so concurrent workers that lose the refresh token rotation race
@@ -405,7 +441,10 @@ export async function getOrgForRequest(
       }
       return { accessToken: freshAccessToken, refreshToken: freshRefreshToken };
     } catch (ex) {
-      logger.error({ requestId, err: ex }, '[ORG][REFRESH] Error fetching fresh tokens for race condition check');
+      logger.error(
+        { requestId, orgId: org.id, userId: user.id, err: ex },
+        '[ORG][REFRESH] Error fetching fresh tokens for race condition check',
+      );
       return null;
     }
   };
@@ -424,6 +463,7 @@ export async function getOrgForRequest(
       logger,
       sfdcClientId: ENV.SFDC_CONSUMER_KEY,
       sfdcClientSecret: ENV.SFDC_CONSUMER_SECRET,
+      refreshTokens,
       getFreshTokens,
     },
     handleRefresh,
