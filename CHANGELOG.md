@@ -1,5 +1,18 @@
 # Changelog
 
+## [9.17.0](https://github.com/jetstreamapp/jetstream/compare/v9.16.0...v9.17.0) (2026-05-15)
+
+### Features
+
+* enable select all option for SObject export ([e57183e](https://github.com/jetstreamapp/jetstream/commit/e57183e6484d0ead54e05b87c8d9fc209403691e))
+* enhance password reset functionality with validation and requirements display ([9def3f2](https://github.com/jetstreamapp/jetstream/commit/9def3f2f571003179ba7930bcf8854ed4cdde849))
+
+### Bug Fixes
+
+* improve error handling and refactor permission saving logic ([3a5cc17](https://github.com/jetstreamapp/jetstream/commit/3a5cc17ca0bf48d3434f3bca83aa96eae7773a75))
+* refresh token rotation ([edd0dc1](https://github.com/jetstreamapp/jetstream/commit/edd0dc1edbaa1098b2b545504f93cb228d70f478)), closes [#1726](https://github.com/jetstreamapp/jetstream/issues/1726)
+* update button class for profile or permission set popover ([f0bb501](https://github.com/jetstreamapp/jetstream/commit/f0bb501e37c7d85fa8e77bdf8940c721faa767fd))
+
 ## [9.16.0](https://github.com/jetstreamapp/jetstream/compare/v9.15.2...v9.16.0) (2026-05-07)
 
 ### Features
