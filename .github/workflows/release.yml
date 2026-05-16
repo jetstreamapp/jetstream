@@ -8,7 +8,7 @@ on:
         required: true
         default: "patch"
         type: choice
-        options: [ patch, minor, major ]
+        options: [patch, minor, major]
 
       release_web:
         description: "True to release core web application"
@@ -149,7 +149,7 @@ jobs:
       # after 1 hour — generating late keeps the lifetime budget on the actual push operations.
       - name: Generate GitHub App token
         id: app-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
