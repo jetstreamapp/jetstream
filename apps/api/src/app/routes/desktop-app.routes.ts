@@ -58,6 +58,9 @@ routes.use(
 routes.use(externalAuthService.addDeviceIdToLocals);
 
 const authMiddleware = externalAuthService.getExternalAuthMiddleware(externalAuthService.AUDIENCE_DESKTOP);
+const authMiddlewareWithRotation = externalAuthService.getExternalAuthMiddleware(externalAuthService.AUDIENCE_DESKTOP, {
+  supportsTokenRotation: true,
+});
 
 /**
  * Authentication routes
@@ -68,7 +71,12 @@ routes.get('/auth', LAX_AuthRateLimit, desktopAppController.routeDefinition.init
 // API endpoint that /auth/desktop calls to get tokens to avoid having them defined in the HTML directly - this endpoint issues tokens
 routes.post('/auth/session', STRICT_2X_AuthRateLimit, desktopAppController.routeDefinition.initSession.controllerFn());
 // Validate authentication status from desktop app
-routes.post('/auth/verify', STRICT_AuthRateLimit, authMiddleware, desktopAppController.routeDefinition.verifyToken.controllerFn());
+routes.post(
+  '/auth/verify',
+  STRICT_AuthRateLimit,
+  authMiddlewareWithRotation,
+  desktopAppController.routeDefinition.verifyToken.controllerFn(),
+);
 /**
  * @deprecated - use /auth/logout instead
  * Kept for backward compatibility as clients may be on older versions

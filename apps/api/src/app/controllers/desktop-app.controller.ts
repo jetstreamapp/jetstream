@@ -220,7 +220,7 @@ const verifyToken = createRoute(routeDefinition.verifyToken.validators, async ({
     if (supportsRotation && deviceId) {
       const oldAccessToken = req.get('Authorization')?.split(' ')[1];
       if (oldAccessToken) {
-        rotatedAccessToken = await externalAuthService.rotateToken({
+        const result = await externalAuthService.rotateToken({
           userProfile,
           audience: externalAuthService.AUDIENCE_DESKTOP,
           source: webExtDb.TOKEN_SOURCE_DESKTOP,
@@ -229,11 +229,14 @@ const verifyToken = createRoute(routeDefinition.verifyToken.validators, async ({
           ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
           userAgent: req.get('User-Agent') || 'unknown',
         });
-        if (rotatedAccessToken) {
-          res.log.debug({ userId: userProfile.id, deviceId }, 'Desktop App token verified and rotated');
-        } else {
-          res.log.debug({ userId: userProfile.id, deviceId }, 'Desktop App token verified (rotation skipped — concurrent race)');
+        if (result.outcome === 'race-loss-none') {
+          // Token was deleted from the DB between middleware auth and rotation (typically a
+          // concurrent logout). Force a 401 so the client clears state and re-authenticates
+          // rather than continuing to use a token that no longer exists server-side.
+          throw new InvalidSession();
         }
+        rotatedAccessToken = result.token;
+        res.log.debug({ userId: userProfile.id, deviceId, rotationOutcome: result.outcome }, 'Desktop App token verified');
       }
     }
 
