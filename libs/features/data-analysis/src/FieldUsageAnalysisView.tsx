@@ -2,10 +2,9 @@ import { css } from '@emotion/react';
 import { DeleteMetadataModal } from '@jetstream/feature/deploy';
 import { PermissionAnalysisHistoryModal } from '@jetstream/feature/manage-permissions';
 import { logger } from '@jetstream/shared/client-logger';
-import { createAnalysisJob, getAnalysisJob } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { convertDateToLocale, formatNumber, setItemInLocalStorage } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, isCustomFieldApiName } from '@jetstream/shared/utils';
+import { getErrorMessage, gzipDecode, isCustomFieldApiName } from '@jetstream/shared/utils';
 import {
   AutoFullHeightContainer,
   ColumnWithFilter,
@@ -19,12 +18,12 @@ import {
   KeyboardShortcut,
   Modal,
   Popover,
+  ProgressIndicator,
   ReadOnlyFormElement,
   SalesforceLogin,
   ScopedNotification,
   SelectFormatter,
   setColumnFromType,
-  Spinner,
   Tabs,
   Toast,
   Toolbar,
@@ -34,17 +33,20 @@ import {
   fireToast,
   salesforceLoginAndRedirect,
 } from '@jetstream/ui';
-import { RequireMetadataApiBanner } from '@jetstream/ui-core';
+import { RequireMetadataApiBanner, fromJetstreamEvents, jobsState } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
+import { dexieDb } from '@jetstream/ui/db';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { isValid } from 'date-fns/isValid';
 import { parseISO } from 'date-fns/parseISO';
 import groupBy from 'lodash/groupBy';
 import { useAtom, useAtomValue } from 'jotai';
-import type { SalesforceOrgUi } from '@jetstream/types';
+import type { AsyncJob, AsyncJobNew, FieldUsageAnalysisJob, FieldUsageFullResult, SalesforceOrgUi } from '@jetstream/types';
 import { Fragment, FunctionComponent, type Key, MouseEvent, type ReactElement, useCallback, useEffect, useMemo, useState } from 'react';
 import { SELECT_COLUMN_KEY, SelectColumn, type RenderGroupCellProps, type SortColumn } from 'react-data-grid';
 import { Link, useHref, useSearchParams } from 'react-router-dom';
 import { fieldUsageRowsToCustomFieldDeleteMetadata, fieldUsageRowEligibleForDestructiveDelete } from './field-usage-destructive-delete';
+import { isAnalysisJobActive } from './shared/analysis-job-runtime-state';
 import {
   countWhereUsedByUiCategory,
   fieldHasWhereUsedDeps,
@@ -496,131 +498,136 @@ function formatJobResultJson(result: unknown): string {
 }
 
 /**
- * Field usage results workspace: polls the analysis job created from {@link DataAnalysisSelection}.
+ * Lazily stringifies the result when the Raw JSON tab actually renders. Inlining the stringify in the
+ * `resultTabs` useMemo would re-run on every memo dep change even if the tab isn't active — for very
+ * large blobs this is noticeable jank when toggling filters.
+ */
+const RawJsonTabContent: FunctionComponent<{ result: unknown }> = ({ result }) => {
+  const formatted = useMemo(() => formatJobResultJson(result), [result]);
+  return (
+    <div className="slds-p-around_medium">
+      <pre
+        className="slds-box slds-scrollable_y"
+        css={css`
+          max-height: min(560px, 70vh);
+          font-size: 0.75rem;
+        `}
+      >
+        {formatted}
+      </pre>
+    </div>
+  );
+};
+
+/**
+ * Field usage results workspace. Subscribes to the in-flight job entry (jotai jobsState) for progress
+ * and to Dexie `analysis_job_history` for the terminal row; no HTTP polling. Result decoding happens
+ * once per Dexie row (gzip decompress) and feeds the existing field-usage parser.
  */
 export const FieldUsageAnalysisView: FunctionComponent = () => {
   const selectedOrg = useAtomValue(selectedOrgState);
   const [{ serverUrl }] = useAtom(applicationCookieState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
+  const jobs = useAtomValue(jobsState);
   const [searchParams, setSearchParams] = useSearchParams();
   const jobId = searchParams.get('job');
 
-  const [jobRecord, setJobRecord] = useState<Record<string, unknown> | null>(null);
-  const [fetchError, setFetchError] = useState<string | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [loadAllRecordsModalOpen, setLoadAllRecordsModalOpen] = useState(false);
-  const [loadAllRecordsSubmitting, setLoadAllRecordsSubmitting] = useState(false);
   const [whereUsedForKey, setWhereUsedForKey] = useState<string | null>(null);
   const [expandedGroupIds, setExpandedGroupIds] = useState<ReadonlySet<unknown>>(() => new Set());
   const [fieldUsageSelectedRowKeys, setFieldUsageSelectedRowKeys] = useState(() => new Set<string>());
   const [deleteFieldMetadataModalOpen, setDeleteFieldMetadataModalOpen] = useState(false);
+  const [decodedFullResult, setDecodedFullResult] = useState<FieldUsageFullResult | null>(null);
+  const [decodeError, setDecodeError] = useState<string | null>(null);
 
   const fieldUsageQueryResultsHref = useHref({
     pathname: `${APP_ROUTES.QUERY.ROUTE}/results`,
     ...(APP_ROUTES.QUERY.SEARCH_PARAM ? { search: `?${APP_ROUTES.QUERY.SEARCH_PARAM}` } : {}),
   });
 
-  useEffect(() => {
-    if (!selectedOrg?.uniqueId || !jobId) {
-      return;
-    }
-
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- switching org/job clears stale record until poll returns
-    setJobRecord(null);
-
-    const orgForPoll = selectedOrg;
-    const jobIdForPoll = jobId;
-
-    let cancelled = false;
-    let intervalId: ReturnType<typeof setInterval> | undefined;
-    let pollIntervalMs = 2000;
-    let consecutiveNonTerminalSuccess = 0;
-
-    const clearPolling = () => {
-      if (intervalId !== undefined) {
-        clearInterval(intervalId);
-        intervalId = undefined;
-      }
-    };
-
-    const effectivePollIntervalMs = () => {
-      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
-        return Math.max(pollIntervalMs, 12000);
-      }
-      return pollIntervalMs;
-    };
-
-    const schedulePolling = () => {
-      clearPolling();
-      intervalId = setInterval(() => void pollOnce(), effectivePollIntervalMs());
-    };
-
-    async function pollOnce() {
-      try {
-        const { job } = await getAnalysisJob(orgForPoll, jobIdForPoll);
-        if (cancelled) {
-          return;
-        }
-        setJobRecord(job);
-        setFetchError(null);
-        const status = String(job.status ?? '');
-        if (status === 'completed' || status === 'failed') {
-          clearPolling();
-          return;
-        }
-        consecutiveNonTerminalSuccess += 1;
-        const nextMs = Math.min(5000, 2000 + (consecutiveNonTerminalSuccess - 1) * 500);
-        if (nextMs !== pollIntervalMs) {
-          pollIntervalMs = nextMs;
-          schedulePolling();
-        }
-      } catch (ex) {
-        if (!cancelled) {
-          setFetchError(getErrorMessage(ex));
-          logger.error('Failed to load field usage analysis job', ex);
-          clearPolling();
-        }
-      }
-    }
-
-    const onVisibilityChange = () => {
-      if (cancelled) {
-        return;
-      }
-      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-        pollIntervalMs = 2000;
-        consecutiveNonTerminalSuccess = 0;
-        void pollOnce();
-      }
-      schedulePolling();
-    };
-
-    if (typeof document !== 'undefined') {
-      document.addEventListener('visibilitychange', onVisibilityChange);
-    }
-
-    void pollOnce();
-    schedulePolling();
-
-    return () => {
-      cancelled = true;
-      clearPolling();
-      if (typeof document !== 'undefined') {
-        document.removeEventListener('visibilitychange', onVisibilityChange);
-      }
-    };
-  }, [selectedOrg, jobId]);
-
-  const jobStatusNormalized = jobRecord?.status != null ? String(jobRecord.status).trim().toLowerCase() : '';
-  const isTerminal = jobStatusNormalized === 'completed' || jobStatusNormalized === 'failed';
-
-  /** Must be memoized: a fresh object every render makes `[parsedResult]` effects run forever (setExpandedGroupIds → re-render → parse again). */
-  const parsedResult: FieldUsageJobResultParsed | null = useMemo(() => {
-    if (jobStatusNormalized !== 'completed' || jobRecord?.result == null) {
+  /**
+   * Live in-flight AsyncJob for this jobHistoryKey, when present. Drives the progress UI before the
+   * Dexie terminal row lands; the Jobs popover shows the same entry.
+   */
+  const inFlightJob: AsyncJob<FieldUsageAnalysisJob> | null = useMemo(() => {
+    if (!jobId) {
       return null;
     }
-    return parseFieldUsageJobResult(jobRecord.result);
-  }, [jobStatusNormalized, jobRecord?.result]);
+    for (const candidate of Object.values(jobs)) {
+      if (candidate.type !== 'FieldUsageAnalysis') {
+        continue;
+      }
+      const meta = candidate.meta as FieldUsageAnalysisJob | undefined;
+      if (meta?.jobHistoryKey === jobId) {
+        return candidate as AsyncJob<FieldUsageAnalysisJob>;
+      }
+    }
+    return null;
+  }, [jobs, jobId]);
+
+  const inFlightStatus = inFlightJob?.status;
+  const isJobRunning = inFlightStatus === 'pending' || inFlightStatus === 'in-progress';
+
+  /**
+   * Terminal Dexie row for this jobHistoryKey, kept reactive via useLiveQuery so the view updates
+   * the moment the JobWorker writes the row.
+   */
+  const historyRow = useLiveQuery(() => (jobId ? dexieDb.analysis_job_history.get(jobId) : undefined), [jobId]);
+
+  useEffect(() => {
+    // Eagerly drop the prior decoded payload so switching between large completed runs doesn't keep both
+    // the old and new uncompressed blobs in memory while the new gunzip resolves.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- clear stale decoded payload when job/row changes
+    setDecodedFullResult(null);
+    setDecodeError(null);
+    if (!historyRow || historyRow.status !== 'completed' || !historyRow.resultBlob) {
+      return;
+    }
+    let cancelled = false;
+    gzipDecode<FieldUsageFullResult>(historyRow.resultBlob)
+      .then((decoded) => {
+        if (!cancelled) {
+          setDecodedFullResult(decoded);
+        }
+      })
+      .catch((ex) => {
+        if (!cancelled) {
+          logger.error('Failed to decode field_usage history blob', ex);
+          setDecodeError(getErrorMessage(ex));
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [historyRow]);
+
+  // Derived status / errors used by the existing render branches.
+  const jobStatusNormalized = useMemo(() => {
+    if (historyRow?.status === 'completed' || historyRow?.status === 'failed') {
+      return historyRow.status;
+    }
+    if (isJobRunning) {
+      return 'running';
+    }
+    if (inFlightStatus === 'failed' || inFlightStatus === 'aborted') {
+      return 'failed';
+    }
+    return '';
+  }, [historyRow?.status, isJobRunning, inFlightStatus]);
+  const isTerminal = jobStatusNormalized === 'completed' || jobStatusNormalized === 'failed';
+  const fetchError = decodeError;
+  const terminalErrorMessage = historyRow?.errorMessage ?? inFlightJob?.statusMessage ?? null;
+  const liveProgress = inFlightJob?.progress;
+  const isFieldUsageJobActiveForOrg = selectedOrg ? isAnalysisJobActive(jobs, selectedOrg.uniqueId, 'field_usage') : false;
+
+  /** Must be memoized: a fresh object every render makes `[parsedResult]` effects run forever. */
+  const parsedResult: FieldUsageJobResultParsed | null = useMemo(() => {
+    if (jobStatusNormalized !== 'completed' || !decodedFullResult) {
+      return null;
+    }
+    return parseFieldUsageJobResult(decodedFullResult);
+  }, [jobStatusNormalized, decodedFullResult]);
 
   useEffect(() => {
     if (!parsedResult) {
@@ -712,34 +719,37 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
 
   const canLoadAllRecords = parsedResult?.truncated === true && fieldUsageReloadObjectApiNames.length > 0 && Boolean(selectedOrg?.uniqueId);
 
-  const handleConfirmLoadAllRecords = useCallback(async () => {
+  const handleConfirmLoadAllRecords = useCallback(() => {
     if (!selectedOrg || fieldUsageReloadObjectApiNames.length === 0) {
       return;
     }
-    setLoadAllRecordsSubmitting(true);
-    try {
-      const { job } = await createAnalysisJob(selectedOrg, {
-        jobType: 'field_usage',
-        payload: { objectApiNames: fieldUsageReloadObjectApiNames, loadFullScan: true },
-      });
-      const newJobId = (job as { id?: string }).id;
-      setLoadAllRecordsModalOpen(false);
+    if (isAnalysisJobActive(jobs, selectedOrg.uniqueId, 'field_usage')) {
       fireToast({
-        message: newJobId ? 'Full scan job started. Loading results…' : 'Job registered.',
-        type: 'success',
+        message: 'A Field Usage job is already running for this org. Wait for it to finish before starting another.',
+        type: 'warning',
       });
-      if (newJobId) {
-        setSearchParams({ job: newJobId }, { replace: true });
-      }
-    } catch (ex: unknown) {
-      fireToast({
-        message: ex instanceof Error ? ex.message : 'Failed to start job',
-        type: 'error',
-      });
-    } finally {
-      setLoadAllRecordsSubmitting(false);
+      return;
     }
-  }, [selectedOrg, fieldUsageReloadObjectApiNames, setSearchParams]);
+
+    const newJobHistoryKey = `aj_${crypto.randomUUID()}`;
+    const meta: FieldUsageAnalysisJob = {
+      jobHistoryKey: newJobHistoryKey,
+      orgUniqueId: selectedOrg.uniqueId,
+      objectApiNames: fieldUsageReloadObjectApiNames,
+      loadFullScan: true,
+    };
+    const asyncJobNew: AsyncJobNew<FieldUsageAnalysisJob> = {
+      type: 'FieldUsageAnalysis',
+      title: `Field Usage Full Scan (${fieldUsageReloadObjectApiNames.length} Object${fieldUsageReloadObjectApiNames.length === 1 ? '' : 's'})`,
+      org: selectedOrg,
+      meta,
+      viewUrl: `/analysis?job=${encodeURIComponent(newJobHistoryKey)}`,
+    };
+    fromJetstreamEvents.emit({ type: 'newJob', payload: [asyncJobNew] });
+    setLoadAllRecordsModalOpen(false);
+    fireToast({ message: 'Full scan job started. Loading results…', type: 'success' });
+    setSearchParams({ job: newJobHistoryKey }, { replace: true });
+  }, [jobs, selectedOrg, fieldUsageReloadObjectApiNames, setSearchParams]);
 
   const lowUsageTreeRows: FieldUsageTreeRow[] = useMemo(() => {
     if (!parsedResult) {
@@ -1277,19 +1287,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
                 </Fragment>
               ),
               titleText: 'Raw JSON',
-              content: (
-                <div className="slds-p-around_medium">
-                  <pre
-                    className="slds-box slds-scrollable_y"
-                    css={css`
-                      max-height: min(560px, 70vh);
-                      font-size: 0.75rem;
-                    `}
-                  >
-                    {formatJobResultJson(jobRecord?.result)}
-                  </pre>
-                </div>
-              ),
+              content: <RawJsonTabContent result={decodedFullResult} />,
             },
           ]
         : []),
@@ -1302,9 +1300,12 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
     expandedGroupIds,
     getTreeRowKey,
     objectsTabTotals,
-    jobRecord?.result,
+    decodedFullResult,
     fieldUsageSelectedRowKeys,
     handleFieldUsageSelectedRowsChange,
+    selectedOrg,
+    serverUrl,
+    skipFrontDoorAuth,
   ]);
 
   return (
@@ -1385,7 +1386,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
                 <button
                   type="button"
                   className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
-                  disabled={!canLoadAllRecords || loadAllRecordsSubmitting}
+                  disabled={!canLoadAllRecords || isFieldUsageJobActiveForOrg}
                   onClick={() => setLoadAllRecordsModalOpen(true)}
                 >
                   <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
@@ -1421,28 +1422,19 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         <Modal
           header="Load All Records?"
           tagline="Starts a new Field Usage job for the same objects without the per-object row scan cap."
-          onClose={() => {
-            if (!loadAllRecordsSubmitting) {
-              setLoadAllRecordsModalOpen(false);
-            }
-          }}
+          onClose={() => setLoadAllRecordsModalOpen(false)}
           footer={
             <Fragment>
-              <button
-                type="button"
-                className="slds-button slds-button_neutral"
-                disabled={loadAllRecordsSubmitting}
-                onClick={() => setLoadAllRecordsModalOpen(false)}
-              >
+              <button type="button" className="slds-button slds-button_neutral" onClick={() => setLoadAllRecordsModalOpen(false)}>
                 Cancel
               </button>
               <button
                 type="button"
                 className="slds-button slds-button_brand slds-m-left_x-small"
-                disabled={loadAllRecordsSubmitting}
-                onClick={() => void handleConfirmLoadAllRecords()}
+                disabled={isFieldUsageJobActiveForOrg}
+                onClick={handleConfirmLoadAllRecords}
               >
-                {loadAllRecordsSubmitting ? 'Starting…' : 'Start Full Scan'}
+                Start Full Scan
               </button>
             </Fragment>
           }
@@ -1519,14 +1511,27 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
           </div>
         )}
         {jobId && fetchError && <Toast type="error">{fetchError}</Toast>}
-        {jobId && !fetchError && jobStatusNormalized === 'failed' && jobRecord?.errorMessage != null && (
+        {jobId && !fetchError && jobStatusNormalized === 'failed' && terminalErrorMessage != null && (
           <div className="slds-p-around_medium">
-            <Toast type="error">{String(jobRecord.errorMessage)}</Toast>
+            <Toast type="error">{terminalErrorMessage}</Toast>
           </div>
         )}
         {jobId && !fetchError && !isTerminal && (
           <div className="slds-p-around_medium">
-            <Spinner />
+            <h2 className="slds-text-heading_small slds-m-bottom_x-small">Field usage analysis in progress…</h2>
+            <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_x-small">
+              {isJobRunning && liveProgress?.label ? liveProgress.label : 'Preparing'}
+              {isJobRunning && liveProgress && liveProgress.total > 0
+                ? ` — object ${formatNumber(liveProgress.current)} of ${formatNumber(liveProgress.total)}`
+                : ''}
+            </p>
+            <ProgressIndicator
+              currentValue={isJobRunning && liveProgress && Number.isFinite(liveProgress.percent) ? Math.round(liveProgress.percent) : 0}
+              isIndeterminate={!isJobRunning || !liveProgress || !Number.isFinite(liveProgress.percent)}
+            />
+            <p className="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
+              You can leave this page — the job will keep running and you&apos;ll find it in the Jobs popover.
+            </p>
           </div>
         )}
         {jobId && !fetchError && isTerminal && jobStatusNormalized === 'completed' && !parsedResult && (

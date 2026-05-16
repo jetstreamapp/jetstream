@@ -1,11 +1,16 @@
 import { css } from '@emotion/react';
-import { logger } from '@jetstream/shared/client-logger';
-import { createAnalysisJob } from '@jetstream/shared/data';
-import { getErrorMessage } from '@jetstream/shared/utils';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useNonInitialEffect, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { DescribeGlobalSObjectResult, ListItem, PermissionSetNoProfileRecord, PermissionSetWithProfileRecord } from '@jetstream/types';
+import {
+  AsyncJob,
+  AsyncJobNew,
+  DescribeGlobalSObjectResult,
+  ListItem,
+  PermissionExportAnalysisJob,
+  PermissionSetNoProfileRecord,
+  PermissionSetWithProfileRecord,
+} from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ConnectedSobjectListMultiSelect,
@@ -21,7 +26,7 @@ import {
   Tooltip,
   fireToast,
 } from '@jetstream/ui';
-import { RequireMetadataApiBanner, fromPermissionsState } from '@jetstream/ui-core';
+import { RequireMetadataApiBanner, fromJetstreamEvents, fromPermissionsState, jobsState } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useAtom, useAtomValue } from 'jotai';
@@ -32,6 +37,24 @@ import { PermissionAnalysisHistoryModal } from './PermissionAnalysisHistoryModal
 import { filterPermissionsSobjects } from './utils/permission-manager-utils';
 
 const HEIGHT_BUFFER = 170;
+
+/**
+ * Local mirror of `isAnalysisJobActive` from `@jetstream/feature/data-analysis`. Inlined to avoid
+ * a circular dependency (data-analysis imports `PermissionAnalysisHistoryModal` from this lib).
+ */
+function isPermissionExportJobActive(jobs: Record<string, AsyncJob<unknown>>, orgUniqueId: string): boolean {
+  return Object.values(jobs).some((job) => {
+    if (!job || job.type !== 'PermissionExportAnalysis') {
+      return false;
+    }
+    const inFlight = job.status === 'pending' || job.status === 'in-progress';
+    if (!inFlight) {
+      return false;
+    }
+    const meta = job.meta as { orgUniqueId?: string } | undefined;
+    return meta?.orgUniqueId === orgUniqueId;
+  });
+}
 
 export type ManagePermissionsSelectionMode = 'manage' | 'permission-analysis';
 
@@ -72,8 +95,9 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
   const resetFieldPermissionMap = useResetAtom(fromPermissionsState.fieldPermissionMap);
   const resetTabVisibilityPermissionMap = useResetAtom(fromPermissionsState.tabVisibilityPermissionMap);
 
-  const [analysisContinueLoading, setAnalysisContinueLoading] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
+  const jobs = useAtomValue(jobsState);
 
   const profilesAndPermSetsData = useProfilesAndPermSets(selectedOrg, profiles, permissionSets);
 
@@ -111,35 +135,39 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
     setSobjects(sobjects);
   }
 
-  const handleContinueAnalysis = useCallback(async () => {
+  const handleContinueAnalysis = useCallback(() => {
     if (!canContinueAnalysis || !selectedOrg) {
       return;
     }
-    setAnalysisContinueLoading(true);
-    try {
-      const { job } = await createAnalysisJob(selectedOrg, {
-        jobType: 'permission_export',
-        payload: {
-          profileIds: selectedProfiles,
-          permissionSetIds: selectedPermissionSets,
-          ...(selectedSObjects.length > 0 ? { objectApiNames: selectedSObjects } : {}),
-        },
-      });
-      const jobId = job && typeof job.id === 'string' ? job.id : null;
-      if (!jobId) {
-        throw new Error('Analysis job did not return an id.');
-      }
-      navigate(`analysis?job=${encodeURIComponent(jobId)}`);
-    } catch (ex) {
-      logger.error('Failed to start permission analysis job', ex);
+    if (isPermissionExportJobActive(jobs, selectedOrg.uniqueId)) {
       fireToast({
-        type: 'error',
-        message: `Could not start analysis job: ${getErrorMessage(ex)}`,
+        message: 'A Permission Export job is already running for this org. Wait for it to finish before starting another.',
+        type: 'warning',
       });
-    } finally {
-      setAnalysisContinueLoading(false);
+      return;
     }
-  }, [canContinueAnalysis, navigate, selectedOrg, selectedPermissionSets, selectedProfiles, selectedSObjects]);
+
+    const jobHistoryKey = `aj_${crypto.randomUUID()}`;
+    const meta: PermissionExportAnalysisJob = {
+      jobHistoryKey,
+      orgUniqueId: selectedOrg.uniqueId,
+      profileIds: selectedProfiles,
+      permissionSetIds: selectedPermissionSets,
+      ...(selectedSObjects.length > 0 ? { objectApiNames: selectedSObjects } : {}),
+    };
+    const asyncJobNew: AsyncJobNew<PermissionExportAnalysisJob> = {
+      type: 'PermissionExportAnalysis',
+      title: `Permission Export (${selectedProfiles.length + selectedPermissionSets.length} selection${
+        selectedProfiles.length + selectedPermissionSets.length === 1 ? '' : 's'
+      })`,
+      org: selectedOrg,
+      meta,
+      viewUrl: `${APP_ROUTES.PERMISSION_ANALYSIS.ROUTE}/analysis?job=${encodeURIComponent(jobHistoryKey)}`,
+    };
+    fromJetstreamEvents.emit({ type: 'newJob', payload: [asyncJobNew] });
+    fireToast({ message: 'Permission Export job started. Loading results…', type: 'success' });
+    navigate(`analysis?job=${encodeURIComponent(jobHistoryKey)}`);
+  }, [canContinueAnalysis, jobs, navigate, selectedOrg, selectedPermissionSets, selectedProfiles, selectedSObjects]);
 
   function handleContinue() {
     if (!sobjects || !sobjects.length) {
@@ -193,12 +221,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
               </Link>
             )}
             {continueEnabled && isAnalysis && (
-              <button
-                type="button"
-                className="slds-button slds-button_brand"
-                disabled={analysisContinueLoading}
-                onClick={() => void handleContinueAnalysis()}
-              >
+              <button type="button" className="slds-button slds-button_brand" onClick={handleContinueAnalysis}>
                 Continue
                 <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
               </button>

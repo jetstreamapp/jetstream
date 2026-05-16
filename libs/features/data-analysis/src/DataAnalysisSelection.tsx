@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { PermissionAnalysisHistoryModal, filterPermissionsSobjects } from '@jetstream/feature/manage-permissions';
-import { createAnalysisJob } from '@jetstream/shared/data';
-import { DescribeGlobalSObjectResult } from '@jetstream/types';
+import { AsyncJobNew, DescribeGlobalSObjectResult, FieldUsageAnalysisJob } from '@jetstream/types';
+import { fromJetstreamEvents, jobsState } from '@jetstream/ui-core';
 import {
   AutoFullHeightContainer,
   ConnectedSobjectListMultiSelect,
@@ -18,46 +18,54 @@ import { selectedOrgState } from '@jetstream/ui/app-state';
 import { atom, useAtom, useAtomValue } from 'jotai';
 import { FunctionComponent, useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { isAnalysisJobActive } from './shared/analysis-job-runtime-state';
 
 const selectedSObjectsAtom = atom<string[]>([]);
 const sobjectsAtom = atom<DescribeGlobalSObjectResult[] | null>(null);
 
 /**
- * Object selection for field-usage style analysis; registers a **field_usage** job scaffold via API.
+ * Object selection for field-usage style analysis; enqueues a browser-side job via the JobWorker pattern
+ * and routes the user to the results view keyed by the Dexie row that will receive the final blob.
  */
 export const DataAnalysisSelection: FunctionComponent = () => {
   const navigate = useNavigate();
   const selectedOrg = useAtomValue(selectedOrgState);
+  const jobs = useAtomValue(jobsState);
   const [sobjects, setSobjects] = useAtom(sobjectsAtom);
   const [selectedSObjects, setSelectedSObjects] = useAtom(selectedSObjectsAtom);
-  const [submitting, setSubmitting] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
-  const handleStartJob = useCallback(async () => {
+  const handleStartJob = useCallback(() => {
     if (!selectedOrg || !selectedSObjects.length) {
       fireToast({ message: 'Select at least one Object.', type: 'error' });
       return;
     }
-    setSubmitting(true);
-    try {
-      const { job } = await createAnalysisJob(selectedOrg, {
-        jobType: 'field_usage',
-        payload: { objectApiNames: selectedSObjects },
-      });
-      const jobId = (job as { id?: string }).id;
+    if (isAnalysisJobActive(jobs, selectedOrg.uniqueId, 'field_usage')) {
       fireToast({
-        message: jobId ? 'Field Usage job started. Loading results…' : 'Field Usage job registered.',
-        type: 'success',
+        message: 'A Field Usage job is already running for this org. Wait for it to finish before starting another.',
+        type: 'warning',
       });
-      if (jobId) {
-        navigate({ pathname: 'analysis', search: new URLSearchParams({ job: jobId }).toString() });
-      }
-    } catch (ex: unknown) {
-      fireToast({ message: ex instanceof Error ? ex.message : 'Failed to start job', type: 'error' });
-    } finally {
-      setSubmitting(false);
+      return;
     }
-  }, [navigate, selectedOrg, selectedSObjects]);
+
+    const jobHistoryKey = `aj_${crypto.randomUUID()}`;
+    const meta: FieldUsageAnalysisJob = {
+      jobHistoryKey,
+      orgUniqueId: selectedOrg.uniqueId,
+      objectApiNames: selectedSObjects,
+      loadFullScan: false,
+    };
+    const asyncJobNew: AsyncJobNew<FieldUsageAnalysisJob> = {
+      type: 'FieldUsageAnalysis',
+      title: `Field Usage Analysis (${selectedSObjects.length} Object${selectedSObjects.length === 1 ? '' : 's'})`,
+      org: selectedOrg,
+      meta,
+      viewUrl: `/analysis?job=${encodeURIComponent(jobHistoryKey)}`,
+    };
+    fromJetstreamEvents.emit({ type: 'newJob', payload: [asyncJobNew] });
+    fireToast({ message: 'Field Usage job started. Loading results…', type: 'success' });
+    navigate({ pathname: 'analysis', search: new URLSearchParams({ job: jobHistoryKey }).toString() });
+  }, [jobs, navigate, selectedOrg, selectedSObjects]);
 
   return (
     <Page testId="data-analysis-page">
@@ -79,12 +87,7 @@ export const DataAnalysisSelection: FunctionComponent = () => {
                 <Icon type="utility" icon="date_time" className="slds-button__icon" omitContainer title="Field Usage history" />
               </button>
             </Tooltip>
-            <button
-              type="button"
-              className="slds-button slds-button_brand"
-              disabled={submitting || !selectedSObjects.length}
-              onClick={() => void handleStartJob()}
-            >
+            <button type="button" className="slds-button slds-button_brand" disabled={!selectedSObjects.length} onClick={handleStartJob}>
               Start Field Usage Analysis
               <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" omitContainer />
             </button>
@@ -92,7 +95,7 @@ export const DataAnalysisSelection: FunctionComponent = () => {
         </PageHeaderRow>
         <PageHeaderRow>
           <span className="slds-text-body_small slds-text-color_weak">
-            Select Salesforce objects, then register a job. The API persists job metadata; heavy SOQL runs next.
+            Select Salesforce objects, then start a job. Results are computed in your browser and persisted locally per org.
           </span>
         </PageHeaderRow>
       </PageHeader>

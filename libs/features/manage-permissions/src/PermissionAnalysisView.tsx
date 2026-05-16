@@ -1,13 +1,14 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { describeGlobal, getAnalysisJob, queryWithCache } from '@jetstream/shared/data';
-import { escapeSoqlString } from '@jetstream/shared/ui-utils';
-import { getErrorMessage } from '@jetstream/shared/utils';
+import { describeGlobal, queryWithCache } from '@jetstream/shared/data';
+import { escapeSoqlString, formatNumber } from '@jetstream/shared/ui-utils';
+import { getErrorMessage, gzipDecode } from '@jetstream/shared/utils';
+import type { AsyncJob, PermissionExportAnalysisJob, PermissionExportFullResult } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Icon,
+  ProgressIndicator,
   ScopedNotification,
-  Spinner,
   Tabs,
   Toast,
   Toolbar,
@@ -15,21 +16,23 @@ import {
   ToolbarItemGroup,
   Tooltip,
 } from '@jetstream/ui';
-import { RequireMetadataApiBanner } from '@jetstream/ui-core';
+import { RequireMetadataApiBanner, jobsState } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
+import { dexieDb } from '@jetstream/ui/db';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { PermissionAnalysisExportGrid } from './PermissionAnalysisExportGrid';
 import { PermissionAnalysisFieldPermissionsTree } from './PermissionAnalysisFieldPermissionsTree';
-import { PermissionAnalysisObjectPermissionsTree } from './PermissionAnalysisObjectPermissionsTree';
-import { PermissionAnalysisTabVisibilityTree } from './PermissionAnalysisTabVisibilityTree';
-import { PermissionAnalysisPermissionSetsTree } from './PermissionAnalysisPermissionSetsTree';
-import { PermissionAnalysisUserAssignmentsTree } from './PermissionAnalysisUserAssignmentsTree';
-import { PermissionAnalysisExportMetadataProvider } from './permission-analysis-export-metadata-context';
 import { PermissionAnalysisFindingsFiltersBar } from './PermissionAnalysisFindingsFiltersBar';
 import { PermissionAnalysisHistoryModal } from './PermissionAnalysisHistoryModal';
 import { PermissionAnalysisIssuesTab } from './PermissionAnalysisIssuesTab';
+import { PermissionAnalysisObjectPermissionsTree } from './PermissionAnalysisObjectPermissionsTree';
+import { PermissionAnalysisPermissionSetsTree } from './PermissionAnalysisPermissionSetsTree';
+import { PermissionAnalysisTabVisibilityTree } from './PermissionAnalysisTabVisibilityTree';
+import { PermissionAnalysisUserAssignmentsTree } from './PermissionAnalysisUserAssignmentsTree';
+import { PermissionAnalysisExportMetadataProvider } from './permission-analysis-export-metadata-context';
 import { usePermissionAnalysisIssuesFilters } from './permission-analysis-issues-filters';
 import {
   buildPermissionSetIdLabelMap,
@@ -104,139 +107,172 @@ function formatJobResult(result: unknown): string {
 }
 
 /**
- * Read-only analysis workspace: polls the analysis job created from the selection step.
+ * Lazily stringifies the result when the Raw JSON tab actually renders. Stringifying inline inside
+ * the `resultTabs` useMemo would re-run on every memo dep change even if the tab isn't active —
+ * for ~20 MB blobs in dev that adds noticeable jank when toggling filters.
+ */
+const RawJsonTabContent: FunctionComponent<{ result: unknown }> = ({ result }) => {
+  const formatted = useMemo(() => formatJobResult(result), [result]);
+  return (
+    <div className="slds-p-around_medium">
+      <pre
+        className="slds-box slds-scrollable_y"
+        css={css`
+          max-height: min(560px, 70vh);
+          font-size: 0.75rem;
+        `}
+      >
+        {formatted}
+      </pre>
+    </div>
+  );
+};
+
+/**
+ * Read-only analysis workspace. Subscribes to the in-flight job entry (jotai jobsState) for progress
+ * and to Dexie `analysis_job_history` for the terminal row; no HTTP polling. Result decoding happens
+ * once per Dexie row (gzip decompress) and is reshaped into the envelope the parser expects.
  */
 export const PermissionAnalysisView: FunctionComponent = () => {
   const selectedOrg = useAtomValue(selectedOrgState);
   const { serverUrl, defaultApiVersion } = useAtomValue(applicationCookieState);
   const skipFrontdoorLogin = useAtomValue(selectSkipFrontdoorAuth);
+  const jobs = useAtomValue(jobsState);
   const [searchParams, setSearchParams] = useSearchParams();
   const jobId = searchParams.get('job');
 
-  const [jobRecord, setJobRecord] = useState<Record<string, unknown> | null>(null);
-  const [fetchError, setFetchError] = useState<string | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [sobjectExportDetails, setSobjectExportDetails] = useState<Record<string, SobjectExportDetail>>({});
   const [tabLabelBySettingName, setTabLabelBySettingName] = useState<Map<string, string>>(() => new Map());
   const [fieldExportDetails, setFieldExportDetails] = useState<Record<string, FieldExportDetail>>({});
+  const [decodedFullResult, setDecodedFullResult] = useState<PermissionExportFullResult | null>(null);
+  const [decodeError, setDecodeError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!selectedOrg?.uniqueId || !jobId) {
-      return;
-    }
-
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- switching org/job clears stale record until poll returns
-    setJobRecord(null);
-
-    const orgForPoll = selectedOrg;
-    const jobIdForPoll = jobId;
-
-    let cancelled = false;
-    let intervalId: ReturnType<typeof setInterval> | undefined;
-    /** Visible-tab polling interval; backs off slightly while the job stays non-terminal. */
-    let pollIntervalMs = 2000;
-    let consecutiveNonTerminalSuccess = 0;
-
-    const clearPolling = () => {
-      if (intervalId !== undefined) {
-        clearInterval(intervalId);
-        intervalId = undefined;
-      }
-    };
-
-    const effectivePollIntervalMs = () => {
-      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
-        return Math.max(pollIntervalMs, 12000);
-      }
-      return pollIntervalMs;
-    };
-
-    const schedulePolling = () => {
-      clearPolling();
-      intervalId = setInterval(() => void pollOnce(), effectivePollIntervalMs());
-    };
-
-    async function pollOnce() {
-      try {
-        const { job } = await getAnalysisJob(orgForPoll, jobIdForPoll);
-        if (cancelled) {
-          return;
-        }
-        setJobRecord(job);
-        setFetchError(null);
-        const status = String(job.status ?? '');
-        if (status === 'completed' || status === 'failed') {
-          clearPolling();
-          return;
-        }
-        consecutiveNonTerminalSuccess += 1;
-        const nextMs = Math.min(5000, 2000 + (consecutiveNonTerminalSuccess - 1) * 500);
-        if (nextMs !== pollIntervalMs) {
-          pollIntervalMs = nextMs;
-          schedulePolling();
-        }
-      } catch (ex) {
-        if (!cancelled) {
-          setFetchError(getErrorMessage(ex));
-          logger.error('Failed to load analysis job', ex);
-          clearPolling();
-        }
-      }
-    }
-
-    const onVisibilityChange = () => {
-      if (cancelled) {
-        return;
-      }
-      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-        pollIntervalMs = 2000;
-        consecutiveNonTerminalSuccess = 0;
-        void pollOnce();
-      }
-      schedulePolling();
-    };
-
-    if (typeof document !== 'undefined') {
-      document.addEventListener('visibilitychange', onVisibilityChange);
-    }
-
-    void pollOnce();
-    schedulePolling();
-
-    return () => {
-      cancelled = true;
-      if (typeof document !== 'undefined') {
-        document.removeEventListener('visibilitychange', onVisibilityChange);
-      }
-      clearPolling();
-    };
-  }, [selectedOrg, jobId]);
-
-  const jobStatusRaw = jobRecord?.status != null ? String(jobRecord.status).trim() : null;
-  const jobStatusNormalized = jobStatusRaw?.toLowerCase() ?? null;
-  const isTerminal = jobStatusNormalized === 'completed' || jobStatusNormalized === 'failed';
-
-  const parsedExport = useMemo(() => {
-    if (!jobRecord?.result) {
+  /**
+   * Live in-flight AsyncJob for this jobHistoryKey, when present. Drives the progress UI before the
+   * Dexie terminal row lands; the Jobs popover shows the same entry.
+   */
+  const inFlightJob: AsyncJob<PermissionExportAnalysisJob> | null = useMemo(() => {
+    if (!jobId) {
       return null;
     }
-    return parsePermissionExportResult(jobRecord.result);
-  }, [jobRecord]);
+    for (const candidate of Object.values(jobs)) {
+      if (candidate.type !== 'PermissionExportAnalysis') {
+        continue;
+      }
+      const meta = candidate.meta as PermissionExportAnalysisJob | undefined;
+      if (meta?.jobHistoryKey === jobId) {
+        return candidate as AsyncJob<PermissionExportAnalysisJob>;
+      }
+    }
+    return null;
+  }, [jobs, jobId]);
+
+  const inFlightStatus = inFlightJob?.status;
+  const isJobRunning = inFlightStatus === 'pending' || inFlightStatus === 'in-progress';
+
+  /**
+   * Terminal Dexie row for this jobHistoryKey, kept reactive via useLiveQuery so the view updates
+   * the moment the JobWorker writes the row.
+   */
+  const historyRow = useLiveQuery(() => (jobId ? dexieDb.analysis_job_history.get(jobId) : undefined), [jobId]);
+
+  useEffect(() => {
+    // Eagerly drop any prior decoded payload so switching between large completed runs doesn't keep both
+    // the old and new uncompressed blobs in memory while the new gunzip resolves.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- clear stale decoded payload when job/row changes
+    setDecodedFullResult(null);
+    setDecodeError(null);
+    if (!historyRow || historyRow.status !== 'completed' || !historyRow.resultBlob) {
+      return;
+    }
+    let cancelled = false;
+    gzipDecode<PermissionExportFullResult>(historyRow.resultBlob)
+      .then((decoded) => {
+        if (!cancelled) {
+          setDecodedFullResult(decoded);
+        }
+      })
+      .catch((ex) => {
+        if (!cancelled) {
+          logger.error('Failed to decode permission_export history blob', ex);
+          setDecodeError(getErrorMessage(ex));
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [historyRow]);
+
+  const jobStatusNormalized = useMemo(() => {
+    if (historyRow?.status === 'completed' || historyRow?.status === 'failed') {
+      return historyRow.status;
+    }
+    if (isJobRunning) {
+      return 'running';
+    }
+    if (inFlightStatus === 'failed' || inFlightStatus === 'aborted') {
+      return 'failed';
+    }
+    return null;
+  }, [historyRow?.status, isJobRunning, inFlightStatus]);
+
+  const isTerminal = jobStatusNormalized === 'completed' || jobStatusNormalized === 'failed';
+  const fetchError = decodeError;
+  const terminalErrorMessage = historyRow?.errorMessage ?? inFlightJob?.statusMessage ?? null;
+  const liveProgress = inFlightJob?.progress;
+
+  /**
+   * The decoded blob from Dexie has the FLAT merged shape (counts, findings, permissionSets, etc.
+   * at the top level). The parser expects a nested envelope `{ ...summary, export: { permissionSets, ... } }`.
+   * Reshape once and feed both the parser and downstream consumers (request-scope lookups) the same root.
+   */
+  const reshapedJobResult = useMemo(() => {
+    if (!decodedFullResult) {
+      return null;
+    }
+    return {
+      requestPayload: decodedFullResult.requestPayload,
+      phase: decodedFullResult.phase,
+      summary: decodedFullResult.summary,
+      truncated: decodedFullResult.truncated,
+      counts: decodedFullResult.counts,
+      findings: decodedFullResult.findings,
+      issueCodeSummary: decodedFullResult.issueCodeSummary,
+      export: {
+        permissionSets: decodedFullResult.permissionSets,
+        permissionSetAssignments: decodedFullResult.permissionSetAssignments,
+        permissionSetGroups: decodedFullResult.permissionSetGroups,
+        permissionSetGroupComponents: decodedFullResult.permissionSetGroupComponents,
+        mutingPermissionSets: decodedFullResult.mutingPermissionSets,
+        objectPermissions: decodedFullResult.objectPermissions,
+        fieldPermissions: decodedFullResult.fieldPermissions,
+        permissionSetTabSettings: decodedFullResult.permissionSetTabSettings,
+      },
+    };
+  }, [decodedFullResult]);
+
+  const parsedExport = useMemo(() => {
+    if (!reshapedJobResult) {
+      return null;
+    }
+    return parsePermissionExportResult(reshapedJobResult);
+  }, [reshapedJobResult]);
 
   const issueScopeFilterContext = useMemo(() => {
-    if (!jobRecord?.result) {
+    if (!reshapedJobResult) {
       return undefined;
     }
-    const scope = parsePermissionExportRequestScope(jobRecord.result);
+    const scope = parsePermissionExportRequestScope(reshapedJobResult);
     const supportsExportScopeFilter = scope.profilePermissionSetIds.length > 0 && scope.permissionSetIds.length > 0;
     return {
       supportsExportScopeFilter,
       profilePermissionSetIds: new Set(scope.profilePermissionSetIds),
       permissionSetIds: new Set(scope.permissionSetIds),
     };
-  }, [jobRecord]);
+  }, [reshapedJobResult]);
 
-  const exportObjectScopeNames = useMemo(() => parsePermissionExportRequestScope(jobRecord?.result).objectApiNames, [jobRecord]);
+  const exportObjectScopeNames = useMemo(() => parsePermissionExportRequestScope(reshapedJobResult).objectApiNames, [reshapedJobResult]);
 
   const permissionAnalysisIssuesFilters = usePermissionAnalysisIssuesFilters({
     findings: parsedExport?.findings ?? EMPTY_PERMISSION_ANALYSIS_FINDINGS,
@@ -509,8 +545,8 @@ export const PermissionAnalysisView: FunctionComponent = () => {
   const findingsCount = parsedExport?.findings.length ?? 0;
 
   const permissionAnalysisExportMetadata = useMemo(
-    () => ({ fieldExportDetails, tabLabelBySettingName }),
-    [fieldExportDetails, tabLabelBySettingName],
+    () => ({ fieldExportDetails, sobjectExportDetails, tabLabelBySettingName }),
+    [fieldExportDetails, sobjectExportDetails, tabLabelBySettingName],
   );
 
   const resultTabs = useMemo(() => {
@@ -532,7 +568,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
       sobjectExportDetails,
     };
 
-    const requestScope = parsePermissionExportRequestScope(jobRecord?.result);
+    const requestScope = parsePermissionExportRequestScope(reshapedJobResult);
     const hasExplicitScope = requestScope.profilePermissionSetIds.length > 0 || requestScope.permissionSetIds.length > 0;
     const profileIdSet = new Set(requestScope.profilePermissionSetIds);
     const permissionSetIdSet = new Set(requestScope.permissionSetIds);
@@ -863,19 +899,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
                 </Fragment>
               ),
               titleText: 'Raw JSON',
-              content: (
-                <div className="slds-p-around_medium">
-                  <pre
-                    className="slds-box slds-scrollable_y"
-                    css={css`
-                      max-height: min(560px, 70vh);
-                      font-size: 0.75rem;
-                    `}
-                  >
-                    {formatJobResult(jobRecord?.result)}
-                  </pre>
-                </div>
-              ),
+              content: <RawJsonTabContent result={reshapedJobResult} />,
             },
           ]
         : []),
@@ -886,7 +910,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
     serverUrl,
     skipFrontdoorLogin,
     defaultApiVersion,
-    jobRecord,
+    reshapedJobResult,
     findingsCount,
     sobjectExportDetails,
     permissionAnalysisIssuesFilters,
@@ -990,14 +1014,27 @@ export const PermissionAnalysisView: FunctionComponent = () => {
           </div>
         )}
         {jobId && fetchError && <Toast type="error">{fetchError}</Toast>}
-        {jobId && !fetchError && jobStatusNormalized === 'failed' && jobRecord?.errorMessage != null && (
+        {jobId && !fetchError && jobStatusNormalized === 'failed' && terminalErrorMessage != null && (
           <div className="slds-p-around_medium">
-            <Toast type="error">{String(jobRecord.errorMessage)}</Toast>
+            <Toast type="error">{terminalErrorMessage}</Toast>
           </div>
         )}
         {jobId && !fetchError && !isTerminal && (
           <div className="slds-p-around_medium">
-            <Spinner />
+            <h2 className="slds-text-heading_small slds-m-bottom_x-small">Permission analysis in progress…</h2>
+            <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_x-small">
+              {isJobRunning && liveProgress?.label ? liveProgress.label : 'Preparing'}
+              {isJobRunning && liveProgress && liveProgress.total > 0
+                ? ` — step ${formatNumber(liveProgress.current)} of ${formatNumber(liveProgress.total)}`
+                : ''}
+            </p>
+            <ProgressIndicator
+              currentValue={isJobRunning && liveProgress && Number.isFinite(liveProgress.percent) ? Math.round(liveProgress.percent) : 0}
+              isIndeterminate={!isJobRunning || !liveProgress || !Number.isFinite(liveProgress.percent)}
+            />
+            <p className="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
+              You can leave this page, but keep this tab open — the job will keep running and you&apos;ll find it in the Background Jobs.
+            </p>
           </div>
         )}
         {jobId && !fetchError && isTerminal && jobStatusNormalized === 'completed' && parsedExport && selectedOrg && resultTabs && (
@@ -1034,7 +1071,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
             </Fragment>
           </PermissionAnalysisExportMetadataProvider>
         )}
-        {jobId && !fetchError && isTerminal && jobStatusNormalized === 'completed' && !parsedExport && jobRecord && (
+        {jobId && !fetchError && isTerminal && jobStatusNormalized === 'completed' && !parsedExport && reshapedJobResult && (
           <div className="slds-p-around_medium">
             {SHOW_RAW_JOB_JSON_UI ? (
               <Fragment>
@@ -1056,7 +1093,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
                             font-size: 0.75rem;
                           `}
                         >
-                          {formatJobResult(jobRecord.result)}
+                          {formatJobResult(reshapedJobResult)}
                         </pre>
                       ),
                     },

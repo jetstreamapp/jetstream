@@ -1,16 +1,14 @@
 import { css } from '@emotion/react';
-import { logger } from '@jetstream/shared/client-logger';
-import { listAnalysisJobs } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { AnalysisJobHistoryItem, AnalysisJobType, SalesforceOrgUi } from '@jetstream/types';
 import { Badge, EmptyState, Grid, Icon, List, Modal, Popover, PopoverRef, SearchInput, Spinner } from '@jetstream/ui';
+import { dexieDb } from '@jetstream/ui/db';
 import classNames from 'classnames';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { formatAnalysisJobStatusForDisplay } from './analysis-job-status-display';
 import { permissionScopeBadgeCss } from './permission-analysis-viewer-badge.styles';
-import { FunctionComponent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-
-const LIST_LIMIT = 50;
+import { FunctionComponent, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 export type PermissionScopeKind = 'profile' | 'permission_set' | 'object';
 
@@ -74,13 +72,6 @@ function badgeTypeForStatus(status: string): 'success' | 'error' | 'warning' | '
   return 'default';
 }
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-  if (value && typeof value === 'object' && !Array.isArray(value)) {
-    return value as Record<string, unknown>;
-  }
-  return null;
-}
-
 function stringIdArray(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
@@ -88,160 +79,89 @@ function stringIdArray(value: unknown): string[] {
   return value.filter((id): id is string => typeof id === 'string');
 }
 
-function permissionSetRowsFromExport(result: Record<string, unknown> | null): Record<string, unknown>[] {
-  if (!result) {
-    return [];
-  }
-  const exportBlock = asRecord(result.export);
-  const rows = exportBlock?.permissionSets;
-  if (!Array.isArray(rows)) {
-    return [];
-  }
-  return rows.filter((row): row is Record<string, unknown> => row && typeof row === 'object' && !Array.isArray(row));
-}
-
-function profileNameFromExportRow(row: Record<string, unknown>): string {
-  const profile = row.Profile;
-  if (profile && typeof profile === 'object' && !Array.isArray(profile)) {
-    const nestedName = (profile as Record<string, unknown>).Name;
-    if (nestedName != null && String(nestedName).trim()) {
-      return String(nestedName).trim();
-    }
-  }
-  return '';
-}
-
 /**
- * Matches selection UI: profile-owned permission sets use Profile.Name; others use Label/Name.
+ * Builds ordered scope badges from request payload IDs only. Full PermissionSet labels live inside
+ * the gzip-compressed `resultBlob`; we intentionally do not decode for the list view (would force
+ * a gunzip per row). Labels resolve to the raw Id; per-run drill-in still shows full labels.
  */
-function labelForPermissionSetRow(row: Record<string, unknown>, fallbackId: string): string {
-  const ownedByProfile = row.IsOwnedByProfile === true;
-  const profileName = profileNameFromExportRow(row);
-  if (ownedByProfile && profileName) {
-    return profileName;
-  }
-  const label = row.Label != null ? String(row.Label) : '';
-  const name = row.Name != null ? String(row.Name) : '';
-  const text = profileName || label.trim() || name.trim() || fallbackId;
-  return text;
-}
-
-/** `profileIds` in the job payload are profile permission set parent Ids — prefer Profile.Name whenever the export includes it. */
-function labelForProfileScopeBadge(row: Record<string, unknown>, fallbackId: string): string {
-  const profileName = profileNameFromExportRow(row);
-  if (profileName) {
-    return profileName;
-  }
-  return labelForPermissionSetRow(row, fallbackId);
-}
-
-/**
- * Builds ordered scope badges: profiles (payload order) then permission sets (payload order).
- * Uses exported PermissionSet rows for labels when present.
- */
-function buildScopeBadges(
-  profileScopeIds: string[],
-  permissionSetScopeIds: string[],
-  exportRows: Record<string, unknown>[],
-): PermissionAnalysisScopeBadge[] {
-  const byId = new Map<string, Record<string, unknown>>();
-  for (const row of exportRows) {
-    const id = row.Id != null ? String(row.Id) : '';
-    if (id) {
-      byId.set(id, row);
-    }
-  }
-
+function buildScopeBadges(profileScopeIds: string[], permissionSetScopeIds: string[]): PermissionAnalysisScopeBadge[] {
   const badges: PermissionAnalysisScopeBadge[] = [];
-
   for (const id of profileScopeIds) {
-    const row = byId.get(id);
-    const label = row ? labelForProfileScopeBadge(row, id) : id;
     badges.push({
       key: `profile:${id}`,
       id,
-      label,
+      label: id,
       kind: 'profile',
     });
   }
-
   for (const id of permissionSetScopeIds) {
-    const row = byId.get(id);
-    const label = row ? labelForPermissionSetRow(row, id) : id;
     badges.push({
       key: `permset:${id}`,
       id,
-      label,
+      label: id,
       kind: 'permission_set',
     });
   }
-
   return badges;
 }
 
-function parseFieldUsageJobScopes(job: Record<string, unknown>): {
+function parseFieldUsageDexieRowScopes(row: AnalysisJobHistoryItem): {
   profileScopeIds: string[];
   permissionSetScopeIds: string[];
   scopeBadges: PermissionAnalysisScopeBadge[];
   scopeSearchText: string;
 } {
-  const result = asRecord(job.result);
-  const payload = result ? asRecord(result.requestPayload) : null;
-  const rawNames = payload?.objectApiNames;
-  const objectApiNames = Array.isArray(rawNames)
-    ? rawNames.filter((name): name is string => typeof name === 'string' && name.trim().length > 0)
-    : [];
+  const objectApiNames = stringIdArray(row.requestPayload?.objectApiNames).filter((name) => name.trim().length > 0);
   const scopeBadges: PermissionAnalysisScopeBadge[] = objectApiNames.map((name) => ({
     key: `object:${name}`,
     id: name,
     label: name,
     kind: 'object',
   }));
-  const scopeSearchText = objectApiNames.join(' ');
-  return { profileScopeIds: [], permissionSetScopeIds: [], scopeBadges, scopeSearchText };
+  return {
+    profileScopeIds: [],
+    permissionSetScopeIds: [],
+    scopeBadges,
+    scopeSearchText: objectApiNames.join(' '),
+  };
 }
 
-function parseJobScopes(job: Record<string, unknown>): {
+function parsePermissionExportDexieRowScopes(row: AnalysisJobHistoryItem): {
   profileScopeIds: string[];
   permissionSetScopeIds: string[];
   scopeBadges: PermissionAnalysisScopeBadge[];
   scopeSearchText: string;
 } {
-  const result = asRecord(job.result);
-  const payload = result ? asRecord(result.requestPayload) : null;
-  const profileScopeIds = payload ? stringIdArray(payload.profileIds) : [];
-  const permissionSetScopeIds = payload ? stringIdArray(payload.permissionSetIds) : [];
-  const exportRows = permissionSetRowsFromExport(result);
-  const scopeBadges = buildScopeBadges(profileScopeIds, permissionSetScopeIds, exportRows);
-  const scopeSearchText = [...scopeBadges.map((badge) => badge.label), ...profileScopeIds, ...permissionSetScopeIds].join(' ');
-
-  return { profileScopeIds, permissionSetScopeIds, scopeBadges, scopeSearchText };
+  const profileScopeIds = stringIdArray(row.requestPayload?.profileIds);
+  const permissionSetScopeIds = stringIdArray(row.requestPayload?.permissionSetIds);
+  const scopeBadges = buildScopeBadges(profileScopeIds, permissionSetScopeIds);
+  return {
+    profileScopeIds,
+    permissionSetScopeIds,
+    scopeBadges,
+    scopeSearchText: [...profileScopeIds, ...permissionSetScopeIds].join(' '),
+  };
 }
 
-function mapApiJobsToRows(
-  jobs: Record<string, unknown>[],
-  analysisJobType: 'permission_export' | 'field_usage',
+function mapDexieRowsToHistoryRows(
+  rows: readonly AnalysisJobHistoryItem[],
+  analysisJobType: AnalysisJobType,
 ): PermissionAnalysisHistoryRow[] {
-  return jobs
-    .filter((job) => job.jobType === analysisJobType)
-    .map((job) => {
-      const id = typeof job.id === 'string' ? job.id : String(job.id ?? '');
-      const status = job.status != null ? String(job.status) : '';
-      const jobType = job.jobType != null ? String(job.jobType) : '';
-      const { profileScopeIds, permissionSetScopeIds, scopeBadges, scopeSearchText } =
-        analysisJobType === 'field_usage' ? parseFieldUsageJobScopes(job) : parseJobScopes(job);
-      return {
-        key: id,
-        id,
-        status,
-        jobType,
-        startedLabel: formatJobStartedAt(job.createdAt),
-        profileScopeIds,
-        permissionSetScopeIds,
-        scopeBadges,
-        scopeSearchText,
-      };
-    });
+  return rows.map((row) => {
+    const { profileScopeIds, permissionSetScopeIds, scopeBadges, scopeSearchText } =
+      analysisJobType === 'field_usage' ? parseFieldUsageDexieRowScopes(row) : parsePermissionExportDexieRowScopes(row);
+    return {
+      key: row.key,
+      id: row.key,
+      status: row.status,
+      jobType: row.jobType,
+      startedLabel: formatJobStartedAt(row.createdAt),
+      profileScopeIds,
+      permissionSetScopeIds,
+      scopeBadges,
+      scopeSearchText,
+    };
+  });
 }
 
 function sortScopeFilterOptions(options: PermissionScopeFilterOption[]): PermissionScopeFilterOption[] {
@@ -267,8 +187,8 @@ function uniqueScopeOptionsFromRows(rows: PermissionAnalysisHistoryRow[]): Permi
 
 export interface PermissionAnalysisHistoryModalProps {
   selectedOrg: SalesforceOrgUi;
-  /** Which analysis job family this modal lists (filters `listAnalysisJobs` rows client-side). */
-  analysisJobType: 'permission_export' | 'field_usage';
+  /** Which analysis job family this modal lists; the Dexie query is keyed by (org, jobType). */
+  analysisJobType: AnalysisJobType;
   currentJobId: string | null;
   onClose: () => void;
   onSelectJob: (jobId: string) => void;
@@ -365,49 +285,30 @@ export const PermissionAnalysisHistoryModal: FunctionComponent<PermissionAnalysi
   onClose,
   onSelectJob,
 }) => {
-  const [rows, setRows] = useState<PermissionAnalysisHistoryRow[]>([]);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [filterValue, setFilterValue] = useState('');
   const [scopeFilterParentId, setScopeFilterParentId] = useState<string | null>(null);
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(currentJobId);
   const scopePopoverRef = useRef<PopoverRef>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      setLoading(true);
-      setLoadError(null);
-      try {
-        const { jobs } = await listAnalysisJobs(selectedOrg, { limit: LIST_LIMIT });
-        if (cancelled) {
-          return;
-        }
-        const nextRows = mapApiJobsToRows(Array.isArray(jobs) ? jobs : [], analysisJobType);
-        setRows(nextRows);
-        if (currentJobId && nextRows.some((row) => row.key === currentJobId)) {
-          setSelectedKey(currentJobId);
-        } else if (nextRows[0]) {
-          setSelectedKey(nextRows[0].key);
-        } else {
-          setSelectedKey(null);
-        }
-      } catch (ex) {
-        if (!cancelled) {
-          setLoadError(ex instanceof Error ? ex.message : 'Failed to load job history');
-          logger.error('Failed to list analysis jobs', ex);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedOrg, currentJobId, analysisJobType]);
+  /**
+   * Live Dexie subscription to the per-(org, jobType) history. sortBy always materializes ascending —
+   * we reverse the array in JS to render newest first.
+   */
+  const dexieRows = useLiveQuery(
+    () =>
+      dexieDb.analysis_job_history
+        .where('[org+jobType+createdAt]')
+        .between([selectedOrg.uniqueId, analysisJobType, new Date(0)], [selectedOrg.uniqueId, analysisJobType, new Date(8.64e15)])
+        .sortBy('createdAt')
+        .then((rows) => rows.reverse()),
+    [selectedOrg.uniqueId, analysisJobType],
+  );
+
+  const loading = dexieRows === undefined;
+  const rows = useMemo<PermissionAnalysisHistoryRow[]>(
+    () => (dexieRows ? mapDexieRowsToHistoryRows(dexieRows, analysisJobType) : []),
+    [dexieRows, analysisJobType],
+  );
 
   const scopeFilterOptions = useMemo(() => uniqueScopeOptionsFromRows(rows), [rows]);
 
@@ -603,13 +504,8 @@ export const PermissionAnalysisHistoryModal: FunctionComponent<PermissionAnalysi
           <Spinner />
         </div>
       )}
-      {!loading && loadError && (
-        <div className="slds-text-color_error slds-p-around_small" role="alert">
-          {loadError}
-        </div>
-      )}
-      {!loading && !loadError && rows.length === 0 && <EmptyState headline={emptyHeadline} subHeading={emptySubHeading} />}
-      {!loading && !loadError && rows.length > 0 && (
+      {!loading && rows.length === 0 && <EmptyState headline={emptyHeadline} subHeading={emptySubHeading} />}
+      {!loading && rows.length > 0 && (
         <div>
           <Grid verticalAlign="end" className="slds-p-bottom_x-small">
             <div className={analysisJobType === 'permission_export' ? 'slds-col slds-grow' : 'slds-col slds-size_1-of-1'}>
