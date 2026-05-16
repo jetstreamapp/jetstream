@@ -1,5 +1,11 @@
 # Changelog
 
+## [9.17.1](https://github.com/jetstreamapp/jetstream/compare/v9.17.0...v9.17.1) (2026-05-16)
+
+### Bug Fixes
+
+* improve token rotation logging and handling in desktop and web extension controllers ([46129c9](https://github.com/jetstreamapp/jetstream/commit/46129c9fadcb2b0251b02c966814a9eb97a446c3))
+
 ## [9.17.0](https://github.com/jetstreamapp/jetstream/compare/v9.16.0...v9.17.0) (2026-05-15)
 
 ### Features
