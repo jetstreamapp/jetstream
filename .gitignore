@@ -11,6 +11,8 @@
 
 # dependencies
 /node_modules
+**/node_modules
+.pnpm-store
 
 # IDEs and editors
 /.idea
@@ -35,6 +37,7 @@
 /libpeerconnection.log
 npm-debug.log
 yarn-error.log
+pnpm-debug.log*
 testem.log
 /typings
 

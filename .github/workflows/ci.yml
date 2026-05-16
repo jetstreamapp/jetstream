@@ -83,32 +83,36 @@ jobs:
       - name: Derive appropriate SHAs for base and head for `nx affected` commands
         uses: nrwl/nx-set-shas@v5
 
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.x.x
+
       - uses: actions/setup-node@v6
         with:
-          node-version: "22"
-          cache: "yarn"
+          node-version: "24"
+          cache: "pnpm"
 
       - name: install dependencies
-        run: yarn install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Run database migration
-        run: yarn db:migrate
+        run: pnpm db:migrate
 
       - name: Test all projects
         if: github.event_name == 'push'
-        run: yarn test:all
+        run: pnpm test:all
 
       - name: Test affected projects
         if: github.event_name == 'pull_request'
-        run: yarn test:affected
+        run: pnpm test:affected
 
       - name: Build
         if: github.event_name == 'push'
-        run: yarn build:ci
+        run: pnpm build:ci
 
       - name: Build affected
         if: github.event_name == 'pull_request'
-        run: yarn build:affected
+        run: pnpm build:affected
 
       - name: Uploading artifacts
         if: github.event_name == 'push'
@@ -156,13 +160,17 @@ jobs:
       - name: Derive appropriate SHAs for base and head for `nx affected` commands
         uses: nrwl/nx-set-shas@v5
 
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.x.x
+
       - uses: actions/setup-node@v6
         with:
-          node-version: "22"
-          cache: "yarn"
+          node-version: "24"
+          cache: "pnpm"
 
       - name: install dependencies
-        run: yarn install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       # Gate the slow E2E work on "is api or jetstream actually affected by this change?"
       # For push-to-main we always run (full-regression safety net). The job itself still
@@ -175,7 +183,7 @@ jobs:
             echo "::notice::Running E2E — push event always runs the full suite"
             exit 0
           fi
-          affected=$(npx nx show projects --affected --type=app)
+          affected=$(pnpm nx show projects --affected --type=app)
           echo "Affected apps:"
           echo "$affected"
           if echo "$affected" | grep -qE '^(api|jetstream)$'; then
@@ -188,23 +196,23 @@ jobs:
 
       - name: Build
         if: steps.guard.outputs.should_run == 'true'
-        run: yarn build:ci
+        run: pnpm build:ci
 
       - name: Install Playwright dependencies
         if: steps.guard.outputs.should_run == 'true'
-        run: npx playwright install --with-deps
+        run: pnpm playwright install --with-deps
 
       - name: Generate database
         if: steps.guard.outputs.should_run == 'true'
-        run: yarn db:generate
+        run: pnpm db:generate
 
       - name: Run database migration
         if: steps.guard.outputs.should_run == 'true'
-        run: yarn db:migrate
+        run: pnpm db:migrate
 
       - name: Seed DB
         if: steps.guard.outputs.should_run == 'true'
-        run: yarn db:seed
+        run: pnpm db:seed
         env:
           POSTGRES_HOST: localhost
           PGHOST: localhost
@@ -215,7 +223,7 @@ jobs:
 
       - name: Run E2E tests
         if: steps.guard.outputs.should_run == 'true'
-        run: yarn playwright:test:with-server
+        run: pnpm playwright:test:with-server
 
       - name: Upload test results
         # Upload even on failure, but only when the suite actually ran.

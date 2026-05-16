@@ -24,15 +24,21 @@ jobs:
       - uses: actions/checkout@v6
         name: Checkout
 
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.x.x
+
       - uses: actions/setup-node@v6
         with:
-          node-version: "22"
-          cache: "yarn"
+          node-version: "24"
+          cache: "pnpm"
 
       - name: Install dependencies
-        working-directory: apps/docs
-        run: yarn install --frozen-lockfile
+        # `--filter docs...` limits the install to apps/docs + transitive deps.
+        # `--ignore-scripts` skips the root `prisma generate` postinstall (which
+        # needs JETSTREAM_POSTGRES_DBURI and is irrelevant to a docs build) and
+        # the auto-injected `node` runtime download from `devEngines.runtime`.
+        run: pnpm install --frozen-lockfile --filter docs... --ignore-scripts
 
       - name: Build docs
-        working-directory: apps/docs
-        run: yarn build
+        run: pnpm --dir apps/docs build

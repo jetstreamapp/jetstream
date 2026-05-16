@@ -2,6 +2,9 @@ FROM mcr.microsoft.com/playwright:v1.36.0
 
 WORKDIR /usr/src/app
 
+ARG PNPM_VERSION=11.1.2
+RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
+
 # Copy application
 COPY ./dist/apps/api ./dist/apps/api/
 COPY ./dist/apps/jetstream ./dist/apps/jetstream/
@@ -9,23 +12,24 @@ COPY ./dist/apps/landing ./dist/apps/landing/
 
 # Copy supporting files
 COPY ./dist/apps/api/package.json .
-COPY ./yarn.lock .
+COPY ./pnpm-lock.yaml .
+COPY ./pnpm-workspace.yaml .
 COPY ./.env .
 COPY ./ecosystem.config.js .
 COPY ./prisma ./prisma/
 
 # Install core dependencies
-RUN yarn
+RUN pnpm install --prod --no-frozen-lockfile
 
 # Install other dependencies that were not calculated by nx, but are required
 # Install matching version of prisma by extracting @prisma/client version from package.json,
 # and stripping the caret ("^") if present.
-RUN yarn add prisma@$(node -p "require('./package.json')['dependencies']['@prisma/client'].replace('^','')")
+RUN pnpm add prisma@$(node -p "require('./package.json')['dependencies']['@prisma/client'].replace('^','')")
 
 # Generate prisma client - ensure that there are no OS differences
-RUN npx prisma generate
+RUN pnpm prisma generate
 
 EXPOSE 3333
 EXPOSE 9229
 
-CMD [ "yarn", "playwright:test" ]
+CMD [ "pnpm", "playwright:test" ]

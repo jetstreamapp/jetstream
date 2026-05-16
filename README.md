@@ -65,9 +65,9 @@ This project was generated using [Nx](https://nx.dev) - This repository is consi
 
 **Pre-req**
 
-1. Make sure you have node 20 installed.
+1. Make sure you have node 22 installed.
 2. If you are using docker, make sure you have Docker installed.
-3. If you want to run the dev server, make sure you have yarn version 1 installed.
+3. If you want to run the dev server, make sure you have pnpm installed. Corepack is recommended.
 
 ### Installing Dependencies
 
@@ -77,7 +77,7 @@ Run this script to copy `.env.example` to `.env` which will generate encryption 
 You will be asked some questions which will determine some of the environment variables.
 
 ```bash
-yarn scripts:generate-env
+pnpm scripts:generate-env
 ```
 
 📓 You can choose to skip authentication locally by setting the environment variable `EXAMPLE_USER_OVERRIDE=true`. This is set to true by default in the `.env.example` file.
@@ -145,34 +145,34 @@ If you want to create your own:
 - [Install postgres](https://www.postgresql.org/download/)
   - ensure this is running with a database called `postgres` and a user named `postgres` on default port 5432
     - If your database is cloud hosted or named something different, then you can adjust the environment variable in `.env` after you initialize your application and this file is created.
-- [Install node 16+](https://nodejs.org/en/download/)
-  - Version 18 is preferred, but 16 will work.
-- [Install Yarn](https://classic.yarnpkg.com/lang/en/docs/install/#mac-stable)
+- [Install node 22](https://nodejs.org/en/download/)
+- Enable Corepack
+  - Run `corepack enable`
 - Install dependencies
-  - Run `yarn` to install all dependencies
+  - Run `pnpm install` to install all dependencies
 - Initialize `.env` file
-  - `yarn init:project` (or manually copy `.env.example` to `.env`)
+  - `pnpm init:project` (or manually copy `.env.example` to `.env`)
   - If you need to adjust your postges connection, you can do so now.
 - **Running in production mode**
   - Build application
-    - `yarn build` (this may take some time - if the build is cached in the cloud, this may run quickly)
+    - `pnpm build` (this may take some time - if the build is cached in the cloud, this may run quickly)
   - Start Jetstream
-    - `yarn db:migrate` to initialize database
-    - `yarn db:seed` to insert required records for the application
+    - `pnpm db:migrate` to initialize database
+    - `pnpm db:seed` to insert required records for the application
     - `node dist/apps/api/main.js`
     - Visit in a web browser - TODO: **allow skipping auth**
       - `http://localhost:3333/app`
 - **Running in development mode - use this option if you want to work with the codebase**
   - Build required applications
-    - `yarn build:landing`
-    - `yarn db:generate`
+    - `pnpm build:landing`
+    - `pnpm db:generate`
   - Start Jetstream
-    - terminal 1: `yarn start:api` to start api server
+    - terminal 1: `pnpm start:api` to start api server
       - This runs on `http://localhost:3333` - most endpoints are prefixed at the `/api` path
-    - terminal 2: `yarn start` to start api server
+    - terminal 2: `pnpm start` to start api server
       - This runs on `http://localhost:4200` and you will need to access the application here `http://localhost:4200/app`
   - Optional
-    - `yarn start:ui:storybook` to start the storybook server
+    - `pnpm start:ui:storybook` to start the storybook server
       - This runs on `http://localhost:4400`
       - You can check out the public version of this at https://storybook.getjetstream.app
 

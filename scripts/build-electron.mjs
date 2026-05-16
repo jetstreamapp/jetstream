@@ -2,6 +2,7 @@
 import 'dotenv/config';
 import { readFileSync, writeFileSync } from 'fs';
 import { copy, ensureDir, remove } from 'fs-extra';
+import yaml from 'js-yaml';
 import minimist from 'minimist';
 import { join } from 'path';
 import { $, cd, chalk, usePowerShell } from 'zx'; // https://github.com/google/zx
@@ -31,7 +32,7 @@ if (argv.help) {
     Usage: build-electron-builder [options]
 
     To build new electron app:
-    yarn build:desktop:builder or node scripts/build-electron-builder.mjs"
+    pnpm build:desktop:builder or node scripts/build-electron-builder.mjs"
 
     Options:
       -h, --help       display help for command
@@ -44,7 +45,9 @@ if (argv.help) {
 
 const TARGET_DIR = join(process.cwd(), 'dist/desktop-build');
 const ROOT_PACKAGE_JSON_PATH = join(process.cwd(), 'package.json');
+const ROOT_PNPM_WORKSPACE_PATH = join(process.cwd(), 'pnpm-workspace.yaml');
 const TARGET_PACKAGE_JSON_PATH = join(TARGET_DIR, 'package.json');
+const TARGET_PNPM_WORKSPACE_PATH = join(TARGET_DIR, 'pnpm-workspace.yaml');
 const TARGET_CLIENT_DIR = join(TARGET_DIR, 'client');
 const MAIN_BUILD_DIR = join(process.cwd(), 'dist/apps/jetstream-desktop');
 const RENDERER_BUILD_DIR = join(process.cwd(), 'dist/apps/jetstream-desktop-client');
@@ -52,7 +55,7 @@ const WINDOWS_SIGN_SCRIPT = join(process.cwd(), 'scripts/windows-sign.js');
 const WINDOWS_SIGN_SCRIPT_DEST = join(TARGET_DIR, 'windows-sign.js');
 
 // NX calculates these dependencies, but they are not used in the final build
-const yarnRemoveDeps = () => {
+const packageManagerRemoveDeps = () => {
   const { devDependencies, dependencies } = JSON.parse(readFileSync(TARGET_PACKAGE_JSON_PATH, 'utf-8'));
   const allDependencies = { ...devDependencies, ...dependencies };
 
@@ -69,7 +72,7 @@ const yarnRemoveDeps = () => {
  * Look at root package.json for version of all dependencies to install
  * This enables us to avoid having to keep the version numbers in sync manually
  */
-const yarnAddDevDeps = () => {
+const packageManagerAddDevDeps = () => {
   const { devDependencies, dependencies } = JSON.parse(readFileSync(ROOT_PACKAGE_JSON_PATH, 'utf-8'));
   const allDependencies = { ...devDependencies, ...dependencies };
 
@@ -95,7 +98,7 @@ const yarnAddDevDeps = () => {
   });
 };
 
-const yarnAddProdDeps = () => {
+const packageManagerAddProdDeps = () => {
   const { devDependencies, dependencies } = JSON.parse(readFileSync(ROOT_PACKAGE_JSON_PATH, 'utf-8'));
   const allDependencies = { ...devDependencies, ...dependencies };
 
@@ -111,11 +114,36 @@ const yarnAddProdDeps = () => {
   });
 };
 
+function prepareTargetPackageJson() {
+  const rootPackageJson = JSON.parse(readFileSync(ROOT_PACKAGE_JSON_PATH, 'utf-8'));
+  const rootWorkspace = yaml.load(readFileSync(ROOT_PNPM_WORKSPACE_PATH, 'utf-8')) ?? {};
+  const targetPackageJson = JSON.parse(readFileSync(TARGET_PACKAGE_JSON_PATH, 'utf-8'));
+
+  targetPackageJson.engines = rootPackageJson.engines;
+  targetPackageJson.devEngines = rootPackageJson.devEngines;
+  targetPackageJson.packageManager = rootPackageJson.packageManager;
+
+  writeFileSync(TARGET_PACKAGE_JSON_PATH, JSON.stringify(targetPackageJson, null, 2) + '\n');
+
+  // Give TARGET_DIR its own workspace yaml so pnpm stops walking up at this
+  // directory: the install stays scoped to dist/desktop-build (no entry added
+  // to the root pnpm-lock.yaml) while still honoring the same explicit
+  // allowBuilds allowlist and dependency overrides the root project uses.
+  const targetWorkspace = { packages: [] };
+  if (rootWorkspace.allowBuilds && Object.keys(rootWorkspace.allowBuilds).length > 0) {
+    targetWorkspace.allowBuilds = { ...rootWorkspace.allowBuilds };
+  }
+  if (rootWorkspace.overrides && Object.keys(rootWorkspace.overrides).length > 0) {
+    targetWorkspace.overrides = { ...rootWorkspace.overrides };
+  }
+  writeFileSync(TARGET_PNPM_WORKSPACE_PATH, yaml.dump(targetWorkspace));
+}
+
 async function build() {
   console.log(chalk.blue(`Building and Preparing output. Target directory:`), TARGET_DIR);
 
   // Build app
-  await $`yarn build:desktop:all`;
+  await $`pnpm build:desktop:all`;
 
   // Prepare combined output target directory
   await remove(TARGET_DIR);
@@ -130,19 +158,22 @@ async function build() {
   // Copy electron-builder config and assets
   await copy('electron-builder.config.js', join(TARGET_DIR, 'electron-builder.config.js'));
   await copy('DESKTOP_EULA.md', join(TARGET_DIR, 'DESKTOP_EULA.md'));
+  prepareTargetPackageJson();
 
   cd(TARGET_DIR);
 
-  // Install missing dependencies
+  // Install missing dependencies. The local pnpm-workspace.yaml written above
+  // makes TARGET_DIR its own workspace root, so these installs stay isolated
+  // from the root project's lockfile.
   console.log(chalk.blue('Installing dependencies...'));
-  await $`yarn add -D ${yarnAddDevDeps()}`; // this is required to be first because postInstall script depends on it
-  await $`yarn add ${yarnAddProdDeps()}`;
+  await $`pnpm add -D ${packageManagerAddDevDeps()}`; // this is required to be first because postInstall script depends on it
+  await $`pnpm add ${packageManagerAddProdDeps()}`;
 
   // Remove extra dependencies
   console.log(chalk.blue('Removing unnecessary dependencies...'));
-  const depsToRemove = yarnRemoveDeps();
+  const depsToRemove = packageManagerRemoveDeps();
   if (depsToRemove.length > 0) {
-    await $`yarn remove ${depsToRemove}`;
+    await $`pnpm remove ${depsToRemove}`;
   }
 
   // Clean up unnecessary files
@@ -181,8 +212,8 @@ async function build() {
   // Build with electron-builder
   console.log(chalk.green('Ready to build with electron-builder!'));
   console.log(chalk.green('Publish your artifacts by running:'));
-  console.log(chalk.blue('cd dist/desktop-build && yarn publish:mac'));
-  console.log(chalk.blue('cd dist/desktop-build; yarn publish:win'));
+  console.log(chalk.blue('cd dist/desktop-build && pnpm publish:mac'));
+  console.log(chalk.blue('cd dist/desktop-build; pnpm publish:win'));
 }
 
 async function main() {

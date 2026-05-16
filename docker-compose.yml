@@ -49,7 +49,7 @@ services:
   db_seed:
     image: jetstream-app
     command: >
-      bash -c "yarn db:migrate && yarn db:seed"
+      bash -c "pnpm db:migrate && pnpm db:seed"
     links:
       - db
     depends_on:

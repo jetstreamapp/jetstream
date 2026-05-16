@@ -1,7 +1,7 @@
 // Cron entrypoint for the Cloudflare analytics archiver.
 //
 // Deployment:
-//   - Render cron service running `yarn start:cron:cloudflare-analytics-archiver`.
+//   - Render cron service running `pnpm start:cron:cloudflare-analytics-archiver`.
 //   - Suggested schedule: hourly at :10 past the hour.
 //   - Required env: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ZONE_IDS, CLOUDFLARE_ANALYTICS_DBURI.
 //   - Optional env: CLOUDFLARE_ANALYTICS_MAX_BACKFILL_HOURS (default 48),

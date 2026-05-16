@@ -62,7 +62,7 @@ const config = {
     '!**/*.ts',
     '!electron-builder.config.js',
     '!windows-sign.js',
-    '!yarn.lock',
+    '!pnpm-lock.yaml',
     '!node_modules/.cache',
     '!node_modules/.prisma',
   ],

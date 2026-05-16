@@ -3,9 +3,9 @@ name: jetstream-mock-idp
 # Local mock identity providers for testing SAML + OIDC SSO flows without
 # touching a real IdP. Intended for dev + Playwright — do not expose publicly.
 #
-# Start:  yarn mock-idp:up
-# Stop:   yarn mock-idp:down
-# Logs:   yarn mock-idp:logs
+# Start:  pnpm mock-idp:up
+# Stop:   pnpm mock-idp:down
+# Logs:   pnpm mock-idp:logs
 #
 # ── SAML (ory/mocksaml) ─────────────────────────────────────────────────────
 #   IdP metadata   http://localhost:4000/api/saml/metadata

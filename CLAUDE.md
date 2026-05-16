@@ -65,7 +65,7 @@ If you are asked to create a migration file, always use the prisma cli and never
 After updating the DB schema, generate types.
 
 ```bash
-yarn db:generate # Regenerate Prisma client after schema changes
+pnpm db:generate # Regenerate Prisma client after schema changes
 ```
 
 <!-- nx configuration start-->

@@ -12,7 +12,8 @@
 !/scripts
 
 # Include specific files
-!/yarn.lock
+!/pnpm-lock.yaml
+!/pnpm-workspace.yaml
 !/.eslintrc.json
 !/.gitignore
 !/babel.config.json
@@ -33,4 +34,3 @@
 **/*.log
 **/.DS_Store
 **/Thumbs.db
-

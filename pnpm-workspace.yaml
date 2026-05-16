@@ -1,0 +1,35 @@
+packages:
+  - apps/docs
+  - apps-sfdx
+  - tools/*
+
+engineStrict: true
+
+# Allow scripts from these specific libraries
+allowBuilds:
+  "@parcel/watcher": true
+  "@prisma/engines": true
+  "@sentry/cli": false
+  "@swc/core": true
+  core-js: false
+  electron: true
+  electron-winstaller: true
+  esbuild: true
+  less: false
+  # Auto-injected by apps/docs `devEngines.runtime.onFail: download`. CI and
+  # local dev provide Node directly (setup-node / version manager), so skip
+  # the postinstall download instead of duplicating node binaries.
+  node: false
+  nx: true
+  prisma: true
+  sharp: true
+  spawn-sync: false
+  unrs-resolver: true
+
+overrides:
+  "@babel/traverse": ">=7.23.2 <8.0.0"
+  axios: "^1.16.1"
+  "connect-pg-simple>@types/express-session": "^1.18.2"
+  dompurify: "^3.3.2"
+  handlebars: "4.7.9"
+  "next-images>loader-utils": "2.0.4"
