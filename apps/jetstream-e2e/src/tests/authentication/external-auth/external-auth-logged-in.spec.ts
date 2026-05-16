@@ -304,6 +304,87 @@ test.describe('Desktop / Web-Extension Token Rotation', () => {
     expect(verifyAgain.status()).toBe(200);
   });
 
+  test('Concurrent rotation race - successful racers converge on the same valid token', async ({
+    page,
+    teamCreationUtils1User,
+    apiRequestUtils,
+  }) => {
+    const deviceId = uuid();
+    const concurrency = 20;
+
+    // 1. Create session and get the token all racers will rotate from
+    const sessionResponse = await apiRequestUtils.request.post(`/web-extension/auth/session`, {
+      headers: { [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId },
+    });
+    expect(sessionResponse.status()).toBe(200);
+    const { accessToken: originalToken } = await sessionResponse.json().then(({ data }) => data);
+
+    // 2. Fire N concurrent verify requests using the same starting token. With the race-loss
+    //    fix, every racer whose auth middleware lookup ran before the winning rotation should
+    //    receive the same valid token (the winner's). Racers whose middleware lookup completes
+    //    after the rotation will 401 because the cache is bypassed for rotation requests and
+    //    the old token is no longer in the DB — that's expected and not under test here. The
+    //    property under test is convergence: every successful response returns the same token.
+    const responses = await Promise.all(
+      Array.from({ length: concurrency }, () =>
+        apiRequestUtils.request.post(`/web-extension/auth/verify`, {
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${originalToken}`,
+            [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
+            [HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION]: '1',
+          },
+        }),
+      ),
+    );
+
+    const successResponses = responses.filter((response) => response.status() === 200);
+    expect(successResponses.length).toBeGreaterThan(0);
+
+    // Any non-success must be a 401. The only legitimate failure mode here is a racer whose
+    // middleware lookup ran after the winning rotation (LRU is bypassed for rotation, so the
+    // old token is no longer in the DB). 5xx/429 responses would indicate a real regression.
+    const failureResponses = responses.filter((response) => response.status() !== 200);
+    for (const failure of failureResponses) {
+      expect(failure.status()).toBe(401);
+    }
+
+    const bodies = await Promise.all(successResponses.map((response) => response.json().then(({ data }) => data)));
+    expect(bodies.every((body) => body.success === true)).toBe(true);
+
+    const returnedTokens = bodies.map((body) => body.accessToken).filter((token): token is string => typeof token === 'string');
+    expect(returnedTokens.length).toBe(successResponses.length);
+
+    const distinctTokens = new Set(returnedTokens);
+    expect(distinctTokens.size).toBe(1);
+
+    const winningToken = [...distinctTokens][0];
+    expect(winningToken).not.toBe(originalToken);
+
+    // 3. The single converged token works for follow-up verify
+    const followUpVerify = await apiRequestUtils.request.post(`/web-extension/auth/verify`, {
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${winningToken}`,
+        [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
+      },
+    });
+    expect(followUpVerify.status()).toBe(200);
+
+    // 4. The original token is no longer valid
+    const verifyWithOriginal = await apiRequestUtils.request.post(`/web-extension/auth/verify`, {
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${originalToken}`,
+        [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
+      },
+    });
+    expect(verifyWithOriginal.status()).toBe(401);
+  });
+
   test('Logout invalidates rotated token', async ({ page, teamCreationUtils1User, apiRequestUtils }) => {
     const deviceId = uuid();
 

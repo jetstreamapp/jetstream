@@ -17,11 +17,15 @@ export const useExtensionSettings = () => {
   const enabled = options.enabled;
   const recordSyncEnabled = options.recordSyncEnabled;
 
+  // Verify once on mount. Do NOT add authTokens to the dep array — re-running on
+  // authTokens changes causes a verify→rotate→storage-write→re-run loop after the
+  // rotated token is written to storage.
   useEffect(() => {
-    sendMessage({ message: 'VERIFY_AUTH' }).catch((err) => {
+    sendMessage({ message: 'VERIFY_AUTH' }).catch(() => {
       setAuthError('There was a problem verifying your authentication. Please log in again.');
     });
-  }, [authTokens]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const setEnabled = async (value: boolean) => {
     await browser.storage.local.set({ options: { enabled: value, recordSyncEnabled } });

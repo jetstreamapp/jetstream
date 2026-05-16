@@ -58,6 +58,9 @@ routes.use(
 routes.use(externalAuthService.addDeviceIdToLocals);
 
 const authMiddleware = externalAuthService.getExternalAuthMiddleware(externalAuthService.AUDIENCE_WEB_EXT);
+const authMiddlewareWithRotation = externalAuthService.getExternalAuthMiddleware(externalAuthService.AUDIENCE_WEB_EXT, {
+  supportsTokenRotation: true,
+});
 
 /**
  * Authentication routes
@@ -83,10 +86,15 @@ routes.post(
   '/verify',
   STRICT_AuthRateLimit,
   deprecatedRouteMiddleware,
-  authMiddleware,
+  authMiddlewareWithRotation,
   webExtensionController.routeDefinition.verifyToken.controllerFn(),
 );
-routes.post('/auth/verify', STRICT_AuthRateLimit, authMiddleware, webExtensionController.routeDefinition.verifyToken.controllerFn());
+routes.post(
+  '/auth/verify',
+  STRICT_AuthRateLimit,
+  authMiddlewareWithRotation,
+  webExtensionController.routeDefinition.verifyToken.controllerFn(),
+);
 
 /**
  * @deprecated - use /auth/logout instead

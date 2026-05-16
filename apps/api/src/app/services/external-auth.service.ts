@@ -10,7 +10,7 @@ import * as express from 'express';
 import jwt from 'fast-jwt';
 import { LRUCache } from 'lru-cache';
 import * as webExtDb from '../db/web-extension.db';
-import { hashToken } from '../services/jwt-token-encryption.service';
+import { decryptJwtTokenOrPlaintext, hashToken } from '../services/jwt-token-encryption.service';
 import { AuthenticationError } from '../utils/error-handler';
 
 const cache = new LRUCache<string, JwtDecodedPayload>({ max: 500 });
@@ -77,9 +77,28 @@ export function invalidateCacheEntry(accessToken: string, deviceId: string): voi
  * sends the X-Supports-Token-Rotation header.
  *
  * Uses a conditional update (checking the old tokenHash) to prevent a race where two
- * concurrent requests both rotate the same token — the second attempt returns undefined
- * instead of silently overwriting the first rotation's token.
+ * concurrent requests both rotate the same token. When the conditional update misses
+ * (another request already rotated), the current token is fetched from the DB and
+ * returned so every racer ends up with the same valid token — preventing stale-token
+ * write-backs from clients that share storage (e.g. browser storage.sync).
+ *
+ * The race-loss return relies on getUserAndDeviceIdForExternalAuth bypassing the LRU
+ * cache when the X-Supports-Token-Rotation header is present, which guarantees the
+ * caller's oldAccessToken was the current DB token at the start of this request. Without
+ * that guarantee a stale cached token from a different API instance could be exchanged
+ * for the current one. The bypass is gated by a per-route opt-in passed to
+ * getExternalAuthMiddleware so only verify routes honor the header.
+ *
+ * On a race-loss lookup, the current DB row's source is also validated against the
+ * expected source for this audience. If a concurrent flow replaced the row with a
+ * different-source token (e.g. desktop vs browser-extension sharing a deviceId), the
+ * race-loser is treated as race-loss-none rather than handed a wrong-audience token.
  */
+export type RotateTokenResult =
+  | { token: string; outcome: 'rotated' }
+  | { token: string; outcome: 'race-loss-current' }
+  | { token: undefined; outcome: 'race-loss-none' };
+
 export async function rotateToken({
   userProfile,
   audience,
@@ -98,7 +117,7 @@ export async function rotateToken({
   ipAddress: string;
   userAgent: string;
   durationMs?: number;
-}): Promise<string | undefined> {
+}): Promise<RotateTokenResult> {
   const newAccessToken = await issueAccessToken(userProfile, audience, durationMs ?? TOKEN_EXPIRATION_SHORT);
   const oldTokenHash = hashToken(oldAccessToken);
   const wasReplaced = await webExtDb.replaceTokenIfCurrent(userProfile.id, oldTokenHash, {
@@ -114,13 +133,29 @@ export async function rotateToken({
   // the old token hash is no longer current in the DB and should not be served from cache.
   invalidateCacheEntry(oldAccessToken, deviceId);
   if (!wasReplaced) {
-    // Another concurrent request already rotated this token — skip to avoid invalidating the winner's token.
-    // Note: if the rotation response is lost (network failure), the client will hold a stale token and must re-login.
-    // This is an accepted trade-off to avoid the complexity of dual-token grace periods.
-    logger.warn({ userId: userProfile.id, deviceId, audience }, 'rotateToken: race lost — token already rotated by another request');
-    return undefined;
+    // Another concurrent request already rotated this token. Return the current DB token
+    // so the loser ends up with the winner's token rather than holding a now-invalid one.
+    // The caller already authorized as (userId, deviceId), so this does not widen access.
+    const currentTokenRecord = await webExtDb.findByUserIdAndDeviceId({
+      userId: userProfile.id,
+      deviceId,
+      type: webExtDb.TOKEN_TYPE_AUTH,
+    });
+    if (currentTokenRecord && currentTokenRecord.source === source) {
+      logger.warn({ userId: userProfile.id, deviceId, audience }, 'rotateToken: race lost — returning current DB token to caller');
+      return { token: decryptJwtTokenOrPlaintext(currentTokenRecord.token), outcome: 'race-loss-current' };
+    }
+    if (currentTokenRecord) {
+      logger.warn(
+        { userId: userProfile.id, deviceId, audience, expectedSource: source, foundSource: currentTokenRecord.source },
+        'rotateToken: race lost and current DB token has mismatched source — treating as race-loss-none',
+      );
+    } else {
+      logger.warn({ userId: userProfile.id, deviceId, audience }, 'rotateToken: race lost and no current token found');
+    }
+    return { token: undefined, outcome: 'race-loss-none' };
   }
-  return newAccessToken;
+  return { token: newAccessToken, outcome: 'rotated' };
 }
 
 export function decodeToken(token: string): JwtDecodedPayload {
@@ -153,24 +188,55 @@ export async function verifyToken(
   return (await jwtVerifier(token)) as JwtDecodedPayload;
 }
 
+export interface ExternalAuthMiddlewareOptions {
+  /**
+   * When true, the middleware honors the X-Supports-Token-Rotation client header and
+   * bypasses the LRU cache for that request. Should only be set for routes that actually
+   * perform token rotation (i.e. /auth/verify) so other routes cannot disable the cache
+   * by setting the header.
+   */
+  supportsTokenRotation?: boolean;
+}
+
 export async function getUserAndDeviceIdForExternalAuth(
   audience: Audience,
   req: express.Request<unknown, unknown, unknown, unknown>,
   res: express.Response,
+  options?: ExternalAuthMiddlewareOptions,
 ) {
   const deviceId = getDeviceId(req, res);
   try {
     // Some prior endpoints may have accessToken in the body instead of Authorization header
     const accessToken = req.get('Authorization')?.split(' ')[1] || (req.body as Maybe<{ accessToken?: string }>)?.accessToken;
+    // Rotation-supporting clients send this header on /auth/verify. Bypass the LRU for those
+    // requests so the token is always validated against the current DB record — required so
+    // rotateToken's race-loss return cannot exchange a stale cached token for the current one
+    // when cache invalidations have not propagated across API instances. Gated by the
+    // per-route supportsTokenRotation option so non-verify routes cannot opt into the bypass.
+    const skipCache = options?.supportsTokenRotation === true && req.get(HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION) === '1';
 
     let user: UserProfileSession | null = null;
     if (accessToken && deviceId) {
       const cacheKey = `${accessToken}-${deviceId}`;
-      const userFromCache = cache.get(cacheKey);
+      const userFromCache = skipCache ? undefined : cache.get(cacheKey);
       if (!userFromCache || userFromCache.exp < Date.now() / 1000) {
-        const decodedJwtToken = await verifyToken({ token: accessToken, deviceId }, audience);
-        user = convertUserProfileToSession_External(decodedJwtToken.userProfile);
-        cache.set(cacheKey, decodedJwtToken);
+        try {
+          const decodedJwtToken = await verifyToken({ token: accessToken, deviceId }, audience);
+          user = convertUserProfileToSession_External(decodedJwtToken.userProfile);
+          // Don't populate the cache for rotation requests — rotateToken will invalidate it
+          // immediately after this call, so the write+delete is wasted work and churns the LRU.
+          if (!skipCache) {
+            cache.set(cacheKey, decodedJwtToken);
+          }
+        } catch (ex) {
+          // If a skipCache request fails server-side validation, evict any stale cache entry
+          // for this token so a subsequent non-rotation request on this instance cannot
+          // authorize against the now-invalid token via the LRU.
+          if (skipCache) {
+            cache.delete(cacheKey);
+          }
+          throw ex;
+        }
       } else {
         user = convertUserProfileToSession_External(userFromCache.userProfile);
       }
@@ -201,10 +267,10 @@ export function addDeviceIdToLocals(req: express.Request, res: express.Response,
   next();
 }
 
-export function getExternalAuthMiddleware(audience: Audience) {
+export function getExternalAuthMiddleware(audience: Audience, options?: ExternalAuthMiddlewareOptions) {
   return async (req: express.Request, res: express.Response, next: express.NextFunction) => {
     try {
-      const { deviceId, user } = await getUserAndDeviceIdForExternalAuth(audience, req, res);
+      const { deviceId, user } = await getUserAndDeviceIdForExternalAuth(audience, req, res, options);
       if (!user) {
         throw new AuthenticationError('Unauthorized', { skipLogout: true });
       }

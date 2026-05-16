@@ -398,10 +398,25 @@ async function handleTokenExchange(
   return { success: true };
 }
 
+// Tracked alongside inFlightVerifyAuth so handleVerifyAuth can detect when a logout has
+// been initiated and avoid resurrecting authTokens. Without this flag, a verify whose
+// server call resolves while a logout's storage.sync.remove() is in flight can write the
+// old token back after the remove completes, undoing the logout.
+let inFlightLogout: Promise<Logout['response']> | null = null;
+
 /**
- * Verifies that user is logged in to Jetstream and has access to use the browser extension
+ * Logs the user out on the server and clears local auth storage. Coalesces concurrent
+ * callers via inFlightLogout so a parallel handleVerifyAuth can detect logout-in-flight
+ * and bail out of writing the token back.
  */
-async function handleLogout(sender: browser.Runtime.MessageSender): Promise<Logout['response']> {
+async function handleLogout(_sender: browser.Runtime.MessageSender): Promise<Logout['response']> {
+  inFlightLogout ??= doHandleLogout().finally(() => {
+    inFlightLogout = null;
+  });
+  return inFlightLogout;
+}
+
+async function doHandleLogout(): Promise<Logout['response']> {
   try {
     await initStorageSyncCache;
     const { authTokens, extIdentifier } = storageSyncCache;
@@ -440,7 +455,11 @@ async function handleLogout(sender: browser.Runtime.MessageSender): Promise<Logo
     return { hasTokens: false, loggedIn: false };
   } catch (ex) {
     logger.info('Fatal Error logging out', ex);
-    browser.storage.sync.remove(storageTypes.authTokens.key).catch((err) => {
+    // Await the remove so inFlightLogout stays set until storage is actually cleared.
+    // Without the await, doHandleLogout settles, the .finally clears inFlightLogout, and a
+    // concurrent verify can pass the in-flight check and write the token back before the
+    // remove lands — resurrecting the session.
+    await browser.storage.sync.remove(storageTypes.authTokens.key).catch((err) => {
       logger.error('Error removing tokens', err);
     });
     storageSyncCache.authTokens = undefined;
@@ -507,21 +526,71 @@ async function handleVerifyAuth(sender: browser.Runtime.MessageSender): Promise<
       storageSyncCache.authTokens = undefined;
       return { hasTokens: true, loggedIn: false, error: results.error };
     }
-    // Use the rotated token if the server provided one, otherwise keep the current token
-    const activeAccessToken = results.accessToken || authTokens.accessToken;
-    // If the token was rotated, decode the new expiry from the JWT payload
-    let expiresAt = authTokens.expiresAt;
+    // Re-read storage.sync immediately before writing so we don't clobber a concurrent
+    // write (e.g. a newer rotated token written by another tab/context or by Chrome Sync
+    // from another install). Without this guard, the "no rotated token returned" branch
+    // can overwrite a fresh winning token with the stale token we started with.
+    const latestStorage = (await browser.storage.sync.get(storageTypes.authTokens.key)) as Partial<AuthTokensStorage>;
+    const latestAuthTokens = latestStorage.authTokens;
+
+    // If storage was cleared between the snapshot at the top of this function and now
+    // (typically a concurrent LOGOUT), treat the session as gone. Do NOT fall back to
+    // the in-memory snapshot — that would resurrect a deleted session and propagate it
+    // via Chrome Sync.
+    if (!latestAuthTokens) {
+      storageSyncCache.authTokens = undefined;
+      return { hasTokens: false, loggedIn: false };
+    }
+
+    // If a logout is already in flight here, its storage.sync.remove() may resolve after this
+    // re-read but before our storage.sync.set() lands — which would resurrect the session.
+    // Bail out of the write and surface the logout's intent.
+    //
+    // Residual race: a logout that begins AFTER this check but whose remove() resolves before
+    // our set() can still resurrect the session momentarily. We accept this narrow window, but
+    // note that recovery is NOT immediate — the set() below bumps lastChecked, and VERIFY_AUTH
+    // short-circuits for AUTH_CHECK_INTERVAL_MIN (~3 hours) before contacting the server again.
+    // So a resurrected session can appear logged in until that interval elapses (or until the
+    // user triggers a manual logout / re-login). Closing the window fully would require a
+    // verify/logout mutex.
+    if (inFlightLogout) {
+      storageSyncCache.authTokens = undefined;
+      return { hasTokens: false, loggedIn: false };
+    }
+
+    // If storage now holds a different token than the one we just verified, a TOKENS or
+    // TOKEN_EXCHANGE message for a different login replaced authTokens while this verify
+    // was in flight. The rotated accessToken the server returned was issued for the OLD
+    // login and would not match the new userProfile, so do not write — leave the newer
+    // login intact and let its next verify cycle handle rotation.
+    if (latestAuthTokens.accessToken !== authTokens.accessToken) {
+      // Update in-memory cache synchronously to the newer login so a subsequent
+      // VERIFY_AUTH does not read the stale token from storageSyncCache before
+      // the storage.onChanged listener has fired.
+      storageSyncCache.authTokens = latestAuthTokens;
+      return { hasTokens: true, loggedIn: true };
+    }
+
+    let nextAccessToken = latestAuthTokens.accessToken;
+    let nextExpiresAt = latestAuthTokens.expiresAt;
     if (results.accessToken) {
+      nextAccessToken = results.accessToken;
       try {
         const payload = jwtDecode<{ exp: number }>(results.accessToken);
         if (isNumber(payload.exp) && Number.isFinite(payload.exp)) {
-          expiresAt = payload.exp * 1000;
+          nextExpiresAt = payload.exp * 1000;
         }
       } catch {
-        // If decode fails, keep the old expiresAt
+        // If decode fails, keep the previous expiresAt
       }
     }
-    const syncState = { ...authTokens, accessToken: activeAccessToken, expiresAt, loggedIn: true, lastChecked: Date.now() };
+    const syncState = {
+      ...latestAuthTokens,
+      accessToken: nextAccessToken,
+      expiresAt: nextExpiresAt,
+      loggedIn: true,
+      lastChecked: Date.now(),
+    };
     await browser.storage.sync.set({ [storageTypes.authTokens.key]: syncState });
     storageSyncCache.authTokens = syncState;
     return { hasTokens: true, loggedIn: true };
