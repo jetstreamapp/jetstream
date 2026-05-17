@@ -101,7 +101,13 @@
     },
     "@nx/eslint:lint": {
       "cache": true,
-      "inputs": ["default", "{workspaceRoot}/.eslintrc.json", "{workspaceRoot}/tools/eslint-rules/**/*", "{workspaceRoot}/eslint.config.js"]
+      "inputs": [
+        "default",
+        "^default",
+        "{workspaceRoot}/.eslintrc.json",
+        "{workspaceRoot}/tools/eslint-rules/**/*",
+        "{workspaceRoot}/eslint.config.js"
+      ]
     },
     "@nx/vitest:test": {
       "cache": true,

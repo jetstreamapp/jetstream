@@ -89,3 +89,5 @@ certificates
 .sfdx/
 **/.sf/
 **/.sfdx/
+
+.nx/self-healing
