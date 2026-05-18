@@ -4,22 +4,19 @@ import type { OidcConfiguration } from '@jetstream/prisma';
 import { assertDomainResolvesToPublicIp } from '@jetstream/shared/node-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { LRUCache } from 'lru-cache';
-import { AuthorizationServer, allowInsecureRequests } from 'oauth4webapi';
+import * as oauth from 'oauth4webapi';
 import { decryptSecret } from './sso-crypto.util';
 import { AttributeMapping, DiscoveredOidcConfig, SsoUserInfo } from './sso.types';
 
-const oauthPromise = import('oauth4webapi');
-
-const discoveryCache = new LRUCache<string, AuthorizationServer>({ max: 100, ttl: 1000 * 60 * 60 });
+const discoveryCache = new LRUCache<string, oauth.AuthorizationServer>({ max: 100, ttl: 1000 * 60 * 60 });
 
 export class OidcService {
   /**
    * Discover OIDC configuration from issuer
    * Uses oauth4webapi (same as existing OAuth implementation)
    */
-  async discoverOidcConfiguration(issuer: string): Promise<import('oauth4webapi').AuthorizationServer> {
+  async discoverOidcConfiguration(issuer: string): Promise<oauth.AuthorizationServer> {
     try {
-      const oauth = await oauthPromise;
       const issuerUrl = new URL(issuer);
 
       // Check cache first
@@ -37,7 +34,7 @@ export class OidcService {
 
       // Perform discovery (allow HTTP for non-prod/local testing)
       const response = await oauth.discoveryRequest(issuerUrl, {
-        [allowInsecureRequests]: !ENV.USE_SECURE_COOKIES,
+        [oauth.allowInsecureRequests]: !ENV.USE_SECURE_COOKIES,
       });
       const authServer = await oauth.processDiscoveryResponse(issuerUrl, response);
 
@@ -59,9 +56,8 @@ export class OidcService {
     config: OidcConfiguration,
     teamId: string,
   ): Promise<{ url: string; codeVerifier: string; state: string; nonce: string }> {
-    const oauth = await oauthPromise;
     const authServer = await this.discoverOidcConfiguration(config.issuer);
-    const client: import('oauth4webapi').Client = {
+    const client: oauth.Client = {
       client_id: config.clientId,
       token_endpoint_auth_method: 'client_secret_post',
     };
@@ -101,10 +97,9 @@ export class OidcService {
     expectedState: string,
     codeVerifier: string,
     expectedNonce?: string,
-  ): Promise<{ claims: import('oauth4webapi').IDToken; idTokenResult: import('oauth4webapi').TokenEndpointResponse }> {
-    const oauth = await oauthPromise;
+  ): Promise<{ claims: oauth.IDToken; idTokenResult: oauth.TokenEndpointResponse }> {
     const authServer = await this.discoverOidcConfiguration(config.issuer);
-    const client: import('oauth4webapi').Client = {
+    const client: oauth.Client = {
       client_id: config.clientId,
       token_endpoint_auth_method: 'client_secret_post',
     };
@@ -124,7 +119,7 @@ export class OidcService {
         params,
         `${ENV.JETSTREAM_SERVER_URL}/api/auth/sso/oidc/${teamId}/callback`,
         codeVerifier,
-        { [allowInsecureRequests]: !ENV.USE_SECURE_COOKIES },
+        { [oauth.allowInsecureRequests]: !ENV.USE_SECURE_COOKIES },
       );
 
       // Process the token response (for OpenID Connect)
@@ -155,13 +150,12 @@ export class OidcService {
    */
   async extractUserInfo(
     config: OidcConfiguration,
-    claims: import('oauth4webapi').IDToken,
+    claims: oauth.IDToken,
     accessToken: string | undefined,
     attributeMapping: AttributeMapping,
   ): Promise<SsoUserInfo> {
-    const oauth = await oauthPromise;
     const authServer = await this.discoverOidcConfiguration(config.issuer);
-    const client: import('oauth4webapi').Client = {
+    const client: oauth.Client = {
       client_id: config.clientId,
       token_endpoint_auth_method: 'client_secret_post',
     };
@@ -173,7 +167,7 @@ export class OidcService {
       // Optionally fetch from userinfo endpoint for additional claims
       if (authServer.userinfo_endpoint && accessToken) {
         const response = await oauth.userInfoRequest(authServer, client, accessToken, {
-          [allowInsecureRequests]: !ENV.USE_SECURE_COOKIES,
+          [oauth.allowInsecureRequests]: !ENV.USE_SECURE_COOKIES,
         });
         const userinfoResponse = await oauth.processUserInfoResponse(authServer, client, claims.sub, response);
         allClaims = { ...allClaims, ...userinfoResponse };

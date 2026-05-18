@@ -65,7 +65,7 @@ This project was generated using [Nx](https://nx.dev) - This repository is consi
 
 **Pre-req**
 
-1. Make sure you have node 22 installed.
+1. Make sure you have node 24 installed.
 2. If you are using docker, make sure you have Docker installed.
 3. If you want to run the dev server, make sure you have pnpm installed. Corepack is recommended.
 

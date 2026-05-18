@@ -1,8 +1,14 @@
-FROM mcr.microsoft.com/playwright:v1.36.0
+FROM mcr.microsoft.com/playwright:v1.60.0-noble
 
 WORKDIR /usr/src/app
 
 ARG PNPM_VERSION=11.1.2
+ARG NODE_VERSION=24.15.0
+
+RUN apt-get update && apt-get install -y curl ca-certificates \
+ && curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
+ && apt-get install -y nodejs=${NODE_VERSION}-1nodesource1
+
 RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
 
 # Copy application
