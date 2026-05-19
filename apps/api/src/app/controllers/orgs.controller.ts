@@ -1,3 +1,5 @@
+import { AuditLogAction, AuditLogResource, createTeamAuditLog } from '@jetstream/audit-logs';
+import { getApiAddressFromReq } from '@jetstream/auth/server';
 import { ApiRequestError } from '@jetstream/salesforce-api';
 import { ERROR_MESSAGES } from '@jetstream/shared/constants';
 import { getErrorMessage } from '@jetstream/shared/utils';
@@ -80,11 +82,33 @@ const updateOrg = createRoute(routeDefinition.updateOrg.validators, async ({ bod
   }
 });
 
-const deleteOrg = createRoute(routeDefinition.deleteOrg.validators, async ({ params, user }, _, res, next) => {
+const deleteOrg = createRoute(routeDefinition.deleteOrg.validators, async ({ params, user }, req, res, next) => {
   try {
-    await salesforceOrgsDb.deleteSalesforceOrg(user.id, params.uniqueId);
+    const deletedOrg = await salesforceOrgsDb.deleteSalesforceOrg(user.id, params.uniqueId);
 
     sendJson(res, undefined, 204);
+
+    const teamId = user.teamMembership?.teamId;
+    if (teamId) {
+      createTeamAuditLog({
+        userId: user.id,
+        teamId,
+        action: AuditLogAction.ORG_DELETED,
+        resource: AuditLogResource.SALESFORCE_ORG,
+        resourceId: deletedOrg.uniqueId,
+        metadata: {
+          uniqueId: deletedOrg.uniqueId,
+          username: deletedOrg.username,
+          orgName: deletedOrg.orgName,
+          label: deletedOrg.label,
+          loginUrl: deletedOrg.loginUrl,
+          instanceUrl: deletedOrg.instanceUrl,
+          isSandbox: deletedOrg.orgIsSandbox,
+        },
+        ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
+        userAgent: req.get('user-agent'),
+      });
+    }
   } catch (ex) {
     next(new UserFacingError(ex));
   }

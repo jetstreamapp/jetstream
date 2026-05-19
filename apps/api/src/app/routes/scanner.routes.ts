@@ -118,7 +118,7 @@ routes.post('/init-session', async (req: express.Request, res: express.Response,
           enableLogging: false,
           logger,
         });
-        const salesforceOrg = await initConnectionFromOAuthResponse({
+        const { salesforceOrg } = await initConnectionFromOAuthResponse({
           jetstreamConn,
           userId: scannerUser.id,
         });

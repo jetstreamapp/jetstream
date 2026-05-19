@@ -4,6 +4,9 @@ import { NOOP } from '@jetstream/shared/utils';
 
 export enum AuditLogAction {
   // Org actions
+  ORG_ADDED = 'ORG_ADDED',
+  ORG_DELETED = 'ORG_DELETED',
+  ORG_TOKEN_REFRESHED = 'ORG_TOKEN_REFRESHED',
   ORG_REACTIVATED = 'ORG_REACTIVATED',
   ORG_EXPIRATION_WARNING = 'ORG_EXPIRATION_WARNING',
   ORG_EXPIRED = 'ORG_EXPIRED',

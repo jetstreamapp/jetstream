@@ -1,4 +1,5 @@
 import { createRateLimit, ENV, logger } from '@jetstream/api-config';
+import { AuditLogAction, AuditLogResource, createTeamAuditLog } from '@jetstream/audit-logs';
 import {
   AuthError,
   checkUserAgentSimilarity,
@@ -318,7 +319,10 @@ export async function getOrgFromHeaderOrQuery(
     return;
   }
 
-  return getOrgForRequest(user, uniqueId, res.log || req.log || logger, apiVersion, includeCallOptions, requestId);
+  return getOrgForRequest(user, uniqueId, res.log || req.log || logger, apiVersion, includeCallOptions, requestId, {
+    ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
+    userAgent: req.get('user-agent'),
+  });
 }
 
 export async function getOrgForRequest(
@@ -328,6 +332,7 @@ export async function getOrgForRequest(
   apiVersion?: string,
   includeCallOptions?: boolean,
   requestId?: string,
+  requestContext?: { ipAddress?: string; userAgent?: string },
 ) {
   const org = await salesforceOrgsDb.findByUniqueId_UNSAFE(user.id, uniqueId);
   if (!org || org.jetstreamUserId2 !== user.id) {
@@ -419,6 +424,26 @@ export async function getOrgForRequest(
         ? '[TOKEN REFRESH] Salesforce token rotated and persisted'
         : '[TOKEN REFRESH] Lock acquired but DB already had fresh tokens — cross-worker race avoided',
     );
+    const teamId = user.teamMembership?.teamId;
+    if (result.refreshed && teamId) {
+      createTeamAuditLog({
+        userId: user.id,
+        teamId,
+        action: AuditLogAction.ORG_TOKEN_REFRESHED,
+        resource: AuditLogResource.SALESFORCE_ORG,
+        resourceId: org.uniqueId,
+        metadata: {
+          uniqueId: org.uniqueId,
+          username: org.username,
+          orgName: org.orgName,
+          loginUrl: org.loginUrl,
+          instanceUrl: org.instanceUrl,
+          isSandbox: org.orgIsSandbox,
+        },
+        ipAddress: requestContext?.ipAddress,
+        userAgent: requestContext?.userAgent,
+      });
+    }
     return { accessToken: result.accessToken, refreshToken: result.refreshToken };
   };
 

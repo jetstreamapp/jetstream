@@ -1,4 +1,6 @@
 import { ENV, logger } from '@jetstream/api-config';
+import { AuditLogAction, AuditLogResource, createTeamAuditLog } from '@jetstream/audit-logs';
+import { getApiAddressFromReq } from '@jetstream/auth/server';
 import { ApiConnection, ApiRequestError, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import * as oauthService from '@jetstream/salesforce-oauth';
 import { ERROR_MESSAGES } from '@jetstream/shared/constants';
@@ -138,11 +140,32 @@ const salesforceOauthCallback = createRoute(
         enableLogging: ENV.LOG_LEVEL === 'trace',
       });
 
-      const salesforceOrg = await initConnectionFromOAuthResponse({
+      const { salesforceOrg, created } = await initConnectionFromOAuthResponse({
         jetstreamConn,
         userId: user.id,
         orgGroupId,
       });
+
+      const teamId = user.teamMembership?.teamId;
+      if (teamId) {
+        createTeamAuditLog({
+          userId: user.id,
+          teamId,
+          action: created ? AuditLogAction.ORG_ADDED : AuditLogAction.ORG_REACTIVATED,
+          resource: AuditLogResource.SALESFORCE_ORG,
+          resourceId: salesforceOrg.uniqueId,
+          metadata: {
+            uniqueId: salesforceOrg.uniqueId,
+            username: salesforceOrg.username,
+            orgName: salesforceOrg.orgName,
+            loginUrl: salesforceOrg.loginUrl,
+            instanceUrl: salesforceOrg.instanceUrl,
+            isSandbox: salesforceOrg.orgIsSandbox,
+          },
+          ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
+          userAgent: req.get('user-agent'),
+        });
+      }
 
       returnParams.data = JSON.stringify(salesforceOrg);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -242,6 +265,6 @@ export async function initConnectionFromOAuthResponse({
     }
   }
 
-  const salesforceOrg = await salesforceOrgsDb.createOrUpdateSalesforceOrg(userId, salesforceOrgUi);
-  return salesforceOrg;
+  const { org: salesforceOrg, created } = await salesforceOrgsDb.createOrUpdateSalesforceOrg(userId, salesforceOrgUi);
+  return { salesforceOrg, created };
 }

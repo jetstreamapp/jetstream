@@ -60,7 +60,7 @@ routes.post('/e2e-integration-org', async (_: express.Request, res: express.Resp
     logger,
   });
 
-  const salesforceOrg = await initConnectionFromOAuthResponse({
+  const { salesforceOrg } = await initConnectionFromOAuthResponse({
     jetstreamConn,
     userId: ENV.EXAMPLE_USER!.id,
   });
