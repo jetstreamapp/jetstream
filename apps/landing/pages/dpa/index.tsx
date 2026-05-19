@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import LastUpdated from '../../components/LastUpdated';
+import PrintButton from '../../components/PrintButton';
 import Layout from '../../components/layouts/Layout';
 import { ROUTES } from '../../utils/environment';
 
@@ -7,7 +8,10 @@ export default function Page() {
   const email = 'support@getjetstream.app';
   return (
     <div className="m-8">
-      <LastUpdated className="text-gray-500" day={18} month="March" year={2026} />
+      <div className="flex items-center justify-between gap-4">
+        <LastUpdated className="text-gray-500" day={18} month="March" year={2026} />
+        <PrintButton />
+      </div>
       <h1>Data Processing Agreement</h1>
 
       <p className="mb-2 pl-2">
