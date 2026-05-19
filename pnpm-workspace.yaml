@@ -1,9 +1,13 @@
 packages:
   - apps/docs
   - apps-sfdx
-  - tools/*
 
 engineStrict: true
+
+# Wait 3 days before upgrading packages
+minimumReleaseAge: 4320
+minimumReleaseAgeExclude:
+  - "@jetstreamapp/*"
 
 # Allow scripts from these specific libraries
 allowBuilds:
@@ -16,9 +20,6 @@ allowBuilds:
   electron-winstaller: true
   esbuild: true
   less: false
-  # Auto-injected by apps/docs `devEngines.runtime.onFail: download`. CI and
-  # local dev provide Node directly (setup-node / version manager), so skip
-  # the postinstall download instead of duplicating node binaries.
   node: false
   nx: true
   prisma: true

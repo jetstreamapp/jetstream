@@ -29,10 +29,10 @@ const argv = minimist(process.argv.slice(2), {
 
 if (argv.help) {
   console.log(`
-    Usage: build-electron-builder [options]
+    Usage: build-electron [options]
 
     To build new electron app:
-    pnpm build:desktop:builder or node scripts/build-electron-builder.mjs"
+    pnpm build:desktop or node scripts/build-electron.mjs
 
     Options:
       -h, --help       display help for command
@@ -121,21 +121,11 @@ function prepareTargetPackageJson() {
 
   targetPackageJson.engines = rootPackageJson.engines;
   targetPackageJson.devEngines = rootPackageJson.devEngines;
-  targetPackageJson.packageManager = rootPackageJson.packageManager;
 
   writeFileSync(TARGET_PACKAGE_JSON_PATH, JSON.stringify(targetPackageJson, null, 2) + '\n');
 
-  // Give TARGET_DIR its own workspace yaml so pnpm stops walking up at this
-  // directory: the install stays scoped to dist/desktop-build (no entry added
-  // to the root pnpm-lock.yaml) while still honoring the same explicit
-  // allowBuilds allowlist and dependency overrides the root project uses.
-  const targetWorkspace = { packages: [] };
-  if (rootWorkspace.allowBuilds && Object.keys(rootWorkspace.allowBuilds).length > 0) {
-    targetWorkspace.allowBuilds = { ...rootWorkspace.allowBuilds };
-  }
-  if (rootWorkspace.overrides && Object.keys(rootWorkspace.overrides).length > 0) {
-    targetWorkspace.overrides = { ...rootWorkspace.overrides };
-  }
+  // Inherit root pnpm-workspace.yaml but override packages to only include the current directory
+  const targetWorkspace = { ...rootWorkspace, packages: [] };
   writeFileSync(TARGET_PNPM_WORKSPACE_PATH, yaml.dump(targetWorkspace));
 }
 

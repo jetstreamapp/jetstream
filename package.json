@@ -10,12 +10,12 @@
   "license": "SEE LICENSE IN LICENSE.md",
   "engines": {
     "node": ">=24 <25",
-    "pnpm": "~11.1.2"
+    "pnpm": "~11.1.3"
   },
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
-      "version": "11.1.2",
+      "version": "11.1.3",
       "onFail": "download"
     }
   },
@@ -96,7 +96,6 @@
     "mock-idp:up": "pnpm mock-idp:keys && docker compose -f mock-idp/docker-compose.yml up -d",
     "mock-idp:down": "docker compose -f mock-idp/docker-compose.yml down",
     "mock-idp:logs": "docker compose -f mock-idp/docker-compose.yml logs -f",
-    "generate:data-table-css": "nx workspace-generator convert-sass-to-css ui --filename /src/lib/data-table/data-table-styles.scss",
     "generate:version": "zx ./scripts/generate-version.mjs",
     "db:generate": "prisma generate",
     "db:migrate": "pnpm prisma migrate deploy",

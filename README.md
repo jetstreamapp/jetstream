@@ -145,7 +145,7 @@ If you want to create your own:
 - [Install postgres](https://www.postgresql.org/download/)
   - ensure this is running with a database called `postgres` and a user named `postgres` on default port 5432
     - If your database is cloud hosted or named something different, then you can adjust the environment variable in `.env` after you initialize your application and this file is created.
-- [Install node 22](https://nodejs.org/en/download/)
+- [Install node 24](https://nodejs.org/en/download/)
 - Enable Corepack
   - Run `corepack enable`
 - Install dependencies
