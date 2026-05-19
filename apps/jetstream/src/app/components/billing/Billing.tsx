@@ -276,8 +276,13 @@ export const Billing = () => {
                         priceSubtext={
                           isAnnual ? PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].priceSubtext : PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].priceSubtext
                         }
-                        description={PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].description}
+                        description={
+                          isAnnual ? PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].description : PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].description
+                        }
                         features={PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].features}
+                        pricingTiers={
+                          isAnnual ? PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].pricingTiers : PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].pricingTiers
+                        }
                         checked={
                           selectedPlan === (isAnnual ? PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].key : PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].key)
                         }

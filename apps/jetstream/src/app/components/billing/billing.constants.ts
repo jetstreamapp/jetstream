@@ -27,17 +27,18 @@ export const professionalFeatures = [
 export const teamFeatures = [
   'Everything in Professional',
   'Manage team members',
-  'Up to 20 team members',
+  'Unlimited team members',
   'SSO via OIDC and SAML',
   'View & Manage team member session activity',
   'Role-based access control',
 ];
 
-export const teamFeaturesComingSoon = ['SOC 2 (in progress)', 'Share orgs between team members', 'Audit logs'];
+export const teamFeaturesComingSoon = ['Share orgs between team members'];
 
 export const enterpriseFeatures = [
   'Everything in Team',
-  'Unlimited team members',
+  'SOC 2 Type II compliance',
+  'Audit logs',
   'Single Sign-On (SSO)',
   'Custom agreements and terms',
   'Dedicated account manager',
@@ -55,24 +56,32 @@ export const PLAN_DESCRIPTIONS = {
   },
   [PRO_ANNUAL_KEY]: {
     key: 'PRO_ANNUAL',
-    price: '$250',
-    priceSubtext: '/year',
+    price: '$21',
+    priceSubtext: '/month, billed annually',
     description: 'Save 2 months with annual billing',
     features: professionalFeatures,
   },
   [TEAM_MONTHLY_KEY]: {
     key: 'TEAM_MONTHLY',
-    price: '$125',
-    priceSubtext: '/month (includes 5 users)',
-    description: '$25/user/month with 5-user minimum',
+    price: '$30',
+    priceSubtext: '/user/month',
+    description: 'Per-user pricing — save with 6+ seats',
+    pricingTiers: [
+      { seats: '1–5', perUser: '$30/user/month' },
+      { seats: '6+', perUser: '$25/user/month' },
+    ],
     features: teamFeatures,
     comingSoonFeatures: teamFeaturesComingSoon,
   },
   [TEAM_ANNUAL_KEY]: {
     key: 'TEAM_ANNUAL',
-    price: '$1,100',
-    priceSubtext: '/year (includes 5 users)',
-    description: '$220/user/year with 5-user minimum',
+    price: '$25',
+    priceSubtext: '/user/month, billed annually',
+    description: 'Per-user pricing — save with 6+ seats',
+    pricingTiers: [
+      { seats: '1–5', perUser: '$25/user/month' },
+      { seats: '6+', perUser: '$21/user/month' },
+    ],
     features: teamFeatures,
     comingSoonFeatures: teamFeaturesComingSoon,
   },

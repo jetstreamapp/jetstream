@@ -1,5 +1,5 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { JetstreamPricesByLookupKey, StripeUserFacingCustomer } from '@jetstream/types';
+import { JetstreamPricesByLookupKey, StripeUserFacingCustomer, StripeUserFacingSubscriptionItem } from '@jetstream/types';
 import { useAmplitude } from '@jetstream/ui-core';
 import { useState } from 'react';
 import { EnhancedBillingCard } from './EnhancedBillingCard';
@@ -18,19 +18,48 @@ interface BillingExistingSubscriptionsProps {
   hasManualBilling: boolean;
 }
 
+const formatUsd = (amountInCents: number) => `$${(amountInCents / 100).toFixed(2).replace(/\.00$/, '')}`;
+
+const intervalLabel = (interval: StripeUserFacingSubscriptionItem['recurringInterval']) => {
+  switch (interval) {
+    case 'MONTH':
+      return 'month';
+    case 'YEAR':
+      return 'year';
+    case 'WEEK':
+      return 'week';
+    case 'DAY':
+      return 'day';
+    default:
+      return 'period';
+  }
+};
+
 export const BillingExistingSubscriptions = ({
   customerWithSubscriptions,
   pricesByLookupKey,
   hasManualBilling,
 }: BillingExistingSubscriptionsProps) => {
   const { trackEvent } = useAmplitude();
+
+  const activeSubscription = customerWithSubscriptions.subscriptions.find(({ status }) => ACTIVE_SUBSCRIPTION_STATUSES.has(status));
+  const activeItem = activeSubscription?.items[0];
+
+  const teamProductId = pricesByLookupKey?.TEAM_MONTHLY?.product?.id;
+  const proProductId = pricesByLookupKey?.PRO_MONTHLY?.product?.id;
+
+  const isTeamSubscription = !!activeItem && (activeItem.lookupKey?.startsWith('TEAM_') || activeItem.product === teamProductId);
+  const isProSubscription = !!activeItem && (activeItem.lookupKey?.startsWith('PRO_') || activeItem.product === proProductId);
+
+  const matchesCurrentPrice =
+    !!activeItem && !!pricesByLookupKey && Object.values(pricesByLookupKey).some((price) => price.id === activeItem.priceId);
+  const isLegacyPlan = !!activeItem && !hasManualBilling && !matchesCurrentPrice && (isTeamSubscription || isProSubscription);
+
   const [selectedPlan, setSelectedPlan] = useState<string | null>(() => {
-    const priceId =
-      customerWithSubscriptions.subscriptions.find(({ status }) => ACTIVE_SUBSCRIPTION_STATUSES.has(status))?.items[0].priceId || null;
-    if (priceId) {
-      return Object.values(pricesByLookupKey || {}).find((price) => price.id === priceId)?.lookupKey || null;
+    if (!activeItem) {
+      return null;
     }
-    return null;
+    return Object.values(pricesByLookupKey || {}).find((price) => price.id === activeItem.priceId)?.lookupKey || null;
   });
 
   const handleEnterpriseContact = () => {
@@ -38,8 +67,69 @@ export const BillingExistingSubscriptions = ({
     window.open('mailto:support@getjetstream.app?subject=Enterprise Plan Inquiry', '_blank');
   };
 
+  const renderCurrentPlanSummary = () => {
+    if (!activeItem) {
+      return null;
+    }
+
+    let planLabel = 'Plan';
+    if (isTeamSubscription) {
+      planLabel = 'Team';
+    } else if (isProSubscription) {
+      planLabel = 'Professional';
+    }
+
+    let badge: string | null = null;
+    if (hasManualBilling) {
+      badge = 'Custom plan';
+    } else if (isLegacyPlan) {
+      badge = 'Legacy plan';
+    }
+
+    const perSeat = formatUsd(activeItem.unitAmount);
+    const total = formatUsd(activeItem.unitAmount * activeItem.quantity);
+    const interval = intervalLabel(activeItem.recurringInterval);
+
+    return (
+      <div className="slds-box slds-box_x-small slds-m-bottom_medium slds-text-align_center">
+        <div className="slds-text-heading_small">
+          Your current plan: <strong>{planLabel}</strong>
+          {badge && (
+            <span
+              className="slds-badge slds-m-left_x-small"
+              style={{ backgroundColor: hasManualBilling ? '#0176d3' : '#706e6b', color: 'white' }}
+            >
+              {badge}
+            </span>
+          )}
+        </div>
+        {isTeamSubscription ? (
+          <p className="slds-text-body_small slds-m-top_x-small">
+            {activeItem.quantity} {activeItem.quantity === 1 ? 'seat' : 'seats'} × {perSeat}/seat/{interval} ={' '}
+            <strong>
+              {total}/{interval}
+            </strong>
+          </p>
+        ) : (
+          <p className="slds-text-body_small slds-m-top_x-small">
+            <strong>
+              {perSeat}/{interval}
+            </strong>
+          </p>
+        )}
+        {hasManualBilling && (
+          <p className="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
+            You have a custom billing arrangement. Contact support for plan changes.
+          </p>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div>
+      {renderCurrentPlanSummary()}
+
       {!hasManualBilling && (
         <div className="slds-text-align_center slds-m-bottom_medium">
           <p className="slds-text-color_weak">Visit the billing portal to make changes to your plan</p>
@@ -84,6 +174,7 @@ export const BillingExistingSubscriptions = ({
           description={PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].description}
           features={PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].features}
           comingSoonFeatures={PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].comingSoonFeatures}
+          pricingTiers={PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].pricingTiers}
           checked={!hasManualBilling && selectedPlan === TEAM_MONTHLY_KEY}
           disabled={hasManualBilling || selectedPlan !== TEAM_MONTHLY_KEY}
           value={PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].key}
@@ -96,6 +187,7 @@ export const BillingExistingSubscriptions = ({
           description={PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].description}
           features={PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].features}
           comingSoonFeatures={PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].comingSoonFeatures}
+          pricingTiers={PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].pricingTiers}
           checked={!hasManualBilling && selectedPlan === TEAM_ANNUAL_KEY}
           disabled={hasManualBilling || selectedPlan !== TEAM_ANNUAL_KEY}
           value={PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].key}
