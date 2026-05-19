@@ -105,7 +105,6 @@
         "default",
         "^default",
         "{workspaceRoot}/.eslintrc.json",
-        "{workspaceRoot}/tools/eslint-rules/**/*",
         "{workspaceRoot}/eslint.config.js"
       ]
     },
