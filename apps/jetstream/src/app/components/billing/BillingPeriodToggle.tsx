@@ -85,7 +85,6 @@ export const BillingPeriodToggle = ({ isAnnual, onChange }: BillingPeriodToggleP
   return (
     <div css={toggleStyles}>
       <div className="billing-toggle-wrapper">
-        <div className={`savings-badge ${isAnnual ? 'visible' : ''}`}>Get two months free</div>
         <div className="billing-toggle-container">
           <div className="toggle-wrapper" onClick={() => onChange(!isAnnual)}>
             <div className={`toggle-slider ${isAnnual ? 'annual' : ''}`} />

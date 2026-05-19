@@ -37,7 +37,10 @@ const tiers = [
     name: 'Professional',
     id: 'tier-professional',
     href: '#',
-    price: { monthly: { price: '$25', suffix: 'month' }, annually: { price: '$250', suffix: 'year' } },
+    price: {
+      monthly: { price: '$25', suffix: '/month' },
+      annually: { price: '$21', suffix: '/month', secondaryLabel: 'billed annually' },
+    },
     description: 'Perfect for individual users',
     features: [
       'Everything in Free plan',
@@ -58,17 +61,30 @@ const tiers = [
     name: 'Team',
     id: 'tier-team',
     href: '#',
-    price: { monthly: { price: '$125', suffix: 'month' }, annually: { price: '$1,100', suffix: 'year' } },
-    description: { monthly: `Includes 5 users ($25/user/month)`, annually: `Includes 5 users ($22/user/month)` },
+    price: {
+      monthly: { price: '$30', suffix: '/user/month' },
+      annually: { price: '$25', suffix: '/user/month', secondaryLabel: 'billed annually' },
+    },
+    description: 'Per-user pricing — save with 6+ seats',
+    pricingTiers: {
+      monthly: [
+        { seats: '1–5', perUser: '$30/user/month' },
+        { seats: '6+', perUser: '$25/user/month' },
+      ],
+      annually: [
+        { seats: '1–5', perUser: '$25/user/month' },
+        { seats: '6+', perUser: '$21/user/month' },
+      ],
+    },
     features: [
       'Everything in Professional',
       'Manage team members',
-      'Up to 20 team members',
+      'Unlimited team members',
       'SSO via OIDC and SAML',
       'View & Manage team member session activity',
       'Role-based access control',
     ],
-    comingSoonFeatures: ['SOC 2 compliance (in-progress)', 'Share orgs between team members', 'Audit logs'],
+    comingSoonFeatures: ['Share orgs between team members'],
     mostPopular: false,
   },
   {
@@ -76,10 +92,11 @@ const tiers = [
     id: 'tier-enterprise',
     href: 'mailto:sales@getjetstream.app?subject=Enterprise Plan Inquiry',
     price: { monthly: { price: 'Custom', suffix: null }, annually: { price: 'Custom', suffix: null } },
-    description: 'Advanced features for large teams',
+    description: 'SOC 2 compliance, custom terms, and dedicated support',
     features: [
       'Everything in Team',
-      'Unlimited team members',
+      'SOC 2 Type II compliance',
+      'Audit logs',
       'Custom agreements and terms',
       'Dedicated account manager',
       'White-glove onboarding',
@@ -145,6 +162,22 @@ export default function Page() {
                   <span className="text-sm/6 font-semibold text-gray-300">{tier.price[frequency.value].suffix}</span>
                 )}
               </p>
+              {tier.price[frequency.value]?.secondaryLabel && (
+                <p className="mt-1 text-xs/5 text-gray-400">{tier.price[frequency.value].secondaryLabel}</p>
+              )}
+              {tier.pricingTiers && (
+                <div className="mt-4 overflow-hidden rounded-md ring-1 ring-white/10">
+                  {tier.pricingTiers[frequency.value].map((row: { seats: string; perUser: string }) => (
+                    <div
+                      key={row.seats}
+                      className="flex justify-between bg-white/5 px-3 py-1.5 text-xs/5 text-gray-200 not-last:border-b not-last:border-white/10"
+                    >
+                      <span className="font-semibold">{row.seats} seats</span>
+                      <span>{row.perUser}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
               <div className="mt-6 min-h-10">
                 <Link
                   href={
