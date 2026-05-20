@@ -170,7 +170,20 @@ const handleLoginEvent: MainIpcHandler<'login'> = async (event) => {
   }, 900000); // 15 minutes in milliseconds
 };
 
+// Tracked alongside the logout handler so handleCheckAuthEvent can detect when a logout
+// has been initiated and avoid resurrecting the auth state. Without this flag, a verify
+// whose server call resolves while a logout is in flight can write the rotated token back
+// after the logout clears app data, undoing the logout.
+let inFlightLogout: Promise<void> | null = null;
+
 const handleLogoutEvent: MainIpcHandler<'logout'> = async () => {
+  inFlightLogout ??= doHandleLogout().finally(() => {
+    inFlightLogout = null;
+  });
+  return inFlightLogout;
+};
+
+async function doHandleLogout(): Promise<void> {
   const appData = dataService.getAppData();
   const { deviceId, accessToken } = appData;
 
@@ -187,7 +200,7 @@ const handleLogoutEvent: MainIpcHandler<'logout'> = async () => {
   });
 
   dataService.clearOrgState();
-};
+}
 
 const handleAddOrgEvent: MainIpcHandler<'addOrg'> = async (event, payload) => {
   // : { loginUrl: string; addLoginParam?: boolean; loginHint?: string }
@@ -384,8 +397,21 @@ const handleCheckAuthEvent: MainIpcHandler<'checkAuth'> = async (): Promise<
           return { userProfile, authInfo: { deviceId, accessToken } };
         }
         logger.error('Authentication error', response.error);
+        // Re-read so we don't clobber a fresh login that completed while verify was awaiting.
+        const latestAppData = dataService.getAppData();
+        if (latestAppData.accessToken && latestAppData.accessToken !== accessToken) {
+          // A concurrent login replaced the token; the auth error was for the old token —
+          // leave the newer session intact and surface it to the caller. Pair the newer
+          // accessToken with latestAppData.deviceId so we never return a mixed-snapshot authInfo.
+          return latestAppData.userProfile && latestAppData.deviceId
+            ? {
+                userProfile: dataService.getFullUserProfile(),
+                authInfo: { deviceId: latestAppData.deviceId, accessToken: latestAppData.accessToken },
+              }
+            : undefined;
+        }
         dataService.setAppData({
-          ...appData,
+          ...latestAppData,
           accessToken: undefined,
           userProfile: undefined,
           expiresAt: undefined,
@@ -397,8 +423,36 @@ const handleCheckAuthEvent: MainIpcHandler<'checkAuth'> = async (): Promise<
       // Use the rotated token if the server provided one, otherwise keep the current token
       const activeAccessToken = successResponse.accessToken || accessToken;
       logger.info('Authentication check successful', successResponse.accessToken ? '(token rotated)' : '');
+
+      // Re-read app data immediately before writing to detect a concurrent logout or login
+      // that ran while we were awaiting verifyAuthToken. Without this, spreading the stale
+      // `appData` snapshot can resurrect a session that handleLogoutEvent just cleared, or
+      // clobber a newer login. setAppData below is synchronous, so once we pass these
+      // checks there is no further await window for a concurrent handler to slip into.
+      const latestAppData = dataService.getAppData();
+      if (!latestAppData.accessToken) {
+        // Concurrent logout cleared app data — do not write the rotated token back.
+        return;
+      }
+      if (inFlightLogout) {
+        // Logout is in flight (its setAppData may not have landed yet) — bail out.
+        return;
+      }
+      if (latestAppData.accessToken !== accessToken) {
+        // A concurrent login replaced the token while we were verifying. The rotated
+        // token we received was issued for the OLD login, so do not write it. Surface
+        // the newer session to the caller instead. Pair the newer accessToken with
+        // latestAppData.deviceId so we never return a mixed-snapshot authInfo.
+        return latestAppData.userProfile && latestAppData.deviceId
+          ? {
+              userProfile: dataService.getFullUserProfile(),
+              authInfo: { deviceId: latestAppData.deviceId, accessToken: latestAppData.accessToken },
+            }
+          : undefined;
+      }
+
       // If the token was rotated, decode the new expiry from the JWT
-      let expiresAt = appData.expiresAt;
+      let expiresAt = latestAppData.expiresAt;
       if (successResponse.accessToken) {
         try {
           const decoded = jwtDecode<{ exp?: number }>(successResponse.accessToken);
@@ -410,7 +464,7 @@ const handleCheckAuthEvent: MainIpcHandler<'checkAuth'> = async (): Promise<
         }
       }
       dataService.setAppData({
-        ...appData,
+        ...latestAppData,
         accessToken: activeAccessToken,
         userProfile: successResponse.userProfile,
         expiresAt,
