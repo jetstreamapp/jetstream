@@ -249,7 +249,7 @@ export async function createOrUpdateSalesforceOrg(userId: string, salesforceOrgU
     if (orgToDelete) {
       await prisma.salesforceOrg.delete({ where: { id: orgToDelete.id } });
     }
-    return org;
+    return { org, created: false };
   } else {
     // create new
     const org = await prisma.salesforceOrg.create({
@@ -286,7 +286,7 @@ export async function createOrUpdateSalesforceOrg(userId: string, salesforceOrgU
     if (orgToDelete) {
       await prisma.salesforceOrg.delete({ where: { id: orgToDelete.id } });
     }
-    return org;
+    return { org, created: true };
   }
 }
 
@@ -343,7 +343,7 @@ export async function moveSalesforceOrg(
 
 export async function deleteSalesforceOrg(userId: string, uniqueId: string) {
   const existingOrg = await prisma.salesforceOrg.findUnique({
-    select: { id: true, username: true, label: true, orgName: true },
+    select: { id: true, uniqueId: true, username: true, label: true, orgName: true, loginUrl: true, instanceUrl: true, orgIsSandbox: true },
     where: findUniqueOrg({ userId, uniqueId }),
   });
 
@@ -355,6 +355,8 @@ export async function deleteSalesforceOrg(userId: string, uniqueId: string) {
     select: { id: true },
     where: { id: existingOrg.id },
   });
+
+  return existingOrg;
 }
 
 export async function updateLastActivity(orgId: number) {
