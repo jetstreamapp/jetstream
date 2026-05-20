@@ -6,3 +6,62 @@
     @apply cursor-pointer;
   }
 }
+
+@media print {
+  @page {
+    margin: 0.75in;
+  }
+
+  header,
+  footer,
+  .no-print {
+    display: none !important;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  body {
+    font-size: 11pt;
+    line-height: 1.45;
+  }
+
+  a {
+    color: #000 !important;
+    text-decoration: underline;
+  }
+
+  // Show full URL after external links so the printed page stays useful offline.
+  // Skip same-page anchors and javascript: links.
+  a[href^='http']::after {
+    content: ' (' attr(href) ')';
+    font-size: 0.9em;
+    word-break: break-all;
+  }
+
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  p,
+  li {
+    orphans: 3;
+    widows: 3;
+  }
+
+  ol,
+  ul {
+    break-inside: auto;
+  }
+
+  li {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

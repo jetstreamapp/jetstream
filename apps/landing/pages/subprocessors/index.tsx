@@ -1,5 +1,6 @@
 import { CheckIcon, XMarkIcon } from '@heroicons/react/20/solid';
 import LastUpdated from '../../components/LastUpdated';
+import PrintButton from '../../components/PrintButton';
 import Layout from '../../components/layouts/Layout';
 import { ROUTES } from '../../utils/environment';
 
@@ -122,7 +123,10 @@ const webSubProcessors = [
 export default function Page() {
   return (
     <div className="m-8">
-      <LastUpdated className="text-gray-500" day={4} month="January" year={2026} />
+      <div className="flex items-center justify-between gap-4">
+        <LastUpdated className="text-gray-500" day={4} month="January" year={2026} />
+        <PrintButton />
+      </div>
       <h1>Jetstream Sub-Processors</h1>
       <p className="mb-2 pl-2">
         This page provides a list of sub-processors that Jetstream uses to provide services to our customers. Our web-based application and
