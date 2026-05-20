@@ -121,7 +121,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   const httpServer = initSocketServer(app, { sessionMiddleware });
 
   if (environment.production) {
-    app.set('trust proxy', 1); // required for environments such as heroku / {render?}
+    app.set('trust proxy', 1); // required to resolve correct client ip and secure cookies when behind a proxy (like Render's load balancer)
   }
 
   app.use(addContextMiddleware);

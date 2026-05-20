@@ -4,6 +4,9 @@ packages:
 
 engineStrict: true
 
+# Allow installing root-level dependencies
+ignoreWorkspaceRootCheck: true
+
 # Wait 3 days before upgrading packages
 minimumReleaseAge: 4320
 minimumReleaseAgeExclude:

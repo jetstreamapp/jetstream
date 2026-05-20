@@ -1,5 +1,5 @@
-import { Body, Container, Head, Heading, Hr, Html, Link, Preview, Row, Section, Text } from '@react-email/components';
 import * as React from 'react';
+import { Body, Container, Head, Heading, Hr, Html, Link, Preview, Row, Section, Text } from 'react-email';
 import { EmailFooter } from '../../components/EmailFooter';
 import { EmailProLogo } from '../../components/EmailProLogo';
 import { EMAIL_STYLES } from '../../shared-styles';

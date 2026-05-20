@@ -91,3 +91,4 @@ certificates
 **/.sfdx/
 
 .nx/self-healing
+.react-email/

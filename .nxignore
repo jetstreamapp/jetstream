@@ -1,3 +1,4 @@
 dist/
 apps-sfdx/
 apps/docs/
+.react-email/

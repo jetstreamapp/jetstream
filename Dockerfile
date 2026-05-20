@@ -64,10 +64,6 @@ RUN pnpm build:core && \
 # installed; the client was already generated above.
 RUN pnpm add -w -P cross-env npm-run-all --no-frozen-lockfile --ignore-scripts
 
-# FIXME: figure out why this is not included
-# Add missing dependencies
-RUN pnpm add -w @react-email/components --ignore-scripts
-
 # Final stage for app image
 FROM base
 
