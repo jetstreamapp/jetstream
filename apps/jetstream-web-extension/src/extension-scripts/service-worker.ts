@@ -158,7 +158,7 @@ browser.commands.onCommand.addListener(async (command, tab) => {
  * User is redirected and authenticated on the Jetstream server
  * and tokens are sent back to the extension and stored in chrome storage
  */
-browser.runtime.onMessageExternal.addListener(async (message, sender, sendResponse) => {
+browser.runtime.onMessageExternal.addListener(async (message: unknown) => {
   try {
     logger.log('Received message from external extension', message);
     const event = eventPayload.parse(message);
@@ -174,8 +174,7 @@ browser.runtime.onMessageExternal.addListener(async (message, sender, sendRespon
           throw new Error('Could not get or initialize extension identifier');
         }
         logger.info('Extension identifier', result.extIdentifier.id);
-        sendResponse({ success: true, data: result.extIdentifier.id });
-        break;
+        return { success: true, data: result.extIdentifier.id };
       }
       case 'TOKENS': {
         const { exp, userProfile } = jwtDecode<JwtPayload>(event.data.accessToken);
@@ -189,16 +188,15 @@ browser.runtime.onMessageExternal.addListener(async (message, sender, sendRespon
         };
         await browser.storage.sync.set({ [storageTypes.authTokens.key]: authState });
         storageSyncCache.authTokens = authState;
-        sendResponse({ success: true });
-        break;
+        return { success: true };
       }
       default: {
-        sendResponse({ success: false, error: 'Unknown message type' });
+        return { success: false, error: 'Unknown message type' };
       }
     }
   } catch (ex) {
     logger.error('Error handling message', ex);
-    sendResponse({ success: false, error: 'Error handling message' });
+    return { success: false, error: 'Error handling message' };
   }
 });
 
@@ -229,7 +227,7 @@ browser.runtime.onMessage.addListener(
     request: Message['request'],
     sender: browser.Runtime.MessageSender,
     sendResponse: (response: MessageResponse) => void,
-  ): true | Promise<unknown> | undefined => {
+  ): true => {
     logger.log('[SW EVENT] onMessage', request);
     switch (request.message) {
       case 'EXT_IDENTIFIER': {
@@ -253,7 +251,7 @@ browser.runtime.onMessage.addListener(
       case 'VERIFY_AUTH': {
         if (storageSyncCache.authTokens?.accessToken && !doesAuthNeedToBeChecked(storageSyncCache.authTokens)) {
           handleResponse({ hasTokens: true, loggedIn: true }, sendResponse);
-          return; // handle response synchronously
+          return true; // handle response synchronously
         }
         runVerifyAuth(sender)
           .then((data) => {
@@ -290,7 +288,7 @@ browser.runtime.onMessage.addListener(
       case 'GET_CURRENT_ORG': {
         if ('uniqueId' in request.data) {
           handleResponse(getConnection(request.data.uniqueId, sender), sendResponse);
-          return; // synchronous response
+          return true; // synchronous response
         }
         getConnectionFromHost(request.data.sfHost, sender)
           .then((data) => handleResponse(data, sendResponse))
@@ -299,7 +297,7 @@ browser.runtime.onMessage.addListener(
       }
       default:
         logger.warn(`Unknown message`, request);
-        return;
+        return true;
     }
   },
 );
