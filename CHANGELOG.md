@@ -1,5 +1,7 @@
 # Changelog
 
+## [9.17.2](https://github.com/jetstreamapp/jetstream/compare/v9.17.1...v9.17.2) (2026-05-21)
+
 ## [9.17.1](https://github.com/jetstreamapp/jetstream/compare/v9.17.0...v9.17.1) (2026-05-16)
 
 ### Bug Fixes
