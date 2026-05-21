@@ -31,6 +31,7 @@ import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
 import startCase from 'lodash/startCase';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import LoadRecordsDataPreview from './components/LoadRecordsDataPreview';
 import LoadRecordsProgress from './components/LoadRecordsProgress';
 import LoadRecordsFieldMapping from './steps/FieldMapping';
@@ -56,7 +57,12 @@ const finalStep: Step = enabledSteps[enabledSteps.length - 1];
 export const LoadRecords = () => {
   useTitle(TITLES.LOAD);
   const isMounted = useRef(true);
+  const [searchParams, setSearchParams] = useSearchParams();
   const { trackEvent } = useAmplitude();
+
+  // Capture pre-fill params (e.g. from browser extension popover) once on mount
+  const [initialObjectName] = useState(() => searchParams.get('objectName'));
+  const [hasAppliedInitialObjectName, setHasAppliedInitialObjectName] = useState(false);
   const { defaultApiVersion, serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const googleApiConfig = useMemo(
@@ -209,6 +215,24 @@ export const LoadRecords = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOrg]);
+
+  // Pre-select object from URL param (e.g. from browser extension popover) once sobjects are loaded
+  useEffect(() => {
+    if (!hasAppliedInitialObjectName && initialObjectName && sobjects?.length) {
+      const matchedSobject = sobjects.find((sobject) => sobject.name === initialObjectName);
+      if (matchedSobject) {
+        setSelectedSObject(matchedSobject);
+      }
+      setHasAppliedInitialObjectName(true);
+      setSearchParams(
+        (prev) => {
+          prev.delete('objectName');
+          return prev;
+        },
+        { replace: true },
+      );
+    }
+  }, [hasAppliedInitialObjectName, initialObjectName, sobjects, setSelectedSObject, setSearchParams]);
 
   useEffect(() => {
     setCurrentStepIdx(enabledSteps.findIndex((step) => step.idx === currentStep.idx));
