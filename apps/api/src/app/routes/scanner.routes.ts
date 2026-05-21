@@ -34,13 +34,12 @@ import { basicAuthMiddleware } from './route.middleware';
  *   - TEST_SFDC_LOGIN_USERNAME        → optional JWT-bearer subject
  *   - TEST_SFDC_PRIVATE_KEY_BASE64    → optional JWT signing key (base64)
  */
-const PRODUCTION_SERVER_URL = 'https://getjetstream.app';
 
 const routes: express.Router = Router();
 
 routes.use((_req, res, next) => {
   const scannerRoutesEnabled = String(process.env.TEST_ENABLE_SCANNER_ROUTES || '').toLowerCase() === 'true';
-  if (!scannerRoutesEnabled || ENV.JETSTREAM_SERVER_URL === PRODUCTION_SERVER_URL) {
+  if (!scannerRoutesEnabled) {
     return res.status(404).send('Not Found');
   }
   next();
