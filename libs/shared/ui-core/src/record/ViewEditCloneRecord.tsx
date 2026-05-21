@@ -120,8 +120,9 @@ export interface ViewEditCloneRecordProps {
   action: CloneEditView;
   sobjectName: string;
   recordId: string | null;
-  onClose: (reloadRecords?: boolean) => void;
+  onClose: () => void;
   onChangeAction: (action: CloneEditView) => void;
+  onSave: (saved: { recordId: string; sobjectName: string }) => void;
   onFetch?: (recordId: string, record: any) => void;
   onFetchError?: (recordId: string, sobjectName: string) => void;
 }
@@ -134,6 +135,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   recordId: initialRecordId,
   onClose,
   onChangeAction,
+  onSave,
   onFetch,
   onFetchError,
 }) => {
@@ -343,9 +345,12 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
         if (isErrorResponse(recordResponse)) {
           setFormErrors(handleEditFormErrorResponse(recordResponse));
         } else {
-          // record created/updated
-          hasEverBeenInViewMode.current ? onChangeAction('view') : onClose(true);
-          // onClose(true);
+          // record created/updated - hand off to wrapper which re-keys this component
+          // so all internal form state (modifiedRecord, formErrors, breadcrumbs) is reset
+          onSave({
+            recordId: action === 'edit' ? (recordId as string) : recordResponse.id,
+            sobjectName,
+          });
         }
       }
     } catch (ex) {
@@ -645,6 +650,18 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                         omitContainer
                       />
                       {isViewAsJson ? 'View as Record' : 'View as JSON'}
+                    </button>
+                    <button
+                      className="slds-button slds-button_neutral"
+                      onClick={() => {
+                        setLoading(true);
+                        fetchMetadata();
+                      }}
+                      disabled={loading || !initialRecord}
+                      title="Reload the record from Salesforce"
+                    >
+                      <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
+                      Reload Record
                     </button>
                     <button
                       className="slds-button slds-button_neutral"

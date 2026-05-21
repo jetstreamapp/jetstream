@@ -8,7 +8,7 @@ import {
   recordActionModalClosedObservable,
   useObservable,
 } from '@jetstream/shared/ui-utils';
-import { CloneEditView, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { CloneEditView, SalesforceOrgUi } from '@jetstream/types';
 import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
 import { FunctionComponent, useEffect, useState } from 'react';
@@ -46,6 +46,10 @@ export const ViewEditCloneRecordWrapper: FunctionComponent = () => {
   const [recordId, setRecordId] = useState<string>('');
   const [sobjectName, setSobjectName] = useState<string | null>(null);
   const [action, setAction] = useState<CloneEditView>('view');
+  // Bumped after every successful save to force a fresh ViewEditCloneRecord instance,
+  // which clears form/breadcrumb state without manual resets.
+  const [instanceKey, setInstanceKey] = useState(0);
+  const [didSave, setDidSave] = useState(false);
 
   const appActionEvents = useObservable(appActionObservable$.pipe(appActionRecordEventFilter));
 
@@ -120,12 +124,23 @@ export const ViewEditCloneRecordWrapper: FunctionComponent = () => {
     setAction(action);
   }
 
-  function onModalClose(reloadRecords?: Maybe<boolean>) {
+  function onSave(saved: { recordId: string; sobjectName: string }) {
+    setRecordId(saved.recordId);
+    setSobjectName(saved.sobjectName);
+    setAction('view');
+    setDidSave(true);
+    setInstanceKey((key) => key + 1);
+  }
+
+  function onModalClose() {
     const objectName = sobjectName;
+    const reloadRecords = didSave;
     setAction('view');
     setModalOpen(false);
     setSobjectName(null);
     setRecordId('');
+    setDidSave(false);
+    setInstanceKey(0);
     recordActionModalClosedObservable.next({ objectName, reloadRecords });
   }
 
@@ -135,6 +150,7 @@ export const ViewEditCloneRecordWrapper: FunctionComponent = () => {
 
   return (
     <ViewEditCloneRecord
+      key={instanceKey}
       apiVersion={defaultApiVersion}
       selectedOrg={selectedOrg}
       action={action}
@@ -142,6 +158,7 @@ export const ViewEditCloneRecordWrapper: FunctionComponent = () => {
       recordId={recordId}
       onClose={onModalClose}
       onChangeAction={onActionChange}
+      onSave={onSave}
     />
   );
 };
