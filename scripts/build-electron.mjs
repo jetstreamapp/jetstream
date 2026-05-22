@@ -124,7 +124,9 @@ function prepareTargetPackageJson() {
 
   writeFileSync(TARGET_PACKAGE_JSON_PATH, JSON.stringify(targetPackageJson, null, 2) + '\n');
 
-  // Inherit root pnpm-workspace.yaml but override packages to only include the current directory
+  // Inherit root pnpm-workspace.yaml settings but reset `packages` to an empty list so
+  // TARGET_DIR becomes a self-contained workspace root with no nested member packages.
+  // This isolates the subsequent `pnpm add` calls from the parent repo's workspace/lockfile.
   const targetWorkspace = { ...rootWorkspace, packages: [] };
   writeFileSync(TARGET_PNPM_WORKSPACE_PATH, yaml.dump(targetWorkspace));
 }
