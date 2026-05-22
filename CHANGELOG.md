@@ -1,5 +1,21 @@
 # Changelog
 
+## [9.18.0](https://github.com/jetstreamapp/jetstream/compare/v9.17.1...v9.18.0) (2026-05-22)
+
+### Features
+
+* add additional audit logs for Salesforce org actions ([10828f5](https://github.com/jetstreamapp/jetstream/commit/10828f533aa1f878e5bfb54144a05381a64db99c))
+* add PrintButton component and integrate into multiple pages ([d4e1d13](https://github.com/jetstreamapp/jetstream/commit/d4e1d138713cfd1d94192801cbcc0ed435c5f9cd))
+* enhance URL parameter handling for objectName and recordId in LoadRecords and Query components ([ffa9319](https://github.com/jetstreamapp/jetstream/commit/ffa93192b80b35280b9166ff7467eb2096c6c50f))
+* keep record modal open after edit/create/clone ([cf7933e](https://github.com/jetstreamapp/jetstream/commit/cf7933e799bfc8eb80d9ca944aa5dd8eaab1f880)), closes [#1738](https://github.com/jetstreamapp/jetstream/issues/1738)
+
+### Bug Fixes
+
+* fix pnpm for ci and docs build ([7b0740d](https://github.com/jetstreamapp/jetstream/commit/7b0740d189ac31799dee68587cf64a40ae15c30c))
+* handle unknown message types in service worker and update package manager commands ([3716a03](https://github.com/jetstreamapp/jetstream/commit/3716a0373dcccc266ed42110fde151764a32dbf3))
+* improve logout handling and concurrent login detection in IPC service ([48438d2](https://github.com/jetstreamapp/jetstream/commit/48438d23cee733823c1ddd747ecd4acf0bb626e5))
+* update web extension callback api to match type changes ([c9a4482](https://github.com/jetstreamapp/jetstream/commit/c9a448252ce16cb5e056742755d717b77fd9f084))
+
 ## [9.17.1](https://github.com/jetstreamapp/jetstream/compare/v9.17.0...v9.17.1) (2026-05-16)
 
 ### Bug Fixes
