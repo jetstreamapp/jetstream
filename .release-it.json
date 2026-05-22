@@ -12,6 +12,10 @@
         "owner": "jetstreamapp",
         "repository": "jetstream"
       }
+    },
+    "@release-it/bumper": {
+      "in": "package.json",
+      "out": "package.json"
     }
   },
   "git": {
@@ -20,9 +24,7 @@
     "tagName": "v${version}",
     "requireBranch": ["main", "hotfix/*"]
   },
-  "npm": {
-    "publish": false
-  },
+  "npm": false,
   "github": {
     "release": true,
     "releaseName": "Jetstream ${version}"
