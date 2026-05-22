@@ -2,8 +2,16 @@
   "name": "docs",
   "version": "0.0.0",
   "private": true,
-  "resolutions": {
-    "@babel/traverse": ">=7.23.2"
+  "engines": {
+    "node": ">=24 <25",
+    "pnpm": "~11.1.3"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "11.1.3",
+      "onFail": "download"
+    }
   },
   "scripts": {
     "docusaurus": "docusaurus",
@@ -45,8 +53,5 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "engines": {
-    "node": ">=18.0"
   }
 }

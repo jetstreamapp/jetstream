@@ -93,6 +93,12 @@ async function importService() {
   return import('../persistence.service');
 }
 
+// The first test in this file pays the cost of compiling and resolving the
+// persistence service and its transitive deps (crypto, electron mocks,
+// write-file-atomic, jwt-decode). On slower CI runners that cold start can
+// exceed the 5s default — bump the timeout so the first test has headroom.
+vi.setConfig({ testTimeout: 30_000 });
+
 describe('persistence.service', () => {
   beforeEach(() => {
     vi.resetModules();

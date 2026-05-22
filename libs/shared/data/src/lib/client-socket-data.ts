@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { SocketAck, SocketEvent } from '@jetstream/types';
-import { DefaultEventsMap } from '@socket.io/component-emitter';
+import type { SocketAck, SocketEvent } from '@jetstream/types';
+import type { DefaultEventsMap } from '@socket.io/component-emitter';
 import { io, Socket } from 'socket.io-client';
 
 let socket: Socket<DefaultEventsMap, DefaultEventsMap> | null = null;

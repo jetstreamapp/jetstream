@@ -19,7 +19,6 @@ module.exports = [
   {
     files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
     rules: {
-      'react-hooks/set-state-in-effect': 'warn',
       'no-empty-pattern': 'off',
       'object-shorthand': 'warn',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
@@ -61,6 +60,7 @@ module.exports = [
     files: ['**/*.tsx'],
     rules: {
       'react-hooks/exhaustive-deps': ['warn', { additionalHooks: '(useNonInitialEffect)' }],
+      'react-hooks/set-state-in-effect': 'warn',
     },
   },
   {

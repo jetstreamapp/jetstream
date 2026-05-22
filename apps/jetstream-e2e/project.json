@@ -17,7 +17,7 @@
       "executor": "nx:run-commands",
       "outputs": ["{projectRoot}/playwright-report"],
       "options": {
-        "command": "yarn start-server-and-test --expect 200 'yarn start:e2e' http://localhost:3333 'yarn playwright:test'"
+        "command": "pnpm start-server-and-test --expect 200 'pnpm start:e2e' http://localhost:3333 'pnpm playwright:test'"
       },
       "dependsOn": [
         {

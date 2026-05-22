@@ -1,6 +1,6 @@
 # syntax = docker/dockerfile:1
 
-ARG NODE_VERSION=20.10.0
+ARG NODE_VERSION=24
 ARG ENVIRONMENT=production
 
 FROM node:${NODE_VERSION}-slim AS base
@@ -8,43 +8,65 @@ FROM node:${NODE_VERSION}-slim AS base
 # App lives here
 WORKDIR /app
 
-# Set production environment
+# Set production environment.
 ENV NODE_ENV=production
-ARG YARN_VERSION=1.22.21
-RUN npm install -g yarn@$YARN_VERSION --force
+ARG PNPM_VERSION=11.1.3
+RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
 
 # Throw-away build stage to reduce size of final image
 FROM base AS build
+
+# CI=true tells pnpm to skip the interactive confirmation prompt when it needs
+# to purge node_modules between installs (otherwise it aborts with
+# ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY). Scoped to the build stage so
+# the runtime image doesn't inherit CI semantics.
+ENV CI=true
 
 # Install packages needed to build node modules
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y build-essential node-gyp openssl pkg-config python-is-python3
 
-# Install node modules
-COPY --link package.json yarn.lock ./
-RUN yarn install --frozen-lockfile --production=false
+# Install node modules. Workspace members (apps/docs, apps-sfdx) declared in
+# pnpm-workspace.yaml must be present on disk for `--frozen-lockfile` to
+# resolve them — otherwise pnpm rejects the install. Their package.json files
+# are copied here so the install stage can operate in workspace mode and
+# honor the overrides recorded in the lockfile. --ignore-scripts skips the
+# root preinstall (package-manager check, irrelevant here since we're
+# explicitly pnpm) and postinstall (prisma generate, which is done in its
+# own step below after the schema is copied in).
+COPY --link package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY --link apps/docs/package.json ./apps/docs/
+COPY --link apps-sfdx/package.json ./apps-sfdx/
+RUN pnpm install --frozen-lockfile --prod=false --ignore-scripts
 
-# Generate Prisma Client
-COPY --link prisma .
-RUN yarn run db:generate
+# Generate Prisma Client. prisma.config.ts requires JETSTREAM_POSTGRES_DBURI
+# via prisma's strict `env()` helper, but `prisma generate` doesn't actually
+# connect — a dummy placeholder is enough to satisfy the config loader.
+COPY --link prisma ./prisma/
+COPY --link prisma.config.ts ./
+RUN JETSTREAM_POSTGRES_DBURI=postgres://placeholder pnpm db:generate
 
 # Copy application code
 COPY --link . .
 
 # Build application
-RUN yarn build:core && \
-    yarn build:landing && \
+RUN pnpm build:core && \
+    pnpm build:landing && \
     # Replace dependencies with only the ones required by API
-    yarn scripts:replace-deps && \
+    pnpm scripts:replace-deps && \
     rm -rf .nx
 
-# Remove development dependencies and unused prod dependecies
-RUN yarn install --production=true && \
-    yarn add cross-env npm-run-all --save-dev
+# Reinstall with only prod deps + add cross-env / npm-run-all (needed at
+# runtime by `start:prod`). Done as a single `pnpm add -P` so pnpm doesn't
+# emit ERR_PNPM_INCLUDED_DEPS_CONFLICT between a prod-only install and a
+# follow-up add. `--ignore-scripts` skips the root postinstall (`prisma
+# generate`), which would fail because prisma is a devDep that isn't being
+# installed; the client was already generated above.
+RUN pnpm add -w -P cross-env npm-run-all --no-frozen-lockfile --ignore-scripts
 
 # FIXME: figure out why this is not included
 # Add missing dependencies
-RUN yarn add @react-email/components
+RUN pnpm add -w @react-email/components --ignore-scripts
 
 # Final stage for app image
 FROM base
@@ -61,4 +83,4 @@ COPY --from=build /app /app
 
 # Start the server by default, this can be overwritten at runtime
 EXPOSE 3333
-CMD [ "yarn", "run", "start:prod" ]
+CMD [ "pnpm", "start:prod" ]

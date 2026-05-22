@@ -5,6 +5,7 @@ import { GeoIpLookupResponse } from '@jetstream/types';
 import { parseCookie } from 'cookie';
 import * as crypto from 'crypto';
 import { addHours, addMinutes } from 'date-fns';
+import * as oauth from 'oauth4webapi';
 import * as QRCode from 'qrcode';
 import { OauthClientProvider, OauthClients } from './OauthClients';
 import { CURRENT_TOS_VERSION, EMAIL_VERIFICATION_TOKEN_DURATION_HOURS, TOKEN_DURATION_MINUTES } from './auth.constants';
@@ -12,7 +13,6 @@ import { findUserById_UNSAFE, handleSignInOrRegistration } from './auth.db.servi
 import { AuthError, InvalidCsrfToken, InvalidVerificationToken, InvalidVerificationType } from './auth.errors';
 import { generateHMACDoubleCSRFToken, getApiAddressFromReq, getCookieConfig, validateCSRFToken } from './auth.utils';
 
-const oauthPromise = import('oauth4webapi');
 const osloEncodingPromise = import('@oslojs/encoding');
 const osloOtpPromise = import('@oslojs/otp');
 
@@ -103,7 +103,6 @@ export function clearOauthCookies(res: Response) {
 }
 
 export async function getAuthorizationUrl(provider: OauthProviderType) {
-  const oauth = await oauthPromise;
   const oauthClients = OauthClients.getInstance();
 
   const code_challenge_method = 'S256';
@@ -239,7 +238,6 @@ async function handleOauthCallback(
   expectedState: string,
   nonce?: string,
 ) {
-  const oauth = await oauthPromise;
   // TODO: should move to function to support other providers
   const clientAuth = oauth.ClientSecretPost(provider === 'salesforce' ? ENV.AUTH_SFDC_CLIENT_SECRET : ENV.AUTH_GOOGLE_CLIENT_SECRET);
   const params = oauth.validateAuthResponse(authorizationServer, client, parameters, expectedState);
@@ -272,7 +270,6 @@ async function handleOauthCallback(
 }
 
 async function getUserInfo({ authorizationServer, client }: OauthClientProvider, access_token: string, sub: string) {
-  const oauth = await oauthPromise;
   const response = await oauth.userInfoRequest(authorizationServer, client, access_token);
 
   const userInfo = await oauth.processUserInfoResponse(authorizationServer, client, sub, response);

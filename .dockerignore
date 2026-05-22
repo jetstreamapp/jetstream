@@ -6,13 +6,15 @@
 !/apps/jetstream
 !/apps/landing
 !/custom-typings
+!/custom-express-typings
 !/libs
 !/migrations
 !/prisma
 !/scripts
 
 # Include specific files
-!/yarn.lock
+!/pnpm-lock.yaml
+!/pnpm-workspace.yaml
 !/.eslintrc.json
 !/.gitignore
 !/babel.config.json
@@ -21,11 +23,17 @@
 !/next-sitemap.config.js
 !/nx.json
 !/package.json
+!/prisma.config.ts
 !/README.md
 !/schema.prisma
 !/seed-salesforce-api.ts
 !/seed.sh
 !/tsconfig.base.json
+
+# Workspace member package.json files (referenced by pnpm-workspace.yaml).
+# Required so `pnpm install --frozen-lockfile` can resolve workspace links.
+!/apps/docs/package.json
+!/apps-sfdx/package.json
 
 # Ignore unnecessary files inside allowed directories
 *#
@@ -33,4 +41,3 @@
 **/*.log
 **/.DS_Store
 **/Thumbs.db
-

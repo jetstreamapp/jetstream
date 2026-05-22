@@ -43,7 +43,7 @@ export function rateLimitGetKeyGenerator(): ValueDeterminingMiddleware<string> {
     if (isDevOrCi && rateLimitKey) {
       return rateLimitKey;
     }
-    return ipKeyGenerator(req.ip);
+    return ipKeyGenerator(req.ip || 'unknown');
   };
 }
 

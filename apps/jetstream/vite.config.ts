@@ -27,7 +27,7 @@ if (uploadSourcemaps && !(SENTRY_ORG && SENTRY_PROJECT && SENTRY_URL && SENTRY_A
 }
 
 // Release name must match the version the running client reports with errors.
-// `yarn build` runs `generate:version` before `build:core` so dist/VERSION is readable here.
+// `pnpm build` runs `generate:version` before `build:core` so dist/VERSION is readable here.
 const releaseName = uploadSourcemaps
   ? (() => {
       try {

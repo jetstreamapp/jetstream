@@ -10,7 +10,7 @@
  *
  * After running this script:
  *   1. Commit the fix on the new hotfix/* branch
- *   2. Push and trigger the release workflow from the branch (`yarn release`)
+ *   2. Push and trigger the release workflow from the branch (`pnpm release`)
  *   3. After release, merge the hotfix branch back to main via PR
  *
  * Usage: node scripts/create-hotfix.mjs
@@ -128,6 +128,6 @@ console.log('');
 console.log(chalk.dim('  Next steps:'));
 console.log(chalk.dim('  1. Implement and commit the fix on this branch'));
 console.log(chalk.dim('  2. Push the branch: ') + chalk.cyan(`git push -u ${REMOTE} ${branchName}`));
-console.log(chalk.dim('  3. Trigger a web release from this branch: ') + chalk.cyan('yarn release'));
+console.log(chalk.dim('  3. Trigger a web release from this branch: ') + chalk.cyan('pnpm release'));
 console.log(chalk.dim('  4. After release, merge the hotfix branch back to main via PR'));
 console.log('');

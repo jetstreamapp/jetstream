@@ -270,10 +270,10 @@ export function getApiAddressFromReq(req: Request<unknown, unknown, unknown> | E
     if (Array.isArray(ipAddress)) {
       return ipAddress[ipAddress.length - 1];
     }
-    return ipAddress;
+    return ipAddress || 'unknown';
   } catch (ex) {
     logger.error('Error fetching IP address', ex);
-    return `unknown-${new Date().getTime()}`;
+    return 'unknown';
   }
 }
 

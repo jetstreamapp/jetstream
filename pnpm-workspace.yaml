@@ -1,0 +1,36 @@
+packages:
+  - apps/docs
+  - apps-sfdx
+
+engineStrict: true
+
+# Wait 3 days before upgrading packages
+minimumReleaseAge: 4320
+minimumReleaseAgeExclude:
+  - "@jetstreamapp/*"
+
+# Allow scripts from these specific libraries
+allowBuilds:
+  "@parcel/watcher": true
+  "@prisma/engines": true
+  "@sentry/cli": false
+  "@swc/core": true
+  core-js: false
+  electron: true
+  electron-winstaller: true
+  esbuild: true
+  less: false
+  node: false
+  nx: true
+  prisma: true
+  sharp: true
+  spawn-sync: false
+  unrs-resolver: true
+
+overrides:
+  "@babel/traverse": ">=7.23.2 <8.0.0"
+  axios: "^1.16.1"
+  "connect-pg-simple>@types/express-session": "^1.18.2"
+  dompurify: "^3.3.2"
+  handlebars: "4.7.9"
+  "next-images>loader-utils": "2.0.4"
