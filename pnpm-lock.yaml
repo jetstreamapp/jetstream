@@ -509,6 +509,9 @@ importers:
       react-dom:
         specifier: ^19.2.6
         version: 19.2.6(react@19.2.6)
+      react-email:
+        specifier: ^6.1.4
+        version: 6.1.4(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       react-error-boundary:
         specifier: ^6.1.1
         version: 6.1.1(react@19.2.6)
@@ -906,9 +909,6 @@ importers:
       prisma:
         specifier: ^7.8.0
         version: 7.8.0(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(magicast@0.5.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@6.0.3)
-      react-email:
-        specifier: ^6.1.4
-        version: 6.1.4(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       release-it:
         specifier: ^20.0.1
         version: 20.0.1(@types/node@24.1.0)(magicast@0.5.1)

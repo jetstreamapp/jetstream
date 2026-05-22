@@ -297,6 +297,7 @@ browser.runtime.onMessage.addListener(
       }
       default:
         logger.warn(`Unknown message`, request);
+        handleError(sendResponse)(new Error('Unknown message type'));
         return true;
     }
   },
