@@ -85,11 +85,15 @@ const HorizontalRule = () => {
   );
 };
 
-function getActionLink(sfHost: string, pageLink: PageLink, objectName?: string) {
+function getActionLink(sfHost: string, pageLink: PageLink, objectName?: Maybe<string>, recordId?: Maybe<string>) {
   const searchParams = new URLSearchParams({ host: sfHost, url: pageLink.link });
 
   if (pageLink.includeCurrentRecord && objectName) {
-    searchParams.set('url', `${pageLink.link}?objectName=${objectName}`);
+    const targetParams = new URLSearchParams({ objectName });
+    if (recordId) {
+      targetParams.set('recordId', recordId);
+    }
+    searchParams.set('url', `${pageLink.link}?${targetParams.toString()}`);
   }
   return `${browser.runtime.getURL('app.html')}?${searchParams.toString()}`;
 }
@@ -284,7 +288,7 @@ export function SfdcPageButton() {
                       {PAGE_LINKS.map((item) => (
                         <GridCol key={item.link} className="slds-m-bottom_x-small" css={ItemColStyles}>
                           <a
-                            href={getActionLink(sfHost, item, objectName)}
+                            href={getActionLink(sfHost, item, objectName, recordId)}
                             className="slds-button slds-button_neutral slds-button_stretch"
                             target="_blank"
                             rel="noreferrer"

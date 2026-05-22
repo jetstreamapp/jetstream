@@ -3,15 +3,23 @@ import { useTitle } from '@jetstream/shared/ui-utils';
 import { Spinner } from '@jetstream/ui';
 import { fromQueryState, useQueryRestore } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
+import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import { useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
 import { Fragment, useCallback, useEffect, useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useSearchParams } from 'react-router-dom';
 
 export const Query = () => {
   useTitle(TITLES.QUERY);
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const selectedOrg = useAtomValue(selectedOrgState);
+
+  // Capture pre-fill params (e.g. from browser extension popover) once on mount
+  const [initialPrefillParams] = useState(() => ({
+    objectName: searchParams.get('objectName'),
+    recordId: searchParams.get('recordId'),
+  }));
   const querySoqlState = useAtomValue(fromQueryState.querySoqlState);
   const isTooling = useAtomValue(fromQueryState.isTooling);
   const resetSobjects = useResetAtom(fromQueryState.sObjectsState);
@@ -40,6 +48,23 @@ export const Query = () => {
   useEffect(() => {
     if (selectedOrg && !priorSelectedOrg) {
       setPriorSelectedOrg(selectedOrg.uniqueId);
+      const { objectName, recordId } = initialPrefillParams;
+      if (objectName && location.pathname === '/query') {
+        const soql = composeQuery({
+          sObject: objectName,
+          fields: [getField('Id')],
+          where: recordId ? { left: { field: 'Id', operator: '=', value: recordId, literalType: 'STRING' } } : undefined,
+        });
+        restore(soql, false);
+        setSearchParams(
+          (prev) => {
+            prev.delete('objectName');
+            prev.delete('recordId');
+            return prev;
+          },
+          { replace: true },
+        );
+      }
     } else if (selectedOrg && priorSelectedOrg !== selectedOrg.uniqueId) {
       const soql = querySoqlState;
       const tooling = isTooling;
