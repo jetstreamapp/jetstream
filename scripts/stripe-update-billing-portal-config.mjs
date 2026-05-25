@@ -90,8 +90,8 @@ async function upsertProBillingPortal(existingPortalId, proPriceIds, proProductI
     // active: true,
     business_profile: {
       headline: 'Jetstream partners with Stripe for billing',
-      privacy_policy_url: 'https://getjetstream.app/privacy/',
-      terms_of_service_url: 'https://getjetstream.app/terms-of-service/',
+      privacy_policy_url: 'https://getjetstream.app/privacy',
+      terms_of_service_url: 'https://getjetstream.app/terms-of-service',
     },
     default_return_url: null,
     features: {
@@ -160,8 +160,8 @@ async function upsertTeamBillingPortal(existingPortalId, teamPriceIds, teamProdu
     // active: true,
     business_profile: {
       headline: 'Jetstream partners with Stripe for billing',
-      privacy_policy_url: 'https://getjetstream.app/privacy/',
-      terms_of_service_url: 'https://getjetstream.app/terms-of-service/',
+      privacy_policy_url: 'https://getjetstream.app/privacy',
+      terms_of_service_url: 'https://getjetstream.app/terms-of-service',
     },
     default_return_url: null,
     features: {
@@ -217,8 +217,8 @@ async function upsertManualBillingPortal(existingPortalId) {
     // active: true,
     business_profile: {
       headline: 'Jetstream partners with Stripe for billing',
-      privacy_policy_url: 'https://getjetstream.app/privacy/',
-      terms_of_service_url: 'https://getjetstream.app/terms-of-service/',
+      privacy_policy_url: 'https://getjetstream.app/privacy',
+      terms_of_service_url: 'https://getjetstream.app/terms-of-service',
     },
     default_return_url: null,
     features: {

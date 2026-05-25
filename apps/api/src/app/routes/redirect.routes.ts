@@ -52,7 +52,7 @@ routes.get('/', (req, res, next) => {
     );
   }
 
-  res.redirect(`${ENV.JETSTREAM_SERVER_URL}/auth/login/?${params.toString()}`);
+  res.redirect(`${ENV.JETSTREAM_SERVER_URL}/auth/login?${params.toString()}`);
 });
 
 export default routes;

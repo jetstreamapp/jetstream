@@ -234,7 +234,7 @@ test.describe('Team Dashboard', () => {
       await member1Page.reload();
       expect(member1Page.url()).toContain('/auth/login');
 
-      await authenticationPage.loginAndVerifyEmail(member1.user.email, member1.user.password, true, '**/auth/mfa-enroll/');
+      await authenticationPage.loginAndVerifyEmail(member1.user.email, member1.user.password, true, '**/auth/mfa-enroll**');
       await expect(member1Page.getByRole('heading', { name: 'Scan the QR code with your' })).toBeVisible();
 
       await authenticationPage.enrollInOtp(member1.user.email);
@@ -422,7 +422,7 @@ test.describe('Team Dashboard', () => {
       expect(page.url()).toContain('/auth/login');
 
       const authenticationPage = new AuthenticationPage(page);
-      await authenticationPage.loginAndVerifyEmail(user1.email, user1.password, true, '**/auth/mfa-enroll/');
+      await authenticationPage.loginAndVerifyEmail(user1.email, user1.password, true, '**/auth/mfa-enroll**');
       await expect(page.getByRole('heading', { name: 'Scan the QR code with your' })).toBeVisible();
 
       await authenticationPage.enrollInOtp(user1.email);
@@ -590,7 +590,7 @@ test.describe('Team Dashboard', () => {
     await test.step('Navigating to app with abandoned enrollment redirects to enrollment page', async () => {
       const newPage = await userContext.newPage();
       await newPage.goto('/app');
-      expect(newPage.url()).toContain('/auth/mfa-enroll/');
+      expect(newPage.url()).toContain('/auth/mfa-enroll');
       await expect(newPage.getByRole('heading', { name: 'Scan the QR code with your' })).toBeVisible();
       await newPage.close();
     });
@@ -601,7 +601,7 @@ test.describe('Team Dashboard', () => {
       const auth = new AuthenticationPage(newPage);
       await auth.fillOutLoginForm(user.email, user.password);
       await delay(1000); // ensure session is initialized
-      await auth.verifyEmail(user.email, false, '**/auth/mfa-enroll/');
+      await auth.verifyEmail(user.email, false, '**/auth/mfa-enroll**');
       await expect(newPage.getByRole('heading', { name: 'Scan the QR code with your' })).toBeVisible();
       await newPage.getByRole('link', { name: 'Logout' }).click();
       await context.close();
@@ -613,7 +613,7 @@ test.describe('Team Dashboard', () => {
       const auth = new AuthenticationPage(newPage);
       await auth.fillOutLoginForm(user.email, user.password);
       await delay(1000); // ensure session is initialized
-      await auth.verifyEmail(user.email, false, '**/auth/mfa-enroll/');
+      await auth.verifyEmail(user.email, false, '**/auth/mfa-enroll**');
       await expect(newPage.getByRole('heading', { name: 'Scan the QR code with your' })).toBeVisible();
       await auth.enrollInOtp(user.email);
       expect(newPage.url()).toContain('/app');

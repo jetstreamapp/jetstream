@@ -17,12 +17,12 @@ test.describe('Desktop / Web-Extension Authentication', () => {
     const deviceId = uuid();
     const token = uuid();
 
-    await page.goto(`/desktop-app/auth/?deviceId=${deviceId}&token=${token}`);
+    await page.goto(`/desktop-app/auth?deviceId=${deviceId}&token=${token}`);
     await expect(page.getByText('You are successfully authenticated, you can close this tab.')).toBeVisible();
   });
 
   test('Desktop Authentication - Missing query params', async ({ page, teamCreationUtils1User }) => {
-    await page.goto(`/desktop-app/auth/`);
+    await page.goto(`/desktop-app/auth`);
     await expect(page.getByText('Error communicating with desktop application, is the application open?')).toBeVisible();
   });
 
@@ -80,7 +80,7 @@ test.describe('Desktop / Web-Extension Authentication', () => {
 
   // TODO: we don't have a way to test this currently since the extension is not installed
   test('Web Extension Authentication - Extension not installed', async ({ page, teamCreationUtils1User }) => {
-    await page.goto(`/web-extension/auth/`);
+    await page.goto(`/web-extension/auth`);
     await expect(page.getByText('Authentication in progress...')).toBeVisible();
   });
 
@@ -435,13 +435,13 @@ test.describe('Desktop / Web-Extension Authentication - Not Logged In', () => {
     const deviceId = uuid();
     const token = uuid();
 
-    await page.goto(`/desktop-app/auth/?deviceId=${deviceId}&token=${token}`);
-    expect(page.url()).toContain('/auth/login/');
+    await page.goto(`/desktop-app/auth?deviceId=${deviceId}&token=${token}`);
+    expect(page.url()).toContain('/auth/login');
   });
 
   test('Web Extension - Extension not installed', async ({ page }) => {
-    await page.goto(`/web-extension/auth/`);
-    expect(page.url()).toContain('/auth/login/');
+    await page.goto(`/web-extension/auth`);
+    expect(page.url()).toContain('/auth/login');
   });
 });
 
@@ -460,18 +460,18 @@ test.describe('Desktop / Web-Extension Authentication - No Access', () => {
     const deviceId = uuid();
     const token = uuid();
 
-    await page.goto(`/desktop-app/auth/?deviceId=${deviceId}&token=${token}`);
+    await page.goto(`/desktop-app/auth?deviceId=${deviceId}&token=${token}`);
     await expect(page.getByText('You do not have a valid subscription to use the desktop application')).toBeVisible();
   });
 
   test('Desktop Authentication - Missing query params', async ({ page, newUser: _newUser }) => {
-    await page.goto(`/desktop-app/auth/`);
+    await page.goto(`/desktop-app/auth`);
     await expect(page.getByText('Error communicating with desktop application, is the application open?')).toBeVisible();
   });
 
   // TODO: we don't have a way to test this currently since the extension is not installed
   test('Web Extension - Extension not installed', async ({ page, newUser: _newUser }) => {
-    await page.goto(`/web-extension/auth/`);
+    await page.goto(`/web-extension/auth`);
     await expect(page.getByText('Authentication in progress...')).toBeVisible();
   });
 });

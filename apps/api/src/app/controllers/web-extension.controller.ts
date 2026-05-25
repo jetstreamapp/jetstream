@@ -106,7 +106,7 @@ const initAuthMiddleware = createRoute(routeDefinition.initAuthMiddleware.valida
   if (!req.session.user) {
     const { redirectUrl: redirectUrlCookie } = getCookieConfig(ENV.USE_SECURE_COOKIES);
     setCookie(redirectUrlCookie.name, `${ENV.JETSTREAM_SERVER_URL}/web-extension/auth`, redirectUrlCookie.options);
-    redirect(res, '/auth/login/');
+    redirect(res, '/auth/login');
     return;
   }
   next();

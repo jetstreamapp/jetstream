@@ -139,7 +139,7 @@ export const Settings = () => {
       await deleteUserProfile(reason);
       eraseCookies();
 
-      window.location.href = '/goodbye/';
+      window.location.href = '/goodbye';
     } catch {
       // error deleting everything from server
       fireToast({

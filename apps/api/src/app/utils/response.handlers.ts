@@ -243,7 +243,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       } else if (err instanceof AuthError) {
         deferredErrorBody.errorType = err.type;
         deferredErrorBody.logout = true;
-        deferredErrorBody.logoutUrl = `${ENV.JETSTREAM_SERVER_URL}/auth/login/?${new URLSearchParams({ error: err.type }).toString()}`;
+        deferredErrorBody.logoutUrl = `${ENV.JETSTREAM_SERVER_URL}/auth/login?${new URLSearchParams({ error: err.type }).toString()}`;
       }
 
       writeDeferredResponse(res, deferredErrorBody);
@@ -298,7 +298,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
         });
       }
       const params = new URLSearchParams({ error: err.type }).toString();
-      return res.redirect(`${ENV.JETSTREAM_SERVER_URL}/auth/login/?${params}`);
+      return res.redirect(`${ENV.JETSTREAM_SERVER_URL}/auth/login?${params}`);
     } else if (err instanceof UserFacingError) {
       // Attempt to use response code from 3rd party request if we have it available
       const statusCode = err.apiRequestError?.status || status || 400;
