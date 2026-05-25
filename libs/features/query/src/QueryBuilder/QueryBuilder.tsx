@@ -43,7 +43,7 @@ import { applicationCookieState, selectedOrgState, soqlQueryFormatOptionsState }
 import { formatQuery } from '@jetstreamapp/soql-parser-js';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
-import { Fragment, useCallback, useRef, useState } from 'react';
+import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ManualSoql from '../QueryOptions/ManualSoql';
 import QueryBuilderAdvancedOptions from '../QueryOptions/QueryBuilderAdvancedOptions';
@@ -61,6 +61,7 @@ import QueryWalkthrough from '../QueryWalkthrough/QueryWalkthrough';
 import ExecuteQueryButton from './ExecuteQueryButton';
 import QueryBuilderSoqlUpdater from './QueryBuilderSoqlUpdater';
 import QueryFieldsComponent from './QueryFields';
+import QuerySubqueryConfigPanel from './QuerySubqueryConfigPanel';
 import QuerySubquerySObjects from './QuerySubquerySObjects';
 
 const HEIGHT_BUFFER = 175;
@@ -71,6 +72,36 @@ const SOBJECT_QUERY_ICON: IconObj = { type: 'standard', icon: 'record_lookup', d
 const METADATA_QUERY_ID = 'metadata';
 const METADATA_QUERY_TITLE = 'Query Metadata Records';
 const METADATA_QUERY_ICON: IconObj = { type: 'standard', icon: 'settings', description: 'Metadata Query' };
+
+// Tiny atom-connected wrappers so order-by / limit subscriptions stay leaf-scoped —
+// a change to queryOrderByState / queryLimit re-renders the wrapper, not the whole QueryBuilder body.
+interface ConnectedQueryOrderByProps {
+  sobject: string;
+  fields: ListItem[];
+  onLoadRelatedFields: (item: ListItem) => Promise<ListItem[]>;
+}
+
+const ConnectedQueryOrderBy: FunctionComponent<ConnectedQueryOrderByProps> = ({ sobject, fields, onLoadRelatedFields }) => {
+  const [orderByClauses, setOrderByClauses] = useAtom(fromQueryState.queryOrderByState);
+  return (
+    <QueryOrderBy
+      sobject={sobject}
+      fields={fields}
+      orderByClauses={orderByClauses}
+      setOrderByClauses={setOrderByClauses}
+      onLoadRelatedFields={onLoadRelatedFields}
+    />
+  );
+};
+
+const ConnectedQueryLimit: FunctionComponent = () => {
+  const [limit, setLimit] = useAtom(fromQueryState.queryLimit);
+  const [limitSkip, setLimitSkip] = useAtom(fromQueryState.queryLimitSkip);
+  const hasLimitOverride = useAtomValue(fromQueryState.selectQueryLimitHasOverride);
+  return (
+    <QueryLimit limit={limit} setLimit={setLimit} limitSkip={limitSkip} setLimitSkip={setLimitSkip} hasLimitOverride={hasLimitOverride} />
+  );
+};
 
 export const QueryBuilder = () => {
   const { trackEvent } = useAmplitude();
@@ -94,6 +125,8 @@ export const QueryBuilder = () => {
   const setGroupByFields = useSetAtom(fromQueryState.groupByQueryFieldsState);
   const queryKey = useAtomValue(fromQueryState.selectQueryKeyState);
   const [queryFilters, setQueryFilters] = useAtom(fromQueryState.queryFiltersState);
+  const subqueryConfigPanel = useAtomValue(fromQueryState.subqueryConfigPanelState);
+  const resetSubqueryConfigPanel = useResetAtom(fromQueryState.subqueryConfigPanelState);
 
   const resetSelectedQueryFieldsState = useResetAtom(fromQueryState.selectedQueryFieldsState);
   const resetFilterQueryFieldsState = useResetAtom(fromQueryState.filterQueryFieldsState);
@@ -103,6 +136,9 @@ export const QueryBuilder = () => {
   const resetQueryFieldsMapState = useResetAtom(fromQueryState.queryFieldsMapState);
   const resetQueryFieldsKey = useResetAtom(fromQueryState.queryFieldsKey);
   const resetSelectedSubqueryFieldsState = useResetAtom(fromQueryState.selectedSubqueryFieldsState);
+  const resetQuerySubqueryFiltersState = useResetAtom(fromQueryState.querySubqueryFiltersState);
+  const resetQuerySubqueryOrderByState = useResetAtom(fromQueryState.querySubqueryOrderByState);
+  const resetQuerySubqueryLimitState = useResetAtom(fromQueryState.querySubqueryLimitState);
   const resetQueryFiltersState = useResetAtom(fromQueryState.queryFiltersState);
   const resetQueryHavingState = useResetAtom(fromQueryState.queryHavingState);
   const resetFieldFilterFunctions = useResetAtom(fromQueryState.fieldFilterFunctions);
@@ -241,6 +277,10 @@ export const QueryBuilder = () => {
       resetFilterQueryFieldsState();
       resetOrderByQueryFieldsState();
       resetSelectedSubqueryFieldsState();
+      resetQuerySubqueryFiltersState();
+      resetQuerySubqueryOrderByState();
+      resetQuerySubqueryLimitState();
+      resetSubqueryConfigPanel();
       resetQueryFiltersState();
       resetQueryHavingState();
       resetFieldFilterFunctions();
@@ -260,6 +300,10 @@ export const QueryBuilder = () => {
       resetFilterQueryFieldsState,
       resetOrderByQueryFieldsState,
       resetSelectedSubqueryFieldsState,
+      resetQuerySubqueryFiltersState,
+      resetQuerySubqueryOrderByState,
+      resetQuerySubqueryLimitState,
+      resetSubqueryConfigPanel,
       resetQueryFiltersState,
       resetQueryHavingState,
       resetFieldFilterFunctions,
@@ -279,6 +323,14 @@ export const QueryBuilder = () => {
     resetState();
   }, [isTooling, resetState]);
 
+  // The subquery config panel is ephemeral UI. Clear it on unmount so it never
+  // re-opens when the user navigates away and later returns to this page.
+  useEffect(() => {
+    return () => {
+      resetSubqueryConfigPanel();
+    };
+  }, [resetSubqueryConfigPanel]);
+
   function handleOpenHistory(type: fromQueryHistoryState.QueryHistoryType) {
     queryHistoryRef.current?.open(type);
   }
@@ -287,6 +339,16 @@ export const QueryBuilder = () => {
     <Fragment>
       <QueryBuilderSoqlUpdater />
       {showWalkthrough && <QueryWalkthrough onClose={handleQueryWalkthroughClose} />}
+      {subqueryConfigPanel && (
+        <QuerySubqueryConfigPanel
+          key={subqueryConfigPanel.relationshipName}
+          org={selectedOrg}
+          isOpen
+          relationshipName={subqueryConfigPanel.relationshipName}
+          childSObject={subqueryConfigPanel.childSObject}
+          onClose={resetSubqueryConfigPanel}
+        />
+      )}
       <Page testId="query-builder-page">
         <PageHeader>
           <PageHeaderRow>
@@ -464,7 +526,7 @@ export const QueryBuilder = () => {
                                 title: 'Order By',
                                 titleSummaryIfCollapsed: <QueryOrderByTitleSummary key={queryKey} />,
                                 content: (
-                                  <QueryOrderBy
+                                  <ConnectedQueryOrderBy
                                     key={queryKey}
                                     sobject={selectedSObject.name}
                                     fields={orderByFields}
@@ -476,7 +538,7 @@ export const QueryBuilder = () => {
                                 id: 'limit',
                                 title: 'Limit',
                                 titleSummaryIfCollapsed: <QueryLimitTitleSummary key={queryKey} />,
-                                content: <QueryLimit key={queryKey} />,
+                                content: <ConnectedQueryLimit key={queryKey} />,
                               },
                               {
                                 id: 'soql',

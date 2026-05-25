@@ -1,76 +1,72 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { REGEX } from '@jetstream/shared/utils';
 import { Input } from '@jetstream/ui';
-import { fromQueryState } from '@jetstream/ui-core';
-import { useAtom, useAtomValue } from 'jotai';
-import React, { FunctionComponent, useEffect, useState } from 'react';
+import React, { FunctionComponent } from 'react';
 
-export interface QueryLimitProps {}
+export interface QueryLimitProps {
+  limit: string;
+  setLimit: (value: string) => void;
+  /** Omit to hide the Skip (OFFSET) input — e.g. for subqueries. */
+  limitSkip?: string;
+  setLimitSkip?: (value: string) => void;
+  /** When true, the limit input is forced to "1" and disabled (tooling override). */
+  hasLimitOverride?: boolean;
+  /** Controls the id attribute of the inputs so multiple instances can coexist. */
+  idPrefix?: string;
+}
 
 function sanitize(value: string) {
   return value.replace(REGEX.NOT_UNSIGNED_NUMERIC, '');
 }
 
-export const QueryLimit: FunctionComponent<QueryLimitProps> = React.memo(() => {
-  const hasLimitOverride = useAtomValue(fromQueryState.selectQueryLimitHasOverride);
-  const [queryLimitState, setQueryLimitState] = useAtom(fromQueryState.queryLimit);
-  const [queryLimitSkipState, setQueryLimitSkipState] = useAtom(fromQueryState.queryLimitSkip);
+export const QueryLimit: FunctionComponent<QueryLimitProps> = React.memo(
+  ({ limit, setLimit, limitSkip, setLimitSkip, hasLimitOverride, idPrefix = 'query-limit' }) => {
+    useNonInitialEffect(() => {
+      if (hasLimitOverride) {
+        setLimit('1');
+      } else {
+        setLimit('');
+      }
+      // Only react to override toggles — intentionally omit setLimit to avoid re-firing on every render
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [hasLimitOverride]);
 
-  // const [queryLimitPriorValue, setQueryLimitPriorValue] = useState(queryLimitState);
-  const [queryLimit, setQueryLimit] = useState(queryLimitState);
-  const [queryLimitSkip, setQueryLimitSkip] = useState(queryLimitSkipState);
-
-  // If local state changes to something different, update globally
-  // ignore limit change if in override mode
-  useEffect(() => {
-    if (queryLimitState !== queryLimit) {
-      setQueryLimitState(queryLimit);
+    function handleQueryLimitChange(event: React.ChangeEvent<HTMLInputElement>) {
+      setLimit(sanitize(event.target.value));
     }
 
-    if (queryLimitSkip !== queryLimitSkipState) {
-      setQueryLimitSkipState(queryLimitSkip);
-    }
-  }, [hasLimitOverride, queryLimit, queryLimitSkip, queryLimitSkipState, queryLimitState, setQueryLimitSkipState, setQueryLimitState]);
+    const limitInputId = `${idPrefix}`;
+    const skipInputId = `${idPrefix}-skip`;
+    const showSkip = typeof limitSkip === 'string' && typeof setLimitSkip === 'function';
 
-  useNonInitialEffect(() => {
-    if (hasLimitOverride) {
-      setQueryLimit('1');
-    } else {
-      setQueryLimit('');
-    }
-  }, [hasLimitOverride, setQueryLimitState]);
-
-  function handleQueryLimitChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const value = sanitize(event.target.value);
-    setQueryLimit(value);
-  }
-
-  return (
-    <div className="slds-grid slds-gutters_xx-small">
-      <Input id="query-limit" label="Limit" className="slds-col">
-        <input
-          id="query-limit"
-          className="slds-input"
-          placeholder="Max records to return"
-          value={queryLimit}
-          pattern="[0-9]+"
-          disabled={hasLimitOverride}
-          onChange={handleQueryLimitChange}
-        />
-      </Input>
-      <Input id="query-limit-skip" label="Skip" className="slds-col">
-        <input
-          id="query-limit-skip"
-          className="slds-input"
-          placeholder="Records to skip"
-          value={queryLimitSkip}
-          pattern="[0-9]+"
-          onChange={(event) => setQueryLimitSkip(sanitize(event.target.value))}
-        />
-      </Input>
-    </div>
-  );
-});
+    return (
+      <div className="slds-grid slds-gutters_xx-small">
+        <Input id={limitInputId} label="Limit" className="slds-col">
+          <input
+            id={limitInputId}
+            className="slds-input"
+            placeholder="Max records to return"
+            value={limit}
+            pattern="[0-9]+"
+            disabled={hasLimitOverride}
+            onChange={handleQueryLimitChange}
+          />
+        </Input>
+        {showSkip && (
+          <Input id={skipInputId} label="Skip" className="slds-col">
+            <input
+              id={skipInputId}
+              className="slds-input"
+              placeholder="Records to skip"
+              value={limitSkip}
+              pattern="[0-9]+"
+              onChange={(event) => setLimitSkip?.(sanitize(event.target.value))}
+            />
+          </Input>
+        )}
+      </div>
+    );
+  },
+);
 
 export default QueryLimit;

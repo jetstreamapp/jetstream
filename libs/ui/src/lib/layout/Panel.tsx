@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { PositionLeftRight, SizeSmMdLgXlFull } from '@jetstream/types';
 import classNames from 'classnames';
-import { FunctionComponent, useState } from 'react';
+import { FunctionComponent, useEffect, useState } from 'react';
 import Icon from '../widgets/Icon';
 
 export interface PanelProps {
@@ -12,6 +12,19 @@ export interface PanelProps {
   position?: PositionLeftRight;
   size?: SizeSmMdLgXlFull;
   showBackArrow?: boolean;
+  /**
+   * Close the panel when the user presses Escape. Default: false (opt-in).
+   * The listener is attached at the document level while isOpen, so nested inputs
+   * (Monaco, textareas, selection flows) need to stop propagation if they want
+   * to handle Escape locally without closing the panel.
+   */
+  closeOnEscape?: boolean;
+  /**
+   * Override the stacking order. Defaults: 8000 when fullHeight (above app chrome
+   * and popovers/comboboxes at 7000), 2 otherwise (preserves legacy behavior).
+   * Note: fullHeight panels use `position: fixed` and anchor to the viewport.
+   */
+  zIndex?: number;
   onClosed: () => void;
   children?: React.ReactNode;
 }
@@ -52,10 +65,25 @@ export const Panel: FunctionComponent<PanelProps> = ({
   position = 'left',
   size: userSize = 'md',
   showBackArrow,
+  closeOnEscape = false,
+  zIndex,
   onClosed,
   children,
 }) => {
   const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen || !closeOnEscape) {
+      return;
+    }
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClosed();
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [isOpen, closeOnEscape, onClosed]);
 
   if (!isOpen) {
     return null;
@@ -63,13 +91,14 @@ export const Panel: FunctionComponent<PanelProps> = ({
 
   const size: SizeSmMdLgXlFull = expanded ? 'full' : userSize;
   const expandCollapseIcon = expanded ? 'contract_alt' : 'expand_alt';
+  const resolvedZIndex = zIndex ?? (fullHeight ? 8000 : 2);
 
   return (
     <div
       className={containerClassName}
       css={css`
-        z-index: 2;
-        ${fullHeight ? 'position: absolute; height: 100vh; top: 0;' : ''}
+        z-index: ${resolvedZIndex};
+        ${fullHeight ? 'position: fixed; height: 100vh; top: 0;' : ''}
         ${position === 'left' ? 'left: 0' : 'right: 0'};
       `}
     >
