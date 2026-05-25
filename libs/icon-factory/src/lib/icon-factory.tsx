@@ -24,6 +24,8 @@ import StandardIcon_AssetRelationship from './icons/standard/AssetRelationship';
 import StandardIcon_Billing from './icons/standard/Billing';
 import StandardIcon_BundleConfig from './icons/standard/BundleConfig';
 import StandardIcon_ConnectedApps from './icons/standard/ConnectedApps';
+import StandardIcon_Customers from './icons/standard/Customers';
+import StandardIcon_CustomerPortalUsers from './icons/standard/CustomerPortalUsers';
 import StandardIcon_DataStreams from './icons/standard/DataStreams';
 import StandardIcon_EmployeeOrganization from './icons/standard/EmployeeOrganization';
 import StandardIcon_Entity from './icons/standard/Entity';
@@ -32,6 +34,8 @@ import StandardIcon_Feed from './icons/standard/Feed';
 import StandardIcon_Feedback from './icons/standard/Feedback';
 import StandardIcon_Form from './icons/standard/Form';
 import StandardIcon_Formula from './icons/standard/Formula';
+import StandardIcon_Groups from './icons/standard/Groups';
+import StandardIcon_Incident from './icons/standard/Incident';
 import StandardIcon_MultiPicklist from './icons/standard/MultiPicklist';
 import StandardIcon_Opportunity from './icons/standard/Opportunity';
 import StandardIcon_Outcome from './icons/standard/Outcome';
@@ -56,6 +60,8 @@ import UtilityIcon_Announcement from './icons/utility/Announcement';
 import UtilityIcon_Apex from './icons/utility/Apex';
 import UtilityIcon_ApexPlugin from './icons/utility/ApexPlugin';
 import UtilityIcon_Archive from './icons/utility/Archive';
+import UtilityIcon_ArrowLeft from './icons/utility/ArrowLeft';
+import UtilityIcon_ArrowRight from './icons/utility/ArrowRight';
 import UtilityIcon_Arrowdown from './icons/utility/Arrowdown';
 import UtilityIcon_Arrowup from './icons/utility/Arrowup';
 import UtilityIcon_Back from './icons/utility/Back';
@@ -88,6 +94,7 @@ import UtilityIcon_ExpandAll from './icons/utility/ExpandAll';
 import UtilityIcon_ExpandAlt from './icons/utility/ExpandAlt';
 import UtilityIcon_Fallback from './icons/utility/Fallback';
 import UtilityIcon_Favorite from './icons/utility/Favorite';
+import UtilityIcon_Feed from './icons/utility/Feed';
 import UtilityIcon_File from './icons/utility/File';
 import UtilityIcon_Filter from './icons/utility/Filter';
 import UtilityIcon_FilterList from './icons/utility/FilterList';
@@ -201,6 +208,8 @@ const standardIcons = {
   billing: StandardIcon_Billing,
   bundle_config: StandardIcon_BundleConfig,
   connected_apps: StandardIcon_ConnectedApps,
+  customers: StandardIcon_Customers,
+  customer_portal_users: StandardIcon_CustomerPortalUsers,
   data_streams: StandardIcon_DataStreams,
   employee_organization: StandardIcon_EmployeeOrganization,
   entity: StandardIcon_Entity,
@@ -209,6 +218,8 @@ const standardIcons = {
   feedback: StandardIcon_Feedback,
   form: StandardIcon_Form,
   formula: StandardIcon_Formula,
+  groups: StandardIcon_Groups,
+  incident: StandardIcon_Incident,
   multi_picklist: StandardIcon_MultiPicklist,
   opportunity: StandardIcon_Opportunity,
   outcome: StandardIcon_Outcome,
@@ -251,6 +262,8 @@ const utilityIcons = {
   apex_plugin: UtilityIcon_ApexPlugin,
   apex: UtilityIcon_Apex,
   archive: UtilityIcon_Archive,
+  arrow_left: UtilityIcon_ArrowLeft,
+  arrow_right: UtilityIcon_ArrowRight,
   arrowdown: UtilityIcon_Arrowdown,
   arrowup: UtilityIcon_Arrowup,
   back: UtilityIcon_Back,
@@ -283,6 +296,7 @@ const utilityIcons = {
   expand_alt: UtilityIcon_ExpandAlt,
   fallback: UtilityIcon_Fallback,
   favorite: UtilityIcon_Favorite,
+  feed: UtilityIcon_Feed,
   file: UtilityIcon_File,
   filter: UtilityIcon_Filter,
   filterList: UtilityIcon_FilterList,

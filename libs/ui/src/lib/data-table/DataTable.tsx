@@ -22,8 +22,10 @@ interface PropsWithoutServer {
 export type DataTableProps<T = RowWithKey, TContext = Record<string, any>> = DataTablePropsBase<T, TContext> &
   (PropsWithServer | PropsWithoutServer);
 
-interface DataTablePropsBase<T = RowWithKey, TContext = Record<string, any>>
-  extends Omit<DataGridProps<T>, 'columns' | 'rows' | 'rowKeyGetter' | 'onColumnsReorder'> {
+interface DataTablePropsBase<T = RowWithKey, TContext = Record<string, any>> extends Omit<
+  DataGridProps<T>,
+  'columns' | 'rows' | 'rowKeyGetter' | 'onColumnsReorder'
+> {
   data: T[];
   columns: ColumnWithFilter<T>[];
   org?: SalesforceOrgUi;

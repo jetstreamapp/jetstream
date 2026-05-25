@@ -22,6 +22,29 @@
     &.save-error {
       background-color: #ffdede;
     }
+
+    /** Permission analysis Issues grid: full row for error-severity findings */
+    &.permission-finding-row--error {
+      background-color: #ffe8ea;
+      box-shadow: inset 0 0 0 1px #8a0618;
+    }
+  }
+
+  /** Warning findings: amber cell (Issues severity column + object permission boolean cells). */
+  .rdg-cell.permission-finding-severity-cell--warning {
+    background-color: #fff5e0;
+    box-shadow: inset 0 0 0 1px #a86404;
+  }
+
+  /** Error findings on object-permission boolean columns (FLS vs OLS mismatch). */
+  .rdg-cell.permission-finding-cell--error {
+    background-color: #ffe8ea;
+    box-shadow: inset 0 0 0 1px #8a0618;
+  }
+
+  /** Object-permission cells that open the findings drill-down modal. */
+  .rdg-cell.permission-finding-cell--clickable {
+    cursor: pointer;
   }
 
   .rdg-cell {

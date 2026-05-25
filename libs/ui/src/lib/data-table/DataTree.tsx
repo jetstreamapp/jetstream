@@ -22,8 +22,10 @@ interface PropsWithoutServer {
 export type DataTreeProps<T = RowWithKey, TContext = Record<string, any>> = DataTreePropsBase<T, TContext> &
   (PropsWithServer | PropsWithoutServer);
 
-interface DataTreePropsBase<T = RowWithKey, TContext = Record<string, any>>
-  extends Omit<TreeDataGridProps<T>, 'columns' | 'rows' | 'rowKeyGetter'> {
+interface DataTreePropsBase<T = RowWithKey, TContext = Record<string, any>> extends Omit<
+  TreeDataGridProps<T>,
+  'columns' | 'rows' | 'rowKeyGetter'
+> {
   data: T[];
   columns: ColumnWithFilter<T>[];
   serverUrl?: string;
@@ -125,6 +127,7 @@ export const DataTree = forwardRef<any, DataTreeProps<any>>(
             // @ts-expect-error Types are incorrect, but they are generic and difficult to get correct
             onCellKeyDown={handleCellKeydown}
             onColumnsReorder={handleReorderColumns}
+            enableVirtualization
             {...rest}
             onSortColumnsChange={(columns) => {
               setSortColumns(columns);

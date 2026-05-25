@@ -20,6 +20,14 @@ const testCases = [
   { cardTitle: 'AUTOMATION', menu: 'Automation Control', items: [{ link: 'Automation Control', path: '/automation-control' }] },
   { cardTitle: 'PERMISSIONS', menu: 'Manage Permissions', items: [{ link: 'Manage Permissions', path: '/permissions-manager' }] },
   {
+    cardTitle: 'Analysis',
+    menu: 'Analysis Tools',
+    items: [
+      { link: 'Permission Analysis', path: '/permission-analysis' },
+      { link: 'Data Analysis', path: '/data-analysis' },
+    ],
+  },
+  {
     cardTitle: 'DEPLOY',
     menu: 'Deploy Metadata',
     items: [

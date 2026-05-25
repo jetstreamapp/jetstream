@@ -1,3 +1,4 @@
+import { parseCustomFieldApiNameForTooling } from '@jetstream/shared/utils';
 import { Field } from '@jetstream/types';
 import { CustomFieldMetadata, FieldValues, SalesforceFieldType } from './create-fields-types';
 import { getInitialValues } from './create-fields-utils';
@@ -338,11 +339,11 @@ export interface ExistingFieldRow {
 
 /**
  * Returns the namespace prefix from a custom field API name, or null if non-namespaced.
- * e.g. "ns__MyField__c" => "ns", "MyField__c" => null
+ * Uses {@link parseCustomFieldApiNameForTooling} so unmanaged names like `My_Field__c` are not mistaken for packaged fields.
  */
 function getFieldNamespacePrefix(fieldName: string): string | null {
-  const match = /^([A-Za-z0-9]+)__.+__c$/.exec(fieldName);
-  return match ? match[1] : null;
+  const parsed = parseCustomFieldApiNameForTooling(fieldName);
+  return parsed?.namespacePrefix ?? null;
 }
 
 /**

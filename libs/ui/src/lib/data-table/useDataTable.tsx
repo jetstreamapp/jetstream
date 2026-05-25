@@ -27,6 +27,12 @@ import './data-table-styles.scss';
 import { ColumnWithFilter, ContextMenuActionData, DataTableFilter, DataTableRef, FILTER_SET_TYPES, RowWithKey } from './data-table-types';
 import { EMPTY_FIELD, NON_DATA_COLUMN_KEYS, filterRecord, getSearchTextByRow, isFilterActive, resetFilter } from './data-table-utils';
 
+/**
+ * Stable empty filter-text map returned when the quick filter isn't active. Reusing one frozen object
+ * keeps `filteredRows`' `rowFilterText` dependency identity-stable, so memoization holds.
+ */
+const EMPTY_ROW_FILTER_TEXT: Readonly<Record<string, string>> = Object.freeze({});
+
 export interface UseDataTableProps {
   data: any[];
   columns: ColumnWithFilter<any>[];
@@ -70,7 +76,6 @@ export function useDataTable<T = RowWithKey>({
   const [gridId] = useState(() => uniqueId('grid-'));
   const [columns, setColumns] = useState(_columns || []);
   const [sortColumns, setSortColumns] = useState<readonly SortColumn[]>(() => initialSortColumns || []);
-  const [rowFilterText, setRowFilterText] = useState<Record<string, string>>({});
   const [renderers] = useState<Renderers<T, unknown>>(() => ({ renderSortStatus }));
   const [columnsOrder, setColumnsOrder] = useState((): readonly number[] => columns.map((_, index) => index));
   const [contextMenuProps, setContextMenuProps] = useState<{
@@ -115,13 +120,29 @@ export function useDataTable<T = RowWithKey>({
     }
   }, [reorderedColumns, columnsOrder, onReorderColumns]);
 
-  useEffect(() => {
-    if (Array.isArray(columns) && columns.length && Array.isArray(data) && data.length) {
-      setRowFilterText(getSearchTextByRow(data, columns, getRowKey));
-    } else {
-      setRowFilterText({});
+  /**
+   * Lazy per-row search index for the global quick filter. Building the index on every `columns` /
+   * `data` identity change was a ~50ms hit per refresh on ~6.7k rows — async metadata loads cause
+   * 3+ rebuilds in quick succession on a fresh view. We defer the first build until the user actually
+   * types into the filter (`quickFilterHasBeenUsed`) and from then on it rebuilds only when `columns`
+   * or `data` identity changes — never on a keystroke (`quickFilterText` isn't in this memo's deps).
+   */
+  const [quickFilterHasBeenUsed, setQuickFilterHasBeenUsed] = useState(false);
+  // Derive on the way down: the moment the user types into the filter, flip the latch in-place
+  // (React handles setState-during-render by discarding this render and starting a new one).
+  if (includeQuickFilter && quickFilterText && !quickFilterHasBeenUsed) {
+    setQuickFilterHasBeenUsed(true);
+  }
+
+  const rowFilterText = useMemo<Record<string, string>>(() => {
+    if (!includeQuickFilter || !quickFilterHasBeenUsed) {
+      return EMPTY_ROW_FILTER_TEXT;
     }
-  }, [columns, data, getRowKey]);
+    if (!Array.isArray(columns) || !columns.length || !Array.isArray(data) || !data.length) {
+      return EMPTY_ROW_FILTER_TEXT;
+    }
+    return getSearchTextByRow(data, columns, getRowKey);
+  }, [columns, data, getRowKey, includeQuickFilter, quickFilterHasBeenUsed]);
 
   const updateFilter = useCallback((column: string, filter: DataTableFilter) => {
     dispatch({ type: 'UPDATE_FILTER', payload: { column, filter } });

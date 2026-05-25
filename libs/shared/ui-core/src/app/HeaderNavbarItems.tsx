@@ -80,6 +80,26 @@ export const HeaderNavbarItems = () => {
       />
 
       <NavbarMenuItems
+        label="Analysis Tools"
+        items={[
+          {
+            id: 'permission-analysis',
+            path: APP_ROUTES.PERMISSION_ANALYSIS.ROUTE,
+            search: APP_ROUTES.PERMISSION_ANALYSIS.SEARCH_PARAM,
+            title: APP_ROUTES.PERMISSION_ANALYSIS.DESCRIPTION,
+            label: APP_ROUTES.PERMISSION_ANALYSIS.TITLE,
+          },
+          {
+            id: 'data-analysis',
+            path: APP_ROUTES.DATA_ANALYSIS.ROUTE,
+            search: APP_ROUTES.DATA_ANALYSIS.SEARCH_PARAM,
+            title: APP_ROUTES.DATA_ANALYSIS.DESCRIPTION,
+            label: APP_ROUTES.DATA_ANALYSIS.TITLE,
+          },
+        ]}
+      />
+
+      <NavbarMenuItems
         label="Deploy Metadata"
         items={[
           {

@@ -1,0 +1,3 @@
+SELECT Id, PermissionSetGroupId, DeveloperName, MasterLabel
+FROM MutingPermissionSet
+WHERE PermissionSetGroupId IN (:groupIds)
