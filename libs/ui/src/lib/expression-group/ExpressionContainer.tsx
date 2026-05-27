@@ -529,6 +529,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
                     rowHelpText={childRow.helpText}
                     resources={resources}
                     resourceListHeader={resourceListHeader}
+                    resourceDrillInOnLoad={resourceDrillInOnLoad}
                     functions={functions}
                     operators={operators}
                     selected={childRow.selected}
