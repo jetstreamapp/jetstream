@@ -361,7 +361,11 @@ function responseErrorInterceptor(options: {
       // surface a diagnosable message instead of the generic literal.
       message = responseBody?.message || `An unknown error has occurred (HTTP ${response.status})`;
       // take user to login page
-      if (getHeader(response.headers, HTTP.HEADERS.X_LOGOUT) === '1') {
+      const shouldLogout =
+        getHeader(response.headers, HTTP.HEADERS.X_LOGOUT) === '1' ||
+        ((response.status === 401 || response.status === 403) && response.config.url?.endsWith('/api/heartbeat'));
+
+      if (shouldLogout) {
         // LOG USER OUT
         const logoutUrl = getHeader(response.headers, HTTP.HEADERS.X_LOGOUT_URL) || '/auth/login';
         window.location.href = logoutUrl;
