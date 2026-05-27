@@ -1,0 +1,12 @@
+# Normalize line endings on checkout to LF for all text files.
+# Without this, Windows clones with core.autocrlf=true convert pnpm-lock.yaml
+# to CRLF, which breaks NX's multi-document lockfile parser (pnpm 11+).
+* text=auto eol=lf
+
+# Lockfiles must always be LF (parsed by tools that assume \n separators).
+pnpm-lock.yaml text eol=lf
+
+# Windows-only script types stay CRLF.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
