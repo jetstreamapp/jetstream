@@ -7,6 +7,7 @@ import { formatNumber, useTitle } from '@jetstream/shared/ui-utils';
 import { FieldWithRelatedEntities, LocalOrGoogle, Maybe, Step } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
+  fireToast,
   Grid,
   GridCol,
   Icon,
@@ -243,11 +244,20 @@ export const LoadRecords = () => {
       return;
     }
     setLoadingFields(true);
-    const fields = await getFieldMetadata(selectedOrg, selectedSObject.name);
-    // ensure object did not change and that component is still mounted
-    if (isMounted.current) {
-      setFields(fields);
-      setLoadingFields(false);
+    try {
+      const fields = await getFieldMetadata(selectedOrg, selectedSObject.name);
+      if (isMounted.current) {
+        setFields(fields);
+      }
+    } catch (ex) {
+      logger.warn('[LoadRecords] Failed to fetch field metadata', ex);
+      if (isMounted.current) {
+        fireToast({ message: 'There was a problem loading fields for this object. Try again or refresh the page.', type: 'error' });
+      }
+    } finally {
+      if (isMounted.current) {
+        setLoadingFields(false);
+      }
     }
   }, [selectedOrg, selectedSObject]);
 

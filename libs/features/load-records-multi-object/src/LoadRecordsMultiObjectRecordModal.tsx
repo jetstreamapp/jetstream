@@ -52,7 +52,7 @@ function getParentTreeItem(item: CompositeGraphRequest, data: LoadMultiObjectReq
 }
 
 function getTreeItem(record: RecordWithResponse, item?: CompositeRequestBody): TreeItems {
-  if (record.response) {
+  if (record.response?.body) {
     const extraContent = (
       <Tooltip
         id={`tooltip-${record.referenceId}`}

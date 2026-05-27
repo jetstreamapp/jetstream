@@ -14,6 +14,10 @@ const ignoredMessageSubstrings = [
   'This session is not valid for use with the REST API',
   'There was an error reading one or more date fields in your file',
   'There was an error reading one or more time fields in your file',
+  // Generic auth-failure fallback from responseErrorInterceptor when the backend returns 401/403 with no JSON body.
+  // The frontend cannot fix these (expired/revoked session); user is shown an in-app error state.
+  'An unknown error has occurred (HTTP 401)',
+  'An unknown error has occurred (HTTP 403)',
 ];
 const ignoredExactMessages = new Set(['Canceled', 'ChunkLoadError', '(unknown)']);
 const extensionUrlPrefixes = ['chrome-extension://', 'moz-extension://', 'safari-web-extension://', 'safari-extension://'];
