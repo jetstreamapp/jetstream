@@ -1,5 +1,12 @@
 # Changelog
 
+## [9.18.1](https://github.com/jetstreamapp/jetstream/compare/v9.18.0...v9.18.1) (2026-05-27)
+
+### Bug Fixes
+
+* add missing resourceDrillInOnLoad prop to ExpressionContainer ([acc70db](https://github.com/jetstreamapp/jetstream/commit/acc70db11acbd22afff7b2783750ed7bf46ec52e)), closes [#1743](https://github.com/jetstreamapp/jetstream/issues/1743)
+* handle field metadata loading errors and show toast notifications ([70e7306](https://github.com/jetstreamapp/jetstream/commit/70e7306aac5e86b2a11c8e17fadd7c12566d4733))
+
 ## [9.18.0](https://github.com/jetstreamapp/jetstream/compare/v9.17.1...v9.18.0) (2026-05-22)
 
 ### Features
