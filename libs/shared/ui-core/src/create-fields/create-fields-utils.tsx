@@ -59,7 +59,7 @@ export function filterCreateFieldsSobjects(sobject: DescribeGlobalSObjectResult 
 }
 
 export function ensureValidType(type: string): SalesforceFieldType {
-  if (fieldTypeDependencies[type]) {
+  if (fieldTypeDependencies[type as keyof typeof fieldTypeDependencies]) {
     return type as SalesforceFieldType;
   }
   return (

@@ -92,8 +92,19 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
   const resetSelectedSObjectsState = useResetAtom(fromCreateFieldsState.selectedSObjectsState);
   const resetFieldRowsState = useResetAtom(fromCreateFieldsState.fieldRowsState);
 
-  const { rows, allValid, addRow, importRows, cloneRow, removeRow, changeRow, touchRow, resetRows, picklistOptionChanged } =
-    useFieldValues();
+  const {
+    rows,
+    allValid,
+    addRow,
+    importRows,
+    cloneRow,
+    removeRow,
+    changeRow,
+    touchRow,
+    regenerateFullName,
+    resetRows,
+    picklistOptionChanged,
+  } = useFieldValues();
 
   const [deployModalOpen, setDeployModalOpen] = useState(false);
   const [loadFieldsModalOpen, setLoadFieldsModalOpen] = useState(false);
@@ -232,6 +243,7 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
               onClone={() => cloneRow(row._key)}
               onDelete={() => removeRow(row._key)}
               onBlur={(field) => touchRow(row._key, field)}
+              onRegenerateFullName={() => regenerateFullName(row._key)}
               onChangePicklistOption={(value) => picklistOptionChanged(row._key, value)}
             />
           ))}
