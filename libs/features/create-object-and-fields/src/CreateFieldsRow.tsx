@@ -28,6 +28,7 @@ export interface CreateFieldsRowProps {
   onClone: () => void;
   onDelete: () => void;
   onBlur: (field: FieldDefinitionType) => void;
+  onRegenerateFullName: () => void;
   onChangePicklistOption: (value: boolean) => void;
 }
 
@@ -43,6 +44,7 @@ export const CreateFieldsRow: FunctionComponent<CreateFieldsRowProps> = ({
   onClone,
   onDelete,
   onBlur,
+  onRegenerateFullName,
   onChangePicklistOption,
 }) => {
   function handleChange(field: FieldDefinitionType, value: FieldValue) {
@@ -59,13 +61,37 @@ export const CreateFieldsRow: FunctionComponent<CreateFieldsRowProps> = ({
             selectedSObjects={selectedSObjects}
             rows={rows}
             id={`field-${rowIdx}-${field}`}
-            fieldDefinitions={fieldDefinitions}
             field={fieldDefinitions[field]}
             allValues={values}
             valueState={values[field]}
             disabled={false}
             onChange={(value) => handleChange(field, value)}
             onBlur={() => onBlur(field)}
+            fieldAddOns={
+              field === 'fullName'
+                ? {
+                    textInput: (
+                      <Grid
+                        vertical
+                        verticalStretch
+                        align={values.fullName.touched && !!values.fullName.errorMessage ? 'center' : 'end'}
+                        className="slds-m-left_xx-small"
+                      >
+                        <Tooltip content="Re-generate from the field label">
+                          <button
+                            className="slds-button slds-button_icon slds-button_icon-container"
+                            disabled={!values.label.value}
+                            onClick={onRegenerateFullName}
+                          >
+                            <Icon type="utility" icon="magicwand" className="slds-button__icon" omitContainer />
+                            <span className="slds-assistive-text">Re-generate from the field label</span>
+                          </button>
+                        </Tooltip>
+                      </Grid>
+                    ),
+                  }
+                : undefined
+            }
           />
         ))}
         {values.type && TYPE_PICKLIST.has(values.type.value as SalesforceFieldType) && (
@@ -90,7 +116,6 @@ export const CreateFieldsRow: FunctionComponent<CreateFieldsRowProps> = ({
               selectedSObjects={selectedSObjects}
               rows={rows}
               id={`field-${rowIdx}-${field}`}
-              fieldDefinitions={fieldDefinitions}
               field={fieldDefinitions[field]}
               allValues={values}
               valueState={values[field]}
@@ -106,7 +131,6 @@ export const CreateFieldsRow: FunctionComponent<CreateFieldsRowProps> = ({
             selectedSObjects={selectedSObjects}
             rows={rows}
             id={`field-${rowIdx}-${field}`}
-            fieldDefinitions={fieldDefinitions}
             field={fieldDefinitions[field]}
             allValues={values}
             valueState={values[field]}

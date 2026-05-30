@@ -56,7 +56,6 @@ export const CreateFieldsRowPicklistOption: FunctionComponent<CreateFieldsRowPic
             selectedOrg={selectedOrg}
             selectedSObjects={selectedSObjects}
             rows={rows}
-            fieldDefinitions={fieldDefinitions}
             field={fieldDefinitions.globalValueSet}
             allValues={values}
             valueState={values.globalValueSet}
@@ -73,7 +72,6 @@ export const CreateFieldsRowPicklistOption: FunctionComponent<CreateFieldsRowPic
           selectedOrg={selectedOrg}
           selectedSObjects={selectedSObjects}
           rows={rows}
-          fieldDefinitions={fieldDefinitions}
           field={fieldDefinitions.valueSet}
           allValues={values}
           valueState={values.valueSet}

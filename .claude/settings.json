@@ -17,7 +17,8 @@
       "Bash(pnpm build:ci)",
       "Bash(gh api:*)",
       "Bash(pnpm why *)",
-      "Bash(pnpm config *)"
+      "Bash(pnpm config *)",
+      "Bash(pnpm exec *)"
     ],
     "deny": [],
     "ask": []
