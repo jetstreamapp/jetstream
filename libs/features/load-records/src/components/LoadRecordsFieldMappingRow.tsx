@@ -112,7 +112,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
   return (
     <tr>
       <td
-        className="slds-align-top slds-text-color_weak bg-color-backdrop-tint"
+        className="slds-align-top slds-text-color_weak"
         css={css`
           width: 200px;
           max-width: 200px;

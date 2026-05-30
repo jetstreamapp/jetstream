@@ -1,5 +1,12 @@
 import { AppToast, ConfirmationServiceProvider } from '@jetstream/ui';
-import { AppLoading, DownloadFileStream, ErrorBoundaryFallback, HeaderNavbar, ViewEditCloneRecordWrapper } from '@jetstream/ui-core';
+import {
+  AppLoading,
+  DownloadFileStream,
+  ErrorBoundaryFallback,
+  HeaderNavbar,
+  ThemeApplier,
+  ViewEditCloneRecordWrapper,
+} from '@jetstream/ui-core';
 import { Suspense } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -24,6 +31,7 @@ export const App = () => {
         <Suspense fallback={<AppLoading />}>
           <AppInitializer>
             <DndProvider backend={HTML5Backend}>
+              <ThemeApplier forceScheme="light" />
               <ModalContainer />
               <AppToast />
               <DownloadFileStream />

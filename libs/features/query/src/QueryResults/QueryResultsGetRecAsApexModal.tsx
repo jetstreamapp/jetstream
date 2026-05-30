@@ -4,7 +4,7 @@ import { describeSObject } from '@jetstream/shared/data';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { Field, FieldType, SalesforceOrgUi } from '@jetstream/types';
 import { AxeIllustration, EmptyState, Grid, GridCol, Icon, Modal, Spinner } from '@jetstream/ui';
-import Editor from '@monaco-editor/react';
+import { MonacoEditor } from '@jetstream/ui-core';
 import copyToClipboard from 'copy-to-clipboard';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { RecordToApexOptionsInitialOptions, recordToApex, recordsToApex } from '../utils/query-apex-utils';
@@ -138,9 +138,8 @@ export const QueryResultsGetRecAsApexModal: FunctionComponent<QueryResultsGetRec
               `}
             >
               {fields.length > 0 && (
-                <Editor
+                <MonacoEditor
                   height="100%"
-                  theme="vs-dark"
                   defaultLanguage="apex"
                   value={apex}
                   options={{ contextmenu: false }}

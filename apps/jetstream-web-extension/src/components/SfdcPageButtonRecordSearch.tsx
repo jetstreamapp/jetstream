@@ -1,7 +1,7 @@
 import { Grid, Input } from '@jetstream/ui';
 import { useState } from 'react';
 import browser from 'webextension-polyfill';
-import '../sfdc-styles-shim.scss';
+import '../sfdc-styles-shim.css';
 
 interface SfdcPageButtonRecordSearchProps {
   sfHost: string;

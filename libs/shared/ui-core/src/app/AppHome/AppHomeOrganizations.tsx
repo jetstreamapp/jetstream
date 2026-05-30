@@ -9,9 +9,8 @@ const CURRENT_TIME = new Date().getTime();
 export const AppHomeOrganizations = () => {
   return (
     <div
-      className="slds-box slds-box_x-small"
+      className="slds-card slds-box_x-small"
       css={css`
-        background-color: white;
         grid-column: span 3;
 
         @media (max-width: 1024px) {
@@ -29,7 +28,7 @@ export const AppHomeOrganizations = () => {
             type="standard"
             icon="employee_organization"
             containerClassname="slds-icon_container"
-            className={classNames('slds-icon slds-icon_small', `slds-icon-standard-employee-organization`)}
+            className={classNames('slds-icon slds-icon_container slds-icon_small slds-icon-standard-employee-organization')}
           />
         </div>
         <div className="slds-media__body">

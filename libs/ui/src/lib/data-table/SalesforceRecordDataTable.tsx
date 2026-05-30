@@ -451,7 +451,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
         {!!dirtyRows?.length && (
           <Grid
             css={css`
-              background-color: #f3f3f3;
+              background-color: var(--slds-g-color-surface-container-2, #f3f3f3);
             `}
             className="slds-p-around_x-small"
             align="center"

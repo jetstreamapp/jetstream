@@ -231,7 +231,7 @@ export const Popover = ({
                   !containerClassName?.includes('_warning') &&
                   !containerClassName?.includes('_walkthrough') &&
                   `&::before {
-              background-color: #f3f2f2;
+              background-color: var(--slds-s-container-footer-color-background, var(--slds-g-color-surface-container-2, #f3f2f2));
             }`}
                 }
               }
@@ -244,15 +244,15 @@ export const Popover = ({
                   }
                   ${containerClassName?.includes('_error') &&
                   `&::before {
-              background-color: var(--slds-g-color-error-base-30, #ba0517);
+              background-color: var(--slds-g-color-error-container-1, #ba0517);
             }`}
                   ${containerClassName?.includes('_warning') &&
                   `&::before {
-              background-color: #fe9339;
+              background-color: var(--slds-g-color-warning-container-1, #fe9339);
             }`}
             ${containerClassName?.includes('_walkthrough') &&
                   `&::before {
-              background-color: #032d60;
+              background-color: var(--slds-g-color-surface-inverse-1, #032d60);
             }`}
                 }
               }

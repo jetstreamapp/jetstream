@@ -302,6 +302,9 @@ importers:
       '@salesforce-ux/design-system':
         specifier: ^2.29.2
         version: 2.29.2(postcss@8.5.8)
+      '@salesforce-ux/design-system-2':
+        specifier: ^2.0.0
+        version: 2.0.0
       '@sentry/node':
         specifier: ^10.53.1
         version: 10.53.1
@@ -912,12 +915,6 @@ importers:
       release-it:
         specifier: ^20.0.1
         version: 20.0.1(@types/node@24.1.0)(magicast@0.5.1)
-      sass:
-        specifier: ^1.98.0
-        version: 1.98.0
-      sass-loader:
-        specifier: ^16.0.7
-        version: 16.0.7(@rspack/core@1.6.8(@swc/helpers@0.5.18))(sass-embedded@1.89.1)(sass@1.98.0)(webpack@5.102.1(@swc/core@1.15.8(@swc/helpers@0.5.18))(esbuild@0.27.4))
       start-server-and-test:
         specifier: ^3.0.0
         version: 3.0.0
@@ -6387,6 +6384,10 @@ packages:
 
   '@rushstack/ts-command-line@5.3.9':
     resolution: {integrity: sha512-GIHqU+sRGQ3LGWAZu1O+9Yh++qwtyNIIGuNbcWHJjBTm2qRez0cwINUHZ+pQLR8UuzZDcMajrDaNbUYoaL/XtQ==}
+
+  '@salesforce-ux/design-system-2@2.0.0':
+    resolution: {integrity: sha512-P3DhPd6pF6Ii9dNsIosBwGFaWu8kWp33dK3wcG1xVCOswKsonx4jNCRAOmiAyRjF6rAr5BHQa52+H1pnAOd6IQ==}
+    engines: {node: '>=20'}
 
   '@salesforce-ux/design-system@2.29.2':
     resolution: {integrity: sha512-OWjPnRGOnDzbIp/yKS/2YhirxoZDy5I6TXY6jW8Dkb3NzQrk3F/VleufM6+3YgpEiTzW1Zb9ZA07X53hHG/Rxw==}
@@ -24956,6 +24957,8 @@ snapshots:
       string-argv: 0.3.2
     transitivePeerDependencies:
       - '@types/node'
+
+  '@salesforce-ux/design-system-2@2.0.0': {}
 
   '@salesforce-ux/design-system@2.29.2(postcss@8.5.8)':
     dependencies:

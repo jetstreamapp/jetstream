@@ -1,6 +1,6 @@
 import { CookieConsentBanner, useConditionalGoogleAnalytics } from '@jetstream/ui/cookie-consent-banner';
 import Layout from '../components/layouts/Layout';
-import './index.scss';
+import './index.css';
 
 export default function MyApp({ Component, pageProps }) {
   useConditionalGoogleAnalytics(process.env.NX_GOOGLE_ANALYTICS_KEY || '');

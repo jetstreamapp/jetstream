@@ -5,7 +5,7 @@ import { DataGrid, DataGridProps, SortColumn } from 'react-data-grid';
 import 'react-data-grid/lib/styles.css';
 import { ContextMenu } from '../form/context-menu/ContextMenu';
 import { DataTableFilterContext, DataTableGenericContext } from './data-table-context';
-import './data-table-styles.scss';
+import './data-table-styles.css';
 import { ColumnWithFilter, ContextMenuActionData, RowWithKey } from './data-table-types';
 import { useDataTable } from './useDataTable';
 
@@ -22,8 +22,10 @@ interface PropsWithoutServer {
 export type DataTableProps<T = RowWithKey, TContext = Record<string, any>> = DataTablePropsBase<T, TContext> &
   (PropsWithServer | PropsWithoutServer);
 
-interface DataTablePropsBase<T = RowWithKey, TContext = Record<string, any>>
-  extends Omit<DataGridProps<T>, 'columns' | 'rows' | 'rowKeyGetter' | 'onColumnsReorder'> {
+interface DataTablePropsBase<T = RowWithKey, TContext = Record<string, any>> extends Omit<
+  DataGridProps<T>,
+  'columns' | 'rows' | 'rowKeyGetter' | 'onColumnsReorder'
+> {
   data: T[];
   columns: ColumnWithFilter<T>[];
   org?: SalesforceOrgUi;
@@ -115,7 +117,7 @@ export const DataTable = forwardRef<any, DataTableProps<any>>(
         >
           <DataGrid
             data-id={gridId}
-            className="rdg-light fill-grid"
+            className="fill-grid"
             columns={reorderedColumns}
             rows={filteredRows}
             // @ts-expect-error Types are incorrect, but they are generic and difficult to get correct

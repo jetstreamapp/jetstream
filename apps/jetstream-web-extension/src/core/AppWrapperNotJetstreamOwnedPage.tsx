@@ -1,10 +1,10 @@
 import { enableLogger } from '@jetstream/shared/client-logger';
-import '@salesforce-ux/design-system/assets/styles/salesforce-lightning-design-system.css';
+import '@jetstream/ui-styles/main.css';
+import '@salesforce-ux/design-system-2/dist/css/bundled/slds2.cosmos.css';
 import { Provider, useAtomValue } from 'jotai';
 import localforage from 'localforage';
 import { ReactNode, Suspense, useEffect, useState } from 'react';
 import { environment } from '../environments/environment';
-import '../main.scss';
 import { chromeStorageLoading, extensionStateStore } from '../utils/extension.store';
 import { LOCAL_DRIVER_NAME, localDriver } from '../utils/web-extension-localforage-driver';
 

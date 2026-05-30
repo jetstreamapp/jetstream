@@ -15,8 +15,11 @@ export interface KeyboardShortcutProps extends GridProps {
 }
 
 export function KeyboardShortcut({ keys, preContent, postContent, separator = '+', inverse, ...rest }: KeyboardShortcutProps) {
-  const bgColor = inverse ? `#e5e5e5` : `rgba(0, 0, 0, 0.06)`;
-  const accentColor = inverse ? `#e5e5e5` : `#e5e5e5`;
+  const bgColor = inverse
+    ? `var(--slds-g-color-surface-container-3, #e5e5e5)`
+    : `var(--slds-g-color-surface-container-2, rgba(0, 0, 0, 0.06))`;
+  const accentColor = `var(--slds-g-color-border-1, #e5e5e5)`;
+  const textColor = `var(--slds-g-color-on-surface-1, rgba(24, 24, 27, 1))`;
   return (
     <Grid verticalAlign="center" {...rest}>
       {preContent && <span className="slds-m-right_x-small">{preContent}</span>}
@@ -31,7 +34,7 @@ export function KeyboardShortcut({ keys, preContent, postContent, separator = '+
               border: 1px solid ${accentColor};
               box-shadow: ${accentColor};
               box-shadow: inset 0 -1px 0 0 ${accentColor};
-              color: rgba(24, 24, 27, 1);
+              color: ${textColor};
               display: inline-flex;
               font-family:
                 ui-sans-serif,

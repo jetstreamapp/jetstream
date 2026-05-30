@@ -10,11 +10,13 @@ import { fromAppState } from '@jetstream/ui/app-state';
 import { useAtomValue, useSetAtom } from 'jotai';
 import { useEffect, useState } from 'react';
 import browser from 'webextension-polyfill';
-import '../sfdc-styles-shim.scss';
+import { useResolvedColorScheme } from '../hooks/useResolvedColorScheme';
+import '../sfdc-styles-shim.css';
 import { chromeStorageOptions, chromeSyncStorage } from '../utils/extension.store';
 import { getRecordPageObject, getRecordPageRecordId, sendMessage } from '../utils/web-extension.utils';
 import JetstreamIcon from './icons/JetstreamIcon';
 import JetstreamLogo from './icons/JetstreamLogo';
+import { JetstreamLogoInverse } from './icons/JetstreamLogoInverse';
 import { SfdcPageButtonOrgInfo } from './SfdcPageButtonOrgInfo';
 import { SfdcPageButtonRecordSearch } from './SfdcPageButtonRecordSearch';
 import { SfdcPageButtonUserSearch } from './SfdcPageButtonUserSearch';
@@ -101,6 +103,7 @@ function getActionLink(sfHost: string, pageLink: PageLink, objectName?: Maybe<st
 export function SfdcPageButton() {
   const options = useAtomValue(chromeStorageOptions);
   const { authTokens, buttonPosition } = useAtomValue(chromeSyncStorage);
+  const resolvedScheme = useResolvedColorScheme();
   const [isOnSalesforcePage] = useState(
     () => !!document.querySelector('body.sfdcBody, body.ApexCSIPage, #auraLoadingBox') || location.host.endsWith('.visualforce.com'),
   );
@@ -378,7 +381,7 @@ export function SfdcPageButton() {
                 target="_blank"
                 rel="noreferrer"
               >
-                <JetstreamLogo />
+                {resolvedScheme === 'dark' ? <JetstreamLogoInverse /> : <JetstreamLogo />}
               </a>
             </div>
           </footer>

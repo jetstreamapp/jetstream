@@ -5,7 +5,7 @@ import { hasModifierKey, hasShiftModifierKey, isHKey, useGlobalEventHandler } fr
 import { SalesforceOrgUi } from '@jetstream/types';
 import { ButtonGroupContainer, getModifierKey, Icon, KeyboardShortcut, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from 'react';
+import { forwardRef, Fragment, useCallback, useEffect, useImperativeHandle, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useLocation } from 'react-router-dom';
 import { ErrorBoundaryFallback, fromQueryHistoryState } from '../..';
@@ -19,10 +19,17 @@ export interface QueryHistoryRef {
 export interface QueryHistoryProps {
   className?: string;
   selectedOrg: SalesforceOrgUi;
+  /**
+   * When true, the two trigger buttons are rendered as bare siblings without an
+   * own `<ButtonGroupContainer>` wrapper or `slds-button_first` / `slds-button_last`
+   * modifiers. Use this when the buttons are already inside a larger
+   * button-group so the parent can manage the first/last radii and border collapse.
+   */
+  embedded?: boolean;
   onRestore?: (soql: string, tooling: boolean) => void;
 }
 
-export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, selectedOrg, onRestore }, ref) => {
+export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, selectedOrg, embedded = false, onRestore }, ref) => {
   const location = useLocation();
   const { trackEvent } = useAmplitude();
   const [whichType, setWhichType] = useState<QueryHistoryType>('HISTORY');
@@ -69,9 +76,11 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
     setWhichType('HISTORY');
   }
 
+  const GroupWrapper = embedded ? Fragment : ButtonGroupContainer;
+
   return (
     <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
-      <ButtonGroupContainer>
+      <GroupWrapper>
         <Tooltip
           ariaRole="label"
           content={
@@ -83,7 +92,7 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
         >
           <button
             aria-label="Query History"
-            className={classNames('slds-button slds-button_neutral slds-button_first', className)}
+            className={classNames('slds-button slds-button_neutral', { 'slds-button_first': !embedded }, className)}
             css={css`
               padding: 0.5rem;
             `}
@@ -114,7 +123,7 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
             <Icon type="utility" icon="favorite" className="slds-button__icon" omitContainer />
           </button>
         </Tooltip>
-      </ButtonGroupContainer>
+      </GroupWrapper>
       {isOpen && <QueryHistoryModal initialType={whichType} selectedOrg={selectedOrg} onRestore={onRestore} onclose={handleModalClose} />}
     </ErrorBoundary>
   );

@@ -45,12 +45,12 @@ import {
 } from '@jetstream/ui-core/shared';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
-import Editor from '@monaco-editor/react';
 import { useAtomValue } from 'jotai';
 import isNumber from 'lodash/isNumber';
 import isObject from 'lodash/isObject';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useAmplitude } from '../analytics';
+import { MonacoEditor } from '../app/MonacoEditor';
 import { fromJetstreamEvents } from '../jetstream-events';
 import { ViewChildRecords } from './ViewChildRecords';
 import { addRecentRecordToStorage, removeRecentRecordItem } from './record-utils';
@@ -796,11 +796,10 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                 )}
                 {isViewAsJson && (
                   <div className="slds-p-around_large">
-                    <Editor
+                    <MonacoEditor
                       height={
                         modalBodyRef.current?.parentElement?.clientHeight ? modalBodyRef.current?.parentElement?.clientHeight - 50 : '70vh'
                       }
-                      theme="vs-dark"
                       defaultLanguage="json"
                       value={JSON.stringify(initialRecord, null, 2)}
                       options={{ readOnly: true }}

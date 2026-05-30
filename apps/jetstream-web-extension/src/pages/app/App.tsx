@@ -22,13 +22,16 @@ import { Suspense, useEffect } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { AppWrapper } from '../../core/AppWrapper';
+import { applyExtensionThemeBeforeMount } from '../../core/ExtensionThemeApplier';
 import { initAndRenderReact } from '../../utils/web-extension.utils';
 
-initAndRenderReact(
-  <AppWrapper>
-    <App />
-  </AppWrapper>,
-);
+applyExtensionThemeBeforeMount().finally(() => {
+  initAndRenderReact(
+    <AppWrapper>
+      <App />
+    </AppWrapper>,
+  );
+});
 
 const pageUrl = new URL(location.href);
 const searchParams = pageUrl.searchParams;

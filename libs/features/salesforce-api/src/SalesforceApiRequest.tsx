@@ -15,7 +15,8 @@ import {
   Tooltip,
   ViewDocsLink,
 } from '@jetstream/ui';
-import Editor, { OnMount } from '@monaco-editor/react';
+import { MonacoEditor } from '@jetstream/ui-core';
+import { OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { FunctionComponent, useReducer, useRef, useState } from 'react';
 import SalesforceApiExamplesModal from './SalesforceApiExamplesModal';
@@ -264,9 +265,8 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
               </Tooltip>
             )}
           </Grid>
-          <Editor
+          <MonacoEditor
             height="150px"
-            theme="vs-dark"
             language="json"
             value={headers}
             options={{ minimap: { enabled: false }, scrollBeyondLastLine: false }}
@@ -314,9 +314,8 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
             )}
           </Grid>
           <div className="slds-is-relative">
-            <Editor
+            <MonacoEditor
               height="60vh"
-              theme="vs-dark"
               language={bodyType === 'TEXT' ? 'plaintext' : 'json'}
               value={body}
               options={{

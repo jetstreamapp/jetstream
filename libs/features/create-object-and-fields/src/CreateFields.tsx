@@ -62,6 +62,7 @@ function SelectedItemsBadge({
   return (
     <BadgePopover
       badgeLabel={`${formatNumber(items.length)} ${pluralizeIfMultiple(label, items)} selected`}
+      badgeProps={{ type: 'light' }}
       popoverTitle={`Selected ${label}s`}
     >
       <BadgePopoverList items={items} liClassName="slds-item read-only" />

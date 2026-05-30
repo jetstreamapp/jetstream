@@ -150,7 +150,7 @@ export const LoadRecordsFieldMappingStaticRow: FunctionComponent<LoadRecordsFiel
 
   return (
     <tr>
-      <th scope="row" colSpan={2} className="slds-align-top slds-text-color_weak bg-color-backdrop-tint">
+      <th scope="row" colSpan={2} className="slds-align-top">
         {isPicklistField && (
           <Picklist
             className="slds-p-horizontal_x-small"

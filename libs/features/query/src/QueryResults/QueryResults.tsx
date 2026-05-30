@@ -618,7 +618,7 @@ export const QueryResults = React.memo(() => {
               <span>SOQL Query</span>
             </button>
             <button
-              className="slds-button slds-button_neutral collapsible-button collapsible-button-md slds-button_last"
+              className="slds-button slds-button_neutral collapsible-button collapsible-button-md"
               onClick={() => executeQuery(soql, SOURCE_RELOAD, { isTooling })}
               disabled={!!(loading || errorMessage)}
               title="Re-run the current query"
@@ -626,7 +626,7 @@ export const QueryResults = React.memo(() => {
               <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
               <span>Reload</span>
             </button>
-            <QueryHistory ref={queryHistoryRef} selectedOrg={selectedOrg} onRestore={handleRestoreFromHistory} />
+            <QueryHistory ref={queryHistoryRef} embedded selectedOrg={selectedOrg} onRestore={handleRestoreFromHistory} />
           </ButtonGroupContainer>
         </ToolbarItemGroup>
         <ToolbarItemActions>

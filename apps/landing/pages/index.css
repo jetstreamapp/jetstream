@@ -34,8 +34,8 @@
     text-decoration: underline;
   }
 
-  // Show full URL after external links so the printed page stays useful offline.
-  // Skip same-page anchors and javascript: links.
+  /* Show full URL after external links so the printed page stays useful offline. */
+  /* Skip same-page anchors and javascript: links. */
   a[href^='http']::after {
     content: ' (' attr(href) ')';
     font-size: 0.9em;

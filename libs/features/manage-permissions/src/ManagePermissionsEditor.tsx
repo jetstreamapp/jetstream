@@ -681,7 +681,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
       </Toolbar>
       <AutoFullHeightContainer
         baseCss={css`
-          background-color: #ffffff;
+          background-color: var(--slds-g-color-surface-container-1, #ffffff);
         `}
         bottomBuffer={10}
         className="slds-scrollable_none"

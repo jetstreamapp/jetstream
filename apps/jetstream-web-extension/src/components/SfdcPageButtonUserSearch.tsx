@@ -4,7 +4,7 @@ import type { QueryResult } from '@jetstream/types';
 import { CopyToClipboard, Grid, GridCol, List, ScopedNotification, SearchInput } from '@jetstream/ui';
 import { useEffect, useRef, useState } from 'react';
 import browser from 'webextension-polyfill';
-import '../sfdc-styles-shim.scss';
+import '../sfdc-styles-shim.css';
 import { getApiClientFromHost } from '../utils/extension-generic-api-request.utils';
 import { OrgAndSessionInfo } from '../utils/extension.types';
 import { sendMessage } from '../utils/web-extension.utils';

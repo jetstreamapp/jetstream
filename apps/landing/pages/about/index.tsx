@@ -1,4 +1,4 @@
-import { CodeBracketIcon, HeartIcon, LightBulbIcon, ShieldCheckIcon, UserGroupIcon, RocketLaunchIcon } from '@heroicons/react/24/outline';
+import { CodeBracketIcon, HeartIcon, LightBulbIcon, RocketLaunchIcon, ShieldCheckIcon, UserGroupIcon } from '@heroicons/react/24/outline';
 import Layout from '../../components/layouts/Layout';
 
 const values = [

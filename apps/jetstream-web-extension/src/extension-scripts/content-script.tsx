@@ -1,6 +1,8 @@
+import { PortalProvider } from '@jetstream/ui';
 import browser from 'webextension-polyfill';
 import { SfdcPageButton } from '../components/SfdcPageButton';
 import { AppWrapperNotJetstreamOwnedPage } from '../core/AppWrapperNotJetstreamOwnedPage';
+import { applyExtensionThemeBeforeMount, ExtensionThemeApplier } from '../core/ExtensionThemeApplier';
 import { initAndRenderReact } from '../utils/web-extension.utils';
 
 const elementId = 'jetstream-app-container';
@@ -10,12 +12,19 @@ function renderApp() {
     const app = document.createElement('div');
     app.id = elementId;
     document.body.appendChild(app);
-    initAndRenderReact(
-      <AppWrapperNotJetstreamOwnedPage>
-        <SfdcPageButton />
-      </AppWrapperNotJetstreamOwnedPage>,
-      { elementId },
-    );
+    applyExtensionThemeBeforeMount({ targetId: elementId }).finally(() => {
+      initAndRenderReact(
+        <AppWrapperNotJetstreamOwnedPage>
+          <ExtensionThemeApplier targetId={elementId} />
+          {/* Route popover/tooltip portals into the Jetstream container so they pick up
+              the slds-color-scheme--* class instead of the bare host page body. */}
+          <PortalProvider portalRoot={app}>
+            <SfdcPageButton />
+          </PortalProvider>
+        </AppWrapperNotJetstreamOwnedPage>,
+        { elementId },
+      );
+    });
   }
 }
 

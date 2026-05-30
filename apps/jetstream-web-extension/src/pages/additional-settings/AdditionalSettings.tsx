@@ -13,14 +13,17 @@ import { SoqlQueryFormatConfig } from '@jetstream/ui-core';
 import { dexieDataSync } from '@jetstream/ui/db';
 import { useState } from 'react';
 import { AppWrapper } from '../../core/AppWrapper';
+import { applyExtensionThemeBeforeMount } from '../../core/ExtensionThemeApplier';
 import { useExtensionSettings } from '../../hooks/useExtensionSettings';
 import { initAndRenderReact } from '../../utils/web-extension.utils';
 
-initAndRenderReact(
-  <AppWrapper allowWithoutSalesforceOrg>
-    <AdditionalSettings />
-  </AppWrapper>,
-);
+applyExtensionThemeBeforeMount().finally(() => {
+  initAndRenderReact(
+    <AppWrapper allowWithoutSalesforceOrg>
+      <AdditionalSettings />
+    </AppWrapper>,
+  );
+});
 
 export function AdditionalSettings() {
   const {

@@ -70,12 +70,12 @@ export const PopoverContainer = forwardRef<HTMLElement, PopoverContainerProps>(
         css={css`
           z-index: 7000;
           ${className?.includes('_fluid') ? `min-width: ${minWidth};` : `min-width: ${minWidth}; max-width: ${maxWidth};`}
-          border: 1px solid #e5e5e5;
+          border: 1px solid var(--slds-g-color-border-1, #e5e5e5);
           border-radius: 0.25rem;
           padding: 0.25rem 0;
-          background: #fff;
+          background: var(--slds-g-color-surface-container-1, #fff);
           box-shadow: 0 2px 3px 0 rgb(0 0 0 / 16%);
-          color: #181818;
+          color: var(--slds-g-color-on-surface-1, #181818);
           display: ${isOpen ? 'block' : 'none'};
         `}
         style={floatingStyles}

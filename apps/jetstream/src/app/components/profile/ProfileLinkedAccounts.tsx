@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { LoginConfigAbility } from '@jetstream/acl';
 import type { UserProfileIdentity, UserProfileUiWithIdentities } from '@jetstream/auth/types';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { useCsrfToken, tracker } from '@jetstream/shared/ui-utils';
+import { tracker, useCsrfToken } from '@jetstream/shared/ui-utils';
 import { fireToast, Grid } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
 import { FunctionComponent } from 'react';

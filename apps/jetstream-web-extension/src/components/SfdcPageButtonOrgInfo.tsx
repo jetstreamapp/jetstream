@@ -1,7 +1,7 @@
 import { SalesforceOrgUi } from '@jetstream/types';
 import { CopyToClipboard } from '@jetstream/ui';
 import { Fragment, useMemo } from 'react';
-import '../sfdc-styles-shim.scss';
+import '../sfdc-styles-shim.css';
 
 interface StaticItem {
   type: 'static';
