@@ -1,6 +1,6 @@
 import { ColorScheme } from '@jetstream/types';
 import EditorImpl, { DiffEditor as DiffEditorImpl, DiffEditorProps, EditorProps } from '@monaco-editor/react';
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 
 const SCHEME_CLASS_PREFIX = 'slds-color-scheme--';
 
@@ -37,37 +37,60 @@ function resolveScheme(scheme: ColorScheme): 'light' | 'dark' {
   return scheme;
 }
 
+function computeMonacoTheme(): 'vs' | 'vs-dark' {
+  return resolveScheme(getBodyColorScheme()) === 'dark' ? 'vs-dark' : 'vs';
+}
+
+/**
+ * All Monaco editors share ONE body-class `MutationObserver` and ONE
+ * `prefers-color-scheme` listener via `useSyncExternalStore`, rather than each
+ * editor instance registering its own. The Query History modal can mount dozens
+ * of editors at once, so a per-instance observer/listener would scale linearly
+ * for no benefit — Monaco's theme is global, so the value is identical for every
+ * editor. The shared store is set up lazily on the first subscriber and torn
+ * down when the last editor unmounts.
+ */
+const themeListeners = new Set<() => void>();
+let currentTheme: 'vs' | 'vs-dark' = computeMonacoTheme();
+let bodyObserver: MutationObserver | null = null;
+let schemeMediaQuery: MediaQueryList | null = null;
+
+function recomputeTheme() {
+  const nextTheme = computeMonacoTheme();
+  if (nextTheme !== currentTheme) {
+    currentTheme = nextTheme;
+    themeListeners.forEach((listener) => listener());
+  }
+}
+
+function subscribeToTheme(listener: () => void): () => void {
+  themeListeners.add(listener);
+  if (themeListeners.size === 1 && typeof document !== 'undefined') {
+    // Catch up to the live body state in case the class changed between module
+    // load and the first editor mounting, then start watching for changes.
+    currentTheme = computeMonacoTheme();
+    bodyObserver = new MutationObserver(recomputeTheme);
+    bodyObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    schemeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    schemeMediaQuery.addEventListener('change', recomputeTheme);
+  }
+  return () => {
+    themeListeners.delete(listener);
+    if (themeListeners.size === 0) {
+      bodyObserver?.disconnect();
+      bodyObserver = null;
+      schemeMediaQuery?.removeEventListener('change', recomputeTheme);
+      schemeMediaQuery = null;
+    }
+  };
+}
+
 function useMonacoTheme(): 'vs' | 'vs-dark' {
-  const [scheme, setScheme] = useState<ColorScheme>(getBodyColorScheme);
-  const [resolved, setResolved] = useState<'light' | 'dark'>(() => resolveScheme(getBodyColorScheme()));
-
-  useEffect(() => {
-    setResolved(resolveScheme(scheme));
-  }, [scheme]);
-
-  // The theme appliers swap the body's slds-color-scheme--* class when the
-  // preference changes; watch for it so editors re-theme without a remount.
-  useEffect(() => {
-    if (typeof document === 'undefined') {
-      return;
-    }
-    const observer = new MutationObserver(() => setScheme(getBodyColorScheme()));
-    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-    return () => observer.disconnect();
-  }, []);
-
-  // When following the OS, track prefers-color-scheme changes directly.
-  useEffect(() => {
-    if (scheme !== 'system' || typeof window === 'undefined') {
-      return;
-    }
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const onChange = () => setResolved(mediaQuery.matches ? 'dark' : 'light');
-    mediaQuery.addEventListener('change', onChange);
-    return () => mediaQuery.removeEventListener('change', onChange);
-  }, [scheme]);
-
-  return resolved === 'dark' ? 'vs-dark' : 'vs';
+  return useSyncExternalStore(
+    subscribeToTheme,
+    () => currentTheme,
+    () => 'vs',
+  );
 }
 
 /**

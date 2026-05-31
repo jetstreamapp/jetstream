@@ -15,6 +15,10 @@ function renderApp() {
     applyExtensionThemeBeforeMount({ targetId: elementId }).finally(() => {
       initAndRenderReact(
         <AppWrapperNotJetstreamOwnedPage>
+          {/* The scheme class is applied to this scoped container (not document.body) so we
+              don't restyle the host Salesforce page. Caveat: consumers that read document.body
+              directly — <MonacoEditor> and the `body.slds-color-scheme--*` data-table overrides —
+              will NOT pick up the theme here, so avoid rendering those inside the content-script UI. */}
           <ExtensionThemeApplier targetId={elementId} />
           {/* Route popover/tooltip portals into the Jetstream container so they pick up
               the slds-color-scheme--* class instead of the bare host page body. */}

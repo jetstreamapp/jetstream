@@ -24,6 +24,9 @@ export function useResolvedColorScheme(): 'light' | 'dark' {
     }
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const update = () => setSystemScheme(mediaQuery.matches ? 'dark' : 'light');
+    // Sync to the current OS value when entering system mode — it may have
+    // changed while the pref was light/dark and we were not tracking it.
+    update();
     mediaQuery.addEventListener('change', update);
     return () => mediaQuery.removeEventListener('change', update);
   }, [scheme]);

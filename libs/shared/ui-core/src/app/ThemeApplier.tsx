@@ -6,6 +6,38 @@ import { useEffect } from 'react';
 
 const SCHEME_CLASSES = ['slds-color-scheme--light', 'slds-color-scheme--dark', 'slds-color-scheme--system'];
 
+/**
+ * Synchronous fast-path cache for the resolved color scheme. The canonical
+ * preference lives in IndexedDB (localforage, via `useUserPreferenceState`),
+ * which can only be read asynchronously — too late to theme the first paint
+ * without gating render on I/O. We mirror just the scheme string to
+ * localStorage so `applyThemeBeforeMount` can stamp the body class
+ * synchronously on a warm cache, falling back to the async IndexedDB read only
+ * on a cache miss (first run after upgrade, or cleared storage).
+ */
+const COLOR_SCHEME_CACHE_KEY = 'JETSTREAM_COLOR_SCHEME';
+
+function isColorScheme(value: unknown): value is ColorScheme {
+  return value === 'light' || value === 'dark' || value === 'system';
+}
+
+function readCachedScheme(): ColorScheme | null {
+  try {
+    const value = localStorage.getItem(COLOR_SCHEME_CACHE_KEY);
+    return isColorScheme(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedScheme(scheme: ColorScheme) {
+  try {
+    localStorage.setItem(COLOR_SCHEME_CACHE_KEY, scheme);
+  } catch {
+    // best-effort cache; ThemeApplier reconciles from the canonical store on mount
+  }
+}
+
 function setBodyScheme(scheme: ColorScheme) {
   const { body } = document;
   body.classList.remove(...SCHEME_CLASSES);
@@ -13,20 +45,31 @@ function setBodyScheme(scheme: ColorScheme) {
 }
 
 /**
- * Reads the stored color scheme preference and stamps the matching body class
- * before React mounts so dark-mode users do not see a flash of the default
- * light theme. Resolves silently on any read failure — the HTML ships with
- * `slds-color-scheme--light` already applied, so a missed read just keeps the
- * default.
+ * Stamps the color-scheme body class before React mounts so dark-mode users do
+ * not see a flash of the default light theme.
+ *
+ * Reads the synchronous localStorage cache first so first paint is not gated on
+ * IndexedDB — the body class is set synchronously before this returns, and the
+ * resolved promise just preserves the existing `.finally(...)` call sites. Only
+ * a cache miss (first run after upgrade / cleared storage) actually awaits the
+ * canonical IndexedDB preference. The HTML also ships with
+ * `slds-color-scheme--light` applied, so any read failure just keeps the default.
  */
 export async function applyThemeBeforeMount(forceScheme?: ColorScheme): Promise<void> {
   if (forceScheme) {
     setBodyScheme(forceScheme);
     return;
   }
+  const cachedScheme = readCachedScheme();
+  if (cachedScheme) {
+    setBodyScheme(cachedScheme);
+    return;
+  }
   try {
     const prefs = await localforage.getItem<UserProfilePreferences>(INDEXED_DB.KEYS.userPreferences);
-    setBodyScheme(prefs?.colorScheme ?? 'light');
+    const scheme = prefs?.colorScheme ?? 'light';
+    setBodyScheme(scheme);
+    writeCachedScheme(scheme);
   } catch {
     setBodyScheme('light');
   }
@@ -52,7 +95,13 @@ export const ThemeApplier = ({ forceScheme }: ThemeApplierProps) => {
 
   useEffect(() => {
     setBodyScheme(scheme);
-  }, [scheme]);
+    // Keep the synchronous fast-path cache aligned with the canonical preference
+    // so the next cold start themes the first paint without an async read. Skip
+    // when forced (e.g. canvas) so we never overwrite the real user preference.
+    if (!forceScheme) {
+      writeCachedScheme(scheme);
+    }
+  }, [scheme, forceScheme]);
 
   return null;
 };
