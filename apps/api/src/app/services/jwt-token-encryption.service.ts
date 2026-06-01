@@ -6,8 +6,9 @@ import { createHash } from 'crypto';
 /**
  * Encryption service for JWT access tokens stored in the database
  *
- * Uses AES-256-CBC encryption with the JWT_ENCRYPTION_KEY to encrypt JWT tokens
- * before storing them in the database for compliance and defense-in-depth.
+ * Uses the versioned encryptString/decryptString primitives with the JWT_ENCRYPTION_KEY to encrypt JWT
+ * tokens before storing them in the database for compliance and defense-in-depth. New tokens are written
+ * with authenticated AES-256-GCM (`gcm!...`); previously-stored AES-256-CBC tokens remain decryptable.
  *
  * Token hash (SHA-256) is stored alongside encrypted token for efficient lookups.
  */
@@ -16,7 +17,7 @@ import { createHash } from 'crypto';
  * Encrypt a JWT token before storing in database
  *
  * @param token - The JWT token to encrypt
- * @returns Encrypted token string in format "iv!encryptedData"
+ * @returns Encrypted token string (authenticated GCM format `gcm!...`)
  */
 export function encryptJwtToken(token: string): string {
   if (!token || token.length === 0) {
@@ -87,14 +88,14 @@ export function hashToken(token: string): string {
 
 /**
  * Detect if a token is encrypted based on format
- * Encrypted tokens have the format "iv!encryptedData" where ! is the separator
+ * Encrypted tokens always contain a "!" separator: legacy CBC blobs are "iv!encryptedData" and the new
+ * authenticated GCM blobs are "gcm!payload". Plain JWTs use "." separators and never contain "!".
  *
  * @param token - Token to check
  * @returns true if token appears to be encrypted
  */
 export function isTokenEncrypted(token: string): boolean {
-  // Encrypted tokens always contain "!" separator between IV and encrypted data
-  // JWT tokens never contain "!" character, so this is a safe check
+  // Both encryption formats (CBC `iv!...` and GCM `gcm!...`) contain "!"; JWTs never do, so this is safe.
   return token.includes('!');
 }
 
