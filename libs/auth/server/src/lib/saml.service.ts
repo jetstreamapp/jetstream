@@ -2,12 +2,29 @@ import { DbCacheProvider, ENV, logger } from '@jetstream/api-config';
 import { SamlConfiguration } from '@jetstream/prisma';
 import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { Profile, SAML, SamlConfig, ValidateInResponseTo } from '@node-saml/node-saml';
+import crypto from 'crypto';
 import { parseStringPromise } from 'xml2js';
 import { decryptSecret } from './sso-crypto.util';
 import { AttributeMapping, ParsedIdpMetadata, SsoUserInfo } from './sso.types';
 
 /** 10 minutes - maximum time between AuthnRequest generation and SAML response */
 const SAML_REQUEST_ID_EXPIRATION_MS = 10 * 60 * 1000;
+
+/**
+ * Upper bound on how long after its IssueInstant we will accept an assertion, independent of the
+ * IdP-controlled NotOnOrAfter. node-saml uses min(IssueInstant + maxAssertionAgeMs, NotOnOrAfter)
+ * as the effective expiry, so this caps the replay window even when an IdP issues a long-lived
+ * assertion. Kept equal to SAML_REQUEST_ID_EXPIRATION_MS so the request and assertion windows match.
+ */
+const SAML_MAX_ASSERTION_AGE_MS = SAML_REQUEST_ID_EXPIRATION_MS;
+
+/**
+ * TTL for the consumed-assertion replay markers. Must be >= the assertion validity window so a
+ * "consumed" marker can never expire before the assertion it guards, which would otherwise allow a
+ * single late replay. The effective assertion window is bounded by SAML_MAX_ASSERTION_AGE_MS plus
+ * node-saml's accepted clock skew (default 0 here); we add a generous margin to stay safely above it.
+ */
+const CONSUMED_ASSERTION_TTL_MS = SAML_MAX_ASSERTION_AGE_MS + 5 * 60 * 1000;
 
 export function resolveSamlIdentifiers(teamId: string) {
   const urlPrefix = `${ENV.JETSTREAM_SERVER_URL}${ENV.JETSTREAM_SAML_ACS_PATH_PREFIX}/${teamId}`;
@@ -52,7 +69,45 @@ const sharedSamlCacheProvider = new DbCacheProvider('saml:authn-request', SAML_R
  * expiry. DbCacheProvider.consumeOnceAsync performs an atomic INSERT whose primary-key conflict
  * detects any prior consumption across the whole cluster in a single round-trip.
  */
-const consumedAssertionCache = new DbCacheProvider('saml:consumed-assertion', SAML_REQUEST_ID_EXPIRATION_MS);
+const consumedAssertionCache = new DbCacheProvider('saml:consumed-assertion', CONSUMED_ASSERTION_TTL_MS);
+
+/**
+ * Derive a stable, replay-detecting identifier from the VERIFIED assertion.
+ *
+ * We must NOT use profile.ID: node-saml only sets it on the logout path, never on the
+ * authentication-assertion path, so it is always undefined here. Instead we read the parsed,
+ * signature-verified assertion via profile.getAssertion() and build a composite key from the
+ * assertion's @ID, @IssueInstant, and the Subject NameID. The @ID alone uniquely identifies an
+ * assertion; IssueInstant and NameID are folded in as defense-in-depth so two distinct assertions
+ * cannot collide on a malformed/duplicated @ID.
+ *
+ * The composite is SHA-256 hashed to a fixed-length digest before being returned. The @ID,
+ * IssueInstant, and NameID are all IdP-controlled and unbounded in length; a long value could
+ * otherwise overflow the cache key column (cache_entry.key is VARCHAR(512), which DbCacheProvider
+ * further prefixes with its namespace) and throw on insert — failing SAML login closed instead of
+ * recording the replay marker. Hashing bounds the key while SHA-256's collision resistance keeps
+ * the guarantee that two distinct assertions cannot share a replay key.
+ *
+ * Returns undefined only when the assertion has no usable @ID — callers MUST fail closed in that
+ * case rather than skip the replay check.
+ */
+function deriveAssertionReplayKey(profile: Profile): string | undefined {
+  if (typeof profile.getAssertion !== 'function') {
+    return undefined;
+  }
+
+  const assertionDoc = profile.getAssertion() as { Assertion?: { $?: { ID?: string; AssertionID?: string; IssueInstant?: string } } };
+  const assertion = assertionDoc?.Assertion;
+  const assertionId = assertion?.$?.ID || assertion?.$?.AssertionID;
+  if (!assertionId) {
+    return undefined;
+  }
+
+  const issueInstant = assertion?.$?.IssueInstant || '';
+  const subjectNameId = profile.nameID || '';
+  const composite = [assertionId, issueInstant, subjectNameId].join('|');
+  return crypto.createHash('sha256').update(composite).digest('hex');
+}
 
 export class SamlService {
   /**
@@ -73,8 +128,8 @@ export class SamlService {
       digestAlgorithm: 'sha256',
       identifierFormat: config.nameIdFormat,
       wantAssertionsSigned: config.wantAssertionsSigned,
-      // Many IdPs (Okta, Google, etc.) sign only the assertion, not the response envelope.
-      // Assertion-level signing is sufficient when wantAssertionsSigned is true.
+      // Many IdPs (Okta, Google, etc.) sign only the assertion, not the response envelope, so we
+      // cannot require a signed <Response> without breaking those integrations.
       wantAuthnResponseSigned: false,
       // Delegate authentication-strength decisions to the IdP. node-saml defaults to
       // requesting PasswordProtectedTransport, which rejects users authenticating via
@@ -84,10 +139,10 @@ export class SamlService {
 
       // InResponseTo validation: ensures SAML responses correspond to requests we initiated
       // and that each response can only be consumed once (anti-replay).
-      // Using ifPresent instead of always because some IdPs (notably Google Workspace)
-      // omit InResponseTo from their SAML responses even in SP-initiated flows.
       validateInResponseTo: ValidateInResponseTo.ifPresent,
       requestIdExpirationPeriodMs: SAML_REQUEST_ID_EXPIRATION_MS,
+      // Bound the replay window to our own tight limit rather than trusting the IdP-set NotOnOrAfter.
+      maxAssertionAgeMs: SAML_MAX_ASSERTION_AGE_MS,
       cacheProvider: sharedSamlCacheProvider,
 
       // If we need to sign requests
@@ -197,9 +252,10 @@ export class SamlService {
    *
    * Security checks performed:
    * - Assertion signature verification (via idpCert)
-   * - InResponseTo validation (response must match a request we initiated)
+   * - InResponseTo validation (response must match a request we initiated, when present)
    * - One-time-use enforcement (request ID removed from cache after first use)
-   * - Defense-in-depth replay check (consumed assertion cache)
+   * - Mandatory replay check keyed off the verified assertion (consumed assertion cache); fails
+   *   closed if no assertion identifier can be derived
    */
   async validateSamlResponse(samlResponse: string, config: SamlConfiguration, teamId: string): Promise<Profile> {
     const saml = this.initializeSamlStrategy(config, teamId);
@@ -218,18 +274,22 @@ export class SamlService {
         throw new Error('No profile returned in SAML response');
       }
 
-      // Defense-in-depth: atomically record the assertion ID across all workers. For
+      // MANDATORY replay gate: atomically record the assertion across all workers. For
       // IdP-initiated assertions (no InResponseTo) node-saml's AuthnRequest cache is not
-      // consulted, so this is the primary replay gate in that case. consumeOnceAsync folds
+      // consulted, so this is the only replay defense in that case. consumeOnceAsync folds
       // the existence check and the write into a single INSERT whose PK conflict is the
       // atomicity boundary — there is no get→set race across concurrent workers.
-      // profile.ID is the assertion ID set by node-saml from the parsed response.
-      const assertionId = typeof profile.ID === 'string' ? profile.ID : undefined;
-      if (assertionId) {
-        const wasFirstUse = await consumedAssertionCache.consumeOnceAsync(assertionId);
-        if (!wasFirstUse) {
-          throw new Error('SAML assertion has already been consumed (replay detected)');
-        }
+      //
+      // The key is derived from the VERIFIED assertion (not profile.ID, which node-saml never
+      // sets on the authentication path). If no usable assertion id can be derived we fail closed
+      // rather than silently skip the check, since skipping would re-open the replay vector.
+      const assertionReplayKey = deriveAssertionReplayKey(profile);
+      if (!assertionReplayKey) {
+        throw new Error('Unable to derive a SAML assertion identifier for replay protection');
+      }
+      const wasFirstUse = await consumedAssertionCache.consumeOnceAsync(assertionReplayKey);
+      if (!wasFirstUse) {
+        throw new Error('SAML assertion has already been consumed (replay detected)');
       }
 
       logger.info({ teamId, nameId: profile.nameID, nameIdFormat: profile.nameIDFormat }, '[SAML] SAML response validated successfully');

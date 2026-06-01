@@ -32,6 +32,10 @@ allowBuilds:
 
 overrides:
   "@babel/traverse": ">=7.23.2 <8.0.0"
+  # Force a patched @xmldom/xmldom on the unauthenticated SAML response-validation path
+  # (@node-saml/node-saml -> xml-crypto/xml-encryption). 0.8.11 is below the 0.8.12 (injection)
+  # and 0.8.13 (recursion DoS, GHSA-2v35-w6hq-6mfw) patches.
+  "@xmldom/xmldom": "^0.8.13"
   axios: "^1.16.1"
   "connect-pg-simple>@types/express-session": "^1.18.2"
   dompurify: "^3.3.2"

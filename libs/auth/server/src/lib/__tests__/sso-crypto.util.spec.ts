@@ -157,6 +157,14 @@ describe('sso-crypto.util', () => {
       expect(() => decryptSecret(tooShort)).toThrow();
     });
 
+    it('should throw a clear length-guard error when the payload is shorter than IV + auth tag', () => {
+      // 31 bytes is one byte short of the 32-byte (16 IV + 16 auth tag) minimum, so the
+      // length guard must reject it before any slicing/decipher logic runs.
+      const undersized = Buffer.alloc(31).toString('base64');
+
+      expect(() => decryptSecret(undersized)).toThrow('Encrypted value is too short to contain a valid IV and auth tag');
+    });
+
     it('should fail to decrypt random data', () => {
       // Create random base64 data that's valid base64 but not a valid encrypted payload
       const randomData = Buffer.from(crypto.randomBytes(64)).toString('base64');
