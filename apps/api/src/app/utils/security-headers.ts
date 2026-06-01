@@ -189,12 +189,14 @@ function narrowGoogleWildcards(sources: CspDirectives[string], specificHosts: st
  */
 export function buildAppCspDirectives(extraFrameAncestors: string[] = []): CspDirectives {
   const directives = buildCspDirectives(extraFrameAncestors);
-  const imgSrc = directives.imgSrc;
+  const { imgSrc, scriptSrc } = directives;
   return {
     ...directives,
     // The SPA's entry/chunk <script> tags are all nonce-tagged at build time (Vite cspNoncePlugin),
-    // so 'strict-dynamic' is safe here
-    scriptSrc: ["'strict-dynamic'", nonceDirective, "'self'", 'https:'],
+    // so 'strict-dynamic' is safe here. Browsers with strict-dynamic support ignore the inherited
+    // host allowlist; older browsers (no strict-dynamic) fall back to it instead of a blanket
+    // `https:` scheme source. blob: stays out of the /app script-src — workers load via worker-src.
+    scriptSrc: ["'strict-dynamic'", ...(Array.isArray(scriptSrc) ? scriptSrc.filter((source) => source !== 'blob:') : [])],
     imgSrc: Array.isArray(imgSrc) ? imgSrc.filter((source) => !IMG_SOURCES_EXCLUDED_FROM_APP.includes(source as string)) : imgSrc,
     frameSrc: narrowGoogleWildcards(directives.frameSrc, APP_GOOGLE_FRAME_SRC),
     connectSrc: narrowGoogleWildcards(directives.connectSrc, APP_GOOGLE_CONNECT_SRC),

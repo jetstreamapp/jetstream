@@ -75,10 +75,15 @@ describe('security headers', () => {
     expect(scriptSrc).toContain('https://*.js.stripe.com');
   });
 
-  it('uses a strict-dynamic, wildcard-free script-src on the /app policy', () => {
+  it('uses a strict-dynamic script-src with a host-allowlist fallback on the /app policy', () => {
     const scriptSrc = buildAppCspDirectives().scriptSrc as string[];
     expect(scriptSrc).toContain("'strict-dynamic'");
-    expect(scriptSrc.filter((source) => typeof source === 'string' && source.includes('*'))).toEqual([]);
+    // Browsers without strict-dynamic support fall back to the shared third-party host
+    // allowlist rather than a blanket https: scheme source; blob: is landing-only.
+    expect(scriptSrc).not.toContain('https:');
+    expect(scriptSrc).not.toContain('blob:');
+    expect(scriptSrc).toContain("'self'");
+    expect(scriptSrc).toContain('https://js.stripe.com');
   });
 
   it('builds a tighter /app img-src that drops legacy/landing-only hosts but keeps app hosts', () => {
