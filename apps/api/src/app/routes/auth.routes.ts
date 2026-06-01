@@ -3,7 +3,7 @@ import { MAX_VERIFICATION_ATTEMPTS } from '@jetstream/auth/server';
 import express, { Router } from 'express';
 import * as authController from '../controllers/auth.controller';
 import { rateLimitGetKeyGenerator, rateLimitGetMaxRequests } from '../utils/route.utils';
-import { verifyCaptcha } from './route.middleware';
+import { passwordResetEmailRateLimit, verifyCaptcha } from './route.middleware';
 
 /**
  * Authentication routes
@@ -15,17 +15,27 @@ export const LAX_AuthRateLimit = createRateLimit('auth_lax', {
   keyGenerator: rateLimitGetKeyGenerator(),
 });
 
-const STRICT_AuthRateLimit = createRateLimit('auth_strict', {
-  windowMs: 1000 * 60 * 5, // 5 minutes
-  limit: rateLimitGetMaxRequests(20),
-  keyGenerator: rateLimitGetKeyGenerator(),
-});
+// Security-sensitive auth limiters use the distributed (Postgres-backed) store so the ceiling holds
+// across all instances/containers rather than per-host.
+const STRICT_AuthRateLimit = createRateLimit(
+  'auth_strict',
+  {
+    windowMs: 1000 * 60 * 5, // 5 minutes
+    limit: rateLimitGetMaxRequests(20),
+    keyGenerator: rateLimitGetKeyGenerator(),
+  },
+  { distributed: true },
+);
 
-const STRICT_2X_AuthRateLimit = createRateLimit('auth_strict_2x', {
-  windowMs: 1000 * 60 * 15, // 15 minutes
-  limit: rateLimitGetMaxRequests(10),
-  keyGenerator: rateLimitGetKeyGenerator(),
-});
+const STRICT_2X_AuthRateLimit = createRateLimit(
+  'auth_strict_2x',
+  {
+    windowMs: 1000 * 60 * 15, // 15 minutes
+    limit: rateLimitGetMaxRequests(10),
+    keyGenerator: rateLimitGetKeyGenerator(),
+  },
+  { distributed: true },
+);
 
 // Session-scoped cap on /auth/verify: bounds parallel bursts so concurrent requests can't exceed
 // MAX_VERIFICATION_ATTEMPTS even when the session-stored attempt counter races under last-write-wins.
@@ -35,11 +45,15 @@ const STRICT_2X_AuthRateLimit = createRateLimit('auth_strict_2x', {
 // /verify calls per session per 15-min window regardless of how many resends occur. Falls back to IP
 // only in the defensive case of a missing session (verify always requires one in normal flow).
 const verifyIpKeyGenerator = rateLimitGetKeyGenerator();
-const VerifyAttemptRateLimit = createRateLimit('auth_verify_attempt', {
-  windowMs: 1000 * 60 * 15, // 15 minutes
-  limit: rateLimitGetMaxRequests(MAX_VERIFICATION_ATTEMPTS),
-  keyGenerator: (req, res) => req.sessionID || verifyIpKeyGenerator(req, res),
-});
+const VerifyAttemptRateLimit = createRateLimit(
+  'auth_verify_attempt',
+  {
+    windowMs: 1000 * 60 * 15, // 15 minutes
+    limit: rateLimitGetMaxRequests(MAX_VERIFICATION_ATTEMPTS),
+    keyGenerator: (req, res) => req.sessionID || verifyIpKeyGenerator(req, res),
+  },
+  { distributed: true },
+);
 
 export const routes: express.Router = Router();
 
@@ -65,7 +79,10 @@ routes.post('/accept-terms', LAX_AuthRateLimit, authController.routeDefinition.a
 routes.post(
   '/password/reset/init',
   STRICT_2X_AuthRateLimit,
+  // Verify captcha before the per-email throttle
   verifyCaptcha,
+  // Per-email throttle so a single account can't be mailbox-bombed via rotated source IPs.
+  passwordResetEmailRateLimit,
   authController.routeDefinition.requestPasswordReset.controllerFn(),
 );
 // Finish resetting password

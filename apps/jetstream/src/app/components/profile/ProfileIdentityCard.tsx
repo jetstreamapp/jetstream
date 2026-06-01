@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import Avatar from '@salesforce-ux/design-system/assets/images/profile_avatar_96.png';
 import { UserProfileIdentity } from '@jetstream/auth/types';
 import { ConfirmationModalPromise } from '@jetstream/ui';
 import { FunctionComponent, useState } from 'react';
@@ -90,7 +91,17 @@ export const ProfileIdentityCard: FunctionComponent<ProfileIdentityCardProps> = 
               `}
             >
               <span className="slds-avatar slds-avatar_circle slds-avatar_medium">
-                <img alt="Avatar" src={picture} title="Avatar" />
+                {/* Fall back to the default avatar if the stored picture URL fails to load
+                    (e.g. a legacy Auth0 avatar host that the /app CSP no longer allows). */}
+                <img
+                  alt="Avatar"
+                  src={picture}
+                  title="Avatar"
+                  onError={(event) => {
+                    event.currentTarget.onerror = null;
+                    event.currentTarget.src = Avatar;
+                  }}
+                />
               </span>
             </div>
           )}

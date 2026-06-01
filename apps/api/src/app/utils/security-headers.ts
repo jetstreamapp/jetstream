@@ -5,8 +5,36 @@ import helmet from 'helmet';
 type CspDirectiveValue = NonNullable<NonNullable<Parameters<typeof helmet.contentSecurityPolicy>[0]>['directives']>[string];
 type CspDirectives = Record<string, Exclude<CspDirectiveValue, symbol>>;
 
+// Derive the app's own WebSocket origin (e.g. wss://getjetstream.app) so connect-src can
+// allowlist exactly the socket.io endpoint instead of every `wss:` host on the internet.
+function getWebSocketOrigin(): string | null {
+  try {
+    const serverUrl = new URL(ENV.JETSTREAM_SERVER_URL);
+    const wsProtocol = serverUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${wsProtocol}//${serverUrl.host}`;
+  } catch {
+    return null;
+  }
+}
+
+const nonceDirective = (_req: Request, res: Response) => `'nonce-${res.locals.cspNonce}'`;
+
+// Path of the CSP violation-report handler (csp-report.routes.ts), mounted at /api/csp-report.
+export const CSP_REPORT_PATH = '/api/csp-report';
+
+// CSP violation-reporting wiring, shared by EVERY policy (landing/app + the hand-written
+// desktop-app / web-extension relay-page policies) so all violations funnel to the one handler.
+// `report-to` is the modern mechanism (paired with the Reporting-Endpoints response header set by
+// setPermissionPolicy); `report-uri` is retained as a fallback for browsers that don't support
+// report-to yet. Spread into each policy's directives.
+export const CSP_REPORTING_DIRECTIVES = {
+  reportUri: [CSP_REPORT_PATH],
+  reportTo: ['csp-endpoint'],
+};
+
 export function buildCspDirectives(extraFrameAncestors: string[] = []): CspDirectives {
-  const nonceDirective = (_req: Request, res: Response) => `'nonce-${res.locals.cspNonce}'`;
+  const isDevelopment = ENV.ENVIRONMENT === 'development';
+  const webSocketOrigin = getWebSocketOrigin();
 
   return {
     defaultSrc: ["'self'"],
@@ -31,7 +59,9 @@ export function buildCspDirectives(extraFrameAncestors: string[] = []): CspDirec
       'https://maps.googleapis.com',
       'https://releases.getjetstream.app',
       'https://*.js.stripe.com',
-      'wss:',
+      // Scope WebSocket connections to the app's own origin instead of a blanket `wss:`.
+      // In development the socket server runs on localhost over an arbitrary port.
+      ...(isDevelopment ? ['ws://localhost:*', 'wss://localhost:*'] : webSocketOrigin ? [webSocketOrigin] : []),
     ],
     fontSrc: ["'self'", 'data:', 'https://*.gstatic.com', 'https://checkout.stripe.com'],
     frameAncestors: ["'self'", ...extraFrameAncestors],
@@ -68,10 +98,13 @@ export function buildCspDirectives(extraFrameAncestors: string[] = []): CspDirec
     // cloudflareaccess.com required when the app is fronted by Cloudflare Access, which rewrites the manifest URL
     manifestSrc: ["'self'", 'https://*.cloudflareaccess.com'],
     objectSrc: ["'none'"],
+    // Shared/landing script-src: nonce + 'self' (covers the statically-exported Next.js landing's
+    // same-origin /_next/static chunks) + a third-party host allowlist. blob: is intentionally NOT
+    // here — blob: workers resolve via worker-src/child-src below, so keeping it out of script-src
+    // avoids a page-level script sink.
     scriptSrc: [
       "'self'",
       nonceDirective,
-      'blob:',
       'https://*.google.com',
       'https://*.gstatic.com',
       'https://*.google-analytics.com',
@@ -85,6 +118,11 @@ export function buildCspDirectives(extraFrameAncestors: string[] = []): CspDirec
       'https://*.js.stripe.com',
     ],
     scriptSrcAttr: ["'none'"],
+    // Monaco and the Jobs/download web workers are created from blob: URLs. Worker creation resolves
+    // worker-src -> child-src -> default-src (never script-src), so declaring these explicitly lets us
+    // keep blob: OUT of script-src (where it would be a page-level script sink) while workers still load.
+    workerSrc: ["'self'", 'blob:'],
+    childSrc: ["'self'", 'blob:'],
     styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
     // unsafe-inline required for monaco-editor
     styleSrcElem: ["'self'", 'https:', "'unsafe-inline'"],
@@ -99,6 +137,79 @@ export function buildCspDirectives(extraFrameAncestors: string[] = []): CspDirec
       'https://billing.stripe.com',
     ],
     upgradeInsecureRequests: ENV.ENVIRONMENT === 'development' ? null : [],
+    ...CSP_REPORTING_DIRECTIVES,
+  };
+}
+
+// Image hosts the authenticated /app never originates content from, so they are removed from the
+// /app img-src (tightening it to reality and keeping marketing-CDN wildcards off the surface that
+// customer scanners hit). These are landing/marketing-site and stale Auth0-era avatar hosts:
+//   - Contentful (ctfassets) / WordPress (wp.com): public marketing-site CMS only.
+//   - Gravatar / GitHub avatars (githubusercontent): carried over from the old Auth0 social-login
+//     setup. A production audit of AuthIdentity.picture confirms NO stored avatar uses these — every
+//     real avatar is on Salesforce (*.force.com / *.documentforce.com) or Google (*.googleusercontent.com),
+//     all of which are retained below. The avatar <img>s also fall back to a default on load error.
+const IMG_SOURCES_EXCLUDED_FROM_APP = [
+  'https://*.ctfassets.net',
+  'https://*.githubusercontent.com',
+  'https://*.wp.com',
+  'https://*.gravatar.com',
+];
+
+// Broad Google wildcards that the /app does NOT need — the SPA only ever calls specific Google hosts
+// directly, and the Google Drive Picker runs as a popup served by the desktop/web-extension picker
+// routes (it is never framed inline in /app), so /app needs only its own Sign-In / gapi / Drive /
+// OAuth / OIDC endpoints. `*.gstatic.com`, `*.google-analytics.com`, `*.googletagmanager.com` are
+// left untouched (Fonts / Maps static / analytics, not Drive-Picker related).
+const APP_GOOGLE_WILDCARDS = ['https://*.google.com', 'https://*.googleapis.com'];
+const APP_GOOGLE_FRAME_SRC = [
+  'https://accounts.google.com',
+  'https://apis.google.com',
+  'https://content.googleapis.com',
+  'https://docs.google.com',
+  'https://drive.google.com',
+];
+const APP_GOOGLE_CONNECT_SRC = [
+  'https://accounts.google.com',
+  'https://apis.google.com',
+  'https://content.googleapis.com',
+  'https://www.googleapis.com',
+  'https://oauth2.googleapis.com',
+  'https://openidconnect.googleapis.com',
+];
+
+// Replace the broad Google wildcards in a directive with a specific host allowlist (deduped).
+function narrowGoogleWildcards(sources: CspDirectives[string], specificHosts: string[]): CspDirectives[string] {
+  if (!Array.isArray(sources)) {
+    return sources;
+  }
+  const result = sources.filter((source) => !APP_GOOGLE_WILDCARDS.includes(source as string));
+  for (const host of specificHosts) {
+    if (!result.includes(host)) {
+      result.push(host);
+    }
+  }
+  return result;
+}
+
+/**
+ * CSP directives for the authenticated SPA (/app). Tighter than the shared policy: legacy/landing-only
+ * image hosts removed, and the broad Google wildcards in frame-src/connect-src replaced with the
+ * specific Google hosts the app actually uses (matching the desktop/web-extension picker routes).
+ */
+export function buildAppCspDirectives(extraFrameAncestors: string[] = []): CspDirectives {
+  const directives = buildCspDirectives(extraFrameAncestors);
+  const { imgSrc, scriptSrc } = directives;
+  return {
+    ...directives,
+    // The SPA's entry/chunk <script> tags are all nonce-tagged at build time (Vite cspNoncePlugin),
+    // so 'strict-dynamic' is safe here. Browsers with strict-dynamic support ignore the inherited
+    // host allowlist; older browsers (no strict-dynamic) fall back to it instead of a blanket
+    // `https:` scheme source. blob: stays out of the /app script-src — workers load via worker-src.
+    scriptSrc: ["'strict-dynamic'", ...(Array.isArray(scriptSrc) ? scriptSrc.filter((source) => source !== 'blob:') : [])],
+    imgSrc: Array.isArray(imgSrc) ? imgSrc.filter((source) => !IMG_SOURCES_EXCLUDED_FROM_APP.includes(source as string)) : imgSrc,
+    frameSrc: narrowGoogleWildcards(directives.frameSrc, APP_GOOGLE_FRAME_SRC),
+    connectSrc: narrowGoogleWildcards(directives.connectSrc, APP_GOOGLE_CONNECT_SRC),
   };
 }
 

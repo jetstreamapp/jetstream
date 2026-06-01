@@ -10,4 +10,5 @@ export * from './lib/api-rate-limit.config';
 export * from './lib/api-sentry-config';
 export * from './lib/db-cache-provider.config';
 export * from './lib/email.config';
+export * from './lib/pg-rate-limit-store';
 export * from './lib/env-config';
