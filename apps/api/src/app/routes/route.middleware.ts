@@ -11,6 +11,7 @@ import {
   InvalidCaptcha,
   MissingEntitlement,
   PLACEHOLDER_USER_ID,
+  timingSafeStringCompare,
   validateHMACDoubleCSRFToken,
 } from '@jetstream/auth/server';
 import { UserProfileSession } from '@jetstream/auth/types';
@@ -47,7 +48,11 @@ export function basicAuthMiddleware(req: express.Request, res: express.Response,
       return res.status(401).send('Unauthorized');
     }
     const [username, password] = Buffer.from(token, 'base64').toString().split(':');
-    if (username !== ENV.BASIC_AUTH_USERNAME || password !== ENV.BASIC_AUTH_PASSWORD) {
+    // Evaluate BOTH comparisons (no `||` short-circuit) with a constant-time compare so the
+    // response time does not reveal whether the username alone was correct.
+    const usernameMatches = timingSafeStringCompare(username, ENV.BASIC_AUTH_USERNAME);
+    const passwordMatches = timingSafeStringCompare(password, ENV.BASIC_AUTH_PASSWORD);
+    if (!usernameMatches || !passwordMatches) {
       (res.log || logger).warn('Invalid BASIC_AUTH_USERNAME/BASIC_AUTH_PASSWORD');
       return res.status(401).send('Unauthorized');
     }
@@ -669,6 +674,9 @@ export function setPermissionPolicy(_req: express.Request, res: express.Response
       'screen-wake-lock=()',
     ].join(', '),
   );
+  // Defines the `csp-endpoint` group referenced by the CSP `report-to` directive so browsers
+  // that support the Reporting API know where to POST CSP violation reports.
+  res.setHeader('Reporting-Endpoints', `csp-endpoint="${ENV.JETSTREAM_SERVER_URL}/api/csp-report"`);
   next();
 }
 
@@ -685,11 +693,24 @@ export const feedbackRateLimit = createRateLimit('api_feedback_submission', {
 });
 
 const passwordResetEmailIpKeyGenerator = rateLimitGetKeyGenerator();
-export const passwordResetEmailRateLimit = createRateLimit('api_password_reset_email', {
-  windowMs: 1000 * 60 * 15, // 15 minutes
-  limit: rateLimitGetMaxRequests(3),
-  keyGenerator: (req, res) => req.session.user?.id || passwordResetEmailIpKeyGenerator(req, res),
-});
+// Throttle by the TARGET email (normalized) first so a single account cannot be mailbox-bombed by
+// rotating source IPs, falling back to session user / IP. Uses the distributed store so the per-email
+// ceiling holds across instances.
+export const passwordResetEmailRateLimit = createRateLimit(
+  'api_password_reset_email',
+  {
+    windowMs: 1000 * 60 * 15, // 15 minutes
+    limit: rateLimitGetMaxRequests(3),
+    keyGenerator: (req, res) => {
+      const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : undefined;
+      if (email) {
+        return `email:${email}`;
+      }
+      return req.session.user?.id || passwordResetEmailIpKeyGenerator(req, res);
+    },
+  },
+  { distributed: true },
+);
 
 // User uploads files and they are stored on disk temporarily, we delete them after processing
 export const feedbackUploadMiddleware = multer({

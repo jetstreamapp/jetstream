@@ -1,4 +1,4 @@
-import { ENV } from '@jetstream/api-config';
+import { createRateLimit, ENV } from '@jetstream/api-config';
 import { HTTP } from '@jetstream/shared/constants';
 import express, { Router } from 'express';
 import { dump as stringifyYaml } from 'js-yaml';
@@ -24,6 +24,19 @@ import { routeDefinition as webExtensionController } from '../controllers/web-ex
 import { basicAuthMiddleware } from './route.middleware';
 
 export const openApiRoutes: express.Router = Router();
+
+// Throttle unauthenticated Basic-Auth attempts against /openapi so the static credential cannot be
+// brute-forced. Distributed store keeps the ceiling consistent across instances. Runs BEFORE basicAuth.
+const openApiRateLimit = createRateLimit(
+  'openapi',
+  {
+    windowMs: 1000 * 60 * 15, // 15 minutes
+    limit: ENV.CI || ENV.ENVIRONMENT === 'development' ? 10000 : 30,
+  },
+  { distributed: true },
+);
+
+openApiRoutes.use(openApiRateLimit);
 
 // Basic Auth for OpenAPI access
 openApiRoutes.use(basicAuthMiddleware);

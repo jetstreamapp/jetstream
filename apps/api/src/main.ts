@@ -25,6 +25,7 @@ import {
   authRoutes,
   billingRoutes,
   canvasRoutes,
+  cspReportRoutes,
   desktopAppRoutes,
   desktopAssetsRoutes,
   oauthRoutes,
@@ -50,7 +51,7 @@ import {
   setPermissionPolicy,
 } from './app/routes/route.middleware';
 import { healthCheck, uncaughtErrorHandler } from './app/utils/response.handlers';
-import { buildCspDirectives, buildHstsConfig } from './app/utils/security-headers';
+import { buildAppCspDirectives, buildCspDirectives, buildHstsConfig } from './app/utils/security-headers';
 import { handleWorkerExit, primaryClusterInitSideEffects, shutdownPrimaryGracefully } from './app/utils/server-process.utils';
 import { environment } from './environments/environment';
 
@@ -114,7 +115,11 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
     saveUninitialized: false,
     // This will extend the cookie expiration date if there is a request of any kind to a logged in user
     rolling: true,
-    name: 'sessionid',
+    // Use the `__Host-` prefix when cookies are secure. The prefix is enforced by the browser:
+    // the cookie is rejected unless it is Secure, Path=/, and has no Domain — which this config
+    // satisfies — and it blocks cookie-tossing/shadowing from a sibling/parent host on the same
+    // registrable domain. (One-time effect: existing sessions are invalidated on first deploy.)
+    name: ENV.USE_SECURE_COOKIES ? '__Host-sessionid' : 'sessionid',
   });
 
   const app = express();
@@ -158,6 +163,20 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
       '/analytics',
       proxy('https://api2.amplitude.com', {
         proxyReqPathResolver: (req) => req.originalUrl.replace('/analytics', '/2/httpapi'),
+        // express-http-proxy forwards ALL incoming headers by default. /analytics is same-origin
+        // with the SPA and mounted after sessionMiddleware, so a browser beacon carries the
+        // first-party session + CSRF cookies and Authorization header — strip them so a live
+        // session credential never leaves our trust boundary for Amplitude.
+        proxyReqOptDecorator: (proxyReqOpts) => {
+          if (proxyReqOpts.headers) {
+            delete proxyReqOpts.headers['cookie'];
+            delete proxyReqOpts.headers['Cookie'];
+            delete proxyReqOpts.headers['authorization'];
+            delete proxyReqOpts.headers['Authorization'];
+            delete proxyReqOpts.headers[HTTP.HEADERS.X_CSRF_TOKEN];
+          }
+          return proxyReqOpts;
+        },
       }),
     );
   }
@@ -259,9 +278,13 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
 
   app.use('/webhook', webhookRoutes);
 
+  // CSP violation reports. Mounted BEFORE the global body parsers so its own scoped 100kb parser
+  // handles the report payload instead of the 20mb global JSON parser, and responds 204.
+  app.use('/api/csp-report', cspReportRoutes);
+
   app.use(raw({ limit: '30mb', type: ['text/csv'] }));
   app.use(raw({ limit: '30mb', type: ['application/zip'] }));
-  app.use(json({ limit: '20mb', type: ['json', 'application/csp-report'] }));
+  app.use(json({ limit: '20mb', type: ['json'] }));
   app.use(urlencoded({ extended: true }));
 
   // Must run after sessionMiddleware (which loads req.session) and before any route handler,
@@ -372,7 +395,11 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
       redirectIfMfaEnrollmentRequiredMiddleware,
       redirectIfNotAuthenticatedMiddleware,
       helmet.contentSecurityPolicy({
-        directives: buildCspDirectives(['https://*.google.com', 'https://*.googleusercontent.com', 'https://accounts.google.com']),
+        // frame-ancestors stays 'self' (no extra ancestors): the Google Drive Picker is a popup/relay
+        // flow (useDriveExternalPicker) — nothing frames /app — so the previous Google entries were
+        // vestigial. The desktop/web-extension picker proxy routes already run the same picker under
+        // `frame-ancestors 'self'`, confirming Google framing is not required.
+        directives: buildAppCspDirectives(),
       }),
       (_: express.Request, res: express.Response) => {
         if (!jetstreamIndexHtml) {
