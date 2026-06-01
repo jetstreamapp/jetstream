@@ -1,4 +1,3 @@
-import { prisma } from '@jetstream/api-config';
 import { PasswordSchema } from '@jetstream/types';
 import { expect, Locator, Page } from '@playwright/test';
 import { randomBytes } from 'crypto';
@@ -57,6 +56,13 @@ export class AuthenticationPage {
   readonly acceptTermsCheckbox: Locator;
   /** Submit button on the /auth/accept-terms gate page */
   readonly acceptTermsButton: Locator;
+
+  /**
+   * Index of the most recent TOTP time-window this page object consumed via {@link verifyTotp}.
+   * The server enforces single-use of each code within its replay window, so successive TOTP
+   * logins must use codes from distinct windows — see {@link verifyTotp} for how this is used.
+   */
+  private lastTotpWindowConsumed: number | null = null;
 
   constructor(page: Page) {
     this.page = page;
@@ -343,7 +349,30 @@ export class AuthenticationPage {
     const { decodeBase32IgnorePadding } = await import('@oslojs/encoding');
     const { generateTOTP } = await import('@oslojs/otp');
 
-    const code = await generateTOTP(decodeBase32IgnorePadding(secret), 30, 6);
+    const TOTP_INTERVAL_SEC = 30;
+    const TOTP_INTERVAL_MS = TOTP_INTERVAL_SEC * 1000;
+    // The server rejects a TOTP code that was already used within its replay window, so when two
+    // logins happen inside the same 30s window (a fast test run) they would otherwise submit the
+    // identical code and the second would fail. Wait for the next window so each login uses a fresh,
+    // never-consumed code. Only waits when a prior verifyTotp consumed the current window.
+    let currentWindow = Math.floor(Date.now() / TOTP_INTERVAL_MS);
+    if (this.lastTotpWindowConsumed !== null && currentWindow <= this.lastTotpWindowConsumed) {
+      const nextWindowStartMs = (this.lastTotpWindowConsumed + 1) * TOTP_INTERVAL_MS;
+      await this.page.waitForTimeout(Math.max(0, nextWindowStartMs - Date.now() + 1000));
+      currentWindow = Math.floor(Date.now() / TOTP_INTERVAL_MS);
+    }
+
+    // generateTOTP reads the clock again on its own, so if we're within ~1s of the window boundary the
+    // generated code could land in the next window while we recorded this one. Wait out the remainder
+    // to keep the recorded window and the code's actual window in sync.
+    const msRemainingInWindow = TOTP_INTERVAL_MS - (Date.now() % TOTP_INTERVAL_MS);
+    if (msRemainingInWindow < 1000) {
+      await this.page.waitForTimeout(msRemainingInWindow + 1000);
+      currentWindow = Math.floor(Date.now() / TOTP_INTERVAL_MS);
+    }
+    this.lastTotpWindowConsumed = currentWindow;
+
+    const code = await generateTOTP(decodeBase32IgnorePadding(secret), TOTP_INTERVAL_SEC, 6);
 
     // Get token from session
     const sessions = await getUserSessionsByEmail(email);
@@ -379,7 +408,7 @@ export class AuthenticationPage {
     ).toBeVisible();
 
     // ensure email verification was sent
-    await prisma.emailActivity.findFirstOrThrow({ where: { email, subject: { contains: 'Reset your password' } } });
+    await verifyEmailLogEntryExists(email, 'Reset your password');
     const { token: code } = await getPasswordResetToken(email);
 
     await this.goToPasswordResetVerify({ email, code });

@@ -1,4 +1,4 @@
-import { ENV } from '@jetstream/api-config';
+import { DbCacheProvider, ENV } from '@jetstream/api-config';
 import {
   acceptTos,
   AuthError,
@@ -87,6 +87,9 @@ function normalizeRedirectCandidate(value: string | undefined): string | undefin
   const absolute = value.startsWith('/') ? `${ENV.JETSTREAM_CLIENT_URL}${value}` : value;
   return absolute.replace('/app/app', '/app');
 }
+
+// Single-use guard for TOTP codes.
+const totpReplayCache = new DbCacheProvider('2fa:otp-code', 1000 * 90);
 
 export const routeDefinition = {
   logout: {
@@ -771,6 +774,12 @@ const verification = createRoute(
             const { secret } = await getTotpAuthenticationFactor(req.session.user.id);
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             await verify2faTotpOrThrow(secret!, code);
+            // Enforce single use within the code's validity window: atomically record the code and
+            // reject if it was already consumed (replay) for this user.
+            const isFirstUse = await totpReplayCache.consumeOnceAsync(`${req.session.user.id}:${code}`);
+            if (!isFirstUse) {
+              throw new InvalidVerificationToken('Provided code has already been used');
+            }
             rememberDeviceId = rememberDevice ? generateRandomString(32) : undefined;
             break;
           }
@@ -977,14 +986,18 @@ const requestPasswordReset = createRoute(routeDefinition.requestPasswordReset.va
     try {
       const { token, userId: _userId } = await generatePasswordResetToken(email);
       userId = _userId;
-      await sendPasswordReset(email, token, PASSWORD_RESET_DURATION_MINUTES);
-
-      sendJson(res, { error: false });
+      // Fire-and-forget the email: awaiting the Mailgun round trip here made the response for a
+      // registered email measurably slower than the immediate throw for an unregistered one,
+      // which was an account-enumeration timing oracle. Not awaiting it removes that dominant
+      // timing gap (the residual DB-work difference between the two paths is negligible by comparison).
+      void sendPasswordReset(email, token, PASSWORD_RESET_DURATION_MINUTES).catch((error) => {
+        res.log.error({ err: error, email }, '[AUTH][PASSWORD_RESET] Failed to send password reset email');
+      });
     } catch (ex) {
       res.log.warn({ email }, `[AUTH][PASSWORD_RESET] ${getErrorMessage(ex)}`);
       success = false;
-      sendJson(res, { error: false });
     }
+    sendJson(res, { error: false });
 
     createUserActivityFromReq(req, res, {
       action: 'PASSWORD_RESET_REQUEST',

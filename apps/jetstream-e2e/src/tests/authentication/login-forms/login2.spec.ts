@@ -1,5 +1,4 @@
-import { prisma } from '@jetstream/api-config';
-import { getPasswordResetToken } from '@jetstream/test/e2e-utils';
+import { getPasswordResetToken, verifyEmailLogEntryExists } from '@jetstream/test/e2e-utils';
 import { expect, test } from '../../../fixtures/fixtures';
 
 test.beforeEach(async ({ page }) => {
@@ -31,7 +30,7 @@ test.describe('Login 2', () => {
     ).toBeVisible();
 
     // ensure email verification was sent
-    await prisma.emailActivity.findFirstOrThrow({ where: { email, subject: { contains: 'Reset your password' } } });
+    await verifyEmailLogEntryExists(email, 'Reset your password');
     const { token: code } = await getPasswordResetToken(email);
 
     await authenticationPage.goToPasswordResetVerify({ email, code });
