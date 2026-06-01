@@ -24,7 +24,12 @@ browser.storage.onChanged.addListener((changes, namespace) => {
         newState[namespace][key] = newValue;
       }
 
-      newState.local.options = newState.local.options ?? { enabled: true, recordSyncEnabled: false, colorScheme: 'light' };
+      newState.local.options = {
+        ...newState.local.options,
+        enabled: newState.local.options?.enabled ?? true,
+        recordSyncEnabled: newState.local.options?.recordSyncEnabled ?? false,
+        colorScheme: newState.local.options?.colorScheme ?? 'light',
+      };
 
       newState.sync.authTokens = newState.sync.authTokens ?? null;
       newState.sync.extIdentifier = newState.sync.extIdentifier ?? null;
