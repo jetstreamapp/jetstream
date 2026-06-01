@@ -3,7 +3,7 @@ import { AuditLogAction, AuditLogResource, createTeamAuditLog } from '@jetstream
 import * as authService from '@jetstream/auth/server';
 import { encryptSecret, oidcService, samlService } from '@jetstream/auth/server';
 import { OidcConfigurationRequestSchema, SamlConfigurationRequestSchema } from '@jetstream/auth/types';
-import { assertDomainResolvesToPublicIp } from '@jetstream/shared/node-utils';
+import { assertDomainResolvesToPublicIp, getPinnedPublicIpDispatcher } from '@jetstream/shared/node-utils';
 import { BLOCKED_PUBLIC_EMAIL_DOMAINS } from '@jetstream/shared/constants';
 import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import {
@@ -20,6 +20,7 @@ import {
 import * as crypto from 'crypto';
 import * as dns from 'dns/promises';
 import { unparse } from 'papaparse';
+import type { Dispatcher } from 'undici';
 import { z } from 'zod';
 import * as teamDb from '../db/team.db';
 import * as teamService from '../services/team.service';
@@ -71,16 +72,19 @@ export async function fetchSamlMetadata(initialUrl: string): Promise<Response> {
     // In dev/CI (USE_SECURE_COOKIES=false) we allow loopback/private targets so the local mock
     // IdP (mock-idp/docker-compose.yml, http://localhost:4000/api/saml/metadata) is reachable.
     // Parallels the OIDC runtime discovery path in libs/auth/server/src/lib/oidc.service.ts.
+    // In prod we pin the connection to the validated public IP so the validated address is the
+    // one actually connected to (defeats DNS-rebinding TOCTOU between the check and the fetch).
+    const fetchInit: RequestInit & { dispatcher?: Dispatcher } = {
+      signal,
+      headers: { Accept: 'application/xml, text/xml, */*' },
+      redirect: 'manual',
+    };
     if (ENV.USE_SECURE_COOKIES) {
-      await assertDomainResolvesToPublicIp(currentUrl);
+      fetchInit.dispatcher = await getPinnedPublicIpDispatcher(new URL(currentUrl).hostname);
     }
     let response: Response;
     try {
-      response = await fetch(currentUrl, {
-        signal,
-        headers: { Accept: 'application/xml, text/xml, */*' },
-        redirect: 'manual',
-      });
+      response = await fetch(currentUrl, fetchInit);
     } catch (err) {
       // AbortSignal.timeout's thrown error can surface as TimeoutError OR AbortError depending
       // on the Node/undici version — checking signal.aborted is deterministic, and since this
@@ -1191,21 +1195,10 @@ const verifyDomain = createRoute(routeDefinition.verifyDomain.validators, async 
     }
 
     // 2. Check File (if not verified by DNS)
-    // Validate that the domain resolves to a public IP to prevent SSRF attacks
-    let domainIsSafeToFetch = false;
+    // Pin each fetch to a freshly-validated public IP so the address we validate is the address
+    // we connect to (defeats DNS-rebinding TOCTOU). Each fileUrl can target a different host
+    // (the apex domain and the `_jetstream.` subdomain), so every URL is validated independently.
     if (!verified) {
-      try {
-        await assertDomainResolvesToPublicIp(verification.domain);
-        domainIsSafeToFetch = true;
-      } catch (error) {
-        res.log.warn(
-          { error: getErrorMessage(error), domain: verification.domain },
-          'Domain failed SSRF safety check, skipping file verification',
-        );
-      }
-    }
-
-    if (!verified && domainIsSafeToFetch) {
       const fileUrls = [
         `https://${verification.domain}/.well-known/jetstream-verification.txt`,
         `https://_jetstream.${verification.domain}/.well-known/jetstream-verification.txt`,
@@ -1213,7 +1206,13 @@ const verifyDomain = createRoute(routeDefinition.verifyDomain.validators, async 
       for (const fileUrl of fileUrls) {
         if (verified) break;
         try {
-          const response = await fetch(fileUrl, { signal: AbortSignal.timeout(5000), redirect: 'manual' });
+          const dispatcher = await getPinnedPublicIpDispatcher(new URL(fileUrl).hostname);
+          const fetchInit: RequestInit & { dispatcher?: Dispatcher } = {
+            signal: AbortSignal.timeout(5000),
+            redirect: 'manual',
+            dispatcher,
+          };
+          const response = await fetch(fileUrl, fetchInit);
           if (response.ok) {
             const text = await response.text();
             if (text.trim() === verification.verificationCode) {

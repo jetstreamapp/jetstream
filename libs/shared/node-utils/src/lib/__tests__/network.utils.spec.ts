@@ -1,5 +1,6 @@
+import type { LookupAddress } from 'dns';
 import * as dns from 'dns/promises';
-import { assertDomainResolvesToPublicIp } from '../network.utils';
+import { assertDomainResolvesToPublicIp, resolveHostnameToValidatedPublicIps, selectPinnedLookupAddresses } from '../network.utils';
 
 // jsdom-environment tests can't auto-mock `dns/promises`, so stub the two functions we use.
 vi.mock('dns/promises', () => ({
@@ -130,3 +131,71 @@ describe('assertDomainResolvesToPublicIp', () => {
     await expect(assertDomainResolvesToPublicIp('example.com')).resolves.toBeUndefined();
   });
 });
+
+describe('resolveHostnameToValidatedPublicIps', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('returns validated IPv4 and IPv6 addresses with their family', async () => {
+    mockedDns.resolve4.mockResolvedValue(['93.184.216.34']);
+    mockedDns.resolve6.mockResolvedValue(['2606:4700:4700::1111']);
+
+    const addresses = await resolveHostnameToValidatedPublicIps('example.com');
+    expect(addresses).toEqual([
+      { address: '93.184.216.34', family: 4 },
+      { address: '2606:4700:4700::1111', family: 6 },
+    ]);
+  });
+
+  it('returns a raw public IP literal without a DNS lookup', async () => {
+    const addresses = await resolveHostnameToValidatedPublicIps('8.8.8.8');
+    expect(addresses).toEqual([{ address: '8.8.8.8', family: 4 }]);
+    expect(mockedDns.resolve4).not.toHaveBeenCalled();
+  });
+
+  it('rejects when any resolved address is private', async () => {
+    mockedDns.resolve4.mockResolvedValue(['93.184.216.34', '169.254.169.254']);
+    mockedDns.resolve6.mockRejectedValue(new Error('no AAAA'));
+
+    await expect(resolveHostnameToValidatedPublicIps('evil.com')).rejects.toThrow('private or reserved');
+  });
+
+  it('throws when the domain cannot be resolved', async () => {
+    mockedDns.resolve4.mockRejectedValue(new Error('NXDOMAIN'));
+    mockedDns.resolve6.mockRejectedValue(new Error('NXDOMAIN'));
+
+    await expect(resolveHostnameToValidatedPublicIps('nonexistent.invalid')).rejects.toThrow('Unable to resolve DNS');
+  });
+});
+
+describe('selectPinnedLookupAddresses', () => {
+  const ipv4: LookupAddress = { address: '93.184.216.34', family: 4 };
+  const ipv6: LookupAddress = { address: '2606:4700:4700::1111', family: 6 };
+
+  it('returns all validated addresses when no specific family is requested', () => {
+    expect(selectPinnedLookupAddresses([ipv4, ipv6], undefined)).toEqual([ipv4, ipv6]);
+    expect(selectPinnedLookupAddresses([ipv4, ipv6], 0)).toEqual([ipv4, ipv6]);
+  });
+
+  it('narrows to the requested IPv4 family', () => {
+    expect(selectPinnedLookupAddresses([ipv4, ipv6], 4)).toEqual([ipv4]);
+  });
+
+  it('narrows to the requested IPv6 family', () => {
+    expect(selectPinnedLookupAddresses([ipv4, ipv6], 6)).toEqual([ipv6]);
+  });
+
+  it('throws when no address matches the requested family', () => {
+    expect(() => selectPinnedLookupAddresses([ipv4], 6)).toThrow('No validated public IPv6 address');
+  });
+
+  it('throws when a pinned address is private/reserved at connect time', () => {
+    expect(() => selectPinnedLookupAddresses([{ address: '10.0.0.1', family: 4 }], undefined)).toThrow('private or reserved');
+  });
+});
+
+// NOTE: createPinnedPublicIpDispatcher() constructs an undici Agent (a Node-only dependency),
+// which cannot be loaded under this lib's jsdom test environment. Its IP-validation behavior is
+// exercised through resolveHostnameToValidatedPublicIps above (the helper it delegates to); the
+// connection-pinning (connect.lookup) is integration-tested at runtime.

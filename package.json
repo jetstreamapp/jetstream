@@ -369,6 +369,7 @@
     "tar": "^7.5.15",
     "tiny-request-router": "^1.2.2",
     "tslib": "^2.3.0",
+    "undici": "^7.25.0",
     "unzipper": "^0.12.3",
     "update-electron-app": "^3.2.0",
     "uuid": "^14.0.0",

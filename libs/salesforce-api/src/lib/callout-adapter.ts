@@ -27,6 +27,26 @@ export class ApiRequestError extends Error {
   }
 }
 
+/**
+ * Resolves the outbound request URL against the org's `instanceUrl` and asserts it stays on the
+ * same origin over HTTPS before we attach the session's bearer/`X-SFDC-Session`. `url` on the
+ * manual-request and stream-download endpoints is fully caller-controlled, so a value like
+ * `@evil.com/x`, `//evil.com`, `https://evil.com`, or one using userinfo/backslash tricks could
+ * otherwise override the authority and exfiltrate the org's credentials to an attacker host.
+ *
+ * Resolving with `new URL(url, instanceUrl)` and pinning `resolved.origin === instance origin`
+ * neutralizes all of those regardless of the underlying fetch/undici runtime, and returning the
+ * resolved string means the actual fetch parses the exact same value we validated.
+ */
+export function resolveSameOriginRequestUrl(url: string, instanceUrl: string): string {
+  const instanceOrigin = new URL(instanceUrl).origin;
+  const resolved = new URL(url, instanceUrl);
+  if (resolved.origin !== instanceOrigin || resolved.protocol !== 'https:') {
+    throw new Error(`Request URL must stay on the Salesforce instance origin over HTTPS: ${url}`);
+  }
+  return resolved.toString();
+}
+
 export const CALLOUT_ADAPTER_PARSE_OPTIONS = {
   trimValues: true,
   ignoreAttributes: false,
@@ -149,7 +169,9 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
       let { url, body, outputType, duplex } = requestOptions;
       const { method = 'GET', sessionInfo, headers, rawBody = false } = requestOptions;
       const { accessToken, instanceUrl } = sessionInfo;
-      url = `${instanceUrl}${url}`;
+      // Resolve + assert same-origin/HTTPS before attaching session credentials so a caller-controlled
+      // `url` cannot redirect the org's bearer token to an attacker host (SSRF / credential exfiltration).
+      url = resolveSameOriginRequestUrl(url, instanceUrl);
       outputType = outputType || 'json';
       if (isObject(body) && !rawBody) {
         body = JSON.stringify(body);

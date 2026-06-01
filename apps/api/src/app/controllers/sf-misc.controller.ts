@@ -10,6 +10,21 @@ import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
 import { createRoute, RouteValidator } from '../utils/route.utils';
 
+/**
+ * Defense-in-depth for the SSRF sinks (`streamFileDownload` / `salesforceRequestManual`): the
+ * `url` is forwarded to Salesforce with the org's session credentials, so we require a host-relative
+ * path. The callout adapter still pins the resolved request to the instance origin, but rejecting
+ * authority-override (`@host`), protocol-relative (`//host`), backslash, whitespace, and control-char
+ * tricks at the edge keeps malicious input from ever reaching the credentialed request.
+ */
+const HostRelativeUrlSchema = z
+  .string()
+  .min(1)
+  .startsWith('/', 'URL must be a host-relative path beginning with "/"')
+  // eslint-disable-next-line no-control-regex -- intentionally rejecting C0/DEL control chars in the path
+  .regex(/^\/(?!\/)[^\\\s\x00-\x1f\x7f]*$/, 'URL must be a host-relative path and may not contain "\\", whitespace, or control characters')
+  .refine((value) => !value.includes('@'), 'URL must not contain "@"');
+
 export const routeDefinition = {
   getFrontdoorLoginUrl: {
     controllerFn: () => getFrontdoorLoginUrl,
@@ -23,7 +38,7 @@ export const routeDefinition = {
     responseType: z.any(),
     validators: {
       query: z.object({
-        url: z.string().min(1),
+        url: HostRelativeUrlSchema,
       }),
     } satisfies RouteValidator,
   },
@@ -52,7 +67,10 @@ export const routeDefinition = {
     controllerFn: () => salesforceRequestManual,
     responseType: z.any(),
     validators: {
-      body: SalesforceRequestManualRequestSchema,
+      // `salesforceRequestManual` runs with `ensureRestUrl=false`, so its caller-supplied `url` is the
+      // SSRF sink — tighten it to a host-relative path. `salesforceRequest` above is safe because it
+      // passes `ensureRestUrl=true`, so its schema is intentionally left unchanged.
+      body: SalesforceRequestManualRequestSchema.extend({ url: HostRelativeUrlSchema }),
     } satisfies RouteValidator,
   },
 };
