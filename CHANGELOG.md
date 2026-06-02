@@ -1,5 +1,11 @@
 # Changelog
 
+## [9.19.1](https://github.com/jetstreamapp/jetstream/compare/v9.19.0...v9.19.1) (2026-06-02)
+
+### Bug Fixes
+
+* prevent prototype pollution on data sync routes + ip detection ([8dbc13f](https://github.com/jetstreamapp/jetstream/commit/8dbc13ff27d11f77b76bbf1b7a8b3a57ed21afbb))
+
 ## [9.19.0](https://github.com/jetstreamapp/jetstream/compare/v9.18.1...v9.19.0) (2026-05-30)
 
 ### Features
