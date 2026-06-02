@@ -264,13 +264,19 @@ export const convertUserProfileToSession_External = (user: UserProfileUi): UserP
   };
 };
 
+// Max length of a textual IP address (IPv6 with an embedded IPv4, e.g. ::ffff:255.255.255.255)
+const MAX_IP_ADDRESS_LENGTH = 45;
+
 export function getApiAddressFromReq(req: Request<unknown, unknown, unknown> | ExpressRequest<unknown, unknown, unknown, unknown>): string {
   try {
-    const ipAddress = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
-    if (Array.isArray(ipAddress)) {
-      return ipAddress[ipAddress.length - 1];
+    // Use Express's trust-proxy-aware `req.ip` instead of raw client-supplied headers.
+    const ipAddress = req.ip || req.socket?.remoteAddress || 'unknown';
+    // Defensive length cap so a malformed value cannot be injected into downstream sinks
+    // (the GeoIP API request body, notification emails).
+    if (typeof ipAddress === 'string' && ipAddress.length > 0 && ipAddress.length <= MAX_IP_ADDRESS_LENGTH) {
+      return ipAddress;
     }
-    return ipAddress || 'unknown';
+    return 'unknown';
   } catch (ex) {
     logger.error('Error fetching IP address', ex);
     return 'unknown';
@@ -288,6 +294,12 @@ export function getApiAddressFromReq(req: Request<unknown, unknown, unknown> | E
  * @param defaultUrl - The default safe URL to return if validation fails
  * @returns The validated URL or the default URL if validation fails
  */
+// Control chars, whitespace, and backslashes are rejected outright in redirect candidates.
+// Browsers normalize "\" to "/" per the WHATWG URL spec, so "/\evil.com" would otherwise be
+// parsed as the protocol-relative "//evil.com" and escape the origin even though it passes a
+// naive `startsWith('//')` check.
+const UNSAFE_REDIRECT_CHARS = /[\u0000-\u0020\u007F\\]/;
+
 export function validateRedirectUrl(url: string | null | undefined, allowedOrigins: string[], defaultUrl: string): string {
   if (!url || typeof url !== 'string') {
     return defaultUrl;
@@ -301,26 +313,44 @@ export function validateRedirectUrl(url: string | null | undefined, allowedOrigi
     return defaultUrl;
   }
 
-  // Allow relative paths that start with / but not //
-  // Protocol-relative URLs (//example.com) are not allowed
-  if (url.startsWith('/') && !url.startsWith('//')) {
-    return url;
+  // Reject anything containing control chars, whitespace, or backslashes before any further
+  // parsing — these are the characters browsers normalize in ways that bypass origin checks.
+  if (UNSAFE_REDIRECT_CHARS.test(url)) {
+    logger.warn({ url, allowedOrigins }, '[SECURITY] Redirect URL with unsafe characters blocked');
+    return defaultUrl;
   }
 
-  // For absolute URLs, validate the origin
   try {
+    // Relative paths: must start with a single "/" (not "//"). Resolve against the first allowed
+    // origin and re-emit only the normalized path/query/hash so that no parsing trick can carry an
+    // authority component through. Falls back to the raw (already char-sanitized) path if no base.
+    if (url.startsWith('/')) {
+      if (url.startsWith('//')) {
+        logger.warn({ url, allowedOrigins }, '[SECURITY] Protocol-relative redirect blocked');
+        return defaultUrl;
+      }
+      const baseOrigin = allowedOrigins[0];
+      if (!baseOrigin) {
+        return url;
+      }
+      const resolved = new URL(url, baseOrigin);
+      if (allowedOrigins.some((allowedOrigin) => new URL(allowedOrigin).origin === resolved.origin)) {
+        return `${resolved.pathname}${resolved.search}${resolved.hash}`;
+      }
+      logger.warn({ url, origin: resolved.origin, allowedOrigins }, '[SECURITY] Attempted open redirect blocked');
+      return defaultUrl;
+    }
+
+    // Absolute URLs: validate the origin against the allow list
     const parsedUrl = new URL(url);
     const origin = parsedUrl.origin;
 
-    // Check if the origin matches any allowed origin
     for (const allowedOrigin of allowedOrigins) {
-      const parsedAllowedOrigin = new URL(allowedOrigin);
-      if (origin === parsedAllowedOrigin.origin) {
+      if (origin === new URL(allowedOrigin).origin) {
         return url;
       }
     }
 
-    // Origin not in allowed list
     logger.warn({ url, origin, allowedOrigins }, '[SECURITY] Attempted open redirect blocked');
     return defaultUrl;
   } catch (ex) {

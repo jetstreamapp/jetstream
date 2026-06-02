@@ -361,6 +361,25 @@ describe('validateRedirectUrl', () => {
       expect(validateRedirectUrl('//evil.com/phishing', allowedOrigins, defaultUrl)).toBe(defaultUrl);
     });
 
+    it('should block backslash bypass that browsers normalize to protocol-relative', () => {
+      // Browsers normalize "\" to "/", so "/\evil.com" navigates to "//evil.com" (off-origin)
+      expect(validateRedirectUrl('/\\evil.com', allowedOrigins, defaultUrl)).toBe(defaultUrl);
+      expect(validateRedirectUrl('/\\/evil.com', allowedOrigins, defaultUrl)).toBe(defaultUrl);
+      expect(validateRedirectUrl('/\\\\@evil.com', allowedOrigins, defaultUrl)).toBe(defaultUrl);
+      expect(validateRedirectUrl('\\\\evil.com', allowedOrigins, defaultUrl)).toBe(defaultUrl);
+    });
+
+    it('should block redirect candidates containing control characters or whitespace', () => {
+      expect(validateRedirectUrl('/foo\tbar', allowedOrigins, defaultUrl)).toBe(defaultUrl);
+      expect(validateRedirectUrl('/foo\nbar', allowedOrigins, defaultUrl)).toBe(defaultUrl);
+      expect(validateRedirectUrl('/foo bar', allowedOrigins, defaultUrl)).toBe(defaultUrl);
+    });
+
+    it('should keep percent-encoded backslash on the same origin (path, not authority)', () => {
+      // "%5c" is not decoded into an authority separator; it stays a same-origin path
+      expect(validateRedirectUrl('/%5cevil.com', allowedOrigins, defaultUrl)).toBe('/%5cevil.com');
+    });
+
     it('should block absolute URLs not in allowed list', () => {
       expect(validateRedirectUrl('https://evil.com', allowedOrigins, defaultUrl)).toBe(defaultUrl);
       expect(validateRedirectUrl('https://evil.com/phishing', allowedOrigins, defaultUrl)).toBe(defaultUrl);

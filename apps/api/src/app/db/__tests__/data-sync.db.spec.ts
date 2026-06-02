@@ -220,6 +220,26 @@ describe('syncRecordChanges — create routing', () => {
     );
   });
 
+  it('does not let a reserved key (__proto__) corrupt the existing-record lookup map', async () => {
+    // The existing-record lookup map is keyed by attacker-controlled `record.key`. If it were a
+    // plain object, `existingRecordsById['__proto__']` would resolve to the inherited Object
+    // prototype (a truthy object with no `id`), misrouting this create into an UPDATE with
+    // `id: undefined` and aborting the transaction. With a null-prototype map the lookup is
+    // `undefined`, so the record routes cleanly through the INSERT path.
+    mockExistingRecords([]);
+    prismaMock.__tx.$queryRaw.mockResolvedValueOnce([{ id: 'proto-id' }]);
+
+    await syncRecordChanges({
+      userId: USER_ID,
+      records: [makeCreate({ key: '__proto__', hashedKey: 'hash_proto' })],
+      updatedAt: null,
+      includeAllIfUpdatedAtNull: false,
+    });
+
+    expect(prismaMock.__tx.$queryRaw).toHaveBeenCalledOnce();
+    expect(prismaMock.__tx.userSyncData.update).not.toHaveBeenCalled();
+  });
+
   it('ignores a create when the server already soft-deleted after the client createdAt', async () => {
     const newerDeletedAt = addMinutes(new Date('2026-05-10T12:00:00Z'), 30);
     mockExistingRecords([{ id: 'existing-id', key: 'qh_key1', updatedAt: newerDeletedAt, deletedAt: newerDeletedAt }]);
