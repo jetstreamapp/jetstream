@@ -18,6 +18,8 @@ Jetstream is a comprehensive Salesforce management platform that helps users wor
 
 NONE of the libraries are buildable, so never try to build a library.
 
+This repo is pinned to pnpm via `devEngines.packageManager`. Always run Nx (and any other tooling) through pnpm — `pnpm nx run <project>:<target>`, `pnpm nx run-many`, `pnpm nx affected`. Do NOT use `npx nx ...`: `npx` invokes npm, which fails the engine check with `EBADDEVENGINES Invalid devEngines.packageManager`.
+
 ## Coding standards
 
 - Make decisions that favor future code readability
