@@ -202,7 +202,7 @@ export const fieldDefinitions: FieldDefinitions = {
     type: 'text', // number
     helpText: (type: SalesforceFieldType) => {
       if (type === 'LongTextArea' || type === 'Html') {
-        return 'Max value 131072';
+        return 'Must be between 256 and 131,072';
       }
     },
     validate: (value: string, fieldValues: FieldValues) => {
@@ -212,13 +212,13 @@ export const fieldDefinitions: FieldDefinitions = {
       const numValue = Number(value);
       const type = fieldValues.type.value;
       if (type === 'LongTextArea' || type === 'Html') {
-        return isFinite(numValue) && numValue > 255 && numValue <= 131072;
+        return isFinite(numValue) && numValue >= 256 && numValue <= 131_072;
       }
       return isFinite(numValue) && numValue > 0 && numValue <= 255;
     },
     invalidErrorMessage: (type) => {
-      if (type === 'LongTextArea') {
-        return 'Must be between 255 and 131,072';
+      if (type === 'LongTextArea' || type === 'Html') {
+        return 'Must be between 256 and 131,072';
       }
       return 'Must not exceed 255 characters';
     },
@@ -1169,18 +1169,21 @@ export async function deployLayouts(
 export function getRowsForExport(fieldValues: FieldValues[]) {
   const BASE_FIELDS = new Set(baseFields);
   return fieldValues.map((row) =>
-    allFields.reduce((output, field) => {
-      if (BASE_FIELDS.has(field) || fieldTypeDependenciesExport[row.type.value as SalesforceFieldType].includes(field)) {
-        if (field === 'globalValueSet' && row._picklistGlobalValueSet) {
-          output[field] = row[field].value;
-        } else if (field === 'valueSet' && !row._picklistGlobalValueSet) {
-          output[field] = row[field].value;
-        } else if (field !== 'globalValueSet' && field !== 'valueSet') {
-          output[field] = row[field].value;
+    allFields.reduce(
+      (output, field) => {
+        if (BASE_FIELDS.has(field) || fieldTypeDependenciesExport[row.type.value as SalesforceFieldType].includes(field)) {
+          if (field === 'globalValueSet' && row._picklistGlobalValueSet) {
+            output[field] = row[field].value;
+          } else if (field === 'valueSet' && !row._picklistGlobalValueSet) {
+            output[field] = row[field].value;
+          } else if (field !== 'globalValueSet' && field !== 'valueSet') {
+            output[field] = row[field].value;
+          }
         }
-      }
-      return output;
-    }, {} as Partial<Record<FieldDefinitionType, FieldValue>>),
+        return output;
+      },
+      {} as Partial<Record<FieldDefinitionType, FieldValue>>,
+    ),
   );
 }
 
