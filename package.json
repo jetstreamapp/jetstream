@@ -6,7 +6,7 @@
     "url": "https://github.com/jetstreamapp/jetstream"
   },
   "author": "Jetstream Solutions, LLC",
-  "version": "9.18.1",
+  "version": "9.19.1",
   "license": "SEE LICENSE IN LICENSE.md",
   "engines": {
     "node": ">=24 <25",
@@ -206,7 +206,7 @@
     "@typescript-eslint/eslint-plugin": "8.46.2",
     "@typescript-eslint/parser": "8.46.2",
     "@vitejs/plugin-react": "^6.0.2",
-    "@vitest/coverage-v8": "4.0.9",
+    "@vitest/coverage-v8": "4.1.7",
     "archiver": "^7.0.1",
     "autoprefixer": "10.4.13",
     "babel-loader": "^9.1.3",
@@ -246,11 +246,11 @@
     "tsx": "^4.21.0",
     "typescript": "6.0.3",
     "typescript-eslint": "8.46.2",
-    "vite": "^8.0.13",
+    "vite": "^8.0.14",
     "vite-plugin-dts": "4.5.4",
     "vite-plugin-eslint": "^1.8.1",
     "vite-tsconfig-paths": "^6.1.1",
-    "vitest": "4.0.9",
+    "vitest": "4.1.7",
     "web-ext": "^8.4.0",
     "zx": "^8.8.5"
   },

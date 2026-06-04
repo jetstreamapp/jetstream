@@ -174,7 +174,11 @@ export const syncRecordChanges = async ({
     throw new Error(`Cannot sync more than ${MAX_SYNC} records at a time`);
   }
 
-  const recordsByHashedKey = Object.keys(groupByFlat(records, 'hashedKey')).filter(Boolean);
+  // record.key / record.hashedKey are attacker-controlled, so build these lookup maps on a
+  // null-prototype object. A key of `__proto__`/`constructor`/`toString` on a normal object
+  // would resolve to an inherited member and misroute a create into an update with an undefined
+  // id, aborting the $transaction (500 + self-scoped data loss).
+  const recordsByHashedKey = Object.keys(groupByFlat(records, 'hashedKey', Object.create(null))).filter(Boolean);
 
   const existingRecordsById = groupByFlat(
     await prisma.userSyncData.findMany({
@@ -185,6 +189,7 @@ export const syncRecordChanges = async ({
       },
     }),
     'key',
+    Object.create(null),
   );
 
   /**

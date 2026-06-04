@@ -1,15 +1,14 @@
 import { css } from '@emotion/react';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, ComboboxWithItems, Grid, Icon, Input, Radio, RadioGroup, Spinner, Textarea, Tooltip } from '@jetstream/ui';
-import { FieldDefinition, FieldDefinitions, FieldValue, FieldValueState, FieldValues, SalesforceFieldType } from '@jetstream/ui-core';
-import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
+import { FieldDefinition, FieldValue, FieldValues, FieldValueState, SalesforceFieldType } from '@jetstream/ui-core';
+import { forwardRef, ReactNode, useEffect, useImperativeHandle, useState } from 'react';
 import CreateFieldsFormulaEditor from './CreateFieldsFormulaEditor';
 
 export interface CreateFieldsRowFieldProps {
   selectedOrg: SalesforceOrgUi;
   id: string;
   selectedSObjects: string[];
-  fieldDefinitions: FieldDefinitions; // TODO: unused, remove
   field: FieldDefinition;
   allValues: FieldValues;
   valueState: FieldValueState;
@@ -17,10 +16,13 @@ export interface CreateFieldsRowFieldProps {
   rows: FieldValues[];
   onChange: (value: FieldValue) => void;
   onBlur: () => void;
+  fieldAddOns?: {
+    textInput?: ReactNode;
+  };
 }
 
 export const CreateFieldsRowField = forwardRef<unknown, CreateFieldsRowFieldProps>(
-  ({ selectedOrg, id, selectedSObjects, field, allValues, valueState, disabled: _disabled, rows, onChange, onBlur }, ref) => {
+  ({ selectedOrg, id, selectedSObjects, field, allValues, valueState, disabled: _disabled, rows, onChange, onBlur, fieldAddOns }, ref) => {
     const { value, touched, errorMessage } = valueState;
     const disabled = _disabled || field?.disabled?.(allValues);
     const [values, setValues] = useState<ListItem[]>([]);
@@ -42,7 +44,7 @@ export const CreateFieldsRowField = forwardRef<unknown, CreateFieldsRowFieldProp
               onChange(_values[0].value);
             }
           })
-          .catch((error) => {
+          .catch(() => {
             setFetchError('There was a problem getting values from Salesforce');
           })
           .finally(() => setLoadingValues(false));
@@ -218,34 +220,39 @@ export const CreateFieldsRowField = forwardRef<unknown, CreateFieldsRowFieldProp
       case 'text':
       default:
         return (
-          <div
-            className="slds-m-right_medium slds-is-relative"
-            css={css`
-              max-width: 175px;
-            `}
-          >
-            {loadingValues && <Spinner size="small" />}
-            <Input
-              id={`${id}-${field.label}`}
-              label={field.label}
-              isRequired={field.required}
-              helpText={typeof field.helpText === 'function' ? field.helpText(allValues.type.value as SalesforceFieldType) : field.helpText}
-              labelHelp={
-                typeof field.labelHelp === 'function' ? field.labelHelp(allValues.type.value as SalesforceFieldType) : field.labelHelp
-              }
-              hasError={touched && !!errorMessage}
-              errorMessage={errorMessage}
+          <Grid className="slds-m-right_medium">
+            <div
+              className="slds-is-relative"
+              css={css`
+                max-width: 175px;
+              `}
             >
-              <input
+              {loadingValues && <Spinner size="small" />}
+              <Input
                 id={`${id}-${field.label}`}
-                className="slds-input"
-                value={value as string}
-                disabled={disabled}
-                onChange={(event) => onChange(event.target.value)}
-                onBlur={onBlur}
-              />
-            </Input>
-          </div>
+                label={field.label}
+                isRequired={field.required}
+                helpText={
+                  typeof field.helpText === 'function' ? field.helpText(allValues.type.value as SalesforceFieldType) : field.helpText
+                }
+                labelHelp={
+                  typeof field.labelHelp === 'function' ? field.labelHelp(allValues.type.value as SalesforceFieldType) : field.labelHelp
+                }
+                hasError={touched && !!errorMessage}
+                errorMessage={errorMessage}
+              >
+                <input
+                  id={`${id}-${field.label}`}
+                  className="slds-input"
+                  value={value as string}
+                  disabled={disabled}
+                  onChange={(event) => onChange(event.target.value)}
+                  onBlur={onBlur}
+                />
+              </Input>
+            </div>
+            {fieldAddOns?.textInput}
+          </Grid>
         );
     }
   },

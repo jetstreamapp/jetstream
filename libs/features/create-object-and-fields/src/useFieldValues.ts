@@ -21,6 +21,7 @@ type Action =
   | { type: 'CLONE_ROW'; payload: { rowKey: number } }
   | { type: 'CHANGE_ROW'; payload: { rowKey: number; field: FieldDefinitionType; value: FieldValue } }
   | { type: 'TOUCH_ROW_FIELD'; payload: { rowKey: number; field: FieldDefinitionType } }
+  | { type: 'REGENERATE_FULL_NAME'; payload: { rowKey: number } }
   | { type: 'PICKLIST_OPTION_CHANGED'; payload: { rowKey: number; value: boolean } }
   | { type: 'RESET' };
 
@@ -130,9 +131,25 @@ function reducer(state: State, action: Action): State {
         _rows[rowIdx] = { ..._rows[rowIdx] };
         _rows[rowIdx][field] = { ..._rows[rowIdx][field], touched: true };
 
-        if (field === 'label' && _rows[rowIdx][field].value) {
+        if (field === 'label' && _rows[rowIdx][field].value && !_rows[rowIdx].fullName.value) {
           const fullNameValue = generateApiNameFromLabel(_rows[rowIdx][field].value as string);
-          _rows[rowIdx].fullName = { ..._rows[rowIdx].fullName, value: fullNameValue || _rows[rowIdx].fullName.value, touched: true };
+          if (fullNameValue) {
+            _rows[rowIdx].fullName = { ..._rows[rowIdx].fullName, value: fullNameValue, touched: true };
+          }
+        }
+      }
+      const { rows, allValid } = calculateFieldValidity(_rows);
+      return { ...state, rows, allValid };
+    }
+    case 'REGENERATE_FULL_NAME': {
+      const { rowKey } = action.payload;
+      const _rows = [...state.rows];
+      const rowIdx = state.rows.findIndex((row) => row._key === rowKey);
+      if (rowIdx >= 0 && _rows[rowIdx].label.value) {
+        _rows[rowIdx] = { ..._rows[rowIdx] };
+        const fullNameValue = generateApiNameFromLabel(_rows[rowIdx].label.value as string);
+        if (fullNameValue) {
+          _rows[rowIdx].fullName = { ..._rows[rowIdx].fullName, value: fullNameValue, touched: true };
         }
       }
       const { rows, allValid } = calculateFieldValidity(_rows);
@@ -196,6 +213,10 @@ export function useFieldValues() {
     dispatch({ type: 'TOUCH_ROW_FIELD', payload: { rowKey, field } });
   }, []);
 
+  const regenerateFullName = useCallback((rowKey: number) => {
+    dispatch({ type: 'REGENERATE_FULL_NAME', payload: { rowKey } });
+  }, []);
+
   const picklistOptionChanged = useCallback((rowKey: number, value: boolean) => {
     dispatch({ type: 'PICKLIST_OPTION_CHANGED', payload: { rowKey, value } });
   }, []);
@@ -219,6 +240,7 @@ export function useFieldValues() {
     removeRow,
     changeRow,
     touchRow,
+    regenerateFullName,
     resetRows,
     picklistOptionChanged,
   };
