@@ -1,5 +1,12 @@
 # Changelog
 
+## [9.19.2](https://github.com/jetstreamapp/jetstream/compare/v9.19.1...v9.19.2) (2026-06-05)
+
+### Bug Fixes
+
+* SSRF security hardening ([40d323d](https://github.com/jetstreamapp/jetstream/commit/40d323d7391fb960b3d2836a28ab0b74b1356703))
+* update validation messages and logic for LongTextArea and Html fields ([bcddef0](https://github.com/jetstreamapp/jetstream/commit/bcddef0e8d3182c6c148c41532b0e79fb894959b)), closes [#1763](https://github.com/jetstreamapp/jetstream/issues/1763)
+
 ## [9.19.1](https://github.com/jetstreamapp/jetstream/compare/v9.19.0...v9.19.1) (2026-06-02)
 
 ### Bug Fixes
