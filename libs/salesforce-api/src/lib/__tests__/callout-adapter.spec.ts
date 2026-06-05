@@ -1,6 +1,39 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ApiRequestError, getApiRequestFactoryFn, sanitizeCallerHeaders } from '../callout-adapter';
+import { ApiRequestError, getApiRequestFactoryFn, resolveSameOriginRequestUrl, sanitizeCallerHeaders } from '../callout-adapter';
 import type { FetchFn } from '../types';
+
+describe('resolveSameOriginRequestUrl', () => {
+  const instanceUrl = 'https://test.salesforce.com';
+
+  it('resolves host-relative paths against the instance origin', () => {
+    expect(resolveSameOriginRequestUrl('/services/data/v65.0/test', instanceUrl)).toBe(
+      'https://test.salesforce.com/services/data/v65.0/test',
+    );
+  });
+
+  it('allows an absolute URL that is already on the instance origin', () => {
+    expect(resolveSameOriginRequestUrl('https://test.salesforce.com/services/x', instanceUrl)).toBe(
+      'https://test.salesforce.com/services/x',
+    );
+  });
+
+  it('rejects authority-override, protocol-relative, and absolute cross-origin URLs', () => {
+    for (const maliciousUrl of [
+      '//evil.com/x',
+      'https://evil.com/x',
+      'http://test.salesforce.com/x',
+      '\\\\evil.com',
+      'ftp://test.salesforce.com/x',
+    ]) {
+      expect(() => resolveSameOriginRequestUrl(maliciousUrl, instanceUrl)).toThrow(/Salesforce instance origin/);
+    }
+  });
+
+  it('keeps the org bearer on the instance origin even when a caller smuggles an @ in a relative path', () => {
+    // `@evil.com/x` resolves to a same-origin PATH (not an authority), so credentials stay on Salesforce
+    expect(resolveSameOriginRequestUrl('@evil.com/x', instanceUrl)).toBe('https://test.salesforce.com/@evil.com/x');
+  });
+});
 
 describe('sanitizeCallerHeaders', () => {
   it('returns undefined when no headers are provided (caller omitted the field entirely)', () => {
@@ -804,6 +837,24 @@ describe('callout-adapter XML parsing', () => {
       const results = Array.isArray(response.result) ? response.result : [response.result];
       expect(results[0]).toHaveProperty('createdById');
       expect(results[0]).toHaveProperty('fullName');
+    });
+  });
+
+  describe('SSRF origin pinning', () => {
+    it('throws and never calls fetch when the url would escape the instance origin', async () => {
+      const mockFetch = vi.fn() as unknown as FetchFn;
+      const apiRequest = getApiRequestFactoryFn(mockFetch)();
+
+      await expect(
+        apiRequest({
+          url: 'https://evil.com/x',
+          method: 'GET',
+          sessionInfo: mockSessionInfo,
+          outputType: 'json',
+        }),
+      ).rejects.toThrow(/Salesforce instance origin/);
+
+      expect(mockFetch).not.toHaveBeenCalled();
     });
   });
 

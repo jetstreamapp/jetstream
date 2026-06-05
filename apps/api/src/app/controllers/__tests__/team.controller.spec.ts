@@ -17,6 +17,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchSamlMetadata, maskSsoSecrets } from '../team.controller';
 
 const assertDomainResolvesToPublicIpMock = vi.hoisted(() => vi.fn());
+// fetchSamlMetadata now validates+pins each hop's host via getPinnedPublicIpDispatcher (which
+// resolves the hostname, asserts it is public, and returns a cached undici Agent pinned to that IP),
+// replacing the prior assertDomainResolvesToPublicIp(url) call.
+const getPinnedPublicIpDispatcherMock = vi.hoisted(() => vi.fn());
 
 // Mock the transitive import chain of team.controller.ts down to the minimum needed
 // to load the module. We are exercising maskSsoSecrets and fetchSamlMetadata — nothing
@@ -50,6 +54,7 @@ vi.mock('@jetstream/auth/types', () => ({
 }));
 vi.mock('@jetstream/shared/node-utils', () => ({
   assertDomainResolvesToPublicIp: assertDomainResolvesToPublicIpMock,
+  getPinnedPublicIpDispatcher: getPinnedPublicIpDispatcherMock,
 }));
 vi.mock('@jetstream/prisma', () => ({
   Prisma: { PrismaClientKnownRequestError: class extends Error {} },
@@ -133,6 +138,9 @@ describe('fetchSamlMetadata', () => {
   beforeEach(() => {
     assertDomainResolvesToPublicIpMock.mockReset();
     assertDomainResolvesToPublicIpMock.mockResolvedValue(undefined);
+    getPinnedPublicIpDispatcherMock.mockReset();
+    // Default: validation passes, returns an undefined (unused-by-mocked-fetch) dispatcher.
+    getPinnedPublicIpDispatcherMock.mockResolvedValue(undefined);
     fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
   });
@@ -150,8 +158,8 @@ describe('fetchSamlMetadata', () => {
 
     expect(response.status).toBe(200);
     expect(text).toBe(body);
-    expect(assertDomainResolvesToPublicIpMock).toHaveBeenCalledTimes(1);
-    expect(assertDomainResolvesToPublicIpMock).toHaveBeenCalledWith('https://idp.okta.com/metadata');
+    expect(getPinnedPublicIpDispatcherMock).toHaveBeenCalledTimes(1);
+    expect(getPinnedPublicIpDispatcherMock).toHaveBeenCalledWith('idp.okta.com');
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][1].redirect).toBe('manual');
   });
@@ -164,14 +172,14 @@ describe('fetchSamlMetadata', () => {
     const response = await fetchSamlMetadata('https://idp.okta.com/metadata');
 
     expect(response.status).toBe(200);
-    expect(assertDomainResolvesToPublicIpMock).toHaveBeenCalledTimes(2);
-    expect(assertDomainResolvesToPublicIpMock.mock.calls[0][0]).toBe('https://idp.okta.com/metadata');
-    expect(assertDomainResolvesToPublicIpMock.mock.calls[1][0]).toBe('https://regional.okta.com/metadata');
+    expect(getPinnedPublicIpDispatcherMock).toHaveBeenCalledTimes(2);
+    expect(getPinnedPublicIpDispatcherMock.mock.calls[0][0]).toBe('idp.okta.com');
+    expect(getPinnedPublicIpDispatcherMock.mock.calls[1][0]).toBe('regional.okta.com');
   });
 
   it('rejects a redirect to a host that resolves to a private IP', async () => {
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 301, headers: { location: 'https://internal.lan/metadata' } }));
-    assertDomainResolvesToPublicIpMock
+    getPinnedPublicIpDispatcherMock
       .mockResolvedValueOnce(undefined)
       .mockRejectedValueOnce(new Error('Hostname resolves to a private or reserved IP address'));
 
@@ -232,5 +240,6 @@ describe('fetchSamlMetadata', () => {
 
     expect(response.status).toBe(200);
     expect(assertDomainResolvesToPublicIpMock).not.toHaveBeenCalled();
+    expect(getPinnedPublicIpDispatcherMock).not.toHaveBeenCalled();
   });
 });

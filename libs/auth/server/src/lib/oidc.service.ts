@@ -1,14 +1,43 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { ENV, logger } from '@jetstream/api-config';
 import type { OidcConfiguration } from '@jetstream/prisma';
-import { assertDomainResolvesToPublicIp } from '@jetstream/shared/node-utils';
+import { getPinnedPublicIpDispatcher } from '@jetstream/shared/node-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { LRUCache } from 'lru-cache';
 import * as oauth from 'oauth4webapi';
+import type { Dispatcher } from 'undici';
 import { decryptSecret } from './sso-crypto.util';
 import { AttributeMapping, DiscoveredOidcConfig, SsoUserInfo } from './sso.types';
 
 const discoveryCache = new LRUCache<string, oauth.AuthorizationServer>({ max: 100, ttl: 1000 * 60 * 60 });
+
+type OidcCustomFetch = (url: string, options: oauth.CustomFetchOptions<string, BodyInit | null | undefined>) => Promise<Response>;
+
+/**
+ * Builds an oauth4webapi `customFetch` that pins every request to a freshly-validated public IP
+ * for the request URL's host. This covers the issuer (discovery) AND every discovered endpoint
+ * (token_endpoint, userinfo_endpoint, jwks_uri) — whichever URL oauth4webapi decides to call is
+ * re-validated and the connection is pinned to the validated address, closing the DNS-rebinding
+ * TOCTOU window (the validated IP is the IP actually connected to).
+ *
+ * In dev/CI (USE_SECURE_COOKIES=false) we skip pinning so local/loopback IdPs remain reachable,
+ * mirroring the SAML/file-verification fetch gating in team.controller.ts.
+ */
+function createPinnedCustomFetch(): OidcCustomFetch {
+  return async (url, options) => {
+    const fetchInit: RequestInit & { dispatcher?: Dispatcher } = {
+      body: options.body,
+      headers: options.headers,
+      method: options.method,
+      redirect: options.redirect,
+      signal: options.signal,
+    };
+    if (ENV.USE_SECURE_COOKIES) {
+      fetchInit.dispatcher = await getPinnedPublicIpDispatcher(new URL(url).hostname);
+    }
+    return fetch(url, fetchInit);
+  };
+}
 
 export class OidcService {
   /**
@@ -26,15 +55,13 @@ export class OidcService {
       }
 
       // SSRF protection: re-check at runtime (not just at save time) so DNS rebinding
-      // against a previously-public issuer cannot reach internal infrastructure.
-      // In dev/CI we allow insecure requests (loopback/private), so skip the check there too.
-      if (ENV.USE_SECURE_COOKIES) {
-        await assertDomainResolvesToPublicIp(issuerUrl.hostname);
-      }
-
-      // Perform discovery (allow HTTP for non-prod/local testing)
+      // against a previously-public issuer cannot reach internal infrastructure. The pinned
+      // customFetch resolves+validates the host once and connects to that exact IP, so the
+      // address validated is the address fetched (no rebind window between check and fetch).
+      // In dev/CI we allow insecure requests (loopback/private), so pinning is skipped there too.
       const response = await oauth.discoveryRequest(issuerUrl, {
         [oauth.allowInsecureRequests]: !ENV.USE_SECURE_COOKIES,
+        [oauth.customFetch]: createPinnedCustomFetch(),
       });
       const authServer = await oauth.processDiscoveryResponse(issuerUrl, response);
 
@@ -119,7 +146,10 @@ export class OidcService {
         params,
         `${ENV.JETSTREAM_SERVER_URL}/api/auth/sso/oidc/${teamId}/callback`,
         codeVerifier,
-        { [oauth.allowInsecureRequests]: !ENV.USE_SECURE_COOKIES },
+        {
+          [oauth.allowInsecureRequests]: !ENV.USE_SECURE_COOKIES,
+          [oauth.customFetch]: createPinnedCustomFetch(),
+        },
       );
 
       // Process the token response (for OpenID Connect)
@@ -168,6 +198,7 @@ export class OidcService {
       if (authServer.userinfo_endpoint && accessToken) {
         const response = await oauth.userInfoRequest(authServer, client, accessToken, {
           [oauth.allowInsecureRequests]: !ENV.USE_SECURE_COOKIES,
+          [oauth.customFetch]: createPinnedCustomFetch(),
         });
         const userinfoResponse = await oauth.processUserInfoResponse(authServer, client, claims.sub, response);
         allClaims = { ...allClaims, ...userinfoResponse };
@@ -178,10 +209,7 @@ export class OidcService {
       // team-verified domain check in sso-auth.service; we only reject the explicit-false
       // case where a compliant IdP tells us the email is not verified.
       if (allClaims.email_verified === false) {
-        logger.warn(
-          { sub: claims.sub, issuer: config.issuer },
-          '[SSO][OIDC] Rejecting login: provider reported email_verified=false',
-        );
+        logger.warn({ sub: claims.sub, issuer: config.issuer }, '[SSO][OIDC] Rejecting login: provider reported email_verified=false');
         throw new Error('OIDC provider reported the email address as unverified');
       }
 
