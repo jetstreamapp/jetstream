@@ -62,7 +62,7 @@ RUN pnpm build:core && \
 # follow-up add. `--ignore-scripts` skips the root postinstall (`prisma
 # generate`), which would fail because prisma is a devDep that isn't being
 # installed; the client was already generated above.
-RUN pnpm add -w -P cross-env npm-run-all --no-frozen-lockfile --ignore-scripts
+RUN pnpm add -w -P cross-env npm-run-all --ignore-scripts
 
 # Final stage for app image
 FROM base
