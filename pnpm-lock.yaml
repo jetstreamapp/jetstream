@@ -266,8 +266,8 @@ importers:
         specifier: ^1.1.1
         version: 1.1.1
       '@jetstreamapp/soql-parser-js':
-        specifier: ^7.2.0
-        version: 7.2.0
+        specifier: ^7.2.1
+        version: 7.2.1
       '@marsidev/react-turnstile':
         specifier: ^1.5.2
         version: 1.5.2(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -4511,8 +4511,8 @@ packages:
   '@jetstreamapp/simple-xml@1.1.1':
     resolution: {integrity: sha512-H3LeZEvOb/JD8S2vs5vzK0HOlFoKu+IQCueTNbOJ1+smUEEMNWGFni38EEQK7cMYkQKPFGfrGFb5S4hynnDJaA==}
 
-  '@jetstreamapp/soql-parser-js@7.2.0':
-    resolution: {integrity: sha512-pzk0sXv3fZiO1NE0J8++PkfnG2KGF2Dr0CGYBzzLCE6JrdA26hjoVKgq80423P2eCxTZrMdn6npKnGqIrBaywg==}
+  '@jetstreamapp/soql-parser-js@7.2.1':
+    resolution: {integrity: sha512-WLR7gf6ukdEGp4lGIOpCNJWHl/OrzJkzQVOvczTwOBr38Pi6kmoTGmqVDFAsUP87OOrN2/YgGSs+v8siC4ylDg==}
     hasBin: true
 
   '@jridgewell/gen-mapping@0.3.13':
@@ -4668,11 +4668,14 @@ packages:
       react: ^17.0.2 || ^18.0.0 || ^19.0
       react-dom: ^17.0.2 || ^18.0.0 || ^19.0
 
-  '@maxim_mazurok/gapi.client.discovery-v1@0.5.20200806':
-    resolution: {integrity: sha512-oVq9hnnI5VhAtsx55iJbPz8NRfJtWFpI1kINKeuygzCvsx90b1GQDeN3MDUvhADXiQ7+Izs316cqBnJjoDxCow==}
+  '@maxim_mazurok/gapi.client.discovery-v1@0.6.20200806':
+    resolution: {integrity: sha512-QN6aGmIbLXcJW0SEf8tz9UWCpQTBMy2u4xSuZ04YofzMGknhWwMeUecySLntCZYAEstHzDoSgwxCf5Gb8GqIRQ==}
 
   '@maxim_mazurok/gapi.client.drive-v3@0.2.20260311':
     resolution: {integrity: sha512-2SVn8bIFZB9pq1JjqBNY/Agebv8gjHdr5k+ippSVsz07eWpl7d0Vxj4huX1O60ev0NDqrIx6a7w6MFFUIKlN6w==}
+
+  '@maxim_mazurok/gapi.client.drive-v3@0.2.20260602':
+    resolution: {integrity: sha512-BNDVj7gVop5Q4rx0hvAfHxjhACShaQrYB1Zmd8fJeNAszGpLK3zRoggqPGtehdYW3O72fmsHmEsWV89QObuAgw==}
 
   '@mdn/browser-compat-data@7.3.16':
     resolution: {integrity: sha512-JQ6SGcHeyqSYGVwWe7NzOeXfp/vZgo2yz+fsEbMOyWLyNRVP4RoG8+dqaF/VTx1zPtF4J8XvxiWXH1l2cMZTwQ==}
@@ -22635,7 +22638,7 @@ snapshots:
 
   '@jetstreamapp/simple-xml@1.1.1': {}
 
-  '@jetstreamapp/soql-parser-js@7.2.0': {}
+  '@jetstreamapp/soql-parser-js@7.2.1': {}
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
@@ -22840,12 +22843,17 @@ snapshots:
       react: 19.2.6
       react-dom: 19.2.6(react@19.2.6)
 
-  '@maxim_mazurok/gapi.client.discovery-v1@0.5.20200806':
+  '@maxim_mazurok/gapi.client.discovery-v1@0.6.20200806':
     dependencies:
       '@types/gapi.client': 1.0.8
       '@types/gapi.client.discovery-v1': 0.0.4
 
   '@maxim_mazurok/gapi.client.drive-v3@0.2.20260311':
+    dependencies:
+      '@types/gapi.client': 1.0.8
+      '@types/gapi.client.discovery-v1': 0.0.4
+
+  '@maxim_mazurok/gapi.client.drive-v3@0.2.20260602':
     dependencies:
       '@types/gapi.client': 1.0.8
       '@types/gapi.client.discovery-v1': 0.0.4
@@ -26084,11 +26092,11 @@ snapshots:
 
   '@types/gapi.client.discovery-v1@0.0.4':
     dependencies:
-      '@maxim_mazurok/gapi.client.discovery-v1': 0.5.20200806
+      '@maxim_mazurok/gapi.client.discovery-v1': 0.6.20200806
 
   '@types/gapi.client.drive-v3@0.0.5':
     dependencies:
-      '@maxim_mazurok/gapi.client.drive-v3': 0.2.20260311
+      '@maxim_mazurok/gapi.client.drive-v3': 0.2.20260602
 
   '@types/gapi.client@1.0.8': {}
 
