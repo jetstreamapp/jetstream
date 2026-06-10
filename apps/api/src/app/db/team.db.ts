@@ -648,9 +648,10 @@ export async function revokeSessionThatViolateLoginConfiguration({
 /**
  * Enforce the invariant that a team always retains at least one active ADMIN.
  *
- * Rejects a member update that would leave the team with zero active admins by stripping the last
- * one of active-admin status. `nextRole`/`nextStatus` are the values the update will set; whichever
- * is omitted is left unchanged (e.g. a role-only update keeps the current status).
+ * Throws `NotAllowedError` when a member update would strip the last active admin of active-admin
+ * status, leaving the team with zero active admins. `nextRole`/`nextStatus` are the values the
+ * update will set; whichever is omitted is left unchanged (e.g. a role-only update keeps the
+ * current status).
  *
  * The target's CURRENT state is read inside this transaction (not from a snapshot taken before the
  * transaction opened) so the decision is consistent with the OTHER-admins count — closing a TOCTOU
