@@ -95,6 +95,10 @@ jobs:
       - name: install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Prisma client is no longer generated on install, so it must be generated explicitly
+      - name: Generate database client
+        run: pnpm db:generate
+
       - name: Run database migration
         run: pnpm db:migrate
 
@@ -194,6 +198,11 @@ jobs:
             echo "::notice::Skipping E2E — neither api nor jetstream is affected"
           fi
 
+      # Prisma client must be generated before building since the api build imports it
+      - name: Generate database client
+        if: steps.guard.outputs.should_run == 'true'
+        run: pnpm db:generate
+
       - name: Build
         if: steps.guard.outputs.should_run == 'true'
         run: pnpm build:ci
@@ -201,10 +210,6 @@ jobs:
       - name: Install Playwright dependencies
         if: steps.guard.outputs.should_run == 'true'
         run: pnpm playwright install --with-deps
-
-      - name: Generate database
-        if: steps.guard.outputs.should_run == 'true'
-        run: pnpm db:generate
 
       - name: Run database migration
         if: steps.guard.outputs.should_run == 'true'

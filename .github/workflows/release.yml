@@ -125,6 +125,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Prisma client is no longer generated on install, so it must be generated explicitly.
+      # Required by tests and the web extension/desktop builds, which don't run `pnpm build`.
+      - name: Generate database client
+        run: pnpm db:generate
+
       - name: Run database migration
         run: pnpm db:migrate
 
