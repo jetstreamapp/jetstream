@@ -8,24 +8,35 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as teamDb from '../team.db';
 
-const prismaMock = vi.hoisted(() => ({
-  teamMember: {
-    findUniqueOrThrow: vi.fn(),
-    update: vi.fn(),
-    findFirst: vi.fn(),
-  },
-  team: {
-    // canAddBillableMember (called internally by updateTeamMemberRole/StatusAndRole when
-    // transitioning TO a billable role) fetches the team; return an unconstrained billing
-    // account so the quota check always passes and we can focus on the isBillableAction result.
-    findFirstOrThrow: vi.fn().mockResolvedValue({
-      id: 'team-id',
-      billingStatus: 'ACTIVE',
-      billingAccount: null,
-      members: [],
-    }),
-  },
-}));
+const prismaMock = vi.hoisted(() => {
+  const mock: any = {
+    teamMember: {
+      findUniqueOrThrow: vi.fn(),
+      // The last-admin guard re-reads the target's current role/status transactionally via findUnique.
+      findUnique: vi.fn(),
+      update: vi.fn(),
+      findFirst: vi.fn(),
+      // The last-admin invariant counts OTHER active admins; default to 1 so a demotion/deactivation
+      // is allowed and the existing isBillableAction tests are unaffected.
+      count: vi.fn().mockResolvedValue(1),
+    },
+    team: {
+      // canAddBillableMember (called internally by updateTeamMemberRole/StatusAndRole when
+      // transitioning TO a billable role) fetches the team; return an unconstrained billing
+      // account so the quota check always passes and we can focus on the isBillableAction result.
+      findFirstOrThrow: vi.fn().mockResolvedValue({
+        id: 'team-id',
+        billingStatus: 'ACTIVE',
+        billingAccount: null,
+        members: [],
+      }),
+    },
+  };
+  // updateTeamMember* run the last-admin check + update inside a Serializable transaction; invoke
+  // the callback with the same mock so tx.teamMember.* resolve to the mocks configured per test.
+  mock.$transaction = vi.fn(async (fn: any) => fn(mock));
+  return mock;
+});
 
 vi.mock('@jetstream/api-config', () => ({
   ENV: {},
@@ -42,7 +53,10 @@ vi.mock('@jetstream/api-config', () => ({
 }));
 
 vi.mock('@jetstream/prisma', () => ({
-  Prisma: { PrismaClientKnownRequestError: class extends Error {} },
+  Prisma: {
+    PrismaClientKnownRequestError: class extends Error {},
+    TransactionIsolationLevel: { Serializable: 'Serializable' },
+  },
 }));
 
 function makeFullTeamMember(role: string, status = 'ACTIVE') {
@@ -83,6 +97,9 @@ describe('updateTeamMemberRole — isBillableAction transition matrix', () => {
       billingAccount: null,
       members: [],
     });
+    // Default: at least one OTHER active admin exists, and the update transaction runs inline.
+    prismaMock.teamMember.count.mockResolvedValue(1);
+    prismaMock.$transaction.mockImplementation(async (fn: any) => fn(prismaMock));
   });
 
   async function run(previousRole: string, newRole: string) {
@@ -136,6 +153,9 @@ describe('updateTeamMemberStatusAndRole — isBillableAction transition matrix',
       billingAccount: null,
       members: [],
     });
+    // Default: at least one OTHER active admin exists, and the update transaction runs inline.
+    prismaMock.teamMember.count.mockResolvedValue(1);
+    prismaMock.$transaction.mockImplementation(async (fn: any) => fn(prismaMock));
   });
 
   async function run({
@@ -195,5 +215,89 @@ describe('updateTeamMemberStatusAndRole — isBillableAction transition matrix',
 
     expect(isBillableAction).toBe(false);
     expect(prismaMock.teamMember.update).not.toHaveBeenCalled();
+  });
+});
+
+describe('last-admin invariant', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    prismaMock.team.findFirstOrThrow.mockResolvedValue({
+      id: 'team-id',
+      billingStatus: 'ACTIVE',
+      billingAccount: null,
+      members: [],
+    });
+    prismaMock.teamMember.count.mockResolvedValue(1);
+    prismaMock.$transaction.mockImplementation(async (fn: any) => fn(prismaMock));
+    // The guard re-reads the target's current role/status transactionally; default to active admin.
+    prismaMock.teamMember.findUnique.mockResolvedValue({ role: 'ADMIN', status: 'ACTIVE' });
+  });
+
+  it('rejects deactivating the last active admin', async () => {
+    prismaMock.teamMember.findUniqueOrThrow.mockResolvedValueOnce(makePreReadMember('ADMIN', 'ACTIVE'));
+    prismaMock.teamMember.findUnique.mockResolvedValueOnce({ role: 'ADMIN', status: 'ACTIVE' });
+    prismaMock.teamMember.count.mockResolvedValueOnce(0); // no OTHER active admins remain
+
+    await expect(
+      teamDb.updateTeamMemberStatusAndRole({
+        teamId: 'team-id',
+        userId: 'user-id',
+        runningUserId: 'admin-id',
+        status: 'INACTIVE' as any,
+      }),
+    ).rejects.toThrow(/at least one active administrator/i);
+    expect(prismaMock.teamMember.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects demoting the last active admin to MEMBER', async () => {
+    prismaMock.teamMember.findUniqueOrThrow.mockResolvedValueOnce(makePreReadMember('ADMIN', 'ACTIVE'));
+    prismaMock.teamMember.findUnique.mockResolvedValueOnce({ role: 'ADMIN', status: 'ACTIVE' });
+    prismaMock.teamMember.count.mockResolvedValueOnce(0);
+
+    await expect(
+      teamDb.updateTeamMemberRole({
+        teamId: 'team-id',
+        userId: 'user-id',
+        runningUserId: 'admin-id',
+        data: { role: 'MEMBER' as any, features: ['ALL'] },
+      }),
+    ).rejects.toThrow(/at least one active administrator/i);
+    expect(prismaMock.teamMember.update).not.toHaveBeenCalled();
+  });
+
+  it('allows deactivating an admin when another active admin remains', async () => {
+    prismaMock.teamMember.findUniqueOrThrow.mockResolvedValueOnce(makePreReadMember('ADMIN', 'ACTIVE'));
+    prismaMock.teamMember.findUnique.mockResolvedValueOnce({ role: 'ADMIN', status: 'ACTIVE' });
+    prismaMock.teamMember.count.mockResolvedValueOnce(1); // one OTHER active admin remains
+    prismaMock.teamMember.update.mockResolvedValueOnce(makeFullTeamMember('ADMIN', 'INACTIVE'));
+
+    const result = await teamDb.updateTeamMemberStatusAndRole({
+      teamId: 'team-id',
+      userId: 'user-id',
+      runningUserId: 'admin-id',
+      status: 'INACTIVE' as any,
+    });
+
+    expect(result.teamMember.status).toBe('INACTIVE');
+    expect(prismaMock.teamMember.update).toHaveBeenCalledTimes(1);
+  });
+
+  it('allows demoting an already-INACTIVE admin even when no other active admins exist', async () => {
+    // Demoting a member who is not currently an active admin cannot reduce the active-admin count,
+    // so the invariant must not block it (guards against a false positive).
+    prismaMock.teamMember.findUniqueOrThrow.mockResolvedValueOnce(makePreReadMember('ADMIN', 'INACTIVE'));
+    prismaMock.teamMember.findUnique.mockResolvedValueOnce({ role: 'ADMIN', status: 'INACTIVE' });
+    prismaMock.teamMember.count.mockResolvedValueOnce(0); // would wrongly reject if current state were ignored
+    prismaMock.teamMember.update.mockResolvedValueOnce(makeFullTeamMember('MEMBER', 'INACTIVE'));
+
+    const result = await teamDb.updateTeamMemberRole({
+      teamId: 'team-id',
+      userId: 'user-id',
+      runningUserId: 'admin-id',
+      data: { role: 'MEMBER' as any, features: ['ALL'] },
+    });
+
+    expect(result.teamMember.role).toBe('MEMBER');
+    expect(prismaMock.teamMember.update).toHaveBeenCalledTimes(1);
   });
 });
