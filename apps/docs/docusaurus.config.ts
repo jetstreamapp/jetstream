@@ -52,10 +52,6 @@ const config: Config = {
           routeBasePath: '/',
           editUrl: 'https://github.com/jetstreamapp/jetstream/tree/main/apps/docs/',
         },
-        gtag: {
-          anonymizeIP: true,
-          trackingID: 'G-GZJ9QQTK44',
-        },
         theme: {
           customCss: ['./src/css/custom.css'],
         },
