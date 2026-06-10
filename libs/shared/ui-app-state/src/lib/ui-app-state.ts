@@ -91,7 +91,7 @@ function getBootstrapAppInfo(): ApplicationState {
 
 function ensureUserProfileInit(pref?: Maybe<UserProfilePreferences>): UserProfilePreferences {
   return {
-    // CURRENT
+    colorScheme: 'light',
     ...pref,
   };
 }

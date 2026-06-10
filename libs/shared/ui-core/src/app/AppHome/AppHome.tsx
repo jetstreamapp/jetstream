@@ -127,13 +127,7 @@ export const AppHome = ({ showAlternativeAppFormats, hideConnectedAppBanner = fa
         </div>
         <AppHomeOrganizations />
         {HOME_ITEMS.map((card) => (
-          <div
-            key={card.title}
-            className="slds-box slds-box_x-small"
-            css={css`
-              background-color: white;
-            `}
-          >
+          <div key={card.title} className="slds-card slds-box_x-small">
             <article className="slds-tile slds-media">
               <div className="slds-media__figure">
                 {card.icon && (
@@ -142,7 +136,7 @@ export const AppHome = ({ showAlternativeAppFormats, hideConnectedAppBanner = fa
                     icon={card.icon.icon as IconName}
                     containerClassname="slds-icon_container"
                     className={classNames(
-                      'slds-icon slds-icon_small',
+                      'slds-icon slds-icon_container slds-icon_small',
                       `slds-icon-${card.icon.type}-${card.icon.icon.replaceAll('_', '-')}`,
                     )}
                   />

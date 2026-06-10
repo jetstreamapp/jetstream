@@ -42,8 +42,17 @@ export const Icon = ({
   if (omitContainer) {
     return svgElement;
   } else {
+    // SLDS 2 colors standard/action/custom icon foregrounds via [icon-name^='...'] on
+    // the container; setting the attribute keeps these icons looking correct in dark mode.
+    const iconName = `${type}-${icon?.replaceAll('_', '-')}`;
     return (
-      <span className={classNames('slds-icon_container', containerClassname)} css={containerCss} title={title || description}>
+      <span
+        className={classNames('slds-icon_container', containerClassname)}
+        css={containerCss}
+        title={title || description}
+        // required for SLDS 2 icon colors
+        icon-name={iconName}
+      >
         {svgElement}
         {(description || title) && <span className="slds-assistive-text">{description || title}</span>}
       </span>

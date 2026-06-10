@@ -16,7 +16,7 @@ import { selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent } from 'react';
 import { Link } from 'react-router-dom';
-import './DeployMetadataSelection.scss';
+import './DeployMetadataSelection.css';
 import DeployMetadataHistoryModal from './deploy-metadata-history/DeployMetadataHistoryModal';
 import DeployMetadataPackage from './deploy-metadata-package/DeployMetadataPackage';
 import DownloadMetadataPackage from './download-metadata-package/DownloadMetadataPackage';

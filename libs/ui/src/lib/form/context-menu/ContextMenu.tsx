@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/refs */
 /* eslint-disable jsx-a11y/anchor-is-valid */
 import { css } from '@emotion/react';
 import { FloatingPortal, autoUpdate, flip, offset, shift, useDismiss, useFloating, useInteractions, useRole } from '@floating-ui/react';
@@ -167,13 +168,13 @@ export const ContextMenu: FunctionComponent<ContextMenuProps> = ({ parentElement
           z-index: 7000;
           min-width: 15rem;
           max-width: 20rem;
-          border: 1px solid #e5e5e5;
+          border: 1px solid var(--slds-g-color-border-1, #e5e5e5);
           border-radius: 0.25rem;
           padding: 0.25rem 0 0;
           font-size: 0.75rem;
-          background: #fff;
+          background: var(--slds-g-color-surface-container-1, #fff);
           box-shadow: 0 2px 3px 0 rgb(0 0 0 / 16%);
-          color: #181818;
+          color: var(--slds-g-color-on-surface-1, #181818);
         `}
         style={floatingStyles}
         {...getFloatingProps()}

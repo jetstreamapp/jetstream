@@ -71,6 +71,7 @@ import UtilityIcon_Clear from './icons/utility/Clear';
 import UtilityIcon_Clock from './icons/utility/Clock';
 import UtilityIcon_Close from './icons/utility/Close';
 import UtilityIcon_CollapseAll from './icons/utility/CollapseAll';
+import UtilityIcon_ColorSwatch from './icons/utility/ColorSwatch';
 import UtilityIcon_ComponentCustomization from './icons/utility/ComponentCustomization';
 import UtilityIcon_ContractAlt from './icons/utility/ContractAlt';
 import UtilityIcon_Copy from './icons/utility/Copy';
@@ -78,6 +79,7 @@ import UtilityIcon_CopyToClipboard from './icons/utility/CopyToClipboard';
 import UtilityIcon_Dash from './icons/utility/Dash';
 import UtilityIcon_DateTime from './icons/utility/DateTime';
 import UtilityIcon_Delete from './icons/utility/Delete';
+import UtilityIcon_DesktopAndPhone from './icons/utility/DesktopAndPhone';
 import UtilityIcon_Down from './icons/utility/Down';
 import UtilityIcon_Download from './icons/utility/Download';
 import UtilityIcon_DragAndDrop from './icons/utility/DragAndDrop';
@@ -103,6 +105,7 @@ import UtilityIcon_Info from './icons/utility/Info';
 import UtilityIcon_InsertTagField from './icons/utility/InsertTagField';
 import UtilityIcon_Italic from './icons/utility/Italic';
 import UtilityIcon_Left from './icons/utility/Left';
+import UtilityIcon_LightBulb from './icons/utility/LightBulb';
 import UtilityIcon_Link from './icons/utility/Link';
 import UtilityIcon_Logout from './icons/utility/Logout';
 import UtilityIcon_Magicwand from './icons/utility/Magicwand';
@@ -266,6 +269,7 @@ const utilityIcons = {
   clock: UtilityIcon_Clock,
   close: UtilityIcon_Close,
   collapse_all: UtilityIcon_CollapseAll,
+  color_swatch: UtilityIcon_ColorSwatch,
   component_customization: UtilityIcon_ComponentCustomization,
   contract_alt: UtilityIcon_ContractAlt,
   copy_to_clipboard: UtilityIcon_CopyToClipboard,
@@ -273,6 +277,7 @@ const utilityIcons = {
   dash: UtilityIcon_Dash,
   date_time: UtilityIcon_DateTime,
   delete: UtilityIcon_Delete,
+  desktop_and_phone: UtilityIcon_DesktopAndPhone,
   down: UtilityIcon_Down,
   download: UtilityIcon_Download,
   drag_and_drop: UtilityIcon_DragAndDrop,
@@ -298,6 +303,7 @@ const utilityIcons = {
   insert_tag_field: UtilityIcon_InsertTagField,
   italic: UtilityIcon_Italic,
   left: UtilityIcon_Left,
+  light_bulb: UtilityIcon_LightBulb,
   link: UtilityIcon_Link,
   logout: UtilityIcon_Logout,
   magicwand: UtilityIcon_Magicwand,

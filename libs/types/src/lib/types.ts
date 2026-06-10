@@ -153,8 +153,11 @@ export interface AuthenticationToken {
   token_type?: 'Bearer';
 }
 
+export type ColorScheme = 'light' | 'dark' | 'system';
+
 export interface UserProfilePreferences {
   deniedNotifications?: boolean;
+  colorScheme?: ColorScheme;
 }
 
 const PreferencesSchema = z.object({

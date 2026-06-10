@@ -5,9 +5,8 @@ import { delay, unSanitizeXml } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { FileExtAllTypes, ListMetadataResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, Checkbox, FileDownloadModal, Modal, Spinner, TreeItems } from '@jetstream/ui';
-import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
+import { fromJetstreamEvents, MonacoDiffEditor, MonacoEditor, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
-import Editor, { DiffEditor } from '@monaco-editor/react';
 import { useAtomValue } from 'jotai';
 import type { editor } from 'monaco-editor';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
@@ -385,9 +384,8 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
                   >
                     {sourceLoading && <Spinner />}
                     {editorType !== 'DIFF' && (
-                      <Editor
+                      <MonacoEditor
                         height="100%"
-                        theme="vs-dark"
                         language={activeFileType}
                         options={{
                           readOnly: true,
@@ -399,10 +397,9 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
                     )}
 
                     {editorType === 'DIFF' && (
-                      <DiffEditor
+                      <MonacoDiffEditor
                         key={swapped ? 'swapped' : 'original'}
                         height="100%"
-                        theme="vs-dark"
                         language={activeFileType}
                         keepCurrentModifiedModel
                         keepCurrentOriginalModel

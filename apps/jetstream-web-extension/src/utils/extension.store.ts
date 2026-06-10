@@ -24,7 +24,12 @@ browser.storage.onChanged.addListener((changes, namespace) => {
         newState[namespace][key] = newValue;
       }
 
-      newState.local.options = newState.local.options ?? { enabled: true, recordSyncEnabled: false };
+      newState.local.options = {
+        ...newState.local.options,
+        enabled: newState.local.options?.enabled ?? true,
+        recordSyncEnabled: newState.local.options?.recordSyncEnabled ?? false,
+        colorScheme: newState.local.options?.colorScheme ?? 'light',
+      };
 
       newState.sync.authTokens = newState.sync.authTokens ?? null;
       newState.sync.extIdentifier = newState.sync.extIdentifier ?? null;
@@ -49,6 +54,7 @@ async function initAuthState(): Promise<ChromeStorageState> {
         ...local?.options,
         enabled: local?.options?.enabled ?? true,
         recordSyncEnabled: local?.options?.recordSyncEnabled ?? false,
+        colorScheme: local?.options?.colorScheme ?? 'light',
       },
     },
     sync: {
@@ -71,19 +77,17 @@ export const chromeStorageLoading = atom((get) => {
   return storage.state === 'loading' || storage.state !== 'hasData';
 });
 
-export const chromeStorageState = unwrap(
-  chromeStorageAsyncState,
-  (prev) =>
-    prev ?? {
-      sync: {
-        extIdentifier: null,
-        authTokens: null,
-        buttonPosition: DEFAULT_BUTTON_POSITION,
-        soqlQueryFormatOptions: SoqlQueryFormatOptionsSchema.parse({}),
-      },
-      local: { options: { enabled: true, recordSyncEnabled: false } },
-    },
-);
+const DEFAULT_STATE: ChromeStorageState = {
+  sync: {
+    extIdentifier: null,
+    authTokens: null,
+    buttonPosition: DEFAULT_BUTTON_POSITION,
+    soqlQueryFormatOptions: SoqlQueryFormatOptionsSchema.parse({}),
+  },
+  local: { options: { enabled: true, recordSyncEnabled: false, colorScheme: 'light' } },
+};
+
+export const chromeStorageState = unwrap(chromeStorageAsyncState, (prev) => prev ?? DEFAULT_STATE);
 
 export const chromeSyncStorage = atom((get) => get(chromeStorageState).sync);
 

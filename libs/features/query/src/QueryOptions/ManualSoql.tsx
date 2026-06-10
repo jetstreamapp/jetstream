@@ -2,10 +2,17 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { sanitizePastedEditorText, useDisposables } from '@jetstream/shared/ui-utils';
 import { SoqlQueryFormatOptions } from '@jetstream/types';
 import { CheckboxToggle, Grid, GridCol, Icon, Popover, PopoverRef, Spinner, Textarea } from '@jetstream/ui';
-import { fromJetstreamEvents, RestoreQuery, SoqlQueryFormatConfigPopover, SoqlValidIndicator, useAmplitude } from '@jetstream/ui-core';
+import {
+  fromJetstreamEvents,
+  MonacoEditor,
+  RestoreQuery,
+  SoqlQueryFormatConfigPopover,
+  SoqlValidIndicator,
+  useAmplitude,
+} from '@jetstream/ui-core';
 import { soqlQueryFormatOptionsState } from '@jetstream/ui/app-state';
 import { formatQuery, isQueryValid } from '@jetstreamapp/soql-parser-js';
-import Editor, { OnMount } from '@monaco-editor/react';
+import { OnMount } from '@monaco-editor/react';
 import { useAtom } from 'jotai';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
@@ -175,8 +182,7 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
                 </Grid>
               }
             >
-              {/* Cannot be dark as it changes all other editors on screen */}
-              <Editor
+              <MonacoEditor
                 className="slds-border_top slds-border_right slds-border_bottom slds-border_left"
                 height="350px"
                 language="soql"

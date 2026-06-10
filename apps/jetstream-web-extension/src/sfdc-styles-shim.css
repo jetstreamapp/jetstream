@@ -1,5 +1,3 @@
-@use '@salesforce-ux/design-system/design-tokens/dist/ui-force.default' as slds;
-
 .slds-popover {
   position: relative;
   border-radius: var(--lwc-borderRadiusMedium, 0.25rem);

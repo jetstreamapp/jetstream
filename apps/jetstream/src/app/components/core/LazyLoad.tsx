@@ -23,7 +23,7 @@
  * SOFTWARE.
  */
 
-import { tracker, setItemInSessionStorage } from '@jetstream/shared/ui-utils';
+import { setItemInSessionStorage, tracker } from '@jetstream/shared/ui-utils';
 import { ComponentType, createElement, forwardRef, lazy } from 'react';
 
 export type PreloadableComponent<T extends ComponentType<unknown>> = T & {

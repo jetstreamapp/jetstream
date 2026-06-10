@@ -1,17 +1,17 @@
-import { SerializedStyles } from '@emotion/react';
+import { css, SerializedStyles } from '@emotion/react';
 import { AppAbility } from '@jetstream/acl';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { isCanvasApp } from '@jetstream/shared/ui-utils';
-import { AddOrgHandlerFn, DropDownItem, UserProfileUi } from '@jetstream/types';
+import { AddOrgHandlerFn, ColorScheme, DropDownItem, UserProfileUi } from '@jetstream/types';
 import { Header, Icon, Navbar, UpgradeToProButton } from '@jetstream/ui';
 import {
   abilityState,
   applicationCookieState,
   hasPaidPlanState,
   isReadOnlyUserState,
-  selectUserPreferenceState,
   selectedOrgStateWithoutPlaceholder,
   userProfileState,
+  useUserPreferenceState,
 } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { Fragment, useEffect, useMemo, useState } from 'react';
@@ -54,11 +54,13 @@ function getMenuItems({
   userProfile,
   deniedNotifications,
   isBillingEnabled,
+  colorScheme,
 }: {
   ability: AppAbility;
   userProfile: UserProfileUi;
   deniedNotifications?: boolean;
   isBillingEnabled: boolean;
+  colorScheme: ColorScheme;
 }) {
   const menu: DropDownItem[] = [];
 
@@ -87,6 +89,28 @@ function getMenuItems({
     });
   }
 
+  if (!isCanvasApp()) {
+    menu.push(
+      {
+        id: 'theme-light',
+        subheader: 'Theme',
+        value: 'Light Mode',
+        icon: { type: 'utility', icon: colorScheme === 'light' ? 'check' : 'light_bulb' },
+      },
+      {
+        id: 'theme-dark',
+        value: 'Dark Mode',
+        icon: { type: 'utility', icon: colorScheme === 'dark' ? 'check' : 'color_swatch' },
+      },
+      {
+        id: 'theme-system',
+        value: 'Match Device',
+        icon: { type: 'utility', icon: colorScheme === 'system' ? 'check' : 'desktop_and_phone' },
+        trailingDivider: true,
+      },
+    );
+  }
+
   menu.push({ id: 'nav-user-logout', subheader: 'Logout', value: 'Logout', icon: { type: 'utility', icon: 'logout' } });
   return menu;
 }
@@ -108,7 +132,9 @@ export const HeaderNavbar = ({
   const selectedOrg = useAtomValue(selectedOrgStateWithoutPlaceholder);
   const hasPaidPlan = useAtomValue(hasPaidPlanState);
   const applicationState = useAtomValue(applicationCookieState);
-  const { deniedNotifications } = useAtomValue(selectUserPreferenceState);
+  const [userPreferences, setUserPreferences] = useUserPreferenceState();
+  const deniedNotifications = userPreferences?.deniedNotifications;
+  const colorScheme: ColorScheme = userPreferences?.colorScheme ?? 'light';
   const [enableNotifications, setEnableNotifications] = useState(false);
   const [userMenuItems, setUserMenuItems] = useState<DropDownItem[]>([]);
 
@@ -137,6 +163,15 @@ export const HeaderNavbar = ({
       case 'enable-notifications':
         setEnableNotifications(true);
         break;
+      case 'theme-light':
+        setUserPreferences({ ...userPreferences, colorScheme: 'light' });
+        break;
+      case 'theme-dark':
+        setUserPreferences({ ...userPreferences, colorScheme: 'dark' });
+        break;
+      case 'theme-system':
+        setUserPreferences({ ...userPreferences, colorScheme: 'system' });
+        break;
       default:
         break;
     }
@@ -144,12 +179,12 @@ export const HeaderNavbar = ({
 
   function handleNotificationMenuClosed(isEnabled: boolean) {
     setEnableNotifications(false);
-    setUserMenuItems(getMenuItems({ ability, userProfile, deniedNotifications: !isEnabled, isBillingEnabled }));
+    setUserMenuItems(getMenuItems({ ability, userProfile, deniedNotifications: !isEnabled, isBillingEnabled, colorScheme }));
   }
 
   useEffect(() => {
-    setUserMenuItems(getMenuItems({ ability, userProfile, deniedNotifications, isBillingEnabled }));
-  }, [ability, userProfile, deniedNotifications, isBillingEnabled]);
+    setUserMenuItems(getMenuItems({ ability, userProfile, deniedNotifications, isBillingEnabled, colorScheme }));
+  }, [ability, userProfile, deniedNotifications, isBillingEnabled, colorScheme]);
 
   const handleCheckForUpdates = () => {
     if (window.electronAPI) {
@@ -225,14 +260,36 @@ export const HeaderNavbar = ({
     return [<QuickQueryPopover />, <RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />];
   }, [isReadOnlyUser, isEmbeddedApp, isDesktop, isBillingEnabled, hasPaidPlan, trackEvent, showFullscreenLink, instanceUrl]);
 
+  // The pro logo is light-on-dark and reads fine in both schemes. The free logo
+  // is dark-on-transparent and disappears against dark surfaces, so invert it
+  // when the resolved color scheme is dark. Explicit dark pick lands via the
+  // body class; system pick falls through to prefers-color-scheme.
+  const isPaidLikeLogo = isEmbeddedApp || isDesktop || hasPaidPlan;
+  const freeLogoCss = useMemo(
+    () => css`
+      ${logoCss}
+
+      body.slds-color-scheme--dark & {
+        filter: invert(1);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body.slds-color-scheme--system & {
+          filter: invert(1);
+        }
+      }
+    `,
+    [logoCss],
+  );
+
   return (
     <Fragment>
       {enableNotifications && <NotificationsRequestModal userInitiated onClose={handleNotificationMenuClosed} />}
       <Header
         userProfile={userProfile}
         isReadOnlyUser={isReadOnlyUser}
-        logo={isEmbeddedApp || isDesktop || hasPaidPlan ? LogoPro : Logo}
-        logoCss={logoCss}
+        logo={isPaidLikeLogo ? LogoPro : Logo}
+        logoCss={isPaidLikeLogo ? logoCss : freeLogoCss}
         orgs={isEmbeddedApp ? <SelectedOrgReadOnly /> : <OrgsDropdown onAddOrgHandlerFn={onAddOrgHandlerFn} />}
         userMenuItems={userMenuItems}
         rightHandMenuItems={rightHandMenuItems}

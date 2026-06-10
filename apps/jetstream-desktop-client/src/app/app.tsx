@@ -6,6 +6,7 @@ import {
   ErrorBoundaryEmptyFallback,
   ErrorBoundaryFallback,
   HeaderNavbar,
+  ThemeApplier,
   ViewEditCloneRecordWrapper,
 } from '@jetstream/ui-core';
 import { Suspense, useState } from 'react';
@@ -34,6 +35,7 @@ export const App = () => {
           {({ onLogout, authInfo }) => (
             <AppInitializer authInfo={authInfo} onAnnouncements={setAnnouncements}>
               <DndProvider backend={HTML5Backend}>
+                <ThemeApplier />
                 <ModalContainer />
                 <AppStateResetOnOrgChange />
                 <AppToast />

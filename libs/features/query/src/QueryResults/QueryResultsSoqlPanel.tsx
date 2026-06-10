@@ -1,9 +1,9 @@
 import { sanitizePastedEditorText, useDebounce, useDisposables } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi, SoqlQueryFormatOptions } from '@jetstream/types';
 import { CheckboxToggle, Grid, Icon, Panel, Textarea, Tooltip } from '@jetstream/ui';
-import { fromQueryHistoryState, SoqlQueryFormatConfigPopover } from '@jetstream/ui-core';
+import { fromQueryHistoryState, MonacoEditor, SoqlQueryFormatConfigPopover } from '@jetstream/ui-core';
 import { formatQuery, parseQuery } from '@jetstreamapp/soql-parser-js';
-import Editor, { OnMount } from '@monaco-editor/react';
+import { OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { FunctionComponent, useEffect, useReducer, useRef, useState } from 'react';
 import SaveFavoriteSoql from '../QueryOptions/SaveFavoriteSoql';
@@ -188,7 +188,7 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
           </Grid>
         }
       >
-        <Editor
+        <MonacoEditor
           className="slds-border_top slds-border_right slds-border_bottom slds-border_left"
           height="50vh"
           language="soql"

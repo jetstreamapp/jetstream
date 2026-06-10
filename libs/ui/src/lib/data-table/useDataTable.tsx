@@ -23,7 +23,7 @@ import {
 import 'react-data-grid/lib/styles.css';
 import Icon from '../widgets/Icon';
 import { configIdLinkRenderer, dataTableRenderFnMap } from './DataTableRenderers';
-import './data-table-styles.scss';
+import './data-table-styles.css';
 import { ColumnWithFilter, ContextMenuActionData, DataTableFilter, DataTableRef, FILTER_SET_TYPES, RowWithKey } from './data-table-types';
 import { EMPTY_FIELD, NON_DATA_COLUMN_KEYS, filterRecord, getSearchTextByRow, isFilterActive, resetFilter } from './data-table-utils';
 

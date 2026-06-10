@@ -1,29 +1,46 @@
 import { css } from '@emotion/react';
-import { CheckboxToggle, FeedbackLink, Grid, ScopedNotification } from '@jetstream/ui';
+import { ColorScheme } from '@jetstream/types';
+import { CheckboxToggle, FeedbackLink, Grid, ScopedNotification, Select } from '@jetstream/ui';
 import browser from 'webextension-polyfill';
 import JetstreamIcon from '../../components/icons/JetstreamIcon';
 import JetstreamLogo from '../../components/icons/JetstreamLogo';
+import { JetstreamLogoInverse } from '../../components/icons/JetstreamLogoInverse';
 import { PopupButtonOptions } from '../../components/PopupButtonOptions';
 import { AppWrapperNotJetstreamOwnedPage } from '../../core/AppWrapperNotJetstreamOwnedPage';
+import { applyExtensionThemeBeforeMount, ExtensionThemeApplier } from '../../core/ExtensionThemeApplier';
 import { environment } from '../../environments/environment';
 import { useExtensionSettings } from '../../hooks/useExtensionSettings';
+import { useResolvedColorScheme } from '../../hooks/useResolvedColorScheme';
 import { initAndRenderReact } from '../../utils/web-extension.utils';
 
-initAndRenderReact(
-  <AppWrapperNotJetstreamOwnedPage>
-    <Component />
-  </AppWrapperNotJetstreamOwnedPage>,
-);
+applyExtensionThemeBeforeMount().finally(() => {
+  initAndRenderReact(
+    <AppWrapperNotJetstreamOwnedPage>
+      <ExtensionThemeApplier />
+      <Component />
+    </AppWrapperNotJetstreamOwnedPage>,
+  );
+});
 
 export function Component() {
-  const { authTokens, loggedIn, enabled, setEnabled, recordSyncEnabled, setRecordSyncEnabled, authError, handleLogout } =
-    useExtensionSettings();
+  const {
+    authTokens,
+    loggedIn,
+    enabled,
+    setEnabled,
+    recordSyncEnabled,
+    setRecordSyncEnabled,
+    colorScheme,
+    setColorScheme,
+    authError,
+    handleLogout,
+  } = useExtensionSettings();
+
+  const resolvedScheme = useResolvedColorScheme();
 
   return (
     <>
-      <header className="slds-m-bottom_medium">
-        <JetstreamLogo />
-      </header>
+      <header className="slds-m-bottom_medium">{resolvedScheme === 'dark' ? <JetstreamLogoInverse /> : <JetstreamLogo />}</header>
       <div>
         {authError && (
           <ScopedNotification theme="error" className="slds-m-bottom_x-small">
@@ -64,6 +81,19 @@ export function Component() {
               labelPosition="right"
               onChange={(value) => setRecordSyncEnabled(value)}
             />
+            <Select id="color-scheme" className="slds-m-top_x-small" label="Theme">
+              <select
+                id="color-scheme-select"
+                aria-describedby="color-scheme"
+                className="slds-select"
+                value={colorScheme ?? 'light'}
+                onChange={(event) => setColorScheme(event.target.value as ColorScheme)}
+              >
+                <option value="light">Light Mode</option>
+                <option value="dark">Dark Mode</option>
+                <option value="system">Match Device</option>
+              </select>
+            </Select>
             <hr className="slds-m-vertical_small" />
             <p className="slds-m-bottom_x-small">Feedback or Suggestions?</p>
             <div>

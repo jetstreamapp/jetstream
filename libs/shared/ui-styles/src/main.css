@@ -1,24 +1,49 @@
-@use '@salesforce-ux/design-system/design-tokens/dist/ui-force.default' as slds;
-
-// Make react data grid checkbox look sort of like SLDS checkbox
+/* Make react data grid checkbox look sort of like SLDS checkbox */
 @layer rdg.rdg-checkbox-input {
   .rdg-checkbox-input {
     inline-size: 14px;
     block-size: 14px;
-    accent-color: #0176d3;
+    accent-color: var(--slds-g-color-brand-base-50);
   }
 }
 
 html {
-  background: var(--lwc-brandBackgroundPrimary, rgba(176, 196, 223, 1));
+  background: var(--slds-g-color-surface-2, #f3f3f3);
+}
+
+/* SLDS button-group :first-child / :last-child selectors break when a button
+   is wrapped in another element (e.g. our Tooltip renders a <span>), because
+   the button becomes :first-child AND :last-child of that wrapper. Force such
+   nested buttons square; the first/last visual edges must be marked
+   explicitly with slds-button_first / slds-button_last. */
+.slds-button-group > :not(.slds-button):not(li) > .slds-button:not(.slds-button_first):not(.slds-button_last) {
+  border-radius: 0;
+}
+
+/* SLDS's :first-child rule also strips the right border. When the last visual
+   button is wrapped (matches :first-child of its wrapper), restore the outer
+   right border so the group has a closed edge. */
+.slds-button-group > :not(.slds-button):not(li):last-child > .slds-button.slds-button_last {
+  border-inline-end-width: var(--slds-g-sizing-border-1);
+}
+
+/* SLDS 2 cosmos sets --slds-s-input-spacing to ~0.5rem, which leaves the
+   native select's chevron overlapping the longest option's text. Restore
+   the larger end padding so content-sized selects render correctly. */
+.slds-select_container .slds-select {
+  padding-inline-end: var(--slds-g-spacing-5, 1.5rem);
 }
 
 .app {
-  // brand styling
+  /* brand styling */
 }
 
 pre {
   margin: 0;
+}
+
+.slds-text-link {
+  fill: var(--slds-c-icon-color-foreground, currentColor) !important;
 }
 
 .cursor-pointer {
@@ -63,81 +88,86 @@ pre {
 }
 
 .bg-color-gray {
-  background-color: slds.$color-background;
+  background-color: var(--slds-g-color-surface-2, #f3f3f3);
 }
 
 .bg-color-gray-light {
-  background-color: slds.$color-gray-3;
+  background-color: var(--slds-g-color-neutral-base-95, #f3f3f3);
 }
 
 .bg-color-gray-dark {
-  background-color: slds.$color-background-dark;
+  background-color: var(--slds-g-color-neutral-base-95, #c9c9c9);
 }
 
 .bg-color-color-orange {
-  background-color: slds.$color-background-customer;
+  background-color: var(--slds-g-color-palette-orange-60, #dd7a01);
 }
 
 .bg-color-inverse {
-  background-color: slds.$color-background-alt-inverse;
+  background-color: var(--slds-g-color-surface-inverse-1, #032d60);
 }
 
 .bg-color-backdrop-tint {
-  background-color: slds.$color-background-backdrop-tint;
+  background-color: var(--slds-s-backdrop-color-background, rgba(24, 24, 24, 0.5));
 }
 
 .bg-color-pink {
-  background-color: slds.$palette-pink-60;
+  background-color: var(--slds-g-color-palette-pink-60, #ff538a);
 }
 
 .text-color-pink {
-  color: slds.$palette-pink-60;
+  color: var(--slds-g-color-palette-pink-60, #ff538a);
 }
 
 .text-color_warning {
-  color: slds.$color-text-warning-alt;
+  color: var(--slds-g-color-warning-base-50, #a96504);
 }
 
 .text-color_inverse-warning {
-  color: slds.$color-text-warning;
+  color: var(--slds-g-color-warning-base-60, #ca8501);
 }
 
 .text-color_brand {
-  color: slds.$color-text-link-hover;
+  color: var(--slds-s-link-color-hover, #014486);
 }
 
 .button-focus-color {
-  color: var(--sds-c-button-text-color-hover, slds.$brand-accessible-active);
+  color: var(--slds-c-button-text-color-hover, var(--slds-g-color-brand-base-40));
 }
 
 .slds-text-link {
   cursor: pointer;
-  fill: slds.$brand-text-link;
+  fill: var(--slds-s-link-color, #0b5cab);
   .faux-button-link {
     :hover {
-      color: slds.$brand-accessible;
+      color: var(--slds-s-link-color-hover, #014486);
     }
   }
 }
 
 .gutter {
-  background-color: slds.$color-background;
-  background-repeat: no-repeat;
-  background-position: 50%;
+  background-color: var(--slds-g-color-surface-2, #f3f3f3);
+  background-position: center;
 }
 
+/* Grip handles drawn via CSS gradients so they pick up the current theme.
+   Replaces the PNG dots which were invisible in dark mode. */
 .gutter.gutter-horizontal {
-  background-image: url('assets/images/split-grip-vertical.png');
   cursor: col-resize;
+  background-image: radial-gradient(circle, var(--slds-g-color-on-surface-1, #969696) 1px, transparent 1.5px);
+  background-size: 4px 6px;
+  background-repeat: repeat-y;
 }
 
 .gutter.gutter-vertical {
-  background-image: url('assets/images/split-grip-horizontal.png');
   cursor: row-resize;
+  background-image: radial-gradient(circle, var(--slds-g-color-on-surface-1, #969696) 1px, transparent 1.5px);
+  background-size: 6px 4px;
+  background-repeat: repeat-x;
 }
 
 .bg-white {
-  background-color: slds.$color-background-alt;
+  background-color: var(--slds-g-color-surface-container-1, #ffffff);
 }
 
 .width-100 {
@@ -148,19 +178,20 @@ pre {
 }
 
 .border-bottom-thick {
-  border-bottom: 3px solid #dddbda;
+  border-bottom: 3px solid var(--slds-g-color-border-1, #e5e5e5);
 }
 
 .active-item-yellow-bg {
-  background-color: slds.$color-background-highlight;
+  font-weight: 600;
+  background-color: var(--_slds-c-datatable-color-background-edit, var(--slds-g-color-palette-yellow-95, #fbf3e0));
 }
 
 .bg-background-selection {
-  background-color: slds.$color-background-selection;
+  background-color: var(--slds-g-color-brand-base-90, #d8e6fe);
 }
 
 .bg-new-item {
-  background-color: slds.$color-background-row-new;
+  background-color: var(--slds-g-color-success-base-90, #acf3e4);
 }
 
 .slds-item {
@@ -172,19 +203,21 @@ pre {
   }
   margin: 1px;
   &:not(.disabled):not(.read-only):hover {
-    background-color: slds.$color-background;
+    background-color: var(--slds-g-color-surface-2, #f3f3f3);
+    color: var(--slds-g-color-on-surface-1, #181818);
   }
   &:not(.read-only).is-active {
-    background-color: slds.$color-background-highlight;
+    background-color: var(--slds-g-color-brand-base-90, #d8e6fe);
+    color: var(--slds-g-color-on-surface-1, #181818);
   }
 }
 
 .table-row.is-selected {
-  background-color: slds.$color-background-highlight;
+  background-color: var(--slds-g-color-brand-base-90, #d8e6fe);
 }
 
 .is-disabled {
-  background-color: slds.$color-background-input-disabled;
+  background-color: var(--slds-g-color-disabled-container-1, #e5e5e5);
 }
 
 .border-radius-25 {
@@ -192,15 +225,15 @@ pre {
 }
 
 .border-color-brand {
-  border-color: slds.$color-border-brand;
+  border-color: var(--slds-g-color-border-accent-1, #0176d3);
 }
 
 .border-color-brand-dark {
-  border-color: slds.$color-border-brand-dark;
+  border-color: var(--slds-g-color-border-accent-2, #0b5cab);
 }
 
 .slds-text-color_brand {
-  color: slds.$brand-accessible;
+  color: var(--slds-g-color-brand-base-50, #0176d3);
 }
 
 .slds-popover_x-large {
@@ -222,7 +255,7 @@ pre {
   margin: 0;
   padding: 0;
 
-  color: slds.$brand-text-link;
+  color: var(--slds-s-link-color, #0b5cab);
   text-decoration: none;
   transition: color 0.1s linear;
 
@@ -230,7 +263,7 @@ pre {
   &:active,
   &:focus {
     text-decoration: underline;
-    color: slds.$brand-text-link-active;
+    color: var(--slds-s-link-color-active, #014486);
   }
 }
 
@@ -355,8 +388,8 @@ pre {
 }
 
 .modal-card-override {
-  background: #fff;
-  border: 1px solid #dddbda !important;
+  background: var(--slds-g-color-surface-container-1, #ffffff);
+  border: 1px solid var(--slds-g-color-border-1, #e5e5e5) !important;
   border-radius: 0.25rem;
   background-clip: padding-box;
   box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.1);
@@ -379,7 +412,7 @@ pre {
 }
 
 .text-color-highlight {
-  background-color: slds.$color-background-highlight-search;
+  background-color: var(--slds-g-color-warning-base-90, #f9e3b6);
 }
 
 .mw-reset {
@@ -415,37 +448,37 @@ pre {
 }
 
 .drop-zone-border {
-  outline: 1px solid #1b96ff;
+  outline: 1px solid var(--slds-g-color-brand-base-60, #1b96ff);
 }
 
 button.ql-active {
-  background-color: #0176d3;
-  border-color: #0176d3;
-  color: #fff;
+  background-color: var(--slds-g-color-brand-base-50, #0176d3);
+  border-color: var(--slds-g-color-brand-base-50, #0176d3);
+  color: var(--slds-g-color-neutral-base-100, #ffffff);
   &:focus,
   &:active,
   &:hover {
-    background-color: #014486;
-    border-color: #014486;
-    color: #fff;
+    background-color: var(--slds-g-color-brand-base-40, #0b5cab);
+    border-color: var(--slds-g-color-brand-base-40, #0b5cab);
+    color: var(--slds-g-color-neutral-base-100, #ffffff);
   }
 }
 
 .ql-editor blockquote {
-  border-left: 4px solid slds.$color-gray-6;
+  border-left: 4px solid var(--slds-g-color-neutral-base-70, #aeaeae);
   padding-left: 4px;
   margin: 1rem !important;
 }
 
 .ql-editor pre.ql-syntax {
-  background-color: slds.$color-background-inverse;
-  color: slds.$color-text-inverse;
+  background-color: var(--slds-g-color-neutral-base-10, #181818);
+  color: var(--slds-g-color-on-surface-inverse-1, #ffffff);
   overflow: visible;
   white-space: pre-wrap;
   margin-bottom: 5px;
   margin-top: 5px;
   padding: 5px 10px;
-  border-radius: slds.$border-radius-medium;
+  border-radius: var(--slds-g-radius-border-1, 0.25rem);
 }
 
 .ql-editor pre {
@@ -457,17 +490,17 @@ button.ql-active {
 
 .ql-editor code,
 .ql-editor pre {
-  background-color: slds.$color-gray-3;
-  border-radius: slds.$border-radius-medium;
+  background-color: var(--slds-g-color-neutral-base-95, #f3f3f3);
+  border-radius: var(--slds-g-radius-border-1, 0.25rem);
 }
 
 .ql-editor code {
-  font-size: slds.$font-size-2;
+  font-size: var(--slds-g-font-scale-2, 1rem);
   padding: 2px 4px;
 }
 
 .text-bold {
-  font-weight: slds.$font-weight-bold;
+  font-weight: var(--slds-g-font-weight-bold, bold);
 }
 
 :root {

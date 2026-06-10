@@ -5,7 +5,7 @@ import { SortColumn, TreeDataGrid, TreeDataGridProps } from 'react-data-grid';
 import 'react-data-grid/lib/styles.css';
 import { ContextMenu } from '../form/context-menu/ContextMenu';
 import { DataTableFilterContext, DataTableGenericContext } from './data-table-context';
-import './data-table-styles.scss';
+import './data-table-styles.css';
 import { ColumnWithFilter, ContextMenuActionData, RowWithKey } from './data-table-types';
 import { useDataTable } from './useDataTable';
 
@@ -22,8 +22,10 @@ interface PropsWithoutServer {
 export type DataTreeProps<T = RowWithKey, TContext = Record<string, any>> = DataTreePropsBase<T, TContext> &
   (PropsWithServer | PropsWithoutServer);
 
-interface DataTreePropsBase<T = RowWithKey, TContext = Record<string, any>>
-  extends Omit<TreeDataGridProps<T>, 'columns' | 'rows' | 'rowKeyGetter'> {
+interface DataTreePropsBase<T = RowWithKey, TContext = Record<string, any>> extends Omit<
+  TreeDataGridProps<T>,
+  'columns' | 'rows' | 'rowKeyGetter'
+> {
   data: T[];
   columns: ColumnWithFilter<T>[];
   serverUrl?: string;
@@ -112,7 +114,7 @@ export const DataTree = forwardRef<any, DataTreeProps<any>>(
         >
           <TreeDataGrid
             data-id={gridId}
-            className="rdg-light fill-grid"
+            className="fill-grid"
             columns={reorderedColumns}
             rows={filteredRows}
             // @ts-expect-error Types are incorrect, but they are generic and difficult to get correct

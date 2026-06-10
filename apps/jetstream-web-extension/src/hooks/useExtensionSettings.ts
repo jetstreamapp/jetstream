@@ -1,4 +1,5 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { ColorScheme } from '@jetstream/types';
 import { useAtomValue } from 'jotai';
 import { useEffect, useState } from 'react';
 import browser from 'webextension-polyfill';
@@ -16,6 +17,7 @@ export const useExtensionSettings = () => {
   // Use atom values directly instead of copying to local state
   const enabled = options.enabled;
   const recordSyncEnabled = options.recordSyncEnabled;
+  const colorScheme = options.colorScheme;
 
   // Verify once on mount. Do NOT add authTokens to the dep array — re-running on
   // authTokens changes causes a verify→rotate→storage-write→re-run loop after the
@@ -28,11 +30,15 @@ export const useExtensionSettings = () => {
   }, []);
 
   const setEnabled = async (value: boolean) => {
-    await browser.storage.local.set({ options: { enabled: value, recordSyncEnabled } });
+    await browser.storage.local.set({ options: { enabled: value, recordSyncEnabled, colorScheme: colorScheme ?? 'light' } });
   };
 
   const setRecordSyncEnabled = async (value: boolean) => {
-    await browser.storage.local.set({ options: { enabled, recordSyncEnabled: value } });
+    await browser.storage.local.set({ options: { enabled, recordSyncEnabled: value, colorScheme: colorScheme ?? 'light' } });
+  };
+
+  const setColorScheme = async (value: ColorScheme) => {
+    await browser.storage.local.set({ options: { enabled, recordSyncEnabled, colorScheme: value } });
   };
 
   useNonInitialEffect(() => {
@@ -62,6 +68,8 @@ export const useExtensionSettings = () => {
     setEnabled,
     recordSyncEnabled,
     setRecordSyncEnabled,
+    colorScheme,
+    setColorScheme,
     soqlQueryFormatOptions,
     setSoqlQueryFormatOptions,
     authError,

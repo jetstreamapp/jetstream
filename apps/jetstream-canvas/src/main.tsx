@@ -3,11 +3,11 @@ import { CONFIG } from './app/core/config';
 // DO NOT CHANGE ORDER OF IMPORTS
 
 import { AxiosAdapterConfig } from '@jetstream/shared/data';
-import '@salesforce-ux/design-system/assets/styles/salesforce-lightning-design-system.css';
+import '@jetstream/ui-styles/main.css';
+import '@salesforce-ux/design-system-2/dist/css/bundled/slds2.cosmos.css';
 import * as ReactDOM from 'react-dom/client';
 import App from './app/app';
 import { Login } from './app/core/Login';
-import './main.scss';
 import { canvasAppAxiosAdapter } from './utils/canvas-axios-adapter';
 
 globalThis.__IS_CANVAS_APP__ = true;

@@ -16,6 +16,7 @@ import {
   FormulaEvaluatorReturnTypeCombobox,
   FormulaEvaluatorUserSearch,
   ManualFormulaRecord,
+  MonacoEditor,
   SalesforceFieldType,
   convertFormulaSecondaryTypeToEvaluatorType,
   fieldTypeToReturnType,
@@ -25,7 +26,7 @@ import {
 } from '@jetstream/ui-core';
 import type { FieldSchema, FormulaContext, FormulaValue } from '@jetstreamapp/sf-formula-parser';
 import { evaluateFormula, extractFields, extractFieldsByCategory } from '@jetstreamapp/sf-formula-parser';
-import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
+import { OnMount, useMonaco } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
 import CreateFieldsFormulaEditorManualField from './CreateFieldsFormulaEditorManualField';
@@ -309,8 +310,7 @@ export const CreateFieldsFormulaEditor = forwardRef<unknown, CreateFieldsFormula
                     height: 75vh;
                   `}
                 >
-                  <Editor
-                    theme="vs-dark"
+                  <MonacoEditor
                     defaultLanguage="sfdc-formula"
                     value={formulaValue}
                     options={{

@@ -2,9 +2,8 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { Maybe, QueryHistoryItem, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, Icon, Input, Popover, PopoverRef, Spinner, Textarea } from '@jetstream/ui';
-import { fromQueryHistoryState, useAmplitude } from '@jetstream/ui-core';
+import { fromQueryHistoryState, MonacoEditor, useAmplitude } from '@jetstream/ui-core';
 import { queryHistoryDb } from '@jetstream/ui/db';
-import Editor from '@monaco-editor/react';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 
 export interface SaveFavoriteSoqlProps {
@@ -139,8 +138,7 @@ export const SaveFavoriteSoql: FunctionComponent<SaveFavoriteSoqlProps> = ({
                 </Grid>
               }
             >
-              {/* Cannot be dark as it changes all other editors on screen */}
-              <Editor
+              <MonacoEditor
                 className="slds-border_top slds-border_right slds-border_bottom slds-border_left"
                 height="300px"
                 language="soql"

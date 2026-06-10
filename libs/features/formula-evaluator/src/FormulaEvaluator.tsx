@@ -38,6 +38,7 @@ import {
   FormulaEvaluatorResults,
   FormulaEvaluatorReturnTypeCombobox,
   FormulaEvaluatorUserSearch,
+  MonacoEditor,
   fieldTypeToReturnType,
   fromFormulaState,
   getFormulaData,
@@ -47,7 +48,7 @@ import {
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import type { FieldSchema, FormulaContext, FormulaValue } from '@jetstreamapp/sf-formula-parser';
 import { evaluateFormula, extractFieldsByCategory } from '@jetstreamapp/sf-formula-parser';
-import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
+import { OnMount, useMonaco } from '@monaco-editor/react';
 import { useAtom, useAtomValue } from 'jotai';
 import type { editor } from 'monaco-editor';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
@@ -435,10 +436,9 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
                 setHeightAttr
                 className="slds-p-horizontal_x-small slds-scrollable_none"
               >
-                <Editor
+                <MonacoEditor
                   className="slds-m-top_small"
                   height="95%"
-                  theme="vs-dark"
                   defaultLanguage="sfdc-formula"
                   value={formulaValue}
                   options={{

@@ -16,9 +16,8 @@ import {
   ViewDocsLink,
   dataTableFileSizeFormatter,
 } from '@jetstream/ui';
-import { RequireMetadataApiBanner, fromJetstreamEvents, isAsyncJob } from '@jetstream/ui-core';
+import { MonacoEditor, RequireMetadataApiBanner, fromJetstreamEvents, isAsyncJob } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
-import Editor from '@monaco-editor/react';
 import classNames from 'classnames';
 import { formatDate } from 'date-fns/format';
 import { useAtom, useAtomValue } from 'jotai';
@@ -307,9 +306,8 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
                 onTextChange={setTextFilter}
                 onDebugChange={setUserDebug}
               />
-              <Editor
+              <MonacoEditor
                 height="80vh"
-                theme="vs-dark"
                 defaultLanguage="apex-log"
                 options={{
                   readOnly: true,

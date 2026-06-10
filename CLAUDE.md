@@ -42,6 +42,9 @@ if (true) {
 - Prefer destructuring while looping where it makes sense to avoid having to choose a variable name (favor clarity if needed)
   - e.g. `providers.map(({ value }) => value)`
 - Always run prettier after working on a code file
+- Always run organize-imports on any TypeScript files (`.ts`/`.tsx`/`.mts`/`.cts`) you modified, just like prettier. This invokes the TypeScript language server's "Organize Imports" action — the same one VSCode runs on save — and is NOT the ESLint import rule.
+  - `pnpm organize-imports <files-or-globs...>` — sort, combine, and remove unused imports in place
+  - `pnpm organize-imports:check <files-or-globs...>` — dry-run; exits non-zero if any file would change
 
 ## Imports
 

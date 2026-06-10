@@ -35,7 +35,7 @@ export const PageHeaderTitle: FunctionComponent<PageHeaderTitleProps> = ({
             type={icon.type}
             icon={icon.icon}
             description={icon.description}
-            className={`slds-icon slds-page-header__icon slds-icon-${icon.type}-${icon.icon?.replaceAll('_', '-')}`}
+            className={`slds-icon slds-icon_container slds-page-header__icon slds-icon-${icon.type}-${icon.icon?.replaceAll('_', '-')}`}
           />
         </div>
         <div className="slds-media__body">

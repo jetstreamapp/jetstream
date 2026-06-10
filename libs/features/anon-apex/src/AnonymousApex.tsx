@@ -6,11 +6,11 @@ import { anonymousApex } from '@jetstream/shared/data';
 import {
   sanitizePastedEditorText,
   setItemInLocalStorage,
+  tracker,
   useBrowserNotifications,
   useDebounce,
   useDisposables,
   useNonInitialEffect,
-  tracker,
   useTitle,
 } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
@@ -31,9 +31,9 @@ import {
   ViewDocsLink,
   getModifierKey,
 } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { MonacoEditor, useAmplitude } from '@jetstream/ui-core';
 import { STORAGE_KEYS, applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
-import Editor, { OnMount } from '@monaco-editor/react';
+import { OnMount } from '@monaco-editor/react';
 import { useAtom, useAtomValue } from 'jotai';
 import localforage from 'localforage';
 import escapeRegExp from 'lodash/escapeRegExp';
@@ -283,9 +283,8 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
                 </SalesforceLogin>
                 <AnonymousApexHistory onHistorySelected={setApex} />
               </Grid>
-              <Editor
+              <MonacoEditor
                 height="80vh"
-                theme="vs-dark"
                 defaultLanguage="apex"
                 value={apex}
                 options={{ contextmenu: false }}
@@ -329,9 +328,8 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
               onTextChange={setTextFilter}
               onDebugChange={setUserDebug}
             />
-            <Editor
+            <MonacoEditor
               height="80vh"
-              theme="vs-dark"
               defaultLanguage="apex-log"
               options={{
                 readOnly: true,

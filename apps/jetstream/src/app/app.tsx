@@ -6,6 +6,7 @@ import {
   ErrorBoundaryEmptyFallback,
   ErrorBoundaryFallback,
   HeaderNavbar,
+  ThemeApplier,
   ViewEditCloneRecordWrapper,
 } from '@jetstream/ui-core';
 import { Suspense, useState } from 'react';
@@ -31,6 +32,7 @@ export const App = () => {
         <Suspense fallback={<AppLoading />}>
           <AppInitializer onAnnouncements={setAnnouncements}>
             <DndProvider backend={HTML5Backend}>
+              <ThemeApplier />
               <ModalContainer />
               <AppStateResetOnOrgChange />
               <AppToast />

@@ -7,12 +7,12 @@ import { QueryHistoryItem, SalesforceOrgUi } from '@jetstream/types';
 import { ButtonGroupContainer, Card, CopyToClipboard, Grid, GridCol, Icon, Spinner, Textarea } from '@jetstream/ui';
 import { queryHistoryDb } from '@jetstream/ui/db';
 import { isQueryValid } from '@jetstreamapp/soql-parser-js';
-import Editor from '@monaco-editor/react';
 import { formatDate } from 'date-fns/format';
 import clamp from 'lodash/clamp';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAmplitude } from '../..';
+import { MonacoEditor } from '../../app/MonacoEditor';
 import { QueryRestoreErrors } from '../RestoreQuery/query-restore-utils';
 import { RestoreQuery } from '../RestoreQuery/RestoreQuery';
 import { SoqlValidIndicator } from '../ValidQueryText';
@@ -295,7 +295,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
                   </span>
                 }
               >
-                <Editor
+                <MonacoEditor
                   height={`${clamp(lineCount * REM_PER_LINE, 2, 11)}rem`}
                   language="soql"
                   value={isEditing ? editedSoql : soql}

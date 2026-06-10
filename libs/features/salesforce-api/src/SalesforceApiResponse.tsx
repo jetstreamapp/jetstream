@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { ManualRequestResponse, Maybe, SalesforceApiHistoryRequest } from '@jetstream/types';
 import { Badge, Card, CopyToClipboard, Grid, Spinner } from '@jetstream/ui';
-import Editor from '@monaco-editor/react';
+import { MonacoEditor } from '@jetstream/ui-core';
 import { FunctionComponent } from 'react';
 import { getBadgeTypeFromMethod } from './salesforce-api.utils';
 
@@ -62,9 +62,8 @@ export const SalesforceApiResponse: FunctionComponent<SalesforceApiResponseProps
         Response Headers
         {results?.headers && <CopyToClipboard content={results.headers} className="slds-m-horizontal_xx-small" />}
       </h2>
-      <Editor
+      <MonacoEditor
         height="150px"
-        theme="vs-dark"
         language="json"
         value={results?.headers || ''}
         options={{
@@ -85,9 +84,8 @@ export const SalesforceApiResponse: FunctionComponent<SalesforceApiResponseProps
           {results?.body && <CopyToClipboard content={results.body} className="slds-m-horizontal_xx-small" />}
         </h2>
       </Grid>
-      <Editor
+      <MonacoEditor
         height="60vh"
-        theme="vs-dark"
         language="json"
         value={results?.body || ''}
         options={{

@@ -24,13 +24,14 @@ import {
 import { selectedOrgState, soqlQueryFormatOptionsState } from '@jetstream/ui/app-state';
 import { dexieDb } from '@jetstream/ui/db';
 import { formatQuery, isQueryValid } from '@jetstreamapp/soql-parser-js';
-import Editor, { OnMount } from '@monaco-editor/react';
+import { OnMount } from '@monaco-editor/react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useAtom, useAtomValue } from 'jotai';
 import type { editor } from 'monaco-editor';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAmplitude } from '../analytics';
+import { MonacoEditor } from '../app/MonacoEditor';
 import { fromJetstreamEvents } from '../jetstream-events';
 import { SoqlQueryFormatConfigPopover } from '../settings/SoqlQueryFormatConfigPopover';
 import { QueryHistoryModal } from './QueryHistory/QueryHistoryModal';
@@ -310,7 +311,7 @@ export const QuickQueryPopover = () => {
                   </Grid>
                 }
               >
-                <Editor
+                <MonacoEditor
                   className="slds-border_top slds-border_right slds-border_bottom slds-border_left"
                   height="400px"
                   language="soql"

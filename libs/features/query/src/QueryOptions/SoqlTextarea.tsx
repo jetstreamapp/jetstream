@@ -2,8 +2,8 @@ import { css } from '@emotion/react';
 import { sanitizePastedEditorText, useDisposables } from '@jetstream/shared/ui-utils';
 import { DescribeGlobalSObjectResult, SalesforceOrgUi, SoqlQueryFormatOptions } from '@jetstream/types';
 import { Grid, GridCol, Textarea } from '@jetstream/ui';
-import { fromQueryHistoryState, SoqlQueryFormatConfigPopover } from '@jetstream/ui-core';
-import Editor, { OnMount } from '@monaco-editor/react';
+import { fromQueryHistoryState, MonacoEditor, SoqlQueryFormatConfigPopover } from '@jetstream/ui-core';
+import { OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, memo, useCallback, useRef } from 'react';
 import { useResizeDetector } from 'react-resize-detector';
@@ -70,7 +70,7 @@ export const SoqlTextarea: FunctionComponent<SoqlTextareaProps> = memo(
               min-height: 150px;
             `}
           >
-            <Editor
+            <MonacoEditor
               height={height}
               language="soql"
               value={soql}
@@ -101,7 +101,7 @@ export const SoqlTextarea: FunctionComponent<SoqlTextareaProps> = memo(
             soql={soql}
             onOpenHistory={onOpenHistory}
           />
-          <GridCol extraProps={{ dir: 'rtl' }} bump="left">
+          <GridCol bump="left">
             <IncludeDeletedRecordsToggle containerClassname="slds-p-top_small" />
           </GridCol>
         </Grid>

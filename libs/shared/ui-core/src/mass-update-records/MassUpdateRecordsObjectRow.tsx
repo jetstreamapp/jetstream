@@ -185,12 +185,12 @@ export const MassUpdateRecordsObjectRow: FunctionComponent<MassUpdateRecordsObje
       {validationResults && (
         <footer className="slds-card__footer">
           {validationResults && isNumber(validationResults?.impactedRecords) && (
-            <ScopedNotification theme="info" className="slds-m-top_x-small slds-m-left_small">
+            <ScopedNotification theme="info" className="slds-m-top_x-small w-100">
               {formatNumber(validationResults.impactedRecords)} {pluralizeFromNumber('record', validationResults.impactedRecords)} will be
               updated
               {validationResults.impactedRecords > 0 && (
                 <button
-                  className="slds-button slds-button_inverse slds-m-left_small slds-is-relative"
+                  className="slds-button slds-button_neutral slds-m-left_small slds-is-relative"
                   disabled={downloadRecordsLoading}
                   onClick={handleDownloadValidationRecords}
                 >
@@ -201,7 +201,7 @@ export const MassUpdateRecordsObjectRow: FunctionComponent<MassUpdateRecordsObje
             </ScopedNotification>
           )}
           {validationResults?.error && (
-            <ScopedNotification theme="error" className="slds-m-top_x-small slds-m-left_small">
+            <ScopedNotification theme="error" className="slds-m-top_x-small w-100">
               <pre>{validationResults.error}</pre>
             </ScopedNotification>
           )}

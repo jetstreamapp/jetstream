@@ -59,13 +59,7 @@ export const AppHomeBillingUser = () => {
         `}
       >
         {HOME_ITEMS.map((card) => (
-          <div
-            key={card.title}
-            className="slds-box slds-box_x-small"
-            css={css`
-              background-color: white;
-            `}
-          >
+          <div key={card.title} className="slds-card slds-box_x-small">
             <article className="slds-tile slds-media">
               <div className="slds-media__figure">
                 {card.icon && (

@@ -1,5 +1,5 @@
-import { logger } from '@jetstream/shared/client-logger';
 import type { MessagesByChannel, SubscribeOverrideFn, UnsubscribeOverrideFn } from '@jetstream/feature/platform-event-monitor';
+import { logger } from '@jetstream/shared/client-logger';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { PlatformEventMessage } from '@jetstream/types';
 import { AppHome, OrgSelectionRequired as OrgSelectionRequiredExternal } from '@jetstream/ui-core';

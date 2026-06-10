@@ -1,0 +1,72 @@
+/* react-data-grid sets its own `color-scheme: light dark` on .rdg and has a
+   `@media (prefers-color-scheme: dark) .rdg:not(.rdg-light)` rule that
+   hard-codes dark theme variables. Both bypass our explicit user color scheme
+   preference, so we scope our overrides under the body's slds-color-scheme--*
+   class (specificity 0,2,1) to win against the rdg media-query rule (0,2,0)
+   and force color-scheme to inherit from the body so SLDS 2 light-dark()
+   tokens resolve from the user pref instead of the OS preference. */
+body.slds-color-scheme--light .rdg,
+body.slds-color-scheme--dark .rdg,
+body.slds-color-scheme--system .rdg {
+  color-scheme: inherit;
+  --rdg-color: var(--slds-g-color-on-surface-1);
+  --rdg-background-color: var(--slds-g-color-surface-container-1);
+  --rdg-border-color: var(--slds-g-color-border-1);
+  --rdg-header-background-color: var(--slds-g-color-surface-container-2);
+  --rdg-header-draggable-background-color: var(--slds-g-color-surface-container-3);
+  --rdg-row-hover-background-color: var(--slds-g-color-surface-2);
+  --rdg-row-selected-background-color: var(--slds-s-table-row-color-background-selected, var(--slds-g-color-brand-base-90));
+  --rdg-row-selected-hover-background-color: var(--slds-g-color-brand-base-80);
+  --rdg-checkbox-focus-color: var(--slds-g-color-border-accent-1);
+  --rdg-selection-color: var(--slds-g-color-border-accent-1);
+}
+
+/* Match SLDS focus styling on grid cells: replace rdg's default outline with
+   the inset double-border focus shadow used by .slds-table [role=gridcell]. */
+.rdg .rdg-cell[aria-selected='true'] {
+  outline: none;
+  box-shadow: var(--slds-g-shadow-insetinverse-focus-1);
+}
+
+.rdg {
+  &.fill-grid {
+    block-size: 100%;
+  }
+
+  .select-checkbox {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    > input {
+      margin: 0;
+    }
+  }
+
+  .rdg-checkbox {
+    &:checked {
+      outline: none !important;
+    }
+  }
+
+  .rdg-row {
+    &.save-error {
+      background-color: var(--slds-g-color-error-base-90, #ffdede);
+    }
+  }
+
+  .rdg-cell {
+    &.slds-is-edited {
+      font-weight: 600;
+      background-color: var(--_slds-c-datatable-color-background-edit, var(--slds-g-color-palette-yellow-95, #faffbd));
+    }
+    &.active-item-error {
+      outline-color: var(--slds-g-color-error-1, red);
+      outline-width: 2px;
+      outline-offset: -2px;
+      outline-style: solid;
+    }
+    &.copied {
+      background: var(--slds-g-color-warning-base-90, #faffbd);
+    }
+  }
+}

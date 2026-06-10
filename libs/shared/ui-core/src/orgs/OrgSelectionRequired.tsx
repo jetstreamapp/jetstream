@@ -79,7 +79,7 @@ export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> 
       {selectedOrg?.connectionError && (
         <div
           css={css`
-            background-color: white;
+            background-color: var(--slds-g-color-surface-container-1, white);
           `}
         >
           <Alert type="error" leadingIcon="error">

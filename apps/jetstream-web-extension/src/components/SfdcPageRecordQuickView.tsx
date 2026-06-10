@@ -4,7 +4,7 @@ import { useDebounce } from '@jetstream/shared/ui-utils';
 import { orderObjectsBy } from '@jetstream/shared/utils';
 import { CopyToClipboard, Icon, ReadOnlyFormElement, ScopedNotification, SearchInput, Spinner } from '@jetstream/ui';
 import { useEffect, useState } from 'react';
-import '../sfdc-styles-shim.scss';
+import '../sfdc-styles-shim.css';
 import { getApiClientFromHost } from '../utils/extension-generic-api-request.utils';
 
 interface SfdcPageRecordQuickViewProps {

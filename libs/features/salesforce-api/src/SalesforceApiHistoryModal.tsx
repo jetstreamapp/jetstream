@@ -3,8 +3,8 @@ import { formatNumber } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { ApiHistoryItem, SalesforceApiHistoryRequest, SalesforceOrgUi, UpDown } from '@jetstream/types';
 import { Badge, CopyToClipboard, Grid, GridCol, Icon, List, Modal, SearchInput } from '@jetstream/ui';
+import { MonacoEditor } from '@jetstream/ui-core';
 import { dexieDb } from '@jetstream/ui/db';
-import { Editor } from '@monaco-editor/react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { createRef, useEffect, useState } from 'react';
 import { HistoryWhichOrg } from './HistoryWhichOrg';
@@ -191,9 +191,8 @@ export const SalesforceApiHistoryModal = ({ selectedOrg, onSubmit, onClose }: Sa
                     className="slds-m-horizontal_xx-small"
                   />
                 </h2>
-                <Editor
+                <MonacoEditor
                   height="150px"
-                  theme="vs-dark"
                   language="json"
                   value={JSON.stringify(selectedHistoryItem.request.headers || {}, null, 2)}
                   options={{
@@ -207,9 +206,8 @@ export const SalesforceApiHistoryModal = ({ selectedOrg, onSubmit, onClose }: Sa
                     <h2 className="slds-text-heading_small slds-m-top_small">
                       Request Body <CopyToClipboard content={selectedHistoryItem.request.body} className="slds-m-horizontal_xx-small" />
                     </h2>
-                    <Editor
+                    <MonacoEditor
                       height="20vh"
-                      theme="vs-dark"
                       language={selectedHistoryItem.request.bodyType === 'TEXT' ? 'plaintext' : 'json'}
                       value={selectedHistoryItem.request.body}
                       options={{

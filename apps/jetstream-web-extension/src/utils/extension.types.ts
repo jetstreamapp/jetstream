@@ -1,5 +1,5 @@
 import { ApiConnection } from '@jetstream/salesforce-api';
-import type { Maybe, SalesforceOrgUi, SoqlQueryFormatOptions, UserProfileUi } from '@jetstream/types';
+import type { ColorScheme, Maybe, SalesforceOrgUi, SoqlQueryFormatOptions, UserProfileUi } from '@jetstream/types';
 import { z } from 'zod';
 
 export const AUTH_CHECK_INTERVAL_MIN = 180;
@@ -40,6 +40,7 @@ export interface ChromeStorageState {
     options: {
       enabled: boolean;
       recordSyncEnabled: boolean;
+      colorScheme: ColorScheme;
     };
   };
 }

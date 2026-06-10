@@ -23,9 +23,9 @@ interface EnhancedBillingCardProps {
 const cardStyles = css`
   .billing-card {
     position: relative;
-    border: 2px solid #d8dde6;
+    border: 2px solid var(--slds-g-color-border-1, #d8dde6);
     border-radius: 8px;
-    background: white;
+    background: var(--slds-g-color-surface-container-1, white);
     transition: all 0.2s ease;
     cursor: pointer;
     height: 100%;
@@ -33,12 +33,12 @@ const cardStyles = css`
     flex-direction: column;
 
     &:hover {
-      border-color: #0176d3;
+      border-color: var(--slds-g-color-border-accent-1, #0176d3);
       box-shadow: 0 4px 8px rgba(1, 118, 211, 0.1);
     }
 
     &.selected {
-      border-color: #0176d3;
+      border-color: var(--slds-g-color-border-accent-1, #0176d3);
       box-shadow: 0 4px 12px rgba(1, 118, 211, 0.2);
     }
 
@@ -46,7 +46,7 @@ const cardStyles = css`
       cursor: default;
 
       &:hover {
-        border-color: #d8dde6;
+        border-color: var(--slds-g-color-border-1, #d8dde6);
         box-shadow: none;
       }
     }
@@ -56,7 +56,7 @@ const cardStyles = css`
       cursor: default;
 
       &:hover {
-        border-color: #d8dde6;
+        border-color: var(--slds-g-color-border-1, #d8dde6);
         box-shadow: none;
       }
     }
@@ -70,32 +70,32 @@ const cardStyles = css`
   .plan-name {
     font-size: 20px;
     font-weight: 600;
-    color: #16325c;
+    color: var(--slds-g-color-on-surface-1, #16325c);
     margin-bottom: 8px;
   }
 
   .price {
     font-size: 36px;
     font-weight: 700;
-    color: #0176d3;
+    color: var(--slds-g-color-brand-base-50, #0176d3);
     line-height: 1;
   }
 
   .price-subtext {
     font-size: 14px;
-    color: #706e6b;
+    color: var(--slds-g-color-on-surface-2, #706e6b);
     margin-top: 4px;
   }
 
   .description {
     font-size: 14px;
-    color: #706e6b;
+    color: var(--slds-g-color-on-surface-2, #706e6b);
     margin-top: 8px;
   }
 
   .features-section {
     padding: 16px 24px 24px;
-    border-top: 1px solid #f3f3f3;
+    border-top: 1px solid var(--slds-g-color-border-1, #f3f3f3);
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -112,7 +112,7 @@ const cardStyles = css`
     align-items: flex-start;
     margin-bottom: 12px;
     font-size: 14px;
-    color: #444;
+    color: var(--slds-g-color-on-surface-1, #444);
 
     &:last-child {
       margin-bottom: 0;
@@ -131,8 +131,8 @@ const cardStyles = css`
     margin-top: auto;
 
     .enterprise-button {
-      background: #16325c;
-      color: white;
+      background: var(--slds-g-color-surface-inverse-1, #16325c);
+      color: var(--slds-g-color-on-surface-inverse-1, white);
       border: none;
       padding: 12px 24px;
       border-radius: 4px;
@@ -141,7 +141,7 @@ const cardStyles = css`
       transition: background 0.2s ease;
 
       &:hover {
-        background: #0f2040;
+        background: var(--slds-g-color-surface-inverse-2, #0f2040);
       }
     }
   }
@@ -161,7 +161,7 @@ const cardStyles = css`
     position: absolute;
     top: 12px;
     right: 12px;
-    background: #0176d3;
+    background: var(--slds-g-color-brand-base-50, #0176d3);
     border-radius: 50%;
     width: 24px;
     height: 24px;
@@ -179,7 +179,7 @@ const cardStyles = css`
   .coming-soon-features {
     margin-top: 20px;
     padding-top: 20px;
-    border-top: 1px dashed #d8dde6;
+    border-top: 1px dashed var(--slds-g-color-border-1, #d8dde6);
   }
 
   .coming-soon-features h4 {
@@ -187,7 +187,7 @@ const cardStyles = css`
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: #706e6b;
+    color: var(--slds-g-color-on-surface-2, #706e6b);
     margin: 0 0 12px 0;
     display: flex;
     align-items: center;
@@ -195,7 +195,7 @@ const cardStyles = css`
   }
 
   .coming-soon-features .feature-item {
-    color: #706e6b;
+    color: var(--slds-g-color-on-surface-2, #706e6b);
     font-style: italic;
     position: relative;
   }

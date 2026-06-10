@@ -2,16 +2,14 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
 import { disconnectSocket, initSocket } from '@jetstream/shared/data';
-import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { getErrorMessage } from '@jetstream/shared/utils';
+import { getBrowserExtensionVersion, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { getDefaultAppState, getErrorMessage } from '@jetstream/shared/utils';
 import { JetstreamEventSaveSoqlQueryFormatOptionsPayload, UserProfileUi } from '@jetstream/types';
 import { ScopedNotification } from '@jetstream/ui';
 import { AppLoading, fromJetstreamEvents } from '@jetstream/ui-core';
-import { getDefaultAppState } from '@jetstream/shared/utils';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { initDexieDb } from '@jetstream/ui/db';
 import { useObservable } from 'dexie-react-hooks';
-import { getBrowserExtensionVersion } from '@jetstream/shared/ui-utils';
 import { useAtomValue, useSetAtom } from 'jotai';
 import localforage from 'localforage';
 import React, { FunctionComponent, useEffect, useState } from 'react';
