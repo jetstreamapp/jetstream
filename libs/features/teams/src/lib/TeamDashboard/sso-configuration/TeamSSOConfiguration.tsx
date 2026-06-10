@@ -26,11 +26,20 @@ export interface TeamSSOConfigurationProps {
   teamId: string;
   ssoConfig: LoginConfigurationWithCallbacks;
   hasVerifiedDomain: boolean;
+  /** True when SSO is active and no other login providers are allowed - SSO cannot be disabled or deleted in this state */
+  ssoIsOnlyLoginProvider: boolean;
   onSsoConfigChange: (config: LoginConfigurationWithCallbacks) => void;
   reloadConfig: () => Promise<void>;
 }
 
-export function TeamSSOConfiguration({ teamId, ssoConfig, hasVerifiedDomain, onSsoConfigChange, reloadConfig }: TeamSSOConfigurationProps) {
+export function TeamSSOConfiguration({
+  teamId,
+  ssoConfig,
+  hasVerifiedDomain,
+  ssoIsOnlyLoginProvider,
+  onSsoConfigChange,
+  reloadConfig,
+}: TeamSSOConfigurationProps) {
   const ability = useAtomValue(abilityState);
   const hasSsoConfigured = !ssoConfig || ssoConfig.ssoProvider !== 'NONE';
   const [modalOpen, setModalOpen] = useState(false);
@@ -122,6 +131,14 @@ export function TeamSSOConfiguration({ teamId, ssoConfig, hasVerifiedDomain, onS
 
   async function handleDelete() {
     try {
+      if (ssoIsOnlyLoginProvider) {
+        fireToast({
+          type: 'error',
+          message: 'SSO is the only allowed login provider. Enable another login provider before deleting the SSO configuration.',
+        });
+        return;
+      }
+
       const confirmed = await ConfirmationModalPromise({
         header: 'Delete SSO Configuration',
         content: (
@@ -285,7 +302,12 @@ export function TeamSSOConfiguration({ teamId, ssoConfig, hasVerifiedDomain, onS
                 id="sso-enabled"
                 checked={ssoConfig.ssoEnabled}
                 label="Enable SSO"
-                disabled={isReadOnly || savingSettings}
+                labelHelp={
+                  ssoIsOnlyLoginProvider
+                    ? 'SSO cannot be disabled because it is the only allowed login provider. Enable another login provider first.'
+                    : undefined
+                }
+                disabled={isReadOnly || savingSettings || ssoIsOnlyLoginProvider}
                 onChange={(checked) => handleSettingToggle('ssoEnabled', checked)}
               />
 

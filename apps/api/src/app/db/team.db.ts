@@ -530,9 +530,19 @@ export const updateLoginConfiguration = async ({
           allowedMfaMethods: true,
           allowedProviders: true,
           ssoRequireMfa: true,
+          ssoEnabled: true,
+          ssoProvider: true,
         },
       })
     : null;
+
+  // SSO counts as a login provider, so an empty provider list is only valid when SSO is active
+  if (loginConfiguration.allowedProviders.length === 0) {
+    const ssoIsActive = !!previousLoginConfig && previousLoginConfig.ssoEnabled && previousLoginConfig.ssoProvider !== 'NONE';
+    if (!ssoIsActive) {
+      throw new UserFacingError('At least one login provider must be selected when SSO is not enabled.');
+    }
+  }
 
   if (!team.loginConfigId) {
     await prisma.loginConfiguration.create({
@@ -583,6 +593,8 @@ export async function revokeSessionThatViolateLoginConfiguration({
           allowedMfaMethods: true,
           allowedProviders: true,
           requireMfa: true,
+          ssoEnabled: true,
+          ssoProvider: true,
         },
       },
       members: {
@@ -618,7 +630,12 @@ export async function revokeSessionThatViolateLoginConfiguration({
   const sessionsByUserId = groupBy(sessions, 'userId');
   const sessionsToRevoke = new Set<string>();
 
-  const allowedProviders = new Set(loginConfig.allowedProviders);
+  const allowedProviders = new Set<string>(loginConfig.allowedProviders);
+
+  // SSO sessions store the provider as 'saml'/'oidc' and are always valid while SSO is active
+  if (loginConfig.ssoEnabled && loginConfig.ssoProvider !== 'NONE') {
+    allowedProviders.add(loginConfig.ssoProvider.toLowerCase());
+  }
 
   // Revoke all user sessions that are logged in with a provider that is no longer allowed
   sessions.forEach((session) => {
@@ -1001,7 +1018,12 @@ export async function verifyTeamInvitation({
     user,
     team: {
       ...existingInvitation.team,
-      loginConfig: TeamLoginConfigSchema.parse(existingInvitation.team.loginConfig || {}),
+      loginConfig: {
+        // TeamLoginConfigSchema strips the SSO fields, but they are needed to know if SSO is a valid login method
+        ...TeamLoginConfigSchema.parse(existingInvitation.team.loginConfig || {}),
+        ssoEnabled: existingInvitation.team.loginConfig?.ssoEnabled ?? false,
+        ssoProvider: existingInvitation.team.loginConfig?.ssoProvider ?? 'NONE',
+      },
     },
   };
 }
@@ -1294,6 +1316,7 @@ export async function updateSsoSettings(
           ssoBypassEnabled: true,
           ssoBypassEnabledRoles: true,
           ssoRequireMfa: true,
+          allowedProviders: true,
           samlConfiguration: { select: { id: true } },
           oidcConfiguration: { select: { id: true } },
         },
@@ -1327,6 +1350,11 @@ export async function updateSsoSettings(
     }
   }
 
+  // Prevent disabling SSO when it is the only allowed login provider, otherwise the team would be locked out
+  if (!data.ssoEnabled && team.loginConfig.ssoEnabled && team.loginConfig.allowedProviders.length === 0) {
+    throw new UserFacingError('Cannot disable SSO because it is the only allowed login provider. Enable another login provider first.');
+  }
+
   await prisma.loginConfiguration.update({
     where: { id: team.loginConfigId },
     data: {
@@ -1350,6 +1378,8 @@ export async function deleteSamlConfiguration(teamId: string, userId: string) {
       loginConfigId: true,
       loginConfig: {
         select: {
+          ssoEnabled: true,
+          allowedProviders: true,
           samlConfiguration: {
             select: { id: true, idpEntityId: true, idpCertificateExpiresAt: true },
           },
@@ -1360,6 +1390,13 @@ export async function deleteSamlConfiguration(teamId: string, userId: string) {
 
   if (!team) {
     throw new NotFoundError('Team not found');
+  }
+
+  // Prevent deleting the SSO configuration when it is the only allowed login provider, otherwise the team would be locked out
+  if (team.loginConfig.ssoEnabled && team.loginConfig.allowedProviders.length === 0) {
+    throw new UserFacingError(
+      'Cannot delete the SSO configuration because SSO is the only allowed login provider. Enable another login provider first.',
+    );
   }
 
   const deletedConfig = team.loginConfig.samlConfiguration;
@@ -1409,6 +1446,8 @@ export async function deleteOidcConfiguration(teamId: string, userId: string) {
       loginConfigId: true,
       loginConfig: {
         select: {
+          ssoEnabled: true,
+          allowedProviders: true,
           oidcConfiguration: {
             select: { id: true, issuer: true, clientId: true },
           },
@@ -1419,6 +1458,13 @@ export async function deleteOidcConfiguration(teamId: string, userId: string) {
 
   if (!team) {
     throw new NotFoundError('Team not found');
+  }
+
+  // Prevent deleting the SSO configuration when it is the only allowed login provider, otherwise the team would be locked out
+  if (team.loginConfig.ssoEnabled && team.loginConfig.allowedProviders.length === 0) {
+    throw new UserFacingError(
+      'Cannot delete the SSO configuration because SSO is the only allowed login provider. Enable another login provider first.',
+    );
   }
 
   const deletedConfig = team.loginConfig.oidcConfiguration;

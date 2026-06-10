@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/api-config';
-import * as authDbService from '@jetstream/auth/server';
 import * as auditLogLib from '@jetstream/audit-logs';
+import * as authDbService from '@jetstream/auth/server';
 import { OauthProviderType, SsoProviderType, UserProfileSession } from '@jetstream/auth/types';
 import { sendTeamInviteEmail } from '@jetstream/email';
 import { getErrorMessage } from '@jetstream/shared/utils';
@@ -123,7 +123,12 @@ export async function updateTeamMember({
   userId: string;
   data: TeamMemberUpdateRequest;
 }): Promise<{ team: TeamUserFacing; previousMember: { role: string; features: string[]; email: string } }> {
-  const { teamMember, isBillableAction, previousMember } = await teamDbService.updateTeamMemberRole({ teamId, userId, data, runningUserId });
+  const { teamMember, isBillableAction, previousMember } = await teamDbService.updateTeamMemberRole({
+    teamId,
+    userId,
+    data,
+    runningUserId,
+  });
 
   await authDbService
     .updateUserSessionTeamMembership({
@@ -180,7 +185,10 @@ export async function updateTeamMemberStatusAndRole({
         teamMembership: { teamId, role: teamMember.role, status: teamMember.status },
       })
       .catch((ex) => {
-        logger.error({ userId, teamId, error: getErrorMessage(ex) }, 'Error updating user sessions after team member status or role change');
+        logger.error(
+          { userId, teamId, error: getErrorMessage(ex) },
+          'Error updating user sessions after team member status or role change',
+        );
       });
   }
 
@@ -207,7 +215,10 @@ export async function createInvitation({
   runningUserId: string;
   teamId: string;
   request: TeamInvitationRequest;
-}): Promise<{ invitations: TeamInviteUserFacing[]; createdInvitation: { id: string; email: string; role: string; features: string[]; expiresAt: Date } }> {
+}): Promise<{
+  invitations: TeamInviteUserFacing[];
+  createdInvitation: { id: string; email: string; role: string; features: string[]; expiresAt: Date };
+}> {
   const createdInvitation = await teamDbService.createTeamInvitation({
     runningUserId,
     teamId,
@@ -299,6 +310,9 @@ export async function verifyTeamInvitation({
 
   const allowedProviders = new Set(loginConfig.allowedProviders);
 
+  // When SSO is active, it is always a valid login method ('saml'/'oidc') even though it is not part of allowedProviders
+  const activeSsoProvider = loginConfig.ssoEnabled && loginConfig.ssoProvider !== 'NONE' ? loginConfig.ssoProvider.toLowerCase() : null;
+
   const teamInviteVerification: TeamInviteVerificationResponse = {
     teamName: team.name,
     canEnroll: true,
@@ -338,21 +352,28 @@ export async function verifyTeamInvitation({
     teamInviteVerification.mfa.message = `Before accepting this invitation, you must setup a valid MFA method. This team allows the following MFA methods: ${loginConfig.allowedMfaMethods.map((method) => LoginConfigurationMdaDisplayNames[method]).join(', ')}.`;
   }
 
-  if (loginConfig.allowedProviders.every((provider) => !providers.has(provider))) {
+  if (!activeSsoProvider && loginConfig.allowedProviders.every((provider) => !providers.has(provider))) {
     teamInviteVerification.canEnroll = false;
     teamInviteVerification.identityProvider.isValid = false;
     teamInviteVerification.identityProvider.action = 'LINK';
     teamInviteVerification.mfa.message = `You don't have a valid login method configured, one of the following is required to join this team: ${loginConfig.allowedProviders.map((provider) => LoginConfigurationIdentityDisplayNames[provider]).join(', ')}.`;
-  } else if (!loginConfig.allowedProviders.includes(currentSessionProvider as OauthProviderType | 'credentials')) {
+  } else if (
+    !loginConfig.allowedProviders.includes(currentSessionProvider as OauthProviderType | 'credentials') &&
+    currentSessionProvider !== activeSsoProvider
+  ) {
+    // SSO is never part of allowedProviders, so include it in the displayed list when active
+    // (it may even be the only valid login method, in which case allowedProviders is empty)
+    const validLoginMethods = [
+      ...loginConfig.allowedProviders.map((provider) => LoginConfigurationIdentityDisplayNames[provider]),
+      ...(activeSsoProvider ? ['Single Sign-On (SSO)'] : []),
+    ];
     teamInviteVerification.canEnroll = false;
     teamInviteVerification.session.expireOnAcceptance = true;
     teamInviteVerification.session.action = 'CURRENT_PROVIDER_INVALID';
-    teamInviteVerification.session.message = `You must be signed in with a different login method to join this team. This team requires one of the following login methods: ${loginConfig.allowedProviders
-      .map((provider) => LoginConfigurationIdentityDisplayNames[provider])
-      .join(', ')}.`;
+    teamInviteVerification.session.message = `You must be signed in with a different login method to join this team. This team requires one of the following login methods: ${validLoginMethods.join(', ')}.`;
   }
 
-  if (Array.from(providers).some((provider) => !allowedProviders.has(provider))) {
+  if (Array.from(providers).some((provider) => !allowedProviders.has(provider) && provider !== activeSsoProvider)) {
     teamInviteVerification.linkedIdentities.isValid = false;
     teamInviteVerification.session.message = `You have linked identities that are not allowed on this team. You do not need to take any action, but after joining, you will no longer be able to login using: ${loginConfig.allowedProviders
       .map((provider) => LoginConfigurationIdentityDisplayNames[provider])
@@ -417,15 +438,7 @@ export async function getTeamAuditLogs({
   return auditLogLib.getTeamAuditLogs({ teamId, limit, cursor, startDate, endDate });
 }
 
-export async function getTeamAuditLogsForExport({
-  teamId,
-  startDate,
-  endDate,
-}: {
-  teamId: string;
-  startDate: Date;
-  endDate: Date;
-}) {
+export async function getTeamAuditLogsForExport({ teamId, startDate, endDate }: { teamId: string; startDate: Date; endDate: Date }) {
   return auditLogLib.getTeamAuditLogsForExport({ teamId, startDate, endDate });
 }
 

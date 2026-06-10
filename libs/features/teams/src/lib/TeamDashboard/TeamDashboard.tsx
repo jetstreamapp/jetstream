@@ -102,6 +102,7 @@ export function TeamDashboard() {
   const teamId = userProfile.teamMembership?.team?.id;
   const hasSsoConfigured = !ssoConfig || ssoConfig.ssoProvider !== 'NONE';
   const configuredSsoProvider = ssoConfig && ssoConfig.ssoProvider !== 'NONE' && ssoConfig.ssoEnabled ? ssoConfig.ssoProvider : null;
+  const ssoIsOnlyLoginProvider = !!configuredSsoProvider && loginConfiguration?.allowedProviders.length === 0;
 
   const fetchTeam = useCallback(async () => {
     try {
@@ -366,6 +367,7 @@ export function TeamDashboard() {
               <TeamSSOConfiguration
                 teamId={team.id}
                 hasVerifiedDomain={hasVerifiedDomain}
+                ssoIsOnlyLoginProvider={ssoIsOnlyLoginProvider}
                 ssoConfig={ssoConfig}
                 onSsoConfigChange={setSsoConfig}
                 reloadConfig={fetchSsoConfig}
