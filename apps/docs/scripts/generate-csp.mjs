@@ -1,0 +1,95 @@
+/**
+ * Generates a Content-Security-Policy for the built docs site.
+ *
+ * Docusaurus emits a small number of inline <script> tags (the gtag bootstrap and the
+ * color-mode/theme bootstrap). Allowing them via 'unsafe-inline' defeats the purpose of a CSP,
+ * so instead this script scans the build output, computes the sha256 hash of every executable
+ * inline script, and produces a policy that allows exactly those scripts and nothing else.
+ *
+ * Run automatically as part of `pnpm build`. Outputs:
+ *   1. `build/_headers` — applied automatically when hosting on Cloudflare Pages
+ *   2. `build/serve.json` — applies the same header when testing locally via `pnpm dlx serve build`
+ *   3. The policy printed to stdout — paste into a Cloudflare Response Header Transform Rule
+ *      if the header is managed at the zone level instead
+ *
+ * Hashes are derived from the build output itself, so Docusaurus upgrades or config changes
+ * that alter the inline scripts are picked up automatically on the next build.
+ */
+import { createHash } from 'node:crypto';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const BUILD_DIR = fileURLToPath(new URL('../build', import.meta.url));
+
+// Script types that browsers execute and CSP script-src applies to.
+// Anything else (e.g. application/ld+json structured data) is inert and needs no hash.
+const EXECUTABLE_SCRIPT_TYPES = new Set(['', 'module', 'text/javascript', 'application/javascript']);
+
+// `\b[^>]*` tolerates end tags like `</script >`, which browsers accept as terminating
+const SCRIPT_TAG_REGEX = /<script\b([^>]*)>([\s\S]*?)<\/script\b[^>]*>/gi;
+
+function collectHtmlFiles(dir) {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const fullPath = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      return collectHtmlFiles(fullPath);
+    }
+    return entry.name.endsWith('.html') ? [fullPath] : [];
+  });
+}
+
+function getInlineScriptHashes() {
+  const hashes = new Set();
+  for (const htmlFile of collectHtmlFiles(BUILD_DIR)) {
+    const html = readFileSync(htmlFile, 'utf-8');
+    for (const [, attrs, body] of html.matchAll(SCRIPT_TAG_REGEX)) {
+      const hasSrc = /\bsrc\s*=/i.test(attrs);
+      const type = (attrs.match(/\btype\s*=\s*["']?([^"'\s>]*)/i)?.[1] ?? '').toLowerCase();
+      if (hasSrc || !EXECUTABLE_SCRIPT_TYPES.has(type) || !body.trim()) {
+        continue;
+      }
+      // CSP hashes are computed over the exact script content, byte for byte
+      hashes.add(`'sha256-${createHash('sha256').update(body).digest('base64')}'`);
+    }
+  }
+  return [...hashes].sort();
+}
+
+const scriptHashes = getInlineScriptHashes();
+
+const csp = [
+  `default-src 'self'`,
+  `script-src 'self' ${scriptHashes.join(' ')} https://static.cloudflareinsights.com`,
+  `style-src 'self' 'unsafe-inline'`,
+  `img-src 'self' data: https://res.cloudinary.com`,
+  `font-src 'self' data:`,
+  `connect-src 'self' https://*.algolia.net https://*.algolianet.com https://*.algolia.io https://cloudflareinsights.com`,
+  `frame-ancestors 'none'`,
+  `base-uri 'self'`,
+  `form-action 'self'`,
+  `object-src 'none'`,
+  `upgrade-insecure-requests`,
+].join('; ');
+
+const headers = {
+  'Content-Security-Policy': csp,
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'X-Content-Type-Options': 'nosniff',
+};
+
+const headerLines = Object.entries(headers)
+  .map(([key, value]) => `  ${key}: ${value}`)
+  .join('\n');
+writeFileSync(join(BUILD_DIR, '_headers'), `/*\n${headerLines}\n`);
+
+const serveConfig = {
+  headers: [{ source: '**', headers: Object.entries(headers).map(([key, value]) => ({ key, value })) }],
+};
+writeFileSync(join(BUILD_DIR, 'serve.json'), `${JSON.stringify(serveConfig, null, 2)}\n`);
+
+console.log(`Found ${scriptHashes.length} inline script hash(es):`);
+scriptHashes.forEach((hash) => console.log(`  ${hash}`));
+console.log('\nWrote build/_headers with the following policy:\n');
+console.log(csp);
