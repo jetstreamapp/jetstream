@@ -35,9 +35,8 @@ jobs:
 
       - name: Install dependencies
         # `--filter docs...` limits the install to apps/docs + transitive deps.
-        # `--ignore-scripts` skips the root `prisma generate` postinstall (which
-        # needs JETSTREAM_POSTGRES_DBURI and is irrelevant to a docs build) and
-        # the auto-injected `node` runtime download from `devEngines.runtime`.
+        # `--ignore-scripts` skips lifecycle scripts and the auto-injected `node`
+        # runtime download from `devEngines.runtime` - neither is needed for a docs build.
         run: pnpm install --frozen-lockfile --filter docs... --ignore-scripts
 
       - name: Build docs
