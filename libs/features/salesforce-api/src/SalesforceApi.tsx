@@ -3,6 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { manualRequest } from '@jetstream/shared/data';
 import { tracker, useTitle } from '@jetstream/shared/ui-utils';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { ManualRequestPayload, ManualRequestResponse, Maybe, SalesforceApiHistoryRequest } from '@jetstream/types';
 import { AutoFullHeightContainer } from '@jetstream/ui';
@@ -67,7 +68,7 @@ export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
       } catch (ex) {
         setResults({
           error: true,
-          errorMessage: 'An unknown error has occurred',
+          errorMessage: getErrorMessage(ex) || 'An unknown error has occurred',
           headers: null,
           status: null,
           statusText: null,

@@ -209,6 +209,12 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
             }
           }
           if (response.ok) {
+            // Raw-response callers must get the response even for 204 No Content — the early
+            // return below would hand them `undefined`, which surfaced successful report
+            // DELETEs as 400 errors through /api/request-manual.
+            if (outputType === 'response') {
+              return response;
+            }
             if (response.status === 204) {
               return;
             }
@@ -222,8 +228,6 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
               return response.text().then((text) => parseXml(text));
             } else if (outputType === 'soap') {
               return response.text().then((text) => parseXml(text));
-            } else if (outputType === 'response') {
-              return response;
             } else if (outputType === 'void') {
               return;
             } else {

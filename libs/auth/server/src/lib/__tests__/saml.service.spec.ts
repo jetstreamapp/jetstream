@@ -1,5 +1,39 @@
-import { describe, expect, it } from 'vitest';
-import { samlService } from '../saml.service';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const loggerMock = vi.hoisted(() => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }));
+
+// In-memory stand-in for the Postgres-backed consumed-assertion cache. consumeOnceAsync returns
+// true on the first time a key is seen and false thereafter, mirroring the atomic INSERT semantics.
+const consumedKeys = vi.hoisted(() => new Set<string>());
+const validatePostResponseAsyncMock = vi.hoisted(() => vi.fn());
+
+vi.mock('@jetstream/api-config', () => ({
+  ENV: {},
+  logger: loggerMock,
+  DbCacheProvider: class {
+    constructor(
+      public namespace: string,
+      public ttlMs: number,
+    ) {}
+    async consumeOnceAsync(key: string): Promise<boolean> {
+      if (consumedKeys.has(key)) {
+        return false;
+      }
+      consumedKeys.add(key);
+      return true;
+    }
+  },
+}));
+
+vi.mock('@node-saml/node-saml', () => ({
+  SAML: class {
+    validatePostResponseAsync = validatePostResponseAsyncMock;
+  },
+  ValidateInResponseTo: { never: 'never', ifPresent: 'ifPresent', always: 'always' },
+}));
+
+// Imported after mocks so the service binds to the mocked api-config / node-saml.
+const { samlService } = await import('../saml.service');
 
 const sampleMetadata = `
 <EntityDescriptor entityID="https://idp.example.com/metadata" xmlns="urn:oasis:names:tc:SAML:2.0:metadata">
@@ -18,7 +52,34 @@ const sampleMetadata = `
 </EntityDescriptor>
 `;
 
+const samlConfig = {
+  entityId: 'https://sp.example.com',
+  acsUrl: 'https://sp.example.com/acs',
+  idpSsoUrl: 'https://idp.example.com/sso',
+  idpCertificate: 'CERT',
+  nameIdFormat: 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
+  wantAssertionsSigned: true,
+  signRequests: false,
+  spPrivateKey: null,
+  spCertificate: null,
+} as any;
+
+const buildProfile = (assertionId: string, overrides: { issueInstant?: string; nameID?: string } = {}) => ({
+  nameID: overrides.nameID ?? 'user@example.com',
+  nameIDFormat: 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
+  getAssertion: () => ({
+    Assertion: {
+      $: { ID: assertionId, IssueInstant: overrides.issueInstant ?? '2026-05-31T00:00:00Z' },
+    },
+  }),
+});
+
 describe('samlService', () => {
+  beforeEach(() => {
+    consumedKeys.clear();
+    validatePostResponseAsyncMock.mockReset();
+  });
+
   it('parses IdP metadata and extracts SSO details', async () => {
     const parsed = await samlService.parseIdpMetadata(sampleMetadata);
 
@@ -42,10 +103,35 @@ describe('samlService', () => {
 
   it('throws when email is missing in assertion', () => {
     expect(() =>
-      samlService.extractUserInfo(
-        { attributes: { uid: 'user-1' }, nameID: undefined } as any,
-        { email: 'mail', userName: 'uid' },
-      ),
+      samlService.extractUserInfo({ attributes: { uid: 'user-1' }, nameID: undefined } as any, { email: 'mail', userName: 'uid' }),
     ).toThrow(/Email not found/i);
+  });
+
+  it('accepts a valid SAML assertion on first use', async () => {
+    validatePostResponseAsyncMock.mockResolvedValue({ profile: buildProfile('assertion-abc'), loggedOut: false });
+
+    const profile = await samlService.validateSamlResponse('<SAMLResponse/>', samlConfig, 'team-1');
+
+    expect(profile.nameID).toBe('user@example.com');
+  });
+
+  it('rejects replaying the same assertion a second time', async () => {
+    validatePostResponseAsyncMock.mockResolvedValue({ profile: buildProfile('assertion-replay'), loggedOut: false });
+
+    await expect(samlService.validateSamlResponse('<SAMLResponse/>', samlConfig, 'team-1')).resolves.toBeDefined();
+    await expect(samlService.validateSamlResponse('<SAMLResponse/>', samlConfig, 'team-1')).rejects.toThrow(
+      /already been consumed|replay/i,
+    );
+  });
+
+  it('fails closed when no assertion identifier can be derived', async () => {
+    validatePostResponseAsyncMock.mockResolvedValue({
+      profile: { nameID: 'user@example.com', getAssertion: () => ({ Assertion: { $: {} } }) },
+      loggedOut: false,
+    });
+
+    await expect(samlService.validateSamlResponse('<SAMLResponse/>', samlConfig, 'team-1')).rejects.toThrow(
+      /Unable to derive a SAML assertion identifier/i,
+    );
   });
 });

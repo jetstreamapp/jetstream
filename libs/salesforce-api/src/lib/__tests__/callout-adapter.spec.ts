@@ -917,6 +917,48 @@ describe('callout-adapter XML parsing', () => {
   });
 });
 
+describe('callout-adapter 204 No Content handling', () => {
+  const mockSessionInfo = {
+    accessToken: 'test-token',
+    instanceUrl: 'https://test.salesforce.com',
+    apiVersion: '65.0',
+    userId: 'test-user-id',
+    organizationId: 'test-org-id',
+  };
+
+  const make204Response = () => Promise.resolve(new Response(null, { status: 204, statusText: 'No Content' }));
+
+  it('returns the raw response for outputType "response" so callers can read the status (e.g. report DELETE via /api/request-manual)', async () => {
+    const mockFetch = vi.fn(() => make204Response()) as unknown as FetchFn;
+    const apiRequest = getApiRequestFactoryFn(mockFetch)();
+
+    const result = await apiRequest<Response>({
+      url: '/services/data/v65.0/analytics/reports/00OKf000001QnNbMAK',
+      method: 'DELETE',
+      sessionInfo: mockSessionInfo,
+      outputType: 'response',
+    });
+
+    expect(result).toBeDefined();
+    expect(result.status).toBe(204);
+    expect(await result.text()).toBe('');
+  });
+
+  it('returns undefined for body-producing output types', async () => {
+    const mockFetch = vi.fn(() => make204Response()) as unknown as FetchFn;
+    const apiRequest = getApiRequestFactoryFn(mockFetch)();
+
+    const result = await apiRequest({
+      url: '/services/data/v65.0/sobjects/Account/001Kf00001FGIvKIAX',
+      method: 'DELETE',
+      sessionInfo: mockSessionInfo,
+      outputType: 'json',
+    });
+
+    expect(result).toBeUndefined();
+  });
+});
+
 describe('callout-adapter refresh token rotation', () => {
   const mockSessionInfo = {
     accessToken: 'stale-access-token',

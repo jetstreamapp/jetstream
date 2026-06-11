@@ -1,5 +1,26 @@
 # Changelog
 
+## [10.0.1](https://github.com/jetstreamapp/jetstream/compare/v10.0.0...v10.0.1) (2026-06-10)
+
+### Bug Fixes
+
+* add billing URLs to CSP directives for enhanced security ([0d6d991](https://github.com/jetstreamapp/jetstream/commit/0d6d9918e80cdd209287651df4c4a1815808fedf))
+
+## [10.0.0](https://github.com/jetstreamapp/jetstream/compare/v9.19.2...v10.0.0) (2026-06-10)
+
+### Features
+
+* add script to organize TypeScript imports using language service ([2e1a4af](https://github.com/jetstreamapp/jetstream/commit/2e1a4af6136b7c7a0c021f69bf7bf8ad1609031f))
+* implement slds 2 cosmos theme with dark mode support ([aa4a1a8](https://github.com/jetstreamapp/jetstream/commit/aa4a1a85287b28be198d0aa16fd349c8922f59fa))
+
+### Bug Fixes
+
+* enhance MonacoEditor theme handling with dynamic color scheme detection ([9c2c016](https://github.com/jetstreamapp/jetstream/commit/9c2c016eb529ce0951625e4c159870879d884a58))
+* enhance theme handling and improve component styling for better alignment ([e8cf06b](https://github.com/jetstreamapp/jetstream/commit/e8cf06b33c5c40ce733fdd3983a96761ee899476))
+* ensure pipelines generate db types ([e293c07](https://github.com/jetstreamapp/jetstream/commit/e293c076da2a2005954d373146c8159f179b1035))
+* remove unnecessary --no-frozen-lockfile flag in Dockerfile ([c83a3ef](https://github.com/jetstreamapp/jetstream/commit/c83a3eff94d223e5219ca0ef598792a5760378f0))
+* **web-extension:** improve handling of local options in storage state updates ([6f8ebbc](https://github.com/jetstreamapp/jetstream/commit/6f8ebbce77c490e36b752a333dc4ff8d8a475efc))
+
 ## [9.19.2](https://github.com/jetstreamapp/jetstream/compare/v9.19.1...v9.19.2) (2026-06-05)
 
 ### Bug Fixes

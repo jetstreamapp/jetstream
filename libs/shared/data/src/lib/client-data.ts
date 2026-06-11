@@ -190,7 +190,9 @@ export async function createInvitation(teamId: string, data: TeamInvitationReque
 }
 
 export async function resendInvitation(teamId: string, invitationId: string): Promise<TeamInviteUserFacing[]> {
-  return handleRequest({ method: 'PUT', url: `/api/teams/${teamId}/invitations/${invitationId}`, data: {} }).then(unwrapResponseIgnoreCache);
+  return handleRequest({ method: 'PUT', url: `/api/teams/${teamId}/invitations/${invitationId}`, data: {} }).then(
+    unwrapResponseIgnoreCache,
+  );
 }
 
 export async function cancelInvitation(teamId: string, invitationId: string): Promise<void> {
@@ -1279,7 +1281,7 @@ export async function deleteReportsById(org: SalesforceOrgUi, ids: string[], api
       output.push({ success: true, id });
     } catch {
       output.push({
-        errors: [{ fields: [], message: 'UNKOWN ERROR', statusCode: 'UNKNOWN' }],
+        errors: [{ fields: [], message: 'UNKNOWN ERROR', statusCode: 'UNKNOWN' }],
         success: false,
         id,
       });

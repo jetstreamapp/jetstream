@@ -49,6 +49,8 @@ describe('security headers', () => {
 
     expect(directives.defaultSrc).toEqual(["'self'"]);
     expect(directives.formAction).toContain('https://accounts.google.com');
+    expect(directives.formAction).toContain('https://billing.getjetstream.app');
+    expect(directives.formAction).toContain('https://billing.stripe.com');
     expect(directives.frameAncestors).toContain('accounts.google.com');
     expect(directives.fontSrc).not.toContain("'unsafe-inline'");
     expect(directives.frameSrc).toContain('https://*.googleapis.com');

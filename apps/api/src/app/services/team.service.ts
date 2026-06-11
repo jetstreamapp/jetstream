@@ -356,7 +356,7 @@ export async function verifyTeamInvitation({
     teamInviteVerification.canEnroll = false;
     teamInviteVerification.identityProvider.isValid = false;
     teamInviteVerification.identityProvider.action = 'LINK';
-    teamInviteVerification.mfa.message = `You don't have a valid login method configured, one of the following is required to join this team: ${loginConfig.allowedProviders.map((provider) => LoginConfigurationIdentityDisplayNames[provider]).join(', ')}.`;
+    teamInviteVerification.identityProvider.message = `You don't have a valid login method configured, one of the following is required to join this team: ${loginConfig.allowedProviders.map((provider) => LoginConfigurationIdentityDisplayNames[provider]).join(', ')}.`;
   } else if (
     !loginConfig.allowedProviders.includes(currentSessionProvider as OauthProviderType | 'credentials') &&
     currentSessionProvider !== activeSsoProvider
