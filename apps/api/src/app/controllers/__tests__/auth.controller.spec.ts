@@ -27,6 +27,12 @@ const responseHandlerMocks = vi.hoisted(() => ({
   setCookieHeaders: vi.fn(),
 }));
 
+// Shared across every DbCacheProvider instance so tests can drive the module-level `totpReplayCache`
+// (instantiated at import time) without a handle to that specific instance.
+const dbCacheMocks = vi.hoisted(() => ({
+  consumeOnceAsync: vi.fn().mockResolvedValue(true),
+}));
+
 const authServerMocks = vi.hoisted(() => {
   const PLACEHOLDER_USER_ID = '00000000-0000-0000-0000-000000000000';
   class AuthError extends Error {
@@ -48,6 +54,7 @@ const authServerMocks = vi.hoisted(() => {
     EMAIL_VERIFICATION_TOKEN_DURATION_HOURS: 24,
     PASSWORD_RESET_DURATION_MINUTES: 30,
     TOKEN_DURATION_MINUTES: 10,
+    MAX_VERIFICATION_ATTEMPTS: 5,
     AuthError,
     InvalidSession,
     InvalidAction,
@@ -131,6 +138,12 @@ vi.mock('@jetstream/api-config', () => ({
   logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
   prisma: {},
   errorTracker: { error: vi.fn(), warn: vi.fn(), critical: vi.fn(), info: vi.fn() },
+  DbCacheProvider: class {
+    consumeOnceAsync = dbCacheMocks.consumeOnceAsync;
+    getAsync = vi.fn();
+    saveAsync = vi.fn();
+    deleteAsync = vi.fn();
+  },
 }));
 
 vi.mock('@jetstream/auth/server', () => authServerMocks);
@@ -637,5 +650,93 @@ describe('auth.controller - SSO callback redirect resolution', () => {
       expect.any(String),
     );
     expect(responseHandlerMocks.redirect).toHaveBeenCalledWith(res, 'https://client.test/app/query');
+  });
+});
+
+/**
+ * Regression coverage for single-use (replay) enforcement on the 2fa-otp verification path. A valid
+ * TOTP code is accepted exactly once within its validity window: the controller records the
+ * `${userId}:${code}` key via DbCacheProvider.consumeOnceAsync and rejects the request when that
+ * atomic insert reports the code was already consumed, closing the replay window on an intercepted code.
+ */
+describe('auth.controller - 2fa-otp single-use replay enforcement', () => {
+  const REAL_USER_ID = 'real-user-id';
+  const OTP_CODE = '123456';
+
+  function make2faOtpReq() {
+    return makeReq({
+      body: { csrfToken: 'csrf-token', code: OTP_CODE, type: '2fa-otp' },
+      session: {
+        id: 'session-id',
+        destroy: vi.fn((cb?: (err?: unknown) => void) => cb?.()),
+        save: vi.fn((cb?: (err?: unknown) => void) => cb?.()),
+        user: { id: REAL_USER_ID, email: 'user@example.com' },
+        pendingVerification: [{ type: '2fa-otp', exp: Date.now() + 60_000 }],
+        pendingVerificationAttempts: 0,
+      },
+    });
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    authServerMocks.getCookieConfig.mockReturnValue({
+      csrfToken: { name: 'csrfToken', options: {} },
+      doubleCSRFToken: { name: 'doubleCSRFToken', options: {} },
+      pkceCodeVerifier: { name: 'pkceCodeVerifier', options: {} },
+      state: { name: 'state', options: {} },
+      nonce: { name: 'nonce', options: {} },
+      linkIdentity: { name: 'linkIdentity', options: {} },
+      returnUrl: { name: 'returnUrl', options: {} },
+      rememberDevice: { name: 'rememberDevice', options: {} },
+      redirectUrl: { name: 'redirectUrl', options: {} },
+      teamInviteState: { name: 'teamInviteState', options: {} },
+    } as never);
+    authServerMocks.ensureAuthError.mockImplementation((error: unknown) => error);
+    authServerMocks.validateRedirectUrl.mockImplementation((url: string) => url || 'https://client.test');
+    authServerMocks.getTotpAuthenticationFactor.mockResolvedValue({ secret: 'totp-secret' } as never);
+    authServerMocks.verify2faTotpOrThrow.mockResolvedValue(undefined as never);
+    // Default to first-use; the replay test overrides this for a single call.
+    dbCacheMocks.consumeOnceAsync.mockResolvedValue(true);
+  });
+
+  it('accepts a valid TOTP code on first use and records it against the replay cache', async () => {
+    const req = make2faOtpReq();
+    const res = makeRes();
+    const next = vi.fn();
+
+    const handler = routeDefinition.verification.controllerFn();
+    await handler(req as never, res as never, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(dbCacheMocks.consumeOnceAsync).toHaveBeenCalledWith(`${REAL_USER_ID}:${OTP_CODE}`);
+    expect(responseHandlerMocks.sendJson).toHaveBeenCalledWith(res, { error: false, redirect: 'https://client.test' });
+    expect(authServerMocks.createUserActivityFromReq).toHaveBeenCalledWith(
+      req,
+      res,
+      expect.objectContaining({ action: '2FA_VERIFICATION', success: true }),
+    );
+  });
+
+  it('rejects a replayed TOTP code (consumeOnceAsync returns false) and charges the attempt', async () => {
+    dbCacheMocks.consumeOnceAsync.mockResolvedValueOnce(false);
+    const req = make2faOtpReq();
+    const res = makeRes();
+    const next = vi.fn();
+
+    const handler = routeDefinition.verification.controllerFn();
+    await handler(req as never, res as never, next);
+
+    expect(dbCacheMocks.consumeOnceAsync).toHaveBeenCalledWith(`${REAL_USER_ID}:${OTP_CODE}`);
+    expect(responseHandlerMocks.sendJson).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(next.mock.calls[0][0]).toMatchObject({ message: 'Provided code has already been used' });
+    // A replay is a bad-code error and must count against the per-session attempt budget.
+    expect(req.session.pendingVerificationAttempts).toBe(1);
+    expect(authServerMocks.createUserActivityFromReqWithError).toHaveBeenCalledWith(
+      req,
+      res,
+      expect.objectContaining({ message: 'Provided code has already been used' }),
+      expect.objectContaining({ action: '2FA_VERIFICATION', success: false }),
+    );
   });
 });

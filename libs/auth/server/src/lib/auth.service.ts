@@ -18,6 +18,9 @@ const osloOtpPromise = import('@oslojs/otp');
 
 export const TOTP_DIGITS = 6;
 export const TOTP_INTERVAL_SEC = 30;
+// Clock-skew tolerance applied symmetrically by verifyTOTPWithGracePeriod. Kept well below a full
+// step so an OTP is not accepted for the previous AND next windows simultaneously.
+export const TOTP_GRACE_PERIOD_SEC = 15;
 
 export function ensureAuthError(ex: unknown, fallback?: AuthError) {
   if (ex instanceof AuthError) {
@@ -201,9 +204,9 @@ export async function generate2faTotpSecret() {
 export async function verify2faTotpOrThrow(secret: string, code: string) {
   const { decodeHex } = await osloEncodingPromise;
   const { verifyTOTPWithGracePeriod } = await osloOtpPromise;
-  const validOTP = verifyTOTPWithGracePeriod(decodeHex(secret), TOTP_INTERVAL_SEC, TOTP_DIGITS, code, TOTP_INTERVAL_SEC);
+  const validOTP = verifyTOTPWithGracePeriod(decodeHex(secret), TOTP_INTERVAL_SEC, TOTP_DIGITS, code, TOTP_GRACE_PERIOD_SEC);
   if (!validOTP) {
-    throw new InvalidVerificationToken();
+    throw new InvalidVerificationToken('Provided code does not match');
   }
 }
 
