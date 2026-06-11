@@ -36,4 +36,5 @@ overrides:
   "connect-pg-simple>@types/express-session": "^1.18.2"
   dompurify: "^3.3.2"
   handlebars: "4.7.9"
+  shell-quote: "1.8.4"
   "next-images>loader-utils": "2.0.4"
