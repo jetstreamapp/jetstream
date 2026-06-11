@@ -93,12 +93,14 @@ export async function encryptAccessToken({
     throw new Error('User ID is required for encryption');
   }
 
-  // Per-user encryption key
+  // Per-user encryption key derived (PBKDF2) from the dedicated SFDC_ENCRYPTION_KEY master key.
+  // encryptString now produces authenticated AES-256-GCM ciphertext (`gcm!...`), so all NEW writes
+  // are authenticated and tied to the per-user derived key — never the legacy SFDC_CONSUMER_SECRET path below.
   const { key, salt } = await deriveUserKey({ userId });
   const encryptedData = encryptString(tokenData, key);
 
   // Store version, salt, and encrypted data
-  // Format: "v2:salt:encryptedData"
+  // Format: "v2:salt:encryptedData" (encryptedData is itself a versioned `gcm!...` blob)
   return `${EncryptionVersion.V2_PER_USER}:${salt}:${encryptedData}`;
 }
 
@@ -135,7 +137,12 @@ export async function decryptAccessToken({
       return [accessToken, refreshToken];
     }
 
-    // Legacy format - decrypt with old method
+    // Legacy format - decrypt with old method.
+    // SECURITY DEBT: this branch reuses the OAuth consumer secret (SFDC_CONSUMER_SECRET) as the
+    // encryption key (key reuse, see SECURITY_REVIEW.md §4.1) and reads unauthenticated AES-256-CBC
+    // ciphertext (§6.1). It is retained ONLY so already-stored tokens remain decryptable. It should be
+    // removed after a one-time migration that re-encrypts all legacy tokens to the v2 GCM format above.
+    // Do NOT route new encryption through this path.
     try {
       const decrypted = decryptString(encryptedAccessToken, hexToBase64(ENV.SFDC_CONSUMER_SECRET));
       const [accessToken, refreshToken] = decrypted.split(' ');
