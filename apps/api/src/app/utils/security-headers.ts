@@ -95,6 +95,7 @@ export function buildCspDirectives(extraFrameAncestors: string[] = []): CspDirec
       ENV.JETSTREAM_SERVER_URL,
       'https://accounts.google.com',
       'https://login.salesforce.com',
+      'https://billing.getjetstream.app',
       'https://billing.stripe.com',
     ],
     upgradeInsecureRequests: ENV.ENVIRONMENT === 'development' ? null : [],

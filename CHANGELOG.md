@@ -1,5 +1,11 @@
 # Changelog
 
+## [10.0.1](https://github.com/jetstreamapp/jetstream/compare/v10.0.0...v10.0.1) (2026-06-10)
+
+### Bug Fixes
+
+* add billing URLs to CSP directives for enhanced security ([0d6d991](https://github.com/jetstreamapp/jetstream/commit/0d6d9918e80cdd209287651df4c4a1815808fedf))
+
 ## [10.0.0](https://github.com/jetstreamapp/jetstream/compare/v9.19.2...v10.0.0) (2026-06-10)
 
 ### Features
