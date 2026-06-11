@@ -15,6 +15,37 @@ import * as externalAuthService from '../services/external-auth.service';
 
 let io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap>;
 
+// Same-origin allowlist for browser (cookie-authenticated) WebSocket upgrades. socket.io's
+// `cors.origin` only constrains the HTTP polling handshake, NOT the native WebSocket upgrade
+// (which is exempt from CORS), so we enforce the origin ourselves as a Cross-Site WebSocket
+// Hijacking backstop. Extension and desktop clients are matched earlier by their own auth and
+// never reach this check.
+function getAllowedWebSocketOrigins(): Set<string> {
+  const origins = new Set<string>();
+  const originSources = { JETSTREAM_CLIENT_URL: ENV.JETSTREAM_CLIENT_URL, JETSTREAM_SERVER_URL: ENV.JETSTREAM_SERVER_URL };
+  for (const [envVarName, url] of Object.entries(originSources)) {
+    try {
+      origins.add(new URL(url).origin);
+    } catch {
+      // A malformed URL shrinks the allowlist and browser socket connections start failing, so make the cause findable.
+      logger.warn({ envVarName, url }, '[SOCKET] Ignoring malformed URL when building the allowed origin list');
+    }
+  }
+  return origins;
+}
+const ALLOWED_WEB_SOCKET_ORIGINS = getAllowedWebSocketOrigins();
+
+function isAllowedWebSocketOrigin(origin: string): boolean {
+  if (ALLOWED_WEB_SOCKET_ORIGINS.has(origin)) {
+    return true;
+  }
+  // The Vite dev server uses arbitrary localhost ports in development.
+  if (ENV.ENVIRONMENT === 'development' && /^https?:\/\/localhost(:\d+)?$/.test(origin)) {
+    return true;
+  }
+  return false;
+}
+
 export function emitSocketEvent({
   userId,
   event,
@@ -122,6 +153,15 @@ export function initSocketServer(
     } else if (socket.handshake.headers[HTTP.HEADERS.X_SOURCE.toLowerCase()] === HTTP_SOURCE_DESKTOP) {
       getExternalDeviceAuthMiddleware(externalAuthService.AUDIENCE_DESKTOP)(socket, next);
     } else {
+      // Browser (cookie-authenticated) clients. Reject foreign-origin upgrades as a CSWSH backstop.
+      // A missing Origin (non-browser client) is allowed through — it carries no ambient cookie
+      // and so authenticates no one.
+      const origin = socket.handshake.headers.origin;
+      if (origin && !isAllowedWebSocketOrigin(origin)) {
+        logger.warn({ origin }, '[SOCKET] Rejected WebSocket connection from disallowed origin');
+        next(new Error('Forbidden origin'));
+        return;
+      }
       next();
     }
   });

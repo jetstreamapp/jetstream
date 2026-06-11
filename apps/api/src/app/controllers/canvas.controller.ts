@@ -66,7 +66,15 @@ const callbackHandler = createRoute(routeDefinition.callbackHandler.validators, 
     if (queryParams.error) {
       returnParams.error = queryParams.error;
       returnParams.message = queryParams.error_description || 'There was an error authenticating with Salesforce.';
-      res.log.warn(queryParams, `Canvas OAuth Error: ${(queryParams.error as string) || 'Unexpected Error'}`);
+      res.log.warn(
+        {
+          hasCode: !!queryParams.code,
+          error: queryParams.error,
+          error_description: queryParams.error_description,
+          hasState: !!queryParams.state,
+        },
+        `Canvas OAuth Error: ${(queryParams.error as string) || 'Unexpected Error'}`,
+      );
       throw new Error(returnParams.message);
     }
 

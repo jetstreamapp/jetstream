@@ -149,12 +149,29 @@ const envSchema = z.object({
 
   // JETSTREAM
   JETSTREAM_AUTH_2FA_EMAIL_DEFAULT_VALUE: z.union([z.string(), z.boolean()]).optional().default(true).transform(ensureBoolean),
-  JETSTREAM_AUTH_SECRET: z.string().describe('Used to sign authentication cookies.'),
-  // Must be 32 characters
-  JETSTREAM_AUTH_OTP_SECRET: z.string(),
-  JETSTREAM_AUTH_SSO_SECRET: z.string(),
-  JETSTREAM_AUTH_WEB_EXT_JWT_SECRET: z.string().optional().default('DEVELOPMENT_SECRET'),
-  JETSTREAM_SESSION_SECRET: z.string(),
+  // Signing secret used as a passphrase (CSRF tokens, auth cookies) - generate with: openssl rand -base64 32
+  JETSTREAM_AUTH_SECRET: z
+    .string()
+    .min(32, { message: 'JETSTREAM_AUTH_SECRET must be at least 32 characters' })
+    .describe('Used to sign authentication cookies.'),
+  // Base64-encoded 32-byte key - decoded to exactly 32 bytes for AES-256 (see encryptString). Generate with: openssl rand -base64 32
+  JETSTREAM_AUTH_OTP_SECRET: z
+    .string()
+    .min(44, { message: 'JETSTREAM_AUTH_OTP_SECRET must be a base64-encoded 32-byte key (generate with: openssl rand -base64 32)' }),
+  // Signing secret used as a passphrase (hashed with sha256 before use) - generate with: openssl rand -base64 32
+  JETSTREAM_AUTH_SSO_SECRET: z.string().min(32, { message: 'JETSTREAM_AUTH_SSO_SECRET must be at least 32 characters' }),
+  // HMAC (HS256) signing key for browser-extension/desktop JWTs. Keeps a dev default for local DX
+  // (empty/unset falls back to the default, e.g. a hand-copied .env.example); the production guard
+  // below rejects this default so it can never silently run in production.
+  JETSTREAM_AUTH_WEB_EXT_JWT_SECRET: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z
+      .string()
+      .min(32, { message: 'JETSTREAM_AUTH_WEB_EXT_JWT_SECRET must be at least 32 characters' })
+      .optional()
+      .default('DEVELOPMENT_SECRET'),
+  ),
+  JETSTREAM_SESSION_SECRET: z.string().min(32, { message: 'JETSTREAM_SESSION_SECRET must be at least 32 characters' }),
   // SSO Configuration
   JETSTREAM_SAML_SP_ENTITY_ID_PREFIX: z.string(),
   JETSTREAM_SAML_ACS_PATH_PREFIX: z.string().default('/api/auth/sso/saml'),
@@ -310,6 +327,59 @@ ${chalk.yellow(JSON.stringify(z.treeifyError(parseResults.error), null, 2))}
 `);
   process.exit(1);
 }
+
+/**
+ * Consolidated production guard for signing/encryption secrets.
+ *
+ * Length/entropy floors are enforced by the zod schema above for all environments. This guard adds the
+ * production-only checks that would otherwise break local dev and CI: it rejects known dev-default
+ * placeholders so a deployment can never silently run on a public constant (e.g. the
+ * JETSTREAM_AUTH_WEB_EXT_JWT_SECRET 'DEVELOPMENT_SECRET' fallback that signs all browser-extension/desktop JWTs).
+ *
+ * Production is detected the same way as the rest of this file: ENVIRONMENT === 'production'. CI is exempt
+ * because CI does not set ENVIRONMENT (so it defaults to 'production') yet legitimately relies on dev defaults.
+ */
+function assertProductionSecretsAreSafe(env: Env) {
+  const isProduction = env.ENVIRONMENT === 'production' && !env.CI;
+  if (!isProduction) {
+    return;
+  }
+
+  const KNOWN_PLACEHOLDER_SECRETS = new Set(['DEVELOPMENT_SECRET', 'changeme', 'secret', 'test', '']);
+
+  const secretsToValidate: Array<{ name: string; value: string }> = [
+    { name: 'JETSTREAM_AUTH_SECRET', value: env.JETSTREAM_AUTH_SECRET },
+    { name: 'JETSTREAM_AUTH_OTP_SECRET', value: env.JETSTREAM_AUTH_OTP_SECRET },
+    { name: 'JETSTREAM_AUTH_SSO_SECRET', value: env.JETSTREAM_AUTH_SSO_SECRET },
+    { name: 'JETSTREAM_AUTH_WEB_EXT_JWT_SECRET', value: env.JETSTREAM_AUTH_WEB_EXT_JWT_SECRET },
+    { name: 'JETSTREAM_SESSION_SECRET', value: env.JETSTREAM_SESSION_SECRET },
+    { name: 'JWT_ENCRYPTION_KEY', value: env.JWT_ENCRYPTION_KEY },
+    { name: 'SFDC_ENCRYPTION_KEY', value: env.SFDC_ENCRYPTION_KEY },
+    { name: 'DESKTOP_ORG_ENCRYPTION_SECRET', value: env.DESKTOP_ORG_ENCRYPTION_SECRET },
+  ];
+
+  const insecureSecrets = secretsToValidate.filter(({ value }) => KNOWN_PLACEHOLDER_SECRETS.has(value.trim()));
+
+  if (insecureSecrets.length > 0) {
+    process.stderr.write(
+      `❌ ${chalk.red('Insecure secrets detected in production:')}\n` +
+        insecureSecrets
+          .map(({ name }) => `  - ${chalk.yellow(name)} is set to a known development/placeholder value and must be a unique strong secret`)
+          .join('\n') +
+        `\n`,
+    );
+    process.exit(1);
+  }
+
+  // Reusing the previous session secret as the current one defeats rotation, but it is not unsafe - warn only.
+  if (env.JETSTREAM_SESSION_SECRET_PREV && env.JETSTREAM_SESSION_SECRET === env.JETSTREAM_SESSION_SECRET_PREV) {
+    writeEnvConfigWarning(
+      'JETSTREAM_SESSION_SECRET is identical to JETSTREAM_SESSION_SECRET_PREV - session secret rotation will have no effect',
+    );
+  }
+}
+
+assertProductionSecretsAreSafe(parseResults.data);
 
 export type Env = z.infer<typeof envSchema>;
 export const ENV: Env = parseResults.data;

@@ -1,5 +1,6 @@
 import { DbCacheProvider, ENV, logger, prisma } from '@jetstream/api-config';
 import type { Request, Response } from '@jetstream/api-types';
+import { timingSafeStringCompare } from '@jetstream/auth/server';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import crypto from 'crypto';
 import { z } from 'zod';
@@ -116,12 +117,6 @@ const mailgunWebhookHandler = async (req: Request, res: Response) => {
         return res.status(403).send('Invalid timestamp');
       }
 
-      // Check if this token has already been used (replay attack prevention)
-      if ((await webhookTokenCache.getAsync(signature.token)) !== null) {
-        logger.warn({ token: signature.token }, 'Mailgun webhook token already used (replay attack)');
-        return res.status(403).send('Token already used');
-      }
-
       // Verify the signature
       const isValid = verifyWebhookSignature({
         timestamp: signature.timestamp,
@@ -135,8 +130,17 @@ const mailgunWebhookHandler = async (req: Request, res: Response) => {
         return res.status(403).send('Invalid signature');
       }
 
-      // Store the token to prevent replay attacks across all worker processes
-      await webhookTokenCache.saveAsync(signature.token, 'used');
+      // Atomically reserve the token to prevent replay attacks across all worker processes.
+      // consumeOnceAsync folds the existence check and the write into a single INSERT whose
+      // primary-key conflict is the atomicity boundary, so concurrent duplicates cannot all
+      // observe "not yet used" (the previous getAsync→saveAsync had a TOCTOU gap).
+      const wasFirstUse = await webhookTokenCache.consumeOnceAsync(signature.token);
+      if (!wasFirstUse) {
+        // Log a hash instead of the raw token - it is enough to correlate replay attempts without persisting a payload secret.
+        const tokenHash = crypto.createHash('sha256').update(signature.token).digest('hex').slice(0, 12);
+        logger.warn({ tokenHash }, 'Mailgun webhook token already used (replay attack)');
+        return res.status(403).send('Token already used');
+      }
     } else {
       logger.warn('Mailgun webhook signing key not configured - skipping signature verification');
       return res.status(500).send('Webhook signing key not configured');
@@ -208,5 +212,6 @@ function verifyWebhookSignature({
   signingKey: string;
 }): boolean {
   const encodedToken = crypto.createHmac('sha256', signingKey).update(timestamp.concat(token)).digest('hex');
-  return encodedToken === signature;
+  // Constant-time comparison to avoid leaking the signature via timing (the `===` short-circuits early)
+  return timingSafeStringCompare(encodedToken, signature);
 }

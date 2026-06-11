@@ -43,6 +43,7 @@ const replacements = [
   ['JETSTREAM_SESSION_SECRET=', `JETSTREAM_SESSION_SECRET='${generateRandomBase64(32)}'`],
   ['JETSTREAM_AUTH_SECRET=', `JETSTREAM_AUTH_SECRET='${generateRandomBase64(32)}'`],
   ['JETSTREAM_AUTH_OTP_SECRET=', `JETSTREAM_AUTH_OTP_SECRET='${generateRandomBase64(32)}'`],
+  ['JETSTREAM_AUTH_WEB_EXT_JWT_SECRET=', `JETSTREAM_AUTH_WEB_EXT_JWT_SECRET='${generateRandomBase64(32)}'`],
   ['EXAMPLE_USER_OVERRIDE=', `EXAMPLE_USER_OVERRIDE='${enableExampleUser}'`],
   ['SFDC_ENCRYPTION_KEY=', `SFDC_ENCRYPTION_KEY='${generateRandomBase64(32)}'`],
   ['JWT_ENCRYPTION_KEY=', `JWT_ENCRYPTION_KEY='${generateRandomBase64(32)}'`],

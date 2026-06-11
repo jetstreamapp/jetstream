@@ -18,7 +18,7 @@ import { basicAuthMiddleware } from './route.middleware';
  * for missing basic auth). Any one failing alone is enough to deny access:
  *
  *   1. process.env.TEST_ENABLE_SCANNER_ROUTES === 'true' (opt-in, staging-only)
- *   2. JETSTREAM_SERVER_URL must not be the production URL (hardcoded deny)
+ *   2. ENV.ENVIRONMENT must not be 'production' (positive non-production allowlist)
  *   3. HTTP Basic auth against BASIC_AUTH_USERNAME / BASIC_AUTH_PASSWORD
  *
  * Sessions minted here are flagged with `isScannerSession = true`. That flag
@@ -34,13 +34,13 @@ import { basicAuthMiddleware } from './route.middleware';
  *   - TEST_SFDC_LOGIN_USERNAME        → optional JWT-bearer subject
  *   - TEST_SFDC_PRIVATE_KEY_BASE64    → optional JWT signing key (base64)
  */
-const PRODUCTION_SERVER_URL = 'https://getjetstream.app';
-
 const routes: express.Router = Router();
 
 routes.use((_req, res, next) => {
   const scannerRoutesEnabled = String(process.env.TEST_ENABLE_SCANNER_ROUTES || '').toLowerCase() === 'true';
-  if (!scannerRoutesEnabled || ENV.JETSTREAM_SERVER_URL === PRODUCTION_SERVER_URL) {
+  // Positive allowlist: this session-minting route may run ONLY outside of production.
+  const isNonProduction = ENV.ENVIRONMENT !== 'production';
+  if (!scannerRoutesEnabled || !isNonProduction) {
     return res.status(404).send('Not Found');
   }
   next();
