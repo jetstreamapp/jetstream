@@ -316,6 +316,7 @@ export const ANALYTICS_KEYS = {
 
   settings_password_action: 'settings_password_action',
   settings_revoke_session: 'settings_revoke_session',
+  settings_color_scheme_changed: 'settings_color_scheme_changed',
 
   /** ORGANIZATIONS */
   organizations_create_modal_open: 'organizations_create_modal_open',

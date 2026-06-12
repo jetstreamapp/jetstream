@@ -76,7 +76,7 @@ const HorizontalRule = () => {
         margin-bottom: 1rem;
         display: block;
         border: 0;
-        border-top: 1px solid rgb(229, 229, 229);
+        border-top: 1px solid var(--slds-g-color-border-1, rgb(229, 229, 229));
         height: 1px;
         clear: both;
         padding: 0;
@@ -258,9 +258,13 @@ export function SfdcPageButton() {
             width: 300px;
             border-radius: var(--lwc-borderRadiusMedium, 0.25rem);
             min-height: 2rem;
-            background-color: var(--slds-g-color-neutral-base-100, var(--lwc-colorBackgroundAlt, rgb(255, 255, 255)));
-            box-shadow: 0 2px 3px 0 rgba(0, 0, 0, 0.16);
-            border: var(--lwc-borderWidthThin, 1px) solid var(--slds-g-color-border-base-1, var(--lwc-colorBorder, rgb(229, 229, 229)));
+            background-color: var(
+              --slds-g-color-surface-container-1,
+              var(--slds-g-color-neutral-base-100, var(--lwc-colorBackgroundAlt, rgb(255, 255, 255)))
+            );
+            box-shadow: var(--slds-g-shadow-2, 0 2px 3px 0 rgba(0, 0, 0, 0.16));
+            border: var(--lwc-borderWidthThin, 1px) solid
+              var(--slds-g-color-border-1, var(--slds-g-color-border-base-1, var(--lwc-colorBorder, rgb(229, 229, 229))));
           `}
           onOutsideClick={() => setIsOpen(false)}
         >
@@ -373,7 +377,7 @@ export function SfdcPageButton() {
                   width: 175px;
                   margin-bottom: 0;
                   cursor: pointer;
-                  color: var(--lwc-brandTextLink, rgba(11, 92, 171, 1));
+                  color: var(--slds-g-color-brand-base-40, var(--lwc-brandTextLink, rgba(11, 92, 171, 1)));
                   text-decoration: none;
                   transition: color 0.1s linear;
                   background-color: transparent;

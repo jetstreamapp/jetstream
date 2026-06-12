@@ -39,11 +39,15 @@ export function useHighlightedText(
           {text
             .split(new RegExp(terms.map((term) => `(${term})`).join('|'), 'gi'))
             .filter((item) => !!item)
-            .map((part, i) => (
-              <span key={i} className={terms.includes(part.trim().toLowerCase()) ? 'text-color-highlight' : ''}>
-                {part}
-              </span>
-            ))}
+            .map((part, i) =>
+              terms.includes(part.trim().toLowerCase()) ? (
+                <mark key={i} className="text-color-highlight">
+                  {part}
+                </mark>
+              ) : (
+                <span key={i}>{part}</span>
+              ),
+            )}
         </span>
       );
 

@@ -39,7 +39,7 @@ export const HeaderAnnouncementPopover: FunctionComponent<HeaderAnnouncementPopo
         icon="announcement"
         className="slds-button__icon slds-icon slds-icon-text-warning"
         svgCss={css`
-          color: #fe9339;
+          color: var(--slds-g-color-warning-base-60, #fe9339);
         `}
         omitContainer
       />

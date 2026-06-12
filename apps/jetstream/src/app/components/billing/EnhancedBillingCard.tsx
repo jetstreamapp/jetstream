@@ -70,7 +70,7 @@ const cardStyles = css`
   .plan-name {
     font-size: 20px;
     font-weight: 600;
-    color: var(--slds-g-color-on-surface-1, #16325c);
+    color: var(--slds-g-color-on-surface-3, #16325c);
     margin-bottom: 8px;
   }
 
@@ -83,13 +83,13 @@ const cardStyles = css`
 
   .price-subtext {
     font-size: 14px;
-    color: var(--slds-g-color-on-surface-2, #706e6b);
+    color: var(--slds-g-color-on-surface-1, #706e6b);
     margin-top: 4px;
   }
 
   .description {
     font-size: 14px;
-    color: var(--slds-g-color-on-surface-2, #706e6b);
+    color: var(--slds-g-color-on-surface-1, #706e6b);
     margin-top: 8px;
   }
 
@@ -112,7 +112,7 @@ const cardStyles = css`
     align-items: flex-start;
     margin-bottom: 12px;
     font-size: 14px;
-    color: var(--slds-g-color-on-surface-1, #444);
+    color: var(--slds-g-color-on-surface-2, #444);
 
     &:last-child {
       margin-bottom: 0;
@@ -187,7 +187,7 @@ const cardStyles = css`
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--slds-g-color-on-surface-2, #706e6b);
+    color: var(--slds-g-color-on-surface-1, #706e6b);
     margin: 0 0 12px 0;
     display: flex;
     align-items: center;
@@ -195,7 +195,7 @@ const cardStyles = css`
   }
 
   .coming-soon-features .feature-item {
-    color: var(--slds-g-color-on-surface-2, #706e6b);
+    color: var(--slds-g-color-on-surface-1, #706e6b);
     font-style: italic;
     position: relative;
   }

@@ -15,13 +15,13 @@ import {
   SalesforceOrgUi,
 } from '@jetstream/types';
 import {
-  Alert,
   ButtonGroupContainer,
   DropDown,
   Grid,
   GridCol,
   Icon,
   NotSeeingRecentMetadataPopover,
+  ScopedNotification,
   SearchInput,
   Tooltip,
 } from '@jetstream/ui';
@@ -256,14 +256,14 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
       >
         <GridCol>
           {warningMessage && (
-            <Alert type="warning" leadingIcon="info">
+            <ScopedNotification theme="warning">
               <strong>{warningMessage}</strong>
-            </Alert>
+            </ScopedNotification>
           )}
           {isCustomMetadataObject && !warningMessage && (
-            <Alert type="info" leadingIcon="info">
+            <ScopedNotification theme="info">
               Custom metadata will always perform an upsert based on the <strong>DeveloperName</strong>.
-            </Alert>
+            </ScopedNotification>
           )}
         </GridCol>
         <GridCol grow>

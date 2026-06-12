@@ -120,7 +120,7 @@ pre {
 }
 
 .text-color_warning {
-  color: var(--slds-g-color-warning-base-50, #a96504);
+  color: var(--slds-g-color-warning-base-40, #a96504);
 }
 
 .text-color_inverse-warning {
@@ -204,11 +204,11 @@ pre {
   margin: 1px;
   &:not(.disabled):not(.read-only):hover {
     background-color: var(--slds-g-color-surface-2, #f3f3f3);
-    color: var(--slds-g-color-on-surface-1, #181818);
+    color: var(--slds-g-color-on-surface-2, #181818);
   }
   &:not(.read-only).is-active {
     background-color: var(--slds-g-color-brand-base-90, #d8e6fe);
-    color: var(--slds-g-color-on-surface-1, #181818);
+    color: var(--slds-g-color-on-surface-2, #181818);
   }
 }
 
@@ -392,7 +392,7 @@ pre {
   border: 1px solid var(--slds-g-color-border-1, #e5e5e5) !important;
   border-radius: 0.25rem;
   background-clip: padding-box;
-  box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: var(--slds-g-shadow-1, 0 2px 2px 0 rgba(0, 0, 0, 0.1));
   margin-top: 5px;
   margin-bottom: 5px;
 }
@@ -411,8 +411,13 @@ pre {
   text-transform: uppercase;
 }
 
+/* Search-match highlight (useHighlightedText <mark>). Matches SLDS 2's own treatment for
+   matched text (bold, no background) which works in both color schemes — the old amber
+   warning-base-90 background inverted to near-invisible dark brown in dark mode. */
 .text-color-highlight {
-  background-color: var(--slds-g-color-warning-base-90, #f9e3b6);
+  font-weight: var(--slds-g-font-weight-7, 700);
+  background-color: transparent;
+  color: inherit;
 }
 
 .mw-reset {

@@ -15,6 +15,10 @@ export const OrgWelcomeInstructions: FunctionComponent = () => {
             className="slds-welcome-mat__info slds-size_1-of-1"
             css={css`
               background-image: url(${welcomeBackgroundImage});
+              /* SLDS only rounds the left corners of the info pane (it expects a tiles
+                 pane on the right); we render it standalone, so round the right edge too. */
+              border-start-end-radius: var(--slds-s-container-radius-border, var(--slds-g-radius-border-2));
+              border-end-end-radius: var(--slds-s-container-radius-border, var(--slds-g-radius-border-2));
             `}
           >
             <div className="slds-welcome-mat__info-content">

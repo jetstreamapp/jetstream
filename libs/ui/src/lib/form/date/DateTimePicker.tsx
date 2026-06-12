@@ -107,7 +107,7 @@ export const Input: FunctionComponent<InputProps> = ({
         )}
         {!rightAddon && clearButton && (
           <button className="slds-button slds-button_icon slds-input__icon slds-input__icon_right" title="Clear" onClick={onClear}>
-            <Icon type="utility" icon="clear" omitContainer className="slds-button__icon slds-icon-text-light" />
+            <Icon type="utility" icon="clear" omitContainer className="slds-button__icon" />
           </button>
         )}
       </div>

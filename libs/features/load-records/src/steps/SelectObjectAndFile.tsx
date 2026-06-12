@@ -24,12 +24,12 @@ import {
   SalesforceOrgUi,
 } from '@jetstream/types';
 import {
-  Alert,
   ConnectedSobjectList,
   FileOrGoogleSelector,
   FileSelector,
   Grid,
   GridCol,
+  ScopedNotification,
   XlsxSheetSelectionModalPromise,
   fireToast,
 } from '@jetstream/ui';
@@ -288,9 +288,9 @@ export const LoadRecordsSelectObjectAndFile = ({
           </GridCol>
           {isCustomMetadataObject && (
             <GridCol className="slds-m-top_small slds-m-horizontal_small">
-              <Alert type="info" leadingIcon="info">
+              <ScopedNotification theme="info">
                 Custom metadata will always perform an upsert based on the <strong>DeveloperName</strong>.
-              </Alert>
+              </ScopedNotification>
             </GridCol>
           )}
           <GridCol className="slds-m-top_large">{children}</GridCol>

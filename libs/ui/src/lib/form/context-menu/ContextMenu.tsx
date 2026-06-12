@@ -173,8 +173,8 @@ export const ContextMenu: FunctionComponent<ContextMenuProps> = ({ parentElement
           padding: 0.25rem 0 0;
           font-size: 0.75rem;
           background: var(--slds-g-color-surface-container-1, #fff);
-          box-shadow: 0 2px 3px 0 rgb(0 0 0 / 16%);
-          color: var(--slds-g-color-on-surface-1, #181818);
+          box-shadow: var(--slds-g-shadow-2, 0 2px 3px 0 rgb(0 0 0 / 16%));
+          color: var(--slds-g-color-on-surface-2, #181818);
         `}
         style={floatingStyles}
         {...getFloatingProps()}

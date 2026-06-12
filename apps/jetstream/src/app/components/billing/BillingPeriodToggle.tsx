@@ -15,7 +15,7 @@ const toggleStyles = css`
   }
 
   .savings-badge {
-    background: #2e844a;
+    background: var(--slds-g-color-success-base-50, #2e844a);
     color: white;
     padding: 4px 12px;
     border-radius: 12px;
@@ -37,7 +37,7 @@ const toggleStyles = css`
 
   .toggle-wrapper {
     position: relative;
-    background: #f3f3f3;
+    background: var(--slds-g-color-surface-2, #f3f3f3);
     border-radius: 24px;
     padding: 4px;
     display: flex;
@@ -51,7 +51,7 @@ const toggleStyles = css`
     border-radius: 20px;
     font-size: 14px;
     font-weight: 500;
-    color: #706e6b;
+    color: var(--slds-g-color-on-surface-1, #706e6b);
     transition: all 0.2s ease;
     cursor: pointer;
     position: relative;
@@ -70,7 +70,7 @@ const toggleStyles = css`
     left: 4px;
     width: calc(50% - 4px);
     height: calc(100% - 8px);
-    background: #0176d3;
+    background: var(--slds-g-color-brand-base-50, #0176d3);
     border-radius: 20px;
     transition: transform 0.2s ease;
     z-index: 1;

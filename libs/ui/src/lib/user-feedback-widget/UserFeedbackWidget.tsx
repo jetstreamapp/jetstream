@@ -1,8 +1,8 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { submitUserFeedback } from '@jetstream/shared/data';
-import { InputReadFileContent } from '@jetstream/types';
 import { useGlobalEventHandler } from '@jetstream/shared/ui-utils';
+import { InputReadFileContent } from '@jetstream/types';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -300,15 +300,15 @@ export const UserFeedbackWidget = () => {
           width: 3.5rem;
           height: 3.5rem;
           border-radius: 50%;
-          box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-          background-color: #0176d3;
-          border-color: #0176d3;
+          box-shadow: var(--slds-g-shadow-3, 0 2px 12px rgba(0, 0, 0, 0.15));
+          background-color: var(--slds-g-color-brand-base-50, #0176d3);
+          border-color: var(--slds-g-color-brand-base-50, #0176d3);
           transition: all 0.2s ease;
           opacity: 0.6;
 
           &:hover {
-            background-color: #014486;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+            background-color: var(--slds-g-color-brand-base-30, #014486);
+            box-shadow: var(--slds-g-shadow-4, 0 4px 16px rgba(0, 0, 0, 0.25));
             opacity: 1;
           }
 
@@ -340,9 +340,9 @@ export const UserFeedbackWidget = () => {
             ${positionStyles.left ? `left: ${positionStyles.left}` : ''};
             ${positionStyles.right ? `right: ${positionStyles.right}` : ''};
             z-index: 5001;
-            background: white;
+            background: var(--slds-g-color-surface-container-1, #ffffff);
             border-radius: 0.25rem;
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+            box-shadow: var(--slds-g-shadow-3, 0 2px 12px rgba(0, 0, 0, 0.2));
             min-width: 200px;
             padding: 0.5rem 0;
           `}
@@ -354,7 +354,7 @@ export const UserFeedbackWidget = () => {
                 padding: 0.5rem 1rem;
                 font-size: 0.75rem;
                 font-weight: 600;
-                color: #3e3e3c;
+                color: var(--slds-g-color-on-surface-1, #3e3e3c);
                 text-transform: uppercase;
                 letter-spacing: 0.025em;
               `}
@@ -377,15 +377,15 @@ export const UserFeedbackWidget = () => {
                   width: 100%;
                   padding: 0.5rem 1rem;
                   border: none;
-                  background: ${pos === position ? '#f3f2f2' : 'transparent'};
+                  background: ${pos === position ? 'var(--slds-g-color-surface-2, #f3f2f2)' : 'transparent'};
                   text-align: left;
                   cursor: pointer;
                   font-size: 0.875rem;
-                  color: #181818;
+                  color: var(--slds-g-color-on-surface-2, #181818);
                   transition: background-color 0.1s ease;
 
                   &:hover {
-                    background-color: #f3f2f2;
+                    background-color: var(--slds-g-color-surface-2, #f3f2f2);
                   }
                 `}
               >
@@ -410,7 +410,7 @@ export const UserFeedbackWidget = () => {
             role="separator"
             css={css`
               height: 1px;
-              background-color: #dddbda;
+              background-color: var(--slds-g-color-border-1, #dddbda);
               margin: 0.5rem 0;
             `}
           />
@@ -431,11 +431,11 @@ export const UserFeedbackWidget = () => {
               text-align: left;
               cursor: pointer;
               font-size: 0.875rem;
-              color: #181818;
+              color: var(--slds-g-color-on-surface-2, #181818);
               transition: background-color 0.1s ease;
 
               &:hover {
-                background-color: #f3f2f2;
+                background-color: var(--slds-g-color-surface-2, #f3f2f2);
               }
             `}
           >
@@ -578,8 +578,8 @@ export const UserFeedbackWidget = () => {
                       display: inline-flex;
                       align-items: center;
                       padding: 0.25rem 0.5rem;
-                      background-color: #f3f3f3;
-                      border: 1px solid #dddbda;
+                      background-color: var(--slds-g-color-surface-2, #f3f3f3);
+                      border: 1px solid var(--slds-g-color-border-1, #dddbda);
                       border-radius: 0.25rem;
                       font-size: 0.875rem;
                     `}

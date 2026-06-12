@@ -1,5 +1,6 @@
 import { css, SerializedStyles } from '@emotion/react';
 import { AppAbility } from '@jetstream/acl';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { isCanvasApp } from '@jetstream/shared/ui-utils';
 import { AddOrgHandlerFn, ColorScheme, DropDownItem, UserProfileUi } from '@jetstream/types';
@@ -99,8 +100,19 @@ function getMenuItems({
       },
       {
         id: 'theme-dark',
-        value: 'Dark Mode',
-        icon: { type: 'utility', icon: colorScheme === 'dark' ? 'check' : 'color_swatch' },
+        // ReactNode value bypasses DropDown's string rendering, so the icon markup is replicated here
+        value: (
+          <span className="slds-truncate" title="Dark Mode">
+            <Icon
+              type="utility"
+              icon={colorScheme === 'dark' ? 'check' : 'color_swatch'}
+              omitContainer
+              className="slds-icon slds-icon_x-small slds-icon-text-default slds-m-right_x-small"
+            />
+            Dark Mode
+            <span className="slds-badge slds-m-left_x-small">Beta</span>
+          </span>
+        ),
       },
       {
         id: 'theme-system',
@@ -165,12 +177,15 @@ export const HeaderNavbar = ({
         break;
       case 'theme-light':
         setUserPreferences({ ...userPreferences, colorScheme: 'light' });
+        trackEvent(ANALYTICS_KEYS.settings_color_scheme_changed, { colorScheme: 'light' });
         break;
       case 'theme-dark':
         setUserPreferences({ ...userPreferences, colorScheme: 'dark' });
+        trackEvent(ANALYTICS_KEYS.settings_color_scheme_changed, { colorScheme: 'dark' });
         break;
       case 'theme-system':
         setUserPreferences({ ...userPreferences, colorScheme: 'system' });
+        trackEvent(ANALYTICS_KEYS.settings_color_scheme_changed, { colorScheme: 'system' });
         break;
       default:
         break;

@@ -120,8 +120,8 @@ export function SfdcPageRecordQuickView({ sfHost, recordId, sobject, onClose }: 
         right: 0;
         width: 50%;
         max-height: 90vh;
-        background: white;
-        border: 1px solid #dddbda;
+        background: var(--slds-g-color-surface-container-1, white);
+        border: 1px solid var(--slds-g-color-border-1, #dddbda);
         border-radius: 0.25rem 0 0 0;
         box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
         display: flex;
@@ -173,7 +173,7 @@ export function SfdcPageRecordQuickView({ sfHost, recordId, sobject, onClose }: 
         <div
           css={css`
             padding: 0.75rem 1rem;
-            border-bottom: 1px solid #dddbda;
+            border-bottom: 1px solid var(--slds-g-color-border-1, #dddbda);
           `}
         >
           <SearchInput

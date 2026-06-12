@@ -1,12 +1,12 @@
 import { ContextMenuItem, FieldMapping, InsertUpdateUpsertDelete, Maybe } from '@jetstream/types';
 import {
-  Alert,
   AutoFullHeightContainer,
   ContextAction,
   ContextMenuActionData,
   DataTable,
   Modal,
   RowWithKey,
+  ScopedNotification,
   TABLE_CONTEXT_MENU_ITEMS,
   copyGenericTableDataToClipboard,
   getColumnsForGenericTable,
@@ -96,13 +96,13 @@ export const LoadRecordsDuplicateWarning: FunctionComponent<LoadRecordsDuplicate
   return (
     <div className={className}>
       {duplicates.duplicateRecords?.length && (
-        <Alert type="warning" leadingIcon="info">
+        <ScopedNotification theme="warning">
           <span>You have duplicate rows in your spreadsheet.</span>
           <button className="slds-button slds-m-left_x-small" onClick={() => setIsOpen(true)}>
             View Duplicates
           </button>
           .
-        </Alert>
+        </ScopedNotification>
       )}
 
       {isOpen && (

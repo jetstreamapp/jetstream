@@ -63,8 +63,8 @@ export function OrgGroupCardNoOrganization({
         css={css`
           ${isActive
             ? `
-            border: 1px solid var(--slds-g-color-border-brand-2, #1b96ff) !important;
-            -webkit-box-shadow: 0 0 0 1px var(--slds-g-color-border-brand-2, #1b96ff) inset !important;
+            border: 1px solid var(--slds-g-color-brand-base-60, #1b96ff) !important;
+            -webkit-box-shadow: 0 0 0 1px var(--slds-g-color-brand-base-60, #1b96ff) inset !important;
             ::after {
             content: '';
             position: absolute;
