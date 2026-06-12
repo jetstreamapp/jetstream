@@ -18,7 +18,8 @@ interface BillingExistingSubscriptionsProps {
   hasManualBilling: boolean;
 }
 
-const formatUsd = (amountInCents: number) => `$${(amountInCents / 100).toFixed(2).replace(/\.00$/, '')}`;
+// unitAmount is already converted from cents to dollars by the API (stripe.service.ts)
+const formatUsd = (amountInDollars: number) => `$${amountInDollars.toFixed(2).replace(/\.00$/, '')}`;
 
 const intervalLabel = (interval: StripeUserFacingSubscriptionItem['recurringInterval']) => {
   switch (interval) {
@@ -86,9 +87,15 @@ export const BillingExistingSubscriptions = ({
       badge = 'Legacy plan';
     }
 
+    // Tiered prices (e.g. TEAM volume pricing) have no top-level unit_amount on the subscription
+    // item, so unitAmount comes through as 0 and we cannot compute a real total client-side —
+    // omit the price breakdown rather than display "$0".
+    const hasUsablePrice = activeItem.unitAmount > 0;
     const perSeat = formatUsd(activeItem.unitAmount);
     const total = formatUsd(activeItem.unitAmount * activeItem.quantity);
     const interval = intervalLabel(activeItem.recurringInterval);
+    // Amounts are list prices — qualify them when a coupon means the customer actually pays less
+    const discountQualifier = activeSubscription?.hasDiscount ? <span className="slds-text-color_weak"> (before discounts)</span> : null;
 
     return (
       <div className="slds-box slds-box_x-small slds-m-bottom_medium slds-text-align_center">
@@ -105,17 +112,27 @@ export const BillingExistingSubscriptions = ({
         </div>
         {isTeamSubscription ? (
           <p className="slds-text-body_small slds-m-top_x-small">
-            {activeItem.quantity} {activeItem.quantity === 1 ? 'seat' : 'seats'} × {perSeat}/seat/{interval} ={' '}
-            <strong>
-              {total}/{interval}
-            </strong>
+            {activeItem.quantity} {activeItem.quantity === 1 ? 'seat' : 'seats'}
+            {hasUsablePrice && (
+              <>
+                {' '}
+                × {perSeat}/seat/{interval} ={' '}
+                <strong>
+                  {total}/{interval}
+                </strong>
+                {discountQualifier}
+              </>
+            )}
           </p>
         ) : (
-          <p className="slds-text-body_small slds-m-top_x-small">
-            <strong>
-              {perSeat}/{interval}
-            </strong>
-          </p>
+          hasUsablePrice && (
+            <p className="slds-text-body_small slds-m-top_x-small">
+              <strong>
+                {perSeat}/{interval}
+              </strong>
+              {discountQualifier}
+            </p>
+          )
         )}
         {hasManualBilling && (
           <p className="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
