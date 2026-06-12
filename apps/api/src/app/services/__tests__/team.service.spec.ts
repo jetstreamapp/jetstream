@@ -271,9 +271,9 @@ describe('verifyTeamInvitation', () => {
       expect(result.canEnroll).toBe(false);
       expect(result.identityProvider.isValid).toBe(false);
       expect(result.identityProvider.action).toBe('LINK');
-      expect(result.mfa.message).toContain("You don't have a valid login method configured");
-      expect(result.mfa.message).toContain(LoginConfigurationIdentityDisplayNames.google);
-      expect(result.mfa.message).toContain(LoginConfigurationIdentityDisplayNames.credentials);
+      expect(result.identityProvider.message).toContain("You don't have a valid login method configured");
+      expect(result.identityProvider.message).toContain(LoginConfigurationIdentityDisplayNames.google);
+      expect(result.identityProvider.message).toContain(LoginConfigurationIdentityDisplayNames.credentials);
     });
 
     it('should invalidate session when current provider is not allowed', async () => {

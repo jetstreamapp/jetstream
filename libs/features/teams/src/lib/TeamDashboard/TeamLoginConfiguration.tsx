@@ -110,7 +110,9 @@ export function TeamLoginConfiguration({ loginConfiguration, hasSsoConfigured, s
     setErrors((prev) => {
       const allowedMfaMethods =
         userData.allowedMfaMethods.size === 0 ? 'At least one Multi-Factor Authentication method must be selected.' : false;
-      const allowedProviders = userData.allowedProviders.size === 0 ? 'At least one login provider must be selected.' : false;
+      // SSO counts as a login provider, so the other providers are only required when SSO is not active
+      const allowedProviders =
+        userData.allowedProviders.size === 0 && !ssoIsActive ? 'At least one login provider must be selected.' : false;
 
       return {
         ...prev,
@@ -119,7 +121,7 @@ export function TeamLoginConfiguration({ loginConfiguration, hasSsoConfigured, s
         hasError: !!allowedMfaMethods || !!allowedProviders,
       };
     });
-  }, [formData]);
+  }, [formData, ssoIsActive]);
 
   async function onSubmit(ev: React.SubmitEvent<HTMLFormElement>) {
     ev.preventDefault();
@@ -288,8 +290,8 @@ export function TeamLoginConfiguration({ loginConfiguration, hasSsoConfigured, s
                   label="Single Sign-On (SSO)"
                   labelHelp={
                     ssoIsActive
-                      ? 'Enable Single Sign-On to allow as a login method'
-                      : 'Single Sign-On is always allowed if the configuration is active.'
+                      ? 'Single Sign-On is always allowed if the configuration is active.'
+                      : 'Enable Single Sign-On to allow as a login method'
                   }
                 />
               )}
