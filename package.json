@@ -142,6 +142,7 @@
     "@eslint/compat": "^1.1.1",
     "@eslint/eslintrc": "^2.1.1",
     "@eslint/js": "~8.57.0",
+    "@inquirer/prompts": "8.4.2",
     "@maxim_mazurok/gapi.client.drive-v3": "0.2.20260311",
     "@nx/devkit": "22.7.2",
     "@nx/esbuild": "22.7.2",
