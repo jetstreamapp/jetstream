@@ -1,4 +1,5 @@
 import { CheckIcon } from '@heroicons/react/20/solid';
+import { PRICING_COPY } from '@jetstream/shared/constants';
 import classNames from 'classnames';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -38,10 +39,10 @@ const tiers = [
     id: 'tier-professional',
     href: '#',
     price: {
-      monthly: { price: '$25', suffix: '/month' },
-      annually: { price: '$21', suffix: '/month', secondaryLabel: 'billed annually' },
+      monthly: { price: PRICING_COPY.PRO.monthly.pricePerMonth, suffix: '/month' },
+      annually: { price: PRICING_COPY.PRO.annual.pricePerMonth, suffix: '/month', secondaryLabel: 'billed annually' },
     },
-    description: 'Perfect for individual users',
+    description: PRICING_COPY.PRO.description,
     features: [
       'Everything in Free plan',
       <Link href={ROUTES.DESKTOP} className="text-cyan-500 hover:underline">
@@ -62,29 +63,16 @@ const tiers = [
     id: 'tier-team',
     href: '#',
     price: {
-      monthly: { price: '$30', suffix: '/user/month' },
-      annually: { price: '$25', suffix: '/user/month', secondaryLabel: 'billed annually' },
+      monthly: { price: PRICING_COPY.TEAM.monthly.pricePerUserMonth, suffix: '/user/month' },
+      annually: { price: PRICING_COPY.TEAM.annual.pricePerUserMonth, suffix: '/user/month', secondaryLabel: 'billed annually' },
     },
-    description: 'Per-user pricing — save with 6+ seats',
+    description: PRICING_COPY.TEAM.description,
     pricingTiers: {
-      monthly: [
-        { seats: '1–5', perUser: '$30/user/month' },
-        { seats: '6+', perUser: '$25/user/month' },
-      ],
-      annually: [
-        { seats: '1–5', perUser: '$25/user/month' },
-        { seats: '6+', perUser: '$21/user/month' },
-      ],
+      monthly: PRICING_COPY.TEAM.monthly.tiers,
+      annually: PRICING_COPY.TEAM.annual.tiers,
     },
-    features: [
-      'Everything in Professional',
-      'Manage team members',
-      'Unlimited team members',
-      'SSO via OIDC and SAML',
-      'View & Manage team member session activity',
-      'Role-based access control',
-    ],
-    comingSoonFeatures: ['Share orgs between team members'],
+    features: [...PRICING_COPY.TEAM.features],
+    comingSoonFeatures: [...PRICING_COPY.TEAM.comingSoonFeatures],
     mostPopular: false,
   },
   {
@@ -92,7 +80,7 @@ const tiers = [
     id: 'tier-enterprise',
     href: 'mailto:sales@getjetstream.app?subject=Enterprise Plan Inquiry',
     price: { monthly: { price: 'Custom', suffix: null }, annually: { price: 'Custom', suffix: null } },
-    description: 'SOC 2 compliance, custom terms, and dedicated support',
+    description: PRICING_COPY.ENTERPRISE.description,
     features: [
       'Everything in Team',
       'SOC 2 Type II compliance',
@@ -153,9 +141,7 @@ export default function Page() {
                   {tier.name}
                 </h3>
               </div>
-              <p className="mt-4 text-sm/6 text-gray-300">
-                {typeof tier.description === 'string' ? tier.description : tier.description[frequency.value]}
-              </p>
+              <p className="mt-4 text-sm/6 text-gray-300">{tier.description}</p>
               <p className="mt-6 flex items-baseline gap-x-1">
                 <span className="text-4xl font-semibold tracking-tight text-white">{tier.price[frequency.value].price}</span>
                 {tier.price[frequency.value]?.suffix && (

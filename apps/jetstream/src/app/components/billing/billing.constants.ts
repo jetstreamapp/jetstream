@@ -1,3 +1,4 @@
+import { PRICING_COPY } from '@jetstream/shared/constants';
 import { StripeUserFacingSubscription } from '@jetstream/types';
 
 export const ACTIVE_SUBSCRIPTION_STATUSES = new Set<StripeUserFacingSubscription['status']>([
@@ -24,16 +25,9 @@ export const professionalFeatures = [
   'Priority support',
 ];
 
-export const teamFeatures = [
-  'Everything in Professional',
-  'Manage team members',
-  'Unlimited team members',
-  'SSO via OIDC and SAML',
-  'View & Manage team member session activity',
-  'Role-based access control',
-];
+export const teamFeatures = PRICING_COPY.TEAM.features;
 
-export const teamFeaturesComingSoon = ['Share orgs between team members'];
+export const teamFeaturesComingSoon = PRICING_COPY.TEAM.comingSoonFeatures;
 
 export const enterpriseFeatures = [
   'Everything in Team',
@@ -49,39 +43,33 @@ export const enterpriseFeatures = [
 export const PLAN_DESCRIPTIONS = {
   [PRO_MONTHLY_KEY]: {
     key: 'PRO_MONTHLY',
-    price: '$25',
+    price: PRICING_COPY.PRO.monthly.pricePerMonth,
     priceSubtext: '/month',
-    description: 'Perfect for individual users',
+    description: PRICING_COPY.PRO.description,
     features: professionalFeatures,
   },
   [PRO_ANNUAL_KEY]: {
     key: 'PRO_ANNUAL',
-    price: '$21',
+    price: PRICING_COPY.PRO.annual.pricePerMonth,
     priceSubtext: '/month, billed annually',
-    description: 'Save 2 months with annual billing',
+    description: PRICING_COPY.PRO.annualDescription,
     features: professionalFeatures,
   },
   [TEAM_MONTHLY_KEY]: {
     key: 'TEAM_MONTHLY',
-    price: '$30',
+    price: PRICING_COPY.TEAM.monthly.pricePerUserMonth,
     priceSubtext: '/user/month',
-    description: 'Per-user pricing — save with 6+ seats',
-    pricingTiers: [
-      { seats: '1–5', perUser: '$30/user/month' },
-      { seats: '6+', perUser: '$25/user/month' },
-    ],
+    description: PRICING_COPY.TEAM.description,
+    pricingTiers: PRICING_COPY.TEAM.monthly.tiers,
     features: teamFeatures,
     comingSoonFeatures: teamFeaturesComingSoon,
   },
   [TEAM_ANNUAL_KEY]: {
     key: 'TEAM_ANNUAL',
-    price: '$25',
+    price: PRICING_COPY.TEAM.annual.pricePerUserMonth,
     priceSubtext: '/user/month, billed annually',
-    description: 'Per-user pricing — save with 6+ seats',
-    pricingTiers: [
-      { seats: '1–5', perUser: '$25/user/month' },
-      { seats: '6+', perUser: '$21/user/month' },
-    ],
+    description: PRICING_COPY.TEAM.description,
+    pricingTiers: PRICING_COPY.TEAM.annual.tiers,
     features: teamFeatures,
     comingSoonFeatures: teamFeaturesComingSoon,
   },
@@ -89,7 +77,7 @@ export const PLAN_DESCRIPTIONS = {
     key: 'CUSTOM',
     price: 'Custom',
     priceSubtext: 'Contact us',
-    description: 'SOC 2 compliance, custom terms, and dedicated support',
+    description: PRICING_COPY.ENTERPRISE.description,
     features: enterpriseFeatures,
   },
 } as const;
