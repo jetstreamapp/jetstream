@@ -8,6 +8,7 @@ import {
   ColumnWithFilter,
   ContextAction,
   ContextMenuActionData,
+  copyGenericTableDataToClipboard,
   CopyRecordsToClipboardButton,
   CopyToClipboardWithToolTip,
   DataTable,
@@ -16,16 +17,15 @@ import {
   Icon,
   Modal,
   RowWithKey,
+  SelectColumn,
   setColumnFromType,
   Spinner,
   TABLE_CONTEXT_MENU_ITEMS,
-  copyGenericTableDataToClipboard,
 } from '@jetstream/ui';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
-import { FunctionComponent, useCallback, useMemo, useState } from 'react';
 import type { Key } from 'react';
-import { SelectColumn } from 'react-data-grid';
+import { FunctionComponent, useCallback, useMemo, useState } from 'react';
 
 const COL_WIDTH_MAP = {
   _id: 195,
@@ -33,7 +33,7 @@ const COL_WIDTH_MAP = {
   _errors: 450,
 };
 
-const getRowHeight = (row: any) => (row?._errors ? 75 : 25);
+const getRowHeight = ({ row }: { type: 'ROW' | 'GROUP'; row: any }) => (row?._errors ? 75 : 25);
 
 const getDefaultSelectedRows = (rows: any[], selectable: boolean): ReadonlySet<Key> =>
   selectable ? new Set(rows.map((_row, i) => `id-${i}`)) : new Set();
@@ -78,10 +78,9 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
         ...baseColumn,
         name: item,
         key: item,
-        field: item,
         resizable: true,
         width: COL_WIDTH_MAP[item],
-        formatter:
+        renderCell:
           item === '_errors'
             ? ({ row }) => (
                 <p

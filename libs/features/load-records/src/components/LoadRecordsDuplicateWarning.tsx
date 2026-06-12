@@ -2,6 +2,7 @@ import { ContextMenuItem, FieldMapping, InsertUpdateUpsertDelete, Maybe } from '
 import {
   Alert,
   AutoFullHeightContainer,
+  Column,
   ContextAction,
   ContextMenuActionData,
   DataTable,
@@ -13,7 +14,6 @@ import {
 } from '@jetstream/ui';
 import { checkForDuplicateRecords } from '@jetstream/ui-core';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { Column } from 'react-data-grid';
 
 const DUPE_COLUMN = '_DUPLICATE';
 

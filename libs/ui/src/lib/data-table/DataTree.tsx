@@ -1,158 +1,59 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ContextMenuItem, SalesforceOrgUi } from '@jetstream/types';
-import { forwardRef } from 'react';
-import { SortColumn, TreeDataGrid, TreeDataGridProps } from 'react-data-grid';
-import 'react-data-grid/lib/styles.css';
-import { ContextMenu } from '../form/context-menu/ContextMenu';
-import { DataTableFilterContext, DataTableGenericContext } from './data-table-context';
-import './data-table-styles.css';
-import { ColumnWithFilter, ContextMenuActionData, RowWithKey } from './data-table-types';
-import { useDataTable } from './useDataTable';
+import { ExpandedState } from '@tanstack/react-table';
+import { forwardRef, useMemo } from 'react';
+import { DataTableProps, useMappedV2Props } from './DataTable';
+import { DataTableV2 } from './grid/DataTableV2';
+import { DataTableRef, RowWithKey } from './grid/grid-types';
 
-interface PropsWithServer {
-  serverUrl: string;
-  skipFrontdoorLogin: boolean;
+/**
+ * Public tree/grouped data table. Bridges the legacy `groupBy` / `expandedGroupIds` (Set of group
+ * values) API to the new grid's TanStack grouping + expanded state.
+ */
+export interface DataTreeProps<T = RowWithKey, TContext = Record<string, any>> extends DataTableProps<T, TContext> {
+  groupBy: readonly (keyof T)[];
+  /** Accepted for API compatibility; the grid groups internally so this is not used. */
+  rowGrouper?: (rows: readonly T[], columnKey: keyof T) => Record<string, readonly T[]>;
+  expandedGroupIds?: ReadonlySet<unknown>;
+  onExpandedGroupIdsChange?: (expandedGroupIds: Set<unknown>) => void;
 }
 
-interface PropsWithoutServer {
-  serverUrl?: never;
-  skipFrontdoorLogin?: never;
+function DataTreeInner<T extends object = RowWithKey>(props: DataTreeProps<T>, ref: React.Ref<DataTableRef<T>>) {
+  const { groupBy, expandedGroupIds, onExpandedGroupIdsChange, rowGrouper, ...rest } = props;
+  const grouping = useMemo(() => groupBy.map((key) => String(key)), [groupBy]);
+  const groupColumnId = grouping[0];
+
+  // Bridge: a group row's TanStack id is `${columnId}:${groupingValue}` for single-level grouping.
+  const expanded = useMemo<ExpandedState | undefined>(() => {
+    if (!expandedGroupIds) {
+      return undefined;
+    }
+    const state: Record<string, boolean> = {};
+    expandedGroupIds.forEach((value) => (state[`${groupColumnId}:${value}`] = true));
+    return state;
+  }, [expandedGroupIds, groupColumnId]);
+
+  const onExpandedChange = useMemo(() => {
+    if (!onExpandedGroupIdsChange) {
+      return undefined;
+    }
+    return (state: ExpandedState) => {
+      if (state === true) {
+        return;
+      }
+      const prefix = `${groupColumnId}:`;
+      const next = new Set<unknown>(
+        Object.keys(state)
+          .filter((key) => state[key])
+          .map((key) => (key.startsWith(prefix) ? key.slice(prefix.length) : key)),
+      );
+      onExpandedGroupIdsChange(next);
+    };
+  }, [onExpandedGroupIdsChange, groupColumnId]);
+
+  const mapped = useMappedV2Props(rest as DataTableProps<T>);
+  return <DataTableV2<T> {...mapped} grouping={grouping} expanded={expanded} onExpandedChange={onExpandedChange} ref={ref} role="treegrid" />;
 }
 
-export type DataTreeProps<T = RowWithKey, TContext = Record<string, any>> = DataTreePropsBase<T, TContext> &
-  (PropsWithServer | PropsWithoutServer);
-
-interface DataTreePropsBase<T = RowWithKey, TContext = Record<string, any>> extends Omit<
-  TreeDataGridProps<T>,
-  'columns' | 'rows' | 'rowKeyGetter'
-> {
-  data: T[];
-  columns: ColumnWithFilter<T>[];
-  serverUrl?: string;
-  skipFrontdoorLogin?: boolean;
-  org?: SalesforceOrgUi;
-  quickFilterText?: string | null;
-  includeQuickFilter?: boolean;
-  initialSortColumns?: SortColumn[];
-  context?: TContext;
-  /** Must be stable to avoid constant re-renders */
-  contextMenuItems?: ContextMenuItem[];
-  /** Must be stable to avoid constant re-renders */
-  contextMenuAction?: (item: ContextMenuItem, data: ContextMenuActionData<T>) => void;
-  getRowKey: (row: T) => string;
-  rowAlwaysVisible?: (row: T) => boolean;
-  ignoreRowInSetFilter?: (row: T) => boolean;
-  onReorderColumns?: (columns: string[], columnOrder: number[]) => void;
-  onSortedAndFilteredRowsChange?: (rows: readonly T[]) => void;
-}
-
-export const DataTree = forwardRef<any, DataTreeProps<any>>(
-  <T extends object>(
-    {
-      data,
-      columns: _columns,
-      serverUrl,
-      skipFrontdoorLogin,
-      org,
-      quickFilterText,
-      includeQuickFilter,
-      initialSortColumns,
-      context,
-      contextMenuItems,
-      contextMenuAction,
-      getRowKey,
-      ignoreRowInSetFilter,
-      rowAlwaysVisible,
-      onReorderColumns,
-      onSortedAndFilteredRowsChange,
-      ...rest
-    }: DataTreeProps<T>,
-    ref,
-  ) => {
-    const {
-      gridId,
-      columns,
-      sortColumns,
-      renderers,
-      filters,
-      reorderedColumns,
-      filterSetValues,
-      filteredRows,
-      contextMenuProps,
-      setSortColumns,
-      updateFilter,
-      handleReorderColumns,
-      handleCellKeydown,
-      handleCloseContextMenu,
-    } = useDataTable({
-      data,
-      columns: _columns,
-      serverUrl,
-      skipFrontdoorLogin,
-      org,
-      quickFilterText,
-      includeQuickFilter,
-      contextMenuItems,
-      initialSortColumns,
-      ref,
-      contextMenuAction,
-      getRowKey,
-      ignoreRowInSetFilter,
-      rowAlwaysVisible,
-      onReorderColumns,
-      onSortedAndFilteredRowsChange,
-    });
-
-    return (
-      <DataTableGenericContext.Provider value={{ ...context, rows: filteredRows, columns }}>
-        <DataTableFilterContext.Provider
-          value={{
-            filterSetValues,
-            filters,
-            updateFilter,
-          }}
-        >
-          <TreeDataGrid
-            data-id={gridId}
-            className="fill-grid"
-            columns={reorderedColumns}
-            rows={filteredRows}
-            // @ts-expect-error Types are incorrect, but they are generic and difficult to get correct
-            renderers={renderers}
-            sortColumns={sortColumns}
-            // @ts-expect-error Types are incorrect, but they are generic and difficult to get correct
-            rowKeyGetter={getRowKey}
-            // @ts-expect-error Types are incorrect, but they are generic and difficult to get correct
-            defaultColumnOptions={{ resizable: true, sortable: true, ...rest.defaultColumnOptions }}
-            // @ts-expect-error Types are incorrect, but they are generic and difficult to get correct
-            onCellKeyDown={handleCellKeydown}
-            onColumnsReorder={handleReorderColumns}
-            {...rest}
-            onSortColumnsChange={(columns) => {
-              setSortColumns(columns);
-              // Allow subscriber to subscribe to changes as a side-effect
-              rest?.onSortColumnsChange?.(columns);
-            }}
-          />
-          {contextMenuProps && contextMenuItems && contextMenuAction && (
-            <ContextMenu
-              parentElement={contextMenuProps.element}
-              items={contextMenuItems}
-              onSelected={(item) => {
-                contextMenuAction(item, {
-                  row: filteredRows[contextMenuProps.rowIdx] as T,
-                  rowIdx: contextMenuProps.rowIdx,
-                  rows: filteredRows as T[],
-                  column: contextMenuProps.column,
-                  columns,
-                });
-                handleCloseContextMenu();
-              }}
-              onClose={handleCloseContextMenu}
-            />
-          )}
-        </DataTableFilterContext.Provider>
-      </DataTableGenericContext.Provider>
-    );
-  },
-);
+export const DataTree = forwardRef(DataTreeInner) as unknown as <T extends object = RowWithKey>(
+  props: DataTreeProps<T> & { ref?: React.Ref<DataTableRef<T>> },
+) => React.ReactElement;
