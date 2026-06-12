@@ -312,8 +312,13 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       });
     } else if (isPrismaError(err)) {
       const message = getPrismaErrorMessage(err);
-      responseLogger.warn({ err, res: { statusCode: 400 } }, '[RESPONSE][ERROR][DATABASE]');
-      res.status(status || 400);
+      // P2034 is a Serializable-transaction write conflict (a fail-safe outcome, e.g. two admins
+      // mutating team membership at once). Surface it as 409 Conflict so the client can retry,
+      // rather than a generic 400/500.
+      const isWriteConflict = err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2034';
+      const statusCode = isWriteConflict ? 409 : status || 400;
+      responseLogger.warn({ err, res: { statusCode } }, '[RESPONSE][ERROR][DATABASE]');
+      res.status(statusCode);
       return res.json({
         error: true,
         success: false,
@@ -411,6 +416,8 @@ function getPrismaErrorMessage(
       return `The requested record is ambiguous.`;
     } else if (prismaError.code === 'P2025') {
       return `The requested record does not exist.`;
+    } else if (prismaError.code === 'P2034') {
+      return `This operation conflicted with a concurrent change. Please try again.`;
     }
   }
   return `An error occurred while processing your request.`;

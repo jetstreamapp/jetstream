@@ -131,6 +131,19 @@ describe('uncaughtErrorHandler logging levels', () => {
     expect(res.log.error).not.toHaveBeenCalled();
   });
 
+  it('maps a P2034 serialization conflict to 409', async () => {
+    const error = new prismaMocks.PrismaClientKnownRequestError('Write conflict') as Error & { isPrismaError: boolean; code: string };
+    error.isPrismaError = true;
+    error.code = 'P2034';
+
+    const { res } = await handleError(error);
+
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'This operation conflicted with a concurrent change. Please try again.' }),
+    );
+  });
+
   it('logs authentication 401s at warn', async () => {
     const { res } = await handleError(new AuthenticationError('Unauthorized'));
 

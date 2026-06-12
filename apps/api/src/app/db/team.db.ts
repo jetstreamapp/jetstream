@@ -662,6 +662,51 @@ export async function revokeSessionThatViolateLoginConfiguration({
   return sessionsToRevoke.size;
 }
 
+/**
+ * Enforce the invariant that a team always retains at least one active ADMIN.
+ *
+ * Throws `NotAllowedError` when a member update would strip the last active admin of active-admin
+ * status, leaving the team with zero active admins. `nextRole`/`nextStatus` are the values the
+ * update will set; whichever is omitted is left unchanged (e.g. a role-only update keeps the
+ * current status).
+ *
+ * The target's CURRENT state is read inside this transaction (not from a snapshot taken before the
+ * transaction opened) so the decision is consistent with the OTHER-admins count — closing a TOCTOU
+ * where a concurrent status change between a pre-read and the transaction could be missed. Must run
+ * under Serializable isolation so two concurrent "deactivate a different admin" requests cannot each
+ * observe one remaining admin and both proceed.
+ */
+async function assertTeamRetainsActiveAdmin(
+  tx: Prisma.TransactionClient,
+  { teamId, userId, nextRole, nextStatus }: { teamId: string; userId: string; nextRole?: Maybe<string>; nextStatus?: Maybe<string> },
+): Promise<void> {
+  const current = await tx.teamMember.findUnique({
+    select: { role: true, status: true },
+    where: { teamId_userId: { teamId, userId } },
+  });
+  if (!current) {
+    return; // member not found — the update itself will surface the error
+  }
+
+  const isCurrentlyActiveAdmin = current.role === TEAM_MEMBER_ROLE_ADMIN && current.status === TEAM_MEMBER_STATUS_ACTIVE;
+  const effectiveRole = nextRole ?? current.role;
+  const effectiveStatus = nextStatus ?? current.status;
+  const willBeActiveAdmin = effectiveRole === TEAM_MEMBER_ROLE_ADMIN && effectiveStatus === TEAM_MEMBER_STATUS_ACTIVE;
+
+  // Only a transition OUT of active-admin can remove the team's last admin. Demoting/deactivating a
+  // member who is not currently an active admin cannot reduce the active-admin count.
+  if (!isCurrentlyActiveAdmin || willBeActiveAdmin) {
+    return;
+  }
+
+  const otherActiveAdmins = await tx.teamMember.count({
+    where: { teamId, role: TEAM_MEMBER_ROLE_ADMIN, status: TEAM_MEMBER_STATUS_ACTIVE, userId: { not: userId } },
+  });
+  if (otherActiveAdmins === 0) {
+    throw new NotAllowedError('A team must have at least one active administrator');
+  }
+}
+
 export async function updateTeamMemberRole({
   teamId,
   userId,
@@ -693,14 +738,22 @@ export async function updateTeamMemberRole({
     }
   }
 
-  return {
-    teamMember: await prisma.teamMember
-      .update({
+  // This function only changes role; status is left unchanged (nextStatus omitted), so the guard
+  // derives the effective status from the transactional read of the member's current state.
+  const updatedTeamMember = await prisma.$transaction(
+    async (tx) => {
+      await assertTeamRetainsActiveAdmin(tx, { teamId, userId, nextRole: data.role });
+      return tx.teamMember.update({
         select: SELECT_TEAM_MEMBER,
         where: { teamId_userId: { teamId, userId } },
         data: { ...TeamMemberUpdateRequestSchema.parse(data), updatedById: runningUserId },
-      })
-      .then((member) => TeamMemberSchema.parse(member)),
+      });
+    },
+    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+  );
+
+  return {
+    teamMember: TeamMemberSchema.parse(updatedTeamMember),
     previousMember: { role: teamMember.role, features: teamMember.features as string[], email: teamMember.user.email },
     // Trigger a Stripe sync whenever billable membership crosses in either direction
     // (e.g. BILLING→ADMIN/MEMBER would otherwise be skipped by only looking at the previous role).
@@ -765,14 +818,22 @@ export async function updateTeamMemberStatusAndRole({
     }
   }
 
-  return {
-    teamMember: await prisma.teamMember
-      .update({
+  // Both role and status are set explicitly here, so the guard's effective end-state is fully
+  // determined by the request (no dependency on the member's pre-transaction state).
+  const updatedTeamMember = await prisma.$transaction(
+    async (tx) => {
+      await assertTeamRetainsActiveAdmin(tx, { teamId, userId, nextRole: role, nextStatus: status });
+      return tx.teamMember.update({
         select: SELECT_TEAM_MEMBER,
         where: { teamId_userId: { teamId, userId } },
         data: { status, role, updatedById: runningUserId },
-      })
-      .then((member) => TeamMemberSchema.parse(member)),
+      });
+    },
+    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+  );
+
+  return {
+    teamMember: TeamMemberSchema.parse(updatedTeamMember),
     previousMember,
     // Trigger a Stripe sync whenever billable membership crosses in either direction
     // (e.g. MEMBER→BILLING would otherwise be skipped by only looking at the new role).

@@ -9,6 +9,7 @@ import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/u
 import {
   TEAM_MEMBER_ROLE_ACCESS,
   TEAM_MEMBER_ROLE_MEMBER,
+  TEAM_MEMBER_STATUS_INACTIVE,
   TeamInvitationRequestSchema,
   TeamInvitationUpdateRequestSchema,
   TeamLoginConfigRequestSchema,
@@ -654,6 +655,12 @@ const updateTeamMemberStatusAndRole = createRoute(
     const { teamId, userId } = params;
     const { status, role } = body;
     const runningUserRole = user.teamMembership?.role || TEAM_MEMBER_ROLE_MEMBER;
+
+    // Deactivating yourself revokes all of your own sessions mid-request — a self-lockout footgun.
+    // The last-admin invariant in the DB layer additionally prevents a team being left admin-less.
+    if (status === TEAM_MEMBER_STATUS_INACTIVE && user.id === userId) {
+      throw new NotAllowedError('You cannot deactivate your own membership');
+    }
 
     const allowedRoleUpdates = new Set((TEAM_MEMBER_ROLE_ACCESS[runningUserRole] || []) as TeamMemberRole[]);
     if (role && !allowedRoleUpdates.has(role)) {

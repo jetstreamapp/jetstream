@@ -22,6 +22,7 @@ if (isEnabled) {
       if (isUserRateLimited(rateLimitKey)) {
         return null;
       }
+      scrubSensitiveEventData(event);
       return event;
     },
   });
@@ -73,6 +74,93 @@ function isUserRateLimited(userKey: string): boolean {
   hour.push(now);
   rateLimitCache.set(userKey, { minute, hour });
   return false;
+}
+
+// Substring match (case-insensitive) — catches accessToken, refreshToken, csrfToken, secretToken,
+// clientSecret, SAMLResponse, sessionId, etc. without needing to enumerate every variant.
+const SENSITIVE_KEY_SUBSTRINGS = [
+  'password',
+  'passwd',
+  'secret',
+  'token',
+  'csrf',
+  'cookie',
+  'authorization',
+  'privatekey',
+  'samlresponse',
+  'apikey',
+  'credential',
+  'sessionid',
+  'verifier',
+  'bearer',
+];
+// Exact match (case-insensitive) — short ambiguous keys we only redact when they are the WHOLE key,
+// so `code`/`sid`/`pin` don't also nuke `statusCode`, `osId`, etc.
+const SENSITIVE_KEY_EXACT = new Set(['code', 'otp', 'mfa', 'sid', 'pin', 'auth']);
+const REDACTED = '[REDACTED]';
+const MAX_REDACT_DEPTH = 6;
+
+function isSensitiveKey(key: string): boolean {
+  const lower = key.toLowerCase();
+  if (SENSITIVE_KEY_EXACT.has(lower)) {
+    return true;
+  }
+  return SENSITIVE_KEY_SUBSTRINGS.some((needle) => lower.includes(needle));
+}
+
+function isPlainObject(value: object): boolean {
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+/**
+ * Recursively redact values under sensitive keys. Only recurses into plain objects/arrays so
+ * special objects (Date, Buffer, etc.) are preserved as-is; bounded depth + cycle tracking guard
+ * against pathological/circular structures.
+ */
+function redactSensitiveDeep(value: unknown, depth = 0, seen = new WeakSet<object>()): unknown {
+  if (value === null || typeof value !== 'object') {
+    return value;
+  }
+  if (seen.has(value)) {
+    return '[Circular]';
+  }
+  // Preserve special objects (Date, Buffer, etc.) as-is — only plain objects/arrays are traversed.
+  if (!Array.isArray(value) && !isPlainObject(value)) {
+    return value;
+  }
+  // At the depth limit, fail safe: redact the whole subtree rather than emit it un-scrubbed, so a
+  // secret nested deeper than the limit cannot leak.
+  if (depth >= MAX_REDACT_DEPTH) {
+    return REDACTED;
+  }
+  if (Array.isArray(value)) {
+    seen.add(value);
+    return value.map((item) => redactSensitiveDeep(item, depth + 1, seen));
+  }
+  seen.add(value);
+  const result: Record<string, unknown> = {};
+  for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
+    result[key] = isSensitiveKey(key) ? REDACTED : redactSensitiveDeep(val, depth + 1, seen);
+  }
+  return result;
+}
+
+/**
+ * Strip known-sensitive fields from a Sentry event before it leaves the process. Covers the places
+ * request data lands: manual `extras`, the `request` context, and any auto-attached `request` data.
+ */
+export function scrubSensitiveEventData(event: Sentry.Event): Sentry.Event {
+  if (event.extra) {
+    event.extra = redactSensitiveDeep(event.extra) as Record<string, unknown>;
+  }
+  if (event.contexts) {
+    event.contexts = redactSensitiveDeep(event.contexts) as Sentry.Event['contexts'];
+  }
+  if (event.request) {
+    event.request = redactSensitiveDeep(event.request) as Sentry.Event['request'];
+  }
+  return event;
 }
 
 function isExpressRequest(value: unknown): value is Request {
