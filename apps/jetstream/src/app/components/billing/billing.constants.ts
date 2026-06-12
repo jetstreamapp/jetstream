@@ -89,7 +89,7 @@ export const PLAN_DESCRIPTIONS = {
     key: 'CUSTOM',
     price: 'Custom',
     priceSubtext: 'Contact us',
-    description: 'Advanced features for large teams',
+    description: 'SOC 2 compliance, custom terms, and dedicated support',
     features: enterpriseFeatures,
   },
 } as const;

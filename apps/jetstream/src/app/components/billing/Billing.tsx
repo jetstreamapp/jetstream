@@ -260,7 +260,9 @@ export const Billing = () => {
                         priceSubtext={
                           isAnnual ? PLAN_DESCRIPTIONS[PRO_ANNUAL_KEY].priceSubtext : PLAN_DESCRIPTIONS[PRO_MONTHLY_KEY].priceSubtext
                         }
-                        description={PLAN_DESCRIPTIONS[PRO_MONTHLY_KEY].description}
+                        description={
+                          isAnnual ? PLAN_DESCRIPTIONS[PRO_ANNUAL_KEY].description : PLAN_DESCRIPTIONS[PRO_MONTHLY_KEY].description
+                        }
                         features={PLAN_DESCRIPTIONS[PRO_MONTHLY_KEY].features}
                         checked={
                           selectedPlan === (isAnnual ? PLAN_DESCRIPTIONS[PRO_ANNUAL_KEY].key : PLAN_DESCRIPTIONS[PRO_MONTHLY_KEY].key)

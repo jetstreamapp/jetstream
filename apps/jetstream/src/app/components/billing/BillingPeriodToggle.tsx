@@ -14,21 +14,6 @@ const toggleStyles = css`
     gap: 8px;
   }
 
-  .savings-badge {
-    background: #2e844a;
-    color: white;
-    padding: 4px 12px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-  }
-
-  .savings-badge.visible {
-    opacity: 1;
-  }
-
   .billing-toggle-container {
     display: flex;
     align-items: center;
