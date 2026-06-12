@@ -26,6 +26,8 @@ export interface StripeUserFacingSubscription {
   endedAt: string | null;
   startDate: string;
   status: Uppercase<Stripe.Subscription.Status>;
+  /** True when a coupon/promotion is active on the subscription or customer — displayed amounts are pre-discount list prices */
+  hasDiscount: boolean;
   items: StripeUserFacingSubscriptionItem[];
 }
 
@@ -38,6 +40,7 @@ export interface StripeUserFacingSubscriptionItem {
   // currentPeriodEnd: string;
   product: string;
   lookupKey: string | null;
+  /** In dollars — already converted from Stripe's cents */
   unitAmount: number;
   recurringInterval: 'DAY' | 'MONTH' | 'WEEK' | 'YEAR' | null;
   recurringIntervalCount: number | null;

@@ -1,3 +1,4 @@
+import { PRICING_COPY } from '@jetstream/shared/constants';
 import { StripeUserFacingSubscription } from '@jetstream/types';
 
 export const ACTIVE_SUBSCRIPTION_STATUSES = new Set<StripeUserFacingSubscription['status']>([
@@ -24,20 +25,14 @@ export const professionalFeatures = [
   'Priority support',
 ];
 
-export const teamFeatures = [
-  'Everything in Professional',
-  'Manage team members',
-  'Up to 20 team members',
-  'SSO via OIDC and SAML',
-  'View & Manage team member session activity',
-  'Role-based access control',
-];
+export const teamFeatures = PRICING_COPY.TEAM.features;
 
-export const teamFeaturesComingSoon = ['SOC 2 (in progress)', 'Share orgs between team members', 'Audit logs'];
+export const teamFeaturesComingSoon = PRICING_COPY.TEAM.comingSoonFeatures;
 
 export const enterpriseFeatures = [
   'Everything in Team',
-  'Unlimited team members',
+  'SOC 2 Type II compliance',
+  'Audit logs',
   'Single Sign-On (SSO)',
   'Custom agreements and terms',
   'Dedicated account manager',
@@ -48,31 +43,33 @@ export const enterpriseFeatures = [
 export const PLAN_DESCRIPTIONS = {
   [PRO_MONTHLY_KEY]: {
     key: 'PRO_MONTHLY',
-    price: '$25',
+    price: PRICING_COPY.PRO.monthly.pricePerMonth,
     priceSubtext: '/month',
-    description: 'Perfect for individual users',
+    description: PRICING_COPY.PRO.description,
     features: professionalFeatures,
   },
   [PRO_ANNUAL_KEY]: {
     key: 'PRO_ANNUAL',
-    price: '$250',
-    priceSubtext: '/year',
-    description: 'Save 2 months with annual billing',
+    price: PRICING_COPY.PRO.annual.pricePerMonth,
+    priceSubtext: '/month, billed annually',
+    description: PRICING_COPY.PRO.annualDescription,
     features: professionalFeatures,
   },
   [TEAM_MONTHLY_KEY]: {
     key: 'TEAM_MONTHLY',
-    price: '$125',
-    priceSubtext: '/month (includes 5 users)',
-    description: '$25/user/month with 5-user minimum',
+    price: PRICING_COPY.TEAM.monthly.pricePerUserMonth,
+    priceSubtext: '/user/month',
+    description: PRICING_COPY.TEAM.description,
+    pricingTiers: PRICING_COPY.TEAM.monthly.tiers,
     features: teamFeatures,
     comingSoonFeatures: teamFeaturesComingSoon,
   },
   [TEAM_ANNUAL_KEY]: {
     key: 'TEAM_ANNUAL',
-    price: '$1,100',
-    priceSubtext: '/year (includes 5 users)',
-    description: '$220/user/year with 5-user minimum',
+    price: PRICING_COPY.TEAM.annual.pricePerUserMonth,
+    priceSubtext: '/user/month, billed annually',
+    description: PRICING_COPY.TEAM.description,
+    pricingTiers: PRICING_COPY.TEAM.annual.tiers,
     features: teamFeatures,
     comingSoonFeatures: teamFeaturesComingSoon,
   },
@@ -80,7 +77,7 @@ export const PLAN_DESCRIPTIONS = {
     key: 'CUSTOM',
     price: 'Custom',
     priceSubtext: 'Contact us',
-    description: 'Advanced features for large teams',
+    description: PRICING_COPY.ENTERPRISE.description,
     features: enterpriseFeatures,
   },
 } as const;
