@@ -3,8 +3,8 @@ import { AuditLogAction, AuditLogResource, createTeamAuditLog } from '@jetstream
 import * as authService from '@jetstream/auth/server';
 import { encryptSecret, oidcService, samlService } from '@jetstream/auth/server';
 import { OidcConfigurationRequestSchema, SamlConfigurationRequestSchema } from '@jetstream/auth/types';
-import { assertDomainResolvesToPublicIp, getPinnedPublicIpDispatcher } from '@jetstream/shared/node-utils';
 import { BLOCKED_PUBLIC_EMAIL_DOMAINS } from '@jetstream/shared/constants';
+import { assertDomainResolvesToPublicIp, getPinnedPublicIpDispatcher } from '@jetstream/shared/node-utils';
 import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import {
   TEAM_MEMBER_ROLE_ACCESS,
@@ -1127,6 +1127,10 @@ const getDomainVerifications = createRoute(routeDefinition.getDomainVerification
   }
 });
 
+// Every verification code is `jetstream-verification=<hex>`. The prefix lets us recognize a Jetstream
+// record whose code doesn't match (stale/mistyped) vs. no record at all, for clearer verification errors.
+const VERIFICATION_CODE_PREFIX = 'jetstream-verification=';
+
 const saveDomainVerification = createRoute(
   routeDefinition.saveDomainVerification.validators,
   async ({ params, body, user }, req, res, next) => {
@@ -1136,7 +1140,7 @@ const saveDomainVerification = createRoute(
       if (BLOCKED_PUBLIC_EMAIL_DOMAINS.has(domain)) {
         throw new NotAllowedError('Public email provider domains cannot be claimed for SSO verification');
       }
-      const verificationCode = `jetstream-verification=${crypto.randomBytes(16).toString('hex')}`;
+      const verificationCode = `${VERIFICATION_CODE_PREFIX}${crypto.randomBytes(16).toString('hex')}`;
       const result = await teamDb.saveDomainVerification(teamId, domain, verificationCode);
       sendJson(res, result);
 
@@ -1158,6 +1162,89 @@ const saveDomainVerification = createRoute(
   },
 );
 
+export interface DomainVerificationCheckResult {
+  verified: boolean;
+  verificationMethod: 'dns' | 'file' | null;
+  /**
+   * Distinguishes "nothing found" from "found a verification value that didn't match". The latter is
+   * almost always a stale or mistyped record that just needs DNS propagation, but a generic failure
+   * gives the user no way to tell the two apart — which makes this nearly impossible to self-diagnose.
+   * Always `false` when `verified` is true — a stale value alongside a matching one is still a success.
+   */
+  foundNonMatchingValue: boolean;
+}
+
+/**
+ * Check whether a domain proves ownership of `verificationCode` via a DNS TXT record
+ * (apex or `_jetstream.` subdomain) or a hosted verification file (apex or `www.`).
+ * Exported for tests.
+ */
+export async function checkDomainVerification(
+  domain: string,
+  verificationCode: string,
+  log: { warn: (obj: Record<string, unknown>, msg: string) => void },
+): Promise<DomainVerificationCheckResult> {
+  let verified = false;
+  let verificationMethod: 'dns' | 'file' | null = null;
+  let foundNonMatchingValue = false;
+
+  // 1. Check DNS TXT record on the apex domain and the `_jetstream.` subdomain.
+  for (const dnsHost of [domain, `_jetstream.${domain}`]) {
+    if (verified) break;
+    try {
+      const txtRecords = (await dns.resolveTxt(dnsHost)).flat();
+      if (txtRecords.includes(verificationCode)) {
+        verified = true;
+        verificationMethod = 'dns';
+      } else {
+        const otherJetstreamRecords = txtRecords.filter((record) => record.startsWith(VERIFICATION_CODE_PREFIX));
+        if (otherJetstreamRecords.length > 0) {
+          foundNonMatchingValue = true;
+          log.warn({ domain, dnsHost, found: otherJetstreamRecords }, 'DNS TXT verification record found but value did not match');
+        }
+      }
+    } catch (error) {
+      log.warn({ error: getErrorMessage(error), domain, dnsHost }, 'DNS TXT record lookup failed');
+    }
+  }
+
+  // 2. Check File (if not verified by DNS). Only the apex and `www.` hosts are real web servers — never
+  // the `_jetstream.` subdomain, which holds the TXT record and has no A record or TLS cert to serve over.
+  // Pin each fetch to a freshly-validated public IP so the address we validate is the address we connect
+  // to (defeats DNS-rebinding TOCTOU); each host is validated independently.
+  if (!verified) {
+    const fileHosts = domain.startsWith('www.') ? [domain] : [domain, `www.${domain}`];
+    const fileUrls = fileHosts.map((host) => `https://${host}/.well-known/jetstream-verification.txt`);
+    for (const fileUrl of fileUrls) {
+      if (verified) break;
+      try {
+        const dispatcher = await getPinnedPublicIpDispatcher(new URL(fileUrl).hostname);
+        const fetchInit: RequestInit & { dispatcher?: Dispatcher } = {
+          signal: AbortSignal.timeout(5000),
+          redirect: 'manual',
+          dispatcher,
+        };
+        const response = await fetch(fileUrl, fetchInit);
+        if (response.ok) {
+          const text = await response.text();
+          if (text.trim() === verificationCode) {
+            verified = true;
+            verificationMethod = 'file';
+          } else if (text.trim().startsWith(VERIFICATION_CODE_PREFIX)) {
+            foundNonMatchingValue = true;
+            log.warn({ domain, fileUrl }, 'Verification file found but contents did not match');
+          }
+        }
+      } catch (error) {
+        log.warn({ error: getErrorMessage(error), domain, fileUrl }, 'File verification fetch failed');
+      }
+    }
+  }
+
+  // A stale value alongside a matching one is still a success — only report the mismatch on failure.
+  return { verified, verificationMethod, foundNonMatchingValue: !verified && foundNonMatchingValue };
+}
+
 const verifyDomain = createRoute(routeDefinition.verifyDomain.validators, async ({ params, user }, req, res, next) => {
   try {
     const { teamId, domainId } = params;
@@ -1166,65 +1253,11 @@ const verifyDomain = createRoute(routeDefinition.verifyDomain.validators, async 
       throw new NotFoundError('Domain verification request not found');
     }
 
-    let verified = false;
-    let verificationMethod: 'dns' | 'file' | null = null;
-
-    // 1. Check DNS TXT record
-    try {
-      const txtRecords = await dns.resolveTxt(verification.domain);
-      const flatRecords = txtRecords.flat();
-      if (flatRecords.includes(verification.verificationCode)) {
-        verified = true;
-        verificationMethod = 'dns';
-      }
-    } catch (error) {
-      res.log.warn({ error: getErrorMessage(error), domain: verification.domain }, 'DNS TXT record lookup failed');
-    }
-
-    if (!verified) {
-      try {
-        const txtRecords = await dns.resolveTxt(`_jetstream.${verification.domain}`);
-        const flatRecords = txtRecords.flat();
-        if (flatRecords.includes(verification.verificationCode)) {
-          verified = true;
-          verificationMethod = 'dns';
-        }
-      } catch (error) {
-        res.log.warn({ error: getErrorMessage(error), domain: verification.domain }, 'DNS TXT record lookup failed for fallback');
-      }
-    }
-
-    // 2. Check File (if not verified by DNS)
-    // Pin each fetch to a freshly-validated public IP so the address we validate is the address
-    // we connect to (defeats DNS-rebinding TOCTOU). Each fileUrl can target a different host
-    // (the apex domain and the `_jetstream.` subdomain), so every URL is validated independently.
-    if (!verified) {
-      const fileUrls = [
-        `https://${verification.domain}/.well-known/jetstream-verification.txt`,
-        `https://_jetstream.${verification.domain}/.well-known/jetstream-verification.txt`,
-      ];
-      for (const fileUrl of fileUrls) {
-        if (verified) break;
-        try {
-          const dispatcher = await getPinnedPublicIpDispatcher(new URL(fileUrl).hostname);
-          const fetchInit: RequestInit & { dispatcher?: Dispatcher } = {
-            signal: AbortSignal.timeout(5000),
-            redirect: 'manual',
-            dispatcher,
-          };
-          const response = await fetch(fileUrl, fetchInit);
-          if (response.ok) {
-            const text = await response.text();
-            if (text.trim() === verification.verificationCode) {
-              verified = true;
-              verificationMethod = 'file';
-            }
-          }
-        } catch (error) {
-          res.log.warn({ error: getErrorMessage(error), domain: verification.domain, fileUrl }, 'File verification fetch failed');
-        }
-      }
-    }
+    const { verified, verificationMethod, foundNonMatchingValue } = await checkDomainVerification(
+      verification.domain,
+      verification.verificationCode,
+      res.log,
+    );
 
     if (verified) {
       const result = await teamDb.verifyDomainVerification(teamId, domainId);
@@ -1241,7 +1274,10 @@ const verifyDomain = createRoute(routeDefinition.verifyDomain.validators, async 
         userAgent: req.headers['user-agent'] as string,
       });
     } else {
-      sendJson(res, { success: false, message: 'Verification failed. Double check your DNS TXT record or file.' });
+      const message = foundNonMatchingValue
+        ? 'We found a Jetstream verification value (DNS record or hosted file), but it did not match the expected code. Double check the value and try again — if you recently changed a DNS record, propagation can take up to an hour.'
+        : 'Verification failed. We could not find a matching DNS TXT record or file. Double check the record value, and note that DNS changes can take some time to propagate.';
+      sendJson(res, { success: false, message });
     }
   } catch (ex) {
     res.log.error(getErrorMessageAndStackObj(ex), 'Failed to verify domain');

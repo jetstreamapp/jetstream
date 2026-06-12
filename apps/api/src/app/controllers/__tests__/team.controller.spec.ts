@@ -12,15 +12,21 @@
  *     (d) the hop cap throws,
  *     (e) missing Location header throws,
  *     (f) a successful terminal response (2xx/4xx) is returned unchanged.
+ * - checkDomainVerification covers the DNS TXT + hosted-file domain ownership checks:
+ *   host fallbacks (apex → _jetstream. for DNS, apex → www. for files), detection of
+ *   non-matching Jetstream values (drives the clearer user-facing error message), and
+ *   resilience to DNS/fetch failures.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchSamlMetadata, maskSsoSecrets } from '../team.controller';
+import { Mock, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { checkDomainVerification, fetchSamlMetadata, maskSsoSecrets } from '../team.controller';
 
 const assertDomainResolvesToPublicIpMock = vi.hoisted(() => vi.fn());
 // fetchSamlMetadata now validates+pins each hop's host via getPinnedPublicIpDispatcher (which
 // resolves the hostname, asserts it is public, and returns a cached undici Agent pinned to that IP),
 // replacing the prior assertDomainResolvesToPublicIp(url) call.
 const getPinnedPublicIpDispatcherMock = vi.hoisted(() => vi.fn());
+// checkDomainVerification resolves TXT records via `dns/promises` — mocked so tests control DNS answers.
+const resolveTxtMock = vi.hoisted(() => vi.fn());
 
 // Mock the transitive import chain of team.controller.ts down to the minimum needed
 // to load the module. We are exercising maskSsoSecrets and fetchSamlMetadata — nothing
@@ -56,6 +62,7 @@ vi.mock('@jetstream/shared/node-utils', () => ({
   assertDomainResolvesToPublicIp: assertDomainResolvesToPublicIpMock,
   getPinnedPublicIpDispatcher: getPinnedPublicIpDispatcherMock,
 }));
+vi.mock('dns/promises', () => ({ resolveTxt: resolveTxtMock }));
 vi.mock('@jetstream/prisma', () => ({
   Prisma: { PrismaClientKnownRequestError: class extends Error {} },
 }));
@@ -241,5 +248,149 @@ describe('fetchSamlMetadata', () => {
     expect(response.status).toBe(200);
     expect(assertDomainResolvesToPublicIpMock).not.toHaveBeenCalled();
     expect(getPinnedPublicIpDispatcherMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('checkDomainVerification', () => {
+  const DOMAIN = 'example.com';
+  const CODE = 'jetstream-verification=abc123';
+  let fetchMock: ReturnType<typeof vi.fn>;
+  let warnMock: Mock<(obj: Record<string, unknown>, msg: string) => void>;
+
+  beforeEach(() => {
+    resolveTxtMock.mockReset();
+    getPinnedPublicIpDispatcherMock.mockReset();
+    getPinnedPublicIpDispatcherMock.mockResolvedValue(undefined);
+    fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    warnMock = vi.fn<(obj: Record<string, unknown>, msg: string) => void>();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('verifies via a DNS TXT record on the apex domain without checking files', async () => {
+    resolveTxtMock.mockResolvedValueOnce([[CODE]]);
+
+    const result = await checkDomainVerification(DOMAIN, CODE, { warn: warnMock });
+
+    expect(result).toEqual({ verified: true, verificationMethod: 'dns', foundNonMatchingValue: false });
+    expect(resolveTxtMock).toHaveBeenCalledTimes(1);
+    expect(resolveTxtMock).toHaveBeenCalledWith('example.com');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('verifies via the _jetstream. subdomain when the apex has no matching record', async () => {
+    resolveTxtMock.mockResolvedValueOnce([['v=spf1 include:_spf.google.com ~all']]).mockResolvedValueOnce([[CODE]]);
+
+    const result = await checkDomainVerification(DOMAIN, CODE, { warn: warnMock });
+
+    expect(result).toEqual({ verified: true, verificationMethod: 'dns', foundNonMatchingValue: false });
+    expect(resolveTxtMock).toHaveBeenNthCalledWith(2, '_jetstream.example.com');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('does not report a mismatch when a stale apex record coexists with a matching _jetstream. record', async () => {
+    resolveTxtMock.mockResolvedValueOnce([['jetstream-verification=stale']]).mockResolvedValueOnce([[CODE]]);
+
+    const result = await checkDomainVerification(DOMAIN, CODE, { warn: warnMock });
+
+    expect(result).toEqual({ verified: true, verificationMethod: 'dns', foundNonMatchingValue: false });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('flags foundNonMatchingValue when a Jetstream TXT record exists with a different code', async () => {
+    resolveTxtMock.mockResolvedValue([['jetstream-verification=stale']]);
+    fetchMock.mockImplementation(async () => new Response('not found', { status: 404 }));
+
+    const result = await checkDomainVerification(DOMAIN, CODE, { warn: warnMock });
+
+    expect(result).toEqual({ verified: false, verificationMethod: null, foundNonMatchingValue: true });
+    expect(warnMock).toHaveBeenCalledWith(
+      expect.objectContaining({ dnsHost: 'example.com' }),
+      'DNS TXT verification record found but value did not match',
+    );
+  });
+
+  it('does not flag unrelated TXT records (e.g. SPF) as non-matching Jetstream values', async () => {
+    resolveTxtMock.mockResolvedValue([['v=spf1 include:_spf.google.com ~all']]);
+    fetchMock.mockImplementation(async () => new Response('not found', { status: 404 }));
+
+    const result = await checkDomainVerification(DOMAIN, CODE, { warn: warnMock });
+
+    expect(result).toEqual({ verified: false, verificationMethod: null, foundNonMatchingValue: false });
+  });
+
+  it('falls back to the apex file URL when DNS lookups fail, pinning the fetch to a validated IP', async () => {
+    resolveTxtMock.mockRejectedValue(new Error('queryTxt ENOTFOUND example.com'));
+    // Trailing newline exercises the trim before comparison.
+    fetchMock.mockResolvedValueOnce(new Response(`${CODE}\n`, { status: 200 }));
+
+    const result = await checkDomainVerification(DOMAIN, CODE, { warn: warnMock });
+
+    expect(result).toEqual({ verified: true, verificationMethod: 'file', foundNonMatchingValue: false });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe('https://example.com/.well-known/jetstream-verification.txt');
+    expect(fetchMock.mock.calls[0][1].redirect).toBe('manual');
+    expect(getPinnedPublicIpDispatcherMock).toHaveBeenCalledWith('example.com');
+  });
+
+  it('falls back to the www. file URL when the apex file is unavailable', async () => {
+    resolveTxtMock.mockRejectedValue(new Error('queryTxt ENOTFOUND example.com'));
+    fetchMock.mockResolvedValueOnce(new Response('not found', { status: 404 })).mockResolvedValueOnce(new Response(CODE, { status: 200 }));
+
+    const result = await checkDomainVerification(DOMAIN, CODE, { warn: warnMock });
+
+    expect(result).toEqual({ verified: true, verificationMethod: 'file', foundNonMatchingValue: false });
+    expect(fetchMock.mock.calls[1][0]).toBe('https://www.example.com/.well-known/jetstream-verification.txt');
+    expect(getPinnedPublicIpDispatcherMock).toHaveBeenCalledWith('www.example.com');
+  });
+
+  it('does not duplicate the www. prefix when the domain already starts with www.', async () => {
+    resolveTxtMock.mockResolvedValue([]);
+    fetchMock.mockImplementation(async () => new Response('not found', { status: 404 }));
+
+    const result = await checkDomainVerification('www.example.com', CODE, { warn: warnMock });
+
+    expect(result).toEqual({ verified: false, verificationMethod: null, foundNonMatchingValue: false });
+    // Only the stored host is fetched — never `www.www.example.com`.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe('https://www.example.com/.well-known/jetstream-verification.txt');
+  });
+
+  it('flags foundNonMatchingValue when the hosted file contains a different Jetstream code', async () => {
+    resolveTxtMock.mockResolvedValue([]);
+    fetchMock.mockImplementation(async () => new Response('jetstream-verification=stale', { status: 200 }));
+
+    const result = await checkDomainVerification(DOMAIN, CODE, { warn: warnMock });
+
+    expect(result).toEqual({ verified: false, verificationMethod: null, foundNonMatchingValue: true });
+    expect(warnMock).toHaveBeenCalledWith(
+      expect.objectContaining({ fileUrl: 'https://example.com/.well-known/jetstream-verification.txt' }),
+      'Verification file found but contents did not match',
+    );
+  });
+
+  it('returns not-verified with no flags when nothing is found via DNS or files', async () => {
+    resolveTxtMock.mockResolvedValue([]);
+    fetchMock.mockImplementation(async () => new Response('<html>404</html>', { status: 404 }));
+
+    const result = await checkDomainVerification(DOMAIN, CODE, { warn: warnMock });
+
+    expect(result).toEqual({ verified: false, verificationMethod: null, foundNonMatchingValue: false });
+    // Both DNS hosts and both file hosts are tried before giving up.
+    expect(resolveTxtMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('survives file fetch rejections (e.g. SSRF validation failure) without throwing', async () => {
+    resolveTxtMock.mockResolvedValue([]);
+    getPinnedPublicIpDispatcherMock.mockRejectedValue(new Error('Hostname resolves to a private or reserved IP address'));
+
+    const result = await checkDomainVerification(DOMAIN, CODE, { warn: warnMock });
+
+    expect(result).toEqual({ verified: false, verificationMethod: null, foundNonMatchingValue: false });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

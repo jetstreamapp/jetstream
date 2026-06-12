@@ -222,6 +222,8 @@ function VerifyDomainModal({
 }) {
   const [loading, setIsLoading] = useState(false);
   const [verificationMessage, setVerificationMessage] = useState<string>();
+  // A `www.` domain would otherwise produce an invalid `www.www.` URL — the server skips it too
+  const domainHasWwwPrefix = verification.domain.startsWith('www.');
 
   async function handleVerify() {
     try {
@@ -295,13 +297,18 @@ function VerifyDomainModal({
         DNS records may take some time to propagate, you may need to wait before verification is successful.
       </p>
       <hr />
-      <p>Alternatively, you can host a file at either of the following URLs which contains the code:</p>
+      <p>
+        Alternatively, you can host a file containing the code at{' '}
+        {domainHasWwwPrefix ? 'the following URL' : 'either of the following URLs'}:
+      </p>
       <code className="slds-box slds-theme_shade slds-m-vertical_small slds-show">
         https://{verification.domain}/.well-known/jetstream-verification.txt
       </code>
-      <code className="slds-box slds-theme_shade slds-m-vertical_small slds-show">
-        https://_jetstream.{verification.domain}/.well-known/jetstream-verification.txt
-      </code>
+      {!domainHasWwwPrefix && (
+        <code className="slds-box slds-theme_shade slds-m-vertical_small slds-show">
+          https://www.{verification.domain}/.well-known/jetstream-verification.txt
+        </code>
+      )}
       <button className="slds-button" type="button" onClick={downloadTxtFile}>
         Download Verification File
       </button>
