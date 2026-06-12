@@ -54,18 +54,20 @@ const COLUMNS: ColumnWithFilter<SalesforceDeployHistoryItem>[] = [
   },
 ];
 
-const getRowHeight = (orgsById: Record<string, SalesforceOrgUi>) => (row: SalesforceDeployHistoryItem) => {
-  const rowHeight = 27.5;
-  let numberOfRows = 3;
-  if (row.type === 'orgToOrg') {
-    /** we need 3 rows plus a little buffer */
-    numberOfRows = 3.5;
-  } else if (row.fileKey || (row.sourceOrg && orgsById[row.sourceOrg.uniqueId])) {
-    /** we need 3 rows */
-    return 27.5 * 3;
-  }
-  return rowHeight * numberOfRows;
-};
+const getRowHeight =
+  (orgsById: Record<string, SalesforceOrgUi>) =>
+  ({ row }: { type: 'ROW' | 'GROUP'; row: SalesforceDeployHistoryItem }) => {
+    const rowHeight = 27.5;
+    let numberOfRows = 3;
+    if (row.type === 'orgToOrg') {
+      /** we need 3 rows plus a little buffer */
+      numberOfRows = 3.5;
+    } else if (row.fileKey || (row.sourceOrg && orgsById[row.sourceOrg.uniqueId])) {
+      /** we need 3 rows */
+      return 27.5 * 3;
+    }
+    return rowHeight * numberOfRows;
+  };
 const getRowId = ({ key }: SalesforceDeployHistoryItem) => key;
 
 export interface DeployMetadataHistoryTableProps {

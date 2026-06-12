@@ -23,7 +23,7 @@ import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/a
 import { useAtom, useAtomValue } from 'jotai';
 import isNil from 'lodash/isNil';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { Column } from 'react-data-grid';
+import type { Column } from '@jetstream/ui';
 import { ErrorBoundary } from 'react-error-boundary';
 
 const MAX_RECORD_FOR_PREVIEW = 100_000;

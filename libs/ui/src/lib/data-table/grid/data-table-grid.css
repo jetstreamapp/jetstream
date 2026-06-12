@@ -1,0 +1,294 @@
+/**
+ * Jetstream Data Table (v2) — structural styles for the div-based ARIA grid.
+ * Uses SLDS design tokens so it tracks light/dark/system themes. Structural class names use a
+ * `jgrid-` prefix (SLDS `slds-table*` classes target real <table> elements and don't apply here).
+ */
+
+.jgrid-root {
+  block-size: 100%;
+  display: flex;
+  flex-direction: column;
+  min-block-size: 0;
+  --jgrid-border-color: var(--slds-g-color-border-1, #e5e5e5);
+  --jgrid-surface: var(--slds-g-color-surface-container-1, #fff);
+  --jgrid-surface-alt: var(--slds-g-color-surface-container-2, #f3f3f3);
+  --jgrid-on-surface: var(--slds-g-color-on-surface-1, #181818);
+  --jgrid-row-hover: var(--slds-g-color-surface-container-2, #f3f3f3);
+  --jgrid-row-selected: var(--slds-g-color-palette-blue-95, #eef4ff);
+  color: var(--jgrid-on-surface);
+  font-size: 0.8125rem;
+}
+
+.jgrid-scroller {
+  flex: 1 1 auto;
+  overflow: auto;
+  position: relative;
+  background-color: var(--jgrid-surface);
+  border: 1px solid var(--jgrid-border-color);
+  border-radius: var(--slds-g-radius-border-2, 0);
+  contain: strict;
+}
+
+.jgrid {
+  position: relative;
+}
+
+/* Header */
+.jgrid-header {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 2;
+  background-color: var(--jgrid-surface-alt);
+}
+
+.jgrid-header-row {
+  display: grid;
+  border-block-end: 1px solid var(--jgrid-border-color);
+}
+
+/* NOT overflow-clipped (matching SLDS table headers) so the resize divider's full-height guide line
+   and the drag indicator can escape the cell. Label truncation is handled by the inner elements
+   (`.slds-truncate` / the sort button's own overflow). */
+.jgrid-header-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-block-size: 2rem;
+  padding-inline: 0.5rem;
+  border-inline-end: 1px solid var(--jgrid-border-color);
+  font-weight: 700;
+  white-space: nowrap;
+  background-color: var(--jgrid-surface-alt);
+}
+
+.jgrid-header-label {
+  display: inline-block;
+  max-inline-size: 100%;
+}
+
+.jgrid-header-sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  overflow: hidden;
+  cursor: pointer;
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+
+/* Pin the filter trigger to the right edge of the header cell regardless of whether the column is
+   sortable (a sortable column's button already grows; this also right-aligns it for non-sortable ones). */
+.jgrid-header-filter-slot {
+  margin-inline-start: auto;
+  display: inline-flex;
+  align-items: center;
+}
+
+.jgrid-header-sortable:hover {
+  background-color: var(--jgrid-row-hover);
+}
+
+.jgrid-sort-priority {
+  font-size: 0.6875rem;
+  font-weight: 400;
+}
+
+/* Column resize divider, mirroring SLDS `.slds-resizable__divider`: a 1px line at the column edge
+   that widens and turns the accent color on hover/drag (::before), plus a 1px guide line spanning the
+   full table height (::after, clipped by the scroller) so the column boundary is visible across all
+   rows while hovering or dragging. With resize mode 'onEnd', the whole handle is translated to follow
+   the cursor during a drag (see HeaderCell) and the columns re-layout once on release. */
+.jgrid-header-resize-handle {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  inline-size: 8px;
+  cursor: col-resize;
+  touch-action: none;
+  user-select: none;
+  z-index: 1;
+}
+/* Lift above frozen header cells (z-index: 1) while the translated handle drags across them. */
+.jgrid-header-resize-handle.jgrid-resizing {
+  z-index: 2;
+}
+.jgrid-header-resize-handle::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  inline-size: 1px;
+  background-color: var(--slds-s-table-resize-color, var(--jgrid-border-color));
+}
+.jgrid-header-resize-handle:hover::before,
+.jgrid-header-resize-handle.jgrid-resizing::before {
+  inline-size: var(--slds-g-sizing-2, 0.25rem);
+  background-color: var(--slds-s-table-resize-color-active, var(--slds-g-color-accent-2, #0250d9));
+}
+.jgrid-header-resize-handle::after {
+  content: '';
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  inline-size: 1px;
+  block-size: 100vh;
+  background-color: var(--slds-s-table-resize-color-active, var(--slds-g-color-accent-2, #0250d9));
+  opacity: 0;
+}
+.jgrid-header-resize-handle:hover::after,
+.jgrid-header-resize-handle.jgrid-resizing::after {
+  opacity: 1;
+}
+
+/* Body + rows */
+.jgrid-body {
+  position: relative;
+  inline-size: 100%;
+}
+
+.jgrid-row {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  inline-size: 100%;
+  display: grid;
+  /* Row height is pinned inline from the virtualizer. `border-box` folds the bottom border into that
+     height so rows tile exactly against the virtualizer's offsets, and the single implicit track is
+     forced to fill it (minmax(0, 1fr)) so over-tall cell content clips inside the cell rather than
+     stretching the row. We deliberately DON'T set overflow on the row: an overflow-clipped row would
+     become the containing block for its sticky frozen cells and break column pinning. */
+  grid-auto-rows: minmax(0, 1fr);
+  box-sizing: border-box;
+  border-block-end: 1px solid var(--jgrid-border-color);
+  background-color: var(--jgrid-surface);
+  will-change: transform;
+}
+
+.jgrid-row:hover {
+  background-color: var(--jgrid-row-hover);
+}
+
+.jgrid-row-selected,
+.jgrid-row-selected:hover {
+  background-color: var(--jgrid-row-selected);
+}
+
+.jgrid-row.save-error {
+  background-color: var(--slds-g-color-error-base-90, #ffdede);
+}
+
+/* Cells */
+.jgrid-cell {
+  display: flex;
+  align-items: center;
+  min-inline-size: 0;
+  padding-inline: 0.5rem;
+  border-inline-end: 1px solid var(--jgrid-border-color);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  background-color: inherit;
+  /* Native text selection is disabled so drag-to-select a cell range doesn't select text;
+     use Ctrl/Cmd+C (single cell or range) to copy instead. */
+  user-select: none;
+}
+
+.jgrid-header-cell {
+  user-select: none;
+}
+
+/* Rectangular cell-range selection highlight */
+.jgrid-cell-range {
+  background-color: var(--slds-g-color-palette-blue-90, #d8e6fe);
+}
+
+/*
+ * Frozen (sticky-left) cells must stay OPAQUE so scrolled non-frozen content slides under them.
+ * Do NOT set `background-color: inherit` here — body cells already inherit the (opaque) row color via
+ * `.jgrid-cell`, and header cells must keep their own opaque `.jgrid-header-cell` background. Setting
+ * `inherit` here would override the header background and make frozen headers transparent.
+ */
+.jgrid-cell-frozen {
+  box-shadow: 1px 0 0 var(--jgrid-border-color);
+  z-index: 1;
+}
+
+/* Roving tabindex focus ring (navigation mode) */
+.jgrid-cell:focus,
+.jgrid-cell:focus-visible {
+  outline: none;
+  box-shadow: var(--slds-g-shadow-insetinverse-focus-1, inset 0 0 0 2px #0176d3);
+}
+
+/* Inline-edit dirty + error states (parity with legacy class names) */
+.jgrid-cell.slds-is-edited {
+  font-weight: 600;
+  background-color: var(--slds-g-color-warning-base-90, #faffbd);
+}
+.jgrid-cell.active-item-error {
+  outline: 2px solid var(--slds-g-color-error-base-50, red);
+}
+.jgrid-cell.copied {
+  background-color: var(--slds-g-color-warning-base-90, #faffbd);
+}
+
+.jgrid-cell-select {
+  inline-size: 100%;
+}
+
+/* Group + summary rows */
+.jgrid-group-row {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  inline-size: 100%;
+  display: grid;
+  /* Same pinned-height model as `.jgrid-row` — see note there. */
+  grid-auto-rows: minmax(0, 1fr);
+  box-sizing: border-box;
+  align-items: stretch;
+  /* Top + bottom borders so the full-width toggle row reads as a distinct band (a single full-width
+     cell otherwise only shows the row's bottom border). */
+  border-block-start: 1px solid var(--jgrid-border-color);
+  border-block-end: 1px solid var(--jgrid-border-color);
+  background-color: var(--jgrid-surface-alt);
+}
+
+.jgrid-group-cell {
+  background-color: var(--jgrid-surface-alt);
+}
+
+.jgrid-group-toggle {
+  inline-size: 100%;
+  cursor: pointer;
+  padding-inline: 0.25rem;
+}
+
+/* Blue, link-like group label so it's obviously clickable (matches the deploy/compare toggle). */
+.jgrid-group-toggle-label {
+  font-weight: 700;
+  color: var(--slds-g-color-palette-blue-50, #0176d3);
+}
+.jgrid-group-toggle:hover .jgrid-group-toggle-label {
+  text-decoration: underline;
+}
+
+/* Summary rows live inside the sticky header block */
+.jgrid-summary-row {
+  display: grid;
+  border-block-start: 1px solid var(--jgrid-border-color);
+  background-color: var(--jgrid-surface-alt);
+}
+
+.jgrid-summary-cell {
+  background-color: var(--jgrid-surface-alt);
+  font-weight: 600;
+}
+
+.jgrid-body-empty {
+  position: static;
+}
+.jgrid-empty-cell {
+  grid-column: 1 / -1;
+}

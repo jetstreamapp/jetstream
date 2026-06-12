@@ -18,6 +18,8 @@ import {
   ColumnWithFilter,
   Grid,
   Icon,
+  SELECT_COLUMN_KEY,
+  SelectColumn,
   SelectFormatter,
   SelectHeaderGroupRenderer,
   setColumnFromType,
@@ -33,7 +35,6 @@ import localforage from 'localforage';
 import isDate from 'lodash/isDate';
 import isString from 'lodash/isString';
 import { ReactNode } from 'react';
-import { SELECT_COLUMN_KEY, SelectColumn } from 'react-data-grid';
 
 const MAX_HISTORY_ITEMS = 500;
 
@@ -238,7 +239,7 @@ export function getColumnDefinitions(): ColumnWithFilter<DeployMetadataTableRow>
       colSpan: (args) => {
         if (args.type === 'ROW') {
           const { row } = args;
-          if (!row.loading && !row.metadata) {
+          if (!row?.loading && !row?.metadata) {
             return 3;
           }
         }
@@ -251,15 +252,23 @@ export function getColumnDefinitions(): ColumnWithFilter<DeployMetadataTableRow>
       key: 'typeLabel',
       width: 40,
       frozen: true,
-      renderGroupCell: ({ isExpanded }) => (
-        <Grid align="end" verticalAlign="center" className="h-100">
+      // Rows are grouped by typeLabel, so the per-row value is redundant (it's shown in the group header).
+      // Render nothing here — this column is just the chevron/indent column — instead of truncated text.
+      renderCell: () => null,
+      renderGroupCell: ({ isExpanded, toggleGroup }) => (
+        <button
+          type="button"
+          className="slds-button_reset slds-grid slds-grid_align-end slds-grid_vertical-align-center h-100 w-100"
+          onClick={toggleGroup}
+          title="Toggle collapse"
+          tabIndex={-1}
+        >
           <Icon
             icon={isExpanded ? 'chevrondown' : 'chevronright'}
             type="utility"
             className="slds-icon slds-icon-text-default slds-icon_x-small"
-            title="Toggle collapse"
           />
-        </Grid>
+        </button>
       ),
     },
     {
@@ -288,7 +297,7 @@ export function getColumnDefinitions(): ColumnWithFilter<DeployMetadataTableRow>
       colSpan: (args) => {
         if (args.type === 'ROW') {
           const { row } = args;
-          if (!row.loading && !row.metadata) {
+          if (!row?.loading && !row?.metadata) {
             return 5;
           }
         }

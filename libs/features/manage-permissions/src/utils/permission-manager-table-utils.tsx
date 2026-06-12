@@ -27,6 +27,7 @@ import {
   TabVisibilityPermissionItem,
   TabVisibilityPermissionTypes,
 } from '@jetstream/types';
+import type { RenderCellProps, RenderSummaryCellProps } from '@jetstream/ui';
 import {
   Checkbox,
   ColumnWithFilter,
@@ -43,7 +44,6 @@ import {
 } from '@jetstream/ui';
 import startCase from 'lodash/startCase';
 import { Fragment, useContext, useMemo, useRef, useState } from 'react';
-import { RenderCellProps, RenderSummaryCellProps } from 'react-data-grid';
 
 type PermissionTypeColumn<T> = T extends 'object'
   ? ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>
@@ -451,19 +451,13 @@ export function getFieldColumns(
       ...(setColumnFromType('sobject', 'text') as any),
       name: 'Object',
       key: 'sobject',
-      width: 85,
+      // Grouping is by sobject; the full-width group toggle row (rendered by the grid) shows the object
+      // name + count, so this per-row column just needs to be wide enough to read API names. Resizable
+      // so users can reclaim the space when they don't need it.
+      width: 200,
+      resizable: true,
       cellClass: 'bg-color-gray-dark',
       summaryCellClass: 'bg-color-gray-dark',
-      renderGroupCell: ({ isExpanded }) => (
-        <Grid align="end" verticalAlign="center" className="h-100">
-          <Icon
-            icon={isExpanded ? 'chevrondown' : 'chevronright'}
-            type="utility"
-            className="slds-icon slds-icon-text-default slds-icon_x-small"
-            title="Toggle collapse"
-          />
-        </Grid>
-      ),
     },
     {
       ...setColumnFromType('tableLabel', 'text'),
@@ -471,14 +465,7 @@ export function getFieldColumns(
       key: 'tableLabel',
       frozen: true,
       width: 300,
-      renderGroupCell: ({ groupKey, childRows, toggleGroup }) => (
-        <>
-          <button className="slds-button" onClick={toggleGroup}>
-            {groupKey as string}
-          </button>
-          <span className="slds-m-left_xx-small slds-text-body_small slds-text-color_weak">({childRows.length})</span>
-        </>
-      ),
+      resizable: true,
       summaryCellClass: 'bg-color-gray-dark no-outline',
       renderSummaryCell: ({ row }) => {
         if (row.type === 'HEADING') {
@@ -609,7 +596,7 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
       }
       return undefined;
     },
-    renderCell: ({ row, onRowChange }) => {
+    renderCell: ({ row, commitEdit }) => {
       // If the row is not editable, then we don't want to show the checkbox
       if (permissionType === 'tabVisibility' && 'canSetPermission' in row && !row.canSetPermission) {
         return null;
@@ -621,10 +608,10 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
       function handleChange(value: boolean) {
         if (permissionType === 'object') {
           const newRow = setObjectValue(actionKey as PermissionActionAction<'object'>, row as PermissionTableObjectCell, id, value);
-          onRowChange(newRow);
+          commitEdit(newRow);
         } else if (permissionType === 'field') {
           const newRow = setFieldValue(actionKey as PermissionActionAction<'field'>, row as PermissionTableFieldCell, id, value);
-          onRowChange(newRow);
+          commitEdit(newRow);
         } else if (permissionType === 'tabVisibility') {
           const newRow = setTabVisibilityValue(
             actionKey as PermissionActionAction<'tabVisibility'>,
@@ -632,7 +619,7 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
             id,
             value,
           );
-          onRowChange(newRow);
+          commitEdit(newRow);
         }
       }
 
@@ -1333,11 +1320,7 @@ export function updateCheckboxDependencies(
  * PermissionTableObjectCell, PermissionTableSummaryRow
  * readonly renderCell?: Maybe<(props: RenderCellProps<TRow, TSummaryRow>) => ReactNode>;
  */
-export const RowActionRenderer = ({
-  column,
-  onRowChange,
-  row,
-}: RenderCellProps<PermissionTableCellExtended, PermissionTableSummaryRow>) => {
+export const RowActionRenderer = ({ column, commitEdit, row }: RenderCellProps<PermissionTableCellExtended, PermissionTableSummaryRow>) => {
   const { type } = useContext(DataTableGenericContext) as PermissionManagerTableContext;
   const popoverRef = useRef<PopoverRef>(null);
   const [checkboxes, setCheckboxes] = useState<BulkActionCheckbox[]>(() => {
@@ -1370,12 +1353,12 @@ export const RowActionRenderer = ({
   function handleSave() {
     const checkboxesById = groupByFlat(checkboxes, 'id');
     const [updatedRow] = updateRowsFromRowAction(type, checkboxesById, [row]);
-    onRowChange(updatedRow);
+    commitEdit(updatedRow);
   }
 
   function handleReset() {
     const [updatedRow] = resetRow(type, [row]);
-    onRowChange(updatedRow);
+    commitEdit(updatedRow);
   }
 
   function handlePopoverChange(isOpen: boolean) {

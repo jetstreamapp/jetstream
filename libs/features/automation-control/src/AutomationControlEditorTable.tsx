@@ -14,7 +14,7 @@ import { isTableRow } from './automation-control-data-utils';
 import { AdditionalDetailRenderer, ExpandingLabelRenderer, LoadingAndActiveRenderer } from './automation-control-table-renderers';
 import { TableRowOrItemOrChild } from './automation-control-types';
 
-const getRowHeight = (row: TableRowOrItemOrChild) => {
+const getRowHeight = ({ row }: { type: 'ROW' | 'GROUP'; row: TableRowOrItemOrChild }) => {
   if (isTableRow(row)) {
     return 28.5;
   }

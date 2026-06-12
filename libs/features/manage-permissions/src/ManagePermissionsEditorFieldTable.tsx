@@ -10,7 +10,7 @@ import {
 import { AutoFullHeightContainer, ColumnWithFilter, DataTableRef, DataTree } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
 import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
-import { RowHeightArgs } from 'react-data-grid';
+import type { RowHeightArgs } from '@jetstream/ui';
 import { resetGridChanges, updateRowsFromColumnAction } from './utils/permission-manager-table-utils';
 
 function getRowKey(row: PermissionTableFieldCell) {

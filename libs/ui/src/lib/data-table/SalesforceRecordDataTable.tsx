@@ -7,7 +7,7 @@ import { flattenRecord, getIdFromRecordUrl, groupByFlat, nullifyEmptyStrings } f
 import { CloneEditView, ContextMenuItem, Field, Maybe, QueryResults, SalesforceOrgUi, SobjectCollectionResponse } from '@jetstream/types';
 import uniqueId from 'lodash/uniqueId';
 import { Fragment, ReactNode, memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Column, RowsChangeData } from 'react-data-grid';
+import { RowsChangeData } from './grid/rdg-compat';
 import SearchInput from '../form/search-input/SearchInput';
 import Grid from '../grid/Grid';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
@@ -120,7 +120,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
     onReloadQuery,
   }: SalesforceRecordDataTableProps) => {
     const isMounted = useRef(true);
-    const [columns, setColumns] = useState<Column<RowSalesforceRecordWithKey>[]>();
+    const [columns, setColumns] = useState<ColumnWithFilter<RowSalesforceRecordWithKey>[]>();
     const [subqueryColumnsMap, setSubqueryColumnsMap] = useState<Record<string, ColumnWithFilter<RowSalesforceRecordWithKey, unknown>[]>>();
     const [records, setRecords] = useState<any[]>();
     // Same as records but with additional data added
@@ -182,7 +182,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
       if (fieldMetadata && queryResults) {
         const { parentColumns, subqueryColumns } = getColumnDefinitions(queryResults, isTooling, fieldMetadata, fieldMetadataSubquery);
 
-        setColumns(addFieldLabelToColumn(parentColumns, fieldMetadata));
+        setColumns(addFieldLabelToColumn(parentColumns, fieldMetadata) as unknown as ColumnWithFilter<RowSalesforceRecordWithKey>[]);
 
         // If there are subqueries, update field definition
         if (fieldMetadataSubquery) {
