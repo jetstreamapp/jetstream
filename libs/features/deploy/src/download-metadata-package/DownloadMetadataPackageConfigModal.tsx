@@ -107,9 +107,9 @@ export const DownloadMetadataPackageConfigModal: FunctionComponent<DownloadMetad
             size={12}
             sizeMedium={6}
             css={css`
-              border-bottom: 1px solid #dddbda;
+              border-bottom: 1px solid var(--slds-g-color-border-1, #dddbda);
               @media (min-width: 48em) {
-                border-right: 1px solid #dddbda;
+                border-right: 1px solid var(--slds-g-color-border-1, #dddbda);
                 border-bottom: none;
               }
             `}

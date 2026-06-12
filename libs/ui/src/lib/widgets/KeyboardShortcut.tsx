@@ -19,7 +19,7 @@ export function KeyboardShortcut({ keys, preContent, postContent, separator = '+
     ? `var(--slds-g-color-surface-container-3, #e5e5e5)`
     : `var(--slds-g-color-surface-container-2, rgba(0, 0, 0, 0.06))`;
   const accentColor = `var(--slds-g-color-border-1, #e5e5e5)`;
-  const textColor = `var(--slds-g-color-on-surface-1, rgba(24, 24, 27, 1))`;
+  const textColor = `var(--slds-g-color-on-surface-2, rgba(24, 24, 27, 1))`;
   return (
     <Grid verticalAlign="center" {...rest}>
       {preContent && <span className="slds-m-right_x-small">{preContent}</span>}

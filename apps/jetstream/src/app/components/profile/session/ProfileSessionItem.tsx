@@ -57,12 +57,12 @@ export const ProfileSessionItem: FunctionComponent<ProfileSessionItemProps> = ({
             css={css`
               color: var(
                 --slds-c-button-text-destructive-text-color,
-                var(--sds-c-button-text-destructive-text-color, var(--slds-g-color-error-base-30, #ea001e))
+                var(--sds-c-button-text-destructive-text-color, var(--slds-g-color-error-base-40, #ea001e))
               );
               &:hover {
                 color: var(
                   --slds-c-button-text-destructive-text-color,
-                  var(--sds-c-button-text-destructive-text-color, var(--slds-g-color-error-base-30, #ea001e))
+                  var(--sds-c-button-text-destructive-text-color, var(--slds-g-color-error-base-40, #ea001e))
                 );
               }
             `}

@@ -235,7 +235,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
                     <Icon
                       css={css`
                         &:hover {
-                          fill: #005fb2;
+                          fill: var(--slds-g-color-brand-base-40, #005fb2);
                         }
                       `}
                       type="utility"

@@ -9,7 +9,7 @@ body.slds-color-scheme--light .rdg,
 body.slds-color-scheme--dark .rdg,
 body.slds-color-scheme--system .rdg {
   color-scheme: inherit;
-  --rdg-color: var(--slds-g-color-on-surface-1);
+  --rdg-color: var(--slds-g-color-on-surface-2);
   --rdg-background-color: var(--slds-g-color-surface-container-1);
   --rdg-border-color: var(--slds-g-color-border-1);
   --rdg-header-background-color: var(--slds-g-color-surface-container-2);

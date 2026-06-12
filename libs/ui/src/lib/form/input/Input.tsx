@@ -128,7 +128,9 @@ export const Input: FunctionComponent<InputProps> = ({
               <Spinner className="slds-spinner slds-spinner_brand slds-spinner_x-small slds-input__spinner" hasContainer={false} />
               {clearButton && (
                 <button className="slds-button slds-button_icon slds-input__icon slds-input__icon_right" title="Clear" onClick={onClear}>
-                  <Icon type="utility" icon="clear" omitContainer className="slds-button__icon slds-icon-text-light" />
+                  {/* No slds-icon-text-light: it resolves to #444 in dark mode (invisible on dark inputs);
+                      inheriting the icon-button accent color stays visible in both schemes */}
+                  <Icon type="utility" icon="clear" omitContainer className="slds-button__icon" />
                 </button>
               )}
             </div>
@@ -136,7 +138,7 @@ export const Input: FunctionComponent<InputProps> = ({
           {rightAddon && <span className="slds-form-element__addon">{rightAddon}</span>}
           {!rightAddon && clearButton && !loading && (
             <button className="slds-button slds-button_icon slds-input__icon slds-input__icon_right" title="Clear" onClick={onClear}>
-              <Icon type="utility" icon="clear" omitContainer className="slds-button__icon slds-icon-text-light" />
+              <Icon type="utility" icon="clear" omitContainer className="slds-button__icon" />
             </button>
           )}
         </div>

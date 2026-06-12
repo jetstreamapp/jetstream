@@ -45,8 +45,9 @@ export function SalesforceOrgCardDraggable({ org, isActive, onAddOrgHandlerFn }:
           height: 120px;
           cursor: grabbing;
           border-radius: 8px;
-          border: 0.5px solid ${org.connectionError ? '#ea001e' : '#c9c9c9'};
-          box-shadow: 0px 2px 2px rgba(0, 0, 0, 0.1);
+          border: 0.5px solid
+            ${org.connectionError ? 'var(--slds-g-color-error-base-40, #ea001e)' : 'var(--slds-g-color-border-1, #c9c9c9)'};
+          box-shadow: var(--slds-g-shadow-1, 0px 2px 2px rgba(0, 0, 0, 0.1));
           ${isActive
             ? `::after {
             content: '';

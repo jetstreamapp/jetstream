@@ -5,7 +5,6 @@ import { formatNumber } from '@jetstream/shared/ui-utils';
 import { REGEX, groupByFlat } from '@jetstream/shared/utils';
 import { ContextMenuItem, DescribeGlobalSObjectResult, InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import {
-  Alert,
   AutoFullHeightContainer,
   ContextAction,
   ContextMenuActionData,
@@ -13,6 +12,7 @@ import {
   Grid,
   GridCol,
   RowWithKey,
+  ScopedNotification,
   Spinner,
   TABLE_CONTEXT_MENU_ITEMS,
   copyGenericTableDataToClipboard,
@@ -189,14 +189,14 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
       <Grid vertical>
         <GridCol className="slds-m-bottom--medium">
           {!selectedSObject && (
-            <Alert type="warning" leadingIcon="info">
+            <ScopedNotification theme="info">
               <strong>Select an object from the list on the left to continue</strong>
-            </Alert>
+            </ScopedNotification>
           )}
           {selectedSObject && !data && (
-            <Alert type="warning" leadingIcon="info">
+            <ScopedNotification theme="info">
               <strong>Upload a file to continue</strong>
-            </Alert>
+            </ScopedNotification>
           )}
           {selectedSObject && data && (
             <div className="slds-is-relative">

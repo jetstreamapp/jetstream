@@ -26,7 +26,7 @@ export const SettingsDeleteAccount: FunctionComponent<SettingsDeleteAccountProps
         margin-top: 3rem;
         padding: 1rem;
         border-radius: 0.25rem;
-        border: 1px solid #ea001e;
+        border: 1px solid var(--slds-g-color-error-base-40, #ea001e);
       `}
     >
       <Grid verticalAlign="center" className="slds-m-bottom_small">
