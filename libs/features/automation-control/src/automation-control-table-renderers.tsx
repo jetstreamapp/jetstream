@@ -1,12 +1,12 @@
 import { css } from '@emotion/react';
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
+import type { CalculatedColumn, RenderCellProps } from '@jetstream/ui';
 import { Checkbox, CopyToClipboard, Grid, GridCol, Icon, SalesforceLogin, Spinner, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import uniqueId from 'lodash/uniqueId';
 import { FunctionComponent, ReactNode } from 'react';
-import { CalculatedColumn, RenderCellProps } from 'react-data-grid';
 import { isTableRow, isTableRowChild, isTableRowItem } from './automation-control-data-utils';
 import { DeploymentItemRow, DeploymentItemStatus, MetadataCompositeResponseError, TableRowOrItemOrChild } from './automation-control-types';
 
