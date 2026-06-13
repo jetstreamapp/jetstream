@@ -266,8 +266,8 @@ importers:
         specifier: ^1.1.1
         version: 1.1.1
       '@jetstreamapp/soql-parser-js':
-        specifier: ^7.2.0
-        version: 7.2.0
+        specifier: ^7.2.1
+        version: 7.2.1
       '@marsidev/react-turnstile':
         specifier: ^1.5.2
         version: 1.5.2(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -4518,8 +4518,8 @@ packages:
   '@jetstreamapp/simple-xml@1.1.1':
     resolution: {integrity: sha512-H3LeZEvOb/JD8S2vs5vzK0HOlFoKu+IQCueTNbOJ1+smUEEMNWGFni38EEQK7cMYkQKPFGfrGFb5S4hynnDJaA==}
 
-  '@jetstreamapp/soql-parser-js@7.2.0':
-    resolution: {integrity: sha512-pzk0sXv3fZiO1NE0J8++PkfnG2KGF2Dr0CGYBzzLCE6JrdA26hjoVKgq80423P2eCxTZrMdn6npKnGqIrBaywg==}
+  '@jetstreamapp/soql-parser-js@7.2.1':
+    resolution: {integrity: sha512-WLR7gf6ukdEGp4lGIOpCNJWHl/OrzJkzQVOvczTwOBr38Pi6kmoTGmqVDFAsUP87OOrN2/YgGSs+v8siC4ylDg==}
     hasBin: true
 
   '@jridgewell/gen-mapping@0.3.13':
@@ -22638,7 +22638,7 @@ snapshots:
 
   '@jetstreamapp/simple-xml@1.1.1': {}
 
-  '@jetstreamapp/soql-parser-js@7.2.0': {}
+  '@jetstreamapp/soql-parser-js@7.2.1': {}
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
