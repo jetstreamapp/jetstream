@@ -10,8 +10,21 @@ const ENV = {
   PROVISIONING_PROFILE_PATH_MAS: process.env.PROVISIONING_PROFILE_PATH_MAS,
   AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
   AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
-  WINDOWS_CERT_SHA1: process.env.WINDOWS_CERT_SHA1,
+  AZURE_TENANT_ID: process.env.AZURE_TENANT_ID,
+  AZURE_CLIENT_ID: process.env.AZURE_CLIENT_ID,
+  AZURE_CLIENT_SECRET: process.env.AZURE_CLIENT_SECRET,
 };
+
+/**
+ * Fail fast with a clear message when signing is enabled but credentials are
+ * missing, instead of failing deep inside electron-builder's signing step.
+ */
+function assertRequiredEnvVars(platform, requiredKeys) {
+  const missingKeys = requiredKeys.filter((key) => !process.env[key]);
+  if (missingKeys.length > 0) {
+    throw new Error(`Code signing is enabled for ${platform} but these environment variables are missing: ${missingKeys.join(', ')}`);
+  }
+}
 
 /** @type {Configuration['mac']} */
 let macSigningConfig = {
@@ -21,7 +34,10 @@ let macSigningConfig = {
 /** @type {Configuration['win']} */
 let winSigningConfig = {};
 
-if (ENV.IS_CODESIGNING_ENABLED) {
+// Only configure (and validate) signing for the platform actually being built.
+// Each platform is built on its own runner, so process.platform is the target.
+if (ENV.IS_CODESIGNING_ENABLED && process.platform === 'darwin') {
+  assertRequiredEnvVars('macOS', ['APPLE_TEAM_ID', 'APPLE_API_KEY', 'APPLE_API_KEY_ID', 'APPLE_API_ISSUER']);
   macSigningConfig = {
     forceCodeSigning: true,
     identity: `JETSTREAM SOLUTIONS, LLC (${ENV.APPLE_TEAM_ID})`,
@@ -34,12 +50,17 @@ if (ENV.IS_CODESIGNING_ENABLED) {
     requirements: null,
     signIgnore: null,
   };
+}
+
+if (ENV.IS_CODESIGNING_ENABLED && process.platform === 'win32') {
+  assertRequiredEnvVars('Windows', ['AZURE_TENANT_ID', 'AZURE_CLIENT_ID', 'AZURE_CLIENT_SECRET']);
   winSigningConfig = {
     forceCodeSigning: true,
-    signtoolOptions: {
-      certificateSha1: ENV.WINDOWS_CERT_SHA1,
-      signingHashAlgorithms: ['sha256'],
-      sign: './windows-sign.js',
+    azureSignOptions: {
+      publisherName: 'Jetstream Solutions, LLC',
+      endpoint: 'https://eus.codesigning.azure.net',
+      certificateProfileName: 'jetstream-certificate-profile',
+      codeSigningAccountName: 'jetstream-desktop',
     },
   };
 }
@@ -61,7 +82,6 @@ const config = {
     '!**/*.map',
     '!**/*.ts',
     '!electron-builder.config.js',
-    '!windows-sign.js',
     '!pnpm-lock.yaml',
     '!node_modules/.cache',
     '!node_modules/.prisma',
