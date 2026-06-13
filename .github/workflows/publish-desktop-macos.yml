@@ -84,6 +84,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Prisma client is not generated on install; the desktop build needs it.
+      # `prisma generate` doesn't connect to the database, but the Prisma config
+      # still resolves this env var, so a placeholder is required.
+      - name: Generate database client
+        run: pnpm db:generate
+        env:
+          JETSTREAM_POSTGRES_DBURI: "postgresql://placeholder:placeholder@localhost:5432/placeholder"
+
       # Builds the nx desktop projects and assembles dist/desktop-build,
       # writing the .env (Apple + Backblaze creds) that electron-builder reads.
       - name: Build desktop bundle
