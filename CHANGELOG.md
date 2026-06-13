@@ -1,5 +1,26 @@
 # Changelog
 
+## [10.1.0](https://github.com/jetstreamapp/jetstream/compare/v10.0.1...v10.1.0) (2026-06-13)
+
+### Features
+
+* add Azure signing configuration for Windows builds ([9705788](https://github.com/jetstreamapp/jetstream/commit/970578840b4dbe8838c932f471198257feaa456e))
+* add github actions for publishing desktop builds ([9f8cfd7](https://github.com/jetstreamapp/jetstream/commit/9f8cfd7c28c45715ce5edb9b55e2bc7342c2fc5b))
+* enforce last-admin invariant for team member updates ([83d4c41](https://github.com/jetstreamapp/jetstream/commit/83d4c411abf8979037e593ff56b7d229022c0491))
+* handle P2034 serialization conflict as 409 Conflict in uncaughtErrorHandler ([03fa985](https://github.com/jetstreamapp/jetstream/commit/03fa985e78999e9e6f7cbe8c4d4392062abf7afa))
+* implement deriveAssertionReplayId function for stable SAML assertion replay protection ([fae91d3](https://github.com/jetstreamapp/jetstream/commit/fae91d3eed7814a8cd601ad80aa409962b056153))
+* implement scrubSensitiveEventData function to redact sensitive information from Sentry events ([b5cf376](https://github.com/jetstreamapp/jetstream/commit/b5cf3763261070f2168203fb83345f97b6288b68))
+
+### Bug Fixes
+
+* add @inquirer/prompts missing dependency for release process ([c43492f](https://github.com/jetstreamapp/jetstream/commit/c43492fb8a94243b37a62773c8a97cd7400dd960))
+* enhance domain verification messaging and update file URL structure ([bbbcc92](https://github.com/jetstreamapp/jetstream/commit/bbbcc92072e60b65ecd77a1e849b91e212c92a22))
+* ensure SSO is classified as login provider ([946089d](https://github.com/jetstreamapp/jetstream/commit/946089d20251691ad9ecfb0b44f5d5942fcdd565)), closes [#1771](https://github.com/jetstreamapp/jetstream/issues/1771)
+* improve dark mode support and normalize styles to slds tokens ([149ecf5](https://github.com/jetstreamapp/jetstream/commit/149ecf5ee48545eea8600351a184e540ee8ce67d)), closes [#1778](https://github.com/jetstreamapp/jetstream/issues/1778)
+* improve error handling by using getErrorMessage utility ([c6d8768](https://github.com/jetstreamapp/jetstream/commit/c6d8768982fd58d23f86e63cd4fde0b26d7261d2))
+* remove duplicate entries for '@xmldom/xmldom' in pnpm-lock.yaml ([58f243e](https://github.com/jetstreamapp/jetstream/commit/58f243e3aeec9f4025f3ac72b173d2a05bcaafee))
+* update electron-builder to fix backblaze issue and shell-quote vulnerability ([f344e46](https://github.com/jetstreamapp/jetstream/commit/f344e462a4348978a0afbfd9f0fb7b69e2251e53))
+
 ## [10.0.1](https://github.com/jetstreamapp/jetstream/compare/v10.0.0...v10.0.1) (2026-06-10)
 
 ### Bug Fixes
