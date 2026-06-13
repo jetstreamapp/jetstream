@@ -1,0 +1,85 @@
+name: Release Desktop (Windows)
+
+# Builds, signs (Azure Trusted Signing), and publishes the Windows desktop app.
+# Mirrors the local flow: `pnpm build:desktop` then `cd dist/desktop-build && pnpm publish:win`.
+#
+# Triggered automatically by the `desktop-v*` tag that the main Release workflow
+# (release.yml) pushes via the GitHub App token, so it builds the already-bumped
+# version. Can also be dispatched manually against any ref.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git ref (tag or branch) to build"
+        required: true
+        default: "main"
+  # Enable once the manual flow is proven rock solid: the `desktop-v*` tag that
+  # release.yml pushes (via the GitHub App token) will then auto-trigger this.
+  # push:
+  #   tags:
+  #     - "desktop-v*"
+
+concurrency:
+  group: release-desktop-windows-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    environment: production
+    env:
+      NODE_OPTIONS: "--max_old_space_size=8192"
+      # Turns on the win `azureSignOptions` branch in electron-builder.config.js
+      IS_CODESIGNING_ENABLED: "true"
+      # Azure Trusted Signing — consumed by Azure Identity EnvironmentCredential
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      # Backblaze B2 (S3-compatible) auto-update feed; build-electron.mjs maps
+      # these onto AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY for the publish step.
+      BACKBLAZE_ACCESS_KEY_ID: ${{ secrets.BACKBLAZE_ACCESS_KEY_ID }}
+      BACKBLAZE_SECRET_ACCESS_KEY: ${{ secrets.BACKBLAZE_SECRET_ACCESS_KEY }}
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.1.3
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      # The TrustedSigning PowerShell module that electron-builder installs at
+      # sign time runs on .NET 8. Without it, signing fails with SignTool exit 3.
+      - name: Setup .NET 8 runtime
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Prisma client is not generated on install; the desktop build needs it.
+      - name: Generate database client
+        run: pnpm db:generate
+
+      # Builds the nx desktop projects and assembles dist/desktop-build,
+      # writing the .env (Azure + Backblaze creds) that electron-builder reads.
+      - name: Build desktop bundle
+        run: pnpm build:desktop
+
+      # electron-builder --win -p always: signs via Azure Trusted Signing and
+      # publishes installers + update metadata to the Backblaze feed.
+      - name: Package, sign, and publish Windows installers
+        working-directory: dist/desktop-build
+        run: pnpm publish:win
