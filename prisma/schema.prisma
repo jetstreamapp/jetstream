@@ -280,7 +280,7 @@ model WebExtensionToken {
   source            String   @default("BROWSER_EXTENSION")
   token             String
   tokenHash         String   @db.VarChar(64)
-  deviceId          String   @unique
+  deviceId          String
   ipAddress         String
   userAgent         String
   provider          String?
@@ -730,6 +730,19 @@ model CacheEntry {
 
   @@index([expiresAt])
   @@map("cache_entry")
+}
+
+// Backing table for the distributed (cross-instance) rate limiter (PgRateLimitStore). One row per
+// rate-limit key holds the current window's hit count and expiry. Rows are reset in-place on the
+// next request after a window expires; stale keys (IPs/emails never seen again) are reaped hourly by
+// pruneExpiredRecords (auth.db.service.ts) via the expiresAt index.
+model RateLimitHit {
+  key       String   @id @db.VarChar(512)
+  hits      Int
+  expiresAt DateTime @map("expires_at")
+
+  @@index([expiresAt])
+  @@map("rate_limit_hits")
 }
 
 model DomainVerification {
