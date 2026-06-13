@@ -51,9 +51,6 @@ const TARGET_PNPM_WORKSPACE_PATH = join(TARGET_DIR, 'pnpm-workspace.yaml');
 const TARGET_CLIENT_DIR = join(TARGET_DIR, 'client');
 const MAIN_BUILD_DIR = join(process.cwd(), 'dist/apps/jetstream-desktop');
 const RENDERER_BUILD_DIR = join(process.cwd(), 'dist/apps/jetstream-desktop-client');
-const WINDOWS_SIGN_SCRIPT = join(process.cwd(), 'scripts/windows-sign.js');
-const WINDOWS_SIGN_SCRIPT_DEST = join(TARGET_DIR, 'windows-sign.js');
-
 // NX calculates these dependencies, but they are not used in the final build
 const packageManagerRemoveDeps = () => {
   const { devDependencies, dependencies } = JSON.parse(readFileSync(TARGET_PACKAGE_JSON_PATH, 'utf-8'));
@@ -145,7 +142,6 @@ async function build() {
   // Copy artifacts to the target directory
   await copy(MAIN_BUILD_DIR, TARGET_DIR);
   await copy(RENDERER_BUILD_DIR, TARGET_CLIENT_DIR);
-  await copy(WINDOWS_SIGN_SCRIPT, WINDOWS_SIGN_SCRIPT_DEST);
 
   // Copy electron-builder config and assets
   await copy('electron-builder.config.js', join(TARGET_DIR, 'electron-builder.config.js'));
@@ -172,8 +168,11 @@ async function build() {
   await remove(join(TARGET_DIR, 'node_modules/.prisma'));
   await remove(join(TARGET_DIR, 'node_modules/.cache'));
 
-  // Create .env file with necessary environment variables
-  let envContent = [
+  // Create .env file with the secrets electron-builder needs at package/publish time.
+  // Resolve values up front so the Backblaze->AWS fallback below is based on actual
+  // env values rather than substring-matching the serialized file content.
+  const envValues = {};
+  for (const key of [
     'IS_CODESIGNING_ENABLED',
     'APPLE_TEAM_ID',
     'APPLE_API_KEY',
@@ -181,25 +180,37 @@ async function build() {
     'APPLE_API_ISSUER',
     'PROVISIONING_PROFILE_PATH_DARWIN',
     'PROVISIONING_PROFILE_PATH_MAS',
-    'WINDOWS_CERT_SHA1',
+    'AZURE_TENANT_ID',
+    'AZURE_CLIENT_ID',
+    'AZURE_CLIENT_SECRET',
     'BACKBLAZE_ACCESS_KEY_ID',
     'BACKBLAZE_SECRET_ACCESS_KEY',
-    // Optional, will fall back to Backblaze keys if not provided
     'AWS_ACCESS_KEY_ID',
     'AWS_SECRET_ACCESS_KEY',
-  ]
-    .filter((key) => process.env[key])
-    .map((key) => `${key}=${process.env[key] ?? ''}`)
+  ]) {
+    if (process.env[key]) {
+      envValues[key] = process.env[key];
+    }
+  }
+
+  // electron-builder publishes to the S3-compatible Backblaze bucket via the AWS_*
+  // credentials, so fall back to the Backblaze keys when AWS_* aren't provided.
+  envValues.AWS_ACCESS_KEY_ID ??= process.env.BACKBLAZE_ACCESS_KEY_ID;
+  envValues.AWS_SECRET_ACCESS_KEY ??= process.env.BACKBLAZE_SECRET_ACCESS_KEY;
+
+  // Serialize as a double-quoted value, escaping the backslash (the escape char)
+  // first so the remaining escapes are unambiguous, then newlines and quotes. This
+  // keeps secrets containing spaces, '#', quotes, or newlines from corrupting the file.
+  const serializeEnvValue = (value) =>
+    `"${String(value).replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/"/g, '\\"')}"`;
+
+  const envContent = Object.entries(envValues)
+    .filter(([, value]) => value != null)
+    .map(([key, value]) => `${key}=${serializeEnvValue(value)}`)
     .join('\n');
 
-  if (envContent.includes('BACKBLAZE_ACCESS_KEY_ID') && !envContent.includes('AWS_ACCESS_KEY_ID')) {
-    envContent += `\nAWS_ACCESS_KEY_ID=${process.env.BACKBLAZE_ACCESS_KEY_ID}`;
-  }
-  if (envContent.includes('BACKBLAZE_SECRET_ACCESS_KEY') && !envContent.includes('AWS_SECRET_ACCESS_KEY')) {
-    envContent += `\nAWS_SECRET_ACCESS_KEY=${process.env.BACKBLAZE_SECRET_ACCESS_KEY}`;
-  }
-
-  writeFileSync('.env', envContent);
+  // Restrict permissions; this file contains signing and publishing secrets.
+  writeFileSync('.env', envContent + '\n', { mode: 0o600 });
 
   // Build with electron-builder
   console.log(chalk.green('Ready to build with electron-builder!'));
