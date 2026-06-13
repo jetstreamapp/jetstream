@@ -1,4 +1,4 @@
-name: Release Desktop (Windows)
+name: Publish Desktop (Windows)
 
 # Builds, signs (Azure Trusted Signing), and publishes the Windows desktop app.
 # Mirrors the local flow: `pnpm build:desktop` then `cd dist/desktop-build && pnpm publish:win`.
@@ -68,10 +68,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      # Prisma client is not generated on install; the desktop build needs it.
-      - name: Generate database client
-        run: pnpm db:generate
 
       # Builds the nx desktop projects and assembles dist/desktop-build,
       # writing the .env (Azure + Backblaze creds) that electron-builder reads.
