@@ -1,4 +1,4 @@
-name: Release Desktop (macOS)
+name: Publish Desktop (macOS)
 
 # Builds, signs (Developer ID), notarizes, and publishes the macOS desktop app.
 # Mirrors the local flow: `pnpm build:desktop` then `cd dist/desktop-build && pnpm publish:mac`.
@@ -83,10 +83,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      # Prisma client is not generated on install; the desktop build needs it.
-      - name: Generate database client
-        run: pnpm db:generate
 
       # Builds the nx desktop projects and assembles dist/desktop-build,
       # writing the .env (Apple + Backblaze creds) that electron-builder reads.
