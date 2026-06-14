@@ -12,8 +12,6 @@
     "postinstall": "electron-builder install-app-deps",
     "build:mac": "electron-builder build --mac --config electron-builder.config.js",
     "build:win": "electron-builder build --win --config electron-builder.config.js",
-    "publish:mac:dev": "electron-builder build --mac --config electron-builder.config.js --publish always --config.publish.provider=s3 --config.publish.endpoint=http://localhost:9000 --config.publish.bucket=desktop-updates --config.publish.path=jetstream/releases",
-    "publish:win:dev": "electron-builder build --win --config electron-builder.config.js --publish always --config.publish.provider=s3 --config.publish.endpoint=http://localhost:9000 --config.publish.bucket=desktop-updates --config.publish.path=jetstream/releases",
     "publish:mac": "electron-builder build --mac --config electron-builder.config.js -p always",
     "publish:win": "electron-builder build --win --config electron-builder.config.js -p always"
   },

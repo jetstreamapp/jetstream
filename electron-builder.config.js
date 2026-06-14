@@ -183,6 +183,14 @@ const config = {
   publish:
     ENV.IS_CODESIGNING_ENABLED && ENV.AWS_ACCESS_KEY_ID && ENV.AWS_SECRET_ACCESS_KEY
       ? [
+          // Primary feed clients read from — a subdomain we control, decoupled from any
+          // storage vendor. Backed by Backblaze today, Cloudflare R2 after the DNS cutover.
+          {
+            provider: 'generic',
+            url: 'https://release-updates.getjetstream.app/jetstream/releases',
+          },
+          // Upload target during the sunset: keep publishing to Backblaze so existing clients
+          // (pinned to the raw B2 endpoint in their baked app-update.yml) keep updating.
           {
             provider: 's3',
             // Local testing with MinIO

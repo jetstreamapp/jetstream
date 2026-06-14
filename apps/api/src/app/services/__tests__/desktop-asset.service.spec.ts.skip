@@ -14,10 +14,11 @@ vi.mock('@aws-sdk/client-s3', () => {
 
 vi.mock('@jetstream/api-config', () => ({
   ENV: {
-    BACKBLAZE_ACCESS_KEY_ID: 'test-access-key',
-    BACKBLAZE_SECRET_ACCESS_KEY: 'test-secret-key',
-    BACKBLAZE_REGION: 'us-west-001',
-    BACKBLAZE_BUCKET_NAME: 'test-bucket',
+    AWS_ACCESS_KEY_ID: 'test-access-key',
+    AWS_SECRET_ACCESS_KEY: 'test-secret-key',
+    AWS_ENDPOINT_URL: 'https://s3.example.com',
+    AWS_REGION: 'auto',
+    S3_BUCKET_NAME: 'test-bucket',
   },
 }));
 
@@ -43,10 +44,11 @@ describe('desktop-asset.service', () => {
 
     vi.doMock('@jetstream/api-config', () => ({
       ENV: {
-        BACKBLAZE_ACCESS_KEY_ID: 'test-access-key',
-        BACKBLAZE_SECRET_ACCESS_KEY: 'test-secret-key',
-        BACKBLAZE_REGION: 'us-west-001',
-        BACKBLAZE_BUCKET_NAME: 'test-bucket',
+        AWS_ACCESS_KEY_ID: 'test-access-key',
+        AWS_SECRET_ACCESS_KEY: 'test-secret-key',
+        AWS_ENDPOINT_URL: 'https://s3.example.com',
+        AWS_REGION: 'auto',
+        S3_BUCKET_NAME: 'test-bucket',
       },
     }));
 
@@ -231,9 +233,11 @@ releaseDate: '2025-09-22T13:36:41.519Z'`;
       consoleErrorSpy.mockRestore();
     });
 
-    it('should throw error when BackBlaze credentials are not set', async () => {
+    it('should return null when object storage credentials are not set', async () => {
       // Reset modules and re-mock with no credentials
       vi.resetModules();
+
+      const warn = vi.fn();
 
       vi.doMock('@aws-sdk/client-s3', () => ({
         GetObjectCommand: vi.fn((input) => ({ input })),
@@ -244,10 +248,15 @@ releaseDate: '2025-09-22T13:36:41.519Z'`;
 
       vi.doMock('@jetstream/api-config', () => ({
         ENV: {
-          BACKBLAZE_ACCESS_KEY_ID: undefined,
-          BACKBLAZE_SECRET_ACCESS_KEY: undefined,
-          BACKBLAZE_REGION: 'us-west-001',
-          BACKBLAZE_BUCKET_NAME: 'test-bucket',
+          AWS_ACCESS_KEY_ID: undefined,
+          AWS_SECRET_ACCESS_KEY: undefined,
+          AWS_ENDPOINT_URL: 'https://s3.example.com',
+          AWS_REGION: 'auto',
+          S3_BUCKET_NAME: 'test-bucket',
+        },
+        logger: {
+          error: vi.fn(),
+          warn,
         },
       }));
 
@@ -255,9 +264,8 @@ releaseDate: '2025-09-22T13:36:41.519Z'`;
       const module = require('../desktop-asset.service');
       const getLatestDesktopVersionWithoutCreds = module.getLatestDesktopVersion;
 
-      await expect(getLatestDesktopVersionWithoutCreds({ platform: 'windows', arch: 'x64' })).rejects.toThrow(
-        'BackBlaze credentials are not set in environment variables',
-      );
+      await expect(getLatestDesktopVersionWithoutCreds({ platform: 'windows', arch: 'x64' })).resolves.toBeNull();
+      expect(warn).toHaveBeenCalledWith('Object storage credentials are not set; desktop downloads are unavailable for windows/x64');
     });
 
     it('should handle empty files array in response', async () => {

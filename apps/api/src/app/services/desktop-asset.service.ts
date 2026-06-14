@@ -41,7 +41,7 @@ async function getAndParseVersionFile(s3Client: S3Client, key: string) {
   return s3Client
     .send(
       new GetObjectCommand({
-        Bucket: ENV.BACKBLAZE_BUCKET_NAME,
+        Bucket: ENV.S3_BUCKET_NAME,
         Key: key,
       }),
     )
@@ -58,18 +58,18 @@ export async function getLatestDesktopVersion({ arch, platform }: PlatformArch):
     return cached.data;
   }
 
-  if (!ENV.BACKBLAZE_ACCESS_KEY_ID || !ENV.BACKBLAZE_SECRET_ACCESS_KEY) {
-    logger.warn(`BackBlaze credentials are not set; desktop downloads are unavailable for ${platform}/${arch}`);
+  if (!ENV.AWS_ACCESS_KEY_ID || !ENV.AWS_SECRET_ACCESS_KEY || !ENV.AWS_ENDPOINT_URL) {
+    logger.warn(`Object storage credentials are not set; desktop downloads are unavailable for ${platform}/${arch}`);
     versionCache.set(cacheKey, { data: null, expiry: Date.now() + CACHE_DURATION_MS });
     return null;
   }
 
   const s3Client = new S3Client({
-    endpoint: `https://s3.${ENV.BACKBLAZE_REGION}.backblazeb2.com`,
-    region: ENV.BACKBLAZE_REGION,
+    endpoint: ENV.AWS_ENDPOINT_URL,
+    region: ENV.AWS_REGION,
     credentials: {
-      accessKeyId: ENV.BACKBLAZE_ACCESS_KEY_ID,
-      secretAccessKey: ENV.BACKBLAZE_SECRET_ACCESS_KEY,
+      accessKeyId: ENV.AWS_ACCESS_KEY_ID,
+      secretAccessKey: ENV.AWS_SECRET_ACCESS_KEY,
     },
   });
 

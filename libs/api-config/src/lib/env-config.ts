@@ -281,12 +281,14 @@ const envSchema = z.object({
   }),
 
   /**
-   * BackBlaze B2
+   * S3-compatible object storage for desktop release artifacts (Cloudflare R2).
+   * Standard AWS_* names are auto-detected by the AWS SDK/CLI and S3-compatible tooling.
    */
-  BACKBLAZE_ACCESS_KEY_ID: z.string().default(''),
-  BACKBLAZE_SECRET_ACCESS_KEY: z.string().default(''),
-  BACKBLAZE_BUCKET_NAME: z.string().default('desktop-updates'),
-  BACKBLAZE_REGION: z.string().default('us-east-005'),
+  AWS_ACCESS_KEY_ID: z.string().default(''),
+  AWS_SECRET_ACCESS_KEY: z.string().default(''),
+  AWS_ENDPOINT_URL: z.string().default(''),
+  AWS_REGION: z.string().default('auto'),
+  S3_BUCKET_NAME: z.string().default('desktop-updates'),
 });
 
 const parseResults = envSchema.safeParse({
