@@ -110,6 +110,7 @@ export default function DesktopDownloadPage() {
                         <ArrowDownTrayIcon className="h-6 w-6 mr-3" />
                         Download for {platformName}
                       </a>
+                      <p className="mt-3 text-xs text-gray-500">Version {recommendedDownload.version}</p>
                     </div>
                   ) : null;
                 })()}
@@ -122,7 +123,7 @@ export default function DesktopDownloadPage() {
                   <div className="flex items-center justify-between p-4 rounded-lg border border-gray-700 bg-white/5">
                     <div>
                       <h4 className="text-white font-medium">Windows</h4>
-                      <p className="text-sm text-gray-400">64-bit installer</p>
+                      <p className="text-sm text-gray-400">64-bit installer{windows ? ` • v${windows.version}` : ''}</p>
                     </div>
                     {windows ? (
                       <a
@@ -141,7 +142,7 @@ export default function DesktopDownloadPage() {
                   <div className="flex items-center justify-between p-4 rounded-lg border border-gray-700 bg-white/5">
                     <div>
                       <h4 className="text-white font-medium">macOS (Intel)</h4>
-                      <p className="text-sm text-gray-400">For Intel-based Macs</p>
+                      <p className="text-sm text-gray-400">For Intel-based Macs{macosX64 ? ` • v${macosX64.version}` : ''}</p>
                     </div>
                     {macosX64 ? (
                       <a
@@ -160,7 +161,7 @@ export default function DesktopDownloadPage() {
                   <div className="flex items-center justify-between p-4 rounded-lg border border-gray-700 bg-white/5">
                     <div>
                       <h4 className="text-white font-medium">macOS (Apple Silicon)</h4>
-                      <p className="text-sm text-gray-400">For M Series Macs</p>
+                      <p className="text-sm text-gray-400">For M Series Macs{macosArm64 ? ` • v${macosArm64.version}` : ''}</p>
                     </div>
                     {macosArm64 ? (
                       <a

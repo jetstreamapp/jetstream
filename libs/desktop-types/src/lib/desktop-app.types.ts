@@ -258,6 +258,8 @@ export interface UpdateStatus {
   status: UpdateStatusType;
   version?: string;
   error?: string;
+  /** Stable error code from electron-updater (e.g. ERR_UPDATER_INVALID_SIGNATURE), when available. */
+  errorCode?: string;
   downloadProgress?: {
     percent: number;
     transferred: number;
