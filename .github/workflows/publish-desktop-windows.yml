@@ -16,9 +16,9 @@ on:
         default: "main"
   # Enable once the manual flow is proven rock solid: the `desktop-v*` tag that
   # release.yml pushes (via the GitHub App token) will then auto-trigger this.
-  # push:
-  #   tags:
-  #     - "desktop-v*"
+  push:
+    tags:
+      - "desktop-v*"
 
 concurrency:
   group: release-desktop-windows-${{ github.ref }}
@@ -31,7 +31,6 @@ jobs:
   build-windows:
     runs-on: windows-latest
     timeout-minutes: 60
-    environment: production
     env:
       NODE_OPTIONS: "--max_old_space_size=8192"
       # Turns on the win `azureSignOptions` branch in electron-builder.config.js
