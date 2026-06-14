@@ -1,0 +1,7 @@
+# pnpm 11 writes a multi-document lockfile (a `---`-separated `packageManagerDependencies`
+# document plus the workspace document) when self-managing the package manager version.
+# Nx's lockfile parser splits on the YAML `---` separator but does not normalize CRLF, so a
+# CRLF checkout — Windows CI runners default to `core.autocrlf=true` — hides the separator and
+# fails the project graph with "expected a single document in the stream, but found more".
+# Forcing LF keeps the separator findable on every platform. See https://github.com/nrwl/nx/issues/35828.
+pnpm-lock.yaml text eol=lf
