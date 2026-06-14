@@ -81,6 +81,29 @@ jobs:
           echo "$APPLE_API_KEY_BASE64" | base64 --decode > "$KEY_PATH"
           echo "APPLE_API_KEY=$KEY_PATH" >> "$GITHUB_ENV"
 
+      # TEMPORARY: diagnose the "MAC verification failed" cert import error.
+      # Prints only lengths/hashes/pass-fail — never the secret values themselves.
+      # Compare the decoded sha256 below against the local .p12 you encoded.
+      - name: Debug signing certificate (safe)
+        env:
+          CSC_LINK: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+          CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          set -uo pipefail
+          echo "base64 length:   ${#CSC_LINK}"
+          echo "password length: ${#CSC_KEY_PASSWORD}"
+          printf '%s' "$CSC_LINK" | base64 --decode > /tmp/cert.p12 || echo "!! base64 decode failed"
+          echo "decoded size:    $(wc -c < /tmp/cert.p12) bytes"
+          echo "decoded sha256:  $(shasum -a 256 /tmp/cert.p12 | awk '{print $1}')"
+          echo "--- openssl verify (modern) ---"
+          openssl pkcs12 -info -in /tmp/cert.p12 -noout -passin pass:"$CSC_KEY_PASSWORD" && echo "PASS modern" || echo "FAIL modern"
+          echo "--- openssl verify (legacy) ---"
+          openssl pkcs12 -info -in /tmp/cert.p12 -noout -passin pass:"$CSC_KEY_PASSWORD" -legacy && echo "PASS legacy" || echo "FAIL legacy"
+          echo "--- security import test ---"
+          security create-keychain -p tmp-pass /tmp/debug.keychain
+          security import /tmp/cert.p12 -k /tmp/debug.keychain -P "$CSC_KEY_PASSWORD" -T /usr/bin/codesign \
+            && echo "PASS security import" || echo "FAIL security import"
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
