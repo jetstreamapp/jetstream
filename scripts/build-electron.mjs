@@ -183,6 +183,7 @@ async function build() {
     'AZURE_CLIENT_SECRET',
     'AWS_ACCESS_KEY_ID',
     'AWS_SECRET_ACCESS_KEY',
+    'AWS_ENDPOINT_URL',
   ]) {
     if (process.env[key]) {
       envValues[key] = process.env[key];

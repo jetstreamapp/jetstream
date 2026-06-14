@@ -14,11 +14,9 @@ on:
         description: "Git ref (tag or branch) to build"
         required: true
         default: "main"
-  # Enable once the manual flow is proven rock solid: the `desktop-v*` tag that
-  # release.yml pushes (via the GitHub App token) will then auto-trigger this.
-  # push:
-  #   tags:
-  #     - "desktop-v*"
+  push:
+    tags:
+      - "desktop-v*"
 
 concurrency:
   group: release-desktop-windows-${{ github.ref }}
@@ -31,7 +29,6 @@ jobs:
   build-windows:
     runs-on: windows-latest
     timeout-minutes: 60
-    environment: production
     env:
       NODE_OPTIONS: "--max_old_space_size=8192"
       # Turns on the win `azureSignOptions` branch in electron-builder.config.js
@@ -40,14 +37,14 @@ jobs:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      # S3-compatible release storage creds (Backblaze B2 during the Cloudflare R2 sunset)
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_DESKTOP_UPDATES_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_DESKTOP_UPDATES_SECRET_ACCESS_KEY }}
+      AWS_ENDPOINT_URL: ${{ secrets.AWS_DESKTOP_UPDATES_ENDPOINT_URL }}
 
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.ref || github.ref }}
+          ref: ${{ github.event.inputs.ref || github.ref }}
 
       - uses: pnpm/action-setup@v6
         with:
@@ -82,7 +79,7 @@ jobs:
         run: pnpm build:desktop
 
       # electron-builder --win -p always: signs via Azure Trusted Signing, uploads installers
-      # + update metadata to the Backblaze bucket, and points clients at the release feed subdomain.
+      # + update metadata to the R2 desktop-updates bucket, and points clients at the release feed subdomain.
       - name: Package, sign, and publish Windows installers
         working-directory: dist/desktop-build
         run: pnpm publish:win

@@ -14,11 +14,9 @@ on:
         description: "Git ref (tag or branch) to build"
         required: true
         default: "main"
-  # Enable once the manual flow is proven rock solid: the `desktop-v*` tag that
-  # release.yml pushes (via the GitHub App token) will then auto-trigger this.
-  # push:
-  #   tags:
-  #     - "desktop-v*"
+  push:
+    tags:
+      - "desktop-v*"
 
 concurrency:
   group: release-desktop-macos-${{ github.ref }}
@@ -31,7 +29,6 @@ jobs:
   build-macos:
     runs-on: macos-latest
     timeout-minutes: 60
-    environment: production
     env:
       NODE_OPTIONS: "--max_old_space_size=8192"
       # Turns on the mac signing branch in electron-builder.config.js
@@ -43,14 +40,14 @@ jobs:
       # Developer ID cert — electron-builder imports this into a temp keychain
       CSC_LINK: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
       CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-      # S3-compatible release storage creds (Backblaze B2 during the Cloudflare R2 sunset)
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_DESKTOP_UPDATES_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_DESKTOP_UPDATES_SECRET_ACCESS_KEY }}
+      AWS_ENDPOINT_URL: ${{ secrets.AWS_DESKTOP_UPDATES_ENDPOINT_URL }}
 
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.ref || github.ref }}
+          ref: ${{ github.event.inputs.ref || github.ref }}
 
       - uses: pnpm/action-setup@v6
         with:
@@ -97,7 +94,7 @@ jobs:
         run: pnpm build:desktop
 
       # electron-builder --mac -p always: signs, notarizes, uploads the dmg/zip installers
-      # + update metadata to the Backblaze bucket, and points clients at the release feed subdomain.
+      # + update metadata to the R2 desktop-updates bucket, and points clients at the release feed subdomain.
       - name: Package, sign, notarize, and publish macOS installers
         working-directory: dist/desktop-build
         run: pnpm publish:mac
