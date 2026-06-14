@@ -5,7 +5,6 @@
 
 set -o errexit -o nounset -o pipefail
 
-export AWS_ENDPOINT_URL="https://s3.$AWS_REGION.backblazeb2.com"
 export AWS_PAGER=""
 
 # validate required environment variables
@@ -31,6 +30,11 @@ fi
 
 if [ -z "$AWS_REGION" ]; then
     echo "Error: AWS_REGION is not set" >&2
+    exit 1
+fi
+
+if [ -z "${AWS_ENDPOINT_URL:-}" ]; then
+    echo "Error: AWS_ENDPOINT_URL is not set" >&2
     exit 1
 fi
 

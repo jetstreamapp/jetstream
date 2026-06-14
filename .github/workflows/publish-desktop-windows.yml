@@ -40,7 +40,7 @@ jobs:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      # Backblaze B2 for hosting the update feed
+      # S3-compatible release storage creds (Backblaze B2 during the Cloudflare R2 sunset)
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
@@ -77,12 +77,12 @@ jobs:
           JETSTREAM_POSTGRES_DBURI: "postgresql://placeholder:placeholder@localhost:5432/placeholder"
 
       # Builds the nx desktop projects and assembles dist/desktop-build,
-      # writing the .env (Azure + Backblaze creds) that electron-builder reads.
+      # writing the .env (Azure + S3-compatible storage creds) that electron-builder reads.
       - name: Build desktop bundle
         run: pnpm build:desktop
 
-      # electron-builder --win -p always: signs via Azure Trusted Signing and
-      # publishes installers + update metadata to the Backblaze feed.
+      # electron-builder --win -p always: signs via Azure Trusted Signing, uploads installers
+      # + update metadata to the Backblaze bucket, and points clients at the release feed subdomain.
       - name: Package, sign, and publish Windows installers
         working-directory: dist/desktop-build
         run: pnpm publish:win

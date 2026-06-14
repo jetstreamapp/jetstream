@@ -169,8 +169,6 @@ async function build() {
   await remove(join(TARGET_DIR, 'node_modules/.cache'));
 
   // Create .env file with the secrets electron-builder needs at package/publish time.
-  // Resolve values up front so the Backblaze->AWS fallback below is based on actual
-  // env values rather than substring-matching the serialized file content.
   const envValues = {};
   for (const key of [
     'IS_CODESIGNING_ENABLED',
@@ -183,8 +181,6 @@ async function build() {
     'AZURE_TENANT_ID',
     'AZURE_CLIENT_ID',
     'AZURE_CLIENT_SECRET',
-    'BACKBLAZE_ACCESS_KEY_ID',
-    'BACKBLAZE_SECRET_ACCESS_KEY',
     'AWS_ACCESS_KEY_ID',
     'AWS_SECRET_ACCESS_KEY',
   ]) {
@@ -192,11 +188,6 @@ async function build() {
       envValues[key] = process.env[key];
     }
   }
-
-  // electron-builder publishes to the S3-compatible Backblaze bucket via the AWS_*
-  // credentials, so fall back to the Backblaze keys when AWS_* aren't provided.
-  envValues.AWS_ACCESS_KEY_ID ??= process.env.BACKBLAZE_ACCESS_KEY_ID;
-  envValues.AWS_SECRET_ACCESS_KEY ??= process.env.BACKBLAZE_SECRET_ACCESS_KEY;
 
   // Serialize as a double-quoted value, escaping the backslash (the escape char)
   // first so the remaining escapes are unambiguous, then newlines and quotes. This
