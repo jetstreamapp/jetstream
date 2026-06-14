@@ -10,6 +10,7 @@ const ENV = {
   PROVISIONING_PROFILE_PATH_MAS: process.env.PROVISIONING_PROFILE_PATH_MAS,
   AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
   AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
+  AWS_ENDPOINT_URL: process.env.AWS_ENDPOINT_URL,
   AZURE_TENANT_ID: process.env.AZURE_TENANT_ID,
   AZURE_CLIENT_ID: process.env.AZURE_CLIENT_ID,
   AZURE_CLIENT_SECRET: process.env.AZURE_CLIENT_SECRET,
@@ -181,23 +182,21 @@ const config = {
   ],
 
   publish:
-    ENV.IS_CODESIGNING_ENABLED && ENV.AWS_ACCESS_KEY_ID && ENV.AWS_SECRET_ACCESS_KEY
+    ENV.IS_CODESIGNING_ENABLED && ENV.AWS_ACCESS_KEY_ID && ENV.AWS_SECRET_ACCESS_KEY && ENV.AWS_ENDPOINT_URL
       ? [
           // Primary feed clients read from — a subdomain we control, decoupled from any
-          // storage vendor. Backed by Backblaze today, Cloudflare R2 after the DNS cutover.
+          // storage vendor. Backed by Cloudflare R2.
           {
             provider: 'generic',
             url: 'https://release-updates.getjetstream.app/jetstream/releases',
           },
-          // Upload target during the sunset: keep publishing to Backblaze so existing clients
-          // (pinned to the raw B2 endpoint in their baked app-update.yml) keep updating.
           {
             provider: 's3',
-            // Local testing with MinIO
-            // endpoint: 'http://localhost:9000',
-            endpoint: 'https://s3.us-east-005.backblazeb2.com',
+            endpoint: ENV.AWS_ENDPOINT_URL,
             bucket: 'desktop-updates',
             path: `jetstream/releases`,
+            region: 'auto',
+            acl: null,
           },
         ]
       : null,
