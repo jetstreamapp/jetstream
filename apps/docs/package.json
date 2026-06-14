@@ -4,12 +4,12 @@
   "private": true,
   "engines": {
     "node": ">=24 <25",
-    "pnpm": "~11.1.3"
+    "pnpm": "~11.8.0"
   },
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
-      "version": "11.1.3",
+      "version": "11.8.0",
       "onFail": "download"
     }
   },
