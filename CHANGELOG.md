@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.1.1](https://github.com/jetstreamapp/jetstream/compare/v10.1.0...v10.1.1) (2026-06-14)
+
+### Features
+
+* enhance auto-updater error handling and user notifications for manual updates ([08be6e9](https://github.com/jetstreamapp/jetstream/commit/08be6e91a677c007b358456503bd2388b47760d3))
+* fix record lookup with existing value and improve value escaping ([9460871](https://github.com/jetstreamapp/jetstream/commit/946087147192a8f44f5c4e37c6cb79180b1bec27)), closes [#1767](https://github.com/jetstreamapp/jetstream/issues/1767)
+
 ## [10.1.0](https://github.com/jetstreamapp/jetstream/compare/v10.0.1...v10.1.0) (2026-06-13)
 
 ### Features
