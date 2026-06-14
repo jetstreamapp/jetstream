@@ -1,9 +1,11 @@
 import { UpdateStatus } from '@jetstream/desktop/types';
 import { logger } from '@jetstream/shared/client-logger';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { Icon, Popover, PopoverRef, Spinner } from '@jetstream/ui';
 import classNames from 'classnames';
 import { formatRelative } from 'date-fns';
 import { useEffect, useRef, useState } from 'react';
+import { isManualUpdateRequiredError } from './header-update-notification.utils';
 
 export interface HeaderUpdateNotificationProps {
   onCheckForUpdates: () => void;
@@ -140,6 +142,28 @@ export const HeaderUpdateNotification = ({ onCheckForUpdates, onInstallUpdate }:
         );
 
       case 'error':
+        if (isManualUpdateRequiredError(updateStatus)) {
+          return (
+            <div className="slds-p-around_small">
+              <div className="slds-text-heading_small slds-m-bottom_x-small">Manual Update Required</div>
+              <div className="slds-text-body_small slds-m-bottom_small">
+                We've updated our application signing certificate, so this update can't be installed automatically. To get the latest
+                version, please close Jetstream and download it again.
+              </div>
+              <div className="slds-text-body_small slds-m-bottom_small slds-text-color_weak">
+                Your data and connected orgs will not be affected.
+              </div>
+              <a
+                className="slds-button slds-button_brand slds-button_stretch"
+                href={APP_ROUTES.DESKTOP_APPLICATION.ROUTE}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Download Latest Version
+              </a>
+            </div>
+          );
+        }
         return (
           <div className="slds-p-around_small">
             <div className="slds-text-heading_small slds-m-bottom_x-small">Update Error</div>
@@ -188,7 +212,7 @@ export const HeaderUpdateNotification = ({ onCheckForUpdates, onInstallUpdate }:
       case 'error':
         return {
           icon: <Icon type="utility" icon="error" className={baseIconClass} />,
-          tooltip: 'Update error',
+          tooltip: isManualUpdateRequiredError(updateStatus) ? 'Manual update required' : 'Update error',
           showWiggle: true,
         };
       case 'up-to-date':

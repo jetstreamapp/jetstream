@@ -66,6 +66,7 @@ function setupAutoUpdaterListeners() {
     sendUpdateStatus({
       status: 'error',
       error: err.message || 'Unknown error occurred',
+      errorCode: (err as Error & { code?: string }).code,
     });
   });
 
@@ -117,6 +118,7 @@ export function checkForUpdates(silent = false, userInitiated = false) {
         sendUpdateStatus({
           status: 'error',
           error: error.message || 'Failed to check for updates',
+          errorCode: (error as Error & { code?: string }).code,
         });
       });
   } else {
@@ -133,6 +135,7 @@ export function checkForUpdates(silent = false, userInitiated = false) {
         sendUpdateStatus({
           status: 'error',
           error: err.message || 'Failed to check for updates',
+          errorCode: (err as Error & { code?: string }).code,
         });
       });
   }
