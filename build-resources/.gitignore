@@ -1,3 +1,5 @@
 # Ignore provisioning profiles
 *.provisionprofile
 *.p8
+*.p12
+*.pem

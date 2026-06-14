@@ -62,7 +62,7 @@ jobs:
       # The TrustedSigning PowerShell module that electron-builder installs at
       # sign time runs on .NET 8. Without it, signing fails with SignTool exit 3.
       - name: Setup .NET 8 runtime
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: "8.0.x"
 
