@@ -1,8 +1,19 @@
 import { UserProfileUi } from '@jetstream/types';
 import { Mock, vi } from 'vitest';
 import * as webExtDb from '../../db/web-extension.db';
-import { AUDIENCE_WEB_EXT, rotateToken } from '../external-auth.service';
+import { AUDIENCE_WEB_EXT, isTokenWithinRefreshWindow, rotateToken } from '../external-auth.service';
 import { decryptJwtTokenOrPlaintext, hashToken } from '../jwt-token-encryption.service';
+
+const SECONDS_PER_DAY = 60 * 60 * 24;
+
+/**
+ * Builds a JWT-shaped string with a specific `exp`. decodeToken (fast-jwt's decoder) does not
+ * verify the signature, so an unsigned token with the right payload is sufficient for these tests.
+ */
+function makeTokenWithExp(expUnixSeconds: number): string {
+  const encode = (obj: unknown) => Buffer.from(JSON.stringify(obj)).toString('base64url');
+  return `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode({ exp: expUnixSeconds })}.signature`;
+}
 
 // Preserve the real constants (TOKEN_TYPE_AUTH, etc.) so assertions compare against the
 // actual string values the SUT should be passing — only stub the DB-touching functions.
@@ -139,6 +150,33 @@ describe('external-auth.service', () => {
 
       expect(hashToken).toHaveBeenCalledWith('specific-old-token');
       expect(mockWebExtDb.replaceTokenIfCurrent).toHaveBeenCalledWith(mockUserProfile.id, 'hash(specific-old-token)', expect.any(Object));
+    });
+  });
+
+  describe('isTokenWithinRefreshWindow', () => {
+    it('returns false when the token expires further away than the default window (2 days)', () => {
+      const nowSeconds = Math.floor(Date.now() / 1000);
+      const token = makeTokenWithExp(nowSeconds + 3 * SECONDS_PER_DAY);
+      expect(isTokenWithinRefreshWindow(token)).toBe(false);
+    });
+
+    it('returns true when the token expires within the default window (2 days)', () => {
+      const nowSeconds = Math.floor(Date.now() / 1000);
+      const token = makeTokenWithExp(nowSeconds + 1 * SECONDS_PER_DAY);
+      expect(isTokenWithinRefreshWindow(token)).toBe(true);
+    });
+
+    it('returns true when the token is already expired', () => {
+      const nowSeconds = Math.floor(Date.now() / 1000);
+      const token = makeTokenWithExp(nowSeconds - 100);
+      expect(isTokenWithinRefreshWindow(token)).toBe(true);
+    });
+
+    it('honors a custom withinDays threshold', () => {
+      const nowSeconds = Math.floor(Date.now() / 1000);
+      const token = makeTokenWithExp(nowSeconds + 5 * SECONDS_PER_DAY);
+      expect(isTokenWithinRefreshWindow(token, 2)).toBe(false);
+      expect(isTokenWithinRefreshWindow(token, 7)).toBe(true);
     });
   });
 });

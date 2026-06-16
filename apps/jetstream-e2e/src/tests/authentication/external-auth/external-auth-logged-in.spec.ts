@@ -156,11 +156,13 @@ test.describe('Desktop / Web-Extension Token Rotation', () => {
     await authenticationPage.acceptCookieBanner();
   });
 
-  test('Desktop token rotation - rotated token works, old token is invalidated', async ({
-    page,
-    teamCreationUtils1User,
-    apiRequestUtils,
-  }) => {
+  // A freshly issued session token is well outside the refresh window (TOKEN_AUTO_REFRESH_DAYS), so
+  // verifying with the rotation header must NOT rotate it: the response succeeds without a new
+  // accessToken and the original token keeps working. Rotation only fires as a token nears expiry.
+  // The full gating + rotation mechanics (skip-when-fresh, rotate-when-near-expiry, race-loss-none
+  // -> 401, no-header -> no rotation) are covered against mocked time/DB in
+  // desktop-app.controller.spec.ts, web-extension.controller.spec.ts, and external-auth.service.spec.ts.
+  test('Desktop - fresh token is not rotated when rotation is supported', async ({ page, teamCreationUtils1User, apiRequestUtils }) => {
     const deviceId = uuid();
 
     // 1. Create session and get original token
@@ -171,7 +173,7 @@ test.describe('Desktop / Web-Extension Token Rotation', () => {
     const { accessToken: originalToken } = await sessionResponse.json().then(({ data }) => data);
     expect(typeof originalToken).toBe('string');
 
-    // 2. Verify with rotation header — should get a new token
+    // 2. Verify with rotation header — fresh token is not near expiry, so it is not rotated
     const rotateResponse = await apiRequestUtils.request.post(`/desktop-app/auth/verify`, {
       headers: {
         Accept: 'application/json',
@@ -184,35 +186,22 @@ test.describe('Desktop / Web-Extension Token Rotation', () => {
     expect(rotateResponse.status()).toBe(200);
     const rotateData = await rotateResponse.json().then(({ data }) => data);
     expect(rotateData.success).toBe(true);
-    expect(rotateData.accessToken).toBeDefined();
-    expect(rotateData.accessToken).not.toBe(originalToken);
-    const rotatedToken = rotateData.accessToken;
+    expect(rotateData.accessToken).toBeUndefined();
 
-    // 3. Rotated token works for subsequent verify
-    const verifyWithRotated = await apiRequestUtils.request.post(`/desktop-app/auth/verify`, {
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${rotatedToken}`,
-        [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
-        [HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION]: '1',
-      },
-    });
-    expect(verifyWithRotated.status()).toBe(200);
-
-    // 4. Original token is now invalid (its hash was replaced in the DB)
+    // 3. Original token still works — verifying did not rotate or invalidate it
     const verifyWithOriginal = await apiRequestUtils.request.post(`/desktop-app/auth/verify`, {
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
         Authorization: `Bearer ${originalToken}`,
         [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
+        [HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION]: '1',
       },
     });
-    expect(verifyWithOriginal.status()).toBe(401);
+    expect(verifyWithOriginal.status()).toBe(200);
   });
 
-  test('Web extension token rotation - rotated token works, old token is invalidated', async ({
+  test('Web extension - fresh token is not rotated when rotation is supported', async ({
     page,
     teamCreationUtils1User,
     apiRequestUtils,
@@ -227,7 +216,7 @@ test.describe('Desktop / Web-Extension Token Rotation', () => {
     const { accessToken: originalToken } = await sessionResponse.json().then(({ data }) => data);
     expect(typeof originalToken).toBe('string');
 
-    // 2. Verify with rotation header — should get a new token
+    // 2. Verify with rotation header — fresh token is not near expiry, so it is not rotated
     const rotateResponse = await apiRequestUtils.request.post(`/web-extension/auth/verify`, {
       headers: {
         Accept: 'application/json',
@@ -240,32 +229,19 @@ test.describe('Desktop / Web-Extension Token Rotation', () => {
     expect(rotateResponse.status()).toBe(200);
     const rotateData = await rotateResponse.json().then(({ data }) => data);
     expect(rotateData.success).toBe(true);
-    expect(rotateData.accessToken).toBeDefined();
-    expect(rotateData.accessToken).not.toBe(originalToken);
-    const rotatedToken = rotateData.accessToken;
+    expect(rotateData.accessToken).toBeUndefined();
 
-    // 3. Rotated token works
-    const verifyWithRotated = await apiRequestUtils.request.post(`/web-extension/auth/verify`, {
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${rotatedToken}`,
-        [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
-        [HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION]: '1',
-      },
-    });
-    expect(verifyWithRotated.status()).toBe(200);
-
-    // 4. Original token is now invalid
+    // 3. Original token still works — verifying did not rotate or invalidate it
     const verifyWithOriginal = await apiRequestUtils.request.post(`/web-extension/auth/verify`, {
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
         Authorization: `Bearer ${originalToken}`,
         [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
+        [HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION]: '1',
       },
     });
-    expect(verifyWithOriginal.status()).toBe(401);
+    expect(verifyWithOriginal.status()).toBe(200);
   });
 
   test('No rotation without header (backward compat)', async ({ page, teamCreationUtils1User, apiRequestUtils }) => {
@@ -304,124 +280,31 @@ test.describe('Desktop / Web-Extension Token Rotation', () => {
     expect(verifyAgain.status()).toBe(200);
   });
 
-  test('Concurrent rotation race - successful racers converge on the same valid token', async ({
-    page,
-    teamCreationUtils1User,
-    apiRequestUtils,
-  }) => {
-    const deviceId = uuid();
-    const concurrency = 20;
-
-    // 1. Create session and get the token all racers will rotate from
-    const sessionResponse = await apiRequestUtils.request.post(`/web-extension/auth/session`, {
-      headers: { [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId },
-    });
-    expect(sessionResponse.status()).toBe(200);
-    const { accessToken: originalToken } = await sessionResponse.json().then(({ data }) => data);
-
-    // 2. Fire N concurrent verify requests using the same starting token. With the race-loss
-    //    fix, every racer whose auth middleware lookup ran before the winning rotation should
-    //    receive the same valid token (the winner's). Racers whose middleware lookup completes
-    //    after the rotation will 401 because the cache is bypassed for rotation requests and
-    //    the old token is no longer in the DB — that's expected and not under test here. The
-    //    property under test is convergence: every successful response returns the same token.
-    const responses = await Promise.all(
-      Array.from({ length: concurrency }, () =>
-        apiRequestUtils.request.post(`/web-extension/auth/verify`, {
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${originalToken}`,
-            [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
-            [HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION]: '1',
-          },
-        }),
-      ),
-    );
-
-    const successResponses = responses.filter((response) => response.status() === 200);
-    expect(successResponses.length).toBeGreaterThan(0);
-
-    // Any non-success must be a 401. The only legitimate failure mode here is a racer whose
-    // middleware lookup ran after the winning rotation (LRU is bypassed for rotation, so the
-    // old token is no longer in the DB). 5xx/429 responses would indicate a real regression.
-    const failureResponses = responses.filter((response) => response.status() !== 200);
-    for (const failure of failureResponses) {
-      expect(failure.status()).toBe(401);
-    }
-
-    const bodies = await Promise.all(successResponses.map((response) => response.json().then(({ data }) => data)));
-    expect(bodies.every((body) => body.success === true)).toBe(true);
-
-    const returnedTokens = bodies.map((body) => body.accessToken).filter((token): token is string => typeof token === 'string');
-    expect(returnedTokens.length).toBe(successResponses.length);
-
-    const distinctTokens = new Set(returnedTokens);
-    expect(distinctTokens.size).toBe(1);
-
-    const winningToken = [...distinctTokens][0];
-    expect(winningToken).not.toBe(originalToken);
-
-    // 3. The single converged token works for follow-up verify
-    const followUpVerify = await apiRequestUtils.request.post(`/web-extension/auth/verify`, {
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${winningToken}`,
-        [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
-      },
-    });
-    expect(followUpVerify.status()).toBe(200);
-
-    // 4. The original token is no longer valid
-    const verifyWithOriginal = await apiRequestUtils.request.post(`/web-extension/auth/verify`, {
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${originalToken}`,
-        [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
-      },
-    });
-    expect(verifyWithOriginal.status()).toBe(401);
-  });
-
-  test('Logout invalidates rotated token', async ({ page, teamCreationUtils1User, apiRequestUtils }) => {
+  test('Logout invalidates the session token', async ({ page, teamCreationUtils1User, apiRequestUtils }) => {
     const deviceId = uuid();
 
     // 1. Create session
     const sessionResponse = await apiRequestUtils.request.post(`/desktop-app/auth/session`, {
       headers: { [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId },
     });
-    const { accessToken: originalToken } = await sessionResponse.json().then(({ data }) => data);
+    const { accessToken } = await sessionResponse.json().then(({ data }) => data);
 
-    // 2. Rotate the token
-    const rotateResponse = await apiRequestUtils.request.post(`/desktop-app/auth/verify`, {
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${originalToken}`,
-        [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
-        [HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION]: '1',
-      },
-    });
-    const { accessToken: rotatedToken } = await rotateResponse.json().then(({ data }) => data);
-
-    // 3. Logout with the rotated token
+    // 2. Logout with the token
     const logoutResponse = await apiRequestUtils.request.delete(`/desktop-app/auth/logout`, {
       headers: {
         Accept: 'application/json',
-        Authorization: `Bearer ${rotatedToken}`,
+        Authorization: `Bearer ${accessToken}`,
         [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
       },
     });
     expect(logoutResponse.status()).toBe(200);
 
-    // 4. Rotated token is now invalid
+    // 3. Token is now invalid (removed from the DB by logout)
     const verifyAfterLogout = await apiRequestUtils.request.post(`/desktop-app/auth/verify`, {
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${rotatedToken}`,
+        Authorization: `Bearer ${accessToken}`,
         [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
       },
     });

@@ -192,7 +192,11 @@ const verifyToken = createRoute(routeDefinition.verifyToken.validators, async ({
     let rotatedAccessToken: string | undefined;
     if (supportsRotation && deviceId) {
       const oldAccessToken = req.get('Authorization')?.split(' ')[1];
-      if (oldAccessToken) {
+      // Only rotate as the token approaches expiry. Rotating on every verify churns the shared
+      // token across the user's devices (browser storage.sync), which can lose the rotation race
+      // and force a premature logout. The auth middleware still fully validates the token on
+      // every verify, so skipping rotation here does not weaken verification.
+      if (oldAccessToken && externalAuthService.isTokenWithinRefreshWindow(oldAccessToken)) {
         const result = await externalAuthService.rotateToken({
           userProfile,
           audience: externalAuthService.AUDIENCE_WEB_EXT,
