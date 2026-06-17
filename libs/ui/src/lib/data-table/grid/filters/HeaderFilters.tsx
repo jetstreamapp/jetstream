@@ -131,7 +131,10 @@ export const HeaderFilterButton = memo(({ columnKey }: { columnKey: string }) =>
         <Icon
           type="utility"
           icon="filterList"
-          className={classNames('slds-button__icon slds-icon_x-small', { 'slds-text-color_brand': active })}
+          className={classNames('slds-button__icon slds-icon_x-small', {
+            'slds-text-color_brand': active,
+            'slds-icon-text-default': !active,
+          })}
         />
       </Popover>
     </div>
