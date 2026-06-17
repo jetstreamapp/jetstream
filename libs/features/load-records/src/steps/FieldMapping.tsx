@@ -293,7 +293,18 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
               onReload={handleCacheRefresh}
             />
           </Grid>
-          <table className="slds-table slds-table_cell-buffer slds-table_bordered">
+          <table
+            className="slds-table slds-table_cell-buffer slds-table_bordered"
+            /* The trailing action column only holds an icon button — shrink it to its content instead
+            of letting it absorb the table's slack width. */
+            css={css`
+              & > thead > tr > th:last-of-type,
+              & > tbody > tr > td:last-of-type {
+                width: 1%;
+                white-space: nowrap;
+              }
+            `}
+          >
             <thead>
               <tr className="slds-line-height_reset">
                 <th

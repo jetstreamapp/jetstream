@@ -16,6 +16,8 @@ export interface CheckboxProps {
   helpText?: React.ReactNode | string;
   disabled?: boolean;
   readOnly?: boolean;
+  /** Override the input's tab order — pass -1 to remove it from the page tab order (e.g. inside a data-table cell). */
+  tabIndex?: number;
   hasError?: boolean;
   isRequired?: boolean;
   isStandAlone?: boolean;
@@ -43,6 +45,7 @@ export const Checkbox: FunctionComponent<CheckboxProps> = ({
   errorMessage,
   disabled = false,
   readOnly = false,
+  tabIndex,
   hideLabel = false,
   isStandAlone = false,
   onChange,
@@ -94,6 +97,7 @@ export const Checkbox: FunctionComponent<CheckboxProps> = ({
             checked={checked || false}
             disabled={readOnly || disabled}
             readOnly={readOnly}
+            tabIndex={tabIndex}
             aria-describedby={errorMessageId}
             onChange={(event) => {
               onChange && onChange(event.target?.checked || false);

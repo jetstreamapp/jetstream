@@ -209,7 +209,7 @@ export function getQueryForPackage(): string {
   return soql;
 }
 
-export function getColumnDefinitions(): ColumnWithFilter<DeployMetadataTableRow>[] {
+export function getColumnDefinitions(onViewItem?: (row: DeployMetadataTableRow) => void): ColumnWithFilter<DeployMetadataTableRow>[] {
   const output: ColumnWithFilter<DeployMetadataTableRow>[] = [
     {
       ...SelectColumn,
@@ -253,8 +253,17 @@ export function getColumnDefinitions(): ColumnWithFilter<DeployMetadataTableRow>
       width: 40,
       frozen: true,
       // Rows are grouped by typeLabel, so the per-row value is redundant (it's shown in the group header).
-      // Render nothing here — this column is just the chevron/indent column — instead of truncated text.
-      renderCell: () => null,
+      // For child rows, surface a shortcut to view this single item's metadata; group headers keep the chevron toggle below.
+      renderCell: ({ row }) =>
+        row.metadata ? (
+          <div className="slds-grid slds-grid_align-center slds-grid_vertical-align-center h-100 w-100">
+            <Tooltip ariaRole="label" content="View metadata">
+              <button className="slds-button slds-button_icon" onClick={() => onViewItem?.(row)} tabIndex={-1}>
+                <Icon type="utility" icon="preview" className="slds-button__icon" omitContainer title="View metadata" />
+              </button>
+            </Tooltip>
+          </div>
+        ) : null,
       renderGroupCell: ({ isExpanded, toggleGroup }) => (
         <button
           type="button"

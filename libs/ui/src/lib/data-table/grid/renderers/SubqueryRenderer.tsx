@@ -119,7 +119,7 @@ export const SubqueryRenderer = ({ column, row }: DataTableCellProps<RowWithKey>
                 {...props}
               />
             )}
-            <button className="slds-button" onClick={handleViewData}>
+            <button className="slds-button" tabIndex={-1} onClick={handleViewData}>
               <Icon type="utility" icon="search" className="slds-button__icon slds-button__icon_left" omitContainer />
               {`${records.length} Records`}
             </button>

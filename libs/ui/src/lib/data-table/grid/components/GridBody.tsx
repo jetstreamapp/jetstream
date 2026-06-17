@@ -2,7 +2,7 @@
 import { Table } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { CSSProperties, RefObject, useEffect, useMemo, useRef } from 'react';
-import { DEFAULT_ROW_HEIGHT } from '../grid-constants';
+import { DEFAULT_ROW_HEIGHT, HEADER_ROW_ID } from '../grid-constants';
 import { GridMode, SelectionRange } from '../keyboard/useGridKeyboardNavigation';
 import { GridGroupRow } from './GridGroupRow';
 import { ActiveCell, GridRow } from './GridRow';
@@ -41,8 +41,11 @@ export interface GridBodyProps<TRow> {
   onCommitRow?: (updatedRow: TRow, rowId: string, columnId: string) => void;
 }
 
-const FOCUSABLE_SELECTOR =
-  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+// In-cell controls are removed from the page tab order (tabindex="-1") so the grid is a single tab stop.
+// Entering actionable mode must still focus the first one, so this selector intentionally INCLUDES
+// `tabindex="-1"` controls. `[aria-haspopup]` matches floating-ui popover triggers.
+const ACTIONABLE_FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [role="button"], [aria-haspopup]';
 
 /**
  * Owns the row virtualizer (deepest-component rule: instantiating it here keeps the measurement cache
@@ -111,11 +114,16 @@ export function GridBody<TRow>({
     if (getLastInteractionSource?.() === 'select-all') {
       return;
     }
-    const rowIndex = rows.findIndex((row) => row.id === activeCell.rowId);
-    if (rowIndex < 0) {
-      return;
+    // The column header is a virtual row above the body (always mounted) — it has no body-row index to
+    // scroll to, but it still resolves to a DOM cell below for focus.
+    const isHeader = activeCell.rowId === HEADER_ROW_ID;
+    if (!isHeader) {
+      const rowIndex = rows.findIndex((row) => row.id === activeCell.rowId);
+      if (rowIndex < 0) {
+        return;
+      }
+      rowVirtualizer.scrollToIndex(rowIndex, { align: 'auto' });
     }
-    rowVirtualizer.scrollToIndex(rowIndex, { align: 'auto' });
 
     // The editor owns focus while editing; don't yank it to the cell. (When editing ends this effect
     // re-runs with isEditingActiveCell=false and restores focus to the cell.)
@@ -143,13 +151,18 @@ export function GridBody<TRow>({
         `[data-row-id="${CSS.escape(activeCell.rowId)}"][data-col-id="${CSS.escape(activeCell.columnId)}"]`,
       );
       if (cellEl) {
-        if (!cellEl.contains(document.activeElement)) {
-          if (mode === 'actionable') {
-            const focusable = cellEl.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+        if (mode === 'actionable') {
+          // Move focus to the first interactive control. The cell DIV holding focus (the navigation-mode
+          // state) must NOT count as "already inside" — otherwise entering actionable mode from the cell
+          // would leave focus on the div, and Space/arrows would scroll the page instead of driving the
+          // control. Only skip when a control inside the cell already has focus.
+          const focusable = cellEl.querySelector<HTMLElement>(ACTIONABLE_FOCUSABLE_SELECTOR);
+          const controlAlreadyFocused = document.activeElement !== cellEl && cellEl.contains(document.activeElement);
+          if (!controlAlreadyFocused) {
             (focusable ?? cellEl).focus();
-          } else {
-            cellEl.focus();
           }
+        } else if (!cellEl.contains(document.activeElement)) {
+          cellEl.focus();
         }
         return;
       }

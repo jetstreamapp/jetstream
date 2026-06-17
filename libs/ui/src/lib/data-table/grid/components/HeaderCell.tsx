@@ -6,7 +6,7 @@ import { CSSProperties, ReactNode, useId } from 'react';
 import Checkbox from '../../../form/checkbox/Checkbox';
 import Icon from '../../../widgets/Icon';
 import { HeaderFilterButton } from '../filters/HeaderFilters';
-import { DEFAULT_MIN_COLUMN_WIDTH } from '../grid-constants';
+import { DEFAULT_MIN_COLUMN_WIDTH, HEADER_ROW_ID } from '../grid-constants';
 import { DataTableHeaderProps, SortDirection } from '../grid-types';
 import { getFrozenCellStyle } from './grid-layout';
 
@@ -21,6 +21,10 @@ export interface HeaderCellProps<TRow> {
   renderFilter?: (props: DataTableHeaderProps<TRow>) => ReactNode;
   /** Right-click on the header — offers the column-scoped copy actions when the table has a context menu. */
   onHeaderContextMenu?: (event: React.MouseEvent, columnId: string) => void;
+  /** True when this header cell is the keyboard-active cell (header row navigation). Drives roving tabindex. */
+  isActive?: boolean;
+  /** Mouse down on a header cell — makes it the keyboard-active cell so arrow nav continues from here. */
+  onHeaderCellMouseDown?: (columnId: string) => void;
 }
 
 function toAriaSort(sorted: false | 'asc' | 'desc'): 'ascending' | 'descending' | 'none' {
@@ -41,6 +45,8 @@ export function HeaderCell<TRow>({
   colSpan = 1,
   renderFilter,
   onHeaderContextMenu,
+  isActive = false,
+  onHeaderCellMouseDown,
 }: HeaderCellProps<TRow>) {
   const selectAllId = useId();
   const meta = header.column.columnDef.meta?.jetstream;
@@ -106,10 +112,12 @@ export function HeaderCell<TRow>({
       role="columnheader"
       aria-colindex={ariaColIndex}
       aria-sort={canSort ? toAriaSort(sorted) : undefined}
+      data-row-id={HEADER_ROW_ID}
       data-col-id={header.column.id}
       className={classNames('jgrid-header-cell', { 'jgrid-cell-frozen': meta?.frozen, 'jgrid-header-sortable': canSort })}
       style={style}
-      tabIndex={-1}
+      tabIndex={isActive ? 0 : -1}
+      onMouseDown={() => onHeaderCellMouseDown?.(header.column.id)}
       onContextMenu={(event) => onHeaderContextMenu?.(event, header.column.id)}
     >
       {canSort ? (

@@ -2,7 +2,7 @@ import { formatNumber, isBrowserExtension, isCanvasApp } from '@jetstream/shared
 import { DeployMetadataTableRow } from '@jetstream/types';
 import { AutoFullHeightContainer, DataTableSelectedContext, DataTree, Grid, Icon, SearchInput } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
-import { FunctionComponent, useEffect, useState } from 'react';
+import { FunctionComponent, useEffect, useMemo, useState } from 'react';
 import { getColumnDefinitions } from './utils/deploy-metadata.utils';
 
 export interface DeployMetadataDeploymentTableProps {
@@ -10,6 +10,7 @@ export interface DeployMetadataDeploymentTableProps {
   hasSelectedRows: boolean;
   onSelectedRows: (selectedRows: Set<DeployMetadataTableRow>) => void;
   onViewOrCompareOpen: () => void;
+  onViewItem: (row: DeployMetadataTableRow) => void;
 }
 
 function getRowId(row: DeployMetadataTableRow): string {
@@ -18,14 +19,14 @@ function getRowId(row: DeployMetadataTableRow): string {
 
 const groupedRows = ['typeLabel'] as const;
 
-const COLUMNS = getColumnDefinitions();
-
 export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDeploymentTableProps> = ({
   rows,
   hasSelectedRows,
   onSelectedRows,
   onViewOrCompareOpen,
+  onViewItem,
 }) => {
+  const columns = useMemo(() => getColumnDefinitions(onViewItem), [onViewItem]);
   const [isSingleOrgMode] = useState(() => isBrowserExtension() || isCanvasApp());
   const [visibleRows, setVisibleRows] = useState<DeployMetadataTableRow[]>(rows);
   const [globalFilter, setGlobalFilter] = useState<string | null>(null);
@@ -59,7 +60,7 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
       )}
       <AutoFullHeightContainer fillHeight setHeightAttr delayForSecondTopCalc bottomBuffer={15}>
         <DataTree
-          columns={COLUMNS}
+          columns={columns}
           data={rows}
           getRowKey={getRowId}
           includeQuickFilter

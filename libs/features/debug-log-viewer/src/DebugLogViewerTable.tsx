@@ -121,7 +121,9 @@ export const DebugLogViewerTable: FunctionComponent<DebugLogViewerTableProps> = 
   }, []);
 
   // The new DataTable has no `onCellClick`. Preserve the legacy "click a row to mark its log viewed"
-  // behavior by wrapping each column's rendered cell content in a click handler.
+  // behavior by wrapping each column's rendered cell content in a click handler. `role="button"` (with
+  // tabIndex=-1 so it stays out of the page tab order) lets the grid's keyboard activation — Enter/Space
+  // on the cell — trigger the same handler as a click.
   const columns = useMemo<ColumnWithFilter<ApexLogWithViewed>[]>(
     () =>
       COLUMNS.map((column) => {
@@ -130,6 +132,8 @@ export const DebugLogViewerTable: FunctionComponent<DebugLogViewerTableProps> = 
           ...column,
           renderCell: (props: RenderCellProps<ApexLogWithViewed>) => (
             <div
+              role="button"
+              tabIndex={-1}
               css={css`
                 width: 100%;
                 height: 100%;

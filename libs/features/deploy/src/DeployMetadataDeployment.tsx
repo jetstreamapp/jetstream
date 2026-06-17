@@ -87,6 +87,8 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
   const [modifiedLabel, setModifiedLabel] = useState('');
 
   const [viewOrCompareModalOpen, setViewOrCompareModalOpen] = useState(false);
+  // When set, the View or Compare modal is scoped to this single item instead of all selected rows.
+  const [viewSingleItemMetadata, setViewSingleItemMetadata] = useState<Record<string, ListMetadataResult[]> | null>(null);
   const [deleteMetadataModalOpen, setDeleteMetadataModalOpen] = useState(false);
 
   const [isSingleOrgMode] = useState(() => isBrowserExtension() || isCanvasApp());
@@ -238,6 +240,11 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
     setViewOrCompareModalOpen(true);
   }, []);
 
+  const handleViewItem = useCallback((row: DeployMetadataTableRow) => {
+    setViewSingleItemMetadata(convertRowsToMapOfListMetadataResults([row]));
+    setViewOrCompareModalOpen(true);
+  }, []);
+
   const selectedMetadata = useMemo(() => convertRowsToMapOfListMetadataResults(Array.from(selectedRows)), [selectedRows]);
 
   return (
@@ -274,8 +281,11 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
       {viewOrCompareModalOpen && (
         <ViewOrCompareMetadataModal
           sourceOrg={selectedOrg}
-          selectedMetadata={selectedMetadata}
-          onClose={() => setViewOrCompareModalOpen(false)}
+          selectedMetadata={viewSingleItemMetadata ?? selectedMetadata}
+          onClose={() => {
+            setViewOrCompareModalOpen(false);
+            setViewSingleItemMetadata(null);
+          }}
         />
       )}
 
@@ -445,6 +455,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
                 hasSelectedRows={selectedRows.size > 0}
                 onSelectedRows={setSelectedRows}
                 onViewOrCompareOpen={handleViewOrCompareOpen}
+                onViewItem={handleViewItem}
               />
             </AutoFullHeightContainer>
           </Grid>

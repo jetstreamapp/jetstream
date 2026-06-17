@@ -100,7 +100,9 @@ export function GridContainer<TRow = RowWithKey>({
     if (editingCellRef.current || contextMenuRef.current) {
       return true;
     }
-    return relatedTarget instanceof HTMLElement && !!relatedTarget.closest('.jgrid-editor');
+    // A popover/modal opened from a cell (via Space/Enter or click) moves focus into its portaled panel;
+    // keep the active cell so closing the overlay returns to a live grid coordinate.
+    return relatedTarget instanceof HTMLElement && !!relatedTarget.closest('.jgrid-editor, .slds-popover, .slds-modal');
   }, []);
 
   const isColumnEditable = useCallback(
@@ -378,6 +380,8 @@ export function GridContainer<TRow = RowWithKey>({
               summaryRows={summaryRows}
               summaryRowHeight={summaryRowHeight}
               onHeaderContextMenu={handleHeaderContextMenu}
+              activeCell={keyboardNav.activeCell}
+              onHeaderCellMouseDown={keyboardNav.handleHeaderCellMouseDown}
             />
             <GridBody
               table={table}

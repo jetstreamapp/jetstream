@@ -4,6 +4,13 @@ import { ContextAction } from './grid-types';
 /** Placeholder used in SET filters to represent null/empty cell values. */
 export const EMPTY_FIELD = '-BLANK-';
 
+/**
+ * Sentinel `rowId` for the column header row in the keyboard-navigation active-cell model. The header
+ * isn't part of `table.getRowModel().rows`, so it's represented by this id — ArrowUp from the first body
+ * row moves here (letting the keyboard reach select-all / header filters), ArrowDown returns to the body.
+ */
+export const HEADER_ROW_ID = '__jgrid_header__';
+
 export const ACTION_COLUMN_KEY = '_actions';
 export const RECORD_ERROR_COLUMN_KEY = '_saveError';
 

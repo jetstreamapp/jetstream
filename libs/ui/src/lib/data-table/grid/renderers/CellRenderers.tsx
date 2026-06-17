@@ -52,7 +52,16 @@ export function GenericRenderer(props: DataTableCellProps<RowWithKey>): ReactNod
 
 export function BooleanRenderer({ column, row }: DataTableCellProps<any>): ReactNode {
   const value = row[column.key];
-  return <Checkbox className="slds-align_absolute-center" id={`${column.key}-${getRowId(row)}`} checked={value} label="value" hideLabel readOnly />;
+  return (
+    <Checkbox
+      className="slds-align_absolute-center"
+      id={`${column.key}-${getRowId(row)}`}
+      checked={value}
+      label="value"
+      hideLabel
+      readOnly
+    />
+  );
 }
 
 export function ValueOrLoadingRenderer<T extends { loading: boolean }>({ column, row }: DataTableCellProps<T>): ReactNode {
@@ -86,7 +95,7 @@ export function ComplexDataRenderer({ column, row }: DataTableCellProps<RowWithK
           </pre>
         </Modal>
       )}
-      <button className="slds-button" onClick={() => setIsActive((prev) => !prev)}>
+      <button className="slds-button" tabIndex={-1} onClick={() => setIsActive((prev) => !prev)}>
         <Icon type="utility" icon="search" className="slds-button__icon slds-button__icon_left" omitContainer />
         View Data
       </button>
@@ -106,6 +115,7 @@ export function IdLinkRenderer({ column, row }: DataTableCellProps<RowWithKey>):
       skipFrontDoorAuth={skipFrontDoorAuth}
       returnUrl={url}
       isTooling={false}
+      removeFromTabOrder
       onRecordAction={onRecordAction}
     />
   );
@@ -131,6 +141,7 @@ export function NameLinkRenderer({ column, row }: DataTableCellProps<RowWithKey>
       skipFrontDoorAuth={skipFrontDoorAuth}
       returnUrl={url}
       isTooling={false}
+      removeFromTabOrder
       onRecordAction={onRecordAction}
       displayValue={<span className="slds-truncate">{nameValue}</span>}
     />
@@ -159,35 +170,35 @@ export function ActionRenderer({ row }: DataTableCellProps<any>): ReactNode {
     <Fragment>
       <ErrorMessageRenderer row={row} />
       <Tooltip ariaRole="label" content="View full record">
-        <button className="slds-button slds-button_icon slds-m-right_xx-small" onClick={() => row._action(row, 'view')}>
+        <button className="slds-button slds-button_icon slds-m-right_xx-small" tabIndex={-1} onClick={() => row._action(row, 'view')}>
           <Icon type="utility" icon="preview" className="slds-button__icon" omitContainer title="View Record" />
         </button>
       </Tooltip>
       <Tooltip ariaRole="label" content="Edit">
-        <button className="slds-button slds-button_icon slds-m-right_xx-small" onClick={() => row._action(row, 'edit')}>
+        <button className="slds-button slds-button_icon slds-m-right_xx-small" tabIndex={-1} onClick={() => row._action(row, 'edit')}>
           <Icon type="utility" icon="edit" className="slds-button__icon" omitContainer title="Edit Record" />
         </button>
       </Tooltip>
       <Tooltip ariaRole="label" content="Clone">
-        <button className="slds-button slds-button_icon slds-m-right_xx-small" onClick={() => row._action(row, 'clone')}>
+        <button className="slds-button slds-button_icon slds-m-right_xx-small" tabIndex={-1} onClick={() => row._action(row, 'clone')}>
           <Icon type="utility" icon="copy" className="slds-button__icon" omitContainer title="Clone Record" />
         </button>
       </Tooltip>
       {isDeleted ? (
         <Tooltip ariaRole="label" content="Restore from Recycle Bin">
-          <button className="slds-button slds-button_icon slds-m-right_xx-small" onClick={() => row._action(row, 'undelete')}>
+          <button className="slds-button slds-button_icon slds-m-right_xx-small" tabIndex={-1} onClick={() => row._action(row, 'undelete')}>
             <Icon type="utility" icon="undelete" className="slds-button__icon" omitContainer title="Restore from Recycle Bin" />
           </button>
         </Tooltip>
       ) : (
         <Tooltip ariaRole="label" content="Delete">
-          <button className="slds-button slds-button_icon slds-m-right_xx-small" onClick={() => row._action(row, 'delete')}>
+          <button className="slds-button slds-button_icon slds-m-right_xx-small" tabIndex={-1} onClick={() => row._action(row, 'delete')}>
             <Icon type="utility" icon="delete" className="slds-button__icon" omitContainer title="Delete Record" />
           </button>
         </Tooltip>
       )}
       <Tooltip ariaRole="label" content="Turn Into Apex">
-        <button className="slds-button slds-button_icon" onClick={() => row._action(row, 'apex')}>
+        <button className="slds-button slds-button_icon" tabIndex={-1} onClick={() => row._action(row, 'apex')}>
           <Icon type="utility" icon="apex" className="slds-button__icon" omitContainer title="Turn Into Apex" />
         </button>
       </Tooltip>
@@ -207,7 +218,12 @@ export function ErrorMessageRenderer({ row }: { row: any }): ReactNode {
         <header className="slds-popover__header">
           <div className="slds-media slds-media_center slds-has-flexi-truncate">
             <div className="slds-media__figure">
-              <Icon type="utility" icon="error" className="slds-icon slds-icon_x-small" containerClassname="slds-icon_container slds-icon-utility-error" />
+              <Icon
+                type="utility"
+                icon="error"
+                className="slds-icon slds-icon_x-small"
+                containerClassname="slds-icon_container slds-icon-utility-error"
+              />
             </div>
             <div className="slds-media__body">
               <h2 className="slds-truncate slds-text-heading_medium" title="Resolve error">
@@ -226,7 +242,7 @@ export function ErrorMessageRenderer({ row }: { row: any }): ReactNode {
           <p>{row._saveError}</p>
         </div>
       }
-      buttonProps={{ className: 'slds-button slds-button_icon slds-button_icon-error' }}
+      buttonProps={{ className: 'slds-button slds-button_icon slds-button_icon-error', tabIndex: -1 }}
     >
       <Icon type="utility" icon="error" className="slds-button__icon" omitContainer />
     </Popover>
@@ -241,6 +257,7 @@ export function SelectFormatter({ row, tanstackRow }: DataTableCellProps<any>): 
       id={`checkbox-select-${getRowId(row)}`}
       label="Select row"
       hideLabel
+      tabIndex={-1}
       checked={tanstackRow.getIsSelected()}
       disabled={!tanstackRow.getCanSelect()}
       onChange={(checked) => tanstackRow.toggleSelected(checked)}
@@ -257,6 +274,7 @@ export function SelectHeaderGroupRenderer({ childRows, tanstackRow }: DataTableG
       id={`checkbox-select-all-${tanstackRow.id}`}
       label="Select all"
       hideLabel
+      tabIndex={-1}
       checked={allSelected}
       indeterminate={!allSelected && someSelected}
       onChange={(checked) => tanstackRow.toggleSelected(checked)}

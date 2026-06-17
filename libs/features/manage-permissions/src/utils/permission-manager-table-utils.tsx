@@ -631,8 +631,11 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
             type="checkbox"
             id={`${row.key}-${id}-${actionKey}`}
             checked={value}
+            tabIndex={-1}
+            // Stop the click from also reaching the wrapping div's onClick — otherwise a direct click
+            // (or programmatic keyboard activation) toggles via both handlers. onChange owns the toggle.
+            onClick={(ev) => ev.stopPropagation()}
             onChange={(ev) => {
-              ev.stopPropagation();
               handleChange(ev.target.checked);
             }}
             disabled={disabled}
@@ -1414,6 +1417,7 @@ export const RowActionRenderer = ({ column, commitEdit, row }: RenderCellProps<P
       }
       buttonProps={{
         className: 'slds-button slds-button_stretch',
+        tabIndex: -1,
         onChange: handleOpen,
       }}
       buttonStyle={{ lineHeight: '1rem' }}

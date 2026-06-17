@@ -214,9 +214,11 @@
   z-index: 1;
 }
 
-/* Roving tabindex focus ring (navigation mode) */
+/* Roving tabindex focus ring (navigation mode) — body cells and the keyboard-navigable header row */
 .jgrid-cell:focus,
-.jgrid-cell:focus-visible {
+.jgrid-cell:focus-visible,
+.jgrid-header-cell:focus,
+.jgrid-header-cell:focus-visible {
   outline: none;
   box-shadow: var(--slds-g-shadow-insetinverse-focus-1, inset 0 0 0 2px #0176d3);
 }

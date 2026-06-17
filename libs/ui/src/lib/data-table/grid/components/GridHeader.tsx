@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Table } from '@tanstack/react-table';
 import { CSSProperties, ReactNode } from 'react';
+import { HEADER_ROW_ID } from '../grid-constants';
 import { DataTableHeaderProps } from '../grid-types';
+import { ActiveCell } from './GridRow';
 import { GridSummaryRow } from './GridSummaryRow';
 import { HeaderCell } from './HeaderCell';
 
@@ -16,6 +18,10 @@ export interface GridHeaderProps<TRow, TSummaryRow = unknown> {
   /** Fixed height (px) per summary row; content-sized when omitted. */
   summaryRowHeight?: number;
   onHeaderContextMenu?: (event: React.MouseEvent, columnId: string) => void;
+  /** Active cell — used to drive roving tabindex when the header row is keyboard-focused. */
+  activeCell?: ActiveCell | null;
+  /** Mouse down on a header cell — makes it the keyboard-active cell. */
+  onHeaderCellMouseDown?: (columnId: string) => void;
 }
 
 export function GridHeader<TRow, TSummaryRow = unknown>({
@@ -26,10 +32,13 @@ export function GridHeader<TRow, TSummaryRow = unknown>({
   summaryRows,
   summaryRowHeight,
   onHeaderContextMenu,
+  activeCell,
+  onHeaderCellMouseDown,
 }: GridHeaderProps<TRow, TSummaryRow>) {
   const leafColumns = table.getVisibleLeafColumns();
   const style: CSSProperties = { gridTemplateColumns };
   const visibleIndexSet = new Set(visibleColumnIndexes);
+  const activeHeaderColumnId = activeCell?.rowId === HEADER_ROW_ID ? activeCell.columnId : null;
 
   return (
     <div role="rowgroup" className="jgrid-header">
@@ -62,6 +71,8 @@ export function GridHeader<TRow, TSummaryRow = unknown>({
                 colSpan={span}
                 renderFilter={renderFilter}
                 onHeaderContextMenu={onHeaderContextMenu}
+                isActive={activeHeaderColumnId === header.column.id}
+                onHeaderCellMouseDown={onHeaderCellMouseDown}
               />,
             );
           }
