@@ -298,11 +298,19 @@ export function useGridKeyboardNavigation<TRow>({
       const ctrlOrMeta = event.ctrlKey || event.metaKey;
       const extend = event.shiftKey;
 
+      // Mark a key as consumed by THIS grid. Stopping propagation prevents the event from bubbling
+      // through the React tree to an ancestor grid — without it, a nested grid (e.g. the subquery
+      // modal table) would also drive the underlying page's table, since React portals propagate
+      // synthetic events through the component tree rather than the DOM tree.
+      const consume = () => {
+        event.preventDefault();
+        event.stopPropagation();
+      };
+
       // ── Actionable mode: only Escape is handled here; everything else is the cell's own behavior. ──
       if (mode === 'actionable') {
         if (event.key === 'Escape') {
-          event.preventDefault();
-          event.stopPropagation();
+          consume();
           setMode('navigation');
         }
         return;
@@ -311,15 +319,15 @@ export function useGridKeyboardNavigation<TRow>({
       // ── Navigation mode ──
       switch (event.key) {
         case 'ArrowDown':
-          event.preventDefault();
+          consume();
           moveTo(rowIndex + 1, colIndex, extend);
           break;
         case 'ArrowUp':
-          event.preventDefault();
+          consume();
           moveTo(rowIndex - 1, colIndex, extend);
           break;
         case 'ArrowRight': {
-          event.preventDefault();
+          consume();
           const currentRow = rows[rowIndex];
           // Tree: Right expands a collapsed expandable row; otherwise move to the next cell.
           if (!extend && currentRow?.getCanExpand() && !currentRow.getIsExpanded()) {
@@ -330,7 +338,7 @@ export function useGridKeyboardNavigation<TRow>({
           break;
         }
         case 'ArrowLeft': {
-          event.preventDefault();
+          consume();
           const currentRow = rows[rowIndex];
           // Tree: Left collapses an expanded row, else moves to its parent row, else moves left.
           if (!extend && currentRow?.getCanExpand() && currentRow.getIsExpanded()) {
@@ -345,25 +353,25 @@ export function useGridKeyboardNavigation<TRow>({
           break;
         }
         case 'Home':
-          event.preventDefault();
+          consume();
           moveTo(ctrlOrMeta ? 0 : rowIndex, 0, extend);
           break;
         case 'End':
-          event.preventDefault();
+          consume();
           moveTo(ctrlOrMeta ? rows.length - 1 : rowIndex, columns.length - 1, extend);
           break;
         case 'PageDown':
-          event.preventDefault();
+          consume();
           moveTo(rowIndex + PAGE_SIZE, colIndex, extend);
           break;
         case 'PageUp':
-          event.preventDefault();
+          consume();
           moveTo(rowIndex - PAGE_SIZE, colIndex, extend);
           break;
         case 'a':
         case 'A':
           if (ctrlOrMeta) {
-            event.preventDefault();
+            consume();
             // 'select-all' suppresses scroll-into-view/focus of the new active corner — selecting
             // everything must not jump the viewport to the bottom-right of the grid.
             interactionSourceRef.current = 'select-all';
@@ -373,7 +381,7 @@ export function useGridKeyboardNavigation<TRow>({
           break;
         case 'Enter':
         case 'F2':
-          event.preventDefault();
+          consume();
           applySelection(current.rowId, current.columnId, false);
           // Editable cells open their editor; everything else enters Actionable mode.
           if (!(onRequestEdit && onRequestEdit(current))) {
@@ -383,6 +391,7 @@ export function useGridKeyboardNavigation<TRow>({
         case 'c':
         case 'C':
           if (ctrlOrMeta) {
+            event.stopPropagation();
             copySelection();
           }
           break;
