@@ -4,6 +4,7 @@ import {
   arrow,
   autoUpdate,
   flip,
+  FloatingFocusManager,
   FloatingPortal,
   offset,
   shift,
@@ -195,128 +196,130 @@ export const Popover = ({
       {triggerAfterContent}
       {isOpen && (
         <FloatingPortal root={portalRoot}>
-          <section
-            ref={refs.setFloating}
-            data-testid={testId}
-            style={{ ...floatingStyles, ...panelStyle }}
-            {...getFloatingProps()}
-            className={classNames('slds-popover', size ? `slds-popover_${size}` : undefined, containerClassName)}
-            css={css`
-              &[data-placement^='right'] {
-                .popover-arrow {
-                  left: -0.5rem;
-                  &::after {
-                    box-shadow: -1px 1px 2px 0 rgb(0 0 0 / 16%);
+          <FloatingFocusManager context={context} modal={false} returnFocus>
+            <section
+              ref={refs.setFloating}
+              data-testid={testId}
+              style={{ ...floatingStyles, ...panelStyle }}
+              {...getFloatingProps()}
+              className={classNames('slds-popover', size ? `slds-popover_${size}` : undefined, containerClassName)}
+              css={css`
+                &[data-placement^='right'] {
+                  .popover-arrow {
+                    left: -0.5rem;
+                    &::after {
+                      box-shadow: -1px 1px 2px 0 rgb(0 0 0 / 16%);
+                    }
                   }
                 }
-              }
 
-              &[data-placement^='left'] {
-                .popover-arrow {
-                  right: -0.5rem;
-                  &::after {
-                    box-shadow: 1px -1px 2px 0 rgb(0 0 0 / 16%);
+                &[data-placement^='left'] {
+                  .popover-arrow {
+                    right: -0.5rem;
+                    &::after {
+                      box-shadow: 1px -1px 2px 0 rgb(0 0 0 / 16%);
+                    }
                   }
                 }
-              }
 
-              &[data-placement^='top'] {
-                .popover-arrow {
-                  bottom: -0.5rem;
-                  &::after {
-                    box-shadow: 2px 2px 4px 0 rgb(0 0 0 / 16%);
-                  }
-                  ${footer?.props?.className?.includes('slds-popover__footer') &&
-                  !containerClassName?.includes('_error') &&
-                  !containerClassName?.includes('_warning') &&
-                  !containerClassName?.includes('_walkthrough') &&
-                  `&::before {
+                &[data-placement^='top'] {
+                  .popover-arrow {
+                    bottom: -0.5rem;
+                    &::after {
+                      box-shadow: 2px 2px 4px 0 rgb(0 0 0 / 16%);
+                    }
+                    ${footer?.props?.className?.includes('slds-popover__footer') &&
+                    !containerClassName?.includes('_error') &&
+                    !containerClassName?.includes('_warning') &&
+                    !containerClassName?.includes('_walkthrough') &&
+                    `&::before {
               background-color: var(--slds-s-container-footer-color-background, var(--slds-g-color-surface-container-2, #f3f2f2));
             }`}
-                }
-              }
-
-              &[data-placement^='bottom'] {
-                .popover-arrow {
-                  top: -0.5rem;
-                  &::after {
-                    box-shadow: -1px -1px 0 0 rgb(0 0 0 / 16%);
                   }
-                  ${containerClassName?.includes('_error') &&
-                  `&::before {
+                }
+
+                &[data-placement^='bottom'] {
+                  .popover-arrow {
+                    top: -0.5rem;
+                    &::after {
+                      box-shadow: -1px -1px 0 0 rgb(0 0 0 / 16%);
+                    }
+                    ${containerClassName?.includes('_error') &&
+                    `&::before {
               background-color: var(--slds-g-color-error-container-1, #ba0517);
             }`}
-                  ${containerClassName?.includes('_warning') &&
-                  `&::before {
+                    ${containerClassName?.includes('_warning') &&
+                    `&::before {
               background-color: var(--slds-g-color-warning-container-1, #fe9339);
             }`}
             ${containerClassName?.includes('_walkthrough') &&
-                  `&::before {
+                    `&::before {
               background-color: var(--slds-g-color-surface-inverse-1, #032d60);
             }`}
+                  }
                 }
-              }
-            `}
-            data-placement={currentPlacement}
-            {...panelProps}
-          >
-            {/* CLOSE BUTTON */}
-            <button
-              className={classNames(
-                'slds-button slds-button_icon slds-button_icon-small slds-float_right slds-popover__close',
-                {
-                  'slds-button_icon-inverse': inverseIcons,
-                },
-                closeBtnClassName,
-              )}
-              title="Close dialog"
-              onClick={handleClose}
-              type="button"
+              `}
+              data-placement={currentPlacement}
+              {...panelProps}
             >
-              <Icon type="utility" icon="close" className="slds-button__icon" omitContainer />
-              <span className="slds-assistive-text">Close dialog</span>
-            </button>
-            {/* CONTENT */}
-            {header}
-            <div css={bodyStyle} className={bodyClassName}>
-              {content}
-            </div>
-            {footer}
-            {/* ARROW */}
-            <div
-              css={css`
-                position: absolute;
-                width: 1rem;
-                height: 1rem;
-                background: inherit;
-                visibility: hidden;
-                &::before {
-                  visibility: visible;
-                  content: '';
-                  transform: rotate(45deg);
+              {/* CLOSE BUTTON */}
+              <button
+                className={classNames(
+                  'slds-button slds-button_icon slds-button_icon-small slds-float_right slds-popover__close',
+                  {
+                    'slds-button_icon-inverse': inverseIcons,
+                  },
+                  closeBtnClassName,
+                )}
+                title="Close dialog"
+                onClick={handleClose}
+                type="button"
+              >
+                <Icon type="utility" icon="close" className="slds-button__icon" omitContainer />
+                <span className="slds-assistive-text">Close dialog</span>
+              </button>
+              {/* CONTENT */}
+              {header}
+              <div css={bodyStyle} className={bodyClassName}>
+                {content}
+              </div>
+              {footer}
+              {/* ARROW */}
+              <div
+                css={css`
                   position: absolute;
                   width: 1rem;
                   height: 1rem;
                   background: inherit;
-                }
-                &::after {
-                  visibility: visible;
-                  content: '';
-                  transform: rotate(45deg);
-                  position: absolute;
-                  width: 1rem;
-                  height: 1rem;
-                }
-              `}
-              className="popover-arrow"
-              ref={setArrowElement}
-              style={{
-                position: 'absolute',
-                left: arrowX != null ? `${arrowX}px` : '',
-                top: arrowY != null ? `${arrowY}px` : '',
-              }}
-            ></div>
-          </section>
+                  visibility: hidden;
+                  &::before {
+                    visibility: visible;
+                    content: '';
+                    transform: rotate(45deg);
+                    position: absolute;
+                    width: 1rem;
+                    height: 1rem;
+                    background: inherit;
+                  }
+                  &::after {
+                    visibility: visible;
+                    content: '';
+                    transform: rotate(45deg);
+                    position: absolute;
+                    width: 1rem;
+                    height: 1rem;
+                  }
+                `}
+                className="popover-arrow"
+                ref={setArrowElement}
+                style={{
+                  position: 'absolute',
+                  left: arrowX != null ? `${arrowX}px` : '',
+                  top: arrowY != null ? `${arrowY}px` : '',
+                }}
+              ></div>
+            </section>
+          </FloatingFocusManager>
         </FloatingPortal>
       )}
     </span>

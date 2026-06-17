@@ -63,7 +63,7 @@ export const CopyToClipboard: FunctionComponent<CopyToClipboardProps> = ({
         type === 'icon' && container && containerSize ? `slds-button_icon-${containerSize}` : undefined,
         className,
       )}
-      disabled={disabled || (!skipTransitionIcon && isCopied)}
+      disabled={disabled}
       onClick={handleCopy}
       type="button"
     >

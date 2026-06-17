@@ -128,7 +128,7 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = ({
             onSelected={(org: SalesforceOrgUi) => setSelectedOrgId(org.uniqueId)}
           />
           {selectedOrg && (
-            <div className="slds-col slds-m-left--xx-small org-info-button">
+            <div className="slds-col slds-m-horizontal--xx-small org-info-button">
               <OrgInfoPopover
                 org={selectedOrg}
                 loading={orgLoading}

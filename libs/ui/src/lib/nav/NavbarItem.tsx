@@ -18,7 +18,7 @@ export const NavbarItem: FunctionComponent<NavbarItemProps> = ({ className, path
         'slds-is-active': location.pathname === path || location.pathname.startsWith(`${path}/`),
       })}
     >
-      <Link tabIndex={-1} role="menuitem" className="slds-context-bar__label-action" title={title} to={{ pathname: path, search }}>
+      <Link className="slds-context-bar__label-action" title={title} to={{ pathname: path, search }}>
         <span className="slds-truncate" title={title}>
           {label}
         </span>

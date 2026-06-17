@@ -1,6 +1,19 @@
-import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import {
+  KeyBuffer,
+  isArrowDownKey,
+  isArrowUpKey,
+  isEndKey,
+  isEnterOrSpace,
+  isEscapeKey,
+  isHomeKey,
+  isTabKey,
+  menuItemSelectScroll,
+  selectMenuItemFromKeyboard,
+  useNonInitialEffect,
+} from '@jetstream/shared/ui-utils';
 import classNames from 'classnames';
-import { Fragment, FunctionComponent, useState } from 'react';
+import isNumber from 'lodash/isNumber';
+import { Fragment, FunctionComponent, KeyboardEvent, RefObject, createRef, useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import OutsideClickHandler from '../utils/OutsideClickHandler';
 import Icon from '../widgets/Icon';
@@ -43,6 +56,22 @@ export const NavbarMenuItems: FunctionComponent<NavbarMenuItemsProps> = ({ label
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const location = useLocation();
   const [isParentActive, setIsParentActive] = useState(false);
+  const [focusedItem, setFocusedItem] = useState<number | null>(null);
+
+  const keyBuffer = useRef(new KeyBuffer());
+  // The element focus returns to when the menu is closed via the keyboard (the label or caret trigger)
+  const triggerRef = useRef<HTMLElement | null>(null);
+  const ulContainerEl = useRef<HTMLUListElement>(null);
+  const elRefs = useRef<RefObject<HTMLAnchorElement>[]>([]);
+
+  // init array to hold element refs for each item in list
+  if (elRefs.current.length !== items.length) {
+    const refs: RefObject<HTMLAnchorElement>[] = [];
+    items.forEach((_, i) => {
+      refs[i] = elRefs.current[i] || createRef();
+    });
+    elRefs.current = refs;
+  }
 
   // Set parent item as active if it is active or if a child item is active
   useNonInitialEffect(() => {
@@ -56,6 +85,100 @@ export const NavbarMenuItems: FunctionComponent<NavbarMenuItemsProps> = ({ label
       setIsParentActive(childPaths);
     }
   }, [path, items, location.pathname]);
+
+  // Move focus to (and scroll to) the active menu item whenever it changes
+  useEffect(() => {
+    if (!isNumber(focusedItem)) {
+      return;
+    }
+    const focusedAnchor = elRefs.current[focusedItem]?.current;
+    if (focusedAnchor) {
+      try {
+        focusedAnchor.focus();
+        if (ulContainerEl.current) {
+          // Derive the scroll index from the DOM rather than the item index: heading rows render an
+          // extra <li role="separator">, so the focused anchor's <li> may not be the nth-child that
+          // matches focusedItem. Falls back to focusedItem when the <li> can't be located.
+          const focusedLi = focusedAnchor.closest('li');
+          const domIndex = focusedLi ? Array.from(ulContainerEl.current.children).indexOf(focusedLi) : -1;
+          menuItemSelectScroll({ container: ulContainerEl.current, focusedIndex: domIndex >= 0 ? domIndex : focusedItem });
+        }
+      } catch {
+        // silent error on keyboard navigation
+      }
+    }
+  }, [focusedItem]);
+
+  // When the menu opens move focus into the list (to the active route, otherwise the first item); reset when closed
+  useEffect(() => {
+    if (isOpen && !isNumber(focusedItem)) {
+      const selectedIdx = items.findIndex(
+        (item) => isLink(item) && (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)),
+      );
+      setFocusedItem(selectedIdx >= 0 ? selectedIdx : 0);
+    } else if (!isOpen) {
+      setFocusedItem(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  function closeMenu(returnFocusToTrigger = false) {
+    setIsOpen(false);
+    if (returnFocusToTrigger) {
+      triggerRef.current?.focus();
+    }
+  }
+
+  function handleTriggerKeyDown(event: KeyboardEvent<HTMLElement>) {
+    // Handle keys here (rather than relying on a native button click) so the label span and the caret
+    // button behave identically and so focus can be moved into the menu by the open effect.
+    if (isEnterOrSpace(event)) {
+      event.preventDefault();
+      setIsOpen((prev) => !prev);
+    } else if (isArrowDownKey(event)) {
+      event.preventDefault();
+      setIsOpen(true);
+    } else if (isEscapeKey(event)) {
+      setIsOpen(false);
+    }
+  }
+
+  function handleItemKeyDown(event: KeyboardEvent<HTMLAnchorElement>, item: NabarMenuItem, index: number) {
+    if (isEscapeKey(event)) {
+      event.preventDefault();
+      closeMenu(true);
+    } else if (isArrowUpKey(event)) {
+      event.preventDefault();
+      setFocusedItem(index <= 0 ? items.length - 1 : index - 1);
+    } else if (isArrowDownKey(event)) {
+      event.preventDefault();
+      setFocusedItem(index >= items.length - 1 ? 0 : index + 1);
+    } else if (isHomeKey(event)) {
+      event.preventDefault();
+      setFocusedItem(0);
+    } else if (isEndKey(event)) {
+      event.preventDefault();
+      setFocusedItem(items.length - 1);
+    } else if (isTabKey(event)) {
+      // Allow focus to leave the menu naturally, but close it behind the user
+      setIsOpen(false);
+    } else if (isEnterOrSpace(event)) {
+      event.preventDefault();
+      if (isLink(item)) {
+        // Trigger the anchor so links (internal and external) navigate consistently for Enter and Space
+        elRefs.current[index]?.current?.click();
+      } else {
+        item.action(item.id);
+        closeMenu(true);
+      }
+    } else if (event.key && event.key.length === 1) {
+      // Type-ahead: jump to the item whose title starts with the typed characters
+      event.preventDefault();
+      setFocusedItem(
+        selectMenuItemFromKeyboard({ key: event.key, keyCode: event.keyCode, keyBuffer: keyBuffer.current, items, labelProp: 'title' }),
+      );
+    }
+  }
 
   return (
     <li
@@ -73,19 +196,40 @@ export const NavbarMenuItems: FunctionComponent<NavbarMenuItemsProps> = ({ label
           </Link>
         )}
         {!path && (
-          <button className="slds-button slds-context-bar__label-action" title={label} onClick={() => setIsOpen(!isOpen)}>
+          // A role="button" span (rather than a slds-button) keeps the hover/active highlight the same size
+          // as the plain navbar items, matching the Salesforce context bar blueprint.
+          <span
+            ref={(el) => {
+              triggerRef.current = el;
+            }}
+            className="slds-context-bar__label-action"
+            role="button"
+            tabIndex={0}
+            title={label}
+            aria-haspopup="true"
+            aria-expanded={isOpen}
+            onClick={() => setIsOpen(!isOpen)}
+            onKeyDown={handleTriggerKeyDown}
+          >
             <span className="slds-truncate" title={label}>
               {label}
             </span>
-          </button>
+          </span>
         )}
 
         <div className="slds-context-bar__icon-action slds-p-left_none">
           <button
+            ref={(el) => {
+              if (path) {
+                triggerRef.current = el;
+              }
+            }}
             className="slds-button slds-button_icon slds-button_icon slds-context-bar__button"
             aria-haspopup="true"
+            aria-expanded={isOpen}
             title="Open menu"
             onClick={() => setIsOpen(!isOpen)}
+            onKeyDown={handleTriggerKeyDown}
           >
             <Icon
               type="utility"
@@ -97,69 +241,87 @@ export const NavbarMenuItems: FunctionComponent<NavbarMenuItemsProps> = ({ label
           </button>
         </div>
         <div className="slds-dropdown slds-dropdown_right slds-dropdown_small">
-          <ul className="slds-dropdown__list" role="menu">
-            {items.map((item, i) => (
-              <Fragment key={item.id}>
-                {item.heading && (
-                  <li className="slds-dropdown__header slds-has-divider_top-space" role="separator">
-                    {item.heading}
-                  </li>
-                )}
-                <li
-                  className={classNames('slds-dropdown__item', {
-                    'slds-is-selected': isLink(item) && (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)),
-                  })}
-                  role="presentation"
-                >
-                  {isLink(item) &&
-                    (item.isExternal ? (
-                      <a href={item.path} target="_blank" rel="noreferrer">
+          <ul className="slds-dropdown__list" role="menu" ref={ulContainerEl}>
+            {items.map((item, i) => {
+              const isActive = isLink(item) && (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`));
+              return (
+                <Fragment key={item.id}>
+                  {item.heading && (
+                    <li className="slds-dropdown__header slds-has-divider_top-space" role="separator">
+                      {item.heading}
+                    </li>
+                  )}
+                  <li
+                    className={classNames('slds-dropdown__item', {
+                      'slds-is-selected': isActive,
+                    })}
+                    role="presentation"
+                  >
+                    {isLink(item) &&
+                      (item.isExternal ? (
+                        <a
+                          ref={elRefs.current[i]}
+                          href={item.path}
+                          target="_blank"
+                          rel="noreferrer"
+                          role="menuitem"
+                          tabIndex={focusedItem === i ? 0 : -1}
+                          onKeyDown={(event) => handleItemKeyDown(event, item, i)}
+                          onClick={() => setIsOpen(false)}
+                        >
+                          <span className="slds-truncate" title={item.title}>
+                            <Icon
+                              type="utility"
+                              icon="new_window"
+                              className="slds-icon slds-icon_x-small slds-icon-text-default slds-m-right_x-small"
+                              omitContainer
+                            />
+                            {item.label}
+                          </span>
+                        </a>
+                      ) : (
+                        <Link
+                          ref={elRefs.current[i]}
+                          tabIndex={focusedItem === i ? 0 : -1}
+                          role="menuitemcheckbox"
+                          aria-checked={isActive}
+                          to={{ pathname: item.path, search: item.search }}
+                          onKeyDown={(event) => handleItemKeyDown(event, item, i)}
+                          onClick={() => setIsOpen(false)}
+                        >
+                          <span className="slds-truncate" title={item.title}>
+                            <Icon
+                              type="utility"
+                              icon="check"
+                              className="slds-icon slds-icon_selected slds-icon_x-small slds-icon-text-default slds-m-right_x-small"
+                              omitContainer
+                            />
+                            {item.label}
+                          </span>
+                        </Link>
+                      ))}
+                    {!isLink(item) && (
+                      // eslint-disable-next-line jsx-a11y/anchor-is-valid
+                      <a
+                        ref={elRefs.current[i]}
+                        tabIndex={focusedItem === i ? 0 : -1}
+                        role="menuitem"
+                        onKeyDown={(event) => handleItemKeyDown(event, item, i)}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          item.action(item.id);
+                          setIsOpen(false);
+                        }}
+                      >
                         <span className="slds-truncate" title={item.title}>
-                          <Icon
-                            type="utility"
-                            icon="new_window"
-                            className="slds-icon slds-icon_x-small slds-icon-text-default slds-m-right_x-small"
-                            omitContainer
-                          />
                           {item.label}
                         </span>
                       </a>
-                    ) : (
-                      <Link
-                        tabIndex={i === 0 ? 0 : -1}
-                        role="menuitemcheckbox"
-                        to={{ pathname: item.path, search: item.search }}
-                        onClick={() => setIsOpen(false)}
-                      >
-                        <span className="slds-truncate" title={item.title}>
-                          <Icon
-                            type="utility"
-                            icon="check"
-                            className="slds-icon slds-icon_selected slds-icon_x-small slds-icon-text-default slds-m-right_x-small"
-                            omitContainer
-                          />
-                          {item.label}
-                        </span>
-                      </Link>
-                    ))}
-                  {!isLink(item) && (
-                    // eslint-disable-next-line jsx-a11y/anchor-is-valid
-                    <a
-                      tabIndex={i === 0 ? 0 : -1}
-                      role="menuitem"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        item.action(item.id);
-                      }}
-                    >
-                      <span className="slds-truncate" title={item.title}>
-                        {item.label}
-                      </span>
-                    </a>
-                  )}
-                </li>
-              </Fragment>
-            ))}
+                    )}
+                  </li>
+                </Fragment>
+              );
+            })}
           </ul>
         </div>
       </OutsideClickHandler>
