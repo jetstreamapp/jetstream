@@ -104,11 +104,33 @@ export class OrgGroupPage {
   }
 
   async dragOrgToGroup(jetstreamOrgName: string, salesforceOrgLabel: string) {
-    await this.page.getByTestId(`salesforce-org-${salesforceOrgLabel}`).dragTo(this.page.getByTestId(`org-group-card-${jetstreamOrgName}`));
+    const source = this.page.getByTestId(`salesforce-org-${salesforceOrgLabel}`);
+    const target = this.page.getByTestId(`org-group-card-${jetstreamOrgName}`);
 
-    await expect(
-      this.page.getByTestId(`org-group-card-${jetstreamOrgName}`).locator(this.page.getByTestId(`salesforce-org-${salesforceOrgLabel}`)),
-    ).toBeVisible();
+    const sourceBox = await source.boundingBox();
+    const targetBox = await target.boundingBox();
+    if (!sourceBox || !targetBox) {
+      throw new Error('Unable to resolve bounding boxes for org drag-and-drop');
+    }
+
+    const sourceX = sourceBox.x + sourceBox.width / 2;
+    const sourceY = sourceBox.y + sourceBox.height / 2;
+    const targetX = targetBox.x + targetBox.width / 2;
+    const targetY = targetBox.y + targetBox.height / 2;
+
+    // @dnd-kit uses a pointer sensor with a small distance activation constraint. Drive the drag with explicit
+    // stepped pointer movements rather than Playwright's single-jump dragTo, which doesn't reliably activate it.
+    await this.page.mouse.move(sourceX, sourceY);
+    await this.page.mouse.down();
+    await this.page.mouse.move(sourceX + 10, sourceY + 10, { steps: 5 }); // exceed the activation distance threshold
+    await this.page.mouse.move(targetX, targetY, { steps: 15 });
+    // small real movement over the target so the pointer sensor finalizes the drop target before releasing
+    await this.page.mouse.move(targetX + 2, targetY + 2, { steps: 3 });
+    await this.page.mouse.move(targetX, targetY, { steps: 3 });
+    await this.page.mouse.up();
+
+    await expect(this.page.locator('[data-dnd-placeholder], [data-dnd-dragging]')).toHaveCount(0);
+    await expect(target.getByTestId(`salesforce-org-${salesforceOrgLabel}`)).toBeVisible();
   }
 
   async makeActiveOrgGroup(jetstreamOrgName: string) {

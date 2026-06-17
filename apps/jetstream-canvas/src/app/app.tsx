@@ -8,8 +8,6 @@ import {
   ViewEditCloneRecordWrapper,
 } from '@jetstream/ui-core';
 import { Suspense } from 'react';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
 import { ErrorBoundary } from 'react-error-boundary';
 import ModalContainer from 'react-modal-promise';
 import z from 'zod';
@@ -30,30 +28,28 @@ export const App = () => {
       <ConfirmationServiceProvider>
         <Suspense fallback={<AppLoading />}>
           <AppInitializer>
-            <DndProvider backend={HTML5Backend}>
-              <ThemeApplier forceScheme="light" />
-              <ModalContainer />
-              <AppToast />
-              <DownloadFileStream />
-              <ViewEditCloneRecordWrapper />
-              <div>
-                <div data-testid="header">
-                  <HeaderNavbar
-                    isEmbeddedApp
-                    isFullscreen={isFullscreen}
-                    isBillingEnabled={false}
-                    onLogoutHandlerFn={() => Sfdc.canvas.oauth.logout()}
-                  />
-                </div>
-                <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
-                  <Suspense fallback={<AppLoading />}>
-                    <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
-                      <AppRoutes />
-                    </ErrorBoundary>
-                  </Suspense>
-                </div>
+            <ThemeApplier forceScheme="light" />
+            <ModalContainer />
+            <AppToast />
+            <DownloadFileStream />
+            <ViewEditCloneRecordWrapper />
+            <div>
+              <div data-testid="header">
+                <HeaderNavbar
+                  isEmbeddedApp
+                  isFullscreen={isFullscreen}
+                  isBillingEnabled={false}
+                  onLogoutHandlerFn={() => Sfdc.canvas.oauth.logout()}
+                />
               </div>
-            </DndProvider>
+              <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
+                <Suspense fallback={<AppLoading />}>
+                  <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
+                    <AppRoutes />
+                  </ErrorBoundary>
+                </Suspense>
+              </div>
+            </div>
           </AppInitializer>
         </Suspense>
       </ConfirmationServiceProvider>

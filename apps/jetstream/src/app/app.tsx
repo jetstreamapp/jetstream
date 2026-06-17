@@ -10,8 +10,6 @@ import {
   ViewEditCloneRecordWrapper,
 } from '@jetstream/ui-core';
 import { Suspense, useState } from 'react';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
 import { ErrorBoundary } from 'react-error-boundary';
 import ModalContainer from 'react-modal-promise';
 import { environment } from '../environments/environment';
@@ -31,33 +29,31 @@ export const App = () => {
       <ConfirmationServiceProvider>
         <Suspense fallback={<AppLoading />}>
           <AppInitializer onAnnouncements={setAnnouncements}>
-            <DndProvider backend={HTML5Backend}>
-              <ThemeApplier />
-              <ModalContainer />
-              <AppStateResetOnOrgChange />
-              <AppToast />
-              <LogInitializer />
-              {/* TODO: we don't need/want to show this for read only user (e.g. billing only user) */}
-              <NotificationsRequestModal loadDelay={10000} />
-              <DownloadFileStream />
-              <ViewEditCloneRecordWrapper />
-              <ErrorBoundary FallbackComponent={ErrorBoundaryEmptyFallback}>
-                <UserFeedbackWidget />
-              </ErrorBoundary>
-              <div>
-                <div data-testid="header">
-                  <HeaderNavbar isBillingEnabled={environment.BILLING_ENABLED} />
-                </div>
-                <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
-                  <AnnouncementAlerts announcements={announcements} />
-                  <Suspense fallback={<AppLoading />}>
-                    <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
-                      <AppRoutes />
-                    </ErrorBoundary>
-                  </Suspense>
-                </div>
+            <ThemeApplier />
+            <ModalContainer />
+            <AppStateResetOnOrgChange />
+            <AppToast />
+            <LogInitializer />
+            {/* TODO: we don't need/want to show this for read only user (e.g. billing only user) */}
+            <NotificationsRequestModal loadDelay={10000} />
+            <DownloadFileStream />
+            <ViewEditCloneRecordWrapper />
+            <ErrorBoundary FallbackComponent={ErrorBoundaryEmptyFallback}>
+              <UserFeedbackWidget />
+            </ErrorBoundary>
+            <div>
+              <div data-testid="header">
+                <HeaderNavbar isBillingEnabled={environment.BILLING_ENABLED} />
               </div>
-            </DndProvider>
+              <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
+                <AnnouncementAlerts announcements={announcements} />
+                <Suspense fallback={<AppLoading />}>
+                  <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
+                    <AppRoutes />
+                  </ErrorBoundary>
+                </Suspense>
+              </div>
+            </div>
           </AppInitializer>
         </Suspense>
       </ConfirmationServiceProvider>

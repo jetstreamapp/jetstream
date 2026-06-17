@@ -1,8 +1,8 @@
+import { useDraggable } from '@dnd-kit/react';
 import { css } from '@emotion/react';
 import { AddOrgHandlerFn, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, Icon } from '@jetstream/ui';
 import { OrgInfoPopover, useUpdateOrgs } from '@jetstream/ui-core';
-import { useDrag } from 'react-dnd';
 import { DraggableSfdcCard } from './organization-group.types';
 import { SalesforceOrgCardConnectionRefresh } from './SalesforceOrgCardConnectionRefresh';
 
@@ -19,32 +19,28 @@ interface SalesforceOrgCardDraggableProps {
 export function SalesforceOrgCardDraggable({ org, isActive, onAddOrgHandlerFn }: SalesforceOrgCardDraggableProps) {
   const { actionInProgress, orgLoading, handleAddOrg, handleRemoveOrg, handleUpdateOrg } = useUpdateOrgs();
 
-  const [{ opacity }, dragRef] = useDrag<DraggableSfdcCard, any, any>(
-    () => ({
-      type: 'SalesforceOrg',
-      item: { uniqueId: org.uniqueId, organizationId: org.jetstreamOrganizationId ?? null },
-      collect: (monitor) => ({
-        opacity: monitor.isDragging() ? 0.5 : 1,
-      }),
-    }),
-    [org.jetstreamOrganizationId],
-  );
+  const { ref, isDragging } = useDraggable<DraggableSfdcCard>({
+    id: org.uniqueId,
+    type: 'SalesforceOrg',
+    data: { uniqueId: org.uniqueId, organizationId: org.jetstreamOrganizationId ?? null },
+  });
 
   return (
     <div
-      ref={dragRef as any}
+      ref={ref}
       data-testid={`salesforce-org-${org.label}`}
-      style={{ opacity }}
+      style={{ opacity: isDragging ? 0.75 : 1 }}
       css={css`
         width: 24rem;
         position: relative;
+        border-radius: var(--slds-c-card-radius-border, var(--slds-g-radius-border-2, 0.5rem));
       `}
     >
       <div
         css={css`
           height: 120px;
           cursor: grabbing;
-          border-radius: 8px;
+          border-radius: var(--slds-c-card-radius-border, var(--slds-g-radius-border-2, 0.5rem));
           border: 0.5px solid
             ${org.connectionError ? 'var(--slds-g-color-error-base-40, #ea001e)' : 'var(--slds-g-color-border-1, #c9c9c9)'};
           box-shadow: var(--slds-g-shadow-1, 0px 2px 2px rgba(0, 0, 0, 0.1));
@@ -54,7 +50,7 @@ export function SalesforceOrgCardDraggable({ org, isActive, onAddOrgHandlerFn }:
             position: absolute;
             top: 0;
             right: 0;
-            border-radius: 0 0.25rem 0 0;
+            border-radius: 0 var(--slds-c-card-radius-border, var(--slds-g-radius-border-2, 0.5rem)) 0 0;
             border-left: 1rem solid transparent;
             border-bottom: 1rem solid transparent;
             border-right: 1rem solid transparent;

@@ -1,12 +1,12 @@
+import { useDroppable } from '@dnd-kit/react';
 import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { AddOrgHandlerFn, DropDownItem, OrgGroupWithOrgs } from '@jetstream/types';
 import { ButtonGroupContainer, Card, DropDown, Grid, Icon } from '@jetstream/ui';
 import classNames from 'classnames';
 import { useMemo } from 'react';
-import { useDrop } from 'react-dnd';
 import { SalesforceOrgCardDraggable } from './SalesforceOrgCardDraggable';
-import { DraggableSfdcCard } from './organization-group.types';
+import { DraggableSfdcCard, SfdcCardDropTarget } from './organization-group.types';
 
 interface OrgGroupCardCardProps {
   isActive: boolean;
@@ -14,7 +14,6 @@ interface OrgGroupCardCardProps {
   activeSalesforceOrgId?: string;
   onSelected: () => void;
   onEditOrg: () => void;
-  onMoveOrg: (data: { orgGroupId: string; sfdcOrgUniqueId: string; action: 'add' }) => void;
   onDeleteOrg: () => void;
   onDeleteOrgWithOrgs: () => void;
   /**
@@ -30,35 +29,18 @@ export function OrgGroupCardCard({
   activeSalesforceOrgId,
   onSelected,
   onEditOrg,
-  onMoveOrg,
   onDeleteOrg,
   onDeleteOrgWithOrgs,
   onAddOrgHandlerFn,
 }: OrgGroupCardCardProps) {
   const { id, name, description, orgs } = group;
   const orgCount = group.orgs.length;
-  const [{ isOver, canDrop }, dropRef] = useDrop<DraggableSfdcCard, any, { isOver: boolean; canDrop: boolean }>(
-    {
-      accept: 'SalesforceOrg',
-      collect: (monitor) => {
-        return {
-          isOver: monitor.isOver(),
-          canDrop: monitor.canDrop(),
-        };
-      },
-      canDrop: (item, monitor) => {
-        return item.organizationId !== id && monitor.isOver();
-      },
-      drop: (item, monitor) => {
-        onMoveOrg({
-          orgGroupId: id,
-          sfdcOrgUniqueId: item.uniqueId,
-          action: 'add',
-        });
-      },
-    },
-    [id, onMoveOrg],
-  );
+  // Only accept org cards that aren't already in this group.
+  const { ref: dropRef, isDropTarget } = useDroppable({
+    id,
+    accept: (source) => (source.data as DraggableSfdcCard).organizationId !== id,
+    data: { action: 'add', orgGroupId: id } satisfies SfdcCardDropTarget,
+  });
 
   const tertiaryActionMenuItems = useMemo(() => {
     const items: DropDownItem[] = [];
@@ -95,9 +77,12 @@ export function OrgGroupCardCard({
       `}
     >
       <Card
-        ref={dropRef as any}
+        ref={dropRef}
         testId={`org-group-card-${group.name}`}
         css={css`
+          &.slds-drop-zone::after {
+            border-radius: var(--slds-c-card-radius-border, var(--slds-g-radius-border-2, 0.5rem));
+          }
           ${isActive
             ? `
             border: 1px solid var(--slds-g-color-brand-base-60, #1b96ff) !important;
@@ -107,7 +92,7 @@ export function OrgGroupCardCard({
             position: absolute;
             top: 0;
             right: 0;
-            border-radius: 0 0.25rem 0 0;
+            border-radius: 0 var(--slds-c-card-radius-border, var(--slds-g-radius-border-2, 0.5rem)) 0 0;
             border-left: 1rem solid transparent;
             border-bottom: 1rem solid transparent;
             border-right: 1rem solid transparent;
@@ -118,7 +103,7 @@ export function OrgGroupCardCard({
             : ''}
         `}
         nestedBorder
-        className={classNames({ 'slds-drop-zone slds-drop-zone_drag': isOver && canDrop })}
+        className={classNames({ 'slds-drop-zone slds-drop-zone_drag': isDropTarget })}
         title={
           <Grid>
             {name} ({formatNumber(orgCount)})

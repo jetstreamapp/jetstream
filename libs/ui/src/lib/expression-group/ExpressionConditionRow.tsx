@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useDraggable } from '@dnd-kit/react';
 import { css } from '@emotion/react';
 import { useDebounce } from '@jetstream/shared/ui-utils';
 import {
@@ -17,7 +17,6 @@ import { parseISO } from 'date-fns/parseISO';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import { FunctionComponent, useEffect, useState } from 'react';
-import { useDrag } from 'react-dnd';
 import FormRowButton from '../form/button/FormRowButton';
 import ComboboxWithDrillInItems from '../form/combobox/ComboboxWithDrillInItems';
 import ComboboxWithItems from '../form/combobox/ComboboxWithItems';
@@ -107,16 +106,15 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
   const debouncedSelectedValue = useDebounce(selectedValue, 150);
   const referenceSobjects: string[] = selected.resourceMeta?.referenceTo || [];
 
-  const [{ isDragging }, drag, preview] = useDrag(
-    () => ({
-      type: 'row',
-      item: (): DraggableRow => ({ rowKey, groupKey }),
-      collect: (monitor) => ({
-        isDragging: !!monitor.isDragging(),
-      }),
-    }),
-    [row],
-  );
+  // Drag is initiated from the handle (handleRef); the whole row is the drag element (ref).
+  // The element ref is only attached when drag handles are shown (see the <li> below) so the row is neither
+  // draggable nor marked aria-disabled when dragging is unavailable — aria-disabled would otherwise propagate
+  // to the inputs inside the row and make them non-interactive.
+  const { ref, handleRef, isDragging } = useDraggable<DraggableRow>({
+    id: rowKey,
+    type: 'row',
+    data: { rowKey, groupKey },
+  });
 
   useEffect(() => {
     onChange({ ...selected, value: debouncedSelectedValue });
@@ -182,7 +180,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
 
   return (
     <li
-      ref={preview as any}
+      ref={showDragHandles ? ref : undefined}
       className={classNames('slds-expression__row', {
         'slds-expression__row_group': isNumber(group),
         'slds-border_top': row > 1 && wrap,
@@ -199,11 +197,12 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
         <Grid gutters guttersSize="xx-small" wrap={wrap} verticalAlign="end">
           {showDragHandles && (
             <span
-              ref={drag as any}
+              ref={handleRef}
               css={css`
                 cursor: grab;
                 user-select: none;
                 -moz-user-select: none;
+                margin-bottom: 0.5rem;
               `}
               className="slds-button slds-button_icon"
               title="Drag row between groups or out of the group"
