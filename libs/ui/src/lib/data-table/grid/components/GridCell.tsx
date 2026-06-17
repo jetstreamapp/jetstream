@@ -55,6 +55,10 @@ function GridCellComponent<TRow>({
 
   const dynamicClass = typeof meta?.cellClass === 'function' ? meta.cellClass(row) : meta?.cellClass;
 
+  // `editable` may be a per-row predicate, so resolve it against this row before announcing read-only.
+  const editable = meta?.editable;
+  const isEditable = typeof editable === 'function' ? editable(row) : !!editable;
+
   const style: CSSProperties = {
     ...(colSpan > 1 ? { gridColumn: `${colIndex + 1} / span ${colSpan}` } : { gridColumnStart: colIndex + 1 }),
     ...getFrozenCellStyle(columns, colIndex),
@@ -102,7 +106,7 @@ function GridCellComponent<TRow>({
       data-row-id={cell.row.id}
       data-col-id={cell.column.id}
       aria-colindex={ariaColIndex}
-      aria-readonly={meta?.editable ? undefined : true}
+      aria-readonly={isEditable ? undefined : true}
       aria-selected={isRangeSelected || undefined}
       tabIndex={isActive ? 0 : -1}
       className={classNames(

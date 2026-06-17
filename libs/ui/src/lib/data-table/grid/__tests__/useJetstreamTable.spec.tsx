@@ -81,7 +81,7 @@ describe('useJetstreamTable', () => {
   });
 
   test('ref exposes filtered + sorted rows and sort state', () => {
-    const { result, ref } = setup({ initialSortColumns: [{ columnKey: 'Name', direction: 'DESC' }] });
+    const { ref } = setup({ initialSortColumns: [{ columnKey: 'Name', direction: 'DESC' }] });
     expect(ref.current?.hasSortApplied()).toBe(true);
     const refRows = ref.current?.getFilteredAndSortedRows() ?? [];
     expect(refRows.map((row) => row.Name)).toEqual(['Charlie', 'Bravo', 'Alpha']);

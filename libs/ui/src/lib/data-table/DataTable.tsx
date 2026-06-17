@@ -31,8 +31,8 @@ export interface DataTableProps<T = RowWithKey, TContext = Record<string, any>> 
   onSortColumnsChange?: (sortColumns: SortColumn[]) => void;
   onRowsChange?: (rows: T[], data: { indexes: number[]; column: ColumnWithFilter<T> }) => void;
   /** Fixed numeric row height, or a per-row callback `({ type: 'ROW' | 'GROUP', row }) => number`.
-   * The callback seeds the virtualizer's initial size estimate; actual heights are then measured
-   * dynamically once rendered. */
+   * Rows are pinned to the returned height and are not DOM-measured, so the value must reflect the
+   * actual rendered height. */
   rowHeight?: number | ((args: { type: 'ROW' | 'GROUP'; row: T }) => number);
   rowClass?: (row: T) => string | undefined;
   selectedRows?: ReadonlySet<any>;
