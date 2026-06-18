@@ -1,0 +1,227 @@
+---
+id: salesforce-data-access
+title: Salesforce Data & API Access Reference
+description: A complete, object-by-object and field-by-field reference of the Salesforce data and APIs Jetstream accesses on your behalf, including which features use each object and what degrades without access.
+keywords:
+  [
+    salesforce,
+    salesforce api,
+    salesforce permissions,
+    object permissions,
+    field level security,
+    metadata api,
+    tooling api,
+    bulk api,
+    data access,
+    security review,
+  ]
+sidebar_label: Salesforce Data & API Access
+slug: /salesforce-data-access
+---
+
+# Salesforce Data & API Access Reference
+
+This page is a deep technical reference for administrators and security teams who want to know
+**exactly** what Salesforce data and APIs Jetstream interacts with on a user's behalf.
+
+It is the companion to [Required Salesforce Permissions](required-permissions.mdx) — start there for
+the short answer; come here for the object-by-object and field-by-field detail.
+
+The tables below cover the Salesforce objects, fields, and APIs that **Jetstream itself** reads or
+writes to make a feature work. They do **not** cover the data a user chooses to query, load, or
+modify themselves — that is governed entirely by that user's own object, field, and sharing access.
+
+:::info
+
+We strive to keep this reference accurate and current, but Jetstream evolves continuously. The exact
+set of fields requested for a given object can change between releases, and this page is **not**
+guaranteed to enumerate every field at every moment. Treat it as an authoritative overview rather
+than a byte-for-byte contract. Jetstream can never access more than the connected user is already
+permitted to access in Salesforce.
+
+:::
+
+## Jetstream's guiding principle
+
+Every Salesforce request is made with the authenticated user's own access token. Object-level
+security, field-level security, sharing rules, and every other Salesforce restriction are always
+enforced. If a user cannot read or change something in Salesforce directly, they cannot do it through
+Jetstream either.
+
+Jetstream only **explicitly** checks two things itself:
+
+1. **API access** — without it, no org can connect and nothing works.
+2. **Metadata access** (`Modify Metadata` or `Modify All Data`) — used only to show an advisory
+   "Limited Access" badge. It does **not** block features; metadata features simply attempt their
+   operation and fail individually if the permission is missing.
+
+Everything else is enforced by Salesforce itself for the equivalent operation.
+
+## Salesforce APIs Jetstream uses
+
+| API             | Used for                                                                                       | Endpoint family                    |
+| --------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------- |
+| REST            | SOQL queries, describe, record CRUD (composite), file download                                 | `/services/data/vXX.0/...`         |
+| Tooling         | Setup-object queries & metadata-field updates (permissions, automation, debug, field metadata) | `/services/data/vXX.0/tooling/...` |
+| Bulk API 2.0    | Large query exports                                                                            | `/services/data/vXX.0/jobs/query`  |
+| Bulk API 1.0    | Bulk data loads (insert/update/upsert/delete/hard delete)                                      | `/services/async/vXX.0/...`        |
+| Metadata (SOAP) | Deploy / retrieve / list / read / describe metadata                                            | `/services/Soap/m/vXX.0`           |
+| Apex (SOAP)     | Anonymous Apex (`executeAnonymous`)                                                            | `/services/Soap/s/vXX.0`           |
+| Partner (SOAP)  | Record undelete                                                                                | `/services/Soap/u/vXX.0`           |
+| CometD          | Platform Event / Change Data Capture subscriptions                                             | `/cometd/vXX.0`                    |
+
+All of these require the **API Enabled** permission.
+
+## Access that happens automatically
+
+These are the only Salesforce calls Jetstream makes **without** a user explicitly choosing to run a
+feature. Everything else in this document is triggered by opening a specific tool.
+
+| When              | Object / endpoint                   | Fields                                                                                                                  | API        | If access is denied                                                                                                             |
+| ----------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Connecting an org | `/services/oauth2/userinfo`         | Identity claims                                                                                                         | OAuth      | Org connection fails                                                                                                            |
+| Connecting an org | Identity URL `/id/{orgId}/{userId}` | `user_id`, `email`, `username`, `display_name`, `organization_id`, `photos`                                             | REST       | Org connection fails                                                                                                            |
+| Connecting an org | `Organization`                      | `Id, Name, Country, OrganizationType, InstanceName, IsSandbox, LanguageLocaleKey, NamespacePrefix, TrialExpirationDate` | REST query | If the REST API is disabled, connection fails. Other errors are tolerated — the org name simply shows as "Unknown Organization" |
+| Selecting an org  | `UserPermissionAccess`              | `Id, PermissionsModifyAllData, PermissionsModifyMetadata`                                                               | REST query | Tolerated; only affects the advisory "Limited Access" badge                                                                     |
+
+## Access by feature
+
+The "Access" column uses **R** (read) and **W** (write). "Degrades" describes what happens if the
+user lacks the underlying Salesforce access.
+
+### Query & describe (used across most features)
+
+| Object / call      | Fields                                          | API                       | Access | Degrades                                                                          |
+| ------------------ | ----------------------------------------------- | ------------------------- | ------ | --------------------------------------------------------------------------------- |
+| `describeGlobal`   | Object list                                     | REST / Tooling            | R      | Object pickers cannot populate, most pages may not function at all                |
+| `describeSObject`  | Field, child-relationship, record-type metadata | REST / Tooling            | R      | Field pickers cannot populate for that object, most pages may not function at all |
+| User-authored SOQL | User-selected                                   | REST / Tooling / Bulk 2.0 | R      | Governed by the user's object & field access                                      |
+
+### Load & record operations
+
+| Object / call                              | Fields        | API                          | Access | Degrades                                                                              |
+| ------------------------------------------ | ------------- | ---------------------------- | ------ | ------------------------------------------------------------------------------------- |
+| User-selected sObject                      | User-selected | REST composite, Bulk API 1.0 | R/W    | Governed by object & FLS; **Hard Delete** additionally needs **Bulk API Hard Delete** |
+| User-selected sObject (undelete)           | Record Ids    | Partner SOAP                 | W      | Governed by object access                                                             |
+| `Attachment`, `ContentVersion`, `Document` | Binary body   | REST                         | R/W    | Governed by object & FLS                                                              |
+
+### Create Records (without a file)
+
+| Object / call         | Fields                    | API                        | Access | Degrades                                                                                                                                                                         |
+| --------------------- | ------------------------- | -------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| User-selected sObject | User-entered field values | REST `create` / `retrieve` | R/W    | Needs object **Create** + FLS only. A metadata-access banner may appear, but creating records uses the standard data API — **Modify Metadata / Modify All Data is not required** |
+
+### Manage Permissions
+
+| Object                        | Fields                                                                                                                                                                                                                             | API     | Access | Degrades                                  |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ------ | ----------------------------------------- |
+| `ObjectPermissions`           | `Id, SobjectType, PermissionsRead, PermissionsCreate, PermissionsEdit, PermissionsDelete, PermissionsModifyAllRecords, PermissionsViewAllRecords, PermissionsViewAllFields, ParentId, Parent.{Id,Name,IsOwnedByProfile,ProfileId}` | REST    | R/W    | Cannot view/edit object permissions       |
+| `FieldPermissions`            | `Id, SobjectType, Field, PermissionsRead, PermissionsEdit, ParentId, Parent.{Id,Name,IsOwnedByProfile,ProfileId}` (plus a `describe` of `FieldPermissions` to validate permissionable fields)                                      | REST    | R/W    | Cannot view/edit field permissions        |
+| `PermissionSetTabSetting`     | `Id, Name, Visibility, ParentId, Parent.{Id,Name,IsOwnedByProfile,ProfileId}`                                                                                                                                                      | REST    | R/W    | Cannot view/edit tab visibility           |
+| `EntityParticle`              | `QualifiedApiName, Label, DataType, DurableId, EntityDefinition.QualifiedApiName, FieldDefinitionId, NamespacePrefix, IsCompound, IsCreatable, IsUpdatable, IsPermissionable`                                                      | Tooling | R      | Field list cannot load                    |
+| `TabDefinition`               | `Id, Name, Label, SobjectName`                                                                                                                                                                                                     | Tooling | R      | Tab list cannot load                      |
+| `PermissionSet` (+ `Profile`) | `Id, Name, Label, Type, IsCustom, IsOwnedByProfile, NamespacePrefix, ProfileId, Profile.{Id,Name,UserType}`                                                                                                                        | REST    | R      | Profile / permission-set list cannot load |
+
+Saving changes writes back to `ObjectPermissions`, `FieldPermissions`, and `PermissionSetTabSetting`,
+which requires **Manage Profiles and Permission Sets**.
+
+### Automation Control
+
+| Object                              | Fields                                                                                                                                                                                                                                                                                       | API                                | Access                               | Degrades                                        |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- | ------------------------------------ | ----------------------------------------------- |
+| `ApexTrigger`                       | `Id, Name, ApiVersion, EntityDefinitionId, EntityDefinition.QualifiedApiName, Status, CreatedBy.{...}, LastModifiedBy.{...}, CreatedDate, LastModifiedDate`                                                                                                                                  | Tooling                            | R + status W                         | Cannot list / toggle triggers                   |
+| `ValidationRule`                    | `Id, Active, Description, EntityDefinitionId, EntityDefinition.QualifiedApiName, ErrorDisplayField, ErrorMessage, ValidationName, NamespacePrefix, CreatedBy/LastModifiedBy/dates`                                                                                                           | Tooling                            | R/W                                  | Cannot list / toggle validation rules           |
+| `WorkflowRule`                      | `Id, Name, TableEnumOrId, NamespacePrefix, CreatedBy/LastModifiedBy/dates`                                                                                                                                                                                                                   | Tooling                            | R/W                                  | Cannot list / toggle workflow rules             |
+| `FlowDefinitionView` (+ `Versions`) | `Id, ManageableState, IsTemplate, ActiveVersionId, Label, ApiName, Description, DurableId, IsActive, LastModifiedBy, LastModifiedDate, LatestVersionId, NamespacePrefix, ProcessType, TriggerObjectOrEventId, TriggerObjectOrEvent.QualifiedApiName, TriggerObjectOrEventLabel, TriggerType` | REST                               | R + activation W (Tooling composite) | Cannot list / activate flows & process builders |
+| `DuplicateRule`                     | `Id, DeveloperName, MasterLabel, IsActive, SobjectType, SobjectSubtype, NamespacePrefix, CreatedBy/LastModifiedBy/dates`                                                                                                                                                                     | REST (read) + Metadata API (write) | R/W                                  | Cannot list / toggle duplicate rules            |
+
+### Debug Logs & Anonymous Apex
+
+| Object / call      | Fields                                                                                                                                                                                                          | API       | Access | Degrades                                                                    |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------ | --------------------------------------------------------------------------- |
+| `ApexLog`          | `Id, LogUser.{Id,Name,Username}, Application, Operation, Status, Location, LogLength, Request, RequestIdentifier, DurationMilliseconds, StartTime, LastModifiedDate, SystemModstamp` (+ fetch `Body`, + delete) | REST      | R/W    | Cannot view / purge logs                                                    |
+| `TraceFlag`        | `Id, LogType, TracedEntityId, StartDate, ExpirationDate, DebugLevelId`                                                                                                                                          | Tooling   | R/W    | Logs may not be captured (trace auto-created/extended for the current user) |
+| `DebugLevel`       | `Id, DeveloperName, ApexCode, ApexProfiling, Callout, Database, System, Validation, Visualforce, Wave, Workflow`                                                                                                | Tooling   | R/W    | A debug level is created if none exists                                     |
+| `executeAnonymous` | Apex body + debugging header                                                                                                                                                                                    | Apex SOAP | W      | Anonymous Apex cannot run                                                   |
+
+### Create Object & Fields / Record Type & Picklist Manager
+
+| Object / call                 | Fields                                                   | API           | Access | Degrades                                    |
+| ----------------------------- | -------------------------------------------------------- | ------------- | ------ | ------------------------------------------- |
+| `GlobalValueSet`              | `Id, DeveloperName, NamespacePrefix, MasterLabel`        | REST          | R      | Cannot reuse global value sets in picklists |
+| `CustomField`                 | `Id, DeveloperName, FullName, Metadata, NamespacePrefix` | Tooling       | R      | Cannot inspect existing field metadata      |
+| `PermissionSet` (+ `Profile`) | See Manage Permissions                                   | REST          | R      | Cannot assign FLS on new fields             |
+| Metadata deploy               | Object/field/record-type/picklist definitions            | Metadata SOAP | W      | Cannot create or update the metadata        |
+
+### Field utilities (field list, "Where is this used", roll-up details)
+
+| Object                        | Fields                                                                                                                                                                                                                | API     | Access | Degrades                            |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ------ | ----------------------------------- |
+| `CustomField`                 | `Id, Metadata` / `Id, DeveloperName, EntityDefinitionId, TableEnumOrId`                                                                                                                                               | Tooling | R      | Roll-up / field detail unavailable  |
+| `MetadataComponentDependency` | `MetadataComponentId, MetadataComponentName, MetadataComponentNamespace, MetadataComponentType`                                                                                                                       | Tooling | R      | "Where is this used" unavailable    |
+| `FieldDefinition`             | `Id, QualifiedApiName, Label, MasterLabel, DataType, ValueTypeId, ReferenceTo, ExtraTypeInfo, RelationshipName, IsCompound, IsNameField, IsNillable, IsCalculated, IsApiFilterable, IsApiGroupable, IsApiSortable, …` | Tooling | R      | Detailed field metadata unavailable |
+
+### Deploy & Compare Metadata (metadata browser)
+
+| Object / call                                                                | Fields                                 | API            | Access | Degrades                                               |
+| ---------------------------------------------------------------------------- | -------------------------------------- | -------------- | ------ | ------------------------------------------------------ |
+| `describeMetadata` / `listMetadata` / `readMetadata` / `retrieve` / `deploy` | Metadata components                    | Metadata SOAP  | R/W    | Deploy/retrieve/compare unavailable                    |
+| `RecordType`                                                                 | `DeveloperName, SobjectType`           | Tooling        | R      | Person Account record-type names may be mislabeled     |
+| `Folder`                                                                     | `Id, DeveloperName, ParentId, Type`    | Tooling        | R      | Folderized metadata paths may be incomplete            |
+| `<CustomMetadataType>__mdt`                                                  | `Id, QualifiedApiName, SystemModstamp` | Tooling        | R      | Last-modified date missing for custom metadata records |
+| `StaticResource`                                                             | Component metadata                     | Tooling / REST | R      | Static-resource retrieval affected                     |
+
+### Formula Evaluator & assignee popovers
+
+| Object                    | Fields                             | API  | Access | Degrades                             |
+| ------------------------- | ---------------------------------- | ---- | ------ | ------------------------------------ |
+| `User`                    | `Id, Name, Username, Profile.Name` | REST | R      | Cannot search users / show assignees |
+| `PermissionSetAssignment` | `Assignee.{Id,Name,Username}`      | REST | R      | Cannot show permission-set assignees |
+
+### Platform Event Monitor
+
+| Object / call                                                    | Fields               | API           | Access | Degrades               |
+| ---------------------------------------------------------------- | -------------------- | ------------- | ------ | ---------------------- |
+| `describeGlobal` (filtered to `__e` / ChangeEvent / EventStream) | Object list          | REST          | R      | Cannot discover events |
+| Event channel subscribe                                          | Event payloads       | CometD        | R      | Cannot receive events  |
+| Event publish                                                    | User-entered payload | REST `create` | W      | Cannot publish events  |
+
+## Complete object index
+
+Every Salesforce object Jetstream reads or writes behind the scenes for various features.
+
+| Object                                       | Used by                                              | API                            | Access            |
+| -------------------------------------------- | ---------------------------------------------------- | ------------------------------ | ----------------- |
+| `ApexLog`                                    | Debug Logs                                           | REST                           | R/W (delete)      |
+| `ApexTrigger`                                | Automation Control                                   | Tooling                        | R + status W      |
+| `Attachment` / `ContentVersion` / `Document` | File upload & download                               | REST                           | R/W               |
+| `CustomField`                                | Create Fields, field utilities                       | Tooling                        | R                 |
+| `DebugLevel`                                 | Debug Logs                                           | Tooling                        | R/W               |
+| `DuplicateRule`                              | Automation Control                                   | REST (read) + Metadata (write) | R/W               |
+| `EntityParticle`                             | Manage Permissions                                   | Tooling                        | R                 |
+| `FieldDefinition`                            | Field metadata                                       | Tooling                        | R                 |
+| `FieldPermissions`                           | Manage Permissions                                   | REST                           | R/W               |
+| `FlowDefinitionView` (+ `Versions`)          | Automation Control                                   | REST + Tooling (write)         | R/W               |
+| `Folder`                                     | Metadata browser                                     | Tooling                        | R                 |
+| `GlobalValueSet`                             | Create Fields                                        | REST                           | R                 |
+| `MetadataComponentDependency`                | "Where is this used"                                 | Tooling                        | R                 |
+| `ObjectPermissions`                          | Manage Permissions                                   | REST                           | R/W               |
+| `Organization`                               | Org connection                                       | REST                           | R                 |
+| `PermissionSet` (+ `Profile`)                | Manage Permissions, Create Fields, Formula Evaluator | REST                           | R                 |
+| `PermissionSetAssignment`                    | Assignee popover                                     | REST                           | R                 |
+| `PermissionSetTabSetting`                    | Manage Permissions                                   | REST                           | R/W               |
+| `RecordType`                                 | Metadata browser                                     | Tooling                        | R                 |
+| `StaticResource`                             | Metadata retrieve                                    | Tooling / REST                 | R                 |
+| `TabDefinition`                              | Manage Permissions                                   | Tooling                        | R                 |
+| `TraceFlag`                                  | Debug Logs                                           | Tooling                        | R/W               |
+| `User`                                       | Formula Evaluator, assignee popover                  | REST                           | R                 |
+| `UserPermissionAccess`                       | "Limited Access" badge                               | REST                           | R                 |
+| `ValidationRule`                             | Automation Control                                   | Tooling                        | R/W               |
+| `WorkflowRule`                               | Automation Control                                   | Tooling                        | R/W               |
+| `<CustomMetadataType>__mdt`                  | Metadata browser                                     | Tooling                        | R                 |
+| _Any user-selected object_                   | Query, Load, Create, Update, Delete, Undelete        | REST / Bulk / Tooling          | per user's access |
+
+## See also
+
+- [Required Salesforce Permissions](required-permissions.mdx) — the summary and least-privilege guidance.
+- [Connecting Jetstream to Salesforce](install-connected-app.mdx) — connected-app installation and governance.
