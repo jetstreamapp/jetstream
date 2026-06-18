@@ -1,5 +1,15 @@
 # Changelog
 
+## [10.1.3](https://github.com/jetstreamapp/jetstream/compare/v10.1.2...v10.1.3) (2026-06-18)
+
+### Features
+
+* **docs:** add required Salesforce permissions and data access reference ([4f82bc2](https://github.com/jetstreamapp/jetstream/commit/4f82bc2a71a1e384cfc70fbd99bf0e8934206216))
+
+### Bug Fixes
+
+* incorrect field casing on isCreatable ([a22795c](https://github.com/jetstreamapp/jetstream/commit/a22795ca5f084dfa5fa877ff03005ec79a35b69f))
+
 ## [10.1.2](https://github.com/jetstreamapp/jetstream/compare/v10.1.1...v10.1.2) (2026-06-14)
 
 ## [10.1.1](https://github.com/jetstreamapp/jetstream/compare/v10.1.0...v10.1.1) (2026-06-14)
