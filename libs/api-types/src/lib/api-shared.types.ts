@@ -1,5 +1,14 @@
 import { z } from 'zod';
 
+export interface LoggerLike {
+  trace: (...args: unknown[]) => void;
+  debug: (...args: unknown[]) => void;
+  log: (...args: unknown[]) => void;
+  info: (...args: unknown[]) => void;
+  warn: (...args: unknown[]) => void;
+  error: (...args: unknown[]) => void;
+}
+
 export const BooleanQueryParamSchema = z
   .enum(['true', 'false'])
   .nullish()

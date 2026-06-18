@@ -265,28 +265,30 @@ export function useDataTable<T = RowWithKey>({
   /**
    * Handle custom copy to clipboard
    */
-  function handleCustomCopyToClipboard(args: CellKeyDownArgs<T, unknown>, event: CellKeyboardEvent): boolean {
+  function handleCustomCopyToClipboard(args: CellKeyDownArgs<T, unknown>, event: CellKeyboardEvent) {
     if (hasCtrlOrMeta(event) && isCKey(event)) {
       const column = args.column as ColumnWithFilter<unknown>;
-      let value = args.row[column.key];
+      let value = (args.row as any)[column.key];
 
       if (isArray(value) || isObject(value)) {
         value = JSON.stringify(value);
       }
 
-      if (!isNil(value) && copyToClipboard(value)) {
-        // Flash the cell to indicate copy success
-        const cell = (event.target as HTMLElement).closest('.rdg-cell');
-        if (cell) {
-          cell.classList.add('copied');
-          setTimeout(() => {
-            cell.classList.remove('copied');
-          }, 1000);
-        }
+      if (!isNil(value)) {
+        copyToClipboard(value).then((copied) => {
+          if (copied) {
+            // Flash the cell to indicate copy success
+            const cell = (event.target as HTMLElement).closest('.rdg-cell');
+            if (cell) {
+              cell.classList.add('copied');
+              setTimeout(() => {
+                cell.classList.remove('copied');
+              }, 1000);
+            }
+          }
+        });
       }
-      return true;
     }
-    return false;
   }
 
   /**

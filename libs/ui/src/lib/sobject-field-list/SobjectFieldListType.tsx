@@ -15,12 +15,14 @@ function Content({ field, org }: SobjectFieldListTypeProps) {
   const [isCopied, setIsCopied] = useState(false);
 
   function copy(value: string) {
-    if (copyToClipboard(value)) {
-      setIsCopied(true);
-      setTimeout(() => {
-        setIsCopied(false);
-      }, 2000);
-    }
+    copyToClipboard(value, { format: 'text/plain' }).then((copied) => {
+      if (copied) {
+        setIsCopied(true);
+        setTimeout(() => {
+          setIsCopied(false);
+        }, 2000);
+      }
+    });
   }
 
   const copyToClipboardMsg = (

@@ -81,8 +81,12 @@ export const QueryResultsGetRecAsApexModal: FunctionComponent<QueryResultsGetRec
     setOptions((options) => ({ ...options, ...partialOptions }));
   }, []);
 
-  function handleCopyToClipboard() {
-    copyToClipboard(apex, { format: 'text/plain' });
+  async function handleCopyToClipboard() {
+    try {
+      await copyToClipboard(apex, { format: 'text/plain' });
+    } catch (ex) {
+      logger.warn('[COPY TO CLIPBOARD ERROR]', ex);
+    }
   }
 
   function handleEditorChange(value?: string, event?: unknown) {

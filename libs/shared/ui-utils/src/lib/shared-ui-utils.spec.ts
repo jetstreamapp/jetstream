@@ -1,4 +1,4 @@
-import { QueryFieldWithPolymorphic } from '@jetstream/types';
+import { Field, QueryFieldWithPolymorphic } from '@jetstream/types';
 import { sortQueryFieldsPolymorphicComparable, transformTabularDataToExcelStr } from './shared-ui-utils';
 
 describe('SHARED UI UTILS', () => {
@@ -44,101 +44,103 @@ describe('SHARED UI UTILS', () => {
   });
 
   describe('sortQueryFieldsPolymorphic', () => {
+    const metadata = {} as unknown as Field;
+
     it('Should sort Id, Name, then the rest', () => {
       const fields: QueryFieldWithPolymorphic[] = [
-        { field: 'FirstName', polymorphicObj: undefined },
-        { field: 'Name', polymorphicObj: undefined },
-        { field: 'Id', polymorphicObj: undefined },
+        { field: 'FirstName', polymorphicObj: undefined, metadata },
+        { field: 'Name', polymorphicObj: undefined, metadata },
+        { field: 'Id', polymorphicObj: undefined, metadata },
       ];
 
       expect(fields.sort(sortQueryFieldsPolymorphicComparable)).toEqual([
-        { field: 'Id', polymorphicObj: undefined },
-        { field: 'Name', polymorphicObj: undefined },
-        { field: 'FirstName', polymorphicObj: undefined },
+        { field: 'Id', polymorphicObj: undefined, metadata },
+        { field: 'Name', polymorphicObj: undefined, metadata },
+        { field: 'FirstName', polymorphicObj: undefined, metadata },
       ]);
     });
 
     it('Should sort relationship fields with the Id first', () => {
       const fields: QueryFieldWithPolymorphic[] = [
-        { field: 'FirstName', polymorphicObj: undefined },
-        { field: 'Name', polymorphicObj: undefined },
-        { field: 'Id', polymorphicObj: undefined },
-        { field: 'Owner.Account.a_new_external_id_field__c', polymorphicObj: undefined },
-        { field: 'Owner.Account.Id', polymorphicObj: undefined },
-        { field: 'Owner.Account.Name', polymorphicObj: undefined },
-        { field: 'Owner.Id', polymorphicObj: 'User' },
+        { field: 'FirstName', polymorphicObj: undefined, metadata },
+        { field: 'Name', polymorphicObj: undefined, metadata },
+        { field: 'Id', polymorphicObj: undefined, metadata },
+        { field: 'Owner.Account.a_new_external_id_field__c', polymorphicObj: undefined, metadata },
+        { field: 'Owner.Account.Id', polymorphicObj: undefined, metadata },
+        { field: 'Owner.Account.Name', polymorphicObj: undefined, metadata },
+        { field: 'Owner.Id', polymorphicObj: 'User', metadata },
       ];
 
       expect(fields.sort(sortQueryFieldsPolymorphicComparable)).toEqual([
-        { field: 'Id', polymorphicObj: undefined },
-        { field: 'Name', polymorphicObj: undefined },
-        { field: 'FirstName', polymorphicObj: undefined },
-        { field: 'Owner.Id', polymorphicObj: 'User' },
-        { field: 'Owner.Account.Id', polymorphicObj: undefined },
-        { field: 'Owner.Account.Name', polymorphicObj: undefined },
-        { field: 'Owner.Account.a_new_external_id_field__c', polymorphicObj: undefined },
+        { field: 'Id', polymorphicObj: undefined, metadata },
+        { field: 'Name', polymorphicObj: undefined, metadata },
+        { field: 'FirstName', polymorphicObj: undefined, metadata },
+        { field: 'Owner.Id', polymorphicObj: 'User', metadata },
+        { field: 'Owner.Account.Id', polymorphicObj: undefined, metadata },
+        { field: 'Owner.Account.Name', polymorphicObj: undefined, metadata },
+        { field: 'Owner.Account.a_new_external_id_field__c', polymorphicObj: undefined, metadata },
       ]);
     });
 
     it('Should sort lost of relationships properly', () => {
       const fields: QueryFieldWithPolymorphic[] = [
-        { field: 'Address', polymorphicObj: undefined },
-        { field: 'ConvertedAccount.atg_GL_Treatment__r.Id', polymorphicObj: undefined },
-        { field: 'ConvertedAccount.Id', polymorphicObj: undefined },
-        { field: 'ConvertedAccount.Name', polymorphicObj: undefined },
-        { field: 'ConvertedAccountId', polymorphicObj: undefined },
-        { field: 'ConvertedContactId', polymorphicObj: undefined },
-        { field: 'ConvertedDate', polymorphicObj: undefined },
-        { field: 'ConvertedOpportunityId', polymorphicObj: undefined },
-        { field: 'Country', polymorphicObj: undefined },
-        { field: 'DandbCompany.Id', polymorphicObj: undefined },
-        { field: 'DandbCompany.Name', polymorphicObj: undefined },
-        { field: 'Id', polymorphicObj: undefined },
-        { field: 'Name', polymorphicObj: undefined },
-        { field: 'Owner.Account.Id', polymorphicObj: undefined },
-        { field: 'Owner.Account.Name', polymorphicObj: undefined },
-        { field: 'Owner.Contact.AccountId', polymorphicObj: undefined },
-        { field: 'Owner.Contact.Id', polymorphicObj: undefined },
-        { field: 'Owner.Contact.Name', polymorphicObj: undefined },
-        { field: 'Owner.Id', polymorphicObj: 'User' },
-        { field: 'Owner.IsActive', polymorphicObj: 'User' },
-        { field: 'Owner.Name', polymorphicObj: 'User' },
-        { field: 'PartnerAccount.blng__BillToContact__r.Account.Id', polymorphicObj: undefined },
-        { field: 'PartnerAccount.blng__BillToContact__r.Account.Name', polymorphicObj: undefined },
-        { field: 'PartnerAccount.blng__BillToContact__r.Id', polymorphicObj: undefined },
-        { field: 'PartnerAccount.blng__BillToContact__r.Name', polymorphicObj: undefined },
-        { field: 'PartnerAccount.Id', polymorphicObj: undefined },
-        { field: 'PartnerAccount.Name', polymorphicObj: undefined },
+        { field: 'Address', polymorphicObj: undefined, metadata },
+        { field: 'ConvertedAccount.atg_GL_Treatment__r.Id', polymorphicObj: undefined, metadata },
+        { field: 'ConvertedAccount.Id', polymorphicObj: undefined, metadata },
+        { field: 'ConvertedAccount.Name', polymorphicObj: undefined, metadata },
+        { field: 'ConvertedAccountId', polymorphicObj: undefined, metadata },
+        { field: 'ConvertedContactId', polymorphicObj: undefined, metadata },
+        { field: 'ConvertedDate', polymorphicObj: undefined, metadata },
+        { field: 'ConvertedOpportunityId', polymorphicObj: undefined, metadata },
+        { field: 'Country', polymorphicObj: undefined, metadata },
+        { field: 'DandbCompany.Id', polymorphicObj: undefined, metadata },
+        { field: 'DandbCompany.Name', polymorphicObj: undefined, metadata },
+        { field: 'Id', polymorphicObj: undefined, metadata },
+        { field: 'Name', polymorphicObj: undefined, metadata },
+        { field: 'Owner.Account.Id', polymorphicObj: undefined, metadata },
+        { field: 'Owner.Account.Name', polymorphicObj: undefined, metadata },
+        { field: 'Owner.Contact.AccountId', polymorphicObj: undefined, metadata },
+        { field: 'Owner.Contact.Id', polymorphicObj: undefined, metadata },
+        { field: 'Owner.Contact.Name', polymorphicObj: undefined, metadata },
+        { field: 'Owner.Id', polymorphicObj: 'User', metadata },
+        { field: 'Owner.IsActive', polymorphicObj: 'User', metadata },
+        { field: 'Owner.Name', polymorphicObj: 'User', metadata },
+        { field: 'PartnerAccount.blng__BillToContact__r.Account.Id', polymorphicObj: undefined, metadata },
+        { field: 'PartnerAccount.blng__BillToContact__r.Account.Name', polymorphicObj: undefined, metadata },
+        { field: 'PartnerAccount.blng__BillToContact__r.Id', polymorphicObj: undefined, metadata },
+        { field: 'PartnerAccount.blng__BillToContact__r.Name', polymorphicObj: undefined, metadata },
+        { field: 'PartnerAccount.Id', polymorphicObj: undefined, metadata },
+        { field: 'PartnerAccount.Name', polymorphicObj: undefined, metadata },
       ];
 
       expect(fields.sort(sortQueryFieldsPolymorphicComparable)).toEqual([
-        { field: 'Id', polymorphicObj: undefined },
-        { field: 'Name', polymorphicObj: undefined },
-        { field: 'Address', polymorphicObj: undefined },
-        { field: 'ConvertedAccount.Id', polymorphicObj: undefined },
-        { field: 'ConvertedAccount.Name', polymorphicObj: undefined },
-        { field: 'ConvertedAccount.atg_GL_Treatment__r.Id', polymorphicObj: undefined },
-        { field: 'ConvertedAccountId', polymorphicObj: undefined },
-        { field: 'ConvertedContactId', polymorphicObj: undefined },
-        { field: 'ConvertedDate', polymorphicObj: undefined },
-        { field: 'ConvertedOpportunityId', polymorphicObj: undefined },
-        { field: 'Country', polymorphicObj: undefined },
-        { field: 'DandbCompany.Id', polymorphicObj: undefined },
-        { field: 'DandbCompany.Name', polymorphicObj: undefined },
-        { field: 'Owner.Id', polymorphicObj: 'User' },
-        { field: 'Owner.Name', polymorphicObj: 'User' },
-        { field: 'Owner.Account.Id', polymorphicObj: undefined },
-        { field: 'Owner.Account.Name', polymorphicObj: undefined },
-        { field: 'Owner.Contact.Id', polymorphicObj: undefined },
-        { field: 'Owner.Contact.Name', polymorphicObj: undefined },
-        { field: 'Owner.Contact.AccountId', polymorphicObj: undefined },
-        { field: 'Owner.IsActive', polymorphicObj: 'User' },
-        { field: 'PartnerAccount.Id', polymorphicObj: undefined },
-        { field: 'PartnerAccount.Name', polymorphicObj: undefined },
-        { field: 'PartnerAccount.blng__BillToContact__r.Id', polymorphicObj: undefined },
-        { field: 'PartnerAccount.blng__BillToContact__r.Name', polymorphicObj: undefined },
-        { field: 'PartnerAccount.blng__BillToContact__r.Account.Id', polymorphicObj: undefined },
-        { field: 'PartnerAccount.blng__BillToContact__r.Account.Name', polymorphicObj: undefined },
+        { field: 'Id', polymorphicObj: undefined, metadata },
+        { field: 'Name', polymorphicObj: undefined, metadata },
+        { field: 'Address', polymorphicObj: undefined, metadata },
+        { field: 'ConvertedAccount.Id', polymorphicObj: undefined, metadata },
+        { field: 'ConvertedAccount.Name', polymorphicObj: undefined, metadata },
+        { field: 'ConvertedAccount.atg_GL_Treatment__r.Id', polymorphicObj: undefined, metadata },
+        { field: 'ConvertedAccountId', polymorphicObj: undefined, metadata },
+        { field: 'ConvertedContactId', polymorphicObj: undefined, metadata },
+        { field: 'ConvertedDate', polymorphicObj: undefined, metadata },
+        { field: 'ConvertedOpportunityId', polymorphicObj: undefined, metadata },
+        { field: 'Country', polymorphicObj: undefined, metadata },
+        { field: 'DandbCompany.Id', polymorphicObj: undefined, metadata },
+        { field: 'DandbCompany.Name', polymorphicObj: undefined, metadata },
+        { field: 'Owner.Id', polymorphicObj: 'User', metadata },
+        { field: 'Owner.Name', polymorphicObj: 'User', metadata },
+        { field: 'Owner.Account.Id', polymorphicObj: undefined, metadata },
+        { field: 'Owner.Account.Name', polymorphicObj: undefined, metadata },
+        { field: 'Owner.Contact.Id', polymorphicObj: undefined, metadata },
+        { field: 'Owner.Contact.Name', polymorphicObj: undefined, metadata },
+        { field: 'Owner.Contact.AccountId', polymorphicObj: undefined, metadata },
+        { field: 'Owner.IsActive', polymorphicObj: 'User', metadata },
+        { field: 'PartnerAccount.Id', polymorphicObj: undefined, metadata },
+        { field: 'PartnerAccount.Name', polymorphicObj: undefined, metadata },
+        { field: 'PartnerAccount.blng__BillToContact__r.Id', polymorphicObj: undefined, metadata },
+        { field: 'PartnerAccount.blng__BillToContact__r.Name', polymorphicObj: undefined, metadata },
+        { field: 'PartnerAccount.blng__BillToContact__r.Account.Id', polymorphicObj: undefined, metadata },
+        { field: 'PartnerAccount.blng__BillToContact__r.Account.Name', polymorphicObj: undefined, metadata },
       ]);
     });
   });

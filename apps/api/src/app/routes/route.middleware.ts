@@ -1,4 +1,5 @@
 import { createRateLimit, ENV, logger } from '@jetstream/api-config';
+import { LoggerLike } from '@jetstream/api-types';
 import { AuditLogAction, AuditLogResource, createTeamAuditLog } from '@jetstream/audit-logs';
 import {
   AuthError,
@@ -328,7 +329,7 @@ export async function getOrgFromHeaderOrQuery(
 export async function getOrgForRequest(
   user: UserProfileSession,
   uniqueId: string,
-  logger: pino.Logger | typeof console = console,
+  logger: pino.Logger | LoggerLike = console,
   apiVersion?: string,
   includeCallOptions?: boolean,
   requestId?: string,

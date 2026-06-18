@@ -539,7 +539,7 @@ const deleteAccount = createRoute(routeDefinition.deleteAccount.validators, asyn
 
     if (ex.isAxiosError) {
       const error: AxiosError = ex;
-      if (error.response) {
+      if (error.response && error.response.data) {
         req.log.error({ err: ex }, '[ACCOUNT DELETE][FATAL ERROR] %o', error.response.data);
       } else if (error.request) {
         req.log.error({ err: ex }, '[ACCOUNT DELETE][FATAL ERROR] %s', error.message || 'An unknown error has occurred.');
