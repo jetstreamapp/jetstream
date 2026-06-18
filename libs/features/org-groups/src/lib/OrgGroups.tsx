@@ -1,3 +1,4 @@
+import { DragDropProvider, type DragEndEvent } from '@dnd-kit/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import {
@@ -30,6 +31,7 @@ import { fromAppState, getRecentlySelectedOrgForGroup } from '@jetstream/ui/app-
 import classNames from 'classnames';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useCallback, useState } from 'react';
+import { DraggableSfdcCard, SfdcCardDropTarget } from './organization-group.types';
 import OrgGroupCardCard from './OrgGroupCard';
 import { OrgGroupCardNoOrganization } from './OrgGroupCardNoOrganization';
 import { OrgGroupModal } from './OrgGroupModal';
@@ -49,6 +51,8 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
   const [modalState, setModalState] = useState<{ open: boolean; organization?: Maybe<OrgGroupWithOrgs> }>({ open: false });
 
   const { handleAddOrg } = useUpdateOrgs();
+
+  const uniqueId = selectedOrg?.uniqueId;
 
   const handleMoveSfdcOrgToOrgGroup = useCallback(
     async ({ orgGroupId, sfdcOrgUniqueId, action }: { orgGroupId?: Maybe<string>; sfdcOrgUniqueId: string; action: 'add' | 'remove' }) => {
@@ -74,24 +78,19 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
         );
 
         setGroups(
-          groups.map((org) => {
-            if (org.id === orgGroupId) {
-              if (action === 'add') {
-                return {
-                  ...org,
-                  orgs: [...org.orgs, orgToUpdate],
-                };
-              }
-              return {
-                ...org,
-                orgs: org.orgs.filter(({ uniqueId }) => uniqueId !== sfdcOrgUniqueId),
-              };
+          groups.map((group) => {
+            // Remove the org from every group first so a move never shows it in two groups (or in its old group
+            // and "Unassigned") during the optimistic window...
+            const orgs = group.orgs.filter(({ uniqueId }) => uniqueId !== sfdcOrgUniqueId);
+            // ...then add it to the destination group when moving into one.
+            if (action === 'add' && group.id === orgGroupId) {
+              return { ...group, orgs: [...orgs, orgToUpdate] };
             }
-            return org;
+            return { ...group, orgs };
           }),
         );
 
-        if (sfdcOrgUniqueId === selectedOrg?.uniqueId) {
+        if (sfdcOrgUniqueId === uniqueId) {
           setSelectedOrgId(null);
         }
 
@@ -114,7 +113,26 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
         logger.error('Org Group: Error moving org to group', ex);
       }
     },
-    [allOrgs, groups, selectedOrg?.uniqueId, setGroups, setOrgGroupsFromDb, setOrgs, setSelectedOrgId, trackEvent],
+    [allOrgs, groups, uniqueId, setGroups, setOrgGroupsFromDb, setOrgs, setSelectedOrgId, trackEvent],
+  );
+
+  const handleDragEnd = useCallback(
+    ({ operation, canceled }: DragEndEvent) => {
+      if (canceled) {
+        return;
+      }
+      const source = operation.source?.data as DraggableSfdcCard | undefined;
+      const target = operation.target?.data as SfdcCardDropTarget | undefined;
+      if (!source || !target) {
+        return;
+      }
+      handleMoveSfdcOrgToOrgGroup({
+        orgGroupId: target.action === 'add' ? target.orgGroupId : null,
+        sfdcOrgUniqueId: source.uniqueId,
+        action: target.action,
+      });
+    },
+    [handleMoveSfdcOrgToOrgGroup],
   );
 
   const handleCreateOrUpdate = async (orgGroup: OrgGroupCreateUpdatePayload, groupToUpdateId?: string) => {
@@ -294,34 +312,34 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
       <AutoFullHeightContainer bottomBuffer={5} className="slds-p-around_medium">
         <p>Drag and drop to move Salesforce Orgs between groups.</p>
         <p>Tip: To delete multiple Salesforce Orgs, add them to a group and choose the option to delete the group along with the orgs.</p>
-        <Grid vertical>
-          {groups.map((organization) => (
-            <div key={organization.id} className="slds-m-top_x-small">
-              <OrgGroupCardCard
-                isActive={activeOrgGroupId === organization.id}
-                group={organization}
-                activeSalesforceOrgId={selectedOrg?.uniqueId}
-                onMoveOrg={handleMoveSfdcOrgToOrgGroup}
-                onSelected={() => handleOrgGroupChange(organization)}
-                onEditOrg={() => {
-                  setModalState({ open: true, organization });
-                }}
-                onDeleteOrg={() => handleDelete(organization)}
-                onDeleteOrgWithOrgs={() => handleDeleteAll(organization)}
-                onAddOrgHandlerFn={onAddOrgHandlerFn}
-              />
-            </div>
-          ))}
-        </Grid>
-        <hr className="slds-m-vertical_small" />
-        <OrgGroupCardNoOrganization
-          isActive={!activeOrgGroupId}
-          orgs={orgsWithoutGroup}
-          activeSalesforceOrgId={selectedOrg?.uniqueId}
-          onSelected={() => handleOrgGroupChange(null)}
-          onMoveOrg={handleMoveSfdcOrgToOrgGroup}
-          onAddOrgHandlerFn={onAddOrgHandlerFn}
-        />
+        <DragDropProvider onDragEnd={handleDragEnd}>
+          <Grid vertical>
+            {groups.map((organization) => (
+              <div key={organization.id} className="slds-m-top_x-small">
+                <OrgGroupCardCard
+                  isActive={activeOrgGroupId === organization.id}
+                  group={organization}
+                  activeSalesforceOrgId={selectedOrg?.uniqueId}
+                  onSelected={() => handleOrgGroupChange(organization)}
+                  onEditOrg={() => {
+                    setModalState({ open: true, organization });
+                  }}
+                  onDeleteOrg={() => handleDelete(organization)}
+                  onDeleteOrgWithOrgs={() => handleDeleteAll(organization)}
+                  onAddOrgHandlerFn={onAddOrgHandlerFn}
+                />
+              </div>
+            ))}
+          </Grid>
+          <hr className="slds-m-vertical_small" />
+          <OrgGroupCardNoOrganization
+            isActive={!activeOrgGroupId}
+            orgs={orgsWithoutGroup}
+            activeSalesforceOrgId={selectedOrg?.uniqueId}
+            onSelected={() => handleOrgGroupChange(null)}
+            onAddOrgHandlerFn={onAddOrgHandlerFn}
+          />
+        </DragDropProvider>
       </AutoFullHeightContainer>
     </Page>
   );

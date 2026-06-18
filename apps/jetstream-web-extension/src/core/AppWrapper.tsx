@@ -6,8 +6,6 @@ import '@jetstream/ui-styles/main.css';
 import '@salesforce-ux/design-system-2/dist/css/bundled/slds2.cosmos.css';
 import { Provider, useAtomValue } from 'jotai';
 import { ReactNode, Suspense } from 'react';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
 import ModalContainer from 'react-modal-promise';
 import { MemoryRouter } from 'react-router-dom';
 import { environment } from '../environments/environment';
@@ -33,13 +31,11 @@ function AppWrapperInner({ allowWithoutSalesforceOrg, children }: { allowWithout
       <Suspense fallback={<AppLoading />}>
         <MemoryRouter>
           <AppInitializer allowWithoutSalesforceOrg={allowWithoutSalesforceOrg}>
-            <DndProvider backend={HTML5Backend}>
-              <ExtensionThemeApplier />
-              <ModalContainer />
-              <AppToast />
-              <ViewEditCloneRecordWrapper />
-              {children}
-            </DndProvider>
+            <ExtensionThemeApplier />
+            <ModalContainer />
+            <AppToast />
+            <ViewEditCloneRecordWrapper />
+            {children}
           </AppInitializer>
         </MemoryRouter>
       </Suspense>

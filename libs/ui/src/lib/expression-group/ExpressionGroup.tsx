@@ -1,9 +1,9 @@
+import { useDragOperation, useDroppable } from '@dnd-kit/react';
 import { AndOr } from '@jetstream/types';
 import classNames from 'classnames';
 import React, { FunctionComponent } from 'react';
-import { useDrop } from 'react-dnd';
 import Icon from '../widgets/Icon';
-import { DraggableRow } from './expression-types';
+import { DraggableRow, ROW_DROP_PRIORITY_GROUP, RowDropTarget } from './expression-types';
 import ExpressionActionDropDown from './ExpressionActionDropDown';
 
 export interface ExpressionGroupProps {
@@ -13,30 +13,27 @@ export interface ExpressionGroupProps {
   rowAction: AndOr;
   onActionChange: (value: AndOr) => void;
   onAddCondition: () => void;
-  moveRowToGroup: (item: DraggableRow, targetGroup: number) => void;
   children?: React.ReactNode;
 }
 
 export const ExpressionGroup: FunctionComponent<ExpressionGroupProps> = React.memo(
-  ({ parentAction, rowAction, groupKey, group, children, onActionChange, onAddCondition, moveRowToGroup }) => {
-    const [{ isOver, canDrop }, drop] = useDrop({
+  ({ parentAction, rowAction, groupKey, group, children, onActionChange, onAddCondition }) => {
+    const { ref: dropRef, isDropTarget } = useDroppable({
+      id: groupKey,
       accept: 'row',
-      collect: (monitor) => ({
-        isOver: monitor.isOver({ shallow: true }),
-        canDrop: monitor.getItem<DraggableRow>()?.groupKey !== groupKey,
-      }),
-      canDrop: (item: DraggableRow, monitor) => item?.groupKey !== groupKey,
-      drop: (item: DraggableRow, monitor) => {
-        moveRowToGroup(item, groupKey);
-      },
+      collisionPriority: ROW_DROP_PRIORITY_GROUP,
+      data: { type: 'group', groupKey } satisfies RowDropTarget,
     });
+    const { source } = useDragOperation();
+    // Only highlight when the dragged row comes from a different group (or the root level).
+    const sourceRow = source?.data as DraggableRow | undefined;
+    const isValidDropTarget = isDropTarget && sourceRow?.groupKey !== groupKey;
 
     return (
       <li
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ref={drop as any}
+        ref={dropRef}
         className={classNames('slds-expression__group', {
-          'drop-zone-border': isOver && canDrop,
+          'drop-zone-border': isValidDropTarget,
         })}
       >
         <fieldset>

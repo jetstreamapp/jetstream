@@ -1,9 +1,9 @@
+import { useDragOperation, useDroppable } from '@dnd-kit/react';
 import { AndOr } from '@jetstream/types';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
-import { useDrop } from 'react-dnd';
 import Icon from '../widgets/Icon';
-import { DraggableRow } from './expression-types';
+import { DraggableRow, ROW_DROP_PRIORITY_ROOT, RowDropTarget } from './expression-types';
 import ExpressionActionDropDown from './ExpressionActionDropDown';
 
 export interface ExpressionProps {
@@ -15,7 +15,6 @@ export interface ExpressionProps {
   onActionChange: (value: AndOr) => void;
   onAddCondition: () => void;
   onAddGroup: () => void;
-  moveRowToGroup: (item: DraggableRow) => void;
   children?: React.ReactNode;
 }
 
@@ -29,36 +28,26 @@ export const Expression: FunctionComponent<ExpressionProps> = ({
   onActionChange,
   onAddCondition,
   onAddGroup,
-  moveRowToGroup,
 }) => {
-  const [{ isOver, canDrop }, drop] = useDrop(
-    {
-      accept: 'row',
-      collect: (monitor) => {
-        return {
-          isOver: monitor.isOver({ shallow: true }),
-          canDrop: !!monitor.getItem<DraggableRow>()?.groupKey,
-        };
-      },
-      canDrop: (item: DraggableRow, monitor) => {
-        return monitor.isOver({ shallow: true }) && !!item?.groupKey;
-      },
-      drop: (item: DraggableRow, monitor) => {
-        moveRowToGroup(item);
-      },
-    },
-    [],
-  );
+  const { ref: dropRef, isDropTarget } = useDroppable({
+    id: 'expression-root',
+    accept: 'row',
+    collisionPriority: ROW_DROP_PRIORITY_ROOT,
+    data: { type: 'root' } satisfies RowDropTarget,
+  });
+  const { source } = useDragOperation();
+  // Only highlight when dragging a row that currently lives in a group (it can move out to the root level).
+  const sourceRow = source?.data as DraggableRow | undefined;
+  const isValidDropTarget = isDropTarget && !!sourceRow?.groupKey;
 
   return (
     <div className="slds-expression">
       {title && <h2 className="slds-expression__title">{title}</h2>}
       <div
         className={classNames({
-          'drop-zone-border': isOver && canDrop,
+          'drop-zone-border': isValidDropTarget,
         })}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ref={drop as any}
+        ref={dropRef}
       >
         <ExpressionActionDropDown
           label={actionLabel}

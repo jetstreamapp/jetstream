@@ -453,7 +453,8 @@ pre {
 }
 
 .drop-zone-border {
-  outline: 1px solid var(--slds-g-color-brand-base-60, #1b96ff);
+  outline: 2px solid var(--slds-g-color-brand-base-60, #1b96ff);
+  border-radius: var(--slds-g-radius-border-2, 0.5rem);
 }
 
 button.ql-active {

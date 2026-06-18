@@ -1,3 +1,4 @@
+import { DragDropProvider, type DragEndEvent } from '@dnd-kit/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import {
@@ -14,7 +15,7 @@ import {
 import { FunctionComponent, memo, useCallback, useEffect, useReducer, useState } from 'react';
 import DropDown from '../form/dropdown/DropDown';
 import Expression from './Expression';
-import { DraggableRow } from './expression-types';
+import { DraggableRow, RowDropTarget } from './expression-types';
 import { isExpressionConditionType, isExpressionGroupType } from './expression-utils';
 import ExpressionConditionRow from './ExpressionConditionRow';
 import ExpressionGroup from './ExpressionGroup';
@@ -402,6 +403,29 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
       dispatch({ type: 'ROW_MOVED', payload: { row, targetGroupKey } });
     }, []);
 
+    const handleDragEnd = useCallback(
+      ({ operation, canceled }: DragEndEvent) => {
+        if (canceled) {
+          return;
+        }
+        const source = operation.source?.data as DraggableRow | undefined;
+        const target = operation.target?.data as RowDropTarget | undefined;
+        if (!source || !target) {
+          return;
+        }
+        if (target.type === 'group') {
+          // ignore dropping a row onto the group it already belongs to
+          if (target.groupKey !== source.groupKey) {
+            moveRowToGroup(source, target.groupKey);
+          }
+        } else if (source.groupKey) {
+          // dropping a grouped row onto the root level moves it out of its group
+          moveRowToGroup(source);
+        }
+      },
+      [moveRowToGroup],
+    );
+
     function handleExpressionActionChange(action: AndOr) {
       dispatch({ type: 'ACTION_CHANGED', payload: { action } });
     }
@@ -434,115 +458,115 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
     }
 
     return (
-      <Expression
-        actionLabel={actionLabel}
-        actionHelpText={actionHelpText}
-        title={title}
-        value={expression.action}
-        ancillaryOptions={
-          <div className="slds-m-top_large slds-m-left_xx-small">
-            <DropDown
-              position="left"
-              description="Display options"
-              initialSelectedId={displayOption}
-              items={[
-                { id: DISPLAY_OPT_ROW, value: 'Display filters on one row' },
-                { id: DISPLAY_OPT_WRAP, value: 'Wrap filters if limited space' },
-              ]}
-              onSelected={(id) => setDisplayOption(id)}
-            />
-          </div>
-        }
-        onActionChange={handleExpressionActionChange}
-        onAddCondition={handleAddCondition}
-        onAddGroup={handleAddGroup}
-        moveRowToGroup={moveRowToGroup}
-      >
-        {expression.rows.map((row, i) => {
-          if (isExpressionConditionType(row)) {
-            return (
-              <ExpressionConditionRow
-                key={row.key}
-                org={org}
-                rowKey={row.key}
-                row={i + 1}
-                AndOr={expression.action}
-                showDragHandles={showDragHandles}
-                wrap={displayOption === DISPLAY_OPT_WRAP}
-                resourceTypes={row.resourceTypes}
-                resourceType={row.resourceType}
-                resourceSelectItems={row.resourceSelectItems}
-                resourceLabel={resourceLabel}
-                functionsLabel={functionsLabel}
-                functionsHelpText={functionsHelpText}
-                resourceHelpText={resourceHelpText}
-                operatorLabel={operatorLabel}
-                operatorHelpText={operatorHelpText}
-                valueLabel={valueLabel}
-                valueLabelHelpText={valueLabelHelpText}
-                rowHelpText={row.helpText}
-                resources={resources}
-                resourceListHeader={resourceListHeader}
-                resourceDrillInOnLoad={resourceDrillInOnLoad}
-                functions={functions}
-                operators={operators}
-                selected={row.selected}
-                disableValueForOperators={disableValueForOperators}
-                onChange={(selected) => handleRowChange(selected, row)}
-                onDelete={() => handleDeleteRow(row)}
+      <DragDropProvider onDragEnd={handleDragEnd}>
+        <Expression
+          actionLabel={actionLabel}
+          actionHelpText={actionHelpText}
+          title={title}
+          value={expression.action}
+          ancillaryOptions={
+            <div className="slds-m-top_large slds-m-left_xx-small">
+              <DropDown
+                position="left"
+                description="Display options"
+                initialSelectedId={displayOption}
+                items={[
+                  { id: DISPLAY_OPT_ROW, value: 'Display filters on one row' },
+                  { id: DISPLAY_OPT_WRAP, value: 'Wrap filters if limited space' },
+                ]}
+                onSelected={(id) => setDisplayOption(id)}
               />
-            );
-          } else {
-            return (
-              <ExpressionGroup
-                key={row.key}
-                groupKey={row.key}
-                group={i + 1}
-                parentAction={expression.action}
-                rowAction={row.action}
-                onActionChange={(andOr) => handleGroupActionChange(andOr, row)}
-                onAddCondition={() => handleAddCondition(row)}
-                moveRowToGroup={moveRowToGroup}
-              >
-                {row.rows.map((childRow: ExpressionConditionType, k) => (
-                  <ExpressionConditionRow
-                    key={childRow.key}
-                    org={org}
-                    rowKey={childRow.key}
-                    groupKey={row.key}
-                    group={i + 1}
-                    row={k + 1}
-                    AndOr={row.action}
-                    showDragHandles={showDragHandles}
-                    wrap={displayOption === DISPLAY_OPT_WRAP}
-                    resourceTypes={childRow.resourceTypes}
-                    resourceType={childRow.resourceType}
-                    resourceSelectItems={childRow.resourceSelectItems}
-                    resourceLabel={resourceLabel}
-                    functionsLabel={functionsLabel}
-                    functionsHelpText={functionsHelpText}
-                    resourceHelpText={resourceHelpText}
-                    operatorLabel={operatorLabel}
-                    operatorHelpText={operatorHelpText}
-                    valueLabel={valueLabel}
-                    valueLabelHelpText={valueLabelHelpText}
-                    rowHelpText={childRow.helpText}
-                    resources={resources}
-                    resourceListHeader={resourceListHeader}
-                    resourceDrillInOnLoad={resourceDrillInOnLoad}
-                    functions={functions}
-                    operators={operators}
-                    selected={childRow.selected}
-                    disableValueForOperators={disableValueForOperators}
-                    onChange={(selected) => handleRowChange(selected, childRow, row)}
-                    onDelete={() => handleDeleteRow(childRow, row)}
-                  />
-                ))}
-              </ExpressionGroup>
-            );
+            </div>
           }
-        })}
-      </Expression>
+          onActionChange={handleExpressionActionChange}
+          onAddCondition={handleAddCondition}
+          onAddGroup={handleAddGroup}
+        >
+          {expression.rows.map((row, i) => {
+            if (isExpressionConditionType(row)) {
+              return (
+                <ExpressionConditionRow
+                  key={row.key}
+                  org={org}
+                  rowKey={row.key}
+                  row={i + 1}
+                  AndOr={expression.action}
+                  showDragHandles={showDragHandles}
+                  wrap={displayOption === DISPLAY_OPT_WRAP}
+                  resourceTypes={row.resourceTypes}
+                  resourceType={row.resourceType}
+                  resourceSelectItems={row.resourceSelectItems}
+                  resourceLabel={resourceLabel}
+                  functionsLabel={functionsLabel}
+                  functionsHelpText={functionsHelpText}
+                  resourceHelpText={resourceHelpText}
+                  operatorLabel={operatorLabel}
+                  operatorHelpText={operatorHelpText}
+                  valueLabel={valueLabel}
+                  valueLabelHelpText={valueLabelHelpText}
+                  rowHelpText={row.helpText}
+                  resources={resources}
+                  resourceListHeader={resourceListHeader}
+                  resourceDrillInOnLoad={resourceDrillInOnLoad}
+                  functions={functions}
+                  operators={operators}
+                  selected={row.selected}
+                  disableValueForOperators={disableValueForOperators}
+                  onChange={(selected) => handleRowChange(selected, row)}
+                  onDelete={() => handleDeleteRow(row)}
+                />
+              );
+            } else {
+              return (
+                <ExpressionGroup
+                  key={row.key}
+                  groupKey={row.key}
+                  group={i + 1}
+                  parentAction={expression.action}
+                  rowAction={row.action}
+                  onActionChange={(andOr) => handleGroupActionChange(andOr, row)}
+                  onAddCondition={() => handleAddCondition(row)}
+                >
+                  {row.rows.map((childRow: ExpressionConditionType, k) => (
+                    <ExpressionConditionRow
+                      key={childRow.key}
+                      org={org}
+                      rowKey={childRow.key}
+                      groupKey={row.key}
+                      group={i + 1}
+                      row={k + 1}
+                      AndOr={row.action}
+                      showDragHandles={showDragHandles}
+                      wrap={displayOption === DISPLAY_OPT_WRAP}
+                      resourceTypes={childRow.resourceTypes}
+                      resourceType={childRow.resourceType}
+                      resourceSelectItems={childRow.resourceSelectItems}
+                      resourceLabel={resourceLabel}
+                      functionsLabel={functionsLabel}
+                      functionsHelpText={functionsHelpText}
+                      resourceHelpText={resourceHelpText}
+                      operatorLabel={operatorLabel}
+                      operatorHelpText={operatorHelpText}
+                      valueLabel={valueLabel}
+                      valueLabelHelpText={valueLabelHelpText}
+                      rowHelpText={childRow.helpText}
+                      resources={resources}
+                      resourceListHeader={resourceListHeader}
+                      resourceDrillInOnLoad={resourceDrillInOnLoad}
+                      functions={functions}
+                      operators={operators}
+                      selected={childRow.selected}
+                      disableValueForOperators={disableValueForOperators}
+                      onChange={(selected) => handleRowChange(selected, childRow, row)}
+                      onDelete={() => handleDeleteRow(childRow, row)}
+                    />
+                  ))}
+                </ExpressionGroup>
+              );
+            }
+          })}
+        </Expression>
+      </DragDropProvider>
     );
   },
 );
