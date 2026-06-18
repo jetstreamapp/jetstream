@@ -38,6 +38,8 @@ const SELECT = {
   deviceId: true,
   ipAddress: true,
   userAgent: true,
+  firstAppVersion: true,
+  lastAppVersion: true,
   expiresAt: true,
   createdAt: true,
   updatedAt: true,
@@ -127,23 +129,37 @@ export const create = async (
     expiresAt: Date;
     provider?: OauthProviderType | SsoProviderType | 'credentials';
     providerAccountId?: string;
+    /** Client app version (X-App-Version). Sets firstAppVersion once on create and lastAppVersion on every login. */
+    appVersion?: string;
   },
 ) => {
+  // Pull appVersion out so it isn't spread into the Prisma data (it maps to firstAppVersion/lastAppVersion)
+  const { appVersion, ...tokenData } = payload;
   // Encrypt the token before storing and create hash for lookup
   const token = encryptJwtToken(payload.token);
   const tokenHash = hashToken(payload.token);
 
   return await prisma.webExtensionToken.upsert({
     select: SELECT,
-    create: { userId, ...payload, token, tokenHash },
+    create: {
+      userId,
+      ...tokenData,
+      token,
+      tokenHash,
+      firstAppVersion: appVersion ?? null,
+      lastAppVersion: appVersion ?? null,
+    },
     update: {
       userId,
-      ...payload,
+      ...tokenData,
       token,
       tokenHash,
       // Coerce undefined to null so a re-login with a different auth method doesn't leave stale values
       provider: payload.provider ?? null,
       providerAccountId: payload.providerAccountId ?? null,
+      // Refresh lastAppVersion on re-login, but leave firstAppVersion untouched ("set once").
+      // `undefined` tells Prisma to skip the column when no version was provided.
+      lastAppVersion: appVersion ?? undefined,
     },
     where: {
       type_userId_deviceId: { type: payload.type, userId, deviceId: payload.deviceId },
@@ -168,6 +184,8 @@ export const replaceTokenIfCurrent = async (
     ipAddress: string;
     userAgent: string;
     expiresAt: Date;
+    /** Client app version (X-App-Version) at this refresh — updates lastAppVersion only. */
+    appVersion?: string;
   },
 ): Promise<boolean> => {
   const token = encryptJwtToken(payload.token);
@@ -187,6 +205,8 @@ export const replaceTokenIfCurrent = async (
       ipAddress: payload.ipAddress,
       userAgent: payload.userAgent,
       expiresAt: payload.expiresAt,
+      // `undefined` skips the column when no version was provided; never touch firstAppVersion here.
+      lastAppVersion: payload.appVersion ?? undefined,
     },
   });
 

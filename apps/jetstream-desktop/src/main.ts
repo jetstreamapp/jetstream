@@ -2,6 +2,7 @@ import { app, BrowserWindow } from 'electron';
 import logger from 'electron-log';
 import { Browser } from './browser/browser';
 import { initializeAutoUpdater } from './config/auto-updater';
+import { initSentry } from './config/sentry';
 import { initDeepLink } from './services/deep-link.service';
 import { registerIpc } from './services/ipc.service';
 import { initAppMenu } from './services/menu.service';
@@ -13,6 +14,9 @@ import {
   registerWebRequestHandlers,
 } from './services/protocol.service';
 import { isMac } from './utils/utils';
+
+// Initialize crash diagnostics as early as possible so native-crash capture is armed before startup.
+initSentry();
 
 // Increase memory limit for large file operations
 app.commandLine.appendSwitch('js-flags', '--max-old-space-size=6144');

@@ -4,8 +4,7 @@
 export const environment = {
   name: 'JetstreamDev',
   production: false,
-  // FIXME: we do want these in
-  sentryDsn: undefined,
+  sentryDsn: import.meta.env.NX_PUBLIC_SENTRY_DSN,
   amplitudeToken: undefined,
   STRIPE_PUBLIC_KEY: '',
   BILLING_ENABLED: false,

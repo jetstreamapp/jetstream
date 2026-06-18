@@ -1,6 +1,7 @@
 import { createRateLimit } from '@jetstream/api-config';
 import express, { Router } from 'express';
 import helmet from 'helmet';
+import * as crashTunnelController from '../controllers/crash-tunnel.controller';
 import * as desktopAppController from '../controllers/desktop-app.controller';
 import * as userFeedbackController from '../controllers/user-feedback.controller';
 import * as externalAuthService from '../services/external-auth.service';
@@ -22,6 +23,12 @@ const STRICT_AuthRateLimit = createRateLimit('desktop_strict', {
 const STRICT_2X_AuthRateLimit = createRateLimit('desktop_strict_2x', {
   windowMs: 1000 * 60 * 15, // 15 minutes
   limit: rateLimitGetMaxRequests(10),
+  keyGenerator: rateLimitGetKeyGenerator(),
+});
+
+const CRASH_RateLimit = createRateLimit('desktop_crash', {
+  windowMs: 1000 * 60 * 1, // 1 minute
+  limit: rateLimitGetMaxRequests(30),
   keyGenerator: rateLimitGetKeyGenerator(),
 });
 
@@ -89,6 +96,7 @@ routes.delete(
   desktopAppController.routeDefinition.logout.controllerFn(),
 );
 routes.delete('/auth/logout', STRICT_AuthRateLimit, authMiddleware, desktopAppController.routeDefinition.logout.controllerFn());
+routes.post('/crash', CRASH_RateLimit, express.raw({ type: () => true, limit: '20mb' }), crashTunnelController.crashTunnelHandler);
 
 /**
  * Other Routes

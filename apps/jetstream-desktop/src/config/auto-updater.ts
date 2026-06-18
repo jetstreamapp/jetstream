@@ -2,6 +2,7 @@ import { UpdateStatus } from '@jetstream/desktop/types';
 import { BrowserWindow } from 'electron';
 import logger from 'electron-log';
 import { autoUpdater, UpdateInfo } from 'electron-updater';
+import { captureMainProcessError } from './sentry';
 
 // Configure logging
 autoUpdater.logger = logger;
@@ -63,6 +64,7 @@ function setupAutoUpdaterListeners() {
 
   autoUpdater.on('error', (err) => {
     logger.error('Error in auto-updater:', err);
+    captureMainProcessError(err, { source: 'auto-updater', phase: 'update' });
     sendUpdateStatus({
       status: 'error',
       error: err.message || 'Unknown error occurred',
@@ -115,6 +117,7 @@ export function checkForUpdates(silent = false, userInitiated = false) {
       })
       .catch((error) => {
         logger.error('Update check failed:', error);
+        captureMainProcessError(error, { source: 'auto-updater', phase: 'check', userInitiated: false });
         sendUpdateStatus({
           status: 'error',
           error: error.message || 'Failed to check for updates',

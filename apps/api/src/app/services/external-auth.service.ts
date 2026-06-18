@@ -107,6 +107,7 @@ export async function rotateToken({
   oldAccessToken,
   ipAddress,
   userAgent,
+  appVersion,
   durationMs,
 }: {
   userProfile: UserProfileUi;
@@ -116,6 +117,8 @@ export async function rotateToken({
   oldAccessToken: string;
   ipAddress: string;
   userAgent: string;
+  /** Client app version (X-App-Version) — stamped onto lastAppVersion as part of the rotation write. */
+  appVersion?: string;
   durationMs?: number;
 }): Promise<RotateTokenResult> {
   const newAccessToken = await issueAccessToken(userProfile, audience, durationMs ?? TOKEN_EXPIRATION_SHORT);
@@ -127,6 +130,7 @@ export async function rotateToken({
     deviceId,
     ipAddress,
     userAgent,
+    appVersion,
     expiresAt: fromUnixTime(decodeToken(newAccessToken).exp),
   });
   // Always invalidate the old token from cache — whether we won or lost the race,

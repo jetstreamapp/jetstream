@@ -141,6 +141,19 @@ const envSchema = z.object({
   // Kill switch for Sentry reporting (e.g. during staging pen tests). Client bundle reads NX_PUBLIC_DISABLE_ERROR_REPORTING instead.
   // use NX_PUBLIC_DISABLE_ERROR_REPORTING to also disable error reporting in the client (e.g. for staging pen tests) - if either is true, reporting is disabled
   DISABLE_ERROR_REPORTING: booleanSchema,
+  // Comma-separated allowlist of Sentry DSNs the crash tunnel (/desktop-app/crash, /web-extension/crash)
+  // is permitted to forward to. EMPTY = forward nothing (closed by default) — this allowlist is the
+  // open-relay / SSRF guard, so the tunnel never connects to a host the client merely claims in its envelope.
+  // Set to the desktop + web-extension Sentry project DSNs.
+  SENTRY_TUNNEL_ALLOWED_DSNS: z
+    .string()
+    .optional()
+    .transform((value) =>
+      (value ?? '')
+        .split(',')
+        .map((dsn) => dsn.trim())
+        .filter(Boolean),
+    ),
 
   // Legacy Auth0 - Used to allow JIT password migration
   AUTH0_CLIENT_ID: z.string().nullish(),

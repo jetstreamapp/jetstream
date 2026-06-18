@@ -285,6 +285,8 @@
     "@react-email/ui": "^6.1.4",
     "@salesforce-ux/design-system": "^2.29.2",
     "@salesforce-ux/design-system-2": "^2.0.0",
+    "@sentry/browser": "10.53.1",
+    "@sentry/electron": "^7.13.0",
     "@sentry/node": "^10.53.1",
     "@sentry/react": "^10.53.1",
     "@socket.io/cluster-adapter": "^0.3.0",

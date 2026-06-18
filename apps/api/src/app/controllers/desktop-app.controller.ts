@@ -185,6 +185,7 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
     deviceId,
     ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
     userAgent: req.get('User-Agent') || 'unknown',
+    appVersion: req.get(HTTP.HEADERS.X_APP_VERSION),
     expiresAt: fromUnixTime(externalAuthService.decodeToken(accessToken).exp),
     provider: req.session.provider,
     providerAccountId: req.session.providerAccountId,
@@ -228,6 +229,7 @@ const verifyToken = createRoute(routeDefinition.verifyToken.validators, async ({
           oldAccessToken,
           ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
           userAgent: req.get('User-Agent') || 'unknown',
+          appVersion: req.get(HTTP.HEADERS.X_APP_VERSION),
         });
         if (result.outcome === 'race-loss-none') {
           // Token was deleted from the DB between middleware auth and rotation (typically a

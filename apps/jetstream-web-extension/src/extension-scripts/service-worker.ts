@@ -34,17 +34,32 @@ import {
   VerifyAuth,
 } from '../utils/extension.types';
 import { getRecordPageRecordId } from '../utils/web-extension.utils';
+import { captureServiceWorkerError, initServiceWorkerSentry, setServiceWorkerSentryUser } from './sentry';
 
 if (!environment.production) {
   enableLogger(true);
 }
+
+// Crash diagnostics (tunneled through our own API — see ./sentry).
+initServiceWorkerSentry();
 
 logger.log('Jetstream Service worker loaded.');
 
 let connections: Record<string, OrgAndSessionInfo> = {};
 
 const storageSyncCache: Partial<StorageTypes> = {};
-const initStorageSyncCache = browser.storage.sync.get().then((data) => Object.assign(storageSyncCache, data));
+
+// Attach (or clear) the current user on the service-worker Sentry client so SW crash reports are
+// attributed like every other surface. Derived from the auth token's userProfile.
+function syncSentryUserFromCache() {
+  const userProfile = storageSyncCache.authTokens?.userProfile;
+  setServiceWorkerSentryUser(userProfile ? { id: userProfile.id, email: userProfile.email } : null);
+}
+
+const initStorageSyncCache = browser.storage.sync.get().then((data) => {
+  Object.assign(storageSyncCache, data);
+  syncSentryUserFromCache();
+});
 
 const storageSessionCache: Partial<{ connections: Record<string, OrgAndSessionInfo> }> = {};
 const initStorageSessionCache = browser.storage.session.get().then((data) => {
@@ -71,6 +86,8 @@ browser.storage.onChanged.addListener((changes, namespace) => {
       case 'sync': {
         if (storageTypes.authTokens.key === key) {
           storageSyncCache.authTokens = newValue as AuthTokensStorage['authTokens'];
+          // Keep crash-report user attribution in sync across login/logout.
+          syncSentryUserFromCache();
         }
         if (storageTypes.extIdentifier.key === key) {
           storageSyncCache.extIdentifier = newValue as ExtIdentifierStorage['extIdentifier'];
@@ -223,11 +240,7 @@ async function setConnection(key: string, data: OrgAndSessionInfo) {
 }
 
 browser.runtime.onMessage.addListener(
-  (
-    request: Message['request'],
-    sender: browser.Runtime.MessageSender,
-    sendResponse: (response: MessageResponse) => void,
-  ): true => {
+  (request: Message['request'], sender: browser.Runtime.MessageSender, sendResponse: (response: MessageResponse) => void): true => {
     logger.log('[SW EVENT] onMessage', request);
     switch (request.message) {
       case 'EXT_IDENTIFIER': {
@@ -318,6 +331,7 @@ const handleResponse = (data: Message['response'], sendResponse: (response: Mess
 
 const handleError = (sendResponse: (response: MessageResponse) => void) => (err: unknown) => {
   logger.log('ERROR', err);
+  void captureServiceWorkerError(err);
   sendResponse({
     data: null,
     error: {

@@ -104,6 +104,8 @@ export interface ExternalTokenSessionWithLocation {
   expiresAt: string;
   ipAddress: string;
   userAgent: string;
+  firstAppVersion?: Maybe<string>;
+  lastAppVersion?: Maybe<string>;
   location?: Maybe<SessionIpData>;
 }
 

@@ -2,7 +2,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
 import { disconnectSocket, initSocket } from '@jetstream/shared/data';
-import { getBrowserExtensionVersion, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { getBrowserExtensionVersion, initErrorTracker, setErrorTrackerUser, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { getDefaultAppState, getErrorMessage } from '@jetstream/shared/utils';
 import { JetstreamEventSaveSoqlQueryFormatOptionsPayload, UserProfileUi } from '@jetstream/types';
 import { ScopedNotification } from '@jetstream/ui';
@@ -69,6 +69,15 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
   }, [setAppInfo]);
 
   useEffect(() => {
+    initErrorTracker({
+      dsn: environment.sentryDsn,
+      environment: environment.production ? 'production' : 'development',
+      version: getBrowserExtensionVersion(),
+      tunnel: `${environment.serverUrl}/web-extension/crash`,
+    });
+  }, []);
+
+  useEffect(() => {
     // wait until this data has initialized before proceeding
     if (!authTokens?.accessToken || !extIdentifier?.id) {
       return;
@@ -118,6 +127,10 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
       setUserProfile({ ...chromeUserProfile, preferences: { ...chromeUserProfile.preferences, soqlQueryFormatOptions } });
     }
   }, [chromeUserProfile, setUserProfile, soqlQueryFormatOptions]);
+
+  useEffect(() => {
+    setErrorTrackerUser(chromeUserProfile);
+  }, [chromeUserProfile]);
 
   useNonInitialEffect(() => {
     const pageUrl = new URL(window.location.href);

@@ -672,6 +672,8 @@ export async function getUserWebExtensionSessions(userId: string, omitLocationDa
         expiresAt: true,
         ipAddress: true,
         userAgent: true,
+        firstAppVersion: true,
+        lastAppVersion: true,
       },
       where: { userId, type: 'AUTH_TOKEN' },
     })
@@ -683,6 +685,8 @@ export async function getUserWebExtensionSessions(userId: string, omitLocationDa
         expiresAt: token.expiresAt.toISOString(),
         ipAddress: token.ipAddress,
         userAgent: token.userAgent,
+        firstAppVersion: token.firstAppVersion,
+        lastAppVersion: token.lastAppVersion,
       }));
     });
 

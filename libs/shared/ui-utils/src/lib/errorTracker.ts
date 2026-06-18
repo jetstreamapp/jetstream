@@ -35,6 +35,77 @@ interface InitOptions {
   dsn?: string | null;
   environment?: Environment;
   version?: string;
+  /**
+   * When set, Sentry routes all events through this URL instead of connecting to Sentry directly.
+   * Used by the desktop app and web extension to keep reporting first-party (the URL points at our
+   * own API tunnel). Leave undefined for the web app, which connects to Sentry directly.
+   */
+  tunnel?: string;
+}
+
+// Mirrors the server-side scrub (api-sentry-config.ts) so PII is redacted before it leaves the client —
+// this is the PRIMARY scrub; the server tunnel only re-scrubs best-effort as defense-in-depth.
+const SENSITIVE_KEY_SUBSTRINGS = [
+  'password',
+  'passwd',
+  'secret',
+  'token',
+  'csrf',
+  'cookie',
+  'authorization',
+  'privatekey',
+  'samlresponse',
+  'apikey',
+  'credential',
+  'sessionid',
+  'verifier',
+  'bearer',
+];
+const SENSITIVE_KEY_EXACT = new Set(['code', 'otp', 'mfa', 'sid', 'pin', 'auth']);
+const REDACTED = '[REDACTED]';
+const MAX_REDACT_DEPTH = 6;
+
+function isSensitiveKey(key: string): boolean {
+  const lower = key.toLowerCase();
+  return SENSITIVE_KEY_EXACT.has(lower) || SENSITIVE_KEY_SUBSTRINGS.some((needle) => lower.includes(needle));
+}
+
+function redactSensitiveDeep(value: unknown, depth = 0, seen = new WeakSet<object>()): unknown {
+  if (value === null || typeof value !== 'object') {
+    return value;
+  }
+  if (seen.has(value)) {
+    return '[Circular]';
+  }
+  const proto = Object.getPrototypeOf(value);
+  if (!Array.isArray(value) && proto !== Object.prototype && proto !== null) {
+    return value; // preserve special objects (Date, etc.)
+  }
+  if (depth >= MAX_REDACT_DEPTH) {
+    return REDACTED;
+  }
+  if (Array.isArray(value)) {
+    seen.add(value);
+    return value.map((item) => redactSensitiveDeep(item, depth + 1, seen));
+  }
+  seen.add(value);
+  const result: Record<string, unknown> = {};
+  for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
+    result[key] = isSensitiveKey(key) ? REDACTED : redactSensitiveDeep(val, depth + 1, seen);
+  }
+  return result;
+}
+
+function scrubEventPii(event: Sentry.ErrorEvent): void {
+  if (event.extra) {
+    event.extra = redactSensitiveDeep(event.extra) as Record<string, unknown>;
+  }
+  if (event.contexts) {
+    event.contexts = redactSensitiveDeep(event.contexts) as Sentry.ErrorEvent['contexts'];
+  }
+  if (event.request) {
+    event.request = redactSensitiveDeep(event.request) as Sentry.ErrorEvent['request'];
+  }
 }
 
 function isRateLimited(): boolean {
@@ -94,6 +165,7 @@ export function initErrorTracker(options: InitOptions): void {
   }
   Sentry.init({
     dsn: options.dsn,
+    tunnel: options.tunnel,
     release: options.version,
     environment: options.environment,
     sendDefaultPii: false,
@@ -108,6 +180,7 @@ export function initErrorTracker(options: InitOptions): void {
       if (isRateLimited()) {
         return null;
       }
+      scrubEventPii(event as Sentry.ErrorEvent);
       return event;
     },
   });

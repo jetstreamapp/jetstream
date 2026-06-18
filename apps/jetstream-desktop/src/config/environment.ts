@@ -18,6 +18,8 @@ for (const arg of args) {
 
 const { defaultApiVersion } = getDefaultAppState();
 
+const SENTRY_DSN = process.env.NX_PUBLIC_SENTRY_DSN;
+
 const ENV_INTERNAL_DEV = {
   ENVIRONMENT: 'development',
   CLIENT_URL: 'http://localhost:4201',
@@ -25,6 +27,7 @@ const ENV_INTERNAL_DEV = {
   SFDC_API_VERSION: defaultApiVersion.replace('v', ''),
   DESKTOP_SFDC_CALLBACK_URL: 'jetstream://addOrg/oauth/sfdc/callback',
   DESKTOP_SFDC_CLIENT_ID: '3MVG94YrNIs0WS4d2PK0lDfKIz_loKEkofpaTrvi7_3g_tLRZSQ9_XNQpSmtNVMs7hnO77x3RqRGaxy86vnK_',
+  SENTRY_DSN,
 };
 
 const ENV_INTERNAL_PROD = {
@@ -34,6 +37,7 @@ const ENV_INTERNAL_PROD = {
   SFDC_API_VERSION: ENV_INTERNAL_DEV.SFDC_API_VERSION,
   DESKTOP_SFDC_CALLBACK_URL: ENV_INTERNAL_DEV.DESKTOP_SFDC_CALLBACK_URL,
   DESKTOP_SFDC_CLIENT_ID: ENV_INTERNAL_DEV.DESKTOP_SFDC_CLIENT_ID,
+  SENTRY_DSN,
 };
 
 const environment = app.isPackaged ? ENV_INTERNAL_PROD : ENV_INTERNAL_DEV;
@@ -67,6 +71,7 @@ const envSchema = z.object({
   SFDC_API_VERSION: z.string().regex(/^[0-9]{2,4}\.[0-9]$/),
   DESKTOP_SFDC_CLIENT_ID: z.string().min(1),
   DESKTOP_SFDC_CALLBACK_URL: z.url(),
+  SENTRY_DSN: z.string().optional(),
 });
 
 const parseResults = envSchema.safeParse({

@@ -106,8 +106,13 @@ APP VERSION ${version}
   }, []);
 
   useEffect(() => {
-    initErrorTracker({ dsn: environment.sentryDsn, environment: appInfo.environment, version });
-  }, [appInfo.environment, version]);
+    initErrorTracker({
+      dsn: environment.sentryDsn,
+      environment: appInfo.environment,
+      version,
+      tunnel: `${appInfo.serverUrl}/desktop-app/crash`,
+    });
+  }, [appInfo.environment, appInfo.serverUrl, version]);
 
   useEffect(() => {
     setErrorTrackerUser(userProfile);

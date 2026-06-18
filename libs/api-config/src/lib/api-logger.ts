@@ -25,7 +25,12 @@ export const httpLogger = pinoHttp<express.Request, express.Response>({
   autoLogging: {
     // ignore static files based on file extension
     ignore: (req) =>
-      ignoreLogsFileExtensions.test(req.url) || req.url === '/healthz' || req.url === '/api/heartbeat' || req.url === '/api/analytics',
+      ignoreLogsFileExtensions.test(req.url) ||
+      req.url === '/healthz' ||
+      req.url === '/api/heartbeat' ||
+      req.url === '/api/analytics' ||
+      req.url === '/web-extension/crash' ||
+      req.url === '/desktop-app/crash',
   },
   customSuccessMessage(req, res) {
     if (res.statusCode === 404) {

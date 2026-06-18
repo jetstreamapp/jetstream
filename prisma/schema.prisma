@@ -283,6 +283,8 @@ model WebExtensionToken {
   deviceId          String   @unique
   ipAddress         String
   userAgent         String
+  firstAppVersion   String?
+  lastAppVersion    String?
   provider          String?
   providerAccountId String?
   expiresAt         DateTime
@@ -739,7 +741,7 @@ model DomainVerification {
   status           String    @default("PENDING") @db.VarChar(50) // 'PENDING' | 'VERIFIED'
   verificationCode String    @db.VarChar(255)
   verifiedAt       DateTime?
-  expiresAt        DateTime  @default(dbgenerated("now() + interval '7 days'"))
+  expiresAt        DateTime  @default(dbgenerated("(now() + '7 days'::interval)"))
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
