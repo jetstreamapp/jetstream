@@ -1,0 +1,138 @@
+---
+id: required-permissions
+title: Required Salesforce Permissions
+description: The Salesforce user permissions required to connect to and use Jetstream, including the Metadata API features that require Modify Metadata or Modify All Data.
+keywords:
+  [
+    salesforce,
+    salesforce admin,
+    salesforce developer,
+    salesforce permissions,
+    user permissions,
+    modify metadata,
+    modify all data,
+    api enabled,
+    metadata api,
+    least privilege,
+    security review,
+  ]
+sidebar_label: Required Permissions
+slug: /required-permissions
+---
+
+# Required Salesforce Permissions
+
+Jetstream acts on your behalf using the Salesforce APIs. It can only ever do what the connected user is already allowed to do — every request is made with the authenticated user's access, and all of Salesforce's object-level security, field-level security, sharing rules, and other restrictions are always enforced.
+
+This page lists the Salesforce user permissions that determine what you can do in Jetstream. It is intended to help administrators and security teams grant least-privilege access.
+
+For an exhaustive, object-by-object and field-by-field breakdown of the Salesforce data and APIs Jetstream accesses on your behalf, see the [Salesforce Data & API Access Reference](salesforce-data-access.mdx).
+
+:::tip
+
+Jetstream never bypasses Salesforce security. If a user cannot read or modify a record, object, or piece of metadata in Salesforce directly, they cannot do it through Jetstream either.
+
+For the permissions described below, Jetstream may still function with reduced capabilities if the user does not have the required permission.
+
+In these cases, Jetstream may display a warning banner and/or a "Limited Access" badge next to the org selector or you may receive an error when attempting to use a feature that requires a permission you do not have.
+
+:::
+
+## Permissions Summary
+
+| Permission                                           | API Name                                  | Required for                                                                                     |
+| ---------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| API Enabled                                          | `PermissionsApiEnabled`                   | Connecting any org to Jetstream (all functionality is API based).                                |
+| Modify Metadata Through Metadata API Functions       | `PermissionsModifyMetadata`               | Metadata API features (see [below](#metadata-api-features)). **Either this or Modify All Data.** |
+| Modify All Data                                      | `PermissionsModifyAllData`                | Metadata API features (see [below](#metadata-api-features)). **Either this or Modify Metadata.** |
+| Bulk API Hard Delete                                 | `PermissionsBulkApiHardDelete`            | Permanently deleting records (Hard Delete) in the Load feature.                                  |
+| Manage Profiles and Permission Sets                  | `PermissionsManageProfilesPermissionsets` | Saving permission changes in [Manage Permissions](../permissions/permissions.mdx).               |
+| Object & field permissions on the data you work with | _(varies)_                                | Reading and modifying records (Query, Load, etc.).                                               |
+
+Some features also rely on standard Salesforce permissions for the underlying operation, enforced by Salesforce exactly as they would be in Setup:
+
+| Permission                   | API Name                          | Required for                                                                                                                      |
+| ---------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| View Setup and Configuration | `PermissionsViewSetup`            | Reading setup metadata behind Automation Control, Manage Permissions, "Where is this used", and the metadata browser.             |
+| Customize Application        | `PermissionsCustomizeApplication` | Creating/editing objects, fields, record types, and picklists; activating/deactivating validation, workflow, and duplicate rules. |
+| Author Apex                  | `PermissionsAuthorApex`           | Running Anonymous Apex; enabling/disabling Apex triggers in Automation Control.                                                   |
+
+## Connecting an org
+
+To connect an org, the user must be able to authorize Jetstream's connected app and have **API Enabled** on their profile or a permission set. Most full Salesforce licenses include API access by default.
+
+Connecting an org does not, by itself, grant Jetstream any data or metadata access beyond what the user already has. For details on installing and governing the connected app (including connected-app restrictions introduced by Salesforce in September 2025), see [Connecting Jetstream to Salesforce](install-connected-app.mdx).
+
+## Reading and modifying data
+
+Data features such as [Query](../query/query.mdx), [Load](../load/load.mdx), and [Create Records](../load/create-record-without-file.mdx) rely entirely on the user's existing **object-level** and **field-level** permissions and **sharing** settings. To work with a given object or field in Jetstream, the user simply needs the corresponding Read/Create/Edit/Delete access in Salesforce.
+
+No special "admin" permission is required for these features — grant only the object and field access each user actually needs.
+
+:::note
+
+[Create Records](../load/create-record-without-file.mdx) creates records through the standard data API and needs only object **Create** access plus field-level security. It may display a metadata-access banner, but **Modify Metadata / Modify All Data is not required** to create records.
+
+:::
+
+### Hard Delete
+
+The **Hard Delete** load operation skips the Recycle Bin and permanently removes records. Salesforce requires the **Bulk API Hard Delete** system permission for this operation. Standard delete (which sends records to the Recycle Bin) does not require it.
+
+## Metadata API features
+
+Several Jetstream features use the Salesforce **Metadata API**. To use them, the user must have **one** of the following permissions assigned (via their profile or a permission set) to utilize the full platform:
+
+- **Modify Metadata Through Metadata API Functions** (`PermissionsModifyMetadata`, referred to as **Modify Metadata** below), or
+- **Modify All Data** (`PermissionsModifyAllData`)
+
+`Modify Metadata Through Metadata API Functions` is the more narrowly-scoped, least-privilege option and is recommended over `Modify All Data` where possible.
+
+:::tip
+
+Jetstream continues to function in a degraded mode if your user has **neither** of these permissions.
+Data features will continue to work, but the Metadata API features listed below may not function correctly.
+
+:::
+
+The features that require one of these permissions are:
+
+- [Deploy and Compare Metadata](../deploy/deploy-metadata.mdx)
+- [Create Object and Fields](../deploy/deploy-fields.mdx)
+- [Record Type and Picklist Manager](../deploy/record-type-picklist-manager.mdx)
+- [Manage Permissions](../permissions/permissions.mdx)
+- [Automation Control](../automation-control/automation-control.mdx)
+- [Debug Logs](../developer/debug-logs.mdx)
+
+:::info Limited Access indicator
+
+When you select an org where your user has **neither** `Modify Metadata` nor `Modify All Data`, Jetstream shows a **"Limited Access"** badge next to the org selector. Data features will continue to work, but the Metadata API features listed above may not function correctly.
+
+This badge is **advisory only** — it does not block any feature. Metadata features remain accessible and will simply fail individually if the required Salesforce permission is missing.
+
+Jetstream determines this by running the following query against the selected org:
+
+```sql
+SELECT Id, PermissionsModifyAllData, PermissionsModifyMetadata FROM UserPermissionAccess
+```
+
+## Are these high-privilege permissions required?
+
+Administrators frequently ask whether Jetstream needs broad administrative permissions. In most cases it does not — Jetstream acts as the connected user and never elevates privileges.
+
+| Permission                          | Required?                    | Details                                                                                                                                                                                                                                                         |
+| ----------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Modify All Data                     | **No**                       | Accepted as an alternative for [Metadata API features](#metadata-api-features), but **Modify Metadata Through Metadata API Functions** is the recommended least-privilege option. Modify All Data also bypasses sharing and FLS, which Jetstream does not need. |
+| Manage Users                        | **No**                       | Jetstream only **reads** `User` records (for the Formula Evaluator "run as" search and permission-set assignee popovers). This permission is required if you would like to create/update users using Jetstream data loader.                                     |
+| Manage Profiles and Permission Sets | **Only to save permissions** | Needed solely to save edits in [Manage Permissions](../permissions/permissions.mdx). Every other feature works without it.                                                                                                                                      |
+| View Setup and Configuration        | **Only for some features**   | Used to read setup metadata behind Automation Control, Manage Permissions, "Where is this used", and the metadata browser. Not needed for data features.                                                                                                        |
+| Customize Application               | **Only for some features**   | Enforced by Salesforce for the underlying changes when you create/edit objects, fields, record types, or picklists, or toggle validation/workflow/duplicate rules. Not needed for data or read-only features.                                                   |
+| Author Apex                         | **Only for some features**   | Enforced by Salesforce when running Anonymous Apex or enabling/disabling Apex triggers. Not needed for any other feature.                                                                                                                                       |
+
+## Recommendations for least privilege
+
+1. Grant **API Enabled** to anyone who needs to connect an org.
+2. Grant object and field permissions according to the data each user should access — Jetstream enforces these automatically.
+3. Assign **Modify Metadata Through Metadata API Functions** (rather than **Modify All Data**) only to users who need the [Metadata API features](#metadata-api-features).
+4. Grant **Bulk API Hard Delete** only to users who must permanently delete records.
+5. Use the connected app's "Permitted Users" policy to control exactly who may connect Jetstream to your org — see [Connecting Jetstream to Salesforce](install-connected-app.mdx#permitted-users).

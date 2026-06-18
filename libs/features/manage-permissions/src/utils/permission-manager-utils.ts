@@ -580,7 +580,7 @@ export function getQueryForAllPermissionableFields(allSobjects: string[]): strin
         getField('FieldDefinitionId'),
         getField('NamespacePrefix'),
         getField('IsCompound'),
-        getField('isCreatable'),
+        getField('IsCreatable'),
         getField('IsUpdatable'),
         getField('IsPermissionable'),
       ],
