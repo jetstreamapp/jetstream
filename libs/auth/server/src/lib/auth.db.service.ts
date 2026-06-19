@@ -1111,6 +1111,14 @@ function convertSessionToUserSession(session: { sid: string; sess: unknown; expi
   };
 }
 
+// A constant, precomputed bcrypt hash (cost 10, matching hashPassword) used to spend the same
+// ~bcrypt-cost on the account-not-found path as on the wrong-password path, so login response
+// timing does not reveal whether an account exists. Precomputed rather than hashed on first use so
+// the not-found path always pays exactly one bcrypt compare — lazily hashing would make the first
+// not-found login after a cold start measurably slower. The plaintext is irrelevant because the
+// comparison result is ignored — the not-found branch always returns InvalidCredentials.
+const DUMMY_PASSWORD_HASH = '$2b$10$/nMyPEWfg3COKJfQ0K35c.2i2o4gTHdfdDYhDyFuBviJHrtgFl5VW';
+
 async function getUserAndVerifyPassword(email: string, password: string) {
   email = email.toLowerCase();
   const UNSAFE_userWithPassword = await prisma.user.findFirst({
@@ -1119,6 +1127,10 @@ async function getUserAndVerifyPassword(email: string, password: string) {
   });
 
   if (!UNSAFE_userWithPassword) {
+    // Run a bcrypt comparison against a dummy hash so the not-found path takes the same time as a
+    // wrong-password path, removing the timing oracle. Return the SAME generic error as a wrong
+    // password so the message/errorType cannot be used to enumerate registered accounts.
+    await verifyPassword(password, DUMMY_PASSWORD_HASH);
     return { error: new InvalidCredentials('Incorrect email or password') };
   }
 
@@ -1168,8 +1180,11 @@ async function getUserAndVerifyPassword(email: string, password: string) {
     };
   }
 
+  // Identical message/errorType to the account-not-found path above so the response cannot be used
+  // to distinguish a registered email from an unregistered one. The userId is retained only as
+  // server-side metadata (for failed-attempt tracking/logging), never surfaced to the client.
   return {
-    error: new InvalidCredentials(`Incorrect email or password. Your account will be locked after too many failed attempts.`, {
+    error: new InvalidCredentials(`Incorrect email or password`, {
       userId: UNSAFE_userWithPassword.id,
     }),
   };

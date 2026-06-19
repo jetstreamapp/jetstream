@@ -1,9 +1,16 @@
 import { prisma } from '@jetstream/api-config';
 import { SessionData } from '@jetstream/auth/types';
+import { expect } from '@playwright/test';
 
 export async function verifyEmailLogEntryExists(email: string, subject: string) {
   email = email.toLowerCase();
-  await prisma.emailActivity.findFirstOrThrow({ where: { email, subject: { contains: subject } } });
+  // Some emails (e.g. password reset) are sent fire-and-forget, so the activity record may be written
+  // shortly after the HTTP response returns. Poll instead of asserting immediately to avoid a race.
+  await expect
+    .poll(() => prisma.emailActivity.count({ where: { email, subject: { contains: subject } } }), {
+      message: `Expected an email activity log entry with subject containing "${subject}" for ${email}`,
+    })
+    .toBeGreaterThan(0);
 }
 
 export async function getPasswordResetToken(email: string) {
