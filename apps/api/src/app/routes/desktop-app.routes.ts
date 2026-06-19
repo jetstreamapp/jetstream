@@ -5,6 +5,7 @@ import * as desktopAppController from '../controllers/desktop-app.controller';
 import * as userFeedbackController from '../controllers/user-feedback.controller';
 import * as externalAuthService from '../services/external-auth.service';
 import { rateLimitGetKeyGenerator, rateLimitGetMaxRequests } from '../utils/route.utils';
+import { CSP_REPORTING_DIRECTIVES } from '../utils/security-headers';
 import { deprecatedRouteMiddleware, feedbackRateLimit, feedbackUploadMiddleware } from './route.middleware';
 
 export const LAX_AuthRateLimit = createRateLimit('desktop_lax', {
@@ -27,7 +28,9 @@ const STRICT_2X_AuthRateLimit = createRateLimit('desktop_strict_2x', {
 
 export const routes: express.Router = Router();
 
+// There is a static "/desktop-app/" landing page site we don't want to have this CSP policy applied to
 routes.use(
+  ['/auth', '/google-picker'],
   helmet({
     crossOriginOpenerPolicy: false,
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
@@ -50,6 +53,8 @@ routes.use(
         styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
         connectSrc: ["'self'", 'https://www.googleapis.com', 'https://oauth2.googleapis.com'],
         upgradeInsecureRequests: [],
+        // Report violations on these relay pages to the same handler as the rest of the app.
+        ...CSP_REPORTING_DIRECTIVES,
       },
     },
   }),

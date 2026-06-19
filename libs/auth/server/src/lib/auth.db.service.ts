@@ -155,6 +155,11 @@ export async function pruneExpiredRecords() {
     },
   });
   await DbCacheProvider.cleanupExpired();
+  // Reap expired distributed rate-limit rows (PgRateLimitStore). Rows are only reset in place when
+  // the same key is hit again, so without this every distinct IP/email key would leave a permanent row.
+  await prisma.rateLimitHit.deleteMany({
+    where: { expiresAt: { lt: new Date() } },
+  });
 }
 
 async function findUserByProviderId(provider: OauthProviderType, providerAccountId: string) {

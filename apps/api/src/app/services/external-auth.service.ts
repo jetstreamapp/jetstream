@@ -13,7 +13,12 @@ import * as webExtDb from '../db/web-extension.db';
 import { decryptJwtTokenOrPlaintext, hashToken } from '../services/jwt-token-encryption.service';
 import { AuthenticationError } from '../utils/error-handler';
 
-const cache = new LRUCache<string, JwtDecodedPayload>({ max: 500 });
+// Short TTL so a token revoked/rotated in the DB stops being served from a stale in-process cache
+// quickly across ALL workers/instances (each process has its own LRU; invalidateCacheEntry only
+// clears the local one). Without a TTL, a revoked token kept being authorized from cache until the
+// JWT itself expired (up to 90 days). 60s bounds the post-revocation window to near-real-time.
+const EXTERNAL_AUTH_CACHE_TTL_MS = 1000 * 60;
+const cache = new LRUCache<string, JwtDecodedPayload>({ max: 500, ttl: EXTERNAL_AUTH_CACHE_TTL_MS });
 
 export const AUDIENCE_WEB_EXT = 'https://getjetstream.app/web-extension';
 export const AUDIENCE_DESKTOP = 'https://getjetstream.app/desktop-app';

@@ -5,6 +5,7 @@ import * as userFeedbackController from '../controllers/user-feedback.controller
 import * as webExtensionController from '../controllers/web-extension.controller';
 import * as externalAuthService from '../services/external-auth.service';
 import { rateLimitGetKeyGenerator, rateLimitGetMaxRequests } from '../utils/route.utils';
+import { CSP_REPORTING_DIRECTIVES } from '../utils/security-headers';
 import { deprecatedRouteMiddleware, feedbackRateLimit, feedbackUploadMiddleware } from './route.middleware';
 
 export const LAX_AuthRateLimit = createRateLimit('web-ext_lax', {
@@ -27,7 +28,13 @@ const STRICT_2X_AuthRateLimit = createRateLimit('web-ext_strict_2x', {
 
 export const routes: express.Router = Router();
 
+// Tight, Google-sign-in-scoped CSP for the web-extension auth + Google Picker relay pages (static
+// HTML served from the landing build via the fallthrough static handler). Scoped to ONLY those two
+// path prefixes so it cannot clobber the broader landing CSP on any `/web-extension/` page served by
+// the static fallthrough (mirrors desktop-app.routes.ts, where the blanket version blocked Google
+// Tag Manager on the marketing landing page). JSON API routes keep the global helmet's CSP.
 routes.use(
+  ['/auth', '/google-picker'],
   helmet({
     crossOriginOpenerPolicy: false,
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
@@ -50,6 +57,8 @@ routes.use(
         styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
         connectSrc: ["'self'", 'https://www.googleapis.com', 'https://oauth2.googleapis.com'],
         upgradeInsecureRequests: [],
+        // Report violations on these relay pages to the same handler as the rest of the app.
+        ...CSP_REPORTING_DIRECTIVES,
       },
     },
   }),

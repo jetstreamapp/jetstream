@@ -14,6 +14,16 @@ export const REMEMBER_DEVICE_DAYS = 30;
 const TIME_15_MIN = 60 * 15;
 const REMEMBER_DEVICE_MAX_AGE = REMEMBER_DEVICE_DAYS * 24 * 60 * 60;
 
+/**
+ * Name of the express-session cookie. Uses the `__Host-` prefix when cookies are secure so the
+ * browser enforces Secure + Path=/ + no Domain (which blocks cookie-tossing/shadowing from a
+ * sibling/parent host). Shared by the session middleware (which sets the cookie) and the scanner
+ * bootstrap route (which reports the cookie name to the scanner client) so the two cannot drift.
+ */
+export function getSessionCookieName(useSecureCookies: boolean): string {
+  return `${useSecureCookies ? '__Host-' : ''}sessionid`;
+}
+
 export function getCookieConfig(useSecureCookies: boolean): CookieConfig {
   const cookiePrefix = useSecureCookies ? '__Secure-' : '';
   return {

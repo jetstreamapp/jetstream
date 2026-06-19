@@ -1,5 +1,5 @@
 import { ENV, logger } from '@jetstream/api-config';
-import { findUserById_UNSAFE, generateHMACDoubleCSRFToken, getCookieConfig } from '@jetstream/auth/server';
+import { findUserById_UNSAFE, generateHMACDoubleCSRFToken, getCookieConfig, getSessionCookieName } from '@jetstream/auth/server';
 import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import { salesforceLoginJwtBearer } from '@jetstream/salesforce-oauth';
 import { HTTP } from '@jetstream/shared/constants';
@@ -129,7 +129,7 @@ routes.post('/init-session', async (req: express.Request, res: express.Response,
     }
 
     const response: InitSessionResponse = {
-      sessionCookieName: 'sessionid',
+      sessionCookieName: getSessionCookieName(ENV.USE_SECURE_COOKIES),
       csrfCookieName: cookieConfig.doubleCSRFToken.name,
       csrfHeaderName: HTTP.HEADERS.X_CSRF_TOKEN,
       csrfToken,
