@@ -18,22 +18,22 @@ import { Link, useLocation } from 'react-router-dom';
 import OutsideClickHandler from '../utils/OutsideClickHandler';
 import Icon from '../widgets/Icon';
 
-export type NabarMenuItem = NabarMenuItemLink | NabarMenuItemAction;
+export type NavbarMenuItem = NavbarMenuItemLink | NavbarMenuItemAction;
 
-interface NabarMenuItemBase {
+interface NavbarMenuItemBase {
   id: string;
   heading?: string;
   label: string | React.ReactNode;
   title: string;
 }
 
-export interface NabarMenuItemLink extends NabarMenuItemBase {
+export interface NavbarMenuItemLink extends NavbarMenuItemBase {
   path: string;
   search?: string;
   isExternal?: boolean;
 }
 
-export interface NabarMenuItemAction extends NabarMenuItemBase {
+export interface NavbarMenuItemAction extends NavbarMenuItemBase {
   action: (id: string) => void;
 }
 
@@ -44,11 +44,11 @@ export interface NavbarMenuItemsProps {
   // Optional path for parent item
   path?: string;
   search?: string;
-  items: NabarMenuItem[];
+  items: NavbarMenuItem[];
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function isLink(item: any): item is NabarMenuItemLink {
+function isLink(item: any): item is NavbarMenuItemLink {
   return !!item.path;
 }
 
@@ -80,7 +80,7 @@ export const NavbarMenuItems: FunctionComponent<NavbarMenuItemsProps> = ({ label
     } else {
       const childPaths = items
         .filter((item) => isLink(item))
-        .map((item: NabarMenuItemLink) => item.path)
+        .map((item: NavbarMenuItemLink) => item.path)
         .some((childPath) => location.pathname === childPath || location.pathname.startsWith(`${childPath}/`));
       setIsParentActive(childPaths);
     }
@@ -143,7 +143,7 @@ export const NavbarMenuItems: FunctionComponent<NavbarMenuItemsProps> = ({ label
     }
   }
 
-  function handleItemKeyDown(event: KeyboardEvent<HTMLAnchorElement>, item: NabarMenuItem, index: number) {
+  function handleItemKeyDown(event: KeyboardEvent<HTMLAnchorElement>, item: NavbarMenuItem, index: number) {
     if (isEscapeKey(event)) {
       event.preventDefault();
       closeMenu(true);
