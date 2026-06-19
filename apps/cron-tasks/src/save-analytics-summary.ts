@@ -46,7 +46,7 @@ const CHART_IDS = {
       },
     });
 
-    logger.info('[ANALYTICS SUMMARY] Load data saved', { loadResults });
+    logger.info({ loadResults }, '[ANALYTICS SUMMARY] Load data saved');
 
     const queryResults = await prisma.analyticsSummary.upsert({
       create: {

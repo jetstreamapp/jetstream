@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { describeSObject, genericRequest } from '@jetstream/shared/data';
-import { REGEX, flattenRecords, groupByFlat, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { REGEX, flattenRecords, getErrorMessage, groupByFlat, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import type {
   CompositeRequestBody,
   CompositeResponse,
@@ -165,7 +165,7 @@ export async function getToolingRecords<T>(
 export async function makeToolingRequests<T>(
   selectedOrg: SalesforceOrgUi,
   compositeRequests: CompositeRequestBody[],
-  apiVersion,
+  apiVersion: string,
   allOrNone = false,
 ): Promise<CompositeResponse<T>> {
   const compositeRequestSets = splitArrayToMaxSize(compositeRequests, 25);
@@ -306,35 +306,31 @@ export async function copyRecordsToClipboard(
   try {
     if (copyFormat === 'excel') {
       recordsToCopy = fields ? flattenRecords(recordsToCopy, fields) : recordsToCopy;
-      const clipboardItem = new ClipboardItem({
-        'text/plain': new Blob([transformTabularDataToExcelStr(recordsToCopy, fields, includeHeader)], { type: 'text/plain' }),
-        'text/html': new Blob([transformTabularDataToHtml(recordsToCopy, fields, includeHeader)], { type: 'text/html' }),
+      const plainText = transformTabularDataToExcelStr(recordsToCopy, fields, includeHeader);
+      const excelString = transformTabularDataToHtml(recordsToCopy, fields, includeHeader);
+      await copyToClipboard(excelString, {
+        format: 'text/html',
+        onCopy: () =>
+          new ClipboardItem({
+            'text/html': new Blob([excelString], { type: 'text/html' }),
+            'text/plain': new Blob([plainText], { type: 'text/plain' }),
+          }),
       });
-      await navigator.clipboard.write([clipboardItem]);
     } else if (copyFormat === 'csv') {
       recordsToCopy = fields ? flattenRecords(recordsToCopy, fields) : recordsToCopy;
-      const clipboardItem = new ClipboardItem({
-        'text/plain': new Blob([unparse(recordsToCopy, { header: includeHeader })], { type: 'text/plain' }),
+      const csvString = unparse(recordsToCopy, { header: includeHeader });
+      await copyToClipboard(csvString, {
+        format: 'text/plain',
       });
-      await navigator.clipboard.write([clipboardItem]);
     } else if (copyFormat === 'json') {
-      const clipboardItem = new ClipboardItem({
-        'text/plain': new Blob([JSON.stringify(recordsToCopy, null, 2)], { type: 'text/plain' }),
+      const jsonString = JSON.stringify(recordsToCopy, null, 2);
+      await copyToClipboard(jsonString, {
+        format: 'text/plain',
       });
-      await navigator.clipboard.write([clipboardItem]);
     }
     logger.info('[Clipboard][Copied]', { recordsToCopy });
   } catch (ex) {
-    logger.warn('Copy to clipboard failed, trying fallback', ex.message);
-    if (copyFormat === 'excel' && fields) {
-      const flattenedData = flattenRecords(recordsToCopy, fields);
-      copyToClipboard(transformTabularDataToExcelStr(flattenedData, fields, includeHeader), { format: 'text/plain' });
-    } else if (copyFormat === 'csv' && fields) {
-      const flattenedData = flattenRecords(recordsToCopy, fields);
-      copyToClipboard(unparse(flattenedData, { header: includeHeader }), { format: 'text/plain' });
-    } else if (copyFormat === 'json') {
-      copyToClipboard(JSON.stringify(recordsToCopy, null, 2), { format: 'text/plain' });
-    }
+    logger.error('Copy to clipboard failed', getErrorMessage(ex));
   }
 }
 

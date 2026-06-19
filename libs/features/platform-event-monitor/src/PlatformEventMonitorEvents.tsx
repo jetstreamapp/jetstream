@@ -131,17 +131,21 @@ export const PlatformEventMonitorEvents: FunctionComponent<PlatformEventMonitorE
   }, [messagesByChannel]);
 
   const handleContextMenuAction = useCallback(
-    (item: ContextMenuItem<ContextEventAction>, data: ContextMenuActionData<PlatformEventRow>) => {
-      switch (item.value) {
-        case 'COPY_CELL':
-          copyToClipboard(JSON.stringify(data.row[data.column.key as keyof PlatformEventRow], null, 2), { format: 'text/plain' });
-          break;
-        case 'COPY_EVENT':
-          copyToClipboard(JSON.stringify(data.row, null, 2), { format: 'text/plain' });
-          break;
-        case 'COPY_EVENT_ALL':
-          copyToClipboard(JSON.stringify(data.rows, null, 2), { format: 'text/plain' });
-          break;
+    async (item: ContextMenuItem<ContextEventAction>, data: ContextMenuActionData<PlatformEventRow>) => {
+      try {
+        switch (item.value) {
+          case 'COPY_CELL':
+            await copyToClipboard(JSON.stringify(data.row[data.column.key as keyof PlatformEventRow], null, 2), { format: 'text/plain' });
+            break;
+          case 'COPY_EVENT':
+            await copyToClipboard(JSON.stringify(data.row, null, 2), { format: 'text/plain' });
+            break;
+          case 'COPY_EVENT_ALL':
+            await copyToClipboard(JSON.stringify(data.rows, null, 2), { format: 'text/plain' });
+            break;
+        }
+      } catch (ex) {
+        logger.error('Failed to copy platform event data to clipboard', ex);
       }
     },
     [],

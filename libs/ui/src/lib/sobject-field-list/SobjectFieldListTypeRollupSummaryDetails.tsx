@@ -33,7 +33,7 @@ export interface CustomField {
 }
 
 function copy(value?: string) {
-  value && copyToClipboard(value);
+  value && copyToClipboard(value, { format: 'text/plain' });
 }
 
 const copyToClipboardMsg = (
@@ -51,6 +51,7 @@ const TooltipContent = ({
   const [content, setContent] = useState<{ label: string; items: string[] }>();
   const [loading, setLoading] = useState(false);
   const onContent = useRef(_onContent);
+  // eslint-disable-next-line react-hooks/refs
   onContent.current = _onContent;
 
   useEffect(() => {
@@ -58,11 +59,6 @@ const TooltipContent = ({
     return () => {
       isMounted.current = false;
     };
-  }, []);
-
-  useEffect(() => {
-    fetchSummaryMetadata();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -105,6 +101,11 @@ const TooltipContent = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchSummaryMetadata();
+  }, [fetchSummaryMetadata]);
 
   return (
     <Fragment>

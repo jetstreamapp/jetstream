@@ -4,7 +4,7 @@ import { manageOrgExpiration } from './utils/salesforce-org-expiration.utils';
 
 manageOrgExpiration(prisma)
   .then((result) => {
-    logger.info('Org expiration management completed', result);
+    logger.info(result, 'Org expiration management completed');
     process.exit(0);
   })
   .catch((err) => {
