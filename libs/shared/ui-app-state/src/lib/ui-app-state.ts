@@ -269,6 +269,7 @@ export const googleDriveAccessState = atom((get) => {
 export const orgGroupsAsyncState = atom<Promise<OrgGroup[]> | OrgGroup[]>(fetchOrgGroups());
 // Unwrapped value to simplify derived state
 export const orgGroupsState = unwrap(orgGroupsAsyncState, (prev) => prev ?? []);
+export const orgGroupsResolvedState = unwrap(orgGroupsAsyncState);
 
 // Combine orgs with organizations
 export const orgGroupsWithOrgsSelector = atom(

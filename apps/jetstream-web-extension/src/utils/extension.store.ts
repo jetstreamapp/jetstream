@@ -1,6 +1,6 @@
 import { SoqlQueryFormatOptionsSchema, UserProfileUi } from '@jetstream/types';
 import { atom, createStore } from 'jotai';
-import { loadable, unwrap } from 'jotai/utils';
+import { unwrap } from 'jotai/utils';
 import browser from 'webextension-polyfill';
 import { ChromeStorageState, DEFAULT_BUTTON_POSITION } from './extension.types';
 
@@ -71,11 +71,8 @@ async function initAuthState(): Promise<ChromeStorageState> {
 }
 
 export const chromeStorageAsyncState = atom<Promise<ChromeStorageState> | ChromeStorageState>(initAuthState());
-export const chromeStorageLoadable = loadable(chromeStorageAsyncState);
-export const chromeStorageLoading = atom((get) => {
-  const storage = get(chromeStorageLoadable);
-  return storage.state === 'loading' || storage.state !== 'hasData';
-});
+const chromeStorageResolvedState = unwrap(chromeStorageAsyncState);
+export const chromeStorageLoading = atom((get) => get(chromeStorageResolvedState) === undefined);
 
 const DEFAULT_STATE: ChromeStorageState = {
   sync: {
