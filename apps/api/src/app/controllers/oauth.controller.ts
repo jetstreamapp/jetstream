@@ -97,7 +97,17 @@ const salesforceOauthCallback = createRoute(
         returnParams.message = queryParams.error_description
           ? (queryParams.error_description as string)
           : 'There was an error authenticating with Salesforce.';
-        res.log.warn({ ...queryParams, requestId: res.locals.requestId, queryParams }, '[OAUTH][ERROR] %s', queryParams.error);
+        res.log.warn(
+          {
+            hasCode: !!queryParams.code,
+            error: queryParams.error,
+            error_description: queryParams.error_description,
+            hasState: !!queryParams.state,
+            requestId: res.locals.requestId,
+          },
+          '[OAUTH][ERROR] %s',
+          queryParams.error,
+        );
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
       } else if (!orgAuth) {
@@ -105,7 +115,16 @@ const salesforceOauthCallback = createRoute(
         returnParams.message = queryParams.error_description
           ? (queryParams.error_description as string)
           : 'There was an error authenticating with Salesforce.';
-        res.log.warn({ ...queryParams, requestId: res.locals.requestId, queryParams }, '[OAUTH][ERROR] Missing orgAuth from session');
+        res.log.warn(
+          {
+            hasCode: !!queryParams.code,
+            error: queryParams.error,
+            error_description: queryParams.error_description,
+            hasState: !!queryParams.state,
+            requestId: res.locals.requestId,
+          },
+          '[OAUTH][ERROR] Missing orgAuth from session',
+        );
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
       }

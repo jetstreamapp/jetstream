@@ -7,9 +7,38 @@ import { checkAuth, getOrgFromHeaderOrQuery } from './route.middleware';
 
 const routes: express.Router = Router();
 
+// Same-origin allowlist for this cookie-authenticated, state-forwarding proxy. It is mounted
+// outside /api so it never passes through validateDoubleCSRF; an explicit Origin check is a CSRF
+// backstop (the session cookie is SameSite=Lax, so this is defense-in-depth).
+function getAllowedProxyOrigins(): Set<string> {
+  const origins = new Set<string>();
+  const originSources = { JETSTREAM_CLIENT_URL: ENV.JETSTREAM_CLIENT_URL, JETSTREAM_SERVER_URL: ENV.JETSTREAM_SERVER_URL };
+  for (const [envVarName, url] of Object.entries(originSources)) {
+    try {
+      origins.add(new URL(url).origin);
+    } catch {
+      // A malformed URL shrinks the allowlist and every cross-origin request 403s, so make the cause findable.
+      logger.warn({ envVarName, url }, '[PLATFORM-EVENT] Ignoring malformed URL when building the allowed origin list');
+    }
+  }
+  return origins;
+}
+const ALLOWED_PROXY_ORIGINS = getAllowedProxyOrigins();
+
+// Salesforce response headers we forward back to the browser. Everything else (notably upstream
+// HSTS / CSP / X-Frame-Options / Cache-Control) is dropped so Salesforce cannot override the
+// security headers Helmet set for our same-origin response.
+const FORWARDED_PROXY_RESPONSE_HEADERS = new Set(['content-type', 'content-length', 'transfer-encoding', 'content-encoding']);
+
 routes.use(checkAuth);
 
-routes.use((_: express.Request, res: express.Response, next: express.NextFunction) => {
+routes.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const origin = req.headers.origin;
+  if (origin && !ALLOWED_PROXY_ORIGINS.has(origin)) {
+    res.log.warn({ origin }, '[PLATFORM-EVENT][FORBIDDEN-ORIGIN]');
+    res.status(403).send('Forbidden');
+    return;
+  }
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   next();
 });
@@ -55,12 +84,22 @@ routes.use('/', async (req: express.Request, res: express.Response, next: expres
           headers,
         })
         .on('response', (proxyResponse) => {
+          // Forward only an allowlist of upstream headers so Salesforce cannot override the
+          // security/caching headers Helmet set for our same-origin response.
+          const responseHeaders: Record<string, string | string[] | undefined> = {
+            'Access-Control-Allow-Credentials': 'true',
+          };
+          for (const [headerName, headerValue] of Object.entries(proxyResponse.headers)) {
+            if (FORWARDED_PROXY_RESPONSE_HEADERS.has(headerName.toLowerCase())) {
+              responseHeaders[headerName] = headerValue;
+            }
+          }
           // Re-write Salesforce cookies for Jetstream's same-origin CometD proxy.
           if (proxyResponse.headers['set-cookie']) {
-            proxyResponse.headers['set-cookie'] = proxyResponse.headers['set-cookie'].map(normalizePlatformEventSetCookie);
+            responseHeaders['set-cookie'] = proxyResponse.headers['set-cookie'].map(normalizePlatformEventSetCookie);
           }
           // stream response back to user
-          res.writeHead(proxyResponse.statusCode || 500, { ...proxyResponse.headers, 'Access-Control-Allow-Credentials': 'true' });
+          res.writeHead(proxyResponse.statusCode || 500, responseHeaders);
           proxyResponse.pipe(res, { end: true });
         })
         .on('error', (err) => {
