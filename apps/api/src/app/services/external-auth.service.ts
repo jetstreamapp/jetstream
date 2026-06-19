@@ -28,7 +28,24 @@ export const TOKEN_AUTO_REFRESH_DAYS = 2;
 const TOKEN_EXPIRATION = 60 * 60 * 24 * 90 * 1000; // 90 days
 export const TOKEN_EXPIRATION_SHORT = 60 * 60 * 24 * 7 * 1000; // 7 days
 
+const SECONDS_PER_DAY = 60 * 60 * 24;
+
 export type Audience = typeof AUDIENCE_WEB_EXT | typeof AUDIENCE_DESKTOP;
+
+/**
+ * Returns true when the access token expires within `withinDays` days (or is already expired).
+ *
+ * Verify endpoints use this to rotate tokens only as they approach expiry rather than on every
+ * verify. Rotating eagerly churns the shared token across a user's devices (e.g. browser
+ * storage.sync), which can lose the rotation race and prematurely invalidate the session. The
+ * auth middleware still fully validates the token (DB + entitlements) on every verify, so
+ * skipping rotation does not weaken verification.
+ */
+export function isTokenWithinRefreshWindow(accessToken: string, withinDays = TOKEN_AUTO_REFRESH_DAYS): boolean {
+  const { exp } = decodeToken(accessToken);
+  const secondsUntilExpiration = exp - Date.now() / 1000;
+  return secondsUntilExpiration <= withinDays * SECONDS_PER_DAY;
+}
 
 export interface JwtDecodedPayload {
   userProfile: UserProfileUi;

@@ -223,11 +223,7 @@ async function setConnection(key: string, data: OrgAndSessionInfo) {
 }
 
 browser.runtime.onMessage.addListener(
-  (
-    request: Message['request'],
-    sender: browser.Runtime.MessageSender,
-    sendResponse: (response: MessageResponse) => void,
-  ): true => {
+  (request: Message['request'], sender: browser.Runtime.MessageSender, sendResponse: (response: MessageResponse) => void): true => {
     logger.log('[SW EVENT] onMessage', request);
     switch (request.message) {
       case 'EXT_IDENTIFIER': {
@@ -482,9 +478,10 @@ function runVerifyAuth(sender: browser.Runtime.MessageSender): Promise<VerifyAut
 }
 
 /**
- * Verifies that user is logged in to Jetstream and has access to use the browser extension
+ * Verifies that user is logged in to Jetstream and has access to use the browser extension.
+ * Exported for unit testing — production code reaches this via runVerifyAuth.
  */
-async function handleVerifyAuth(sender: browser.Runtime.MessageSender): Promise<VerifyAuth['response']> {
+export async function handleVerifyAuth(sender: browser.Runtime.MessageSender): Promise<VerifyAuth['response']> {
   try {
     await initStorageSyncCache;
     const { authTokens, extIdentifier } = storageSyncCache;
@@ -498,9 +495,13 @@ async function handleVerifyAuth(sender: browser.Runtime.MessageSender): Promise<
       return { hasTokens: true, loggedIn: true };
     }
 
-    const results: { success: true; accessToken?: string } | { success: false; error: string } = await fetch(
-      `${environment.serverUrl}/web-extension/auth/verify`,
-      {
+    // Only a definitive HTTP 401 (with a parseable { success: false } body) logs the user out.
+    // A network failure, 5xx, other non-401 status, or an unparseable/HTML body (e.g. an upstream
+    // proxy or auth wall) is transient: we keep the cached session and return early WITHOUT
+    // bumping lastChecked so the next user action retries promptly.
+    let response: Response;
+    try {
+      response = await fetch(`${environment.serverUrl}/web-extension/auth/verify`, {
         method: 'POST',
         headers: {
           Accept: 'application/json',
@@ -509,21 +510,35 @@ async function handleVerifyAuth(sender: browser.Runtime.MessageSender): Promise<
           [HTTP.HEADERS.X_APP_VERSION]: browser.runtime.getManifest().version,
           [HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION]: '1',
         },
-      },
-    ).then((res) =>
-      res
-        .json()
-        .then(({ data }) => data)
-        .catch(() => ({ success: false, error: 'Invalid response' })),
-    );
-
-    if (!results.success) {
-      logger.info('Error verifying tokens', results.error);
-      browser.storage.sync.remove(storageTypes.authTokens.key).catch((err) => {
-        logger.error('Error removing tokens', err);
       });
-      storageSyncCache.authTokens = undefined;
-      return { hasTokens: true, loggedIn: false, error: results.error };
+    } catch (ex) {
+      // Network-level failure (offline, DNS) — keep the cached session and retry next time.
+      logger.info('Network error verifying tokens, keeping cached session', ex);
+      return { hasTokens: true, loggedIn: true };
+    }
+
+    const results: { success: true; accessToken?: string } | { success: false; error: string } | null = await response
+      .json()
+      .then(({ data }) => (data ?? null) as { success: true; accessToken?: string } | { success: false; error: string } | null)
+      .catch(() => null);
+
+    if (!results || results.success === false) {
+      const status = response.status;
+      if (results && results.success === false && status === 401) {
+        logger.info('Error verifying tokens', results.error);
+        browser.storage.sync.remove(storageTypes.authTokens.key).catch((err) => {
+          logger.error('Error removing tokens', err);
+        });
+        storageSyncCache.authTokens = undefined;
+        return { hasTokens: true, loggedIn: false, error: results.error };
+      }
+      // Transient failure (network/5xx/non-401/unparseable body) — keep the cached session. We do
+      // not bump lastChecked, so the next user action re-checks (event-driven, no tight loop).
+      logger.info('Transient error verifying tokens, keeping cached session', {
+        status,
+        error: results && results.success === false ? results.error : undefined,
+      });
+      return { hasTokens: true, loggedIn: true };
     }
     // Re-read storage.sync immediately before writing so we don't clobber a concurrent
     // write (e.g. a newer rotated token written by another tab/context or by Chrome Sync
@@ -594,12 +609,13 @@ async function handleVerifyAuth(sender: browser.Runtime.MessageSender): Promise<
     storageSyncCache.authTokens = syncState;
     return { hasTokens: true, loggedIn: true };
   } catch (ex) {
-    logger.info('Fatal Error verifying tokens', ex);
-    browser.storage.sync.remove(storageTypes.authTokens.key).catch((err) => {
-      logger.error('Error removing tokens', err);
-    });
-    storageSyncCache.authTokens = undefined;
-    return { hasTokens: false, loggedIn: false, error: ex.message };
+    // Unexpected error (storage access, decode, etc.) — treat as transient and keep the cached
+    // session rather than logging the user out. The next user action will retry. Derive the result
+    // from the current cache state instead of assuming a session: if init failed or a concurrent
+    // logout cleared the cache, there are genuinely no tokens and we must not fabricate a session.
+    logger.info('Unexpected error verifying tokens, keeping cached session', ex);
+    const hasCachedSession = !!storageSyncCache.authTokens;
+    return { hasTokens: hasCachedSession, loggedIn: hasCachedSession };
   }
 }
 
