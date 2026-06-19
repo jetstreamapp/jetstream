@@ -35,7 +35,7 @@ export class QueryPage {
   }
 
   async goto() {
-    await this.page.getByRole('menuitem', { name: 'Query Records' }).click();
+    await this.page.getByTestId('header').getByRole('link', { name: 'Query Records' }).click();
     await this.page.waitForURL('**/query');
   }
 
@@ -54,7 +54,7 @@ export class QueryPage {
   }
 
   async setManualQuery(query: string, action?: 'EXECUTE' | 'RESTORE', isTooling = false) {
-    await this.page.getByRole('menuitem', { name: 'Query Records' }).click();
+    await this.page.getByTestId('header').getByRole('link', { name: 'Query Records' }).click();
     await this.page.waitForURL('**/query');
     await this.page.getByRole('button', { name: 'Manually enter query Manual' }).first().click();
     const manualQueryPopover = this.page.getByTestId('manual-query');

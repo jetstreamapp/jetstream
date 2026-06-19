@@ -1,30 +1,10 @@
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { NavbarItem, NavbarMenuItems } from '@jetstream/ui';
+import { NavbarItem, NavbarItemWaffle, NavbarMenuItems } from '@jetstream/ui';
 
 export const HeaderNavbarItems = () => {
   return (
     <>
-      <NavbarItem
-        path={APP_ROUTES.HOME.ROUTE}
-        search={APP_ROUTES.HOME.SEARCH_PARAM}
-        title="Home"
-        label={
-          <button className="slds-button slds-icon-waffle_container">
-            <span className="slds-icon-waffle">
-              <span className="slds-r1"></span>
-              <span className="slds-r2"></span>
-              <span className="slds-r3"></span>
-              <span className="slds-r4"></span>
-              <span className="slds-r5"></span>
-              <span className="slds-r6"></span>
-              <span className="slds-r7"></span>
-              <span className="slds-r8"></span>
-              <span className="slds-r9"></span>
-            </span>
-            <span className="slds-assistive-text">Home Page</span>
-          </button>
-        }
-      />
+      <NavbarItemWaffle path={APP_ROUTES.HOME.ROUTE} search={APP_ROUTES.HOME.SEARCH_PARAM} title="Home" assistiveText="Home Page" />
       <NavbarItem
         path={APP_ROUTES.QUERY.ROUTE}
         search={APP_ROUTES.QUERY.SEARCH_PARAM}

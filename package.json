@@ -253,6 +253,7 @@
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "4.1.9",
     "web-ext": "^10.4.0",
+    "xml-crypto": "^6.1.2",
     "zx": "^8.8.5"
   },
   "dependencies": {

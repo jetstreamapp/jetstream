@@ -22,8 +22,9 @@ import classNames from 'classnames';
 import { isValid } from 'date-fns/isValid';
 import { parseISO } from 'date-fns/parseISO';
 import { useAtomValue } from 'jotai';
+import isString from 'lodash/isString';
 import startCase from 'lodash/startCase';
-import { Fragment, FunctionComponent, ReactNode, useEffect, useState } from 'react';
+import { Fragment, FunctionComponent, ReactNode, useEffect, useRef, useState } from 'react';
 import { useResizeDetector } from 'react-resize-detector';
 
 const EMPTY_COLOR = '_none_';
@@ -70,6 +71,7 @@ function getOrgProp(serverUrl: string, org: SalesforceOrgUi, skipFrontDoorAuth: 
     value = (
       <>
         <SalesforceLogin
+          className="slds-truncate"
           serverUrl={serverUrl}
           skipFrontDoorAuth={skipFrontDoorAuth}
           org={org}
@@ -87,7 +89,14 @@ function getOrgProp(serverUrl: string, org: SalesforceOrgUi, skipFrontDoorAuth: 
     tooltip = String(value);
     value = (
       <>
-        <SalesforceLogin serverUrl={serverUrl} skipFrontDoorAuth={skipFrontDoorAuth} org={org} returnUrl={`/${value}`} omitIcon>
+        <SalesforceLogin
+          className="slds-truncate"
+          serverUrl={serverUrl}
+          skipFrontDoorAuth={skipFrontDoorAuth}
+          org={org}
+          returnUrl={`/${value}`}
+          omitIcon
+        >
           {value}
         </SalesforceLogin>
         <CopyToClipboard content={String(value)} type="icon" size="small" className="slds-m-left_xx-small">
@@ -113,7 +122,7 @@ function getOrgProp(serverUrl: string, org: SalesforceOrgUi, skipFrontDoorAuth: 
     tooltip = String(value);
     value = (
       <>
-        {value}
+        <span className="slds-truncate">{value}</span>
         <CopyToClipboard content={String(value)} type="icon" size="small" className="slds-m-left_xx-small">
           {value}
         </CopyToClipboard>
@@ -139,7 +148,7 @@ function getOrgProp(serverUrl: string, org: SalesforceOrgUi, skipFrontDoorAuth: 
             word-break: break-word;
           `}
           title={tooltip || (value as string)}
-          className="slds-truncate"
+          className={isString(value) ? 'slds-truncate' : undefined}
         >
           {value}
         </div>
@@ -169,6 +178,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
   const [removeOrgActive, setRemoveOrgActive] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [didClearCache, setDidClearCache] = useState(false);
+  const labelInputRef = useRef<HTMLInputElement>(null);
   const hasError = !!org.connectionError;
 
   useEffect(() => {
@@ -206,10 +216,14 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
 
   function handleReset() {
     setOrgLabel(org.label);
+    // Save/Undo buttons unmount once the label is no longer dirty, so move focus back to the input to avoid losing it
+    labelInputRef.current?.focus();
   }
 
   function handleSave() {
     onUpdateOrg?.(org, { label: orgLabel, color: getColor(orgColor) });
+    // Save/Undo buttons unmount once the label is no longer dirty, so move focus back to the input to avoid losing it
+    labelInputRef.current?.focus();
   }
 
   function handleColorSelection(color: ColorSwatchItem) {
@@ -313,6 +327,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
                       <div className="slds-p-right_small">
                         <Input id="org-label" hideLabel label="Label">
                           <input
+                            ref={labelInputRef}
                             id="org-label"
                             className="slds-input"
                             onChange={handleLabelChange}
@@ -355,21 +370,19 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
             </tbody>
           </table>
           <div className="slds-p-horizontal_xx-small slds-p-top_xx-small">
-            <ButtonGroupContainer className="slds-button_stretch">
-              <Tooltip
-                className="w-100"
-                content="Object and field metadata are cached in your browser to improve performance. Clear the cache if you recently added objects or fields."
+            <Tooltip
+              className="w-100"
+              content="Object and field metadata are cached in your browser to improve performance. Clear the cache if you recently added objects or fields."
+            >
+              <button
+                className="slds-button slds-button_neutral slds-button_stretch"
+                onClick={() => handleClearCache()}
+                disabled={disableOrgActions || didClearCache}
               >
-                <button
-                  className="slds-button slds-button_neutral slds-button_stretch"
-                  onClick={() => handleClearCache()}
-                  disabled={disableOrgActions || didClearCache}
-                >
-                  <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
-                  Clear Cached Data
-                </button>
-              </Tooltip>
-            </ButtonGroupContainer>
+                <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
+                Clear Cached Data
+              </button>
+            </Tooltip>
           </div>
           {!isReadOnly && (
             <div className="slds-p-around_xx-small">

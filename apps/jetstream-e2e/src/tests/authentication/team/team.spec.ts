@@ -163,7 +163,8 @@ test.describe('Team Dashboard', () => {
       await expect(page.getByRole('heading', { name: 'Manage Billing' })).toBeVisible();
       await expect(page.getByRole('heading', { name: 'Manage Team' })).toBeVisible();
 
-      await page.getByRole('link', { name: 'Team Dashboard' }).click();
+      // Scope to content: the header context-bar item is now also a role="link" named "Team Dashboard"
+      await page.getByTestId('content').getByRole('link', { name: 'Team Dashboard' }).click();
       await expect(page.getByRole('heading', { name: 'Team Dashboard' })).toBeVisible();
 
       await expect(teamDashboardPage.viewAuthActivityButton).toBeVisible();
@@ -493,7 +494,9 @@ test.describe('Team Dashboard', () => {
     });
   });
 
-  test('Stale admin session cannot update invitations after demotion to billing', async ({ teamCreationUtils3Users: teamCreationUtils }) => {
+  test('Stale admin session cannot update invitations after demotion to billing', async ({
+    teamCreationUtils3Users: teamCreationUtils,
+  }) => {
     const { team } = teamCreationUtils;
     const [, staleAdmin] = teamCreationUtils.members;
 
@@ -530,7 +533,9 @@ test.describe('Team Dashboard', () => {
       });
 
       expect(response.status()).toBe(403);
-      await expect.poll(() => prisma.teamMemberInvitation.findUniqueOrThrow({ where: { id: invitation.id } }).then(({ role }) => role)).toBe('MEMBER');
+      await expect
+        .poll(() => prisma.teamMemberInvitation.findUniqueOrThrow({ where: { id: invitation.id } }).then(({ role }) => role))
+        .toBe('MEMBER');
     });
   });
 
@@ -688,7 +693,9 @@ test.describe('Team Dashboard', () => {
     expect(page.url()).toContain('/app/home');
 
     await test.step('Go to team dashboard', async () => {
-      await page.getByRole('menuitem', { name: 'Team Dashboard' }).click();
+      // The top-level navbar entry renders as a plain navigation <a> (role="link"); scope to the header
+      // to avoid matching the "Team Dashboard" content link on the home page.
+      await page.getByTestId('header').getByRole('link', { name: 'Team Dashboard' }).click();
       expect(page.getByRole('heading', { name: 'Team Dashboard' })).toBeTruthy();
     });
 

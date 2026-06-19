@@ -123,6 +123,7 @@ export * from './lib/modal/XlsxSheetSelectionModalPromise';
 export * from './lib/nav/Navbar';
 export * from './lib/nav/NavbarAppLauncher';
 export * from './lib/nav/NavbarItem';
+export * from './lib/nav/NavbarItemWaffle';
 export * from './lib/nav/NavbarMenuItems';
 export * from './lib/popover/Popover';
 export * from './lib/popover/PopoverErrorButton';

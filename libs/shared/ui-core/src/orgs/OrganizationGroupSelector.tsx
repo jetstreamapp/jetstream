@@ -107,8 +107,10 @@ const OrganizationGroupPopover = ({
               .filter((group) => !selectedGroup || group.id !== selectedGroup.id)
               .map((group) => (
                 <li key={group.id} className="slds-item" onClick={() => handleSelection(group)}>
-                  <Grid className="slds-truncate" align="spread" verticalAlign="center">
-                    <button className="slds-button">{group.name}</button>
+                  <Grid align="spread" verticalAlign="center">
+                    <button type="button" className="slds-button slds-truncate">
+                      {group.name}
+                    </button>
                     <Badge type="light" className="slds-m-left_xx-small">
                       {formatNumber(group.orgs.length)} {pluralizeFromNumber('Org', group.orgs.length)}
                     </Badge>
@@ -117,8 +119,10 @@ const OrganizationGroupPopover = ({
               ))}
             {!!selectedGroup && (
               <li className="slds-item" onClick={() => handleSelection(null)}>
-                <Grid className="slds-truncate" align="spread" verticalAlign="center">
-                  <button className="slds-button">-No Group-</button>
+                <Grid align="spread" verticalAlign="center">
+                  <button type="button" className="slds-button slds-truncate">
+                    -No Group-
+                  </button>
                   <Badge type="light" className="slds-m-left_xx-small">
                     {formatNumber(salesforceOrgsWithoutOrganization)} {pluralizeFromNumber('Org', salesforceOrgsWithoutOrganization)}
                   </Badge>

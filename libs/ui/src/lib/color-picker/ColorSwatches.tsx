@@ -101,6 +101,16 @@ export const ColorSwatches = ({ className, items = [], selectedItem, onSelection
           {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
           <a
             className="slds-color-picker__swatch-trigger"
+            css={css`
+              &:focus,
+              &:focus-visible {
+                box-shadow: none;
+                .slds-swatch {
+                  outline: 2px solid var(--slds-g-color-brand-base-50, #1b96ff);
+                  outline-offset: 2px;
+                }
+              }
+            `}
             href="#"
             role="menuitem"
             tabIndex={i === 0 ? 0 : -1}
