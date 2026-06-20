@@ -1,3 +1,4 @@
+import { css } from '@emotion/react';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
 
@@ -19,7 +20,16 @@ export const Spinner: FunctionComponent<SpinnerProps> = ({
   containerClassName,
 }) => {
   return (
-    <div className={classNames({ 'slds-spinner_container': hasContainer, 'slds-spinner_inline': inline }, containerClassName)}>
+    <div
+      css={
+        hasContainer
+          ? css`
+              border-radius: inherit;
+            `
+          : undefined
+      }
+      className={classNames({ 'slds-spinner_container': hasContainer, 'slds-spinner_inline': inline }, containerClassName)}
+    >
       <div role="status" className={className || `slds-spinner slds-spinner_${size} slds-spinner_brand`}>
         <span className="slds-assistive-text">Loading</span>
         <div className="slds-spinner__dot-a"></div>
