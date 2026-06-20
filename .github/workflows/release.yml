@@ -218,9 +218,8 @@ jobs:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           BUMP: ${{ inputs.bump }}
           WEB_EXTENSION_ID_CHROME: ${{ secrets.WEB_EXTENSION_ID_CHROME }}
-          GOOGLE_WEB_EXT_PUBLISH_CLIENT_ID: ${{ secrets.GOOGLE_WEB_EXT_PUBLISH_CLIENT_ID }}
-          GOOGLE_WEB_EXT_PUBLISH_CLIENT_SECRET: ${{ secrets.GOOGLE_WEB_EXT_PUBLISH_CLIENT_SECRET }}
-          GOOGLE_WEB_EXT_PUBLISH_REFRESH_TOKEN: ${{ secrets.GOOGLE_WEB_EXT_PUBLISH_REFRESH_TOKEN }}
+          GOOGLE_WEB_EXT_PUBLISHER_ID: ${{ secrets.GOOGLE_WEB_EXT_PUBLISHER_ID }}
+          GOOGLE_WEB_EXT_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_WEB_EXT_SERVICE_ACCOUNT_KEY }}
           MOZ_JWT_ISSUER: ${{ secrets.MOZ_JWT_ISSUER }}
           MOZ_JWT_SECRET: ${{ secrets.MOZ_JWT_SECRET }}
         run: pnpm release-it "$BUMP" --ci -VV --config .release-it-web-ext.json
