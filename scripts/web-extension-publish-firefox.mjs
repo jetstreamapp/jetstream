@@ -84,6 +84,7 @@ async function main() {
 
   const result = await webExt.cmd.sign(
     {
+      amoBaseUrl: 'https://addons.mozilla.org/api/v5/',
       apiKey: ENV.MOZ_JWT_ISSUER,
       apiSecret: ENV.MOZ_JWT_SECRET,
       sourceDir: SOURCE_DIR,
