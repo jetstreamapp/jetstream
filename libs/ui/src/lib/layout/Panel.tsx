@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { PositionLeftRight, SizeSmMdLgXlFull } from '@jetstream/types';
 import classNames from 'classnames';
-import { FunctionComponent, useState } from 'react';
+import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import Icon from '../widgets/Icon';
 
 export interface PanelProps {
@@ -12,6 +12,27 @@ export interface PanelProps {
   position?: PositionLeftRight;
   size?: SizeSmMdLgXlFull;
   showBackArrow?: boolean;
+  /**
+   * Close the panel when the user presses Escape. Default: false (opt-in).
+   * The listener is attached at the document level (keydown) while isOpen and skips events
+   * whose defaultPrevented is set, so nested inputs (Monaco, textareas, comboboxes) that
+   * handle Escape locally on keydown can call preventDefault/stopPropagation to keep the panel open.
+   */
+  closeOnEscape?: boolean;
+  /**
+   * Close the panel when the user clicks outside of it. Default: false (opt-in).
+   * Containment is checked against the panel root, so inline children (comboboxes,
+   * pickers, date pickers) are safe. Children that render in a portal (e.g. Popover)
+   * fall outside the panel DOM and would close it — avoid enabling this when the panel
+   * hosts portaled overlays.
+   */
+  closeOnOutsideClick?: boolean;
+  /**
+   * Override the stacking order. Defaults: 8000 when fullHeight (above app chrome
+   * and popovers/comboboxes at 7000), 2 otherwise (preserves legacy behavior).
+   * Note: fullHeight panels use `position: fixed` and anchor to the viewport.
+   */
+  zIndex?: number;
   onClosed: () => void;
   children?: React.ReactNode;
 }
@@ -52,10 +73,44 @@ export const Panel: FunctionComponent<PanelProps> = ({
   position = 'left',
   size: userSize = 'md',
   showBackArrow,
+  closeOnEscape = false,
+  closeOnOutsideClick = false,
+  zIndex,
   onClosed,
   children,
 }) => {
   const [expanded, setExpanded] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen || !closeOnEscape) {
+      return;
+    }
+    const handler = (event: KeyboardEvent) => {
+      // Honor defaultPrevented so nested controls that handle Escape locally on keydown — e.g. the
+      // Combobox, which closes an open dropdown and calls preventDefault/stopPropagation — get first
+      // shot before the panel closes. Nested controls must consume Escape on keydown (not keyup) to
+      // preempt this document-level keydown listener.
+      if (event.key === 'Escape' && !event.defaultPrevented) {
+        onClosed();
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [isOpen, closeOnEscape, onClosed]);
+
+  useEffect(() => {
+    if (!isOpen || !closeOnOutsideClick) {
+      return;
+    }
+    const handler = (event: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(event.target as Node)) {
+        onClosed();
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [isOpen, closeOnOutsideClick, onClosed]);
 
   if (!isOpen) {
     return null;
@@ -63,13 +118,15 @@ export const Panel: FunctionComponent<PanelProps> = ({
 
   const size: SizeSmMdLgXlFull = expanded ? 'full' : userSize;
   const expandCollapseIcon = expanded ? 'contract_alt' : 'expand_alt';
+  const resolvedZIndex = zIndex ?? (fullHeight ? 8000 : 2);
 
   return (
     <div
+      ref={panelRef}
       className={containerClassName}
       css={css`
-        z-index: 2;
-        ${fullHeight ? 'position: absolute; height: 100vh; top: 0;' : ''}
+        z-index: ${resolvedZIndex};
+        ${fullHeight ? 'position: fixed; height: 100vh; top: 0;' : ''}
         ${position === 'left' ? 'left: 0' : 'right: 0'};
       `}
     >
