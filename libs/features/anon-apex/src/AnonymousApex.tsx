@@ -11,6 +11,7 @@ import {
   useDebounce,
   useDisposables,
   useNonInitialEffect,
+  usePrimaryActionShortcut,
   useTitle,
 } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
@@ -187,6 +188,12 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
 
   const onSubmitRef = useRef(onSubmit);
   onSubmitRef.current = onSubmit;
+
+  // Cmd/Ctrl+Enter submits even when the editor is not focused; when it is focused Monaco handles it (see below).
+  const handleSubmitApex = useCallback(() => {
+    onSubmitRef.current(apexRef.current?.getValue() ?? '');
+  }, []);
+  usePrimaryActionShortcut(handleSubmitApex, { disabled: loading });
 
   const handleApexEditorMount: OnMount = (currEditor, monaco) => {
     apexRef.current = currEditor;

@@ -3,20 +3,23 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { clearCacheForOrg } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { formatNumber, useTitle } from '@jetstream/shared/ui-utils';
+import { formatNumber, useGoBackShortcut, usePrimaryActionShortcut, useTitle } from '@jetstream/shared/ui-utils';
 import { FieldWithRelatedEntities, LocalOrGoogle, Maybe, Step } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   fireToast,
+  getModifierKey,
   Grid,
   GridCol,
   Icon,
+  KeyboardShortcut,
   Page,
   PageHeader,
   PageHeaderActions,
   PageHeaderRow,
   PageHeaderTitle,
   Spinner,
+  Tooltip,
 } from '@jetstream/ui';
 import {
   autoMapFields,
@@ -417,6 +420,11 @@ export const LoadRecords = () => {
     }
   }
 
+  // Cmd/Ctrl+Enter advances to the next step; mirrors the next-step button's disabled condition
+  usePrimaryActionShortcut(() => changeStep(1), { disabled: nextStepDisabled || loading });
+  // Cmd/Ctrl+Shift+Enter goes back one step; mirrors the go-back button's disabled condition
+  useGoBackShortcut(handleGoBackToPrev, { disabled: currentStep.idx === 0 || loading });
+
   const handleIsLoading = useCallback((isLoading: boolean) => {
     setLoading(isLoading);
     setDidPerformDataLoad(true);
@@ -464,25 +472,43 @@ export const LoadRecords = () => {
               <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" />
               <span>Start Over</span>
             </button>
-            <button
-              data-testid="prev-step-button"
-              className="slds-button slds-button_neutral"
-              disabled={currentStep.idx === 0 || loading}
-              onClick={() => handleGoBackToPrev()}
+            <Tooltip
+              openDelay={300}
+              content={
+                <div className="slds-p-bottom_small">
+                  <KeyboardShortcut inverse keys={[getModifierKey(), 'shift', 'enter']} />
+                </div>
+              }
             >
-              <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" />
-              Go Back To Previous Step
-            </button>
-            <button
-              data-testid="next-step-button"
-              className="slds-button slds-button_brand slds-is-relative"
-              disabled={nextStepDisabled || loading}
-              onClick={() => changeStep(1)}
+              <button
+                data-testid="prev-step-button"
+                className="slds-button slds-button_neutral"
+                disabled={currentStep.idx === 0 || loading}
+                onClick={() => handleGoBackToPrev()}
+              >
+                <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" />
+                Go Back To Previous Step
+              </button>
+            </Tooltip>
+            <Tooltip
+              openDelay={300}
+              content={
+                <div className="slds-p-bottom_small">
+                  <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+                </div>
+              }
             >
-              {currentStepText}
-              <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
-              {loadingFields && <Spinner size="small" />}
-            </button>
+              <button
+                data-testid="next-step-button"
+                className="slds-button slds-button_brand slds-is-relative"
+                disabled={nextStepDisabled || loading}
+                onClick={() => changeStep(1)}
+              >
+                {currentStepText}
+                <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
+                {loadingFields && <Spinner size="small" />}
+              </button>
+            </Tooltip>
           </PageHeaderActions>
         </PageHeaderRow>
         <PageHeaderRow>

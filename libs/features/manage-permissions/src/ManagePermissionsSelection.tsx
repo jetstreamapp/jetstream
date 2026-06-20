@@ -1,12 +1,13 @@
 import { css } from '@emotion/react';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { useNonInitialEffect, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
+import { useNonInitialEffect, usePrimaryActionShortcut, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { DescribeGlobalSObjectResult, ListItem, PermissionSetNoProfileRecord, PermissionSetWithProfileRecord } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ConnectedSobjectListMultiSelect,
   Icon,
+  KeyboardShortcut,
   ListWithFilterMultiSelect,
   Page,
   PageHeader,
@@ -15,6 +16,8 @@ import {
   PageHeaderTitle,
   ProfileOrPermSetPopover,
   ProfileOrPermSetRecordType,
+  Tooltip,
+  getModifierKey,
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, fromPermissionsState } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
@@ -22,7 +25,7 @@ import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useAtom, useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
 import { FunctionComponent, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { filterPermissionsSobjects } from './utils/permission-manager-utils';
 
 const HEIGHT_BUFFER = 170;
@@ -30,6 +33,7 @@ const HEIGHT_BUFFER = 170;
 export interface ManagePermissionsSelectionProps {}
 
 export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSelectionProps> = () => {
+  const navigate = useNavigate();
   const selectedOrg = useAtomValue(selectedOrgState);
   const { serverUrl } = useAtomValue(applicationCookieState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
@@ -101,6 +105,14 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
     );
   }
 
+  usePrimaryActionShortcut(
+    () => {
+      handleContinue();
+      navigate('editor');
+    },
+    { disabled: !hasSelectionsMade },
+  );
+
   return (
     <Page testId="manage-permissions-page">
       <RequireMetadataApiBanner />
@@ -113,10 +125,19 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
           />
           <PageHeaderActions colType="actions" buttonType="separate">
             {hasSelectionsMade && (
-              <Link className="slds-button slds-button_brand" to="editor" onClick={handleContinue}>
-                Continue
-                <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
-              </Link>
+              <Tooltip
+                openDelay={300}
+                content={
+                  <div className="slds-p-bottom_small">
+                    <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+                  </div>
+                }
+              >
+                <Link className="slds-button slds-button_brand" to="editor" onClick={handleContinue}>
+                  Continue
+                  <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
+                </Link>
+              </Tooltip>
             )}
             {!hasSelectionsMade && (
               <button className="slds-button slds-button_brand" disabled>

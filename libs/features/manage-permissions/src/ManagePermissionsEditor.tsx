@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, MIME_TYPES } from '@jetstream/shared/constants';
-import { saveFile, tracker } from '@jetstream/shared/ui-utils';
+import { saveFile, tracker, useGoBackShortcut, usePrimaryActionShortcut } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, groupByFlat, multiWordObjectFilter } from '@jetstream/shared/utils';
 import {
   AsyncJobNew,
@@ -33,6 +33,7 @@ import {
   FileFauxDownloadModal,
   FileFauxDownloadModalProps,
   Icon,
+  KeyboardShortcut,
   ScopedNotification,
   Spinner,
   Tabs,
@@ -42,13 +43,14 @@ import {
   ToolbarItemGroup,
   Tooltip,
   fireToast,
+  getModifierKey,
 } from '@jetstream/ui';
 import { ConfirmPageChange, RequireMetadataApiBanner, fromJetstreamEvents, fromPermissionsState, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import ManagePermissionsEditorFieldTable from './ManagePermissionsEditorFieldTable';
 import ManagePermissionsEditorObjectTable from './ManagePermissionsEditorObjectTable';
 import ManagePermissionsEditorTabVisibilityTable from './ManagePermissionsEditorTabVisibilityTable';
@@ -106,6 +108,7 @@ export function ErrorTooltip({ hasError, id }: { hasError: boolean; id: string }
 export interface ManagePermissionsEditorProps {}
 
 export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorProps> = () => {
+  const navigate = useNavigate();
   const { trackEvent } = useAmplitude();
   const isMounted = useRef(true);
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
@@ -607,6 +610,15 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     resetTabVisibilityPermissionMap();
   }
 
+  usePrimaryActionShortcut(saveChanges, {
+    disabled: loading || (!dirtyObjectCount && !dirtyFieldCount && !dirtyTabVisibilityCount),
+  });
+
+  useGoBackShortcut(() => {
+    handleGoBack();
+    navigate('..');
+  }, {});
+
   return (
     <div>
       <ConfirmPageChange actionInProgress={loading} />
@@ -630,10 +642,19 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
       <RequireMetadataApiBanner />
       <Toolbar>
         <ToolbarItemGroup>
-          <Link className="slds-button slds-button_brand" to=".." onClick={handleGoBack}>
-            <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
-            Go Back
-          </Link>
+          <Tooltip
+            openDelay={300}
+            content={
+              <div className="slds-p-bottom_small">
+                <KeyboardShortcut inverse keys={[getModifierKey(), 'shift', 'enter']} />
+              </div>
+            }
+          >
+            <Link className="slds-button slds-button_brand" to=".." onClick={handleGoBack}>
+              <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
+              Go Back
+            </Link>
+          </Tooltip>
         </ToolbarItemGroup>
         <ToolbarItemActions>
           <button
@@ -669,14 +690,23 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
             <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" />
             <span>Export</span>
           </button>
-          <button
-            className="slds-button slds-button_brand"
-            onClick={saveChanges}
-            disabled={loading || (!dirtyObjectCount && !dirtyFieldCount && !dirtyTabVisibilityCount)}
+          <Tooltip
+            openDelay={300}
+            content={
+              <div className="slds-p-bottom_small">
+                <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+              </div>
+            }
           >
-            <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" />
-            Save
-          </button>
+            <button
+              className="slds-button slds-button_brand"
+              onClick={saveChanges}
+              disabled={loading || (!dirtyObjectCount && !dirtyFieldCount && !dirtyTabVisibilityCount)}
+            >
+              <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" />
+              Save
+            </button>
+          </Tooltip>
         </ToolbarItemActions>
       </Toolbar>
       <AutoFullHeightContainer

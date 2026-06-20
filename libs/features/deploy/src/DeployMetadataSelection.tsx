@@ -1,21 +1,25 @@
 import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
+import { usePrimaryActionShortcut } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import {
   AutoFullHeightContainer,
   ButtonGroupContainer,
+  getModifierKey,
   Icon,
+  KeyboardShortcut,
   Page,
   PageHeader,
   PageHeaderActions,
   PageHeaderRow,
   PageHeaderTitle,
+  Tooltip,
 } from '@jetstream/ui';
 import { fromDeployMetadataState, RequireMetadataApiBanner, useAmplitude } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import './DeployMetadataSelection.css';
 import DeployMetadataHistoryModal from './deploy-metadata-history/DeployMetadataHistoryModal';
 import DeployMetadataPackage from './deploy-metadata-package/DeployMetadataPackage';
@@ -31,6 +35,7 @@ export interface DeployMetadataSelectionProps {}
 
 export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionProps> = () => {
   const { trackEvent } = useAmplitude();
+  const navigate = useNavigate();
   const selectedOrg = useAtomValue(selectedOrgState);
   const amplitudeSubmissionSelector = useAtomValue(fromDeployMetadataState.amplitudeSubmissionSelector);
   const metadataItems = useAtomValue(fromDeployMetadataState.metadataItemsState);
@@ -40,6 +45,14 @@ export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionP
   function trackContinue() {
     trackEvent(ANALYTICS_KEYS.deploy_configuration, { page: 'initial-selection', ...amplitudeSubmissionSelector });
   }
+
+  usePrimaryActionShortcut(
+    () => {
+      trackContinue();
+      navigate('deploy');
+    },
+    { disabled: !hasSelectionsMade },
+  );
 
   return (
     <Page testId="deploy-metadata-selection-page">
@@ -58,10 +71,19 @@ export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionP
               <DeployMetadataPackage className="collapsible-button collapsible-button-sm" selectedOrg={selectedOrg} />
             </ButtonGroupContainer>
             {hasSelectionsMade && (
-              <Link onClick={trackContinue} className="slds-button slds-button_brand" to="deploy">
-                Continue
-                <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
-              </Link>
+              <Tooltip
+                openDelay={300}
+                content={
+                  <div className="slds-p-bottom_small">
+                    <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+                  </div>
+                }
+              >
+                <Link onClick={trackContinue} className="slds-button slds-button_brand" to="deploy">
+                  Continue
+                  <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
+                </Link>
+              </Tooltip>
             )}
             {!hasSelectionsMade && (
               <button className="slds-button slds-button_brand" disabled>

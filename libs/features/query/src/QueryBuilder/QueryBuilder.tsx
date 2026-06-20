@@ -8,12 +8,10 @@ import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import {
   getFlattenedListItemsById,
   getListItemsFromFieldWithRelatedItems,
-  hasModifierKey,
-  isEnterKey,
   sortQueryFields,
   unFlattenedListItemsById,
-  useGlobalEventHandler,
   useNonInitialEffect,
+  usePrimaryActionShortcut,
 } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { DescribeGlobalSObjectResult, Field, ListItem, QueryFieldWithPolymorphic, SoqlQueryFormatOptions } from '@jetstream/types';
@@ -118,27 +116,23 @@ export const QueryBuilder = () => {
 
   const [showWalkthrough, setShowWalkthrough] = useState(false);
 
-  const onKeydown = useCallback(
-    (event: KeyboardEvent) => {
-      if (selectedSObject && soql && hasModifierKey(event as any) && isEnterKey(event as any)) {
-        event.stopPropagation();
-        event.preventDefault();
-        navigate('results', {
-          state: {
-            soql,
-            isTooling,
-            sobject: {
-              label: selectedSObject.label,
-              name: selectedSObject.name,
-            },
-          },
-        });
-      }
-    },
-    [isTooling, navigate, selectedSObject, soql],
-  );
+  const handleExecuteQuery = useCallback(() => {
+    if (!selectedSObject || !soql) {
+      return;
+    }
+    navigate('results', {
+      state: {
+        soql,
+        isTooling,
+        sobject: {
+          label: selectedSObject.label,
+          name: selectedSObject.name,
+        },
+      },
+    });
+  }, [isTooling, navigate, selectedSObject, soql]);
 
-  useGlobalEventHandler('keydown', onKeydown);
+  usePrimaryActionShortcut(handleExecuteQuery, { disabled: !selectedSObject || !soql });
 
   useNonInitialEffect(() => {
     if (showWalkthrough) {

@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB, TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { tracker, useTitle } from '@jetstream/shared/ui-utils';
+import { tracker, usePrimaryActionShortcut, useTitle } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { DescribeGlobalSObjectResult, ListItem, Maybe } from '@jetstream/types';
@@ -13,6 +13,7 @@ import {
   FileDownloadModal,
   Grid,
   Icon,
+  KeyboardShortcut,
   ListWithFilterMultiSelect,
   Page,
   PageHeader,
@@ -24,6 +25,7 @@ import {
   ScopedNotification,
   Spinner,
   Tooltip,
+  getModifierKey,
 } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
@@ -211,6 +213,8 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
     }
   }
 
+  usePrimaryActionShortcut(() => handleExport(), { disabled: !hasSelectionsMade || loading || exportDataModalOpen });
+
   return (
     <Fragment>
       {exportDataModalOpen && (
@@ -240,9 +244,18 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
               docsPath={APP_ROUTES.OBJECT_EXPORT.DOCS}
             />
             <PageHeaderActions colType="actions" buttonType="separate">
-              <button className="slds-button slds-button_brand" disabled={!hasSelectionsMade || loading} onClick={handleExport}>
-                Download
-              </button>
+              <Tooltip
+                openDelay={300}
+                content={
+                  <div className="slds-p-bottom_small">
+                    <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+                  </div>
+                }
+              >
+                <button className="slds-button slds-button_brand" disabled={!hasSelectionsMade || loading} onClick={handleExport}>
+                  Download
+                </button>
+              </Tooltip>
             </PageHeaderActions>
           </PageHeaderRow>
           <PageHeaderRow>

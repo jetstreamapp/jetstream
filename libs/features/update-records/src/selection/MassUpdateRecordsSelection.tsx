@@ -1,15 +1,18 @@
 import { css } from '@emotion/react';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
+import { usePrimaryActionShortcut } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import {
   AutoFullHeightContainer,
   ConnectedSobjectListMultiSelect,
+  KeyboardShortcut,
   Page,
   PageHeader,
   PageHeaderActions,
   PageHeaderRow,
   PageHeaderTitle,
   Tooltip,
+  getModifierKey,
 } from '@jetstream/ui';
 import { filterMassUpdateSobject } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
@@ -17,7 +20,7 @@ import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useAtom, useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
 import { FunctionComponent, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import * as fromMassUpdateState from '../mass-update-records.state';
 import MassUpdateRecordsObjects from './MassUpdateRecordsObjects';
 import { useMassUpdateFieldItems } from './useMassUpdateFieldItems';
@@ -27,6 +30,7 @@ const HEIGHT_BUFFER = 170;
 export interface MassUpdateRecordsSelectionProps {}
 
 export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSelectionProps> = () => {
+  const navigate = useNavigate();
   const selectedOrg = useAtomValue(selectedOrgState);
   const [sobjects, setSobjects] = useAtom(fromMassUpdateState.sObjectsState);
   const [selectedSObjects, setSelectedSObjects] = useAtom(fromMassUpdateState.selectedSObjectsState);
@@ -82,6 +86,14 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
     );
   }
 
+  usePrimaryActionShortcut(
+    () => {
+      handleContinue();
+      navigate('deployment');
+    },
+    { disabled: !allRowsValidated },
+  );
+
   return (
     <Page testId="mass-update-records-selection-page">
       <PageHeader>
@@ -98,9 +110,18 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
               </button>
             )}
             {allRowsValidated ? (
-              <Link className="slds-button slds-button_brand" to="deployment" onClick={handleContinue}>
-                Review Changes
-              </Link>
+              <Tooltip
+                openDelay={300}
+                content={
+                  <div className="slds-p-bottom_small">
+                    <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+                  </div>
+                }
+              >
+                <Link className="slds-button slds-button_brand" to="deployment" onClick={handleContinue}>
+                  Review Changes
+                </Link>
+              </Tooltip>
             ) : (
               <Tooltip content={allRowsValidated ? '' : 'Validate all objects to ensure configuration is valid before continuing'}>
                 <button className="slds-button slds-button_brand" disabled>
