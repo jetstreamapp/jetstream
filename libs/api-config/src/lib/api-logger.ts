@@ -6,14 +6,37 @@ import { v4 as uuid } from 'uuid';
 import { ENV } from './env-config';
 import { getHttpLogLevel } from './logging-policy';
 
+const isLocalDevelopment = ENV.ENVIRONMENT === 'development' && !ENV.IS_LOCAL_DOCKER;
+
 export const logger = pino({
   level: ENV.LOG_LEVEL,
-  transport:
-    ENV.ENVIRONMENT === 'development' && ENV.PRETTY_LOGS && !ENV.IS_LOCAL_DOCKER
-      ? {
-          target: 'pino-pretty',
-        }
-      : undefined,
+  transport: isLocalDevelopment
+    ? {
+        targets: [
+          ...(ENV.PRETTY_LOGS
+            ? [
+                {
+                  target: 'pino-pretty',
+                },
+              ]
+            : [
+                {
+                  target: 'pino/file',
+                  options: {
+                    destination: 1,
+                  },
+                },
+              ]),
+          {
+            target: 'pino/file',
+            options: {
+              destination: 'logs/server.log',
+              mkdir: true,
+            },
+          },
+        ],
+      }
+    : undefined,
 });
 
 const ignoreLogsFileExtensions = /.*\.(js|map|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|otf|json|xml|txt)$/;
