@@ -22,6 +22,14 @@ export interface GridHeaderProps<TRow, TSummaryRow = unknown> {
   activeCell?: ActiveCell | null;
   /** Mouse down on a header cell — makes it the keyboard-active cell. */
   onHeaderCellMouseDown?: (columnId: string) => void;
+  /** Column id currently being dragged (column reorder), or null. */
+  draggingColumnId?: string | null;
+  /** Drag of a header started. */
+  onColumnDragStart?: (columnId: string) => void;
+  /** Drag ended (drop or cancel). */
+  onColumnDragEnd?: () => void;
+  /** A column was dropped onto another header — owner applies the new column order. */
+  onColumnReorder?: (sourceColumnId: string, targetColumnId: string, side: 'left' | 'right') => void;
 }
 
 export function GridHeader<TRow, TSummaryRow = unknown>({
@@ -34,6 +42,10 @@ export function GridHeader<TRow, TSummaryRow = unknown>({
   onHeaderContextMenu,
   activeCell,
   onHeaderCellMouseDown,
+  draggingColumnId,
+  onColumnDragStart,
+  onColumnDragEnd,
+  onColumnReorder,
 }: GridHeaderProps<TRow, TSummaryRow>) {
   const leafColumns = table.getVisibleLeafColumns();
   const style: CSSProperties = { gridTemplateColumns };
@@ -73,6 +85,10 @@ export function GridHeader<TRow, TSummaryRow = unknown>({
                 onHeaderContextMenu={onHeaderContextMenu}
                 isActive={activeHeaderColumnId === header.column.id}
                 onHeaderCellMouseDown={onHeaderCellMouseDown}
+                draggingColumnId={draggingColumnId}
+                onColumnDragStart={onColumnDragStart}
+                onColumnDragEnd={onColumnDragEnd}
+                onColumnReorder={onColumnReorder}
               />,
             );
           }

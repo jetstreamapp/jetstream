@@ -195,7 +195,8 @@ function getQueryResultColumn({
   }
 
   const canonicalColumnPath = queryResultColumn?.columnFullPath ?? column.key;
-  const isNameField = !!fieldMetadata?.[field.toLowerCase()]?.nameField || canonicalColumnPath === 'Name' || canonicalColumnPath.endsWith('.Name');
+  const isNameField =
+    !!fieldMetadata?.[field.toLowerCase()]?.nameField || canonicalColumnPath === 'Name' || canonicalColumnPath.endsWith('.Name');
   if (!subqueryRelationshipName && !queryResultColumn?.aggregate && resolvedType === 'text' && isNameField) {
     updateColumnFromType(column, 'salesforceName');
   }
@@ -344,6 +345,35 @@ export function updateColumnWithEditMode(
     column.editorOptions = { commitOnOutsideClick: false, displayCellContent: true };
     column.renderEditCell = EditorText;
   }
+}
+
+/**
+ * Compute a new column-order key array by moving `sourceId` to sit before/after `targetId`. Operates on
+ * the full order (including non-data keys like select/action) so the caller can hand it straight to
+ * `table.setColumnOrder`. Returns the input unchanged when the move is a no-op or either id is missing.
+ */
+export function reorderColumnOrder(order: string[], sourceId: string, targetId: string, side: 'left' | 'right'): string[] {
+  if (sourceId === targetId) {
+    return order;
+  }
+  const sourceIndex = order.indexOf(sourceId);
+  const targetIndex = order.indexOf(targetId);
+  if (sourceIndex === -1 || targetIndex === -1) {
+    return order;
+  }
+
+  const next = order.slice();
+  next.splice(sourceIndex, 1);
+  // Recompute the target index against the post-removal array, then offset for a right-side drop.
+  const targetIndexAfterRemoval = next.indexOf(targetId);
+  const insertIndex = side === 'right' ? targetIndexAfterRemoval + 1 : targetIndexAfterRemoval;
+  next.splice(insertIndex, 0, sourceId);
+
+  // No-op guard: if the resulting order matches the original, return the original reference.
+  if (next.every((key, index) => key === order[index])) {
+    return order;
+  }
+  return next;
 }
 
 export function addFieldLabelToColumn(columnDefinitions: ColumnWithFilter<RowWithKey>[], fieldMetadata: Record<string, Field>) {

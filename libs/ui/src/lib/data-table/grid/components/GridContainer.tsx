@@ -6,6 +6,7 @@ import classNames from 'classnames';
 import { CSSProperties, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ContextMenu } from '../../../form/context-menu/ContextMenu';
 import { EditorHost } from '../editors/EditorHost';
+import { reorderColumnOrder } from '../grid-column-utils';
 import { NON_DATA_COLUMN_KEYS } from '../grid-constants';
 import { GridRuntime, GridRuntimeContext } from '../grid-context';
 import { getSortedFilteredLeafRows } from '../grid-row-utils';
@@ -353,10 +354,81 @@ export function GridContainer<TRow = RowWithKey>({
     });
   }, [focusCellEl]);
 
+  // ── Column reorder (drag-and-drop) ──────────────────────────────────────────────────────────────
+  const handleColumnReorder = useCallback(
+    (sourceColumnId: string, targetColumnId: string, side: 'left' | 'right') => {
+      table.setColumnOrder((order) => reorderColumnOrder(order, sourceColumnId, targetColumnId, side));
+    },
+    [table],
+  );
+
+  // Edge auto-scroll: because columns are horizontally virtualized, the drop target may be off-screen.
+  // While a column drag is active and the cursor nears the scroller's left/right edge, nudge the
+  // horizontal scroll so more columns (and drop targets) render. The rAF loop runs only during a drag.
+  const autoScrollFrameRef = useRef<number | null>(null);
+  const autoScrollStepRef = useRef(0);
+
+  const stopAutoScroll = useCallback(() => {
+    if (autoScrollFrameRef.current !== null) {
+      cancelAnimationFrame(autoScrollFrameRef.current);
+      autoScrollFrameRef.current = null;
+    }
+    autoScrollStepRef.current = 0;
+  }, []);
+
+  const runAutoScroll = useCallback(() => {
+    const scroller = scrollRef.current;
+    if (!scroller || autoScrollStepRef.current === 0) {
+      autoScrollFrameRef.current = null;
+      return;
+    }
+    scroller.scrollLeft += autoScrollStepRef.current;
+    autoScrollFrameRef.current = requestAnimationFrame(runAutoScroll);
+  }, []);
+
+  const handleColumnDragOverScroller = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      if (!draggingColumnId) {
+        return;
+      }
+      const EDGE_SIZE = 60;
+      const SCROLL_STEP = 12;
+      const rect = event.currentTarget.getBoundingClientRect();
+      const distanceFromLeft = event.clientX - rect.left;
+      const distanceFromRight = rect.right - event.clientX;
+      let step = 0;
+      if (distanceFromLeft < EDGE_SIZE) {
+        step = -SCROLL_STEP;
+      } else if (distanceFromRight < EDGE_SIZE) {
+        step = SCROLL_STEP;
+      }
+      autoScrollStepRef.current = step;
+      if (step !== 0 && autoScrollFrameRef.current === null) {
+        autoScrollFrameRef.current = requestAnimationFrame(runAutoScroll);
+      } else if (step === 0) {
+        stopAutoScroll();
+      }
+    },
+    [draggingColumnId, runAutoScroll, stopAutoScroll],
+  );
+
+  const handleColumnDragEnd = useCallback(() => {
+    setDraggingColumnId(null);
+    stopAutoScroll();
+  }, [stopAutoScroll]);
+
+  // Stop any in-flight auto-scroll frame when the grid unmounts mid-drag.
+  useEffect(() => stopAutoScroll, [stopAutoScroll]);
+
   return (
     <GridRuntimeContext.Provider value={runtime as GridRuntime}>
       <div className={classNames('jgrid-root', className)}>
-        <div ref={scrollRef} className="jgrid-scroller">
+        <div
+          ref={scrollRef}
+          className="jgrid-scroller"
+          onDragOver={draggingColumnId ? handleColumnDragOverScroller : undefined}
+          onDrop={draggingColumnId ? handleColumnDragEnd : undefined}
+        >
           <div
             ref={gridRef}
             role={role}
@@ -382,6 +454,10 @@ export function GridContainer<TRow = RowWithKey>({
               onHeaderContextMenu={handleHeaderContextMenu}
               activeCell={keyboardNav.activeCell}
               onHeaderCellMouseDown={keyboardNav.handleHeaderCellMouseDown}
+              draggingColumnId={draggingColumnId}
+              onColumnDragStart={setDraggingColumnId}
+              onColumnDragEnd={handleColumnDragEnd}
+              onColumnReorder={handleColumnReorder}
             />
             <GridBody
               table={table}

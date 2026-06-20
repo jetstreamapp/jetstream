@@ -2,7 +2,7 @@
 import { IconName } from '@jetstream/icon-factory';
 import { Header } from '@tanstack/react-table';
 import classNames from 'classnames';
-import { CSSProperties, ReactNode, useId } from 'react';
+import { CSSProperties, ReactNode, useId, useState } from 'react';
 import Checkbox from '../../../form/checkbox/Checkbox';
 import Icon from '../../../widgets/Icon';
 import { HeaderFilterButton } from '../filters/HeaderFilters';
@@ -25,6 +25,14 @@ export interface HeaderCellProps<TRow> {
   isActive?: boolean;
   /** Mouse down on a header cell — makes it the keyboard-active cell so arrow nav continues from here. */
   onHeaderCellMouseDown?: (columnId: string) => void;
+  /** Column id currently being dragged (column reorder), or null. Drives the source's dimmed style. */
+  draggingColumnId?: string | null;
+  /** Drag of this header started — owner tracks the dragged column id. */
+  onColumnDragStart?: (columnId: string) => void;
+  /** Drag ended (drop or cancel) — owner clears the dragged column id. */
+  onColumnDragEnd?: () => void;
+  /** A column was dropped onto this header — owner applies the new column order. */
+  onColumnReorder?: (sourceColumnId: string, targetColumnId: string, side: 'left' | 'right') => void;
 }
 
 function toAriaSort(sorted: false | 'asc' | 'desc'): 'ascending' | 'descending' | 'none' {
@@ -47,6 +55,10 @@ export function HeaderCell<TRow>({
   onHeaderContextMenu,
   isActive = false,
   onHeaderCellMouseDown,
+  draggingColumnId,
+  onColumnDragStart,
+  onColumnDragEnd,
+  onColumnReorder,
 }: HeaderCellProps<TRow>) {
   const selectAllId = useId();
   const meta = header.column.columnDef.meta?.jetstream;
@@ -56,6 +68,47 @@ export function HeaderCell<TRow>({
   const canResize = header.column.getCanResize();
   const table = header.getContext().table;
   const isResizing = header.column.getIsResizing();
+
+  // Column reorder (drag-and-drop). Only data columns that opted in and are not pinned can be moved or
+  // can receive a drop. The reorder pipeline is wired through the owner (GridContainer → table.setColumnOrder).
+  const canReorder = !!column?.draggable && meta?.cellKind === 'data' && !meta?.frozen && !!onColumnReorder;
+  const isDraggingThis = !!draggingColumnId && draggingColumnId === header.column.id;
+  const [dropSide, setDropSide] = useState<'left' | 'right' | null>(null);
+
+  const handleDragStart = (event: React.DragEvent<HTMLDivElement>) => {
+    event.dataTransfer.setData('text/plain', header.column.id);
+    event.dataTransfer.effectAllowed = 'move';
+    onColumnDragStart?.(header.column.id);
+  };
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    // Only react while a column drag is in progress and this column isn't the source.
+    if (!draggingColumnId || draggingColumnId === header.column.id) {
+      return;
+    }
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    const rect = event.currentTarget.getBoundingClientRect();
+    setDropSide(event.clientX < rect.left + rect.width / 2 ? 'left' : 'right');
+  };
+
+  const handleDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
+    // Ignore leave events that merely cross into a child element of this cell.
+    if (event.currentTarget.contains(event.relatedTarget as Node | null)) {
+      return;
+    }
+    setDropSide(null);
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const sourceColumnId = event.dataTransfer.getData('text/plain');
+    const side = dropSide ?? 'left';
+    setDropSide(null);
+    if (sourceColumnId && sourceColumnId !== header.column.id) {
+      onColumnReorder?.(sourceColumnId, header.column.id, side);
+    }
+  };
 
   // With `columnResizeMode: 'onEnd'` the column keeps its width during the drag; only this handle
   // (and its full-height ::after guide line) follows the cursor, clamped to the column's min/max so
@@ -114,9 +167,22 @@ export function HeaderCell<TRow>({
       aria-sort={canSort ? toAriaSort(sorted) : undefined}
       data-row-id={HEADER_ROW_ID}
       data-col-id={header.column.id}
-      className={classNames('jgrid-header-cell', { 'jgrid-cell-frozen': meta?.frozen, 'jgrid-header-sortable': canSort })}
+      className={classNames('jgrid-header-cell', {
+        'jgrid-cell-frozen': meta?.frozen,
+        'jgrid-header-sortable': canSort,
+        'jgrid-header-draggable': canReorder,
+        'jgrid-header-dragging': isDraggingThis,
+        'jgrid-drop-before': dropSide === 'left',
+        'jgrid-drop-after': dropSide === 'right',
+      })}
       style={style}
       tabIndex={isActive ? 0 : -1}
+      draggable={canReorder}
+      onDragStart={canReorder ? handleDragStart : undefined}
+      onDragEnd={canReorder ? () => onColumnDragEnd?.() : undefined}
+      onDragOver={canReorder ? handleDragOver : undefined}
+      onDragLeave={canReorder ? handleDragLeave : undefined}
+      onDrop={canReorder ? handleDrop : undefined}
       onMouseDown={() => onHeaderCellMouseDown?.(header.column.id)}
       onContextMenu={(event) => onHeaderContextMenu?.(event, header.column.id)}
     >
@@ -153,6 +219,8 @@ export function HeaderCell<TRow>({
       {canResize && (
         <span
           role="presentation"
+          // Not draggable so a resize drag never initiates a column reorder.
+          draggable={false}
           className={classNames('jgrid-header-resize-handle', { 'jgrid-resizing': isResizing })}
           style={resizeIndicatorStyle}
           onMouseDown={header.getResizeHandler()}

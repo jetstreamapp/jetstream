@@ -141,6 +141,32 @@
   opacity: 1;
 }
 
+/* Column reorder (drag-and-drop). The whole header cell is the drag source/drop target; a grab cursor
+   advertises it, the source dims while in flight, and a 2px brand-colored insertion line on the leading
+   or trailing edge (::after, layout-neutral) previews where the dropped column will land. */
+.jgrid-header-draggable {
+  cursor: grab;
+}
+.jgrid-header-dragging {
+  opacity: 0.5;
+}
+.jgrid-drop-before::after,
+.jgrid-drop-after::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inline-size: 2px;
+  background-color: var(--slds-g-color-brand-base-60, #1b96ff);
+  z-index: 2;
+  pointer-events: none;
+}
+.jgrid-drop-before::after {
+  inset-inline-start: 0;
+}
+.jgrid-drop-after::after {
+  inset-inline-end: 0;
+}
+
 /* Body + rows */
 .jgrid-body {
   position: relative;
