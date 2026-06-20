@@ -49,6 +49,20 @@ function cellText<TRow>(row: Row<TRow>, column: Column<TRow, unknown>): string {
   return String(value);
 }
 
+/** Display label for a column header, used when copying a selection "with header". Falls back to the
+ * string header / column id when the author's `name` is a ReactNode. */
+function headerText<TRow>(column: Column<TRow, unknown>): string {
+  const name = column.columnDef.meta?.jetstream?.column?.name;
+  if (typeof name === 'string') {
+    return name;
+  }
+  const header = column.columnDef.header;
+  if (typeof header === 'string') {
+    return header;
+  }
+  return column.id;
+}
+
 export interface UseGridKeyboardNavigationOptions<TRow> {
   table: Table<TRow>;
   /** Returns the grid root element so DOM focus/copy queries are scoped to this grid instance. */
@@ -84,8 +98,8 @@ export interface GridKeyboardNavigation {
   handleCellMouseEnter: (rowId: string, columnId: string) => void;
   /** Mouse down on a column header cell — makes it the keyboard-active cell (header row navigation). */
   handleHeaderCellMouseDown: (columnId: string) => void;
-  /** Copy the current selection (rectangle, or the single active cell) as TSV. */
-  copySelection: () => void;
+  /** Copy the current selection (rectangle, or the single active cell) as TSV; optionally prepend a header row. */
+  copySelection: (includeHeader?: boolean) => void;
 }
 
 /**
@@ -427,47 +441,59 @@ export function useGridKeyboardNavigation<TRow>({
     [applySelection],
   );
 
-  const copySelection = useCallback(() => {
-    const rows = table.getRowModel().rows;
-    const columns = table.getVisibleLeafColumns();
-    if (!activeCell || !rows.length || !columns.length) {
-      return;
-    }
-    const anchor = anchorCell ?? activeCell;
-    const activeRowIndex = rows.findIndex((row) => row.id === activeCell.rowId);
-    const anchorRowIndex = rows.findIndex((row) => row.id === anchor.rowId);
-    const activeColIndex = columns.findIndex((column) => column.id === activeCell.columnId);
-    const anchorColIndex = columns.findIndex((column) => column.id === anchor.columnId);
-    if (activeRowIndex < 0 || anchorRowIndex < 0 || activeColIndex < 0 || anchorColIndex < 0) {
-      return;
-    }
-    const minRow = Math.min(activeRowIndex, anchorRowIndex);
-    const maxRow = Math.max(activeRowIndex, anchorRowIndex);
-    const minCol = Math.min(activeColIndex, anchorColIndex);
-    const maxCol = Math.max(activeColIndex, anchorColIndex);
+  const copySelection = useCallback(
+    (includeHeader = false) => {
+      const rows = table.getRowModel().rows;
+      const columns = table.getVisibleLeafColumns();
+      if (!activeCell || !rows.length || !columns.length) {
+        return;
+      }
+      const anchor = anchorCell ?? activeCell;
+      const activeRowIndex = rows.findIndex((row) => row.id === activeCell.rowId);
+      const anchorRowIndex = rows.findIndex((row) => row.id === anchor.rowId);
+      const activeColIndex = columns.findIndex((column) => column.id === activeCell.columnId);
+      const anchorColIndex = columns.findIndex((column) => column.id === anchor.columnId);
+      if (activeRowIndex < 0 || anchorRowIndex < 0 || activeColIndex < 0 || anchorColIndex < 0) {
+        return;
+      }
+      const minRow = Math.min(activeRowIndex, anchorRowIndex);
+      const maxRow = Math.max(activeRowIndex, anchorRowIndex);
+      const minCol = Math.min(activeColIndex, anchorColIndex);
+      const maxCol = Math.max(activeColIndex, anchorColIndex);
 
-    // Build records keyed by synthetic field names (avoids dot-notation flattening on real column ids),
-    // then reuse copyRecordsToClipboard which writes BOTH text/html (a table) and an escaped text/plain
-    // Excel string — so it pastes into Excel/Sheets as a proper grid (handles tabs/newlines/quotes in cells).
-    const fields: string[] = [];
-    for (let colIndex = minCol; colIndex <= maxCol; colIndex++) {
-      fields.push(`c${colIndex}`);
-    }
-    const records: Record<string, string>[] = [];
-    for (let rowIndex = minRow; rowIndex <= maxRow; rowIndex++) {
-      // Synthetic group header rows have no cell data — skip them so pasted output stays rectangular.
-      if (rows[rowIndex].getIsGrouped()) {
-        continue;
-      }
-      const record: Record<string, string> = {};
+      // Build records keyed by synthetic field names (avoids dot-notation flattening on real column ids),
+      // then reuse copyRecordsToClipboard which writes BOTH text/html (a table) and an escaped text/plain
+      // Excel string — so it pastes into Excel/Sheets as a proper grid (handles tabs/newlines/quotes in cells).
+      const fields: string[] = [];
       for (let colIndex = minCol; colIndex <= maxCol; colIndex++) {
-        record[`c${colIndex}`] = cellText(rows[rowIndex], columns[colIndex]);
+        fields.push(`c${colIndex}`);
       }
-      records.push(record);
-    }
-    void copyRecordsToClipboard(records, 'excel', fields, false);
-    flashCells(getRootElement(), rows, columns, minRow, maxRow, minCol, maxCol);
-  }, [activeCell, anchorCell, table, getRootElement]);
+      const records: Record<string, string>[] = [];
+      // "With header": prepend the selected columns' display names as the first row (kept as data, keyed by
+      // the same synthetic fields, so the existing dot-notation-safe copy path is reused unchanged).
+      if (includeHeader) {
+        const headerRecord: Record<string, string> = {};
+        for (let colIndex = minCol; colIndex <= maxCol; colIndex++) {
+          headerRecord[`c${colIndex}`] = headerText(columns[colIndex]);
+        }
+        records.push(headerRecord);
+      }
+      for (let rowIndex = minRow; rowIndex <= maxRow; rowIndex++) {
+        // Synthetic group header rows have no cell data — skip them so pasted output stays rectangular.
+        if (rows[rowIndex].getIsGrouped()) {
+          continue;
+        }
+        const record: Record<string, string> = {};
+        for (let colIndex = minCol; colIndex <= maxCol; colIndex++) {
+          record[`c${colIndex}`] = cellText(rows[rowIndex], columns[colIndex]);
+        }
+        records.push(record);
+      }
+      void copyRecordsToClipboard(records, 'excel', fields, false);
+      flashCells(getRootElement(), rows, columns, minRow, maxRow, minCol, maxCol);
+    },
+    [activeCell, anchorCell, table, getRootElement],
+  );
 
   const handleKeyDown = useCallback(
     (event: ReactKeyboardEvent) => {

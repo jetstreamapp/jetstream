@@ -17,7 +17,7 @@ export function copyGenericTableDataToClipboard<T extends Record<string, any>>(
   let recordsToCopy: unknown[] = [];
   const fieldsSet = new Set(fields);
   let fieldsToCopy = columns.map((column) => column.key).filter((field) => fieldsSet.has(field));
-  let format: 'plain' | 'excel' | 'json' = 'plain';
+  let format: 'plain' | 'excel' | 'json' | 'csv' = 'plain';
 
   switch (action) {
     case 'COPY_CELL':
@@ -55,6 +55,10 @@ export function copyGenericTableDataToClipboard<T extends Record<string, any>>(
     case 'COPY_TABLE_JSON':
       recordsToCopy = rows;
       format = 'json';
+      break;
+    case 'COPY_TABLE_CSV':
+      recordsToCopy = rows;
+      format = 'csv';
       break;
     default:
       break;
@@ -73,7 +77,7 @@ export function copySalesforceRecordTableDataToClipboard(
   const fieldsSet = new Set(fields);
   // Prefer columns order over fields to account for reordering.
   let fieldsToCopy = columns.map((column) => column.key).filter((field) => fieldsSet.has(field));
-  let format: 'plain' | 'excel' | 'json' = 'plain';
+  let format: 'plain' | 'excel' | 'json' | 'csv' = 'plain';
 
   switch (action) {
     case 'COPY_CELL':
@@ -112,13 +116,22 @@ export function copySalesforceRecordTableDataToClipboard(
       recordsToCopy = records;
       format = 'json';
       break;
+    case 'COPY_TABLE_CSV':
+      recordsToCopy = records;
+      format = 'csv';
+      break;
     default:
       break;
   }
   writeRecords(recordsToCopy, fieldsToCopy, format, includeHeader);
 }
 
-function writeRecords(recordsToCopy: unknown[], fieldsToCopy: string[], format: 'plain' | 'excel' | 'json', includeHeader: boolean) {
+function writeRecords(
+  recordsToCopy: unknown[],
+  fieldsToCopy: string[],
+  format: 'plain' | 'excel' | 'json' | 'csv',
+  includeHeader: boolean,
+) {
   if (!recordsToCopy.length) {
     return;
   }
@@ -130,6 +143,8 @@ function writeRecords(recordsToCopy: unknown[], fieldsToCopy: string[], format: 
       }, {}),
     );
     copyRecordsToClipboard(filteredRecords, 'json');
+  } else if (format === 'csv') {
+    copyRecordsToClipboard(recordsToCopy, 'csv', fieldsToCopy, includeHeader);
   } else {
     copyRecordsToClipboard(recordsToCopy, 'excel', fieldsToCopy, includeHeader);
   }

@@ -18,6 +18,7 @@ import { ActiveCell } from './GridRow';
 import { getGridTemplateColumns } from './grid-layout';
 
 const COPY_RANGE_ACTION = '__COPY_RANGE__';
+const COPY_RANGE_WITH_HEADER_ACTION = '__COPY_RANGE_WITH_HEADER__';
 
 /** Context-menu actions that operate on a column/table (no specific row) — the subset offered when
  * right-clicking a column HEADER. Matches the `ContextAction` values used by the standard
@@ -28,6 +29,7 @@ const COLUMN_SCOPED_CONTEXT_ACTIONS = new Set<unknown>([
   'COPY_COL_NO_HEADER',
   'COPY_TABLE',
   'COPY_TABLE_JSON',
+  'COPY_TABLE_CSV',
 ]);
 
 interface ContextMenuState {
@@ -90,6 +92,9 @@ export function GridContainer<TRow = RowWithKey>({
 
   const [editingCell, setEditingCell] = useState<ActiveCell | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  // Column reorder (drag-and-drop). Track which column is in flight so headers can render the dragged
+  // state and the scroller can edge-auto-scroll while a drag is active.
+  const [draggingColumnId, setDraggingColumnId] = useState<string | null>(null);
 
   // Mirrors for the blur handler — focus moving into the grid's own portaled UI (context menu /
   // popover editor) must not clear the active cell/selection, since those UIs act on it.
@@ -505,7 +510,14 @@ export function GridContainer<TRow = RowWithKey>({
               ? headerContextMenuItems
               : [
                   ...(selectionRange
-                    ? [{ label: 'Copy selected cells', value: COPY_RANGE_ACTION, trailingDivider: true } as ContextMenuItem]
+                    ? [
+                        { label: 'Copy selected cells', value: COPY_RANGE_ACTION } as ContextMenuItem,
+                        {
+                          label: 'Copy selected cells with header',
+                          value: COPY_RANGE_WITH_HEADER_ACTION,
+                          trailingDivider: true,
+                        } as ContextMenuItem,
+                      ]
                     : []),
                   ...(contextMenuItems ?? []),
                 ];
@@ -520,6 +532,8 @@ export function GridContainer<TRow = RowWithKey>({
                 onSelected={(item) => {
                   if (item.value === COPY_RANGE_ACTION) {
                     keyboardNav.copySelection();
+                  } else if (item.value === COPY_RANGE_WITH_HEADER_ACTION) {
+                    keyboardNav.copySelection(true);
                   } else if (contextMenuAction) {
                     // Consumers receive only data (leaf) rows — group rows would duplicate each
                     // group's first child, and collapsed groups must still be copyable.

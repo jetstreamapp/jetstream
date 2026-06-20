@@ -298,7 +298,8 @@ export type ContextAction =
   | 'COPY_COL_JSON'
   | 'COPY_COL_NO_HEADER'
   | 'COPY_TABLE'
-  | 'COPY_TABLE_JSON';
+  | 'COPY_TABLE_JSON'
+  | 'COPY_TABLE_CSV';
 
 export type ContextMenuActionData<T> = {
   row: T;

@@ -31,6 +31,7 @@ export const TABLE_CONTEXT_MENU_ITEMS: ContextMenuItem<ContextAction>[] = [
   { label: 'Copy column to clipboard (Excel)', value: 'COPY_COL' },
   { label: 'Copy column to clipboard (JSON)', value: 'COPY_COL_JSON', trailingDivider: true },
   { label: 'Copy table to clipboard (Excel)', value: 'COPY_TABLE' },
+  { label: 'Copy table to clipboard (CSV)', value: 'COPY_TABLE_CSV' },
   { label: 'Copy table to clipboard (JSON)', value: 'COPY_TABLE_JSON' },
 ];
 
