@@ -30,10 +30,12 @@
     "after:bump": [
       "pnpm prettier --write apps/jetstream-web-extension/src/manifest.json",
       "pnpm build:web-extension",
-      "version=v${version} pnpm build:web-extension:zip",
-      "version=v${version} pnpm build:web-extension:upload --accept-all",
-      "pnpm build:web-extension:publish:firefox"
+      "version=v${version} pnpm build:web-extension:zip"
     ],
-    "after:release": "echo Successfully released ${name} v${version}."
+    "after:release": [
+      "version=v${version} pnpm build:web-extension:upload --accept-all",
+      "pnpm build:web-extension:publish:firefox",
+      "echo Successfully released ${name} v${version}."
+    ]
   }
 }
