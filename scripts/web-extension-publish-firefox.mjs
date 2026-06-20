@@ -109,4 +109,7 @@ async function main() {
   }
 }
 
-main();
+main().catch((error) => {
+  console.error(chalk.red(error instanceof Error ? error.message : error));
+  process.exit(1);
+});

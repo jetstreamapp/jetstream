@@ -33,8 +33,8 @@
       "version=v${version} pnpm build:web-extension:zip"
     ],
     "after:release": [
-      "version=v${version} pnpm build:web-extension:upload --accept-all",
-      "pnpm build:web-extension:publish:firefox",
+      "version=v${version} pnpm build:web-extension:chrome:publish --accept-all",
+      "pnpm build:web-extension:firefox:publish",
       "echo Successfully released ${name} v${version}."
     ]
   }
