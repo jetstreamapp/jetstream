@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import archiver from 'archiver';
+import { ZipArchive } from 'archiver';
 import 'dotenv/config';
 import minimist from 'minimist';
 import { join } from 'path';
@@ -45,7 +45,7 @@ async function archiveDist() {
   console.log(chalk.blue(`💾 Saving build output file to:`), OUTPUT_PATH);
 
   const output = fs.createWriteStream(OUTPUT_PATH);
-  const archive = archiver('zip', {
+  const archive = new ZipArchive({
     zlib: { level: 9 },
   });
 
@@ -67,7 +67,7 @@ async function archiveSource() {
   console.log(chalk.blue(`💾 Saving source output file to:`), SOURCE_OUTPUT_PATH);
 
   const output = fs.createWriteStream(SOURCE_OUTPUT_PATH);
-  const archive = archiver('zip', {
+  const archive = new ZipArchive({
     zlib: { level: 9 },
   });
 
