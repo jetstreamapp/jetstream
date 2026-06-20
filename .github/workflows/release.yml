@@ -221,6 +221,8 @@ jobs:
           GOOGLE_WEB_EXT_PUBLISH_CLIENT_ID: ${{ secrets.GOOGLE_WEB_EXT_PUBLISH_CLIENT_ID }}
           GOOGLE_WEB_EXT_PUBLISH_CLIENT_SECRET: ${{ secrets.GOOGLE_WEB_EXT_PUBLISH_CLIENT_SECRET }}
           GOOGLE_WEB_EXT_PUBLISH_REFRESH_TOKEN: ${{ secrets.GOOGLE_WEB_EXT_PUBLISH_REFRESH_TOKEN }}
+          MOZ_JWT_ISSUER: ${{ secrets.MOZ_JWT_ISSUER }}
+          MOZ_JWT_SECRET: ${{ secrets.MOZ_JWT_SECRET }}
         run: pnpm release-it "$BUMP" --ci -VV --config .release-it-web-ext.json
 
       - name: Upload web extension zips
