@@ -1,6 +1,12 @@
 import { css } from '@emotion/react';
 import { HTTP, MIME_TYPES } from '@jetstream/shared/constants';
-import { sanitizePastedEditorText, useDebounce, useDisposables, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import {
+  sanitizePastedEditorText,
+  useDebounce,
+  useDisposables,
+  useNonInitialEffect,
+  usePrimaryActionShortcut,
+} from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { HttpMethod, SalesforceApiHistoryRequest, SalesforceApiRequest as SalesforceApiReqSample, SalesforceOrgUi } from '@jetstream/types';
 import {
@@ -18,7 +24,7 @@ import {
 import { MonacoEditor } from '@jetstream/ui-core';
 import { OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
-import { FunctionComponent, useReducer, useRef, useState } from 'react';
+import { FunctionComponent, useCallback, useReducer, useRef, useState } from 'react';
 import SalesforceApiExamplesModal from './SalesforceApiExamplesModal';
 import { SalesforceApiHistoryModal } from './SalesforceApiHistoryModal';
 import SalesforceApiUserInput from './SalesforceApiUserInput';
@@ -161,6 +167,10 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
   // eslint-disable-next-line react-hooks/refs
   handleSubmitRef.current = handleSubmit;
 
+  // Cmd/Ctrl+Enter submits from anywhere on the page; when an editor is focused Monaco handles it (see below).
+  const handleSubmitShortcut = useCallback(() => handleSubmitRef.current(), []);
+  usePrimaryActionShortcut(handleSubmitShortcut, { disabled: loading || !!headersErrorMessage || !!bodyErrorMessage });
+
   const setBodyRef = useRef(setBody);
   // eslint-disable-next-line react-hooks/refs
   setBodyRef.current = setBody;
@@ -228,6 +238,7 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
               View History
             </button>
             <Tooltip
+              openDelay={300}
               content={
                 <div className="slds-p-bottom_small">
                   <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
@@ -255,7 +266,6 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
             loading={loading}
             onUrlChange={setUrl}
             onMethodChange={setMethod}
-            onAltEnter={handleSubmit}
           />
           <Grid verticalAlign="end" className="slds-m-top_x-small">
             <h2 className="slds-text-heading_small">Request Headers</h2>

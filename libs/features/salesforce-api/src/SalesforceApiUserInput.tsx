@@ -1,9 +1,8 @@
-import { hasModifierKey, isEnterKey } from '@jetstream/shared/ui-utils';
 import { HttpMethod, ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { ComboboxWithItems, Grid, GridCol, Input } from '@jetstream/ui';
 import { applicationCookieState } from '@jetstream/ui/app-state';
 import { useAtom } from 'jotai';
-import { FunctionComponent, KeyboardEvent } from 'react';
+import { FunctionComponent } from 'react';
 
 function getDefaultUrl(defaultApiVersion: string) {
   return `/services/${defaultApiVersion}`;
@@ -24,7 +23,6 @@ export interface SalesforceApiUserInputProps {
   loading: boolean;
   onUrlChange: (url: string) => void;
   onMethodChange: (method: HttpMethod) => void;
-  onAltEnter: () => void;
 }
 
 export const SalesforceApiUserInput: FunctionComponent<SalesforceApiUserInputProps> = ({
@@ -34,15 +32,8 @@ export const SalesforceApiUserInput: FunctionComponent<SalesforceApiUserInputPro
   loading,
   onUrlChange,
   onMethodChange,
-  onAltEnter,
 }) => {
   const [{ defaultApiVersion }] = useAtom(applicationCookieState);
-
-  function handleKeyUp(event: KeyboardEvent<HTMLElement>) {
-    if (onAltEnter && hasModifierKey(event) && isEnterKey(event)) {
-      onAltEnter();
-    }
-  }
 
   return (
     <Grid guttersDirect>
@@ -70,7 +61,6 @@ export const SalesforceApiUserInput: FunctionComponent<SalesforceApiUserInputPro
             placeholder={getDefaultUrl(defaultApiVersion)}
             value={url}
             disabled={loading}
-            onKeyDown={handleKeyUp}
             onChange={(event) => onUrlChange(event.target.value)}
           />
         </Input>

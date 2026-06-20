@@ -1,25 +1,28 @@
 import { css } from '@emotion/react';
 import { TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { useTitle } from '@jetstream/shared/ui-utils';
+import { usePrimaryActionShortcut, useTitle } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { DescribeGlobalSObjectResult, ListItem } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ConnectedSobjectListMultiSelect,
   Icon,
+  KeyboardShortcut,
   ListWithFilterMultiSelect,
   Page,
   PageHeader,
   PageHeaderActions,
   PageHeaderRow,
   PageHeaderTitle,
+  Tooltip,
+  getModifierKey,
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, fromAutomationControlState } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useAtom, useAtomValue } from 'jotai';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { AutomationMetadataType } from './automation-control-types';
 
 const HEIGHT_BUFFER = 170;
@@ -42,6 +45,7 @@ export function filterPermissionsSobjects(sobject: DescribeGlobalSObjectResult |
 export const AutomationControlSelection = () => {
   useTitle(TITLES.AUTOMATION_CONTROL);
 
+  const navigate = useNavigate();
   const selectedOrg = useAtomValue(selectedOrgState);
 
   const hasSelectionsMade = useAtomValue(fromAutomationControlState.hasSelectionsMade);
@@ -65,6 +69,14 @@ export const AutomationControlSelection = () => {
     );
   }
 
+  usePrimaryActionShortcut(
+    () => {
+      handleContinue();
+      navigate('editor');
+    },
+    { disabled: !hasSelectionsMade },
+  );
+
   return (
     <Page testId="automation-control--selection-page">
       <RequireMetadataApiBanner />
@@ -77,10 +89,19 @@ export const AutomationControlSelection = () => {
           />
           <PageHeaderActions colType="actions" buttonType="separate">
             {hasSelectionsMade && (
-              <Link className="slds-button slds-button_brand" to="editor" onClick={handleContinue}>
-                Continue
-                <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
-              </Link>
+              <Tooltip
+                openDelay={300}
+                content={
+                  <div className="slds-p-bottom_small">
+                    <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+                  </div>
+                }
+              >
+                <Link className="slds-button slds-button_brand" to="editor" onClick={handleContinue}>
+                  Continue
+                  <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
+                </Link>
+              </Tooltip>
             )}
             {!hasSelectionsMade && (
               <button className="slds-button slds-button_brand" disabled>

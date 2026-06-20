@@ -1,12 +1,13 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { formatNumber } from '@jetstream/shared/ui-utils';
+import { formatNumber, useGoBackShortcut, usePrimaryActionShortcut } from '@jetstream/shared/ui-utils';
 import { getNameOrNameAndLabel, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import {
   Accordion,
   AutoFullHeightContainer,
   Badge,
   Icon,
+  KeyboardShortcut,
   Page,
   PageHeader,
   PageHeaderActions,
@@ -16,10 +17,12 @@ import {
   RadioGroup,
   ScopedNotification,
   Spinner,
+  Tooltip,
+  getModifierKey,
 } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { DeploymentModal } from './deployment/DeploymentModal';
 import { EditorAccordion } from './editor/EditorAccordion';
 import { DeployButton } from './misc/DeployButton';
@@ -29,6 +32,7 @@ import { useLoadRecordTypeData } from './utils/useLoadRecordTypeData';
 const HEIGHT_BUFFER = 170;
 
 export function RecordTypeManagerEditor() {
+  const navigate = useNavigate();
   const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
   const [viewMode, setViewMode] = useState<ViewMode>('RECORD_TYPE');
@@ -53,6 +57,9 @@ export function RecordTypeManagerEditor() {
     }
     return configurationErrorsByRecordType;
   }, [viewMode, configurationErrorsByField, configurationErrorsByRecordType]);
+
+  usePrimaryActionShortcut(() => handleDeploy(), { disabled: !!configurationErrors || modifiedValues.length === 0 });
+  useGoBackShortcut(() => navigate('..'), {});
 
   useEffect(() => {
     isMounted.current = true;
@@ -96,11 +103,33 @@ export function RecordTypeManagerEditor() {
               docsPath={APP_ROUTES.RECORD_TYPE_MANAGER.DOCS}
             />
             <PageHeaderActions colType="actions" buttonType="separate">
-              <Link className="slds-button slds-button_neutral" to="..">
-                <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
-                Go Back
-              </Link>
-              <DeployButton modifiedValues={modifiedValues} configurationErrors={configurationErrors} handleDeploy={handleDeploy} />
+              <Tooltip
+                openDelay={300}
+                content={
+                  <div className="slds-p-bottom_small">
+                    <KeyboardShortcut inverse keys={[getModifierKey(), 'shift', 'enter']} />
+                  </div>
+                }
+              >
+                <Link className="slds-button slds-button_neutral" to="..">
+                  <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
+                  Go Back
+                </Link>
+              </Tooltip>
+              {!configurationErrors && modifiedValues.length > 0 ? (
+                <Tooltip
+                  openDelay={300}
+                  content={
+                    <div className="slds-p-bottom_small">
+                      <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+                    </div>
+                  }
+                >
+                  <DeployButton modifiedValues={modifiedValues} configurationErrors={configurationErrors} handleDeploy={handleDeploy} />
+                </Tooltip>
+              ) : (
+                <DeployButton modifiedValues={modifiedValues} configurationErrors={configurationErrors} handleDeploy={handleDeploy} />
+              )}
             </PageHeaderActions>
           </PageHeaderRow>
         </PageHeader>

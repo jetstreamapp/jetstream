@@ -1,3 +1,4 @@
+export * from './lib/errorTracker';
 export * from './lib/google-access-token';
 export * from './lib/hooks/useBrowserNotifications';
 export * from './lib/hooks/useCombinedRefs';
@@ -13,11 +14,11 @@ export * from './lib/hooks/useGoogleApi';
 export * from './lib/hooks/useHover';
 export * from './lib/hooks/useInjectScript';
 export * from './lib/hooks/useInterval';
+export * from './lib/hooks/useKeyboardShortcuts';
 export * from './lib/hooks/useLocationState';
 export * from './lib/hooks/useNonInitialEffect';
 export * from './lib/hooks/useObservable';
 export * from './lib/hooks/useProfilesAndPermSets';
-export * from './lib/errorTracker';
 export * from './lib/hooks/useTitle';
 export * from './lib/queries';
 export * from './lib/shared-browser-extension-helpers';

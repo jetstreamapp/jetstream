@@ -2,14 +2,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, SFDC_BLANK_PICKLIST_VALUE, TITLES } from '@jetstream/shared/constants';
 import { clearCacheForOrg } from '@jetstream/shared/data';
-import {
-  hasModifierKey,
-  isEnterKey,
-  sanitizePastedEditorText,
-  useDisposables,
-  useGlobalEventHandler,
-  useTitle,
-} from '@jetstream/shared/ui-utils';
+import { sanitizePastedEditorText, useDisposables, usePrimaryActionShortcut, useTitle } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { DescribeGlobalSObjectResult, Field } from '@jetstream/types';
@@ -31,7 +24,9 @@ import {
   SobjectFieldCombobox,
   SobjectFieldComboboxRef,
   Spinner,
+  Tooltip,
   ViewDocsLink,
+  getModifierKey,
 } from '@jetstream/ui';
 import {
   FormulaEvaluatorRecordSearch,
@@ -140,6 +135,8 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
     [setSelectedField, setReturnType],
   );
 
+  const sobjectName = selectedSObject?.name || '';
+
   const handleTestFormula = useCallback(
     async (value: string) => {
       try {
@@ -170,7 +167,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
             recordId,
             selectedOrg,
             selectedUserId,
-            sobjectName: selectedSObject?.name || '',
+            sobjectName,
           });
           if (response.type === 'error') {
             setFieldErrorMessage(response.message);
@@ -200,22 +197,14 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
         setLoading(false);
       }
     },
-    [testFormulaDisabled, numberNullBehavior, returnType, trackEvent, recordId, selectedOrg, selectedUserId, selectedSObject?.name],
+    [testFormulaDisabled, numberNullBehavior, returnType, trackEvent, recordId, selectedOrg, selectedUserId, sobjectName],
   );
 
-  const onKeydown = useCallback(
-    (event: KeyboardEvent) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if (!testFormulaDisabled && hasModifierKey(event as any) && isEnterKey(event as any)) {
-        event.stopPropagation();
-        event.preventDefault();
-        handleTestFormula(formulaValue);
-      }
-    },
-    [formulaValue, handleTestFormula, testFormulaDisabled],
-  );
+  const handleTestFormulaShortcut = useCallback(() => {
+    handleTestFormula(formulaValue);
+  }, [formulaValue, handleTestFormula]);
 
-  useGlobalEventHandler('keydown', onKeydown);
+  usePrimaryActionShortcut(handleTestFormulaShortcut, { disabled: testFormulaDisabled });
 
   const handleFormat = async (value = formulaValue) => {
     try {
@@ -243,9 +232,11 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
   };
 
   const handleTestFormulaRef = useRef(handleTestFormula);
+  // eslint-disable-next-line react-hooks/refs
   handleTestFormulaRef.current = handleTestFormula;
 
   const handleFormatRef = useRef(handleFormat);
+  // eslint-disable-next-line react-hooks/refs
   handleFormatRef.current = handleFormat;
 
   function handleEditorChange(value?: string) {
@@ -468,13 +459,22 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
                   >
                     Deploy
                   </button>
-                  <button
-                    className="slds-button slds-button_brand"
-                    disabled={testFormulaDisabled}
-                    onClick={() => handleTestFormula(formulaValue)}
+                  <Tooltip
+                    openDelay={300}
+                    content={
+                      <div className="slds-p-bottom_small">
+                        <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+                      </div>
+                    }
                   >
-                    Test
-                  </button>
+                    <button
+                      className="slds-button slds-button_brand slds-button_last"
+                      disabled={testFormulaDisabled}
+                      onClick={() => handleTestFormula(formulaValue)}
+                    >
+                      Test
+                    </button>
+                  </Tooltip>
                 </ButtonGroupContainer>
               }
             >

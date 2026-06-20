@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
-import { formatNumber, useTitle } from '@jetstream/shared/ui-utils';
+import { formatNumber, useGoBackShortcut, usePrimaryActionShortcut, useTitle } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { FileExtAllTypes, ListMetadataResult, Maybe, MimeType, RetrievePackageFromListMetadataJob } from '@jetstream/types';
 import {
@@ -11,6 +11,7 @@ import {
   FileFauxDownloadModal,
   Grid,
   Icon,
+  KeyboardShortcut,
   SearchInput,
   Spinner,
   Toast,
@@ -18,13 +19,14 @@ import {
   ToolbarItemActions,
   ToolbarItemGroup,
   Tooltip,
+  getModifierKey,
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, fromAutomationControlState, fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import AutomationControlEditorReviewModal from './AutomationControlEditorReviewModal';
 import AutomationControlEditorTable from './AutomationControlEditorTable';
 import AutomationControlLastRefreshedPopover from './AutomationControlLastRefreshedPopover';
@@ -46,6 +48,7 @@ const HEIGHT_BUFFER = 170;
 export const AutomationControlEditor = () => {
   useTitle(TITLES.AUTOMATION_CONTROL);
   const { trackEvent } = useAmplitude();
+  const navigate = useNavigate();
 
   const selectedOrg = useAtomValue(selectedOrgState);
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
@@ -101,6 +104,9 @@ export const AutomationControlEditor = () => {
     setSaveModalOpen(true);
     trackEvent(ANALYTICS_KEYS.automation_review, { rows: _dirtyRows.length, objects: selectedSObjects.length });
   }
+
+  usePrimaryActionShortcut(handleReviewChanges, { disabled: loading || !dirtyCount });
+  useGoBackShortcut(() => navigate('..'), {});
 
   function handleDeployModalClose(refreshData?: boolean) {
     if (refreshData) {
@@ -272,15 +278,24 @@ export const AutomationControlEditor = () => {
       <RequireMetadataApiBanner />
       <Toolbar>
         <ToolbarItemGroup>
-          <Link
-            className="slds-button slds-button_brand"
-            title="Go back"
-            to=".."
-            // onClick={handleGoBack}
+          <Tooltip
+            openDelay={300}
+            content={
+              <div className="slds-p-bottom_small">
+                <KeyboardShortcut inverse keys={[getModifierKey(), 'shift', 'enter']} />
+              </div>
+            }
           >
-            <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
-            <span>Go Back</span>
-          </Link>
+            <Link
+              className="slds-button slds-button_brand"
+              title="Go back"
+              to=".."
+              // onClick={handleGoBack}
+            >
+              <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
+              <span>Go Back</span>
+            </Link>
+          </Tooltip>
           {/* Select all does not work well for flows/process builders since there is a version that needs to be selected */}
           {/* <button className="slds-button slds-button_neutral slds-m-left_small" onClick={handleSelectAll}>
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" />
@@ -323,10 +338,19 @@ export const AutomationControlEditor = () => {
               <span>Export as Spreadsheet</span>
             </button>
           </ButtonGroupContainer>
-          <button className="slds-button slds-button_brand" disabled={loading || !dirtyCount} onClick={handleReviewChanges}>
-            <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" />
-            Review Changes
-          </button>
+          <Tooltip
+            openDelay={300}
+            content={
+              <div className="slds-p-bottom_small">
+                <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+              </div>
+            }
+          >
+            <button className="slds-button slds-button_brand" disabled={loading || !dirtyCount} onClick={handleReviewChanges}>
+              <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" />
+              Review Changes
+            </button>
+          </Tooltip>
         </ToolbarItemActions>
       </Toolbar>
       <div>

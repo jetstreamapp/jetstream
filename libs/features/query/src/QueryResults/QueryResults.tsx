@@ -14,9 +14,11 @@ import {
   setItemInSessionStorage,
   useBrowserNotifications,
   useGlobalEventHandler,
+  useGoBackShortcut,
   useLocationState,
   useNonInitialEffect,
   useObservable,
+  usePrimaryActionShortcut,
 } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getRecordIdFromAttributes, getSObjectNameFromAttributes, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
@@ -37,11 +39,14 @@ import {
   Grid,
   GridCol,
   Icon,
+  KeyboardShortcut,
   SalesforceRecordDataTable,
   Spinner,
   Toolbar,
   ToolbarItemActions,
   ToolbarItemGroup,
+  Tooltip,
+  getModifierKey,
   useConfirmation,
 } from '@jetstream/ui';
 import {
@@ -194,6 +199,22 @@ export const QueryResults = React.memo(() => {
   );
 
   useGlobalEventHandler('keydown', onKeydown);
+
+  const executeQueryRef = useRef(executeQuery);
+  executeQueryRef.current = executeQuery;
+
+  // Cmd/Ctrl+Enter re-runs the active query when the SOQL panel is closed. When the panel is open the
+  // editor's own Monaco action submits the edited value, so we skip here to avoid submitting a stale query.
+  const handleRerunQuery = useCallback(() => {
+    executeQueryRef.current(soql, SOURCE_MANUAL, { isTooling });
+  }, [soql, isTooling]);
+  usePrimaryActionShortcut(handleRerunQuery, { disabled: loading || soqlPanelOpen });
+
+  // Cmd/Ctrl+Shift+Enter returns to the query builder, carrying the current SOQL back with it.
+  const handleGoBackToQueryBuilder = useCallback(() => {
+    navigate({ pathname: APP_ROUTES.QUERY.ROUTE, search: APP_ROUTES.QUERY.SEARCH_PARAM }, { state: { soql } });
+  }, [navigate, soql]);
+  useGoBackShortcut(handleGoBackToQueryBuilder);
 
   useEffect(() => {
     isMounted.current = true;
@@ -597,14 +618,23 @@ export const QueryResults = React.memo(() => {
       )}
       <Toolbar>
         <ToolbarItemGroup>
-          <Link
-            className="slds-button slds-button_brand"
-            to={{ pathname: APP_ROUTES.QUERY.ROUTE, search: APP_ROUTES.QUERY.SEARCH_PARAM }}
-            state={{ soql }}
+          <Tooltip
+            openDelay={300}
+            content={
+              <div className="slds-p-bottom_small">
+                <KeyboardShortcut inverse keys={[getModifierKey(), 'shift', 'enter']} />
+              </div>
+            }
           >
-            <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
-            Back
-          </Link>
+            <Link
+              className="slds-button slds-button_brand"
+              to={{ pathname: APP_ROUTES.QUERY.ROUTE, search: APP_ROUTES.QUERY.SEARCH_PARAM }}
+              state={{ soql }}
+            >
+              <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
+              Back
+            </Link>
+          </Tooltip>
           <ButtonGroupContainer>
             <button
               className={classNames('slds-button collapsible-button collapsible-button-md slds-button_first', {

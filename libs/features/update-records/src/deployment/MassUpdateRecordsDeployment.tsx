@@ -1,15 +1,19 @@
+import { useGoBackShortcut, usePrimaryActionShortcut } from '@jetstream/shared/ui-utils';
 import { BulkJobBatchInfo, Maybe } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Checkbox,
   Icon,
   Input,
+  KeyboardShortcut,
   Page,
   Section,
   Spinner,
   Toolbar,
   ToolbarItemActions,
   ToolbarItemGroup,
+  Tooltip,
+  getModifierKey,
 } from '@jetstream/ui';
 import { DeployResults, MassUpdateRecordsDeploymentRow, MetadataRow, useDeployRecords } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
@@ -17,7 +21,7 @@ import { useAtomValue, useSetAtom } from 'jotai';
 import { useAtomCallback } from 'jotai/utils';
 import isNumber from 'lodash/isNumber';
 import { ChangeEvent, useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import * as fromMassUpdateState from '../mass-update-records.state';
 
 const HEIGHT_BUFFER = 170;
@@ -42,6 +46,7 @@ const updateDeploymentResultsState =
   };
 
 export const MassUpdateRecordsDeployment = () => {
+  const navigate = useNavigate();
   const selectedOrg = useAtomValue(selectedOrgState);
   const rows = useAtomValue(fromMassUpdateState.rowsState);
   const [loading, setLoading] = useState(false);
@@ -77,6 +82,9 @@ export const MassUpdateRecordsDeployment = () => {
     pollResultsUntilDone(getRows);
   }
 
+  usePrimaryActionShortcut(handleDeploy, { disabled: loading || !!batchSizeError });
+  useGoBackShortcut(() => navigate('..'), { disabled: loading });
+
   useEffect(() => {
     if (!isNumber(batchSize) || batchSize <= 0 || batchSize > MAX_BATCH_SIZE) {
       setBatchSizeError(`The batch size must be between 1 and ${MAX_BATCH_SIZE}`);
@@ -104,17 +112,39 @@ export const MassUpdateRecordsDeployment = () => {
               Go Back
             </button>
           ) : (
-            <Link className="slds-button slds-button_neutral slds-m-right_x-small" to="..">
-              <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
-              Go Back
-            </Link>
+            <Tooltip
+              openDelay={300}
+              content={
+                <div className="slds-p-bottom_small">
+                  <KeyboardShortcut inverse keys={[getModifierKey(), 'shift', 'enter']} />
+                </div>
+              }
+            >
+              <Link className="slds-button slds-button_neutral slds-m-right_x-small" to="..">
+                <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
+                Go Back
+              </Link>
+            </Tooltip>
           )}
         </ToolbarItemGroup>
         <ToolbarItemActions>
-          <button className="slds-button slds-button_brand slds-is-relative" onClick={handleDeploy} disabled={loading || !!batchSizeError}>
-            {loading && <Spinner size="small" />}
-            Update Records
-          </button>
+          <Tooltip
+            openDelay={300}
+            content={
+              <div className="slds-p-bottom_small">
+                <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+              </div>
+            }
+          >
+            <button
+              className="slds-button slds-button_brand slds-is-relative"
+              onClick={handleDeploy}
+              disabled={loading || !!batchSizeError}
+            >
+              {loading && <Spinner size="small" />}
+              Update Records
+            </button>
+          </Tooltip>
         </ToolbarItemActions>
       </Toolbar>
       <AutoFullHeightContainer bottomBuffer={10} className="slds-p-around_small slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>

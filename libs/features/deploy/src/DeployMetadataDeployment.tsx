@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { ListMetadataResultItem, useListMetadata } from '@jetstream/connected-ui';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { copyRecordsToClipboard, formatNumber, isBrowserExtension, isCanvasApp } from '@jetstream/shared/ui-utils';
+import { copyRecordsToClipboard, formatNumber, isBrowserExtension, isCanvasApp, useGoBackShortcut } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { DeployMetadataTableRow, ListMetadataResult, SidePanelType } from '@jetstream/types';
 import {
@@ -9,13 +9,16 @@ import {
   ButtonGroupContainer,
   DropDown,
   FileDownloadModal,
+  getModifierKey,
   Grid,
   Icon,
+  KeyboardShortcut,
   Spinner,
   Toast,
   Toolbar,
   ToolbarItemActions,
   ToolbarItemGroup,
+  Tooltip,
 } from '@jetstream/ui';
 import { fromDeployMetadataState, fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
@@ -26,7 +29,7 @@ import { isBefore } from 'date-fns/isBefore';
 import { startOfDay } from 'date-fns/startOfDay';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import DeployMetadataDeploymentSidePanel from './DeployMetadataDeploymentSidePanel';
 import DeployMetadataDeploymentTable from './DeployMetadataDeploymentTable';
 import DeployMetadataLastRefreshedPopover from './DeployMetadataLastRefreshedPopover';
@@ -51,6 +54,7 @@ export interface DeployMetadataDeploymentProps {}
 
 export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymentProps> = () => {
   const { trackEvent } = useAmplitude();
+  const navigate = useNavigate();
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const selectedOrg = useAtomValue(selectedOrgState);
@@ -240,6 +244,8 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
 
   const selectedMetadata = useMemo(() => convertRowsToMapOfListMetadataResults(Array.from(selectedRows)), [selectedRows]);
 
+  useGoBackShortcut(() => navigate('..'), {});
+
   return (
     <div>
       {activeDownloadType && (
@@ -289,10 +295,19 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
 
       <Toolbar>
         <ToolbarItemGroup>
-          <Link className="slds-button slds-button_brand" to="..">
-            <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
-            Go Back
-          </Link>
+          <Tooltip
+            openDelay={300}
+            content={
+              <div className="slds-p-bottom_small">
+                <KeyboardShortcut inverse keys={[getModifierKey(), 'shift', 'enter']} />
+              </div>
+            }
+          >
+            <Link className="slds-button slds-button_brand" to="..">
+              <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
+              Go Back
+            </Link>
+          </Tooltip>
         </ToolbarItemGroup>
         <ToolbarItemActions>
           <DeployMetadataHistoryModal className="collapsible-button collapsible-button-xxl" />
