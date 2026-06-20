@@ -189,7 +189,6 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
         }
       >
         <MonacoEditor
-          className="slds-border_top slds-border_right slds-border_bottom slds-border_left"
           height="50vh"
           language="soql"
           value={userSoql}

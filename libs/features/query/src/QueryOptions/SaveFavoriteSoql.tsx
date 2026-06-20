@@ -139,7 +139,6 @@ export const SaveFavoriteSoql: FunctionComponent<SaveFavoriteSoqlProps> = ({
               }
             >
               <MonacoEditor
-                className="slds-border_top slds-border_right slds-border_bottom slds-border_left"
                 height="300px"
                 language="soql"
                 value={soql}

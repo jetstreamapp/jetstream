@@ -1,6 +1,7 @@
+import { ClassNames } from '@emotion/react';
 import { ColorScheme } from '@jetstream/types';
 import EditorImpl, { DiffEditor as DiffEditorImpl, DiffEditorProps, EditorProps } from '@monaco-editor/react';
-import { useSyncExternalStore } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
 
 const SCHEME_CLASS_PREFIX = 'slds-color-scheme--';
 
@@ -94,6 +95,50 @@ function useMonacoTheme(): 'vs' | 'vs-dark' {
 }
 
 /**
+ * Monaco's light theme background is the same white as the page, so a light-mode
+ * editor bleeds into its surroundings with no visible edge. A border gives it a
+ * defined boundary. The `--slds-g-color-border-1` token is scheme-aware, so the
+ * border also stays appropriate in dark mode, and the `--slds-g-radius-border-1`
+ * radius matches the SLDS 2 input/box motif. Applied to Monaco's own wrapper
+ * `<section>` via `wrapperProps` (rather than an extra wrapping element) to avoid
+ * disturbing the height: 100% layouts that many call sites rely on.
+ *
+ * `overflow: hidden` clips Monaco's square-cornered content `<div>` to the radius
+ * — without it the content background paints into the corners and the rounded
+ * border looks "cut off." The clip would normally also crop autocomplete/hover
+ * widgets that extend past the editor edge, so `useEditorOptions` defaults
+ * Monaco's `fixedOverflowWidgets` option on, rendering those widgets in a
+ * body-level container that escapes the clip.
+ */
+function buildEditorBorderWrapperProps<T extends { className?: string }>(
+  css: (template: TemplateStringsArray, ...args: unknown[]) => string,
+  cx: (...classNames: unknown[]) => string,
+  wrapperProps: T | undefined,
+) {
+  const borderClassName = css`
+    border: 1px solid var(--slds-g-color-border-1, #dddbda);
+    border-radius: var(--slds-g-radius-border-1, 0.25rem);
+    overflow: hidden;
+  `;
+  return {
+    ...wrapperProps,
+    className: cx(borderClassName, wrapperProps?.className),
+  };
+}
+
+/**
+ * Defaults `fixedOverflowWidgets` on so autocomplete/hover widgets are not
+ * clipped by the wrapper's `overflow: hidden`. Caller-supplied options win.
+ *
+ * Memoized on the caller's `options` reference: `@monaco-editor/react` calls
+ * `editor.updateOptions` in a `useEffect([options])`, so returning a fresh object
+ * every render would force an `updateOptions` on every parent re-render.
+ */
+function useEditorOptions<T extends { fixedOverflowWidgets?: boolean }>(options: T | undefined): T {
+  return useMemo(() => ({ fixedOverflowWidgets: true, ...options }) as T, [options]);
+}
+
+/**
  * Wrapper around `@monaco-editor/react`'s `<Editor>` that drives the `theme`
  * prop from the user's color scheme preference. The underlying React wrapper
  * defaults `theme` to `"light"` and re-applies it on every editor mount —
@@ -102,12 +147,31 @@ function useMonacoTheme(): 'vs' | 'vs-dark' {
  */
 export function MonacoEditor(props: EditorProps) {
   const theme = useMonacoTheme();
-  return <EditorImpl {...props} theme={theme} />;
+  const options = useEditorOptions(props.options);
+  return (
+    <ClassNames>
+      {({ css, cx }) => (
+        <EditorImpl {...props} theme={theme} options={options} wrapperProps={buildEditorBorderWrapperProps(css, cx, props.wrapperProps)} />
+      )}
+    </ClassNames>
+  );
 }
 
 export function MonacoDiffEditor(props: DiffEditorProps) {
   const theme = useMonacoTheme();
-  return <DiffEditorImpl {...props} theme={theme} />;
+  const options = useEditorOptions(props.options);
+  return (
+    <ClassNames>
+      {({ css, cx }) => (
+        <DiffEditorImpl
+          {...props}
+          theme={theme}
+          options={options}
+          wrapperProps={buildEditorBorderWrapperProps(css, cx, props.wrapperProps)}
+        />
+      )}
+    </ClassNames>
+  );
 }
 
 export default MonacoEditor;
