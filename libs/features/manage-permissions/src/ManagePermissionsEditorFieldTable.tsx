@@ -7,11 +7,16 @@ import {
   PermissionTableFieldCell,
   PermissionTableSummaryRow,
 } from '@jetstream/types';
+import type { RowHeightArgs } from '@jetstream/ui';
 import { AutoFullHeightContainer, ColumnWithFilter, DataTableRef, DataTree } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
 import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
-import { RowHeightArgs } from 'react-data-grid';
-import { resetGridChanges, updateRowsFromColumnAction } from './utils/permission-manager-table-utils';
+import {
+  getFieldPermissionContextMenuItems,
+  handleFieldPermissionContextMenuAction,
+  resetGridChanges,
+  updateRowsFromColumnAction,
+} from './utils/permission-manager-table-utils';
 
 function getRowKey(row: PermissionTableFieldCell) {
   return row.key;
@@ -94,6 +99,8 @@ export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissio
             rowGrouper={groupBy}
             expandedGroupIds={expandedGroupIds}
             onExpandedGroupIdsChange={(items) => setExpandedGroupIds(items)}
+            contextMenuItems={getFieldPermissionContextMenuItems}
+            contextMenuAction={handleFieldPermissionContextMenuAction}
           />
         </AutoFullHeightContainer>
       </div>

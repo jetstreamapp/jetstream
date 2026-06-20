@@ -216,6 +216,13 @@ pre {
   background-color: var(--slds-g-color-brand-base-90, #d8e6fe);
 }
 
+.slds-table_bordered > thead > tr:first-child > *:first-child {
+  border-top-left-radius: var(--slds-g-radius-border-1, 0.25rem);
+}
+.slds-table_bordered > thead > tr:first-child > *:last-child {
+  border-top-right-radius: var(--slds-g-radius-border-1, 0.25rem);
+}
+
 .is-disabled {
   background-color: var(--slds-g-color-disabled-container-1, #e5e5e5);
 }

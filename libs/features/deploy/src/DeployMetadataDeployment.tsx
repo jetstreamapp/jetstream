@@ -45,6 +45,7 @@ const TABLE_ACTION_CLIPBOARD_SELECTED = 'table-copy-to-clipboard-selected';
 const TABLE_ACTION_DOWNLOAD = 'table-download';
 const TABLE_ACTION_DOWNLOAD_SELECTED = 'table-download-selected';
 const TABLE_ACTION_DOWNLOAD_MANIFEST = 'download-manifest';
+const TABLE_ACTION_DOWNLOAD_MANIFEST_ALL = 'download-manifest-all';
 const TABLE_ACTION_DELETE_METADATA = 'delete-manifest';
 
 export interface DeployMetadataDeploymentProps {}
@@ -68,6 +69,8 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
 
   // used for manifest or package download
   const [activeDownloadType, setActiveDownloadType] = useState<'manifest' | 'package' | null>(null);
+  // whether the active download applies to the selected rows or the entire table
+  const [downloadScope, setDownloadScope] = useState<'selected' | 'all'>('selected');
 
   const listMetadataQueries = useAtomValue(fromDeployMetadataState.listMetadataQueriesSelector);
   const userSelection = useAtomValue(fromDeployMetadataState.userSelectionState);
@@ -87,6 +90,8 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
   const [modifiedLabel, setModifiedLabel] = useState('');
 
   const [viewOrCompareModalOpen, setViewOrCompareModalOpen] = useState(false);
+  // When set, the View or Compare modal is scoped to this single item instead of all selected rows.
+  const [viewSingleItemMetadata, setViewSingleItemMetadata] = useState<Record<string, ListMetadataResult[]> | null>(null);
   const [deleteMetadataModalOpen, setDeleteMetadataModalOpen] = useState(false);
 
   const [isSingleOrgMode] = useState(() => isBrowserExtension() || isCanvasApp());
@@ -195,9 +200,10 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
     loadListMetadata(listMetadataQueries, { skipRequestCache: true });
   }
 
-  async function handleDownloadActive(type: 'manifest' | 'package') {
+  async function handleDownloadActive(type: 'manifest' | 'package', scope: 'selected' | 'all' = 'selected') {
     setActiveDownloadType(type);
-    trackEvent(ANALYTICS_KEYS.deploy_download, { type, itemCount: selectedRows.size });
+    setDownloadScope(scope);
+    trackEvent(ANALYTICS_KEYS.deploy_download, { type, scope, itemCount: scope === 'all' ? allMetadataCount : selectedRows.size });
   }
 
   async function handleFileModalClose() {
@@ -220,7 +226,9 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
 
   function handleDropdownMenuSelect(id: string) {
     if (id === TABLE_ACTION_DOWNLOAD_MANIFEST) {
-      handleDownloadActive('manifest');
+      handleDownloadActive('manifest', 'selected');
+    } else if (id === TABLE_ACTION_DOWNLOAD_MANIFEST_ALL) {
+      handleDownloadActive('manifest', 'all');
     } else if (id === TABLE_ACTION_CLIPBOARD) {
       copyRecordsToClipboard(convertRowsForExport(rows || [], selectedRows));
     } else if (id === TABLE_ACTION_CLIPBOARD_SELECTED) {
@@ -238,7 +246,16 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
     setViewOrCompareModalOpen(true);
   }, []);
 
+  const handleViewItem = useCallback((row: DeployMetadataTableRow) => {
+    setViewSingleItemMetadata(convertRowsToMapOfListMetadataResults([row]));
+    setViewOrCompareModalOpen(true);
+  }, []);
+
   const selectedMetadata = useMemo(() => convertRowsToMapOfListMetadataResults(Array.from(selectedRows)), [selectedRows]);
+  const allMetadata = useMemo(() => convertRowsToMapOfListMetadataResults(rows || []), [rows]);
+  const allMetadataCount = Object.values(allMetadata).reduce((total, items) => total + items.length, 0);
+  const activeDownloadMetadata = downloadScope === 'all' ? allMetadata : selectedMetadata;
+  const activeDownloadCount = downloadScope === 'all' ? allMetadataCount : selectedRows.size;
 
   return (
     <div>
@@ -246,8 +263,8 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
         <DownloadPackageWithFileSelector
           type={activeDownloadType}
           selectedOrg={selectedOrg}
-          modalTagline={`${formatNumber(selectedRows.size)} components will be included`}
-          listMetadataItems={selectedMetadata}
+          modalTagline={`${formatNumber(activeDownloadCount)} components will be included`}
+          listMetadataItems={activeDownloadMetadata}
           onClose={handleFileModalClose}
         />
       )}
@@ -274,8 +291,11 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
       {viewOrCompareModalOpen && (
         <ViewOrCompareMetadataModal
           sourceOrg={selectedOrg}
-          selectedMetadata={selectedMetadata}
-          onClose={() => setViewOrCompareModalOpen(false)}
+          selectedMetadata={viewSingleItemMetadata ?? selectedMetadata}
+          onClose={() => {
+            setViewOrCompareModalOpen(false);
+            setViewSingleItemMetadata(null);
+          }}
         />
       )}
 
@@ -328,6 +348,13 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
                   id: TABLE_ACTION_DOWNLOAD,
                   icon: { type: 'utility', icon: 'download', description: 'Download table' },
                   value: 'Download metadata table',
+                },
+                {
+                  id: TABLE_ACTION_DOWNLOAD_MANIFEST_ALL,
+                  icon: { icon: 'page', type: 'utility' },
+                  value: 'Download package.xml manifest',
+                  disabled: allMetadataCount === 0,
+                  title: allMetadataCount === 0 ? 'There are no items in the table to include' : '',
                   trailingDivider: true,
                 },
                 {
@@ -348,7 +375,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
                 },
                 {
                   id: TABLE_ACTION_DOWNLOAD_MANIFEST,
-                  subheader: 'Metadata Actions',
+                  subheader: 'Selected Metadata Actions',
                   value: 'Download package.xml manifest',
                   icon: { icon: 'page', type: 'utility' },
                   disabled: selectedRows.size === 0,
@@ -445,6 +472,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
                 hasSelectedRows={selectedRows.size > 0}
                 onSelectedRows={setSelectedRows}
                 onViewOrCompareOpen={handleViewOrCompareOpen}
+                onViewItem={handleViewItem}
               />
             </AutoFullHeightContainer>
           </Grid>

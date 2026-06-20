@@ -3,12 +3,12 @@ import { logger } from '@jetstream/shared/client-logger';
 import { setItemInLocalStorage } from '@jetstream/shared/ui-utils';
 import { orderValues } from '@jetstream/shared/utils';
 import { ContextMenuItem } from '@jetstream/types';
+import type { RenderCellProps, RowHeightArgs, SortColumn } from '@jetstream/ui';
 import { AutoFullHeightContainer, ColumnWithFilter, ContextMenuActionData, DataTree } from '@jetstream/ui';
 import { STORAGE_KEYS } from '@jetstream/ui/app-state';
 import copyToClipboard from 'copy-to-clipboard';
 import groupBy from 'lodash/groupBy';
 import { FunctionComponent, ReactNode, useCallback, useEffect, useState } from 'react';
-import { RenderCellProps, RowHeightArgs, SortColumn } from 'react-data-grid';
 import { z } from 'zod';
 import { MessagesByChannel } from './usePlatformEvent';
 

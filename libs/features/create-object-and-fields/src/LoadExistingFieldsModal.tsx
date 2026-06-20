@@ -13,6 +13,8 @@ import {
   NotSeeingRecentMetadataPopover,
   ScopedNotification,
   SearchInput,
+  SELECT_COLUMN_KEY,
+  SelectColumn,
   SelectFormatter,
   Spinner,
   fireToast,
@@ -29,7 +31,6 @@ import {
   useAmplitude,
 } from '@jetstream/ui-core';
 import { FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
-import { SELECT_COLUMN_KEY, SelectColumn } from 'react-data-grid';
 
 function getRowKey(row: ExistingFieldRow) {
   return row.key;

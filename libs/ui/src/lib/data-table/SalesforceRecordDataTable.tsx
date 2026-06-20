@@ -2,12 +2,11 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { queryRemaining } from '@jetstream/shared/data';
-import { formatNumber, tracker } from '@jetstream/shared/ui-utils';
+import { formatNumber, hasCtrlOrMeta, isEnterKey, tracker, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
 import { flattenRecord, getIdFromRecordUrl, groupByFlat, nullifyEmptyStrings } from '@jetstream/shared/utils';
 import { CloneEditView, ContextMenuItem, Field, Maybe, QueryResults, SalesforceOrgUi, SobjectCollectionResponse } from '@jetstream/types';
 import uniqueId from 'lodash/uniqueId';
 import { Fragment, ReactNode, memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Column, RowsChangeData } from 'react-data-grid';
 import SearchInput from '../form/search-input/SearchInput';
 import Grid from '../grid/Grid';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
@@ -25,6 +24,7 @@ import {
   copySalesforceRecordTableDataToClipboard,
   getColumnDefinitions,
 } from './data-table-utils';
+import { RowsChangeData } from './grid/rdg-compat';
 
 const SFDC_EMPTY_ID = '000000000000000AAA';
 
@@ -120,7 +120,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
     onReloadQuery,
   }: SalesforceRecordDataTableProps) => {
     const isMounted = useRef(true);
-    const [columns, setColumns] = useState<Column<RowSalesforceRecordWithKey>[]>();
+    const [columns, setColumns] = useState<ColumnWithFilter<RowSalesforceRecordWithKey>[]>();
     const [subqueryColumnsMap, setSubqueryColumnsMap] = useState<Record<string, ColumnWithFilter<RowSalesforceRecordWithKey, unknown>[]>>();
     const [records, setRecords] = useState<any[]>();
     // Same as records but with additional data added
@@ -139,6 +139,8 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
     const [visibleRecordCount, setVisibleRecordCount] = useState(records?.length);
 
     const [isSavingRecords, setIsSavingRecords] = useState(false);
+    // Synchronous guard so a key-repeat / rapid Cmd+Enter can't launch concurrent saves before state flushes.
+    const isSavingRef = useRef(false);
 
     useEffect(() => {
       isMounted.current = true;
@@ -182,7 +184,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
       if (fieldMetadata && queryResults) {
         const { parentColumns, subqueryColumns } = getColumnDefinitions(queryResults, isTooling, fieldMetadata, fieldMetadataSubquery);
 
-        setColumns(addFieldLabelToColumn(parentColumns, fieldMetadata));
+        setColumns(addFieldLabelToColumn(parentColumns, fieldMetadata) as unknown as ColumnWithFilter<RowSalesforceRecordWithKey>[]);
 
         // If there are subqueries, update field definition
         if (fieldMetadataSubquery) {
@@ -338,15 +340,18 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
     };
 
     const handleSaveRecords = async () => {
+      // Guards stay OUTSIDE the try: an early `return` inside it still runs the `finally`, which would
+      // clear isSavingRef / saving state while a concurrent save is mid-flight — allowing overlapping saves.
+      if (!rows || isSavingRef.current) {
+        return;
+      }
+      if (!dirtyRows.length) {
+        setRecords((records) => (records ? [...records] : records));
+        return;
+      }
+      isSavingRef.current = true;
+      setIsSavingRecords(true);
       try {
-        if (!rows) {
-          return;
-        }
-        if (!dirtyRows.length) {
-          setRecords((records) => (records ? [...records] : records));
-          return;
-        }
-        setIsSavingRecords(true);
         const modifiedRecords = dirtyRows.map((row) =>
           nullifyEmptyStrings(
             Array.from(row._touchedColumns).reduce(
@@ -403,9 +408,25 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
         });
         tracker.error('Error saving records - inline query', ex);
       } finally {
+        isSavingRef.current = false;
         setIsSavingRecords(false);
       }
     };
+
+    // Cmd/Ctrl+Enter saves modified records. A live ref lets the stable global handler call the latest
+    // save logic, and deferring to the next tick lets an in-progress cell edit (committed on Enter)
+    // settle into dirty state before saving. `handleSaveRecords` no-ops when there is nothing to save.
+    const saveRecordsRef = useRef(handleSaveRecords);
+    saveRecordsRef.current = handleSaveRecords;
+    const handleSaveShortcut = useCallback((event: KeyboardEvent) => {
+      if (!isEnterKey(event as any) || !hasCtrlOrMeta(event as any)) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      window.setTimeout(() => saveRecordsRef.current());
+    }, []);
+    useGlobalEventHandler('keydown', handleSaveShortcut);
 
     function handleSubqueryFieldsChanged(columnKey: string, newFields: string[], columnOrder: number[]) {
       onSubqueryFieldReorder(columnKey, newFields, columnOrder);

@@ -273,7 +273,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
                   )}
                 </Grid>
               </Grid>
-              <DebugLogViewerTable logs={logsWithViewedFlag} onRowSelection={handleActiveLogChange} />
+              <DebugLogViewerTable logs={logsWithViewedFlag} activeLogId={activeLogId} onRowSelection={handleActiveLogChange} />
             </Fragment>
           </Card>
         </div>

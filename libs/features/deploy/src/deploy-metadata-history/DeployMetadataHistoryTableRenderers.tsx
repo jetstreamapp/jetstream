@@ -1,10 +1,10 @@
 import { css } from '@emotion/react';
 import { IconName } from '@jetstream/icon-factory';
 import { DeployHistoryTableContext, SalesforceDeployHistoryItem } from '@jetstream/types';
+import type { RenderCellProps } from '@jetstream/ui';
 import { DataTableGenericContext, Grid, Icon } from '@jetstream/ui';
 import { OrgLabelBadge } from '@jetstream/ui-core';
 import { Fragment, useContext } from 'react';
-import { RenderCellProps } from 'react-data-grid';
 
 const fallbackLabel = 'Unknown Org';
 

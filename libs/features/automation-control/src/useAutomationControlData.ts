@@ -4,7 +4,7 @@ import { tracker } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { useAmplitude } from '@jetstream/ui-core';
-import { useCallback, useEffect, useReducer, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import {
   fetchAutomationData,
   getAdditionalItemsWorkflowRuleText,
@@ -39,7 +39,6 @@ type Action =
   | { type: 'FETCH_ERROR'; payload: FetchErrorPayload }
   | { type: 'FETCH_FINISH' }
   | { type: 'UPDATE_IS_ACTIVE_FLAG'; payload: { row: TableRowOrItemOrChild; value: boolean } }
-  | { type: 'TOGGLE_ROW_EXPAND'; payload: { row: TableRowOrItemOrChild; value: boolean } }
   | { type: 'TOGGLE_ALL'; payload: { value: boolean } }
   | { type: 'RESTORE_SNAPSHOT'; payload: { snapshot: TableRowItemSnapshot[] } }
   | { type: 'TABLE_ROWS_CHANGED'; payload: { rows: readonly TableRowOrItemOrChild[] } }
@@ -51,11 +50,11 @@ interface State {
   hasError: boolean;
   errorMessage?: string | null;
   data: StateData;
-  /** These are the only data points that are updated over time */
+  /** Flat list of every row (all levels), rebuilt from `rowsByKey` on each change. Used for dirty
+   * tracking, export, and to derive the nested tree handed to the grid (see `useAutomationControlData`).
+   * Expand/collapse + visibility are owned by the grid's native tree (`getSubRows`), not this list. */
   rows: (TableRow | TableRowItem | TableRowItemChild)[];
-  /** All rows fetched from the backend, regardless of filtering or UI state */
-  visibleRows: (TableRow | TableRowItem | TableRowItemChild)[];
-  /** Rows currently displayed in the UI table (filtered subset of visibleRows) */
+  /** Rows currently displayed in the UI table (post sort/filter), reported back by the grid. */
   tableRows: readonly TableRowOrItemOrChild[];
   /** allows accessing and changing data without iteration */
   rowsByKey: Record<string, TableRow | TableRowItem | TableRowItemChild>;
@@ -91,9 +90,7 @@ function toggleParentRow(
   if (Array.isArray(fullParentRow.children) && fullParentRow.children.length > 0) {
     if (value) {
       // ENABLE: Find the max version among VISIBLE children in the table
-      const visibleChildrenKeys = new Set(
-        tableRows.filter((r) => isTableRowChild(r) && r.parentKey === key).map((r) => r.key),
-      );
+      const visibleChildrenKeys = new Set(tableRows.filter((r) => isTableRowChild(r) && r.parentKey === key).map((r) => r.key));
 
       // Get all visible children from the full children list
       const visibleChildren = fullParentRow.children.filter((child) => visibleChildrenKeys.has(child.key));
@@ -222,7 +219,6 @@ function reducer(state: State, action: Action): State {
       output.keys = keys;
       output.rows = rows;
       output.rowsByKey = rowsByKey;
-      output.visibleRows = getVisibleRows(output.rows, rowsByKey);
       output.dirtyCount = rows.reduce((output, row) => output + (isDirty(row) ? 1 : 0), 0);
       return output;
     }
@@ -248,7 +244,6 @@ function reducer(state: State, action: Action): State {
       output.keys = keys;
       output.rows = rows;
       output.rowsByKey = rowsByKey;
-      output.visibleRows = getVisibleRows(output.rows, rowsByKey);
       output.dirtyCount = rows.reduce((output, row) => output + (isDirty(row) ? 1 : 0), 0);
       return output;
     }
@@ -268,7 +263,6 @@ function reducer(state: State, action: Action): State {
       output.keys = keys;
       output.rows = rows;
       output.rowsByKey = rowsByKey;
-      output.visibleRows = getVisibleRows(output.rows, rowsByKey);
       output.dirtyCount = rows.reduce((output, row) => output + (isDirty(row) ? 1 : 0), 0);
       return output;
     }
@@ -293,7 +287,6 @@ function reducer(state: State, action: Action): State {
       const { keys, rows, rowsByKey } = flattenTableRows(output.data, state.rowsByKey);
       output.keys = keys;
       output.rows = rows;
-      output.visibleRows = getVisibleRows(rows, rowsByKey);
       output.rowsByKey = rowsByKey;
       output.dirtyCount = rows.reduce((output, row) => output + (isDirty(row) ? 1 : 0), 0);
       return output;
@@ -333,23 +326,7 @@ function reducer(state: State, action: Action): State {
         rows: state.keys.map((rowKey) => rowsByKey[rowKey]),
         rowsByKey,
       };
-      output.visibleRows = getVisibleRows(output.rows, rowsByKey);
       output.dirtyCount = output.rows.reduce((output, row) => output + (isDirty(row) ? 1 : 0), 0);
-      return output;
-    }
-    case 'TOGGLE_ROW_EXPAND': {
-      // toggleRowExpand
-      logger.log('TOGGLE_ROW_EXPAND', { state });
-      const key = action.payload.row.key;
-      const rowsByKey = { ...state.rowsByKey };
-      rowsByKey[key] = { ...rowsByKey[action.payload.row.key], isExpanded: action.payload.value };
-
-      const output: State = {
-        ...state,
-        rows: state.keys.map((rowKey) => rowsByKey[rowKey]),
-        rowsByKey,
-      };
-      output.visibleRows = getVisibleRows(output.rows, rowsByKey);
       return output;
     }
     case 'TOGGLE_ALL': {
@@ -359,9 +336,7 @@ function reducer(state: State, action: Action): State {
       state.tableRows.forEach((row) => {
         if (isTableRowItem(row)) {
           // Check if this parent has any visible children in tableRows
-          const hasVisibleChildren = state.tableRows.some(
-            (r) => isTableRowChild(r) && r.parentKey === row.key
-          );
+          const hasVisibleChildren = state.tableRows.some((r) => isTableRowChild(r) && r.parentKey === row.key);
 
           // Only process parent if it has no children OR has visible children in tableRows
           if (!row.children || row.children.length === 0 || hasVisibleChildren) {
@@ -376,7 +351,7 @@ function reducer(state: State, action: Action): State {
 
             // Get all visible child rows for this parent from the table
             const visibleSiblings = state.tableRows.filter(
-              (r) => isTableRowChild(r) && r.parentKey === row.parentKey
+              (r) => isTableRowChild(r) && r.parentKey === row.parentKey,
             ) as TableRowItemChild[];
 
             if (action.payload.value) {
@@ -400,7 +375,6 @@ function reducer(state: State, action: Action): State {
         rows: state.keys.map((rowKey) => rowsByKey[rowKey]),
         rowsByKey,
       };
-      output.visibleRows = getVisibleRows(output.rows, rowsByKey);
       output.dirtyCount = output.rows.reduce((output, row) => output + (isDirty(row) ? 1 : 0), 0);
       return output;
     }
@@ -420,7 +394,6 @@ function reducer(state: State, action: Action): State {
         rows: state.keys.map((rowKey) => rowsByKey[rowKey]),
         rowsByKey,
       };
-      output.visibleRows = getVisibleRows(output.rows, rowsByKey);
       output.dirtyCount = output.rows.reduce((output, row) => output + (isDirty(row) ? 1 : 0), 0);
       return output;
     }
@@ -444,7 +417,6 @@ function reducer(state: State, action: Action): State {
         rowsByKey,
         dirtyCount: 0,
       };
-      output.visibleRows = getVisibleRows(output.rows, rowsByKey);
       output.dirtyCount = output.rows.reduce((output, row) => output + (isDirty(row) ? 1 : 0), 0);
       return output;
     }
@@ -687,26 +659,6 @@ function flattenTableRows(
   return { rows, rowsByKey, keys };
 }
 
-function getVisibleRows(
-  rows: (TableRow | TableRowItem | TableRowItemChild)[],
-  rowsByKey: Record<string, TableRow | TableRowItem | TableRowItemChild>,
-) {
-  return rows.filter((row) => {
-    if (isTableRow(row)) {
-      return true;
-    } else if (isTableRowItem(row) && rowsByKey[row.parentKey]?.isExpanded) {
-      return true;
-    } else if (
-      isTableRowChild(row) &&
-      rowsByKey[row.parentKey]?.isExpanded &&
-      rowsByKey[(rowsByKey[row.parentKey] as TableRowItem)?.parentKey]?.isExpanded
-    ) {
-      return true;
-    }
-    return false;
-  });
-}
-
 export function useAutomationControlData({
   selectedOrg,
   defaultApiVersion,
@@ -721,7 +673,7 @@ export function useAutomationControlData({
   const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
 
-  const [{ loading, hasError, errorMessage, data, rows, visibleRows, dirtyCount }, dispatch] = useReducer(reducer, {
+  const [{ loading, hasError, errorMessage, data, rows, rowsByKey, dirtyCount }, dispatch] = useReducer(reducer, {
     loading: false,
     hasError: false,
     data: {
@@ -753,7 +705,6 @@ export function useAutomationControlData({
       },
     },
     rows: [],
-    visibleRows: [],
     tableRows: [],
     rowsByKey: {},
     keys: [],
@@ -770,10 +721,6 @@ export function useAutomationControlData({
 
   const updateIsActiveFlag = useCallback((row: TableRowOrItemOrChild, value: boolean) => {
     dispatch({ type: 'UPDATE_IS_ACTIVE_FLAG', payload: { row, value } });
-  }, []);
-
-  const toggleRowExpand = useCallback((row: TableRowOrItemOrChild, value: boolean) => {
-    dispatch({ type: 'TOGGLE_ROW_EXPAND', payload: { row, value } });
   }, []);
 
   const resetChanges = useCallback(() => {
@@ -846,21 +793,48 @@ export function useAutomationControlData({
     fetchData();
   }, [defaultApiVersion, fetchData, selectedOrg, selectedSObjects]);
 
+  // The grid renders the hierarchy natively via `getSubRows`, so we hand it the root (type) rows and let
+  // it walk down. `rows` is flat (and rebuilt fresh on every change), so we rebuild each root's
+  // `items`/`children` from `rowsByKey` to guarantee the nested objects reflect the latest active state.
+  const treeRows = useMemo<TableRow[]>(() => {
+    return rows.filter(isTableRow).map((tableRow) => ({
+      ...tableRow,
+      items: tableRow.items.map((item) => {
+        const freshItem = rowsByKey[item.key] as TableRowItem;
+        if (!freshItem.children?.length) {
+          return freshItem;
+        }
+        return { ...freshItem, children: freshItem.children.map((child) => rowsByKey[child.key] as TableRowItemChild) };
+      }),
+    }));
+  }, [rows, rowsByKey]);
+
   return {
     loading,
     hasError,
     errorMessage,
     data,
     rows,
-    visibleRows,
+    treeRows,
+    getSubRows: getAutomationSubRows,
     fetchData,
     refreshProcessBuilders,
     updateIsActiveFlag,
-    toggleRowExpand,
     toggleAll,
     resetChanges,
     tableRowsChange,
     // restoreSnapshot,
     dirtyCount,
   };
+}
+
+/** Tree accessor for the grid: a type row owns its automation items; a flow/PB item owns its versions. */
+function getAutomationSubRows(row: TableRowOrItemOrChild): TableRowOrItemOrChild[] | undefined {
+  if (isTableRow(row)) {
+    return row.items;
+  }
+  if (isTableRowItem(row)) {
+    return row.children;
+  }
+  return undefined;
 }

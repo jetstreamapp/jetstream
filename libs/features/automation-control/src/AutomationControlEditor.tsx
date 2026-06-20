@@ -66,12 +66,12 @@ export const AutomationControlEditor = () => {
 
   const {
     rows,
-    visibleRows,
+    treeRows,
+    getSubRows,
     hasError,
     loading,
     fetchData,
     refreshProcessBuilders,
-    toggleRowExpand,
     updateIsActiveFlag,
     toggleAll,
     resetChanges,
@@ -290,7 +290,6 @@ export const AutomationControlEditor = () => {
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" />
             Deselect All
           </button> */}
-          <SearchInput id="quick-filter" placeholder="Filter items..." className="slds-m-left_small" onChange={setQuickFilterText} />
         </ToolbarItemGroup>
         <ToolbarItemActions>
           <button
@@ -333,7 +332,8 @@ export const AutomationControlEditor = () => {
         <Grid>
           <Grid className="slds-grow slds-box_small slds-theme_default slds-is-relative" verticalAlign="center" wrap>
             {loading && <Spinner size="small"></Spinner>}
-            <ButtonGroupContainer>
+            <SearchInput id="quick-filter" placeholder="Filter items..." onChange={setQuickFilterText} />
+            <ButtonGroupContainer className="slds-m-horizontal_small">
               <button
                 className={classNames('slds-button slds-button_neutral')}
                 title="Enable All"
@@ -353,14 +353,16 @@ export const AutomationControlEditor = () => {
                 Disable All
               </button>
             </ButtonGroupContainer>
-            <Badge className="slds-m-left_x-small">
+            <Badge>
               {formatNumber(dirtyCount)} {pluralizeFromNumber('item', dirtyCount)} modified
             </Badge>
-            {selectedAutomationTypes.includes('FlowProcessBuilder') && (
-              <div className="slds-col_bump-left">
-                <AutomationControlLastRefreshedPopover onRefresh={handleRefreshProcessBuilders} />
-              </div>
-            )}
+            <div className="slds-col_bump-left">
+              {selectedAutomationTypes.includes('FlowProcessBuilder') && (
+                <div className="slds-m-left_small">
+                  <AutomationControlLastRefreshedPopover onRefresh={handleRefreshProcessBuilders} />
+                </div>
+              )}
+            </div>
           </Grid>
         </Grid>
       </div>
@@ -391,9 +393,9 @@ export const AutomationControlEditor = () => {
                 serverUrl={serverUrl}
                 skipFrontdoorLogin={skipFrontdoorLogin}
                 selectedOrg={selectedOrg}
-                rows={visibleRows}
+                rows={treeRows}
+                getSubRows={getSubRows}
                 quickFilterText={quickFilterText}
-                toggleRowExpand={toggleRowExpand}
                 updateIsActiveFlag={updateIsActiveFlag}
                 onSortedAndFilteredRowsChange={tableRowsChange}
               />

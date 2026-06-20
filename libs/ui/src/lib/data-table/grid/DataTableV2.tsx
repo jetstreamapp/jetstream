@@ -1,0 +1,195 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { ContextMenuItem, SalesforceOrgUi } from '@jetstream/types';
+import { ExpandedState, RowSelectionState } from '@tanstack/react-table';
+import { forwardRef, useCallback, useMemo } from 'react';
+import { RowHeightFn } from './components/GridBody';
+import { GridContainer } from './components/GridContainer';
+import { useJetstreamTable } from './core/useJetstreamTable';
+import './data-table-grid.css';
+import { GridFilterContext, GridGenericContext } from './grid-context';
+import { getSortedFilteredLeafRows } from './grid-row-utils';
+import {
+  ColumnWithFilter,
+  ContextMenuActionData,
+  ContextMenuItems,
+  DataTableRef,
+  DefaultColumnOptions,
+  RowWithKey,
+  SortColumn,
+} from './grid-types';
+
+export interface DataTableV2Props<TRow = RowWithKey, TContext = Record<string, any>> {
+  data: TRow[];
+  columns: ColumnWithFilter<TRow>[];
+  getRowKey: (row: TRow) => string;
+  org?: SalesforceOrgUi;
+  serverUrl?: string;
+  skipFrontdoorLogin?: boolean;
+  quickFilterText?: string | null;
+  includeQuickFilter?: boolean;
+  context?: TContext;
+  initialSortColumns?: SortColumn[];
+  defaultColumnOptions?: DefaultColumnOptions<TRow>;
+  rowAlwaysVisible?: (row: TRow) => boolean;
+  ignoreRowInSetFilter?: (row: TRow) => boolean;
+  onReorderColumns?: (columns: string[], columnOrder: number[]) => void;
+  onSortedAndFilteredRowsChange?: (rows: readonly TRow[]) => void;
+  onSortColumnsChange?: (sortColumns: SortColumn[]) => void;
+  /** Called when an inline edit commits; `rows` are the current display rows with the edit applied. */
+  onRowsChange?: (rows: TRow[], data: { indexes: number[]; column: ColumnWithFilter<TRow> }) => void;
+  /** Seed row height for the virtualizer (actual heights are measured dynamically). Either a fixed
+   * number or a per-row callback that distinguishes group rows from data rows. */
+  rowHeight?: number | RowHeightFn<TRow>;
+  rowClass?: (row: TRow) => string | undefined;
+  enableRowSelection?: boolean;
+  rowSelection?: RowSelectionState;
+  onRowSelectionChange?: (selection: RowSelectionState) => void;
+  /** Allow shift-click on headers to add secondary sorts (legacy grid parity). */
+  enableMultiSort?: boolean;
+  ariaLabel?: string;
+  className?: string;
+  // ── Grouping / tree ──
+  role?: 'grid' | 'treegrid';
+  /** Column keys to group rows by (creates group header rows). */
+  grouping?: string[];
+  /** For genuine parent→child hierarchy: return a row's child rows. */
+  getSubRows?: (row: TRow, index: number) => TRow[] | undefined;
+  expanded?: ExpandedState;
+  onExpandedChange?: (expanded: ExpandedState) => void;
+  /** Initial expanded state when uncontrolled — `true` expands all groups/rows. */
+  defaultExpanded?: ExpandedState | boolean;
+  /** Pinned summary rows rendered below the header. */
+  summaryRows?: unknown[];
+  /** Fixed height (px) for each pinned summary row; content-sized when omitted. */
+  summaryRowHeight?: number;
+  /** Right-click context menu items — a static list or a per-cell builder (must be stable). */
+  contextMenuItems?: ContextMenuItems<TRow>;
+  /** Right-click context menu action handler (must be stable). */
+  contextMenuAction?: (item: ContextMenuItem, data: ContextMenuActionData<TRow>) => void;
+}
+
+function DataTableV2Inner<TRow extends object = RowWithKey>(props: DataTableV2Props<TRow>, ref: React.Ref<DataTableRef<TRow>>) {
+  const {
+    data,
+    columns,
+    getRowKey,
+    org,
+    serverUrl,
+    skipFrontdoorLogin,
+    quickFilterText,
+    includeQuickFilter,
+    context,
+    initialSortColumns,
+    defaultColumnOptions,
+    rowAlwaysVisible,
+    ignoreRowInSetFilter,
+    onReorderColumns,
+    onSortedAndFilteredRowsChange,
+    onSortColumnsChange,
+    onRowsChange,
+    rowHeight,
+    rowClass,
+    enableRowSelection,
+    rowSelection,
+    onRowSelectionChange,
+    enableMultiSort,
+    ariaLabel,
+    className,
+    role,
+    grouping,
+    getSubRows,
+    expanded,
+    onExpandedChange,
+    defaultExpanded,
+    summaryRows,
+    summaryRowHeight,
+    contextMenuItems,
+    contextMenuAction,
+  } = props;
+
+  const { table, gridId, orderedColumns, filters, filterSetValues, updateFilter, registerEditedValues } = useJetstreamTable<TRow>({
+    data,
+    columns,
+    getRowKey,
+    ref,
+    initialSortColumns,
+    quickFilterText,
+    includeQuickFilter,
+    rowAlwaysVisible,
+    ignoreRowInSetFilter,
+    defaultColumnOptions,
+    enableRowSelection,
+    rowSelection,
+    onRowSelectionChange,
+    enableMultiSort,
+    onReorderColumns,
+    onSortedAndFilteredRowsChange,
+    onSortColumnsChange,
+    grouping,
+    getSubRows,
+    expanded,
+    onExpandedChange,
+    defaultExpanded,
+  });
+
+  // Keep a freshly edited value selected under an active SET filter so the edited row doesn't vanish
+  // from view (legacy ADD_MODIFIED_VALUE_TO_SET_FILTER behavior), then forward the commit.
+  const handleRowsChange = useCallback(
+    (rows: TRow[], data: { indexes: number[]; column: ColumnWithFilter<TRow> }) => {
+      registerEditedValues(
+        data.column.key,
+        data.indexes.map((index) => (rows[index] as Record<string, unknown>)?.[data.column.key]),
+      );
+      onRowsChange?.(rows, data);
+    },
+    [onRowsChange, registerEditedValues],
+  );
+
+  const filterContextValue = useMemo(() => ({ filterSetValues, filters, updateFilter }), [filterSetValues, filters, updateFilter]);
+
+  // The legacy DataTable exposed the filtered+sorted rows on the generic context; several consumers
+  // (e.g. permission-manager's ColumnSearchFilterSummary / BulkActionRenderer) still read `rows`, so
+  // keep providing them or those components crash on `rows.filter(...)` of undefined. Uses the
+  // collapse-independent leaf rows — group rows would duplicate each group's first child and
+  // collapsing a group would shrink the list (both corrupt "Showing X of Y" and bulk actions).
+  const sortedFlatRows = table.getSortedRowModel().flatRows;
+  const genericContextValue = useMemo(
+    () => ({
+      ...context,
+      org,
+      serverUrl,
+      skipFrontdoorLogin,
+      columns: orderedColumns,
+      rows: getSortedFilteredLeafRows(table).map((row) => row.original),
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [context, org, serverUrl, skipFrontdoorLogin, orderedColumns, sortedFlatRows],
+  );
+
+  return (
+    <GridGenericContext.Provider value={genericContextValue}>
+      <GridFilterContext.Provider value={filterContextValue}>
+        <GridContainer
+          table={table}
+          gridId={gridId}
+          getRowKey={getRowKey}
+          orderedColumns={orderedColumns}
+          role={role ?? (grouping?.length || getSubRows ? 'treegrid' : 'grid')}
+          ariaLabel={ariaLabel}
+          className={className}
+          rowHeight={rowHeight}
+          rowClass={rowClass}
+          onRowsChange={onRowsChange ? handleRowsChange : undefined}
+          summaryRows={summaryRows}
+          summaryRowHeight={summaryRowHeight}
+          contextMenuItems={contextMenuItems}
+          contextMenuAction={contextMenuAction}
+        />
+      </GridFilterContext.Provider>
+    </GridGenericContext.Provider>
+  );
+}
+
+export const DataTableV2 = forwardRef(DataTableV2Inner) as <TRow extends object = RowWithKey>(
+  props: DataTableV2Props<TRow> & { ref?: React.Ref<DataTableRef<TRow>> },
+) => React.ReactElement;

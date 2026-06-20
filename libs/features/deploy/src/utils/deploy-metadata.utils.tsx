@@ -5,6 +5,7 @@ import { tracker } from '@jetstream/shared/ui-utils';
 import { ensureArray, getSuccessOrFailureChar, orderValues, pluralizeFromNumber } from '@jetstream/shared/utils';
 import {
   ChangeSet,
+  ContextMenuItem,
   DeployMetadataTableRow,
   DeployOptions,
   DeployResult,
@@ -16,8 +17,13 @@ import {
 } from '@jetstream/types';
 import {
   ColumnWithFilter,
+  ContextAction,
+  ContextMenuActionData,
+  copyGenericTableDataToClipboard,
   Grid,
   Icon,
+  SELECT_COLUMN_KEY,
+  SelectColumn,
   SelectFormatter,
   SelectHeaderGroupRenderer,
   setColumnFromType,
@@ -33,7 +39,6 @@ import localforage from 'localforage';
 import isDate from 'lodash/isDate';
 import isString from 'lodash/isString';
 import { ReactNode } from 'react';
-import { SELECT_COLUMN_KEY, SelectColumn } from 'react-data-grid';
 
 const MAX_HISTORY_ITEMS = 500;
 
@@ -208,7 +213,7 @@ export function getQueryForPackage(): string {
   return soql;
 }
 
-export function getColumnDefinitions(): ColumnWithFilter<DeployMetadataTableRow>[] {
+export function getColumnDefinitions(onViewItem?: (row: DeployMetadataTableRow) => void): ColumnWithFilter<DeployMetadataTableRow>[] {
   const output: ColumnWithFilter<DeployMetadataTableRow>[] = [
     {
       ...SelectColumn,
@@ -238,7 +243,7 @@ export function getColumnDefinitions(): ColumnWithFilter<DeployMetadataTableRow>
       colSpan: (args) => {
         if (args.type === 'ROW') {
           const { row } = args;
-          if (!row.loading && !row.metadata) {
+          if (!row?.loading && !row?.metadata) {
             return 3;
           }
         }
@@ -251,15 +256,40 @@ export function getColumnDefinitions(): ColumnWithFilter<DeployMetadataTableRow>
       key: 'typeLabel',
       width: 40,
       frozen: true,
-      renderGroupCell: ({ isExpanded }) => (
-        <Grid align="end" verticalAlign="center" className="h-100">
+      // In the group header this cell spans the rest of the row (after the select-all checkbox) so the
+      // chevron + type label + count read as one wide expand/collapse target. The clamp in GridGroupRow
+      // caps the span at the remaining columns. Returns undefined for data rows (they keep this 40px cell).
+      colSpan: (args) => (args.type === 'GROUP' ? Number.MAX_SAFE_INTEGER : undefined),
+      // Rows are grouped by typeLabel, so the per-row value is redundant (it's shown in the group header).
+      // For child rows, surface a shortcut to view this single item's metadata; group headers keep the chevron toggle below.
+      renderCell: ({ row }) =>
+        row.metadata ? (
+          <div className="slds-grid slds-grid_align-center slds-grid_vertical-align-center h-100 w-100">
+            <Tooltip ariaRole="label" content="View metadata">
+              <button className="slds-button slds-button_icon" onClick={() => onViewItem?.(row)} tabIndex={-1}>
+                <Icon type="utility" icon="preview" className="slds-button__icon" omitContainer title="View metadata" />
+              </button>
+            </Tooltip>
+          </div>
+        ) : null,
+      renderGroupCell: ({ isExpanded, toggleGroup, groupKey, childRows }) => (
+        <button
+          type="button"
+          className="jgrid-group-toggle slds-button_reset slds-grid slds-grid_vertical-align-center h-100 w-100"
+          onClick={toggleGroup}
+          title="Toggle collapse"
+          tabIndex={-1}
+        >
           <Icon
             icon={isExpanded ? 'chevrondown' : 'chevronright'}
             type="utility"
-            className="slds-icon slds-icon-text-default slds-icon_x-small"
-            title="Toggle collapse"
+            className="slds-icon slds-icon-text-default slds-icon_x-small slds-m-right_xx-small"
           />
-        </Grid>
+          <span className="jgrid-group-toggle-label slds-truncate">{groupKey as string}</span>
+          {!childRows.some((row) => row.loading) && (
+            <span className="slds-m-left_xx-small slds-text-body_small slds-text-color_weak">({childRows.length})</span>
+          )}
+        </button>
       ),
     },
     {
@@ -268,16 +298,6 @@ export function getColumnDefinitions(): ColumnWithFilter<DeployMetadataTableRow>
       key: 'fullName',
       frozen: true,
       renderCell: ({ row }) => (row.loading ? <Spinner size={'x-small'} /> : row.fullName),
-      renderGroupCell: ({ toggleGroup, groupKey, childRows }) => (
-        <>
-          <button className="slds-button" onClick={toggleGroup}>
-            {groupKey as string}
-          </button>
-          {!childRows.some((row) => row.loading) && (
-            <span className="slds-m-left_xx-small slds-text-body_small slds-text-color_weak">({childRows.length})</span>
-          )}
-        </>
-      ),
       width: 250,
     },
     {
@@ -288,7 +308,7 @@ export function getColumnDefinitions(): ColumnWithFilter<DeployMetadataTableRow>
       colSpan: (args) => {
         if (args.type === 'ROW') {
           const { row } = args;
-          if (!row.loading && !row.metadata) {
+          if (!row?.loading && !row?.metadata) {
             return 5;
           }
         }
@@ -324,6 +344,39 @@ export function getColumnDefinitions(): ColumnWithFilter<DeployMetadataTableRow>
   ];
 
   return output;
+}
+
+/** Custom action: copy the clicked column's values for only the right-clicked row's metadata type. */
+const COPY_COL_TYPE = 'COPY_COL_TYPE';
+
+/**
+ * Per-cell context menu for the deployment table. Only data rows get a menu (group headers aren't passed
+ * here); the type-scoped copy uses the right-clicked row's `typeLabel` in its label and filters to it.
+ */
+export function getDeploymentTableContextMenuItems(data: ContextMenuActionData<DeployMetadataTableRow>): ContextMenuItem[] {
+  // The select column carries no copyable data.
+  if (data.column.key === SELECT_COLUMN_KEY) {
+    return [];
+  }
+  return [
+    { label: `Copy column (${data.row.typeLabel})`, value: COPY_COL_TYPE },
+    { label: 'Copy column (All Types)', value: 'COPY_COL', trailingDivider: true },
+    { label: 'Copy row to clipboard (Excel)', value: 'COPY_ROW_EXCEL', trailingDivider: true },
+    { label: 'Copy Table to clipboard (Excel)', value: 'COPY_TABLE' },
+    { label: 'Copy Table to clipboard (CSV)', value: 'COPY_TABLE_CSV' },
+    { label: 'Copy Table to clipboard (JSON)', value: 'COPY_TABLE_JSON' },
+  ];
+}
+
+export function handleDeploymentTableContextMenuAction(item: ContextMenuItem, data: ContextMenuActionData<DeployMetadataTableRow>): void {
+  const fields = data.columns.map((column) => column.key);
+  if (item.value === COPY_COL_TYPE) {
+    // Scope the column copy to the right-clicked row's metadata type, then reuse the standard column copy.
+    const rowsForType = data.rows.filter((row) => row.typeLabel === data.row.typeLabel);
+    copyGenericTableDataToClipboard('COPY_COL', fields, { ...data, rows: rowsForType });
+    return;
+  }
+  copyGenericTableDataToClipboard(item.value as ContextAction, fields, data);
 }
 
 const dataTableDateFormatter = (dateOrDateTime: Maybe<Date | string>): ReactNode => {

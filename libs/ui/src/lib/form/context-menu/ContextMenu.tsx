@@ -18,6 +18,7 @@ import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import React, { Fragment, FunctionComponent, KeyboardEvent, RefObject, createRef, useEffect, useRef, useState } from 'react';
 import Grid from '../../grid/Grid';
+import { usePortalContext } from '../../modal/PortalContext';
 import Icon from '../../widgets/Icon';
 import { KeyboardShortcut, getModifierKey } from '../../widgets/KeyboardShortcut';
 
@@ -34,6 +35,7 @@ export interface ContextMenuProps {
  * It is a popover component that is positioned relative to the parentElement.
  */
 export const ContextMenu: FunctionComponent<ContextMenuProps> = ({ parentElement, actionText = 'action', items, onClose, onSelected }) => {
+  const { isInPortal, portalRoot } = usePortalContext();
   const keyBuffer = useRef(new KeyBuffer());
 
   const [focusedItem, setFocusedItem] = useState<number | null>(null);
@@ -91,6 +93,33 @@ export const ContextMenu: FunctionComponent<ContextMenuProps> = ({ parentElement
       }
     }
   }, [focusedItem]);
+
+  /**
+   * When rendered inside a modal, floating-ui's `useDismiss` outside-press detection treats clicks
+   * within the modal as a "third-party element injected after" the menu (because the modal marks all
+   * sibling elements with `data-floating-ui-inert`) and refuses to dismiss. Mirror the Popover's manual
+   * outside-press handler so the menu still closes on any outside click while in a modal portal.
+   */
+  useEffect(() => {
+    if (!isInPortal) {
+      return;
+    }
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      const floatingElement = refs.floating.current;
+      if (floatingElement && target && !floatingElement.contains(target)) {
+        onClose();
+      }
+    };
+
+    // Use capture phase to ensure we catch the event before the modal handles it
+    document.addEventListener('mousedown', handleOutsideClick, true);
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick, true);
+    };
+  }, [isInPortal, onClose, refs.floating]);
 
   useEffect(() => {
     if (!isNumber(focusedItem)) {
@@ -160,7 +189,7 @@ export const ContextMenu: FunctionComponent<ContextMenuProps> = ({ parentElement
   }
 
   return (
-    <FloatingPortal>
+    <FloatingPortal root={portalRoot}>
       <div
         ref={refs.setFloating}
         // Selectively picked from `slds-dropdown slds-dropdown_small`

@@ -23,6 +23,9 @@ export interface RecordLookupPopoverProps {
   isTooling?: boolean;
   /** Custom content to render as the popover trigger. Defaults to the recordId. */
   displayValue?: ReactNode;
+  /** Remove the trigger from the page tab order (tabIndex=-1). Used when rendered inside a data-table
+   * cell, where the grid is a single tab stop and the popover is opened via keyboard activation. */
+  removeFromTabOrder?: boolean;
   onRecordAction?: (action: CloneEditView, recordId: string, sobjectName: string) => void;
 }
 
@@ -34,6 +37,7 @@ export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = 
   returnUrl,
   isTooling,
   displayValue,
+  removeFromTabOrder,
   onRecordAction,
 }) => {
   const isMounted = useRef(true);
@@ -237,7 +241,7 @@ export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = 
           </footer>
         ) : undefined
       }
-      buttonProps={{ className: 'slds-button' }}
+      buttonProps={{ className: 'slds-button', ...(removeFromTabOrder ? { tabIndex: -1 } : {}) }}
     >
       <span
         onClick={(event) => {

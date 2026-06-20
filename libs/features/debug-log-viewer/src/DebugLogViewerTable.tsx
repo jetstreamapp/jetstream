@@ -2,18 +2,19 @@ import { css } from '@emotion/react';
 import { ApexLogWithViewed, ContextMenuItem } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
+  CellMouseArgs,
   ColumnWithFilter,
   ContextAction,
   ContextMenuActionData,
   DataTable,
   Icon,
+  RenderCellProps,
   RowWithKey,
   TABLE_CONTEXT_MENU_ITEMS,
   copyGenericTableDataToClipboard,
   setColumnFromType,
 } from '@jetstream/ui';
-import { FunctionComponent, ReactNode, useCallback, useEffect, useRef } from 'react';
-import { CellMouseArgs, RenderCellProps } from 'react-data-grid';
+import { FunctionComponent, ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
 
 export const LogViewedRenderer = ({ row }: RenderCellProps<ApexLogWithViewed>): ReactNode => {
   if (row?.viewed) {
@@ -42,6 +43,7 @@ const COLUMNS: ColumnWithFilter<ApexLogWithViewed>[] = [
     width: 12,
     renderCell: LogViewedRenderer,
     resizable: false,
+    sortable: false,
   },
   {
     ...setColumnFromType('LogUser.Name', 'text'),
@@ -95,10 +97,12 @@ function getRowId({ Id }: ApexLogWithViewed): string {
 
 export interface DebugLogViewerTableProps {
   logs: ApexLogWithViewed[];
+  /** Id of the log currently shown in the results pane — its row is highlighted. */
+  activeLogId?: string | null;
   onRowSelection: (log: ApexLogWithViewed) => void;
 }
 
-export const DebugLogViewerTable: FunctionComponent<DebugLogViewerTableProps> = ({ logs, onRowSelection }) => {
+export const DebugLogViewerTable: FunctionComponent<DebugLogViewerTableProps> = ({ logs, activeLogId, onRowSelection }) => {
   const isMounted = useRef(true);
 
   useEffect(() => {
@@ -118,14 +122,51 @@ export const DebugLogViewerTable: FunctionComponent<DebugLogViewerTableProps> = 
     copyGenericTableDataToClipboard(item.value, FIELDS, data);
   }, []);
 
+  // Highlight the row whose log is currently displayed in the results pane.
+  const rowClass = useCallback(
+    (row: ApexLogWithViewed) => (activeLogId && row.Id === activeLogId ? 'jgrid-row-selected' : undefined),
+    [activeLogId],
+  );
+
+  // The new DataTable has no `onCellClick`. Preserve the legacy "click a row to mark its log viewed"
+  // behavior by wrapping each column's rendered cell content in a click handler. `role="button"` (with
+  // tabIndex=-1 so it stays out of the page tab order) lets the grid's keyboard activation — Enter/Space
+  // on the cell — trigger the same handler as a click.
+  const columns = useMemo<ColumnWithFilter<ApexLogWithViewed>[]>(
+    () =>
+      COLUMNS.map((column) => {
+        const renderCell = column.renderCell;
+        return {
+          ...column,
+          renderCell: (props: RenderCellProps<ApexLogWithViewed>) => (
+            <div
+              role="button"
+              tabIndex={-1}
+              css={css`
+                width: 100%;
+                height: 100%;
+              `}
+              onClick={() => handleSelectionChanged({ row: props.row, column: props.column, rowIdx: props.rowIdx })}
+            >
+              {renderCell ? renderCell(props) : props.value === null || props.value === undefined ? '' : String(props.value)}
+            </div>
+          ),
+        };
+      }),
+    // `onRowSelection` is stable for this component; columns only need to be built once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
   return (
     <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={75}>
       <DataTable
-        columns={COLUMNS}
+        columns={columns}
         data={logs}
         getRowKey={getRowId}
+        rowClass={rowClass}
         initialSortColumns={INITIAL_SORT}
-        onCellClick={handleSelectionChanged}
+        defaultColumnOptions={{ sortable: true }}
         contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
         contextMenuAction={handleContextMenuAction}
       />
