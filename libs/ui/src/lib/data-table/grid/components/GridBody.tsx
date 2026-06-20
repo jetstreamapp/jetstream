@@ -2,7 +2,7 @@
 import { Table } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { CSSProperties, RefObject, useEffect, useMemo, useRef } from 'react';
-import { DEFAULT_ROW_HEIGHT, HEADER_ROW_ID } from '../grid-constants';
+import { DEFAULT_ROW_HEIGHT, HEADER_ROW_ID, isSummaryRowId } from '../grid-constants';
 import { GridMode, SelectionRange } from '../keyboard/useGridKeyboardNavigation';
 import { GridGroupRow } from './GridGroupRow';
 import { ActiveCell, GridRow } from './GridRow';
@@ -23,6 +23,9 @@ export interface GridBodyProps<TRow> {
    * variable rows. */
   rowHeight?: number | RowHeightFn<TRow>;
   overscan?: number;
+  /** Number of pinned summary rows rendered above the body (in the sticky header block). Body rows
+   * offset their `aria-rowindex` past these so the grid's row numbering stays continuous and unique. */
+  summaryRowCount?: number;
   activeCell?: ActiveCell | null;
   mode?: GridMode;
   /** Whether the active cell last changed via mouse vs keyboard — on mouse we skip auto-focusing the
@@ -60,6 +63,7 @@ export function GridBody<TRow>({
   visibleColumnIndexes,
   rowHeight,
   overscan = 8,
+  summaryRowCount = 0,
   activeCell,
   mode = 'navigation',
   getLastInteractionSource,
@@ -114,10 +118,10 @@ export function GridBody<TRow>({
     if (getLastInteractionSource?.() === 'select-all') {
       return;
     }
-    // The column header is a virtual row above the body (always mounted) — it has no body-row index to
-    // scroll to, but it still resolves to a DOM cell below for focus.
-    const isHeader = activeCell.rowId === HEADER_ROW_ID;
-    if (!isHeader) {
+    // The column header and pinned summary rows are virtual rows in the sticky header block (always
+    // mounted) — they have no body-row index to scroll to, but still resolve to a DOM cell below for focus.
+    const isHeaderOrSummary = activeCell.rowId === HEADER_ROW_ID || isSummaryRowId(activeCell.rowId);
+    if (!isHeaderOrSummary) {
       const rowIndex = rows.findIndex((row) => row.id === activeCell.rowId);
       if (rowIndex < 0) {
         return;
@@ -201,7 +205,7 @@ export function GridBody<TRow>({
   if (rows.length === 0) {
     return (
       <div role="rowgroup" className="jgrid-body jgrid-body-empty">
-        <div role="row" aria-rowindex={2} className="jgrid-empty-row">
+        <div role="row" aria-rowindex={2 + summaryRowCount} className="jgrid-empty-row">
           <div role="gridcell" className="jgrid-empty-cell slds-text-align_center slds-p-around_medium slds-text-color_weak">
             No data available
           </div>
@@ -225,7 +229,7 @@ export function GridBody<TRow>({
               columns={leafColumns}
               gridTemplateColumns={gridTemplateColumns}
               visibleColumnIndexes={visibleColumnIndexes}
-              ariaRowIndex={virtualRow.index + 2}
+              ariaRowIndex={virtualRow.index + 2 + summaryRowCount}
               rowIndex={virtualRow.index}
               virtualStart={virtualRow.start}
               height={virtualRow.size}
@@ -242,12 +246,14 @@ export function GridBody<TRow>({
             columns={leafColumns}
             gridTemplateColumns={gridTemplateColumns}
             visibleColumnIndexes={visibleColumnIndexes}
-            ariaRowIndex={virtualRow.index + 2}
+            ariaRowIndex={virtualRow.index + 2 + summaryRowCount}
             rowIndex={virtualRow.index}
             virtualStart={virtualRow.start}
             height={virtualRow.size}
             activeCell={rowActiveCell}
             isSelected={row.getIsSelected()}
+            isExpanded={row.getIsExpanded()}
+            isLastRow={virtualRow.index === rows.length - 1}
             selectionColRange={rowInRange ? selectionColRange : null}
             rowClass={rowClass}
             onCellMouseDown={onCellMouseDown}

@@ -75,10 +75,20 @@ export function getRowId(data: any): string {
  * Build a per-row lowercase search index ({ rowKey: concatenatedText }) used by the global quick
  * filter. Computed once per data/column change so the quick filter stays cheap on large datasets.
  */
-export function getSearchTextByRow<T>(rows: T[], columns: ColumnWithFilter<T>[], getRowKey: (row: T) => string): Record<string, string> {
+export function getSearchTextByRow<T>(
+  rows: T[],
+  columns: ColumnWithFilter<T>[],
+  getRowKey: (row: T) => string,
+  // For `getSubRows` trees, `rows` holds only the roots — recurse so every descendant (e.g. Automation
+  // Control's automation items + flow versions) is indexed, or the quick filter can only match roots.
+  getSubRows?: (row: T, index: number) => T[] | undefined,
+): Record<string, string> {
   const output: Record<string, string> = {};
-  if (Array.isArray(rows)) {
-    rows.forEach((row) => {
+  const indexRows = (list: T[]) => {
+    if (!Array.isArray(list)) {
+      return;
+    }
+    list.forEach((row, index) => {
       const key = getRowKey(row);
       if (key) {
         columns.forEach((column) => {
@@ -97,8 +107,13 @@ export function getSearchTextByRow<T>(rows: T[], columns: ColumnWithFilter<T>[],
           }
         });
       }
+      const children = getSubRows?.(row, index);
+      if (children?.length) {
+        indexRows(children);
+      }
     });
-  }
+  };
+  indexRows(rows);
   return output;
 }
 

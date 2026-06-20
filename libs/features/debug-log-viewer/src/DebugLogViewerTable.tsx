@@ -97,10 +97,12 @@ function getRowId({ Id }: ApexLogWithViewed): string {
 
 export interface DebugLogViewerTableProps {
   logs: ApexLogWithViewed[];
+  /** Id of the log currently shown in the results pane — its row is highlighted. */
+  activeLogId?: string | null;
   onRowSelection: (log: ApexLogWithViewed) => void;
 }
 
-export const DebugLogViewerTable: FunctionComponent<DebugLogViewerTableProps> = ({ logs, onRowSelection }) => {
+export const DebugLogViewerTable: FunctionComponent<DebugLogViewerTableProps> = ({ logs, activeLogId, onRowSelection }) => {
   const isMounted = useRef(true);
 
   useEffect(() => {
@@ -119,6 +121,12 @@ export const DebugLogViewerTable: FunctionComponent<DebugLogViewerTableProps> = 
   const handleContextMenuAction = useCallback((item: ContextMenuItem<ContextAction>, data: ContextMenuActionData<RowWithKey>) => {
     copyGenericTableDataToClipboard(item.value, FIELDS, data);
   }, []);
+
+  // Highlight the row whose log is currently displayed in the results pane.
+  const rowClass = useCallback(
+    (row: ApexLogWithViewed) => (activeLogId && row.Id === activeLogId ? 'jgrid-row-selected' : undefined),
+    [activeLogId],
+  );
 
   // The new DataTable has no `onCellClick`. Preserve the legacy "click a row to mark its log viewed"
   // behavior by wrapping each column's rendered cell content in a click handler. `role="button"` (with
@@ -156,6 +164,7 @@ export const DebugLogViewerTable: FunctionComponent<DebugLogViewerTableProps> = 
         columns={columns}
         data={logs}
         getRowKey={getRowId}
+        rowClass={rowClass}
         initialSortColumns={INITIAL_SORT}
         defaultColumnOptions={{ sortable: true }}
         contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}

@@ -42,6 +42,10 @@ export interface UseJetstreamTableOptions<TRow = RowWithKey> {
   initialSortColumns?: SortColumn[];
   quickFilterText?: string | null;
   includeQuickFilter?: boolean;
+  /** Rows that always pass filters (e.g. group/category headers). MUST be referentially stable: TanStack
+   * caches the filtered-row-model on the filter *value* (not on this fn's identity), so an unstable
+   * predicate whose captured state changed under an active quick filter wouldn't re-evaluate bypassed
+   * rows until the search text changes. Pass a module-level or memoized function. */
   rowAlwaysVisible?: (row: TRow) => boolean;
   ignoreRowInSetFilter?: (row: TRow) => boolean;
   defaultColumnOptions?: DefaultColumnOptions<TRow>;
@@ -264,8 +268,8 @@ export function useJetstreamTable<TRow = RowWithKey>(options: UseJetstreamTableO
     if (!includeQuickFilter || !quickFilterEngaged || !Array.isArray(data) || !data.length || !columns.length) {
       return {} as Record<string, string>;
     }
-    return getSearchTextByRow(data, columns, stableGetRowKey);
-  }, [includeQuickFilter, quickFilterEngaged, data, columns, stableGetRowKey]);
+    return getSearchTextByRow(data, columns, stableGetRowKey, getSubRows);
+  }, [includeQuickFilter, quickFilterEngaged, data, columns, stableGetRowKey, getSubRows]);
 
   // Derive TanStack columnFilters from our filter map (only columns whose filters actually narrow).
   const columnFilters = useMemo<ColumnFiltersState>(() => {
@@ -351,6 +355,9 @@ export function useJetstreamTable<TRow = RowWithKey>(options: UseJetstreamTableO
     // Keep declared column order (don't auto-move grouped columns to the front); we render group rows ourselves.
     groupedColumnMode: false,
     getSubRows,
+    // For getSubRows trees, filter from leaves up so a match on a child (e.g. a flow version) keeps its
+    // ancestor rows visible, instead of being dropped because the parent didn't match.
+    filterFromLeafRows: !!getSubRows,
     globalFilterFn,
     // Evaluate the quick filter on a single carrier column (see globalFilterColumnId). Falls back to
     // TanStack's default (string columns) if there is no data column.

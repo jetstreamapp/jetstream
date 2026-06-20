@@ -24,6 +24,8 @@ export const SubqueryRenderer = ({ column, row }: DataTableCellProps<RowWithKey>
   const [modalTagline, setModalTagline] = useState<Maybe<string>>(null);
   const [downloadModalIsActive, setDownloadModalIsActive] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  // Guards against re-entry while a queryMore is in flight (the loading state hasn't re-rendered yet).
+  const isLoadingMoreRef = useRef(false);
   const [queryResults, setQueryResults] = useState<QueryResult<any>>(row[column.key] || {});
 
   const { records, nextRecordsUrl } = queryResults;
@@ -68,18 +70,22 @@ export const SubqueryRenderer = ({ column, row }: DataTableCellProps<RowWithKey>
   }
 
   async function loadMore(org: SalesforceOrgUi, isTooling: boolean) {
+    // Guard before the try so the finally only runs for calls that actually start a load.
+    if (!nextRecordsUrl || isLoadingMoreRef.current) {
+      return;
+    }
+    isLoadingMoreRef.current = true;
+    setIsLoadingMore(true);
     try {
-      if (!nextRecordsUrl) {
-        return;
-      }
-      setIsLoadingMore(true);
       const results = await queryMore(org, nextRecordsUrl, isTooling);
-      if (!isMounted.current) {
-        return;
+      if (isMounted.current) {
+        // Functional update so the append always merges onto the latest records, not a stale closure.
+        setQueryResults((prev) => ({ ...results.queryResults, records: [...prev.records, ...results.queryResults.records] }));
       }
-      setQueryResults({ ...results.queryResults, records: [...records, ...results.queryResults.records] });
-      setIsLoadingMore(false);
     } catch {
+      // Query errors surface via the shared data layer; just stop the spinner here.
+    } finally {
+      isLoadingMoreRef.current = false;
       if (isMounted.current) {
         setIsLoadingMore(false);
       }
@@ -221,7 +227,7 @@ function ModalDataTable({
                   Showing {formatNumber(records.length)} of {formatNumber(totalSize)} records
                 </span>
                 {!done && (
-                  <button className="slds-button slds-button_neutral" onClick={() => loadMore(org, isTooling)}>
+                  <button className="slds-button slds-button_neutral" disabled={isLoadingMore} onClick={() => loadMore(org, isTooling)}>
                     Load More
                   </button>
                 )}

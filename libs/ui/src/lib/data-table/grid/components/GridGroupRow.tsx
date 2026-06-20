@@ -116,7 +116,11 @@ export function GridGroupRow<TRow>({
   while (index < columns.length) {
     const column = columns[index];
     const meta = column.columnDef.meta?.jetstream;
-    const span = representativeRow ? Math.max(1, meta?.colSpan?.({ type: 'ROW', row: representativeRow }) ?? 1) : 1;
+    // Group rows resolve span via the GROUP discriminant so a column can span the header (e.g. the
+    // grouping column owning the toggle + label) without widening that column on data rows. Clamp to the
+    // remaining tracks so an over-large span can't overrun the row.
+    const requestedSpan = meta?.colSpan?.({ type: 'GROUP', row: representativeRow }) ?? 1;
+    const span = Math.max(1, Math.min(requestedSpan, columns.length - index));
     // A spanning cell is visible when any of the tracks it covers is in the visible window.
     let cellIsVisible = false;
     for (let track = index; track < index + span; track++) {

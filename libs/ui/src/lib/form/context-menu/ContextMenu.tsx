@@ -106,9 +106,9 @@ export const ContextMenu: FunctionComponent<ContextMenuProps> = ({ parentElement
     }
 
     const handleOutsideClick = (event: MouseEvent) => {
-      const target = event.target as Element;
+      const target = event.target as Node | null;
       const floatingElement = refs.floating.current;
-      if (floatingElement && !floatingElement.contains(target)) {
+      if (floatingElement && target && !floatingElement.contains(target)) {
         onClose();
       }
     };

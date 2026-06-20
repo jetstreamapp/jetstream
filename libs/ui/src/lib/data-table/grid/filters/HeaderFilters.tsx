@@ -54,12 +54,12 @@ export const SummaryFilterRenderer = memo(({ columnKey, label }: { columnKey: st
   return (
     <div className="slds-grid slds-grid_align-spread slds-grid_vertical-align-center" style={{ flex: '1 1 auto', minInlineSize: 0 }}>
       <div className="slds-truncate">{label}</div>
-      <HeaderFilterButton columnKey={columnKey} />
+      <HeaderFilterButton columnKey={columnKey} columnName={label} />
     </div>
   );
 });
 
-export const HeaderFilterButton = memo(({ columnKey }: { columnKey: string }) => {
+export const HeaderFilterButton = memo(({ columnKey, columnName }: { columnKey: string; columnName?: string }) => {
   const { filters: allFilters, filterSetValues, updateFilter } = useContext(GridFilterContext);
   const filters = allFilters[columnKey];
   const [active, setActive] = useState(false);
@@ -126,7 +126,13 @@ export const HeaderFilterButton = memo(({ columnKey }: { columnKey: string }) =>
               ))}
           </div>
         }
-        buttonProps={{ className: 'slds-button slds-button_icon', onClick: (ev) => ev.stopPropagation() }}
+        buttonProps={{
+          className: 'slds-button slds-button_icon',
+          // Icon-only trigger needs an accessible name; the active state is conveyed in text (not color
+          // alone) so screen-reader users can tell a filter is applied.
+          'aria-label': `Filter${columnName ? ` ${columnName}` : ''}${active ? ' (active)' : ''}`,
+          onClick: (ev) => ev.stopPropagation(),
+        }}
       >
         <Icon
           type="utility"
@@ -375,7 +381,7 @@ export const HeaderDateFilter = memo(({ columnKey, filter, updateFilter }: Heade
     }
   }
 
-  function handleDateChange(nextValue: Date) {
+  function handleDateChange(nextValue: Date | null) {
     setValue(nextValue);
     updateFilter(columnKey, { ...filter, value: nextValue ? formatISO(nextValue) : null });
   }

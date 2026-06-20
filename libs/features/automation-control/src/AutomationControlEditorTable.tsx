@@ -9,7 +9,7 @@ import {
   copyGenericTableDataToClipboard,
   setColumnFromType,
 } from '@jetstream/ui';
-import { forwardRef, useCallback, useMemo } from 'react';
+import { ReactNode, forwardRef, useCallback, useMemo } from 'react';
 import { isTableRow } from './automation-control-data-utils';
 import { AdditionalDetailRenderer, ExpandingLabelRenderer, LoadingAndActiveRenderer } from './automation-control-table-renderers';
 import { TableRowOrItemOrChild } from './automation-control-types';
@@ -38,24 +38,15 @@ export interface AutomationControlEditorTableProps {
   skipFrontdoorLogin: boolean;
   selectedOrg: SalesforceOrgUi;
   rows: TableRowOrItemOrChild[];
+  getSubRows: (row: TableRowOrItemOrChild, index: number) => TableRowOrItemOrChild[] | undefined;
   quickFilterText?: string | null;
-  toggleRowExpand: (row: TableRowOrItemOrChild, value: boolean) => void;
   updateIsActiveFlag: (row: TableRowOrItemOrChild, value: boolean) => void;
   onSortedAndFilteredRowsChange: (rows: readonly TableRowOrItemOrChild[]) => void;
 }
 
 export const AutomationControlEditorTable = forwardRef<any, AutomationControlEditorTableProps>(
   (
-    {
-      serverUrl,
-      skipFrontdoorLogin,
-      selectedOrg,
-      rows,
-      quickFilterText,
-      toggleRowExpand,
-      updateIsActiveFlag,
-      onSortedAndFilteredRowsChange,
-    },
+    { serverUrl, skipFrontdoorLogin, selectedOrg, rows, getSubRows, quickFilterText, updateIsActiveFlag, onSortedAndFilteredRowsChange },
     ref,
   ) => {
     const columns = useMemo(() => {
@@ -65,14 +56,17 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
           name: 'Automation Item',
           key: 'label',
           width: 400,
-          renderCell: ({ column, row }) => {
+          renderCell: ({ row, value, depth, canExpand, isExpanded, toggleExpanded }) => {
             return (
               <ExpandingLabelRenderer
                 serverUrl={serverUrl}
                 selectedOrg={selectedOrg}
-                column={column}
                 row={row}
-                toggleRowExpand={toggleRowExpand}
+                value={value as ReactNode}
+                depth={depth}
+                canExpand={canExpand}
+                isExpanded={isExpanded}
+                toggleExpanded={toggleExpanded}
               />
             );
           },
@@ -113,7 +107,7 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
           renderCell: AdditionalDetailRenderer,
         },
       ] as ColumnWithFilter<TableRowOrItemOrChild>[];
-    }, [serverUrl, selectedOrg, toggleRowExpand, updateIsActiveFlag]);
+    }, [serverUrl, selectedOrg, updateIsActiveFlag]);
 
     const fields = useMemo(() => columns.map((col) => col.key), [columns]);
 
@@ -132,6 +126,8 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
           org={selectedOrg}
           data={rows}
           columns={columns}
+          getSubRows={getSubRows}
+          defaultExpanded
           rowClass={getRowClass}
           includeQuickFilter
           quickFilterText={quickFilterText}

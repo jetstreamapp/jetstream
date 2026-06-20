@@ -3,7 +3,11 @@ import { DeployMetadataTableRow } from '@jetstream/types';
 import { AutoFullHeightContainer, DataTableSelectedContext, DataTree, Grid, Icon, SearchInput } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
 import { FunctionComponent, useEffect, useMemo, useState } from 'react';
-import { getColumnDefinitions } from './utils/deploy-metadata.utils';
+import {
+  getColumnDefinitions,
+  getDeploymentTableContextMenuItems,
+  handleDeploymentTableContextMenuAction,
+} from './utils/deploy-metadata.utils';
 
 export interface DeployMetadataDeploymentTableProps {
   rows: DeployMetadataTableRow[];
@@ -71,6 +75,8 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
           onExpandedGroupIdsChange={(items) => setExpandedGroupIds(items)}
           selectedRows={selectedRowIds}
           onSelectedRowsChange={setSelectedRowIds}
+          contextMenuItems={getDeploymentTableContextMenuItems}
+          contextMenuAction={handleDeploymentTableContextMenuAction}
         />
       </AutoFullHeightContainer>
     </DataTableSelectedContext.Provider>

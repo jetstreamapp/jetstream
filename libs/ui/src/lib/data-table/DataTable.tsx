@@ -1,9 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ContextMenuItem, SalesforceOrgUi } from '@jetstream/types';
-import { RowSelectionState } from '@tanstack/react-table';
+import { ExpandedState, RowSelectionState } from '@tanstack/react-table';
 import { forwardRef, useMemo } from 'react';
 import { DataTableV2, DataTableV2Props } from './grid/DataTableV2';
-import { ColumnWithFilter, ContextMenuActionData, DataTableRef, DefaultColumnOptions, RowWithKey, SortColumn } from './grid/grid-types';
+import {
+  ColumnWithFilter,
+  ContextMenuActionData,
+  ContextMenuItems,
+  DataTableRef,
+  DefaultColumnOptions,
+  RowWithKey,
+  SortColumn,
+} from './grid/grid-types';
 
 /**
  * Public flat data table. Thin wrapper over the new headless-TanStack grid (DataTableV2) that preserves
@@ -20,12 +28,23 @@ export interface DataTableProps<T = RowWithKey, TContext = Record<string, any>> 
   quickFilterText?: string | null;
   includeQuickFilter?: boolean;
   context?: TContext;
-  contextMenuItems?: ContextMenuItem[];
+  contextMenuItems?: ContextMenuItems<T>;
   // `any` so call sites may type their handler against a narrower row type without variance errors.
   contextMenuAction?: (item: ContextMenuItem, data: ContextMenuActionData<any>) => void;
   initialSortColumns?: SortColumn[];
   rowAlwaysVisible?: (row: T) => boolean;
   ignoreRowInSetFilter?: (row: T) => boolean;
+  /**
+   * For genuine parent→child hierarchy (tree): return a row's child rows, or undefined for leaves.
+   * Use this instead of `DataTree`'s `groupBy` when parent rows are real data rows (not synthetic
+   * group labels). Compose the chevron/indentation in a column's `renderCell` with `TreeExpander`.
+   */
+  getSubRows?: (row: T, index: number) => T[] | undefined;
+  /** Controlled expanded state (keyed by row id). Uncontrolled when omitted — see `defaultExpanded`. */
+  expanded?: ExpandedState;
+  onExpandedChange?: (expanded: ExpandedState) => void;
+  /** Initial expanded state when uncontrolled; `true` expands every expandable row. */
+  defaultExpanded?: ExpandedState | boolean;
   onReorderColumns?: (columns: string[], columnOrder: number[]) => void;
   onSortedAndFilteredRowsChange?: (rows: readonly T[]) => void;
   onSortColumnsChange?: (sortColumns: SortColumn[]) => void;
@@ -88,7 +107,7 @@ export function useMappedV2Props<T extends object = RowWithKey>(props: DataTable
 
 function DataTableInner<T extends object = RowWithKey>(props: DataTableProps<T>, ref: React.Ref<DataTableRef<T>>) {
   const mapped = useMappedV2Props(props);
-  return <DataTableV2<T> {...mapped} ref={ref} role="grid" />;
+  return <DataTableV2<T> {...mapped} ref={ref} role={props.getSubRows ? 'treegrid' : 'grid'} />;
 }
 
 export const DataTable = forwardRef(DataTableInner) as unknown as <T extends object = RowWithKey>(

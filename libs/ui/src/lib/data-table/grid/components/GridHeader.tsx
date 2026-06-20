@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Table } from '@tanstack/react-table';
 import { CSSProperties, ReactNode } from 'react';
-import { HEADER_ROW_ID } from '../grid-constants';
+import { getSummaryRowId, HEADER_ROW_ID } from '../grid-constants';
 import { DataTableHeaderProps } from '../grid-types';
 import { ActiveCell } from './GridRow';
 import { GridSummaryRow } from './GridSummaryRow';
@@ -22,6 +22,8 @@ export interface GridHeaderProps<TRow, TSummaryRow = unknown> {
   activeCell?: ActiveCell | null;
   /** Mouse down on a header cell — makes it the keyboard-active cell. */
   onHeaderCellMouseDown?: (columnId: string) => void;
+  /** Mouse down on a summary cell — makes it the keyboard-active cell. */
+  onSummaryCellMouseDown?: (rowId: string, columnId: string) => void;
   /** Column id currently being dragged (column reorder), or null. */
   draggingColumnId?: string | null;
   /** Drag of a header started. */
@@ -42,6 +44,7 @@ export function GridHeader<TRow, TSummaryRow = unknown>({
   onHeaderContextMenu,
   activeCell,
   onHeaderCellMouseDown,
+  onSummaryCellMouseDown,
   draggingColumnId,
   onColumnDragStart,
   onColumnDragEnd,
@@ -109,6 +112,9 @@ export function GridHeader<TRow, TSummaryRow = unknown>({
           visibleColumnIndexes={visibleColumnIndexes}
           ariaRowIndex={index + 2}
           height={summaryRowHeight}
+          rowId={getSummaryRowId(index)}
+          activeCell={activeCell}
+          onSummaryCellMouseDown={onSummaryCellMouseDown}
         />
       ))}
     </div>

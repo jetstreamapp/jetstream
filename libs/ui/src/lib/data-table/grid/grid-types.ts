@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { ContextMenuItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import type { Header, Row, RowData, Table } from '@tanstack/react-table';
 import { ReactNode } from 'react';
 
@@ -115,6 +115,14 @@ export interface DataTableCellProps<TRow = RowWithKey, TSummaryRow = unknown> {
   rowIdx: number;
   /** Escape hatch to the underlying TanStack row */
   tanstackRow: Row<TRow>;
+  /** Tree (getSubRows) sugar — depth of this row in the tree (0 = root). */
+  depth: number;
+  /** Tree (getSubRows) sugar — true when this row has child rows that can be expanded/collapsed. */
+  canExpand: boolean;
+  /** Tree (getSubRows) sugar — current expanded state (false when the row cannot expand). */
+  isExpanded: boolean;
+  /** Tree (getSubRows) sugar — toggle this row's expanded state. No-op when the row cannot expand. */
+  toggleExpanded: () => void;
   isEditing: boolean;
   startEdit: () => void;
   /** Commit an updated row; mirrors the old `onRowChange(row, true)` */
@@ -167,11 +175,14 @@ export interface ColumnEditorOptions {
   displayCellContent?: boolean;
 }
 
-/** Context passed to a column's `colSpan` resolver (discriminated so `row` is present for ROW/SUMMARY). */
+/** Context passed to a column's `colSpan` resolver (discriminated so `row` is present for ROW/SUMMARY).
+ * GROUP is the group-header row; its `row` is the group's first child (representative), or undefined for
+ * an empty group. Resolving GROUP separately lets a column span in the header without affecting data rows. */
 export type ColSpanArgs<TRow = RowWithKey> =
   | { type: 'HEADER'; row?: undefined }
   | { type: 'ROW'; row: TRow }
-  | { type: 'SUMMARY'; row: TRow };
+  | { type: 'SUMMARY'; row: TRow }
+  | { type: 'GROUP'; row?: TRow };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The public, author-facing column definition (detached from react-data-grid `Column`)
@@ -308,6 +319,14 @@ export type ContextMenuActionData<T> = {
   column: ColumnWithFilter<T, unknown>;
   columns: ColumnWithFilter<T, unknown>[];
 };
+
+/**
+ * Context-menu items: either a static list, or a builder evaluated against the right-clicked cell so the
+ * menu can be cell/column/group-aware (e.g. "Copy column (Apex Classes)"). Returning `[]` suppresses the
+ * custom menu for that cell (the native browser menu is allowed through). Builders run for data-row
+ * right-clicks; column-header right-clicks use the static list (filtered to column-scoped actions).
+ */
+export type ContextMenuItems<T> = ContextMenuItem[] | ((data: ContextMenuActionData<T>) => ContextMenuItem[]);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Internal: meta carried on TanStack `ColumnDef.meta` so presentational components can

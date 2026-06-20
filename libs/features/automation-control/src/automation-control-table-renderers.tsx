@@ -1,25 +1,30 @@
 import { css } from '@emotion/react';
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
-import type { CalculatedColumn, RenderCellProps } from '@jetstream/ui';
-import { Checkbox, CopyToClipboard, Grid, GridCol, Icon, SalesforceLogin, Spinner, Tooltip } from '@jetstream/ui';
+import type { RenderCellProps } from '@jetstream/ui';
+import { Checkbox, CopyToClipboard, Grid, GridCol, Icon, SalesforceLogin, Spinner, Tooltip, TreeExpander } from '@jetstream/ui';
 import classNames from 'classnames';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import uniqueId from 'lodash/uniqueId';
 import { FunctionComponent, ReactNode } from 'react';
-import { isTableRow, isTableRowChild, isTableRowItem } from './automation-control-data-utils';
+import { isTableRow, isTableRowItem } from './automation-control-data-utils';
 import { DeploymentItemRow, DeploymentItemStatus, MetadataCompositeResponseError, TableRowOrItemOrChild } from './automation-control-types';
 
+/**
+ * Label cell for the automation-control tree. Indentation + the expand/collapse chevron come from the
+ * grid's native tree (`getSubRows`) via the shared `TreeExpander` — see the `depth`/`canExpand`/
+ * `isExpanded`/`toggleExpanded` props forwarded from `DataTableCellProps`.
+ */
 export const ExpandingLabelRenderer: FunctionComponent<{
   serverUrl: string;
   selectedOrg: SalesforceOrgUi;
-  column: CalculatedColumn<TableRowOrItemOrChild, unknown>;
   row: TableRowOrItemOrChild;
-  toggleRowExpand: (row: TableRowOrItemOrChild, value: boolean) => void;
-}> = ({ serverUrl, selectedOrg, column, row, toggleRowExpand }) => {
-  const value = row[column.key as keyof TableRowOrItemOrChild];
-  const leftMargin = isTableRowItem(row) ? 2 : isTableRowChild(row) ? 4.5 : 0;
-
+  value: ReactNode;
+  depth: number;
+  canExpand: boolean;
+  isExpanded: boolean;
+  toggleExpanded: () => void;
+}> = ({ serverUrl, selectedOrg, row, value, depth, canExpand, isExpanded, toggleExpanded }) => {
   const wrappedValue =
     !isTableRow(row) && row.link && serverUrl && selectedOrg ? (
       <SalesforceLogin
@@ -36,36 +41,18 @@ export const ExpandingLabelRenderer: FunctionComponent<{
       value
     );
 
-  if (isTableRow(row) || (isTableRowItem(row) && Array.isArray(row.children) && row.children.length)) {
-    return (
-      <Grid
-        verticalAlign="center"
+  return (
+    <TreeExpander depth={depth} canExpand={canExpand} isExpanded={isExpanded} onToggle={toggleExpanded}>
+      <div
         css={css`
-          margin-left: ${leftMargin}rem;
+          line-height: 1.5;
+          overflow-wrap: break-word;
+          white-space: normal;
         `}
       >
-        <button className="slds-button slds-button_icon slds-button_icon-container" onClick={() => toggleRowExpand(row, !row.isExpanded)}>
-          <Icon type="utility" icon={row.isExpanded ? 'chevrondown' : 'chevronright'} className="slds-button__icon" omitContainer />
-        </button>
-
-        <div>{wrappedValue}</div>
-      </Grid>
-    );
-  }
-
-  return (
-    <div
-      css={css`
-        margin-left: ${leftMargin}rem;
-        display: inline-block;
-        line-height: 1.5;
-        overflow-wrap: break-word;
-        white-space: normal;
-        text-align: justify;
-      `}
-    >
-      {wrappedValue}
-    </div>
+        {wrappedValue}
+      </div>
+    </TreeExpander>
   );
 };
 

@@ -1,6 +1,7 @@
 /**
  * Re-export of the new grid renderers. The legacy implementation moved into `grid/renderers/`.
  */
+export { SummaryFilterRenderer } from './grid/filters/HeaderFilters';
 export {
   ActionRenderer,
   BooleanRenderer,
@@ -15,4 +16,5 @@ export {
   ValueOrLoadingRenderer,
 } from './grid/renderers/CellRenderers';
 export { SubqueryRenderer } from './grid/renderers/SubqueryRenderer';
-export { SummaryFilterRenderer } from './grid/filters/HeaderFilters';
+export { TreeExpander } from './grid/renderers/TreeExpander';
+export type { TreeExpanderProps } from './grid/renderers/TreeExpander';

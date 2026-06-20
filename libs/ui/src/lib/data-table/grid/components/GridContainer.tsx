@@ -10,7 +10,7 @@ import { reorderColumnOrder } from '../grid-column-utils';
 import { NON_DATA_COLUMN_KEYS } from '../grid-constants';
 import { GridRuntime, GridRuntimeContext } from '../grid-context';
 import { getSortedFilteredLeafRows } from '../grid-row-utils';
-import { ColumnWithFilter, ContextMenuActionData, DataTableHeaderProps, RowWithKey } from '../grid-types';
+import { ColumnWithFilter, ContextMenuActionData, ContextMenuItems, DataTableHeaderProps, RowWithKey } from '../grid-types';
 import { useGridKeyboardNavigation } from '../keyboard/useGridKeyboardNavigation';
 import { GridBody, RowHeightFn } from './GridBody';
 import { GridHeader } from './GridHeader';
@@ -32,12 +32,16 @@ const COLUMN_SCOPED_CONTEXT_ACTIONS = new Set<unknown>([
   'COPY_TABLE_CSV',
 ]);
 
-interface ContextMenuState {
+interface ContextMenuState<TRow = any> {
   area: 'cell' | 'header';
   /** Set for cell menus; absent for header menus. */
   rowId?: string;
   columnId: string;
   element: HTMLElement;
+  /** Items resolved when the menu opened (a per-cell builder may have produced these). */
+  items: ContextMenuItem[];
+  /** Cell action data captured at open time, passed to `contextMenuAction` on selection. */
+  actionData: ContextMenuActionData<TRow> | null;
 }
 
 export interface GridContainerProps<TRow> {
@@ -60,8 +64,8 @@ export interface GridContainerProps<TRow> {
   summaryRows?: unknown[];
   /** Fixed height (px) for each pinned summary row; content-sized when omitted. */
   summaryRowHeight?: number;
-  /** Right-click context menu items (must be stable). */
-  contextMenuItems?: ContextMenuItem[];
+  /** Right-click context menu items — a static list or a per-cell builder (must be stable). */
+  contextMenuItems?: ContextMenuItems<TRow>;
   /** Right-click context menu action handler (must be stable). */
   contextMenuAction?: (item: ContextMenuItem, data: ContextMenuActionData<TRow>) => void;
   /** Slot for editor popovers / context menu portals rendered as siblings of the grid. */
@@ -92,6 +96,14 @@ export function GridContainer<TRow = RowWithKey>({
 
   const [editingCell, setEditingCell] = useState<ActiveCell | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+
+  // Polite live-region message for actions/state changes that are otherwise only visual (copy, filter
+  // results). Clear-then-set on the next frame so repeating the same message re-announces it.
+  const [announcement, setAnnouncement] = useState('');
+  const announce = useCallback((message: string) => {
+    setAnnouncement('');
+    requestAnimationFrame(() => setAnnouncement(message));
+  }, []);
   // Column reorder (drag-and-drop). Track which column is in flight so headers can render the dragged
   // state and the scroller can edge-auto-scroll while a drag is active.
   const [draggingColumnId, setDraggingColumnId] = useState<string | null>(null);
@@ -197,7 +209,21 @@ export function GridContainer<TRow = RowWithKey>({
     getRootElement: () => gridRef.current,
     onRequestEdit: startEdit,
     shouldRetainFocusOnBlur,
+    summaryRowCount: summaryRows?.length ?? 0,
+    onAnnounce: announce,
   });
+
+  // Announce the matching row count after the filter set changes (the filtered model is pre-grouping, so
+  // this counts data rows and isn't perturbed by expanding/collapsing groups or sorting). Skips the
+  // initial render so the grid doesn't announce on mount.
+  const filteredRowCount = table.getFilteredRowModel().rows.length;
+  const previousFilteredRowCountRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (previousFilteredRowCountRef.current !== null && previousFilteredRowCountRef.current !== filteredRowCount) {
+      announce(`${filteredRowCount} ${filteredRowCount === 1 ? 'row' : 'rows'}`);
+    }
+    previousFilteredRowCountRef.current = filteredRowCount;
+  }, [filteredRowCount, announce]);
 
   const leafColumns = table.getVisibleLeafColumns();
   const columnSizing = table.getState().columnSizing;
@@ -310,27 +336,63 @@ export function GridContainer<TRow = RowWithKey>({
     return { minRow, maxRow, minCol, maxCol };
   }, [activeCell, anchorCell, rowIndexById, colIndexById]);
 
-  const hasContextMenu = !!contextMenuItems && !!contextMenuAction;
+  // Resolve the right-clicked cell to the consumer-facing action data (leaf rows only; group rows are
+  // excluded). Returns null for a group header / column with no data column.
+  const buildCellActionData = useCallback(
+    (rowId: string, columnId: string): ContextMenuActionData<TRow> | null => {
+      const leafRows = getSortedFilteredLeafRows(table);
+      const rowIndex = leafRows.findIndex((modelRow) => modelRow.id === rowId);
+      const column = table.getColumn(columnId)?.columnDef.meta?.jetstream?.column;
+      if (rowIndex < 0 || !column) {
+        return null;
+      }
+      return {
+        row: leafRows[rowIndex].original,
+        rows: leafRows.map((modelRow) => modelRow.original),
+        rowIdx: rowIndex,
+        column,
+        columns: orderedColumns,
+      };
+    },
+    [table, orderedColumns],
+  );
+
+  // A static list, or a per-cell builder evaluated against the right-clicked cell (e.g. group-aware
+  // "Copy column (Apex Classes)"). The builder returning `[]` suppresses the menu for that cell.
+  const resolveCellMenuItems = useCallback(
+    (data: ContextMenuActionData<TRow>): ContextMenuItem[] =>
+      typeof contextMenuItems === 'function' ? contextMenuItems(data) : Array.isArray(contextMenuItems) ? contextMenuItems : [],
+    [contextMenuItems],
+  );
+
   const handleCellContextMenu = useCallback(
     (event: React.MouseEvent, rowId: string, columnId: string) => {
-      // Ctrl/Meta lets the native browser menu through; only intercept when we have something to show.
-      if (event.ctrlKey || event.metaKey || (!hasContextMenu && !selectionRange)) {
+      if (event.ctrlKey || event.metaKey) {
+        return;
+      }
+      const actionData = contextMenuAction ? buildCellActionData(rowId, columnId) : null;
+      const items = actionData ? resolveCellMenuItems(actionData) : [];
+      // Ctrl/Meta lets the native browser menu through; so does an empty menu with no active selection.
+      if (!items.length && !selectionRange) {
         return;
       }
       event.preventDefault();
       const element = event.currentTarget as HTMLElement;
       // Re-open on the next tick so an already-open menu closes first (matches legacy behavior).
       setContextMenu(null);
-      setTimeout(() => setContextMenu({ area: 'cell', rowId, columnId, element }));
+      setTimeout(() => setContextMenu({ area: 'cell', rowId, columnId, element, items, actionData }));
     },
-    [hasContextMenu, selectionRange],
+    [contextMenuAction, buildCellActionData, resolveCellMenuItems, selectionRange],
   );
 
-  // Right-clicking a column HEADER offers the column/table-scoped copy actions (when this table has a
-  // context menu at all). Non-data columns (select/action) keep the native menu.
+  // Right-clicking a column HEADER offers the column/table-scoped copy actions — only for a static item
+  // list (per-cell builders are cell-scoped). Non-data columns (select/action) keep the native menu.
   const headerContextMenuItems = useMemo(
-    () => (hasContextMenu ? (contextMenuItems ?? []).filter((item) => COLUMN_SCOPED_CONTEXT_ACTIONS.has(item.value)) : []),
-    [hasContextMenu, contextMenuItems],
+    () =>
+      Array.isArray(contextMenuItems) && contextMenuAction
+        ? contextMenuItems.filter((item) => COLUMN_SCOPED_CONTEXT_ACTIONS.has(item.value))
+        : [],
+    [contextMenuItems, contextMenuAction],
   );
   const handleHeaderContextMenu = useCallback(
     (event: React.MouseEvent, columnId: string) => {
@@ -339,10 +401,12 @@ export function GridContainer<TRow = RowWithKey>({
       }
       event.preventDefault();
       const element = event.currentTarget as HTMLElement;
+      // Column/table copy operates over the whole column — anchor the action data on the first leaf row.
+      const actionData = buildCellActionData(getSortedFilteredLeafRows(table)[0]?.id ?? '', columnId);
       setContextMenu(null);
-      setTimeout(() => setContextMenu({ area: 'header', columnId, element }));
+      setTimeout(() => setContextMenu({ area: 'header', columnId, element, items: headerContextMenuItems, actionData }));
     },
-    [headerContextMenuItems],
+    [headerContextMenuItems, table, buildCellActionData],
   );
 
   // Closing the menu can strand DOM focus on <body> (the menu auto-focuses its items and unmounts on
@@ -438,8 +502,8 @@ export function GridContainer<TRow = RowWithKey>({
             ref={gridRef}
             role={role}
             data-id={gridId}
-            aria-label={ariaLabel}
-            aria-rowcount={rowCount + 1}
+            aria-label={ariaLabel || 'Data table'}
+            aria-rowcount={rowCount + 1 + (summaryRows?.length ?? 0)}
             aria-colcount={leafColumns.length}
             aria-multiselectable={table.options.enableRowSelection ? true : undefined}
             className="jgrid"
@@ -459,6 +523,7 @@ export function GridContainer<TRow = RowWithKey>({
               onHeaderContextMenu={handleHeaderContextMenu}
               activeCell={keyboardNav.activeCell}
               onHeaderCellMouseDown={keyboardNav.handleHeaderCellMouseDown}
+              onSummaryCellMouseDown={keyboardNav.handleSummaryCellMouseDown}
               draggingColumnId={draggingColumnId}
               onColumnDragStart={setDraggingColumnId}
               onColumnDragEnd={handleColumnDragEnd}
@@ -471,6 +536,7 @@ export function GridContainer<TRow = RowWithKey>({
               visibleColumnIndexes={visibleColumnIndexes}
               rowHeight={rowHeight}
               overscan={overscan}
+              summaryRowCount={summaryRows?.length ?? 0}
               activeCell={keyboardNav.activeCell}
               mode={keyboardNav.mode}
               getLastInteractionSource={keyboardNav.getLastInteractionSource}
@@ -491,6 +557,11 @@ export function GridContainer<TRow = RowWithKey>({
           {keyboardNav.mode === 'actionable' ? 'Actionable mode' : 'Navigation mode'}
         </span>
 
+        {/* Screen-reader feedback for actions/state changes that are otherwise only visual (copy, filter results). */}
+        <span className="slds-assistive-text" role="status" aria-live="polite" aria-atomic="true">
+          {announcement}
+        </span>
+
         {editingCell && (
           <EditorHost
             // Key by cell so the editor's draft-row state resets when editing moves to another cell.
@@ -505,22 +576,24 @@ export function GridContainer<TRow = RowWithKey>({
 
         {contextMenu &&
           (() => {
-            const isHeaderMenu = contextMenu.area === 'header';
-            const menuItems: ContextMenuItem[] = isHeaderMenu
-              ? headerContextMenuItems
-              : [
-                  ...(selectionRange
-                    ? [
-                        { label: 'Copy selected cells', value: COPY_RANGE_ACTION } as ContextMenuItem,
-                        {
-                          label: 'Copy selected cells with header',
-                          value: COPY_RANGE_WITH_HEADER_ACTION,
-                          trailingDivider: true,
-                        } as ContextMenuItem,
-                      ]
-                    : []),
-                  ...(contextMenuItems ?? []),
-                ];
+            // Cell menus prepend the rectangular-selection copy actions; items were resolved at open time
+            // (a per-cell builder may have produced them). Header menus use their column-scoped items.
+            const menuItems: ContextMenuItem[] =
+              contextMenu.area === 'header'
+                ? contextMenu.items
+                : [
+                    ...(selectionRange
+                      ? [
+                          { label: 'Copy selected cells', value: COPY_RANGE_ACTION } as ContextMenuItem,
+                          {
+                            label: 'Copy selected cells with header',
+                            value: COPY_RANGE_WITH_HEADER_ACTION,
+                            trailingDivider: true,
+                          } as ContextMenuItem,
+                        ]
+                      : []),
+                    ...contextMenu.items,
+                  ];
             if (!menuItems.length) {
               return null;
             }
@@ -534,21 +607,9 @@ export function GridContainer<TRow = RowWithKey>({
                     keyboardNav.copySelection();
                   } else if (item.value === COPY_RANGE_WITH_HEADER_ACTION) {
                     keyboardNav.copySelection(true);
-                  } else if (contextMenuAction) {
-                    // Consumers receive only data (leaf) rows — group rows would duplicate each
-                    // group's first child, and collapsed groups must still be copyable.
-                    const leafRows = getSortedFilteredLeafRows(table);
-                    const rowIndex = isHeaderMenu ? 0 : leafRows.findIndex((modelRow) => modelRow.id === contextMenu.rowId);
-                    const column = table.getColumn(contextMenu.columnId)?.columnDef.meta?.jetstream?.column;
-                    if (rowIndex >= 0 && rowIndex < leafRows.length && column) {
-                      contextMenuAction(item, {
-                        row: leafRows[rowIndex].original,
-                        rows: leafRows.map((modelRow) => modelRow.original),
-                        rowIdx: rowIndex,
-                        column,
-                        columns: orderedColumns,
-                      });
-                    }
+                  } else if (contextMenuAction && contextMenu.actionData) {
+                    // Action data (leaf rows only; group rows excluded) was captured when the menu opened.
+                    contextMenuAction(item, contextMenu.actionData);
                   }
                   closeContextMenu();
                 }}

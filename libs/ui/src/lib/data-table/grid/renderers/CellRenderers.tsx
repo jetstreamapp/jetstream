@@ -270,15 +270,17 @@ export function SelectHeaderGroupRenderer({ childRows, tanstackRow }: DataTableG
   const allSelected = tanstackRow.getIsAllSubRowsSelected();
   const someSelected = tanstackRow.getIsSomeSelected();
   return (
-    <Checkbox
-      id={`checkbox-select-all-${tanstackRow.id}`}
-      label="Select all"
-      hideLabel
-      tabIndex={-1}
-      checked={allSelected}
-      indeterminate={!allSelected && someSelected}
-      onChange={(checked) => tanstackRow.toggleSelected(checked)}
-    />
+    <span className="jgrid-cell-select slds-grid slds-grid_align-center slds-grid_vertical-align-center h-100 w-100">
+      <Checkbox
+        id={`checkbox-select-all-${tanstackRow.id}`}
+        label="Select all"
+        hideLabel
+        tabIndex={-1}
+        checked={allSelected}
+        indeterminate={!allSelected && someSelected}
+        onChange={(checked) => tanstackRow.toggleSelected(checked)}
+      />
+    </span>
   );
 }
 

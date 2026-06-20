@@ -249,6 +249,23 @@
   box-shadow: var(--slds-g-shadow-insetinverse-focus-1, inset 0 0 0 2px #0176d3);
 }
 
+/* Round the table's four corner cells to match the scroller's radius. The focus ring is an INSET
+   box-shadow, so without a matching corner radius it draws a square ring just inside the rounded table
+   edge. The sticky header owns the top corners; the last data row owns the bottom corners. (Right/last
+   corners only round once that column is scrolled into view, which is when they actually sit at the edge.) */
+.jgrid-header-cell.jgrid-cell-col-first {
+  border-start-start-radius: var(--slds-g-radius-border-2, 0);
+}
+.jgrid-header-cell.jgrid-cell-col-last {
+  border-start-end-radius: var(--slds-g-radius-border-2, 0);
+}
+.jgrid-row-last .jgrid-cell.jgrid-cell-col-first {
+  border-end-start-radius: var(--slds-g-radius-border-2, 0);
+}
+.jgrid-row-last .jgrid-cell.jgrid-cell-col-last {
+  border-end-end-radius: var(--slds-g-radius-border-2, 0);
+}
+
 /* Inline-edit dirty + error states (parity with legacy class names) */
 .jgrid-cell.slds-is-edited {
   font-weight: 600;
@@ -300,6 +317,28 @@
 }
 .jgrid-group-toggle:hover .jgrid-group-toggle-label {
   text-decoration: underline;
+}
+
+/* Tree (getSubRows) expander affordance — depth indent + chevron/spacer, rendered inside a data cell
+   via the shared `TreeExpander`. The spacer keeps leaf-row content aligned with expandable siblings. */
+.jgrid-tree-expander {
+  min-inline-size: 0;
+}
+
+.jgrid-tree-toggle {
+  flex: 0 0 auto;
+  margin-inline-end: 0.25rem;
+}
+
+.jgrid-tree-toggle-spacer {
+  flex: 0 0 auto;
+  /* Match the chevron button's footprint so labels line up across leaf + expandable rows. */
+  inline-size: 1.5rem;
+  margin-inline-end: 0.25rem;
+}
+
+.jgrid-tree-expander-content {
+  min-inline-size: 0;
 }
 
 /* Summary rows live inside the sticky header block */

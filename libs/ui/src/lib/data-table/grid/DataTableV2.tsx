@@ -8,7 +8,15 @@ import { useJetstreamTable } from './core/useJetstreamTable';
 import './data-table-grid.css';
 import { GridFilterContext, GridGenericContext } from './grid-context';
 import { getSortedFilteredLeafRows } from './grid-row-utils';
-import { ColumnWithFilter, ContextMenuActionData, DataTableRef, DefaultColumnOptions, RowWithKey, SortColumn } from './grid-types';
+import {
+  ColumnWithFilter,
+  ContextMenuActionData,
+  ContextMenuItems,
+  DataTableRef,
+  DefaultColumnOptions,
+  RowWithKey,
+  SortColumn,
+} from './grid-types';
 
 export interface DataTableV2Props<TRow = RowWithKey, TContext = Record<string, any>> {
   data: TRow[];
@@ -54,8 +62,8 @@ export interface DataTableV2Props<TRow = RowWithKey, TContext = Record<string, a
   summaryRows?: unknown[];
   /** Fixed height (px) for each pinned summary row; content-sized when omitted. */
   summaryRowHeight?: number;
-  /** Right-click context menu items (must be stable). */
-  contextMenuItems?: ContextMenuItem[];
+  /** Right-click context menu items — a static list or a per-cell builder (must be stable). */
+  contextMenuItems?: ContextMenuItems<TRow>;
   /** Right-click context menu action handler (must be stable). */
   contextMenuAction?: (item: ContextMenuItem, data: ContextMenuActionData<TRow>) => void;
 }

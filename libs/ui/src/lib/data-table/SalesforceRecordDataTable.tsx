@@ -340,16 +340,18 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
     };
 
     const handleSaveRecords = async () => {
+      // Guards stay OUTSIDE the try: an early `return` inside it still runs the `finally`, which would
+      // clear isSavingRef / saving state while a concurrent save is mid-flight — allowing overlapping saves.
+      if (!rows || isSavingRef.current) {
+        return;
+      }
+      if (!dirtyRows.length) {
+        setRecords((records) => (records ? [...records] : records));
+        return;
+      }
+      isSavingRef.current = true;
+      setIsSavingRecords(true);
       try {
-        if (!rows || isSavingRef.current) {
-          return;
-        }
-        if (!dirtyRows.length) {
-          setRecords((records) => (records ? [...records] : records));
-          return;
-        }
-        isSavingRef.current = true;
-        setIsSavingRecords(true);
         const modifiedRecords = dirtyRows.map((row) =>
           nullifyEmptyStrings(
             Array.from(row._touchedColumns).reduce(

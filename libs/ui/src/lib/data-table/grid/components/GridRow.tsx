@@ -28,6 +28,11 @@ export interface GridRowProps<TRow> {
   activeCell?: ActiveCell | null;
   /** Explicit selection flag so the memo'd row re-renders when selection flips (row refs are stable). */
   isSelected: boolean;
+  /** Explicit expanded flag — same reason as `isSelected`: TanStack reuses the Row instance across
+   * expand/collapse, so without this prop the memo'd row (and its chevron) never re-renders on toggle. */
+  isExpanded: boolean;
+  /** True for the last data row — lets its corner cells round to match the table's bottom corners. */
+  isLastRow: boolean;
   /** Inclusive column-index range selected on this row (cell range), or null. */
   selectionColRange?: { start: number; end: number } | null;
   rowClass?: (row: TRow) => string | undefined;
@@ -49,6 +54,8 @@ function GridRowComponent<TRow>({
   height,
   activeCell,
   isSelected,
+  isExpanded,
+  isLastRow,
   selectionColRange,
   rowClass,
   onCellMouseDown,
@@ -111,6 +118,7 @@ function GridRowComponent<TRow>({
         colSpan={colSpan}
         isActive={!!activeCell && activeCell.rowId === row.id && activeCell.columnId === cell.column.id}
         isSelected={isSelected}
+        rowIsExpanded={isExpanded}
         isRangeSelected={!!selectionColRange && columnIndex >= selectionColRange.start && columnIndex <= selectionColRange.end}
         onCellMouseDown={onCellMouseDown}
         onCellMouseEnter={onCellMouseEnter}
@@ -126,11 +134,11 @@ function GridRowComponent<TRow>({
       role="row"
       aria-rowindex={ariaRowIndex}
       aria-level={row.depth > 0 ? row.depth + 1 : undefined}
-      aria-expanded={row.getCanExpand() ? row.getIsExpanded() : undefined}
+      aria-expanded={row.getCanExpand() ? isExpanded : undefined}
       aria-selected={row.getCanSelect() ? isSelected : undefined}
       data-row-id={row.id}
       data-index={rowIndex}
-      className={classNames('jgrid-row', { 'jgrid-row-selected': isSelected }, consumerRowClass, {
+      className={classNames('jgrid-row', { 'jgrid-row-selected': isSelected, 'jgrid-row-last': isLastRow }, consumerRowClass, {
         'save-error': !!(original as Partial<RowWithKey>)?._saveError,
       })}
       style={style}

@@ -1,6 +1,7 @@
 import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { groupByFlat, orderValues, pluralizeFromNumber } from '@jetstream/shared/utils';
+import type { ContextMenuItem } from '@jetstream/types';
 import {
   BulkActionCheckbox,
   DirtyRow,
@@ -31,6 +32,9 @@ import type { RenderCellProps, RenderSummaryCellProps } from '@jetstream/ui';
 import {
   Checkbox,
   ColumnWithFilter,
+  ContextAction,
+  ContextMenuActionData,
+  copyGenericTableDataToClipboard,
   DataTableGenericContext,
   Grid,
   Icon,
@@ -38,9 +42,9 @@ import {
   Popover,
   PopoverRef,
   SearchInput,
+  setColumnFromType,
   SummaryFilterRenderer,
   Tooltip,
-  setColumnFromType,
 } from '@jetstream/ui';
 import startCase from 'lodash/startCase';
 import { Fragment, useContext, useMemo, useRef, useState } from 'react';
@@ -451,13 +455,34 @@ export function getFieldColumns(
       ...(setColumnFromType('sobject', 'text') as any),
       name: 'Object',
       key: 'sobject',
-      // Grouping is by sobject; the full-width group toggle row (rendered by the grid) shows the object
-      // name + count, so this per-row column just needs to be wide enough to read API names. Resizable
-      // so users can reclaim the space when they don't need it.
+      // Grouping is by sobject. Because the permission columns supply their own `renderGroupCell` (the
+      // per-column checked counts), the grid no longer renders its fallback full-width header — so this
+      // column owns the group row's expand toggle + object name + child count.
       width: 200,
       resizable: true,
       cellClass: 'bg-color-gray-dark',
       summaryCellClass: 'bg-color-gray-dark',
+      // In the group header only, span Object + Field + row-action so the object name has room. Returns
+      // undefined for data/summary rows, so those cells stay one column wide.
+      colSpan: (args) => (args.type === 'GROUP' ? 3 : undefined),
+      renderGroupCell: ({ groupKey, childRows, isExpanded, toggleGroup }) => (
+        <button
+          type="button"
+          className="jgrid-group-toggle slds-button_reset slds-grid slds-grid_vertical-align-center"
+          onClick={toggleGroup}
+          tabIndex={-1}
+        >
+          <Icon
+            type="utility"
+            icon={isExpanded ? 'chevrondown' : 'chevronright'}
+            className="slds-icon slds-icon-text-default slds-icon_x-small slds-m-right_xx-small"
+          />
+          <span className="jgrid-group-toggle-label slds-truncate" title={String(groupKey ?? '')}>
+            {groupKey === null || groupKey === undefined ? '—' : String(groupKey)}
+          </span>
+          <span className="slds-text-body_small slds-text-color_weak slds-m-left_x-small">({formatNumber(childRows.length)})</span>
+        </button>
+      ),
     },
     {
       ...setColumnFromType('tableLabel', 'text'),
@@ -670,8 +695,74 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
       }
       return <PinnedSelectAllRendererWrapper {...(args as RenderSummaryCellProps<any, unknown>)} />;
     },
+    // On grouped tables (field permissions) the group header shows how many of the group's child rows
+    // have this permission checked. Object/tab tables aren't grouped, so this never renders there.
+    renderGroupCell: ({ childRows }) => {
+      const checkedCount = childRows.reduce((total, childRow) => total + ((childRow.permissions[id] as any)?.[actionKey] ? 1 : 0), 0);
+      return <GroupCheckedCount checkedCount={checkedCount} totalCount={childRows.length} />;
+    },
   };
   return column as PermissionTypeColumn<T>;
+}
+
+/** Group-header summary for a permission column: how many child rows have it checked, out of the total. */
+function GroupCheckedCount({ checkedCount, totalCount }: { checkedCount: number; totalCount: number }) {
+  return (
+    <div
+      className="slds-align_absolute-center h-100 slds-text-body_small"
+      title={`${formatNumber(checkedCount)} of ${formatNumber(totalCount)} checked`}
+    >
+      <span className={checkedCount > 0 ? 'slds-text-color_default' : 'slds-text-color_weak'}>
+        {formatNumber(checkedCount)}
+        <span className="slds-text-color_weak">{` / ${formatNumber(totalCount)}`}</span>
+      </span>
+    </div>
+  );
+}
+
+// Field-name column copy scoped to the right-clicked object; the unique-objects copy for the object column.
+const COPY_COL_OBJECT = 'COPY_COL_OBJECT';
+const COPY_COL_OBJECTS_UNIQUE = 'COPY_COL_OBJECTS_UNIQUE';
+
+/**
+ * Per-cell context menu for the field-permissions table. Only the Object and Field columns get a menu
+ * (the Read/Edit checkbox columns are skipped), and the only actions are column copies.
+ */
+export function getFieldPermissionContextMenuItems(data: ContextMenuActionData<PermissionTableFieldCell>): ContextMenuItem[] {
+  if (data.column.key === 'sobject') {
+    // The object value repeats once per field — copy the de-duplicated list of object names.
+    return [{ label: 'Copy column (All Objects)', value: COPY_COL_OBJECTS_UNIQUE }];
+  }
+  if (data.column.key === 'tableLabel') {
+    // Field column: the field names for the clicked object, or for every object.
+    return [
+      { label: `Copy column (${data.row.sobject})`, value: COPY_COL_OBJECT },
+      { label: 'Copy column (All Objects)', value: 'COPY_COL' },
+    ];
+  }
+  return [];
+}
+
+export function handleFieldPermissionContextMenuAction(item: ContextMenuItem, data: ContextMenuActionData<PermissionTableFieldCell>): void {
+  const fields = data.columns.map((column) => column.key);
+  if (item.value === COPY_COL_OBJECT) {
+    const rowsForObject = data.rows.filter((row) => row.sobject === data.row.sobject);
+    copyGenericTableDataToClipboard('COPY_COL', fields, { ...data, rows: rowsForObject });
+    return;
+  }
+  if (item.value === COPY_COL_OBJECTS_UNIQUE) {
+    const seen = new Set<string>();
+    const uniqueRows = data.rows.filter((row) => {
+      if (seen.has(row.sobject)) {
+        return false;
+      }
+      seen.add(row.sobject);
+      return true;
+    });
+    copyGenericTableDataToClipboard('COPY_COL', fields, { ...data, rows: uniqueRows });
+    return;
+  }
+  copyGenericTableDataToClipboard(item.value as ContextAction, fields, data);
 }
 
 export function getFieldRows(
@@ -1169,14 +1260,13 @@ export const PinnedSelectAllRendererWrapper = ({ column }: RenderSummaryCellProp
 
   return (
     <div
-      className="slds-grid slds-grid_gutter slds-grid_align-center"
+      className="slds-grid slds-grid_gutter slds-grid_align-center w-100"
       css={css`
         margin-top: 3px;
       `}
     >
       <button
         className="slds-button slds-button_icon slds-button_icon-border"
-        aria-hidden="true"
         tabIndex={-1}
         title={`Select all visible rows`}
         onClick={() => handleSelection('selectAll')}
@@ -1186,7 +1276,6 @@ export const PinnedSelectAllRendererWrapper = ({ column }: RenderSummaryCellProp
       </button>
       <button
         className="slds-button slds-button_icon slds-button_icon-border"
-        aria-hidden="true"
         tabIndex={-1}
         title={`Unselect all visible rows`}
         onClick={() => handleSelection('unselectAll')}
@@ -1196,7 +1285,6 @@ export const PinnedSelectAllRendererWrapper = ({ column }: RenderSummaryCellProp
       </button>
       <button
         className="slds-button slds-button_icon slds-button_icon-border"
-        aria-hidden="true"
         tabIndex={-1}
         title={`Reset visible rows to previous selection`}
         onClick={() => handleSelection('reset')}

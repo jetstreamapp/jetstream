@@ -3,7 +3,8 @@ import { copyRecordsToClipboard } from '@jetstream/shared/ui-utils';
 import type { Column, Row, Table } from '@tanstack/react-table';
 import { FocusEvent as ReactFocusEvent, KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { ActiveCell } from '../components/GridRow';
-import { HEADER_ROW_ID } from '../grid-constants';
+import { getSummaryRowId, getSummaryRowIndex, HEADER_ROW_ID, isSummaryRowId } from '../grid-constants';
+import { ColSpanArgs } from '../grid-types';
 
 export type GridMode = 'navigation' | 'actionable';
 
@@ -29,6 +30,48 @@ export interface SelectionRange {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
+}
+
+/**
+ * Column indexes at which a row starts a (possibly multi-column) rendered cell — i.e. the navigable
+ * positions for that row. Cells honor colSpan (GROUP for group headers, ROW for data rows), so a
+ * spanned-over column has no DOM cell to focus; nav must step between, and snap onto, these owners.
+ */
+function getRowSegmentStarts<TRow>(row: Row<TRow>, columns: Column<TRow, unknown>[]): number[] {
+  const grouped = row.getIsGrouped();
+  if (grouped) {
+    // When no column supplies a group cell, GridGroupRow renders ONE full-width header at the first
+    // column (the fallback) — its only navigable position is column 0.
+    const anyGroupCell = columns.some((column) => column.columnDef.meta?.jetstream?.renderGroupCell);
+    if (!anyGroupCell) {
+      return [0];
+    }
+  }
+  const representative = grouped ? row.getLeafRows()[0]?.original : row.original;
+  const colSpanArgs: ColSpanArgs<TRow> = grouped ? { type: 'GROUP', row: representative } : { type: 'ROW', row: representative as TRow };
+  const starts: number[] = [];
+  let index = 0;
+  while (index < columns.length) {
+    starts.push(index);
+    const span = Math.max(1, columns[index].columnDef.meta?.jetstream?.colSpan?.(colSpanArgs) ?? 1);
+    index += span;
+  }
+  return starts;
+}
+
+/** The segment owner (start index) of the cell that covers `targetColIndex` in `row`. For a row with no
+ * spans this is `targetColIndex` itself; for a spanned cell it's the column that renders it. */
+function resolveColumnStart<TRow>(row: Row<TRow>, columns: Column<TRow, unknown>[], targetColIndex: number): number {
+  const starts = getRowSegmentStarts(row, columns);
+  let owner = starts[0] ?? 0;
+  for (const start of starts) {
+    if (start <= targetColIndex) {
+      owner = start;
+    } else {
+      break;
+    }
+  }
+  return owner;
 }
 
 function cellText<TRow>(row: Row<TRow>, column: Column<TRow, unknown>): string {
@@ -73,6 +116,12 @@ export interface UseGridKeyboardNavigationOptions<TRow> {
    * moves into the grid's own portaled UI (context menu, popover editor), which must keep acting on
    * the current selection. */
   shouldRetainFocusOnBlur?: (relatedTarget: Node | null) => boolean;
+  /** Number of pinned summary rows. They sit between the header and the body in the navigation order so
+   * arrows can step into them (e.g. column filter inputs, bulk select-all/none/reset actions). */
+  summaryRowCount?: number;
+  /** Emit a message to the grid's polite live region (e.g. "Copied 3 rows by 2 columns") so screen-reader
+   * users get feedback for actions that are otherwise only visual. */
+  onAnnounce?: (message: string) => void;
 }
 
 export interface GridKeyboardNavigation {
@@ -98,6 +147,8 @@ export interface GridKeyboardNavigation {
   handleCellMouseEnter: (rowId: string, columnId: string) => void;
   /** Mouse down on a column header cell — makes it the keyboard-active cell (header row navigation). */
   handleHeaderCellMouseDown: (columnId: string) => void;
+  /** Mouse down on a summary cell — makes it the keyboard-active cell (summary row navigation). */
+  handleSummaryCellMouseDown: (rowId: string, columnId: string) => void;
   /** Copy the current selection (rectangle, or the single active cell) as TSV; optionally prepend a header row. */
   copySelection: (includeHeader?: boolean) => void;
 }
@@ -119,6 +170,8 @@ export function useGridKeyboardNavigation<TRow>({
   getRootElement,
   onRequestEdit,
   shouldRetainFocusOnBlur,
+  summaryRowCount = 0,
+  onAnnounce,
 }: UseGridKeyboardNavigationOptions<TRow>): GridKeyboardNavigation {
   const [activeCell, setActiveCellState] = useState<ActiveCell | null>(null);
   const [anchorCell, setAnchorCell] = useState<ActiveCell | null>(null);
@@ -131,6 +184,11 @@ export function useGridKeyboardNavigation<TRow>({
   // Live mirror of activeCell for the document focus listeners (avoids re-subscribing on every move).
   const activeCellRef = useRef(activeCell);
   activeCellRef.current = activeCell;
+  // The column the user deliberately chose (last horizontal move / click). Vertical navigation targets
+  // this column so passing through colSpan'd rows (group headers, "no rows" spanners) — which snap focus
+  // onto a span owner — doesn't permanently drag the user to that owner's column. The classic
+  // spreadsheet "sticky column" behavior.
+  const desiredColRef = useRef<number | null>(null);
 
   // Stop drag-select when the mouse is released anywhere.
   useEffect(() => {
@@ -142,30 +200,52 @@ export function useGridKeyboardNavigation<TRow>({
   }, []);
 
   // Apply a new active cell. `extend` keeps the existing anchor (range select); otherwise the anchor
-  // collapses onto the new cell.
-  const applySelection = useCallback((rowId: string, columnId: string, extend: boolean) => {
-    setActiveCellState({ rowId, columnId });
-    setMode('navigation');
-    setAnchorCell((prevAnchor) => (extend && prevAnchor ? prevAnchor : { rowId, columnId }));
-  }, []);
+  // collapses onto the new cell. `keepDesiredCol` is set by vertical moves so they don't overwrite the
+  // user's sticky column with the (possibly snapped) column they're passing through.
+  const applySelection = useCallback(
+    (rowId: string, columnId: string, extend: boolean, keepDesiredCol = false) => {
+      if (!keepDesiredCol) {
+        const colIndex = table.getVisibleLeafColumns().findIndex((column) => column.id === columnId);
+        if (colIndex >= 0) {
+          desiredColRef.current = colIndex;
+        }
+      }
+      setActiveCellState({ rowId, columnId });
+      setMode('navigation');
+      setAnchorCell((prevAnchor) => (extend && prevAnchor ? prevAnchor : { rowId, columnId }));
+    },
+    [table],
+  );
 
-  const setActiveCell = useCallback((cell: ActiveCell | null) => {
-    interactionSourceRef.current = 'keyboard';
-    setActiveCellState(cell);
-    setAnchorCell(cell);
-  }, []);
+  const setActiveCell = useCallback(
+    (cell: ActiveCell | null) => {
+      interactionSourceRef.current = 'keyboard';
+      if (cell) {
+        const colIndex = table.getVisibleLeafColumns().findIndex((column) => column.id === cell.columnId);
+        if (colIndex >= 0) {
+          desiredColRef.current = colIndex;
+        }
+      }
+      setActiveCellState(cell);
+      setAnchorCell(cell);
+    },
+    [table],
+  );
 
   const moveTo = useCallback(
-    (rowIndex: number, colIndex: number, extend: boolean) => {
+    (rowIndex: number, colIndex: number, extend: boolean, keepDesiredCol = false) => {
       const rows = table.getRowModel().rows;
       const columns = table.getVisibleLeafColumns();
       if (!rows.length || !columns.length) {
         return;
       }
       const nextRow = rows[clamp(rowIndex, 0, rows.length - 1)];
-      // Group header rows are navigated at the row level — snap focus to the first column.
-      const nextColIndex = nextRow.getIsGrouped() ? 0 : clamp(colIndex, 0, columns.length - 1);
-      applySelection(nextRow.id, columns[nextColIndex].id, extend);
+      const targetCol = clamp(colIndex, 0, columns.length - 1);
+      // Snap the target column onto the cell that actually renders it for this row (honoring colSpan:
+      // GROUP for group headers, ROW for data rows like a full-width "no rows found" message). Without
+      // this, focus targets a column hidden under a span and the move silently no-ops.
+      const nextColIndex = resolveColumnStart(nextRow, columns, targetCol);
+      applySelection(nextRow.id, columns[nextColIndex].id, extend, keepDesiredCol);
     },
     [table, applySelection],
   );
@@ -229,6 +309,16 @@ export function useGridKeyboardNavigation<TRow>({
         return;
       }
       const controls = cellEl.querySelectorAll<HTMLElement>(ACTIVATABLE_SELECTOR);
+      // A lone text input / textarea / select (e.g. a column filter cell) is focused for typing via
+      // Actionable mode — a programmatic `.click()` wouldn't move focus into it, and Actionable mode lets
+      // Escape return to the cell. The mode change drives the focus effect to focus the input.
+      const loneTextInput =
+        controls.length === 1 &&
+        controls[0].matches('input:not([type="checkbox"]):not([type="radio"]):not([type="button"]), textarea, select');
+      if (loneTextInput) {
+        setMode('actionable');
+        return;
+      }
       if (controls.length === 1) {
         // A single control is typically a popover/modal trigger — remember the cell so focus returns
         // here when that overlay closes (no-op if the control acts inline and never moves focus away).
@@ -320,9 +410,14 @@ export function useGridKeyboardNavigation<TRow>({
           return;
         }
         pendingReturnFocusCellRef.current = null;
-        const active = document.activeElement;
-        if (!active || active === document.body) {
-          getCellElement(cell)?.focus();
+        const active = document.activeElement as HTMLElement | null;
+        const cellEl = getCellElement(cell);
+        // Refocus the originating cell when focus fell to <body>, OR when the overlay's `returnFocus` put
+        // it back on a control INSIDE that cell (e.g. a header filter icon after Escape). Otherwise DOM
+        // focus sits on the in-cell control and arrow navigation can't resume — the cell is the rover.
+        const focusReturnedInsideCell = !!cellEl && !!active && active !== cellEl && cellEl.contains(active);
+        if (!active || active === document.body || focusReturnedInsideCell) {
+          cellEl?.focus();
         }
       });
     };
@@ -441,6 +536,16 @@ export function useGridKeyboardNavigation<TRow>({
     [applySelection],
   );
 
+  // Mouse-down on a summary cell makes it the keyboard-active cell so arrow nav continues from there.
+  // Source 'mouse' so the body's focus effect doesn't steal focus from the control the user clicked.
+  const handleSummaryCellMouseDown = useCallback(
+    (rowId: string, columnId: string) => {
+      interactionSourceRef.current = 'mouse';
+      applySelection(rowId, columnId, false);
+    },
+    [applySelection],
+  );
+
   const copySelection = useCallback(
     (includeHeader = false) => {
       const rows = table.getRowModel().rows;
@@ -491,8 +596,16 @@ export function useGridKeyboardNavigation<TRow>({
       }
       void copyRecordsToClipboard(records, 'excel', fields, false);
       flashCells(getRootElement(), rows, columns, minRow, maxRow, minCol, maxCol);
+
+      const copiedRowCount = records.length - (includeHeader ? 1 : 0);
+      const copiedColCount = fields.length;
+      onAnnounce?.(
+        `Copied ${copiedRowCount} ${copiedRowCount === 1 ? 'row' : 'rows'} by ${copiedColCount} ${
+          copiedColCount === 1 ? 'column' : 'columns'
+        }`,
+      );
     },
-    [activeCell, anchorCell, table, getRootElement],
+    [activeCell, anchorCell, table, getRootElement, onAnnounce],
   );
 
   const handleKeyDown = useCallback(
@@ -574,10 +687,19 @@ export function useGridKeyboardNavigation<TRow>({
         );
         switch (event.key) {
           case 'ArrowDown':
+            consume();
+            // Step into the summary rows if present (column filters / bulk actions), else the body.
+            // keepDesiredCol: a vertical step must not overwrite the sticky column when snapping.
+            if (summaryRowCount > 0) {
+              applySelection(getSummaryRowId(0), columns[headerColIndex].id, false, true);
+            } else {
+              moveTo(0, headerColIndex, false, true);
+            }
+            break;
           case 'Escape':
             consume();
-            // Back to the body (moveTo handles group-row column snapping).
-            moveTo(0, headerColIndex, false);
+            // Escape jumps straight to the data (skipping the summary rows). moveTo handles group snapping.
+            moveTo(0, headerColIndex, false, true);
             break;
           case 'ArrowUp':
             consume();
@@ -619,27 +741,102 @@ export function useGridKeyboardNavigation<TRow>({
         return;
       }
 
+      // ── Pinned summary rows (filters / bulk actions, between the header and the body) ──
+      // Left/Right move between summary cells; Up/Down step through the summary stack into the header
+      // (above) or the body (below); Enter/Space/F2 activate the cell's controls (a single control
+      // clicks, multiple controls — e.g. select-all/none/reset — enter Actionable mode so Tab cycles
+      // them); Escape drops to the body. Range-extend (Shift) is intentionally not supported here.
+      if (activeCell && isSummaryRowId(activeCell.rowId)) {
+        const summaryIndex = getSummaryRowIndex(activeCell.rowId);
+        const summaryColIndex = Math.max(
+          0,
+          columns.findIndex((column) => column.id === activeCell.columnId),
+        );
+        switch (event.key) {
+          case 'ArrowRight':
+            consume();
+            applySelection(activeCell.rowId, columns[clamp(summaryColIndex + 1, 0, columns.length - 1)].id, false);
+            break;
+          case 'ArrowLeft':
+            consume();
+            applySelection(activeCell.rowId, columns[clamp(summaryColIndex - 1, 0, columns.length - 1)].id, false);
+            break;
+          case 'Home':
+            consume();
+            applySelection(activeCell.rowId, columns[0].id, false);
+            break;
+          case 'End':
+            consume();
+            applySelection(activeCell.rowId, columns[columns.length - 1].id, false);
+            break;
+          case 'ArrowDown':
+            consume();
+            if (summaryIndex + 1 < summaryRowCount) {
+              applySelection(getSummaryRowId(summaryIndex + 1), columns[summaryColIndex].id, false, true);
+            } else {
+              moveTo(0, summaryColIndex, false, true);
+            }
+            break;
+          case 'ArrowUp':
+            consume();
+            if (summaryIndex > 0) {
+              applySelection(getSummaryRowId(summaryIndex - 1), columns[summaryColIndex].id, false, true);
+            } else {
+              applySelection(HEADER_ROW_ID, columns[summaryColIndex].id, false, true);
+            }
+            break;
+          case 'Escape':
+            consume();
+            moveTo(0, summaryColIndex, false, true);
+            break;
+          case 'Enter':
+          case 'F2':
+          case ' ':
+            // Let Cmd/Ctrl+Enter bubble to app-level handlers (e.g. save).
+            if (event.key === 'Enter' && ctrlOrMeta) {
+              break;
+            }
+            consume();
+            // Summary cells are never editable — activate their controls directly (no edit path).
+            activateCell(activeCell);
+            break;
+          default:
+            break;
+        }
+        return;
+      }
+
       // ── Navigation mode ──
+      // Vertical moves target the sticky desired column (not the possibly-snapped current column), so
+      // passing through a group header or a spanned "no rows" row doesn't drag the user sideways.
+      const desiredCol = clamp(desiredColRef.current ?? colIndex, 0, columns.length - 1);
       switch (event.key) {
         case 'ArrowDown':
           consume();
-          moveTo(rowIndex + 1, colIndex, extend);
+          moveTo(rowIndex + 1, desiredCol, extend, true);
           break;
         case 'ArrowUp':
           consume();
-          // From the first body row, Up enters the column header row (so the keyboard can reach
-          // select-all / header filters). A range-extend (Shift) stays in the body.
+          // From the first body row, Up enters the pinned summary rows (filters / bulk actions) if any,
+          // otherwise the column header row — so the keyboard can reach both. A range-extend (Shift)
+          // stays in the body.
           if (rowIndex === 0 && !extend) {
-            applySelection(HEADER_ROW_ID, columns[colIndex].id, false);
+            applySelection(summaryRowCount > 0 ? getSummaryRowId(summaryRowCount - 1) : HEADER_ROW_ID, columns[desiredCol].id, false, true);
           } else {
-            moveTo(rowIndex - 1, colIndex, extend);
+            moveTo(rowIndex - 1, desiredCol, extend, true);
           }
           break;
         case 'ArrowRight': {
           consume();
           const currentRow = rows[rowIndex];
-          // Tree: Right expands a collapsed expandable row; otherwise move to the next cell.
-          if (!extend && currentRow?.getCanExpand() && !currentRow.getIsExpanded()) {
+          if (currentRow?.getIsGrouped()) {
+            // Group header rows: step to the next group cell (segment). Arrows NEVER expand/collapse —
+            // Enter/Space on the chevron cell does that (and on the select-all cell toggles its checkbox).
+            const starts = getRowSegmentStarts(currentRow, columns);
+            const segmentIndex = Math.max(0, starts.filter((start) => start <= colIndex).length - 1);
+            applySelection(currentRow.id, columns[starts[clamp(segmentIndex + 1, 0, starts.length - 1)]].id, false);
+          } else if (!extend && currentRow?.getCanExpand() && !currentRow.getIsExpanded()) {
+            // Tree (real data row with children): Right expands a collapsed row.
             currentRow.toggleExpanded();
           } else {
             moveTo(rowIndex, colIndex + 1, extend);
@@ -649,14 +846,16 @@ export function useGridKeyboardNavigation<TRow>({
         case 'ArrowLeft': {
           consume();
           const currentRow = rows[rowIndex];
-          // The tree/grouping behaviors only apply at the first column — otherwise Left just moves one
-          // cell left. Without the `colIndex === 0` guard, a grouped sub-row (depth>0, parent = group
-          // header) snaps Left to the group row from any column instead of moving left.
-          if (colIndex === 0 && !extend && currentRow?.getCanExpand() && currentRow.getIsExpanded()) {
-            // Collapse an expanded tree/group row.
+          if (currentRow?.getIsGrouped()) {
+            // Group header rows: step to the previous group cell (segment); no arrow-driven collapse.
+            const starts = getRowSegmentStarts(currentRow, columns);
+            const segmentIndex = Math.max(0, starts.filter((start) => start <= colIndex).length - 1);
+            applySelection(currentRow.id, columns[starts[clamp(segmentIndex - 1, 0, starts.length - 1)]].id, false);
+          } else if (colIndex === 0 && !extend && currentRow?.getCanExpand() && currentRow.getIsExpanded()) {
+            // Tree: collapse an expanded row at the first column.
             currentRow.toggleExpanded();
           } else if (colIndex === 0 && !extend && currentRow && currentRow.depth > 0) {
-            // Jump from a nested/grouped row to its parent (group header) row.
+            // Jump from a nested/grouped child row to its parent (group/tree header) row.
             const parent = currentRow.getParentRow();
             const parentIndex = parent ? rows.findIndex((row) => row.id === parent.id) : -1;
             moveTo(parentIndex >= 0 ? parentIndex : rowIndex, parentIndex >= 0 ? colIndex : colIndex - 1, extend);
@@ -675,11 +874,11 @@ export function useGridKeyboardNavigation<TRow>({
           break;
         case 'PageDown':
           consume();
-          moveTo(rowIndex + PAGE_SIZE, colIndex, extend);
+          moveTo(rowIndex + PAGE_SIZE, desiredCol, extend, true);
           break;
         case 'PageUp':
           consume();
-          moveTo(rowIndex - PAGE_SIZE, colIndex, extend);
+          moveTo(rowIndex - PAGE_SIZE, desiredCol, extend, true);
           break;
         case 'a':
         case 'A':
@@ -711,8 +910,9 @@ export function useGridKeyboardNavigation<TRow>({
           consume();
           applySelection(current.rowId, current.columnId, false);
           // Editable cells open their editor; otherwise activate the cell's content (toggle a checkbox /
-          // open a popover), falling back to Actionable mode for multi-control cells.
-          if (!(onRequestEdit && onRequestEdit(current))) {
+          // open a popover), falling back to Actionable mode for multi-control cells. Group header cells
+          // are never editable — go straight to activation (chevron cell toggles, select-all cell checks).
+          if (rows[rowIndex]?.getIsGrouped() || !(onRequestEdit && onRequestEdit(current))) {
             activateCell(current);
           }
           break;
@@ -727,7 +927,19 @@ export function useGridKeyboardNavigation<TRow>({
           break;
       }
     },
-    [activeCell, mode, table, moveTo, applySelection, copySelection, onRequestEdit, activateCell, activateHeaderCell, getCellElement],
+    [
+      activeCell,
+      mode,
+      table,
+      moveTo,
+      applySelection,
+      copySelection,
+      onRequestEdit,
+      activateCell,
+      activateHeaderCell,
+      getCellElement,
+      summaryRowCount,
+    ],
   );
 
   return {
@@ -741,6 +953,7 @@ export function useGridKeyboardNavigation<TRow>({
     handleCellMouseDown,
     handleCellMouseEnter,
     handleHeaderCellMouseDown,
+    handleSummaryCellMouseDown,
     copySelection,
     getLastInteractionSource: () => interactionSourceRef.current,
   };

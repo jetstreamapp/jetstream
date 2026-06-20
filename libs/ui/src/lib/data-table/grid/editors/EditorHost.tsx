@@ -59,6 +59,9 @@ export function EditorHost<TRow>({ editingCell, table, getRootElement, onCommitR
 
   const minWidth = Math.max(cellEl.offsetWidth, 200);
 
+  // Name the editor dialog so screen readers announce the column being edited instead of a bare "dialog".
+  const editorColumnName = typeof authorColumn.name === 'string' ? authorColumn.name : undefined;
+
   const handleRowChange = (updatedRow: TRow, commit?: boolean) => {
     if (commit) {
       onCommitRow(updatedRow, editingCell.rowId, authorColumn);
@@ -80,6 +83,7 @@ export function EditorHost<TRow>({ editingCell, table, getRootElement, onCommitR
       <div
         ref={refs.setFloating}
         role="dialog"
+        aria-label={editorColumnName ? `Edit ${editorColumnName}` : 'Edit cell'}
         className="slds-popover slds-popover_edit jgrid-editor"
         style={{ ...floatingStyles, zIndex: 9050, minWidth }}
         onKeyDown={(event) => {

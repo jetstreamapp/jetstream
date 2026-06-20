@@ -152,6 +152,9 @@ export function HeaderCell<TRow>({
           id={selectAllId}
           label="Select all rows"
           hideLabel
+          // Keep out of the page tab order — the grid is a single tab stop and the header row is reached
+          // via roving tabindex; Enter/Space on the select-all header cell toggles this checkbox.
+          tabIndex={-1}
           checked={table.getIsAllRowsSelected()}
           indeterminate={table.getIsSomeRowsSelected()}
           onChange={(checked) => table.toggleAllRowsSelected(checked)}
@@ -174,6 +177,9 @@ export function HeaderCell<TRow>({
         'jgrid-header-dragging': isDraggingThis,
         'jgrid-drop-before': dropSide === 'left',
         'jgrid-drop-after': dropSide === 'right',
+        // Edge markers so the corner header cells round to match the table's top corners.
+        'jgrid-cell-col-first': colIndex === 0,
+        'jgrid-cell-col-last': colIndex + colSpan >= allColumns.length,
       })}
       style={style}
       tabIndex={isActive ? 0 : -1}
@@ -212,7 +218,11 @@ export function HeaderCell<TRow>({
 
       {column?.filters?.length ? (
         <span className="jgrid-header-filter-slot" onClick={(event) => event.stopPropagation()}>
-          {renderFilter && headerProps ? renderFilter(headerProps) : <HeaderFilterButton columnKey={column.key} />}
+          {renderFilter && headerProps ? (
+            renderFilter(headerProps)
+          ) : (
+            <HeaderFilterButton columnKey={column.key} columnName={typeof column.name === 'string' ? column.name : undefined} />
+          )}
         </span>
       ) : null}
 

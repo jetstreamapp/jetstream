@@ -19,6 +19,9 @@ export interface GridCellProps<TRow> {
   isActive: boolean;
   /** Explicit selection flag so memo'd cells re-render when selection flips (row refs are stable). */
   isSelected: boolean;
+  /** Explicit expanded flag (tree rows). Same rationale as `isSelected`: the Row instance is stable
+   * across expand/collapse, so the memo needs this prop to re-render the chevron on toggle. */
+  rowIsExpanded?: boolean;
   /** True when this cell is inside the rectangular cell-selection. */
   isRangeSelected: boolean;
   onCellMouseDown?: (rowId: string, columnId: string, shiftKey: boolean, button?: number) => void;
@@ -38,6 +41,7 @@ function GridCellComponent<TRow>({
   colSpan = 1,
   isActive,
   isSelected,
+  rowIsExpanded,
   isRangeSelected,
   onCellMouseDown,
   onCellMouseEnter,
@@ -83,6 +87,7 @@ function GridCellComponent<TRow>({
       </span>
     );
   } else if (column?.renderCell) {
+    const canExpand = cell.row.getCanExpand();
     const renderProps: DataTableCellProps<TRow> = {
       row,
       column,
@@ -90,6 +95,12 @@ function GridCellComponent<TRow>({
       rowIndex,
       rowIdx: rowIndex,
       tanstackRow: cell.row,
+      depth: cell.row.depth,
+      canExpand,
+      // Prefer the explicit prop (kept fresh by GridBody) so the chevron re-renders on toggle; fall
+      // back to the row for any caller that renders GridCell without threading the flag.
+      isExpanded: canExpand && (rowIsExpanded ?? cell.row.getIsExpanded()),
+      toggleExpanded: () => canExpand && cell.row.toggleExpanded(),
       isEditing: false,
       startEdit: () => onStartEdit?.(cell.row.id, cell.column.id),
       commitEdit: (updatedRow) => onCommitRow?.(updatedRow, cell.row.id, cell.column.id),
@@ -115,6 +126,9 @@ function GridCellComponent<TRow>({
         {
           'jgrid-cell-frozen': meta?.frozen,
           'jgrid-cell-range': isRangeSelected,
+          // Edge markers so a focused corner cell can round its focus ring to match the table corners.
+          'jgrid-cell-col-first': colIndex === 0,
+          'jgrid-cell-col-last': colIndex + colSpan >= columns.length,
         },
         dynamicClass,
       )}

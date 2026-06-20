@@ -11,6 +11,17 @@ export const EMPTY_FIELD = '-BLANK-';
  */
 export const HEADER_ROW_ID = '__jgrid_header__';
 
+/**
+ * Sentinel `rowId`s for the pinned summary rows in the keyboard-navigation model. Like the header, the
+ * summary rows aren't in `table.getRowModel().rows`, so each is addressed by an index-suffixed id. They
+ * sit between the header and the body: ArrowDown from the header steps into the first summary row and
+ * down through them into the body; ArrowUp from the first body row steps back up through them.
+ */
+export const SUMMARY_ROW_ID_PREFIX = '__jgrid_summary__';
+export const getSummaryRowId = (index: number): string => `${SUMMARY_ROW_ID_PREFIX}${index}`;
+export const isSummaryRowId = (rowId: string): boolean => rowId.startsWith(SUMMARY_ROW_ID_PREFIX);
+export const getSummaryRowIndex = (rowId: string): number => Number.parseInt(rowId.slice(SUMMARY_ROW_ID_PREFIX.length), 10);
+
 export const ACTION_COLUMN_KEY = '_actions';
 export const RECORD_ERROR_COLUMN_KEY = '_saveError';
 
