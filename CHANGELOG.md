@@ -1,5 +1,19 @@
 # Changelog
 
+## [10.2.0](https://github.com/jetstreamapp/jetstream/compare/v10.1.3...v10.2.0) (2026-06-20)
+
+### Features
+
+* migrate drag and drop library to dnd-kit ([81871b4](https://github.com/jetstreamapp/jetstream/commit/81871b49978b75d121ef05badb549212987772d4))
+
+### Bug Fixes
+
+* add xml-crypto dependency to package.json and update pnpm-lock.yaml ([6b3ac41](https://github.com/jetstreamapp/jetstream/commit/6b3ac41c7b8ec7568f27e9d3000c1bb6454cabfd))
+* ensure web extension build does not produce non-ascii characters ([04cba97](https://github.com/jetstreamapp/jetstream/commit/04cba970e0bda99ae05cde2c5d0f178216181c07))
+* improve keyboard navigation for popovers, org info, and app navigation ([58076f4](https://github.com/jetstreamapp/jetstream/commit/58076f4cd6cbc429f6dc448bdedf7f837f160395))
+* resolve org group state mismatch by implementing loadable state handling ([7df959b](https://github.com/jetstreamapp/jetstream/commit/7df959b6838ae4dc4edabcbfdcf83f9b396e6f5c))
+* web extension token churn ([5a3c66e](https://github.com/jetstreamapp/jetstream/commit/5a3c66e567c5e415049edff279d1326152b4f813))
+
 ## [10.1.3](https://github.com/jetstreamapp/jetstream/compare/v10.1.2...v10.1.3) (2026-06-18)
 
 ### Features
