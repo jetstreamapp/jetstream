@@ -17,21 +17,10 @@
           "mode": "development"
         },
         "staging": {
-          "mode": "staging",
-          "fileReplacements": [
-            {
-              "replace": "apps/jetstream-web-extension/src/environments/environment.ts",
-              "with": "apps/jetstream-web-extension/src/environments/environment.staging.ts"
-            }
-          ]
+          "mode": "staging"
         },
         "production": {
-          "fileReplacements": [
-            {
-              "replace": "apps/jetstream-web-extension/src/environments/environment.ts",
-              "with": "apps/jetstream-web-extension/src/environments/environment.prod.ts"
-            }
-          ]
+          "mode": "production"
         }
       }
     },
