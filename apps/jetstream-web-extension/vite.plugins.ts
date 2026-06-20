@@ -1,9 +1,56 @@
+import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
+import { replaceFiles } from '@nx/vite/plugins/rollup-replace-files.plugin';
 import react from '@vitejs/plugin-react';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import type { PluginOption } from 'vite';
 import { build } from 'vite';
-import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
+
+/**
+ * The `@nx/vite:build` executor does NOT honor the `fileReplacements` option (that is an
+ * Angular/Webpack-builder concept), so we perform the environment swap ourselves based on the
+ * build `mode`. Without this every build bundles `environment.ts` (localhost) regardless of config.
+ *
+ * - development -> environment.ts (localhost, the default — no replacement)
+ * - staging     -> environment.staging.ts
+ * - production  -> environment.prod.ts
+ */
+/**
+ * Server URL for each build mode. This is the single source of truth used both to swap the
+ * `environment` object (via {@link environmentReplacementPlugin}) and to inline
+ * `import.meta.env.NX_PUBLIC_SERVER_URL`, which `getWebServerUrl()` reads during app bootstrap.
+ * Inlining it here overrides whatever `.env` sets, so a local `NX_PUBLIC_SERVER_URL=localhost`
+ * no longer leaks into staging/production builds.
+ */
+export function getServerUrlForMode(mode: string): string {
+  switch (mode) {
+    case 'development':
+      return 'http://localhost:3333';
+    case 'staging':
+      return 'https://staging.jetstream-app.com';
+    default:
+      return 'https://getjetstream.app';
+  }
+}
+
+export function environmentReplacementPlugin(mode: string): PluginOption {
+  // Development uses environment.ts (localhost) as-is, so there is nothing to replace.
+  if (mode === 'development') {
+    return null;
+  }
+
+  const replacement =
+    mode === 'staging'
+      ? 'apps/jetstream-web-extension/src/environments/environment.staging.ts'
+      : 'apps/jetstream-web-extension/src/environments/environment.prod.ts';
+
+  return replaceFiles([
+    {
+      replace: 'apps/jetstream-web-extension/src/environments/environment.ts',
+      with: replacement,
+    },
+  ]);
+}
 
 const PLACEHOLDER_PAGES = [
   'home',
@@ -48,6 +95,7 @@ export function extensionScriptsBuildPlugin(mode: string): PluginOption {
       const sharedDefine = {
         'globalThis.__IS_BROWSER_EXTENSION__': 'true',
         'import.meta.env.NX_PUBLIC_AMPLITUDE_KEY': JSON.stringify(process.env.NX_PUBLIC_AMPLITUDE_KEY || ''),
+        'import.meta.env.NX_PUBLIC_SERVER_URL': JSON.stringify(getServerUrlForMode(mode)),
         'process.env.NODE_ENV': JSON.stringify(mode === 'development' ? 'development' : 'production'),
       };
 
@@ -57,13 +105,19 @@ export function extensionScriptsBuildPlugin(mode: string): PluginOption {
             configFile: false,
             envPrefix: 'NX',
             plugins: [
+              environmentReplacementPlugin(mode),
               react({
                 jsxImportSource: '@emotion/react',
-                babel: { plugins: ['@emotion/babel-plugin'] },
               }),
               nxViteTsPaths(),
             ],
             define: sharedDefine,
+            // Chrome rejects content scripts that aren't UTF-8 encoded. esbuild's minifier defaults to
+            // `charset: 'utf8'` and emits raw non-ASCII bytes (accented chars, smart quotes, etc.) from deps.
+            // Force ASCII-only output so non-ASCII is escaped (\uXXXX), matching the main vite.config.ts.
+            esbuild: {
+              charset: 'ascii',
+            },
             build: {
               outDir: resolve(__dirname, '../../dist/apps/jetstream-web-extension'),
               emptyOutDir: false,
