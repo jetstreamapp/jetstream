@@ -312,7 +312,6 @@ export const QuickQueryPopover = () => {
                 }
               >
                 <MonacoEditor
-                  className="slds-border_top slds-border_right slds-border_bottom slds-border_left"
                   height="400px"
                   language="soql"
                   value={soql}

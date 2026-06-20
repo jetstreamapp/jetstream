@@ -183,7 +183,6 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
               }
             >
               <MonacoEditor
-                className="slds-border_top slds-border_right slds-border_bottom slds-border_left"
                 height="350px"
                 language="soql"
                 value={soql}

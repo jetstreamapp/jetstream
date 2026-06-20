@@ -63,7 +63,6 @@ export const SoqlTextarea: FunctionComponent<SoqlTextareaProps> = memo(
         >
           <div
             ref={ref}
-            className="slds-border_top slds-border_right slds-border_bottom slds-border_left"
             css={css`
               resize: vertical;
               overflow: auto;
