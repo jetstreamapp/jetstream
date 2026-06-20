@@ -41,7 +41,7 @@ export const QueryLimit: FunctionComponent<QueryLimitProps> = React.memo(
 
     return (
       <div className="slds-grid slds-gutters_xx-small">
-        <Input id={limitInputId} label="Limit" className="slds-col" clearButton={!!limit} onClear={() => setLimit('')}>
+        <Input id={limitInputId} label="Limit" className="slds-col" clearButton={!!limit && !hasLimitOverride} onClear={() => setLimit('')}>
           <input
             id={limitInputId}
             className="slds-input"
