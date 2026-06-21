@@ -1,5 +1,27 @@
 # Changelog
 
+## [10.3.0](https://github.com/jetstreamapp/jetstream/compare/v10.2.0...v10.3.0) (2026-06-21)
+
+### Features
+
+* add back/forward/submit keyboard shortcuts ([11dacb7](https://github.com/jetstreamapp/jetstream/commit/11dacb71d6a9d68f197a51dbff4c62ac072b538f))
+* add border to code editor ([82f4875](https://github.com/jetstreamapp/jetstream/commit/82f48754b34e1a334731db9af4aee9581173f2cd))
+* add table column re-ordering ([0a6dd25](https://github.com/jetstreamapp/jetstream/commit/0a6dd25ed8b188607b0f6764bdd4f04e5af73325))
+* **data-table:** add CSV copy functionality and enhance header copy option ([77bee80](https://github.com/jetstreamapp/jetstream/commit/77bee80509b0dbd442820c2aea77f2a0af2c8961))
+* **data-table:** enhance keyboard navigation and accessibility ([c857d75](https://github.com/jetstreamapp/jetstream/commit/c857d751e681cb8178ee397d1a935db22ba625a3))
+* migrate to tanstack table ([f12f59d](https://github.com/jetstreamapp/jetstream/commit/f12f59db7c220df1c56b75ecb7906a41769fd495))
+* **query:** Add filter/order/limit to subqueries ([aa1e786](https://github.com/jetstreamapp/jetstream/commit/aa1e7867300a73d6f63ffdf7f8934373ef817c05))
+
+### Bug Fixes
+
+* add border-radius styling to Spinner component ([007e55a](https://github.com/jetstreamapp/jetstream/commit/007e55ae45538617c59a2d1020686fc242e5df2c))
+* **data-table:** resolve duplicate export and improve GridCell aria attributes ([d9f3ded](https://github.com/jetstreamapp/jetstream/commit/d9f3ded76aab79ca307c5d72227188c9524bf79e))
+* improve table keyboard navigation and accessibility ([6923afe](https://github.com/jetstreamapp/jetstream/commit/6923afe9ad33351d56c24ab929abfc206c0482fe))
+* keyboard navigation when tables appear in modal ([79b1959](https://github.com/jetstreamapp/jetstream/commit/79b195966f49998654b337d1e853b3a2f0140f3b))
+* **query:** Adjust clear button behavior in QueryLimit component ([3272a3d](https://github.com/jetstreamapp/jetstream/commit/3272a3d81842c23ac3e896fb836bf873cb43fbe0))
+* update archiver import to use ZipArchive class ([f7c0cd6](https://github.com/jetstreamapp/jetstream/commit/f7c0cd6f8dc13bbb984f97a9b2264ac9b7d2beff))
+* update HeaderFilterButton icon color based on active state ([6ef3240](https://github.com/jetstreamapp/jetstream/commit/6ef3240857d501e9f922bc7f063baec6ba202c40))
+
 ## [10.2.0](https://github.com/jetstreamapp/jetstream/compare/v10.1.3...v10.2.0) (2026-06-20)
 
 ### Features
