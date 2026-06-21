@@ -74,8 +74,17 @@ export function HeaderCell<TRow>({
   const canReorder = !!column?.draggable && meta?.cellKind === 'data' && !meta?.frozen && !!onColumnReorder;
   const isDraggingThis = !!draggingColumnId && draggingColumnId === header.column.id;
   const [dropSide, setDropSide] = useState<'left' | 'right' | null>(null);
+  // The resize handle lives inside this (draggable) cell, so a drag gesture starting on the handle would
+  // otherwise pick the cell as the native drag source — initiating a column reorder instead of a resize.
+  // While the pointer is over the handle we drop `draggable` so the mousedown can only start a resize.
+  const [isOverResizeHandle, setIsOverResizeHandle] = useState(false);
 
   const handleDragStart = (event: React.DragEvent<HTMLDivElement>) => {
+    // Belt-and-suspenders: never let an in-progress resize turn into a column drag.
+    if (isOverResizeHandle || header.column.getIsResizing()) {
+      event.preventDefault();
+      return;
+    }
     event.dataTransfer.setData('text/plain', header.column.id);
     event.dataTransfer.effectAllowed = 'move';
     onColumnDragStart?.(header.column.id);
@@ -183,7 +192,7 @@ export function HeaderCell<TRow>({
       })}
       style={style}
       tabIndex={isActive ? 0 : -1}
-      draggable={canReorder}
+      draggable={canReorder && !isOverResizeHandle}
       onDragStart={canReorder ? handleDragStart : undefined}
       onDragEnd={canReorder ? () => onColumnDragEnd?.() : undefined}
       onDragOver={canReorder ? handleDragOver : undefined}
@@ -229,10 +238,13 @@ export function HeaderCell<TRow>({
       {canResize && (
         <span
           role="presentation"
-          // Not draggable so a resize drag never initiates a column reorder.
+          // Not draggable, and while hovered the parent cell drops `draggable` too (see isOverResizeHandle),
+          // so a resize drag can never initiate a column reorder.
           draggable={false}
           className={classNames('jgrid-header-resize-handle', { 'jgrid-resizing': isResizing })}
           style={resizeIndicatorStyle}
+          onMouseEnter={() => setIsOverResizeHandle(true)}
+          onMouseLeave={() => setIsOverResizeHandle(false)}
           onMouseDown={header.getResizeHandler()}
           onTouchStart={header.getResizeHandler()}
           onClick={(event) => event.stopPropagation()}
