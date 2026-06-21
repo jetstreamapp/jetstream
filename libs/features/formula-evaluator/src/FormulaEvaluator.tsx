@@ -460,7 +460,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
                     Deploy
                   </button>
                   <Tooltip
-                    openDelay={300}
+                    openDelay={500}
                     content={
                       <div className="slds-p-bottom_small">
                         <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />

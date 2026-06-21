@@ -319,7 +319,7 @@ export const UserFeedbackWidget = () => {
       >
         <Tooltip
           content={isOpen || showContextMenu ? undefined : 'Send us your feedback (⌘/Ctrl+Shift+.). Right click for positioning options.'}
-          openDelay={300}
+          openDelay={500}
         >
           <Icon type="standard" icon="feedback" className="" omitContainer />
           <span className="slds-assistive-text">Send Feedback</span>

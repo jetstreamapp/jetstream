@@ -104,7 +104,7 @@ export function RecordTypeManagerEditor() {
             />
             <PageHeaderActions colType="actions" buttonType="separate">
               <Tooltip
-                openDelay={300}
+                openDelay={500}
                 content={
                   <div className="slds-p-bottom_small">
                     <KeyboardShortcut inverse keys={[getModifierKey(), 'shift', 'enter']} />
@@ -118,7 +118,7 @@ export function RecordTypeManagerEditor() {
               </Tooltip>
               {!configurationErrors && modifiedValues.length > 0 ? (
                 <Tooltip
-                  openDelay={300}
+                  openDelay={500}
                   content={
                     <div className="slds-p-bottom_small">
                       <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />

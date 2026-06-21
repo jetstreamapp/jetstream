@@ -316,7 +316,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
       <Toolbar>
         <ToolbarItemGroup>
           <Tooltip
-            openDelay={300}
+            openDelay={500}
             content={
               <div className="slds-p-bottom_small">
                 <KeyboardShortcut inverse keys={[getModifierKey(), 'shift', 'enter']} />

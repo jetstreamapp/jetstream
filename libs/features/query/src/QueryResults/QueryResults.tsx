@@ -619,7 +619,7 @@ export const QueryResults = React.memo(() => {
       <Toolbar>
         <ToolbarItemGroup>
           <Tooltip
-            openDelay={300}
+            openDelay={500}
             content={
               <div className="slds-p-bottom_small">
                 <KeyboardShortcut inverse keys={[getModifierKey(), 'shift', 'enter']} />
@@ -627,7 +627,7 @@ export const QueryResults = React.memo(() => {
             }
           >
             <Link
-              className="slds-button slds-button_brand"
+              className="slds-button slds-button_brand slds-m-right_x-small"
               to={{ pathname: APP_ROUTES.QUERY.ROUTE, search: APP_ROUTES.QUERY.SEARCH_PARAM }}
               state={{ soql }}
             >
