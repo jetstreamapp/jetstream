@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.3.1](https://github.com/jetstreamapp/jetstream/compare/v10.3.0...v10.3.1) (2026-06-21)
+
+### Bug Fixes
+
+* **data-table:** prevent column drag initiation during resize ([11a35ad](https://github.com/jetstreamapp/jetstream/commit/11a35adfbe177312f1d55f26305f5058bef58706))
+* increase tooltip open delay from 300ms to 500ms across multiple components ([5dc8da0](https://github.com/jetstreamapp/jetstream/commit/5dc8da0ff59dcc2c35be6ee908ea1b731c8380f6))
+
 ## [10.3.0](https://github.com/jetstreamapp/jetstream/compare/v10.2.0...v10.3.0) (2026-06-21)
 
 ### Features
