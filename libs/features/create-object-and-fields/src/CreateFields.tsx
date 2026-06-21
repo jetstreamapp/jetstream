@@ -184,7 +184,7 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
       <Toolbar>
         <ToolbarItemGroup>
           <Tooltip
-            openDelay={300}
+            openDelay={500}
             content={
               <div className="slds-p-bottom_small">
                 <KeyboardShortcut inverse keys={[getModifierKey(), 'shift', 'enter']} />
@@ -225,7 +225,7 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
             <span>Reset Fields</span>
           </button>
           <Tooltip
-            openDelay={300}
+            openDelay={500}
             content={
               allValid ? (
                 <div className="slds-p-bottom_small">

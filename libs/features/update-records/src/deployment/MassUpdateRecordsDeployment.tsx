@@ -113,7 +113,7 @@ export const MassUpdateRecordsDeployment = () => {
             </button>
           ) : (
             <Tooltip
-              openDelay={300}
+              openDelay={500}
               content={
                 <div className="slds-p-bottom_small">
                   <KeyboardShortcut inverse keys={[getModifierKey(), 'shift', 'enter']} />
@@ -129,7 +129,7 @@ export const MassUpdateRecordsDeployment = () => {
         </ToolbarItemGroup>
         <ToolbarItemActions>
           <Tooltip
-            openDelay={300}
+            openDelay={500}
             content={
               <div className="slds-p-bottom_small">
                 <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />

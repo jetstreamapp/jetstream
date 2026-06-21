@@ -643,7 +643,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
       <Toolbar>
         <ToolbarItemGroup>
           <Tooltip
-            openDelay={300}
+            openDelay={500}
             content={
               <div className="slds-p-bottom_small">
                 <KeyboardShortcut inverse keys={[getModifierKey(), 'shift', 'enter']} />
@@ -691,7 +691,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
             <span>Export</span>
           </button>
           <Tooltip
-            openDelay={300}
+            openDelay={500}
             content={
               <div className="slds-p-bottom_small">
                 <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />

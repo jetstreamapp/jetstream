@@ -68,7 +68,7 @@ export function RecordTypeManagerSelection() {
           <PageHeaderActions colType="actions" buttonType="separate">
             {hasSelectionsMade && (
               <Tooltip
-                openDelay={300}
+                openDelay={500}
                 content={
                   <div className="slds-p-bottom_small">
                     <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
