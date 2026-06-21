@@ -81,8 +81,7 @@ apps-sfdx/
 
 ## Permissions
 
-Access to the canvas app is gated by the **Jetstream** permission set. The External Client App's OAuth policy pre-authorizes this
-permission set (`AdminApprovedPreAuthorized`), so assigning it both grants UI access and authorizes the OAuth connection:
+Access to the canvas app is gated by the **Jetstream** permission set.
 
 ```bash
 sf org assign permset --name Jetstream --target-org <org-alias>

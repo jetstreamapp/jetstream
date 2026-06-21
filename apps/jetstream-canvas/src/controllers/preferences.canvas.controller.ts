@@ -18,11 +18,13 @@ const FIELD = {
 
 const ALL_FIELDS = Object.values(FIELD).join(', ');
 
+const COLOR_SCHEMES = ['light', 'dark', 'system'] as const;
+
 const PreferencesBodySchema = z.object({
   preferences: z.object({
     skipFrontdoorLogin: z.boolean().optional(),
     recordSyncEnabled: z.boolean().optional(),
-    colorScheme: z.enum(['light', 'dark', 'system']).optional(),
+    colorScheme: z.enum(COLOR_SCHEMES).optional(),
     soqlQueryFormatOptions: SoqlQueryFormatOptionsSchema.optional(),
   }),
 });
@@ -48,12 +50,17 @@ interface CustomSettingRecord {
   [key: string]: unknown;
 }
 
+/** The custom setting field is free text, so guard against unexpected values (manual edits, legacy data) */
+function toColorScheme(value: unknown): ColorScheme | undefined {
+  return COLOR_SCHEMES.includes(value as ColorScheme) ? (value as ColorScheme) : undefined;
+}
+
 /** Maps a Salesforce custom setting record to our app preferences shape */
 function recordToPreferences(record: CustomSettingRecord) {
   return {
     skipFrontdoorLogin: record[FIELD.skipFrontdoorLogin] as boolean | undefined,
     recordSyncEnabled: record[FIELD.recordSyncEnabled] as boolean | undefined,
-    colorScheme: (record[FIELD.colorScheme] as ColorScheme | undefined) || undefined,
+    colorScheme: toColorScheme(record[FIELD.colorScheme]),
     soqlQueryFormatOptions: {
       numIndent: record[FIELD.numIndent] as number | undefined,
       fieldMaxLineLength: record[FIELD.fieldMaxLineLength] as number | undefined,
