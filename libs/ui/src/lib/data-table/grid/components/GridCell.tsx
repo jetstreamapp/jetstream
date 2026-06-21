@@ -143,4 +143,30 @@ function GridCellComponent<TRow>({
   );
 }
 
-export const GridCell = memo(GridCellComponent) as typeof GridCellComponent;
+// TanStack recreates Cell/Row instances whenever the row model recomputes (filter / sort / data change),
+// so a default shallow memo sees a brand-new `cell` prop and re-renders EVERY visible cell on each
+// keystroke — defeating the point of memoizing. Compare the stable underlying identity + values instead
+// (`cell.id`, the row's `original` data object, the resolved value, depth) plus the display flags. The
+// grid-level callbacks are intentionally NOT compared: they receive row/column ids as arguments and never
+// close over per-cell state, so a skipped re-render can never leave a stale handler. Context-driven
+// updates (e.g. a link cell reading GridRecordActionContext) still re-render through this memo — React
+// context propagation is not blocked by `memo`.
+function gridCellPropsAreEqual(prev: GridCellProps<any>, next: GridCellProps<any>): boolean {
+  return (
+    prev.cell.id === next.cell.id &&
+    prev.cell.row.original === next.cell.row.original &&
+    prev.cell.getValue() === next.cell.getValue() &&
+    prev.cell.row.depth === next.cell.row.depth &&
+    prev.columns === next.columns &&
+    prev.rowIndex === next.rowIndex &&
+    prev.colIndex === next.colIndex &&
+    prev.ariaColIndex === next.ariaColIndex &&
+    prev.colSpan === next.colSpan &&
+    prev.isActive === next.isActive &&
+    prev.isSelected === next.isSelected &&
+    prev.rowIsExpanded === next.rowIsExpanded &&
+    prev.isRangeSelected === next.isRangeSelected
+  );
+}
+
+export const GridCell = memo(GridCellComponent, gridCellPropsAreEqual) as typeof GridCellComponent;
