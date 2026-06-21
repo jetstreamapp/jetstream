@@ -1,20 +1,21 @@
 {
   "packageDirectories": [
     {
-      "package": "Jetstream Canvas",
+      "package": "Jetstream for Salesforce",
+      "versionName": "v0.1",
+      "versionNumber": "0.1.0.NEXT",
       "path": "canvas-app/jetstream",
       "default": true,
-      "versionNumber": "1.0.0",
-      "versionName": "v1.0.0"
+      "versionDescription": "Jetstream brings its powerful Salesforce workspace directly into your org. Query, load, update, automate, and manage your data and metadata — all without leaving Salesforce. Built for admins, developers, and power users who want to work faster and with more confidence."
     },
     {
       "path": "canvas-app/unpackaged"
     }
   ],
-  "name": "jetstream-canvas",
+  "name": "jetstream-for-salesforce",
   "namespace": "jetstream",
   "sfdcLoginUrl": "https://login.salesforce.com",
-  "sourceApiVersion": "66.0",
+  "sourceApiVersion": "67.0",
   "replacements": [
     {
       "filename": "main/default/extlClntAppCanvasSettings/Jetstream_Canvas_canvasSettings.ecaCanvas-meta.xml",
@@ -27,5 +28,9 @@
         }
       ]
     }
-  ]
+  ],
+  "packageAliases": {
+    "Jetstream for Salesforce": "0HoWj0000000B8LKAU",
+    "Jetstream for Salesforce@0.1.0-1": "04tWj000000v9BRIAY"
+  }
 }
