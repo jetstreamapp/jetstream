@@ -6,7 +6,7 @@ import { formatNumber, hasCtrlOrMeta, isEnterKey, tracker, useGlobalEventHandler
 import { flattenRecord, getIdFromRecordUrl, groupByFlat, nullifyEmptyStrings } from '@jetstream/shared/utils';
 import { CloneEditView, ContextMenuItem, Field, Maybe, QueryResults, SalesforceOrgUi, SobjectCollectionResponse } from '@jetstream/types';
 import uniqueId from 'lodash/uniqueId';
-import { Fragment, ReactNode, memo, useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, ReactNode, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import SearchInput from '../form/search-input/SearchInput';
 import Grid from '../grid/Grid';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
@@ -443,6 +443,27 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
       // });
     }
 
+    // Stable context for the grid's generic bag. An inline object here gave the grid a new `context`
+    // identity on every render (search keystroke, selection, dirty-row change), which churned the grid's
+    // record-action context and re-rendered every link/popover cell. Keyed on the callbacks it closes over.
+    const tableContext = useMemo(
+      () => ({
+        org,
+        defaultApiVersion,
+        onRecordAction: (action: CloneEditView, recordId: string, sobjectName: string) => {
+          switch (action) {
+            case 'view':
+              onView({ Id: recordId, attributes: { type: sobjectName } }, 'RELATED_RECORD_POPOVER');
+              break;
+            case 'edit':
+              onEdit({ Id: recordId, attributes: { type: sobjectName } }, 'RELATED_RECORD_POPOVER');
+              break;
+          }
+        },
+      }),
+      [org, defaultApiVersion, onView, onEdit],
+    );
+
     return records ? (
       <Fragment>
         <Grid className="slds-p-around_xx-small" align="spread">
@@ -526,20 +547,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
               onSelectedRowsChange={handleSelectedRowsChange}
               onSortedAndFilteredRowsChange={handleSortedAndFilteredRowsChange}
               onRowsChange={(changedRows, data) => handleRowsChange(rows || [], changedRows, data)}
-              context={{
-                org,
-                defaultApiVersion,
-                onRecordAction: (action: CloneEditView, recordId: string, sobjectName: string) => {
-                  switch (action) {
-                    case 'view':
-                      onView({ Id: recordId, attributes: { type: sobjectName } }, 'RELATED_RECORD_POPOVER');
-                      break;
-                    case 'edit':
-                      onEdit({ Id: recordId, attributes: { type: sobjectName } }, 'RELATED_RECORD_POPOVER');
-                      break;
-                  }
-                },
-              }}
+              context={tableContext}
               contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
               contextMenuAction={handleContextMenuAction}
             />

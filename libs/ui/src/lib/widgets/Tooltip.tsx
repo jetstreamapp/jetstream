@@ -14,7 +14,7 @@ import {
   useRole,
 } from '@floating-ui/react';
 import { Maybe } from '@jetstream/types';
-import { FunctionComponent, MouseEvent, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, memo, MouseEvent, useEffect, useRef, useState } from 'react';
 import { usePortalContext } from '../modal/PortalContext';
 
 export interface TooltipProps {
@@ -36,7 +36,7 @@ export interface TooltipProps {
   children?: React.ReactNode;
 }
 
-export const Tooltip: FunctionComponent<TooltipProps> = ({
+const TooltipComponent: FunctionComponent<TooltipProps> = ({
   className,
   content,
   openDelay,
@@ -188,5 +188,14 @@ export const Tooltip: FunctionComponent<TooltipProps> = ({
     </>
   );
 };
+
+/**
+ * Memoized so a parent re-render with shallow-equal props doesn't re-run the floating-ui hooks. The
+ * benefit only materializes when `content`/`children` are referentially stable — inline JSX children
+ * defeat the shallow comparison. In the query-results action column the real win is the upstream
+ * `ActionRendererMemo`/`GridCell` memo boundaries gating re-renders; this wrapper is defensive for
+ * callers that do pass stable props.
+ */
+export const Tooltip = memo(TooltipComponent);
 
 export default Tooltip;
