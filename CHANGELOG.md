@@ -1,5 +1,15 @@
 # Changelog
 
+## [10.3.3](https://github.com/jetstreamapp/jetstream/compare/v10.3.1...v10.3.3) (2026-06-22)
+
+### Features
+
+* optimize data table performance ([65cb462](https://github.com/jetstreamapp/jetstream/commit/65cb462fa1ec5082743912d62a3a4b118ed851e6))
+
+### Bug Fixes
+
+* Enhance OIDC discovery error logging and improve IP resolution resilience ([7554874](https://github.com/jetstreamapp/jetstream/commit/7554874a75f1f1022b4fc76805a96a53fdf78dbb))
+
 ## [10.3.2](https://github.com/jetstreamapp/jetstream/compare/v10.3.1...v10.3.2) (2026-06-22)
 
 ### Features
