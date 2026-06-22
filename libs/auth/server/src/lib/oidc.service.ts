@@ -70,7 +70,8 @@ export class OidcService {
 
       return authServer;
     } catch (error) {
-      logger.error({ error, issuer }, 'OIDC discovery failed');
+      const cause = error instanceof Error ? error.cause : undefined;
+      logger.error({ error, cause, issuer }, 'OIDC discovery failed');
       throw new Error(`OIDC discovery failed: ${getErrorMessage(error)}`);
     }
   }

@@ -1,5 +1,5 @@
-import * as dns from 'dns/promises';
 import type { LookupAddress } from 'dns';
+import * as dns from 'dns/promises';
 import { LRUCache } from 'lru-cache';
 import * as net from 'net';
 import type { Agent } from 'undici';
@@ -212,6 +212,13 @@ export async function createPinnedPublicIpDispatcher(hostname: string): Promise<
   return new Agent({
     connect: {
       lookup: pinnedLookup,
+      // Hosts like Okta return MULTIPLE A records. Without Happy-Eyeballs, undici asks the pinned
+      // lookup for a single address and connects to only the first one — with no fallback — so a
+      // single unhealthy/unroutable IP in the set breaks every request even though a sibling IP is
+      // reachable (the exact failure stock `fetch` avoids, since Node enables this by default).
+      // autoSelectFamily makes undici request the full validated list (`all: true`) and attempt each
+      // address in turn, restoring that resilience while still only ever connecting to our validated IPs.
+      autoSelectFamily: true,
     },
   });
 }
