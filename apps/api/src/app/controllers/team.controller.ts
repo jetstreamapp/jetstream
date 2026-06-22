@@ -4,7 +4,7 @@ import * as authService from '@jetstream/auth/server';
 import { encryptSecret, oidcService, samlService } from '@jetstream/auth/server';
 import { OidcConfigurationRequestSchema, SamlConfigurationRequestSchema } from '@jetstream/auth/types';
 import { BLOCKED_PUBLIC_EMAIL_DOMAINS } from '@jetstream/shared/constants';
-import { assertDomainResolvesToPublicIp, getPinnedPublicIpDispatcher } from '@jetstream/shared/node-utils';
+import { assertDomainResolvesToPublicIp, fetchWithPinnedPublicIp } from '@jetstream/shared/node-utils';
 import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import {
   TEAM_MEMBER_ROLE_ACCESS,
@@ -21,7 +21,6 @@ import {
 import * as crypto from 'crypto';
 import * as dns from 'dns/promises';
 import { unparse } from 'papaparse';
-import type { Dispatcher } from 'undici';
 import { z } from 'zod';
 import * as teamDb from '../db/team.db';
 import * as teamService from '../services/team.service';
@@ -75,17 +74,16 @@ export async function fetchSamlMetadata(initialUrl: string): Promise<Response> {
     // Parallels the OIDC runtime discovery path in libs/auth/server/src/lib/oidc.service.ts.
     // In prod we pin the connection to the validated public IP so the validated address is the
     // one actually connected to (defeats DNS-rebinding TOCTOU between the check and the fetch).
-    const fetchInit: RequestInit & { dispatcher?: Dispatcher } = {
+    const fetchInit: RequestInit = {
       signal,
       headers: { Accept: 'application/xml, text/xml, */*' },
       redirect: 'manual',
     };
-    if (ENV.USE_SECURE_COOKIES) {
-      fetchInit.dispatcher = await getPinnedPublicIpDispatcher(new URL(currentUrl).hostname);
-    }
     let response: Response;
     try {
-      response = await fetch(currentUrl, fetchInit);
+      // In prod, pin to a validated public IP (SSRF defense) via undici's own fetch — see
+      // fetchWithPinnedPublicIp. In dev/CI we skip pinning so the local mock IdP stays reachable.
+      response = ENV.USE_SECURE_COOKIES ? await fetchWithPinnedPublicIp(currentUrl, fetchInit) : await fetch(currentUrl, fetchInit);
     } catch (err) {
       // AbortSignal.timeout's thrown error can surface as TimeoutError OR AbortError depending
       // on the Node/undici version — checking signal.aborted is deterministic, and since this
@@ -1225,13 +1223,11 @@ export async function checkDomainVerification(
     for (const fileUrl of fileUrls) {
       if (verified) break;
       try {
-        const dispatcher = await getPinnedPublicIpDispatcher(new URL(fileUrl).hostname);
-        const fetchInit: RequestInit & { dispatcher?: Dispatcher } = {
+        // Pin to a validated public IP (SSRF defense) via undici's own fetch — see fetchWithPinnedPublicIp.
+        const response = await fetchWithPinnedPublicIp(fileUrl, {
           signal: AbortSignal.timeout(5000),
           redirect: 'manual',
-          dispatcher,
-        };
-        const response = await fetch(fileUrl, fetchInit);
+        });
         if (response.ok) {
           const text = await response.text();
           if (text.trim() === verificationCode) {

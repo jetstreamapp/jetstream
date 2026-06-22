@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { ENV, logger } from '@jetstream/api-config';
 import type { OidcConfiguration } from '@jetstream/prisma';
-import { getPinnedPublicIpDispatcher } from '@jetstream/shared/node-utils';
+import { fetchWithPinnedPublicIp } from '@jetstream/shared/node-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { LRUCache } from 'lru-cache';
 import * as oauth from 'oauth4webapi';
-import type { Dispatcher } from 'undici';
 import { decryptSecret } from './sso-crypto.util';
 import { AttributeMapping, DiscoveredOidcConfig, SsoUserInfo } from './sso.types';
 
@@ -25,15 +24,19 @@ type OidcCustomFetch = (url: string, options: oauth.CustomFetchOptions<string, B
  */
 function createPinnedCustomFetch(): OidcCustomFetch {
   return async (url, options) => {
-    const fetchInit: RequestInit & { dispatcher?: Dispatcher } = {
+    const fetchInit: RequestInit = {
       body: options.body,
       headers: options.headers,
       method: options.method,
       redirect: options.redirect,
       signal: options.signal,
     };
+    // In prod, pin to a validated public IP (SSRF defense). `fetchWithPinnedPublicIp` uses undici's
+    // own `fetch` so the pinned dispatcher and the fetch implementation are the same undici instance;
+    // the global `fetch` would reject the foreign dispatcher with `invalid onRequestStart method`.
+    // In dev/CI we skip pinning so local/loopback IdPs remain reachable.
     if (ENV.USE_SECURE_COOKIES) {
-      fetchInit.dispatcher = await getPinnedPublicIpDispatcher(new URL(url).hostname);
+      return fetchWithPinnedPublicIp(url, fetchInit);
     }
     return fetch(url, fetchInit);
   };

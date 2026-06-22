@@ -212,15 +212,30 @@ export async function createPinnedPublicIpDispatcher(hostname: string): Promise<
   return new Agent({
     connect: {
       lookup: pinnedLookup,
-      // Hosts like Okta return MULTIPLE A records. Without Happy-Eyeballs, undici asks the pinned
-      // lookup for a single address and connects to only the first one — with no fallback — so a
-      // single unhealthy/unroutable IP in the set breaks every request even though a sibling IP is
-      // reachable (the exact failure stock `fetch` avoids, since Node enables this by default).
-      // autoSelectFamily makes undici request the full validated list (`all: true`) and attempt each
-      // address in turn, restoring that resilience while still only ever connecting to our validated IPs.
-      autoSelectFamily: true,
     },
   });
+}
+
+/**
+ * Fetch `url` with the connection pinned to a validated public IP (SSRF-safe), using undici's OWN
+ * `fetch` rather than Node's global `fetch`.
+ *
+ * IMPORTANT — always use this (never the global `fetch`) when pinning: {@link getPinnedPublicIpDispatcher}
+ * returns an undici `Agent` from THIS package, but Node's global `fetch` is a *separate* undici instance
+ * bundled with the runtime. Handing a foreign dispatcher to the global fetch makes undici reject the
+ * request at construction with `InvalidArgumentError: invalid onRequestStart method` — the two instances'
+ * internal request-handler interfaces don't match. Pairing this package's `fetch` with this package's
+ * `Agent` keeps them on the same instance. Callers (and oauth4webapi) only use the standard `Response`
+ * surface, which undici's `Response` implements.
+ *
+ * @throws Error if the hostname cannot be resolved or resolves to a private/reserved IP
+ */
+export async function fetchWithPinnedPublicIp(url: string | URL, init?: RequestInit): Promise<Response> {
+  // Lazy import keeps the Node-only undici dependency out of the jsdom unit-test module graph.
+  const { fetch: undiciFetch } = await import('undici');
+  const dispatcher = await getPinnedPublicIpDispatcher(new URL(url).hostname);
+  const response = await undiciFetch(url, { ...init, dispatcher } as Parameters<typeof undiciFetch>[1]);
+  return response as unknown as Response;
 }
 
 /**
