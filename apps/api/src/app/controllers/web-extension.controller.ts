@@ -138,19 +138,38 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
   });
 
   if (existingTokenRecord) {
-    // Decrypt the stored token and return it (token reuse)
+    // Decrypt the stored token (token reuse)
     const decryptedToken = decryptJwtTokenOrPlaintext(existingTokenRecord.token);
-    const decoded = externalAuthService.decodeToken(decryptedToken);
-    const expiresAt = fromUnixTime(decoded.exp);
 
-    res.log.debug({ userId: user.id, deviceId, expiresAt }, 'Reusing existing web extension token');
+    // Only reuse the stored token if it still verifies. A signing-secret rotation (or any change
+    // that invalidates an old signature) can leave a non-expired token in the DB whose signature
+    // no longer validates — /auth/verify would then reject it immediately, leaving the user stuck
+    // in a login loop. When the stored token no longer verifies, fall through and issue a fresh one
+    // (the issue path upserts, replacing the stale row) so login self-heals.
+    const storedTokenIsValid = await externalAuthService
+      .verifyToken({ token: decryptedToken, deviceId }, externalAuthService.AUDIENCE_WEB_EXT)
+      .then(() => true)
+      .catch((ex) => {
+        res.log.warn(
+          { userId: user.id, deviceId, ...getErrorMessageAndStackObj(ex) },
+          'Stored web extension token failed verification; issuing a new token',
+        );
+        return false;
+      });
 
-    sendJson(res, { accessToken: decryptedToken });
-    createUserActivityFromReq(req, res, {
-      action: 'WEB_EXTENSION_LOGIN_TOKEN_REUSED',
-      success: true,
-    });
-    return;
+    if (storedTokenIsValid) {
+      const decoded = externalAuthService.decodeToken(decryptedToken);
+      const expiresAt = fromUnixTime(decoded.exp);
+
+      res.log.debug({ userId: user.id, deviceId, expiresAt }, 'Reusing existing web extension token');
+
+      sendJson(res, { accessToken: decryptedToken });
+      createUserActivityFromReq(req, res, {
+        action: 'WEB_EXTENSION_LOGIN_TOKEN_REUSED',
+        success: true,
+      });
+      return;
+    }
   }
 
   // Issue new token if none exists or about to expire
