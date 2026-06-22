@@ -1,5 +1,11 @@
 # Changelog
 
+## [10.3.4](https://github.com/jetstreamapp/jetstream/compare/v10.3.3...v10.3.4) (2026-06-22)
+
+### Bug Fixes
+
+* replace getPinnedPublicIpDispatcher with fetchWithPinnedPublicIp for SSRF protection in OIDC/SAML metadata fetching ([b08e56b](https://github.com/jetstreamapp/jetstream/commit/b08e56b357658b921f9e209a4c4670393201d69c))
+
 ## [10.3.3](https://github.com/jetstreamapp/jetstream/compare/v10.3.1...v10.3.3) (2026-06-22)
 
 ### Features
