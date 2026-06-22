@@ -21,10 +21,10 @@ import { Mock, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { checkDomainVerification, fetchSamlMetadata, maskSsoSecrets } from '../team.controller';
 
 const assertDomainResolvesToPublicIpMock = vi.hoisted(() => vi.fn());
-// fetchSamlMetadata now validates+pins each hop's host via getPinnedPublicIpDispatcher (which
-// resolves the hostname, asserts it is public, and returns a cached undici Agent pinned to that IP),
-// replacing the prior assertDomainResolvesToPublicIp(url) call.
-const getPinnedPublicIpDispatcherMock = vi.hoisted(() => vi.fn());
+// fetchSamlMetadata and checkDomainVerification's file fallback fetch each hop via
+// fetchWithPinnedPublicIp, which resolves+validates the host is public and pins the connection to
+// that IP using undici's own fetch. Mocked here so tests drive responses (and rejections) at that seam.
+const fetchWithPinnedPublicIpMock = vi.hoisted(() => vi.fn());
 // checkDomainVerification resolves TXT records via `dns/promises` — mocked so tests control DNS answers.
 const resolveTxtMock = vi.hoisted(() => vi.fn());
 
@@ -60,7 +60,7 @@ vi.mock('@jetstream/auth/types', () => ({
 }));
 vi.mock('@jetstream/shared/node-utils', () => ({
   assertDomainResolvesToPublicIp: assertDomainResolvesToPublicIpMock,
-  getPinnedPublicIpDispatcher: getPinnedPublicIpDispatcherMock,
+  fetchWithPinnedPublicIp: fetchWithPinnedPublicIpMock,
 }));
 vi.mock('dns/promises', () => ({ resolveTxt: resolveTxtMock }));
 vi.mock('@jetstream/prisma', () => ({
@@ -145,9 +145,8 @@ describe('fetchSamlMetadata', () => {
   beforeEach(() => {
     assertDomainResolvesToPublicIpMock.mockReset();
     assertDomainResolvesToPublicIpMock.mockResolvedValue(undefined);
-    getPinnedPublicIpDispatcherMock.mockReset();
-    // Default: validation passes, returns an undefined (unused-by-mocked-fetch) dispatcher.
-    getPinnedPublicIpDispatcherMock.mockResolvedValue(undefined);
+    fetchWithPinnedPublicIpMock.mockReset();
+    // Global fetch is only exercised on the dev/CI (USE_SECURE_COOKIES=false) carve-out path below.
     fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
   });
@@ -158,55 +157,57 @@ describe('fetchSamlMetadata', () => {
 
   it('returns the response when the initial URL resolves without redirects', async () => {
     const body = '<EntityDescriptor/>';
-    fetchMock.mockResolvedValueOnce(new Response(body, { status: 200 }));
+    fetchWithPinnedPublicIpMock.mockResolvedValueOnce(new Response(body, { status: 200 }));
 
     const response = await fetchSamlMetadata('https://idp.okta.com/metadata');
     const text = await response.text();
 
     expect(response.status).toBe(200);
     expect(text).toBe(body);
-    expect(getPinnedPublicIpDispatcherMock).toHaveBeenCalledTimes(1);
-    expect(getPinnedPublicIpDispatcherMock).toHaveBeenCalledWith('idp.okta.com');
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.calls[0][1].redirect).toBe('manual');
+    expect(fetchWithPinnedPublicIpMock).toHaveBeenCalledTimes(1);
+    expect(fetchWithPinnedPublicIpMock).toHaveBeenCalledWith(
+      'https://idp.okta.com/metadata',
+      expect.objectContaining({ redirect: 'manual' }),
+    );
   });
 
-  it('follows a 302 redirect and validates the new host before fetching again', async () => {
-    fetchMock
+  it('follows a 302 redirect and pins the new host before fetching again', async () => {
+    fetchWithPinnedPublicIpMock
       .mockResolvedValueOnce(new Response(null, { status: 302, headers: { location: 'https://regional.okta.com/metadata' } }))
       .mockResolvedValueOnce(new Response('<EntityDescriptor/>', { status: 200 }));
 
     const response = await fetchSamlMetadata('https://idp.okta.com/metadata');
 
     expect(response.status).toBe(200);
-    expect(getPinnedPublicIpDispatcherMock).toHaveBeenCalledTimes(2);
-    expect(getPinnedPublicIpDispatcherMock.mock.calls[0][0]).toBe('idp.okta.com');
-    expect(getPinnedPublicIpDispatcherMock.mock.calls[1][0]).toBe('regional.okta.com');
+    expect(fetchWithPinnedPublicIpMock).toHaveBeenCalledTimes(2);
+    expect(fetchWithPinnedPublicIpMock.mock.calls[0][0]).toBe('https://idp.okta.com/metadata');
+    expect(fetchWithPinnedPublicIpMock.mock.calls[1][0]).toBe('https://regional.okta.com/metadata');
   });
 
   it('rejects a redirect to a host that resolves to a private IP', async () => {
-    fetchMock.mockResolvedValueOnce(new Response(null, { status: 301, headers: { location: 'https://internal.lan/metadata' } }));
-    getPinnedPublicIpDispatcherMock
-      .mockResolvedValueOnce(undefined)
+    // The pin+validate happens inside fetchWithPinnedPublicIp, so a private redirect target
+    // surfaces as a rejection from the second hop's fetch.
+    fetchWithPinnedPublicIpMock
+      .mockResolvedValueOnce(new Response(null, { status: 301, headers: { location: 'https://internal.lan/metadata' } }))
       .mockRejectedValueOnce(new Error('Hostname resolves to a private or reserved IP address'));
 
     await expect(fetchSamlMetadata('https://idp.okta.com/metadata')).rejects.toThrow(/private or reserved/i);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchWithPinnedPublicIpMock).toHaveBeenCalledTimes(2);
   });
 
   it('resolves a relative Location header against the current URL', async () => {
-    fetchMock
+    fetchWithPinnedPublicIpMock
       .mockResolvedValueOnce(new Response(null, { status: 301, headers: { location: '/metadata/v2' } }))
       .mockResolvedValueOnce(new Response('<EntityDescriptor/>', { status: 200 }));
 
     const response = await fetchSamlMetadata('https://idp.okta.com/metadata');
 
     expect(response.status).toBe(200);
-    expect(fetchMock.mock.calls[1][0]).toBe('https://idp.okta.com/metadata/v2');
+    expect(fetchWithPinnedPublicIpMock.mock.calls[1][0]).toBe('https://idp.okta.com/metadata/v2');
   });
 
   it('throws when a redirect response is missing a Location header', async () => {
-    fetchMock.mockResolvedValueOnce(new Response(null, { status: 302 }));
+    fetchWithPinnedPublicIpMock.mockResolvedValueOnce(new Response(null, { status: 302 }));
 
     await expect(fetchSamlMetadata('https://idp.okta.com/metadata')).rejects.toThrow(/missing Location header/);
   });
@@ -214,24 +215,26 @@ describe('fetchSamlMetadata', () => {
   it('throws when the redirect chain exceeds the hop cap', async () => {
     // MAX_REDIRECTS is 5 in the implementation — supply 6 consecutive redirects so the cap fires.
     for (let i = 0; i < 6; i++) {
-      fetchMock.mockResolvedValueOnce(new Response(null, { status: 302, headers: { location: `https://hop${i + 1}.test/` } }));
+      fetchWithPinnedPublicIpMock.mockResolvedValueOnce(
+        new Response(null, { status: 302, headers: { location: `https://hop${i + 1}.test/` } }),
+      );
     }
-    fetchMock.mockResolvedValueOnce(new Response(null, { status: 302, headers: { location: 'https://never.test/' } }));
+    fetchWithPinnedPublicIpMock.mockResolvedValueOnce(new Response(null, { status: 302, headers: { location: 'https://never.test/' } }));
 
     await expect(fetchSamlMetadata('https://hop0.test/')).rejects.toThrow(/exceeded maximum redirect hops/);
   });
 
   it('returns non-redirect non-2xx responses to the caller (e.g. a 404 surfaces unchanged)', async () => {
-    fetchMock.mockResolvedValueOnce(new Response('not found', { status: 404 }));
+    fetchWithPinnedPublicIpMock.mockResolvedValueOnce(new Response('not found', { status: 404 }));
 
     const response = await fetchSamlMetadata('https://idp.okta.com/metadata');
     expect(response.status).toBe(404);
   });
 
-  // Intentional dev/CI carve-out: when USE_SECURE_COOKIES=false the SSRF check is skipped so
-  // the local mock IdP (http://localhost:4000) is reachable. Re-imports the module under a
-  // fresh mock so the top-level ENV.USE_SECURE_COOKIES=true default doesn't apply.
-  it('skips the SSRF check when USE_SECURE_COOKIES is false (dev/CI mock-IdP case)', async () => {
+  // Intentional dev/CI carve-out: when USE_SECURE_COOKIES=false the SSRF pinning is skipped so the
+  // local mock IdP (http://localhost:4000) is reachable via the global fetch. Re-imports the module
+  // under a fresh mock so the top-level ENV.USE_SECURE_COOKIES=true default doesn't apply.
+  it('skips pinning and uses the global fetch when USE_SECURE_COOKIES is false (dev/CI mock-IdP case)', async () => {
     vi.resetModules();
     vi.doMock('@jetstream/api-config', () => ({
       ENV: { JETSTREAM_SERVER_URL: 'https://server.test', USE_SECURE_COOKIES: false, JETSTREAM_SAML_ACS_PATH_PREFIX: '/api/auth/sso/saml' },
@@ -246,28 +249,20 @@ describe('fetchSamlMetadata', () => {
     const response = await fetchSamlMetadataDev('http://localhost:4000/api/saml/metadata');
 
     expect(response.status).toBe(200);
-    expect(assertDomainResolvesToPublicIpMock).not.toHaveBeenCalled();
-    expect(getPinnedPublicIpDispatcherMock).not.toHaveBeenCalled();
+    expect(fetchWithPinnedPublicIpMock).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
 
 describe('checkDomainVerification', () => {
   const DOMAIN = 'example.com';
   const CODE = 'jetstream-verification=abc123';
-  let fetchMock: ReturnType<typeof vi.fn>;
   let warnMock: Mock<(obj: Record<string, unknown>, msg: string) => void>;
 
   beforeEach(() => {
     resolveTxtMock.mockReset();
-    getPinnedPublicIpDispatcherMock.mockReset();
-    getPinnedPublicIpDispatcherMock.mockResolvedValue(undefined);
-    fetchMock = vi.fn();
-    vi.stubGlobal('fetch', fetchMock);
+    fetchWithPinnedPublicIpMock.mockReset();
     warnMock = vi.fn<(obj: Record<string, unknown>, msg: string) => void>();
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
   });
 
   it('verifies via a DNS TXT record on the apex domain without checking files', async () => {
@@ -278,7 +273,7 @@ describe('checkDomainVerification', () => {
     expect(result).toEqual({ verified: true, verificationMethod: 'dns', foundNonMatchingValue: false });
     expect(resolveTxtMock).toHaveBeenCalledTimes(1);
     expect(resolveTxtMock).toHaveBeenCalledWith('example.com');
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchWithPinnedPublicIpMock).not.toHaveBeenCalled();
   });
 
   it('verifies via the _jetstream. subdomain when the apex has no matching record', async () => {
@@ -288,7 +283,7 @@ describe('checkDomainVerification', () => {
 
     expect(result).toEqual({ verified: true, verificationMethod: 'dns', foundNonMatchingValue: false });
     expect(resolveTxtMock).toHaveBeenNthCalledWith(2, '_jetstream.example.com');
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchWithPinnedPublicIpMock).not.toHaveBeenCalled();
   });
 
   it('does not report a mismatch when a stale apex record coexists with a matching _jetstream. record', async () => {
@@ -297,12 +292,12 @@ describe('checkDomainVerification', () => {
     const result = await checkDomainVerification(DOMAIN, CODE, { warn: warnMock });
 
     expect(result).toEqual({ verified: true, verificationMethod: 'dns', foundNonMatchingValue: false });
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchWithPinnedPublicIpMock).not.toHaveBeenCalled();
   });
 
   it('flags foundNonMatchingValue when a Jetstream TXT record exists with a different code', async () => {
     resolveTxtMock.mockResolvedValue([['jetstream-verification=stale']]);
-    fetchMock.mockImplementation(async () => new Response('not found', { status: 404 }));
+    fetchWithPinnedPublicIpMock.mockImplementation(async () => new Response('not found', { status: 404 }));
 
     const result = await checkDomainVerification(DOMAIN, CODE, { warn: warnMock });
 
@@ -315,7 +310,7 @@ describe('checkDomainVerification', () => {
 
   it('does not flag unrelated TXT records (e.g. SPF) as non-matching Jetstream values', async () => {
     resolveTxtMock.mockResolvedValue([['v=spf1 include:_spf.google.com ~all']]);
-    fetchMock.mockImplementation(async () => new Response('not found', { status: 404 }));
+    fetchWithPinnedPublicIpMock.mockImplementation(async () => new Response('not found', { status: 404 }));
 
     const result = await checkDomainVerification(DOMAIN, CODE, { warn: warnMock });
 
@@ -325,43 +320,43 @@ describe('checkDomainVerification', () => {
   it('falls back to the apex file URL when DNS lookups fail, pinning the fetch to a validated IP', async () => {
     resolveTxtMock.mockRejectedValue(new Error('queryTxt ENOTFOUND example.com'));
     // Trailing newline exercises the trim before comparison.
-    fetchMock.mockResolvedValueOnce(new Response(`${CODE}\n`, { status: 200 }));
+    fetchWithPinnedPublicIpMock.mockResolvedValueOnce(new Response(`${CODE}\n`, { status: 200 }));
 
     const result = await checkDomainVerification(DOMAIN, CODE, { warn: warnMock });
 
     expect(result).toEqual({ verified: true, verificationMethod: 'file', foundNonMatchingValue: false });
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.calls[0][0]).toBe('https://example.com/.well-known/jetstream-verification.txt');
-    expect(fetchMock.mock.calls[0][1].redirect).toBe('manual');
-    expect(getPinnedPublicIpDispatcherMock).toHaveBeenCalledWith('example.com');
+    expect(fetchWithPinnedPublicIpMock).toHaveBeenCalledTimes(1);
+    expect(fetchWithPinnedPublicIpMock.mock.calls[0][0]).toBe('https://example.com/.well-known/jetstream-verification.txt');
+    expect(fetchWithPinnedPublicIpMock.mock.calls[0][1].redirect).toBe('manual');
   });
 
   it('falls back to the www. file URL when the apex file is unavailable', async () => {
     resolveTxtMock.mockRejectedValue(new Error('queryTxt ENOTFOUND example.com'));
-    fetchMock.mockResolvedValueOnce(new Response('not found', { status: 404 })).mockResolvedValueOnce(new Response(CODE, { status: 200 }));
+    fetchWithPinnedPublicIpMock
+      .mockResolvedValueOnce(new Response('not found', { status: 404 }))
+      .mockResolvedValueOnce(new Response(CODE, { status: 200 }));
 
     const result = await checkDomainVerification(DOMAIN, CODE, { warn: warnMock });
 
     expect(result).toEqual({ verified: true, verificationMethod: 'file', foundNonMatchingValue: false });
-    expect(fetchMock.mock.calls[1][0]).toBe('https://www.example.com/.well-known/jetstream-verification.txt');
-    expect(getPinnedPublicIpDispatcherMock).toHaveBeenCalledWith('www.example.com');
+    expect(fetchWithPinnedPublicIpMock.mock.calls[1][0]).toBe('https://www.example.com/.well-known/jetstream-verification.txt');
   });
 
   it('does not duplicate the www. prefix when the domain already starts with www.', async () => {
     resolveTxtMock.mockResolvedValue([]);
-    fetchMock.mockImplementation(async () => new Response('not found', { status: 404 }));
+    fetchWithPinnedPublicIpMock.mockImplementation(async () => new Response('not found', { status: 404 }));
 
     const result = await checkDomainVerification('www.example.com', CODE, { warn: warnMock });
 
     expect(result).toEqual({ verified: false, verificationMethod: null, foundNonMatchingValue: false });
     // Only the stored host is fetched — never `www.www.example.com`.
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.calls[0][0]).toBe('https://www.example.com/.well-known/jetstream-verification.txt');
+    expect(fetchWithPinnedPublicIpMock).toHaveBeenCalledTimes(1);
+    expect(fetchWithPinnedPublicIpMock.mock.calls[0][0]).toBe('https://www.example.com/.well-known/jetstream-verification.txt');
   });
 
   it('flags foundNonMatchingValue when the hosted file contains a different Jetstream code', async () => {
     resolveTxtMock.mockResolvedValue([]);
-    fetchMock.mockImplementation(async () => new Response('jetstream-verification=stale', { status: 200 }));
+    fetchWithPinnedPublicIpMock.mockImplementation(async () => new Response('jetstream-verification=stale', { status: 200 }));
 
     const result = await checkDomainVerification(DOMAIN, CODE, { warn: warnMock });
 
@@ -374,23 +369,23 @@ describe('checkDomainVerification', () => {
 
   it('returns not-verified with no flags when nothing is found via DNS or files', async () => {
     resolveTxtMock.mockResolvedValue([]);
-    fetchMock.mockImplementation(async () => new Response('<html>404</html>', { status: 404 }));
+    fetchWithPinnedPublicIpMock.mockImplementation(async () => new Response('<html>404</html>', { status: 404 }));
 
     const result = await checkDomainVerification(DOMAIN, CODE, { warn: warnMock });
 
     expect(result).toEqual({ verified: false, verificationMethod: null, foundNonMatchingValue: false });
     // Both DNS hosts and both file hosts are tried before giving up.
     expect(resolveTxtMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchWithPinnedPublicIpMock).toHaveBeenCalledTimes(2);
   });
 
   it('survives file fetch rejections (e.g. SSRF validation failure) without throwing', async () => {
     resolveTxtMock.mockResolvedValue([]);
-    getPinnedPublicIpDispatcherMock.mockRejectedValue(new Error('Hostname resolves to a private or reserved IP address'));
+    fetchWithPinnedPublicIpMock.mockRejectedValue(new Error('Hostname resolves to a private or reserved IP address'));
 
     const result = await checkDomainVerification(DOMAIN, CODE, { warn: warnMock });
 
     expect(result).toEqual({ verified: false, verificationMethod: null, foundNonMatchingValue: false });
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchWithPinnedPublicIpMock).toHaveBeenCalled();
   });
 });
