@@ -1,0 +1,74 @@
+---
+slug: v10.3.0
+title: 10.3.0 - Rebuilt data tables with cell selection, copy, and export
+date: '2026-06-21'
+tags: [web, extension]
+versions:
+  web: 10.3.0
+  extension: 3.2.0
+summary: Jetstream's data tables are rebuilt on a new foundation — select and copy ranges of cells, copy columns and export tables from a richer right-click menu, and export just the cells you selected. Subqueries gain filter/order/limit support, the permission manager shows per-object selection counts, and new keyboard shortcuts speed up multi-step pages.
+highlights:
+  - title: Select and copy ranges of cells
+    description: Click and drag to select a range of cells in a data table, then copy their contents — handy for grabbing exactly the slice of data you want.
+    docLink: /query/results
+  - title: A more powerful right-click menu on tables
+    description: Many tables now let you copy a whole column's values or export the entire table in your choice of formats from the right-click menu.
+    docLink: /query/results
+  - title: Export just the cells you selected
+    description: When you have a range of cells selected, right-clicking adds extra options to export only that selection.
+    docLink: /query/results
+  - title: Permission counts per object
+    description: The permission manager now shows a summary of how many permissions are selected for each object, so you can see at a glance what you're about to change.
+    docLink: /permissions
+  - title: Filter, order, and limit subqueries
+    description: Subqueries in the query builder now support WHERE, ORDER BY, and LIMIT, just like top-level queries.
+    docLink: /query
+  - title: Back / forward / submit keyboard shortcuts
+    description: On multi-step pages, use cmd+enter to advance and cmd+shift+enter to go back.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Data tables, rebuilt
+
+Jetstream's data tables have been migrated to TanStack Table, a modern and well-maintained foundation.
+Beyond keeping the tables healthy for the long run, the rebuild unlocks a much richer way to work with
+your data wherever Jetstream shows it in a grid:
+
+- **Select a range of cells.** Click and drag across cells to select a rectangular range, then copy its
+  contents to your clipboard. It's the spreadsheet-style selection people have been asking for, so you can
+  grab exactly the slice of data you need.
+- **A more capable right-click menu.** For many tables, the context menu now lets you copy an entire
+  column's values or export the whole table in your choice of formats — no need to re-run a query or
+  reshape your data just to get it out.
+- **Export only what you selected.** When you have a range of cells selected, right-clicking adds extra
+  options to export just that selection, so you can pull out a focused subset without exporting the
+  entire table.
+
+The migration also brings better layout for nested rows and styling that more closely matches Salesforce.
+
+### Per-object permission counts
+
+The permission manager now shows a summary of how many permissions are selected for each object. When
+you're working across several objects at once, that running count makes it much easier to keep track of
+the scope of your changes before you save them.
+
+### Richer subqueries
+
+The query builder now lets you add `WHERE`, `ORDER BY`, and `LIMIT` clauses to subqueries — not just to
+the top-level query. That makes it much easier to shape related-record results without dropping into raw
+SOQL.
+
+### Keyboard shortcuts for multi-step pages
+
+On pages that move through multiple steps, you can now use `cmd+enter` to go forward and
+`cmd+shift+enter` to go back, so you can fly through a flow without reaching for the mouse.
+
+### Other fixes
+
+- The code editor now has a border, so it no longer blends into the surrounding page.
+- The clear button on the query limit control behaves more sensibly.
+- A subtle border-radius fix so the loading spinner overlay looks right inside rounded containers like
+  buttons.

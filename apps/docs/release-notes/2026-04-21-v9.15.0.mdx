@@ -1,0 +1,52 @@
+---
+slug: v9.15.0
+title: 9.15.0 - Sturdier filters and authentication hardening
+date: '2026-04-21'
+tags: [web, desktop, extension]
+versions:
+  web: 9.15.0
+  desktop: 3.20.0
+  extension: 2.22.0
+summary: Quick filters and field mapping shrug off bad input instead of erroring, and a round of authentication and session-security work makes signing in and staying signed in more robust.
+highlights:
+  - title: Quick filters tolerate invalid input
+    description: A half-typed or invalid regular expression in a quick filter no longer breaks the table — it just keeps filtering with what works.
+    docLink: /query/results
+  - title: Sturdier field mapping during loads
+    description: Loading records is more forgiving of incomplete field-mapping state, so a missing mapping entry no longer throws an error mid-setup.
+    docLink: /load
+  - title: Authentication and session hardening
+    description: Added OAuth state validation against CSRF, made session revocation clear every token, and improved handling of expired access tokens.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Quick filters keep working when the input is messy
+
+Quick filters let you narrow a table as you type, and many people lean on regular expressions to do it.
+Previously, typing a pattern that wasn't yet valid — a stray bracket, an unfinished group — could throw
+and leave the table in a bad state. Now the filter recognizes an invalid expression and keeps the table
+usable, so you can keep typing and refining without it breaking under you.
+
+### Field mapping is more forgiving during loads
+
+When you map a file's columns to Salesforce fields, the mapping is built up as you go and can briefly be
+incomplete. Loads now handle missing or undefined mapping entries gracefully instead of surfacing an
+error partway through setup, which makes getting a load configured feel a lot less fragile.
+
+### A round of authentication and session hardening
+
+This release tightens up several parts of signing in and managing sessions:
+
+- The OAuth login flow now generates, stores, and validates a `state` parameter, which protects against
+  cross-site request forgery (CSRF) during login.
+- Revoking a session clears **all** of that user's tokens, and error details are preserved when a session
+  ends — so if something goes wrong mid-login, the reason isn't lost when you're redirected.
+- Expired access tokens are now handled during decryption instead of failing outright.
+- Sessions track the authentication provider and account id, giving Jetstream a more accurate picture of
+  a user's identity across different login methods.
+
+Most of this is invisible day to day — it's the kind of work that quietly makes logging in and staying
+logged in more dependable.

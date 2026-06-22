@@ -12,6 +12,9 @@ export * from './app/HeaderDonatePopover';
 export * from './app/HeaderHelpPopover';
 export * from './app/HeaderNavbar';
 export * from './app/HeaderUpdateNotification';
+// HeaderWhatsNewPopover is intentionally NOT re-exported here. It is lazy-loaded inside HeaderNavbar
+// (via dynamic import) so the release-notes data is code-split out of the main bundle; a barrel
+// re-export would pull it back into the eager graph and defeat the split.
 export * from './app/MonacoEditor';
 export * from './app/NotificationsRequestModal';
 export * from './app/PromptNavigation';

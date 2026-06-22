@@ -13,13 +13,8 @@
  */
 
 import { select } from '@inquirer/prompts';
-import { $, chalk } from 'zx';
-
-$.verbose = false;
-
-const REPO_SLUG = 'jetstreamapp/jetstream';
-const REMOTE = 'origin';
-const MERGE_PR_REGEX = /^Merge pull request #(\d+) from (\S+)/;
+import { chalk } from 'zx';
+import { fetchTags, getMergedPrsSince, listWebTags, refExists, REPO_SLUG } from './lib/gather-prs.mjs';
 
 // ── Args ───────────────────────────────────────────────────────────────────
 const options = parseArgs(process.argv.slice(2));
@@ -28,19 +23,13 @@ console.log('\n' + chalk.bold.cyan('  Release Preview') + '\n');
 
 // ── Fetch tags ─────────────────────────────────────────────────────────────
 process.stdout.write(chalk.dim('Fetching tags... '));
-try {
-  await $`git fetch ${REMOTE} --tags --prune --quiet`;
-  console.log(chalk.green('done'));
-} catch {
-  console.log(chalk.yellow('skipped (offline?)'));
-}
+console.log((await fetchTags()) ? chalk.green('done') : chalk.yellow('skipped (offline?)'));
 
 // ── Determine base tag ─────────────────────────────────────────────────────
 let baseTag = options.base;
 
 if (!baseTag) {
-  const webTagsRaw = (await $`git tag --list 'v[0-9]*' --sort=-v:refname`).stdout.trim();
-  const webTags = webTagsRaw.split('\n').filter(Boolean);
+  const webTags = await listWebTags();
   if (webTags.length === 0) {
     console.error(chalk.red('\nNo v* tags found in this repo.\n'));
     process.exit(1);
@@ -53,55 +42,14 @@ if (!baseTag) {
 }
 
 // ── Validate base tag ──────────────────────────────────────────────────────
-try {
-  await $`git rev-parse --verify ${baseTag}`.quiet();
-} catch {
+if (!(await refExists(baseTag))) {
   console.error(chalk.red(`\nBase tag "${baseTag}" not found.\n`));
   process.exit(1);
 }
 
-const baseSha = (await $`git rev-parse ${baseTag}`).stdout.trim();
-const currentBranch = (await $`git rev-parse --abbrev-ref HEAD`).stdout.trim();
-const headSha = (await $`git rev-parse HEAD`).stdout.trim();
-const range = `${baseTag}..HEAD`;
-
-// ── Gather commits ─────────────────────────────────────────────────────────
-// --first-parent walks only the main-line history, so we see each merge
-// commit once and any commits pushed directly (without a PR). Without this,
-// every commit inside every merged PR branch would also show up.
-const pathArgs = options.path ? ['--', options.path] : [];
-const logOutput = (
-  await $`git log --first-parent --format=%H%x09%s ${range} ${pathArgs}`
-).stdout.trim();
-
-const mainlineCommits = logOutput
-  ? logOutput.split('\n').map((line) => {
-      const tabIndex = line.indexOf('\t');
-      const sha = line.slice(0, tabIndex);
-      const subject = line.slice(tabIndex + 1);
-      return { sha, short: sha.slice(0, 9), subject };
-    })
-  : [];
-
-const prs = [];
-const directCommits = [];
-for (const commit of mainlineCommits) {
-  const match = commit.subject.match(MERGE_PR_REGEX);
-  if (match) {
-    const number = match[1];
-    const label = await resolvePrLabel(commit.sha, match[2]);
-    prs.push({ ...commit, number, label });
-  } else {
-    directCommits.push(commit);
-  }
-}
-
-// Total commit count includes every commit reachable from HEAD but not from
-// base — useful context separate from the mainline view.
-const totalCommitsOutput = (
-  await $`git log --format=%H ${range} ${pathArgs}`
-).stdout.trim();
-const totalCommits = totalCommitsOutput ? totalCommitsOutput.split('\n').length : 0;
+const { baseSha, currentBranch, headSha, prs, directCommits, mainlineCommits, totalCommits } = await getMergedPrsSince(baseTag, {
+  path: options.path,
+});
 
 // ── Summary ────────────────────────────────────────────────────────────────
 console.log('');
@@ -153,26 +101,6 @@ console.log(`  ${chalk.dim('compare')}  ${chalk.underline.blue(compareUrl)}`);
 console.log('');
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-
-/**
- * Pulls the real commit subject for a merged PR. The merge commit's own
- * subject is just "Merge pull request #X from ..." which isn't useful — the
- * actual change description lives in the merge commit body, or falls back to
- * the source branch name.
- */
-async function resolvePrLabel(mergeSha, sourceRef) {
-  try {
-    const body = (await $`git log -1 --format=%b ${mergeSha}`).stdout.trim();
-    const firstLine = body.split('\n').find((line) => line.trim());
-    if (firstLine) {
-      return firstLine.trim();
-    }
-  } catch {
-    // fall through
-  }
-  // Fallback: the source branch name from the merge subject
-  return sourceRef.replace(/^[^/]+\//, '');
-}
 
 function parseArgs(args) {
   const result = { base: null, path: null };
