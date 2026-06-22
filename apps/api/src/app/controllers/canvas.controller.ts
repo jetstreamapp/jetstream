@@ -3,7 +3,8 @@ import { salesforceCanvasOauthCallback, SalesforceCanvasOauthInit } from '@jetst
 import { getErrorMessage, urlSearchParamsToJson } from '@jetstream/shared/utils';
 import { Canvas } from '@jetstream/types';
 import z from 'zod';
-import { escapeJsonForScript, getCanvasIndexFile, verifyAndDecodeAsJson } from '../utils/canvas.utils';
+import { isCanvasOrgEntitled } from '../db/canvas-entitlement.db';
+import { escapeJsonForScript, getCanvasAccessDeniedHtml, getCanvasIndexFile, verifyAndDecodeAsJson } from '../utils/canvas.utils';
 import { createRoute } from '../utils/route.utils';
 
 const INVALID_ACCESS = 'invalid';
@@ -147,6 +148,14 @@ const appHandler = createRoute(routeDefinition.appHandler.validators, async ({ b
         },
         '[CANVAS][SIGNED_REQUEST_VERIFIED]',
       );
+
+      // The signed request is cryptographically trusted at this point, so gate access by org entitlement
+      const organizationId = envelope?.context?.organization?.organizationId;
+      if (!organizationId || !(await isCanvasOrgEntitled(organizationId, envelope?.client?.instanceUrl))) {
+        getLogger().info({ organizationId, instanceUrl: envelope?.client?.instanceUrl }, '[CANVAS][ACCESS_DENIED]');
+        res.status(403).send(getCanvasAccessDeniedHtml());
+        return;
+      }
     } else {
       res.status(400).send({
         status: 'error',

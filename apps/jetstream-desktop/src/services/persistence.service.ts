@@ -286,6 +286,7 @@ export function getFullUserProfile() {
       chromeExtension: false,
       recordSync: true,
       analysisTools: true,
+      salesforceCanvas: false,
     },
     teamMembership: appData.userProfile.teamMembership,
     subscriptions: [],

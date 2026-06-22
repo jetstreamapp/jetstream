@@ -192,13 +192,15 @@ async function initExampleUserIfRequired() {
           lastLoggedIn: new Date(),
           preferences: { create: { skipFrontdoorLogin: false } },
           authFactors: { create: { type: '2fa-email', enabled: false } },
-          entitlements: { create: { chromeExtension: false, recordSync: false, googleDrive: false, desktop: false } },
+          entitlements: {
+            create: { chromeExtension: false, recordSync: false, googleDrive: false, desktop: false, salesforceCanvas: false },
+          },
         },
         update: {
           entitlements: {
             upsert: {
-              create: { chromeExtension: false, recordSync: false, googleDrive: false, desktop: false },
-              update: { chromeExtension: false, recordSync: false, googleDrive: false, desktop: false },
+              create: { chromeExtension: false, recordSync: false, googleDrive: false, desktop: false, salesforceCanvas: false },
+              update: { chromeExtension: false, recordSync: false, googleDrive: false, desktop: false, salesforceCanvas: false },
             },
           },
         },

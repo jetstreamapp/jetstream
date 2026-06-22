@@ -125,7 +125,7 @@ function releaseNotes() {
     '',
     `**Install:** ${installUrl()}`,
     '',
-    'An installation key is required to install this package (see the `SFDX_INSTALLATION_PASSWORD` secret).'
+    'An installation key is required to install this package.'
   ].join('\n');
 }
 
@@ -143,7 +143,7 @@ function writeSummary() {
     '',
     `**Install URL:** ${installUrl()}`,
     '',
-    '> An installation key is required to install (the `SFDX_INSTALLATION_PASSWORD` value).',
+    '> An installation key is required to install.',
     ''
   ];
   const summary = lines.join('\n');

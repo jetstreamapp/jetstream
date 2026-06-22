@@ -56,6 +56,7 @@ export const DEFAULT_PROFILE: UserProfileUi = {
     desktop: false,
     recordSync: false,
     analysisTools: false,
+    salesforceCanvas: false,
   },
   subscriptions: [],
   featureFlags: DEFAULT_FEATURE_FLAGS,

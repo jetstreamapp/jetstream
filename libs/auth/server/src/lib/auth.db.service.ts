@@ -315,7 +315,7 @@ export async function hasRememberDeviceRecord({
     if (rememberMe.userAgent && userAgent) {
       const isSimilar = checkUserAgentSimilarity(rememberMe.userAgent, userAgent);
       if (!isSimilar) {
-        logger.warn({ userId }, `User agent mismatch for remembered device: ${rememberMe.userAgent} !== ${userAgent}`);
+        logger.warn({ deviceId, userId }, `User agent mismatch for remembered device: ${rememberMe.userAgent} !== ${userAgent}`);
         return false;
       }
     }
@@ -1288,7 +1288,9 @@ async function createUserFromProvider(
         // picture: providerUser.picture,
         lastLoggedIn: new Date(),
         preferences: { create: { skipFrontdoorLogin: false } },
-        entitlements: { create: { chromeExtension: false, recordSync: false, googleDrive: false, desktop: false } },
+        entitlements: {
+          create: { chromeExtension: false, recordSync: false, googleDrive: false, desktop: false, salesforceCanvas: false },
+        },
         identities: {
           create: {
             type: 'oauth',
@@ -1450,7 +1452,9 @@ async function createUserFromUserInfo(
           tosAcceptedVersion: tosVersion,
           tosAcceptedAt: new Date(),
           preferences: { create: { skipFrontdoorLogin: false } },
-          entitlements: { create: { chromeExtension: false, recordSync: false, googleDrive: false, desktop: false } },
+          entitlements: {
+            create: { chromeExtension: false, recordSync: false, googleDrive: false, desktop: false, salesforceCanvas: false },
+          },
           authFactors: {
             create: {
               type: '2fa-email',

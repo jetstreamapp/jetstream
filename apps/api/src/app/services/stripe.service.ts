@@ -296,6 +296,7 @@ export async function updateEntitlements(customerId: string, entitlements: Strip
       recordSync: false,
       desktop: false,
       analysisTools: false,
+      salesforceCanvas: false,
     },
   );
 

@@ -50,6 +50,7 @@ model User {
   preferences          UserPreference?
   rememberedDevices    RememberedDevice[]
   salesforceOrgs       SalesforceOrg[]
+  salesforceCanvasOrgs SalesforceCanvasOrg[]
   subscriptions        Subscription[]
   syncData             UserSyncData[]
   teamMembership       TeamMember?
@@ -93,6 +94,7 @@ model Team {
 
   members              TeamMember[]
   sharedOrgs           SalesforceOrg[]        @relation("TeamSharedOrgs")
+  salesforceCanvasOrgs SalesforceCanvasOrg[]
   subscriptions        TeamSubscription[]
   billingAccount       TeamBillingAccount?
   invitations          TeamMemberInvitation[]
@@ -244,13 +246,14 @@ model PasswordHistory {
 }
 
 model Entitlement {
-  id              String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  userId          String  @unique @db.Uuid
-  chromeExtension Boolean @default(false)
-  googleDrive     Boolean @default(false)
-  recordSync      Boolean @default(false)
-  desktop         Boolean @default(false)
-  analysisTools   Boolean @default(false)
+  id               String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId           String  @unique @db.Uuid
+  chromeExtension  Boolean @default(false)
+  googleDrive      Boolean @default(false)
+  recordSync       Boolean @default(false)
+  desktop          Boolean @default(false)
+  analysisTools    Boolean @default(false)
+  salesforceCanvas Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -261,13 +264,14 @@ model Entitlement {
 }
 
 model TeamEntitlement {
-  id              String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  teamId          String  @unique @db.Uuid
-  chromeExtension Boolean @default(false)
-  googleDrive     Boolean @default(false)
-  recordSync      Boolean @default(false)
-  desktop         Boolean @default(false)
-  analysisTools   Boolean @default(false)
+  id               String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  teamId           String  @unique @db.Uuid
+  chromeExtension  Boolean @default(false)
+  googleDrive      Boolean @default(false)
+  recordSync       Boolean @default(false)
+  desktop          Boolean @default(false)
+  analysisTools    Boolean @default(false)
+  salesforceCanvas Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -602,6 +606,36 @@ model SalesforceOrg {
   @@index([expirationScheduledFor])
   @@index([nextExpirationNotificationDate])
   @@map("salesforce_org")
+}
+
+// Salesforce orgs explicitly authorized to use the Canvas app. Unlike SalesforceOrg, this is a
+// lightweight authorization record (no OAuth token / web-app connection) — the Canvas signed request
+// already proves identity. The owning user/team must hold the `salesforceCanvas` entitlement for
+// access to be granted; cancelling the subscription revokes all of that owner's authorized orgs.
+model SalesforceCanvasOrg {
+  id                 String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId     String   @unique @db.VarChar(18)
+  instanceUrl        String   @db.VarChar
+  myDomainBase       String?  @db.VarChar
+  orgName            String?  @db.VarChar
+  isSandbox          Boolean?
+  status             String   @default("ACTIVE") @db.VarChar(20) // 'ACTIVE' | 'REVOKED'
+  authorizedByUserId String?  @db.Uuid
+
+  // Exactly one owner (user XOR team) is enforced at the DB level via the `salesforce_canvas_org_owner_check`
+  // CHECK constraint (see migration) — Prisma's schema DSL can't express it, so it lives only in raw SQL.
+  jetstreamUserId String? @db.Uuid
+  jetstreamUser   User?   @relation(fields: [jetstreamUserId], references: [id], onDelete: Cascade)
+  teamId          String? @db.Uuid
+  team            Team?   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @db.Timestamp(6)
+  updatedAt DateTime @updatedAt
+
+  @@index([myDomainBase])
+  @@index([jetstreamUserId])
+  @@index([teamId])
+  @@map("salesforce_canvas_org")
 }
 
 model sessions {

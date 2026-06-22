@@ -90,3 +90,66 @@ export async function getCanvasIndexFile(): Promise<string> {
   const filePath = join(__dirname, '../jetstream-canvas/index.html');
   return await readFile(filePath, 'utf-8');
 }
+
+/**
+ * Branded screen rendered (inside the Salesforce Canvas iframe) when the org is not entitled
+ * to the Canvas app. Returned as static HTML so it has no build/asset dependencies.
+ */
+export function getCanvasAccessDeniedHtml(): string {
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Jetstream for Salesforce</title>
+    <style>
+      html, body { height: 100%; margin: 0; }
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f3f3f3;
+        color: #16325c;
+        font-family: 'Salesforce Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      }
+      .card {
+        max-width: 30rem;
+        margin: 2rem;
+        padding: 2rem;
+        background: #fff;
+        border: 1px solid #dddbda;
+        border-radius: 0.25rem;
+        box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+      .card h1 { font-size: 1.25rem; margin: 0 0 1rem; }
+      .card p { font-size: 0.875rem; line-height: 1.5; margin: 0 0 1rem; color: #3e3e3c; }
+      .btn {
+        display: inline-block;
+        margin-top: 0.5rem;
+        padding: 0.5rem 1.25rem;
+        background: #0176d3;
+        color: #fff;
+        text-decoration: none;
+        border-radius: 0.25rem;
+        font-size: 0.875rem;
+      }
+      .btn:hover { background: #014486; }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <h1>This org isn't authorized</h1>
+      <p>
+        Jetstream for Salesforce requires an active Jetstream subscription with access enabled, and this Salesforce org
+        must be authorized in Jetstream.
+      </p>
+      <p>
+        To get this org authorized, reach out to the Jetstream team. If your team doesn't have a plan yet, start one
+        to get going.
+      </p>
+      <a class="btn" href="https://getjetstream.app" target="_blank" rel="noopener noreferrer">Open Jetstream</a>
+    </main>
+  </body>
+</html>`;
+}
