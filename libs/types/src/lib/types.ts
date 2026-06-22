@@ -173,6 +173,7 @@ const EntitlementsSchema = z.object({
   chromeExtension: z.boolean().default(false),
   desktop: z.boolean().default(false),
   recordSync: z.boolean().default(false),
+  salesforceCanvas: z.boolean().default(false),
 });
 
 export const UserProfileUiSchema = z.object({

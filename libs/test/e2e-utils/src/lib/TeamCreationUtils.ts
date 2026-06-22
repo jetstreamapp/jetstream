@@ -3,8 +3,8 @@ import { LoginConfiguration, SessionData } from '@jetstream/auth/types';
 import { TeamBillingStatusSchema, TeamMemberRole, TeamMemberRoleSchema, TeamMemberStatus, TeamMemberStatusSchema } from '@jetstream/types';
 import { encodeHexLowerCase, encodeHexUpperCase } from '@oslojs/encoding';
 import { Browser, BrowserContext, Page } from '@playwright/test';
-import { AuthenticationPage } from './pageObjectModels/AuthenticationPage.model';
 import chalk from 'chalk';
+import { AuthenticationPage } from './pageObjectModels/AuthenticationPage.model';
 
 type Team = Awaited<ReturnType<TeamCreationUtils['createTeam']>>;
 type TeamMember = Awaited<ReturnType<TeamCreationUtils['createTeam']>>['members'][number];
@@ -305,6 +305,7 @@ export class TeamCreationUtils {
             chromeExtension: true,
             desktop: true,
             recordSync: true,
+            salesforceCanvas: true,
           },
         },
         billingAccount: {
