@@ -1,14 +1,16 @@
 import { css } from '@emotion/react';
+import { PermissionAnalysisExpandCollapseControls } from './PermissionAnalysisExpandCollapseControls';
 import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
 import { escapeSoqlString } from '@jetstream/shared/ui-utils';
 import type { SalesforceOrgUi } from '@jetstream/types';
+import type { RenderCellProps, RenderGroupCellProps } from '@jetstream/ui';
 import {
   AutoFullHeightContainer,
   Badge,
   ColumnWithFilter,
-  DataTree,
   dataTableDateFormatter,
+  DataTree,
   getProfileOrPermSetSetupUrl,
   getSalesforceUserManageSetupUrl,
   Grid,
@@ -18,8 +20,8 @@ import {
   Popover,
   ReadOnlyFormElement,
   SalesforceLogin,
-  ScopedNotification,
   salesforceLoginAndRedirect,
+  ScopedNotification,
   setColumnFromType,
   Spinner,
   type ProfileOrPermSetRecordType,
@@ -28,15 +30,14 @@ import groupBy from 'lodash/groupBy';
 import {
   Fragment,
   FunctionComponent,
-  type MouseEvent,
-  type ReactElement,
   useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
   useState,
+  type MouseEvent,
+  type ReactElement,
 } from 'react';
-import type { RenderCellProps, RenderGroupCellProps } from 'react-data-grid';
 import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 import {
   buildContainerIdFindingSeverity,
@@ -111,7 +112,7 @@ export interface PermissionSetTooltipFields {
 }
 
 function readSalesforceRelationshipName(value: unknown): string | null {
-  if (value && typeof value === 'object' && value !== null && 'Name' in value) {
+  if (value && typeof value === 'object' && 'Name' in value) {
     const name = (value as { Name?: unknown }).Name;
     if (typeof name === 'string' && name.trim()) {
       return name.trim();
@@ -670,6 +671,9 @@ export const PermissionAnalysisPermissionSetsTree: FunctionComponent<PermissionA
       width: TREE_COL_PERM_SET,
       minWidth: TREE_PERM_SET_MIN_PX,
       maxWidth: TREE_PERM_SET_MAX_PX,
+      // Group header spans the full row (clamped to the column count by the grid) so the label + actions
+      // lay out across the whole width instead of overflowing the narrow grouping column.
+      colSpan: ({ type }) => (type === 'GROUP' ? Number.MAX_SAFE_INTEGER : undefined),
       renderGroupCell: (props) =>
         renderPermissionSetGroupCell(
           labelByPermissionSetId,
@@ -882,51 +886,58 @@ export const PermissionAnalysisPermissionSetsTree: FunctionComponent<PermissionA
   }
 
   return (
-    <AutoFullHeightContainer
-      fillHeight
-      bottomBuffer={24}
-      baseCss={css`
-        min-height: 200px;
-      `}
-    >
-      <DataTree
-        org={org}
-        serverUrl={serverUrl}
-        skipFrontdoorLogin={skipFrontdoorLogin}
-        columns={columns}
-        data={treeRows}
-        getRowKey={getRowKey}
-        includeQuickFilter
-        context={{ defaultApiVersion }}
-        groupBy={[...TREE_GROUP_BY]}
-        rowGrouper={groupBy}
-        expandedGroupIds={expandedGroupIds}
-        onExpandedGroupIdsChange={setExpandedGroupIds}
-        rowHeight={({ type }) => (type === 'GROUP' ? TREE_ROW_HEIGHT_GROUP_PX : TREE_ROW_HEIGHT_LEAF_PX)}
+    <>
+      <PermissionAnalysisExpandCollapseControls
+        onExpandAll={() => setExpandedGroupIds(new Set(allExpandedGroupIds))}
+        onCollapseAll={() => setExpandedGroupIds(new Set())}
       />
-
-      {findingsModal && (
-        <PermissionAnalysisFindingsModal
-          testId="permission-analysis-perm-set-tree-issues"
-          open
-          title={isProfilesTree ? 'Issues for this profile' : 'Issues for this permission set'}
-          tagline={
-            isProfilesTree
-              ? "From this job's permission export analysis, scoped to the profile you selected."
-              : "From this job's permission export analysis, scoped to the permission set you selected."
-          }
-          onClose={() => setFindingsModal(null)}
-          findings={findingsModal.matches}
-          summaryLine={
-            <Fragment>
-              <strong>{findingsModal.columnLabel}</strong>
-              {' · '}
-              {containerLabelById?.get(findingsModal.containerId) ?? findingsModal.containerId} — {findingsModal.matches.length}{' '}
-              {findingsModal.matches.length === 1 ? 'issue' : 'issues'}
-            </Fragment>
-          }
+      <AutoFullHeightContainer
+        fillHeight
+        setHeightAttr
+        bottomBuffer={24}
+        baseCss={css`
+          min-height: 200px;
+        `}
+      >
+        <DataTree
+          org={org}
+          serverUrl={serverUrl}
+          skipFrontdoorLogin={skipFrontdoorLogin}
+          columns={columns}
+          data={treeRows}
+          getRowKey={getRowKey}
+          includeQuickFilter
+          context={{ defaultApiVersion }}
+          groupBy={[...TREE_GROUP_BY]}
+          rowGrouper={groupBy}
+          expandedGroupIds={expandedGroupIds}
+          onExpandedGroupIdsChange={setExpandedGroupIds}
+          rowHeight={({ type }) => (type === 'GROUP' ? TREE_ROW_HEIGHT_GROUP_PX : TREE_ROW_HEIGHT_LEAF_PX)}
         />
-      )}
-    </AutoFullHeightContainer>
+
+        {findingsModal && (
+          <PermissionAnalysisFindingsModal
+            testId="permission-analysis-perm-set-tree-issues"
+            open
+            title={isProfilesTree ? 'Issues for this profile' : 'Issues for this permission set'}
+            tagline={
+              isProfilesTree
+                ? "From this job's permission export analysis, scoped to the profile you selected."
+                : "From this job's permission export analysis, scoped to the permission set you selected."
+            }
+            onClose={() => setFindingsModal(null)}
+            findings={findingsModal.matches}
+            summaryLine={
+              <Fragment>
+                <strong>{findingsModal.columnLabel}</strong>
+                {' · '}
+                {containerLabelById?.get(findingsModal.containerId) ?? findingsModal.containerId} — {findingsModal.matches.length}{' '}
+                {findingsModal.matches.length === 1 ? 'issue' : 'issues'}
+              </Fragment>
+            }
+          />
+        )}
+      </AutoFullHeightContainer>
+    </>
   );
 };

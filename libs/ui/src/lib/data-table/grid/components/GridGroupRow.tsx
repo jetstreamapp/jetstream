@@ -19,6 +19,10 @@ export interface GridGroupRowProps<TRow> {
   height: number;
   activeCell?: ActiveCell | null;
   onCellMouseDown?: (rowId: string, columnId: string, shiftKey: boolean, button?: number) => void;
+  /** When true the group row sizes to its content instead of being pinned to `height`. */
+  autoHeight?: boolean;
+  /** Virtualizer `measureElement` ref; attached in auto-height mode so the row's real height is measured. */
+  measureRef?: (el: HTMLElement | null) => void;
 }
 
 // `row.getLeafRows()` walks + maps the entire group on every call; cache per TanStack row instance
@@ -51,6 +55,8 @@ export function GridGroupRow<TRow>({
   height,
   activeCell,
   onCellMouseDown,
+  autoHeight,
+  measureRef,
 }: GridGroupRowProps<TRow>) {
   const isExpanded = row.getIsExpanded();
   const firstColumnId = columns[0]?.id;
@@ -66,17 +72,20 @@ export function GridGroupRow<TRow>({
     />
   );
 
-  const rowStyle: CSSProperties = { transform: `translateY(${virtualStart}px)`, blockSize: height, gridTemplateColumns };
+  const rowStyle: CSSProperties = autoHeight
+    ? { transform: `translateY(${virtualStart}px)`, gridTemplateColumns }
+    : { transform: `translateY(${virtualStart}px)`, blockSize: height, gridTemplateColumns };
   const anyGroupCell = columns.some((column) => column.columnDef.meta?.jetstream?.renderGroupCell);
 
   const baseRowProps = {
+    ref: autoHeight ? measureRef : undefined,
     role: 'row' as const,
     'aria-rowindex': ariaRowIndex,
     'aria-level': (row.depth ?? 0) + 1,
     'aria-expanded': isExpanded,
     'data-row-id': row.id,
     'data-index': rowIndex,
-    className: 'jgrid-group-row',
+    className: autoHeight ? 'jgrid-group-row jgrid-row-auto-height' : 'jgrid-group-row',
   };
 
   // Fallback: single full-width group header.
@@ -119,7 +128,7 @@ export function GridGroupRow<TRow>({
     // Group rows resolve span via the GROUP discriminant so a column can span the header (e.g. the
     // grouping column owning the toggle + label) without widening that column on data rows. Clamp to the
     // remaining tracks so an over-large span can't overrun the row.
-    const requestedSpan = meta?.colSpan?.({ type: 'GROUP', row: representativeRow }) ?? 1;
+    const requestedSpan = meta?.colSpan?.({ type: 'GROUP', row: representativeRow, groupingColumnId: row.groupingColumnId }) ?? 1;
     const span = Math.max(1, Math.min(requestedSpan, columns.length - index));
     // A spanning cell is visible when any of the tracks it covers is in the visible window.
     let cellIsVisible = false;

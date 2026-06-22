@@ -24,6 +24,7 @@ import {
   PermissionTableTabVisibilityCellPermission,
   TabVisibilityPermissionDefinitionMap,
   TabVisibilityPermissionRecordForSave,
+  UiTabSection,
   UploadToGoogleJob,
 } from '@jetstream/types';
 import {
@@ -639,7 +640,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     onDirtyRows: setDirtyObjectRows,
   };
 
-  const objectPermissionEditorTabs = [];
+  const objectPermissionEditorTabs: UiTabSection[] = [];
   if (selectedProfiles.length > 0) {
     objectPermissionEditorTabs.push({
       id: 'profiles-object-permissions',

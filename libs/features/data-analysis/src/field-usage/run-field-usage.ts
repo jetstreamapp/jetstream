@@ -93,6 +93,10 @@ function buildFieldUsageSoql(objectApiName: string, fieldNames: string[]): strin
   return composeQuery({
     fields: [getField('Id'), getField('LastModifiedDate'), ...fieldNames.map((name) => getField(name))],
     sObject: objectApiName,
+    // Deterministic order so that when a wide object is split into multiple field-chunks AND the scan is
+    // truncated at the row budget, every chunk scans the SAME first N rows. Without this, each chunk could
+    // sample a different (arbitrary) subset, making per-field percentages inconsistent within one object.
+    orderBy: { field: 'Id', order: 'ASC' },
   });
 }
 

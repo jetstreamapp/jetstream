@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/refs */
 import { css } from '@emotion/react';
 import type { SalesforceOrgUi } from '@jetstream/types';
+import type { RenderCellProps, RenderGroupCellProps } from '@jetstream/ui';
 import {
   AutoFullHeightContainer,
   ColumnWithFilter,
@@ -32,7 +33,6 @@ import {
   useState,
   type MouseEvent,
 } from 'react';
-import type { CellMouseArgs, RenderCellProps, RenderGroupCellProps } from 'react-data-grid';
 import { usePermissionAnalysisExportMetadata } from './permission-analysis-export-metadata-context';
 import { permissionAnalysisPermissionContainerGroupTitleLine } from './permission-analysis-tree-group-title';
 import { permissionAnalysisAssignmentTypeLabelCss } from './permission-analysis-viewer-badge.styles';
@@ -51,6 +51,7 @@ import {
   type PermissionExportRow,
   type SobjectExportDetail,
 } from './permission-export-result-view';
+import { PermissionAnalysisExpandCollapseControls } from './PermissionAnalysisExpandCollapseControls';
 import { SobjectTypeCellContent } from './PermissionAnalysisExportGrid';
 import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 import { buildPermissionSetTooltipFieldsFromExportRow, PermissionSetDetailPopoverContent } from './PermissionAnalysisPermissionSetsTree';
@@ -112,6 +113,22 @@ function buildFieldPermissionTreeRows(fieldPermissionRows: PermissionExportRow[]
   });
 }
 
+/** Level-1 (permission set) group keys only — the default expansion (nested objects + fields stay collapsed). */
+function collectFieldPermissionPermSetGroupKeys(rows: readonly PermissionExportRow[]): Set<unknown> {
+  const ids = new Set<unknown>();
+  for (let index = 0; index < rows.length; index++) {
+    const row = rows[index];
+    const parentId = typeof row.ParentId === 'string' ? row.ParentId.trim() : '';
+    ids.add(parentId || `__missing_parent_${index}`);
+  }
+  return ids;
+}
+
+/**
+ * Both grouping levels for "Expand all" (so the grandchild field rows show). The DataTree bridge maps each
+ * value to a TanStack group-row id `${grouping[0]}:${value}`, and a nested object row's id is
+ * `_treePermSetGroupKey:<permSet>>_treeObjectGroupKey:<object>`, so the object value must encode that path.
+ */
 function collectAllFieldPermissionExpandedGroupIds(rows: readonly PermissionExportRow[]): Set<unknown> {
   const ids = new Set<unknown>();
   for (let index = 0; index < rows.length; index++) {
@@ -121,7 +138,7 @@ function collectAllFieldPermissionExpandedGroupIds(rows: readonly PermissionExpo
     const permSetKey = parentId || `__missing_parent_${index}`;
     const objectKey = sobjectType || `__missing_object_${index}`;
     ids.add(permSetKey);
-    ids.add(`${permSetKey}__${objectKey}`);
+    ids.add(`${permSetKey}>_treeObjectGroupKey:${objectKey}`);
   }
   return ids;
 }
@@ -334,9 +351,11 @@ function FieldPermissionObjectGroupCellContent({
               min-width: 0;
             `}
           >
-            <SobjectTypeCellContent apiName={apiName} detail={detail} objectManager={objectManager} />
+            <SobjectTypeCellContent apiName={apiName} detail={detail} objectManager={objectManager} hideInlineObjectManagerLink />
           </div>
-          <span className="slds-text-body_small slds-text-color_weak slds-no-flex">({childRows.length})</span>
+          <span className="slds-text-body_small slds-text-color_weak slds-no-flex">
+            {childRows.length} {childRows.length === 1 ? 'field' : 'fields'}
+          </span>
           <SalesforceLogin
             org={objectManager.org}
             serverUrl={objectManager.serverUrl}
@@ -378,9 +397,12 @@ function FieldPermissionFieldCellContent({ row, objectManager }: FieldPermission
   const apiLine = short || full;
   const descriptionText = fd?.description != null && String(fd.description).trim().length > 0 ? String(fd.description).trim() : null;
   const durableId = fd?.durableId?.trim() ? fd.durableId.trim() : null;
+  // FieldDefinition.DurableId is the composite `EntityId.FieldId` (e.g. `01I….00N…`); the Object Manager
+  // field URL needs only the field id (the part after the dot).
+  const fieldDurableId = durableId ? (durableId.includes('.') ? durableId.slice(durableId.lastIndexOf('.') + 1) : durableId) : null;
   const fieldSetupUrl =
-    durableId && obj
-      ? `/lightning/setup/ObjectManager/${encodeURIComponent(obj)}/FieldsAndRelationships/${encodeURIComponent(durableId)}/view`
+    fieldDurableId && obj
+      ? `/lightning/setup/ObjectManager/${encodeURIComponent(obj)}/FieldsAndRelationships/${encodeURIComponent(fieldDurableId)}/view`
       : null;
   const fieldSlug = `${obj}-${apiLine}`.replace(/[^a-zA-Z0-9_-]+/g, '-');
   const canFieldDeepLink = Boolean(fieldSetupUrl && objectManager.org?.uniqueId && objectManager.serverUrl);
@@ -508,7 +530,7 @@ function FieldPermissionFieldCellContent({ row, objectManager }: FieldPermission
             serverUrl={objectManager.serverUrl}
             skipFrontDoorAuth={objectManager.skipFrontDoorAuth}
             returnUrl={fieldSetupUrl}
-            title="Open this field in Fields & Relationships"
+            title="View field in Salesforce"
             omitIcon
             className={OBJECT_TYPE_ACTION_BUTTON_CLASSNAME}
           >
@@ -682,7 +704,8 @@ export const PermissionAnalysisFieldPermissionsTree: FunctionComponent<Permissio
    * the user's manually-collapsed groups stick during initial metadata loading.
    */
   useEffect(() => {
-    setExpandedGroupIds(collectAllFieldPermissionExpandedGroupIds(fieldPermissionRows));
+    // Default: expand permission sets, leave the nested objects (and their field rows) collapsed.
+    setExpandedGroupIds(collectFieldPermissionPermSetGroupKeys(fieldPermissionRows));
   }, [fieldPermissionRows]);
 
   const objectManager = useMemo(() => ({ org, serverUrl, skipFrontDoorAuth: skipFrontdoorLogin }), [org, serverUrl, skipFrontdoorLogin]);
@@ -702,7 +725,14 @@ export const PermissionAnalysisFieldPermissionsTree: FunctionComponent<Permissio
       width: TREE_COL_PERM_SET,
       minWidth: TREE_MIN_PERM_SET,
       maxWidth: TREE_PERM_SET_MAX_PX,
-      renderGroupCell: (props) => renderFieldPermissionPermissionSetGroupCell(labelByParentId, permissionSetRowById, objectManager, props),
+      // Two-level grouping (Permission set → Object): this column owns the header only at the permission-set
+      // level, spanning the full row there; at the nested Object level it is an empty placeholder (span 1).
+      colSpan: (args) =>
+        args.type === 'GROUP' ? (args.groupingColumnId === '_treePermSetGroupKey' ? Number.MAX_SAFE_INTEGER : 1) : undefined,
+      renderGroupCell: (props) =>
+        props.tanstackRow.groupingColumnId === '_treePermSetGroupKey'
+          ? renderFieldPermissionPermissionSetGroupCell(labelByParentId, permissionSetRowById, objectManager, props)
+          : null,
       getValue: ({ row }) => {
         const id = row._treePermSetGroupKey;
         return labelByParentId.get(id) ?? id;
@@ -718,15 +748,19 @@ export const PermissionAnalysisFieldPermissionsTree: FunctionComponent<Permissio
       width: TREE_OBJECT_GROUP_WIDTH_PX,
       minWidth: TREE_OBJECT_GROUP_WIDTH_PX,
       maxWidth: TREE_OBJECT_GROUP_WIDTH_PX,
-      renderGroupCell: ({ groupKey, childRows, isExpanded, toggleGroup }) => (
-        <FieldPermissionObjectGroupCellContent
-          groupKey={groupKey}
-          childRows={childRows}
-          isExpanded={isExpanded}
-          toggleGroup={toggleGroup}
-          objectManager={objectManager}
-        />
-      ),
+      // Owns the header only at the nested Object level, spanning the remaining row width from this column.
+      colSpan: (args) =>
+        args.type === 'GROUP' ? (args.groupingColumnId === '_treeObjectGroupKey' ? Number.MAX_SAFE_INTEGER : 1) : undefined,
+      renderGroupCell: ({ groupKey, childRows, isExpanded, toggleGroup, tanstackRow }) =>
+        tanstackRow.groupingColumnId === '_treeObjectGroupKey' ? (
+          <FieldPermissionObjectGroupCellContent
+            groupKey={groupKey}
+            childRows={childRows}
+            isExpanded={isExpanded}
+            toggleGroup={toggleGroup}
+            objectManager={objectManager}
+          />
+        ) : null,
       getValue: ({ row }) => {
         const api = row._treeObjectGroupKey;
         const detail = sobjectExportDetailsRef.current?.[api];
@@ -815,12 +849,11 @@ export const PermissionAnalysisFieldPermissionsTree: FunctionComponent<Permissio
     return `${parentId}::${obj}::${field}`;
   }, []);
 
-  const handleCellClick = useCallback(
-    ({ row, column }: CellMouseArgs<FieldPermissionTreeRow, unknown>) => {
+  const openCellFindings = useCallback(
+    (row: FieldPermissionTreeRow, columnKey: string, columnLabel: string) => {
       if (!isFieldPermissionLeafRow(row)) {
         return;
       }
-      const columnKey = typeof column.key === 'string' ? column.key : '';
       if (columnKey !== 'PermissionsRead' && columnKey !== 'PermissionsEdit') {
         return;
       }
@@ -838,7 +871,6 @@ export const PermissionAnalysisFieldPermissionsTree: FunctionComponent<Permissio
       if (matches.length === 0) {
         return;
       }
-      const columnLabel = typeof column.name === 'string' && column.name.trim().length > 0 ? column.name : columnKey;
       cellFindingsModalHostRef.current?.open({
         parentId,
         objectApiName,
@@ -851,6 +883,43 @@ export const PermissionAnalysisFieldPermissionsTree: FunctionComponent<Permissio
     [findingCellHighlights, findings],
   );
 
+  // The new grid has no `onCellClick`, so resolve the clicked cell from the rendered DOM: `data-col-id`
+  // is the column key and `data-row-id` is `getRowKey(row)` (see buildColumnDefs / getRowId).
+  const rowByKey = useMemo(() => {
+    const map = new Map<string, FieldPermissionTreeRow>();
+    for (const row of treeRows) {
+      map.set(getRowKey(row), row);
+    }
+    return map;
+  }, [treeRows, getRowKey]);
+
+  const columnLabelByKey = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const column of columns) {
+      if (typeof column.key === 'string') {
+        map.set(column.key, typeof column.name === 'string' && column.name.trim().length > 0 ? column.name : column.key);
+      }
+    }
+    return map;
+  }, [columns]);
+
+  const handleGridClick = useCallback(
+    (event: MouseEvent<HTMLDivElement>) => {
+      const cellEl = (event.target as HTMLElement).closest<HTMLElement>('.jgrid-cell[data-col-id]');
+      const columnKey = cellEl?.getAttribute('data-col-id') ?? '';
+      if (!columnKey.startsWith('Permissions')) {
+        return;
+      }
+      const rowId = cellEl?.closest<HTMLElement>('.jgrid-row[data-row-id]')?.getAttribute('data-row-id');
+      const row = rowId ? rowByKey.get(rowId) : undefined;
+      if (!row) {
+        return;
+      }
+      openCellFindings(row, columnKey, columnLabelByKey.get(columnKey) ?? columnKey);
+    },
+    [rowByKey, columnLabelByKey, openCellFindings],
+  );
+
   if (!fieldPermissionRows.length) {
     return (
       <div className="slds-p-around_medium">
@@ -860,31 +929,49 @@ export const PermissionAnalysisFieldPermissionsTree: FunctionComponent<Permissio
   }
 
   return (
-    <AutoFullHeightContainer
-      fillHeight
-      bottomBuffer={24}
-      baseCss={css`
-        min-height: 200px;
-      `}
-    >
-      <DataTree
-        org={org}
-        serverUrl={serverUrl}
-        skipFrontdoorLogin={skipFrontdoorLogin}
-        columns={columns}
-        data={treeRows}
-        getRowKey={getRowKey}
-        includeQuickFilter
-        context={{ defaultApiVersion }}
-        groupBy={[...TREE_GROUP_BY]}
-        rowGrouper={groupBy}
-        expandedGroupIds={expandedGroupIds}
-        onExpandedGroupIdsChange={setExpandedGroupIds}
-        rowHeight={({ type }) => (type === 'GROUP' ? TREE_ROW_HEIGHT_GROUP_PX : TREE_ROW_HEIGHT_LEAF_PX)}
-        onCellClick={handleCellClick}
+    <>
+      <PermissionAnalysisExpandCollapseControls
+        onExpandAll={() => setExpandedGroupIds(collectAllFieldPermissionExpandedGroupIds(fieldPermissionRows))}
+        onCollapseAll={() => setExpandedGroupIds(new Set())}
       />
+      <AutoFullHeightContainer
+        fillHeight
+        setHeightAttr
+        bottomBuffer={24}
+        baseCss={css`
+          min-height: 200px;
+        `}
+      >
+        {/* The grid offers no onCellClick; delegate clicks to resolve the finding cell from the DOM. */}
+        <div
+          css={css`
+            display: contents;
+          `}
+          onClick={handleGridClick}
+        >
+          <DataTree
+            org={org}
+            serverUrl={serverUrl}
+            skipFrontdoorLogin={skipFrontdoorLogin}
+            columns={columns}
+            data={treeRows}
+            getRowKey={getRowKey}
+            includeQuickFilter
+            context={{ defaultApiVersion }}
+            groupBy={[...TREE_GROUP_BY]}
+            rowGrouper={groupBy}
+            expandedGroupIds={expandedGroupIds}
+            onExpandedGroupIdsChange={setExpandedGroupIds}
+            rowHeight={({ type }) => (type === 'GROUP' ? TREE_ROW_HEIGHT_GROUP_PX : TREE_ROW_HEIGHT_LEAF_PX)}
+          />
+        </div>
 
-      <CellFindingsModalHost ref={cellFindingsModalHostRef} labelByParentId={labelByParentId} sobjectExportDetails={sobjectExportDetails} />
-    </AutoFullHeightContainer>
+        <CellFindingsModalHost
+          ref={cellFindingsModalHostRef}
+          labelByParentId={labelByParentId}
+          sobjectExportDetails={sobjectExportDetails}
+        />
+      </AutoFullHeightContainer>
+    </>
   );
 };

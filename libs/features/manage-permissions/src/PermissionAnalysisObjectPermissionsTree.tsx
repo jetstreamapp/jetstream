@@ -1,5 +1,7 @@
 import { css } from '@emotion/react';
+import { PermissionAnalysisExpandCollapseControls } from './PermissionAnalysisExpandCollapseControls';
 import type { SalesforceOrgUi } from '@jetstream/types';
+import type { RenderCellProps, RenderGroupCellProps } from '@jetstream/ui';
 import {
   AutoFullHeightContainer,
   ColumnWithFilter,
@@ -10,12 +12,9 @@ import {
   setColumnFromType,
 } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
-import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
-import type { CellMouseArgs, RenderCellProps, RenderGroupCellProps } from 'react-data-grid';
+import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react';
 import { permissionAnalysisPermissionContainerGroupTitleLine } from './permission-analysis-tree-group-title';
 import { permissionAnalysisAssignmentTypeLabelCss } from './permission-analysis-viewer-badge.styles';
-import { SobjectTypeCellContent } from './PermissionAnalysisExportGrid';
-import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 import {
   buildObjectPermissionFindingCellHighlights,
   buildPermissionSetIdLabelMap,
@@ -29,6 +28,8 @@ import {
   type PermissionExportRow,
   type SobjectExportDetail,
 } from './permission-export-result-view';
+import { SobjectTypeCellContent } from './PermissionAnalysisExportGrid';
+import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 
 /** Grouped by profile or permission set (`ParentId`); `TreeDataGrid` clears `renderCell` on every `groupBy` column, so object + actions live on a separate `SobjectType` column. */
 const TREE_GROUP_BY = ['_treePermSetGroupKey'] as const;
@@ -229,6 +230,9 @@ export const PermissionAnalysisObjectPermissionsTree: FunctionComponent<Permissi
       width: TREE_COL_PERM_SET,
       minWidth: TREE_MIN_PERM_SET,
       maxWidth: TREE_PERM_SET_MAX_PX,
+      // Group header spans the full row (clamped to the column count by the grid) so the label + actions
+      // lay out across the whole width instead of overflowing the narrow grouping column.
+      colSpan: ({ type }) => (type === 'GROUP' ? Number.MAX_SAFE_INTEGER : undefined),
       renderGroupCell: (props) => renderPermissionSetGroupCell(labelByParentId, permissionSetRowById, props),
       getValue: ({ row }) => {
         const id = row._treePermSetGroupKey;
@@ -317,12 +321,11 @@ export const PermissionAnalysisObjectPermissionsTree: FunctionComponent<Permissi
     return `${row._treePermSetGroupKey}::${row._treeObjectGroupKey}`;
   }, []);
 
-  const handleCellClick = useCallback(
-    ({ row, column }: CellMouseArgs<ObjectPermissionTreeRow, unknown>) => {
+  const openCellFindings = useCallback(
+    (row: ObjectPermissionTreeRow, columnKey: string, columnLabel: string) => {
       if (!isObjectPermissionLeafRow(row)) {
         return;
       }
-      const columnKey = typeof column.key === 'string' ? column.key : '';
       if (!columnKey.startsWith('Permissions')) {
         return;
       }
@@ -340,7 +343,6 @@ export const PermissionAnalysisObjectPermissionsTree: FunctionComponent<Permissi
       if (matches.length === 0) {
         return;
       }
-      const columnLabel = typeof column.name === 'string' && column.name.trim().length > 0 ? column.name : columnKey;
       setCellFindingsModal({
         parentId,
         objectApiName,
@@ -350,6 +352,43 @@ export const PermissionAnalysisObjectPermissionsTree: FunctionComponent<Permissi
       });
     },
     [findingCellHighlights, findings],
+  );
+
+  // The new grid has no `onCellClick`, so resolve the clicked cell from the rendered DOM: `data-col-id`
+  // is the column key and `data-row-id` is `getRowKey(row)` (see buildColumnDefs / getRowId).
+  const rowByKey = useMemo(() => {
+    const map = new Map<string, ObjectPermissionTreeRow>();
+    for (const row of treeRows) {
+      map.set(getRowKey(row), row);
+    }
+    return map;
+  }, [treeRows, getRowKey]);
+
+  const columnLabelByKey = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const column of columns) {
+      if (typeof column.key === 'string') {
+        map.set(column.key, typeof column.name === 'string' && column.name.trim().length > 0 ? column.name : column.key);
+      }
+    }
+    return map;
+  }, [columns]);
+
+  const handleGridClick = useCallback(
+    (event: MouseEvent<HTMLDivElement>) => {
+      const cellEl = (event.target as HTMLElement).closest<HTMLElement>('.jgrid-cell[data-col-id]');
+      const columnKey = cellEl?.getAttribute('data-col-id') ?? '';
+      if (!columnKey.startsWith('Permissions')) {
+        return;
+      }
+      const rowId = cellEl?.closest<HTMLElement>('.jgrid-row[data-row-id]')?.getAttribute('data-row-id');
+      const row = rowId ? rowByKey.get(rowId) : undefined;
+      if (!row) {
+        return;
+      }
+      openCellFindings(row, columnKey, columnLabelByKey.get(columnKey) ?? columnKey);
+    },
+    [rowByKey, columnLabelByKey, openCellFindings],
   );
 
   const cellModalObjectSummary = useMemo(() => {
@@ -368,62 +407,76 @@ export const PermissionAnalysisObjectPermissionsTree: FunctionComponent<Permissi
   }
 
   return (
-    <AutoFullHeightContainer
-      fillHeight
-      bottomBuffer={24}
-      baseCss={css`
-        min-height: 200px;
-      `}
-    >
-      <DataTree
-        org={org}
-        serverUrl={serverUrl}
-        skipFrontdoorLogin={skipFrontdoorLogin}
-        columns={columns}
-        data={treeRows}
-        getRowKey={getRowKey}
-        includeQuickFilter
-        context={{ defaultApiVersion }}
-        groupBy={[...TREE_GROUP_BY]}
-        rowGrouper={groupBy}
-        expandedGroupIds={expandedGroupIds}
-        onExpandedGroupIdsChange={setExpandedGroupIds}
-        rowHeight={({ type }) => (type === 'GROUP' ? TREE_ROW_HEIGHT_GROUP_PX : TREE_ROW_HEIGHT_LEAF_PX)}
-        onCellClick={handleCellClick}
+    <>
+      <PermissionAnalysisExpandCollapseControls
+        onExpandAll={() => setExpandedGroupIds(collectAllPermissionSetGroupIds(treeRows))}
+        onCollapseAll={() => setExpandedGroupIds(new Set())}
       />
+      <AutoFullHeightContainer
+        fillHeight
+        setHeightAttr
+        bottomBuffer={24}
+        baseCss={css`
+          min-height: 200px;
+        `}
+      >
+        {/* The grid offers no onCellClick; delegate clicks to resolve the finding cell from the DOM. */}
+        <div
+          css={css`
+            display: contents;
+          `}
+          onClick={handleGridClick}
+        >
+          <DataTree
+            org={org}
+            serverUrl={serverUrl}
+            skipFrontdoorLogin={skipFrontdoorLogin}
+            columns={columns}
+            data={treeRows}
+            getRowKey={getRowKey}
+            includeQuickFilter
+            context={{ defaultApiVersion }}
+            groupBy={[...TREE_GROUP_BY]}
+            rowGrouper={groupBy}
+            expandedGroupIds={expandedGroupIds}
+            onExpandedGroupIdsChange={setExpandedGroupIds}
+            rowHeight={({ type }) => (type === 'GROUP' ? TREE_ROW_HEIGHT_GROUP_PX : TREE_ROW_HEIGHT_LEAF_PX)}
+          />
+        </div>
 
-      {cellFindingsModal && (
-        <PermissionAnalysisFindingsModal
-          testId="permission-analysis-object-cell-issues"
-          open
-          title="Issues for this cell"
-          tagline="From this job's permission export analysis, scoped to the cell you clicked."
-          onClose={() => setCellFindingsModal(null)}
-          findings={cellFindingsModal.matches}
-          summaryLine={
-            <Fragment>
-              <strong>{cellFindingsModal.columnLabel}</strong>
-              {' · '}
-              {cellModalObjectSummary?.displayLabel ? (
-                cellModalObjectSummary.showApiInParens ? (
-                  <Fragment>
-                    <strong>{cellModalObjectSummary.displayLabel}</strong>
-                    <span className="slds-text-color_weak">
-                      {' '}
-                      (<code>{cellFindingsModal.objectApiName}</code>)
-                    </span>
-                  </Fragment>
-                ) : (
-                  <code>{cellModalObjectSummary.displayLabel}</code>
-                )
-              ) : null}
-              {' · '}
-              {labelByParentId.get(cellFindingsModal.parentId) ?? cellFindingsModal.parentId} — {cellFindingsModal.matches.length}{' '}
-              {cellFindingsModal.matches.length === 1 ? 'issue' : 'issues'}
-            </Fragment>
-          }
-        />
-      )}
-    </AutoFullHeightContainer>
+        {cellFindingsModal && (
+          <PermissionAnalysisFindingsModal
+            testId="permission-analysis-object-cell-issues"
+            open
+            title="Issues for this cell"
+            tagline="From this job's permission export analysis, scoped to the cell you clicked."
+            onClose={() => setCellFindingsModal(null)}
+            findings={cellFindingsModal.matches}
+            summaryLine={
+              <Fragment>
+                <strong>{cellFindingsModal.columnLabel}</strong>
+                {' · '}
+                {cellModalObjectSummary?.displayLabel ? (
+                  cellModalObjectSummary.showApiInParens ? (
+                    <Fragment>
+                      <strong>{cellModalObjectSummary.displayLabel}</strong>
+                      <span className="slds-text-color_weak">
+                        {' '}
+                        (<code>{cellFindingsModal.objectApiName}</code>)
+                      </span>
+                    </Fragment>
+                  ) : (
+                    <code>{cellModalObjectSummary.displayLabel}</code>
+                  )
+                ) : null}
+                {' · '}
+                {labelByParentId.get(cellFindingsModal.parentId) ?? cellFindingsModal.parentId} — {cellFindingsModal.matches.length}{' '}
+                {cellFindingsModal.matches.length === 1 ? 'issue' : 'issues'}
+              </Fragment>
+            }
+          />
+        )}
+      </AutoFullHeightContainer>
+    </>
   );
 };

@@ -33,4 +33,15 @@ describe('getWhereUsedOpenInSalesforcePath', () => {
       }),
     ).toBe('/lightning/setup/ProcessAutomation/home');
   });
+
+  it('encodes the setup address exactly once (no double-encoding)', () => {
+    expect(
+      getWhereUsedOpenInSalesforcePath({
+        type: 'ApexClass',
+        name: 'MyClass',
+        kind: 'apex',
+        componentId: '01pxx0000000001',
+      }),
+    ).toBe('/lightning/setup/ApexClasses/page?address=%2F01pxx0000000001');
+  });
 });

@@ -1,7 +1,7 @@
 import { TITLES } from '@jetstream/shared/constants';
 import { useTitle } from '@jetstream/shared/ui-utils';
-import { fromPermissionsState } from '@jetstream/ui-core';
-import { selectedOrgState } from '@jetstream/ui/app-state';
+import { AnalysisToolsPaywall, fromPermissionsState } from '@jetstream/ui-core';
+import { analysisToolsAccessState, selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
 import { FunctionComponent, useEffect, useState } from 'react';
@@ -14,6 +14,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 export const PermissionAnalysis: FunctionComponent = () => {
   useTitle(TITLES.PERMISSION_ANALYSIS);
   const location = useLocation();
+  const { hasAnalysisToolsAccess } = useAtomValue(analysisToolsAccessState);
   const selectedOrg = useAtomValue(selectedOrgState);
   const resetProfilesState = useResetAtom(fromPermissionsState.profilesState);
   const resetSelectedProfilesPermSetState = useResetAtom(fromPermissionsState.selectedProfilesPermSetState);
@@ -67,6 +68,9 @@ export const PermissionAnalysis: FunctionComponent = () => {
 
   const blockAnalysisWithoutSelections = location.pathname.endsWith('/analysis') && !hasAnalysisSelections && !hasJobInUrl;
 
+  if (!hasAnalysisToolsAccess) {
+    return <AnalysisToolsPaywall featureLabel="Permission Analysis" />;
+  }
   return blockAnalysisWithoutSelections ? <Navigate to="." /> : <Outlet />;
 };
 

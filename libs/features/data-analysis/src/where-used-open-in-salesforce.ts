@@ -18,28 +18,28 @@ export function getWhereUsedOpenInSalesforcePath(row: WhereUsedDependencyRowPars
     return null;
   }
   if (t === 'ApexClass') {
-    return `/lightning/setup/ApexClasses/page?address=${encodeURIComponent(encodeURIComponent(`/${id}`))}`;
+    return `/lightning/setup/ApexClasses/page?address=${encodeURIComponent(`/${id}`)}`;
   }
   if (t === 'ApexTrigger') {
-    return `/lightning/setup/ApexTriggers/page?address=${encodeURIComponent(encodeURIComponent(`/${id}`))}`;
+    return `/lightning/setup/ApexTriggers/page?address=${encodeURIComponent(`/${id}`)}`;
   }
   if (t === 'ApexPage') {
-    return `/lightning/setup/ApexPages/page?address=${encodeURIComponent(encodeURIComponent(`/${id}`))}`;
+    return `/lightning/setup/ApexPages/page?address=${encodeURIComponent(`/${id}`)}`;
   }
   if (t === 'ApexComponent') {
-    return `/lightning/setup/ApexComponents/page?address=${encodeURIComponent(encodeURIComponent(`/${id}`))}`;
+    return `/lightning/setup/ApexComponents/page?address=${encodeURIComponent(`/${id}`)}`;
   }
   if (t === 'FlexiPage') {
-    return `/lightning/setup/FlexiPageList/page?address=${encodeURIComponent(encodeURIComponent(`/${id}`))}`;
+    return `/lightning/setup/FlexiPageList/page?address=${encodeURIComponent(`/${id}`)}`;
   }
   if (t === 'Layout') {
-    return `/lightning/setup/LayoutDefinitions/page?address=${encodeURIComponent(encodeURIComponent(`/${id}`))}`;
+    return `/lightning/setup/LayoutDefinitions/page?address=${encodeURIComponent(`/${id}`)}`;
   }
   if (t === 'FieldSet') {
-    return `/lightning/setup/FieldSets/page?address=${encodeURIComponent(encodeURIComponent(`/${id}`))}`;
+    return `/lightning/setup/FieldSets/page?address=${encodeURIComponent(`/${id}`)}`;
   }
   if (t === 'WorkflowRule' || t === 'WorkflowFieldUpdate') {
-    return `/lightning/setup/WorkflowRules/page?address=${encodeURIComponent(encodeURIComponent(`/${id}`))}`;
+    return `/lightning/setup/WorkflowRules/page?address=${encodeURIComponent(`/${id}`)}`;
   }
   if (t === 'Flow') {
     return `/builder_platform_interaction/flowBuilder.app?flowId=${encodeURIComponent(id)}`;

@@ -17,7 +17,7 @@ import {
 } from '@floating-ui/react';
 import { FullWidth, sizeXLarge, SmallMediumLarge } from '@jetstream/types';
 import classNames from 'classnames';
-import { createElement, CSSProperties, ReactNode, RefObject, useCallback, useEffect, useImperativeHandle, useState } from 'react';
+import { createElement, CSSProperties, memo, ReactNode, RefObject, useCallback, useEffect, useImperativeHandle, useState } from 'react';
 import { Tooltip, TooltipProps } from '../..';
 import { usePortalContext } from '../modal/PortalContext';
 import { Icon } from '../widgets/Icon';
@@ -62,7 +62,7 @@ export interface PopoverProps {
   onChange?: (isOpen: boolean) => void;
 }
 
-export const Popover = ({
+const PopoverComponent = ({
   ref,
   testId,
   classname,
@@ -325,3 +325,12 @@ export const Popover = ({
     </span>
   );
 };
+
+/**
+ * Memoized so a parent re-render with shallow-equal props doesn't re-run the floating-ui hooks. The
+ * benefit only materializes when props (notably `content`/`children`) are referentially stable —
+ * inline JSX defeats the shallow comparison. In the query-results id/name link cells the real win is
+ * the upstream `GridCell` memo boundary gating re-renders; this wrapper is defensive for callers that
+ * do pass stable props.
+ */
+export const Popover = memo(PopoverComponent);

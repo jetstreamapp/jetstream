@@ -64,6 +64,9 @@ export interface DataTableProps<T = RowWithKey, TContext = Record<string, any>> 
   defaultColumnOptions?: DefaultColumnOptions<T>;
   className?: string;
   'aria-label'?: string;
+  /** Opt-in: rows wrap and grow to fit their content (DOM-measured, virtualization preserved). Disables
+   * column virtualization, so use only for grids whose columns fit without horizontal scrolling. */
+  autoRowHeight?: boolean;
 }
 
 /** Map the legacy DataTable/DataTree prop surface onto DataTableV2 props (selection Set↔Record, etc.). */

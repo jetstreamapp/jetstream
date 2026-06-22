@@ -1,5 +1,7 @@
 import { css } from '@emotion/react';
 import { PermissionAnalysisHistoryModal, filterPermissionsSobjects } from '@jetstream/feature/manage-permissions';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
+import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { AsyncJobNew, DescribeGlobalSObjectResult, FieldUsageAnalysisJob } from '@jetstream/types';
 import { fromJetstreamEvents, jobsState } from '@jetstream/ui-core';
 import {
@@ -35,6 +37,13 @@ export const DataAnalysisSelection: FunctionComponent = () => {
   const [selectedSObjects, setSelectedSObjects] = useAtom(selectedSObjectsAtom);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
+  // These atoms are module-level, so clear the prior org's objects/selection when the org changes
+  // (avoids submitting a previous org's selection against the newly selected org).
+  useNonInitialEffect(() => {
+    setSobjects(null);
+    setSelectedSObjects([]);
+  }, [selectedOrg?.uniqueId, setSobjects, setSelectedSObjects]);
+
   const handleStartJob = useCallback(() => {
     if (!selectedOrg || !selectedSObjects.length) {
       fireToast({ message: 'Select at least one Object.', type: 'error' });
@@ -60,7 +69,7 @@ export const DataAnalysisSelection: FunctionComponent = () => {
       title: `Field Usage Analysis (${selectedSObjects.length} Object${selectedSObjects.length === 1 ? '' : 's'})`,
       org: selectedOrg,
       meta,
-      viewUrl: `/analysis?job=${encodeURIComponent(jobHistoryKey)}`,
+      viewUrl: `${APP_ROUTES.DATA_ANALYSIS.ROUTE}/analysis?job=${encodeURIComponent(jobHistoryKey)}`,
     };
     fromJetstreamEvents.emit({ type: 'newJob', payload: [asyncJobNew] });
     fireToast({ message: 'Field Usage job started. Loading results…', type: 'success' });

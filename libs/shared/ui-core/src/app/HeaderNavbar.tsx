@@ -26,8 +26,8 @@ import { RecordSearchPopover } from '../record/RecordSearchPopover';
 import { UserSearchPopover } from '../record/UserSearchPopover';
 import HeaderDonatePopover from './HeaderDonatePopover';
 import HeaderHelpPopover from './HeaderHelpPopover';
-import { HeaderNavbarItems } from './HeaderNavbarItems';
-import { HeaderNavbarBillingUserItems } from './HeaderNavbarReadOnlyUserItems';
+import { useHeaderNavbarItems } from './HeaderNavbarItems';
+import { headerNavbarBillingUserItems } from './HeaderNavbarReadOnlyUserItems';
 import HeaderUpdateNotification from './HeaderUpdateNotification';
 import LogoPro from './jetstream-logo-pro-200w.png';
 import Logo from './jetstream-logo-v1-200w.png';
@@ -149,6 +149,7 @@ export const HeaderNavbar = ({
   const colorScheme: ColorScheme = userPreferences?.colorScheme ?? 'light';
   const [enableNotifications, setEnableNotifications] = useState(false);
   const [userMenuItems, setUserMenuItems] = useState<DropDownItem[]>([]);
+  const navbarItems = useHeaderNavbarItems();
 
   function handleUserMenuSelection(id: string) {
     switch (id) {
@@ -311,10 +312,7 @@ export const HeaderNavbar = ({
         isEmbeddedApp={isEmbeddedApp}
         onUserMenuItemSelected={handleUserMenuSelection}
       >
-        <Navbar>
-          {isReadOnlyUser && <HeaderNavbarBillingUserItems />}
-          {!isReadOnlyUser && <HeaderNavbarItems />}
-        </Navbar>
+        <Navbar items={isReadOnlyUser ? headerNavbarBillingUserItems : navbarItems} />
       </Header>
     </Fragment>
   );

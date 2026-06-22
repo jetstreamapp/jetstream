@@ -41,6 +41,10 @@ export interface GridRowProps<TRow> {
   onCellContextMenu?: (event: React.MouseEvent, rowId: string, columnId: string) => void;
   onStartEdit?: (rowId: string, columnId: string) => void;
   onCommitRow?: (updatedRow: TRow, rowId: string, columnId: string) => void;
+  /** When true the row sizes to its content (cells wrap) instead of being pinned to `height`. */
+  autoHeight?: boolean;
+  /** Virtualizer `measureElement` ref; attached to the row in auto-height mode so its real height is measured. */
+  measureRef?: (el: HTMLElement | null) => void;
 }
 
 function GridRowComponent<TRow>({
@@ -63,16 +67,17 @@ function GridRowComponent<TRow>({
   onCellContextMenu,
   onStartEdit,
   onCommitRow,
+  autoHeight,
+  measureRef,
 }: GridRowProps<TRow>) {
   const original = row.original as TRow & Partial<RowWithKey>;
   const consumerRowClass = rowClass?.(row.original);
   const cells = row.getVisibleCells();
 
-  const style: CSSProperties = {
-    gridTemplateColumns,
-    blockSize: height,
-    transform: `translateY(${virtualStart}px)`,
-  };
+  // Auto-height: let the row grow to its (wrapping) content and be DOM-measured; don't pin `blockSize`.
+  const style: CSSProperties = autoHeight
+    ? { gridTemplateColumns, transform: `translateY(${virtualStart}px)` }
+    : { gridTemplateColumns, blockSize: height, transform: `translateY(${virtualStart}px)` };
 
   // ROW colSpan support (e.g. deploy's "No metadata found" message spanning several tracks). Resolve
   // span ownership across ALL columns so it stays stable as the horizontal window moves, then render
@@ -131,6 +136,7 @@ function GridRowComponent<TRow>({
 
   return (
     <div
+      ref={autoHeight ? measureRef : undefined}
       role="row"
       aria-rowindex={ariaRowIndex}
       aria-level={row.depth > 0 ? row.depth + 1 : undefined}
@@ -138,9 +144,14 @@ function GridRowComponent<TRow>({
       aria-selected={row.getCanSelect() ? isSelected : undefined}
       data-row-id={row.id}
       data-index={rowIndex}
-      className={classNames('jgrid-row', { 'jgrid-row-selected': isSelected, 'jgrid-row-last': isLastRow }, consumerRowClass, {
-        'save-error': !!(original as Partial<RowWithKey>)?._saveError,
-      })}
+      className={classNames(
+        'jgrid-row',
+        { 'jgrid-row-selected': isSelected, 'jgrid-row-last': isLastRow, 'jgrid-row-auto-height': autoHeight },
+        consumerRowClass,
+        {
+          'save-error': !!(original as Partial<RowWithKey>)?._saveError,
+        },
+      )}
       style={style}
     >
       {renderedCells}
@@ -148,4 +159,30 @@ function GridRowComponent<TRow>({
   );
 }
 
-export const GridRow = memo(GridRowComponent) as typeof GridRowComponent;
+// Same rationale as GridCell: TanStack hands us a fresh `row` instance every time the row model
+// recomputes, so the default shallow memo re-renders every visible row on each keystroke. Compare the
+// stable row identity + data object + the layout/selection props that actually change what's rendered.
+// Callbacks are omitted (they take ids as args, never stale); the shared layout props (gridTemplateColumns,
+// visibleColumnIndexes, columns) are memoized upstream so comparing identity is correct.
+function gridRowPropsAreEqual(prev: GridRowProps<any>, next: GridRowProps<any>): boolean {
+  return (
+    prev.row.id === next.row.id &&
+    prev.row.original === next.row.original &&
+    prev.columns === next.columns &&
+    prev.gridTemplateColumns === next.gridTemplateColumns &&
+    prev.visibleColumnIndexes === next.visibleColumnIndexes &&
+    prev.ariaRowIndex === next.ariaRowIndex &&
+    prev.rowIndex === next.rowIndex &&
+    prev.virtualStart === next.virtualStart &&
+    prev.height === next.height &&
+    prev.activeCell === next.activeCell &&
+    prev.isSelected === next.isSelected &&
+    prev.isExpanded === next.isExpanded &&
+    prev.isLastRow === next.isLastRow &&
+    prev.selectionColRange === next.selectionColRange &&
+    prev.rowClass === next.rowClass &&
+    prev.autoHeight === next.autoHeight
+  );
+}
+
+export const GridRow = memo(GridRowComponent, gridRowPropsAreEqual) as typeof GridRowComponent;

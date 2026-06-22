@@ -2,12 +2,12 @@
 import { css } from '@emotion/react';
 import { isValidSalesforceRecordId } from '@jetstream/shared/ui-utils';
 import { getIdFromRecordUrl } from '@jetstream/shared/utils';
-import { CloneEditView, SalesforceOrgUi } from '@jetstream/types';
+import { SalesforceOrgUi } from '@jetstream/types';
 import lodashGet from 'lodash/get';
 import isBoolean from 'lodash/isBoolean';
 import isFunction from 'lodash/isFunction';
 import isString from 'lodash/isString';
-import { Fragment, ReactNode, useContext, useState } from 'react';
+import { Fragment, memo, ReactNode, useContext, useState } from 'react';
 import Checkbox from '../../../form/checkbox/Checkbox';
 import Modal from '../../../modal/Modal';
 import { Popover } from '../../../popover/Popover';
@@ -18,21 +18,15 @@ import Spinner from '../../../widgets/Spinner';
 import Tooltip from '../../../widgets/Tooltip';
 import { dataTableDateFormatter } from '../../data-table-formatters';
 import { ACTION_COLUMN_KEY, SELECT_COLUMN_KEY } from '../grid-constants';
-import { GridGenericContext } from '../grid-context';
+import { GridRecordActionContext } from '../grid-context';
 import { getRowId, getSfdcRetUrl } from '../grid-row-utils';
 import { ColumnWithFilter, DataTableCellProps, DataTableGroupCellProps, RowWithKey } from '../grid-types';
 
 /**
  * Cell renderers ported from the legacy DataTableRenderers to the new `DataTableCellProps` contract.
- * Salesforce org/serverUrl/onRecordAction now come from GridGenericContext instead of module globals.
+ * Salesforce org/serverUrl/onRecordAction come from GridRecordActionContext (kept separate from the
+ * volatile GridGenericContext bag for render stability) instead of module globals.
  */
-
-interface RecordActionContext {
-  org?: SalesforceOrgUi;
-  serverUrl?: string;
-  skipFrontdoorLogin?: boolean;
-  onRecordAction?: (action: CloneEditView, recordId: string, sobjectName: string) => void;
-}
 
 export function GenericRenderer(props: DataTableCellProps<RowWithKey>): ReactNode {
   const { column, row } = props;
@@ -104,7 +98,7 @@ export function ComplexDataRenderer({ column, row }: DataTableCellProps<RowWithK
 }
 
 export function IdLinkRenderer({ column, row }: DataTableCellProps<RowWithKey>): ReactNode {
-  const { org, serverUrl, skipFrontdoorLogin, onRecordAction } = useContext(GridGenericContext) as RecordActionContext;
+  const { org, serverUrl, skipFrontdoorLogin, onRecordAction } = useContext(GridRecordActionContext);
   const recordId = row[column.key];
   const { skipFrontDoorAuth, url } = getSfdcRetUrl(row, recordId, skipFrontdoorLogin);
   return (
@@ -122,7 +116,7 @@ export function IdLinkRenderer({ column, row }: DataTableCellProps<RowWithKey>):
 }
 
 export function NameLinkRenderer({ column, row }: DataTableCellProps<RowWithKey>): ReactNode {
-  const { org, serverUrl, skipFrontdoorLogin, onRecordAction } = useContext(GridGenericContext) as RecordActionContext;
+  const { org, serverUrl, skipFrontdoorLogin, onRecordAction } = useContext(GridRecordActionContext);
   const nameValue = row[column.key];
   const parentPath = column.key.includes('.') ? column.key.split('.').slice(0, -1).join('.') : '';
   const relatedRecord = parentPath ? lodashGet(row._record, parentPath) : row._record;
@@ -150,7 +144,7 @@ export function NameLinkRenderer({ column, row }: DataTableCellProps<RowWithKey>
 
 export function TextOrIdLinkRenderer(props: DataTableCellProps<RowWithKey>): ReactNode {
   const { column, row } = props;
-  const { org } = useContext(GridGenericContext) as RecordActionContext;
+  const { org } = useContext(GridRecordActionContext);
   if (!row) {
     return <div />;
   }
@@ -205,6 +199,15 @@ export function ActionRenderer({ row }: DataTableCellProps<any>): ReactNode {
     </Fragment>
   );
 }
+
+/**
+ * Memoized `ActionRenderer` for use as a column `renderCell`. The action column renders ~5 tooltipped
+ * buttons per row; `ActionRenderer` depends only on `row`, so memoizing on row identity keeps an
+ * unrelated grid commit (which re-renders the cell) from reconciling hundreds of floating-ui tooltips.
+ * Must be rendered as a fiber — `renderCell: (props) => <ActionRendererMemo {...props} />` — for the
+ * memo boundary to take effect (a bare `renderCell: ActionRenderer` is invoked as a plain function).
+ */
+export const ActionRendererMemo = memo(ActionRenderer, (prev, next) => prev.row === next.row);
 
 export function ErrorMessageRenderer({ row }: { row: any }): ReactNode {
   if (!row?._saveError) {

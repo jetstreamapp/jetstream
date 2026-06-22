@@ -6,7 +6,7 @@ import { RowHeightFn } from './components/GridBody';
 import { GridContainer } from './components/GridContainer';
 import { useJetstreamTable } from './core/useJetstreamTable';
 import './data-table-grid.css';
-import { GridFilterContext, GridGenericContext } from './grid-context';
+import { GridFilterContext, GridGenericContext, GridRecordActionContext } from './grid-context';
 import { getSortedFilteredLeafRows } from './grid-row-utils';
 import {
   ColumnWithFilter,
@@ -68,6 +68,9 @@ export interface DataTableV2Props<TRow = RowWithKey, TContext = Record<string, a
   contextMenuAction?: (item: ContextMenuItem, data: ContextMenuActionData<TRow>) => void;
   /** Consumer-supplied builder for extra per-column header menu items (must be stable). */
   getColumnHeaderMenuItems?: (columnId: string) => ContextMenuItem[];
+  /** Opt-in: rows wrap and size to their content (DOM-measured); disables column virtualization so every
+   * row's height accounts for all cells. Use only for grids whose columns fit without horizontal scroll. */
+  autoRowHeight?: boolean;
 }
 
 function DataTableV2Inner<TRow extends object = RowWithKey>(props: DataTableV2Props<TRow>, ref: React.Ref<DataTableRef<TRow>>) {
@@ -108,6 +111,7 @@ function DataTableV2Inner<TRow extends object = RowWithKey>(props: DataTableV2Pr
     contextMenuItems,
     contextMenuAction,
     getColumnHeaderMenuItems,
+    autoRowHeight,
   } = props;
 
   const { table, gridId, orderedColumns, filters, filterSetValues, updateFilter, registerEditedValues } = useJetstreamTable<TRow>({
@@ -150,6 +154,17 @@ function DataTableV2Inner<TRow extends object = RowWithKey>(props: DataTableV2Pr
 
   const filterContextValue = useMemo(() => ({ filterSetValues, filters, updateFilter }), [filterSetValues, filters, updateFilter]);
 
+  // Stable record-action context for the high-cardinality id/name link cells. The generic context bag
+  // below carries a volatile `rows` array (rebuilt on every data/sort/filter change), and because a
+  // cell's `useContext` subscribes its owning GridCell, reading these stable values from there forced
+  // every link/popover cell to re-render on each keystroke. Key the memo on `onRecordAction`'s identity
+  // (not the whole `context` object) so an inline `context={{...}}` at a call site can't churn it.
+  const onRecordAction = (context as Record<string, any> | undefined)?.onRecordAction;
+  const recordActionContextValue = useMemo(
+    () => ({ org, serverUrl, skipFrontdoorLogin, onRecordAction }),
+    [org, serverUrl, skipFrontdoorLogin, onRecordAction],
+  );
+
   // The legacy DataTable exposed the filtered+sorted rows on the generic context; several consumers
   // (e.g. permission-manager's ColumnSearchFilterSummary / BulkActionRenderer) still read `rows`, so
   // keep providing them or those components crash on `rows.filter(...)` of undefined. Uses the
@@ -170,27 +185,30 @@ function DataTableV2Inner<TRow extends object = RowWithKey>(props: DataTableV2Pr
   );
 
   return (
-    <GridGenericContext.Provider value={genericContextValue}>
-      <GridFilterContext.Provider value={filterContextValue}>
-        <GridContainer
-          table={table}
-          gridId={gridId}
-          getRowKey={getRowKey}
-          orderedColumns={orderedColumns}
-          role={role ?? (grouping?.length || getSubRows ? 'treegrid' : 'grid')}
-          ariaLabel={ariaLabel}
-          className={className}
-          rowHeight={rowHeight}
-          rowClass={rowClass}
-          onRowsChange={onRowsChange ? handleRowsChange : undefined}
-          summaryRows={summaryRows}
-          summaryRowHeight={summaryRowHeight}
-          contextMenuItems={contextMenuItems}
-          contextMenuAction={contextMenuAction}
-          getColumnHeaderMenuItems={getColumnHeaderMenuItems}
-        />
-      </GridFilterContext.Provider>
-    </GridGenericContext.Provider>
+    <GridRecordActionContext.Provider value={recordActionContextValue}>
+      <GridGenericContext.Provider value={genericContextValue}>
+        <GridFilterContext.Provider value={filterContextValue}>
+          <GridContainer
+            table={table}
+            gridId={gridId}
+            getRowKey={getRowKey}
+            orderedColumns={orderedColumns}
+            role={role ?? (grouping?.length || getSubRows ? 'treegrid' : 'grid')}
+            ariaLabel={ariaLabel}
+            className={className}
+            rowHeight={rowHeight}
+            rowClass={rowClass}
+            onRowsChange={onRowsChange ? handleRowsChange : undefined}
+            summaryRows={summaryRows}
+            summaryRowHeight={summaryRowHeight}
+            contextMenuItems={contextMenuItems}
+            contextMenuAction={contextMenuAction}
+            getColumnHeaderMenuItems={getColumnHeaderMenuItems}
+            autoRowHeight={autoRowHeight}
+          />
+        </GridFilterContext.Provider>
+      </GridGenericContext.Provider>
+    </GridRecordActionContext.Provider>
   );
 }
 

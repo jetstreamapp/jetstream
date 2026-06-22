@@ -6,14 +6,25 @@ import type { FieldUsageFieldMetaParsed } from './field-usage-result-parse';
  * Whether a field usage row may be included in a destructive CustomField deploy (delete from org).
  * Standard fields, packaged custom fields, and the object name field are excluded.
  *
+ * Three safety gates prevent deleting a field that may actually be in use:
+ * - `objectQueryTruncated` — the scan hit the row budget, so a 0%/low reading is NOT proof the field is
+ *   unused (it could be populated in the rows that were never scanned).
+ * - `whereUsedDependencyCount` — the field is referenced by metadata (layout / automation / Apex), a hard
+ *   usage signal independent of data population.
+ * - `whereUsedKnown` — when the Tooling where-used lookup failed entirely we cannot prove the field has no
+ *   dependencies, so deletion is blocked (fail safe) rather than treating "no rows" as "no dependencies".
+ *
  * Uses {@link isUnmanagedCustomFieldApiName} (same parse rules as Tooling `CustomField` and field usage where-used).
  */
 export function fieldUsageRowEligibleForDestructiveDelete(args: {
   isObjectErrorPlaceholder?: boolean;
   fieldApiName: string;
   meta?: FieldUsageFieldMetaParsed | null;
+  objectQueryTruncated?: boolean;
+  whereUsedDependencyCount?: number;
+  whereUsedKnown?: boolean;
 }): boolean {
-  const { isObjectErrorPlaceholder, fieldApiName, meta } = args;
+  const { isObjectErrorPlaceholder, fieldApiName, meta, objectQueryTruncated, whereUsedDependencyCount, whereUsedKnown } = args;
   if (isObjectErrorPlaceholder) {
     return false;
   }
@@ -24,6 +35,15 @@ export function fieldUsageRowEligibleForDestructiveDelete(args: {
     return false;
   }
   if (!isUnmanagedCustomFieldApiName(fieldApiName)) {
+    return false;
+  }
+  if (objectQueryTruncated) {
+    return false;
+  }
+  if (whereUsedKnown === false) {
+    return false;
+  }
+  if ((whereUsedDependencyCount ?? 0) > 0) {
     return false;
   }
   return true;

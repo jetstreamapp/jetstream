@@ -9,12 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { downloadJob } from './job-utils';
 
 const JOBS_WITH_DOWNLOAD = new Set<AsyncJobType>(['BulkDelete', 'BulkUndelete']);
-const JOBS_WITH_CANCEL = new Set<AsyncJobType>([
-  'BulkDownload',
-  'RetrievePackageZip',
-  'PermissionExportAnalysis',
-  'FieldUsageAnalysis',
-]);
+const JOBS_WITH_CANCEL = new Set<AsyncJobType>(['BulkDownload', 'RetrievePackageZip', 'PermissionExportAnalysis', 'FieldUsageAnalysis']);
 const JOBS_WITH_LINK = new Set<AsyncJobType>(['BulkDownload', 'UploadToGoogle', 'RetrievePackageZip']);
 const JOBS_WITH_TIMESTAMP_UPDATE = new Set<AsyncJobType>([
   'RetrievePackageZip',
@@ -156,13 +151,15 @@ export const Job: FunctionComponent<JobProps> = ({ job, cancelJob, dismiss }) =>
           </div>
         </div>
         {inProgress && JOBS_WITH_CANCEL.has(job.type) && (
-          <div className="slds-m-top_x-small slds-grid slds-grid_align-end">
-            <div className="slds-col">
-              <button className="slds-button slds-button_text-destructive" onClick={() => cancelJob(job)} disabled={job.cancelling}>
-                <Icon type="utility" icon="delete" className="slds-button__icon slds-button__icon_left" omitContainer />
-                {job.cancelling ? 'Attempting to cancel' : 'Cancel Job'}
-              </button>
-            </div>
+          <div className="slds-m-top_x-small">
+            <button
+              className="slds-button slds-button_text-destructive slds-button_stretch"
+              onClick={() => cancelJob(job)}
+              disabled={job.cancelling}
+            >
+              <Icon type="utility" icon="delete" className="slds-button__icon slds-button__icon_left" omitContainer />
+              {job.cancelling ? 'Attempting to cancel' : 'Cancel Job'}
+            </button>
           </div>
         )}
         {job.viewUrl && (

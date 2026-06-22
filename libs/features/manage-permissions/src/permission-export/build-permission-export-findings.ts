@@ -94,7 +94,9 @@ export function buildPermissionExportFindings(
       continue;
     }
     const separatorIdx = key.indexOf('::');
-    if (separatorIdx <= 0 || separatorIdx === key.length - 2) {
+    // Reject keys with no separator (indexOf === -1), an empty parentId, or an empty sobjectType
+    // (separator at/after the second-to-last char leaves nothing after `::`).
+    if (separatorIdx <= 0 || separatorIdx + 2 >= key.length) {
       continue;
     }
     const parentId = key.slice(0, separatorIdx);

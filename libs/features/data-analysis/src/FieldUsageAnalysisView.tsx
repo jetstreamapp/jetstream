@@ -5,6 +5,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { convertDateToLocale, formatNumber, setItemInLocalStorage } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, gzipDecode, isCustomFieldApiName } from '@jetstream/shared/utils';
+import type { AsyncJob, AsyncJobNew, FieldUsageAnalysisJob, FieldUsageFullResult, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ColumnWithFilter,
@@ -20,10 +21,11 @@ import {
   Popover,
   ProgressIndicator,
   ReadOnlyFormElement,
+  SELECT_COLUMN_KEY,
   SalesforceLogin,
   ScopedNotification,
+  SelectColumn,
   SelectFormatter,
-  setColumnFromType,
   Tabs,
   Toast,
   Toolbar,
@@ -32,21 +34,21 @@ import {
   Tooltip,
   fireToast,
   salesforceLoginAndRedirect,
+  setColumnFromType,
+  type RenderGroupCellProps,
+  type SortColumn,
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, fromJetstreamEvents, jobsState } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
 import { dexieDb } from '@jetstream/ui/db';
-import { useLiveQuery } from 'dexie-react-hooks';
 import { isValid } from 'date-fns/isValid';
 import { parseISO } from 'date-fns/parseISO';
-import groupBy from 'lodash/groupBy';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { useAtom, useAtomValue } from 'jotai';
-import type { AsyncJob, AsyncJobNew, FieldUsageAnalysisJob, FieldUsageFullResult, SalesforceOrgUi } from '@jetstream/types';
-import { Fragment, FunctionComponent, type Key, MouseEvent, type ReactElement, useCallback, useEffect, useMemo, useState } from 'react';
-import { SELECT_COLUMN_KEY, SelectColumn, type RenderGroupCellProps, type SortColumn } from 'react-data-grid';
+import groupBy from 'lodash/groupBy';
+import { Fragment, FunctionComponent, MouseEvent, useCallback, useEffect, useMemo, useState, type Key, type ReactElement } from 'react';
 import { Link, useHref, useSearchParams } from 'react-router-dom';
-import { fieldUsageRowsToCustomFieldDeleteMetadata, fieldUsageRowEligibleForDestructiveDelete } from './field-usage-destructive-delete';
-import { isAnalysisJobActive } from './shared/analysis-job-runtime-state';
+import { fieldUsageRowEligibleForDestructiveDelete, fieldUsageRowsToCustomFieldDeleteMetadata } from './field-usage-destructive-delete';
 import {
   countWhereUsedByUiCategory,
   fieldHasWhereUsedDeps,
@@ -56,6 +58,7 @@ import {
   type FieldUsageJobResultParsed,
   type WhereUsedDependencyRowParsed,
 } from './field-usage-result-parse';
+import { isAnalysisJobActive } from './shared/analysis-job-runtime-state';
 import { getWhereUsedOpenInSalesforcePath } from './where-used-open-in-salesforce';
 
 const FIELD_USAGE_TABLE_ACTION_DELETE_METADATA = 'field-usage-delete-metadata';
@@ -81,7 +84,7 @@ const TREE_ROW_HEIGHT_LEAF_PX = 56;
 const TREE_ROW_HEIGHT_GROUP_PX = 48;
 
 /** Same reference every render — new arrays/functions here break TreeDataGrid measurement and can cause an update loop. */
-const FIELD_USAGE_DATA_TREE_GROUP_BY: readonly string[] = TREE_GROUP_BY;
+const FIELD_USAGE_DATA_TREE_GROUP_BY: readonly (keyof FieldUsageTreeRow)[] = TREE_GROUP_BY;
 
 const FIELD_USAGE_TREE_INITIAL_SORT_BY_FIELD: SortColumn[] = [{ columnKey: 'fieldApiName', direction: 'ASC' }];
 
@@ -571,9 +574,19 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
 
   /**
    * Terminal Dexie row for this jobHistoryKey, kept reactive via useLiveQuery so the view updates
-   * the moment the JobWorker writes the row.
+   * the moment the JobWorker writes the row. Scoped to the selected org: a row whose `org` does not
+   * match (bookmarked/copied key, or org switched while the URL still has an old key) resolves to
+   * `undefined` so we never show another org's result — destructive/delete and deep-link actions
+   * target `selectedOrg`, so a mismatch would be dangerous.
    */
-  const historyRow = useLiveQuery(() => (jobId ? dexieDb.analysis_job_history.get(jobId) : undefined), [jobId]);
+  const selectedOrgId = selectedOrg?.uniqueId;
+  const historyRow = useLiveQuery(async () => {
+    if (!jobId || !selectedOrgId) {
+      return undefined;
+    }
+    const row = await dexieDb.analysis_job_history.get(jobId);
+    return row && row.org === selectedOrgId ? row : undefined;
+  }, [jobId, selectedOrgId]);
 
   useEffect(() => {
     // Eagerly drop the prior decoded payload so switching between large completed runs doesn't keep both
@@ -679,10 +692,15 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
       for (const fieldApiName of Object.keys(payload.fieldUsage).sort((a, b) => a.localeCompare(b))) {
         const stat = payload.fieldUsage[fieldApiName];
         const meta = payload.fieldMeta[fieldApiName];
+        const whereUsedCounts = whereUsedUiCountsForField(parsedResult.whereUsed, objectApiName, fieldApiName);
         const destructiveDeleteEligible = fieldUsageRowEligibleForDestructiveDelete({
           isObjectErrorPlaceholder: false,
           fieldApiName,
           meta,
+          objectQueryTruncated: payload.queryTruncated,
+          whereUsedDependencyCount:
+            whereUsedCounts.whereUsedOnLayout + whereUsedCounts.whereUsedInAutomation + whereUsedCounts.whereUsedInApex,
+          whereUsedKnown: parsedResult.whereUsedComputed,
         });
         rows.push({
           _key: `${objectApiName}.${fieldApiName}`,
@@ -695,7 +713,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
           pct: stat.pct,
           latestModified: stat.latestFilledRowModified,
           destructiveDeleteEligible,
-          ...whereUsedUiCountsForField(parsedResult.whereUsed, objectApiName, fieldApiName),
+          ...whereUsedCounts,
         });
       }
     }
@@ -743,7 +761,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
       title: `Field Usage Full Scan (${fieldUsageReloadObjectApiNames.length} Object${fieldUsageReloadObjectApiNames.length === 1 ? '' : 's'})`,
       org: selectedOrg,
       meta,
-      viewUrl: `/analysis?job=${encodeURIComponent(newJobHistoryKey)}`,
+      viewUrl: `${APP_ROUTES.DATA_ANALYSIS.ROUTE}/analysis?job=${encodeURIComponent(newJobHistoryKey)}`,
     };
     fromJetstreamEvents.emit({ type: 'newJob', payload: [asyncJobNew] });
     setLoadAllRecordsModalOpen(false);
@@ -752,50 +770,13 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
   }, [jobs, selectedOrg, fieldUsageReloadObjectApiNames, setSearchParams]);
 
   const lowUsageTreeRows: FieldUsageTreeRow[] = useMemo(() => {
-    if (!parsedResult) {
-      return [];
-    }
-    const rows: FieldUsageTreeRow[] = [];
-    for (const objectApiName of Object.keys(parsedResult.objects).sort()) {
-      const payload = parsedResult.objects[objectApiName];
-      if (!payload || payload.error) {
-        continue;
-      }
-      for (const fieldApiName of Object.keys(payload.fieldUsage)) {
-        const stat = payload.fieldUsage[fieldApiName];
-        const meta = payload.fieldMeta[fieldApiName];
-        if (!meta?.custom) {
-          continue;
-        }
-        if (stat.pct > LOW_USAGE_PCT_THRESHOLD) {
-          continue;
-        }
-        rows.push({
-          _key: `${objectApiName}.${fieldApiName}`,
-          objectApiName,
-          objectLabel: payload.label,
-          objectTotalRecords: payload.totalRecords,
-          objectQueryTruncated: payload.queryTruncated,
-          objectCustomizable: payload.customizable,
-          fieldApiName,
-          fieldLabel: meta.label ?? fieldApiName,
-          type: getFieldUsageTypeLabel(meta),
-          custom: true,
-          filled: stat.filled,
-          pct: stat.pct,
-          latestModified: stat.latestFilledRowModified,
-          destructiveDeleteEligible: fieldUsageRowEligibleForDestructiveDelete({
-            isObjectErrorPlaceholder: false,
-            fieldApiName,
-            meta,
-          }),
-          ...whereUsedUiCountsForField(parsedResult.whereUsed, objectApiName, fieldApiName),
-        });
-      }
-    }
-    rows.sort((a, b) => a.pct - b.pct || a.objectApiName.localeCompare(b.objectApiName));
-    return rows;
-  }, [parsedResult]);
+    // Derived from treeFieldRows (built once above) instead of re-iterating the parsed result: unmanaged
+    // Custom Fields at or below the low-usage threshold, sorted by ascending fill rate. Avoids a second
+    // full object/field pass and a duplicate Where Used computation per field.
+    return treeFieldRows
+      .filter((row) => !row.isObjectErrorPlaceholder && row.custom && row.pct <= LOW_USAGE_PCT_THRESHOLD)
+      .sort((a, b) => a.pct - b.pct || a.objectApiName.localeCompare(b.objectApiName));
+  }, [treeFieldRows]);
 
   const fieldUsageRowByKey = useMemo(() => {
     const map = new Map<string, FieldUsageTreeRow>();
@@ -1180,36 +1161,39 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
             {treeFieldRows.length === 0 ? (
               <ScopedNotification theme="info">No Object rows in this result.</ScopedNotification>
             ) : (
-              <AutoFullHeightContainer
-                fillHeight
-                bottomBuffer={24}
-                baseCss={css`
-                  min-height: 280px;
-                `}
-              >
+              <Fragment>
                 <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_x-small">
                   {formatNumber(objectsTabTotals.analyzedFieldCount)} analyzed field
                   {objectsTabTotals.analyzedFieldCount === 1 ? '' : 's'} across {formatNumber(objectsTabTotals.objectCount)} Object
                   {objectsTabTotals.objectCount === 1 ? '' : 's'}.
                 </p>
-                <DataTree
-                  columns={treeColumns}
-                  data={treeFieldRows}
-                  getRowKey={getTreeRowKey}
-                  includeQuickFilter
-                  groupBy={FIELD_USAGE_DATA_TREE_GROUP_BY}
-                  rowGrouper={groupBy}
-                  expandedGroupIds={expandedGroupIds}
-                  onExpandedGroupIdsChange={setExpandedGroupIds}
-                  rowHeight={fieldUsageDataTreeRowHeight}
-                  initialSortColumns={FIELD_USAGE_TREE_INITIAL_SORT_BY_FIELD}
-                  selectedRows={fieldUsageSelectedRowKeys}
-                  onSelectedRowsChange={handleFieldUsageSelectedRowsChange}
-                  org={selectedOrg ?? undefined}
-                  serverUrl={serverUrl}
-                  skipFrontdoorLogin={skipFrontDoorAuth}
-                />
-              </AutoFullHeightContainer>
+                <AutoFullHeightContainer
+                  fillHeight
+                  setHeightAttr
+                  bottomBuffer={24}
+                  baseCss={css`
+                    min-height: 280px;
+                  `}
+                >
+                  <DataTree
+                    columns={treeColumns}
+                    data={treeFieldRows}
+                    getRowKey={getTreeRowKey}
+                    includeQuickFilter
+                    groupBy={FIELD_USAGE_DATA_TREE_GROUP_BY}
+                    rowGrouper={groupBy}
+                    expandedGroupIds={expandedGroupIds}
+                    onExpandedGroupIdsChange={setExpandedGroupIds}
+                    rowHeight={fieldUsageDataTreeRowHeight}
+                    initialSortColumns={FIELD_USAGE_TREE_INITIAL_SORT_BY_FIELD}
+                    selectedRows={fieldUsageSelectedRowKeys}
+                    onSelectedRowsChange={handleFieldUsageSelectedRowsChange}
+                    org={selectedOrg ?? undefined}
+                    serverUrl={serverUrl}
+                    skipFrontdoorLogin={skipFrontDoorAuth}
+                  />
+                </AutoFullHeightContainer>
+              </Fragment>
             )}
           </div>
         ),
@@ -1242,6 +1226,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
             ) : (
               <AutoFullHeightContainer
                 fillHeight
+                setHeightAttr
                 bottomBuffer={24}
                 baseCss={css`
                   min-height: 280px;
@@ -1553,6 +1538,25 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
               {parsedResult.failedObjects.length > 0 && (
                 <div className="slds-p-horizontal_medium slds-p-top_x-small">
                   <ScopedNotification theme="error">Objects with errors: {parsedResult.failedObjects.join(', ')}.</ScopedNotification>
+                </div>
+              )}
+              {parsedResult.truncated && (
+                <div className="slds-p-horizontal_medium slds-p-top_x-small">
+                  <ScopedNotification theme="warning">
+                    The row scan stopped early for one or more Objects, so usage percentages reflect only the rows that were scanned. A
+                    field showing 0% or low usage here is <strong>not</strong> proof it is unused — it may be populated in rows that were
+                    not scanned. Fields on truncated Objects are excluded from <em>Delete Selected Metadata</em>; use{' '}
+                    <em>Load All Records</em> for complete counts before deleting.
+                  </ScopedNotification>
+                </div>
+              )}
+              {!parsedResult.whereUsedComputed && (
+                <div className="slds-p-horizontal_medium slds-p-top_x-small">
+                  <ScopedNotification theme="warning">
+                    Where Used (metadata dependency) lookup could not be completed for this run, so field dependencies are unknown.
+                    <em> Delete Selected Metadata</em> is disabled to avoid deleting a field that may be referenced by a layout, automation,
+                    or Apex. Re-run the analysis to determine dependencies.
+                  </ScopedNotification>
                 </div>
               )}
               <Tabs key={resultTabs.map((tab) => tab.id).join('|')} initialActiveId="objects" tabs={resultTabs} />

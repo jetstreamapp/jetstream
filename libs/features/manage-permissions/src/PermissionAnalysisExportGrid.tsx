@@ -1,5 +1,6 @@
 import { css } from '@emotion/react';
 import type { SalesforceOrgUi } from '@jetstream/types';
+import type { ColumnWithFilter, RowWithKey } from '@jetstream/ui';
 import {
   AutoFullHeightContainer,
   DataTable,
@@ -13,9 +14,7 @@ import {
   ScopedNotification,
   salesforceLoginAndRedirect,
 } from '@jetstream/ui';
-import type { ColumnWithFilter, RowWithKey } from '@jetstream/ui';
-import { FunctionComponent, Fragment, type MouseEvent, useCallback, useMemo, useState } from 'react';
-import type { CellMouseArgs } from 'react-data-grid';
+import { Fragment, FunctionComponent, useCallback, useMemo, useState, type MouseEvent } from 'react';
 import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 import {
   buildContainerIdFindingSeverity,
@@ -85,7 +84,9 @@ export const SobjectTypeCellContent: FunctionComponent<{
   apiName: string;
   detail: SobjectExportDetail | undefined;
   objectManager?: { org: SalesforceOrgUi; serverUrl: string; skipFrontDoorAuth: boolean };
-}> = ({ apiName, detail, objectManager }) => {
+  /** Hide the inline Object Manager icon (the popover still offers "Open in Object Manager"). */
+  hideInlineObjectManagerLink?: boolean;
+}> = ({ apiName, detail, objectManager, hideInlineObjectManagerLink }) => {
   const label = detail?.label?.trim() ? detail.label.trim() : apiName;
   const descriptionText =
     detail?.description != null && String(detail.description).trim().length > 0 ? String(detail.description).trim() : null;
@@ -113,7 +114,7 @@ export const SobjectTypeCellContent: FunctionComponent<{
                   skipFrontDoorAuth={objectManager.skipFrontDoorAuth}
                   returnUrl={objectManagerReturnUrl}
                 >
-                  View in Salesforce
+                  Open in Object Manager
                 </SalesforceLogin>
               ) : null}
               <Grid
@@ -194,7 +195,7 @@ export const SobjectTypeCellContent: FunctionComponent<{
           </span>
         </Popover>
       </div>
-      {objectManager && (
+      {objectManager && !hideInlineObjectManagerLink && (
         <div
           className="slds-col slds-no-flex"
           css={css`
@@ -500,13 +501,11 @@ export const PermissionAnalysisExportGrid: FunctionComponent<PermissionAnalysisE
     tabVisibilityClickColumns,
   ]);
 
-  const handleCellClick = useCallback(
-    ({ row, column }: CellMouseArgs<RowWithKey, unknown>) => {
+  const openCellFindings = useCallback(
+    (row: PermissionExportRow, columnKey: string, columnLabel: string) => {
       if (findings.length === 0) {
         return;
       }
-      const columnKey = typeof column.key === 'string' ? column.key : '';
-      const columnLabel = typeof column.name === 'string' && column.name.trim().length > 0 ? column.name : columnKey;
 
       if (findingSurface === 'field_permissions' && fieldHighlights) {
         const parentId = typeof row.ParentId === 'string' ? row.ParentId.trim() : '';
@@ -611,6 +610,43 @@ export const PermissionAnalysisExportGrid: FunctionComponent<PermissionAnalysisE
   const rowsMap = useMemo(() => new WeakMap(rows.map((row, index) => [row, `export-row-${index}`])), [rows]);
   const getRowKey = useCallback((row: PermissionExportRow) => rowsMap.get(row) ?? 'row', [rowsMap]);
 
+  // The new grid has no `onCellClick`; resolve the clicked cell from the rendered DOM (`data-col-id` is
+  // the column key, `data-row-id` is `getRowKey(row)`) and route it through the finding handler.
+  const rowByKey = useMemo(() => {
+    const map = new Map<string, PermissionExportRow>();
+    for (const row of rows) {
+      map.set(getRowKey(row), row);
+    }
+    return map;
+  }, [rows, getRowKey]);
+
+  const columnLabelByKey = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const column of columns) {
+      if (typeof column.key === 'string') {
+        map.set(column.key, typeof column.name === 'string' && column.name.trim().length > 0 ? column.name : column.key);
+      }
+    }
+    return map;
+  }, [columns]);
+
+  const handleGridClick = useCallback(
+    (event: MouseEvent<HTMLDivElement>) => {
+      const cellEl = (event.target as HTMLElement).closest<HTMLElement>('.jgrid-cell[data-col-id]');
+      const columnKey = cellEl?.getAttribute('data-col-id') ?? '';
+      if (!columnKey) {
+        return;
+      }
+      const rowId = cellEl?.closest<HTMLElement>('.jgrid-row[data-row-id]')?.getAttribute('data-row-id');
+      const row = rowId ? rowByKey.get(rowId) : undefined;
+      if (!row) {
+        return;
+      }
+      openCellFindings(row, columnKey, columnLabelByKey.get(columnKey) ?? columnKey);
+    },
+    [rowByKey, columnLabelByKey, openCellFindings],
+  );
+
   const fieldModalObjectSummary = useMemo(() => {
     if (!modalState || modalState.kind !== 'field') {
       return null;
@@ -641,17 +677,26 @@ export const PermissionAnalysisExportGrid: FunctionComponent<PermissionAnalysisE
         min-height: 200px;
       `}
     >
-      <DataTable
-        org={org}
-        serverUrl={serverUrl}
-        skipFrontdoorLogin={skipFrontdoorLogin}
-        columns={columns}
-        data={rows}
-        getRowKey={getRowKey}
-        includeQuickFilter
-        context={{ defaultApiVersion }}
-        onCellClick={showFindingClickHandler ? handleCellClick : undefined}
-      />
+      {/* The grid offers no onCellClick; delegate clicks to resolve the finding cell from the DOM. */}
+      <div
+        css={css`
+          display: contents;
+        `}
+        onClick={showFindingClickHandler ? handleGridClick : undefined}
+      >
+        {/* Columns are built generically over RowWithKey (cellClass/renderCell only do string-key access);
+            ColumnWithFilter is invariant in its row type, so bridge to the data's row type here. */}
+        <DataTable
+          org={org}
+          serverUrl={serverUrl}
+          skipFrontdoorLogin={skipFrontdoorLogin}
+          columns={columns as unknown as ColumnWithFilter<PermissionExportRow>[]}
+          data={rows}
+          getRowKey={getRowKey}
+          includeQuickFilter
+          context={{ defaultApiVersion }}
+        />
+      </div>
 
       {modalState?.kind === 'field' && (
         <PermissionAnalysisFindingsModal

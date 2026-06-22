@@ -79,6 +79,12 @@ export const fieldUsageJobResultSchema = z.object({
   summary: z.string(),
   truncated: z.boolean(),
   failedObjects: z.array(z.string()),
+  /**
+   * False when the Tooling where-used dependency lookup failed entirely (so `whereUsed` is empty not
+   * because there are no dependencies, but because they could not be determined). Optional for
+   * backward-compatibility with rows written before this flag existed (treat absent as `true`).
+   */
+  whereUsedComputed: z.boolean().optional(),
 });
 export type FieldUsageJobResult = z.infer<typeof fieldUsageJobResultSchema>;
 
