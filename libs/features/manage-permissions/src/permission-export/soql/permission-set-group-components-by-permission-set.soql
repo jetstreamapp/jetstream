@@ -1,0 +1,3 @@
+SELECT Id, PermissionSetGroupId, PermissionSetId
+FROM PermissionSetGroupComponent
+WHERE PermissionSetId IN (:parentIds)

@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NOOP } from '@jetstream/shared/utils';
-import { CloneEditView, SalesforceOrgUi } from '@jetstream/types';
 import type { Table } from '@tanstack/react-table';
 import { createContext, useContext } from 'react';
 import { ColumnWithFilter, FilterContextProps, RowWithKey, SelectedRowsContext, SubqueryContext } from './grid-types';
@@ -20,22 +19,6 @@ export const GridSelectedContext = createContext<SelectedRowsContext>({ selected
 
 /** Arbitrary data bag passed by the consumer (org, onRecordAction, defaultApiVersion, rows, columns, ...). */
 export const GridGenericContext = createContext<Record<string, any>>({});
-
-/**
- * Stable record-action context consumed by high-cardinality cell renderers (the id/name link cells).
- * Kept separate from `GridGenericContext` on purpose: the generic bag carries a volatile `rows` array
- * that is rebuilt on every data/sort/filter change, and because a cell's `useContext` subscribes its
- * owning `GridCell`, bundling these stable values there forced every link/popover cell to re-render on
- * each keystroke. This context only changes when the org/serverUrl/onRecordAction actually change.
- */
-export interface RecordActionContextValue {
-  org?: SalesforceOrgUi;
-  serverUrl?: string;
-  skipFrontdoorLogin?: boolean;
-  onRecordAction?: (action: CloneEditView, recordId: string, sobjectName: string) => void;
-}
-
-export const GridRecordActionContext = createContext<RecordActionContextValue>({});
 
 /**
  * Shared grid runtime: the TanStack table instance + a few config values renderers/cells need without

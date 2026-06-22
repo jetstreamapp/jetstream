@@ -1,5 +1,7 @@
 /// <reference lib="webworker" />
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { computeFieldUsageWhereUsed, FIELD_USAGE_MAX_ROWS_PER_OBJECT, runFieldUsageQueryForObjects } from '@jetstream/feature/data-analysis';
+import { runPermissionExport } from '@jetstream/feature/manage-permissions';
 import { logger } from '@jetstream/shared/client-logger';
 import { MIME_TYPES } from '@jetstream/shared/constants';
 import {
@@ -30,16 +32,21 @@ import {
   getIdFromRecordUrl,
   getMapOfBaseAndSubqueryRecords,
   getSObjectFromRecordUrl,
+  gzipEncode,
   replaceSubqueryQueryResultsWithRecords,
   splitArrayToMaxSize,
 } from '@jetstream/shared/utils';
 import type {
+  AnalysisJobHistoryItem,
   AsyncJobType,
   AsyncJobWorkerMessagePayload,
   AsyncJobWorkerMessageResponse,
   BulkDownloadJob,
   CancelJob,
   DesktopFileDownloadJob,
+  FieldUsageAnalysisJob,
+  FieldUsageFullResult,
+  PermissionExportAnalysisJob,
   RetrievePackageFromListMetadataJob,
   RetrievePackageFromManifestJob,
   RetrievePackageFromPackageNamesJob,
@@ -48,8 +55,32 @@ import type {
   UploadToGoogleJob,
   WorkerMessage,
 } from '@jetstream/types';
+import { dexieDb } from '@jetstream/ui/db';
 import clamp from 'lodash/clamp';
 import isString from 'lodash/isString';
+
+const ANALYSIS_HISTORY_PER_ORG_TYPE_CAP = 10;
+
+async function pruneAnalysisJobHistory(orgUniqueId: string, jobType: AnalysisJobHistoryItem['jobType']): Promise<void> {
+  try {
+    // Wrap read + delete in a single transaction so a concurrent write (pin/unpin from another tab, or
+    // another job finishing on the same org+type) cannot race between the sortBy and the bulkDelete.
+    await dexieDb.transaction('rw', dexieDb.analysis_job_history, async () => {
+      // sortBy returns ascending by createdAt; reverse the array to put newest first so slice(N) drops the older rows.
+      const rowsAscending = await dexieDb.analysis_job_history
+        .where('[org+jobType+createdAt]')
+        .between([orgUniqueId, jobType, new Date(0)], [orgUniqueId, jobType, new Date(8640000000000000)])
+        .sortBy('createdAt');
+      const rowsNewestFirst = rowsAscending.slice().reverse();
+      const overCap = rowsNewestFirst.filter((row) => !row.pinned).slice(ANALYSIS_HISTORY_PER_ORG_TYPE_CAP);
+      if (overCap.length > 0) {
+        await dexieDb.analysis_job_history.bulkDelete(overCap.map((row) => row.key));
+      }
+    });
+  } catch (ex) {
+    logger.warn('[JOB][ANALYSIS] Failed to prune analysis_job_history', ex);
+  }
+}
 
 /**
  * This class mimics a web-worker based on what the application uses for these methods
@@ -339,6 +370,200 @@ export class JobWorker {
           if (this.canceledJobIds.has(job.id)) {
             this.canceledJobIds.delete(job.id);
           }
+        }
+        break;
+      }
+      case 'PermissionExportAnalysis': {
+        const { org, job } = payloadData as AsyncJobWorkerMessagePayload<PermissionExportAnalysisJob>;
+        const { jobHistoryKey, profileIds, permissionSetIds, objectApiNames } = job.meta;
+        const canceledRef = this.canceledJobIds;
+        try {
+          const { full } = await runPermissionExport(org, profileIds, permissionSetIds, {
+            objectApiNames,
+            onProgress: (progress) => {
+              const response: AsyncJobWorkerMessageResponse = {
+                job,
+                lastActivityUpdate: true,
+                results: { progress },
+              };
+              this.replyToMessage(name, response);
+            },
+            isCanceled: () => canceledRef.has(job.id),
+          });
+
+          const blob = await gzipEncode(full);
+          const now = new Date();
+          const historyRow: AnalysisJobHistoryItem = {
+            key: jobHistoryKey,
+            org: org.uniqueId,
+            jobType: 'permission_export',
+            status: 'completed',
+            requestPayload: full.requestPayload,
+            createdAt: now,
+            updatedAt: now,
+            errorMessage: null,
+            pinned: false,
+            summary: full.summary,
+            resultBlob: blob,
+            resultBlobSize: blob.byteLength,
+          };
+          await dexieDb.analysis_job_history.put(historyRow);
+          await pruneAnalysisJobHistory(org.uniqueId, 'permission_export');
+
+          const response: AsyncJobWorkerMessageResponse = {
+            job,
+            results: { jobHistoryKey, summary: full.summary },
+          };
+          this.replyToMessage(name, response);
+        } catch (ex) {
+          const errorMessage = getErrorMessage(ex);
+          const wasCanceled = this.canceledJobIds.has(job.id);
+          if (!wasCanceled) {
+            try {
+              const now = new Date();
+              const failedRow: AnalysisJobHistoryItem = {
+                key: jobHistoryKey,
+                org: org.uniqueId,
+                jobType: 'permission_export',
+                status: 'failed',
+                requestPayload: {
+                  profileIds,
+                  permissionSetIds,
+                  ...(objectApiNames !== undefined ? { objectApiNames } : {}),
+                },
+                createdAt: now,
+                updatedAt: now,
+                errorMessage,
+                pinned: false,
+                summary: null,
+                resultBlob: null,
+                resultBlobSize: 0,
+              };
+              await dexieDb.analysis_job_history.put(failedRow);
+              await pruneAnalysisJobHistory(org.uniqueId, 'permission_export');
+            } catch (writeEx) {
+              logger.warn('[JOB][PERMISSION_EXPORT] Failed to record failed analysis_job_history row', writeEx);
+            }
+          } else {
+            this.canceledJobIds.delete(job.id);
+          }
+
+          const response: AsyncJobWorkerMessageResponse = { job };
+          this.replyToMessage(name, response, errorMessage);
+        }
+        break;
+      }
+      case 'FieldUsageAnalysis': {
+        const { org, job } = payloadData as AsyncJobWorkerMessagePayload<FieldUsageAnalysisJob>;
+        const { jobHistoryKey, objectApiNames, loadFullScan } = job.meta;
+        const canceledRef = this.canceledJobIds;
+        try {
+          const queryOutcome = await runFieldUsageQueryForObjects(org, objectApiNames, {
+            loadFullScan,
+            onProgress: (progress) => {
+              const response: AsyncJobWorkerMessageResponse = {
+                job,
+                lastActivityUpdate: true,
+                results: { progress },
+              };
+              this.replyToMessage(name, response);
+            },
+            isCanceled: () => canceledRef.has(job.id),
+          });
+
+          let whereUsed: Record<string, unknown[]> = {};
+          try {
+            whereUsed = (await computeFieldUsageWhereUsed(org, queryOutcome.objects)) as unknown as Record<string, unknown[]>;
+          } catch (whereUsedEx) {
+            logger.warn('[JOB][FIELD_USAGE] where-used lookup failed; continuing without map', whereUsedEx);
+            whereUsed = {};
+          }
+
+          const okObjectCount = objectApiNames.filter(
+            (objectApiName) => !queryOutcome.failedObjects.includes(objectApiName) && !queryOutcome.objects[objectApiName]?.error,
+          ).length;
+          const summaryParts = [
+            `Field Usage for ${okObjectCount}/${objectApiNames.length} Object(s).${loadFullScan ? ' No per-object row cap.' : ''}`,
+            queryOutcome.anyQueryTruncated
+              ? loadFullScan
+                ? 'Some objects may still show truncated scans for very large data sets or API limits.'
+                : `Row scan capped at ${String(FIELD_USAGE_MAX_ROWS_PER_OBJECT)} rows per Object where noted.`
+              : '',
+            queryOutcome.failedObjects.length > 0 ? `Failed: ${queryOutcome.failedObjects.join(', ')}.` : '',
+          ].filter(Boolean);
+          const summary = summaryParts.join(' ');
+
+          const full: FieldUsageFullResult = {
+            requestPayload: {
+              objectApiNames,
+              ...(loadFullScan !== undefined ? { loadFullScan } : {}),
+            },
+            phase: 'field_usage_v1',
+            summary,
+            truncated: queryOutcome.anyQueryTruncated,
+            failedObjects: queryOutcome.failedObjects,
+            objects: queryOutcome.objects as unknown as FieldUsageFullResult['objects'],
+            whereUsed: whereUsed as unknown as FieldUsageFullResult['whereUsed'],
+          };
+
+          const blob = await gzipEncode(full);
+          const now = new Date();
+          const historyRow: AnalysisJobHistoryItem = {
+            key: jobHistoryKey,
+            org: org.uniqueId,
+            jobType: 'field_usage',
+            status: 'completed',
+            requestPayload: full.requestPayload,
+            createdAt: now,
+            updatedAt: now,
+            errorMessage: null,
+            pinned: false,
+            summary,
+            resultBlob: blob,
+            resultBlobSize: blob.byteLength,
+          };
+          await dexieDb.analysis_job_history.put(historyRow);
+          await pruneAnalysisJobHistory(org.uniqueId, 'field_usage');
+
+          const response: AsyncJobWorkerMessageResponse = {
+            job,
+            results: { jobHistoryKey, summary },
+          };
+          this.replyToMessage(name, response);
+        } catch (ex) {
+          const errorMessage = getErrorMessage(ex);
+          const wasCanceled = this.canceledJobIds.has(job.id);
+          if (!wasCanceled) {
+            try {
+              const now = new Date();
+              const failedRow: AnalysisJobHistoryItem = {
+                key: jobHistoryKey,
+                org: org.uniqueId,
+                jobType: 'field_usage',
+                status: 'failed',
+                requestPayload: {
+                  objectApiNames,
+                  ...(loadFullScan !== undefined ? { loadFullScan } : {}),
+                },
+                createdAt: now,
+                updatedAt: now,
+                errorMessage,
+                pinned: false,
+                summary: null,
+                resultBlob: null,
+                resultBlobSize: 0,
+              };
+              await dexieDb.analysis_job_history.put(failedRow);
+              await pruneAnalysisJobHistory(org.uniqueId, 'field_usage');
+            } catch (writeEx) {
+              logger.warn('[JOB][FIELD_USAGE] Failed to record failed analysis_job_history row', writeEx);
+            }
+          } else {
+            this.canceledJobIds.delete(job.id);
+          }
+
+          const response: AsyncJobWorkerMessageResponse = { job };
+          this.replyToMessage(name, response, errorMessage);
         }
         break;
       }

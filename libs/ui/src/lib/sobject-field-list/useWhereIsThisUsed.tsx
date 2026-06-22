@@ -1,5 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, queryWithCache } from '@jetstream/shared/data';
+import { parseCustomFieldApiNameForTooling } from '@jetstream/shared/utils';
 import { useReducerFetchFn } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, parseCustomFieldApiNameForTooling } from '@jetstream/shared/utils';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';

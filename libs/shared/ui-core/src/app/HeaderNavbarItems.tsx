@@ -73,6 +73,27 @@ export function useHeaderNavbarItems(): NavbarItemConfig[] {
         label: APP_ROUTES.PERMISSION_MANAGER.TITLE,
       },
       {
+        id: 'analysis-tools',
+        type: 'menu',
+        label: 'Analysis Tools',
+        items: [
+          {
+            id: 'permission-analysis',
+            path: APP_ROUTES.PERMISSION_ANALYSIS.ROUTE,
+            search: APP_ROUTES.PERMISSION_ANALYSIS.SEARCH_PARAM,
+            title: APP_ROUTES.PERMISSION_ANALYSIS.DESCRIPTION,
+            label: APP_ROUTES.PERMISSION_ANALYSIS.TITLE,
+          },
+          {
+            id: 'data-analysis',
+            path: APP_ROUTES.DATA_ANALYSIS.ROUTE,
+            search: APP_ROUTES.DATA_ANALYSIS.SEARCH_PARAM,
+            title: APP_ROUTES.DATA_ANALYSIS.DESCRIPTION,
+            label: APP_ROUTES.DATA_ANALYSIS.TITLE,
+          },
+        ],
+      },
+      {
         id: 'deploy-metadata',
         type: 'menu',
         label: 'Deploy Metadata',

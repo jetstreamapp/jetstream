@@ -556,6 +556,53 @@ export const Jobs: FunctionComponent = () => {
         }
         break;
       }
+      case 'PermissionExportAnalysis':
+      case 'FieldUsageAnalysis': {
+        try {
+          let newJob = { ...data.job };
+          if (error) {
+            newJob = {
+              ...newJob,
+              finished: new Date(),
+              lastActivity: new Date(),
+              status: 'failed',
+              statusMessage: error,
+            };
+            setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
+            notifyUser(`${name === 'PermissionExportAnalysis' ? 'Permission export' : 'Field usage'} analysis failed`, {
+              body: newJob.statusMessage,
+              tag: name,
+            });
+          } else if (data.lastActivityUpdate) {
+            const progressUpdate = (data.results as { progress?: AsyncJob['progress'] } | undefined)?.progress;
+            newJob = {
+              ...newJob,
+              lastActivity: new Date(),
+              ...(progressUpdate ? { progress: progressUpdate } : {}),
+            };
+            setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
+          } else {
+            const { summary } = (data.results || {}) as { jobHistoryKey?: string; summary?: string };
+            newJob = {
+              ...newJob,
+              results: data.results,
+              finished: new Date(),
+              lastActivity: new Date(),
+              status: 'success',
+              statusMessage: summary || 'Analysis complete',
+              progress: undefined,
+            };
+            setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
+            notifyUser(`${name === 'PermissionExportAnalysis' ? 'Permission export' : 'Field usage'} analysis finished`, {
+              body: newJob.statusMessage,
+              tag: name,
+            });
+          }
+        } catch (ex) {
+          logger.error('[ERROR][JOB] Error processing analysis job results', ex);
+        }
+        break;
+      }
       case 'DesktopFileDownload': {
         try {
           let newJob = { ...data.job };
