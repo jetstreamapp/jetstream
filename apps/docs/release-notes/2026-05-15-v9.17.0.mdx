@@ -1,0 +1,48 @@
+---
+slug: v9.17.0
+title: 9.17.0 - Stay signed in, select-all exports, and friendlier password resets
+date: '2026-05-15'
+tags: [web, desktop, extension]
+versions:
+  web: 9.17.0
+  desktop: 3.21.0
+  extension: 2.23.0
+summary: A fix for the race condition that logged some people out every day, a select-all option for object exports, and a password reset flow that shows the rules up front.
+highlights:
+  - title: No more daily surprise logouts
+    description: A race condition in refresh-token rotation that signed some users out roughly once a day has been fixed.
+  - title: Select all when exporting objects
+    description: Export multiple SObjects at once with a single select-all toggle instead of checking each one.
+    docLink: /developer/export-object-metadata
+  - title: Friendlier password resets
+    description: Resetting a password now shows the requirements as you type and validates against them up front.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Stay signed in
+
+Some users were getting logged out about once a day. The cause was a race condition in refresh-token
+rotation: when several requests hit Jetstream at the same moment an access token expired, the concurrent
+refreshes could clobber each other. Token rotation is now locked so simultaneous requests can't step on
+one another, which keeps your session alive the way it should be.
+
+### Select all when exporting objects
+
+When you export object metadata, you can now select every object at once with a single toggle instead of
+ticking each box. It's a small thing that saves a lot of clicks on orgs with many objects.
+
+### Password resets show the rules up front
+
+The password reset flow now displays the password requirements and validates your input against them as
+you type — including a check that your password doesn't contain your own user information — so you get it
+right the first time instead of submitting and bouncing back.
+
+### Other fixes
+
+- Saving object, field, and tab visibility permissions has clearer error messages and more reliable
+  behavior.
+- Styling fix for the profile / permission set popover button.
+- Upgraded dependencies to resolve several security vulnerabilities.

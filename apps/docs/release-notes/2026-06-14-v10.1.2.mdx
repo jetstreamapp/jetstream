@@ -1,0 +1,22 @@
+---
+slug: v10.1.2
+title: 10.1.2 - Desktop release infrastructure
+date: '2026-06-14'
+tags: [web, desktop]
+versions:
+  web: 10.1.2
+  desktop: 4.1.1
+summary: Behind-the-scenes work to migrate desktop release downloads to new storage, with no user-facing changes.
+highlights:
+  - title: Desktop download infrastructure
+    description: Internal changes to how desktop releases are stored and delivered, in preparation for a storage migration.
+    docLink: /desktop-app
+---
+
+{/* truncate */}
+
+## What's new
+
+This release is infrastructure work for desktop releases. It updates Jetstream's storage configuration to
+use standard S3-style endpoint names as part of migrating desktop download artifacts to new storage.
+There are no changes to how you use Jetstream — your desktop app will continue to update normally.

@@ -1,0 +1,36 @@
+---
+slug: v9.19.2
+title: 9.19.2 - Correct validation for long text fields, plus SSRF hardening
+date: '2026-06-05'
+tags: [web, desktop, extension]
+versions:
+  web: 9.19.2
+  desktop: 3.23.2
+  extension: 2.25.2
+summary: Long Text Area and rich-text fields validate their length correctly again, alongside a round of server-side request hardening.
+highlights:
+  - title: Accurate length validation for long text and HTML fields
+    description: Long Text Area and rich-text (HTML) field lengths are now enforced correctly between 256 and 131,072 characters.
+    docLink: /deploy-fields
+  - title: SSRF security hardening
+    description: Tighter validation of SSO network requests and user-provided endpoints, with unnecessary headers stripped from proxied Salesforce requests.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Correct validation for Long Text Area and HTML fields
+
+Length validation for Long Text Area and rich-text (HTML) fields was off, which could reject valid sizes
+or allow invalid ones. The validation messages and logic now correctly enforce a length between 256 and
+131,072 characters, matching Salesforce's own limits.
+
+### Server-side request hardening
+
+This release tightens up how Jetstream makes outbound requests, guarding against server-side request
+forgery (SSRF):
+
+- Stricter validation of the network requests involved in SSO.
+- Better URL validation for the manual request endpoints you can call from Jetstream.
+- Unnecessary headers are stripped when proxying a request to Salesforce.

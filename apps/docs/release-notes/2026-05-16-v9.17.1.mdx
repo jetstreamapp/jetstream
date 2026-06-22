@@ -1,0 +1,25 @@
+---
+slug: v9.17.1
+title: 9.17.1 - More reliable sign-in for desktop and extension
+date: '2026-05-16'
+tags: [web, desktop, extension]
+versions:
+  web: 9.17.1
+  desktop: 3.22.0
+  extension: 2.24.0
+summary: A follow-up to the token-rotation fix that extends the same reliability improvements to the desktop app and browser extension.
+highlights:
+  - title: Steadier sessions on desktop and extension
+    description: Token rotation in the desktop and browser-extension controllers is more robust, with better handling and logging so you stay signed in.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Token rotation improvements reach desktop and the extension
+
+Building on the previous release's fix for daily logouts, this update improves how the desktop app and
+browser extension handle access-token rotation. Token management in the service worker and extension
+settings was reworked, with clearer logging to make any future issues easier to diagnose. The result is
+fewer unexpected sign-outs when you're working in the desktop app or extension.

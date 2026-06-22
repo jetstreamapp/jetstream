@@ -1,0 +1,23 @@
+---
+slug: v9.19.1
+title: 9.19.1 - Security and dependency hardening
+date: '2026-06-02'
+tags: [web]
+versions:
+  web: 9.19.1
+summary: A focused security release that closes a prototype-pollution vector on the data-sync routes and updates dependencies for a known vulnerability.
+highlights:
+  - title: Prototype-pollution protection on data sync
+    description: Hardened the history data-sync routes (and IP detection) against prototype-pollution attacks.
+    docLink: /history-data-sync
+  - title: Dependency security updates
+    description: Upgraded build tooling to pick up an upstream security fix.
+---
+
+{/* truncate */}
+
+## What's new
+
+This is a security-focused release. It hardens the history data-sync routes and IP detection against
+prototype-pollution attacks, and upgrades the underlying build tooling (Vite and Vitest) to address a
+published vulnerability. There are no changes to how you use Jetstream — these are protective updates.
