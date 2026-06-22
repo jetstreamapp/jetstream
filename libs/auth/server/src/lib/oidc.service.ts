@@ -75,7 +75,7 @@ export class OidcService {
     } catch (error) {
       const cause = error instanceof Error ? error.cause : undefined;
       logger.error({ error, cause, issuer }, 'OIDC discovery failed');
-      throw new Error(`OIDC discovery failed: ${getErrorMessage(error)}`);
+      throw new Error(`OIDC discovery failed: ${getErrorMessage(error)}`, { cause: error });
     }
   }
 
@@ -174,7 +174,7 @@ export class OidcService {
       };
     } catch (error) {
       logger.error({ error, teamId }, 'OIDC callback validation failed');
-      throw new Error(`OIDC validation failed: ${getErrorMessage(error)}`);
+      throw new Error(`OIDC validation failed: ${getErrorMessage(error)}`, { cause: error });
     }
   }
 
@@ -236,7 +236,7 @@ export class OidcService {
       };
     } catch (error) {
       logger.error({ error }, 'Failed to extract user info from OIDC token');
-      throw new Error(`Failed to extract user info: ${getErrorMessage(error)}`);
+      throw new Error(`Failed to extract user info: ${getErrorMessage(error)}`, { cause: error });
     }
   }
 
