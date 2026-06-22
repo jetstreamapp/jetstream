@@ -1,5 +1,15 @@
 # Changelog
 
+## [10.3.5](https://github.com/jetstreamapp/jetstream/compare/v10.3.1...v10.3.5) (2026-06-22)
+
+### Features
+
+* optimize data table performance ([65cb462](https://github.com/jetstreamapp/jetstream/commit/65cb462fa1ec5082743912d62a3a4b118ed851e6))
+
+### Bug Fixes
+
+* resolve data table crash by ensuring valid column IDs and coercing row IDs to strings ([#1821](https://github.com/jetstreamapp/jetstream/issues/1821)) ([afb0b55](https://github.com/jetstreamapp/jetstream/commit/afb0b555ee041e45d2c618afd38ede13ad0cb218))
+
 ## [10.3.4](https://github.com/jetstreamapp/jetstream/compare/v10.3.3...v10.3.4) (2026-06-22)
 
 ### Bug Fixes
