@@ -50,6 +50,13 @@ describe('useJetstreamTable', () => {
     expect(result.current.table.getRowModel().rows).toHaveLength(3);
   });
 
+  test('coerces row ids to strings even when getRowKey returns a non-string', () => {
+    // A numeric row id would break string ops (e.g. rowId.startsWith() inside isSummaryRowId) during keyboard nav.
+    const { result } = setup({ getRowKey: (row) => Number(row._key) as unknown as string });
+    result.current.table.getRowModel().rows.forEach((row) => expect(typeof row.id).toBe('string'));
+    expect(result.current.table.getRowModel().rows.map((row) => row.id)).toEqual(['1', '2', '3']);
+  });
+
   test('quick filter narrows rows case-insensitively', () => {
     const { result } = setup({ quickFilterText: 'ALPHA' });
     const rows = result.current.table.getRowModel().rows.map((row) => row.original);
