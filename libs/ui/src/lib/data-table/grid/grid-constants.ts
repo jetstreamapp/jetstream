@@ -19,7 +19,7 @@ export const HEADER_ROW_ID = '__jgrid_header__';
  */
 export const SUMMARY_ROW_ID_PREFIX = '__jgrid_summary__';
 export const getSummaryRowId = (index: number): string => `${SUMMARY_ROW_ID_PREFIX}${index}`;
-export const isSummaryRowId = (rowId: string): boolean => rowId.startsWith(SUMMARY_ROW_ID_PREFIX);
+export const isSummaryRowId = (rowId: string): boolean => typeof rowId === 'string' && rowId.startsWith(SUMMARY_ROW_ID_PREFIX);
 export const getSummaryRowIndex = (rowId: string): number => Number.parseInt(rowId.slice(SUMMARY_ROW_ID_PREFIX.length), 10);
 
 export const ACTION_COLUMN_KEY = '_actions';

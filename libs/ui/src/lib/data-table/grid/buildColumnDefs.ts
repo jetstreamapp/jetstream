@@ -16,7 +16,7 @@ export function buildColumnDefs<TRow, TSummaryRow = unknown>(
   columns: ColumnWithFilter<TRow, TSummaryRow>[],
   defaultColumnOptions?: DefaultColumnOptions<TRow, TSummaryRow>,
 ): ColumnDef<TRow, unknown>[] {
-  return columns.map((column) => toColumnDef(column, defaultColumnOptions));
+  return columns.map((column, index) => toColumnDef(column, index, defaultColumnOptions));
 }
 
 function resolveCellKind(key: string): CellKind {
@@ -31,10 +31,16 @@ function resolveCellKind(key: string): CellKind {
 
 function toColumnDef<TRow, TSummaryRow>(
   column: ColumnWithFilter<TRow, TSummaryRow>,
+  index: number,
   defaultColumnOptions?: DefaultColumnOptions<TRow, TSummaryRow>,
 ): ColumnDef<TRow, unknown> {
   const cellKind = resolveCellKind(column.key);
   const isDataColumn = cellKind === 'data';
+
+  // TanStack throws a bare `Error` while building any column whose resolved id is falsy. `key` is typed
+  // as a string but originates from `any` query-result data upstream, so fall back to a positional id
+  // rather than crashing the whole grid when a malformed column slips through.
+  const columnId = column.key != null && String(column.key).length > 0 ? String(column.key) : `__jgrid_col_${index}`;
 
   const resizable = column.resizable ?? defaultColumnOptions?.resizable ?? false;
   const sortable = isDataColumn && (column.sortable ?? defaultColumnOptions?.sortable ?? false);
@@ -59,10 +65,12 @@ function toColumnDef<TRow, TSummaryRow>(
   };
 
   const columnDef: ColumnDef<TRow, unknown> = {
-    id: column.key,
-    // Display (select/action) columns have no meaningful accessor.
-    ...(isDataColumn ? { accessorFn: (row: TRow) => (row as Record<string, unknown>)[column.key] } : {}),
-    header: typeof column.name === 'string' ? column.name : column.key,
+    id: columnId,
+    // Display (select/action) columns have no meaningful accessor. Data columns index by `columnId`
+    // (not raw `column.key`) so a malformed/falsy key reads the unused fallback id — an empty column —
+    // instead of the accidental `row['undefined']` lookup, keeping the accessor aligned with the id.
+    ...(isDataColumn ? { accessorFn: (row: TRow) => (row as Record<string, unknown>)[columnId] } : {}),
+    header: typeof column.name === 'string' ? column.name : columnId,
     enableSorting: sortable,
     enableResizing: resizable,
     enableColumnFilter: hasFilters,

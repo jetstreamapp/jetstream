@@ -341,7 +341,10 @@ export function useJetstreamTable<TRow = RowWithKey>(options: UseJetstreamTableO
     data,
     columns: columnDefs,
     state: { sorting, columnFilters, globalFilter, columnOrder, columnSizing, rowSelection, grouping: groupingState, expanded },
-    getRowId: (row) => stableGetRowKey(row),
+    // Coerce to string: `getRowKey` is typed to return a string but some callers derive it from `any`
+    // record data (e.g. a numeric id), and a non-string `row.id` later breaks string ops such as the
+    // `rowId.startsWith(...)` inside `isSummaryRowId` during keyboard navigation.
+    getRowId: (row) => String(stableGetRowKey(row)),
     enableRowSelection: enableRowSelection ?? false,
     enableMultiSort,
     enableSortingRemoval: true,

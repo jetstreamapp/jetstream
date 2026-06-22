@@ -27,6 +27,18 @@ describe('buildColumnDefs', () => {
     expect(defs.map((def) => def.id)).toEqual([ACTION_COLUMN_KEY, SELECT_COLUMN_KEY, 'Name', 'Amount']);
   });
 
+  test('falls back to a positional id when a column key is missing (TanStack throws on a falsy id)', () => {
+    // `key` is typed as string, but malformed columns can reach here from `any` query-result data.
+    const malformed = [
+      { key: undefined as unknown as string, name: 'Broken' },
+      { key: '', name: 'Empty' },
+    ];
+    const defs = buildColumnDefs(malformed as ColumnWithFilter<Row>[]);
+    expect(defs[0].id).toBe('__jgrid_col_0');
+    expect(defs[1].id).toBe('__jgrid_col_1');
+    defs.forEach((def) => expect(typeof def.id).toBe('string'));
+  });
+
   test('classifies cellKind for select/action/data columns', () => {
     const defs = buildColumnDefs(columns);
     expect(metaOf(defs[0]).cellKind).toBe('action');
@@ -40,6 +52,19 @@ describe('buildColumnDefs', () => {
     expect('accessorFn' in defs[0]).toBe(false);
     expect('accessorFn' in defs[1]).toBe(false);
     expect('accessorFn' in defs[2]).toBe(true);
+  });
+
+  test('accessor indexes by the normalized id; a malformed key reads the fallback id, not row["undefined"]', () => {
+    const malformed = [
+      { key: 'Name', name: 'Name' },
+      { key: undefined as unknown as string, name: 'Broken' },
+    ];
+    const defs = buildColumnDefs(malformed as ColumnWithFilter<Row>[]);
+    const accessorOf = (def: (typeof defs)[number]) => (def as unknown as { accessorFn: (row: unknown) => unknown }).accessorFn;
+    // `undefined`/`''` props would be picked up if the accessor still indexed by a falsy raw key.
+    const row = { Name: 'Alpha', undefined: 'LEAK', '': 'LEAK' };
+    expect(accessorOf(defs[0])(row)).toBe('Alpha');
+    expect(accessorOf(defs[1])(row)).toBeUndefined();
   });
 
   test('sizing maps width/min/max; string/absent width falls back to default', () => {

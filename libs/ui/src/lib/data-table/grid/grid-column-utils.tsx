@@ -379,8 +379,9 @@ export function reorderColumnOrder(order: string[], sourceId: string, targetId: 
 export function addFieldLabelToColumn(columnDefinitions: ColumnWithFilter<RowWithKey>[], fieldMetadata: Record<string, Field>) {
   if (fieldMetadata) {
     return columnDefinitions.map((col) => {
-      if (fieldMetadata[col.key?.toLowerCase()]?.label) {
-        const label = fieldMetadata[col.key.toLowerCase()].label;
+      const normalizedKey = col.key?.toLowerCase();
+      const label = normalizedKey ? fieldMetadata[normalizedKey]?.label : undefined;
+      if (label) {
         return { ...col, name: `${col.name} (${label})` };
       }
       return col;
