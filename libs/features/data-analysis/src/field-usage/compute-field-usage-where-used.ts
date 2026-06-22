@@ -128,21 +128,21 @@ async function enrichWhereUsedDependencyRows(org: SalesforceOrgUi, rows: WhereUs
       continue;
     }
     if (componentType === 'ApexClass') {
-      row.openInSalesforcePath = `/lightning/setup/ApexClasses/page?address=${encodeURIComponent(encodeURIComponent(`/${componentId}`))}`;
+      row.openInSalesforcePath = `/lightning/setup/ApexClasses/page?address=${encodeURIComponent(`/${componentId}`)}`;
     } else if (componentType === 'ApexTrigger') {
-      row.openInSalesforcePath = `/lightning/setup/ApexTriggers/page?address=${encodeURIComponent(encodeURIComponent(`/${componentId}`))}`;
+      row.openInSalesforcePath = `/lightning/setup/ApexTriggers/page?address=${encodeURIComponent(`/${componentId}`)}`;
     } else if (componentType === 'ApexPage') {
-      row.openInSalesforcePath = `/lightning/setup/ApexPages/page?address=${encodeURIComponent(encodeURIComponent(`/${componentId}`))}`;
+      row.openInSalesforcePath = `/lightning/setup/ApexPages/page?address=${encodeURIComponent(`/${componentId}`)}`;
     } else if (componentType === 'ApexComponent') {
-      row.openInSalesforcePath = `/lightning/setup/ApexComponents/page?address=${encodeURIComponent(encodeURIComponent(`/${componentId}`))}`;
+      row.openInSalesforcePath = `/lightning/setup/ApexComponents/page?address=${encodeURIComponent(`/${componentId}`)}`;
     } else if (componentType === 'FlexiPage') {
-      row.openInSalesforcePath = `/lightning/setup/FlexiPageList/page?address=${encodeURIComponent(encodeURIComponent(`/${componentId}`))}`;
+      row.openInSalesforcePath = `/lightning/setup/FlexiPageList/page?address=${encodeURIComponent(`/${componentId}`)}`;
     } else if (componentType === 'Layout') {
-      row.openInSalesforcePath = `/lightning/setup/LayoutDefinitions/page?address=${encodeURIComponent(encodeURIComponent(`/${componentId}`))}`;
+      row.openInSalesforcePath = `/lightning/setup/LayoutDefinitions/page?address=${encodeURIComponent(`/${componentId}`)}`;
     } else if (componentType === 'FieldSet') {
-      row.openInSalesforcePath = `/lightning/setup/FieldSets/page?address=${encodeURIComponent(encodeURIComponent(`/${componentId}`))}`;
+      row.openInSalesforcePath = `/lightning/setup/FieldSets/page?address=${encodeURIComponent(`/${componentId}`)}`;
     } else if (componentType === 'WorkflowRule' || componentType === 'WorkflowFieldUpdate') {
-      row.openInSalesforcePath = `/lightning/setup/WorkflowRules/page?address=${encodeURIComponent(encodeURIComponent(`/${componentId}`))}`;
+      row.openInSalesforcePath = `/lightning/setup/WorkflowRules/page?address=${encodeURIComponent(`/${componentId}`)}`;
     }
   }
 }

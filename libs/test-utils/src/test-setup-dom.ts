@@ -10,7 +10,8 @@
  */
 if (typeof globalThis.ResizeObserver === 'undefined') {
   class ResizeObserverShim {
-    constructor(_callback: ResizeObserverCallback) {}
+    // Accept (and ignore) the callback so the shim matches the real `ResizeObserver(callback)` signature.
+    constructor(_callback?: ResizeObserverCallback) {}
     observe(): void {}
     unobserve(): void {}
     disconnect(): void {}

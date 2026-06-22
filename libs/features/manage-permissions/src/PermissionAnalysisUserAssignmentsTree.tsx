@@ -1,8 +1,10 @@
 import { css } from '@emotion/react';
+import { PermissionAnalysisExpandCollapseControls } from './PermissionAnalysisExpandCollapseControls';
 import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
 import { escapeSoqlString } from '@jetstream/shared/ui-utils';
 import type { SalesforceOrgUi } from '@jetstream/types';
+import type { RenderCellProps, RenderGroupCellProps } from '@jetstream/ui';
 import {
   AutoFullHeightContainer,
   Badge,
@@ -19,7 +21,6 @@ import {
 } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
 import { Fragment, FunctionComponent, useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
-import type { RenderCellProps, RenderGroupCellProps } from 'react-data-grid';
 import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 import { permissionAnalysisAssignmentTypeLabelCss } from './permission-analysis-viewer-badge.styles';
 import {
@@ -76,7 +77,6 @@ function readProfileFromUserRecord(record: { ProfileId?: unknown; Profile?: unkn
   const profileName =
     profileBlock &&
     typeof profileBlock === 'object' &&
-    profileBlock !== null &&
     'Name' in profileBlock &&
     typeof (profileBlock as { Name?: unknown }).Name === 'string'
       ? String((profileBlock as { Name: string }).Name).trim()
@@ -255,7 +255,7 @@ export interface PermissionAnalysisUserAssignmentsTreeProps {
 
 /**
  * Assignments from the export, grouped by user: permission sets (from assignments), inferred permission set groups,
- * Salesforce profile, and permission set licenses (from {@link UserPermissionSetLicense} when available).
+ * Salesforce profile, and permission set licenses (from `PermissionSetLicenseAssign` when available).
  */
 export const PermissionAnalysisUserAssignmentsTree: FunctionComponent<PermissionAnalysisUserAssignmentsTreeProps> = ({
   permissionSetAssignments,
@@ -385,14 +385,14 @@ export const PermissionAnalysisUserAssignmentsTree: FunctionComponent<Permission
         for (let index = 0; index < ids.length; index += USER_SOQL_CHUNK_SIZE) {
           const chunk = ids.slice(index, index + USER_SOQL_CHUNK_SIZE);
           const inList = chunk.map((id) => `'${escapeSoqlString(id)}'`).join(', ');
-          const soql = `SELECT UserId, PermissionSetLicenseId, PermissionSetLicense.MasterLabel, PermissionSetLicense.DeveloperName FROM UserPermissionSetLicense WHERE UserId IN (${inList})`;
+          const soql = `SELECT AssigneeId, PermissionSetLicenseId, PermissionSetLicense.MasterLabel, PermissionSetLicense.DeveloperName FROM PermissionSetLicenseAssign WHERE AssigneeId IN (${inList})`;
           const response = await query<{
-            UserId?: string;
+            AssigneeId?: string;
             PermissionSetLicenseId?: string;
             PermissionSetLicense?: { MasterLabel?: string; DeveloperName?: string };
           }>(org, soql);
           for (const record of response.queryResults.records ?? []) {
-            const userId = typeof record.UserId === 'string' ? record.UserId.trim() : '';
+            const userId = typeof record.AssigneeId === 'string' ? record.AssigneeId.trim() : '';
             const licenseId = typeof record.PermissionSetLicenseId === 'string' ? record.PermissionSetLicenseId.trim() : '';
             if (!userId || !licenseId) {
               continue;
@@ -417,7 +417,7 @@ export const PermissionAnalysisUserAssignmentsTree: FunctionComponent<Permission
           setLicensesByUserId(merged);
         }
       } catch (error) {
-        logger.warn('Failed to load UserPermissionSetLicense rows for assignments tree', error);
+        logger.warn('Failed to load PermissionSetLicenseAssign rows for assignments tree', error);
         if (!cancelled) {
           setLicensesByUserId(new Map());
         }
@@ -508,6 +508,9 @@ export const PermissionAnalysisUserAssignmentsTree: FunctionComponent<Permission
       width: TREE_COL_USER,
       minWidth: TREE_USER_GROUP_MIN_PX,
       maxWidth: TREE_USER_GROUP_MAX_PX,
+      // Group header spans the full row (clamped to the column count by the grid) so the label + actions
+      // lay out across the whole width instead of overflowing the narrow grouping column.
+      colSpan: ({ type }) => (type === 'GROUP' ? Number.MAX_SAFE_INTEGER : undefined),
       renderGroupCell: (props) => renderUserGroupCell(userDisplayById, setupLogin, props),
       getValue: ({ row }) => {
         const userId = row._treeUserGroupKey;
@@ -834,47 +837,54 @@ export const PermissionAnalysisUserAssignmentsTree: FunctionComponent<Permission
   }
 
   return (
-    <AutoFullHeightContainer
-      fillHeight
-      bottomBuffer={24}
-      baseCss={css`
-        min-height: 200px;
-      `}
-    >
-      <DataTree
-        org={org}
-        serverUrl={serverUrl}
-        skipFrontdoorLogin={skipFrontdoorLogin}
-        columns={columns}
-        data={treeRows}
-        getRowKey={getRowKey}
-        includeQuickFilter
-        context={{ defaultApiVersion }}
-        groupBy={[...TREE_GROUP_BY]}
-        rowGrouper={groupBy}
-        expandedGroupIds={expandedGroupIds}
-        onExpandedGroupIdsChange={setExpandedGroupIds}
-        rowHeight={({ type }) => (type === 'GROUP' ? TREE_ROW_HEIGHT_GROUP_PX : TREE_ROW_HEIGHT_LEAF_PX)}
+    <>
+      <PermissionAnalysisExpandCollapseControls
+        onExpandAll={() => setExpandedGroupIds(new Set(allExpandedGroupIds))}
+        onCollapseAll={() => setExpandedGroupIds(new Set())}
       />
-
-      {findingsModal && (
-        <PermissionAnalysisFindingsModal
-          testId="permission-analysis-user-assignments-tree-issues"
-          open
-          title="Issues for this permission set"
-          tagline="From this job's permission export analysis, scoped to the permission set you selected."
-          onClose={() => setFindingsModal(null)}
-          findings={findingsModal.matches}
-          summaryLine={
-            <Fragment>
-              <strong>{findingsModal.columnLabel}</strong>
-              {' · '}
-              {containerLabelById?.get(findingsModal.containerId) ?? findingsModal.containerId} — {findingsModal.matches.length}{' '}
-              {findingsModal.matches.length === 1 ? 'issue' : 'issues'}
-            </Fragment>
-          }
+      <AutoFullHeightContainer
+        fillHeight
+        setHeightAttr
+        bottomBuffer={24}
+        baseCss={css`
+          min-height: 200px;
+        `}
+      >
+        <DataTree
+          org={org}
+          serverUrl={serverUrl}
+          skipFrontdoorLogin={skipFrontdoorLogin}
+          columns={columns}
+          data={treeRows}
+          getRowKey={getRowKey}
+          includeQuickFilter
+          context={{ defaultApiVersion }}
+          groupBy={[...TREE_GROUP_BY]}
+          rowGrouper={groupBy}
+          expandedGroupIds={expandedGroupIds}
+          onExpandedGroupIdsChange={setExpandedGroupIds}
+          rowHeight={({ type }) => (type === 'GROUP' ? TREE_ROW_HEIGHT_GROUP_PX : TREE_ROW_HEIGHT_LEAF_PX)}
         />
-      )}
-    </AutoFullHeightContainer>
+
+        {findingsModal && (
+          <PermissionAnalysisFindingsModal
+            testId="permission-analysis-user-assignments-tree-issues"
+            open
+            title="Issues for this permission set"
+            tagline="From this job's permission export analysis, scoped to the permission set you selected."
+            onClose={() => setFindingsModal(null)}
+            findings={findingsModal.matches}
+            summaryLine={
+              <Fragment>
+                <strong>{findingsModal.columnLabel}</strong>
+                {' · '}
+                {containerLabelById?.get(findingsModal.containerId) ?? findingsModal.containerId} — {findingsModal.matches.length}{' '}
+                {findingsModal.matches.length === 1 ? 'issue' : 'issues'}
+              </Fragment>
+            }
+          />
+        )}
+      </AutoFullHeightContainer>
+    </>
   );
 };

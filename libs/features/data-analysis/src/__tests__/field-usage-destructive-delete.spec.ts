@@ -57,6 +57,33 @@ describe('fieldUsageRowEligibleForDestructiveDelete', () => {
       }),
     ).toBe(true);
   });
+
+  describe('safety gates', () => {
+    const eligibleArgs = { fieldApiName: 'Unused_Field__c', meta: customMeta() };
+
+    it('blocks deletion when the object scan was truncated (0% may be incomplete)', () => {
+      expect(fieldUsageRowEligibleForDestructiveDelete({ ...eligibleArgs, objectQueryTruncated: true })).toBe(false);
+    });
+
+    it('blocks deletion when the field has where-used metadata dependencies', () => {
+      expect(fieldUsageRowEligibleForDestructiveDelete({ ...eligibleArgs, whereUsedDependencyCount: 1 })).toBe(false);
+    });
+
+    it('blocks deletion when where-used could not be determined (fail safe)', () => {
+      expect(fieldUsageRowEligibleForDestructiveDelete({ ...eligibleArgs, whereUsedKnown: false })).toBe(false);
+    });
+
+    it('allows deletion only when scan complete, no dependencies, and where-used known', () => {
+      expect(
+        fieldUsageRowEligibleForDestructiveDelete({
+          ...eligibleArgs,
+          objectQueryTruncated: false,
+          whereUsedDependencyCount: 0,
+          whereUsedKnown: true,
+        }),
+      ).toBe(true);
+    });
+  });
 });
 
 describe('fieldUsageRowsToCustomFieldDeleteMetadata', () => {

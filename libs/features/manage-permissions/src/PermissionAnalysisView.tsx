@@ -173,9 +173,18 @@ export const PermissionAnalysisView: FunctionComponent = () => {
 
   /**
    * Terminal Dexie row for this jobHistoryKey, kept reactive via useLiveQuery so the view updates
-   * the moment the JobWorker writes the row.
+   * the moment the JobWorker writes the row. Scoped to the selected org: a row whose `org` does not
+   * match (bookmarked/copied key, or org switched while the URL still has an old key) resolves to
+   * `undefined` so we never show another org's analysis in this org's context.
    */
-  const historyRow = useLiveQuery(() => (jobId ? dexieDb.analysis_job_history.get(jobId) : undefined), [jobId]);
+  const selectedOrgId = selectedOrg?.uniqueId;
+  const historyRow = useLiveQuery(async () => {
+    if (!jobId || !selectedOrgId) {
+      return undefined;
+    }
+    const row = await dexieDb.analysis_job_history.get(jobId);
+    return row && row.org === selectedOrgId ? row : undefined;
+  }, [jobId, selectedOrgId]);
 
   useEffect(() => {
     // Eagerly drop any prior decoded payload so switching between large completed runs doesn't keep both
@@ -558,7 +567,6 @@ export const PermissionAnalysisView: FunctionComponent = () => {
     const counts = parsedExport.counts;
 
     const containerLabelById = buildPermissionSetIdLabelMap(exportBundle.permissionSets);
-    const exportFindingProps = { findings: globallyFilteredFindings, containerLabelById };
 
     const gridProps = {
       org: selectedOrg,

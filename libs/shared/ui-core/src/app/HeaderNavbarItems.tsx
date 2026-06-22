@@ -73,6 +73,7 @@ export function useHeaderNavbarItems(): NavbarItemConfig[] {
         label: APP_ROUTES.PERMISSION_MANAGER.TITLE,
       },
       {
+        // Shown to everyone for discovery; the route renders an upgrade paywall for users without the entitlement.
         id: 'analysis-tools',
         type: 'menu',
         label: 'Analysis Tools',

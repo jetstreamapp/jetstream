@@ -1,6 +1,10 @@
 /// <reference lib="webworker" />
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { computeFieldUsageWhereUsed, FIELD_USAGE_MAX_ROWS_PER_OBJECT, runFieldUsageQueryForObjects } from '@jetstream/feature/data-analysis';
+import {
+  computeFieldUsageWhereUsed,
+  FIELD_USAGE_MAX_ROWS_PER_OBJECT,
+  runFieldUsageQueryForObjects,
+} from '@jetstream/feature/data-analysis';
 import { runPermissionExport } from '@jetstream/feature/manage-permissions';
 import { logger } from '@jetstream/shared/client-logger';
 import { MIME_TYPES } from '@jetstream/shared/constants';
@@ -391,6 +395,13 @@ export class JobWorker {
             isCanceled: () => canceledRef.has(job.id),
           });
 
+          // Compress + Dexie write can take seconds on large results; keep the UI from sitting silently at 100%.
+          this.replyToMessage(name, {
+            job,
+            lastActivityUpdate: true,
+            results: { progress: { current: 1, total: 1, percent: 100, label: 'Compressing and saving results…' } },
+          });
+
           const blob = await gzipEncode(full);
           const now = new Date();
           const historyRow: AnalysisJobHistoryItem = {
@@ -444,12 +455,13 @@ export class JobWorker {
             } catch (writeEx) {
               logger.warn('[JOB][PERMISSION_EXPORT] Failed to record failed analysis_job_history row', writeEx);
             }
-          } else {
-            this.canceledJobIds.delete(job.id);
           }
 
           const response: AsyncJobWorkerMessageResponse = { job };
           this.replyToMessage(name, response, errorMessage);
+        } finally {
+          // Always clear the cancel flag (success, failure, or cancel) so the Set doesn't accumulate stale ids.
+          canceledRef.delete(job.id);
         }
         break;
       }
@@ -471,12 +483,32 @@ export class JobWorker {
             isCanceled: () => canceledRef.has(job.id),
           });
 
+          // The where-used phase has no per-item progress; tell the UI what's happening so it doesn't appear frozen.
+          this.replyToMessage(name, {
+            job,
+            lastActivityUpdate: true,
+            results: {
+              progress: {
+                current: objectApiNames.length,
+                total: objectApiNames.length,
+                percent: 100,
+                label: 'Resolving field dependencies (Where Used)…',
+              },
+            },
+          });
+
           let whereUsed: Record<string, unknown[]> = {};
+          let whereUsedComputed = true;
           try {
             whereUsed = (await computeFieldUsageWhereUsed(org, queryOutcome.objects)) as unknown as Record<string, unknown[]>;
           } catch (whereUsedEx) {
             logger.warn('[JOB][FIELD_USAGE] where-used lookup failed; continuing without map', whereUsedEx);
             whereUsed = {};
+            whereUsedComputed = false;
+          }
+          // Where-used can take a while; respect a cancel requested during that phase before we persist a "completed" row.
+          if (canceledRef.has(job.id)) {
+            throw new Error('Job canceled');
           }
 
           const okObjectCount = objectApiNames.filter(
@@ -502,9 +534,24 @@ export class JobWorker {
             summary,
             truncated: queryOutcome.anyQueryTruncated,
             failedObjects: queryOutcome.failedObjects,
+            whereUsedComputed,
             objects: queryOutcome.objects as unknown as FieldUsageFullResult['objects'],
             whereUsed: whereUsed as unknown as FieldUsageFullResult['whereUsed'],
           };
+
+          // Compress + Dexie write can take seconds on large results; keep the UI from sitting silently at 100%.
+          this.replyToMessage(name, {
+            job,
+            lastActivityUpdate: true,
+            results: {
+              progress: {
+                current: objectApiNames.length,
+                total: objectApiNames.length,
+                percent: 100,
+                label: 'Compressing and saving results…',
+              },
+            },
+          });
 
           const blob = await gzipEncode(full);
           const now = new Date();
@@ -558,12 +605,13 @@ export class JobWorker {
             } catch (writeEx) {
               logger.warn('[JOB][FIELD_USAGE] Failed to record failed analysis_job_history row', writeEx);
             }
-          } else {
-            this.canceledJobIds.delete(job.id);
           }
 
           const response: AsyncJobWorkerMessageResponse = { job };
           this.replyToMessage(name, response, errorMessage);
+        } finally {
+          // Always clear the cancel flag (success, failure, or cancel) so the Set doesn't accumulate stale ids.
+          canceledRef.delete(job.id);
         }
         break;
       }

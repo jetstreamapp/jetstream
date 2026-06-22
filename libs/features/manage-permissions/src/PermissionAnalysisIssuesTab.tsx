@@ -1,5 +1,6 @@
 import { css } from '@emotion/react';
 import type { SalesforceOrgUi } from '@jetstream/types';
+import type { RenderCellProps } from '@jetstream/ui';
 import {
   AutoFullHeightContainer,
   Card,
@@ -13,26 +14,25 @@ import {
   setColumnFromType,
 } from '@jetstream/ui';
 import { FunctionComponent, useCallback, useEffect, useMemo, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
-import type { RenderCellProps } from 'react-data-grid';
 import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 import {
+  isErrorSeverity,
   ISSUES_GRID_COLUMN_KEYS,
   ISSUES_GRID_COLUMN_LABELS,
+  isWarningSeverity,
   type IssuesGridColumnKey,
   type IssuesGroupBy,
   type UsePermissionAnalysisIssuesFiltersResult,
-  isErrorSeverity,
-  isWarningSeverity,
 } from './permission-analysis-issues-filters';
 import {
   aggregatePermissionAnalysisFindings,
   formatObjectLabelForModalSummary,
+  getFindingCodeDisplayParts,
+  getFindingContainerId,
   type PermissionAnalysisFinding,
   type PermissionFindingCodeRollup,
   type PermissionFindingObjectRollup,
   type SobjectExportDetail,
-  getFindingCodeDisplayParts,
-  getFindingContainerId,
 } from './permission-export-result-view';
 
 export type { IssuesGroupBy } from './permission-analysis-issues-filters';
@@ -55,7 +55,7 @@ function normalizeSeverity(value: string | undefined): string {
 
 function groupIssueFindingsByColumnKey(
   rows: readonly PermissionAnalysisFinding[],
-  columnKey: string,
+  columnKey: keyof PermissionAnalysisFinding,
 ): Record<string, PermissionAnalysisFinding[]> {
   const groups: Record<string, PermissionAnalysisFinding[]> = {};
   for (const row of rows) {
@@ -641,7 +641,7 @@ const IssuesFindingTreeDataGrid: FunctionComponent<IssuesFindingTreeDataGridProp
       org={org}
       serverUrl={serverUrl}
       skipFrontdoorLogin={skipFrontdoorLogin}
-      columns={dataTreeColumns}
+      columns={dataTreeColumns as unknown as ColumnWithFilter<PermissionAnalysisFinding>[]}
       data={sortedFindings}
       getRowKey={getRowKey}
       includeQuickFilter
@@ -1111,10 +1111,11 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
                   org={org}
                   serverUrl={serverUrl}
                   skipFrontdoorLogin={skipFrontdoorLogin}
-                  columns={gridColumns}
+                  columns={gridColumns as unknown as ColumnWithFilter<PermissionAnalysisFinding>[]}
                   data={sortedFindings}
                   getRowKey={getRowKey}
                   includeQuickFilter
+                  autoRowHeight
                   context={{ defaultApiVersion }}
                   onSortedAndFilteredRowsChange={handleSortedAndFilteredRowsChange}
                   rowClass={(row) => {

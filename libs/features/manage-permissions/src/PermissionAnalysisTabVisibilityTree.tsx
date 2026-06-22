@@ -1,5 +1,7 @@
 import { css } from '@emotion/react';
+import { PermissionAnalysisExpandCollapseControls } from './PermissionAnalysisExpandCollapseControls';
 import type { SalesforceOrgUi } from '@jetstream/types';
+import type { RenderCellProps, RenderGroupCellProps } from '@jetstream/ui';
 import {
   AutoFullHeightContainer,
   ColumnWithFilter,
@@ -13,11 +15,9 @@ import {
 } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
-import type { RenderCellProps, RenderGroupCellProps } from 'react-data-grid';
 import { usePermissionAnalysisExportMetadata } from './permission-analysis-export-metadata-context';
 import { permissionAnalysisPermissionContainerGroupTitleLine } from './permission-analysis-tree-group-title';
 import { permissionAnalysisAssignmentTypeLabelCss } from './permission-analysis-viewer-badge.styles';
-import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 import {
   buildContainerIdFindingSeverity,
   buildPermissionSetIdLabelMap,
@@ -29,6 +29,7 @@ import {
   type PermissionExportRow,
   type PermissionObjectFindingCellSeverity,
 } from './permission-export-result-view';
+import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 
 const TREE_GROUP_BY = ['_treeParentGroupKey'] as const;
 
@@ -287,6 +288,9 @@ export const PermissionAnalysisTabVisibilityTree: FunctionComponent<PermissionAn
       field: '_treeParentGroupKey',
       resizable: true,
       width: TREE_PARENT_COL,
+      // Group header spans the full row (clamped to the column count by the grid) so the label + actions
+      // lay out across the whole width instead of overflowing the narrow grouping column.
+      colSpan: ({ type }) => (type === 'GROUP' ? Number.MAX_SAFE_INTEGER : undefined),
       renderGroupCell: (props) =>
         renderTabVisibilityGroupCell(labelByParentId, permissionSetRowById, setupLogin, containerSeverity, openFindingsForParent, props),
       getValue: ({ row }) => {
@@ -365,46 +369,53 @@ export const PermissionAnalysisTabVisibilityTree: FunctionComponent<PermissionAn
   }
 
   return (
-    <AutoFullHeightContainer
-      fillHeight
-      bottomBuffer={24}
-      baseCss={css`
-        min-height: 200px;
-      `}
-    >
-      <DataTree
-        org={org}
-        serverUrl={serverUrl}
-        skipFrontdoorLogin={skipFrontdoorLogin}
-        columns={columns}
-        data={treeRows}
-        getRowKey={getRowKey}
-        includeQuickFilter
-        context={{ defaultApiVersion }}
-        groupBy={[...TREE_GROUP_BY]}
-        rowGrouper={groupBy}
-        expandedGroupIds={expandedGroupIds}
-        onExpandedGroupIdsChange={setExpandedGroupIds}
-        rowHeight={({ type }) => (type === 'GROUP' ? TREE_ROW_HEIGHT_GROUP_PX : TREE_ROW_HEIGHT_LEAF_PX)}
+    <>
+      <PermissionAnalysisExpandCollapseControls
+        onExpandAll={() => setExpandedGroupIds(collectAllParentGroupKeys(treeRows))}
+        onCollapseAll={() => setExpandedGroupIds(new Set())}
       />
-
-      {findingsModal && (
-        <PermissionAnalysisFindingsModal
-          testId="permission-analysis-tab-visibility-issues"
-          open
-          title="Issues for this permission container"
-          tagline="From this job's permission export analysis, scoped to the profile or permission set that owns this tab setting."
-          onClose={() => setFindingsModal(null)}
-          findings={findingsModal.matches}
-          summaryLine={
-            <Fragment>
-              <strong>{containerLabelById?.get(findingsModal.parentId) ?? findingsModal.parentId}</strong>
-              {' — '}
-              {findingsModal.matches.length} {findingsModal.matches.length === 1 ? 'issue' : 'issues'}
-            </Fragment>
-          }
+      <AutoFullHeightContainer
+        fillHeight
+        setHeightAttr
+        bottomBuffer={24}
+        baseCss={css`
+          min-height: 200px;
+        `}
+      >
+        <DataTree
+          org={org}
+          serverUrl={serverUrl}
+          skipFrontdoorLogin={skipFrontdoorLogin}
+          columns={columns}
+          data={treeRows}
+          getRowKey={getRowKey}
+          includeQuickFilter
+          context={{ defaultApiVersion }}
+          groupBy={[...TREE_GROUP_BY]}
+          rowGrouper={groupBy}
+          expandedGroupIds={expandedGroupIds}
+          onExpandedGroupIdsChange={setExpandedGroupIds}
+          rowHeight={({ type }) => (type === 'GROUP' ? TREE_ROW_HEIGHT_GROUP_PX : TREE_ROW_HEIGHT_LEAF_PX)}
         />
-      )}
-    </AutoFullHeightContainer>
+
+        {findingsModal && (
+          <PermissionAnalysisFindingsModal
+            testId="permission-analysis-tab-visibility-issues"
+            open
+            title="Issues for this permission container"
+            tagline="From this job's permission export analysis, scoped to the profile or permission set that owns this tab setting."
+            onClose={() => setFindingsModal(null)}
+            findings={findingsModal.matches}
+            summaryLine={
+              <Fragment>
+                <strong>{containerLabelById?.get(findingsModal.parentId) ?? findingsModal.parentId}</strong>
+                {' — '}
+                {findingsModal.matches.length} {findingsModal.matches.length === 1 ? 'issue' : 'issues'}
+              </Fragment>
+            }
+          />
+        )}
+      </AutoFullHeightContainer>
+    </>
   );
 };

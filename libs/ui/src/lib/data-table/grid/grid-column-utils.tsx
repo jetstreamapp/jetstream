@@ -12,7 +12,7 @@ import { EditorBoolean, EditorDate, EditorText, editorDropdown, editorRecordLook
 import { ACTION_COLUMN_KEY, SELECT_COLUMN_KEY } from './grid-constants';
 import { ColumnType, ColumnWithFilter, FilterType, RowWithKey, SalesforceQueryColumnDefinition } from './grid-types';
 import {
-  ActionRenderer,
+  ActionRendererMemo,
   BooleanRenderer,
   ComplexDataRenderer,
   GenericRenderer,
@@ -111,7 +111,7 @@ export function getColumnDefinitions(
         width: 116,
         minWidth: 100,
         maxWidth: 150,
-        renderCell: ActionRenderer,
+        renderCell: (props) => <ActionRendererMemo {...props} />,
         frozen: true,
         sortable: false,
       });

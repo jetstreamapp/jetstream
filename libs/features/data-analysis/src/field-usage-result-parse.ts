@@ -146,6 +146,8 @@ export interface FieldUsageJobResultParsed {
   objects: Record<string, FieldUsageObjectPayloadParsed>;
   whereUsed: WhereUsedMapParsed;
   failedObjects: string[];
+  /** False when the Tooling where-used lookup failed entirely (dependencies unknown, not absent). */
+  whereUsedComputed: boolean;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -445,5 +447,7 @@ export function parseFieldUsageJobResult(result: unknown): FieldUsageJobResultPa
     objects,
     whereUsed: parseWhereUsedMap(rec.whereUsed),
     failedObjects,
+    // Absent on rows written before this flag existed — treat as computed (true) for backward compatibility.
+    whereUsedComputed: rec.whereUsedComputed !== false,
   };
 }

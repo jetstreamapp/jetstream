@@ -426,22 +426,21 @@
 }
 
 /* Permission Analysis findings highlighting (consumer row/cell classes from the manage-permissions feature).
-   Body cells use `background-color: inherit`, so the row-level rule tints the whole row through its cells. */
+   Body cells use `background-color: inherit`, so the row-level rule tints the whole row through its cells.
+   A solid fill (no per-cell border) is used so adjacent flagged cells merge into one continuous block — a
+   per-cell inset border can't bridge the grid's divider lines, which left a seam between neighboring cells. */
 .jgrid-row.permission-finding-row--error {
-  background-color: #ffe8ea;
-  box-shadow: inset 0 0 0 1px #8a0618;
+  background-color: #ffd5da;
 }
 
 /* Warning findings: amber cell (Issues severity column + object-permission boolean cells). */
 .jgrid-cell.permission-finding-severity-cell--warning {
-  background-color: #fff5e0;
-  box-shadow: inset 0 0 0 1px #a86404;
+  background-color: #ffe3b3;
 }
 
 /* Error findings on object-permission boolean columns (FLS vs OLS mismatch). */
 .jgrid-cell.permission-finding-cell--error {
-  background-color: #ffe8ea;
-  box-shadow: inset 0 0 0 1px #8a0618;
+  background-color: #ffd5da;
 }
 
 /* Object-permission cells that open the findings drill-down modal. */

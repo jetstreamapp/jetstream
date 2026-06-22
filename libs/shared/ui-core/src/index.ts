@@ -1,4 +1,5 @@
 export * from './analytics';
+export * from './app/AnalysisToolsPaywall';
 export * from './app/AppHome/AppHome';
 export * from './app/AppHome/AppHomeBillingUser';
 export * from './app/AppLoading';
@@ -14,6 +15,7 @@ export * from './app/HeaderNavbar';
 export * from './app/HeaderUpdateNotification';
 export * from './app/MonacoEditor';
 export * from './app/NotificationsRequestModal';
+export * from './app/ProBadge';
 export * from './app/RequireMetadataApiBanner';
 export * from './app/ThemeApplier';
 export * from './create-fields/create-fields-load-utils';
