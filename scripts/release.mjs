@@ -29,14 +29,29 @@ function colorStatus(value) {
   return fn(value);
 }
 
-// ── Header ─────────────────────────────────────────────────────────────────
-console.log('\n' + chalk.bold.cyan('  Jetstream Release') + '\n');
-
 // ── Detect branch ──────────────────────────────────────────────────────────
 // Hotfix branches release themselves (patch only). Everything else releases main.
 const currentBranch = (await $`git rev-parse --abbrev-ref HEAD`.quiet()).stdout.trim();
 const isHotfix = currentBranch.startsWith('hotfix/');
 const releaseRef = isHotfix ? currentBranch : 'main';
+
+// ── Header ─────────────────────────────────────────────────────────────────
+console.log('\n' + chalk.bold.cyan('  Jetstream Release') + '\n');
+
+// Hotfix releases ship straight from the branch (not main), so make the mode
+// impossible to miss before the user starts toggling platforms.
+if (isHotfix) {
+  const lines = ['  🚨  HOTFIX RELEASE — patch only  ', `  releasing from ${currentBranch}  `];
+  const width = Math.max(...lines.map((line) => line.length));
+  const banner = chalk.bgRed.white.bold;
+  const padded = (text) => banner(text + ' '.repeat(width - text.length));
+  console.log('  ' + banner(' '.repeat(width)));
+  for (const line of lines) {
+    console.log('  ' + padded(line));
+  }
+  console.log('  ' + banner(' '.repeat(width)));
+  console.log('');
+}
 
 // ── Fetch tags ─────────────────────────────────────────────────────────────
 // Ensure compare links reference the actual latest release, not a stale local tag.
@@ -105,14 +120,17 @@ const releaseDesktop = platforms.includes('desktop');
 console.log('');
 console.log(chalk.bold('  Release summary'));
 console.log(chalk.dim('  ─────────────────────────'));
-console.log(`  ${chalk.dim('branch')}    ${chalk.cyan(releaseRef)}${isHotfix ? chalk.dim(' (hotfix)') : ''}`);
+console.log(`  ${chalk.dim('branch')}    ${chalk.cyan(releaseRef)}${isHotfix ? '  ' + chalk.bgRed.white.bold(' HOTFIX ') : ''}`);
 console.log(`  ${chalk.dim('bump')}      ${chalk.cyan(bump)}`);
 console.log(`  ${chalk.dim('web')}       ${releaseWeb ? chalk.green('yes') : chalk.dim('no')}`);
 console.log(`  ${chalk.dim('extension')} ${releaseExtension ? chalk.green('yes') : chalk.dim('no')}`);
 console.log(`  ${chalk.dim('desktop')}   ${releaseDesktop ? chalk.green('yes') : chalk.dim('no')}`);
 console.log('');
 
-const ok = await confirm({ message: 'Trigger release workflow?', default: true });
+const confirmMessage = isHotfix
+  ? `Trigger ${chalk.bgRed.white.bold(' HOTFIX ')} release from ${chalk.cyan(currentBranch)}?`
+  : 'Trigger release workflow?';
+const ok = await confirm({ message: confirmMessage, default: !isHotfix });
 if (!ok) {
   console.log(chalk.yellow('\nAborted.'));
   process.exit(0);
