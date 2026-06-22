@@ -1,0 +1,21 @@
+---
+slug: v9.6.0
+title: 9.6.0 - Safer user profile handling
+date: '2026-04-02'
+tags: [web, desktop]
+versions:
+  web: 9.6.0
+summary: Jetstream now falls back gracefully instead of showing a confusing error when your user profile fails to load.
+highlights:
+  - title: Safer profile fetch
+    description: If loading your user profile fails, Jetstream now falls back to a default instead of surfacing a confusing error.
+    platforms: [web, desktop, extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Profile fetch fallback
+
+If loading your user profile fails (network blip, auth hiccup), Jetstream now falls back to a default instead of throwing an error. It smooths out a few edge-case error screens at login.

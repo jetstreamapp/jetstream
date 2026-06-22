@@ -1,0 +1,35 @@
+---
+slug: v10.1.1
+title: 10.1.1 - Reliable record lookups and better desktop updates
+date: '2026-06-14'
+tags: [web, desktop, extension]
+versions:
+  web: 10.1.1
+  desktop: 4.1.0
+  extension: 3.1.0
+summary: Record lookups find existing values even when they're not in the first page of results, and the desktop auto-updater gives clearer guidance when an update needs a hand.
+highlights:
+  - title: Record lookups find existing values reliably
+    description: A lookup now populates with its current value even when that record isn't in the first 50 results, and quote escaping in the search is handled correctly.
+    docLink: /load/update-records
+  - title: Clearer desktop auto-update errors
+    description: The desktop auto-updater reports specific error codes and tells you when a manual update is needed, with version info shown on the download page.
+    docLink: /desktop-app
+---
+
+{/* truncate */}
+
+## What's new
+
+### Record lookups find existing values reliably
+
+When a field uses a record lookup and the current value wasn't among the first 50 records returned, the
+lookup could come up empty. Now it searches for that record individually and populates correctly, falling
+back to a manual value only when nothing is found. Search terms with single quotes are also escaped
+properly, so values with apostrophes no longer break the lookup.
+
+### Clearer desktop auto-update errors
+
+When the desktop app can't update itself automatically, it now reports a specific error code and tells you
+clearly that a manual update is needed, rather than failing silently. The download page also shows the
+current version for each platform so you can confirm what you're installing.

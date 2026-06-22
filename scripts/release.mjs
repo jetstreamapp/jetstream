@@ -8,10 +8,15 @@
  */
 
 import { checkbox, confirm, select } from '@inquirer/prompts';
+import { readdir, readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { $, chalk } from 'zx';
 
 const REPO = 'jetstreamapp/jetstream';
 const WORKFLOW = 'release.yml';
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const RELEASE_NOTES_DIR = path.join(ROOT, 'apps/docs/release-notes');
 
 const STATUS_COLORS = {
   completed: chalk.green,
@@ -27,6 +32,30 @@ const STATUS_COLORS = {
 function colorStatus(value) {
   const fn = STATUS_COLORS[/** @type {keyof typeof STATUS_COLORS} */ (value)] ?? chalk.white;
   return fn(value);
+}
+
+function bumpVersion(version, bump) {
+  const [major, minor, patch] = version
+    .replace(/^v/, '')
+    .split('.')
+    .map((segment) => parseInt(segment, 10) || 0);
+  if (bump === 'major') {
+    return `${major + 1}.0.0`;
+  }
+  if (bump === 'minor') {
+    return `${major}.${minor + 1}.0`;
+  }
+  return `${major}.${minor}.${patch + 1}`;
+}
+
+// Looks for a release-note file (e.g. `2026-06-22-v10.4.0.mdx`) for the given web version.
+async function hasReleaseNoteFor(version) {
+  try {
+    const files = await readdir(RELEASE_NOTES_DIR);
+    return files.some((file) => file.endsWith(`-v${version}.mdx`));
+  } catch {
+    return false;
+  }
 }
 
 // ── Detect branch ──────────────────────────────────────────────────────────
@@ -126,6 +155,26 @@ console.log(`  ${chalk.dim('web')}       ${releaseWeb ? chalk.green('yes') : cha
 console.log(`  ${chalk.dim('extension')} ${releaseExtension ? chalk.green('yes') : chalk.dim('no')}`);
 console.log(`  ${chalk.dim('desktop')}   ${releaseDesktop ? chalk.green('yes') : chalk.dim('no')}`);
 console.log('');
+
+// ── Release-note reminder (non-blocking) ───────────────────────────────────
+// Release notes live in apps/docs/release-notes and must land via a normal PR
+// before the release is cut. Warn (but never block) if one is missing for the
+// upcoming web version. See CONTRIBUTING.md → Releasing → Release notes.
+if (releaseWeb) {
+  const pkg = JSON.parse(await readFile(path.join(ROOT, 'package.json'), 'utf8'));
+  const nextWebVersion = bumpVersion(pkg.version, bump);
+  if (!(await hasReleaseNoteFor(nextWebVersion))) {
+    console.log(chalk.yellow(`  ⚠ No release note found for v${nextWebVersion}.`));
+    console.log(chalk.dim(`    Draft one with the Claude Code /release-notes command (or pnpm release-notes:context),`));
+    console.log(chalk.dim(`    then merge the "docs: release notes v${nextWebVersion}" PR before releasing.`));
+    const proceedWithoutNote = await confirm({ message: 'Continue the release without a release note?', default: false });
+    if (!proceedWithoutNote) {
+      console.log(chalk.yellow('\nAborted — draft the release note first.'));
+      process.exit(0);
+    }
+    console.log('');
+  }
+}
 
 const confirmMessage = isHotfix
   ? `Trigger ${chalk.bgRed.white.bold(' HOTFIX ')} release from ${chalk.cyan(currentBranch)}?`

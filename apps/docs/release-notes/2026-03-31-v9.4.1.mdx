@@ -1,0 +1,29 @@
+---
+slug: v9.4.1
+title: 9.4.1 - Desktop org list and Salesforce API fixes
+date: '2026-03-31'
+tags: [web, desktop]
+versions:
+  web: 9.4.1
+  desktop: 3.18.1
+summary: Fix for orgs and org groups not appearing on first launch of the desktop app, plus cleaner handling of empty-body requests in the Salesforce API tool.
+highlights:
+  - title: Orgs visible on desktop first launch
+    description: Orgs and org groups now appear immediately on first load of the desktop app instead of requiring a manual refresh.
+    platforms: [desktop]
+  - title: Salesforce API request with empty body
+    description: Sending a Salesforce API request with an empty body no longer crashes the request editor.
+    platforms: [web, desktop]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Orgs show up on desktop first launch
+
+A regression caused orgs and org groups to be invisible until the desktop app was refreshed after first launch. They now render correctly on initial load.
+
+### Salesforce API tool fixes
+
+- Requests with an empty body are handled cleanly instead of crashing the request editor.

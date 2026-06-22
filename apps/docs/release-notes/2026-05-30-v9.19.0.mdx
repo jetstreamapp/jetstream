@@ -1,0 +1,34 @@
+---
+slug: v9.19.0
+title: 9.19.0 - Smarter full-name fields and consolidated outbound IPs
+date: '2026-05-30'
+tags: [web, desktop, extension]
+versions:
+  web: 9.19.0
+  desktop: 3.23.1
+  extension: 2.25.1
+summary: Full-name field generation only fills in when it should and adds a manual regenerate option, plus a heads-up for admins about Jetstream's outbound IP addresses.
+highlights:
+  - title: Smarter full-name generation
+    description: The generated full-name field only auto-fills when it's empty, and you can re-generate it on demand when you do want it refreshed.
+  - title: Consolidated outbound IP addresses
+    description: Jetstream now uses three specific outbound IPs (within the previously published range) — useful if you allowlist Jetstream traffic.
+    docLink: /security
+---
+
+{/* truncate */}
+
+## What's new
+
+### Full-name fields regenerate only when you want them to
+
+Auto-generating a full-name field is convenient, but constantly overwriting your edits is not. Jetstream
+now only auto-generates the value when the field is empty, so it won't clobber a name you've already set.
+When you do want to refresh it from the underlying parts, there's a quick manual regenerate option.
+
+### Outbound IP addresses consolidated
+
+Jetstream's outbound traffic now comes from three specific IP addresses rather than a wide range. These
+addresses fall within the range Jetstream previously published, so no action is required and connectivity
+is unaffected — but if your org allowlists Jetstream by IP, you can now narrow that list from a range of
+510 possible addresses down to three. See the security documentation for the current addresses.

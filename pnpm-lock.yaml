@@ -879,6 +879,9 @@ importers:
       fishery:
         specifier: ^2.4.0
         version: 2.4.0
+      gray-matter:
+        specifier: ^4.0.3
+        version: 4.0.3
       husky:
         specifier: ^9.1.7
         version: 9.1.7

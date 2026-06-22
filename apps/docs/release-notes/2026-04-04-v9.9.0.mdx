@@ -1,0 +1,21 @@
+---
+slug: v9.9.0
+title: 9.9.0 - Long-running requests no longer time out
+date: '2026-04-04'
+tags: [web]
+versions:
+  web: 9.9.0
+summary: Long-running Salesforce API requests no longer fail with a timeout, so large bulk queries and heavy metadata reads can finish.
+highlights:
+  - title: Long-running requests no longer time out
+    description: Long-running Salesforce requests no longer fail with a timeout error, even when they take a while to finish.
+    platforms: [web]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Long-running requests no longer time out
+
+Some Salesforce operations, like large bulk queries and heavy metadata reads, can take a while to finish and previously failed with a timeout error partway through. These long-running requests now stay alive until the operation completes and returns its result, so they finish instead of timing out.

@@ -1,0 +1,51 @@
+---
+slug: v9.0.0
+title: 9.0.0 - SAML and OIDC single sign-on for teams
+date: '2026-02-27'
+tags: [web]
+versions:
+  web: 9.0.0
+summary: Teams can now configure SAML and OIDC single sign-on with domain-based login discovery, plus audit logging on all team record changes.
+highlights:
+  - title: SAML and OIDC SSO for teams
+    description: Team owners can configure SAML or OIDC providers (Okta, Azure, Google, generic), verify domains, and route members to SSO at login.
+    docLink: /team-management/sso/overview
+  - title: Domain discovery at login
+    description: Enter your email and Jetstream routes you to the right SSO provider based on verified domains without extra clicks.
+  - title: Team audit log
+    description: All team-related record changes now write audit entries you can review from the team dashboard.
+  - title: Authenticator code grace period
+    description: Two-factor authenticator codes now get a 30 second grace window, so a code that rotates right as you submit it no longer fails.
+  - title: Improved SSO login form
+    description: You can submit the login form right away instead of waiting for the bot-check challenge to finish, which works better with password managers and autofill.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Single sign-on for teams
+
+Jetstream now supports single sign-on through SAML and OIDC. Team owners configure a provider (Okta, Microsoft Entra / Azure, Google Workspace, or a generic SAML/OIDC provider), verify one or more domains, and optionally enforce SSO for members. When members log in, Jetstream matches their email domain to a verified SSO configuration and sends them to the right identity provider.
+
+See the [SSO overview](/team-management/sso/overview) for setup walkthroughs per provider.
+
+### Audit logging on team changes
+
+Every team related record update now creates an audit log entry. Team owners can review who changed what and when, including member role changes, SSO configuration edits, and domain verification updates.
+
+### Authenticator code grace period
+
+If your authenticator app code rotates right as you submit it, Jetstream now allows a 30 second grace window instead of rejecting it immediately. You should see far fewer "invalid code" errors at rotation boundaries.
+
+### Login form quality of life
+
+The login form no longer makes you wait for the bot-check challenge before submitting. You can submit right away, and Jetstream waits for the challenge to finish before starting the login. This makes password manager and autofill flows more reliable.
+
+### Other fixes
+
+- Package names with special characters no longer trigger "No package.xml found" errors when using Add to Changeset.
+
+### Why 9.0?
+
+This is a major version bump because SSO changes how login, session, and team authentication work across the product. Existing users are unaffected. Sign-in still works exactly as before unless your team enrolls in SSO.

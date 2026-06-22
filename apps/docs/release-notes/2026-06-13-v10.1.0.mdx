@@ -1,0 +1,57 @@
+---
+slug: v10.1.0
+title: 10.1.0 - Dark-mode polish and a big bulk-delete fix
+date: '2026-06-13'
+tags: [web, desktop, extension]
+versions:
+  web: 10.1.0
+  desktop: 4.0.0
+  extension: 3.0.0
+summary: Dark mode gets a round of fixes, bulk report deletes stop reporting false failures, SSO login-provider settings validate correctly, and teams are protected from removing their last admin.
+highlights:
+  - title: Bulk report deletes no longer show false failures
+    description: Deleting reports in bulk from query results now reports success correctly instead of showing every successful delete as an error.
+    docLink: /query/results
+  - title: Dark-mode polish
+    description: A number of dark-mode display bugs are fixed for more consistent colors across the app.
+    docLink: /user-profile-and-settings/settings
+  - title: SSO login-provider settings validate correctly
+    description: With SSO enabled you can disable other providers without false validation errors, and SSO can't be removed if it's your only login method.
+    docLink: /team-management/sso/overview
+  - title: Last-admin protection
+    description: Teams are now prevented from removing or deactivating their final admin.
+    docLink: /team-management
+---
+
+{/* truncate */}
+
+## What's new
+
+### Bulk report deletes report success correctly
+
+A production bug caused bulk report deletes from query results to show as 100% failed — even though the
+reports were actually being deleted, producing a wall of "failed" messages for deletes that had in fact
+succeeded. That's now fixed across web, desktop, the browser extension, and canvas, so bulk deletes
+report their true outcome.
+
+### Dark-mode polish
+
+Following the SLDS 2 refresh, this release fixes a number of dark-mode display issues where elements
+weren't rendering correctly, keeping Jetstream visually consistent with Salesforce.
+
+### SSO login-provider settings behave correctly
+
+When SSO is enabled, it's now recognized as a valid login provider, so you can disable other providers
+without hitting validation errors. Jetstream also prevents you from disabling SSO when it's the only login
+provider selected, avoiding a configuration that would lock your team out.
+
+### Protecting your team's last admin
+
+Teams are now prevented from removing or deactivating their final admin, so you can't accidentally leave a
+team with no one able to manage it.
+
+### Other fixes
+
+- Clearer domain-verification messaging that distinguishes a stale record from a genuine verification
+  failure, and points you to the correct location for hosting your verification file.
+- More informative error messages on failed API requests.

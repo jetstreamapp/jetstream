@@ -1,0 +1,26 @@
+---
+slug: v9.15.1
+title: 9.15.1 - SSO respects your identity provider's sign-in rules
+date: '2026-04-22'
+tags: [web]
+versions:
+  web: 9.15.1
+summary: A small SSO fix lets your identity provider decide how users authenticate, smoothing out sign-in for teams on stricter or unusual provider setups.
+highlights:
+  - title: SSO defers authentication strength to your IdP
+    description: Jetstream no longer forces a specific authentication context during SSO, so your identity provider's own rules (MFA, step-up, etc.) apply cleanly.
+    docLink: /team-management/sso/overview
+---
+
+{/* truncate */}
+
+## What's new
+
+### SSO honors your identity provider's authentication rules
+
+When your team signs in with SSO, Jetstream previously asked the identity provider for a specific
+authentication context. Some providers handle that
+strictly and would reject otherwise-valid logins. Jetstream now leaves that decision to your identity
+provider, so whatever sign-in method it enforces — multi-factor, conditional access, and so on — is
+respected without Jetstream getting in the way. If your team logs in through SSO, sign-in should just
+work more consistently.

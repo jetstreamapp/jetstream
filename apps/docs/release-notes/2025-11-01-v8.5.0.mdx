@@ -1,0 +1,44 @@
+---
+slug: v8.5.0
+title: 8.5.0 - Rebuilt binary attachment downloads
+date: '2025-11-01'
+tags: [web, desktop, extension]
+versions:
+  web: 8.5.0
+summary: Binary attachment downloads are rebuilt to be more reliable, with desktop-native progress and automatic field re-querying so you do not have to think about which fields to include.
+highlights:
+  - title: More reliable attachment downloads
+    description: Attachment downloads are more reliable and no longer require a page refresh to work.
+    docLink: /query/results
+  - title: Desktop background job with live progress
+    description: On desktop, attachment downloads run in the background and save directly to disk with progress notifications.
+    platforms: [desktop]
+  - title: StaticResource download support
+    description: StaticResource is now a supported export type alongside Attachment, ContentVersion, and Document.
+  - title: No more required-field guesswork
+    description: Jetstream re-queries records for the fields it needs, so you can pick any query and still export binary files cleanly.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Binary attachment downloads, rebuilt
+
+The old attachment download flow often required a page refresh to work correctly. The whole flow is rebuilt:
+
+- **Web**: downloads are more reliable and no longer require a page refresh.
+- **Desktop**: downloads run in the background and write straight to disk, with a progress notification.
+- **Extension**: zips are built and saved in one step, which is the only option available in that environment.
+
+### StaticResource export
+
+StaticResource joins Attachment, ContentVersion, and Document as a supported object for binary export.
+
+### Fewer footguns
+
+Previously you had to make sure your query included specific fields. Jetstream now re-queries the records to fetch whatever fields the download needs, so any query works.
+
+### Multiple downloads at once
+
+You can now run multiple attachment downloads at the same time.

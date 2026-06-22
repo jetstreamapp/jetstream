@@ -1,0 +1,37 @@
+---
+slug: v8.25.0
+title: 8.25.0 - Quick record view in the browser extension
+date: '2026-02-19'
+tags: [web, desktop, extension]
+versions:
+  web: 8.25.0
+  desktop: 3.15.0
+  extension: 2.16.0
+summary: The browser extension gains a quick record view that opens in the same Salesforce tab, plus faster URL detection and login state fixes.
+highlights:
+  - title: Quick record view in-place
+    description: View a Salesforce record inside the current tab from the browser extension without opening a new one.
+    platforms: [extension]
+  - title: Faster URL detection for current-record actions
+    description: The view/edit current record button now updates almost immediately as you navigate, so it stays accurate for the record you are on.
+    platforms: [extension]
+  - title: Extension login state fixes
+    description: The extension now reacts correctly to login and logout events, so you no longer see stale information after signing in.
+    platforms: [extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Quick record view
+
+The browser extension can now display a record inside the current Salesforce tab, so you do not have to open a new tab just to peek at related data. The new action shows up alongside the existing view/edit record button on Salesforce pages.
+
+### Snappier current-record detection
+
+The view/edit current record action now reflects the record you are actually on almost immediately as you navigate between pages.
+
+### Login and state fixes
+
+Login and logout events are now picked up consistently, and the UI no longer shows stale information after signing in.

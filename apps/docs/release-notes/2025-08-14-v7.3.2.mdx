@@ -1,0 +1,21 @@
+---
+slug: v7.3.2
+title: 7.3.2 - Fix view-results modal for bulk edits from query
+date: '2025-08-14'
+tags: [web]
+versions:
+  web: 7.3.2
+summary: Fixes a bug where viewing bulk results after bulk editing records from query results did nothing.
+highlights:
+  - title: View bulk results works again
+    description: Bulk editing from query results and then clicking "view results" now opens the results modal instead of silently doing nothing.
+    docLink: /query/results
+---
+
+{/* truncate */}
+
+## What's new
+
+### Fixed: view bulk results from query
+
+When bulk editing records from query results, opening the view/download results modal did nothing. This now works correctly, and the Google Drive file picker no longer hides its parent modal. Reported in [#1328](https://github.com/jetstreamapp/jetstream/issues/1328).

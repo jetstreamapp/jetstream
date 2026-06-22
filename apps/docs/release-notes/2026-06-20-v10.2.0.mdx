@@ -1,0 +1,42 @@
+---
+slug: v10.2.0
+title: 10.2.0 - Better keyboard navigation and smoother drag-and-drop
+date: '2026-06-20'
+tags: [web]
+versions:
+  web: 10.2.0
+summary: Keyboard navigation around popovers and the app gets a lot less frustrating, drag-and-drop for org groups and filters feels smoother, and the browser extension stops churning through tokens.
+highlights:
+  - title: Better keyboard navigation
+    description: Popovers now take focus correctly, and keyboard navigation works properly for the org-info popover and the app tab bar.
+  - title: Smoother drag-and-drop
+    description: Drag-and-drop for org groups and the query filter builder feels more reliable and responsive.
+    docLink: /query
+  - title: Fewer extension token refreshes
+    description: The browser extension no longer churns through access tokens, refreshing far less often than it used to.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Keyboard navigation that gets out of your way
+
+Getting around Jetstream with the keyboard is much smoother in this release. Popovers now properly take
+focus when they open (previously they often didn't, which made tabbing through them frustrating), and
+focus returns where you'd expect when they close. The org-info popover and the app tab bar also got
+keyboard-navigation and focus fixes.
+
+### Smoother drag-and-drop
+
+Drag-and-drop for organizing org groups and building query filters feels more reliable and responsive.
+Moving orgs between groups and rearranging filter rows is smoother as a result.
+
+### The browser extension stops churning tokens
+
+The web extension's access token was expiring far more often than it should have. That's been fixed, so
+the extension refreshes its token much less frequently and stays connected more steadily.
+
+### Other fixes
+
+- More robust copy-to-clipboard handling.

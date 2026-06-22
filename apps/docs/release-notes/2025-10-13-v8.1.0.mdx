@@ -1,0 +1,26 @@
+---
+slug: v8.1.0
+title: 8.1.0 - Login configuration and email verification fixes
+date: '2025-10-13'
+tags: [web]
+versions:
+  web: 8.1.0
+summary: Fixes login configuration lookup for individual users and repairs the email-link verification flow used during 2FA.
+highlights:
+  - title: Correct login configuration lookup
+    description: Individual accounts no longer incorrectly inherit team login rules.
+  - title: Verify email via link works again
+    description: Restores the 2FA email-verification link flow, which was rejecting valid codes.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Correct login configuration lookup
+
+Individual accounts were incorrectly falling back to the team login configuration, even for users without a team. Individual accounts now use their own configuration, and team members continue to inherit their team's rules.
+
+### Verify email via link
+
+Fixed an issue where valid 2FA email-verification codes were sometimes rejected.

@@ -92,6 +92,11 @@ const sidebar = {
       ],
     },
     'other/other-useful-features',
+    {
+      type: 'link',
+      label: 'Release Notes',
+      href: '/release-notes',
+    },
   ],
 };
 

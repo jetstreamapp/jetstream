@@ -1,0 +1,29 @@
+---
+slug: v9.5.0
+title: 9.5.0 - Better Salesforce formula evaluation, desktop persistence fixes
+date: '2026-04-01'
+tags: [web, desktop]
+versions:
+  web: 9.5.0
+  desktop: 3.18.2
+summary: Formula evaluation now covers far more of the Salesforce formula language with fewer bugs, plus desktop persistence fixes for VDI environments.
+highlights:
+  - title: Better formula evaluation
+    description: Formula evaluation now supports far more of the Salesforce formula language with fewer bugs.
+    platforms: [web, desktop, extension]
+  - title: Desktop persistence reliability
+    description: Fewer unexpected logouts and no more wiped org lists on Windows VDI setups.
+    platforms: [desktop]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Salesforce formula evaluation, rebuilt
+
+Formula evaluation has been rebuilt to cover far more of the real-world Salesforce formula language. It fixes a number of long-standing bugs where valid formulas returned wrong values or failed outright.
+
+### Desktop persistence fixes
+
+On some Windows VDI and virtual-machine setups, users were getting logged out or seeing their org list wiped. Both issues are now fixed, so your login and saved orgs stay put across VM snapshots and profile roaming.

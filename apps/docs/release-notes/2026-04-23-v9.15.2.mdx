@@ -1,0 +1,36 @@
+---
+slug: v9.15.2
+title: 9.15.2 - Smoother SSO sign-in
+date: '2026-04-23'
+tags: [web]
+summary: A round of single sign-on improvements — fewer double logins, fewer race conditions, and clearer messaging when an account can't be matched.
+versions:
+  web: 9.15.2
+highlights:
+  - title: Fewer double logins and auth race conditions
+    description: Signing in through SSO is smoother across the desktop app and browser extension, with the extra login prompt and timing-related hiccups ironed out.
+    docLink: /team-management/sso/overview
+  - title: Clearer SSO account-matching errors
+    description: When SSO can't confidently match you to a single account, Jetstream now explains what happened instead of failing silently.
+    docLink: /team-management/sso/overview
+---
+
+{/* truncate */}
+
+## What's new
+
+### Smoother single sign-on
+
+This release focuses on making SSO sign-in feel more reliable:
+
+- Logging in to the desktop app no longer asks you to click "login" a second time when you weren't
+  already signed in to the web app.
+- The browser extension's login flow was reworked to avoid race conditions that could trip up
+  authentication when several requests happened at once.
+- When SSO resolves to an ambiguous account — for example, more than one possible identity match — you
+  now get a specific, actionable error message that guides you toward fixing it, rather than a generic
+  failure.
+
+### Other fixes
+
+- Unknown URLs now serve the landing page directly, so bookmarks and mistyped links behave more sensibly.
