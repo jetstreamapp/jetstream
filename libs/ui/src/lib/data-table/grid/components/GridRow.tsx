@@ -148,29 +148,4 @@ function GridRowComponent<TRow>({
   );
 }
 
-// Same rationale as GridCell: TanStack hands us a fresh `row` instance every time the row model
-// recomputes, so the default shallow memo re-renders every visible row on each keystroke. Compare the
-// stable row identity + data object + the layout/selection props that actually change what's rendered.
-// Callbacks are omitted (they take ids as args, never stale); the shared layout props (gridTemplateColumns,
-// visibleColumnIndexes, columns) are memoized upstream so comparing identity is correct.
-function gridRowPropsAreEqual(prev: GridRowProps<any>, next: GridRowProps<any>): boolean {
-  return (
-    prev.row.id === next.row.id &&
-    prev.row.original === next.row.original &&
-    prev.columns === next.columns &&
-    prev.gridTemplateColumns === next.gridTemplateColumns &&
-    prev.visibleColumnIndexes === next.visibleColumnIndexes &&
-    prev.ariaRowIndex === next.ariaRowIndex &&
-    prev.rowIndex === next.rowIndex &&
-    prev.virtualStart === next.virtualStart &&
-    prev.height === next.height &&
-    prev.activeCell === next.activeCell &&
-    prev.isSelected === next.isSelected &&
-    prev.isExpanded === next.isExpanded &&
-    prev.isLastRow === next.isLastRow &&
-    prev.selectionColRange === next.selectionColRange &&
-    prev.rowClass === next.rowClass
-  );
-}
-
-export const GridRow = memo(GridRowComponent, gridRowPropsAreEqual) as typeof GridRowComponent;
+export const GridRow = memo(GridRowComponent) as typeof GridRowComponent;

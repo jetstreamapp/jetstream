@@ -1,5 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, queryWithCache } from '@jetstream/shared/data';
+import { parseCustomFieldApiNameForTooling } from '@jetstream/shared/utils';
 import { useReducerFetchFn } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
@@ -20,18 +21,19 @@ export interface MetadataDependency {
   MetadataComponentType: string;
 }
 
-function getEntityDefinitionQuery(sobject: string, field: string) {
-  let namespace: string | undefined = undefined;
-  if (field.includes('__')) {
-    const [_namespace, fieldWithoutNamespace] = field.split('__');
-    namespace = _namespace;
-    field = fieldWithoutNamespace;
+function getEntityDefinitionQuery(sobject: string, fieldApiName: string) {
+  const parsed = parseCustomFieldApiNameForTooling(fieldApiName);
+  if (!parsed) {
+    return `SELECT Id, DeveloperName, EntityDefinitionId, TableEnumOrId FROM CustomField WHERE Id = NULL LIMIT 1`;
   }
+  const nsClause =
+    parsed.namespacePrefix != null && parsed.namespacePrefix.length > 0
+      ? ` AND NamespacePrefix = '${parsed.namespacePrefix}'`
+      : ' AND NamespacePrefix = null';
   return `SELECT Id, DeveloperName, EntityDefinitionId, TableEnumOrId
   FROM CustomField
   WHERE EntityDefinition.QualifiedApiName = '${sobject}'
-  AND DeveloperName = '${field}'
-  ${namespace ? `AND NamespacePrefix = '${namespace}'` : ''}
+  AND DeveloperName = '${parsed.developerName}'${nsClause}
   LIMIT 1`;
 }
 

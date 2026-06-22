@@ -188,41 +188,32 @@ export function computeFilterSetValues<TRow>(
   data: TRow[],
   ignoreRowInSetFilter?: (row: TRow) => boolean,
 ): Record<string, string[]> {
-  const result: Record<string, string[]> = {};
-
-  // Resolve the SET columns once. BOOLEAN_SET is the constant True/False pair and needs no data scan.
-  const setColumns: { column: ColumnWithFilter<TRow>; values: Set<string> }[] = [];
-  for (const column of columns) {
+  const columnsByKey = new Map(columns.map((column) => [column.key, column]));
+  return columns.reduce((acc: Record<string, string[]>, column) => {
     const setFilterType = column.filters?.find((type) => FILTER_SET_TYPES.has(type));
     if (!setFilterType) {
-      continue;
+      return acc;
     }
     if (setFilterType === 'BOOLEAN_SET') {
-      result[column.key] = ['True', 'False'];
-      continue;
+      acc[column.key] = ['True', 'False'];
+      return acc;
     }
-    setColumns.push({ column, values: new Set<string>() });
-  }
-  if (setColumns.length === 0) {
-    return result;
-  }
-
-  // Single pass over the data: accumulate every SET column's distinct values together and evaluate
-  // `ignoreRowInSetFilter` once per row. The previous implementation scanned the entire dataset once PER
-  // SET column (filter→map→Set→sort, with two row-length temp arrays each), which dominated the initial
-  // render of wide query results.
-  for (const row of data) {
-    if (ignoreRowInSetFilter && ignoreRowInSetFilter(row)) {
-      continue;
+    const resolvedColumn = columnsByKey.get(column.key);
+    if (!resolvedColumn) {
+      return acc;
     }
-    for (const { column, values } of setColumns) {
-      const rowValue = getFilterValue(column, row);
-      values.add(isNil(rowValue) ? EMPTY_FIELD : String(rowValue));
-    }
-  }
-
-  for (const { column, values } of setColumns) {
-    result[column.key] = orderValues(Array.from(values));
-  }
-  return result;
+    acc[column.key] = orderValues(
+      Array.from(
+        new Set(
+          data
+            .filter((row) => (ignoreRowInSetFilter ? !ignoreRowInSetFilter(row) : true))
+            .map((row) => {
+              const rowValue = getFilterValue(resolvedColumn, row);
+              return isNil(rowValue) ? EMPTY_FIELD : String(rowValue);
+            }),
+        ),
+      ),
+    );
+    return acc;
+  }, {});
 }

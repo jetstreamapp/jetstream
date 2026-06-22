@@ -17,7 +17,7 @@ import {
 } from '@floating-ui/react';
 import { FullWidth, sizeXLarge, SmallMediumLarge } from '@jetstream/types';
 import classNames from 'classnames';
-import { createElement, CSSProperties, memo, ReactNode, RefObject, useCallback, useEffect, useImperativeHandle, useState } from 'react';
+import { createElement, CSSProperties, ReactNode, RefObject, useCallback, useEffect, useImperativeHandle, useState } from 'react';
 import { Tooltip, TooltipProps } from '../..';
 import { usePortalContext } from '../modal/PortalContext';
 import { Icon } from '../widgets/Icon';
@@ -62,7 +62,7 @@ export interface PopoverProps {
   onChange?: (isOpen: boolean) => void;
 }
 
-const PopoverComponent = ({
+export const Popover = ({
   ref,
   testId,
   classname,
@@ -170,7 +170,7 @@ const PopoverComponent = ({
     };
   }, [isOpen, refs.floating, refs.domReference, isInPortal]);
 
-  const { as: TriggerElement = 'button', ...restButtonProps } = buttonProps || {};
+  const { as: TriggerElement = 'button', style: triggerStyleFromButtonProps, ...restButtonProps } = buttonProps || {};
 
   const mergedButtonProps = {
     ...getReferenceProps(),
@@ -183,7 +183,7 @@ const PopoverComponent = ({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       'onClick' in restButtonProps && typeof restButtonProps.onClick === 'function' && restButtonProps.onClick?.(ev as any);
     },
-    style: buttonStyle,
+    style: { ...triggerStyleFromButtonProps, ...buttonStyle },
   };
 
   const triggerProps = TriggerElement === 'button' ? { ...mergedButtonProps, type: 'button' as const } : mergedButtonProps;
@@ -325,12 +325,3 @@ const PopoverComponent = ({
     </span>
   );
 };
-
-/**
- * Memoized so a parent re-render with shallow-equal props doesn't re-run the floating-ui hooks. The
- * benefit only materializes when props (notably `content`/`children`) are referentially stable —
- * inline JSX defeats the shallow comparison. In the query-results id/name link cells the real win is
- * the upstream `GridCell` memo boundary gating re-renders; this wrapper is defensive for callers that
- * do pass stable props.
- */
-export const Popover = memo(PopoverComponent);

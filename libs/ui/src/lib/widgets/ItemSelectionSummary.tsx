@@ -28,6 +28,9 @@ export const ItemSelectionSummary: FunctionComponent<ItemSelectionSummaryProps> 
   }
 
   function handleClearItem(item: string) {
+    if (disabled) {
+      return;
+    }
     onClearItem(item);
     if (items.length === 1) {
       popoverRef.current?.close();
@@ -55,7 +58,11 @@ export const ItemSelectionSummary: FunctionComponent<ItemSelectionSummaryProps> 
             <p className="slds-text-color_weak">Click on an item to de-select</p>
             <ul className="slds-has-dividers_top-space slds-dropdown_length-5">
               {items.map((item, i) => (
-                <li key={`${item.value}-${i}`} className="slds-item slds-text-link" onClick={() => handleClearItem(item.value)}>
+                <li
+                  key={`${item.value}-${i}`}
+                  className={disabled ? 'slds-item' : 'slds-item slds-text-link'}
+                  onClick={() => handleClearItem(item.value)}
+                >
                   <div className="slds-truncate" title={item.label}>
                     {item.label}
                   </div>

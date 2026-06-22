@@ -7,7 +7,7 @@ import { Announcement, JetstreamEventSaveSoqlQueryFormatOptionsPayload, Salesfor
 import { fireToast } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
-import { initDexieDb } from '@jetstream/ui/db';
+import { initDexieDb, pruneAnalysisJobHistory } from '@jetstream/ui/db';
 import { AxiosResponse } from 'axios';
 import { useAtom, useAtomValue } from 'jotai';
 import localforage from 'localforage';
@@ -85,9 +85,11 @@ APP VERSION ${version}
     } else {
       disconnectSocket();
     }
-    initDexieDb({ recordSyncEnabled }).catch((ex) => {
-      logger.error('[DB] Error initializing db', ex);
-    });
+    initDexieDb({ recordSyncEnabled })
+      .then(() => pruneAnalysisJobHistory())
+      .catch((ex) => {
+        logger.error('[DB] Error initializing db', ex);
+      });
   }, [appInfo.serverUrl, authInfo.accessToken, authInfo.deviceId, recordSyncEnabled]);
 
   useEffect(() => {

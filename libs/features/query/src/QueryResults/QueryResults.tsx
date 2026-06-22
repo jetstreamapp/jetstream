@@ -175,14 +175,39 @@ export const QueryResults = React.memo(() => {
       navigate('', { replace: true, state: window.history.state.state });
       return;
     }
-    // Fallback to session state if browser history is not available (e.g. browser extension)
+    // Fallback: sessionStorage (same tab / extension) then localStorage (cross-tab handoff from window.open — new tabs
+    // do not inherit the opener's sessionStorage).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let potentialState: any = null;
+    let handoffFromLocalStorage = false;
     try {
-      const potentialState = JSON.parse(sessionStorage.getItem('query') || '');
-      if (isString(potentialState.soql)) {
-        navigate('', { replace: true, state: potentialState });
+      const sessionRaw = sessionStorage.getItem('query');
+      if (sessionRaw) {
+        potentialState = JSON.parse(sessionRaw);
       }
-    } catch (ex) {
-      // could not parse session, ignore
+    } catch {
+      // ignore invalid session payload
+    }
+    if (!isString(potentialState?.soql)) {
+      try {
+        const localRaw = localStorage.getItem('query');
+        if (localRaw) {
+          potentialState = JSON.parse(localRaw);
+          handoffFromLocalStorage = true;
+        }
+      } catch {
+        // ignore invalid local payload
+      }
+    }
+    if (isString(potentialState?.soql)) {
+      navigate('', { replace: true, state: potentialState });
+      if (handoffFromLocalStorage) {
+        try {
+          localStorage.removeItem('query');
+        } catch {
+          // ignore
+        }
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
