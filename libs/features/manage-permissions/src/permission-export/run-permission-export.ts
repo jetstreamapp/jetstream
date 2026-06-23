@@ -370,7 +370,14 @@ export async function runPermissionExport(
     permissionSetTabSettings: permissionSetTabSettings.length,
   };
 
-  const findings = buildPermissionExportFindings(objectPermissions, fieldPermissions);
+  const findings = buildPermissionExportFindings(objectPermissions, fieldPermissions, {
+    permissionSets,
+    permissionSetAssignments,
+    permissionSetGroupComponents,
+    mutingPermissionSets,
+    permissionSetTabSettings,
+    truncatedCategories,
+  });
   const issueCodeSummary = buildIssueCodeSummary(findings);
 
   const truncated = truncatedCategories.size > 0;

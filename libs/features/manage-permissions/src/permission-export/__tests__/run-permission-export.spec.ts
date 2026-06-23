@@ -90,8 +90,8 @@ describe('runPermissionExport', () => {
 
   it('aggregates query results and builds the merged PermissionExportFullResult shape', async () => {
     const permissionSetRows = [
-      { Id: PROFILE_PERM_SET_ID, Name: 'Admin Profile' },
-      { Id: PERM_SET_ID, Name: 'CustomPermSet' },
+      { Id: PROFILE_PERM_SET_ID, Name: 'Admin Profile', IsOwnedByProfile: true },
+      { Id: PERM_SET_ID, Name: 'CustomPermSet', IsOwnedByProfile: false },
     ];
     const objectPermissionRows = [
       {

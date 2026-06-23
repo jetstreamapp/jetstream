@@ -1,11 +1,13 @@
-import type { Field, FieldType } from '@jetstream/types';
-import { dedupeFieldUsageWhereUsedRows, sortFieldUsageWhereUsedRows } from '@jetstream/shared/utils';
 import { polyfillFieldDefinition } from '@jetstream/shared/ui-utils';
+import { dedupeFieldUsageWhereUsedRows, sortFieldUsageWhereUsedRows } from '@jetstream/shared/utils';
+import type { Field, FieldType } from '@jetstream/types';
 
 export interface FieldUsageStatParsed {
   filled: number;
   pct: number;
   latestFilledRowModified: string | null;
+  /** Records scanned for this field's chunk (the denominator behind `pct`). Optional on legacy rows. */
+  scanned?: number;
 }
 
 export interface FieldUsageFieldMetaParsed {
@@ -28,6 +30,10 @@ export interface FieldUsageFieldMetaParsed {
   digits?: number | null;
   /** Auto-number display pattern when describe provides it. */
   displayFormat?: string | null;
+  /** Describe `aggregatable` — whether the field supports SOQL aggregate functions. */
+  aggregatable?: boolean;
+  /** Describe `defaultedOnCreate` — populated by Salesforce on insert; a high fill rate may be default-driven. */
+  defaultedOnCreate?: boolean;
 }
 
 export interface FieldUsageObjectPayloadParsed {
@@ -148,6 +154,26 @@ export interface FieldUsageJobResultParsed {
   failedObjects: string[];
   /** False when the Tooling where-used lookup failed entirely (dependencies unknown, not absent). */
   whereUsedComputed: boolean;
+  /**
+   * `Object.Field__c` keys whose dependencies were FULLY determined. `null` on legacy rows written
+   * before per-field tracking existed — callers then fall back to {@link whereUsedComputed}.
+   * Use {@link isFieldWhereUsedResolved} rather than reading this directly.
+   */
+  whereUsedResolvedFieldKeys: Set<string> | null;
+}
+
+/**
+ * Whether this field's metadata dependencies were PROVEN complete (safe to treat "0 deps" as "no refs").
+ * Legacy rows (no per-field data) fall back to the whole-run {@link FieldUsageJobResultParsed.whereUsedComputed}.
+ */
+export function isFieldWhereUsedResolved(parsed: FieldUsageJobResultParsed, objectDotField: string): boolean {
+  if (!parsed.whereUsedComputed) {
+    return false;
+  }
+  if (parsed.whereUsedResolvedFieldKeys == null) {
+    return true;
+  }
+  return parsed.whereUsedResolvedFieldKeys.has(objectDotField.trim());
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -172,6 +198,7 @@ function parseFieldUsageStat(value: unknown): FieldUsageStatParsed | null {
     filled,
     pct,
     latestFilledRowModified: latest == null || latest === '' ? null : String(latest),
+    ...(typeof rec.scanned === 'number' ? { scanned: rec.scanned } : {}),
   };
 }
 
@@ -234,6 +261,8 @@ function parseFieldMetaEntry(value: unknown): FieldUsageFieldMetaParsed | null {
     ...(rec.relationshipName !== undefined ? { relationshipName: rec.relationshipName == null ? null : String(rec.relationshipName) } : {}),
     ...(parseOptionalNumberOrNull(rec.digits) !== undefined ? { digits: parseOptionalNumberOrNull(rec.digits) } : {}),
     ...(rec.displayFormat !== undefined ? { displayFormat: rec.displayFormat == null ? null : String(rec.displayFormat) } : {}),
+    ...(rec.aggregatable === true || rec.aggregatable === false ? { aggregatable: rec.aggregatable === true } : {}),
+    ...(rec.defaultedOnCreate === true || rec.defaultedOnCreate === false ? { defaultedOnCreate: rec.defaultedOnCreate === true } : {}),
   };
 }
 
@@ -440,6 +469,11 @@ export function parseFieldUsageJobResult(result: unknown): FieldUsageJobResultPa
   const failedRaw = rec.failedObjects;
   const failedObjects = Array.isArray(failedRaw) ? failedRaw.filter((entry): entry is string => typeof entry === 'string') : [];
 
+  const resolvedRaw = rec.whereUsedResolvedFieldKeys;
+  const whereUsedResolvedFieldKeys = Array.isArray(resolvedRaw)
+    ? new Set(resolvedRaw.filter((entry): entry is string => typeof entry === 'string').map((entry) => entry.trim()))
+    : null;
+
   return {
     phase: 'field_usage_v1',
     summary: rec.summary != null ? String(rec.summary) : '',
@@ -449,5 +483,6 @@ export function parseFieldUsageJobResult(result: unknown): FieldUsageJobResultPa
     failedObjects,
     // Absent on rows written before this flag existed — treat as computed (true) for backward compatibility.
     whereUsedComputed: rec.whereUsedComputed !== false,
+    whereUsedResolvedFieldKeys,
   };
 }

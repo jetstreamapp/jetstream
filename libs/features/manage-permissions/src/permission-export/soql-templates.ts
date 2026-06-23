@@ -1,3 +1,4 @@
+import { HIGH_RISK_SYSTEM_PERMISSIONS } from '@jetstream/shared/constants';
 import { composeQuery, getField, WhereClause } from '@jetstreamapp/soql-parser-js';
 
 function whereSobjectTypeIn(objectTypes?: string[]): WhereClause | undefined {
@@ -28,6 +29,8 @@ export function buildPermissionSetByIdSoql(ids: string[]): string {
       getField('LastModifiedDate'),
       getField('CreatedBy.Name'),
       getField('LastModifiedBy.Name'),
+      // High-risk system permissions, surfaced as findings (Modify All Data, View All Data, etc.).
+      ...HIGH_RISK_SYSTEM_PERMISSIONS.map((perm) => getField(perm.field)),
     ],
     sObject: 'PermissionSet',
     where: {

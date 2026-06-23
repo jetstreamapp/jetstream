@@ -46,6 +46,13 @@ export function getObjectPermissionHighlightColumnKeysForFindingCode(code: strin
   if (trimmed === PermissionExportFindingCode.FLS_EDIT_NO_OBJECT_EDIT) {
     return OBJECT_FINDING_EDIT_PATH_COLUMNS;
   }
+  // Modify All Records implies View All Records, so highlight both columns for the (error) modify finding.
+  if (trimmed === PermissionExportFindingCode.OBJECT_MODIFY_ALL_RECORDS) {
+    return ['PermissionsModifyAllRecords', 'PermissionsViewAllRecords'];
+  }
+  if (trimmed === PermissionExportFindingCode.OBJECT_VIEW_ALL_RECORDS) {
+    return ['PermissionsViewAllRecords'];
+  }
   return [];
 }
 

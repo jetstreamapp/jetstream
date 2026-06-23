@@ -1,5 +1,5 @@
-import { queryAll } from '@jetstream/shared/data';
 import { logger } from '@jetstream/shared/client-logger';
+import { queryAll, queryAllUsingOffset } from '@jetstream/shared/data';
 import {
   dedupeFieldUsageWhereUsedRows,
   parseCustomFieldApiNameForTooling,
@@ -28,8 +28,18 @@ const WHERE_USED_LAYOUT_TYPES = new Set(['Layout', 'FlexiPage', 'FieldSet']);
 /** Batch size for the (object, developerName) tuples per Tooling CustomField lookup. */
 const CUSTOM_FIELD_LOOKUP_CHUNK_SIZE = 200;
 
-/** Concurrency for per-field `MetadataComponentDependency` lookups. */
+/** Concurrency for batched `MetadataComponentDependency` lookups. */
 const DEPENDENCY_LOOKUP_CONCURRENCY = 5;
+
+/** CustomField ids per batched `RefMetadataComponentId IN (...)` dependency query (was 1 field = 1 query). */
+const DEPENDENCY_REF_ID_BATCH_SIZE = 200;
+
+/**
+ * `queryAllUsingOffset` page size / Salesforce max SOQL OFFSET. `MetadataComponentDependency` does not
+ * support `queryMore` and caps OFFSET at 2000, so a batch is paged to this ceiling and then, if it still
+ * returns a full page (more rows exist beyond the OFFSET cap), its id list is split + re-queried.
+ */
+const DEPENDENCY_PAGE_SAFETY_CAP = 2000;
 
 /** Chunk size for Flow Id `IN (...)` filters during enrichment. */
 const FLOW_ID_CHUNK_SIZE = 200;
@@ -50,6 +60,17 @@ export type WhereUsedDependencyRow = {
 };
 
 export type WhereUsedMap = Record<string, WhereUsedDependencyRow[]>;
+
+export interface ComputeFieldUsageWhereUsedResult {
+  whereUsed: FieldUsageJobResultData['whereUsed'];
+  /**
+   * `Object.Field__c` keys whose dependencies were FULLY determined — the Tooling CustomField Id
+   * resolved AND the `MetadataComponentDependency` query succeeded. Only these keys may be treated as
+   * "0 dependency rows = no metadata references" for delete-eligibility. A field absent from this list
+   * is UNKNOWN (Id unresolved or query failed), not proven-clean, so it must never be delete-eligible.
+   */
+  resolvedFieldKeys: string[];
+}
 
 function depKind(componentType: string): WhereUsedDependencyRow['kind'] {
   if (WHERE_USED_AUTOMATION_TYPES.has(componentType)) {
@@ -287,46 +308,125 @@ async function resolveCustomFieldIds(org: SalesforceOrgUi, refs: { object: strin
   return resolved;
 }
 
-async function getFieldDependencies(org: SalesforceOrgUi, refComponentId: string): Promise<WhereUsedDependencyRow[]> {
-  const soql = composeQuery({
-    fields: [getField('MetadataComponentId'), getField('MetadataComponentType'), getField('MetadataComponentName')],
+interface DependencyBatchResult {
+  /** Dependency rows keyed by the field's Tooling `RefMetadataComponentId`. Absent key = zero dependencies. */
+  rowsByRefId: Map<string, WhereUsedDependencyRow[]>;
+  /** Ref ids whose dependencies were FULLY determined (query succeeded and was not truncated). */
+  resolvedRefIds: Set<string>;
+}
+
+function buildDependencyByRefIdsSoql(refIds: string[]): string {
+  return composeQuery({
+    fields: [
+      getField('RefMetadataComponentId'),
+      getField('MetadataComponentId'),
+      getField('MetadataComponentType'),
+      getField('MetadataComponentName'),
+    ],
     sObject: 'MetadataComponentDependency',
     where: {
       left: {
-        field: 'RefMetadataComponentId',
+        field: 'RefMetadataComponentType',
         operator: '=',
-        value: refComponentId,
+        value: 'CustomField',
         literalType: 'STRING',
       },
       operator: 'AND',
       right: {
         left: {
-          field: 'RefMetadataComponentType',
-          operator: '=',
-          value: 'CustomField',
+          field: 'RefMetadataComponentId',
+          operator: 'IN',
+          value: refIds,
           literalType: 'STRING',
         },
       },
     },
   });
-  const records = (await queryAll<Record<string, unknown>>(org, soql, true)).queryResults.records;
-  const dependencyRows: WhereUsedDependencyRow[] = [];
-  for (const record of records) {
-    const componentType = record.MetadataComponentType != null ? String(record.MetadataComponentType) : '';
-    const componentName = record.MetadataComponentName != null ? String(record.MetadataComponentName) : '';
-    if (!componentType && !componentName) {
-      continue;
-    }
-    const componentIdRaw = record.MetadataComponentId;
-    const componentId = typeof componentIdRaw === 'string' ? componentIdRaw : '';
-    dependencyRows.push({
-      type: componentType,
-      name: componentName,
-      kind: depKind(componentType),
-      ...(componentId ? { componentId } : {}),
-    });
+}
+
+function toDependencyRow(record: Record<string, unknown>): WhereUsedDependencyRow | null {
+  const componentType = record.MetadataComponentType != null ? String(record.MetadataComponentType) : '';
+  const componentName = record.MetadataComponentName != null ? String(record.MetadataComponentName) : '';
+  if (!componentType && !componentName) {
+    return null;
   }
-  return dependencyRows;
+  const componentIdRaw = record.MetadataComponentId;
+  const componentId = typeof componentIdRaw === 'string' ? componentIdRaw : '';
+  return { type: componentType, name: componentName, kind: depKind(componentType), ...(componentId ? { componentId } : {}) };
+}
+
+/**
+ * Fetches `MetadataComponentDependency` rows for many CustomField ids in ONE query via
+ * `RefMetadataComponentId IN (...)` — instead of one query per field (previously hundreds of API calls).
+ *
+ * `MetadataComponentDependency` is a Tooling object that does not support `queryMore` and caps OFFSET at
+ * 2000, so we page it with {@link queryAllUsingOffset} (which detects "more" by a full page, not the
+ * unreliable `done` flag) up to the OFFSET ceiling. If a batch still returns a full page (more rows exist
+ * beyond what OFFSET can reach), we recursively split the id list and re-query the halves until every
+ * query is complete — so we never silently drop a field's dependencies. A batch query error leaves its ids
+ * OUT of `resolvedRefIds` (UNKNOWN, never delete-eligible) rather than treating "no rows" as "no
+ * dependencies" — failing safe.
+ */
+async function fetchDependencyRowsForRefIds(org: SalesforceOrgUi, refIds: string[]): Promise<DependencyBatchResult> {
+  const rowsByRefId = new Map<string, WhereUsedDependencyRow[]>();
+  const resolvedRefIds = new Set<string>();
+
+  const process = async (ids: string[]): Promise<void> => {
+    if (ids.length === 0) {
+      return;
+    }
+    let records: Record<string, unknown>[];
+    let possiblyTruncated: boolean;
+    try {
+      const response = await queryAllUsingOffset<Record<string, unknown>>(
+        org,
+        buildDependencyByRefIdsSoql(ids),
+        true,
+        DEPENDENCY_PAGE_SAFETY_CAP,
+      );
+      records = response.queryResults.records;
+      // A full page means more rows may exist beyond the OFFSET ceiling — narrow the id list to reach them.
+      possiblyTruncated = records.length >= DEPENDENCY_PAGE_SAFETY_CAP;
+    } catch (err) {
+      logger.warn('field usage dependency batch query failed; marking fields UNKNOWN (not delete-eligible)', {
+        err,
+        count: ids.length,
+      });
+      return; // ids stay out of resolvedRefIds → UNKNOWN
+    }
+
+    if (possiblyTruncated && ids.length > 1) {
+      const mid = Math.ceil(ids.length / 2);
+      await process(ids.slice(0, mid));
+      await process(ids.slice(mid));
+      return;
+    }
+
+    // Complete — or a single field whose dependencies exceed one page (the partial rows still prove it
+    // has dependencies, which is all the delete-safety gate needs).
+    for (const id of ids) {
+      resolvedRefIds.add(id);
+    }
+    for (const record of records) {
+      const refId = typeof record.RefMetadataComponentId === 'string' ? record.RefMetadataComponentId : '';
+      if (!refId) {
+        continue;
+      }
+      const row = toDependencyRow(record);
+      if (!row) {
+        continue;
+      }
+      let bucket = rowsByRefId.get(refId);
+      if (!bucket) {
+        bucket = [];
+        rowsByRefId.set(refId, bucket);
+      }
+      bucket.push(row);
+    }
+  };
+
+  await process(refIds);
+  return { rowsByRefId, resolvedRefIds };
 }
 
 async function runWithConcurrency<TItem, TResult>(
@@ -380,31 +480,48 @@ function collectCustomFieldKeys(objects: Record<string, FieldUsageObjectPayload>
 export async function computeFieldUsageWhereUsed(
   org: SalesforceOrgUi,
   objects: Record<string, FieldUsageObjectPayload>,
-): Promise<FieldUsageJobResultData['whereUsed']> {
+): Promise<ComputeFieldUsageWhereUsedResult> {
   const refs = collectCustomFieldKeys(objects);
   const results: WhereUsedMap = {};
   for (const ref of refs) {
     results[`${ref.object}.${ref.field}`] = [];
   }
   if (refs.length === 0) {
-    return results as FieldUsageJobResultData['whereUsed'];
+    return { whereUsed: results as FieldUsageJobResultData['whereUsed'], resolvedFieldKeys: [] };
   }
 
   const fieldIdByKey = await resolveCustomFieldIds(org, refs);
-  const resolvedEntries = [...fieldIdByKey.entries()];
 
-  const dependencyRowsByKey = await runWithConcurrency(resolvedEntries, DEPENDENCY_LOOKUP_CONCURRENCY, async ([key, fieldId]) => {
-    try {
-      const rows = await getFieldDependencies(org, fieldId);
-      return { key, rows };
-    } catch (err) {
-      logger.warn('field usage where-used dependency lookup failed; returning empty rows', { err, key });
-      return { key, rows: [] as WhereUsedDependencyRow[] };
+  // Reverse map fieldId → keys so batched dependency rows can be assigned back to each Object.Field.
+  const keysByFieldId = new Map<string, string[]>();
+  for (const [key, fieldId] of fieldIdByKey) {
+    let keys = keysByFieldId.get(fieldId);
+    if (!keys) {
+      keys = [];
+      keysByFieldId.set(fieldId, keys);
     }
-  });
+    keys.push(key);
+  }
+
+  // Batch the dependency lookups (`RefMetadataComponentId IN (...)`) instead of one query per field.
+  const idBatches = splitArrayToMaxSize([...keysByFieldId.keys()], DEPENDENCY_REF_ID_BATCH_SIZE);
+  const batchResults = await runWithConcurrency(idBatches, DEPENDENCY_LOOKUP_CONCURRENCY, (batch) =>
+    fetchDependencyRowsForRefIds(org, batch),
+  );
+
+  const rowsByFieldId = new Map<string, WhereUsedDependencyRow[]>();
+  const resolvedFieldIds = new Set<string>();
+  for (const batchResult of batchResults) {
+    for (const [fieldId, rows] of batchResult.rowsByRefId) {
+      rowsByFieldId.set(fieldId, rows);
+    }
+    for (const fieldId of batchResult.resolvedRefIds) {
+      resolvedFieldIds.add(fieldId);
+    }
+  }
 
   const allRows: WhereUsedDependencyRow[] = [];
-  for (const { rows } of dependencyRowsByKey) {
+  for (const rows of rowsByFieldId.values()) {
     allRows.push(...rows);
   }
   try {
@@ -413,9 +530,17 @@ export async function computeFieldUsageWhereUsed(
     logger.warn('field usage where-used enrichment failed; returning dependency rows without paths/versions', { err });
   }
 
-  for (const { key, rows } of dependencyRowsByKey) {
-    results[key] = sortFieldUsageWhereUsedRows(dedupeFieldUsageWhereUsedRows(rows));
+  const resolvedFieldKeys: string[] = [];
+  for (const [fieldId, keys] of keysByFieldId) {
+    const sortedRows = sortFieldUsageWhereUsedRows(dedupeFieldUsageWhereUsedRows(rowsByFieldId.get(fieldId) ?? []));
+    const resolved = resolvedFieldIds.has(fieldId);
+    for (const key of keys) {
+      results[key] = sortedRows;
+      if (resolved) {
+        resolvedFieldKeys.push(key);
+      }
+    }
   }
 
-  return results as FieldUsageJobResultData['whereUsed'];
+  return { whereUsed: results as FieldUsageJobResultData['whereUsed'], resolvedFieldKeys };
 }

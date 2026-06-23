@@ -23,6 +23,7 @@ import StandardIcon_Apex from './icons/standard/Apex';
 import StandardIcon_AssetRelationship from './icons/standard/AssetRelationship';
 import StandardIcon_Billing from './icons/standard/Billing';
 import StandardIcon_BundleConfig from './icons/standard/BundleConfig';
+import StandardIcon_Chart from './icons/standard/Chart';
 import StandardIcon_ConnectedApps from './icons/standard/ConnectedApps';
 import StandardIcon_Customers from './icons/standard/Customers';
 import StandardIcon_CustomerPortalUsers from './icons/standard/CustomerPortalUsers';
@@ -210,6 +211,7 @@ const standardIcons = {
   asset_relationship: StandardIcon_AssetRelationship,
   billing: StandardIcon_Billing,
   bundle_config: StandardIcon_BundleConfig,
+  chart: StandardIcon_Chart,
   connected_apps: StandardIcon_ConnectedApps,
   customers: StandardIcon_Customers,
   customer_portal_users: StandardIcon_CustomerPortalUsers,

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { fieldUsageRowEligibleForDestructiveDelete, fieldUsageRowsToCustomFieldDeleteMetadata } from '../field-usage-destructive-delete';
+import {
+  fieldUsageDestructiveDeleteIneligibleReason,
+  fieldUsageRowEligibleForDestructiveDelete,
+  fieldUsageRowsToCustomFieldDeleteMetadata,
+} from '../field-usage-destructive-delete';
 import type { FieldUsageFieldMetaParsed } from '../field-usage-result-parse';
 
 const customMeta = (overrides: Partial<FieldUsageFieldMetaParsed> = {}): FieldUsageFieldMetaParsed => ({
@@ -83,6 +87,33 @@ describe('fieldUsageRowEligibleForDestructiveDelete', () => {
         }),
       ).toBe(true);
     });
+
+    it('blocks deletion when the field still holds data (filled > 0)', () => {
+      expect(fieldUsageRowEligibleForDestructiveDelete({ ...eligibleArgs, whereUsedKnown: true, filled: 3 })).toBe(false);
+    });
+
+    it('allows deletion of an empty field with proven-zero dependencies', () => {
+      expect(fieldUsageRowEligibleForDestructiveDelete({ ...eligibleArgs, whereUsedKnown: true, filled: 0 })).toBe(true);
+    });
+  });
+});
+
+describe('fieldUsageDestructiveDeleteIneligibleReason', () => {
+  const base = { fieldApiName: 'Unused_Field__c', meta: customMeta(), whereUsedKnown: true };
+
+  it('returns null only when fully eligible', () => {
+    expect(fieldUsageDestructiveDeleteIneligibleReason({ ...base, filled: 0 })).toBeNull();
+  });
+
+  it('reports each blocking reason in precedence order', () => {
+    expect(fieldUsageDestructiveDeleteIneligibleReason({ ...base, isObjectErrorPlaceholder: true })).toBe('object-error');
+    expect(fieldUsageDestructiveDeleteIneligibleReason({ ...base, meta: { ...customMeta(), custom: false } })).toBe('standard-field');
+    expect(fieldUsageDestructiveDeleteIneligibleReason({ ...base, meta: customMeta({ nameField: true }) })).toBe('name-field');
+    expect(fieldUsageDestructiveDeleteIneligibleReason({ ...base, fieldApiName: 'ns__F__c' })).toBe('packaged-field');
+    expect(fieldUsageDestructiveDeleteIneligibleReason({ ...base, objectQueryTruncated: true })).toBe('scan-truncated');
+    expect(fieldUsageDestructiveDeleteIneligibleReason({ ...base, whereUsedKnown: false })).toBe('where-used-unknown');
+    expect(fieldUsageDestructiveDeleteIneligibleReason({ ...base, whereUsedDependencyCount: 1 })).toBe('has-dependencies');
+    expect(fieldUsageDestructiveDeleteIneligibleReason({ ...base, filled: 5 })).toBe('has-data');
   });
 });
 
