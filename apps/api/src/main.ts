@@ -50,6 +50,7 @@ import {
   redirectIfPendingVerificationMiddleware,
   setCacheControlForApiRoutes,
   setPermissionPolicy,
+  stripTrailingSlashRedirect,
 } from './app/routes/route.middleware';
 import { healthCheck, uncaughtErrorHandler } from './app/utils/response.handlers';
 import { buildAppCspDirectives, buildCspDirectives, buildHstsConfig } from './app/utils/security-headers';
@@ -326,21 +327,18 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   app.use('/.well-known', express.static(join(__dirname, './assets/.well-known')));
   app.use('/assets', express.static(join(__dirname, './assets'), { maxAge: '1m' }));
   app.use('/fonts', express.static(join(__dirname, './assets/fonts')));
-  app.use(express.static(join(__dirname, '../landing')));
+  // extensions: ['html'] lets Express serve foo.html for a /foo request — needed because
+  // Next.js export with trailingSlash:false emits flat .html files (not directory index.html).
+  app.use(stripTrailingSlashRedirect, express.static(join(__dirname, '../landing'), { extensions: ['html'] }));
 
   // Load the landing site's 404 page so uncaughtErrorHandler can serve it inline
-  // with a real 404 status (instead of redirecting to /404/, which logged as 302
-  // and masked which URLs were actually missing). Next.js export emits either
-  // `404/index.html` (trailingSlash) or `404.html` depending on build config.
+  // with a real 404 status (instead of redirecting to /404, which logged as 302
+  // and masked which URLs were actually missing).
   let notFoundHtml: string | null = null;
   try {
-    notFoundHtml = readFileSync(join(__dirname, '../landing/404/index.html'), 'utf8');
-  } catch {
-    try {
-      notFoundHtml = readFileSync(join(__dirname, '../landing/404.html'), 'utf8');
-    } catch (error) {
-      logger.error({ err: error }, '[404] Failed to read landing 404 page — 404 responses will fall back to plain text');
-    }
+    notFoundHtml = readFileSync(join(__dirname, '../landing/404.html'), 'utf8');
+  } catch (error) {
+    logger.error({ err: error }, '[404] Failed to read landing 404 page — 404 responses will fall back to plain text');
   }
   app.locals.notFoundHtml = notFoundHtml;
 

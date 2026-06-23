@@ -63,7 +63,7 @@ export const APP_ROUTES: RouteMap = {
     DESCRIPTION: 'Welcome to Jetstream',
   },
   DESKTOP_APPLICATION: {
-    ROUTE: 'https://getjetstream.app/desktop-app/',
+    ROUTE: 'https://getjetstream.app/desktop-app',
     SEARCH_PARAM: undefined,
     DOCS: 'https://docs.getjetstream.app/desktop-app',
     TITLE: 'Desktop Application',
@@ -71,7 +71,7 @@ export const APP_ROUTES: RouteMap = {
     NEW_UNTIL: new Date(2025, 9, 31, 23, 59, 59).getTime(), // October 31, 2025
   },
   BROWSER_EXTENSION: {
-    ROUTE: 'https://getjetstream.app/browser-extensions/',
+    ROUTE: 'https://getjetstream.app/browser-extensions',
     SEARCH_PARAM: undefined,
     DOCS: 'https://docs.getjetstream.app/browser-extension',
     TITLE: 'Browser Extension',

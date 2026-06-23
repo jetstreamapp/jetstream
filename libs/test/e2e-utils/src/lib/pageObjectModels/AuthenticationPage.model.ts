@@ -13,11 +13,11 @@ export class AuthenticationPage {
   readonly page: Page;
 
   readonly routes = {
-    signup: (wildcard = false) => `/auth/signup/${wildcard ? '*' : ''}`,
-    login: (wildcard = false) => `/auth/login/${wildcard ? '*' : ''}`,
-    passwordReset: (wildcard = false) => `/auth/password-reset/${wildcard ? '*' : ''}`,
-    passwordResetVerify: (wildcard = false) => `/auth/password-reset/verify/${wildcard ? '*' : ''}`,
-    mfaVerify: (wildcard = false) => `/auth/verify/${wildcard ? '*' : ''}`,
+    signup: (wildcard = false) => `/auth/signup${wildcard ? '**' : ''}`,
+    login: (wildcard = false) => `/auth/login${wildcard ? '**' : ''}`,
+    passwordReset: (wildcard = false) => `/auth/password-reset${wildcard ? '**' : ''}`,
+    passwordResetVerify: (wildcard = false) => `/auth/password-reset/verify${wildcard ? '**' : ''}`,
+    mfaVerify: (wildcard = false) => `/auth/verify${wildcard ? '**' : ''}`,
   } as const;
 
   readonly signInFromHomePageButton: Locator;

@@ -113,15 +113,15 @@ const config: Config = {
           title: 'Legal',
           items: [
             {
-              href: 'https://getjetstream.app/terms-of-service/',
+              href: 'https://getjetstream.app/terms-of-service',
               label: 'Terms of Service',
             },
             {
-              href: 'https://getjetstream.app/subprocessors/',
+              href: 'https://getjetstream.app/subprocessors',
               label: 'Data Sub-Processors',
             },
             {
-              href: 'https://getjetstream.app/privacy/',
+              href: 'https://getjetstream.app/privacy',
               label: 'Privacy Policy',
             },
           ],

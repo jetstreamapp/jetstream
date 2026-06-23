@@ -99,7 +99,7 @@ const callbackHandler = createRoute(routeDefinition.callbackHandler.validators, 
   if (returnParams.error) {
     res.status(401);
   }
-  res.redirect(`/canvas-auth/?${new URLSearchParams(returnParams).toString().replaceAll('+', '%20')}`);
+  res.redirect(`/canvas-auth?${new URLSearchParams(returnParams).toString().replaceAll('+', '%20')}`);
 });
 
 const appHandler = createRoute(routeDefinition.appHandler.validators, async ({ body = {}, query }, _req, res) => {
