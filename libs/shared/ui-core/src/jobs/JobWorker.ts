@@ -498,12 +498,16 @@ export class JobWorker {
           });
 
           let whereUsed: Record<string, unknown[]> = {};
+          let whereUsedResolvedFieldKeys: string[] = [];
           let whereUsedComputed = true;
           try {
-            whereUsed = (await computeFieldUsageWhereUsed(org, queryOutcome.objects)) as unknown as Record<string, unknown[]>;
+            const whereUsedOutcome = await computeFieldUsageWhereUsed(org, queryOutcome.objects);
+            whereUsed = whereUsedOutcome.whereUsed as unknown as Record<string, unknown[]>;
+            whereUsedResolvedFieldKeys = whereUsedOutcome.resolvedFieldKeys;
           } catch (whereUsedEx) {
             logger.warn('[JOB][FIELD_USAGE] where-used lookup failed; continuing without map', whereUsedEx);
             whereUsed = {};
+            whereUsedResolvedFieldKeys = [];
             whereUsedComputed = false;
           }
           // Where-used can take a while; respect a cancel requested during that phase before we persist a "completed" row.
@@ -535,6 +539,7 @@ export class JobWorker {
             truncated: queryOutcome.anyQueryTruncated,
             failedObjects: queryOutcome.failedObjects,
             whereUsedComputed,
+            whereUsedResolvedFieldKeys,
             objects: queryOutcome.objects as unknown as FieldUsageFullResult['objects'],
             whereUsed: whereUsed as unknown as FieldUsageFullResult['whereUsed'],
           };

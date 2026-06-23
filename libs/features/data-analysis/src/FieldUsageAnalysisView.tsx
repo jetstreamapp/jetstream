@@ -48,12 +48,18 @@ import { useAtom, useAtomValue } from 'jotai';
 import groupBy from 'lodash/groupBy';
 import { Fragment, FunctionComponent, MouseEvent, useCallback, useEffect, useMemo, useState, type Key, type ReactElement } from 'react';
 import { Link, useHref, useSearchParams } from 'react-router-dom';
-import { fieldUsageRowEligibleForDestructiveDelete, fieldUsageRowsToCustomFieldDeleteMetadata } from './field-usage-destructive-delete';
+import {
+  FIELD_USAGE_DELETE_INELIGIBLE_LABELS,
+  fieldUsageDestructiveDeleteIneligibleReason,
+  fieldUsageRowsToCustomFieldDeleteMetadata,
+  type FieldUsageDeleteIneligibleReason,
+} from './field-usage-destructive-delete';
 import {
   countWhereUsedByUiCategory,
   fieldHasWhereUsedDeps,
   getFieldUsageTypeLabel,
   getWhereUsedDepsForFieldKey,
+  isFieldWhereUsedResolved,
   parseFieldUsageJobResult,
   type FieldUsageJobResultParsed,
   type WhereUsedDependencyRowParsed,
@@ -62,6 +68,17 @@ import { isAnalysisJobActive } from './shared/analysis-job-runtime-state';
 import { getWhereUsedOpenInSalesforcePath } from './where-used-open-in-salesforce';
 
 const FIELD_USAGE_TABLE_ACTION_DELETE_METADATA = 'field-usage-delete-metadata';
+
+/**
+ * Ineligibility reasons worth explaining inline (the field looks deletable but is blocked). Standard /
+ * packaged / name-field / object-error rows are never user-deletable so they show no indicator.
+ */
+const WHY_NOT_DELETABLE_REASONS = new Set<FieldUsageDeleteIneligibleReason>([
+  'scan-truncated',
+  'where-used-unknown',
+  'has-dependencies',
+  'has-data',
+]);
 
 const HEIGHT_BUFFER = 170;
 
@@ -130,6 +147,8 @@ interface FieldUsageTreeRow {
   isObjectErrorPlaceholder?: boolean;
   /** Unmanaged custom field (no namespace prefix) eligible for destructive delete; same rules as `isUnmanagedCustomFieldApiName` in shared utils. */
   destructiveDeleteEligible?: boolean;
+  /** Why the field is NOT delete-eligible (drives the "why can't I delete this?" tooltip); `null` when eligible. */
+  destructiveDeleteIneligibleReason?: FieldUsageDeleteIneligibleReason | null;
   /** Where Used row counts by Kind: Layout, Automation, Apex ({@link countWhereUsedByUiCategory}). */
   whereUsedOnLayout: number;
   whereUsedInAutomation: number;
@@ -683,6 +702,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
           latestModified: null,
           isObjectErrorPlaceholder: true,
           destructiveDeleteEligible: false,
+          destructiveDeleteIneligibleReason: 'object-error',
           whereUsedOnLayout: 0,
           whereUsedInAutomation: 0,
           whereUsedInApex: 0,
@@ -693,15 +713,20 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         const stat = payload.fieldUsage[fieldApiName];
         const meta = payload.fieldMeta[fieldApiName];
         const whereUsedCounts = whereUsedUiCountsForField(parsedResult.whereUsed, objectApiName, fieldApiName);
-        const destructiveDeleteEligible = fieldUsageRowEligibleForDestructiveDelete({
+        const eligibilityArgs = {
           isObjectErrorPlaceholder: false,
           fieldApiName,
           meta,
           objectQueryTruncated: payload.queryTruncated,
           whereUsedDependencyCount:
             whereUsedCounts.whereUsedOnLayout + whereUsedCounts.whereUsedInAutomation + whereUsedCounts.whereUsedInApex,
-          whereUsedKnown: parsedResult.whereUsedComputed,
-        });
+          // Per-field resolution: an unresolved field (Tooling Id not found / dependency query failed) is
+          // UNKNOWN, never "0 dependencies", so it can't be marked deletable.
+          whereUsedKnown: isFieldWhereUsedResolved(parsedResult, `${objectApiName}.${fieldApiName}`),
+          filled: stat.filled,
+        };
+        const destructiveDeleteIneligibleReason = fieldUsageDestructiveDeleteIneligibleReason(eligibilityArgs);
+        const destructiveDeleteEligible = destructiveDeleteIneligibleReason === null;
         rows.push({
           _key: `${objectApiName}.${fieldApiName}`,
           ...base,
@@ -713,6 +738,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
           pct: stat.pct,
           latestModified: stat.latestFilledRowModified,
           destructiveDeleteEligible,
+          destructiveDeleteIneligibleReason,
           ...whereUsedCounts,
         });
       }
@@ -853,6 +879,22 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         maxWidth: 44,
         renderCell: (args) => {
           if (!args.row.destructiveDeleteEligible) {
+            const reason = args.row.destructiveDeleteIneligibleReason;
+            // Explain why an unmanaged custom field a user might expect to delete is blocked. Standard /
+            // packaged / name / object-error rows are never user-deletable, so showing nothing is cleaner.
+            if (reason && WHY_NOT_DELETABLE_REASONS.has(reason)) {
+              return (
+                <Grid align="center" verticalAlign="center" className="h-100">
+                  <Icon
+                    icon="info"
+                    type="utility"
+                    className="slds-icon slds-icon-text-default slds-icon_xx-small"
+                    title={`Not eligible to delete: ${FIELD_USAGE_DELETE_INELIGIBLE_LABELS[reason]}`}
+                    description={`Not eligible to delete: ${FIELD_USAGE_DELETE_INELIGIBLE_LABELS[reason]}`}
+                  />
+                </Grid>
+              );
+            }
             return null;
           }
           return SelectColumn.renderCell?.(args) || <SelectFormatter {...args} />;
@@ -957,7 +999,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
       },
       {
         ...setColumnFromType<FieldUsageTreeRow>('latestModified', 'text'),
-        name: 'Latest Value Row Modified',
+        name: 'Latest Row Modified (any field)',
         key: 'latestModified',
         width: 220,
         minWidth: 100,
@@ -1370,7 +1412,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
               >
                 <button
                   type="button"
-                  className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
+                  className="slds-button slds-button_neutral collapsible-button collapsible-button-xs slds-m-left_xx-small"
                   disabled={!canLoadAllRecords || isFieldUsageJobActiveForOrg}
                   onClick={() => setLoadAllRecordsModalOpen(true)}
                 >
@@ -1382,10 +1424,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
                 <button
                   type="button"
                   aria-label="Field Usage history"
-                  className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
-                  css={css`
-                    padding: 0.5rem;
-                  `}
+                  className="slds-button slds-button_icon slds-button_icon-border-filled slds-m-left_xx-small"
                   disabled={!selectedOrg?.uniqueId}
                   onClick={() => setIsHistoryOpen(true)}
                 >
@@ -1556,6 +1595,16 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
                     Where Used (metadata dependency) lookup could not be completed for this run, so field dependencies are unknown.
                     <em> Delete Selected Metadata</em> is disabled to avoid deleting a field that may be referenced by a layout, automation,
                     or Apex. Re-run the analysis to determine dependencies.
+                  </ScopedNotification>
+                </div>
+              )}
+              {parsedResult.whereUsedComputed && (
+                <div className="slds-p-horizontal_medium slds-p-top_x-small">
+                  <ScopedNotification theme="info">
+                    <strong>Before deleting:</strong> "Where Used" detects references in <em>page layouts, automation, and Apex</em> only.
+                    It does <strong>not</strong> detect references in reports, list views, validation rules, email templates, or dashboards,
+                    so "no dependencies" is a strong signal but not absolute proof a field is unused. Review those manually before deleting
+                    — deletion permanently removes the field and all of its data.
                   </ScopedNotification>
                 </div>
               )}

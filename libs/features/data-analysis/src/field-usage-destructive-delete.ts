@@ -1,52 +1,99 @@
-import type { ListMetadataResult } from '@jetstream/types';
 import { isUnmanagedCustomFieldApiName } from '@jetstream/shared/utils';
+import type { ListMetadataResult } from '@jetstream/types';
 import type { FieldUsageFieldMetaParsed } from './field-usage-result-parse';
 
-/**
- * Whether a field usage row may be included in a destructive CustomField deploy (delete from org).
- * Standard fields, packaged custom fields, and the object name field are excluded.
- *
- * Three safety gates prevent deleting a field that may actually be in use:
- * - `objectQueryTruncated` — the scan hit the row budget, so a 0%/low reading is NOT proof the field is
- *   unused (it could be populated in the rows that were never scanned).
- * - `whereUsedDependencyCount` — the field is referenced by metadata (layout / automation / Apex), a hard
- *   usage signal independent of data population.
- * - `whereUsedKnown` — when the Tooling where-used lookup failed entirely we cannot prove the field has no
- *   dependencies, so deletion is blocked (fail safe) rather than treating "no rows" as "no dependencies".
- *
- * Uses {@link isUnmanagedCustomFieldApiName} (same parse rules as Tooling `CustomField` and field usage where-used).
- */
-export function fieldUsageRowEligibleForDestructiveDelete(args: {
+export interface FieldUsageDeleteEligibilityArgs {
   isObjectErrorPlaceholder?: boolean;
   fieldApiName: string;
   meta?: FieldUsageFieldMetaParsed | null;
   objectQueryTruncated?: boolean;
   whereUsedDependencyCount?: number;
+  /**
+   * Whether THIS field's dependencies were proven complete (Tooling Id resolved AND dependency query
+   * succeeded). Pass per-field — not the whole-run flag — so an unresolved field is never deletable.
+   */
   whereUsedKnown?: boolean;
-}): boolean {
-  const { isObjectErrorPlaceholder, fieldApiName, meta, objectQueryTruncated, whereUsedDependencyCount, whereUsedKnown } = args;
+  /** Non-null populated record count from a non-truncated scan. Any data present blocks auto-eligibility. */
+  filled?: number;
+}
+
+/** Why a field is NOT eligible for destructive delete; `null` means it IS eligible. Ordered by precedence. */
+export type FieldUsageDeleteIneligibleReason =
+  | 'object-error'
+  | 'standard-field'
+  | 'name-field'
+  | 'packaged-field'
+  | 'scan-truncated'
+  | 'where-used-unknown'
+  | 'has-dependencies'
+  | 'has-data';
+
+/** Human-readable explanations for the "why can't I delete this?" UI. */
+export const FIELD_USAGE_DELETE_INELIGIBLE_LABELS: Record<FieldUsageDeleteIneligibleReason, string> = {
+  'object-error': 'Object could not be analyzed',
+  'standard-field': 'Standard fields cannot be deleted',
+  'name-field': 'Name fields cannot be deleted',
+  'packaged-field': 'Packaged (namespaced) fields cannot be deleted here',
+  'scan-truncated': 'Scan was truncated — usage may be incomplete (run a full scan first)',
+  'where-used-unknown': 'Dependencies could not be determined for this field',
+  'has-dependencies': 'Referenced by a layout, automation, or Apex',
+  'has-data': 'Field has data — deleting permanently destroys it',
+};
+
+/**
+ * Returns why a field is NOT eligible for a destructive CustomField deploy, or `null` when it IS eligible.
+ *
+ * Safety gates (each, independently, prevents deleting a field that may be in use):
+ * - Standard / name / packaged fields cannot be deleted by this tool.
+ * - `objectQueryTruncated` — the scan hit the row budget, so a 0%/low reading is NOT proof of disuse.
+ * - `whereUsedKnown === false` — dependencies for this field could not be proven; treat as in-use (fail safe).
+ *   This is now per-field: an unresolved field (Tooling Id not found, or its dependency query failed) is
+ *   UNKNOWN, never "0 dependencies", closing the previous gap where partial failures looked delete-safe.
+ * - `whereUsedDependencyCount > 0` — referenced by metadata (layout / automation / Apex).
+ * - `filled > 0` — the field holds data; deleting a CustomField permanently destroys all of it, so a field
+ *   with ANY populated records is never auto-eligible (the user can still delete via the normal metadata tools).
+ *
+ * Note: `MetadataComponentDependency` does NOT detect references in reports, list views, validation rules,
+ * or email templates — so "no dependencies" means no *code/layout* reference, not "unreferenced". The UI
+ * must communicate this before deletion.
+ */
+export function fieldUsageDestructiveDeleteIneligibleReason(
+  args: FieldUsageDeleteEligibilityArgs,
+): FieldUsageDeleteIneligibleReason | null {
+  const { isObjectErrorPlaceholder, fieldApiName, meta, objectQueryTruncated, whereUsedDependencyCount, whereUsedKnown, filled } = args;
   if (isObjectErrorPlaceholder) {
-    return false;
+    return 'object-error';
   }
   if (!meta?.custom) {
-    return false;
+    return 'standard-field';
   }
   if (meta.nameField) {
-    return false;
+    return 'name-field';
   }
   if (!isUnmanagedCustomFieldApiName(fieldApiName)) {
-    return false;
+    return 'packaged-field';
   }
   if (objectQueryTruncated) {
-    return false;
+    return 'scan-truncated';
   }
   if (whereUsedKnown === false) {
-    return false;
+    return 'where-used-unknown';
   }
   if ((whereUsedDependencyCount ?? 0) > 0) {
-    return false;
+    return 'has-dependencies';
   }
-  return true;
+  if ((filled ?? 0) > 0) {
+    return 'has-data';
+  }
+  return null;
+}
+
+/**
+ * Whether a field usage row may be included in a destructive CustomField deploy (delete from org).
+ * Thin wrapper over {@link fieldUsageDestructiveDeleteIneligibleReason}.
+ */
+export function fieldUsageRowEligibleForDestructiveDelete(args: FieldUsageDeleteEligibilityArgs): boolean {
+  return fieldUsageDestructiveDeleteIneligibleReason(args) === null;
 }
 
 export interface FieldUsageDestructiveDeleteRow {

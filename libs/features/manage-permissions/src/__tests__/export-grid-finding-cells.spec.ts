@@ -31,7 +31,8 @@ describe('buildFieldPermissionFindingCellHighlights', () => {
     ];
     const map = buildFieldPermissionFindingCellHighlights(findings);
     const rowKey = fieldPermissionFindingRowKey(parentId, 'Account', 'Account.Name');
-    expect(map.get(rowKey)?.get('PermissionsRead')).toBe('error');
+    // Re-tiered: FLS without OLS is inert → warning (catalog severity, not the row's input severity).
+    expect(map.get(rowKey)?.get('PermissionsRead')).toBe('warning');
   });
 
   it('maps FLS_WITHOUT_OLS_ROW to object scope marker and Read/Edit columns', () => {
@@ -46,8 +47,8 @@ describe('buildFieldPermissionFindingCellHighlights', () => {
     ];
     const map = buildFieldPermissionFindingCellHighlights(findings);
     const scopeKey = fieldPermissionFindingRowKey(parentId, 'Contact', FIELD_PERMISSION_OBJECT_SCOPE_MARKER);
-    expect(map.get(scopeKey)?.get('PermissionsRead')).toBe('error');
-    expect(map.get(scopeKey)?.get('PermissionsEdit')).toBe('error');
+    expect(map.get(scopeKey)?.get('PermissionsRead')).toBe('warning');
+    expect(map.get(scopeKey)?.get('PermissionsEdit')).toBe('warning');
   });
 
   it('resolves fieldPermissionCellSeverity from scope marker for any field row on Read', () => {
@@ -61,7 +62,7 @@ describe('buildFieldPermissionFindingCellHighlights', () => {
       },
     ]);
     const severity = fieldPermissionCellSeverity(highlights, parentId, 'Case', 'Case.Subject', 'PermissionsRead');
-    expect(severity).toBe('error');
+    expect(severity).toBe('warning');
   });
 });
 
@@ -102,10 +103,10 @@ describe('buildContainerIdFindingSeverity and listFindingsForExportContainer', (
     const findings = [
       { code: PermissionExportFindingCode.OLS_READ_NO_FLS_ROWS, severity: 'warning', objectApiName: 'A', parentId: id },
       {
-        code: PermissionExportFindingCode.FLS_READ_NO_OBJECT_READ,
+        // Re-anchored on a genuine exposure code (error) now that FLS misalignment is a warning.
+        code: PermissionExportFindingCode.OBJECT_MODIFY_ALL_RECORDS,
         severity: 'error',
         objectApiName: 'B',
-        fieldApiName: 'B.x',
         parentId: id,
       },
     ];

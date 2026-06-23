@@ -85,6 +85,13 @@ export const fieldUsageJobResultSchema = z.object({
    * backward-compatibility with rows written before this flag existed (treat absent as `true`).
    */
   whereUsedComputed: z.boolean().optional(),
+  /**
+   * `Object.Field__c` keys whose metadata dependencies were FULLY determined (Tooling Id resolved AND
+   * dependency query succeeded). Only these may be treated as "0 dependencies = no references" for
+   * delete-eligibility. Absent on rows written before this existed — callers fall back to
+   * {@link whereUsedComputed} (whole-run) for legacy rows.
+   */
+  whereUsedResolvedFieldKeys: z.array(z.string()).optional(),
 });
 export type FieldUsageJobResult = z.infer<typeof fieldUsageJobResultSchema>;
 

@@ -109,6 +109,19 @@ function buildDescribe() {
           length: 0,
           scale: 0,
         },
+        {
+          name: 'Active__c',
+          label: 'Active',
+          type: 'boolean',
+          queryable: true,
+          calculated: false,
+          custom: true,
+          autoNumber: false,
+          externalId: false,
+          nameField: false,
+          length: 0,
+          scale: 0,
+        },
       ],
     },
   };
@@ -146,6 +159,8 @@ describe('runFieldUsageQueryForObjects (streaming)', () => {
           LastModifiedDate: `2026-01-${String((globalIndex % 28) + 1).padStart(2, '0')}T00:00:00.000+0000`,
           Name: globalIndex % 2 === 0 ? `Account ${globalIndex}` : '',
           Industry: globalIndex < 100 ? 'Technology' : null,
+          // Checkbox: never null in SOQL — true on first 250 rows, false on the rest.
+          Active__c: globalIndex < 250,
         });
       }
       pages.push(records);
@@ -178,6 +193,12 @@ describe('runFieldUsageQueryForObjects (streaming)', () => {
     expect(account.fieldUsage.Industry.filled).toBe(100);
     expect(account.fieldUsage.Industry.pct).toBeCloseTo(10, 5);
 
+    // Checkbox fields count only `true` (250 of 1000), NOT every non-null value — otherwise every
+    // checkbox would read 100% and hide genuinely-unused (all-false) checkboxes.
+    expect(account.fieldUsage.Active__c.filled).toBe(250);
+    expect(account.fieldUsage.Active__c.pct).toBeCloseTo(25, 5);
+    expect(account.fieldUsage.Active__c.scanned).toBe(1000);
+
     // Latest filled row modified for Name is the largest even index in any page (998 → day 27).
     expect(account.fieldUsage.Name.latestFilledRowModified).toBe('2026-01-27T00:00:00.000+0000');
 
@@ -191,6 +212,84 @@ describe('runFieldUsageQueryForObjects (streaming)', () => {
 
     expect(queryMock).toHaveBeenCalledTimes(1);
     expect(queryMoreMock).toHaveBeenCalledTimes(4);
+  });
+
+  it('uses an exact server-side COUNT aggregate for aggregatable fields (no row scan, no truncation)', async () => {
+    describeMock.mockResolvedValue({
+      data: {
+        label: 'Account',
+        queryable: true,
+        custom: false,
+        fields: [
+          {
+            name: 'Id',
+            label: 'Id',
+            type: 'id',
+            queryable: true,
+            calculated: false,
+            custom: false,
+            autoNumber: false,
+            externalId: false,
+            nameField: false,
+            length: 18,
+            scale: 0,
+            aggregatable: true,
+          },
+          {
+            name: 'LastModifiedDate',
+            label: 'LMD',
+            type: 'datetime',
+            queryable: true,
+            calculated: false,
+            custom: false,
+            autoNumber: false,
+            externalId: false,
+            nameField: false,
+            length: 0,
+            scale: 0,
+            aggregatable: true,
+          },
+          {
+            name: 'Custom_Text__c',
+            label: 'Text',
+            type: 'string',
+            queryable: true,
+            calculated: false,
+            custom: true,
+            autoNumber: false,
+            externalId: false,
+            nameField: false,
+            length: 255,
+            scale: 0,
+            aggregatable: true,
+          },
+        ],
+      },
+    });
+
+    // The COUNT aggregate returns a single row: total records + non-null count per field alias.
+    queryMock.mockImplementation(async (_org: unknown, soql: string) => {
+      if (typeof soql === 'string' && soql.includes('COUNT(')) {
+        return { queryResults: { done: true, totalSize: 1, records: [{ total: 1000, c0: 300 }] } };
+      }
+      throw new Error(`Unexpected non-aggregate query: ${String(soql)}`);
+    });
+
+    const result = await runFieldUsageQueryForObjects(fakeOrg, ['Account']);
+
+    const account = result.objects.Account;
+    expect(account.totalRecords).toBe(1000);
+    expect(account.queryTruncated).toBe(false);
+    expect(result.anyQueryTruncated).toBe(false);
+    expect(account.fieldUsage.Custom_Text__c.filled).toBe(300);
+    expect(account.fieldUsage.Custom_Text__c.pct).toBeCloseTo(30, 5);
+    expect(account.fieldUsage.Custom_Text__c.scanned).toBe(1000);
+    // COUNT cannot report a per-field latest-modified, so it is null (not fabricated).
+    expect(account.fieldUsage.Custom_Text__c.latestFilledRowModified).toBeNull();
+    // No row scan happened — only the aggregate query.
+    expect(queryMock).toHaveBeenCalledTimes(1);
+    expect(queryMoreMock).not.toHaveBeenCalled();
+    expect(queryMock.mock.calls[0][1]).toContain('COUNT(');
   });
 
   it('throws when the cancellation signal trips between objects', async () => {

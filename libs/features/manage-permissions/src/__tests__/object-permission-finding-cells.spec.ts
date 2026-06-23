@@ -33,7 +33,7 @@ describe('buildObjectPermissionFindingCellHighlights', () => {
     expect(map.get(rowKey)?.get('PermissionsRead')).toBe('warning');
   });
 
-  it('maps FLS read without object read to read-path columns as error', () => {
+  it('maps FLS read without object read to read-path columns as warning (re-tiered: inert, not exposure)', () => {
     const parentId = '0PSyy0000002';
     const findings: PermissionAnalysisFinding[] = [
       {
@@ -45,30 +45,32 @@ describe('buildObjectPermissionFindingCellHighlights', () => {
     ];
     const map = buildObjectPermissionFindingCellHighlights(findings);
     const rowKey = objectPermissionFindingRowKey(parentId, 'Contact');
-    expect(map.get(rowKey)?.get('PermissionsRead')).toBe('error');
-    expect(map.get(rowKey)?.get('PermissionsViewAllRecords')).toBe('error');
-    expect(map.get(rowKey)?.get('PermissionsModifyAllRecords')).toBe('error');
+    // Severity is derived from the catalog (the row's own severity is ignored for known codes).
+    expect(map.get(rowKey)?.get('PermissionsRead')).toBe('warning');
+    expect(map.get(rowKey)?.get('PermissionsViewAllRecords')).toBe('warning');
+    expect(map.get(rowKey)?.get('PermissionsModifyAllRecords')).toBe('warning');
   });
 
   it('prefers error over warning when the same cell is targeted', () => {
     const parentId = '0PSzz0000003';
     const rowKey = objectPermissionFindingRowKey(parentId, 'Case');
+    // Both findings highlight PermissionsViewAllRecords; the Modify All (error) must win over View All (warning).
     const findings: PermissionAnalysisFinding[] = [
       {
-        code: PermissionExportFindingCode.OLS_READ_NO_FLS_ROWS,
+        code: PermissionExportFindingCode.OBJECT_VIEW_ALL_RECORDS,
         severity: 'warning',
         objectApiName: 'Case',
         parentId,
       },
       {
-        code: PermissionExportFindingCode.FLS_READ_NO_OBJECT_READ,
+        code: PermissionExportFindingCode.OBJECT_MODIFY_ALL_RECORDS,
         severity: 'error',
         objectApiName: 'Case',
         parentId,
       },
     ];
     const map = buildObjectPermissionFindingCellHighlights(findings);
-    expect(map.get(rowKey)?.get('PermissionsRead')).toBe('error');
+    expect(map.get(rowKey)?.get('PermissionsViewAllRecords')).toBe('error');
   });
 
   it('ignores FINDINGS_TRUNCATED', () => {
