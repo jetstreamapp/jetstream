@@ -32,10 +32,17 @@ const resolveTxtMock = vi.hoisted(() => vi.fn());
 // to load the module. We are exercising maskSsoSecrets and fetchSamlMetadata — nothing
 // else from the controller touches its DB/service layer. vitest hoists these vi.mock
 // calls before the imports above at runtime, so the load-order is correct.
+// Holder so the mocked getLogger() can be pointed at warnMock for checkDomainVerification's
+// warning assertions. Defaults to a no-op logger for every other test.
+const loggerHolder = vi.hoisted(() => ({
+  current: { trace: vi.fn(), debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() } as Record<string, ReturnType<typeof vi.fn>>,
+}));
+
 vi.mock('@jetstream/api-config', () => ({
   ENV: { JETSTREAM_SERVER_URL: 'https://server.test', USE_SECURE_COOKIES: true, JETSTREAM_SAML_ACS_PATH_PREFIX: '/api/auth/sso/saml' },
   getExceptionLog: (error: unknown) => ({ error: error instanceof Error ? error.message : error }),
   logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+  getLogger: () => loggerHolder.current,
   prisma: {},
   rollbarServer: { error: vi.fn(), warn: vi.fn() },
 }));
@@ -240,6 +247,7 @@ describe('fetchSamlMetadata', () => {
       ENV: { JETSTREAM_SERVER_URL: 'https://server.test', USE_SECURE_COOKIES: false, JETSTREAM_SAML_ACS_PATH_PREFIX: '/api/auth/sso/saml' },
       getExceptionLog: (error: unknown) => ({ error: error instanceof Error ? error.message : error }),
       logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+      getLogger: () => loggerHolder.current,
       prisma: {},
       rollbarServer: { error: vi.fn(), warn: vi.fn() },
     }));
@@ -263,12 +271,14 @@ describe('checkDomainVerification', () => {
     resolveTxtMock.mockReset();
     fetchWithPinnedPublicIpMock.mockReset();
     warnMock = vi.fn<(obj: Record<string, unknown>, msg: string) => void>();
+    // checkDomainVerification now logs via getLogger(); point its warn at warnMock for assertions.
+    loggerHolder.current = { trace: vi.fn(), debug: vi.fn(), info: vi.fn(), warn: warnMock, error: vi.fn() };
   });
 
   it('verifies via a DNS TXT record on the apex domain without checking files', async () => {
     resolveTxtMock.mockResolvedValueOnce([[CODE]]);
 
-    const result = await checkDomainVerification(DOMAIN, CODE, { warn: warnMock });
+    const result = await checkDomainVerification(DOMAIN, CODE);
 
     expect(result).toEqual({ verified: true, verificationMethod: 'dns', foundNonMatchingValue: false });
     expect(resolveTxtMock).toHaveBeenCalledTimes(1);
@@ -279,7 +289,7 @@ describe('checkDomainVerification', () => {
   it('verifies via the _jetstream. subdomain when the apex has no matching record', async () => {
     resolveTxtMock.mockResolvedValueOnce([['v=spf1 include:_spf.google.com ~all']]).mockResolvedValueOnce([[CODE]]);
 
-    const result = await checkDomainVerification(DOMAIN, CODE, { warn: warnMock });
+    const result = await checkDomainVerification(DOMAIN, CODE);
 
     expect(result).toEqual({ verified: true, verificationMethod: 'dns', foundNonMatchingValue: false });
     expect(resolveTxtMock).toHaveBeenNthCalledWith(2, '_jetstream.example.com');
@@ -289,7 +299,7 @@ describe('checkDomainVerification', () => {
   it('does not report a mismatch when a stale apex record coexists with a matching _jetstream. record', async () => {
     resolveTxtMock.mockResolvedValueOnce([['jetstream-verification=stale']]).mockResolvedValueOnce([[CODE]]);
 
-    const result = await checkDomainVerification(DOMAIN, CODE, { warn: warnMock });
+    const result = await checkDomainVerification(DOMAIN, CODE);
 
     expect(result).toEqual({ verified: true, verificationMethod: 'dns', foundNonMatchingValue: false });
     expect(fetchWithPinnedPublicIpMock).not.toHaveBeenCalled();
@@ -299,7 +309,7 @@ describe('checkDomainVerification', () => {
     resolveTxtMock.mockResolvedValue([['jetstream-verification=stale']]);
     fetchWithPinnedPublicIpMock.mockImplementation(async () => new Response('not found', { status: 404 }));
 
-    const result = await checkDomainVerification(DOMAIN, CODE, { warn: warnMock });
+    const result = await checkDomainVerification(DOMAIN, CODE);
 
     expect(result).toEqual({ verified: false, verificationMethod: null, foundNonMatchingValue: true });
     expect(warnMock).toHaveBeenCalledWith(
@@ -312,7 +322,7 @@ describe('checkDomainVerification', () => {
     resolveTxtMock.mockResolvedValue([['v=spf1 include:_spf.google.com ~all']]);
     fetchWithPinnedPublicIpMock.mockImplementation(async () => new Response('not found', { status: 404 }));
 
-    const result = await checkDomainVerification(DOMAIN, CODE, { warn: warnMock });
+    const result = await checkDomainVerification(DOMAIN, CODE);
 
     expect(result).toEqual({ verified: false, verificationMethod: null, foundNonMatchingValue: false });
   });
@@ -322,7 +332,7 @@ describe('checkDomainVerification', () => {
     // Trailing newline exercises the trim before comparison.
     fetchWithPinnedPublicIpMock.mockResolvedValueOnce(new Response(`${CODE}\n`, { status: 200 }));
 
-    const result = await checkDomainVerification(DOMAIN, CODE, { warn: warnMock });
+    const result = await checkDomainVerification(DOMAIN, CODE);
 
     expect(result).toEqual({ verified: true, verificationMethod: 'file', foundNonMatchingValue: false });
     expect(fetchWithPinnedPublicIpMock).toHaveBeenCalledTimes(1);
@@ -336,7 +346,7 @@ describe('checkDomainVerification', () => {
       .mockResolvedValueOnce(new Response('not found', { status: 404 }))
       .mockResolvedValueOnce(new Response(CODE, { status: 200 }));
 
-    const result = await checkDomainVerification(DOMAIN, CODE, { warn: warnMock });
+    const result = await checkDomainVerification(DOMAIN, CODE);
 
     expect(result).toEqual({ verified: true, verificationMethod: 'file', foundNonMatchingValue: false });
     expect(fetchWithPinnedPublicIpMock.mock.calls[1][0]).toBe('https://www.example.com/.well-known/jetstream-verification.txt');
@@ -346,7 +356,7 @@ describe('checkDomainVerification', () => {
     resolveTxtMock.mockResolvedValue([]);
     fetchWithPinnedPublicIpMock.mockImplementation(async () => new Response('not found', { status: 404 }));
 
-    const result = await checkDomainVerification('www.example.com', CODE, { warn: warnMock });
+    const result = await checkDomainVerification('www.example.com', CODE);
 
     expect(result).toEqual({ verified: false, verificationMethod: null, foundNonMatchingValue: false });
     // Only the stored host is fetched — never `www.www.example.com`.
@@ -358,7 +368,7 @@ describe('checkDomainVerification', () => {
     resolveTxtMock.mockResolvedValue([]);
     fetchWithPinnedPublicIpMock.mockImplementation(async () => new Response('jetstream-verification=stale', { status: 200 }));
 
-    const result = await checkDomainVerification(DOMAIN, CODE, { warn: warnMock });
+    const result = await checkDomainVerification(DOMAIN, CODE);
 
     expect(result).toEqual({ verified: false, verificationMethod: null, foundNonMatchingValue: true });
     expect(warnMock).toHaveBeenCalledWith(
@@ -371,7 +381,7 @@ describe('checkDomainVerification', () => {
     resolveTxtMock.mockResolvedValue([]);
     fetchWithPinnedPublicIpMock.mockImplementation(async () => new Response('<html>404</html>', { status: 404 }));
 
-    const result = await checkDomainVerification(DOMAIN, CODE, { warn: warnMock });
+    const result = await checkDomainVerification(DOMAIN, CODE);
 
     expect(result).toEqual({ verified: false, verificationMethod: null, foundNonMatchingValue: false });
     // Both DNS hosts and both file hosts are tried before giving up.
@@ -383,7 +393,7 @@ describe('checkDomainVerification', () => {
     resolveTxtMock.mockResolvedValue([]);
     fetchWithPinnedPublicIpMock.mockRejectedValue(new Error('Hostname resolves to a private or reserved IP address'));
 
-    const result = await checkDomainVerification(DOMAIN, CODE, { warn: warnMock });
+    const result = await checkDomainVerification(DOMAIN, CODE);
 
     expect(result).toEqual({ verified: false, verificationMethod: null, foundNonMatchingValue: false });
     expect(fetchWithPinnedPublicIpMock).toHaveBeenCalled();

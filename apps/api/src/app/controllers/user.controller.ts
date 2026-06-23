@@ -1,4 +1,4 @@
-import { ENV, logger } from '@jetstream/api-config';
+import { ENV, getLogger } from '@jetstream/api-config';
 import {
   AuthError,
   convertBase32ToHex,
@@ -213,7 +213,7 @@ const getUserProfile = createRoute(routeDefinition.getUserProfile.validators, as
     const userProfile = await userDbService.findIdByUserIdUserFacing({ userId: user.id });
     sendJson(res, userProfile);
   } catch (ex) {
-    res.log.error({ err: ex }, 'Error fetching user profile');
+    getLogger().error({ err: ex }, 'Error fetching user profile');
     req.session.destroy(() => {
       next(new AuthenticationError('Unable to get user profile, please log in again'));
     });
@@ -503,14 +503,14 @@ const deleteAccount = createRoute(routeDefinition.deleteAccount.validators, asyn
       const results = await stripeService.cancelAllSubscriptions({ customerId: userWithSubscriptions.billingAccount.customerId });
       billingResultsJson = JSON.stringify(results);
       billingPortalLinkText = `If you need to access any of your billing information or history, you can continue to do so here: ${ENV.STRIPE_BILLING_PORTAL_LINK}`;
-      logger.info({ requestId, results }, '[ACCOUNT DELETE][CANCEL SUBSCRIPTIONS]');
+      getLogger().info({ requestId, results }, '[ACCOUNT DELETE][CANCEL SUBSCRIPTIONS]');
     }
 
     await userDbService.deleteUserAndAllRelatedData(user.id);
     // Destroy session - don't wait for response
     req.session.destroy((error) => {
       if (error) {
-        req.log.error({ requestId, err: error }, '[ACCOUNT DELETE][ERROR DESTROYING SESSION]');
+        getLogger().error({ requestId, err: error }, '[ACCOUNT DELETE][ERROR DESTROYING SESSION]');
       }
     });
 
@@ -518,7 +518,7 @@ const deleteAccount = createRoute(routeDefinition.deleteAccount.validators, asyn
       await sendGoodbyeEmail(user.email, billingPortalLinkText);
       await sendInternalAccountDeletionEmail(user.id, reason, billingResultsJson);
     } catch (ex) {
-      req.log.error('[ACCOUNT DELETE][ERROR SENDING EMAIL SUMMARY] %s', getErrorMessage(ex));
+      getLogger().error('[ACCOUNT DELETE][ERROR SENDING EMAIL SUMMARY] %s', getErrorMessage(ex));
     }
 
     createUserActivityFromReq(req, res, {
@@ -540,9 +540,9 @@ const deleteAccount = createRoute(routeDefinition.deleteAccount.validators, asyn
     if (ex.isAxiosError) {
       const error: AxiosError = ex;
       if (error.response && error.response.data) {
-        req.log.error({ err: ex }, '[ACCOUNT DELETE][FATAL ERROR] %o', error.response.data);
+        getLogger().error({ err: ex }, '[ACCOUNT DELETE][FATAL ERROR] %o', error.response.data);
       } else if (error.request) {
-        req.log.error({ err: ex }, '[ACCOUNT DELETE][FATAL ERROR] %s', error.message || 'An unknown error has occurred.');
+        getLogger().error({ err: ex }, '[ACCOUNT DELETE][FATAL ERROR] %s', error.message || 'An unknown error has occurred.');
       }
     }
     throw new UserFacingError('There was a problem deleting your account, contact support@getjetstream.app for assistance.');

@@ -1,4 +1,4 @@
-import { ENV } from '@jetstream/api-config';
+import { ENV, getLogger } from '@jetstream/api-config';
 import { getCookieConfig, validateRedirectUrl } from '@jetstream/auth/server';
 import { stringifySetCookie } from 'cookie';
 import * as express from 'express';
@@ -25,7 +25,7 @@ routes.get('/', (req, res, next) => {
 
   // If validation changed the URL, log the attempted redirect
   if (safeRedirectUrl !== redirectUrl) {
-    res.log.warn({ originalUrl: redirectUrl, validatedUrl: safeRedirectUrl }, '[SECURITY] Invalid redirect URL blocked');
+    getLogger().warn({ originalUrl: redirectUrl, validatedUrl: safeRedirectUrl }, '[SECURITY] Invalid redirect URL blocked');
   }
 
   // If the user is logged in, redirect them to desired redirectUrl

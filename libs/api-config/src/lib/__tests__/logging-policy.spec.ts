@@ -27,9 +27,9 @@ describe('logging policy', () => {
       expect(getHttpLogLevel({}, { statusCode: 404 })).toBe('info');
     });
 
-    it('silences 5xx responses to avoid duplicating app-level error logs', () => {
-      expect(getHttpLogLevel({}, { statusCode: 500 })).toBe('silent');
-      expect(getHttpLogLevel({}, { statusCode: 503 })).toBe('silent');
+    it('logs 5xx responses at error so the access line is not lost for server errors', () => {
+      expect(getHttpLogLevel({}, { statusCode: 500 })).toBe('error');
+      expect(getHttpLogLevel({}, { statusCode: 503 })).toBe('error');
     });
 
     it('logs non-5xx request errors at error', () => {

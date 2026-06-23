@@ -1,4 +1,4 @@
-import { DbCacheProvider, ENV } from '@jetstream/api-config';
+import { DbCacheProvider, ENV, getLogger } from '@jetstream/api-config';
 import {
   acceptTos,
   AuthError,
@@ -303,7 +303,7 @@ export const routeDefinition = {
 const logout = createRoute(routeDefinition.logout.validators, async ({}, req, res) => {
   req.session.destroy((err) => {
     if (err) {
-      res.log.error({ err }, '[AUTH][LOGOUT][ERROR] Error destroying session');
+      getLogger().error({ err }, '[AUTH][LOGOUT][ERROR] Error destroying session');
     }
     redirect(res, ENV.JETSTREAM_SERVER_URL);
   });
@@ -794,7 +794,7 @@ const verification = createRoute(
           if (nextAttempts >= MAX_VERIFICATION_ATTEMPTS) {
             // Capture before destroy so the audit row for the abuse event remains attributable.
             const userIdForAudit = req.session.user?.id;
-            res.log.warn(
+            getLogger().warn(
               {
                 userId: userIdForAudit,
                 email: req.session.user?.email,
@@ -806,7 +806,7 @@ const verification = createRoute(
             await new Promise<void>((resolve) => {
               req.session.destroy((destroyErr) => {
                 if (destroyErr) {
-                  res.log.error({ err: destroyErr }, '[AUTH][TOO_MANY_ATTEMPTS][ERROR] Error destroying session');
+                  getLogger().error({ err: destroyErr }, '[AUTH][TOO_MANY_ATTEMPTS][ERROR] Error destroying session');
                 }
                 resolve();
               });
@@ -820,12 +820,12 @@ const verification = createRoute(
 
       // Redirect back to sign in page
       if (isPlaceholderUser) {
-        res.log.info(
+        getLogger().info(
           '[AUTH][PLACEHOLDER_USER] User registration with placeholder user - destroying session and redirecting to login with error',
         );
         req.session.destroy((err) => {
           if (err) {
-            res.log.error({ err }, '[AUTH][PLACEHOLDER_USER][ERROR] Error destroying session');
+            getLogger().error({ err }, '[AUTH][PLACEHOLDER_USER][ERROR] Error destroying session');
           }
           const searchParams = new URLSearchParams({ error: 'InvalidRegistration' });
           sendJson(res, { error: false, redirect: `/auth/login/?${searchParams.toString()}` });
@@ -954,7 +954,7 @@ const resendVerification = createRoute(routeDefinition.resendVerification.valida
         })();
 
     void resendVerificationEmailPromise.catch((error) => {
-      res.log.error({ err: error, userId: req.session.user?.id, type }, 'Failed to resend verification message');
+      getLogger().error({ err: error, userId: req.session.user?.id, type }, 'Failed to resend verification message');
     });
 
     createUserActivityFromReq(req, res, {
@@ -991,10 +991,10 @@ const requestPasswordReset = createRoute(routeDefinition.requestPasswordReset.va
       // which was an account-enumeration timing oracle. Not awaiting it removes that dominant
       // timing gap (the residual DB-work difference between the two paths is negligible by comparison).
       void sendPasswordReset(email, token, PASSWORD_RESET_DURATION_MINUTES).catch((error) => {
-        res.log.error({ err: error, email }, '[AUTH][PASSWORD_RESET] Failed to send password reset email');
+        getLogger().error({ err: error, email }, '[AUTH][PASSWORD_RESET] Failed to send password reset email');
       });
     } catch (ex) {
-      res.log.warn({ email }, `[AUTH][PASSWORD_RESET] ${getErrorMessage(ex)}`);
+      getLogger().warn({ email }, `[AUTH][PASSWORD_RESET] ${getErrorMessage(ex)}`);
       success = false;
     }
     sendJson(res, { error: false });
@@ -1007,7 +1007,7 @@ const requestPasswordReset = createRoute(routeDefinition.requestPasswordReset.va
       success,
     });
   } catch (ex) {
-    res.log.warn(getErrorMessageAndStackObj(ex), `[AUTH][PASSWORD_RESET] Fatal error when processing password reset`);
+    getLogger().warn(getErrorMessageAndStackObj(ex), `[AUTH][PASSWORD_RESET] Fatal error when processing password reset`);
     createUserActivityFromReqWithError(req, res, ex, {
       action: 'PASSWORD_RESET_REQUEST',
       method: 'UNAUTHENTICATED',
@@ -1227,12 +1227,12 @@ const discoverSso = createRoute(routeDefinition.discoverSso.validators, async ({
     const ssoConfig = await discoverSsoConfigByDomain(domain);
 
     if (!ssoConfig || !ssoConfig.ssoEnabled) {
-      res.log.debug({ email, ssoDiscoverSuccess: false }, '[AUTH][DISCOVER_SSO] No SSO configuration found for email domain');
+      getLogger().debug({ email, ssoDiscoverSuccess: false }, '[AUTH][DISCOVER_SSO] No SSO configuration found for email domain');
       sendJson(res, { available: false });
       return;
     }
 
-    res.log.debug({ email, ssoDiscoverSuccess: true }, '[AUTH][DISCOVER_SSO] SSO configuration found for email domain');
+    getLogger().debug({ email, ssoDiscoverSuccess: true }, '[AUTH][DISCOVER_SSO] SSO configuration found for email domain');
     createUserActivityFromReq(req, res, {
       action: 'SSO_DISCOVER',
       method: ssoConfig.ssoProvider,
@@ -1242,7 +1242,7 @@ const discoverSso = createRoute(routeDefinition.discoverSso.validators, async ({
     });
     sendJson(res, { available: true });
   } catch (ex) {
-    res.log.error(getErrorMessageAndStackObj(ex), '[AUTH][DISCOVER_SSO] Error discovering SSO configuration');
+    getLogger().error(getErrorMessageAndStackObj(ex), '[AUTH][DISCOVER_SSO] Error discovering SSO configuration');
     createUserActivityFromReqWithError(req, res, ex, {
       action: 'SSO_DISCOVER',
       email,
@@ -1320,7 +1320,7 @@ const startSso = createRoute(routeDefinition.startSso.validators, async ({ body,
     }
     throw new InvalidProvider('Unsupported SSO provider');
   } catch (ex) {
-    res.log.error({ email, returnUrl, ...getErrorMessageAndStackObj(ex) }, '[AUTH][START_SSO] Error starting SSO');
+    getLogger().error({ email, returnUrl, ...getErrorMessageAndStackObj(ex) }, '[AUTH][START_SSO] Error starting SSO');
     createUserActivityFromReqWithError(req, res, ex, {
       action: 'SSO_START',
       email,
@@ -1408,7 +1408,7 @@ const handleSamlCallback = createRoute(
         redirect(res, returnUrl);
       }
     } catch (ex) {
-      res.log.error(getErrorMessageAndStackObj(ex), '[AUTH][SAML_CALLBACK] Error processing SAML callback');
+      getLogger().error(getErrorMessageAndStackObj(ex), '[AUTH][SAML_CALLBACK] Error processing SAML callback');
       createUserActivityFromReqWithError(req, res, ex, {
         action: 'SSO_LOGIN',
         method: 'SAML',
@@ -1441,7 +1441,7 @@ const getSamlMetadata = createRoute(routeDefinition.getSamlMetadata.validators, 
     res.set('Content-Type', 'application/xml');
     res.send(metadata);
   } catch (ex) {
-    res.log.error(getErrorMessageAndStackObj(ex), '[AUTH][SAML_METADATA] Error generating SAML metadata');
+    getLogger().error(getErrorMessageAndStackObj(ex), '[AUTH][SAML_METADATA] Error generating SAML metadata');
     res.status(500).send('Error generating SAML metadata');
   }
 });
@@ -1477,7 +1477,7 @@ const initiateOidcLogin = createRoute(routeDefinition.initiateOidcLogin.validato
 
     redirect(res, url);
   } catch (ex) {
-    res.log.error(getErrorMessageAndStackObj(ex), '[AUTH][OIDC_INITIATE] Error initiating OIDC login');
+    getLogger().error(getErrorMessageAndStackObj(ex), '[AUTH][OIDC_INITIATE] Error initiating OIDC login');
     createUserActivityFromReqWithError(req, res, ex, {
       action: 'SSO_START',
       method: 'OIDC',
@@ -1573,7 +1573,7 @@ const handleOidcCallback = createRoute(routeDefinition.handleOidcCallback.valida
       redirect(res, returnUrl);
     }
   } catch (ex) {
-    res.log.error(getErrorMessageAndStackObj(ex), '[AUTH][OIDC_CALLBACK] Error processing OIDC callback');
+    getLogger().error(getErrorMessageAndStackObj(ex), '[AUTH][OIDC_CALLBACK] Error processing OIDC callback');
     createUserActivityFromReqWithError(req, res, ex, {
       action: 'SSO_LOGIN',
       method: 'OIDC',

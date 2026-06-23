@@ -1,4 +1,4 @@
-import { ENV, logger } from '@jetstream/api-config';
+import { ENV, getLogger, logger } from '@jetstream/api-config';
 import type { Request, Response } from '@jetstream/api-types';
 import { convertUserProfileToSession_External } from '@jetstream/auth/server';
 import { HTTP, HTTP_SOURCE_DESKTOP } from '@jetstream/shared/constants';
@@ -64,7 +64,7 @@ export function emitSocketEvent({
     }
     broadcastOperator.emit(event, payload);
   } catch (ex) {
-    logger.error({ err: ex, userId, event }, 'Error emitting socket event');
+    getLogger().error({ err: ex, userId, event }, 'Error emitting socket event');
   }
 }
 
@@ -173,11 +173,11 @@ export function initSocketServer(
     const userId = session?.user?.id as string | undefined;
     const deviceId = session?.deviceId as string | undefined;
 
-    logger.debug(
-      { socketId: socket.id, userId: session?.user?.id || 'unknown', sessionId: session?.id },
-      '[SOCKET][CONNECT] %s',
-      socket.id,
-    );
+    // Socket lifecycle is not a single async scope (events fire over time), so bind a
+    // per-connection child logger instead of relying on AsyncLocalStorage here.
+    const socketLogger = logger.child({ socketId: socket.id, userId: userId || 'unknown', sessionId, deviceId });
+
+    socketLogger.debug('[SOCKET][CONNECT] %s', socket.id);
 
     if (userId) {
       socket.join(userId);
@@ -192,11 +192,11 @@ export function initSocketServer(
     }
 
     socket.on('disconnect', (reason) => {
-      logger.debug({ socketId: socket.id, userId: userId || 'unknown' }, '[SOCKET][DISCONNECT] %s', reason);
+      socketLogger.debug('[SOCKET][DISCONNECT] %s', reason);
     });
 
     socket.on('error', (err) => {
-      logger.error({ socketId: socket.id, userId: userId || 'unknown', err }, '[SOCKET][ERROR] %s', err.message);
+      socketLogger.error({ err }, '[SOCKET][ERROR] %s', err.message);
     });
   });
 

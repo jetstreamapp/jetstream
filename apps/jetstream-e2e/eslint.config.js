@@ -1,3 +1,4 @@
+/* eslint-disable @nx/enforce-module-boundaries */
 const { FlatCompat } = require('@eslint/eslintrc');
 const js = require('@eslint/js');
 const baseConfig = require('../../eslint.config.js');

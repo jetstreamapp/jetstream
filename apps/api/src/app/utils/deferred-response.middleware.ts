@@ -1,7 +1,7 @@
-import { ENV } from '@jetstream/api-config';
+import { ENV, getLogger } from '@jetstream/api-config';
 import type { DeferredResponseState, Response } from '@jetstream/api-types';
 import { HTTP } from '@jetstream/shared/constants';
-import type { NextFunction, Request, Response as ExpressResponse } from 'express';
+import type { Response as ExpressResponse, NextFunction, Request } from 'express';
 import { setCookieHeaders } from './response.handlers';
 
 export type { DeferredResponseState };
@@ -42,8 +42,8 @@ export function deferredResponseMiddleware(req: Request, res: Response, next: Ne
 
       const elapsedMs = Date.now() - deferred.startTime;
 
-      res.log.warn(
-        { requestId: res.locals.requestId, method: req.method, url: req.originalUrl, elapsedMs },
+      getLogger().warn(
+        { method: req.method, url: req.originalUrl, elapsedMs },
         '[DEFERRED][ACTIVATED] Response deferred due to slow upstream',
       );
 
@@ -67,8 +67,8 @@ export function deferredResponseMiddleware(req: Request, res: Response, next: Ne
         res.write(' ');
         deferred.keepaliveCount++;
       } catch (ex) {
-        res.log.error(
-          { requestId: res.locals.requestId, elapsedMs: Date.now() - deferred.startTime, err: ex },
+        getLogger().error(
+          { elapsedMs: Date.now() - deferred.startTime, err: ex },
           '[DEFERRED][WRITE_ERROR] Failed to write initial keepalive',
         );
         cleanupDeferred(deferred);
@@ -90,13 +90,13 @@ export function deferredResponseMiddleware(req: Request, res: Response, next: Ne
           try {
             res.write(' ');
             deferred.keepaliveCount++;
-            res.log.debug(
-              { requestId: res.locals.requestId, keepaliveCount: deferred.keepaliveCount, elapsedMs: Date.now() - deferred.startTime },
+            getLogger().debug(
+              { keepaliveCount: deferred.keepaliveCount, elapsedMs: Date.now() - deferred.startTime },
               '[DEFERRED][KEEPALIVE]',
             );
           } catch (ex) {
-            res.log.error(
-              { requestId: res.locals.requestId, elapsedMs: Date.now() - deferred.startTime, err: ex },
+            getLogger().error(
+              { elapsedMs: Date.now() - deferred.startTime, err: ex },
               '[DEFERRED][WRITE_ERROR] Failed to write keepalive, destroying stream',
             );
             cleanupDeferred(deferred);
@@ -117,8 +117,8 @@ export function deferredResponseMiddleware(req: Request, res: Response, next: Ne
   // Clean up timers if client disconnects
   req.on('close', () => {
     if (deferred.active) {
-      res.log.warn(
-        { requestId: res.locals.requestId, elapsedMs: Date.now() - deferred.startTime },
+      getLogger().warn(
+        { elapsedMs: Date.now() - deferred.startTime },
         '[DEFERRED][CLIENT_DISCONNECT] Client disconnected during deferred response',
       );
     }
@@ -146,9 +146,7 @@ export function writeDeferredResponse(res: Response | ExpressResponse, body: unk
 
   const writeStartedAt = Date.now();
   const elapsedMs = writeStartedAt - deferred.startTime;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const resLog = (res as any).log;
-  const requestId = res.locals?.requestId;
+  const resLog = getLogger();
 
   // Attach lifecycle listeners BEFORE writing, so we can tell whether the body actually flushed.
   // 'finish' = handed off to OS for transmission. 'close' before 'finish' = peer hung up
@@ -157,9 +155,8 @@ export function writeDeferredResponse(res: Response | ExpressResponse, body: unk
   let finished = false;
   res.once('finish', () => {
     finished = true;
-    resLog?.info(
+    resLog.info(
       {
-        requestId,
         elapsedMs: Date.now() - deferred.startTime,
         writeMs: Date.now() - writeStartedAt,
         keepaliveCount: deferred.keepaliveCount,
@@ -171,9 +168,8 @@ export function writeDeferredResponse(res: Response | ExpressResponse, body: unk
     if (finished) {
       return;
     }
-    resLog?.warn(
+    resLog.warn(
       {
-        requestId,
         elapsedMs: Date.now() - deferred.startTime,
         writeMs: Date.now() - writeStartedAt,
         keepaliveCount: deferred.keepaliveCount,
@@ -182,9 +178,8 @@ export function writeDeferredResponse(res: Response | ExpressResponse, body: unk
     );
   });
   res.once('error', (err) => {
-    resLog?.error(
+    resLog.error(
       {
-        requestId,
         elapsedMs: Date.now() - deferred.startTime,
         writeMs: Date.now() - writeStartedAt,
         err,
@@ -202,10 +197,7 @@ export function writeDeferredResponse(res: Response | ExpressResponse, body: unk
     deferred.active = false;
   } catch (ex) {
     deferred.active = false;
-    resLog?.error(
-      { requestId: res.locals?.requestId, elapsedMs, err: ex },
-      '[DEFERRED][WRITE_ERROR] Failed to write deferred response body',
-    );
+    resLog.error({ elapsedMs, err: ex }, '[DEFERRED][WRITE_ERROR] Failed to write deferred response body');
     try {
       // Only write fallback error if JSON.stringify failed (not after a partial res.write)
       // A partial write + fallback would produce unparseable JSON for the client

@@ -1,4 +1,4 @@
-import { ENV, errorTracker } from '@jetstream/api-config';
+import { ENV, errorTracker, getLogger } from '@jetstream/api-config';
 import { Request, Response } from '@jetstream/api-types';
 import { getApiAddressFromReq } from '@jetstream/auth/server';
 import { AuthenticatedUser, CookieOptions, UserProfileSession } from '@jetstream/auth/types';
@@ -99,7 +99,6 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
   onErrorHandler?: (error: unknown, req: Request<unknown, unknown, unknown>, res: Response, next: NextFunction) => void,
 ) {
   return async (req: Request<unknown, unknown, unknown>, res: Response, next: NextFunction) => {
-    const logger = res.log || req.log;
     try {
       res.locals.ipAddress = getApiAddressFromReq(req);
       res.locals.cookies = res.locals.cookies || {};
@@ -131,11 +130,11 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         },
       };
       if (hasSourceOrg && !data.jetstreamConn) {
-        logger.warn('[INIT-ORG][ERROR] A source org did not exist on locals');
+        getLogger().warn('[INIT-ORG][ERROR] A source org did not exist on locals');
         return next(new UserFacingError('An org is required for this action'));
       }
       if (hasTargetOrg && !data.targetJetstreamConn) {
-        logger.warn('[INIT-ORG][ERROR] A target org did not exist on locals');
+        getLogger().warn('[INIT-ORG][ERROR] A target org did not exist on locals');
         return next(new UserFacingError('A source and target org are required for this action'));
       }
       try {
@@ -143,7 +142,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         await controllerFn(data as any, req, res, next);
       } catch (ex) {
         if (logErrorToBugTracker) {
-          logger.error({ err: ex }, 'Logging error to bug tracker');
+          getLogger().error({ err: ex }, 'Logging error to bug tracker');
           errorTracker.error(ex, req, {
             url: req.url,
             params: req.params,
@@ -160,7 +159,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         next(new UserFacingError(ex));
       }
     } catch (ex) {
-      logger.warn({ err: ex }, '[ROUTE][VALIDATION ERROR]');
+      getLogger().warn({ err: ex }, '[ROUTE][VALIDATION ERROR]');
       if (logErrorToBugTracker) {
         errorTracker.error(ex, req, {
           url: req.url,

@@ -1,4 +1,4 @@
-import { ENV, logger } from '@jetstream/api-config';
+import { ENV, getLogger } from '@jetstream/api-config';
 import type { Request, Response } from '@jetstream/api-types';
 import { refreshSessionUser } from '@jetstream/auth/server';
 import { STRIPE_PRICE_KEYS, TeamMemberRole, TeamMemberRoleSchema, UserProfileUi } from '@jetstream/types';
@@ -106,7 +106,7 @@ const createCheckoutSessionHandler = createRoute(
 
     const priceId = await stripeService.fetchPrices({ lookupKeys: STRIPE_PRICE_KEYS }).then((prices) => prices[priceLookupKey]?.id);
     if (!priceId) {
-      res.log.error({ priceLookupKey }, 'Price lookup key not found');
+      getLogger().error({ priceLookupKey }, 'Price lookup key not found');
       throw new UserFacingError(`There was a problem initializing your billing session`);
     }
 
@@ -200,7 +200,7 @@ const getSubscriptionsHandler = createRoute(routeDefinition.getSubscriptions.val
     stripeCustomer: internalCustomer,
   } = await stripeService.synchronizeStripeWithJetstreamIfRequiredForTeamOrUser({ userId: user.id, teamId });
   if (!success) {
-    logger.error({ userId: user.id }, `Did not synchronize Stripe with Jetstream: ${reason}`);
+    getLogger().error({ userId: user.id }, `Did not synchronize Stripe with Jetstream: ${reason}`);
     sendJson(res, { customer: null, pricesByLookupKey: null, hasManualBilling: false, didUpdate });
     return;
   }

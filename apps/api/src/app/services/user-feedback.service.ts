@@ -1,4 +1,4 @@
-import { ENV, errorTracker, logger } from '@jetstream/api-config';
+import { ENV, errorTracker, getLogger } from '@jetstream/api-config';
 import { sendUserFeedbackEmail } from '@jetstream/email';
 import { Request } from 'express';
 import fs from 'node:fs/promises';
@@ -94,7 +94,7 @@ export async function handleUserFeedbackEmail(
     userId,
   });
 
-  logger.info({ userId, feedbackType: type, hasAttachments: !!files?.length }, 'User feedback submitted');
+  getLogger().info({ userId, feedbackType: type, hasAttachments: !!files?.length }, 'User feedback submitted');
 }
 
 export async function cleanupFeedbackAttachments(req: Request, loggerInfo: Record<string, unknown>) {
@@ -109,9 +109,9 @@ export async function cleanupFeedbackAttachments(req: Request, loggerInfo: Recor
     if (results.some((result) => result.status === 'rejected')) {
       throw new Error('Error deleting one or more temp feedback attachment files');
     }
-    (req.log || logger).info({ filePaths, ...loggerInfo }, 'Temp feedback attachment files cleaned up');
+    getLogger().info({ filePaths, ...loggerInfo }, 'Temp feedback attachment files cleaned up');
   } catch (ex) {
-    (req.log || logger).error({ err: ex, ...loggerInfo }, 'Error during cleanup of feedback attachments');
+    getLogger().error({ err: ex, ...loggerInfo }, 'Error during cleanup of feedback attachments');
     errorTracker.error('Error during cleanup of feedback attachments', req, ex, {
       context: `user-feedback.service#cleanupFeedbackAttachments`,
       ...loggerInfo,

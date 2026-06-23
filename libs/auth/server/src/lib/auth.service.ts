@@ -1,4 +1,4 @@
-import { ENV, logger } from '@jetstream/api-config';
+import { ENV, enrichRequestContext, getLogger } from '@jetstream/api-config';
 import type { Request, Response } from '@jetstream/api-types';
 import { OauthProviderType, Providers, ResponseLocalsCookies, SessionIpData } from '@jetstream/auth/types';
 import { GeoIpLookupResponse } from '@jetstream/types';
@@ -186,7 +186,7 @@ export async function verifyCSRFFromRequestOrThrow(csrfToken: string, cookieStri
       throw new InvalidCsrfToken();
     }
   } catch (ex) {
-    logger.error({ err: ex }, '[ERROR] verifyCSRFFromRequestOrThrow');
+    getLogger().error({ err: ex }, '[ERROR] verifyCSRFFromRequestOrThrow');
     throw new InvalidCsrfToken();
   }
 }
@@ -327,7 +327,7 @@ export async function lookupGeoLocationFromIpAddresses(
       };
     });
   } catch (ex) {
-    logger.warn({ err: ex }, 'Geo-IP lookup failed');
+    getLogger().warn({ err: ex }, 'Geo-IP lookup failed');
     return ipAddresses.map((ipAddress) => ({ ipAddress, location: null }));
   }
 }
@@ -349,7 +349,7 @@ export function initSession(
     req.session.regenerate((error) => {
       try {
         if (error) {
-          logger.error({ err: error }, '[AUTH][INIT_SESSION][ERROR] Error regenerating session');
+          getLogger().error({ err: error }, '[AUTH][INIT_SESSION][ERROR] Error regenerating session');
           reject(new AuthError('Error initializing session'));
           return;
         }
@@ -371,6 +371,7 @@ export function initSession(
         req.session.provider = provider;
         req.session.providerAccountId = providerAccountId;
         req.session.user = user;
+        enrichRequestContext({ userId: user.id, sessionId: req.session.id });
         req.session.pendingMfaEnrollment = undefined;
         req.session.pendingVerification = undefined;
         req.session.pendingVerificationAttempts = 0;
@@ -416,7 +417,7 @@ export function initSession(
 
         resolve();
       } catch (ex) {
-        logger.error({ err: ex }, '[AUTH][INIT_SESSION][ERROR] Error initializing session');
+        getLogger().error({ err: ex }, '[AUTH][INIT_SESSION][ERROR] Error initializing session');
         reject(new AuthError('Error initializing session'));
       }
     });
@@ -433,4 +434,5 @@ export async function refreshSessionUser(req: Request<unknown, unknown, unknown>
 
   const user = await findUserById_UNSAFE(req.session.user.id);
   req.session.user = user;
+  enrichRequestContext({ userId: user?.id, sessionId: req.session.id });
 }

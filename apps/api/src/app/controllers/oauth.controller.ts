@@ -1,4 +1,4 @@
-import { ENV, logger } from '@jetstream/api-config';
+import { ENV, getLogger } from '@jetstream/api-config';
 import { AuditLogAction, AuditLogResource, createTeamAuditLog } from '@jetstream/audit-logs';
 import { getApiAddressFromReq } from '@jetstream/auth/server';
 import { ApiConnection, ApiRequestError, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
@@ -97,7 +97,7 @@ const salesforceOauthCallback = createRoute(
         returnParams.message = queryParams.error_description
           ? (queryParams.error_description as string)
           : 'There was an error authenticating with Salesforce.';
-        res.log.warn(
+        getLogger().warn(
           {
             hasCode: !!queryParams.code,
             error: queryParams.error,
@@ -115,7 +115,7 @@ const salesforceOauthCallback = createRoute(
         returnParams.message = queryParams.error_description
           ? (queryParams.error_description as string)
           : 'There was an error authenticating with Salesforce.';
-        res.log.warn(
+        getLogger().warn(
           {
             hasCode: !!queryParams.code,
             error: queryParams.error,
@@ -155,7 +155,7 @@ const salesforceOauthCallback = createRoute(
         apiVersion: ENV.SFDC_API_VERSION,
         instanceUrl: (userInfo.urls?.custom_domain as string) || loginUrl,
         refreshToken: refresh_token,
-        logger: res.log || req.log || logger,
+        logger: getLogger(),
         enableLogging: ENV.LOG_LEVEL === 'trace',
       });
 
@@ -209,7 +209,7 @@ const salesforceOauthCallback = createRoute(
         };
       }
 
-      res.log.warn(errorLogObj, '[OAUTH][ERROR]');
+      getLogger().warn(errorLogObj, '[OAUTH][ERROR]');
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
@@ -237,7 +237,7 @@ export async function initConnectionFromOAuthResponse({
       companyInfoRecord = results.records[0];
     }
   } catch (ex) {
-    logger.warn({ userId, err: ex }, 'Error getting org info %o', ex);
+    getLogger().warn({ userId, err: ex }, 'Error getting org info %o', ex);
     if (ex instanceof ApiRequestError && ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED.test(getErrorMessage(ex))) {
       throw new Error(ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED_MSG);
     }
@@ -276,7 +276,7 @@ export async function initConnectionFromOAuthResponse({
     try {
       salesforceOrgUi.jetstreamOrganizationId = (await jetstreamOrganizationsDb.findById({ id: orgGroupId, userId })).id;
     } catch (ex) {
-      logger.warn(
+      getLogger().warn(
         { userId, jetstreamOrganizationId: orgGroupId, err: ex },
         'Error getting jetstream org with provided id %s',
         getErrorMessage(ex),

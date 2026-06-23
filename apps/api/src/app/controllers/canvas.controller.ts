@@ -1,4 +1,4 @@
-import { ENV } from '@jetstream/api-config';
+import { ENV, getLogger } from '@jetstream/api-config';
 import { salesforceCanvasOauthCallback, SalesforceCanvasOauthInit } from '@jetstream/salesforce-oauth';
 import { getErrorMessage, urlSearchParamsToJson } from '@jetstream/shared/utils';
 import { Canvas } from '@jetstream/types';
@@ -66,7 +66,7 @@ const callbackHandler = createRoute(routeDefinition.callbackHandler.validators, 
     if (queryParams.error) {
       returnParams.error = queryParams.error;
       returnParams.message = queryParams.error_description || 'There was an error authenticating with Salesforce.';
-      res.log.warn(
+      getLogger().warn(
         {
           hasCode: !!queryParams.code,
           error: queryParams.error,
@@ -92,7 +92,7 @@ const callbackHandler = createRoute(routeDefinition.callbackHandler.validators, 
     );
     returnParams.success = 'true';
   } catch (error) {
-    res.log.warn({ ...returnParams, error: getErrorMessage(error) }, '[CANVAS][AUTH_ERROR]');
+    getLogger().warn({ ...returnParams, error: getErrorMessage(error) }, '[CANVAS][AUTH_ERROR]');
     returnParams.error = 'unknown_error';
     returnParams.message = returnParams.message || getErrorMessage(error) || 'unknown_error';
   }
@@ -134,7 +134,7 @@ const appHandler = createRoute(routeDefinition.appHandler.validators, async ({ b
     } else if (signed_request) {
       // Verify and decode the signed request
       envelope = verifyAndDecodeAsJson(signed_request, clientSecret);
-      res.log.info(
+      getLogger().info(
         {
           authType: envelope?.context?.application?.authType,
           appName: envelope?.context?.application?.name,
@@ -182,7 +182,7 @@ const appHandler = createRoute(routeDefinition.appHandler.validators, async ({ b
 
     res.status(200).send(fileContents);
   } catch (error) {
-    res.log.error({ error: getErrorMessage(error) }, '[CANVAS][VERIFICATION_ERROR]');
+    getLogger().error({ error: getErrorMessage(error) }, '[CANVAS][VERIFICATION_ERROR]');
     res.status(401).send({
       status: 'error',
       message: error instanceof Error ? error.message : 'Failed to verify signed request',

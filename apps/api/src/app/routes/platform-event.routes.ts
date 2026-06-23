@@ -1,4 +1,4 @@
-import { ENV, logger } from '@jetstream/api-config';
+import { ENV, getLogger } from '@jetstream/api-config';
 import { HTTP } from '@jetstream/shared/constants';
 import express, { Router } from 'express';
 import https from 'https';
@@ -18,7 +18,7 @@ function getAllowedProxyOrigins(): Set<string> {
       origins.add(new URL(url).origin);
     } catch {
       // A malformed URL shrinks the allowlist and every cross-origin request 403s, so make the cause findable.
-      logger.warn({ envVarName, url }, '[PLATFORM-EVENT] Ignoring malformed URL when building the allowed origin list');
+      getLogger().warn({ envVarName, url }, '[PLATFORM-EVENT] Ignoring malformed URL when building the allowed origin list');
     }
   }
   return origins;
@@ -35,7 +35,7 @@ routes.use(checkAuth);
 routes.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
   const origin = req.headers.origin;
   if (origin && !ALLOWED_PROXY_ORIGINS.has(origin)) {
-    res.log.warn({ origin }, '[PLATFORM-EVENT][FORBIDDEN-ORIGIN]');
+    getLogger().warn({ origin }, '[PLATFORM-EVENT][FORBIDDEN-ORIGIN]');
     res.status(403).send('Forbidden');
     return;
   }
@@ -59,7 +59,7 @@ routes.use('/', async (req: express.Request, res: express.Response, next: expres
     const proxyPath = req.originalUrl.replace('/platform-event', `/cometd/${ENV.SFDC_API_VERSION}`);
     const proxyUrl = `${jetstreamConn.sessionInfo.instanceUrl}${proxyPath}`;
 
-    res.log.debug({ proxyUrl }, '[PROXY][REQUEST]');
+    getLogger().debug({ proxyUrl }, '[PROXY][REQUEST]');
 
     const forwardedCookie = stripJetstreamCookies(req.headers.cookie);
     const headers: Record<string, string | string[] | undefined> = {
@@ -103,12 +103,12 @@ routes.use('/', async (req: express.Request, res: express.Response, next: expres
           proxyResponse.pipe(res, { end: true });
         })
         .on('error', (err) => {
-          logger.error({ err }, '[PROXY][EXCEPTION]');
+          getLogger().error({ err }, '[PROXY][EXCEPTION]');
           next(err);
         }),
     );
   } catch (err) {
-    logger.error({ err }, '[PROXY][EXCEPTION]');
+    getLogger().error({ err }, '[PROXY][EXCEPTION]');
     next(err);
   }
 });
