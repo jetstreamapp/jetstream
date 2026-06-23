@@ -7,6 +7,7 @@ import { AppLoading, JetstreamLogoInverse } from '@jetstream/ui-core';
 import { DEFAULT_PROFILE, fromAppState } from '@jetstream/ui/app-state';
 import { useAtom, useSetAtom } from 'jotai';
 import { useCallback, useEffect, useState } from 'react';
+import { LoginUpdateNotification } from './LoginUpdateNotification';
 
 // 12 hours in milliseconds
 const CHECK_AUTH_TIMER_INTERVAL = 12 * 60 * 60 * 1000;
@@ -118,7 +119,12 @@ export function Login({ children }: LoginProps) {
    * Loading
    */
   if (loading) {
-    return <AppLoading />;
+    return (
+      <>
+        <AppLoading />
+        <LoginUpdateNotification />
+      </>
+    );
   }
 
   /**
@@ -162,11 +168,13 @@ export function Login({ children }: LoginProps) {
         <button
           css={css`
             background-image: linear-gradient(to right, #14b8a6, #0891b2);
-            color: rgba(255, 255, 255);
+            color: #ffffff;
             border-color: transparent;
             text-wrap-mode: nowrap;
-            :hover {
+            :hover,
+            :focus {
               background-image: linear-gradient(to right, #0d9488, #0e7490);
+              color: #ffffff;
             }
             app-region: no-drag;
           `}
@@ -176,6 +184,7 @@ export function Login({ children }: LoginProps) {
           Login
         </button>
       </Grid>
+      <LoginUpdateNotification />
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { ENV, logger } from '@jetstream/api-config';
 import { convertUserProfileToSession_External, InvalidAccessToken } from '@jetstream/auth/server';
 import { TokenSource, UserProfileSession } from '@jetstream/auth/types';
 import { HTTP } from '@jetstream/shared/constants';
-import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { Maybe, UserProfileUi } from '@jetstream/types';
 import { randomUUID } from 'crypto';
 import { fromUnixTime } from 'date-fns';
@@ -31,6 +31,57 @@ export const TOKEN_EXPIRATION_SHORT = 60 * 60 * 24 * 7 * 1000; // 7 days
 const SECONDS_PER_DAY = 60 * 60 * 24;
 
 export type Audience = typeof AUDIENCE_WEB_EXT | typeof AUDIENCE_DESKTOP;
+
+/**
+ * Coarse, non-sensitive classification of why external auth failed. Surfaced to the client and logs
+ * so a failure is legible at a glance (e.g. entitlement vs. a bad/rotated token) instead of a blanket
+ * "Unauthorized" that requires a server-log dig. Intentionally low-resolution so we don't leak which
+ * specific check failed.
+ */
+export type ExternalAuthFailureReason = 'invalid_token' | 'token_expired' | 'not_entitled' | 'inactive' | 'unknown';
+
+/**
+ * Single source of truth for the in-house auth-failure messages thrown by {@link verifyToken}. The
+ * throw sites and the classifier both reference these constants (and {@link REASON_BY_MESSAGE}), so
+ * rewording a message cannot silently degrade the coarse reason that the client renders.
+ */
+export const EXTERNAL_AUTH_FAILURE_MESSAGE = {
+  INVALID_FOR_DEVICE: 'Access token is invalid for device',
+  INVALID_FOR_USER: 'Access token is invalid for user',
+  USER_NOT_ACTIVE: 'User is not active',
+  WEB_EXT_NOT_ENABLED: 'Browser extension is not enabled',
+  DESKTOP_NOT_ENABLED: 'Desktop application is not enabled',
+} as const;
+
+const REASON_BY_MESSAGE: Record<string, ExternalAuthFailureReason> = {
+  [EXTERNAL_AUTH_FAILURE_MESSAGE.INVALID_FOR_DEVICE]: 'invalid_token',
+  [EXTERNAL_AUTH_FAILURE_MESSAGE.INVALID_FOR_USER]: 'invalid_token',
+  [EXTERNAL_AUTH_FAILURE_MESSAGE.USER_NOT_ACTIVE]: 'inactive',
+  [EXTERNAL_AUTH_FAILURE_MESSAGE.WEB_EXT_NOT_ENABLED]: 'not_entitled',
+  [EXTERNAL_AUTH_FAILURE_MESSAGE.DESKTOP_NOT_ENABLED]: 'not_entitled',
+};
+
+export function classifyExternalAuthFailure(ex: unknown): ExternalAuthFailureReason {
+  const message = getErrorMessage(ex);
+
+  // In-house failures map deterministically from their (single-source-of-truth) message.
+  const knownReason = REASON_BY_MESSAGE[message];
+  if (knownReason) {
+    return knownReason;
+  }
+
+  // Foreign errors (e.g. fast-jwt signature/expiry) only expose a message string, so fall back to
+  // narrow substring checks. Kept deliberately conservative so a genuinely unexpected error surfaces
+  // as 'unknown' rather than being mislabeled as a bad token.
+  const lowerMessage = message.toLowerCase();
+  if (lowerMessage.includes('expired')) {
+    return 'token_expired';
+  }
+  if (lowerMessage.includes('signature') || lowerMessage.includes('malformed')) {
+    return 'invalid_token';
+  }
+  return 'unknown';
+}
 
 /**
  * Returns true when the access token expires within `withinDays` days (or is already expired).
@@ -195,15 +246,15 @@ export async function verifyToken(
   const userAccessToken = await webExtDb.findByAccessTokenAndDeviceId({ deviceId, token, type: webExtDb.TOKEN_TYPE_AUTH });
   const entitlements = userAccessToken?.user?.teamMembership?.team?.entitlements || userAccessToken?.user?.entitlements;
   if (!userAccessToken) {
-    throw new InvalidAccessToken('Access token is invalid for device');
+    throw new InvalidAccessToken(EXTERNAL_AUTH_FAILURE_MESSAGE.INVALID_FOR_DEVICE);
   } else if (userAccessToken.user.teamMembership && userAccessToken.user.teamMembership.status !== 'ACTIVE') {
-    throw new InvalidAccessToken('User is not active');
+    throw new InvalidAccessToken(EXTERNAL_AUTH_FAILURE_MESSAGE.USER_NOT_ACTIVE);
   } else if (decodedPayload?.userProfile?.id !== userAccessToken.userId) {
-    throw new InvalidAccessToken('Access token is invalid for user');
+    throw new InvalidAccessToken(EXTERNAL_AUTH_FAILURE_MESSAGE.INVALID_FOR_USER);
   } else if (audience === AUDIENCE_WEB_EXT && !entitlements?.chromeExtension) {
-    throw new InvalidAccessToken('Browser extension is not enabled');
+    throw new InvalidAccessToken(EXTERNAL_AUTH_FAILURE_MESSAGE.WEB_EXT_NOT_ENABLED);
   } else if (audience === AUDIENCE_DESKTOP && !entitlements?.desktop) {
-    throw new InvalidAccessToken('Desktop application is not enabled');
+    throw new InvalidAccessToken(EXTERNAL_AUTH_FAILURE_MESSAGE.DESKTOP_NOT_ENABLED);
   }
 
   const { jwtVerifier } = prepareJwtFns(userAccessToken.userId, TOKEN_EXPIRATION, audience);
@@ -263,10 +314,11 @@ export async function getUserAndDeviceIdForExternalAuth(
         user = convertUserProfileToSession_External(userFromCache.userProfile);
       }
     }
-    return { user, deviceId };
+    return { user, deviceId, reason: undefined as ExternalAuthFailureReason | undefined };
   } catch (ex) {
-    res.log.warn({ audience, deviceId, ...getErrorMessageAndStackObj(ex) }, '[EXTERNAL-AUTH][AUTH ERROR] Error decoding token');
-    return { user: null, deviceId };
+    const reason = classifyExternalAuthFailure(ex);
+    res.log.warn({ audience, deviceId, reason, ...getErrorMessageAndStackObj(ex) }, '[EXTERNAL-AUTH][AUTH ERROR] Error decoding token');
+    return { user: null, deviceId, reason };
   }
 }
 
@@ -292,9 +344,9 @@ export function addDeviceIdToLocals(req: express.Request, res: express.Response,
 export function getExternalAuthMiddleware(audience: Audience, options?: ExternalAuthMiddlewareOptions) {
   return async (req: express.Request, res: express.Response, next: express.NextFunction) => {
     try {
-      const { deviceId, user } = await getUserAndDeviceIdForExternalAuth(audience, req, res, options);
+      const { deviceId, user, reason } = await getUserAndDeviceIdForExternalAuth(audience, req, res, options);
       if (!user) {
-        throw new AuthenticationError('Unauthorized', { skipLogout: true });
+        throw new AuthenticationError('Unauthorized', { skipLogout: true, reason: reason ?? 'unknown' });
       }
       req.externalAuth = {
         deviceId,
@@ -307,7 +359,11 @@ export function getExternalAuthMiddleware(audience: Audience, options?: External
         { audience, deviceId: getDeviceId(req, res), ...getErrorMessageAndStackObj(ex) },
         '[EXTERNAL AUTH ERROR] Error decoding token',
       );
-      next(new AuthenticationError('Unauthorized', { skipLogout: true }));
+      // Preserve the coarse reason from the inner failure when present, otherwise classify whatever
+      // bubbled up here, so the response/logs always carry a cause instead of a blanket "Unauthorized".
+      const reason =
+        ex instanceof AuthenticationError && ex.additionalData?.reason ? ex.additionalData.reason : classifyExternalAuthFailure(ex);
+      next(new AuthenticationError('Unauthorized', { skipLogout: true, reason }));
     }
   };
 }

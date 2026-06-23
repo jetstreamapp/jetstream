@@ -1,7 +1,13 @@
 import { UserProfileUi } from '@jetstream/types';
 import { Mock, vi } from 'vitest';
 import * as webExtDb from '../../db/web-extension.db';
-import { AUDIENCE_WEB_EXT, isTokenWithinRefreshWindow, rotateToken } from '../external-auth.service';
+import {
+  AUDIENCE_WEB_EXT,
+  classifyExternalAuthFailure,
+  EXTERNAL_AUTH_FAILURE_MESSAGE,
+  isTokenWithinRefreshWindow,
+  rotateToken,
+} from '../external-auth.service';
 import { decryptJwtTokenOrPlaintext, hashToken } from '../jwt-token-encryption.service';
 
 const SECONDS_PER_DAY = 60 * 60 * 24;
@@ -177,6 +183,36 @@ describe('external-auth.service', () => {
       const token = makeTokenWithExp(nowSeconds + 5 * SECONDS_PER_DAY);
       expect(isTokenWithinRefreshWindow(token, 2)).toBe(false);
       expect(isTokenWithinRefreshWindow(token, 7)).toBe(true);
+    });
+  });
+
+  describe('classifyExternalAuthFailure', () => {
+    // Pins each in-house failure message to its coarse reason so a reword (or a dropped
+    // REASON_BY_MESSAGE entry) fails loudly instead of silently mis-routing the client message.
+    it.each([
+      [EXTERNAL_AUTH_FAILURE_MESSAGE.INVALID_FOR_DEVICE, 'invalid_token'],
+      [EXTERNAL_AUTH_FAILURE_MESSAGE.INVALID_FOR_USER, 'invalid_token'],
+      [EXTERNAL_AUTH_FAILURE_MESSAGE.USER_NOT_ACTIVE, 'inactive'],
+      [EXTERNAL_AUTH_FAILURE_MESSAGE.WEB_EXT_NOT_ENABLED, 'not_entitled'],
+      [EXTERNAL_AUTH_FAILURE_MESSAGE.DESKTOP_NOT_ENABLED, 'not_entitled'],
+    ])('maps in-house message "%s" to its coarse reason', (message, expected) => {
+      expect(classifyExternalAuthFailure(new Error(message))).toBe(expected);
+    });
+
+    it('classifies a fast-jwt signature failure as invalid_token', () => {
+      expect(classifyExternalAuthFailure(new Error('The token signature is invalid.'))).toBe('invalid_token');
+    });
+
+    it('classifies a malformed-token error as invalid_token', () => {
+      expect(classifyExternalAuthFailure(new Error('The token is malformed.'))).toBe('invalid_token');
+    });
+
+    it('classifies an expired-token error as token_expired', () => {
+      expect(classifyExternalAuthFailure(new Error('The token has expired at 1970-01-01T00:00:00.000Z'))).toBe('token_expired');
+    });
+
+    it('falls back to unknown for unrelated errors', () => {
+      expect(classifyExternalAuthFailure(new Error('Database connection lost'))).toBe('unknown');
     });
   });
 });

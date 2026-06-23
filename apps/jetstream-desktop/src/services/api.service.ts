@@ -72,14 +72,16 @@ async function parseAuthResponse<T extends z.ZodTypeAny>(
     };
   }
 
-  let payload: unknown;
+  let body: { data?: unknown; message?: unknown } | undefined;
   try {
-    payload = (await response.json())?.data;
+    body = await response.json();
   } catch (ex) {
     logger.error(`${label}: JSON parse error`, { status, url: response.url, ex });
     // Server claimed JSON but body didn't parse — same situation as above, don't kick the user out.
     return { success: false, networkError: true, error: `Could not parse server response (status ${status}).` };
   }
+
+  const payload = body?.data;
 
   if (!response.ok) {
     logger.warn(`${label}: non-2xx response`, { status, url: response.url, payload });
@@ -88,16 +90,45 @@ async function parseAuthResponse<T extends z.ZodTypeAny>(
   const results = schema.safeParse(payload);
   if (!results.success) {
     logger.warn(`${label}: schema mismatch`, { status, payload, zodError: results.error });
-    return {
-      success: false,
-      error:
-        typeof (payload as { error?: unknown })?.error === 'string'
-          ? ((payload as { error: string }).error as string)
-          : `Unexpected response shape from server (status ${status}).`,
-    };
+    return { success: false, error: toAuthErrorMessage(status, payload, body) };
   }
 
   return results.data;
+}
+
+/**
+ * Build a user-facing message from an auth response the schema couldn't parse.
+ *
+ * The server returns transport flags in `data` (e.g. `{ skipLogout: true, reason }`) while the
+ * human-readable text lives at the top level (`message`). We check both and fall back to a friendly,
+ * action-oriented message for auth failures rather than exposing the raw response shape to the user.
+ */
+export function toAuthErrorMessage(status: number, payload: unknown, body: { message?: unknown } | undefined): string {
+  // A deliberate `{ success: false, error }` from the server is already user-appropriate.
+  const dataError = (payload as { error?: unknown })?.error;
+  if (typeof dataError === 'string' && dataError) {
+    return dataError;
+  }
+
+  // Coarse failure reason surfaced by the auth middleware lets us tailor the message.
+  const reason = (payload as { reason?: unknown })?.reason;
+  if (reason === 'not_entitled') {
+    return 'Your account is not enabled for this app. Please contact support if you believe this is an error.';
+  }
+  if (reason === 'inactive') {
+    return 'Your account is not active. Please contact your administrator.';
+  }
+
+  if (status === 401) {
+    return 'Your session is invalid or has expired. Please sign in again.';
+  }
+
+  // Fall back to the server's top-level message when it's meaningful (skip the bare "Unauthorized").
+  if (typeof body?.message === 'string' && body.message && body.message.toLowerCase() !== 'unauthorized') {
+    return body.message;
+  }
+
+  return `Unexpected response from server (status ${status}).`;
 }
 
 export async function logout({ accessToken, deviceId }: { deviceId: string; accessToken: string }) {
