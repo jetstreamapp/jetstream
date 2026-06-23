@@ -177,6 +177,13 @@ const envSchema = z.object({
       .default('DEVELOPMENT_SECRET'),
   ),
   JETSTREAM_SESSION_SECRET: z.string().min(32, { message: 'JETSTREAM_SESSION_SECRET must be at least 32 characters' }),
+  // Base64-encoded DER (PKCS8) ECDSA P-256 private key used to sign feature flags returned from /api/me.
+  // Optional: when unset the signing service falls back to an insecure dev key (warns in production).
+  // Generate a pair with: node -e "const c=require('crypto');const {publicKey,privateKey}=c.generateKeyPairSync('ec',{namedCurve:'P-256'});console.log('JETSTREAM_FEATURE_FLAG_PRIVATE_KEY',privateKey.export({type:'pkcs8',format:'der'}).toString('base64'));console.log('NX_PUBLIC_FEATURE_FLAG_PUBLIC_KEY',publicKey.export({type:'spki',format:'der'}).toString('base64'))"
+  JETSTREAM_FEATURE_FLAG_PRIVATE_KEY: z
+    .string()
+    .optional()
+    .transform((val) => val || null),
   // SSO Configuration
   JETSTREAM_SAML_SP_ENTITY_ID_PREFIX: z.string(),
   JETSTREAM_SAML_ACS_PATH_PREFIX: z.string().default('/api/auth/sso/saml'),

@@ -212,6 +212,9 @@ export const UserProfileUiSchema = z.object({
       }),
     })
     .nullish(),
+  // Resolved feature flags for this user (code defaults + DB overrides).
+  featureFlags: z.record(z.string(), z.boolean()).default({}),
+  featureFlagsSignature: z.string().nullish(),
 });
 
 export type UserProfileUi = z.infer<typeof UserProfileUiSchema>;

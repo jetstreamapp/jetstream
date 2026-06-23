@@ -29,6 +29,7 @@ describe('acl', () => {
           recordSync: false,
         },
         subscriptions: [],
+        featureFlags: {},
       };
 
       const ability = getUserAbility({ user });
@@ -56,6 +57,7 @@ describe('acl', () => {
           recordSync: false,
         },
         subscriptions: [],
+        featureFlags: {},
         teamMembership: {
           role: 'BILLING',
           status: 'ACTIVE',
@@ -86,6 +88,7 @@ describe('acl', () => {
         preferences: { skipFrontdoorLogin: false, recordSyncEnabled: false },
         entitlements: { googleDrive: false, chromeExtension: false, desktop: false, recordSync: false },
         subscriptions: [],
+        featureFlags: {},
         teamMembership: {
           role: 'ADMIN',
           status: 'ACTIVE',
@@ -125,6 +128,7 @@ describe('acl', () => {
           recordSync: false,
         },
         subscriptions: [],
+        featureFlags: {},
       };
 
       it('should grant profile access in web app', () => {
@@ -249,6 +253,7 @@ describe('acl', () => {
           recordSync: false,
         },
         subscriptions: [],
+        featureFlags: {},
       };
 
       it('should not grant profile access in desktop app', () => {
@@ -282,6 +287,7 @@ describe('acl', () => {
         recordSync: false,
       },
       subscriptions: [],
+      featureFlags: {},
     };
 
     it('should return empty rules for no user', () => {

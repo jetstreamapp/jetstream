@@ -1,15 +1,26 @@
 import { css } from '@emotion/react';
 import { IconName, IconType } from '@jetstream/icon-factory';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
+import { FeatureFlagKey } from '@jetstream/types';
 import { Badge, Icon, ScopedNotification } from '@jetstream/ui';
+import { featureFlagsState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
+import { useAtomValue } from 'jotai';
 import { Fragment } from 'react';
 import { Link } from 'react-router-dom';
 import { AppHomeAlternativeApplicationFormats } from './AppHomeAlternativeApplicationFormats';
 import { AppHomeOrgExpirationBanner } from './AppHomeOrgExpirationBanner';
 import { AppHomeOrganizations } from './AppHomeOrganizations';
 
-const HOME_ITEMS = [
+interface AppHomeItem {
+  title: string;
+  icon: { type: IconType; icon: IconName };
+  items: (typeof APP_ROUTES)[keyof typeof APP_ROUTES][];
+  /** Optional feature flag gate — when set, the card only renders if the flag is enabled for the user. */
+  flag?: FeatureFlagKey;
+}
+
+const HOME_ITEMS: AppHomeItem[] = [
   {
     title: 'Query',
     icon: { type: 'standard', icon: 'record_lookup' },
@@ -56,6 +67,8 @@ interface AppHomeProps {
 }
 
 export const AppHome = ({ showAlternativeAppFormats, hideConnectedAppBanner = false }: AppHomeProps) => {
+  const featureFlags = useAtomValue(featureFlagsState);
+  const visibleHomeItems = HOME_ITEMS.filter((card) => !card.flag || featureFlags[card.flag]);
   return (
     <div
       className="slds-m-top_small"
@@ -126,14 +139,14 @@ export const AppHome = ({ showAlternativeAppFormats, hideConnectedAppBanner = fa
           )}
         </div>
         <AppHomeOrganizations />
-        {HOME_ITEMS.map((card) => (
+        {visibleHomeItems.map((card) => (
           <div key={card.title} className="slds-card slds-box_x-small">
             <article className="slds-tile slds-media">
               <div className="slds-media__figure">
                 {card.icon && (
                   <Icon
-                    type={card.icon.type as IconType}
-                    icon={card.icon.icon as IconName}
+                    type={card.icon.type}
+                    icon={card.icon.icon}
                     containerClassname="slds-icon_container"
                     className={classNames(
                       'slds-icon slds-icon_container slds-icon_small',

@@ -12,7 +12,7 @@ import {
   SalesforceOrgServer,
   UserProfileUiDesktop,
 } from '@jetstream/desktop/types';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { DEFAULT_FEATURE_FLAGS, SalesforceOrgUi } from '@jetstream/types';
 import { createCipheriv, createDecipheriv, randomBytes, randomUUID } from 'crypto';
 import { fromUnixTime } from 'date-fns';
 import { app, safeStorage } from 'electron';
@@ -288,6 +288,7 @@ export function getFullUserProfile() {
     },
     teamMembership: appData.userProfile.teamMembership,
     subscriptions: [],
+    featureFlags: { ...DEFAULT_FEATURE_FLAGS },
   };
 
   return userProfile;
