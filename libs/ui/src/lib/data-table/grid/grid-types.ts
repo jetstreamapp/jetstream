@@ -226,6 +226,9 @@ export interface ColumnWithFilter<TRow = RowWithKey, TSummaryRow = unknown> {
   editable?: boolean | ((row: TRow) => boolean);
   renderEditCell?: (props: DataTableEditorProps<TRow, TSummaryRow>) => ReactNode;
   editorOptions?: ColumnEditorOptions;
+
+  /** Opaque per-column bag for consumers (e.g. Salesforce Field describe). The grid never reads this. */
+  meta?: Record<string, unknown>;
 }
 
 export type DefaultColumnOptions<TRow = RowWithKey, TSummaryRow = unknown> = Partial<
@@ -310,7 +313,8 @@ export type ContextAction =
   | 'COPY_COL_NO_HEADER'
   | 'COPY_TABLE'
   | 'COPY_TABLE_JSON'
-  | 'COPY_TABLE_CSV';
+  | 'COPY_TABLE_CSV'
+  | 'VIEW_FIELD_METADATA';
 
 export type ContextMenuActionData<T> = {
   row: T;

@@ -68,6 +68,9 @@ export interface GridContainerProps<TRow> {
   contextMenuItems?: ContextMenuItems<TRow>;
   /** Right-click context menu action handler (must be stable). */
   contextMenuAction?: (item: ContextMenuItem, data: ContextMenuActionData<TRow>) => void;
+  /** Consumer-supplied builder for extra per-column header menu items, appended to the static header
+   * items. Routed through `contextMenuAction` on selection (with `actionData.column`). Must be stable. */
+  getColumnHeaderMenuItems?: (columnId: string) => ContextMenuItem[];
   /** Slot for editor popovers / context menu portals rendered as siblings of the grid. */
   children?: ReactNode;
 }
@@ -89,6 +92,7 @@ export function GridContainer<TRow = RowWithKey>({
   summaryRowHeight,
   contextMenuItems,
   contextMenuAction,
+  getColumnHeaderMenuItems,
   children,
 }: GridContainerProps<TRow>) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -396,17 +400,35 @@ export function GridContainer<TRow = RowWithKey>({
   );
   const handleHeaderContextMenu = useCallback(
     (event: React.MouseEvent, columnId: string) => {
-      if (event.ctrlKey || event.metaKey || !headerContextMenuItems.length || NON_DATA_COLUMN_KEYS.has(columnId)) {
+      // Append any consumer-supplied per-column items (e.g. "View field metadata") to the static
+      // column-scoped copy actions.
+      const extraItems = getColumnHeaderMenuItems?.(columnId) ?? [];
+      const items = [...headerContextMenuItems, ...extraItems];
+      // Every header item is dispatched through `contextMenuAction` on selection — without it the menu
+      // would open but be unusable (selections become no-ops), so don't present it.
+      if (event.ctrlKey || event.metaKey || !contextMenuAction || !items.length || NON_DATA_COLUMN_KEYS.has(columnId)) {
         return;
       }
       event.preventDefault();
       const element = event.currentTarget as HTMLElement;
-      // Column/table copy operates over the whole column — anchor the action data on the first leaf row.
-      const actionData = buildCellActionData(getSortedFilteredLeafRows(table)[0]?.id ?? '', columnId);
+      // Column/table actions operate over the whole column — anchor on the first leaf row when present.
+      // Build the payload directly (rather than via buildCellActionData) so header-only actions like
+      // "View field metadata", which read just the column, still fire when the table has no rows.
+      const leafRows = getSortedFilteredLeafRows(table);
+      const column = table.getColumn(columnId)?.columnDef.meta?.jetstream?.column;
+      const actionData: ContextMenuActionData<TRow> | null = column
+        ? {
+            row: leafRows[0]?.original as TRow,
+            rows: leafRows.map((modelRow) => modelRow.original),
+            rowIdx: leafRows.length ? 0 : -1,
+            column,
+            columns: orderedColumns,
+          }
+        : null;
       setContextMenu(null);
-      setTimeout(() => setContextMenu({ area: 'header', columnId, element, items: headerContextMenuItems, actionData }));
+      setTimeout(() => setContextMenu({ area: 'header', columnId, element, items, actionData }));
     },
-    [headerContextMenuItems, table, buildCellActionData],
+    [headerContextMenuItems, table, orderedColumns, getColumnHeaderMenuItems, contextMenuAction],
   );
 
   // Closing the menu can strand DOM focus on <body> (the menu auto-focuses its items and unmounts on
