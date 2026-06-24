@@ -1,11 +1,20 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { SFDC_BULK_API_NULL_VALUE } from '@jetstream/shared/constants';
-import { queryAll } from '@jetstream/shared/data';
+import { queryAll, queryAllFromList } from '@jetstream/shared/data';
+import { escapeSoqlString } from '@jetstream/shared/ui-utils';
+import { splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { DescribeGlobalSObjectResult, ListItem, Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import { Query, composeQuery, getField, isQueryValid } from '@jetstreamapp/soql-parser-js';
 import lodashGet from 'lodash/get';
 import isNil from 'lodash/isNil';
 import { MetadataRow, MetadataRowConfiguration } from './mass-update-records.types';
+
+/**
+ * Max number of record Ids to include in a single `WHERE Id IN (...)` query when re-fetching a
+ * specific set of records (selected / filtered). 18-char Ids quoted ≈ 21 chars each, so 500 keeps
+ * each query well under Salesforce's 100k character SOQL limit.
+ */
+const ID_CHUNK_SIZE = 500;
 
 export const startsWithWhereRgx = /^( )*WHERE( )*/i;
 
@@ -185,20 +194,27 @@ export function composeSoqlQueryCustomWhereClause(row: MetadataRow, fields: stri
 }
 
 /**
- * Used from places where records are already fetched (query results)
+ * Used from places where records are already fetched (query results).
+ *
+ * When `idsToInclude` is provided (the user chose a specific set of records — selected, filtered, or the
+ * first browser set), only those records are re-fetched via chunked `WHERE Id IN (...)` queries instead of
+ * downloading the entire result set and filtering client-side. When omitted (All records), the full query
+ * is re-run. Pass `signal` to allow cancellation and `onProgress` to report fetch progress.
  */
 export async function fetchRecordsWithRequiredFields({
   selectedOrg,
-  records: existingRecords,
   parsedQuery,
   idsToInclude,
   configuration,
+  signal,
+  onProgress,
 }: {
   selectedOrg: SalesforceOrgUi;
-  records: SalesforceRecord[];
   parsedQuery: Query;
   idsToInclude?: Set<string>;
   configuration: MetadataRowConfiguration[];
+  signal?: AbortSignal;
+  onProgress?: (fetched: number, total: number) => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 }): Promise<any[]> {
   // selectedField is required so that transformationOptions.criteria can be applied to records
@@ -218,17 +234,33 @@ export async function fetchRecordsWithRequiredFields({
     }
   });
 
-  // Re-fetch records - this may not always be required, but for consistency this will happen every time
-  parsedQuery = { ...parsedQuery, fields: Array.from(fieldsRequiredInRecords).map((field) => getField(field)) };
-  const { queryResults } = await queryAll(selectedOrg, composeQuery(parsedQuery));
-  let { records } = queryResults;
+  const fields = Array.from(fieldsRequiredInRecords).map((field) => getField(field));
 
-  // if user has filtered/selected records, only include those
+  // Re-fetch only the specific records the user chose, querying by Id instead of the full result set.
   if (idsToInclude) {
-    records = records.filter((record) => idsToInclude.has(record.Id));
+    const idsToFetch = Array.from(idsToInclude);
+    if (idsToFetch.length === 0) {
+      return [];
+    }
+    // Build a minimal query (drop the original WHERE/LIMIT/ORDER BY); the Id list is already the exact set.
+    const baseSoql = composeQuery({ sObject: parsedQuery.sObject, fields });
+    const soqlQueries = splitArrayToMaxSize(idsToFetch, ID_CHUNK_SIZE).map(
+      (idChunk) => `${baseSoql} WHERE Id IN (${idChunk.map((id) => `'${escapeSoqlString(id)}'`).join(',')})`,
+    );
+    const { queryResults } = await queryAllFromList(
+      selectedOrg,
+      soqlQueries,
+      false,
+      false,
+      (fetched) => onProgress?.(fetched, idsToFetch.length),
+      signal,
+    );
+    return queryResults.records;
   }
 
-  return records;
+  // All records - re-run the original query (criteria is applied client-side downstream)
+  const { queryResults } = await queryAll(selectedOrg, composeQuery({ ...parsedQuery, fields }), false, false, onProgress, signal);
+  return queryResults.records;
 }
 
 export function prepareRecords(

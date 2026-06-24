@@ -9,6 +9,7 @@ import {
   Input,
   Modal,
   NotSeeingRecentMetadataPopover,
+  ProgressIndicator,
   RADIO_ALL_BROWSER,
   RADIO_ALL_SERVER,
   RADIO_FILTERED,
@@ -21,18 +22,20 @@ import {
 import {
   DEFAULT_FIELD_CONFIGURATION,
   DeployResults,
+  fetchRecordsWithRequiredFields,
   MassUpdateRecordsDeploymentRow,
   MassUpdateRecordsObjectRow,
   MetadataRowConfiguration,
-  fetchRecordsWithRequiredFields,
   useDeployRecords,
 } from '@jetstream/ui-core';
 import { Query } from '@jetstreamapp/soql-parser-js';
 import { useAtom } from 'jotai';
 import { atomWithReset, useAtomCallback, useResetAtom } from 'jotai/utils';
 import isNumber from 'lodash/isNumber';
-import { ChangeEvent, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { buildProposedChanges, ProposedChangesResult } from './bulk-update-preview.utils';
 import BulkUpdateFromQueryRecordSelection from './BulkUpdateFromQueryRecordSelection';
+import BulkUpdateProposedChangesPreview from './BulkUpdateProposedChangesPreview';
 
 const MAX_BATCH_SIZE = 10000;
 const IN_PROGRESS_STATUSES = new Set<DeployResults['status']>(['In Progress - Preparing', 'In Progress - Uploading', 'In Progress']);
@@ -99,16 +102,15 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
   const [deployResults, setDeployResults] = useAtom(deployResultsState);
   const [didDeploy, setDidDeploy] = useState(false);
   const resetDeployResults = useResetAtom(deployResultsState);
+  const [mode, setMode] = useState<'configure' | 'preview'>('configure');
+  const [recordsToLoad, setRecordsToLoad] = useState<SalesforceRecord[]>([]);
+  const [proposedChanges, setProposedChanges] = useState<ProposedChangesResult | null>(null);
+  // Tracks the in-flight preview fetch so it can be cancelled (modal close, Back, unmount, or Cancel button)
+  const previewFetchAbortRef = useRef<AbortController | null>(null);
+  const [isFetchingPreview, setIsFetchingPreview] = useState(false);
+  const [fetchProgress, setFetchProgress] = useState<{ fetched: number; total: number } | null>(null);
 
-  const targetedRecordCount = useMemo(() => {
-    if (downloadRecordsValue === RADIO_ALL_BROWSER || downloadRecordsValue === RADIO_ALL_SERVER) {
-      return totalRecordCount;
-    }
-    if (downloadRecordsValue === RADIO_FILTERED) {
-      return filteredRecords.length;
-    }
-    return selectedRecords.length;
-  }, [downloadRecordsValue, filteredRecords.length, selectedRecords.length, totalRecordCount]);
+  const impactedRecordCount = proposedChanges?.impactedRecordIds.length ?? 0;
 
   // this allows the pollResults to have a stable data source for updated data
   const getDeploymentResults = useAtomCallback(useCallback((get) => [{ deployResults: get(deployResultsState), sobject }], [sobject]));
@@ -150,6 +152,11 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
     }
   }, [batchSize, batchSizeError]);
 
+  // Cancel any in-flight preview fetch when the modal unmounts
+  useEffect(() => () => previewFetchAbortRef.current?.abort(), []);
+
+  const handleCancelPreviewFetch = () => previewFetchAbortRef.current?.abort();
+
   async function init() {
     resetDeployResults();
     setLoading(true);
@@ -179,8 +186,71 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
     }
   }
 
-  const handleLoadRecords = async () => {
+  const handlePreview = async () => {
     if (batchSizeError || !isValid || !selectedConfig || selectedConfig.some(({ selectedField }) => !selectedField)) {
+      return;
+    }
+
+    // Abort any in-flight preview fetch so a slower prior request can't finish last and overwrite newer results with stale data
+    previewFetchAbortRef.current?.abort();
+
+    const abortController = new AbortController();
+    previewFetchAbortRef.current = abortController;
+
+    try {
+      setErrorMessage(null);
+      setLoading(true);
+      setIsFetchingPreview(true);
+      setFetchProgress(null);
+
+      // if records need to be re-fetched from the server, ensure that we only keep records that user wants to work with
+      let idsToInclude: Set<string> | undefined;
+      if (downloadRecordsValue === RADIO_ALL_BROWSER && hasMoreRecords) {
+        idsToInclude = new Set(records.map((record) => record.Id || getRecordIdFromAttributes(record)));
+      } else if (downloadRecordsValue === RADIO_FILTERED) {
+        idsToInclude = new Set(filteredRecords.map((record) => record.Id || getRecordIdFromAttributes(record)));
+      } else if (downloadRecordsValue === RADIO_SELECTED) {
+        idsToInclude = new Set(selectedRecords.map((record) => record.Id || getRecordIdFromAttributes(record)));
+      }
+
+      const fetchedRecords = await fetchRecordsWithRequiredFields({
+        selectedOrg,
+        parsedQuery,
+        idsToInclude,
+        configuration: selectedConfig,
+        signal: abortController.signal,
+        onProgress: (fetched, total) => setFetchProgress({ fetched, total }),
+      });
+
+      const changes = buildProposedChanges(fetchedRecords, selectedConfig);
+
+      if (changes.impactedRecordIds.length === 0) {
+        setErrorMessage('No records match the criteria, so there are no changes to preview.');
+        return;
+      }
+
+      setRecordsToLoad(fetchedRecords);
+      setProposedChanges(changes);
+      setMode('preview');
+    } catch (ex) {
+      // User cancelled the fetch (modal close, Back, or Cancel button) - not an error
+      if (abortController.signal.aborted) {
+        return;
+      }
+      setFatalError('There was a problem loading records. Please try again.');
+      tracker.error('Error previewing bulk update records', ex);
+    } finally {
+      if (previewFetchAbortRef.current === abortController) {
+        previewFetchAbortRef.current = null;
+      }
+      setIsFetchingPreview(false);
+      setFetchProgress(null);
+      setLoading(false);
+    }
+  };
+
+  const handleCommit = async () => {
+    if (!proposedChanges || proposedChanges.impactedRecordIds.length === 0) {
       return;
     }
 
@@ -196,28 +266,14 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
         status: 'In Progress - Preparing',
       });
 
-      // if records need to be re-fetched from the server, ensure that we only keep records that user wants to work with
-      let idsToInclude: Set<string> | undefined;
-      if (downloadRecordsValue === RADIO_ALL_BROWSER && hasMoreRecords) {
-        idsToInclude = new Set(records.map((record) => record.Id || getRecordIdFromAttributes(record)));
-      } else if (downloadRecordsValue === RADIO_FILTERED) {
-        idsToInclude = new Set(filteredRecords.map((record) => record.Id || getRecordIdFromAttributes(record)));
-      } else if (downloadRecordsValue === RADIO_SELECTED) {
-        idsToInclude = new Set(selectedRecords.map((record) => record.Id || getRecordIdFromAttributes(record)));
-      }
-
-      const recordsToLoad = await fetchRecordsWithRequiredFields({
-        selectedOrg,
-        records,
-        parsedQuery,
-        idsToInclude,
-        configuration: selectedConfig,
-      });
+      // Only commit the records shown in the preview (those that actually meet the criteria)
+      const impactedRecordIds = new Set(proposedChanges.impactedRecordIds);
+      const recordsToCommit = recordsToLoad.filter((record) => impactedRecordIds.has(record.Id || getRecordIdFromAttributes(record)));
 
       setLoading(true);
 
       await loadDataForProvidedRecords({
-        records: recordsToLoad,
+        records: recordsToCommit,
         sobject,
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         fields: ['Id', ...selectedConfig.map(({ selectedField }) => selectedField!).filter(Boolean)],
@@ -232,6 +288,19 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleBackToEdit = () => {
+    previewFetchAbortRef.current?.abort();
+    setMode('configure');
+    setProposedChanges(null);
+    setRecordsToLoad([]);
+    setErrorMessage(null);
+  };
+
+  const handleClose = () => {
+    previewFetchAbortRef.current?.abort();
+    onModalClose(didDeploy);
   };
 
   function handleBatchSize(event: ChangeEvent<HTMLInputElement>) {
@@ -263,28 +332,48 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
       closeDisabled={deployInProgress}
       footer={
         <Grid align="spread">
-          <NotSeeingRecentMetadataPopover
-            org={selectedOrg}
-            loading={refreshLoading}
-            disabled={deployInProgress}
-            onReload={handleRefreshMetadata}
-          />
+          {mode === 'configure' ? (
+            <NotSeeingRecentMetadataPopover
+              org={selectedOrg}
+              loading={refreshLoading}
+              disabled={deployInProgress}
+              onReload={handleRefreshMetadata}
+            />
+          ) : (
+            <span />
+          )}
           <div>
-            <button className="slds-button slds-button_neutral" disabled={deployInProgress} onClick={() => onModalClose(didDeploy)}>
+            {mode === 'preview' && !didDeploy && (
+              <button className="slds-button slds-button_neutral" disabled={loading || deployInProgress} onClick={handleBackToEdit}>
+                Back
+              </button>
+            )}
+            <button className="slds-button slds-button_neutral" disabled={deployInProgress} onClick={handleClose}>
               Close
             </button>
-            <button
-              className="slds-button slds-button_brand"
-              onClick={handleLoadRecords}
-              disabled={!isValid || loading || !!batchSizeError || deployInProgress || !!fatalError}
-            >
-              Update {formatNumber(targetedRecordCount)} {pluralizeFromNumber('Record', targetedRecordCount)}
-            </button>
+            {mode === 'configure' && (
+              <button
+                className="slds-button slds-button_brand"
+                onClick={handlePreview}
+                disabled={!isValid || loading || !!batchSizeError || deployInProgress || !!fatalError}
+              >
+                Preview Proposed Changes
+              </button>
+            )}
+            {mode === 'preview' && !didDeploy && (
+              <button
+                className="slds-button slds-button_brand"
+                onClick={handleCommit}
+                disabled={loading || deployInProgress || !!fatalError}
+              >
+                Update {formatNumber(impactedRecordCount)} {pluralizeFromNumber('Record', impactedRecordCount)}
+              </button>
+            )}
           </div>
         </Grid>
       }
       overrideZIndex={1001}
-      onClose={() => onModalClose(didDeploy)}
+      onClose={handleClose}
     >
       <div
         className="slds-is-relative"
@@ -292,91 +381,144 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
           min-height: 50vh;
         `}
       >
-        {loading && <Spinner />}
+        {isFetchingPreview ? (
+          <div
+            css={css`
+              position: absolute;
+              inset: 0;
+              z-index: 2;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              gap: 0.75rem;
+              background: rgba(255, 255, 255, 0.85);
+            `}
+          >
+            <div
+              css={css`
+                width: 60%;
+                min-width: 300px;
+              `}
+            >
+              <ProgressIndicator
+                currentValue={fetchProgress && fetchProgress.total ? (fetchProgress.fetched / fetchProgress.total) * 100 : 0}
+                isIndeterminate={!fetchProgress}
+              />
+            </div>
+            <p className="slds-text-body_small">
+              {fetchProgress
+                ? `Fetching ${formatNumber(fetchProgress.fetched)} of ${formatNumber(fetchProgress.total)} ${pluralizeFromNumber(
+                    'record',
+                    fetchProgress.total,
+                  )}`
+                : 'Fetching records…'}
+            </p>
+            <button className="slds-button slds-button_neutral" onClick={handleCancelPreviewFetch}>
+              Cancel
+            </button>
+          </div>
+        ) : (
+          loading && <Spinner />
+        )}
         {(errorMessage || fatalError) && (
           <ScopedNotification theme="error" className="slds-m-around_small">
             {errorMessage || fatalError}
           </ScopedNotification>
         )}
 
-        <BulkUpdateFromQueryRecordSelection
-          disabled={deployInProgress || !!fatalError}
-          hasMoreRecords={hasMoreRecords}
-          downloadRecordsValue={downloadRecordsValue}
-          parsedQuery={parsedQuery}
-          records={records}
-          filteredRecords={filteredRecords}
-          selectedRecords={selectedRecords}
-          totalRecordCount={totalRecordCount}
-          onChange={setDownloadRecordsValue}
-        />
-
-        <MassUpdateRecordsObjectRow
-          org={selectedOrg}
-          className={'slds-is-relative slds-item read-only'}
-          sobject={sobject}
-          loading={false}
-          fields={fields}
-          valueFields={valueFields}
-          fieldConfigurations={selectedConfig}
-          hasExternalWhereClause={!!parsedQuery.where}
-          disabled={loading || deployInProgress || !!fatalError}
-          onFieldChange={(index, field, metadata) => {
-            setSelectedConfig((prev) => {
-              const newConfig = [...prev];
-              let transformationOptions = newConfig[index].transformationOptions;
-              if (transformationOptions.staticValue) {
-                transformationOptions = { ...transformationOptions, staticValue: '' };
-              }
-              newConfig[index] = { selectedField: field, selectedFieldMetadata: metadata, transformationOptions };
-              return newConfig;
-            });
-          }}
-          onOptionsChange={(index, _, transformationOptions) => {
-            setSelectedConfig((prev) => {
-              const newConfig = [...prev];
-              newConfig[index] = { ...newConfig[index], transformationOptions };
-              return newConfig;
-            });
-          }}
-          onLoadChildFields={loadChildFields}
-          filterCriteriaFn={(field) => field.value !== 'custom'}
-          onAddField={() => setSelectedConfig((prev) => [...prev, { ...DEFAULT_FIELD_CONFIGURATION }])}
-          onRemoveField={(_, index) => setSelectedConfig((prev) => prev.toSpliced(index, 1))}
-        />
-
-        <Section id="mass-update-deploy-options" label="Advanced Options" initialExpanded={false}>
-          <div className="slds-p-around_xx-small slds-text-body_small">
-            You may need to adjust these options if you are experiencing governor limits.
-          </div>
-          <Checkbox
-            id={'serial-mode'}
-            checked={serialMode}
-            label={'Serial Mode'}
-            labelHelp="Serial mode processes the batches one-by-one instead of parallel."
-            disabled={loading || deployInProgress}
-            onChange={setSerialMode}
-          />
-          <Input
-            id="batch-size"
-            label="Batch Size"
-            isRequired={true}
-            hasError={!!batchSizeError}
-            errorMessageId="batch-size-error"
-            errorMessage={batchSizeError}
-            labelHelp="The batch size determines how many records will be modified at a time. Only change this if you are experiencing issues with Salesforce governor limits."
-          >
-            <input
-              id="batch-size"
-              className="slds-input"
-              placeholder="Set batch size"
-              value={batchSize || ''}
-              aria-describedby={batchSizeError ? 'batch-size-error' : undefined}
-              disabled={loading || deployInProgress}
-              onChange={handleBatchSize}
+        {mode === 'configure' && (
+          <>
+            <BulkUpdateFromQueryRecordSelection
+              disabled={deployInProgress || !!fatalError}
+              hasMoreRecords={hasMoreRecords}
+              downloadRecordsValue={downloadRecordsValue}
+              parsedQuery={parsedQuery}
+              records={records}
+              filteredRecords={filteredRecords}
+              selectedRecords={selectedRecords}
+              totalRecordCount={totalRecordCount}
+              onChange={setDownloadRecordsValue}
             />
-          </Input>
-        </Section>
+
+            <MassUpdateRecordsObjectRow
+              org={selectedOrg}
+              className={'slds-is-relative slds-item read-only'}
+              sobject={sobject}
+              loading={false}
+              fields={fields}
+              valueFields={valueFields}
+              fieldConfigurations={selectedConfig}
+              hasExternalWhereClause={!!parsedQuery.where}
+              disabled={loading || deployInProgress || !!fatalError}
+              onFieldChange={(index, field, metadata) => {
+                setSelectedConfig((prev) => {
+                  const newConfig = [...prev];
+                  let transformationOptions = newConfig[index].transformationOptions;
+                  if (transformationOptions.staticValue) {
+                    transformationOptions = { ...transformationOptions, staticValue: '' };
+                  }
+                  newConfig[index] = { selectedField: field, selectedFieldMetadata: metadata, transformationOptions };
+                  return newConfig;
+                });
+              }}
+              onOptionsChange={(index, _, transformationOptions) => {
+                setSelectedConfig((prev) => {
+                  const newConfig = [...prev];
+                  newConfig[index] = { ...newConfig[index], transformationOptions };
+                  return newConfig;
+                });
+              }}
+              onLoadChildFields={loadChildFields}
+              filterCriteriaFn={(field) => field.value !== 'custom'}
+              onAddField={() => setSelectedConfig((prev) => [...prev, { ...DEFAULT_FIELD_CONFIGURATION }])}
+              onRemoveField={(_, index) => setSelectedConfig((prev) => prev.toSpliced(index, 1))}
+            />
+
+            <Section id="mass-update-deploy-options" label="Advanced Options" initialExpanded={false}>
+              <div className="slds-p-around_xx-small slds-text-body_small">
+                You may need to adjust these options if you are experiencing governor limits.
+              </div>
+              <Checkbox
+                id={'serial-mode'}
+                checked={serialMode}
+                label={'Serial Mode'}
+                labelHelp="Serial mode processes the batches one-by-one instead of parallel."
+                disabled={loading || deployInProgress}
+                onChange={setSerialMode}
+              />
+              <Input
+                id="batch-size"
+                label="Batch Size"
+                isRequired={true}
+                hasError={!!batchSizeError}
+                errorMessageId="batch-size-error"
+                errorMessage={batchSizeError}
+                labelHelp="The batch size determines how many records will be modified at a time. Only change this if you are experiencing issues with Salesforce governor limits."
+              >
+                <input
+                  id="batch-size"
+                  className="slds-input"
+                  placeholder="Set batch size"
+                  value={batchSize || ''}
+                  aria-describedby={batchSizeError ? 'batch-size-error' : undefined}
+                  disabled={loading || deployInProgress}
+                  onChange={handleBatchSize}
+                />
+              </Input>
+            </Section>
+          </>
+        )}
+
+        {mode === 'preview' && !didDeploy && proposedChanges && (
+          <BulkUpdateProposedChangesPreview
+            org={selectedOrg}
+            sobject={sobject}
+            proposedChanges={proposedChanges}
+            configuration={selectedConfig}
+            totalFetched={recordsToLoad.length}
+          />
+        )}
 
         {deployResults.status !== 'Not Started' && (
           <MassUpdateRecordsDeploymentRow

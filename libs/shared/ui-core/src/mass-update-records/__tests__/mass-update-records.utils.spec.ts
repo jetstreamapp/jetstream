@@ -1,10 +1,16 @@
+import * as clientData from '@jetstream/shared/data';
+import { parseQuery } from '@jetstreamapp/soql-parser-js';
+import { beforeEach, vi } from 'vitest';
 import {
   composeSoqlQueryCustomWhereClause,
   composeSoqlQueryOptionalCustomWhereClause,
+  fetchRecordsWithRequiredFields,
   getFieldsToQuery,
   isValidRow,
   prepareRecords,
 } from '../mass-update-records.utils';
+
+vi.mock('@jetstream/shared/data');
 
 describe('mass-update-records.utils#isValidRow', () => {
   test('Should return true if all are valid', () => {
@@ -546,5 +552,129 @@ describe('mass-update-records.utils#prepareRecords', () => {
     expect(record1.Name).toBe('Jenny Jenny');
     expect(record2.Name).toBe(null);
     expect(record3.Name).toBe('Jenny Jenny');
+  });
+});
+
+describe('mass-update-records.utils#fetchRecordsWithRequiredFields', () => {
+  const selectedOrg = { uniqueId: 'org1' } as any;
+  const configuration = [
+    {
+      selectedField: 'Industry',
+      transformationOptions: {
+        criteria: 'onlyIfNotBlank',
+        option: 'staticValue',
+        staticValue: 'Tech',
+        alternateField: null,
+        whereClause: '',
+      },
+    },
+  ] as any;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('Should query only the chosen records by Id when idsToInclude is provided', async () => {
+    const fetchedRecords = [
+      { Id: '001a', Industry: 'Finance' },
+      { Id: '001b', Industry: null },
+    ];
+    vi.mocked(clientData.queryAllFromList).mockResolvedValue({
+      queryResults: { records: fetchedRecords, totalSize: 2, done: true },
+    } as any);
+
+    const result = await fetchRecordsWithRequiredFields({
+      selectedOrg,
+      parsedQuery: parseQuery('SELECT Id FROM Account'),
+      idsToInclude: new Set(['001a', '001b']),
+      configuration,
+    });
+
+    expect(clientData.queryAll).not.toHaveBeenCalled();
+    expect(clientData.queryAllFromList).toHaveBeenCalledTimes(1);
+    const [org, soqlQueries] = vi.mocked(clientData.queryAllFromList).mock.calls[0];
+    expect(org).toBe(selectedOrg);
+    expect(soqlQueries).toEqual([`SELECT Id, Industry FROM Account WHERE Id IN ('001a','001b')`]);
+    expect(result).toBe(fetchedRecords);
+  });
+
+  it('Should split large id sets into multiple chunked queries', async () => {
+    vi.mocked(clientData.queryAllFromList).mockResolvedValue({ queryResults: { records: [], totalSize: 0, done: true } } as any);
+
+    const ids = Array.from({ length: 1001 }, (_, index) => `id${index}`);
+    await fetchRecordsWithRequiredFields({
+      selectedOrg,
+      parsedQuery: parseQuery('SELECT Id FROM Account'),
+      idsToInclude: new Set(ids),
+      configuration,
+    });
+
+    const [, soqlQueries] = vi.mocked(clientData.queryAllFromList).mock.calls[0];
+    // 1001 ids / 500 per chunk => 3 queries
+    expect(soqlQueries).toHaveLength(3);
+  });
+
+  it('Should return an empty array without querying when idsToInclude is empty', async () => {
+    const result = await fetchRecordsWithRequiredFields({
+      selectedOrg,
+      parsedQuery: parseQuery('SELECT Id FROM Account'),
+      idsToInclude: new Set(),
+      configuration,
+    });
+
+    expect(result).toEqual([]);
+    expect(clientData.queryAllFromList).not.toHaveBeenCalled();
+    expect(clientData.queryAll).not.toHaveBeenCalled();
+  });
+
+  it('Should re-run the full query (preserving WHERE) when idsToInclude is omitted', async () => {
+    const fetchedRecords = [{ Id: '001a', Industry: 'Finance' }];
+    vi.mocked(clientData.queryAll).mockResolvedValue({ queryResults: { records: fetchedRecords, totalSize: 1, done: true } } as any);
+
+    const result = await fetchRecordsWithRequiredFields({
+      selectedOrg,
+      parsedQuery: parseQuery(`SELECT Id FROM Account WHERE Name != null`),
+      configuration,
+    });
+
+    expect(clientData.queryAllFromList).not.toHaveBeenCalled();
+    expect(clientData.queryAll).toHaveBeenCalledTimes(1);
+    const [, soql] = vi.mocked(clientData.queryAll).mock.calls[0];
+    // composeQuery normalizes the `null` literal to `NULL`; the WHERE clause is preserved
+    expect(soql).toBe(`SELECT Id, Industry FROM Account WHERE Name != NULL`);
+    expect(result).toBe(fetchedRecords);
+  });
+
+  it('Should report cumulative progress against the requested id count', async () => {
+    vi.mocked(clientData.queryAllFromList).mockResolvedValue({ queryResults: { records: [], totalSize: 0, done: true } } as any);
+    const onProgress = vi.fn();
+
+    await fetchRecordsWithRequiredFields({
+      selectedOrg,
+      parsedQuery: parseQuery('SELECT Id FROM Account'),
+      idsToInclude: new Set(['001a', '001b']),
+      configuration,
+      onProgress,
+    });
+
+    // grab the progress callback handed to queryAllFromList and simulate a chunk completing
+    const progressCallback = vi.mocked(clientData.queryAllFromList).mock.calls[0][4] as (fetched: number, total: number) => void;
+    progressCallback(2, 999);
+    expect(onProgress).toHaveBeenCalledWith(2, 2);
+  });
+
+  it('Should pass the abort signal through to the query layer', async () => {
+    vi.mocked(clientData.queryAllFromList).mockResolvedValue({ queryResults: { records: [], totalSize: 0, done: true } } as any);
+    const signal = new AbortController().signal;
+
+    await fetchRecordsWithRequiredFields({
+      selectedOrg,
+      parsedQuery: parseQuery('SELECT Id FROM Account'),
+      idsToInclude: new Set(['001a']),
+      configuration,
+      signal,
+    });
+
+    expect(vi.mocked(clientData.queryAllFromList).mock.calls[0][5]).toBe(signal);
   });
 });
