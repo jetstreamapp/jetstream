@@ -20,6 +20,7 @@ import {
   NameLinkRenderer,
   SelectColumn,
   TextOrIdLinkRenderer,
+  withCellValidation,
 } from './renderers/CellRenderers';
 import { SubqueryRenderer } from './renderers/SubqueryRenderer';
 
@@ -156,12 +157,19 @@ function getQueryResultColumn({
     name: field,
     key: field,
     cellClass: (row: any) => {
+      // Use the resolved column key (set to columnFullPath below) so post-save errors mapped by column key
+      // line up; for editable columns it equals `field`.
+      const key = column.key;
       const classes = ['slds-truncate'];
-      if (row._touchedColumns instanceof Set && (row._touchedColumns as Set<string>).has(field) && row[field] !== row._record?.[field]) {
+      if (row._touchedColumns instanceof Set && (row._touchedColumns as Set<string>).has(key) && row[key] !== row._record?.[key]) {
         classes.push('slds-is-edited');
-        if (row._saveError) {
-          classes.push('active-item-error');
-        }
+      }
+      // Error/warning rings key off the per-field maps (NOT the dirty check) so a save error on a
+      // since-reverted cell still flags, and a server-rejected non-touched field can also show.
+      if (row._fieldErrors?.[key]) {
+        classes.push('active-item-error');
+      } else if (row._fieldWarnings?.[key]) {
+        classes.push('active-item-warning');
       }
       return classes.join(' ');
     },
@@ -354,6 +362,11 @@ export function updateColumnWithEditMode(
     column.editorOptions = { commitOnOutsideClick: false, displayCellContent: true };
     column.renderEditCell = EditorText;
   }
+
+  // Editable cells can carry client-validation / save errors — wrap the display renderer so the cell
+  // shows a tooltipped error/warning icon (text columns have no renderCell, so the wrapper falls back
+  // to rendering the raw value). The non-editable early-return above means only editable columns reach here.
+  column.renderCell = withCellValidation(column.renderCell);
 }
 
 /**

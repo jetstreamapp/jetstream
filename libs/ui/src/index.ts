@@ -24,6 +24,7 @@ export * from './lib/data-table/DataTableRenderers';
 export * from './lib/data-table/DataTree';
 export * from './lib/data-table/FieldMetadataModal';
 export * from './lib/data-table/grid/rdg-compat';
+export * from './lib/data-table/PreviewChangesModal';
 export * from './lib/data-table/SalesforceRecordDataTable';
 export * from './lib/docked-composer/DockedComposer';
 export * from './lib/expression-group/expression-utils';

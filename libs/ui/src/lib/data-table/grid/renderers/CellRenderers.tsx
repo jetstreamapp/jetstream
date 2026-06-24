@@ -17,10 +17,11 @@ import RecordLookupPopover from '../../../widgets/RecordLookupPopover';
 import Spinner from '../../../widgets/Spinner';
 import Tooltip from '../../../widgets/Tooltip';
 import { dataTableDateFormatter } from '../../data-table-formatters';
-import { ACTION_COLUMN_KEY, SELECT_COLUMN_KEY } from '../grid-constants';
+import { ACTION_COLUMN_KEY, DEFAULT_ROW_HEIGHT, SELECT_COLUMN_KEY } from '../grid-constants';
 import { GridRecordActionContext } from '../grid-context';
 import { getRowId, getSfdcRetUrl } from '../grid-row-utils';
 import { ColumnWithFilter, DataTableCellProps, DataTableGroupCellProps, RowWithKey } from '../grid-types';
+import { getRowErrorMessages } from '../validate-cell-value';
 
 /**
  * Cell renderers ported from the legacy DataTableRenderers to the new `DataTableCellProps` contract.
@@ -210,7 +211,8 @@ export function ActionRenderer({ row }: DataTableCellProps<any>): ReactNode {
 export const ActionRendererMemo = memo(ActionRenderer, (prev, next) => prev.row === next.row);
 
 export function ErrorMessageRenderer({ row }: { row: any }): ReactNode {
-  if (!row?._saveError) {
+  const messages = getRowErrorMessages(row);
+  if (!messages.length) {
     return null;
   }
   return (
@@ -230,7 +232,7 @@ export function ErrorMessageRenderer({ row }: { row: any }): ReactNode {
             </div>
             <div className="slds-media__body">
               <h2 className="slds-truncate slds-text-heading_medium" title="Resolve error">
-                Save Error
+                {messages.length > 1 ? 'Save Errors' : 'Save Error'}
               </h2>
             </div>
           </div>
@@ -240,9 +242,18 @@ export function ErrorMessageRenderer({ row }: { row: any }): ReactNode {
         <div
           css={css`
             max-height: 80vh;
+            white-space: pre-line;
           `}
         >
-          <p>{row._saveError}</p>
+          {messages.length === 1 ? (
+            <p>{messages[0]}</p>
+          ) : (
+            <ul className="slds-list_dotted">
+              {messages.map((message, index) => (
+                <li key={index}>{message}</li>
+              ))}
+            </ul>
+          )}
         </div>
       }
       buttonProps={{ className: 'slds-button slds-button_icon slds-button_icon-error', tabIndex: -1 }}
@@ -250,6 +261,129 @@ export function ErrorMessageRenderer({ row }: { row: any }): ReactNode {
       <Icon type="utility" icon="error" className="slds-button__icon" omitContainer />
     </Popover>
   );
+}
+
+/** Row shape read by the inline record-error column: a combined error/warning message plus its severity. */
+export interface RowWithRecordError extends RowWithKey {
+  status?: string;
+  severity?: 'error' | 'warning' | 'none';
+}
+
+/** Column id for the standalone record-error column, shared by the column factory and the height lookup. */
+const INLINE_ERROR_COLUMN_KEY = 'errorMessage';
+/** Default width of the standalone record-error column; the fallback when a live width isn't available. */
+export const RECORD_ERROR_COLUMN_WIDTH = 300;
+// Horizontal cell padding (0.5rem each side ≈ 16px) removed before estimating how many chars fit per line.
+const RECORD_ERROR_CELL_PADDING = 16;
+// Approx character width at the grid's 13px font — intentionally generous so we round toward a taller row.
+const RECORD_ERROR_CHAR_WIDTH = 7;
+// `line-height: normal` at 13px, rounded up for breathing room.
+const RECORD_ERROR_LINE_HEIGHT = 17;
+// Cap so one huge message can't balloon the row; the full text stays available via the title tooltip.
+const RECORD_ERROR_MAX_LINES = 6;
+
+/**
+ * Inline record-level error/warning message for a standalone "Error" column. Wraps onto multiple lines
+ * (honoring embedded newlines) rather than truncating — pair it with `getRecordErrorRowHeight` as the
+ * table's `rowHeight` so the row grows to fit. Renders nothing for rows without a message.
+ */
+export function RecordErrorMessageRenderer({ row }: DataTableCellProps<RowWithKey>): ReactNode {
+  const { status, severity } = row as RowWithRecordError;
+  if (!status) {
+    return null;
+  }
+  return (
+    <div
+      className={severity === 'error' ? 'slds-text-color_error' : undefined}
+      title={status}
+      css={css`
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        line-height: normal;
+        overflow: hidden;
+      `}
+    >
+      {status}
+    </div>
+  );
+}
+
+/**
+ * Estimate the row height needed to show a row's full (wrapped) record-error message. Grid rows are
+ * pinned to a fixed height (never DOM-measured), so approximate the wrapped line count from the message
+ * length and the error column's current width, then clamp. Pass the grid's live `columnWidths` map so the
+ * estimate tracks resizes; falls back to the default width when omitted. Returns `defaultRowHeight` for
+ * rows without a message.
+ */
+export function getRecordErrorRowHeight(
+  row: RowWithKey,
+  columnWidths?: Record<string, number>,
+  defaultRowHeight = DEFAULT_ROW_HEIGHT,
+): number {
+  const { status } = row as RowWithRecordError;
+  if (!status) {
+    return defaultRowHeight;
+  }
+  const columnWidth = columnWidths?.[INLINE_ERROR_COLUMN_KEY] ?? RECORD_ERROR_COLUMN_WIDTH;
+  const charsPerLine = Math.max(1, Math.floor((columnWidth - RECORD_ERROR_CELL_PADDING) / RECORD_ERROR_CHAR_WIDTH));
+  const lineCount = status.split('\n').reduce((total, segment) => total + Math.max(1, Math.ceil(segment.length / charsPerLine)), 0);
+  return Math.max(defaultRowHeight, Math.min(lineCount, RECORD_ERROR_MAX_LINES) * RECORD_ERROR_LINE_HEIGHT);
+}
+
+/** Build the standalone, non-sortable/non-filterable "Error" column backed by {@link RecordErrorMessageRenderer}. */
+export function getRecordErrorColumn(overrides?: Partial<ColumnWithFilter<RowWithKey>>): ColumnWithFilter<RowWithKey> {
+  return {
+    key: INLINE_ERROR_COLUMN_KEY,
+    name: 'Error',
+    width: RECORD_ERROR_COLUMN_WIDTH,
+    resizable: true,
+    sortable: false,
+    filters: [],
+    renderCell: RecordErrorMessageRenderer,
+    ...overrides,
+  };
+}
+
+/**
+ * Wraps a column's base `renderCell` to overlay a tooltipped error/warning icon when the row carries a
+ * `_fieldErrors`/`_fieldWarnings` entry for this column. The base content is always rendered first (so any
+ * hooks inside it run in a stable order), then the icon is appended only when a message exists. The
+ * Tooltip is portaled, so it escapes the cell's `overflow:hidden` and survives row virtualization.
+ */
+export function withCellValidation<TRow extends RowWithKey>(
+  baseRender?: (props: DataTableCellProps<TRow>) => ReactNode,
+): (props: DataTableCellProps<TRow>) => ReactNode {
+  return function CellWithValidation(props: DataTableCellProps<TRow>): ReactNode {
+    const { row, column } = props;
+    const baseContent = baseRender ? baseRender(props) : <div className="slds-truncate">{(row as any)?.[column.key]}</div>;
+    const error = (row as any)?._fieldErrors?.[column.key] as string | undefined;
+    const warning = error ? undefined : ((row as any)?._fieldWarnings?.[column.key] as string | undefined);
+    const message = error || warning;
+    if (!message) {
+      return baseContent;
+    }
+    return (
+      <Fragment>
+        <div
+          css={css`
+            flex: 1 1 auto;
+            min-width: 0;
+            overflow: hidden;
+          `}
+        >
+          {baseContent}
+        </div>
+        <Tooltip ariaRole="label" content={message}>
+          <Icon
+            type="utility"
+            icon={error ? 'error' : 'warning'}
+            className={`slds-icon_xx-small slds-m-left_xx-small ${error ? 'slds-icon-text-error' : 'slds-icon-text-warning'}`}
+            containerClassname="slds-icon_container"
+          />
+        </Tooltip>
+      </Fragment>
+    );
+  };
 }
 
 /** Row-selection checkbox renderer. The built-in select column (GridCell cellKind) usually handles this;

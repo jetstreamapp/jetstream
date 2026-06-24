@@ -17,6 +17,7 @@ import {
 } from '@jetstream/types';
 import uniqueId from 'lodash/uniqueId';
 import { Fragment, ReactNode, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FileDownloadModal } from '../file-download-modal/FileDownloadModal';
 import SearchInput from '../form/search-input/SearchInput';
 import Grid from '../grid/Grid';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
@@ -24,10 +25,17 @@ import { ConfirmationModalPromise } from '../modal/ConfirmationModalPromise';
 import { PopoverErrorButton } from '../popover/PopoverErrorButton';
 import { fireToast } from '../toast/AppToast';
 import Spinner from '../widgets/Spinner';
-import { DataTable } from './DataTable';
-import { FieldMetadataModal } from './FieldMetadataModal';
 import { DataTableSubqueryContext } from './data-table-context';
-import { ColumnWithFilter, ContextAction, ContextMenuActionData, RowSalesforceRecordWithKey, RowWithKey } from './data-table-types';
+import { applyPasteCellsToRows, revertCellsInRows } from './data-table-paste-utils';
+import {
+  ColumnWithFilter,
+  ContextAction,
+  ContextMenuActionData,
+  GridCellRef,
+  PasteEvent,
+  RowSalesforceRecordWithKey,
+  RowWithKey,
+} from './data-table-types';
 import {
   NON_DATA_COLUMN_KEYS,
   TABLE_CONTEXT_MENU_ITEMS,
@@ -35,9 +43,14 @@ import {
   copySalesforceRecordTableDataToClipboard,
   getColumnDefinitions,
 } from './data-table-utils';
+import { DataTable } from './DataTable';
+import { FieldMetadataModal } from './FieldMetadataModal';
 import { RowsChangeData } from './grid/rdg-compat';
+import { getRowErrorMessages, mapSaveErrorsToRow, summarizeRowErrors, validateRow } from './grid/validate-cell-value';
+import { DownloadConfig, PreviewChangesModal } from './PreviewChangesModal';
 
 const SFDC_EMPTY_ID = '000000000000000AAA';
+const MAX_UNDO_STEPS = 50;
 
 function getRowId(data: any): string {
   if (data._key) {
@@ -55,6 +68,40 @@ function getRowId(data: any): string {
 
 function getRowClass(row: RowSalesforceRecordWithKey): string | undefined {
   return row._saveError ? 'save-error' : undefined;
+}
+
+/**
+ * Recompute a row's client-validation state from its touched-and-changed cells, preserving any
+ * record-level errors from a prior save. Returns a NEW row object (the GridCell memo keys on row
+ * identity) with fresh `_fieldErrors`/`_fieldWarnings` and a derived `_saveError` summary.
+ */
+function applyValidationToRow(row: RowSalesforceRecordWithKey, fieldMetadata: Maybe<Record<string, Field>>): RowSalesforceRecordWithKey {
+  const { fieldErrors, fieldWarnings } = validateRow(row, fieldMetadata);
+  const recordErrors = row._recordErrors ?? [];
+  return {
+    ...row,
+    _fieldErrors: fieldErrors,
+    _fieldWarnings: fieldWarnings,
+    _recordErrors: recordErrors,
+    _saveError: summarizeRowErrors(fieldErrors, recordErrors),
+  };
+}
+
+function isRowDirty(row: RowSalesforceRecordWithKey): boolean {
+  return row._touchedColumns.size > 0 && Array.from(row._touchedColumns).some((col) => row[col] !== row._record[col]);
+}
+
+/**
+ * Whether a row has CLIENT-side validation errors that guarantee the save would fail (value too long,
+ * required field cleared, invalid number/date) — these gate the Save button. Recomputed fresh rather than
+ * reading the stored `_fieldErrors`, which ALSO holds server-side save errors mapped from a prior failed
+ * attempt: those must never block a retry, since the user may have fixed the cause in Salesforce (e.g.
+ * disabled a validation rule, granted permission). Server errors stay visible (highlight + messages) but
+ * always allow another save attempt.
+ */
+function rowHasBlockingErrors(row: RowSalesforceRecordWithKey, fieldMetadata: Maybe<Record<string, Field>>): boolean {
+  const { fieldErrors } = validateRow(row, fieldMetadata);
+  return Object.keys(fieldErrors).length > 0;
 }
 
 function getTotalCountText(queryResults: QueryResults['queryResults']) {
@@ -97,6 +144,7 @@ export interface SalesforceRecordDataTableProps {
   onGetAsApex: (record: any) => void;
   onSavedRecords: (results: { recordCount: number; failureCount: number }) => void;
   onReloadQuery: () => void;
+  /** Amplitude tracker (from the host's `useAmplitude`). Optional — defaults to a no-op. */
   trackEvent?: (key: string, value?: Record<string, any>) => void;
 }
 
@@ -130,7 +178,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
     onGetAsApex,
     onSavedRecords,
     onReloadQuery,
-    trackEvent,
+    trackEvent = () => undefined,
   }: SalesforceRecordDataTableProps) => {
     const isMounted = useRef(true);
     const [columns, setColumns] = useState<ColumnWithFilter<RowSalesforceRecordWithKey>[]>();
@@ -141,6 +189,11 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
     const [rows, setRows] = useState<RowSalesforceRecordWithKey[]>();
     const [dirtyRows, setDirtyRows] = useState<RowSalesforceRecordWithKey[]>([]);
     const [saveErrors, setSaveErrors] = useState<string[]>([]);
+    const [showPreview, setShowPreview] = useState(false);
+    // Most recent save response, so the Preview modal can offer a results download.
+    const [lastSaveResults, setLastSaveResults] = useState<Maybe<SobjectCollectionResponse>>(null);
+    // When set, renders the FileDownloadModal (CSV/Excel/JSON/Google Drive) for the preview downloads.
+    const [downloadConfig, setDownloadConfig] = useState<Maybe<DownloadConfig>>(null);
 
     const [totalRecordCountText, setTotalRecordCountText] = useState<string>();
     const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -155,6 +208,12 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
     const [isSavingRecords, setIsSavingRecords] = useState(false);
     // Synchronous guard so a key-repeat / rapid Cmd+Enter can't launch concurrent saves before state flushes.
     const isSavingRef = useRef(false);
+
+    // Undo/redo history of `rows` snapshots for the current editing session (Ctrl/Cmd+Z). Each edit-commit
+    // and paste pushes the pre-change rows. Snapshots are array references — edits create new row objects
+    // rather than mutating in place, so this is cheap. Cleared on save and when records reload.
+    const undoStackRef = useRef<RowSalesforceRecordWithKey[][]>([]);
+    const redoStackRef = useRef<RowSalesforceRecordWithKey[][]>([]);
 
     useEffect(() => {
       isMounted.current = true;
@@ -214,8 +273,8 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
     }, [fieldMetadata, fieldMetadataSubquery, isTooling, queryResults]);
 
     useEffect(() => {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      setSaveErrors(dirtyRows.filter((row) => row._saveError).map((row) => row._saveError!));
+      // Flatten every field- + record-level message across dirty rows for the "Save Errors" popover.
+      setSaveErrors(dirtyRows.flatMap((row) => getRowErrorMessages(row)));
     }, [dirtyRows]);
 
     const handleRowAction = useCallback((row: RowWithKey, action: 'view' | 'edit' | 'clone' | 'delete' | 'undelete' | 'apex') => {
@@ -290,11 +349,19 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
             ...(columnKeys ? flattenRecord(row, columnKeys, false) : row),
             _key: getRowId(row),
             _touchedColumns: new Set(),
+            _fieldErrors: {},
+            _fieldWarnings: {},
+            _recordErrors: [],
             _saveError: null,
           };
         }),
       );
       setDirtyRows([]);
+      setShowPreview(false);
+      setLastSaveResults(null);
+      setDownloadConfig(null);
+      undoStackRef.current = [];
+      redoStackRef.current = [];
     }, [columns, handleRowAction, records]);
 
     async function loadRemaining() {
@@ -357,22 +424,112 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    const pushUndoSnapshot = useCallback((snapshot: RowSalesforceRecordWithKey[]) => {
+      undoStackRef.current.push(snapshot);
+      if (undoStackRef.current.length > MAX_UNDO_STEPS) {
+        undoStackRef.current.shift();
+      }
+      // Any fresh edit invalidates the redo history.
+      redoStackRef.current = [];
+    }, []);
+
+    const handleUndo = useCallback(() => {
+      const previous = undoStackRef.current.pop();
+      if (!previous) {
+        return;
+      }
+      setRows((current) => {
+        if (current) {
+          redoStackRef.current.push(current);
+        }
+        return previous;
+      });
+      setDirtyRows(previous.filter(isRowDirty));
+      trackEvent(ANALYTICS_KEYS.query_InlineEditUndo);
+    }, [trackEvent]);
+
+    const handleRedo = useCallback(() => {
+      const next = redoStackRef.current.pop();
+      if (!next) {
+        return;
+      }
+      setRows((current) => {
+        if (current) {
+          undoStackRef.current.push(current);
+        }
+        return next;
+      });
+      setDirtyRows(next.filter(isRowDirty));
+      trackEvent(ANALYTICS_KEYS.query_InlineEditRedo);
+    }, [trackEvent]);
+
     const handleRowsChange = useCallback(
       (
         allRows: RowSalesforceRecordWithKey[],
         filteredRows: RowSalesforceRecordWithKey[],
-        _data: RowsChangeData<RowSalesforceRecordWithKey>,
+        data: RowsChangeData<RowSalesforceRecordWithKey>,
       ) => {
-        const rowsByKey = groupByFlat(filteredRows, '_key');
+        pushUndoSnapshot(allRows);
+        // Re-run client validation only on the rows that actually changed (the editor carried over stale
+        // validation state via its spread). Validating only the changed rows preserves prior save errors
+        // on untouched rows.
+        const changedKeys = new Set(data.indexes.map((index) => filteredRows[index]?._key).filter(Boolean));
+        const validatedRows = filteredRows.map((row) => (changedKeys.has(row._key) ? applyValidationToRow(row, fieldMetadata) : row));
+        const rowsByKey = groupByFlat(validatedRows, '_key');
         const newRows = allRows.map((row) => rowsByKey[row._key] || row);
         setRows(newRows);
-        setDirtyRows(
-          newRows.filter(
-            (row) => row._touchedColumns.size > 0 && Array.from(row._touchedColumns).some((col) => row[col] !== row._record[col]),
-          ),
-        );
+        setDirtyRows(newRows.filter(isRowDirty));
       },
-      [],
+      [fieldMetadata, pushUndoSnapshot],
+    );
+
+    const handlePaste = useCallback(
+      (event: PasteEvent) => {
+        if (!rows || !event.cells.length) {
+          return;
+        }
+        pushUndoSnapshot(rows);
+        const newRows = applyPasteCellsToRows(rows, event.cells, fieldMetadata);
+        setRows(newRows);
+        setDirtyRows(newRows.filter(isRowDirty));
+        // Delete/Backspace also flows through here with source 'clear'.
+        trackEvent(event.source === 'clear' ? ANALYTICS_KEYS.query_InlineEditClear : ANALYTICS_KEYS.query_InlineEditPaste, {
+          cellCount: event.cells.length,
+        });
+      },
+      [rows, fieldMetadata, pushUndoSnapshot, trackEvent],
+    );
+
+    const rowsByKey = useMemo(() => new Map((rows ?? []).map((row) => [row._key, row])), [rows]);
+
+    const isCellDirty = useCallback(
+      (rowId: string, columnId: string): boolean => {
+        const row = rowsByKey.get(rowId);
+        return !!row && row._touchedColumns.has(columnId) && row[columnId] !== row._record?.[columnId];
+      },
+      [rowsByKey],
+    );
+
+    const handleRevertCells = useCallback(
+      (cells: GridCellRef[]) => {
+        if (!rows || !cells.length) {
+          return;
+        }
+        pushUndoSnapshot(rows);
+        const newRows = revertCellsInRows(rows, cells, fieldMetadata);
+        setRows(newRows);
+        setDirtyRows(newRows.filter(isRowDirty));
+        trackEvent(ANALYTICS_KEYS.query_InlineEditRevert, { cellCount: cells.length });
+      },
+      [rows, fieldMetadata, pushUndoSnapshot, trackEvent],
+    );
+
+    const handleDownload = useCallback(
+      (config: DownloadConfig) => {
+        setDownloadConfig(config);
+        trackEvent(ANALYTICS_KEYS.query_InlineEditDownload, { source: config.source, recordCount: config.data.length });
+      },
+      [trackEvent],
     );
 
     const handleCancelEditMode = () => {
@@ -389,8 +546,18 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
         setRecords((records) => (records ? [...records] : records));
         return;
       }
+      // Don't waste an API call on edits the client already knows are invalid (e.g. value too long).
+      if (dirtyRows.some((row) => rowHasBlockingErrors(row, fieldMetadata))) {
+        fireToast({ message: 'Please fix the highlighted errors before saving.', type: 'warning' });
+        return;
+      }
       isSavingRef.current = true;
       setIsSavingRecords(true);
+      // Drop stale results up front so a thrown save can't leave the previous attempt's "Download Results" offered.
+      setLastSaveResults(null);
+      // Saving commits values into `_record`, which would corrupt pre-save snapshots — drop undo history.
+      undoStackRef.current = [];
+      redoStackRef.current = [];
       try {
         const modifiedRecords = dirtyRows.map((row) =>
           nullifyEmptyStrings(
@@ -404,6 +571,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
           ),
         );
         const results = await onUpdateRecords(modifiedRecords);
+        setLastSaveResults(results);
 
         const failedResultsById = results.reduce<Record<string, ErrorResult>>((acc, result, i) => {
           if (!result.success) {
@@ -415,29 +583,40 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
           return acc;
         }, {});
 
-        /** Reset all successful rows, add error message to failed rows */
+        /** Reset all successful rows, map field/record-level errors onto failed rows */
         const newRows = rows.map((row): RowSalesforceRecordWithKey => {
           if (row._touchedColumns.size > 0) {
             const id = getIdFromRecordUrl(row._record.attributes.url);
-            if (failedResultsById[id]) {
-              return { ...row, _saveError: failedResultsById[id].errors[0].message };
+            const failed = failedResultsById[id];
+            if (failed) {
+              const { fieldErrors, recordErrors } = mapSaveErrorsToRow(failed, columns || []);
+              return {
+                ...row,
+                _fieldErrors: fieldErrors,
+                _fieldWarnings: {},
+                _recordErrors: recordErrors,
+                _saveError: summarizeRowErrors(fieldErrors, recordErrors),
+              };
             } else {
-              const tempRow: RowSalesforceRecordWithKey = { ...row, _touchedColumns: new Set(), _saveError: null };
+              const tempRow: RowSalesforceRecordWithKey = {
+                ...row,
+                _touchedColumns: new Set(),
+                _fieldErrors: {},
+                _fieldWarnings: {},
+                _recordErrors: [],
+                _saveError: null,
+              };
               Array.from(row._touchedColumns).forEach((col) => (tempRow._record[col] = row[col]));
               return tempRow;
             }
           }
-          if (row._saveError) {
-            return { ...row, _saveError: null };
+          if (row._saveError || row._recordErrors?.length || (row._fieldErrors && Object.keys(row._fieldErrors).length)) {
+            return { ...row, _fieldErrors: {}, _fieldWarnings: {}, _recordErrors: [], _saveError: null };
           }
           return row;
         });
         setRows(newRows);
-        setDirtyRows(
-          newRows.filter(
-            (row) => row._touchedColumns.size > 0 && Array.from(row._touchedColumns).some((col: string) => row[col] !== row._record[col]),
-          ),
-        );
+        setDirtyRows(newRows.filter(isRowDirty));
         onSavedRecords({ recordCount: modifiedRecords.length, failureCount: Object.values(failedResultsById).length });
       } catch (ex) {
         // This happens if exception thrown, normal behavior is to get records with result success/error
@@ -453,20 +632,29 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
       }
     };
 
-    // Cmd/Ctrl+Enter saves modified records. A live ref lets the stable global handler call the latest
-    // save logic, and deferring to the next tick lets an in-progress cell edit (committed on Enter)
-    // settle into dirty state before saving. `handleSaveRecords` no-ops when there is nothing to save.
-    const saveRecordsRef = useRef(handleSaveRecords);
-    saveRecordsRef.current = handleSaveRecords;
-    const handleSaveShortcut = useCallback((event: KeyboardEvent) => {
+    // Cmd/Ctrl+Enter opens the Preview Changes modal (the modal then owns the shortcut to actually save).
+    // A live ref (updated in an effect, never during render) lets the stable global handler read the latest
+    // state, and deferring to the next tick lets an in-progress cell edit (committed on Enter) settle into
+    // dirty state first. No-ops when there is nothing to preview or the modal is already open.
+    const openPreviewRef = useRef<() => void>(() => undefined);
+    useEffect(() => {
+      openPreviewRef.current = () => {
+        if (showPreview || isSavingRef.current || !dirtyRows.length) {
+          return;
+        }
+        setShowPreview(true);
+        trackEvent(ANALYTICS_KEYS.query_InlineEditPreview, { changeCount: dirtyRows.length });
+      };
+    });
+    const handlePreviewShortcut = useCallback((event: KeyboardEvent) => {
       if (!isEnterKey(event as any) || !hasCtrlOrMeta(event as any)) {
         return;
       }
       event.preventDefault();
       event.stopPropagation();
-      window.setTimeout(() => saveRecordsRef.current());
+      window.setTimeout(() => openPreviewRef.current());
     }, []);
-    useGlobalEventHandler('keydown', handleSaveShortcut);
+    useGlobalEventHandler('keydown', handlePreviewShortcut);
 
     function handleSubqueryFieldsChanged(columnKey: string, newFields: string[], columnOrder: number[]) {
       onSubqueryFieldReorder(columnKey, newFields, columnOrder);
@@ -503,6 +691,8 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
       }),
       [org, defaultApiVersion, onView, onEdit],
     );
+
+    const hasBlockingErrors = useMemo(() => dirtyRows.some((row) => rowHasBlockingErrors(row, fieldMetadata)), [dirtyRows, fieldMetadata]);
 
     return records ? (
       <Fragment>
@@ -547,13 +737,57 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
               Cancel
             </button>
             <button
-              className="slds-button slds-button_brand slds-m-left_x-small slds-is-relative"
-              onClick={handleSaveRecords}
+              className="slds-button slds-button_brand slds-m-left_x-small"
+              onClick={() => {
+                setShowPreview(true);
+                trackEvent(ANALYTICS_KEYS.query_InlineEditPreview, { changeCount: dirtyRows.length });
+              }}
               disabled={isSavingRecords}
             >
-              Save ({formatNumber(dirtyRows.length)}){isSavingRecords && <Spinner size="small" />}
+              Preview Changes ({formatNumber(dirtyRows.length)})
             </button>
           </Grid>
+        )}
+        {showPreview && (
+          <PreviewChangesModal
+            org={org}
+            serverUrl={serverUrl}
+            skipFrontdoorLogin={skipFrontdoorLogin}
+            isTooling={isTooling}
+            dirtyRows={dirtyRows}
+            columns={columns || []}
+            fieldMetadata={fieldMetadata}
+            isSaving={isSavingRecords}
+            hasBlockingErrors={hasBlockingErrors}
+            saveErrors={saveErrors}
+            saveResults={lastSaveResults}
+            onSave={handleSaveRecords}
+            onDownload={handleDownload}
+            isHidden={!!downloadConfig}
+            onDiscard={() => {
+              handleCancelEditMode();
+              setShowPreview(false);
+              trackEvent(ANALYTICS_KEYS.query_InlineEditDiscard, { changeCount: dirtyRows.length });
+            }}
+            onClose={() => setShowPreview(false)}
+          />
+        )}
+        {downloadConfig && (
+          <FileDownloadModal
+            org={org}
+            googleIntegrationEnabled={hasGoogleDriveAccess}
+            googleShowUpgradeToPro={googleShowUpgradeToPro}
+            google_apiKey={google_apiKey}
+            google_appId={google_appId}
+            google_clientId={google_clientId}
+            modalHeader={downloadConfig.modalHeader}
+            data={downloadConfig.data}
+            header={downloadConfig.header}
+            fileNameParts={downloadConfig.fileNameParts}
+            source={downloadConfig.source}
+            trackEvent={trackEvent}
+            onModalClose={() => setDownloadConfig(null)}
+          />
         )}
         <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={dirtyRows?.length ? 58 : 10}>
           <DataTableSubqueryContext.Provider
@@ -587,6 +821,11 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
               onSelectedRowsChange={handleSelectedRowsChange}
               onSortedAndFilteredRowsChange={handleSortedAndFilteredRowsChange}
               onRowsChange={(changedRows, data) => handleRowsChange(rows || [], changedRows, data)}
+              onPaste={handlePaste}
+              onUndo={handleUndo}
+              onRedo={handleRedo}
+              onRevertCells={handleRevertCells}
+              isCellDirty={isCellDirty}
               context={tableContext}
               contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
               contextMenuAction={handleContextMenuAction}

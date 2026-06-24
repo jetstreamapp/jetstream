@@ -786,6 +786,7 @@ export const QueryResults = React.memo(() => {
           {!!(records && !!records.length) && (
             <SalesforceRecordDataTable
               org={selectedOrg}
+              trackEvent={trackEvent}
               hasGoogleDriveAccess={hasGoogleDriveAccess}
               googleShowUpgradeToPro={googleShowUpgradeToPro}
               defaultApiVersion={defaultApiVersion}
@@ -831,7 +832,6 @@ export const QueryResults = React.memo(() => {
                 handleGetAsApex(record);
               }}
               onReloadQuery={() => executeQuery(soql, RECORD_BULK_ACTION, { isTooling })}
-              trackEvent={trackEvent}
             />
           )}
         </AutoFullHeightContainer>

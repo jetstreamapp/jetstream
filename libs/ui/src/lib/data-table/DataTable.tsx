@@ -9,6 +9,8 @@ import {
   ContextMenuItems,
   DataTableRef,
   DefaultColumnOptions,
+  GridCellRef,
+  PasteEvent,
   RowWithKey,
   SortColumn,
 } from './grid/grid-types';
@@ -51,10 +53,20 @@ export interface DataTableProps<T = RowWithKey, TContext = Record<string, any>> 
   onSortedAndFilteredRowsChange?: (rows: readonly T[]) => void;
   onSortColumnsChange?: (sortColumns: SortColumn[]) => void;
   onRowsChange?: (rows: T[], data: { indexes: number[]; column: ColumnWithFilter<T> }) => void;
-  /** Fixed numeric row height, or a per-row callback `({ type: 'ROW' | 'GROUP', row }) => number`.
-   * Rows are pinned to the returned height and are not DOM-measured, so the value must reflect the
-   * actual rendered height. */
-  rowHeight?: number | ((args: { type: 'ROW' | 'GROUP'; row: T }) => number);
+  /** Called when the user pastes into the selection (Ctrl/Cmd+V or context-menu Paste). */
+  onPaste?: (event: PasteEvent) => void;
+  /** Undo the last edit/paste (Ctrl/Cmd+Z); the consumer owns the row-snapshot history. */
+  onUndo?: () => void;
+  /** Redo the last undone edit (Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y). */
+  onRedo?: () => void;
+  /** Revert the given modified cells to their original values (context-menu "Revert"). */
+  onRevertCells?: (cells: GridCellRef[]) => void;
+  /** Whether a cell holds an unsaved modification — gates the context-menu "Revert" item. */
+  isCellDirty?: (rowId: string, columnId: string) => boolean;
+  /** Fixed numeric row height, or a per-row callback `({ type, row, columnWidths }) => number`. Rows are
+   * pinned to the returned height and are not DOM-measured, so the value must reflect the actual rendered
+   * height. `columnWidths` (a live `columnId → pixel width` map) lets a width-dependent height track resizes. */
+  rowHeight?: number | ((args: { type: 'ROW' | 'GROUP'; row: T; columnWidths: Record<string, number> }) => number);
   rowClass?: (row: T) => string | undefined;
   selectedRows?: ReadonlySet<any>;
   onSelectedRowsChange?: (selectedRows: Set<string>) => void;

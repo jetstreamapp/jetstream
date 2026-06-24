@@ -22,8 +22,24 @@ export type RowSalesforceRecordWithKey = RowWithKey & {
   _idx: number;
   _record: Record<string, any>;
   _touchedColumns: Set<string>;
+  /**
+   * Blocking errors keyed by column key. Populated by client-side validation (e.g. value too long) AND by
+   * post-save Salesforce errors that mapped to a visible column. Cells with an entry render a red ring.
+   */
+  _fieldErrors?: Record<string, string>;
+  /** Non-blocking warnings keyed by column key (e.g. inactive picklist value, paste coercion). Amber ring. */
+  _fieldWarnings?: Record<string, string>;
+  /** General/row-level errors: Salesforce errors with empty `fields[]` or referencing a non-visible column. */
+  _recordErrors?: string[];
+  /** Derived human-readable summary (join of all field + record errors). Kept for row-level read sites. */
   _saveError?: Maybe<string>;
 };
+
+/** Result of validating a single cell value. `error` blocks save; `warning` is advisory only. */
+export interface CellValidationResult {
+  error?: string;
+  warning?: string;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Column + filter type discriminators (unchanged from the legacy implementation)
@@ -323,6 +339,34 @@ export type ContextMenuActionData<T> = {
   column: ColumnWithFilter<T, unknown>;
   columns: ColumnWithFilter<T, unknown>[];
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Paste (clipboard → cells). The grid computes the editable target cells from the active selection +
+// parsed clipboard matrix and hands them to the consumer, which owns value coercion + dirty tracking.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Logical address of a grid cell: stable row key (from `getRowKey`) + author-facing column key. */
+export interface GridCellRef {
+  /** Stable row key (from the grid's `getRowKey`) so the consumer can locate the row regardless of order. */
+  rowKey: string;
+  /** Author-facing column key (matches `ColumnWithFilter.key`). */
+  columnKey: string;
+}
+
+/** A single editable cell that should receive a pasted (raw string) value. */
+export interface PasteTargetCell extends GridCellRef {
+  /** The raw, un-coerced clipboard string for this cell. */
+  value: string;
+}
+
+/** Emitted by the grid when the user pastes; the consumer applies `cells` to its row state. */
+export interface PasteEvent {
+  cells: PasteTargetCell[];
+  /** Count of in-range cells that were skipped because they were not editable (read-only / group rows). */
+  skippedCount: number;
+  /** Why the cells changed — a real paste, or a Delete/Backspace clear (both flow through `onPaste`). */
+  source?: 'paste' | 'clear';
+}
 
 /**
  * Context-menu items: either a static list, or a builder evaluated against the right-clicked cell so the
