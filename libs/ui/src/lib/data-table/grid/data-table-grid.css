@@ -282,6 +282,23 @@
   inline-size: 100%;
 }
 
+/* Center the row-selection checkbox in its (flex) cell. Body select cells hold a content-width checkbox
+   that would otherwise sit at flex-start; the header select-all is wrapped in `.jgrid-header-label`
+   (inline-block, shrink-wrapped), so the cell — not the inner span — has to do the centering. */
+.jgrid-cell-kind-select,
+.jgrid-header-cell-select {
+  justify-content: center;
+}
+
+/* SLDS gives the faux checkbox a trailing margin to separate it from its label text. The grid's
+   selection checkboxes hide their label, so that margin only pushes the box left of center — drop it.
+   `!important` is needed to beat SLDS's deep
+   `.slds-checkbox [type=checkbox] + .slds-checkbox__label .slds-checkbox_faux` rule. */
+.jgrid-cell-kind-select .slds-checkbox_faux,
+.jgrid-header-cell-select .slds-checkbox_faux {
+  margin-inline-end: 0 !important;
+}
+
 /* Group + summary rows */
 .jgrid-group-row {
   position: absolute;
