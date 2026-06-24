@@ -1,10 +1,9 @@
-/* Make react data grid checkbox look sort of like SLDS checkbox */
-@layer rdg.rdg-checkbox-input {
-  .rdg-checkbox-input {
-    inline-size: 14px;
-    block-size: 14px;
-    accent-color: var(--slds-g-color-brand-base-50);
-  }
+/* Brand the OS-native form controls (e.g. the manage-permissions table renders a
+   bare <input type="checkbox"> for perf instead of an SLDS faux checkbox) so they
+   follow the brand accent rather than the OS default blue. */
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: var(--slds-g-color-brand-base-50, #0176d3);
 }
 
 html {

@@ -15,6 +15,11 @@ import '../utils/monaco-loader';
 import AppInitializer from './AppInitializer';
 import { ExtensionThemeApplier } from './ExtensionThemeApplier';
 
+// DO NOT CHANGE ORDER OF IMPORTS
+// Brand theming: must load AFTER slds2.cosmos.css so the :root brand-ramp override wins (equal specificity → last wins)
+import '@jetstream/ui-styles/brand-theme.css';
+// DO NOT CHANGE ORDER OF IMPORTS
+
 if (!environment.production) {
   enableLogger(true);
 }

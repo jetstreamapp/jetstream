@@ -68,7 +68,8 @@
       "@jetstream/ui/cookie-consent-banner": ["./libs/shared/cookie-consent-banner/src/index.ts"],
       "@jetstream/ui/db": ["./libs/shared/ui-db/src/index.ts"],
       "@jetstream/salesforce-oauth": ["./libs/auth/salesforce-oauth/src/index.ts"],
-      "@jetstream/ui-styles/main.css": ["./libs/shared/ui-styles/src/main.css"]
+      "@jetstream/ui-styles/main.css": ["./libs/shared/ui-styles/src/main.css"],
+      "@jetstream/ui-styles/brand-theme.css": ["./libs/shared/ui-styles/src/brand-theme.css"]
     }
   },
   "exclude": ["node_modules", "tmp"]

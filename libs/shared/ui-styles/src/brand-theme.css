@@ -1,0 +1,47 @@
+/* Jetstream brand POC — overrides the SLDS 2 reference brand ramp.
+   Must be imported AFTER slds2.cosmos.css so this :root wins (equal specificity → last wins).
+   Covers light AND dark mode automatically: SLDS does not redefine this ramp per scheme.
+
+   SWAP BRANDS: keep exactly ONE :root block below uncommented — the last uncommented one wins. */
+
+/* ===== Option A — TEAL primary (anchor 50 = #0d9488, teal-600) ===== */
+/* :root {
+  --slds-r-color-brand-5: #021a18;
+  --slds-r-color-brand-10: #042f2e;
+  --slds-r-color-brand-15: #07423d;
+  --slds-r-color-brand-20: #134e4a;
+  --slds-r-color-brand-30: #115e59;
+  --slds-r-color-brand-35: #0f766e;
+  --slds-r-color-brand-40: #0b8074;
+  --slds-r-color-brand-45: #0c8a7e;
+  --slds-r-color-brand-50: #0d9488;
+  --slds-r-color-brand-55: #14b8a6;
+  --slds-r-color-brand-60: #1ac4b3;
+  --slds-r-color-brand-65: #2dd4bf;
+  --slds-r-color-brand-70: #4ee0d2;
+  --slds-r-color-brand-80: #99f6e4;
+  --slds-r-color-brand-85: #b6f7ec;
+  --slds-r-color-brand-90: #cffafe;
+  --slds-r-color-brand-95: #ecfeff;
+} */
+
+/* ===== Option B — CYAN primary (anchor 50 = #0891b2, cyan-600) ===== */
+/* :root {
+  --slds-r-color-brand-5: #04222d;
+  --slds-r-color-brand-10: #083344;
+  --slds-r-color-brand-15: #0c4255;
+  --slds-r-color-brand-20: #164e63;
+  --slds-r-color-brand-30: #155e75;
+  --slds-r-color-brand-35: #0e7490;
+  --slds-r-color-brand-40: #0a82a0;
+  --slds-r-color-brand-45: #078aab;
+  --slds-r-color-brand-50: #0891b2;
+  --slds-r-color-brand-55: #06b6d4;
+  --slds-r-color-brand-60: #11c2dd;
+  --slds-r-color-brand-65: #22d3ee;
+  --slds-r-color-brand-70: #4bddf2;
+  --slds-r-color-brand-80: #a5f3fc;
+  --slds-r-color-brand-85: #c2f7fd;
+  --slds-r-color-brand-90: #cffafe;
+  --slds-r-color-brand-95: #ecfeff;
+} */

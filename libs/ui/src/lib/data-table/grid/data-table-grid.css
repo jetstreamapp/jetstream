@@ -14,7 +14,7 @@
   --jgrid-surface-alt: var(--slds-g-color-surface-container-2, #f3f3f3);
   --jgrid-on-surface: var(--slds-g-color-on-surface-1, #181818);
   --jgrid-row-hover: var(--slds-g-color-surface-container-2, #f3f3f3);
-  --jgrid-row-selected: var(--slds-g-color-palette-blue-95, #eef4ff);
+  --jgrid-row-selected: var(--slds-g-color-brand-base-95, #eef4ff);
   color: var(--jgrid-on-surface);
   font-size: 0.8125rem;
 }
@@ -226,7 +226,7 @@
 
 /* Rectangular cell-range selection highlight */
 .jgrid-cell-range {
-  background-color: var(--slds-g-color-palette-blue-90, #d8e6fe);
+  background-color: var(--slds-g-color-brand-base-90, #d8e6fe);
 }
 
 /*
@@ -310,10 +310,11 @@
   padding-inline: 0.25rem;
 }
 
-/* Blue, link-like group label so it's obviously clickable (matches the deploy/compare toggle). */
+/* Brand-colored, link-like group label so it's obviously clickable (matches the deploy/compare toggle).
+   Uses the brand token (not the raw blue palette) so it follows the brand accent. */
 .jgrid-group-toggle-label {
   font-weight: 700;
-  color: var(--slds-g-color-palette-blue-50, #0176d3);
+  color: var(--slds-g-color-brand-base-50, #0176d3);
 }
 .jgrid-group-toggle:hover .jgrid-group-toggle-label {
   text-decoration: underline;

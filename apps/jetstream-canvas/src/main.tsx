@@ -10,6 +10,11 @@ import App from './app/app';
 import { Login } from './app/core/Login';
 import { canvasAppAxiosAdapter } from './utils/canvas-axios-adapter';
 
+// DO NOT CHANGE ORDER OF IMPORTS
+// Brand theming: must load AFTER slds2.cosmos.css so the :root brand-ramp override wins (equal specificity → last wins)
+import '@jetstream/ui-styles/brand-theme.css';
+// DO NOT CHANGE ORDER OF IMPORTS
+
 globalThis.__IS_CANVAS_APP__ = true;
 
 AxiosAdapterConfig.adapter = canvasAppAxiosAdapter;
