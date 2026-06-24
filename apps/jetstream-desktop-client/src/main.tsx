@@ -9,6 +9,11 @@ import { createRoot } from 'react-dom/client';
 import App from './app/app';
 import './main.css';
 
+// DO NOT CHANGE ORDER OF IMPORTS
+// Brand theming: must load AFTER slds2.cosmos.css so the :root brand-ramp override wins (equal specificity → last wins)
+import '@jetstream/ui-styles/brand-theme.css';
+// DO NOT CHANGE ORDER OF IMPORTS
+
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 const container = document.getElementById('root')!;
 

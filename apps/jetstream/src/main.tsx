@@ -11,6 +11,11 @@ import '@salesforce-ux/design-system-2/dist/css/bundled/slds2.cosmos.css';
 import { createRoot } from 'react-dom/client';
 import App from './app/app';
 
+// DO NOT CHANGE ORDER OF IMPORTS
+// Brand POC: must load AFTER slds2.cosmos.css so the :root brand-ramp override wins (equal specificity → last wins)
+import '@jetstream/ui-styles/brand-theme.css';
+// DO NOT CHANGE ORDER OF IMPORTS
+
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 const container = document.getElementById('root')!;
 const cspNonce = document.querySelector<HTMLScriptElement>('script[nonce]')?.nonce;

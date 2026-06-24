@@ -4,25 +4,25 @@ import { FilterTypes } from './SobjectFieldListFilter';
 
 /**
  * Background for each nesting level of related-object fields.
- * Palette tokens resolve via light-dark(), so the ramp inverts in dark mode
+ * Brand tokens resolve via light-dark(), so the ramp inverts in dark mode
  * (the old hardcoded blues stayed light and made dark-mode text unreadable).
  */
 export function getBgColor(level: number): string | undefined {
   switch (level) {
     case 1: {
-      return 'var(--slds-g-color-palette-blue-95, #eef1f6)';
+      return 'var(--slds-g-color-brand-base-95, #eef1f6)';
     }
     case 2: {
-      return 'var(--slds-g-color-palette-blue-90, #c5d5ea)';
+      return 'var(--slds-g-color-brand-base-90, #c5d5ea)';
     }
     case 3: {
-      return 'var(--slds-g-color-palette-blue-80, #a9d3ff)';
+      return 'var(--slds-g-color-brand-base-80, #a9d3ff)';
     }
     case 4: {
-      return 'var(--slds-g-color-palette-blue-70, #96c5f7)';
+      return 'var(--slds-g-color-brand-base-70, #96c5f7)';
     }
     case 5: {
-      return 'var(--slds-g-color-palette-blue-65, #758ecd)';
+      return 'var(--slds-g-color-brand-base-65, #758ecd)';
     }
   }
 }
