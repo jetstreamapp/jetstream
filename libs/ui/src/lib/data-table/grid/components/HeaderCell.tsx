@@ -181,6 +181,8 @@ export function HeaderCell<TRow>({
       data-col-id={header.column.id}
       className={classNames('jgrid-header-cell', {
         'jgrid-cell-frozen': meta?.frozen,
+        // Center the select-all checkbox; its label wrapper shrink-wraps, so the cell must do the centering.
+        'jgrid-header-cell-select': meta?.cellKind === 'select',
         'jgrid-header-sortable': canSort,
         'jgrid-header-draggable': canReorder,
         'jgrid-header-dragging': isDraggingThis,
