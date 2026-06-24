@@ -1,15 +1,15 @@
+import { getLogger } from '@jetstream/api-config';
 import type { Request as ExpressRequest, Response as ExpressResponse } from 'express';
 import { NextFunction } from 'express';
-import type pino from 'pino';
 import { z } from 'zod';
 
 export type Request<
   Params extends Record<string, string> | unknown = Record<string, string>,
   ReqBody = unknown,
   Query extends Record<string, string | undefined> | unknown = Record<string, string | undefined>,
-> = ExpressRequest<Params, unknown, ReqBody, Query> & { log: pino.Logger };
+> = ExpressRequest<Params, unknown, ReqBody, Query>;
 
-export type Response<ResBody = unknown> = ExpressResponse<ResBody> & { log: pino.Logger };
+export type Response<ResBody = unknown> = ExpressResponse<ResBody>;
 
 export type ControllerFunction<TParamsSchema extends z.ZodTypeAny, TBodySchema extends z.ZodTypeAny, TQuerySchema extends z.ZodTypeAny> = (
   data: {
@@ -48,7 +48,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         next(ex);
       }
     } catch (ex) {
-      req.log.error({ err: ex }, '[ROUTE][VALIDATION ERROR]');
+      getLogger().error({ err: ex }, '[ROUTE][VALIDATION ERROR]');
       res.status(400);
       next(ex);
     }

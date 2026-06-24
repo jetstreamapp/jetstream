@@ -1,6 +1,11 @@
+/* eslint-disable @typescript-eslint/no-empty-function */
 import { HTTP } from '@jetstream/shared/constants';
 import { EventEmitter } from 'events';
 import { deferredResponseMiddleware, writeDeferredResponse, type DeferredResponseState } from '../deferred-response.middleware';
+
+// Holder so the mocked getLogger() returns the same per-test logger assigned to res.log
+// (createMockRes refreshes it each test), keeping the existing res.log.* assertions valid.
+const loggerHolder = vi.hoisted(() => ({ current: null as unknown as Record<string, ReturnType<typeof vi.fn>> }));
 
 vi.mock('@jetstream/api-config', () => ({
   ENV: {
@@ -8,6 +13,7 @@ vi.mock('@jetstream/api-config', () => ({
     DEFERRED_RESPONSE_THRESHOLD_MS: 75_000,
     DEFERRED_RESPONSE_KEEPALIVE_MS: 25_000,
   },
+  getLogger: () => loggerHolder.current,
 }));
 
 let mockEnv: Record<string, unknown>;
@@ -36,18 +42,22 @@ function createMockRes() {
 
   // Extend EventEmitter so writeDeferredResponse's res.once('finish'|'close'|'error') listeners work.
   const emitter = new EventEmitter();
+  // Fresh per-test logger, exposed to the code-under-test via the mocked getLogger() holder.
+  const log = {
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+    error: vi.fn(),
+    trace: vi.fn(),
+  };
+  loggerHolder.current = log;
   const res = Object.assign(emitter, {
     locals: {
       requestId: 'test-request-id',
     } as Record<string, unknown>,
     headersSent: false,
     writableEnded: false,
-    log: {
-      warn: vi.fn(),
-      info: vi.fn(),
-      debug: vi.fn(),
-      error: vi.fn(),
-    },
+    log,
     writeHead: vi.fn((status: number, headers: Record<string, string>) => {
       headersWritten = true;
       res.headersSent = true;
@@ -124,7 +134,7 @@ describe('deferredResponseMiddleware', () => {
     // First keepalive byte
     expect(res._chunks).toEqual([' ']);
     expect(res.log.warn).toHaveBeenCalledWith(
-      expect.objectContaining({ requestId: 'test-request-id' }),
+      expect.objectContaining({ elapsedMs: expect.any(Number) }),
       expect.stringContaining('[DEFERRED][ACTIVATED]'),
     );
   });
@@ -213,7 +223,7 @@ describe('deferredResponseMiddleware', () => {
     expect(deferred.active).toBe(false);
     expect(res.destroy).toHaveBeenCalled();
     expect(res.log.error).toHaveBeenCalledWith(
-      expect.objectContaining({ requestId: 'test-request-id' }),
+      expect.objectContaining({ elapsedMs: expect.any(Number) }),
       expect.stringContaining('[DEFERRED][WRITE_ERROR] Failed to write initial keepalive'),
     );
   });
@@ -247,7 +257,7 @@ describe('deferredResponseMiddleware', () => {
     expect(deferred.active).toBe(false);
     expect(res.destroy).toHaveBeenCalled();
     expect(res.log.error).toHaveBeenCalledWith(
-      expect.objectContaining({ requestId: 'test-request-id' }),
+      expect.objectContaining({ elapsedMs: expect.any(Number) }),
       expect.stringContaining('destroying stream'),
     );
   });
@@ -272,7 +282,7 @@ describe('deferredResponseMiddleware', () => {
     expect(deferred.timer).toBeNull();
     expect(deferred.keepaliveInterval).toBeNull();
     expect(res.log.warn).toHaveBeenCalledWith(
-      expect.objectContaining({ requestId: 'test-request-id' }),
+      expect.objectContaining({ elapsedMs: expect.any(Number) }),
       expect.stringContaining('[DEFERRED][CLIENT_DISCONNECT]'),
     );
   });
@@ -353,7 +363,7 @@ describe('writeDeferredResponse', () => {
     expect(deferred.active).toBe(false);
     expect(res.end).toHaveBeenCalled();
     expect(res.log.error).toHaveBeenCalledWith(
-      expect.objectContaining({ requestId: 'test-request-id' }),
+      expect.objectContaining({ elapsedMs: expect.any(Number) }),
       expect.stringContaining('[DEFERRED][WRITE_ERROR]'),
     );
   });

@@ -17,6 +17,10 @@ const prismaMocks = vi.hoisted(() => {
   };
 });
 
+// Holder so the mocked getLogger() returns the same per-test logger assigned to res.log
+// (createMockRes refreshes it each test), keeping the existing res.log.* assertions valid.
+const loggerHolder = vi.hoisted(() => ({ current: null as unknown as Record<string, ReturnType<typeof vi.fn>> }));
+
 vi.mock('@jetstream/api-config', () => ({
   ENV: {
     JETSTREAM_SERVER_URL: 'https://getjetstream.app',
@@ -27,6 +31,7 @@ vi.mock('@jetstream/api-config', () => ({
     info: vi.fn(),
     warn: vi.fn(),
   },
+  getLogger: () => loggerHolder.current,
   prisma: {},
   errorTracker: {
     error: vi.fn(),
@@ -72,18 +77,22 @@ function createMockReq() {
 }
 
 function createMockRes() {
+  // Fresh per-test logger, exposed to the code-under-test via the mocked getLogger() holder.
+  const log = {
+    debug: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    trace: vi.fn(),
+  };
+  loggerHolder.current = log;
   const res = {
     headersSent: false,
     locals: {
       cookies: {},
       requestId: 'request-id',
     },
-    log: {
-      debug: vi.fn(),
-      error: vi.fn(),
-      info: vi.fn(),
-      warn: vi.fn(),
-    },
+    log,
     json: vi.fn(),
     redirect: vi.fn(),
     set: vi.fn(),
@@ -193,16 +202,19 @@ describe('uncaughtErrorHandler logging levels', () => {
 
 function createMockStreamRes() {
   const chunks: string[] = [];
+  const log = {
+    debug: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    trace: vi.fn(),
+  };
+  loggerHolder.current = log;
   const res = {
     locals: {
       requestId: 'request-id',
     },
-    log: {
-      debug: vi.fn(),
-      error: vi.fn(),
-      info: vi.fn(),
-      warn: vi.fn(),
-    },
+    log,
     setHeader: vi.fn(),
     status: vi.fn(),
     json: vi.fn(),

@@ -1,4 +1,4 @@
-import { ENV, errorTracker, logger, prisma } from '@jetstream/api-config';
+import { ENV, errorTracker, getLogger, prisma } from '@jetstream/api-config';
 import type { Response } from '@jetstream/api-types';
 import { AuthError, createCSRFToken, getCookieConfig } from '@jetstream/auth/server';
 import { isPrismaError, Prisma, SalesforceOrg, toTypedPrismaError } from '@jetstream/prisma';
@@ -56,11 +56,11 @@ export function setCookieHeaders(res: Response) {
         }
         res.appendHeader('Set-Cookie', stringifySetCookie(name, value, options));
       } catch (ex) {
-        logger.error({ err: ex }, 'Error setting cookie: %s', name);
+        getLogger().error({ err: ex }, 'Error setting cookie: %s', name);
       }
     });
   } catch (ex) {
-    logger.error({ err: ex }, 'Error setting cookies');
+    getLogger().error({ err: ex }, 'Error setting cookies');
   }
 }
 
@@ -81,10 +81,7 @@ export function sendJson<ResponseType = unknown>(res: Response, content?: Respon
   // Deferred response mode: write body to the existing chunked stream
   if (deferred?.active) {
     const elapsedMs = Date.now() - deferred.startTime;
-    res.log.info(
-      { requestId: res.locals.requestId, elapsedMs },
-      '[DEFERRED][BODY_READY] Controller produced response body, writing to deferred stream',
-    );
+    getLogger().info({ elapsedMs }, '[DEFERRED][BODY_READY] Controller produced response body, writing to deferred stream');
     writeDeferredResponse(res, { data: content || {} });
     return;
   }
@@ -95,7 +92,7 @@ export function sendJson<ResponseType = unknown>(res: Response, content?: Respon
   }
 
   if (res.headersSent) {
-    res.log.warn('Response headers already sent');
+    getLogger().warn('Response headers already sent');
     try {
       errorTracker.warn('Response not handled by sendJson, headers already sent', new Error('headers already sent'), {
         context: `route#sendJson`,
@@ -103,7 +100,7 @@ export function sendJson<ResponseType = unknown>(res: Response, content?: Respon
         status,
       });
     } catch (ex) {
-      res.log.error({ err: ex }, 'Error sending to error tracker');
+      getLogger().error({ err: ex }, 'Error sending to error tracker');
     }
     return;
   }
@@ -117,7 +114,7 @@ export function sendJson<ResponseType = unknown>(res: Response, content?: Respon
  */
 export function streamParsedCsvAsJson(res: express.Response, csvParseStream: Duplex) {
   let isFirstChunk = true;
-  const _logger = res.log || logger;
+  const _logger = getLogger();
 
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
 
@@ -135,11 +132,11 @@ export function streamParsedCsvAsJson(res: express.Response, csvParseStream: Dup
   csvParseStream.on('finish', () => {
     res.write(isFirstChunk ? '{"data":[]}' : ']}');
     res.end();
-    _logger.debug({ requestId: res.locals.requestId }, 'Finished streaming CSV');
+    _logger.debug('Finished streaming CSV');
   });
 
   csvParseStream.on('error', (err) => {
-    _logger.warn({ requestId: res.locals.requestId, err }, 'Error streaming CSV.');
+    _logger.warn({ err }, 'Error streaming CSV.');
     if (!res.headersSent) {
       res.status(400).json({ error: true, success: false, message: 'Error streaming CSV' });
     } else {
@@ -157,7 +154,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       setCookieHeaders(res as any);
     }
     // Logger is not added to the response object in all cases depending on where error is encountered
-    const responseLogger = res.log || logger;
+    const responseLogger = getLogger();
 
     // If org had a connection error, ensure that the database is updated
     // This runs before the headersSent/deferred checks so the DB side effect always happens
@@ -198,7 +195,6 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       const errorMessage = err.message || 'An unknown error has occurred';
       responseLogger.error(
         {
-          requestId: res.locals.requestId,
           method: req.method,
           url: req.originalUrl,
           elapsedMs,
@@ -397,9 +393,9 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
         requestId: res.locals.requestId,
       });
     } catch (trackerEx) {
-      logger.error({ err: trackerEx }, 'Error sending to error tracker');
+      getLogger().error({ err: trackerEx }, 'Error sending to error tracker');
     }
-    logger.error({ err: ex }, 'Error in uncaughtErrorHandler');
+    getLogger().error({ err: ex }, 'Error in uncaughtErrorHandler');
     res.status(500).json({ error: true, success: false, message: 'Internal Server Error' });
   }
 }
@@ -409,7 +405,7 @@ function getPrismaErrorMessage(
 ) {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     const prismaError = toTypedPrismaError(error);
-    logger.warn({ error: error.message, code: error.code }, '[DB][PRISMA][WARN]');
+    getLogger().warn({ error: error.message, code: error.code }, '[DB][PRISMA][WARN]');
     if (prismaError.code === 'P2002') {
       return `A record with the same unique field already exists.`;
     } else if (prismaError.code === 'P2022') {

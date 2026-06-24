@@ -1,4 +1,4 @@
-import { ENV, logger } from '@jetstream/api-config';
+import { ENV, getLogger } from '@jetstream/api-config';
 import { AuditLogAction, AuditLogResource, createTeamAuditLog } from '@jetstream/audit-logs';
 import * as authService from '@jetstream/auth/server';
 import { encryptSecret, oidcService, samlService } from '@jetstream/auth/server';
@@ -464,7 +464,7 @@ const verifyInvitation = createRoute(routeDefinition.verifyInvitation.validators
       sendJson(res, { success: true, inviteVerification });
     })
     .catch((error) => {
-      logger.warn({ error: getErrorMessage(error), teamId, token, userId: user.id }, 'Error verifying team invitation');
+      getLogger().warn({ error: getErrorMessage(error), teamId, token, userId: user.id }, 'Error verifying team invitation');
       sendJson(res, { success: false });
     });
 });
@@ -836,7 +836,7 @@ const parseSamlMetadata = createRoute(routeDefinition.parseSamlMetadata.validato
     const parsed = await samlService.parseIdpMetadata(xml);
     sendJson(res, parsed);
   } catch (ex) {
-    res.log.error(getErrorMessageAndStackObj(ex), 'Failed to parse SAML metadata');
+    getLogger().error(getErrorMessageAndStackObj(ex), 'Failed to parse SAML metadata');
     next(ex);
   }
 });
@@ -933,7 +933,7 @@ const createOrUpdateSamlConfig = createRoute(
         });
       }
     } catch (ex) {
-      res.log.error(getErrorMessageAndStackObj(ex), 'Failed to save SAML configuration');
+      getLogger().error(getErrorMessageAndStackObj(ex), 'Failed to save SAML configuration');
 
       next(ex);
     }
@@ -952,7 +952,7 @@ const discoverOidcConfig = createRoute(routeDefinition.discoverOidcConfig.valida
     const discovered = await oidcService.getDiscoveredConfigForSaving(issuer);
     sendJson(res, discovered);
   } catch (ex) {
-    res.log.error(getErrorMessageAndStackObj(ex), 'Failed to discover OIDC configuration');
+    getLogger().error(getErrorMessageAndStackObj(ex), 'Failed to discover OIDC configuration');
     next(ex);
   }
 });
@@ -1035,7 +1035,7 @@ const createOrUpdateOidcConfig = createRoute(
         });
       }
     } catch (ex) {
-      res.log.error(getErrorMessageAndStackObj(ex), 'Failed to save OIDC configuration');
+      getLogger().error(getErrorMessageAndStackObj(ex), 'Failed to save OIDC configuration');
 
       next(ex);
     }
@@ -1068,7 +1068,7 @@ const updateSsoSettings = createRoute(routeDefinition.updateSsoSettings.validato
       userAgent: req.headers['user-agent'] as string,
     });
   } catch (ex) {
-    res.log.error(getErrorMessageAndStackObj(ex), 'Failed to update SSO settings');
+    getLogger().error(getErrorMessageAndStackObj(ex), 'Failed to update SSO settings');
     next(ex);
   }
 });
@@ -1092,7 +1092,7 @@ const deleteSamlConfig = createRoute(routeDefinition.deleteSamlConfig.validators
       });
     }
   } catch (ex) {
-    res.log.error(getErrorMessageAndStackObj(ex), 'Failed to delete SAML configuration');
+    getLogger().error(getErrorMessageAndStackObj(ex), 'Failed to delete SAML configuration');
     next(ex);
   }
 });
@@ -1116,7 +1116,7 @@ const deleteOidcConfig = createRoute(routeDefinition.deleteOidcConfig.validators
       });
     }
   } catch (ex) {
-    res.log.error(getErrorMessageAndStackObj(ex), 'Failed to delete OIDC configuration');
+    getLogger().error(getErrorMessageAndStackObj(ex), 'Failed to delete OIDC configuration');
     next(ex);
   }
 });
@@ -1127,7 +1127,7 @@ const getDomainVerifications = createRoute(routeDefinition.getDomainVerification
     const verifications = await teamDb.getDomainVerifications(teamId);
     sendJson(res, verifications);
   } catch (ex) {
-    res.log.error(getErrorMessageAndStackObj(ex), 'Failed to get domain verifications');
+    getLogger().error(getErrorMessageAndStackObj(ex), 'Failed to get domain verifications');
     next(ex);
   }
 });
@@ -1161,7 +1161,7 @@ const saveDomainVerification = createRoute(
         userAgent: req.headers['user-agent'] as string,
       });
     } catch (ex) {
-      res.log.error(getErrorMessageAndStackObj(ex), 'Failed to save domain verification');
+      getLogger().error(getErrorMessageAndStackObj(ex), 'Failed to save domain verification');
       next(ex);
     }
   },
@@ -1184,11 +1184,8 @@ export interface DomainVerificationCheckResult {
  * (apex or `_jetstream.` subdomain) or a hosted verification file (apex or `www.`).
  * Exported for tests.
  */
-export async function checkDomainVerification(
-  domain: string,
-  verificationCode: string,
-  log: { warn: (obj: Record<string, unknown>, msg: string) => void },
-): Promise<DomainVerificationCheckResult> {
+export async function checkDomainVerification(domain: string, verificationCode: string): Promise<DomainVerificationCheckResult> {
+  const logger = getLogger();
   let verified = false;
   let verificationMethod: 'dns' | 'file' | null = null;
   let foundNonMatchingValue = false;
@@ -1205,11 +1202,11 @@ export async function checkDomainVerification(
         const otherJetstreamRecords = txtRecords.filter((record) => record.startsWith(VERIFICATION_CODE_PREFIX));
         if (otherJetstreamRecords.length > 0) {
           foundNonMatchingValue = true;
-          log.warn({ domain, dnsHost, found: otherJetstreamRecords }, 'DNS TXT verification record found but value did not match');
+          logger.warn({ domain, dnsHost, found: otherJetstreamRecords }, 'DNS TXT verification record found but value did not match');
         }
       }
     } catch (error) {
-      log.warn({ error: getErrorMessage(error), domain, dnsHost }, 'DNS TXT record lookup failed');
+      logger.warn({ error: getErrorMessage(error), domain, dnsHost }, 'DNS TXT record lookup failed');
     }
   }
 
@@ -1235,11 +1232,11 @@ export async function checkDomainVerification(
             verificationMethod = 'file';
           } else if (text.trim().startsWith(VERIFICATION_CODE_PREFIX)) {
             foundNonMatchingValue = true;
-            log.warn({ domain, fileUrl }, 'Verification file found but contents did not match');
+            logger.warn({ domain, fileUrl }, 'Verification file found but contents did not match');
           }
         }
       } catch (error) {
-        log.warn({ error: getErrorMessage(error), domain, fileUrl }, 'File verification fetch failed');
+        logger.warn({ error: getErrorMessage(error), domain, fileUrl }, 'File verification fetch failed');
       }
     }
   }
@@ -1259,7 +1256,6 @@ const verifyDomain = createRoute(routeDefinition.verifyDomain.validators, async 
     const { verified, verificationMethod, foundNonMatchingValue } = await checkDomainVerification(
       verification.domain,
       verification.verificationCode,
-      res.log,
     );
 
     if (verified) {
@@ -1283,7 +1279,7 @@ const verifyDomain = createRoute(routeDefinition.verifyDomain.validators, async 
       sendJson(res, { success: false, message });
     }
   } catch (ex) {
-    res.log.error(getErrorMessageAndStackObj(ex), 'Failed to verify domain');
+    getLogger().error(getErrorMessageAndStackObj(ex), 'Failed to verify domain');
     next(ex);
   }
 });
@@ -1311,7 +1307,7 @@ const deleteDomainVerification = createRoute(
         userAgent: req.headers['user-agent'] as string,
       });
     } catch (ex) {
-      res.log.error(getErrorMessageAndStackObj(ex), 'Failed to delete domain verification');
+      getLogger().error(getErrorMessageAndStackObj(ex), 'Failed to delete domain verification');
       next(ex);
     }
   },

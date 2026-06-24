@@ -1,4 +1,4 @@
-import { ENV, httpLogger, logger } from '@jetstream/api-config';
+import { ENV, getLogger, httpLogger, logger, requestContextMiddleware } from '@jetstream/api-config';
 import { GeoIpLookupResult } from '@jetstream/types';
 import { json, urlencoded } from 'body-parser';
 import express from 'express';
@@ -17,8 +17,8 @@ const app = express();
 
 app.use(json({ limit: '20mb' }));
 app.use(urlencoded({ extended: true }));
-
 app.use(httpLogger);
+app.use(requestContextMiddleware);
 
 app.use('/healthz', (_, res) => {
   res.status(200).json({
@@ -65,7 +65,7 @@ app.post(
         timeTaken,
       });
     } catch (ex) {
-      res.log.error({ err: ex }, 'Failed to download MaxMind database');
+      getLogger().error({ err: ex }, 'Failed to download MaxMind database');
       next(ex);
     }
   }),
@@ -90,7 +90,7 @@ app.get(
         : { ipAddress, isValid: false as const };
       res.status(200).json({ success: true, results: [result] });
     } catch (ex) {
-      res.log.error({ err: ex }, 'Failed to lookup IP address');
+      getLogger().error({ err: ex }, 'Failed to lookup IP address');
       next(ex);
     }
   }),
@@ -119,7 +119,7 @@ app.post(
 
       res.status(200).json({ success: true, results });
     } catch (ex) {
-      res.log.error({ err: ex }, 'Failed to lookup IP address');
+      getLogger().error({ err: ex }, 'Failed to lookup IP address');
       next(ex);
     }
   }),
@@ -133,7 +133,7 @@ app.use((_, res) => {
 });
 
 app.use((err: Error | ZodError, _: express.Request, res: express.Response, _next: express.NextFunction) => {
-  res.log.error({ err }, 'Unhandled error');
+  getLogger().error({ err }, 'Unhandled error');
 
   if (err instanceof ZodError) {
     res.status(400);

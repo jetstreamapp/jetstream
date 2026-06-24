@@ -1,3 +1,4 @@
+import { getLogger } from '@jetstream/api-config';
 import { BooleanQueryParamSchema, CreateJobRequestSchema } from '@jetstream/api-types';
 import { HTTP } from '@jetstream/shared/constants';
 import { ensureBoolean, getErrorMessageAndStackObj, toBoolean } from '@jetstream/shared/utils';
@@ -351,7 +352,7 @@ const downloadAllResults = createRoute(
             streamToPipe.on('error', reject);
           });
         } catch (ex) {
-          res.log.error({ requestId, ...getErrorMessageAndStackObj(ex) }, 'Error downloading batch results');
+          getLogger().error({ requestId, ...getErrorMessageAndStackObj(ex) }, 'Error downloading batch results');
         }
       }
       // indicate end of stream - we are done pushing data

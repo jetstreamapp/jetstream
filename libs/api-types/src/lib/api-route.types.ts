@@ -3,11 +3,14 @@ import type { SalesforceOrg } from '@jetstream/prisma';
 // eslint-disable-next-line @nx/enforce-module-boundaries
 import type { ApiConnection } from '@jetstream/salesforce-api';
 import type { Request as ExpressRequest, Response as ExpressResponse } from 'express';
-import type pino from 'pino';
 
 // Only declare route-specific locals here. Globally populated fields (requestId, cspNonce)
 // live on the Express.Locals augmentation in custom-express-typings/index.d.ts and are
 // merged in via intersection — do not duplicate them here.
+//
+// NOTE: `req.log` / `res.log` are intentionally NOT declared. Request-scoped logging now flows
+// through `getLogger()` from `@jetstream/api-config` (AsyncLocalStorage). Reading `req.log` /
+// `res.log` is disallowed — see the ESLint `no-restricted-syntax` guard in apps/api/eslint.config.js
 
 export type Request<
   Params extends Record<string, string> | unknown = Record<string, string>,
@@ -22,7 +25,7 @@ export type Request<
     jetstreamConn: ApiConnection;
     targetJetstreamConn?: ApiConnection;
   }
-> & { log: pino.Logger };
+>;
 
 /**
  * Deferred response state for Cloudflare timeout prevention.
@@ -57,4 +60,4 @@ export type Response<ResBody = unknown> = ExpressResponse<
     deviceId?: string;
     _deferred?: DeferredResponseState;
   }
-> & { log: pino.Logger };
+>;

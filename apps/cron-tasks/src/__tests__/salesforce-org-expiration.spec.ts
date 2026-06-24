@@ -1,3 +1,4 @@
+import { sendEmail } from '@jetstream/api-config';
 import { createAuditLog } from '@jetstream/audit-logs';
 import { sendOrgExpirationWarningEmail } from '@jetstream/email';
 import { PrismaClient } from '@jetstream/prisma';
@@ -57,9 +58,6 @@ vi.mock('@jetstream/audit-logs', () => {
     },
   };
 });
-
-// Import the mocked functions after mock calls
-import { sendEmail } from '@jetstream/api-config';
 
 let orgCounter = 0;
 // Ensure this runs against a test database

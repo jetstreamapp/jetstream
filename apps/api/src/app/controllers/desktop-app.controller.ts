@@ -1,4 +1,4 @@
-import { ENV } from '@jetstream/api-config';
+import { ENV, getLogger } from '@jetstream/api-config';
 import {
   createUserActivityFromReq,
   getApiAddressFromReq,
@@ -170,7 +170,7 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
       .verifyToken({ token: decryptedToken, deviceId }, externalAuthService.AUDIENCE_DESKTOP)
       .then(() => true)
       .catch((ex) => {
-        res.log.warn(
+        getLogger().warn(
           { userId: user.id, deviceId, ...getErrorMessageAndStackObj(ex) },
           'Stored desktop token failed verification; issuing a new token',
         );
@@ -181,7 +181,7 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
       const decoded = externalAuthService.decodeToken(decryptedToken);
       const expiresAt = fromUnixTime(decoded.exp);
 
-      res.log.debug({ userId: user.id, deviceId, expiresAt }, 'Reusing existing desktop token');
+      getLogger().debug({ userId: user.id, deviceId, expiresAt }, 'Reusing existing desktop token');
 
       sendJson(res, { accessToken: decryptedToken });
       createUserActivityFromReq(req, res, {
@@ -210,7 +210,7 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
     providerAccountId: req.session.providerAccountId,
   });
 
-  res.log.info({ userId: user.id, deviceId }, 'Issued new desktop token');
+  getLogger().info({ userId: user.id, deviceId }, 'Issued new desktop token');
 
   sendJson(res, { accessToken });
 
@@ -260,17 +260,17 @@ const verifyToken = createRoute(routeDefinition.verifyToken.validators, async ({
           throw new InvalidSession();
         }
         rotatedAccessToken = result.token;
-        res.log.debug({ userId: userProfile.id, deviceId, rotationOutcome: result.outcome }, 'Desktop App token verified');
+        getLogger().debug({ userId: userProfile.id, deviceId, rotationOutcome: result.outcome }, 'Desktop App token verified');
       }
     }
 
     if (!supportsRotation) {
-      res.log.debug({ userId: userProfile.id, deviceId }, 'Desktop App token verified');
+      getLogger().debug({ userId: userProfile.id, deviceId }, 'Desktop App token verified');
     }
 
     sendJson(res, { success: true, userProfile, encryptionKey, accessToken: rotatedAccessToken });
   } catch (ex) {
-    res.log.error({ userId: user?.id, deviceId, ...getErrorMessageAndStackObj(ex) }, 'Error verifying Desktop App token');
+    getLogger().error({ userId: user?.id, deviceId, ...getErrorMessageAndStackObj(ex) }, 'Error verifying Desktop App token');
     sendJson(res, { success: false, error: 'Invalid session' }, 401);
   }
 });
@@ -288,11 +288,11 @@ const logout = createRoute(routeDefinition.logout.validators, async ({ user }, r
     if (accessToken) {
       externalAuthService.invalidateCacheEntry(accessToken, deviceId);
     }
-    res.log.info({ userId: user.id, deviceId }, 'User logged out of desktop app');
+    getLogger().info({ userId: user.id, deviceId }, 'User logged out of desktop app');
 
     sendJson(res, { success: true });
   } catch (ex) {
-    res.log.error({ userId: user?.id, deviceId, ...getErrorMessageAndStackObj(ex) }, 'Error logging out of desktop app');
+    getLogger().error({ userId: user?.id, deviceId, ...getErrorMessageAndStackObj(ex) }, 'Error logging out of desktop app');
     sendJson(res, { success: false, error: 'Invalid session' }, 401);
   }
 });
@@ -339,7 +339,7 @@ const notifications = createRoute(routeDefinition.notifications.validators, asyn
 
   // TODO: potentially message user based on some conditions
 
-  res.log.info({ userId: user?.id, deviceId, os, version }, '[DESKTOP NOTIFICATIONS] User requested notifications');
+  getLogger().info({ userId: user?.id, deviceId, os, version }, '[DESKTOP NOTIFICATIONS] User requested notifications');
 
   const response: NotificationMessageV1Response = {
     success: true,

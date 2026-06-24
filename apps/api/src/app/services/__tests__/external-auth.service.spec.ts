@@ -40,6 +40,8 @@ vi.mock('@jetstream/api-config', () => ({
     JWT_ENCRYPTION_KEY: 'test-jwt-encryption-key',
   },
   logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
+  getLogger: () => ({ trace: vi.fn(), debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
+  enrichRequestContext: vi.fn(),
   errorTracker: { error: vi.fn(), warn: vi.fn(), critical: vi.fn(), info: vi.fn() },
   DbCacheProvider: vi.fn().mockImplementation(function () {
     this.saveAsync = vi.fn().mockResolvedValue(null);

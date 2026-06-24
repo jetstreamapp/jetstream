@@ -2,7 +2,15 @@
 import '@jetstream/api-config';
 
 import { ClusterMemoryStorePrimary } from '@express-rate-limit/cluster-memory-store';
-import { createRateLimit, ENV, httpLogger, logger, pgPool, sentryRequestContextMiddleware } from '@jetstream/api-config';
+import {
+  createRateLimit,
+  ENV,
+  httpLogger,
+  logger,
+  pgPool,
+  requestContextMiddleware,
+  sentryRequestContextMiddleware,
+} from '@jetstream/api-config';
 import { getSessionCookieName } from '@jetstream/auth/server';
 import '@jetstream/auth/types';
 import { HTTP, SESSION_EXP_DAYS } from '@jetstream/shared/constants';
@@ -183,6 +191,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   }
 
   app.use(httpLogger);
+  app.use(requestContextMiddleware);
 
   // Handle CORS for web extension routes
   const allowedHeaders = [

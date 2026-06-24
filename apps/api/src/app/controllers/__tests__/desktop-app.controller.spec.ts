@@ -25,6 +25,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@jetstream/api-config', () => ({
   ENV: { JETSTREAM_SERVER_URL: 'https://server.test', ENVIRONMENT: 'test', CI: false, DESKTOP_ORG_ENCRYPTION_SECRET: 'desktop-secret' },
   logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+  getLogger: () => ({ trace: vi.fn(), debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
   errorTracker: { error: vi.fn(), warn: vi.fn(), critical: vi.fn(), info: vi.fn() },
   prisma: {},
 }));

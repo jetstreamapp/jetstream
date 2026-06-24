@@ -1,3 +1,4 @@
+import { getLogger } from '@jetstream/api-config';
 import { Request, Response } from '@jetstream/api-types';
 import { TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING, TeamMemberRole, TeamMemberRoleSchema } from '@jetstream/types';
 import express, { Router } from 'express';
@@ -14,15 +15,15 @@ const routes: express.Router = Router();
 function validateTeamRoleMiddlewareFn(roles: TeamMemberRole[]) {
   return async (req: Request, res: Response, next: express.NextFunction) => {
     if (!req.session.user) {
-      res.log.warn({ path: req.path, method: req.method }, 'Unauthorized access to team route without session user');
+      getLogger().warn({ path: req.path, method: req.method }, 'Unauthorized access to team route without session user');
       return res.status(401).json({ error: 'Unauthorized' });
     }
     if (!req.params.teamId) {
-      res.log.warn({ path: req.path, method: req.method, userId: req.session.user.id }, 'Missing teamId in team route');
+      getLogger().warn({ path: req.path, method: req.method, userId: req.session.user.id }, 'Missing teamId in team route');
       return res.status(400).json({ error: 'Team ID is required' });
     }
     if (!TeamMemberRoleSchema.array().safeParse(roles).success) {
-      res.log.error(
+      getLogger().error(
         { path: req.path, method: req.method, userId: req.session.user.id },
         `Invalid roles provided to validateTeamRoleMiddlewareFn: ${roles}`,
       );
@@ -30,7 +31,7 @@ function validateTeamRoleMiddlewareFn(roles: TeamMemberRole[]) {
     }
     const teamMembership = await findActiveTeamMembershipForRoles({ teamId: req.params.teamId, userId: req.session.user.id, roles });
     if (!teamMembership) {
-      res.log.warn(
+      getLogger().warn(
         { path: req.path, method: req.method, userId: req.session.user.id, teamId: req.params.teamId },
         'User does not have required team role for this route',
       );

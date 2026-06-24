@@ -1,5 +1,4 @@
-import { createRateLimit, ENV, logger } from '@jetstream/api-config';
-import { LoggerLike } from '@jetstream/api-types';
+import { createRateLimit, enrichRequestContext, ENV, getLogger } from '@jetstream/api-config';
 import { AuditLogAction, AuditLogResource, createTeamAuditLog } from '@jetstream/audit-logs';
 import {
   AuthError,
@@ -25,7 +24,6 @@ import express, { Request } from 'express';
 import multer from 'multer';
 import { randomBytes } from 'node:crypto';
 import os from 'node:os';
-import pino from 'pino';
 import { v4 as uuid } from 'uuid';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { checkUserEntitlement } from '../db/user.db';
@@ -37,7 +35,7 @@ export function basicAuthMiddleware(req: express.Request, res: express.Response,
   try {
     const authHeader = req.headers.authorization;
     if (typeof authHeader !== 'string') {
-      (res.log || logger).warn('Missing Authorization header for basic auth protected route');
+      getLogger().warn('Missing Authorization header for basic auth protected route');
       return res.status(401).send('Unauthorized');
     }
     const [type, token] = authHeader.split(' ');
@@ -45,7 +43,7 @@ export function basicAuthMiddleware(req: express.Request, res: express.Response,
       return res.status(401).send('Unauthorized');
     }
     if (!ENV.BASIC_AUTH_USERNAME || !ENV.BASIC_AUTH_PASSWORD) {
-      (res.log || logger).error('BASIC_AUTH_USERNAME/BASIC_AUTH_PASSWORD environment variables are not set');
+      getLogger().error('BASIC_AUTH_USERNAME/BASIC_AUTH_PASSWORD environment variables are not set');
       return res.status(401).send('Unauthorized');
     }
     const [username, password] = Buffer.from(token, 'base64').toString().split(':');
@@ -54,7 +52,7 @@ export function basicAuthMiddleware(req: express.Request, res: express.Response,
     const usernameMatches = timingSafeStringCompare(username, ENV.BASIC_AUTH_USERNAME);
     const passwordMatches = timingSafeStringCompare(password, ENV.BASIC_AUTH_PASSWORD);
     if (!usernameMatches || !passwordMatches) {
-      (res.log || logger).warn('Invalid BASIC_AUTH_USERNAME/BASIC_AUTH_PASSWORD');
+      getLogger().warn('Invalid BASIC_AUTH_USERNAME/BASIC_AUTH_PASSWORD');
       return res.status(401).send('Unauthorized');
     }
     next();
@@ -77,7 +75,7 @@ export function addContextMiddleware(req: express.Request, res: express.Response
 }
 
 export function deprecatedRouteMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
-  res.log.warn({ path: req.path, method: req.method }, '[DEPRECATED][ROUTE] This route is deprecated');
+  getLogger().warn({ path: req.path, method: req.method }, '[DEPRECATED][ROUTE] This route is deprecated');
   next();
 }
 
@@ -184,10 +182,10 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
   // guard so scanners that rotate their User-Agent do not self-destruct their session.
   if (req.session.userAgent && req.session.userAgent !== userAgent && !req.session.isScannerSession) {
     if (!checkUserAgentSimilarity(req.session.userAgent, userAgent || '')) {
-      res.log.warn(`[AUTH][UNAUTHORIZED] User-Agent mismatch: ${req.session.userAgent} !== ${userAgent}`);
+      getLogger().warn(`[AUTH][UNAUTHORIZED] User-Agent mismatch: ${req.session.userAgent} !== ${userAgent}`);
       req.session.destroy((err) => {
         if (err) {
-          (res.log || req.log || logger).error({ err }, '[AUTH][UNAUTHORIZED][ERROR] Error destroying session');
+          getLogger().error({ err }, '[AUTH][UNAUTHORIZED][ERROR] Error destroying session');
         }
         // TODO: Send email to user about potential suspicious activity
         next(new AuthenticationError('Unauthorized'));
@@ -197,10 +195,11 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
   }
 
   if (user && user.id !== PLACEHOLDER_USER_ID && !hasPendingVerification && !hasPendingMfaEnrollment && !hasPendingTosAcceptance) {
+    enrichRequestContext({ userId: user.id, sessionId: req.session.id });
     return next();
   }
 
-  res.log.warn(
+  getLogger().warn(
     {
       hasUser: !!user,
       isPlaceholderUser: user?.id === PLACEHOLDER_USER_ID,
@@ -228,6 +227,7 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
         const { org, jetstreamConn } = results;
         res.locals.org = org;
         res.locals.jetstreamConn = jetstreamConn;
+        enrichRequestContext({ orgId: org.id });
       }
     }
     if (req.get(HTTP.HEADERS.X_SFDC_ID_TARGET) || req.query[HTTP.HEADERS.X_SFDC_ID_TARGET]) {
@@ -248,7 +248,7 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
       }
     }
   } catch (ex) {
-    res.log.warn({ err: ex }, '[INIT-ORG][ERROR]');
+    getLogger().warn({ err: ex }, '[INIT-ORG][ERROR]');
     if (ex instanceof NotFoundError) {
       return next(ex);
     }
@@ -280,7 +280,7 @@ export const verifyEntitlement =
 
 export function ensureOrgExists(_req: express.Request, res: express.Response, next: express.NextFunction) {
   if (!res.locals?.jetstreamConn) {
-    res.log.warn('[INIT-ORG][ERROR] An org did not exist on locals');
+    getLogger().warn('[INIT-ORG][ERROR] An org did not exist on locals');
     return next(new UserFacingError('An org is required for this action'));
   }
   next();
@@ -288,7 +288,7 @@ export function ensureOrgExists(_req: express.Request, res: express.Response, ne
 
 export function ensureTargetOrgExists(_req: express.Request, res: express.Response, next: express.NextFunction) {
   if (!res.locals?.targetJetstreamConn) {
-    res.log.warn('[INIT-ORG][ERROR] A target org did not exist on locals');
+    getLogger().warn('[INIT-ORG][ERROR] A target org did not exist on locals');
     return next(new UserFacingError('A target org is required for this action'));
   }
   next();
@@ -325,7 +325,7 @@ export async function getOrgFromHeaderOrQuery(
     return;
   }
 
-  return getOrgForRequest(user, uniqueId, res.log || req.log || logger, apiVersion, includeCallOptions, requestId, {
+  return getOrgForRequest(user, uniqueId, apiVersion, includeCallOptions, requestId, {
     ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
     userAgent: req.get('user-agent'),
   });
@@ -334,7 +334,6 @@ export async function getOrgFromHeaderOrQuery(
 export async function getOrgForRequest(
   user: UserProfileSession,
   uniqueId: string,
-  logger: pino.Logger | LoggerLike = console,
   apiVersion?: string,
   includeCallOptions?: boolean,
   requestId?: string,
@@ -357,14 +356,14 @@ export async function getOrgForRequest(
   // This should be done after decryption so that the org stays expired if decryption failed (we use placeholder decryption token)
   if (org.expirationScheduledFor) {
     salesforceOrgsDb.clearExpiration(org.id, user.id).catch((err) => {
-      logger.error({ orgId: org.id, userId: user.id, err }, '[ORG][UPDATE] Error clearing expirationScheduledFor');
+      getLogger().error({ orgId: org.id, userId: user.id, err }, '[ORG][UPDATE] Error clearing expirationScheduledFor');
     });
   } else {
     // Only update lastActivityAt if it's null or older than 1 day to reduce DB writes
     const oneDayAgo = addDays(new Date(), -1);
     if (!org.lastActivityAt || isBefore(new Date(org.lastActivityAt), oneDayAgo)) {
       salesforceOrgsDb.updateLastActivity(org.id).catch((err) => {
-        logger.error({ orgId: org.id, userId: user.id, err }, '[ORG][UPDATE] Error updating lastActivityAt');
+        getLogger().error({ orgId: org.id, userId: user.id, err }, '[ORG][UPDATE] Error updating lastActivityAt');
       });
     }
   }
@@ -385,7 +384,7 @@ export async function getOrgForRequest(
     try {
       await salesforceOrgsDb.updateAccessToken_UNSAFE({ accessToken, refreshToken, org, userId: user.id });
     } catch (ex) {
-      logger.error({ requestId, orgId: org.id, userId: user.id, err: ex }, '[ORG][REFRESH] Error saving refresh token');
+      getLogger().error({ requestId, orgId: org.id, userId: user.id, err: ex }, '[ORG][REFRESH] Error saving refresh token');
     }
   };
 
@@ -393,7 +392,7 @@ export async function getOrgForRequest(
     try {
       await salesforceOrgsDb.updateOrg_UNSAFE(org, { connectionError: error });
     } catch (ex) {
-      logger.error({ requestId, orgId: org.id, userId: user.id, err: ex }, '[ORG][UPDATE] Error updating connection error on org');
+      getLogger().error({ requestId, orgId: org.id, userId: user.id, err: ex }, '[ORG][UPDATE] Error updating connection error on org');
     }
   };
 
@@ -419,7 +418,7 @@ export async function getOrgForRequest(
           sfdcClientSecret: ENV.SFDC_CONSUMER_SECRET,
         }),
     });
-    logger.info(
+    getLogger().info(
       {
         requestId,
         orgId: org.id,
@@ -472,7 +471,7 @@ export async function getOrgForRequest(
       }
       return { accessToken: freshAccessToken, refreshToken: freshRefreshToken };
     } catch (ex) {
-      logger.error(
+      getLogger().error(
         { requestId, orgId: org.id, userId: user.id, err: ex },
         '[ORG][REFRESH] Error fetching fresh tokens for race condition check',
       );
@@ -491,7 +490,7 @@ export async function getOrgForRequest(
       instanceUrl,
       refreshToken,
       enableLogging: ENV.LOG_LEVEL === 'trace',
-      logger,
+      logger: getLogger(),
       sfdcClientId: ENV.SFDC_CONSUMER_KEY,
       sfdcClientSecret: ENV.SFDC_CONSUMER_SECRET,
       refreshTokens,
@@ -510,7 +509,7 @@ export function verifyCaptcha(req: express.Request, res: express.Response, next:
   }
   const token = req.body?.[ENV.CAPTCHA_PROPERTY];
   if (!token) {
-    (res.log || logger).warn({ token, reason: 'Missing captcha token' }, '[CAPTCHA][FAILED]');
+    getLogger().warn({ token, reason: 'Missing captcha token' }, '[CAPTCHA][FAILED]');
     createUserActivityFromReq(req, res, {
       action: 'CAPTCHA_FAILED',
       method: 'UNAUTHENTICATED',
@@ -542,7 +541,7 @@ export function verifyCaptcha(req: express.Request, res: express.Response, next:
       if (fetchData.success) {
         return next();
       }
-      (res.log || logger).warn({ token, fetchData, reason: 'Captcha verification failed' }, '[CAPTCHA][FAILED]');
+      getLogger().warn({ token, fetchData, reason: 'Captcha verification failed' }, '[CAPTCHA][FAILED]');
       createUserActivityFromReq(req, res, {
         action: 'CAPTCHA_FAILED',
         method: 'UNAUTHENTICATED',
@@ -571,7 +570,7 @@ export function validateDoubleCSRF(req: express.Request, res: express.Response, 
   // Skip if user is not logged in (no session)
   if (!req.session?.user) {
     // Log for monitoring
-    (res.log || logger).warn(
+    getLogger().warn(
       {
         path: req.path,
         method: req.method,
@@ -596,7 +595,7 @@ export function validateDoubleCSRF(req: express.Request, res: express.Response, 
     res.cookie(cookieConfig.doubleCSRFToken.name, cookieToken, cookieConfig.doubleCSRFToken.options);
     isNewTokenGenerated = true;
 
-    (res.log || logger).info(
+    getLogger().info(
       {
         sessionAge: req.session.loginTime ? Date.now() - req.session.loginTime : 'unknown',
       },
@@ -613,7 +612,7 @@ export function validateDoubleCSRF(req: express.Request, res: express.Response, 
 
     if (!isValid) {
       // Log the CSRF violation
-      (res.log || logger).warn(
+      getLogger().warn(
         {
           hasCookieToken: !!cookieToken,
           hasHeaderToken: !!requestToken,
@@ -631,7 +630,7 @@ export function validateDoubleCSRF(req: express.Request, res: express.Response, 
     }
   } catch (error) {
     // Log validation errors
-    (res.log || logger).error(
+    getLogger().error(
       {
         ...getErrorMessageAndStackObj(error),
         path: req.path,

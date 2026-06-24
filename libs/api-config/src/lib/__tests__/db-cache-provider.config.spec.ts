@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { DbCacheProvider } from '../db-cache-provider.config';
 
 const prismaMock = vi.hoisted(() => {
   const mock: any = {
@@ -35,8 +36,6 @@ vi.mock('@jetstream/prisma', () => ({
     PrismaClientKnownRequestError: PrismaClientKnownRequestErrorMock,
   },
 }));
-
-import { DbCacheProvider } from '../db-cache-provider.config';
 
 describe('DbCacheProvider.consumeOnceAsync', () => {
   beforeEach(() => {

@@ -1,4 +1,4 @@
-import { ENV, logger } from '@jetstream/api-config';
+import { enrichRequestContext, ENV, getLogger } from '@jetstream/api-config';
 import { convertUserProfileToSession_External, InvalidAccessToken } from '@jetstream/auth/server';
 import { TokenSource, UserProfileSession } from '@jetstream/auth/types';
 import { HTTP } from '@jetstream/shared/constants';
@@ -164,16 +164,16 @@ export async function rotateToken({
       type: webExtDb.TOKEN_TYPE_AUTH,
     });
     if (currentTokenRecord && currentTokenRecord.source === source) {
-      logger.warn({ userId: userProfile.id, deviceId, audience }, 'rotateToken: race lost — returning current DB token to caller');
+      getLogger().warn({ userId: userProfile.id, deviceId, audience }, 'rotateToken: race lost — returning current DB token to caller');
       return { token: decryptJwtTokenOrPlaintext(currentTokenRecord.token), outcome: 'race-loss-current' };
     }
     if (currentTokenRecord) {
-      logger.warn(
+      getLogger().warn(
         { userId: userProfile.id, deviceId, audience, expectedSource: source, foundSource: currentTokenRecord.source },
         'rotateToken: race lost and current DB token has mismatched source — treating as race-loss-none',
       );
     } else {
-      logger.warn({ userId: userProfile.id, deviceId, audience }, 'rotateToken: race lost and no current token found');
+      getLogger().warn({ userId: userProfile.id, deviceId, audience }, 'rotateToken: race lost and no current token found');
     }
     return { token: undefined, outcome: 'race-loss-none' };
   }
@@ -265,7 +265,7 @@ export async function getUserAndDeviceIdForExternalAuth(
     }
     return { user, deviceId };
   } catch (ex) {
-    res.log.warn({ audience, deviceId, ...getErrorMessageAndStackObj(ex) }, '[EXTERNAL-AUTH][AUTH ERROR] Error decoding token');
+    getLogger().warn({ audience, deviceId, ...getErrorMessageAndStackObj(ex) }, '[EXTERNAL-AUTH][AUTH ERROR] Error decoding token');
     return { user: null, deviceId };
   }
 }
@@ -301,9 +301,10 @@ export function getExternalAuthMiddleware(audience: Audience, options?: External
         user,
       };
       res.locals.deviceId = deviceId;
+      enrichRequestContext({ userId: user.id, deviceId });
       next();
     } catch (ex) {
-      res.log.warn(
+      getLogger().warn(
         { audience, deviceId: getDeviceId(req, res), ...getErrorMessageAndStackObj(ex) },
         '[EXTERNAL AUTH ERROR] Error decoding token',
       );

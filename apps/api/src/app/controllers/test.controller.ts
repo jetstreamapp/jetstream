@@ -1,3 +1,4 @@
+import { getLogger } from '@jetstream/api-config';
 import { z } from 'zod';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
@@ -39,7 +40,7 @@ export const routeDefinition = {
 const deferredResponse = createRoute(routeDefinition.deferredResponse.validators, async ({ query }, _req, res, next) => {
   const { delay, status, errorMessage, responseSize } = query;
 
-  res.log.info({ delay, status, errorMessage, responseSize }, '[TEST][DEFERRED] Test endpoint invoked');
+  getLogger().info({ delay, status, errorMessage, responseSize }, '[TEST][DEFERRED] Test endpoint invoked');
 
   await new Promise((resolve) => setTimeout(resolve, delay));
 

@@ -1,4 +1,4 @@
-import { ENV } from '@jetstream/api-config';
+import { ENV, getLogger } from '@jetstream/api-config';
 import {
   createUserActivityFromReq,
   getApiAddressFromReq,
@@ -150,7 +150,7 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
       .verifyToken({ token: decryptedToken, deviceId }, externalAuthService.AUDIENCE_WEB_EXT)
       .then(() => true)
       .catch((ex) => {
-        res.log.warn(
+        getLogger().warn(
           { userId: user.id, deviceId, ...getErrorMessageAndStackObj(ex) },
           'Stored web extension token failed verification; issuing a new token',
         );
@@ -161,7 +161,7 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
       const decoded = externalAuthService.decodeToken(decryptedToken);
       const expiresAt = fromUnixTime(decoded.exp);
 
-      res.log.debug({ userId: user.id, deviceId, expiresAt }, 'Reusing existing web extension token');
+      getLogger().debug({ userId: user.id, deviceId, expiresAt }, 'Reusing existing web extension token');
 
       sendJson(res, { accessToken: decryptedToken });
       createUserActivityFromReq(req, res, {
@@ -232,17 +232,17 @@ const verifyToken = createRoute(routeDefinition.verifyToken.validators, async ({
           throw new InvalidSession();
         }
         rotatedAccessToken = result.token;
-        res.log.debug({ userId: userProfile.id, deviceId, rotationOutcome: result.outcome }, 'Web extension token verified');
+        getLogger().debug({ userId: userProfile.id, deviceId, rotationOutcome: result.outcome }, 'Web extension token verified');
       }
     }
 
     if (!supportsRotation) {
-      res.log.debug({ userId: userProfile.id, deviceId }, 'Web extension token verified');
+      getLogger().debug({ userId: userProfile.id, deviceId }, 'Web extension token verified');
     }
 
     sendJson(res, { success: true, userProfile, accessToken: rotatedAccessToken });
   } catch (ex) {
-    res.log.error({ userId: user?.id, deviceId, ...getErrorMessageAndStackObj(ex) }, 'Error verifying web extension token');
+    getLogger().error({ userId: user?.id, deviceId, ...getErrorMessageAndStackObj(ex) }, 'Error verifying web extension token');
     sendJson(res, { success: false, error: 'Invalid session' }, 401);
   }
 });
@@ -261,11 +261,11 @@ const logout = createRoute(routeDefinition.logout.validators, async ({ user }, r
     if (accessToken) {
       externalAuthService.invalidateCacheEntry(accessToken, deviceId);
     }
-    res.log.info({ userId: user.id, deviceId }, 'User logged out of browser extension');
+    getLogger().info({ userId: user.id, deviceId }, 'User logged out of browser extension');
 
     sendJson(res, { success: true });
   } catch (ex) {
-    res.log.error({ userId: user?.id, deviceId, ...getErrorMessageAndStackObj(ex) }, 'Error logging out of browser extension');
+    getLogger().error({ userId: user?.id, deviceId, ...getErrorMessageAndStackObj(ex) }, 'Error logging out of browser extension');
     sendJson(res, { success: false, error: 'Invalid session' }, 401);
   }
 });
