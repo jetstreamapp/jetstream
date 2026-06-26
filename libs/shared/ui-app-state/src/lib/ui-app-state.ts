@@ -51,6 +51,7 @@ export const DEFAULT_PROFILE: UserProfileUi = {
     chromeExtension: false,
     desktop: false,
     recordSync: false,
+    salesforceCanvas: false,
   },
   subscriptions: [],
 } as UserProfileUi;

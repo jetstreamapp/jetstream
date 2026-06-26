@@ -4,7 +4,7 @@
     <distributionState>Packaged</distributionState>
     <iconUrl>https://getjetstream.app/assets/images/jetstream-icon-pro-128.png</iconUrl>
     <isProtected>false</isProtected>
-    <label>Jetstream Canvas</label>
+    <label>Jetstream for Salesforce</label>
     <logoUrl>https://getjetstream.app/assets/images/jetstream-icon-pro-128.png</logoUrl>
-    <orgScopedExternalApp>00D4S000000pHDFUA2:Jetstream_Canvas</orgScopedExternalApp>
+    <orgScopedExternalApp>00Dam00001cYDdx:Jetstream_Canvas</orgScopedExternalApp>
 </ExternalClientApplication>

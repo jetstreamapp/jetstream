@@ -373,7 +373,9 @@ export async function handleSsoLogin(
             emailVerified: true,
             lastLoggedIn: new Date(),
             preferences: { create: { skipFrontdoorLogin: false } },
-            entitlements: { create: { chromeExtension: false, recordSync: false, googleDrive: false, desktop: false } },
+            entitlements: {
+              create: { chromeExtension: false, recordSync: false, googleDrive: false, desktop: false, salesforceCanvas: false },
+            },
             identities: {
               create: {
                 type: 'sso',

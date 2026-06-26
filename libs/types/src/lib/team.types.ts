@@ -113,6 +113,7 @@ export const TeamEntitlementSchema = z.object({
   googleDrive: z.boolean().optional().default(false),
   desktop: z.boolean().optional().default(false),
   recordSync: z.boolean().optional().default(false),
+  salesforceCanvas: z.boolean().optional().default(false),
 });
 
 export const TeamLoginConfigSchema = z.object({

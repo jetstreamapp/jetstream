@@ -396,6 +396,7 @@ export const createTeam = async ({
             googleDrive: false,
             desktop: false,
             recordSync: false,
+            salesforceCanvas: false,
           },
         },
       },

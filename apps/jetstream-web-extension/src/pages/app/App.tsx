@@ -23,6 +23,7 @@ import { ErrorBoundary } from 'react-error-boundary';
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { AppWrapper } from '../../core/AppWrapper';
 import { applyExtensionThemeBeforeMount } from '../../core/ExtensionThemeApplier';
+import { useExtensionColorScheme } from '../../hooks/useExtensionColorScheme';
 import { initAndRenderReact } from '../../utils/web-extension.utils';
 
 applyExtensionThemeBeforeMount().finally(() => {
@@ -46,6 +47,7 @@ window.history.replaceState({}, '', pageUrl);
 
 export function App() {
   const navigate = useNavigate();
+  const [colorScheme, setColorScheme] = useExtensionColorScheme();
 
   useEffect(() => {
     if (url) {
@@ -65,7 +67,7 @@ export function App() {
       <ErrorBoundary FallbackComponent={ErrorBoundaryEmptyFallback}>
         <UserFeedbackWidget />
       </ErrorBoundary>
-      <HeaderNavbar isBillingEnabled={false} isEmbeddedApp />
+      <HeaderNavbar isBillingEnabled={false} isEmbeddedApp colorScheme={colorScheme} onColorSchemeChange={setColorScheme} />
       <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
         <Suspense fallback={<AppLoading />}>
           <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
