@@ -2,7 +2,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { deleteImage, uploadImage } from '@jetstream/shared/data';
 import { readFile, useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { NOOP } from '@jetstream/shared/utils';
+import { getErrorMessage, NOOP } from '@jetstream/shared/utils';
 import { ImageWithUpload, InputAcceptType } from '@jetstream/types';
 import classNames from 'classnames';
 import uniqueId from 'lodash/uniqueId';
@@ -30,7 +30,7 @@ export interface ImageSelectorProps {
   disabled?: boolean;
   hasError?: boolean;
   errorMessage?: React.ReactNode | string;
-  showPreview?;
+  showPreview?: boolean;
   autoUploadImages?: boolean;
   onImages: (fileContent: ImageWithUpload[]) => void;
 }
@@ -134,7 +134,7 @@ export const ImageSelector: FunctionComponent<ImageSelectorProps> = ({
           }
         }
       } catch (ex) {
-        setSystemErrorMessage(ex.message);
+        setSystemErrorMessage(getErrorMessage(ex));
       } finally {
         if (inputRef?.current) {
           inputRef.current.value = '';

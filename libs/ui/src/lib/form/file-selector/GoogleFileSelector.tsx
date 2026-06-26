@@ -1,6 +1,8 @@
 /// <reference types="@maxim_mazurok/gapi.client.drive-v3" />
+/// <reference types="google.picker" />
 import { logger } from '@jetstream/shared/client-logger';
 import { GoogleApiClientConfig, initXlsx, useDrivePicker } from '@jetstream/shared/ui-utils';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import { InputReadGoogleSheet, Maybe } from '@jetstream/types';
 import classNames from 'classnames';
 import uniqueId from 'lodash/uniqueId';
@@ -103,13 +105,13 @@ export const GoogleFileSelector: FunctionComponent<GoogleFileSelectorProps> = ({
           onReadFile({ workbook, selectedFile: selectedItem });
         } catch (ex) {
           logger.error('Error processing file', ex);
-          const errorMessage = ex?.result?.error?.message || ex.message || '';
+          const errorMessage = (ex as { result?: { error?: { message?: string } } })?.result?.error?.message || getErrorMessage(ex) || '';
           onError && onError(`Error parsing file. ${errorMessage}`);
           setErrorMessage(`Error loading selected file. ${errorMessage}`);
         }
       } catch (ex) {
         logger.error('Error exporting file', ex);
-        const errorMessage = ex?.result?.error?.message || ex.message || '';
+        const errorMessage = (ex as { result?: { error?: { message?: string } } })?.result?.error?.message || getErrorMessage(ex) || '';
         onError && onError(`Error loading selected file. ${errorMessage}`);
         setErrorMessage(`Error loading selected file. ${errorMessage}`);
         setManagedFilename(null);
@@ -131,7 +133,7 @@ export const GoogleFileSelector: FunctionComponent<GoogleFileSelectorProps> = ({
         }
       } catch (ex) {
         logger.error('Error exporting file', ex);
-        const errorMessage = ex?.result?.error?.message || ex.message || '';
+        const errorMessage = (ex as { result?: { error?: { message?: string } } })?.result?.error?.message || getErrorMessage(ex) || '';
         onError && onError(`Error loading selected file. ${errorMessage}`);
         setErrorMessage(`Error loading selected file. ${errorMessage}`);
         setManagedFilename(null);

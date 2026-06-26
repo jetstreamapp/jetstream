@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { describeSObject } from '@jetstream/shared/data';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { orderObjectsBy } from '@jetstream/shared/utils';
+import { getErrorMessage, orderObjectsBy } from '@jetstream/shared/utils';
 import { Field, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import ComboboxWithItems from '../form/combobox/ComboboxWithItemsVirtual';
@@ -99,7 +99,7 @@ export const SobjectFieldCombobox = forwardRef<unknown, SobjectFieldComboboxProp
         if (!isMounted.current || uniqueId !== selectedOrg.uniqueId || priorToolingValue !== isTooling) {
           return;
         }
-        setErrorMessage(ex.message);
+        setErrorMessage(getErrorMessage(ex));
       }
       setLoading(false);
     }, [selectedOrg, isTooling, selectedSObject, filterFn]);

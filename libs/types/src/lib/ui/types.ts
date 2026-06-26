@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/// <reference types="google.picker" />
 import type { ReactNode } from 'react';
 import type * as XLSX from 'xlsx';
 import { DeployOptions, DeployResult, DeployResultStatus, ListMetadataResult } from '../salesforce/metadata.types';

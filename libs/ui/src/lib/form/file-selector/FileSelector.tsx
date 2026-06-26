@@ -1,6 +1,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { readFile, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import { InputAcceptType, InputReadFileContent, Maybe } from '@jetstream/types';
 import classNames from 'classnames';
 import isString from 'lodash/isString';
@@ -135,7 +136,7 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
         await handleFile(file);
       }
     } catch (ex) {
-      setSystemErrorMessage(ex.message);
+      setSystemErrorMessage(getErrorMessage(ex));
       setManagedFilename(null);
     }
   }
@@ -165,7 +166,7 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
 
       onReadFile({ filename: file.name, extension, content });
     } catch (ex) {
-      setSystemErrorMessage(ex.message);
+      setSystemErrorMessage(getErrorMessage(ex));
       setManagedFilename(null);
     } finally {
       if (inputRef?.current) {

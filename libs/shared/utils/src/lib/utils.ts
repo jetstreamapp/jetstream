@@ -201,12 +201,12 @@ export function flattenRecords(records: SalesforceRecord[], fields: string[]): R
 }
 
 export function flattenRecord(record: SalesforceRecord, fields: string[], flattObjects = true): Record<string, string> {
-  return fields.reduce((obj, field) => {
+  return fields.reduce<Record<string, string>>((obj, field) => {
     const value = lodashGet(record, field);
     if (isObject(value) && flattObjects) {
       // Subquery records have nested "records" values
-      if (Array.isArray(value['records'])) {
-        obj[field] = JSON.stringify(value['records']).replace(REGEX.LEADING_TRAILING_QUOTES, '');
+      if (Array.isArray((value as Record<string, any>)['records'])) {
+        obj[field] = JSON.stringify((value as Record<string, any>)['records']).replace(REGEX.LEADING_TRAILING_QUOTES, '');
       } else {
         obj[field] = JSON.stringify(value).replace(REGEX.LEADING_TRAILING_QUOTES, '');
       }
@@ -317,7 +317,7 @@ export function nullifyEmptyStrings<T extends Record<string, unknown>>(value: T,
   if (!value) {
     return value;
   }
-  return Object.keys(value).reduce((obj, key) => {
+  return Object.keys(value).reduce<Record<string, unknown>>((obj, key) => {
     obj[key] = value[key];
     if (trimStrings && isString(obj[key])) {
       obj[key] = (obj[key] as string).trim();
@@ -563,16 +563,17 @@ export function bulkApiEnsureTyped(job: any | any): BulkJob | BulkJobBatchInfo {
       'numberRetries',
       'totalProcessingTime',
     ];
-    if (job['$']) {
-      job['$'] = undefined;
+    const jobRecord = job as Record<string, any>;
+    if (jobRecord['$']) {
+      jobRecord['$'] = undefined;
     }
-    if (job['@xmlns']) {
-      job['@xmlns'] = undefined;
+    if (jobRecord['@xmlns']) {
+      jobRecord['@xmlns'] = undefined;
     }
 
     numberTypes.forEach((prop) => {
-      if (prop in job && typeof job[prop] === 'string') {
-        job[prop] = Number(job[prop]);
+      if (prop in jobRecord && typeof jobRecord[prop] === 'string') {
+        jobRecord[prop] = Number(jobRecord[prop]);
       }
     });
     return job as BulkJob | BulkJobBatchInfo;

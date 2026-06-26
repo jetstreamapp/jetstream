@@ -51,7 +51,9 @@ const XlsxSheetSelectionModalPromiseModal: FunctionComponent<XlsxSheetSelectionM
   );
 };
 
-export const XlsxSheetSelectionModalPromise = create<XlsxSheetSelectionModalPromiseProps, string>(XlsxSheetSelectionModalPromiseModal);
+export const XlsxSheetSelectionModalPromise = create<XlsxSheetSelectionModalPromiseProps, string, never>(
+  XlsxSheetSelectionModalPromiseModal,
+);
 
 export const onParsedMultipleWorkbooks = async (worksheets: string[]): Promise<string> => {
   return await XlsxSheetSelectionModalPromise({ worksheets });

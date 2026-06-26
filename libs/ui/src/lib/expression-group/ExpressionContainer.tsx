@@ -353,7 +353,7 @@ function initConditionNumber(expression?: ExpressionType) {
   return nextConditionNumber;
 }
 
-function getInitialState(initialState: ExpressionType) {
+function getInitialState(initialState?: ExpressionType) {
   const expression = initExpression(initialState);
   return {
     expression,

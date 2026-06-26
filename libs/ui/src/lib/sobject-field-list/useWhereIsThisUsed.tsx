@@ -1,6 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, queryWithCache } from '@jetstream/shared/data';
 import { useReducerFetchFn } from '@jetstream/shared/ui-utils';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
 import orderBy from 'lodash/orderBy';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
@@ -84,9 +85,9 @@ export function useWhereIsThisUsed(org: SalesforceOrgUi, sobject: string, field:
           dispatch({ type: 'SUCCESS', payload: getListItemFromQueryResults(dependencies) });
         }
       } catch (ex) {
-        logger.warn('[useWhereIsThisUsed][ERROR]', ex.message);
+        logger.warn('[useWhereIsThisUsed][ERROR]', getErrorMessage(ex));
         if (isMounted.current) {
-          dispatch({ type: 'ERROR', payload: { errorMessage: ex.message } });
+          dispatch({ type: 'ERROR', payload: { errorMessage: getErrorMessage(ex) } });
         }
       }
     },

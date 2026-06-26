@@ -8,7 +8,7 @@ import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'rea
 import { Combobox, ComboboxPropsRef, ComboboxSharedProps } from './Combobox';
 import { ComboboxListItem } from './ComboboxListItem';
 
-const defaultFilterFn = (filter) => multiWordObjectFilter<ListItem>(['label', 'value'], filter);
+const defaultFilterFn = (filter: string) => multiWordObjectFilter<ListItem>(['label', 'value'], filter);
 const defaultSelectedItemLabelFn = (item: ListItem) => item.label;
 const defaultSelectedItemTitleFn = (item: ListItem) => item.title;
 
@@ -131,7 +131,7 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
   // FIXME: scroll on open
   // TODO: if combobox is open, scroll to selected item - combobx can return fn as child optionally in this case
 
-  const handleKeyboardNavigation = (action: 'up' | 'down' | 'enter') => {
+  const handleKeyboardNavigation = (action: 'up' | 'down' | 'right' | 'enter') => {
     if (visibleItems.length <= 1) {
       return;
     }

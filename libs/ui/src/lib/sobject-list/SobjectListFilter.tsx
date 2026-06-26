@@ -90,7 +90,7 @@ export function filterSobjects(
 }
 
 export function getHasFiltersApplied(filters: ObjectFilterValues) {
-  return !!Object.entries(filters).filter(([key, value]) => DEFAULT_VALUES[key] !== value).length;
+  return !!Object.entries(filters).filter(([key, value]) => DEFAULT_VALUES[key as keyof typeof DEFAULT_VALUES] !== value).length;
 }
 
 export interface SobjectFieldListFilterProps {
@@ -166,7 +166,9 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
                 label={label}
                 value={value}
                 checked={selectedFilters.STANDARD_CUSTOM === value}
-                onChange={(value: (typeof DEFAULT_VALUES)['STANDARD_CUSTOM']) => handleRadioChange({ type: 'STANDARD_CUSTOM', value })}
+                onChange={(value: string) =>
+                  handleRadioChange({ type: 'STANDARD_CUSTOM', value: value as (typeof DEFAULT_VALUES)['STANDARD_CUSTOM'] })
+                }
               />
             ))}
           </RadioGroup>
@@ -180,7 +182,7 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
                 label={label}
                 value={value}
                 checked={selectedFilters.MANAGED === value}
-                onChange={(value: (typeof DEFAULT_VALUES)['MANAGED']) => handleRadioChange({ type: 'MANAGED', value })}
+                onChange={(value: string) => handleRadioChange({ type: 'MANAGED', value: value as (typeof DEFAULT_VALUES)['MANAGED'] })}
               />
             ))}
           </RadioGroup>

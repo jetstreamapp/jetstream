@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { DescribeGlobalSObjectResult, Maybe, UpDown } from '@jetstream/types';
-import { Fragment, FunctionComponent, RefObject, createRef, forwardRef, useEffect, useState } from 'react';
+import { ForwardedRef, Fragment, FunctionComponent, createRef, forwardRef, useEffect, useState } from 'react';
 import SearchInput from '../form/search-input/SearchInput';
 import EmptyState from '../illustrations/EmptyState';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
@@ -177,7 +177,7 @@ interface SobjectListContentProps extends Pick<SobjectListProps, 'selectedSObjec
 const SobjectListContent = forwardRef(
   (
     { sobjects, selectedSObject, loading, filteredSobjects, onSelected, searchTerm }: SobjectListContentProps,
-    ref: RefObject<HTMLUListElement>,
+    ref: ForwardedRef<HTMLUListElement>,
   ) => {
     return (
       <>

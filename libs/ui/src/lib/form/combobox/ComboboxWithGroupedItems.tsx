@@ -7,8 +7,8 @@ import { Combobox, ComboboxPropsRef, ComboboxSharedProps } from './Combobox';
 import { ComboboxListItem, ComboboxListItemProps } from './ComboboxListItem';
 import { ComboboxListItemGroup } from './ComboboxListItemGroup';
 
-const defaultFilterFn = (filter) => multiWordObjectFilter<ListItem>(['label', 'value'], filter);
-const defaultGroupFilterFn = (filter) => multiWordObjectFilter<ListItemGroup>(['label'], filter);
+const defaultFilterFn = (filter: string) => multiWordObjectFilter<ListItem>(['label', 'value'], filter);
+const defaultGroupFilterFn = (filter: string) => multiWordObjectFilter<ListItemGroup>(['label'], filter);
 const defaultSelectedItemLabelFn = (item: ListItem) => item.label;
 const defaultSelectedItemTitleFn = (item: ListItem) => item.title;
 

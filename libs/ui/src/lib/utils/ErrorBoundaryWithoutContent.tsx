@@ -5,12 +5,12 @@ import React from 'react';
  * e.x. a tooltip that loads content async might fail and we can just ignore it instead of crashing
  */
 class ErrorBoundaryWithoutContent extends React.Component<{ children?: React.ReactNode }, { hasError: boolean }> {
-  constructor(props) {
+  constructor(props: { children?: React.ReactNode }) {
     super(props);
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(error: unknown) {
     return { hasError: true };
   }
 

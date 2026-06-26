@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { tracker } from '@jetstream/shared/ui-utils';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import { Maybe } from '@jetstream/types';
 import { formatDate } from 'date-fns/format';
 import { parse as parseDate } from 'date-fns/parse';
@@ -26,7 +27,7 @@ export const dataTableDateFormatter = (dateOrDateTime: Maybe<Date | string>): st
       return dateOrDateTime;
     }
   } catch (ex) {
-    tracker.warn(ex.message, ex, {
+    tracker.warn(getErrorMessage(ex), ex, {
       place: 'dataTableDateFormatter',
       type: 'Error formatting date',
       inputValue: dateOrDateTime,
@@ -46,7 +47,7 @@ export const dataTableTimeFormatter = (value: Maybe<string>): string | null => {
       return time;
     }
   } catch (ex) {
-    tracker.warn(ex.message, ex, {
+    tracker.warn(getErrorMessage(ex), ex, {
       place: 'dataTableTimeFormatter',
       type: 'Error formatting time',
       inputValue: value,
@@ -62,7 +63,7 @@ export const dataTableFileSizeFormatter = (sizeInBytes: Maybe<string | number>):
   try {
     return fileSizeFormatter(sizeInBytes as any);
   } catch (ex) {
-    tracker.warn(ex.message, ex, {
+    tracker.warn(getErrorMessage(ex), ex, {
       place: 'dataTableFileSizeFormatter',
       type: 'error formatting file size',
       inputValue: sizeInBytes,
@@ -83,7 +84,7 @@ export const dataTableAddressValueFormatter = (value: any): string | null => {
     const remainingParts = [address.city, address.state, address.postalCode, address.country].filter((part) => !!part).join(', ');
     return [street, remainingParts].join('\n');
   } catch (ex) {
-    tracker.warn(ex.message, ex, {
+    tracker.warn(getErrorMessage(ex), ex, {
       place: 'dataTableAddressValueFormatter',
       type: 'error formatting address',
       inputValue: value,
@@ -100,7 +101,7 @@ export const dataTableLocationFormatter = (value: Maybe<SalesforceLocationField>
     const location: SalesforceLocationField = value as SalesforceLocationField;
     return `Latitude: ${location.latitude}°, Longitude: ${location.longitude}°`;
   } catch (ex) {
-    tracker.warn(ex.message, ex, {
+    tracker.warn(getErrorMessage(ex), ex, {
       place: 'dataTableLocationFormatter',
       type: 'error formatting location',
       inputValue: value,

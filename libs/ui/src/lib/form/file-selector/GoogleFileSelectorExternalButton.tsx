@@ -1,3 +1,4 @@
+/// <reference types="google.picker" />
 import { GooglePickerResultSuccess } from '@jetstream/desktop/types';
 import { logger } from '@jetstream/shared/client-logger';
 import { GoogleApiClientConfig, initXlsx, useDriveExternalPicker } from '@jetstream/shared/ui-utils';

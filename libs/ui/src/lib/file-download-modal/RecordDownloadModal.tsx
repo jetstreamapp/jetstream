@@ -346,7 +346,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
     }
   }
 
-  function handleFolderSelected(folderId: string) {
+  function handleFolderSelected(folderId?: string) {
     setGoogleFolder(folderId);
   }
 
@@ -433,7 +433,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 label="Excel"
                 value={RADIO_FORMAT_XLSX}
                 checked={fileFormat === RADIO_FORMAT_XLSX}
-                onChange={(value: FileExtXLSX) => setFileFormat(value)}
+                onChange={(value: string) => setFileFormat(value as FileExtXLSX)}
                 disabled={isBulkApi}
               />
               <Radio
@@ -441,14 +441,14 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 label="CSV"
                 value={RADIO_FORMAT_CSV}
                 checked={fileFormat === RADIO_FORMAT_CSV}
-                onChange={(value: FileExtCsv) => setFileFormat(value)}
+                onChange={(value: string) => setFileFormat(value as FileExtCsv)}
               />
               <Radio
                 name="radio-download-file-format"
                 label="JSON"
                 value={RADIO_FORMAT_JSON}
                 checked={fileFormat === RADIO_FORMAT_JSON}
-                onChange={(value: FileExtJson) => setFileFormat(value)}
+                onChange={(value: string) => setFileFormat(value as FileExtJson)}
                 disabled={isBulkApi}
               />
               {hasGoogleInputConfigured && (
@@ -457,7 +457,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                   label="Google Drive"
                   value={RADIO_FORMAT_GDRIVE}
                   checked={fileFormat === RADIO_FORMAT_GDRIVE}
-                  onChange={(value: FileExtGDrive) => setFileFormat(value)}
+                  onChange={(value: string) => setFileFormat(value as FileExtGDrive)}
                 />
               )}
               {!googleIntegrationEnabled && googleShowUpgradeToPro && (
@@ -495,7 +495,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                   label="Standard"
                   value={RADIO_DOWNLOAD_METHOD_STANDARD}
                   checked={downloadMethod === RADIO_DOWNLOAD_METHOD_STANDARD}
-                  onChange={(value: typeof RADIO_DOWNLOAD_METHOD_STANDARD) => setDownloadMethod(value)}
+                  onChange={(value: string) => setDownloadMethod(value as typeof RADIO_DOWNLOAD_METHOD_STANDARD)}
                   disabled={requireBulkApi}
                 />
                 <Radio
@@ -503,7 +503,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                   label="Salesforce Bulk API"
                   value={RADIO_DOWNLOAD_METHOD_BULK_API}
                   checked={downloadMethod === RADIO_DOWNLOAD_METHOD_BULK_API}
-                  onChange={(value: typeof RADIO_DOWNLOAD_METHOD_BULK_API) => setDownloadMethod(value)}
+                  onChange={(value: string) => setDownloadMethod(value as typeof RADIO_DOWNLOAD_METHOD_BULK_API)}
                   disabled={requireBulkApi}
                 />
               </RadioGroup>
@@ -521,7 +521,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                     label="Standard"
                     value={RADIO_DOWNLOAD_METHOD_STANDARD}
                     checked={downloadMethod === RADIO_DOWNLOAD_METHOD_STANDARD}
-                    onChange={(value: typeof RADIO_DOWNLOAD_METHOD_STANDARD) => setDownloadMethod(value)}
+                    onChange={(value: string) => setDownloadMethod(value as typeof RADIO_DOWNLOAD_METHOD_STANDARD)}
                     disabled={requireBulkApi}
                   />
                   <Radio
@@ -529,7 +529,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                     label="Salesforce Bulk API"
                     value={RADIO_DOWNLOAD_METHOD_BULK_API}
                     checked={downloadMethod === RADIO_DOWNLOAD_METHOD_BULK_API}
-                    onChange={(value: typeof RADIO_DOWNLOAD_METHOD_BULK_API) => setDownloadMethod(value)}
+                    onChange={(value: string) => setDownloadMethod(value as typeof RADIO_DOWNLOAD_METHOD_BULK_API)}
                     disabled={requireBulkApi}
                   />
                 </RadioGroup>

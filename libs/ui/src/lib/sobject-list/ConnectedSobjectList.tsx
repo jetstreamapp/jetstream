@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, describeGlobal } from '@jetstream/shared/data';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { orderObjectsBy } from '@jetstream/shared/utils';
+import { getErrorMessage, orderObjectsBy } from '@jetstream/shared/utils';
 import { DescribeGlobalSObjectResult, Maybe, RecentHistoryItemType, SalesforceOrgUi } from '@jetstream/types';
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { formatRelative } from 'date-fns/formatRelative';
@@ -117,7 +117,7 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
       if (!isMounted.current || uniqueId !== selectedOrg.uniqueId || priorToolingValue !== isTooling) {
         return;
       }
-      setErrorMessage(ex.message);
+      setErrorMessage(getErrorMessage(ex));
     } finally {
       setLoading(false);
     }

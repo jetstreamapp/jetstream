@@ -1,3 +1,4 @@
+/// <reference types="google.picker" />
 import { logger } from '@jetstream/shared/client-logger';
 import {
   GoogleApiClientConfig,

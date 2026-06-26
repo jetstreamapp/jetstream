@@ -10,7 +10,7 @@ import {
   checkMetadataRetrieveResults,
   checkMetadataRetrieveResultsAndDeployToTarget,
 } from '@jetstream/shared/data';
-import { NOOP, REGEX, delay, ensureArray, ensureBoolean, orderObjectsBy } from '@jetstream/shared/utils';
+import { NOOP, REGEX, delay, ensureArray, ensureBoolean, getErrorMessage, orderObjectsBy } from '@jetstream/shared/utils';
 import type {
   AddOrgHandlerFn,
   AndOr,
@@ -89,7 +89,7 @@ export function formatNumber(number?: number) {
 }
 export function parseQueryParams<T = any>(queryString: string): T {
   const pairs = (queryString[0] === '?' ? queryString.substring(1) : queryString).split('&');
-  return pairs.reduce((query: Partial<T>, currPair) => {
+  return pairs.reduce((query: Record<string, string>, currPair) => {
     const [key, value] = currPair.split('=');
     query[decodeURIComponent(key)] = decodeURIComponent(value || '');
     return query;
@@ -728,7 +728,7 @@ export function getLowercaseFieldFunctionMap(): Record<string, string> {
     'HOUR_IN_DAY',
     'WEEK_IN_MONTH',
     'WEEK_IN_YEAR',
-  ].reduce((acc, item) => {
+  ].reduce((acc: Record<string, string>, item) => {
     acc[item.toLowerCase()] = item;
     return acc;
   }, {});
@@ -1352,7 +1352,7 @@ export function detectDateFormatForLocale() {
       return DATE_FORMATS.YYYY_MM_DD;
     }
   } catch (ex) {
-    logger.warn(`[ERROR] Exception detecting date format`, ex.message);
+    logger.warn(`[ERROR] Exception detecting date format`, getErrorMessage(ex));
   }
 
   logger.warn(`[ERROR] Falling back to ${DATE_FORMATS.MM_DD_YYYY}`);
@@ -1404,7 +1404,7 @@ export function transformTabularDataToExcelStr<T = Record<string, unknown>>(
     .map((row) =>
       fields
         ?.map((field) => {
-          return getValueForExcel(row?.[field]);
+          return getValueForExcel((row as Record<string, unknown>)?.[field]);
         })
         .join('\t'),
     )
@@ -1436,7 +1436,9 @@ export function transformTabularDataToHtml<T = unknown>(data: T[], fields?: Mayb
   }
 
   // turn each row into \t delimited string, then combine each row into a string delimited by \n
-  let output: string = data.map((row) => `<tr>${fields?.map((field) => `<td>${escapeHtml(row[field])}</td>`).join('')}</tr>`).join('');
+  let output: string = data
+    .map((row) => `<tr>${fields?.map((field) => `<td>${escapeHtml((row as Record<string, string>)[field])}</td>`).join('')}</tr>`)
+    .join('');
 
   if (includeHeader) {
     output = `<tr>${fields.map((field) => `<th>${escapeHtml(field)}</th>`).join('')}</tr>${output}`;
@@ -1629,7 +1631,7 @@ export async function getChangesetsFromDomParse(org: SalesforceOrgUi) {
  * Gets map of list items by id
  * recursively traverses child items
  */
-export function getFlattenedListItemsById(items: ListItem[], output = {}): Record<string, ListItem> {
+export function getFlattenedListItemsById(items: ListItem[], output: Record<string, ListItem> = {}): Record<string, ListItem> {
   items.forEach((item) => {
     output[item.id] = item;
     if (Array.isArray(item.childItems)) {

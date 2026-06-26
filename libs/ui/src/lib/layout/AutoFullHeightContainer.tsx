@@ -24,9 +24,9 @@ export interface AutoFullHeightContainerState {
 }
 
 export class AutoFullHeightContainer extends Component<AutoFullHeightContainerProps, AutoFullHeightContainerState> {
-  ref: HTMLDivElement;
+  ref!: HTMLDivElement;
 
-  constructor(props) {
+  constructor(props: AutoFullHeightContainerProps) {
     super(props);
     this.state = { topPosition: 0, hasRefCalculated: false };
   }

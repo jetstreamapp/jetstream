@@ -21,7 +21,7 @@ interface ConfirmationServiceContextValue {
 export const ConfirmationServiceContext = createContext<ConfirmationServiceContextValue>({
   confirm: (options: ConfirmationDialogServiceProviderOptions) => Promise.resolve(options?.data || {}),
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  setOptions: (options: ConfirmationDialogServiceProviderOptions) => {},
+  setOptions: (options: SetStateAction<ConfirmationDialogServiceProviderOptions | null>) => {},
 });
 
 export const useConfirmation = () => useContext(ConfirmationServiceContext);

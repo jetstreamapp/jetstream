@@ -11,6 +11,7 @@ import {
   prepareExcelFile,
   saveFile,
 } from '@jetstream/shared/ui-utils';
+import { ensureError } from '@jetstream/shared/utils';
 import {
   AsyncJobNew,
   FileExtAllTypes,
@@ -206,7 +207,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
             break;
           }
           case 'csv': {
-            const headerFields = (header ? header : Object.keys(data[0])) as string[];
+            const headerFields = (header ? header : Object.keys((data as any[])[0])) as string[];
             const _data =
               transformData && Array.isArray(data) ? transformData({ fileFormat, data, header: headerFields }) : (data as any[]);
             fileData = prepareCsvFile(_data, headerFields);
@@ -242,7 +243,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
       trackEvent(ANALYTICS_KEYS.file_download, { source, fileFormat, component: 'FileFauxDownloadModal' });
     } catch (ex) {
       logger.error('[FILE DOWNLOAD][ERROR]', ex);
-      onError && onError(ex);
+      onError && onError(ensureError(ex));
     }
   }
 
@@ -252,7 +253,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
     // Get fileData based on allowable formats.
     if (allowedTypesSet.has('csv')) {
       fileType = 'csv';
-      const headerFields = (header ? header : Object.keys(data[0])) as string[];
+      const headerFields = (header ? header : Object.keys((data as any[])[0])) as string[];
       const _data =
         transformData && Array.isArray(data) ? transformData({ fileFormat: 'csv', data, header: headerFields }) : (data as any[]);
       fileData = prepareCsvFile(_data, headerFields);
@@ -290,7 +291,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
     }
   }
 
-  function handleFolderSelected(folderId: string) {
+  function handleFolderSelected(folderId?: string) {
     setGoogleFolder(folderId);
   }
 
@@ -325,7 +326,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
               label="Excel"
               value={RADIO_FORMAT_XLSX}
               checked={fileFormat === RADIO_FORMAT_XLSX}
-              onChange={(value: FileExtXLSX) => setFileFormat(value)}
+              onChange={(value: string) => setFileFormat(value as FileExtXLSX)}
             />
           )}
           {allowedTypesSet.has('csv') && (
@@ -334,7 +335,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
               label="CSV"
               value={RADIO_FORMAT_CSV}
               checked={fileFormat === RADIO_FORMAT_CSV}
-              onChange={(value: FileExtCsv) => setFileFormat(value)}
+              onChange={(value: string) => setFileFormat(value as FileExtCsv)}
             />
           )}
           {allowedTypesSet.has('json') && (
@@ -343,7 +344,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
               label="JSON"
               value={RADIO_FORMAT_JSON}
               checked={fileFormat === RADIO_FORMAT_JSON}
-              onChange={(value: FileExtCsv) => setFileFormat(value)}
+              onChange={(value: string) => setFileFormat(value as FileExtJson)}
             />
           )}
           {allowedTypesSet.has('xml') && (
@@ -352,7 +353,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
               label="XML"
               value={RADIO_FORMAT_XML}
               checked={fileFormat === RADIO_FORMAT_XML}
-              onChange={(value: FileExtXml) => setFileFormat(value)}
+              onChange={(value: string) => setFileFormat(value as FileExtXml)}
             />
           )}
           {allowedTypesSet.has('zip') && (
@@ -361,7 +362,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
               label="ZIP"
               value={RADIO_FORMAT_ZIP}
               checked={fileFormat === RADIO_FORMAT_ZIP}
-              onChange={(value: FileExtZip) => setFileFormat(value)}
+              onChange={(value: string) => setFileFormat(value as FileExtZip)}
             />
           )}
           {hasGoogleInputConfigured && (allowedTypesSet.has('csv') || allowedTypesSet.has('xlsx') || allowedTypesSet.has('zip')) && (
@@ -370,7 +371,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
               label="Google Drive"
               value={RADIO_FORMAT_GDRIVE}
               checked={fileFormat === RADIO_FORMAT_GDRIVE}
-              onChange={(value: FileExtGDrive) => setFileFormat(value)}
+              onChange={(value: string) => setFileFormat(value as FileExtGDrive)}
             />
           )}
           {!googleIntegrationEnabled && googleShowUpgradeToPro && (

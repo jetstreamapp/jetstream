@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { deployMetadataZip } from '@jetstream/shared/data';
 import { pollMetadataResultsUntilDone, tracker, useBrowserNotifications } from '@jetstream/shared/ui-utils';
-import { getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
+import { getErrorMessage, getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { DeployOptions, DeployResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 
@@ -145,10 +145,10 @@ export function useDeployMetadataPackage(serverUrl: string, onFinished?: () => v
           return results;
         }
       } catch (ex) {
-        logger.warn('[useDeployMetadataPackage][ERROR]', ex.message);
+        logger.warn('[useDeployMetadataPackage][ERROR]', getErrorMessage(ex));
         tracker.error('Problem deploying custom metadata', ex, { deployOptions });
         if (isMounted.current) {
-          dispatch({ type: 'ERROR', payload: { errorMessage: ex.message } });
+          dispatch({ type: 'ERROR', payload: { errorMessage: getErrorMessage(ex) } });
         }
       }
     },

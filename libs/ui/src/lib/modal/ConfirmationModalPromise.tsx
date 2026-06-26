@@ -9,7 +9,7 @@ export interface ConfirmationModalProps extends CommonModalProps {
   content: React.ReactNode;
   confirm?: React.ReactNode;
   cancel?: React.ReactNode;
-  onResolve: (result: boolean) => void;
+  onResolve: (result?: boolean) => void;
 }
 const ConfirmationModal: FunctionComponent<ConfirmationModalProps> = ({
   isOpen,
@@ -50,4 +50,4 @@ const ConfirmationModal: FunctionComponent<ConfirmationModalProps> = ({
   );
 };
 
-export const ConfirmationModalPromise = create<ConfirmationModalProps, boolean>(ConfirmationModal);
+export const ConfirmationModalPromise = create<ConfirmationModalProps, boolean, never>(ConfirmationModal);

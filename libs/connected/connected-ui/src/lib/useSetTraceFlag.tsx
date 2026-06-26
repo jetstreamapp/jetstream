@@ -1,6 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
 import { createDebugLevel, createOrExtendDebugTrace, getDebugLevelQuery, getTraceFlagQuery } from '@jetstream/shared/ui-utils';
+import { getErrorMessage, getErrorStack } from '@jetstream/shared/utils';
 import { DebugLevel, SalesforceOrgUi, UserTrace } from '@jetstream/types';
 import { addMinutes } from 'date-fns/addMinutes';
 import { differenceInMilliseconds } from 'date-fns/differenceInMilliseconds';
@@ -128,7 +129,7 @@ export function useSetTraceFlag(org: SalesforceOrgUi, extendTraceHours = DEFAULT
             }
           } catch (ex) {
             // could not extend
-            logger.warn('[APEX LOG][TRACE EXTEND ERROR]', ex.message);
+            logger.warn('[APEX LOG][TRACE EXTEND ERROR]', getErrorMessage(ex));
             logger.warn(ex);
             if (isMounted.current) {
               dispatch({ type: 'LOADING', payload: { loading: false } });
@@ -160,7 +161,7 @@ export function useSetTraceFlag(org: SalesforceOrgUi, extendTraceHours = DEFAULT
         dispatch({ type: 'CHANGE_DEBUG_LEVEL', payload: { userTrace: trace, expirationDate, debugLevel } });
       }
     } catch (ex) {
-      logger.error('[APEX LOG][CHANGE LEVEL][ERROR]', ex.message);
+      logger.error('[APEX LOG][CHANGE LEVEL][ERROR]', getErrorMessage(ex));
       if (isMounted.current) {
         dispatch({ type: 'LOADING', payload: { loading: false } });
       }
@@ -215,15 +216,16 @@ export function useSetTraceFlag(org: SalesforceOrgUi, extendTraceHours = DEFAULT
         if (retry) {
           // Retry once if we get an error, this happens if there are no debug sessions
           // but retrying a second time works for some unknown reason
-          logger.warn('[APEX LOG][INIT][RETRY]', ex.message);
+          logger.warn('[APEX LOG][INIT][RETRY]', getErrorMessage(ex));
+          // eslint-disable-next-line react-hooks/immutability
           setTimeout(() => init(false), 1000);
         } else {
-          logger.error('[APEX LOG][TRACE][ERROR]', ex.message);
-          logger.error(ex.stack);
+          logger.error('[APEX LOG][TRACE][ERROR]', getErrorMessage(ex));
+          logger.error(getErrorStack(ex));
           dispatch({
             type: 'ERROR',
             payload: {
-              errorMessage: ex.message,
+              errorMessage: getErrorMessage(ex),
             },
           });
         }

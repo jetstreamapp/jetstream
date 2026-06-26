@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
 import { describeGlobal } from '@jetstream/shared/data';
-import { orderObjectsBy } from '@jetstream/shared/utils';
+import { getErrorMessage, orderObjectsBy } from '@jetstream/shared/utils';
 import { DescribeGlobalSObjectResult, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import ComboboxWithItemsVirtual from '../form/combobox/ComboboxWithItemsVirtual';
@@ -90,7 +90,7 @@ export const SobjectCombobox = forwardRef<any, SobjectComboboxProps>(
         if (!isMounted.current || uniqueId !== selectedOrg.uniqueId || priorToolingValue !== isTooling) {
           return;
         }
-        setErrorMessage(ex.message);
+        setErrorMessage(getErrorMessage(ex));
       }
       setLoading(false);
     }, [filterFn, selectedOrg, isTooling]);

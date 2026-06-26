@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, describeGlobal } from '@jetstream/shared/data';
-import { NOOP, orderObjectsBy } from '@jetstream/shared/utils';
+import { getErrorMessage, NOOP, orderObjectsBy } from '@jetstream/shared/utils';
 import { DescribeGlobalSObjectResult, Maybe, RecentHistoryItemType, SalesforceOrgUi } from '@jetstream/types';
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { formatRelative } from 'date-fns/formatRelative';
@@ -126,7 +126,7 @@ export const ConnectedSobjectListMultiSelect = forwardRef<any, ConnectedSobjectL
         if (!isMounted.current || uniqueId !== selectedOrg.uniqueId) {
           return;
         }
-        setErrorMessage(ex.message);
+        setErrorMessage(getErrorMessage(ex));
       }
       setLoading(false);
     }, [filterFn, onSobjects, selectedOrg]);

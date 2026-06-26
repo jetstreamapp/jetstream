@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/// <reference types="gapi.auth2" />
 import { css } from '@emotion/react';
 import { DownloadFileResult } from '@jetstream/desktop/types';
 import { logger } from '@jetstream/shared/client-logger';
@@ -11,9 +12,9 @@ import {
   isCanvasApp,
   isDesktop,
   saveFile,
+  tracker,
   useBrowserNotifications,
   useObservable,
-  tracker,
 } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import {
@@ -613,7 +614,7 @@ export const Jobs: FunctionComponent = () => {
 
   useEffect(() => {
     if (jobsWorker) {
-      jobsWorker.onmessage = (event: MessageEvent) => {
+      jobsWorker.onmessage = (event: { data: WorkerMessage<AsyncJobType, AsyncJobWorkerMessageResponse> }) => {
         handleEvent(event.data as WorkerMessage<AsyncJobType, AsyncJobWorkerMessageResponse>);
       };
     }

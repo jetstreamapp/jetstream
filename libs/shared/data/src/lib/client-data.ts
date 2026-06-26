@@ -730,7 +730,10 @@ export async function queryAllFromList<T = any>(
   isTooling = false,
   includeDeletedRecords = false,
 ): Promise<QueryResults<T>> {
-  let results;
+  if (soqlQueries.length === 0) {
+    throw new Error('queryAllFromList requires at least one SOQL query');
+  }
+  let results: QueryResults<T> | undefined;
   for (const soqlQuery of soqlQueries) {
     const _results = await queryAll(org, soqlQuery, isTooling, includeDeletedRecords);
     if (!results) {
@@ -739,7 +742,7 @@ export async function queryAllFromList<T = any>(
       results.queryResults.records = results.queryResults.records.concat(_results.queryResults.records);
     }
   }
-  return results;
+  return results as QueryResults<T>;
 }
 
 /**

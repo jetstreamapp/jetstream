@@ -8,7 +8,7 @@ export const isBrowserExtension = () => {
 
 export const getBrowserExtensionVersion = () => {
   try {
-    return (globalThis?.browser || globalThis?.chrome)?.runtime?.getManifest()?.version || 'UNKNOWN';
+    return ((globalThis as any)?.browser || (globalThis as any)?.chrome)?.runtime?.getManifest()?.version || 'UNKNOWN';
   } catch {
     return 'UNKNOWN';
   }

@@ -1,5 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { describeGlobal, describeSObject, manualRequest, queryAllWithCache } from '@jetstream/shared/data';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import { DescribeSObjectResult, Field, SalesforceOrgUi } from '@jetstream/types';
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import type * as monaco from 'monaco-editor';
@@ -47,7 +48,7 @@ export async function registerCompletions(
       },
     });
   } catch (ex) {
-    logger.warn('Could not populate completions', ex.message);
+    logger.warn('Could not populate completions', getErrorMessage(ex));
   }
 }
 

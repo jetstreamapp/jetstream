@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter, orderValues } from '@jetstream/shared/utils';
 import { DescribeGlobalSObjectResult, Maybe, UpDown } from '@jetstream/types';
-import { Fragment, FunctionComponent, RefObject, createRef, forwardRef, useEffect, useState } from 'react';
+import { ForwardedRef, Fragment, FunctionComponent, createRef, forwardRef, useEffect, useState } from 'react';
 import Checkbox from '../form/checkbox/Checkbox';
 import SearchInput from '../form/search-input/SearchInput';
 import EmptyState from '../illustrations/EmptyState';
@@ -208,7 +208,7 @@ interface SobjectListContentProps {
 }
 
 const SobjectListContent = forwardRef(
-  ({ selectedSObjectSet, filteredSobjects, searchTerm, onSelected }: SobjectListContentProps, ref: RefObject<HTMLUListElement>) => {
+  ({ selectedSObjectSet, filteredSobjects, searchTerm, onSelected }: SobjectListContentProps, ref: ForwardedRef<HTMLUListElement>) => {
     return (
       <>
         <List
