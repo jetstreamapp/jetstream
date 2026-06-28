@@ -6,9 +6,12 @@ import {
   SoqlQueryFormatOptions,
   SoqlQueryFormatOptionsSchema,
   TeamMemberRole,
+  TeamMemberStatusSchema,
   UserProfileUi,
   UserProfileUiSchema,
 } from '@jetstream/types';
+import { signFeatureFlags } from '../services/feature-flag-signing.service';
+import { resolveFeatureFlagsForUser } from './feature-flags.db';
 
 const FullUserFacingProfileSelect = {
   id: true,
@@ -171,20 +174,26 @@ export const findByIdWithSubscriptions = (id: string) => {
   });
 };
 
-export const findIdByUserIdUserFacing = ({
+export const findIdByUserIdUserFacing = async ({
   userId,
   omitSubscriptions = false,
 }: {
   userId: string;
   omitSubscriptions?: boolean;
 }): Promise<UserProfileUi> => {
-  return prisma.user.findFirstOrThrow({ where: { id: userId }, select: UserFacingProfileSelect }).then((user) => {
-    // prefer team entitlements if exists, otherwise user entitlements
-    return UserProfileUiSchema.parse({
-      ...user,
-      entitlements: user.teamMembership?.team.entitlements ?? user.entitlements,
-      subscriptions: omitSubscriptions ? [] : user.subscriptions,
-    });
+  const user = await prisma.user.findFirstOrThrow({ where: { id: userId }, select: UserFacingProfileSelect });
+  // teamMembership is already filtered to an ACTIVE team by UserFacingProfileSelect; require an ACTIVE
+  // membership too so team-scoped entitlements and flags match the rule in resolveActiveTeamIdForUser used by checkFeatureFlag.
+  const hasActiveTeamMembership = user.teamMembership?.status === TeamMemberStatusSchema.enum.ACTIVE;
+  const teamId = hasActiveTeamMembership ? (user.teamMembership?.team.id ?? null) : null;
+  const featureFlags = await resolveFeatureFlagsForUser({ userId: user.id, teamId });
+  // prefer team entitlements only for an active membership, otherwise user entitlements
+  return UserProfileUiSchema.parse({
+    ...user,
+    entitlements: hasActiveTeamMembership ? (user.teamMembership?.team.entitlements ?? user.entitlements) : user.entitlements,
+    subscriptions: omitSubscriptions ? [] : user.subscriptions,
+    featureFlags,
+    featureFlagsSignature: signFeatureFlags(user.id, featureFlags),
   });
 };
 

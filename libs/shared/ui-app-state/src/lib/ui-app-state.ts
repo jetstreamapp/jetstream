@@ -10,15 +10,19 @@ import {
   isDesktop,
   setItemInLocalStorage,
   setItemInSessionStorage,
+  verifyAndExtractFeatureFlags,
 } from '@jetstream/shared/ui-utils';
 import { getDefaultAppState, groupByFlat, orderObjectsBy } from '@jetstream/shared/utils';
 import {
   AppInfo,
+  DEFAULT_FEATURE_FLAGS,
   SoqlQueryFormatOptions,
   SoqlQueryFormatOptionsSchema,
   TeamBillingStatusSchema,
   type Announcement,
   type ApplicationState,
+  type FeatureFlagKey,
+  type FeatureFlags,
   type Maybe,
   type OrgGroup,
   type OrgGroupWithOrgs,
@@ -27,7 +31,7 @@ import {
   type UserProfilePreferences,
   type UserProfileUi,
 } from '@jetstream/types';
-import { atom, useAtom, useSetAtom } from 'jotai';
+import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { unwrap } from 'jotai/utils';
 import localforage from 'localforage';
 import isString from 'lodash/isString';
@@ -53,6 +57,7 @@ export const DEFAULT_PROFILE: UserProfileUi = {
     recordSync: false,
   },
   subscriptions: [],
+  featureFlags: DEFAULT_FEATURE_FLAGS,
 } as UserProfileUi;
 
 export const STORAGE_KEYS = {
@@ -207,7 +212,11 @@ async function fetchUserProfile(): Promise<UserProfileUi> {
   if (isBrowserExtension() || isCanvasApp()) {
     return DEFAULT_PROFILE;
   }
-  return await getUserProfile().catch(() => DEFAULT_PROFILE);
+  const userProfile = await getUserProfile().catch(() => DEFAULT_PROFILE);
+  // Verify the server's signature once here so downstream atoms read trusted flags synchronously.
+  // On any failure this returns code defaults (fail-safe), so we never trust a tampered payload.
+  const featureFlags = await verifyAndExtractFeatureFlags(userProfile);
+  return { ...userProfile, featureFlags };
 }
 
 const userPreferenceState = atom<Promise<UserProfilePreferences>>(getUserPreferences());
@@ -237,6 +246,21 @@ export const isReadOnlyUserState = atom((get) => {
   const userProfile = get(userProfileSyncState);
   return userProfile.teamMembership?.role === 'BILLING';
 });
+
+/**
+ * Resolved + signature-verified feature flags for the current user (see `verifyAndExtractFeatureFlags`).
+ * Merged over code defaults so every known flag is always present. Prefer the `useFeatureFlag` hook.
+ */
+export const featureFlagsState = atom<FeatureFlags>((get) => {
+  const userProfile = get(userProfileSyncState);
+  return { ...DEFAULT_FEATURE_FLAGS, ...userProfile.featureFlags } as FeatureFlags;
+});
+
+/** Returns whether a single feature flag is enabled for the current user. */
+export function useFeatureFlag(key: FeatureFlagKey): boolean {
+  const featureFlags = useAtomValue(featureFlagsState);
+  return featureFlags[key] ?? DEFAULT_FEATURE_FLAGS[key];
+}
 
 export const abilityState = atom((get) => {
   const userProfile = get(userProfileSyncState);
