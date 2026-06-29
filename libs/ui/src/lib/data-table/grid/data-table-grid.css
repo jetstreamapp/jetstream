@@ -107,7 +107,7 @@
   cursor: col-resize;
   touch-action: none;
   user-select: none;
-  z-index: 1;
+  z-index: 0;
 }
 /* Lift above frozen header cells (z-index: 1) while the translated handle drags across them. */
 .jgrid-header-resize-handle.jgrid-resizing {
