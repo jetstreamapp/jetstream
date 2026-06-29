@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { queryRemaining } from '@jetstream/shared/data';
 import { formatNumber, hasCtrlOrMeta, isEnterKey, tracker, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
 import { flattenRecord, getIdFromRecordUrl, groupByFlat, nullifyEmptyStrings } from '@jetstream/shared/utils';
@@ -15,6 +16,7 @@ import { PopoverErrorButton } from '../popover/PopoverErrorButton';
 import { fireToast } from '../toast/AppToast';
 import Spinner from '../widgets/Spinner';
 import { DataTable } from './DataTable';
+import { FieldMetadataModal } from './FieldMetadataModal';
 import { DataTableSubqueryContext } from './data-table-context';
 import { ColumnWithFilter, ContextAction, ContextMenuActionData, RowSalesforceRecordWithKey, RowWithKey } from './data-table-types';
 import {
@@ -86,6 +88,7 @@ export interface SalesforceRecordDataTableProps {
   onGetAsApex: (record: any) => void;
   onSavedRecords: (results: { recordCount: number; failureCount: number }) => void;
   onReloadQuery: () => void;
+  trackEvent?: (key: string, value?: Record<string, any>) => void;
 }
 
 export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
@@ -118,6 +121,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
     onGetAsApex,
     onSavedRecords,
     onReloadQuery,
+    trackEvent,
   }: SalesforceRecordDataTableProps) => {
     const isMounted = useRef(true);
     const [columns, setColumns] = useState<ColumnWithFilter<RowSalesforceRecordWithKey>[]>();
@@ -135,6 +139,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
     const [hasMoreRecords, setHasMoreRecords] = useState(false);
     const [nextRecordsUrl, setNextRecordsUrl] = useState<Maybe<string>>(null);
     const [globalFilter, setGlobalFilter] = useState<string | null>(null);
+    const [fieldMetaModal, setFieldMetaModal] = useState<{ field: Field; columnName: string } | null>(null);
     const [selectedRows, setSelectedRows] = useState<ReadonlySet<string>>(() => new Set());
     const [visibleRecordCount, setVisibleRecordCount] = useState(records?.length);
 
@@ -234,9 +239,35 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
 
     const handleContextMenuAction = useCallback(
       (item: ContextMenuItem<ContextAction>, data: ContextMenuActionData<RowWithKey>) => {
+        if (item.value === 'VIEW_FIELD_METADATA') {
+          const field = data.column.meta?.field as Field | undefined;
+          if (field) {
+            setFieldMetaModal({ field, columnName: String(data.column.name) });
+            trackEvent?.(ANALYTICS_KEYS.query_FieldMetadataViewed, { type: field.type, isCustom: field.custom });
+          }
+          return;
+        }
         copySalesforceRecordTableDataToClipboard(item.value, fields, data);
       },
-      [fields],
+      [fields, trackEvent],
+    );
+
+    // Offer "View field metadata" on a column header only when we have that field's describe stashed on
+    const getColumnHeaderMenuItems = useCallback(
+      (columnId: string): ContextMenuItem<ContextAction>[] => {
+        const column = columns?.find((col) => col.key === columnId);
+        const field = column?.meta?.field as Field | undefined;
+        return field
+          ? [
+              {
+                label: 'View field metadata',
+                value: 'VIEW_FIELD_METADATA',
+                leadingDivider: true,
+              },
+            ]
+          : [];
+      },
+      [columns],
     );
 
     useEffect(() => {
@@ -550,9 +581,18 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
               context={tableContext}
               contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
               contextMenuAction={handleContextMenuAction}
+              getColumnHeaderMenuItems={getColumnHeaderMenuItems}
             />
           </DataTableSubqueryContext.Provider>
         </AutoFullHeightContainer>
+        {fieldMetaModal && (
+          <FieldMetadataModal
+            field={fieldMetaModal.field}
+            columnName={fieldMetaModal.columnName}
+            onClose={() => setFieldMetaModal(null)}
+            onDownload={() => trackEvent?.(ANALYTICS_KEYS.query_FieldMetadataDownloaded, { type: fieldMetaModal.field.type })}
+          />
+        )}
       </Fragment>
     ) : null;
   },

@@ -831,6 +831,7 @@ export const QueryResults = React.memo(() => {
                 handleGetAsApex(record);
               }}
               onReloadQuery={() => executeQuery(soql, RECORD_BULK_ACTION, { isTooling })}
+              trackEvent={trackEvent}
             />
           )}
         </AutoFullHeightContainer>

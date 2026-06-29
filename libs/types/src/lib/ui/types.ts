@@ -396,6 +396,7 @@ export interface ContextMenuItem<T = any> {
     icon: string;
     description?: string;
   }; // FIXME: unable to import cross module boundaries
+  leadingDivider?: boolean;
   trailingDivider?: boolean;
   disabled?: boolean;
   title?: string;

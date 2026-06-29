@@ -200,6 +200,15 @@ function getQueryResultColumn({
   if (!subqueryRelationshipName && !queryResultColumn?.aggregate && resolvedType === 'text' && isNameField) {
     updateColumnFromType(column, 'salesforceName');
   }
+
+  // Stash the Salesforce Field describe (when available) on the column's opaque meta bag so consumers
+  // (e.g. the "View field metadata" header menu) can reach it. Looks up by the resolved column key with
+  // a fallback to the bare field name — mirrors how `updateColumnWithEditMode` / the name-field check
+  // resolve metadata. Subquery columns pass their relationship-scoped map as `fieldMetadata`.
+  const fieldDescribe = fieldMetadata?.[column.key.toLowerCase()] ?? fieldMetadata?.[field.toLowerCase()];
+  if (fieldDescribe) {
+    column.meta = { field: fieldDescribe };
+  }
   return column;
 }
 

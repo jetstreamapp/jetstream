@@ -211,6 +211,7 @@ export const ContextMenu: FunctionComponent<ContextMenuProps> = ({ parentElement
         <ul className="slds-dropdown__list" role="menu" aria-label={actionText} ref={ulContainerEl}>
           {items.map((item, i) => (
             <Fragment key={item.value}>
+              {item.leadingDivider && <li className="slds-has-divider_top-space" role="separator"></li>}
               {item.subheader && (
                 <li className="slds-dropdown__header slds-truncate" title={item.subheader} role="separator">
                   <span>{item.subheader}</span>

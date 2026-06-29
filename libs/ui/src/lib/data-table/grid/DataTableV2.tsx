@@ -66,6 +66,8 @@ export interface DataTableV2Props<TRow = RowWithKey, TContext = Record<string, a
   contextMenuItems?: ContextMenuItems<TRow>;
   /** Right-click context menu action handler (must be stable). */
   contextMenuAction?: (item: ContextMenuItem, data: ContextMenuActionData<TRow>) => void;
+  /** Consumer-supplied builder for extra per-column header menu items (must be stable). */
+  getColumnHeaderMenuItems?: (columnId: string) => ContextMenuItem[];
 }
 
 function DataTableV2Inner<TRow extends object = RowWithKey>(props: DataTableV2Props<TRow>, ref: React.Ref<DataTableRef<TRow>>) {
@@ -105,6 +107,7 @@ function DataTableV2Inner<TRow extends object = RowWithKey>(props: DataTableV2Pr
     summaryRowHeight,
     contextMenuItems,
     contextMenuAction,
+    getColumnHeaderMenuItems,
   } = props;
 
   const { table, gridId, orderedColumns, filters, filterSetValues, updateFilter, registerEditedValues } = useJetstreamTable<TRow>({
@@ -196,6 +199,7 @@ function DataTableV2Inner<TRow extends object = RowWithKey>(props: DataTableV2Pr
             summaryRowHeight={summaryRowHeight}
             contextMenuItems={contextMenuItems}
             contextMenuAction={contextMenuAction}
+            getColumnHeaderMenuItems={getColumnHeaderMenuItems}
           />
         </GridFilterContext.Provider>
       </GridGenericContext.Provider>

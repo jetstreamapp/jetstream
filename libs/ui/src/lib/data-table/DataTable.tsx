@@ -31,6 +31,8 @@ export interface DataTableProps<T = RowWithKey, TContext = Record<string, any>> 
   contextMenuItems?: ContextMenuItems<T>;
   // `any` so call sites may type their handler against a narrower row type without variance errors.
   contextMenuAction?: (item: ContextMenuItem, data: ContextMenuActionData<any>) => void;
+  /** Consumer-supplied builder for extra per-column header menu items (must be stable). */
+  getColumnHeaderMenuItems?: (columnId: string) => ContextMenuItem[];
   initialSortColumns?: SortColumn[];
   rowAlwaysVisible?: (row: T) => boolean;
   ignoreRowInSetFilter?: (row: T) => boolean;

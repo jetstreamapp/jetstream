@@ -233,6 +233,8 @@ export const ANALYTICS_KEYS = {
   query_UpdateRecordsInline: 'query_UpdateRecordsInline',
   query_ResetPage: 'query_ResetPage',
   query_InlineEditSave: 'query_InlineEditSave',
+  query_FieldMetadataViewed: 'query_FieldMetadataViewed',
+  query_FieldMetadataDownloaded: 'query_FieldMetadataDownloaded',
   /** QUICK QUERY */
   quick_query_Open: 'quick_query_Open',
   quick_query_Execute: 'quick_query_Execute',
