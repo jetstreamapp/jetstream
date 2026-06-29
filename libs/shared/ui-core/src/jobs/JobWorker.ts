@@ -59,7 +59,7 @@ export class WorkerAdapter {
     this.onmessage({ data: { name, data, error } as any });
   });
 
-  onmessage: (event: { data: WorkerMessage<AsyncJobType, AsyncJobWorkerMessageResponse> }) => void;
+  onmessage!: (event: { data: WorkerMessage<AsyncJobType, AsyncJobWorkerMessageResponse> }) => void;
 
   postMessage = ({ data, name, error }: WorkerMessage<AsyncJobType, AsyncJobWorkerMessagePayload>) => {
     this.jobWorker.handleMessage(name, data);

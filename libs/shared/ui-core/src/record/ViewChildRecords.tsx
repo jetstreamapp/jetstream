@@ -3,7 +3,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, SOBJECT_NAME_FIELD_MAP } from '@jetstream/shared/constants';
 import { queryAll, queryAllFromList, queryAllWithCache } from '@jetstream/shared/data';
-import { groupByFlat, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { getErrorMessage, groupByFlat, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { ChildRelationship, QueryResult, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -41,7 +41,7 @@ function getRows(childRelationships: ChildRelationship[], record: SalesforceReco
           _record: record._record,
           _idx: i,
           Id: record.Id,
-          Name: record[SOBJECT_NAME_FIELD_MAP[childRelationship.childSObject] || 'Name'],
+          Name: record[SOBJECT_NAME_FIELD_MAP[childRelationship.childSObject as keyof typeof SOBJECT_NAME_FIELD_MAP] || 'Name'],
           CreatedDate: record.CreatedDate,
           CreatedByName: record.CreatedBy?.Name || 'unknown',
           LastModifiedDate: record.LastModifiedDate,
@@ -265,7 +265,11 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
           try {
             const query = composeQuery({
               sObject: sobjectName,
-              fields: [getField('Id'), getField(SOBJECT_NAME_FIELD_MAP[sobjectName] || 'Name'), ...subquery].filter(Boolean),
+              fields: [
+                getField('Id'),
+                getField(SOBJECT_NAME_FIELD_MAP[sobjectName as keyof typeof SOBJECT_NAME_FIELD_MAP] || 'Name'),
+                ...subquery,
+              ].filter(Boolean),
               where: {
                 left: {
                   field: 'Id',
@@ -282,7 +286,7 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
             }
             record = { ...record, ...queryResults.records[0] };
           } catch (ex) {
-            setHasFetchErrors((existing) => [...existing, ex.message]);
+            setHasFetchErrors((existing) => [...existing, getErrorMessage(ex)]);
             logger.warn('Error querying child records', { ex });
           }
         }
@@ -297,7 +301,7 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
         trackEvent(ANALYTICS_KEYS.record_modal_view_children, { subqueryCount: subqueries.length, childRecordCount: _rows });
       } catch (ex) {
         logger.warn('Error loading records', ex);
-        setHasFetchErrors((existing) => [...existing, ex.message]);
+        setHasFetchErrors((existing) => [...existing, getErrorMessage(ex)]);
       } finally {
         setLoading(false);
       }

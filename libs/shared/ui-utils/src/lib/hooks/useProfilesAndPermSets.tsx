@@ -1,5 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, queryWithCache } from '@jetstream/shared/data';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import {
   ListItem,
   Maybe,
@@ -113,7 +114,7 @@ export function useProfilesAndPermSets(
           setPermissionSets(output.permissionSets);
         }
       } catch (ex) {
-        logger.info('[useProfilesAndPermSets][ERROR]', ex.message);
+        logger.info('[useProfilesAndPermSets][ERROR]', getErrorMessage(ex));
         if (isMounted.current) {
           setHasError(true);
         }

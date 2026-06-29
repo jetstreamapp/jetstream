@@ -2,6 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { SFDC_BLANK_PICKLIST_VALUE } from '@jetstream/shared/constants';
 import { genericRequest } from '@jetstream/shared/data';
 import { sortQueryFields } from '@jetstream/shared/ui-utils';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import {
   CloneEditView,
   DescribeSObjectResult,
@@ -232,7 +233,7 @@ export async function getPicklistValuesForRecordAndRecordType({
       picklistValues = results.picklistFieldValues;
     } catch (ex) {
       logger.warn('[RECORD-UI][ERROR]', ex);
-      if (ex?.message?.endsWith('not supported in UI API')) {
+      if (getErrorMessage(ex).endsWith('not supported in UI API')) {
         // UI API is not supported, artificially build picklist values
         picklistValues = mockPicklistValuesFromSobjectDescribe(sobjectMetadata);
       } else {

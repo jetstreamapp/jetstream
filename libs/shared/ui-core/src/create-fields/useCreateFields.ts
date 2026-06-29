@@ -1,7 +1,14 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { genericRequest, sobjectOperation, updatePermissionSetRecords } from '@jetstream/shared/data';
 import { tracker, useBrowserNotifications } from '@jetstream/shared/ui-utils';
-import { REGEX, getSuccessOrFailureChar, groupByFlat, pluralizeFromNumber, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import {
+  REGEX,
+  getErrorMessage,
+  getSuccessOrFailureChar,
+  groupByFlat,
+  pluralizeFromNumber,
+  splitArrayToMaxSize,
+} from '@jetstream/shared/utils';
 import {
   CompositeGraphResponseBodyData,
   CompositeResponse,
@@ -230,7 +237,9 @@ export function useCreateFields({
             ),
           )
         ).flat();
-        const resultsByFullName: Record<string, CreateFieldsResults> = Object.keys(_resultsById).reduce((output, key) => {
+        const resultsByFullName: Record<string, CreateFieldsResults> = Object.keys(_resultsById).reduce<
+          Record<string, CreateFieldsResults>
+        >((output, key) => {
           const fullName: string = _resultsById[key].field.fullName;
           output[fullName] = _resultsById[key];
           return output;
@@ -370,7 +379,7 @@ export function useCreateFields({
       } catch (ex) {
         logger.log('[DEPLOY FAILED]', ex);
         setFatalError(true);
-        setFatalErrorMessage(`An unexpected error has occurred. ${ex.message}`);
+        setFatalErrorMessage(`An unexpected error has occurred. ${getErrorMessage(ex)}`);
         setResultsById(
           groupByFlat(
             results.map((result) => (result.state === 'LOADING' ? { ...result, state: 'FAILED' } : result)),
@@ -379,7 +388,7 @@ export function useCreateFields({
         );
         tracker.error('Create fields error', ex);
         notifyUser(`There was an error deploying your fields`, {
-          body: `An unexpected error has occurred. ${ex.message}`,
+          body: `An unexpected error has occurred. ${getErrorMessage(ex)}`,
           tag: 'create-fields',
         });
       } finally {

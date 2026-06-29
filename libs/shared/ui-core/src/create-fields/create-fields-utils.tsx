@@ -121,8 +121,9 @@ export const fieldDefinitions: FieldDefinitions = {
     label: 'Label',
     type: 'text',
     required: true,
-    validate: (value: string) => {
-      if (value?.length > 40) {
+    validate: (value: FieldValue) => {
+      const stringValue = String(value ?? '');
+      if (stringValue.length > 40) {
         return false;
       }
       return true;
@@ -134,8 +135,13 @@ export const fieldDefinitions: FieldDefinitions = {
     type: 'text',
     required: true,
     labelHelp: 'Field API name, cannot include consecutive underscores. Do not add __c at the end.',
-    validate: (value: string) => {
-      if (!/(^[a-zA-Z]+$)|(^[a-zA-Z]+[0-9a-zA-Z_]*[0-9a-zA-Z]$)/.test(value) || value.includes('__') || value.length > 40) {
+    validate: (value: FieldValue) => {
+      const stringValue = String(value ?? '');
+      if (
+        !/(^[a-zA-Z]+$)|(^[a-zA-Z]+[0-9a-zA-Z_]*[0-9a-zA-Z]$)/.test(stringValue) ||
+        stringValue.includes('__') ||
+        stringValue.length > 40
+      ) {
         return false;
       }
       return true;
@@ -145,8 +151,9 @@ export const fieldDefinitions: FieldDefinitions = {
   inlineHelpText: {
     label: 'Help Text',
     type: 'text',
-    validate: (value: string) => {
-      if (value?.length > 510) {
+    validate: (value: FieldValue) => {
+      const stringValue = String(value ?? '');
+      if (stringValue.length > 510) {
         return false;
       }
       return true;
@@ -156,8 +163,9 @@ export const fieldDefinitions: FieldDefinitions = {
   description: {
     label: 'Description',
     type: 'textarea',
-    validate: (value: string) => {
-      if (value?.length > 1000) {
+    validate: (value: FieldValue) => {
+      const stringValue = String(value ?? '');
+      if (stringValue.length > 1000) {
         return false;
       }
       return true;
@@ -187,7 +195,7 @@ export const fieldDefinitions: FieldDefinitions = {
       { id: 'Restrict', value: 'Restrict', label: 'Prevent Deletion' },
       { id: 'Cascade', value: 'Cascade', label: 'Delete Lookup Record' },
     ],
-    validate: (value: string, fieldValues: FieldValues) => {
+    validate: (value: FieldValue, fieldValues: FieldValues) => {
       const required = Boolean(fieldValues.required.value);
       if (required && value === 'SetNull') {
         return false;
@@ -205,7 +213,7 @@ export const fieldDefinitions: FieldDefinitions = {
         return 'Must be between 256 and 131,072';
       }
     },
-    validate: (value: string, fieldValues: FieldValues) => {
+    validate: (value: FieldValue, fieldValues: FieldValues) => {
       if (!isValidNumericString(value)) {
         return false;
       }
@@ -228,7 +236,7 @@ export const fieldDefinitions: FieldDefinitions = {
     label: 'Length',
     type: 'text', // number
     labelHelp: 'Number of digits to the left of the decimal point',
-    validate: (value: string) => {
+    validate: (value: FieldValue) => {
       if (!isValidNumericString(value)) {
         return false;
       }
@@ -242,7 +250,7 @@ export const fieldDefinitions: FieldDefinitions = {
     label: 'Decimal Places',
     type: 'text',
     labelHelp: 'Number of digits to the right of the decimal point',
-    validate: (value: string) => {
+    validate: (value: FieldValue) => {
       if (!isValidNumericString(value)) {
         return false;
       }
@@ -268,8 +276,8 @@ export const fieldDefinitions: FieldDefinitions = {
     label: 'Picklist Values',
     type: 'textarea',
     required: true,
-    validate: (value: string) => {
-      const values = (value || '').split('\n');
+    validate: (value: FieldValue) => {
+      const values = String(value ?? '').split('\n');
       if (!values.length) {
         return false;
       }
@@ -324,7 +332,7 @@ export const fieldDefinitions: FieldDefinitions = {
         return '10 through 50';
       }
     },
-    validate: (value: string, fieldValues: FieldValues) => {
+    validate: (value: FieldValue, fieldValues: FieldValues) => {
       if (!isValidNumericString(value)) {
         return false;
       }
@@ -349,7 +357,7 @@ export const fieldDefinitions: FieldDefinitions = {
   startingNumber: {
     label: 'Starting Number',
     type: 'text',
-    validate: (value: string) => {
+    validate: (value: FieldValue) => {
       if (!isValidNumericString(value)) {
         return false;
       }
@@ -414,8 +422,13 @@ export const fieldDefinitions: FieldDefinitions = {
     type: 'text',
     labelHelp: 'This is relationship name for subqueries.',
     required: true,
-    validate: (value: string) => {
-      if (!/(^[a-zA-Z]+$)|(^[a-zA-Z]+[0-9a-zA-Z_]*[0-9a-zA-Z]$)/.test(value) || value.includes('__') || value.length > 40) {
+    validate: (value: FieldValue) => {
+      const stringValue = String(value ?? '');
+      if (
+        !/(^[a-zA-Z]+$)|(^[a-zA-Z]+[0-9a-zA-Z_]*[0-9a-zA-Z]$)/.test(stringValue) ||
+        stringValue.includes('__') ||
+        stringValue.length > 40
+      ) {
         return false;
       }
       return true;
@@ -720,7 +733,7 @@ export function calculateFieldValidity(rows: FieldValues[]): { rows: FieldValues
     }
     [
       ...baseFields,
-      ...fieldTypeDependencies[fieldValues.type.value as FieldDefinitionType],
+      ...fieldTypeDependencies[fieldValues.type.value as SalesforceFieldType],
       ...getAdditionalFieldDependencies(fieldValues),
     ].forEach((fieldName: FieldDefinitionType) => {
       const currField = fieldValues[fieldName];
@@ -876,7 +889,7 @@ export function preparePayload(sobjects: string[], rows: FieldValues[], orgNames
 function prepareFieldPayload(sobject: string, fieldValues: FieldValues, orgNamespace?: Maybe<string>): FieldDefinitionMetadata {
   const fieldMetadata: FieldDefinitionMetadata = [
     ...baseFields,
-    ...fieldTypeDependencies[fieldValues.type.value as FieldDefinitionType],
+    ...fieldTypeDependencies[fieldValues.type.value as SalesforceFieldType],
     ...getAdditionalFieldDependencies(fieldValues),
   ].reduce((output: FieldDefinitionMetadata, field: FieldDefinitionType) => {
     if (!isNil(fieldValues[field].value) && fieldValues[field].value !== '') {
@@ -1017,7 +1030,7 @@ export function getFieldPermissionRecords(fullName: string, type: SalesforceFiel
 
 export function addFieldToLayout(fields: FieldDefinitionMetadata[], layout: LayoutRecord): boolean {
   // need to see if field should be readonly on the layout
-  const fieldsByApiName = fields.reduce((output, field) => {
+  const fieldsByApiName = fields.reduce<Record<string, FieldDefinitionMetadata>>((output, field) => {
     const fieldApiName = field.fullName.split('.')[1];
     if (fieldApiName && !output[fieldApiName]) {
       output[fieldApiName] = field;

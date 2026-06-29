@@ -60,7 +60,7 @@ module.exports = [
     files: ['**/*.tsx'],
     rules: {
       'react-hooks/exhaustive-deps': ['warn', { additionalHooks: '(useNonInitialEffect)' }],
-      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/set-state-in-effect': 'off',
     },
   },
   {
@@ -84,6 +84,13 @@ module.exports = [
           ignoreRestSiblings: true, // Allows unused props when using rest spread
         },
       ],
+    },
+  },
+  // ESLint config files require the base config via a relative path, which trips the module boundary rule
+  {
+    files: ['**/eslint.config.{js,cjs,mjs}'],
+    rules: {
+      '@nx/enforce-module-boundaries': 'off',
     },
   },
   // Be much more lenient in tests

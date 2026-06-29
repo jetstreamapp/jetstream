@@ -83,7 +83,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
   if (elRefs.current.length !== items.length) {
     const refs: RefObject<HTMLAnchorElement>[] = [];
     items.forEach((item, i) => {
-      refs[i] = elRefs[i] || createRef();
+      refs[i] = elRefs.current[i] || createRef();
     });
     // add or remove refs
     elRefs.current = refs;

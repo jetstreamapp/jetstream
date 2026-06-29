@@ -86,7 +86,7 @@ export function useDeployRecords(
           }
 
           deployResults.processingErrors = [...deployResults.processingErrors];
-          batch.records.forEach((i, record) => deployResults.processingErrors.push({ record, errors: [ex.message], row: i }));
+          batch.records.forEach((record, i) => deployResults.processingErrors.push({ record, errors: [getErrorMessage(ex)], row: i }));
         } finally {
           currItem++;
         }

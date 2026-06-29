@@ -227,7 +227,7 @@ export const HeaderNumberFilter = memo(({ columnKey, filter, autoFocus = false, 
         items={COMPARATOR_ITEMS}
         selectedItemIds={[selectedComparator]}
         allowDeselection={false}
-        onChange={(items: ListItem<Comparator>[]) => handleComparatorChange(items[0].value)}
+        onChange={(items: ListItem<string, any>[]) => handleComparatorChange(items[0].value as Comparator)}
       />
       <Input
         id={`filter-${columnKey}`}
@@ -393,7 +393,7 @@ export const HeaderDateFilter = memo(({ columnKey, filter, updateFilter }: Heade
         items={COMPARATOR_ITEMS}
         selectedItemIds={[selectedComparator]}
         allowDeselection={false}
-        onChange={(items: ListItem<Comparator>[]) => handleComparatorChange(items[0].value)}
+        onChange={(items: ListItem<string, any>[]) => handleComparatorChange(items[0].value as Comparator)}
       />
       <DatePicker
         id={`${columnKey}-datepicker`}
@@ -424,9 +424,10 @@ export const HeaderTimeFilter = memo(({ columnKey, filter, updateFilter }: Heade
     }
   }
 
-  function handleTimeChange(nextValue: string) {
-    setValue(nextValue);
-    updateFilter(columnKey, { ...filter, value: nextValue });
+  function handleTimeChange(nextValue: string | null) {
+    const normalizedValue = nextValue ?? '';
+    setValue(normalizedValue);
+    updateFilter(columnKey, { ...filter, value: normalizedValue });
   }
 
   return (
@@ -436,7 +437,7 @@ export const HeaderTimeFilter = memo(({ columnKey, filter, updateFilter }: Heade
         items={COMPARATOR_ITEMS}
         selectedItemIds={[selectedComparator]}
         allowDeselection={false}
-        onChange={(items: ListItem<Comparator>[]) => handleComparatorChange(items[0].value)}
+        onChange={(items: ListItem<string, any>[]) => handleComparatorChange(items[0].value as Comparator)}
       />
       <TimePicker
         id={`${columnKey}-time-picker`}

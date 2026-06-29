@@ -44,7 +44,7 @@ export const RecordSearchPopover: FunctionComponent = () => {
 
   useGlobalEventHandler('keydown', onKeydown);
 
-  function setFromHistory(recordId) {
+  function setFromHistory(recordId: string) {
     setRecordId(recordId);
     handleSubmit(null, recordId);
   }

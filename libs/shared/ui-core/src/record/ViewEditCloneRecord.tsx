@@ -94,7 +94,7 @@ function getTagline(
         iconPosition="right"
         title="View record in Salesforce"
       >
-        {sobjectName} - {initialRecord[SOBJECT_NAME_FIELD_MAP[sobjectName] || 'Name']} - {recordId}
+        {sobjectName} - {initialRecord[SOBJECT_NAME_FIELD_MAP[sobjectName as keyof typeof SOBJECT_NAME_FIELD_MAP] || 'Name']} - {recordId}
       </SalesforceLogin>
     );
   } else if (recordId) {
@@ -261,7 +261,11 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
         // Update recent record history
         if ((action === 'edit' || action === 'view') && recordId) {
           addRecentRecordToStorage(
-            { recordId, sobject: sobjectName, name: record[SOBJECT_NAME_FIELD_MAP[sobjectName] || 'Name'] as string },
+            {
+              recordId,
+              sobject: sobjectName,
+              name: record[SOBJECT_NAME_FIELD_MAP[sobjectName as keyof typeof SOBJECT_NAME_FIELD_MAP] || 'Name'] as string,
+            },
             selectedOrg.uniqueId,
           );
         }
@@ -372,7 +376,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
       fields: Object.keys(record).filter((field) => field !== 'attributes'),
       subqueryFields: Object.keys(record)
         .filter((field) => field !== 'attributes')
-        .reduce((acc, field) => {
+        .reduce<Record<string, string[]>>((acc, field) => {
           if (record[field] && isObject(record[field]) && Array.isArray((record[field] as any)?.records)) {
             const firstRecord = (record[field] as any)?.records?.[0] || {};
             acc[field] = Object.keys(firstRecord)

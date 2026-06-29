@@ -4,8 +4,17 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { queryRemaining } from '@jetstream/shared/data';
 import { formatNumber, hasCtrlOrMeta, isEnterKey, tracker, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
-import { flattenRecord, getIdFromRecordUrl, groupByFlat, nullifyEmptyStrings } from '@jetstream/shared/utils';
-import { CloneEditView, ContextMenuItem, Field, Maybe, QueryResults, SalesforceOrgUi, SobjectCollectionResponse } from '@jetstream/types';
+import { flattenRecord, getErrorMessage, getIdFromRecordUrl, groupByFlat, nullifyEmptyStrings } from '@jetstream/shared/utils';
+import {
+  CloneEditView,
+  ContextMenuItem,
+  ErrorResult,
+  Field,
+  Maybe,
+  QueryResults,
+  SalesforceOrgUi,
+  SobjectCollectionResponse,
+} from '@jetstream/types';
 import uniqueId from 'lodash/uniqueId';
 import { Fragment, ReactNode, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import SearchInput from '../form/search-input/SearchInput';
@@ -331,7 +340,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
     }
 
     const handleSortedAndFilteredRowsChange = useCallback(
-      (rows: RowSalesforceRecordWithKey[]) => {
+      (rows: readonly RowSalesforceRecordWithKey[]) => {
         onFilteredRowsChanged(rows.map(({ _record }) => _record));
 
         setVisibleRecordCount(rows.length);
@@ -385,7 +394,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
       try {
         const modifiedRecords = dirtyRows.map((row) =>
           nullifyEmptyStrings(
-            Array.from(row._touchedColumns).reduce(
+            Array.from(row._touchedColumns).reduce<Record<string, any>>(
               (acc, column) => {
                 acc[column] = row[column];
                 return acc;
@@ -396,7 +405,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
         );
         const results = await onUpdateRecords(modifiedRecords);
 
-        const failedResultsById = results.reduce((acc, result, i) => {
+        const failedResultsById = results.reduce<Record<string, ErrorResult>>((acc, result, i) => {
           if (!result.success) {
             const id = result.id || getIdFromRecordUrl(dirtyRows[i]._record.attributes.url);
             if (id) {
@@ -434,7 +443,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
         // This happens if exception thrown, normal behavior is to get records with result success/error
         logger.warn('Error saving records', ex);
         fireToast({
-          message: `There was a problem saving your records. ${ex?.message || ''}`,
+          message: `There was a problem saving your records. ${getErrorMessage(ex) || ''}`,
           type: 'error',
         });
         tracker.error('Error saving records - inline query', ex);

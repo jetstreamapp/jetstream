@@ -75,9 +75,9 @@ export const FormulaEvaluatorRecordSearch: FunctionComponent<FormulaEvaluatorRec
     [selectedOrg, selectedSObject],
   );
 
-  function handleSelection(item: ListItem) {
+  function handleSelection(item: ListItem | null) {
     setSelectedRecords(item);
-    onSelectedRecord(item?.value);
+    onSelectedRecord(item?.value ?? '');
   }
 
   function handleViewRecord() {

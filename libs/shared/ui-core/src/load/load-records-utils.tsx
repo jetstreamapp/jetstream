@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { SFDC_BULK_API_NULL_VALUE } from '@jetstream/shared/constants';
 import { queryAll, queryAllUsingOffset, queryAllWithCacheUsingOffset } from '@jetstream/shared/data';
 import { describeSObjectWithExtendedTypes, formatNumber, isRelationshipField } from '@jetstream/shared/ui-utils';
-import { REGEX, delay, groupByFlat, sanitizeForXml, transformRecordForDataLoad } from '@jetstream/shared/utils';
+import { REGEX, delay, getErrorMessage, groupByFlat, sanitizeForXml, transformRecordForDataLoad } from '@jetstream/shared/utils';
 import type {
   ApiMode,
   EntityParticleRecord,
@@ -123,7 +123,7 @@ export async function fetchRelatedFieldsForObjects(
   return await queryAllWithCacheUsingOffset<EntityParticleRecord>(org, getExternalIdFieldsForSobjectsQuery(sobjects), false, 2000).then(
     ({ queryResults }) => {
       const relatedEntitiesByObj = groupBy(queryResults.records, 'EntityDefinition.QualifiedApiName');
-      return Object.entries(relatedEntitiesByObj).reduce((acc, [objName, particles]) => {
+      return Object.entries(relatedEntitiesByObj).reduce<Record<string, FieldRelatedEntity[]>>((acc, [objName, particles]) => {
         acc[objName] = particles.map(
           (particle): FieldRelatedEntity => ({
             name: particle.Name,
@@ -613,7 +613,9 @@ export async function fetchMappedRelatedRecords(
         fieldRelationshipName = `${targetLookupField}`;
       }
       // remove any falsy values, related fields cannot be booleans or numbers, so this should not cause issues
-      const relatedValues = new Set<string>(data.map((row) => row[targetField || '']).filter((value) => !!value && isString(value)));
+      const relatedValues = new Set<string>(
+        data.map((row: any) => row[targetField || '']).filter((value: any) => !!value && isString(value)),
+      );
 
       if (relatedValues.size && selectedReferenceTo && targetLookupField) {
         const relatedRecordsByRelatedField: Record<string, string[]> = {};
@@ -629,11 +631,11 @@ export async function fetchMappedRelatedRecords(
               relatedRecordsByRelatedField[record[targetLookupField]].push(record.Id);
             });
           } catch (ex) {
-            queryErrors.push(ex.message);
+            queryErrors.push(getErrorMessage(ex));
           }
         }
 
-        data.forEach((record, i) => {
+        data.forEach((record: any, i: number) => {
           if (!targetField || isNil(record[targetField]) || record[targetField] === '') {
             return;
           }
@@ -669,7 +671,7 @@ export async function fetchMappedRelatedRecords(
     onProgress(100);
   }
   // remove failed records from dataset
-  data = data.filter((_, i: number) => !errorsByRowIndex.has(i));
+  data = data.filter((_: any, i: number) => !errorsByRowIndex.has(i));
 
   return { data, errors: Array.from(errorsByRowIndex.values()), queryErrors };
 }
@@ -780,7 +782,7 @@ export function convertCsvToCustomMetadata(
   selectedSObject = selectedSObject.replace('__mdt', '');
   const fieldMappingByTargetField: Record<string, FieldMappingItem> = Object.values(fieldMapping)
     .filter((field) => !!field.targetField)
-    .reduce((output, field) => {
+    .reduce<Record<string, FieldMappingItem>>((output, field) => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       output[field.targetField!] = field;
       return output;
@@ -865,7 +867,7 @@ export function convertCsvToCustomMetadata(
   return metadataByFullName;
 }
 
-export function prepareCustomMetadata(apiVersion, metadata: MapOfCustomMetadataRecord): Promise<ArrayBuffer> {
+export function prepareCustomMetadata(apiVersion: string, metadata: MapOfCustomMetadataRecord): Promise<ArrayBuffer> {
   const zip = new JSZip();
   zip.file(
     'package.xml',

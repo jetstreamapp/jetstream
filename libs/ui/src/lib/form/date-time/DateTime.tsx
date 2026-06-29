@@ -74,7 +74,7 @@ export const DateTime: FunctionComponent<DateTimeProps> = ({
     }
   }, [datePickerValue, timeValue]);
 
-  function handleDatePickerChange(date: Date) {
+  function handleDatePickerChange(date: Date | null) {
     if (date) {
       setDatePickerValue(formatISO(date, { representation: 'date' }));
     } else {
@@ -82,7 +82,7 @@ export const DateTime: FunctionComponent<DateTimeProps> = ({
     }
   }
 
-  function handleTimePickerChange(value: string) {
+  function handleTimePickerChange(value: string | null) {
     setTimeValue(value || null);
   }
 

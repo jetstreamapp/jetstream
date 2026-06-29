@@ -1,4 +1,4 @@
-import { ClassNames } from '@emotion/react';
+import { ClassNames, type ClassNamesContent } from '@emotion/react';
 import { ColorScheme } from '@jetstream/types';
 import EditorImpl, { DiffEditor as DiffEditorImpl, DiffEditorProps, EditorProps } from '@monaco-editor/react';
 import { useMemo, useSyncExternalStore } from 'react';
@@ -111,8 +111,8 @@ function useMonacoTheme(): 'vs' | 'vs-dark' {
  * body-level container that escapes the clip.
  */
 function buildEditorBorderWrapperProps<T extends { className?: string }>(
-  css: (template: TemplateStringsArray, ...args: unknown[]) => string,
-  cx: (...classNames: unknown[]) => string,
+  css: ClassNamesContent['css'],
+  cx: ClassNamesContent['cx'],
   wrapperProps: T | undefined,
 ) {
   const borderClassName = css`

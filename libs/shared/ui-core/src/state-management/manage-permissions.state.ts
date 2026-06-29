@@ -50,8 +50,8 @@ export const hasSelectionsMade = atom((get) => {
 export const profilesByIdSelector = atom<Record<string, PermissionSetWithProfileRecord>>((get) => {
   const profiles = get(profilesState);
   if (profiles) {
-    return profiles.reduce((output, profile) => {
-      output[profile.id] = profile.meta;
+    return profiles.reduce<Record<string, PermissionSetWithProfileRecord>>((output, profile) => {
+      output[profile.id] = profile.meta as PermissionSetWithProfileRecord;
       return output;
     }, {});
   }
@@ -61,8 +61,8 @@ export const profilesByIdSelector = atom<Record<string, PermissionSetWithProfile
 export const permissionSetsByIdSelector = atom<Record<string, PermissionSetNoProfileRecord>>((get) => {
   const permSets = get(permissionSetsState);
   if (permSets) {
-    return permSets.reduce((output, permSet) => {
-      output[permSet.id] = permSet.meta;
+    return permSets.reduce<Record<string, PermissionSetNoProfileRecord>>((output, permSet) => {
+      output[permSet.id] = permSet.meta as PermissionSetNoProfileRecord;
       return output;
     }, {});
   }

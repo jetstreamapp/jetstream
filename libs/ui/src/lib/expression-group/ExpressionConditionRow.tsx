@@ -263,11 +263,11 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
             <div className="slds-col slds-grow-none">
               <Picklist
                 label="Type"
-                items={resourceTypes}
-                selectedItems={selectedResourceType}
+                items={resourceTypes as ListItem[]}
+                selectedItems={selectedResourceType as ListItem[]}
                 allowDeselection={false}
                 scrollLength={10}
-                onChange={handleSelectedResourceType}
+                onChange={(items: ListItem[]) => handleSelectedResourceType(items as ListItem<ExpressionRowValueType>[])}
               />
             </div>
           )}

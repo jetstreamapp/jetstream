@@ -211,7 +211,7 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
     checkIfDirtyAndEmit(currValue);
   }
 
-  function handleDateChange(currValue: Date) {
+  function handleDateChange(currValue: Date | null) {
     let newValue = value as string;
     try {
       newValue = currValue ? formatISO(currValue) : '';
@@ -223,12 +223,12 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
     }
   }
 
-  function handleDateTimeChange(currValue: string) {
+  function handleDateTimeChange(currValue: string | null) {
     setValue(currValue);
     checkIfDirtyAndEmit(currValue || null);
   }
 
-  function handleTimeChange(currValue: string) {
+  function handleTimeChange(currValue: string | null) {
     setValue(currValue);
     checkIfDirtyAndEmit(currValue || null);
   }

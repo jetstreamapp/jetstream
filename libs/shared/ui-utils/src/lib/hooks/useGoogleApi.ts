@@ -1,3 +1,5 @@
+/// <reference types="google.accounts" />
+/// <reference types="gapi.auth2" />
 import { logger } from '@jetstream/shared/client-logger';
 import { googleGetUserinfo } from '@jetstream/shared/data';
 import { GoogleUserInfo, Maybe } from '@jetstream/types';
@@ -77,54 +79,51 @@ export function useGoogleApi({ clientId, scopes = [SCOPES['drive.file'], SCOPES.
     }
   }, [gapiScriptLoadError, gisScriptLoadError]);
 
-  const callback = useCallback(
-    async (response: google.accounts.oauth2.TokenResponse) => {
-      try {
-        logger.log('[GOOGLE] access token obtained');
-        tokenResponse.current = response;
-        _tokenResponse = tokenResponse.current;
+  const callback = useCallback(async (response: google.accounts.oauth2.TokenResponse) => {
+    try {
+      logger.log('[GOOGLE] access token obtained');
+      tokenResponse.current = response;
+      _tokenResponse = tokenResponse.current;
 
-        if (response.error !== undefined) {
-          _tokenExpiration = null;
-          tokenExpiration.current = _tokenExpiration;
-          setCurrentTokenExpiration(tokenExpiration.current);
-          setError(response.error);
-          if (tokenCallback.current) {
-            tokenCallback.current.reject(response);
-            tokenCallback.current = null;
-          }
-        } else {
-          await googleGetUserinfo(response.access_token)
-            .then((userInfoResponse) => {
-              _userInfo = userInfoResponse;
-              userInfo.current = _userInfo;
-            })
-            .catch((ex) => {
-              logger.error('[GOOGLE] Error fetching user info', ex);
-              tracker.error('Google Sign In error fetching user info', ex);
-            });
-
-          _tokenExpiration = addSeconds(new Date(), Number(response.expires_in));
-          tokenExpiration.current = _tokenExpiration;
-          setCurrentTokenExpiration(tokenExpiration.current);
-          setError(null);
-          if (tokenCallback.current) {
-            tokenCallback.current.resolve(response);
-            tokenCallback.current = null;
-          }
-        }
-      } catch (ex) {
-        logger.error('[GOOGLE] Error in token callback', ex);
-        setError('There was an error during Google sign in');
-        tracker.error('Google Sign In error in token callback', ex);
+      if (response.error !== undefined) {
+        _tokenExpiration = null;
+        tokenExpiration.current = _tokenExpiration;
+        setCurrentTokenExpiration(tokenExpiration.current);
+        setError(response.error);
         if (tokenCallback.current) {
-          tokenCallback.current.reject(ex);
+          tokenCallback.current.reject(response);
+          tokenCallback.current = null;
+        }
+      } else {
+        await googleGetUserinfo(response.access_token)
+          .then((userInfoResponse) => {
+            _userInfo = userInfoResponse;
+            userInfo.current = _userInfo;
+          })
+          .catch((ex) => {
+            logger.error('[GOOGLE] Error fetching user info', ex);
+            tracker.error('Google Sign In error fetching user info', ex);
+          });
+
+        _tokenExpiration = addSeconds(new Date(), Number(response.expires_in));
+        tokenExpiration.current = _tokenExpiration;
+        setCurrentTokenExpiration(tokenExpiration.current);
+        setError(null);
+        if (tokenCallback.current) {
+          tokenCallback.current.resolve(response);
           tokenCallback.current = null;
         }
       }
-    },
-    [],
-  );
+    } catch (ex) {
+      logger.error('[GOOGLE] Error in token callback', ex);
+      setError('There was an error during Google sign in');
+      tracker.error('Google Sign In error in token callback', ex);
+      if (tokenCallback.current) {
+        tokenCallback.current.reject(ex);
+        tokenCallback.current = null;
+      }
+    }
+  }, []);
 
   useNonInitialEffect(() => {
     if (hasApisLoaded && gapi && google?.accounts?.oauth2) {
@@ -163,7 +162,7 @@ export function useGoogleApi({ clientId, scopes = [SCOPES['drive.file'], SCOPES.
       } catch (ex) {
         logger.error('[GOOGLE] Error loading library', ex);
         setError('There was a problem loading Google');
-        tracker.critical('Google Sign In error', ex, { googleErrorCode: ex.error });
+        tracker.critical('Google Sign In error', ex, { googleErrorCode: (ex as { error?: unknown })?.error });
       } finally {
         setLoading(false);
       }

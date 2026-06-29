@@ -376,38 +376,38 @@ export function getIcon(type: IconType, icon: string, className?: string, svgCss
   let IconOrFallback = UtilityIcon_Fallback;
   switch (type) {
     case 'action':
-      if (actionIcons[icon]) {
-        IconOrFallback = actionIcons[icon];
+      if (actionIcons[icon as keyof typeof actionIcons]) {
+        IconOrFallback = actionIcons[icon as keyof typeof actionIcons];
         found = true;
       }
       break;
     case 'standard':
-      if (standardIcons[icon]) {
-        IconOrFallback = standardIcons[icon];
+      if (standardIcons[icon as keyof typeof standardIcons]) {
+        IconOrFallback = standardIcons[icon as keyof typeof standardIcons];
         found = true;
       }
       break;
     case 'custom':
-      if (customIcons[icon]) {
-        IconOrFallback = customIcons[icon];
+      if (customIcons[icon as keyof typeof customIcons]) {
+        IconOrFallback = customIcons[icon as keyof typeof customIcons];
         found = true;
       }
       break;
     case 'doctype':
-      if (doctypeIcons[icon]) {
-        IconOrFallback = doctypeIcons[icon];
+      if (doctypeIcons[icon as keyof typeof doctypeIcons]) {
+        IconOrFallback = doctypeIcons[icon as keyof typeof doctypeIcons];
         found = true;
       }
       break;
     case 'utility':
-      if (utilityIcons[icon]) {
-        IconOrFallback = utilityIcons[icon];
+      if (utilityIcons[icon as keyof typeof utilityIcons]) {
+        IconOrFallback = utilityIcons[icon as keyof typeof utilityIcons];
         found = true;
       }
       break;
     case 'brand':
-      if (brandIcons[icon]) {
-        IconOrFallback = brandIcons[icon];
+      if (brandIcons[icon as keyof typeof brandIcons]) {
+        IconOrFallback = brandIcons[icon as keyof typeof brandIcons];
         found = true;
       }
       break;

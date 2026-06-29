@@ -21,11 +21,11 @@ export interface OutsideClickHandlerProps {
 // https://github.com/airbnb/react-outside-click-handler/blob/master/src/OutsideClickHandler.jsx
 export class OutsideClickHandler extends Component<OutsideClickHandlerProps, never> {
   static defaultProps = { useCapture: true, display: 'block' };
-  removeMouseDown;
-  removeMouseUp;
-  childNode;
+  removeMouseDown?: (() => void) | null;
+  removeMouseUp?: (() => void) | null;
+  childNode: HTMLElement | null = null;
 
-  constructor(props) {
+  constructor(props: OutsideClickHandlerProps) {
     super(props);
     this.onMouseDown = this.onMouseDown.bind(this);
     this.onMouseUp = this.onMouseUp.bind(this);
@@ -54,7 +54,7 @@ export class OutsideClickHandler extends Component<OutsideClickHandlerProps, nev
     this.removeEventListeners();
   }
 
-  onMouseDown = (event) => {
+  onMouseDown = (event: MouseEvent) => {
     const { useCapture, additionalParentRef } = this.props;
 
     let isDescendantOfRoot = this.childNode && contains(this.childNode, event.target);
@@ -90,11 +90,11 @@ export class OutsideClickHandler extends Component<OutsideClickHandlerProps, nev
     }
   };
 
-  setChildNodeRef = (ref) => {
+  setChildNodeRef = (ref: HTMLElement | null) => {
     this.childNode = ref;
   };
 
-  addMouseDownEventListener = (useCapture) => {
+  addMouseDownEventListener = (useCapture?: boolean) => {
     this.removeMouseDown = addEventListener(document, 'mousedown', this.onMouseDown, { capture: useCapture });
   };
 

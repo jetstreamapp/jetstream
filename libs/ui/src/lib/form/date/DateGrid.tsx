@@ -117,7 +117,7 @@ export const DateGrid: FunctionComponent<DateGridProps> = ({
   if (elRefs.current.length !== dateGrid.length) {
     const refs: RefObject<HTMLTableCellElement | null>[][] = [];
     dateGrid.forEach((week, i) => {
-      refs[i] = elRefs[i] || [];
+      refs[i] = elRefs.current[i] || [];
       week.forEach((day, k) => {
         refs[i][k] = refs[i][k] ? refs[i][k] : createRef();
       });

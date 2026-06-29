@@ -63,7 +63,7 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
   if (elRefs.current.length !== items.length) {
     const refs: RefObject<HTMLLIElement>[] = [];
     items.forEach((_, i) => {
-      refs[i] = elRefs[i] || createRef();
+      refs[i] = elRefs.current[i] || createRef();
     });
     // add or remove refs
     elRefs.current = refs;

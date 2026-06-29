@@ -5,6 +5,7 @@ import {
   FileExtAllTypes,
   FileExtCsv,
   FileExtGDrive,
+  FileExtJson,
   FileExtXLSX,
   FileExtXml,
   FileExtZip,
@@ -174,7 +175,7 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
     }
   }
 
-  function handleFolderSelected(folderId: string) {
+  function handleFolderSelected(folderId?: string) {
     setGoogleFolder(folderId);
   }
 
@@ -207,7 +208,7 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
               label="Excel"
               value={RADIO_FORMAT_XLSX}
               checked={fileFormat === RADIO_FORMAT_XLSX}
-              onChange={(value: FileExtXLSX) => setFileFormat(value)}
+              onChange={(value: string) => setFileFormat(value as FileExtXLSX)}
             />
           )}
           {allowedTypesSet.has('csv') && (
@@ -216,7 +217,7 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
               label="CSV"
               value={RADIO_FORMAT_CSV}
               checked={fileFormat === RADIO_FORMAT_CSV}
-              onChange={(value: FileExtCsv) => setFileFormat(value)}
+              onChange={(value: string) => setFileFormat(value as FileExtCsv)}
             />
           )}
           {allowedTypesSet.has('json') && (
@@ -225,7 +226,7 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
               label="JSON"
               value={RADIO_FORMAT_JSON}
               checked={fileFormat === RADIO_FORMAT_JSON}
-              onChange={(value: FileExtCsv) => setFileFormat(value)}
+              onChange={(value: string) => setFileFormat(value as FileExtJson)}
             />
           )}
           {allowedTypesSet.has('xml') && (
@@ -234,7 +235,7 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
               label="XML"
               value={RADIO_FORMAT_XML}
               checked={fileFormat === RADIO_FORMAT_XML}
-              onChange={(value: FileExtXml) => setFileFormat(value)}
+              onChange={(value: string) => setFileFormat(value as FileExtXml)}
             />
           )}
           {allowedTypesSet.has('zip') && (
@@ -243,7 +244,7 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
               label="ZIP"
               value={RADIO_FORMAT_ZIP}
               checked={fileFormat === RADIO_FORMAT_ZIP}
-              onChange={(value: FileExtZip) => setFileFormat(value)}
+              onChange={(value: string) => setFileFormat(value as FileExtZip)}
             />
           )}
           {!googleIntegrationEnabled && googleShowUpgradeToPro && (
@@ -255,7 +256,7 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
               label="Google Drive"
               value={RADIO_FORMAT_GDRIVE}
               checked={fileFormat === RADIO_FORMAT_GDRIVE}
-              onChange={(value: FileExtGDrive) => setFileFormat(value)}
+              onChange={(value: string) => setFileFormat(value as FileExtGDrive)}
             />
           )}
         </RadioGroup>

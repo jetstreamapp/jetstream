@@ -79,7 +79,7 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
         name: item,
         key: item,
         resizable: true,
-        width: COL_WIDTH_MAP[item],
+        width: COL_WIDTH_MAP[item as keyof typeof COL_WIDTH_MAP],
         renderCell:
           item === '_errors'
             ? ({ row }) => (

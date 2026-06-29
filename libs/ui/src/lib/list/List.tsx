@@ -14,7 +14,7 @@ import { Maybe } from '@jetstream/types';
 import classNames from 'classnames';
 import isNil from 'lodash/isNil';
 import isNumber from 'lodash/isNumber';
-import { Fragment, KeyboardEvent, ReactNode, RefObject, createRef, forwardRef, useEffect, useRef, useState } from 'react';
+import { ForwardedRef, Fragment, KeyboardEvent, ReactNode, RefObject, createRef, forwardRef, useEffect, useRef, useState } from 'react';
 import ListItem from './ListItem';
 import ListItemCheckbox from './ListItemCheckbox';
 
@@ -60,7 +60,7 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
       getContent,
       onSelected,
     },
-    ref: RefObject<HTMLUListElement>,
+    ref: ForwardedRef<HTMLUListElement>,
   ) => {
     const [focusedItem, setFocusedItem] = useState<number | null>(null);
     const [didScrollIntoView, setDidScrollIntoView] = useState(false);
@@ -70,7 +70,7 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
     if (elRefs.current.length !== items.length) {
       const refs: RefObjType = [];
       items.forEach((item, i) => {
-        refs[i] = elRefs[i] || createRef();
+        refs[i] = elRefs.current[i] || createRef();
       });
       // add or remove refs
       elRefs.current = refs;
@@ -98,7 +98,7 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
         try {
           elRefs.current?.[focusedItem]?.current?.focus();
 
-          if (ref.current) {
+          if (ref && typeof ref !== 'function' && ref.current) {
             menuItemSelectScroll({
               container: ref.current,
               focusedIndex: focusedItem,

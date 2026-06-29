@@ -6,7 +6,7 @@ export function useGlobalEventHandler<K extends keyof (WindowEventMap & Document
   passive = false,
 ) {
   useEffect(() => {
-    window.addEventListener(event, handler, passive);
-    return () => window.removeEventListener(event, handler);
+    window.addEventListener(event, handler as EventListener, { passive });
+    return () => window.removeEventListener(event, handler as EventListener);
   }, [event, handler, passive]);
 }

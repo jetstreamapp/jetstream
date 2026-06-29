@@ -271,5 +271,5 @@ export const METADATA_LABEL_MAP = {
 };
 
 export function getMetadataLabelFromFullName(fullName: string): string {
-  return METADATA_LABEL_MAP[fullName] || fullName;
+  return METADATA_LABEL_MAP[fullName as keyof typeof METADATA_LABEL_MAP] || fullName;
 }

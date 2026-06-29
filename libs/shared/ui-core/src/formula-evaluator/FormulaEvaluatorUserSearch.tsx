@@ -84,9 +84,9 @@ export const FormulaEvaluatorUserSearch: FunctionComponent<FormulaEvaluatorUserS
     [selectedOrg],
   );
 
-  function handleSelection(item: ListItem) {
+  function handleSelection(item: ListItem | null) {
     setSelectedRecords(item);
-    onSelectedRecord(item?.value);
+    onSelectedRecord(item?.value ?? '');
   }
 
   return (

@@ -163,7 +163,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
     onChange(null);
   }
 
-  function handleToggleOpen(value) {
+  function handleToggleOpen(value: boolean) {
     if (readOnly && !isOpen) {
       return;
     }

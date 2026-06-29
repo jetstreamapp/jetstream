@@ -1,3 +1,4 @@
+/// <reference types="google.picker" />
 import { detectDateFormatForLocale, formatNumber, isBrowserExtension, isCanvasApp, isDesktop } from '@jetstream/shared/ui-utils';
 import { ApiMode, DescribeGlobalSObjectResult, FieldMapping, InsertUpdateUpsertDelete, LocalOrGoogle, Maybe } from '@jetstream/types';
 import { hasPaidPlanState } from '@jetstream/ui/app-state';

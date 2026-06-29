@@ -1,4 +1,5 @@
 /* eslint-disable react-hooks/set-state-in-effect */
+/// <reference types="google.picker" />
 import { GoogleApiClientConfig, useDrivePicker } from '@jetstream/shared/ui-utils';
 import classNames from 'classnames';
 import uniqueId from 'lodash/uniqueId';
