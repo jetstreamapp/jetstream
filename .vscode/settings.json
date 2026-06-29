@@ -5,6 +5,12 @@
   "editor.codeActionsOnSave": {
     "source.organizeImports": "explicit"
   },
+  "editor.tabCompletion": "on",
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "js/ts.updateImportsOnFileMove.enabled": "always",
+  "js/ts.preferences.importModuleSpecifier": "project-relative",
+  "git.branchProtection": ["main", "release"],
+  "eslint.useFlatConfig": true,
   "files.exclude": {
     "**/.git": true,
     "**/.svn": true,
@@ -64,12 +70,6 @@
   "[prisma]": {
     "editor.defaultFormatter": "Prisma.prisma"
   },
-  "typescript.updateImportsOnFileMove.enabled": "always",
-  "editor.tabCompletion": "on",
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "git.branchProtection": ["main", "release"],
-  "eslint.useFlatConfig": true,
-  "typescript.preferences.importModuleSpecifier": "project-relative",
   "workbench.colorCustomizations": {
     "activityBar.activeBackground": "#111827",
     "activityBar.activeBorder": "#3FD9EC",
@@ -86,8 +86,10 @@
     "titleBar.inactiveBackground": "#11182799",
     "titleBar.inactiveForeground": "#e7e7e799",
     "sash.hoverBorder": "#111827",
-    "statusBarItem.remoteBackground": "#111827",
-    "statusBarItem.remoteForeground": "#e7e7e7",
+    "statusBarItem.remoteBackground": "#ea580c",
+    "statusBarItem.remoteForeground": "#ffffff",
+    "statusBarItem.remoteHoverBackground": "#c2410c",
+    "statusBarItem.remoteHoverForeground": "#ffffff",
     "commandCenter.border": "#e7e7e799"
   },
   "json.schemas": [
