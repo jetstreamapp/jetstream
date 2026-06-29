@@ -24,6 +24,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         name: Checkout
+        with:
+          persist-credentials: false
 
       - name: Install Salesforce CLI
         run: npm install -g @salesforce/cli

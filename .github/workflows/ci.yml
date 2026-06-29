@@ -75,6 +75,7 @@ jobs:
         name: Checkout [master]
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup branch tracking
         if: success() && github.ref != 'refs/heads/main'
@@ -156,6 +157,7 @@ jobs:
         name: Checkout [master]
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup branch tracking
         if: success() && github.ref != 'refs/heads/main'
