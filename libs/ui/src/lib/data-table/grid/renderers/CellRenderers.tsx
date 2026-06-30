@@ -7,7 +7,7 @@ import lodashGet from 'lodash/get';
 import isBoolean from 'lodash/isBoolean';
 import isFunction from 'lodash/isFunction';
 import isString from 'lodash/isString';
-import { Fragment, memo, ReactNode, useContext, useState } from 'react';
+import { Fragment, memo, ReactNode, useContext, useRef, useState } from 'react';
 import Checkbox from '../../../form/checkbox/Checkbox';
 import Modal from '../../../modal/Modal';
 import { Popover } from '../../../popover/Popover';
@@ -18,8 +18,8 @@ import Spinner from '../../../widgets/Spinner';
 import Tooltip from '../../../widgets/Tooltip';
 import { dataTableDateFormatter } from '../../data-table-formatters';
 import { ACTION_COLUMN_KEY, DEFAULT_ROW_HEIGHT, SELECT_COLUMN_KEY } from '../grid-constants';
-import { GridRecordActionContext } from '../grid-context';
-import { getRowId, getSfdcRetUrl } from '../grid-row-utils';
+import { GridRecordActionContext, GridRuntimeContext } from '../grid-context';
+import { getRowId, getSfdcRetUrl, selectRowRange } from '../grid-row-utils';
 import { ColumnWithFilter, DataTableCellProps, DataTableGroupCellProps, RowWithKey } from '../grid-types';
 import { getRowErrorMessages } from '../validate-cell-value';
 
@@ -387,18 +387,52 @@ export function withCellValidation<TRow extends RowWithKey>(
 }
 
 /** Row-selection checkbox renderer. The built-in select column (GridCell cellKind) usually handles this;
- * kept for compatibility with the spreadable SelectColumn definition. */
+ * kept for compatibility with the spreadable SelectColumn definition.
+ *
+ * Supports shift-click range selection: holding Shift and clicking sets every row between the anchor
+ * (the last row toggled when a range wasn't applied) and this row to the anchor's selected value. The Shift state is captured
+ * from the wrapper's `mousedown` rather than the change event, because the visible control is the SLDS
+ * `<label>`/faux checkbox and label-forwarded clicks drop modifier keys. */
 export function SelectFormatter({ row, tanstackRow }: DataTableCellProps<any>): ReactNode {
+  const runtime = useContext(GridRuntimeContext);
+  const shiftKeyRef = useRef(false);
+
+  const handleChange = (event: React.SyntheticEvent<HTMLInputElement>) => {
+    const checked = event.currentTarget.checked;
+    // `detail > 0` is a real pointer click; keyboard Space yields a synthetic click with detail 0, where
+    // the shift ref would be stale — so range-select only on genuine mouse interactions.
+    const wasMouseClick = (event.nativeEvent as MouseEvent).detail > 0;
+    const anchorRowId = runtime?.getRowSelectionAnchor?.();
+    if (
+      wasMouseClick &&
+      shiftKeyRef.current &&
+      anchorRowId &&
+      anchorRowId !== tanstackRow.id &&
+      runtime?.table &&
+      selectRowRange(runtime.table, anchorRowId, tanstackRow.id)
+    ) {
+      // Range applied — keep the anchor fixed so the user can re-shift-click to adjust the range.
+      return;
+    }
+    tanstackRow.toggleSelected(checked);
+    runtime?.setRowSelectionAnchor?.(tanstackRow.id);
+  };
+
   return (
-    <Checkbox
-      id={`checkbox-select-${getRowId(row)}`}
-      label="Select row"
-      hideLabel
-      tabIndex={-1}
-      checked={tanstackRow.getIsSelected()}
-      disabled={!tanstackRow.getCanSelect()}
-      onChange={(checked) => tanstackRow.toggleSelected(checked)}
-    />
+    <span
+      className="jgrid-cell-select slds-grid slds-grid_align-center slds-grid_vertical-align-center h-100 w-100"
+      onMouseDown={(event) => (shiftKeyRef.current = event.shiftKey)}
+    >
+      <Checkbox
+        id={`checkbox-select-${getRowId(row)}`}
+        label="Select row"
+        hideLabel
+        tabIndex={-1}
+        checked={tanstackRow.getIsSelected()}
+        disabled={!tanstackRow.getCanSelect()}
+        onChangeNative={handleChange}
+      />
+    </span>
   );
 }
 
