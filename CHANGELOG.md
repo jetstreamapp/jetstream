@@ -1,5 +1,20 @@
 # Changelog
 
+## [10.4.0](https://github.com/jetstreamapp/jetstream/compare/v10.3.5...v10.4.0) (2026-06-30)
+
+### Features
+
+* add bulk update preview functionality with proposed changes display ([3d2e992](https://github.com/jetstreamapp/jetstream/commit/3d2e9926e012441b78b0cf9a2a6d7e351661d8e7))
+* add FieldMetadataModal and integrate with SalesforceRecordDataTable for enhanced field metadata viewing ([afdef89](https://github.com/jetstreamapp/jetstream/commit/afdef89fd09827b1ead835bbba56a026b655825e))
+* fis brand colors and structure to allow theming ([#1828](https://github.com/jetstreamapp/jetstream/issues/1828)) ([c77b086](https://github.com/jetstreamapp/jetstream/commit/c77b086abd7e0a875d968d9b3196faef0879be15))
+* implement feature flag system with database support and client-side verification ([#1823](https://github.com/jetstreamapp/jetstream/issues/1823)) ([3467201](https://github.com/jetstreamapp/jetstream/commit/34672011e27169e903fec1bf09b564d98ae904b3))
+
+### Bug Fixes
+
+* adjust z-index for column resize handle to prevent overlap with frozen headers ([f02443f](https://github.com/jetstreamapp/jetstream/commit/f02443f3bab8d08d93ed68c72a504c2fab635043))
+* center select-all checkbox in header cell and adjust margins for alignment ([#1827](https://github.com/jetstreamapp/jetstream/issues/1827)) ([101f11b](https://github.com/jetstreamapp/jetstream/commit/101f11bd62e77df2a3f6de90c97aee8b94c8440b))
+* disable persist-credentials for actions/checkout in CI workflows ([100e9af](https://github.com/jetstreamapp/jetstream/commit/100e9afafe4d1ef18fcbea9686a1b418a9635533))
+
 ## [10.3.5](https://github.com/jetstreamapp/jetstream/compare/v10.3.1...v10.3.5) (2026-06-22)
 
 ### Features
