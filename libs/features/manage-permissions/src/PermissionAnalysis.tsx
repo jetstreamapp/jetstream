@@ -1,7 +1,8 @@
 import { TITLES } from '@jetstream/shared/constants';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useTitle } from '@jetstream/shared/ui-utils';
 import { AnalysisToolsPaywall, fromPermissionsState } from '@jetstream/ui-core';
-import { analysisToolsAccessState, selectedOrgState } from '@jetstream/ui/app-state';
+import { analysisToolsAccessState, selectedOrgState, useFeatureFlag } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
 import { FunctionComponent, useEffect, useState } from 'react';
@@ -14,6 +15,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 export const PermissionAnalysis: FunctionComponent = () => {
   useTitle(TITLES.PERMISSION_ANALYSIS);
   const location = useLocation();
+  const analysisToolsEnabled = useFeatureFlag('analysis-tools');
   const { hasAnalysisToolsAccess } = useAtomValue(analysisToolsAccessState);
   const selectedOrg = useAtomValue(selectedOrgState);
   const resetProfilesState = useResetAtom(fromPermissionsState.profilesState);
@@ -68,6 +70,9 @@ export const PermissionAnalysis: FunctionComponent = () => {
 
   const blockAnalysisWithoutSelections = location.pathname.endsWith('/analysis') && !hasAnalysisSelections && !hasJobInUrl;
 
+  if (!analysisToolsEnabled) {
+    return <Navigate to={APP_ROUTES.HOME.ROUTE} replace />;
+  }
   if (!hasAnalysisToolsAccess) {
     return <AnalysisToolsPaywall featureLabel="Permission Analysis" />;
   }

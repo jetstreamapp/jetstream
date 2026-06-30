@@ -50,6 +50,7 @@ const HOME_ITEMS: HomeCard[] = [
     title: 'Analysis',
     icon: { type: 'standard', icon: 'data_streams' },
     items: [APP_ROUTES.PERMISSION_ANALYSIS, APP_ROUTES.DATA_ANALYSIS],
+    flag: 'analysis-tools',
     requiresPro: true,
   },
   {

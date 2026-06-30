@@ -56,3 +56,15 @@ export async function checkFeatureFlag({ userId, key }: { userId: string; key: F
   const flags = await resolveFeatureFlagsForUser({ userId, teamId });
   return flags[key];
 }
+
+/**
+ * Force a flag on for a single user by upserting a user-scoped override. Intended for test setup so
+ * flag-gated features can be exercised as if rolled out; production rollout is managed via overrides.
+ */
+export async function enableFeatureFlagForUser({ userId, key }: { userId: string; key: FeatureFlagKey }): Promise<void> {
+  await prisma.featureFlagOverride.upsert({
+    where: { uniqueFeatureFlagUser: { key, userId } },
+    create: { key, userId, enabled: true },
+    update: { enabled: true },
+  });
+}

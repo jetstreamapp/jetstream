@@ -1,3 +1,0 @@
-SELECT Id, DeveloperName, MasterLabel
-FROM PermissionSetGroup
-WHERE Id IN (:groupIds)
