@@ -4,8 +4,8 @@ import {
   computeFieldUsageWhereUsed,
   FIELD_USAGE_MAX_ROWS_PER_OBJECT,
   runFieldUsageQueryForObjects,
-} from '@jetstream/feature/data-analysis';
-import { runPermissionExport } from '@jetstream/feature/manage-permissions';
+  runPermissionExport,
+} from '@jetstream/feature/analysis-shared';
 import { logger } from '@jetstream/shared/client-logger';
 import { MIME_TYPES } from '@jetstream/shared/constants';
 import {

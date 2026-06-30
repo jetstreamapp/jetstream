@@ -1,5 +1,0 @@
--- Mirrors apps/api/src/app/lib/permission-export/soql-templates.ts (buildTabSettingsByParentSoql).
--- PermissionSetTabSetting: tab visibility (Name + Visibility) per permission set parent.
-SELECT Id, ParentId, Name, Visibility
-FROM PermissionSetTabSetting
-WHERE ParentId IN ({{PARENT_IDS}})

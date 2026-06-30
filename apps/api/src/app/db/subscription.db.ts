@@ -49,6 +49,19 @@ export const updateUserEntitlements = async (customerId: string, entitlementAcce
   });
 };
 
+/**
+ * Force-grant only the Analysis Tools entitlement to a user, leaving the other entitlement flags
+ * untouched. Intended for test setup so the flag-gated, paid-only Analysis Tools render as usable
+ * (unlocked) without provisioning a full paid subscription.
+ */
+export const grantAnalysisToolsEntitlementForUser = async (userId: string): Promise<void> => {
+  await prisma.entitlement.upsert({
+    create: { userId, analysisTools: true },
+    update: { analysisTools: true },
+    where: { userId },
+  });
+};
+
 export const updateTeamEntitlements = async (customerId: string, entitlementAccessUntrusted: EntitlementsAccess) => {
   const entitlementAccess = EntitlementsAccessSchema.parse(entitlementAccessUntrusted);
   const team = await prisma.team.findFirstOrThrow({

@@ -1,5 +1,0 @@
--- Mirrors apps/api/src/app/lib/permission-export/soql-templates.ts (buildPermissionSetByIdSoql).
-SELECT Id, Name, Label, Description, IsOwnedByProfile, ProfileId, Profile.Name,
-  CreatedDate, LastModifiedDate, CreatedBy.Name, LastModifiedBy.Name
-FROM PermissionSet
-WHERE Id IN ({{PARENT_IDS}})
