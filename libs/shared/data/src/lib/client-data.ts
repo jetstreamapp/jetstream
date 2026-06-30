@@ -672,12 +672,13 @@ export async function query<T = any>(
   query: string,
   isTooling = false,
   includeDeletedRecords = false,
+  signal?: AbortSignal,
 ): Promise<QueryResults<T>> {
   if (!query) {
     throw new Error('Query cannot be empty');
   }
   return handleRequest(
-    { method: 'POST', url: `/api/query`, params: { isTooling, includeDeletedRecords }, data: { query } },
+    { method: 'POST', url: `/api/query`, params: { isTooling, includeDeletedRecords }, data: { query }, signal },
     { org, useQueryParamsInCacheKey: true, useBodyInCacheKey: true },
   ).then(unwrapResponseIgnoreCache);
 }
@@ -698,8 +699,13 @@ export async function queryWithCache<T = any>(
   );
 }
 
-export async function queryMore<T = any>(org: SalesforceOrgUi, nextRecordsUrl: string, isTooling = false): Promise<QueryResults<T>> {
-  return handleRequest({ method: 'GET', url: `/api/query-more`, params: { nextRecordsUrl, isTooling } }, { org }).then(
+export async function queryMore<T = any>(
+  org: SalesforceOrgUi,
+  nextRecordsUrl: string,
+  isTooling = false,
+  signal?: AbortSignal,
+): Promise<QueryResults<T>> {
+  return handleRequest({ method: 'GET', url: `/api/query-more`, params: { nextRecordsUrl, isTooling }, signal }, { org }).then(
     unwrapResponseIgnoreCache,
   );
 }
@@ -729,20 +735,34 @@ export async function queryAllFromList<T = any>(
   soqlQueries: string[],
   isTooling = false,
   includeDeletedRecords = false,
+  onProgress?: (fetched: number, total: number) => void,
+  signal?: AbortSignal,
 ): Promise<QueryResults<T>> {
-  if (soqlQueries.length === 0) {
-    throw new Error('queryAllFromList requires at least one SOQL query');
-  }
   let results: QueryResults<T> | undefined;
+  let fetched = 0;
+  let total = 0;
   for (const soqlQuery of soqlQueries) {
-    const _results = await queryAll(org, soqlQuery, isTooling, includeDeletedRecords);
+    // queryAll's onProgress is per-query; report a cumulative count across all chunks so a single progress bar advances continuously
+    const _results = await queryAll<T>(org, soqlQuery, isTooling, includeDeletedRecords, undefined, signal);
+    fetched += _results.queryResults.records.length;
+    // Each chunk has its own totalSize; accumulate so the reported total reflects all chunks and never falls below fetched
+    total += _results.queryResults.totalSize;
     if (!results) {
       results = _results;
     } else {
       results.queryResults.records = results.queryResults.records.concat(_results.queryResults.records);
     }
+    if (isFunction(onProgress)) {
+      onProgress(fetched, total || fetched);
+    }
   }
-  return results as QueryResults<T>;
+  // No queries provided: return an empty result set so callers can always read `queryResults` instead of crashing on undefined
+  if (!results) {
+    return { queryResults: { done: true, totalSize: 0, records: [] } };
+  }
+  // Records were merged across every chunk, so align totalSize with the combined set rather than leaving it at the first chunk's value
+  results.queryResults.totalSize = total;
+  return results;
 }
 
 /**
@@ -758,10 +778,10 @@ export async function queryAll<T = any>(
   soqlQuery: string,
   isTooling = false,
   includeDeletedRecords = false,
-  // Ended up not using onProgress - if used, need to test
   onProgress?: (fetched: number, total: number) => void,
+  signal?: AbortSignal,
 ): Promise<QueryResults<T>> {
-  const results = await query(org, soqlQuery, isTooling, includeDeletedRecords);
+  const results = await query<T>(org, soqlQuery, isTooling, includeDeletedRecords, signal);
   if (!results.queryResults.done && results.queryResults.nextRecordsUrl) {
     let progress: { initialFetched: number; onProgress?: (fetched: number, total: number) => void } | undefined = undefined;
     if (isFunction(onProgress)) {
@@ -771,7 +791,7 @@ export async function queryAll<T = any>(
         onProgress,
       };
     }
-    const currentResults = await queryRemaining(org, results.queryResults.nextRecordsUrl, isTooling, progress);
+    const currentResults = await queryRemaining(org, results.queryResults.nextRecordsUrl, isTooling, progress, signal);
     results.queryResults.records = results.queryResults.records.concat(currentResults.queryResults.records);
     results.queryResults.nextRecordsUrl = undefined;
     results.queryResults.done = true;
@@ -795,13 +815,14 @@ export async function queryRemaining<T = any>(
     initialFetched: number;
     onProgress?: (fetched: number, total: number) => void;
   },
+  signal?: AbortSignal,
 ): Promise<QueryResults<T>> {
-  const results = await queryMore(org, nextRecordsUrl, isTooling);
+  const results = await queryMore<T>(org, nextRecordsUrl, isTooling, signal);
   while (!results.queryResults.done && results.queryResults.nextRecordsUrl) {
     if (progress && isFunction(progress.onProgress)) {
       progress.onProgress(results.queryResults.records.length + progress.initialFetched, results.queryResults.totalSize);
     }
-    const currentResults = await queryMore(org, results.queryResults.nextRecordsUrl, isTooling);
+    const currentResults = await queryMore<T>(org, results.queryResults.nextRecordsUrl, isTooling, signal);
     // update initial object with current results
     results.queryResults.records = results.queryResults.records.concat(currentResults.queryResults.records);
     results.queryResults.nextRecordsUrl = currentResults.queryResults.nextRecordsUrl;

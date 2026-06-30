@@ -72,8 +72,11 @@ test.describe('LOAD WITHOUT FILE', () => {
     await page.getByTestId('dropdown-Which records should be updated?').getByPlaceholder('Select an Option').click();
     await page.getByRole('option', { name: 'Only if not blank' }).click();
 
+    await page.getByRole('button', { name: 'Preview Proposed Changes' }).click();
+
     await page.getByRole('button', { name: /Update [0-9]+ Records?/g }).click();
-    await expect(page.getByRole('button', { name: /Update [0-9]+ Records?/g })).toBeDisabled();
+    // Committing sets didDeploy, which unmounts the Update button (removed, not just disabled)
+    await expect(page.getByRole('button', { name: /Update [0-9]+ Records?/g })).toBeHidden();
 
     await expect(page.getByText(/(In Progress)|(Finished)/)).toBeVisible();
   });

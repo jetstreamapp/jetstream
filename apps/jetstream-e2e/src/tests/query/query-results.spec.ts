@@ -118,6 +118,8 @@ test.describe('QUERY RESULTS', () => {
     await bulkUpdateModal.getByTestId('dropdown-Field to Update').getByText('Account Fax').click();
     await bulkUpdateModal.getByPlaceholder('Value to set on each record').fill(value);
 
+    await bulkUpdateModal.getByRole('button', { name: 'Preview Proposed Changes' }).click();
+
     await bulkUpdateModal.getByRole('button', { name: /Update [0-9]+ Record(s)?/ }).click();
 
     // TODO: add mock API response to speed test up and ensure it is not flaky
