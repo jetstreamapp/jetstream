@@ -75,7 +75,8 @@ export const CreateFieldsFormulaEditor = forwardRef<unknown, CreateFieldsFormula
 
     const monaco = useMonaco();
 
-    const formulaReturnType = convertFormulaSecondaryTypeToEvaluatorType(allValues.secondaryType.value as SalesforceFieldType);
+    const secondaryType = allValues.secondaryType.value;
+    const formulaReturnType = convertFormulaSecondaryTypeToEvaluatorType(typeof secondaryType === 'string' ? secondaryType : null);
 
     useEffect(() => {
       isMounted.current = true;

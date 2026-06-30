@@ -68,15 +68,21 @@ export function ensureValidType(type: string): SalesforceFieldType {
   );
 }
 
-export function ensureValidSecondaryType(type: string): string {
-  const validOptions = new Set(['Checkbox', 'Currency', 'Date', 'DateTime', 'Number', 'Percent', 'Text', 'Time']);
-  if (validOptions.has(type)) {
-    return type as SalesforceFieldType;
+export function ensureValidSecondaryType(type: unknown): string {
+  // Imported cell values are not guaranteed to be strings (e.g. XLSX parsing can yield numbers/booleans/dates)
+  if (typeof type !== 'string') {
+    return 'Text';
   }
-  return 'Text';
+  const validOptions = ['Checkbox', 'Currency', 'Date', 'DateTime', 'Number', 'Percent', 'Text', 'Time'];
+  const normalized = type.trim().toLowerCase();
+  // Match case-insensitively (consistent with ensureValidType) and return the canonical-cased value
+  return validOptions.find((option) => option.toLowerCase() === normalized) || 'Text';
 }
 
-export function convertFormulaSecondaryTypeToEvaluatorType(type: SalesforceFieldType): FormulaReturnType {
+export function convertFormulaSecondaryTypeToEvaluatorType(type: Maybe<string>): FormulaReturnType {
+  if (!type) {
+    return 'string';
+  }
   return ({
     checkbox: 'boolean',
     currency: 'number',
