@@ -1,6 +1,13 @@
 /// <reference types="chrome" />
 import { logger } from '@jetstream/shared/client-logger';
-import type { ApiHistoryItem, LoadSavedMappingItem, QueryHistoryItem, QueryHistoryObject, RecentHistoryItem } from '@jetstream/types';
+import type {
+  AnalysisJobHistoryItem,
+  ApiHistoryItem,
+  LoadSavedMappingItem,
+  QueryHistoryItem,
+  QueryHistoryObject,
+  RecentHistoryItem,
+} from '@jetstream/types';
 import Dexie, { type EntityTable } from 'dexie';
 import 'dexie-observable';
 import 'dexie-syncable';
@@ -33,6 +40,17 @@ export const SyncableTables = {
   api_request_history: {
     name: 'api_request_history',
     keyPrefix: 'api',
+  },
+} as const;
+
+/**
+ * Local-only Dexie tables. Not synced cross-device; the sync layer pulls only from `SyncableTables`.
+ * Kept separate from `SyncableTables` so the sync code stays type-tight without an extra prefix case.
+ */
+export const LocalOnlyTables = {
+  analysis_job_history: {
+    name: 'analysis_job_history',
+    keyPrefix: 'aj',
   },
 } as const;
 
@@ -70,6 +88,7 @@ export const dexieDb = new Dexie(DEXIE_DB_NAME) as Dexie & {
   load_saved_mapping: EntityTable<LoadSavedMappingItem, 'key'>;
   recent_history_item: EntityTable<RecentHistoryItem, 'key'>;
   api_request_history: EntityTable<ApiHistoryItem, 'key'>;
+  analysis_job_history: EntityTable<AnalysisJobHistoryItem, 'key'>;
 };
 
 export const SyncableEntities = new Set<SyncableEntity>(Object.keys(SyncableTables) as Array<SyncableEntity>);
@@ -87,6 +106,10 @@ dexieDb.version(2).stores({
 
 dexieDb.version(3).stores({
   api_request_history: 'key,org,lastRun,isFavorite,[org+isFavorite]',
+});
+
+dexieDb.version(4).stores({
+  analysis_job_history: 'key,org,jobType,createdAt,pinned,[org+jobType+createdAt]',
 });
 
 export const dexieDataSync = {

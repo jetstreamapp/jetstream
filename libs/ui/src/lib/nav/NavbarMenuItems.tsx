@@ -247,7 +247,8 @@ export const NavbarMenuItems: FunctionComponent<NavbarMenuItemsProps> = ({ label
               return (
                 <Fragment key={item.id}>
                   {item.heading && (
-                    <li className="slds-dropdown__header slds-has-divider_top-space" role="separator">
+                    // Skip the top divider/spacing on the first row so a leading heading doesn't render a stray border
+                    <li className={classNames('slds-dropdown__header', { 'slds-has-divider_top-space': i > 0 })} role="separator">
                       {item.heading}
                     </li>
                   )}

@@ -42,6 +42,10 @@ export interface GridBodyProps<TRow> {
   rowClass?: (row: TRow) => string | undefined;
   onStartEdit?: (rowId: string, columnId: string) => void;
   onCommitRow?: (updatedRow: TRow, rowId: string, columnId: string) => void;
+  /** When true, rows size to their content (cells wrap) and are DOM-measured by the virtualizer instead of
+   * pinned to `rowHeight`. The caller must also render every column (no horizontal virtualization) so a
+   * row's measured height reflects all its cells — `GridContainer` does this when `autoRowHeight` is set. */
+  autoRowHeight?: boolean;
 }
 
 // In-cell controls are removed from the page tab order (tabindex="-1") so the grid is a single tab stop.
@@ -75,6 +79,7 @@ export function GridBody<TRow>({
   rowClass,
   onStartEdit,
   onCommitRow,
+  autoRowHeight,
 }: GridBodyProps<TRow>) {
   const { rows } = table.getRowModel();
   const leafColumns = table.getVisibleLeafColumns();
@@ -100,7 +105,11 @@ export function GridBody<TRow>({
     },
     overscan,
     getItemKey: (index) => rows[index].id,
+    // In auto-height mode the estimate above is only the initial guess; the virtualizer measures each
+    // rendered row's real height (rows wrap to content) and corrects the offsets, keeping virtualization.
+    ...(autoRowHeight ? { measureElement: (el: Element | null) => el?.getBoundingClientRect().height ?? DEFAULT_ROW_HEIGHT } : {}),
   });
+  const measureRowRef = autoRowHeight ? rowVirtualizer.measureElement : undefined;
 
   // Resolve the active cell to a DOM node: scroll its row into view, then focus the cell (navigation)
   // or the first focusable inside it (actionable). Runs only when the coordinate/mode changes — NOT on
@@ -235,6 +244,8 @@ export function GridBody<TRow>({
               height={virtualRow.size}
               activeCell={rowActiveCell}
               onCellMouseDown={onCellMouseDown}
+              autoHeight={autoRowHeight}
+              measureRef={measureRowRef}
             />
           );
         }
@@ -261,6 +272,8 @@ export function GridBody<TRow>({
             onCellContextMenu={onCellContextMenu}
             onStartEdit={onStartEdit}
             onCommitRow={onCommitRow}
+            autoHeight={autoRowHeight}
+            measureRef={measureRowRef}
           />
         );
       })}

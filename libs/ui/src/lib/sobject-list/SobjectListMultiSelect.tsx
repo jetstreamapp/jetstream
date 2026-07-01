@@ -72,6 +72,9 @@ export const SobjectListMultiSelect: FunctionComponent<SobjectListMultiSelectPro
   }
 
   function handleSelection(sobjectName: string) {
+    if (disabled) {
+      return;
+    }
     if (selectedSObjectSet.has(sobjectName)) {
       selectedSObjectSet.delete(sobjectName);
       onSelected(Array.from(selectedSObjectSet));
@@ -81,6 +84,9 @@ export const SobjectListMultiSelect: FunctionComponent<SobjectListMultiSelectPro
   }
 
   function handleSelectAll(value: boolean) {
+    if (disabled) {
+      return;
+    }
     filteredSobjects?.forEach((item) => {
       if (value) {
         selectedSObjectSet.add(item.name);
@@ -135,10 +141,11 @@ export const SobjectListMultiSelect: FunctionComponent<SobjectListMultiSelectPro
                     }
                     label="Select All"
                     onChange={handleSelectAll}
-                    disabled={filteredSobjects.length === 0}
+                    disabled={disabled || filteredSobjects.length === 0}
                   />
                   <ItemSelectionSummary
                     label="object"
+                    disabled={disabled}
                     items={Array.from(selectedSObjectSet).map((item) => ({ label: item, value: item }))}
                     onClearAll={() => onSelected([])}
                     onClearItem={handleSelection}
@@ -158,6 +165,7 @@ export const SobjectListMultiSelect: FunctionComponent<SobjectListMultiSelectPro
                     content: (
                       <AutoFullHeightContainer bottomBuffer={25}>
                         <SobjectListContent
+                          disabled={disabled}
                           selectedSObjectSet={selectedSObjectSet}
                           filteredSobjects={filteredSobjects}
                           searchTerm={searchTerm}
@@ -173,6 +181,7 @@ export const SobjectListMultiSelect: FunctionComponent<SobjectListMultiSelectPro
                     content: (
                       <AutoFullHeightContainer bottomBuffer={25}>
                         <SobjectListContent
+                          disabled={disabled}
                           selectedSObjectSet={selectedSObjectSet}
                           filteredSobjects={filteredSobjects}
                           searchTerm={searchTerm}
@@ -186,6 +195,7 @@ export const SobjectListMultiSelect: FunctionComponent<SobjectListMultiSelectPro
             ) : (
               <AutoFullHeightContainer bottomBuffer={25}>
                 <SobjectListContent
+                  disabled={disabled}
                   selectedSObjectSet={selectedSObjectSet}
                   filteredSobjects={filteredSobjects}
                   searchTerm={searchTerm}
@@ -201,6 +211,7 @@ export const SobjectListMultiSelect: FunctionComponent<SobjectListMultiSelectPro
 };
 
 interface SobjectListContentProps {
+  disabled?: boolean;
   selectedSObjectSet: Set<string>;
   filteredSobjects: DescribeGlobalSObjectResult[];
   searchTerm: string;
@@ -208,13 +219,17 @@ interface SobjectListContentProps {
 }
 
 const SobjectListContent = forwardRef(
-  ({ selectedSObjectSet, filteredSobjects, searchTerm, onSelected }: SobjectListContentProps, ref: ForwardedRef<HTMLUListElement>) => {
+  (
+    { disabled = false, selectedSObjectSet, filteredSobjects, searchTerm, onSelected }: SobjectListContentProps,
+    ref: ForwardedRef<HTMLUListElement>,
+  ) => {
     return (
       <>
         <List
           ref={ref}
           items={filteredSobjects}
           isMultiSelect
+          disabled={disabled}
           isActive={(item: DescribeGlobalSObjectResult) => selectedSObjectSet.has(item.name)}
           onSelected={onSelected}
           getContent={(item: DescribeGlobalSObjectResult) => ({

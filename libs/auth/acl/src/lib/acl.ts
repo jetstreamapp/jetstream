@@ -13,7 +13,7 @@ type Actions = 'read' | 'update';
 type Subjects = 'Billing' | 'CoreFunctionality' | 'Profile' | 'Settings';
 
 type EntitlementActions = 'access';
-type EntitlementSubjects = 'GoogleDrive' | 'ChromeExtension' | 'Desktop' | 'RecordSync';
+type EntitlementSubjects = 'GoogleDrive' | 'ChromeExtension' | 'Desktop' | 'RecordSync' | 'AnalysisTools';
 
 type TeamActions = 'read' | 'update';
 type TeamSubjects = 'Team' | 'TeamMember' | { type: 'TeamMember'; role: TeamMemberRole };
@@ -131,6 +131,10 @@ function getAbilityRules({ isBrowserExtension, isDesktop, isCanvasApp, user }: G
   // Desktop and extension require paid tier, so they always get access to record sync
   if (user.entitlements.recordSync || isBrowserExtension || isDesktop) {
     can('access', 'RecordSync');
+  }
+  // Analysis Tools (Field Usage + Permission Analysis) are paid-only; desktop/extension/canvas are paid tiers.
+  if (user.entitlements.analysisTools || isBrowserExtension || isDesktop || isCanvasApp) {
+    can('access', 'AnalysisTools');
   }
 
   return rules;

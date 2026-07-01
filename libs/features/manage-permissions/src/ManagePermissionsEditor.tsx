@@ -24,6 +24,7 @@ import {
   PermissionTableTabVisibilityCellPermission,
   TabVisibilityPermissionDefinitionMap,
   TabVisibilityPermissionRecordForSave,
+  UiTabSection,
   UploadToGoogleJob,
 } from '@jetstream/types';
 import {
@@ -49,7 +50,7 @@ import { ConfirmPageChange, RequireMetadataApiBanner, fromJetstreamEvents, fromP
 import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
-import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import ManagePermissionsEditorFieldTable from './ManagePermissionsEditorFieldTable';
 import ManagePermissionsEditorObjectTable from './ManagePermissionsEditorObjectTable';
@@ -142,7 +143,18 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
 
   const { refetchMetadata, ...recordData } = usePermissionRecords(selectedOrg, selectedSObjects, selectedProfiles, selectedPermissionSets);
 
-  const [objectColumns, setObjectColumns] = useState<ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>[]>([]);
+  const objectColumnsProfilesOnly = useMemo(
+    () => getObjectColumns(selectedProfiles, [], profilesById, permissionSetsById),
+    [selectedProfiles, profilesById, permissionSetsById],
+  );
+  const objectColumnsPermissionSetsOnly = useMemo(
+    () => getObjectColumns([], selectedPermissionSets, profilesById, permissionSetsById),
+    [selectedPermissionSets, profilesById, permissionSetsById],
+  );
+  const objectColumnsCombined = useMemo(
+    () => getObjectColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
+    [selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById],
+  );
   const [objectRows, setObjectRows] = useState<PermissionTableObjectCell[] | null>(null);
   const [visibleObjectRows, setVisibleObjectRows] = useState<PermissionTableObjectCell[] | null>(null);
   const [dirtyObjectRows, setDirtyObjectRows] = useState<Record<string, DirtyRow<PermissionTableObjectCell>>>({});
@@ -354,7 +366,6 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     tabVisibilityPermissionMapOverride?: Record<string, TabVisibilityPermissionDefinitionMap>,
   ) {
     if (includeColumns) {
-      setObjectColumns(getObjectColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById));
       setFieldColumns(getFieldColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById));
       setTabVisibilityColumns(getTabVisibilityColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById));
     }
@@ -619,6 +630,84 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     navigate('..');
   }, {});
 
+  const objectPermissionTableProps = {
+    ref: managePermissionsEditorObjectTableRef,
+    rows: visibleObjectRows || [],
+    totalCount: objectRows?.length || 0,
+    filterText: objectFilter,
+    onFilter: setObjectFilter,
+    onBulkUpdate: handleObjectBulkRowUpdate,
+    onDirtyRows: setDirtyObjectRows,
+  };
+
+  const objectPermissionEditorTabs: UiTabSection[] = [];
+  if (selectedProfiles.length > 0) {
+    objectPermissionEditorTabs.push({
+      id: 'profiles-object-permissions',
+      title: (
+        <Fragment>
+          <span className="slds-tabs__left-icon">
+            <Icon
+              type="standard"
+              icon="customers"
+              containerClassname="slds-icon_container slds-icon-standard-customers"
+              className="slds-icon slds-icon_small"
+            />
+          </span>
+          Profiles {dirtyObjectCount ? `(${dirtyObjectCount})` : ''}
+          <ErrorTooltip hasError={objectsHaveErrors} id="object-errors-profiles" />
+        </Fragment>
+      ),
+      titleText: 'Profiles',
+      disabled: true,
+      content: <ManagePermissionsEditorObjectTable {...objectPermissionTableProps} columns={objectColumnsProfilesOnly} />,
+    });
+  }
+  if (selectedPermissionSets.length > 0) {
+    objectPermissionEditorTabs.push({
+      id: 'permission-sets-object-permissions',
+      title: (
+        <Fragment>
+          <span className="slds-tabs__left-icon">
+            <Icon
+              type="standard"
+              icon="user"
+              containerClassname="slds-icon_container slds-icon-standard-user"
+              className="slds-icon slds-icon_small"
+            />
+          </span>
+          Permission Sets {dirtyObjectCount ? `(${dirtyObjectCount})` : ''}
+          <ErrorTooltip hasError={objectsHaveErrors} id="object-errors-perm-sets" />
+        </Fragment>
+      ),
+      titleText: 'Permission Sets',
+      disabled: true,
+      content: <ManagePermissionsEditorObjectTable {...objectPermissionTableProps} columns={objectColumnsPermissionSetsOnly} />,
+    });
+  }
+  if (objectPermissionEditorTabs.length === 0) {
+    objectPermissionEditorTabs.push({
+      id: 'object-permissions',
+      title: (
+        <Fragment>
+          <span className="slds-tabs__left-icon">
+            <Icon
+              type="standard"
+              icon="entity"
+              containerClassname="slds-icon_container slds-icon-standard-entity"
+              className="slds-icon slds-icon_small"
+            />
+          </span>
+          Object Permissions {dirtyObjectCount ? `(${dirtyObjectCount})` : ''}
+          <ErrorTooltip hasError={objectsHaveErrors} id="object-errors" />
+        </Fragment>
+      ),
+      titleText: 'Object Permissions',
+      disabled: true,
+      content: <ManagePermissionsEditorObjectTable {...objectPermissionTableProps} columns={objectColumnsCombined} />,
+    });
+  }
+
   return (
     <div>
       <ConfirmPageChange actionInProgress={loading} />
@@ -727,40 +816,10 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
         )}
         {hasLoaded && (
           <Tabs
+            key={[selectedProfiles.join(','), selectedPermissionSets.join(',')].join('|')}
             initialActiveId="field-permissions"
             tabs={[
-              {
-                id: 'object-permissions',
-                title: (
-                  <Fragment>
-                    <span className="slds-tabs__left-icon">
-                      <Icon
-                        type="standard"
-                        icon="entity"
-                        containerClassname="slds-icon_container slds-icon-standard-entity"
-                        className="slds-icon slds-icon_small"
-                      />
-                    </span>
-                    Object Permissions {dirtyObjectCount ? `(${dirtyObjectCount})` : ''}
-                    <ErrorTooltip hasError={objectsHaveErrors} id="object-errors" />
-                  </Fragment>
-                ),
-                titleText: 'Object Permissions',
-                disabled: true,
-                content: (
-                  <ManagePermissionsEditorObjectTable
-                    ref={managePermissionsEditorObjectTableRef}
-                    columns={objectColumns}
-                    rows={visibleObjectRows || []}
-                    totalCount={objectRows?.length || 0}
-                    filterText={objectFilter}
-                    onFilter={setObjectFilter}
-                    onBulkUpdate={handleObjectBulkRowUpdate}
-                    onDirtyRows={setDirtyObjectRows}
-                  />
-                ),
-              },
-
+              ...objectPermissionEditorTabs,
               {
                 id: 'tab-visibility-permissions',
                 title: (

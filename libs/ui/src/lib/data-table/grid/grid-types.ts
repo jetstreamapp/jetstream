@@ -182,7 +182,9 @@ export type ColSpanArgs<TRow = RowWithKey> =
   | { type: 'HEADER'; row?: undefined }
   | { type: 'ROW'; row: TRow }
   | { type: 'SUMMARY'; row: TRow }
-  | { type: 'GROUP'; row?: TRow };
+  // `groupingColumnId` is the column that grouped THIS header's level — lets a column span the header only
+  // at its own level (e.g. multi-level grouping where each level's grouping column spans the full row).
+  | { type: 'GROUP'; row?: TRow; groupingColumnId?: string };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The public, author-facing column definition (detached from react-data-grid `Column`)

@@ -73,6 +73,9 @@ export interface GridContainerProps<TRow> {
   getColumnHeaderMenuItems?: (columnId: string) => ContextMenuItem[];
   /** Slot for editor popovers / context menu portals rendered as siblings of the grid. */
   children?: ReactNode;
+  /** When true, rows size to their content (cells wrap, DOM-measured) and ALL columns render (horizontal
+   * virtualization off) so each row's measured height accounts for every cell. Opt-in per grid. */
+  autoRowHeight?: boolean;
 }
 
 export function GridContainer<TRow = RowWithKey>({
@@ -94,6 +97,7 @@ export function GridContainer<TRow = RowWithKey>({
   contextMenuAction,
   getColumnHeaderMenuItems,
   children,
+  autoRowHeight,
 }: GridContainerProps<TRow>) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -274,13 +278,17 @@ export function GridContainer<TRow = RowWithKey>({
     });
     return indexes;
   }, [leafColumns]);
-  const visibleColumnIndexes = useMemo(() => {
+  const windowedColumnIndexes = useMemo(() => {
     const indexes = new Set<number>(frozenColumnIndexes);
     for (const virtualColumn of virtualColumns) {
       indexes.add(virtualColumn.index);
     }
     return Array.from(indexes).sort((a, b) => a - b);
   }, [virtualColumns, frozenColumnIndexes]);
+  const allColumnIndexes = useMemo(() => leafColumns.map((_, index) => index), [leafColumns]);
+  // Auto-height rows are DOM-measured, so every column must render (otherwise a row's measured height
+  // would miss cells outside the horizontal window). Trade horizontal virtualization for correct heights.
+  const visibleColumnIndexes = autoRowHeight ? allColumnIndexes : windowedColumnIndexes;
 
   // Scroll the active column into view (mirrors the active-row logic in GridBody) so keyboard
   // navigation to off-screen columns brings them into the window before focus resolves.
@@ -570,6 +578,7 @@ export function GridContainer<TRow = RowWithKey>({
               rowClass={rowClass}
               onStartEdit={handleStartEdit}
               onCommitRow={handleCellCommit}
+              autoRowHeight={autoRowHeight}
             />
           </div>
         </div>

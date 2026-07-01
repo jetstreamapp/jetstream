@@ -429,7 +429,9 @@ export type AsyncJobType =
   | 'RetrievePackageZip'
   | 'UploadToGoogle'
   | 'DesktopFileDownload'
-  | 'CancelJob';
+  | 'CancelJob'
+  | 'PermissionExportAnalysis'
+  | 'FieldUsageAnalysis';
 
 export type AsyncJobStatus = 'pending' | 'in-progress' | 'success' | 'finished-warning' | 'failed' | 'aborted';
 
@@ -456,6 +458,33 @@ export interface AsyncJob<T = unknown, R = unknown> {
   progress?: AsyncJobProgress; // optional progress information
   meta: T;
   results?: R;
+  /**
+   * Optional in-app navigation target shown as a "View" button in the Jobs popover when set.
+   * Used by jobs that produce results rendered in a dedicated route (e.g. analysis jobs).
+   */
+  viewUrl?: string;
+}
+
+/**
+ * Meta payload for the in-browser `PermissionExportAnalysis` job. The `jobHistoryKey` is the
+ * Dexie row id that will receive the final result blob; views derive the route from it.
+ */
+export interface PermissionExportAnalysisJob {
+  jobHistoryKey: string;
+  orgUniqueId: string;
+  profileIds: string[];
+  permissionSetIds: string[];
+  objectApiNames?: string[];
+}
+
+/**
+ * Meta payload for the in-browser `FieldUsageAnalysis` job.
+ */
+export interface FieldUsageAnalysisJob {
+  jobHistoryKey: string;
+  orgUniqueId: string;
+  objectApiNames: string[];
+  loadFullScan?: boolean;
 }
 
 export interface AsyncJobWorkerMessagePayload<T = unknown> {
