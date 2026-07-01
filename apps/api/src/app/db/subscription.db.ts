@@ -2,6 +2,7 @@ import { prisma } from '@jetstream/api-config';
 import { Prisma } from '@jetstream/prisma';
 import { EntitlementsAccess, EntitlementsAccessSchema, TeamBillingStatus } from '@jetstream/types';
 import Stripe from 'stripe';
+import { resolveActiveTeamIdForUser } from './feature-flags.db';
 
 const SELECT = {
   id: true,
@@ -53,6 +54,10 @@ export const updateUserEntitlements = async (customerId: string, entitlementAcce
  * Force-grant only the Analysis Tools entitlement to a user, leaving the other entitlement flags
  * untouched. Intended for test setup so the flag-gated, paid-only Analysis Tools render as usable
  * (unlocked) without provisioning a full paid subscription.
+ *
+ * When the user belongs to an active team, the user profile reads TEAM entitlements (see
+ * `getUserProfileUi`), so a user-level grant alone is ignored for team members. Grant it on the active
+ * team too so the tools render unlocked regardless of whether the user is on a team.
  */
 export const grantAnalysisToolsEntitlementForUser = async (userId: string): Promise<void> => {
   await prisma.entitlement.upsert({
@@ -60,6 +65,15 @@ export const grantAnalysisToolsEntitlementForUser = async (userId: string): Prom
     update: { analysisTools: true },
     where: { userId },
   });
+
+  const activeTeamId = await resolveActiveTeamIdForUser(userId);
+  if (activeTeamId) {
+    await prisma.teamEntitlement.upsert({
+      create: { teamId: activeTeamId, analysisTools: true },
+      update: { analysisTools: true },
+      where: { teamId: activeTeamId },
+    });
+  }
 };
 
 export const updateTeamEntitlements = async (customerId: string, entitlementAccessUntrusted: EntitlementsAccess) => {
