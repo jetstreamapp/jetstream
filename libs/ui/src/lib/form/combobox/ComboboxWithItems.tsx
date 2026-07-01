@@ -7,7 +7,7 @@ import {
 import { NOOP } from '@jetstream/shared/utils';
 import { ListItem, Maybe } from '@jetstream/types';
 import isNumber from 'lodash/isNumber';
-import { createRef, forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { createRef, forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { Combobox, ComboboxPropsRef, ComboboxSharedProps } from './Combobox';
 import { ComboboxListItem, ComboboxListItemProps } from './ComboboxListItem';
 import { ComboboxListItemHeading } from './ComboboxListItemHeading';
@@ -61,24 +61,16 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
   ) => {
     const comboboxRef = useRef<ComboboxPropsRef>(null);
     const [filterText, setFilterText] = useState<string>('');
-    const [selectedItem, setSelectedItem] = useState<Maybe<ListItem>>(() =>
-      selectedItemId ? items.find((item) => item.id === selectedItemId) : null,
-    );
     const visibleItems = useFuzzySearchFilter(items, filterText);
-    const [selectedItemLabel, setSelectedItemLabel] = useState<string | null>(() => {
-      if (selectedItem) {
-        const selectedItem = items.find((item) => item.id === selectedItemId);
-        return selectedItem ? selectedItemLabelFn(selectedItem) : null;
-      }
-      return null;
-    });
-    const [selectedItemTitle, setSelectedItemTitle] = useState<string | null>(() => {
-      if (selectedItem) {
-        const selectedItem = items.find((item) => item.id === selectedItemId);
-        return selectedItem ? selectedItemLabelFn(selectedItem) : null;
-      }
-      return null;
-    });
+    // Derived during render rather than mirrored into state with effects. The effect-synced version
+    // had selectedItemLabelFn/selectedItemTitleFn in its dependencies — callers usually pass inline
+    // functions, so it dispatched a setState after every parent re-render, which counts toward
+    // React's nested-update limit and escalated to "Maximum update depth exceeded" during long
+    // update cascades.
+    const itemsById = useMemo(() => getFlattenedListItemsById(items), [items]);
+    const selectedItem: Maybe<ListItem> = selectedItemId ? itemsById[selectedItemId] : null;
+    const selectedItemLabel = selectedItem ? selectedItemLabelFn(selectedItem) : null;
+    const selectedItemTitle = selectedItem ? selectedItemTitleFn(selectedItem) || '' : null;
     const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
     const refs = visibleItems.map((value) => createRef<HTMLLIElement>());
 
@@ -92,24 +84,6 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
       }),
       [],
     );
-
-    useEffect(() => {
-      if (selectedItemId) {
-        setSelectedItem(getFlattenedListItemsById(items)[selectedItemId]);
-      } else {
-        setSelectedItem(null);
-      }
-    }, [items, selectedItemId]);
-
-    useEffect(() => {
-      if (selectedItem) {
-        setSelectedItemLabel(selectedItemLabelFn(selectedItem));
-        setSelectedItemTitle(selectedItemTitleFn(selectedItem) || '');
-      } else {
-        setSelectedItemLabel(null);
-        setSelectedItemTitle(null);
-      }
-    }, [selectedItem, selectedItemLabelFn, selectedItemTitleFn]);
 
     const onInputEnter = useCallback(() => {
       if (visibleItems.length > 0) {
