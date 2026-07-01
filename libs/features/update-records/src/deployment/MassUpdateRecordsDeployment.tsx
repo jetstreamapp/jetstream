@@ -21,7 +21,7 @@ import { useAtomValue, useSetAtom } from 'jotai';
 import { useAtomCallback } from 'jotai/utils';
 import isNumber from 'lodash/isNumber';
 import { ChangeEvent, useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router';
 import * as fromMassUpdateState from '../mass-update-records.state';
 
 const HEIGHT_BUFFER = 170;

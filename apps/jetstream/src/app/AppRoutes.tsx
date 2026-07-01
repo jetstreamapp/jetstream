@@ -3,7 +3,7 @@ import { AppHome, AppHomeBillingUser, Feedback, OrgSelectionRequired } from '@je
 import { abilityState, isReadOnlyUserState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { useEffect } from 'react';
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router';
 import { environment } from '../environments/environment';
 import lazy from './components/core/LazyLoad';
 import Profile from './components/profile/Profile';

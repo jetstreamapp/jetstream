@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import Icon from '../../widgets/Icon';
 import Tooltip from '../../widgets/Tooltip';
 

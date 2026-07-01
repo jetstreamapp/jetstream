@@ -18,7 +18,7 @@ import {
 import { abilityState, fromAppState } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 
 const HEIGHT_BUFFER = 170;
 

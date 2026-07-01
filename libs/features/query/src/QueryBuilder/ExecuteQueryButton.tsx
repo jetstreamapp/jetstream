@@ -2,7 +2,7 @@ import { DescribeGlobalSObjectResult, Maybe, SalesforceOrgUi } from '@jetstream/
 import { Icon, KeyboardShortcut, Tooltip, getModifierKey } from '@jetstream/ui';
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { FunctionComponent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 
 interface ExecuteQueryButtonProps {
   soql: string;

@@ -13,7 +13,7 @@ import { useObservable } from 'dexie-react-hooks';
 import { useAtomValue, useSetAtom } from 'jotai';
 import localforage from 'localforage';
 import React, { FunctionComponent, useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router';
 import { Observable } from 'rxjs';
 import browser from 'webextension-polyfill';
 import { environment } from '../environments/environment';

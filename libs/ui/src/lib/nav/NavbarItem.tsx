@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router';
 
 export interface NavbarItemProps {
   className?: string;

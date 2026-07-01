@@ -7,7 +7,7 @@ import { Alert, Card, EmptyState, fireToast, Grid, Icon, NoAccess2Illustration }
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { Fragment, FunctionComponent, useCallback, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { fromJetstreamEvents, OrgsDropdown } from '..';
 import { AddOrg } from './AddOrg';
 import { OrgWelcomeInstructions } from './OrgWelcomeInstructions';

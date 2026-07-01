@@ -14,7 +14,7 @@ import {
 import classNames from 'classnames';
 import isNumber from 'lodash/isNumber';
 import { Fragment, FunctionComponent, KeyboardEvent, RefObject, createRef, useEffect, useRef, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router';
 import OutsideClickHandler from '../utils/OutsideClickHandler';
 import Icon from '../widgets/Icon';
 

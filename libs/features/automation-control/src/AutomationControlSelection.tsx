@@ -22,7 +22,7 @@ import { RequireMetadataApiBanner, fromAutomationControlState } from '@jetstream
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useAtom, useAtomValue } from 'jotai';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router';
 import { AutomationMetadataType } from './automation-control-types';
 
 const HEIGHT_BUFFER = 170;

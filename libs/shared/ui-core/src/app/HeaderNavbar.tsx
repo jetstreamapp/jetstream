@@ -16,7 +16,7 @@ import {
 } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { Fragment, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useAmplitude } from '../analytics';
 import Jobs from '../jobs/Jobs';
 import OrgsDropdown from '../orgs/OrgsDropdown';

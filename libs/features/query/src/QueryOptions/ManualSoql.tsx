@@ -16,7 +16,7 @@ import { OnMount } from '@monaco-editor/react';
 import { useAtom } from 'jotai';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router';
 
 export interface ManualSoqlProps {
   className?: string;

@@ -7,7 +7,7 @@ import { featureFlagsState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
 import { Fragment } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { AppHomeAlternativeApplicationFormats } from './AppHomeAlternativeApplicationFormats';
 import { AppHomeOrgExpirationBanner } from './AppHomeOrgExpirationBanner';
 import { AppHomeOrganizations } from './AppHomeOrganizations';

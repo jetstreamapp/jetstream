@@ -25,7 +25,7 @@ import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } fro
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useAtom, useAtomValue } from 'jotai';
 import { FunctionComponent, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router';
 import * as fromCreateFieldsState from './create-fields.state';
 import CreateNewObject from './create-new-object/CreateNewObject';
 

@@ -20,7 +20,7 @@ import { UserFeedbackWidget } from '@jetstream/ui';
 import { AppHome, AppLoading, ErrorBoundaryEmptyFallback, ErrorBoundaryFallback, Feedback, HeaderNavbar } from '@jetstream/ui-core';
 import { Suspense, useEffect } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
-import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
+import { Navigate, Route, Routes, useNavigate } from 'react-router';
 import { AppWrapper } from '../../core/AppWrapper';
 import { applyExtensionThemeBeforeMount } from '../../core/ExtensionThemeApplier';
 import { initAndRenderReact } from '../../utils/web-extension.utils';

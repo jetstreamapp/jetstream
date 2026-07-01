@@ -4,7 +4,7 @@ import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { Badge, Icon } from '@jetstream/ui';
 import classNames from 'classnames';
 import { Fragment } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 
 const HOME_ITEMS = [
   {

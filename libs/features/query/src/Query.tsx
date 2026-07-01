@@ -7,7 +7,7 @@ import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import { useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
 import { Fragment, useCallback, useEffect, useState } from 'react';
-import { Outlet, useLocation, useSearchParams } from 'react-router-dom';
+import { Outlet, useLocation, useSearchParams } from 'react-router';
 
 export const Query = () => {
   useTitle(TITLES.QUERY);

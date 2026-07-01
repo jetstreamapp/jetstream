@@ -3,7 +3,7 @@ import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { Grid } from '@jetstream/ui';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import * as fromApexState from './apex.state';
 
 const PREV_APEX_KEY = '_prev_';

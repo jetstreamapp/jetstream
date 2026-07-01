@@ -5,7 +5,7 @@ import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { Maybe, OrgGroup } from '@jetstream/types';
 import { Badge, Grid, Popover, PopoverRef } from '@jetstream/ui';
 import { ReactNode, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 
 interface OrganizationGroupSelectorProps {
   groups: OrgGroup[];

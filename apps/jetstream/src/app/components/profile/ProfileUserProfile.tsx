@@ -5,7 +5,7 @@ import { Form, FormRow, FormRowItem, Input, ReadOnlyFormItem } from '@jetstream/
 import { abilityState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { ProfileUserPassword } from './ProfileUserPassword';
 
 export interface ProfileUserProfileProps {

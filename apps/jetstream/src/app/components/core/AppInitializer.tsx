@@ -12,7 +12,7 @@ import { AxiosResponse } from 'axios';
 import { useAtom, useAtomValue } from 'jotai';
 import localforage from 'localforage';
 import React, { Fragment, FunctionComponent, useCallback, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router';
 import { Observable, Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 

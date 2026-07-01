@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import Grid, { GridProps } from '../grid/Grid';
 import Icon from './Icon';
 

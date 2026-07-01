@@ -26,7 +26,7 @@ import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router';
 import AutomationControlEditorReviewModal from './AutomationControlEditorReviewModal';
 import AutomationControlEditorTable from './AutomationControlEditorTable';
 import AutomationControlLastRefreshedPopover from './AutomationControlLastRefreshedPopover';

@@ -5,7 +5,7 @@ import { Badge, Icon } from '@jetstream/ui';
 import { fromAppState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useAmplitude } from '../../analytics';
 
 const CURRENT_TIME = new Date().getTime();
