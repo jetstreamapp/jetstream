@@ -33,6 +33,7 @@ import {
 import { composeQuery, getField, Query } from '@jetstreamapp/soql-parser-js';
 import { formatDate } from 'date-fns/format';
 import { formatISO } from 'date-fns/formatISO';
+import { isValid as isDateValid } from 'date-fns/isValid';
 import { parseISO } from 'date-fns/parseISO';
 import JSZip from 'jszip';
 import localforage from 'localforage';
@@ -387,10 +388,16 @@ const dataTableDateFormatter = (dateOrDateTime: Maybe<Date | string>): ReactNode
     let showWarning = false;
     let value: string;
     if (isDate(dateOrDateTime)) {
+      if (!isDateValid(dateOrDateTime)) {
+        return String(dateOrDateTime);
+      }
       value = formatDate(dateOrDateTime, DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a);
       showWarning = dateOrDateTime.getFullYear() <= 1970;
     } else if (dateOrDateTime.length === 28) {
       const date = parseISO(dateOrDateTime);
+      if (!isDateValid(date)) {
+        return dateOrDateTime;
+      }
       value = formatDate(date, DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a);
       showWarning = date.getFullYear() <= 1970;
     } else {

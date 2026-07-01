@@ -3,6 +3,7 @@ import { groupByFlat } from '@jetstream/shared/utils';
 import { ErrorResult, ExpressionType, Field, FieldType, Maybe, SalesforceRecord, SoqlQueryFormatOptions } from '@jetstream/types';
 import { FieldSubquery, HavingClause, Query, WhereClause, composeQuery, getFlattenedFields } from '@jetstreamapp/soql-parser-js';
 import { formatISO } from 'date-fns/formatISO';
+import { isValid as isDateValid } from 'date-fns/isValid';
 import { parseISO } from 'date-fns/parseISO';
 import isNil from 'lodash/isNil';
 import isNumber from 'lodash/isNumber';
@@ -55,11 +56,16 @@ export function transformEditForm(sobjectFields: Field[], record: SalesforceReco
       // ensure value is not empty string, as that ends up being coerced to 0
       record[fieldName] = null;
     } else if (DATE_FIELD_TYPES.has(field.type) && isString(value) && value) {
-      if (field.type === 'date') {
-        record[fieldName] = formatISO(parseISO(value), { representation: 'date' });
-      } else {
-        // this converts to UTC
-        record[fieldName] = parseISO(value).toISOString();
+      // Only transform when the value is a parseable ISO date; otherwise leave it untouched so an
+      // unparseable value surfaces as a Salesforce validation error rather than throwing here.
+      const parsedValue = parseISO(value);
+      if (isDateValid(parsedValue)) {
+        if (field.type === 'date') {
+          record[fieldName] = formatISO(parsedValue, { representation: 'date' });
+        } else {
+          // this converts to UTC
+          record[fieldName] = parsedValue.toISOString();
+        }
       }
     } else if (TIME_FIELD_TYPES.has(field.type) && isString(value) && value) {
       // Without Z, salesforce will modify the timezone

@@ -4,6 +4,7 @@ import { tracker } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { Maybe } from '@jetstream/types';
 import { formatDate } from 'date-fns/format';
+import { isValid as isDateValid } from 'date-fns/isValid';
 import { parse as parseDate } from 'date-fns/parse';
 import { parseISO } from 'date-fns/parseISO';
 import { startOfDay } from 'date-fns/startOfDay';
@@ -18,11 +19,17 @@ export const dataTableDateFormatter = (dateOrDateTime: Maybe<Date | string>): st
     if (!dateOrDateTime) {
       return null;
     } else if (isDate(dateOrDateTime)) {
-      return formatDate(dateOrDateTime, DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a);
+      // Guard against an invalid Date instance so formatDate never throws; fall back to the raw value (coerced to a
+      // string) instead of null to stay consistent with the string branches and avoid hiding data.
+      return isDateValid(dateOrDateTime) ? formatDate(dateOrDateTime, DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a) : String(dateOrDateTime);
     } else if (dateOrDateTime.length === 28) {
-      return formatDate(parseISO(dateOrDateTime), DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a);
+      const parsedDateTime = parseISO(dateOrDateTime);
+      return isDateValid(parsedDateTime) ? formatDate(parsedDateTime, DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a) : dateOrDateTime;
     } else if (dateOrDateTime.length === 10) {
-      return formatDate(startOfDay(parseISO(dateOrDateTime)), DATE_FORMATS.yyyy_MM_dd);
+      // A 10-char value is assumed to be an ISO date, but values like "12/11/2023" (MM/DD/YYYY, e.g. from a
+      // formula field) also match this length and are not parseable as ISO. Fall back to the raw value instead of throwing.
+      const parsedDate = parseISO(dateOrDateTime);
+      return isDateValid(parsedDate) ? formatDate(startOfDay(parsedDate), DATE_FORMATS.yyyy_MM_dd) : dateOrDateTime;
     } else {
       return dateOrDateTime;
     }
@@ -42,7 +49,8 @@ export const dataTableTimeFormatter = (value: Maybe<string>): string | null => {
     if (!time) {
       return null;
     } else if (time.length === 13) {
-      return formatDate(parseDate(time, DATE_FORMATS.HH_mm_ss_ssss_z, new Date()), DATE_FORMATS.HH_MM_SS_a);
+      const parsedTime = parseDate(time, DATE_FORMATS.HH_mm_ss_ssss_z, new Date());
+      return isDateValid(parsedTime) ? formatDate(parsedTime, DATE_FORMATS.HH_MM_SS_a) : time;
     } else {
       return time;
     }
