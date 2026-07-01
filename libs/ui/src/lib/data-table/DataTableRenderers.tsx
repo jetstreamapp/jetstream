@@ -17,6 +17,7 @@ export {
   ValueOrLoadingRenderer,
   getRecordErrorColumn,
   getRecordErrorRowHeight,
+  getWrappedTextRowHeight,
 } from './grid/renderers/CellRenderers';
 export type { RowWithRecordError } from './grid/renderers/CellRenderers';
 export { SubqueryRenderer } from './grid/renderers/SubqueryRenderer';

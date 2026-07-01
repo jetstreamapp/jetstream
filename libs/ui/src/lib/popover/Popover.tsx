@@ -170,7 +170,7 @@ const PopoverComponent = ({
     };
   }, [isOpen, refs.floating, refs.domReference, isInPortal]);
 
-  const { as: TriggerElement = 'button', ...restButtonProps } = buttonProps || {};
+  const { as: TriggerElement = 'button', style: triggerStyleFromButtonProps, ...restButtonProps } = buttonProps || {};
 
   const mergedButtonProps = {
     ...getReferenceProps(),
@@ -183,7 +183,7 @@ const PopoverComponent = ({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       'onClick' in restButtonProps && typeof restButtonProps.onClick === 'function' && restButtonProps.onClick?.(ev as any);
     },
-    style: buttonStyle,
+    style: { ...triggerStyleFromButtonProps, ...buttonStyle },
   };
 
   const triggerProps = TriggerElement === 'button' ? { ...mergedButtonProps, type: 'button' as const } : mergedButtonProps;

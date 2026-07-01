@@ -1,5 +1,6 @@
 import { css } from '@emotion/react';
 import { copyRecordsToClipboard, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { isCustomFieldApiName } from '@jetstream/shared/utils';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
@@ -19,18 +20,16 @@ interface QueryWhereIsThisUsedProps {
   field: string;
 }
 
-const CUSTOM_FIELD_SUFFIX = /__c/;
-
 export const QueryWhereIsThisUsed = ({ org, sobject, field }: QueryWhereIsThisUsedProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
-  const [fieldName] = useState(() => field.replace(CUSTOM_FIELD_SUFFIX, ''));
-  const [isFieldEligible] = useState(() => CUSTOM_FIELD_SUFFIX.test(field));
+  const [isFieldEligible] = useState(() => isCustomFieldApiName(field));
   const [exportData, setExportData] = useState<{ 'Reference Type': string; 'Reference Label': string; Namespace: string }[]>([]);
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
 
-  const { loadDependencies, loading, items, hasLoaded, hasError, errorMessage } = useWhereIsThisUsed(org, sobject, fieldName);
+  // The hook expects the full field API name (e.g. `Amount__c`, `acme__Amount__c`) and handles namespace/suffix parsing
+  const { loadDependencies, loading, items, hasLoaded, hasError, errorMessage } = useWhereIsThisUsed(org, sobject, field);
 
   useNonInitialEffect(() => {
     if (isFieldEligible && isOpen && !hasLoaded) {
@@ -80,7 +79,7 @@ export const QueryWhereIsThisUsed = ({ org, sobject, field }: QueryWhereIsThisUs
           google_clientId={google_clientId}
           data={exportData}
           header={['Reference Type', 'Reference Label', 'Namespace']}
-          fileNameParts={['dependencies', `${sobject}.${fieldName}`]}
+          fileNameParts={['dependencies', `${sobject}.${field}`]}
           onModalClose={() => setExportModalOpen(false)}
           source="where_is_this_used"
           // This one is too much trouble to pass down amplitude dependency
