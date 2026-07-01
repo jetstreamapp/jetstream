@@ -4,7 +4,7 @@ import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { PlatformEventMessage } from '@jetstream/types';
 import { AppHome, OrgSelectionRequired as OrgSelectionRequiredExternal } from '@jetstream/ui-core';
 import { useEffect } from 'react';
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router';
 import lazy from './core/LazyLoad';
 
 const LoadRecords = lazy(() => import('@jetstream/feature/load-records').then((module) => ({ default: module.LoadRecords })));

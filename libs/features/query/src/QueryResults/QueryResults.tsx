@@ -67,7 +67,7 @@ import classNames from 'classnames';
 import { useAtom, useAtomValue } from 'jotai';
 import isString from 'lodash/isString';
 import React, { Fragment, useCallback, useEffect, useRef, useState } from 'react';
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router';
 import { filter } from 'rxjs/operators';
 import IncludeDeletedRecordsToggle from '../QueryOptions/IncludeDeletedRecords';
 import QueryResultsAttachmentDownload, { binaryCompatibleObjects } from './QueryResultsAttachmentDownload';

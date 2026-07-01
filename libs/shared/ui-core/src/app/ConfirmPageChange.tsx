@@ -5,13 +5,9 @@ import { FunctionComponent, useCallback, useEffect } from 'react';
 
 export interface ConfirmPageChangeProps {
   actionInProgress: boolean;
-  message?: string;
 }
 
-export const ConfirmPageChange: FunctionComponent<ConfirmPageChangeProps> = ({
-  actionInProgress,
-  message = 'You have work in progress, are you sure you want to leave this page?',
-}) => {
+export const ConfirmPageChange: FunctionComponent<ConfirmPageChangeProps> = ({ actionInProgress }) => {
   // the store tracks this to allow various places (e.x. org dropdown) to know that actions are in progress
   const [actionInProgressState, setActionInProgressState] = useAtom<boolean>(fromAppState.actionInProgressState);
   // give prompt before page refresh or browser tab being closed
@@ -45,9 +41,6 @@ export const ConfirmPageChange: FunctionComponent<ConfirmPageChangeProps> = ({
     }
   }, [actionInProgress, actionInProgressState, setActionInProgressState]);
 
-  // TODO: fix this
-  // const prompt = usePrompt(message, actionInProgress);
-  // return <Prompt when={actionInProgress} message={message} />;
   return null;
 };
 

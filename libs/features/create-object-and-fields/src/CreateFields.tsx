@@ -21,7 +21,7 @@ import { selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
 import { FunctionComponent, useCallback, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router';
 import CreateFieldsDeployModal from './CreateFieldsDeployModal';
 import CreateFieldsImportExport from './CreateFieldsImportExport';
 import CreateFieldsRow from './CreateFieldsRow';

@@ -1,6 +1,6 @@
 import { enableLogger, logger } from '@jetstream/shared/client-logger';
 import { FunctionComponent, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router';
 
 const URL_PARAM = 'logger';
 

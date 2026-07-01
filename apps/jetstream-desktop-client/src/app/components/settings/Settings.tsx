@@ -11,7 +11,7 @@ import { fromAppState } from '@jetstream/ui/app-state';
 import { dexieDataSync, recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { desktopUserPreferences } from '../core/AppDesktopState';
 import LoggerConfig from './LoggerConfig';
 

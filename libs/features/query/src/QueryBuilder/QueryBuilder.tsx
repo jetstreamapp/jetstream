@@ -42,7 +42,7 @@ import { formatQuery } from '@jetstreamapp/soql-parser-js';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import ManualSoql from '../QueryOptions/ManualSoql';
 import QueryBuilderAdvancedOptions from '../QueryOptions/QueryBuilderAdvancedOptions';
 import QueryCount from '../QueryOptions/QueryCount';

@@ -1,7 +1,7 @@
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { AppHome, Feedback, OrgSelectionRequired as OrgSelectionRequiredExternal } from '@jetstream/ui-core';
 import { useEffect } from 'react';
-import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router';
 import { environment } from '../environments/environment';
 import lazy from './components/core/LazyLoad';
 import { addDesktopOrg } from './utils/utils';

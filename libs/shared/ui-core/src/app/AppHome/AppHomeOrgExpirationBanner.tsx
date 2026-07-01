@@ -2,7 +2,7 @@ import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { ScopedNotification } from '@jetstream/ui';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useExpiringOrgs } from '../../orgs/useOrgExpiration';
 
 export const AppHomeOrgExpirationBanner = () => {

@@ -10,7 +10,7 @@ import { isQueryValid } from '@jetstreamapp/soql-parser-js';
 import { formatDate } from 'date-fns/format';
 import clamp from 'lodash/clamp';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useAmplitude } from '../..';
 import { MonacoEditor } from '../../app/MonacoEditor';
 import { QueryRestoreErrors } from '../RestoreQuery/query-restore-utils';

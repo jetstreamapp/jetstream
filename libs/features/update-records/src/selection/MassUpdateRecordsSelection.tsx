@@ -20,7 +20,7 @@ import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useAtom, useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
 import { FunctionComponent, useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router';
 import * as fromMassUpdateState from '../mass-update-records.state';
 import MassUpdateRecordsObjects from './MassUpdateRecordsObjects';
 import { useMassUpdateFieldItems } from './useMassUpdateFieldItems';

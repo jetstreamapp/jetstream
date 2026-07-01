@@ -7,7 +7,7 @@ import { ButtonGroupContainer, getModifierKey, Icon, KeyboardShortcut, Tooltip }
 import classNames from 'classnames';
 import { forwardRef, Fragment, useCallback, useEffect, useImperativeHandle, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router';
 import { ErrorBoundaryFallback, fromQueryHistoryState } from '../..';
 import { useAmplitude } from '../../analytics';
 import { QueryHistoryModal, QueryHistoryType } from './QueryHistoryModal';

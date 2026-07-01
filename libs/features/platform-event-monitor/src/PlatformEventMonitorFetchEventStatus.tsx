@@ -2,7 +2,7 @@ import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Card, EmptyState, Icon, SalesforceLogin, ScopedNotification, SetupIllustration, Spinner } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 
 export interface PlatformEventMonitorFetchEventStatusProps {
   serverUrl: string;

@@ -20,7 +20,7 @@ import { useAmplitude } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useAtom } from 'jotai';
 import { useCallback, useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router';
 import {
   ACTIVE_SUBSCRIPTION_STATUSES,
   PAST_DUE_SUBSCRIPTION_STATUSES,

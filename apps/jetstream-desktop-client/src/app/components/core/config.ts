@@ -1,5 +1,5 @@
 import { AxiosAdapterConfig } from '@jetstream/shared/data';
-import { HashRouter } from 'react-router-dom';
+import { HashRouter } from 'react-router';
 import { desktopExtensionAxiosAdapter } from '../../utils/desktop-axios-adapter';
 
 AxiosAdapterConfig.adapter = desktopExtensionAxiosAdapter;

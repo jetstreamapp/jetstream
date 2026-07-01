@@ -38,7 +38,7 @@ import {
 import { abilityState, fromAppState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { TeamSSOConfiguration } from './sso-configuration/TeamSSOConfiguration';
 import { TeamMembersTable } from './team-members/TeamMembersTable';
 import { TeamAuditLogModal } from './TeamAuditLogModal';

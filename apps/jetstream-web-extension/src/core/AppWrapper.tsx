@@ -7,7 +7,7 @@ import '@salesforce-ux/design-system-2/dist/css/bundled/slds2.cosmos.css';
 import { Provider, useAtomValue } from 'jotai';
 import { ReactNode, Suspense } from 'react';
 import ModalContainer from 'react-modal-promise';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import { environment } from '../environments/environment';
 import { browserExtensionAxiosAdapter } from '../utils/extension-axios-adapter';
 import { chromeStorageLoading, extensionStateStore } from '../utils/extension.store';

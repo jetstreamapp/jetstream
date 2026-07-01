@@ -22,7 +22,7 @@ import {
 } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router';
 import { DeploymentModal } from './deployment/DeploymentModal';
 import { EditorAccordion } from './editor/EditorAccordion';
 import { DeployButton } from './misc/DeployButton';
