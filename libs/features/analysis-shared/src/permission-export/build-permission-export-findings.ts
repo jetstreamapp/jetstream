@@ -23,8 +23,14 @@ export interface PermissionExportFindingsContext {
   permissionSetGroupComponents?: Record<string, unknown>[];
   mutingPermissionSets?: Record<string, unknown>[];
   permissionSetTabSettings?: Record<string, unknown>[];
-  /** Categories that hit their row cap — used to suppress false "orphaned" calls when assignments are incomplete. */
+  /** Categories that hit their row cap — used to suppress findings whose absence-of-rows signal is unreliable. */
   truncatedCategories?: ReadonlySet<string> | readonly string[];
+  /**
+   * Sobject scope of the export when the user narrowed it (`objectApiNames`). Object/field permission rows
+   * were only fetched for these objects, so findings that join against those rows (e.g. tab-visibility)
+   * must ignore out-of-scope objects to avoid false "no access" calls. Empty/absent = unscoped.
+   */
+  objectScope?: readonly string[];
 }
 
 function readTrimmedString(row: Record<string, unknown>, key: string): string {
@@ -271,7 +277,15 @@ export function buildPermissionExportFindings(
     fieldCountByParentObject.set(key, (fieldCountByParentObject.get(key) ?? 0) + 1);
   }
 
+  // "Row is missing" findings are only trustworthy when the joined-against category was fully loaded —
+  // a truncated category makes absence indistinguishable from "row was cut by the budget".
+  const objectPermissionsTruncated = categoryTruncated(context, 'objectPermissions');
+  const fieldPermissionsTruncated = categoryTruncated(context, 'fieldPermissions');
+
   for (const key of fieldParentObjectKeys) {
+    if (objectPermissionsTruncated) {
+      break;
+    }
     if (objectRowByKey.has(key)) {
       continue;
     }
@@ -368,8 +382,11 @@ export function buildPermissionExportFindings(
     }
     const key = objectPermissionKey(parentId, sobjectType);
     const fieldCount = fieldCountByParentObject.get(key) ?? 0;
+    // fieldCount === 0 is only meaningful when FieldPermissions was fully loaded. View All Fields grants
+    // read on every field, so "no FLS rows" is intentional (not incomplete setup) for the read path.
+    const noFlsRowsReliable = fieldCount === 0 && !fieldPermissionsTruncated;
 
-    if (readBooleanTrue(oRow, 'PermissionsRead') && fieldCount === 0) {
+    if (readBooleanTrue(oRow, 'PermissionsRead') && noFlsRowsReliable && !readBooleanTrue(oRow, 'PermissionsViewAllFields')) {
       const def = PERMISSION_EXPORT_FINDING_DEFINITIONS[PermissionExportFindingCode.OLS_READ_NO_FLS_ROWS];
       tryPush({
         severity: def.severity,
@@ -381,7 +398,7 @@ export function buildPermissionExportFindings(
         containerId: parentId,
       });
     }
-    if (readBooleanTrue(oRow, 'PermissionsEdit') && fieldCount === 0) {
+    if (readBooleanTrue(oRow, 'PermissionsEdit') && noFlsRowsReliable) {
       const def = PERMISSION_EXPORT_FINDING_DEFINITIONS[PermissionExportFindingCode.OLS_EDIT_NO_FLS_ROWS];
       tryPush({
         severity: def.severity,
@@ -469,8 +486,11 @@ export function buildPermissionExportFindings(
     }
   }
 
-  // Tab visible without object read.
-  for (const tabRow of context?.permissionSetTabSettings ?? []) {
+  // Tab visible without object read. Tab settings are always fetched for ALL tabs, but ObjectPermissions
+  // rows are only fetched for in-scope objects — so out-of-scope tabs cannot be evaluated. Skip the whole
+  // pass when ObjectPermissions was truncated (a missing row no longer proves "no access").
+  const scopedObjectNames = new Set((context?.objectScope ?? []).map((objectApiName) => objectApiName.toLowerCase()));
+  for (const tabRow of objectPermissionsTruncated ? [] : (context?.permissionSetTabSettings ?? [])) {
     if (!tabRow || typeof tabRow !== 'object') {
       continue;
     }
@@ -483,6 +503,9 @@ export function buildPermissionExportFindings(
     const objectApiName = tabSettingObjectApiName(tabName);
     if (!objectApiName) {
       continue; // VF / web / Lightning page tab — no queryable object to check
+    }
+    if (scopedObjectNames.size > 0 && !scopedObjectNames.has(objectApiName.toLowerCase())) {
+      continue; // out-of-scope object — its ObjectPermissions rows were never fetched
     }
     const objectRow = objectRowByKey.get(objectPermissionKey(parentId, objectApiName));
     if (objectRow && objectGrantsEffectiveRead(objectRow)) {

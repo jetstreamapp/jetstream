@@ -292,6 +292,67 @@ describe('runFieldUsageQueryForObjects (streaming)', () => {
     expect(queryMock.mock.calls[0][1]).toContain('COUNT(');
   });
 
+  it('marks only row-scanned fields truncated; COUNT-based fields stay exact', async () => {
+    describeMock.mockResolvedValue({
+      data: {
+        label: 'Account',
+        queryable: true,
+        custom: false,
+        fields: [
+          { name: 'Id', label: 'Id', type: 'id', calculated: false, custom: false, autoNumber: false, length: 18, scale: 0 },
+          { name: 'LastModifiedDate', label: 'LMD', type: 'datetime', calculated: false, custom: false, autoNumber: false, scale: 0 },
+          {
+            name: 'Custom_Text__c',
+            label: 'Text',
+            type: 'string',
+            calculated: false,
+            custom: true,
+            autoNumber: false,
+            length: 255,
+            scale: 0,
+            aggregatable: true,
+          },
+          {
+            name: 'Active__c',
+            label: 'Active',
+            type: 'boolean',
+            calculated: false,
+            custom: true,
+            autoNumber: false,
+            scale: 0,
+            aggregatable: true, // booleans never COUNT — still row-scanned
+          },
+        ],
+      },
+    });
+
+    // One page larger than the 100K row budget forces the boolean's row scan to truncate.
+    const overBudgetPage = Array.from({ length: 100_001 }, (_, index) => ({
+      Id: `001${String(index).padStart(15, '0')}`,
+      LastModifiedDate: '2026-01-01T00:00:00.000+0000',
+      Active__c: index % 2 === 0,
+    }));
+    queryMock.mockImplementation(async (_org: unknown, soql: string) => {
+      if (typeof soql === 'string' && soql.includes('COUNT(')) {
+        return { queryResults: { done: true, totalSize: 1, records: [{ total: 250_000, c0: 90_000 }] } };
+      }
+      return { queryResults: { done: true, records: overBudgetPage } };
+    });
+
+    const result = await runFieldUsageQueryForObjects(fakeOrg, ['Account']);
+
+    const account = result.objects.Account;
+    expect(account.queryTruncated).toBe(true);
+    expect(result.anyQueryTruncated).toBe(true);
+    // The scanned boolean hit the row budget — flagged per-field.
+    expect(account.fieldUsage.Active__c.truncated).toBe(true);
+    expect(account.fieldUsage.Active__c.scanned).toBe(100_000);
+    // The COUNT-based field is exact across all 250K rows despite the sibling scan truncating.
+    expect(account.fieldUsage.Custom_Text__c.truncated).toBe(false);
+    expect(account.fieldUsage.Custom_Text__c.filled).toBe(90_000);
+    expect(account.fieldUsage.Custom_Text__c.scanned).toBe(250_000);
+  });
+
   it('throws when the cancellation signal trips between objects', async () => {
     describeMock.mockResolvedValue(buildDescribe());
     queryMock.mockResolvedValue(buildPage([], null));

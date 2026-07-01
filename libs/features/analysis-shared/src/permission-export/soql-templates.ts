@@ -15,7 +15,14 @@ function whereSobjectTypeIn(objectTypes?: string[]): WhereClause | undefined {
   };
 }
 
-export function buildPermissionSetByIdSoql(ids: string[]): string {
+/**
+ * @param systemPermissionFields `PermissionSet.Permissions*` columns to SELECT. Defaults to the full
+ *   {@link HIGH_RISK_SYSTEM_PERMISSIONS} catalog; callers should pass the subset that actually exists in
+ *   the target org (many `Permissions*` columns are edition/license/feature dependent and selecting a
+ *   missing one fails the whole query with INVALID_FIELD).
+ */
+export function buildPermissionSetByIdSoql(ids: string[], systemPermissionFields?: readonly string[]): string {
+  const permissionFields = systemPermissionFields ?? HIGH_RISK_SYSTEM_PERMISSIONS.map((perm) => perm.field);
   return composeQuery({
     fields: [
       getField('Id'),
@@ -30,7 +37,7 @@ export function buildPermissionSetByIdSoql(ids: string[]): string {
       getField('CreatedBy.Name'),
       getField('LastModifiedBy.Name'),
       // High-risk system permissions, surfaced as findings (Modify All Data, View All Data, etc.).
-      ...HIGH_RISK_SYSTEM_PERMISSIONS.map((perm) => getField(perm.field)),
+      ...permissionFields.map((field) => getField(field)),
     ],
     sObject: 'PermissionSet',
     where: {

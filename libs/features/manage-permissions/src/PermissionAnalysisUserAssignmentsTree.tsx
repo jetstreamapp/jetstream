@@ -1,7 +1,6 @@
 import { css } from '@emotion/react';
-import { PermissionAnalysisExpandCollapseControls } from './PermissionAnalysisExpandCollapseControls';
 import { logger } from '@jetstream/shared/client-logger';
-import { query } from '@jetstream/shared/data';
+import { queryWithCache } from '@jetstream/shared/data';
 import { escapeSoqlString } from '@jetstream/shared/ui-utils';
 import type { SalesforceOrgUi } from '@jetstream/types';
 import type { RenderCellProps, RenderGroupCellProps } from '@jetstream/ui';
@@ -21,6 +20,7 @@ import {
 } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
 import { Fragment, FunctionComponent, useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { PermissionAnalysisExpandCollapseControls } from './PermissionAnalysisExpandCollapseControls';
 import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 import { permissionAnalysisAssignmentTypeLabelCss } from './permission-analysis-viewer-badge.styles';
 import {
@@ -322,7 +322,8 @@ export const PermissionAnalysisUserAssignmentsTree: FunctionComponent<Permission
           const chunk = ids.slice(index, index + USER_SOQL_CHUNK_SIZE);
           const inList = chunk.map((id) => `'${escapeSoqlString(id)}'`).join(', ');
           const soql = `SELECT Id, Name, Username, IsActive, ProfileId, Profile.Name FROM User WHERE Id IN (${inList})`;
-          const response = await query<{
+          // Cached — this component remounts on every tab switch and the assignee id set rarely changes.
+          const { data: response } = await queryWithCache<{
             Id: string;
             Name?: string;
             Username?: string;
@@ -386,7 +387,7 @@ export const PermissionAnalysisUserAssignmentsTree: FunctionComponent<Permission
           const chunk = ids.slice(index, index + USER_SOQL_CHUNK_SIZE);
           const inList = chunk.map((id) => `'${escapeSoqlString(id)}'`).join(', ');
           const soql = `SELECT AssigneeId, PermissionSetLicenseId, PermissionSetLicense.MasterLabel, PermissionSetLicense.DeveloperName FROM PermissionSetLicenseAssign WHERE AssigneeId IN (${inList})`;
-          const response = await query<{
+          const { data: response } = await queryWithCache<{
             AssigneeId?: string;
             PermissionSetLicenseId?: string;
             PermissionSetLicense?: { MasterLabel?: string; DeveloperName?: string };

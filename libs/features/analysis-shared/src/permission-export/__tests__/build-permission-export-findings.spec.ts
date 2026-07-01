@@ -291,6 +291,52 @@ describe('buildPermissionExportFindings — new findings', () => {
   });
 });
 
+describe('buildPermissionExportFindings — truncation and scope suppression', () => {
+  const parentId = '0PS1';
+
+  it('does not emit OLS_*_NO_FLS_ROWS when field permissions were truncated', () => {
+    const objectPermissions = [{ ParentId: parentId, SobjectType: 'Account', PermissionsRead: true, PermissionsEdit: true }];
+    const codes = buildPermissionExportFindings(objectPermissions, [], { truncatedCategories: ['fieldPermissions'] }).map((f) => f.code);
+    expect(codes).not.toContain('OLS_READ_NO_FLS_ROWS');
+    expect(codes).not.toContain('OLS_EDIT_NO_FLS_ROWS');
+  });
+
+  it('does not emit FLS_WITHOUT_OLS_ROW when object permissions were truncated', () => {
+    const fieldPermissions = [{ ParentId: parentId, SobjectType: 'Case', Field: 'Case.Subject', PermissionsRead: true }];
+    const codes = buildPermissionExportFindings([], fieldPermissions, { truncatedCategories: ['objectPermissions'] }).map((f) => f.code);
+    expect(codes).not.toContain('FLS_WITHOUT_OLS_ROW');
+  });
+
+  it('does not emit TAB_VISIBLE_NO_OBJECT_READ when object permissions were truncated', () => {
+    const context = {
+      permissionSetTabSettings: [{ ParentId: parentId, Name: 'standard-Account', Visibility: 'DefaultOn' }],
+      truncatedCategories: ['objectPermissions'],
+    };
+    const codes = buildPermissionExportFindings([], [], context).map((f) => f.code);
+    expect(codes).not.toContain('TAB_VISIBLE_NO_OBJECT_READ');
+  });
+
+  it('only evaluates tab findings for in-scope objects when the export was object-scoped', () => {
+    const context = {
+      permissionSetTabSettings: [
+        { ParentId: parentId, Name: 'standard-Account', Visibility: 'DefaultOn' },
+        { ParentId: parentId, Name: 'standard-Contact', Visibility: 'DefaultOn' },
+      ],
+      objectScope: ['Account'],
+    };
+    const findings = buildPermissionExportFindings([], [], context).filter((f) => f.code === 'TAB_VISIBLE_NO_OBJECT_READ');
+    // Contact tab is skipped — its ObjectPermissions rows were never fetched, so "no access" cannot be proven.
+    expect(findings).toHaveLength(1);
+    expect(findings[0].objectApiName).toBe('Account');
+  });
+
+  it('does not emit OLS_READ_NO_FLS_ROWS when View All Fields is granted (intentional no-FLS setup)', () => {
+    const objectPermissions = [{ ParentId: parentId, SobjectType: 'Account', PermissionsRead: true, PermissionsViewAllFields: true }];
+    const codes = buildPermissionExportFindings(objectPermissions, []).map((f) => f.code);
+    expect(codes).not.toContain('OLS_READ_NO_FLS_ROWS');
+  });
+});
+
 describe('buildIssueCodeSummary', () => {
   it('aggregates counts by code', () => {
     const summary = buildIssueCodeSummary([
