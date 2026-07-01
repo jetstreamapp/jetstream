@@ -8,6 +8,11 @@ export interface FieldUsageStatParsed {
   latestFilledRowModified: string | null;
   /** Records scanned for this field's chunk (the denominator behind `pct`). Optional on legacy rows. */
   scanned?: number;
+  /**
+   * Whether THIS field's numbers may be incomplete (row-scan hit the budget). COUNT-based fields are
+   * always exact (`false`). Absent on legacy rows — callers fall back to the object-level `queryTruncated`.
+   */
+  truncated?: boolean;
 }
 
 export interface FieldUsageFieldMetaParsed {
@@ -199,6 +204,7 @@ function parseFieldUsageStat(value: unknown): FieldUsageStatParsed | null {
     pct,
     latestFilledRowModified: latest == null || latest === '' ? null : String(latest),
     ...(typeof rec.scanned === 'number' ? { scanned: rec.scanned } : {}),
+    ...(rec.truncated === true || rec.truncated === false ? { truncated: rec.truncated } : {}),
   };
 }
 

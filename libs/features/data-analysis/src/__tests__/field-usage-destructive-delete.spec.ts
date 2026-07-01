@@ -65,8 +65,8 @@ describe('fieldUsageRowEligibleForDestructiveDelete', () => {
   describe('safety gates', () => {
     const eligibleArgs = { fieldApiName: 'Unused_Field__c', meta: customMeta() };
 
-    it('blocks deletion when the object scan was truncated (0% may be incomplete)', () => {
-      expect(fieldUsageRowEligibleForDestructiveDelete({ ...eligibleArgs, objectQueryTruncated: true })).toBe(false);
+    it('blocks deletion when the field scan was truncated (0% may be incomplete)', () => {
+      expect(fieldUsageRowEligibleForDestructiveDelete({ ...eligibleArgs, scanTruncated: true })).toBe(false);
     });
 
     it('blocks deletion when the field has where-used metadata dependencies', () => {
@@ -81,7 +81,7 @@ describe('fieldUsageRowEligibleForDestructiveDelete', () => {
       expect(
         fieldUsageRowEligibleForDestructiveDelete({
           ...eligibleArgs,
-          objectQueryTruncated: false,
+          scanTruncated: false,
           whereUsedDependencyCount: 0,
           whereUsedKnown: true,
         }),
@@ -110,7 +110,7 @@ describe('fieldUsageDestructiveDeleteIneligibleReason', () => {
     expect(fieldUsageDestructiveDeleteIneligibleReason({ ...base, meta: { ...customMeta(), custom: false } })).toBe('standard-field');
     expect(fieldUsageDestructiveDeleteIneligibleReason({ ...base, meta: customMeta({ nameField: true }) })).toBe('name-field');
     expect(fieldUsageDestructiveDeleteIneligibleReason({ ...base, fieldApiName: 'ns__F__c' })).toBe('packaged-field');
-    expect(fieldUsageDestructiveDeleteIneligibleReason({ ...base, objectQueryTruncated: true })).toBe('scan-truncated');
+    expect(fieldUsageDestructiveDeleteIneligibleReason({ ...base, scanTruncated: true })).toBe('scan-truncated');
     expect(fieldUsageDestructiveDeleteIneligibleReason({ ...base, whereUsedKnown: false })).toBe('where-used-unknown');
     expect(fieldUsageDestructiveDeleteIneligibleReason({ ...base, whereUsedDependencyCount: 1 })).toBe('has-dependencies');
     expect(fieldUsageDestructiveDeleteIneligibleReason({ ...base, filled: 5 })).toBe('has-data');

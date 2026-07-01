@@ -1,7 +1,6 @@
 import { css } from '@emotion/react';
-import { PermissionAnalysisExpandCollapseControls } from './PermissionAnalysisExpandCollapseControls';
 import { logger } from '@jetstream/shared/client-logger';
-import { query } from '@jetstream/shared/data';
+import { queryWithCache } from '@jetstream/shared/data';
 import { escapeSoqlString } from '@jetstream/shared/ui-utils';
 import type { SalesforceOrgUi } from '@jetstream/types';
 import type { RenderCellProps, RenderGroupCellProps } from '@jetstream/ui';
@@ -38,6 +37,7 @@ import {
   type MouseEvent,
   type ReactElement,
 } from 'react';
+import { PermissionAnalysisExpandCollapseControls } from './PermissionAnalysisExpandCollapseControls';
 import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 import {
   buildContainerIdFindingSeverity,
@@ -604,7 +604,8 @@ export const PermissionAnalysisPermissionSetsTree: FunctionComponent<PermissionA
           const chunk = ids.slice(index, index + USER_SOQL_CHUNK_SIZE);
           const inList = chunk.map((id) => `'${escapeSoqlString(id)}'`).join(', ');
           const soql = `SELECT Id, Name, Username, IsActive FROM User WHERE Id IN (${inList})`;
-          const response = await query<{ Id: string; Name?: string; Username?: string; IsActive?: boolean }>(org, soql);
+          // Cached — this component remounts on every tab switch and the assignee id set rarely changes.
+          const { data: response } = await queryWithCache<{ Id: string; Name?: string; Username?: string; IsActive?: boolean }>(org, soql);
           for (const record of response.queryResults.records ?? []) {
             const recordId = typeof record.Id === 'string' ? record.Id.trim() : '';
             if (!recordId) {

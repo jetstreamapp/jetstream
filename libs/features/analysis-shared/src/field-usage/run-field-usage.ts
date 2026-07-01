@@ -26,6 +26,13 @@ export interface FieldUsageStat {
    * (avoids `filled > totalRecords` when row counts drift between sequential chunk queries).
    */
   scanned: number;
+  /**
+   * Whether THIS field's numbers may be incomplete. COUNT-aggregated fields are always exact
+   * (`false`); row-scanned fields inherit their chunk's row-budget truncation. Lets the UI avoid
+   * blocking delete-eligibility (or warning) on exact fields just because an unrelated field's
+   * scan on the same object was truncated.
+   */
+  truncated: boolean;
 }
 
 export interface FieldUsageObjectPayload {
@@ -300,6 +307,8 @@ interface ScanFieldUsageResult {
   scannedByField: Record<string, number>;
   maxLmd: Record<string, string | null>;
   truncated: boolean;
+  /** Per-field truncation — every field in a chunk shares that chunk's row-budget outcome. */
+  truncatedByField: Record<string, boolean>;
   /** Rows scanned by the first chunk — the object-level "records scanned" when no COUNT total is available. */
   scanTotal: number;
 }
@@ -319,6 +328,7 @@ async function scanFieldUsage(
   const filled: Record<string, number> = Object.fromEntries(fieldNames.map((name) => [name, 0]));
   const maxLmd: Record<string, string | null> = Object.fromEntries(fieldNames.map((name) => [name, null]));
   const scannedByField: Record<string, number> = Object.fromEntries(fieldNames.map((name) => [name, 0]));
+  const truncatedByField: Record<string, boolean> = Object.fromEntries(fieldNames.map((name) => [name, false]));
   let truncated = false;
   let scanTotal = 0;
   const chunks = buildFieldChunks(fieldNames, objectApiName);
@@ -348,6 +358,7 @@ async function scanFieldUsage(
 
     for (const fieldName of chunkNames) {
       scannedByField[fieldName] = chunkRecordCount;
+      truncatedByField[fieldName] = result.truncated;
     }
     if (result.truncated) {
       truncated = true;
@@ -357,7 +368,7 @@ async function scanFieldUsage(
     }
   }
 
-  return { filled, scannedByField, maxLmd, truncated, scanTotal };
+  return { filled, scannedByField, maxLmd, truncated, truncatedByField, scanTotal };
 }
 
 /**
@@ -424,6 +435,7 @@ export async function runFieldUsageQueryForObjects(
       const filled: Record<string, number> = {};
       const maxLmdWhenFilled: Record<string, string | null> = {};
       const scannedByField: Record<string, number> = {};
+      const truncatedByField: Record<string, boolean> = {};
       let queryTruncated = false;
       let countTotal: number | null = null;
 
@@ -447,6 +459,7 @@ export async function runFieldUsageQueryForObjects(
           // there is no truncation. COUNT cannot report a per-field "latest modified", so it stays null.
           scannedByField[name] = countResult.total;
           maxLmdWhenFilled[name] = null;
+          truncatedByField[name] = false;
         }
       }
 
@@ -459,6 +472,7 @@ export async function runFieldUsageQueryForObjects(
           filled[name] = scanResult.filled[name] ?? 0;
           scannedByField[name] = scanResult.scannedByField[name] ?? 0;
           maxLmdWhenFilled[name] = scanResult.maxLmd[name] ?? null;
+          truncatedByField[name] = scanResult.truncatedByField[name] ?? false;
         }
         if (scanResult.truncated) {
           queryTruncated = true;
@@ -480,6 +494,7 @@ export async function runFieldUsageQueryForObjects(
           // Clamp defensively so display never shows >100% / <0% from any count drift.
           pct: Math.max(0, Math.min(100, rawPct)),
           latestFilledRowModified: maxLmdWhenFilled[name] ?? null,
+          truncated: truncatedByField[name] ?? false,
         };
       }
 

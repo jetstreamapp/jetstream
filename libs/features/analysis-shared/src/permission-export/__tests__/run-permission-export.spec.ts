@@ -1,10 +1,12 @@
+import { HIGH_RISK_SYSTEM_PERMISSIONS } from '@jetstream/shared/constants';
 import type { SalesforceOrgUi } from '@jetstream/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { runPermissionExport } from '../run-permission-export';
 
-const { mockedQuery, mockedQueryMore } = vi.hoisted(() => ({
+const { mockedQuery, mockedQueryMore, mockedDescribeSObject } = vi.hoisted(() => ({
   mockedQuery: vi.fn(),
   mockedQueryMore: vi.fn(),
+  mockedDescribeSObject: vi.fn(),
 }));
 
 vi.mock('@jetstream/shared/data', async (importOriginal) => {
@@ -44,9 +46,20 @@ vi.mock('@jetstream/shared/data', async (importOriginal) => {
     ...actual,
     query: mockedQuery,
     queryMore: mockedQueryMore,
+    describeSObject: mockedDescribeSObject,
     queryWithRecordBudget,
   };
 });
+
+/** Builds a PermissionSet describe response containing the provided `Permissions*` columns. */
+function permissionSetDescribe(permissionFieldNames: string[]) {
+  return {
+    data: {
+      name: 'PermissionSet',
+      fields: ['Id', 'Name', 'Label', ...permissionFieldNames].map((name) => ({ name })),
+    },
+  } as any;
+}
 
 function done<T>(records: T[]) {
   return {
@@ -68,6 +81,8 @@ describe('runPermissionExport', () => {
   beforeEach(() => {
     mockedQuery.mockReset();
     mockedQueryMore.mockReset();
+    mockedDescribeSObject.mockReset();
+    mockedDescribeSObject.mockResolvedValue(permissionSetDescribe(HIGH_RISK_SYSTEM_PERMISSIONS.map(({ field }) => field)));
   });
 
   it('returns an empty merged result when no valid parent ids are provided', async () => {
@@ -179,5 +194,53 @@ describe('runPermissionExport', () => {
   it('throws when isCanceled returns true before queries run', async () => {
     await expect(runPermissionExport(ORG, [PROFILE_PERM_SET_ID], [], { isCanceled: () => true })).rejects.toThrow('Job canceled');
     expect(mockedQuery).not.toHaveBeenCalled();
+  });
+
+  it('omits system permission columns the org does not have from the PermissionSet SOQL', async () => {
+    mockedDescribeSObject.mockResolvedValue(permissionSetDescribe(['PermissionsModifyAllData', 'PermissionsViewAllData']));
+    mockedQuery.mockResolvedValue(done([]));
+
+    await runPermissionExport(ORG, [], [PERM_SET_ID]);
+
+    const permissionSetSoql = mockedQuery.mock.calls[0][1] as string;
+    expect(permissionSetSoql).toContain('PermissionsModifyAllData');
+    expect(permissionSetSoql).toContain('PermissionsViewAllData');
+    expect(permissionSetSoql).not.toContain('PermissionsAuthorApex');
+    expect(permissionSetSoql).not.toContain('PermissionsManageUsers');
+  });
+
+  it('selects the full system permission catalog when the PermissionSet describe fails', async () => {
+    mockedDescribeSObject.mockRejectedValue(new Error('describe unavailable'));
+    mockedQuery.mockResolvedValue(done([]));
+
+    await runPermissionExport(ORG, [], [PERM_SET_ID]);
+
+    const permissionSetSoql = mockedQuery.mock.calls[0][1] as string;
+    for (const { field } of HIGH_RISK_SYSTEM_PERMISSIONS) {
+      expect(permissionSetSoql).toContain(field);
+    }
+  });
+
+  it('never emits a lower percent after totalSteps grows for group chunks', async () => {
+    const permissionSetRows = [{ Id: PERM_SET_ID, Name: 'CustomPermSet', IsOwnedByProfile: false }];
+    const componentRows = [{ Id: '0PC000000000001', PermissionSetGroupId: GROUP_ID, PermissionSetId: PERM_SET_ID }];
+    mockedQuery
+      .mockResolvedValueOnce(done(permissionSetRows))
+      .mockResolvedValueOnce(done([])) // object permissions
+      .mockResolvedValueOnce(done([])) // field permissions
+      .mockResolvedValueOnce(done([])) // tab settings
+      .mockResolvedValueOnce(done([])) // assignments
+      .mockResolvedValueOnce(done(componentRows))
+      .mockResolvedValueOnce(done([{ Id: GROUP_ID, DeveloperName: 'GroupA', MasterLabel: 'Group A' }]))
+      .mockResolvedValueOnce(done([]));
+
+    const onProgress = vi.fn();
+    await runPermissionExport(ORG, [], [PERM_SET_ID], { onProgress });
+
+    const percents = onProgress.mock.calls.map(([progress]) => progress.percent as number);
+    for (let i = 1; i < percents.length; i++) {
+      expect(percents[i]).toBeGreaterThanOrEqual(percents[i - 1]);
+    }
+    expect(percents.at(-1)).toBe(100);
   });
 });

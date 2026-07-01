@@ -143,6 +143,11 @@ interface FieldUsageTreeRow {
   filled: number;
   pct: number;
   latestModified: string | null;
+  /**
+   * Whether THIS field's numbers may be incomplete. COUNT-based fields stay exact (`false`) even when a
+   * sibling field's row scan on the same object truncated; legacy job rows fall back to the object flag.
+   */
+  fieldScanTruncated: boolean;
   /** Synthetic row when the object payload has `error` and no field stats. */
   isObjectErrorPlaceholder?: boolean;
   /** Unmanaged custom field (no namespace prefix) eligible for destructive delete; same rules as `isUnmanagedCustomFieldApiName` in shared utils. */
@@ -178,17 +183,31 @@ function fieldUsageObjectManagerReturnUrl(objectApiName: string, view: 'details'
   return `/lightning/setup/ObjectManager/${enc}/Details/view`;
 }
 
-/** SOQL for Query Records: analyzed fields plus Id / LastModifiedDate, no WHERE (same shape as field usage scan). */
+/** Keep the generated SELECT within typical REST SOQL URL limits (same intent as the analysis runner's chunking). */
+const QUERY_RESULTS_SOQL_CHAR_BUDGET = 9000;
+
+/**
+ * SOQL for Query Records: analyzed fields plus Id / LastModifiedDate, no WHERE (same shape as field usage scan).
+ * Very wide objects can exceed the SOQL URL limit, so fields are added until the char budget is reached —
+ * a runnable query over most fields beats a complete one that Salesforce rejects.
+ */
 function buildFieldUsageObjectQuerySoql(objectApiName: string, childRows: readonly FieldUsageTreeRow[]): string {
   const analyzedFields = childRows
     .filter((row) => !row.isObjectErrorPlaceholder && row.objectApiName === objectApiName && row.fieldApiName && row.fieldApiName !== '—')
     .map((row) => row.fieldApiName);
   const orderedUnique = [...new Set(analyzedFields)].sort((a, b) => a.localeCompare(b));
   const selectList: string[] = ['Id', 'LastModifiedDate'];
+  let soqlLength = `SELECT Id, LastModifiedDate FROM ${objectApiName}`.length;
   for (const fieldName of orderedUnique) {
-    if (fieldName !== 'Id' && fieldName !== 'LastModifiedDate') {
-      selectList.push(fieldName);
+    if (fieldName === 'Id' || fieldName === 'LastModifiedDate') {
+      continue;
     }
+    const addedLength = fieldName.length + 2;
+    if (soqlLength + addedLength > QUERY_RESULTS_SOQL_CHAR_BUDGET) {
+      break;
+    }
+    selectList.push(fieldName);
+    soqlLength += addedLength;
   }
   return `SELECT ${selectList.join(', ')} FROM ${objectApiName}`;
 }
@@ -700,6 +719,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
           filled: 0,
           pct: 0,
           latestModified: null,
+          fieldScanTruncated: payload.queryTruncated,
           isObjectErrorPlaceholder: true,
           destructiveDeleteEligible: false,
           destructiveDeleteIneligibleReason: 'object-error',
@@ -713,11 +733,14 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         const stat = payload.fieldUsage[fieldApiName];
         const meta = payload.fieldMeta[fieldApiName];
         const whereUsedCounts = whereUsedUiCountsForField(parsedResult.whereUsed, objectApiName, fieldApiName);
+        // Per-field truncation when the job recorded it (COUNT-based fields stay exact even when a sibling
+        // field's row scan truncated); legacy rows only have the object-level flag.
+        const fieldScanTruncated = stat.truncated ?? payload.queryTruncated;
         const eligibilityArgs = {
           isObjectErrorPlaceholder: false,
           fieldApiName,
           meta,
-          objectQueryTruncated: payload.queryTruncated,
+          scanTruncated: fieldScanTruncated,
           whereUsedDependencyCount:
             whereUsedCounts.whereUsedOnLayout + whereUsedCounts.whereUsedInAutomation + whereUsedCounts.whereUsedInApex,
           // Per-field resolution: an unresolved field (Tooling Id not found / dependency query failed) is
@@ -737,6 +760,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
           filled: stat.filled,
           pct: stat.pct,
           latestModified: stat.latestFilledRowModified,
+          fieldScanTruncated,
           destructiveDeleteEligible,
           destructiveDeleteIneligibleReason,
           ...whereUsedCounts,
@@ -994,17 +1018,33 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         width: 100,
         minWidth: 100,
         renderGroupCell: () => null,
-        renderCell: (p) => <span>{p.row.isObjectErrorPlaceholder ? '' : `${p.row.pct.toFixed(1)}%`}</span>,
-        getValue: ({ row }) => (row.isObjectErrorPlaceholder ? '' : `${row.pct.toFixed(1)}%`),
+        renderCell: (p) => {
+          if (p.row.isObjectErrorPlaceholder) {
+            return <span></span>;
+          }
+          if (p.row.fieldScanTruncated) {
+            return (
+              <span title="Row scan truncated — percentage reflects only the scanned subset of rows">{`~${p.row.pct.toFixed(1)}%`}</span>
+            );
+          }
+          return <span>{`${p.row.pct.toFixed(1)}%`}</span>;
+        },
+        getValue: ({ row }) => (row.isObjectErrorPlaceholder ? '' : `${row.fieldScanTruncated ? '~' : ''}${row.pct.toFixed(1)}%`),
       },
       {
         ...setColumnFromType<FieldUsageTreeRow>('latestModified', 'text'),
-        name: 'Latest Row Modified (any field)',
+        // Max LastModifiedDate among scanned rows where THIS field has a value — varies per field row.
+        // Only row-scanned fields (checkboxes, long text, …) have it; COUNT-based fields show "—".
+        name: 'Latest Modified (rows with value)',
         key: 'latestModified',
         width: 220,
         minWidth: 100,
         renderGroupCell: () => null,
-        renderCell: (p) => <span>{p.row.isObjectErrorPlaceholder ? '' : formatFieldUsageLatestModifiedCell(p.row.latestModified)}</span>,
+        renderCell: (p) => (
+          <span title="Most recent LastModifiedDate among scanned rows where this field has a value. Only available for row-scanned field types (checkbox, long text, …).">
+            {p.row.isObjectErrorPlaceholder ? '' : formatFieldUsageLatestModifiedCell(p.row.latestModified)}
+          </span>
+        ),
         getValue: ({ row }) => {
           if (row.isObjectErrorPlaceholder) {
             return '';

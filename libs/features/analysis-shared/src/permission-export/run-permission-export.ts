@@ -1,4 +1,6 @@
-import { queryWithRecordBudget } from '@jetstream/shared/data';
+import { logger } from '@jetstream/shared/client-logger';
+import { HIGH_RISK_SYSTEM_PERMISSIONS } from '@jetstream/shared/constants';
+import { describeSObject, queryWithRecordBudget } from '@jetstream/shared/data';
 import { sanitizeSobjectApiNames, splitArrayToMaxSize, uniqueSalesforceIds } from '@jetstream/shared/utils';
 import type { PermissionExportFullResult, SalesforceOrgUi } from '@jetstream/types';
 import { buildIssueCodeSummary, buildPermissionExportFindings } from './build-permission-export-findings';
@@ -110,6 +112,24 @@ function throwIfCanceled(isCanceled: (() => boolean) | undefined): void {
 }
 
 /**
+ * Many `PermissionSet.Permissions*` columns only exist when the org's edition/licenses/features enable
+ * them — selecting a missing one fails the entire query with INVALID_FIELD. Intersect the high-risk
+ * catalog with the org's actual PermissionSet fields so the export works in every org. If the describe
+ * itself fails we fall back to the full catalog (the query will surface any real error).
+ */
+async function getAvailableSystemPermissionFields(org: SalesforceOrgUi): Promise<string[]> {
+  const catalogFields = HIGH_RISK_SYSTEM_PERMISSIONS.map((perm) => perm.field);
+  try {
+    const describeResponse = await describeSObject(org, 'PermissionSet');
+    const orgFieldNames = new Set(describeResponse.data.fields.map((field) => field.name));
+    return catalogFields.filter((field) => orgFieldNames.has(field));
+  } catch (ex) {
+    logger.warn('[PERMISSION EXPORT] PermissionSet describe failed; selecting the full system permission catalog', ex);
+    return catalogFields;
+  }
+}
+
+/**
  * Browser-side implementation of the permission export job. Issues many SOQL queries through
  * `query`/`queryMore` (via `queryWithRecordBudget`), aggregates the rows in memory, and computes
  * the same findings + issue-code summary the server processor used to produce.
@@ -127,7 +147,7 @@ export async function runPermissionExport(
 ): Promise<RunPermissionExportResult> {
   const requestPayload: PermissionExportFullResult['requestPayload'] = {
     profileIds: profilePermissionSetIds,
-    permissionSetIds: permissionSetIds,
+    permissionSetIds,
     ...(options?.objectApiNames !== undefined ? { objectApiNames: options.objectApiNames } : {}),
   };
 
@@ -168,17 +188,23 @@ export async function runPermissionExport(
   let currentStep = 0;
   let totalSteps = initialTotal;
 
+  // Progress only ever moves forward. `totalSteps` grows mid-run once the group-chunk count is known,
+  // which would otherwise make the computed percent jump backward.
+  let highestEmittedPercent = 0;
   const emitProgress = (label: string): void => {
-    const percent = totalSteps === 0 ? 0 : Math.min(100, Math.round((currentStep / totalSteps) * 100));
-    options?.onProgress?.({ current: currentStep, total: totalSteps, percent, label });
+    const rawPercent = totalSteps === 0 ? 0 : Math.min(100, Math.round((currentStep / totalSteps) * 100));
+    highestEmittedPercent = Math.max(highestEmittedPercent, rawPercent);
+    options?.onProgress?.({ current: currentStep, total: totalSteps, percent: highestEmittedPercent, label });
   };
 
   emitProgress(`Loading ${parentIds.length} permission set(s)`);
 
   throwIfCanceled(options?.isCanceled);
+  const systemPermissionFields = await getAvailableSystemPermissionFields(org);
+  throwIfCanceled(options?.isCanceled);
   const permSetResult = await queryWithRecordBudget<Record<string, unknown>>(
     org,
-    buildPermissionSetByIdSoql(parentIds),
+    buildPermissionSetByIdSoql(parentIds, systemPermissionFields),
     false,
     budgets.permissionSets,
     (page) => {
@@ -377,6 +403,7 @@ export async function runPermissionExport(
     mutingPermissionSets,
     permissionSetTabSettings,
     truncatedCategories,
+    objectScope,
   });
   const issueCodeSummary = buildIssueCodeSummary(findings);
 

@@ -6,7 +6,12 @@ export interface FieldUsageDeleteEligibilityArgs {
   isObjectErrorPlaceholder?: boolean;
   fieldApiName: string;
   meta?: FieldUsageFieldMetaParsed | null;
-  objectQueryTruncated?: boolean;
+  /**
+   * Whether THIS field's usage numbers may be incomplete. Pass the per-field flag when the job result
+   * has one (COUNT-based fields are exact even when a sibling field's row scan truncated); fall back to
+   * the object-level `queryTruncated` for legacy rows.
+   */
+  scanTruncated?: boolean;
   whereUsedDependencyCount?: number;
   /**
    * Whether THIS field's dependencies were proven complete (Tooling Id resolved AND dependency query
@@ -45,7 +50,7 @@ export const FIELD_USAGE_DELETE_INELIGIBLE_LABELS: Record<FieldUsageDeleteInelig
  *
  * Safety gates (each, independently, prevents deleting a field that may be in use):
  * - Standard / name / packaged fields cannot be deleted by this tool.
- * - `objectQueryTruncated` — the scan hit the row budget, so a 0%/low reading is NOT proof of disuse.
+ * - `scanTruncated` — this field's scan hit the row budget, so a 0%/low reading is NOT proof of disuse.
  * - `whereUsedKnown === false` — dependencies for this field could not be proven; treat as in-use (fail safe).
  *   This is now per-field: an unresolved field (Tooling Id not found, or its dependency query failed) is
  *   UNKNOWN, never "0 dependencies", closing the previous gap where partial failures looked delete-safe.
@@ -60,7 +65,7 @@ export const FIELD_USAGE_DELETE_INELIGIBLE_LABELS: Record<FieldUsageDeleteInelig
 export function fieldUsageDestructiveDeleteIneligibleReason(
   args: FieldUsageDeleteEligibilityArgs,
 ): FieldUsageDeleteIneligibleReason | null {
-  const { isObjectErrorPlaceholder, fieldApiName, meta, objectQueryTruncated, whereUsedDependencyCount, whereUsedKnown, filled } = args;
+  const { isObjectErrorPlaceholder, fieldApiName, meta, scanTruncated, whereUsedDependencyCount, whereUsedKnown, filled } = args;
   if (isObjectErrorPlaceholder) {
     return 'object-error';
   }
@@ -73,7 +78,7 @@ export function fieldUsageDestructiveDeleteIneligibleReason(
   if (!isUnmanagedCustomFieldApiName(fieldApiName)) {
     return 'packaged-field';
   }
-  if (objectQueryTruncated) {
+  if (scanTruncated) {
     return 'scan-truncated';
   }
   if (whereUsedKnown === false) {
