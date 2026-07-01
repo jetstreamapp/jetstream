@@ -1,6 +1,7 @@
 import type {
   InputAcceptTypeCsv,
   InputAcceptTypeExcel,
+  InputAcceptTypeJson,
   InputAcceptTypeTsv,
   InputAcceptTypeXml,
   InputAcceptTypeZip,
@@ -27,12 +28,14 @@ export const INPUT_ACCEPT_FILETYPES: {
   TSV: InputAcceptTypeTsv;
   EXCEL: InputAcceptTypeExcel;
   XML: InputAcceptTypeXml;
+  JSON: InputAcceptTypeJson;
 } = {
   ZIP: '.zip',
   CSV: '.csv',
   TSV: '.tsv',
   EXCEL: '.xlsx',
   XML: '.xml',
+  JSON: '.json',
 };
 
 export const HTTP = {
@@ -225,6 +228,7 @@ export const ANALYTICS_KEYS = {
   query_HistoryTypeChanged: 'query_HistoryTypeChanged',
   query_HistoryEditQueryOpened: 'query_HistoryEditQueryOpened',
   query_HistoryExport: 'query_HistoryExport',
+  query_HistoryBackupNudgeClick: 'query_HistoryBackupNudgeClick',
   query_LoadMore: 'query_LoadMore',
   query_ManualQueryOpened: 'query_ManualQueryOpened',
   query_ManualSoqlOpened: 'query_ManualSoqlOpened',
@@ -319,6 +323,8 @@ export const ANALYTICS_KEYS = {
   settings_password_action: 'settings_password_action',
   settings_revoke_session: 'settings_revoke_session',
   settings_color_scheme_changed: 'settings_color_scheme_changed',
+  settings_export_history: 'settings_export_history',
+  settings_import_history: 'settings_import_history',
 
   /** ORGANIZATIONS */
   organizations_create_modal_open: 'organizations_create_modal_open',

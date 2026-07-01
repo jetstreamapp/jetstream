@@ -2,7 +2,13 @@ import { parseISO } from 'date-fns/parseISO';
 import { z } from 'zod';
 import { Maybe } from '../types';
 import { SavedFieldMapping } from '../ui/load-records-types';
-import { SalesforceApiHistoryRequest, SalesforceApiHistoryResponse } from '../ui/types';
+import {
+  ApexHistoryItem,
+  SalesforceApiHistoryItem,
+  SalesforceApiHistoryRequest,
+  SalesforceApiHistoryResponse,
+  SalesforceDeployHistoryItem,
+} from '../ui/types';
 
 const DateTimeSchema = z.union([z.string(), z.date()]).transform((val) => (val instanceof Date ? val : parseISO(val)));
 
@@ -183,3 +189,100 @@ export interface ApiHistoryItem {
   updatedAt: Date;
 }
 export type ApiHistoryBodyType = 'JSON' | 'TEXT';
+
+/**
+ * CLIENT DATA EXPORT / IMPORT
+ *
+ * Envelope used by the Settings "Export / Import History" feature so users can back up and restore
+ * their browser-stored history. Covers both the Dexie synced tables and the localforage local-only
+ * datasets. Deploy history is included as metadata only (the binary package files are intentionally
+ * excluded to keep the file small).
+ */
+export const CLIENT_DATA_EXPORT_VERSION = 1;
+export const CLIENT_DATA_EXPORT_APP = 'jetstream';
+
+/**
+ * Minimal recent-record shape. The source type lives in ui-core; it is redeclared here to keep the
+ * types lib (and ui-db) decoupled from feature libraries.
+ */
+export interface ClientDataExportRecentRecord {
+  recordId: string;
+  sobject: string;
+  name?: Maybe<string>;
+}
+
+export interface ClientDataExportData {
+  query_history: QueryHistoryItem[];
+  load_saved_mapping: LoadSavedMappingItem[];
+  recent_history_item: RecentHistoryItem[];
+  api_request_history: ApiHistoryItem[];
+  apex_history: Record<string, ApexHistoryItem>;
+  salesforce_api_history: Record<string, SalesforceApiHistoryItem>;
+  deploy_history: SalesforceDeployHistoryItem[];
+  recent_records: Record<string, ClientDataExportRecentRecord[]>;
+}
+
+export interface ClientDataExportEnvelope {
+  version: number;
+  app: typeof CLIENT_DATA_EXPORT_APP;
+  exportedAt: string;
+  data: ClientDataExportData;
+}
+
+/**
+ * Permissive item schemas: revive known `Date` fields and pass the rest through (`catchall`) so adding
+ * fields later does not break importing older/newer files. Indexed/derived fields (`hashedKey`,
+ * `isFavoriteIdx`) are recomputed on import and are intentionally NOT trusted from the file.
+ */
+const QueryHistoryItemImportSchema = z
+  .object({ key: z.string(), lastRun: DateTimeSchema, createdAt: DateTimeSchema, updatedAt: DateTimeSchema })
+  .catchall(z.unknown());
+
+const LoadSavedMappingItemImportSchema = z
+  .object({ key: z.string(), createdAt: DateTimeSchema, updatedAt: DateTimeSchema })
+  .catchall(z.unknown());
+
+const RecentHistoryItemImportSchema = z
+  .object({
+    key: z.string(),
+    items: z.array(z.object({ name: z.string(), lastUsed: DateTimeSchema }).catchall(z.unknown())).default([]),
+    createdAt: DateTimeSchema,
+    updatedAt: DateTimeSchema,
+  })
+  .catchall(z.unknown());
+
+const ApiHistoryItemImportSchema = z
+  .object({ key: z.string(), lastRun: DateTimeSchema, createdAt: DateTimeSchema, updatedAt: DateTimeSchema })
+  .catchall(z.unknown());
+
+const ApexHistoryItemImportSchema = z.object({ key: z.string(), lastRun: DateTimeSchema }).catchall(z.unknown());
+
+const SalesforceApiHistoryItemImportSchema = z.object({ key: z.string(), lastRun: DateTimeSchema }).catchall(z.unknown());
+
+const DeployHistoryItemImportSchema = z.object({ key: z.string(), start: DateTimeSchema, finish: DateTimeSchema }).catchall(z.unknown());
+
+const RecentRecordImportSchema = z.object({ recordId: z.string(), sobject: z.string(), name: z.string().nullish() }).catchall(z.unknown());
+
+export const ClientDataExportEnvelopeSchema = z
+  .object({
+    version: z.number(),
+    app: z.literal(CLIENT_DATA_EXPORT_APP),
+    exportedAt: z.string(),
+    // Each section defaults to empty, so a file missing a section still imports; `data` itself is required.
+    data: z.object({
+      query_history: z.array(QueryHistoryItemImportSchema).default([]),
+      load_saved_mapping: z.array(LoadSavedMappingItemImportSchema).default([]),
+      recent_history_item: z.array(RecentHistoryItemImportSchema).default([]),
+      api_request_history: z.array(ApiHistoryItemImportSchema).default([]),
+      apex_history: z.record(z.string(), ApexHistoryItemImportSchema).default({}),
+      salesforce_api_history: z.record(z.string(), SalesforceApiHistoryItemImportSchema).default({}),
+      deploy_history: z.array(DeployHistoryItemImportSchema).default([]),
+      recent_records: z.record(z.string(), z.array(RecentRecordImportSchema)).default({}),
+    }),
+  })
+  .transform((envelope) => {
+    // Defense-in-depth: drop dangerous own keys (__proto__/constructor/prototype) anywhere in the
+    // imported payload before it is merged into the prototype-based localforage lookup maps.
+    stripReservedKeys(envelope.data);
+    return envelope;
+  });

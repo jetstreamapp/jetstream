@@ -25,6 +25,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnalyticsTrackingSetting } from './AnalyticsTrackingSetting';
 import LoggerConfig from './LoggerConfig';
 import { SettingsDeleteAccount } from './SettingsDeleteAccount';
+import { SettingsExportImportHistory } from './SettingsExportImportHistory';
 const HEIGHT_BUFFER = 170;
 
 export const Settings = () => {
@@ -258,6 +259,8 @@ export const Settings = () => {
                 Reset your list of recent objects. This will clear the list of objects you have recently viewed in Jetstream.
               </p>
             </div>
+
+            <SettingsExportImportHistory />
 
             <div className="slds-m-top_large">
               <h2 className="slds-text-heading_medium slds-m-vertical_small">Logging</h2>
