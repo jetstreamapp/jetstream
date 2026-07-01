@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { describeSObject, queryAll, queryAllUsingOffset } from '@jetstream/shared/data';
 import { tracker } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, groupByFlat } from '@jetstream/shared/utils';
+import { getErrorMessage, groupByFlat, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
   EntityParticlePermissionsRecord,
   FieldPermissionDefinitionMap,
@@ -133,6 +133,12 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
   };
 }
 
+/**
+ * Number of queries to run concurrently. Offset-paged queries (EntityParticle) are split into many small batches to stay
+ * under Salesforce's OFFSET cap, so we run them in bounded waves rather than sequentially to keep large selections fast.
+ */
+const QUERY_CONCURRENCY = 5;
+
 // This could be eligible to pull into generic method for expanded use
 async function queryAndCombineResults<T>(
   selectedOrg: SalesforceOrgUi,
@@ -140,14 +146,15 @@ async function queryAndCombineResults<T>(
   useOffset = false,
   isTooling = false,
 ): Promise<T[]> {
-  let output: T[] = [];
-  for (const currQuery of queries) {
-    if (useOffset) {
-      const { queryResults } = await queryAllUsingOffset<T>(selectedOrg, currQuery, isTooling);
-      output = output.concat(queryResults.records);
-    } else {
-      const { queryResults } = await queryAll<T>(selectedOrg, currQuery, isTooling);
-      output = output.concat(queryResults.records);
+  const runQuery = (currQuery: string) =>
+    useOffset ? queryAllUsingOffset<T>(selectedOrg, currQuery, isTooling) : queryAll<T>(selectedOrg, currQuery, isTooling);
+
+  const output: T[] = [];
+  // Results are keyed/grouped downstream, so ordering does not matter - run each wave concurrently
+  for (const wave of splitArrayToMaxSize(queries, QUERY_CONCURRENCY)) {
+    const waveResults = await Promise.all(wave.map(runQuery));
+    for (const { queryResults } of waveResults) {
+      output.push(...queryResults.records);
     }
   }
   return output;

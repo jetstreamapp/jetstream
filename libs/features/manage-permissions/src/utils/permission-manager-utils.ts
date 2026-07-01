@@ -32,6 +32,12 @@ import { Query, WhereClause, composeQuery, getField } from '@jetstreamapp/soql-p
 
 const MAX_OBJ_IN_QUERY = 100;
 
+/**
+ * EntityParticle does not support queryMore, so we page it using OFFSET, which Salesforce caps at 2000 for this object.
+ * Keep the objects really small to avoid hitting the 2000 limit
+ */
+const MAX_OBJ_IN_PERMISSIONABLE_FIELDS_QUERY = 2;
+
 export function filterPermissionsSobjects(sobject: DescribeGlobalSObjectResult | null) {
   if (!sobject) {
     return false;
@@ -569,7 +575,7 @@ export function permissionsHaveError<T extends PermissionDefinitionMap>(permissi
  * @returns query for all permissionable fields
  */
 export function getQueryForAllPermissionableFields(allSobjects: string[]): string[] {
-  const queries = splitArrayToMaxSize(allSobjects, MAX_OBJ_IN_QUERY).map((sobjects) => {
+  const queries = splitArrayToMaxSize(allSobjects, MAX_OBJ_IN_PERMISSIONABLE_FIELDS_QUERY).map((sobjects) => {
     return composeQuery({
       fields: [
         getField('QualifiedApiName'),
