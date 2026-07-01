@@ -176,16 +176,18 @@ class DexieInitializer {
     } else if (!this.scopedUserId) {
       return;
     }
-    // Sync is disabled — disconnect if we have an active connection, otherwise no-op
-    if (!enable) {
-      if (this.hasConnectedSync) {
-        await dexieDataSync.disconnect();
-        this.hasConnectedSync = false;
-      }
+    // The scope failed to build (stores unbound) — there is no database to sync (or disconnect) against
+    if (!hasDexieDb()) {
       return;
     }
-    // The scope failed to build (stores unbound) — there is no database to sync against
-    if (!hasDexieDb()) {
+    // Sync is disabled - ensure any persisted sync node is marked OFFLINE so dexie-syncable does not try to
+    // auto-reconnect on db open with a protocol that was never registered this session.
+    // disconnect() only flips the persisted node's status and does not require the protocol to be registered,
+    // and is safe to call when no sync node exists. hasConnectedSync is a per-session flag, so it cannot be
+    // relied on here: the persisted node survives across page loads while the flag resets to false.
+    if (!enable) {
+      await dexieDataSync.disconnect();
+      this.hasConnectedSync = false;
       return;
     }
     // Register the sync protocol once per process (the protocol name is instance-independent)

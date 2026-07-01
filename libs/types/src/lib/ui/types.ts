@@ -210,12 +210,14 @@ export type InputAcceptType =
   | InputAcceptTypeTsv
   | InputAcceptTypeExcel
   | InputAcceptTypeXml
+  | InputAcceptTypeJson
   | InputAcceptTypeImage;
 export type InputAcceptTypeZip = '.zip';
 export type InputAcceptTypeCsv = '.csv';
 export type InputAcceptTypeTsv = '.tsv';
 export type InputAcceptTypeExcel = '.xlsx';
 export type InputAcceptTypeXml = '.xml';
+export type InputAcceptTypeJson = '.json';
 export type InputAcceptTypeImage = '.png' | '.jpg' | '.jpeg' | '.gif' | '.webp' | '.svg';
 
 // Generic status types
