@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, queryWithCache } from '@jetstream/shared/data';
 import { useReducerFetchFn } from '@jetstream/shared/ui-utils';
-import { getErrorMessage } from '@jetstream/shared/utils';
+import { getErrorMessage, parseCustomFieldApiNameForTooling } from '@jetstream/shared/utils';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
 import orderBy from 'lodash/orderBy';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
@@ -20,18 +20,20 @@ export interface MetadataDependency {
   MetadataComponentType: string;
 }
 
-function getEntityDefinitionQuery(sobject: string, field: string) {
-  let namespace: string | undefined = undefined;
-  if (field.includes('__')) {
-    const [_namespace, fieldWithoutNamespace] = field.split('__');
-    namespace = _namespace;
-    field = fieldWithoutNamespace;
+/** Expects the full field API name including the `__c` suffix; non-custom names produce a query with no results. */
+export function getEntityDefinitionQuery(sobject: string, fieldApiName: string) {
+  const parsed = parseCustomFieldApiNameForTooling(fieldApiName);
+  if (!parsed) {
+    return `SELECT Id, DeveloperName, EntityDefinitionId, TableEnumOrId FROM CustomField WHERE Id = NULL LIMIT 1`;
   }
+  const nsClause =
+    parsed.namespacePrefix != null && parsed.namespacePrefix.length > 0
+      ? ` AND NamespacePrefix = '${parsed.namespacePrefix}'`
+      : ' AND NamespacePrefix = null';
   return `SELECT Id, DeveloperName, EntityDefinitionId, TableEnumOrId
   FROM CustomField
   WHERE EntityDefinition.QualifiedApiName = '${sobject}'
-  AND DeveloperName = '${field}'
-  ${namespace ? `AND NamespacePrefix = '${namespace}'` : ''}
+  AND DeveloperName = '${parsed.developerName}'${nsClause}
   LIMIT 1`;
 }
 
@@ -42,7 +44,7 @@ function getDependencyQuery(RefMetadataComponentId: string) {
   ORDER BY MetadataComponentType`;
 }
 
-export function useWhereIsThisUsed(org: SalesforceOrgUi, sobject: string, field: string) {
+export function useWhereIsThisUsed(org: SalesforceOrgUi, sobject: string, fieldApiName: string) {
   const isMounted = useRef(true);
 
   const [{ hasLoaded, loading, data, hasError, errorMessage }, dispatch] = useReducer(
@@ -70,7 +72,7 @@ export function useWhereIsThisUsed(org: SalesforceOrgUi, sobject: string, field:
           clearCacheForOrg(org);
         }
         const entityDefinition = (
-          await queryWithCache<MetadataDependencyEntityDefinition>(org, getEntityDefinitionQuery(sobject, field), true)
+          await queryWithCache<MetadataDependencyEntityDefinition>(org, getEntityDefinitionQuery(sobject, fieldApiName), true)
         ).data.queryResults.records[0];
         if (!entityDefinition) {
           if (isMounted.current) {
@@ -91,7 +93,7 @@ export function useWhereIsThisUsed(org: SalesforceOrgUi, sobject: string, field:
         }
       }
     },
-    [org, sobject, field],
+    [org, sobject, fieldApiName],
   );
 
   return { loadDependencies: load, loading, items: data, hasLoaded, hasError, errorMessage };

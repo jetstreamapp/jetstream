@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-empty-function */
+/* eslint-disable @typescript-eslint/no-useless-constructor */
 /**
  * Vitest setup for jsdom test environments that load `@dnd-kit/dom` (via `@dnd-kit/react`).
  *
@@ -8,6 +10,7 @@
  */
 if (typeof globalThis.ResizeObserver === 'undefined') {
   class ResizeObserverShim {
+    constructor(_callback: ResizeObserverCallback) {}
     observe(): void {}
     unobserve(): void {}
     disconnect(): void {}

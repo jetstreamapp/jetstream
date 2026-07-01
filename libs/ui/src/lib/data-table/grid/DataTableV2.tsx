@@ -80,6 +80,9 @@ export interface DataTableV2Props<TRow = RowWithKey, TContext = Record<string, a
   contextMenuAction?: (item: ContextMenuItem, data: ContextMenuActionData<TRow>) => void;
   /** Consumer-supplied builder for extra per-column header menu items (must be stable). */
   getColumnHeaderMenuItems?: (columnId: string) => ContextMenuItem[];
+  /** Opt-in: rows wrap and size to their content (DOM-measured); disables column virtualization so every
+   * row's height accounts for all cells. Use only for grids whose columns fit without horizontal scroll. */
+  autoRowHeight?: boolean;
 }
 
 function DataTableV2Inner<TRow extends object = RowWithKey>(props: DataTableV2Props<TRow>, ref: React.Ref<DataTableRef<TRow>>) {
@@ -125,6 +128,7 @@ function DataTableV2Inner<TRow extends object = RowWithKey>(props: DataTableV2Pr
     contextMenuItems,
     contextMenuAction,
     getColumnHeaderMenuItems,
+    autoRowHeight,
   } = props;
 
   const { table, gridId, orderedColumns, filters, filterSetValues, updateFilter, registerEditedValues } = useJetstreamTable<TRow>({
@@ -222,6 +226,7 @@ function DataTableV2Inner<TRow extends object = RowWithKey>(props: DataTableV2Pr
             contextMenuItems={contextMenuItems}
             contextMenuAction={contextMenuAction}
             getColumnHeaderMenuItems={getColumnHeaderMenuItems}
+            autoRowHeight={autoRowHeight}
           />
         </GridFilterContext.Provider>
       </GridGenericContext.Provider>

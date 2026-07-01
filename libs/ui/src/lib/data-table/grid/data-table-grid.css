@@ -198,6 +198,21 @@
   background-color: var(--jgrid-row-hover);
 }
 
+/* Auto-height rows (opt-in `autoRowHeight`): the virtualizer measures each row, so it grows to fit wrapped
+   cell content instead of being pinned. Cells wrap, top-align, and don't clip. */
+.jgrid-row-auto-height {
+  grid-auto-rows: auto;
+  min-block-size: 1.875rem;
+}
+.jgrid-row-auto-height .jgrid-cell {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  align-items: flex-start;
+  overflow-wrap: anywhere;
+  padding-block: 0.25rem;
+}
+
 .jgrid-row-selected,
 .jgrid-row-selected:hover {
   background-color: var(--jgrid-row-selected);
