@@ -45,12 +45,12 @@ class DexieInitializer {
     } else if (!this.hasInitialized) {
       await this.init();
     }
-    // Sync is disabled and has never been enabled, no action
-    if (!enable && !this.hasInitializedSync) {
-      return;
-    }
-    // Sync is now disabled, disconnect
-    if (!enable && this.hasInitializedSync) {
+    // Sync is disabled - ensure any persisted sync node is marked OFFLINE so dexie-syncable does not try to
+    // auto-reconnect on db open with a protocol that was never registered this session.
+    // disconnect() only flips the persisted node's status and does not require the protocol to be registered,
+    // and is safe to call when no sync node exists. hasInitializedSync is a per-session flag, so it cannot be
+    // relied on here: the persisted node survives across page loads while the flag resets to false.
+    if (!enable) {
       await dexieDataSync.disconnect();
       return;
     }
