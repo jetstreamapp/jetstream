@@ -90,7 +90,7 @@ export async function getChildRelationshipNames(
     return sobjectsWithChildRelationships;
   } catch (ex) {
     logger.warn('Error getting child relationship names for sobject export', ex);
-    tracker.error('Error getting child relationship names for sobject export', ex);
+    tracker.warn('Error getting child relationship names for sobject export', ex);
     return {};
   }
 }
@@ -106,7 +106,7 @@ export async function getExtendedFieldDefinitionData(
       allRecords.push(...results.queryResults.records);
     } catch (ex) {
       logger.warn('Error getting extended field definition data for sobject export', ex);
-      tracker.error('Error getting extended field definition data for sobject export', ex);
+      tracker.warn('Error getting extended field definition data for sobject export', ex);
     }
   }
 
