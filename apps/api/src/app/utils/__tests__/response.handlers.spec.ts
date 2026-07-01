@@ -1,5 +1,8 @@
+import { ApiRequestError } from '@jetstream/salesforce-api';
+import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
 import { PassThrough } from 'node:stream';
 import { describe, expect, it, vi } from 'vitest';
+import * as salesforceOrgsDb from '../../db/salesforce-org.db';
 import { AuthenticationError, NotFoundError, UserFacingError } from '../error-handler';
 import { streamParsedCsvAsJson, uncaughtErrorHandler } from '../response.handlers';
 
@@ -106,9 +109,12 @@ function createMockRes() {
   return res;
 }
 
-async function handleError(error: unknown) {
+async function handleError(error: unknown, locals?: Record<string, unknown>) {
   const req = createMockReq();
   const res = createMockRes();
+  if (locals) {
+    Object.assign(res.locals, locals);
+  }
   await uncaughtErrorHandler(error, req as any, res as any, vi.fn());
   return { req, res };
 }
@@ -197,6 +203,47 @@ describe('uncaughtErrorHandler logging levels', () => {
       { err: expect.objectContaining({ message: 'Upstream unavailable' }), res: { statusCode: 503 } },
       '[RESPONSE][ERROR]',
     );
+  });
+});
+
+describe('uncaughtErrorHandler Salesforce connection error normalization', () => {
+  it('normalizes an expired-token error to 401 (and marks the org invalid) even when Salesforce returned a 500', async () => {
+    // Mirrors the incident: a SOAP/metadata auth failure whose refresh also fails re-throws with
+    // Salesforce's original HTTP 500 (INVALID_SESSION_ID). Left unnormalized, that 500 passes through to
+    // the client and trips 5xx alerting, despite being an auth failure.
+    const apiRequestError = new ApiRequestError(ERROR_MESSAGES.SFDC_EXPIRED_TOKEN, { status: 500 } as any);
+    const { res } = await handleError(new UserFacingError(apiRequestError), { org: { id: 'org-1', uniqueId: 'unique-1' } });
+
+    expect(res.status).toHaveBeenLastCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: ERROR_MESSAGES.SFDC_EXPIRED_TOKEN }));
+    // The org is still marked invalid and the client is signaled to prompt a reconnect.
+    expect(res.set).toHaveBeenCalledWith(HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR, ERROR_MESSAGES.SFDC_EXPIRED_TOKEN);
+    expect(salesforceOrgsDb.updateOrg_UNSAFE).toHaveBeenCalledWith(expect.objectContaining({ id: 'org-1' }), {
+      connectionError: ERROR_MESSAGES.SFDC_EXPIRED_TOKEN,
+    });
+  });
+
+  it('normalizes a "REST API not enabled" error to 403', async () => {
+    const apiRequestError = new ApiRequestError('API is not enabled for this Organization or Partner', { status: 500 } as any);
+    const { res } = await handleError(new UserFacingError(apiRequestError));
+
+    expect(res.status).toHaveBeenLastCalledWith(403);
+  });
+
+  it('normalizes a bare (unwrapped) connection error that reaches the generic handler to 401 instead of 500', async () => {
+    const error = new Error(ERROR_MESSAGES.SFDC_EXPIRED_TOKEN) as Error & { status: number };
+    error.status = 500;
+
+    const { res } = await handleError(error);
+
+    expect(res.status).toHaveBeenLastCalledWith(401);
+  });
+
+  it('still passes through the upstream status for non-connection UserFacingErrors', async () => {
+    const apiRequestError = new ApiRequestError('Some other Salesforce error', { status: 404 } as any);
+    const { res } = await handleError(new UserFacingError(apiRequestError));
+
+    expect(res.status).toHaveBeenLastCalledWith(404);
   });
 });
 
