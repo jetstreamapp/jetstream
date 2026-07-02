@@ -255,7 +255,7 @@ describe('utils.getErrorMessage', () => {
 describe('utils.dateFromTimestamp', () => {
   it('should return the correct date from a timestamp', () => {
     const timestamp = 1640995200; // January 1, 2022 00:00:00 UTC
-    const expectedDate = new Date(2022, 0, 1, 0, 0, 0);
+    const expectedDate = new Date(Date.UTC(2022, 0, 1, 0, 0, 0));
     expect(dateFromTimestamp(timestamp)).toEqual(expectedDate);
   });
 });

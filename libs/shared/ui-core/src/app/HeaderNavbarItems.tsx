@@ -1,20 +1,31 @@
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { NavbarItem, NavbarItemWaffle, NavbarMenuItems } from '@jetstream/ui';
+import type { NavbarItemConfig } from '@jetstream/ui';
+import { useMemo } from 'react';
 
-export const HeaderNavbarItems = () => {
-  return (
-    <>
-      <NavbarItemWaffle path={APP_ROUTES.HOME.ROUTE} search={APP_ROUTES.HOME.SEARCH_PARAM} title="Home" assistiveText="Home Page" />
-      <NavbarItem
-        path={APP_ROUTES.QUERY.ROUTE}
-        search={APP_ROUTES.QUERY.SEARCH_PARAM}
-        title={APP_ROUTES.QUERY.DESCRIPTION}
-        label={APP_ROUTES.QUERY.TITLE}
-      />
-
-      <NavbarMenuItems
-        label="Load Records"
-        items={[
+export function useHeaderNavbarItems(): NavbarItemConfig[] {
+  return useMemo<NavbarItemConfig[]>(
+    () => [
+      {
+        id: 'home',
+        type: 'waffle',
+        path: APP_ROUTES.HOME.ROUTE,
+        search: APP_ROUTES.HOME.SEARCH_PARAM,
+        title: 'Home',
+        assistiveText: 'Home Page',
+      },
+      {
+        id: 'query',
+        type: 'item',
+        path: APP_ROUTES.QUERY.ROUTE,
+        search: APP_ROUTES.QUERY.SEARCH_PARAM,
+        title: APP_ROUTES.QUERY.DESCRIPTION,
+        label: APP_ROUTES.QUERY.TITLE,
+      },
+      {
+        id: 'load-records',
+        type: 'menu',
+        label: 'Load Records',
+        items: [
           {
             id: 'load',
             path: APP_ROUTES.LOAD.ROUTE,
@@ -43,25 +54,29 @@ export const HeaderNavbarItems = () => {
             title: APP_ROUTES.LOAD_CREATE_RECORD.DESCRIPTION,
             label: APP_ROUTES.LOAD_CREATE_RECORD.TITLE,
           },
-        ]}
-      />
-
-      <NavbarItem
-        path={APP_ROUTES.AUTOMATION_CONTROL.ROUTE}
-        search={APP_ROUTES.AUTOMATION_CONTROL.SEARCH_PARAM}
-        title={APP_ROUTES.AUTOMATION_CONTROL.DESCRIPTION}
-        label={APP_ROUTES.AUTOMATION_CONTROL.TITLE}
-      />
-      <NavbarItem
-        path={APP_ROUTES.PERMISSION_MANAGER.ROUTE}
-        search={APP_ROUTES.PERMISSION_MANAGER.SEARCH_PARAM}
-        title={APP_ROUTES.PERMISSION_MANAGER.DESCRIPTION}
-        label={APP_ROUTES.PERMISSION_MANAGER.TITLE}
-      />
-
-      <NavbarMenuItems
-        label="Deploy Metadata"
-        items={[
+        ],
+      },
+      {
+        id: 'automation-control',
+        type: 'item',
+        path: APP_ROUTES.AUTOMATION_CONTROL.ROUTE,
+        search: APP_ROUTES.AUTOMATION_CONTROL.SEARCH_PARAM,
+        title: APP_ROUTES.AUTOMATION_CONTROL.DESCRIPTION,
+        label: APP_ROUTES.AUTOMATION_CONTROL.TITLE,
+      },
+      {
+        id: 'permission-manager',
+        type: 'item',
+        path: APP_ROUTES.PERMISSION_MANAGER.ROUTE,
+        search: APP_ROUTES.PERMISSION_MANAGER.SEARCH_PARAM,
+        title: APP_ROUTES.PERMISSION_MANAGER.DESCRIPTION,
+        label: APP_ROUTES.PERMISSION_MANAGER.TITLE,
+      },
+      {
+        id: 'deploy-metadata',
+        type: 'menu',
+        label: 'Deploy Metadata',
+        items: [
           {
             id: 'deploy-metadata',
             path: APP_ROUTES.DEPLOY_METADATA.ROUTE,
@@ -90,12 +105,13 @@ export const HeaderNavbarItems = () => {
             title: APP_ROUTES.FORMULA_EVALUATOR.DESCRIPTION,
             label: APP_ROUTES.FORMULA_EVALUATOR.TITLE,
           },
-        ]}
-      />
-
-      <NavbarMenuItems
-        label="Developer Tools"
-        items={[
+        ],
+      },
+      {
+        id: 'developer-tools',
+        type: 'menu',
+        label: 'Developer Tools',
+        items: [
           {
             id: 'apex',
             path: APP_ROUTES.ANON_APEX.ROUTE,
@@ -131,11 +147,13 @@ export const HeaderNavbarItems = () => {
             title: APP_ROUTES.PLATFORM_EVENT_MONITOR.DESCRIPTION,
             label: APP_ROUTES.PLATFORM_EVENT_MONITOR.TITLE,
           },
-        ]}
-      />
-      <NavbarMenuItems
-        label="Documentation &amp; Support"
-        items={[
+        ],
+      },
+      {
+        id: 'documentation-support',
+        type: 'menu',
+        label: 'Documentation & Support',
+        items: [
           {
             id: 'feedback',
             path: APP_ROUTES.FEEDBACK_SUPPORT.ROUTE,
@@ -150,8 +168,9 @@ export const HeaderNavbarItems = () => {
             title: 'Documentation',
             label: 'Documentation',
           },
-        ]}
-      />
-    </>
+        ],
+      },
+    ],
+    [],
   );
-};
+}

@@ -51,10 +51,17 @@ export const Card = forwardRef<HTMLElement, CardProps>(
               <div
                 className="slds-media__body"
                 css={css`
-                  min-width: fit-content;
+                  min-width: 0;
                 `}
               >
-                <h2 className="slds-card__header-title">{titleContent}</h2>
+                <h2
+                  className="slds-card__header-title"
+                  css={css`
+                    min-width: 0;
+                  `}
+                >
+                  {titleContent}
+                </h2>
               </div>
               {actions && (
                 <Grid
