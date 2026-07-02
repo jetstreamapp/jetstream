@@ -3,7 +3,7 @@ import { copyRecordsToClipboard } from '@jetstream/shared/ui-utils';
 import type { Column, Row, Table } from '@tanstack/react-table';
 import { FocusEvent as ReactFocusEvent, KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { ActiveCell } from '../components/GridRow';
-import { getSummaryRowId, getSummaryRowIndex, HEADER_ROW_ID, isSummaryRowId } from '../grid-constants';
+import { getSummaryRowId, getSummaryRowIndex, HEADER_ROW_ID, isSummaryRowId, SELECT_COLUMN_KEY } from '../grid-constants';
 import { ColSpanArgs } from '../grid-types';
 
 export type GridMode = 'navigation' | 'actionable';
@@ -516,7 +516,10 @@ export function useGridKeyboardNavigation<TRow>({
         return;
       }
       interactionSourceRef.current = 'mouse';
-      if (shiftKey) {
+      // The select column owns Shift for checkbox range selection (SelectFormatter); never let a
+      // Shift-click there extend the rectangular cell selection. Still set the active cell so keyboard
+      // navigation continues from the checkbox.
+      if (shiftKey && columnId !== SELECT_COLUMN_KEY) {
         applySelection(rowId, columnId, true);
       } else {
         applySelection(rowId, columnId, false);

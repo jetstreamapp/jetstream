@@ -47,6 +47,11 @@ export interface GridRuntime<TRow = RowWithKey> {
   getRowKey: (row: TRow) => string;
   /** Ordered, visible author-facing columns (kept in sync with TanStack column order). */
   columns: ColumnWithFilter<TRow>[];
+  /** Read the shift-click range-selection anchor — the last row whose checkbox was toggled without
+   * Shift, or null. Backed by a stable ref in GridContainer so every select cell agrees on it. */
+  getRowSelectionAnchor?: () => string | null;
+  /** Set the shift-click range-selection anchor (or clear it with null). */
+  setRowSelectionAnchor?: (rowId: string | null) => void;
 }
 
 export const GridRuntimeContext = createContext<GridRuntime | undefined>(undefined);
