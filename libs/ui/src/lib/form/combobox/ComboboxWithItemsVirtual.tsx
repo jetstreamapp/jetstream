@@ -4,7 +4,7 @@ import { multiWordObjectFilter, NOOP } from '@jetstream/shared/utils';
 import { ListItem, Maybe } from '@jetstream/types';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import isNumber from 'lodash/isNumber';
-import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Combobox, ComboboxPropsRef, ComboboxSharedProps } from './Combobox';
 import { ComboboxListItem } from './ComboboxListItem';
 
@@ -42,25 +42,16 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
   const comboboxRef = useRef<ComboboxPropsRef>(null);
   const [filterTextNonDebounced, setFilterText] = useState<string>('');
   const filterText = useDebounce(filterTextNonDebounced, 300);
-  const [selectedItem, setSelectedItem] = useState<Maybe<ListItem>>(() =>
-    selectedItemId ? items.find((item) => item.id === selectedItemId) : null,
-  );
   const [visibleItems, setVisibleItems] = useState(items);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
-  const [selectedItemLabel, setSelectedItemLabel] = useState<string | null>(() => {
-    if (selectedItem) {
-      const selectedItem = items.find((item) => item.id === selectedItemId);
-      return selectedItem ? selectedItemLabelFn(selectedItem) : null;
-    }
-    return null;
-  });
-  const [selectedItemTitle, setSelectedItemTitle] = useState<string | null>(() => {
-    if (selectedItem) {
-      const selectedItem = items.find((item) => item.id === selectedItemId);
-      return selectedItem ? selectedItemLabelFn(selectedItem) : null;
-    }
-    return null;
-  });
+  // Derived during render rather than mirrored into state with effects — see ComboboxWithItems
+  // for why the effect-synced version risked "Maximum update depth exceeded".
+  const selectedItem: Maybe<ListItem> = useMemo(
+    () => (selectedItemId ? items.find((item) => item.id === selectedItemId) : null),
+    [items, selectedItemId],
+  );
+  const selectedItemLabel = selectedItem ? selectedItemLabelFn(selectedItem) : null;
+  const selectedItemTitle = selectedItem ? selectedItemTitleFn(selectedItem) || '' : null;
 
   const rowVirtualizer = useVirtualizer({
     count: visibleItems.length,
@@ -94,24 +85,6 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
   useEffect(() => {
     setFocusedIndex(null);
   }, [filterTextNonDebounced]);
-
-  useEffect(() => {
-    if (selectedItemId) {
-      setSelectedItem(items.find((item) => item.id === selectedItemId));
-    } else {
-      setSelectedItem(null);
-    }
-  }, [items, selectedItemId]);
-
-  useEffect(() => {
-    if (selectedItem) {
-      setSelectedItemLabel(selectedItemLabelFn(selectedItem));
-      setSelectedItemTitle(selectedItemTitleFn(selectedItem) || '');
-    } else {
-      setSelectedItemLabel(null);
-      setSelectedItemTitle(null);
-    }
-  }, [selectedItem, selectedItemLabelFn, selectedItemTitleFn]);
 
   useEffect(() => {
     if (!filterText) {

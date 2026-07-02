@@ -3,7 +3,7 @@ import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { HorizontalVertical, UiTabSection } from '@jetstream/types';
 import classNames from 'classnames';
 import isNil from 'lodash/isNil';
-import React, { ReactNode, forwardRef, useEffect, useImperativeHandle, useState } from 'react';
+import React, { ReactNode, forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import SearchInput from '../form/search-input/SearchInput';
 import Tab from './Tab';
 
@@ -58,15 +58,17 @@ export const Tabs = forwardRef<unknown, TabsProps>(
       return initialActiveId || (tabs && tabs[0] && tabs[0].id);
     });
 
-    const [activeTab, setActiveTab] = useState<UiTabSection | undefined>(() => {
-      if (initialActiveId) {
-        return tabs.find((tab) => tab.id === initialActiveId);
-      } else if (tabs) {
-        return tabs[0];
-      }
-    });
     const [filterValue, setFilterValue] = useState('');
-    const [filteredTabs, setFilteredTabs] = useState(tabs);
+
+    // Derived during render rather than mirrored into state with effects. The effect-synced version
+    // dispatched a setState after every parent re-render (the `tabs` prop is usually an inline array),
+    // which counts toward React's nested-update limit and escalated to "Maximum update depth exceeded"
+    // during long update cascades.
+    const activeTab = useMemo(() => (tabs && activeId ? tabs.find((tab) => tab.id === activeId) : undefined), [tabs, activeId]);
+    const filteredTabs = useMemo(
+      () => (filterValue ? tabs.filter(multiWordObjectFilter(['titleText', 'title', 'id'], filterValue)) : tabs),
+      [tabs, filterValue],
+    );
 
     useImperativeHandle<unknown, TabsRef>(ref, () => ({
       changeTab: (id: string) => {
@@ -76,30 +78,14 @@ export const Tabs = forwardRef<unknown, TabsProps>(
     }));
 
     useEffect(() => {
-      if (tabs && activeId) {
-        setActiveTab(tabs.find((tab) => tab.id === activeId));
-      }
-    }, [tabs, activeId]);
-
-    useEffect(() => {
       if (initialActiveId && initialActiveId !== activeId) {
         setActiveId(initialActiveId);
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [initialActiveId]);
 
-    useEffect(() => {
-      if (!filterValue && tabs !== filteredTabs) {
-        setFilteredTabs(tabs);
-      } else if (filterValue) {
-        setFilteredTabs(tabs.filter(multiWordObjectFilter(['titleText', 'title', 'id'], filterValue)));
-      }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [tabs, filterValue]);
-
     function handleTabClick(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>, tab: UiTabSection) {
       event.preventDefault();
-      // setActiveTab(tabs.find((currTab) => currTab.id === tab.id));
       setActiveId(tab.id);
       if (onChange) {
         onChange(tab.id);
