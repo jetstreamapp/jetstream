@@ -156,16 +156,28 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
     // Logger is not added to the response object in all cases depending on where error is encountered
     const responseLogger = getLogger();
 
+    // Known Salesforce connection/auth errors mean the org's stored credentials are dead (or the org is
+    // unreachable) and the user must reconnect. The callout adapter surfaces these as specific error
+    // messages, which we match to (1) mark the org invalid + signal the client and (2) normalize the
+    // response status below. Detection is message-based (independent of `res.locals.org`) so the status is
+    // normalized even when the error can't be attributed to a specific org.
+    const sfdcErrorMessage = typeof err?.message === 'string' ? err.message : '';
+    const isSfdcConnectionError =
+      sfdcErrorMessage === ERROR_MESSAGES.SFDC_EXPIRED_TOKEN ||
+      sfdcErrorMessage === ERROR_MESSAGES.SFDC_EXPIRED_SESSION ||
+      sfdcErrorMessage === ERROR_MESSAGES.SFDC_EXPIRED_TOKEN_VALIDITY ||
+      ERROR_MESSAGES.SFDC_ORG_DOES_NOT_EXIST.test(sfdcErrorMessage);
+    const isSfdcRestApiNotEnabled = ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED.test(sfdcErrorMessage);
+    // Salesforce reports the same auth failure with different HTTP statuses depending on the API (REST is
+    // 401, but a SOAP INVALID_SESSION_ID is HTTP 500). We pass Salesforce's upstream status through by
+    // default, so without this an auth failure surfaces as a 500 — mislabeling it as a server error and
+    // tripping 5xx alerting. Pin known connection errors to a deterministic 4xx instead.
+    const sfdcConnectionErrorStatus = isSfdcConnectionError ? 401 : isSfdcRestApiNotEnabled ? 403 : undefined;
+
     // If org had a connection error, ensure that the database is updated
     // This runs before the headersSent/deferred checks so the DB side effect always happens
     // TODO: what about alternate org?
-    if (
-      (err.message === ERROR_MESSAGES.SFDC_EXPIRED_TOKEN ||
-        err.message === ERROR_MESSAGES.SFDC_EXPIRED_SESSION ||
-        err.message === ERROR_MESSAGES.SFDC_EXPIRED_TOKEN_VALIDITY ||
-        ERROR_MESSAGES.SFDC_ORG_DOES_NOT_EXIST.test(err.message)) &&
-      !!res.locals?.org
-    ) {
+    if (isSfdcConnectionError && !!res.locals?.org) {
       try {
         if (!res.headersSent) {
           res.set(HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR, ERROR_MESSAGES.SFDC_EXPIRED_TOKEN);
@@ -175,7 +187,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       } catch (ex) {
         responseLogger.warn({ err: ex }, '[RESPONSE][ERROR UPDATING INVALID ORG]');
       }
-    } else if (ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED.test(err.message) && !!res.locals?.org) {
+    } else if (isSfdcRestApiNotEnabled && !!res.locals?.org) {
       try {
         if (!res.headersSent) {
           res.set(HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR, ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED_MSG);
@@ -217,14 +229,9 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       };
 
       // Include org connection error info that would normally be sent via X-SFDC-ORG-CONNECTION-ERROR header
-      if (
-        err.message === ERROR_MESSAGES.SFDC_EXPIRED_TOKEN ||
-        err.message === ERROR_MESSAGES.SFDC_EXPIRED_SESSION ||
-        err.message === ERROR_MESSAGES.SFDC_EXPIRED_TOKEN_VALIDITY ||
-        ERROR_MESSAGES.SFDC_ORG_DOES_NOT_EXIST.test(err.message)
-      ) {
+      if (isSfdcConnectionError) {
         deferredErrorBody.orgConnectionError = ERROR_MESSAGES.SFDC_EXPIRED_TOKEN;
-      } else if (ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED.test(err.message)) {
+      } else if (isSfdcRestApiNotEnabled) {
         deferredErrorBody.orgConnectionError = ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED_MSG;
       }
 
@@ -296,8 +303,10 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       const params = new URLSearchParams({ error: err.type }).toString();
       return res.redirect(`${ENV.JETSTREAM_SERVER_URL}/auth/login/?${params}`);
     } else if (err instanceof UserFacingError) {
-      // Attempt to use response code from 3rd party request if we have it available
-      const statusCode = err.apiRequestError?.status || status || 400;
+      // Prefer the normalized connection-error status over Salesforce's upstream status (which can be a
+      // 5xx, e.g. SOAP INVALID_SESSION_ID) so an auth failure is reported as a 4xx; otherwise fall back to
+      // the 3rd-party request status when available.
+      const statusCode = sfdcConnectionErrorStatus ?? (err.apiRequestError?.status || status || 400);
       res.status(statusCode);
       responseLogger.debug({ err, res: { statusCode } }, '[RESPONSE][ERROR]');
       return res.json({
@@ -369,7 +378,11 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
     }
 
     const errorMessage = 'There was an error processing the request';
-    if (!status || status < 100 || status > 599) {
+    // A known Salesforce connection/auth error that reached the generic handler (i.e. was not wrapped in a
+    // typed error class) still normalizes to 4xx instead of defaulting to 500.
+    if (sfdcConnectionErrorStatus) {
+      status = sfdcConnectionErrorStatus;
+    } else if (!status || status < 100 || status > 599) {
       status = 500;
     }
     res.status(status);
