@@ -10,11 +10,15 @@ export {
   GenericRenderer,
   IdLinkRenderer,
   NameLinkRenderer,
+  RecordErrorMessageRenderer,
   SelectFormatter,
   SelectHeaderGroupRenderer,
   TextOrIdLinkRenderer,
   ValueOrLoadingRenderer,
+  getRecordErrorColumn,
+  getRecordErrorRowHeight,
 } from './grid/renderers/CellRenderers';
+export type { RowWithRecordError } from './grid/renderers/CellRenderers';
 export { SubqueryRenderer } from './grid/renderers/SubqueryRenderer';
 export { TreeExpander } from './grid/renderers/TreeExpander';
 export type { TreeExpanderProps } from './grid/renderers/TreeExpander';

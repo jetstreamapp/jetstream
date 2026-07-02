@@ -122,6 +122,12 @@ export interface UseGridKeyboardNavigationOptions<TRow> {
   /** Emit a message to the grid's polite live region (e.g. "Copied 3 rows by 2 columns") so screen-reader
    * users get feedback for actions that are otherwise only visual. */
   onAnnounce?: (message: string) => void;
+  /** Undo the last grid edit/paste (Ctrl/Cmd+Z). The consumer owns the row-snapshot history. */
+  onUndo?: () => void;
+  /** Redo the last undone edit (Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y). */
+  onRedo?: () => void;
+  /** Clear the editable cells in the current selection (Delete/Backspace). */
+  onClearSelection?: () => void;
 }
 
 export interface GridKeyboardNavigation {
@@ -172,6 +178,9 @@ export function useGridKeyboardNavigation<TRow>({
   shouldRetainFocusOnBlur,
   summaryRowCount = 0,
   onAnnounce,
+  onUndo,
+  onRedo,
+  onClearSelection,
 }: UseGridKeyboardNavigationOptions<TRow>): GridKeyboardNavigation {
   const [activeCell, setActiveCellState] = useState<ActiveCell | null>(null);
   const [anchorCell, setAnchorCell] = useState<ActiveCell | null>(null);
@@ -183,6 +192,7 @@ export function useGridKeyboardNavigation<TRow>({
   const pendingReturnFocusCellRef = useRef<ActiveCell | null>(null);
   // Live mirror of activeCell for the document focus listeners (avoids re-subscribing on every move).
   const activeCellRef = useRef(activeCell);
+  // eslint-disable-next-line react-hooks/refs
   activeCellRef.current = activeCell;
   // The column the user deliberately chose (last horizontal move / click). Vertical navigation targets
   // this column so passing through colSpan'd rows (group headers, "no rows" spanners) — which snap focus
@@ -923,6 +933,40 @@ export function useGridKeyboardNavigation<TRow>({
             copySelection();
           }
           break;
+        case 'z':
+        case 'Z':
+          // Undo (Ctrl/Cmd+Z); Shift adds Redo. Only consume when the consumer supports it — otherwise
+          // let the browser's native undo through. The cell editor is portaled outside the grid, so this
+          // never fires while editing (the input keeps its own native undo).
+          if (ctrlOrMeta) {
+            if (event.shiftKey) {
+              if (onRedo) {
+                consume();
+                onRedo();
+              }
+            } else if (onUndo) {
+              consume();
+              onUndo();
+            }
+          }
+          break;
+        case 'y':
+        case 'Y':
+          // Windows-style redo.
+          if (ctrlOrMeta && !event.shiftKey && onRedo) {
+            consume();
+            onRedo();
+          }
+          break;
+        case 'Delete':
+        case 'Backspace':
+          // Clear the editable cells in the current selection (single cell or range). The consumer
+          // resolves which cells are editable + how to empty each type; non-data cells no-op there.
+          if (onClearSelection) {
+            consume();
+            onClearSelection();
+          }
+          break;
         default:
           break;
       }
@@ -939,6 +983,9 @@ export function useGridKeyboardNavigation<TRow>({
       activateHeaderCell,
       getCellElement,
       summaryRowCount,
+      onUndo,
+      onRedo,
+      onClearSelection,
     ],
   );
 

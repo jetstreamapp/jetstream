@@ -7,7 +7,9 @@ import { GridMode, SelectionRange } from '../keyboard/useGridKeyboardNavigation'
 import { GridGroupRow } from './GridGroupRow';
 import { ActiveCell, GridRow } from './GridRow';
 
-export type RowHeightFn<TRow> = (args: { type: 'ROW' | 'GROUP'; row: TRow }) => number;
+/** `columnWidths` is a live `columnId → resolved pixel width` map so a height that depends on a column's
+ * width (e.g. estimating wrapped-text lines) tracks user resizes. */
+export type RowHeightFn<TRow> = (args: { type: 'ROW' | 'GROUP'; row: TRow; columnWidths: Record<string, number> }) => number;
 
 export interface GridBodyProps<TRow> {
   table: Table<TRow>;
@@ -84,6 +86,21 @@ export function GridBody<TRow>({
   const rowHeightRef = useRef(rowHeight);
   rowHeightRef.current = rowHeight;
 
+  // Live `columnId → resolved width` map handed to a rowHeight callback so width-dependent heights track
+  // resizes. Read from `columnSizing` so it recomputes when a resize commits (columnResizeMode 'onEnd');
+  // held in a ref so the stable estimateSize closure reads the latest without re-creating the virtualizer.
+  const columnSizing = table.getState().columnSizing;
+  const columnWidths = useMemo(() => {
+    const widths: Record<string, number> = {};
+    leafColumns.forEach((column) => {
+      widths[column.id] = column.getSize();
+    });
+    return widths;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leafColumns, columnSizing]);
+  const columnWidthsRef = useRef(columnWidths);
+  columnWidthsRef.current = columnWidths;
+
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollRef.current,
@@ -92,7 +109,7 @@ export function GridBody<TRow>({
       if (typeof current === 'function') {
         const row = rows[index];
         if (row) {
-          return current({ type: row.getIsGrouped() ? 'GROUP' : 'ROW', row: row.original });
+          return current({ type: row.getIsGrouped() ? 'GROUP' : 'ROW', row: row.original, columnWidths: columnWidthsRef.current });
         }
         return DEFAULT_ROW_HEIGHT;
       }
@@ -183,12 +200,14 @@ export function GridBody<TRow>({
 
   // Rows are pinned to deterministic heights (see `rowHeight` doc), so we never attach `measureElement`.
   // The virtualizer's size memo omits `estimateSize` from its key, so when a rowHeight callback would
-  // return new values (e.g. a row's content grew after an edit) we must re-measure explicitly. Keyed on
-  // the row model + height source — both stable across horizontal scroll, so this never fires mid-scroll.
+  // return new values (e.g. a row's content grew after an edit, or a resize changed a width-dependent
+  // height) we must re-measure explicitly. Keyed on the row model + height source + committed column
+  // widths — all stable across horizontal scroll, so this never fires mid-scroll (or mid-resize-drag,
+  // since columnSizing only updates on release with columnResizeMode 'onEnd').
   useEffect(() => {
     rowVirtualizer.measure();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, rowHeight]);
+  }, [rows, rowHeight, columnWidths]);
 
   const virtualRows = rowVirtualizer.getVirtualItems();
   const totalSize = rowVirtualizer.getTotalSize();

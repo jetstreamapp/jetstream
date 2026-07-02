@@ -9,6 +9,11 @@
   display: flex;
   flex-direction: column;
   min-block-size: 0;
+  /* Border + radius live here (not on the scroller) so the rounded corners clip the scroller's square
+     scrollbar tracks — otherwise the scrollbar shaves a sliver off the radius at the corners. */
+  border: 1px solid var(--jgrid-border-color);
+  border-radius: var(--slds-g-radius-border-2, 0);
+  overflow: clip;
   --jgrid-border-color: var(--slds-g-color-border-1, #e5e5e5);
   --jgrid-surface: var(--slds-g-color-surface-container-1, #fff);
   --jgrid-surface-alt: var(--slds-g-color-surface-container-2, #f3f3f3);
@@ -24,8 +29,6 @@
   overflow: auto;
   position: relative;
   background-color: var(--jgrid-surface);
-  border: 1px solid var(--jgrid-border-color);
-  border-radius: var(--slds-g-radius-border-2, 0);
   contain: strict;
 }
 
@@ -271,11 +274,40 @@
   font-weight: 600;
   background-color: var(--slds-g-color-warning-base-90, #faffbd);
 }
+/* A dirty cell that's also inside the cell-range selection: a darker yellow (one step down the SLDS warning
+   ramp from the base-90 dirty fill) so the selection reads on top of the edit highlight. The plain blue
+   range fill (`.jgrid-cell-range`, specificity 0,1,0) loses to `.slds-is-edited` (0,2,0) here and reads
+   poorly over yellow anyway, so this combined rule (0,3,0) wins. base-80 also adapts to dark mode, matching
+   the dirty fill (both tokens are `light-dark()`). */
+.jgrid-cell.slds-is-edited.jgrid-cell-range {
+  background-color: var(--slds-g-color-warning-base-80, #fcc003);
+}
+/* Validation/save error + warning rings. An INSET box-shadow (like the focus ring above) stays within the
+   cell box, so — unlike an `outline` — it is never clipped/overdrawn at the grid's right + bottom edges.
+   Kept AFTER `slds-is-edited` so the yellow dirty background shows behind the ring. */
 .jgrid-cell.active-item-error {
-  outline: 2px solid var(--slds-g-color-error-base-50, red);
+  box-shadow: inset 0 0 0 2px var(--slds-g-color-error-base-50, #ea001e);
+}
+.jgrid-cell.active-item-warning {
+  box-shadow: inset 0 0 0 2px var(--slds-g-color-warning-base-50, #fe9339);
+}
+/* Frozen cells own a right-divider box-shadow; combine it with the error/warning ring so neither is lost. */
+.jgrid-cell-frozen.active-item-error {
+  box-shadow:
+    1px 0 0 var(--jgrid-border-color),
+    inset 0 0 0 2px var(--slds-g-color-error-base-50, #ea001e);
+}
+.jgrid-cell-frozen.active-item-warning {
+  box-shadow:
+    1px 0 0 var(--jgrid-border-color),
+    inset 0 0 0 2px var(--slds-g-color-warning-base-50, #fe9339);
 }
 .jgrid-cell.copied {
   background-color: var(--slds-g-color-warning-base-90, #faffbd);
+}
+/* Transient flash applied to cells that just received a pasted value (removed via JS after the animation). */
+.jgrid-cell.pasted {
+  box-shadow: inset 0 0 0 2px var(--slds-g-color-success-base-50, #2e844a);
 }
 
 .jgrid-cell-select {

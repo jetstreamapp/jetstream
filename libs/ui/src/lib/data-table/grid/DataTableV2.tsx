@@ -14,6 +14,8 @@ import {
   ContextMenuItems,
   DataTableRef,
   DefaultColumnOptions,
+  GridCellRef,
+  PasteEvent,
   RowWithKey,
   SortColumn,
 } from './grid-types';
@@ -37,6 +39,16 @@ export interface DataTableV2Props<TRow = RowWithKey, TContext = Record<string, a
   onSortColumnsChange?: (sortColumns: SortColumn[]) => void;
   /** Called when an inline edit commits; `rows` are the current display rows with the edit applied. */
   onRowsChange?: (rows: TRow[], data: { indexes: number[]; column: ColumnWithFilter<TRow> }) => void;
+  /** Called when the user pastes into the selection (Ctrl/Cmd+V or the context-menu Paste item). */
+  onPaste?: (event: PasteEvent) => void;
+  /** Undo the last edit/paste (Ctrl/Cmd+Z); the consumer owns the row-snapshot history. */
+  onUndo?: () => void;
+  /** Redo the last undone edit (Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y). */
+  onRedo?: () => void;
+  /** Revert the given modified cells to their original values (context-menu "Revert"). */
+  onRevertCells?: (cells: GridCellRef[]) => void;
+  /** Whether a cell holds an unsaved modification — gates the context-menu "Revert" item. */
+  isCellDirty?: (rowId: string, columnId: string) => boolean;
   /** Seed row height for the virtualizer (actual heights are measured dynamically). Either a fixed
    * number or a per-row callback that distinguishes group rows from data rows. */
   rowHeight?: number | RowHeightFn<TRow>;
@@ -89,6 +101,11 @@ function DataTableV2Inner<TRow extends object = RowWithKey>(props: DataTableV2Pr
     onSortedAndFilteredRowsChange,
     onSortColumnsChange,
     onRowsChange,
+    onPaste,
+    onUndo,
+    onRedo,
+    onRevertCells,
+    isCellDirty,
     rowHeight,
     rowClass,
     enableRowSelection,
@@ -195,6 +212,11 @@ function DataTableV2Inner<TRow extends object = RowWithKey>(props: DataTableV2Pr
             rowHeight={rowHeight}
             rowClass={rowClass}
             onRowsChange={onRowsChange ? handleRowsChange : undefined}
+            onPaste={onPaste}
+            onUndo={onUndo}
+            onRedo={onRedo}
+            onRevertCells={onRevertCells}
+            isCellDirty={isCellDirty}
             summaryRows={summaryRows}
             summaryRowHeight={summaryRowHeight}
             contextMenuItems={contextMenuItems}
