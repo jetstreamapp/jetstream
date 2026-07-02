@@ -104,7 +104,7 @@ export const CreateFieldsImportExport = ({ selectedOrg, rows, onImportRows, onLo
             if (field === 'deleteConstraint' && value) {
               value = ['SetNull', 'Cascade', 'Restrict'].includes(value) ? value : 'SetNull';
             }
-            if (field === 'secondaryType' && value) {
+            if (field === 'secondaryType') {
               value = ensureValidSecondaryType(value);
             }
             if (field === 'writeRequiresMasterRead' && value) {
