@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import type { SetURLSearchParams } from 'react-router-dom';
+import type { SetURLSearchParams } from 'react-router';
 import {
   type PermissionAnalysisFinding,
   type PermissionExportRow,

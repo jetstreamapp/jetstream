@@ -6,7 +6,7 @@ import { RowHeightFn } from './components/GridBody';
 import { GridContainer } from './components/GridContainer';
 import { useJetstreamTable } from './core/useJetstreamTable';
 import './data-table-grid.css';
-import { GridFilterContext, GridGenericContext } from './grid-context';
+import { GridFilterContext, GridGenericContext, GridRecordActionContext } from './grid-context';
 import { getSortedFilteredLeafRows } from './grid-row-utils';
 import {
   ColumnWithFilter,
@@ -170,6 +170,17 @@ function DataTableV2Inner<TRow extends object = RowWithKey>(props: DataTableV2Pr
   );
 
   const filterContextValue = useMemo(() => ({ filterSetValues, filters, updateFilter }), [filterSetValues, filters, updateFilter]);
+
+  // Stable record-action context for the high-cardinality id/name link cells. The generic context bag
+  // below carries a volatile `rows` array (rebuilt on every data/sort/filter change), and because a
+  // cell's `useContext` subscribes its owning GridCell, reading these stable values from there forced
+  // every link/popover cell to re-render on each keystroke. Key the memo on `onRecordAction`'s identity
+  // (not the whole `context` object) so an inline `context={{...}}` at a call site can't churn it.
+  const onRecordAction = (context as Record<string, any> | undefined)?.onRecordAction;
+  const recordActionContextValue = useMemo(
+    () => ({ org, serverUrl, skipFrontdoorLogin, onRecordAction }),
+    [org, serverUrl, skipFrontdoorLogin, onRecordAction],
+  );
 
   // The legacy DataTable exposed the filtered+sorted rows on the generic context; several consumers
   // (e.g. permission-manager's ColumnSearchFilterSummary / BulkActionRenderer) still read `rows`, so

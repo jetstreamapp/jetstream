@@ -5,7 +5,7 @@ import { AnalysisToolsPaywall } from '@jetstream/ui-core';
 import { analysisToolsAccessState, useFeatureFlag } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent } from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router';
 
 /**
  * Route shell for **Data analysis** (field usage). Gated by the `analysis-tools` rollout flag (redirects

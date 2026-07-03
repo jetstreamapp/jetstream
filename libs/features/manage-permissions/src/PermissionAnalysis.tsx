@@ -6,7 +6,7 @@ import { analysisToolsAccessState, selectedOrgState, useFeatureFlag } from '@jet
 import { useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
 import { FunctionComponent, useEffect, useState } from 'react';
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router';
 
 /**
  * Shell for **Permission analysis**: same org-scoped permission selection state as Manage Permissions,

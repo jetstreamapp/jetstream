@@ -47,7 +47,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useAtom, useAtomValue } from 'jotai';
 import groupBy from 'lodash/groupBy';
 import { Fragment, FunctionComponent, MouseEvent, useCallback, useEffect, useMemo, useState, type Key, type ReactElement } from 'react';
-import { Link, useHref, useSearchParams } from 'react-router-dom';
+import { Link, useHref, useSearchParams } from 'react-router';
 import {
   FIELD_USAGE_DELETE_INELIGIBLE_LABELS,
   fieldUsageDestructiveDeleteIneligibleReason,

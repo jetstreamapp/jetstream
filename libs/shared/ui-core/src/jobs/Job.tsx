@@ -5,7 +5,7 @@ import { formatDate } from 'date-fns/format';
 import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
 import isString from 'lodash/isString';
 import { FunctionComponent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { downloadJob } from './job-utils';
 
 const JOBS_WITH_DOWNLOAD = new Set<AsyncJobType>(['BulkDelete', 'BulkUndelete']);
