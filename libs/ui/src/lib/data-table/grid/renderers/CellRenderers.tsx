@@ -309,11 +309,29 @@ export function RecordErrorMessageRenderer({ row }: DataTableCellProps<RowWithKe
 }
 
 /**
- * Estimate the row height needed to show a row's full (wrapped) record-error message. Grid rows are
- * pinned to a fixed height (never DOM-measured), so approximate the wrapped line count from the message
- * length and the error column's current width, then clamp. Pass the grid's live `columnWidths` map so the
- * estimate tracks resizes; falls back to the default width when omitted. Returns `defaultRowHeight` for
- * rows without a message.
+ * Estimate the row height needed to show a full wrapped message in a column of the given width. Grid rows
+ * are pinned to a fixed height (never DOM-measured), so approximate the wrapped line count from the
+ * message length and the column width, then clamp to {@link RECORD_ERROR_MAX_LINES}. Returns
+ * `defaultRowHeight` for empty messages. Pair with a cell that wraps (`white-space: pre-wrap`) and hides
+ * overflow, keeping the full text available via a title tooltip.
+ */
+export function getWrappedTextRowHeight(
+  message: string | null | undefined,
+  columnWidth = RECORD_ERROR_COLUMN_WIDTH,
+  defaultRowHeight = DEFAULT_ROW_HEIGHT,
+): number {
+  if (!message) {
+    return defaultRowHeight;
+  }
+  const charsPerLine = Math.max(1, Math.floor((columnWidth - RECORD_ERROR_CELL_PADDING) / RECORD_ERROR_CHAR_WIDTH));
+  const lineCount = message.split('\n').reduce((total, segment) => total + Math.max(1, Math.ceil(segment.length / charsPerLine)), 0);
+  return Math.max(defaultRowHeight, Math.min(lineCount, RECORD_ERROR_MAX_LINES) * RECORD_ERROR_LINE_HEIGHT);
+}
+
+/**
+ * Estimate the row height needed to show a row's full (wrapped) record-error message in the standalone
+ * "Error" column. Pass the grid's live `columnWidths` map so the estimate tracks resizes; falls back to
+ * the default width when omitted. Returns `defaultRowHeight` for rows without a message.
  */
 export function getRecordErrorRowHeight(
   row: RowWithKey,
@@ -321,13 +339,7 @@ export function getRecordErrorRowHeight(
   defaultRowHeight = DEFAULT_ROW_HEIGHT,
 ): number {
   const { status } = row as RowWithRecordError;
-  if (!status) {
-    return defaultRowHeight;
-  }
-  const columnWidth = columnWidths?.[INLINE_ERROR_COLUMN_KEY] ?? RECORD_ERROR_COLUMN_WIDTH;
-  const charsPerLine = Math.max(1, Math.floor((columnWidth - RECORD_ERROR_CELL_PADDING) / RECORD_ERROR_CHAR_WIDTH));
-  const lineCount = status.split('\n').reduce((total, segment) => total + Math.max(1, Math.ceil(segment.length / charsPerLine)), 0);
-  return Math.max(defaultRowHeight, Math.min(lineCount, RECORD_ERROR_MAX_LINES) * RECORD_ERROR_LINE_HEIGHT);
+  return getWrappedTextRowHeight(status, columnWidths?.[INLINE_ERROR_COLUMN_KEY] ?? RECORD_ERROR_COLUMN_WIDTH, defaultRowHeight);
 }
 
 /** Build the standalone, non-sortable/non-filterable "Error" column backed by {@link RecordErrorMessageRenderer}. */

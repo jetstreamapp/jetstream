@@ -44,6 +44,8 @@ export interface ConnectedSobjectListMultiSelectProps {
   onSobjects: (sobjects: DescribeGlobalSObjectResult[] | null) => void;
   onSelectedSObjects: (selectedSObjects: string[]) => void;
   onRefresh?: () => void;
+  /** When true, object list is read-only (selection and refresh disabled). */
+  disabled?: boolean;
 }
 
 export const ConnectedSobjectListMultiSelect = forwardRef<any, ConnectedSobjectListMultiSelectProps>(
@@ -61,6 +63,7 @@ export const ConnectedSobjectListMultiSelect = forwardRef<any, ConnectedSobjectL
       onSobjects,
       onSelectedSObjects,
       onRefresh,
+      disabled = false,
     },
     ref,
   ) => {
@@ -131,6 +134,8 @@ export const ConnectedSobjectListMultiSelect = forwardRef<any, ConnectedSobjectL
       setLoading(false);
     }, [filterFn, onSobjects, selectedOrg]);
 
+    // Auto-load is independent of `disabled`: a read-only list should still populate its data (the
+    // `!sobjects` guard skips the fetch when a caller pre-supplies objects); `disabled` only gates interaction.
     useEffect(() => {
       if (selectedOrg && !loading && !errorMessage && !sobjects) {
         loadObjects().then(NOOP);
@@ -162,7 +167,11 @@ export const ConnectedSobjectListMultiSelect = forwardRef<any, ConnectedSobjectL
           </h2>
           <div>
             <Tooltip id={`sobject-list-refresh-tooltip`} content={lastRefreshed}>
-              <button className="slds-button slds-button_icon slds-button_icon-container" disabled={loading} onClick={handleRefresh}>
+              <button
+                className="slds-button slds-button_icon slds-button_icon-container"
+                disabled={disabled || loading}
+                onClick={handleRefresh}
+              >
                 <Icon type="utility" icon="refresh" description={`Reload objects`} className="slds-button__icon" omitContainer />
               </button>
             </Tooltip>
@@ -174,6 +183,7 @@ export const ConnectedSobjectListMultiSelect = forwardRef<any, ConnectedSobjectL
           loading={loading}
           errorMessage={errorMessage}
           allowSelectAll={allowSelectAll}
+          disabled={disabled}
           recentItemsEnabled={recentItemsEnabled}
           recentItems={recentItemsFiltered}
           onSelected={onSelectedSObjects}

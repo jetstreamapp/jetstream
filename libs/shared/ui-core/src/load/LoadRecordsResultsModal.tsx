@@ -13,6 +13,7 @@ import {
   CopyToClipboardWithToolTip,
   DataTable,
   getRowTypeFromValue,
+  getWrappedTextRowHeight,
   Grid,
   Icon,
   Modal,
@@ -33,7 +34,9 @@ const COL_WIDTH_MAP = {
   _errors: 450,
 };
 
-const getRowHeight = ({ row }: { type: 'ROW' | 'GROUP'; row: any }) => (row?._errors ? 75 : 25);
+// Grow rows to fit their wrapped error message, tracking the live width of the _errors column on resize.
+const getRowHeight = ({ row, columnWidths }: { type: 'ROW' | 'GROUP'; row: any; columnWidths: Record<string, number> }) =>
+  getWrappedTextRowHeight(row?._errors, columnWidths?.['_errors'] ?? COL_WIDTH_MAP._errors);
 
 const getDefaultSelectedRows = (rows: any[], selectable: boolean): ReadonlySet<Key> =>
   selectable ? new Set(rows.map((_row, i) => `id-${i}`)) : new Set();
@@ -84,9 +87,12 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
           item === '_errors'
             ? ({ row }) => (
                 <p
+                  title={row?._errors}
                   css={css`
                     white-space: pre-wrap;
+                    overflow-wrap: anywhere;
                     line-height: normal;
+                    overflow: hidden;
                   `}
                 >
                   {row._errors && (
