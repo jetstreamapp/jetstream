@@ -119,10 +119,6 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   }, [historyItems]);
 
   useEffect(() => {
-    setVisibleResults(results || '');
-  }, [results]);
-
-  useEffect(() => {
     let currResults = results.split('\n');
     // remove non user-debug lines
     if (userDebug && currResults) {
