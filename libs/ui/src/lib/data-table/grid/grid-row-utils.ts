@@ -32,6 +32,41 @@ export function getSortedFilteredLeafRows<TRow>(table: Table<TRow>): Row<TRow>[]
   return leafRows;
 }
 
+/**
+ * Shift-click range selection: set every row between `anchorRowId` and `targetRowId` (inclusive, in the
+ * current filtered/sorted/flattened display order) to the SAME selected state as the anchor row. Group
+ * header rows and non-selectable rows are skipped. Returns `false` (without mutating selection) when
+ * either id is no longer in the row model (e.g. the anchor was filtered out) so the caller can fall back
+ * to a plain single-row toggle.
+ */
+export function selectRowRange<TRow>(table: Table<TRow>, anchorRowId: string, targetRowId: string): boolean {
+  const rows = table.getRowModel().rows;
+  const anchorIndex = rows.findIndex((row) => row.id === anchorRowId);
+  const targetIndex = rows.findIndex((row) => row.id === targetRowId);
+  if (anchorIndex === -1 || targetIndex === -1) {
+    return false;
+  }
+  const selected = rows[anchorIndex].getIsSelected();
+  const start = Math.min(anchorIndex, targetIndex);
+  const end = Math.max(anchorIndex, targetIndex);
+  table.setRowSelection((prev) => {
+    const next = { ...prev };
+    for (let i = start; i <= end; i++) {
+      const row = rows[i];
+      if (row.getIsGrouped() || !row.getCanSelect()) {
+        continue;
+      }
+      if (selected) {
+        next[row.id] = true;
+      } else {
+        delete next[row.id];
+      }
+    }
+    return next;
+  });
+  return true;
+}
+
 const SFDC_EMPTY_ID = '000000000000000AAA';
 
 // TanStack Table calls getRowId on every render to re-resolve its row model. Without this cache, rows

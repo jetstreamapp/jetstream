@@ -341,9 +341,17 @@ export function GridContainer<TRow = RowWithKey>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyboardNav.activeCell?.columnId]);
 
+  // Anchor for shift-click range selection — the last row whose checkbox was toggled when a range wasn't applied.
+  // A private ref exposed via stable getter/setter (a context value can't be mutated directly), so
+  // every select cell's range-select handler agrees on the anchor.
+  const rowSelectionAnchorRef = useRef<string | null>(null);
+  const getRowSelectionAnchor = useCallback(() => rowSelectionAnchorRef.current, []);
+  const setRowSelectionAnchor = useCallback((rowId: string | null) => {
+    rowSelectionAnchorRef.current = rowId;
+  }, []);
   const runtime: GridRuntime<TRow> = useMemo(
-    () => ({ table, gridId, getRowKey, columns: orderedColumns }),
-    [table, gridId, getRowKey, orderedColumns],
+    () => ({ table, gridId, getRowKey, columns: orderedColumns, getRowSelectionAnchor, setRowSelectionAnchor }),
+    [table, gridId, getRowKey, orderedColumns, getRowSelectionAnchor, setRowSelectionAnchor],
   );
 
   const rowModelRows = table.getRowModel().rows;
