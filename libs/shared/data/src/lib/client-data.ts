@@ -217,10 +217,6 @@ export async function getSsoConfiguration(teamId: string): Promise<LoginConfigur
   return handleRequest({ method: 'GET', url: `/api/teams/${teamId}/sso/config` }).then(unwrapResponseIgnoreCache);
 }
 
-export async function discoverOidcConfig(teamId: string, issuer: string): Promise<Partial<OidcConfiguration>> {
-  return handleRequest({ method: 'POST', url: `/api/teams/${teamId}/sso/oidc/discover`, data: { issuer } }).then(unwrapResponseIgnoreCache);
-}
-
 export async function saveOidcConfig(teamId: string, config: Partial<OidcConfiguration>): Promise<LoginConfiguration> {
   return handleRequest({ method: 'POST', url: `/api/teams/${teamId}/sso/oidc/config`, data: config }).then(unwrapResponseIgnoreCache);
 }

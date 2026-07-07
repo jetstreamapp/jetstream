@@ -47,7 +47,7 @@ It is recommended that you enable the **Require PKCE as additional verification*
 
 ### Configure Jetstream Connection
 
-Enter the Issuer URL in the format `https://{yourOktaDomain}.okta.com` and click "Auto-Discover Endpoints".
+Enter the Issuer URL in the format `https://{yourOktaDomain}.okta.com`. Jetstream discovers the authorization, token, and JWKS endpoints from your issuer automatically when you save.
 
 :::tip
 
@@ -120,7 +120,7 @@ Click **Next** and then **Finish** to create the application.
 
 ### Configure Jetstream Connection
 
-Copy the Metadata URL from Okta and paste it into Jetstream in the **IdP Metadata URL** field and press Auto-discover. This will automatically populate the IdP SSO URL and IdP Certificate fields.
+Copy the Metadata URL from Okta and paste it into Jetstream in the **Metadata URL** field, then click "Fetch Metadata". This will automatically populate the IdP SSO URL and IdP Certificate fields.
 
 Alternatively, you can visit the URL in your browser and copy the contents of the XML file and paste it into the **IdP Metadata XML** field in Jetstream.
 

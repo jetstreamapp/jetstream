@@ -441,13 +441,18 @@ export const OidcConfigurationRequestSchema = OidcConfigurationSchema.pick({
   issuer: true,
   clientId: true,
   clientSecret: true,
-  authorizationEndpoint: true,
-  tokenEndpoint: true,
-  userinfoEndpoint: true,
-  jwksUri: true,
-  endSessionEndpoint: true,
   scopes: true,
   attributeMapping: true,
+}).extend({
+  // The IdP endpoints are resolved server-side from the issuer's OIDC discovery document at save
+  // time (and re-discovered on every login), so an admin only needs to supply the issuer. These
+  // fields remain optional in the request shape for backwards compatibility, but any client-supplied
+  // values are ignored and overwritten server-side with the authoritative discovered values.
+  authorizationEndpoint: z.url().nullish(),
+  tokenEndpoint: z.url().nullish(),
+  userinfoEndpoint: z.url().nullish(),
+  jwksUri: z.url().nullish(),
+  endSessionEndpoint: z.url().nullish(),
 });
 export type OidcConfigurationRequest = z.infer<typeof OidcConfigurationRequestSchema>;
 

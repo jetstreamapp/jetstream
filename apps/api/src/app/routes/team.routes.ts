@@ -152,12 +152,6 @@ routes.delete(
 
 // OIDC Configuration
 routes.post(
-  '/:teamId/sso/oidc/discover',
-  validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN]),
-  teamController.discoverOidcConfig.controllerFn(),
-);
-
-routes.post(
   '/:teamId/sso/oidc/config',
   validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN]),
   teamController.createOrUpdateOidcConfig.controllerFn(),

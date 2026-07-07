@@ -268,12 +268,27 @@ export class OidcService {
   async getDiscoveredConfigForSaving(issuer: string): Promise<DiscoveredOidcConfig> {
     const authServer = await this.discoverOidcConfiguration(issuer);
 
+    // oauth4webapi's processDiscoveryResponse only guarantees a matching `issuer`, so a reachable but
+    // incomplete document can still parse. The auth-code flow requires these three endpoints and they
+    // are non-nullable DB columns, so validate them here — otherwise the missing values would flow to
+    // Prisma as `undefined` and fail with an opaque 500 instead of a clear, user-facing error. This
+    // also makes the non-null contract on DiscoveredOidcConfig actually hold.
+    const { authorization_endpoint, token_endpoint, jwks_uri } = authServer;
+    if (!authorization_endpoint || !token_endpoint || !jwks_uri) {
+      const missingEndpoints = [
+        !authorization_endpoint && 'authorization_endpoint',
+        !token_endpoint && 'token_endpoint',
+        !jwks_uri && 'jwks_uri',
+      ].filter(Boolean);
+      throw new Error(`OIDC discovery document is missing required endpoint(s): ${missingEndpoints.join(', ')}`);
+    }
+
     return {
       issuer: authServer.issuer,
-      authorizationEndpoint: authServer.authorization_endpoint!,
-      tokenEndpoint: authServer.token_endpoint!,
+      authorizationEndpoint: authorization_endpoint,
+      tokenEndpoint: token_endpoint,
       userinfoEndpoint: authServer.userinfo_endpoint,
-      jwksUri: authServer.jwks_uri!,
+      jwksUri: jwks_uri,
       endSessionEndpoint: authServer.end_session_endpoint,
     };
   }

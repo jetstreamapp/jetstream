@@ -1,7 +1,7 @@
 import { ENV, getLogger } from '@jetstream/api-config';
 import { AuditLogAction, AuditLogResource, createTeamAuditLog } from '@jetstream/audit-logs';
 import * as authService from '@jetstream/auth/server';
-import { encryptSecret, oidcService, samlService } from '@jetstream/auth/server';
+import { DiscoveredOidcConfig, encryptSecret, oidcService, samlService } from '@jetstream/auth/server';
 import { OidcConfigurationRequestSchema, SamlConfigurationRequestSchema } from '@jetstream/auth/types';
 import { BLOCKED_PUBLIC_EMAIL_DOMAINS } from '@jetstream/shared/constants';
 import { assertDomainResolvesToPublicIp, fetchWithPinnedPublicIp } from '@jetstream/shared/node-utils';
@@ -24,7 +24,7 @@ import { unparse } from 'papaparse';
 import { z } from 'zod';
 import * as teamDb from '../db/team.db';
 import * as teamService from '../services/team.service';
-import { NotAllowedError, NotFoundError } from '../utils/error-handler';
+import { NotAllowedError, NotFoundError, UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
 import { createRoute, RouteValidator } from '../utils/route.utils';
 
@@ -337,15 +337,6 @@ export const routeDefinition = {
       logErrorToBugTracker: true,
       params: z.object({ teamId: z.uuid() }),
       body: SamlConfigurationRequestSchema,
-    } satisfies RouteValidator,
-  },
-  discoverOidcConfig: {
-    controllerFn: () => discoverOidcConfig,
-    responseType: z.any(),
-    validators: {
-      hasSourceOrg: false,
-      params: z.object({ teamId: z.uuid() }),
-      body: z.object({ issuer: z.url() }),
     } satisfies RouteValidator,
   },
   createOrUpdateOidcConfig: {
@@ -940,23 +931,6 @@ const createOrUpdateSamlConfig = createRoute(
   },
 );
 
-const discoverOidcConfig = createRoute(routeDefinition.discoverOidcConfig.validators, async ({ body }, _, res, next) => {
-  try {
-    const { issuer } = body;
-    // SSRF protection: resolve hostname and reject private/internal IPs. Skipped in dev/CI
-    // (USE_SECURE_COOKIES=false) so local IdPs are reachable — matches the runtime discovery
-    // gate in libs/auth/server/src/lib/oidc.service.ts and the SAML save-time fetch above.
-    if (ENV.USE_SECURE_COOKIES) {
-      await assertDomainResolvesToPublicIp(issuer);
-    }
-    const discovered = await oidcService.getDiscoveredConfigForSaving(issuer);
-    sendJson(res, discovered);
-  } catch (ex) {
-    getLogger().error(getErrorMessageAndStackObj(ex), 'Failed to discover OIDC configuration');
-    next(ex);
-  }
-});
-
 const createOrUpdateOidcConfig = createRoute(
   routeDefinition.createOrUpdateOidcConfig.validators,
   async ({ params, body, user }, req, res, next) => {
@@ -965,9 +939,11 @@ const createOrUpdateOidcConfig = createRoute(
 
       const hasVerifiedDomain = await teamDb.hasVerifiedDomain(teamId);
       if (!hasVerifiedDomain) {
-        throw new Error('At least one verified domain is required to configure SSO.');
+        throw new UserFacingError('At least one verified domain is required to configure SSO.');
       }
 
+      // Resolve the client secret first (cheap, local) so a request missing it fails fast — before we
+      // make an outbound OIDC discovery request to a client-controlled issuer URL.
       const existingConfig = await teamDb.getSsoConfiguration(teamId);
       let encryptedSecret = '';
 
@@ -978,7 +954,28 @@ const createOrUpdateOidcConfig = createRoute(
         // Use existing client secret
         encryptedSecret = existingConfig.oidcConfiguration.clientSecret;
       } else {
-        throw new Error('Client Secret is required');
+        throw new UserFacingError('Client Secret is required');
+      }
+
+      // Resolve the IdP endpoints from the issuer's OIDC discovery document instead of trusting client
+      // input. Login resolves endpoints via oidcService.discoverOidcConfiguration (a cached lookup, 1h
+      // TTL), not the stored columns, so the persisted endpoints are only an informational snapshot —
+      // deriving them here keeps them consistent with the issuer and lets an admin configure SSO with
+      // just the issuer + client credentials. SSRF protection: resolve + reject private IPs in prod.
+      if (ENV.USE_SECURE_COOKIES) {
+        await assertDomainResolvesToPublicIp(body.issuer);
+      }
+      let discovered: DiscoveredOidcConfig;
+      try {
+        discovered = await oidcService.getDiscoveredConfigForSaving(body.issuer);
+      } catch (ex) {
+        getLogger().warn({ err: ex, teamId }, 'OIDC discovery failed while saving SSO configuration');
+        throw new UserFacingError(
+          `We couldn't resolve the OIDC endpoints from that Issuer URL. Confirm the issuer is correct and that it publishes a valid discovery document (with authorization, token, and JWKS endpoints) at ${body.issuer.replace(
+            /\/$/,
+            '',
+          )}/.well-known/openid-configuration.`,
+        );
       }
 
       const {
@@ -988,6 +985,12 @@ const createOrUpdateOidcConfig = createRoute(
       } = await teamDb.createOrUpdateOidcConfiguration(teamId, user.id, {
         ...body,
         clientSecret: encryptedSecret,
+        // Endpoints are authoritative from discovery, never client input.
+        authorizationEndpoint: discovered.authorizationEndpoint,
+        tokenEndpoint: discovered.tokenEndpoint,
+        userinfoEndpoint: discovered.userinfoEndpoint ?? null,
+        jwksUri: discovered.jwksUri,
+        endSessionEndpoint: discovered.endSessionEndpoint ?? null,
       });
 
       sendJson(res, maskSsoSecrets(config));
@@ -1014,10 +1017,17 @@ const createOrUpdateOidcConfig = createRoute(
         if (previousOidcConfig.issuer !== body.issuer) changes.issuer = { from: previousOidcConfig.issuer, to: body.issuer };
         if (previousOidcConfig.clientId !== body.clientId) changes.clientId = { from: previousOidcConfig.clientId, to: body.clientId };
         if (body.clientSecret) changes.clientSecretUpdated = true;
-        if (previousOidcConfig.authorizationEndpoint !== body.authorizationEndpoint)
-          changes.authorizationEndpoint = { from: previousOidcConfig.authorizationEndpoint, to: body.authorizationEndpoint };
-        if (previousOidcConfig.tokenEndpoint !== body.tokenEndpoint)
-          changes.tokenEndpoint = { from: previousOidcConfig.tokenEndpoint, to: body.tokenEndpoint };
+        if (previousOidcConfig.authorizationEndpoint !== discovered.authorizationEndpoint)
+          changes.authorizationEndpoint = { from: previousOidcConfig.authorizationEndpoint, to: discovered.authorizationEndpoint };
+        if (previousOidcConfig.tokenEndpoint !== discovered.tokenEndpoint)
+          changes.tokenEndpoint = { from: previousOidcConfig.tokenEndpoint, to: discovered.tokenEndpoint };
+        if (previousOidcConfig.jwksUri !== discovered.jwksUri)
+          changes.jwksUri = { from: previousOidcConfig.jwksUri, to: discovered.jwksUri };
+        // userinfo/endSession are nullable columns persisted as `?? null`, so normalize before comparing.
+        if (previousOidcConfig.userinfoEndpoint !== (discovered.userinfoEndpoint ?? null))
+          changes.userinfoEndpoint = { from: previousOidcConfig.userinfoEndpoint, to: discovered.userinfoEndpoint ?? null };
+        if (previousOidcConfig.endSessionEndpoint !== (discovered.endSessionEndpoint ?? null))
+          changes.endSessionEndpoint = { from: previousOidcConfig.endSessionEndpoint, to: discovered.endSessionEndpoint ?? null };
         if ([...(previousOidcConfig.scopes ?? [])].sort().join(',') !== [...(body.scopes ?? [])].sort().join(','))
           changes.scopes = { from: previousOidcConfig.scopes, to: body.scopes };
         if (JSON.stringify(previousOidcConfig.attributeMapping) !== JSON.stringify(body.attributeMapping))

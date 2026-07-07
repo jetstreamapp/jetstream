@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { oidcService } from '../oidc.service';
 
 const userInfoRequestMock = vi.fn();
@@ -13,16 +13,17 @@ vi.mock('oauth4webapi', async () => {
     calculatePKCECodeChallenge: async () => 'challenge-abc',
     generateRandomState: () => 'state-123',
     generateRandomNonce: () => 'nonce-123',
-    discoveryRequest: vi.fn(async () =>
-      new Response(
-        JSON.stringify({
-          issuer: 'https://issuer.test',
-          authorization_endpoint: 'https://issuer.test/auth',
-          token_endpoint: 'https://issuer.test/token',
-          jwks_uri: 'https://issuer.test/jwks',
-        }),
-        { status: 200 },
-      ),
+    discoveryRequest: vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            issuer: 'https://issuer.test',
+            authorization_endpoint: 'https://issuer.test/auth',
+            token_endpoint: 'https://issuer.test/token',
+            jwks_uri: 'https://issuer.test/jwks',
+          }),
+          { status: 200 },
+        ),
     ),
     processDiscoveryResponse: vi.fn(async (_issuer, res) => {
       const json = await res.json();
@@ -81,6 +82,45 @@ describe('oidcService', () => {
     expect(codeVerifier.length).toBeGreaterThan(10);
     expect(state.length).toBeGreaterThan(5);
     expect(nonce.length).toBeGreaterThan(5);
+  });
+
+  describe('getDiscoveredConfigForSaving', () => {
+    it('maps the discovered endpoints for a complete discovery document', async () => {
+      const discovered = await oidcService.getDiscoveredConfigForSaving('https://issuer.test');
+
+      expect(discovered.authorizationEndpoint).toBe('https://issuer.test/auth');
+      expect(discovered.tokenEndpoint).toBe('https://issuer.test/token');
+      expect(discovered.jwksUri).toBe('https://issuer.test/jwks');
+    });
+
+    it('throws naming the missing endpoints when the discovery document is incomplete', async () => {
+      // A reachable but incomplete document parses fine (oauth4webapi only guarantees `issuer`), so
+      // guard the required endpoints here rather than letting `undefined` reach the DB as an opaque 500.
+      const oauth = await import('oauth4webapi');
+      (oauth.discoveryRequest as any).mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            issuer: 'https://issuer-incomplete.test',
+            authorization_endpoint: 'https://issuer-incomplete.test/auth',
+            // token_endpoint + jwks_uri intentionally omitted
+          }),
+          { status: 200 },
+        ),
+      );
+      (oauth.processDiscoveryResponse as any).mockImplementationOnce(async (_issuer: unknown, res: Response) => {
+        const json = await res.json();
+        return {
+          issuer: json.issuer,
+          authorization_endpoint: json.authorization_endpoint,
+          token_endpoint: json.token_endpoint,
+          jwks_uri: json.jwks_uri,
+        } as any;
+      });
+
+      await expect(oidcService.getDiscoveredConfigForSaving('https://issuer-incomplete.test')).rejects.toThrow(
+        /missing required endpoint\(s\): token_endpoint, jwks_uri/i,
+      );
+    });
   });
 
   describe('extractUserInfo email_verified handling', () => {
