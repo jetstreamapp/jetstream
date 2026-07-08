@@ -13,7 +13,8 @@ const EVENT_MAP = {
 } as const;
 
 window.addEventListener('message', async (event) => {
-  if (event.origin !== targetOrigin) {
+  // Only accept messages posted by this same page (not an embedding/opener frame) and from our origin
+  if (event.source !== window || event.origin !== targetOrigin) {
     return;
   }
   if (event.data?.message === EVENT_MAP.ACKNOWLEDGE) {

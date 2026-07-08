@@ -2,9 +2,20 @@ import { ENV, getLogger, httpLogger, logger, requestContextMiddleware } from '@j
 import { GeoIpLookupResult } from '@jetstream/types';
 import { json, urlencoded } from 'body-parser';
 import express from 'express';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { z, ZodError } from 'zod';
 import { downloadMaxMindDb, initMaxMind, lookupIpAddress, validateIpAddress } from './maxmind.service';
 import { createRoute } from './route.utils';
+
+/**
+ * Constant-time credential comparison. Both values are hashed to a fixed-length digest first so the
+ * comparison does not leak length and does not throw on mismatched lengths.
+ */
+function timingSafeStringCompare(providedValue: string, expectedValue: string): boolean {
+  const providedHash = createHash('sha256').update(String(providedValue)).digest();
+  const expectedHash = createHash('sha256').update(String(expectedValue)).digest();
+  return timingSafeEqual(providedHash, expectedHash);
+}
 
 const DISK_PATH = process.env.DISK_PATH ?? __dirname;
 
@@ -38,8 +49,23 @@ app.use((req, res, next) => {
     if (type !== 'Basic') {
       throw new Error('Unauthorized');
     }
-    const [username, password] = Buffer.from(token, 'base64').toString().split(':');
-    if (username !== ENV.GEO_IP_API_USERNAME || password !== ENV.GEO_IP_API_PASSWORD) {
+    // Fail closed: if the expected credentials aren't configured, reject rather than letting the
+    // empty-string default match an empty `:` Basic header (a bypass reachable in development).
+    const expectedUsername = ENV.GEO_IP_API_USERNAME;
+    const expectedPassword = ENV.GEO_IP_API_PASSWORD;
+    if (!expectedUsername || !expectedPassword) {
+      throw new Error('Unauthorized');
+    }
+    // Per RFC 7617 the userid cannot contain a colon but the password may, so split on the first colon only.
+    const decodedCredentials = Buffer.from(token, 'base64').toString();
+    const separatorIndex = decodedCredentials.indexOf(':');
+    const username = separatorIndex === -1 ? decodedCredentials : decodedCredentials.slice(0, separatorIndex);
+    const password = separatorIndex === -1 ? '' : decodedCredentials.slice(separatorIndex + 1);
+    // Evaluate both comparisons (no short-circuit) with a constant-time compare so response time
+    // does not reveal whether the username alone was correct.
+    const usernameMatches = timingSafeStringCompare(username ?? '', expectedUsername);
+    const passwordMatches = timingSafeStringCompare(password ?? '', expectedPassword);
+    if (!usernameMatches || !passwordMatches) {
       throw new Error('Unauthorized');
     }
     next();
@@ -101,7 +127,7 @@ app.get(
  */
 app.post(
   '/api/lookup',
-  createRoute({ body: z.object({ ips: z.string().array() }) }, async ({ body }, _, res, next) => {
+  createRoute({ body: z.object({ ips: z.string().array().max(1000) }) }, async ({ body }, _, res, next) => {
     try {
       const ipAddresses = body.ips;
       await initMaxMind(DISK_PATH);

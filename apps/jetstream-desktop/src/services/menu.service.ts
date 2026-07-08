@@ -5,6 +5,7 @@ import logger from 'electron-log';
 import path from 'node:path';
 import { Browser } from '../browser/browser';
 import { checkForUpdates } from '../config/auto-updater';
+import { openExternalSafe } from '../utils/url.utils';
 import { isMac } from '../utils/utils';
 import { getUserPreferences } from './persistence.service';
 
@@ -117,20 +118,20 @@ export function initAppMenu() {
       submenu: [
         {
           label: 'Documentation',
-          click: async () => {
-            await shell.openExternal('https://docs.getjetstream.app/');
+          click: () => {
+            openExternalSafe('https://docs.getjetstream.app/');
           },
         },
         {
           label: 'Report an issue',
-          click: async () => {
-            await shell.openExternal('https://github.com/jetstreamapp/jetstream/issues');
+          click: () => {
+            openExternalSafe('https://github.com/jetstreamapp/jetstream/issues');
           },
         },
         {
           label: 'Email us',
-          click: async () => {
-            await shell.openExternal('email:support@getjetstream.app');
+          click: () => {
+            openExternalSafe('mailto:support@getjetstream.app');
           },
         },
         { type: 'separator' },

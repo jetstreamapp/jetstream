@@ -25,6 +25,7 @@ import { checkForUpdates, getCurrentUpdateStatus, installUpdate } from '../confi
 import { ENV } from '../config/environment';
 import { desktopRoutes } from '../controllers/desktop.routes';
 import { getOrgFromHeaderOrQuery, initApiConnection } from '../utils/route.utils';
+import { openExternalSafe } from '../utils/url.utils';
 import { AuthResponseSuccess, logout, verifyAuthToken } from './api.service';
 import { deepLink } from './deep-link.service';
 import { downloadAndZipFilesToDisk, downloadBulkApiFileAndSaveToDisk } from './file-download.service';
@@ -114,7 +115,7 @@ const handleLoginEvent: MainIpcHandler<'login'> = async (event) => {
   // This is used to ensure the callback is coming from the same device
   const token = crypto.randomUUID();
   const loginUrl = `${ENV.SERVER_URL}/desktop-app/auth?deviceId=${deviceId}&token=${token}`;
-  await shell.openExternal(loginUrl);
+  openExternalSafe(loginUrl);
 
   const handleCallback = async (requestUrlParams: Record<string, string>) => {
     try {
@@ -212,7 +213,7 @@ const handleAddOrgEvent: MainIpcHandler<'addOrg'> = async (event, payload) => {
     loginHint: payload.loginHint,
   });
 
-  await shell.openExternal(authorizationUrl.toString());
+  openExternalSafe(authorizationUrl.toString());
 
   const handleCallback = async (queryParams: Record<string, string>) => {
     try {
@@ -303,7 +304,7 @@ const handleOpenGooglePickerEvent: MainIpcHandler<'openGooglePicker'> = async (e
   const hashFragment = hashParams.toString() ? `#${hashParams.toString()}` : '';
   const pickerUrl = `${ENV.SERVER_URL}/desktop-app/google-picker?${pickerParams.toString()}${hashFragment}`;
 
-  await shell.openExternal(pickerUrl);
+  openExternalSafe(pickerUrl);
 
   const handleCallback = async (queryParams: Record<string, string>) => {
     try {

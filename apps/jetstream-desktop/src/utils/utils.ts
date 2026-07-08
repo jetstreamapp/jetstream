@@ -1,4 +1,5 @@
 import { app } from 'electron';
+import { basename } from 'node:path';
 import { SERVER_URL } from '../config/environment';
 import { initAppMenu } from '../services/menu.service';
 
@@ -35,6 +36,20 @@ export function getCspPolicy() {
     .map(([key, value]) => `${key} ${value.join(' ')}`)
     .join('; ');
   return cspPolicy;
+}
+
+/**
+ * `basename()` strips path separators but still lets bare dot-segments (`.`/`..`) through, and those
+ * resolve to a directory when joined onto a download folder (e.g. `join(dir, '..')` === the parent).
+ * Reject them (return `null`) so callers can fall back to a save prompt or a safe default name instead
+ * of writing to the folder root.
+ */
+export function toSafeDownloadFileName(fileName: string): string | null {
+  const safeName = basename(fileName);
+  if (safeName === '' || safeName === '.' || safeName === '..') {
+    return null;
+  }
+  return safeName;
 }
 
 export function setRecentDocument(path: string) {

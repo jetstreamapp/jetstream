@@ -8,7 +8,7 @@ import { createWriteStream, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { Readable } from 'stream';
 import { pipeline } from 'stream/promises';
-import { setRecentDocument } from '../utils/utils';
+import { setRecentDocument, toSafeDownloadFileName } from '../utils/utils';
 import { getUserPreferences } from './persistence.service';
 
 function emitProgress(sender: Maybe<WebContents>, progress: DownloadZipProgress) {
@@ -32,8 +32,14 @@ export async function downloadAndZipFilesToDisk(
     const downloadPreferences = getUserPreferences().fileDownload;
     let downloadPath: string;
 
-    if (downloadPreferences?.omitPrompt && downloadPreferences?.downloadPath && existsSync(downloadPreferences.downloadPath)) {
-      downloadPath = join(downloadPreferences.downloadPath, zipFileName);
+    const safeZipFileName = toSafeDownloadFileName(zipFileName);
+    if (
+      downloadPreferences?.omitPrompt &&
+      downloadPreferences?.downloadPath &&
+      existsSync(downloadPreferences.downloadPath) &&
+      safeZipFileName
+    ) {
+      downloadPath = join(downloadPreferences.downloadPath, safeZipFileName);
     } else {
       const defaultPath = app.getPath('downloads');
       const result = await dialog.showSaveDialog({
@@ -124,8 +130,14 @@ export async function downloadBulkApiFileAndSaveToDisk({
     const downloadPreferences = getUserPreferences().fileDownload;
     let downloadPath: string;
 
-    if (downloadPreferences?.omitPrompt && downloadPreferences?.downloadPath && existsSync(downloadPreferences.downloadPath)) {
-      downloadPath = join(downloadPreferences.downloadPath, fileName);
+    const safeFileName = toSafeDownloadFileName(fileName);
+    if (
+      downloadPreferences?.omitPrompt &&
+      downloadPreferences?.downloadPath &&
+      existsSync(downloadPreferences.downloadPath) &&
+      safeFileName
+    ) {
+      downloadPath = join(downloadPreferences.downloadPath, safeFileName);
     } else {
       const defaultPath = app.getPath('downloads');
       const result = await dialog.showSaveDialog({
