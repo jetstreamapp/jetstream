@@ -53,11 +53,16 @@ export function getDefaultAppState(initial?: Maybe<Partial<ApplicationState>>): 
   };
 }
 
-export function getErrorMessage(error: unknown) {
+export function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
   }
-  return JSON.stringify(error);
+  try {
+    // JSON.stringify returns undefined for undefined/functions/symbols, so fall back to String()
+    return JSON.stringify(error) ?? String(error);
+  } catch {
+    return String(error);
+  }
 }
 
 export function getErrorStack(error: unknown) {

@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { clearCacheForOrg } from '@jetstream/shared/data';
 import { convertDateToLocale, filterLoadSobjects, formatNumber, tracker } from '@jetstream/shared/ui-utils';
-import { getRecordIdFromAttributes, pluralizeFromNumber } from '@jetstream/shared/utils';
+import { getErrorMessage, getRecordIdFromAttributes, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { ListItem, Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import {
   Checkbox,
@@ -28,7 +28,7 @@ import {
   MetadataRowConfiguration,
   useDeployRecords,
 } from '@jetstream/ui-core';
-import { Query } from '@jetstreamapp/soql-parser-js';
+import { composeQuery, Query } from '@jetstreamapp/soql-parser-js';
 import { useAtom } from 'jotai';
 import { atomWithReset, useAtomCallback, useResetAtom } from 'jotai/utils';
 import isNumber from 'lodash/isNumber';
@@ -237,8 +237,28 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
       if (abortController.signal.aborted) {
         return;
       }
-      setFatalError('There was a problem loading records. Please try again.');
-      tracker.error('Error previewing bulk update records', ex);
+      // A failed preview is transient/retryable (e.g. a Salesforce query timeout), so surface it as a
+      // recoverable errorMessage rather than a fatalError — fatalError disables the Preview button and is
+      // never cleared, which would trap the user with no way to retry or continue. Show Salesforce's actual
+      // message when available since it's actionable (e.g. "running for too long" → narrow the selection).
+      setErrorMessage(`There was a problem loading records. ${getErrorMessage(ex)}`.trim());
+      // Include the query shape + selection context so a failed preview can be diagnosed from the error alone
+      // (e.g. the SF errors caused by oversized `WHERE Id IN (...)` re-fetches). The WHERE clause is stripped
+      // before reporting since its filter literals can hold user data — the field/sobject structure plus the
+      // full query length are enough to diagnose without shipping that to telemetry.
+      tracker.error('Error previewing bulk update records', ex, {
+        sobject,
+        recordSource: downloadRecordsValue,
+        browserRecordCount: records.length,
+        totalRecordCount,
+        query: composeQuery({ ...parsedQuery, where: undefined }),
+        queryLength: composeQuery(parsedQuery).length,
+        fieldConfiguration: selectedConfig.map(({ selectedField, transformationOptions }) => ({
+          selectedField,
+          option: transformationOptions.option,
+          criteria: transformationOptions.criteria,
+        })),
+      });
     } finally {
       if (previewFetchAbortRef.current === abortController) {
         previewFetchAbortRef.current = null;
@@ -283,7 +303,19 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
       });
       pollResultsUntilDone(getDeploymentResults);
     } catch (ex) {
-      setFatalError('There was a problem loading records. Please try again.');
+      // Reset the deployment status out of the in-progress state so the Close button re-enables (an in-progress
+      // status disables it) and surface a recoverable errorMessage instead of a fatalError — otherwise a failure
+      // here (e.g. a synchronous throw before the batch upload) would leave the user with no way to close or retry.
+      setDeployResults({
+        done: true,
+        processingStartTime: convertDateToLocale(new Date()),
+        processingEndTime: convertDateToLocale(new Date()),
+        processingErrors: [],
+        records: [],
+        batchIdToIndex: {},
+        status: 'Error',
+      });
+      setErrorMessage('There was a problem updating records. Please try again.');
       tracker.error('Error bulk updating records', ex);
     } finally {
       setLoading(false);
