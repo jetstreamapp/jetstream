@@ -315,7 +315,7 @@ export async function hasRememberDeviceRecord({
     if (rememberMe.userAgent && userAgent) {
       const isSimilar = checkUserAgentSimilarity(rememberMe.userAgent, userAgent);
       if (!isSimilar) {
-        logger.warn({ deviceId, userId }, `User agent mismatch for remembered device: ${rememberMe.userAgent} !== ${userAgent}`);
+        logger.warn({ userId }, `User agent mismatch for remembered device: ${rememberMe.userAgent} !== ${userAgent}`);
         return false;
       }
     }
@@ -834,8 +834,8 @@ export async function revokeExternalSession(userId: string, sessionId: string) {
   if (!userId || !sessionId) {
     throw new Error('Invalid parameters');
   }
-  await prisma.webExtensionToken.delete({
-    where: { id: sessionId },
+  await prisma.webExtensionToken.deleteMany({
+    where: { id: sessionId, userId },
   });
 }
 

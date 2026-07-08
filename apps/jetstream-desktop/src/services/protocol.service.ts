@@ -9,7 +9,7 @@ import { pathToFileURL } from 'node:url';
 import { Browser } from '../browser/browser';
 import { ENV, SERVER_URL } from '../config/environment';
 import { initApiConnection } from '../utils/route.utils';
-import { getCspPolicy, setRecentDocument } from '../utils/utils';
+import { getCspPolicy, setRecentDocument, toSafeDownloadFileName } from '../utils/utils';
 import { getAppData, getUserPreferences } from './persistence.service';
 
 const cspPolicy = getCspPolicy();
@@ -141,7 +141,12 @@ export function registerDownloadHandler() {
     ) {
       return;
     }
-    const downloadFilename = join(downloadPreferences.downloadPath, item.getFilename());
+    // A dot-segment filename ('.'/'..') would resolve to a directory and escape the download folder,
+    // so fall back to a deterministic safe name rather than trusting the server-supplied filename.
+    // This keeps the auto-save (omitPrompt) contract deterministic instead of relying on Electron's
+    // default download handling.
+    const safeFilename = toSafeDownloadFileName(item.getFilename()) ?? 'download';
+    const downloadFilename = join(downloadPreferences.downloadPath, safeFilename);
     item.setSavePath(downloadFilename);
     item.once('done', (_, state) => {
       if (state === 'completed') {

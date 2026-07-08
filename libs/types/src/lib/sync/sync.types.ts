@@ -15,13 +15,23 @@ const DateTimeSchema = z.union([z.string(), z.date()]).transform((val) => (val i
 const RESERVED_OBJECT_KEYS = ['__proto__', 'constructor', 'prototype'];
 
 /**
+ * Maximum nesting depth allowed in a sync `data` payload. Legit sync records are shallow; this cap
+ * prevents a maliciously deep object from exhausting the stack while walking it.
+ */
+const MAX_SYNC_DATA_DEPTH = 100;
+
+/**
  * Recursively strip dangerous own keys (__proto__/constructor/prototype) from an object/array
  * at any depth so a nested `__proto__` cannot survive into persisted JSONB or be re-broadcast.
  * A single in-place walk that deletes the dangerous own keys; no deep clone is performed.
+ * Throws if the payload nests deeper than MAX_SYNC_DATA_DEPTH.
  */
-const stripReservedKeys = (value: unknown, seen = new WeakSet<object>()): void => {
+const stripReservedKeys = (value: unknown, seen = new WeakSet<object>(), depth = 0): void => {
   if (value === null || typeof value !== 'object') {
     return;
+  }
+  if (depth > MAX_SYNC_DATA_DEPTH) {
+    throw new Error('Sync record data exceeds the maximum allowed nesting depth');
   }
   if (seen.has(value)) {
     return;
@@ -30,7 +40,7 @@ const stripReservedKeys = (value: unknown, seen = new WeakSet<object>()): void =
 
   if (Array.isArray(value)) {
     for (const item of value) {
-      stripReservedKeys(item, seen);
+      stripReservedKeys(item, seen, depth + 1);
     }
     return;
   }
@@ -41,7 +51,7 @@ const stripReservedKeys = (value: unknown, seen = new WeakSet<object>()): void =
     }
   }
   for (const nestedValue of Object.values(value)) {
-    stripReservedKeys(nestedValue, seen);
+    stripReservedKeys(nestedValue, seen, depth + 1);
   }
 };
 
@@ -49,8 +59,15 @@ const SyncRecordKeySchema = z
   .string()
   .refine((key) => !RESERVED_OBJECT_KEYS.includes(key), { message: 'Sync record key uses a reserved name' });
 
-const SyncRecordDataSchema = z.record(z.string(), z.unknown()).transform((data) => {
-  stripReservedKeys(data);
+const SyncRecordDataSchema = z.record(z.string(), z.unknown()).transform((data, ctx) => {
+  try {
+    stripReservedKeys(data);
+  } catch {
+    // Surface the depth-cap breach as a normal Zod validation issue (clean 400) rather than a
+    // raw thrown Error that would bubble out of the transform as an unhandled 500.
+    ctx.addIssue('Sync record data exceeds the maximum allowed nesting depth');
+    return z.NEVER;
+  }
   return data;
 });
 
@@ -67,14 +84,16 @@ export type EntitySyncStatus = z.infer<typeof EntitySyncStatusSchema>;
 
 export const SyncRecordOperationBaseSchema = z.object({
   key: SyncRecordKeySchema,
-  hashedKey: z.string(),
+  // hashedKey is a fixed-length hash; the DB column is char(40). Cap length so an over-long value is
+  // rejected with a clean validation error instead of aborting the insert transaction.
+  hashedKey: z.string().max(40),
   entity: SyncTypeSchema,
   data: SyncRecordDataSchema,
 });
 
 export const SyncRecordOperationCreateUpdateSchema = SyncRecordOperationBaseSchema.extend({
   type: z.enum(['create', 'update']),
-  orgId: z.string().nullish(),
+  orgId: z.string().max(255).nullish(),
   createdAt: DateTimeSchema,
   updatedAt: DateTimeSchema,
 });

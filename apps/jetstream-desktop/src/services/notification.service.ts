@@ -1,6 +1,7 @@
 import { Maybe } from '@jetstream/types';
-import { BrowserWindow, dialog, Notification, shell } from 'electron';
+import { BrowserWindow, dialog, Notification } from 'electron';
 import logger from 'electron-log';
+import { openExternalSafe } from '../utils/url.utils';
 import { checkNotifications } from './api.service';
 import * as dataService from './persistence.service';
 
@@ -40,7 +41,7 @@ export function showCriticalNotification(title: string, message: string, actionU
 
   notification.on('click', () => {
     if (actionUrl) {
-      shell.openExternal(actionUrl);
+      openExternalSafe(actionUrl);
     }
   });
 
@@ -61,6 +62,6 @@ export function showCriticalConfirmationDialog(title: string, message: string, a
   });
 
   if (response === 0 && actionUrl) {
-    shell.openExternal(actionUrl);
+    openExternalSafe(actionUrl);
   }
 }
