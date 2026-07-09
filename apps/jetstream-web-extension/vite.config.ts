@@ -48,7 +48,7 @@ export default defineConfig(({ mode }) => {
       emptyOutDir: true,
       sourcemap: mode === 'development' ? 'inline' : false,
       minify: mode === 'development' ? false : 'esbuild',
-      rollupOptions: {
+      rolldownOptions: {
         input: {
           app: resolve(__dirname, 'app.html'),
           popup: resolve(__dirname, 'popup.html'),

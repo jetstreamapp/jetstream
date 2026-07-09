@@ -129,7 +129,7 @@ export function extensionScriptsBuildPlugin(mode: string): PluginOption {
                 name,
                 fileName: () => `${name}.js`,
               },
-              rollupOptions: {
+              rolldownOptions: {
                 output: {
                   inlineDynamicImports: true,
                   // Give CSS a predictable name based on the entry (e.g. contentScript.css)

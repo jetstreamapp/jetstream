@@ -92,3 +92,5 @@ certificates
 
 .nx/self-healing
 .react-email/
+
+.nx/migrate-runs

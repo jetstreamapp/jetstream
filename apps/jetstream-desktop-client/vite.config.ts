@@ -25,7 +25,7 @@ export default defineConfig(() => ({
     commonjsOptions: { transformMixedEsModules: true },
     assetsDir: './',
     emptyOutDir: true,
-    rollupOptions: {
+    rolldownOptions: {
       input: {
         // FIXME: for some reason this hangs if there are two entries here - works if either one is specified, but not both
         // if both reference the same typescript file, then it works - tried a new nx sample project and that worked fine
