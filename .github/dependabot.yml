@@ -1,0 +1,14 @@
+version: 2
+updates:
+  # Keep GitHub Actions current. Because actions are SHA-pinned (with a version
+  # comment) in the workflow files, Dependabot updates both the pinned SHA and
+  # the comment when a new release ships.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    # Collapse all action bumps into a single PR to keep review noise low.
+    groups:
+      github-actions:
+        patterns:
+          - "*"
