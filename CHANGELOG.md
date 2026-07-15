@@ -1,5 +1,7 @@
 # Changelog
 
+## [10.5.1](https://github.com/jetstreamapp/jetstream/compare/v10.5.0...v10.5.1) (2026-07-15)
+
 ## [10.5.0](https://github.com/jetstreamapp/jetstream/compare/v10.4.0...v10.5.0) (2026-07-15)
 
 ### Features
