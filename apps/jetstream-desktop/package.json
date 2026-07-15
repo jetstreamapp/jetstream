@@ -1,7 +1,7 @@
 {
   "name": "jetstream",
   "description": "The ultimate Salesforce administrator companion.",
-  "version": "4.1.2",
+  "version": "4.2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/jetstreamapp/jetstream"
