@@ -140,7 +140,7 @@ export function streamParsedCsvAsJson(res: express.Response, csvParseStream: Dup
     if (!res.headersSent) {
       res.status(400).json({ error: true, success: false, message: 'Error streaming CSV' });
     } else {
-      res.status(400).end();
+      res.end();
     }
   });
 }
@@ -377,7 +377,6 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       return res.send('404');
     }
 
-    const errorMessage = 'There was an error processing the request';
     // A known Salesforce connection/auth error that reached the generic handler (i.e. was not wrapped in a
     // typed error class) still normalizes to 4xx instead of defaulting to 500.
     if (sfdcConnectionErrorStatus) {
@@ -389,7 +388,8 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
     responseLogger.error({ err, res: { statusCode: status } }, '[RESPONSE][ERROR]');
     // Return JSON error response for all other scenarios
     return res.json({
-      error: errorMessage,
+      error: true,
+      success: false,
       message: err.message,
       data: err.data,
     });

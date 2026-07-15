@@ -299,6 +299,10 @@ const errorCodeToClass = {
 
 type ErrorCode = keyof typeof errorCodeToClass;
 
+/**
+ * Runtime type guard for errors thrown by generated Prisma client code. Returns `true` when `error`
+ * is one of Prisma's known request, unknown request, or validation error types.
+ */
 export function isPrismaError(
   error: unknown,
 ): error is PrismaClientKnownRequestError | PrismaClientUnknownRequestError | PrismaClientValidationError {
@@ -309,6 +313,11 @@ export function isPrismaError(
   );
 }
 
+/**
+ * Maps a Prisma known request error to its typed marker subclass based on the error code. If the
+ * code has no mapping in `errorCodeToClass`, the original `PrismaClientKnownRequestError` is returned
+ * unchanged, so callers should treat the return type as the union of both.
+ */
 export function toTypedPrismaError(error: PrismaClientKnownRequestError) {
   const code: ErrorCode = error.code as ErrorCode;
   const ErrorClass = errorCodeToClass[code];
