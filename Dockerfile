@@ -10,7 +10,7 @@ WORKDIR /app
 
 # Set production environment.
 ENV NODE_ENV=production
-ARG PNPM_VERSION=11.9.0
+ARG PNPM_VERSION=11.13.0
 RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
 
 # Throw-away build stage to reduce size of final image
