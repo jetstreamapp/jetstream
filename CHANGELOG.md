@@ -1,5 +1,22 @@
 # Changelog
 
+## [10.5.0](https://github.com/jetstreamapp/jetstream/compare/v10.4.0...v10.5.0) (2026-07-15)
+
+### Features
+
+* add table copy/paste + preview before save 🚀 ([2495d7b](https://github.com/jetstreamapp/jetstream/commit/2495d7b8741d3685348bfbb2363dd4e7325b750a))
+* add table range selection ([730f414](https://github.com/jetstreamapp/jetstream/commit/730f414a59e8174db7a3938b9708aac9da373f22))
+
+### Bug Fixes
+
+* fix prisma-error types to fix geo-api-build failure ([5337de3](https://github.com/jetstreamapp/jetstream/commit/5337de37d347a9f100550dcc833e1aba97702295))
+* improve date handling by validating dates before formatting ([6f6891d](https://github.com/jetstreamapp/jetstream/commit/6f6891dd70c2d94059bd67d34da2b0463907a0dc))
+* maximum depth exceeded state update ([ba00a92](https://github.com/jetstreamapp/jetstream/commit/ba00a928c13786c9fc1c9058026d9b9539fb1876))
+* normalize Salesforce connection errors to appropriate HTTP status codes ([7f7d024](https://github.com/jetstreamapp/jetstream/commit/7f7d024f5c899efcfaf12837a67e98c0d36c61b8))
+* reduce number of objects included in query ([e31c7c1](https://github.com/jetstreamapp/jetstream/commit/e31c7c1e20e5217f30c9656e5cea20d46a2a847f))
+* update @xhmikosr/decompress to 10.2.1 to address security vulnerability ([59b9508](https://github.com/jetstreamapp/jetstream/commit/59b9508687c58c56296496dfcf6fa57e34bc0f29))
+* update secondaryType validation and add tests for convertFormulaSecondaryTypeToEvaluatorType ([9063f52](https://github.com/jetstreamapp/jetstream/commit/9063f523e0f2f97cd93ba89867aa1e9e00c07db2))
+
 ## [10.4.0](https://github.com/jetstreamapp/jetstream/compare/v10.3.5...v10.4.0) (2026-06-30)
 
 ### Features
