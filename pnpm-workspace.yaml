@@ -36,6 +36,11 @@ overrides:
   # (@node-saml/node-saml -> xml-crypto/xml-encryption). 0.8.11 is below the 0.8.12 (injection)
   # and 0.8.13 (recursion DoS, GHSA-2v35-w6hq-6mfw) patches.
   "@xmldom/xmldom": "^0.8.13"
+  # Force a patched @xhmikosr/decompress on the dev-only @swc/cli binary-download path
+  # (@swc/cli -> @xhmikosr/bin-wrapper -> downloader -> decompress). <10.2.1 allows archive
+  # extraction to write files/links outside the target dir (GHSA-mp2f-45pm-3cg9). 10.2.1 stays
+  # within downloader's declared ^10.0.1 range.
+  "@xhmikosr/decompress": "^10.2.1"
   axios: "^1.16.1"
   "connect-pg-simple>@types/express-session": "^1.18.2"
   dompurify: "^3.3.2"
