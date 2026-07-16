@@ -308,7 +308,11 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       // the 3rd-party request status when available.
       const statusCode = sfdcConnectionErrorStatus ?? (err.apiRequestError?.status || status || 400);
       res.status(statusCode);
-      responseLogger.debug({ err, res: { statusCode } }, '[RESPONSE][ERROR]');
+      if (statusCode >= 500) {
+        responseLogger.warn({ err, res: { statusCode }, sfdcStatusCode: err.apiRequestError?.status }, '[RESPONSE][ERROR]');
+      } else {
+        responseLogger.debug({ err, res: { statusCode } }, '[RESPONSE][ERROR]');
+      }
       return res.json({
         error: true,
         success: false,
