@@ -42,6 +42,8 @@ export interface HeaderNavbarProps {
   logoCss?: SerializedStyles;
   onAddOrgHandlerFn?: AddOrgHandlerFn;
   onLogoutHandlerFn?: () => void;
+  colorScheme?: ColorScheme;
+  onColorSchemeChange?: (colorScheme: ColorScheme) => void;
 }
 
 function logout(serverUrl: string) {
@@ -56,12 +58,14 @@ function getMenuItems({
   deniedNotifications,
   isBillingEnabled,
   colorScheme,
+  showThemePicker,
 }: {
   ability: AppAbility;
   userProfile: UserProfileUi;
   deniedNotifications?: boolean;
   isBillingEnabled: boolean;
   colorScheme: ColorScheme;
+  showThemePicker: boolean;
 }) {
   const menu: DropDownItem[] = [];
 
@@ -90,7 +94,7 @@ function getMenuItems({
     });
   }
 
-  if (!isCanvasApp()) {
+  if (showThemePicker) {
     menu.push(
       {
         id: 'theme-light',
@@ -135,6 +139,8 @@ export const HeaderNavbar = ({
   logoCss,
   onAddOrgHandlerFn,
   onLogoutHandlerFn,
+  colorScheme: colorSchemeOverride,
+  onColorSchemeChange,
 }: HeaderNavbarProps) => {
   const navigate = useNavigate();
   const { trackEvent } = useAmplitude();
@@ -146,10 +152,22 @@ export const HeaderNavbar = ({
   const applicationState = useAtomValue(applicationCookieState);
   const [userPreferences, setUserPreferences] = useUserPreferenceState();
   const deniedNotifications = userPreferences?.deniedNotifications;
-  const colorScheme: ColorScheme = userPreferences?.colorScheme ?? 'light';
+  // Embedded hosts inject the value + setter; web/desktop fall back to the IndexedDB-backed preference.
+  const colorScheme: ColorScheme = colorSchemeOverride ?? userPreferences?.colorScheme ?? 'light';
+  // Canvas normally hides the picker; show it when a host wires up its own persistence.
+  const showThemePicker = !isCanvasApp() || !!onColorSchemeChange;
   const [enableNotifications, setEnableNotifications] = useState(false);
   const [userMenuItems, setUserMenuItems] = useState<DropDownItem[]>([]);
   const navbarItems = useHeaderNavbarItems();
+
+  function applyColorScheme(nextColorScheme: ColorScheme) {
+    if (onColorSchemeChange) {
+      onColorSchemeChange(nextColorScheme);
+    } else {
+      setUserPreferences({ ...userPreferences, colorScheme: nextColorScheme });
+    }
+    trackEvent(ANALYTICS_KEYS.settings_color_scheme_changed, { colorScheme: nextColorScheme });
+  }
 
   function handleUserMenuSelection(id: string) {
     switch (id) {
@@ -177,16 +195,13 @@ export const HeaderNavbar = ({
         setEnableNotifications(true);
         break;
       case 'theme-light':
-        setUserPreferences({ ...userPreferences, colorScheme: 'light' });
-        trackEvent(ANALYTICS_KEYS.settings_color_scheme_changed, { colorScheme: 'light' });
+        applyColorScheme('light');
         break;
       case 'theme-dark':
-        setUserPreferences({ ...userPreferences, colorScheme: 'dark' });
-        trackEvent(ANALYTICS_KEYS.settings_color_scheme_changed, { colorScheme: 'dark' });
+        applyColorScheme('dark');
         break;
       case 'theme-system':
-        setUserPreferences({ ...userPreferences, colorScheme: 'system' });
-        trackEvent(ANALYTICS_KEYS.settings_color_scheme_changed, { colorScheme: 'system' });
+        applyColorScheme('system');
         break;
       default:
         break;
@@ -195,12 +210,14 @@ export const HeaderNavbar = ({
 
   function handleNotificationMenuClosed(isEnabled: boolean) {
     setEnableNotifications(false);
-    setUserMenuItems(getMenuItems({ ability, userProfile, deniedNotifications: !isEnabled, isBillingEnabled, colorScheme }));
+    setUserMenuItems(
+      getMenuItems({ ability, userProfile, deniedNotifications: !isEnabled, isBillingEnabled, colorScheme, showThemePicker }),
+    );
   }
 
   useEffect(() => {
-    setUserMenuItems(getMenuItems({ ability, userProfile, deniedNotifications, isBillingEnabled, colorScheme }));
-  }, [ability, userProfile, deniedNotifications, isBillingEnabled, colorScheme]);
+    setUserMenuItems(getMenuItems({ ability, userProfile, deniedNotifications, isBillingEnabled, colorScheme, showThemePicker }));
+  }, [ability, userProfile, deniedNotifications, isBillingEnabled, colorScheme, showThemePicker]);
 
   const handleCheckForUpdates = () => {
     if (window.electronAPI) {

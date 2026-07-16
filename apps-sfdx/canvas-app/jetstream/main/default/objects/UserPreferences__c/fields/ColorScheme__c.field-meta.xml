@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>ColorScheme__c</fullName>
+    <description>The user's preferred color scheme: light, dark, or system.</description>
+    <externalId>false</externalId>
+    <label>Color Scheme</label>
+    <length>10</length>
+    <required>false</required>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

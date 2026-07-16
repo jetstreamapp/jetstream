@@ -1,20 +1,19 @@
 import { ApiConnection } from '@jetstream/salesforce-api';
 import { logger } from '@jetstream/shared/client-logger';
-import { SoqlQueryFormatOptionsSchema } from '@jetstream/types';
+import { ColorScheme, SoqlQueryFormatOptionsSchema } from '@jetstream/types';
 import { z } from 'zod';
 import { createRoute, handleErrorResponse, handleJsonResponse, RouteValidator } from './route.utils';
 
-// Namespace-qualified API names for the managed package custom setting fields
-const NS = 'jetstream__';
-const SOBJECT = `${NS}UserPreferences__c`;
+const SOBJECT = `jetstream__UserPreferences__c`;
 const FIELD = {
-  skipFrontdoorLogin: `${NS}SkipFrontdoorLogin__c`,
-  recordSyncEnabled: `${NS}RecordSyncEnabled__c`,
-  numIndent: `${NS}NumIndent__c`,
-  fieldMaxLineLength: `${NS}FieldMaxLineLength__c`,
-  subqueryParensOnOwnLine: `${NS}SubqueryParensOnOwnLine__c`,
-  whereClauseOpsIndented: `${NS}WhereClauseOpsIndented__c`,
-  newLineAfterKeywords: `${NS}NewLineAfterKeywords__c`,
+  skipFrontdoorLogin: `jetstream__SkipFrontdoorLogin__c`,
+  recordSyncEnabled: `jetstream__RecordSyncEnabled__c`,
+  colorScheme: `jetstream__ColorScheme__c`,
+  numIndent: `jetstream__NumIndent__c`,
+  fieldMaxLineLength: `jetstream__FieldMaxLineLength__c`,
+  subqueryParensOnOwnLine: `jetstream__SubqueryParensOnOwnLine__c`,
+  whereClauseOpsIndented: `jetstream__WhereClauseOpsIndented__c`,
+  newLineAfterKeywords: `jetstream__NewLineAfterKeywords__c`,
 } as const;
 
 const ALL_FIELDS = Object.values(FIELD).join(', ');
@@ -23,6 +22,7 @@ const PreferencesBodySchema = z.object({
   preferences: z.object({
     skipFrontdoorLogin: z.boolean().optional(),
     recordSyncEnabled: z.boolean().optional(),
+    colorScheme: z.enum(['light', 'dark', 'system']).optional(),
     soqlQueryFormatOptions: SoqlQueryFormatOptionsSchema.optional(),
   }),
 });
@@ -53,6 +53,7 @@ function recordToPreferences(record: CustomSettingRecord) {
   return {
     skipFrontdoorLogin: record[FIELD.skipFrontdoorLogin] as boolean | undefined,
     recordSyncEnabled: record[FIELD.recordSyncEnabled] as boolean | undefined,
+    colorScheme: (record[FIELD.colorScheme] as ColorScheme | undefined) || undefined,
     soqlQueryFormatOptions: {
       numIndent: record[FIELD.numIndent] as number | undefined,
       fieldMaxLineLength: record[FIELD.fieldMaxLineLength] as number | undefined,
@@ -71,6 +72,9 @@ function preferencesToFieldValues(preferences: z.infer<typeof PreferencesBodySch
   }
   if (preferences.recordSyncEnabled !== undefined) {
     fields[FIELD.recordSyncEnabled] = preferences.recordSyncEnabled;
+  }
+  if (preferences.colorScheme !== undefined) {
+    fields[FIELD.colorScheme] = preferences.colorScheme;
   }
   if (preferences.soqlQueryFormatOptions) {
     const opts = preferences.soqlQueryFormatOptions;

@@ -31,6 +31,7 @@ import {
   ChildRelationship,
   CloudinarySignature,
   CloudinaryUploadResponse,
+  ColorScheme,
   DeployOptions,
   DeployResult,
   DescribeGlobalResult,
@@ -298,13 +299,23 @@ export async function updateUserProfile<T = UserProfileUiWithIdentities>(userPro
  */
 export async function getCanvasPreferences(
   org: SalesforceOrgUi,
-): Promise<{ skipFrontdoorLogin?: boolean; recordSyncEnabled?: boolean; soqlQueryFormatOptions?: SoqlQueryFormatOptions }> {
+): Promise<{
+  skipFrontdoorLogin?: boolean;
+  recordSyncEnabled?: boolean;
+  colorScheme?: ColorScheme;
+  soqlQueryFormatOptions?: SoqlQueryFormatOptions;
+}> {
   return handleRequest({ method: 'GET', url: '/api/me/preferences' }, { org }).then(unwrapResponseIgnoreCache);
 }
 
 export async function updateCanvasPreferences(
   org: SalesforceOrgUi,
-  preferences: { skipFrontdoorLogin?: boolean; recordSyncEnabled?: boolean; soqlQueryFormatOptions?: SoqlQueryFormatOptions },
+  preferences: {
+    skipFrontdoorLogin?: boolean;
+    recordSyncEnabled?: boolean;
+    colorScheme?: ColorScheme;
+    soqlQueryFormatOptions?: SoqlQueryFormatOptions;
+  },
 ): Promise<void> {
   return handleRequest({ method: 'PATCH', url: '/api/me/preferences', data: { preferences } }, { org }).then(unwrapResponseIgnoreCache);
 }
