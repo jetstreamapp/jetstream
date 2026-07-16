@@ -1286,7 +1286,13 @@ export async function createOrUpdateSamlConfiguration(teamId: string, userId: st
   return { isNew, previous: previousSamlConfig, result: await getSsoConfiguration(teamId) };
 }
 
-export async function createOrUpdateOidcConfiguration(teamId: string, userId: string, data: OidcConfigurationRequest) {
+export async function createOrUpdateOidcConfiguration(
+  teamId: string,
+  userId: string,
+  // authorizationEndpoint, tokenEndpoint, and jwksUri are non-nullable columns resolved from OIDC
+  // discovery by the controller, so they are required here even though they are optional on the wire request.
+  data: OidcConfigurationRequest & { authorizationEndpoint: string; tokenEndpoint: string; jwksUri: string },
+) {
   const team = await prisma.team.findUnique({
     where: { id: teamId },
     select: {

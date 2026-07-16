@@ -17,6 +17,7 @@ export function ConfigureSsoModal({ teamId, existingSsoConfig, onClose }: Config
   const [loading, setLoading] = useState(false);
   const [provider, setProvider] = useState<'OIDC' | 'SAML'>(() => (existingSsoConfig?.ssoProvider === 'SAML' ? 'SAML' : 'OIDC'));
   const [testResult, setTestResult] = useState<{ success: boolean; message?: string; authUrl?: string } | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   async function handleSave(
     payload:
@@ -26,6 +27,7 @@ export function ConfigureSsoModal({ teamId, existingSsoConfig, onClose }: Config
     try {
       setLoading(true);
       setTestResult(null);
+      setSaveError(null);
 
       payload = nullifyEmptyStrings(payload);
 
@@ -39,10 +41,11 @@ export function ConfigureSsoModal({ teamId, existingSsoConfig, onClose }: Config
 
       onClose(true);
     } catch (error) {
-      fireToast({
-        type: 'error',
-        message: `Failed to save SSO configuration: ${getErrorMessage(error)}`,
-      });
+      // Surface the failure inline (persistent, next to the form) in addition to a toast — a
+      // transient toast is easy to miss for a save the user is actively watching in the modal.
+      const message = getErrorMessage(error);
+      setSaveError(message);
+      fireToast({ type: 'error', message: `Failed to save SSO configuration: ${message}` });
     } finally {
       setLoading(false);
     }
@@ -71,6 +74,12 @@ export function ConfigureSsoModal({ teamId, existingSsoConfig, onClose }: Config
       }
       onClose={() => onClose()}
     >
+      {saveError && (
+        <ScopedNotification theme="error" className="slds-m-bottom_medium">
+          {saveError}
+        </ScopedNotification>
+      )}
+
       {!hasExisting && (
         <div className="slds-m-bottom_medium">
           <RadioGroup label="Select SSO Provider">
@@ -79,15 +88,27 @@ export function ConfigureSsoModal({ teamId, existingSsoConfig, onClose }: Config
               label="OIDC (Okta, Azure AD, Google Workspace, etc.)"
               value="OIDC"
               checked={provider === 'OIDC'}
-              onChange={() => setProvider('OIDC')}
+              onChange={() => {
+                setProvider('OIDC');
+                setSaveError(null);
+              }}
             />
-            <Radio name="sso-provider" label="SAML 2.0" value="SAML" checked={provider === 'SAML'} onChange={() => setProvider('SAML')} />
+            <Radio
+              name="sso-provider"
+              label="SAML 2.0"
+              value="SAML"
+              checked={provider === 'SAML'}
+              onChange={() => {
+                setProvider('SAML');
+                setSaveError(null);
+              }}
+            />
           </RadioGroup>
         </div>
       )}
 
       {provider === 'OIDC' && (
-        <ConfigureSsoOidcForm existingSsoConfig={existingSsoConfig} teamId={teamId} onSave={(data) => handleSave({ type: 'OIDC', data })} />
+        <ConfigureSsoOidcForm existingSsoConfig={existingSsoConfig} onSave={(data) => handleSave({ type: 'OIDC', data })} />
       )}
 
       {provider === 'SAML' && (

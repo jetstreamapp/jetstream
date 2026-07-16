@@ -1,15 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { LoginConfigurationWithCallbacks } from '@jetstream/auth/types';
-import { discoverOidcConfig } from '@jetstream/shared/data';
-import { getErrorMessage } from '@jetstream/shared/utils';
-import { CopyToClipboard, fireToast, Input, ScopedNotification, Spinner } from '@jetstream/ui';
+import { CopyToClipboard, Input, ScopedNotification } from '@jetstream/ui';
 import classNames from 'classnames';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 export interface ConfigureSsoOidcFormProps {
-  teamId: string;
   existingSsoConfig: LoginConfigurationWithCallbacks | null;
   onSave: (config: FormValues) => Promise<void>;
 }
@@ -37,9 +34,8 @@ const FormSchema = z.object({
 
 type FormValues = z.infer<typeof FormSchema>;
 
-export function ConfigureSsoOidcForm({ teamId, existingSsoConfig, onSave }: ConfigureSsoOidcFormProps) {
+export function ConfigureSsoOidcForm({ existingSsoConfig, onSave }: ConfigureSsoOidcFormProps) {
   const hasExisting = existingSsoConfig && existingSsoConfig.ssoProvider !== 'NONE';
-  const [discovering, setDiscovering] = useState(false);
 
   const schema = useMemo(() => {
     return FormSchema.superRefine((data, ctx) => {
@@ -57,8 +53,6 @@ export function ConfigureSsoOidcForm({ teamId, existingSsoConfig, onSave }: Conf
     register,
     handleSubmit,
     watch,
-    setValue,
-    getValues,
     formState: { errors, dirtyFields },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -82,38 +76,8 @@ export function ConfigureSsoOidcForm({ teamId, existingSsoConfig, onSave }: Conf
     },
   });
 
-  const issuer = watch('issuer');
   const authorizationEndpoint = watch('authorizationEndpoint');
   const userinfoEndpoint = watch('userinfoEndpoint');
-
-  async function handleOidcDiscover() {
-    const issuer = getValues('issuer');
-    if (!issuer) {
-      fireToast({ type: 'error', message: 'Please enter an issuer URL' });
-      return;
-    }
-
-    try {
-      setDiscovering(true);
-      const discovered = await discoverOidcConfig(teamId, issuer);
-
-      setValue('authorizationEndpoint', discovered.authorizationEndpoint || '', { shouldDirty: true });
-      setValue('tokenEndpoint', discovered.tokenEndpoint || '', { shouldDirty: true });
-      setValue('userinfoEndpoint', discovered.userinfoEndpoint || '', { shouldDirty: true });
-      setValue('jwksUri', discovered.jwksUri || '', { shouldDirty: true });
-      setValue('endSessionEndpoint', discovered.endSessionEndpoint || '', { shouldDirty: true });
-
-      // Trigger validation for these fields if needed, or just let the user see the result
-      fireToast({ type: 'success', message: 'OIDC configuration discovered successfully' });
-    } catch (error) {
-      fireToast({
-        type: 'error',
-        message: `Failed to discover OIDC configuration: ${getErrorMessage(error)}`,
-      });
-    } finally {
-      setDiscovering(false);
-    }
-  }
 
   return (
     <form id="sso-form" className="slds-p-around_medium" onSubmit={handleSubmit(onSave)}>
@@ -160,15 +124,9 @@ export function ConfigureSsoOidcForm({ teamId, existingSsoConfig, onSave }: Conf
               {...register('issuer')}
             />
           </Input>
-          <button
-            className="slds-button slds-button_neutral slds-m-top_x-small slds-is-relative"
-            disabled={!issuer || discovering}
-            onClick={handleOidcDiscover}
-            type="button"
-          >
-            {discovering && <Spinner size="x-small" />}
-            Auto-Discover Endpoints
-          </button>
+          <p className="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
+            The authorization, token, and JWKS endpoints are discovered automatically from your Issuer URL when you save.
+          </p>
         </div>
 
         <Input
@@ -209,8 +167,11 @@ export function ConfigureSsoOidcForm({ teamId, existingSsoConfig, onSave }: Conf
           />
         </Input>
 
-        {authorizationEndpoint && (
+        {authorizationEndpoint && !dirtyFields.issuer && (
           <>
+            <p className="slds-text-body_small slds-text-color_weak slds-m-top_small slds-m-bottom_xx-small">
+              Discovered from your Issuer URL (read-only).
+            </p>
             <Input label="Authorization Endpoint" isRequired>
               <input className="slds-input" readOnly {...register('authorizationEndpoint')} />
             </Input>
