@@ -16,7 +16,6 @@ import { initApiClientAndOrg } from '../utils/api-client';
 import {
   AUTH_CHECK_INTERVAL_MIN,
   AuthTokensStorage,
-  eventPayload,
   ExternalIdentifier,
   ExtIdentifierStorage,
   GetPageUrl,
@@ -154,51 +153,15 @@ browser.commands.onCommand.addListener(async (command, tab) => {
 });
 
 /**
- * Handle authentication events from Jetstream server
- * User is redirected and authenticated on the Jetstream server
- * and tokens are sent back to the extension and stored in chrome storage
+ * NOTE: There is intentionally no `onMessageExternal` listener.
+ *
+ * By default `onMessageExternal` is reachable by any other installed extension (and the extension
+ * id is public), which previously allowed a co-installed extension to read this device's identifier
+ * and inject an attacker-owned, device-bound auth token (session fixation). The legitimate login
+ * flow runs entirely through the origin-validated `contentAuthScript` content script (injected only
+ * on getjetstream.app/web-extension/*) and the internal `onMessage` handler below, so no external
+ * messaging surface is required.
  */
-browser.runtime.onMessageExternal.addListener(async (message: unknown) => {
-  try {
-    logger.log('Received message from external extension', message);
-    const event = eventPayload.parse(message);
-    switch (event.type) {
-      case 'EXT_IDENTIFIER': {
-        let result = (await browser.storage.sync.get(storageTypes.extIdentifier.key)) as Partial<ExtIdentifierStorage>;
-        if (!result.extIdentifier) {
-          result = { extIdentifier: { id: crypto.randomUUID() } };
-          await browser.storage.sync.set(result);
-          storageSyncCache.extIdentifier = result.extIdentifier;
-        }
-        if (!result.extIdentifier?.id) {
-          throw new Error('Could not get or initialize extension identifier');
-        }
-        logger.info('Extension identifier', result.extIdentifier.id);
-        return { success: true, data: result.extIdentifier.id };
-      }
-      case 'TOKENS': {
-        const { exp, userProfile } = jwtDecode<JwtPayload>(event.data.accessToken);
-        const expiresAt = exp ? fromUnixTime(exp) : new Date();
-        const authState = {
-          accessToken: event.data.accessToken,
-          userProfile,
-          expiresAt: expiresAt.getTime(),
-          lastChecked: null,
-          loggedIn: true,
-        };
-        await browser.storage.sync.set({ [storageTypes.authTokens.key]: authState });
-        storageSyncCache.authTokens = authState;
-        return { success: true };
-      }
-      default: {
-        return { success: false, error: 'Unknown message type' };
-      }
-    }
-  } catch (ex) {
-    logger.error('Error handling message', ex);
-    return { success: false, error: 'Error handling message' };
-  }
-});
 
 // connections seem to continually get reset
 // and we cannot make async calls in the fetch event listener to get from storage

@@ -1,9 +1,10 @@
 import { HTTP } from '@jetstream/shared/constants';
-import { app, BrowserWindow, clipboard, Menu, nativeImage, shell } from 'electron';
+import { app, BrowserWindow, clipboard, Menu, nativeImage } from 'electron';
 import log from 'electron-log/main';
 import * as path from 'path';
 import { ENV } from '../config/environment';
 import { initApiConnection } from '../utils/route.utils';
+import { openExternalSafe } from '../utils/url.utils';
 import { isMac } from '../utils/utils';
 import { getWindowConfig } from './config';
 
@@ -48,16 +49,19 @@ export class Browser {
         if (connection) {
           connection.jetstreamConn.org.identity().then(() => {
             const sfdcUrl = connection.jetstreamConn.org.getFrontdoorLoginUrl(returnUrl);
-            shell.openExternal(sfdcUrl);
+            openExternalSafe(sfdcUrl);
           });
           return { action: 'deny' };
         }
       }
 
-      // Open all external links in the browser
-      // FIXME: this should be more protective over what is externally opened
-      if (url.host !== clientUrl.host) {
-        shell.openExternal(details.url);
+      // Open all external links in the browser (only safe schemes are actually opened).
+      // Use a full origin check (protocol + host) like will-navigate below: with an
+      // app://jetstream/... CLIENT_URL the host alone is just "jetstream", so a matching-host
+      // link on another scheme must not be treated as internal.
+      const isSameAppOrigin = url.protocol === clientUrl.protocol && url.host === clientUrl.host;
+      if (!isSameAppOrigin) {
+        openExternalSafe(details.url);
         return { action: 'deny' };
       }
 
@@ -67,6 +71,26 @@ export class Browser {
         overrideBrowserWindowOptions: getWindowConfig(icon, { show: true }),
       };
     });
+
+    // Prevent the renderer from navigating the privileged window away from the app.
+    // Anything cross-origin is blocked and, if it uses a safe scheme, handed to the default browser
+    // instead. In-app (SPA) routing uses the history API and does not trigger these events.
+    const handleWindowNavigation = (event: Electron.Event, targetUrl: string) => {
+      let parsedUrl: URL;
+      try {
+        parsedUrl = new URL(targetUrl);
+      } catch {
+        event.preventDefault();
+        return;
+      }
+      const isSameAppOrigin = parsedUrl.protocol === clientUrl.protocol && parsedUrl.host === clientUrl.host;
+      if (!isSameAppOrigin) {
+        event.preventDefault();
+        openExternalSafe(targetUrl);
+      }
+    };
+    browserWindow.webContents.on('will-navigate', handleWindowNavigation);
+    browserWindow.webContents.on('will-redirect', handleWindowNavigation);
 
     this.createDock();
 
