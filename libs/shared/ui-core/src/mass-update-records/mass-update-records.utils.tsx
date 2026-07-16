@@ -2,7 +2,6 @@ import { logger } from '@jetstream/shared/client-logger';
 import { SFDC_BULK_API_NULL_VALUE } from '@jetstream/shared/constants';
 import { queryAll, queryAllFromList } from '@jetstream/shared/data';
 import { escapeSoqlString } from '@jetstream/shared/ui-utils';
-import { splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { DescribeGlobalSObjectResult, ListItem, Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import { Query, composeQuery, getField, isQueryValid } from '@jetstreamapp/soql-parser-js';
 import lodashGet from 'lodash/get';
@@ -10,11 +9,46 @@ import isNil from 'lodash/isNil';
 import { MetadataRow, MetadataRowConfiguration } from './mass-update-records.types';
 
 /**
- * Max number of record Ids to include in a single `WHERE Id IN (...)` query when re-fetching a
- * specific set of records (selected / filtered). 18-char Ids quoted ≈ 21 chars each, so 500 keeps
- * each query well under Salesforce's 100k character SOQL limit.
+ * SOQL sent to the Salesforce REST query endpoint travels in the request URL (`GET /query?q=...`), and
+ * that URL has a length limit far below the 100k-character SOQL limit — empirically anything over ~10k
+ * characters is rejected (Salesforce responds 414/431/500, which surfaces to the user as a generic
+ * failure). So a `WHERE Id IN (...)` re-fetch must be chunked by the resulting query length, not by a
+ * fixed record count. Mirrors `MAX_QUERY_LENGTH` in load-records-utils.
  */
-const ID_CHUNK_SIZE = 500;
+export const MAX_ID_QUERY_LENGTH = 9500;
+
+/**
+ * Split a set of record Ids into as few `WHERE Id IN (...)` queries as possible while keeping each query
+ * under {@link MAX_ID_QUERY_LENGTH} so it does not blow past Salesforce's query-URL length limit.
+ */
+function buildChunkedIdInQueries(baseSoql: string, ids: string[]): string[] {
+  const queries: string[] = [];
+  const wrapperLength = baseSoql.length + ' WHERE Id IN ()'.length;
+  let chunk: string[] = [];
+  let chunkLength = wrapperLength;
+
+  const flushChunk = () => {
+    if (chunk.length > 0) {
+      queries.push(`${baseSoql} WHERE Id IN (${chunk.join(',')})`);
+      chunk = [];
+      chunkLength = wrapperLength;
+    }
+  };
+
+  ids.forEach((id) => {
+    const token = `'${escapeSoqlString(id)}'`;
+    // a comma separator only exists between Ids, so it is not counted for the first Id in a chunk
+    if (chunk.length > 0 && chunkLength + 1 + token.length > MAX_ID_QUERY_LENGTH) {
+      flushChunk();
+    }
+    const separatorLength = chunk.length > 0 ? 1 : 0;
+    chunkLength += separatorLength + token.length;
+    chunk.push(token);
+  });
+  flushChunk();
+
+  return queries;
+}
 
 export const startsWithWhereRgx = /^( )*WHERE( )*/i;
 
@@ -244,9 +278,7 @@ export async function fetchRecordsWithRequiredFields({
     }
     // Build a minimal query (drop the original WHERE/LIMIT/ORDER BY); the Id list is already the exact set.
     const baseSoql = composeQuery({ sObject: parsedQuery.sObject, fields });
-    const soqlQueries = splitArrayToMaxSize(idsToFetch, ID_CHUNK_SIZE).map(
-      (idChunk) => `${baseSoql} WHERE Id IN (${idChunk.map((id) => `'${escapeSoqlString(id)}'`).join(',')})`,
-    );
+    const soqlQueries = buildChunkedIdInQueries(baseSoql, idsToFetch);
     const { queryResults } = await queryAllFromList(
       selectedOrg,
       soqlQueries,

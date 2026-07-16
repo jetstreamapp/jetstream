@@ -7,6 +7,7 @@ import {
   fetchRecordsWithRequiredFields,
   getFieldsToQuery,
   isValidRow,
+  MAX_ID_QUERY_LENGTH,
   prepareRecords,
 } from '../mass-update-records.utils';
 
@@ -598,10 +599,11 @@ describe('mass-update-records.utils#fetchRecordsWithRequiredFields', () => {
     expect(result).toBe(fetchedRecords);
   });
 
-  it('Should split large id sets into multiple chunked queries', async () => {
+  it('Should split large id sets into multiple length-bounded chunks that each stay under the query-URL limit', async () => {
     vi.mocked(clientData.queryAllFromList).mockResolvedValue({ queryResults: { records: [], totalSize: 0, done: true } } as any);
 
-    const ids = Array.from({ length: 1001 }, (_, index) => `id${index}`);
+    // Use realistic 18-char Salesforce Ids (as returned by query results) so the length math matches production
+    const ids = Array.from({ length: 2000 }, (_, index) => `001${String(index).padStart(15, '0')}`);
     await fetchRecordsWithRequiredFields({
       selectedOrg,
       parsedQuery: parseQuery('SELECT Id FROM Account'),
@@ -610,8 +612,10 @@ describe('mass-update-records.utils#fetchRecordsWithRequiredFields', () => {
     });
 
     const [, soqlQueries] = vi.mocked(clientData.queryAllFromList).mock.calls[0];
-    // 1001 ids / 500 per chunk => 3 queries
-    expect(soqlQueries).toHaveLength(3);
+    // Bounding by length (not a fixed count) is the fix for the SF 500s, so assert the guarantee directly:
+    // more than one chunk is produced and every chunk stays under Salesforce's query-URL length limit.
+    expect(soqlQueries.length).toBeGreaterThan(1);
+    soqlQueries.forEach((soql: string) => expect(soql.length).toBeLessThanOrEqual(MAX_ID_QUERY_LENGTH));
   });
 
   it('Should return an empty array without querying when idsToInclude is empty', async () => {
