@@ -159,20 +159,6 @@ interface FieldUsageTreeRow {
   whereUsedInApex: number;
 }
 
-function whereUsedUiCountsForField(
-  whereUsed: FieldUsageJobResultParsed['whereUsed'] | undefined,
-  objectApiName: string,
-  fieldApiName: string,
-): { whereUsedOnLayout: number; whereUsedInAutomation: number; whereUsedInApex: number } {
-  if (!whereUsed || !isCustomFieldApiName(fieldApiName)) {
-    return { whereUsedOnLayout: 0, whereUsedInAutomation: 0, whereUsedInApex: 0 };
-  }
-  const { onLayout, inAutomation, inApex } = countWhereUsedByUiCategory(
-    getWhereUsedDepsForFieldKey(whereUsed, `${objectApiName}.${fieldApiName}`),
-  );
-  return { whereUsedOnLayout: onLayout, whereUsedInAutomation: inAutomation, whereUsedInApex: inApex };
-}
-
 /** Lightning Setup → Object Manager deep link (same pattern as permission analysis export). */
 function fieldUsageObjectManagerReturnUrl(objectApiName: string, view: 'details' | 'fields'): string {
   const enc = encodeURIComponent(objectApiName);
@@ -731,7 +717,19 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
       for (const fieldApiName of Object.keys(payload.fieldUsage).sort((a, b) => a.localeCompare(b))) {
         const stat = payload.fieldUsage[fieldApiName];
         const meta = payload.fieldMeta[fieldApiName];
-        const whereUsedCounts = whereUsedUiCountsForField(parsedResult.whereUsed, objectApiName, fieldApiName);
+        // Single dependency lookup feeds both the UI bucket counts and the delete-safety total. Only
+        // custom fields can have where-used rows, and a key miss falls back to an O(map) scan — skip
+        // the lookup entirely for standard fields.
+        const whereUsedDeps =
+          parsedResult.whereUsed && isCustomFieldApiName(fieldApiName)
+            ? getWhereUsedDepsForFieldKey(parsedResult.whereUsed, `${objectApiName}.${fieldApiName}`)
+            : [];
+        const { onLayout, inAutomation, inApex } = countWhereUsedByUiCategory(whereUsedDeps);
+        // Delete-safety gate counts dependency rows of ANY kind. The three display buckets
+        // intentionally exclude kind:'other' (formula/rollup CustomField, ValidationRule, CompactLayout,
+        // QuickAction, …), but those are still real deletion-blocking references — so the gate must count
+        // every dependency row, not just the layout/automation/apex buckets.
+        const whereUsedTotalDepCount = whereUsedDeps.length;
         // Per-field truncation when the job recorded it (COUNT-based fields stay exact even when a sibling
         // field's row scan truncated); legacy rows only have the object-level flag.
         const fieldScanTruncated = stat.truncated ?? payload.queryTruncated;
@@ -740,8 +738,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
           fieldApiName,
           meta,
           scanTruncated: fieldScanTruncated,
-          whereUsedDependencyCount:
-            whereUsedCounts.whereUsedOnLayout + whereUsedCounts.whereUsedInAutomation + whereUsedCounts.whereUsedInApex,
+          whereUsedDependencyCount: whereUsedTotalDepCount,
           // Per-field resolution: an unresolved field (Tooling Id not found / dependency query failed) is
           // UNKNOWN, never "0 dependencies", so it can't be marked deletable.
           whereUsedKnown: isFieldWhereUsedResolved(parsedResult, `${objectApiName}.${fieldApiName}`),
@@ -762,7 +759,9 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
           fieldScanTruncated,
           destructiveDeleteEligible,
           destructiveDeleteIneligibleReason,
-          ...whereUsedCounts,
+          whereUsedOnLayout: onLayout,
+          whereUsedInAutomation: inAutomation,
+          whereUsedInApex: inApex,
         });
       }
     }
@@ -1640,10 +1639,10 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
               {parsedResult.whereUsedComputed && (
                 <div className="slds-p-horizontal_medium slds-p-top_x-small">
                   <ScopedNotification theme="info">
-                    <strong>Before deleting:</strong> "Where Used" detects references in <em>page layouts, automation, and Apex</em> only.
-                    It does <strong>not</strong> detect references in reports, list views, validation rules, email templates, or dashboards,
-                    so "no dependencies" is a strong signal but not absolute proof a field is unused. Review those manually before deleting
-                    — deletion permanently removes the field and all of its data.
+                    <strong>Before deleting:</strong> "Where Used" detects metadata references such as{' '}
+                    <em>page layouts, automation, Apex, formulas, and validation rules</em>. It does <strong>not</strong> detect references
+                    in reports, list views, email templates, or dashboards, so "no dependencies" is a strong signal but not absolute proof a
+                    field is unused. Review those manually before deleting — deletion permanently removes the field and all of its data.
                   </ScopedNotification>
                 </div>
               )}

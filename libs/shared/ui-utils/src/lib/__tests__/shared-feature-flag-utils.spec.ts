@@ -1,6 +1,6 @@
 import { ALL_FEATURE_FLAG_KEYS, DEFAULT_FEATURE_FLAGS, FeatureFlags, serializeFeatureFlagsForSigning } from '@jetstream/types';
 import { createPrivateKey, sign } from 'crypto';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { verifyAndExtractFeatureFlags } from '../shared-feature-flag-utils';
 
 vi.mock('@jetstream/shared/client-logger', () => ({
@@ -8,8 +8,8 @@ vi.mock('@jetstream/shared/client-logger', () => ({
 }));
 
 // Dev fallback private key from feature-flag-signing.service.ts. The verifier falls back to the
-// matching DEV public key when NX_PUBLIC_FEATURE_FLAG_PUBLIC_KEY is unset (as it is under test), so a
-// signature produced here verifies exactly as a real server signature would in a dev build.
+// matching DEV public key when NX_PUBLIC_FEATURE_FLAG_PUBLIC_KEY is blank, so a signature produced
+// here verifies exactly as a real server signature would in a dev build.
 const DEV_PRIVATE_KEY_DER_B64 =
   'MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgj95ded+RkY4QkmRbRsZeTmeUthsat/akgFvk52wV8pGhRANCAASme0u+5L5Jb+qj+6As7IT7yk6qvgUcgdFhWyTLdzunDYpHOpiPKsobxih4De/Me9u60ouffcA0itVBqyjF8qcb';
 
@@ -27,8 +27,16 @@ function signFlags(userId: string, flags: FeatureFlags): string {
 describe('verifyAndExtractFeatureFlags', () => {
   const userId = 'user-1';
 
+  beforeEach(() => {
+    // Nx loads the repo-root .env into process.env for tasks and Vitest mirrors process.env onto
+    // import.meta.env, so a developer's local NX_PUBLIC_FEATURE_FLAG_PUBLIC_KEY would replace the
+    // dev fallback key these tests sign with. Blank it so verification always uses the pinned key.
+    vi.stubEnv('NX_PUBLIC_FEATURE_FLAG_PUBLIC_KEY', '');
+  });
+
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
   });
 
   it('returns the signed flags when the signature is valid', async () => {

@@ -41,7 +41,7 @@ export const FIELD_USAGE_DELETE_INELIGIBLE_LABELS: Record<FieldUsageDeleteInelig
   'packaged-field': 'Packaged (namespaced) fields cannot be deleted here',
   'scan-truncated': 'Scan was truncated — usage may be incomplete (run a full scan first)',
   'where-used-unknown': 'Dependencies could not be determined for this field',
-  'has-dependencies': 'Referenced by a layout, automation, or Apex',
+  'has-dependencies': 'Referenced by another component (layout, automation, Apex, formula, validation rule, etc.)',
   'has-data': 'Field has data — deleting permanently destroys it',
 };
 
@@ -54,13 +54,15 @@ export const FIELD_USAGE_DELETE_INELIGIBLE_LABELS: Record<FieldUsageDeleteInelig
  * - `whereUsedKnown === false` — dependencies for this field could not be proven; treat as in-use (fail safe).
  *   This is now per-field: an unresolved field (Tooling Id not found, or its dependency query failed) is
  *   UNKNOWN, never "0 dependencies", closing the previous gap where partial failures looked delete-safe.
- * - `whereUsedDependencyCount > 0` — referenced by metadata (layout / automation / Apex).
+ * - `whereUsedDependencyCount > 0` — referenced by ANY metadata component the Tooling dependency API
+ *   returns (layout / automation / Apex, plus `other`-kind refs like formula/rollup fields, validation
+ *   rules, compact layouts, quick actions). Count every dependency row, not just the three UI buckets.
  * - `filled > 0` — the field holds data; deleting a CustomField permanently destroys all of it, so a field
  *   with ANY populated records is never auto-eligible (the user can still delete via the normal metadata tools).
  *
- * Note: `MetadataComponentDependency` does NOT detect references in reports, list views, validation rules,
- * or email templates — so "no dependencies" means no *code/layout* reference, not "unreferenced". The UI
- * must communicate this before deletion.
+ * Note: `MetadataComponentDependency` does NOT detect references in reports, list views, email templates,
+ * or dashboards — so "no dependencies" means no reference the Dependency API tracks, not "unreferenced".
+ * The UI must communicate this before deletion.
  */
 export function fieldUsageDestructiveDeleteIneligibleReason(
   args: FieldUsageDeleteEligibilityArgs,

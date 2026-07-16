@@ -353,6 +353,55 @@ describe('runFieldUsageQueryForObjects (streaming)', () => {
     expect(account.fieldUsage.Custom_Text__c.scanned).toBe(250_000);
   });
 
+  it('reports the scanned row count as totalRecords when every COUNT aggregate fails and falls back to a row scan', async () => {
+    describeMock.mockResolvedValue({
+      data: {
+        label: 'Account',
+        queryable: true,
+        custom: false,
+        fields: [
+          { name: 'Id', label: 'Id', type: 'id', calculated: false, custom: false, autoNumber: false, length: 18, scale: 0 },
+          { name: 'LastModifiedDate', label: 'LMD', type: 'datetime', calculated: false, custom: false, autoNumber: false, scale: 0 },
+          {
+            name: 'Custom_Text__c',
+            label: 'Text',
+            type: 'string',
+            calculated: false,
+            custom: true,
+            autoNumber: false,
+            length: 255,
+            scale: 0,
+            aggregatable: true, // COUNT-eligible, so it takes the aggregate path first…
+          },
+        ],
+      },
+    });
+
+    // …but the COUNT aggregate times out (as it does on very large objects), forcing the field to the
+    // row-scan fallback. The scan reads 3 rows; totalRecords must be that scanned count, not 0.
+    const scanPage = [
+      { Id: '001000000000000000', LastModifiedDate: '2026-01-01T00:00:00.000+0000', Custom_Text__c: 'a' },
+      { Id: '001000000000000001', LastModifiedDate: '2026-01-02T00:00:00.000+0000', Custom_Text__c: '' },
+      { Id: '001000000000000002', LastModifiedDate: '2026-01-03T00:00:00.000+0000', Custom_Text__c: 'b' },
+    ];
+    queryMock.mockImplementation(async (_org: unknown, soql: string) => {
+      if (typeof soql === 'string' && soql.includes('COUNT(')) {
+        throw new Error('QUERY_TIMEOUT');
+      }
+      return { queryResults: { done: true, records: scanPage } };
+    });
+
+    const result = await runFieldUsageQueryForObjects(fakeOrg, ['Account']);
+
+    const account = result.objects.Account;
+    // Regression: previously countTotal=0 pinned totalRecords to 0 despite the scan reading 3 rows.
+    expect(account.totalRecords).toBe(3);
+    expect(account.fieldUsage.Custom_Text__c.filled).toBe(2);
+    expect(account.fieldUsage.Custom_Text__c.scanned).toBe(3);
+    // A COUNT was attempted (and failed) before the scan ran.
+    expect(queryMock.mock.calls.some(([, soql]) => typeof soql === 'string' && soql.includes('COUNT('))).toBe(true);
+  });
+
   it('throws when the cancellation signal trips between objects', async () => {
     describeMock.mockResolvedValue(buildDescribe());
     queryMock.mockResolvedValue(buildPage([], null));

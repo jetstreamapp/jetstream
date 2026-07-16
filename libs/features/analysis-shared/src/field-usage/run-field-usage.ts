@@ -480,8 +480,11 @@ export async function runFieldUsageQueryForObjects(
         }
       }
 
-      // Object-level record count: prefer the exact COUNT total; otherwise the scanned count.
-      const totalRecords = countTotal != null ? countTotal : scanTotal;
+      // Object-level record count. A successful COUNT(Id) is the whole-object total and is always >= the
+      // budget-capped scan, so max() prefers it. countTotal is 0 both for a genuinely empty object and
+      // when every COUNT chunk failed; max() handles the failure case by falling back to the rows the
+      // scan actually read instead of reporting a misleading 0 (an empty object has scanTotal 0 anyway).
+      const totalRecords = Math.max(countTotal ?? 0, scanTotal);
 
       const fieldUsage: Record<string, FieldUsageStat> = {};
       for (const name of names) {
