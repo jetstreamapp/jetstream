@@ -2,7 +2,6 @@ import { formatNumber } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { HorizontalVertical, UiTabSection } from '@jetstream/types';
 import classNames from 'classnames';
-import isNil from 'lodash/isNil';
 import React, { ReactNode, forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import SearchInput from '../form/search-input/SearchInput';
 import Tab from './Tab';
@@ -33,7 +32,7 @@ export interface TabsProps {
   children?: ReactNode;
 }
 
-export const Tabs = forwardRef<unknown, TabsProps>(
+export const Tabs = forwardRef<TabsRef, TabsProps>(
   (
     {
       position = 'horizontal',
@@ -70,7 +69,7 @@ export const Tabs = forwardRef<unknown, TabsProps>(
       [tabs, filterValue],
     );
 
-    useImperativeHandle<unknown, TabsRef>(ref, () => ({
+    useImperativeHandle<TabsRef, TabsRef>(ref, () => ({
       changeTab: (id: string) => {
         setActiveId(id);
         onChange?.(id);
@@ -125,7 +124,7 @@ export const Tabs = forwardRef<unknown, TabsProps>(
             {activeTab.content}
           </div>
         );
-      } else if (isNil(activeTab) && tabs && tabs.length > 0) {
+      } else if (tabs && tabs.length > 0) {
         return emptyState;
       } else {
         return (

@@ -72,7 +72,7 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
     const selectedItemLabel = selectedItem ? selectedItemLabelFn(selectedItem) : null;
     const selectedItemTitle = selectedItem ? selectedItemTitleFn(selectedItem) || '' : null;
     const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
-    const refs = visibleItems.map((value) => createRef<HTMLLIElement>());
+    const refs = useMemo(() => visibleItems.map(() => createRef<HTMLLIElement>()), [visibleItems]);
 
     useImperativeHandle<unknown, ComboboxWithItemsRef>(
       ref,

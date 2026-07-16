@@ -44,7 +44,7 @@ export const ComboboxWithItemsTypeAhead: FunctionComponent<ComboboxWithItemsType
   const selectedItemLabel = selectedItem ? selectedItemLabelFn(selectedItem) : null;
   const selectedItemTitle = selectedItem ? selectedItemTitleFn(selectedItem) || '' : null;
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
-  const refs = items.map((value) => createRef<HTMLLIElement>());
+  const refs = useMemo(() => items.map(() => createRef<HTMLLIElement>()), [items]);
 
   useEffect(() => {
     setLoading(true);
