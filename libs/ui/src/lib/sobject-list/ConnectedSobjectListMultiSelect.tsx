@@ -137,10 +137,10 @@ export const ConnectedSobjectListMultiSelect = forwardRef<any, ConnectedSobjectL
     // Auto-load is independent of `disabled`: a read-only list should still populate its data (the
     // `!sobjects` guard skips the fetch when a caller pre-supplies objects); `disabled` only gates interaction.
     useEffect(() => {
-      if (selectedOrg && !loading && !errorMessage && !sobjects) {
+      if (!disabled && selectedOrg && !loading && !errorMessage && !sobjects) {
         loadObjects().then(NOOP);
       }
-    }, [selectedOrg, loading, errorMessage, sobjects, onSobjects, loadObjects]);
+    }, [disabled, selectedOrg, loading, errorMessage, sobjects, onSobjects, loadObjects]);
 
     async function handleRefresh() {
       try {

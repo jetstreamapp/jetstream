@@ -39,6 +39,23 @@ const ManagePermissionsSelection = lazy(() =>
 const ManagePermissionsEditor = lazy(() =>
   import('@jetstream/feature/manage-permissions').then((module) => ({ default: module.ManagePermissionsEditor })),
 );
+const PermissionAnalysis = lazy(() =>
+  import('@jetstream/feature/permission-analysis').then((module) => ({ default: module.PermissionAnalysis })),
+);
+const PermissionAnalysisSelection = lazy(() =>
+  import('@jetstream/feature/permission-analysis').then((module) => ({ default: module.PermissionAnalysisSelection })),
+);
+const PermissionAnalysisView = lazy(() =>
+  import('@jetstream/feature/permission-analysis').then((module) => ({ default: module.PermissionAnalysisView })),
+);
+
+const DataAnalysis = lazy(() => import('@jetstream/feature/data-analysis').then((module) => ({ default: module.DataAnalysis })));
+const DataAnalysisSelection = lazy(() =>
+  import('@jetstream/feature/data-analysis').then((module) => ({ default: module.DataAnalysisSelection })),
+);
+const FieldUsageAnalysisView = lazy(() =>
+  import('@jetstream/feature/data-analysis').then((module) => ({ default: module.FieldUsageAnalysisView })),
+);
 
 const DeployMetadata = lazy(() => import('@jetstream/feature/deploy').then((module) => ({ default: module.DeployMetadata })));
 const DeployMetadataSelection = lazy(() =>
@@ -109,6 +126,8 @@ export const AppRoutes = () => {
       AutomationControlEditor.preload();
     } else if (location.pathname.includes('/permissions-manager')) {
       ManagePermissionsEditor.preload();
+    } else if (location.pathname.includes('/permission-analysis')) {
+      PermissionAnalysisView.preload();
     } else if (location.pathname.includes('/deploy-metadata')) {
       DeployMetadataDeployment.preload();
     } else if (location.pathname.includes('/create-fields')) {
@@ -187,6 +206,30 @@ export const AppRoutes = () => {
           >
             <Route index element={<ManagePermissionsSelection />} />
             <Route path="editor" element={<ManagePermissionsEditor />} />
+            <Route path="*" element={<Navigate to=".." />} />
+          </Route>
+          <Route
+            path={APP_ROUTES.PERMISSION_ANALYSIS.ROUTE}
+            element={
+              <OrgSelectionRequired>
+                <PermissionAnalysis />
+              </OrgSelectionRequired>
+            }
+          >
+            <Route index element={<PermissionAnalysisSelection />} />
+            <Route path="analysis" element={<PermissionAnalysisView />} />
+            <Route path="*" element={<Navigate to=".." />} />
+          </Route>
+          <Route
+            path={APP_ROUTES.DATA_ANALYSIS.ROUTE}
+            element={
+              <OrgSelectionRequired>
+                <DataAnalysis />
+              </OrgSelectionRequired>
+            }
+          >
+            <Route index element={<DataAnalysisSelection />} />
+            <Route path="analysis" element={<FieldUsageAnalysisView />} />
             <Route path="*" element={<Navigate to=".." />} />
           </Route>
           <Route

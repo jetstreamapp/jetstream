@@ -285,6 +285,7 @@ export function getFullUserProfile() {
       desktop: false,
       chromeExtension: false,
       recordSync: true,
+      analysisTools: true,
     },
     teamMembership: appData.userProfile.teamMembership,
     subscriptions: [],

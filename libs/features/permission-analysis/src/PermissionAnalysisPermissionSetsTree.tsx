@@ -1,0 +1,944 @@
+import { css } from '@emotion/react';
+import { logger } from '@jetstream/shared/client-logger';
+import { queryWithCache } from '@jetstream/shared/data';
+import { escapeSoqlString } from '@jetstream/shared/ui-utils';
+import type { SalesforceOrgUi } from '@jetstream/types';
+import type { RenderCellProps, RenderGroupCellProps } from '@jetstream/ui';
+import {
+  AutoFullHeightContainer,
+  Badge,
+  ColumnWithFilter,
+  dataTableDateFormatter,
+  DataTree,
+  getProfileOrPermSetSetupUrl,
+  getSalesforceUserManageSetupUrl,
+  Grid,
+  GridCol,
+  Icon,
+  KeyboardShortcut,
+  Popover,
+  ReadOnlyFormElement,
+  SalesforceLogin,
+  salesforceLoginAndRedirect,
+  ScopedNotification,
+  setColumnFromType,
+  Spinner,
+  type ProfileOrPermSetRecordType,
+} from '@jetstream/ui';
+import groupBy from 'lodash/groupBy';
+import {
+  Fragment,
+  FunctionComponent,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+  type MouseEvent,
+  type ReactElement,
+} from 'react';
+import { PermissionAnalysisExpandCollapseControls } from './PermissionAnalysisExpandCollapseControls';
+import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
+import {
+  buildContainerIdFindingSeverity,
+  buildPermissionSetAssignmentsTreeRows,
+  buildPermissionSetIdLabelMap,
+  isPermissionSetAssignmentsTreePlaceholderLeaf,
+  isPermissionSetAssignmentsTreeUserLeaf,
+  listFindingsForExportContainer,
+  type PermissionAnalysisFinding,
+  type PermissionExportRow,
+  type PermissionSetAssignmentsTreeRow,
+} from './permission-export-result-view';
+
+const TREE_GROUP_BY = ['_treePermissionSetGroupKey'] as const;
+
+const TREE_PERM_SET_MIN_PX = 140;
+const TREE_PERM_SET_MAX_PX = 420;
+const TREE_COL_PERM_SET = `minmax(${TREE_PERM_SET_MIN_PX}px, min(${TREE_PERM_SET_MAX_PX}px, 1.35fr))`;
+
+const USER_COL_MIN_PX = 200;
+const TREE_COL_USER = `minmax(${USER_COL_MIN_PX}px, 1fr)`;
+
+/** Chunk size for `User` Id IN queries (Salesforce SOQL limits). */
+const USER_SOQL_CHUNK_SIZE = 200;
+
+const TREE_ROW_HEIGHT_LEAF_PX = 48;
+/** Taller group rows so permission set label + created / last modified lines fit. */
+const TREE_ROW_HEIGHT_GROUP_PX = 60;
+
+const OBJECT_TYPE_ACTION_BUTTON_CLASSNAME = 'slds-button slds-button_icon slds-button_icon-bare';
+
+const PERMISSION_ANALYSIS_POPOVER_PANEL_PROPS = {
+  onDoubleClick: (event: MouseEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+  },
+};
+
+interface AssigneeDisplay {
+  name: string;
+  username: string;
+  /** When `false`, an inactive badge is shown next to the name. */
+  isActive: boolean;
+}
+
+function userRecordIsActive(record: { IsActive?: unknown }): boolean {
+  const value = record.IsActive;
+  if (value === false || value === 'false') {
+    return false;
+  }
+  return true;
+}
+
+function collectUniqueUserAssigneeIds(assignments: PermissionExportRow[]): string[] {
+  const ids = new Set<string>();
+  for (const row of assignments) {
+    const assigneeId = row.AssigneeId;
+    if (typeof assigneeId === 'string' && assigneeId.trim().startsWith('005')) {
+      ids.add(assigneeId.trim());
+    }
+  }
+  return [...ids].sort((a, b) => a.localeCompare(b));
+}
+
+export interface PermissionSetTooltipFields {
+  label: string;
+  name: string;
+  description: string | null;
+  createdWhen: string | null;
+  createdByName: string | null;
+  lastModifiedWhen: string | null;
+  lastModifiedByName: string | null;
+}
+
+function readSalesforceRelationshipName(value: unknown): string | null {
+  if (value && typeof value === 'object' && 'Name' in value) {
+    const name = (value as { Name?: unknown }).Name;
+    if (typeof name === 'string' && name.trim()) {
+      return name.trim();
+    }
+  }
+  return null;
+}
+
+function readIsoDatetimeDisplay(value: unknown): string | null {
+  if (typeof value !== 'string' || !value.trim()) {
+    return null;
+  }
+  return dataTableDateFormatter(value.trim());
+}
+
+function formatAuditLine(prefix: string, when: string | null, by: string | null): string | null {
+  if (!when && !by) {
+    return null;
+  }
+  if (when && by) {
+    return `${prefix} ${when} · ${by}`;
+  }
+  if (when) {
+    return `${prefix} ${when}`;
+  }
+  return `${prefix} · ${by}`;
+}
+
+/** Single permission-set (or profile-owned) export row → metadata for the detail popover. */
+export function buildPermissionSetTooltipFieldsFromExportRow(row: PermissionExportRow | undefined): PermissionSetTooltipFields | null {
+  if (!row) {
+    return null;
+  }
+  const id = row.Id;
+  if (typeof id !== 'string' || !id.trim()) {
+    return null;
+  }
+  const trimmedId = id.trim();
+  const label = typeof row.Label === 'string' && row.Label.trim() ? row.Label.trim() : '';
+  const name = typeof row.Name === 'string' && row.Name.trim() ? row.Name.trim() : '';
+  const rawDescription = row.Description;
+  const description = rawDescription != null && String(rawDescription).trim().length > 0 ? String(rawDescription).trim() : null;
+  return {
+    label: label || name || trimmedId,
+    name: name || '—',
+    description,
+    createdWhen: readIsoDatetimeDisplay(row.CreatedDate),
+    createdByName: readSalesforceRelationshipName(row.CreatedBy),
+    lastModifiedWhen: readIsoDatetimeDisplay(row.LastModifiedDate),
+    lastModifiedByName: readSalesforceRelationshipName(row.LastModifiedBy),
+  };
+}
+
+export function PermissionSetDetailPopoverContent({
+  fields,
+  containerKind,
+  setupLogin,
+  returnUrl,
+  slug,
+}: {
+  fields: PermissionSetTooltipFields;
+  containerKind: 'Profile' | 'PermissionSet';
+  setupLogin: { org: SalesforceOrgUi; serverUrl: string; skipFrontDoorAuth: boolean };
+  returnUrl: string;
+  slug: string;
+}): ReactElement {
+  const labelHeading = containerKind === 'Profile' ? 'Profile Label' : 'Permission Set Label';
+  const apiHeading = containerKind === 'Profile' ? 'Profile API Name' : 'Permission Set API Name';
+  const canDeepLink = Boolean(setupLogin.org?.uniqueId && setupLogin.serverUrl);
+  const createdLine = formatAuditLine('Created', fields.createdWhen, fields.createdByName);
+  const modifiedLine = formatAuditLine('Last Modified', fields.lastModifiedWhen, fields.lastModifiedByName);
+
+  return (
+    <div>
+      {canDeepLink ? (
+        <SalesforceLogin
+          org={setupLogin.org}
+          serverUrl={setupLogin.serverUrl}
+          skipFrontDoorAuth={setupLogin.skipFrontDoorAuth}
+          returnUrl={returnUrl}
+        >
+          View in Salesforce
+        </SalesforceLogin>
+      ) : null}
+      <Grid
+        wrap
+        gutters
+        className={canDeepLink ? 'slds-m-top_x-small' : undefined}
+        css={css`
+          min-height: 80px;
+        `}
+      >
+        <GridCol size={12}>
+          <ReadOnlyFormElement
+            id={`perm-analysis-container-${slug}-label`}
+            label={labelHeading}
+            className="slds-p-bottom_x-small"
+            value={fields.label}
+            bottomBorder
+          />
+        </GridCol>
+        <GridCol size={12}>
+          <ReadOnlyFormElement
+            id={`perm-analysis-container-${slug}-api`}
+            label={apiHeading}
+            className="slds-p-bottom_x-small"
+            value={fields.name}
+            bottomBorder
+          />
+        </GridCol>
+        <GridCol size={12}>
+          <ReadOnlyFormElement
+            id={`perm-analysis-container-${slug}-desc`}
+            label="Description"
+            className="slds-p-bottom_x-small"
+            value={fields.description ?? '—'}
+            bottomBorder
+          />
+        </GridCol>
+        <GridCol size={12}>
+          <ReadOnlyFormElement
+            id={`perm-analysis-container-${slug}-created`}
+            label="Created"
+            className="slds-p-bottom_x-small"
+            value={createdLine ?? '—'}
+            bottomBorder
+          />
+        </GridCol>
+        <GridCol size={12}>
+          <ReadOnlyFormElement
+            id={`perm-analysis-container-${slug}-modified`}
+            label="Last Modified"
+            className="slds-p-bottom_x-small"
+            value={modifiedLine ?? '—'}
+            bottomBorder
+          />
+        </GridCol>
+        {canDeepLink ? (
+          <GridCol size={12} className="slds-m-top_small">
+            <div className="slds-grid slds-text-small slds-text-color_weak">
+              Use <KeyboardShortcut className="slds-m-left_x-small" keys={['shift', 'click']} /> to skip this popup
+            </div>
+          </GridCol>
+        ) : null}
+      </Grid>
+    </div>
+  );
+}
+
+function buildPermissionSetTooltipFieldsById(rows: PermissionExportRow[]): Map<string, PermissionSetTooltipFields> {
+  const map = new Map<string, PermissionSetTooltipFields>();
+  for (const row of rows) {
+    const id = row.Id;
+    if (typeof id !== 'string' || !id.trim()) {
+      continue;
+    }
+    const fields = buildPermissionSetTooltipFieldsFromExportRow(row);
+    if (fields) {
+      map.set(id.trim(), fields);
+    }
+  }
+  return map;
+}
+
+type ContainerFindingsModalState = {
+  containerId: string;
+  columnLabel: string;
+  matches: PermissionAnalysisFinding[];
+};
+
+function renderPermissionSetGroupCell(
+  labelByPermissionSetId: Map<string, string>,
+  tooltipByPermissionSetId: Map<string, PermissionSetTooltipFields>,
+  containerSeverity: Map<string, 'error' | 'warning'> | null,
+  setupLogin: { org: SalesforceOrgUi; serverUrl: string; skipFrontDoorAuth: boolean },
+  onOpenFindings: (permissionSetId: string) => void,
+  resolveSetupTarget: (permissionSetId: string) => { recordType: ProfileOrPermSetRecordType; recordId: string },
+  openInSetupTitle: string,
+  findingsForContainerButtonTitle: string,
+  { groupKey, childRows, isExpanded, toggleGroup }: RenderGroupCellProps<PermissionSetAssignmentsTreeRow>,
+) {
+  const permissionSetId = String(groupKey);
+  const titleLabel = labelByPermissionSetId.get(permissionSetId) ?? permissionSetId;
+  const tooltipFields = tooltipByPermissionSetId.get(permissionSetId) ?? {
+    label: titleLabel,
+    name: '—',
+    description: null,
+    createdWhen: null,
+    createdByName: null,
+    lastModifiedWhen: null,
+    lastModifiedByName: null,
+  };
+  const createdLine = formatAuditLine('Created', tooltipFields.createdWhen, tooltipFields.createdByName);
+  const modifiedLine = formatAuditLine('Last Modified', tooltipFields.lastModifiedWhen, tooltipFields.lastModifiedByName);
+  const severity = containerSeverity?.get(permissionSetId);
+  const { recordType, recordId } = resolveSetupTarget(permissionSetId);
+  const returnUrl = getProfileOrPermSetSetupUrl(recordType, recordId);
+
+  const detailSlug = permissionSetId.replace(/[^a-zA-Z0-9_-]+/g, '-');
+  const containerKind: 'Profile' | 'PermissionSet' = recordType === 'Profile' ? 'Profile' : 'PermissionSet';
+  const canDeepLink = Boolean(setupLogin.org?.uniqueId && setupLogin.serverUrl);
+
+  return (
+    <div
+      className={
+        severity === 'error'
+          ? 'permission-finding-cell--error'
+          : severity === 'warning'
+            ? 'permission-finding-severity-cell--warning'
+            : undefined
+      }
+      css={css`
+        display: flex;
+        align-items: flex-start;
+        column-gap: 0.25rem;
+        width: 100%;
+        height: 100%;
+        padding: 0.25rem 0.35rem;
+      `}
+    >
+      <div
+        css={css`
+          display: flex;
+          align-items: flex-start;
+          column-gap: 0.25rem;
+          flex: 1;
+          min-width: 0;
+        `}
+      >
+        <button
+          type="button"
+          className="slds-button slds-button_reset slds-p-around_xx-small"
+          title={isExpanded ? 'Collapse' : 'Expand'}
+          aria-expanded={isExpanded}
+          css={css`
+            flex-shrink: 0;
+            line-height: 1;
+            margin-top: 0.125rem;
+          `}
+          onClick={toggleGroup}
+        >
+          <Icon
+            type="utility"
+            icon={isExpanded ? 'chevrondown' : 'chevronright'}
+            className="slds-icon slds-icon-text-default slds-icon_x-small"
+            omitContainer
+            description={isExpanded ? 'Collapse' : 'Expand'}
+          />
+        </button>
+        <Popover
+          size="large"
+          panelProps={PERMISSION_ANALYSIS_POPOVER_PANEL_PROPS}
+          content={
+            <PermissionSetDetailPopoverContent
+              fields={tooltipFields}
+              containerKind={containerKind}
+              setupLogin={setupLogin}
+              returnUrl={returnUrl}
+              slug={detailSlug}
+            />
+          }
+          buttonProps={{
+            className: 'slds-button slds-button_reset slds-text-align_left',
+          }}
+          buttonStyle={{
+            flex: 1,
+            minWidth: 0,
+            height: 'auto',
+            alignItems: 'flex-start',
+            display: 'flex',
+            lineHeight: 1.35,
+            overflowWrap: 'anywhere',
+            whiteSpace: 'normal',
+            wordBreak: 'break-word',
+            padding: 0,
+          }}
+        >
+          <span
+            css={css`
+              flex: 1;
+              min-width: 0;
+              text-align: left;
+            `}
+            onClick={(event: MouseEvent<HTMLSpanElement>) => {
+              if (event.shiftKey || event.ctrlKey || event.metaKey) {
+                if (!canDeepLink) {
+                  return;
+                }
+                event.stopPropagation();
+                event.preventDefault();
+                salesforceLoginAndRedirect({
+                  serverUrl: setupLogin.serverUrl,
+                  org: setupLogin.org,
+                  returnUrl,
+                  skipFrontDoorAuth: setupLogin.skipFrontDoorAuth,
+                });
+              }
+            }}
+          >
+            <span className="slds-truncate" title={titleLabel}>
+              <span>{titleLabel}</span>
+              <span className="slds-text-body_small slds-text-color_weak slds-m-left_xx-small">({childRows.length})</span>
+            </span>
+            {(createdLine || modifiedLine) && (
+              <div
+                className="slds-text-body_small slds-text-color_weak"
+                css={css`
+                  margin-top: 0.125rem;
+                  line-height: 1.25;
+                `}
+              >
+                {createdLine && (
+                  <div className="slds-truncate" title={createdLine}>
+                    {createdLine}
+                  </div>
+                )}
+                {modifiedLine && (
+                  <div className="slds-truncate" title={modifiedLine}>
+                    {modifiedLine}
+                  </div>
+                )}
+              </div>
+            )}
+          </span>
+        </Popover>
+      </div>
+      <div
+        className="slds-no-flex"
+        css={css`
+          display: flex;
+          align-items: center;
+          column-gap: 0.125rem;
+        `}
+      >
+        <SalesforceLogin
+          org={setupLogin.org}
+          serverUrl={setupLogin.serverUrl}
+          skipFrontDoorAuth={setupLogin.skipFrontDoorAuth}
+          returnUrl={returnUrl}
+          title={openInSetupTitle}
+          omitIcon
+          className={OBJECT_TYPE_ACTION_BUTTON_CLASSNAME}
+          onClick={(event) => {
+            event.stopPropagation();
+          }}
+        >
+          <Icon type="utility" icon="new_window" className="slds-button__icon" omitContainer />
+        </SalesforceLogin>
+        {severity && (
+          <button
+            type="button"
+            className="slds-button slds-button_icon slds-button_icon-bare"
+            title={findingsForContainerButtonTitle}
+            onClick={(event) => {
+              event.stopPropagation();
+              onOpenFindings(permissionSetId);
+            }}
+          >
+            <Icon
+              type="utility"
+              icon={severity === 'error' ? 'error' : 'warning'}
+              className={severity === 'error' ? 'slds-button__icon slds-icon-text-error' : 'slds-button__icon slds-icon-text-warning'}
+              omitContainer
+              description="View issues"
+            />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export type PermissionAnalysisPermissionSetsTreePresentation = 'permission_sets' | 'profiles';
+
+export interface PermissionAnalysisPermissionSetsTreeProps {
+  permissionSetRows: PermissionExportRow[];
+  permissionSetAssignments: PermissionExportRow[];
+  org: SalesforceOrgUi;
+  serverUrl: string;
+  skipFrontdoorLogin: boolean;
+  defaultApiVersion: string;
+  findings?: PermissionAnalysisFinding[];
+  containerLabelById?: Map<string, string>;
+  /**
+   * `profiles` uses Profile Setup URLs (via `ProfileId` on profile-owned permission set rows) and profile-oriented labels.
+   * `permission_sets` (default) matches standalone permission sets.
+   */
+  treePresentation?: PermissionAnalysisPermissionSetsTreePresentation;
+}
+
+/**
+ * Permission sets or profiles (profile-owned permission sets) from the export, grouped by container with tooltip metadata
+ * and expandable user assignment leaves. Use {@link PermissionAnalysisPermissionSetsTreeProps.treePresentation} to match the tab.
+ * Groups start expanded.
+ */
+export const PermissionAnalysisPermissionSetsTree: FunctionComponent<PermissionAnalysisPermissionSetsTreeProps> = ({
+  permissionSetRows,
+  permissionSetAssignments,
+  org,
+  serverUrl,
+  skipFrontdoorLogin,
+  defaultApiVersion,
+  findings = [],
+  containerLabelById,
+  treePresentation = 'permission_sets',
+}) => {
+  const isProfilesTree = treePresentation === 'profiles';
+  const groupColumnName = isProfilesTree ? 'Profile' : 'Permission Set';
+  const openInSetupTitle = isProfilesTree ? 'Open this profile in Salesforce Setup' : 'Open this permission set in Salesforce Setup';
+  const findingsForContainerButtonTitle = isProfilesTree ? 'View issues for this profile' : 'View issues for this permission set';
+
+  const rowByPermissionSetId = useMemo(() => {
+    const map = new Map<string, PermissionExportRow>();
+    for (const row of permissionSetRows) {
+      const id = typeof row.Id === 'string' ? row.Id.trim() : '';
+      if (id) {
+        map.set(id, row);
+      }
+    }
+    return map;
+  }, [permissionSetRows]);
+
+  const resolveSetupTarget = useCallback(
+    (permissionSetId: string): { recordType: ProfileOrPermSetRecordType; recordId: string } => {
+      if (!isProfilesTree) {
+        return { recordType: 'PermissionSet', recordId: permissionSetId };
+      }
+      const row = rowByPermissionSetId.get(permissionSetId);
+      const profileId = row && typeof row.ProfileId === 'string' && row.ProfileId.trim().length > 0 ? row.ProfileId.trim() : null;
+      const isProfileOwned = row?.IsOwnedByProfile === true;
+      if (isProfileOwned && profileId) {
+        return { recordType: 'Profile', recordId: profileId };
+      }
+      return { recordType: 'PermissionSet', recordId: permissionSetId };
+    },
+    [isProfilesTree, rowByPermissionSetId],
+  );
+
+  const treeRows = useMemo(
+    () => buildPermissionSetAssignmentsTreeRows(permissionSetRows, permissionSetAssignments),
+    [permissionSetRows, permissionSetAssignments],
+  );
+  const labelByPermissionSetId = useMemo(() => buildPermissionSetIdLabelMap(permissionSetRows), [permissionSetRows]);
+  const tooltipByPermissionSetId = useMemo(() => buildPermissionSetTooltipFieldsById(permissionSetRows), [permissionSetRows]);
+  const containerSeverity = useMemo(() => {
+    if (findings.length === 0) {
+      return null;
+    }
+    return buildContainerIdFindingSeverity(findings);
+  }, [findings]);
+
+  const allExpandedGroupIds = useMemo(() => {
+    const ids = new Set<unknown>();
+    for (const row of treeRows) {
+      ids.add(row._treePermissionSetGroupKey);
+    }
+    return ids;
+  }, [treeRows]);
+
+  const [expandedGroupIds, setExpandedGroupIds] = useState<Set<unknown>>(() => new Set());
+  useLayoutEffect(() => {
+    setExpandedGroupIds(new Set(allExpandedGroupIds));
+  }, [allExpandedGroupIds]);
+
+  const [findingsModal, setFindingsModal] = useState<ContainerFindingsModalState | null>(null);
+  const [assigneeDisplayById, setAssigneeDisplayById] = useState<Map<string, AssigneeDisplay>>(() => new Map());
+  const [assigneeDisplayLoading, setAssigneeDisplayLoading] = useState(false);
+
+  useEffect(() => {
+    if (!org?.uniqueId) {
+      setAssigneeDisplayById(new Map());
+      setAssigneeDisplayLoading(false);
+      return;
+    }
+    const ids = collectUniqueUserAssigneeIds(permissionSetAssignments);
+    if (ids.length === 0) {
+      setAssigneeDisplayById(new Map());
+      setAssigneeDisplayLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setAssigneeDisplayLoading(true);
+
+    void (async () => {
+      try {
+        const merged = new Map<string, AssigneeDisplay>();
+        for (let index = 0; index < ids.length; index += USER_SOQL_CHUNK_SIZE) {
+          const chunk = ids.slice(index, index + USER_SOQL_CHUNK_SIZE);
+          const inList = chunk.map((id) => `'${escapeSoqlString(id)}'`).join(', ');
+          const soql = `SELECT Id, Name, Username, IsActive FROM User WHERE Id IN (${inList})`;
+          // Cached — this component remounts on every tab switch and the assignee id set rarely changes.
+          const { data: response } = await queryWithCache<{ Id: string; Name?: string; Username?: string; IsActive?: boolean }>(org, soql);
+          for (const record of response.queryResults.records ?? []) {
+            const recordId = typeof record.Id === 'string' ? record.Id.trim() : '';
+            if (!recordId) {
+              continue;
+            }
+            merged.set(recordId, {
+              name: typeof record.Name === 'string' && record.Name.trim() ? record.Name.trim() : recordId,
+              username: typeof record.Username === 'string' && record.Username.trim() ? record.Username.trim() : '',
+              isActive: userRecordIsActive(record),
+            });
+          }
+        }
+        if (!cancelled) {
+          setAssigneeDisplayById(merged);
+        }
+      } catch (error) {
+        logger.warn('Failed to load User rows for permission set tree assignees', error);
+        if (!cancelled) {
+          setAssigneeDisplayById(new Map());
+        }
+      } finally {
+        if (!cancelled) {
+          setAssigneeDisplayLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [org, permissionSetAssignments]);
+
+  const setupLogin = useMemo(() => ({ org, serverUrl, skipFrontDoorAuth: skipFrontdoorLogin }), [org, serverUrl, skipFrontdoorLogin]);
+
+  const openFindingsForPermissionSet = useCallback(
+    (permissionSetId: string) => {
+      const id = permissionSetId.trim();
+      if (!id || !containerSeverity?.has(id)) {
+        return;
+      }
+      const matches = listFindingsForExportContainer(findings, id);
+      if (matches.length === 0) {
+        return;
+      }
+      setFindingsModal({
+        containerId: id,
+        columnLabel: groupColumnName,
+        matches,
+      });
+    },
+    [containerSeverity, findings, groupColumnName],
+  );
+
+  const columns = useMemo((): ColumnWithFilter<PermissionSetAssignmentsTreeRow>[] => {
+    if (!treeRows.length) {
+      return [];
+    }
+    const groupCol: ColumnWithFilter<PermissionSetAssignmentsTreeRow> = {
+      ...setColumnFromType<PermissionSetAssignmentsTreeRow>('_treePermissionSetGroupKey', 'text'),
+      name: groupColumnName,
+      key: '_treePermissionSetGroupKey',
+      field: '_treePermissionSetGroupKey',
+      resizable: true,
+      width: TREE_COL_PERM_SET,
+      minWidth: TREE_PERM_SET_MIN_PX,
+      maxWidth: TREE_PERM_SET_MAX_PX,
+      // Group header spans the full row (clamped to the column count by the grid) so the label + actions
+      // lay out across the whole width instead of overflowing the narrow grouping column.
+      colSpan: ({ type }) => (type === 'GROUP' ? Number.MAX_SAFE_INTEGER : undefined),
+      renderGroupCell: (props) =>
+        renderPermissionSetGroupCell(
+          labelByPermissionSetId,
+          tooltipByPermissionSetId,
+          containerSeverity,
+          setupLogin,
+          openFindingsForPermissionSet,
+          resolveSetupTarget,
+          openInSetupTitle,
+          findingsForContainerButtonTitle,
+          props,
+        ),
+      getValue: ({ row }) => {
+        const id = row._treePermissionSetGroupKey;
+        return labelByPermissionSetId.get(id) ?? id;
+      },
+    } as ColumnWithFilter<PermissionSetAssignmentsTreeRow>;
+
+    const userCol: ColumnWithFilter<PermissionSetAssignmentsTreeRow> = {
+      ...setColumnFromType<PermissionSetAssignmentsTreeRow>('AssigneeId', 'salesforceId'),
+      name: 'Assigned User',
+      key: 'AssigneeId',
+      field: 'AssigneeId',
+      resizable: true,
+      width: TREE_COL_USER,
+      minWidth: USER_COL_MIN_PX,
+      getValue: ({ row }) => {
+        if (isPermissionSetAssignmentsTreeUserLeaf(row)) {
+          const userLeaf = row;
+          const userId = typeof userLeaf.AssigneeId === 'string' ? userLeaf.AssigneeId.trim() : '';
+          const display = userId ? assigneeDisplayById.get(userId) : undefined;
+          if (display) {
+            const inactiveTag = display.isActive ? '' : ' inactive';
+            return `${display.name} ${display.username}${inactiveTag} ${userId}`.trim();
+          }
+          return userId;
+        }
+        if (isPermissionSetAssignmentsTreePlaceholderLeaf(row)) {
+          return 'No direct user assignments';
+        }
+        return '';
+      },
+      renderCell: (props: RenderCellProps<PermissionSetAssignmentsTreeRow, unknown>) => {
+        const row = props.row;
+        if (!row) {
+          return null;
+        }
+        if (isPermissionSetAssignmentsTreeUserLeaf(row)) {
+          const userId = typeof row.AssigneeId === 'string' ? row.AssigneeId.trim() : '';
+          if (!userId) {
+            return null;
+          }
+          const userReturnUrl = getSalesforceUserManageSetupUrl(userId);
+          const openUserButton = (
+            <SalesforceLogin
+              org={setupLogin.org}
+              serverUrl={setupLogin.serverUrl}
+              skipFrontDoorAuth={setupLogin.skipFrontDoorAuth}
+              returnUrl={userReturnUrl}
+              title="Open this user in Salesforce Setup"
+              omitIcon
+              className={OBJECT_TYPE_ACTION_BUTTON_CLASSNAME}
+              onClick={(event) => {
+                event.stopPropagation();
+              }}
+            >
+              <Icon type="utility" icon="new_window" className="slds-button__icon" omitContainer />
+            </SalesforceLogin>
+          );
+          if (assigneeDisplayLoading) {
+            return (
+              <div
+                css={css`
+                  display: flex;
+                  align-items: center;
+                  column-gap: 0.25rem;
+                  width: 100%;
+                  height: 100%;
+                `}
+              >
+                <Spinner size="small" hasContainer={false} inline />
+                {openUserButton}
+              </div>
+            );
+          }
+          const display = assigneeDisplayById.get(userId);
+          if (display) {
+            const nameTitle = `${display.name} — ${display.username}${display.isActive ? '' : ' (inactive)'}`;
+            return (
+              <div
+                css={css`
+                  display: flex;
+                  align-items: flex-start;
+                  column-gap: 0.25rem;
+                  width: 100%;
+                  height: 100%;
+                `}
+              >
+                <div
+                  className="slds-truncate"
+                  title={nameTitle}
+                  css={css`
+                    flex: 1;
+                    min-width: 0;
+                  `}
+                >
+                  <div
+                    css={css`
+                      display: flex;
+                      align-items: center;
+                      column-gap: 0.35rem;
+                      flex-wrap: wrap;
+                      min-width: 0;
+                    `}
+                  >
+                    <span className="text-bold slds-truncate">{display.name}</span>
+                    {!display.isActive && (
+                      <span
+                        className="slds-no-flex"
+                        css={css`
+                          padding-top: 0.125rem;
+                        `}
+                      >
+                        <Badge type="default" title="This user is inactive in Salesforce">
+                          Inactive
+                        </Badge>
+                      </span>
+                    )}
+                  </div>
+                  <p className="slds-text-body_small slds-text-color_weak">{display.username}</p>
+                </div>
+                <div className="slds-no-flex">{openUserButton}</div>
+              </div>
+            );
+          }
+          return (
+            <div
+              css={css`
+                display: flex;
+                align-items: flex-start;
+                column-gap: 0.25rem;
+                width: 100%;
+                height: 100%;
+              `}
+            >
+              <div
+                className="slds-truncate"
+                title={userId}
+                css={css`
+                  flex: 1;
+                  min-width: 0;
+                `}
+              >
+                <code className="slds-text-body_small">{userId}</code>
+              </div>
+              <div className="slds-no-flex">{openUserButton}</div>
+            </div>
+          );
+        }
+        if (isPermissionSetAssignmentsTreePlaceholderLeaf(row)) {
+          return <div className="slds-text-color_weak slds-truncate">No direct user assignments</div>;
+        }
+        return null;
+      },
+    } as ColumnWithFilter<PermissionSetAssignmentsTreeRow>;
+
+    return [groupCol, userCol];
+  }, [
+    treeRows,
+    groupColumnName,
+    labelByPermissionSetId,
+    tooltipByPermissionSetId,
+    containerSeverity,
+    setupLogin,
+    openFindingsForPermissionSet,
+    resolveSetupTarget,
+    openInSetupTitle,
+    findingsForContainerButtonTitle,
+    assigneeDisplayById,
+    assigneeDisplayLoading,
+  ]);
+
+  const getRowKey = useCallback((row: PermissionSetAssignmentsTreeRow) => {
+    if (typeof row.Id === 'string' && row.Id.length > 0) {
+      return row.Id;
+    }
+    return row._treePermissionSetGroupKey;
+  }, []);
+
+  if (!permissionSetRows.length) {
+    return (
+      <div className="slds-p-around_medium">
+        <ScopedNotification theme="info">
+          {isProfilesTree ? 'No profiles in this export slice.' : 'No permission sets in this export slice.'}
+        </ScopedNotification>
+      </div>
+    );
+  }
+
+  if (!treeRows.length) {
+    return (
+      <div className="slds-p-around_medium">
+        <ScopedNotification theme="info">
+          {isProfilesTree
+            ? 'No profile rows with Ids were available to build this tree.'
+            : 'No permission set rows with Ids were available to build this tree.'}
+        </ScopedNotification>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <PermissionAnalysisExpandCollapseControls
+        onExpandAll={() => setExpandedGroupIds(new Set(allExpandedGroupIds))}
+        onCollapseAll={() => setExpandedGroupIds(new Set())}
+      />
+      <AutoFullHeightContainer
+        fillHeight
+        setHeightAttr
+        bottomBuffer={24}
+        baseCss={css`
+          min-height: 200px;
+        `}
+      >
+        <DataTree
+          org={org}
+          serverUrl={serverUrl}
+          skipFrontdoorLogin={skipFrontdoorLogin}
+          columns={columns}
+          data={treeRows}
+          getRowKey={getRowKey}
+          includeQuickFilter
+          context={{ defaultApiVersion }}
+          groupBy={[...TREE_GROUP_BY]}
+          rowGrouper={groupBy}
+          expandedGroupIds={expandedGroupIds}
+          onExpandedGroupIdsChange={setExpandedGroupIds}
+          rowHeight={({ type }) => (type === 'GROUP' ? TREE_ROW_HEIGHT_GROUP_PX : TREE_ROW_HEIGHT_LEAF_PX)}
+        />
+
+        {findingsModal && (
+          <PermissionAnalysisFindingsModal
+            testId="permission-analysis-perm-set-tree-issues"
+            open
+            title={isProfilesTree ? 'Issues for this profile' : 'Issues for this permission set'}
+            tagline={
+              isProfilesTree
+                ? "From this job's permission export analysis, scoped to the profile you selected."
+                : "From this job's permission export analysis, scoped to the permission set you selected."
+            }
+            onClose={() => setFindingsModal(null)}
+            findings={findingsModal.matches}
+            summaryLine={
+              <Fragment>
+                <strong>{findingsModal.columnLabel}</strong>
+                {' · '}
+                {containerLabelById?.get(findingsModal.containerId) ?? findingsModal.containerId} — {findingsModal.matches.length}{' '}
+                {findingsModal.matches.length === 1 ? 'issue' : 'issues'}
+              </Fragment>
+            }
+          />
+        )}
+      </AutoFullHeightContainer>
+    </>
+  );
+};

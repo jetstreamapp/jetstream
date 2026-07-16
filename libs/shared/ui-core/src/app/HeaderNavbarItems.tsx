@@ -1,8 +1,10 @@
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import type { NavbarItemConfig } from '@jetstream/ui';
+import { useFeatureFlag } from '@jetstream/ui/app-state';
 import { useMemo } from 'react';
 
 export function useHeaderNavbarItems(): NavbarItemConfig[] {
+  const analysisToolsEnabled = useFeatureFlag('analysis-tools');
   return useMemo<NavbarItemConfig[]>(
     () => [
       {
@@ -72,6 +74,33 @@ export function useHeaderNavbarItems(): NavbarItemConfig[] {
         title: APP_ROUTES.PERMISSION_MANAGER.DESCRIPTION,
         label: APP_ROUTES.PERMISSION_MANAGER.TITLE,
       },
+      // Gated by the `analysis-tools` rollout flag. When enabled it is shown to everyone for discovery;
+      // the route still renders an upgrade paywall for users without the paid entitlement.
+      ...(analysisToolsEnabled
+        ? [
+            {
+              id: 'analysis-tools',
+              type: 'menu' as const,
+              label: 'Analysis Tools',
+              items: [
+                {
+                  id: 'permission-analysis',
+                  path: APP_ROUTES.PERMISSION_ANALYSIS.ROUTE,
+                  search: APP_ROUTES.PERMISSION_ANALYSIS.SEARCH_PARAM,
+                  title: APP_ROUTES.PERMISSION_ANALYSIS.DESCRIPTION,
+                  label: APP_ROUTES.PERMISSION_ANALYSIS.TITLE,
+                },
+                {
+                  id: 'data-analysis',
+                  path: APP_ROUTES.DATA_ANALYSIS.ROUTE,
+                  search: APP_ROUTES.DATA_ANALYSIS.SEARCH_PARAM,
+                  title: APP_ROUTES.DATA_ANALYSIS.DESCRIPTION,
+                  label: APP_ROUTES.DATA_ANALYSIS.TITLE,
+                },
+              ],
+            },
+          ]
+        : []),
       {
         id: 'deploy-metadata',
         type: 'menu',
@@ -171,6 +200,6 @@ export function useHeaderNavbarItems(): NavbarItemConfig[] {
         ],
       },
     ],
-    [],
+    [analysisToolsEnabled],
   );
 }

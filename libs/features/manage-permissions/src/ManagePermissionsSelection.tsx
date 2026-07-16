@@ -2,7 +2,15 @@ import { css } from '@emotion/react';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useNonInitialEffect, usePrimaryActionShortcut, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { DescribeGlobalSObjectResult, ListItem, PermissionSetNoProfileRecord, PermissionSetWithProfileRecord } from '@jetstream/types';
+import {
+  AsyncJob,
+  AsyncJobNew,
+  DescribeGlobalSObjectResult,
+  ListItem,
+  PermissionExportAnalysisJob,
+  PermissionSetNoProfileRecord,
+  PermissionSetWithProfileRecord,
+} from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ConnectedSobjectListMultiSelect,
@@ -17,22 +25,52 @@ import {
   ProfileOrPermSetPopover,
   ProfileOrPermSetRecordType,
   Tooltip,
+  fireToast,
   getModifierKey,
 } from '@jetstream/ui';
-import { RequireMetadataApiBanner, fromPermissionsState } from '@jetstream/ui-core';
-import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
+import {
+  PermissionAnalysisHistoryModal,
+  RequireMetadataApiBanner,
+  fromJetstreamEvents,
+  fromPermissionsState,
+  jobsState,
+} from '@jetstream/ui-core';
+import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState, useFeatureFlag } from '@jetstream/ui/app-state';
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useAtom, useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
-import { FunctionComponent, useEffect } from 'react';
+import { FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { filterPermissionsSobjects } from './utils/permission-manager-utils';
 
 const HEIGHT_BUFFER = 170;
 
-export interface ManagePermissionsSelectionProps {}
+/**
+ * Local mirror of `isAnalysisJobActive` from `@jetstream/feature/data-analysis`. Inlined to avoid
+ * a circular dependency (data-analysis imports `PermissionAnalysisHistoryModal` from this lib).
+ */
+function isPermissionExportJobActive(jobs: Record<string, AsyncJob<unknown>>, orgUniqueId: string): boolean {
+  return Object.values(jobs).some((job) => {
+    if (!job || job.type !== 'PermissionExportAnalysis') {
+      return false;
+    }
+    const inFlight = job.status === 'pending' || job.status === 'in-progress';
+    if (!inFlight) {
+      return false;
+    }
+    const meta = job.meta as { orgUniqueId?: string } | undefined;
+    return meta?.orgUniqueId === orgUniqueId;
+  });
+}
 
-export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSelectionProps> = () => {
+export type ManagePermissionsSelectionMode = 'manage' | 'permission-analysis';
+
+export interface ManagePermissionsSelectionProps {
+  /** `permission-analysis` uses the same object picker to optionally narrow ObjectPermissions / FieldPermissions export rows (via job payload `objectApiNames`). */
+  selectionMode?: ManagePermissionsSelectionMode;
+}
+
+export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSelectionProps> = ({ selectionMode = 'manage' }) => {
   const navigate = useNavigate();
   const selectedOrg = useAtomValue(selectedOrgState);
   const { serverUrl } = useAtomValue(applicationCookieState);
@@ -64,9 +102,22 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
   const resetFieldPermissionMap = useResetAtom(fromPermissionsState.fieldPermissionMap);
   const resetTabVisibilityPermissionMap = useResetAtom(fromPermissionsState.tabVisibilityPermissionMap);
 
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
+  const jobs = useAtomValue(jobsState);
+
   const profilesAndPermSetsData = useProfilesAndPermSets(selectedOrg, profiles, permissionSets);
 
   const hasSelectionsMade = useAtomValue(fromPermissionsState.hasSelectionsMade);
+
+  const isAnalysis = selectionMode === 'permission-analysis';
+  const analysisToolsEnabled = useFeatureFlag('analysis-tools');
+
+  const canContinueAnalysis = useMemo(() => {
+    return selectedProfiles.length > 0 || selectedPermissionSets.length > 0;
+  }, [selectedProfiles.length, selectedPermissionSets.length]);
+
+  const continueEnabled = isAnalysis ? canContinueAnalysis : hasSelectionsMade;
 
   // Run only on first render
   useEffect(() => {
@@ -94,23 +145,62 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
     setSobjects(sobjects);
   }
 
+  const handleContinueAnalysis = useCallback(() => {
+    if (!canContinueAnalysis || !selectedOrg) {
+      return;
+    }
+    if (isPermissionExportJobActive(jobs, selectedOrg.uniqueId)) {
+      fireToast({
+        message: 'A Permission Export job is already running for this org. Wait for it to finish before starting another.',
+        type: 'warning',
+      });
+      return;
+    }
+
+    const jobHistoryKey = `aj_${crypto.randomUUID()}`;
+    const meta: PermissionExportAnalysisJob = {
+      jobHistoryKey,
+      orgUniqueId: selectedOrg.uniqueId,
+      profileIds: selectedProfiles,
+      permissionSetIds: selectedPermissionSets,
+      ...(selectedSObjects.length > 0 ? { objectApiNames: selectedSObjects } : {}),
+    };
+    const asyncJobNew: AsyncJobNew<PermissionExportAnalysisJob> = {
+      type: 'PermissionExportAnalysis',
+      title: `Permission Export (${selectedProfiles.length + selectedPermissionSets.length} selection${
+        selectedProfiles.length + selectedPermissionSets.length === 1 ? '' : 's'
+      })`,
+      org: selectedOrg,
+      meta,
+      viewUrl: `${APP_ROUTES.PERMISSION_ANALYSIS.ROUTE}/analysis?job=${encodeURIComponent(jobHistoryKey)}`,
+    };
+    fromJetstreamEvents.emit({ type: 'newJob', payload: [asyncJobNew] });
+    fireToast({ message: 'Permission Export job started. Loading results…', type: 'success' });
+    navigate(`analysis?job=${encodeURIComponent(jobHistoryKey)}`);
+  }, [canContinueAnalysis, jobs, navigate, selectedOrg, selectedPermissionSets, selectedProfiles, selectedSObjects]);
+
   function handleContinue() {
-    if (!sobjects?.length) {
+    if (!sobjects || !sobjects.length) {
       return;
     }
     recentHistoryItemsDb.addItemToRecentHistoryItems(
       selectedOrg.uniqueId,
       'sobject',
-      sobjects.map(({ name }) => name),
+      sobjects.map((row: DescribeGlobalSObjectResult) => row.name),
     );
   }
 
+  // Cmd/Ctrl+Enter triggers the primary "Continue" action for whichever mode is active.
   usePrimaryActionShortcut(
     () => {
+      if (isAnalysis) {
+        handleContinueAnalysis();
+        return;
+      }
       handleContinue();
       navigate('editor');
     },
-    { disabled: !hasSelectionsMade },
+    { disabled: !continueEnabled },
   );
 
   return (
@@ -120,11 +210,32 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
         <PageHeaderRow>
           <PageHeaderTitle
             icon={{ type: 'standard', icon: 'portal' }}
-            label="Manage Permissions"
+            label={isAnalysis ? 'Permission Analysis' : 'Manage Permissions'}
             docsPath={APP_ROUTES.PERMISSION_MANAGER.DOCS}
           />
           <PageHeaderActions colType="actions" buttonType="separate">
-            {hasSelectionsMade && (
+            {isAnalysis && (
+              <Tooltip ariaRole="label" content="View past permission export runs for this org">
+                <button
+                  type="button"
+                  aria-label="Export history"
+                  className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
+                  css={css`
+                    padding: 0.5rem;
+                  `}
+                  disabled={!selectedOrg?.uniqueId}
+                  onClick={() => setIsHistoryOpen(true)}
+                >
+                  <Icon type="utility" icon="date_time" className="slds-button__icon" omitContainer title="Export history" />
+                </button>
+              </Tooltip>
+            )}
+            {!isAnalysis && analysisToolsEnabled && (
+              <Link className="slds-button slds-button_neutral" to={APP_ROUTES.PERMISSION_ANALYSIS.ROUTE}>
+                Open in Permission Analysis
+              </Link>
+            )}
+            {continueEnabled && !isAnalysis && (
               <Tooltip
                 openDelay={500}
                 content={
@@ -139,7 +250,22 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
                 </Link>
               </Tooltip>
             )}
-            {!hasSelectionsMade && (
+            {continueEnabled && isAnalysis && (
+              <Tooltip
+                openDelay={500}
+                content={
+                  <div className="slds-p-bottom_small">
+                    <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+                  </div>
+                }
+              >
+                <button type="button" className="slds-button slds-button_brand" onClick={handleContinueAnalysis}>
+                  Continue
+                  <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
+                </button>
+              </Tooltip>
+            )}
+            {!continueEnabled && (
               <button className="slds-button slds-button_brand" disabled>
                 Continue
                 <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
@@ -154,10 +280,40 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
               min-height: 19px;
             `}
           >
-            {!hasSelectionsMade && <span>Select one or more profiles or permission sets and one or more objects</span>}
+            {isAnalysis && !continueEnabled && (
+              <span>
+                Select at least one profile or one permission set to continue. Objects are optional — use them only if you want to narrow
+                object and field permission rows to specific types.
+              </span>
+            )}
+            {!isAnalysis && !hasSelectionsMade && <span>Select one or more profiles or permission sets and one or more objects</span>}
+            {isAnalysis && continueEnabled && selectedSObjects.length === 0 && (
+              <span className="slds-text-color_weak">
+                Ready to continue. Objects are optional: with none selected, the job loads all object and field permission rows for your
+                chosen profiles and permission sets. Add objects in the right column to narrow that export.
+              </span>
+            )}
+            {isAnalysis && continueEnabled && selectedSObjects.length > 0 && (
+              <span className="slds-text-color_weak">
+                Export limited to {selectedSObjects.length} object type{selectedSObjects.length === 1 ? '' : 's'} for object and field
+                permissions.
+              </span>
+            )}
           </div>
         </PageHeaderRow>
       </PageHeader>
+      {isHistoryOpen && selectedOrg && (
+        <PermissionAnalysisHistoryModal
+          selectedOrg={selectedOrg}
+          analysisJobType="permission_export"
+          currentJobId={null}
+          onClose={() => setIsHistoryOpen(false)}
+          onSelectJob={(nextJobId) => {
+            setIsHistoryOpen(false);
+            navigate(`analysis?job=${encodeURIComponent(nextJobId)}`);
+          }}
+        />
+      )}
       <AutoFullHeightContainer
         bottomBuffer={10}
         className="slds-p-horizontal_x-small slds-scrollable_none"

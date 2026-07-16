@@ -1,0 +1,16 @@
+{
+  "name": "features-permission-analysis",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/features/permission-analysis/src",
+  "projectType": "library",
+  "tags": ["scope:browser"],
+  "targets": {
+    "test": {
+      "executor": "@nx/vitest:test",
+      "outputs": ["{options.reportsDirectory}"],
+      "options": {
+        "reportsDirectory": "{projectRoot}/../../../coverage/libs/features/permission-analysis"
+      }
+    }
+  }
+}

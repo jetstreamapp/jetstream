@@ -1,3 +1,4 @@
+export * from './lib/analysis-job-types';
 export * from './lib/billing.types';
 export * from './lib/feature-flags';
 export * from './lib/jobs/types';

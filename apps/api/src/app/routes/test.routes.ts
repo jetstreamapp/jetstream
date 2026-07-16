@@ -4,6 +4,8 @@ import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api
 import { salesforceLoginJwtBearer } from '@jetstream/salesforce-oauth';
 import express, { Router } from 'express';
 import { initConnectionFromOAuthResponse } from '../controllers/oauth.controller';
+import { enableFeatureFlagForUser } from '../db/feature-flags.db';
+import { grantAnalysisToolsEntitlementForUser } from '../db/subscription.db';
 import { NotAllowedError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
 
@@ -64,6 +66,12 @@ routes.post('/e2e-integration-org', async (_: express.Request, res: express.Resp
     jetstreamConn,
     userId: ENV.EXAMPLE_USER!.id,
   });
+
+  // Exercise the Analysis Tools in E2E as if fully rolled out + entitled: enable the rollout flag (off by
+  // default in code) so the cards/nav render, and grant the paid-only entitlement so they render unlocked
+  // (a locked card renders its links as plain text, which the routing nav tests cannot click).
+  await enableFeatureFlagForUser({ userId: ENV.EXAMPLE_USER!.id, key: 'analysis-tools' });
+  await grantAnalysisToolsEntitlementForUser(ENV.EXAMPLE_USER!.id);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sendJson(res as any, salesforceOrg);

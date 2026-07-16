@@ -250,6 +250,7 @@ model Entitlement {
   googleDrive     Boolean @default(false)
   recordSync      Boolean @default(false)
   desktop         Boolean @default(false)
+  analysisTools   Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -266,6 +267,7 @@ model TeamEntitlement {
   googleDrive     Boolean @default(false)
   recordSync      Boolean @default(false)
   desktop         Boolean @default(false)
+  analysisTools   Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

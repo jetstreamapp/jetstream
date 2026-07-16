@@ -87,6 +87,7 @@ const UserFacingProfileSelect = {
   },
   entitlements: {
     select: {
+      analysisTools: true,
       chromeExtension: true,
       desktop: true,
       googleDrive: true,
@@ -113,6 +114,7 @@ const UserFacingProfileSelect = {
           billingStatus: true,
           entitlements: {
             select: {
+              analysisTools: true,
               chromeExtension: true,
               desktop: true,
               googleDrive: true,
@@ -149,6 +151,7 @@ export const findByIdWithSubscriptions = (id: string) => {
       name: true,
       entitlements: {
         select: {
+          analysisTools: true,
           chromeExtension: true,
           desktop: true,
           googleDrive: true,

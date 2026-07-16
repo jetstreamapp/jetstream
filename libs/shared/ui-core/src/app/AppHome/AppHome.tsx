@@ -3,24 +3,29 @@ import { IconName, IconType } from '@jetstream/icon-factory';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { FeatureFlagKey } from '@jetstream/types';
 import { Badge, Icon, ScopedNotification } from '@jetstream/ui';
-import { featureFlagsState } from '@jetstream/ui/app-state';
+import { analysisToolsAccessState, featureFlagsState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
 import { Fragment } from 'react';
 import { Link } from 'react-router';
+import { ProBadge } from '../ProBadge';
 import { AppHomeAlternativeApplicationFormats } from './AppHomeAlternativeApplicationFormats';
 import { AppHomeOrgExpirationBanner } from './AppHomeOrgExpirationBanner';
 import { AppHomeOrganizations } from './AppHomeOrganizations';
 
-interface AppHomeItem {
+type HomeRouteItem = (typeof APP_ROUTES)[keyof typeof APP_ROUTES];
+
+interface HomeCard {
   title: string;
-  icon: { type: IconType; icon: IconName };
-  items: (typeof APP_ROUTES)[keyof typeof APP_ROUTES][];
+  icon: { type: string; icon: string };
+  items: HomeRouteItem[];
   /** Optional feature flag gate — when set, the card only renders if the flag is enabled for the user. */
   flag?: FeatureFlagKey;
+  /** Paid-only Analysis Tools: the card stays visible but is locked with an upgrade prompt when not entitled. */
+  requiresPro?: boolean;
 }
 
-const HOME_ITEMS: AppHomeItem[] = [
+const HOME_ITEMS: HomeCard[] = [
   {
     title: 'Query',
     icon: { type: 'standard', icon: 'record_lookup' },
@@ -40,6 +45,13 @@ const HOME_ITEMS: AppHomeItem[] = [
     title: 'Permissions',
     icon: { type: 'standard', icon: 'portal' },
     items: [APP_ROUTES.PERMISSION_MANAGER],
+  },
+  {
+    title: 'Analysis',
+    icon: { type: 'standard', icon: 'data_streams' },
+    items: [APP_ROUTES.PERMISSION_ANALYSIS, APP_ROUTES.DATA_ANALYSIS],
+    flag: 'analysis-tools',
+    requiresPro: true,
   },
   {
     title: 'Deploy',
@@ -68,6 +80,7 @@ interface AppHomeProps {
 
 export const AppHome = ({ showAlternativeAppFormats, hideConnectedAppBanner = false }: AppHomeProps) => {
   const featureFlags = useAtomValue(featureFlagsState);
+  const { hasAnalysisToolsAccess } = useAtomValue(analysisToolsAccessState);
   const visibleHomeItems = HOME_ITEMS.filter((card) => !card.flag || featureFlags[card.flag]);
   return (
     <div
@@ -139,72 +152,91 @@ export const AppHome = ({ showAlternativeAppFormats, hideConnectedAppBanner = fa
           )}
         </div>
         <AppHomeOrganizations />
-        {visibleHomeItems.map((card) => (
-          <div key={card.title} className="slds-card slds-box_x-small">
-            <article className="slds-tile slds-media">
-              <div className="slds-media__figure">
-                {card.icon && (
-                  <Icon
-                    type={card.icon.type}
-                    icon={card.icon.icon}
-                    containerClassname="slds-icon_container"
-                    className={classNames(
-                      'slds-icon slds-icon_container slds-icon_small',
-                      `slds-icon-${card.icon.type}-${card.icon.icon.replaceAll('_', '-')}`,
-                    )}
-                  />
-                )}
-              </div>
-              <div className="slds-media__body">
-                <h3
-                  className="slds-text-title_caps"
-                  css={css`
-                    line-height: 1.5rem;
-                    font-size: 0.85rem;
-                    font-weight: 600;
-                  `}
-                >
-                  {card.title}
-                </h3>
-                <div className="slds-tile__detail slds-p-bottom_small">
-                  <dl className="slds-list_vertical slds-wrap">
-                    {card.items.map(({ DESCRIPTION, ROUTE, SEARCH_PARAM, TITLE, DOCS, NEW_UNTIL }) => (
-                      <Fragment key={ROUTE}>
-                        <dt
-                          className="slds-item_label slds-text-color_weak slds-truncate slds-p-top_small"
-                          css={css`
-                            line-height: 1.2rem;
-                          `}
-                        >
-                          <Link to={{ pathname: ROUTE, search: SEARCH_PARAM }} className="slds-text-heading_small">
-                            {TITLE}
-                          </Link>
-                          {NEW_UNTIL && NEW_UNTIL >= CURRENT_TIME && (
-                            <Badge type="success" className="slds-m-left_xx-small">
-                              NEW
-                            </Badge>
-                          )}
-                        </dt>
-                        <dd className="slds-item_detail">{DESCRIPTION}</dd>
-                        {DOCS && (
-                          <a href={DOCS} target="_blank" className="slds-text-body_small" rel="noreferrer">
-                            Documentation
-                            <Icon
-                              type="utility"
-                              icon="help_doc_ext"
-                              className="slds-icon slds-icon_xx-small slds-icon-text-default slds-m-left_xx-small"
-                              omitContainer
-                            />
-                          </a>
-                        )}
-                      </Fragment>
-                    ))}
-                  </dl>
+        {visibleHomeItems.map((card) => {
+          const locked = !!card.requiresPro && !hasAnalysisToolsAccess;
+          return (
+            <div key={card.title} className="slds-card slds-box_x-small">
+              <article className="slds-tile slds-media">
+                <div className="slds-media__figure">
+                  {card.icon && (
+                    <Icon
+                      type={card.icon.type as IconType}
+                      icon={card.icon.icon as IconName}
+                      containerClassname="slds-icon_container"
+                      className={classNames(
+                        'slds-icon slds-icon_container slds-icon_small',
+                        `slds-icon-${card.icon.type}-${card.icon.icon.replaceAll('_', '-')}`,
+                      )}
+                    />
+                  )}
                 </div>
-              </div>
-            </article>
-          </div>
-        ))}
+                <div className="slds-media__body">
+                  <h3
+                    className="slds-text-title_caps slds-grid slds-grid_vertical-align-center"
+                    css={css`
+                      line-height: 1.5rem;
+                      font-size: 0.85rem;
+                      font-weight: 600;
+                    `}
+                  >
+                    {card.title}
+                    {card.requiresPro && <ProBadge className="slds-m-left_x-small" />}
+                  </h3>
+                  <div className="slds-tile__detail slds-p-bottom_small">
+                    <dl className="slds-list_vertical slds-wrap">
+                      {card.items.map(({ DESCRIPTION, ROUTE, SEARCH_PARAM, TITLE, DOCS, NEW_UNTIL }) => (
+                        <Fragment key={ROUTE}>
+                          <dt
+                            className="slds-item_label slds-text-color_weak slds-truncate slds-p-top_small"
+                            css={css`
+                              line-height: 1.2rem;
+                            `}
+                          >
+                            {locked ? (
+                              <span className="slds-text-heading_small slds-text-color_weak">{TITLE}</span>
+                            ) : (
+                              <Link to={{ pathname: ROUTE, search: SEARCH_PARAM }} className="slds-text-heading_small">
+                                {TITLE}
+                              </Link>
+                            )}
+                            {NEW_UNTIL && NEW_UNTIL >= CURRENT_TIME && (
+                              <Badge type="success" className="slds-m-left_xx-small">
+                                NEW
+                              </Badge>
+                            )}
+                          </dt>
+                          <dd className="slds-item_detail">{DESCRIPTION}</dd>
+                          {!locked && DOCS && (
+                            <a href={DOCS} target="_blank" className="slds-text-body_small" rel="noreferrer">
+                              Documentation
+                              <Icon
+                                type="utility"
+                                icon="help_doc_ext"
+                                className="slds-icon slds-icon_xx-small slds-icon-text-default slds-m-left_xx-small"
+                                omitContainer
+                              />
+                            </a>
+                          )}
+                        </Fragment>
+                      ))}
+                    </dl>
+                    {locked && (
+                      <div className="slds-p-top_small slds-m-top_small slds-border_top">
+                        <p className="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
+                          These features require a paid plan.{' '}
+                          <a href="https://getjetstream.app/pricing/" target="_blank" rel="noopener noreferrer">
+                            Upgrade
+                          </a>
+                          .
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </article>
+            </div>
+          );
+        })}
 
         {showAlternativeAppFormats ? <AppHomeAlternativeApplicationFormats /> : null}
       </div>

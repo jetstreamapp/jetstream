@@ -55,6 +55,7 @@ export const DEFAULT_PROFILE: UserProfileUi = {
     chromeExtension: false,
     desktop: false,
     recordSync: false,
+    analysisTools: false,
   },
   subscriptions: [],
   featureFlags: DEFAULT_FEATURE_FLAGS,
@@ -287,6 +288,23 @@ export const googleDriveAccessState = atom((get) => {
     hasGoogleDriveAccess: ability.can('access', 'GoogleDrive'),
     // Only show upgrade prompt on web (desktop/extension users already have access)
     googleShowUpgradeToPro: !isChromeExtension && !isDesktop() && !isCanvasApp() && ability.cannot('access', 'GoogleDrive'),
+  };
+});
+
+/**
+ * Access to the paid-only Analysis Tools (Field Usage + Permission Analysis). Granted by the dedicated
+ * `analysisTools` entitlement (for future per-org/trial control) OR any active paid plan, so existing
+ * paid users keep access before the entitlement is provisioned. Processing is browser-only, so this is
+ * the sole gate — there is no server-side enforcement.
+ */
+export const analysisToolsAccessState = atom((get) => {
+  const ability = get(abilityState);
+  const hasPaidPlan = get(hasPaidPlanState);
+  const hasAnalysisToolsAccess = ability.can('access', 'AnalysisTools') || hasPaidPlan;
+  return {
+    hasAnalysisToolsAccess,
+    // Only prompt upgrade on web; desktop/extension/canvas are paid tiers and granted via ability.
+    analysisShowUpgradeToPro: !hasAnalysisToolsAccess && !get(isBrowserExtensionState) && !isDesktop() && !isCanvasApp(),
   };
 });
 
