@@ -1,3 +1,5 @@
+export * from './analysis/permission-analysis-viewer-badge.styles';
+export * from './analysis/PermissionAnalysisHistoryModal';
 export * from './analytics';
 export * from './app/AnalysisToolsPaywall';
 export * from './app/AppHome/AppHome';

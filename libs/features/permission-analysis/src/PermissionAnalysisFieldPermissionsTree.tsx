@@ -20,6 +20,7 @@ import {
   setColumnFromType,
   type ProfileOrPermSetRecordType,
 } from '@jetstream/ui';
+import { permissionAnalysisAssignmentTypeLabelCss } from '@jetstream/ui-core';
 import groupBy from 'lodash/groupBy';
 import {
   forwardRef,
@@ -35,7 +36,6 @@ import {
 } from 'react';
 import { usePermissionAnalysisExportMetadata } from './permission-analysis-export-metadata-context';
 import { permissionAnalysisPermissionContainerGroupTitleLine } from './permission-analysis-tree-group-title';
-import { permissionAnalysisAssignmentTypeLabelCss } from './permission-analysis-viewer-badge.styles';
 import {
   buildFieldPermissionFindingCellHighlights,
   buildPermissionSetIdLabelMap,

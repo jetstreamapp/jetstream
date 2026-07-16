@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import { filterPermissionsSobjects, PermissionAnalysisHistoryModal } from '@jetstream/feature/manage-permissions';
+import { filterPermissionsSobjects } from '@jetstream/feature/manage-permissions';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { AsyncJobNew, DescribeGlobalSObjectResult, FieldUsageAnalysisJob } from '@jetstream/types';
@@ -15,7 +15,7 @@ import {
   PageHeaderTitle,
   Tooltip,
 } from '@jetstream/ui';
-import { fromJetstreamEvents, jobsState } from '@jetstream/ui-core';
+import { fromJetstreamEvents, jobsState, PermissionAnalysisHistoryModal } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { atom, useAtom, useAtomValue } from 'jotai';
 import { FunctionComponent, useCallback, useState } from 'react';

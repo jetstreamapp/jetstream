@@ -38,13 +38,13 @@ const ManagePermissionsEditor = lazy(() =>
   import('@jetstream/feature/manage-permissions').then((module) => ({ default: module.ManagePermissionsEditor })),
 );
 const PermissionAnalysis = lazy(() =>
-  import('@jetstream/feature/manage-permissions').then((module) => ({ default: module.PermissionAnalysis })),
+  import('@jetstream/feature/permission-analysis').then((module) => ({ default: module.PermissionAnalysis })),
 );
 const PermissionAnalysisSelection = lazy(() =>
-  import('@jetstream/feature/manage-permissions').then((module) => ({ default: module.PermissionAnalysisSelection })),
+  import('@jetstream/feature/permission-analysis').then((module) => ({ default: module.PermissionAnalysisSelection })),
 );
 const PermissionAnalysisView = lazy(() =>
-  import('@jetstream/feature/manage-permissions').then((module) => ({ default: module.PermissionAnalysisView })),
+  import('@jetstream/feature/permission-analysis').then((module) => ({ default: module.PermissionAnalysisView })),
 );
 
 const DataAnalysis = lazy(() => import('@jetstream/feature/data-analysis').then((module) => ({ default: module.DataAnalysis })));

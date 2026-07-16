@@ -76,9 +76,7 @@ function permissionSetExportRowLabel(row: PermissionExportRow): string {
   const name = typeof row.Name === 'string' && row.Name.trim() ? row.Name.trim() : null;
   const profileBlock = row.Profile;
   const profileName =
-    profileBlock &&
-    typeof profileBlock === 'object' &&
-    typeof (profileBlock as { Name?: unknown }).Name === 'string'
+    profileBlock && typeof profileBlock === 'object' && typeof (profileBlock as { Name?: unknown }).Name === 'string'
       ? String((profileBlock as { Name: string }).Name).trim()
       : null;
   const isProfile = row.IsOwnedByProfile === true;

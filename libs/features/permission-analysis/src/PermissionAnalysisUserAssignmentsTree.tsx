@@ -18,11 +18,9 @@ import {
   setColumnFromType,
   Spinner,
 } from '@jetstream/ui';
+import { permissionAnalysisAssignmentTypeLabelCss } from '@jetstream/ui-core';
 import groupBy from 'lodash/groupBy';
 import { Fragment, FunctionComponent, useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
-import { PermissionAnalysisExpandCollapseControls } from './PermissionAnalysisExpandCollapseControls';
-import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
-import { permissionAnalysisAssignmentTypeLabelCss } from './permission-analysis-viewer-badge.styles';
 import {
   buildContainerIdFindingSeverity,
   buildPermissionSetGroupLabelMap,
@@ -35,6 +33,8 @@ import {
   type UserAssignmentsTreeRow,
   type UserLicenseLeafRecord,
 } from './permission-export-result-view';
+import { PermissionAnalysisExpandCollapseControls } from './PermissionAnalysisExpandCollapseControls';
+import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 
 const TREE_GROUP_BY = ['_treeUserGroupKey'] as const;
 

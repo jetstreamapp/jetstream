@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
-import classNames from 'classnames';
 import { Icon, Popover, type PopoverRef } from '@jetstream/ui';
+import classNames from 'classnames';
 import { FunctionComponent, useRef } from 'react';
 import { type UsePermissionAnalysisIssuesFiltersResult } from './permission-analysis-issues-filters';
 import { type PermissionAnalysisFinding } from './permission-export-result-view';
@@ -109,11 +109,7 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
   return (
     <div css={findingsFiltersBarRootCss}>
       <div className="slds-builder-toolbar__item-group" css={findingsFiltersToolbarClusterCss}>
-        <div
-          onClick={(ev) => ev.stopPropagation()}
-          onPointerDown={(ev) => ev.stopPropagation()}
-          onKeyDown={(ev) => ev.stopPropagation()}
-        >
+        <div onClick={(ev) => ev.stopPropagation()} onPointerDown={(ev) => ev.stopPropagation()} onKeyDown={(ev) => ev.stopPropagation()}>
           <Popover
             ref={popoverRef}
             header={
@@ -192,7 +188,11 @@ export const PermissionAnalysisFindingsFiltersBar: FunctionComponent<PermissionA
                           <label className="slds-radio__label" htmlFor={`toolbar-issue-direct-${value}`}>
                             <span className="slds-radio_faux" />
                             <span className="slds-form-element__label">
-                              {value === 'all' ? 'All' : value === 'assigned' ? 'With direct user assignment' : 'Without direct user assignment'}
+                              {value === 'all'
+                                ? 'All'
+                                : value === 'assigned'
+                                  ? 'With direct user assignment'
+                                  : 'Without direct user assignment'}
                             </span>
                           </label>
                         </div>

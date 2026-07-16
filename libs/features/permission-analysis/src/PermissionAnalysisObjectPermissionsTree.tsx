@@ -1,5 +1,4 @@
 import { css } from '@emotion/react';
-import { PermissionAnalysisExpandCollapseControls } from './PermissionAnalysisExpandCollapseControls';
 import type { SalesforceOrgUi } from '@jetstream/types';
 import type { RenderCellProps, RenderGroupCellProps } from '@jetstream/ui';
 import {
@@ -11,10 +10,10 @@ import {
   getRowTypeFromValue,
   setColumnFromType,
 } from '@jetstream/ui';
+import { permissionAnalysisAssignmentTypeLabelCss } from '@jetstream/ui-core';
 import groupBy from 'lodash/groupBy';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react';
 import { permissionAnalysisPermissionContainerGroupTitleLine } from './permission-analysis-tree-group-title';
-import { permissionAnalysisAssignmentTypeLabelCss } from './permission-analysis-viewer-badge.styles';
 import {
   buildObjectPermissionFindingCellHighlights,
   buildPermissionSetIdLabelMap,
@@ -28,6 +27,7 @@ import {
   type PermissionExportRow,
   type SobjectExportDetail,
 } from './permission-export-result-view';
+import { PermissionAnalysisExpandCollapseControls } from './PermissionAnalysisExpandCollapseControls';
 import { SobjectTypeCellContent } from './PermissionAnalysisExportGrid';
 import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 

@@ -28,14 +28,19 @@ import {
   fireToast,
   getModifierKey,
 } from '@jetstream/ui';
-import { RequireMetadataApiBanner, fromJetstreamEvents, fromPermissionsState, jobsState } from '@jetstream/ui-core';
-import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
+import {
+  PermissionAnalysisHistoryModal,
+  RequireMetadataApiBanner,
+  fromJetstreamEvents,
+  fromPermissionsState,
+  jobsState,
+} from '@jetstream/ui-core';
+import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState, useFeatureFlag } from '@jetstream/ui/app-state';
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useAtom, useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
 import { FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { PermissionAnalysisHistoryModal } from './PermissionAnalysisHistoryModal';
 import { filterPermissionsSobjects } from './utils/permission-manager-utils';
 
 const HEIGHT_BUFFER = 170;
@@ -106,6 +111,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
   const hasSelectionsMade = useAtomValue(fromPermissionsState.hasSelectionsMade);
 
   const isAnalysis = selectionMode === 'permission-analysis';
+  const analysisToolsEnabled = useFeatureFlag('analysis-tools');
 
   const canContinueAnalysis = useMemo(() => {
     return selectedProfiles.length > 0 || selectedPermissionSets.length > 0;
@@ -224,7 +230,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
                 </button>
               </Tooltip>
             )}
-            {!isAnalysis && (
+            {!isAnalysis && analysisToolsEnabled && (
               <Link className="slds-button slds-button_neutral" to={APP_ROUTES.PERMISSION_ANALYSIS.ROUTE}>
                 Open in Permission Analysis
               </Link>

@@ -37,6 +37,7 @@
       "@jetstream/feature/load-records-multi-object": ["./libs/features/load-records-multi-object/src/index.ts"],
       "@jetstream/feature/manage-permissions": ["./libs/features/manage-permissions/src/index.ts"],
       "@jetstream/feature/data-analysis": ["./libs/features/data-analysis/src/index.ts"],
+      "@jetstream/feature/permission-analysis": ["./libs/features/permission-analysis/src/index.ts"],
       "@jetstream/feature/analysis-shared": ["./libs/features/analysis-shared/src/index.ts"],
       "@jetstream/feature/orgGroups": ["./libs/features/org-groups/src/index.ts"],
       "@jetstream/feature/platform-event-monitor": ["./libs/features/platform-event-monitor/src/index.ts"],

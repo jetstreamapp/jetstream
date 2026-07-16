@@ -6,9 +6,9 @@ import { Badge, EmptyState, Grid, Icon, List, Modal, Popover, PopoverRef, Search
 import { dexieDb } from '@jetstream/ui/db';
 import classNames from 'classnames';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { FunctionComponent, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { formatAnalysisJobStatusForDisplay } from './analysis-job-status-display';
 import { permissionScopeBadgeCss } from './permission-analysis-viewer-badge.styles';
-import { FunctionComponent, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 export type PermissionScopeKind = 'profile' | 'permission_set' | 'object';
 

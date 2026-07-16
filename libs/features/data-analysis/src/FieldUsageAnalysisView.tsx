@@ -1,6 +1,5 @@
 import { css } from '@emotion/react';
 import { DeleteMetadataModal } from '@jetstream/feature/deploy';
-import { PermissionAnalysisHistoryModal } from '@jetstream/feature/manage-permissions';
 import { logger } from '@jetstream/shared/client-logger';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { convertDateToLocale, formatNumber, setItemInLocalStorage } from '@jetstream/shared/ui-utils';
@@ -38,7 +37,7 @@ import {
   type RenderGroupCellProps,
   type SortColumn,
 } from '@jetstream/ui';
-import { RequireMetadataApiBanner, fromJetstreamEvents, jobsState } from '@jetstream/ui-core';
+import { PermissionAnalysisHistoryModal, RequireMetadataApiBanner, fromJetstreamEvents, jobsState } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
 import { dexieDb } from '@jetstream/ui/db';
 import { isValid } from 'date-fns/isValid';

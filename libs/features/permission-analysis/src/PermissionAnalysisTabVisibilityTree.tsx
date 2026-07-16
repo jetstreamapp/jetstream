@@ -1,5 +1,4 @@
 import { css } from '@emotion/react';
-import { PermissionAnalysisExpandCollapseControls } from './PermissionAnalysisExpandCollapseControls';
 import type { SalesforceOrgUi } from '@jetstream/types';
 import type { RenderCellProps, RenderGroupCellProps } from '@jetstream/ui';
 import {
@@ -13,11 +12,11 @@ import {
   getRowTypeFromValue,
   setColumnFromType,
 } from '@jetstream/ui';
+import { permissionAnalysisAssignmentTypeLabelCss } from '@jetstream/ui-core';
 import groupBy from 'lodash/groupBy';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
 import { usePermissionAnalysisExportMetadata } from './permission-analysis-export-metadata-context';
 import { permissionAnalysisPermissionContainerGroupTitleLine } from './permission-analysis-tree-group-title';
-import { permissionAnalysisAssignmentTypeLabelCss } from './permission-analysis-viewer-badge.styles';
 import {
   buildContainerIdFindingSeverity,
   buildPermissionSetIdLabelMap,
@@ -29,6 +28,7 @@ import {
   type PermissionExportRow,
   type PermissionObjectFindingCellSeverity,
 } from './permission-export-result-view';
+import { PermissionAnalysisExpandCollapseControls } from './PermissionAnalysisExpandCollapseControls';
 import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 
 const TREE_GROUP_BY = ['_treeParentGroupKey'] as const;
