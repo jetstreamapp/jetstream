@@ -1,5 +1,28 @@
 # Changelog
 
+## [10.6.0](https://github.com/jetstreamapp/jetstream/compare/v10.5.1...v10.6.0) (2026-07-17)
+
+### Features
+
+* add analysis tools for permissions and field usage ([9902a45](https://github.com/jetstreamapp/jetstream/commit/9902a456be2606fe8f454e323ccb5edc425b1dd5))
+* add feature flag for analysis tools and extract shared code to library ([a2c9578](https://github.com/jetstreamapp/jetstream/commit/a2c9578e005d2d92af0813943bf0495e022602d9))
+* add Salesforce release workflow and interactive release script ([e8b36ef](https://github.com/jetstreamapp/jetstream/commit/e8b36ef7fd236c6dffecca51b0ecf2e50233a74b))
+* add soql comment support ([b5d968e](https://github.com/jetstreamapp/jetstream/commit/b5d968eb5dbd1423209e2959c0ec6a39cac5a699))
+* dependency analysis tweaks and fixes ([84931a2](https://github.com/jetstreamapp/jetstream/commit/84931a2e632229e1ffb5fec7465a1385721e4efb))
+* enhance field usage analysis and permission export functionality ([90b7570](https://github.com/jetstreamapp/jetstream/commit/90b75700d43ed8e2fb8d5a155a98e278a8307855))
+* enhance OIDC configuration handling and discovery process ([fd92156](https://github.com/jetstreamapp/jetstream/commit/fd9215618bc6b16bf6cdf7f8cb4927e8d2be6e58))
+* gate canvas app behind entitlement ([0281bda](https://github.com/jetstreamapp/jetstream/commit/0281bda5ac45156186cd18f76da1358af4750afa))
+* move feature analysis from server to browser; add paid entitlement ([0bd0e43](https://github.com/jetstreamapp/jetstream/commit/0bd0e430b90369eeb7c72fb1c04badffdb2c9765))
+* prepare salesforce managed package for release ([c448a4d](https://github.com/jetstreamapp/jetstream/commit/c448a4d3b9adfc958ac8bebac140837beddd67bb))
+* security hardening ([da0a7fb](https://github.com/jetstreamapp/jetstream/commit/da0a7fb9622a70c9092402b4e00fab3a498cf337))
+
+### Bug Fixes
+
+* entitlement checks for analysis feature ([53b8d17](https://github.com/jetstreamapp/jetstream/commit/53b8d1792f754b248fd638c470de9ebd83438a9b))
+* improve bulk record update failure states ([c211ec0](https://github.com/jetstreamapp/jetstream/commit/c211ec041eccaa7c52661412205aa016b90d53f6))
+* improve team entitlement resolution ([a9f2d9e](https://github.com/jetstreamapp/jetstream/commit/a9f2d9e55f4e9ec134cc957e3e9c3408fb38f2aa))
+* post-rebase cleanup — migrate analysis files to react-router, align shared grid with main ([44d2d59](https://github.com/jetstreamapp/jetstream/commit/44d2d59e5647cfa0e9f90d600a559a14a16ceb41))
+
 ## [10.5.1](https://github.com/jetstreamapp/jetstream/compare/v10.5.0...v10.5.1) (2026-07-15)
 
 ## [10.5.0](https://github.com/jetstreamapp/jetstream/compare/v10.4.0...v10.5.0) (2026-07-15)
