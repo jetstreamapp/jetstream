@@ -273,7 +273,7 @@
     "@hookform/resolvers": "^5.4.0",
     "@jetstreamapp/sf-formula-parser": "^2.1.1",
     "@jetstreamapp/simple-xml": "^1.1.1",
-    "@jetstreamapp/soql-parser-js": "^7.2.2",
+    "@jetstreamapp/soql-parser-js": "^7.4.0",
     "@marsidev/react-turnstile": "^1.5.3",
     "@mdx-js/react": "^1.6.21",
     "@monaco-editor/react": "^4.7.0",

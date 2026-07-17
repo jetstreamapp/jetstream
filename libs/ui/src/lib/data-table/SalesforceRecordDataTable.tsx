@@ -419,9 +419,11 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
       setSelectedRows(rows);
     }, []);
 
+    const onFieldsRef = useRef(onFields);
+    onFieldsRef.current = onFields;
+
     const handleColumnReorder = useCallback((columns: string[], columnOrder: number[]) => {
-      onFields(columns, columnOrder);
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+      onFieldsRef.current(columns, columnOrder);
     }, []);
 
     const pushUndoSnapshot = useCallback((snapshot: RowSalesforceRecordWithKey[]) => {
