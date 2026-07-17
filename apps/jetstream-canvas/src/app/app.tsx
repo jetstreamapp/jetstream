@@ -14,6 +14,7 @@ import z from 'zod';
 import { AppRoutes } from './AppRoutes';
 import AppInitializer from './core/AppInitializer';
 import './core/monaco-loader';
+import { useCanvasColorScheme } from './core/useCanvasColorScheme';
 
 const Sfdc = window.Sfdc;
 
@@ -23,12 +24,14 @@ const isFullscreen = z
   .parse(sr.context?.environment?.parameters?.isFullScreen);
 
 export const App = () => {
+  const [colorScheme, setColorScheme] = useCanvasColorScheme();
+
   return (
     <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
       <ConfirmationServiceProvider>
         <Suspense fallback={<AppLoading />}>
           <AppInitializer>
-            <ThemeApplier forceScheme="light" />
+            <ThemeApplier forceScheme={colorScheme} />
             <ModalContainer />
             <AppToast />
             <DownloadFileStream />
@@ -39,6 +42,8 @@ export const App = () => {
                   isEmbeddedApp
                   isFullscreen={isFullscreen}
                   isBillingEnabled={false}
+                  colorScheme={colorScheme}
+                  onColorSchemeChange={setColorScheme}
                   onLogoutHandlerFn={() => Sfdc.canvas.oauth.logout()}
                 />
               </div>

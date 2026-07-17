@@ -11,6 +11,7 @@ import localforage from 'localforage';
 import React, { FunctionComponent, useEffect, useState } from 'react';
 import { Observable } from 'rxjs';
 import { getCanvasOrg } from '../../utils/canvas.utils';
+import { canvasColorSchemeState } from './useCanvasColorScheme';
 
 // Configure IndexedDB database
 localforage.config({
@@ -26,6 +27,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
   const setSelectedOrgId = useSetAtom(fromAppState.selectedOrgIdState);
   const setSalesforceOrgs = useSetAtom(fromAppState.salesforceOrgsState);
   const setUserProfile = useSetAtom(fromAppState.userProfileState);
+  const setCanvasColorScheme = useSetAtom(canvasColorSchemeState);
   const selectedOrg = useAtomValue(fromAppState.selectedOrgState);
 
   const onSaveSoqlQueryFormatOptions = useObservable(
@@ -59,6 +61,9 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
         const org = getCanvasOrg();
         const preferences = await getCanvasPreferences(org);
         if (preferences && Object.keys(preferences).length > 0) {
+          if (preferences.colorScheme) {
+            setCanvasColorScheme(preferences.colorScheme);
+          }
           setUserProfile((prev) => {
             if (prev instanceof Promise) {
               return prev.then((resolved) => ({
@@ -76,7 +81,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
         logger.error('Error loading canvas preferences', ex);
       }
     })();
-  }, [setUserProfile]);
+  }, [setUserProfile, setCanvasColorScheme]);
 
   // Save SOQL query format options to Salesforce custom setting when changed
   useEffect(() => {

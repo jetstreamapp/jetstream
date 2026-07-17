@@ -55,7 +55,9 @@ export async function createSsoFixture(options: SsoFixtureOptions = {}): Promise
         tosAcceptedVersion: CURRENT_TOS_VERSION,
         name: 'Test User',
         preferences: { create: { skipFrontdoorLogin: false } },
-        entitlements: { create: { chromeExtension: false, recordSync: false, googleDrive: false, desktop: false } },
+        entitlements: {
+          create: { chromeExtension: false, recordSync: false, googleDrive: false, desktop: false, salesforceCanvas: false },
+        },
         identities: {
           create: {
             type: 'credentials',

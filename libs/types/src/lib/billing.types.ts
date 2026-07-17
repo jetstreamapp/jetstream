@@ -7,6 +7,7 @@ export const EntitlementsAccessSchema = z.object({
   recordSync: z.boolean().optional().default(false),
   chromeExtension: z.boolean().optional().default(false),
   analysisTools: z.boolean().optional().default(false),
+  salesforceCanvas: z.boolean().optional().default(false),
 });
 export type EntitlementsAccess = z.infer<typeof EntitlementsAccessSchema>;
 export type Entitlements = keyof EntitlementsAccess;
