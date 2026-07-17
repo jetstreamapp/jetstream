@@ -1526,7 +1526,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
       {whereUsedForKey && (
         <Modal
           header={`Where Used — ${whereUsedForKey}`}
-          tagline="Tooling MetadataComponentDependency references (Custom Fields). Flow version is Tooling Flow.VersionNumber when available. Open uses your org login."
+          tagline="Metadata that references this field. Some dependencies may not be available due to Salesforce limitations."
           size="lg"
           onClose={() => setWhereUsedForKey(null)}
           footer={

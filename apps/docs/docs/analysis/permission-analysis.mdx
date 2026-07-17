@@ -1,0 +1,121 @@
+---
+id: permission-analysis
+title: Permission Analysis
+description: Audit and export object, field, tab, and system permissions across your profiles and permission sets, and automatically surface access issues.
+keywords:
+  [
+    salesforce,
+    salesforce admin,
+    salesforce developer,
+    salesforce security,
+    permissions,
+    profile,
+    permission set,
+    permission set group,
+    field level security,
+    object permissions,
+    permission audit,
+    access review,
+    modify all data,
+    view all data,
+  ]
+sidebar_label: Permission Analysis
+slug: /permission-analysis
+---
+
+:::caution Pre-release · paid feature
+
+Permission Analysis is available on a **paid Jetstream plan** and is currently in **pre-release**. It is fully functional, but the interface and the set of detected issues may change as we continue to refine it. Upgrade from within Jetstream (**Settings &rarr; Billing**) to enable it.
+
+:::
+
+Permission Analysis gives you a **read-only** audit of who can access what in your org. Where [Manage Permissions](/permissions) lets you _edit_ object and field permissions, Permission Analysis _reads and exports_ the full permission picture for the profiles and permission sets you choose, then automatically scans it for access **issues** — over-exposure, inconsistent field-vs-object access, unused permission sets, and more.
+
+Nothing in Permission Analysis changes your org. It only reads metadata, so it is safe to run at any time.
+
+## Requirements
+
+- A paid Jetstream plan.
+- Access to the Salesforce **Metadata API**. If your user may not have it, Jetstream shows a banner — you generally need the **Modify All Data** or **Modify Metadata** permission assigned to your user.
+
+## Running an analysis
+
+The selection screen is the same picker used by Manage Permissions.
+
+1. Choose at least one **Profile** or **Permission Set** — you can mix and match. This is required.
+2. _(Optional)_ Choose one or more **Objects** to narrow the Object Permissions and Field Permissions rows to specific object types. If you leave objects empty, the job loads all object and field permission rows for your selection.
+3. Click **Continue**.
+
+Jetstream starts a background **Permission Export** job. You can leave the page — keep the browser tab open — and the run will appear in your Background Jobs. When it finishes, the results open automatically.
+
+:::tip
+
+From the [Manage Permissions](/permissions) selection screen you can jump straight here with the **Open in Permission Analysis** button, carrying your current selection over.
+
+:::
+
+<img src={require('./permission-analysis-selection.png').default} alt="Permission Analysis selection screen" />
+
+## Reading the results
+
+Results are organized into tabs, each showing a count. Which tabs appear depends on what you selected.
+
+| Tab                       | Shows                                                                                                                   |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **Profiles**              | The profiles you selected, expandable to their user assignments, with Setup links.                                      |
+| **Permission Sets**       | Standalone permission sets, with assignments and Setup links.                                                           |
+| **Assignments**           | Which users have which permission sets (including via permission set groups), with active/inactive and license details. |
+| **Permission Set Groups** | Groups, their component permission sets, and any muting permission sets. Only appears when groups are involved.         |
+| **Object Permissions**    | Read, Create, Edit, Delete, View All, and Modify All for each object, grouped by profile / permission set.              |
+| **Tab Visibility**        | The visibility value of each tab per profile / permission set.                                                          |
+| **Field Permissions**     | Read and Edit access for each field, grouped by profile / permission set, then object.                                  |
+| **Issues**                | Automatically detected findings — see [Issues](#issues) below.                                                          |
+
+Every grid supports **Expand all** / **Collapse all**, a **quick-filter search box**, and per-column filters. Object and field cells deep-link into Salesforce Setup (Object Manager, Fields &amp; Relationships) — shift-click a cell to skip the popover and jump straight to Salesforce. Cells that have an associated issue are highlighted; click one to see the issues for that specific cell.
+
+<img
+  src={require('./permission-analysis-results.png').default}
+  alt="Permission Analysis results view with the tab strip and Expand/Collapse controls"
+/>
+
+## Issues
+
+Permission Analysis inspects the exported permissions and reports **findings** at two severities:
+
+- **Error** — real over-access or exposure that usually warrants review.
+- **Warning** — an inconsistency, incomplete setup, or cleanup opportunity.
+
+Examples of what is detected:
+
+- **Modify All Records** / **View All Records** on an object — bypasses the sharing model for that object.
+- **High-risk or elevated system permissions** — such as Modify All Data, View All Data, Author Apex, Manage Users, Customize Application, or Export Reports.
+- **Field access with no effect** — field Read or Edit is granted, but the object grants no corresponding access.
+- **Object permission with no field permissions configured** — default field-level security applies.
+- **Permission set with no direct assignments** that is also not part of a permission set group (likely dead configuration).
+- **Tab visible without object read** — a tab is visible but the underlying object grants no Read.
+
+### Working with the Issues tab
+
+- The **Aggregated Issues** panel summarizes findings **By Issue Code** and **By Object** so you can see where problems concentrate. Click a card to open its details.
+- Use **Columns** to choose which columns are visible and **Group By** to group findings by _None_, _Severity_, _Object_, _Code_, or _Container_.
+- The **Filters** bar narrows findings by export scope (profiles vs. permission sets), assignment status, severity (errors or warnings only), and security layer (object-level vs. field-level). Filters are stored in the URL, so a filtered view can be **bookmarked or shared**.
+- Click any finding to open a details modal with the full message, the technical code, and the object / field / permission set context.
+
+<img src={require('./permission-analysis-issues.png').default} alt="Permission Analysis Issues tab with aggregated issues" />
+
+<img src={require('./permission-analysis-findings-modal.png').default} alt="Permission Analysis findings detail modal" />
+
+## Re-opening past runs
+
+Completed runs are stored in your browser, per org. Use **Export history** on the selection screen or the results toolbar to reopen a previous run without re-exporting.
+
+:::info
+
+Permission Analysis is processed in your browser and results are cached locally. Very large exports may be truncated to keep the result size manageable; when that happens Jetstream shows a warning so you know some rows may be missing.
+
+:::
+
+## See also
+
+- [Data Analysis (Field Usage)](/data-analysis) — find unused fields and measure data coverage across your objects.
+- [Manage Permissions](/permissions) — view and _edit_ object and field permissions.

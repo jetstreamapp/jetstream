@@ -63,7 +63,7 @@ export const AppHomeAlternativeApplicationFormats = () => {
             <p className="slds-m-bottom_x-small">
               The desktop application and browser extension <strong>require a paid subscription</strong>.{' '}
               <Link
-                to="/settings/billing"
+                to={APP_ROUTES.BILLING.ROUTE}
                 onClick={() => trackEvent(ANALYTICS_KEYS.billing_page_accessed, { action: 'clicked', source: 'app_home' })}
               >
                 Subscribe to Jetstream

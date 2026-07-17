@@ -80,7 +80,11 @@ export const DataAnalysisSelection: FunctionComponent = () => {
     <Page testId="data-analysis-page">
       <PageHeader>
         <PageHeaderRow>
-          <PageHeaderTitle icon={{ type: 'standard', icon: 'data_streams' }} label="Data Analysis" />
+          <PageHeaderTitle
+            icon={{ type: 'standard', icon: 'data_streams' }}
+            label="Data Analysis"
+            docsPath={APP_ROUTES.DATA_ANALYSIS.DOCS}
+          />
           <PageHeaderActions colType="actions" buttonType="separate">
             <Tooltip ariaRole="label" content="View past Field Usage runs for this org">
               <button

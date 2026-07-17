@@ -312,7 +312,7 @@ export function TeamDashboard() {
                   View Audit Logs
                 </button>
               )}
-              <Link to="/settings/billing" className="slds-button slds-button_neutral">
+              <Link to={APP_ROUTES.BILLING.ROUTE} className="slds-button slds-button_neutral">
                 Go to Billing
               </Link>
             </PageHeaderActions>

@@ -211,7 +211,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
           <PageHeaderTitle
             icon={{ type: 'standard', icon: 'portal' }}
             label={isAnalysis ? 'Permission Analysis' : 'Manage Permissions'}
-            docsPath={APP_ROUTES.PERMISSION_MANAGER.DOCS}
+            docsPath={isAnalysis ? APP_ROUTES.PERMISSION_ANALYSIS.DOCS : APP_ROUTES.PERMISSION_MANAGER.DOCS}
           />
           <PageHeaderActions colType="actions" buttonType="separate">
             {isAnalysis && (
