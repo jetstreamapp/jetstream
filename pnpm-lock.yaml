@@ -270,8 +270,8 @@ importers:
         specifier: ^1.1.1
         version: 1.1.1
       '@jetstreamapp/soql-parser-js':
-        specifier: ^7.2.2
-        version: 7.2.2
+        specifier: ^7.4.0
+        version: 7.4.0
       '@marsidev/react-turnstile':
         specifier: ^1.5.3
         version: 1.5.3(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -695,7 +695,7 @@ importers:
         version: 1.11.1(@swc/core@1.15.8(@swc/helpers@0.5.18))(@swc/types@0.1.25)(supports-color@7.2.0)(typescript@6.0.3)
       '@swc/cli':
         specifier: 0.7.10
-        version: 0.7.10(@swc/core@1.15.8(@swc/helpers@0.5.18))(chokidar@4.0.3)
+        version: 0.7.10(@swc/core@1.15.8(@swc/helpers@0.5.18))(chokidar@4.0.3)(supports-color@7.2.0)
       '@swc/core':
         specifier: 1.15.8
         version: 1.15.8(@swc/helpers@0.5.18)
@@ -4710,8 +4710,8 @@ packages:
   '@jetstreamapp/simple-xml@1.1.1':
     resolution: {integrity: sha512-H3LeZEvOb/JD8S2vs5vzK0HOlFoKu+IQCueTNbOJ1+smUEEMNWGFni38EEQK7cMYkQKPFGfrGFb5S4hynnDJaA==}
 
-  '@jetstreamapp/soql-parser-js@7.2.2':
-    resolution: {integrity: sha512-qYd/pHWR2IBhDnoP1wYNBULiNbKc1A/5fMEXKIRZypO5LNJ++r/b4HlSXmsRTlxyO4X+TvT/75azp0iXo5lLBA==}
+  '@jetstreamapp/soql-parser-js@7.4.0':
+    resolution: {integrity: sha512-/qzy16rmQ1oejLPH5r47g2JBhpW4fCYjtgTk99ml4l1tYYCmbUDirNkgL+XXM/eDmFQXG23tZrPeyD0Ji9xCbQ==}
     hasBin: true
 
   '@jridgewell/gen-mapping@0.3.13':
@@ -4873,8 +4873,8 @@ packages:
   '@maxim_mazurok/gapi.client.drive-v3@0.2.20260602':
     resolution: {integrity: sha512-BNDVj7gVop5Q4rx0hvAfHxjhACShaQrYB1Zmd8fJeNAszGpLK3zRoggqPGtehdYW3O72fmsHmEsWV89QObuAgw==}
 
-  '@maxim_mazurok/gapi.client.drive-v3@0.3.20260701':
-    resolution: {integrity: sha512-ZAc0RZUztbUWGscQhNzdGwNKhf86h/UC35IEmg0iDkx0LJdC/+73b9CRwOJFZOldiM44TTYSb/YiLNVOeyl5nw==}
+  '@maxim_mazurok/gapi.client.drive-v3@0.3.20260707':
+    resolution: {integrity: sha512-uFoptgesZO/DcVrj+3F2pu3lg4+Iv8YzsIWDAfhLNEanm2bn713gQYqwekMpGN42cd1FUJGLiuqI+et35Zh7NA==}
 
   '@mdn/browser-compat-data@8.0.2':
     resolution: {integrity: sha512-bT8u6Ll/vuV8qC9tn8cqvxoAtBpKcCwhKMW51qJRK9+G3JUtAx3lc1wjij4GJzGCfqA0keRbJUFetCgwwYaskA==}
@@ -23783,7 +23783,7 @@ snapshots:
 
   '@jetstreamapp/simple-xml@1.1.1': {}
 
-  '@jetstreamapp/soql-parser-js@7.2.2': {}
+  '@jetstreamapp/soql-parser-js@7.4.0': {}
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
@@ -23998,7 +23998,7 @@ snapshots:
       '@types/gapi.client': 1.0.8
       '@types/gapi.client.discovery-v1': 0.0.4
 
-  '@maxim_mazurok/gapi.client.drive-v3@0.3.20260701':
+  '@maxim_mazurok/gapi.client.drive-v3@0.3.20260707':
     dependencies:
       '@types/gapi.client': 1.0.8
       '@types/gapi.client.discovery-v1': 0.0.4
@@ -26589,11 +26589,11 @@ snapshots:
       source-map-support: 0.5.21
       tslib: 2.8.1
 
-  '@swc/cli@0.7.10(@swc/core@1.15.8(@swc/helpers@0.5.18))(chokidar@4.0.3)':
+  '@swc/cli@0.7.10(@swc/core@1.15.8(@swc/helpers@0.5.18))(chokidar@4.0.3)(supports-color@7.2.0)':
     dependencies:
       '@swc/core': 1.15.8(@swc/helpers@0.5.18)
       '@swc/counter': 0.1.3
-      '@xhmikosr/bin-wrapper': 13.0.5
+      '@xhmikosr/bin-wrapper': 13.0.5(supports-color@7.2.0)
       commander: 8.3.0
       minimatch: 9.0.5
       piscina: 4.9.2
@@ -26856,7 +26856,7 @@ snapshots:
       '@babel/runtime': 7.28.4
       '@testing-library/dom': 10.4.1
 
-  '@tokenizer/inflate@0.2.7':
+  '@tokenizer/inflate@0.2.7(supports-color@7.2.0)':
     dependencies:
       debug: 4.4.3(supports-color@7.2.0)
       fflate: 0.8.3
@@ -27069,7 +27069,7 @@ snapshots:
 
   '@types/gapi.client.drive-v3@0.0.5':
     dependencies:
-      '@maxim_mazurok/gapi.client.drive-v3': 0.3.20260701
+      '@maxim_mazurok/gapi.client.drive-v3': 0.3.20260707
 
   '@types/gapi.client@1.0.8': {}
 
@@ -27371,7 +27371,7 @@ snapshots:
     dependencies:
       '@typescript-eslint/scope-manager': 8.46.2
       '@typescript-eslint/types': 8.46.2
-      '@typescript-eslint/typescript-estree': 8.46.2(typescript@6.0.3)
+      '@typescript-eslint/typescript-estree': 8.46.2(supports-color@7.2.0)(typescript@6.0.3)
       '@typescript-eslint/visitor-keys': 8.46.2
       debug: 4.4.3(supports-color@7.2.0)
       eslint: 10.4.0(jiti@2.7.0)(supports-color@7.2.0)
@@ -27384,7 +27384,7 @@ snapshots:
     dependencies:
       '@typescript-eslint/scope-manager': 8.46.2
       '@typescript-eslint/types': 8.46.2
-      '@typescript-eslint/typescript-estree': 8.46.2(typescript@6.0.3)
+      '@typescript-eslint/typescript-estree': 8.46.2(supports-color@7.2.0)(typescript@6.0.3)
       '@typescript-eslint/visitor-keys': 8.46.2
       debug: 4.4.3(supports-color@7.2.0)
       eslint: 9.23.0(jiti@2.7.0)(supports-color@7.2.0)
@@ -27404,7 +27404,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@typescript-eslint/project-service@8.46.2(typescript@6.0.3)':
+  '@typescript-eslint/project-service@8.46.2(supports-color@7.2.0)(typescript@6.0.3)':
     dependencies:
       '@typescript-eslint/tsconfig-utils': 8.46.2(typescript@6.0.3)
       '@typescript-eslint/types': 8.46.2
@@ -27461,7 +27461,7 @@ snapshots:
   '@typescript-eslint/type-utils@8.46.2(eslint@9.23.0(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@6.0.3)':
     dependencies:
       '@typescript-eslint/types': 8.46.2
-      '@typescript-eslint/typescript-estree': 8.46.2(typescript@6.0.3)
+      '@typescript-eslint/typescript-estree': 8.46.2(supports-color@7.2.0)(typescript@6.0.3)
       '@typescript-eslint/utils': 8.46.2(eslint@9.23.0(jiti@2.7.0)(supports-color@7.2.0))(typescript@6.0.3)
       debug: 4.4.3(supports-color@7.2.0)
       eslint: 9.23.0(jiti@2.7.0)(supports-color@7.2.0)
@@ -27513,9 +27513,9 @@ snapshots:
 
   '@typescript-eslint/types@8.61.0': {}
 
-  '@typescript-eslint/typescript-estree@8.46.2(typescript@6.0.3)':
+  '@typescript-eslint/typescript-estree@8.46.2(supports-color@7.2.0)(typescript@6.0.3)':
     dependencies:
-      '@typescript-eslint/project-service': 8.46.2(typescript@6.0.3)
+      '@typescript-eslint/project-service': 8.46.2(supports-color@7.2.0)(typescript@6.0.3)
       '@typescript-eslint/tsconfig-utils': 8.46.2(typescript@6.0.3)
       '@typescript-eslint/types': 8.46.2
       '@typescript-eslint/visitor-keys': 8.46.2
@@ -27564,7 +27564,7 @@ snapshots:
       '@eslint-community/eslint-utils': 4.9.1(eslint@9.23.0(jiti@2.7.0)(supports-color@7.2.0))
       '@typescript-eslint/scope-manager': 8.46.2
       '@typescript-eslint/types': 8.46.2
-      '@typescript-eslint/typescript-estree': 8.46.2(typescript@6.0.3)
+      '@typescript-eslint/typescript-estree': 8.46.2(supports-color@7.2.0)(typescript@6.0.3)
       eslint: 9.23.0(jiti@2.7.0)(supports-color@7.2.0)
       typescript: 6.0.3
     transitivePeerDependencies:
@@ -27920,10 +27920,10 @@ snapshots:
       execa: 5.1.1
       isexe: 2.0.0
 
-  '@xhmikosr/bin-wrapper@13.0.5':
+  '@xhmikosr/bin-wrapper@13.0.5(supports-color@7.2.0)':
     dependencies:
       '@xhmikosr/bin-check': 7.0.3
-      '@xhmikosr/downloader': 15.0.1
+      '@xhmikosr/downloader': 15.0.1(supports-color@7.2.0)
       '@xhmikosr/os-filter-obj': 3.0.0
       bin-version-check: 5.1.0
     transitivePeerDependencies:
@@ -27942,9 +27942,9 @@ snapshots:
       - bare-buffer
       - react-native-b4a
 
-  '@xhmikosr/decompress-tar@8.1.0':
+  '@xhmikosr/decompress-tar@8.1.0(supports-color@7.2.0)':
     dependencies:
-      file-type: 20.5.0
+      file-type: 20.5.0(supports-color@7.2.0)
       is-stream: 2.0.1
       tar-stream: 3.2.0
     transitivePeerDependencies:
@@ -27956,7 +27956,7 @@ snapshots:
   '@xhmikosr/decompress-tarbz2@8.1.0':
     dependencies:
       '@xhmikosr/decompress-tar': 8.0.1
-      file-type: 20.5.0
+      file-type: 20.5.0(supports-color@7.2.0)
       is-stream: 2.0.1
       seek-bzip: 2.0.0
       unbzip2-stream: 1.4.3
@@ -27969,7 +27969,7 @@ snapshots:
   '@xhmikosr/decompress-targz@8.1.0':
     dependencies:
       '@xhmikosr/decompress-tar': 8.0.1
-      file-type: 20.5.0
+      file-type: 20.5.0(supports-color@7.2.0)
       is-stream: 2.0.1
     transitivePeerDependencies:
       - bare-abort-controller
@@ -27979,15 +27979,15 @@ snapshots:
 
   '@xhmikosr/decompress-unzip@7.1.0':
     dependencies:
-      file-type: 20.5.0
+      file-type: 20.5.0(supports-color@7.2.0)
       get-stream: 6.0.1
       yauzl: 3.4.0
     transitivePeerDependencies:
       - supports-color
 
-  '@xhmikosr/decompress@10.2.1':
+  '@xhmikosr/decompress@10.2.1(supports-color@7.2.0)':
     dependencies:
-      '@xhmikosr/decompress-tar': 8.1.0
+      '@xhmikosr/decompress-tar': 8.1.0(supports-color@7.2.0)
       '@xhmikosr/decompress-tarbz2': 8.1.0
       '@xhmikosr/decompress-targz': 8.1.0
       '@xhmikosr/decompress-unzip': 7.1.0
@@ -27999,10 +27999,10 @@ snapshots:
       - react-native-b4a
       - supports-color
 
-  '@xhmikosr/downloader@15.0.1':
+  '@xhmikosr/downloader@15.0.1(supports-color@7.2.0)':
     dependencies:
       '@xhmikosr/archive-type': 7.0.0
-      '@xhmikosr/decompress': 10.2.1
+      '@xhmikosr/decompress': 10.2.1(supports-color@7.2.0)
       content-disposition: 0.5.4
       defaults: 3.0.0
       ext-name: 5.0.0
@@ -31670,9 +31670,9 @@ snapshots:
       token-types: 6.0.0
       uint8array-extras: 1.5.0
 
-  file-type@20.5.0:
+  file-type@20.5.0(supports-color@7.2.0):
     dependencies:
-      '@tokenizer/inflate': 0.2.7
+      '@tokenizer/inflate': 0.2.7(supports-color@7.2.0)
       strtok3: 10.3.5
       token-types: 6.0.0
       uint8array-extras: 1.5.0

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
@@ -62,7 +61,7 @@ import {
 import { getFlattenSubqueryFlattenedFieldMap } from '@jetstream/ui-core/shared';
 import { fromAppState, googleDriveAccessState, soqlQueryFormatOptionsState } from '@jetstream/ui/app-state';
 import { queryHistoryDb } from '@jetstream/ui/db';
-import { FieldSubquery, Query, composeQuery, formatQuery, isFieldSubquery, parseQuery } from '@jetstreamapp/soql-parser-js';
+import { FieldSubquery, Query, composeQuery, formatQuery, isFieldSubquery, parseQuery, stripComments } from '@jetstreamapp/soql-parser-js';
 import classNames from 'classnames';
 import { useAtom, useAtomValue } from 'jotai';
 import isString from 'lodash/isString';
@@ -177,7 +176,6 @@ export const QueryResults = React.memo(() => {
     }
     // Fallback: sessionStorage (same tab / extension) then localStorage (cross-tab handoff from window.open — new tabs
     // do not inherit the opener's sessionStorage).
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let potentialState: any = null;
     let handoffFromLocalStorage = false;
     try {
@@ -357,8 +355,9 @@ export const QueryResults = React.memo(() => {
       }
       setRecords(null);
       setRecordCount(null);
+      setFields(null);
       setSubqueryFields(null);
-      const results = await query(selectedOrg, soqlQuery, tooling, !tooling && includeDeletedRecords);
+      const results = await query(selectedOrg, stripComments(soqlQuery), tooling, !tooling && includeDeletedRecords);
       if (!isMounted.current) {
         return;
       }
@@ -581,17 +580,40 @@ export const QueryResults = React.memo(() => {
     }
   }
 
-  function handleFieldsChanged(newFields: string[], columnOrder: number[]) {
+  /**
+   * Called by the data table when query results load (fields in current order) and when the user reorders columns.
+   * Only a genuine reorder should recompose the query - recomposing on load would replace the authored
+   * query, dropping comments and formatting since comments are not represented in the parsed query.
+   *
+   * The column order param is intentionally ignored: it is a permutation relative to the column order at load
+   * time, which goes stale after the first reorder because parsedQuery is updated on every reorder.
+   */
+  function handleFieldsChanged(newFields: string[], _columnOrder: number[]) {
     try {
+      const previousFields = fields;
       setFields(newFields);
-      if (newFields?.length && parsedQuery?.fields && Array.isArray(parsedQuery.fields)) {
-        const newParsedQuery = {
-          ...parsedQuery,
-          fields: columnOrder.map((idx) => parsedQuery.fields![idx]),
-        };
-        setParsedQuery(newParsedQuery);
-        setSoql(composeQuery(newParsedQuery, { format: true, formatOptions: soqlQueryFormatOptions }));
+      // No previous fields means this is the emission for freshly loaded results (executeQuery resets fields)
+      if (!previousFields?.length || !newFields?.length || !parsedQuery?.fields || !Array.isArray(parsedQuery.fields)) {
+        return;
       }
+      const parsedQueryFields = parsedQuery.fields;
+      const previousIndexByField = new Map(previousFields.map((field, index) => [field, index]));
+      const isSameFieldSet = previousFields.length === newFields.length && newFields.every((field) => previousIndexByField.has(field));
+      const isSameOrder = isSameFieldSet && newFields.every((field, index) => field === previousFields[index]);
+      // Bail unless this is a true reorder of columns that map 1:1 onto the parsed query fields
+      if (!isSameFieldSet || isSameOrder || parsedQueryFields.length !== previousFields.length) {
+        return;
+      }
+      const reorderedParsedFields = newFields
+        .map((field) => previousIndexByField.get(field))
+        .filter((index): index is number => index != null)
+        .map((index) => parsedQueryFields[index]);
+      const newParsedQuery = {
+        ...parsedQuery,
+        fields: reorderedParsedFields,
+      };
+      setParsedQuery(newParsedQuery);
+      setSoql(composeQuery(newParsedQuery, { format: true, formatOptions: soqlQueryFormatOptions }));
     } catch (ex) {
       logger.warn('Error setting query after fields changed', getErrorMessage(ex));
     }
