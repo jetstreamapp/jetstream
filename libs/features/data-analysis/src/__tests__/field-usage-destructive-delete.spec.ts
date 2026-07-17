@@ -4,7 +4,8 @@ import {
   fieldUsageRowEligibleForDestructiveDelete,
   fieldUsageRowsToCustomFieldDeleteMetadata,
 } from '../field-usage-destructive-delete';
-import type { FieldUsageFieldMetaParsed } from '../field-usage-result-parse';
+import type { FieldUsageFieldMetaParsed, WhereUsedMapParsed } from '../field-usage-result-parse';
+import { countWhereUsedByUiCategory, getWhereUsedDepsForFieldKey } from '../field-usage-result-parse';
 
 const customMeta = (overrides: Partial<FieldUsageFieldMetaParsed> = {}): FieldUsageFieldMetaParsed => ({
   label: 'Test',
@@ -114,6 +115,31 @@ describe('fieldUsageDestructiveDeleteIneligibleReason', () => {
     expect(fieldUsageDestructiveDeleteIneligibleReason({ ...base, whereUsedKnown: false })).toBe('where-used-unknown');
     expect(fieldUsageDestructiveDeleteIneligibleReason({ ...base, whereUsedDependencyCount: 1 })).toBe('has-dependencies');
     expect(fieldUsageDestructiveDeleteIneligibleReason({ ...base, filled: 5 })).toBe('has-data');
+  });
+});
+
+describe('destructive-delete gate counts dependencies of any kind (regression)', () => {
+  // A field referenced ONLY by a kind:'other' dependency (formula/rollup CustomField, ValidationRule,
+  // CompactLayout, QuickAction, …). These are real deletion-blocking references but are excluded from the
+  // layout/automation/apex UI buckets, so the gate must derive its count from the total dependency rows.
+  const fieldKey = 'Account.Legacy__c';
+  const whereUsed: WhereUsedMapParsed = {
+    [fieldKey]: [{ type: 'CustomField', name: 'Account.Adjusted__c', kind: 'other' }],
+  };
+  const base = { fieldApiName: 'Legacy__c', meta: customMeta(), whereUsedKnown: true, filled: 0 };
+
+  it('excludes kind:other from the three UI buckets but retains it in the raw dependency rows', () => {
+    const deps = getWhereUsedDepsForFieldKey(whereUsed, fieldKey);
+    expect(deps).toHaveLength(1);
+    const { onLayout, inAutomation, inApex } = countWhereUsedByUiCategory(deps);
+    // The old (buggy) derivation summed only these three buckets → 0, wrongly marking the field deletable.
+    expect(onLayout + inAutomation + inApex).toBe(0);
+  });
+
+  it('blocks deletion of a field referenced only by a kind:other dependency', () => {
+    const totalDepCount = getWhereUsedDepsForFieldKey(whereUsed, fieldKey).length;
+    expect(fieldUsageDestructiveDeleteIneligibleReason({ ...base, whereUsedDependencyCount: totalDepCount })).toBe('has-dependencies');
+    expect(fieldUsageRowEligibleForDestructiveDelete({ ...base, whereUsedDependencyCount: totalDepCount })).toBe(false);
   });
 });
 

@@ -282,7 +282,15 @@ export async function fetchAndUpdateEntitlements(customerId: string) {
   await updateEntitlements(customerId, entitlements.data);
 }
 
-export async function updateEntitlements(customerId: string, entitlements: Stripe.Entitlements.ActiveEntitlement[]) {
+/**
+ * Resolve the flat entitlement flags from Stripe's active entitlement lookup_keys.
+ *
+ * Analysis Tools ship to all paid tiers and there is no dedicated Stripe `analysisTools` lookup_key, so
+ * the grant is derived from the paid signal (chromeExtension) rather than read from Stripe. This mirrors
+ * the grandfather migration and keeps the grant durable — without it, every entitlement sync would reset
+ * the backfilled `analysisTools` back to false. Remove the derivation once a Stripe lookup_key exists.
+ */
+export function resolveEntitlementAccessFromStripe(entitlements: Stripe.Entitlements.ActiveEntitlement[]): EntitlementsAccess {
   const entitlementAccess = entitlements.reduce(
     (entitlementAccess: EntitlementsAccess, { lookup_key }) => {
       if (lookup_key in entitlementAccess) {
@@ -299,6 +307,12 @@ export async function updateEntitlements(customerId: string, entitlements: Strip
       salesforceCanvas: false,
     },
   );
+  entitlementAccess.analysisTools = entitlementAccess.analysisTools || entitlementAccess.chromeExtension;
+  return entitlementAccess;
+}
+
+export async function updateEntitlements(customerId: string, entitlements: Stripe.Entitlements.ActiveEntitlement[]) {
+  const entitlementAccess = resolveEntitlementAccessFromStripe(entitlements);
 
   const customer = await fetchCustomerWithSubscriptionsById({ customerId });
   if (!customer.deleted && customer.metadata.type === 'TEAM') {

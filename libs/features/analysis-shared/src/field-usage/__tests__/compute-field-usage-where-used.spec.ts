@@ -24,7 +24,7 @@ function depResult(records: Record<string, unknown>[]) {
 function objectWithFields(fieldNames: string[]): Record<string, FieldUsageObjectPayload> {
   const fieldUsage: FieldUsageObjectPayload['fieldUsage'] = {};
   for (const name of fieldNames) {
-    fieldUsage[name] = { filled: 0, pct: 0, latestFilledRowModified: null, scanned: 0 };
+    fieldUsage[name] = { filled: 0, pct: 0, latestFilledRowModified: null, scanned: 0, truncated: false };
   }
   return {
     Account: { label: 'Account', customizable: false, totalRecords: 0, queryTruncated: false, fieldUsage, fieldMeta: {} },
