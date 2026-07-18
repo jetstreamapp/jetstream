@@ -16,8 +16,8 @@ import {
   Spinner,
   fireToast,
 } from '@jetstream/ui';
-import { SoqlQueryFormatConfig, useAmplitude } from '@jetstream/ui-core';
-import { fromAppState, userProfileState } from '@jetstream/ui/app-state';
+import { SalesforceCanvasOrgs, SoqlQueryFormatConfig, useAmplitude } from '@jetstream/ui-core';
+import { fromAppState, useFeatureFlag, userProfileState } from '@jetstream/ui/app-state';
 import { dexieDataSync, recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useAtom, useAtomValue } from 'jotai';
 import localforage from 'localforage';
@@ -44,6 +44,10 @@ export const Settings = () => {
 
   // TODO: Give option to disable
   const recordSyncEnabled = ability.can('access', 'RecordSync');
+  // Canvas org management: gated by the feature flag + entitlement, and only for individual (non-team)
+  // users — team members manage authorized orgs from the Team Dashboard.
+  const canvasEnabled = useFeatureFlag('salesforce-canvas');
+  const showCanvasOrgs = canvasEnabled && userProfile.entitlements.salesforceCanvas && !userProfile.teamMembership;
 
   const soqlQueryFormatOptions = modifiedUser?.preferences?.soqlQueryFormatOptions ?? SoqlQueryFormatOptionsSchema.parse({});
 
@@ -268,6 +272,12 @@ export const Settings = () => {
               <h2 className="slds-text-heading_medium slds-m-vertical_small">Analytics</h2>
               <AnalyticsTrackingSetting />
             </div>
+
+            {showCanvasOrgs && (
+              <div className="slds-m-top_large">
+                <SalesforceCanvasOrgs scope={{ type: 'user' }} />
+              </div>
+            )}
 
             {!userProfile.teamMembership && <SettingsDeleteAccount onDeleteAccount={handleDelete} />}
           </div>

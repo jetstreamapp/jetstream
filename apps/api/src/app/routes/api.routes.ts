@@ -3,6 +3,7 @@ import { getDefaultAppState } from '@jetstream/shared/utils';
 import { AppInfo } from '@jetstream/types';
 import express, { Router } from 'express';
 import { getAnnouncements } from '../announcements';
+import { routeDefinition as canvasOrgController } from '../controllers/canvas-org.controller';
 import { routeDefinition as dataSyncController } from '../controllers/data-sync.controller';
 import { routeDefinition as orgGroupController } from '../controllers/org-groups.controller';
 import { routeDefinition as orgsController } from '../controllers/orgs.controller';
@@ -114,6 +115,12 @@ routes.post('/orgs/groups', orgGroupController.createOrganization.controllerFn()
 routes.put('/orgs/groups/:id', orgGroupController.updateOrganization.controllerFn());
 routes.delete('/orgs/groups/:id', orgGroupController.deleteOrganization.controllerFn());
 routes.delete('/orgs/groups/:id/with-orgs', orgGroupController.deleteOrganizationWithOrgs.controllerFn());
+
+// Salesforce Canvas app — personal authorized-orgs management (team members manage at the team level)
+routes.get('/canvas-orgs', verifyEntitlement('salesforceCanvas'), canvasOrgController.getCanvasOrgs.controllerFn());
+routes.post('/canvas-orgs', verifyEntitlement('salesforceCanvas'), canvasOrgController.createCanvasOrg.controllerFn());
+routes.patch('/canvas-orgs/:id', verifyEntitlement('salesforceCanvas'), canvasOrgController.updateCanvasOrg.controllerFn());
+routes.delete('/canvas-orgs/:id', verifyEntitlement('salesforceCanvas'), canvasOrgController.deleteCanvasOrg.controllerFn());
 
 /**
  * ************************************

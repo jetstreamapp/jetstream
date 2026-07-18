@@ -1,9 +1,16 @@
+import { Prisma } from '@jetstream/prisma';
+import { SALESFORCE_CANVAS_ORG_LIMIT } from '@jetstream/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { isCanvasOrgEntitled, parseMyDomainBase } from '../canvas-entitlement.db';
+import { createCanvasOrg, deleteCanvasOrg, isCanvasOrgEntitled, parseMyDomainBase } from '../canvas-entitlement.db';
 
 const prismaMock = vi.hoisted(() => ({
   salesforceCanvasOrg: {
     findMany: vi.fn(),
+    count: vi.fn(),
+    create: vi.fn(),
+    updateMany: vi.fn(),
+    deleteMany: vi.fn(),
+    findFirstOrThrow: vi.fn(),
   },
   teamEntitlement: {
     count: vi.fn(),
@@ -93,5 +100,96 @@ describe('isCanvasOrgEntitled', () => {
 
     expect(await isCanvasOrgEntitled(PROD_ORG_ID, 'https://acme.my.salesforce.com')).toBe(false);
     expect(prismaMock.entitlement.count).not.toHaveBeenCalled();
+  });
+});
+
+describe('createCanvasOrg', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    prismaMock.salesforceCanvasOrg.count.mockResolvedValue(0);
+  });
+
+  it('normalizes the org id to 15 chars, derives instanceUrl, and scopes to the user owner', async () => {
+    prismaMock.salesforceCanvasOrg.create.mockImplementation(({ data }: { data: Record<string, unknown> }) =>
+      Promise.resolve({
+        id: 'row-1',
+        organizationId: data.organizationId,
+        instanceUrl: data.instanceUrl,
+        myDomainBase: data.myDomainBase,
+        orgName: data.orgName ?? null,
+        isSandbox: data.isSandbox,
+        status: data.status,
+        createdAt: new Date('2026-01-01T00:00:00Z'),
+        updatedAt: new Date('2026-01-01T00:00:00Z'),
+      }),
+    );
+
+    const result = await createCanvasOrg({
+      owner: { type: 'user', userId: 'user-1' },
+      authorizedByUserId: 'user-1',
+      organizationId: PROD_ORG_ID, // 18 chars
+      myDomainBase: 'Acme',
+    });
+
+    expect(result.organizationId).toBe(PROD_ORG_ID.slice(0, 15));
+    expect(result.instanceUrl).toBe('https://acme.my.salesforce.com');
+    const createArg = prismaMock.salesforceCanvasOrg.create.mock.calls[0][0];
+    expect(createArg.data).toMatchObject({
+      organizationId: PROD_ORG_ID.slice(0, 15),
+      myDomainBase: 'acme',
+      instanceUrl: 'https://acme.my.salesforce.com',
+      isSandbox: false,
+      status: 'ACTIVE',
+      authorizedByUserId: 'user-1',
+      jetstreamUserId: 'user-1',
+    });
+    expect(createArg.data.teamId).toBeUndefined();
+  });
+
+  it('enforces the org limit and does not create beyond it', async () => {
+    prismaMock.salesforceCanvasOrg.count.mockResolvedValue(SALESFORCE_CANVAS_ORG_LIMIT);
+
+    await expect(
+      createCanvasOrg({
+        owner: { type: 'team', teamId: 'team-1' },
+        authorizedByUserId: 'user-1',
+        organizationId: PROD_ORG_ID,
+        myDomainBase: 'acme',
+      }),
+    ).rejects.toThrow(/limit/i);
+    expect(prismaMock.salesforceCanvasOrg.create).not.toHaveBeenCalled();
+  });
+
+  it('surfaces a friendly error when the org is already authorized (unique violation)', async () => {
+    prismaMock.salesforceCanvasOrg.create.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('Unique constraint failed', { code: 'P2002', clientVersion: 'test' }),
+    );
+
+    await expect(
+      createCanvasOrg({
+        owner: { type: 'user', userId: 'user-1' },
+        authorizedByUserId: 'user-1',
+        organizationId: PROD_ORG_ID,
+        myDomainBase: 'acme',
+      }),
+    ).rejects.toThrow(/already authorized/i);
+  });
+});
+
+describe('deleteCanvasOrg', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('scopes the delete to the team owner', async () => {
+    prismaMock.salesforceCanvasOrg.deleteMany.mockResolvedValue({ count: 1 });
+
+    await deleteCanvasOrg({ owner: { type: 'team', teamId: 'team-1' }, id: 'row-1' });
+
+    expect(prismaMock.salesforceCanvasOrg.deleteMany).toHaveBeenCalledWith({ where: { id: 'row-1', teamId: 'team-1' } });
+  });
+
+  it('throws when nothing matches the owner scope', async () => {
+    prismaMock.salesforceCanvasOrg.deleteMany.mockResolvedValue({ count: 0 });
+
+    await expect(deleteCanvasOrg({ owner: { type: 'user', userId: 'user-1' }, id: 'row-1' })).rejects.toThrow(/not found/i);
   });
 });
