@@ -84,6 +84,7 @@ export * from './record/RecordSearchPopover';
 export * from './record/ViewChildRecords';
 export * from './record/ViewEditCloneRecord';
 export * from './record/ViewEditCloneRecordWrapper';
+export * from './settings/SalesforceCanvasOrgs';
 export * from './settings/SoqlQueryFormatConfig';
 export * from './settings/SoqlQueryFormatConfigPopover';
 export * as fromAutomationControlState from './state-management/automation-control.state';

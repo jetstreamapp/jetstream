@@ -2,6 +2,7 @@ export * from './lib/analysis-job-types';
 export * from './lib/billing.types';
 export * from './lib/feature-flags';
 export * from './lib/jobs/types';
+export * from './lib/salesforce-canvas.types';
 export * from './lib/salesforce/apex.types';
 export * from './lib/salesforce/bulk.types';
 export * as Canvas from './lib/salesforce/canvas.types';
