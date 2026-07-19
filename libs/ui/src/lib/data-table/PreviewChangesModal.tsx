@@ -1,6 +1,5 @@
 import { css } from '@emotion/react';
 import { formatNumber, hasCtrlOrMeta, isEnterKey, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
-import { decodeHtmlEntity, getIdFromRecordUrl } from '@jetstream/shared/utils';
 import { Field, Maybe, SalesforceOrgUi, SobjectCollectionResponse } from '@jetstream/types';
 import { Fragment, FunctionComponent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import SearchInput from '../form/search-input/SearchInput';
@@ -14,6 +13,7 @@ import Tooltip from '../widgets/Tooltip';
 import { DataTable } from './DataTable';
 import { getRecordErrorColumn, getRecordErrorRowHeight } from './DataTableRenderers';
 import { dataTableDateFormatter } from './data-table-formatters';
+import { buildEditedRecordsExport, buildResultsExport, getRecordId } from './data-table-history-export';
 import { ColumnWithFilter, DataTableCellProps, RowSalesforceRecordWithKey, RowWithKey } from './data-table-types';
 import { getColumnsForGenericTable } from './data-table-utils';
 
@@ -55,11 +55,6 @@ export interface RecordChangeList {
 
 const getRowKey = (row: RowWithKey) => row._key;
 const EMPTY_DISPLAY = '—';
-
-function getRecordId(row: RowSalesforceRecordWithKey): string {
-  const fromUrl = row._record?.attributes?.url ? getIdFromRecordUrl(row._record.attributes.url) : undefined;
-  return fromUrl ?? row._record?.Id ?? '';
-}
 
 function formatDisplayValue(value: unknown, field: Maybe<Field>): string {
   if (value === null || value === undefined || value === '') {
@@ -152,73 +147,6 @@ export function buildRecordChangeList(
   });
 
   return { rows, editedColumns, changeCount };
-}
-
-/** True when this record actually changed `columnKey` (touched AND its value differs from the original). */
-function rowChangedColumn(row: RowSalesforceRecordWithKey, columnKey: string): boolean {
-  return row._touchedColumns instanceof Set && row._touchedColumns.has(columnKey) && row[columnKey] !== row._record?.[columnKey];
-}
-
-/**
- * Build a loadable export of the pending edits: one row per record, columns = Id + the union of every
- * edited field across records. Each row emits a value ONLY for the fields IT actually changed — the other
- * union columns stay blank — so the file is a true per-record diff rather than a dump of every field.
- * Reloading via Load Records re-applies exactly these changes (blank cells are no-ops when "insert null
- * values" is off).
- */
-export function buildEditedRecordsExport(dirtyRows: RowSalesforceRecordWithKey[]): { data: Record<string, unknown>[]; header: string[] } {
-  const editedColumns: string[] = [];
-  const seen = new Set<string>();
-  dirtyRows.forEach((row) => {
-    if (!(row._touchedColumns instanceof Set)) {
-      return;
-    }
-    row._touchedColumns.forEach((columnKey) => {
-      if (rowChangedColumn(row, columnKey) && !seen.has(columnKey)) {
-        seen.add(columnKey);
-        editedColumns.push(columnKey);
-      }
-    });
-  });
-
-  const header = ['Id', ...editedColumns];
-  const data = dirtyRows.map((row) => {
-    const record: Record<string, unknown> = { Id: getRecordId(row) };
-    // Only emit a value for the columns THIS row changed; the rest stay blank (omitted) so the file shows
-    // just what each record actually modified.
-    editedColumns.forEach((columnKey) => {
-      if (rowChangedColumn(row, columnKey)) {
-        record[columnKey] = row[columnKey] ?? '';
-      }
-    });
-    return record;
-  });
-  return { data, header };
-}
-
-/**
- * Build the post-save results export: each record's save outcome (`_id`/`_success`/`_errors`, matching
- * the Load Records results file) followed by the record data from the "Download Changes" export (Id +
- * every edited field) at the end. Rows zip to `saveResults` by index — the order they were submitted in.
- */
-export function buildResultsExport(
-  editedExport: { data: Record<string, unknown>[]; header: string[] },
-  saveResults: SobjectCollectionResponse,
-): { data: Record<string, unknown>[]; header: string[] } {
-  const header = ['_id', '_success', '_errors', ...editedExport.header];
-  const data = editedExport.data.map((record, index) => {
-    const result = saveResults[index];
-    return {
-      _id: result?.id || (record.Id as string) || '',
-      _success: result?.success ?? false,
-      _errors:
-        result && !result.success
-          ? (result.errors?.map((error) => `${error.statusCode}: ${decodeHtmlEntity(error.message)}`).join('\n') ?? '')
-          : '',
-      ...record,
-    };
-  });
-  return { data, header };
 }
 
 /** Per-record status as a compact icon (the frozen Status column is narrow); message shown on hover. */
