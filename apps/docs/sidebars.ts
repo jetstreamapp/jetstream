@@ -61,6 +61,14 @@ const sidebar = {
     },
     'automation-control/automation-control',
     'permissions/permissions',
+    // Analysis Tools (Permission Analysis + Data Analysis) are paid, pre-release, and gated behind the
+    // `analysis-tools` feature flag. The doc pages exist and are reachable by direct URL; uncomment this
+    // category to surface them in the sidebar when the feature launches.
+    // {
+    //   type: 'category',
+    //   label: 'Analysis Tools',
+    //   items: ['analysis/permission-analysis', 'analysis/data-analysis'],
+    // },
     {
       type: 'category',
       label: 'Deploy Metadata',

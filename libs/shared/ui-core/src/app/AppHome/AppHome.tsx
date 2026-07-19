@@ -223,11 +223,7 @@ export const AppHome = ({ showAlternativeAppFormats, hideConnectedAppBanner = fa
                     {locked && (
                       <div className="slds-p-top_small slds-m-top_small slds-border_top">
                         <p className="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
-                          These features require a paid plan.{' '}
-                          <a href="https://getjetstream.app/pricing/" target="_blank" rel="noopener noreferrer">
-                            Upgrade
-                          </a>
-                          .
+                          These features require a paid plan. <Link to={APP_ROUTES.BILLING.ROUTE}>Upgrade</Link>.
                         </p>
                       </div>
                     )}
