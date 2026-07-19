@@ -4,5 +4,15 @@
   "sourceRoot": "libs/prisma/src",
   "projectType": "library",
   "tags": ["scope:server"],
-  "targets": {}
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": ["{workspaceRoot}/prisma/schema.prisma", "{workspaceRoot}/prisma.config.ts", "{workspaceRoot}/prisma/sql/**/*"],
+      "outputs": ["{projectRoot}/src/lib/generated/prisma"],
+      "options": {
+        "command": "prisma generate"
+      }
+    }
+  }
 }
