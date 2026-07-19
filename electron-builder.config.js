@@ -57,11 +57,6 @@ if (ENV.IS_CODESIGNING_ENABLED && process.platform === 'win32') {
   assertRequiredEnvVars('Windows', ['AZURE_TENANT_ID', 'AZURE_CLIENT_ID', 'AZURE_CLIENT_SECRET']);
   winSigningConfig = {
     forceCodeSigning: true,
-    // This allows signing to succeed on either the Digicert signing key or the Azure signing key
-    // Users must have a Desktop version with both publishers to ensure the update will work
-    // once we migrate to Azure for signing. If users do not update to the intermediate versions (4.1.0 or 4.1.1),
-    // they will need to manually download and install the latest version to continue receiving updates.
-    publisherName: ['Jetstream Solutions, LLC', 'JETSTREAM SOLUTIONS, LLC'],
     azureSignOptions: {
       publisherName: 'Jetstream Solutions, LLC',
       endpoint: 'https://eus.codesigning.azure.net',
@@ -189,7 +184,15 @@ const config = {
           {
             provider: 'generic',
             url: 'https://release-updates.getjetstream.app/jetstream/releases',
+            /**
+             * The auto-updater validates the publisher names exactly and will fail if they don't match.
+             *
+             * Azure: Jetstream Solutions, LLC
+             * Digicert: JETSTREAM SOLUTIONS, LLC
+             */
+            publisherName: ['Jetstream Solutions, LLC', 'JETSTREAM SOLUTIONS, LLC'],
           },
+          // Used for publishing, clients always use the first entry (generic provider above)
           {
             provider: 's3',
             endpoint: ENV.AWS_ENDPOINT_URL,
