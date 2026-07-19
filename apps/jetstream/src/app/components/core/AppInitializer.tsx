@@ -7,9 +7,10 @@ import { fireToast } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { DEFAULT_PROFILE, fromAppState } from '@jetstream/ui/app-state';
 import { CookieConsentBanner, useConditionalGoogleAnalytics } from '@jetstream/ui/cookie-consent-banner';
+import { initDataHistory, isDataHistoryCaptureEnabled } from '@jetstream/ui/data-history';
 import { ensureLocalStorageReady, initDexieDb, pruneAnalysisJobHistory } from '@jetstream/ui/db';
 import { AxiosResponse } from 'axios';
-import { useAtom, useAtomValue } from 'jotai';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import localforage from 'localforage';
 import React, { Fragment, FunctionComponent, use, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router';
@@ -51,6 +52,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onAnnou
     fromJetstreamEvents.getObservable('saveSoqlQueryFormatOptions') as Observable<JetstreamEventSaveSoqlQueryFormatOptionsPayload>,
   );
   const [analytics, setAnalytics] = useAtom(fromAppState.analyticsState);
+  const setDataHistoryCaptureEnabled = useSetAtom(fromAppState.dataHistoryCaptureEnabledState);
   const [searchParams, setSearchParams] = useSearchParams();
   const errorParam = searchParams.get('error');
 
@@ -58,6 +60,8 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onAnnou
 
   const recordSyncEntitlementEnabled = ability.can('access', 'RecordSync');
   const recordSyncEnabled = recordSyncEntitlementEnabled && userProfile.preferences.recordSyncEnabled;
+  // Data history is available to everyone; paid plans get higher storage/retention limits
+  const hasPaidPlan = ability.can('access', 'GoogleDrive');
 
   const activeUserId = userProfile.id && userProfile.id !== DEFAULT_PROFILE.id ? userProfile.id : null;
   // Suspend until both local stores are scoped to this user, so no descendant reads local storage
@@ -99,14 +103,19 @@ APP VERSION ${version}
       disconnectSocket();
     }
 
+    // Data history reads and writes the per-user database, so it must initialize inside the same
+    // `activeUserId` gate — never against the signed-out/default profile.
     if (activeUserId) {
       initDexieDb({ userId: activeUserId, dbName: LOCAL_STORE_DB_NAME, recordSyncEnabled })
         .then(() => pruneAnalysisJobHistory())
+        .then(() => initDataHistory({ hasPaidPlan }))
+        .then(() => isDataHistoryCaptureEnabled())
+        .then(setDataHistoryCaptureEnabled)
         .catch((ex) => {
           logger.error('[DB] Error initializing db', ex);
         });
     }
-  }, [appInfo.serverUrl, recordSyncEnabled, activeUserId]);
+  }, [appInfo.serverUrl, recordSyncEnabled, activeUserId, hasPaidPlan, setDataHistoryCaptureEnabled]);
 
   useEffect(() => {
     announcements && onAnnouncements && onAnnouncements(announcements);

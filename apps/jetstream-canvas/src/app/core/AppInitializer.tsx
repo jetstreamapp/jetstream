@@ -5,6 +5,7 @@ import { initErrorTracker, setErrorTrackerUser, useObservable } from '@jetstream
 import { JetstreamEventSaveSoqlQueryFormatOptionsPayload, SalesforceOrgUi } from '@jetstream/types';
 import { AppLoading, fromJetstreamEvents } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
+import { initDataHistory, isDataHistoryCaptureEnabled } from '@jetstream/ui/data-history';
 import { ensureLocalStorageReady, initDexieDb } from '@jetstream/ui/db';
 import { useAtomValue, useSetAtom } from 'jotai';
 import localforage from 'localforage';
@@ -31,6 +32,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
   const setSelectedOrgId = useSetAtom(fromAppState.selectedOrgIdState);
   const setSalesforceOrgs = useSetAtom(fromAppState.salesforceOrgsState);
   const setUserProfile = useSetAtom(fromAppState.userProfileState);
+  const setDataHistoryCaptureEnabled = useSetAtom(fromAppState.dataHistoryCaptureEnabledState);
   const setCanvasColorScheme = useSetAtom(canvasColorSchemeState);
   const selectedOrg = useAtomValue(fromAppState.selectedOrgState);
 
@@ -75,11 +77,17 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
     // wait until this data has initialized before proceeding
     const recordSyncEnabled = false;
     if (storageScopeId) {
-      initDexieDb({ userId: storageScopeId, dbName: LOCAL_STORE_DB_NAME, recordSyncEnabled }).catch((ex) => {
-        logger.error('[DB] Error initializing db', ex);
-      });
+      initDexieDb({ userId: storageScopeId, dbName: LOCAL_STORE_DB_NAME, recordSyncEnabled })
+        // Canvas always gets the top history tier via platform detection (storage is partitioned per
+        // Salesforce top-level origin and best-effort — see tmp/data-history-plan/01-feasibility.md)
+        .then(() => initDataHistory({ hasPaidPlan: false }))
+        .then(() => isDataHistoryCaptureEnabled())
+        .then(setDataHistoryCaptureEnabled)
+        .catch((ex) => {
+          logger.error('[DB] Error initializing db', ex);
+        });
     }
-  }, [storageScopeId]);
+  }, [storageScopeId, setDataHistoryCaptureEnabled]);
 
   // Load preferences from Salesforce custom setting on mount
   useEffect(() => {
