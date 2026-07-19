@@ -5,7 +5,7 @@
     "declaration": true,
     "types": ["node", "google.accounts", "google.picker", "gapi.auth2"]
   },
-  "include": ["src/**/*.ts", "../../../custom-typings/index.d.ts"],
+  "include": ["src/**/*.ts", "../../../custom-typings/index.d.ts", "../../../custom-typings/electron.d.ts"],
   "exclude": [
     "src/test-setup.ts",
     "src/**/*.spec.ts",
@@ -22,6 +22,9 @@
     "src/**/*.spec.jsx"
   ],
   "references": [
+    {
+      "path": "../../desktop-types/tsconfig.lib.json"
+    },
     {
       "path": "../utils/tsconfig.lib.json"
     },

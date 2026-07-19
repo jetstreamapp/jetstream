@@ -28,7 +28,7 @@ import {
   Spinner,
   fireToast,
 } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { ViewDataHistoryLink, useAmplitude } from '@jetstream/ui-core';
 import {
   applicationCookieState,
   dataHistoryCaptureEnabledState,
@@ -317,15 +317,18 @@ export const LoadRecordsMultiObject = () => {
               <div className="slds-m-top_small">{uploadSection}</div>
             )}
             {dataHistoryCaptureEnabled && (
-              <Checkbox
-                id="skip-data-history"
-                className="slds-m-top_x-small"
-                checked={skipDataHistory}
-                label={"Don't save this load to Data History"}
-                labelHelp="Data History keeps a local copy of your loaded records and results on this device. Check this to skip saving this particular load."
-                disabled={fileParsing || loadIsRunning}
-                onChange={setSkipDataHistory}
-              />
+              <div>
+                <Checkbox
+                  id="skip-data-history"
+                  className="slds-m-top_x-small"
+                  checked={skipDataHistory}
+                  label={"Don't save this load to Data History"}
+                  labelHelp="Data History keeps a local copy of your loaded records and results on this device. Check this to skip saving this particular load."
+                  disabled={fileParsing || loadIsRunning}
+                  onChange={setSkipDataHistory}
+                />
+                <ViewDataHistoryLink className="slds-m-top_xx-small" />
+              </div>
             )}
             {!hasData && !fileParsing && (
               <LoadRecordsMultiObjectEmptyState

@@ -237,7 +237,17 @@ async function pushAndPullAllRecords(
   applyRemoteChanges: ApplyRemoteChangesFunction,
   onChangesAccepted: () => void,
 ) {
-  if (changes.length === 0) {
+  // dexie-observable reports changes for ALL tables, including local-only ones (data_history,
+  // analysis_job_history, ...). Only syncable-table changes belong on the server — a batch of
+  // purely local-only changes is acknowledged without any network call, otherwise every local
+  // write would trigger an empty POST to /api/data-sync/push.
+  const syncableChanges = changes.filter(({ table }) => SyncableEntities.has(table as keyof typeof SyncableTables));
+  if (changes.length > 0 && syncableChanges.length === 0) {
+    onChangesAccepted();
+    return;
+  }
+
+  if (syncableChanges.length === 0) {
     /**
      * Pull all changes from server based on syncedRevision
      */
@@ -249,7 +259,7 @@ async function pushAndPullAllRecords(
      * Push all changes to server based on revision
      * this also includes all changes from server based on syncedRevision
      */
-    const pushResponse = await sendChangesToServer(changes, syncedRevision, onChangesAccepted);
+    const pushResponse = await sendChangesToServer(syncableChanges, syncedRevision, onChangesAccepted);
     await handleServerSyncResponse(pushResponse, applyRemoteChanges);
   }
 }

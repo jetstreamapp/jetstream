@@ -116,6 +116,9 @@
       "path": "../../libs/features/query/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/features/data-history/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/features/create-records/tsconfig.lib.json"
     },
     {

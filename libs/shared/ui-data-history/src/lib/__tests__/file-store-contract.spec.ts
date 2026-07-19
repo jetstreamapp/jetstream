@@ -1,6 +1,11 @@
+import { gunzipSync, gzipSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
+import { DirectoryHandleFileStore } from '../file-store/directory-handle-file-store';
 import { FakeFileStore } from '../file-store/fake-file-store';
 import { HistoryFileStore } from '../file-store/file-store.types';
+import { DataHistoryDirectoryPermissionError } from '../file-store/fsa-types';
+import { NativeFsFileStore } from '../file-store/native-fs-file-store';
+import { FakeFsaDirectoryHandle } from './fake-fsa-handles';
 
 const TEXT_ENCODER = new TextEncoder();
 const GZIP_MAGIC = [0x1f, 0x8b];
@@ -106,4 +111,137 @@ describe('FakeFileStore failure simulation', () => {
     await stream.close();
     expect(await (await store.readFile('org-1/dh_a/input.csv.gz', { gunzip: true })).text()).toBe('ok');
   });
+});
+
+describeHistoryFileStoreContract('DirectoryHandleFileStore (fake FSA handles)', async () => {
+  const store = new DirectoryHandleFileStore(new FakeFsaDirectoryHandle());
+  await store.init();
+  return store;
+});
+
+describe('DirectoryHandleFileStore permissions', () => {
+  it('init throws DataHistoryDirectoryPermissionError when permission is not granted', async () => {
+    const root = new FakeFsaDirectoryHandle();
+    root.permissionState = 'prompt';
+    const store = new DirectoryHandleFileStore(root);
+    await expect(store.init()).rejects.toBeInstanceOf(DataHistoryDirectoryPermissionError);
+  });
+
+  it('requestAccess re-grants and init succeeds afterwards', async () => {
+    const root = new FakeFsaDirectoryHandle();
+    root.permissionState = 'prompt';
+    root.permissionStateAfterRequest = 'granted';
+    const store = new DirectoryHandleFileStore(root);
+    expect(await store.requestAccess()).toBe(true);
+    await store.init();
+  });
+});
+
+/**
+ * In-memory stand-in for the Electron main-process handler (`data-history-file.service.ts`),
+ * mirroring its semantics (node zlib gzip, raw bytes over IPC) so NativeFsFileStore passes the
+ * same contract as every other backend.
+ */
+function createFakeElectronDataHistoryApi() {
+  const files = new Map<string, Uint8Array>();
+  const streams = new Map<number, { chunks: Uint8Array[]; gzip: boolean; path: string }>();
+  let nextStreamId = 1;
+
+  function concat(chunks: Uint8Array[]): Uint8Array {
+    const total = chunks.reduce((sum, chunk) => sum + chunk.byteLength, 0);
+    const combined = new Uint8Array(total);
+    let offset = 0;
+    for (const chunk of chunks) {
+      combined.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    return combined;
+  }
+
+  async function dataHistoryRequest(payload: any): Promise<unknown> {
+    switch (payload.op) {
+      case 'init': {
+        return undefined;
+      }
+      case 'write-file': {
+        const output = payload.gzip ? new Uint8Array(gzipSync(payload.bytes)) : payload.bytes;
+        files.set(payload.path, output);
+        return { bytes: output.byteLength };
+      }
+      case 'open-stream': {
+        const streamId = nextStreamId++;
+        streams.set(streamId, { chunks: [], gzip: payload.gzip, path: payload.path });
+        return { streamId };
+      }
+      case 'stream-write': {
+        const state = streams.get(payload.streamId);
+        if (!state) {
+          throw new Error('Unknown stream');
+        }
+        state.chunks.push(payload.bytes);
+        return undefined;
+      }
+      case 'stream-close': {
+        const state = streams.get(payload.streamId);
+        if (!state) {
+          throw new Error('Unknown stream');
+        }
+        streams.delete(payload.streamId);
+        const combined = concat(state.chunks);
+        const output = state.gzip ? new Uint8Array(gzipSync(combined)) : combined;
+        files.set(state.path, output);
+        return { bytes: output.byteLength };
+      }
+      case 'stream-abort': {
+        const state = streams.get(payload.streamId);
+        if (state) {
+          streams.delete(payload.streamId);
+          files.delete(state.path);
+        }
+        return undefined;
+      }
+      case 'read-file': {
+        const bytes = files.get(payload.path);
+        if (!bytes) {
+          throw new Error(`File not found: ${payload.path}`);
+        }
+        return payload.gunzip ? new Uint8Array(gunzipSync(bytes)) : bytes;
+      }
+      case 'delete-dir': {
+        for (const path of Array.from(files.keys())) {
+          if (path.startsWith(`${payload.path}/`)) {
+            files.delete(path);
+          }
+        }
+        return undefined;
+      }
+      case 'list-entry-dirs': {
+        const dirs = new Map<string, { orgFolder: string; entryKey: string }>();
+        for (const path of files.keys()) {
+          const segments = path.split('/');
+          if (segments.length >= 3) {
+            dirs.set(`${segments[0]}/${segments[1]}`, { orgFolder: segments[0], entryKey: segments[1] });
+          }
+        }
+        return { dirs: Array.from(dirs.values()) };
+      }
+      case 'estimate': {
+        let usageBytes = 0;
+        files.forEach((bytes) => (usageBytes += bytes.byteLength));
+        return { usageBytes };
+      }
+      default: {
+        throw new Error(`Unknown op ${payload.op}`);
+      }
+    }
+  }
+
+  return { dataHistoryRequest };
+}
+
+describeHistoryFileStoreContract('NativeFsFileStore (fake electron API)', async () => {
+  (window as any).electronAPI = createFakeElectronDataHistoryApi();
+  const store = new NativeFsFileStore();
+  await store.init();
+  return store;
 });

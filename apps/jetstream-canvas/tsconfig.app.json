@@ -74,6 +74,9 @@
       "path": "../../libs/features/update-records/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/features/data-history/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/features/record-type-manager/tsconfig.lib.json"
     },
     {

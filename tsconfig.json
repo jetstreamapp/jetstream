@@ -201,6 +201,9 @@
     },
     {
       "path": "./libs/shared/ui-data-history"
+    },
+    {
+      "path": "./libs/features/data-history"
     }
   ],
   "compilerOptions": {

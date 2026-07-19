@@ -37,6 +37,9 @@
       "path": "../ui-core-shared/tsconfig.lib.json"
     },
     {
+      "path": "../ui-data-history/tsconfig.lib.json"
+    },
+    {
       "path": "../../test-utils/tsconfig.lib.json"
     },
     {

@@ -3,7 +3,7 @@ import { Blob as NodeBlob } from 'node:buffer';
 
 import { BulkJobResultRecord, BulkJobWithBatches, SalesforceOrgUi } from '@jetstream/types';
 import { FakeFileStore, initDataHistory, readDataHistoryFile, setHistoryFileStoreForTests } from '@jetstream/ui/data-history';
-import { dataHistoryDb, dexieDb } from '@jetstream/ui/db';
+import { dataHistoryDb, ensureLocalStorageReady, getDexieDb } from '@jetstream/ui/db';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { captureMassUpdateResults, startMassUpdateHistory, writeMassUpdateRequestJson } from '../data-history-capture';
 import { MetadataRowConfiguration } from '../mass-update-records.types';
@@ -11,7 +11,11 @@ import { MetadataRowConfiguration } from '../mass-update-records.types';
 // vitest hoists vi.hoisted + vi.mock above these imports at transform time, so `@jetstream/shared/data`
 // is mocked before the module under test resolves it (the textual order below is only for the linter).
 const { bulkApiGetRecordsMock } = vi.hoisted(() => ({ bulkApiGetRecordsMock: vi.fn() }));
-vi.mock('@jetstream/shared/data', () => ({ bulkApiGetRecords: bulkApiGetRecordsMock }));
+// Partial mock — the real localforage store factories are still needed to bind the user-scoped Dexie instance.
+vi.mock('@jetstream/shared/data', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@jetstream/shared/data')>()),
+  bulkApiGetRecords: bulkApiGetRecordsMock,
+}));
 
 // jsdom's Blob does not interoperate with Node's CompressionStream (cross-realm web streams).
 globalThis.Blob = NodeBlob as unknown as typeof Blob;
@@ -39,12 +43,14 @@ async function waitForEntryFinished(key: string) {
 
 describe('mass-update Data History capture wiring', () => {
   beforeAll(async () => {
+    // Dexie is user-scoped and created lazily at login, so a scope has to be bound before any db access
+    await ensureLocalStorageReady({ userId: 'mass-update-history-test-user', dbName: 'Jetstream' });
     await initDataHistory({ hasPaidPlan: true });
   });
 
   beforeEach(async () => {
-    await dexieDb.data_history.clear();
-    await dexieDb.data_history_config.clear();
+    await getDexieDb().data_history.clear();
+    await getDexieDb().data_history_config.clear();
     setHistoryFileStoreForTests(new FakeFileStore());
     bulkApiGetRecordsMock.mockReset();
   });

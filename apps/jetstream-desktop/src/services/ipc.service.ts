@@ -28,6 +28,7 @@ import { desktopRoutes } from '../controllers/desktop.routes';
 import { getOrgFromHeaderOrQuery, initApiConnection } from '../utils/route.utils';
 import { openExternalSafe } from '../utils/url.utils';
 import { AuthResponseSuccess, logout, verifyAuthToken } from './api.service';
+import { getDataHistoryFolderPath, handleDataHistoryOp, setDataHistoryFolderPath } from './data-history-file.service';
 import { deepLink } from './deep-link.service';
 import { downloadAndZipFilesToDisk, downloadBulkApiFileAndSaveToDisk } from './file-download.service';
 import * as dataService from './persistence.service';
@@ -80,6 +81,18 @@ function startDeepLinkFlow(action: string, handleCallback: (params: Record<strin
   pendingDeepLinkFlows.set(action, cancel);
 }
 
+const handleDataHistoryRequest: MainIpcHandler<'dataHistoryRequest'> = async (_event, payload) => {
+  return await handleDataHistoryOp(payload);
+};
+
+const handleGetDataHistoryFolder: MainIpcHandler<'getDataHistoryFolder'> = async () => {
+  return getDataHistoryFolderPath();
+};
+
+const handleSetDataHistoryFolder: MainIpcHandler<'setDataHistoryFolder'> = async (_event, { folderPath }) => {
+  return await setDataHistoryFolderPath(folderPath);
+};
+
 const handleOpenFile: MainIpcHandler<'openFile'> = async (_event, filePath: string): Promise<void> => {
   try {
     await shell.openPath(filePath);
@@ -122,6 +135,10 @@ export function registerIpc(): void {
   // Handle file operations
   registerHandler('openFile', handleOpenFile);
   registerHandler('showFileInFolder', handleShowFileInFolder);
+  // Handle native Data History storage
+  registerHandler('dataHistoryRequest', handleDataHistoryRequest);
+  registerHandler('getDataHistoryFolder', handleGetDataHistoryFolder);
+  registerHandler('setDataHistoryFolder', handleSetDataHistoryFolder);
   // Handle auto-update requests
   registerHandler('checkForUpdates', handleCheckForUpdatesEvent);
   registerHandler('getUpdateStatus', handleGetUpdateStatusEvent);

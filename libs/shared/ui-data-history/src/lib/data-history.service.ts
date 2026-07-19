@@ -16,9 +16,9 @@ import {
 } from '@jetstream/types';
 import { dataHistoryDb } from '@jetstream/ui/db';
 import { serializeRowsToCsvChunks } from './csv-utils';
-import { DATA_HISTORY_INLINE_PAYLOAD_MAX_BYTES, getDataHistoryTierLimits } from './data-history-limits';
+import { DATA_HISTORY_INLINE_PAYLOAD_MAX_BYTES, DataHistoryTierLimits, getDataHistoryTierLimits } from './data-history-limits';
 import { buildManifestJson } from './data-history-manifest';
-import { runDataHistoryRetentionSweep } from './data-history-retention';
+import { pruneEntryCountOverage, runDataHistoryRetentionSweep } from './data-history-retention';
 import {
   deleteEntryFilesAndRow,
   deriveStatusFromCounts,
@@ -78,7 +78,10 @@ export interface RecordDataHistoryActionOptions extends Omit<StartDataHistoryEnt
 export interface DataHistoryStorageHealth {
   entryCount: number;
   usedBytes: number;
+  /** Internal size backstop from the tier — not a user setting */
   maxTotalBytes: number;
+  /** Tier entry-count cap (null = unlimited) */
+  maxEntries: number | null;
   /** Null when the browser does not expose persisted() */
   persisted: boolean | null;
   estimate: { usageBytes?: number; quotaBytes?: number } | null;
@@ -92,6 +95,10 @@ export interface DataHistoryStorageHealth {
 export async function initDataHistory(options: { hasPaidPlan: boolean }): Promise<void> {
   try {
     setTierLimits(getDataHistoryTierLimits(options));
+    if (await isDataHistoryCaptureEnabled()) {
+      // Protect history from automatic browser eviction — done on the user's behalf, no setting
+      void requestPersistOnce();
+    }
     const entryCount = await dataHistoryDb.getEntryCount();
     if (entryCount > 0) {
       void runDataHistoryRetentionSweep();
@@ -99,6 +106,11 @@ export async function initDataHistory(options: { hasPaidPlan: boolean }): Promis
   } catch (ex) {
     logger.warn('[DATA_HISTORY] Error initializing data history', ex);
   }
+}
+
+/** Resolved tier limits for this session (null before initialization) — for settings UI display */
+export function getDataHistoryLimits(): DataHistoryTierLimits | null {
+  return getTierLimits();
 }
 
 /** Whether capture is currently active (initialized + not disabled in settings) */
@@ -152,6 +164,7 @@ export async function startDataHistoryEntry(options: StartDataHistoryEntryOption
     };
     await dataHistoryDb.saveEntry(item);
     void requestPersistOnce();
+    void pruneEntryCountOverage();
     return new DataHistoryEntryHandle(item, orgFolder, store);
   } catch (ex) {
     logger.warn('[DATA_HISTORY] Unable to start history entry', ex);
@@ -431,6 +444,7 @@ export async function recordDataHistoryAction(options: RecordDataHistoryActionOp
 
     await dataHistoryDb.saveEntry(item);
     void requestPersistOnce();
+    void pruneEntryCountOverage();
   } catch (ex) {
     logger.warn('[DATA_HISTORY] Unable to record history action', ex);
   }
@@ -499,7 +513,7 @@ export async function setDataHistoryEnabled(enabled: boolean): Promise<void> {
   await dataHistoryDb.saveSettings({ ...settings, enabled });
 }
 
-export async function updateDataHistoryRetentionSettings(changes: { retentionDays?: number; maxTotalBytes?: number }): Promise<void> {
+export async function updateDataHistoryRetentionSettings(changes: { retentionDays?: number }): Promise<void> {
   const settings = await getEffectiveSettings();
   const tier = getTierLimits();
   if (!settings || !tier) {
@@ -508,7 +522,6 @@ export async function updateDataHistoryRetentionSettings(changes: { retentionDay
   await dataHistoryDb.saveSettings({
     ...settings,
     retentionDays: changes.retentionDays ?? settings.retentionDays,
-    maxTotalBytes: changes.maxTotalBytes ?? settings.maxTotalBytes,
   });
   // Apply tighter limits right away rather than waiting for the next app init
   void runDataHistoryRetentionSweep();
@@ -517,7 +530,8 @@ export async function updateDataHistoryRetentionSettings(changes: { retentionDay
 export async function getDataHistoryStorageHealth(): Promise<DataHistoryStorageHealth | null> {
   try {
     const settings = await getEffectiveSettings();
-    if (!settings) {
+    const tier = getTierLimits();
+    if (!settings || !tier) {
       return null;
     }
     const [entryCount, usedBytes] = await Promise.all([dataHistoryDb.getEntryCount(), dataHistoryDb.getTotalSizeBytes()]);
@@ -536,7 +550,7 @@ export async function getDataHistoryStorageHealth(): Promise<DataHistoryStorageH
     } catch {
       estimate = null;
     }
-    return { entryCount, usedBytes, maxTotalBytes: settings.maxTotalBytes, persisted, estimate };
+    return { entryCount, usedBytes, maxTotalBytes: tier.maxTotalBytes, maxEntries: tier.maxEntries, persisted, estimate };
   } catch (ex) {
     logger.warn('[DATA_HISTORY] Unable to compute storage health', ex);
     return null;

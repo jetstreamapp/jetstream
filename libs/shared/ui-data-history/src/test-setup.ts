@@ -1,5 +1,4 @@
 import { ensureLocalStorageReady } from '@jetstream/ui/db';
-import 'fake-indexeddb/auto';
 import { Blob as NodeBlob } from 'node:buffer';
 
 // jsdom's Blob does not interoperate with Node's CompressionStream/Response (cross-realm web
