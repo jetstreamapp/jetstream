@@ -1,14 +1,9 @@
+/* eslint-disable react-hooks/refs */
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { convertDateToLocale, formatNumber, useBrowserNotifications, tracker } from '@jetstream/shared/ui-utils';
-import {
-  decodeHtmlEntity,
-  flattenRecord,
-  getErrorMessage,
-  getSuccessOrFailureChar,
-  pluralizeFromNumber,
-} from '@jetstream/shared/utils';
+import { convertDateToLocale, formatNumber, tracker, useBrowserNotifications } from '@jetstream/shared/ui-utils';
+import { flattenRecord, getErrorMessage, getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
 import {
   ApiMode,
   DownloadModalData,
@@ -28,8 +23,10 @@ import { fromJetstreamEvents, getFieldHeaderFromMapping, LoadRecordsResultsModal
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { appendHistoryResultsRows, DataHistoryHandlePromise, failHistoryEntry, finishHistoryEntry } from '../../utils/data-history-capture';
 import { loadBatchApiData, LoadTypeDisplayNames, prepareData } from '../../utils/load-records-process';
 import LoadRecordsBatchApiResultsTable from './LoadRecordsBatchApiResultsTable';
+import { buildBatchApiResultRow, getLoadResultsHeader } from './load-results-utils';
 import { extractRetryRecords, registerRetryRecord } from './retry-record-map';
 
 type Status = 'Preparing Data' | 'Processing Data' | 'Aborting' | 'Finished' | 'Error';
@@ -66,6 +63,8 @@ export interface LoadRecordsBatchApiResultsProps {
   dateFormat: string;
   /** Already-prepared records for retry — skips prepareData when provided */
   preparedInputData?: any[];
+  /** Data History capture handle for this run (resolves null when capture is disabled/opted out) */
+  historyHandle?: Maybe<DataHistoryHandlePromise>;
   onFinish: (results: { success: number; failure: number; failedRecords: any[] }) => void;
   /** Called when user selects specific records to retry from the results modal */
   onRetrySelected?: (selectedRows: any[]) => void;
@@ -90,6 +89,7 @@ export const LoadRecordsBatchApiResults = ({
   serialMode,
   dateFormat,
   preparedInputData,
+  historyHandle,
   onFinish,
   onRetrySelected,
   onRetryAll,
@@ -183,6 +183,10 @@ export const LoadRecordsBatchApiResults = ({
         setStartTime(dateString);
         setEndTime(dateString);
         onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
+        failHistoryEntry(
+          historyHandle,
+          preparedDataResponse?.queryErrors?.length ? preparedDataResponse.queryErrors.join('\n') : 'Pre-processing records failed',
+        );
         notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
           body: `❌ Pre-processing records failed.`,
           tag: 'load-records',
@@ -200,6 +204,7 @@ export const LoadRecordsBatchApiResults = ({
       setStatus(STATUSES.ERROR);
       setFatalError(getErrorMessage(ex));
       onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
+      failHistoryEntry(historyHandle, getErrorMessage(ex));
       notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
         body: `❌ ${getErrorMessage(ex)}`,
         tag: 'load-records',
@@ -245,6 +250,13 @@ export const LoadRecordsBatchApiResults = ({
           // on every batch via concat (O(n^2) total) — matters for large loads.
           processedRecordsRef.current.push(...batchRecords);
           setProcessedRecords((previousProcessedRecords) => previousProcessedRecords.concat(batchRecords));
+          // Stream this batch's results to Data History (fire-and-forget; same row shape as download)
+          const fields = getFieldHeaderFromMapping(fieldMapping);
+          appendHistoryResultsRows(
+            historyHandle,
+            batchRecords.map((record) => buildBatchApiResultRow(record, fields)),
+            getLoadResultsHeader(fields),
+          );
         },
         () => isAborted.current,
       );
@@ -258,12 +270,21 @@ export const LoadRecordsBatchApiResults = ({
 
       setStatus(STATUSES.FINISHED);
       onFinishRef.current({ success: successCount, failure: failureCount, failedRecords });
+      finishHistoryEntry(historyHandle, {
+        counts: {
+          total: successCount + failureCount,
+          success: successCount,
+          failure: failureCount,
+          processingErrors: prepareFailureCount,
+        },
+      });
       setEndTime(dateString);
     } catch (ex) {
       const dateString = convertDateToLocale(new Date(), { timeStyle: 'medium' });
       logger.error('ERROR', ex);
       setStatus(STATUSES.ERROR);
       onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
+      failHistoryEntry(historyHandle, getErrorMessage(ex));
       setEndTime(dateString);
       notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
         body: `❌ ${getErrorMessage(ex)}`,
@@ -315,22 +336,14 @@ export const LoadRecordsBatchApiResults = ({
     const fields = getFieldHeaderFromMapping(fieldMapping);
 
     processedRecords.forEach((record) => {
-      if (type === 'results' ? true : !record.success) {
-        const resultRow = {
-          _id: record.success ? record.id : (record as any)['Id'] || '',
-          _success: record.success,
-          _errors:
-            record.success === false
-              ? record.errors.map((error) => `${error.statusCode}: ${decodeHtmlEntity(error.message)}`).join('\n')
-              : '',
-          ...flattenRecord(record.record, fields),
-        };
+      if (type === 'results' || !record.success) {
+        const resultRow = buildBatchApiResultRow(record, fields);
         registerRetryRecord(resultRow, record.record);
         combinedResults.push(resultRow);
       }
     });
 
-    const header = ['_id', '_success', '_errors'].concat(fields);
+    const header = getLoadResultsHeader(fields);
     setDownloadModalData({
       open: true,
       data: combinedResults,
@@ -346,16 +359,8 @@ export const LoadRecordsBatchApiResults = ({
     const fields = getFieldHeaderFromMapping(fieldMapping);
 
     processedRecords.forEach((record) => {
-      if (type === 'results' ? true : !record.success) {
-        const resultRow = {
-          _id: record.success ? record.id : (record as any)['Id'] || '',
-          _success: record.success,
-          _errors:
-            record.success === false
-              ? record.errors.map((error) => `${error.statusCode}: ${decodeHtmlEntity(error.message)}`).join('\n')
-              : '',
-          ...flattenRecord(record.record, fields),
-        };
+      if (type === 'results' || !record.success) {
+        const resultRow = buildBatchApiResultRow(record, fields);
         // Register the unflattened prepared record so "Retry Selected" from the view modal
         // can recover the correct payload (flattenRecord JSON-stringifies nested objects).
         registerRetryRecord(resultRow, record.record);
@@ -363,7 +368,7 @@ export const LoadRecordsBatchApiResults = ({
       }
     });
 
-    const header = ['_id', '_success', '_errors'].concat(fields);
+    const header = getLoadResultsHeader(fields);
     setResultsModalData({
       open: true,
       data: combinedResults,
@@ -375,7 +380,7 @@ export const LoadRecordsBatchApiResults = ({
 
   function handleDownloadRecordsFromModal(type: 'results' | 'failures', rows: any[]) {
     const fields = getFieldHeaderFromMapping(fieldMapping);
-    const header = ['_id', '_success', '_errors'].concat(fields);
+    const header = getLoadResultsHeader(fields);
     setResultsModalData({ ...resultsModalData, open: false });
     setDownloadModalData({
       open: true,
@@ -388,7 +393,7 @@ export const LoadRecordsBatchApiResults = ({
 
   function handleDownloadProcessingErrors() {
     const fields = getFieldHeaderFromMapping(fieldMapping);
-    const header = ['_id', '_success', '_errors'].concat(fields);
+    const header = getLoadResultsHeader(fields);
     setDownloadModalData({
       ...downloadModalData,
       open: true,
