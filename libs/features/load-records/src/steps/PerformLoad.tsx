@@ -11,13 +11,22 @@ import {
   UiTabSection,
 } from '@jetstream/types';
 import { Badge, Checkbox, ConfirmationModalPromise, Grid, Input, Radio, RadioButton, RadioGroup, Spinner, Tabs } from '@jetstream/ui';
-import { ConfirmPageChange, fromLoadRecordsState, getMaxBatchSize, useAmplitude } from '@jetstream/ui-core';
+import { ConfirmPageChange, fromLoadRecordsState, getFieldHeaderFromMapping, getMaxBatchSize, useAmplitude } from '@jetstream/ui-core';
+import { dataHistoryCaptureEnabledState } from '@jetstream/ui/app-state';
+import { startDataHistoryEntry } from '@jetstream/ui/data-history';
 import { useAtom, useAtomValue } from 'jotai';
 import startCase from 'lodash/startCase';
 import { ChangeEvent, FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import LoadRecordsAssignmentRules from '../components/LoadRecordsAssignmentRules';
 import LoadRecordsDuplicateWarning from '../components/LoadRecordsDuplicateWarning';
 import LoadRecordsResults from '../components/load-results/LoadRecordsResults';
+import {
+  DataHistoryHandlePromise,
+  apiModeToDataHistoryApi,
+  buildLoadRecordsInputSource,
+  loadTypeToDataHistoryOperation,
+  writeHistoryInputRows,
+} from '../utils/data-history-capture';
 
 interface LoadRun {
   id: number;
@@ -33,6 +42,8 @@ interface LoadRun {
   inputData: any[];
   /** Required when retrying prepared records that reference binary attachments */
   inputZipFileData?: Maybe<ArrayBuffer>;
+  /** Data History capture handle for this run (resolves null when capture is disabled/opted out) */
+  historyHandle?: DataHistoryHandlePromise;
   result?: {
     success: number;
     failure: number;
@@ -87,6 +98,15 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   const [dateFormat, setDateFormat] = useAtom(fromLoadRecordsState.dateFormatState);
   /** Only show date hint if the user has a mapped date/datetime field */
   const hasDateFieldMapped = useAtomValue(fromLoadRecordsState.selectHasDateFieldMapped);
+
+  // Data History capture — input source is snapshotted from the load wizard atoms
+  const inputFilename = useAtomValue(fromLoadRecordsState.inputFilenameState);
+  const inputFilenameType = useAtomValue(fromLoadRecordsState.inputFilenameTypeState);
+  const inputGoogleFile = useAtomValue(fromLoadRecordsState.inputGoogleFileState);
+  // Seeded during app init (see AppInitializer) so the opt-out checkbox can render synchronously
+  const dataHistoryCaptureEnabled = useAtomValue(dataHistoryCaptureEnabledState);
+  const [skipDataHistory, setSkipDataHistory] = useState(false);
+  const [trialRunHistoryHandle, setTrialRunHistoryHandle] = useState<DataHistoryHandlePromise | null>(null);
 
   const batchSizeError = useAtomValue(fromLoadRecordsState.selectBatchSizeError);
   const batchApiLimitWarning = useAtomValue(fromLoadRecordsState.selectBatchApiLimitWarning);
@@ -197,7 +217,45 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
         content: 'This file has already been loaded, are you sure you want to load the full file again?',
       }))
     ) {
+      // Snapshot config + input source for Data History. `config` mirrors the load_Submitted
+      // analytics payload below (metadata only — the actual rows are captured separately).
+      const historyConfig = {
+        loadType,
+        apiMode,
+        numRecords: inputFileData.length,
+        batchSize,
+        insertNulls,
+        serialMode,
+        hasDateFieldMapped,
+        dateFormat,
+        trialRun: isTrialRun,
+        trialRunSize,
+        hasZipAttachment: !!hasZipAttachment,
+        timesSameDataSubmitted: runs.length + 1,
+        numStaticFields: Object.values(fieldMapping).filter(({ type }) => type === 'STATIC').length,
+      };
+      const inputSource = buildLoadRecordsInputSource({
+        filename: inputFilename,
+        filenameType: inputFilenameType,
+        googleFileId: inputGoogleFile?.id,
+      });
+      const inputHeader = inputFileHeader ?? (inputFileDataToLoad[0] ? Object.keys(inputFileDataToLoad[0]) : []);
+      // startDataHistoryEntry self-gates (returns null when disabled/opted out); never awaited on
+      // the load's critical path — the returned promise is threaded to the results component.
+      const historyHandle = startDataHistoryEntry({
+        org: selectedOrg,
+        source: 'load-records',
+        operation: loadTypeToDataHistoryOperation(loadType),
+        api: apiModeToDataHistoryApi(apiMode),
+        sobjects: [selectedSObject],
+        config: historyConfig,
+        inputSource,
+        skipHistory: skipDataHistory,
+      });
+
       if (isTrialRun) {
+        writeHistoryInputRows(historyHandle, inputFileDataTrialRun, inputHeader);
+        setTrialRunHistoryHandle(historyHandle);
         setTrialRunLoadNumber(trialRunLoadNumber + 1);
         setLoadState((prevState) => ({
           ...prevState,
@@ -206,6 +264,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
           hasLoadResultsTrialRun: false,
         }));
       } else {
+        writeHistoryInputRows(historyHandle, inputFileDataToLoad, inputHeader);
         const newRunId = ++runIdCounter.current;
         // Label counts only non-retry runs so "Run N" reflects how many times the full file
         // has been submitted, independent of any intermediate retries.
@@ -218,6 +277,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
           batchSize: batchSize ?? getMaxBatchSize(apiMode),
           inputData: inputFileDataToLoad,
           inputZipFileData,
+          historyHandle,
         };
         setRuns((prev) => [...prev, newRun]);
         setActiveRunId(String(newRunId));
@@ -282,6 +342,48 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
 
       const retryCount = runs.filter((run) => run.isRetry).length + 1;
       const newRunId = ++runIdCounter.current;
+
+      // A retry is captured as a NEW history entry linked to the original run via parentKey.
+      // parentKey is resolved off the critical path by awaiting the original run's handle promise.
+      const retryConfig = {
+        loadType,
+        apiMode,
+        numRecords: recordsToRetry.length,
+        batchSize,
+        insertNulls,
+        serialMode,
+        hasDateFieldMapped,
+        dateFormat,
+        trialRun: false,
+        isRetry: true,
+        retryCount,
+        retrySource,
+        totalFailedCount,
+        hasZipAttachment: !!(activeRun?.inputZipFileData ?? inputZipFileData),
+        timesSameDataSubmitted: runs.length + 1,
+        numStaticFields: Object.values(fieldMapping).filter(({ type }) => type === 'STATIC').length,
+      };
+      const parentHandlePromise = activeRun?.historyHandle ?? null;
+      const historyHandle: DataHistoryHandlePromise = (async () => {
+        const parentHandle = parentHandlePromise ? await parentHandlePromise : null;
+        return startDataHistoryEntry({
+          org: selectedOrg,
+          source: 'load-records',
+          operation: loadTypeToDataHistoryOperation(loadType),
+          api: apiModeToDataHistoryApi(apiMode),
+          sobjects: [selectedSObject],
+          config: retryConfig,
+          inputSource: buildLoadRecordsInputSource({
+            filename: inputFilename,
+            filenameType: inputFilenameType,
+            googleFileId: inputGoogleFile?.id,
+          }),
+          parentKey: parentHandle?.key,
+          skipHistory: skipDataHistory,
+        });
+      })();
+      writeHistoryInputRows(historyHandle, recordsToRetry, getFieldHeaderFromMapping(fieldMapping));
+
       const newRun: LoadRun = {
         id: newRunId,
         label: `Retry ${retryCount}`,
@@ -291,6 +393,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
         preparedInputData: recordsToRetry,
         inputData: recordsToRetry,
         inputZipFileData: activeRun?.inputZipFileData ?? inputZipFileData,
+        historyHandle,
       };
       setRuns((prev) => [...prev, newRun]);
       setActiveRunId(String(newRunId));
@@ -330,6 +433,12 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
       dateFormat,
       fieldMapping,
       inputZipFileData,
+      selectedOrg,
+      selectedSObject,
+      skipDataHistory,
+      inputFilename,
+      inputFilenameType,
+      inputGoogleFile,
     ],
   );
 
@@ -374,6 +483,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
             serialMode={serialMode}
             dateFormat={dateFormat}
             preparedInputData={run.preparedInputData}
+            historyHandle={run.historyHandle ?? null}
             onFinish={(results) => handleFinishLoad(results, run.id)}
             onRetrySelected={canRetry && isActiveRun ? handleRetryFailedRecords : undefined}
             onRetryAll={canRetry && isActiveRun ? () => handleRetryFailedRecords() : undefined}
@@ -556,6 +666,18 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
             )}
           </>
         )}
+
+        {dataHistoryCaptureEnabled && (
+          <Checkbox
+            id={'skip-data-history'}
+            className="slds-m-vertical_xx-small"
+            checked={skipDataHistory}
+            label={"Don't save this load to Data History"}
+            labelHelp="Data History keeps a local copy of your loaded records and results on this device. Check this to skip saving this particular load."
+            disabled={loading}
+            onChange={setSkipDataHistory}
+          />
+        )}
       </div>
       <h1 className="slds-text-heading_medium">Summary</h1>
       <div className="slds-p-around_small">
@@ -613,6 +735,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
               assignmentRuleId={assignmentRuleId}
               serialMode={serialMode}
               dateFormat={dateFormat}
+              historyHandle={trialRunHistoryHandle}
               onFinish={(results) => handleFinishTrialRun(results)}
             />
           </div>
