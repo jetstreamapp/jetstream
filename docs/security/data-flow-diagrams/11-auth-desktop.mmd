@@ -1,0 +1,30 @@
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant D as Desktop App (Electron main)
+    participant BR as System Browser
+    participant API as Jetstream Server
+    participant DB as PostgreSQL
+
+    rect rgb(243, 232, 253)
+    Note over U,DB: Login (reuses the standard web sign-in, in the system browser)
+    U->>D: Launch app, click "Sign in"
+    D->>BR: Open https://getjetstream.app/desktop-app/auth?deviceId=<id>&token=<token>
+    BR->>API: User completes Jetstream login + 2FA (see Web App auth)
+    API->>DB: Verify credentials / factors, check "desktop" entitlement
+    API-->>BR: Issue short-lived JWT, redirect to jetstream:// deep link
+    BR-->>D: OS hands jetstream:// deep link (JWT) back to app
+    end
+
+    rect rgb(230, 244, 234)
+    Note over D,DB: Verify session + receive the user-derived encryption key
+    D->>API: POST /desktop-app/auth/verify  (Authorization: Bearer JWT)
+    API->>DB: Validate JWT + entitlement
+    API->>API: encryptionKey = HMAC-SHA256(DESKTOP_ORG_ENCRYPTION_SECRET, user.id)
+    Note over API: Key is a deterministic function of the user id +<br/>a server secret. Server never stores the key.
+    API-->>D: { userProfile, encryptionKey (64-char hex, 32 bytes), rotated JWT }
+    end
+
+    D->>D: Hold encryptionKey in MEMORY ONLY (never written to disk)
+    D->>D: Persist rotated JWT locally (app-data.json)
+    Note over D,API: Re-verify every ~3h (rotates JWT, re-confirms entitlement).<br/>Logout clears the in-memory key.

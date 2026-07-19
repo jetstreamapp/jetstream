@@ -1,0 +1,40 @@
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant B as Browser (Web App)
+    participant API as Jetstream Server
+    participant DB as PostgreSQL
+    participant IDP as Google / Salesforce (social login)
+
+    rect rgb(232, 240, 254)
+    Note over U,IDP: Option A - Email + Password
+    U->>B: Enter email + password
+    B->>API: POST /api/auth/callback/credentials (CSRF + captcha)
+    API->>DB: Look up user, verify bcrypt hash
+    Note over API: Constant-time compare; account<br/>lockout after repeated failures
+    end
+
+    rect rgb(230, 244, 234)
+    Note over U,IDP: Option B - Social login (OAuth / OIDC)
+    U->>B: Click "Sign in with Google / Salesforce"
+    B->>API: POST /api/auth/signin/:provider (CSRF)
+    API->>API: Build PKCE + state + nonce (httpOnly cookies)
+    API-->>B: 302 Redirect to provider
+    B->>IDP: Authenticate
+    IDP-->>API: GET /api/auth/callback/:provider (auth code)
+    API->>IDP: Exchange code for ID token + userinfo
+    API->>DB: Upsert User + AuthIdentity
+    end
+
+    rect rgb(252, 232, 230)
+    Note over U,API: Second factor (if enabled by user or team policy)
+    API-->>B: Prompt for TOTP or emailed code
+    U->>B: Enter 6-digit code
+    B->>API: POST /api/auth/verify
+    API->>DB: Verify factor (TOTP secret decrypted, replay-protected)
+    end
+
+    API->>API: initSession - regenerate session (anti-fixation)
+    API->>DB: Store session (user, IP, user-agent) in sessions table
+    API-->>B: Set httpOnly session cookie + CSRF token
+    Note over B,API: Authenticated. Session cookie sent on later requests;<br/>UA-mismatch destroys session.

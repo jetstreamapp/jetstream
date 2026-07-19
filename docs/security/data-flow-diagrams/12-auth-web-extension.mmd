@@ -1,0 +1,33 @@
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant P as getjetstream.app (web page)
+    participant CS as Auth Content Script
+    participant SW as Extension Service Worker
+    participant API as Jetstream Server
+    participant DB as PostgreSQL
+
+    rect rgb(243, 232, 253)
+    Note over U,DB: Sign in to the Jetstream ACCOUNT (not Salesforce)
+    U->>P: Sign in on getjetstream.app/web-extension/*
+    P->>API: Standard Jetstream login + 2FA (see Web App auth)
+    API->>DB: Verify user, check "chromeExtension" entitlement
+    API->>API: POST /web-extension/auth/session -> issue JWT (encrypted at rest)
+    API-->>P: Return Jetstream JWT
+    end
+
+    rect rgb(230, 244, 234)
+    Note over P,SW: Bridge the token into the extension (content script injected on getjetstream.app only)
+    P->>CS: window.postMessage TOKEN_EXCHANGE (JWT) [origin-checked]
+    CS->>SW: browser.runtime.sendMessage TOKEN_EXCHANGE (JWT)
+    SW->>SW: Store JWT in browser.storage.sync
+    end
+
+    rect rgb(252, 232, 230)
+    Note over SW,DB: Periodic entitlement / auth re-verification
+    SW->>API: POST /web-extension/auth/verify (JWT + X-EXT-DEVICE-ID + app version)
+    API->>DB: Validate token + entitlement + device
+    API-->>SW: OK (or 401 -> require re-login)
+    end
+
+    Note over SW,API: This flow authorizes the Jetstream account only.<br/>Salesforce access uses the live Salesforce session cookie (see SF data flow).
