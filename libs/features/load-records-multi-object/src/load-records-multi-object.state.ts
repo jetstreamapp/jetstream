@@ -21,6 +21,12 @@ export const inputFilenameState = atomWithReset<Maybe<string>>(null);
 
 export const inputFileTypeState = atomWithReset<Maybe<LocalOrGoogle>>(null);
 
+/** Drive file id for a Google Sheet input - recorded on the Data History entry's input source */
+export const inputGoogleFileIdState = atomWithReset<Maybe<string>>(null);
+
+/** Per-load opt out of Data History capture */
+export const skipDataHistoryState = atomWithReset(false);
+
 export const fileParsingState = atomWithReset(false);
 
 /** Parsed worksheets - always populated after parse, even when they contain errors, so the preview can render */
@@ -81,6 +87,8 @@ export const isReadyToLoadState = atom((get) => {
 export const resetLoadRecordsMultiObjectState = atom(null, (_get, set) => {
   set(inputFilenameState, RESET);
   set(inputFileTypeState, RESET);
+  set(inputGoogleFileIdState, RESET);
+  set(skipDataHistoryState, RESET);
   set(fileParsingState, RESET);
   set(datasetsState, RESET);
   set(workbookErrorsState, RESET);

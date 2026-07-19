@@ -16,6 +16,7 @@ import { InputReadFileContent, InputReadGoogleSheet } from '@jetstream/types';
 import {
   Accordion,
   AutoFullHeightContainer,
+  Checkbox,
   FileDropTarget,
   FileOrGoogleSelector,
   Icon,
@@ -28,7 +29,13 @@ import {
   fireToast,
 } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
-import { applicationCookieState, googleDriveAccessState, selectedOrgState, selectedOrgType } from '@jetstream/ui/app-state';
+import {
+  applicationCookieState,
+  dataHistoryCaptureEnabledState,
+  googleDriveAccessState,
+  selectedOrgState,
+  selectedOrgType,
+} from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useEffect, useMemo, useRef } from 'react';
 import * as XLSX from 'xlsx';
@@ -39,11 +46,13 @@ import {
   datasetsState,
   inputFileTypeState,
   inputFilenameState,
+  inputGoogleFileIdState,
   isReadyToLoadState,
   loadIsRunningState,
   loadRunsState,
   previewLayoutVersionState,
   resetLoadRecordsMultiObjectState,
+  skipDataHistoryState,
 } from './load-records-multi-object.state';
 import LoadRecordsMultiObjectLoad from './load/LoadRecordsMultiObjectLoad';
 import LoadRecordsMultiObjectReview from './review/LoadRecordsMultiObjectReview';
@@ -70,7 +79,11 @@ export const LoadRecordsMultiObject = () => {
 
   const [inputFilename, setInputFilename] = useAtom(inputFilenameState);
   const [inputFileType, setInputFileType] = useAtom(inputFileTypeState);
+  const setInputGoogleFileId = useSetAtom(inputGoogleFileIdState);
   const [currentStepIdx, setCurrentStepIdx] = useAtom(currentStepIdxState);
+  // Data History — seeded during app init so the opt-out checkbox renders synchronously
+  const dataHistoryCaptureEnabled = useAtomValue(dataHistoryCaptureEnabledState);
+  const [skipDataHistory, setSkipDataHistory] = useAtom(skipDataHistoryState);
   const datasets = useAtomValue(datasetsState);
   const allBlockingErrors = useAtomValue(allBlockingErrorsState);
   const isReadyToLoad = useAtomValue(isReadyToLoadState);
@@ -153,6 +166,7 @@ export const LoadRecordsMultiObject = () => {
       resetAll();
       setInputFilename(filename);
       setInputFileType('local');
+      setInputGoogleFileId(null);
       processFile(workbook);
     } catch (ex) {
       fireToast({
@@ -166,6 +180,7 @@ export const LoadRecordsMultiObject = () => {
     resetAll();
     setInputFilename(selectedFile.name);
     setInputFileType('google');
+    setInputGoogleFileId(selectedFile.id);
     processFile(workbook);
   }
 
@@ -300,6 +315,17 @@ export const LoadRecordsMultiObject = () => {
               />
             ) : (
               <div className="slds-m-top_small">{uploadSection}</div>
+            )}
+            {dataHistoryCaptureEnabled && (
+              <Checkbox
+                id="skip-data-history"
+                className="slds-m-top_x-small"
+                checked={skipDataHistory}
+                label={"Don't save this load to Data History"}
+                labelHelp="Data History keeps a local copy of your loaded records and results on this device. Check this to skip saving this particular load."
+                disabled={fileParsing || loadIsRunning}
+                onChange={setSkipDataHistory}
+              />
             )}
             {!hasData && !fileParsing && (
               <LoadRecordsMultiObjectEmptyState

@@ -87,6 +87,9 @@
       "path": "../../libs/shared/ui-db/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/shared/ui-data-history/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/shared/ui-core/tsconfig.lib.json"
     },
     {

@@ -44,6 +44,9 @@
       "path": "../../libs/shared/ui-db/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/shared/ui-data-history/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/shared/cookie-consent-banner/tsconfig.lib.json"
     },
     {

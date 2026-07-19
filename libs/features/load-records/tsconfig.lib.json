@@ -29,6 +29,9 @@
       "path": "../../splitjs/tsconfig.lib.json"
     },
     {
+      "path": "../../shared/ui-data-history/tsconfig.lib.json"
+    },
+    {
       "path": "../../shared/ui-record-form/tsconfig.lib.json"
     },
     {

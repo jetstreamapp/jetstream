@@ -182,9 +182,6 @@
       "path": "./libs/auth/acl"
     },
     {
-      "path": "./apps/landing"
-    },
-    {
       "path": "./libs/splitjs"
     },
     {
@@ -201,6 +198,9 @@
     },
     {
       "path": "./libs/ui"
+    },
+    {
+      "path": "./libs/shared/ui-data-history"
     }
   ],
   "compilerOptions": {

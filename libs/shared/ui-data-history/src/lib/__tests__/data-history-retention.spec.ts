@@ -1,5 +1,5 @@
 import { DataHistoryItem } from '@jetstream/types';
-import { dataHistoryDb, dexieDb } from '@jetstream/ui/db';
+import { dataHistoryDb, getDexieDb } from '@jetstream/ui/db';
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { runDataHistoryRetentionSweep } from '../data-history-retention';
 import { initDataHistory, updateDataHistoryRetentionSettings } from '../data-history.service';
@@ -61,8 +61,8 @@ describe('runDataHistoryRetentionSweep', () => {
   });
 
   beforeEach(async () => {
-    await dexieDb.data_history.clear();
-    await dexieDb.data_history_config.clear();
+    await getDexieDb().data_history.clear();
+    await getDexieDb().data_history_config.clear();
     fakeStore = new FakeFileStore();
     setHistoryFileStoreForTests(fakeStore);
   });

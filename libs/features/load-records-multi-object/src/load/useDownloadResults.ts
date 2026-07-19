@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { LoadMultiObjectRequestWithResult } from '../load-records-multi-object-types';
-import { RESULTS_DOWNLOAD_HEADER, RecordResultRow, buildResultsDownloadRows } from './load-results-utils';
+import { RESULTS_DOWNLOAD_HEADER, RecordResultRow, buildRequestExport, buildResultsDownloadRows } from './load-results-utils';
 
 export interface DownloadModalData {
   open: boolean;
@@ -23,7 +23,7 @@ export const useDownloadResults = () => {
   const downloadRequests = useCallback((requests: LoadMultiObjectRequestWithResult[]) => {
     setDownloadModalData({
       open: true,
-      data: requests.map((request) => ({ groupId: request.key, data: Object.values(request.dataWithResultsByGraphId) })),
+      data: buildRequestExport(requests),
       header: [],
       fileNameParts: ['load-to-multiple-objects', 'request'],
       allowedTypes: ['json'],

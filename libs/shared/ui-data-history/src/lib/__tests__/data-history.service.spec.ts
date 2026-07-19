@@ -1,5 +1,5 @@
 import { SalesforceOrgUi } from '@jetstream/types';
-import { dataHistoryDb, dexieDb } from '@jetstream/ui/db';
+import { dataHistoryDb, getDexieDb } from '@jetstream/ui/db';
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
   DataHistoryEntryHandle,
@@ -36,8 +36,8 @@ function startOptions(overrides: Partial<Parameters<typeof startDataHistoryEntry
 }
 
 async function clearAllTables() {
-  await dexieDb.data_history.clear();
-  await dexieDb.data_history_config.clear();
+  await getDexieDb().data_history.clear();
+  await getDexieDb().data_history_config.clear();
 }
 
 describe('before initialization', () => {

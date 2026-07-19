@@ -3,11 +3,33 @@ import { genericRequest } from '@jetstream/shared/data';
 import { useBrowserNotifications } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { CompositeGraphResponse, CompositeGraphResponseBody, SalesforceOrgUi } from '@jetstream/types';
-import { useAtom, useSetAtom } from 'jotai';
+import { startDataHistoryEntry } from '@jetstream/ui/data-history';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useCallback, useEffect, useRef } from 'react';
+import {
+  buildMultiObjectInputSource,
+  DataHistoryHandlePromise,
+  finalizeMultiObjectHistory,
+  getMultiObjectDistinctSobjects,
+  getMultiObjectOperations,
+  writeMultiObjectRequestJson,
+} from './data-history-capture';
 import { LoadMultiObjectRequestWithResult, LoadMultiObjectRun } from './load-records-multi-object-types';
 import { getRecordCount } from './load-records-multi-object-utils';
-import { loadIsRunningState, loadProgressState, loadRunsState } from './load-records-multi-object.state';
+import {
+  dateFormatState,
+  groupsByRefIdState,
+  inputFilenameState,
+  inputFileTypeState,
+  inputGoogleFileIdState,
+  insertNullsState,
+  loadIsRunningState,
+  loadProgressState,
+  loadRunsState,
+  skipDataHistoryState,
+} from './load-records-multi-object.state';
+import { buildRecordResultRows, buildRequestExport } from './load/load-results-utils';
+import { getGroupNumbersByGraphId } from './review/review-utils';
 
 /** Merge Salesforce composite graph responses into a fresh copy of the request (no shared-state mutation) */
 function applyResultsToRequest(
@@ -80,8 +102,18 @@ export const useLoadFile = (org: SalesforceOrgUi, serverUrl: string, apiVersion:
   const [loading, setLoading] = useAtom(loadIsRunningState);
   const setProgress = useSetAtom(loadProgressState);
 
+  const inputFilename = useAtomValue(inputFilenameState);
+  const inputFileType = useAtomValue(inputFileTypeState);
+  const inputGoogleFileId = useAtomValue(inputGoogleFileIdState);
+  const insertNulls = useAtomValue(insertNullsState);
+  const dateFormat = useAtomValue(dateFormatState);
+  const groupsByRefId = useAtomValue(groupsByRefIdState);
+  const skipDataHistory = useAtomValue(skipDataHistoryState);
+
   const isMounted = useRef(true);
   const cancelRequestedRef = useRef(false);
+  /** Handle for the initial run's history entry — retry runs are recorded as its children */
+  const initialHistoryHandleRef = useRef<DataHistoryHandlePromise | null>(null);
 
   useEffect(() => {
     isMounted.current = true;
@@ -103,11 +135,57 @@ export const useLoadFile = (org: SalesforceOrgUi, serverUrl: string, apiVersion:
     [setRuns],
   );
 
+  /**
+   * Begin a Data History entry for a run (self-gates, fire-and-forget). One entry covers the whole
+   * multi-object run — `sobjects` spans every object and `operation` is the shared op ('insert' when
+   * mixed, with the per-object operations recorded in `config`). Retry runs hang off the initial run.
+   */
+  const startHistoryCapture = useCallback(
+    (requests: LoadMultiObjectRequestWithResult[], type: LoadMultiObjectRun['type']): DataHistoryHandlePromise => {
+      const operations = getMultiObjectOperations(requests);
+      const parentHandlePromise = type === 'retry' ? initialHistoryHandleRef.current : null;
+      const historyHandle: DataHistoryHandlePromise = (async () => {
+        const parentHandle = parentHandlePromise ? await parentHandlePromise : null;
+        return startDataHistoryEntry({
+          org,
+          source: 'load-multi-object',
+          operation: operations.operation,
+          api: 'composite-graph',
+          sobjects: getMultiObjectDistinctSobjects(requests),
+          config: {
+            insertNulls,
+            dateFormat,
+            isRetry: type === 'retry',
+            numRequests: requests.length,
+            numGroups: requests.reduce((count, request) => count + Object.keys(request.dataWithResultsByGraphId).length, 0),
+            operationsByObject: operations.byObject,
+            mixedOperations: operations.mixed,
+          },
+          inputSource: buildMultiObjectInputSource({
+            filename: inputFilename,
+            filenameType: inputFileType,
+            googleFileId: inputGoogleFileId,
+          }),
+          parentKey: parentHandle?.key,
+          skipHistory: skipDataHistory,
+        });
+      })();
+
+      if (type === 'initial') {
+        initialHistoryHandleRef.current = historyHandle;
+      }
+      writeMultiObjectRequestJson(historyHandle, buildRequestExport(requests));
+      return historyHandle;
+    },
+    [dateFormat, inputFileType, inputFilename, inputGoogleFileId, insertNulls, org, skipDataHistory],
+  );
+
   const executeRun = useCallback(
     async (requestsToProcess: LoadMultiObjectRequestWithResult[], type: LoadMultiObjectRun['type']) => {
       cancelRequestedRef.current = false;
       // Deep clone so re-loads and retries never share result state with the pristine graph output
       const requests: LoadMultiObjectRequestWithResult[] = JSON.parse(JSON.stringify(requestsToProcess));
+      const historyHandle = startHistoryCapture(requests, type);
       let runId = 0;
       setRuns((priorRuns) => {
         runId = priorRuns.length;
@@ -158,6 +236,7 @@ export const useLoadFile = (org: SalesforceOrgUi, serverUrl: string, apiVersion:
 
       if (isMounted.current) {
         setLoading(false);
+        const finishedAt = new Date();
         let finishedRequests: LoadMultiObjectRequestWithResult[] = [];
         setRuns((priorRuns) =>
           priorRuns.map((run) => {
@@ -165,16 +244,23 @@ export const useLoadFile = (org: SalesforceOrgUi, serverUrl: string, apiVersion:
               return run;
             }
             finishedRequests = run.requests;
-            return { ...run, finishedAt: new Date(), cancelled };
+            return { ...run, finishedAt, cancelled };
           }),
         );
         notifyUser(cancelled ? `Your data load was cancelled` : `Your data load is finished`, {
           body: getNotification(finishedRequests),
           tag: 'load-multi-object',
         });
+        finalizeMultiObjectHistory(historyHandle, {
+          rows: buildRecordResultRows(
+            [{ runId, type, requests: finishedRequests, startedAt: null, finishedAt, cancelled }],
+            getGroupNumbersByGraphId(groupsByRefId),
+          ),
+          requests: finishedRequests,
+        });
       }
     },
-    [org, apiVersion, notifyUser, setLoading, setProgress, setRuns, updateRunRequest],
+    [org, apiVersion, groupsByRefId, notifyUser, setLoading, setProgress, setRuns, startHistoryCapture, updateRunRequest],
   );
 
   const loadFile = useCallback((requests: LoadMultiObjectRequestWithResult[]) => executeRun(requests, 'initial'), [executeRun]);

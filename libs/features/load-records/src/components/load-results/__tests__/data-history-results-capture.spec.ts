@@ -10,7 +10,7 @@ import {
   setHistoryFileStoreForTests,
   startDataHistoryEntry,
 } from '@jetstream/ui/data-history';
-import { dataHistoryDb, dexieDb } from '@jetstream/ui/db';
+import { dataHistoryDb, ensureLocalStorageReady, getDexieDb } from '@jetstream/ui/db';
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { buildBatchApiResultRow, buildBulkApiResultRow, getLoadResultsHeader } from '../load-results-utils';
 
@@ -27,12 +27,14 @@ const org = { uniqueId: 'org-unique-id-1', label: 'My Dev Org' } as SalesforceOr
  */
 describe('Load Records Data History capture wiring', () => {
   beforeAll(async () => {
+    // Dexie is user-scoped and created lazily at login, so a scope has to be bound before any db access
+    await ensureLocalStorageReady({ userId: 'load-records-history-test-user', dbName: 'Jetstream' });
     await initDataHistory({ hasPaidPlan: true });
   });
 
   beforeEach(async () => {
-    await dexieDb.data_history.clear();
-    await dexieDb.data_history_config.clear();
+    await getDexieDb().data_history.clear();
+    await getDexieDb().data_history_config.clear();
     setHistoryFileStoreForTests(new FakeFileStore());
   });
 

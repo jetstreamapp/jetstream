@@ -1,5 +1,5 @@
 import { InsertUpdateUpsert, Maybe } from '@jetstream/types';
-import { LoadMultiObjectRun } from '../load-records-multi-object-types';
+import { LoadMultiObjectRequestWithResult, LoadMultiObjectRun } from '../load-records-multi-object-types';
 
 export interface RecordResultRow {
   _key: string;
@@ -137,3 +137,11 @@ export const RESULTS_DOWNLOAD_HEADER = [
   'Created',
   'Error',
 ];
+
+/**
+ * Raw composite-graph request payload - shared by the "Download Load Data" action and the Data
+ * History capture so the two exports never drift.
+ */
+export function buildRequestExport(requests: LoadMultiObjectRequestWithResult[]): { groupId: string; data: unknown[] }[] {
+  return requests.map((request) => ({ groupId: request.key, data: Object.values(request.dataWithResultsByGraphId) }));
+}
