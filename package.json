@@ -227,6 +227,7 @@
     "eslint-plugin-playwright": "^2.10.4",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
+    "fake-indexeddb": "^6.2.5",
     "fishery": "^2.4.0",
     "husky": "^9.1.7",
     "jsdom": "^29.1.1",

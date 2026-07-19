@@ -14,7 +14,7 @@ export default defineConfig(() => ({
     port: 4201,
     host: 'localhost',
     fs: {
-      allow: ['..'],
+      allow: ['../../'],
     },
     proxy: {},
   },
@@ -47,9 +47,9 @@ export default defineConfig(() => ({
     'globalThis.__IS_DESKTOP__': true,
   },
 
-  // worker: {
-  //   plugins: () => [nxViteTsPaths()],
-  // },
+  worker: {
+    plugins: () => [nxViteTsPaths()],
+  },
 
   test: {
     name: 'jetstream-desktop-client',

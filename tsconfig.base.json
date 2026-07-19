@@ -69,6 +69,7 @@
       "@jetstream/ui-core/shared": ["./libs/shared/ui-core-shared/src/index.ts"],
       "@jetstream/ui/app-state": ["./libs/shared/ui-app-state/src/index.ts"],
       "@jetstream/ui/cookie-consent-banner": ["./libs/shared/cookie-consent-banner/src/index.ts"],
+      "@jetstream/ui/data-history": ["./libs/shared/ui-data-history/src/index.ts"],
       "@jetstream/ui/db": ["./libs/shared/ui-db/src/index.ts"],
       "@jetstream/salesforce-oauth": ["./libs/auth/salesforce-oauth/src/index.ts"],
       "@jetstream/ui-styles/main.css": ["./libs/shared/ui-styles/src/main.css"],

@@ -225,6 +225,14 @@ const userPreferenceState = atom<Promise<UserProfilePreferences>>(getUserPrefere
 
 export const actionInProgressState = atom<boolean>(false);
 
+/**
+ * Whether local Data History capture is currently active. Seeded once during app init (each
+ * AppInitializer calls `isDataHistoryCaptureEnabled()` after `initDataHistory()` and writes the
+ * result here) so feature code can read it synchronously instead of awaiting an async check on
+ * mount. Settings UI that toggles capture should update this atom too.
+ */
+export const dataHistoryCaptureEnabledState = atom<boolean>(false);
+
 export const appInfoState = atom<Promise<AppInfo> | AppInfo>(fetchAppInfo());
 export const appInfoSyncState = unwrap(appInfoState, (prev) => prev ?? DEFAULT_APP_INFO);
 
