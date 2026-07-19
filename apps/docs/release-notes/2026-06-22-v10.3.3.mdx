@@ -1,0 +1,21 @@
+---
+slug: v10.3.3
+title: 10.3.3 - Single sign-on reliability
+date: '2026-06-22'
+tags: [web]
+versions:
+  web: 10.3.3
+summary: Sign-in for teams using single sign-on recovers more gracefully when an identity provider is slow or unreachable.
+highlights:
+  - title: More resilient single sign-on
+    description: Better handling and diagnostics when an identity provider's OIDC discovery endpoint is slow or returns an error.
+    docLink: /team-management/sso/overview
+---
+
+{/* truncate */}
+
+## What's new
+
+### More resilient single sign-on
+
+Teams that sign in with OIDC single sign-on will see fewer failures when their identity provider's discovery endpoint is slow or temporarily unavailable. Sign-in now handles those cases more gracefully and captures clearer diagnostics when something does go wrong, which makes issues faster to track down.

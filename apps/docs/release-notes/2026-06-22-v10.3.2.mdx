@@ -1,0 +1,28 @@
+---
+slug: v10.3.2
+title: 10.3.2 - Faster data tables and steadier sign-in
+date: '2026-06-22'
+tags: [web, extension]
+versions:
+  web: 10.3.2
+  extension: 3.3.1
+summary: Data tables load and filter faster, and desktop and browser-extension sessions stay signed in more reliably.
+highlights:
+  - title: Faster data tables
+    description: Set filters, tooltips, and the initial render of large result sets are noticeably quicker.
+    docLink: /query/results
+  - title: More reliable sign-in
+    description: Improved token verification keeps the desktop app and browser extension signed in more reliably.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Faster data tables
+
+A round of performance work on the rebuilt data tables makes them feel quicker in day-to-day use. Checkbox (set) filters now evaluate in a single pass instead of once per column, tooltips and popovers render more efficiently, and the initial load of a large result set does less redundant work — so big tables open and respond faster.
+
+### More reliable sign-in
+
+Token verification for desktop app and browser-extension sessions is more robust, which reduces unexpected sign-outs and keeps you connected to your orgs.

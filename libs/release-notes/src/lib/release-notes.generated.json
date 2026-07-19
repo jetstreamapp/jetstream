@@ -1,5 +1,242 @@
 [
   {
+    "slug": "v10.6.1",
+    "title": "10.6.1 - Windows update fix and security hardening",
+    "date": "2026-07-19",
+    "tags": [
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "desktop": "4.3.0",
+      "extension": "3.6.0"
+    },
+    "summary": "Fixes broken auto-updates for the Windows desktop app and adds security hardening to the desktop app and browser extension.",
+    "highlights": [
+      {
+        "title": "Windows auto-update fix",
+        "description": "Restores automatic updates for the Windows desktop app after a code-signing certificate change. A one-time reinstall may be needed.",
+        "platforms": [
+          "desktop"
+        ]
+      },
+      {
+        "title": "Security hardening on desktop and extension",
+        "description": "Safer handling of external links and downloads in the desktop app, and stricter message handling in the browser extension.",
+        "platforms": [
+          "desktop",
+          "extension"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "v10.6.0",
+    "title": "10.6.0 - SOQL comments and sturdier bulk updates",
+    "date": "2026-07-17",
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "10.6.0"
+    },
+    "summary": "Write comments in your SOQL queries, get more resilient bulk record updates, and benefit from single sign-on configuration improvements.",
+    "highlights": [
+      {
+        "title": "Comments in SOQL queries",
+        "description": "Add comments to your SOQL; they're kept while you edit and stripped automatically before the query runs.",
+        "docLink": "/query"
+      },
+      {
+        "title": "More resilient bulk updates",
+        "description": "Bulk record updates handle Salesforce errors more gracefully and let you retry failed records.",
+        "docLink": "/query/results"
+      },
+      {
+        "title": "Single sign-on improvements",
+        "description": "Improved OIDC configuration handling and discovery for single sign-on.",
+        "docLink": "/team-management/sso/overview"
+      }
+    ]
+  },
+  {
+    "slug": "v10.5.1",
+    "title": "10.5.1 - Desktop and extension updates",
+    "date": "2026-07-15",
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "10.5.1",
+      "desktop": "4.2.0",
+      "extension": "3.5.0"
+    },
+    "summary": "Brings the latest table-editing improvements to the desktop app and browser extension, along with behind-the-scenes maintenance.",
+    "highlights": [
+      {
+        "title": "Latest updates on desktop and extension",
+        "description": "The desktop app and browser extension now include the recent table copy, paste, and editing improvements.",
+        "platforms": [
+          "desktop",
+          "extension"
+        ]
+      },
+      {
+        "title": "Maintenance and packaging updates",
+        "description": "Routine behind-the-scenes updates with no change to how the app works."
+      }
+    ]
+  },
+  {
+    "slug": "v10.5.0",
+    "title": "10.5.0 - Copy, paste, and undo in editable tables",
+    "date": "2026-07-15",
+    "tags": [
+      "web",
+      "extension"
+    ],
+    "versions": {
+      "web": "10.5.0",
+      "extension": "3.4.0"
+    },
+    "summary": "A big upgrade to table editing — copy and paste ranges of cells, undo your changes, and preview everything before saving — plus row range selection and a batch of reliability fixes.",
+    "highlights": [
+      {
+        "title": "Copy, paste, and undo in editable tables",
+        "description": "Copy and paste ranges of cells, undo edits, and preview all changes before saving, with inline warnings and errors.",
+        "docLink": "/query/results"
+      },
+      {
+        "title": "Shift-click range selection",
+        "description": "Select a range of rows at once by shift-clicking the first and last row.",
+        "docLink": "/query/results"
+      },
+      {
+        "title": "Clearer reconnect prompts",
+        "description": "Salesforce authentication failures now prompt you to reconnect instead of showing a confusing error."
+      },
+      {
+        "title": "Steadier dates and large orgs",
+        "description": "Invalid dates show their raw value instead of erroring, and querying objects in very large orgs no longer hits a Salesforce limit."
+      }
+    ]
+  },
+  {
+    "slug": "v10.4.0",
+    "title": "10.4.0 - Preview bulk updates and view field metadata",
+    "date": "2026-06-30",
+    "tags": [
+      "web",
+      "extension"
+    ],
+    "versions": {
+      "web": "10.4.0",
+      "extension": "3.3.2"
+    },
+    "summary": "Preview exactly what a bulk update will change before you apply it, and view field metadata right from the query results grid.",
+    "highlights": [
+      {
+        "title": "Preview bulk updates before saving",
+        "description": "See which records will change, with their old and new values, before you apply a bulk update.",
+        "docLink": "/query/results"
+      },
+      {
+        "title": "View field metadata from results",
+        "description": "Right-click a column header in query results to see detailed metadata for that field.",
+        "docLink": "/query/results"
+      },
+      {
+        "title": "Column resizing near frozen headers",
+        "description": "Fixed the resize handle overlapping frozen column headers.",
+        "docLink": "/query/results"
+      }
+    ]
+  },
+  {
+    "slug": "v10.3.5",
+    "title": "10.3.5 - Data table crash fix",
+    "date": "2026-06-22",
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "10.3.5"
+    },
+    "summary": "Fixes a crash that could affect query results and other data tables, with further single sign-on reliability improvements.",
+    "highlights": [
+      {
+        "title": "Fixed a data table crash",
+        "description": "Resolved a crash that could occur in query results and other data tables.",
+        "docLink": "/query/results"
+      }
+    ]
+  },
+  {
+    "slug": "v10.3.4",
+    "title": "10.3.4 - Security hardening for single sign-on",
+    "date": "2026-06-22",
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "10.3.4"
+    },
+    "summary": "Additional protection when fetching identity-provider metadata for single sign-on.",
+    "highlights": [
+      {
+        "title": "Security hardening for single sign-on",
+        "description": "Added protections when fetching OIDC and SAML identity-provider metadata.",
+        "docLink": "/team-management/sso/overview"
+      }
+    ]
+  },
+  {
+    "slug": "v10.3.3",
+    "title": "10.3.3 - Single sign-on reliability",
+    "date": "2026-06-22",
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "10.3.3"
+    },
+    "summary": "Sign-in for teams using single sign-on recovers more gracefully when an identity provider is slow or unreachable.",
+    "highlights": [
+      {
+        "title": "More resilient single sign-on",
+        "description": "Better handling and diagnostics when an identity provider's OIDC discovery endpoint is slow or returns an error.",
+        "docLink": "/team-management/sso/overview"
+      }
+    ]
+  },
+  {
+    "slug": "v10.3.2",
+    "title": "10.3.2 - Faster data tables and steadier sign-in",
+    "date": "2026-06-22",
+    "tags": [
+      "web",
+      "extension"
+    ],
+    "versions": {
+      "web": "10.3.2",
+      "extension": "3.3.1"
+    },
+    "summary": "Data tables load and filter faster, and desktop and browser-extension sessions stay signed in more reliably.",
+    "highlights": [
+      {
+        "title": "Faster data tables",
+        "description": "Set filters, tooltips, and the initial render of large result sets are noticeably quicker.",
+        "docLink": "/query/results"
+      },
+      {
+        "title": "More reliable sign-in",
+        "description": "Improved token verification keeps the desktop app and browser extension signed in more reliably."
+      }
+    ]
+  },
+  {
     "slug": "v10.3.1",
     "title": "10.3.1 - Data table polish",
     "date": "2026-06-21",

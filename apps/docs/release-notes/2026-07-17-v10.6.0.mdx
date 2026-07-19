@@ -1,0 +1,35 @@
+---
+slug: v10.6.0
+title: 10.6.0 - SOQL comments and sturdier bulk updates
+date: '2026-07-17'
+tags: [web]
+versions:
+  web: 10.6.0
+summary: Write comments in your SOQL queries, get more resilient bulk record updates, and benefit from single sign-on configuration improvements.
+highlights:
+  - title: Comments in SOQL queries
+    description: Add comments to your SOQL; they're kept while you edit and stripped automatically before the query runs.
+    docLink: /query
+  - title: More resilient bulk updates
+    description: Bulk record updates handle Salesforce errors more gracefully and let you retry failed records.
+    docLink: /query/results
+  - title: Single sign-on improvements
+    description: Improved OIDC configuration handling and discovery for single sign-on.
+    docLink: /team-management/sso/overview
+---
+
+{/* truncate */}
+
+## What's new
+
+### Comments in SOQL queries
+
+You can now include comments in your SOQL queries. Jetstream preserves them while you write and edit, and removes them automatically before sending the query to Salesforce — so you can annotate and document complex queries without breaking them.
+
+### More resilient bulk updates
+
+Bulk record updates now recover better when Salesforce returns an error. Overly large batches are avoided, failures are logged with more troubleshooting context, and you can retry failed records instead of being blocked.
+
+### Single sign-on improvements
+
+Teams using single sign-on benefit from improved OIDC configuration handling and a more robust discovery process, making SSO setup and sign-in smoother.

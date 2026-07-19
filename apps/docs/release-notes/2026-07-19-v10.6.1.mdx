@@ -1,0 +1,29 @@
+---
+slug: v10.6.1
+title: 10.6.1 - Windows update fix and security hardening
+date: '2026-07-19'
+tags: [desktop, extension]
+versions:
+  desktop: 4.3.0
+  extension: 3.6.0
+summary: Fixes broken auto-updates for the Windows desktop app and adds security hardening to the desktop app and browser extension.
+highlights:
+  - title: Windows auto-update fix
+    description: Restores automatic updates for the Windows desktop app after a code-signing certificate change. A one-time reinstall may be needed.
+    platforms: [desktop]
+  - title: Security hardening on desktop and extension
+    description: Safer handling of external links and downloads in the desktop app, and stricter message handling in the browser extension.
+    platforms: [desktop, extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Windows auto-update fix
+
+Windows desktop users whose automatic updates stopped working after a code-signing certificate change will be back on the normal update track with this release. If your desktop app hasn't been updating, you may need to reinstall it once from the website to pick up future updates automatically.
+
+### Security hardening on desktop and browser extension
+
+The desktop app now opens external links and downloads more safely and uses the correct filenames for downloaded files, and the browser extension restricts message handling to trusted sources. These are behind-the-scenes safety improvements with no change to how you use the app.

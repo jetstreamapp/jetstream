@@ -1,0 +1,41 @@
+---
+slug: v10.5.0
+title: 10.5.0 - Copy, paste, and undo in editable tables
+date: '2026-07-15'
+tags: [web, extension]
+versions:
+  web: 10.5.0
+  extension: 3.4.0
+summary: A big upgrade to table editing — copy and paste ranges of cells, undo your changes, and preview everything before saving — plus row range selection and a batch of reliability fixes.
+highlights:
+  - title: Copy, paste, and undo in editable tables
+    description: Copy and paste ranges of cells, undo edits, and preview all changes before saving, with inline warnings and errors.
+    docLink: /query/results
+  - title: Shift-click range selection
+    description: Select a range of rows at once by shift-clicking the first and last row.
+    docLink: /query/results
+  - title: Clearer reconnect prompts
+    description: Salesforce authentication failures now prompt you to reconnect instead of showing a confusing error.
+  - title: Steadier dates and large orgs
+    description: Invalid dates show their raw value instead of erroring, and querying objects in very large orgs no longer hits a Salesforce limit.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Copy, paste, and undo in editable tables
+
+Editing records in a table just got a lot more powerful. You can now copy and paste ranges of cells (including to and from a spreadsheet), undo your edits, and preview every change before saving. Inline warnings and errors appear right in the cells, so you can catch problems before they reach Salesforce.
+
+### Shift-click range selection
+
+Select a whole range of rows at once: click the first row, then shift-click the last, and everything in between is selected. The last row you toggle acts as the anchor for the next range.
+
+### Other improvements
+
+- Salesforce authentication failures are now reported as what they are, prompting you to reconnect instead of surfacing a misleading error.
+- Dates that aren't in a recognized format now fall back to showing their raw value instead of throwing an error.
+- Querying the list of objects in orgs with a very large number of objects no longer hits a Salesforce query limit.
+- Fixed a rare case where the app could get stuck updating in a loop.
+- The formula evaluator handles a wider range of field types correctly.

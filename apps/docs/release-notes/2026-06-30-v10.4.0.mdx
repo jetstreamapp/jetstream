@@ -1,0 +1,37 @@
+---
+slug: v10.4.0
+title: 10.4.0 - Preview bulk updates and view field metadata
+date: '2026-06-30'
+tags: [web, extension]
+versions:
+  web: 10.4.0
+  extension: 3.3.2
+summary: Preview exactly what a bulk update will change before you apply it, and view field metadata right from the query results grid.
+highlights:
+  - title: Preview bulk updates before saving
+    description: See which records will change, with their old and new values, before you apply a bulk update.
+    docLink: /query/results
+  - title: View field metadata from results
+    description: Right-click a column header in query results to see detailed metadata for that field.
+    docLink: /query/results
+  - title: Column resizing near frozen headers
+    description: Fixed the resize handle overlapping frozen column headers.
+    docLink: /query/results
+---
+
+{/* truncate */}
+
+## What's new
+
+### Preview bulk updates before saving
+
+When you make a bulk update to records, you can now preview the proposed changes first. The preview lists each impacted record alongside its original and new values, so you can confirm exactly what will change before anything is written back to Salesforce.
+
+### View field metadata from query results
+
+Right-click a field's column header in query results and choose to view its metadata. A modal shows the field's details without leaving your results, which is handy when you're deciding how to filter, sort, or update a column.
+
+### Other fixes
+
+- The column resize handle no longer overlaps frozen column headers.
+- The select-all checkbox is now centered in its header cell.
