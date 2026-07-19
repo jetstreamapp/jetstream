@@ -1,5 +1,15 @@
 # Changelog
 
+## [10.6.1](https://github.com/jetstreamapp/jetstream/compare/v10.6.0...v10.6.1) (2026-07-19)
+
+### Features
+
+* add docs for analysis tools ([e5bc663](https://github.com/jetstreamapp/jetstream/commit/e5bc6630bdfcdb74c80955aaa4cc3eff96838fa0))
+
+### Bug Fixes
+
+* ensure Prisma types are generated on build ([2833144](https://github.com/jetstreamapp/jetstream/commit/283314414b47a7491b69fb8e133d9fae1403e035))
+
 ## [10.6.0](https://github.com/jetstreamapp/jetstream/compare/v10.5.1...v10.6.0) (2026-07-17)
 
 ### Features
