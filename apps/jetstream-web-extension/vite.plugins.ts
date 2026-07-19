@@ -60,6 +60,7 @@ const PLACEHOLDER_PAGES = [
   'load-multiple-objects',
   'update-records',
   'create-record',
+  'data-history',
   'automation-control',
   'permissions-manager',
   'deploy-metadata',

@@ -1,0 +1,86 @@
+---
+id: data-history
+title: Data History
+description: View a local history of the data modifications you have made with Jetstream, including request and result files
+keywords:
+  [
+    salesforce,
+    salesforce admin,
+    salesforce developer,
+    salesforce automation,
+    salesforce workbench,
+    data load,
+    data load history,
+    audit,
+    history,
+    update record,
+    mass update,
+  ]
+sidebar_label: Data History
+slug: /load/data-history
+---
+
+Jetstream keeps a local history of the data modifications you make, so you can always go back and
+see exactly what you changed, when, and what the results were — including the loaded records and
+per-record success/failure files.
+
+History is captured for:
+
+- **Load Records** (including retries and trial runs)
+- **Load Records to Multiple Objects**
+- **Update Records Without a File** and **Bulk Update From Query**
+- **Query results edits** (inline table edits and bulk edits)
+- **Record modal saves** (create, edit, clone) and **Create records without a file**
+
+Open Data History from the **clock icon in the header**, the **Load Records menu**, or the home page.
+
+## Your data stays on your device
+
+:::info
+
+Data History is stored **locally on this device** — in your browser's private storage (or the
+desktop app's local storage). It is **never sent to the Jetstream server**.
+
+This also means **clearing your browser's site data permanently deletes your history**. Download
+anything you need to keep long-term.
+
+:::
+
+Jetstream automatically asks the browser for "persistent storage" to protect your history from
+automatic cleanup — no action needed on your part.
+
+## Viewing and downloading history
+
+Each entry records the org, feature, object(s), operation, status, and record counts. From the
+detail view you can preview or download:
+
+- **Input Data** — the records that were loaded (for file-based loads)
+- **Request Payload** — exactly what was submitted to Salesforce
+- **Results** — per-record success/failure, including error messages
+
+Downloads are regular CSV/JSON files, so you can re-load them or archive them anywhere you like.
+
+## Retention, pinning, and limits
+
+History is cleaned up automatically: the oldest entries are removed as new ones are saved.
+**Pin** any entry to exclude it from automatic cleanup.
+
+Limits depend on your plan — free plans keep your **15 most recent entries**, while paid plans
+(and the desktop app and browser extension) keep unlimited entries for up to a full year.
+
+## Settings
+
+From the **Settings** page you can:
+
+- Turn Data History off entirely (a per-load "don't save" option is also available on each load screen)
+- Adjust how long history is kept (paid plans)
+- Choose where history is stored — including a real folder on your computer (Chrome/Edge and the
+  desktop app), where files are visible, backed up, and survive clearing browser data
+- See how much storage your history is using
+- Delete all saved history from the device
+
+## Notes
+
+- When Jetstream runs inside Salesforce (canvas), history is stored per Salesforce domain and is
+  more likely to be cleared by the browser — use the web or desktop app for a durable history.
+- History is per-device: your history on one computer is not visible on another.

@@ -94,6 +94,23 @@ describe('runDataHistoryRetentionSweep', () => {
     expect(await dataHistoryDb.getEntry(fresh.key)).toBeTruthy();
   });
 
+  it('enforces the free-tier entry-count cap (15), keeping pinned entries', async () => {
+    const entries: DataHistoryItem[] = [];
+    for (let i = 0; i < 18; i++) {
+      entries.push(await seedEntry({ createdAt: daysAgo(18 - i) }));
+    }
+    const pinnedOldest = entries[0];
+    await dataHistoryDb.updateEntry(pinnedOldest.key, { pinned: true });
+
+    await runDataHistoryRetentionSweep();
+
+    expect(await dataHistoryDb.getEntryCount()).toBe(15);
+    // pinned oldest survives; the oldest UNPINNED entries were removed instead
+    expect(await dataHistoryDb.getEntry(pinnedOldest.key)).toBeTruthy();
+    expect(await dataHistoryDb.getEntry(entries[1].key)).toBeUndefined();
+    expect(await dataHistoryDb.getEntry(entries[17].key)).toBeTruthy();
+  });
+
   it('prunes oldest-first when over the size cap, keeping pinned entries', async () => {
     const MB_200 = 200 * 1024 * 1024;
     const oldest = await seedEntry({ createdAt: daysAgo(30), sizeBytes: MB_200, withFile: true });

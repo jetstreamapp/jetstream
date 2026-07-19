@@ -8,6 +8,7 @@ type RouteKey =
   | 'LOAD_MULTIPLE'
   | 'LOAD_MASS_UPDATE'
   | 'LOAD_CREATE_RECORD'
+  | 'DATA_HISTORY'
   | 'AUTOMATION_CONTROL'
   | 'PERMISSION_MANAGER'
   | 'PERMISSION_ANALYSIS'
@@ -116,6 +117,13 @@ export const APP_ROUTES: RouteMap = {
     TITLE: 'Create New Record',
     DESCRIPTION: 'Create new records without a file',
     NEW_UNTIL: new Date(2025, 6, 31, 23, 59, 59).getTime(), // July 31, 2025
+  },
+  DATA_HISTORY: {
+    ...getRoutePath('/data-history'),
+    DOCS: 'https://docs.getjetstream.app/load/data-history',
+    TITLE: 'Data History',
+    DESCRIPTION: 'View a local history of the data modifications you have made with Jetstream',
+    NEW_UNTIL: new Date(2026, 9, 31, 23, 59, 59).getTime(), // October 31, 2026
   },
   AUTOMATION_CONTROL: {
     ...getRoutePath('/automation-control'),

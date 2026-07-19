@@ -84,6 +84,7 @@ const RecordTypeManagerEditor = lazy(() =>
   import('@jetstream/feature/record-type-manager').then((module) => ({ default: module.RecordTypeManagerEditor })),
 );
 
+const DataHistory = lazy(() => import('@jetstream/feature/data-history').then((module) => ({ default: module.DataHistory })));
 const MassUpdateRecords = lazy(() => import('@jetstream/feature/update-records').then((module) => ({ default: module.MassUpdateRecords })));
 const MassUpdateRecordsSelection = lazy(() =>
   import('@jetstream/feature/update-records').then((module) => ({ default: module.MassUpdateRecordsSelection })),
@@ -313,6 +314,7 @@ export const AppRoutes = () => {
         <Route path="deployment" element={<MassUpdateRecordsDeployment />} />
         <Route path="*" element={<Navigate to=".." />} />
       </Route>
+      <Route path={APP_ROUTES.DATA_HISTORY.ROUTE} element={<DataHistory />} />
       <Route
         path={APP_ROUTES.ANON_APEX.ROUTE}
         element={

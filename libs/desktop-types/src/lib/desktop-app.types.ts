@@ -43,6 +43,30 @@ export interface ElectronApiCallback {
   onGooglePickerResult: (callback: (result: GooglePickerResult) => void) => () => void;
 }
 
+/**
+ * File operations for native Data History storage. Mirrors the op-based protocol the renderer's
+ * OPFS storage worker uses (`@jetstream/ui/data-history` worker-messages) so the renderer file
+ * store is a thin transport swap. `read-file` returns raw bytes (Blobs are not IPC-serializable).
+ */
+export interface DataHistoryFileOpRequest {
+  op:
+    | 'init'
+    | 'write-file'
+    | 'open-stream'
+    | 'stream-write'
+    | 'stream-close'
+    | 'stream-abort'
+    | 'read-file'
+    | 'delete-dir'
+    | 'list-entry-dirs'
+    | 'estimate';
+  path?: string;
+  gzip?: boolean;
+  gunzip?: boolean;
+  bytes?: Uint8Array;
+  streamId?: number;
+}
+
 export interface ElectronApiRequestResponse {
   login: () => Promise<void>;
   logout: () => void;
@@ -56,6 +80,9 @@ export interface ElectronApiRequestResponse {
   downloadBulkApiFile: (payload: JetstreamEventStreamFilePayload) => Promise<DownloadFileResult>;
   openFile: (filePath: string) => Promise<void>;
   showFileInFolder: (filePath: string) => Promise<void>;
+  dataHistoryRequest: (payload: DataHistoryFileOpRequest) => Promise<unknown>;
+  getDataHistoryFolder: () => Promise<string>;
+  setDataHistoryFolder: (payload: { folderPath: string }) => Promise<string>;
   checkForUpdates: (userInitiated?: boolean) => Promise<void>;
   getUpdateStatus: () => Promise<UpdateStatus>;
   installUpdate: () => void;
@@ -165,6 +192,8 @@ export type AppData = z.infer<typeof AppDataSchema>;
 export const DesktopUserPreferencesSchema = z.object({
   skipFrontdoorLogin: z.boolean().optional().default(false),
   recordSyncEnabled: z.boolean().optional().default(false),
+  /** Base directory for native Data History storage — defaults to `<userData>/data-history` when unset */
+  dataHistoryFolder: z.string().optional(),
   soqlQueryFormatOptions: SoqlQueryFormatOptionsSchema.prefault({}),
   fileDownload: z
     .object({

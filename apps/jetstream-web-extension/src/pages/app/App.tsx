@@ -2,6 +2,7 @@
 import { AnonymousApex } from '@jetstream/feature/anon-apex';
 import { AutomationControl, AutomationControlEditor, AutomationControlSelection } from '@jetstream/feature/automation-control';
 import { CreateFields, CreateFieldsSelection, CreateObjectAndFields } from '@jetstream/feature/create-object-and-fields';
+import { DataHistory } from '@jetstream/feature/data-history';
 import { DebugLogViewer } from '@jetstream/feature/debug-log-viewer';
 import { DeployMetadata, DeployMetadataDeployment, DeployMetadataSelection } from '@jetstream/feature/deploy';
 import { FormulaEvaluator } from '@jetstream/feature/formula-evaluator';
@@ -109,6 +110,7 @@ export function App() {
                 <Route path="deployment" element={<MassUpdateRecordsDeployment />} />
                 <Route path="*" element={<Navigate to=".." />} />
               </Route>
+              <Route path={APP_ROUTES.DATA_HISTORY.ROUTE} element={<DataHistory />} />
               <Route path={APP_ROUTES.ANON_APEX.ROUTE} element={<AnonymousApex />} />
               <Route path={APP_ROUTES.SALESFORCE_API.ROUTE} element={<SalesforceApi />} />
               <Route path={APP_ROUTES.DEBUG_LOG_VIEWER.ROUTE} element={<DebugLogViewer />} />
