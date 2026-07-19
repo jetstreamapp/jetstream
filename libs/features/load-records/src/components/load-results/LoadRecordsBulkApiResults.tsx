@@ -1,15 +1,10 @@
+/* eslint-disable react-hooks/refs */
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { bulkApiAbortJob, bulkApiGetJob, bulkApiGetRecords, bulkApiGetRecordsFromAllBatches } from '@jetstream/shared/data';
 import { checkIfBulkApiJobIsDone, convertDateToLocale, formatNumber, tracker, useBrowserNotifications } from '@jetstream/shared/ui-utils';
-import {
-  decodeHtmlEntity,
-  getErrorMessage,
-  getSuccessOrFailureChar,
-  pluralizeFromNumber,
-  splitArrayToMaxSize,
-} from '@jetstream/shared/utils';
+import { getErrorMessage, getSuccessOrFailureChar, pluralizeFromNumber, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
   ApiMode,
   BulkJobBatchInfo,
@@ -51,6 +46,7 @@ import {
 import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { DataHistoryHandlePromise, failHistoryEntry } from '../../utils/data-history-capture';
 import {
   BULK_JOB_POLL_MAX_CHECKS,
   LoadTypeDisplayNames,
@@ -58,6 +54,7 @@ import {
   loadBulkApiData,
   prepareData,
 } from '../../utils/load-records-process';
+import { buildBulkApiResultRow, getLoadResultsHeader } from './load-results-utils';
 import { extractRetryRecords, registerRetryRecord } from './retry-record-map';
 
 type Status = 'Preparing Data' | 'Uploading Data' | 'Processing Data' | 'Aborting' | 'Finished' | 'Error';
@@ -194,6 +191,54 @@ async function collectFailedRecordsForRetry({
   return failedRecords;
 }
 
+/**
+ * Fetch the combined per-record results across all completed batches of a bulk job and pair them
+ * (positionally) with the submitted source records. Shared by the "Download All"/"View All"
+ * handlers and the Data History capture so both stay on one implementation.
+ *
+ * Results only come back for completed batches, so the records must be built from those same
+ * batches in the same order — using the full prepared data would shift every row after a
+ * non-completed batch onto the wrong result. Batches are also capped by CSV size, so an oversized
+ * batch gets split and its record range must come from the batch summary rather than from the
+ * configured batch size. Both the fetch and the records are derived from one list so they cannot
+ * diverge.
+ *
+ * `removedBatches` is true when any batch was excluded (drives the partial-results toast).
+ * For delete operations only records with a mapped Id are returned by Salesforce, so the source
+ * records are filtered to match.
+ */
+async function fetchBulkApiAllBatchResults({
+  selectedOrg,
+  jobInfo,
+  batchSummary,
+  preparedData,
+  loadType,
+}: {
+  selectedOrg: SalesforceOrgUi;
+  jobInfo: BulkJobWithBatches;
+  batchSummary: LoadDataBulkApiStatusPayload;
+  preparedData: PrepareDataResponse;
+  loadType: InsertUpdateUpsertDelete;
+}): Promise<{ results: BulkJobResultRecord[]; records: any[]; removedBatches: boolean }> {
+  const isDelete = loadType === 'DELETE' || loadType === 'HARD_DELETE';
+  const summaryByBatchId = new Map(batchSummary.batchSummary.filter(({ id }) => id).map((item) => [item.id as string, item]));
+  const includedBatches = jobInfo.batches.flatMap((batch) => {
+    const summaryItem = batch.state === 'Completed' ? summaryByBatchId.get(batch.id) : undefined;
+    return summaryItem ? [{ batchId: batch.id, summaryItem }] : [];
+  });
+  const removedBatches = includedBatches.length !== jobInfo.batches.length;
+  const results = await bulkApiGetRecordsFromAllBatches<BulkJobResultRecord>(
+    selectedOrg,
+    jobInfo.id as string,
+    includedBatches.map(({ batchId }) => batchId),
+  );
+  /** For delete, only records with a mapped Id will be included in response from SFDC */
+  const records = includedBatches
+    .flatMap(({ summaryItem }) => preparedData.data.slice(summaryItem.startIndex, summaryItem.startIndex + summaryItem.recordCount))
+    .filter((record) => (isDelete ? !!record.Id : true));
+  return { results, records, removedBatches };
+}
+
 export interface LoadRecordsBulkApiResultsProps {
   selectedOrg: SalesforceOrgUi;
   selectedSObject: string;
@@ -210,6 +255,8 @@ export interface LoadRecordsBulkApiResultsProps {
   dateFormat: string;
   /** Already-prepared records for retry — skips prepareData when provided */
   preparedInputData?: any[];
+  /** Data History capture handle for this run (resolves null when capture is disabled/opted out) */
+  historyHandle?: Maybe<DataHistoryHandlePromise>;
   onFinish: (results: { success: number; failure: number; failedRecords: any[] }) => void;
   /** Called when user selects specific records to retry from the results modal */
   onRetrySelected?: (selectedRows: any[]) => void;
@@ -234,6 +281,7 @@ export const LoadRecordsBulkApiResults = ({
   serialMode,
   dateFormat,
   preparedInputData,
+  historyHandle,
   onFinish,
   onRetrySelected,
   onRetryAll,
@@ -245,6 +293,8 @@ export const LoadRecordsBulkApiResults = ({
   // Ref to avoid stale closures in stable useCallback/useEffect — always call onFinishRef.current
   const onFinishRef = useRef(onFinish);
   onFinishRef.current = onFinish;
+  // Ensures the proactive bulk-results capture runs at most once even if the done-branch re-enters
+  const historyCapturedRef = useRef(false);
   const { trackEvent } = useAmplitude();
   const { serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
@@ -389,6 +439,48 @@ export const LoadRecordsBulkApiResults = ({
             onFinishRef.current({ success: numSuccess, failure: numFailure, failedRecords });
           }
         })();
+
+        // Proactively capture per-record results to Data History even if the user never clicks
+        // download — bulk results expire server-side (~7 days). Fully fire-and-forget: this never
+        // blocks the load, and a results-fetch failure still finishes the entry with the counts the
+        // UI shows (the load itself succeeded, so it must not be marked failed).
+        if (!historyCapturedRef.current) {
+          historyCapturedRef.current = true;
+          void (async () => {
+            const handle = historyHandle ? await historyHandle : null;
+            if (!handle) {
+              return;
+            }
+            const counts = {
+              total: numSuccess + numFailure,
+              success: numSuccess,
+              failure: numFailure,
+              processingErrors: preparedData.errors.length,
+            };
+            try {
+              if (jobInfo.id) {
+                const { results, records } = await fetchBulkApiAllBatchResults({
+                  selectedOrg,
+                  jobInfo,
+                  batchSummary,
+                  preparedData,
+                  loadType,
+                });
+                const header = getLoadResultsHeader(getFieldHeaderFromMapping(fieldMapping));
+                // Stream in batch-size chunks so the full combined result set is never materialized at once
+                for (let offset = 0; offset < results.length; offset += batchSize) {
+                  const rows = results
+                    .slice(offset, offset + batchSize)
+                    .map((resultRecord, index) => buildBulkApiResultRow(resultRecord, records[offset + index]));
+                  handle.appendResultsRows(rows, header);
+                }
+              }
+            } catch (ex) {
+              logger.warn('[DATA_HISTORY] Failed to capture bulk results', ex);
+            }
+            handle.finish({ counts, jobId: jobInfo.id ?? undefined });
+          })();
+        }
       } else if (status === STATUSES.PROCESSING || status === STATUSES.ABORTING) {
         if (intervalCount >= BULK_JOB_POLL_MAX_CHECKS) {
           // Stop polling and hand control to the user - the job keeps running in Salesforce regardless.
@@ -489,6 +581,10 @@ export const LoadRecordsBulkApiResults = ({
           batches: [],
         });
         onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
+        failHistoryEntry(
+          historyHandle,
+          preparedDataResponse?.queryErrors?.length ? preparedDataResponse.queryErrors.join('\n') : 'Pre-processing records failed',
+        );
         notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
           body: `❌ Pre-processing records failed.`,
           tag: 'load-records',
@@ -505,6 +601,7 @@ export const LoadRecordsBulkApiResults = ({
       setStatus(STATUSES.ERROR);
       setFatalError(getErrorMessage(ex));
       onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
+      failHistoryEntry(historyHandle, getErrorMessage(ex));
       notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
         body: `❌ ${getErrorMessage(ex)}`,
         tag: 'load-records',
@@ -562,6 +659,7 @@ export const LoadRecordsBulkApiResults = ({
         } else {
           setStatus(STATUSES.ERROR);
           onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
+          failHistoryEntry(historyHandle, loadError.message);
           notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
             body: `❌ ${loadError.message}`,
             tag: 'load-records',
@@ -587,6 +685,7 @@ export const LoadRecordsBulkApiResults = ({
       setFatalError(getErrorMessage(ex));
       setStatus(STATUSES.ERROR);
       onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
+      failHistoryEntry(historyHandle, getErrorMessage(ex));
       notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
         body: `❌ ${getErrorMessage(ex)}`,
         tag: 'load-records',
@@ -652,26 +751,11 @@ export const LoadRecordsBulkApiResults = ({
       const isDelete = loadType === 'DELETE' || loadType === 'HARD_DELETE';
 
       if (scope === 'all') {
-        // Download results across all batches. Results only come back for completed batches, so the
-        // records must be built from those same batches in the same order — using the full prepared
-        // data would shift every row after a non-completed batch onto the wrong result. Both the
-        // fetch and the records are derived from one list so they cannot diverge.
-        const summaryByBatchId = new Map(batchSummary.batchSummary.filter(({ id }) => id).map((item) => [item.id as string, item]));
-        const includedBatches = jobInfo.batches.flatMap((batch) => {
-          const summaryItem = batch.state === 'Completed' ? summaryByBatchId.get(batch.id) : undefined;
-          return summaryItem ? [{ batchId: batch.id, summaryItem }] : [];
-        });
-        removedBatches = includedBatches.length !== jobInfo.batches.length;
-        // download records, combine results from salesforce with actual records, open download modal
-        results = await bulkApiGetRecordsFromAllBatches<BulkJobResultRecord>(
-          selectedOrg,
-          jobInfo.id,
-          includedBatches.map(({ batchId }) => batchId),
-        );
-        /** For delete, only records with a mapped Id will be included in response from SFDC */
-        records = includedBatches
-          .flatMap(({ summaryItem }) => preparedData.data.slice(summaryItem.startIndex, summaryItem.startIndex + summaryItem.recordCount))
-          .filter((record) => (isDelete ? !!record.Id : true));
+        // Download results across all completed batches, combining with the submitted records
+        const allBatchResults = await fetchBulkApiAllBatchResults({ selectedOrg, jobInfo, batchSummary, preparedData, loadType });
+        results = allBatchResults.results;
+        records = allBatchResults.records;
+        removedBatches = allBatchResults.removedBatches;
       } else {
         // Download results for a single batch
         // download records, combine results from salesforce with actual records, open download modal
@@ -689,23 +773,18 @@ export const LoadRecordsBulkApiResults = ({
         records = preparedData.data.slice(startIdx, startIdx + recordCount).filter((record) => (isDelete ? !!record.Id : true));
       }
 
-      const combinedResults: BulkJobResultRecord[] = [];
+      const combinedResults: any[] = [];
 
       results.forEach((resultRecord, i) => {
         // show all if results, otherwise just include errors
         if (type === 'results' || !resultRecord.Success) {
-          const resultRow = {
-            _id: resultRecord.Id || records[i].Id || null,
-            _success: resultRecord.Success,
-            _errors: decodeHtmlEntity(resultRecord.Error),
-            ...records[i],
-          };
+          const resultRow = buildBulkApiResultRow(resultRecord, records[i]);
           registerRetryRecord(resultRow, records[i]);
           combinedResults.push(resultRow);
         }
       });
       logger.debug({ combinedResults, results });
-      const header = ['_id', '_success', '_errors'].concat(getFieldHeaderFromMapping(fieldMapping));
+      const header = getLoadResultsHeader(getFieldHeaderFromMapping(fieldMapping));
       if (action === 'view') {
         setResultsModalData({ ...downloadModalData, open: true, header, data: combinedResults, type });
         trackEvent(ANALYTICS_KEYS.load_DownloadRecords, { loadType, type, numRows: combinedResults.length, scope });
@@ -738,7 +817,7 @@ export const LoadRecordsBulkApiResults = ({
     if (!preparedData) {
       return;
     }
-    const header = ['_id', '_success', '_errors'].concat(getFieldHeaderFromMapping(fieldMapping));
+    const header = getLoadResultsHeader(getFieldHeaderFromMapping(fieldMapping));
     setDownloadModalData({
       ...downloadModalData,
       open: true,
@@ -755,7 +834,7 @@ export const LoadRecordsBulkApiResults = ({
 
   function handleDownloadRecordsFromModal(type: 'results' | 'failures', rows: any[]) {
     const fields = getFieldHeaderFromMapping(fieldMapping);
-    const header = ['_id', '_success', '_errors'].concat(fields);
+    const header = getLoadResultsHeader(fields);
     setResultsModalData({ ...resultsModalData, open: false });
     setDownloadModalData({
       open: true,
