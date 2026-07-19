@@ -48,6 +48,12 @@ function HeaderWhatsNewPopover(props: HeaderWhatsNewPopoverProps) {
   );
 }
 
+// Temporarily disabled for the initial release-notes launch — we're starting with the docs-site
+// blog (docs.getjetstream.app/release-notes) only. Flip to `true` to restore the in-app "What's New"
+// popover once its known issues are addressed: the popover can exceed the viewport height without
+// scrolling, and its bell icon collides with the background-jobs bell right next to it.
+const SHOW_WHATS_NEW_POPOVER = false;
+
 export interface HeaderNavbarProps {
   isBillingEnabled: boolean;
   isEmbeddedApp?: boolean;
@@ -253,8 +259,11 @@ export const HeaderNavbar = ({
   const releaseNotePlatform: ReleasePlatform = isDesktop ? 'desktop' : isBrowserExtension() ? 'extension' : 'web';
 
   const rightHandMenuItems = useMemo(() => {
+    // Spreads to nothing while the in-app popover is disabled (see SHOW_WHATS_NEW_POPOVER above).
+    const whatsNewItems: React.ReactNode[] = SHOW_WHATS_NEW_POPOVER ? [<HeaderWhatsNewPopover platform={releaseNotePlatform} />] : [];
+
     if (isReadOnlyUser) {
-      return [<HeaderWhatsNewPopover platform={releaseNotePlatform} />, <HeaderHelpPopover />];
+      return [...whatsNewItems, <HeaderHelpPopover />];
     }
 
     if (isEmbeddedApp || isDesktop) {
@@ -281,7 +290,7 @@ export const HeaderNavbar = ({
         items.push(<HeaderUpdateNotification onCheckForUpdates={handleCheckForUpdates} onInstallUpdate={handleInstallUpdate} />);
       }
 
-      items.push(<HeaderWhatsNewPopover platform={releaseNotePlatform} />, <HeaderHelpPopover />);
+      items.push(...whatsNewItems, <HeaderHelpPopover />);
       return items;
     }
 
@@ -291,7 +300,7 @@ export const HeaderNavbar = ({
         <RecordSearchPopover />,
         <UserSearchPopover />,
         <Jobs />,
-        <HeaderWhatsNewPopover platform={releaseNotePlatform} />,
+        ...whatsNewItems,
         <HeaderHelpPopover />,
         <HeaderDonatePopover />,
       ];
@@ -304,19 +313,12 @@ export const HeaderNavbar = ({
         <RecordSearchPopover />,
         <UserSearchPopover />,
         <Jobs />,
-        <HeaderWhatsNewPopover platform={releaseNotePlatform} />,
+        ...whatsNewItems,
         <HeaderHelpPopover />,
       ];
     }
 
-    return [
-      <QuickQueryPopover />,
-      <RecordSearchPopover />,
-      <UserSearchPopover />,
-      <Jobs />,
-      <HeaderWhatsNewPopover platform={releaseNotePlatform} />,
-      <HeaderHelpPopover />,
-    ];
+    return [<QuickQueryPopover />, <RecordSearchPopover />, <UserSearchPopover />, <Jobs />, ...whatsNewItems, <HeaderHelpPopover />];
   }, [
     isReadOnlyUser,
     isEmbeddedApp,
