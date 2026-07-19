@@ -3,6 +3,7 @@ import { BulkJobBatchInfo, Maybe } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Checkbox,
+  getModifierKey,
   Icon,
   Input,
   KeyboardShortcut,
@@ -13,9 +14,8 @@ import {
   ToolbarItemActions,
   ToolbarItemGroup,
   Tooltip,
-  getModifierKey,
 } from '@jetstream/ui';
-import { DeployResults, MassUpdateRecordsDeploymentRow, MetadataRow, useDeployRecords } from '@jetstream/ui-core';
+import { DeployResults, MassUpdateRecordsDeploymentRow, MetadataRow, useDeployRecords, ViewDataHistoryLink } from '@jetstream/ui-core';
 import { dataHistoryCaptureEnabledState, selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtomValue, useSetAtom } from 'jotai';
 import { useAtomCallback } from 'jotai/utils';
@@ -182,15 +182,18 @@ export const MassUpdateRecordsDeployment = () => {
             />
           </Input>
           {dataHistoryCaptureEnabled && (
-            <Checkbox
-              id={'skip-data-history'}
-              className="slds-m-top_x-small"
-              checked={skipDataHistory}
-              label={"Don't save this update to Data History"}
-              labelHelp="Data History keeps a local copy of your updated records and results on this device. Check this to skip saving this particular update."
-              disabled={loading}
-              onChange={setSkipDataHistory}
-            />
+            <div>
+              <Checkbox
+                id={'skip-data-history'}
+                className="slds-m-top_x-small"
+                checked={skipDataHistory}
+                label={"Don't save this update to Data History"}
+                labelHelp="Data History keeps a local copy of your updated records and results on this device. Check this to skip saving this particular update."
+                disabled={loading}
+                onChange={setSkipDataHistory}
+              />
+              <ViewDataHistoryLink className="slds-m-top_xx-small" />
+            </div>
           )}
         </Section>
 

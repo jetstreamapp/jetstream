@@ -11,7 +11,14 @@ import {
   UiTabSection,
 } from '@jetstream/types';
 import { Badge, Checkbox, ConfirmationModalPromise, Grid, Input, Radio, RadioButton, RadioGroup, Spinner, Tabs } from '@jetstream/ui';
-import { ConfirmPageChange, fromLoadRecordsState, getFieldHeaderFromMapping, getMaxBatchSize, useAmplitude } from '@jetstream/ui-core';
+import {
+  ConfirmPageChange,
+  fromLoadRecordsState,
+  getFieldHeaderFromMapping,
+  getMaxBatchSize,
+  useAmplitude,
+  ViewDataHistoryLink,
+} from '@jetstream/ui-core';
 import { dataHistoryCaptureEnabledState } from '@jetstream/ui/app-state';
 import { startDataHistoryEntry } from '@jetstream/ui/data-history';
 import { useAtom, useAtomValue } from 'jotai';
@@ -21,9 +28,9 @@ import LoadRecordsAssignmentRules from '../components/LoadRecordsAssignmentRules
 import LoadRecordsDuplicateWarning from '../components/LoadRecordsDuplicateWarning';
 import LoadRecordsResults from '../components/load-results/LoadRecordsResults';
 import {
-  DataHistoryHandlePromise,
   apiModeToDataHistoryApi,
   buildLoadRecordsInputSource,
+  DataHistoryHandlePromise,
   loadTypeToDataHistoryOperation,
   writeHistoryInputRows,
 } from '../utils/data-history-capture';
@@ -668,15 +675,18 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
         )}
 
         {dataHistoryCaptureEnabled && (
-          <Checkbox
-            id={'skip-data-history'}
-            className="slds-m-vertical_xx-small"
-            checked={skipDataHistory}
-            label={"Don't save this load to Data History"}
-            labelHelp="Data History keeps a local copy of your loaded records and results on this device. Check this to skip saving this particular load."
-            disabled={loading}
-            onChange={setSkipDataHistory}
-          />
+          <div>
+            <Checkbox
+              id={'skip-data-history'}
+              className="slds-m-vertical_xx-small"
+              checked={skipDataHistory}
+              label={"Don't save this load to Data History"}
+              labelHelp="Data History keeps a local copy of your loaded records and results on this device. Check this to skip saving this particular load."
+              disabled={loading}
+              onChange={setSkipDataHistory}
+            />
+            <ViewDataHistoryLink className="slds-m-top_xx-small" />
+          </div>
         )}
       </div>
       <h1 className="slds-text-heading_medium">Summary</h1>

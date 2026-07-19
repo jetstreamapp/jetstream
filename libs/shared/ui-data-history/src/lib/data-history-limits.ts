@@ -2,28 +2,35 @@ import { DataHistorySettings } from '@jetstream/types';
 import { isBrowserExtensionApp, isCanvasApp, isDesktopApp } from './platform';
 
 /**
- * Tiered storage limits (decision: history is available to ALL users; only quota/retention
- * differs by plan). Mirrors the load-file-size tiering in `SelectObjectAndFile` where desktop,
- * browser extension, and canvas always get the top tier.
+ * Tiered limits (decision: history is available to ALL users; only limits differ by plan).
+ * Free plans are capped by ENTRY COUNT (15 most recent — easy to reason about); paid plans (and
+ * desktop/extension/canvas, which always get the top tier) keep unlimited entries for up to a
+ * year. `maxTotalBytes` is an internal safety backstop against runaway disk usage — it is NOT a
+ * user-facing setting.
  */
 
 const MB = 1024 * 1024;
 const GB = 1024 * MB;
 
 export interface DataHistoryTierLimits {
+  /** Internal size backstop — never surfaced as a user control */
   maxTotalBytes: number;
+  /** Maximum stored entries (null = unlimited). The free-tier cap. */
+  maxEntries: number | null;
   retentionDaysMax: number;
   defaultRetentionDays: number;
 }
 
 export const DATA_HISTORY_FREE_TIER_LIMITS: DataHistoryTierLimits = {
   maxTotalBytes: 500 * MB,
+  maxEntries: 15,
   retentionDaysMax: 60,
   defaultRetentionDays: 60,
 };
 
 export const DATA_HISTORY_PAID_TIER_LIMITS: DataHistoryTierLimits = {
   maxTotalBytes: 10 * GB,
+  maxEntries: null,
   retentionDaysMax: 365,
   defaultRetentionDays: 365,
 };
@@ -45,7 +52,6 @@ export function getDefaultDataHistorySettings(tier: DataHistoryTierLimits): Data
   return {
     enabled: true,
     retentionDays: tier.defaultRetentionDays,
-    maxTotalBytes: tier.maxTotalBytes,
   };
 }
 
@@ -54,6 +60,5 @@ export function clampSettingsToTier(settings: DataHistorySettings, tier: DataHis
   return {
     enabled: settings.enabled,
     retentionDays: Math.min(Math.max(1, settings.retentionDays), tier.retentionDaysMax),
-    maxTotalBytes: Math.min(Math.max(1 * MB, settings.maxTotalBytes), tier.maxTotalBytes),
   };
 }

@@ -30,7 +30,7 @@ import {
   Select,
   Spinner,
 } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { useAmplitude, ViewDataHistoryLink } from '@jetstream/ui-core';
 import {
   applicationCookieState,
   dataHistoryCaptureEnabledState,
@@ -342,15 +342,18 @@ export const LoadRecordsMultiObject = () => {
               Choose an Excel file that is in the correct format from the provided template.
             </div>
             {dataHistoryCaptureEnabled && (
-              <Checkbox
-                id={'skip-data-history'}
-                className="slds-m-top_x-small"
-                checked={skipDataHistory}
-                label={"Don't save this load to Data History"}
-                labelHelp="Data History keeps a local copy of your loaded records and results on this device. Check this to skip saving this particular load."
-                disabled={loadStarted || dataLoadLoading}
-                onChange={setSkipDataHistory}
-              />
+              <div>
+                <Checkbox
+                  id={'skip-data-history'}
+                  className="slds-m-top_x-small"
+                  checked={skipDataHistory}
+                  label={"Don't save this load to Data History"}
+                  labelHelp="Data History keeps a local copy of your loaded records and results on this device. Check this to skip saving this particular load."
+                  disabled={loadStarted || dataLoadLoading}
+                  onChange={setSkipDataHistory}
+                />
+                <ViewDataHistoryLink className="slds-m-top_xx-small" />
+              </div>
             )}
           </fieldset>
         </Grid>

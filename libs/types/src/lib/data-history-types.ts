@@ -130,7 +130,6 @@ export interface DataHistoryInlinePayload {
 export const dataHistorySettingsSchema = z.object({
   enabled: z.boolean(),
   retentionDays: z.number(),
-  maxTotalBytes: z.number(),
 });
 export type DataHistorySettings = z.infer<typeof dataHistorySettingsSchema>;
 

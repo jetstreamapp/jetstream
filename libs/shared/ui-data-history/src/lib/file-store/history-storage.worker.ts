@@ -134,6 +134,9 @@ async function handleOpenStream(path: string, gzip: boolean): Promise<OpenStream
         state.bytesWritten += value.byteLength;
       }
     })();
+    // Mark handled so an abort() mid-write never surfaces as an unhandled rejection; close() still
+    // awaits the original promise and receives any error
+    state.gzipPumpPromise.catch(() => undefined);
   }
 
   const streamId = nextStreamId++;

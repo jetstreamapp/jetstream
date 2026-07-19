@@ -1,3 +1,4 @@
+import { DataHistoryStorageBackend } from '@jetstream/types';
 import type { HistoryFileStore, HistoryFileStoreCapabilities, HistoryWriteStream } from './file-store.types';
 import { splitRelativePath } from './path-utils';
 
@@ -7,19 +8,26 @@ import { splitRelativePath } from './path-utils';
  * `CompressionStream` so compressed round-trips behave identically to production backends.
  *
  * `simulateFailure` lets tests assert the capture layer's failure isolation: return true to make
- * the next matching operation throw.
+ * the next matching operation throw. The backend `type`/`capabilities` are configurable so
+ * migration/reindex tests can impersonate any backend.
  */
 export class FakeFileStore implements HistoryFileStore {
-  readonly type = 'opfs' as const;
-  readonly capabilities: HistoryFileStoreCapabilities = {
-    userVisibleFiles: false,
-    needsPermissionCheck: false,
-    supportsReindex: false,
-    survivesSiteDataClear: false,
-  };
+  readonly type: DataHistoryStorageBackend;
+  readonly capabilities: HistoryFileStoreCapabilities;
 
   files = new Map<string, { bytes: Uint8Array; gzip: boolean }>();
   simulateFailure: ((op: string, path?: string) => boolean) | null = null;
+
+  constructor(type: DataHistoryStorageBackend = 'opfs', capabilities?: Partial<HistoryFileStoreCapabilities>) {
+    this.type = type;
+    this.capabilities = {
+      userVisibleFiles: false,
+      needsPermissionCheck: false,
+      supportsReindex: false,
+      survivesSiteDataClear: false,
+      ...capabilities,
+    };
+  }
 
   async init(): Promise<void> {
     this.throwIfFailureSimulated('init');
