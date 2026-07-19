@@ -20,10 +20,15 @@ import {
   PermissionTableObjectCell,
   PermissionTableObjectCellPermission,
   PermissionTableSummaryRow,
+  PermissionTableSystemPermissionCell,
+  PermissionTableSystemPermissionCellPermission,
   PermissionTableTabVisibilityCell,
   PermissionTableTabVisibilityCellPermission,
   PermissionType,
   PermissionTypes,
+  SystemPermissionDefinitionMap,
+  SystemPermissionItem,
+  SystemPermissionTypes,
   TabVisibilityPermissionDefinitionMap,
   TabVisibilityPermissionItem,
   TabVisibilityPermissionTypes,
@@ -48,6 +53,11 @@ import {
 } from '@jetstream/ui';
 import startCase from 'lodash/startCase';
 import { Fragment, useContext, useMemo, useRef, useState } from 'react';
+import {
+  SYSTEM_PERMISSION_DEPENDENCY_TOOLTIP,
+  SYSTEM_PERMISSION_DEPENDENT_CLOSURE,
+  SYSTEM_PERMISSION_REQUIRED_CLOSURE,
+} from './system-permission-dependencies';
 
 type PermissionTypeColumn<T> = T extends 'object'
   ? ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>
@@ -55,7 +65,9 @@ type PermissionTypeColumn<T> = T extends 'object'
     ? ColumnWithFilter<PermissionTableFieldCell, PermissionTableSummaryRow>
     : T extends 'tabVisibility'
       ? ColumnWithFilter<PermissionTableTabVisibilityCell, PermissionTableSummaryRow>
-      : never;
+      : T extends 'systemPermission'
+        ? ColumnWithFilter<PermissionTableSystemPermissionCell, PermissionTableSummaryRow>
+        : never;
 
 type PermissionActionType<T> = T extends 'object'
   ? 'Create' | 'Read' | 'Edit' | 'Delete' | 'ViewAll' | 'ModifyAll' | 'ViewAllFields'
@@ -63,7 +75,9 @@ type PermissionActionType<T> = T extends 'object'
     ? 'Read' | 'Edit'
     : T extends 'tabVisibility'
       ? 'Available' | 'Visible'
-      : never;
+      : T extends 'systemPermission'
+        ? 'Enabled'
+        : never;
 
 type PermissionActionAction<T> = T extends 'object'
   ? ObjectPermissionTypes
@@ -71,7 +85,9 @@ type PermissionActionAction<T> = T extends 'object'
     ? FieldPermissionTypes
     : T extends 'tabVisibility'
       ? TabVisibilityPermissionTypes
-      : never;
+      : T extends 'systemPermission'
+        ? SystemPermissionTypes
+        : never;
 
 function setObjectValue(which: ObjectPermissionTypes, row: PermissionTableObjectCell, permissionId: string, value: boolean) {
   const newRow = { ...row, permissions: { ...row.permissions, [permissionId]: { ...row.permissions[permissionId] } } };
@@ -132,6 +148,21 @@ function setTabVisibilityValue(
   return newRow;
 }
 
+function setSystemPermissionValue(
+  which: SystemPermissionTypes,
+  row: PermissionTableSystemPermissionCell,
+  permissionId: string,
+  value: boolean,
+) {
+  const newRow = { ...row, permissions: { ...row.permissions, [permissionId]: { ...row.permissions[permissionId] } } };
+  const permission = newRow.permissions[permissionId];
+  if (which === 'enabled') {
+    permission.enabled = value;
+    setSystemPermissionDependencies(permission);
+  }
+  return newRow;
+}
+
 /**
  * Set dependent fields based on what selections are made
  */
@@ -188,6 +219,12 @@ function setTabVisibilityDependencies(
   permission.visibleIsDirty = permission.visible !== permission.record.visible;
 }
 
+// System permissions have no interdependencies exposed via the API (Salesforce enforces them
+// server-side), so this only recomputes the dirty flag against the originally loaded value.
+function setSystemPermissionDependencies(permission: PermissionTableSystemPermissionCellPermission) {
+  permission.enabledIsDirty = permission.enabled !== permission.record.enabled;
+}
+
 // export function resetGridChanges(options: {
 //   rows: PermissionTableFieldCell[] | PermissionTableObjectCell[] | PermissionTableTabVisibilityCell[];
 //   type: PermissionType;
@@ -199,7 +236,8 @@ export function resetGridChanges({
 }:
   | { rows: PermissionTableObjectCell[]; type: 'object' }
   | { rows: PermissionTableFieldCell[]; type: 'field' }
-  | { rows: PermissionTableTabVisibilityCell[]; type: 'tabVisibility' }) {
+  | { rows: PermissionTableTabVisibilityCell[]; type: 'tabVisibility' }
+  | { rows: PermissionTableSystemPermissionCell[]; type: 'systemPermission' }) {
   if (type === 'object') {
     return rows.map((row) => {
       row = { ...row };
@@ -262,6 +300,19 @@ export function resetGridChanges({
       });
       return row;
     });
+  } else if (type === 'systemPermission') {
+    return rows.map((row) => {
+      Object.keys(row.permissions).forEach((permissionKey) => {
+        let permission = row.permissions[permissionKey];
+        if (permission.enabledIsDirty) {
+          permission = { ...permission };
+          row.permissions[permissionKey] = permission;
+          permission.enabled = !permission.enabled;
+          permission.enabledIsDirty = false;
+        }
+      });
+      return row;
+    });
   }
 }
 
@@ -290,6 +341,10 @@ export function getDirtyTabVisibilityPermissions(dirtyRows: Record<string, Dirty
   return Object.values(dirtyRows).flatMap(({ row }) =>
     Object.values(row.permissions).filter((permission) => permission.availableIsDirty || permission.visibleIsDirty),
   );
+}
+
+export function getDirtySystemPermissions(dirtyRows: Record<string, DirtyRow<PermissionTableSystemPermissionCell>>) {
+  return Object.values(dirtyRows).flatMap(({ row }) => Object.values(row.permissions).filter((permission) => permission.enabledIsDirty));
 }
 
 export function getObjectColumns(
@@ -572,7 +627,7 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
   actionType: PermissionActionType<T>;
   actionKey: PermissionActionAction<T>;
 }): PermissionTypeColumn<T> {
-  const numItems = permissionType === 'object' ? 7 : 2;
+  const numItems = permissionType === 'object' ? 7 : permissionType === 'systemPermission' ? 1 : 2;
   const maxLabelWidth = Math.max((actionType.length + 3) * 7.5, 116);
   const profileOrPermSetWidth = (`${label} (${type})`.length * 7.5) / numItems;
   const colWidth = Math.max(maxLabelWidth, profileOrPermSetWidth);
@@ -608,6 +663,11 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
         if ((actionKey === 'available' && permission.availableIsDirty) || (actionKey === 'visible' && permission.visibleIsDirty)) {
           return 'active-item-yellow-bg';
         }
+      } else if (permissionType === 'systemPermission') {
+        const permission = row.permissions[id] as PermissionTableSystemPermissionCellPermission;
+        if (permission.enabledIsDirty) {
+          return 'active-item-yellow-bg';
+        }
       }
       return '';
     },
@@ -641,6 +701,14 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
           const newRow = setTabVisibilityValue(
             actionKey as PermissionActionAction<'tabVisibility'>,
             row as PermissionTableTabVisibilityCell,
+            id,
+            value,
+          );
+          commitEdit(newRow);
+        } else if (permissionType === 'systemPermission') {
+          const newRow = setSystemPermissionValue(
+            actionKey as PermissionActionAction<'systemPermission'>,
+            row as PermissionTableSystemPermissionCell,
             id,
             value,
           );
@@ -1010,13 +1078,239 @@ function getRowTabVisibilityPermissionFromFieldPermissionItem(
   };
 }
 
+export function getSystemPermissionColumns(
+  selectedProfiles: string[],
+  selectedPermissionSets: string[],
+  profilesById: Record<string, PermissionSetWithProfileRecord>,
+  permissionSetsById: Record<string, PermissionSetNoProfileRecord>,
+) {
+  const newColumns: ColumnWithFilter<PermissionTableSystemPermissionCell, PermissionTableSummaryRow>[] = [
+    {
+      ...(setColumnFromType('tableLabel', 'text') as any),
+      name: 'System Permission',
+      key: 'tableLabel',
+      frozen: true,
+      width: 300,
+      resizable: true,
+      renderCell: ({ row }) => {
+        const requires = SYSTEM_PERMISSION_DEPENDENCY_TOOLTIP[row.apiName];
+        return (
+          <div className="slds-grid slds-grid_vertical-align-center slds-truncate" title={row.tableLabel}>
+            <span className="slds-truncate">{row.tableLabel}</span>
+            {requires && (
+              <Tooltip
+                id={`tooltip-requires-${row.key}`}
+                content={
+                  <div>
+                    <strong>Requires: </strong>
+                    {requires}
+                  </div>
+                }
+              >
+                <Icon type="utility" icon="info" className="slds-icon slds-icon-text-default slds-icon_xx-small slds-m-left_xx-small" />
+              </Tooltip>
+            )}
+          </div>
+        );
+      },
+      summaryCellClass: 'bg-color-gray-dark no-outline',
+      renderSummaryCell: ({ row }) => {
+        if (row.type === 'HEADING') {
+          return <ColumnSearchFilterSummary />;
+        } else if (row.type === 'ACTION') {
+          return <ColumnSearchFilter />;
+        }
+        return undefined;
+      },
+    },
+    {
+      name: '',
+      key: '_ROW_ACTION',
+      width: 100,
+      resizable: false,
+      frozen: true,
+      renderCell: RowActionRenderer as any,
+      summaryCellClass: ({ type }) => (type === 'HEADING' ? 'bg-color-gray' : null),
+      renderSummaryCell: ({ row }) => {
+        if (row.type === 'ACTION') {
+          return <BulkActionRenderer />;
+        }
+        return undefined;
+      },
+    },
+  ];
+  // one checkbox column per profile, then per permission set
+  selectedProfiles.forEach((profileId) => {
+    const profile = profilesById[profileId];
+    newColumns.push(
+      getColumnForProfileOrPermSet({
+        isFirstItem: true,
+        permissionType: 'systemPermission',
+        id: profileId,
+        type: 'Profile',
+        label: profile?.Profile?.Name || '',
+        actionType: 'Enabled',
+        actionKey: 'enabled',
+      }),
+    );
+  });
+  selectedPermissionSets.forEach((permissionSetId) => {
+    const permissionSet = permissionSetsById[permissionSetId];
+    newColumns.push(
+      getColumnForProfileOrPermSet({
+        isFirstItem: true,
+        permissionType: 'systemPermission',
+        id: permissionSetId,
+        type: 'Permission Set',
+        label: permissionSet?.Name || '',
+        actionType: 'Enabled',
+        actionKey: 'enabled',
+      }),
+    );
+  });
+  return newColumns;
+}
+
+export function getSystemPermissionRows(systemPermissionMap: Record<string, SystemPermissionDefinitionMap>) {
+  const rows: PermissionTableSystemPermissionCell[] = [];
+  Object.values(systemPermissionMap)
+    .sort((a, b) => a.label.localeCompare(b.label))
+    .forEach((systemPermission) => {
+      const currRow: PermissionTableSystemPermissionCell = {
+        key: systemPermission.apiName,
+        sobject: systemPermission.apiName,
+        apiName: systemPermission.apiName,
+        label: systemPermission.label,
+        tableLabel: `${systemPermission.label} (${systemPermission.apiName})`,
+        permissions: {},
+      };
+
+      systemPermission.permissionKeys.forEach((key) => {
+        const item = systemPermission.permissions[key];
+        currRow.permissions[key] = getRowSystemPermissionFromItem(key, systemPermission.apiName, item);
+      });
+
+      rows.push(currRow);
+    });
+  return rows;
+}
+
+function getRowSystemPermissionFromItem(
+  key: string,
+  apiName: string,
+  item: SystemPermissionItem,
+): PermissionTableSystemPermissionCellPermission {
+  return {
+    rowKey: apiName,
+    parentId: key,
+    sobject: apiName,
+    field: apiName,
+    enabled: item.enabled,
+    enabledIsDirty: false,
+    record: item,
+    errorMessage: item.errorMessage,
+  };
+}
+
+export function updateSystemPermissionRowsAfterSave(
+  rows: PermissionTableSystemPermissionCell[],
+  systemPermissionMap: Record<string, SystemPermissionDefinitionMap>,
+): PermissionTableSystemPermissionCell[] {
+  return rows.map((oldRow) => {
+    const row = { ...oldRow };
+    systemPermissionMap[row.key].permissionKeys.forEach((key) => {
+      row.permissions = { ...row.permissions };
+      const systemPermission = systemPermissionMap[row.key].permissions[key];
+      if (systemPermission.errorMessage) {
+        row.permissions[key] = { ...row.permissions[key], errorMessage: systemPermission.errorMessage };
+      } else {
+        row.permissions[key] = getRowSystemPermissionFromItem(key, row.apiName, systemPermission);
+      }
+    });
+    return row;
+  });
+}
+
+/**
+ * Apply Salesforce's system-permission dependency rules across rows within each column
+ * (profile/permission set). System permissions live on separate rows but depend on one another, so a
+ * change to one cell must ripple to the matching cells of the permissions it requires / that require it:
+ * enabling a permission enables everything it requires; disabling one disables everything that requires it.
+ *
+ * `changedRows` are the rows handed to this update: the single-cell edit path forwards just the edited
+ * row(s), while bulk/column actions and the post-save reset pass their own (often full) computed row
+ * sets. We diff each against `prevRows` to find enable/disable transitions, then cascade. Returns the
+ * full row set plus `affectedKeys` — every row in `changedRows` plus any cascade targets — so the caller
+ * recomputes dirty state only for those rows. When the caller passes the full set (e.g. the post-save
+ * reset), this spans every row, which is what lets that path clear dirty state for all saved rows.
+ */
+export function applySystemPermissionDependencies(
+  prevRows: PermissionTableSystemPermissionCell[],
+  changedRows: PermissionTableSystemPermissionCell[],
+): { rows: PermissionTableSystemPermissionCell[]; affectedKeys: Set<string> } {
+  const prevByKey = groupByFlat(prevRows, 'key');
+  const changedByKey = groupByFlat(changedRows, 'key');
+
+  // working copy: changed rows swapped in, all others still reference the previous row
+  const working: Record<string, PermissionTableSystemPermissionCell> = {};
+  prevRows.forEach((row) => (working[row.key] = changedByKey[row.key] ?? row));
+
+  const affectedKeys = new Set<string>(Object.keys(changedByKey));
+  // changed rows are already fresh objects from the edit; only cascade targets need cloning
+  const clonedForCascade = new Set<string>();
+
+  function cloneCascadeTarget(key: string): PermissionTableSystemPermissionCell {
+    if (!clonedForCascade.has(key)) {
+      working[key] = { ...working[key], permissions: { ...working[key].permissions } };
+      clonedForCascade.add(key);
+    }
+    return working[key];
+  }
+
+  changedRows.forEach((changedRow) => {
+    const prevRow = prevByKey[changedRow.key];
+    if (!prevRow) {
+      return;
+    }
+    Object.keys(changedRow.permissions).forEach((parentId) => {
+      const newValue = changedRow.permissions[parentId]?.enabled;
+      const oldValue = prevRow.permissions[parentId]?.enabled;
+      if (newValue === oldValue) {
+        return;
+      }
+      // enabling -> pull in required permissions; disabling -> drop dependents
+      const targets = newValue ? SYSTEM_PERMISSION_REQUIRED_CLOSURE[changedRow.key] : SYSTEM_PERMISSION_DEPENDENT_CLOSURE[changedRow.key];
+      targets?.forEach((targetKey) => {
+        const targetRow = working[targetKey];
+        // dependency may not exist in this org (license/feature gated) — nothing to toggle
+        const cell = targetRow?.permissions[parentId];
+        if (!cell || cell.enabled === newValue) {
+          return;
+        }
+        const row = cloneCascadeTarget(targetKey);
+        const newCell: PermissionTableSystemPermissionCellPermission = { ...cell, enabled: newValue };
+        newCell.enabledIsDirty = newCell.enabled !== newCell.record.enabled;
+        row.permissions[parentId] = newCell;
+        affectedKeys.add(targetKey);
+      });
+    });
+  });
+
+  return { rows: prevRows.map((row) => working[row.key]), affectedKeys };
+}
+
 /**
  *
  * JSX Components
  *
  */
 
-export function getConfirmationModalContent(dirtyObjectCount: number, dirtyFieldCount: number, dirtyTabVisibilityCount: number) {
+export function getConfirmationModalContent(
+  dirtyObjectCount: number,
+  dirtyFieldCount: number,
+  dirtyTabVisibilityCount: number,
+  dirtySystemPermissionCount: number,
+) {
   return (
     <div>
       <p>You have made changes to:</p>
@@ -1043,6 +1337,14 @@ export function getConfirmationModalContent(dirtyObjectCount: number, dirtyField
             jsx: (
               <strong>
                 {dirtyTabVisibilityCount} Tab Visibility {pluralizeFromNumber('Permission', dirtyTabVisibilityCount)}
+              </strong>
+            ),
+          },
+          {
+            dirty: !!dirtySystemPermissionCount,
+            jsx: (
+              <strong>
+                {dirtySystemPermissionCount} System {pluralizeFromNumber('Permission', dirtySystemPermissionCount)}
               </strong>
             ),
           },
@@ -1126,6 +1428,13 @@ export function updateRowsFromColumnAction<TRows extends PermissionTableCellExte
         permission.visible = newValue;
         setTabVisibilityDependencies(permission, newValue, ['available'], []);
       }
+    } else if (type === 'systemPermission') {
+      const permission = row.permissions[id] as PermissionTableSystemPermissionCellPermission;
+      if (which === 'enabled') {
+        newValue = action === 'reset' ? permission.record.enabled : newValue;
+        permission.enabled = newValue;
+        setSystemPermissionDependencies(permission);
+      }
     }
     return row;
   });
@@ -1175,6 +1484,10 @@ export function updateRowsFromRowAction<TRows extends PermissionTableCellExtende
 
         permission.availableIsDirty = permission.available !== permission.record.available;
         permission.visibleIsDirty = permission.visible !== permission.record.visible;
+      } else if (type === 'systemPermission') {
+        const permission = row.permissions[permissionId] as PermissionTableSystemPermissionCellPermission;
+        permission.enabled = checkboxesById['enabled'].value;
+        permission.enabledIsDirty = permission.enabled !== permission.record.enabled;
       }
     }
     return row;
@@ -1242,6 +1555,12 @@ export function resetRow<TRows extends PermissionTableCellExtended>(type: Permis
 
         permission.availableIsDirty = false;
         permission.visibleIsDirty = false;
+      } else if (type === 'systemPermission') {
+        const permission = row.permissions[permissionId] as PermissionTableSystemPermissionCellPermission;
+        if (permission.enabledIsDirty) {
+          permission.enabled = !permission.enabled;
+        }
+        permission.enabledIsDirty = false;
       }
     }
     return row;
@@ -1317,6 +1636,8 @@ function defaultRowActionCheckboxes(type: PermissionType, allowEditPermission: b
       { id: 'available', label: 'Available', value: false, disabled: false },
       { id: 'visible', label: 'Visible', value: false, disabled: false },
     ];
+  } else if (type === 'systemPermission') {
+    return [{ id: 'enabled', label: 'Enabled', value: false, disabled: false }];
   } else {
     throw new Error(`Invalid type ${type}`);
   }
@@ -1401,6 +1722,10 @@ export function updateCheckboxDependencies(
         checkboxesById['available'].value = true;
       }
     }
+  } else if (type === 'systemPermission') {
+    if (which === 'enabled') {
+      checkboxesById['enabled'] = { ...checkboxesById['enabled'], value: value };
+    }
   }
 }
 
@@ -1438,6 +1763,8 @@ export const RowActionRenderer = ({ column, commitEdit, row }: RenderCellProps<P
       setCheckboxes([checkboxesById['read'], checkboxesById['edit']]);
     } else if (type === 'tabVisibility') {
       setCheckboxes([checkboxesById['available'], checkboxesById['visible']]);
+    } else if (type === 'systemPermission') {
+      setCheckboxes([checkboxesById['enabled']]);
     }
   }
 
@@ -1569,6 +1896,8 @@ export const BulkActionRenderer = () => {
       setCheckboxes([checkboxesById['read'], checkboxesById['edit']]);
     } else if (type === 'tabVisibility') {
       setCheckboxes([checkboxesById['available'], checkboxesById['visible']]);
+    } else if (type === 'systemPermission') {
+      setCheckboxes([checkboxesById['enabled']]);
     }
   }
 

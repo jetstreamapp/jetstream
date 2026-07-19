@@ -9,6 +9,7 @@ import {
   ObjectPermissionDefinitionMap,
   ObjectPermissionRecord,
   SalesforceOrgUi,
+  SystemPermissionDefinitionMap,
   TabDefinitionRecord,
   TabVisibilityPermissionDefinitionMap,
   TabVisibilityPermissionRecord,
@@ -19,9 +20,14 @@ import {
   getQueryForAllPermissionableFields,
   getQueryForFieldPermissions,
   getQueryObjectPermissions,
+  getQuerySystemPermissions,
   getQueryTabDefinition,
   getQueryTabVisibilityPermissions,
+  getSystemPermissionFieldsFromDescribe,
 } from './utils/permission-manager-utils';
+
+/** PermissionSet query result carrying the dynamic `Permissions*` boolean columns. */
+type SystemPermissionSetRecord = { Id: string } & Record<string, boolean | string>;
 
 const INVALID_ID_PREFIX = '000';
 
@@ -38,6 +44,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
   const [tabVisibilityPermissionMap, setTabVisibilityPermissionMap] = useState<Record<string, TabVisibilityPermissionDefinitionMap> | null>(
     null,
   );
+  const [systemPermissionMap, setSystemPermissionMap] = useState<Record<string, SystemPermissionDefinitionMap> | null>(null);
 
   useEffect(() => {
     isMounted.current = true;
@@ -74,8 +81,30 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
         queryAndCombineResults<TabDefinitionRecord>(selectedOrg, getQueryTabDefinition(sobjects), false, true).then((tabs) =>
           groupByFlat(tabs, 'SobjectName'),
         ),
+        // System permissions are `Permissions*` columns on the PermissionSet record itself; describe to
+        // learn which are settable in this org, then query their current values by permission set id.
+        describeSObject(selectedOrg, 'PermissionSet').then((describeResult) => {
+          const systemPermissionFields = getSystemPermissionFieldsFromDescribe(describeResult.data.fields);
+          return queryAndCombineResults<SystemPermissionSetRecord>(
+            selectedOrg,
+            getQuerySystemPermissions(
+              [...permSetIds, ...profilePermSetIds],
+              systemPermissionFields.map(({ name }) => name),
+            ),
+          ).then((permissionSetRecords) =>
+            getSystemPermissionMap(systemPermissionFields, profilePermSetIds, permSetIds, permissionSetRecords),
+          );
+        }),
       ]).then(
-        ([fieldPermissionMetadata, fieldDefinition, objectPermissions, fieldPermissions, tabVisibilityPermissions, tabDefinitions]) => {
+        ([
+          fieldPermissionMetadata,
+          fieldDefinition,
+          objectPermissions,
+          fieldPermissions,
+          tabVisibilityPermissions,
+          tabDefinitions,
+          systemPermissions,
+        ]) => {
           // Exclude any fields which are not available in the FieldPermissions.Field picklist (meaning that permissions cannot be set on them)
           // They show up as "permissionable" but are not supported for permissioning :shrug:
           const availableFields = new Set<string>(
@@ -96,6 +125,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
               tabVisibilityPermissions,
               tabDefinitions,
             ),
+            systemPermissionMap: systemPermissions,
           };
         },
       );
@@ -105,6 +135,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
         setObjectPermissionMap(output.objectPermissionMap);
         setFieldPermissionMap(output.fieldPermissionMap);
         setTabVisibilityPermissionMap(output.tabVisibilityPermissionMap);
+        setSystemPermissionMap(output.systemPermissionMap);
       }
     } catch (ex) {
       logger.warn('[useProfilesAndPermSets][ERROR]', getErrorMessage(ex));
@@ -129,8 +160,41 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
     objectPermissionMap,
     fieldPermissionMap,
     tabVisibilityPermissionMap,
+    systemPermissionMap,
     hasError,
   };
+}
+
+function getSystemPermissionMap(
+  systemPermissionFields: { name: string; label: string }[],
+  selectedProfiles: string[],
+  selectedPermissionSets: string[],
+  permissionSetRecords: SystemPermissionSetRecord[],
+): Record<string, SystemPermissionDefinitionMap> {
+  const recordsById = groupByFlat(permissionSetRecords, 'Id');
+
+  return systemPermissionFields.reduce((output: Record<string, SystemPermissionDefinitionMap>, { name, label }) => {
+    const currItem: SystemPermissionDefinitionMap = {
+      apiName: name,
+      label,
+      permissions: {},
+      permissionKeys: [],
+    };
+
+    function processProfileAndPermSet(id: string) {
+      currItem.permissionKeys.push(id);
+      const record = recordsById[id];
+      currItem.permissions[id] = {
+        enabled: record ? !!record[name] : false,
+      };
+    }
+
+    selectedProfiles.forEach(processProfileAndPermSet);
+    selectedPermissionSets.forEach(processProfileAndPermSet);
+
+    output[name] = currItem;
+    return output;
+  }, {});
 }
 
 /**

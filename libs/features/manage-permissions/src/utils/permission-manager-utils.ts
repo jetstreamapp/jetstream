@@ -5,6 +5,7 @@ import { splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
   DescribeGlobalSObjectResult,
   EntityParticlePermissionsRecord,
+  Field,
   FieldPermissionDefinitionMap,
   FieldPermissionRecord,
   FieldPermissionRecordForSave,
@@ -17,13 +18,18 @@ import {
   PermissionSaveResults,
   PermissionSetNoProfileRecord,
   PermissionSetWithProfileRecord,
+  PermissionSystemSaveData,
   PermissionTabVisibilitySaveData,
   PermissionTableCellPermission,
   PermissionTableFieldCellPermission,
   PermissionTableObjectCellPermission,
+  PermissionTableSystemPermissionCellPermission,
   PermissionTableTabVisibilityCellPermission,
   RecordResult,
   SalesforceOrgUi,
+  SystemPermissionDefinitionMap,
+  SystemPermissionRecordForSave,
+  SystemPermissionSaveRecord,
   TabVisibilityPermissionDefinitionMap,
   TabVisibilityPermissionRecord,
   TabVisibilityPermissionRecordForSave,
@@ -261,6 +267,125 @@ export async function savePermissionRecords<RecordType, DirtyPermType>(
   });
 
   return permissionSaveResults;
+}
+
+/**
+ * Group dirty system permissions into one update record per parent, carrying just the changed
+ * `Permissions*` fields + Id. System permissions are columns on the parent record itself, so each
+ * parent collapses to a single update. Profile-owned permission sets cannot be updated directly, so
+ * those are written to the `Profile` record (by its ProfileId); standalone permission sets are written
+ * to the `PermissionSet` record.
+ */
+export function prepareSystemPermissionSaveData(
+  dirtyPermissions: PermissionTableSystemPermissionCellPermission[],
+  profilesById: Record<string, PermissionSetWithProfileRecord>,
+  permissionSetsById: Record<string, PermissionSetNoProfileRecord>,
+): PermissionSystemSaveData {
+  const byParentId = new Map<string, SystemPermissionSaveRecord>();
+  dirtyPermissions.forEach((permission) => {
+    let saveRecord = byParentId.get(permission.parentId);
+    if (!saveRecord) {
+      const profile = profilesById[permission.parentId];
+      const sobjectType: 'Profile' | 'PermissionSet' = profile ? 'Profile' : 'PermissionSet';
+      const recordId = profile ? profile.ProfileId : permissionSetsById[permission.parentId]?.Id || permission.parentId;
+      const record: SystemPermissionRecordForSave = { attributes: { type: sobjectType }, Id: recordId };
+      saveRecord = { parentId: permission.parentId, sobjectType, record, dirtyPermissions: [] };
+      byParentId.set(permission.parentId, saveRecord);
+    }
+    saveRecord.record[permission.field] = permission.enabled;
+    saveRecord.dirtyPermissions.push(permission);
+  });
+  return { recordsToUpdate: Array.from(byParentId.values()) };
+}
+
+export async function saveSystemPermissionRecords(
+  org: SalesforceOrgUi,
+  preparedData: PermissionSystemSaveData,
+): Promise<SystemPermissionSaveRecord[]> {
+  const { recordsToUpdate } = preparedData;
+  if (!recordsToUpdate.length) {
+    return [];
+  }
+
+  // Profile permissions and permission set permissions are written to different sobjects
+  async function runUpdates(saveRecords: SystemPermissionSaveRecord[], sobjectType: 'Profile' | 'PermissionSet') {
+    if (!saveRecords.length) {
+      return;
+    }
+    const results: RecordResult[] = (
+      await Promise.all(
+        splitArrayToMaxSize(saveRecords, 200).map((chunk) =>
+          sobjectOperation(org, sobjectType, 'update', { records: chunk.map(({ record }) => record) }, { allOrNone: false }),
+        ),
+      )
+    ).flat();
+    // results are concatenated in chunk order, which matches saveRecords order
+    saveRecords.forEach((saveRecord, index) => {
+      saveRecord.response = results[index];
+    });
+  }
+
+  await Promise.all([
+    runUpdates(
+      recordsToUpdate.filter(({ sobjectType }) => sobjectType === 'Profile'),
+      'Profile',
+    ),
+    runUpdates(
+      recordsToUpdate.filter(({ sobjectType }) => sobjectType === 'PermissionSet'),
+      'PermissionSet',
+    ),
+  ]);
+  return recordsToUpdate;
+}
+
+/**
+ * Refresh data after save based on results
+ * System Permissions
+ */
+export function getUpdatedSystemPermissions(
+  systemPermissionMap: Record<string, SystemPermissionDefinitionMap>,
+  savedRecords: SystemPermissionSaveRecord[],
+): Record<string, SystemPermissionDefinitionMap> {
+  const output: Record<string, SystemPermissionDefinitionMap> = { ...systemPermissionMap };
+  // remove all prior error messages across all permissions
+  Object.keys(output).forEach((key) => {
+    output[key] = { ...output[key], permissions: { ...output[key].permissions } };
+    output[key].permissionKeys.forEach((permKey) => {
+      output[key].permissions[permKey] = { ...output[key].permissions[permKey], errorMessage: undefined };
+    });
+  });
+
+  savedRecords.forEach(({ dirtyPermissions, response }) => {
+    dirtyPermissions.forEach((dirtyPermission) => {
+      const fieldKey = dirtyPermission.field;
+      const currentMap = output[fieldKey];
+      if (!currentMap) {
+        return;
+      }
+      if (!isErrorResponse(response)) {
+        output[fieldKey] = {
+          ...currentMap,
+          permissions: {
+            ...currentMap.permissions,
+            [dirtyPermission.parentId]: { enabled: dirtyPermission.enabled },
+          },
+        };
+      } else {
+        logger.warn('[SAVE ERROR]', { dirtyPermission, response });
+        output[fieldKey] = {
+          ...currentMap,
+          permissions: {
+            ...currentMap.permissions,
+            [dirtyPermission.parentId]: {
+              ...currentMap.permissions[dirtyPermission.parentId],
+              errorMessage: response.errors.map((err) => err.message).join('\n'),
+            },
+          },
+        };
+      }
+    });
+  });
+  return output;
 }
 
 export { updatePermissionSetRecords };
@@ -771,6 +896,55 @@ export function getQueryTabDefinition(allSobjects: string[]): string[] {
     return composeQuery(query);
   });
   logger.log('getQueryTabDefinition()', queries);
+  return queries;
+}
+
+/**
+ * The settable system permissions available in the org. `Permissions*` boolean fields on the
+ * PermissionSet object are edition/license/feature dependent, so we derive the list from the describe
+ * (rather than a hardcoded catalog) and only include the ones that can actually be updated. The
+ * describe `label` becomes the row label (e.x. `PermissionsApiEnabled` -> "API Enabled").
+ */
+export function getSystemPermissionFieldsFromDescribe(fields: Field[]): { name: string; label: string }[] {
+  return (
+    fields
+      .filter((field) => field.type === 'boolean' && field.updateable && field.name.startsWith('Permissions'))
+      // Salesforce field labels for system permissions can carry trailing whitespace/newlines
+      .map(({ name, label }) => ({ name, label: label.trim() }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+  );
+}
+
+/**
+ * Query the current value of each system permission for the selected profiles/permission sets. Unlike
+ * the object/field/tab queries, system permissions are columns on the PermissionSet record itself, so
+ * this selects the `Permissions*` fields directly, keyed by the PermissionSet Id (which is the same id
+ * stored for each selected profile/permission set).
+ */
+export function getQuerySystemPermissions(parentIds: string[], systemPermissionFields: string[]): string[] {
+  if (!parentIds.length || !systemPermissionFields.length) {
+    return [];
+  }
+  const queries = splitArrayToMaxSize(parentIds, MAX_OBJ_IN_QUERY).map((ids) => {
+    const query: Query = {
+      fields: [getField('Id'), ...systemPermissionFields.map((field) => getField(field))],
+      sObject: 'PermissionSet',
+      where: {
+        left: {
+          field: 'Id',
+          operator: 'IN',
+          value: ids,
+          literalType: 'STRING',
+        },
+      },
+      orderBy: {
+        field: 'Id',
+        order: 'ASC',
+      },
+    };
+    return composeQuery(query);
+  });
+  logger.log('getQuerySystemPermissions()', queries);
   return queries;
 }
 

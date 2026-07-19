@@ -3,6 +3,7 @@ import {
   PermissionTableFieldCell,
   PermissionTableObjectCell,
   PermissionTableSummaryRow,
+  PermissionTableSystemPermissionCell,
   PermissionTableTabVisibilityCell,
 } from '@jetstream/types';
 import { ColumnWithFilter } from '@jetstream/ui';
@@ -12,42 +13,49 @@ import * as XLSX from 'xlsx';
 
 initXlsx(XLSX);
 
-type ObjectOrFieldOrTabVisibilityColumn =
+type PermissionExportColumn =
   | ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>
   | ColumnWithFilter<PermissionTableFieldCell, PermissionTableSummaryRow>
-  | ColumnWithFilter<PermissionTableTabVisibilityCell, PermissionTableSummaryRow>;
+  | ColumnWithFilter<PermissionTableTabVisibilityCell, PermissionTableSummaryRow>
+  | ColumnWithFilter<PermissionTableSystemPermissionCell, PermissionTableSummaryRow>;
 
 export function generateExcelWorkbookFromTable(
-  objectData: { columns: ObjectOrFieldOrTabVisibilityColumn[]; rows: PermissionTableObjectCell[] },
-  tabVisibilityData: { columns: ObjectOrFieldOrTabVisibilityColumn[]; rows: PermissionTableTabVisibilityCell[] },
-  fieldData: { columns: ObjectOrFieldOrTabVisibilityColumn[]; rows: PermissionTableFieldCell[] },
+  objectData: { columns: PermissionExportColumn[]; rows: PermissionTableObjectCell[] },
+  tabVisibilityData: { columns: PermissionExportColumn[]; rows: PermissionTableTabVisibilityCell[] },
+  fieldData: { columns: PermissionExportColumn[]; rows: PermissionTableFieldCell[] },
+  systemPermissionData: { columns: PermissionExportColumn[]; rows: PermissionTableSystemPermissionCell[] },
 ) {
   const workbook = XLSX.utils.book_new();
   const objectWorksheet = generateObjectWorksheet(objectData.columns, objectData.rows);
   const tabVisibilityWorksheet = generateTabVisibilityWorksheet(tabVisibilityData.columns, tabVisibilityData.rows);
   const fieldWorksheet = generateFieldWorksheet(fieldData.columns, fieldData.rows);
+  const systemPermissionWorksheet = generateSystemPermissionWorksheet(systemPermissionData.columns, systemPermissionData.rows);
 
   XLSX.utils.book_append_sheet(workbook, objectWorksheet, 'Object Permissions');
   XLSX.utils.book_append_sheet(workbook, tabVisibilityWorksheet, 'Tab Visibility');
   XLSX.utils.book_append_sheet(workbook, fieldWorksheet, 'Field Permissions');
+  XLSX.utils.book_append_sheet(workbook, systemPermissionWorksheet, 'System Permissions');
 
   return excelWorkbookToArrayBuffer(workbook, { bookSST: true, compression: true });
 }
 
 export async function generateCsvFilesFromTable(
-  objectData: { columns: ObjectOrFieldOrTabVisibilityColumn[]; rows: PermissionTableObjectCell[] },
-  tabVisibilityData: { columns: ObjectOrFieldOrTabVisibilityColumn[]; rows: PermissionTableTabVisibilityCell[] },
-  fieldData: { columns: ObjectOrFieldOrTabVisibilityColumn[]; rows: PermissionTableFieldCell[] },
+  objectData: { columns: PermissionExportColumn[]; rows: PermissionTableObjectCell[] },
+  tabVisibilityData: { columns: PermissionExportColumn[]; rows: PermissionTableTabVisibilityCell[] },
+  fieldData: { columns: PermissionExportColumn[]; rows: PermissionTableFieldCell[] },
+  systemPermissionData: { columns: PermissionExportColumn[]; rows: PermissionTableSystemPermissionCell[] },
 ) {
   const objectCsv = generateObjectCsv(objectData.columns, objectData.rows);
   const tabVisibilityCsv = generateTabVisibilityCsv(tabVisibilityData.columns, tabVisibilityData.rows);
   const fieldCsv = generateFieldCsv(fieldData.columns, fieldData.rows);
+  const systemPermissionCsv = generateSystemPermissionCsv(systemPermissionData.columns, systemPermissionData.rows);
 
   const csvExports = JSZip();
 
   csvExports.file('object-permissions.csv', objectCsv);
   csvExports.file('tab-visibility.csv', tabVisibilityCsv);
   csvExports.file('field-permissions.csv', fieldCsv);
+  csvExports.file('system-permissions.csv', systemPermissionCsv);
 
   const zipFile = await csvExports.generateAsync({
     type: 'arraybuffer',
@@ -59,7 +67,7 @@ export async function generateCsvFilesFromTable(
   return zipFile;
 }
 
-function generateObjectWorksheet(columns: ObjectOrFieldOrTabVisibilityColumn[], rows: PermissionTableObjectCell[]) {
+function generateObjectWorksheet(columns: PermissionExportColumn[], rows: PermissionTableObjectCell[]) {
   const merges: XLSX.Range[] = [];
   const header1: string[] = [''];
   const header2: string[] = ['Object'];
@@ -116,7 +124,7 @@ function generateObjectWorksheet(columns: ObjectOrFieldOrTabVisibilityColumn[], 
   return worksheet;
 }
 
-function generateFieldWorksheet(columns: ObjectOrFieldOrTabVisibilityColumn[], rows: PermissionTableFieldCell[]) {
+function generateFieldWorksheet(columns: PermissionExportColumn[], rows: PermissionTableFieldCell[]) {
   const merges: XLSX.Range[] = [];
   const header1: string[] = ['', '', ''];
   const header2: string[] = ['Object', 'Field Api Name', 'Field Label'];
@@ -161,7 +169,7 @@ function generateFieldWorksheet(columns: ObjectOrFieldOrTabVisibilityColumn[], r
   return worksheet;
 }
 
-function generateTabVisibilityWorksheet(columns: ObjectOrFieldOrTabVisibilityColumn[], rows: PermissionTableTabVisibilityCell[]) {
+function generateTabVisibilityWorksheet(columns: PermissionExportColumn[], rows: PermissionTableTabVisibilityCell[]) {
   const merges: XLSX.Range[] = [];
   const header1: string[] = [''];
   const header2: string[] = ['Object'];
@@ -204,7 +212,7 @@ function generateTabVisibilityWorksheet(columns: ObjectOrFieldOrTabVisibilityCol
   return worksheet;
 }
 
-function generateObjectCsv(columns: ObjectOrFieldOrTabVisibilityColumn[], rows: PermissionTableObjectCell[]) {
+function generateObjectCsv(columns: PermissionExportColumn[], rows: PermissionTableObjectCell[]) {
   const header1: string[] = [''];
   const header2: string[] = ['Object'];
   const csvRows: string[][] = [];
@@ -244,7 +252,7 @@ function generateObjectCsv(columns: ObjectOrFieldOrTabVisibilityColumn[], rows: 
   return unparse(csvRows);
 }
 
-function generateFieldCsv(columns: ObjectOrFieldOrTabVisibilityColumn[], rows: PermissionTableFieldCell[]) {
+function generateFieldCsv(columns: PermissionExportColumn[], rows: PermissionTableFieldCell[]) {
   const header1: string[] = ['', '', ''];
   const header2: string[] = ['Object', 'Field Api Name', 'Field Label'];
   const csvRows: string[][] = [];
@@ -278,7 +286,7 @@ function generateFieldCsv(columns: ObjectOrFieldOrTabVisibilityColumn[], rows: P
   return unparse(csvRows);
 }
 
-function generateTabVisibilityCsv(columns: ObjectOrFieldOrTabVisibilityColumn[], rows: PermissionTableTabVisibilityCell[]) {
+function generateTabVisibilityCsv(columns: PermissionExportColumn[], rows: PermissionTableTabVisibilityCell[]) {
   const header1: string[] = [''];
   const header2: string[] = ['Object'];
   const csvRows: string[][] = [];
@@ -303,6 +311,62 @@ function generateTabVisibilityCsv(columns: ObjectOrFieldOrTabVisibilityColumn[],
     permissionKeys.forEach((key) => {
       const permission = row.permissions[key];
       currRow.push(permission.available ? 'TRUE' : 'FALSE', permission.visible ? 'TRUE' : 'FALSE');
+    });
+    csvRows.push(currRow);
+  });
+
+  return unparse(csvRows);
+}
+
+// System permissions have a single value per profile/permission set, so each column maps to one
+// header cell (no merged sub-columns like the object/field/tab sheets).
+function generateSystemPermissionWorksheet(columns: PermissionExportColumn[], rows: PermissionTableSystemPermissionCell[]) {
+  const header: string[] = ['System Permission', 'API Name'];
+  const excelRows = [header];
+
+  const permissionKeys: string[] = [];
+
+  columns
+    .filter((col) => col.key?.endsWith('-enabled'))
+    .forEach((col) => {
+      header.push(col.name as string);
+      permissionKeys.push(col.key.split('-')[0]);
+    });
+
+  rows.forEach((row) => {
+    const currRow = [row.label, row.apiName];
+    permissionKeys.forEach((key) => {
+      const permission = row.permissions[key];
+      currRow.push(permission.enabled ? 'TRUE' : 'FALSE');
+    });
+    excelRows.push(currRow);
+  });
+
+  const worksheet = XLSX.utils.aoa_to_sheet(excelRows);
+  worksheet['!cols'] = getMaxWidthFromColumnContent(excelRows, new Set([0, 1]));
+  return worksheet;
+}
+
+function generateSystemPermissionCsv(columns: PermissionExportColumn[], rows: PermissionTableSystemPermissionCell[]) {
+  const header: string[] = ['System Permission', 'API Name'];
+  const csvRows: string[][] = [];
+
+  const permissionKeys: string[] = [];
+
+  columns
+    .filter((col) => col.key?.endsWith('-enabled'))
+    .forEach((col) => {
+      header.push(col.name as string);
+      permissionKeys.push(col.key.split('-')[0]);
+    });
+
+  csvRows.push(header);
+
+  rows.forEach((row) => {
+    const currRow = [row.label, row.apiName];
+    permissionKeys.forEach((key) => {
+      const permission = row.permissions[key];
+      currRow.push(permission.enabled ? 'TRUE' : 'FALSE');
     });
     csvRows.push(currRow);
   });

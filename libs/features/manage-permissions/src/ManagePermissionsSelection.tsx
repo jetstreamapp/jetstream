@@ -101,6 +101,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
   const resetObjectPermissionMap = useResetAtom(fromPermissionsState.objectPermissionMap);
   const resetFieldPermissionMap = useResetAtom(fromPermissionsState.fieldPermissionMap);
   const resetTabVisibilityPermissionMap = useResetAtom(fromPermissionsState.tabVisibilityPermissionMap);
+  const resetSystemPermissionMap = useResetAtom(fromPermissionsState.systemPermissionMap);
 
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
@@ -138,6 +139,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
     resetObjectPermissionMap();
     resetFieldPermissionMap();
     resetTabVisibilityPermissionMap();
+    resetSystemPermissionMap();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProfiles, selectedPermissionSets, selectedSObjects]);
 

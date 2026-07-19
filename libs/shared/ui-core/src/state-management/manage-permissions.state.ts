@@ -6,6 +6,7 @@ import {
   ObjectPermissionDefinitionMap,
   PermissionSetNoProfileRecord,
   PermissionSetWithProfileRecord,
+  SystemPermissionDefinitionMap,
   TabVisibilityPermissionDefinitionMap,
 } from '@jetstream/types';
 import { atom } from 'jotai';
@@ -33,6 +34,9 @@ export const objectPermissionMap = atomWithReset<Record<string, ObjectPermission
 export const fieldPermissionMap = atomWithReset<Record<string, FieldPermissionDefinitionMap> | null>(null);
 
 export const tabVisibilityPermissionMap = atomWithReset<Record<string, TabVisibilityPermissionDefinitionMap> | null>(null);
+
+// KEY = `Permissions*` field API name on the PermissionSet object, ex: `PermissionsApiEnabled`
+export const systemPermissionMap = atomWithReset<Record<string, SystemPermissionDefinitionMap> | null>(null);
 
 /**
  * Returns true if all selections have been made

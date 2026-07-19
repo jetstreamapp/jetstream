@@ -53,6 +53,7 @@ export const AppStateResetOnOrgChange = () => {
     useResetAtom(fromPermissionsState.objectPermissionMap),
     useResetAtom(fromPermissionsState.fieldPermissionMap),
     useResetAtom(fromPermissionsState.tabVisibilityPermissionMap),
+    useResetAtom(fromPermissionsState.systemPermissionMap),
     // Deploy
     useResetAtom(fromDeployMetadataState.metadataItemsState),
     useResetAtom(fromDeployMetadataState.metadataItemsMapState),
