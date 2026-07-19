@@ -44,6 +44,7 @@ import {
   validateEditForm,
 } from '@jetstream/ui-core/shared';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { recordDataHistoryAction } from '@jetstream/ui/data-history';
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import { useAtomValue } from 'jotai';
 import isNumber from 'lodash/isNumber';
@@ -357,6 +358,21 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
           });
         }
       }
+
+      // Record the modal save to Data History (success OR error result). Fire-and-forget and self-gating —
+      // it never throws and never gates the UI. Small single-record payload -> stored inline in Dexie.
+      const isErrorResult = isErrorResponse(recordResponse);
+      void recordDataHistoryAction({
+        org: selectedOrg,
+        source: 'record-modal',
+        operation: action === 'edit' ? 'edit' : action === 'clone' ? 'clone' : 'create',
+        api: 'collections',
+        sobjects: [sobjectName],
+        request: record,
+        results: recordResponse,
+        counts: { total: 1, success: isErrorResult ? 0 : 1, failure: isErrorResult ? 1 : 0 },
+        status: isErrorResult ? 'failed' : 'success',
+      });
     } catch (ex) {
       if (isMounted.current) {
         setFormErrors({ hasErrors: true, fieldErrors: {}, generalErrors: ['An unknown problem has occurred.'] });
