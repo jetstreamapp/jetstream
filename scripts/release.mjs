@@ -156,10 +156,11 @@ console.log(`  ${chalk.dim('extension')} ${releaseExtension ? chalk.green('yes')
 console.log(`  ${chalk.dim('desktop')}   ${releaseDesktop ? chalk.green('yes') : chalk.dim('no')}`);
 console.log('');
 
-// ── Release-note reminder (non-blocking) ───────────────────────────────────
+// ── Release-note reminder ──────────────────────────────────────────────────
 // Release notes live in apps/docs/release-notes and must land via a normal PR
-// before the release is cut. Warn (but never block) if one is missing for the
-// upcoming web version. See CONTRIBUTING.md → Releasing → Release notes.
+// before the release is cut. If one is missing for the upcoming web version,
+// warn and require an explicit confirmation to proceed (aborts by default).
+// See CONTRIBUTING.md → Releasing → Release notes.
 if (releaseWeb) {
   const pkg = JSON.parse(await readFile(path.join(ROOT, 'package.json'), 'utf8'));
   const nextWebVersion = bumpVersion(pkg.version, bump);

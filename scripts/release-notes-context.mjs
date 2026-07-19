@@ -238,5 +238,8 @@ Options:
   if (result.version && result.bump) {
     fail('Pass either --version or --bump, not both.');
   }
+  if (result.bump && !['patch', 'minor', 'major'].includes(result.bump)) {
+    fail(`Invalid --bump value: ${result.bump}. Use patch, minor, or major.`);
+  }
   return result;
 }

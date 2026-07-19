@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import { getVisibleReleases, ReleaseNote, ReleasePlatform, RELEASE_NOTES } from '@jetstream/release-notes';
+import { getVisibleReleases, RELEASE_NOTES, ReleaseNote, ReleasePlatform } from '@jetstream/release-notes';
 import { setItemInLocalStorage } from '@jetstream/shared/ui-utils';
 import { Icon, Popover, PopoverRef } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
@@ -48,10 +48,7 @@ export const HeaderWhatsNewPopover: FunctionComponent<HeaderWhatsNewPopoverProps
 
   const allVisible = useMemo(() => getVisibleReleases(releases ?? RELEASE_NOTES, platform), [releases, platform]);
   const visible = useMemo(() => allVisible.slice(0, MAX_VISIBLE_RELEASES), [allVisible]);
-  const unseenCount = useMemo(
-    () => allVisible.filter(({ date }) => !watermark || date > watermark).length,
-    [allVisible, watermark],
-  );
+  const unseenCount = useMemo(() => allVisible.filter(({ date }) => !watermark || date > watermark).length, [allVisible, watermark]);
   const newestDate = allVisible[0]?.date ?? null;
 
   useEffect(() => {
@@ -118,9 +115,7 @@ export const HeaderWhatsNewPopover: FunctionComponent<HeaderWhatsNewPopoverProps
                   </h3>
                   {isUnseen && <span className="slds-badge slds-badge_lightest slds-m-left_x-small">New</span>}
                 </div>
-                <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_x-small">
-                  {formatReleaseDate(release.date)}
-                </p>
+                <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_x-small">{formatReleaseDate(release.date)}</p>
                 <p className="slds-m-bottom_x-small">{release.summary}</p>
                 {release.cta && (
                   <p className="slds-m-bottom_x-small">
@@ -141,12 +136,7 @@ export const HeaderWhatsNewPopover: FunctionComponent<HeaderWhatsNewPopoverProps
                       <span className="text-bold">{highlight.title}</span>
                       {highlight.description && <span>: {highlight.description}</span>}
                       {highlight.docLink && (
-                        <a
-                          className="slds-m-left_xx-small"
-                          href={resolveDocHref(highlight.docLink)}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
+                        <a className="slds-m-left_xx-small" href={resolveDocHref(highlight.docLink)} target="_blank" rel="noreferrer">
                           Learn more
                           <Icon
                             type="utility"
@@ -159,12 +149,7 @@ export const HeaderWhatsNewPopover: FunctionComponent<HeaderWhatsNewPopoverProps
                     </li>
                   ))}
                 </ul>
-                <a
-                  href={`${DOCS_RELEASE_NOTES_URL}/${release.slug}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="slds-text-body_small"
-                >
+                <a href={`${DOCS_RELEASE_NOTES_URL}/${release.slug}`} target="_blank" rel="noreferrer" className="slds-text-body_small">
                   Read full release notes
                   <Icon
                     type="utility"
@@ -196,7 +181,7 @@ export const HeaderWhatsNewPopover: FunctionComponent<HeaderWhatsNewPopoverProps
       }
       buttonProps={{
         className:
-          'slds-button slds-button_icon slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__item-action cursor-pointer',
+          'slds-button slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__item-action cursor-pointer',
         'aria-label': unseenCount > 0 ? `What's new — ${unseenCount} unread` : "What's new",
       }}
     >
