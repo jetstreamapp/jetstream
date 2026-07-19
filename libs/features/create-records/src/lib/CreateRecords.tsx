@@ -31,6 +31,7 @@ import {
 import { RequireMetadataApiBanner, useAmplitude } from '@jetstream/ui-core';
 import { EditFromErrors, handleEditFormErrorResponse, transformEditForm, validateEditForm } from '@jetstream/ui-core/shared';
 import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
+import { recordDataHistoryAction } from '@jetstream/ui/data-history';
 import { useAtomValue } from 'jotai';
 import { useEffect, useRef, useState } from 'react';
 import { LastCreatedRecord } from './LastCreatedRecord';
@@ -236,15 +237,32 @@ export const CreateRecords = () => {
 
     try {
       const recordResponse: RecordResult = (await sobjectOperation(selectedOrg, selectedObject.name, 'create', { records: [record] }))[0];
+      const isErrorResult = isErrorResponse(recordResponse);
+      let retrievedRecord: SalesforceRecord | undefined;
 
       if (isMounted.current) {
-        if (isErrorResponse(recordResponse)) {
+        if (isErrorResult) {
           setFormErrors(handleEditFormErrorResponse(recordResponse));
         } else {
-          const retrievedRecord = (await sobjectOperation(selectedOrg, selectedObject.name, 'retrieve', { ids: [recordResponse.id] }))[0];
+          retrievedRecord = (await sobjectOperation(selectedOrg, selectedObject.name, 'retrieve', { ids: [recordResponse.id] }))[0];
           setCreatedRecord({ id: recordResponse.id, sobject: selectedObject.name, record: retrievedRecord });
         }
       }
+
+      // Record the create to Data History (success OR error). Fire-and-forget + self-gating; the results
+      // payload includes the re-fetched full record on success. Small single-record payload -> stored inline.
+      void recordDataHistoryAction({
+        org: selectedOrg,
+        source: 'create-record',
+        operation: 'create',
+        api: 'collections',
+        sobjects: [selectedObject.name],
+        request: record,
+        results: { result: recordResponse, record: retrievedRecord },
+        counts: { total: 1, success: isErrorResult ? 0 : 1, failure: isErrorResult ? 1 : 0 },
+        status: isErrorResult ? 'failed' : 'success',
+      });
+
       trackEvent(ANALYTICS_KEYS.create_record_save, { success: true });
     } catch (ex) {
       if (isMounted.current) {

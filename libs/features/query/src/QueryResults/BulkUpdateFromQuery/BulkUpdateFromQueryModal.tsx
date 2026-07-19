@@ -28,8 +28,9 @@ import {
   MetadataRowConfiguration,
   useDeployRecords,
 } from '@jetstream/ui-core';
+import { dataHistoryCaptureEnabledState } from '@jetstream/ui/app-state';
 import { composeQuery, Query } from '@jetstreamapp/soql-parser-js';
-import { useAtom } from 'jotai';
+import { useAtom, useAtomValue } from 'jotai';
 import { atomWithReset, useAtomCallback, useResetAtom } from 'jotai/utils';
 import isNumber from 'lodash/isNumber';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
@@ -102,6 +103,8 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
   const [batchSizeError, setBatchSizeError] = useState<string | null>(null);
   const batchSizeInput = useIntegerInput(batchSize, setBatchSize);
   const [serialMode, setSerialMode] = useState(false);
+  const dataHistoryCaptureEnabled = useAtomValue(dataHistoryCaptureEnabledState);
+  const [skipDataHistory, setSkipDataHistory] = useState(false);
   const [deployResults, setDeployResults] = useAtom(deployResultsState);
   const [didDeploy, setDidDeploy] = useState(false);
   const resetDeployResults = useResetAtom(deployResultsState);
@@ -303,6 +306,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
         batchSize: batchSize ?? 10000,
         serialMode,
         configuration: selectedConfig,
+        skipHistory: skipDataHistory,
       });
       pollResultsUntilDone(getDeploymentResults);
     } catch (ex) {
@@ -537,6 +541,17 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
                 onBlur={batchSizeInput.handleBlur}
               />
             </Input>
+            {dataHistoryCaptureEnabled && (
+              <Checkbox
+                id={'skip-data-history'}
+                className="slds-m-top_x-small"
+                checked={skipDataHistory}
+                label={"Don't save this update to Data History"}
+                labelHelp="Data History keeps a local copy of your updated records and results on this device. Check this to skip saving this particular update."
+                disabled={loading || deployInProgress}
+                onChange={setSkipDataHistory}
+              />
+            )}
           </Section>
         )}
 
