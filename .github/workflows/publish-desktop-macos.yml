@@ -31,6 +31,10 @@ jobs:
     timeout-minutes: 60
     env:
       NODE_OPTIONS: "--max_old_space_size=8192"
+      # `prisma generate` runs as part of the nx build graph and loads prisma.config.ts,
+      # which resolves this env var even though generate never connects to the database.
+      # A placeholder keeps config loading from throwing.
+      JETSTREAM_POSTGRES_DBURI: "postgresql://placeholder:placeholder@localhost:5432/placeholder"
       # Turns on the mac signing branch in electron-builder.config.js
       IS_CODESIGNING_ENABLED: "true"
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -80,14 +84,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      # Prisma client is not generated on install; the desktop build needs it.
-      # `prisma generate` doesn't connect to the database, but the Prisma config
-      # still resolves this env var, so a placeholder is required.
-      - name: Generate database client
-        run: pnpm db:generate
-        env:
-          JETSTREAM_POSTGRES_DBURI: "postgresql://placeholder:placeholder@localhost:5432/placeholder"
 
       # Builds the nx desktop projects and assembles dist/desktop-build,
       # writing the .env (Apple + S3-compatible storage creds) that electron-builder reads.
