@@ -1,0 +1,31 @@
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant SF as Salesforce (server)
+    participant API as Jetstream Server
+    participant DB as PostgreSQL
+    participant IF as Browser (Canvas iframe)
+
+    Note over U,IF: User opens Jetstream from inside Salesforce (managed package / Canvas app)
+
+    U->>SF: Open Jetstream (App Launcher / tab)
+
+    rect rgb(230, 244, 234)
+    Note over SF,DB: Salesforce authenticates the user and posts a SIGNED REQUEST
+    SF->>API: POST /canvas/app  (signed_request = signature.envelope)
+    API->>API: verifySignature: HMAC-SHA256(envelope, SFDC_CANVAS_CLIENT_SECRET), timing-safe
+    Note over API: Envelope carries oauthToken, instanceUrl,<br/>user + org context. Token is NOT persisted.
+    API->>DB: isCanvasOrgEntitled(orgId, instanceUrl)?
+    alt Not entitled
+        API-->>IF: 403 branded "access denied" page
+    end
+    end
+
+    rect rgb(232, 240, 254)
+    Note over API,IF: Serve the app (assets from Jetstream, Canvas SDK from Salesforce)
+    API-->>IF: index.html + React bundle (window.sr = verified envelope)
+    IF->>SF: Load Canvas SDK: {instanceUrl}/canvas/sdk/js/.../canvas-all.js
+    end
+
+    IF->>IF: Sfdc.canvas.oauth.token(sr.client.oauthToken)
+    Note over IF,SF: Authenticated. Salesforce data access goes browser -> Salesforce<br/>via the Canvas SDK (see SF data flow) - never through Jetstream.

@@ -1,0 +1,60 @@
+flowchart TB
+  user([End User])
+
+  subgraph device["User Device — Untrusted / Customer-controlled"]
+    web["Web App<br/>React SPA (browser)"]
+    ext["Browser Extension<br/>Chrome / Firefox"]
+    desk["Desktop App<br/>Electron"]
+  end
+
+  subgraph jetcloud["Jetstream Cloud — Trusted / Jetstream-controlled"]
+    api["Jetstream Server<br/>Node / Express API"]
+    db[("PostgreSQL")]
+    geo["Geo-IP Service"]
+  end
+
+  subgraph sfcloud["Salesforce Cloud — External"]
+    canvas["Jetstream Canvas App<br/>(managed package)"]
+    sfapi[("Customer Salesforce Org<br/>REST / Bulk / Metadata")]
+  end
+
+  subgraph third["Third-Party — External"]
+    google["Google / Salesforce<br/>OAuth login"]
+    stripe["Stripe<br/>billing"]
+    mailgun["Mailgun<br/>email"]
+  end
+
+  user --> web
+  user --> ext
+  user --> desk
+  user --> canvas
+
+  web ==>|"app + SF data"| api
+  ext -->|"account auth only"| api
+  desk -->|"auth + key + sync"| api
+  canvas -->|"signed request + assets"| api
+
+  ext -.->|"SF data (direct)"| sfapi
+  desk -.->|"SF data (direct)"| sfapi
+  canvas -.->|"SF data (direct)"| sfapi
+  api ==>|"SF data (proxied)"| sfapi
+
+  api --> db
+  api --> geo
+  api -->|login| google
+  api -->|"billing IDs"| stripe
+  api -->|email| mailgun
+
+  legend["Legend:  ══ Salesforce data via Jetstream server    ┄┄ Salesforce data direct to Salesforce (never touches Jetstream)"]
+
+  classDef trusted fill:#e8f0fe,stroke:#1a73e8,color:#0b1b3a
+  classDef external fill:#fef7e0,stroke:#f9ab00,color:#3a2c05
+  classDef store fill:#e6f4ea,stroke:#137333,color:#062916
+  classDef client fill:#f3e8fd,stroke:#8430ce,color:#2a0a4a
+  classDef note fill:#ffffff,stroke:#9aa0a6,color:#202124
+
+  class api,geo trusted
+  class db store
+  class web,ext,desk client
+  class sfapi,canvas,google,stripe,mailgun external
+  class legend note

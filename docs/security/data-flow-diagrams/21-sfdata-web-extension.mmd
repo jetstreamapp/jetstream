@@ -1,0 +1,32 @@
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant UI as Extension UI (browser)
+    participant SW as Extension Service Worker
+    participant SF as Customer Salesforce Org
+    participant API as Jetstream Server
+
+    Note over U,API: The extension runs on a Salesforce tab where the user is already logged in.
+
+    rect rgb(232, 240, 254)
+    Note over U,SF: Salesforce data path - 100% browser <-> Salesforce (DIRECT)
+    U->>UI: Run query / action
+    UI->>UI: axios adapter intercepts /api/* locally (no network to Jetstream)
+    UI->>SW: GET_CURRENT_ORG / GET_SESSION
+    SW->>SW: Read Salesforce "sid" session cookie from browser cookie store
+    SW-->>UI: { sessionToken = sid, instanceUrl }
+    UI->>UI: Build ApiConnection (Bearer = sid cookie)
+    UI->>SF: HTTPS {instanceUrl}/services/data/... (Bearer sid)
+    SF-->>UI: Salesforce records
+    Note over UI,SF: Runs the SAME salesforce-api client as the web app,<br/>but the fetch originates in the browser, straight to Salesforce.
+    end
+
+    rect rgb(255, 243, 224)
+    Note over SW,API: Jetstream server - control plane only (NO Salesforce data)
+    SW->>API: /web-extension/auth/verify (JWT) - account entitlement
+    opt If user enables record-history sync
+        UI->>API: /web-extension/data-sync (saved queries / history metadata)
+    end
+    end
+
+    Note over U,API: Salesforce record data and the Salesforce session token<br/>NEVER traverse Jetstream servers.

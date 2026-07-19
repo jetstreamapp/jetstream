@@ -1,0 +1,35 @@
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant B as Browser (Web App)
+    participant API as Jetstream Server
+    participant DB as PostgreSQL
+    participant SF as Customer Salesforce Org
+
+    rect rgb(230, 244, 234)
+    Note over U,SF: Phase 1 - Connect a Salesforce org (OAuth) and encrypt credentials at rest
+    U->>B: Click "Add Org"
+    B->>API: GET /oauth/sfdc/auth (popup)
+    API->>API: Build PKCE + state + nonce (stored in server session)
+    API-->>B: Redirect popup to Salesforce authorize
+    B->>SF: User authenticates and approves
+    SF-->>API: GET /oauth/sfdc/callback (auth code)
+    API->>SF: Exchange code -> access_token + refresh_token + userinfo
+    API->>API: Encrypt tokens: per-user PBKDF2 key (from SFDC_ENCRYPTION_KEY + userId<br/>+ random salt, default 100k iters, min 10k) then AES-256-GCM  ->  "v2:salt:blob"
+    API->>DB: Store encrypted token in SalesforceOrg.accessToken
+    API-->>B: postMessage org record (NO tokens ever reach the browser)
+    end
+
+    rect rgb(232, 240, 254)
+    Note over U,SF: Phase 2 - Use the org (e.g. run a SOQL query)
+    U->>B: Run query
+    B->>API: POST /api/query  (X-SFDC-ID header + SOQL)
+    API->>DB: Load org row (encrypted token)
+    API->>API: Decrypt token (re-derive per-user key) -> build ApiConnection
+    API->>SF: HTTPS GET {instanceUrl}/services/data/... (Bearer token, same-origin pinned, SSRF-guarded)
+    SF-->>API: Salesforce records (may contain PII)
+    API-->>B: JSON results
+    Note over API: Records pass through server MEMORY ONLY - not persisted.<br/>On 401, refresh token (advisory-locked), re-encrypt, persist.
+    end
+
+    Note over U,SF: PII: Salesforce OAuth tokens encrypted at rest (per-user key).<br/>Salesforce record data is proxied through Jetstream but never stored.

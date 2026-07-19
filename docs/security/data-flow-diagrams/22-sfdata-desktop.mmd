@@ -1,0 +1,33 @@
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant R as Renderer (React UI, sandboxed)
+    participant M as Main Process (Electron / Node)
+    participant FS as Local Encrypted Storage (orgs.json)
+    participant SF as Customer Salesforce Org
+    participant API as Jetstream Server
+
+    Note over U,API: Orgs are stored on the user's computer, encrypted with the<br/>user-derived key (delivered by the server at login; held in memory).
+
+    rect rgb(232, 240, 254)
+    Note over U,SF: Salesforce data path - desktop <-> Salesforce (DIRECT)
+    U->>R: Run query / action
+    R->>M: IPC request (via contextBridge; renderer never sees tokens)
+    M->>FS: Read org; file is AES-256-GCM ("JSEK" + IV + authTag)
+    M->>M: Decrypt token (jsek: blob) with in-memory user-derived key
+    M->>M: Build ApiConnection (Bearer = access token)
+    M->>SF: HTTPS {instanceUrl}/services/data/... (Bearer token, same-origin pinned)
+    SF-->>M: Salesforce records
+    M-->>R: IPC response
+    Note over M,SF: fetch runs in the Node main process, straight to Salesforce.<br/>On 401, refresh directly with Salesforce, re-encrypt locally.
+    end
+
+    rect rgb(255, 243, 224)
+    Note over M,API: Jetstream server - control plane only (NO Salesforce data)
+    M->>API: /desktop-app/auth/verify - session, entitlement, encryption key, JWT rotation
+    opt If user enables record-history sync
+        M->>API: /desktop-app/data-sync (saved queries / history metadata)
+    end
+    end
+
+    Note over U,API: Salesforce credentials and record data stay on the device /<br/>go direct to Salesforce - never stored on Jetstream servers.

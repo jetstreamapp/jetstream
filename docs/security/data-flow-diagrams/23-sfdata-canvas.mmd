@@ -1,0 +1,30 @@
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant IF as Jetstream App (Canvas iframe)
+    participant PW as Parent Salesforce Window
+    participant SF as Salesforce APIs
+    participant API as Jetstream Server
+
+    Note over U,API: App already authenticated via the Canvas signed request<br/>(oauthToken + instanceUrl read from window.sr).
+
+    rect rgb(232, 240, 254)
+    Note over U,SF: Salesforce data path - via Canvas SDK (DIRECT, no Jetstream hop)
+    U->>IF: Run query / action
+    IF->>IF: axios adapter -> local controller -> ApiConnection
+    IF->>PW: Sfdc.canvas.client.ajax(url, { client: sr.client }) -> postMessage
+    PW->>SF: HTTPS {instanceUrl}/services/data/... (Bearer = canvas oauthToken)
+    SF-->>PW: Salesforce records
+    PW-->>IF: postMessage response back into the iframe
+    end
+
+    %% NOTE: `jetstream__UserPreferences__c` — draw.io's Mermaid engine strips the `__`
+    %% as Markdown bold when generating the .drawio; regenerate.sh restores it afterward.
+    Note over IF,SF: Even user preferences are stored in the customer's own org<br/>(jetstream__UserPreferences__c custom setting) - not on Jetstream.
+
+    rect rgb(255, 243, 224)
+    Note over IF,API: Jetstream server involvement = load time only
+    IF-->>API: (already done) signed-request verify + static asset delivery
+    end
+
+    Note over U,API: No Salesforce data flows through Jetstream servers in Canvas mode.
