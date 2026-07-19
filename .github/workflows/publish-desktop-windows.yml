@@ -70,6 +70,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # The Prisma client is gitignored and generated on demand. It must exist before the
+      # desktop build: nx's `^build` ordering never runs prisma:build first because the
+      # intervening libraries (api-types, etc.) have no build target, so the build graph
+      # would otherwise race prisma:build against salesforce-api:build. Generating up front
+      # guarantees the client is on disk. (JETSTREAM_POSTGRES_DBURI is set at the job level.)
+      - name: Generate database client
+        run: pnpm db:generate
+
       # Builds the nx desktop projects and assembles dist/desktop-build,
       # writing the .env (Azure + S3-compatible storage creds) that electron-builder reads.
       - name: Build desktop bundle
