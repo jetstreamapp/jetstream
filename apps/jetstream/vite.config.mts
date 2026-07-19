@@ -80,7 +80,7 @@ export default defineConfig(() => ({
     host: 'localhost',
     open: '/app',
     fs: {
-      allow: ['..'],
+      allow: ['../../'],
     },
     proxy: Object.fromEntries(API_SERVER_PROXY_PATHS.map((path) => [path, { target: API_SERVER_URL, secure: false }])),
   },

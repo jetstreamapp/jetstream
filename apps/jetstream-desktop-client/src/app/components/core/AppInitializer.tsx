@@ -7,9 +7,10 @@ import { Announcement, JetstreamEventSaveSoqlQueryFormatOptionsPayload, Salesfor
 import { fireToast } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { DEFAULT_PROFILE, fromAppState } from '@jetstream/ui/app-state';
+import { initDataHistory, isDataHistoryCaptureEnabled } from '@jetstream/ui/data-history';
 import { ensureLocalStorageReady, initDexieDb, pruneAnalysisJobHistory } from '@jetstream/ui/db';
 import { AxiosResponse } from 'axios';
-import { useAtom, useAtomValue } from 'jotai';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import localforage from 'localforage';
 import React, { Fragment, FunctionComponent, use, useEffect } from 'react';
 import { Observable, Subject } from 'rxjs';
@@ -48,6 +49,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ authInf
   const ability = useAtomValue(fromAppState.abilityState);
   const { version, announcements, appInfo } = useAtomValue(fromAppState.appInfoState);
   const [orgs, setOrgs] = useAtom(fromAppState.salesforceOrgsState);
+  const setDataHistoryCaptureEnabled = useSetAtom(fromAppState.dataHistoryCaptureEnabledState);
   const invalidOrg = useObservable(orgConnectionError$);
 
   const onSaveSoqlQueryFormatOptions = useObservable(
@@ -99,6 +101,10 @@ APP VERSION ${version}
     if (activeUserId) {
       initDexieDb({ userId: activeUserId, dbName: LOCAL_STORE_DB_NAME, recordSyncEnabled })
         .then(() => pruneAnalysisJobHistory())
+        // Desktop always gets the top history tier via platform detection
+        .then(() => initDataHistory({ hasPaidPlan: false }))
+        .then(() => isDataHistoryCaptureEnabled())
+        .then(setDataHistoryCaptureEnabled)
         .catch((ex) => {
           logger.error('[DB] Error initializing db', ex);
         });
@@ -108,7 +114,7 @@ APP VERSION ${version}
     return () => {
       disconnectSocket();
     };
-  }, [appInfo.serverUrl, authInfo.accessToken, authInfo.deviceId, recordSyncEnabled, activeUserId]);
+  }, [appInfo.serverUrl, authInfo.accessToken, authInfo.deviceId, recordSyncEnabled, activeUserId, setDataHistoryCaptureEnabled]);
 
   useEffect(() => {
     announcements && onAnnouncements && onAnnouncements(announcements);

@@ -1,4 +1,4 @@
-import { QueryHistoryItem } from '@jetstream/types';
+import { DataHistoryItem, QueryHistoryItem } from '@jetstream/types';
 import { saveQueryHistoryObject } from './query-history-object.db';
 import type { DexieDb } from './ui-db';
 
@@ -34,5 +34,19 @@ export function registerDbHooks(db: DexieDb) {
         saveQueryHistoryObject(db, obj);
       });
     };
+  });
+
+  /**
+   * Boolean fields cannot be indexes, so we store a string version of the same field
+   */
+  db.data_history.hook('creating', function (_, record) {
+    record.pinnedIdx = record.pinned ? 'true' : 'false';
+  });
+
+  db.data_history.hook('updating', function (mods) {
+    if ('pinned' in mods) {
+      return { ...mods, pinnedIdx: (mods as Partial<DataHistoryItem>).pinned ? 'true' : 'false' };
+    }
+    return undefined;
   });
 }
