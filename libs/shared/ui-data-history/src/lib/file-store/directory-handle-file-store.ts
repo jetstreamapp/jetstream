@@ -17,6 +17,7 @@ import { splitRelativePath } from './path-utils';
 export class DirectoryHandleFileStore implements HistoryFileStore {
   readonly type = 'directory' as const;
   readonly capabilities: HistoryFileStoreCapabilities = {
+    compressFiles: false,
     userVisibleFiles: true,
     needsPermissionCheck: true,
     supportsReindex: true,

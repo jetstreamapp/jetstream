@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { DataHistoryItem, dataHistoryItemSchema, DataHistoryStorageBackend } from '@jetstream/types';
+import { DataHistoryFileRef, DataHistoryItem, dataHistoryItemSchema, DataHistoryStorageBackend } from '@jetstream/types';
 import { dataHistoryDb } from '@jetstream/ui/db';
 import { buildManifestJson } from './data-history-manifest';
 import { DirectoryHandleFileStore } from './file-store/directory-handle-file-store';
@@ -125,6 +125,73 @@ export async function reconnectHistoryDirectory(): Promise<boolean> {
   return granted;
 }
 
+/**
+ * Pick a DIFFERENT folder for an already-connected directory backend. Entries are copied from the
+ * old folder (when still readable) into the new one; the old folder's files are left in place.
+ * Falls back to a fresh connect when no folder is currently connected. Returns null on cancel.
+ */
+export async function changeHistoryDirectory(onProgress?: DataHistoryMigrationProgress): Promise<{ migrated: number } | null> {
+  const config = await dataHistoryDb.getBackendConfig();
+  const oldHandle = config.active === 'directory' ? (config.directoryHandle as FsaDirectoryHandle | undefined) : undefined;
+  if (!oldHandle) {
+    return await connectHistoryDirectory(onProgress);
+  }
+  let newHandle: FsaDirectoryHandle;
+  try {
+    newHandle = await showHistoryDirectoryPicker();
+  } catch (ex) {
+    if (ex instanceof DOMException && ex.name === 'AbortError') {
+      return null;
+    }
+    throw ex;
+  }
+  if (
+    (await newHandle.queryPermission({ mode: 'readwrite' })) !== 'granted' &&
+    (await newHandle.requestPermission({ mode: 'readwrite' })) !== 'granted'
+  ) {
+    throw new Error('Jetstream was not given permission to write to the selected folder');
+  }
+  const newStore = new DirectoryHandleFileStore(newHandle);
+  await newStore.init();
+  const oldStore = new DirectoryHandleFileStore(oldHandle);
+  let oldStoreAvailable = true;
+  try {
+    await oldStore.init();
+  } catch (ex) {
+    oldStoreAvailable = false;
+    logger.warn('[DATA_HISTORY] Previous history folder is not readable, moving what is possible', ex);
+  }
+
+  const entries = await dataHistoryDb.getAllEntries();
+  let migrated = 0;
+  for (const entry of entries) {
+    try {
+      if (entry.files.length > 0) {
+        const fromStore =
+          entry.storageBackend === 'directory' ? (oldStoreAvailable ? oldStore : null) : await getFileStoreForBackend(entry.storageBackend);
+        if (fromStore) {
+          const wasDirectoryEntry = entry.storageBackend === 'directory';
+          await copyEntryToStore(entry, fromStore, newStore);
+          // Invisible OPFS sources are cleaned up; the old user-visible folder keeps its files
+          if (!wasDirectoryEntry) {
+            await fromStore.deleteEntryDir(getParentDirPath(entry.files[0].path));
+          }
+        }
+      } else {
+        await dataHistoryDb.updateEntry(entry.key, { storageBackend: 'directory' });
+      }
+      migrated++;
+      onProgress?.(migrated, entries.length);
+    } catch (ex) {
+      logger.warn('[DATA_HISTORY][MIGRATE] Unable to move entry to the new folder', entry.key, ex);
+    }
+  }
+
+  await dataHistoryDb.saveBackendConfig({ active: 'directory', directoryHandle: newHandle });
+  resetHistoryFileStores();
+  return { migrated };
+}
+
 /** Desktop: store history on the real filesystem (moves existing entries out of OPFS) */
 export async function enableNativeHistoryStorage(onProgress?: DataHistoryMigrationProgress): Promise<{ migrated: number }> {
   const store = await getFileStoreForBackend('native');
@@ -178,20 +245,9 @@ export async function migrateHistoryEntries({
     try {
       if (entry.files.length > 0) {
         const from = await getFileStoreForBackend(entry.storageBackend);
-        const entryDir = getParentDirPath(entry.files[0].path);
-        for (const fileRef of entry.files) {
-          // Copy raw bytes — already-compressed files stay compressed; the fileRef metadata is unchanged
-          const blob = await from.readFile(fileRef.path, { gunzip: false });
-          await to.writeFile(fileRef.path, blob, { gzip: false });
-        }
-        await to.writeFile(
-          `${entryDir}/${DATA_HISTORY_FILE_NAMES.manifest}`,
-          TEXT_ENCODER.encode(buildManifestJson({ ...entry, storageBackend: to.type })),
-          { gzip: false },
-        );
-        await dataHistoryDb.updateEntry(entry.key, { storageBackend: to.type });
+        await copyEntryToStore(entry, from, to);
         if (deleteSource) {
-          await from.deleteEntryDir(entryDir);
+          await from.deleteEntryDir(getParentDirPath(entry.files[0].path));
         }
       } else {
         // Inline-only entries have no files — just re-stamp
@@ -204,6 +260,37 @@ export async function migrateHistoryEntries({
     }
   }
   return migrated;
+}
+
+/**
+ * Copy one entry's files into `to`, RE-ENCODING to match the target's compression policy —
+ * user-visible folders get plain .csv/.json files the user can open directly, while OPFS keeps
+ * gzip. Updates the entry row (backend stamp, file refs, size) and writes the manifest.
+ */
+async function copyEntryToStore(entry: DataHistoryItem, from: HistoryFileStore, to: HistoryFileStore): Promise<void> {
+  const targetCompressed = to.capabilities.compressFiles;
+  const entryDir = getParentDirPath(entry.files[0].path);
+  const updatedFileRefs: DataHistoryFileRef[] = [];
+  for (const fileRef of entry.files) {
+    if (fileRef.compressed === targetCompressed) {
+      // Raw byte-for-byte copy — encoding already matches
+      const blob = await from.readFile(fileRef.path, { gunzip: false });
+      await to.writeFile(fileRef.path, blob, { gzip: false });
+      updatedFileRefs.push(fileRef);
+    } else {
+      const blob = await from.readFile(fileRef.path, { gunzip: fileRef.compressed });
+      const fileName = targetCompressed ? `${fileRef.fileName}.gz` : fileRef.fileName.replace(/\.gz$/, '');
+      const path = `${entryDir}/${fileName}`;
+      const { bytes } = await to.writeFile(path, blob, { gzip: targetCompressed });
+      updatedFileRefs.push({ ...fileRef, fileName, path, compressed: targetCompressed, bytes });
+    }
+  }
+  const sizeBytes = updatedFileRefs.reduce((total, fileRef) => total + fileRef.bytes, 0);
+  const updatedEntry: DataHistoryItem = { ...entry, storageBackend: to.type, files: updatedFileRefs, sizeBytes };
+  await to.writeFile(`${entryDir}/${DATA_HISTORY_FILE_NAMES.manifest}`, TEXT_ENCODER.encode(buildManifestJson(updatedEntry)), {
+    gzip: false,
+  });
+  await dataHistoryDb.updateEntry(entry.key, { storageBackend: to.type, files: updatedFileRefs, sizeBytes });
 }
 
 /**

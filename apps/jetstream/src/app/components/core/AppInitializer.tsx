@@ -60,8 +60,9 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onAnnou
 
   const recordSyncEntitlementEnabled = ability.can('access', 'RecordSync');
   const recordSyncEnabled = recordSyncEntitlementEnabled && userProfile.preferences.recordSyncEnabled;
-  // Data history is available to everyone; paid plans get higher storage/retention limits
-  const hasPaidPlan = ability.can('access', 'GoogleDrive');
+  // Data history is available to everyone; paid plans get higher limits (canonical paid signal,
+  // NOT an individual entitlement — some paid plans lack specific entitlements)
+  const hasPaidPlan = useAtomValue(fromAppState.hasPaidPlanState);
 
   const activeUserId = userProfile.id && userProfile.id !== DEFAULT_PROFILE.id ? userProfile.id : null;
   // Suspend until both local stores are scoped to this user, so no descendant reads local storage

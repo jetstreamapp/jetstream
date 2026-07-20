@@ -14,6 +14,7 @@ import { splitRelativePath } from './path-utils';
 export class NativeFsFileStore implements HistoryFileStore {
   readonly type = 'native' as const;
   readonly capabilities: HistoryFileStoreCapabilities = {
+    compressFiles: false,
     userVisibleFiles: true,
     needsPermissionCheck: false,
     supportsReindex: true,
