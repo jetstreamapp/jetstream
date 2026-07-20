@@ -21,6 +21,7 @@ export class FakeFileStore implements HistoryFileStore {
   constructor(type: DataHistoryStorageBackend = 'opfs', capabilities?: Partial<HistoryFileStoreCapabilities>) {
     this.type = type;
     this.capabilities = {
+      compressFiles: true,
       userVisibleFiles: false,
       needsPermissionCheck: false,
       supportsReindex: false,

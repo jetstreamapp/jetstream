@@ -24,13 +24,14 @@ import {
   UpgradeToProButton,
 } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
-import { dataHistoryCaptureEnabledState, fromAppState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { dataHistoryCaptureEnabledState, fromAppState } from '@jetstream/ui/app-state';
 import {
   connectHistoryDirectory,
   DATA_HISTORY_FREE_TIER_LIMITS,
   DataHistoryBackendStatus,
   deleteDataHistoryEntry,
   enableNativeHistoryStorage,
+  getDataHistoryLimits,
   getHistoryBackendStatus,
   reconnectHistoryDirectory,
   setDataHistoryEnabled,
@@ -100,8 +101,8 @@ export const DataHistory: FunctionComponent = () => {
   const orgs = useAtomValue(fromAppState.salesforceOrgsState);
   const selectedOrg = useAtomValue(fromAppState.selectedOrgState);
   const [captureEnabled, setCaptureEnabled] = useAtom(dataHistoryCaptureEnabledState);
-  // Same signal that drives the storage tier limits — true only for free users on the web app
-  const { googleShowUpgradeToPro: showUpgradeToPro } = useAtomValue(googleDriveAccessState);
+  // The resolved tier is the free/paid signal — entry-capped means the free tier is active
+  const showUpgradeToPro = getDataHistoryLimits()?.maxEntries != null;
 
   const [orgFilter, setOrgFilter] = useState<string>(() => selectedOrg?.uniqueId || ALL);
   const [sourceFilter, setSourceFilter] = useState<string>(ALL);
@@ -258,29 +259,54 @@ export const DataHistory: FunctionComponent = () => {
             docsPath={APP_ROUTES.DATA_HISTORY.DOCS}
           />
           <PageHeaderActions colType="actions" buttonType="separate">
-            {backendStatus?.active === 'directory' && backendStatus.directoryName && (
-              <Badge
-                type="light"
-                title={`History is stored in the "${backendStatus.directoryName}" folder you selected on this computer. Browsers show only the folder's name, not its full path — manage it from Settings.`}
-              >
-                <Icon type="utility" icon="open_folder" className="slds-icon slds-icon_xx-small slds-m-right_xx-small" omitContainer />
-                {backendStatus.directoryName}
-              </Badge>
-            )}
-            {backendStatus?.active === 'native' && backendStatus.nativePath && (
-              <Badge
-                type="light"
-                title={`History is stored at ${backendStatus.nativePath} — manage it from Settings.`}
+            {backendStatus?.active === 'directory' && (
+              <div
+                className="slds-grid slds-grid_vertical-align-center slds-text-color_weak slds-m-right_small"
                 css={css`
-                  max-width: 20rem;
-                  overflow: hidden;
-                  text-overflow: ellipsis;
-                  white-space: nowrap;
+                  align-self: center;
                 `}
+                title={`History files are saved to the "${backendStatus.directoryName}" folder you selected on this computer. Browsers show only the folder's name (never its full path) and cannot open it in your file manager — manage the folder from Settings.`}
               >
-                <Icon type="utility" icon="open_folder" className="slds-icon slds-icon_xx-small slds-m-right_xx-small" omitContainer />
-                {backendStatus.nativePath}
-              </Badge>
+                <Icon
+                  type="utility"
+                  icon="open_folder"
+                  className="slds-icon slds-icon-text-default slds-icon_xx-small slds-m-right_xx-small"
+                  omitContainer
+                />
+                <span
+                  className="slds-truncate"
+                  css={css`
+                    max-width: 22rem;
+                  `}
+                >
+                  Files are saved to: <strong>{backendStatus.directoryName}</strong>
+                </span>
+              </div>
+            )}
+            {backendStatus?.active === 'native' && (
+              <button
+                className="slds-button slds-m-right_small"
+                css={css`
+                  align-self: center;
+                `}
+                title={`Open ${backendStatus.nativePath} in your file manager`}
+                onClick={() => backendStatus.nativePath && window.electronAPI?.openFile?.(backendStatus.nativePath)}
+              >
+                <Icon
+                  type="utility"
+                  icon="open_folder"
+                  className="slds-icon slds-icon-text-default slds-icon_xx-small slds-m-right_xx-small"
+                  omitContainer
+                />
+                <span
+                  className="slds-truncate"
+                  css={css`
+                    max-width: 22rem;
+                  `}
+                >
+                  Files are saved to: <strong>{backendStatus.nativePath}</strong>
+                </span>
+              </button>
             )}
             {canStoreInFolder && (
               <button
