@@ -1,14 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { QueryHistoryItem, QueryHistorySelection, SalesforceOrgUi, UpDown } from '@jetstream/types';
 import { EmptyState, Grid, GridCol, Icon, List, Modal, SearchInput, Spinner } from '@jetstream/ui';
+import { fromAppState } from '@jetstream/ui/app-state';
 import { dexieDb, queryHistoryDb } from '@jetstream/ui/db';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { useAtomValue } from 'jotai';
 import uniqBy from 'lodash/uniqBy';
 import { createRef, forwardRef, useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router';
 import { fromQueryHistoryState } from '../..';
 import { useAmplitude } from '../../analytics';
 import { QueryRestoreErrors } from '../RestoreQuery/query-restore-utils';
@@ -45,6 +49,9 @@ export interface QueryHistoryProps {
 
 export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ className, selectedOrg, initialType, onRestore, onclose }, ref) => {
   const { trackEvent } = useAmplitude();
+  const ability = useAtomValue(fromAppState.abilityState);
+  // RecordSync (history backup/sync) is a paid feature; free users keep history only in this browser.
+  const canSyncHistory = ability.can('access', 'RecordSync');
   const [whichType, setWhichType] = useState<QueryHistoryType>(() => initialType || 'HISTORY');
   const [whichOrg, setWhichOrg] = useState<WhichOrgType>('SELECTED');
   const ulRef = createRef<HTMLUListElement>();
@@ -192,6 +199,10 @@ export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ className
     setWhichOrg('ALL');
   }
 
+  function handleBackupNudgeClick() {
+    trackEvent(ANALYTICS_KEYS.query_HistoryBackupNudgeClick);
+  }
+
   return (
     <Modal
       header="Query History"
@@ -209,6 +220,20 @@ export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ className
       onClose={() => onclose()}
     >
       {isRestoring && <Spinner />}
+      {!canSyncHistory && (
+        <div className="slds-text-body_small slds-text-color_weak slds-p-around_xx-small slds-m-bottom_xx-small">
+          <Icon
+            type="utility"
+            icon="info"
+            className="slds-icon slds-icon-text-default slds-icon_x-small slds-m-right_xx-small"
+            omitContainer
+          />
+          Your query history is saved only in this browser.{' '}
+          <Link to={APP_ROUTES.BILLING.ROUTE} onClick={handleBackupNudgeClick}>
+            Upgrade to back it up &amp; sync across devices
+          </Link>
+        </div>
+      )}
       {selectObjectsList.length <= 1 && <QueryHistoryEmptyState whichType={whichType} whichOrg={whichOrg} />}
       {selectObjectsList.length > 1 && (
         <Grid className="slds-scrollable_y">
