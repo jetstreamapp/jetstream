@@ -178,6 +178,26 @@ describe('initialized', () => {
     });
   });
 
+  describe('backend compression policy', () => {
+    it('writes plain .csv/.json files when the backend prefers uncompressed (user-visible folders)', async () => {
+      fakeStore = new FakeFileStore('directory', { compressFiles: false, userVisibleFiles: true });
+      setHistoryFileStoreForTests(fakeStore);
+
+      const handle = (await startDataHistoryEntry(startOptions())) as DataHistoryEntryHandle;
+      await handle.writeInputRows([{ Name: 'Acme' }], ['Name']);
+      await handle.appendResultsRows([{ _id: '001', _success: true }], ['_id', '_success']);
+      await handle.finish({ counts: { total: 1, success: 1, failure: 0 } });
+      await handle.flush();
+
+      const entry = await dataHistoryDb.getEntry(handle.key);
+      expect(entry?.files.map(({ fileName }) => fileName).sort()).toEqual(['input.csv', 'results.csv']);
+      expect(entry?.files.every(({ compressed }) => !compressed)).toBe(true);
+      const orgFolder = await getOrgFolderName(org.uniqueId);
+      const inputFile = fakeStore.files.get(`${orgFolder}/${handle.key}/input.csv`);
+      expect(new TextDecoder().decode(inputFile?.bytes)).toBe('Name\nAcme');
+    });
+  });
+
   describe('recordDataHistoryAction', () => {
     it('stores small payloads inline without touching the file store', async () => {
       await recordDataHistoryAction({

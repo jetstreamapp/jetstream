@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { DataHistorySettings, Maybe } from '@jetstream/types';
 import { CheckboxToggle, ConfirmationModalPromise, fireToast, Spinner, UpgradeToProButton } from '@jetstream/ui';
-import { dataHistoryCaptureEnabledState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { dataHistoryCaptureEnabledState } from '@jetstream/ui/app-state';
 import {
   DataHistoryStorageHealth,
   deleteAllDataHistory,
@@ -14,7 +14,7 @@ import {
   updateDataHistoryRetentionSettings,
 } from '@jetstream/ui/data-history';
 import { filesize } from 'filesize';
-import { useAtomValue, useSetAtom } from 'jotai';
+import { useSetAtom } from 'jotai';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { useAmplitude } from '../analytics';
 import { ViewDataHistoryLink } from '../app/DataHistoryLinks';
@@ -45,8 +45,6 @@ export interface DataHistorySettingsSectionProps {
 export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSectionProps> = ({ viewHistoryLinkHref }) => {
   const { trackEvent } = useAmplitude();
   const setCaptureEnabledAtom = useSetAtom(dataHistoryCaptureEnabledState);
-  // Same signal that drives the tier limits — true only for free users on the web app
-  const { googleShowUpgradeToPro: showUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const [settings, setSettings] = useState<Maybe<DataHistorySettings>>(null);
   const [health, setHealth] = useState<Maybe<DataHistoryStorageHealth>>(null);
   const [retentionDaysInput, setRetentionDaysInput] = useState('');
@@ -160,7 +158,8 @@ export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSe
           Storage is {usagePercent}% full — the oldest unpinned entries will be removed automatically as new history is saved.
         </p>
       )}
-      {entryCapped && showUpgradeToPro && (
+      {/* The tier itself is the free/paid signal — desktop/extension/canvas always resolve to the top tier */}
+      {entryCapped && (
         <div className="slds-m-top_x-small">
           <span className="slds-m-right_small">
             {`Free accounts keep your ${limits?.maxEntries} most recent entries — upgrade for unlimited entries and up to a year of history.`}

@@ -29,7 +29,7 @@ import {
 } from './data-history-state';
 import { getFileStoreForBackend, getHistoryFileStore } from './file-store/file-store-factory';
 import { HistoryFileStore, HistoryWriteStream } from './file-store/file-store.types';
-import { DATA_HISTORY_FILE_NAMES, getEntryFilePath, getOrgFolderName } from './file-store/path-utils';
+import { DATA_HISTORY_FILE_NAMES, getDataHistoryFileName, getEntryFilePath, getOrgFolderName } from './file-store/path-utils';
 
 /**
  * Public capture + management API for the local Data History feature.
@@ -201,7 +201,8 @@ export class DataHistoryEntryHandle {
   /** Persist the parsed input rows as `input.csv.gz` */
   writeInputRows(rows: Record<string, unknown>[], header: string[]): Promise<void> {
     return this.run(async () => {
-      const stream = await this.store.createWriteStream(this.filePath(DATA_HISTORY_FILE_NAMES.inputCsv), { gzip: true });
+      const fileName = getDataHistoryFileName('input.csv', this.compressed);
+      const stream = await this.store.createWriteStream(this.filePath(fileName), { gzip: this.compressed });
       try {
         for (const chunk of serializeRowsToCsvChunks(rows, header, { includeHeader: true })) {
           await stream.write(chunk);
@@ -209,10 +210,10 @@ export class DataHistoryEntryHandle {
         const { bytes } = await stream.close();
         await this.addFileRef({
           kind: 'input',
-          path: this.filePath(DATA_HISTORY_FILE_NAMES.inputCsv),
-          fileName: DATA_HISTORY_FILE_NAMES.inputCsv,
+          path: this.filePath(fileName),
+          fileName,
           contentType: 'text/csv',
-          compressed: true,
+          compressed: this.compressed,
           bytes,
           rowCount: rows.length,
         });
@@ -226,14 +227,15 @@ export class DataHistoryEntryHandle {
   /** Persist the exact request payload (JSON) as `request.json.gz` */
   writeRequestJson(payload: unknown): Promise<void> {
     return this.run(async () => {
-      const path = this.filePath(DATA_HISTORY_FILE_NAMES.requestJson);
-      const { bytes } = await this.store.writeFile(path, TEXT_ENCODER.encode(JSON.stringify(payload)), { gzip: true });
+      const fileName = getDataHistoryFileName('request.json', this.compressed);
+      const path = this.filePath(fileName);
+      const { bytes } = await this.store.writeFile(path, TEXT_ENCODER.encode(JSON.stringify(payload)), { gzip: this.compressed });
       await this.addFileRef({
         kind: 'request',
         path,
-        fileName: DATA_HISTORY_FILE_NAMES.requestJson,
+        fileName,
         contentType: 'application/json',
-        compressed: true,
+        compressed: this.compressed,
         bytes,
         rowCount: Array.isArray(payload) ? payload.length : undefined,
       });
@@ -251,7 +253,9 @@ export class DataHistoryEntryHandle {
         return;
       }
       if (!this.resultsStream) {
-        this.resultsStream = await this.store.createWriteStream(this.filePath(DATA_HISTORY_FILE_NAMES.resultsCsv), { gzip: true });
+        this.resultsStream = await this.store.createWriteStream(this.filePath(getDataHistoryFileName('results.csv', this.compressed)), {
+          gzip: this.compressed,
+        });
         this.resultsHeaderWritten = false;
       }
       for (const chunk of serializeRowsToCsvChunks(rows, header, { includeHeader: !this.resultsHeaderWritten })) {
@@ -268,12 +272,13 @@ export class DataHistoryEntryHandle {
       if (this.resultsStream) {
         const { bytes } = await this.resultsStream.close();
         this.resultsStream = null;
+        const fileName = getDataHistoryFileName('results.csv', this.compressed);
         await this.addFileRef({
           kind: 'results',
-          path: this.filePath(DATA_HISTORY_FILE_NAMES.resultsCsv),
-          fileName: DATA_HISTORY_FILE_NAMES.resultsCsv,
+          path: this.filePath(fileName),
+          fileName,
           contentType: 'text/csv',
-          compressed: true,
+          compressed: this.compressed,
           bytes,
           rowCount: this.resultsRowCount,
         });
@@ -312,6 +317,11 @@ export class DataHistoryEntryHandle {
 
   private filePath(fileName: string): string {
     return getEntryFilePath(this.orgFolder, this.key, fileName);
+  }
+
+  /** Compression follows the backend policy — gzip in OPFS, plain files in user-visible folders */
+  private get compressed(): boolean {
+    return this.store.capabilities.compressFiles;
   }
 
   /**
@@ -412,27 +422,30 @@ export async function recordDataHistoryAction(options: RecordDataHistoryActionOp
     } else {
       const store = await getHistoryFileStore();
       item.storageBackend = store.type;
+      const compressed = store.capabilities.compressFiles;
       const orgFolder = await getOrgFolderName(options.org.uniqueId);
-      const requestPath = getEntryFilePath(orgFolder, item.key, DATA_HISTORY_FILE_NAMES.requestJson);
-      const resultsPath = getEntryFilePath(orgFolder, item.key, DATA_HISTORY_FILE_NAMES.resultsJson);
-      const requestFile = await store.writeFile(requestPath, TEXT_ENCODER.encode(JSON.stringify(request)), { gzip: true });
-      const resultsFile = await store.writeFile(resultsPath, TEXT_ENCODER.encode(JSON.stringify(results)), { gzip: true });
+      const requestFileName = getDataHistoryFileName('request.json', compressed);
+      const resultsFileName = getDataHistoryFileName('results.json', compressed);
+      const requestPath = getEntryFilePath(orgFolder, item.key, requestFileName);
+      const resultsPath = getEntryFilePath(orgFolder, item.key, resultsFileName);
+      const requestFile = await store.writeFile(requestPath, TEXT_ENCODER.encode(JSON.stringify(request)), { gzip: compressed });
+      const resultsFile = await store.writeFile(resultsPath, TEXT_ENCODER.encode(JSON.stringify(results)), { gzip: compressed });
       item.files = [
         {
           kind: 'request',
           path: requestPath,
-          fileName: DATA_HISTORY_FILE_NAMES.requestJson,
+          fileName: requestFileName,
           contentType: 'application/json',
-          compressed: true,
+          compressed,
           bytes: requestFile.bytes,
           rowCount: Array.isArray(request) ? request.length : undefined,
         },
         {
           kind: 'results',
           path: resultsPath,
-          fileName: DATA_HISTORY_FILE_NAMES.resultsJson,
+          fileName: resultsFileName,
           contentType: 'application/json',
-          compressed: true,
+          compressed,
           bytes: resultsFile.bytes,
           rowCount: Array.isArray(results) ? results.length : undefined,
         },

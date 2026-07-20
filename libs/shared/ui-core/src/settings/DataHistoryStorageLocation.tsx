@@ -3,6 +3,7 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { Maybe } from '@jetstream/types';
 import { fireToast, Spinner } from '@jetstream/ui';
 import {
+  changeHistoryDirectory,
   changeNativeHistoryFolder,
   connectHistoryDirectory,
   DataHistoryBackendStatus,
@@ -80,7 +81,20 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
 
       {status.nativeSupported ? (
         <div>
-          <p>{isNativeActive ? `Folder on disk: ${status.nativePath}` : 'App-managed storage (default)'}</p>
+          {isNativeActive ? (
+            <p>
+              Files are saved to:{' '}
+              <button
+                className="slds-button"
+                title="Open this folder in your file manager"
+                onClick={() => status.nativePath && window.electronAPI?.openFile?.(status.nativePath)}
+              >
+                {status.nativePath}
+              </button>
+            </p>
+          ) : (
+            <p>App-managed storage (default)</p>
+          )}
           {!isNativeActive && (
             <button
               className="slds-button slds-button_neutral slds-m-top_x-small"
@@ -121,7 +135,7 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
         </div>
       ) : (
         <div>
-          <p>{isDirectoryActive ? `Folder: ${status.directoryName}` : 'Browser storage (default)'}</p>
+          <p>{isDirectoryActive ? `Files are saved to: ${status.directoryName}` : 'Browser storage (default)'}</p>
           {status.permissionNeeded && (
             <p className="slds-text-color_error slds-m-top_xx-small">
               Jetstream no longer has permission to your history folder — new history is temporarily saved to browser storage.
@@ -165,6 +179,24 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
           )}
           {isDirectoryActive && (
             <div className="slds-m-top_x-small">
+              <button
+                className="slds-button slds-button_neutral slds-m-right_x-small"
+                disabled={working}
+                onClick={() =>
+                  runAction(
+                    async () => {
+                      const result = await changeHistoryDirectory(handleMigrationProgress);
+                      if (result) {
+                        fireToast({ type: 'success', message: 'Your history was moved to the new folder.' });
+                      }
+                    },
+                    { backend: 'directory', action: 'change-folder' },
+                  )
+                }
+                title="Pick a different folder — your history is copied there; files in the old folder are left in place"
+              >
+                Change Folder…
+              </button>
               <button
                 className="slds-button slds-button_neutral"
                 disabled={working}

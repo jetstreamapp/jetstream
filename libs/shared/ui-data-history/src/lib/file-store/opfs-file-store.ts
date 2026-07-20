@@ -20,6 +20,7 @@ import type {
 export class OpfsFileStore implements HistoryFileStore {
   readonly type = 'opfs' as const;
   readonly capabilities: HistoryFileStoreCapabilities = {
+    compressFiles: true,
     userVisibleFiles: false,
     needsPermissionCheck: false,
     supportsReindex: false,

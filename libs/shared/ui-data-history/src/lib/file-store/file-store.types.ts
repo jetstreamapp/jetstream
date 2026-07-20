@@ -33,6 +33,13 @@ export interface HistoryFileStore {
 export interface HistoryFileStoreCapabilities {
   /** Files are visible to the user in their real filesystem (FSA/native backends) */
   userVisibleFiles: boolean;
+  /**
+   * Whether NEW payload files should be gzip'd in this backend. True for invisible quota-bound
+   * storage (OPFS); false for user-visible backends where plain .csv/.json files the user can
+   * open directly are the point. Stores must still honor the explicit gzip/gunzip flags either
+   * way — existing files carry their own `compressed` flag.
+   */
+  compressFiles: boolean;
   /** `init()` may fail on a lost permission that requires a user gesture to restore (FSA) */
   needsPermissionCheck: boolean;
   /** The backend can rebuild Dexie rows from on-disk `manifest.json` files */

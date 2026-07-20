@@ -109,6 +109,35 @@ describe('migrateHistoryEntries', () => {
   });
 });
 
+describe('migrateHistoryEntries compression re-encoding', () => {
+  beforeEach(async () => {
+    await dexieDb.data_history.clear();
+    await dexieDb.data_history_config.clear();
+    sourceStore = new FakeFileStore('opfs');
+    setHistoryFileStoreForTests(sourceStore);
+  });
+
+  afterEach(() => {
+    setHistoryFileStoreForTests(null);
+  });
+
+  it('re-encodes gzip files to plain files for user-visible backends and updates file refs', async () => {
+    const entry = await seedEntry({ withFile: true });
+
+    const target = new FakeFileStore('directory', { compressFiles: false, userVisibleFiles: true });
+    await migrateHistoryEntries({ to: target, deleteSource: true });
+
+    const migrated = await dataHistoryDb.getEntry(entry.key);
+    expect(migrated?.files[0].fileName).toBe('results.csv');
+    expect(migrated?.files[0].compressed).toBe(false);
+    expect(migrated?.files[0].path.endsWith('/results.csv')).toBe(true);
+    // the file in the target is plain text, directly readable without decompression
+    const plain = target.files.get(migrated?.files[0].path as string);
+    expect(new TextDecoder().decode(plain?.bytes)).toBe('_id,_success\n001,true');
+    expect(migrated?.sizeBytes).toBe(plain?.bytes.byteLength);
+  });
+});
+
 describe('reindexHistoryFromActiveBackend', () => {
   beforeEach(async () => {
     await dexieDb.data_history.clear();

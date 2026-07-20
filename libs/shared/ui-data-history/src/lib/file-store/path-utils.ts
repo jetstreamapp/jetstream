@@ -10,11 +10,14 @@ export const DATA_HISTORY_ROOT_DIR = 'jetstream-history';
 
 export const DATA_HISTORY_FILE_NAMES = {
   manifest: 'manifest.json',
-  inputCsv: 'input.csv.gz',
-  requestJson: 'request.json.gz',
-  resultsCsv: 'results.csv.gz',
-  resultsJson: 'results.json.gz',
 } as const;
+
+export type DataHistoryBaseFileName = 'input.csv' | 'request.json' | 'results.csv' | 'results.json';
+
+/** Payload file name for a backend's compression policy (`input.csv` vs `input.csv.gz`) */
+export function getDataHistoryFileName(baseName: DataHistoryBaseFileName, compressed: boolean): string {
+  return compressed ? `${baseName}.gz` : baseName;
+}
 
 /** Split and validate a relative path. Throws on empty/unsafe segments or traversal attempts. */
 export function splitRelativePath(relativePath: string): string[] {
