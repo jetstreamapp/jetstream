@@ -26,6 +26,7 @@ import { PopoverErrorButton } from '../popover/PopoverErrorButton';
 import { fireToast } from '../toast/AppToast';
 import Spinner from '../widgets/Spinner';
 import { DataTableSubqueryContext } from './data-table-context';
+import { buildEditedRecordsExport, buildPriorRecordsExport } from './data-table-history-export';
 import { applyPasteCellsToRows, revertCellsInRows } from './data-table-paste-utils';
 import {
   ColumnWithFilter,
@@ -144,6 +145,16 @@ export interface SalesforceRecordDataTableProps {
   onGetAsApex: (record: any) => void;
   onSavedRecords: (results: { recordCount: number; failureCount: number }) => void;
   onReloadQuery: () => void;
+  /**
+   * Fired after a successful save with Data-History-ready snapshots (edited/prior values + results),
+   * captured BEFORE the save mutates each row's `_record` in place. Optional so `libs/ui` stays free of
+   * the data-history service — the host wires this to the capture layer.
+   */
+  onRecordsSaveCapture?: (info: {
+    editedRecords: { data: Record<string, unknown>[]; header: string[] };
+    priorRecords: { data: Record<string, unknown>[]; header: string[] };
+    results: SobjectCollectionResponse;
+  }) => void;
   /** Amplitude tracker (from the host's `useAmplitude`). Optional — defaults to a no-op. */
   trackEvent?: (key: string, value?: Record<string, any>) => void;
 }
@@ -178,6 +189,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
     onGetAsApex,
     onSavedRecords,
     onReloadQuery,
+    onRecordsSaveCapture,
     trackEvent = () => undefined,
   }: SalesforceRecordDataTableProps) => {
     const isMounted = useRef(true);
@@ -574,6 +586,15 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
         );
         const results = await onUpdateRecords(modifiedRecords);
         setLastSaveResults(results);
+
+        // Snapshot the edited/prior values for Data History BEFORE the newRows mapping below mutates each
+        // row's `_record` in place (which would make a later diff drop every field). Built via the shared
+        // export builders so the history payload matches the "Download Changes"/"Download Results" files.
+        onRecordsSaveCapture?.({
+          editedRecords: buildEditedRecordsExport(dirtyRows),
+          priorRecords: buildPriorRecordsExport(dirtyRows),
+          results,
+        });
 
         const failedResultsById = results.reduce<Record<string, ErrorResult>>((acc, result, i) => {
           if (!result.success) {

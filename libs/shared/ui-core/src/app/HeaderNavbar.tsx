@@ -24,6 +24,7 @@ import { SelectedOrgReadOnly } from '../orgs/SelectedOrgReadOnly';
 import { QuickQueryPopover } from '../query/QuickQueryPopover';
 import { RecordSearchPopover } from '../record/RecordSearchPopover';
 import { UserSearchPopover } from '../record/UserSearchPopover';
+import { HeaderDataHistoryButton } from './DataHistoryLinks';
 import HeaderDonatePopover from './HeaderDonatePopover';
 import HeaderHelpPopover from './HeaderHelpPopover';
 import { useHeaderNavbarItems } from './HeaderNavbarItems';
@@ -257,7 +258,7 @@ export const HeaderNavbar = ({
         );
       }
 
-      items.push(<QuickQueryPopover />, <RecordSearchPopover />, <UserSearchPopover />, <Jobs />);
+      items.push(<QuickQueryPopover />, <RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderDataHistoryButton />);
 
       // Add update notification for desktop
       if (isDesktop) {
@@ -274,6 +275,7 @@ export const HeaderNavbar = ({
         <RecordSearchPopover />,
         <UserSearchPopover />,
         <Jobs />,
+        <HeaderDataHistoryButton />,
         <HeaderHelpPopover />,
         <HeaderDonatePopover />,
       ];
@@ -286,11 +288,19 @@ export const HeaderNavbar = ({
         <RecordSearchPopover />,
         <UserSearchPopover />,
         <Jobs />,
+        <HeaderDataHistoryButton />,
         <HeaderHelpPopover />,
       ];
     }
 
-    return [<QuickQueryPopover />, <RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />];
+    return [
+      <QuickQueryPopover />,
+      <RecordSearchPopover />,
+      <UserSearchPopover />,
+      <Jobs />,
+      <HeaderDataHistoryButton />,
+      <HeaderHelpPopover />,
+    ];
   }, [isReadOnlyUser, isEmbeddedApp, isDesktop, isBillingEnabled, hasPaidPlan, trackEvent, showFullscreenLink, instanceUrl]);
 
   // The pro logo is light-on-dark and reads fine in both schemes. The free logo

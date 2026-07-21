@@ -17,6 +17,7 @@ import {
   ConfirmationModalPromise,
   EmptyState,
   FileOrGoogleSelector,
+  fireToast,
   Grid,
   Icon,
   OpenRoadIllustration,
@@ -28,15 +29,30 @@ import {
   ScopedNotification,
   Select,
   Spinner,
-  fireToast,
 } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
-import { applicationCookieState, googleDriveAccessState, selectedOrgState, selectedOrgType } from '@jetstream/ui/app-state';
+import { useAmplitude, ViewDataHistoryLink } from '@jetstream/ui-core';
+import {
+  applicationCookieState,
+  dataHistoryCaptureEnabledState,
+  googleDriveAccessState,
+  selectedOrgState,
+  selectedOrgType,
+} from '@jetstream/ui/app-state';
+import { startDataHistoryEntry } from '@jetstream/ui/data-history';
 import { useAtomValue } from 'jotai';
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
 import LoadRecordsMultiObjectErrors from './LoadRecordsMultiObjectErrors';
 import LoadRecordsMultiObjectResults from './LoadRecordsMultiObjectResults';
+import {
+  buildMultiObjectInputSource,
+  DataHistoryHandlePromise,
+  finalizeMultiObjectHistory,
+  getMultiObjectDistinctSobjects,
+  getMultiObjectOperations,
+  writeMultiObjectRequestJson,
+} from './data-history-capture';
+import { buildMultiObjectRequestExport } from './load-records-multi-object-results';
 import { LoadMultiObjectRequestWithResult } from './load-records-multi-object-types';
 import useLoadFile from './useLoadFile';
 import useProcessLoadFile from './useProcessLoadFile';
@@ -55,7 +71,13 @@ export const LoadRecordsMultiObject = () => {
 
   const [inputFilename, setInputFilename] = useState<Maybe<string>>(null);
   const [inputFileType, setInputFileType] = useState<LocalOrGoogle>();
+  const [inputGoogleFileId, setInputGoogleFileId] = useState<Maybe<string>>(null);
   const [inputFileData, setInputFileData] = useState<XLSX.WorkBook>();
+  // Data History — seeded during app init so the opt-out checkbox renders synchronously
+  const dataHistoryCaptureEnabled = useAtomValue(dataHistoryCaptureEnabledState);
+  const [skipDataHistory, setSkipDataHistory] = useState(false);
+  const historyHandleRef = useRef<DataHistoryHandlePromise | null>(null);
+  const historyFinalizedRef = useRef(false);
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const googleApiConfig = useMemo(
@@ -117,6 +139,16 @@ export const LoadRecordsMultiObject = () => {
     setData(loadResultsData || fileProcessingData);
   }, [fileProcessingData, loadResultsData]);
 
+  // Finalize the Data History entry once the load completes — streams the flattened result rows and
+  // writes the counts derived from the same data. Fire-and-forget; guarded to run exactly once per run.
+  useEffect(() => {
+    if (!loadStarted || dataLoadLoading || !loadResultsData || !historyHandleRef.current || historyFinalizedRef.current) {
+      return;
+    }
+    historyFinalizedRef.current = true;
+    finalizeMultiObjectHistory(historyHandleRef.current, loadResultsData);
+  }, [dataLoadLoading, loadResultsData, loadStarted]);
+
   useEffect(() => {
     setInitialData(JSON.parse(JSON.stringify(fileProcessingData)));
   }, [fileProcessingData]);
@@ -137,6 +169,7 @@ export const LoadRecordsMultiObject = () => {
       const workbook = XLSX.read(content, { cellText: false, cellDates: true, type: 'array' });
       setInputFilename(filename);
       setInputFileType('local');
+      setInputGoogleFileId(null);
       setInputFileData(workbook);
       fileProcessingReset();
       loadResultsReset();
@@ -152,6 +185,7 @@ export const LoadRecordsMultiObject = () => {
     setLoadStarted(false);
     setInputFilename(selectedFile.name);
     setInputFileType('google');
+    setInputGoogleFileId(selectedFile.id);
     setInputFileData(workbook);
     fileProcessingReset();
     loadResultsReset();
@@ -168,13 +202,49 @@ export const LoadRecordsMultiObject = () => {
       }))
     ) {
       setLoadStarted(true);
+      startDataHistoryCapture(initialData);
       loadFile(initialData);
     }
+  }
+
+  /**
+   * Begin a Data History entry for the load (self-gates, fire-and-forget). One entry covers the whole
+   * multi-object load — `sobjects` spans every object and `operation` is the shared op ('insert' when
+   * mixed, with the per-object operations recorded in `config`).
+   */
+  function startDataHistoryCapture(dataToLoad: LoadMultiObjectRequestWithResult[]) {
+    const operations = getMultiObjectOperations(dataToLoad);
+    const historyHandle = startDataHistoryEntry({
+      org: selectedOrg,
+      source: 'load-multi-object',
+      operation: operations.operation,
+      api: 'composite-graph',
+      sobjects: getMultiObjectDistinctSobjects(dataToLoad),
+      config: {
+        insertNulls,
+        dateFormat,
+        numGroups: dataToLoad.length,
+        operationsByObject: operations.byObject,
+        mixedOperations: operations.mixed,
+      },
+      inputSource: buildMultiObjectInputSource({
+        filename: inputFilename,
+        filenameType: inputFileType,
+        googleFileId: inputGoogleFileId,
+      }),
+      skipHistory: skipDataHistory,
+    });
+    historyHandleRef.current = historyHandle;
+    historyFinalizedRef.current = false;
+    writeMultiObjectRequestJson(historyHandle, buildMultiObjectRequestExport(dataToLoad));
   }
 
   function handleStartOver() {
     setLoadStarted(false);
     setInputFilename(null);
+    setInputGoogleFileId(null);
+    historyHandleRef.current = null;
+    historyFinalizedRef.current = false;
     fileProcessingReset();
     loadResultsReset();
     trackEvent(ANALYTICS_KEYS.load_StartOver);
@@ -271,6 +341,20 @@ export const LoadRecordsMultiObject = () => {
             <div className="slds-form-element__help slds-truncate">
               Choose an Excel file that is in the correct format from the provided template.
             </div>
+            {dataHistoryCaptureEnabled && (
+              <div>
+                <Checkbox
+                  id={'skip-data-history'}
+                  className="slds-m-top_x-small"
+                  checked={skipDataHistory}
+                  label={"Don't save this load to Data History"}
+                  labelHelp="Data History keeps a local copy of your loaded records and results on this device. Check this to skip saving this particular load."
+                  disabled={loadStarted || dataLoadLoading}
+                  onChange={setSkipDataHistory}
+                />
+                <ViewDataHistoryLink className="slds-m-top_xx-small" />
+              </div>
+            )}
           </fieldset>
         </Grid>
 

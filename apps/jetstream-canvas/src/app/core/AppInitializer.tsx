@@ -5,6 +5,7 @@ import { useObservable } from '@jetstream/shared/ui-utils';
 import { JetstreamEventSaveSoqlQueryFormatOptionsPayload } from '@jetstream/types';
 import { AppLoading, fromJetstreamEvents } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
+import { initDataHistory, isDataHistoryCaptureEnabled } from '@jetstream/ui/data-history';
 import { initDexieDb } from '@jetstream/ui/db';
 import { useAtomValue, useSetAtom } from 'jotai';
 import localforage from 'localforage';
@@ -27,6 +28,8 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
   const setSelectedOrgId = useSetAtom(fromAppState.selectedOrgIdState);
   const setSalesforceOrgs = useSetAtom(fromAppState.salesforceOrgsState);
   const setUserProfile = useSetAtom(fromAppState.userProfileState);
+  const setDataHistoryCaptureEnabled = useSetAtom(fromAppState.dataHistoryCaptureEnabledState);
+  const setDataHistoryInitialized = useSetAtom(fromAppState.dataHistoryInitializedState);
   const setCanvasColorScheme = useSetAtom(canvasColorSchemeState);
   const selectedOrg = useAtomValue(fromAppState.selectedOrgState);
 
@@ -49,9 +52,16 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
   useEffect(() => {
     // wait until this data has initialized before proceeding
     const recordSyncEnabled = false;
-    initDexieDb({ recordSyncEnabled }).catch((ex) => {
-      logger.error('[DB] Error initializing db', ex);
-    });
+    initDexieDb({ recordSyncEnabled })
+      // Canvas always gets the top history tier via platform detection (storage is partitioned per
+      // Salesforce top-level origin and best-effort — see tmp/data-history-plan/01-feasibility.md)
+      .then(() => initDataHistory({ hasPaidPlan: false }))
+      .then(() => isDataHistoryCaptureEnabled())
+      .then(setDataHistoryCaptureEnabled)
+      .then(() => setDataHistoryInitialized(true))
+      .catch((ex) => {
+        logger.error('[DB] Error initializing db', ex);
+      });
   }, []);
 
   // Load preferences from Salesforce custom setting on mount

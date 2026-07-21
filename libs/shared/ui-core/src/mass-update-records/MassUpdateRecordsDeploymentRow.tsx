@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { bulkApiGetRecords } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { decodeHtmlEntity, pluralizeFromNumber } from '@jetstream/shared/utils';
+import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { BulkJobBatchInfo, BulkJobResultRecord, DownloadAction, DownloadType, SalesforceOrgUi } from '@jetstream/types';
 import { Card, FileDownloadModal, Grid, SalesforceLogin, ScopedNotification, Spinner, SupportLink } from '@jetstream/ui';
 import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
@@ -16,7 +16,12 @@ import LoadRecordsBulkApiResultsTable from '../load-records-results/LoadRecordsB
 import LoadRecordsResultsModal from '../load/LoadRecordsResultsModal';
 import MassUpdateRecordTransformationText from './MassUpdateRecordTransformationText';
 import { MetadataRow } from './mass-update-records.types';
-import { getFieldsToQuery } from './mass-update-records.utils';
+import {
+  buildMassUpdateCombinedResults,
+  getFieldsToQuery,
+  getMassUpdateBatchSourceRecords,
+  getMassUpdateResultsHeader,
+} from './mass-update-records.utils';
 
 export interface DownloadModalData {
   open: boolean;
@@ -79,25 +84,11 @@ export const MassUpdateRecordsDeploymentRow = ({
       }
       const data = await bulkApiGetRecords<BulkJobResultRecord>(selectedOrg, jobInfo.id, batch.id, 'result');
 
-      const startIdx = deployResults.batchIdToIndex[batch.id] * batchSize;
+      const records = getMassUpdateBatchSourceRecords(deployResults.records, deployResults.batchIdToIndex, batch.id, batchSize);
+      // show all if results, otherwise just include errors
+      const combinedResults = buildMassUpdateCombinedResults(data, records, { includeSuccesses: type === 'results' });
 
-      const records: any[] = deployResults.records.slice(startIdx, startIdx + batchSize);
-      const combinedResults: any[] = [];
-
-      data.forEach((resultRecord, i) => {
-        // show all if results, otherwise just include errors
-        if (type === 'results' || !resultRecord.Success) {
-          combinedResults.push({
-            _id: resultRecord.Id || records[i].Id || null,
-            _success: resultRecord.Success,
-            _errors: decodeHtmlEntity(resultRecord.Error),
-            ...records[i],
-          });
-        }
-      });
-
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const header = ['_id', '_success', '_errors'].concat(['Id', ...configuration.map(({ selectedField }) => selectedField!)]);
+      const header = getMassUpdateResultsHeader(configuration);
 
       if (action === 'view') {
         setResultsModalData({ ...resultsModalData, open: true, header, data: combinedResults, type });

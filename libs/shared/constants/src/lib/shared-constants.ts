@@ -317,6 +317,14 @@ export const ANALYTICS_KEYS = {
   platform_event_clear_all: 'platform_event_clear_all',
   platform_event_clear_events: 'platform_event_clear_events',
   platform_event_publish: 'platform_event_publish',
+  /** Data History */
+  data_history_page_view: 'data_history_page_view',
+  data_history_view_detail: 'data_history_view_detail',
+  data_history_download: 'data_history_download',
+  data_history_pin: 'data_history_pin',
+  data_history_delete: 'data_history_delete',
+  data_history_delete_all: 'data_history_delete_all',
+  data_history_settings_changed: 'data_history_settings_changed',
   /** Settings */
   settings_update_user: 'settings_update_user',
   settings_link_account: 'settings_link_account',
@@ -358,6 +366,7 @@ export const TITLES = {
   API_EXPLORER: 'Salesforce Api | Jetstream',
   AUTOMATION_CONTROL: 'Automation Control | Jetstream',
   CREATE_OBJ_FIELD: 'Create Fields | Jetstream',
+  DATA_HISTORY: 'Data History | Jetstream',
   DEBUG_LOGS: 'Debug Logs | Jetstream',
   DEPLOY_METADATA: 'Deploy Metadata | Jetstream',
   EXPORT_OBJECT_METADATA: 'Export Object Metadata | Jetstream',

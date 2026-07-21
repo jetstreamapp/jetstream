@@ -9,6 +9,13 @@ import { formatDate } from 'date-fns/format';
 import { useAtom } from 'jotai';
 import { useCallback, useEffect, useRef } from 'react';
 import { useAmplitude } from '../analytics';
+import {
+  captureMassUpdateResults,
+  failMassUpdateHistory,
+  MassUpdateHistoryContext,
+  startMassUpdateHistory,
+  writeMassUpdateRequestJson,
+} from './data-history-capture';
 import { DeployResults, MetadataRow, MetadataRowConfiguration } from './mass-update-records.types';
 import { getFieldsToQuery, prepareRecords, queryAndPrepareRecordsForUpdate } from './mass-update-records.utils';
 
@@ -21,6 +28,9 @@ export function useDeployRecords(
   const isMounted = useRef(true);
   const { notifyUser } = useBrowserNotifications(serverUrl);
   const { trackEvent } = useAmplitude();
+  // Data History capture handles keyed by sobject, stashed at submit time so the poll-done branch can
+  // finalize the matching entry. (Mass-update deployments are one-per-sobject, so sobject is the key.)
+  const historyCaptureRef = useRef<Record<string, MassUpdateHistoryContext>>({});
 
   useEffect(() => {
     isMounted.current = true;
@@ -40,6 +50,8 @@ export function useDeployRecords(
       records,
       batchSize,
       serialMode,
+      configuration,
+      skipHistory,
     }: {
       deployResults: DeployResults;
       sobject: string;
@@ -48,10 +60,29 @@ export function useDeployRecords(
       records: any[];
       batchSize: number;
       serialMode: boolean;
+      configuration: MetadataRowConfiguration[];
+      skipHistory?: boolean;
     }) => {
       deployResults = { ...deployResults };
       const jobInfo = await bulkApiCreateJob(org, { type: 'UPDATE', sObject: sobject, serialMode });
       const jobId = jobInfo.id || '';
+
+      // Begin the Data History entry now that the job id is known. Fire-and-forget and self-gating:
+      // the handle is stashed by sobject so the poll-done branch can stream results + finish it.
+      const historyHandle = startMassUpdateHistory({
+        org,
+        source,
+        sobject,
+        jobId,
+        records,
+        batchSize,
+        serialMode,
+        configuration,
+        skipHistory,
+      });
+      historyCaptureRef.current[sobject] = { handle: historyHandle, batchSize, configuration };
+      writeMassUpdateRequestJson(historyHandle, records);
+
       const batches = splitArrayToMaxSize(records, batchSize).map((batch) => ({
         records: batch,
         csv: generateCsv(batch, { header: true, columns: fields, delimiter: ',' }),
@@ -95,11 +126,11 @@ export function useDeployRecords(
       deployResults.lastChecked = formatDate(new Date(), 'h:mm:ss');
       isMounted.current && onDeployResults(sobject, { ...deployResults });
     },
-    [org, onDeployResults],
+    [org, source, onDeployResults],
   );
 
   const loadDataForRow = useCallback(
-    async (row: MetadataRow, { batchSize, serialMode }: { batchSize: number; serialMode: boolean }) => {
+    async (row: MetadataRow, { batchSize, serialMode, skipHistory }: { batchSize: number; serialMode: boolean; skipHistory?: boolean }) => {
       const deployResults: DeployResults = {
         done: false,
         processingStartTime: convertDateToLocale(new Date()),
@@ -148,6 +179,8 @@ export function useDeployRecords(
         records,
         batchSize,
         serialMode,
+        configuration: row.configuration,
+        skipHistory,
       });
     },
     [org, performLoad, onDeployResults],
@@ -158,7 +191,7 @@ export function useDeployRecords(
    * Alternatively, loadDataForProvidedRecords can be used if all the records are already obtained with proper fields included
    */
   const loadDataForRows = useCallback(
-    async (rows: MetadataRow[], options: { batchSize: number; serialMode: boolean }) => {
+    async (rows: MetadataRow[], options: { batchSize: number; serialMode: boolean; skipHistory?: boolean }) => {
       trackEvent(ANALYTICS_KEYS.mass_update_Submitted, {
         batchSize: options.batchSize,
         serialMode: options.serialMode,
@@ -179,6 +212,7 @@ export function useDeployRecords(
           };
 
           isMounted.current && onDeployResults(row.sobject, deployResults);
+          failMassUpdateHistory(historyCaptureRef.current[row.sobject]?.handle, getErrorMessage(ex));
 
           tracker.error('There was an error loading data for mass record update', ex);
           logger.error('Error loading data for row', ex);
@@ -199,6 +233,7 @@ export function useDeployRecords(
       batchSize,
       serialMode,
       configuration,
+      skipHistory,
     }: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       records: any[];
@@ -208,6 +243,7 @@ export function useDeployRecords(
       batchSize: number;
       serialMode: boolean;
       configuration: MetadataRowConfiguration[];
+      skipHistory?: boolean;
     }) => {
       trackEvent(ANALYTICS_KEYS.mass_update_Submitted, {
         batchSize,
@@ -253,6 +289,8 @@ export function useDeployRecords(
           records,
           batchSize,
           serialMode,
+          configuration,
+          skipHistory,
         });
       } catch (ex) {
         const newDeployResults: DeployResults = {
@@ -265,6 +303,7 @@ export function useDeployRecords(
         };
 
         onDeployResults(sobject, newDeployResults);
+        failMassUpdateHistory(historyCaptureRef.current[sobject]?.handle, getErrorMessage(ex));
 
         tracker.error('There was an error loading data for mass record update', ex);
         logger.error('Error loading data for row', ex);
@@ -293,6 +332,20 @@ export function useDeployRecords(
               deployResults.done = true;
               deployResults.status = 'Finished';
               deployResults.processingEndTime = convertDateToLocale(new Date());
+
+              // Proactively capture per-record results to Data History (bulk results expire server-side).
+              // Runs exactly once per deployment — the row won't re-enter this branch once `done` is set.
+              const captureContext = historyCaptureRef.current[row.sobject];
+              captureMassUpdateResults({
+                handle: captureContext?.handle,
+                org,
+                jobInfo,
+                records: row.deployResults.records,
+                batchIdToIndex: row.deployResults.batchIdToIndex,
+                batchSize: captureContext?.batchSize ?? 0,
+                configuration: captureContext?.configuration ?? [],
+                processingErrorCount: row.deployResults.processingErrors.length,
+              });
             } else {
               allDone = false;
             }
@@ -308,6 +361,7 @@ export function useDeployRecords(
               processingEndTime: convertDateToLocale(new Date()),
             };
             onDeployResults(row.sobject, deployResults, true);
+            failMassUpdateHistory(historyCaptureRef.current[row.sobject]?.handle, getErrorMessage(ex));
           }
         }
       }

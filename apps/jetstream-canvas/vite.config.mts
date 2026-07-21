@@ -10,16 +10,18 @@ export default defineConfig(() => ({
   server: {
     port: 4202,
     host: 'localhost',
+    fs: {
+      allow: ['../../'],
+    },
   },
   preview: {
     port: 4202,
     host: 'localhost',
   },
   plugins: [react(), nxViteTsPaths()],
-  // Uncomment this if you are using workers.
-  // worker: {
-  //   plugins: () => [ nxViteTsPaths() ],
-  // },
+  worker: {
+    plugins: () => [nxViteTsPaths()],
+  },
   build: {
     outDir: '../../dist/apps/jetstream-canvas',
     emptyOutDir: true,

@@ -1,4 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import {
   AutoFullHeightContainer,
   CheckboxToggle,
@@ -9,7 +10,7 @@ import {
   ScopedNotification,
   Spinner,
 } from '@jetstream/ui';
-import { SoqlQueryFormatConfig } from '@jetstream/ui-core';
+import { DataHistorySettingsSection, SoqlQueryFormatConfig } from '@jetstream/ui-core';
 import { dexieDataSync } from '@jetstream/ui/db';
 import { useState } from 'react';
 import { AppWrapper } from '../../core/AppWrapper';
@@ -101,6 +102,8 @@ export function AdditionalSettings() {
             If you have having an issue with your data syncing from Jetstream to the Extension, you can reset your extension data to pull in
             all your Jetstream data.
           </p>
+
+          <DataHistorySettingsSection viewHistoryLinkHref={APP_ROUTES.DATA_HISTORY.ROUTE} />
         </AutoFullHeightContainer>
       </Page>
     </div>

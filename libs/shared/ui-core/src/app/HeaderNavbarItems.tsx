@@ -56,6 +56,13 @@ export function useHeaderNavbarItems(): NavbarItemConfig[] {
             title: APP_ROUTES.LOAD_CREATE_RECORD.DESCRIPTION,
             label: APP_ROUTES.LOAD_CREATE_RECORD.TITLE,
           },
+          {
+            id: 'data-history',
+            path: APP_ROUTES.DATA_HISTORY.ROUTE,
+            search: APP_ROUTES.DATA_HISTORY.SEARCH_PARAM,
+            title: APP_ROUTES.DATA_HISTORY.DESCRIPTION,
+            label: APP_ROUTES.DATA_HISTORY.TITLE,
+          },
         ],
       },
       {
