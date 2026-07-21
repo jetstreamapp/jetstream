@@ -6,7 +6,7 @@ import dns from 'dns';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { defineConfig } from 'vite';
-import { baseHrefPlugin, cspNoncePlugin } from './vite.plugins';
+import { baseHrefPlugin, cspNoncePlugin, serviceWorkerPlugin } from './vite.plugins';
 
 dns.setDefaultResultOrder('verbatim');
 
@@ -51,6 +51,7 @@ export default defineConfig(() => ({
     nxViteTsPaths(),
     baseHrefPlugin(),
     cspNoncePlugin(),
+    serviceWorkerPlugin(),
     // Sentry plugin must be LAST per docs. Reads SENTRY_AUTH_TOKEN / SENTRY_ORG /
     // SENTRY_PROJECT / SENTRY_URL from env automatically.
     ...(uploadSourcemaps

@@ -44,6 +44,11 @@ export interface HeaderNavbarProps {
   onLogoutHandlerFn?: () => void;
   colorScheme?: ColorScheme;
   onColorSchemeChange?: (colorScheme: ColorScheme) => void;
+  /**
+   * App-provided update indicator rendered with the right-hand header actions (e.g. the web app's
+   * WebUpdateNotification). The desktop app instead renders its own HeaderUpdateNotification.
+   */
+  updateNotification?: React.ReactNode;
 }
 
 function logout(serverUrl: string) {
@@ -141,6 +146,7 @@ export const HeaderNavbar = ({
   onLogoutHandlerFn,
   colorScheme: colorSchemeOverride,
   onColorSchemeChange,
+  updateNotification,
 }: HeaderNavbarProps) => {
   const navigate = useNavigate();
   const { trackEvent } = useAmplitude();
@@ -236,8 +242,11 @@ export const HeaderNavbar = ({
   const instanceUrl = selectedOrg?.instanceUrl;
 
   const rightHandMenuItems = useMemo(() => {
+    // Renders nothing until the app detects an update, so it costs no header space normally
+    const updateNotificationItems = updateNotification ? [updateNotification] : [];
+
     if (isReadOnlyUser) {
-      return [<HeaderHelpPopover />];
+      return [...updateNotificationItems, <HeaderHelpPopover />];
     }
 
     if (isEmbeddedApp || isDesktop) {
@@ -264,7 +273,7 @@ export const HeaderNavbar = ({
         items.push(<HeaderUpdateNotification onCheckForUpdates={handleCheckForUpdates} onInstallUpdate={handleInstallUpdate} />);
       }
 
-      items.push(<HeaderHelpPopover />);
+      items.push(...updateNotificationItems, <HeaderHelpPopover />);
       return items;
     }
 
@@ -274,6 +283,7 @@ export const HeaderNavbar = ({
         <RecordSearchPopover />,
         <UserSearchPopover />,
         <Jobs />,
+        ...updateNotificationItems,
         <HeaderHelpPopover />,
         <HeaderDonatePopover />,
       ];
@@ -286,12 +296,30 @@ export const HeaderNavbar = ({
         <RecordSearchPopover />,
         <UserSearchPopover />,
         <Jobs />,
+        ...updateNotificationItems,
         <HeaderHelpPopover />,
       ];
     }
 
-    return [<QuickQueryPopover />, <RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />];
-  }, [isReadOnlyUser, isEmbeddedApp, isDesktop, isBillingEnabled, hasPaidPlan, trackEvent, showFullscreenLink, instanceUrl]);
+    return [
+      <QuickQueryPopover />,
+      <RecordSearchPopover />,
+      <UserSearchPopover />,
+      <Jobs />,
+      ...updateNotificationItems,
+      <HeaderHelpPopover />,
+    ];
+  }, [
+    isReadOnlyUser,
+    isEmbeddedApp,
+    isDesktop,
+    isBillingEnabled,
+    hasPaidPlan,
+    trackEvent,
+    showFullscreenLink,
+    instanceUrl,
+    updateNotification,
+  ]);
 
   // The pro logo is light-on-dark and reads fine in both schemes. The free logo
   // is dark-on-transparent and disappears against dark surfaces, so invert it

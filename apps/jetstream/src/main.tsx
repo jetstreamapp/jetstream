@@ -3,6 +3,10 @@
 import { CONFIG } from './app/components/core/config';
 // DO NOT CHANGE ORDER OF IMPORTS
 
+// Register the vite:preloadError listener before App is imported so it is active
+// before any dynamic import (routes, monaco) can fail on a stale deploy
+import './app/components/core/preload-error-recovery';
+
 import createCache from '@emotion/cache';
 import { CacheProvider } from '@emotion/react';
 import { applyThemeBeforeMount } from '@jetstream/ui-core';

@@ -13,7 +13,7 @@ import {
 } from '@jetstream/api-config';
 import { getSessionCookieName } from '@jetstream/auth/server';
 import '@jetstream/auth/types';
-import { HTTP, SESSION_EXP_DAYS } from '@jetstream/shared/constants';
+import { HTTP, SESSION_EXP_DAYS, SW_PRECACHE_PREFIX } from '@jetstream/shared/constants';
 import { setupPrimary } from '@socket.io/cluster-adapter';
 import { setupMaster } from '@socket.io/sticky';
 import { json, raw, urlencoded } from 'body-parser';
@@ -392,10 +392,55 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
         return next();
       }
       const normalizedPath = pathPosix.normalize(decodedPath.replace(/\/+/g, '/'));
-      if (normalizedPath === '/index.html') {
+      // index.html contains unreplaced __CSP_NONCE__ placeholders and must only be sent through the
+      // /app handler below. sw.js must only be reachable at /app/sw.js - served from the root it could
+      // be registered with a max scope covering the entire origin (landing, /canvas, /web-extension).
+      if (normalizedPath === '/index.html' || normalizedPath === '/sw.js') {
         return next();
       }
       jetstreamStatic(req, res, next);
+    });
+
+    // Self-destructing service worker served in place of the real one when SW_KILL_SWITCH is set:
+    // browsers bypass the HTTP cache when checking /app/sw.js for updates (on every register() call
+    // and at least every 24h), so every client unregisters and clears its caches shortly after the
+    // flag is enabled. Pages keep working - the worker is network-passthrough for everything it
+    // doesn't have cached, and navigations are never intercepted.
+    const serviceWorkerKillSwitchScript = [
+      `self.addEventListener('install', () => self.skipWaiting());`,
+      `self.addEventListener('activate', (event) => {`,
+      `  event.waitUntil((async () => {`,
+      `    const cacheNames = (await caches.keys()).filter((cacheName) => cacheName.startsWith('${SW_PRECACHE_PREFIX}'));`,
+      `    await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));`,
+      `    await self.registration.unregister();`,
+      `  })());`,
+      `});`,
+    ].join('\n');
+
+    let jetstreamServiceWorkerJs: string | null = null;
+    try {
+      jetstreamServiceWorkerJs = readFileSync(join(__dirname, '../jetstream/sw.js'), 'utf8');
+    } catch (error) {
+      logger.error({ err: error }, '[SPA] Failed to read jetstream/sw.js at startup — /app/sw.js will return 404');
+    }
+
+    // Registered BEFORE the /app mount so service worker update re-fetches are never intercepted by
+    // the auth redirect middlewares. A 404 (missing build) is safe: browsers unregister a service
+    // worker whose script returns 404 on an update check, which fails open to no-worker behavior.
+    app.get('/app/sw.js', (_: express.Request, res: express.Response) => {
+      const serviceWorkerScript = ENV.SW_KILL_SWITCH ? serviceWorkerKillSwitchScript : jetstreamServiceWorkerJs;
+      if (!serviceWorkerScript) {
+        res.status(404);
+        res.setHeader('Cache-Control', 'no-cache');
+        res.end();
+        return;
+      }
+      res.setHeader('Content-Type', 'text/javascript; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache');
+      // Required: the script's directory-derived max scope is /app/, which as a string prefix would
+      // not cover the bare /app document URL; this header allows registration with scope '/app'.
+      res.setHeader('Service-Worker-Allowed', '/app');
+      res.send(serviceWorkerScript);
     });
     app.use(
       '/app',

@@ -5,16 +5,17 @@ import { initErrorTracker, setErrorTrackerUser, tracker, useObservable } from '@
 import { Announcement, JetstreamEventSaveSoqlQueryFormatOptionsPayload, SalesforceOrgUi } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
-import { fromAppState } from '@jetstream/ui/app-state';
+import { fromAppState, useFeatureFlag } from '@jetstream/ui/app-state';
 import { CookieConsentBanner, useConditionalGoogleAnalytics } from '@jetstream/ui/cookie-consent-banner';
 import { initDexieDb, pruneAnalysisJobHistory } from '@jetstream/ui/db';
 import { AxiosResponse } from 'axios';
-import { useAtom, useAtomValue } from 'jotai';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import localforage from 'localforage';
-import React, { Fragment, FunctionComponent, useCallback, useEffect } from 'react';
+import React, { Fragment, FunctionComponent, useCallback, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router';
 import { Observable, Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { checkForServiceWorkerUpdate, registerServiceWorker, unregisterServiceWorker } from './service-worker-registration';
 
 const orgConnectionError = new Subject<{ uniqueId: string; connectionError: string }>();
 const orgConnectionError$ = orgConnectionError.asObservable();
@@ -140,20 +141,40 @@ APP VERSION ${version}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invalidOrg]);
 
+  const lastPromptedVersionRef = useRef<string | null>(null);
+  const setUpdateAvailableVersion = useSetAtom(fromAppState.updateAvailableVersionState);
+
+  /**
+   * Surface the persistent header update indicator (WebUpdateNotification) once per detected
+   * server version. The user stays in control of when to reload - never force a refresh, which
+   * could interrupt in-flight work (data loads, deployments) or cause a refresh loop.
+   */
+  const notifyNewVersionAvailable = useCallback(
+    (serverVersion: string) => {
+      if (lastPromptedVersionRef.current === serverVersion) {
+        return;
+      }
+      lastPromptedVersionRef.current = serverVersion;
+      logger.log('[VERSION] New version available', { serverVersion });
+      // Let the service worker (if active) start fetching the new precache in the background
+      checkForServiceWorkerUpdate();
+      setUpdateAvailableVersion(serverVersion);
+    },
+    [setUpdateAvailableVersion],
+  );
+
   /**
    * When a tab/browser window becomes visible check with the server
    * 1. ensure user is still authenticated
-   * 2. make sure the app version has not changed, if it has then refresh the page
+   * 2. make sure the app version has not changed, if it has then let the user know they can refresh
    */
   const handleWindowFocus = useCallback(
     async (_: FocusEvent) => {
       try {
         if (document.visibilityState === 'visible') {
           const { version: serverVersion, announcements } = await checkHeartbeat();
-          // TODO: inform user that there is a new version and that they should refresh their browser.
-          // We could force refresh, but don't want to get into some weird infinite refresh state
-          if (version !== serverVersion) {
-            console.log('VERSION MISMATCH', { serverVersion, version });
+          if (version !== serverVersion && version !== 'unknown' && serverVersion !== 'unknown') {
+            notifyNewVersionAvailable(serverVersion);
           }
           if (announcements && onAnnouncements) {
             onAnnouncements(announcements);
@@ -163,13 +184,26 @@ APP VERSION ${version}
         // ignore error, but user should have been logged out if this failed
       }
     },
-    [onAnnouncements, version],
+    [notifyNewVersionAvailable, onAnnouncements, version],
   );
 
   useEffect(() => {
     document.addEventListener('visibilitychange', handleWindowFocus);
     return () => document.removeEventListener('visibilitychange', handleWindowFocus);
   }, [handleWindowFocus]);
+
+  /**
+   * Register/remove the precache service worker based on the feature flag. Unregistering when the
+   * flag is off doubles as a client-side kill switch (the server-side one is SW_KILL_SWITCH).
+   */
+  const serviceWorkerEnabled = useFeatureFlag('pwa-service-worker');
+  useEffect(() => {
+    if (serviceWorkerEnabled) {
+      registerServiceWorker();
+    } else {
+      unregisterServiceWorker();
+    }
+  }, [serviceWorkerEnabled]);
 
   return (
     <Fragment>
