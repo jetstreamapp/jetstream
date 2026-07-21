@@ -27,13 +27,14 @@ import cluster from 'node:cluster';
 import { readFileSync } from 'node:fs';
 import http from 'node:http';
 import { cpus } from 'node:os';
-import { join, posix as pathPosix } from 'node:path';
+import { join } from 'node:path';
 import { initSocketServer } from './app/controllers/socket.controller';
 import {
   apiRoutes,
   authRoutes,
   billingRoutes,
   canvasRoutes,
+  createSpaAssetRoutes,
   cspReportRoutes,
   desktopAppRoutes,
   desktopAssetsRoutes,
@@ -373,30 +374,11 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
       );
     }
 
-    // Serve the SPA's built assets, but never `index.html` — it contains unreplaced
-    // `__CSP_NONCE__` placeholders and must only be sent through the /app handler below.
-    // `{ index: false }` disables directory→index.html mapping; the guard after catches
-    // direct index.html requests regardless of encoding.
-    const jetstreamStatic = express.static(join(__dirname, '../jetstream'), { index: false });
-    app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
-      // Must mirror send's own path transform (decode → collapse slash runs → normalize
-      // dot segments) or the guard is bypassable. `req.path` from parseurl is raw —
-      // it doesn't decode `%2f`, doesn't collapse `//`, and doesn't resolve `.`/`..` —
-      // while `send` inside express.static does all three and would happily serve
-      // <root>/index.html for e.g. `//index.html`, `/%2findex.html`, or `/foo/%2e%2e/index.html`.
-      let decodedPath: string;
-      try {
-        decodedPath = decodeURIComponent(req.path);
-      } catch {
-        // Malformed percent-encoding — let downstream 404 handle it.
-        return next();
-      }
-      const normalizedPath = pathPosix.normalize(decodedPath.replace(/\/+/g, '/'));
-      if (normalizedPath === '/index.html') {
-        return next();
-      }
-      jetstreamStatic(req, res, next);
-    });
+    // Hashed build assets at the origin root + the precache service worker at /app/sw.js.
+    // Must stay ahead of the /app mount so service worker update re-fetches are never intercepted
+    // by the auth redirect middlewares.
+    app.use(createSpaAssetRoutes(join(__dirname, '../jetstream')));
+
     app.use(
       '/app',
       spaRateLimit,

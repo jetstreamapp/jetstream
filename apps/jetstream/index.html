@@ -8,7 +8,21 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 
-    <meta name="theme-color" content="#ffffff" />
+    <!--
+      Seeds the browser/PWA title bar before JS runs; ThemeApplier then keeps it in step with the
+      resolved scheme. Matches the SLDS light surface (--slds-g-color-surface-2) so there is no
+      white flash ahead of the app painting.
+    -->
+    <meta name="theme-color" content="#f3f3f3" />
+
+    <!--
+      href must be absolute: <base href="/app"> is injected at build and would break a relative path.
+      crossorigin="use-credentials" is required, not cosmetic: manifests are the one subresource fetched
+      with credentials omitted by default, so behind an auth proxy (Cloudflare Access on staging) the
+      request arrives cookie-less, gets 302'd to a cross-origin login page, and fails the CORS check.
+    -->
+    <link rel="manifest" href="/assets/jetstream-app.webmanifest" crossorigin="use-credentials" />
+    <meta name="apple-mobile-web-app-title" content="Jetstream" />
 
     <link rel="apple-touch-icon" sizes="57x57" href="/assets/images/apple-icon-57x57.png" />
     <link rel="apple-touch-icon" sizes="60x60" href="/assets/images/apple-icon-60x60.png" />

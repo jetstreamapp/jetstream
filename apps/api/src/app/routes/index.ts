@@ -9,9 +9,10 @@ import oauthRoutes from './oauth.routes';
 import { openApiRoutes } from './openapi.routes';
 import platformEventRoutes from './platform-event.routes';
 import redirectRoutes from './redirect.routes';
+import scannerRoutes from './scanner.routes';
+import { createSpaAssetRoutes } from './spa-assets.routes';
 import staticAuthenticatedRoutes from './static-authenticated.routes';
 import teamRoutes from './team.routes';
-import scannerRoutes from './scanner.routes';
 import testRoutes from './test.routes';
 import webExtensionRoutes from './web-extension-server.routes';
 import webhookRoutes from './webhook.routes';
@@ -21,6 +22,7 @@ export {
   authRoutes,
   billingRoutes,
   canvasRoutes,
+  createSpaAssetRoutes,
   cspReportRoutes,
   desktopAppRoutes,
   desktopAssetsRoutes,

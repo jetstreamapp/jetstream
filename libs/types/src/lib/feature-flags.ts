@@ -15,6 +15,10 @@ export const FEATURE_FLAGS = {
     defaultValue: false,
     description: 'Data and record analysis tools.',
   },
+  'pwa-service-worker': {
+    defaultValue: false,
+    description: 'Precache service worker for the web app - keeps hashed build assets available across deploys.',
+  },
   'salesforce-canvas': {
     defaultValue: false,
     description: 'Manage Salesforce orgs authorized to use the Canvas app.',

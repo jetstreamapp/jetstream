@@ -1,23 +1,44 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { AUTH_ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
+import { AUTH_ERROR_MESSAGES, HTTP, UNKNOWN_APP_VERSION } from '@jetstream/shared/constants';
 import { checkHeartbeat, disconnectSocket, initSocket, registerMiddleware, updateUserProfile } from '@jetstream/shared/data';
 import { initErrorTracker, setErrorTrackerUser, tracker, useObservable } from '@jetstream/shared/ui-utils';
 import { Announcement, JetstreamEventSaveSoqlQueryFormatOptionsPayload, SalesforceOrgUi } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
-import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
-import { fromAppState } from '@jetstream/ui/app-state';
+import {
+  checkForServiceWorkerUpdate,
+  fromJetstreamEvents,
+  registerServiceWorker,
+  unregisterServiceWorker,
+  useAmplitude,
+} from '@jetstream/ui-core';
+import { fromAppState, useFeatureFlag } from '@jetstream/ui/app-state';
 import { CookieConsentBanner, useConditionalGoogleAnalytics } from '@jetstream/ui/cookie-consent-banner';
 import { initDexieDb, pruneAnalysisJobHistory } from '@jetstream/ui/db';
 import { AxiosResponse } from 'axios';
 import { useAtom, useAtomValue } from 'jotai';
 import localforage from 'localforage';
-import React, { Fragment, FunctionComponent, useCallback, useEffect } from 'react';
+import React, { Fragment, FunctionComponent, useCallback, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router';
 import { Observable, Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { staleBuildDetected$ } from './stale-build-recovery';
 
 const orgConnectionError = new Subject<{ uniqueId: string; connectionError: string }>();
 const orgConnectionError$ = orgConnectionError.asObservable();
+
+/** Collapses bursts of focus/visibility events (alt-tabbing) into at most one heartbeat */
+const MIN_VERSION_CHECK_INTERVAL_MS = 1000 * 60;
+/** Backstop for a tab that is never hidden or blurred, so it still learns about a deploy */
+const VERSION_POLL_INTERVAL_MS = 1000 * 60 * 30;
+
+/**
+ * A version mismatch only means an update is available when both sides reported a real version -
+ * either can be UNKNOWN_APP_VERSION (server started without VERSION set, or the initial heartbeat
+ * failed), which would otherwise prompt every user to refresh.
+ */
+function isNewVersionAvailable(clientVersion: string, serverVersion: string): boolean {
+  return clientVersion !== serverVersion && clientVersion !== UNKNOWN_APP_VERSION && serverVersion !== UNKNOWN_APP_VERSION;
+}
 
 registerMiddleware('Error', (response: AxiosResponse, org?: SalesforceOrgUi) => {
   const connectionError =
@@ -140,36 +161,92 @@ APP VERSION ${version}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invalidOrg]);
 
-  /**
-   * When a tab/browser window becomes visible check with the server
-   * 1. ensure user is still authenticated
-   * 2. make sure the app version has not changed, if it has then refresh the page
-   */
-  const handleWindowFocus = useCallback(
-    async (_: FocusEvent) => {
-      try {
-        if (document.visibilityState === 'visible') {
-          const { version: serverVersion, announcements } = await checkHeartbeat();
-          // TODO: inform user that there is a new version and that they should refresh their browser.
-          // We could force refresh, but don't want to get into some weird infinite refresh state
-          if (version !== serverVersion) {
-            console.log('VERSION MISMATCH', { serverVersion, version });
-          }
-          if (announcements && onAnnouncements) {
-            onAnnouncements(announcements);
-          }
-        }
-      } catch {
-        // ignore error, but user should have been logged out if this failed
-      }
-    },
-    [onAnnouncements, version],
-  );
+  const [updateAvailableVersion, setUpdateAvailableVersion] = useAtom(fromAppState.updateAvailableVersionState);
+  const lastVersionCheckAt = useRef(0);
 
+  /**
+   * Ask the server what version it is on and, if it is newer than us, surface the persistent header
+   * indicator (WebUpdateNotification) once per detected version. The user stays in control of when
+   * to reload - never force a refresh, which could interrupt in-flight work (data loads,
+   * deployments) or cause a refresh loop.
+   */
+  const checkForNewVersion = useCallback(async () => {
+    try {
+      const { version: serverVersion, announcements } = await checkHeartbeat();
+      if (isNewVersionAvailable(version, serverVersion) && updateAvailableVersion !== serverVersion) {
+        logger.log('[VERSION] New version available', { serverVersion });
+        // Let the service worker (if active) start fetching the new precache in the background
+        checkForServiceWorkerUpdate();
+        setUpdateAvailableVersion(serverVersion);
+      }
+      if (announcements && onAnnouncements) {
+        onAnnouncements(announcements);
+      }
+    } catch {
+      // ignore error, but user should have been logged out if this failed
+    }
+  }, [onAnnouncements, setUpdateAvailableVersion, updateAvailableVersion, version]);
+
+  /**
+   * Check in with the server while the app is in use to
+   * 1. ensure user is still authenticated
+   * 2. make sure the app version has not changed, if it has then let the user know they can refresh
+   *
+   * `visibilitychange` alone is not enough: it only fires when a page is hidden or restored, so
+   * switching between two visible windows (installed app, second monitor) never triggers it, and a
+   * tab left in the foreground all day is never checked at all. `focus` covers window switching and
+   * the interval covers the tab nobody ever leaves. All three share one minimum interval, so this
+   * makes fewer requests than the previous every-single-tab-switch behavior.
+   */
   useEffect(() => {
-    document.addEventListener('visibilitychange', handleWindowFocus);
-    return () => document.removeEventListener('visibilitychange', handleWindowFocus);
-  }, [handleWindowFocus]);
+    const checkIfDue = () => {
+      if (document.visibilityState !== 'visible' || Date.now() - lastVersionCheckAt.current < MIN_VERSION_CHECK_INTERVAL_MS) {
+        return;
+      }
+      lastVersionCheckAt.current = Date.now();
+      checkForNewVersion();
+    };
+    document.addEventListener('visibilitychange', checkIfDue);
+    window.addEventListener('focus', checkIfDue);
+    const intervalId = window.setInterval(checkIfDue, VERSION_POLL_INTERVAL_MS);
+    return () => {
+      document.removeEventListener('visibilitychange', checkIfDue);
+      window.removeEventListener('focus', checkIfDue);
+      window.clearInterval(intervalId);
+    };
+  }, [checkForNewVersion]);
+
+  /**
+   * A dynamic import that failed may mean a deploy replaced the chunks this build references, or may
+   * just be a dropped connection - the heartbeat is what tells them apart. Confirming here is why
+   * `stale-build-recovery` never has to guess (and never reloads on its own).
+   */
+  const staleBuildDetected = useObservable(staleBuildDetected$);
+  useEffect(() => {
+    if (staleBuildDetected) {
+      checkForNewVersion();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [staleBuildDetected]);
+
+  /**
+   * Register/remove the precache service worker based on the feature flag. Unregistering when the
+   * flag is off doubles as a client-side kill switch (the server-side one is SW_KILL_SWITCH).
+   */
+  const featureFlagsResolved = useAtomValue(fromAppState.featureFlagsResolvedState);
+  const serviceWorkerEnabled = useFeatureFlag('pwa-service-worker');
+  useEffect(() => {
+    // A failed profile fetch falls back to code-default flags, which is indistinguishable from an
+    // explicit opt-out - do not tear down a working registration and its caches over a network blip.
+    if (!featureFlagsResolved) {
+      return;
+    }
+    if (serviceWorkerEnabled) {
+      registerServiceWorker();
+    } else {
+      unregisterServiceWorker();
+    }
+  }, [featureFlagsResolved, serviceWorkerEnabled]);
 
   return (
     <Fragment>

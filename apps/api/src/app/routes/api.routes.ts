@@ -1,4 +1,5 @@
 import { ENV } from '@jetstream/api-config';
+import { UNKNOWN_APP_VERSION } from '@jetstream/shared/constants';
 import { getDefaultAppState } from '@jetstream/shared/utils';
 import { AppInfo } from '@jetstream/types';
 import express, { Router } from 'express';
@@ -48,7 +49,7 @@ routes.use(addOrgsToLocal);
 // used to make sure the user is authenticated and can communicate with the server
 routes.get('/heartbeat', async (req: express.Request, res: express.Response) => {
   const result: AppInfo = {
-    version: ENV.VERSION || 'unknown',
+    version: ENV.VERSION || UNKNOWN_APP_VERSION,
     announcements: await getAnnouncements(req.session.user),
     appInfo: getDefaultAppState({
       serverUrl: ENV.JETSTREAM_SERVER_URL,

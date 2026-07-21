@@ -23,8 +23,9 @@
  * SOFTWARE.
  */
 
-import { setItemInSessionStorage, tracker } from '@jetstream/shared/ui-utils';
+import { tracker } from '@jetstream/shared/ui-utils';
 import { ComponentType, createElement, forwardRef, lazy } from 'react';
+import { reloadForStaleBuild } from './stale-build-recovery';
 
 export type PreloadableComponent<T extends ComponentType<unknown>> = T & {
   preload: () => Promise<void>;
@@ -41,9 +42,8 @@ export type PreloadableComponent<T extends ComponentType<unknown>> = T & {
  */
 export default function lazyWithPreload<T extends ComponentType<unknown>>(
   componentImport: () => Promise<{ default: T }>,
-  moduleName = 'any',
 ): PreloadableComponent<T> {
-  const LazyComponent = lazy(() => lazyRetry(componentImport, moduleName));
+  const LazyComponent = lazy(() => lazyRetry(componentImport));
   let factoryPromise: Promise<void> | undefined;
   let LoadedComponent: T | undefined;
 
@@ -70,35 +70,18 @@ export default function lazyWithPreload<T extends ComponentType<unknown>>(
 }
 
 /**
- * Retry loading a chunk to avoid chunk load error for out of date code
- * This wraps the react lazy function and will throw if a refresh fails to load a chunk a second time
+ * A route chunk that will not load leaves the user with nothing to render, so this is the one place
+ * that reloads to recover from a stale build. `reloadForStaleBuild` owns the whole policy (offline
+ * check, once-per-cooldown marker); when it declines, the error surfaces to the ErrorBoundary.
  *
  * {@link https://www.codemzy.com/blog/fix-chunkloaderror-react}
- *
- * @param componentImport
- * @param name Optional name for component - this is only required if there are multiple lazy imports for one route
  */
-const lazyRetry = <T extends ComponentType<unknown>>(
-  componentImport: () => Promise<{ default: T }>,
-  name = 'any',
-): Promise<{ default: T }> => {
-  return new Promise((resolve, reject) => {
-    // check if the window has already been refreshed
-    const hasRefreshed = JSON.parse(window.sessionStorage.getItem(`retry-${name}-refreshed`) || 'false');
-    // try to import the component
-    componentImport()
-      .then((component) => {
-        setItemInSessionStorage(`retry-${name}-refreshed`, 'false'); // success so reset the refresh
-        resolve(component);
-      })
-      .catch((error) => {
-        if (!hasRefreshed) {
-          // not been refreshed yet
-          setItemInSessionStorage(`retry-${name}-refreshed`, 'true');
-          return window.location.reload();
-        }
-        // Default error behavior as already tried refreshing
-        reject(error);
-      });
+const lazyRetry = <T extends ComponentType<unknown>>(componentImport: () => Promise<{ default: T }>): Promise<{ default: T }> => {
+  return componentImport().catch((error) => {
+    if (!reloadForStaleBuild(error)) {
+      throw error;
+    }
+    // The page is navigating away - leave this pending so no error UI flashes on the way out
+    return new Promise<{ default: T }>(() => undefined);
   });
 };

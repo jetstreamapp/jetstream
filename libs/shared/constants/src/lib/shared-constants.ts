@@ -17,6 +17,19 @@ export const ORG_VERSION_PLACEHOLDER = '_DEFAULT_VERSION_';
 export const EXPIRED_TOKEN_PLACEHOLDER = 'v2:EXPIRED_TOKEN_PLACEHOLDER';
 
 export const SESSION_EXP_DAYS = 2;
+/**
+ * Reported as the app version when the real one is unavailable - by the server when ENV.VERSION is
+ * unset, and by the client when the initial heartbeat fails. A client/server version mismatch only
+ * means "a new version is available" when neither side is this sentinel.
+ */
+export const UNKNOWN_APP_VERSION = 'unknown';
+/**
+ * Cache Storage name prefix for the /app precache service worker. Consumed by
+ * service-worker-registration.ts (flag-off cleanup) and the SW_KILL_SWITCH script in
+ * apps/api/src/main.ts. sw.template.js cannot import this (plain JS, no bundling) so it
+ * hard-codes the same value - kept in sync by apps/jetstream/src/__tests__/sw.template.spec.ts.
+ */
+export const SW_PRECACHE_PREFIX = 'jetstream-precache-';
 export const SFDC_BULK_API_NULL_VALUE = '#N/A';
 export const SFDC_BLANK_PICKLIST_VALUE = '--None--';
 export const HTTP_SOURCE_DESKTOP = 'JETSTREAM_DESKTOP';

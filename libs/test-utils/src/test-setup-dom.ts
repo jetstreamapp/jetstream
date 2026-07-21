@@ -29,3 +29,24 @@ if (typeof globalThis.CSS === 'undefined') {
     escape: (value: string) => String(value).replace(/[^a-zA-Z0-9_\u00A0-\uFFFF-]/g, '\\$&'),
   } as unknown as typeof CSS;
 }
+
+/**
+ * jsdom does not implement `window.matchMedia`, so anything that feature-detects the environment
+ * through a media query throws on call (`useTitle` checks `display-mode: standalone`, MonacoEditor
+ * and the theme code check `prefers-color-scheme`).
+ *
+ * Always reporting `matches: false` puts tests in the plain-browser, light-scheme case, which is
+ * what these call sites treat as their default.
+ */
+if (typeof globalThis.matchMedia === 'undefined') {
+  globalThis.matchMedia = ((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  })) as unknown as typeof matchMedia;
+}
