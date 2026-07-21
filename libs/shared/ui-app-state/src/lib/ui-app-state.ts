@@ -233,6 +233,14 @@ export const actionInProgressState = atom<boolean>(false);
  */
 export const dataHistoryCaptureEnabledState = atom<boolean>(false);
 
+/**
+ * Whether Data History has finished initializing for this session (tier limits resolved). Seeded to
+ * true by each AppInitializer right after `initDataHistory()`. UI that renders only once history is
+ * ready (e.g. the Settings section) gates its first load on this — otherwise a hard refresh landing
+ * directly on that page renders before init completes and then never retries.
+ */
+export const dataHistoryInitializedState = atom<boolean>(false);
+
 export const appInfoState = atom<Promise<AppInfo> | AppInfo>(fetchAppInfo());
 export const appInfoSyncState = unwrap(appInfoState, (prev) => prev ?? DEFAULT_APP_INFO);
 

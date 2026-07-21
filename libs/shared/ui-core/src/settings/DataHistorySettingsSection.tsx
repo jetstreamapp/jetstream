@@ -3,18 +3,20 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { DataHistorySettings, Maybe } from '@jetstream/types';
 import { CheckboxToggle, ConfirmationModalPromise, fireToast, Spinner, UpgradeToProButton } from '@jetstream/ui';
-import { dataHistoryCaptureEnabledState } from '@jetstream/ui/app-state';
+import { dataHistoryCaptureEnabledState, dataHistoryInitializedState } from '@jetstream/ui/app-state';
 import {
   DataHistoryStorageHealth,
   deleteAllDataHistory,
   getDataHistoryLimits,
   getDataHistorySettings,
   getDataHistoryStorageHealth,
+  isPersistentStoragePromptEligible,
+  requestPersistentStorage,
   setDataHistoryEnabled,
   updateDataHistoryRetentionSettings,
 } from '@jetstream/ui/data-history';
 import { filesize } from 'filesize';
-import { useSetAtom } from 'jotai';
+import { useAtomValue, useSetAtom } from 'jotai';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { useAmplitude } from '../analytics';
 import { ViewDataHistoryLink } from '../app/DataHistoryLinks';
@@ -45,10 +47,15 @@ export interface DataHistorySettingsSectionProps {
 export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSectionProps> = ({ viewHistoryLinkHref }) => {
   const { trackEvent } = useAmplitude();
   const setCaptureEnabledAtom = useSetAtom(dataHistoryCaptureEnabledState);
+  // Seeded true by AppInitializer once initDataHistory() resolves — a hard refresh landing directly here
+  // mounts before that finishes, so we gate the first load on it instead of bailing to null forever
+  const dataHistoryInitialized = useAtomValue(dataHistoryInitializedState);
   const [settings, setSettings] = useState<Maybe<DataHistorySettings>>(null);
   const [health, setHealth] = useState<Maybe<DataHistoryStorageHealth>>(null);
   const [retentionDaysInput, setRetentionDaysInput] = useState('');
   const [clearing, setClearing] = useState(false);
+  const [requestingPersist, setRequestingPersist] = useState(false);
+  const persistPromptEligible = isPersistentStoragePromptEligible();
 
   const loadSettingsAndHealth = useCallback(async () => {
     try {
@@ -62,8 +69,10 @@ export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSe
   }, []);
 
   useEffect(() => {
-    loadSettingsAndHealth();
-  }, [loadSettingsAndHealth]);
+    if (dataHistoryInitialized) {
+      loadSettingsAndHealth();
+    }
+  }, [dataHistoryInitialized, loadSettingsAndHealth]);
 
   async function handleEnabledChange(enabled: boolean) {
     try {
@@ -116,6 +125,27 @@ export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSe
     }
   }
 
+  async function handleRequestPersist() {
+    try {
+      setRequestingPersist(true);
+      const granted = await requestPersistentStorage();
+      trackEvent(ANALYTICS_KEYS.data_history_settings_changed, { action: 'request-persist', granted, location: 'settings' });
+      await loadSettingsAndHealth();
+      fireToast(
+        granted
+          ? { type: 'success', message: 'Your browser will keep this history and not remove it automatically.' }
+          : {
+              type: 'warning',
+              message: 'Your browser did not grant persistent storage. History is still saved, but may be removed if storage runs low.',
+            },
+      );
+    } catch (ex) {
+      logger.warn('[DATA_HISTORY] Error requesting persistent storage', ex);
+    } finally {
+      setRequestingPersist(false);
+    }
+  }
+
   // Settings resolve to null when the feature has not initialized for this session
   if (!settings) {
     return null;
@@ -144,9 +174,7 @@ export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSe
       )}
 
       {health && entryCapped && (
-        <p className="slds-m-top_small">
-          {`${health.entryCount.toLocaleString()} of ${health.maxEntries?.toLocaleString()} entries used (${formatBytes(health.usedBytes)})`}
-        </p>
+        <p className="slds-m-top_small">{`${health.entryCount.toLocaleString()} of ${health.maxEntries?.toLocaleString()} entries used`}</p>
       )}
       {health && !entryCapped && (
         <p className="slds-m-top_small">
@@ -158,6 +186,21 @@ export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSe
           Storage is {usagePercent}% full — the oldest unpinned entries will be removed automatically as new history is saved.
         </p>
       )}
+
+      {persistPromptEligible && health?.persisted === false && (
+        <div className="slds-m-top_small">
+          <span className="slds-m-right_x-small">Your browser may remove this saved history to free up space.</span>
+          <button className="slds-button slds-button_neutral" disabled={requestingPersist} onClick={handleRequestPersist}>
+            Keep History on This Device
+          </button>
+        </div>
+      )}
+      {persistPromptEligible && health?.persisted === true && (
+        <p className="slds-text-color_weak slds-m-top_small">
+          Your browser has been asked to keep this history and won’t remove it automatically.
+        </p>
+      )}
+
       {/* The tier itself is the free/paid signal — desktop/extension/canvas always resolve to the top tier */}
       {entryCapped && (
         <div className="slds-m-top_x-small">

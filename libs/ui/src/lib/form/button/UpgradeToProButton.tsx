@@ -26,10 +26,17 @@ export const UpgradeToProButton = ({ showOpenInNewTabIcon, source, trackEvent }:
         to={APP_ROUTES.BILLING.ROUTE}
         css={css`
           background-image: linear-gradient(to right, #14b8a6, #0891b2);
-          color: rgba(255, 255, 255);
           border-color: transparent;
           text-wrap-mode: nowrap;
-          :hover {
+          /* Beat scoped-notification theme rules (e.g. slds-theme_info) that force links to a blue, underlined style */
+          &,
+          &:hover,
+          &:focus,
+          &:visited {
+            color: #fff !important;
+            text-decoration: none !important;
+          }
+          &:hover {
             background-image: linear-gradient(to right, #0d9488, #0e7490);
           }
         `}

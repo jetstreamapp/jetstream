@@ -33,7 +33,10 @@ import {
   enableNativeHistoryStorage,
   getDataHistoryLimits,
   getHistoryBackendStatus,
+  getStoragePersisted,
+  isPersistentStoragePromptEligible,
   reconnectHistoryDirectory,
+  requestPersistentStorage,
   setDataHistoryEnabled,
   setDataHistoryPinned,
 } from '@jetstream/ui/data-history';
@@ -95,14 +98,30 @@ const ALL = '__ALL__';
 const HEIGHT_BUFFER = 170;
 const LIST_LIMIT = 250;
 
+// Scoped-notification themes (e.g. slds-theme_warning) restyle bare buttons — force our neutral buttons back to the normal look
+const scopedNotificationNeutralButtonCss = css`
+  color: var(--slds-c-button-text-color, #0176d3) !important;
+  &,
+  &:hover,
+  &:focus {
+    text-decoration: none !important;
+  }
+  &:hover,
+  &:focus {
+    color: var(--slds-c-button-text-color-hover, #014486) !important;
+  }
+`;
+
 export const DataHistory: FunctionComponent = () => {
   useTitle(TITLES.DATA_HISTORY);
   const { trackEvent } = useAmplitude();
   const orgs = useAtomValue(fromAppState.salesforceOrgsState);
   const selectedOrg = useAtomValue(fromAppState.selectedOrgState);
   const [captureEnabled, setCaptureEnabled] = useAtom(dataHistoryCaptureEnabledState);
+  // Re-render once initDataHistory() resolves so tier-dependent UI is correct after a hard refresh landing here
+  const dataHistoryInitialized = useAtomValue(fromAppState.dataHistoryInitializedState);
   // The resolved tier is the free/paid signal — entry-capped means the free tier is active
-  const showUpgradeToPro = getDataHistoryLimits()?.maxEntries != null;
+  const showUpgradeToPro = dataHistoryInitialized && getDataHistoryLimits()?.maxEntries != null;
 
   const [orgFilter, setOrgFilter] = useState<string>(() => selectedOrg?.uniqueId || ALL);
   const [sourceFilter, setSourceFilter] = useState<string>(ALL);
@@ -112,6 +131,9 @@ export const DataHistory: FunctionComponent = () => {
   const [sort, setSort] = useState<DataHistorySort>({ column: 'date', direction: 'desc' });
   const [backendStatus, setBackendStatus] = useState<DataHistoryBackendStatus | null>(null);
   const [storageWorking, setStorageWorking] = useState(false);
+  const [persisted, setPersisted] = useState<boolean | null>(null);
+  const [requestingPersist, setRequestingPersist] = useState(false);
+  const persistPromptEligible = isPersistentStoragePromptEligible();
 
   useEffect(() => {
     trackEvent(ANALYTICS_KEYS.data_history_page_view);
@@ -129,10 +151,40 @@ export const DataHistory: FunctionComponent = () => {
     loadBackendStatus();
   }, [loadBackendStatus]);
 
+  useEffect(() => {
+    if (persistPromptEligible) {
+      getStoragePersisted().then(setPersisted);
+    }
+  }, [persistPromptEligible]);
+
+  async function handleKeepHistory() {
+    try {
+      setRequestingPersist(true);
+      const granted = await requestPersistentStorage();
+      setPersisted(granted);
+      trackEvent(ANALYTICS_KEYS.data_history_settings_changed, { action: 'request-persist', granted, location: 'data-history-page' });
+      fireToast(
+        granted
+          ? { type: 'success', message: 'Your browser will keep this history and not remove it automatically.' }
+          : {
+              type: 'warning',
+              message: 'Your browser did not grant persistent storage. History is still saved, but may be removed if storage runs low.',
+            },
+      );
+    } catch (ex) {
+      logger.warn('[DATA_HISTORY] Error requesting persistent storage', ex);
+    } finally {
+      setRequestingPersist(false);
+    }
+  }
+
   const canStoreInFolder =
     !!backendStatus &&
     ((backendStatus.nativeSupported && backendStatus.active !== 'native') ||
       (backendStatus.directorySupported && backendStatus.active !== 'directory'));
+  // When folder permission is revoked the directory is still the configured backend, but new writes fall back to
+  // browser storage — treat it as "not actively storing to the folder" so we don't imply the folder is still in use.
+  const directoryStorageActive = backendStatus?.active === 'directory' && !backendStatus.permissionNeeded;
 
   async function handleStoreInFolder() {
     setStorageWorking(true);
@@ -259,11 +311,12 @@ export const DataHistory: FunctionComponent = () => {
             docsPath={APP_ROUTES.DATA_HISTORY.DOCS}
           />
           <PageHeaderActions colType="actions" buttonType="separate">
-            {backendStatus?.active === 'directory' && (
+            {directoryStorageActive && (
               <div
                 className="slds-grid slds-grid_vertical-align-center slds-text-color_weak slds-m-right_small"
                 css={css`
                   align-self: center;
+                  height: 100%;
                 `}
                 title={`History files are saved to the "${backendStatus.directoryName}" folder you selected on this computer. Browsers show only the folder's name (never its full path) and cannot open it in your file manager — manage the folder from Settings.`}
               >
@@ -341,7 +394,7 @@ export const DataHistory: FunctionComponent = () => {
         bufferIfNotRendered={HEIGHT_BUFFER}
       >
         <p className="slds-text-color_weak slds-m-vertical_x-small">
-          {backendStatus?.active === 'directory' && backendStatus.directoryName
+          {directoryStorageActive && backendStatus?.directoryName
             ? `Data History is stored in your selected folder ("${backendStatus.directoryName}") on this device and is never sent to Jetstream.`
             : backendStatus?.active === 'native'
               ? `Data History is stored on this computer (${backendStatus.nativePath}) and is never sent to Jetstream.`
@@ -351,8 +404,24 @@ export const DataHistory: FunctionComponent = () => {
           <ScopedNotification theme="warning" className="slds-m-vertical_x-small">
             <Grid verticalAlign="center">
               <span>Jetstream no longer has permission to your history folder — new history is temporarily saved to browser storage.</span>
-              <button className="slds-button slds-button_neutral slds-m-left_small" onClick={handleReconnectFolder}>
+              <button
+                className="slds-button slds-button_neutral slds-m-left_small"
+                css={scopedNotificationNeutralButtonCss}
+                onClick={handleReconnectFolder}
+              >
                 Re-connect Folder
+              </button>
+            </Grid>
+          </ScopedNotification>
+        )}
+        {persistPromptEligible && persisted === false && (
+          <ScopedNotification theme="info" className="slds-m-vertical_x-small">
+            <Grid verticalAlign="center">
+              <span className="slds-m-right_small">
+                Your browser may automatically delete this history to free up space. Ask it to keep your history saved on this device.
+              </span>
+              <button className="slds-button slds-button_neutral" disabled={requestingPersist} onClick={handleKeepHistory}>
+                Keep My History
               </button>
             </Grid>
           </ScopedNotification>
@@ -377,7 +446,11 @@ export const DataHistory: FunctionComponent = () => {
           <ScopedNotification theme="warning" className="slds-m-vertical_x-small">
             <Grid verticalAlign="center">
               <span>Data History is currently disabled — new data modifications are not being saved.</span>
-              <button className="slds-button slds-button_neutral slds-m-left_small" onClick={handleEnableCapture}>
+              <button
+                className="slds-button slds-button_neutral slds-m-left_small"
+                css={scopedNotificationNeutralButtonCss}
+                onClick={handleEnableCapture}
+              >
                 Enable Data History
               </button>
             </Grid>

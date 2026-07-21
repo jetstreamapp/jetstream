@@ -23,13 +23,17 @@ import {
   deleteEntryFilesAndRow,
   deriveStatusFromCounts,
   getEffectiveSettings,
+  getStoragePersisted,
   getTierLimits,
+  isPersistentStoragePromptEligible,
+  requestPersistentStorage,
   requestPersistOnce,
   setTierLimits,
 } from './data-history-state';
 import { getFileStoreForBackend, getHistoryFileStore } from './file-store/file-store-factory';
 import { HistoryFileStore, HistoryWriteStream } from './file-store/file-store.types';
 import { DATA_HISTORY_FILE_NAMES, getDataHistoryFileName, getEntryFilePath, getOrgFolderName } from './file-store/path-utils';
+export { getStoragePersisted, isPersistentStoragePromptEligible, requestPersistentStorage };
 
 /**
  * Public capture + management API for the local Data History feature.
@@ -547,15 +551,11 @@ export async function getDataHistoryStorageHealth(): Promise<DataHistoryStorageH
     if (!settings || !tier) {
       return null;
     }
-    const [entryCount, usedBytes] = await Promise.all([dataHistoryDb.getEntryCount(), dataHistoryDb.getTotalSizeBytes()]);
-    let persisted: boolean | null = null;
-    try {
-      if (typeof navigator !== 'undefined' && navigator.storage?.persisted) {
-        persisted = await navigator.storage.persisted();
-      }
-    } catch {
-      persisted = null;
-    }
+    const [entryCount, usedBytes, persisted] = await Promise.all([
+      dataHistoryDb.getEntryCount(),
+      dataHistoryDb.getTotalSizeBytes(),
+      getStoragePersisted(),
+    ]);
     let estimate: { usageBytes?: number; quotaBytes?: number } | null = null;
     try {
       const store = await getHistoryFileStore();

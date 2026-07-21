@@ -10,7 +10,8 @@ import {
   getDataHistoryDownloadFileName,
   getDataHistorySourceListItems,
   getDataHistoryStatusBadgeType,
-  sortDataHistoryItems,
+  parseCsvToTable,
+  sortDataHistoryItems
 } from '../data-history-page.utils';
 
 function buildItem(overrides: Partial<DataHistoryItem> = {}): DataHistoryItem {
@@ -154,5 +155,24 @@ describe('sortDataHistoryItems', () => {
     expect(sortDataHistoryItems(items, { column: 'sobjects', direction: 'asc' }).map(({ key }) => key)).toEqual(['b', 'a']);
     // input untouched
     expect(items.map(({ key }) => key)).toEqual(['a', 'b']);
+  });
+});
+
+describe('parseCsvToTable', () => {
+  it('builds columns from the header and rows with stable synthetic keys', () => {
+    const { columns, rows } = parseCsvToTable('Name,Industry\nAcme,Tech\n"Globex, Inc",Energy');
+    expect(columns.map(({ key }) => key)).toEqual(['Name', 'Industry']);
+    expect(columns.map(({ name }) => name)).toEqual(['Name', 'Industry']);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toMatchObject({ Name: 'Acme', Industry: 'Tech', _dhRowKey: '0' });
+    expect(rows[1]).toMatchObject({ Name: 'Globex, Inc', Industry: 'Energy', _dhRowKey: '1' });
+    // getValue reads the row's value for the column
+    expect(columns[0].getValue?.({ row: rows[0], column: columns[0] })).toBe('Acme');
+  });
+
+  it('handles a header-only CSV with no data rows', () => {
+    const { columns, rows } = parseCsvToTable('_id,_success,_errors\n');
+    expect(columns.map(({ key }) => key)).toEqual(['_id', '_success', '_errors']);
+    expect(rows).toHaveLength(0);
   });
 });

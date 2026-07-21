@@ -50,6 +50,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onAnnou
   );
   const [analytics, setAnalytics] = useAtom(fromAppState.analyticsState);
   const setDataHistoryCaptureEnabled = useSetAtom(fromAppState.dataHistoryCaptureEnabledState);
+  const setDataHistoryInitialized = useSetAtom(fromAppState.dataHistoryInitializedState);
   const [searchParams, setSearchParams] = useSearchParams();
   const errorParam = searchParams.get('error');
 
@@ -100,10 +101,11 @@ APP VERSION ${version}
       .then(() => initDataHistory({ hasPaidPlan }))
       .then(() => isDataHistoryCaptureEnabled())
       .then(setDataHistoryCaptureEnabled)
+      .then(() => setDataHistoryInitialized(true))
       .catch((ex) => {
         logger.error('[DB] Error initializing db', ex);
       });
-  }, [appInfo.serverUrl, hasPaidPlan, recordSyncEnabled, setDataHistoryCaptureEnabled]);
+  }, [appInfo.serverUrl, hasPaidPlan, recordSyncEnabled, setDataHistoryCaptureEnabled, setDataHistoryInitialized]);
 
   useEffect(() => {
     announcements && onAnnouncements && onAnnouncements(announcements);

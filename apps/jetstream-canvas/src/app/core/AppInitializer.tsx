@@ -29,6 +29,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
   const setSalesforceOrgs = useSetAtom(fromAppState.salesforceOrgsState);
   const setUserProfile = useSetAtom(fromAppState.userProfileState);
   const setDataHistoryCaptureEnabled = useSetAtom(fromAppState.dataHistoryCaptureEnabledState);
+  const setDataHistoryInitialized = useSetAtom(fromAppState.dataHistoryInitializedState);
   const setCanvasColorScheme = useSetAtom(canvasColorSchemeState);
   const selectedOrg = useAtomValue(fromAppState.selectedOrgState);
 
@@ -57,6 +58,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
       .then(() => initDataHistory({ hasPaidPlan: false }))
       .then(() => isDataHistoryCaptureEnabled())
       .then(setDataHistoryCaptureEnabled)
+      .then(() => setDataHistoryInitialized(true))
       .catch((ex) => {
         logger.error('[DB] Error initializing db', ex);
       });
