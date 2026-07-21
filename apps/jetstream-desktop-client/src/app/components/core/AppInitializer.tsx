@@ -50,6 +50,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ authInf
   const { version, announcements, appInfo } = useAtomValue(fromAppState.appInfoState);
   const [orgs, setOrgs] = useAtom(fromAppState.salesforceOrgsState);
   const setDataHistoryCaptureEnabled = useSetAtom(fromAppState.dataHistoryCaptureEnabledState);
+  const setDataHistoryInitialized = useSetAtom(fromAppState.dataHistoryInitializedState);
   const invalidOrg = useObservable(orgConnectionError$);
 
   const onSaveSoqlQueryFormatOptions = useObservable(
@@ -105,6 +106,7 @@ APP VERSION ${version}
         .then(() => initDataHistory({ hasPaidPlan: false }))
         .then(() => isDataHistoryCaptureEnabled())
         .then(setDataHistoryCaptureEnabled)
+        .then(() => setDataHistoryInitialized(true))
         .catch((ex) => {
           logger.error('[DB] Error initializing db', ex);
         });
@@ -114,7 +116,15 @@ APP VERSION ${version}
     return () => {
       disconnectSocket();
     };
-  }, [appInfo.serverUrl, authInfo.accessToken, authInfo.deviceId, recordSyncEnabled, activeUserId, setDataHistoryCaptureEnabled]);
+  }, [
+    appInfo.serverUrl,
+    authInfo.accessToken,
+    authInfo.deviceId,
+    recordSyncEnabled,
+    activeUserId,
+    setDataHistoryCaptureEnabled,
+    setDataHistoryInitialized,
+  ]);
 
   useEffect(() => {
     announcements && onAnnouncements && onAnnouncements(announcements);

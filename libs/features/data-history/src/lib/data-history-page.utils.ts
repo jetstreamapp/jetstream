@@ -1,6 +1,8 @@
 import { BadgeType, DataHistoryFileKind, DataHistoryItem, DataHistorySource, DataHistoryStatus, ListItem, Maybe } from '@jetstream/types';
+import { ColumnWithFilter } from '@jetstream/ui';
 import { formatDate } from 'date-fns/format';
 import { filesize } from 'filesize';
+import { parse as parseCsv } from 'papaparse';
 
 export const DATA_HISTORY_SOURCE_LABELS: Record<DataHistorySource, string> = {
   'load-records': 'Load Records',
@@ -23,9 +25,38 @@ export const DATA_HISTORY_STATUS_LABELS: Record<DataHistoryStatus, string> = {
 
 const DATA_HISTORY_FILE_KIND_LABELS: Record<DataHistoryFileKind, string> = {
   input: 'Input Data',
-  request: 'Request Payload',
-  results: 'Results',
+  request: 'Request',
+  results: 'Output Data',
 };
+
+export interface DataHistoryTableRow {
+  _dhRowKey: string;
+  [column: string]: string;
+}
+
+export interface DataHistoryTableData {
+  columns: ColumnWithFilter<DataHistoryTableRow>[];
+  rows: DataHistoryTableRow[];
+}
+
+/**
+ * Parse a stored CSV payload into rows + column definitions for the generic `DataTable`. Column
+ * order matches the CSV header; a synthetic `_dhRowKey` is added for stable row identity (a CSV
+ * column literally named `_dhRowKey` would collide, which no Salesforce/results file produces).
+ */
+export function parseCsvToTable(csvText: string): DataHistoryTableData {
+  const { data, meta } = parseCsv<Record<string, string>>(csvText, { header: true, skipEmptyLines: true });
+  const fields = meta.fields ?? [];
+  const columns: ColumnWithFilter<DataHistoryTableRow>[] = fields.map((field) => ({
+    key: field,
+    name: field,
+    sortable: true,
+    resizable: true,
+    getValue: ({ row }) => row[field] ?? '',
+  }));
+  const rows: DataHistoryTableRow[] = data.map((row, index) => ({ ...row, _dhRowKey: String(index) }));
+  return { columns, rows };
+}
 
 export function getDataHistoryStatusBadgeType(status: DataHistoryStatus): BadgeType {
   switch (status) {
