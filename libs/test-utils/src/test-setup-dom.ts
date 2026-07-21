@@ -18,3 +18,14 @@ if (typeof globalThis.ResizeObserver === 'undefined') {
   }
   globalThis.ResizeObserver = ResizeObserverShim as unknown as typeof ResizeObserver;
 }
+
+/**
+ * jsdom does not expose the `CSS` global (EditorHost uses `CSS.escape` to build cell selectors).
+ * Minimal approximation of the spec: backslash-escapes selector-special characters; skips the
+ * leading-digit/NUL edge cases, which unit tests don't exercise.
+ */
+if (typeof globalThis.CSS === 'undefined') {
+  globalThis.CSS = {
+    escape: (value: string) => String(value).replace(/[^a-zA-Z0-9_\u00A0-\uFFFF-]/g, '\\$&'),
+  } as unknown as typeof CSS;
+}
