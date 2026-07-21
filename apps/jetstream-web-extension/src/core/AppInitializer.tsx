@@ -55,6 +55,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
   const setAppInfo = useSetAtom(fromAppState.appInfoState);
   const setUserProfile = useSetAtom(fromAppState.userProfileState);
   const setDataHistoryCaptureEnabled = useSetAtom(fromAppState.dataHistoryCaptureEnabledState);
+  const setDataHistoryInitialized = useSetAtom(fromAppState.dataHistoryInitializedState);
 
   const setSelectedOrgId = useSetAtom(fromAppState.selectedOrgIdState);
   const setSalesforceOrgs = useSetAtom(fromAppState.salesforceOrgsState);
@@ -136,6 +137,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
       .then(() => initDataHistory({ hasPaidPlan: false }))
       .then(() => isDataHistoryCaptureEnabled())
       .then(setDataHistoryCaptureEnabled)
+      .then(() => setDataHistoryInitialized(true))
       .catch((ex) => {
         logger.error('[DB] Error initializing db', ex);
       });
@@ -147,6 +149,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
     options.recordSyncEnabled,
     serverUrl,
     setDataHistoryCaptureEnabled,
+    setDataHistoryInitialized,
   ]);
 
   // Ensure user access token is valid
