@@ -228,6 +228,13 @@ export const actionInProgressState = atom<boolean>(false);
 export const appInfoState = atom<Promise<AppInfo> | AppInfo>(fetchAppInfo());
 export const appInfoSyncState = unwrap(appInfoState, (prev) => prev ?? DEFAULT_APP_INFO);
 
+/**
+ * Server version detected via heartbeat that is newer than the running client, or null when up to
+ * date. Set by the web AppInitializer's visibility-change heartbeat check; drives the header
+ * update notification. Only ever set in the web app (desktop has its own electron-updater flow).
+ */
+export const updateAvailableVersionState = atom<string | null>(null);
+
 export const applicationCookieState = atom((get) => get(appInfoSyncState).appInfo);
 export const appVersionState = atom((get) => get(appInfoSyncState).version);
 export const AnnouncementState = atom((get) => get(appInfoSyncState).announcements);

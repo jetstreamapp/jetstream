@@ -10,6 +10,10 @@
 
     <meta name="theme-color" content="#ffffff" />
 
+    <!-- href must be absolute: <base href="/app"> is injected at build and would break a relative path -->
+    <link rel="manifest" href="/assets/jetstream-app.webmanifest" />
+    <meta name="apple-mobile-web-app-title" content="Jetstream" />
+
     <link rel="apple-touch-icon" sizes="57x57" href="/assets/images/apple-icon-57x57.png" />
     <link rel="apple-touch-icon" sizes="60x60" href="/assets/images/apple-icon-60x60.png" />
     <link rel="apple-touch-icon" sizes="72x72" href="/assets/images/apple-icon-72x72.png" />

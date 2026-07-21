@@ -20,6 +20,7 @@ import AppStateResetOnOrgChange from './components/core/AppStateResetOnOrgChange
 import LogInitializer from './components/core/LogInitializer';
 import './components/core/monaco-loader';
 import NotificationsRequestModal from './components/core/NotificationsRequestModal';
+import WebUpdateNotification from './components/core/WebUpdateNotification';
 
 export const App = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -43,7 +44,7 @@ export const App = () => {
             </ErrorBoundary>
             <div>
               <div data-testid="header">
-                <HeaderNavbar isBillingEnabled={environment.BILLING_ENABLED} />
+                <HeaderNavbar isBillingEnabled={environment.BILLING_ENABLED} updateNotification={<WebUpdateNotification />} />
               </div>
               <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
                 <AnnouncementAlerts announcements={announcements} />

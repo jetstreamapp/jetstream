@@ -15,6 +15,10 @@ export const FEATURE_FLAGS = {
     defaultValue: false,
     description: 'Data and record analysis tools.',
   },
+  'pwa-service-worker': {
+    defaultValue: false,
+    description: 'Precache service worker for the web app - keeps hashed build assets available across deploys.',
+  },
 } as const satisfies Record<string, { defaultValue: boolean; description: string }>;
 
 export type FeatureFlagKey = keyof typeof FEATURE_FLAGS;

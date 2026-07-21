@@ -120,6 +120,9 @@ const envSchema = z.object({
   IS_LOCAL_DOCKER: booleanSchema,
   ENABLE_TEST_ENDPOINTS: booleanSchema,
   DEFERRED_RESPONSE_ENABLED: booleanSchema,
+  // Emergency kill switch for the /app precache service worker: when true, /app/sw.js serves a
+  // self-destructing worker that unregisters itself and deletes its caches on every client
+  SW_KILL_SWITCH: booleanSchema,
   // Defaults are applied in the middleware (45000ms / 25000ms) since numberSchema transforms undefined → null
   DEFERRED_RESPONSE_THRESHOLD_MS: numberSchema,
   DEFERRED_RESPONSE_KEEPALIVE_MS: numberSchema,
