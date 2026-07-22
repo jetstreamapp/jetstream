@@ -1,5 +1,11 @@
 # Changelog
 
+## [10.7.1](https://github.com/jetstreamapp/jetstream/compare/v10.7.0...v10.7.1) (2026-07-22)
+
+### Features
+
+* move docs json to docs app ([c22675b](https://github.com/jetstreamapp/jetstream/commit/c22675bbf51474f5d96cc366572105f13b9b6fc8))
+
 ## [10.7.0](https://github.com/jetstreamapp/jetstream/compare/v10.6.1...v10.7.0) (2026-07-22)
 
 ### Features
