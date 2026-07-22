@@ -8,12 +8,13 @@ import {
 } from '../salesforce/record.types';
 import { Maybe } from '../types';
 
-export type PermissionType = 'object' | 'field' | 'tabVisibility';
+export type PermissionType = 'object' | 'field' | 'tabVisibility' | 'systemPermission';
 export type ObjectPermissionTypes = 'create' | 'read' | 'edit' | 'delete' | 'viewAll' | 'modifyAll' | 'viewAllFields';
 export type FieldPermissionTypes = 'read' | 'edit';
 export type TabVisibilityPermissionTypes = 'available' | 'visible';
+export type SystemPermissionTypes = 'enabled';
 
-export type PermissionTypes = ObjectPermissionTypes | FieldPermissionTypes | TabVisibilityPermissionTypes;
+export type PermissionTypes = ObjectPermissionTypes | FieldPermissionTypes | TabVisibilityPermissionTypes | SystemPermissionTypes;
 
 export type BulkActionCheckbox = {
   id: PermissionTypes;
@@ -22,7 +23,11 @@ export type BulkActionCheckbox = {
   disabled: boolean;
 };
 
-export type PermissionDefinitionMap = ObjectPermissionDefinitionMap | FieldPermissionDefinitionMap | TabVisibilityPermissionDefinitionMap;
+export type PermissionDefinitionMap =
+  | ObjectPermissionDefinitionMap
+  | FieldPermissionDefinitionMap
+  | TabVisibilityPermissionDefinitionMap
+  | SystemPermissionDefinitionMap;
 
 export interface ObjectPermissionDefinitionMap {
   apiName: string;
@@ -86,6 +91,21 @@ export interface TabVisibilityPermissionItem {
   errorMessage?: string;
 }
 
+export interface SystemPermissionDefinitionMap {
+  /** The `Permissions*` field API name on the PermissionSet object, e.x. `PermissionsApiEnabled` */
+  apiName: string;
+  /** Friendly label from the PermissionSet describe, e.x. `API Enabled` */
+  label: string;
+  // used to retain order of permissions
+  permissionKeys: string[]; // this is permission set ids, which could apply to profile or perm set
+  permissions: Record<string, SystemPermissionItem>;
+}
+
+export interface SystemPermissionItem {
+  enabled: boolean;
+  errorMessage?: Maybe<string>;
+}
+
 export interface ObjectPermissionRecordForSave extends Omit<ObjectPermissionRecord, 'Id' | 'Parent'> {
   attributes: Partial<RecordAttributes>;
   Id?: Maybe<string>;
@@ -101,6 +121,17 @@ export interface TabVisibilityPermissionRecordForSave extends Pick<TabVisibility
   Id?: string;
   Name?: string;
   ParentId?: string;
+}
+
+/**
+ * A single PermissionSet record update carrying the changed `Permissions*` boolean fields.
+ * System permissions live directly on the PermissionSet record, so we only ever `update` (never
+ * insert/delete) and many changed permissions collapse into one record per parent (permission set id).
+ */
+export interface SystemPermissionRecordForSave {
+  attributes: Partial<RecordAttributes>;
+  Id: string;
+  [permissionField: string]: boolean | string | Partial<RecordAttributes>;
 }
 
 export interface PermissionSaveResults<RecordType, DirtyPermType> {
@@ -121,7 +152,11 @@ export interface PermissionTableCell<T = PermissionTableFieldCellPermission | Pe
   permissions: Record<string, T>;
 }
 
-export type PermissionTableCellExtended = PermissionTableObjectCell | PermissionTableFieldCell | PermissionTableTabVisibilityCell;
+export type PermissionTableCellExtended =
+  | PermissionTableObjectCell
+  | PermissionTableFieldCell
+  | PermissionTableTabVisibilityCell
+  | PermissionTableSystemPermissionCell;
 
 export interface PermissionTableObjectCell extends PermissionTableCell<PermissionTableObjectCellPermission> {
   allowEditPermission: boolean; // TODO: what other permissions may be restricted here??
@@ -136,11 +171,15 @@ export interface PermissionTableTabVisibilityCell extends PermissionTableCell<Pe
   canSetPermission: boolean;
 }
 
+export interface PermissionTableSystemPermissionCell extends PermissionTableCell<PermissionTableSystemPermissionCellPermission> {}
+
 export interface PermissionTableSummaryRow {
   type: 'HEADING' | 'ACTION';
 }
 
-export interface PermissionTableObjectCellPermissionBase<T = ObjectPermissionItem | FieldPermissionItem | TabVisibilityPermissionItem> {
+export interface PermissionTableObjectCellPermissionBase<
+  T = ObjectPermissionItem | FieldPermissionItem | TabVisibilityPermissionItem | SystemPermissionItem,
+> {
   rowKey: string;
   parentId: string; // permissions set (placeholder profile or permission set Id)
   sobject: string;
@@ -179,10 +218,18 @@ export interface PermissionTableTabVisibilityCellPermission extends PermissionTa
   visibleIsDirty: boolean;
 }
 
+export interface PermissionTableSystemPermissionCellPermission extends PermissionTableObjectCellPermissionBase<SystemPermissionItem> {
+  /** The `Permissions*` field API name on the PermissionSet record, e.x. `PermissionsApiEnabled` */
+  field: string;
+  enabled: boolean;
+  enabledIsDirty: boolean;
+}
+
 export type PermissionTableCellPermission =
   | PermissionTableObjectCellPermission
   | PermissionTableFieldCellPermission
-  | PermissionTableTabVisibilityCellPermission;
+  | PermissionTableTabVisibilityCellPermission
+  | PermissionTableSystemPermissionCellPermission;
 
 export interface ManagePermissionsEditorTableProps {
   fieldsByObject: Record<string, string[]>;
@@ -217,6 +264,27 @@ export interface PermissionTabVisibilitySaveData {
   recordsToInsert: TabVisibilityPermissionRecordForSave[];
   recordsToUpdate: TabVisibilityPermissionRecordForSave[];
   recordsToDelete: string[];
+}
+
+/**
+ * One PermissionSet update per parent (permission set id) carrying every changed `Permissions*` field,
+ * plus the dirty cells that produced it so save errors/results can be attributed back to each cell.
+ */
+export interface SystemPermissionSaveRecord {
+  parentId: string;
+  /**
+   * Where the `Permissions*` fields are written. Profile-owned permission sets cannot be updated
+   * directly (Salesforce rejects with INVALID_CROSS_REFERENCE_KEY), so those are written to the
+   * `Profile` record; standalone permission sets are written to the `PermissionSet` record.
+   */
+  sobjectType: 'Profile' | 'PermissionSet';
+  record: SystemPermissionRecordForSave;
+  dirtyPermissions: PermissionTableSystemPermissionCellPermission[];
+  response?: Maybe<RecordResult>;
+}
+
+export interface PermissionSystemSaveData {
+  recordsToUpdate: SystemPermissionSaveRecord[];
 }
 
 export interface PermissionManagerTableContext {
