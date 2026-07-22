@@ -54,6 +54,8 @@ export function buildCspDirectives(extraFrameAncestors: string[] = []): CspDirec
       'https://checkout.stripe.com',
       'https://cloudflareinsights.com',
       'https://connect-js.stripe.com',
+      // release-notes.json fetched by the in-app "What's New" popover
+      'https://docs.getjetstream.app',
       'https://hooks.stripe.com',
       'https://js.stripe.com',
       'https://maps.googleapis.com',

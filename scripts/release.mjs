@@ -157,17 +157,18 @@ console.log(`  ${chalk.dim('desktop')}   ${releaseDesktop ? chalk.green('yes') :
 console.log('');
 
 // ── Release-note reminder ──────────────────────────────────────────────────
-// Release notes live in apps/docs/release-notes and must land via a normal PR
-// before the release is cut. If one is missing for the upcoming web version,
-// warn and require an explicit confirmation to proceed (aborts by default).
+// Release notes live in apps/docs/release-notes and land via a normal PR — either
+// before the release is cut, or backfilled afterward (the /release-notes command
+// targets the new tag automatically once it exists). If one is missing for the
+// upcoming web version, remind the user but let them proceed and backfill.
 // See CONTRIBUTING.md → Releasing → Release notes.
 if (releaseWeb) {
   const pkg = JSON.parse(await readFile(path.join(ROOT, 'package.json'), 'utf8'));
   const nextWebVersion = bumpVersion(pkg.version, bump);
   if (!(await hasReleaseNoteFor(nextWebVersion))) {
     console.log(chalk.yellow(`  ⚠ No release note found for v${nextWebVersion}.`));
-    console.log(chalk.dim(`    Draft one with the Claude Code /release-notes command (or pnpm release-notes:context),`));
-    console.log(chalk.dim(`    then merge the "docs: release notes v${nextWebVersion}" PR before releasing.`));
+    console.log(chalk.dim(`    Draft one with the Claude Code /release-notes command (or pnpm release-notes:context) —`));
+    console.log(chalk.dim(`    either now, or after the release is cut (/release-notes targets the new tag automatically).`));
     const proceedWithoutNote = await confirm({ message: 'Continue the release without a release note?', default: false });
     if (!proceedWithoutNote) {
       console.log(chalk.yellow('\nAborted — draft the release note first.'));

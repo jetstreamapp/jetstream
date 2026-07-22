@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import { getVisibleReleases, RELEASE_NOTES, ReleaseNote, ReleasePlatform } from '@jetstream/release-notes';
+import { fetchReleaseNotes, getVisibleReleases, ReleaseNote, ReleasePlatform } from '@jetstream/release-notes';
 import { setItemInLocalStorage } from '@jetstream/shared/ui-utils';
 import { Icon, Popover, PopoverRef } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
@@ -9,10 +9,18 @@ const DOCS_RELEASE_NOTES_URL = 'https://docs.getjetstream.app/release-notes';
 const DOCS_BASE_URL = 'https://docs.getjetstream.app';
 const MAX_VISIBLE_RELEASES = 5;
 
+// Release notes are fetched from the docs site once per session and shared across popover instances.
+let releaseNotesPromise: Promise<ReleaseNote[]> | null = null;
+function loadReleaseNotesOnce(): Promise<ReleaseNote[]> {
+  releaseNotesPromise ??= fetchReleaseNotes();
+  return releaseNotesPromise;
+}
+
 export interface HeaderWhatsNewPopoverProps {
   platform: ReleasePlatform;
   /**
    * Optional override for testing and for consumers that want to inject a specific release list.
+   * When omitted, release notes are fetched from the docs site.
    */
   releases?: ReleaseNote[];
 }
@@ -45,8 +53,24 @@ function resolveDocHref(docLink: string): string {
 export const HeaderWhatsNewPopover: FunctionComponent<HeaderWhatsNewPopoverProps> = ({ platform, releases }) => {
   const popoverRef = useRef<PopoverRef>(null);
   const [watermark, setWatermark] = useState<string | null>(() => readWatermark());
+  const [fetchedReleases, setFetchedReleases] = useState<ReleaseNote[]>([]);
 
-  const allVisible = useMemo(() => getVisibleReleases(releases ?? RELEASE_NOTES, platform), [releases, platform]);
+  useEffect(() => {
+    if (releases) {
+      return;
+    }
+    let cancelled = false;
+    loadReleaseNotesOnce().then((notes) => {
+      if (!cancelled) {
+        setFetchedReleases(notes);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [releases]);
+
+  const allVisible = useMemo(() => getVisibleReleases(releases ?? fetchedReleases, platform), [releases, fetchedReleases, platform]);
   const visible = useMemo(() => allVisible.slice(0, MAX_VISIBLE_RELEASES), [allVisible]);
   const unseenCount = useMemo(() => allVisible.filter(({ date }) => !watermark || date > watermark).length, [allVisible, watermark]);
   const newestDate = allVisible[0]?.date ?? null;

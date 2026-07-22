@@ -41,22 +41,29 @@ We use GitHub issues to track public bugs. Report a bug by [opening a new issue]
 ### Release notes
 
 User-facing release notes live as MDX files in [`apps/docs/release-notes/`](apps/docs/release-notes/). They are
-published to the docs blog at `docs.getjetstream.app/release-notes` and power the in-app "What's New" popover
-(via the generated `libs/release-notes/src/lib/release-notes.generated.json`).
+published to the docs blog at `docs.getjetstream.app/release-notes`, and the generated
+`apps/docs/static/release-notes.json` (served at `docs.getjetstream.app/release-notes.json`) is fetched at
+runtime by the in-app "What's New" popover. Because both files live under `apps/docs/`, a release-note PR only
+triggers the Docs CI workflow.
 
-**Write the note before you cut the release**, as its own pull request:
+Notes are usually written **after the release is cut** (they can also be drafted ahead of an upcoming release),
+always as their own pull request:
 
-1. **Draft** — in Claude Code, run the `/release-notes` command (pass `patch`/`minor`/`major`, or
-   `--version X.Y.Z`). It gathers the merged PRs since the last `v*` tag, drafts the MDX in the house
-   style, writes it to `apps/docs/release-notes/`, and runs `pnpm release-notes:generate` to validate it.
-   - Not in Claude Code? Run `pnpm release-notes:context --bump <level>` and hand the digest to any AI
-     assistant along with the guidelines in [`.claude/commands/release-notes.md`](.claude/commands/release-notes.md),
+1. **Draft** — in Claude Code, run the `/release-notes` command. With no argument it targets the release that
+   was just cut (the current version's tag) when no note exists for it yet; you can also pass an explicit tag
+   (`latest`, `v10.6.0`), or `patch`/`minor`/`major` / `--version X.Y.Z` to draft ahead of an upcoming release.
+   It gathers the merged PRs in the release's commit range, drafts the MDX in the house style, writes it to
+   `apps/docs/release-notes/`, and runs `pnpm release-notes:generate` to validate it.
+   - Not in Claude Code? Run `pnpm release-notes:context` (same arguments, e.g. `--tag latest`) and hand the
+     digest to any AI assistant along with the guidelines in
+     [`.claude/commands/release-notes.md`](.claude/commands/release-notes.md),
      or scaffold a blank note with `pnpm new-release-note` and write it by hand.
 2. **Review** — read and edit the generated MDX. The AI draft is a starting point; the human edit is required.
-3. **Open a PR** — branch, commit the new `.mdx` plus the regenerated `release-notes.generated.json`, and
+3. **Open a PR** — branch, commit the new `.mdx` plus the regenerated `apps/docs/static/release-notes.json`, and
    open a pull request titled `docs: release notes vX.Y.Z`. This runs the normal Docs CI build.
-4. **Merge it before running `pnpm release`.** The `release` script warns (non-blocking) if no note exists for
-   the upcoming web version.
+4. **Merge it.** For an already-cut release the note goes live once the docs deploy completes; when drafting
+   ahead, merge before running `pnpm release`. The `release` script warns (non-blocking) if no note exists yet
+   for the upcoming web version.
 
 This keeps every release note — including AI-generated drafts — reviewed and committed exclusively through a
 pull request. The automated release workflow never authors or commits release-note content.

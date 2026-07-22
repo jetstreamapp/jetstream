@@ -35,8 +35,9 @@ import LogoPro from './jetstream-logo-pro-200w.png';
 import Logo from './jetstream-logo-v1-200w.png';
 import NotificationsRequestModal from './NotificationsRequestModal';
 
-// Lazy-loaded so the release-notes data (release-notes.generated.json, which grows with every
-// release) is code-split into its own async chunk instead of being inlined into the main app bundle.
+// Lazy-loaded so the popover (and the release-notes fetch/validation code behind it) is code-split
+// into its own async chunk instead of being inlined into the main app bundle. The release-note data
+// itself is fetched at runtime from docs.getjetstream.app/release-notes.json when the popover mounts.
 // The type-only import above keeps the runtime module out of the eager graph.
 const LazyHeaderWhatsNewPopover = lazy(() => import('./HeaderWhatsNewPopover'));
 
