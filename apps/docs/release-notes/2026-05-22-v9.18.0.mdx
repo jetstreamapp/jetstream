@@ -1,0 +1,46 @@
+---
+slug: v9.18.0
+title: 9.18.0 - Refresh records in place and jump from the extension into Query
+date: '2026-05-22'
+tags: [web, extension]
+versions:
+  web: 9.18.0
+  extension: 2.24.1
+summary: Refresh a record without closing the modal, deep-link from the browser extension straight into a query, and get more visibility into org-level actions through expanded audit logs.
+highlights:
+  - title: Refresh a record without leaving the modal
+    description: Re-pull the latest values for the record you're viewing — handy when background automation has changed it since you opened it.
+    docLink: /query/results
+  - title: Jump from the extension into Query
+    description: Opening Jetstream from the browser extension can pre-fill the object and add a filter for the record you came from.
+    docLink: /query
+  - title: More org action audit logs
+    description: Adding, deleting, and refreshing Salesforce org connections are now recorded for better team accountability.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Refresh a record without closing the modal
+
+When you're viewing or editing a record, you can now refresh it in place to pull the latest values. This
+is especially useful when automation runs in the background and changes the record after you've opened
+it — no need to close and reopen to see the current state.
+
+### Deep-link from the browser extension into Query
+
+When you open Jetstream from the web extension, it can now carry context with you: the query page can
+auto-populate the object you came from and, where it makes sense, add a filter for that record's id. That
+shaves several steps off the common "I'm looking at this record in Salesforce, now let me query around
+it" workflow.
+
+### Expanded audit logging for org actions
+
+Actions on your Salesforce org connections — adding an org, deleting one, and refreshing its token — now
+write audit log entries. That gives team owners a clearer trail of who connected or changed what.
+
+### Other fixes
+
+- The desktop app handles logout and concurrent-login detection more carefully, so a logout can no longer
+  accidentally restore a stale authentication state.

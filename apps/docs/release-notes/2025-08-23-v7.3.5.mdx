@@ -1,0 +1,21 @@
+---
+slug: v7.3.5
+title: 7.3.5 - Diff editor collapses unchanged regions after swap
+date: '2025-08-23'
+tags: [web]
+versions:
+  web: 7.3.5
+summary: Fixes the view/compare metadata diff editor so collapsed unchanged regions stay collapsed after swapping the two sides.
+highlights:
+  - title: Diff editor swap fix
+    description: Swapping sides in the view/compare metadata diff now keeps unchanged regions collapsed as expected.
+    docLink: /deploy-metadata
+---
+
+{/* truncate */}
+
+## What's new
+
+### Diff editor
+
+When comparing two pieces of metadata, swapping the left and right sides previously left the collapsed unchanged regions out of sync. Collapsing now works consistently after swapping. Reported in [#1315](https://github.com/jetstreamapp/jetstream/issues/1315).

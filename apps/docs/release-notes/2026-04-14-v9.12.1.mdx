@@ -1,0 +1,21 @@
+---
+slug: v9.12.1
+title: 9.12.1 - Retry failed rows on a data load
+date: '2026-04-14'
+tags: [web]
+versions:
+  web: 9.12.1
+summary: Retry just the failed rows from a data load without re-running the whole job.
+highlights:
+  - title: Retry failed rows from the load-failures modal
+    description: Select failed rows in the results modal and retry them with the same configuration instead of re-running the full file.
+    docLink: /load
+---
+
+{/* truncate */}
+
+## What's new
+
+### Retry failed rows
+
+The load-failures modal now supports row selection with a Retry Selected action. Pick the rows you want to re-run and Jetstream kicks off a new load using the existing mapping and options, without forcing you to export the failures and start over.

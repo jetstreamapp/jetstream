@@ -8,6 +8,7 @@
   "targets": {
     "build": {
       "executor": "@nx/vite:build",
+      "dependsOn": ["^build", "release-notes:build-data"],
       "options": {
         "outputPath": "dist/apps/jetstream"
       },

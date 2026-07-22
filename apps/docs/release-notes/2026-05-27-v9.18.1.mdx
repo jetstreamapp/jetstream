@@ -1,0 +1,37 @@
+---
+slug: v9.18.1
+title: 9.18.1 - Filtering on related fields works again
+date: '2026-05-27'
+tags: [web, desktop, extension]
+versions:
+  web: 9.18.1
+  desktop: 3.23.0
+  extension: 2.25.0
+summary: Fixes a query-filter bug where related fields stopped fetching their values, plus clearer errors when field metadata fails to load.
+highlights:
+  - title: Related fields in filters fetch data again
+    description: Adding a related (parent) field to a filter group correctly loads its values from cache or Salesforce so you can pick from them.
+    docLink: /query
+  - title: Clearer field metadata errors
+    description: If field metadata can't be loaded, Jetstream now surfaces a toast notification instead of failing quietly.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Filtering on related fields works again
+
+When you build a query filter and add a related field (a field reached through a parent relationship),
+Jetstream needs to fetch that field's possible values so you can choose from them. A regression had
+stopped that from happening; this release restores it, so related fields in a filter group once again
+pull their data from the cache or directly from Salesforce.
+
+### Clearer errors when field metadata can't load
+
+If something goes wrong fetching field metadata, you'll now see a toast notification explaining it rather
+than a silent failure — making it obvious that you should retry or check the org connection.
+
+### Other fixes
+
+- Logout handles specific error responses more gracefully.

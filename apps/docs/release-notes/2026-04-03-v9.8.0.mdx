@@ -1,0 +1,31 @@
+---
+slug: v9.8.0
+title: 9.8.0 - IdP-initiated OIDC login, resilient SOQL formatting
+date: '2026-04-03'
+tags: [web]
+versions:
+  web: 9.8.0
+summary: Log in to Jetstream directly from your identity provider's dashboard, plus the query editor no longer crashes on partially typed SOQL.
+highlights:
+  - title: IdP-initiated OIDC login
+    description: Users can now start login from their identity provider dashboard. Documentation covers the redirect URIs to configure per IdP.
+    platforms: [web]
+  - title: SOQL formatter crash fix
+    description: Invalid or in-progress SOQL no longer crashes the query editor while you are still typing.
+    docLink: /query/results
+    platforms: [web, desktop, extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### IdP-initiated OIDC login
+
+If your organization uses an OIDC identity provider (Okta, Entra, Google Workspace, etc.), users can now click the Jetstream tile in their IdP dashboard and land straight in the app. No more bouncing to Jetstream first to start the auth flow.
+
+The Jetstream SSO docs have been updated with the redirect URIs you'll need to register for each of the common identity providers.
+
+### SOQL formatting no longer crashes editors
+
+While you are editing a query, partially typed or invalid SOQL used to be able to crash the editor. Now the editor keeps working while you finish typing, even if the query is not valid yet.

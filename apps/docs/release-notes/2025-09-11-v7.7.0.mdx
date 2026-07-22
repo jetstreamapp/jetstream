@@ -1,0 +1,37 @@
+---
+slug: v7.7.0
+title: 7.7.0 - Field mapping and UI polish
+date: '2025-09-11'
+tags: [web]
+versions:
+  web: 7.7.0
+summary: Cleans up the field mapping dropdown and fixes several small UI issues.
+highlights:
+  - title: Cleaner field mapping dropdown
+    description: The load records field mapping dropdown now shows the field type as tertiary text, matching the rest of the app.
+    docLink: /load
+    platforms: [web, desktop, extension]
+  - title: Combobox sizing fix
+    description: The combobox no longer miscalculates its size in certain layouts.
+    platforms: [web, desktop, extension]
+  - title: Better Salesforce domain detection in the extension
+    description: The Chrome extension now detects Salesforce domains more reliably.
+    platforms: [web, extension]
+  - title: Error popover styling
+    description: The error popover nubbin color now matches the popover background.
+    platforms: [web, desktop, extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Cleaner field mapping dropdown
+
+In the load records field mapping, the field type used to render as a badge that crowded polymorphic lookups. It now shows as tertiary text next to the field name, matching how field types are displayed everywhere else in the app.
+
+### Smaller UI fixes
+
+- The combobox control now sizes correctly in layouts where it was previously miscalculating.
+- The error popover's nubbin is now the right color so it blends with the popover body.
+- The Chrome extension does a better job of detecting when you're on a Salesforce domain.

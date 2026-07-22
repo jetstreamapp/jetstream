@@ -1,0 +1,52 @@
+---
+slug: v9.16.0
+title: 9.16.0 - Date shortcuts, deploy fixes, and security hardening
+date: '2026-05-07'
+tags: [web, desktop, extension]
+versions:
+  web: 9.16.0
+  desktop: 3.20.1
+  extension: 2.22.1
+summary: Pick common dates in one click, deploy and compare metadata folders more reliably, and benefit from a broad round of behind-the-scenes security hardening.
+highlights:
+  - title: Date shortcuts for faster filtering
+    description: Common ranges like today, yesterday, and last week are now one click away wherever you pick a date.
+    docLink: /query/results
+  - title: More reliable metadata folders in deploy and compare
+    description: Email templates and other folder-based metadata resolve correctly, and duplicate folder entries no longer break table rendering.
+    docLink: /deploy-metadata
+  - title: Security hardening across the app
+    description: A wide sweep of hardening around team and billing pages, role checks, and SSO request handling.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Date shortcuts when picking a date
+
+The date picker now offers quick shortcuts for the ranges you reach for most, so filtering a query or
+setting a value no longer means clicking through a calendar to get to "yesterday" or "last week."
+
+### Deploy and compare metadata folders are more dependable
+
+Folder-based metadata is now resolved correctly when you deploy or compare metadata. Email templates
+stored inside a folder are no longer missed, and duplicate folder entries that previously caused tables
+to render incorrectly (depending on which metadata types you fetched) have been sorted out.
+
+### Behind-the-scenes security hardening
+
+This release includes a broad round of security work that keeps your team's data safer without changing
+how you use Jetstream:
+
+- Added CSRF protection to team and billing pages.
+- Sensitive actions now re-check your current role instead of trusting older session data, and billing
+  access can no longer reach admin-only areas.
+- Tightened the SAML identity-provider-initiated login flow.
+- Billing and role changes now take effect reliably.
+
+### Other fixes
+
+- Picklist values display correctly when mapping fields during a load.
+- Numbers are formatted more consistently.
+- Permission filtering handles a wider range of objects.

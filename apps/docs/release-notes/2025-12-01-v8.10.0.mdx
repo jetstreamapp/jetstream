@@ -1,0 +1,23 @@
+---
+slug: v8.10.0
+title: 8.10.0 - Session error detection
+date: '2025-12-01'
+tags: [web, desktop, extension]
+versions:
+  web: 8.10.0
+  desktop: 3.6.1
+  extension: 2.7.1
+summary: Better detection of invalid org sessions so connection errors are surfaced promptly and you are prompted to reconnect.
+highlights:
+  - title: Invalid session detection
+    description: Additional Salesforce error responses now mark the org as having a connection error, so you are prompted to reconnect instead of hitting opaque failures.
+    platforms: [web, desktop, extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Invalid session detection
+
+Jetstream now recognizes additional Salesforce error messages that indicate an invalid or expired session, and marks the affected org with a connection error. This means you get the standard "reconnect org" prompt instead of mysterious request failures.

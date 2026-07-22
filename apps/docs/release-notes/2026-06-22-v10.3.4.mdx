@@ -1,0 +1,21 @@
+---
+slug: v10.3.4
+title: 10.3.4 - Security hardening for single sign-on
+date: '2026-06-22'
+tags: [web]
+versions:
+  web: 10.3.4
+summary: Additional protection when fetching identity-provider metadata for single sign-on.
+highlights:
+  - title: Security hardening for single sign-on
+    description: Added protections when fetching OIDC and SAML identity-provider metadata.
+    docLink: /team-management/sso/overview
+---
+
+{/* truncate */}
+
+## What's new
+
+### Security hardening for single sign-on
+
+We strengthened how Jetstream fetches identity-provider metadata during OIDC and SAML single sign-on, adding protection against requests being redirected to unintended destinations. There's no change to how sign-on works for you — this is a behind-the-scenes safety improvement for teams using SSO.

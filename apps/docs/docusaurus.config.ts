@@ -52,6 +52,9 @@ const config: Config = {
           routeBasePath: '/',
           editUrl: 'https://github.com/jetstreamapp/jetstream/tree/main/apps/docs/',
         },
+        // The default preset blog is disabled; release notes are served by the
+        // dedicated `@docusaurus/plugin-content-blog` instance configured below.
+        blog: false,
         theme: {
           customCss: ['./src/css/custom.css'],
         },
@@ -60,6 +63,27 @@ const config: Config = {
           priority: 0.5,
         },
       } satisfies Preset.Options,
+    ],
+  ],
+  plugins: [
+    [
+      '@docusaurus/plugin-content-blog',
+      {
+        id: 'release-notes',
+        routeBasePath: 'release-notes',
+        path: './release-notes',
+        blogTitle: 'Release notes',
+        blogDescription: "What's new in Jetstream.",
+        blogSidebarTitle: 'All releases',
+        blogSidebarCount: 'ALL',
+        showReadingTime: false,
+        editUrl: 'https://github.com/jetstreamapp/jetstream/tree/main/apps/docs/',
+        feedOptions: {
+          type: 'all',
+          title: 'Jetstream release notes',
+          copyright: `Copyright © ${new Date().getFullYear()} Jetstream.`,
+        },
+      },
     ],
   ],
   themeConfig: {
@@ -85,6 +109,11 @@ const config: Config = {
         srcDark: 'img/jetstream-logo-inverse.svg',
       },
       items: [
+        {
+          to: '/release-notes',
+          label: 'Release notes',
+          position: 'right',
+        },
         {
           href: 'https://getjetstream.app',
           label: 'Jetstream',

@@ -1,8 +1,9 @@
 import { css, SerializedStyles } from '@emotion/react';
 import { AppAbility } from '@jetstream/acl';
+import type { ReleasePlatform } from '@jetstream/release-notes';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { isCanvasApp } from '@jetstream/shared/ui-utils';
+import { isBrowserExtension, isCanvasApp } from '@jetstream/shared/ui-utils';
 import { AddOrgHandlerFn, ColorScheme, DropDownItem, UserProfileUi } from '@jetstream/types';
 import { Header, Icon, Navbar, UpgradeToProButton } from '@jetstream/ui';
 import {
@@ -15,7 +16,7 @@ import {
   useUserPreferenceState,
 } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useAmplitude } from '../analytics';
 import Jobs from '../jobs/Jobs';
@@ -29,9 +30,29 @@ import HeaderHelpPopover from './HeaderHelpPopover';
 import { useHeaderNavbarItems } from './HeaderNavbarItems';
 import { headerNavbarBillingUserItems } from './HeaderNavbarReadOnlyUserItems';
 import HeaderUpdateNotification from './HeaderUpdateNotification';
+import type { HeaderWhatsNewPopoverProps } from './HeaderWhatsNewPopover';
 import LogoPro from './jetstream-logo-pro-200w.png';
 import Logo from './jetstream-logo-v1-200w.png';
 import NotificationsRequestModal from './NotificationsRequestModal';
+
+// Lazy-loaded so the release-notes data (release-notes.generated.json, which grows with every
+// release) is code-split into its own async chunk instead of being inlined into the main app bundle.
+// The type-only import above keeps the runtime module out of the eager graph.
+const LazyHeaderWhatsNewPopover = lazy(() => import('./HeaderWhatsNewPopover'));
+
+function HeaderWhatsNewPopover(props: HeaderWhatsNewPopoverProps) {
+  return (
+    <Suspense fallback={null}>
+      <LazyHeaderWhatsNewPopover {...props} />
+    </Suspense>
+  );
+}
+
+// Temporarily disabled for the initial release-notes launch — we're starting with the docs-site
+// blog (docs.getjetstream.app/release-notes) only. Flip to `true` to restore the in-app "What's New"
+// popover once its known issues are addressed: the popover can exceed the viewport height without
+// scrolling, and its bell icon collides with the background-jobs bell right next to it.
+const SHOW_WHATS_NEW_POPOVER = false;
 
 export interface HeaderNavbarProps {
   isBillingEnabled: boolean;
@@ -235,9 +256,14 @@ export const HeaderNavbar = ({
   const showFullscreenLink = isCanvasApp() && !isFullscreen;
   const instanceUrl = selectedOrg?.instanceUrl;
 
+  const releaseNotePlatform: ReleasePlatform = isDesktop ? 'desktop' : isBrowserExtension() ? 'extension' : 'web';
+
   const rightHandMenuItems = useMemo(() => {
+    // Spreads to nothing while the in-app popover is disabled (see SHOW_WHATS_NEW_POPOVER above).
+    const whatsNewItems: React.ReactNode[] = SHOW_WHATS_NEW_POPOVER ? [<HeaderWhatsNewPopover platform={releaseNotePlatform} />] : [];
+
     if (isReadOnlyUser) {
-      return [<HeaderHelpPopover />];
+      return [...whatsNewItems, <HeaderHelpPopover />];
     }
 
     if (isEmbeddedApp || isDesktop) {
@@ -264,7 +290,7 @@ export const HeaderNavbar = ({
         items.push(<HeaderUpdateNotification onCheckForUpdates={handleCheckForUpdates} onInstallUpdate={handleInstallUpdate} />);
       }
 
-      items.push(<HeaderHelpPopover />);
+      items.push(...whatsNewItems, <HeaderHelpPopover />);
       return items;
     }
 
@@ -274,6 +300,7 @@ export const HeaderNavbar = ({
         <RecordSearchPopover />,
         <UserSearchPopover />,
         <Jobs />,
+        ...whatsNewItems,
         <HeaderHelpPopover />,
         <HeaderDonatePopover />,
       ];
@@ -286,12 +313,23 @@ export const HeaderNavbar = ({
         <RecordSearchPopover />,
         <UserSearchPopover />,
         <Jobs />,
+        ...whatsNewItems,
         <HeaderHelpPopover />,
       ];
     }
 
-    return [<QuickQueryPopover />, <RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />];
-  }, [isReadOnlyUser, isEmbeddedApp, isDesktop, isBillingEnabled, hasPaidPlan, trackEvent, showFullscreenLink, instanceUrl]);
+    return [<QuickQueryPopover />, <RecordSearchPopover />, <UserSearchPopover />, <Jobs />, ...whatsNewItems, <HeaderHelpPopover />];
+  }, [
+    isReadOnlyUser,
+    isEmbeddedApp,
+    isDesktop,
+    isBillingEnabled,
+    hasPaidPlan,
+    trackEvent,
+    showFullscreenLink,
+    instanceUrl,
+    releaseNotePlatform,
+  ]);
 
   // The pro logo is light-on-dark and reads fine in both schemes. The free logo
   // is dark-on-transparent and disappears against dark surfaces, so invert it

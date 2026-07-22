@@ -35,3 +35,28 @@ We use GitHub issues to track public bugs. Report a bug by [opening a new issue]
   - If you are using VSCode, ensure you have the [prettier extension](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) installed
   - Your files should be formatted on save if you are using VSCode, you can also Open the command pallette and run **Format Document**
   - If you are using a different editor, ensure that you have manually run prettier to format anything you have modified
+
+## Releasing
+
+### Release notes
+
+User-facing release notes live as MDX files in [`apps/docs/release-notes/`](apps/docs/release-notes/). They are
+published to the docs blog at `docs.getjetstream.app/release-notes` and power the in-app "What's New" popover
+(via the generated `libs/release-notes/src/lib/release-notes.generated.json`).
+
+**Write the note before you cut the release**, as its own pull request:
+
+1. **Draft** — in Claude Code, run the `/release-notes` command (pass `patch`/`minor`/`major`, or
+   `--version X.Y.Z`). It gathers the merged PRs since the last `v*` tag, drafts the MDX in the house
+   style, writes it to `apps/docs/release-notes/`, and runs `pnpm release-notes:generate` to validate it.
+   - Not in Claude Code? Run `pnpm release-notes:context --bump <level>` and hand the digest to any AI
+     assistant along with the guidelines in [`.claude/commands/release-notes.md`](.claude/commands/release-notes.md),
+     or scaffold a blank note with `pnpm new-release-note` and write it by hand.
+2. **Review** — read and edit the generated MDX. The AI draft is a starting point; the human edit is required.
+3. **Open a PR** — branch, commit the new `.mdx` plus the regenerated `release-notes.generated.json`, and
+   open a pull request titled `docs: release notes vX.Y.Z`. This runs the normal Docs CI build.
+4. **Merge it before running `pnpm release`.** The `release` script warns (non-blocking) if no note exists for
+   the upcoming web version.
+
+This keeps every release note — including AI-generated drafts — reviewed and committed exclusively through a
+pull request. The automated release workflow never authors or commits release-note content.
