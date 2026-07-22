@@ -35,7 +35,8 @@ import {
   ScopedNotification,
   Spinner,
 } from '@jetstream/ui';
-import { abilityState, fromAppState } from '@jetstream/ui/app-state';
+import { SalesforceCanvasOrgs } from '@jetstream/ui-core';
+import { abilityState, fromAppState, useFeatureFlag } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
@@ -76,6 +77,12 @@ export function TeamDashboard() {
   const [teamAuditLogModalOpen, setTeamAuditLogModalOpen] = useState(false);
   const [teamMemberUpdateState, setTeamMemberUpdateState] = useState<TeamMemberEditModalState>({ open: false });
   const [teamMemberStatusUpdateState, setTeamMemberStatusUpdateState] = useState<TeamMemberEditStatusModalState>({ open: false });
+
+  const canvasEnabled = useFeatureFlag('salesforce-canvas');
+  // Team members' Canvas access is gated by the team entitlement (resolved onto the profile), and only
+  // team admins may manage the authorized-orgs list.
+  const showCanvasOrgs = canvasEnabled && userProfile.entitlements.salesforceCanvas;
+  const isTeamAdmin = userProfile.teamMembership?.role === TeamMemberRoleSchema.enum.ADMIN;
 
   const canReadDomainConfiguration = ability.can('read', 'DomainConfiguration');
   const canReadSsoConfiguration = ability.can('read', 'SsoConfiguration');
@@ -361,6 +368,8 @@ export function TeamDashboard() {
           {team && domains && (
             <TeamDomainConfiguration teamId={team.id} domains={domains} hasSsoEnabled={hasSsoConfigured} onChange={handleDomainChange} />
           )}
+
+          {team && showCanvasOrgs && <SalesforceCanvasOrgs scope={{ type: 'team', teamId: team.id }} canManage={isTeamAdmin} />}
 
           {team && ssoConfig && (
             <div data-testid="team-sso-configuration-container" className="slds-m-bottom_medium">

@@ -40,6 +40,10 @@ export enum AuditLogAction {
   DOMAIN_VERIFICATION_ADDED = 'DOMAIN_VERIFICATION_ADDED',
   DOMAIN_VERIFIED = 'DOMAIN_VERIFIED',
   DOMAIN_DELETED = 'DOMAIN_DELETED',
+
+  // Salesforce Canvas app authorization
+  CANVAS_ORG_AUTHORIZED = 'CANVAS_ORG_AUTHORIZED',
+  CANVAS_ORG_DELETED = 'CANVAS_ORG_DELETED',
 }
 
 export enum AuditLogResource {
@@ -50,6 +54,7 @@ export enum AuditLogResource {
   TEAM_INVITATION = 'team_invitation',
   TEAM_SSO_CONFIG = 'sso_config',
   TEAM_DOMAIN_VERIFICATION = 'domain_verification',
+  SALESFORCE_CANVAS_ORG = 'salesforce_canvas_org',
 }
 
 export interface CreateAuditLogParams {

@@ -7,6 +7,7 @@ import { BLOCKED_PUBLIC_EMAIL_DOMAINS } from '@jetstream/shared/constants';
 import { assertDomainResolvesToPublicIp, fetchWithPinnedPublicIp } from '@jetstream/shared/node-utils';
 import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import {
+  CreateSalesforceCanvasOrgRequestSchema,
   TEAM_MEMBER_ROLE_ACCESS,
   TEAM_MEMBER_ROLE_MEMBER,
   TEAM_MEMBER_STATUS_INACTIVE,
@@ -17,11 +18,13 @@ import {
   TeamMemberRoleSchema,
   TeamMemberStatusUpdateRequestSchema,
   TeamMemberUpdateRequestSchema,
+  UpdateSalesforceCanvasOrgRequestSchema,
 } from '@jetstream/types';
 import * as crypto from 'crypto';
 import * as dns from 'dns/promises';
 import { unparse } from 'papaparse';
 import { z } from 'zod';
+import * as canvasOrgDb from '../db/canvas-entitlement.db';
 import * as teamDb from '../db/team.db';
 import * as teamService from '../services/team.service';
 import { NotAllowedError, NotFoundError, UserFacingError } from '../utils/error-handler';
@@ -427,6 +430,44 @@ export const routeDefinition = {
         teamId: z.uuid(),
         domainId: z.uuid(),
       }),
+    } satisfies RouteValidator,
+  },
+  getCanvasOrgs: {
+    controllerFn: () => getCanvasOrgs,
+    responseType: z.any(),
+    validators: {
+      hasSourceOrg: false,
+      logErrorToBugTracker: true,
+      params: z.object({ teamId: z.uuid() }),
+    } satisfies RouteValidator,
+  },
+  createCanvasOrg: {
+    controllerFn: () => createCanvasOrg,
+    responseType: z.any(),
+    validators: {
+      hasSourceOrg: false,
+      logErrorToBugTracker: true,
+      params: z.object({ teamId: z.uuid() }),
+      body: CreateSalesforceCanvasOrgRequestSchema,
+    } satisfies RouteValidator,
+  },
+  updateCanvasOrg: {
+    controllerFn: () => updateCanvasOrg,
+    responseType: z.any(),
+    validators: {
+      hasSourceOrg: false,
+      logErrorToBugTracker: true,
+      params: z.object({ teamId: z.uuid(), id: z.uuid() }),
+      body: UpdateSalesforceCanvasOrgRequestSchema,
+    } satisfies RouteValidator,
+  },
+  deleteCanvasOrg: {
+    controllerFn: () => deleteCanvasOrg,
+    responseType: z.any(),
+    validators: {
+      hasSourceOrg: false,
+      logErrorToBugTracker: true,
+      params: z.object({ teamId: z.uuid(), id: z.uuid() }),
     } satisfies RouteValidator,
   },
   getTeamAuditLogs: {
@@ -1322,6 +1363,80 @@ const deleteDomainVerification = createRoute(
     }
   },
 );
+
+const getCanvasOrgs = createRoute(routeDefinition.getCanvasOrgs.validators, async ({ params }, _req, res, next) => {
+  try {
+    const orgs = await canvasOrgDb.listCanvasOrgsForOwner({ type: 'team', teamId: params.teamId });
+    sendJson(res, orgs);
+  } catch (ex) {
+    getLogger().error(getErrorMessageAndStackObj(ex), 'Failed to get team Canvas orgs');
+    next(ex);
+  }
+});
+
+const createCanvasOrg = createRoute(routeDefinition.createCanvasOrg.validators, async ({ params, body, user }, req, res, next) => {
+  try {
+    const { teamId } = params;
+    const entitlements = await teamDb.findEntitlements({ teamId });
+    if (!entitlements.salesforceCanvas) {
+      throw new NotAllowedError('Your team does not have access to the Canvas app.');
+    }
+    const org = await canvasOrgDb.createCanvasOrg({
+      owner: { type: 'team', teamId },
+      authorizedByUserId: user.id,
+      organizationId: body.organizationId,
+      myDomainBase: body.myDomainBase,
+      orgName: body.orgName,
+    });
+    sendJson(res, org);
+
+    createTeamAuditLog({
+      userId: user.id,
+      teamId,
+      action: AuditLogAction.CANVAS_ORG_AUTHORIZED,
+      resource: AuditLogResource.SALESFORCE_CANVAS_ORG,
+      resourceId: org.id,
+      metadata: { organizationId: org.organizationId, myDomainBase: org.myDomainBase, orgName: org.orgName },
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'] as string,
+    });
+  } catch (ex) {
+    getLogger().error(getErrorMessageAndStackObj(ex), 'Failed to create team Canvas org');
+    next(ex);
+  }
+});
+
+const updateCanvasOrg = createRoute(routeDefinition.updateCanvasOrg.validators, async ({ params, body }, _req, res, next) => {
+  try {
+    const { teamId, id } = params;
+    const org = await canvasOrgDb.updateCanvasOrg({ owner: { type: 'team', teamId }, id, data: body });
+    sendJson(res, org, 200);
+  } catch (ex) {
+    getLogger().error(getErrorMessageAndStackObj(ex), 'Failed to update team Canvas org');
+    next(ex);
+  }
+});
+
+const deleteCanvasOrg = createRoute(routeDefinition.deleteCanvasOrg.validators, async ({ params, user }, req, res, next) => {
+  try {
+    const { teamId, id } = params;
+    await canvasOrgDb.deleteCanvasOrg({ owner: { type: 'team', teamId }, id });
+    sendJson(res, undefined, 204);
+
+    createTeamAuditLog({
+      userId: user.id,
+      teamId,
+      action: AuditLogAction.CANVAS_ORG_DELETED,
+      resource: AuditLogResource.SALESFORCE_CANVAS_ORG,
+      resourceId: id,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'] as string,
+    });
+  } catch (ex) {
+    getLogger().error(getErrorMessageAndStackObj(ex), 'Failed to delete team Canvas org');
+    next(ex);
+  }
+});
 
 const AUDIT_LOG_EXPORT_MAX_DAYS = 365;
 

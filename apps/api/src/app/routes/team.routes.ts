@@ -195,6 +195,27 @@ routes.delete(
   teamController.deleteDomainVerification.controllerFn(),
 );
 
+// Salesforce Canvas authorized orgs
+routes.get(
+  '/:teamId/canvas-orgs',
+  validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING]),
+  teamController.getCanvasOrgs.controllerFn(),
+);
+
+routes.post('/:teamId/canvas-orgs', validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN]), teamController.createCanvasOrg.controllerFn());
+
+routes.patch(
+  '/:teamId/canvas-orgs/:id',
+  validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN]),
+  teamController.updateCanvasOrg.controllerFn(),
+);
+
+routes.delete(
+  '/:teamId/canvas-orgs/:id',
+  validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN]),
+  teamController.deleteCanvasOrg.controllerFn(),
+);
+
 // Audit Logs (ADMIN only)
 routes.get('/:teamId/audit-logs', validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN]), teamController.getTeamAuditLogs.controllerFn());
 
