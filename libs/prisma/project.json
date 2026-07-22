@@ -8,10 +8,16 @@
     "build": {
       "executor": "nx:run-commands",
       "cache": true,
-      "inputs": ["{workspaceRoot}/prisma/schema.prisma", "{workspaceRoot}/prisma.config.ts", "{workspaceRoot}/prisma/sql/**/*"],
+      "inputs": [
+        "{workspaceRoot}/prisma/schema.prisma",
+        "{workspaceRoot}/prisma.config.ts",
+        "{workspaceRoot}/prisma/sql/**/*",
+        { "externalDependencies": ["prisma", "@prisma/client"] }
+      ],
       "outputs": ["{projectRoot}/src/lib/generated/prisma"],
       "options": {
-        "command": "prisma generate"
+        "commands": ["node -e \"fs.rmSync('libs/prisma/src/lib/generated/prisma', { recursive: true, force: true })\"", "prisma generate"],
+        "parallel": false
       }
     }
   }
