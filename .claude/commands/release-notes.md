@@ -1,15 +1,15 @@
 ---
-description: Draft an end-user release note for the next release from merged PRs
-argument-hint: "[patch|minor|major] or --version X.Y.Z (default: patch)"
+description: Draft an end-user release note for a just-cut or upcoming release from merged PRs
+argument-hint: '[latest | vX.Y.Z | patch|minor|major | --version X.Y.Z] (default: auto-detect)'
 ---
 
-You are drafting a **user-facing release note** for Jetstream and writing it as an MDX
-file under `apps/docs/release-notes/`. These notes are published to the Docusaurus blog at
-`docs.getjetstream.app/release-notes` and power the in-app "What's New" popover. Work
+You are drafting a **user-facing release note** for Jetstream — usually for a release that
+was **already cut** (the common flow), sometimes ahead of an upcoming one — and writing it
+as an MDX file under `apps/docs/release-notes/`. These notes are published to the Docusaurus
+blog at `docs.getjetstream.app/release-notes` and power the in-app "What's New" popover. Work
 through the steps below. Do not commit — the human reviews and opens the PR.
 
-Arguments: `$ARGUMENTS` (e.g. `minor`, `major`, `patch`, or `--version 10.4.0`). Default to a
-`patch` bump if no argument is given.
+Arguments: `$ARGUMENTS` (e.g. nothing, `latest`, `v10.6.0`, `minor`, or `--version 10.4.0`).
 
 ## Step 1 — Gather what changed
 
@@ -19,11 +19,22 @@ Run the context script and read its full output:
 pnpm release-notes:context <args>
 ```
 
-- If the argument is `patch`/`minor`/`major`, pass `--bump <level>`.
-- If it is `--version X.Y.Z`, pass that through.
-- The script prints the target version, planned date, and every merged PR since the last
-  `v*` tag (title, labels, touched areas, body) plus direct commits. This is your source
-  material — base the note on it, not on guesses.
+Map the command argument:
+
+- **No argument** → run with no args. The script auto-detects the mode: if the current
+  package.json version is already tagged but has no note yet (release cut first, notes
+  after), it targets that tag; otherwise it assumes an upcoming patch release.
+- **`latest`, or a tag/version like `v10.6.0` / `10.6.0`** → pass `--tag <value>` — notes
+  for an existing, already-cut release. The tag supplies the version, the release date, and
+  the commit range (previous `v*` tag → the tag).
+- **`patch`/`minor`/`major`** → pass `--bump <level>` — notes for an upcoming,
+  not-yet-tagged release.
+- **`--version X.Y.Z`** → pass through unchanged (upcoming release, explicit version).
+
+The script prints the resolved mode, target version, release date, and every merged PR in
+the release's commit range (title, labels, touched areas, body) plus direct commits. This is
+your source material — base the note on it, not on guesses. If it warns that a note already
+exists for the version, update that existing file instead of creating a new one.
 
 ## Step 2 — Study the house style
 
@@ -41,19 +52,19 @@ from Step 1.
 
 ```yaml
 ---
-slug: v<version>                       # e.g. v10.4.0
+slug: v<version> # e.g. v10.4.0
 title: <version> - <short description> # e.g. "10.4.0 - Faster data tables and SSO fixes"
 date: '<YYYY-MM-DD>'
-tags: [web]                            # subset of: web, desktop, extension, all (>= 1)
-versions:                              # only the platforms actually releasing
+tags: [web] # subset of: web, desktop, extension, all (>= 1)
+versions: # only the platforms actually releasing
   web: <version>
   # desktop: <version>                 # include only if desktop is releasing
   # extension: <version>               # include only if the extension is releasing
 summary: <one or two sentences for the in-app popover>
-highlights:                            # 2-6 items, most important first
+highlights: # 2-6 items, most important first
   - title: <short, user-facing headline>
     description: <one sentence on what it does for the user>
-    docLink: /query/results            # OPTIONAL — see "docLink rules" below
+    docLink: /query/results # OPTIONAL — see "docLink rules" below
 ---
 ```
 
@@ -83,7 +94,7 @@ sentences, not a terse one-liner. Patch releases can be shorter, but still expla
 impact of each fix rather than just naming it.
 
 **Audience — leave out internal/technical noise.** These notes are for Salesforce admins and
-developers who *use* Jetstream, not the people who build it. The PR digest is full of engineering
+developers who _use_ Jetstream, not the people who build it. The PR digest is full of engineering
 detail that means nothing to them; do not surface it. Every line you keep must read as "what changed
 for me, the user." Apply this filter:
 
@@ -153,7 +164,8 @@ pnpm release-notes:generate
 ```
 
 This re-parses every note, validates the new one against the schema, and refreshes
-`libs/release-notes/src/lib/release-notes.generated.json` (the in-app popover's data source).
+`apps/docs/static/release-notes.json` — the file the docs site serves at
+`docs.getjetstream.app/release-notes.json` and the in-app popover fetches at runtime.
 Fix any reported errors. If you want to be thorough, run `pnpm --dir apps/docs build` to confirm
 the MDX compiles (slower; catches bare `<`/`{` issues).
 
@@ -163,6 +175,10 @@ Tell the user the file was written and validated, summarize the highlights you c
 them to:
 
 1. Review/edit the wording.
-2. Commit `apps/docs/release-notes/<file>.mdx` + the regenerated `release-notes.generated.json`
-   on a branch and open a PR titled `docs: release notes v<version>`.
-3. Merge that PR **before** cutting the release (`pnpm release`).
+2. Commit `apps/docs/release-notes/<file>.mdx` + the regenerated
+   `apps/docs/static/release-notes.json` on a branch and open a PR titled
+   `docs: release notes v<version>`. Both files live under `apps/docs/`, so only the Docs CI
+   workflow runs on the PR.
+3. For an **already-cut release**, just merge — the note goes live on the docs site (and in
+   the in-app popover) once the docs deploy completes. For an **upcoming release**, merge the
+   PR **before** cutting the release (`pnpm release`).

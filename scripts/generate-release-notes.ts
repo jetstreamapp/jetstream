@@ -2,10 +2,12 @@
 /**
  * Reads MDX release notes from apps/docs/release-notes/, validates frontmatter
  * against the Zod schema in libs/release-notes, and writes a sorted JSON array
- * to libs/release-notes/src/lib/release-notes.generated.json.
+ * to apps/docs/static/release-notes.json, which Docusaurus serves at
+ * https://docs.getjetstream.app/release-notes.json for the in-app "What's New"
+ * popover to fetch at runtime. Keeping both the MDX and the generated JSON in
+ * apps/docs means release-note PRs only trigger the Docs CI workflow.
  *
  * Run via: pnpm release-notes:generate
- *         or: pnpm nx run release-notes:build-data
  */
 import matter from 'gray-matter';
 import { chalk, fs, globby, path } from 'zx';
@@ -14,7 +16,7 @@ import { releaseNoteFrontmatterSchema, releaseNotesArraySchema } from '../libs/r
 
 const ROOT = path.resolve(__dirname, '..');
 const SOURCE_DIR = path.join(ROOT, 'apps/docs/release-notes');
-const OUTPUT_FILE = path.join(ROOT, 'libs/release-notes/src/lib/release-notes.generated.json');
+const OUTPUT_FILE = path.join(ROOT, 'apps/docs/static/release-notes.json');
 
 const files = await globby('*.mdx', { cwd: SOURCE_DIR, absolute: true });
 

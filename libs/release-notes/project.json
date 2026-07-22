@@ -7,18 +7,6 @@
   "implicitDependencies": [],
   "generators": {},
   "targets": {
-    "build-data": {
-      "executor": "nx:run-commands",
-      "inputs": [
-        "{workspaceRoot}/apps/docs/release-notes/**/*.mdx",
-        "{workspaceRoot}/scripts/generate-release-notes.ts",
-        "{projectRoot}/src/lib/release-notes.types.ts"
-      ],
-      "outputs": ["{projectRoot}/src/lib/release-notes.generated.json"],
-      "options": {
-        "command": "zx ./scripts/generate-release-notes.ts"
-      }
-    },
     "lint": {
       "executor": "@nx/eslint:lint"
     },

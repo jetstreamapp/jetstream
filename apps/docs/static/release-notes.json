@@ -1,5 +1,28 @@
 [
   {
+    "slug": "v10.7.0",
+    "title": "10.7.0 - Manage system permissions",
+    "date": "2026-07-22",
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "10.7.0"
+    },
+    "summary": "Manage Permissions now covers system permissions — review and edit them across profiles and permission sets side by side, with required permissions handled automatically.",
+    "highlights": [
+      {
+        "title": "Edit system permissions in Manage Permissions",
+        "description": "A new System Permissions tab lets you review and update system permissions across all of your selected profiles and permission sets in one table.",
+        "docLink": "/permissions"
+      },
+      {
+        "title": "Release notes",
+        "description": "Jetstream now publishes release notes on the docs site, so you can keep up with new features and fixes."
+      }
+    ]
+  },
+  {
     "slug": "v10.6.1",
     "title": "10.6.1 - Windows update fix and security hardening",
     "date": "2026-07-19",
