@@ -1,5 +1,20 @@
 # Changelog
 
+## [10.7.0](https://github.com/jetstreamapp/jetstream/compare/v10.6.1...v10.7.0) (2026-07-22)
+
+### Features
+
+* add ability to modify system permissions ([25cab1c](https://github.com/jetstreamapp/jetstream/commit/25cab1c285cb48e807423fa3357f00474475707d))
+* add release notes to docs and in-app ([6356c36](https://github.com/jetstreamapp/jetstream/commit/6356c3695755182036a9ca938e42dada639aa0e7))
+* gate in-app What's New popover off for initial launch ([183d9da](https://github.com/jetstreamapp/jetstream/commit/183d9da8a11802ccd39b682f2947dadd83caad27))
+
+### Bug Fixes
+
+* add placeholder database URI for Prisma client generation in macOS and Windows workflows ([2e16cc0](https://github.com/jetstreamapp/jetstream/commit/2e16cc044739cfa7888213d045ed5ef736b12afa))
+* generate Prisma client before desktop build in macOS and Windows workflows ([355258f](https://github.com/jetstreamapp/jetstream/commit/355258fda18dc0b4feaaf0641e80cdb884b99dc1))
+* update module resolution and module settings in tsconfig for salesforce-api ([e15e3c6](https://github.com/jetstreamapp/jetstream/commit/e15e3c63c8d359cd02536f9e4c6c016a1456e960))
+* update Windows signing configuration and clarify publisher name requirements ([9186998](https://github.com/jetstreamapp/jetstream/commit/91869988ad63574cb542067eb11948cac7dfb18c))
+
 ## [10.6.1](https://github.com/jetstreamapp/jetstream/compare/v10.6.0...v10.6.1) (2026-07-19)
 
 ### Features
