@@ -3,7 +3,7 @@ import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { FieldMapping, LoadSavedMappingItem } from '@jetstream/types';
 import { Grid, Icon, Input, Popover, PopoverRef, ScopedNotification } from '@jetstream/ui';
-import { dexieDb, getHashedRecordKey } from '@jetstream/ui/db';
+import { dexieDb, getHashedRecordKey, withReopenOnDatabaseClosed } from '@jetstream/ui/db';
 import { formatISO } from 'date-fns/formatISO';
 import omit from 'lodash/omit';
 import { FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
@@ -59,7 +59,7 @@ export const SaveMappingPopover: FunctionComponent<SaveMappingPopoverProps> = ({
     newMapping.createdAt = new Date();
     newMapping.key = `lsm_${sobject}:${newMapping.csvFields.length}:${formatISO(newMapping.createdAt).toLowerCase()}`;
     newMapping.hashedKey = await getHashedRecordKey(newMapping.key);
-    dexieDb.load_saved_mapping.put(newMapping);
+    await withReopenOnDatabaseClosed(() => dexieDb.load_saved_mapping.put(newMapping));
     saveSetMappingName('');
     setCurrentSavedMapping(getDefaultItem(sobject));
     popoverRef.current?.close();

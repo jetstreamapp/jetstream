@@ -107,8 +107,8 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
         setTabVisibilityPermissionMap(output.tabVisibilityPermissionMap);
       }
     } catch (ex) {
-      logger.warn('[useProfilesAndPermSets][ERROR]', getErrorMessage(ex));
-      tracker.error('[useProfilesAndPermSets][ERROR]', ex);
+      logger.warn('[usePermissionRecords][ERROR]', getErrorMessage(ex));
+      tracker.error('[usePermissionRecords][ERROR]', ex);
       if (isMounted.current) {
         setHasError(true);
       }

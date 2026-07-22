@@ -51,6 +51,8 @@ const RETRY_CONFIG = {
     /^\/api\/metadata\/retrieve\/check-results$/,
     /^\/api\/bulk\/([a-zA-Z0-9]+)$/,
     /^\/api\/bulk\/([a-zA-Z0-9]+)\/([a-zA-Z0-9]+)$/,
+    // Idempotent pagination — a transient failure mid-loop otherwise discards all previously fetched pages
+    /^\/api\/query-more$/,
   ],
   methods: new Set(['GET']),
   statusCodes: new Set([429, 500, 502, 503, 504]),
@@ -249,10 +251,13 @@ function retryInterceptor(config: AxiosRequestConfig, options: RequestOptions = 
     let { retryCount } = options;
     retryCount = retryCount || 0;
     const { endpoints, retry, retryDelay, methods, statusCodes } = RETRY_CONFIG;
+    // Network-level failures (no response at all — connection drop, proxy kill) are retryable for the
+    // same idempotent GET endpoints as 429/5xx responses; canceled requests are never retried.
+    const isRetryableNetworkError = !error.response && error.code !== 'ERR_CANCELED';
     if (
       retryCount <= retry &&
       methods.has(config.method || '') &&
-      statusCodes.has(error.response?.status || -1) &&
+      (statusCodes.has(error.response?.status || -1) || isRetryableNetworkError) &&
       endpoints.some((endpoint) => endpoint.test(config.url || ''))
     ) {
       retryCount++;
@@ -356,9 +361,10 @@ function responseErrorInterceptor(options: {
       });
       // Run middleware for error responses
       errorMiddleware.forEach((middleware) => middleware(response, org));
-      const responseBody: { error: boolean; message: string } = response.data || { error: true, message: 'An unknown error has occurred' };
+      // An empty body must not inject a message here — it would mask the HTTP-status fallback below.
+      const responseBody: { error: boolean; message: string } = response.data || { error: true, message: '' };
       // Include the HTTP status in the fallback so non-JSON error responses (e.g. Cloudflare 524 HTML pages)
-      // surface a diagnosable message instead of the generic literal.
+      // and empty bodies surface a diagnosable message instead of the generic literal.
       message = responseBody?.message || `An unknown error has occurred (HTTP ${response.status})`;
       // take user to login page
       const shouldLogout =
@@ -370,6 +376,16 @@ function responseErrorInterceptor(options: {
         const logoutUrl = getHeader(response.headers, HTTP.HEADERS.X_LOGOUT_URL) || '/auth/login';
         window.location.href = logoutUrl;
       }
+    } else if (error.code === AxiosError.ERR_CANCELED) {
+      // Keep the capitalized form the error tracker's ignore list matches (axios's default is lowercase 'canceled')
+      message = 'Canceled';
+    } else {
+      // No HTTP response at all (connection drop, offline, proxy kill). Surface the network-level detail
+      // so these are distinguishable from genuinely unknown failures in the UI and in error tracking.
+      message =
+        error.code === AxiosError.ERR_NETWORK || error.message === 'Network Error'
+          ? 'A network error occurred - check your connection and try again.'
+          : error.message || message;
     }
     throw new Error(message);
   };

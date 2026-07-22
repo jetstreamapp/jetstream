@@ -2,15 +2,15 @@ import { logger } from '@jetstream/shared/client-logger';
 import { groupByFlat } from '@jetstream/shared/utils';
 import { RecentHistoryItem, RecentHistoryItemType } from '@jetstream/types';
 import uniqBy from 'lodash/uniqBy';
-import { dexieDb, getHashedRecordKey, SyncableTables } from './ui-db';
+import { dexieDb, getHashedRecordKey, SyncableTables, wrapApiWithReopenOnDatabaseClosed } from './ui-db';
 
-export const recentHistoryItemsDb = {
+export const recentHistoryItemsDb = wrapApiWithReopenOnDatabaseClosed({
   addItemToRecentHistoryItems,
   getRecentHistoryFromRecords,
   saveRecentHistoryItem,
   clearRecentHistoryItemsForCurrentOrg,
   clearRecentHistoryItemsForAllOrgs,
-};
+});
 
 const MAX_ITEM_SIZE = 75;
 

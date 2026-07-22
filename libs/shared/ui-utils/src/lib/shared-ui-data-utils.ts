@@ -169,7 +169,7 @@ export async function makeToolingRequests<T>(
   allOrNone = false,
 ): Promise<CompositeResponse<T>> {
   const compositeRequestSets = splitArrayToMaxSize(compositeRequests, 25);
-  let results: CompositeResponse<T> = { compositeResponse: [] };
+  const results: CompositeResponse<T> = { compositeResponse: [] };
   for (const compositeRequest of compositeRequestSets) {
     const response = await genericRequest<CompositeResponse<T>>(selectedOrg, {
       isTooling: true,
@@ -177,11 +177,12 @@ export async function makeToolingRequests<T>(
       url: `/services/data/${apiVersion}/tooling/composite`,
       body: { allOrNone, compositeRequest },
     });
-    if (!results) {
-      results = response;
-    } else {
-      results.compositeResponse = results.compositeResponse.concat(response.compositeResponse);
+    // A truncated/empty network response resolves without a body — fail with a clear, retryable
+    // message instead of a TypeError on the concat below.
+    if (!response?.compositeResponse) {
+      throw new Error('Salesforce returned an invalid response, please try again.');
     }
+    results.compositeResponse = results.compositeResponse.concat(response.compositeResponse);
   }
   return results;
 }

@@ -75,6 +75,33 @@ export const DEXIE_DB_NAME = isWebExtension() ? 'jetstream-web-extension' : 'jet
 export const DEXIE_DB_SYNC_NAME = isWebExtension() ? 'jetstream-web-extension' : 'jetstream';
 export const DEXIE_DB_SYNC_PATH = '/';
 
+// dexie-observable coordinates multi-tab state through localStorage and writes a brand-new
+// `Dexie.Observable/deadnode:<id>` key on every unload with no try/catch — for users whose
+// localStorage sits at quota this throws an unhandled QuotaExceededError on page close (new keys
+// fail even when same-size overwrites succeed). Cross-tab signaling still requires REAL localStorage
+// writes (other tabs listen for storage events), so wrap the impl to swallow storage failures rather
+// than replacing it. Must run before `new Dexie(...)` — the addon captures the impl at construction.
+const DexieObservable = (Dexie as unknown as { Observable?: { localStorageImpl?: unknown } }).Observable;
+if (DexieObservable && typeof localStorage !== 'undefined') {
+  DexieObservable.localStorageImpl = {
+    getItem: (key: string) => localStorage.getItem(key),
+    setItem: (key: string, value: string) => {
+      try {
+        localStorage.setItem(key, value);
+      } catch (ex) {
+        logger.warn('[DB] localStorage write failed', key, ex);
+      }
+    },
+    removeItem: (key: string) => {
+      try {
+        localStorage.removeItem(key);
+      } catch (ex) {
+        logger.warn('[DB] localStorage remove failed', key, ex);
+      }
+    },
+  };
+}
+
 export const dexieDb = new Dexie(DEXIE_DB_NAME) as Dexie & {
   /**
    * Keeps track of migration from localforage to dexie for any given table
@@ -111,6 +138,36 @@ dexieDb.version(3).stores({
 dexieDb.version(4).stores({
   analysis_job_history: 'key,org,jobType,createdAt,pinned,[org+jobType+createdAt]',
 });
+
+/**
+ * dexie-observable can close the shared connection permanently mid-session (its multi-tab heartbeat
+ * calls `db.close()` when a frozen/slept tab's sync node has been reaped by another tab), after which
+ * every write throws DatabaseClosedError until the page reloads. Reopening restores full function —
+ * the observable addon recreates its sync node on open — so retry the operation once after reopening.
+ */
+export async function withReopenOnDatabaseClosed<T>(operation: () => Promise<T>): Promise<T> {
+  try {
+    return await operation();
+  } catch (ex) {
+    if ((ex as Error)?.name === 'DatabaseClosedError') {
+      logger.warn('[DB] Database was closed - reopening and retrying');
+      await dexieDb.open();
+      return await operation();
+    }
+    throw ex;
+  }
+}
+
+/**
+ * Wrap every function of a `*Db` api object with `withReopenOnDatabaseClosed` so all user-triggered
+ * reads/writes self-heal from a closed connection. Apply at the export boundary — internal calls
+ * between the module's own functions stay unwrapped, avoiding redundant nested retries.
+ */
+export function wrapApiWithReopenOnDatabaseClosed<T extends Record<string, (...args: never[]) => Promise<unknown>>>(api: T): T {
+  return Object.fromEntries(
+    Object.entries(api).map(([name, fn]) => [name, (...args: never[]) => withReopenOnDatabaseClosed(() => fn(...args))]),
+  ) as T;
+}
 
 export const dexieDataSync = {
   connect: async () => {
