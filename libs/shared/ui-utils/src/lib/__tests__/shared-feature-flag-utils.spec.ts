@@ -1,7 +1,7 @@
 import { ALL_FEATURE_FLAG_KEYS, DEFAULT_FEATURE_FLAGS, FeatureFlags, serializeFeatureFlagsForSigning } from '@jetstream/types';
 import { createPrivateKey, sign } from 'crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { verifyAndExtractFeatureFlags } from '../shared-feature-flag-utils';
+import { applyVerifiedFeatureFlags, verifyAndExtractFeatureFlags } from '../shared-feature-flag-utils';
 
 vi.mock('@jetstream/shared/client-logger', () => ({
   logger: { warn: vi.fn(), log: vi.fn(), info: vi.fn(), error: vi.fn() },
@@ -124,5 +124,41 @@ describe('verifyAndExtractFeatureFlags', () => {
     const signature = signFlags(userId, truthyNonBoolean);
     const result = await verifyAndExtractFeatureFlags({ id: userId, featureFlags: truthyNonBoolean, featureFlagsSignature: signature });
     expect(result[FLAG]).toBe(false);
+  });
+});
+
+describe('applyVerifiedFeatureFlags', () => {
+  const userId = 'user-1';
+
+  beforeEach(() => {
+    vi.stubEnv('NX_PUBLIC_FEATURE_FLAG_PUBLIC_KEY', '');
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it('returns the profile with verified flags applied, preserving all other fields', async () => {
+    const featureFlags = { [FLAG]: true } as FeatureFlags;
+    const profile = {
+      id: userId,
+      email: 'test@example.com',
+      featureFlags,
+      featureFlagsSignature: signFlags(userId, featureFlags),
+    };
+    const result = await applyVerifiedFeatureFlags(profile);
+    expect(result.featureFlags[FLAG]).toBe(true);
+    expect(result.email).toBe('test@example.com');
+    expect(result.featureFlagsSignature).toBe(profile.featureFlagsSignature);
+  });
+
+  it('replaces flags with code defaults when the signature is invalid', async () => {
+    const result = await applyVerifiedFeatureFlags({
+      id: userId,
+      featureFlags: { [FLAG]: true } as FeatureFlags,
+      featureFlagsSignature: 'not-a-real-signature',
+    });
+    expect(result.featureFlags).toEqual(DEFAULT_FEATURE_FLAGS);
   });
 });

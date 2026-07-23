@@ -290,7 +290,10 @@ export function getFullUserProfile() {
     },
     teamMembership: appData.userProfile.teamMembership,
     subscriptions: [],
-    featureFlags: { ...DEFAULT_FEATURE_FLAGS },
+    // Server-resolved flags + signature captured from the last /desktop-app/auth/verify response.
+    // The renderer verifies the signature before trusting them (fail-closed to code defaults).
+    featureFlags: appData.userProfile.featureFlags ?? { ...DEFAULT_FEATURE_FLAGS },
+    featureFlagsSignature: appData.userProfile.featureFlagsSignature,
   };
 
   return userProfile;
