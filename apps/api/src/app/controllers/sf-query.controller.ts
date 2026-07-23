@@ -28,6 +28,7 @@ export const routeDefinition = {
       query: z.object({
         isTooling: BooleanQueryParamSchema,
         includeDeletedRecords: BooleanQueryParamSchema,
+        useCompositeApi: BooleanQueryParamSchema,
       }),
     } satisfies RouteValidator,
   },
@@ -67,9 +68,12 @@ const query = createRoute(routeDefinition.query.validators, async ({ body, query
   try {
     const isTooling = query.isTooling;
     const includeDeletedRecords = query.includeDeletedRecords;
+    const useCompositeApi = query.useCompositeApi;
     const soql = body.query;
 
-    const results = await jetstreamConn.query.query(soql, isTooling, includeDeletedRecords);
+    const results = useCompositeApi
+      ? await jetstreamConn.query.queryComposite(soql, isTooling, includeDeletedRecords)
+      : await jetstreamConn.query.query(soql, isTooling, includeDeletedRecords);
 
     sendJson(res, results);
   } catch (ex) {
