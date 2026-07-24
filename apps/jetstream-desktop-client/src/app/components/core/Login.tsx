@@ -2,6 +2,7 @@ import { css } from '@emotion/react';
 import { AuthenticatePayload, DesktopAuthInfo } from '@jetstream/desktop/types';
 import { logger } from '@jetstream/shared/client-logger';
 import { getOrgGroups, getOrgs } from '@jetstream/shared/data';
+import { applyVerifiedFeatureFlags } from '@jetstream/shared/ui-utils';
 import { Grid } from '@jetstream/ui';
 import { AppLoading, JetstreamLogoInverse } from '@jetstream/ui-core';
 import { DEFAULT_PROFILE, fromAppState } from '@jetstream/ui/app-state';
@@ -41,7 +42,8 @@ export function Login({ children }: LoginProps) {
     async (response: AuthenticatePayload) => {
       if (response.success) {
         setLoginError(null);
-        setUserProfile(response.userProfile);
+        // Verify the feature flag signature before trusting flags from the main process (fail-closed to code defaults)
+        setUserProfile(await applyVerifiedFeatureFlags(response.userProfile));
         setAuthInfo(response.authInfo);
         // Re-fetch orgs and org groups now that the encryption key is set on the main process
         await refreshOrgsAndGroups();
@@ -74,7 +76,7 @@ export function Login({ children }: LoginProps) {
         if (response) {
           const { authInfo, userProfile } = response;
           setAuthInfo(authInfo);
-          setUserProfile(userProfile);
+          setUserProfile(await applyVerifiedFeatureFlags(userProfile));
           // Re-fetch orgs and org groups after auth completes — the encryption key
           // is now set on the main process, so orgs can be decrypted successfully.
           await refreshOrgsAndGroups();
@@ -84,11 +86,11 @@ export function Login({ children }: LoginProps) {
 
     // Check auth occasionally in case of token expiry or revocation
     const interval = setInterval(() => {
-      window.electronAPI?.checkAuth().then((response) => {
+      window.electronAPI?.checkAuth().then(async (response) => {
         if (response) {
           const { authInfo, userProfile } = response;
           setAuthInfo(authInfo);
-          setUserProfile(userProfile);
+          setUserProfile(await applyVerifiedFeatureFlags(userProfile));
         } else {
           setAuthInfo(undefined);
           setUserProfile(DEFAULT_PROFILE);

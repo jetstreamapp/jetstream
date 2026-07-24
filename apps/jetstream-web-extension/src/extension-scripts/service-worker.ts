@@ -5,6 +5,7 @@
 /// <reference lib="WebWorker" />
 import { enableLogger, logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
+import { UserProfileUi } from '@jetstream/types';
 import { addMinutes } from 'date-fns/addMinutes';
 import { fromUnixTime } from 'date-fns/fromUnixTime';
 import { isAfter } from 'date-fns/isAfter';
@@ -480,10 +481,17 @@ export async function handleVerifyAuth(sender: browser.Runtime.MessageSender): P
       return { hasTokens: true, loggedIn: true };
     }
 
-    const results: { success: true; accessToken?: string } | { success: false; error: string } | null = await response
-      .json()
-      .then(({ data }) => (data ?? null) as { success: true; accessToken?: string } | { success: false; error: string } | null)
-      .catch(() => null);
+    const results: { success: true; userProfile?: UserProfileUi; accessToken?: string } | { success: false; error: string } | null =
+      await response
+        .json()
+        .then(
+          ({ data }) =>
+            (data ?? null) as
+              | { success: true; userProfile?: UserProfileUi; accessToken?: string }
+              | { success: false; error: string }
+              | null,
+        )
+        .catch(() => null);
 
     if (!results || results.success === false) {
       const status = response.status;
@@ -564,6 +572,10 @@ export async function handleVerifyAuth(sender: browser.Runtime.MessageSender): P
     const syncState = {
       ...latestAuthTokens,
       accessToken: nextAccessToken,
+      // Keep the stored profile in sync with the server — this is how updated feature
+      // flags/entitlements reach the extension between logins (profile is otherwise only
+      // captured from the JWT at login).
+      userProfile: results.userProfile ?? latestAuthTokens.userProfile,
       expiresAt: nextExpiresAt,
       loggedIn: true,
       lastChecked: Date.now(),

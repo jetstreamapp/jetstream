@@ -181,4 +181,30 @@ describe('service-worker handleVerifyAuth', () => {
     );
     expect((swMock.state.syncStore.authTokens as { accessToken: string }).accessToken).toBe('rotated-token');
   });
+
+  it('persists the fresh userProfile from the verify response so feature flags stay current', async () => {
+    seedAuth('token-1');
+    const freshProfile = {
+      id: 'user-1',
+      email: 'test@example.com',
+      featureFlags: { 'analysis-tools': true },
+      featureFlagsSignature: 'signature',
+    };
+    fetchMock.mockResolvedValue(jsonResponse(200, { success: true, userProfile: freshProfile }));
+
+    const result = await handleVerifyAuth(senderMock);
+
+    expect(result).toEqual({ hasTokens: true, loggedIn: true });
+    expect((swMock.state.syncStore.authTokens as { userProfile: unknown }).userProfile).toEqual(freshProfile);
+  });
+
+  it('keeps the stored userProfile when the verify response omits it', async () => {
+    const seeded = seedAuth('token-1');
+    fetchMock.mockResolvedValue(jsonResponse(200, { success: true }));
+
+    const result = await handleVerifyAuth(senderMock);
+
+    expect(result).toEqual({ hasTokens: true, loggedIn: true });
+    expect((swMock.state.syncStore.authTokens as { userProfile: unknown }).userProfile).toEqual(seeded.userProfile);
+  });
 });

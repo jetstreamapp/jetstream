@@ -1,3 +1,4 @@
+import { UserProfileUiSchema } from '@jetstream/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -201,6 +202,49 @@ describe('persistence.service', () => {
 
       // The file should NOT start with "SAFE" anymore
       expect(content.startsWith('SAFE')).toBe(false);
+    });
+  });
+
+  // ────────────────────────────────────────────────
+  // USER PROFILE
+  // ────────────────────────────────────────────────
+
+  describe('getFullUserProfile', () => {
+    it('passes through server-provided feature flags and signature', async () => {
+      const service = await importService();
+      service.setAppData({
+        deviceId: 'device-1',
+        accessToken: 'jwt-token-123',
+        userProfile: UserProfileUiSchema.parse({
+          id: 'user-1',
+          email: 'test@example.com',
+          name: 'Test User',
+          featureFlags: { 'analysis-tools': true },
+          featureFlagsSignature: 'signature-abc',
+        }),
+      });
+
+      const userProfile = service.getFullUserProfile();
+      expect(userProfile.featureFlags).toEqual({ 'analysis-tools': true });
+      expect(userProfile.featureFlagsSignature).toBe('signature-abc');
+    });
+
+    it('surfaces no signature when the stored profile predates feature flag delivery', async () => {
+      const service = await importService();
+      service.setAppData({
+        deviceId: 'device-1',
+        accessToken: 'jwt-token-123',
+        userProfile: UserProfileUiSchema.parse({
+          id: 'user-1',
+          email: 'test@example.com',
+          name: 'Test User',
+        }),
+      });
+
+      const userProfile = service.getFullUserProfile();
+      // No signature means the renderer's verification fail-closes to code defaults
+      expect(userProfile.featureFlags).toEqual({});
+      expect(userProfile.featureFlagsSignature).toBeUndefined();
     });
   });
 

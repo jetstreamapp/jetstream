@@ -2,7 +2,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
 import { disconnectSocket, initSocket } from '@jetstream/shared/data';
-import { getBrowserExtensionVersion, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { applyVerifiedFeatureFlags, getBrowserExtensionVersion, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { getDefaultAppState, getErrorMessage } from '@jetstream/shared/utils';
 import { JetstreamEventSaveSoqlQueryFormatOptionsPayload, UserProfileUi } from '@jetstream/types';
 import { ScopedNotification } from '@jetstream/ui';
@@ -114,9 +114,20 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
 
   // set userProfile from chromeUserProfile
   useEffect(() => {
-    if (chromeUserProfile) {
-      setUserProfile({ ...chromeUserProfile, preferences: { ...chromeUserProfile.preferences, soqlQueryFormatOptions } });
+    if (!chromeUserProfile) {
+      return;
     }
+    let cancelled = false;
+    (async () => {
+      // Verify the feature flag signature before trusting flags from extension storage (fail-closed to code defaults)
+      const verifiedProfile = await applyVerifiedFeatureFlags(chromeUserProfile);
+      if (!cancelled) {
+        setUserProfile({ ...verifiedProfile, preferences: { ...verifiedProfile.preferences, soqlQueryFormatOptions } });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [chromeUserProfile, setUserProfile, soqlQueryFormatOptions]);
 
   useNonInitialEffect(() => {

@@ -3,6 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
 import { checkHeartbeat, getOrgGroups, getOrgs, getUserProfile } from '@jetstream/shared/data';
 import {
+  applyVerifiedFeatureFlags,
   getBrowserExtensionVersion,
   getOrgType,
   isBrowserExtension,
@@ -10,7 +11,6 @@ import {
   isDesktop,
   setItemInLocalStorage,
   setItemInSessionStorage,
-  verifyAndExtractFeatureFlags,
 } from '@jetstream/shared/ui-utils';
 import { getDefaultAppState, groupByFlat, orderObjectsBy } from '@jetstream/shared/utils';
 import {
@@ -217,8 +217,7 @@ async function fetchUserProfile(): Promise<UserProfileUi> {
   const userProfile = await getUserProfile().catch(() => DEFAULT_PROFILE);
   // Verify the server's signature once here so downstream atoms read trusted flags synchronously.
   // On any failure this returns code defaults (fail-safe), so we never trust a tampered payload.
-  const featureFlags = await verifyAndExtractFeatureFlags(userProfile);
-  return { ...userProfile, featureFlags };
+  return await applyVerifiedFeatureFlags(userProfile);
 }
 
 const userPreferenceState = atom<Promise<UserProfilePreferences>>(getUserPreferences());

@@ -38,6 +38,18 @@ function encodeUtf8(value: string): Uint8Array<ArrayBuffer> {
 }
 
 /**
+ * Returns a copy of the profile with `featureFlags` replaced by the signature-verified set.
+ * Use this anywhere a server-provided profile is written into client state (web fetch, desktop
+ * IPC payloads, extension storage) so downstream consumers only ever read trusted flags.
+ */
+export async function applyVerifiedFeatureFlags<T extends Pick<UserProfileUi, 'id' | 'featureFlags' | 'featureFlagsSignature'>>(
+  profile: T,
+): Promise<T> {
+  const featureFlags = await verifyAndExtractFeatureFlags(profile);
+  return { ...profile, featureFlags };
+}
+
+/**
  * Returns the trusted feature flags when the signature is valid, otherwise the code defaults.
  * Always returns the full set of known flags.
  */

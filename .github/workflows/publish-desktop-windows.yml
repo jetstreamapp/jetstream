@@ -44,6 +44,8 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_DESKTOP_UPDATES_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_DESKTOP_UPDATES_SECRET_ACCESS_KEY }}
       AWS_ENDPOINT_URL: ${{ secrets.AWS_DESKTOP_UPDATES_ENDPOINT_URL }}
+      # Public key (base64 SPKI DER) baked into the renderer to verify the server's feature flag signature
+      NX_PUBLIC_FEATURE_FLAG_PUBLIC_KEY: ${{ secrets.NX_PUBLIC_FEATURE_FLAG_PUBLIC_KEY }}
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0

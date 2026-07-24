@@ -131,7 +131,7 @@ const handleLoginEvent: MainIpcHandler<'login'> = async (event) => {
         const successResponse = response as AuthResponseSuccess;
         // Use the rotated token if the server provided one, otherwise keep the original token
         const activeAccessToken = successResponse.accessToken || accessToken;
-        const { userProfile } = dataService.saveAuthResponseToAppData({
+        dataService.saveAuthResponseToAppData({
           deviceId,
           accessToken: activeAccessToken,
           userProfile: successResponse.userProfile,
@@ -142,8 +142,8 @@ const handleLoginEvent: MainIpcHandler<'login'> = async (event) => {
         }
 
         const payload: AuthenticateSuccessPayload = {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          userProfile: userProfile as any,
+          // Desktop-shaped profile (local preferences + server feature flags/signature)
+          userProfile: dataService.getFullUserProfile(),
           authInfo: { deviceId, accessToken: activeAccessToken },
           success: true,
         };
@@ -474,7 +474,8 @@ const handleCheckAuthEvent: MainIpcHandler<'checkAuth'> = async (): Promise<
       if (successResponse.encryptionKey) {
         dataService.setOrgEncryptionKey(successResponse.encryptionKey);
       }
-      return { userProfile: successResponse.userProfile, authInfo: { deviceId, accessToken: activeAccessToken } };
+      // Desktop-shaped profile (local preferences + server feature flags/signature) — matches the other return paths
+      return { userProfile: dataService.getFullUserProfile(), authInfo: { deviceId, accessToken: activeAccessToken } };
     }
 
     return { userProfile, authInfo: { deviceId, accessToken } };
