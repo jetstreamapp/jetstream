@@ -253,7 +253,7 @@ function retryInterceptor(config: AxiosRequestConfig, options: RequestOptions = 
     const { endpoints, retry, retryDelay, methods, statusCodes } = RETRY_CONFIG;
     // Network-level failures (no response at all — connection drop, proxy kill) are retryable for the
     // same idempotent GET endpoints as 429/5xx responses; canceled requests are never retried.
-    const isRetryableNetworkError = !error.response && error.code !== 'ERR_CANCELED';
+    const isRetryableNetworkError = !error.response && error.code !== AxiosError.ERR_CANCELED;
     if (
       retryCount <= retry &&
       methods.has(config.method || '') &&

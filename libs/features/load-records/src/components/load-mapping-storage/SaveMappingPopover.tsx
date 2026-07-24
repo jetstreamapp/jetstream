@@ -1,8 +1,9 @@
 import { css } from '@emotion/react';
+import { logger } from '@jetstream/shared/client-logger';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { FieldMapping, LoadSavedMappingItem } from '@jetstream/types';
-import { Grid, Icon, Input, Popover, PopoverRef, ScopedNotification } from '@jetstream/ui';
+import { fireToast, Grid, Icon, Input, Popover, PopoverRef, ScopedNotification } from '@jetstream/ui';
 import { dexieDb, getHashedRecordKey, withReopenOnDatabaseClosed } from '@jetstream/ui/db';
 import { formatISO } from 'date-fns/formatISO';
 import omit from 'lodash/omit';
@@ -55,14 +56,24 @@ export const SaveMappingPopover: FunctionComponent<SaveMappingPopoverProps> = ({
   }, [fieldMapping, sobject]);
 
   async function handleSave() {
-    const newMapping: LoadSavedMappingItem = { ...currentSavedMapping, name: mappingName };
-    newMapping.createdAt = new Date();
-    newMapping.key = `lsm_${sobject}:${newMapping.csvFields.length}:${formatISO(newMapping.createdAt).toLowerCase()}`;
-    newMapping.hashedKey = await getHashedRecordKey(newMapping.key);
-    await withReopenOnDatabaseClosed(() => dexieDb.load_saved_mapping.put(newMapping));
-    saveSetMappingName('');
-    setCurrentSavedMapping(getDefaultItem(sobject));
-    popoverRef.current?.close();
+    try {
+      const newMapping: LoadSavedMappingItem = { ...currentSavedMapping, name: mappingName };
+      newMapping.createdAt = new Date();
+      newMapping.key = `lsm_${sobject}:${newMapping.csvFields.length}:${formatISO(newMapping.createdAt).toLowerCase()}`;
+      newMapping.hashedKey = await getHashedRecordKey(newMapping.key);
+      await withReopenOnDatabaseClosed(() => dexieDb.load_saved_mapping.put(newMapping));
+      saveSetMappingName('');
+      setCurrentSavedMapping(getDefaultItem(sobject));
+      popoverRef.current?.close();
+    } catch (ex) {
+      // The awaited Dexie write can reject; handleSave is called fire-and-forget from onSubmit, so catch
+      // here to avoid an unhandled rejection and give the user feedback (popover stays open to retry).
+      logger.warn('Failed to save field mapping', ex);
+      fireToast({
+        type: 'error',
+        message: 'Uh oh, there was a problem saving the field mapping. Please try again.',
+      });
+    }
   }
 
   return (
