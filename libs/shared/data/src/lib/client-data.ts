@@ -297,9 +297,7 @@ export async function updateUserProfile<T = UserProfileUiWithIdentities>(userPro
  * These pass the org so the canvas-axios-adapter receives the X_SFDC_ID header
  * and provides jetstreamConn to the route handler.
  */
-export async function getCanvasPreferences(
-  org: SalesforceOrgUi,
-): Promise<{
+export async function getCanvasPreferences(org: SalesforceOrgUi): Promise<{
   skipFrontdoorLogin?: boolean;
   recordSyncEnabled?: boolean;
   colorScheme?: ColorScheme;
@@ -680,12 +678,16 @@ export async function query<T = any>(
   isTooling = false,
   includeDeletedRecords = false,
   signal?: AbortSignal,
+  /**
+   * The composite API is used to get around normal query limits where the request URL is too long.
+   */
+  useCompositeApi = true,
 ): Promise<QueryResults<T>> {
   if (!query) {
     throw new Error('Query cannot be empty');
   }
   return handleRequest(
-    { method: 'POST', url: `/api/query`, params: { isTooling, includeDeletedRecords }, data: { query }, signal },
+    { method: 'POST', url: `/api/query`, params: { isTooling, includeDeletedRecords, useCompositeApi }, data: { query }, signal },
     { org, useQueryParamsInCacheKey: true, useBodyInCacheKey: true },
   ).then(unwrapResponseIgnoreCache);
 }
@@ -696,12 +698,16 @@ export async function queryWithCache<T = any>(
   isTooling = false,
   skipRequestCache = false,
   includeDeletedRecords = false,
+  /**
+   * The composite API is used to get around normal query limits where the request URL is too long.
+   */
+  useCompositeApi = true,
 ): Promise<ApiResponse<QueryResults<T>>> {
   if (!query) {
     throw new Error('Query cannot be empty');
   }
   return handleRequest(
-    { method: 'POST', url: `/api/query`, params: { isTooling, includeDeletedRecords }, data: { query } },
+    { method: 'POST', url: `/api/query`, params: { isTooling, includeDeletedRecords, useCompositeApi }, data: { query } },
     { org, useCache: true, skipRequestCache, useQueryParamsInCacheKey: true, useBodyInCacheKey: true },
   );
 }
@@ -1473,4 +1479,3 @@ export async function updatePermissionSetRecords(
     }),
   ]);
 }
-
