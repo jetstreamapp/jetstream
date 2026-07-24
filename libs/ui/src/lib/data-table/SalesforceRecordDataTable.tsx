@@ -399,10 +399,15 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
         if (!isMounted.current) {
           return;
         }
-        // oops. show the user an error
         setIsLoadingMore(false);
-        setLoadMoreErrorMessage('There was a problem loading the rest of the records.');
-        tracker.warn('Load Remaining Records failed', ex);
+        // An expired/evicted Salesforce query cursor can never succeed on retry — the query must be re-run
+        if (getErrorMessage(ex).toLowerCase().includes('invalid query locator')) {
+          setHasMoreRecords(false);
+          setLoadMoreErrorMessage('Your query results expired. Re-run your query to load all records.');
+        } else {
+          setLoadMoreErrorMessage('There was a problem loading the rest of the records.');
+          tracker.warn('Load Remaining Records failed', ex);
+        }
       }
     }
 

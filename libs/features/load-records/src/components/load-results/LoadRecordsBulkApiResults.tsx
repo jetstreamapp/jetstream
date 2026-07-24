@@ -462,7 +462,11 @@ export const LoadRecordsBulkApiResults = ({
         body: `❌ ${getErrorMessage(ex)}`,
         tag: 'load-records',
       });
-      tracker.error('Error preparing bulk api data', ex);
+      // A user-initiated abort throws 'Aborted' through this same path — keep the UI messaging but
+      // don't report it as an application error.
+      if (!isAborted.current) {
+        tracker.error('Error preparing bulk api data', ex);
+      }
       return;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -516,12 +520,19 @@ export const LoadRecordsBulkApiResults = ({
             tag: 'load-records',
           });
         }
-        tracker.error('Error loading batches', loadError, {
-          specificErrors: loadError.additionalErrors.map((error) => ({
-            message: error.message,
-            stack: error.stack,
-          })),
-        });
+        // A user-initiated abort surfaces through the same loadError path — keep the UI messaging but
+        // don't report it as an application error unless some batch failed for a non-abort reason.
+        const abortMessagePattern = /aborted by user|data load was aborted|current job state is 'Aborted'/i;
+        const onlyUserAbortErrors =
+          loadError.additionalErrors.length > 0 && loadError.additionalErrors.every((error) => abortMessagePattern.test(error.message));
+        if (!onlyUserAbortErrors) {
+          tracker.error('Error loading batches', loadError, {
+            specificErrors: loadError.additionalErrors.map((error) => ({
+              message: error.message,
+              stack: error.stack,
+            })),
+          });
+        }
       } else {
         setJobInfo(jobInfo);
         setStatus(STATUSES.PROCESSING);

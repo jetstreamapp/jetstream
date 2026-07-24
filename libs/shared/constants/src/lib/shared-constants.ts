@@ -96,6 +96,8 @@ export const ERROR_MESSAGES = {
   SFDC_EXPIRED_TOKEN: 'expired access/refresh token',
   SFDC_EXPIRED_SESSION: 'Session expired or invalid',
   SFDC_EXPIRED_TOKEN_VALIDITY: 'token validity expired',
+  // Bulk API v1 session-auth failures surface with this exceptionMessage (HTTP 400 XML, not a 401)
+  SFDC_INVALID_SESSION_ID: 'Invalid session id',
   SFDC_ORG_DOES_NOT_EXIST: /^getaddrinfo ENOTFOUND [a-z0-9-.]+\.salesforce\.com$/i,
   SFDC_REST_API_NOT_ENABLED: /api is not enabled/i,
   SFDC_REST_API_NOT_ENABLED_MSG: 'Your org/user does not have API access which is required for Jetstream to communicate with Salesforce.',

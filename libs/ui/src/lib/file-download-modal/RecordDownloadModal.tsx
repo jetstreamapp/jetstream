@@ -14,7 +14,7 @@ import {
   saveFile,
   tracker,
 } from '@jetstream/shared/ui-utils';
-import { flattenRecords, getMapOfBaseAndSubqueryRecords } from '@jetstream/shared/utils';
+import { flattenRecords, getErrorMessage, getMapOfBaseAndSubqueryRecords } from '@jetstream/shared/utils';
 import {
   FileExtCsv,
   FileExtCsvXLSXJsonGSheet,
@@ -325,10 +325,16 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
       }
       trackEvent(ANALYTICS_KEYS.file_download, { source, fileFormat, component: 'RecordDownloadModal' });
     } catch (ex) {
-      // TODO: show error message somewhere
       logger.error('Error downloading file', ex);
       tracker.error('Record download error', ex);
-      setErrorMessage('There was a problem preparing your file download.');
+      // Cell values are truncated before writing, but other SheetJS limits (e.g. the 1,048,576-row cap) can still throw.
+      if (getErrorMessage(ex).includes('32767')) {
+        setErrorMessage(`One or more values exceed Excel's 32,767 character cell limit. Download as CSV or JSON to get full values.`);
+      } else if (fileFormat === 'xlsx') {
+        setErrorMessage('There was a problem preparing your file download. Try downloading as CSV or JSON.');
+      } else {
+        setErrorMessage('There was a problem preparing your file download.');
+      }
     }
   }
 

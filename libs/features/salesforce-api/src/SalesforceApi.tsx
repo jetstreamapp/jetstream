@@ -63,7 +63,7 @@ export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
           })
           .catch((ex) => {
             logger.warn('[ERROR] Could not save history', ex);
-            tracker.error('Error saving apex history', ex);
+            tracker.error('Error saving API request history', ex);
           });
       } catch (ex) {
         setResults({

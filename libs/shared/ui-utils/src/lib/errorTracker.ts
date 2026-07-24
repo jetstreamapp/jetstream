@@ -18,8 +18,17 @@ const ignoredMessageSubstrings = [
   // The frontend cannot fix these (expired/revoked session); user is shown an in-app error state.
   'An unknown error has occurred (HTTP 401)',
   'An unknown error has occurred (HTTP 403)',
+  // dexie-observable's unload-time localStorage write for users at storage quota — guarded in ui-db,
+  // but old bundles remain in the field.
+  'Dexie.Observable/deadnode',
+  // Expired/evicted Salesforce query cursor — the user must re-run their query; nothing to fix client-side.
+  // Salesforce surfaces this as either the lowercase message or the uppercase error code depending on the API.
+  'invalid query locator',
+  'INVALID_QUERY_LOCATOR',
 ];
-const ignoredExactMessages = new Set(['Canceled', 'ChunkLoadError', '(unknown)']);
+// 'DatabaseClosedError' matches the exception TYPE: dexie-observable closes the shared connection after
+// a tab freeze/sleep; history writes reopen-and-retry, and anything residual is not actionable.
+const ignoredExactMessages = new Set(['Canceled', 'ChunkLoadError', '(unknown)', 'DatabaseClosedError']);
 const extensionUrlPrefixes = ['chrome-extension://', 'moz-extension://', 'safari-web-extension://', 'safari-extension://'];
 
 const PER_SESSION_MINUTE_LIMIT = 10;

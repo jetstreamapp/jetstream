@@ -751,7 +751,9 @@ export function useAutomationControlData({
             dispatch({ type: 'FETCH_SUCCESS', payload: item });
           } else {
             dispatch({ type: 'FETCH_ERROR', payload: item });
-            tracker.error('Automation Control Fetch Error', { item });
+            // Pass the underlying error as an Error so distinct causes get distinct fingerprints and the
+            // tracker's ignore list (e.g. expired-token noise) can match it — extras are not inspected.
+            tracker.error('Automation Control Fetch Error', new Error(item.error), { item });
           }
         },
         error: (err) => {

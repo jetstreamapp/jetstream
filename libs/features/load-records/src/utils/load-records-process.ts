@@ -69,9 +69,32 @@ export const FATAL_BULK_ERROR_PATTERNS: ReadonlyArray<RegExp> = Object.freeze([
 
 export const MAX_CONSECUTIVE_FAILURES = 5;
 
+// Salesforce Bulk API v1 rejects any batch CSV over 10,000,000 characters ("Failed to read request.
+// Exceeded max size limit of 10000000"). Batching is by record count, so wide rows can blow the cap
+// even at modest batch sizes. Kept below the hard limit for encoding/newline headroom.
+export const MAX_BATCH_CSV_CHARS = 9_500_000;
+
 export function isFatalBulkApiError(error: unknown): boolean {
   const message = getErrorMessage(error);
   return FATAL_BULK_ERROR_PATTERNS.some((pattern) => pattern.test(message));
+}
+
+/**
+ * Generate batch CSVs capped both by record count and by CSV character count. A batch whose CSV
+ * exceeds `MAX_BATCH_CSV_CHARS` is recursively halved until it fits; a single record that alone
+ * exceeds the cap is passed through as-is (Salesforce rejects it with a per-batch error, same as today).
+ */
+export function generateSizeCappedBatchCsvs(records: unknown[], batchSize: number): string[] {
+  return splitArrayToMaxSize(records, batchSize).flatMap(csvForBatchRecords);
+}
+
+function csvForBatchRecords(batchRecords: unknown[]): string[] {
+  const csv = generateCsv(batchRecords, { delimiter: ',' });
+  if (csv.length <= MAX_BATCH_CSV_CHARS || batchRecords.length <= 1) {
+    return [csv];
+  }
+  const midpoint = Math.ceil(batchRecords.length / 2);
+  return [...csvForBatchRecords(batchRecords.slice(0, midpoint)), ...csvForBatchRecords(batchRecords.slice(midpoint))];
 }
 
 /**
@@ -91,9 +114,7 @@ export async function loadBulkApiData(
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const jobId = results.id!;
     let batches: LoadDataBulkApi[] = [];
-    batches = splitArrayToMaxSize(data, batchSize)
-      .map((batch) => generateCsv(batch, { delimiter: ',' }))
-      .map((data, i) => ({ data, batchNumber: i, completed: false, success: false }));
+    batches = generateSizeCappedBatchCsvs(data, batchSize).map((data, i) => ({ data, batchNumber: i, completed: false, success: false }));
 
     let submittedBatchCount = 0;
 
