@@ -325,7 +325,7 @@ const dataSyncPush = createRoute(routeDefinition.dataSyncPush.validators, async 
 
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const deviceId = req.get(HTTP.HEADERS.X_EXT_DEVICE_ID)! || req.get(HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID)!;
-  emitRecordSyncEventsToOtherClients(deviceId, syncEvent);
+  emitRecordSyncEventsToOtherClients({ deviceId }, syncEvent);
 
   sendJson(res, response);
 });
