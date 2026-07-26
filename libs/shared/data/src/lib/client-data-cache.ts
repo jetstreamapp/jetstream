@@ -4,8 +4,8 @@ import { INDEXED_DB } from '@jetstream/shared/constants';
 import { REGEX } from '@jetstream/shared/utils';
 import { CacheItemWithData, OrgCacheItem, QueryHistoryItem, SalesforceOrgUi } from '@jetstream/types';
 import { AxiosRequestConfig } from 'axios';
-import localforage from 'localforage';
 import isString from 'lodash/isString';
+import { getLocalStore } from './local-store';
 
 // 3 days
 const CACHE_TTL = 1000 * 60 * 60 * 24 * 3;
@@ -17,7 +17,7 @@ export function isExpired(priorCacheTime: number): boolean {
 export async function clearCacheForOrg(org: SalesforceOrgUi) {
   try {
     const key = `${INDEXED_DB.KEYS.httpCache}:${org.uniqueId}`;
-    await localforage.removeItem(key);
+    await getLocalStore().removeItem(key);
     logger.log('[HTTP][CACHE][REMOVED]', key);
   } catch (ex) {
     logger.log('[HTTP][CACHE][ERROR]', ex);
@@ -26,13 +26,13 @@ export async function clearCacheForOrg(org: SalesforceOrgUi) {
 
 export async function clearQueryHistoryForOrg(org: SalesforceOrgUi) {
   try {
-    const queryHistory = (await localforage.getItem<Record<string, QueryHistoryItem | undefined>>(INDEXED_DB.KEYS.queryHistory)) || {};
+    const queryHistory = (await getLocalStore().getItem<Record<string, QueryHistoryItem | undefined>>(INDEXED_DB.KEYS.queryHistory)) || {};
     for (const [key] of Object.entries(queryHistory)) {
       if (key.startsWith(org.uniqueId)) {
         queryHistory[key] = undefined;
       }
     }
-    await localforage.setItem(INDEXED_DB.KEYS.queryHistory, JSON.parse(JSON.stringify(queryHistory)));
+    await getLocalStore().setItem(INDEXED_DB.KEYS.queryHistory, JSON.parse(JSON.stringify(queryHistory)));
     logger.log('[QUERY-HISTORY][REMOVED]');
   } catch (ex) {
     logger.log('[QUERY-HISTORY][ERROR]', ex);
@@ -56,7 +56,7 @@ export async function getCacheItemHttp<T>(
   try {
     const orgId = org?.uniqueId || 'unset';
     const cacheKey = getCacheKeyForHttp(config, useQueryParamsInCacheKey, useBodyInCacheKey);
-    const cacheItem = await localforage.getItem<OrgCacheItem<T>>(`${INDEXED_DB.KEYS.httpCache}:${orgId}`);
+    const cacheItem = await getLocalStore().getItem<OrgCacheItem<T>>(`${INDEXED_DB.KEYS.httpCache}:${orgId}`);
     const item = cacheItem && cacheItem[cacheKey];
     if (item && !isExpired(item.exp)) {
       return item;
@@ -79,7 +79,7 @@ export async function getCacheItemNonHttp<T>(org: SalesforceOrgUi, key: string):
   try {
     const orgId = org.uniqueId;
     const cacheKey = getCacheKeyForNonHttp(key);
-    const cacheItem = await localforage.getItem<OrgCacheItem<T>>(`${INDEXED_DB.KEYS.httpCache}:${orgId}`);
+    const cacheItem = await getLocalStore().getItem<OrgCacheItem<T>>(`${INDEXED_DB.KEYS.httpCache}:${orgId}`);
     const item = cacheItem && cacheItem[cacheKey];
     if (item && !isExpired(item.exp)) {
       return item;
@@ -106,7 +106,7 @@ export async function saveCacheItemHttp<T>(
 ): Promise<CacheItemWithData<T> | undefined> {
   try {
     const orgId = org?.uniqueId || 'unset';
-    let cacheItem = await localforage.getItem<OrgCacheItem<T>>(`${INDEXED_DB.KEYS.httpCache}:${orgId}`);
+    let cacheItem = await getLocalStore().getItem<OrgCacheItem<T>>(`${INDEXED_DB.KEYS.httpCache}:${orgId}`);
     const cacheKey = getCacheKeyForHttp(config, useQueryParamsInCacheKey, useBodyInCacheKey);
 
     cacheItem = cacheItem || {};
@@ -119,7 +119,7 @@ export async function saveCacheItemHttp<T>(
 
     cacheItem[cacheKey] = cacheItemData;
 
-    await localforage.setItem(`${INDEXED_DB.KEYS.httpCache}:${orgId}`, cacheItem);
+    await getLocalStore().setItem(`${INDEXED_DB.KEYS.httpCache}:${orgId}`, cacheItem);
     return cacheItemData;
   } catch (ex) {
     logger.log('[HTTP][CACHE][ERROR]', ex);
@@ -130,7 +130,7 @@ export async function saveCacheItemHttp<T>(
 export async function saveCacheItemNonHttp<T>(data: T, org: SalesforceOrgUi, key: string): Promise<CacheItemWithData<T> | undefined> {
   try {
     const orgId = org?.uniqueId || 'unset';
-    let cacheItem = await localforage.getItem<OrgCacheItem<T>>(`${INDEXED_DB.KEYS.httpCache}:${orgId}`);
+    let cacheItem = await getLocalStore().getItem<OrgCacheItem<T>>(`${INDEXED_DB.KEYS.httpCache}:${orgId}`);
     const cacheKey = getCacheKeyForNonHttp(key);
 
     cacheItem = cacheItem || {};
@@ -143,7 +143,7 @@ export async function saveCacheItemNonHttp<T>(data: T, org: SalesforceOrgUi, key
 
     cacheItem[cacheKey] = cacheItemData;
 
-    await localforage.setItem(`${INDEXED_DB.KEYS.httpCache}:${orgId}`, cacheItem);
+    await getLocalStore().setItem(`${INDEXED_DB.KEYS.httpCache}:${orgId}`, cacheItem);
     return cacheItemData;
   } catch (ex) {
     logger.log('[HTTP][CACHE][ERROR]', ex);

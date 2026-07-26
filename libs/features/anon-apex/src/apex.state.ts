@@ -1,5 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { DATE_FORMATS, INDEXED_DB } from '@jetstream/shared/constants';
+import { getLocalStore } from '@jetstream/shared/data';
 import { groupByFlat, hashString, pluralizeFromNumber, truncate } from '@jetstream/shared/utils';
 import { ApexHistoryItem, SalesforceOrgUi } from '@jetstream/types';
 import { selectedOrgState } from '@jetstream/ui/app-state';
@@ -8,7 +9,7 @@ import { formatDate } from 'date-fns/format';
 import { isBefore } from 'date-fns/isBefore';
 import { startOfDay } from 'date-fns/startOfDay';
 import { atom } from 'jotai';
-import localforage from 'localforage';
+import { atomWithLazy } from 'jotai/utils';
 import orderBy from 'lodash/orderBy';
 
 let didRunCleanup = false;
@@ -41,7 +42,7 @@ export async function cleanUpHistoryState(): Promise<Record<string, ApexHistoryI
 
       logger.info('[APEX-HISTORY][CLEANUP]', 'Keeping items', itemsToKeep);
       try {
-        await localforage.setItem<Record<string, ApexHistoryItem>>(INDEXED_DB.KEYS.apexHistory, itemsToKeep);
+        await getLocalStore().setItem<Record<string, ApexHistoryItem>>(INDEXED_DB.KEYS.apexHistory, itemsToKeep);
       } catch (ex) {
         logger.warn('[APEX-HISTORY][CLEANUP]', 'Error saving cleaned up apex history', ex);
       }
@@ -54,7 +55,7 @@ export async function cleanUpHistoryState(): Promise<Record<string, ApexHistoryI
 
 const initApexHistory = async (): Promise<Record<string, ApexHistoryItem>> => {
   try {
-    return (await localforage.getItem<Record<string, ApexHistoryItem>>(INDEXED_DB.KEYS.apexHistory)) || {};
+    return (await getLocalStore().getItem<Record<string, ApexHistoryItem>>(INDEXED_DB.KEYS.apexHistory)) || {};
   } catch (ex) {
     logger.error('[APEX-HISTORY][INIT]', 'Error initializing apex history', ex);
     return {};
@@ -92,7 +93,12 @@ export async function initNewApexHistoryItem(org: SalesforceOrgUi, apex: string)
   return { ...historyItems, [newItem.key]: newItem };
 }
 
-export const apexHistoryState = atom<Promise<Record<string, ApexHistoryItem>> | Record<string, ApexHistoryItem>>(initApexHistory());
+/**
+ * Lazy so the storage read happens on first use (after `ensureLocalStorageReady` has scoped the
+ * store to the current user). The browser extension imports this module eagerly, so an eager read
+ * would hit the shared un-scoped store while every write lands in the per-user one.
+ */
+export const apexHistoryState = atomWithLazy<Promise<Record<string, ApexHistoryItem>> | Record<string, ApexHistoryItem>>(initApexHistory);
 
 export const apexHistoryWhichOrg = atom<'ALL' | 'SELECTED'>('SELECTED');
 

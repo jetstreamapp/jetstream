@@ -4,7 +4,7 @@ import { REGEX } from '@jetstream/shared/utils';
 import { QueryHistoryItem, SalesforceOrgUi } from '@jetstream/types';
 import { parseQuery } from '@jetstreamapp/soql-parser-js';
 import { max } from 'date-fns/max';
-import { dexieDb, getHashedRecordKey, SyncableTables, wrapApiWithReopenOnDatabaseClosed } from './ui-db';
+import { getDexieDb, getHashedRecordKey, SyncableTables, wrapApiWithReopenOnDatabaseClosed } from './ui-db';
 
 export const queryHistoryDb = wrapApiWithReopenOnDatabaseClosed({
   getAllQueryHistory,
@@ -17,16 +17,6 @@ export const queryHistoryDb = wrapApiWithReopenOnDatabaseClosed({
   TEMP_deleteItem,
 });
 
-/**
- * Boolean fields cannot be indexes, so we store a string version of the same field
- */
-dexieDb.query_history.hook('updating', function (mods) {
-  if ('isFavorite' in mods) {
-    return { ...mods, isFavoriteIdx: mods.isFavorite ? 'true' : 'false' };
-  }
-  return undefined;
-});
-
 function generateKey(orgUniqueId: string, sObject: string, soql: string): QueryHistoryItem['key'] {
   return `${SyncableTables.query_history.keyPrefix}_${orgUniqueId}:${sObject}${soql.replace(
     REGEX.NOT_ALPHANUMERIC_OR_UNDERSCORE,
@@ -35,7 +25,7 @@ function generateKey(orgUniqueId: string, sObject: string, soql: string): QueryH
 }
 
 async function getAllQueryHistory(): Promise<QueryHistoryItem[]> {
-  return await dexieDb.query_history.toArray();
+  return await getDexieDb().query_history.toArray();
 }
 
 async function setAsFavorite(
@@ -43,6 +33,7 @@ async function setAsFavorite(
   isFavorite: boolean,
   customLabel?: string,
 ): Promise<QueryHistoryItem | undefined> {
+  const dexieDb = getDexieDb();
   const updates: Partial<QueryHistoryItem> = { isFavorite };
   // update custom label if provided
   if (customLabel) {
@@ -53,6 +44,7 @@ async function setAsFavorite(
 }
 
 async function updateCustomLabel(key: QueryHistoryItem['key'], customLabel: string | null): Promise<QueryHistoryItem | undefined> {
+  const dexieDb = getDexieDb();
   const updates: Partial<QueryHistoryItem> = { customLabel: customLabel || null };
   await dexieDb.query_history.update(key, updates);
   return await dexieDb.query_history.get(key);
@@ -65,6 +57,7 @@ async function updateSavedQuery(
   newLabel: string,
   isTooling: boolean,
 ): Promise<QueryHistoryItem> {
+  const dexieDb = getDexieDb();
   newSoql = newSoql.trim();
   newLabel = newLabel.trim();
 
@@ -145,7 +138,7 @@ async function getOrInitQueryHistoryItem(
 ): Promise<QueryHistoryItem> {
   // FIXME: isTooling should be part of key - not a huge deal either way but could have some edge-cases for the few duplicate objects
   const key = generateKey(org.uniqueId, sObject, soql);
-  const existingItem = await dexieDb.query_history.get(key);
+  const existingItem = await getDexieDb().query_history.get(key);
 
   sObjectLabel = sObjectLabel || existingItem?.label;
 
@@ -204,13 +197,13 @@ async function saveQueryHistoryItem(
   queryHistoryItem.customLabel = customLabel ?? queryHistoryItem.customLabel;
   queryHistoryItem.isTooling = isTooling ?? queryHistoryItem.isTooling;
 
-  await dexieDb.query_history.put(queryHistoryItem);
+  await getDexieDb().query_history.put(queryHistoryItem);
   return queryHistoryItem;
 }
 
 async function TEMP_deleteItem(key: string): Promise<void> {
   try {
-    await dexieDb.query_history.where({ key }).delete();
+    await getDexieDb().query_history.where({ key }).delete();
   } catch (ex) {
     logger.error('[DB] Error deleting query history for key', key, ex);
   }
@@ -218,7 +211,7 @@ async function TEMP_deleteItem(key: string): Promise<void> {
 
 async function deleteAllQueryHistoryForOrgExceptFavorites(org: SalesforceOrgUi): Promise<void> {
   try {
-    await dexieDb.query_history.where({ org: org.uniqueId, isFavoriteIdx: 'false' }).delete();
+    await getDexieDb().query_history.where({ org: org.uniqueId, isFavoriteIdx: 'false' }).delete();
   } catch (ex) {
     logger.error('[DB] Error deleting query history for org', ex);
   }

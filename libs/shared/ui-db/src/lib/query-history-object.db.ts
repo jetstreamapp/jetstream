@@ -1,25 +1,9 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { QueryHistoryItem, QueryHistoryObject, SalesforceOrgUi } from '@jetstream/types';
-import { dexieDb, wrapApiWithReopenOnDatabaseClosed } from './ui-db';
+import { DexieDb, getDexieDb, wrapApiWithReopenOnDatabaseClosed } from './ui-db';
 
 export const queryHistoryObjectDb = wrapApiWithReopenOnDatabaseClosed({
-  saveQueryHistoryObject,
-  saveQueryHistoryObjectFromKey,
   deleteAllQueryHistoryObjectForOrg,
-});
-
-/**
- * Save object mapping for query history
- * this is used on the query history modal to show the list of objects
- */
-dexieDb.query_history.hook('creating', function (_, obj) {
-  obj.isFavoriteIdx = obj.isFavorite ? 'true' : 'false';
-  this.onsuccess = function (key) {
-    // this would consistently fail if done in the same transaction
-    setTimeout(() => {
-      saveQueryHistoryObjectFromKey(key);
-    });
-  };
 });
 
 function generateKey(orgUniqueId: string, sObject: string, isTooling: boolean): string {
@@ -36,23 +20,17 @@ function getQueryHistoryObject(queryHistoryItem: QueryHistoryItem): QueryHistory
   };
 }
 
-async function saveQueryHistoryObject(queryHistoryItem: QueryHistoryItem): Promise<void> {
+/**
+ * Write the derived object row for a query history item.
+ *
+ * Takes the database explicitly instead of calling `getDexieDb()`: the only caller is the
+ * `query_history` creating hook, which defers this write out of the creating transaction, and the
+ * active database can be swapped in that window (logout / account switch). Going through the global
+ * accessor would land the departing user's row in the next user's database.
+ */
+export async function saveQueryHistoryObject(db: DexieDb, queryHistoryItem: QueryHistoryItem): Promise<void> {
   try {
-    const item = getQueryHistoryObject(queryHistoryItem);
-    await dexieDb._query_history_object.put(item);
-  } catch (ex) {
-    logger.warn('[DB] Error saving query history object', ex);
-  }
-}
-
-async function saveQueryHistoryObjectFromKey(queryHistoryItemKey: QueryHistoryItem['key']): Promise<void> {
-  try {
-    const queryHistoryItem = await dexieDb.query_history.get(queryHistoryItemKey);
-    if (!queryHistoryItem) {
-      return;
-    }
-    const item = getQueryHistoryObject(queryHistoryItem);
-    await dexieDb._query_history_object.put(item);
+    await db._query_history_object.put(getQueryHistoryObject(queryHistoryItem));
   } catch (ex) {
     logger.warn('[DB] Error saving query history object', ex);
   }
@@ -60,7 +38,7 @@ async function saveQueryHistoryObjectFromKey(queryHistoryItemKey: QueryHistoryIt
 
 async function deleteAllQueryHistoryObjectForOrg(org: SalesforceOrgUi): Promise<void> {
   try {
-    await dexieDb._query_history_object.where({ org: org.uniqueId }).delete();
+    await getDexieDb()._query_history_object.where({ org: org.uniqueId }).delete();
   } catch (ex) {
     logger.error('[DB] Error deleting query history object for org', ex);
   }

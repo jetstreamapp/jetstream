@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { useSetTraceFlag } from '@jetstream/connected-ui';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, INDEXED_DB, LOG_LEVELS, TITLES } from '@jetstream/shared/constants';
-import { anonymousApex } from '@jetstream/shared/data';
+import { anonymousApex, getLocalStore } from '@jetstream/shared/data';
 import {
   sanitizePastedEditorText,
   setItemInLocalStorage,
@@ -36,7 +36,6 @@ import { MonacoEditor, useAmplitude } from '@jetstream/ui-core';
 import { STORAGE_KEYS, applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
 import { OnMount } from '@monaco-editor/react';
 import { useAtom, useAtomValue } from 'jotai';
-import localforage from 'localforage';
 import escapeRegExp from 'lodash/escapeRegExp';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
@@ -110,7 +109,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
     if (apex) {
       (async () => {
         try {
-          await localforage.setItem<Record<string, ApexHistoryItem>>(INDEXED_DB.KEYS.apexHistory, historyItems);
+          await getLocalStore().setItem<Record<string, ApexHistoryItem>>(INDEXED_DB.KEYS.apexHistory, historyItems);
         } catch (ex) {
           logger.warn(ex);
         }

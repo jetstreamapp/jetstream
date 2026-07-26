@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { LoadSavedMappingItem } from '@jetstream/types';
 import { BadgeNotification, EmptyState, fireToast, Icon, Popover, PopoverRef } from '@jetstream/ui';
 import { STATIC_MAPPING_PREFIX } from '@jetstream/ui-core';
-import { dexieDb, withReopenOnDatabaseClosed } from '@jetstream/ui/db';
+import { getDexieDb, withReopenOnDatabaseClosed } from '@jetstream/ui/db';
 import classNames from 'classnames';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { FunctionComponent, useRef } from 'react';
@@ -21,8 +21,8 @@ export const LoadMappingPopover: FunctionComponent<LoadMappingPopoverProps> = ({
 
   const savedMappingsForObject = useLiveQuery(
     () =>
-      dexieDb.load_saved_mapping
-        .where('sobject')
+      getDexieDb()
+        .load_saved_mapping.where('sobject')
         .equalsIgnoreCase(sobject)
         .filter(
           (item) =>
@@ -49,7 +49,7 @@ export const LoadMappingPopover: FunctionComponent<LoadMappingPopoverProps> = ({
   async function handleButtonAction(id: string, metadata: LoadSavedMappingItem) {
     try {
       if (id === 'delete' && metadata) {
-        await withReopenOnDatabaseClosed(() => dexieDb.load_saved_mapping.where('key').equals(metadata.key).delete());
+        await withReopenOnDatabaseClosed(() => getDexieDb().load_saved_mapping.where('key').equals(metadata.key).delete());
       }
     } catch (ex) {
       logger.warn('Failed to delete field mapping', ex);

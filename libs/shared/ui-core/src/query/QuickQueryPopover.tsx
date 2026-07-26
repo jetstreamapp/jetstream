@@ -22,7 +22,7 @@ import {
   Tooltip,
 } from '@jetstream/ui';
 import { selectedOrgState, soqlQueryFormatOptionsState } from '@jetstream/ui/app-state';
-import { dexieDb } from '@jetstream/ui/db';
+import { getDexieDb } from '@jetstream/ui/db';
 import { formatQuery, isQueryValid } from '@jetstreamapp/soql-parser-js';
 import { OnMount } from '@monaco-editor/react';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -69,7 +69,7 @@ export const QuickQueryPopover = () => {
   // Note: this is not scoped to the current org, which I guess is fine for now (could give user an option)
   const queryHistory = useLiveQuery(
     // Since we want to sort by lastRun, we cannot use a normal where clause
-    () => dexieDb.query_history.orderBy('lastRun').reverse().limit(NUM_HISTORY_ITEMS).toArray(),
+    () => getDexieDb().query_history.orderBy('lastRun').reverse().limit(NUM_HISTORY_ITEMS).toArray(),
     [],
     [] as QueryHistoryItem[],
   );

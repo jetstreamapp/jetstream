@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { groupByFlat } from '@jetstream/shared/utils';
 import { RecentHistoryItem, RecentHistoryItemType } from '@jetstream/types';
 import uniqBy from 'lodash/uniqBy';
-import { dexieDb, getHashedRecordKey, SyncableTables, wrapApiWithReopenOnDatabaseClosed } from './ui-db';
+import { getDexieDb, getHashedRecordKey, SyncableTables, wrapApiWithReopenOnDatabaseClosed } from './ui-db';
 
 export const recentHistoryItemsDb = wrapApiWithReopenOnDatabaseClosed({
   addItemToRecentHistoryItems,
@@ -29,8 +29,8 @@ async function getRecentHistoryFromRecords<T extends { name: string }>({
 }) {
   const recordsByName = groupByFlat(records, 'name');
 
-  const items = await dexieDb.recent_history_item
-    .get(generateKey(orgUniqueId, recentItemsKey))
+  const items = await getDexieDb()
+    .recent_history_item.get(generateKey(orgUniqueId, recentItemsKey))
     .then((record) => record?.items?.map(({ name }) => name) || []);
   return items?.map((name) => recordsByName[name]).filter(Boolean);
 }
@@ -39,7 +39,7 @@ async function addItemToRecentHistoryItems(orgUniqueId: string, recentItemsKey: 
   try {
     const key = generateKey(orgUniqueId, recentItemsKey);
 
-    let newOrExistingRecord = await dexieDb.recent_history_item.get(generateKey(orgUniqueId, recentItemsKey));
+    let newOrExistingRecord = await getDexieDb().recent_history_item.get(generateKey(orgUniqueId, recentItemsKey));
     if (!newOrExistingRecord) {
       newOrExistingRecord = {
         key,
@@ -62,7 +62,7 @@ async function addItemToRecentHistoryItems(orgUniqueId: string, recentItemsKey: 
 
 async function clearRecentHistoryItemsForCurrentOrg(orgUniqueId: string) {
   try {
-    await dexieDb.recent_history_item.where('org').equals(orgUniqueId).delete();
+    await getDexieDb().recent_history_item.where('org').equals(orgUniqueId).delete();
   } catch (ex) {
     logger.error('Error deleting item to recent history items', ex);
   }
@@ -70,7 +70,7 @@ async function clearRecentHistoryItemsForCurrentOrg(orgUniqueId: string) {
 
 async function clearRecentHistoryItemsForAllOrgs() {
   try {
-    await dexieDb.recent_history_item.clear();
+    await getDexieDb().recent_history_item.clear();
   } catch (ex) {
     logger.error('Error deleting item to recent history items', ex);
   }
@@ -90,5 +90,5 @@ async function saveRecentHistoryItem(
     createdAt: recentHistoryItem.createdAt || new Date(),
     updatedAt: new Date(),
   };
-  return await dexieDb.recent_history_item.put(newItem);
+  return await getDexieDb().recent_history_item.put(newItem);
 }

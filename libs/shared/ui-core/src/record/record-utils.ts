@@ -1,8 +1,8 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
+import { getLocalStore } from '@jetstream/shared/data';
 import { REGEX } from '@jetstream/shared/utils';
 import { composeQuery, getField, WhereClause } from '@jetstreamapp/soql-parser-js';
-import localforage from 'localforage';
 import uniqBy from 'lodash/uniqBy';
 
 type RecentRecordStorageMap = Record<string, RecentRecord[]>;
@@ -14,17 +14,56 @@ export interface RecentRecord {
 
 const NUM_HISTORY_ITEMS = 25;
 let recentItemsMapCache: RecentRecordStorageMap | null = null;
+/**
+ * The store the cached map was read from. Each user gets a distinct store instance, so comparing
+ * identity invalidates the cache on an account switch that happens without a reload. Without this
+ * the previous user's records would be served — and written back into the new user's store, since
+ * the callers below mutate this map and persist it wholesale.
+ */
+let cachedForStore: ReturnType<typeof getLocalStore> | null = null;
 
-export async function getRecentRecordsFromStorage() {
+/**
+ * Recent records are a convenience, never load-bearing, so every access here is best effort:
+ * a storage failure (including reading before a user is scoped) degrades to an empty list.
+ */
+function persistRecentRecords(recentItems: RecentRecordStorageMap) {
   try {
-    if (recentItemsMapCache) {
-      return recentItemsMapCache;
-    }
-    recentItemsMapCache = await localforage.getItem<RecentRecordStorageMap>(INDEXED_DB.KEYS.recentRecords);
-    return recentItemsMapCache || {};
-  } catch {
-    return recentItemsMapCache || {};
+    getLocalStore()
+      .setItem<RecentRecordStorageMap>(INDEXED_DB.KEYS.recentRecords, recentItems)
+      .catch((err) => {
+        logger.warn('[ERROR] Could not save recent record history', err);
+      });
+  } catch (err) {
+    logger.warn('[ERROR] Could not save recent record history', err);
   }
+}
+
+export async function getRecentRecordsFromStorage(): Promise<RecentRecordStorageMap> {
+  let localStore: ReturnType<typeof getLocalStore>;
+  try {
+    localStore = getLocalStore();
+  } catch {
+    // No user is scoped (logged out, or the store failed to initialize) — drop the cache instead of
+    // handing back whatever the last scoped user left in memory.
+    recentItemsMapCache = null;
+    cachedForStore = null;
+    return {};
+  }
+
+  if (cachedForStore !== localStore) {
+    recentItemsMapCache = null;
+    cachedForStore = localStore;
+  }
+  if (recentItemsMapCache) {
+    return recentItemsMapCache;
+  }
+
+  try {
+    recentItemsMapCache = await localStore.getItem<RecentRecordStorageMap>(INDEXED_DB.KEYS.recentRecords);
+  } catch (err) {
+    logger.warn('[ERROR] Could not read recent record history', err);
+  }
+  return recentItemsMapCache || {};
 }
 
 export async function addRecentRecordToStorage(record: RecentRecord, orgUniqueId: string) {
@@ -40,9 +79,7 @@ export async function addRecentRecordToStorage(record: RecentRecord, orgUniqueId
   recentItems[orgUniqueId].unshift({ recordId, sobject, name: name || existingItem?.name });
   recentItems[orgUniqueId] = uniqBy(recentItems[orgUniqueId], 'recordId').slice(0, NUM_HISTORY_ITEMS);
 
-  localforage.setItem<RecentRecordStorageMap>(INDEXED_DB.KEYS.recentRecords, recentItems).catch((err) => {
-    logger.warn('[ERROR] Could not save recent record history', err);
-  });
+  persistRecentRecords(recentItems);
 
   return recentItems[orgUniqueId];
 }
@@ -57,9 +94,7 @@ export async function updateRecentRecordItem(recordId: string, record: Partial<R
   recentItems[orgUniqueId] = recentItems[orgUniqueId] || [];
   recentItems[orgUniqueId] = recentItems[orgUniqueId].map((item) => (item.recordId !== recordId ? item : { ...item, ...record }));
 
-  localforage.setItem<RecentRecordStorageMap>(INDEXED_DB.KEYS.recentRecords, recentItems).catch((err) => {
-    logger.warn('[ERROR] Could not save recent record history', err);
-  });
+  persistRecentRecords(recentItems);
 
   return recentItems[orgUniqueId];
 }
@@ -74,9 +109,7 @@ export async function removeRecentRecordItem(recordId: string, orgUniqueId: stri
   recentItems[orgUniqueId] = recentItems[orgUniqueId] || [];
   recentItems[orgUniqueId] = recentItems[orgUniqueId].filter((item) => item.recordId !== recordId);
 
-  localforage.setItem<RecentRecordStorageMap>(INDEXED_DB.KEYS.recentRecords, recentItems).catch((err) => {
-    logger.warn('[ERROR] Could not save recent record history', err);
-  });
+  persistRecentRecords(recentItems);
 
   return recentItems[orgUniqueId];
 }

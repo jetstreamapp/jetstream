@@ -1,6 +1,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB, TITLES } from '@jetstream/shared/constants';
+import { getLocalStore } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { tracker, usePrimaryActionShortcut, useTitle } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
@@ -31,7 +32,6 @@ import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useAtomValue } from 'jotai';
-import localforage from 'localforage';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import {
   ExportHeaderOption,
@@ -120,7 +120,7 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
   useEffect(() => {
     (async () => {
       try {
-        const results = await localforage.getItem<SavedExportOptions>(INDEXED_DB.KEYS.sobjectExportSelection);
+        const results = await getLocalStore().getItem<SavedExportOptions>(INDEXED_DB.KEYS.sobjectExportSelection);
         if (results?.options) {
           setOptions(results.options);
           if (picklistWorksheetLayoutRef.current) {
@@ -192,7 +192,7 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
 
       if (options.saveAsDefaultSelection) {
         try {
-          await localforage.setItem<SavedExportOptions>(INDEXED_DB.KEYS.sobjectExportSelection, {
+          await getLocalStore().setItem<SavedExportOptions>(INDEXED_DB.KEYS.sobjectExportSelection, {
             fields: selectedAttributes,
             options: { ...options, saveAsDefaultSelection: false },
           });

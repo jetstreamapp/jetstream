@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { dexieDb, withReopenOnDatabaseClosed } from './ui-db';
+import { getDexieDb, withReopenOnDatabaseClosed } from './ui-db';
 
 const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
 const MAX_ROWS_PER_ORG_AND_JOB_TYPE = 10;
@@ -15,8 +15,9 @@ const JOB_TYPES = ['permission_export', 'field_usage'] as const;
  */
 export async function pruneAnalysisJobHistory(): Promise<void> {
   try {
-    await withReopenOnDatabaseClosed(() =>
-      dexieDb.transaction('rw', dexieDb.analysis_job_history, async () => {
+    await withReopenOnDatabaseClosed(() => {
+      const dexieDb = getDexieDb();
+      return dexieDb.transaction('rw', dexieDb.analysis_job_history, async () => {
         const fourteenDaysAgo = new Date(Date.now() - FOURTEEN_DAYS_MS);
         await dexieDb.analysis_job_history
           .where('createdAt')
@@ -46,8 +47,8 @@ export async function pruneAnalysisJobHistory(): Promise<void> {
             }
           }
         }
-      }),
-    );
+      });
+    });
   } catch (ex) {
     logger.warn('[DB][ANALYSIS_JOB_HISTORY][PRUNE] Failed to prune analysis_job_history', ex);
   }
