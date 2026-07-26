@@ -172,3 +172,58 @@ describe('desktop-app.controller verifyToken token rotation gating', () => {
     );
   });
 });
+
+/**
+ * Regression coverage for the MFA-bypass fix: a half-authenticated session (first factor passed but
+ * 2FA verification / MFA enrollment / ToS acceptance still outstanding) must NOT be exchangeable for
+ * a desktop access token.
+ */
+describe('desktop-app.controller initSession pending-verification gate', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.findIdByUserIdUserFacing.mockResolvedValue(userProfile);
+    mocks.checkUserEntitlement.mockResolvedValue(true);
+  });
+
+  async function invokeInitSession(session: Record<string, unknown>) {
+    const req = {
+      get: () => undefined,
+      body: {},
+      query: {},
+      params: {},
+      session: { user: { id: 'user-1' }, ...session },
+      externalAuth: { user: { id: 'user-1' }, deviceId: 'device-1' },
+      log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
+    };
+    const res = makeRes();
+    const next = vi.fn();
+    await routeDefinition.initSession.controllerFn()(req as never, res as never, next);
+    return { req, res, next };
+  }
+
+  it.each([
+    ['pendingVerification', { pendingVerification: [{ type: '2fa-otp', exp: Date.now() }] }],
+    ['pendingMfaEnrollment', { pendingMfaEnrollment: { factor: '2fa-otp' } }],
+    ['pendingTosAcceptance', { pendingTosAcceptance: true }],
+  ])('rejects token issuance and never checks entitlement when %s is set', async (_label, session) => {
+    const { next } = await invokeInitSession(session);
+
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(next.mock.calls[0][0]).toBeInstanceOf(Error);
+    expect((next.mock.calls[0][0] as Error).name).toBe('InvalidSession');
+    // Guard short-circuits before any token work.
+    expect(mocks.checkUserEntitlement).not.toHaveBeenCalled();
+    expect(mocks.sendJson).not.toHaveBeenCalled();
+  });
+
+  it('allows a fully authenticated session past the gate to the entitlement check', async () => {
+    mocks.checkUserEntitlement.mockResolvedValue(false);
+
+    const { next } = await invokeInitSession({});
+
+    // Reached the entitlement check rather than being blocked by the pending-verification guard.
+    expect(mocks.checkUserEntitlement).toHaveBeenCalledWith({ userId: 'user-1', entitlement: 'desktop' });
+    expect(next).toHaveBeenCalledTimes(1);
+    expect((next.mock.calls[0][0] as Error).name).toBe('MissingEntitlement');
+  });
+});

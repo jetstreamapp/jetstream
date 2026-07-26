@@ -20,6 +20,7 @@ import * as webExtDb from '../db/web-extension.db';
 import { emitRecordSyncEventsToOtherClients, SyncEvent } from '../services/data-sync-broadcast.service';
 import * as externalAuthService from '../services/external-auth.service';
 import { decryptJwtTokenOrPlaintext } from '../services/jwt-token-encryption.service';
+import { getPendingSessionRedirectPath } from '../utils/pending-session.utils';
 import { redirect, sendJson } from '../utils/response.handlers';
 import { createRoute, RouteValidator } from '../utils/route.utils';
 import { routeDefinition as dataSyncController } from './data-sync.controller';
@@ -112,12 +113,13 @@ export const routeDefinition = {
  * Page calls back to API to initialize session so that we do not generate tokens in source code
  */
 const initAuthMiddleware = createRoute(routeDefinition.initAuthMiddleware.validators, async ({ setCookie }, req, res, next) => {
+  const queryParams = new URLSearchParams(req.query as Record<string, string>).toString();
+  const desktopAuthUrl = `${ENV.JETSTREAM_SERVER_URL}/desktop-app/auth`;
+  const desktopReturnUrl = queryParams ? `${desktopAuthUrl}?${queryParams}` : desktopAuthUrl;
+  const { redirectUrl: redirectUrlCookie } = getCookieConfig(ENV.USE_SECURE_COOKIES);
+
   // redirect to login flow if user is not signed in
   if (!req.session.user) {
-    const queryParams = new URLSearchParams(req.query as Record<string, string>).toString();
-    const desktopAuthUrl = `${ENV.JETSTREAM_SERVER_URL}/desktop-app/auth`;
-    const desktopReturnUrl = queryParams ? `${desktopAuthUrl}?${queryParams}` : desktopAuthUrl;
-    const { redirectUrl: redirectUrlCookie } = getCookieConfig(ENV.USE_SECURE_COOKIES);
     // Keep the cookie for OAuth/credentials flows that read it server-side. The query param is
     // needed specifically for SSO: SAML's cross-site POST back from the IdP drops SameSite=Lax
     // cookies, so the frontend must pass returnUrl forward to /api/auth/sso/start where it can
@@ -126,6 +128,19 @@ const initAuthMiddleware = createRoute(routeDefinition.initAuthMiddleware.valida
     redirect(res, `/auth/login/?returnUrl=${encodeURIComponent(desktopReturnUrl)}`);
     return;
   }
+
+  // First factor passed but the session still has an unmet requirement (2FA verification, MFA
+  // enrollment, or ToS acceptance). Route the browser to the correct step instead of serving the
+  // token-issuing page, and preserve the desktop return URL so the user lands back here once the
+  // requirement is satisfied. Without this a half-authenticated session could reach the token
+  // endpoint and bypass the second factor.
+  const pendingRedirectPath = getPendingSessionRedirectPath(req.session);
+  if (pendingRedirectPath) {
+    setCookie(redirectUrlCookie.name, desktopReturnUrl, redirectUrlCookie.options);
+    redirect(res, pendingRedirectPath);
+    return;
+  }
+
   next();
 });
 
@@ -137,6 +152,15 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
   const { deviceId } = res.locals;
 
   if (!req.session.user || !deviceId) {
+    next(new InvalidSession());
+    return;
+  }
+
+  // Reject half-authenticated sessions: the first factor passed but 2FA verification, MFA
+  // enrollment, or ToS acceptance is still outstanding. Without this gate a session in a pending
+  // state could be exchanged for a full-access desktop token, bypassing the second factor. Guards
+  // both the token-reuse and token-issue branches below.
+  if (getPendingSessionRedirectPath(req.session)) {
     next(new InvalidSession());
     return;
   }

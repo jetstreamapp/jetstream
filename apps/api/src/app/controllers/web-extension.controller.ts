@@ -19,6 +19,7 @@ import * as webExtDb from '../db/web-extension.db';
 import { emitRecordSyncEventsToOtherClients, SyncEvent } from '../services/data-sync-broadcast.service';
 import * as externalAuthService from '../services/external-auth.service';
 import { decryptJwtTokenOrPlaintext } from '../services/jwt-token-encryption.service';
+import { getPendingSessionRedirectPath } from '../utils/pending-session.utils';
 import { redirect, sendJson } from '../utils/response.handlers';
 import { createRoute, RouteValidator } from '../utils/route.utils';
 
@@ -102,13 +103,28 @@ export const routeDefinition = {
  * Page calls back to API to initialize session so that we do not generate tokens in source code
  */
 const initAuthMiddleware = createRoute(routeDefinition.initAuthMiddleware.validators, async ({ setCookie }, req, res, next) => {
+  const { redirectUrl: redirectUrlCookie } = getCookieConfig(ENV.USE_SECURE_COOKIES);
+  const webExtensionAuthUrl = `${ENV.JETSTREAM_SERVER_URL}/web-extension/auth`;
+
   // redirect to login flow if user is not signed in
   if (!req.session.user) {
-    const { redirectUrl: redirectUrlCookie } = getCookieConfig(ENV.USE_SECURE_COOKIES);
-    setCookie(redirectUrlCookie.name, `${ENV.JETSTREAM_SERVER_URL}/web-extension/auth`, redirectUrlCookie.options);
+    setCookie(redirectUrlCookie.name, webExtensionAuthUrl, redirectUrlCookie.options);
     redirect(res, '/auth/login/');
     return;
   }
+
+  // First factor passed but the session still has an unmet requirement (2FA verification, MFA
+  // enrollment, or ToS acceptance). Route the browser to the correct step instead of serving the
+  // token-issuing page, and preserve the return URL so the user lands back here once the requirement
+  // is satisfied. Without this a half-authenticated session could reach the token endpoint and
+  // bypass the second factor.
+  const pendingRedirectPath = getPendingSessionRedirectPath(req.session);
+  if (pendingRedirectPath) {
+    setCookie(redirectUrlCookie.name, webExtensionAuthUrl, redirectUrlCookie.options);
+    redirect(res, pendingRedirectPath);
+    return;
+  }
+
   next();
 });
 
@@ -120,6 +136,15 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
   const { deviceId } = res.locals;
 
   if (!req.session.user || !deviceId) {
+    next(new InvalidSession());
+    return;
+  }
+
+  // Reject half-authenticated sessions: the first factor passed but 2FA verification, MFA
+  // enrollment, or ToS acceptance is still outstanding. Without this gate a session in a pending
+  // state could be exchanged for a full-access browser-extension token, bypassing the second
+  // factor. Guards both the token-reuse and token-issue branches below.
+  if (getPendingSessionRedirectPath(req.session)) {
     next(new InvalidSession());
     return;
   }
