@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { AuthenticatePayload, DesktopAuthInfo } from '@jetstream/desktop/types';
 import { logger } from '@jetstream/shared/client-logger';
-import { getOrgGroups, getOrgs } from '@jetstream/shared/data';
+import { disconnectSocket, getOrgGroups, getOrgs } from '@jetstream/shared/data';
 import { applyVerifiedFeatureFlags } from '@jetstream/shared/ui-utils';
 import { Grid } from '@jetstream/ui';
 import { AppLoading, JetstreamLogoInverse } from '@jetstream/ui-core';
@@ -56,6 +56,9 @@ export function Login({ children }: LoginProps) {
   );
 
   const handleLogout = useCallback(() => {
+    // Tear down the authenticated data-sync socket before clearing session state so it is not
+    // reused by the next account that signs in on the same running app instance.
+    disconnectSocket();
     window.electronAPI?.logout();
     setLoginError(null);
     setUserProfile(DEFAULT_PROFILE);

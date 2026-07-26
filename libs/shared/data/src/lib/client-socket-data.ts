@@ -57,7 +57,10 @@ export function initSocket(serverUrl?: string, additionalHeaders?: Record<string
 }
 
 export function disconnectSocket() {
-  if (socket?.connected) {
+  if (socket) {
+    // Always disconnect and null the reference, even if the socket is mid-connect/reconnect.
+    // Otherwise a stale socket lingers and initSocket() early-returns, causing the next
+    // authenticated user to silently reuse the previous user's connection.
     socket.disconnect();
     socket = null;
   }
