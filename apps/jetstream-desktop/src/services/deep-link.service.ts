@@ -60,11 +60,8 @@ export const initDeepLink = () => {
  * so they don't appear in system logs or URL caches. The hash is merged
  * into the query object before dispatching to listeners, then discarded.
  */
-const handleCustomUrl = (targetUrl: string) => {
+export const handleCustomUrl = (targetUrl: string) => {
   try {
-    // Log the URL without hash fragment to avoid leaking tokens
-    const sanitizedUrl = targetUrl.split('#')[0];
-    logger.info(`Deep link: attempting to handle: ${sanitizedUrl}`);
     const url = new URL(targetUrl);
 
     if (url.protocol !== 'jetstream:') {
@@ -73,7 +70,9 @@ const handleCustomUrl = (targetUrl: string) => {
     }
 
     const action = url.hostname;
-    logger.info(`Deep link: action found: ${action}`);
+    // Log only the action and parameter names — never their values — so tokens carried in the
+    // query string or hash fragment are never written to the persistent log file.
+    logger.info(`Deep link: handling action "${action}" with params: ${getDeepLinkParamNames(url).join(', ') || '(none)'}`);
 
     const query = Object.fromEntries(url.searchParams.entries());
 
@@ -90,6 +89,17 @@ const handleCustomUrl = (targetUrl: string) => {
   } catch (error) {
     logger.error(`Deep link: error parsing URL: ${error}`);
   }
+};
+
+/** Collect parameter names from both the query string and hash fragment, without their (possibly sensitive) values. */
+const getDeepLinkParamNames = (url: URL): string[] => {
+  const names = new Set(url.searchParams.keys());
+  if (url.hash && url.hash.length > 1) {
+    for (const key of new URLSearchParams(url.hash.slice(1)).keys()) {
+      names.add(key);
+    }
+  }
+  return [...names];
 };
 
 class ListenersMap {
