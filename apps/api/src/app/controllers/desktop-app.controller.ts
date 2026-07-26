@@ -258,16 +258,24 @@ const verifyToken = createRoute(routeDefinition.verifyToken.validators, async ({
     const encryptionKey = createHmac('sha256', ENV.DESKTOP_ORG_ENCRYPTION_SECRET).update(user.id).digest('hex');
 
     // Token rotation: if the client supports it, issue a new short-lived JWT and replace the old one.
-    // This limits exposure from the JWT being stored in plain text on disk (VDI environments).
+    // This limits exposure from the JWT being stored in plain text on disk (app-data.json). In
+    // VDI/roaming environments the token cannot be bound to the machine — safeStorage/DPAPI keys do
+    // not roam to a fresh VM — so instead we minimize how long a copied token stays valid.
     const supportsRotation = req.get(HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION) === '1';
     let rotatedAccessToken: string | undefined;
     if (supportsRotation && deviceId) {
       const oldAccessToken = req.get('Authorization')?.split(' ')[1];
-      // Only rotate as the token approaches expiry. Rotating on every verify churns the shared
-      // token across the user's devices, which can lose the rotation race and force a premature
-      // logout. The auth middleware still fully validates the token on every verify, so skipping
-      // rotation here does not weaken verification.
-      if (oldAccessToken && externalAuthService.isTokenWithinRefreshWindow(oldAccessToken)) {
+      // Rotate on every verify (not just near expiry) so the plaintext-on-disk token is continuously
+      // superseded: the desktop client verifies about every few hours, and each rotation mints a
+      // fresh short-lived token (sliding expiry) so an actively-used session is never logged out. A
+      // desktop token is scoped to a single (userId, deviceId), so this does not churn a token shared
+      // across the user's other devices, and rotateToken resolves the concurrent-rotation race
+      // (conditional replace; the race-loser is handed the current DB token). Residual risk: the
+      // per-user org encryption key returned below is static, so an attacker who makes even one verify
+      // call while a copied token is still current can still recover it — narrowing the token window
+      // does not by itself protect orgs.json (tracked separately as clone-detection / interactive-key
+      // gating follow-ups).
+      if (oldAccessToken) {
         const result = await externalAuthService.rotateToken({
           userProfile,
           audience: externalAuthService.AUDIENCE_DESKTOP,

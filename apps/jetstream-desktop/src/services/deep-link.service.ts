@@ -71,8 +71,10 @@ export const handleCustomUrl = (targetUrl: string) => {
 
     const action = url.hostname;
     // Log only the action and parameter names — never their values — so tokens carried in the
-    // query string or hash fragment are never written to the persistent log file.
-    logger.info(`Deep link: handling action "${action}" with params: ${getDeepLinkParamNames(url).join(', ') || '(none)'}`);
+    // query string or hash fragment are never written to the persistent log file. The action and
+    // param names are user-controlled, so strip control characters to prevent log forging.
+    const paramNames = getDeepLinkParamNames(url).map(sanitizeForLog).join(', ');
+    logger.info(`Deep link: handling action "${sanitizeForLog(action)}" with params: ${paramNames || '(none)'}`);
 
     const query = Object.fromEntries(url.searchParams.entries());
 
@@ -90,6 +92,12 @@ export const handleCustomUrl = (targetUrl: string) => {
     logger.error(`Deep link: error parsing URL: ${error}`);
   }
 };
+
+/**
+ * Replace control characters before logging user-controlled deep-link values. Percent-decoded
+ * param names can contain newlines or ANSI escapes, which would otherwise forge/corrupt log lines (CWE-117).
+ */
+const sanitizeForLog = (value: string): string => value.replace(/[\u0000-\u001f\u007f-\u009f]/g, '?');
 
 /** Collect parameter names from both the query string and hash fragment, without their (possibly sensitive) values. */
 const getDeepLinkParamNames = (url: URL): string[] => {

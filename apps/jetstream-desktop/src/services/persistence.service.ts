@@ -17,7 +17,7 @@ import { createCipheriv, createDecipheriv, randomBytes, randomUUID } from 'crypt
 import { fromUnixTime } from 'date-fns';
 import { app, safeStorage } from 'electron';
 import logger from 'electron-log';
-import { existsSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'fs';
+import { chmodSync, existsSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'fs';
 import { jwtDecode } from 'jwt-decode';
 import { join } from 'path';
 import writeFileAtomic from 'write-file-atomic';
@@ -29,6 +29,16 @@ const USER_PREFERENCES_FILE = join(userData, 'preferences.json');
 
 /** Magic bytes identifying the portable AES-256-GCM encryption format */
 const JSEK_MAGIC = Buffer.from('JSEK');
+
+/**
+ * Restrictive file mode (owner read/write only) for the credential-bearing files:
+ * app-data.json (holds the Jetstream session JWT) and orgs.json (holds the AES-GCM-encrypted
+ * Salesforce tokens). Defends against other local accounts and loosely-permissioned
+ * roaming/VDI profile shares reading these files. POSIX only — Node largely ignores mode bits
+ * on Windows, where NTFS ACLs govern access. Applied on every atomic write, so pre-existing
+ * world-readable files are tightened on the next write.
+ */
+const SECURE_FILE_MODE = 0o600;
 
 let APP_DATA: AppData;
 let SALESFORCE_ORGS: SalesforceOrgServer[];
@@ -147,16 +157,32 @@ export function decryptTokenPortable(encoded: string): string {
   return safeStorage.decryptString(Buffer.from(encoded, 'base64'));
 }
 
+/**
+ * Best-effort permission tightening for the non-atomic fallback writes. chmod can throw on Windows,
+ * network shares, or restrictive file systems; the data has already been written successfully at this
+ * point, so a chmod failure must not crash the app or be surfaced as a write failure — log and move on.
+ */
+function chmodBestEffort(path: string): void {
+  try {
+    chmodSync(path, SECURE_FILE_MODE);
+  } catch (error) {
+    logger.warn(`Unable to tighten permissions on ${path} (best-effort):`, error);
+  }
+}
+
 function writeFile(path: string, data: string, encrypt = false) {
   let _data: string | Buffer = data;
   if (encrypt) {
     _data = safeStorage.encryptString(data);
   }
   try {
-    writeFileAtomic.sync(path, _data);
+    writeFileAtomic.sync(path, _data, { mode: SECURE_FILE_MODE });
   } catch (error) {
     logger.error(`Error writing file ${path}:`, error);
-    writeFileSync(path, Buffer.isBuffer(_data) ? new Uint8Array(_data) : _data);
+    writeFileSync(path, Buffer.isBuffer(_data) ? new Uint8Array(_data) : _data, { mode: SECURE_FILE_MODE });
+    // writeFileSync's mode only applies when it creates the file; explicitly chmod so a pre-existing
+    // world-readable file is tightened even when the atomic write (which replaces the inode) failed.
+    chmodBestEffort(path);
   }
 }
 
@@ -355,10 +381,12 @@ function readOrgs(): OrgsPersistence {
         const emptyData = JSON.stringify({ jetstreamOrganizations: [], salesforceOrgs: [] });
         const encrypted = encryptOrgsData(emptyData);
         try {
-          writeFileAtomic.sync(SFDC_ORGS_FILE, encrypted);
+          writeFileAtomic.sync(SFDC_ORGS_FILE, encrypted, { mode: SECURE_FILE_MODE });
         } catch (error) {
           logger.error('Error writing initial orgs file (atomic):', error);
-          writeFileSync(SFDC_ORGS_FILE, new Uint8Array(encrypted));
+          writeFileSync(SFDC_ORGS_FILE, new Uint8Array(encrypted), { mode: SECURE_FILE_MODE });
+          // writeFileSync's mode is ignored for a pre-existing file, so chmod to guarantee 0600 (see writeFile).
+          chmodBestEffort(SFDC_ORGS_FILE);
         }
         ORG_FILE_IS_PORTABLE = true;
       } else {
@@ -473,10 +501,12 @@ function saveOrgs() {
     if (ORG_ENCRYPTION_KEY) {
       const encrypted = encryptOrgsData(JSON.stringify(data));
       try {
-        writeFileAtomic.sync(SFDC_ORGS_FILE, encrypted);
+        writeFileAtomic.sync(SFDC_ORGS_FILE, encrypted, { mode: SECURE_FILE_MODE });
       } catch (error) {
         logger.error('Error writing orgs file (atomic):', error);
-        writeFileSync(SFDC_ORGS_FILE, new Uint8Array(encrypted));
+        writeFileSync(SFDC_ORGS_FILE, new Uint8Array(encrypted), { mode: SECURE_FILE_MODE });
+        // writeFileSync's mode is ignored for a pre-existing file, so chmod to guarantee 0600 (see writeFile).
+        chmodBestEffort(SFDC_ORGS_FILE);
       }
       ORG_FILE_IS_PORTABLE = true;
       logger.info(`saveOrgs: wrote ${orgCount} orgs and ${groupCount} groups (portable encryption)`);
