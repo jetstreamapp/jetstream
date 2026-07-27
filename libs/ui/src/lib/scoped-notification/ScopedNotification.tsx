@@ -7,7 +7,16 @@ export interface ScopedNotificationProps {
   className?: string;
   theme: ScopedNotificationTypes;
   icon?: React.ReactNode;
+  /** When true, renders a close button that hides the notification when clicked */
+  allowClose?: boolean;
+  /** Invoked when the close button is clicked (only relevant when allowClose is true) */
+  onClose?: () => void;
   children?: React.ReactNode;
+}
+
+// Themes with a light background need dark button icons; the rest have colored/dark backgrounds and need inverse (light) icons
+function isInverseCloseButton(theme: ScopedNotificationTypes) {
+  return theme !== 'warning' && theme !== 'light';
 }
 
 function getIcon(theme: ScopedNotificationTypes, icon?: React.ReactNode) {
@@ -70,12 +79,29 @@ function getIcon(theme: ScopedNotificationTypes, icon?: React.ReactNode) {
   }
 }
 
-export const ScopedNotification: FunctionComponent<ScopedNotificationProps> = ({ className, theme, icon, children }) => {
+export const ScopedNotification: FunctionComponent<ScopedNotificationProps> = ({
+  className,
+  theme,
+  icon,
+  allowClose,
+  onClose,
+  children,
+}) => {
   const [iconEl, setIconEl] = useState(() => getIcon(theme, icon));
+  const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
     setIconEl(getIcon(theme, icon));
   }, [icon, theme]);
+
+  if (isDismissed) {
+    return null;
+  }
+
+  function handleClose() {
+    setIsDismissed(true);
+    onClose?.();
+  }
 
   return (
     <div
@@ -94,6 +120,20 @@ export const ScopedNotification: FunctionComponent<ScopedNotificationProps> = ({
     >
       <div className="slds-media__figure">{iconEl}</div>
       <div className="slds-media__body">{children}</div>
+      {allowClose && (
+        <div className="slds-media__figure slds-media__figure_reverse">
+          <button
+            className={classNames('slds-button slds-button_icon slds-button_icon-small', {
+              'slds-button_icon-inverse': isInverseCloseButton(theme),
+            })}
+            title="Close"
+            onClick={handleClose}
+          >
+            <Icon type="utility" icon="close" omitContainer className="slds-button__icon" />
+            <span className="slds-assistive-text">Close</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };

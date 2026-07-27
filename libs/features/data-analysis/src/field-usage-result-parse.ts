@@ -1,5 +1,5 @@
 import { polyfillFieldDefinition } from '@jetstream/shared/ui-utils';
-import { dedupeFieldUsageWhereUsedRows, sortFieldUsageWhereUsedRows } from '@jetstream/shared/utils';
+import { dedupeFieldUsageWhereUsedRows, pluralizeFromNumber, sortFieldUsageWhereUsedRows } from '@jetstream/shared/utils';
 import type { Field, FieldType } from '@jetstream/types';
 
 export interface FieldUsageStatParsed {
@@ -419,7 +419,7 @@ export function getFieldUsageTypeLabel(meta: FieldUsageFieldMetaParsed | undefin
       return `Auto Number (${formatPattern})`;
     }
     if (meta.digits != null && meta.digits > 0) {
-      return `Auto Number (${meta.digits} digit${meta.digits === 1 ? '' : 's'} max)`;
+      return `Auto Number (${meta.digits} ${pluralizeFromNumber('digit', meta.digits)} max)`;
     }
     return 'Auto Number';
   }

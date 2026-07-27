@@ -1,7 +1,8 @@
 import { css } from '@emotion/react';
 import { filterPermissionsSobjects } from '@jetstream/feature/manage-permissions';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { AsyncJobNew, DescribeGlobalSObjectResult, FieldUsageAnalysisJob } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -66,7 +67,7 @@ export const DataAnalysisSelection: FunctionComponent = () => {
     };
     const asyncJobNew: AsyncJobNew<FieldUsageAnalysisJob> = {
       type: 'FieldUsageAnalysis',
-      title: `Field Usage Analysis (${selectedSObjects.length} Object${selectedSObjects.length === 1 ? '' : 's'})`,
+      title: `Field Usage Analysis (${formatNumber(selectedSObjects.length)} ${pluralizeIfMultiple('Object', selectedSObjects)})`,
       org: selectedOrg,
       meta,
       viewUrl: `${APP_ROUTES.DATA_ANALYSIS.ROUTE}/analysis?job=${encodeURIComponent(jobHistoryKey)}`,

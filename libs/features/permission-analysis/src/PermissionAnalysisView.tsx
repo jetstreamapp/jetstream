@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { describeGlobal, queryWithCache } from '@jetstream/shared/data';
 import { escapeSoqlString, formatNumber } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, gzipDecode } from '@jetstream/shared/utils';
+import { getErrorMessage, gzipDecode, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import type { AsyncJob, PermissionExportAnalysisJob, PermissionExportFullResult } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -1050,9 +1050,8 @@ export const PermissionAnalysisView: FunctionComponent = () => {
               {exportObjectScopeNames.length > 0 && (
                 <div className="slds-p-horizontal_medium slds-p-top_x-small">
                   <ScopedNotification theme="info">
-                    Object scope for object and field permissions ({exportObjectScopeNames.length} type
-                    {exportObjectScopeNames.length === 1 ? '' : 's'}
-                    ):
+                    Object scope for object and field permissions ({formatNumber(exportObjectScopeNames.length)}{' '}
+                    {pluralizeIfMultiple('type', exportObjectScopeNames)}):
                     {exportObjectScopeNames.length <= 8 ? (
                       <> {exportObjectScopeNames.join(', ')}.</>
                     ) : (

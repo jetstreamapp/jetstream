@@ -1,4 +1,6 @@
 import { css } from '@emotion/react';
+import { formatNumber } from '@jetstream/shared/ui-utils';
+import { pluralizeFromNumber, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import type { SalesforceOrgUi } from '@jetstream/types';
 import type { RenderCellProps } from '@jetstream/ui';
 import {
@@ -386,13 +388,19 @@ const AggregatedIssueCodeRollupCard: FunctionComponent<{
         footer={
           <div css={aggregatedRollupMetricsFooterCss}>
             <span>
-              <span className="slds-text-heading_medium">{row.count}</span>
-              <span className="slds-text-body_small slds-text-color_weak slds-m-left_xx-small">issue{row.count === 1 ? '' : 's'}</span>
+              <span className="slds-text-heading_medium">{formatNumber(row.count)}</span>
+              <span className="slds-text-body_small slds-text-color_weak slds-m-left_xx-small">
+                {pluralizeFromNumber('issue', row.count)}
+              </span>
             </span>
             <span className="slds-text-body_small">
-              <span className="slds-text-color_error">{row.errorCount} errors</span>
+              <span className="slds-text-color_error">
+                {formatNumber(row.errorCount)} {pluralizeFromNumber('error', row.errorCount)}
+              </span>
               <span className="slds-text-color_weak"> · </span>
-              <span className="slds-text-color_weak">{row.warningCount} warnings</span>
+              <span className="slds-text-color_weak">
+                {formatNumber(row.warningCount)} {pluralizeFromNumber('warning', row.warningCount)}
+              </span>
             </span>
           </div>
         }
@@ -465,13 +473,19 @@ const AggregatedObjectRollupCard: FunctionComponent<{
         footer={
           <div css={aggregatedRollupMetricsFooterCss}>
             <span>
-              <span className="slds-text-heading_medium">{row.count}</span>
-              <span className="slds-text-body_small slds-text-color_weak slds-m-left_xx-small">issue{row.count === 1 ? '' : 's'}</span>
+              <span className="slds-text-heading_medium">{formatNumber(row.count)}</span>
+              <span className="slds-text-body_small slds-text-color_weak slds-m-left_xx-small">
+                {pluralizeFromNumber('issue', row.count)}
+              </span>
             </span>
             <span className="slds-text-body_small">
-              <span className="slds-text-color_error">{row.errorCount} errors</span>
+              <span className="slds-text-color_error">
+                {formatNumber(row.errorCount)} {pluralizeFromNumber('error', row.errorCount)}
+              </span>
               <span className="slds-text-color_weak"> · </span>
-              <span className="slds-text-color_weak">{row.warningCount} warnings</span>
+              <span className="slds-text-color_weak">
+                {formatNumber(row.warningCount)} {pluralizeFromNumber('warning', row.warningCount)}
+              </span>
             </span>
           </div>
         }
@@ -749,7 +763,7 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
         findings: sortFindings(matches, groupBy),
         title,
         tagline: 'Issue details for the current filters.',
-        summaryLine: `${matches.length} issue${matches.length === 1 ? '' : 's'} for this issue code.`,
+        summaryLine: `${formatNumber(matches.length)} ${pluralizeIfMultiple('issue', matches)} for this issue code.`,
       });
     },
     [rollupFindings, groupBy],
@@ -767,7 +781,7 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
         findings: sortFindings(matches, groupBy),
         title,
         tagline: 'Issue details for the current filters.',
-        summaryLine: `${matches.length} issue${matches.length === 1 ? '' : 's'} for this object.`,
+        summaryLine: `${formatNumber(matches.length)} ${pluralizeIfMultiple('issue', matches)} for this object.`,
       });
     },
     [rollupFindings, groupBy],
@@ -813,9 +827,9 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
   const aggregatedFlyoutBody = (
     <>
       <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_medium">
-        Summary for the rows currently visible in the grid ({rollupFindings.length} row{rollupFindings.length === 1 ? '' : 's'}). Refine
-        results with toolbar filters and grid header filters; use Columns and Group By for layout and tree grouping. Select a card below to
-        open full issue messages and metadata.
+        Summary for the rows currently visible in the grid ({formatNumber(rollupFindings.length)}{' '}
+        {pluralizeIfMultiple('row', rollupFindings)}). Refine results with toolbar filters and grid header filters; use Columns and Group By
+        for layout and tree grouping. Select a card below to open full issue messages and metadata.
       </p>
       <div css={aggregatedFlyoutSectionsCss}>
         <Card

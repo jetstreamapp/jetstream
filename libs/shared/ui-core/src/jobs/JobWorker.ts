@@ -20,6 +20,7 @@ import {
   sobjectOperation,
 } from '@jetstream/shared/data';
 import {
+  formatNumber,
   getOrgUrlParams,
   isBrowserExtension,
   isCanvasApp,
@@ -37,6 +38,7 @@ import {
   getMapOfBaseAndSubqueryRecords,
   getSObjectFromRecordUrl,
   gzipEncode,
+  pluralizeFromNumber,
   replaceSubqueryQueryResultsWithRecords,
   splitArrayToMaxSize,
 } from '@jetstream/shared/utils';
@@ -519,11 +521,11 @@ export class JobWorker {
             (objectApiName) => !queryOutcome.failedObjects.includes(objectApiName) && !queryOutcome.objects[objectApiName]?.error,
           ).length;
           const summaryParts = [
-            `Field Usage for ${okObjectCount}/${objectApiNames.length} Object(s).${loadFullScan ? ' No per-object row cap.' : ''}`,
+            `Field Usage for ${okObjectCount}/${objectApiNames.length} ${pluralizeFromNumber('Object', objectApiNames.length)}.${loadFullScan ? ' No per-object row cap.' : ''}`,
             queryOutcome.anyQueryTruncated
               ? loadFullScan
                 ? 'Some objects may still show truncated scans for very large data sets or API limits.'
-                : `Row scan capped at ${String(FIELD_USAGE_MAX_ROWS_PER_OBJECT)} rows per Object where noted.`
+                : `Row scan capped at ${formatNumber(FIELD_USAGE_MAX_ROWS_PER_OBJECT)} rows per Object where noted.`
               : '',
             queryOutcome.failedObjects.length > 0 ? `Failed: ${queryOutcome.failedObjects.join(', ')}.` : '',
           ].filter(Boolean);

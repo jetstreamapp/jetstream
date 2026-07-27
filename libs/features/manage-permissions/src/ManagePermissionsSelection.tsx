@@ -1,6 +1,7 @@
 import { css } from '@emotion/react';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { useNonInitialEffect, usePrimaryActionShortcut, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
+import { formatNumber, useNonInitialEffect, usePrimaryActionShortcut, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
+import { pluralizeFromNumber, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import {
   AsyncJob,
@@ -169,9 +170,10 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
     };
     const asyncJobNew: AsyncJobNew<PermissionExportAnalysisJob> = {
       type: 'PermissionExportAnalysis',
-      title: `Permission Export (${selectedProfiles.length + selectedPermissionSets.length} selection${
-        selectedProfiles.length + selectedPermissionSets.length === 1 ? '' : 's'
-      })`,
+      title: `Permission Export (${formatNumber(selectedProfiles.length + selectedPermissionSets.length)} ${pluralizeFromNumber(
+        'selection',
+        selectedProfiles.length + selectedPermissionSets.length,
+      )})`,
       org: selectedOrg,
       meta,
       viewUrl: `${APP_ROUTES.PERMISSION_ANALYSIS.ROUTE}/analysis?job=${encodeURIComponent(jobHistoryKey)}`,
@@ -297,8 +299,8 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
             )}
             {isAnalysis && continueEnabled && selectedSObjects.length > 0 && (
               <span className="slds-text-color_weak">
-                Export limited to {selectedSObjects.length} object type{selectedSObjects.length === 1 ? '' : 's'} for object and field
-                permissions.
+                Export limited to {formatNumber(selectedSObjects.length)} object {pluralizeIfMultiple('type', selectedSObjects)} for object
+                and field permissions.
               </span>
             )}
           </div>

@@ -6,6 +6,7 @@ import {
   AutoFullHeightContainer,
   ColumnWithFilter,
   DataTree,
+  ExpandCollapseButton,
   getProfileOrPermSetSetupUrl,
   getRowTypeFromValue,
   Grid,
@@ -51,7 +52,6 @@ import {
   type PermissionExportRow,
   type SobjectExportDetail,
 } from './permission-export-result-view';
-import { PermissionAnalysisExpandCollapseControls } from './PermissionAnalysisExpandCollapseControls';
 import { SobjectTypeCellContent } from './PermissionAnalysisExportGrid';
 import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 import { buildPermissionSetTooltipFieldsFromExportRow, PermissionSetDetailPopoverContent } from './PermissionAnalysisPermissionSetsTree';
@@ -930,9 +930,9 @@ export const PermissionAnalysisFieldPermissionsTree: FunctionComponent<Permissio
 
   return (
     <>
-      <PermissionAnalysisExpandCollapseControls
-        onExpandAll={() => setExpandedGroupIds(collectAllFieldPermissionExpandedGroupIds(fieldPermissionRows))}
-        onCollapseAll={() => setExpandedGroupIds(new Set())}
+      <ExpandCollapseButton
+        isExpanded={expandedGroupIds.size > 0}
+        onToggle={(expand) => setExpandedGroupIds(expand ? collectAllFieldPermissionExpandedGroupIds(fieldPermissionRows) : new Set())}
       />
       <AutoFullHeightContainer
         fillHeight

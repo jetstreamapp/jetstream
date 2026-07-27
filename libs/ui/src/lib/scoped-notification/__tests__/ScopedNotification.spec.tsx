@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { ScopedNotification } from '../ScopedNotification';
 
 describe('ScopedNotification', () => {
@@ -38,7 +38,11 @@ describe('ScopedNotification', () => {
   });
 
   test('custom className is applied', () => {
-    const { container } = render(<ScopedNotification theme="info" className="my-notification-class">Message</ScopedNotification>);
+    const { container } = render(
+      <ScopedNotification theme="info" className="my-notification-class">
+        Message
+      </ScopedNotification>,
+    );
     expect((container.firstChild as HTMLElement).className).toContain('my-notification-class');
   });
 
@@ -49,5 +53,32 @@ describe('ScopedNotification', () => {
       </ScopedNotification>,
     );
     expect(screen.getByTestId('custom-icon')).toBeTruthy();
+  });
+
+  test('no close button rendered by default', () => {
+    render(<ScopedNotification theme="info">Message</ScopedNotification>);
+    expect(screen.queryByTitle('Close')).toBeNull();
+  });
+
+  test('allowClose renders a close button that dismisses the notification', () => {
+    render(
+      <ScopedNotification theme="info" allowClose>
+        Message
+      </ScopedNotification>,
+    );
+    expect(screen.getByText('Message')).toBeTruthy();
+    fireEvent.click(screen.getByTitle('Close'));
+    expect(screen.queryByText('Message')).toBeNull();
+  });
+
+  test('onClose is invoked when the close button is clicked', () => {
+    const onClose = vi.fn();
+    render(
+      <ScopedNotification theme="info" allowClose onClose={onClose}>
+        Message
+      </ScopedNotification>,
+    );
+    fireEvent.click(screen.getByTitle('Close'));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

@@ -5,6 +5,7 @@ import {
   AutoFullHeightContainer,
   ColumnWithFilter,
   DataTree,
+  ExpandCollapseButton,
   Icon,
   SalesforceLogin,
   ScopedNotification,
@@ -28,7 +29,6 @@ import {
   type PermissionExportRow,
   type PermissionObjectFindingCellSeverity,
 } from './permission-export-result-view';
-import { PermissionAnalysisExpandCollapseControls } from './PermissionAnalysisExpandCollapseControls';
 import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 
 const TREE_GROUP_BY = ['_treeParentGroupKey'] as const;
@@ -370,9 +370,9 @@ export const PermissionAnalysisTabVisibilityTree: FunctionComponent<PermissionAn
 
   return (
     <>
-      <PermissionAnalysisExpandCollapseControls
-        onExpandAll={() => setExpandedGroupIds(collectAllParentGroupKeys(treeRows))}
-        onCollapseAll={() => setExpandedGroupIds(new Set())}
+      <ExpandCollapseButton
+        isExpanded={expandedGroupIds.size > 0}
+        onToggle={(expand) => setExpandedGroupIds(expand ? collectAllParentGroupKeys(treeRows) : new Set())}
       />
       <AutoFullHeightContainer
         fillHeight

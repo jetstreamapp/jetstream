@@ -9,6 +9,7 @@ import {
   Badge,
   ColumnWithFilter,
   DataTree,
+  ExpandCollapseButton,
   getPermissionSetGroupSetupUrl,
   getProfileOrPermSetSetupUrl,
   getSalesforceUserManageSetupUrl,
@@ -33,7 +34,6 @@ import {
   type UserAssignmentsTreeRow,
   type UserLicenseLeafRecord,
 } from './permission-export-result-view';
-import { PermissionAnalysisExpandCollapseControls } from './PermissionAnalysisExpandCollapseControls';
 import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 
 const TREE_GROUP_BY = ['_treeUserGroupKey'] as const;
@@ -839,9 +839,9 @@ export const PermissionAnalysisUserAssignmentsTree: FunctionComponent<Permission
 
   return (
     <>
-      <PermissionAnalysisExpandCollapseControls
-        onExpandAll={() => setExpandedGroupIds(new Set(allExpandedGroupIds))}
-        onCollapseAll={() => setExpandedGroupIds(new Set())}
+      <ExpandCollapseButton
+        isExpanded={expandedGroupIds.size > 0}
+        onToggle={(expand) => setExpandedGroupIds(expand ? new Set(allExpandedGroupIds) : new Set())}
       />
       <AutoFullHeightContainer
         fillHeight

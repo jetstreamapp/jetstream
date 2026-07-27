@@ -17,11 +17,12 @@ export {
   getColumnsForGenericTable,
   getRowTypeFromValue,
   getSfdcRetUrl,
-  setColumnFromType,
+  setColumnFromType
 } from './lib/data-table/data-table-utils';
 export * from './lib/data-table/DataTable';
 export * from './lib/data-table/DataTableRenderers';
 export * from './lib/data-table/DataTree';
+export * from './lib/data-table/ExpandCollapseButton';
 export * from './lib/data-table/FieldMetadataModal';
 export * from './lib/data-table/grid/rdg-compat';
 export * from './lib/data-table/PreviewChangesModal';

@@ -10,6 +10,7 @@ import {
   ColumnWithFilter,
   dataTableDateFormatter,
   DataTree,
+  ExpandCollapseButton,
   getProfileOrPermSetSetupUrl,
   getSalesforceUserManageSetupUrl,
   Grid,
@@ -37,7 +38,6 @@ import {
   type MouseEvent,
   type ReactElement,
 } from 'react';
-import { PermissionAnalysisExpandCollapseControls } from './PermissionAnalysisExpandCollapseControls';
 import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 import {
   buildContainerIdFindingSeverity,
@@ -888,9 +888,9 @@ export const PermissionAnalysisPermissionSetsTree: FunctionComponent<PermissionA
 
   return (
     <>
-      <PermissionAnalysisExpandCollapseControls
-        onExpandAll={() => setExpandedGroupIds(new Set(allExpandedGroupIds))}
-        onCollapseAll={() => setExpandedGroupIds(new Set())}
+      <ExpandCollapseButton
+        isExpanded={expandedGroupIds.size > 0}
+        onToggle={(expand) => setExpandedGroupIds(expand ? new Set(allExpandedGroupIds) : new Set())}
       />
       <AutoFullHeightContainer
         fillHeight
