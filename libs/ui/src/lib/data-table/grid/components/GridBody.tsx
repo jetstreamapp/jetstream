@@ -207,16 +207,24 @@ export function GridBody<TRow>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeCell, mode, isEditingActiveCell]);
 
-  // Rows are pinned to deterministic heights (see `rowHeight` doc), so we never attach `measureElement`.
-  // The virtualizer's size memo omits `estimateSize` from its key, so when a rowHeight callback would
-  // return new values (e.g. a row's content grew after an edit, or a resize changed a width-dependent
-  // height) we must re-measure explicitly. Keyed on the row model + height source + committed column
-  // widths — all stable across horizontal scroll, so this never fires mid-scroll (or mid-resize-drag,
-  // since columnSizing only updates on release with columnResizeMode 'onEnd').
+  // Pinned-height rows never attach `measureElement`, so when a rowHeight callback would return new values
+  // (a row's content grew after an edit, or a resize changed a width-dependent height) we must re-measure
+  // explicitly. Keyed on the row model + height source + committed column widths — all stable across
+  // horizontal scroll, so this never fires mid-scroll (or mid-resize-drag, since columnSizing only updates
+  // on release with columnResizeMode 'onEnd').
+  //
+  // Auto-height rows are the exception: they ARE measured live by `measureElement`'s ResizeObserver, which
+  // already re-fires when a column resize reflows a row to a taller/shorter height. Calling `measure()` for
+  // them resets every row back to the estimate and leaves it there (the observer won't re-fire for a row
+  // whose DOM height didn't actually change), which is exactly what makes wrapping look stale after a
+  // resize — so skip the explicit re-measure in that mode.
   useEffect(() => {
+    if (autoRowHeight) {
+      return;
+    }
     rowVirtualizer.measure();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, rowHeight, columnWidths]);
+  }, [rows, rowHeight, columnWidths, autoRowHeight]);
 
   const virtualRows = rowVirtualizer.getVirtualItems();
   const totalSize = rowVirtualizer.getTotalSize();

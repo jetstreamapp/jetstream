@@ -595,6 +595,8 @@ function mapStandardFindingColumn(key: StandardFindingColumnKey): ColumnWithFilt
     key,
     field: key,
     resizable: true,
+    // 18-char Salesforce Ids (rendered as a lookup link) wrap by a char or two at the default width.
+    ...(fieldType === 'salesforceId' ? { width: 205, minWidth: 185 } : {}),
     ...(key === 'severity' ? { cellClass: severityCellClass } : {}),
     renderCell,
   } as ColumnWithFilter<RowWithKey>;
@@ -659,6 +661,7 @@ const IssuesFindingTreeDataGrid: FunctionComponent<IssuesFindingTreeDataGridProp
       data={sortedFindings}
       getRowKey={getRowKey}
       includeQuickFilter
+      autoRowHeight
       context={{ defaultApiVersion }}
       groupBy={[treeGroupColumnKey]}
       rowGrouper={groupIssueFindingsByColumnKey}
@@ -1011,7 +1014,11 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
           >
             <Popover
               placement="bottom-end"
-              header="Columns"
+              header={
+                <header className="slds-popover__header">
+                  <h2 className="slds-text-heading_small">Columns</h2>
+                </header>
+              }
               buttonProps={{ className: issuesTabGroupByTriggerClassName }}
               content={
                 <div className="slds-p-around_small">
@@ -1060,7 +1067,11 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
             </Popover>
             <Popover
               placement="bottom-end"
-              header="Group By"
+              header={
+                <header className="slds-popover__header">
+                  <h2 className="slds-text-heading_small">Group By</h2>
+                </header>
+              }
               buttonProps={{ className: issuesTabGroupByTriggerClassName }}
               content={
                 <div className="slds-p-around_small">

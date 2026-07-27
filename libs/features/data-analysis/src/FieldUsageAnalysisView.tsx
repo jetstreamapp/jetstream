@@ -11,7 +11,6 @@ import {
   DataTable,
   DataTableSelectedContext,
   DataTree,
-  DropDown,
   ExpandCollapseButton,
   Grid,
   GridCol,
@@ -66,8 +65,6 @@ import {
 } from './field-usage-result-parse';
 import { isAnalysisJobActive } from './shared/analysis-job-runtime-state';
 import { getWhereUsedOpenInSalesforcePath } from './where-used-open-in-salesforce';
-
-const FIELD_USAGE_TABLE_ACTION_DELETE_METADATA = 'field-usage-delete-metadata';
 
 /**
  * Ineligibility reasons worth explaining inline (the field looks deletable but is blocked). Standard /
@@ -858,18 +855,6 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
     return fieldUsageRowsToCustomFieldDeleteMetadata(rows);
   }, [fieldUsageRowByKey, fieldUsageSelectedRowKeys]);
 
-  const handleFieldUsageToolbarDropdown = useCallback(
-    (actionId: string) => {
-      if (actionId === FIELD_USAGE_TABLE_ACTION_DELETE_METADATA) {
-        if (fieldUsageSelectedDestructiveDeleteCount === 0) {
-          return;
-        }
-        setDeleteFieldMetadataModalOpen(true);
-      }
-    },
-    [fieldUsageSelectedDestructiveDeleteCount],
-  );
-
   const handleFieldUsageSelectedRowsChange = useCallback((next: Set<Key>) => {
     setFieldUsageSelectedRowKeys(new Set(Array.from(next, (key) => String(key))));
   }, []);
@@ -1416,64 +1401,63 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
             `}
           >
             <ToolbarItemActions>
-              {parsedResult && treeFieldRows.some((row) => !row.isObjectErrorPlaceholder) && (
-                <DropDown
-                  buttonClassName="slds-button slds-button_neutral slds-button_icon slds-button_icon-border-filled"
-                  buttonContent={
-                    <Icon
-                      type="utility"
-                      icon="settings"
-                      className="slds-button__icon slds-button__icon_hint slds-button__icon_medium"
-                      description="Field Actions"
-                    />
-                  }
-                  position="right"
-                  actionText="Field Actions"
-                  items={[
-                    {
-                      id: FIELD_USAGE_TABLE_ACTION_DELETE_METADATA,
-                      subheader: 'Deploy Actions',
-                      icon: { type: 'utility', icon: 'delete', description: 'Delete Selected Custom Fields' },
-                      value: 'Delete Selected Metadata',
-                      disabled: fieldUsageSelectedDestructiveDeleteCount === 0,
-                      title:
-                        fieldUsageSelectedDestructiveDeleteCount === 0
-                          ? 'Select unmanaged Custom Fields (no namespace prefix) on the Objects & Fields or Low Usage tab'
-                          : 'Same destructive deploy flow as Deploy Metadata (validate or delete from this org)',
-                    },
-                  ]}
-                  onSelected={handleFieldUsageToolbarDropdown}
-                />
-              )}
-              <Tooltip
-                ariaRole="label"
-                content={
-                  canLoadAllRecords
-                    ? 'Start a new job that scans all rows for these objects (no per-object cap). Confirm to review API impact.'
-                    : 'Shown when the row scan stopped early. Run a full scan only if you need complete counts.'
-                }
-              >
-                <button
-                  type="button"
-                  className="slds-button slds-button_neutral collapsible-button collapsible-button-xs slds-m-left_xx-small"
-                  disabled={!canLoadAllRecords || isFieldUsageJobActiveForOrg}
-                  onClick={() => setLoadAllRecordsModalOpen(true)}
-                >
-                  <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
-                  <span>Load All Records</span>
-                </button>
-              </Tooltip>
               <Tooltip ariaRole="label" content="View past Field Usage runs for this org">
                 <button
                   type="button"
                   aria-label="Field Usage history"
-                  className="slds-button slds-button_icon slds-button_icon-border-filled slds-m-left_xx-small"
+                  className="slds-button slds-button_icon slds-button_icon-border-filled"
                   disabled={!selectedOrg?.uniqueId}
                   onClick={() => setIsHistoryOpen(true)}
                 >
                   <Icon type="utility" icon="date_time" className="slds-button__icon" omitContainer title="Field Usage history" />
                 </button>
               </Tooltip>
+              {parsedResult && treeFieldRows.some((row) => !row.isObjectErrorPlaceholder) && (
+                <Tooltip
+                  ariaRole="label"
+                  content={
+                    fieldUsageSelectedDestructiveDeleteCount === 0
+                      ? 'Select one or more delete-eligible fields using the row checkboxes to enable this action.'
+                      : `Delete the ${formatNumber(fieldUsageSelectedDestructiveDeleteCount)} selected ${pluralizeFromNumber(
+                          'field',
+                          fieldUsageSelectedDestructiveDeleteCount,
+                        )}. You'll confirm the details before anything is removed.`
+                  }
+                >
+                  <button
+                    type="button"
+                    className="slds-button slds-button_neutral collapsible-button collapsible-button-xs slds-m-left_xx-small"
+                    disabled={fieldUsageSelectedDestructiveDeleteCount === 0}
+                    onClick={() => setDeleteFieldMetadataModalOpen(true)}
+                  >
+                    <Icon type="utility" icon="delete" className="slds-button__icon slds-button__icon_left" omitContainer />
+                    <span>
+                      Delete Selected Metadata
+                      {fieldUsageSelectedDestructiveDeleteCount > 0 ? ` (${formatNumber(fieldUsageSelectedDestructiveDeleteCount)})` : ''}
+                    </span>
+                  </button>
+                </Tooltip>
+              )}
+              {canLoadAllRecords && (
+                <Tooltip
+                  ariaRole="label"
+                  content={
+                    isFieldUsageJobActiveForOrg
+                      ? 'A Field Usage job is already running for this org. Wait for it to finish before starting a full scan.'
+                      : 'The row scan stopped early for one or more Objects. Start a new job that scans all rows (no per-object cap). Confirm to review API impact.'
+                  }
+                >
+                  <button
+                    type="button"
+                    className="slds-button slds-button_neutral collapsible-button collapsible-button-xs slds-m-left_xx-small"
+                    disabled={isFieldUsageJobActiveForOrg}
+                    onClick={() => setLoadAllRecordsModalOpen(true)}
+                  >
+                    <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
+                    <span>Load All Records</span>
+                  </button>
+                </Tooltip>
+              )}
             </ToolbarItemActions>
           </div>
         </div>

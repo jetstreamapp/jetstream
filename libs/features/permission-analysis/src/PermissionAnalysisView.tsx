@@ -1049,7 +1049,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
             <Fragment>
               {exportObjectScopeNames.length > 0 && (
                 <div className="slds-p-horizontal_medium slds-p-top_x-small">
-                  <ScopedNotification theme="info">
+                  <ScopedNotification theme="info" allowClose>
                     Object scope for object and field permissions ({formatNumber(exportObjectScopeNames.length)}{' '}
                     {pluralizeIfMultiple('type', exportObjectScopeNames)}):
                     {exportObjectScopeNames.length <= 8 ? (
