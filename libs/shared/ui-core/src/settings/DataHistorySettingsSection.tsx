@@ -37,14 +37,15 @@ function formatBytes(sizeBytes: number): string {
  */
 export interface DataHistorySettingsSectionProps {
   /**
-   * When provided, the "View Data History" link renders as a plain anchor to this href instead of
-   * a router Link — used by the browser-extension settings page, which runs outside the main SPA
-   * router (its MemoryRouter has no routes registered).
+   * Omits the "View Data History" link — used by the browser-extension settings page, which runs
+   * outside the main SPA router and has no way to link into the app (the app requires a Salesforce
+   * `host` query param that only exists when opened from a Salesforce page). In the extension, Data
+   * History is reached from the app header nav instead.
    */
-  viewHistoryLinkHref?: string;
+  hideViewHistoryLink?: boolean;
 }
 
-export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSectionProps> = ({ viewHistoryLinkHref }) => {
+export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSectionProps> = ({ hideViewHistoryLink }) => {
   const { trackEvent } = useAmplitude();
   const setCaptureEnabledAtom = useSetAtom(dataHistoryCaptureEnabledState);
   // Seeded true by AppInitializer once initDataHistory() resolves — a hard refresh landing directly here
@@ -114,7 +115,15 @@ export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSe
     }
     try {
       setClearing(true);
-      await deleteAllDataHistory();
+      const { skipped } = await deleteAllDataHistory();
+      if (skipped > 0) {
+        fireToast({
+          type: 'warning',
+          message: `${skipped} ${skipped === 1 ? 'entry is' : 'entries are'} still being written and ${
+            skipped === 1 ? 'was' : 'were'
+          } kept — clear again once the current load finishes.`,
+        });
+      }
       trackEvent(ANALYTICS_KEYS.data_history_delete_all);
       await loadSettingsAndHealth();
     } catch (ex) {
@@ -165,13 +174,7 @@ export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSe
         labelHelp="Keep a history of the data modifications you make with Jetstream, including request and result files. Everything is stored locally on this device and never sent to the Jetstream server."
         onChange={handleEnabledChange}
       />
-      {viewHistoryLinkHref ? (
-        <a href={viewHistoryLinkHref} className="slds-m-top_x-small d-inline-block" title="View Data History">
-          View Data History
-        </a>
-      ) : (
-        <ViewDataHistoryLink className="slds-m-top_x-small" />
-      )}
+      {!hideViewHistoryLink && <ViewDataHistoryLink className="slds-m-top_x-small" />}
 
       {health && entryCapped && (
         <p className="slds-m-top_small">{`${health.entryCount.toLocaleString()} of ${health.maxEntries?.toLocaleString()} entries used`}</p>

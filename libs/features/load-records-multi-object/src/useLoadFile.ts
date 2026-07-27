@@ -3,17 +3,10 @@ import { genericRequest } from '@jetstream/shared/data';
 import { useBrowserNotifications } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { CompositeGraphResponse, CompositeGraphResponseBody, SalesforceOrgUi } from '@jetstream/types';
-import { startDataHistoryEntry } from '@jetstream/ui/data-history';
+import { buildDataHistoryInputSource, DataHistoryEntryHandle, startDataHistoryEntry } from '@jetstream/ui/data-history';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useCallback, useEffect, useRef } from 'react';
-import {
-  buildMultiObjectInputSource,
-  DataHistoryHandlePromise,
-  finalizeMultiObjectHistory,
-  getMultiObjectDistinctSobjects,
-  getMultiObjectOperations,
-  writeMultiObjectRequestJson,
-} from './data-history-capture';
+import { finalizeMultiObjectHistory, getMultiObjectDistinctSobjects, getMultiObjectOperations } from './data-history-capture';
 import { LoadMultiObjectRequestWithResult, LoadMultiObjectRun } from './load-records-multi-object-types';
 import { getRecordCount } from './load-records-multi-object-utils';
 import {
@@ -113,7 +106,7 @@ export const useLoadFile = (org: SalesforceOrgUi, serverUrl: string, apiVersion:
   const isMounted = useRef(true);
   const cancelRequestedRef = useRef(false);
   /** Handle for the initial run's history entry — retry runs are recorded as its children */
-  const initialHistoryHandleRef = useRef<DataHistoryHandlePromise | null>(null);
+  const initialHistoryHandleRef = useRef<DataHistoryEntryHandle | null>(null);
 
   useEffect(() => {
     isMounted.current = true;
@@ -141,40 +134,36 @@ export const useLoadFile = (org: SalesforceOrgUi, serverUrl: string, apiVersion:
    * mixed, with the per-object operations recorded in `config`). Retry runs hang off the initial run.
    */
   const startHistoryCapture = useCallback(
-    (requests: LoadMultiObjectRequestWithResult[], type: LoadMultiObjectRun['type']): DataHistoryHandlePromise => {
+    (requests: LoadMultiObjectRequestWithResult[], type: LoadMultiObjectRun['type']): DataHistoryEntryHandle => {
       const operations = getMultiObjectOperations(requests);
-      const parentHandlePromise = type === 'retry' ? initialHistoryHandleRef.current : null;
-      const historyHandle: DataHistoryHandlePromise = (async () => {
-        const parentHandle = parentHandlePromise ? await parentHandlePromise : null;
-        return startDataHistoryEntry({
-          org,
-          source: 'load-multi-object',
-          operation: operations.operation,
-          api: 'composite-graph',
-          sobjects: getMultiObjectDistinctSobjects(requests),
-          config: {
-            insertNulls,
-            dateFormat,
-            isRetry: type === 'retry',
-            numRequests: requests.length,
-            numGroups: requests.reduce((count, request) => count + Object.keys(request.dataWithResultsByGraphId).length, 0),
-            operationsByObject: operations.byObject,
-            mixedOperations: operations.mixed,
-          },
-          inputSource: buildMultiObjectInputSource({
-            filename: inputFilename,
-            filenameType: inputFileType,
-            googleFileId: inputGoogleFileId,
-          }),
-          parentKey: parentHandle?.key,
-          skipHistory: skipDataHistory,
-        });
-      })();
+      const historyHandle = startDataHistoryEntry({
+        org,
+        source: 'load-multi-object',
+        operation: operations.operation,
+        api: 'composite-graph',
+        sobjects: getMultiObjectDistinctSobjects(requests),
+        config: {
+          insertNulls,
+          dateFormat,
+          isRetry: type === 'retry',
+          numRequests: requests.length,
+          numGroups: requests.reduce((count, request) => count + Object.keys(request.dataWithResultsByGraphId).length, 0),
+          operationsByObject: operations.byObject,
+          mixedOperations: operations.mixed,
+        },
+        inputSource: buildDataHistoryInputSource({
+          filename: inputFilename,
+          filenameType: inputFileType,
+          googleFileId: inputGoogleFileId,
+        }),
+        parentKey: type === 'retry' ? initialHistoryHandleRef.current?.key : undefined,
+        skipHistory: skipDataHistory,
+      });
 
       if (type === 'initial') {
         initialHistoryHandleRef.current = historyHandle;
       }
-      writeMultiObjectRequestJson(historyHandle, buildRequestExport(requests));
+      historyHandle.writeRequestJson(buildRequestExport(requests));
       return historyHandle;
     },
     [dateFormat, inputFileType, inputFilename, inputGoogleFileId, insertNulls, org, skipDataHistory],
@@ -251,7 +240,7 @@ export const useLoadFile = (org: SalesforceOrgUi, serverUrl: string, apiVersion:
           body: getNotification(finishedRequests),
           tag: 'load-multi-object',
         });
-        finalizeMultiObjectHistory(historyHandle, {
+        void finalizeMultiObjectHistory(historyHandle, {
           rows: buildRecordResultRows(
             [{ runId, type, requests: finishedRequests, startedAt: null, finishedAt, cancelled }],
             getGroupNumbersByGraphId(groupsByRefId),

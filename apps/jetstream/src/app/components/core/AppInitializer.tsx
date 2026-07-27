@@ -7,7 +7,7 @@ import { fireToast } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { DEFAULT_PROFILE, fromAppState } from '@jetstream/ui/app-state';
 import { CookieConsentBanner, useConditionalGoogleAnalytics } from '@jetstream/ui/cookie-consent-banner';
-import { initDataHistory, isDataHistoryCaptureEnabled } from '@jetstream/ui/data-history';
+import { initDataHistory } from '@jetstream/ui/data-history';
 import { ensureLocalStorageReady, initDexieDb, pruneAnalysisJobHistory } from '@jetstream/ui/db';
 import { AxiosResponse } from 'axios';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
@@ -111,9 +111,10 @@ APP VERSION ${version}
       initDexieDb({ userId: activeUserId, dbName: LOCAL_STORE_DB_NAME, recordSyncEnabled })
         .then(() => pruneAnalysisJobHistory())
         .then(() => initDataHistory({ hasPaidPlan }))
-        .then(() => isDataHistoryCaptureEnabled())
-        .then(setDataHistoryCaptureEnabled)
-        .then(() => setDataHistoryInitialized(true))
+        .then(({ captureEnabled }) => {
+          setDataHistoryCaptureEnabled(captureEnabled);
+          setDataHistoryInitialized(true);
+        })
         .catch((ex) => {
           logger.error('[DB] Error initializing db', ex);
         });

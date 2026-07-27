@@ -1,15 +1,13 @@
-import { DataHistoryInputSource, DataHistoryOperation, LocalOrGoogle, Maybe } from '@jetstream/types';
+import { DataHistoryOperation } from '@jetstream/types';
 import { DataHistoryEntryHandle } from '@jetstream/ui/data-history';
 import { LoadMultiObjectRequestWithResult } from './load-records-multi-object-types';
 import { RESULTS_DOWNLOAD_HEADER, RecordResultRow, buildResultsDownloadRows, getLoadResultsSummary } from './load/load-results-utils';
 
 /**
- * Thin helpers that adapt the multi-object load feature to the `@jetstream/ui/data-history` capture
- * API. The handle is threaded as a promise (it resolves to `null` when capture is disabled or opted
- * out). Every wrapper is fire-and-forget and swallows rejections so history capture can NEVER slow
- * down or break a load — the capture methods themselves are internally queued and never reject.
+ * Helpers that adapt the multi-object load feature to the `@jetstream/ui/data-history` capture API.
+ * The handle's methods are internally queued, never reject, and no-op when capture is disabled or
+ * opted out, so nothing here needs null checks or its own error handling.
  */
-export type DataHistoryHandlePromise = Promise<DataHistoryEntryHandle | null>;
 
 function multiObjectOperationToDataHistoryOperation(operation: string): DataHistoryOperation {
   switch (operation) {
@@ -74,31 +72,6 @@ export function getMultiObjectOperations(requests: LoadMultiObjectRequestWithRes
   };
 }
 
-export function buildMultiObjectInputSource({
-  filename,
-  filenameType,
-  googleFileId,
-}: {
-  filename: Maybe<string>;
-  filenameType: Maybe<LocalOrGoogle>;
-  googleFileId: Maybe<string>;
-}): DataHistoryInputSource {
-  const isGoogle = filenameType === 'google';
-  return {
-    type: isGoogle ? 'google' : 'local',
-    fileName: filename ?? undefined,
-    googleFileId: isGoogle ? (googleFileId ?? undefined) : undefined,
-  };
-}
-
-/** Persist the composite-graph request payload (fire-and-forget) */
-export function writeMultiObjectRequestJson(handle: Maybe<DataHistoryHandlePromise>, payload: unknown): void {
-  if (!handle) {
-    return;
-  }
-  void handle.then((resolved) => resolved?.writeRequestJson(payload)).catch(() => undefined);
-}
-
 export interface FinalizeMultiObjectHistoryOptions {
   /** Flattened per-record rows for the finished run — the same rows the results tables and download use */
   rows: RecordResultRow[];
@@ -108,34 +81,27 @@ export interface FinalizeMultiObjectHistoryOptions {
 
 /**
  * Finalize a run's history entry: stream the flattened result rows, then `finish` with counts derived
- * from the same rows. When every request failed outright (nothing reached Salesforce) the entry is
- * marked `fail` with that error instead. Fire-and-forget and never throws.
+ * from the same rows. Even when every request failed outright (nothing reached Salesforce) the entry is
+ * finished rather than failed, so it keeps the attempted record counts and still gets a manifest written
+ * for folder re-indexing. Nothing (not even the row building) happens when the entry is not being
+ * captured. Fire-and-forget — the returned promise is only for sequencing in tests.
  */
 export function finalizeMultiObjectHistory(
-  handle: Maybe<DataHistoryHandlePromise>,
+  handle: DataHistoryEntryHandle,
   { rows, requests }: FinalizeMultiObjectHistoryOptions,
-): void {
-  if (!handle) {
-    return;
-  }
-  void handle
-    .then((resolved) => {
-      if (!resolved) {
-        return;
-      }
-      const allRequestsFailed = requests.length > 0 && requests.every(({ errorMessage }) => !!errorMessage);
-      if (allRequestsFailed) {
-        resolved.fail(requests.find(({ errorMessage }) => !!errorMessage)?.errorMessage || 'Load failed');
-        return;
-      }
-      const downloadRows = buildResultsDownloadRows(rows, 'results');
-      if (downloadRows.length > 0) {
-        resolved.appendResultsRows(downloadRows, RESULTS_DOWNLOAD_HEADER);
-      }
-      // Records left pending (the run was cancelled before their request was sent) were never
-      // attempted, so they are excluded from the entry totals rather than counted as failures.
-      const { successCount, failureCount } = getLoadResultsSummary(rows);
-      resolved.finish({ counts: { total: successCount + failureCount, success: successCount, failure: failureCount } });
-    })
-    .catch(() => undefined);
+): Promise<void> {
+  return handle.capture(async () => {
+    await handle.appendResultsRows(buildResultsDownloadRows(rows, 'results'), RESULTS_DOWNLOAD_HEADER);
+    const allRequestsFailed = requests.length > 0 && requests.every(({ errorMessage }) => !!errorMessage);
+    // Records left pending (the run was cancelled before their request was sent) were never
+    // attempted, so they are excluded from the entry totals rather than counted as failures.
+    const { successCount, failureCount } = getLoadResultsSummary(rows);
+    await handle.finish({
+      counts: { total: successCount + failureCount, success: successCount, failure: failureCount },
+      // The status must be explicit: a request that failed before any record was mapped contributes no
+      // counts, which would otherwise be derived as a success
+      status: allRequestsFailed ? 'failed' : undefined,
+      errorMessage: allRequestsFailed ? requests.find(({ errorMessage }) => errorMessage)?.errorMessage || 'Load failed' : undefined,
+    });
+  });
 }

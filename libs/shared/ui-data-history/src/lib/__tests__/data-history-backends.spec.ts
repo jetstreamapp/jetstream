@@ -1,7 +1,7 @@
 import { DataHistoryItem } from '@jetstream/types';
 import { dataHistoryDb, getDexieDb } from '@jetstream/ui/db';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { migrateHistoryEntries, reindexHistoryFromActiveBackend } from '../data-history-backends';
+import { disableNativeHistoryStorage, migrateHistoryEntries, reindexHistoryFromActiveBackend } from '../data-history-backends';
 import { buildManifestJson } from '../data-history-manifest';
 import { FakeFileStore } from '../file-store/fake-file-store';
 import { setHistoryFileStoreForTests } from '../file-store/file-store-factory';
@@ -63,12 +63,12 @@ describe('migrateHistoryEntries', () => {
     setHistoryFileStoreForTests(null);
   });
 
-  it('copies files, rewrites the manifest, re-stamps entries, and deletes the source when asked', async () => {
+  it('copies files, rewrites the manifest, re-stamps entries, and removes the invisible OPFS source', async () => {
     const fileBacked = await seedEntry({ withFile: true });
     const inlineOnly = await seedEntry({ inlinePayload: new Uint8Array([1, 2, 3]), sizeBytes: 3 });
 
     const target = new FakeFileStore('directory');
-    const migrated = await migrateHistoryEntries({ to: target, deleteSource: true });
+    const migrated = await migrateHistoryEntries({ to: target });
 
     expect(migrated).toBe(2);
     const migratedFileBacked = await dataHistoryDb.getEntry(fileBacked.key);
@@ -83,16 +83,28 @@ describe('migrateHistoryEntries', () => {
     expect(sourceStore.files.has(fileBacked.files[0].path)).toBe(false);
   });
 
-  it('leaves source files in place when deleteSource is false and skips already-migrated entries', async () => {
-    const entry = await seedEntry({ withFile: true });
+  it('skips entries already on the target backend', async () => {
     const alreadyThere = await seedEntry({ storageBackend: 'directory' });
 
     const target = new FakeFileStore('directory');
-    const migrated = await migrateHistoryEntries({ to: target, deleteSource: false });
+    const migrated = await migrateHistoryEntries({ to: target });
+
+    expect(migrated).toBe(0);
+    expect((await dataHistoryDb.getEntry(alreadyThere.key))?.storageBackend).toBe('directory');
+  });
+
+  it('never deletes source files on a user-visible backend — the user may have backed them up', async () => {
+    sourceStore = new FakeFileStore('directory', { compressFiles: false, userVisibleFiles: true });
+    setHistoryFileStoreForTests(sourceStore);
+    const entry = await seedEntry({ storageBackend: 'directory', withFile: true });
+
+    const target = new FakeFileStore('native', { compressFiles: false, userVisibleFiles: true });
+    const migrated = await migrateHistoryEntries({ to: target });
 
     expect(migrated).toBe(1);
+    expect((await dataHistoryDb.getEntry(entry.key))?.storageBackend).toBe('native');
+    // The user chose this folder — the copy must not take their files with it
     expect(sourceStore.files.has(entry.files[0].path)).toBe(true);
-    expect((await dataHistoryDb.getEntry(alreadyThere.key))?.storageBackend).toBe('directory');
   });
 
   it('skips entries whose files cannot be read, leaving them on the previous backend', async () => {
@@ -101,18 +113,63 @@ describe('migrateHistoryEntries', () => {
     const healthy = await seedEntry({ withFile: true });
 
     const target = new FakeFileStore('directory');
-    const migrated = await migrateHistoryEntries({ to: target, deleteSource: true });
+    const migrated = await migrateHistoryEntries({ to: target });
 
     expect(migrated).toBe(1);
     expect((await dataHistoryDb.getEntry(broken.key))?.storageBackend).toBe('opfs');
     expect((await dataHistoryDb.getEntry(healthy.key))?.storageBackend).toBe('directory');
   });
+
+  it('skips entries that are likely still being written — including captures from another tab', async () => {
+    const inFlight = await seedEntry({ status: 'in-progress', startedAt: new Date(), withFile: true });
+    const crashedLongAgo = await seedEntry({
+      status: 'in-progress',
+      startedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      withFile: true,
+    });
+
+    const target = new FakeFileStore('directory');
+    const migrated = await migrateHistoryEntries({ to: target });
+
+    // The recent in-progress entry may have an open capture handle in another tab; the stale one is
+    // a crash remnant and migrates normally
+    expect(migrated).toBe(1);
+    expect((await dataHistoryDb.getEntry(inFlight.key))?.storageBackend).toBe('opfs');
+    expect((await dataHistoryDb.getEntry(crashedLongAgo.key))?.storageBackend).toBe('directory');
+  });
+});
+
+describe('disableNativeHistoryStorage', () => {
+  beforeEach(async () => {
+    await getDexieDb().data_history.clear();
+    await getDexieDb().data_history_config.clear();
+    // One store stands in for every backend, so it carries the user-visible capabilities of the
+    // native folder the entry lives in — that is what protects the on-disk files from the copy back
+    sourceStore = new FakeFileStore('opfs', { userVisibleFiles: true });
+    setHistoryFileStoreForTests(sourceStore);
+  });
+
+  afterEach(() => {
+    setHistoryFileStoreForTests(null);
+  });
+
+  it('copies entries back but LEAVES the on-disk files in place — they are the user’s files', async () => {
+    // Same policy as disconnectHistoryDirectory: the desktop folder is user-chosen and holds plain
+    // .csv/.json files the user may have backed up, so switching storage must not delete them.
+    const entry = await seedEntry({ withFile: true, storageBackend: 'native' });
+
+    await disableNativeHistoryStorage();
+
+    expect((await dataHistoryDb.getEntry(entry.key))?.storageBackend).toBe('opfs');
+    expect(sourceStore.files.has(entry.files[0].path)).toBe(true);
+    expect((await dataHistoryDb.getBackendConfig()).active).toBe('opfs');
+  });
 });
 
 describe('migrateHistoryEntries compression re-encoding', () => {
   beforeEach(async () => {
-    await dexieDb.data_history.clear();
-    await dexieDb.data_history_config.clear();
+    await getDexieDb().data_history.clear();
+    await getDexieDb().data_history_config.clear();
     sourceStore = new FakeFileStore('opfs');
     setHistoryFileStoreForTests(sourceStore);
   });
@@ -125,7 +182,7 @@ describe('migrateHistoryEntries compression re-encoding', () => {
     const entry = await seedEntry({ withFile: true });
 
     const target = new FakeFileStore('directory', { compressFiles: false, userVisibleFiles: true });
-    await migrateHistoryEntries({ to: target, deleteSource: true });
+    await migrateHistoryEntries({ to: target });
 
     const migrated = await dataHistoryDb.getEntry(entry.key);
     expect(migrated?.files[0].fileName).toBe('results.csv');
@@ -175,5 +232,19 @@ describe('reindexHistoryFromActiveBackend', () => {
     expect(restoredEntry?.inlinePayload).toBeNull();
     expect(await dataHistoryDb.getEntryCount()).toBe(2);
     expect((await dataHistoryDb.getEntry(known.key))?.key).toBe(known.key);
+  });
+
+  it('does not resurrect tombstoned (user-deleted) entries', async () => {
+    const store = new FakeFileStore('directory', { supportsReindex: true });
+    setHistoryFileStoreForTests(store);
+    sourceStore = store;
+
+    // Deleted while its files were unreachable: row removed, files + manifest left behind
+    const deleted = await seedEntry({ withFile: true, storageBackend: 'directory' });
+    await dataHistoryDb.deleteEntries([deleted.key]);
+    await dataHistoryDb.addDeletedEntryTombstone(deleted.key);
+
+    expect(await reindexHistoryFromActiveBackend()).toBe(0);
+    expect(await dataHistoryDb.getEntry(deleted.key)).toBeUndefined();
   });
 });

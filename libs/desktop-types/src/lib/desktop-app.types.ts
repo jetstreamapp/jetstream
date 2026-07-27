@@ -48,26 +48,40 @@ export interface ElectronApiCallback {
 /**
  * File operations for native Data History storage. Mirrors the op-based protocol the renderer's
  * OPFS storage worker uses (`@jetstream/ui/data-history` worker-messages) so the renderer file
- * store is a thin transport swap. `read-file` returns raw bytes (Blobs are not IPC-serializable).
+ * store is a thin transport swap.
+ *
+ * Modelled as a discriminated union so the main process gets its per-op fields from narrowing rather
+ * than from hand-written runtime guards — this is the one boundary where a malformed message reaches
+ * `fs` calls in the privileged process. Unlike the OPFS worker (which can be respawned and therefore
+ * takes client-allocated stream ids), the main process allocates `streamId` and returns it.
  */
-export interface DataHistoryFileOpRequest {
-  op:
-    | 'init'
-    | 'write-file'
-    | 'open-stream'
-    | 'stream-write'
-    | 'stream-close'
-    | 'stream-abort'
-    | 'read-file'
-    | 'delete-dir'
-    | 'list-entry-dirs'
-    | 'estimate';
-  path?: string;
-  gzip?: boolean;
-  gunzip?: boolean;
-  bytes?: Uint8Array;
-  streamId?: number;
+export type DataHistoryFileOpRequest =
+  | { op: 'init' }
+  | { op: 'write-file'; path: string; gzip: boolean; bytes: Uint8Array }
+  | { op: 'open-stream'; path: string; gzip: boolean }
+  | { op: 'stream-write'; streamId: number; bytes: Uint8Array }
+  | { op: 'stream-close'; streamId: number }
+  | { op: 'stream-abort'; streamId: number }
+  | { op: 'read-file'; path: string; gunzip: boolean }
+  | { op: 'delete-dir'; path: string }
+  | { op: 'list-entry-dirs' }
+  | { op: 'estimate' };
+
+/** Result shape per op. `read-file` returns raw bytes because Blobs are not IPC-serializable. */
+export interface DataHistoryFileOpResultByOp {
+  init: void;
+  'write-file': { bytes: number };
+  'open-stream': { streamId: number };
+  'stream-write': void;
+  'stream-close': { bytes: number };
+  'stream-abort': void;
+  'read-file': Uint8Array;
+  'delete-dir': void;
+  'list-entry-dirs': { dirs: Array<{ orgFolder: string; entryKey: string }> };
+  estimate: { usageBytes?: number; quotaBytes?: number };
 }
+
+export type DataHistoryFileOpResult<TRequest extends DataHistoryFileOpRequest> = DataHistoryFileOpResultByOp[TRequest['op']];
 
 export interface ElectronApiRequestResponse {
   login: () => Promise<void>;
@@ -87,7 +101,7 @@ export interface ElectronApiRequestResponse {
   downloadBulkApiFile: (payload: JetstreamEventStreamFilePayload) => Promise<DownloadFileResult>;
   openFile: (filePath: string) => Promise<void>;
   showFileInFolder: (filePath: string) => Promise<void>;
-  dataHistoryRequest: (payload: DataHistoryFileOpRequest) => Promise<unknown>;
+  dataHistoryRequest: <TRequest extends DataHistoryFileOpRequest>(payload: TRequest) => Promise<DataHistoryFileOpResult<TRequest>>;
   getDataHistoryFolder: () => Promise<string>;
   setDataHistoryFolder: (payload: { folderPath: string }) => Promise<string>;
   checkForUpdates: (userInitiated?: boolean) => Promise<void>;

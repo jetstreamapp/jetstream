@@ -137,6 +137,23 @@ describe('DirectoryHandleFileStore permissions', () => {
   });
 });
 
+describe('DirectoryHandleFileStore abort semantics', () => {
+  it('aborting an overwrite stream preserves the pre-existing file (FSA swap-file semantics)', async () => {
+    const store = new DirectoryHandleFileStore(new FakeFsaDirectoryHandle());
+    await store.init();
+    await store.writeFile('org-1/dh_x/results.csv', TEXT_ENCODER.encode('good data'), { gzip: false });
+
+    // Writes land in a swap file, so aborting a replacement must leave the original untouched —
+    // abort only cleans up the empty stub created when the target did NOT already exist.
+    const stream = await store.createWriteStream('org-1/dh_x/results.csv', { gzip: false });
+    await stream.write(TEXT_ENCODER.encode('replacement partial'));
+    await stream.abort();
+
+    const blob = await store.readFile('org-1/dh_x/results.csv', { gunzip: false });
+    expect(await blob.text()).toBe('good data');
+  });
+});
+
 /**
  * In-memory stand-in for the Electron main-process handler (`data-history-file.service.ts`),
  * mirroring its semantics (node zlib gzip, raw bytes over IPC) so NativeFsFileStore passes the

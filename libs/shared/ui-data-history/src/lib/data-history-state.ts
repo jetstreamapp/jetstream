@@ -1,6 +1,11 @@
 import { DataHistoryCounts, DataHistoryItem, DataHistorySettings, DataHistoryStatus } from '@jetstream/types';
 import { dataHistoryDb } from '@jetstream/ui/db';
-import { clampSettingsToTier, DataHistoryTierLimits, getDefaultDataHistorySettings } from './data-history-limits';
+import {
+  clampSettingsToTier,
+  DATA_HISTORY_STALE_IN_PROGRESS_MS,
+  DataHistoryTierLimits,
+  getDefaultDataHistorySettings,
+} from './data-history-limits';
 import { getFileStoreForBackend } from './file-store/file-store-factory';
 import { getParentDirPath } from './file-store/path-utils';
 import { isBrowserExtensionApp, isCanvasApp, isDesktopApp } from './platform';
@@ -12,6 +17,43 @@ import { isBrowserExtensionApp, isCanvasApp, isDesktopApp } from './platform';
 
 let tierLimits: DataHistoryTierLimits | null = null;
 let persistRequested = false;
+
+/**
+ * Keys of entries with an OPEN capture handle — long-running loads that are still streaming files.
+ * A `DataHistoryEntryHandle` resolves its file store ONCE at creation and keeps writing to that
+ * backend for its whole lifetime, so a backend migration must skip these entries; migrating one
+ * concurrently would split its files across two backends and leave the row's stamp out of sync with
+ * where its bytes actually live. Keys are added in `startDataHistoryEntry` and removed on
+ * finish/fail.
+ */
+const activeEntryKeys = new Set<string>();
+
+export function markEntryActive(key: string): void {
+  activeEntryKeys.add(key);
+}
+
+export function markEntryInactive(key: string): void {
+  activeEntryKeys.delete(key);
+}
+
+export function isEntryActive(key: string): boolean {
+  return activeEntryKeys.has(key);
+}
+
+/**
+ * Cross-document complement to `isEntryActive`: `activeEntryKeys` only knows about capture handles
+ * in THIS document, but captures can run in another tab — and on the browser extension, storage
+ * controls live on a different page than the app. A recent `in-progress` entry is treated as
+ * in-flight everywhere; older ones are considered crashed (the sweep reclassifies them after
+ * `DATA_HISTORY_STALE_IN_PROGRESS_MS`). Migration and pruning must both skip these — deleting or
+ * re-homing an entry while its handle is still streaming loses data.
+ */
+export function isEntryLikelyInFlight(entry: DataHistoryItem): boolean {
+  return (
+    isEntryActive(entry.key) ||
+    (entry.status === 'in-progress' && entry.startedAt.getTime() > Date.now() - DATA_HISTORY_STALE_IN_PROGRESS_MS)
+  );
+}
 
 export function setTierLimits(limits: DataHistoryTierLimits): void {
   tierLimits = limits;

@@ -19,6 +19,15 @@ export function getDataHistoryFileName(baseName: DataHistoryBaseFileName, compre
   return compressed ? `${baseName}.gz` : baseName;
 }
 
+/**
+ * Reject an unsafe relative path without needing its segments — for backends that hand the path to
+ * another process (Electron IPC) and so cannot rely on resolving handles segment-by-segment to catch
+ * traversal. The receiving side validates again; this fails fast on the caller's side of the wire.
+ */
+export function assertSafeRelativePath(relativePath: string): void {
+  splitRelativePath(relativePath);
+}
+
 /** Split and validate a relative path. Throws on empty/unsafe segments or traversal attempts. */
 export function splitRelativePath(relativePath: string): string[] {
   const segments = relativePath.split('/');

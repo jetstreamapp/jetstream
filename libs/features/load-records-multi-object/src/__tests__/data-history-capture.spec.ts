@@ -11,14 +11,7 @@ import {
 } from '@jetstream/ui/data-history';
 import { dataHistoryDb, ensureLocalStorageReady, getDexieDb } from '@jetstream/ui/db';
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import {
-  buildMultiObjectInputSource,
-  DataHistoryHandlePromise,
-  finalizeMultiObjectHistory,
-  getMultiObjectDistinctSobjects,
-  getMultiObjectOperations,
-  writeMultiObjectRequestJson,
-} from '../data-history-capture';
+import { finalizeMultiObjectHistory, getMultiObjectDistinctSobjects, getMultiObjectOperations } from '../data-history-capture';
 import { LoadMultiObjectRequestWithResult, LoadMultiObjectRun } from '../load-records-multi-object-types';
 import { buildRecordResultRows } from '../load/load-results-utils';
 
@@ -101,14 +94,6 @@ describe('multi-object derivation helpers', () => {
     ];
     expect(getMultiObjectOperations(single)).toMatchObject({ mixed: false, operation: 'update' });
   });
-
-  it('builds a google input source with the file id', () => {
-    expect(buildMultiObjectInputSource({ filename: 'sheet', filenameType: 'google', googleFileId: 'gid' })).toEqual({
-      type: 'google',
-      fileName: 'sheet',
-      googleFileId: 'gid',
-    });
-  });
 });
 
 describe('multi-object Data History capture wiring', () => {
@@ -135,7 +120,7 @@ describe('multi-object Data History capture wiring', () => {
       operation: getMultiObjectOperations(requests).operation,
       api: 'composite-graph',
       sobjects: getMultiObjectDistinctSobjects(requests),
-    }) as DataHistoryHandlePromise;
+    });
   }
 
   it('writes the request json, streams result rows, and finishes with derived counts', async () => {
@@ -149,9 +134,8 @@ describe('multi-object Data History capture wiring', () => {
     ];
 
     const handle = startEntry(requests);
-    writeMultiObjectRequestJson(handle, [{ groupId: 'g1', data: [{ some: 'request' }] }]);
-    finalizeMultiObjectHistory(handle, { rows: buildRows(requests), requests });
-    await (await handle)?.flush();
+    handle.writeRequestJson([{ groupId: 'g1', data: [{ some: 'request' }] }]);
+    await finalizeMultiObjectHistory(handle, { rows: buildRows(requests), requests });
 
     const [entry] = await dataHistoryDb.getAllEntries();
     expect(entry.source).toBe('load-multi-object');
@@ -177,22 +161,39 @@ describe('multi-object Data History capture wiring', () => {
     requests[1].dataWithResultsByGraphId['g2-graph'].isSuccess = null;
 
     const handle = startEntry(requests);
-    finalizeMultiObjectHistory(handle, { rows: buildRows(requests), requests });
-    await (await handle)?.flush();
+    await finalizeMultiObjectHistory(handle, { rows: buildRows(requests), requests });
 
     const [entry] = await dataHistoryDb.getAllEntries();
     expect(entry.counts).toEqual({ total: 1, success: 1, failure: 0 });
     expect(entry.status).toBe('success');
   });
 
-  it('marks the entry failed when every request failed outright', async () => {
-    const requests = [buildRequest('g1', 'network down', [{ referenceId: 'r1', sobject: 'Account', operation: 'INSERT', body: null }])];
+  it('marks the entry failed with the attempted record counts when every request failed outright', async () => {
+    const requests = [
+      buildRequest('g1', 'network down', [
+        { referenceId: 'r1', sobject: 'Account', operation: 'INSERT', body: null },
+        { referenceId: 'r2', sobject: 'Contact', operation: 'INSERT', body: null },
+      ]),
+    ];
     const handle = startEntry(requests);
-    finalizeMultiObjectHistory(handle, { rows: buildRows(requests), requests });
-    await (await handle)?.flush();
+    handle.writeRequestJson([{ groupId: 'g1', data: [{ some: 'request' }] }]);
+    await finalizeMultiObjectHistory(handle, { rows: buildRows(requests), requests });
 
     const [entry] = await dataHistoryDb.getAllEntries();
     expect(entry.status).toBe('failed');
     expect(entry.errorMessage).toBe('network down');
+    expect(entry.counts).toEqual({ total: 2, success: 0, failure: 2 });
+    // Finishing (rather than failing) the entry keeps the request file and its manifest intact
+    expect(entry.files.map(({ kind }) => kind).sort()).toEqual(['request', 'results']);
+  });
+
+  it('keeps the failed status when a request fails before any record is mapped', async () => {
+    const requests = [buildRequest('g1', 'network down', [])];
+    const handle = startEntry(requests);
+    await finalizeMultiObjectHistory(handle, { rows: buildRows(requests), requests });
+
+    const [entry] = await dataHistoryDb.getAllEntries();
+    expect(entry.status).toBe('failed');
+    expect(entry.counts).toEqual({ total: 0, success: 0, failure: 0 });
   });
 });

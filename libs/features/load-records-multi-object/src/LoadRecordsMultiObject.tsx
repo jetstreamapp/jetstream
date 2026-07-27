@@ -16,7 +16,6 @@ import { InputReadFileContent, InputReadGoogleSheet } from '@jetstream/types';
 import {
   Accordion,
   AutoFullHeightContainer,
-  Checkbox,
   FileDropTarget,
   FileOrGoogleSelector,
   Icon,
@@ -28,14 +27,8 @@ import {
   Spinner,
   fireToast,
 } from '@jetstream/ui';
-import { ViewDataHistoryLink, useAmplitude } from '@jetstream/ui-core';
-import {
-  applicationCookieState,
-  dataHistoryCaptureEnabledState,
-  googleDriveAccessState,
-  selectedOrgState,
-  selectedOrgType,
-} from '@jetstream/ui/app-state';
+import { SkipDataHistoryCheckbox, useAmplitude } from '@jetstream/ui-core';
+import { applicationCookieState, googleDriveAccessState, selectedOrgState, selectedOrgType } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useEffect, useMemo, useRef } from 'react';
 import * as XLSX from 'xlsx';
@@ -81,8 +74,6 @@ export const LoadRecordsMultiObject = () => {
   const [inputFileType, setInputFileType] = useAtom(inputFileTypeState);
   const setInputGoogleFileId = useSetAtom(inputGoogleFileIdState);
   const [currentStepIdx, setCurrentStepIdx] = useAtom(currentStepIdxState);
-  // Data History — seeded during app init so the opt-out checkbox renders synchronously
-  const dataHistoryCaptureEnabled = useAtomValue(dataHistoryCaptureEnabledState);
   const [skipDataHistory, setSkipDataHistory] = useAtom(skipDataHistoryState);
   const datasets = useAtomValue(datasetsState);
   const allBlockingErrors = useAtomValue(allBlockingErrorsState);
@@ -316,20 +307,14 @@ export const LoadRecordsMultiObject = () => {
             ) : (
               <div className="slds-m-top_small">{uploadSection}</div>
             )}
-            {dataHistoryCaptureEnabled && (
-              <div>
-                <Checkbox
-                  id="skip-data-history"
-                  className="slds-m-top_x-small"
-                  checked={skipDataHistory}
-                  label={"Don't save this load to Data History"}
-                  labelHelp="Data History keeps a local copy of your loaded records and results on this device. Check this to skip saving this particular load."
-                  disabled={fileParsing || loadIsRunning}
-                  onChange={setSkipDataHistory}
-                />
-                <ViewDataHistoryLink className="slds-m-top_xx-small" />
-              </div>
-            )}
+            <SkipDataHistoryCheckbox
+              operation="load"
+              className="slds-m-top_x-small"
+              checked={skipDataHistory}
+              disabled={fileParsing || loadIsRunning}
+              showViewLink
+              onChange={setSkipDataHistory}
+            />
             {!hasData && !fileParsing && (
               <LoadRecordsMultiObjectEmptyState
                 templateUrl={templateUrl}

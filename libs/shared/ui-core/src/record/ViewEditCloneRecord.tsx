@@ -6,6 +6,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, SOBJECT_NAME_FIELD_MAP } from '@jetstream/shared/constants';
 import { clearCacheForOrg, describeGlobal, describeSObject, query, sobjectOperation } from '@jetstream/shared/data';
 import { copyRecordsToClipboard, isErrorResponse, tracker, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import {
   AsyncJobNew,
   BulkDownloadJob,
@@ -377,6 +378,21 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
       if (isMounted.current) {
         setFormErrors({ hasErrors: true, fieldErrors: {}, generalErrors: ['An unknown problem has occurred.'] });
       }
+      // A THROWN save (network error, expired session) is still recorded — the request may even have
+      // applied server-side (e.g. a timeout), so "no record of the attempt" is the worst outcome.
+      // Graceful per-record error results are captured on the success path above.
+      void recordDataHistoryAction({
+        org: selectedOrg,
+        source: 'record-modal',
+        operation: action === 'edit' ? 'edit' : action === 'clone' ? 'clone' : 'create',
+        api: 'collections',
+        sobjects: [sobjectName],
+        request: record,
+        results: { error: getErrorMessage(ex) },
+        counts: { total: 1, success: 0, failure: 1 },
+        status: 'failed',
+        errorMessage: getErrorMessage(ex),
+      });
     }
     if (isMounted.current) {
       setSaving(false);

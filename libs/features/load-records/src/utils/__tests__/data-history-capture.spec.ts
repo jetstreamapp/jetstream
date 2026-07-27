@@ -1,27 +1,26 @@
-import { describe, expect, it, vi } from 'vitest';
-import {
-  apiModeToDataHistoryApi,
-  appendHistoryResultsRows,
-  buildLoadRecordsInputSource,
-  failHistoryEntry,
-  finishHistoryEntry,
-  loadTypeToDataHistoryOperation,
-  writeHistoryInputRows,
-} from '../data-history-capture';
+import { FieldMapping } from '@jetstream/types';
+import { describe, expect, it } from 'vitest';
+import { apiModeToDataHistoryApi, buildLoadRecordsHistoryConfig, loadTypeToDataHistoryOperation } from '../data-history-capture';
 
-const flushMicrotasks = () => new Promise((resolve) => setTimeout(resolve, 0));
+const fieldMapping = {
+  Name: { type: 'CSV' },
+  Industry: { type: 'STATIC' },
+  Rating: { type: 'STATIC' },
+} as unknown as FieldMapping;
 
-function fakeHandle() {
-  return {
-    key: 'dh_test',
-    writeInputRows: vi.fn().mockResolvedValue(undefined),
-    writeRequestJson: vi.fn().mockResolvedValue(undefined),
-    appendResultsRows: vi.fn().mockResolvedValue(undefined),
-    finish: vi.fn().mockResolvedValue(undefined),
-    fail: vi.fn().mockResolvedValue(undefined),
-    flush: vi.fn().mockResolvedValue(undefined),
-  };
-}
+const baseConfigArgs = {
+  loadType: 'INSERT',
+  apiMode: 'BULK',
+  numRecords: 100,
+  batchSize: 5000,
+  insertNulls: false,
+  serialMode: false,
+  hasDateFieldMapped: true,
+  dateFormat: 'MM-DD-YYYY',
+  fieldMapping,
+  hasZipAttachment: false,
+  timesSameDataSubmitted: 1,
+} as const;
 
 describe('loadTypeToDataHistoryOperation', () => {
   it.each([
@@ -42,82 +41,38 @@ describe('apiModeToDataHistoryApi', () => {
   });
 });
 
-describe('buildLoadRecordsInputSource', () => {
-  it('describes a local file source', () => {
-    expect(buildLoadRecordsInputSource({ filename: 'accounts.csv', filenameType: 'local', googleFileId: null })).toEqual({
-      type: 'local',
-      fileName: 'accounts.csv',
-      googleFileId: undefined,
+describe('buildLoadRecordsHistoryConfig', () => {
+  it('snapshots the load options and counts the static field mappings', () => {
+    expect(buildLoadRecordsHistoryConfig(baseConfigArgs)).toEqual({
+      loadType: 'INSERT',
+      apiMode: 'BULK',
+      numRecords: 100,
+      batchSize: 5000,
+      insertNulls: false,
+      serialMode: false,
+      hasDateFieldMapped: true,
+      dateFormat: 'MM-DD-YYYY',
+      trialRun: false,
+      trialRunSize: undefined,
+      hasZipAttachment: false,
+      timesSameDataSubmitted: 1,
+      numStaticFields: 2,
     });
   });
 
-  it('describes a google file source and retains the file id', () => {
-    expect(buildLoadRecordsInputSource({ filename: 'Sheet1', filenameType: 'google', googleFileId: 'gfile-123' })).toEqual({
-      type: 'google',
-      fileName: 'Sheet1',
-      googleFileId: 'gfile-123',
+  it('records the trial-run size when this is a trial run', () => {
+    expect(buildLoadRecordsHistoryConfig({ ...baseConfigArgs, trialRun: true, trialRunSize: 10 })).toMatchObject({
+      trialRun: true,
+      trialRunSize: 10,
     });
   });
 
-  it('defaults to local and omits the google id when the type is unknown', () => {
-    expect(buildLoadRecordsInputSource({ filename: null, filenameType: null, googleFileId: 'ignored' })).toEqual({
-      type: 'local',
-      fileName: undefined,
-      googleFileId: undefined,
+  it('adds the retry fields only for a retry run', () => {
+    const config = buildLoadRecordsHistoryConfig({
+      ...baseConfigArgs,
+      retry: { retryCount: 2, retrySource: 'selected', totalFailedCount: 7 },
     });
-  });
-});
-
-describe('fire-and-forget capture wrappers', () => {
-  it('forwards input/result rows, finish, and fail to the resolved handle', async () => {
-    const handle = fakeHandle();
-    const promise: any = Promise.resolve(handle);
-
-    writeHistoryInputRows(promise, [{ Name: 'Acme' }], ['Name']);
-    appendHistoryResultsRows(promise, [{ _id: '1' }], ['_id']);
-    finishHistoryEntry(promise, { counts: { total: 1, success: 1, failure: 0 } });
-    failHistoryEntry(promise, 'boom');
-    await flushMicrotasks();
-
-    expect(handle.writeInputRows).toHaveBeenCalledWith([{ Name: 'Acme' }], ['Name']);
-    expect(handle.appendResultsRows).toHaveBeenCalledWith([{ _id: '1' }], ['_id']);
-    expect(handle.finish).toHaveBeenCalledWith({ counts: { total: 1, success: 1, failure: 0 } });
-    expect(handle.fail).toHaveBeenCalledWith('boom');
-  });
-
-  it('is a no-op when the handle promise resolves to null (capture disabled/opted out)', async () => {
-    const nullPromise: any = Promise.resolve(null);
-    // None of these should throw even though there is no handle to act on
-    writeHistoryInputRows(nullPromise, [{ Name: 'Acme' }], ['Name']);
-    appendHistoryResultsRows(nullPromise, [{ _id: '1' }], ['_id']);
-    finishHistoryEntry(nullPromise, { counts: { total: 1, success: 1, failure: 0 } });
-    failHistoryEntry(nullPromise, 'boom');
-    await expect(flushMicrotasks()).resolves.toBeUndefined();
-  });
-
-  it('skips empty row sets and missing handles without touching the handle', async () => {
-    const handle = fakeHandle();
-    const promise: any = Promise.resolve(handle);
-
-    writeHistoryInputRows(promise, [], ['Name']);
-    writeHistoryInputRows(promise, [{ Name: 'Acme' }], []);
-    appendHistoryResultsRows(promise, [], ['_id']);
-    writeHistoryInputRows(null, [{ Name: 'Acme' }], ['Name']);
-    appendHistoryResultsRows(undefined, [{ _id: '1' }], ['_id']);
-    finishHistoryEntry(null, { counts: { total: 0, success: 0, failure: 0 } });
-    failHistoryEntry(undefined, 'boom');
-    await flushMicrotasks();
-
-    expect(handle.writeInputRows).not.toHaveBeenCalled();
-    expect(handle.appendResultsRows).not.toHaveBeenCalled();
-  });
-
-  it('never rejects into the caller even if a handle method throws', async () => {
-    const handle = fakeHandle();
-    handle.appendResultsRows.mockRejectedValueOnce(new Error('store died'));
-    const promise: any = Promise.resolve(handle);
-
-    expect(() => appendHistoryResultsRows(promise, [{ _id: '1' }], ['_id'])).not.toThrow();
-    await expect(flushMicrotasks()).resolves.toBeUndefined();
+    expect(config).toMatchObject({ isRetry: true, retryCount: 2, retrySource: 'selected', totalFailedCount: 7 });
+    expect(buildLoadRecordsHistoryConfig(baseConfigArgs).isRetry).toBeUndefined();
   });
 });

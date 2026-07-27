@@ -1,13 +1,20 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { DataHistoryFileRef, DataHistoryItem, dataHistoryItemSchema, DataHistoryStorageBackend } from '@jetstream/types';
+import {
+  DataHistoryBackendConfig,
+  DataHistoryFileRef,
+  DataHistoryItem,
+  dataHistoryItemSchema,
+  DataHistoryStorageBackend,
+} from '@jetstream/types';
 import { dataHistoryDb } from '@jetstream/ui/db';
 import { buildManifestJson } from './data-history-manifest';
+import { isEntryLikelyInFlight } from './data-history-state';
 import { DirectoryHandleFileStore } from './file-store/directory-handle-file-store';
 import {
   getDirectoryPermissionNeeded,
   getFileStoreForBackend,
   getHistoryFileStore,
-  resetHistoryFileStores,
+  invalidateHistoryBackends,
 } from './file-store/file-store-factory';
 import { HistoryFileStore } from './file-store/file-store.types';
 import { FsaDirectoryHandle, isFileSystemAccessSupported, showHistoryDirectoryPicker } from './file-store/fsa-types';
@@ -44,6 +51,17 @@ export interface DataHistoryBackendStatus {
 }
 
 export type DataHistoryMigrationProgress = (migrated: number, total: number) => void;
+
+/**
+ * Persist a backend-config change and invalidate cached stores here and in other tabs. The ONLY
+ * way any code in this module switches backends — persisting the config without the invalidation
+ * leaves long-lived tabs writing new history to the previous backend (rows stamped with a backend
+ * the bytes do not live on), so the two steps must never be separable.
+ */
+async function activateBackend(config: DataHistoryBackendConfig): Promise<void> {
+  await dataHistoryDb.saveBackendConfig(config);
+  invalidateHistoryBackends();
+}
 
 export async function getHistoryBackendStatus(): Promise<DataHistoryBackendStatus> {
   const config = await dataHistoryDb.getBackendConfig();
@@ -92,10 +110,8 @@ export async function connectHistoryDirectory(onProgress?: DataHistoryMigrationP
   }
   const store = new DirectoryHandleFileStore(handle);
   await store.init();
-  await dataHistoryDb.saveBackendConfig({ active: 'directory', directoryHandle: handle });
-  resetHistoryFileStores();
-  // OPFS source files are invisible to the user — delete them once copied
-  const migrated = await migrateHistoryEntries({ to: store, deleteSource: true, onProgress });
+  await activateBackend({ active: 'directory', directoryHandle: handle });
+  const migrated = await migrateHistoryEntries({ to: store, onProgress });
   return { migrated };
 }
 
@@ -104,10 +120,14 @@ export async function connectHistoryDirectory(onProgress?: DataHistoryMigrationP
  * PLACE — they are user-visible files the user may consider theirs.
  */
 export async function disconnectHistoryDirectory(onProgress?: DataHistoryMigrationProgress): Promise<{ migrated: number }> {
+  const config = await dataHistoryDb.getBackendConfig();
   const opfsStore = await getFileStoreForBackend('opfs');
-  const migrated = await migrateHistoryEntries({ to: opfsStore, deleteSource: false, onProgress });
-  await dataHistoryDb.saveBackendConfig({ active: 'opfs' });
-  resetHistoryFileStores();
+  const migrated = await migrateHistoryEntries({ to: opfsStore, onProgress });
+  // KEEP the folder handle in the config: entries that could not migrate (in-flight captures,
+  // per-entry copy failures) stay stamped 'directory' and remain readable ONLY through this
+  // handle. The retention sweep migrates stragglers to OPFS later; an unreferenced handle is
+  // harmless.
+  await activateBackend({ active: 'opfs', directoryHandle: config.directoryHandle });
   return { migrated };
 }
 
@@ -120,7 +140,7 @@ export async function reconnectHistoryDirectory(): Promise<boolean> {
   }
   const granted = (await handle.requestPermission({ mode: 'readwrite' })) === 'granted';
   if (granted) {
-    resetHistoryFileStores();
+    invalidateHistoryBackends();
   }
   return granted;
 }
@@ -130,11 +150,14 @@ export async function reconnectHistoryDirectory(): Promise<boolean> {
  * old folder (when still readable) into the new one; the old folder's files are left in place.
  * Falls back to a fresh connect when no folder is currently connected. Returns null on cancel.
  */
-export async function changeHistoryDirectory(onProgress?: DataHistoryMigrationProgress): Promise<{ migrated: number } | null> {
+export async function changeHistoryDirectory(
+  onProgress?: DataHistoryMigrationProgress,
+): Promise<{ migrated: number; skipped: number } | null> {
   const config = await dataHistoryDb.getBackendConfig();
   const oldHandle = config.active === 'directory' ? (config.directoryHandle as FsaDirectoryHandle | undefined) : undefined;
   if (!oldHandle) {
-    return await connectHistoryDirectory(onProgress);
+    const result = await connectHistoryDirectory(onProgress);
+    return result && { migrated: result.migrated, skipped: 0 };
   }
   let newHandle: FsaDirectoryHandle;
   try {
@@ -162,51 +185,75 @@ export async function changeHistoryDirectory(onProgress?: DataHistoryMigrationPr
     logger.warn('[DATA_HISTORY] Previous history folder is not readable, moving what is possible', ex);
   }
 
-  const entries = await dataHistoryDb.getAllEntries();
-  let migrated = 0;
-  for (const entry of entries) {
-    try {
-      if (entry.files.length > 0) {
-        const fromStore =
-          entry.storageBackend === 'directory' ? (oldStoreAvailable ? oldStore : null) : await getFileStoreForBackend(entry.storageBackend);
-        if (fromStore) {
-          const wasDirectoryEntry = entry.storageBackend === 'directory';
-          await copyEntryToStore(entry, fromStore, newStore);
-          // Invisible OPFS sources are cleaned up; the old user-visible folder keeps its files
-          if (!wasDirectoryEntry) {
-            await fromStore.deleteEntryDir(getParentDirPath(entry.files[0].path));
-          }
-        }
-      } else {
-        await dataHistoryDb.updateEntry(entry.key, { storageBackend: 'directory' });
+  // PHASE 1: copy folder-resident entries old -> new BEFORE repointing the config. There is only
+  // ONE 'directory' slot, so the moment the config repoints, any entry still stamped 'directory'
+  // whose files were not copied resolves to the new folder — where they do not exist. Aborting in
+  // this phase is always safe (rows, config, and the old folder are untouched), so an unexpected
+  // copy failure throws and cancels the whole change instead of stranding entries. Two things
+  // cannot be copied and ARE knowingly stranded once the config repoints, reported via `skipped`:
+  // entries still being written (their handle keeps writing to the old folder) and entries in an
+  // unreadable old folder (blocking the change would hold the user hostage to a folder that may
+  // be gone for good).
+  const copiedKeys = new Set<string>();
+  const runFolderCopyPass = async (): Promise<void> => {
+    const folderEntries = (await dataHistoryDb.getAllEntries()).filter((entry) => entry.storageBackend === 'directory');
+    for (const entry of folderEntries) {
+      if (copiedKeys.has(entry.key)) {
+        continue;
       }
-      migrated++;
-      onProgress?.(migrated, entries.length);
-    } catch (ex) {
-      logger.warn('[DATA_HISTORY][MIGRATE] Unable to move entry to the new folder', entry.key, ex);
+      if (isEntryLikelyInFlight(entry) || !oldStoreAvailable) {
+        continue;
+      }
+      if (entry.files.length === 0) {
+        // Inline-payload entries have no files to move. This must stay BELOW the in-flight check:
+        // a capture's row exists with `files: []` before its first file lands, and marking it
+        // "copied" here would let its handle finish writing into the old folder after the repoint —
+        // stranding files on a folder the 'directory' stamp no longer resolves to.
+        copiedKeys.add(entry.key);
+        continue;
+      }
+      await copyEntryToStore(entry, oldStore, newStore);
+      copiedKeys.add(entry.key);
+      onProgress?.(copiedKeys.size, folderEntries.length);
     }
-  }
+  };
+  await runFolderCopyPass();
+  // Second pass catches entries whose capture finished while the first pass was copying
+  await runFolderCopyPass();
+  // Anything still stamped 'directory' but not copied is knowingly stranded in the old folder
+  // (in-flight captures, unreadable old folder). Counted BEFORE the repoint, while the stamp still
+  // unambiguously means the old folder.
+  const skipped = (await dataHistoryDb.getAllEntries()).filter(
+    (entry) => entry.storageBackend === 'directory' && !copiedKeys.has(entry.key),
+  ).length;
 
-  await dataHistoryDb.saveBackendConfig({ active: 'directory', directoryHandle: newHandle });
-  resetHistoryFileStores();
-  return { migrated };
+  await activateBackend({ active: 'directory', directoryHandle: newHandle });
+
+  // PHASE 2: entries on other backends (OPFS) migrate into the new folder now that it is the
+  // active 'directory' target; invisible OPFS sources are cleaned up after copying
+  const migratedFromOtherBackends = await migrateHistoryEntries({ to: newStore, onProgress });
+  return { migrated: copiedKeys.size + migratedFromOtherBackends, skipped };
 }
 
 /** Desktop: store history on the real filesystem (moves existing entries out of OPFS) */
 export async function enableNativeHistoryStorage(onProgress?: DataHistoryMigrationProgress): Promise<{ migrated: number }> {
   const store = await getFileStoreForBackend('native');
-  await dataHistoryDb.saveBackendConfig({ active: 'native' });
-  resetHistoryFileStores();
-  const migrated = await migrateHistoryEntries({ to: store, deleteSource: true, onProgress });
+  await activateBackend({ active: 'native' });
+  const migrated = await migrateHistoryEntries({ to: store, onProgress });
   return { migrated };
 }
 
-/** Desktop: revert to OPFS storage (moves entries back and removes them from disk) */
+/**
+ * Desktop: revert to app-managed (OPFS) storage. Entries are copied back, but the files on disk are
+ * LEFT IN PLACE — same policy as `disconnectHistoryDirectory`: these are plain .csv/.json files in a
+ * folder the user may have chosen (and may have backed up or referenced elsewhere), so they are
+ * theirs to delete. Entries that could not be copied stay stamped 'native' and remain readable
+ * through the native backend; the retention sweep migrates those stragglers later.
+ */
 export async function disableNativeHistoryStorage(onProgress?: DataHistoryMigrationProgress): Promise<{ migrated: number }> {
   const opfsStore = await getFileStoreForBackend('opfs');
-  const migrated = await migrateHistoryEntries({ to: opfsStore, deleteSource: true, onProgress });
-  await dataHistoryDb.saveBackendConfig({ active: 'opfs' });
-  resetHistoryFileStores();
+  const migrated = await migrateHistoryEntries({ to: opfsStore, onProgress });
+  await activateBackend({ active: 'opfs' });
   return { migrated };
 }
 
@@ -229,24 +276,35 @@ export async function changeNativeHistoryFolder(): Promise<string | null> {
 /**
  * Copy every entry not already on `to` into it and re-stamp. Failures skip the entry (it stays
  * fully usable on its previous backend) — never throws.
+ *
+ * SOURCE-CLEANUP POLICY, enforced here and nowhere else: a copied entry's source files are removed
+ * only when they are NOT user-visible (OPFS, whose files the user cannot see and which counts
+ * against the browser quota). A user-chosen folder or the native history folder holds plain
+ * .csv/.json files the user may have backed up or referenced elsewhere, so a migration copies out of
+ * them and leaves them in place — the same policy `disconnectHistoryDirectory` and
+ * `disableNativeHistoryStorage` state explicitly.
  */
 export async function migrateHistoryEntries({
   to,
-  deleteSource,
   onProgress,
 }: {
   to: HistoryFileStore;
-  deleteSource: boolean;
   onProgress?: DataHistoryMigrationProgress;
 }): Promise<number> {
-  const entries = (await dataHistoryDb.getAllEntries()).filter((entry) => entry.storageBackend !== to.type);
+  // Skip in-flight entries — their handle keeps writing to its original backend, so migrating
+  // concurrently would split the entry's files across two backends. `isEntryLikelyInFlight` also
+  // covers captures running in ANOTHER tab/document (recent `in-progress` rows), which the local
+  // active-handle set cannot see.
+  const entries = (await dataHistoryDb.getAllEntries()).filter(
+    (entry) => entry.storageBackend !== to.type && !isEntryLikelyInFlight(entry),
+  );
   let migrated = 0;
   for (const entry of entries) {
     try {
       if (entry.files.length > 0) {
         const from = await getFileStoreForBackend(entry.storageBackend);
         await copyEntryToStore(entry, from, to);
-        if (deleteSource) {
+        if (!from.capabilities.userVisibleFiles) {
           await from.deleteEntryDir(getParentDirPath(entry.files[0].path));
         }
       } else {
@@ -303,10 +361,13 @@ export async function reindexHistoryFromActiveBackend(): Promise<number> {
     return 0;
   }
   const knownKeys = new Set((await dataHistoryDb.getAllEntries()).map(({ key }) => key));
+  // Entries the user deleted while their files were unreachable (lost folder permission) must not
+  // come back when the folder is re-indexed
+  const tombstonedKeys = new Set(await dataHistoryDb.getDeletedEntryTombstones());
   const dirs = await store.listEntryDirs();
   let restored = 0;
   for (const dir of dirs) {
-    if (knownKeys.has(dir.entryKey) || !dir.entryKey.startsWith('dh_')) {
+    if (knownKeys.has(dir.entryKey) || tombstonedKeys.has(dir.entryKey) || !dir.entryKey.startsWith('dh_')) {
       continue;
     }
     try {

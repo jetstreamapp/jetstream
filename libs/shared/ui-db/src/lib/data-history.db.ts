@@ -8,27 +8,40 @@ import {
   dataHistorySettingsSchema,
   dataHistoryStorageBackendSchema,
 } from '@jetstream/types';
-import { LocalOnlyTables, getDexieDb } from './ui-db';
+import { LocalOnlyTables, getDexieDb, wrapApiWithReopenOnDatabaseClosed } from './ui-db';
 
 /**
  * Row-level persistence for the local Data History feature (searchable catalog only — payload
  * files live in the pluggable file store owned by `@jetstream/ui/data-history`).
+ *
+ * Wrapped in `wrapApiWithReopenOnDatabaseClosed` like every other `*Db` api here: dexie-observable
+ * can close the shared connection mid-session (see the note on that helper), and because history
+ * capture swallows its own errors by design, an unwrapped DatabaseClosedError would silently stop
+ * ALL capture for the rest of the session with nothing surfaced to the user.
  */
 export const dataHistoryDb = {
+  // Pure uuid generation, no db access — kept outside the wrapper, which only wraps async fns
   generateKey,
-  saveEntry,
-  updateEntry,
-  getEntry,
-  getAllEntries,
-  getEntries,
-  getEntryCount,
-  getTotalSizeBytes,
-  setPinned,
-  deleteEntries,
-  getSettings,
-  saveSettings,
-  getBackendConfig,
-  saveBackendConfig,
+  ...wrapApiWithReopenOnDatabaseClosed({
+    saveEntry,
+    updateEntry,
+    getEntry,
+    getAllEntries,
+    getAllEntryKeys,
+    getEntries,
+    getEntryCount,
+    getTotalSizeBytes,
+    setPinned,
+    deleteEntries,
+    getSettings,
+    saveSettings,
+    getBackendConfig,
+    saveBackendConfig,
+    getPaidPlanLastSeenAt,
+    savePaidPlanLastSeenAt,
+    getDeletedEntryTombstones,
+    addDeletedEntryTombstone,
+  }),
 };
 
 export interface DataHistoryListFilter {
@@ -61,6 +74,15 @@ async function getEntry(key: string): Promise<DataHistoryItem | undefined> {
 
 async function getAllEntries(): Promise<DataHistoryItem[]> {
   return await getDexieDb().data_history.toArray();
+}
+
+/**
+ * Every entry key without reading the rows. Used by the orphan-directory sweep, which only needs to
+ * answer "does a row exist for this directory" — loading full rows there would deserialize every
+ * entry's `inlinePayload` (up to 64KB each) for nothing.
+ */
+async function getAllEntryKeys(): Promise<string[]> {
+  return (await getDexieDb().data_history.toCollection().primaryKeys()) as string[];
 }
 
 /**
@@ -98,12 +120,18 @@ async function getEntryCount(): Promise<number> {
   return await getDexieDb().data_history.count();
 }
 
+/**
+ * Total bytes across every entry, summed from the `sizeBytes` INDEX so no row is ever deserialized —
+ * same motivation as `getAllEntryKeys` above. Reading rows here (`each`/`toArray`) pulled every
+ * entry's `inlinePayload` (up to 64KB of gzip bytes each) into memory just to add up one number, and
+ * this runs on every settings/history page mount for users whose tier has no entry cap.
+ *
+ * IndexedDB omits records with a missing index key, so a row without `sizeBytes` is skipped — which
+ * is what summing it as 0 would have done anyway.
+ */
 async function getTotalSizeBytes(): Promise<number> {
-  let total = 0;
-  await getDexieDb().data_history.each((row) => {
-    total += row.sizeBytes || 0;
-  });
-  return total;
+  const sizes = (await getDexieDb().data_history.orderBy('sizeBytes').keys()) as unknown[];
+  return sizes.reduce<number>((total, size) => total + (typeof size === 'number' ? size : 0), 0);
 }
 
 async function setPinned(key: string, pinned: boolean): Promise<DataHistoryItem | undefined> {
@@ -150,4 +178,53 @@ async function getBackendConfig(): Promise<DataHistoryBackendConfig> {
 
 async function saveBackendConfig(config: DataHistoryBackendConfig): Promise<void> {
   await getDexieDb().data_history_config.put({ key: 'backend', value: config, updatedAt: new Date() });
+}
+
+/**
+ * Last time a paid-plan signal was observed. Free-tier limits are enforced destructively (entries
+ * deleted), so the service keeps paid limits for a grace window after the signal disappears — a
+ * transient billing lapse (PAST_DUE from an expired card) must not delete a year of history.
+ */
+async function getPaidPlanLastSeenAt(): Promise<Date | null> {
+  try {
+    const row = await getDexieDb().data_history_config.get('paidPlanLastSeenAt');
+    const value = row?.value;
+    if (typeof value === 'string' || typeof value === 'number' || value instanceof Date) {
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+  } catch (ex) {
+    logger.warn('[DB][DATA_HISTORY] Error reading paid plan marker', ex);
+  }
+  return null;
+}
+
+async function savePaidPlanLastSeenAt(date: Date): Promise<void> {
+  await getDexieDb().data_history_config.put({ key: 'paidPlanLastSeenAt', value: date, updatedAt: new Date() });
+}
+
+/** Bounded so a pathological delete loop cannot grow the row forever */
+const TOMBSTONE_LIMIT = 1000;
+
+/**
+ * Keys of entries the user deleted while their files could not be removed (e.g. lost folder
+ * permission). Folder re-indexing skips these so a deleted entry cannot resurrect from its
+ * leftover manifest.
+ */
+async function getDeletedEntryTombstones(): Promise<string[]> {
+  try {
+    const row = await getDexieDb().data_history_config.get('deletedEntryTombstones');
+    if (Array.isArray(row?.value)) {
+      return (row.value as unknown[]).filter((key): key is string => typeof key === 'string');
+    }
+  } catch (ex) {
+    logger.warn('[DB][DATA_HISTORY] Error reading tombstones', ex);
+  }
+  return [];
+}
+
+async function addDeletedEntryTombstone(key: string): Promise<void> {
+  const existing = await getDeletedEntryTombstones();
+  const updated = [...existing.filter((existingKey) => existingKey !== key), key].slice(-TOMBSTONE_LIMIT);
+  await getDexieDb().data_history_config.put({ key: 'deletedEntryTombstones', value: updated, updatedAt: new Date() });
 }

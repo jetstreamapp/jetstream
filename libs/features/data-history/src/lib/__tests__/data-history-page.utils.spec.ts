@@ -11,7 +11,7 @@ import {
   getDataHistorySourceListItems,
   getDataHistoryStatusBadgeType,
   parseCsvToTable,
-  sortDataHistoryItems
+  sortDataHistoryItems,
 } from '../data-history-page.utils';
 
 function buildItem(overrides: Partial<DataHistoryItem> = {}): DataHistoryItem {
@@ -64,8 +64,15 @@ describe('labels and badges', () => {
 
   it('builds list items from labels', () => {
     const items = getDataHistorySourceListItems();
-    expect(items.length).toBe(Object.keys(DATA_HISTORY_SOURCE_LABELS).length);
     expect(items[0]).toEqual({ id: 'load-records', label: 'Load Records', value: 'load-records' });
+    items.forEach(({ value, label }) => expect(DATA_HISTORY_SOURCE_LABELS[value as DataHistorySource]).toBe(label));
+  });
+
+  it('omits sources no capture surface writes, so no filter can only ever return the empty state', () => {
+    const values = getDataHistorySourceListItems().map(({ value }) => value);
+    expect(values).not.toContain('load-custom-metadata');
+    // ...but the label is still available for rendering an entry that carries one
+    expect(DATA_HISTORY_SOURCE_LABELS['load-custom-metadata']).toBeTruthy();
   });
 });
 
@@ -171,8 +178,38 @@ describe('parseCsvToTable', () => {
   });
 
   it('handles a header-only CSV with no data rows', () => {
-    const { columns, rows } = parseCsvToTable('_id,_success,_errors\n');
+    const { columns, rows, truncated } = parseCsvToTable('_id,_success,_errors\n');
     expect(columns.map(({ key }) => key)).toEqual(['_id', '_success', '_errors']);
     expect(rows).toHaveLength(0);
+    expect(truncated).toBe(false);
+  });
+
+  it('caps rows at the preview limit and flags truncation', () => {
+    const csv = ['Name', ...Array.from({ length: 10 }, (_unused, index) => `row-${index}`)].join('\n');
+    const { rows, truncated } = parseCsvToTable(csv, 4);
+    expect(rows).toHaveLength(4);
+    expect(truncated).toBe(true);
+  });
+
+  it('does not flag truncation when the row count is within the limit', () => {
+    const csv = ['Name', 'a', 'b', 'c'].join('\n');
+    const { rows, truncated } = parseCsvToTable(csv, 4);
+    expect(rows).toHaveLength(3);
+    expect(truncated).toBe(false);
+  });
+
+  it('drops the trailing partial row and flags truncation when only the head of the file was read', () => {
+    // 'Wid' is a row cut mid-value by the byte cap — showing it would misrepresent the saved data
+    const { rows, truncated } = parseCsvToTable('Name,Industry\nAcme,Tech\nWid', 4, true);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ Name: 'Acme', Industry: 'Tech' });
+    expect(truncated).toBe(true);
+  });
+
+  it('still reports truncation on a partial read when the row cap already cut the data off', () => {
+    const csv = ['Name', ...Array.from({ length: 10 }, (_unused, index) => `row-${index}`)].join('\n');
+    const { rows, truncated } = parseCsvToTable(csv, 4, true);
+    expect(rows).toHaveLength(4);
+    expect(truncated).toBe(true);
   });
 });

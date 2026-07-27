@@ -9,13 +9,7 @@ import { formatDate } from 'date-fns/format';
 import { useAtom } from 'jotai';
 import { useCallback, useEffect, useRef } from 'react';
 import { useAmplitude } from '../analytics';
-import {
-  captureMassUpdateResults,
-  failMassUpdateHistory,
-  MassUpdateHistoryContext,
-  startMassUpdateHistory,
-  writeMassUpdateRequestJson,
-} from './data-history-capture';
+import { captureMassUpdateResults, MassUpdateHistoryContext, startMassUpdateHistory } from './data-history-capture';
 import { DeployResults, MetadataRow, MetadataRowConfiguration } from './mass-update-records.types';
 import { getFieldsToQuery, prepareRecords, queryAndPrepareRecordsForUpdate } from './mass-update-records.utils';
 
@@ -81,7 +75,7 @@ export function useDeployRecords(
         skipHistory,
       });
       historyCaptureRef.current[sobject] = { handle: historyHandle, batchSize, configuration };
-      writeMassUpdateRequestJson(historyHandle, records);
+      historyHandle.writeRequestJson(records);
 
       const batches = splitArrayToMaxSize(records, batchSize).map((batch) => ({
         records: batch,
@@ -212,7 +206,7 @@ export function useDeployRecords(
           };
 
           isMounted.current && onDeployResults(row.sobject, deployResults);
-          failMassUpdateHistory(historyCaptureRef.current[row.sobject]?.handle, getErrorMessage(ex));
+          historyCaptureRef.current[row.sobject]?.handle.fail(getErrorMessage(ex));
 
           tracker.error('There was an error loading data for mass record update', ex);
           logger.error('Error loading data for row', ex);
@@ -303,7 +297,7 @@ export function useDeployRecords(
         };
 
         onDeployResults(sobject, newDeployResults);
-        failMassUpdateHistory(historyCaptureRef.current[sobject]?.handle, getErrorMessage(ex));
+        historyCaptureRef.current[sobject]?.handle.fail(getErrorMessage(ex));
 
         tracker.error('There was an error loading data for mass record update', ex);
         logger.error('Error loading data for row', ex);
@@ -336,16 +330,16 @@ export function useDeployRecords(
               // Proactively capture per-record results to Data History (bulk results expire server-side).
               // Runs exactly once per deployment — the row won't re-enter this branch once `done` is set.
               const captureContext = historyCaptureRef.current[row.sobject];
-              captureMassUpdateResults({
-                handle: captureContext?.handle,
-                org,
-                jobInfo,
-                records: row.deployResults.records,
-                batchIdToIndex: row.deployResults.batchIdToIndex,
-                batchSize: captureContext?.batchSize ?? 0,
-                configuration: captureContext?.configuration ?? [],
-                processingErrorCount: row.deployResults.processingErrors.length,
-              });
+              if (captureContext) {
+                void captureMassUpdateResults({
+                  context: captureContext,
+                  org,
+                  jobInfo,
+                  records: row.deployResults.records,
+                  batchIdToIndex: row.deployResults.batchIdToIndex,
+                  processingErrorCount: row.deployResults.processingErrors.length,
+                });
+              }
             } else {
               allDone = false;
             }
@@ -361,7 +355,7 @@ export function useDeployRecords(
               processingEndTime: convertDateToLocale(new Date()),
             };
             onDeployResults(row.sobject, deployResults, true);
-            failMassUpdateHistory(historyCaptureRef.current[row.sobject]?.handle, getErrorMessage(ex));
+            historyCaptureRef.current[row.sobject]?.handle.fail(getErrorMessage(ex));
           }
         }
       }

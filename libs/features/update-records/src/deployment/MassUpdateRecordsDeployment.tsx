@@ -15,8 +15,8 @@ import {
   ToolbarItemGroup,
   Tooltip,
 } from '@jetstream/ui';
-import { DeployResults, MassUpdateRecordsDeploymentRow, MetadataRow, useDeployRecords, ViewDataHistoryLink } from '@jetstream/ui-core';
-import { dataHistoryCaptureEnabledState, selectedOrgState } from '@jetstream/ui/app-state';
+import { DeployResults, MassUpdateRecordsDeploymentRow, MetadataRow, SkipDataHistoryCheckbox, useDeployRecords } from '@jetstream/ui-core';
+import { selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtomValue, useSetAtom } from 'jotai';
 import { useAtomCallback } from 'jotai/utils';
 import isNumber from 'lodash/isNumber';
@@ -54,7 +54,6 @@ export const MassUpdateRecordsDeployment = () => {
   const [batchSizeError, setBatchSizeError] = useState<string | null>(null);
   const batchSizeInput = useIntegerInput(batchSize, setBatchSize);
   const [serialMode, setSerialMode] = useState(false);
-  const dataHistoryCaptureEnabled = useAtomValue(dataHistoryCaptureEnabledState);
   const [skipDataHistory, setSkipDataHistory] = useState(false);
   const setDeploymentState = useSetAtom(fromMassUpdateState.rowsMapState);
 
@@ -174,20 +173,14 @@ export const MassUpdateRecordsDeployment = () => {
               onBlur={batchSizeInput.handleBlur}
             />
           </Input>
-          {dataHistoryCaptureEnabled && (
-            <div>
-              <Checkbox
-                id={'skip-data-history'}
-                className="slds-m-top_x-small"
-                checked={skipDataHistory}
-                label={"Don't save this update to Data History"}
-                labelHelp="Data History keeps a local copy of your updated records and results on this device. Check this to skip saving this particular update."
-                disabled={loading}
-                onChange={setSkipDataHistory}
-              />
-              <ViewDataHistoryLink className="slds-m-top_xx-small" />
-            </div>
-          )}
+          <SkipDataHistoryCheckbox
+            operation="update"
+            className="slds-m-top_x-small"
+            checked={skipDataHistory}
+            disabled={loading}
+            showViewLink
+            onChange={setSkipDataHistory}
+          />
         </Section>
 
         {rows.map((row) => (

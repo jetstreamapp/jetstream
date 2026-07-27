@@ -1,3 +1,4 @@
+export * from './lib/bulk-result-rows';
 export * from './lib/compression';
 export * from './lib/custom-field-tooling-names';
 export * from './lib/dedupe-field-usage-where-used';

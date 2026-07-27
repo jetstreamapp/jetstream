@@ -127,7 +127,11 @@ export const DataHistory: FunctionComponent = () => {
   const [sourceFilter, setSourceFilter] = useState<string>(ALL);
   const [statusFilter, setStatusFilter] = useState<string>(ALL);
   const [pinnedOnly, setPinnedOnly] = useState(false);
-  const [detailItem, setDetailItem] = useState<DataHistoryItem | null>(null);
+  // Track the detail entry by key so the modal reflects live updates (e.g. an in-progress load that
+  // finishes while open); `detailFallback` is the open-time snapshot, used while the live query is
+  // still loading or if the entry is deleted while the modal is open.
+  const [detailKey, setDetailKey] = useState<string | null>(null);
+  const [detailFallback, setDetailFallback] = useState<DataHistoryItem | null>(null);
   const [sort, setSort] = useState<DataHistorySort>({ column: 'date', direction: 'desc' });
   const [backendStatus, setBackendStatus] = useState<DataHistoryBackendStatus | null>(null);
   const [storageWorking, setStorageWorking] = useState(false);
@@ -251,6 +255,23 @@ export const DataHistory: FunctionComponent = () => {
   // Salesforce org ids for the org column — entries only store the uniqueId + label snapshot
   const orgIdByUniqueId = useMemo(() => new Map(orgs.map(({ uniqueId, organizationId }) => [uniqueId, organizationId])), [orgs]);
   const sortedEntries = useMemo(() => (entries ? sortDataHistoryItems(entries, sort) : entries), [entries, sort]);
+  // Subscribe to the open entry directly (not through the filtered/limited list) so the modal keeps
+  // updating even when the entry no longer matches the current filters — e.g. an in-progress load
+  // that finishes while the "In Progress" status filter is active. `useLiveQuery` returns undefined
+  // while loading (and when the entry has been deleted), so the open-time snapshot fills those
+  // windows and the modal never flashes closed mid-view.
+  const liveDetailItem = useLiveQuery(() => (detailKey ? dataHistoryDb.getEntry(detailKey) : undefined), [detailKey]);
+  const detailItem = detailKey ? (liveDetailItem ?? detailFallback) : null;
+
+  function openDetail(item: DataHistoryItem) {
+    setDetailKey(item.key);
+    setDetailFallback(item);
+  }
+
+  function closeDetail() {
+    setDetailKey(null);
+    setDetailFallback(null);
+  }
 
   function handleSortColumn(column: DataHistorySortColumn) {
     setSort((currentSort) =>
@@ -292,7 +313,11 @@ export const DataHistory: FunctionComponent = () => {
           content: 'This will permanently delete this history entry and its saved data from this device. This cannot be undone.',
         })
       ) {
-        await deleteDataHistoryEntry(item.key);
+        const { deleted } = await deleteDataHistoryEntry(item.key);
+        if (!deleted) {
+          fireToast({ type: 'warning', message: 'This entry is still being written — try again once the load finishes.' });
+          return;
+        }
         trackEvent(ANALYTICS_KEYS.data_history_delete, { source: item.source });
       }
     } catch (ex) {
@@ -442,7 +467,10 @@ export const DataHistory: FunctionComponent = () => {
             history, use the Jetstream web or desktop app.
           </ScopedNotification>
         )}
-        {!captureEnabled && (
+        {/* Gated on initialization: the atom defaults to false, so rendering earlier would flash a
+            false "disabled" warning on a hard refresh (and offer an Enable button that cannot
+            persist the setting yet) */}
+        {dataHistoryInitialized && !captureEnabled && (
           <ScopedNotification theme="warning" className="slds-m-vertical_x-small">
             <Grid verticalAlign="center">
               <span>Data History is currently disabled — new data modifications are not being saved.</span>
@@ -538,7 +566,7 @@ export const DataHistory: FunctionComponent = () => {
                       <button
                         className="slds-button slds-button_neutral slds-m-right_x-small"
                         onClick={() => {
-                          setDetailItem(item);
+                          openDetail(item);
                           trackEvent(ANALYTICS_KEYS.data_history_view_detail, { source: item.source });
                         }}
                       >
@@ -592,8 +620,9 @@ export const DataHistory: FunctionComponent = () => {
 
         {detailItem && (
           <DataHistoryDetailModal
+            key={detailItem.key}
             item={detailItem}
-            onClose={() => setDetailItem(null)}
+            onClose={closeDetail}
             onDownload={(kind: DataHistoryFileKind) =>
               trackEvent(ANALYTICS_KEYS.data_history_download, { kind, source: detailItem.source })
             }

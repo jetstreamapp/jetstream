@@ -28,7 +28,12 @@ import { desktopRoutes } from '../controllers/desktop.routes';
 import { getOrgFromHeaderOrQuery, initApiConnection } from '../utils/route.utils';
 import { openExternalSafe } from '../utils/url.utils';
 import { AuthResponseSuccess, logout, verifyAuthToken } from './api.service';
-import { getDataHistoryFolderPath, handleDataHistoryOp, setDataHistoryFolderPath } from './data-history-file.service';
+import {
+  abortDataHistoryStreamsForSender,
+  getDataHistoryFolderPath,
+  handleDataHistoryOp,
+  setDataHistoryFolderPath,
+} from './data-history-file.service';
 import { deepLink } from './deep-link.service';
 import { downloadAndZipFilesToDisk, downloadBulkApiFileAndSaveToDisk } from './file-download.service';
 import * as dataService from './persistence.service';
@@ -81,8 +86,32 @@ function startDeepLinkFlow(action: string, handleCallback: (params: Record<strin
   pendingDeepLinkFlows.set(action, cancel);
 }
 
-const handleDataHistoryRequest: MainIpcHandler<'dataHistoryRequest'> = async (_event, payload) => {
-  return await handleDataHistoryOp(payload);
+/** webContents ids that already have the stream-cleanup listeners bound (see below) */
+const dataHistoryStreamOwners = new Set<number>();
+
+/**
+ * A renderer that reloads or closes while a history capture is streaming never sends
+ * `stream-close`/`stream-abort`, so its main-process write streams would stay open for the life of
+ * the app — leaking file handles and permanently blocking "Change Folder". Bind teardown once per
+ * webContents. `did-navigate` fires only for real document navigations (SPA routing emits
+ * `did-navigate-in-page` instead), so in-app navigation never cancels an in-flight capture.
+ */
+function registerDataHistoryStreamCleanup(sender: Electron.WebContents): void {
+  if (dataHistoryStreamOwners.has(sender.id)) {
+    return;
+  }
+  dataHistoryStreamOwners.add(sender.id);
+  const abortStreams = () => void abortDataHistoryStreamsForSender(sender.id);
+  sender.on('did-navigate', abortStreams);
+  sender.once('destroyed', () => {
+    dataHistoryStreamOwners.delete(sender.id);
+    abortStreams();
+  });
+}
+
+const handleDataHistoryRequest: MainIpcHandler<'dataHistoryRequest'> = async (event, payload) => {
+  registerDataHistoryStreamCleanup(event.sender);
+  return await handleDataHistoryOp(payload, { senderId: event.sender.id });
 };
 
 const handleGetDataHistoryFolder: MainIpcHandler<'getDataHistoryFolder'> = async () => {
@@ -90,6 +119,12 @@ const handleGetDataHistoryFolder: MainIpcHandler<'getDataHistoryFolder'> = async
 };
 
 const handleSetDataHistoryFolder: MainIpcHandler<'setDataHistoryFolder'> = async (_event, { folderPath }) => {
+  // Only accept folders the user actually picked through the OS dialog this session — the IPC
+  // surface is exposed on `window`, so without this a compromised renderer could silently redirect
+  // all history (existing and future Salesforce data) to any path it likes.
+  if (typeof folderPath !== 'string' || !userSelectedFolderPaths.has(folderPath)) {
+    throw new Error('The data history folder must be chosen through the folder picker');
+  }
   return await setDataHistoryFolderPath(folderPath);
 };
 
@@ -147,6 +182,9 @@ export function registerIpc(): void {
   registerHandler('openGooglePicker', handleOpenGooglePickerEvent);
 }
 
+/** Folder paths the user picked via the OS dialog this session — see `handleSetDataHistoryFolder` */
+const userSelectedFolderPaths = new Set<string>();
+
 const handleSelectFolderEvent: MainIpcHandler<'selectFolder'> = async () => {
   const result = await dialog.showOpenDialog({
     buttonLabel: 'Select Folder',
@@ -156,6 +194,7 @@ const handleSelectFolderEvent: MainIpcHandler<'selectFolder'> = async () => {
   if (result.canceled) {
     return null;
   }
+  userSelectedFolderPaths.add(result.filePaths[0]);
   return result.filePaths[0];
 };
 

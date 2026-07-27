@@ -1,5 +1,4 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import {
   AutoFullHeightContainer,
   CheckboxToggle,
@@ -114,7 +113,8 @@ export function AdditionalSettings() {
             all your Jetstream data.
           </p>
 
-          <DataHistorySettingsSection viewHistoryLinkHref={APP_ROUTES.DATA_HISTORY.ROUTE} />
+          {/* No link into the app — this page has no Salesforce `host` param, so Data History is reached from the app nav */}
+          <DataHistorySettingsSection hideViewHistoryLink />
         </AutoFullHeightContainer>
       </Page>
     </div>

@@ -128,6 +128,24 @@ describe('runDataHistoryRetentionSweep', () => {
     expect(await dataHistoryDb.getEntry(newest.key)).toBeTruthy();
   });
 
+  it('does not delete every unpinned entry when one row has a corrupt sizeBytes', async () => {
+    const MB_200 = 200 * 1024 * 1024;
+    const oldest = await seedEntry({ createdAt: daysAgo(30), sizeBytes: MB_200 });
+    // A non-numeric sizeBytes used to poison the running total with NaN, making the loop's
+    // "under the cap" exit condition permanently false and wiping out ALL unpinned history
+    const corrupt = await seedEntry({ createdAt: daysAgo(20), sizeBytes: undefined as unknown as number });
+    const middle = await seedEntry({ createdAt: daysAgo(10), sizeBytes: MB_200 });
+    const newest = await seedEntry({ createdAt: daysAgo(1), sizeBytes: MB_200 });
+
+    await runDataHistoryRetentionSweep();
+
+    // 600MB of countable bytes > 500MB cap -> only the oldest needs to go
+    expect(await dataHistoryDb.getEntry(oldest.key)).toBeUndefined();
+    expect(await dataHistoryDb.getEntry(corrupt.key)).toBeTruthy();
+    expect(await dataHistoryDb.getEntry(middle.key)).toBeTruthy();
+    expect(await dataHistoryDb.getEntry(newest.key)).toBeTruthy();
+  });
+
   it('respects tightened user retention settings (clamped to tier)', async () => {
     const recentButPastCustomWindow = await seedEntry({ createdAt: daysAgo(10) });
     const veryFresh = await seedEntry({ createdAt: daysAgo(1) });
@@ -148,5 +166,74 @@ describe('runDataHistoryRetentionSweep', () => {
 
     expect(fakeStore.files.has('org-1-folder/dh_orphan/results.csv.gz')).toBe(false);
     expect(fakeStore.files.has(kept.files[0].path)).toBe(true);
+  });
+
+  it('leaves rowless entry dirs alone in user-visible backends — they are recoverable, not garbage', async () => {
+    // e.g. a reconnected folder after clearing site data, or a folder shared by two devices
+    fakeStore = new FakeFileStore('directory', { compressFiles: false, userVisibleFiles: true, supportsReindex: true });
+    setHistoryFileStoreForTests(fakeStore);
+    await fakeStore.writeFile('org-1-folder/dh_from_other_device/results.csv', TEXT_ENCODER.encode('data'), { gzip: false });
+
+    await runDataHistoryRetentionSweep();
+
+    expect(fakeStore.files.has('org-1-folder/dh_from_other_device/results.csv')).toBe(true);
+  });
+
+  it('never prunes an entry that is still being written, even past the count cap', async () => {
+    const inFlight = await seedEntry({ status: 'in-progress', startedAt: new Date(), createdAt: daysAgo(16), withFile: true });
+    const entries: DataHistoryItem[] = [];
+    for (let i = 0; i < 16; i++) {
+      entries.push(await seedEntry({ createdAt: daysAgo(15 - i) }));
+    }
+
+    // 17 entries, cap 15 -> the two oldest NON-in-flight entries go; the in-flight load survives
+    await runDataHistoryRetentionSweep();
+
+    expect(await dataHistoryDb.getEntry(inFlight.key)).toBeTruthy();
+    expect(fakeStore.files.has(inFlight.files[0].path)).toBe(true);
+    expect(await dataHistoryDb.getEntry(entries[0].key)).toBeUndefined();
+    expect(await dataHistoryDb.getEntry(entries[1].key)).toBeUndefined();
+    expect(await dataHistoryDb.getEntryCount()).toBe(15);
+  });
+
+  it('migrates entries stranded on a non-active backend onto the active one', async () => {
+    // e.g. captured in a long-lived tab that missed a backend switch. One fake store stands in for
+    // every backend here, so give it user-visible capabilities to model the folder the entry is
+    // stranded in — the copy back to browser storage must leave the user's files where they are.
+    fakeStore = new FakeFileStore('opfs', { userVisibleFiles: true });
+    setHistoryFileStoreForTests(fakeStore);
+    const stranded = await seedEntry({ storageBackend: 'directory', withFile: true });
+
+    await runDataHistoryRetentionSweep();
+
+    expect((await dataHistoryDb.getEntry(stranded.key))?.storageBackend).toBe('opfs');
+    expect(fakeStore.files.has(stranded.files[0].path)).toBe(true);
+  });
+
+  it('does not treat file-less (inline) entries as stranded, whatever backend they are stamped with', async () => {
+    // They have no bytes on ANY backend, so re-homing them is pure churn — a full table re-read
+    // plus a write per entry on every app start
+    const inlineOnly = await seedEntry({ storageBackend: 'directory', inlinePayload: new Uint8Array([1, 2, 3]), sizeBytes: 3 });
+
+    await runDataHistoryRetentionSweep();
+
+    expect((await dataHistoryDb.getEntry(inlineOnly.key))?.storageBackend).toBe('directory');
+  });
+
+  it('does not delete the directory of an entry captured after the sweep took its snapshot', async () => {
+    // Steps 1-4 read one snapshot, but the orphan sweep must NOT: a capture landing mid-sweep
+    // (another tab) has a row yet is absent from the snapshot, and deleting its dir would lose it.
+    let lateEntryPath = '';
+    const listEntryDirs = fakeStore.listEntryDirs.bind(fakeStore);
+    fakeStore.listEntryDirs = async () => {
+      const late = await seedEntry({ key: 'dh_late_capture', withFile: true });
+      lateEntryPath = late.files[0].path;
+      return await listEntryDirs();
+    };
+
+    await runDataHistoryRetentionSweep();
+
+    expect(await dataHistoryDb.getEntry('dh_late_capture')).toBeTruthy();
+    expect(fakeStore.files.has(lateEntryPath)).toBe(true);
   });
 });
