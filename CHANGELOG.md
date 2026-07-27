@@ -1,5 +1,15 @@
 # Changelog
 
+## [10.7.2](https://github.com/jetstreamapp/jetstream/compare/v10.7.1...v10.7.2) (2026-07-27)
+
+### Features
+
+* add feature flags support to desktop and web extensions ([b0f02ce](https://github.com/jetstreamapp/jetstream/commit/b0f02ce344096e799cac9540a63abfc2919e92f6))
+
+### Bug Fixes
+
+* Use composite API by default for all queries ([800cce6](https://github.com/jetstreamapp/jetstream/commit/800cce6fbd4172c4c3e47f3081b4c99a28d2d928))
+
 ## [10.7.1](https://github.com/jetstreamapp/jetstream/compare/v10.7.0...v10.7.1) (2026-07-22)
 
 ### Features
