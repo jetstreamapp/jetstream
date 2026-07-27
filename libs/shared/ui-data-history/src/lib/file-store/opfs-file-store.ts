@@ -5,7 +5,6 @@ import type {
   HistoryWorkerRequestBody,
   HistoryWorkerResponse,
   ListEntryDirsResult,
-  OpenStreamResult,
   StreamCloseResult,
   WriteFileResult,
 } from './worker-messages';
@@ -29,6 +28,13 @@ export class OpfsFileStore implements HistoryFileStore {
 
   private worker: Worker | null = null;
   private nextRequestId = 1;
+  // Stream ids are allocated CLIENT-side: a respawned worker (crash or dispose) restarts its own
+  // counters, so worker-side allocation could hand a fresh stream an id a stale handle still holds —
+  // letting the stale handle silently append into the wrong entry's file. With client ids a stale
+  // handle just fails with "Unknown streamId".
+  private nextStreamId = 1;
+  private openStreamIds = new Set<number>();
+  private disposeRequested = false;
   private pendingRequests = new Map<number, { resolve: (value: unknown) => void; reject: (reason: Error) => void }>();
 
   async init(): Promise<void> {
@@ -36,16 +42,39 @@ export class OpfsFileStore implements HistoryFileStore {
   }
 
   async createWriteStream(relativePath: string, options: { gzip: boolean }): Promise<HistoryWriteStream> {
-    const { streamId } = (await this.request({ op: 'open-stream', path: relativePath, gzip: options.gzip })) as OpenStreamResult;
+    const streamId = this.nextStreamId++;
+    const releaseStream = () => {
+      this.openStreamIds.delete(streamId);
+      this.maybeTerminate();
+    };
+    // Register BEFORE the round trip: `maybeTerminate` runs synchronously in `onmessage` the moment
+    // the open-stream response settles — registering only afterwards (a later microtask) leaves a
+    // window where a dispose() requested during the round trip terminates the worker out from under
+    // the stream that just opened, and its next write fails with "Unknown streamId".
+    this.openStreamIds.add(streamId);
+    try {
+      await this.request({ op: 'open-stream', streamId, path: relativePath, gzip: options.gzip });
+    } catch (ex) {
+      releaseStream();
+      throw ex;
+    }
     return {
       write: async (chunk: Uint8Array) => {
         await this.request({ op: 'stream-write', streamId, bytes: chunk }, [chunk.buffer as ArrayBuffer]);
       },
       close: async () => {
-        return (await this.request({ op: 'stream-close', streamId })) as StreamCloseResult;
+        try {
+          return (await this.request({ op: 'stream-close', streamId })) as StreamCloseResult;
+        } finally {
+          releaseStream();
+        }
       },
       abort: async () => {
-        await this.request({ op: 'stream-abort', streamId });
+        try {
+          await this.request({ op: 'stream-abort', streamId });
+        } finally {
+          releaseStream();
+        }
       },
     };
   }
@@ -53,9 +82,10 @@ export class OpfsFileStore implements HistoryFileStore {
   async writeFile(relativePath: string, data: Uint8Array | Blob, options: { gzip: boolean }): Promise<{ bytes: number }> {
     // ArrayBuffer.isView instead of instanceof — realm-safe (instanceof fails cross-realm in jsdom)
     const bytes = ArrayBuffer.isView(data) ? data : new Uint8Array(await data.arrayBuffer());
-    return (await this.request({ op: 'write-file', path: relativePath, gzip: options.gzip, bytes }, [
-      bytes.buffer as ArrayBuffer,
-    ])) as WriteFileResult;
+    // NOT transferred: no other backend consumes the caller's buffer, and detaching it here would
+    // make buffer reuse fail only on OPFS in production. Stream chunks (above) stay transferred —
+    // they are freshly allocated per chunk.
+    return (await this.request({ op: 'write-file', path: relativePath, gzip: options.gzip, bytes })) as WriteFileResult;
   }
 
   async readFile(relativePath: string, options: { gunzip: boolean }): Promise<Blob> {
@@ -79,6 +109,25 @@ export class OpfsFileStore implements HistoryFileStore {
     }
   }
 
+  /**
+   * Release the worker once it is idle. Called when the factory drops this store on a backend
+   * switch — but a capture handle created before the switch still holds this instance, so
+   * termination is DEFERRED until its streams close and no requests are pending. Terminating
+   * eagerly would reject the in-flight capture's writes (failing its entry) and discard the
+   * worker's open-stream state. Idempotent.
+   */
+  dispose(): void {
+    this.disposeRequested = true;
+    this.maybeTerminate();
+  }
+
+  private maybeTerminate(): void {
+    if (this.disposeRequested && this.openStreamIds.size === 0 && this.pendingRequests.size === 0) {
+      this.worker?.terminate();
+      this.worker = null;
+    }
+  }
+
   private getWorker(): Worker {
     if (!this.worker) {
       this.worker = new Worker(new URL('./history-storage.worker.ts', import.meta.url), {
@@ -97,6 +146,7 @@ export class OpfsFileStore implements HistoryFileStore {
         } else {
           pending.reject(new Error(response.error));
         }
+        this.maybeTerminate();
       };
       this.worker.onerror = (event) => {
         logger.warn('[DATA_HISTORY][OPFS] Storage worker crashed, rejecting pending requests', event.message);
@@ -104,6 +154,10 @@ export class OpfsFileStore implements HistoryFileStore {
         const pending = Array.from(this.pendingRequests.values());
         this.pendingRequests.clear();
         pending.forEach(({ reject }) => reject(error));
+        // The crashed worker took its open-stream state with it, so those ids can never be released
+        // by close()/abort(). Leaving them registered would block `maybeTerminate` forever and leak
+        // the respawned worker after a backend switch.
+        this.openStreamIds.clear();
         this.worker?.terminate();
         this.worker = null;
       };
@@ -116,8 +170,11 @@ export class OpfsFileStore implements HistoryFileStore {
       try {
         const worker = this.getWorker();
         const id = this.nextRequestId++;
-        this.pendingRequests.set(id, { resolve, reject });
+        // Register only after a successful postMessage — if it throws synchronously (e.g. DataCloneError
+        // or a detached transfer buffer) there is no worker reply coming, so a pre-registered entry
+        // would leak. The worker's onmessage can't run until this call stack unwinds, so this is safe.
         worker.postMessage({ ...message, id }, transfer || []);
+        this.pendingRequests.set(id, { resolve, reject });
       } catch (ex) {
         reject(ex instanceof Error ? ex : new Error(String(ex)));
       }

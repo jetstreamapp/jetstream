@@ -30,28 +30,15 @@ import {
   Select,
   Spinner,
 } from '@jetstream/ui';
-import { useAmplitude, ViewDataHistoryLink } from '@jetstream/ui-core';
-import {
-  applicationCookieState,
-  dataHistoryCaptureEnabledState,
-  googleDriveAccessState,
-  selectedOrgState,
-  selectedOrgType,
-} from '@jetstream/ui/app-state';
-import { startDataHistoryEntry } from '@jetstream/ui/data-history';
+import { SkipDataHistoryCheckbox, useAmplitude } from '@jetstream/ui-core';
+import { applicationCookieState, googleDriveAccessState, selectedOrgState, selectedOrgType } from '@jetstream/ui/app-state';
+import { buildDataHistoryInputSource, DataHistoryEntryHandle, startDataHistoryEntry } from '@jetstream/ui/data-history';
 import { useAtomValue } from 'jotai';
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
 import LoadRecordsMultiObjectErrors from './LoadRecordsMultiObjectErrors';
 import LoadRecordsMultiObjectResults from './LoadRecordsMultiObjectResults';
-import {
-  buildMultiObjectInputSource,
-  DataHistoryHandlePromise,
-  finalizeMultiObjectHistory,
-  getMultiObjectDistinctSobjects,
-  getMultiObjectOperations,
-  writeMultiObjectRequestJson,
-} from './data-history-capture';
+import { finalizeMultiObjectHistory, getMultiObjectDistinctSobjects, getMultiObjectOperations } from './data-history-capture';
 import { buildMultiObjectRequestExport } from './load-records-multi-object-results';
 import { LoadMultiObjectRequestWithResult } from './load-records-multi-object-types';
 import useLoadFile from './useLoadFile';
@@ -73,10 +60,8 @@ export const LoadRecordsMultiObject = () => {
   const [inputFileType, setInputFileType] = useState<LocalOrGoogle>();
   const [inputGoogleFileId, setInputGoogleFileId] = useState<Maybe<string>>(null);
   const [inputFileData, setInputFileData] = useState<XLSX.WorkBook>();
-  // Data History — seeded during app init so the opt-out checkbox renders synchronously
-  const dataHistoryCaptureEnabled = useAtomValue(dataHistoryCaptureEnabledState);
   const [skipDataHistory, setSkipDataHistory] = useState(false);
-  const historyHandleRef = useRef<DataHistoryHandlePromise | null>(null);
+  const historyHandleRef = useRef<DataHistoryEntryHandle | null>(null);
   const historyFinalizedRef = useRef(false);
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
@@ -146,7 +131,7 @@ export const LoadRecordsMultiObject = () => {
       return;
     }
     historyFinalizedRef.current = true;
-    finalizeMultiObjectHistory(historyHandleRef.current, loadResultsData);
+    void finalizeMultiObjectHistory(historyHandleRef.current, loadResultsData);
   }, [dataLoadLoading, loadResultsData, loadStarted]);
 
   useEffect(() => {
@@ -227,7 +212,7 @@ export const LoadRecordsMultiObject = () => {
         operationsByObject: operations.byObject,
         mixedOperations: operations.mixed,
       },
-      inputSource: buildMultiObjectInputSource({
+      inputSource: buildDataHistoryInputSource({
         filename: inputFilename,
         filenameType: inputFileType,
         googleFileId: inputGoogleFileId,
@@ -236,7 +221,7 @@ export const LoadRecordsMultiObject = () => {
     });
     historyHandleRef.current = historyHandle;
     historyFinalizedRef.current = false;
-    writeMultiObjectRequestJson(historyHandle, buildMultiObjectRequestExport(dataToLoad));
+    historyHandle.writeRequestJson(buildMultiObjectRequestExport(dataToLoad));
   }
 
   function handleStartOver() {
@@ -341,20 +326,14 @@ export const LoadRecordsMultiObject = () => {
             <div className="slds-form-element__help slds-truncate">
               Choose an Excel file that is in the correct format from the provided template.
             </div>
-            {dataHistoryCaptureEnabled && (
-              <div>
-                <Checkbox
-                  id={'skip-data-history'}
-                  className="slds-m-top_x-small"
-                  checked={skipDataHistory}
-                  label={"Don't save this load to Data History"}
-                  labelHelp="Data History keeps a local copy of your loaded records and results on this device. Check this to skip saving this particular load."
-                  disabled={loadStarted || dataLoadLoading}
-                  onChange={setSkipDataHistory}
-                />
-                <ViewDataHistoryLink className="slds-m-top_xx-small" />
-              </div>
-            )}
+            <SkipDataHistoryCheckbox
+              operation="load"
+              className="slds-m-top_x-small"
+              checked={skipDataHistory}
+              disabled={loadStarted || dataLoadLoading}
+              showViewLink
+              onChange={setSkipDataHistory}
+            />
           </fieldset>
         </Grid>
 

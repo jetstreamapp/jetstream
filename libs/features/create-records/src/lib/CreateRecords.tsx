@@ -216,8 +216,21 @@ export const CreateRecords = () => {
         if (isErrorResult) {
           setFormErrors(handleEditFormErrorResponse(recordResponse));
         } else {
-          retrievedRecord = (await sobjectOperation(selectedOrg, selectedObject.name, 'retrieve', { ids: [recordResponse.id] }))[0];
-          setCreatedRecord({ id: recordResponse.id, sobject: selectedObject.name, record: retrievedRecord });
+          // The record WAS created at this point — a failure re-fetching it for display must not fall
+          // through to the outer catch (which reports the create itself as failed) or skip history capture.
+          try {
+            retrievedRecord = (await sobjectOperation(selectedOrg, selectedObject.name, 'retrieve', { ids: [recordResponse.id] }))[0];
+            setCreatedRecord({ id: recordResponse.id, sobject: selectedObject.name, record: retrievedRecord });
+          } catch (ex) {
+            logger.warn('Record was created but could not be re-fetched', ex);
+            if (isMounted.current) {
+              setFormErrors({
+                hasErrors: true,
+                fieldErrors: {},
+                generalErrors: [`Your record was created (${recordResponse.id}), but it could not be reloaded for display.`],
+              });
+            }
+          }
         }
       }
 
@@ -240,6 +253,20 @@ export const CreateRecords = () => {
       if (isMounted.current) {
         setFormErrors({ hasErrors: true, fieldErrors: {}, generalErrors: [getErrorMessage(ex) || 'An unknown problem has occurred.'] });
       }
+      // A THROWN create (network error, expired session) is still recorded — the request may even
+      // have applied server-side (e.g. a timeout). Graceful error results are captured above.
+      void recordDataHistoryAction({
+        org: selectedOrg,
+        source: 'create-record',
+        operation: 'create',
+        api: 'collections',
+        sobjects: [selectedObject.name],
+        request: record,
+        results: { error: getErrorMessage(ex) },
+        counts: { total: 1, success: 0, failure: 1 },
+        status: 'failed',
+        errorMessage: getErrorMessage(ex),
+      });
       trackEvent(ANALYTICS_KEYS.create_record_save, { success: false });
     }
     if (isMounted.current) {

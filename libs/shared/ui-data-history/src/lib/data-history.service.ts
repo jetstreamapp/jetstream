@@ -12,11 +12,19 @@ import {
   DataHistorySettings,
   DataHistorySource,
   DataHistoryStatus,
+  DataHistoryStorageBackend,
+  LocalOrGoogle,
+  Maybe,
   SalesforceOrgUi,
 } from '@jetstream/types';
 import { dataHistoryDb } from '@jetstream/ui/db';
 import { serializeRowsToCsvChunks } from './csv-utils';
-import { DATA_HISTORY_INLINE_PAYLOAD_MAX_BYTES, DataHistoryTierLimits, getDataHistoryTierLimits } from './data-history-limits';
+import {
+  DATA_HISTORY_INLINE_PAYLOAD_MAX_BYTES,
+  DATA_HISTORY_PAID_TIER_GRACE_MS,
+  DataHistoryTierLimits,
+  getDataHistoryTierLimits,
+} from './data-history-limits';
 import { buildManifestJson } from './data-history-manifest';
 import { pruneEntryCountOverage, runDataHistoryRetentionSweep } from './data-history-retention';
 import {
@@ -25,7 +33,10 @@ import {
   getEffectiveSettings,
   getStoragePersisted,
   getTierLimits,
+  isEntryLikelyInFlight,
   isPersistentStoragePromptEligible,
+  markEntryActive,
+  markEntryInactive,
   requestPersistentStorage,
   requestPersistOnce,
   setTierLimits,
@@ -40,9 +51,10 @@ export { getStoragePersisted, isPersistentStoragePromptEligible, requestPersiste
  *
  * FAILURE-ISOLATION RULE (the top regression risk of this feature): history capture must NEVER
  * break a user's data operation. Every public capture function catches internally, logs, and
- * resolves — `startDataHistoryEntry` returns null instead of throwing, and every
+ * resolves — `startDataHistoryEntry` always returns a usable handle instead of throwing, and every
  * `DataHistoryEntryHandle` method routes through an internal queue whose errors mark the entry
- * failed rather than propagating to the caller.
+ * failed rather than propagating to the caller. Callers therefore never null-check, never await on
+ * a critical path, and never need their own try/catch around capture.
  */
 
 const TEXT_ENCODER = new TextEncoder();
@@ -79,6 +91,27 @@ export interface RecordDataHistoryActionOptions extends Omit<StartDataHistoryEnt
   errorMessage?: string;
 }
 
+/**
+ * `inputSource` for a load started from a file — shared by every file-based load surface so the
+ * google/local distinction is derived one way.
+ */
+export function buildDataHistoryInputSource({
+  filename,
+  filenameType,
+  googleFileId,
+}: {
+  filename: Maybe<string>;
+  filenameType: Maybe<LocalOrGoogle>;
+  googleFileId: Maybe<string>;
+}): DataHistoryInputSource {
+  const isGoogle = filenameType === 'google';
+  return {
+    type: isGoogle ? 'google' : 'local',
+    fileName: filename ?? undefined,
+    googleFileId: isGoogle ? (googleFileId ?? undefined) : undefined,
+  };
+}
+
 export interface DataHistoryStorageHealth {
   entryCount: number;
   usedBytes: number;
@@ -95,11 +128,19 @@ export interface DataHistoryStorageHealth {
  * Initialize the feature for the session. Establishes tier limits and kicks off the retention/
  * reconcile sweep in the background when any history exists. Safe to call multiple times (e.g.
  * when the ability/profile changes). Never throws.
+ *
+ * Returns whether capture ended up enabled, which is the one thing every caller needs next (to seed
+ * `dataHistoryCaptureEnabledState` so feature UI can read it synchronously).
+ *
+ * `hasPaidPlan` is the WEB app's paid signal. Desktop, the browser extension and canvas omit it —
+ * `getDataHistoryTierLimits` grants them the top tier from platform detection.
  */
-export async function initDataHistory(options: { hasPaidPlan: boolean }): Promise<void> {
+export async function initDataHistory(options?: { hasPaidPlan?: boolean }): Promise<{ captureEnabled: boolean }> {
   try {
-    setTierLimits(getDataHistoryTierLimits(options));
-    if (await isDataHistoryCaptureEnabled()) {
+    const hasPaidPlan = await resolvePaidPlanWithGrace(options?.hasPaidPlan ?? false);
+    setTierLimits(getDataHistoryTierLimits({ hasPaidPlan }));
+    const captureEnabled = await isDataHistoryCaptureEnabled();
+    if (captureEnabled) {
       // Protect history from automatic browser eviction — done on the user's behalf, no setting
       void requestPersistOnce();
     }
@@ -107,8 +148,29 @@ export async function initDataHistory(options: { hasPaidPlan: boolean }): Promis
     if (entryCount > 0) {
       void runDataHistoryRetentionSweep();
     }
+    return { captureEnabled };
   } catch (ex) {
     logger.warn('[DATA_HISTORY] Error initializing data history', ex);
+    return { captureEnabled: false };
+  }
+}
+
+/**
+ * Free-tier limits are enforced DESTRUCTIVELY (the sweep deletes all but the newest entries and
+ * clamps retention), so a paid signal that disappears — PAST_DUE from an expired card, a lapsed
+ * renewal — keeps paid limits for a grace window instead of deleting up to a year of history over
+ * a billing hiccup. Users who were never paid are unaffected (no marker exists).
+ */
+async function resolvePaidPlanWithGrace(hasPaidPlan: boolean): Promise<boolean> {
+  try {
+    if (hasPaidPlan) {
+      await dataHistoryDb.savePaidPlanLastSeenAt(new Date());
+      return true;
+    }
+    const lastSeenAt = await dataHistoryDb.getPaidPlanLastSeenAt();
+    return !!lastSeenAt && Date.now() - lastSeenAt.getTime() < DATA_HISTORY_PAID_TIER_GRACE_MS;
+  } catch {
+    return hasPaidPlan;
   }
 }
 
@@ -128,20 +190,49 @@ export async function isDataHistoryCaptureEnabled(): Promise<boolean> {
 }
 
 /**
- * Begin a history entry for a long-running flow (data load, mass update). Returns null when
- * history is disabled, opted out for this run, not initialized, or on any internal failure —
- * callers must tolerate null silently (optional chaining is the expected call pattern).
+ * Begin a history entry for a long-running flow (data load, mass update). Always returns a usable
+ * handle — when history is disabled, opted out for this run, not initialized, or the entry cannot be
+ * created, the handle simply captures nothing. Callers never null-check and never await this.
  */
-export async function startDataHistoryEntry(options: StartDataHistoryEntryOptions): Promise<DataHistoryEntryHandle | null> {
-  try {
-    if (options.skipHistory || !(await isDataHistoryCaptureEnabled())) {
-      return null;
-    }
-    const store = await getHistoryFileStore();
-    const orgFolder = await getOrgFolderName(options.org.uniqueId);
+export function startDataHistoryEntry(options: StartDataHistoryEntryOptions): DataHistoryEntryHandle {
+  return new DataHistoryEntryHandle(options);
+}
+
+/**
+ * Handle for an in-flight history entry. All methods are queued and fire-and-forget safe: any
+ * internal error marks the entry `failed` and subsequent calls become no-ops — nothing ever
+ * rejects into the calling flow. Await individual calls (or `flush()`) only when sequencing
+ * matters, e.g. in tests.
+ *
+ * The entry row is created by the first queued task rather than by the constructor, so the handle is
+ * available synchronously; `key` is valid immediately (a retry can reference it as its `parentKey`
+ * without awaiting anything).
+ */
+export class DataHistoryEntryHandle {
+  readonly key: string;
+
+  /** True once any capture step failed — `recordDataHistoryAction` uses this for all-or-nothing cleanup */
+  get didFail(): boolean {
+    return this.failed;
+  }
+
+  private item: DataHistoryItem;
+  private orgFolder = '';
+  /** Resolved by the creation task — null means nothing is being captured for this entry */
+  private store: HistoryFileStore | null = null;
+  private queue: Promise<void>;
+  private capturing = true;
+  private failed = false;
+  private finished = false;
+  private resultsStream: HistoryWriteStream | null = null;
+  private resultsHeaderWritten = false;
+  private resultsRowCount = 0;
+
+  constructor(options: StartDataHistoryEntryOptions) {
     const now = new Date();
-    const item: DataHistoryItem = {
-      key: dataHistoryDb.generateKey(),
+    this.key = dataHistoryDb.generateKey();
+    this.item = {
+      key: this.key,
       org: options.org.uniqueId,
       orgLabel: options.org.label || options.org.uniqueId,
       source: options.source,
@@ -155,7 +246,9 @@ export async function startDataHistoryEntry(options: StartDataHistoryEntryOption
       jobId: options.jobId,
       parentKey: options.parentKey,
       files: [],
-      storageBackend: store.type,
+      // Placeholder until the creation task resolves the active store — the row is never saved
+      // before that happens, so no row can be persisted with the wrong stamp.
+      storageBackend: 'opfs',
       sizeBytes: 0,
       inlinePayload: null,
       pinned: false,
@@ -166,58 +259,31 @@ export async function startDataHistoryEntry(options: StartDataHistoryEntryOption
       createdAt: now,
       updatedAt: now,
     };
-    await dataHistoryDb.saveEntry(item);
-    void requestPersistOnce();
-    void pruneEntryCountOverage();
-    return new DataHistoryEntryHandle(item, orgFolder, store);
-  } catch (ex) {
-    logger.warn('[DATA_HISTORY] Unable to start history entry', ex);
-    return null;
-  }
-}
-
-/**
- * Handle for an in-flight history entry. All methods are queued and fire-and-forget safe: any
- * internal error marks the entry `failed` and subsequent calls become no-ops — nothing ever
- * rejects into the calling flow. Await individual calls (or `flush()`) only when sequencing
- * matters, e.g. in tests.
- */
-export class DataHistoryEntryHandle {
-  readonly key: string;
-
-  private item: DataHistoryItem;
-  private readonly orgFolder: string;
-  private readonly store: HistoryFileStore;
-  private queue: Promise<void> = Promise.resolve();
-  private failed = false;
-  private finished = false;
-  private resultsStream: HistoryWriteStream | null = null;
-  private resultsHeaderWritten = false;
-  private resultsRowCount = 0;
-
-  constructor(item: DataHistoryItem, orgFolder: string, store: HistoryFileStore) {
-    this.item = item;
-    this.key = item.key;
-    this.orgFolder = orgFolder;
-    this.store = store;
+    // Guard the entry against a concurrent backend migration until the handle finishes/fails
+    markEntryActive(this.key);
+    this.queue = this.createEntry(options);
   }
 
   /** Persist the parsed input rows as `input.csv.gz` */
   writeInputRows(rows: Record<string, unknown>[], header: string[]): Promise<void> {
-    return this.run(async () => {
-      const fileName = getDataHistoryFileName('input.csv', this.compressed);
-      const stream = await this.store.createWriteStream(this.filePath(fileName), { gzip: this.compressed });
+    return this.run(async (store) => {
+      if (rows.length === 0 || header.length === 0) {
+        return;
+      }
+      const compressed = store.capabilities.compressFiles;
+      const fileName = getDataHistoryFileName('input.csv', compressed);
+      const stream = await store.createWriteStream(this.filePath(fileName), { gzip: compressed });
       try {
         for (const chunk of serializeRowsToCsvChunks(rows, header, { includeHeader: true })) {
           await stream.write(chunk);
         }
         const { bytes } = await stream.close();
-        await this.addFileRef({
+        await this.addFileRef(store, {
           kind: 'input',
           path: this.filePath(fileName),
           fileName,
           contentType: 'text/csv',
-          compressed: this.compressed,
+          compressed,
           bytes,
           rowCount: rows.length,
         });
@@ -230,16 +296,36 @@ export class DataHistoryEntryHandle {
 
   /** Persist the exact request payload (JSON) as `request.json.gz` */
   writeRequestJson(payload: unknown): Promise<void> {
-    return this.run(async () => {
-      const fileName = getDataHistoryFileName('request.json', this.compressed);
+    return this.run(async (store) => {
+      const compressed = store.capabilities.compressFiles;
+      const fileName = getDataHistoryFileName('request.json', compressed);
       const path = this.filePath(fileName);
-      const { bytes } = await this.store.writeFile(path, TEXT_ENCODER.encode(JSON.stringify(payload)), { gzip: this.compressed });
-      await this.addFileRef({
+      const { bytes } = await store.writeFile(path, TEXT_ENCODER.encode(JSON.stringify(payload)), { gzip: compressed });
+      await this.addFileRef(store, {
         kind: 'request',
         path,
         fileName,
         contentType: 'application/json',
-        compressed: this.compressed,
+        compressed,
+        bytes,
+        rowCount: Array.isArray(payload) ? payload.length : undefined,
+      });
+    });
+  }
+
+  /** Persist the results payload (JSON) as `results.json.gz` — the one-shot counterpart to `appendResultsRows` */
+  writeResultsJson(payload: unknown): Promise<void> {
+    return this.run(async (store) => {
+      const compressed = store.capabilities.compressFiles;
+      const fileName = getDataHistoryFileName('results.json', compressed);
+      const path = this.filePath(fileName);
+      const { bytes } = await store.writeFile(path, TEXT_ENCODER.encode(JSON.stringify(payload)), { gzip: compressed });
+      await this.addFileRef(store, {
+        kind: 'results',
+        path,
+        fileName,
+        contentType: 'application/json',
+        compressed,
         bytes,
         rowCount: Array.isArray(payload) ? payload.length : undefined,
       });
@@ -252,13 +338,14 @@ export class DataHistoryEntryHandle {
    * non-empty call; pass the same header every time.
    */
   appendResultsRows(rows: Record<string, unknown>[], header: string[]): Promise<void> {
-    return this.run(async () => {
-      if (rows.length === 0) {
+    return this.run(async (store) => {
+      if (rows.length === 0 || header.length === 0) {
         return;
       }
+      const compressed = store.capabilities.compressFiles;
       if (!this.resultsStream) {
-        this.resultsStream = await this.store.createWriteStream(this.filePath(getDataHistoryFileName('results.csv', this.compressed)), {
-          gzip: this.compressed,
+        this.resultsStream = await store.createWriteStream(this.filePath(getDataHistoryFileName('results.csv', compressed)), {
+          gzip: compressed,
         });
         this.resultsHeaderWritten = false;
       }
@@ -270,19 +357,47 @@ export class DataHistoryEntryHandle {
     });
   }
 
+  /**
+   * Run capture-only work once the entry exists. The task is NOT invoked when nothing is being
+   * captured (history disabled, per-run opt-out, entry already failed/finished), so expensive work —
+   * re-fetching a bulk job's per-record results from Salesforce, flattening a large result set —
+   * never runs for an entry nothing would be written to.
+   *
+   * The task runs OUTSIDE the write queue (it calls the queued methods above itself, so it must not
+   * be queued or it would wait on itself). It never rejects; the returned promise resolves once the
+   * task and the writes it enqueued have settled, which is what callers await in tests.
+   */
+  capture(task: () => Promise<void>): Promise<void> {
+    return (async () => {
+      await this.queue;
+      if (!this.capturing || this.failed || this.finished) {
+        return;
+      }
+      try {
+        await task();
+      } catch (ex) {
+        // The task owns its own finish/fail decision — e.g. a failed results fetch still finishes
+        // the entry with the counts the UI shows, because the user's load itself succeeded
+        logger.warn('[DATA_HISTORY] Capture task failed for entry', this.key, ex);
+      }
+      await this.queue;
+    })();
+  }
+
   /** Finalize the entry: close streams, set status/counts, and write the manifest */
   finish(outcome: FinishDataHistoryEntryOptions): Promise<void> {
-    return this.run(async () => {
+    return this.run(async (store) => {
       if (this.resultsStream) {
+        const compressed = store.capabilities.compressFiles;
         const { bytes } = await this.resultsStream.close();
         this.resultsStream = null;
-        const fileName = getDataHistoryFileName('results.csv', this.compressed);
-        await this.addFileRef({
+        const fileName = getDataHistoryFileName('results.csv', compressed);
+        await this.addFileRef(store, {
           kind: 'results',
           path: this.filePath(fileName),
           fileName,
           contentType: 'text/csv',
-          compressed: this.compressed,
+          compressed,
           bytes,
           rowCount: this.resultsRowCount,
         });
@@ -302,8 +417,15 @@ export class DataHistoryEntryHandle {
         errorMessage: this.item.errorMessage,
         finishedAt: this.item.finishedAt,
       });
-      await this.writeManifest();
+      try {
+        await this.writeManifest(store);
+      } catch (ex) {
+        // The manifest only exists for folder re-indexing — a failed write here must not flip an
+        // already-recorded accurate final status to 'failed' (every payload file was written fine)
+        logger.warn('[DATA_HISTORY] Unable to write manifest for entry', this.key, ex);
+      }
       this.finished = true;
+      markEntryInactive(this.key);
     });
   }
 
@@ -314,31 +436,60 @@ export class DataHistoryEntryHandle {
     });
   }
 
-  /** Resolves when all queued work has settled — primarily for tests and results components */
+  /**
+   * Resolves when all queued work has settled — primarily for tests and results components. Work
+   * started through `capture()` is awaited via the promise that method returns, not through this.
+   */
   flush(): Promise<void> {
     return this.queue;
+  }
+
+  /**
+   * Create the entry row. Runs as the handle's first queued task so construction stays synchronous,
+   * and self-gates: when capture is off (or the row cannot be written) the handle goes quiet and
+   * every subsequent method is a no-op. Nothing was recorded in that case, so there is no entry to
+   * mark failed. Never rejects.
+   */
+  private async createEntry(options: StartDataHistoryEntryOptions): Promise<void> {
+    try {
+      if (options.skipHistory || !(await isDataHistoryCaptureEnabled())) {
+        this.stopCapturing();
+        return;
+      }
+      const store = await getHistoryFileStore();
+      this.orgFolder = await getOrgFolderName(options.org.uniqueId);
+      this.item = { ...this.item, storageBackend: store.type };
+      await dataHistoryDb.saveEntry(this.item);
+      this.store = store;
+      void requestPersistOnce();
+      void pruneEntryCountOverage();
+    } catch (ex) {
+      logger.warn('[DATA_HISTORY] Unable to start history entry', ex);
+      this.stopCapturing();
+    }
+  }
+
+  private stopCapturing(): void {
+    this.capturing = false;
+    markEntryInactive(this.key);
   }
 
   private filePath(fileName: string): string {
     return getEntryFilePath(this.orgFolder, this.key, fileName);
   }
 
-  /** Compression follows the backend policy — gzip in OPFS, plain files in user-visible folders */
-  private get compressed(): boolean {
-    return this.store.capabilities.compressFiles;
-  }
-
   /**
    * Serialize work per entry and convert any error into a failed entry instead of a rejection.
+   * Tasks receive the resolved store; they are skipped entirely when nothing is being captured.
    * The returned promise NEVER rejects.
    */
-  private run(task: () => Promise<void>): Promise<void> {
+  private run(task: (store: HistoryFileStore) => Promise<void>): Promise<void> {
     const next = this.queue.then(async () => {
-      if (this.failed || this.finished) {
+      if (!this.capturing || this.failed || this.finished || !this.store) {
         return;
       }
       try {
-        await task();
+        await task(this.store);
       } catch (ex) {
         logger.warn('[DATA_HISTORY] Capture step failed for entry', this.key, ex);
         await this.markFailed(getErrorMessage(ex));
@@ -353,6 +504,7 @@ export class DataHistoryEntryHandle {
       return;
     }
     this.failed = true;
+    markEntryInactive(this.key);
     if (this.resultsStream) {
       await abortQuietly(this.resultsStream);
       this.resultsStream = null;
@@ -364,17 +516,24 @@ export class DataHistoryEntryHandle {
     }
   }
 
-  private async addFileRef(fileRef: DataHistoryFileRef): Promise<void> {
+  private async addFileRef(store: HistoryFileStore, fileRef: DataHistoryFileRef): Promise<void> {
     this.item = {
       ...this.item,
       files: [...this.item.files.filter(({ kind }) => kind !== fileRef.kind), fileRef],
+      // Keep the stamp aligned with where the handle actually writes, so a read always resolves to
+      // the backend the bytes live in even if a migration re-stamped the row concurrently.
+      storageBackend: store.type,
     };
     this.item.sizeBytes = this.item.files.reduce((total, file) => total + file.bytes, 0);
-    await dataHistoryDb.updateEntry(this.key, { files: this.item.files, sizeBytes: this.item.sizeBytes });
+    await dataHistoryDb.updateEntry(this.key, {
+      files: this.item.files,
+      sizeBytes: this.item.sizeBytes,
+      storageBackend: store.type,
+    });
   }
 
-  private async writeManifest(): Promise<void> {
-    await this.store.writeFile(this.filePath(DATA_HISTORY_FILE_NAMES.manifest), TEXT_ENCODER.encode(buildManifestJson(this.item)), {
+  private async writeManifest(store: HistoryFileStore): Promise<void> {
+    await store.writeFile(this.filePath(DATA_HISTORY_FILE_NAMES.manifest), TEXT_ENCODER.encode(buildManifestJson(this.item)), {
       gzip: false,
     });
   }
@@ -390,76 +549,59 @@ export async function recordDataHistoryAction(options: RecordDataHistoryActionOp
     if (options.skipHistory || !(await isDataHistoryCaptureEnabled())) {
       return;
     }
-    const { request, results, counts } = options;
-    const now = new Date();
-    const item: DataHistoryItem = {
-      key: dataHistoryDb.generateKey(),
-      org: options.org.uniqueId,
-      orgLabel: options.org.label || options.org.uniqueId,
-      source: options.source,
-      operation: options.operation,
-      api: options.api,
-      sobjects: options.sobjects,
-      status: options.status ?? deriveStatusFromCounts(counts),
-      counts,
-      config: options.config || {},
-      inputSource: options.inputSource,
-      jobId: undefined,
-      parentKey: undefined,
-      files: [],
-      storageBackend: 'opfs',
-      sizeBytes: 0,
-      inlinePayload: null,
-      pinned: false,
-      pinnedIdx: 'false',
-      errorMessage: options.errorMessage ?? null,
-      startedAt: now,
-      finishedAt: now,
-      createdAt: now,
-      updatedAt: now,
-    };
+    const { request, results, counts, status, errorMessage, ...entryOptions } = options;
 
     const payloadJson = JSON.stringify({ request, results });
     if (TEXT_ENCODER.encode(payloadJson).byteLength <= DATA_HISTORY_INLINE_PAYLOAD_MAX_BYTES) {
+      const now = new Date();
+      const item: DataHistoryItem = {
+        key: dataHistoryDb.generateKey(),
+        org: options.org.uniqueId,
+        orgLabel: options.org.label || options.org.uniqueId,
+        source: options.source,
+        operation: options.operation,
+        api: options.api,
+        sobjects: options.sobjects,
+        status: status ?? deriveStatusFromCounts(counts),
+        counts,
+        config: options.config || {},
+        inputSource: options.inputSource,
+        jobId: undefined,
+        parentKey: undefined,
+        files: [],
+        // Stamp with the ACTIVE backend even though the payload lives inline: a row claiming a
+        // backend it does not live on makes the sweep's stranded-entry reconciliation re-visit it
+        // forever. Best-effort — this path never touches the file store, so a broken store must
+        // not stop it from capturing.
+        storageBackend: await getActiveBackendType(),
+        sizeBytes: 0,
+        inlinePayload: null,
+        pinned: false,
+        pinnedIdx: 'false',
+        errorMessage: errorMessage ?? null,
+        startedAt: now,
+        finishedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      };
       item.inlinePayload = await gzipEncode({ request, results });
       item.sizeBytes = item.inlinePayload.byteLength;
+      await dataHistoryDb.saveEntry(item);
     } else {
-      const store = await getHistoryFileStore();
-      item.storageBackend = store.type;
-      const compressed = store.capabilities.compressFiles;
-      const orgFolder = await getOrgFolderName(options.org.uniqueId);
-      const requestFileName = getDataHistoryFileName('request.json', compressed);
-      const resultsFileName = getDataHistoryFileName('results.json', compressed);
-      const requestPath = getEntryFilePath(orgFolder, item.key, requestFileName);
-      const resultsPath = getEntryFilePath(orgFolder, item.key, resultsFileName);
-      const requestFile = await store.writeFile(requestPath, TEXT_ENCODER.encode(JSON.stringify(request)), { gzip: compressed });
-      const resultsFile = await store.writeFile(resultsPath, TEXT_ENCODER.encode(JSON.stringify(results)), { gzip: compressed });
-      item.files = [
-        {
-          kind: 'request',
-          path: requestPath,
-          fileName: requestFileName,
-          contentType: 'application/json',
-          compressed,
-          bytes: requestFile.bytes,
-          rowCount: Array.isArray(request) ? request.length : undefined,
-        },
-        {
-          kind: 'results',
-          path: resultsPath,
-          fileName: resultsFileName,
-          contentType: 'application/json',
-          compressed,
-          bytes: resultsFile.bytes,
-          rowCount: Array.isArray(results) ? results.length : undefined,
-        },
-      ];
-      item.sizeBytes = requestFile.bytes + resultsFile.bytes;
-      const manifestPath = getEntryFilePath(orgFolder, item.key, DATA_HISTORY_FILE_NAMES.manifest);
-      await store.writeFile(manifestPath, TEXT_ENCODER.encode(buildManifestJson(item)), { gzip: false });
+      // Over the inline threshold: a regular entry handle owns the whole file/manifest/row sequence
+      // and its invariants (row before files for the orphan sweep, backend stamp aligned with where
+      // the bytes land, active-entry guard against concurrent migration). One-shots stay
+      // ALL-OR-NOTHING: the user's operation itself succeeded, so a failed capture removes the row
+      // rather than leaving a 'failed' stub that would misreport the operation's outcome.
+      const handle = startDataHistoryEntry(entryOptions);
+      await handle.writeRequestJson(request);
+      await handle.writeResultsJson(results);
+      await handle.finish({ counts, status, errorMessage });
+      if (handle.didFail) {
+        await dataHistoryDb.deleteEntries([handle.key]).catch(() => undefined);
+      }
     }
 
-    await dataHistoryDb.saveEntry(item);
     void requestPersistOnce();
     void pruneEntryCountOverage();
   } catch (ex) {
@@ -497,25 +639,51 @@ export async function setDataHistoryPinned(key: string, pinned: boolean): Promis
   await dataHistoryDb.setPinned(key, pinned);
 }
 
-export async function deleteDataHistoryEntry(key: string): Promise<void> {
+/**
+ * Delete one entry (files first, then row). Refuses while the entry is still being written: file
+ * stores recreate missing directories on write, so deleting under an active handle lets it silently
+ * resurrect the files on disk — rowless data the user believes is gone. Returns whether it deleted
+ * so the UI can tell the user to retry once the capture settles.
+ */
+export async function deleteDataHistoryEntry(key: string): Promise<{ deleted: boolean }> {
   const item = await dataHistoryDb.getEntry(key);
   if (!item) {
-    return;
+    return { deleted: true };
   }
+  if (isEntryLikelyInFlight(item)) {
+    return { deleted: false };
+  }
+  // Tombstone BEFORE deleting, and unconditionally: even when the file delete succeeds, leftover or
+  // late-written files (a straggling writer just past the in-flight window, a folder whose delete
+  // partially failed) must never let a folder re-index resurrect an entry the user deleted.
+  await dataHistoryDb.addDeletedEntryTombstone(key).catch(() => undefined);
   try {
     await deleteEntryFilesAndRow(item);
   } catch (ex) {
-    // Row removal wins over stranded files — the orphan sweep cleans those up later
+    // Row removal wins over stranded files — the tombstone above keeps them from re-indexing
     logger.warn('[DATA_HISTORY] Error deleting entry files, removing row anyway', key, ex);
     await dataHistoryDb.deleteEntries([key]);
   }
+  return { deleted: true };
 }
 
-export async function deleteAllDataHistory(): Promise<void> {
+/**
+ * Delete all history. Entries still being written are kept (deleting mid-write would strand their
+ * files) — `skipped` lets the UI say so.
+ */
+export async function deleteAllDataHistory(): Promise<{ deleted: number; skipped: number }> {
   const entries = await dataHistoryDb.getAllEntries();
+  let deleted = 0;
+  let skipped = 0;
   for (const entry of entries) {
-    await deleteDataHistoryEntry(entry.key);
+    const result = await deleteDataHistoryEntry(entry.key);
+    if (result.deleted) {
+      deleted++;
+    } else {
+      skipped++;
+    }
   }
+  return { deleted, skipped };
 }
 
 export async function getDataHistorySettings(): Promise<DataHistorySettings | null> {
@@ -575,5 +743,14 @@ async function abortQuietly(stream: HistoryWriteStream): Promise<void> {
     await stream.abort();
   } catch {
     // best-effort cleanup
+  }
+}
+
+/** Active backend for stamping a row, falling back to OPFS when the store cannot be resolved */
+async function getActiveBackendType(): Promise<DataHistoryStorageBackend> {
+  try {
+    return (await getHistoryFileStore()).type;
+  } catch {
+    return 'opfs';
   }
 }

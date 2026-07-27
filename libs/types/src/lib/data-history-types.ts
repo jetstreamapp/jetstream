@@ -146,7 +146,7 @@ export interface DataHistoryBackendConfig {
 
 /** Dexie row shape for `data_history_config` — fixed keys, one row per concern */
 export interface DataHistoryConfigItem {
-  key: 'settings' | 'backend';
+  key: 'settings' | 'backend' | 'paidPlanLastSeenAt' | 'deletedEntryTombstones';
   value: unknown;
   updatedAt: Date;
 }

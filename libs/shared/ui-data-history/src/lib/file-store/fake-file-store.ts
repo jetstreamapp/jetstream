@@ -1,5 +1,6 @@
 import { DataHistoryStorageBackend } from '@jetstream/types';
 import type { HistoryFileStore, HistoryFileStoreCapabilities, HistoryWriteStream } from './file-store.types';
+import { gzipBytes } from './gzip-utils';
 import { splitRelativePath } from './path-utils';
 
 /**
@@ -128,9 +129,4 @@ function concatChunks(chunks: Uint8Array[]): Uint8Array {
     offset += chunk.byteLength;
   }
   return combined;
-}
-
-async function gzipBytes(bytes: Uint8Array): Promise<Uint8Array> {
-  const stream = new Blob([bytes as BlobPart]).stream().pipeThrough(new CompressionStream('gzip'));
-  return new Uint8Array(await new Response(stream).arrayBuffer());
 }

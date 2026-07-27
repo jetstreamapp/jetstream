@@ -24,6 +24,41 @@ let activeStorePromise: Promise<HistoryFileStore> | null = null;
 let testOverrideStore: HistoryFileStore | null = null;
 let directoryPermissionNeeded = false;
 
+/**
+ * Cross-document invalidation: without it, a tab open before a backend switch keeps its cached
+ * store and silently writes ALL new history to the previous backend for its whole lifetime —
+ * defeating "my history lives in my chosen folder". The sender does not receive its own messages,
+ * so posting never resets the tab that performed the switch.
+ */
+const BACKEND_CHANGE_CHANNEL_NAME = 'jetstream-data-history-backend-change';
+
+function createBackendChangeChannel(): BroadcastChannel | null {
+  try {
+    if (typeof BroadcastChannel === 'undefined') {
+      return null;
+    }
+    return new BroadcastChannel(BACKEND_CHANGE_CHANNEL_NAME);
+  } catch {
+    return null;
+  }
+}
+
+const backendChangeChannel = createBackendChangeChannel();
+if (backendChangeChannel) {
+  backendChangeChannel.onmessage = () => {
+    resetHistoryFileStores();
+  };
+}
+
+/** Notify other tabs/documents that the backend config changed so they drop cached stores. */
+export function notifyHistoryBackendChanged(): void {
+  try {
+    backendChangeChannel?.postMessage({ type: 'backend-changed' });
+  } catch {
+    // best-effort
+  }
+}
+
 export async function getHistoryFileStore(): Promise<HistoryFileStore> {
   if (testOverrideStore) {
     return testOverrideStore;
@@ -60,9 +95,32 @@ export function getDirectoryPermissionNeeded(): boolean {
 
 /** Drop all resolved stores so the next call re-reads `data_history_config` (after backend changes) */
 export function resetHistoryFileStores(): void {
+  // Dispose discarded stores (e.g. terminate the OPFS worker) so backend switches don't leak workers.
+  // Best-effort and idempotent — the store instance may be shared between the active/backend caches.
+  const disposed = new Set<Promise<HistoryFileStore>>();
+  const disposeStore = (storePromise: Promise<HistoryFileStore> | null) => {
+    if (!storePromise || disposed.has(storePromise)) {
+      return;
+    }
+    disposed.add(storePromise);
+    void storePromise.then((store) => store.dispose?.()).catch(() => undefined);
+  };
+  disposeStore(activeStorePromise);
+  backendStorePromises.forEach(disposeStore);
+
   activeStorePromise = null;
   backendStorePromises.clear();
   directoryPermissionNeeded = false;
+}
+
+/**
+ * Apply a backend-config change everywhere: drop this document's cached stores AND tell other
+ * tabs/documents to drop theirs. Every code path that persists a backend switch must call this —
+ * forgetting either half leaves some tab silently writing history to the previous backend.
+ */
+export function invalidateHistoryBackends(): void {
+  resetHistoryFileStores();
+  notifyHistoryBackendChanged();
 }
 
 /** Test seam — pass null to restore the real factory. */
@@ -84,7 +142,14 @@ async function createStoreForBackend(backend: DataHistoryStorageBackend): Promis
       if (!handle || !isFileSystemAccessSupported()) {
         throw new Error('No data history folder is connected in this browser');
       }
-      const store = new DirectoryHandleFileStore(handle);
+      const store = new DirectoryHandleFileStore(handle, {
+        onPermissionError: () => {
+          // Permission revoked mid-session: drop cached stores so new writes fall back to OPFS and
+          // surface the settings "re-connect" affordance (reset clears the flag, so set it after)
+          resetHistoryFileStores();
+          directoryPermissionNeeded = true;
+        },
+      });
       await store.init();
       return store;
     }

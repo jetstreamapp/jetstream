@@ -37,15 +37,45 @@ export interface DataHistoryTableRow {
 export interface DataHistoryTableData {
   columns: ColumnWithFilter<DataHistoryTableRow>[];
   rows: DataHistoryTableRow[];
+  /** True when the CSV had more rows than the preview cap and only the head is shown */
+  truncated: boolean;
 }
+
+/** Cap on rows parsed for the in-modal preview — the full file is always available via download */
+export const DATA_HISTORY_CSV_PREVIEW_MAX_ROWS = 5000;
+
+/**
+ * Cap on BYTES read from a payload for the in-modal preview. Request payloads contain every record
+ * that was submitted (a large mass update runs to hundreds of MB), so the preview must never
+ * materialize the whole file as a string — the row/char caps below only apply after that has already
+ * happened. Downloads always read the full file.
+ */
+export const DATA_HISTORY_PREVIEW_MAX_BYTES = 2 * 1024 * 1024;
 
 /**
  * Parse a stored CSV payload into rows + column definitions for the generic `DataTable`. Column
  * order matches the CSV header; a synthetic `_dhRowKey` is added for stable row identity (a CSV
  * column literally named `_dhRowKey` would collide, which no Salesforce/results file produces).
+ *
+ * Parsing is capped at `maxRows` (via Papaparse `preview`) so opening the preview on a huge
+ * results/input file never blocks the main thread building hundreds of thousands of row objects —
+ * the download path reads the full, uncapped file.
+ *
+ * Pass `isPartialRead` when `csvText` is only the head of the file (see
+ * `DATA_HISTORY_PREVIEW_MAX_BYTES`): the last line is then almost certainly cut mid-row, so it is
+ * dropped rather than shown as a row with missing values.
  */
-export function parseCsvToTable(csvText: string): DataHistoryTableData {
-  const { data, meta } = parseCsv<Record<string, string>>(csvText, { header: true, skipEmptyLines: true });
+export function parseCsvToTable(
+  csvText: string,
+  maxRows: number = DATA_HISTORY_CSV_PREVIEW_MAX_ROWS,
+  isPartialRead = false,
+): DataHistoryTableData {
+  const { data, meta } = parseCsv<Record<string, string>>(csvText, {
+    header: true,
+    skipEmptyLines: true,
+    // Read one extra row so we can detect (and report) truncation without parsing the whole file
+    preview: maxRows + 1,
+  });
   const fields = meta.fields ?? [];
   const columns: ColumnWithFilter<DataHistoryTableRow>[] = fields.map((field) => ({
     key: field,
@@ -54,8 +84,14 @@ export function parseCsvToTable(csvText: string): DataHistoryTableData {
     resizable: true,
     getValue: ({ row }) => row[field] ?? '',
   }));
-  const rows: DataHistoryTableRow[] = data.map((row, index) => ({ ...row, _dhRowKey: String(index) }));
-  return { columns, rows };
+  const overRowCap = data.length > maxRows;
+  let visibleRows = overRowCap ? data.slice(0, maxRows) : data;
+  // A partially-read file ends mid-row; drop that fragment unless the row cap already cut it off
+  if (isPartialRead && !overRowCap && visibleRows.length > 0) {
+    visibleRows = visibleRows.slice(0, -1);
+  }
+  const rows: DataHistoryTableRow[] = visibleRows.map((row, index) => ({ ...row, _dhRowKey: String(index) }));
+  return { columns, rows, truncated: overRowCap || isPartialRead };
 }
 
 export function getDataHistoryStatusBadgeType(status: DataHistoryStatus): BadgeType {
@@ -78,8 +114,21 @@ export function getDataHistoryStatusBadgeType(status: DataHistoryStatus): BadgeT
   }
 }
 
+/**
+ * Sources no capture surface writes yet, so they are omitted from the filter dropdown — offering a
+ * filter that can only ever return the empty state reads as a broken filter. Their labels stay in
+ * `DATA_HISTORY_SOURCE_LABELS` so any entry that does carry one still renders a friendly name.
+ *
+ * `load-custom-metadata`: the Load Records wizard routes custom-metadata objects through
+ * `PerformLoadCustomMetadata` (Metadata API deploy, results keyed by fullName rather than by index),
+ * which has no history capture wired up. The docs page calls this out explicitly.
+ */
+const UNCAPTURED_DATA_HISTORY_SOURCES = new Set<DataHistorySource>(['load-custom-metadata']);
+
 export function getDataHistorySourceListItems(): ListItem[] {
-  return Object.entries(DATA_HISTORY_SOURCE_LABELS).map(([value, label]) => ({ id: value, label, value }));
+  return Object.entries(DATA_HISTORY_SOURCE_LABELS)
+    .filter(([value]) => !UNCAPTURED_DATA_HISTORY_SOURCES.has(value as DataHistorySource))
+    .map(([value, label]) => ({ id: value, label, value }));
 }
 
 export function getDataHistoryStatusListItems(): ListItem[] {

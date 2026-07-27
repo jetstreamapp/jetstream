@@ -127,6 +127,7 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
                 className="slds-button slds-button_neutral slds-m-left_x-small"
                 disabled={working}
                 onClick={() => runAction(() => disableNativeHistoryStorage(handleMigrationProgress), { backend: 'opfs' })}
+                title="Copy history back to app-managed storage. The files already on disk are left in place."
               >
                 Switch Back to App-Managed Storage
               </button>
@@ -186,7 +187,14 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
                   runAction(
                     async () => {
                       const result = await changeHistoryDirectory(handleMigrationProgress);
-                      if (result) {
+                      if (result && result.skipped > 0) {
+                        fireToast({
+                          type: 'warning',
+                          message: `Your history was moved, but ${result.skipped.toLocaleString()} ${
+                            result.skipped === 1 ? 'entry' : 'entries'
+                          } could not be moved (still being written, or the previous folder is no longer readable). Their files remain in the old folder.`,
+                        });
+                      } else if (result) {
                         fireToast({ type: 'success', message: 'Your history was moved to the new folder.' });
                       }
                     },

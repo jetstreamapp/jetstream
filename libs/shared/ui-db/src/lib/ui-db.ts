@@ -201,6 +201,20 @@ function applySchema(db: DexieDb) {
     data_history: 'key,org,source,status,createdAt,pinnedIdx,[org+createdAt],[source+createdAt]',
     data_history_config: 'key',
   });
+
+  /**
+   * Adds the `sizeBytes` index so total storage usage can be summed straight from the index
+   * (`orderBy('sizeBytes').keys()`) instead of reading every row — history rows carry up to 64KB of
+   * `inlinePayload` gzip bytes each, and the usage figure is read on every settings/history page mount.
+   *
+   * Deliberately a NEW version rather than an extra index on v5 above, even though both were authored
+   * together: anyone who already opened the db at v5 has its index set recorded, and changing a
+   * version's schema in place runs no upgrade transaction — the index would silently never be created
+   * and every read of it would throw. Do not fold this into v5.
+   */
+  db.version(6).stores({
+    data_history: 'key,org,source,status,createdAt,pinnedIdx,sizeBytes,[org+createdAt],[source+createdAt]',
+  });
 }
 
 /**

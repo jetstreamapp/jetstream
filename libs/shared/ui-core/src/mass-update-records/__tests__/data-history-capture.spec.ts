@@ -5,7 +5,7 @@ import { BulkJobResultRecord, BulkJobWithBatches, SalesforceOrgUi } from '@jetst
 import { FakeFileStore, initDataHistory, readDataHistoryFile, setHistoryFileStoreForTests } from '@jetstream/ui/data-history';
 import { dataHistoryDb, dexieDb } from '@jetstream/ui/db';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { captureMassUpdateResults, startMassUpdateHistory, writeMassUpdateRequestJson } from '../data-history-capture';
+import { captureMassUpdateResults, startMassUpdateHistory } from '../data-history-capture';
 import { MetadataRowConfiguration } from '../mass-update-records.types';
 
 // vitest hoists vi.hoisted + vi.mock above these imports at transform time, so `@jetstream/shared/data`
@@ -21,20 +21,12 @@ const configuration: MetadataRowConfiguration[] = [
   { selectedField: 'Industry', transformationOptions: { option: 'staticValue', staticValue: 'Tech', criteria: 'all', whereClause: '' } },
 ];
 
-/**
- * `captureMassUpdateResults` is intentionally fire-and-forget (it resolves the handle via async
- * indexeddb/crypto, then fetches results, then finishes), so a fixed delay can't reliably observe
- * the finish. Poll the Dexie row until it leaves `in-progress` instead.
- */
-async function waitForEntryFinished(key: string) {
-  for (let attempt = 0; attempt < 200; attempt++) {
-    const entry = await dataHistoryDb.getEntry(key);
-    if (entry && entry.status !== 'in-progress') {
-      return entry;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 5));
+async function getFinishedEntry(key: string) {
+  const entry = await dataHistoryDb.getEntry(key);
+  if (!entry || entry.status === 'in-progress') {
+    throw new Error(`Data History entry never finished: ${entry?.status}`);
   }
-  throw new Error('Data History entry never finished');
+  return entry;
 }
 
 describe('mass-update Data History capture wiring', () => {
@@ -76,7 +68,7 @@ describe('mass-update Data History capture wiring', () => {
       serialMode: false,
       configuration,
     });
-    writeMassUpdateRequestJson(handle, records);
+    handle.writeRequestJson(records);
 
     const jobInfo = {
       id: 'job1',
@@ -85,19 +77,16 @@ describe('mass-update Data History capture wiring', () => {
       batches: [{ id: 'batchA', state: 'Completed' }],
     } as unknown as BulkJobWithBatches;
 
-    const resolvedHandle = await handle;
-    captureMassUpdateResults({
-      handle,
+    await captureMassUpdateResults({
+      context: { handle, batchSize: 200, configuration },
       org,
       jobInfo,
       records,
       batchIdToIndex: { batchA: 0 },
-      batchSize: 200,
-      configuration,
       processingErrorCount: 0,
     });
 
-    const entry = await waitForEntryFinished(resolvedHandle!.key);
+    const entry = await getFinishedEntry(handle.key);
     expect(entry.source).toBe('mass-update');
     expect(entry.operation).toBe('update');
     expect(entry.api).toBe('bulk-v1');
@@ -135,18 +124,15 @@ describe('mass-update Data History capture wiring', () => {
       batches: [{ id: 'b', state: 'Completed' }],
     } as unknown as BulkJobWithBatches;
 
-    const resolvedHandle = await handle;
-    captureMassUpdateResults({
-      handle,
+    await captureMassUpdateResults({
+      context: { handle, batchSize: 200, configuration },
       org,
       jobInfo,
       records: [{ Id: '001', Industry: 'Tech' }],
       batchIdToIndex: { b: 0 },
-      batchSize: 200,
-      configuration,
       processingErrorCount: 2,
     });
-    const entry = await waitForEntryFinished(resolvedHandle!.key);
+    const entry = await getFinishedEntry(handle.key);
     expect(entry.source).toBe('mass-update-from-query');
     expect(entry.counts).toEqual({ total: 3, success: 1, failure: 2, processingErrors: 2 });
     expect(entry.status).toBe('partial');

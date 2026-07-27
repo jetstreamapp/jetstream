@@ -21,9 +21,10 @@ import {
 import { FileDownloadModal, Grid, Icon, ProgressRing, Spinner, Tooltip } from '@jetstream/ui';
 import { fromJetstreamEvents, getFieldHeaderFromMapping, LoadRecordsResultsModal, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { DataHistoryEntryHandle } from '@jetstream/ui/data-history';
 import { useAtomValue } from 'jotai';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { appendHistoryResultsRows, DataHistoryHandlePromise, failHistoryEntry, finishHistoryEntry } from '../../utils/data-history-capture';
+import { finishHistoryAsPrepareFailure } from '../../utils/data-history-capture';
 import { loadBatchApiData, LoadTypeDisplayNames, prepareData } from '../../utils/load-records-process';
 import LoadRecordsBatchApiResultsTable from './LoadRecordsBatchApiResultsTable';
 import { buildBatchApiResultRow, getLoadResultsHeader } from './load-results-utils';
@@ -63,8 +64,8 @@ export interface LoadRecordsBatchApiResultsProps {
   dateFormat: string;
   /** Already-prepared records for retry — skips prepareData when provided */
   preparedInputData?: any[];
-  /** Data History capture handle for this run (resolves null when capture is disabled/opted out) */
-  historyHandle?: Maybe<DataHistoryHandlePromise>;
+  /** Data History capture handle for this run (captures nothing when disabled/opted out) */
+  historyHandle?: Maybe<DataHistoryEntryHandle>;
   onFinish: (results: { success: number; failure: number; failedRecords: any[] }) => void;
   /** Called when user selects specific records to retry from the results modal */
   onRetrySelected?: (selectedRows: any[]) => void;
@@ -183,8 +184,9 @@ export const LoadRecordsBatchApiResults = ({
         setStartTime(dateString);
         setEndTime(dateString);
         onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
-        failHistoryEntry(
+        finishHistoryAsPrepareFailure(
           historyHandle,
+          inputFileData.length,
           preparedDataResponse?.queryErrors?.length ? preparedDataResponse.queryErrors.join('\n') : 'Pre-processing records failed',
         );
         notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
@@ -204,7 +206,7 @@ export const LoadRecordsBatchApiResults = ({
       setStatus(STATUSES.ERROR);
       setFatalError(getErrorMessage(ex));
       onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
-      failHistoryEntry(historyHandle, getErrorMessage(ex));
+      finishHistoryAsPrepareFailure(historyHandle, inputFileData.length, getErrorMessage(ex));
       notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
         body: `❌ ${getErrorMessage(ex)}`,
         tag: 'load-records',
@@ -252,8 +254,7 @@ export const LoadRecordsBatchApiResults = ({
           setProcessedRecords((previousProcessedRecords) => previousProcessedRecords.concat(batchRecords));
           // Stream this batch's results to Data History (fire-and-forget; same row shape as download)
           const fields = getFieldHeaderFromMapping(fieldMapping);
-          appendHistoryResultsRows(
-            historyHandle,
+          historyHandle?.appendResultsRows(
             batchRecords.map((record) => buildBatchApiResultRow(record, fields)),
             getLoadResultsHeader(fields),
           );
@@ -270,7 +271,7 @@ export const LoadRecordsBatchApiResults = ({
 
       setStatus(STATUSES.FINISHED);
       onFinishRef.current({ success: successCount, failure: failureCount, failedRecords });
-      finishHistoryEntry(historyHandle, {
+      historyHandle?.finish({
         counts: {
           total: successCount + failureCount,
           success: successCount,
@@ -284,7 +285,7 @@ export const LoadRecordsBatchApiResults = ({
       logger.error('ERROR', ex);
       setStatus(STATUSES.ERROR);
       onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
-      failHistoryEntry(historyHandle, getErrorMessage(ex));
+      historyHandle?.fail(getErrorMessage(ex));
       setEndTime(dateString);
       notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
         body: `❌ ${getErrorMessage(ex)}`,

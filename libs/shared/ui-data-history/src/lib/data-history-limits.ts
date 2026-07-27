@@ -41,6 +41,14 @@ export const DATA_HISTORY_INLINE_PAYLOAD_MAX_BYTES = 64 * 1024;
 /** `in-progress` entries older than this are reclassified `incomplete` by the sweep */
 export const DATA_HISTORY_STALE_IN_PROGRESS_MS = 24 * 60 * 60 * 1000;
 
+/**
+ * How long paid limits are retained after the paid signal disappears. Free-tier enforcement is
+ * destructive (deletes all but the newest 15 entries and clamps retention), so a transient billing
+ * lapse — a card expiring puts a team in PAST_DUE until dunning resolves — must not destroy a
+ * paying user's history overnight.
+ */
+export const DATA_HISTORY_PAID_TIER_GRACE_MS = 14 * 24 * 60 * 60 * 1000;
+
 export function getDataHistoryTierLimits({ hasPaidPlan }: { hasPaidPlan: boolean }): DataHistoryTierLimits {
   if (hasPaidPlan || isDesktopApp() || isBrowserExtensionApp() || isCanvasApp()) {
     return DATA_HISTORY_PAID_TIER_LIMITS;

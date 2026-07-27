@@ -1,15 +1,13 @@
-import { DataHistoryInputSource, DataHistoryOperation, LocalOrGoogle, Maybe } from '@jetstream/types';
+import { DataHistoryOperation } from '@jetstream/types';
 import { DataHistoryEntryHandle } from '@jetstream/ui/data-history';
 import { buildMultiObjectResultRows, getMultiObjectCounts, MULTI_OBJECT_RESULTS_HEADER } from './load-records-multi-object-results';
 import { LoadMultiObjectRequestWithResult } from './load-records-multi-object-types';
 
 /**
- * Thin helpers that adapt the multi-object load feature to the `@jetstream/ui/data-history` capture
- * API. The handle is threaded as a promise (it resolves to `null` when capture is disabled or opted
- * out). Every wrapper is fire-and-forget and swallows rejections so history capture can NEVER slow
- * down or break a load — the capture methods themselves are internally queued and never reject.
+ * Helpers that adapt the multi-object load feature to the `@jetstream/ui/data-history` capture API.
+ * The handle's methods are internally queued, never reject, and no-op when capture is disabled or
+ * opted out, so nothing here needs null checks or its own error handling.
  */
-export type DataHistoryHandlePromise = Promise<DataHistoryEntryHandle | null>;
 
 function multiObjectOperationToDataHistoryOperation(operation: string): DataHistoryOperation {
   switch (operation) {
@@ -74,55 +72,23 @@ export function getMultiObjectOperations(data: LoadMultiObjectRequestWithResult[
   };
 }
 
-export function buildMultiObjectInputSource({
-  filename,
-  filenameType,
-  googleFileId,
-}: {
-  filename: Maybe<string>;
-  filenameType: Maybe<LocalOrGoogle>;
-  googleFileId: Maybe<string>;
-}): DataHistoryInputSource {
-  const isGoogle = filenameType === 'google';
-  return {
-    type: isGoogle ? 'google' : 'local',
-    fileName: filename ?? undefined,
-    googleFileId: isGoogle ? (googleFileId ?? undefined) : undefined,
-  };
-}
-
-/** Persist the composite-graph request payload (fire-and-forget) */
-export function writeMultiObjectRequestJson(handle: Maybe<DataHistoryHandlePromise>, payload: unknown): void {
-  if (!handle) {
-    return;
-  }
-  void handle.then((resolved) => resolved?.writeRequestJson(payload)).catch(() => undefined);
-}
-
 /**
  * Finalize a multi-object history entry: stream the flattened result rows, then `finish` with counts
- * derived from the same data. When every group failed outright (no group produced any response) the
- * entry is marked `fail`. Fire-and-forget and never throws.
+ * derived from the same data. Even when every group failed outright (no group produced any response)
+ * the entry is finished rather than failed, so it keeps the attempted record counts and still gets a
+ * manifest written for folder re-indexing. Nothing (not even the row building) happens when the entry
+ * is not being captured. Fire-and-forget — the returned promise is only for sequencing in tests.
  */
-export function finalizeMultiObjectHistory(handle: Maybe<DataHistoryHandlePromise>, data: LoadMultiObjectRequestWithResult[]): void {
-  if (!handle) {
-    return;
-  }
-  void handle
-    .then((resolved) => {
-      if (!resolved) {
-        return;
-      }
-      const resultRows = buildMultiObjectResultRows(data, 'results');
-      if (resultRows.length > 0) {
-        resolved.appendResultsRows(resultRows, MULTI_OBJECT_RESULTS_HEADER);
-      }
-      const allGroupsFailed = data.length > 0 && data.every((item) => !!item.errorMessage);
-      if (allGroupsFailed) {
-        resolved.fail(data.find((item) => item.errorMessage)?.errorMessage || 'Load failed');
-      } else {
-        resolved.finish({ counts: getMultiObjectCounts(data) });
-      }
-    })
-    .catch(() => undefined);
+export function finalizeMultiObjectHistory(handle: DataHistoryEntryHandle, data: LoadMultiObjectRequestWithResult[]): Promise<void> {
+  return handle.capture(async () => {
+    await handle.appendResultsRows(buildMultiObjectResultRows(data, 'results'), MULTI_OBJECT_RESULTS_HEADER);
+    const allGroupsFailed = data.length > 0 && data.every((item) => !!item.errorMessage);
+    await handle.finish({
+      counts: getMultiObjectCounts(data),
+      // The status must be explicit: a group that failed before any record was mapped contributes no
+      // counts, which would otherwise be derived as a success
+      status: allGroupsFailed ? 'failed' : undefined,
+      errorMessage: allGroupsFailed ? data.find(({ errorMessage }) => errorMessage)?.errorMessage || 'Load failed' : undefined,
+    });
+  });
 }

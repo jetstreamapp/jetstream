@@ -40,6 +40,7 @@ import {
   Icon,
   KeyboardShortcut,
   MAX_SAVE_BATCH_SIZE,
+  RecordsSaveCaptureInfo,
   SalesforceRecordDataTable,
   Spinner,
   Toolbar,
@@ -506,24 +507,24 @@ export const QueryResults = React.memo(() => {
    * and never throws, so it must not gate the grid's post-save state. The edited/prior/results snapshots are
    * pre-built by the table (before it mutates its rows) via the shared export builders.
    */
-  function handleRecordsSaveCapture(info: {
-    editedRecords: { data: Record<string, unknown>[]; header: string[] };
-    priorRecords: { data: Record<string, unknown>[]; header: string[] };
-    results: SobjectCollectionResponse;
-  }) {
+  function handleRecordsSaveCapture(info: RecordsSaveCaptureInfo) {
     const type = sobject || undefined;
-    const successCount = info.results.filter((result) => result.success).length;
+    // No `results` means the save call itself threw — record the attempt as failed for every record
+    const total = info.results?.length ?? info.editedRecords.data.length;
+    const successCount = info.results?.filter((result) => result.success).length ?? 0;
     void recordDataHistoryAction({
       org: selectedOrg,
       source: 'query-table-edit',
       operation: 'update',
       api: 'collections',
       sobjects: type ? [type] : [],
-      config: { numRecords: info.results.length, header: info.editedRecords.header },
+      config: { numRecords: total, header: info.editedRecords.header },
       inputSource: { type: 'inline' },
       request: { header: info.editedRecords.header, edited: info.editedRecords.data, prior: info.priorRecords.data },
-      results: buildResultsExport(info.editedRecords, info.results).data,
-      counts: { total: info.results.length, success: successCount, failure: info.results.length - successCount },
+      results: info.results ? buildResultsExport(info.editedRecords, info.results).data : { error: info.errorMessage },
+      counts: { total, success: successCount, failure: total - successCount },
+      status: info.results ? undefined : 'failed',
+      errorMessage: info.errorMessage,
     });
   }
 

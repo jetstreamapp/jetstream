@@ -28,6 +28,11 @@ export interface HistoryFileStore {
   /** Enumerate `<orgFolder>/<entryKey>` directories — used by the orphan/reconcile sweep. */
   listEntryDirs(): Promise<Array<{ orgFolder: string; entryKey: string }>>;
   estimate(): Promise<{ usageBytes?: number; quotaBytes?: number } | null>;
+  /**
+   * Release any owned resources (e.g. the OPFS worker thread) when the store is discarded — called
+   * by the factory when the active/cached stores are reset after a backend change. Idempotent.
+   */
+  dispose?(): void;
 }
 
 export interface HistoryFileStoreCapabilities {

@@ -26,11 +26,11 @@ import {
   MassUpdateRecordsDeploymentRow,
   MassUpdateRecordsObjectRow,
   MetadataRowConfiguration,
+  SkipDataHistoryCheckbox,
   useDeployRecords,
 } from '@jetstream/ui-core';
-import { dataHistoryCaptureEnabledState } from '@jetstream/ui/app-state';
 import { composeQuery, Query } from '@jetstreamapp/soql-parser-js';
-import { useAtom, useAtomValue } from 'jotai';
+import { useAtom } from 'jotai';
 import { atomWithReset, useAtomCallback, useResetAtom } from 'jotai/utils';
 import isNumber from 'lodash/isNumber';
 import { ChangeEvent, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
@@ -102,7 +102,6 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
   const [batchSize, setBatchSize] = useState<Maybe<number>>(10000);
   const [batchSizeError, setBatchSizeError] = useState<string | null>(null);
   const [serialMode, setSerialMode] = useState(false);
-  const dataHistoryCaptureEnabled = useAtomValue(dataHistoryCaptureEnabledState);
   const [skipDataHistory, setSkipDataHistory] = useState(false);
   const [deployResults, setDeployResults] = useAtom(deployResultsState);
   const [didDeploy, setDidDeploy] = useState(false);
@@ -548,17 +547,13 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
                 onChange={handleBatchSize}
               />
             </Input>
-            {dataHistoryCaptureEnabled && (
-              <Checkbox
-                id={'skip-data-history'}
-                className="slds-m-top_x-small"
-                checked={skipDataHistory}
-                label={"Don't save this update to Data History"}
-                labelHelp="Data History keeps a local copy of your updated records and results on this device. Check this to skip saving this particular update."
-                disabled={loading || deployInProgress}
-                onChange={setSkipDataHistory}
-              />
-            )}
+            <SkipDataHistoryCheckbox
+              operation="update"
+              className="slds-m-top_x-small"
+              checked={skipDataHistory}
+              disabled={loading || deployInProgress}
+              onChange={setSkipDataHistory}
+            />
           </Section>
         )}
 

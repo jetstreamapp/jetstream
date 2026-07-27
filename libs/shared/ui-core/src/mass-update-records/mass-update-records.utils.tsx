@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { SFDC_BULK_API_NULL_VALUE } from '@jetstream/shared/constants';
 import { queryAll, queryAllFromList } from '@jetstream/shared/data';
 import { escapeSoqlString } from '@jetstream/shared/ui-utils';
-import { decodeHtmlEntity } from '@jetstream/shared/utils';
+import { BULK_RESULTS_BASE_HEADER, buildBulkResultRow } from '@jetstream/shared/utils';
 import { BulkJobResultRecord, DescribeGlobalSObjectResult, ListItem, Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import { Query, composeQuery, getField, isQueryValid } from '@jetstreamapp/soql-parser-js';
 import lodashGet from 'lodash/get';
@@ -131,29 +131,16 @@ export function getFieldsToQuery(configuration: MetadataRowConfiguration[]): str
 }
 
 /**
- * Shared builders for the combined per-record result rows (`{_id, _success, _errors, ...record}`)
- * used by BOTH the interactive download/view in `MassUpdateRecordsDeploymentRow` and the Data
- * History capture, so the row shape and header stay identical across those consumers.
+ * The combined per-record result rows (`{_id, _success, _errors, ...record}`) used by BOTH the
+ * interactive download/view in `MassUpdateRecordsDeploymentRow` and the Data History capture share
+ * their shape with Load Records — the canonical builder is `buildBulkResultRow` in
+ * `@jetstream/shared/utils`; only the header derivation differs per feature.
  */
-export const MASS_UPDATE_RESULTS_BASE_HEADER = ['_id', '_success', '_errors'];
 
 /** Results/failures header: base result columns + the updated fields (`Id` + each selected field) */
 export function getMassUpdateResultsHeader(configuration: MetadataRowConfiguration[]): string[] {
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  return MASS_UPDATE_RESULTS_BASE_HEADER.concat(['Id', ...configuration.map(({ selectedField }) => selectedField!)]);
-}
-
-/** Combine one Salesforce bulk result record with the source record submitted for that position */
-export function buildMassUpdateResultRow(
-  resultRecord: BulkJobResultRecord,
-  sourceRecord: Record<string, unknown>,
-): Record<string, unknown> {
-  return {
-    _id: resultRecord.Id || (sourceRecord?.Id as string) || null,
-    _success: resultRecord.Success,
-    _errors: decodeHtmlEntity(resultRecord.Error),
-    ...sourceRecord,
-  };
+  return BULK_RESULTS_BASE_HEADER.concat(['Id', ...configuration.map(({ selectedField }) => selectedField!)]);
 }
 
 /**
@@ -168,7 +155,7 @@ export function buildMassUpdateCombinedResults(
   const combinedResults: Record<string, unknown>[] = [];
   resultRecords.forEach((resultRecord, i) => {
     if (includeSuccesses || !resultRecord.Success) {
-      combinedResults.push(buildMassUpdateResultRow(resultRecord, sourceRecords[i]));
+      combinedResults.push(buildBulkResultRow(resultRecord, sourceRecords[i]));
     }
   });
   return combinedResults;

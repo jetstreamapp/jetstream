@@ -1,4 +1,6 @@
-import { DATA_HISTORY_ROOT_DIR, splitRelativePath } from './path-utils';
+import { listEntryDirs, removeDir, removeFileQuietly, resolveFile } from './fs-handle-ops';
+import { GzipEncoder, createGzipEncoder, gzipBytes } from './gzip-utils';
+import { DATA_HISTORY_ROOT_DIR } from './path-utils';
 import type {
   EstimateResult,
   HistoryWorkerRequest,
@@ -14,11 +16,12 @@ import type {
  *
  * Writes use `FileSystemSyncAccessHandle` because it is the only write API supported across every
  * target browser (Safari added main-thread `createWritable` far later than Chrome/Firefox), and
- * sync access handles are worker-only — which is why this worker exists. gzip runs in here too
- * (native `CompressionStream`) so the main thread only ever hands over raw chunks.
+ * sync access handles are worker-only — which is why this worker exists. gzip runs in here too so
+ * the main thread only ever hands over raw chunks.
  *
- * Kept dependency-free apart from `path-utils` (tiny) and type-only imports, so the emitted worker
- * bundle stays a single small chunk in every app's Vite build.
+ * The directory-tree walking and gzip mechanics are shared with the user-chosen-folder store
+ * (`fs-handle-ops` / `gzip-utils`); only the write API differs. Every runtime import here is
+ * dependency-free, so the emitted worker bundle stays a single small chunk in every app's Vite build.
  */
 
 /**
@@ -47,9 +50,7 @@ interface OpenStreamState {
   accessHandle: OpfsSyncAccessHandle;
   bytesWritten: number;
   /** Present only for gzip streams */
-  gzipWriter?: WritableStreamDefaultWriter<BufferSource>;
-  /** Drains the CompressionStream readable into the access handle; resolves when fully flushed */
-  gzipPumpPromise?: Promise<void>;
+  gzipEncoder?: GzipEncoder;
   path: string;
 }
 
@@ -57,7 +58,6 @@ interface OpenStreamState {
 const workerScope = globalThis as unknown as HistoryWorkerScope;
 
 let rootDirPromise: Promise<FileSystemDirectoryHandle> | null = null;
-let nextStreamId = 1;
 const openStreams = new Map<number, OpenStreamState>();
 
 function getRootDir(): Promise<FileSystemDirectoryHandle> {
@@ -73,73 +73,48 @@ function getRootDir(): Promise<FileSystemDirectoryHandle> {
   return rootDirPromise;
 }
 
-async function getDirHandle(dirSegments: string[], create: boolean): Promise<FileSystemDirectoryHandle> {
-  let dir = await getRootDir();
-  for (const segment of dirSegments) {
-    dir = await dir.getDirectoryHandle(segment, { create });
+/** Exclusive write handle for a file — the only write API available in every target browser */
+async function openSyncAccessHandle(relativePath: string): Promise<OpfsSyncAccessHandle> {
+  const fileHandle = (await resolveFile<FileSystemFileHandle>(await getRootDir(), relativePath, true)) as OpfsFileHandle;
+  return await fileHandle.createSyncAccessHandle();
+}
+
+/** Write a whole buffer to a sync access handle at `offset`, returning the bytes written */
+function writeAt(accessHandle: OpfsSyncAccessHandle, bytes: Uint8Array, offset: number): number {
+  let written = 0;
+  while (written < bytes.byteLength) {
+    written += accessHandle.write(bytes.subarray(written), { at: offset + written });
   }
-  return dir;
-}
-
-async function getFileHandle(relativePath: string, create: boolean): Promise<OpfsFileHandle> {
-  const segments = splitRelativePath(relativePath);
-  const fileName = segments[segments.length - 1];
-  const dir = await getDirHandle(segments.slice(0, -1), create);
-  return (await dir.getFileHandle(fileName, { create })) as OpfsFileHandle;
-}
-
-async function gzipBytes(bytes: Uint8Array): Promise<Uint8Array> {
-  const stream = new Blob([bytes as BlobPart]).stream().pipeThrough(new CompressionStream('gzip'));
-  return new Uint8Array(await new Response(stream).arrayBuffer());
+  return written;
 }
 
 async function handleWriteFile(path: string, gzip: boolean, bytes: Uint8Array): Promise<WriteFileResult> {
-  const fileHandle = await getFileHandle(path, true);
   const output = gzip ? await gzipBytes(bytes) : bytes;
-  const accessHandle = await fileHandle.createSyncAccessHandle();
+  const accessHandle = await openSyncAccessHandle(path);
   try {
     accessHandle.truncate(0);
-    let offset = 0;
-    while (offset < output.byteLength) {
-      offset += accessHandle.write(output.subarray(offset), { at: offset });
-    }
+    const written = writeAt(accessHandle, output, 0);
     accessHandle.flush();
-    return { bytes: offset };
+    return { bytes: written };
   } finally {
     accessHandle.close();
   }
 }
 
-async function handleOpenStream(path: string, gzip: boolean): Promise<OpenStreamResult> {
-  const fileHandle = await getFileHandle(path, true);
-  const accessHandle = await fileHandle.createSyncAccessHandle();
+async function handleOpenStream(streamId: number, path: string, gzip: boolean): Promise<OpenStreamResult> {
+  if (openStreams.has(streamId)) {
+    throw new Error(`Duplicate streamId ${streamId}`);
+  }
+  const accessHandle = await openSyncAccessHandle(path);
   accessHandle.truncate(0);
 
   const state: OpenStreamState = { accessHandle, bytesWritten: 0, path };
-
   if (gzip) {
-    const compression = new CompressionStream('gzip');
-    state.gzipWriter = compression.writable.getWriter();
-    const reader = compression.readable.getReader();
-    state.gzipPumpPromise = (async () => {
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) {
-          break;
-        }
-        let offset = 0;
-        while (offset < value.byteLength) {
-          offset += accessHandle.write(value.subarray(offset), { at: state.bytesWritten + offset });
-        }
-        state.bytesWritten += value.byteLength;
-      }
-    })();
-    // Mark handled so an abort() mid-write never surfaces as an unhandled rejection; close() still
-    // awaits the original promise and receives any error
-    state.gzipPumpPromise.catch(() => undefined);
+    state.gzipEncoder = createGzipEncoder((chunk) => {
+      state.bytesWritten += writeAt(accessHandle, chunk, state.bytesWritten);
+    });
   }
 
-  const streamId = nextStreamId++;
   openStreams.set(streamId, state);
   return { streamId };
 }
@@ -154,30 +129,39 @@ function getStream(streamId: number): OpenStreamState {
 
 async function handleStreamWrite(streamId: number, bytes: Uint8Array): Promise<void> {
   const state = getStream(streamId);
-  if (state.gzipWriter) {
-    // structured clone always yields a plain ArrayBuffer-backed view, never SharedArrayBuffer
-    await state.gzipWriter.write(bytes as Uint8Array<ArrayBuffer>);
+  if (state.gzipEncoder) {
+    await state.gzipEncoder.write(bytes);
   } else {
-    let offset = 0;
-    while (offset < bytes.byteLength) {
-      offset += state.accessHandle.write(bytes.subarray(offset), { at: state.bytesWritten + offset });
-    }
-    state.bytesWritten += bytes.byteLength;
+    state.bytesWritten += writeAt(state.accessHandle, bytes, state.bytesWritten);
   }
 }
 
 async function handleStreamClose(streamId: number): Promise<StreamCloseResult> {
   const state = getStream(streamId);
-  openStreams.delete(streamId);
   try {
-    if (state.gzipWriter) {
-      await state.gzipWriter.close();
-      await state.gzipPumpPromise;
-    }
+    await state.gzipEncoder?.close();
     state.accessHandle.flush();
+    openStreams.delete(streamId);
+    try {
+      state.accessHandle.close();
+    } catch {
+      // already closed
+    }
     return { bytes: state.bytesWritten };
-  } finally {
-    state.accessHandle.close();
+  } catch (ex) {
+    // A failed close (e.g. quota exhausted flushing the gzip trailer) must clean up like an abort:
+    // forget the stream, release the lock, discard the partial file. The stream cannot stay in
+    // `openStreams` (the caller's follow-up abort may never arrive), and forgetting it WITHOUT
+    // removing the file would leak an untracked partial file inside a live entry's directory —
+    // invisible to the orphan sweep, and charged against the very quota that just ran out.
+    openStreams.delete(streamId);
+    try {
+      state.accessHandle.close();
+    } catch {
+      // already closed
+    }
+    await removeFileQuietly(await getRootDir(), state.path);
+    throw ex;
   }
 }
 
@@ -187,66 +171,23 @@ async function handleStreamAbort(streamId: number): Promise<void> {
     return;
   }
   openStreams.delete(streamId);
-  try {
-    await state.gzipWriter?.abort();
-  } catch {
-    // writer may already be errored/closed
-  }
+  await state.gzipEncoder?.abort();
   try {
     state.accessHandle.close();
   } catch {
     // best-effort
   }
-  await deleteFileQuietly(state.path);
-}
-
-async function deleteFileQuietly(relativePath: string): Promise<void> {
-  try {
-    const segments = splitRelativePath(relativePath);
-    const dir = await getDirHandle(segments.slice(0, -1), false);
-    await dir.removeEntry(segments[segments.length - 1]);
-  } catch {
-    // best-effort cleanup of a partial file
-  }
+  await removeFileQuietly(await getRootDir(), state.path);
 }
 
 async function handleReadFile(path: string, gunzip: boolean): Promise<Blob> {
-  const fileHandle = await getFileHandle(path, false);
+  const fileHandle = await resolveFile<FileSystemFileHandle>(await getRootDir(), path, false);
   const file = await fileHandle.getFile();
   if (!gunzip) {
     return file;
   }
   const stream = file.stream().pipeThrough(new DecompressionStream('gzip'));
   return await new Response(stream).blob();
-}
-
-async function handleDeleteDir(path: string): Promise<void> {
-  const segments = splitRelativePath(path);
-  try {
-    const parent = await getDirHandle(segments.slice(0, -1), false);
-    await parent.removeEntry(segments[segments.length - 1], { recursive: true });
-  } catch (ex) {
-    if (ex instanceof DOMException && ex.name === 'NotFoundError') {
-      return;
-    }
-    throw ex;
-  }
-}
-
-async function handleListEntryDirs(): Promise<ListEntryDirsResult> {
-  const dirs: Array<{ orgFolder: string; entryKey: string }> = [];
-  const root = await getRootDir();
-  for await (const orgHandle of root.values()) {
-    if (orgHandle.kind !== 'directory') {
-      continue;
-    }
-    for await (const entryHandle of orgHandle.values()) {
-      if (entryHandle.kind === 'directory') {
-        dirs.push({ orgFolder: orgHandle.name, entryKey: entryHandle.name });
-      }
-    }
-  }
-  return { dirs };
 }
 
 async function handleEstimate(): Promise<EstimateResult> {
@@ -264,7 +205,7 @@ async function handleRequest(request: HistoryWorkerRequest): Promise<unknown> {
       return await handleWriteFile(request.path, request.gzip, request.bytes);
     }
     case 'open-stream': {
-      return await handleOpenStream(request.path, request.gzip);
+      return await handleOpenStream(request.streamId, request.path, request.gzip);
     }
     case 'stream-write': {
       return await handleStreamWrite(request.streamId, request.bytes);
@@ -279,10 +220,10 @@ async function handleRequest(request: HistoryWorkerRequest): Promise<unknown> {
       return await handleReadFile(request.path, request.gunzip);
     }
     case 'delete-dir': {
-      return await handleDeleteDir(request.path);
+      return await removeDir(await getRootDir(), request.path);
     }
     case 'list-entry-dirs': {
-      return await handleListEntryDirs();
+      return { dirs: await listEntryDirs(await getRootDir()) } satisfies ListEntryDirsResult;
     }
     case 'estimate': {
       return await handleEstimate();

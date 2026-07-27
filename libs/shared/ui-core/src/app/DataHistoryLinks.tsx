@@ -1,6 +1,8 @@
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { Icon } from '@jetstream/ui';
+import { Checkbox, Icon } from '@jetstream/ui';
+import { dataHistoryCaptureEnabledState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
+import { useAtomValue } from 'jotai';
 import { FunctionComponent } from 'react';
 import { Link } from 'react-router';
 
@@ -18,6 +20,56 @@ export const HeaderDataHistoryButton: FunctionComponent = () => {
       <Icon type="utility" icon="clock" className="slds-button__icon slds-global-header__icon" omitContainer />
       <span className="slds-assistive-text">{APP_ROUTES.DATA_HISTORY.TITLE}</span>
     </Link>
+  );
+};
+
+const SKIP_HISTORY_TEXT = {
+  load: { action: 'load', records: 'loaded records' },
+  update: { action: 'update', records: 'updated records' },
+} as const;
+
+export interface SkipDataHistoryCheckboxProps {
+  /** Wording for the label and help text — "this load"/"loaded records" vs "this update"/"updated records" */
+  operation: keyof typeof SKIP_HISTORY_TEXT;
+  checked: boolean;
+  disabled?: boolean;
+  className?: string;
+  /** Also render the "View Data History" link beneath the checkbox */
+  showViewLink?: boolean;
+  onChange: (skipHistory: boolean) => void;
+}
+
+/**
+ * Per-run "don't save this one to Data History" opt-out, shared by every capture surface (load
+ * records, load to multiple objects, mass update, bulk update from query). Renders nothing when
+ * capture is off, so callers do not repeat that gate — there is nothing to opt out of.
+ */
+export const SkipDataHistoryCheckbox: FunctionComponent<SkipDataHistoryCheckboxProps> = ({
+  operation,
+  checked,
+  disabled,
+  className,
+  showViewLink,
+  onChange,
+}) => {
+  // Seeded during app init (see AppInitializer) so this renders synchronously
+  const captureEnabled = useAtomValue(dataHistoryCaptureEnabledState);
+  if (!captureEnabled) {
+    return null;
+  }
+  const { action, records } = SKIP_HISTORY_TEXT[operation];
+  return (
+    <div className={className}>
+      <Checkbox
+        id={`skip-data-history-${operation}`}
+        checked={checked}
+        label={`Don't save this ${action} to Data History`}
+        labelHelp={`Data History keeps a local copy of your ${records} and results on this device. Check this to skip saving this particular ${action}.`}
+        disabled={disabled}
+        onChange={onChange}
+      />
+      {showViewLink && <ViewDataHistoryLink className="slds-m-top_xx-small" />}
+    </div>
   );
 };
 

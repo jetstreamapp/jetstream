@@ -43,15 +43,10 @@ export function buildMultiObjectResultRows(
             graphResponse.compositeResponse.map((response) => {
               const { referenceId } = response;
               const { operation, sobject, externalId } = recordWithResponseByRefId[referenceId] || {};
-              // PATCH returns 204 with no body
-              if (!response.body) {
-                response.body = {
-                  id: '',
-                  success: true,
-                  errors: [],
-                };
-              }
-              const { id, success, message, created, errorCode } = response.body;
+              // PATCH returns 204 with no body — derive a local fallback rather than mutating the
+              // (React-state-owned) response object shared with the interactive download path.
+              const body = response.body ?? { id: '', success: true, errors: [] };
+              const { id, success, message, created, errorCode } = body;
               return {
                 Group: graphId,
                 Object: sobject,

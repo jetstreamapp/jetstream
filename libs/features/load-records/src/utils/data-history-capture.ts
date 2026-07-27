@@ -1,24 +1,28 @@
+import { logger } from '@jetstream/shared/client-logger';
+import { buildBulkResultRow } from '@jetstream/shared/utils';
 import {
   ApiMode,
+  BulkJobWithBatches,
   DataHistoryApi,
-  DataHistoryInputSource,
+  DataHistoryCounts,
   DataHistoryOperation,
+  FieldMapping,
   InsertUpdateUpsertDelete,
-  LocalOrGoogle,
+  LoadDataBulkApiStatusPayload,
   Maybe,
+  PrepareDataResponse,
+  SalesforceOrgUi,
 } from '@jetstream/types';
-import { DataHistoryEntryHandle, FinishDataHistoryEntryOptions } from '@jetstream/ui/data-history';
+import { DataHistoryEntryHandle } from '@jetstream/ui/data-history';
+import { fetchBulkApiAllBatchResults, getLoadResultsHeader } from '../components/load-results/load-results-utils';
 
 /**
- * Thin helpers that adapt the Load Records feature to the `@jetstream/ui/data-history` capture API.
+ * Helpers that adapt the Load Records feature to the `@jetstream/ui/data-history` capture API.
  *
- * The handle is threaded through the results components as a promise (it resolves to `null` when
- * capture is disabled or opted out). Every wrapper here is fire-and-forget and swallows rejections
- * so history capture can NEVER slow down or break a load — the capture methods themselves are
- * internally queued and never reject, and the `.catch` is a belt-and-suspenders guard on the
- * promise plumbing.
+ * The handle itself is fire-and-forget: its methods are internally queued, never reject, and no-op
+ * when capture is disabled or opted out — so callers hand rows straight to it with no null checks
+ * and no `.catch()` plumbing of their own.
  */
-export type DataHistoryHandlePromise = Promise<DataHistoryEntryHandle | null>;
 
 export function loadTypeToDataHistoryOperation(loadType: InsertUpdateUpsertDelete): DataHistoryOperation {
   switch (loadType) {
@@ -40,51 +44,125 @@ export function apiModeToDataHistoryApi(apiMode: ApiMode): DataHistoryApi {
   return apiMode === 'BATCH' ? 'batch-composite' : 'bulk-v1';
 }
 
-export function buildLoadRecordsInputSource({
-  filename,
-  filenameType,
-  googleFileId,
+/**
+ * A run that failed before any record reached Salesforce (pre-processing/query errors, or a thrown
+ * prepare step). FINISH the entry — not fail — so the attempted count is recorded: every input
+ * record counts as a failure rather than the entry looking like a capture malfunction.
+ */
+export function finishHistoryAsPrepareFailure(
+  historyHandle: Maybe<DataHistoryEntryHandle>,
+  attemptedCount: number,
+  errorMessage: string,
+): void {
+  historyHandle?.finish({
+    counts: { total: attemptedCount, success: 0, failure: attemptedCount },
+    status: 'failed',
+    errorMessage,
+  });
+}
+
+/**
+ * Metadata snapshot stored on the entry's `config`, mirroring the `load_Submitted` analytics payload
+ * (the loaded rows themselves are captured as files). Shared by the initial-load and retry paths so
+ * the two records stay comparable — `retry` adds the retry-specific fields on top.
+ */
+export function buildLoadRecordsHistoryConfig({
+  loadType,
+  apiMode,
+  numRecords,
+  batchSize,
+  insertNulls,
+  serialMode,
+  hasDateFieldMapped,
+  dateFormat,
+  fieldMapping,
+  hasZipAttachment,
+  timesSameDataSubmitted,
+  trialRun = false,
+  trialRunSize,
+  retry,
 }: {
-  filename: Maybe<string>;
-  filenameType: Maybe<LocalOrGoogle>;
-  googleFileId: Maybe<string>;
-}): DataHistoryInputSource {
-  const isGoogle = filenameType === 'google';
+  loadType: InsertUpdateUpsertDelete;
+  apiMode: ApiMode;
+  numRecords: number;
+  batchSize: Maybe<number>;
+  insertNulls: boolean;
+  serialMode: boolean;
+  hasDateFieldMapped: boolean;
+  dateFormat: string;
+  fieldMapping: FieldMapping;
+  hasZipAttachment: boolean;
+  timesSameDataSubmitted: number;
+  trialRun?: boolean;
+  trialRunSize?: Maybe<number>;
+  retry?: { retryCount: number; retrySource: 'all' | 'selected'; totalFailedCount: number };
+}): Record<string, unknown> {
   return {
-    type: isGoogle ? 'google' : 'local',
-    fileName: filename ?? undefined,
-    googleFileId: isGoogle ? (googleFileId ?? undefined) : undefined,
+    loadType,
+    apiMode,
+    numRecords,
+    batchSize,
+    insertNulls,
+    serialMode,
+    hasDateFieldMapped,
+    dateFormat,
+    trialRun,
+    trialRunSize,
+    hasZipAttachment,
+    timesSameDataSubmitted,
+    numStaticFields: Object.values(fieldMapping).filter(({ type }) => type === 'STATIC').length,
+    ...(retry ? { isRetry: true, ...retry } : {}),
   };
 }
 
-/** Persist the parsed input rows for an entry (fire-and-forget) */
-export function writeHistoryInputRows(handle: Maybe<DataHistoryHandlePromise>, rows: Record<string, unknown>[], header: string[]): void {
-  if (!handle || rows.length === 0 || header.length === 0) {
-    return;
-  }
-  void handle.then((resolved) => resolved?.writeInputRows(rows, header)).catch(() => undefined);
-}
-
-/** Append a chunk of result rows to an entry (fire-and-forget, streams batch-by-batch) */
-export function appendHistoryResultsRows(handle: Maybe<DataHistoryHandlePromise>, rows: Record<string, unknown>[], header: string[]): void {
-  if (!handle || rows.length === 0 || header.length === 0) {
-    return;
-  }
-  void handle.then((resolved) => resolved?.appendResultsRows(rows, header)).catch(() => undefined);
-}
-
-/** Finalize an entry with its counts/status (fire-and-forget) */
-export function finishHistoryEntry(handle: Maybe<DataHistoryHandlePromise>, outcome: FinishDataHistoryEntryOptions): void {
-  if (!handle) {
-    return;
-  }
-  void handle.then((resolved) => resolved?.finish(outcome)).catch(() => undefined);
-}
-
-/** Mark an entry failed after a fatal load error (fire-and-forget) */
-export function failHistoryEntry(handle: Maybe<DataHistoryHandlePromise>, errorMessage: string): void {
-  if (!handle) {
-    return;
-  }
-  void handle.then((resolved) => resolved?.fail(errorMessage)).catch(() => undefined);
+/**
+ * Proactively capture a finished bulk job's per-record results, then finish the entry. Bulk results
+ * expire server-side (~7 days), so they are fetched even when the user never clicks download.
+ *
+ * Skipped entirely — with no network calls — when capture is off, and a results-fetch failure still
+ * finishes the entry with the counts the UI shows, because the load itself succeeded and must never
+ * be recorded as failed. Fire-and-forget — the returned promise is only for sequencing in tests.
+ */
+export function captureBulkApiLoadResults({
+  handle,
+  selectedOrg,
+  jobInfo,
+  batchSummary,
+  preparedData,
+  loadType,
+  fields,
+  batchSize,
+  counts,
+}: {
+  handle: DataHistoryEntryHandle;
+  selectedOrg: SalesforceOrgUi;
+  jobInfo: BulkJobWithBatches;
+  batchSummary: LoadDataBulkApiStatusPayload;
+  preparedData: PrepareDataResponse;
+  loadType: InsertUpdateUpsertDelete;
+  /** Mapped target field headers (`getFieldHeaderFromMapping`) */
+  fields: string[];
+  batchSize: number;
+  counts: DataHistoryCounts;
+}): Promise<void> {
+  return handle.capture(async () => {
+    try {
+      if (jobInfo.id) {
+        const { results, records } = await fetchBulkApiAllBatchResults({ selectedOrg, jobInfo, batchSummary, preparedData, loadType });
+        const header = getLoadResultsHeader(fields);
+        // Stream in batch-size chunks, awaiting each one: the capture methods only ENQUEUE work, so
+        // without the await the loop would build (and hold) every chunk's rows before any of them is
+        // serialized — the exact peak-memory spike the chunking exists to avoid.
+        for (let offset = 0; offset < results.length; offset += batchSize) {
+          const rows = results
+            .slice(offset, offset + batchSize)
+            .map((resultRecord, index) => buildBulkResultRow(resultRecord, records[offset + index]));
+          await handle.appendResultsRows(rows, header);
+        }
+      }
+    } catch (ex) {
+      logger.warn('[DATA_HISTORY] Failed to capture bulk results', ex);
+    }
+    await handle.finish({ counts, jobId: jobInfo.id ?? undefined });
+  });
 }

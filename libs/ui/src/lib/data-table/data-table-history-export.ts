@@ -38,48 +38,63 @@ function getEditedColumns(dirtyRows: RowSalesforceRecordWithKey[]): string[] {
   return editedColumns;
 }
 
-/**
- * Build a loadable export of the pending edits: one row per record, columns = Id + the union of every
- * edited field across records. Each row emits a value ONLY for the fields IT actually changed — the other
- * union columns stay blank — so the file is a true per-record diff rather than a dump of every field.
- * Reloading via Load Records re-applies exactly these changes (blank cells are no-ops when "insert null
- * values" is off).
- */
-export function buildEditedRecordsExport(dirtyRows: RowSalesforceRecordWithKey[]): { data: Record<string, unknown>[]; header: string[] } {
-  const editedColumns = getEditedColumns(dirtyRows);
-  const header = ['Id', ...editedColumns];
-  const data = dirtyRows.map((row) => {
-    const record: Record<string, unknown> = { Id: getRecordId(row) };
-    // Only emit a value for the columns THIS row changed; the rest stay blank (omitted) so the file shows
-    // just what each record actually modified.
-    editedColumns.forEach((columnKey) => {
-      if (rowChangedColumn(row, columnKey)) {
-        record[columnKey] = row[columnKey] ?? '';
-      }
-    });
-    return record;
-  });
-  return { data, header };
+/** Rows + column order for one downloadable/capturable export file */
+export interface RecordExport {
+  data: Record<string, unknown>[];
+  header: string[];
 }
 
 /**
- * Build the PRIOR-value counterpart of `buildEditedRecordsExport`: one row per record with the original
- * (pre-edit) value of each changed field, so Data History can show a true before → after diff. Uses the
- * same column selection as the edited export so the two line up by index and column.
+ * One row per record, columns = Id + the union of every edited field across records. Each row emits a
+ * value ONLY for the fields IT actually changed — the other union columns stay blank — so the file is a
+ * true per-record diff rather than a dump of every field. `getValue` selects which side of the edit to
+ * emit, which is the ONLY difference between the edited and prior exports: they must share this column
+ * selection so the two files line up by index and column.
  */
-export function buildPriorRecordsExport(dirtyRows: RowSalesforceRecordWithKey[]): { data: Record<string, unknown>[]; header: string[] } {
+function buildRecordsExport(
+  dirtyRows: RowSalesforceRecordWithKey[],
+  getValue: (row: RowSalesforceRecordWithKey, columnKey: string) => unknown,
+): RecordExport {
   const editedColumns = getEditedColumns(dirtyRows);
-  const header = ['Id', ...editedColumns];
   const data = dirtyRows.map((row) => {
     const record: Record<string, unknown> = { Id: getRecordId(row) };
     editedColumns.forEach((columnKey) => {
       if (rowChangedColumn(row, columnKey)) {
-        record[columnKey] = row._record?.[columnKey] ?? '';
+        record[columnKey] = getValue(row, columnKey) ?? '';
       }
     });
     return record;
   });
-  return { data, header };
+  return { data, header: ['Id', ...editedColumns] };
+}
+
+/**
+ * Loadable export of the pending edits. Reloading it via Load Records re-applies exactly these changes
+ * (blank cells are no-ops when "insert null values" is off).
+ */
+export function buildEditedRecordsExport(dirtyRows: RowSalesforceRecordWithKey[]): RecordExport {
+  return buildRecordsExport(dirtyRows, (row, columnKey) => row[columnKey]);
+}
+
+/**
+ * The PRIOR-value counterpart of `buildEditedRecordsExport` — the original (pre-edit) value of each
+ * changed field, so Data History can show a true before → after diff.
+ */
+export function buildPriorRecordsExport(dirtyRows: RowSalesforceRecordWithKey[]): RecordExport {
+  return buildRecordsExport(dirtyRows, (row, columnKey) => row._record?.[columnKey]);
+}
+
+/**
+ * Snapshots handed to the host after an inline-edit save settles (see
+ * `SalesforceRecordDataTableProps.onRecordsSaveCapture`) — captured BEFORE the table mutates its rows.
+ * Exactly one of `results` (the save call resolved, including per-record failures) or `errorMessage`
+ * (the save call itself threw — no per-record results exist) is present.
+ */
+export interface RecordsSaveCaptureInfo {
+  editedRecords: RecordExport;
+  priorRecords: RecordExport;
+  results?: SobjectCollectionResponse;
+  errorMessage?: string;
 }
 
 /**
@@ -87,10 +102,7 @@ export function buildPriorRecordsExport(dirtyRows: RowSalesforceRecordWithKey[])
  * the Load Records results file) followed by the record data from the "Download Changes" export (Id +
  * every edited field) at the end. Rows zip to `saveResults` by index — the order they were submitted in.
  */
-export function buildResultsExport(
-  editedExport: { data: Record<string, unknown>[]; header: string[] },
-  saveResults: SobjectCollectionResponse,
-): { data: Record<string, unknown>[]; header: string[] } {
+export function buildResultsExport(editedExport: RecordExport, saveResults: SobjectCollectionResponse): RecordExport {
   const header = ['_id', '_success', '_errors', ...editedExport.header];
   const data = editedExport.data.map((record, index) => {
     const result = saveResults[index];

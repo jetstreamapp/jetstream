@@ -11,14 +11,7 @@ import {
 } from '@jetstream/ui/data-history';
 import { dataHistoryDb, dexieDb } from '@jetstream/ui/db';
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import {
-  buildMultiObjectInputSource,
-  DataHistoryHandlePromise,
-  finalizeMultiObjectHistory,
-  getMultiObjectDistinctSobjects,
-  getMultiObjectOperations,
-  writeMultiObjectRequestJson,
-} from '../data-history-capture';
+import { finalizeMultiObjectHistory, getMultiObjectDistinctSobjects, getMultiObjectOperations } from '../data-history-capture';
 import { LoadMultiObjectRequestWithResult } from '../load-records-multi-object-types';
 
 // jsdom's Blob does not interoperate with Node's CompressionStream (cross-realm web streams).
@@ -88,14 +81,6 @@ describe('multi-object derivation helpers', () => {
     ];
     expect(getMultiObjectOperations(single)).toMatchObject({ mixed: false, operation: 'update' });
   });
-
-  it('builds a google input source with the file id', () => {
-    expect(buildMultiObjectInputSource({ filename: 'sheet', filenameType: 'google', googleFileId: 'gid' })).toEqual({
-      type: 'google',
-      fileName: 'sheet',
-      googleFileId: 'gid',
-    });
-  });
 });
 
 describe('multi-object Data History capture wiring', () => {
@@ -127,11 +112,10 @@ describe('multi-object Data History capture wiring', () => {
       operation: getMultiObjectOperations(data).operation,
       api: 'composite-graph',
       sobjects: getMultiObjectDistinctSobjects(data),
-    }) as DataHistoryHandlePromise;
+    });
 
-    writeMultiObjectRequestJson(handle, [{ groupId: 'g1', data: [{ some: 'request' }] }]);
-    finalizeMultiObjectHistory(handle, data);
-    await (await handle)?.flush();
+    handle.writeRequestJson([{ groupId: 'g1', data: [{ some: 'request' }] }]);
+    await finalizeMultiObjectHistory(handle, data);
 
     const [entry] = await dataHistoryDb.getAllEntries();
     expect(entry.source).toBe('load-multi-object');
@@ -148,20 +132,44 @@ describe('multi-object Data History capture wiring', () => {
     expect(JSON.parse(await request!.blob.text())[0].groupId).toBe('g1');
   });
 
-  it('marks the entry failed when every group failed outright', async () => {
-    const data = [buildRequest('g1', 'network down', [{ referenceId: 'r1', sobject: 'Account', operation: 'INSERT', body: null }])];
+  it('marks the entry failed with the attempted record counts when every group failed outright', async () => {
+    const data = [
+      buildRequest('g1', 'network down', [
+        { referenceId: 'r1', sobject: 'Account', operation: 'INSERT', body: null },
+        { referenceId: 'r2', sobject: 'Contact', operation: 'INSERT', body: null },
+      ]),
+    ];
     const handle = startDataHistoryEntry({
       org,
       source: 'load-multi-object',
       operation: 'insert',
       api: 'composite-graph',
       sobjects: ['Account'],
-    }) as DataHistoryHandlePromise;
-    finalizeMultiObjectHistory(handle, data);
-    await (await handle)?.flush();
+    });
+    handle.writeRequestJson([{ groupId: 'g1', data: [{ some: 'request' }] }]);
+    await finalizeMultiObjectHistory(handle, data);
 
     const [entry] = await dataHistoryDb.getAllEntries();
     expect(entry.status).toBe('failed');
     expect(entry.errorMessage).toBe('network down');
+    expect(entry.counts).toEqual({ total: 2, success: 0, failure: 2 });
+    // Finishing (rather than failing) the entry keeps the request file and its manifest intact
+    expect(entry.files.map(({ kind }) => kind)).toEqual(['request']);
+  });
+
+  it('keeps the failed status when a group fails before any record is mapped', async () => {
+    const data = [buildRequest('g1', 'network down', [])];
+    const handle = startDataHistoryEntry({
+      org,
+      source: 'load-multi-object',
+      operation: 'insert',
+      api: 'composite-graph',
+      sobjects: [],
+    });
+    await finalizeMultiObjectHistory(handle, data);
+
+    const [entry] = await dataHistoryDb.getAllEntries();
+    expect(entry.status).toBe('failed');
+    expect(entry.counts).toEqual({ total: 0, success: 0, failure: 0 });
   });
 });

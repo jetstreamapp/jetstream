@@ -1,12 +1,8 @@
+import { buildBulkResultRow } from '@jetstream/shared/utils';
 import { BulkJobResultRecord } from '@jetstream/types';
 import { describe, expect, it } from 'vitest';
 import { MetadataRowConfiguration } from '../mass-update-records.types';
-import {
-  buildMassUpdateCombinedResults,
-  buildMassUpdateResultRow,
-  getMassUpdateBatchSourceRecords,
-  getMassUpdateResultsHeader,
-} from '../mass-update-records.utils';
+import { buildMassUpdateCombinedResults, getMassUpdateBatchSourceRecords, getMassUpdateResultsHeader } from '../mass-update-records.utils';
 
 const configuration: MetadataRowConfiguration[] = [
   { selectedField: 'Industry', transformationOptions: { option: 'staticValue', staticValue: 'Tech', criteria: 'all', whereClause: '' } },
@@ -19,10 +15,10 @@ describe('getMassUpdateResultsHeader', () => {
   });
 });
 
-describe('buildMassUpdateResultRow', () => {
+describe('buildBulkResultRow (shared with Load Records)', () => {
   it('combines a success result with the submitted source record', () => {
     const result: BulkJobResultRecord = { Id: '001A', Success: true, Created: false, Error: null };
-    expect(buildMassUpdateResultRow(result, { Id: '001A', Industry: 'Tech' })).toEqual({
+    expect(buildBulkResultRow(result, { Id: '001A', Industry: 'Tech' })).toEqual({
       _id: '001A',
       _success: true,
       _errors: '',
@@ -33,7 +29,7 @@ describe('buildMassUpdateResultRow', () => {
 
   it('falls back to the source record Id and decodes the error', () => {
     const result: BulkJobResultRecord = { Id: null, Success: false, Created: false, Error: 'INVALID:bad &amp; wrong' };
-    expect(buildMassUpdateResultRow(result, { Id: '001B', Industry: 'Energy' })).toEqual({
+    expect(buildBulkResultRow(result, { Id: '001B', Industry: 'Energy' })).toEqual({
       _id: '001B',
       _success: false,
       _errors: 'INVALID:bad & wrong',

@@ -5,7 +5,13 @@ import { DataTable, ScopedNotification, Spinner } from '@jetstream/ui';
 import { readDataHistoryFile } from '@jetstream/ui/data-history';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { downloadDataHistoryFile, getDataHistoryReadErrorMessage } from './data-history-download';
-import { buildDataHistoryPreviewText, DataHistoryTableData, DataHistoryTableRow, parseCsvToTable } from './data-history-page.utils';
+import {
+  buildDataHistoryPreviewText,
+  DATA_HISTORY_PREVIEW_MAX_BYTES,
+  DataHistoryTableData,
+  DataHistoryTableRow,
+  parseCsvToTable,
+} from './data-history-page.utils';
 
 /** Parsed payload cached at the modal level so switching tabs does not re-read/re-parse the file. */
 export interface LoadedDataHistoryPayload {
@@ -60,9 +66,15 @@ export const DataHistoryPayloadTab: FunctionComponent<DataHistoryPayloadTabProps
           }
           return;
         }
-        const text = await file.blob.text();
+        // Read only the HEAD of the payload. Request payloads hold every submitted record (a large
+        // mass update runs to hundreds of MB), and materializing that as one string — let alone
+        // parsing it — freezes or crashes the tab. Downloads always read the full file.
+        const isPartialRead = file.blob.size > DATA_HISTORY_PREVIEW_MAX_BYTES;
+        const text = await (isPartialRead ? file.blob.slice(0, DATA_HISTORY_PREVIEW_MAX_BYTES) : file.blob).text();
         const loaded: LoadedDataHistoryPayload =
-          file.contentType === 'text/csv' ? { table: parseCsvToTable(text) } : buildJsonPreview(text);
+          file.contentType === 'text/csv'
+            ? { table: parseCsvToTable(text, undefined, isPartialRead) }
+            : buildJsonPreview(text, isPartialRead);
         cache.set(kind, loaded);
         if (!canceled) {
           setPayload(loaded);
@@ -116,14 +128,21 @@ export const DataHistoryPayloadTab: FunctionComponent<DataHistoryPayloadTabProps
       )}
 
       {!loading && payload?.table && (
-        <div css={tableContainerStyles}>
-          <DataTable<DataHistoryTableRow>
-            data={payload.table.rows}
-            columns={payload.table.columns}
-            getRowKey={(row) => row._dhRowKey}
-            includeQuickFilter
-          />
-        </div>
+        <>
+          {payload.table.truncated && (
+            <p className="slds-text-color_weak slds-m-bottom_xx-small">
+              Showing the first {payload.table.rows.length.toLocaleString()} rows — download for the full data.
+            </p>
+          )}
+          <div css={tableContainerStyles}>
+            <DataTable<DataHistoryTableRow>
+              data={payload.table.rows}
+              columns={payload.table.columns}
+              getRowKey={(row) => row._dhRowKey}
+              includeQuickFilter
+            />
+          </div>
+        </>
       )}
 
       {!loading && payload?.jsonText != null && (
@@ -142,13 +161,20 @@ export const DataHistoryPayloadTab: FunctionComponent<DataHistoryPayloadTabProps
   );
 };
 
-function buildJsonPreview(text: string): LoadedDataHistoryPayload {
+/**
+ * Pretty-print the payload for display. Skipped entirely for a partial read: the text is a fragment
+ * of a larger document so it cannot parse anyway, and `JSON.parse` + re-`stringify` on a multi-MB
+ * string is exactly the main-thread spike the capped read exists to avoid.
+ */
+function buildJsonPreview(text: string, isPartialRead: boolean): LoadedDataHistoryPayload {
   let formatted = text;
-  try {
-    formatted = JSON.stringify(JSON.parse(text), null, 2);
-  } catch {
-    // not valid JSON — show the raw text
+  if (!isPartialRead) {
+    try {
+      formatted = JSON.stringify(JSON.parse(text), null, 2);
+    } catch {
+      // not valid JSON — show the raw text
+    }
   }
   const { text: jsonText, truncated } = buildDataHistoryPreviewText(formatted);
-  return { jsonText, jsonTruncated: truncated };
+  return { jsonText, jsonTruncated: isPartialRead || truncated };
 }
