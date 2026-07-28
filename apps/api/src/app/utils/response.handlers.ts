@@ -166,6 +166,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       sfdcErrorMessage === ERROR_MESSAGES.SFDC_EXPIRED_TOKEN ||
       sfdcErrorMessage === ERROR_MESSAGES.SFDC_EXPIRED_SESSION ||
       sfdcErrorMessage === ERROR_MESSAGES.SFDC_EXPIRED_TOKEN_VALIDITY ||
+      sfdcErrorMessage === ERROR_MESSAGES.SFDC_INVALID_SESSION_ID ||
       ERROR_MESSAGES.SFDC_ORG_DOES_NOT_EXIST.test(sfdcErrorMessage);
     const isSfdcRestApiNotEnabled = ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED.test(sfdcErrorMessage);
     // Salesforce reports the same auth failure with different HTTP statuses depending on the API (REST is

@@ -1,12 +1,12 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { QueryHistoryItem, QueryHistoryObject, SalesforceOrgUi } from '@jetstream/types';
-import { dexieDb } from './ui-db';
+import { dexieDb, wrapApiWithReopenOnDatabaseClosed } from './ui-db';
 
-export const queryHistoryObjectDb = {
+export const queryHistoryObjectDb = wrapApiWithReopenOnDatabaseClosed({
   saveQueryHistoryObject,
   saveQueryHistoryObjectFromKey,
   deleteAllQueryHistoryObjectForOrg,
-};
+});
 
 /**
  * Save object mapping for query history

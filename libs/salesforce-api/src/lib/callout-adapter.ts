@@ -5,6 +5,8 @@ import isObject from 'lodash/isObject';
 import { ApiRequestOptions, ApiRequestOutputType, BulkXmlErrorResponse, FetchFn, FetchResponse, Logger, SoapErrorResponse } from './types';
 
 const SOAP_API_AUTH_ERROR_REGEX = /<faultcode>[a-zA-Z]+:INVALID_SESSION_ID<\/faultcode>/;
+// Bulk API v1 reports session-auth failures as HTTP 400 with an XML body instead of a 401
+const BULK_XML_AUTH_ERROR_REGEX = /<exceptionCode>InvalidSessionId<\/exceptionCode>/;
 // Shows up for certain API requests, such as Identity
 const BAS_ACCESS_TOKEN_403 = 'Bad_OAuth_Token';
 
@@ -240,6 +242,7 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
           if (
             attemptRefresh &&
             (response.status === 401 ||
+              (response.status === 400 && BULK_XML_AUTH_ERROR_REGEX.test(responseText)) ||
               (response.status === 403 && responseText === BAS_ACCESS_TOKEN_403) ||
               (response.status === 500 && SOAP_API_AUTH_ERROR_REGEX.test(responseText))) &&
             sessionInfo.sfdcClientId &&

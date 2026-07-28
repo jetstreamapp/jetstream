@@ -1017,6 +1017,38 @@ describe('callout-adapter refresh token rotation', () => {
     expect(refreshTokens).toHaveBeenCalledWith(mockSessionInfo.accessToken);
   });
 
+  it('refreshes tokens when Bulk API v1 reports InvalidSessionId as HTTP 400 XML', async () => {
+    // Bulk API v1 does not use 401 for session-auth failures — it returns HTTP 400 with an XML error body.
+    const bulkInvalidSessionXml = `<?xml version="1.0" encoding="UTF-8"?><error xmlns="http://www.force.com/2009/06/asyncapi/dataload"><exceptionCode>InvalidSessionId</exceptionCode><exceptionMessage>Invalid session id</exceptionMessage></error>`;
+    const refreshTokens = vi.fn(async () => ({
+      accessToken: 'new-access-token',
+      refreshToken: 'new-refresh-token',
+    }));
+
+    const mockFetch = vi.fn((_url: string | URL, opts: any) => {
+      const auth = opts?.headers?.Authorization;
+      if (auth === `Bearer ${mockSessionInfo.accessToken}`) {
+        return makeJsonResponse(400, bulkInvalidSessionXml);
+      }
+      return makeJsonResponse(
+        200,
+        `<?xml version="1.0" encoding="UTF-8"?><batchInfo xmlns="http://www.force.com/2009/06/asyncapi/dataload"><id>751000000000001</id><state>Queued</state></batchInfo>`,
+      );
+    }) as unknown as FetchFn;
+
+    const apiRequest = getApiRequestFactoryFn(mockFetch)({ refreshTokens });
+    const result = await apiRequest({
+      url: '/services/async/65.0/job/123/batch',
+      method: 'POST',
+      sessionInfo: { ...mockSessionInfo },
+      outputType: 'xml',
+    });
+
+    expect(result).toBeTruthy();
+    expect(refreshTokens).toHaveBeenCalledTimes(1);
+    expect(refreshTokens).toHaveBeenCalledWith(mockSessionInfo.accessToken);
+  });
+
   it('falls through to onConnectionError when refreshTokens closure rejects', async () => {
     const refreshTokens = vi.fn(async () => {
       throw new Error('refresh failed');

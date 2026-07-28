@@ -4,9 +4,9 @@ import { REGEX } from '@jetstream/shared/utils';
 import { QueryHistoryItem, SalesforceOrgUi } from '@jetstream/types';
 import { parseQuery } from '@jetstreamapp/soql-parser-js';
 import { max } from 'date-fns/max';
-import { dexieDb, getHashedRecordKey, SyncableTables } from './ui-db';
+import { dexieDb, getHashedRecordKey, SyncableTables, wrapApiWithReopenOnDatabaseClosed } from './ui-db';
 
-export const queryHistoryDb = {
+export const queryHistoryDb = wrapApiWithReopenOnDatabaseClosed({
   getAllQueryHistory,
   getOrInitQueryHistoryItem,
   saveQueryHistoryItem,
@@ -15,7 +15,7 @@ export const queryHistoryDb = {
   updateSavedQuery,
   deleteAllQueryHistoryForOrgExceptFavorites,
   TEMP_deleteItem,
-};
+});
 
 /**
  * Boolean fields cannot be indexes, so we store a string version of the same field

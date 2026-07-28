@@ -1,8 +1,46 @@
-import { MAX_CONSECUTIVE_FAILURES, isFatalBulkApiError } from '../load-records-process';
+import { MAX_BATCH_CSV_CHARS, MAX_CONSECUTIVE_FAILURES, generateSizeCappedBatchCsvs, isFatalBulkApiError } from '../load-records-process';
 
 describe('MAX_CONSECUTIVE_FAILURES', () => {
   it('should equal 5', () => {
     expect(MAX_CONSECUTIVE_FAILURES).toBe(5);
+  });
+});
+
+describe('generateSizeCappedBatchCsvs', () => {
+  it('splits by record count when all batches are within the size cap', () => {
+    const records = Array.from({ length: 10 }, (_, i) => ({ Id: `rec-${i}`, Name: `Record ${i}` }));
+
+    const csvs = generateSizeCappedBatchCsvs(records, 3);
+
+    expect(csvs).toHaveLength(4);
+    // Every record lands in exactly one batch and each batch repeats the header
+    records.forEach(({ Id }) => {
+      expect(csvs.filter((csv) => csv.includes(Id))).toHaveLength(1);
+    });
+    csvs.forEach((csv) => expect(csv.startsWith('Id')).toBe(true));
+  });
+
+  it('halves batches whose CSV exceeds the character cap', () => {
+    // 8 records x ~2M chars each = ~16M chars in one count-based batch, which must split into two
+    const bigValue = 'x'.repeat(2_000_000);
+    const records = Array.from({ length: 8 }, (_, i) => ({ Id: `rec-${i}`, Description: bigValue }));
+
+    const csvs = generateSizeCappedBatchCsvs(records, 8);
+
+    expect(csvs.length).toBeGreaterThan(1);
+    csvs.forEach((csv) => expect(csv.length).toBeLessThanOrEqual(MAX_BATCH_CSV_CHARS));
+    records.forEach(({ Id }) => {
+      expect(csvs.filter((csv) => csv.includes(`${Id},`))).toHaveLength(1);
+    });
+  });
+
+  it('passes through a single record that alone exceeds the cap', () => {
+    const records = [{ Id: 'rec-0', Description: 'x'.repeat(MAX_BATCH_CSV_CHARS + 100) }];
+
+    const csvs = generateSizeCappedBatchCsvs(records, 100);
+
+    expect(csvs).toHaveLength(1);
+    expect(csvs[0].length).toBeGreaterThan(MAX_BATCH_CSV_CHARS);
   });
 });
 

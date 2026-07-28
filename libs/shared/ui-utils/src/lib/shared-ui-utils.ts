@@ -312,7 +312,9 @@ export function prepareExcelFile(data: any, header: any, defaultSheetName: any =
 
   if (Array.isArray(data)) {
     header = header || Object.keys(data[0] || {});
-    const worksheet = XLSX.utils.aoa_to_sheet(convertArrayOfObjectToArrayOfArray(data, header as string[]), { dense: true });
+    const worksheet = XLSX.utils.aoa_to_sheet(truncateCellsForExcel(convertArrayOfObjectToArrayOfArray(data, header as string[])), {
+      dense: true,
+    });
     XLSX.utils.book_append_sheet(workbook, worksheet, defaultSheetName);
     options.compression = options.compression || data.length > COMPRESS_SHEET_ROW_COUNT;
   } else {
@@ -331,9 +333,12 @@ export function prepareExcelFile(data: any, header: any, defaultSheetName: any =
         }
         XLSX.utils.book_append_sheet(
           workbook,
-          XLSX.utils.aoa_to_sheet(isArrayOfArray ? values : convertArrayOfObjectToArrayOfArray(values, currentHeader), {
-            dense: true,
-          }),
+          XLSX.utils.aoa_to_sheet(
+            truncateCellsForExcel(isArrayOfArray ? values : convertArrayOfObjectToArrayOfArray(values, currentHeader)),
+            {
+              dense: true,
+            },
+          ),
           sheetName,
         );
       }
@@ -341,6 +346,22 @@ export function prepareExcelFile(data: any, header: any, defaultSheetName: any =
   }
 
   return excelWorkbookToArrayBuffer(workbook, options);
+}
+
+// Excel's hard per-cell limit — XLSX.write throws "Text length must not exceed 32767 characters" beyond it.
+// Salesforce long text/rich text fields allow up to 131,072 characters and subquery records are JSON-stringified
+// into a single cell, so real data exceeds this regularly. Truncation is the only way to emit a valid .xlsx.
+export const EXCEL_MAX_CELL_CHARS = 32_767;
+const EXCEL_TRUNCATION_SUFFIX = '...(truncated)';
+
+function truncateCellsForExcel(rows: any[][]): any[][] {
+  return rows.map((row) =>
+    row.map((value) =>
+      typeof value === 'string' && value.length > EXCEL_MAX_CELL_CHARS
+        ? `${value.slice(0, EXCEL_MAX_CELL_CHARS - EXCEL_TRUNCATION_SUFFIX.length)}${EXCEL_TRUNCATION_SUFFIX}`
+        : value,
+    ),
+  );
 }
 
 export function excelWorkbookToArrayBuffer(workbook: XLSX.WorkBook, options?: XLSX.WritingOptions): ArrayBuffer {

@@ -1,12 +1,12 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ApiHistoryItem, HttpMethod, SalesforceApiHistoryRequest, SalesforceApiHistoryResponse, SalesforceOrgUi } from '@jetstream/types';
-import { dexieDb, getHashedRecordKey, SyncableTables } from './ui-db';
+import { dexieDb, getHashedRecordKey, SyncableTables, wrapApiWithReopenOnDatabaseClosed } from './ui-db';
 
-export const apiRequestHistoryDb = {
+export const apiRequestHistoryDb = wrapApiWithReopenOnDatabaseClosed({
   getAllQueryHistory,
   saveApiHistoryItem,
   deleteAllApiHistoryForOrg,
-};
+});
 
 function generateKey(orgUniqueId: string, method: HttpMethod, url: string): ApiHistoryItem['key'] {
   return `${SyncableTables.api_request_history.keyPrefix}_${orgUniqueId}:${method}:${url}`.toLowerCase() as ApiHistoryItem['key'];
