@@ -57,6 +57,13 @@ export function EditorHost<TRow>({ editingCell, table, getRootElement, onCommitR
     return null;
   }
 
+  // Must be rendered as a JSX component (never a plain `renderEditCell(...)` call) so the editor's hooks
+  // live on the editor's own fiber. The editor function can change identity mid-edit — e.g. field metadata
+  // resolves and swaps EditorText for a lookup/picklist editor — and as a component that swap remounts the
+  // editor instead of shifting EditorHost's hook order (React error #310). The draft row lives here in
+  // EditorHost, so in-progress edits survive the remount.
+  const EditCell = authorColumn.renderEditCell;
+
   const minWidth = Math.max(cellEl.offsetWidth, 200);
 
   // Name the editor dialog so screen readers announce the column being edited instead of a bare "dialog".
@@ -115,14 +122,14 @@ export function EditorHost<TRow>({ editingCell, table, getRootElement, onCommitR
           className="slds-p-around_x-small"
           onOutsideClick={() => handleClose(draftRow !== null ? true : (authorColumn.editorOptions?.commitOnOutsideClick ?? false), false)}
         >
-          {authorColumn.renderEditCell({
-            row: draftRow ?? row.original,
-            column: authorColumn,
-            rowIndex,
-            colIndex,
-            onRowChange: handleRowChange,
-            onClose: handleClose,
-          })}
+          <EditCell
+            row={draftRow ?? row.original}
+            column={authorColumn}
+            rowIndex={rowIndex}
+            colIndex={colIndex}
+            onRowChange={handleRowChange}
+            onClose={handleClose}
+          />
         </OutsideClickHandler>
       </div>
     </FloatingPortal>
