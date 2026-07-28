@@ -1,5 +1,20 @@
 # Changelog
 
+## [10.8.0](https://github.com/jetstreamapp/jetstream/compare/v10.7.2...v10.8.0) (2026-07-28)
+
+### Features
+
+* add grid download to permission analysis; reset dismissed notifications per run ([5955053](https://github.com/jetstreamapp/jetstream/commit/595505378b2366e77deb268457d6f3ad4a142d84))
+* enhance pluralization and formatting across various components ([ef0d329](https://github.com/jetstreamapp/jetstream/commit/ef0d32916bc472fb99416614cea9cb9e7497644a))
+
+### Bug Fixes
+
+* enhance EditorHost to support dynamic editor swapping and add CSS global shim for tests ([4f33941](https://github.com/jetstreamapp/jetstream/commit/4f339418676f014e31556ff6106972eac442dde5))
+* enhance error handling and user feedback in SaveMappingPopover during field mapping save ([f6f65d1](https://github.com/jetstreamapp/jetstream/commit/f6f65d1cf40833cf1535d1cca2e8add89182013d))
+* enhance error tracking and handling for Salesforce API interactions ([452361e](https://github.com/jetstreamapp/jetstream/commit/452361ee1f6d6eb77f4e634b51c1e9b6593b0cae))
+* improve permission analysis UI and functionality with enhanced tooltips and layout adjustments ([e0f0bda](https://github.com/jetstreamapp/jetstream/commit/e0f0bdae353ecec2ccfdf1fbf0c59c1f059355fc))
+* prevent tracking user-initiated aborts as application errors in bulk API data preparation ([58c6c2e](https://github.com/jetstreamapp/jetstream/commit/58c6c2e8982057c82293ccf89596a53347de466a))
+
 ## [10.7.2](https://github.com/jetstreamapp/jetstream/compare/v10.7.1...v10.7.2) (2026-07-27)
 
 ### Features
