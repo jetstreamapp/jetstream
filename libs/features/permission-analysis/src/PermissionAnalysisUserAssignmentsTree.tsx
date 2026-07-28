@@ -19,7 +19,7 @@ import {
   setColumnFromType,
   Spinner,
 } from '@jetstream/ui';
-import { permissionAnalysisAssignmentTypeLabelCss } from '@jetstream/ui-core';
+import { GridDownloadButton, permissionAnalysisAssignmentTypeLabelCss } from '@jetstream/ui-core';
 import groupBy from 'lodash/groupBy';
 import { Fragment, FunctionComponent, useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import {
@@ -839,10 +839,18 @@ export const PermissionAnalysisUserAssignmentsTree: FunctionComponent<Permission
 
   return (
     <>
-      <ExpandCollapseButton
-        isExpanded={expandedGroupIds.size > 0}
-        onToggle={(expand) => setExpandedGroupIds(expand ? new Set(allExpandedGroupIds) : new Set())}
-      />
+      <div className="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+        <ExpandCollapseButton
+          isExpanded={expandedGroupIds.size > 0}
+          onToggle={(expand) => setExpandedGroupIds(expand ? new Set(allExpandedGroupIds) : new Set())}
+        />
+        <GridDownloadButton
+          columns={columns}
+          rows={treeRows}
+          fileNameParts={['permission-analysis-user-assignments']}
+          modalHeader="Download User Assignments"
+        />
+      </div>
       <AutoFullHeightContainer
         fillHeight
         setHeightAttr

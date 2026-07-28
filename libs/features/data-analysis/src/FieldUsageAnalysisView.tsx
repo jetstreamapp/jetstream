@@ -1217,13 +1217,13 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
           <div className="slds-p-around_small">
             {parsedResult.truncated && (
               <div className="slds-m-bottom_small">
-                <ScopedNotification theme="warning" allowClose>
+                <ScopedNotification theme="warning" allowClose dismissResetKey={jobId}>
                   At least one Object hit the row scan cap; percentages reflect scanned rows only.
                 </ScopedNotification>
               </div>
             )}
             {treeFieldRows.length === 0 ? (
-              <ScopedNotification theme="info" allowClose>
+              <ScopedNotification theme="info" allowClose dismissResetKey={jobId}>
                 No Object rows in this result.
               </ScopedNotification>
             ) : (
@@ -1361,6 +1361,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
     selectedOrg,
     serverUrl,
     skipFrontDoorAuth,
+    jobId,
   ]);
 
   return (
@@ -1603,14 +1604,14 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
               </div>
               {parsedResult.failedObjects.length > 0 && (
                 <div className="slds-p-horizontal_medium slds-p-top_x-small">
-                  <ScopedNotification theme="error" allowClose>
+                  <ScopedNotification theme="error" allowClose dismissResetKey={jobId}>
                     Objects with errors: {parsedResult.failedObjects.join(', ')}.
                   </ScopedNotification>
                 </div>
               )}
               {parsedResult.truncated && (
                 <div className="slds-p-horizontal_medium slds-p-top_x-small">
-                  <ScopedNotification theme="warning" allowClose>
+                  <ScopedNotification theme="warning" allowClose dismissResetKey={jobId}>
                     The row scan stopped early for one or more Objects, so usage percentages reflect only the rows that were scanned. A
                     field showing 0% or low usage here is <strong>not</strong> proof it is unused — it may be populated in rows that were
                     not scanned. Fields on truncated Objects are excluded from <em>Delete Selected Metadata</em>; use{' '}
@@ -1620,7 +1621,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
               )}
               {!parsedResult.whereUsedComputed && (
                 <div className="slds-p-horizontal_medium slds-p-top_x-small">
-                  <ScopedNotification theme="warning" allowClose>
+                  <ScopedNotification theme="warning" allowClose dismissResetKey={jobId}>
                     Where Used (metadata dependency) lookup could not be completed for this run, so field dependencies are unknown.
                     <em> Delete Selected Metadata</em> is disabled to avoid deleting a field that may be referenced by a layout, automation,
                     or Apex. Re-run the analysis to determine dependencies.
@@ -1629,7 +1630,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
               )}
               {parsedResult.whereUsedComputed && (
                 <div className="slds-p-horizontal_medium slds-p-top_x-small">
-                  <ScopedNotification theme="info" allowClose>
+                  <ScopedNotification theme="info" allowClose dismissResetKey={jobId}>
                     <strong>Before deleting:</strong> "Where Used" detects metadata references such as{' '}
                     <em>page layouts, automation, Apex, formulas, and validation rules</em>. It does <strong>not</strong> detect references
                     in reports, list views, email templates, or dashboards, so "no dependencies" is a strong signal but not absolute proof a

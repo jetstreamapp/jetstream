@@ -745,15 +745,30 @@ export const PermissionAnalysisView: FunctionComponent = () => {
                   {renderTruncationNotice()}
                   <div>
                     <h2 className="slds-text-heading_small slds-m-bottom_x-small">Groups</h2>
-                    <PermissionAnalysisExportGrid rows={exportBundle.permissionSetGroups} {...gridProps} />
+                    <PermissionAnalysisExportGrid
+                      rows={exportBundle.permissionSetGroups}
+                      downloadFileNameParts={['permission-analysis-permission-set-groups']}
+                      downloadModalHeader="Download Permission Set Groups"
+                      {...gridProps}
+                    />
                   </div>
                   <div>
                     <h2 className="slds-text-heading_small slds-m-bottom_x-small">Group components</h2>
-                    <PermissionAnalysisExportGrid rows={exportBundle.permissionSetGroupComponents} {...gridProps} />
+                    <PermissionAnalysisExportGrid
+                      rows={exportBundle.permissionSetGroupComponents}
+                      downloadFileNameParts={['permission-analysis-permission-set-group-components']}
+                      downloadModalHeader="Download Group Components"
+                      {...gridProps}
+                    />
                   </div>
                   <div>
                     <h2 className="slds-text-heading_small slds-m-bottom_x-small">Muting permission sets</h2>
-                    <PermissionAnalysisExportGrid rows={exportBundle.mutingPermissionSets} {...gridProps} />
+                    <PermissionAnalysisExportGrid
+                      rows={exportBundle.mutingPermissionSets}
+                      downloadFileNameParts={['permission-analysis-muting-permission-sets']}
+                      downloadModalHeader="Download Muting Permission Sets"
+                      {...gridProps}
+                    />
                   </div>
                 </div>
               ),
@@ -1049,7 +1064,7 @@ export const PermissionAnalysisView: FunctionComponent = () => {
             <Fragment>
               {exportObjectScopeNames.length > 0 && (
                 <div className="slds-p-horizontal_medium slds-p-top_x-small">
-                  <ScopedNotification theme="info" allowClose>
+                  <ScopedNotification theme="info" allowClose dismissResetKey={jobId}>
                     Object scope for object and field permissions ({formatNumber(exportObjectScopeNames.length)}{' '}
                     {pluralizeIfMultiple('type', exportObjectScopeNames)}):
                     {exportObjectScopeNames.length <= 8 ? (

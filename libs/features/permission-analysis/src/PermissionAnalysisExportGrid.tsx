@@ -14,6 +14,7 @@ import {
   ScopedNotification,
   salesforceLoginAndRedirect,
 } from '@jetstream/ui';
+import { GridDownloadButton } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent, useCallback, useMemo, useState, type MouseEvent } from 'react';
 import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 import {
@@ -77,6 +78,9 @@ export interface PermissionAnalysisExportGridProps {
   findingSurface?: PermissionAnalysisExportFindingSurface;
   /** Display names for permission set Ids (modal context lines). */
   containerLabelById?: Map<string, string>;
+  /** Words combined into the download filename; a timestamp is appended automatically. */
+  downloadFileNameParts?: string[];
+  downloadModalHeader?: string;
 }
 
 /** Object label (click for API / label / description popover, Field Usage–style) and optional Object Manager link. */
@@ -335,6 +339,8 @@ export const PermissionAnalysisExportGrid: FunctionComponent<PermissionAnalysisE
   findings = [],
   findingSurface = 'none',
   containerLabelById,
+  downloadFileNameParts = ['permission-analysis-export'],
+  downloadModalHeader = 'Download',
 }) => {
   const [modalState, setModalState] = useState<ExportFindingsModalState>(null);
 
@@ -670,87 +676,97 @@ export const PermissionAnalysisExportGrid: FunctionComponent<PermissionAnalysisE
       findingSurface === 'tab_visibility_row');
 
   return (
-    <AutoFullHeightContainer
-      fillHeight
-      bottomBuffer={24}
-      baseCss={css`
-        min-height: 200px;
-      `}
-    >
-      {/* The grid offers no onCellClick; delegate clicks to resolve the finding cell from the DOM. */}
-      <div
-        css={css`
-          display: contents;
-        `}
-        onClick={showFindingClickHandler ? handleGridClick : undefined}
-      >
-        {/* Columns are built generically over RowWithKey (cellClass/renderCell only do string-key access);
-            ColumnWithFilter is invariant in its row type, so bridge to the data's row type here. */}
-        <DataTable
-          org={org}
-          serverUrl={serverUrl}
-          skipFrontdoorLogin={skipFrontdoorLogin}
+    <>
+      <div className="slds-grid slds-grid_align-end slds-m-bottom_xx-small">
+        <GridDownloadButton
           columns={columns as unknown as ColumnWithFilter<PermissionExportRow>[]}
-          data={rows}
-          getRowKey={getRowKey}
-          includeQuickFilter
-          context={{ defaultApiVersion }}
+          rows={rows}
+          fileNameParts={downloadFileNameParts}
+          modalHeader={downloadModalHeader}
         />
       </div>
+      <AutoFullHeightContainer
+        fillHeight
+        bottomBuffer={24}
+        baseCss={css`
+          min-height: 200px;
+        `}
+      >
+        {/* The grid offers no onCellClick; delegate clicks to resolve the finding cell from the DOM. */}
+        <div
+          css={css`
+            display: contents;
+          `}
+          onClick={showFindingClickHandler ? handleGridClick : undefined}
+        >
+          {/* Columns are built generically over RowWithKey (cellClass/renderCell only do string-key access);
+            ColumnWithFilter is invariant in its row type, so bridge to the data's row type here. */}
+          <DataTable
+            org={org}
+            serverUrl={serverUrl}
+            skipFrontdoorLogin={skipFrontdoorLogin}
+            columns={columns as unknown as ColumnWithFilter<PermissionExportRow>[]}
+            data={rows}
+            getRowKey={getRowKey}
+            includeQuickFilter
+            context={{ defaultApiVersion }}
+          />
+        </div>
 
-      {modalState?.kind === 'field' && (
-        <PermissionAnalysisFindingsModal
-          testId="permission-analysis-field-cell-issues"
-          open
-          title="Issues for this cell"
-          tagline="From this job's permission export analysis, scoped to the field permission cell you clicked."
-          onClose={() => setModalState(null)}
-          findings={modalState.matches}
-          summaryLine={
-            <Fragment>
-              <strong>{modalState.columnLabel}</strong>
-              {' · '}
-              {fieldModalObjectSummary?.displayLabel ? (
-                fieldModalObjectSummary.showApiInParens ? (
-                  <Fragment>
-                    <strong>{fieldModalObjectSummary.displayLabel}</strong>
-                    <span className="slds-text-color_weak">
-                      {' '}
-                      (<code>{modalState.objectApiName}</code>)
-                    </span>
-                  </Fragment>
-                ) : (
-                  <code>{fieldModalObjectSummary.displayLabel}</code>
-                )
-              ) : null}
-              {' · '}
-              <code>{modalState.fieldApiName}</code>
-              {' · '}
-              {containerLabelById?.get(modalState.parentId) ?? modalState.parentId} — {modalState.matches.length}{' '}
-              {modalState.matches.length === 1 ? 'issue' : 'issues'}
-            </Fragment>
-          }
-        />
-      )}
+        {modalState?.kind === 'field' && (
+          <PermissionAnalysisFindingsModal
+            testId="permission-analysis-field-cell-issues"
+            open
+            title="Issues for this cell"
+            tagline="From this job's permission export analysis, scoped to the field permission cell you clicked."
+            onClose={() => setModalState(null)}
+            findings={modalState.matches}
+            summaryLine={
+              <Fragment>
+                <strong>{modalState.columnLabel}</strong>
+                {' · '}
+                {fieldModalObjectSummary?.displayLabel ? (
+                  fieldModalObjectSummary.showApiInParens ? (
+                    <Fragment>
+                      <strong>{fieldModalObjectSummary.displayLabel}</strong>
+                      <span className="slds-text-color_weak">
+                        {' '}
+                        (<code>{modalState.objectApiName}</code>)
+                      </span>
+                    </Fragment>
+                  ) : (
+                    <code>{fieldModalObjectSummary.displayLabel}</code>
+                  )
+                ) : null}
+                {' · '}
+                <code>{modalState.fieldApiName}</code>
+                {' · '}
+                {containerLabelById?.get(modalState.parentId) ?? modalState.parentId} — {modalState.matches.length}{' '}
+                {modalState.matches.length === 1 ? 'issue' : 'issues'}
+              </Fragment>
+            }
+          />
+        )}
 
-      {modalState?.kind === 'container' && (
-        <PermissionAnalysisFindingsModal
-          testId="permission-analysis-container-issues"
-          open
-          title="Issues for this permission set"
-          tagline="From this job's permission export analysis, scoped to the permission set (or profile) or tab-setting parent you clicked."
-          onClose={() => setModalState(null)}
-          findings={modalState.matches}
-          summaryLine={
-            <Fragment>
-              <strong>{modalState.columnLabel}</strong>
-              {' · '}
-              {containerLabelById?.get(modalState.containerId) ?? modalState.containerId} — {modalState.matches.length}{' '}
-              {modalState.matches.length === 1 ? 'issue' : 'issues'}
-            </Fragment>
-          }
-        />
-      )}
-    </AutoFullHeightContainer>
+        {modalState?.kind === 'container' && (
+          <PermissionAnalysisFindingsModal
+            testId="permission-analysis-container-issues"
+            open
+            title="Issues for this permission set"
+            tagline="From this job's permission export analysis, scoped to the permission set (or profile) or tab-setting parent you clicked."
+            onClose={() => setModalState(null)}
+            findings={modalState.matches}
+            summaryLine={
+              <Fragment>
+                <strong>{modalState.columnLabel}</strong>
+                {' · '}
+                {containerLabelById?.get(modalState.containerId) ?? modalState.containerId} — {modalState.matches.length}{' '}
+                {modalState.matches.length === 1 ? 'issue' : 'issues'}
+              </Fragment>
+            }
+          />
+        )}
+      </AutoFullHeightContainer>
+    </>
   );
 };

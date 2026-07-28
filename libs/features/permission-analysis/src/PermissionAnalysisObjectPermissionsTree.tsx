@@ -11,7 +11,7 @@ import {
   getRowTypeFromValue,
   setColumnFromType,
 } from '@jetstream/ui';
-import { permissionAnalysisAssignmentTypeLabelCss } from '@jetstream/ui-core';
+import { GridDownloadButton, permissionAnalysisAssignmentTypeLabelCss } from '@jetstream/ui-core';
 import groupBy from 'lodash/groupBy';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react';
 import { permissionAnalysisPermissionContainerGroupTitleLine } from './permission-analysis-tree-group-title';
@@ -408,10 +408,18 @@ export const PermissionAnalysisObjectPermissionsTree: FunctionComponent<Permissi
 
   return (
     <>
-      <ExpandCollapseButton
-        isExpanded={expandedGroupIds.size > 0}
-        onToggle={(expand) => setExpandedGroupIds(expand ? collectAllPermissionSetGroupIds(treeRows) : new Set())}
-      />
+      <div className="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+        <ExpandCollapseButton
+          isExpanded={expandedGroupIds.size > 0}
+          onToggle={(expand) => setExpandedGroupIds(expand ? collectAllPermissionSetGroupIds(treeRows) : new Set())}
+        />
+        <GridDownloadButton
+          columns={columns}
+          rows={treeRows}
+          fileNameParts={['permission-analysis-object-permissions']}
+          modalHeader="Download Object Permissions"
+        />
+      </div>
       <AutoFullHeightContainer
         fillHeight
         setHeightAttr

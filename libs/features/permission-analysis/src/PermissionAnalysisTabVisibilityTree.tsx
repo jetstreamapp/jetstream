@@ -13,7 +13,7 @@ import {
   getRowTypeFromValue,
   setColumnFromType,
 } from '@jetstream/ui';
-import { permissionAnalysisAssignmentTypeLabelCss } from '@jetstream/ui-core';
+import { GridDownloadButton, permissionAnalysisAssignmentTypeLabelCss } from '@jetstream/ui-core';
 import groupBy from 'lodash/groupBy';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
 import { usePermissionAnalysisExportMetadata } from './permission-analysis-export-metadata-context';
@@ -370,10 +370,18 @@ export const PermissionAnalysisTabVisibilityTree: FunctionComponent<PermissionAn
 
   return (
     <>
-      <ExpandCollapseButton
-        isExpanded={expandedGroupIds.size > 0}
-        onToggle={(expand) => setExpandedGroupIds(expand ? collectAllParentGroupKeys(treeRows) : new Set())}
-      />
+      <div className="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+        <ExpandCollapseButton
+          isExpanded={expandedGroupIds.size > 0}
+          onToggle={(expand) => setExpandedGroupIds(expand ? collectAllParentGroupKeys(treeRows) : new Set())}
+        />
+        <GridDownloadButton
+          columns={columns}
+          rows={treeRows}
+          fileNameParts={['permission-analysis-tab-visibility']}
+          modalHeader="Download Tab Visibility"
+        />
+      </div>
       <AutoFullHeightContainer
         fillHeight
         setHeightAttr

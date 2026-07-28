@@ -11,6 +11,12 @@ export interface ScopedNotificationProps {
   allowClose?: boolean;
   /** Invoked when the close button is clicked (only relevant when allowClose is true) */
   onClose?: () => void;
+  /**
+   * Resets a prior dismissal when this value changes. Pass an identifier for the underlying content
+   * (e.g. a job/run id) so re-running with a new result re-shows the notification the user dismissed
+   * for the previous result; leave undefined to keep dismissal sticky for the component's lifetime.
+   */
+  dismissResetKey?: string | number | null;
   children?: React.ReactNode;
 }
 
@@ -85,14 +91,22 @@ export const ScopedNotification: FunctionComponent<ScopedNotificationProps> = ({
   icon,
   allowClose,
   onClose,
+  dismissResetKey,
   children,
 }) => {
   const [iconEl, setIconEl] = useState(() => getIcon(theme, icon));
   const [isDismissed, setIsDismissed] = useState(false);
+  const [lastDismissResetKey, setLastDismissResetKey] = useState(dismissResetKey);
 
   useEffect(() => {
     setIconEl(getIcon(theme, icon));
   }, [icon, theme]);
+
+  // Un-dismiss when the caller signals new content so a fresh notification is not hidden by a prior dismissal.
+  if (dismissResetKey !== lastDismissResetKey) {
+    setLastDismissResetKey(dismissResetKey);
+    setIsDismissed(false);
+  }
 
   if (isDismissed) {
     return null;
@@ -123,6 +137,7 @@ export const ScopedNotification: FunctionComponent<ScopedNotificationProps> = ({
       {allowClose && (
         <div className="slds-media__figure slds-media__figure_reverse">
           <button
+            type="button"
             className={classNames('slds-button slds-button_icon slds-button_icon-small', {
               'slds-button_icon-inverse': isInverseCloseButton(theme),
             })}

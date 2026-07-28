@@ -81,4 +81,43 @@ describe('ScopedNotification', () => {
     fireEvent.click(screen.getByTitle('Close'));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  test('close button does not submit an enclosing form', () => {
+    const onSubmit = vi.fn((event) => event.preventDefault());
+    render(
+      <form onSubmit={onSubmit}>
+        <ScopedNotification theme="info" allowClose>
+          Message
+        </ScopedNotification>
+      </form>,
+    );
+    fireEvent.click(screen.getByTitle('Close'));
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  test('a changed dismissResetKey re-shows a previously dismissed notification', () => {
+    const { rerender } = render(
+      <ScopedNotification theme="warning" allowClose dismissResetKey="run-1">
+        Message
+      </ScopedNotification>,
+    );
+    fireEvent.click(screen.getByTitle('Close'));
+    expect(screen.queryByText('Message')).toBeNull();
+
+    // Same key (re-render for the same run) keeps it dismissed.
+    rerender(
+      <ScopedNotification theme="warning" allowClose dismissResetKey="run-1">
+        Message
+      </ScopedNotification>,
+    );
+    expect(screen.queryByText('Message')).toBeNull();
+
+    // New key (new run) resets the dismissal.
+    rerender(
+      <ScopedNotification theme="warning" allowClose dismissResetKey="run-2">
+        Message
+      </ScopedNotification>,
+    );
+    expect(screen.getByText('Message')).toBeTruthy();
+  });
 });

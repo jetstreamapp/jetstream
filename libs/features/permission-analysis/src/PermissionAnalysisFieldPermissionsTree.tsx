@@ -21,7 +21,7 @@ import {
   setColumnFromType,
   type ProfileOrPermSetRecordType,
 } from '@jetstream/ui';
-import { permissionAnalysisAssignmentTypeLabelCss } from '@jetstream/ui-core';
+import { GridDownloadButton, permissionAnalysisAssignmentTypeLabelCss } from '@jetstream/ui-core';
 import groupBy from 'lodash/groupBy';
 import {
   forwardRef,
@@ -930,10 +930,18 @@ export const PermissionAnalysisFieldPermissionsTree: FunctionComponent<Permissio
 
   return (
     <>
-      <ExpandCollapseButton
-        isExpanded={expandedGroupIds.size > 0}
-        onToggle={(expand) => setExpandedGroupIds(expand ? collectAllFieldPermissionExpandedGroupIds(fieldPermissionRows) : new Set())}
-      />
+      <div className="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+        <ExpandCollapseButton
+          isExpanded={expandedGroupIds.size > 0}
+          onToggle={(expand) => setExpandedGroupIds(expand ? collectAllFieldPermissionExpandedGroupIds(fieldPermissionRows) : new Set())}
+        />
+        <GridDownloadButton
+          columns={columns}
+          rows={treeRows}
+          fileNameParts={['permission-analysis-field-permissions']}
+          modalHeader="Download Field Permissions"
+        />
+      </div>
       <AutoFullHeightContainer
         fillHeight
         setHeightAttr

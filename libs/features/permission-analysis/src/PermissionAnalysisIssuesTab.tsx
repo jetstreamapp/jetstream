@@ -15,6 +15,7 @@ import {
   ScopedNotification,
   setColumnFromType,
 } from '@jetstream/ui';
+import { GridDownloadButton } from '@jetstream/ui-core';
 import { FunctionComponent, useCallback, useEffect, useMemo, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 import {
@@ -1111,6 +1112,13 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
             >
               Group By
             </Popover>
+            {/* Flat export: `sortedFindings` is already ordered by the selected Group By, `gridColumns` reflects the user's visible columns. */}
+            <GridDownloadButton<PermissionAnalysisFinding>
+              columns={gridColumns as unknown as ColumnWithFilter<PermissionAnalysisFinding>[]}
+              rows={sortedFindings}
+              fileNameParts={['permission-analysis-issues']}
+              modalHeader="Download Issues"
+            />
           </div>
 
           {findings.length > 0 && filteredFindings.length === 0 ? (

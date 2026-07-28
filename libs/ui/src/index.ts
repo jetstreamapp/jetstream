@@ -25,6 +25,7 @@ export * from './lib/data-table/DataTree';
 export * from './lib/data-table/ExpandCollapseButton';
 export * from './lib/data-table/FieldMetadataModal';
 export * from './lib/data-table/grid/rdg-compat';
+export * from './lib/data-table/gridExport';
 export * from './lib/data-table/PreviewChangesModal';
 export * from './lib/data-table/SalesforceRecordDataTable';
 export * from './lib/docked-composer/DockedComposer';
