@@ -6,6 +6,7 @@ import {
   AutoFullHeightContainer,
   ColumnWithFilter,
   DataTree,
+  ExpandCollapseButton,
   getProfileOrPermSetSetupUrl,
   getRowTypeFromValue,
   Grid,
@@ -20,7 +21,7 @@ import {
   setColumnFromType,
   type ProfileOrPermSetRecordType,
 } from '@jetstream/ui';
-import { permissionAnalysisAssignmentTypeLabelCss } from '@jetstream/ui-core';
+import { GridDownloadButton, permissionAnalysisAssignmentTypeLabelCss } from '@jetstream/ui-core';
 import groupBy from 'lodash/groupBy';
 import {
   forwardRef,
@@ -51,7 +52,6 @@ import {
   type PermissionExportRow,
   type SobjectExportDetail,
 } from './permission-export-result-view';
-import { PermissionAnalysisExpandCollapseControls } from './PermissionAnalysisExpandCollapseControls';
 import { SobjectTypeCellContent } from './PermissionAnalysisExportGrid';
 import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 import { buildPermissionSetTooltipFieldsFromExportRow, PermissionSetDetailPopoverContent } from './PermissionAnalysisPermissionSetsTree';
@@ -930,10 +930,18 @@ export const PermissionAnalysisFieldPermissionsTree: FunctionComponent<Permissio
 
   return (
     <>
-      <PermissionAnalysisExpandCollapseControls
-        onExpandAll={() => setExpandedGroupIds(collectAllFieldPermissionExpandedGroupIds(fieldPermissionRows))}
-        onCollapseAll={() => setExpandedGroupIds(new Set())}
-      />
+      <div className="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+        <ExpandCollapseButton
+          isExpanded={expandedGroupIds.size > 0}
+          onToggle={(expand) => setExpandedGroupIds(expand ? collectAllFieldPermissionExpandedGroupIds(fieldPermissionRows) : new Set())}
+        />
+        <GridDownloadButton
+          columns={columns}
+          rows={treeRows}
+          fileNameParts={['permission-analysis-field-permissions']}
+          modalHeader="Download Field Permissions"
+        />
+      </div>
       <AutoFullHeightContainer
         fillHeight
         setHeightAttr

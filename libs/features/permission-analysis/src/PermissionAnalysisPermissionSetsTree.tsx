@@ -10,6 +10,7 @@ import {
   ColumnWithFilter,
   dataTableDateFormatter,
   DataTree,
+  ExpandCollapseButton,
   getProfileOrPermSetSetupUrl,
   getSalesforceUserManageSetupUrl,
   Grid,
@@ -25,6 +26,7 @@ import {
   Spinner,
   type ProfileOrPermSetRecordType,
 } from '@jetstream/ui';
+import { GridDownloadButton } from '@jetstream/ui-core';
 import groupBy from 'lodash/groupBy';
 import {
   Fragment,
@@ -37,7 +39,6 @@ import {
   type MouseEvent,
   type ReactElement,
 } from 'react';
-import { PermissionAnalysisExpandCollapseControls } from './PermissionAnalysisExpandCollapseControls';
 import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 import {
   buildContainerIdFindingSeverity,
@@ -888,10 +889,18 @@ export const PermissionAnalysisPermissionSetsTree: FunctionComponent<PermissionA
 
   return (
     <>
-      <PermissionAnalysisExpandCollapseControls
-        onExpandAll={() => setExpandedGroupIds(new Set(allExpandedGroupIds))}
-        onCollapseAll={() => setExpandedGroupIds(new Set())}
-      />
+      <div className="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+        <ExpandCollapseButton
+          isExpanded={expandedGroupIds.size > 0}
+          onToggle={(expand) => setExpandedGroupIds(expand ? new Set(allExpandedGroupIds) : new Set())}
+        />
+        <GridDownloadButton
+          columns={columns}
+          rows={treeRows}
+          fileNameParts={[isProfilesTree ? 'permission-analysis-profiles' : 'permission-analysis-permission-sets']}
+          modalHeader={isProfilesTree ? 'Download Profiles' : 'Download Permission Sets'}
+        />
+      </div>
       <AutoFullHeightContainer
         fillHeight
         setHeightAttr

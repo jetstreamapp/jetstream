@@ -16,7 +16,7 @@ import {
   tracker,
   useNonInitialEffect,
 } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, getRecordIdFromAttributes } from '@jetstream/shared/utils';
+import { getErrorMessage, getRecordIdFromAttributes, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { AsyncJobNew, BinaryDownloadCompatibleObjectsSchema, Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import { Icon, Modal, Radio, RadioGroup, ScopedNotification, Tooltip } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
@@ -154,7 +154,7 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
           // Create a background job for the download - actual download happens in the job worker
           const newJob: AsyncJobNew = {
             type: 'DesktopFileDownload',
-            title: `Download ${formatNumber(selectedRecords.length)} Attachment${selectedRecords.length === 1 ? '' : 's'}`,
+            title: `Download ${formatNumber(selectedRecords.length)} ${pluralizeIfMultiple('Attachment', selectedRecords)}`,
             org: selectedOrg,
             meta: {
               sobjectName,

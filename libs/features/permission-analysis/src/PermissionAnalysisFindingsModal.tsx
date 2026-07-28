@@ -1,5 +1,6 @@
 import { css } from '@emotion/react';
-import { Grid, Modal } from '@jetstream/ui';
+import { ColumnWithFilter, Grid, Modal } from '@jetstream/ui';
+import { GridDownloadButton } from '@jetstream/ui-core';
 import { FunctionComponent, ReactNode } from 'react';
 import { getFindingCodeDisplayParts, getFindingLabelForCode, type PermissionAnalysisFinding } from './permission-export-result-view';
 
@@ -25,6 +26,44 @@ function primaryFindingExplanation(finding: PermissionAnalysisFinding): string {
   const code = typeof finding.code === 'string' ? finding.code : '';
   return getFindingLabelForCode(code) || '—';
 }
+
+/** Like {@link primaryFindingExplanation} but blank (not em dash) when there is nothing to show — cleaner in a spreadsheet. */
+function findingMessageForDownload(finding: PermissionAnalysisFinding): string {
+  const message = String(finding.message ?? '').trim();
+  if (message.length > 0) {
+    return message;
+  }
+  const code = typeof finding.code === 'string' ? finding.code : '';
+  return getFindingLabelForCode(code) || '';
+}
+
+function trimmedFindingField(finding: PermissionAnalysisFinding, key: keyof PermissionAnalysisFinding): string {
+  const value = finding[key];
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+/** Flat column set for {@link GridDownloadButton}; `getValue` mirrors what the modal shows per finding. */
+const FINDINGS_DOWNLOAD_COLUMNS: ColumnWithFilter<PermissionAnalysisFinding>[] = [
+  { key: 'severity', name: 'Severity', getValue: ({ row }) => severityLabelForFinding(row) },
+  {
+    key: 'code',
+    name: 'Code',
+    getValue: ({ row }) => {
+      const code = trimmedFindingField(row, 'code');
+      return getFindingCodeDisplayParts(code || undefined).technicalCode || code;
+    },
+  },
+  {
+    key: 'issue',
+    name: 'Issue',
+    getValue: ({ row }) => getFindingCodeDisplayParts(trimmedFindingField(row, 'code') || undefined).title.trim(),
+  },
+  { key: 'message', name: 'Message', getValue: ({ row }) => findingMessageForDownload(row) },
+  { key: 'objectApiName', name: 'Object', getValue: ({ row }) => trimmedFindingField(row, 'objectApiName') },
+  { key: 'fieldApiName', name: 'Field', getValue: ({ row }) => trimmedFindingField(row, 'fieldApiName') },
+  { key: 'permissionSetId', name: 'Permission Set Id', getValue: ({ row }) => trimmedFindingField(row, 'permissionSetId') },
+  { key: 'containerId', name: 'Container Id', getValue: ({ row }) => trimmedFindingField(row, 'containerId') },
+];
 
 function findingBlockChrome(finding: PermissionAnalysisFinding): { accent: string; tint: string } {
   const normalized = String(finding.severity ?? '').toLowerCase();
@@ -80,9 +119,14 @@ export const PermissionAnalysisFindingsModal: FunctionComponent<PermissionAnalys
       header={title}
       tagline={tagline}
       closeOnBackdropClick
-      directionalFooter
       footer={
-        <Grid align="end">
+        <Grid align="spread" verticalAlign="center">
+          <GridDownloadButton
+            columns={FINDINGS_DOWNLOAD_COLUMNS}
+            rows={findings}
+            fileNameParts={['permission-analysis-issues']}
+            modalHeader="Download Issues"
+          />
           <button type="button" className="slds-button slds-button_neutral" onClick={onClose}>
             Close
           </button>

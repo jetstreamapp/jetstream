@@ -1,8 +1,10 @@
 import { ENV, logger, sendEmail } from '@jetstream/api-config';
-import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { getErrorMessageAndStackObj, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { Maybe } from '@jetstream/types';
 import { render } from '@react-email/render';
 import React, { JSX } from 'react';
+import { CloudflareSecurityAlertEmail, CloudflareSecurityAlertEmailProps } from './email-templates/admin/CloudflareSecurityAlertEmail';
+import { StatsSummaryEmail, StatsSummaryEmailProps } from './email-templates/admin/StatsSummaryEmail';
 import {
   AuthenticationChangeConfirmationEmail,
   AuthenticationChangeConfirmationEmailProps,
@@ -16,8 +18,6 @@ import { VerifyEmail } from './email-templates/auth/VerifyEmail';
 import { WelcomeEmail } from './email-templates/auth/WelcomeEmail';
 import { WelcomeToProEmail } from './email-templates/auth/WelcomeToProEmail';
 import { OrgExpirationWarningEmail } from './email-templates/org/OrgExpirationWarningEmail';
-import { StatsSummaryEmail, StatsSummaryEmailProps } from './email-templates/admin/StatsSummaryEmail';
-import { CloudflareSecurityAlertEmail, CloudflareSecurityAlertEmailProps } from './email-templates/admin/CloudflareSecurityAlertEmail';
 
 function renderComponent(component: JSX.Element) {
   return Promise.all([render(component, { plainText: false }), render(component, { plainText: true })]);
@@ -294,7 +294,7 @@ export async function sendOrgExpirationWarningEmail({
 
     const subject = hasExpired
       ? 'Salesforce Org Credentials Expired'
-      : `Salesforce Org Credentials Expiring in ${minDays} Day${minDays === 1 ? '' : 's'}`;
+      : `Salesforce Org Credentials Expiring in ${minDays} ${pluralizeFromNumber('Day', minDays)}`;
 
     await sendEmail({
       to: emailAddress,

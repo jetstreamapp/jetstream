@@ -49,15 +49,6 @@ function formatJobStartedAt(value: unknown): string {
   return date.toLocaleString();
 }
 
-/** Short reference for list rows; full id stays in `title` for copy/paste and search still matches full `id`. */
-function shortJobIdForDisplay(jobId: string): string {
-  const normalized = jobId.trim();
-  if (normalized.length <= 14) {
-    return normalized;
-  }
-  return `${normalized.slice(0, 8)}…${normalized.slice(-4)}`;
-}
-
 function badgeTypeForStatus(status: string): 'success' | 'error' | 'warning' | 'default' {
   const normalized = status.trim().toLowerCase();
   if (normalized === 'completed') {
@@ -602,7 +593,7 @@ export const PermissionAnalysisHistoryModal: FunctionComponent<PermissionAnalysi
                     <Badge type={badgeTypeForStatus(item.status)}>{formatAnalysisJobStatusForDisplay(item.status)}</Badge>
                   </Grid>
                 ),
-                subheading: `Job ${shortJobIdForDisplay(item.id)}`,
+                subheading: `Job ${item.id}`,
                 trailingHeader:
                   item.key === currentJobId ? (
                     <Icon type="utility" icon="check" className="slds-icon-text-success" omitContainer title="Current run" />

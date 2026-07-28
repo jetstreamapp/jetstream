@@ -1,4 +1,6 @@
 import { css } from '@emotion/react';
+import { formatNumber } from '@jetstream/shared/ui-utils';
+import { pluralizeFromNumber, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import type { SalesforceOrgUi } from '@jetstream/types';
 import type { RenderCellProps } from '@jetstream/ui';
 import {
@@ -13,6 +15,7 @@ import {
   ScopedNotification,
   setColumnFromType,
 } from '@jetstream/ui';
+import { GridDownloadButton } from '@jetstream/ui-core';
 import { FunctionComponent, useCallback, useEffect, useMemo, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { PermissionAnalysisFindingsModal } from './PermissionAnalysisFindingsModal';
 import {
@@ -386,13 +389,19 @@ const AggregatedIssueCodeRollupCard: FunctionComponent<{
         footer={
           <div css={aggregatedRollupMetricsFooterCss}>
             <span>
-              <span className="slds-text-heading_medium">{row.count}</span>
-              <span className="slds-text-body_small slds-text-color_weak slds-m-left_xx-small">issue{row.count === 1 ? '' : 's'}</span>
+              <span className="slds-text-heading_medium">{formatNumber(row.count)}</span>
+              <span className="slds-text-body_small slds-text-color_weak slds-m-left_xx-small">
+                {pluralizeFromNumber('issue', row.count)}
+              </span>
             </span>
             <span className="slds-text-body_small">
-              <span className="slds-text-color_error">{row.errorCount} errors</span>
+              <span className="slds-text-color_error">
+                {formatNumber(row.errorCount)} {pluralizeFromNumber('error', row.errorCount)}
+              </span>
               <span className="slds-text-color_weak"> · </span>
-              <span className="slds-text-color_weak">{row.warningCount} warnings</span>
+              <span className="slds-text-color_weak">
+                {formatNumber(row.warningCount)} {pluralizeFromNumber('warning', row.warningCount)}
+              </span>
             </span>
           </div>
         }
@@ -465,13 +474,19 @@ const AggregatedObjectRollupCard: FunctionComponent<{
         footer={
           <div css={aggregatedRollupMetricsFooterCss}>
             <span>
-              <span className="slds-text-heading_medium">{row.count}</span>
-              <span className="slds-text-body_small slds-text-color_weak slds-m-left_xx-small">issue{row.count === 1 ? '' : 's'}</span>
+              <span className="slds-text-heading_medium">{formatNumber(row.count)}</span>
+              <span className="slds-text-body_small slds-text-color_weak slds-m-left_xx-small">
+                {pluralizeFromNumber('issue', row.count)}
+              </span>
             </span>
             <span className="slds-text-body_small">
-              <span className="slds-text-color_error">{row.errorCount} errors</span>
+              <span className="slds-text-color_error">
+                {formatNumber(row.errorCount)} {pluralizeFromNumber('error', row.errorCount)}
+              </span>
               <span className="slds-text-color_weak"> · </span>
-              <span className="slds-text-color_weak">{row.warningCount} warnings</span>
+              <span className="slds-text-color_weak">
+                {formatNumber(row.warningCount)} {pluralizeFromNumber('warning', row.warningCount)}
+              </span>
             </span>
           </div>
         }
@@ -581,6 +596,8 @@ function mapStandardFindingColumn(key: StandardFindingColumnKey): ColumnWithFilt
     key,
     field: key,
     resizable: true,
+    // 18-char Salesforce Ids (rendered as a lookup link) wrap by a char or two at the default width.
+    ...(fieldType === 'salesforceId' ? { width: 205, minWidth: 185 } : {}),
     ...(key === 'severity' ? { cellClass: severityCellClass } : {}),
     renderCell,
   } as ColumnWithFilter<RowWithKey>;
@@ -645,6 +662,7 @@ const IssuesFindingTreeDataGrid: FunctionComponent<IssuesFindingTreeDataGridProp
       data={sortedFindings}
       getRowKey={getRowKey}
       includeQuickFilter
+      autoRowHeight
       context={{ defaultApiVersion }}
       groupBy={[treeGroupColumnKey]}
       rowGrouper={groupIssueFindingsByColumnKey}
@@ -749,7 +767,7 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
         findings: sortFindings(matches, groupBy),
         title,
         tagline: 'Issue details for the current filters.',
-        summaryLine: `${matches.length} issue${matches.length === 1 ? '' : 's'} for this issue code.`,
+        summaryLine: `${formatNumber(matches.length)} ${pluralizeIfMultiple('issue', matches)} for this issue code.`,
       });
     },
     [rollupFindings, groupBy],
@@ -767,7 +785,7 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
         findings: sortFindings(matches, groupBy),
         title,
         tagline: 'Issue details for the current filters.',
-        summaryLine: `${matches.length} issue${matches.length === 1 ? '' : 's'} for this object.`,
+        summaryLine: `${formatNumber(matches.length)} ${pluralizeIfMultiple('issue', matches)} for this object.`,
       });
     },
     [rollupFindings, groupBy],
@@ -813,9 +831,9 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
   const aggregatedFlyoutBody = (
     <>
       <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_medium">
-        Summary for the rows currently visible in the grid ({rollupFindings.length} row{rollupFindings.length === 1 ? '' : 's'}). Refine
-        results with toolbar filters and grid header filters; use Columns and Group By for layout and tree grouping. Select a card below to
-        open full issue messages and metadata.
+        Summary for the rows currently visible in the grid ({formatNumber(rollupFindings.length)}{' '}
+        {pluralizeIfMultiple('row', rollupFindings)}). Refine results with toolbar filters and grid header filters; use Columns and Group By
+        for layout and tree grouping. Select a card below to open full issue messages and metadata.
       </p>
       <div css={aggregatedFlyoutSectionsCss}>
         <Card
@@ -997,7 +1015,11 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
           >
             <Popover
               placement="bottom-end"
-              header="Columns"
+              header={
+                <header className="slds-popover__header">
+                  <h2 className="slds-text-heading_small">Columns</h2>
+                </header>
+              }
               buttonProps={{ className: issuesTabGroupByTriggerClassName }}
               content={
                 <div className="slds-p-around_small">
@@ -1046,7 +1068,11 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
             </Popover>
             <Popover
               placement="bottom-end"
-              header="Group By"
+              header={
+                <header className="slds-popover__header">
+                  <h2 className="slds-text-heading_small">Group By</h2>
+                </header>
+              }
               buttonProps={{ className: issuesTabGroupByTriggerClassName }}
               content={
                 <div className="slds-p-around_small">
@@ -1086,6 +1112,13 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
             >
               Group By
             </Popover>
+            {/* Flat export: `sortedFindings` is already ordered by the selected Group By, `gridColumns` reflects the user's visible columns. */}
+            <GridDownloadButton<PermissionAnalysisFinding>
+              columns={gridColumns as unknown as ColumnWithFilter<PermissionAnalysisFinding>[]}
+              rows={sortedFindings}
+              fileNameParts={['permission-analysis-issues']}
+              modalHeader="Download Issues"
+            />
           </div>
 
           {findings.length > 0 && filteredFindings.length === 0 ? (

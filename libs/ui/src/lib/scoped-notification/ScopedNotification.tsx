@@ -7,7 +7,22 @@ export interface ScopedNotificationProps {
   className?: string;
   theme: ScopedNotificationTypes;
   icon?: React.ReactNode;
+  /** When true, renders a close button that hides the notification when clicked */
+  allowClose?: boolean;
+  /** Invoked when the close button is clicked (only relevant when allowClose is true) */
+  onClose?: () => void;
+  /**
+   * Resets a prior dismissal when this value changes. Pass an identifier for the underlying content
+   * (e.g. a job/run id) so re-running with a new result re-shows the notification the user dismissed
+   * for the previous result; leave undefined to keep dismissal sticky for the component's lifetime.
+   */
+  dismissResetKey?: string | number | null;
   children?: React.ReactNode;
+}
+
+// Themes with a light background need dark button icons; the rest have colored/dark backgrounds and need inverse (light) icons
+function isInverseCloseButton(theme: ScopedNotificationTypes) {
+  return theme !== 'warning' && theme !== 'light';
 }
 
 function getIcon(theme: ScopedNotificationTypes, icon?: React.ReactNode) {
@@ -70,12 +85,37 @@ function getIcon(theme: ScopedNotificationTypes, icon?: React.ReactNode) {
   }
 }
 
-export const ScopedNotification: FunctionComponent<ScopedNotificationProps> = ({ className, theme, icon, children }) => {
+export const ScopedNotification: FunctionComponent<ScopedNotificationProps> = ({
+  className,
+  theme,
+  icon,
+  allowClose,
+  onClose,
+  dismissResetKey,
+  children,
+}) => {
   const [iconEl, setIconEl] = useState(() => getIcon(theme, icon));
+  const [isDismissed, setIsDismissed] = useState(false);
+  const [lastDismissResetKey, setLastDismissResetKey] = useState(dismissResetKey);
 
   useEffect(() => {
     setIconEl(getIcon(theme, icon));
   }, [icon, theme]);
+
+  // Un-dismiss when the caller signals new content so a fresh notification is not hidden by a prior dismissal.
+  if (dismissResetKey !== lastDismissResetKey) {
+    setLastDismissResetKey(dismissResetKey);
+    setIsDismissed(false);
+  }
+
+  if (isDismissed) {
+    return null;
+  }
+
+  function handleClose() {
+    setIsDismissed(true);
+    onClose?.();
+  }
 
   return (
     <div
@@ -94,6 +134,21 @@ export const ScopedNotification: FunctionComponent<ScopedNotificationProps> = ({
     >
       <div className="slds-media__figure">{iconEl}</div>
       <div className="slds-media__body">{children}</div>
+      {allowClose && (
+        <div className="slds-media__figure slds-media__figure_reverse">
+          <button
+            type="button"
+            className={classNames('slds-button slds-button_icon slds-button_icon-small', {
+              'slds-button_icon-inverse': isInverseCloseButton(theme),
+            })}
+            title="Close"
+            onClick={handleClose}
+          >
+            <Icon type="utility" icon="close" omitContainer className="slds-button__icon" />
+            <span className="slds-assistive-text">Close</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };

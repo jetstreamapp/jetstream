@@ -10,6 +10,7 @@ export * from './app/DownloadFileStream';
 export * from './app/ErrorBoundaryEmptyFallback';
 export * from './app/ErrorBoundaryFallback';
 export * from './app/Feedback';
+export * from './app/GridDownloadButton';
 export * from './app/HeaderAnnouncementPopover';
 export * from './app/HeaderDonatePopover';
 export * from './app/HeaderHelpPopover';

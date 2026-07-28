@@ -3,7 +3,7 @@ import { DeleteMetadataModal } from '@jetstream/feature/deploy';
 import { logger } from '@jetstream/shared/client-logger';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { convertDateToLocale, formatNumber, setItemInLocalStorage } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, gzipDecode, isCustomFieldApiName } from '@jetstream/shared/utils';
+import { getErrorMessage, gzipDecode, isCustomFieldApiName, pluralizeFromNumber, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import type { AsyncJob, AsyncJobNew, FieldUsageAnalysisJob, FieldUsageFullResult, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -11,7 +11,7 @@ import {
   DataTable,
   DataTableSelectedContext,
   DataTree,
-  DropDown,
+  ExpandCollapseButton,
   Grid,
   GridCol,
   Icon,
@@ -65,8 +65,6 @@ import {
 } from './field-usage-result-parse';
 import { isAnalysisJobActive } from './shared/analysis-job-runtime-state';
 import { getWhereUsedOpenInSalesforcePath } from './where-used-open-in-salesforce';
-
-const FIELD_USAGE_TABLE_ACTION_DELETE_METADATA = 'field-usage-delete-metadata';
 
 /**
  * Ineligibility reasons worth explaining inline (the field looks deletable but is blocked). Standard /
@@ -392,7 +390,7 @@ function FieldUsageObjectGroupCell(
         <span className="slds-text-bold">{label}</span> <code>{api}</code>
         <span className="slds-text-color_weak">
           {' '}
-          · {formatNumber(analyzedFieldCount)} field{analyzedFieldCount === 1 ? '' : 's'}
+          · {formatNumber(analyzedFieldCount)} {pluralizeFromNumber('field', analyzedFieldCount)}
           {' · '}
           {formatNumber(rowCount)} rows scanned
           {sample?.objectQueryTruncated ? ' · truncated' : ''}
@@ -509,7 +507,7 @@ interface WhereUsedTableRow {
   componentType: string;
   componentName: string;
   kindLabel: string;
-  /** Flow `VersionNumber` when known; em dash otherwise. */
+  /** Flow `VersionNumber` when known; blank otherwise. */
   flowVersionLabel: string;
   /** Relative path for Salesforce login link when opening the dependency in the org. */
   openInSalesforcePath: string | null;
@@ -806,7 +804,10 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
     };
     const asyncJobNew: AsyncJobNew<FieldUsageAnalysisJob> = {
       type: 'FieldUsageAnalysis',
-      title: `Field Usage Full Scan (${fieldUsageReloadObjectApiNames.length} Object${fieldUsageReloadObjectApiNames.length === 1 ? '' : 's'})`,
+      title: `Field Usage Full Scan (${formatNumber(fieldUsageReloadObjectApiNames.length)} ${pluralizeIfMultiple(
+        'Object',
+        fieldUsageReloadObjectApiNames,
+      )})`,
       org: selectedOrg,
       meta,
       viewUrl: `${APP_ROUTES.DATA_ANALYSIS.ROUTE}/analysis?job=${encodeURIComponent(newJobHistoryKey)}`,
@@ -854,18 +855,6 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
     return fieldUsageRowsToCustomFieldDeleteMetadata(rows);
   }, [fieldUsageRowByKey, fieldUsageSelectedRowKeys]);
 
-  const handleFieldUsageToolbarDropdown = useCallback(
-    (actionId: string) => {
-      if (actionId === FIELD_USAGE_TABLE_ACTION_DELETE_METADATA) {
-        if (fieldUsageSelectedDestructiveDeleteCount === 0) {
-          return;
-        }
-        setDeleteFieldMetadataModalOpen(true);
-      }
-    },
-    [fieldUsageSelectedDestructiveDeleteCount],
-  );
-
   const handleFieldUsageSelectedRowsChange = useCallback((next: Set<Key>) => {
     setFieldUsageSelectedRowKeys(new Set(Array.from(next, (key) => String(key))));
   }, []);
@@ -877,7 +866,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
     const deps: WhereUsedDependencyRowParsed[] = getWhereUsedDepsForFieldKey(parsedResult.whereUsed, whereUsedForKey);
     return deps.map((row, index) => {
       const fv = row.flowVersionNumber;
-      const flowVersionLabel = row.type.trim() === 'Flow' && fv != null && Number.isFinite(Number(fv)) ? String(fv) : '—';
+      const flowVersionLabel = row.type.trim() === 'Flow' && fv != null && Number.isFinite(Number(fv)) ? String(fv) : '';
       return {
         _key: `${row.type}:${row.name}:${String(index)}`,
         componentType: row.type,
@@ -907,13 +896,9 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
             if (reason && WHY_NOT_DELETABLE_REASONS.has(reason)) {
               return (
                 <Grid align="center" verticalAlign="center" className="h-100">
-                  <Icon
-                    icon="info"
-                    type="utility"
-                    className="slds-icon slds-icon-text-default slds-icon_xx-small"
-                    title={`Not eligible to delete: ${FIELD_USAGE_DELETE_INELIGIBLE_LABELS[reason]}`}
-                    description={`Not eligible to delete: ${FIELD_USAGE_DELETE_INELIGIBLE_LABELS[reason]}`}
-                  />
+                  <Tooltip ariaRole="label" content={`Not eligible to delete: ${FIELD_USAGE_DELETE_INELIGIBLE_LABELS[reason]}`}>
+                    <Icon icon="info" type="utility" className="slds-icon slds-icon-text-default slds-icon_xx-small" />
+                  </Tooltip>
                 </Grid>
               );
             }
@@ -1161,14 +1146,29 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         key: 'componentName',
         width: 480,
         minWidth: 280,
-      },
-      {
-        ...setColumnFromType<WhereUsedTableRow>('flowVersionLabel', 'text'),
-        name: 'Flow Ver.',
-        key: 'flowVersionLabel',
-        width: 88,
-        minWidth: 72,
-        maxWidth: 100,
+        renderCell: ({ row }) => {
+          const returnUrl = row.openInSalesforcePath;
+          if (!returnUrl || !selectedOrg?.uniqueId || !serverUrl) {
+            return (
+              <div className="slds-truncate" title={row.componentName}>
+                {row.componentName}
+              </div>
+            );
+          }
+          return (
+            <SalesforceLogin
+              org={selectedOrg}
+              serverUrl={serverUrl}
+              skipFrontDoorAuth={skipFrontDoorAuth}
+              returnUrl={returnUrl}
+              iconPosition="right"
+              title={`Open ${row.componentName} in Salesforce`}
+              className="slds-text-body_small"
+            >
+              {row.componentName}
+            </SalesforceLogin>
+          );
+        },
       },
       {
         ...setColumnFromType<WhereUsedTableRow>('kindLabel', 'text'),
@@ -1178,31 +1178,12 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
         maxWidth: 140,
       },
       {
-        ...setColumnFromType<WhereUsedTableRow>('openInSalesforcePath', 'text'),
-        name: 'Open',
-        key: 'openInSalesforcePath',
-        width: 108,
-        minWidth: 96,
-        sortable: false,
-        renderCell: (p) => {
-          const returnUrl = p.row.openInSalesforcePath;
-          if (!returnUrl || !selectedOrg?.uniqueId || !serverUrl) {
-            return <span className="slds-text-color_weak">—</span>;
-          }
-          return (
-            <SalesforceLogin
-              org={selectedOrg}
-              serverUrl={serverUrl}
-              skipFrontDoorAuth={skipFrontDoorAuth}
-              returnUrl={returnUrl}
-              title="Open in Salesforce"
-              className="slds-text-body_small"
-            >
-              Open
-            </SalesforceLogin>
-          );
-        },
-        getValue: ({ row }) => (row.openInSalesforcePath ? 'Open' : ''),
+        ...setColumnFromType<WhereUsedTableRow>('flowVersionLabel', 'text'),
+        name: 'Flow Version',
+        key: 'flowVersionLabel',
+        width: 140,
+        minWidth: 120,
+        maxWidth: 170,
       },
     ],
     [selectedOrg, serverUrl, skipFrontDoorAuth],
@@ -1212,6 +1193,9 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
     if (!parsedResult) {
       return null;
     }
+    // Both trees share `expandedGroupIds`; expanding covers every Object group in the scan.
+    const isAnyGroupExpanded = expandedGroupIds.size > 0;
+    const handleToggleExpandAll = (expand: boolean) => setExpandedGroupIds(expand ? new Set(Object.keys(parsedResult.objects)) : new Set());
     return [
       {
         id: 'objects',
@@ -1233,20 +1217,23 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
           <div className="slds-p-around_small">
             {parsedResult.truncated && (
               <div className="slds-m-bottom_small">
-                <ScopedNotification theme="warning">
+                <ScopedNotification theme="warning" allowClose dismissResetKey={jobId}>
                   At least one Object hit the row scan cap; percentages reflect scanned rows only.
                 </ScopedNotification>
               </div>
             )}
             {treeFieldRows.length === 0 ? (
-              <ScopedNotification theme="info">No Object rows in this result.</ScopedNotification>
+              <ScopedNotification theme="info" allowClose dismissResetKey={jobId}>
+                No Object rows in this result.
+              </ScopedNotification>
             ) : (
               <Fragment>
                 <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_x-small">
-                  {formatNumber(objectsTabTotals.analyzedFieldCount)} analyzed field
-                  {objectsTabTotals.analyzedFieldCount === 1 ? '' : 's'} across {formatNumber(objectsTabTotals.objectCount)} Object
-                  {objectsTabTotals.objectCount === 1 ? '' : 's'}.
+                  {formatNumber(objectsTabTotals.analyzedFieldCount)} analyzed{' '}
+                  {pluralizeFromNumber('field', objectsTabTotals.analyzedFieldCount)} across {formatNumber(objectsTabTotals.objectCount)}{' '}
+                  {pluralizeFromNumber('Object', objectsTabTotals.objectCount)}.
                 </p>
+                <ExpandCollapseButton isExpanded={isAnyGroupExpanded} onToggle={handleToggleExpandAll} />
                 <AutoFullHeightContainer
                   fillHeight
                   setHeightAttr
@@ -1304,32 +1291,35 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
                 No unmanaged Custom Fields at or below {LOW_USAGE_PCT_THRESHOLD}% population for the objects in this scan.
               </ScopedNotification>
             ) : (
-              <AutoFullHeightContainer
-                fillHeight
-                setHeightAttr
-                bottomBuffer={24}
-                baseCss={css`
-                  min-height: 280px;
-                `}
-              >
-                <DataTree
-                  columns={treeColumns}
-                  data={lowUsageTreeRows}
-                  getRowKey={getTreeRowKey}
-                  includeQuickFilter
-                  groupBy={FIELD_USAGE_DATA_TREE_GROUP_BY}
-                  rowGrouper={groupBy}
-                  expandedGroupIds={expandedGroupIds}
-                  onExpandedGroupIdsChange={setExpandedGroupIds}
-                  rowHeight={fieldUsageDataTreeRowHeight}
-                  initialSortColumns={FIELD_USAGE_TREE_INITIAL_SORT_BY_PCT}
-                  selectedRows={fieldUsageSelectedRowKeys}
-                  onSelectedRowsChange={handleFieldUsageSelectedRowsChange}
-                  org={selectedOrg ?? undefined}
-                  serverUrl={serverUrl}
-                  skipFrontdoorLogin={skipFrontDoorAuth}
-                />
-              </AutoFullHeightContainer>
+              <Fragment>
+                <ExpandCollapseButton isExpanded={isAnyGroupExpanded} onToggle={handleToggleExpandAll} />
+                <AutoFullHeightContainer
+                  fillHeight
+                  setHeightAttr
+                  bottomBuffer={24}
+                  baseCss={css`
+                    min-height: 280px;
+                  `}
+                >
+                  <DataTree
+                    columns={treeColumns}
+                    data={lowUsageTreeRows}
+                    getRowKey={getTreeRowKey}
+                    includeQuickFilter
+                    groupBy={FIELD_USAGE_DATA_TREE_GROUP_BY}
+                    rowGrouper={groupBy}
+                    expandedGroupIds={expandedGroupIds}
+                    onExpandedGroupIdsChange={setExpandedGroupIds}
+                    rowHeight={fieldUsageDataTreeRowHeight}
+                    initialSortColumns={FIELD_USAGE_TREE_INITIAL_SORT_BY_PCT}
+                    selectedRows={fieldUsageSelectedRowKeys}
+                    onSelectedRowsChange={handleFieldUsageSelectedRowsChange}
+                    org={selectedOrg ?? undefined}
+                    serverUrl={serverUrl}
+                    skipFrontdoorLogin={skipFrontDoorAuth}
+                  />
+                </AutoFullHeightContainer>
+              </Fragment>
             )}
           </div>
         ),
@@ -1371,6 +1361,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
     selectedOrg,
     serverUrl,
     skipFrontDoorAuth,
+    jobId,
   ]);
 
   return (
@@ -1411,64 +1402,63 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
             `}
           >
             <ToolbarItemActions>
-              {parsedResult && treeFieldRows.some((row) => !row.isObjectErrorPlaceholder) && (
-                <DropDown
-                  buttonClassName="slds-button slds-button_neutral slds-button_icon slds-button_icon-border-filled"
-                  buttonContent={
-                    <Icon
-                      type="utility"
-                      icon="settings"
-                      className="slds-button__icon slds-button__icon_hint slds-button__icon_medium"
-                      description="Field Actions"
-                    />
-                  }
-                  position="right"
-                  actionText="Field Actions"
-                  items={[
-                    {
-                      id: FIELD_USAGE_TABLE_ACTION_DELETE_METADATA,
-                      subheader: 'Deploy Actions',
-                      icon: { type: 'utility', icon: 'delete', description: 'Delete Selected Custom Fields' },
-                      value: 'Delete Selected Metadata',
-                      disabled: fieldUsageSelectedDestructiveDeleteCount === 0,
-                      title:
-                        fieldUsageSelectedDestructiveDeleteCount === 0
-                          ? 'Select unmanaged Custom Fields (no namespace prefix) on the Objects & Fields or Low Usage tab'
-                          : 'Same destructive deploy flow as Deploy Metadata (validate or delete from this org)',
-                    },
-                  ]}
-                  onSelected={handleFieldUsageToolbarDropdown}
-                />
-              )}
-              <Tooltip
-                ariaRole="label"
-                content={
-                  canLoadAllRecords
-                    ? 'Start a new job that scans all rows for these objects (no per-object cap). Confirm to review API impact.'
-                    : 'Shown when the row scan stopped early. Run a full scan only if you need complete counts.'
-                }
-              >
-                <button
-                  type="button"
-                  className="slds-button slds-button_neutral collapsible-button collapsible-button-xs slds-m-left_xx-small"
-                  disabled={!canLoadAllRecords || isFieldUsageJobActiveForOrg}
-                  onClick={() => setLoadAllRecordsModalOpen(true)}
-                >
-                  <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
-                  <span>Load All Records</span>
-                </button>
-              </Tooltip>
               <Tooltip ariaRole="label" content="View past Field Usage runs for this org">
                 <button
                   type="button"
                   aria-label="Field Usage history"
-                  className="slds-button slds-button_icon slds-button_icon-border-filled slds-m-left_xx-small"
+                  className="slds-button slds-button_icon slds-button_icon-border-filled"
                   disabled={!selectedOrg?.uniqueId}
                   onClick={() => setIsHistoryOpen(true)}
                 >
                   <Icon type="utility" icon="date_time" className="slds-button__icon" omitContainer title="Field Usage history" />
                 </button>
               </Tooltip>
+              {parsedResult && treeFieldRows.some((row) => !row.isObjectErrorPlaceholder) && (
+                <Tooltip
+                  ariaRole="label"
+                  content={
+                    fieldUsageSelectedDestructiveDeleteCount === 0
+                      ? 'Select one or more delete-eligible fields using the row checkboxes to enable this action.'
+                      : `Delete the ${formatNumber(fieldUsageSelectedDestructiveDeleteCount)} selected ${pluralizeFromNumber(
+                          'field',
+                          fieldUsageSelectedDestructiveDeleteCount,
+                        )}. You'll confirm the details before anything is removed.`
+                  }
+                >
+                  <button
+                    type="button"
+                    className="slds-button slds-button_neutral collapsible-button collapsible-button-xs slds-m-left_xx-small"
+                    disabled={fieldUsageSelectedDestructiveDeleteCount === 0}
+                    onClick={() => setDeleteFieldMetadataModalOpen(true)}
+                  >
+                    <Icon type="utility" icon="delete" className="slds-button__icon slds-button__icon_left" omitContainer />
+                    <span>
+                      Delete Selected Metadata
+                      {fieldUsageSelectedDestructiveDeleteCount > 0 ? ` (${formatNumber(fieldUsageSelectedDestructiveDeleteCount)})` : ''}
+                    </span>
+                  </button>
+                </Tooltip>
+              )}
+              {canLoadAllRecords && (
+                <Tooltip
+                  ariaRole="label"
+                  content={
+                    isFieldUsageJobActiveForOrg
+                      ? 'A Field Usage job is already running for this org. Wait for it to finish before starting a full scan.'
+                      : 'The row scan stopped early for one or more Objects. Start a new job that scans all rows (no per-object cap). Confirm to review API impact.'
+                  }
+                >
+                  <button
+                    type="button"
+                    className="slds-button slds-button_neutral collapsible-button collapsible-button-xs slds-m-left_xx-small"
+                    disabled={isFieldUsageJobActiveForOrg}
+                    onClick={() => setLoadAllRecordsModalOpen(true)}
+                  >
+                    <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
+                    <span>Load All Records</span>
+                  </button>
+                </Tooltip>
+              )}
             </ToolbarItemActions>
           </div>
         </div>
@@ -1614,12 +1604,14 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
               </div>
               {parsedResult.failedObjects.length > 0 && (
                 <div className="slds-p-horizontal_medium slds-p-top_x-small">
-                  <ScopedNotification theme="error">Objects with errors: {parsedResult.failedObjects.join(', ')}.</ScopedNotification>
+                  <ScopedNotification theme="error" allowClose dismissResetKey={jobId}>
+                    Objects with errors: {parsedResult.failedObjects.join(', ')}.
+                  </ScopedNotification>
                 </div>
               )}
               {parsedResult.truncated && (
                 <div className="slds-p-horizontal_medium slds-p-top_x-small">
-                  <ScopedNotification theme="warning">
+                  <ScopedNotification theme="warning" allowClose dismissResetKey={jobId}>
                     The row scan stopped early for one or more Objects, so usage percentages reflect only the rows that were scanned. A
                     field showing 0% or low usage here is <strong>not</strong> proof it is unused — it may be populated in rows that were
                     not scanned. Fields on truncated Objects are excluded from <em>Delete Selected Metadata</em>; use{' '}
@@ -1629,7 +1621,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
               )}
               {!parsedResult.whereUsedComputed && (
                 <div className="slds-p-horizontal_medium slds-p-top_x-small">
-                  <ScopedNotification theme="warning">
+                  <ScopedNotification theme="warning" allowClose dismissResetKey={jobId}>
                     Where Used (metadata dependency) lookup could not be completed for this run, so field dependencies are unknown.
                     <em> Delete Selected Metadata</em> is disabled to avoid deleting a field that may be referenced by a layout, automation,
                     or Apex. Re-run the analysis to determine dependencies.
@@ -1638,7 +1630,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
               )}
               {parsedResult.whereUsedComputed && (
                 <div className="slds-p-horizontal_medium slds-p-top_x-small">
-                  <ScopedNotification theme="info">
+                  <ScopedNotification theme="info" allowClose dismissResetKey={jobId}>
                     <strong>Before deleting:</strong> "Where Used" detects metadata references such as{' '}
                     <em>page layouts, automation, Apex, formulas, and validation rules</em>. It does <strong>not</strong> detect references
                     in reports, list views, email templates, or dashboards, so "no dependencies" is a strong signal but not absolute proof a
