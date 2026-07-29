@@ -68,6 +68,20 @@ export function emitSocketEvent({
   }
 }
 
+/**
+ * Handshake auth values are untyped and headers can arrive as `string[]`, so narrow both to a single
+ * string before comparing against a known source value.
+ */
+function getSingleHandshakeValue(value: unknown): string | undefined {
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (Array.isArray(value) && typeof value[0] === 'string') {
+    return value[0];
+  }
+  return undefined;
+}
+
 function getExternalDeviceAuthMiddleware(audience: externalAuthService.Audience) {
   const externalDeviceAuthMiddleware: Parameters<typeof io.use>[0] = (socket, next) => {
     const authorizationHeader = socket.handshake.auth[HTTP.HEADERS.AUTHORIZATION] as string;
@@ -94,6 +108,45 @@ function getExternalDeviceAuthMiddleware(audience: externalAuthService.Audience)
       });
   };
   return externalDeviceAuthMiddleware;
+}
+
+/**
+ * Routes each connection to the authentication path that matches the client transport:
+ * browser extensions and the desktop app authenticate with an audience-scoped bearer token,
+ * everything else is a cookie-authenticated browser client and must pass the origin backstop.
+ */
+export function getSocketConnectionAuthMiddleware() {
+  const socketConnectionAuthMiddleware: Parameters<typeof io.use>[0] = (socket, next) => {
+    // The desktop app identifies itself in the handshake auth payload, which socket.io sends on every
+    // transport. Its `X-Source` header only survives the polling transport (a native WebSocket upgrade
+    // carries no custom headers), so the header is a fallback for older desktop clients, not the source
+    // of truth. Claiming to be desktop grants nothing on its own — the branch still requires a valid
+    // desktop-audience bearer token, which a cross-site page cannot obtain.
+    const requestSource =
+      getSingleHandshakeValue(socket.handshake.auth?.[HTTP.HEADERS.X_SOURCE]) ??
+      getSingleHandshakeValue(socket.handshake.headers[HTTP.HEADERS.X_SOURCE.toLowerCase()]);
+
+    if (
+      socket.handshake.headers.origin === `chrome-extension://${ENV.WEB_EXTENSION_ID_CHROME}` ||
+      socket.handshake.headers.origin === `moz-extension://${ENV.WEB_EXTENSION_ID_MOZILLA}`
+    ) {
+      getExternalDeviceAuthMiddleware(externalAuthService.AUDIENCE_WEB_EXT)(socket, next);
+    } else if (requestSource === HTTP_SOURCE_DESKTOP) {
+      getExternalDeviceAuthMiddleware(externalAuthService.AUDIENCE_DESKTOP)(socket, next);
+    } else {
+      // Browser (cookie-authenticated) clients. Reject foreign-origin upgrades as a CSWSH backstop.
+      // A missing Origin (non-browser client) is allowed through — it carries no ambient cookie
+      // and so authenticates no one.
+      const origin = socket.handshake.headers.origin;
+      if (origin && !isAllowedWebSocketOrigin(origin)) {
+        logger.warn({ origin }, '[SOCKET] Rejected WebSocket connection from disallowed origin');
+        next(new Error('Forbidden origin'));
+        return;
+      }
+      next();
+    }
+  };
+  return socketConnectionAuthMiddleware;
 }
 
 export function initSocketServer(
@@ -144,27 +197,7 @@ export function initSocketServer(
     }
   });
 
-  io.use((socket, next) => {
-    if (
-      socket.handshake.headers.origin === `chrome-extension://${ENV.WEB_EXTENSION_ID_CHROME}` ||
-      socket.handshake.headers.origin === `moz-extension://${ENV.WEB_EXTENSION_ID_MOZILLA}`
-    ) {
-      getExternalDeviceAuthMiddleware(externalAuthService.AUDIENCE_WEB_EXT)(socket, next);
-    } else if (socket.handshake.headers[HTTP.HEADERS.X_SOURCE.toLowerCase()] === HTTP_SOURCE_DESKTOP) {
-      getExternalDeviceAuthMiddleware(externalAuthService.AUDIENCE_DESKTOP)(socket, next);
-    } else {
-      // Browser (cookie-authenticated) clients. Reject foreign-origin upgrades as a CSWSH backstop.
-      // A missing Origin (non-browser client) is allowed through — it carries no ambient cookie
-      // and so authenticates no one.
-      const origin = socket.handshake.headers.origin;
-      if (origin && !isAllowedWebSocketOrigin(origin)) {
-        logger.warn({ origin }, '[SOCKET] Rejected WebSocket connection from disallowed origin');
-        next(new Error('Forbidden origin'));
-        return;
-      }
-      next();
-    }
-  });
+  io.use(getSocketConnectionAuthMiddleware());
 
   io.on('connection', (socket) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
