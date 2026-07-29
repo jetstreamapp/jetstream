@@ -1,0 +1,30 @@
+---
+slug: v10.7.2
+title: 10.7.2 - Very long queries no longer fail
+date: '2026-07-27'
+tags: [web]
+versions:
+  web: 10.7.2
+summary: Queries with a large number of fields no longer fail with a request-too-large error from Salesforce, and results now come back in a single round trip.
+highlights:
+  - title: Very long queries no longer fail
+    description: Queries with hundreds of fields used to hit a Salesforce request size limit and fail outright — they now run normally.
+    docLink: /query
+  - title: Faster query results
+    description: Query results and their column details are fetched in one request to Salesforce instead of two.
+    docLink: /query/results
+---
+
+{/* truncate */}
+
+## What's new
+
+### Very long queries no longer fail
+
+If you built a query that selected a very large number of fields — common when you select all fields on a big object, or work with orgs that have hundreds of custom fields — Salesforce could reject it before it ever ran, because the query itself was too long to fit in the request. Jetstream now sends queries in a way that is not subject to that limit, so those queries run like any other.
+
+This applies everywhere Jetstream runs SOQL for you, including the query builder, viewing related records, and the record detail pages.
+
+### Faster query results
+
+Jetstream previously made two separate calls to Salesforce for every query — one for your records and one for the column details used to build the results table. Both are now fetched together in a single request, so results show up a little faster.
