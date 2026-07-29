@@ -39,6 +39,7 @@ import {
   GridCol,
   Icon,
   KeyboardShortcut,
+  MAX_SAVE_BATCH_SIZE,
   SalesforceRecordDataTable,
   Spinner,
   Toolbar,
@@ -470,19 +471,31 @@ export const QueryResults = React.memo(() => {
     trackEvent(ANALYTICS_KEYS.query_RecordAction, { action, source });
   }
 
-  async function handleUpdateRecords(modifiedRecords: any[]): Promise<SobjectCollectionResponse> {
+  /**
+   * Save inline edits. Results must come back in submit order (the caller zips them to the edited rows by
+   * index), which both the parallel and the serial path preserve.
+   */
+  async function handleUpdateRecords(
+    modifiedRecords: any[],
+    { batchSize, serialMode }: { batchSize: number; serialMode: boolean },
+  ): Promise<SobjectCollectionResponse> {
     const type = sobject || modifiedRecords?.[0]?.attributes?.type;
     if (!type) {
       return [];
     }
-    const results = (
-      await Promise.all(
-        splitArrayToMaxSize(modifiedRecords, 200).map((records) =>
-          sobjectOperation(selectedOrg, type, 'update', { records }, { allOrNone: false }),
-        ),
-      )
-    ).flat();
-    trackEvent(ANALYTICS_KEYS.query_UpdateRecordsInline, { recordCount: modifiedRecords.length });
+    const batches = splitArrayToMaxSize(modifiedRecords, Math.min(Math.max(batchSize, 1), MAX_SAVE_BATCH_SIZE));
+    const updateBatch = (records: any[]) => sobjectOperation(selectedOrg, type, 'update', { records }, { allOrNone: false });
+
+    let results: SobjectCollectionResponse = [];
+    if (serialMode) {
+      for (const batch of batches) {
+        results.push(...(await updateBatch(batch)));
+      }
+    } else {
+      results = (await Promise.all(batches.map(updateBatch))).flat();
+    }
+
+    trackEvent(ANALYTICS_KEYS.query_UpdateRecordsInline, { recordCount: modifiedRecords.length, batchSize, serialMode });
     return results;
   }
 

@@ -2,10 +2,13 @@ import { css } from '@emotion/react';
 import { formatNumber, hasCtrlOrMeta, isEnterKey, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
 import { decodeHtmlEntity, getIdFromRecordUrl } from '@jetstream/shared/utils';
 import { Field, Maybe, SalesforceOrgUi, SobjectCollectionResponse } from '@jetstream/types';
-import { Fragment, FunctionComponent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, Fragment, FunctionComponent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Checkbox from '../form/checkbox/Checkbox';
+import Input from '../form/input/Input';
 import SearchInput from '../form/search-input/SearchInput';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import Modal from '../modal/Modal';
+import { Popover } from '../popover/Popover';
 import ScopedNotification from '../scoped-notification/ScopedNotification';
 import Icon from '../widgets/Icon';
 import RecordLookupPopover from '../widgets/RecordLookupPopover';
@@ -16,6 +19,9 @@ import { getRecordErrorColumn, getRecordErrorRowHeight } from './DataTableRender
 import { dataTableDateFormatter } from './data-table-formatters';
 import { ColumnWithFilter, DataTableCellProps, RowSalesforceRecordWithKey, RowWithKey } from './data-table-types';
 import { getColumnsForGenericTable } from './data-table-utils';
+
+/** Salesforce's sObject Collections API accepts at most 200 records per call. */
+export const MAX_SAVE_BATCH_SIZE = 200;
 
 /** Descriptor handed to the host to open the shared FileDownloadModal (CSV/Excel/JSON/Google Drive). */
 export interface DownloadConfig {
@@ -339,6 +345,12 @@ export interface PreviewChangesModalProps {
   saveErrors: string[];
   /** Raw response from the most recent save, used to offer a results download. */
   saveResults: Maybe<SobjectCollectionResponse>;
+  /** Records per API call. Owned by the parent (which performs the save) so it survives closing the modal. */
+  batchSize: Maybe<number>;
+  /** Send the batches one at a time instead of all at once. */
+  serialMode: boolean;
+  onBatchSizeChange: (batchSize: Maybe<number>) => void;
+  onSerialModeChange: (serialMode: boolean) => void;
   onSave: () => void | Promise<void>;
   /** Open the host's file-download modal (CSV/Excel/JSON/Google Drive) with the given data. */
   onDownload: (config: DownloadConfig) => void;
@@ -366,6 +378,10 @@ export const PreviewChangesModal: FunctionComponent<PreviewChangesModalProps> = 
   hasBlockingErrors,
   saveErrors,
   saveResults,
+  batchSize,
+  serialMode,
+  onBatchSizeChange,
+  onSerialModeChange,
   onSave,
   onDownload,
   isHidden,
@@ -447,6 +463,22 @@ export const PreviewChangesModal: FunctionComponent<PreviewChangesModalProps> = 
   const allSaved = hasAttemptedSave && !isSaving && dirtyRows.length === 0;
   const canDownloadResults = hasAttemptedSave && !isSaving && !!saveResults?.length;
 
+  const batchSizeError =
+    !Number.isInteger(batchSize) || (batchSize as number) < 1 || (batchSize as number) > MAX_SAVE_BATCH_SIZE
+      ? `The batch size must be between 1 and ${formatNumber(MAX_SAVE_BATCH_SIZE)}`
+      : null;
+  const saveDisabled = isSaving || hasBlockingErrors || !!batchSizeError || dirtyRows.length === 0;
+
+  // Allow clearing the field while typing (empty -> null); anything non-numeric is ignored.
+  const handleBatchSizeChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const value = Number.parseInt(event.target.value, 10);
+    if (Number.isInteger(value)) {
+      onBatchSizeChange(value);
+    } else if (!event.target.value) {
+      onBatchSizeChange(null);
+    }
+  };
+
   const handleSave = async () => {
     setHasAttemptedSave(true);
     // Capture the current rows/columns before the save clears them. Mark each row saved and clear any
@@ -475,7 +507,7 @@ export const PreviewChangesModal: FunctionComponent<PreviewChangesModalProps> = 
   useEffect(() => {
     isHiddenRef.current = isHidden;
     saveShortcutRef.current = () => {
-      if (allSaved || isSaving || hasBlockingErrors || dirtyRows.length === 0) {
+      if (allSaved || saveDisabled) {
         return;
       }
       handleSave();
@@ -605,6 +637,57 @@ export const PreviewChangesModal: FunctionComponent<PreviewChangesModalProps> = 
                 Download Changes
               </button>
             )}
+            {!allSaved && (
+              <Popover
+                classname="slds-m-horizontal_x-small"
+                placement="top-start"
+                header={
+                  <header className="slds-popover__header">
+                    <h2 className="slds-text-heading_small">Save Options</h2>
+                  </header>
+                }
+                content={
+                  <div>
+                    <p className="slds-text-body_small slds-m-bottom_x-small">
+                      Adjust these options if you are running into Salesforce governor limits or record lock errors.
+                    </p>
+                    <Checkbox
+                      id="preview-changes-serial-mode"
+                      checked={serialMode}
+                      label="Serial Mode"
+                      labelHelp="Serial mode saves the batches one-by-one instead of all at the same time."
+                      disabled={isSaving}
+                      onChange={onSerialModeChange}
+                    />
+                    <Input
+                      id="preview-changes-batch-size"
+                      label="Batch Size"
+                      isRequired
+                      hasError={!!batchSizeError}
+                      errorMessageId="preview-changes-batch-size-error"
+                      errorMessage={batchSizeError}
+                      labelHelp={`The batch size determines how many records will be saved with each API call, up to ${formatNumber(
+                        MAX_SAVE_BATCH_SIZE,
+                      )}.`}
+                    >
+                      <input
+                        id="preview-changes-batch-size"
+                        className="slds-input"
+                        placeholder="Set batch size"
+                        value={batchSize ?? ''}
+                        aria-describedby={batchSizeError ? 'preview-changes-batch-size-error' : undefined}
+                        disabled={isSaving}
+                        onChange={handleBatchSizeChange}
+                      />
+                    </Input>
+                  </div>
+                }
+                buttonProps={{ className: 'slds-button slds-button_neutral', disabled: isSaving }}
+              >
+                <Icon type="utility" icon="settings" className="slds-button__icon slds-button__icon_left" omitContainer />
+                Save Options
+              </Popover>
+            )}
             {canDownloadResults && (
               <button className="slds-button slds-button_neutral" onClick={handleDownloadResults}>
                 <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
@@ -618,8 +701,8 @@ export const PreviewChangesModal: FunctionComponent<PreviewChangesModalProps> = 
               <button
                 className="slds-button slds-button_brand"
                 onClick={handleSave}
-                disabled={isSaving || hasBlockingErrors || dirtyRows.length === 0}
-                title={hasBlockingErrors ? 'Fix the highlighted errors before saving' : undefined}
+                disabled={saveDisabled}
+                title={hasBlockingErrors ? 'Fix the highlighted errors before saving' : (batchSizeError ?? undefined)}
               >
                 Save ({formatNumber(dirtyRows.length)})
               </button>
