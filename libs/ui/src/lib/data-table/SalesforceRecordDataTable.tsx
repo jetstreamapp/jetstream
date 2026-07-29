@@ -4,7 +4,14 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { queryRemaining } from '@jetstream/shared/data';
 import { formatNumber, hasCtrlOrMeta, isEnterKey, tracker, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
-import { flattenRecord, getErrorMessage, getIdFromRecordUrl, groupByFlat, nullifyEmptyStrings } from '@jetstream/shared/utils';
+import {
+  flattenRecord,
+  getErrorMessage,
+  getIdFromRecordUrl,
+  groupByFlat,
+  isInvalidQueryLocatorError,
+  nullifyEmptyStrings,
+} from '@jetstream/shared/utils';
 import {
   CloneEditView,
   ContextMenuItem,
@@ -401,7 +408,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
         }
         setIsLoadingMore(false);
         // An expired/evicted Salesforce query cursor can never succeed on retry — the query must be re-run
-        if (getErrorMessage(ex).toLowerCase().includes('invalid query locator')) {
+        if (isInvalidQueryLocatorError(ex)) {
           setHasMoreRecords(false);
           setLoadMoreErrorMessage('Your query results expired. Re-run your query to load all records.');
         } else {

@@ -36,6 +36,7 @@ import {
   Icon,
   ProgressRing,
   SalesforceLogin,
+  ScopedNotification,
   Spinner,
   Tooltip,
   fireToast,
@@ -265,6 +266,16 @@ export const LoadRecordsBulkApiResults = ({
   const [resultsModalData, setResultsModalData] = useState<ViewModalData>({ open: false, data: [], header: [], type: 'results' });
   const [downloadState, setDownloadState] = useState<DownloadScope | null>(null);
   const { notifyUser } = useBrowserNotifications(serverUrl);
+
+  /**
+   * Batches are capped by CSV size as well as by record count, so a batch of wide records gets split
+   * into smaller ones and more batches are submitted than the configured batch size implies. Detected
+   * by comparing the submitted batch count against what the record count alone would produce.
+   */
+  const autoSplitBatchCount =
+    batchSummary && preparedData && batchSize > 0
+      ? Math.max(batchSummary.totalBatches - Math.ceil(preparedData.data.length / batchSize), 0)
+      : 0;
 
   useEffect(() => {
     isMounted.current = true;
@@ -525,11 +536,9 @@ export const LoadRecordsBulkApiResults = ({
           });
         }
         // A user-initiated abort surfaces through the same loadError path — keep the UI messaging but
-        // don't report it as an application error unless some batch failed for a non-abort reason.
-        const abortMessagePattern = /aborted by user|data load was aborted|current job state is 'Aborted'/i;
-        const onlyUserAbortErrors =
-          loadError.additionalErrors.length > 0 && loadError.additionalErrors.every((error) => abortMessagePattern.test(error.message));
-        if (!onlyUserAbortErrors) {
+        // don't report it as an application error. Aborting also makes Salesforce reject any in-flight
+        // or subsequent batch, so every error in this payload is downstream of the abort.
+        if (!isAborted.current) {
           tracker.error('Error loading batches', loadError, {
             specificErrors: loadError.additionalErrors.map((error) => ({
               message: error.message,
@@ -611,13 +620,26 @@ export const LoadRecordsBulkApiResults = ({
       const isDelete = loadType === 'DELETE' || loadType === 'HARD_DELETE';
 
       if (scope === 'all') {
-        // Download results across all batches
-        removedBatches = jobInfo.batches.some((batch) => batch.state !== 'Completed');
-        const batchIds = jobInfo.batches.filter((batch) => batch.state === 'Completed').map((batch) => batch.id);
+        // Download results across all batches. Results only come back for completed batches, so the
+        // records must be built from those same batches in the same order — using the full prepared
+        // data would shift every row after a non-completed batch onto the wrong result. Both the
+        // fetch and the records are derived from one list so they cannot diverge.
+        const summaryByBatchId = new Map(batchSummary.batchSummary.filter(({ id }) => id).map((item) => [item.id as string, item]));
+        const includedBatches = jobInfo.batches.flatMap((batch) => {
+          const summaryItem = batch.state === 'Completed' ? summaryByBatchId.get(batch.id) : undefined;
+          return summaryItem ? [{ batchId: batch.id, summaryItem }] : [];
+        });
+        removedBatches = includedBatches.length !== jobInfo.batches.length;
         // download records, combine results from salesforce with actual records, open download modal
-        results = await bulkApiGetRecordsFromAllBatches<BulkJobResultRecord>(selectedOrg, jobInfo.id, batchIds);
+        results = await bulkApiGetRecordsFromAllBatches<BulkJobResultRecord>(
+          selectedOrg,
+          jobInfo.id,
+          includedBatches.map(({ batchId }) => batchId),
+        );
         /** For delete, only records with a mapped Id will be included in response from SFDC */
-        records = preparedData.data.filter((record) => (isDelete ? !!record.Id : true));
+        records = includedBatches
+          .flatMap(({ summaryItem }) => preparedData.data.slice(summaryItem.startIndex, summaryItem.startIndex + summaryItem.recordCount))
+          .filter((record) => (isDelete ? !!record.Id : true));
       } else {
         // Download results for a single batch
         // download records, combine results from salesforce with actual records, open download modal
@@ -893,6 +915,11 @@ export const LoadRecordsBulkApiResults = ({
           )}
         </div>
       </Grid>
+      {autoSplitBatchCount > 0 && (
+        <ScopedNotification theme="info" className="slds-m-vertical_x-small" allowClose>
+          Some of your batches were larger than Salesforce allows, so they were automatically split into smaller batches.
+        </ScopedNotification>
+      )}
       {/* Data is being processed */}
       {jobInfo && preparedData && (
         <LoadRecordsBulkApiResultsTable

@@ -45,6 +45,47 @@ describe('prepareExcelFile cell truncation', () => {
     const [, dataRow] = readBackRows(fileData);
     expect((dataRow[1] as string).length).toBe(EXCEL_MAX_CELL_CHARS);
   });
+
+  it('reports the truncated cell count across every sheet so the user can be warned', () => {
+    const oversized = 'z'.repeat(EXCEL_MAX_CELL_CHARS * 2);
+    const onCellsTruncated = vi.fn();
+
+    prepareExcelFile(
+      {
+        records: [
+          { Id: 'rec-1', Notes: oversized },
+          { Id: 'rec-2', Notes: 'short' },
+        ],
+        subquery: [{ Id: 'rec-3', Notes: oversized }],
+      },
+      { records: ['Id', 'Notes'], subquery: ['Id', 'Notes'] },
+      undefined,
+      { onCellsTruncated },
+    );
+
+    expect(onCellsTruncated).toHaveBeenCalledTimes(1);
+    expect(onCellsTruncated).toHaveBeenCalledWith(2);
+  });
+
+  it('does not report truncation when every cell is within the limit', () => {
+    const onCellsTruncated = vi.fn();
+
+    prepareExcelFile([{ Id: 'rec-1', Description: 'short' }], ['Id', 'Description'], undefined, { onCellsTruncated });
+
+    expect(onCellsTruncated).not.toHaveBeenCalled();
+  });
+
+  it('leaves rows without an oversized cell as the same array instance', () => {
+    const untouchedRow = ['rec-1', 'short'];
+    const truncatedRow = ['rec-2', 'x'.repeat(EXCEL_MAX_CELL_CHARS + 1)];
+    const rows = [['Id', 'Description'], untouchedRow, truncatedRow];
+
+    // Array-of-array sheets are caller-owned, so they must never be mutated in place
+    prepareExcelFile({ records: rows });
+
+    expect(rows[1]).toBe(untouchedRow);
+    expect(truncatedRow[1]).toHaveLength(EXCEL_MAX_CELL_CHARS + 1);
+  });
 });
 
 describe('formatNumber', () => {

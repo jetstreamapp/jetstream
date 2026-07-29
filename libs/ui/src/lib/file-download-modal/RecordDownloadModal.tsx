@@ -39,6 +39,7 @@ import { PopoverErrorButton } from '../popover/PopoverErrorButton';
 import ScopedNotification from '../scoped-notification/ScopedNotification';
 import {
   getInitialDownloadFileFormat,
+  notifyExcelCellsTruncated,
   RADIO_ALL_BROWSER,
   RADIO_ALL_SERVER,
   RADIO_DOWNLOAD_METHOD_BULK_API,
@@ -296,7 +297,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
               data['records'] = flattenRecords(activeRecords, fields);
             }
 
-            fileData = prepareExcelFile(data);
+            fileData = prepareExcelFile(data, undefined, undefined, { onCellsTruncated: notifyExcelCellsTruncated });
             mimeType = MIME_TYPES.XLSX;
             break;
           }

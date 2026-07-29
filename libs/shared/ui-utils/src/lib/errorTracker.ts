@@ -1,4 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
+import { INVALID_QUERY_LOCATOR_REGEX } from '@jetstream/shared/utils';
 import { Environment, UserProfileUi } from '@jetstream/types';
 import * as Sentry from '@sentry/react';
 
@@ -21,13 +22,13 @@ const ignoredMessageSubstrings = [
   // dexie-observable's unload-time localStorage write for users at storage quota — guarded in ui-db,
   // but old bundles remain in the field.
   'Dexie.Observable/deadnode',
-  // Expired/evicted Salesforce query cursor — the user must re-run their query; nothing to fix client-side.
-  // Salesforce surfaces this as either the lowercase message or the uppercase error code depending on the API.
-  'invalid query locator',
-  'INVALID_QUERY_LOCATOR',
 ];
+// Expired/evicted Salesforce query cursor — the user must re-run their query; nothing to fix client-side.
+// Shared with the UI so the "your query results expired" messaging and this ignore rule match the same errors.
+const ignoredMessagePatterns = [INVALID_QUERY_LOCATOR_REGEX];
 // 'DatabaseClosedError' matches the exception TYPE: dexie-observable closes the shared connection after
-// a tab freeze/sleep; history writes reopen-and-retry, and anything residual is not actionable.
+// a tab freeze/sleep. Every user-triggered read/write goes through `withReopenOnDatabaseClosed`, which
+// reopens and retries, so anything still reaching here is residual and not actionable.
 const ignoredExactMessages = new Set(['Canceled', 'ChunkLoadError', '(unknown)', 'DatabaseClosedError']);
 const extensionUrlPrefixes = ['chrome-extension://', 'moz-extension://', 'safari-web-extension://', 'safari-extension://'];
 
@@ -75,6 +76,9 @@ function shouldIgnore(event: Sentry.ErrorEvent): boolean {
       return true;
     }
     if (ignoredMessageSubstrings.some((needle) => candidate.includes(needle))) {
+      return true;
+    }
+    if (ignoredMessagePatterns.some((pattern) => pattern.test(candidate))) {
       return true;
     }
   }
