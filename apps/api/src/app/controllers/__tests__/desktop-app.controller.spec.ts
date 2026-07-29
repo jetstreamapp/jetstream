@@ -1,11 +1,15 @@
 /**
- * Regression coverage for the token-rotation gating in the desktop app verifyToken handler.
+ * Regression coverage for token rotation in the desktop app verifyToken handler.
  *
- * Mirrors the web extension change: the handler only rotates the access token when it is within
- * the refresh window, reducing rotation races that caused frequent logouts. These tests lock in:
- *   - rotation is skipped (and no accessToken is returned) when the token is not near expiry
- *   - rotation runs when the token is near expiry
+ * The desktop token is persisted in plaintext on disk (app-data.json) and cannot be machine-bound
+ * in VDI/roaming environments, so the handler rotates it on EVERY verify (not just near expiry) to
+ * minimize how long a copied token stays valid. A desktop token is scoped to a single
+ * (userId, deviceId), so aggressive rotation does not churn a token shared across other devices.
+ * These tests lock in:
+ *   - rotation runs on every verify (regardless of proximity to expiry) and returns the new token
+ *   - the race-loser is handed the current DB token (race-loss-current)
  *   - a race-loss-none rotation outcome still forces a 401
+ *   - rotation is skipped when the client does not opt in, or when no bearer token is present
  */
 import { HTTP } from '@jetstream/shared/constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -16,7 +20,6 @@ const mocks = vi.hoisted(() => ({
   redirect: vi.fn(),
   findIdByUserIdUserFacing: vi.fn(),
   checkUserEntitlement: vi.fn(),
-  isTokenWithinRefreshWindow: vi.fn(),
   rotateToken: vi.fn(),
   getApiAddressFromReq: vi.fn(() => '127.0.0.1'),
   createUserActivityFromReq: vi.fn(),
@@ -78,7 +81,6 @@ vi.mock('../../services/data-sync-broadcast.service', () => ({ emitRecordSyncEve
 vi.mock('../../services/external-auth.service', () => ({
   AUDIENCE_WEB_EXT: 'https://getjetstream.app/web-extension',
   AUDIENCE_DESKTOP: 'https://getjetstream.app/desktop-app',
-  isTokenWithinRefreshWindow: mocks.isTokenWithinRefreshWindow,
   rotateToken: mocks.rotateToken,
   issueAccessToken: vi.fn(),
   decodeToken: vi.fn(),
@@ -119,41 +121,35 @@ async function invokeVerify(headers: Record<string, string>) {
   return { req, res };
 }
 
-describe('desktop-app.controller verifyToken token rotation gating', () => {
+describe('desktop-app.controller verifyToken token rotation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.findIdByUserIdUserFacing.mockResolvedValue(userProfile);
     mocks.getApiAddressFromReq.mockReturnValue('127.0.0.1');
   });
 
-  it('skips rotation and returns no accessToken when the token is not within the refresh window', async () => {
-    mocks.isTokenWithinRefreshWindow.mockReturnValue(false);
-
-    const { res } = await invokeVerify({ Authorization: 'Bearer old-token', [HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION]: '1' });
-
-    expect(mocks.isTokenWithinRefreshWindow).toHaveBeenCalledWith('old-token');
-    expect(mocks.rotateToken).not.toHaveBeenCalled();
-    expect(mocks.sendJson).toHaveBeenCalledWith(
-      res,
-      expect.objectContaining({ success: true, userProfile, encryptionKey: expect.any(String), accessToken: undefined }),
-    );
-  });
-
-  it('rotates the token and returns the new accessToken when within the refresh window', async () => {
-    mocks.isTokenWithinRefreshWindow.mockReturnValue(true);
+  it('rotates the token on every verify and returns the new accessToken', async () => {
     mocks.rotateToken.mockResolvedValue({ outcome: 'rotated', token: 'new-token' });
 
     const { res } = await invokeVerify({ Authorization: 'Bearer old-token', [HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION]: '1' });
 
     expect(mocks.rotateToken).toHaveBeenCalledTimes(1);
+    expect(mocks.rotateToken).toHaveBeenCalledWith(expect.objectContaining({ oldAccessToken: 'old-token', deviceId: 'device-1' }));
     expect(mocks.sendJson).toHaveBeenCalledWith(
       res,
       expect.objectContaining({ success: true, userProfile, encryptionKey: expect.any(String), accessToken: 'new-token' }),
     );
   });
 
+  it('hands the race-loser the current DB token (race-loss-current)', async () => {
+    mocks.rotateToken.mockResolvedValue({ outcome: 'race-loss-current', token: 'current-token' });
+
+    const { res } = await invokeVerify({ Authorization: 'Bearer old-token', [HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION]: '1' });
+
+    expect(mocks.sendJson).toHaveBeenCalledWith(res, expect.objectContaining({ success: true, accessToken: 'current-token' }));
+  });
+
   it('returns a 401 when the rotation outcome is race-loss-none', async () => {
-    mocks.isTokenWithinRefreshWindow.mockReturnValue(true);
     mocks.rotateToken.mockResolvedValue({ outcome: 'race-loss-none', token: undefined });
 
     const { res } = await invokeVerify({ Authorization: 'Bearer old-token', [HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION]: '1' });
@@ -164,11 +160,72 @@ describe('desktop-app.controller verifyToken token rotation gating', () => {
   it('does not rotate when the client does not support rotation', async () => {
     const { res } = await invokeVerify({ Authorization: 'Bearer old-token' });
 
-    expect(mocks.isTokenWithinRefreshWindow).not.toHaveBeenCalled();
     expect(mocks.rotateToken).not.toHaveBeenCalled();
     expect(mocks.sendJson).toHaveBeenCalledWith(
       res,
       expect.objectContaining({ success: true, userProfile, encryptionKey: expect.any(String), accessToken: undefined }),
     );
+  });
+
+  it('does not rotate when no bearer token is present even if rotation is supported', async () => {
+    const { res } = await invokeVerify({ [HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION]: '1' });
+
+    expect(mocks.rotateToken).not.toHaveBeenCalled();
+    expect(mocks.sendJson).toHaveBeenCalledWith(res, expect.objectContaining({ success: true, accessToken: undefined }));
+  });
+});
+
+/**
+ * Regression coverage for the MFA-bypass fix: a half-authenticated session (first factor passed but
+ * 2FA verification / MFA enrollment / ToS acceptance still outstanding) must NOT be exchangeable for
+ * a desktop access token.
+ */
+describe('desktop-app.controller initSession pending-verification gate', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.findIdByUserIdUserFacing.mockResolvedValue(userProfile);
+    mocks.checkUserEntitlement.mockResolvedValue(true);
+  });
+
+  async function invokeInitSession(session: Record<string, unknown>) {
+    const req = {
+      get: () => undefined,
+      body: {},
+      query: {},
+      params: {},
+      session: { user: { id: 'user-1' }, ...session },
+      externalAuth: { user: { id: 'user-1' }, deviceId: 'device-1' },
+      log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
+    };
+    const res = makeRes();
+    const next = vi.fn();
+    await routeDefinition.initSession.controllerFn()(req as never, res as never, next);
+    return { req, res, next };
+  }
+
+  it.each([
+    ['pendingVerification', { pendingVerification: [{ type: '2fa-otp', exp: Date.now() }] }],
+    ['pendingMfaEnrollment', { pendingMfaEnrollment: { factor: '2fa-otp' } }],
+    ['pendingTosAcceptance', { pendingTosAcceptance: true }],
+  ])('rejects token issuance and never checks entitlement when %s is set', async (_label, session) => {
+    const { next } = await invokeInitSession(session);
+
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(next.mock.calls[0][0]).toBeInstanceOf(Error);
+    expect((next.mock.calls[0][0] as Error).name).toBe('InvalidSession');
+    // Guard short-circuits before any token work.
+    expect(mocks.checkUserEntitlement).not.toHaveBeenCalled();
+    expect(mocks.sendJson).not.toHaveBeenCalled();
+  });
+
+  it('allows a fully authenticated session past the gate to the entitlement check', async () => {
+    mocks.checkUserEntitlement.mockResolvedValue(false);
+
+    const { next } = await invokeInitSession({});
+
+    // Reached the entitlement check rather than being blocked by the pending-verification guard.
+    expect(mocks.checkUserEntitlement).toHaveBeenCalledWith({ userId: 'user-1', entitlement: 'desktop' });
+    expect(next).toHaveBeenCalledTimes(1);
+    expect((next.mock.calls[0][0] as Error).name).toBe('MissingEntitlement');
   });
 });

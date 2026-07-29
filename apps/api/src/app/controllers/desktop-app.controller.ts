@@ -20,6 +20,7 @@ import * as webExtDb from '../db/web-extension.db';
 import { emitRecordSyncEventsToOtherClients, SyncEvent } from '../services/data-sync-broadcast.service';
 import * as externalAuthService from '../services/external-auth.service';
 import { decryptJwtTokenOrPlaintext } from '../services/jwt-token-encryption.service';
+import { getPendingSessionRedirectPath } from '../utils/pending-session.utils';
 import { redirect, sendJson } from '../utils/response.handlers';
 import { createRoute, RouteValidator } from '../utils/route.utils';
 import { routeDefinition as dataSyncController } from './data-sync.controller';
@@ -112,12 +113,13 @@ export const routeDefinition = {
  * Page calls back to API to initialize session so that we do not generate tokens in source code
  */
 const initAuthMiddleware = createRoute(routeDefinition.initAuthMiddleware.validators, async ({ setCookie }, req, res, next) => {
+  const queryParams = new URLSearchParams(req.query as Record<string, string>).toString();
+  const desktopAuthUrl = `${ENV.JETSTREAM_SERVER_URL}/desktop-app/auth`;
+  const desktopReturnUrl = queryParams ? `${desktopAuthUrl}?${queryParams}` : desktopAuthUrl;
+  const { redirectUrl: redirectUrlCookie } = getCookieConfig(ENV.USE_SECURE_COOKIES);
+
   // redirect to login flow if user is not signed in
   if (!req.session.user) {
-    const queryParams = new URLSearchParams(req.query as Record<string, string>).toString();
-    const desktopAuthUrl = `${ENV.JETSTREAM_SERVER_URL}/desktop-app/auth`;
-    const desktopReturnUrl = queryParams ? `${desktopAuthUrl}?${queryParams}` : desktopAuthUrl;
-    const { redirectUrl: redirectUrlCookie } = getCookieConfig(ENV.USE_SECURE_COOKIES);
     // Keep the cookie for OAuth/credentials flows that read it server-side. The query param is
     // needed specifically for SSO: SAML's cross-site POST back from the IdP drops SameSite=Lax
     // cookies, so the frontend must pass returnUrl forward to /api/auth/sso/start where it can
@@ -126,6 +128,19 @@ const initAuthMiddleware = createRoute(routeDefinition.initAuthMiddleware.valida
     redirect(res, `/auth/login/?returnUrl=${encodeURIComponent(desktopReturnUrl)}`);
     return;
   }
+
+  // First factor passed but the session still has an unmet requirement (2FA verification, MFA
+  // enrollment, or ToS acceptance). Route the browser to the correct step instead of serving the
+  // token-issuing page, and preserve the desktop return URL so the user lands back here once the
+  // requirement is satisfied. Without this a half-authenticated session could reach the token
+  // endpoint and bypass the second factor.
+  const pendingRedirectPath = getPendingSessionRedirectPath(req.session);
+  if (pendingRedirectPath) {
+    setCookie(redirectUrlCookie.name, desktopReturnUrl, redirectUrlCookie.options);
+    redirect(res, pendingRedirectPath);
+    return;
+  }
+
   next();
 });
 
@@ -137,6 +152,15 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
   const { deviceId } = res.locals;
 
   if (!req.session.user || !deviceId) {
+    next(new InvalidSession());
+    return;
+  }
+
+  // Reject half-authenticated sessions: the first factor passed but 2FA verification, MFA
+  // enrollment, or ToS acceptance is still outstanding. Without this gate a session in a pending
+  // state could be exchanged for a full-access desktop token, bypassing the second factor. Guards
+  // both the token-reuse and token-issue branches below.
+  if (getPendingSessionRedirectPath(req.session)) {
     next(new InvalidSession());
     return;
   }
@@ -234,16 +258,24 @@ const verifyToken = createRoute(routeDefinition.verifyToken.validators, async ({
     const encryptionKey = createHmac('sha256', ENV.DESKTOP_ORG_ENCRYPTION_SECRET).update(user.id).digest('hex');
 
     // Token rotation: if the client supports it, issue a new short-lived JWT and replace the old one.
-    // This limits exposure from the JWT being stored in plain text on disk (VDI environments).
+    // This limits exposure from the JWT being stored in plain text on disk (app-data.json). In
+    // VDI/roaming environments the token cannot be bound to the machine — safeStorage/DPAPI keys do
+    // not roam to a fresh VM — so instead we minimize how long a copied token stays valid.
     const supportsRotation = req.get(HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION) === '1';
     let rotatedAccessToken: string | undefined;
     if (supportsRotation && deviceId) {
       const oldAccessToken = req.get('Authorization')?.split(' ')[1];
-      // Only rotate as the token approaches expiry. Rotating on every verify churns the shared
-      // token across the user's devices, which can lose the rotation race and force a premature
-      // logout. The auth middleware still fully validates the token on every verify, so skipping
-      // rotation here does not weaken verification.
-      if (oldAccessToken && externalAuthService.isTokenWithinRefreshWindow(oldAccessToken)) {
+      // Rotate on every verify (not just near expiry) so the plaintext-on-disk token is continuously
+      // superseded: the desktop client verifies about every few hours, and each rotation mints a
+      // fresh short-lived token (sliding expiry) so an actively-used session is never logged out. A
+      // desktop token is scoped to a single (userId, deviceId), so this does not churn a token shared
+      // across the user's other devices, and rotateToken resolves the concurrent-rotation race
+      // (conditional replace; the race-loser is handed the current DB token). Residual risk: the
+      // per-user org encryption key returned below is static, so an attacker who makes even one verify
+      // call while a copied token is still current can still recover it — narrowing the token window
+      // does not by itself protect orgs.json (tracked separately as clone-detection / interactive-key
+      // gating follow-ups).
+      if (oldAccessToken) {
         const result = await externalAuthService.rotateToken({
           userProfile,
           audience: externalAuthService.AUDIENCE_DESKTOP,
@@ -327,7 +359,7 @@ const dataSyncPush = createRoute(routeDefinition.dataSyncPush.validators, async 
 
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const deviceId = req.get(HTTP.HEADERS.X_EXT_DEVICE_ID)!;
-  emitRecordSyncEventsToOtherClients(deviceId, syncEvent);
+  emitRecordSyncEventsToOtherClients({ deviceId }, syncEvent);
 
   sendJson(res, response);
 });

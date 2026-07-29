@@ -60,11 +60,8 @@ export const initDeepLink = () => {
  * so they don't appear in system logs or URL caches. The hash is merged
  * into the query object before dispatching to listeners, then discarded.
  */
-const handleCustomUrl = (targetUrl: string) => {
+export const handleCustomUrl = (targetUrl: string) => {
   try {
-    // Log the URL without hash fragment to avoid leaking tokens
-    const sanitizedUrl = targetUrl.split('#')[0];
-    logger.info(`Deep link: attempting to handle: ${sanitizedUrl}`);
     const url = new URL(targetUrl);
 
     if (url.protocol !== 'jetstream:') {
@@ -73,7 +70,11 @@ const handleCustomUrl = (targetUrl: string) => {
     }
 
     const action = url.hostname;
-    logger.info(`Deep link: action found: ${action}`);
+    // Log only the action and parameter names — never their values — so tokens carried in the
+    // query string or hash fragment are never written to the persistent log file. The action and
+    // param names are user-controlled, so strip control characters to prevent log forging.
+    const paramNames = getDeepLinkParamNames(url).map(sanitizeForLog).join(', ');
+    logger.info(`Deep link: handling action "${sanitizeForLog(action)}" with params: ${paramNames || '(none)'}`);
 
     const query = Object.fromEntries(url.searchParams.entries());
 
@@ -90,6 +91,23 @@ const handleCustomUrl = (targetUrl: string) => {
   } catch (error) {
     logger.error(`Deep link: error parsing URL: ${error}`);
   }
+};
+
+/**
+ * Replace control characters before logging user-controlled deep-link values. Percent-decoded
+ * param names can contain newlines or ANSI escapes, which would otherwise forge/corrupt log lines (CWE-117).
+ */
+const sanitizeForLog = (value: string): string => value.replace(/[\u0000-\u001f\u007f-\u009f]/g, '?');
+
+/** Collect parameter names from both the query string and hash fragment, without their (possibly sensitive) values. */
+const getDeepLinkParamNames = (url: URL): string[] => {
+  const names = new Set(url.searchParams.keys());
+  if (url.hash && url.hash.length > 1) {
+    for (const key of new URLSearchParams(url.hash.slice(1)).keys()) {
+      names.add(key);
+    }
+  }
+  return [...names];
 };
 
 class ListenersMap {

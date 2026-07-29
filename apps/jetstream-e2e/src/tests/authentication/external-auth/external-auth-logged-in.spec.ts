@@ -156,13 +156,17 @@ test.describe('Desktop / Web-Extension Token Rotation', () => {
     await authenticationPage.acceptCookieBanner();
   });
 
-  // A freshly issued session token is well outside the refresh window (TOKEN_AUTO_REFRESH_DAYS), so
-  // verifying with the rotation header must NOT rotate it: the response succeeds without a new
-  // accessToken and the original token keeps working. Rotation only fires as a token nears expiry.
-  // The full gating + rotation mechanics (skip-when-fresh, rotate-when-near-expiry, race-loss-none
-  // -> 401, no-header -> no rotation) are covered against mocked time/DB in
-  // desktop-app.controller.spec.ts, web-extension.controller.spec.ts, and external-auth.service.spec.ts.
-  test('Desktop - fresh token is not rotated when rotation is supported', async ({ page, teamCreationUtils1User, apiRequestUtils }) => {
+  // The desktop token is stored in plaintext on disk and cannot be machine-bound in VDI/roaming
+  // environments, so it rotates on EVERY verify (not just near expiry) to bound how long a copied
+  // token stays valid. A desktop token is scoped to a single (userId, deviceId), so rotating this
+  // aggressively does not churn a token shared across the user's other devices. The full rotation
+  // mechanics (race-loss-current, race-loss-none -> 401, no-header -> no rotation) are covered
+  // against mocked time/DB in desktop-app.controller.spec.ts and external-auth.service.spec.ts.
+  test('Desktop - token is rotated on every verify when rotation is supported', async ({
+    page,
+    teamCreationUtils1User,
+    apiRequestUtils,
+  }) => {
     const deviceId = uuid();
 
     // 1. Create session and get original token
@@ -173,7 +177,7 @@ test.describe('Desktop / Web-Extension Token Rotation', () => {
     const { accessToken: originalToken } = await sessionResponse.json().then(({ data }) => data);
     expect(typeof originalToken).toBe('string');
 
-    // 2. Verify with rotation header — fresh token is not near expiry, so it is not rotated
+    // 2. Verify with rotation header — a new token is issued even though the original is fresh
     const rotateResponse = await apiRequestUtils.request.post(`/desktop-app/auth/verify`, {
       headers: {
         Accept: 'application/json',
@@ -186,9 +190,10 @@ test.describe('Desktop / Web-Extension Token Rotation', () => {
     expect(rotateResponse.status()).toBe(200);
     const rotateData = await rotateResponse.json().then(({ data }) => data);
     expect(rotateData.success).toBe(true);
-    expect(rotateData.accessToken).toBeUndefined();
+    expect(typeof rotateData.accessToken).toBe('string');
+    expect(rotateData.accessToken).not.toBe(originalToken);
 
-    // 3. Original token still works — verifying did not rotate or invalidate it
+    // 3. Original token is superseded — the whole point of rotating is that a copy stops working
     const verifyWithOriginal = await apiRequestUtils.request.post(`/desktop-app/auth/verify`, {
       headers: {
         Accept: 'application/json',
@@ -198,9 +203,33 @@ test.describe('Desktop / Web-Extension Token Rotation', () => {
         [HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION]: '1',
       },
     });
-    expect(verifyWithOriginal.status()).toBe(200);
+    expect(verifyWithOriginal.status()).toBe(401);
+    const verifyWithOriginalData = await verifyWithOriginal.json();
+    expect(verifyWithOriginalData.success).toBe(false);
+
+    // 4. Rotated token works and itself rotates again
+    const verifyWithRotated = await apiRequestUtils.request.post(`/desktop-app/auth/verify`, {
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${rotateData.accessToken}`,
+        [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
+        [HTTP.HEADERS.X_SUPPORTS_TOKEN_ROTATION]: '1',
+      },
+    });
+    expect(verifyWithRotated.status()).toBe(200);
+    const verifyWithRotatedData = await verifyWithRotated.json().then(({ data }) => data);
+    expect(verifyWithRotatedData.success).toBe(true);
+    expect(typeof verifyWithRotatedData.accessToken).toBe('string');
+    expect(verifyWithRotatedData.accessToken).not.toBe(rotateData.accessToken);
   });
 
+  // Unlike desktop, the web extension token is shared across the user's devices via browser
+  // storage.sync, so it only rotates as it nears expiry (TOKEN_AUTO_REFRESH_DAYS) — rotating on
+  // every verify would churn the shared token and lose the rotation race. A freshly issued token is
+  // well outside that window, so verifying it returns no new accessToken and the original keeps
+  // working. Skip-when-fresh / rotate-when-near-expiry are covered against mocked time/DB in
+  // web-extension.controller.spec.ts and external-auth.service.spec.ts.
   test('Web extension - fresh token is not rotated when rotation is supported', async ({
     page,
     teamCreationUtils1User,

@@ -15,6 +15,16 @@ import * as externalAuthService from '../services/external-auth.service';
 
 let io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap>;
 
+// Socket.io rooms share a single flat namespace, so a room name must encode which kind of
+// identifier it holds. The deviceId is fully client-controlled (see getDeviceId in
+// external-auth.service) and is the same UUID shape as a userId, so an un-prefixed device room
+// could be named to collide with a victim's userId room and receive that user's broadcasts.
+// Prefixing keeps user/session/device rooms in disjoint namespaces so a chosen deviceId can never
+// land a socket in another principal's room.
+export const socketRoomForUser = (userId: string) => `user:${userId}`;
+export const socketRoomForSession = (sessionId: string) => `session:${sessionId}`;
+export const socketRoomForDevice = (deviceId: string) => `device:${deviceId}`;
+
 // Same-origin allowlist for browser (cookie-authenticated) WebSocket upgrades. socket.io's
 // `cors.origin` only constrains the HTTP polling handshake, NOT the native WebSocket upgrade
 // (which is exempt from CORS), so we enforce the origin ourselves as a Cross-Site WebSocket
@@ -58,7 +68,7 @@ export function emitSocketEvent({
   payload?: unknown;
 }) {
   try {
-    let broadcastOperator = io.to(userId);
+    let broadcastOperator = io.to(socketRoomForUser(userId));
     if (exceptRooms) {
       broadcastOperator = broadcastOperator.except(exceptRooms);
     }
@@ -180,15 +190,15 @@ export function initSocketServer(
     socketLogger.debug('[SOCKET][CONNECT] %s', socket.id);
 
     if (userId) {
-      socket.join(userId);
+      socket.join(socketRoomForUser(userId));
     }
 
     if (sessionId) {
-      socket.join(sessionId);
+      socket.join(socketRoomForSession(sessionId));
     }
 
     if (deviceId) {
-      socket.join(deviceId);
+      socket.join(socketRoomForDevice(deviceId));
     }
 
     socket.on('disconnect', (reason) => {

@@ -123,7 +123,7 @@ const push = createRoute(routeDefinition.push.validators, async ({ user, body: r
     userId: user.id,
   };
 
-  emitRecordSyncEventsToOtherClients(req.session.id, syncEvent);
+  emitRecordSyncEventsToOtherClients({ sessionId: req.session.id }, syncEvent);
 
   sendJson(res, response);
 });

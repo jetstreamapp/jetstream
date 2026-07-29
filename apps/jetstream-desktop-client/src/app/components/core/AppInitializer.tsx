@@ -90,6 +90,11 @@ APP VERSION ${version}
       .catch((ex) => {
         logger.error('[DB] Error initializing db', ex);
       });
+    // Tear down the authenticated socket when this component unmounts (logout) or the auth
+    // material changes, so a subsequent account never reuses the previous user's connection.
+    return () => {
+      disconnectSocket();
+    };
   }, [appInfo.serverUrl, authInfo.accessToken, authInfo.deviceId, recordSyncEnabled]);
 
   useEffect(() => {
