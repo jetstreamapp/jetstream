@@ -87,7 +87,6 @@ async function collectFailedRecordsForRetry({
   jobInfo,
   batchSummary,
   preparedData,
-  batchSize,
   loadType,
   selectedOrg,
 }: {
@@ -95,7 +94,6 @@ async function collectFailedRecordsForRetry({
   jobInfo: BulkJobWithBatches;
   batchSummary: LoadDataBulkApiStatusPayload;
   preparedData: PrepareDataResponse;
-  batchSize: number;
   loadType: InsertUpdateUpsertDelete;
   selectedOrg: SalesforceOrgUi;
 }): Promise<any[]> {
@@ -105,7 +103,14 @@ async function collectFailedRecordsForRetry({
 
   const jobId = jobInfo.id;
   const isDelete = loadType === 'DELETE' || loadType === 'HARD_DELETE';
-  const splitRecords = splitArrayToMaxSize(preparedData.data, batchSize);
+  // Batches are capped by record count AND by CSV size, so an oversized batch gets split and the
+  // records in a batch cannot be derived from `batchSize` — use the ranges the loader recorded.
+  const recordsByBatchNumber = new Map<number, any[]>(
+    batchSummary.batchSummary.map(({ batchNumber, startIndex, recordCount }) => [
+      batchNumber,
+      preparedData.data.slice(startIndex, startIndex + recordCount),
+    ]),
+  );
   const failedRecords: any[] = [];
 
   const completedBatchIds = jobInfo.batches
@@ -114,9 +119,9 @@ async function collectFailedRecordsForRetry({
     .filter((batchId): batchId is string => !!batchId);
 
   // No completed batches means either everything failed up-front or was unsubmitted/aborted.
-  // Fall back to treating every split record as failed.
+  // Fall back to treating every record as failed.
   if (completedBatchIds.length === 0) {
-    return splitRecords.flat();
+    return preparedData.data.slice();
   }
 
   const batchNumberById = new Map(
@@ -149,10 +154,10 @@ async function collectFailedRecordsForRetry({
   const resolvedBatchNumbers = new Set<number>();
   completedBatchResults.forEach(({ batchId, results }) => {
     const originalBatchIndex = batchNumberById.get(batchId);
-    if (typeof originalBatchIndex !== 'number' || !splitRecords[originalBatchIndex]) {
+    const recordsForBatch = typeof originalBatchIndex === 'number' ? recordsByBatchNumber.get(originalBatchIndex) : undefined;
+    if (typeof originalBatchIndex !== 'number' || !recordsForBatch) {
       return;
     }
-    const recordsForBatch = splitRecords[originalBatchIndex];
     const recordsWithIds = recordsForBatch.filter((record: Record<string, unknown>) => !!record.Id);
     const resultsExcludeMissingIdRecords =
       isDelete && results.length === recordsWithIds.length && recordsWithIds.length !== recordsForBatch.length;
@@ -175,8 +180,8 @@ async function collectFailedRecordsForRetry({
 
   // Include all records from any batch we couldn't resolve (fetch failed, unmapped batch id,
   // state !== Completed, etc.). These are conservatively considered failed and retryable.
-  splitRecords.forEach((records, index) => {
-    if (!resolvedBatchNumbers.has(index)) {
+  recordsByBatchNumber.forEach((records, batchNumber) => {
+    if (!resolvedBatchNumbers.has(batchNumber)) {
       failedRecords.push(...records);
     }
   });
@@ -320,7 +325,6 @@ export const LoadRecordsBulkApiResults = ({
             jobInfo,
             batchSummary,
             preparedData,
-            batchSize,
             loadType,
             selectedOrg,
           });
@@ -608,15 +612,7 @@ export const LoadRecordsBulkApiResults = ({
 
       if (scope === 'all') {
         // Download results across all batches
-        const splitRecordsByBatchSize = splitArrayToMaxSize(records, batchSize);
-        jobInfo.batches.forEach((batch, i) => {
-          if (batch.state !== 'Completed') {
-            // remove batch from result records
-            splitRecordsByBatchSize.splice(i, 1);
-            removedBatches = true;
-          }
-        });
-        records = splitRecordsByBatchSize.flat();
+        removedBatches = jobInfo.batches.some((batch) => batch.state !== 'Completed');
         const batchIds = jobInfo.batches.filter((batch) => batch.state === 'Completed').map((batch) => batch.id);
         // download records, combine results from salesforce with actual records, open download modal
         results = await bulkApiGetRecordsFromAllBatches<BulkJobResultRecord>(selectedOrg, jobInfo.id, batchIds);
@@ -627,13 +623,16 @@ export const LoadRecordsBulkApiResults = ({
         // download records, combine results from salesforce with actual records, open download modal
         results = await bulkApiGetRecords<BulkJobResultRecord>(selectedOrg, jobInfo.id, batch.id, 'result');
         // this should match, but will fallback to batchIndex if for some reason we cannot find the batch
-        const batchSummaryItem = batchSummary.batchSummary.find((item) => item.id === batch.id);
-        const startIdx = (batchSummaryItem?.batchNumber ?? batchIndex) * batchSize;
+        const batchSummaryItem = batchSummary.batchSummary.find((item) => item.id === batch.id) ?? batchSummary.batchSummary[batchIndex];
         /**
-         * Get records from this one batch
+         * Get records from this one batch. Batches are capped by record count AND by CSV size, so an
+         * oversized batch gets split — the record range comes from the batch summary rather than
+         * `batchNumber * batchSize`, which is only correct when no batch was split.
          * For delete, only records with a mapped Id will be included in response from SFDC
          */
-        records = preparedData.data.slice(startIdx, startIdx + batchSize).filter((record) => (isDelete ? !!record.Id : true));
+        const startIdx = batchSummaryItem?.startIndex ?? batchIndex * batchSize;
+        const recordCount = batchSummaryItem?.recordCount ?? batchSize;
+        records = preparedData.data.slice(startIdx, startIdx + recordCount).filter((record) => (isDelete ? !!record.Id : true));
       }
 
       const combinedResults: BulkJobResultRecord[] = [];
