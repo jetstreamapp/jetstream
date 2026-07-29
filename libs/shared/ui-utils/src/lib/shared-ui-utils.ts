@@ -291,6 +291,14 @@ export function polyfillFieldDefinition(field: Field): string {
   return `${prefix}${value}${suffix}`;
 }
 
+export type PrepareExcelFileOptions = XLSX.WritingOptions & {
+  /**
+   * Called with the number of cells that exceeded Excel's per-cell limit and were truncated.
+   * Only called when at least one cell was truncated — use it to tell the user the file is lossy.
+   */
+  onCellsTruncated?: (truncatedCellCount: number) => void;
+};
+
 /**
  * Prepares excel file
  * @param data Array of objects for one sheet, or map of multiple objects where the key is sheet name
@@ -298,30 +306,43 @@ export function polyfillFieldDefinition(field: Field): string {
  * @param [defaultSheetName]
  * @returns excel file
  */
-export function prepareExcelFile(data: any[], header?: string[], defaultSheetName?: string, options?: XLSX.WritingOptions): ArrayBuffer;
+export function prepareExcelFile(data: any[], header?: string[], defaultSheetName?: string, options?: PrepareExcelFileOptions): ArrayBuffer;
 export function prepareExcelFile(
   data: Record<string, any[]>,
   header?: Record<string, string[]>,
   defaultSheetName?: void,
-  options?: XLSX.WritingOptions,
+  options?: PrepareExcelFileOptions,
 ): ArrayBuffer;
-export function prepareExcelFile(data: any, header: any, defaultSheetName: any = 'Records', options?: XLSX.WritingOptions): ArrayBuffer {
+export function prepareExcelFile(
+  data: any,
+  header: any,
+  defaultSheetName: any = 'Records',
+  options?: PrepareExcelFileOptions,
+): ArrayBuffer {
   const COMPRESS_SHEET_ROW_COUNT = 10_000;
   const workbook = XLSX.utils.book_new();
-  options = { compression: false, ...options };
+  const { onCellsTruncated, ...writingOptions } = { compression: false, ...options };
+  let truncatedCellCount = 0;
+
+  /** Truncate over-limit cells for one sheet, accumulating the count across all sheets */
+  function truncate(rows: any[][]): any[][] {
+    const result = truncateCellsForExcel(rows);
+    truncatedCellCount += result.truncatedCellCount;
+    return result.rows;
+  }
 
   if (Array.isArray(data)) {
     header = header || Object.keys(data[0] || {});
-    const worksheet = XLSX.utils.aoa_to_sheet(truncateCellsForExcel(convertArrayOfObjectToArrayOfArray(data, header as string[])), {
+    const worksheet = XLSX.utils.aoa_to_sheet(truncate(convertArrayOfObjectToArrayOfArray(data, header as string[])), {
       dense: true,
     });
     XLSX.utils.book_append_sheet(workbook, worksheet, defaultSheetName);
-    options.compression = options.compression || data.length > COMPRESS_SHEET_ROW_COUNT;
+    writingOptions.compression = writingOptions.compression || data.length > COMPRESS_SHEET_ROW_COUNT;
   } else {
     Object.keys(data).forEach((sheetName) => {
       const values = data[sheetName];
       if (values.length > 0) {
-        options.compression = options.compression || values.length > COMPRESS_SHEET_ROW_COUNT;
+        writingOptions.compression = writingOptions.compression || values.length > COMPRESS_SHEET_ROW_COUNT;
         let currentHeader = header && header[sheetName];
         let isArrayOfArray = false;
         if (!currentHeader) {
@@ -333,19 +354,20 @@ export function prepareExcelFile(data: any, header: any, defaultSheetName: any =
         }
         XLSX.utils.book_append_sheet(
           workbook,
-          XLSX.utils.aoa_to_sheet(
-            truncateCellsForExcel(isArrayOfArray ? values : convertArrayOfObjectToArrayOfArray(values, currentHeader)),
-            {
-              dense: true,
-            },
-          ),
+          XLSX.utils.aoa_to_sheet(truncate(isArrayOfArray ? values : convertArrayOfObjectToArrayOfArray(values, currentHeader)), {
+            dense: true,
+          }),
           sheetName,
         );
       }
     });
   }
 
-  return excelWorkbookToArrayBuffer(workbook, options);
+  if (truncatedCellCount > 0) {
+    onCellsTruncated?.(truncatedCellCount);
+  }
+
+  return excelWorkbookToArrayBuffer(workbook, writingOptions);
 }
 
 // Excel's hard per-cell limit — XLSX.write throws "Text length must not exceed 32767 characters" beyond it.
@@ -354,14 +376,44 @@ export function prepareExcelFile(data: any, header: any, defaultSheetName: any =
 export const EXCEL_MAX_CELL_CHARS = 32_767;
 const EXCEL_TRUNCATION_SUFFIX = '...(truncated)';
 
-function truncateCellsForExcel(rows: any[][]): any[][] {
-  return rows.map((row) =>
-    row.map((value) =>
-      typeof value === 'string' && value.length > EXCEL_MAX_CELL_CHARS
-        ? `${value.slice(0, EXCEL_MAX_CELL_CHARS - EXCEL_TRUNCATION_SUFFIX.length)}${EXCEL_TRUNCATION_SUFFIX}`
-        : value,
+function isOversizedExcelCell(value: unknown): value is string {
+  return typeof value === 'string' && value.length > EXCEL_MAX_CELL_CHARS;
+}
+
+/**
+ * Truncate any cell over Excel's per-cell limit. Runs immediately before the workbook is written —
+ * the peak-memory moment of an export — so rows are scanned first and only rows that actually
+ * contain an oversized cell are re-allocated. The common case (nothing over the limit) returns the
+ * original array untouched. Rows are never mutated in place because callers may own them.
+ */
+function truncateCellsForExcel(rows: any[][]): { rows: any[][]; truncatedCellCount: number } {
+  let truncatedCellCount = 0;
+  const rowIndexesToTruncate = new Set<number>();
+  rows.forEach((row, index) => {
+    for (const value of row) {
+      if (isOversizedExcelCell(value)) {
+        rowIndexesToTruncate.add(index);
+        truncatedCellCount++;
+      }
+    }
+  });
+
+  if (truncatedCellCount === 0) {
+    return { rows, truncatedCellCount };
+  }
+
+  return {
+    rows: rows.map((row, index) =>
+      rowIndexesToTruncate.has(index)
+        ? row.map((value) =>
+            isOversizedExcelCell(value)
+              ? `${value.slice(0, EXCEL_MAX_CELL_CHARS - EXCEL_TRUNCATION_SUFFIX.length)}${EXCEL_TRUNCATION_SUFFIX}`
+              : value,
+          )
+        : row,
     ),
-  );
+    truncatedCellCount,
+  };
 }
 
 export function excelWorkbookToArrayBuffer(workbook: XLSX.WorkBook, options?: XLSX.WritingOptions): ArrayBuffer {

@@ -61,7 +61,7 @@ import type {
   UploadToGoogleJob,
   WorkerMessage,
 } from '@jetstream/types';
-import { dexieDb } from '@jetstream/ui/db';
+import { dexieDb, withReopenOnDatabaseClosed } from '@jetstream/ui/db';
 import clamp from 'lodash/clamp';
 import isString from 'lodash/isString';
 
@@ -71,18 +71,20 @@ async function pruneAnalysisJobHistory(orgUniqueId: string, jobType: AnalysisJob
   try {
     // Wrap read + delete in a single transaction so a concurrent write (pin/unpin from another tab, or
     // another job finishing on the same org+type) cannot race between the sortBy and the bulkDelete.
-    await dexieDb.transaction('rw', dexieDb.analysis_job_history, async () => {
-      // sortBy returns ascending by createdAt; reverse the array to put newest first so slice(N) drops the older rows.
-      const rowsAscending = await dexieDb.analysis_job_history
-        .where('[org+jobType+createdAt]')
-        .between([orgUniqueId, jobType, new Date(0)], [orgUniqueId, jobType, new Date(8640000000000000)])
-        .sortBy('createdAt');
-      const rowsNewestFirst = rowsAscending.slice().reverse();
-      const overCap = rowsNewestFirst.filter((row) => !row.pinned).slice(ANALYSIS_HISTORY_PER_ORG_TYPE_CAP);
-      if (overCap.length > 0) {
-        await dexieDb.analysis_job_history.bulkDelete(overCap.map((row) => row.key));
-      }
-    });
+    await withReopenOnDatabaseClosed(() =>
+      dexieDb.transaction('rw', dexieDb.analysis_job_history, async () => {
+        // sortBy returns ascending by createdAt; reverse the array to put newest first so slice(N) drops the older rows.
+        const rowsAscending = await dexieDb.analysis_job_history
+          .where('[org+jobType+createdAt]')
+          .between([orgUniqueId, jobType, new Date(0)], [orgUniqueId, jobType, new Date(8640000000000000)])
+          .sortBy('createdAt');
+        const rowsNewestFirst = rowsAscending.slice().reverse();
+        const overCap = rowsNewestFirst.filter((row) => !row.pinned).slice(ANALYSIS_HISTORY_PER_ORG_TYPE_CAP);
+        if (overCap.length > 0) {
+          await dexieDb.analysis_job_history.bulkDelete(overCap.map((row) => row.key));
+        }
+      }),
+    );
   } catch (ex) {
     logger.warn('[JOB][ANALYSIS] Failed to prune analysis_job_history', ex);
   }
@@ -420,7 +422,7 @@ export class JobWorker {
             resultBlob: blob,
             resultBlobSize: blob.byteLength,
           };
-          await dexieDb.analysis_job_history.put(historyRow);
+          await withReopenOnDatabaseClosed(() => dexieDb.analysis_job_history.put(historyRow));
           await pruneAnalysisJobHistory(org.uniqueId, 'permission_export');
 
           const response: AsyncJobWorkerMessageResponse = {
@@ -452,7 +454,7 @@ export class JobWorker {
                 resultBlob: null,
                 resultBlobSize: 0,
               };
-              await dexieDb.analysis_job_history.put(failedRow);
+              await withReopenOnDatabaseClosed(() => dexieDb.analysis_job_history.put(failedRow));
               await pruneAnalysisJobHistory(org.uniqueId, 'permission_export');
             } catch (writeEx) {
               logger.warn('[JOB][PERMISSION_EXPORT] Failed to record failed analysis_job_history row', writeEx);
@@ -576,7 +578,7 @@ export class JobWorker {
             resultBlob: blob,
             resultBlobSize: blob.byteLength,
           };
-          await dexieDb.analysis_job_history.put(historyRow);
+          await withReopenOnDatabaseClosed(() => dexieDb.analysis_job_history.put(historyRow));
           await pruneAnalysisJobHistory(org.uniqueId, 'field_usage');
 
           const response: AsyncJobWorkerMessageResponse = {
@@ -607,7 +609,7 @@ export class JobWorker {
                 resultBlob: null,
                 resultBlobSize: 0,
               };
-              await dexieDb.analysis_job_history.put(failedRow);
+              await withReopenOnDatabaseClosed(() => dexieDb.analysis_job_history.put(failedRow));
               await pruneAnalysisJobHistory(org.uniqueId, 'field_usage');
             } catch (writeEx) {
               logger.warn('[JOB][FIELD_USAGE] Failed to record failed analysis_job_history row', writeEx);

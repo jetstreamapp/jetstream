@@ -65,6 +65,21 @@ export function getErrorMessage(error: unknown): string {
   }
 }
 
+/**
+ * An expired or evicted Salesforce query cursor. Depending on which API returned it, Salesforce
+ * surfaces this as the message form ("invalid query locator") or the error-code form
+ * (INVALID_QUERY_LOCATOR), so both must be matched.
+ */
+export const INVALID_QUERY_LOCATOR_REGEX = /invalid[ _]query[ _]locator/i;
+
+/**
+ * The query must be re-run — retrying with the same locator can never succeed and there is nothing
+ * to fix client-side.
+ */
+export function isInvalidQueryLocatorError(error: unknown): boolean {
+  return INVALID_QUERY_LOCATOR_REGEX.test(getErrorMessage(error));
+}
+
 export function getErrorStack(error: unknown) {
   if (error instanceof Error) {
     return error.stack;

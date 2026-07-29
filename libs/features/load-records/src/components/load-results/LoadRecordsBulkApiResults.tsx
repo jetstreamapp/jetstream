@@ -525,11 +525,9 @@ export const LoadRecordsBulkApiResults = ({
           });
         }
         // A user-initiated abort surfaces through the same loadError path — keep the UI messaging but
-        // don't report it as an application error unless some batch failed for a non-abort reason.
-        const abortMessagePattern = /aborted by user|data load was aborted|current job state is 'Aborted'/i;
-        const onlyUserAbortErrors =
-          loadError.additionalErrors.length > 0 && loadError.additionalErrors.every((error) => abortMessagePattern.test(error.message));
-        if (!onlyUserAbortErrors) {
+        // don't report it as an application error. Aborting also makes Salesforce reject any in-flight
+        // or subsequent batch, so every error in this payload is downstream of the abort.
+        if (!isAborted.current) {
           tracker.error('Error loading batches', loadError, {
             specificErrors: loadError.additionalErrors.map((error) => ({
               message: error.message,

@@ -1,4 +1,7 @@
+import { EXCEL_MAX_CELL_CHARS, formatNumber } from '@jetstream/shared/ui-utils';
+import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { FileExtCsv, FileExtJson, FileExtXLSX, FileExtXml, FileExtZip } from '@jetstream/types';
+import { fireToast } from '../toast/AppToast';
 
 export const RADIO_FORMAT_XLSX: FileExtXLSX = 'xlsx';
 export const RADIO_FORMAT_CSV: FileExtCsv = 'csv';
@@ -26,6 +29,20 @@ export const getInitialDownloadFileFormat = <T>(allowedTypes: T[], localStorageK
     // do nothing
   }
   return allowedTypes[0];
+};
+
+/**
+ * A generated .xlsx is not a faithful copy when any cell hit Excel's per-cell limit — the download
+ * succeeds either way, so warn the user and point them at a format without the limit.
+ * Pass as `onCellsTruncated` to `prepareExcelFile` from any interactive download.
+ */
+export const notifyExcelCellsTruncated = (truncatedCellCount: number) => {
+  fireToast({
+    type: 'warning',
+    message: `${formatNumber(truncatedCellCount)} ${pluralizeFromNumber('value', truncatedCellCount)} exceeded Excel's ${formatNumber(
+      EXCEL_MAX_CELL_CHARS,
+    )} character cell limit and ${truncatedCellCount === 1 ? 'was' : 'were'} truncated. Download as CSV or JSON to get the full values.`,
+  });
 };
 
 export const saveFileFormatToStorage = (type: string, localStorageKey: string) => {

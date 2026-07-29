@@ -37,6 +37,7 @@ import RadioGroup from '../form/radio/RadioGroup';
 import Modal from '../modal/Modal';
 import {
   getInitialDownloadFileFormat,
+  notifyExcelCellsTruncated,
   RADIO_FORMAT_CSV,
   RADIO_FORMAT_GDRIVE,
   RADIO_FORMAT_JSON,
@@ -199,9 +200,11 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
             } else if (Array.isArray(data)) {
               const headerFields = (header ? header : Object.keys(data[0])) as string[];
               const _data = transformData ? transformData({ fileFormat, data, header: headerFields }) : data;
-              fileData = prepareExcelFile(_data, headerFields);
+              fileData = prepareExcelFile(_data, headerFields, undefined, { onCellsTruncated: notifyExcelCellsTruncated });
             } else {
-              fileData = prepareExcelFile(data as any, header as Record<string, string[]>);
+              fileData = prepareExcelFile(data as any, header as Record<string, string[]>, undefined, {
+                onCellsTruncated: notifyExcelCellsTruncated,
+              });
             }
             mimeType = MIME_TYPES.XLSX;
             break;
@@ -265,9 +268,11 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
         const headerFields = (header ? header : Object.keys(data[0])) as string[];
         const _data =
           transformData && Array.isArray(data) ? transformData({ fileFormat: 'xlsx', data, header: headerFields }) : (data as any[]);
-        fileData = prepareExcelFile(_data, headerFields);
+        fileData = prepareExcelFile(_data, headerFields, undefined, { onCellsTruncated: notifyExcelCellsTruncated });
       } else {
-        fileData = prepareExcelFile(data as any, header as Record<string, string[]>);
+        fileData = prepareExcelFile(data as any, header as Record<string, string[]>, undefined, {
+          onCellsTruncated: notifyExcelCellsTruncated,
+        });
       }
     } else {
       fileType = 'zip';
