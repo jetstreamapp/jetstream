@@ -131,6 +131,14 @@ export interface LoadDataBulkApi {
   id?: string;
   data: any;
   batchNumber: number;
+  /** Index of this batch's first record within the prepared record array */
+  startIndex: number;
+  /**
+   * Number of records in this batch. Batches are capped by record count AND by CSV size, so an
+   * oversized batch is split and this will not always equal the configured batch size — record
+   * boundaries must be read from here rather than derived from `batchNumber * batchSize`.
+   */
+  recordCount: number;
   completed: boolean;
   success: boolean;
   errorMessage?: string;

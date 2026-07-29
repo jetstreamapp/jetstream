@@ -79,22 +79,42 @@ export function isFatalBulkApiError(error: unknown): boolean {
   return FATAL_BULK_ERROR_PATTERNS.some((pattern) => pattern.test(message));
 }
 
+/** A single batch CSV along with the range of source records it was built from */
+export interface BatchCsv {
+  csv: string;
+  /** Index of the first record from the source array included in this CSV */
+  startIndex: number;
+  recordCount: number;
+}
+
 /**
  * Generate batch CSVs capped both by record count and by CSV character count. A batch whose CSV
  * exceeds `MAX_BATCH_CSV_CHARS` is recursively halved until it fits; a single record that alone
  * exceeds the cap is passed through as-is (Salesforce rejects it with a per-batch error, same as today).
+ *
+ * Because splitting makes the resulting batch count and per-batch record count unpredictable, each
+ * CSV carries the record range it came from — callers must use that to map results back to records
+ * instead of assuming every batch holds `batchSize` records.
  */
-export function generateSizeCappedBatchCsvs(records: unknown[], batchSize: number): string[] {
-  return splitArrayToMaxSize(records, batchSize).flatMap(csvForBatchRecords);
+export function generateSizeCappedBatchCsvs(records: unknown[], batchSize: number): BatchCsv[] {
+  let startIndex = 0;
+  return splitArrayToMaxSize(records, batchSize).flatMap((batchRecords) => {
+    const batchCsvs = csvForBatchRecords(batchRecords, startIndex);
+    startIndex += batchRecords.length;
+    return batchCsvs;
+  });
 }
 
-function csvForBatchRecords(batchRecords: unknown[]): string[] {
+function csvForBatchRecords(batchRecords: unknown[], startIndex: number): BatchCsv[] {
   const csv = generateCsv(batchRecords, { delimiter: ',' });
   if (csv.length <= MAX_BATCH_CSV_CHARS || batchRecords.length <= 1) {
-    return [csv];
+    return [{ csv, startIndex, recordCount: batchRecords.length }];
   }
   const midpoint = Math.ceil(batchRecords.length / 2);
-  return [...csvForBatchRecords(batchRecords.slice(0, midpoint)), ...csvForBatchRecords(batchRecords.slice(midpoint))];
+  return [
+    ...csvForBatchRecords(batchRecords.slice(0, midpoint), startIndex),
+    ...csvForBatchRecords(batchRecords.slice(midpoint), startIndex + midpoint),
+  ];
 }
 
 /**
@@ -114,7 +134,14 @@ export async function loadBulkApiData(
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const jobId = results.id!;
     let batches: LoadDataBulkApi[] = [];
-    batches = generateSizeCappedBatchCsvs(data, batchSize).map((data, i) => ({ data, batchNumber: i, completed: false, success: false }));
+    batches = generateSizeCappedBatchCsvs(data, batchSize).map(({ csv, startIndex, recordCount }, i) => ({
+      data: csv,
+      batchNumber: i,
+      startIndex,
+      recordCount,
+      completed: false,
+      success: false,
+    }));
 
     let submittedBatchCount = 0;
 
@@ -491,9 +518,11 @@ function getBatchSummary(
     jobInfo: results,
     totalBatches: batches.length,
     submittedBatchCount,
-    batchSummary: batches.map(({ id, batchNumber, completed, success, errorMessage }) => ({
+    batchSummary: batches.map(({ id, batchNumber, startIndex, recordCount, completed, success, errorMessage }) => ({
       id,
       batchNumber,
+      startIndex,
+      recordCount,
       completed,
       success,
       errorMessage,
