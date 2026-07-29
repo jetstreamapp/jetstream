@@ -1,3 +1,4 @@
+import { formatNumber } from '@jetstream/shared/ui-utils';
 import { AsyncJob, AsyncJobType } from '@jetstream/types';
 import { Icon, ProgressIndicator } from '@jetstream/ui';
 import classNames from 'classnames';
@@ -77,10 +78,13 @@ export const Job: FunctionComponent<JobProps> = ({ job, cancelJob, dismiss }) =>
             </p>
             {job.progress && inProgress && (
               <div className="slds-m-top_x-small">
-                {job.progress.label && <p className="slds-text-body_small slds-m-bottom_x-small">{job.progress.label}</p>}
+                {job.progress.label && job.progress.label !== status && (
+                  <p className="slds-text-body_small slds-m-bottom_x-small">{job.progress.label}</p>
+                )}
                 <ProgressIndicator currentValue={job.progress.percent} isIndeterminate={job.progress.percent === -1} />
                 <p className="slds-text-body_small slds-m-top_x-small slds-text-align_center">
-                  {job.progress.current} of {job.progress.total}
+                  {formatNumber(job.progress.current)}
+                  {job.progress.total > 0 ? ` of ${formatNumber(job.progress.total)}` : ''}
                   {job.progress.percent >= 0 ? ` (${job.progress.percent}%)` : ''}
                 </p>
               </div>

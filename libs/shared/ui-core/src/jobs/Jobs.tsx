@@ -20,6 +20,7 @@ import { getErrorMessage, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import {
   AsyncJob,
   AsyncJobNew,
+  AsyncJobProgress,
   AsyncJobType,
   AsyncJobWorkerMessagePayload,
   AsyncJobWorkerMessageResponse,
@@ -294,15 +295,15 @@ export const Jobs: FunctionComponent = () => {
             setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
             notifyUser(`Download records failed`, { body: newJob.statusMessage, tag: 'BulkDownload' });
           } else if (data.lastActivityUpdate) {
+            const progress = (data.results as { progress?: AsyncJobProgress } | undefined)?.progress;
             newJob = {
               ...newJob,
               lastActivity: new Date(),
+              ...(progress ? { status: 'in-progress', statusMessage: progress.label, progress } : {}),
             };
             setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
           } else {
-            const { done, progress, fileData, useBulkApi, fileFormat, results, googleFolder } = data.results as {
-              done: boolean;
-              progress: number;
+            const { fileData, useBulkApi, fileFormat, results, googleFolder } = data.results as {
               fileData: any;
               useBulkApi?: boolean;
               mimeType: MimeType;
@@ -312,120 +313,113 @@ export const Jobs: FunctionComponent = () => {
             };
             let { fileName, mimeType } = data.results as { fileName: string; mimeType: MimeType };
 
-            if (!done) {
-              newJob = {
-                ...newJob,
-                lastActivity: new Date(),
-                status: 'in-progress',
-                statusMessage: `Download in progress ${progress}%`,
-              };
-              setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
-            } else {
-              newJob = {
-                ...newJob,
-                finished: new Date(),
-                lastActivity: new Date(),
-                status: 'success',
-                statusMessage: 'Records downloaded successfully',
-              };
-              if (useBulkApi) {
-                if (results) {
-                  if (fileFormat === 'gdrive' && getGoogleAccessToken()) {
-                    fetch(results)
-                      .then(async (response) => {
-                        if (!response.ok || !response.body) {
-                          throw new Error('Failed to download file from Salesforce');
-                        }
-                        return response.text();
-                      })
-                      .then((response) => {
-                        setJobs((prevJobs) => ({
-                          ...prevJobs,
-                          [newJob.id]: {
-                            ...newJob,
-                            lastActivity: new Date(),
-                            status: 'in-progress',
-                            statusMessage: 'Uploading file to Google',
-                          },
-                        }));
-                        uploadToGoogleDrive({
-                          fileData: response,
-                          fileName,
-                          googleFolder,
-                          newJob,
-                          fileType: 'csv',
-                        });
-                      })
-                      .catch((error) => {
-                        newJob = {
+            newJob = {
+              ...newJob,
+              finished: new Date(),
+              lastActivity: new Date(),
+              status: 'success',
+              statusMessage: 'Records downloaded successfully',
+              progress: undefined,
+            };
+            if (useBulkApi) {
+              if (results) {
+                if (fileFormat === 'gdrive' && getGoogleAccessToken()) {
+                  fetch(results)
+                    .then(async (response) => {
+                      if (!response.ok || !response.body) {
+                        throw new Error('Failed to download file from Salesforce');
+                      }
+                      return response.text();
+                    })
+                    .then((response) => {
+                      setJobs((prevJobs) => ({
+                        ...prevJobs,
+                        [newJob.id]: {
                           ...newJob,
-                          finished: new Date(),
                           lastActivity: new Date(),
-                          status: 'failed',
-                          statusMessage: getErrorMessage(error),
-                        };
-                      });
-                  } else {
-                    fromJetstreamEvents.emit({
-                      type: 'streamFileDownload',
-                      payload: {
+                          status: 'in-progress',
+                          statusMessage: 'Uploading file to Google',
+                        },
+                      }));
+                      uploadToGoogleDrive({
+                        fileData: response,
                         fileName,
-                        link: results,
-                        jobId: newJob.id,
-                      },
-                    });
-                    setJobs((prevJobs) => ({
-                      ...prevJobs,
-                      [newJob.id]: {
+                        googleFolder,
+                        newJob,
+                        fileType: 'csv',
+                      });
+                    })
+                    .catch((error) => {
+                      newJob = {
                         ...newJob,
-                        // the link is to a static download, so we don't show on desktop app
-                        results: isDesktop() ? undefined : results,
                         finished: new Date(),
                         lastActivity: new Date(),
-                      },
-                    }));
-                  }
+                        status: 'failed',
+                        statusMessage: getErrorMessage(error),
+                      };
+                      setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
+                      notifyUser(`Download records failed`, { body: newJob.statusMessage, tag: 'BulkDownload' });
+                    });
                 } else {
-                  // TODO: handle error
+                  fromJetstreamEvents.emit({
+                    type: 'streamFileDownload',
+                    payload: {
+                      fileName,
+                      link: results,
+                      jobId: newJob.id,
+                    },
+                  });
+                  setJobs((prevJobs) => ({
+                    ...prevJobs,
+                    [newJob.id]: {
+                      ...newJob,
+                      // the link is to a static download, so we don't show on desktop app
+                      results: isDesktop() ? undefined : results,
+                      finished: new Date(),
+                      lastActivity: new Date(),
+                    },
+                  }));
                 }
-              } else if (fileFormat === 'gdrive' && getGoogleAccessToken()) {
-                // show status of uploading to Google
-                setJobs((prevJobs) => ({
-                  ...prevJobs,
-                  [newJob.id]: {
-                    ...newJob,
-                    lastActivity: new Date(),
-                    status: 'in-progress',
-                    statusMessage: 'Uploading file to Google',
-                  },
-                }));
-
-                newJob = {
-                  ...newJob,
-                  status: 'success',
-                  statusMessage: 'Saved to Google successfully',
-                };
-
-                uploadToGoogleDrive({ fileData, fileName, googleFolder, newJob, fileType: 'xlsx' });
               } else {
-                if (fileFormat === 'gdrive') {
-                  // Failed to upload to google, save locally
-                  mimeType = MIME_TYPES.XLSX;
-                  fileName = `${fileName}.xlsx`;
-                  newJob.statusMessage = 'Saved to computer, saving to Google failed.';
-                  newJob.status = 'finished-warning';
-                }
-                saveFile(fileData, fileName, mimeType);
-                notifyUser(`Download records finished`, { tag: 'BulkDownload' });
-                setJobs((prevJobs) => ({
-                  ...prevJobs,
-                  [newJob.id]: {
-                    ...newJob,
-                    finished: new Date(),
-                    lastActivity: new Date(),
-                  },
-                }));
+                // TODO: handle error
               }
+            } else if (fileFormat === 'gdrive' && getGoogleAccessToken()) {
+              // show status of uploading to Google
+              setJobs((prevJobs) => ({
+                ...prevJobs,
+                [newJob.id]: {
+                  ...newJob,
+                  lastActivity: new Date(),
+                  status: 'in-progress',
+                  statusMessage: 'Uploading file to Google',
+                },
+              }));
+
+              newJob = {
+                ...newJob,
+                status: 'success',
+                statusMessage: 'Saved to Google successfully',
+              };
+
+              uploadToGoogleDrive({ fileData, fileName, googleFolder, newJob, fileType: 'xlsx' });
+            } else {
+              if (fileFormat === 'gdrive') {
+                // Failed to upload to google, save locally
+                mimeType = MIME_TYPES.XLSX;
+                fileName = `${fileName}.xlsx`;
+                newJob.statusMessage = 'Saved to computer, saving to Google failed.';
+                newJob.status = 'finished-warning';
+              }
+              saveFile(fileData, fileName, mimeType);
+              notifyUser(`Download records finished`, { tag: 'BulkDownload' });
+              setJobs((prevJobs) => ({
+                ...prevJobs,
+                [newJob.id]: {
+                  ...newJob,
+                  finished: new Date(),
+                  lastActivity: new Date(),
+                },
+              }));
             }
           }
         } catch (ex) {

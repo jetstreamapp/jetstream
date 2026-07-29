@@ -44,6 +44,7 @@ import {
 } from '@jetstream/shared/utils';
 import type {
   AnalysisJobHistoryItem,
+  AsyncJobProgress,
   AsyncJobType,
   AsyncJobWorkerMessagePayload,
   AsyncJobWorkerMessageResponse,
@@ -196,14 +197,19 @@ export class JobWorker {
             // eslint-disable-next-line prefer-const
             let { nextRecordsUrl, totalRecordCount } = job.meta;
             let done = !nextRecordsUrl;
+            // Salesforce returns the exact record count with the first batch, but Big Objects report -1 for an unknown count
+            const hasKnownRecordCount = totalRecordCount > 0;
+            const expectedRecordCount = Math.max(totalRecordCount, records.length, 1);
 
             while (!done && nextRecordsUrl && !hasAllRecords) {
-              // emit progress
-              const results = {
-                done: false,
-                progress: Math.floor((downloadedRecords.length / Math.max(totalRecordCount, records.length)) * 100),
+              const progress: AsyncJobProgress = {
+                current: downloadedRecords.length,
+                // Without a known total, a percentage would peg at 100% while batches are still downloading - show an indeterminate bar instead
+                total: hasKnownRecordCount ? expectedRecordCount : 0,
+                percent: hasKnownRecordCount ? Math.min(Math.floor((downloadedRecords.length / expectedRecordCount) * 100), 100) : -1,
+                label: 'Downloading records',
               };
-              const response: AsyncJobWorkerMessageResponse = { job, lastActivityUpdate: true, results };
+              const response: AsyncJobWorkerMessageResponse = { job, lastActivityUpdate: true, results: { progress } };
               this.replyToMessage(name, response);
 
               const { queryResults } = await queryMore(org, nextRecordsUrl, isTooling).then(replaceSubqueryQueryResultsWithRecords);
@@ -243,8 +249,6 @@ export class JobWorker {
               downloadedRecords = await bulkApiGetRecords(org, jobId, batchResult.id, 'result', true);
             } else {
               const results = {
-                done: true,
-                progress: 100,
                 mimeType: MIME_TYPES.CSV,
                 useBulkApi: true,
                 results: `${serverUrl}/static/bulk/${jobId}/${batchResult.id}/file?${getOrgUrlParams(org, {
@@ -260,6 +264,20 @@ export class JobWorker {
               return;
             }
           }
+
+          // Building the file blocks the worker and can take a while for large datasets, ensure the UI does not appear frozen
+          this.replyToMessage(name, {
+            job,
+            lastActivityUpdate: true,
+            results: {
+              progress: {
+                current: downloadedRecords.length,
+                total: downloadedRecords.length,
+                percent: -1,
+                label: 'Preparing file for download…',
+              },
+            },
+          });
 
           switch (fileFormat) {
             case 'xlsx': {
@@ -294,7 +312,7 @@ export class JobWorker {
               throw new Error('A valid file type type has not been selected');
           }
 
-          const results = { done: true, progress: 100, fileData, mimeType, fileName, fileFormat, googleFolder };
+          const results = { fileData, mimeType, fileName, fileFormat, googleFolder };
 
           const response: AsyncJobWorkerMessageResponse = { job, results };
           this.replyToMessage(name, response);
