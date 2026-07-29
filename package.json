@@ -129,6 +129,7 @@
     "format:check": "nx format:check",
     "organize-imports": "node scripts/organize-imports.mjs",
     "organize-imports:check": "node scripts/organize-imports.mjs --check",
+    "my-prs": "node scripts/my-prs.mjs",
     "update": "nx migrate latest",
     "dep-graph": "nx dep-graph",
     "prepare": "husky"
