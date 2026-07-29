@@ -2,12 +2,14 @@
 import { AnonymousApex } from '@jetstream/feature/anon-apex';
 import { AutomationControl, AutomationControlEditor, AutomationControlSelection } from '@jetstream/feature/automation-control';
 import { CreateFields, CreateFieldsSelection, CreateObjectAndFields } from '@jetstream/feature/create-object-and-fields';
+import { DataAnalysis, DataAnalysisSelection, FieldUsageAnalysisView } from '@jetstream/feature/data-analysis';
 import { DebugLogViewer } from '@jetstream/feature/debug-log-viewer';
 import { DeployMetadata, DeployMetadataDeployment, DeployMetadataSelection } from '@jetstream/feature/deploy';
 import { FormulaEvaluator } from '@jetstream/feature/formula-evaluator';
 import { LoadRecords } from '@jetstream/feature/load-records';
 import { LoadRecordsMultiObject } from '@jetstream/feature/load-records-multi-object';
 import { ManagePermissions, ManagePermissionsEditor, ManagePermissionsSelection } from '@jetstream/feature/manage-permissions';
+import { PermissionAnalysis, PermissionAnalysisSelection, PermissionAnalysisView } from '@jetstream/feature/permission-analysis';
 import { PlatformEventMonitor } from '@jetstream/feature/platform-event-monitor';
 import { Query, QueryBuilder, QueryResults } from '@jetstream/feature/query';
 import { RecordTypeManagerSelection } from '@jetstream/feature/record-type-manager';
@@ -90,6 +92,16 @@ export function App() {
               <Route path={APP_ROUTES.PERMISSION_MANAGER.ROUTE} element={<ManagePermissions />}>
                 <Route index element={<ManagePermissionsSelection />} />
                 <Route path="editor" element={<ManagePermissionsEditor />} />
+                <Route path="*" element={<Navigate to=".." />} />
+              </Route>
+              <Route path={APP_ROUTES.PERMISSION_ANALYSIS.ROUTE} element={<PermissionAnalysis />}>
+                <Route index element={<PermissionAnalysisSelection />} />
+                <Route path="analysis" element={<PermissionAnalysisView />} />
+                <Route path="*" element={<Navigate to=".." />} />
+              </Route>
+              <Route path={APP_ROUTES.DATA_ANALYSIS.ROUTE} element={<DataAnalysis />}>
+                <Route index element={<DataAnalysisSelection />} />
+                <Route path="analysis" element={<FieldUsageAnalysisView />} />
                 <Route path="*" element={<Navigate to=".." />} />
               </Route>
               <Route path={APP_ROUTES.DEPLOY_METADATA.ROUTE} element={<DeployMetadata />}>
