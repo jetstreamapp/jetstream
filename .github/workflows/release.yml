@@ -187,6 +187,18 @@ jobs:
           git config user.email "${USER_ID}+${APP_SLUG}[bot]@users.noreply.github.com"
           git remote set-url origin "https://x-access-token:${APP_TOKEN}@github.com/${REPO}.git"
 
+      # Hotfix branches are cut from the deployed web release, so their extension and
+      # desktop version files lag behind any release tagged from main afterward.
+      # Bumping from those stale files would publish a downgrade, so fast-forward each
+      # one to its highest tag (and commit) before release-it bumps.
+      - name: Sync hotfix versions with released versions
+        if: ${{ startsWith(github.ref_name, 'hotfix/') }}
+        env:
+          RELEASE_WEB: ${{ inputs.release_web }}
+          RELEASE_WEB_EXTENSION: ${{ inputs.release_web_extension }}
+          RELEASE_DESKTOP: ${{ inputs.release_desktop }}
+        run: node scripts/sync-hotfix-versions.mjs
+
       # RELEASE CORE WEB APPLICATION
       # NOTE: Each application has its own tag format - so it is safe to have release-it run multiple times
       - name: Release Web

@@ -8,14 +8,13 @@
  */
 
 import { checkbox, confirm, select } from '@inquirer/prompts';
-import { readdir, readFile } from 'node:fs/promises';
+import { readdir } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { $, chalk } from 'zx';
+import { bumpVersion, RELEASE_TARGETS, resolveBaseVersion, ROOT } from './lib/release-versions.mjs';
 
 const REPO = 'jetstreamapp/jetstream';
 const WORKFLOW = 'release.yml';
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const RELEASE_NOTES_DIR = path.join(ROOT, 'apps/docs/release-notes');
 
 const STATUS_COLORS = {
@@ -32,20 +31,6 @@ const STATUS_COLORS = {
 function colorStatus(value) {
   const fn = STATUS_COLORS[/** @type {keyof typeof STATUS_COLORS} */ (value)] ?? chalk.white;
   return fn(value);
-}
-
-function bumpVersion(version, bump) {
-  const [major, minor, patch] = version
-    .replace(/^v/, '')
-    .split('.')
-    .map((segment) => parseInt(segment, 10) || 0);
-  if (bump === 'major') {
-    return `${major + 1}.0.0`;
-  }
-  if (bump === 'minor') {
-    return `${major}.${minor + 1}.0`;
-  }
-  return `${major}.${minor}.${patch + 1}`;
 }
 
 // Looks for a release-note file (e.g. `2026-06-22-v10.4.0.mdx`) for the given web version.
@@ -145,15 +130,37 @@ const releaseWeb = platforms.includes('web');
 const releaseExtension = platforms.includes('extension');
 const releaseDesktop = platforms.includes('desktop');
 
+// ── Resolve planned versions ───────────────────────────────────────────────
+// Each version is bumped from the higher of the file on this branch and the app's
+// latest tag. They only differ on hotfix branches, where the workflow re-syncs the
+// files first (see scripts/sync-hotfix-versions.mjs) — mirror that here so the
+// preview shows the versions that will actually be released.
+const plannedVersions = new Map();
+for (const target of RELEASE_TARGETS.filter(({ key }) => platforms.includes(key))) {
+  const planned = await resolveBaseVersion(target);
+  plannedVersions.set(target.key, { ...planned, nextVersion: bumpVersion(planned.baseVersion, bump) });
+}
+
+function platformSummary(platform) {
+  const planned = plannedVersions.get(platform);
+  if (!planned) {
+    return chalk.dim('no');
+  }
+  const staleNote = planned.isStale
+    ? chalk.yellow(`  (branch file says ${planned.fileVersion}; ${planned.taggedVersion} already released)`)
+    : '';
+  return `${chalk.green('yes')}  ${chalk.dim(`${planned.baseVersion} →`)} ${chalk.cyan(planned.nextVersion)}${staleNote}`;
+}
+
 // ── Confirm ────────────────────────────────────────────────────────────────
 console.log('');
 console.log(chalk.bold('  Release summary'));
 console.log(chalk.dim('  ─────────────────────────'));
 console.log(`  ${chalk.dim('branch')}    ${chalk.cyan(releaseRef)}${isHotfix ? '  ' + chalk.bgRed.white.bold(' HOTFIX ') : ''}`);
 console.log(`  ${chalk.dim('bump')}      ${chalk.cyan(bump)}`);
-console.log(`  ${chalk.dim('web')}       ${releaseWeb ? chalk.green('yes') : chalk.dim('no')}`);
-console.log(`  ${chalk.dim('extension')} ${releaseExtension ? chalk.green('yes') : chalk.dim('no')}`);
-console.log(`  ${chalk.dim('desktop')}   ${releaseDesktop ? chalk.green('yes') : chalk.dim('no')}`);
+console.log(`  ${chalk.dim('web')}       ${platformSummary('web')}`);
+console.log(`  ${chalk.dim('extension')} ${platformSummary('extension')}`);
+console.log(`  ${chalk.dim('desktop')}   ${platformSummary('desktop')}`);
 console.log('');
 
 // ── Release-note reminder ──────────────────────────────────────────────────
@@ -163,8 +170,7 @@ console.log('');
 // upcoming web version, remind the user but let them proceed and backfill.
 // See CONTRIBUTING.md → Releasing → Release notes.
 if (releaseWeb) {
-  const pkg = JSON.parse(await readFile(path.join(ROOT, 'package.json'), 'utf8'));
-  const nextWebVersion = bumpVersion(pkg.version, bump);
+  const { nextVersion: nextWebVersion } = plannedVersions.get('web');
   if (!(await hasReleaseNoteFor(nextWebVersion))) {
     console.log(chalk.yellow(`  ⚠ No release note found for v${nextWebVersion}.`));
     console.log(chalk.dim(`    Draft one with the Claude Code /release-notes command (or pnpm release-notes:context) —`));
