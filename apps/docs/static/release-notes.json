@@ -1,5 +1,105 @@
 [
   {
+    "slug": "v10.8.0",
+    "title": "10.8.0 - Download any Permission Analysis grid",
+    "date": "2026-07-28",
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "10.8.0",
+      "desktop": "4.4.1",
+      "extension": "3.7.1"
+    },
+    "summary": "Every table in Permission Analysis now has a download button, plus fixes for large data loads, Excel exports with very long text, and sessions expiring mid-load.",
+    "highlights": [
+      {
+        "title": "Download any Permission Analysis grid",
+        "description": "Every permission tree, the findings modal, and the issues tab now have a download button for Excel, CSV, JSON, or Google Drive.",
+        "docLink": "/permission-analysis"
+      },
+      {
+        "title": "One expand and collapse toggle everywhere",
+        "description": "Permission Analysis and Field Usage Analysis trees now share a single toggle that expands or collapses every group at once.",
+        "docLink": "/permission-analysis"
+      },
+      {
+        "title": "Large data loads no longer fail on oversized batches",
+        "description": "Loads with very wide records are now split into batches Salesforce will accept, instead of failing partway through.",
+        "docLink": "/load"
+      },
+      {
+        "title": "Excel downloads with very long text now work",
+        "description": "Values longer than Excel's per-cell limit are truncated so the file downloads successfully, with a note pointing you to CSV or JSON for the full values."
+      },
+      {
+        "title": "Sessions expiring mid-load no longer break the load",
+        "description": "A Salesforce session that expires during a long-running data load is refreshed automatically instead of failing the load.",
+        "docLink": "/load"
+      }
+    ]
+  },
+  {
+    "slug": "v10.7.2",
+    "title": "10.7.2 - Very long queries no longer fail",
+    "date": "2026-07-27",
+    "tags": [
+      "web"
+    ],
+    "versions": {
+      "web": "10.7.2"
+    },
+    "summary": "Queries with a large number of fields no longer fail with a request-too-large error from Salesforce, and results now come back in a single round trip.",
+    "highlights": [
+      {
+        "title": "Very long queries no longer fail",
+        "description": "Queries with hundreds of fields used to hit a Salesforce request size limit and fail outright — they now run normally.",
+        "docLink": "/query"
+      },
+      {
+        "title": "Faster query results",
+        "description": "Query results and their column details are fetched in one request to Salesforce instead of two.",
+        "docLink": "/query/results"
+      }
+    ]
+  },
+  {
+    "slug": "v10.7.1",
+    "title": "10.7.1 - System permissions on desktop and the browser extension",
+    "date": "2026-07-22",
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "10.7.1",
+      "desktop": "4.4.0",
+      "extension": "3.7.0"
+    },
+    "summary": "New desktop and browser extension releases bring the System Permissions tab in Manage Permissions to every platform. The web app release is routine maintenance.",
+    "highlights": [
+      {
+        "title": "System permissions on desktop and the browser extension",
+        "description": "The System Permissions tab in Manage Permissions, introduced for the web app in 10.7.0, is now available in the desktop app and the browser extension.",
+        "platforms": [
+          "desktop",
+          "extension"
+        ],
+        "docLink": "/permissions"
+      },
+      {
+        "title": "Maintenance and security updates",
+        "description": "Routine behind-the-scenes updates for the web app. No changes to how it works.",
+        "platforms": [
+          "web"
+        ]
+      }
+    ]
+  },
+  {
     "slug": "v10.7.0",
     "title": "10.7.0 - Manage system permissions",
     "date": "2026-07-22",

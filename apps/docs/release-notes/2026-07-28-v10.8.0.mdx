@@ -1,0 +1,64 @@
+---
+slug: v10.8.0
+title: 10.8.0 - Download any Permission Analysis grid
+date: '2026-07-28'
+tags: [web, desktop, extension]
+versions:
+  web: 10.8.0
+  desktop: 4.4.1
+  extension: 3.7.1
+summary: Every table in Permission Analysis now has a download button, plus fixes for large data loads, Excel exports with very long text, and sessions expiring mid-load.
+highlights:
+  - title: Download any Permission Analysis grid
+    description: Every permission tree, the findings modal, and the issues tab now have a download button for Excel, CSV, JSON, or Google Drive.
+    docLink: /permission-analysis
+  - title: One expand and collapse toggle everywhere
+    description: Permission Analysis and Field Usage Analysis trees now share a single toggle that expands or collapses every group at once.
+    docLink: /permission-analysis
+  - title: Large data loads no longer fail on oversized batches
+    description: Loads with very wide records are now split into batches Salesforce will accept, instead of failing partway through.
+    docLink: /load
+  - title: Excel downloads with very long text now work
+    description: Values longer than Excel's per-cell limit are truncated so the file downloads successfully, with a note pointing you to CSV or JSON for the full values.
+  - title: Sessions expiring mid-load no longer break the load
+    description: A Salesforce session that expires during a long-running data load is refreshed automatically instead of failing the load.
+    docLink: /load
+---
+
+{/* truncate */}
+
+## What's new
+
+### Download any Permission Analysis grid
+
+Permission Analysis produced a lot of useful data that was previously trapped on screen. Every table now has a download button in its header — the object, field, permission set, tab visibility, and user assignment trees, the export grid, the findings modal, and the issues tab. You get the same download options as everywhere else in Jetstream: Excel, CSV, JSON, or straight to Google Drive.
+
+This makes it much easier to hand a specific slice of an analysis to someone else, drop it into a spreadsheet for review, or keep a record of what permissions looked like before a change.
+
+### One expand and collapse toggle everywhere
+
+The permission trees used to have separate Expand all and Collapse all buttons. They now use a single toggle that reflects the current state, and the same control has been added to the Field Usage Analysis results, where expanding every object at once previously meant clicking through each group.
+
+### Large data loads no longer fail on oversized batches
+
+Salesforce caps how much data a single bulk batch can contain. Jetstream batches your file by record count, so a load with very wide records — long text areas, rich text, lots of columns — could produce a batch over that cap and fail partway through, even at a modest batch size. Jetstream now checks the size of each batch and splits it further when needed, so these loads run to completion without you having to lower the batch size and retry.
+
+### Excel downloads with very long text now work
+
+Excel refuses to store more than 32,767 characters in a single cell, but Salesforce long text and rich text fields hold far more than that, and subquery results get written into one cell as well. Downloading records containing those values used to fail with no explanation. Long values are now truncated to fit so the file downloads successfully, and if a download still fails you get a message telling you to use CSV or JSON to get the complete values.
+
+### Sessions expiring mid-load no longer break the load
+
+Long-running data loads could fail when your Salesforce session expired mid-job, because the bulk load reports an expired session differently than the rest of the Salesforce API and Jetstream did not recognize it. Jetstream now refreshes your session and carries on, so a load that runs for a while is no longer at the mercy of your session timeout.
+
+### Other fixes
+
+- The message shown when loading all records from a query now tells you when your results have expired and need the query re-run, instead of a generic failure.
+- Loading all records from a query recovers from brief network hiccups instead of discarding everything it already fetched.
+- Connection problems now show a real "check your connection" message instead of "an unknown error has occurred."
+- Saving a field mapping in Load Records now tells you if the save failed, instead of quietly closing.
+- Query history, load history, and saved field mappings could silently stop saving after a browser tab sat idle for a long time. Jetstream now reconnects to its local storage automatically.
+- Fixed an error that could occur when editing a cell in a data table while the field details were still loading.
+- A notification you dismissed during one analysis run now reappears if a new run produces it again.
+- Dismissing a notification inside a form no longer submits the form.
+- Fixed an error in Manage Permissions when a profile record could not be loaded.
