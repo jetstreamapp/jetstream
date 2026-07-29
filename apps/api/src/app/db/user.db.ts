@@ -92,6 +92,7 @@ const UserFacingProfileSelect = {
       desktop: true,
       googleDrive: true,
       recordSync: true,
+      salesforceCanvas: true,
     },
   },
   subscriptions: {
@@ -119,6 +120,7 @@ const UserFacingProfileSelect = {
               desktop: true,
               googleDrive: true,
               recordSync: true,
+              salesforceCanvas: true,
             },
           },
         },

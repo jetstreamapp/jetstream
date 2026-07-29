@@ -15,6 +15,10 @@ export const FEATURE_FLAGS = {
     defaultValue: false,
     description: 'Data and record analysis tools.',
   },
+  'salesforce-canvas': {
+    defaultValue: false,
+    description: 'Manage Salesforce orgs authorized to use the Canvas app.',
+  },
 } as const satisfies Record<string, { defaultValue: boolean; description: string }>;
 
 export type FeatureFlagKey = keyof typeof FEATURE_FLAGS;

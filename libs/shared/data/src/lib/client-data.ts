@@ -32,6 +32,7 @@ import {
   CloudinarySignature,
   CloudinaryUploadResponse,
   ColorScheme,
+  CreateSalesforceCanvasOrgRequest,
   DeployOptions,
   DeployResult,
   DescribeGlobalResult,
@@ -59,6 +60,7 @@ import {
   RecordResult,
   RetrieveResult,
   SalesforceApiRequest,
+  SalesforceCanvasOrg,
   SalesforceOrgUi,
   SobjectCollectionResponse,
   SobjectOperation,
@@ -74,6 +76,7 @@ import {
   TeamMemberStatus,
   TeamMemberUpdateRequest,
   TeamUserFacing,
+  UpdateSalesforceCanvasOrgRequest,
   UserProfileUi,
   VerifyInvitationResponse,
 } from '@jetstream/types';
@@ -1360,6 +1363,44 @@ export async function verifyDomain(
 
 export async function deleteDomainVerification(teamId: string, domainId: string): Promise<void> {
   return handleRequest({ method: 'DELETE', url: `/api/teams/${teamId}/domain-verification/${domainId}` }).then(unwrapResponseIgnoreCache);
+}
+
+//// SALESFORCE CANVAS AUTHORIZED ORGS
+
+export async function getCanvasOrgs(): Promise<SalesforceCanvasOrg[]> {
+  return handleRequest({ method: 'GET', url: '/api/canvas-orgs' }).then(unwrapResponseIgnoreCache);
+}
+
+export async function createCanvasOrg(payload: CreateSalesforceCanvasOrgRequest): Promise<SalesforceCanvasOrg> {
+  return handleRequest({ method: 'POST', url: '/api/canvas-orgs', data: payload }).then(unwrapResponseIgnoreCache);
+}
+
+export async function updateCanvasOrg(id: string, payload: UpdateSalesforceCanvasOrgRequest): Promise<SalesforceCanvasOrg> {
+  return handleRequest({ method: 'PATCH', url: `/api/canvas-orgs/${id}`, data: payload }).then(unwrapResponseIgnoreCache);
+}
+
+export async function deleteCanvasOrg(id: string): Promise<void> {
+  return handleRequest({ method: 'DELETE', url: `/api/canvas-orgs/${id}` }).then(unwrapResponseIgnoreCache);
+}
+
+export async function getTeamCanvasOrgs(teamId: string): Promise<SalesforceCanvasOrg[]> {
+  return handleRequest({ method: 'GET', url: `/api/teams/${teamId}/canvas-orgs` }).then(unwrapResponseIgnoreCache);
+}
+
+export async function createTeamCanvasOrg(teamId: string, payload: CreateSalesforceCanvasOrgRequest): Promise<SalesforceCanvasOrg> {
+  return handleRequest({ method: 'POST', url: `/api/teams/${teamId}/canvas-orgs`, data: payload }).then(unwrapResponseIgnoreCache);
+}
+
+export async function updateTeamCanvasOrg(
+  teamId: string,
+  id: string,
+  payload: UpdateSalesforceCanvasOrgRequest,
+): Promise<SalesforceCanvasOrg> {
+  return handleRequest({ method: 'PATCH', url: `/api/teams/${teamId}/canvas-orgs/${id}`, data: payload }).then(unwrapResponseIgnoreCache);
+}
+
+export async function deleteTeamCanvasOrg(teamId: string, id: string): Promise<void> {
+  return handleRequest({ method: 'DELETE', url: `/api/teams/${teamId}/canvas-orgs/${id}` }).then(unwrapResponseIgnoreCache);
 }
 
 export async function getTeamAuditLogs(
