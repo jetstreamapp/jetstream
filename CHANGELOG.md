@@ -1,5 +1,11 @@
 # Changelog
 
+## [10.8.1](https://github.com/jetstreamapp/jetstream/compare/v10.8.0...v10.8.1) (2026-07-29)
+
+### Bug Fixes
+
+* map bulk API results to the correct records when a batch is split by size ([60f9bb0](https://github.com/jetstreamapp/jetstream/commit/60f9bb08035f9b216451eac1727510bc3c6134b9))
+
 ## [10.8.0](https://github.com/jetstreamapp/jetstream/compare/v10.7.2...v10.8.0) (2026-07-28)
 
 ### Features
