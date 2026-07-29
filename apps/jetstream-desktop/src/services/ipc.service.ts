@@ -147,9 +147,10 @@ const handleLoginEvent: MainIpcHandler<'login'> = async (event) => {
           userProfile: successResponse.userProfile,
         });
 
-        if (successResponse.encryptionKey) {
-          dataService.setOrgEncryptionKey(successResponse.encryptionKey);
-        }
+        // Unconditional: a success response cannot reach here without a 64-char encryptionKey, since
+        // AuthResponseSuccessSchema requires it and a schema mismatch is returned as a failure. Guarding
+        // on it would only hide a contract regression as a silent "signed in but org storage unbound".
+        dataService.bindOrgStorageToUser({ userId: successResponse.userProfile.id, encryptionKey: successResponse.encryptionKey });
 
         const payload: AuthenticateSuccessPayload = {
           // Desktop-shaped profile (local preferences + server feature flags/signature)
@@ -394,11 +395,7 @@ const handleCheckAuthEvent: MainIpcHandler<'checkAuth'> = async (): Promise<
   const userProfile = dataService.getFullUserProfile();
   const { deviceId, accessToken, lastChecked } = appData;
   if (accessToken && userProfile) {
-    if (
-      !lastChecked ||
-      lastChecked < addHours(new Date(), -AUTH_CHECK_INTERVAL_HOURS).getTime() ||
-      !dataService.isOrgEncryptionKeyLoaded()
-    ) {
+    if (!lastChecked || lastChecked < addHours(new Date(), -AUTH_CHECK_INTERVAL_HOURS).getTime() || !dataService.isOrgStorageBound()) {
       const response = await verifyAuthToken({ accessToken, deviceId });
       if (!response.success) {
         if ('networkError' in response && response.networkError) {
@@ -481,9 +478,8 @@ const handleCheckAuthEvent: MainIpcHandler<'checkAuth'> = async (): Promise<
         expiresAt,
         lastChecked: Date.now(),
       });
-      if (successResponse.encryptionKey) {
-        dataService.setOrgEncryptionKey(successResponse.encryptionKey);
-      }
+      // Unconditional for the same reason as the login path — see the comment there.
+      dataService.bindOrgStorageToUser({ userId: successResponse.userProfile.id, encryptionKey: successResponse.encryptionKey });
       // Desktop-shaped profile (local preferences + server feature flags/signature) — matches the other return paths
       return { userProfile: dataService.getFullUserProfile(), authInfo: { deviceId, accessToken: activeAccessToken } };
     }
