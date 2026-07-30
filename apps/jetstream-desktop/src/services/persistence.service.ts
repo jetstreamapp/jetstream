@@ -12,7 +12,7 @@ import {
   SalesforceOrgServer,
   UserProfileUiDesktop,
 } from '@jetstream/desktop/types';
-import { DEFAULT_FEATURE_FLAGS, SalesforceOrgUi } from '@jetstream/types';
+import { DEFAULT_FEATURE_FLAGS, SalesforceOrgUi, UserProfileUi } from '@jetstream/types';
 import { createCipheriv, createDecipheriv, randomBytes, randomUUID } from 'crypto';
 import { fromUnixTime } from 'date-fns';
 import { app, safeStorage } from 'electron';
@@ -236,7 +236,9 @@ export function saveAuthResponseToAppData({
 }: {
   deviceId: string;
   accessToken: string;
-  userProfile: UserProfileUiDesktop;
+  // The server-shaped profile, which is what `AppData` persists - desktop-local preferences are
+  // stored separately and merged back in by `getFullUserProfile()`.
+  userProfile: UserProfileUi;
 }): AppData {
   const { exp } = jwtDecode<JwtPayload>(accessToken);
   const expiresAt = exp ? fromUnixTime(exp) : new Date();

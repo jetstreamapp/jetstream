@@ -43,6 +43,11 @@ const API: ElectronAPI = {
     ipcRenderer.on(IpcEventChannel.googlePickerResult, handler);
     return () => ipcRenderer.removeListener(IpcEventChannel.googlePickerResult, handler);
   },
+  onCrashReportingChanged: (callback) => {
+    const handler = (_event, enabled) => callback(enabled);
+    ipcRenderer.on(IpcEventChannel.crashReportingChanged, handler);
+    return () => ipcRenderer.removeListener(IpcEventChannel.crashReportingChanged, handler);
+  },
   // One-Way from Client
   login: () => ipcRenderer.invoke('login'),
   logout: () => ipcRenderer.invoke('logout'),
@@ -52,6 +57,7 @@ const API: ElectronAPI = {
   selectFolder: () => ipcRenderer.invoke('selectFolder'),
   getPreferences: () => ipcRenderer.invoke('getPreferences'),
   setPreferences: (payload) => ipcRenderer.invoke('setPreferences', payload),
+  configureCrashReporter: (dsn) => ipcRenderer.invoke('configureCrashReporter', dsn),
   request: (payload) => ipcRenderer.invoke('request', payload),
   downloadZipToFile: (payload) => ipcRenderer.invoke('downloadZipToFile', payload),
   downloadBulkApiFile: (payload) => ipcRenderer.invoke('downloadBulkApiFile', payload),

@@ -41,6 +41,7 @@ export interface ChromeStorageState {
       enabled: boolean;
       recordSyncEnabled: boolean;
       colorScheme: ColorScheme;
+      crashReportingEnabled: boolean;
     };
   };
 }

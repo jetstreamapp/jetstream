@@ -145,6 +145,14 @@ const envSchema = z.object({
   CAPTCHA_PROPERTY: z.literal('captchaToken').optional().default('captchaToken'),
   VERSION: z.string().optional(),
   SENTRY_DSN: z.string().optional(),
+  // Origin that the canvas app's browser error tracker posts events to, derived from the public
+  // canvas DSN (NX_PUBLIC_SENTRY_DSN_CANVAS). Canvas runs inside a Salesforce iframe under a strict
+  // CSP, so this origin has to be allow-listed in `connect-src`. Parsed here rather than read raw at
+  // the route so a malformed DSN fails at boot instead of silently blocking error reports.
+  CANVAS_SENTRY_INGEST_ORIGIN: z
+    .url()
+    .optional()
+    .transform((value) => (value ? new URL(value).origin : undefined)),
   // Kill switch for Sentry reporting (e.g. during staging pen tests). Client bundle reads NX_PUBLIC_DISABLE_ERROR_REPORTING instead.
   // use NX_PUBLIC_DISABLE_ERROR_REPORTING to also disable error reporting in the client (e.g. for staging pen tests) - if either is true, reporting is disabled
   DISABLE_ERROR_REPORTING: booleanSchema,
@@ -330,6 +338,7 @@ const parseResults = envSchema.safeParse({
   JETSTREAM_SERVER_URL: process.env.NX_PUBLIC_SERVER_URL || process.env.JETSTREAM_SERVER_URL,
   JETSTREAM_SERVER_DOMAIN: process.env.NX_PUBLIC_SERVER_DOMAIN || process.env.JETSTREAM_SERVER_DOMAIN,
   DISABLE_ERROR_REPORTING: process.env.NX_PUBLIC_DISABLE_ERROR_REPORTING || process.env.DISABLE_ERROR_REPORTING,
+  CANVAS_SENTRY_INGEST_ORIGIN: process.env.NX_PUBLIC_SENTRY_DSN_CANVAS,
   VERSION,
 });
 

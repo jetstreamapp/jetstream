@@ -62,6 +62,11 @@ env:
   NX_PUBLIC_CLIENT_URL: "http://localhost:3333/app"
   NX_PUBLIC_FEATURE_FLAG_PUBLIC_KEY: ${{ secrets.NX_PUBLIC_FEATURE_FLAG_PUBLIC_KEY }}
   NX_PUBLIC_SENTRY_DSN: ${{ secrets.NX_PUBLIC_SENTRY_DSN }}
+  # One Better Stack project per non-web app - inlined into each bundle at build time.
+  # Unset secrets are empty, which disables reporting for that app instead of failing the build.
+  NX_PUBLIC_SENTRY_DSN_DESKTOP: ${{ secrets.NX_PUBLIC_SENTRY_DSN_DESKTOP }}
+  NX_PUBLIC_SENTRY_DSN_EXTENSION: ${{ secrets.NX_PUBLIC_SENTRY_DSN_EXTENSION }}
+  NX_PUBLIC_SENTRY_DSN_CANVAS: ${{ secrets.NX_PUBLIC_SENTRY_DSN_CANVAS }}
   NX_PUBLIC_SERVER_URL: "http://localhost:3333"
   SFDC_API_VERSION: "67.0"
   SFDC_CALLBACK_URL: http://localhost:3333/oauth/sfdc/callback

@@ -4,7 +4,7 @@
 export const environment = {
   production: false,
   serverUrl: 'http://localhost:3333',
-  sentryDsn: import.meta.env.NX_PUBLIC_SENTRY_DSN,
+  sentryDsn: import.meta.env.NX_PUBLIC_SENTRY_DSN_EXTENSION,
   amplitudeToken: import.meta.env.NX_PUBLIC_AMPLITUDE_KEY,
   isWebExtension: true,
 };

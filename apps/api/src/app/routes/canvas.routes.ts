@@ -1,9 +1,18 @@
+import { ENV } from '@jetstream/api-config';
 import express, { Router } from 'express';
 import helmet from 'helmet';
 import { join } from 'node:path';
 import { routeDefinition as canvasController } from '../controllers/canvas.controller';
 
 const ALLOWED_REFERRER_PATTERN = /\.(salesforce\.com|force\.com|salesforce-setup\.com)$/;
+
+/**
+ * The Sentry / Better Stack browser SDK sends error events via fetch to the DSN's host. The canvas
+ * app runs inside a Salesforce iframe under the CSP below, so the ingest origin must be allow-listed
+ * in `connect-src` or the browser blocks the transport. When the DSN is unset, reporting is disabled
+ * in the canvas bundle anyway and we keep 'self' only.
+ */
+const canvasConnectSrc = ENV.CANVAS_SENTRY_INGEST_ORIGIN ? ["'self'", ENV.CANVAS_SENTRY_INGEST_ORIGIN] : ["'self'"];
 
 /**
  * Validates that static asset requests originate from a Salesforce context or from our own host.
@@ -52,7 +61,7 @@ routes.use(
         styleSrc: ["'self'", "'unsafe-inline'"],
         fontSrc: ["'self'"],
         imgSrc: ["'self'", 'data:'],
-        connectSrc: ["'self'"],
+        connectSrc: canvasConnectSrc,
         frameAncestors: ["'self'", '*.force.com', '*.salesforce.com', '*.salesforce-setup.com'],
         baseUri: ["'self'"],
         objectSrc: ["'none'"],

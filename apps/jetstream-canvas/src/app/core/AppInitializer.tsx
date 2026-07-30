@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 import { logger } from '@jetstream/shared/client-logger';
 import { getCanvasPreferences, updateCanvasPreferences } from '@jetstream/shared/data';
-import { useObservable } from '@jetstream/shared/ui-utils';
+import { initErrorTracker, setErrorTrackerUser, useObservable } from '@jetstream/shared/ui-utils';
 import { JetstreamEventSaveSoqlQueryFormatOptionsPayload } from '@jetstream/types';
 import { AppLoading, fromJetstreamEvents } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
@@ -10,6 +10,7 @@ import { useAtomValue, useSetAtom } from 'jotai';
 import localforage from 'localforage';
 import React, { FunctionComponent, useEffect, useState } from 'react';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 import { getCanvasOrg } from '../../utils/canvas.utils';
 import { canvasColorSchemeState } from './useCanvasColorScheme';
 
@@ -45,6 +46,19 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
       return 'Failed to initialize Salesforce connection. The canvas context may not be available.';
     }
   });
+
+  useEffect(() => {
+    initErrorTracker({
+      dsn: environment.sentryDsn,
+      environment: environment.production ? 'production' : 'development',
+    });
+    try {
+      const org = getCanvasOrg();
+      setErrorTrackerUser({ id: org.userId, email: org.email });
+    } catch {
+      // Signed request may be unavailable in non-canvas contexts; user context is best-effort.
+    }
+  }, []);
 
   useEffect(() => {
     // wait until this data has initialized before proceeding

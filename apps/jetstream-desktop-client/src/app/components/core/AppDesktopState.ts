@@ -9,6 +9,7 @@ async function fetchPreferences(): Promise<DesktopUserPreferences> {
     : {
         recordSyncEnabled: false,
         skipFrontdoorLogin: false,
+        crashReportingEnabled: true,
         soqlQueryFormatOptions: SoqlQueryFormatOptionsSchema.parse({}),
         fileDownload: undefined,
       };

@@ -33,6 +33,8 @@ export function AdditionalSettings() {
     setEnabled,
     recordSyncEnabled,
     setRecordSyncEnabled,
+    crashReportingEnabled,
+    setCrashReportingEnabled,
     soqlQueryFormatOptions,
     setSoqlQueryFormatOptions,
     authError,
@@ -74,6 +76,15 @@ export function AdditionalSettings() {
                 labelHelp="If disabled, the Jetstream floating button will not be visible when you are on a Salesforce page."
                 labelPosition="right"
                 onChange={(value) => setEnabled(value)}
+              />
+
+              <CheckboxToggle
+                id="enable-crash-reporting"
+                checked={crashReportingEnabled}
+                label="Send crash reports to Jetstream"
+                labelHelp="Automatically send error and crash reports to help us diagnose and fix issues."
+                labelPosition="right"
+                onChange={(value) => setCrashReportingEnabled(value)}
               />
 
               <SoqlQueryFormatConfig

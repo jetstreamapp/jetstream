@@ -23,6 +23,7 @@ import { Method } from 'tiny-request-router';
 import { z } from 'zod';
 import { checkForUpdates, getCurrentUpdateStatus, installUpdate } from '../config/auto-updater';
 import { ENV } from '../config/environment';
+import { initMainErrorTracker } from '../config/error-tracker';
 import { desktopRoutes } from '../controllers/desktop.routes';
 import { getOrgFromHeaderOrQuery, initApiConnection } from '../utils/route.utils';
 import { openExternalSafe } from '../utils/url.utils';
@@ -74,6 +75,7 @@ export function registerIpc(): void {
   registerHandler('selectFolder', handleSelectFolderEvent);
   registerHandler('getPreferences', handleGetPreferences);
   registerHandler('setPreferences', handleSetPreferences);
+  registerHandler('configureCrashReporter', handleConfigureCrashReporter);
   // Handle API requests to Salesforce
   registerHandler('request', handleRequestEvent);
   // Handle zip download to file
@@ -108,6 +110,10 @@ const handleGetPreferences: MainIpcHandler<'getPreferences'> = async () => {
 
 const handleSetPreferences: MainIpcHandler<'setPreferences'> = async (_, payload) => {
   return dataService.updateUserPreferences(payload);
+};
+
+const handleConfigureCrashReporter: MainIpcHandler<'configureCrashReporter'> = async (_, dsn) => {
+  initMainErrorTracker(dsn);
 };
 
 const handleLoginEvent: MainIpcHandler<'login'> = async (event) => {

@@ -49,6 +49,9 @@ jobs:
       AWS_ENDPOINT_URL: ${{ secrets.AWS_DESKTOP_UPDATES_ENDPOINT_URL }}
       # Public key (base64 SPKI DER) baked into the renderer to verify the server's feature flag signature
       NX_PUBLIC_FEATURE_FLAG_PUBLIC_KEY: ${{ secrets.NX_PUBLIC_FEATURE_FLAG_PUBLIC_KEY }}
+      # Public Better Stack DSN baked into the renderer, which hands it to the main process at boot.
+      # Unset means no error reporting from the desktop app rather than a failed build.
+      NX_PUBLIC_SENTRY_DSN_DESKTOP: ${{ secrets.NX_PUBLIC_SENTRY_DSN_DESKTOP }}
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0

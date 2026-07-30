@@ -18,6 +18,7 @@ export const useExtensionSettings = () => {
   const enabled = options.enabled;
   const recordSyncEnabled = options.recordSyncEnabled;
   const colorScheme = options.colorScheme;
+  const crashReportingEnabled = options.crashReportingEnabled;
 
   // Verify once on mount. Do NOT add authTokens to the dep array — re-running on
   // authTokens changes causes a verify→rotate→storage-write→re-run loop after the
@@ -29,17 +30,19 @@ export const useExtensionSettings = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const setEnabled = async (value: boolean) => {
-    await browser.storage.local.set({ options: { enabled: value, recordSyncEnabled, colorScheme: colorScheme ?? 'light' } });
+  // Persist a partial options change without dropping the other fields (storage.set replaces the
+  // whole `options` object, so we must spread the current values).
+  const updateOptions = async (partial: Partial<typeof options>) => {
+    await browser.storage.local.set({ options: { ...options, colorScheme: options.colorScheme ?? 'light', ...partial } });
   };
 
-  const setRecordSyncEnabled = async (value: boolean) => {
-    await browser.storage.local.set({ options: { enabled, recordSyncEnabled: value, colorScheme: colorScheme ?? 'light' } });
-  };
+  const setEnabled = (value: boolean) => updateOptions({ enabled: value });
 
-  const setColorScheme = async (value: ColorScheme) => {
-    await browser.storage.local.set({ options: { enabled, recordSyncEnabled, colorScheme: value } });
-  };
+  const setRecordSyncEnabled = (value: boolean) => updateOptions({ recordSyncEnabled: value });
+
+  const setColorScheme = (value: ColorScheme) => updateOptions({ colorScheme: value });
+
+  const setCrashReportingEnabled = (value: boolean) => updateOptions({ crashReportingEnabled: value });
 
   useNonInitialEffect(() => {
     (async () => {
@@ -70,6 +73,8 @@ export const useExtensionSettings = () => {
     setRecordSyncEnabled,
     colorScheme,
     setColorScheme,
+    crashReportingEnabled,
+    setCrashReportingEnabled,
     soqlQueryFormatOptions,
     setSoqlQueryFormatOptions,
     authError,

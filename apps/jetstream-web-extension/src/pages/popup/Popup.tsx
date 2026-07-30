@@ -9,6 +9,7 @@ import { PopupButtonOptions } from '../../components/PopupButtonOptions';
 import { AppWrapperNotJetstreamOwnedPage } from '../../core/AppWrapperNotJetstreamOwnedPage';
 import { applyExtensionThemeBeforeMount, ExtensionThemeApplier } from '../../core/ExtensionThemeApplier';
 import { environment } from '../../environments/environment';
+import { useExtensionErrorTracker } from '../../hooks/useExtensionErrorTracker';
 import { useExtensionSettings } from '../../hooks/useExtensionSettings';
 import { useResolvedColorScheme } from '../../hooks/useResolvedColorScheme';
 import { initAndRenderReact } from '../../utils/web-extension.utils';
@@ -32,11 +33,14 @@ export function Component() {
     setRecordSyncEnabled,
     colorScheme,
     setColorScheme,
+    crashReportingEnabled,
     authError,
     handleLogout,
   } = useExtensionSettings();
 
   const resolvedScheme = useResolvedColorScheme();
+
+  useExtensionErrorTracker(crashReportingEnabled);
 
   return (
     <>

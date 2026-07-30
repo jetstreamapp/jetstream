@@ -270,12 +270,21 @@ export async function getUserAndDeviceIdForExternalAuth(
   }
 }
 
+/**
+ * Resolves the caller's deviceId from the request.
+ *
+ * Up-to-date clients always send it as the `X-EXT-DEVICE-ID` (desktop) or
+ * `X-WEB-EXTENSION-DEVICE-ID` (browser extension) header. The body and query-string fallbacks
+ * exist ONLY for older clients that predate the header convention — do not rely on them in new
+ * code, and never add a new client that sends the deviceId in the URL.
+ */
 export function getDeviceId(req: express.Request<unknown, unknown, unknown, unknown>, res: express.Response) {
   try {
     const deviceId =
       res.locals.deviceId ||
       req.get(HTTP.HEADERS.X_EXT_DEVICE_ID) ||
       req.get(HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID) ||
+      // Legacy fallbacks (older clients only) — the header is the standard for current clients.
       (req.body as Maybe<{ deviceId?: string }>)?.deviceId ||
       (req.query as Maybe<{ deviceId?: string }>)?.deviceId;
     return deviceId as Maybe<string>;
@@ -285,7 +294,12 @@ export function getDeviceId(req: express.Request<unknown, unknown, unknown, unkn
 }
 
 export function addDeviceIdToLocals(req: express.Request, res: express.Response, next: express.NextFunction) {
-  res.locals.deviceId = getDeviceId(req, res);
+  const deviceId = getDeviceId(req, res);
+  res.locals.deviceId = deviceId;
+  // Bind the deviceId to the request-scoped logger so every log line on desktop/extension routes
+  // carries it — including session-cookie routes (e.g. /desktop-app/auth/session) that never pass
+  // through getExternalAuthMiddleware. No-op when the deviceId is absent or outside a request scope.
+  enrichRequestContext({ deviceId });
   next();
 }
 
