@@ -124,7 +124,12 @@ export function useDesktopAuthState() {
       } else {
         fetchTokens(deviceId)
           .then((tokens) => {
-            // Provide tokens to the extension
+            // Provide tokens to the desktop app via the jetstream:// deep link.
+            // NOTE: `deviceId` is echoed here only for backward compatibility — the desktop app
+            // already knows its own deviceId. Newer desktop builds no longer require it in this
+            // URL, so once older desktop clients have aged out this param can be dropped (the
+            // deep-link handler treats it as optional). The `accessToken` must stay; it is how the
+            // desktop receives the token.
             window.location.href = `jetstream://auth?deviceId=${deviceId}&token=${token}&accessToken=${tokens.accessToken}`;
             dispatch({ type: 'SUCCESS' });
             sessionStorage.setItem(STORAGE_KEY, 'true');

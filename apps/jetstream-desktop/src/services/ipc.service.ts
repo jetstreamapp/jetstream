@@ -119,8 +119,12 @@ const handleLoginEvent: MainIpcHandler<'login'> = async (event) => {
 
   const handleCallback = async (requestUrlParams: Record<string, string>) => {
     try {
+      // The desktop already knows its own deviceId (the closure `deviceId` above); the callback URL
+      // only echoes it back. Accept it when present and assert it matches, but no longer require it,
+      // so the browser relay page can stop putting the deviceId in the jetstream:// callback URL.
+      // The `token` nonce (also generated here) is what proves the callback belongs to this login.
       const queryParams = z
-        .object({ deviceId: z.literal(deviceId), token: z.literal(token), accessToken: z.string() })
+        .object({ deviceId: z.literal(deviceId).optional(), token: z.literal(token), accessToken: z.string() })
         .parse(requestUrlParams);
 
       const accessToken = queryParams.accessToken;
