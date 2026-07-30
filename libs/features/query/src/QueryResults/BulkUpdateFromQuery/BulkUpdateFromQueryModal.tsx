@@ -270,7 +270,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
   };
 
   const handleCommit = async () => {
-    if (!proposedChanges || proposedChanges.impactedRecordIds.length === 0) {
+    if (batchSizeError || !proposedChanges || proposedChanges.impactedRecordIds.length === 0) {
       return;
     }
 
@@ -396,7 +396,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
               <button
                 className="slds-button slds-button_brand"
                 onClick={handleCommit}
-                disabled={loading || deployInProgress || !!fatalError}
+                disabled={loading || deployInProgress || !!batchSizeError || !!fatalError}
               >
                 Update {formatNumber(impactedRecordCount)} {pluralizeFromNumber('Record', impactedRecordCount)}
               </button>
@@ -506,40 +506,43 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
               onAddField={() => setSelectedConfig((prev) => [...prev, { ...DEFAULT_FIELD_CONFIGURATION }])}
               onRemoveField={(_, index) => setSelectedConfig((prev) => prev.toSpliced(index, 1))}
             />
-
-            <Section id="mass-update-deploy-options" label="Advanced Options" initialExpanded={false}>
-              <div className="slds-p-around_xx-small slds-text-body_small">
-                You may need to adjust these options if you are experiencing governor limits.
-              </div>
-              <Checkbox
-                id={'serial-mode'}
-                checked={serialMode}
-                label={'Serial Mode'}
-                labelHelp="Serial mode processes the batches one-by-one instead of parallel."
-                disabled={loading || deployInProgress}
-                onChange={setSerialMode}
-              />
-              <Input
-                id="batch-size"
-                label="Batch Size"
-                isRequired={true}
-                hasError={!!batchSizeError}
-                errorMessageId="batch-size-error"
-                errorMessage={batchSizeError}
-                labelHelp="The batch size determines how many records will be modified at a time. Only change this if you are experiencing issues with Salesforce governor limits."
-              >
-                <input
-                  id="batch-size"
-                  className="slds-input"
-                  placeholder="Set batch size"
-                  value={batchSize || ''}
-                  aria-describedby={batchSizeError ? 'batch-size-error' : undefined}
-                  disabled={loading || deployInProgress}
-                  onChange={handleBatchSize}
-                />
-              </Input>
-            </Section>
           </>
+        )}
+
+        {/* Available on both steps so the batch size can be adjusted right before committing without going Back */}
+        {!didDeploy && (
+          <Section id="mass-update-deploy-options" label="Advanced Options" initialExpanded={false}>
+            <div className="slds-p-around_xx-small slds-text-body_small">
+              You may need to adjust these options if you are experiencing governor limits.
+            </div>
+            <Checkbox
+              id={'serial-mode'}
+              checked={serialMode}
+              label={'Serial Mode'}
+              labelHelp="Serial mode processes the batches one-by-one instead of parallel."
+              disabled={loading || deployInProgress}
+              onChange={setSerialMode}
+            />
+            <Input
+              id="batch-size"
+              label="Batch Size"
+              isRequired={true}
+              hasError={!!batchSizeError}
+              errorMessageId="batch-size-error"
+              errorMessage={batchSizeError}
+              labelHelp="The batch size determines how many records will be modified at a time. Only change this if you are experiencing issues with Salesforce governor limits."
+            >
+              <input
+                id="batch-size"
+                className="slds-input"
+                placeholder="Set batch size"
+                value={batchSize || ''}
+                aria-describedby={batchSizeError ? 'batch-size-error' : undefined}
+                disabled={loading || deployInProgress}
+                onChange={handleBatchSize}
+              />
+            </Input>
+          </Section>
         )}
 
         {mode === 'preview' && !didDeploy && proposedChanges && (

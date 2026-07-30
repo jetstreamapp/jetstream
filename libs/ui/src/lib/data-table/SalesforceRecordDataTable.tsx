@@ -54,7 +54,7 @@ import { DataTable } from './DataTable';
 import { FieldMetadataModal } from './FieldMetadataModal';
 import { RowsChangeData } from './grid/rdg-compat';
 import { getRowErrorMessages, mapSaveErrorsToRow, summarizeRowErrors, validateRow } from './grid/validate-cell-value';
-import { DownloadConfig, PreviewChangesModal } from './PreviewChangesModal';
+import { DownloadConfig, MAX_SAVE_BATCH_SIZE, PreviewChangesModal } from './PreviewChangesModal';
 
 const SFDC_EMPTY_ID = '000000000000000AAA';
 const MAX_UNDO_STEPS = 50;
@@ -145,7 +145,7 @@ export interface SalesforceRecordDataTableProps {
   onEdit: (record: any, source: 'ROW_ACTION' | 'RELATED_RECORD_POPOVER') => void;
   onClone: (record: any, source: 'ROW_ACTION' | 'RELATED_RECORD_POPOVER') => void;
   onView: (record: any, source: 'ROW_ACTION' | 'RELATED_RECORD_POPOVER') => void;
-  onUpdateRecords: (records: any[]) => Promise<SobjectCollectionResponse>;
+  onUpdateRecords: (records: any[], options: { batchSize: number; serialMode: boolean }) => Promise<SobjectCollectionResponse>;
   onDelete: (record: any) => void;
   onUndelete: (record: any) => void;
   onGetAsApex: (record: any) => void;
@@ -215,6 +215,10 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
     const [isSavingRecords, setIsSavingRecords] = useState(false);
     // Synchronous guard so a key-repeat / rapid Cmd+Enter can't launch concurrent saves before state flushes.
     const isSavingRef = useRef(false);
+    // Save options surfaced in the Preview Changes modal. Held here (not in the modal) so they survive closing
+    // and re-opening the modal — e.g. after a governor-limit failure the user lowers the batch size and retries.
+    const [batchSize, setBatchSize] = useState<Maybe<number>>(MAX_SAVE_BATCH_SIZE);
+    const [serialMode, setSerialMode] = useState(false);
 
     // Undo/redo history of `rows` snapshots for the current editing session (Ctrl/Cmd+Z). Each edit-commit
     // and paste pushes the pre-change rows. Snapshots are array references — edits create new row objects
@@ -584,7 +588,10 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
             ),
           ),
         );
-        const results = await onUpdateRecords(modifiedRecords);
+        const results = await onUpdateRecords(modifiedRecords, {
+          batchSize: batchSize ?? MAX_SAVE_BATCH_SIZE,
+          serialMode,
+        });
         setLastSaveResults(results);
 
         const failedResultsById = results.reduce<Record<string, ErrorResult>>((acc, result, i) => {
@@ -775,6 +782,10 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
             hasBlockingErrors={hasBlockingErrors}
             saveErrors={saveErrors}
             saveResults={lastSaveResults}
+            batchSize={batchSize}
+            serialMode={serialMode}
+            onBatchSizeChange={setBatchSize}
+            onSerialModeChange={setSerialMode}
             onSave={handleSaveRecords}
             onDownload={handleDownload}
             isHidden={!!downloadConfig}
