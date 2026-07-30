@@ -17,6 +17,7 @@ const platformEventUrl = 'https://*.salesforce.com/cometd/*';
 const desktopSocketRoutes = [
   `*://${SERVER_URL.hostname}/socket.io/*`, // Matches http://localhost:3333/socket.io/*
   `ws://${SERVER_URL.hostname}/socket.io/*`, // Matches ws://localhost:3333/socket.io/*
+  `wss://${SERVER_URL.hostname}/socket.io/*`, // Matches wss://getjetstream.app/socket.io/*
 ];
 
 protocol.registerSchemesAsPrivileged([

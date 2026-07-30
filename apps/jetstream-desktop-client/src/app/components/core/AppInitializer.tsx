@@ -1,6 +1,6 @@
 import { DesktopAuthInfo } from '@jetstream/desktop/types';
 import { logger } from '@jetstream/shared/client-logger';
-import { HTTP } from '@jetstream/shared/constants';
+import { HTTP, HTTP_SOURCE_DESKTOP } from '@jetstream/shared/constants';
 import { disconnectSocket, initSocket, registerMiddleware } from '@jetstream/shared/data';
 import { initErrorTracker, setErrorTrackerUser, tracker, useObservable } from '@jetstream/shared/ui-utils';
 import { Announcement, JetstreamEventSaveSoqlQueryFormatOptionsPayload, SalesforceOrgUi } from '@jetstream/types';
@@ -81,6 +81,7 @@ APP VERSION ${version}
       initSocket(appInfo.serverUrl, {
         [HTTP.HEADERS.AUTHORIZATION]: `Bearer ${authInfo.accessToken}`,
         [HTTP.HEADERS.X_EXT_DEVICE_ID]: authInfo.deviceId,
+        [HTTP.HEADERS.X_SOURCE]: HTTP_SOURCE_DESKTOP,
       });
     } else {
       disconnectSocket();
