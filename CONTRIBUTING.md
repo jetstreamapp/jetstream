@@ -67,3 +67,21 @@ always as their own pull request:
 
 This keeps every release note — including AI-generated drafts — reviewed and committed exclusively through a
 pull request. The automated release workflow never authors or commits release-note content.
+
+### Hotfixes
+
+`pnpm hotfix` cuts a `hotfix/*` branch from `origin/release` — the commit currently running in production for
+the **web** application. Commit the fix there, then run `pnpm release` from the branch (patch bump, forced) and
+open a PR to merge the branch back into main.
+
+Because the branch is anchored to the deployed _web_ commit, its web extension and desktop version files are
+frequently behind: those applications are tagged from their own commits on main, which land after the web
+release commit. The release workflow therefore runs
+[`scripts/sync-hotfix-versions.mjs`](scripts/sync-hotfix-versions.mjs) first, fast-forwarding each version file
+being released to its highest existing tag so the bump can never publish a downgrade (for example, a branch
+sitting at extension `3.7.1` releases `3.8.1` rather than `3.7.2` when `3.8.0` is already in the store).
+`pnpm release` previews the resulting versions before you confirm.
+
+The merge back into main will still conflict on any version file both sides bumped — the hotfix branched before
+main's bump, so git sees two edits to the same line. **Always keep the hotfix side**: after the sync it is the
+higher version, and it is the one that was actually tagged and published.
