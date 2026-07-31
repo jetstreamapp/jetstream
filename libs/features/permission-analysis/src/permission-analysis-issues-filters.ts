@@ -5,6 +5,7 @@ import {
   type PermissionExportRow,
   getFindingContainerId,
   getPermissionSetIdsWithDirectUserAssignment,
+  resolveFindingSeverity,
 } from './permission-export-result-view';
 
 export type IssuesSeverityFilter = 'all' | 'errors' | 'warnings';
@@ -115,18 +116,18 @@ export function mergePermissionAnalysisSearchParams(
   return next;
 }
 
-function normalizeSeverity(value: string | undefined): string {
-  return (value ?? '').toLowerCase();
+/**
+ * Severity predicates for the issues toolbar, grid, and counters. These take the whole finding (not a
+ * raw `severity` string) so every severity read in the feature resolves the same way — see
+ * {@link resolveFindingSeverity}. Reading `finding.severity` directly anywhere lets the filter counts
+ * drift from the rollup tiles and the cell highlights.
+ */
+export function isErrorSeverity(finding: PermissionAnalysisFinding): boolean {
+  return resolveFindingSeverity(finding) === 'error';
 }
 
-export function isErrorSeverity(value: string | undefined): boolean {
-  const normalized = normalizeSeverity(value);
-  return normalized === 'error' || normalized === 'errors';
-}
-
-export function isWarningSeverity(value: string | undefined): boolean {
-  const normalized = normalizeSeverity(value);
-  return normalized === 'warning' || normalized === 'warnings';
+export function isWarningSeverity(finding: PermissionAnalysisFinding): boolean {
+  return resolveFindingSeverity(finding) === 'warning';
 }
 
 /**
@@ -205,12 +206,11 @@ export function usePermissionAnalysisIssuesFilters({
 
   const filteredFindings = useMemo(() => {
     return findings.filter((finding) => {
-      const severityValue = finding.severity as string | undefined;
-      if (severityFilter === 'errors' && !isErrorSeverity(severityValue)) {
+      if (severityFilter === 'errors' && !isErrorSeverity(finding)) {
         return false;
       }
-      // Warnings-only: keep rows whose severity is warning/warnings (not errors, not unknown/other).
-      if (severityFilter === 'warnings' && !isWarningSeverity(severityValue)) {
+      // Warnings-only: keep warning rows (not errors, and not rows with an unresolvable severity).
+      if (severityFilter === 'warnings' && !isWarningSeverity(finding)) {
         return false;
       }
       if (olsFlsFilter === 'ols' && findingCodeKind(finding.code as string | undefined) !== 'ols') {
@@ -257,16 +257,10 @@ export function usePermissionAnalysisIssuesFilters({
     scopeFilter,
   ]);
 
-  const errorTotal = useMemo(() => findings.filter((f) => isErrorSeverity(f.severity as string | undefined)).length, [findings]);
-  const warningTotal = useMemo(() => findings.filter((f) => isWarningSeverity(f.severity as string | undefined)).length, [findings]);
-  const errorFiltered = useMemo(
-    () => filteredFindings.filter((f) => isErrorSeverity(f.severity as string | undefined)).length,
-    [filteredFindings],
-  );
-  const warningFiltered = useMemo(
-    () => filteredFindings.filter((f) => isWarningSeverity(f.severity as string | undefined)).length,
-    [filteredFindings],
-  );
+  const errorTotal = useMemo(() => findings.filter(isErrorSeverity).length, [findings]);
+  const warningTotal = useMemo(() => findings.filter(isWarningSeverity).length, [findings]);
+  const errorFiltered = useMemo(() => filteredFindings.filter(isErrorSeverity).length, [filteredFindings]);
+  const warningFiltered = useMemo(() => filteredFindings.filter(isWarningSeverity).length, [filteredFindings]);
 
   return useMemo(
     () => ({

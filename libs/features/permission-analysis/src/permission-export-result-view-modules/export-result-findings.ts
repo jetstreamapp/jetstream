@@ -23,6 +23,29 @@ export function objectPermissionFindingRowKey(parentId: string, objectApiName: s
 
 export type PermissionObjectFindingCellSeverity = 'error' | 'warning';
 
+/**
+ * The single severity resolver for issue rows. The catalog is authoritative — the exporter writes each
+ * row's `severity` FROM the catalog definition — but historical job results may hold a code the current
+ * catalog no longer knows, so the stored value is the fallback. Everything that reads severity (summary
+ * rollups, container badges, cell highlights) must go through this, or the counts and the highlights can
+ * disagree about the same row.
+ */
+export function resolveFindingSeverity(finding: PermissionAnalysisFinding): PermissionObjectFindingCellSeverity | null {
+  const code = typeof finding.code === 'string' ? finding.code.trim() : '';
+  const definition = code ? getPermissionExportFindingDefinition(code) : undefined;
+  if (definition) {
+    return definition.severity === 'error' ? 'error' : 'warning';
+  }
+  const stored = String(finding.severity ?? '').toLowerCase();
+  if (stored === 'error') {
+    return 'error';
+  }
+  if (stored === 'warning') {
+    return 'warning';
+  }
+  return null;
+}
+
 const OBJECT_FINDING_READ_PATH_COLUMNS = ['PermissionsRead', 'PermissionsViewAllRecords', 'PermissionsModifyAllRecords'] as const;
 const OBJECT_FINDING_EDIT_PATH_COLUMNS = ['PermissionsEdit', 'PermissionsModifyAllRecords'] as const;
 
@@ -54,14 +77,6 @@ export function getObjectPermissionHighlightColumnKeysForFindingCode(code: strin
     return ['PermissionsViewAllRecords'];
   }
   return [];
-}
-
-function severityForObjectPermissionFindingCode(code: string): PermissionObjectFindingCellSeverity | null {
-  const def = getPermissionExportFindingDefinition(code);
-  if (!def) {
-    return null;
-  }
-  return def.severity === 'error' ? 'error' : 'warning';
 }
 
 /**
@@ -96,6 +111,67 @@ export function listFindingsForObjectPermissionCell(
   return matches;
 }
 
+interface FindingCellHighlightRowContext {
+  finding: PermissionAnalysisFinding;
+  /** Trimmed, non-empty container id (permission set / profile). */
+  parentId: string;
+  /** Trimmed, non-empty object API name. */
+  objectApiName: string;
+  /** Trimmed, non-empty issue code. */
+  code: string;
+}
+
+interface FindingCellHighlightOptions {
+  /** Grid column keys this issue code highlights; empty means the code has no cells on this surface. */
+  columnsForCode: (code: string) => readonly string[];
+  /** Row key the highlight is stored under, or `null` to skip the finding. */
+  rowKeyFor: (context: FindingCellHighlightRowContext) => string | null;
+}
+
+/**
+ * Shared row/column highlight index used by both permission grids. Walks the issue rows once and folds
+ * them into `rowKey → columnKey → severity`, keeping the most severe entry when several issues land on
+ * the same cell. The two surfaces differ only in which columns a code highlights and how the row is
+ * keyed, so those are the only two parameters.
+ */
+function buildFindingCellHighlights(
+  findings: PermissionAnalysisFinding[],
+  { columnsForCode, rowKeyFor }: FindingCellHighlightOptions,
+): Map<string, Map<string, PermissionObjectFindingCellSeverity>> {
+  const result = new Map<string, Map<string, PermissionObjectFindingCellSeverity>>();
+
+  for (const finding of findings) {
+    const code = typeof finding.code === 'string' ? finding.code.trim() : '';
+    const objectApiName = typeof finding.objectApiName === 'string' ? finding.objectApiName.trim() : '';
+    const parentId = getFindingContainerId(finding)?.trim() ?? '';
+    if (!code || !objectApiName || !parentId) {
+      continue;
+    }
+    const highlightColumns = columnsForCode(code);
+    if (highlightColumns.length === 0) {
+      continue;
+    }
+    const severity = resolveFindingSeverity(finding);
+    if (!severity) {
+      continue;
+    }
+    const rowKey = rowKeyFor({ finding, parentId, objectApiName, code });
+    if (!rowKey) {
+      continue;
+    }
+    let columnMap = result.get(rowKey);
+    if (!columnMap) {
+      columnMap = new Map();
+      result.set(rowKey, columnMap);
+    }
+    for (const columnKey of highlightColumns) {
+      columnMap.set(columnKey, columnMap.get(columnKey) === 'error' || severity === 'error' ? 'error' : severity);
+    }
+  }
+
+  return result;
+}
+
 /**
  * Maps object-permission export rows (ParentId + SobjectType) to permission boolean columns that
  * should be highlighted on the Object Permissions tree from analysis issues.
@@ -106,41 +182,10 @@ export function listFindingsForObjectPermissionCell(
 export function buildObjectPermissionFindingCellHighlights(
   findings: PermissionAnalysisFinding[],
 ): Map<string, Map<string, PermissionObjectFindingCellSeverity>> {
-  const result = new Map<string, Map<string, PermissionObjectFindingCellSeverity>>();
-
-  const mergeCell = (rowKey: string, columnKey: string, severity: PermissionObjectFindingCellSeverity): void => {
-    let columnMap = result.get(rowKey);
-    if (!columnMap) {
-      columnMap = new Map();
-      result.set(rowKey, columnMap);
-    }
-    const existing = columnMap.get(columnKey);
-    const next: PermissionObjectFindingCellSeverity = existing === 'error' || severity === 'error' ? 'error' : severity;
-    columnMap.set(columnKey, next);
-  };
-
-  for (const finding of findings) {
-    const codeRaw = typeof finding.code === 'string' ? finding.code.trim() : '';
-    const objectApi = typeof finding.objectApiName === 'string' ? finding.objectApiName.trim() : '';
-    const parentId = getFindingContainerId(finding)?.trim() ?? '';
-    if (!codeRaw || !objectApi || !parentId) {
-      continue;
-    }
-    const highlightColumns = getObjectPermissionHighlightColumnKeysForFindingCode(codeRaw);
-    if (highlightColumns.length === 0) {
-      continue;
-    }
-    const severity = severityForObjectPermissionFindingCode(codeRaw);
-    if (!severity) {
-      continue;
-    }
-    const rowKey = objectPermissionFindingRowKey(parentId, objectApi);
-    for (const columnKey of highlightColumns) {
-      mergeCell(rowKey, columnKey, severity);
-    }
-  }
-
-  return result;
+  return buildFindingCellHighlights(findings, {
+    columnsForCode: getObjectPermissionHighlightColumnKeysForFindingCode,
+    rowKeyFor: ({ parentId, objectApiName }) => objectPermissionFindingRowKey(parentId, objectApiName),
+  });
 }
 
 /**
@@ -172,10 +217,6 @@ export function getFieldPermissionHighlightColumnKeysForFindingCode(code: string
     return [...FIELD_PERMISSION_BOOLEAN_COLUMN_KEYS];
   }
   return [];
-}
-
-function severityForFieldPermissionFindingCode(code: string): PermissionObjectFindingCellSeverity | null {
-  return severityForObjectPermissionFindingCode(code);
 }
 
 /**
@@ -224,50 +265,20 @@ export function listFindingsForFieldPermissionCell(
 export function buildFieldPermissionFindingCellHighlights(
   findings: PermissionAnalysisFinding[],
 ): Map<string, Map<string, PermissionObjectFindingCellSeverity>> {
-  const result = new Map<string, Map<string, PermissionObjectFindingCellSeverity>>();
-
-  const mergeCell = (rowKey: string, columnKey: string, severity: PermissionObjectFindingCellSeverity): void => {
-    let columnMap = result.get(rowKey);
-    if (!columnMap) {
-      columnMap = new Map();
-      result.set(rowKey, columnMap);
-    }
-    const existing = columnMap.get(columnKey);
-    const next: PermissionObjectFindingCellSeverity = existing === 'error' || severity === 'error' ? 'error' : severity;
-    columnMap.set(columnKey, next);
-  };
-
-  for (const finding of findings) {
-    const codeRaw = typeof finding.code === 'string' ? finding.code.trim() : '';
-    const objectApi = typeof finding.objectApiName === 'string' ? finding.objectApiName.trim() : '';
-    const parentId = getFindingContainerId(finding)?.trim() ?? '';
-    if (!codeRaw || !objectApi || !parentId) {
-      continue;
-    }
-    const highlightColumns = getFieldPermissionHighlightColumnKeysForFindingCode(codeRaw);
-    if (highlightColumns.length === 0) {
-      continue;
-    }
-    const severity = severityForFieldPermissionFindingCode(codeRaw);
-    if (!severity) {
-      continue;
-    }
-    const fieldPart =
-      codeRaw === PermissionExportFindingCode.FLS_WITHOUT_OLS_ROW
-        ? FIELD_PERMISSION_OBJECT_SCOPE_MARKER
-        : typeof finding.fieldApiName === 'string'
-          ? finding.fieldApiName.trim()
-          : '';
-    if (!fieldPart) {
-      continue;
-    }
-    const rowKey = fieldPermissionFindingRowKey(parentId, objectApi, fieldPart);
-    for (const columnKey of highlightColumns) {
-      mergeCell(rowKey, columnKey, severity);
-    }
-  }
-
-  return result;
+  return buildFindingCellHighlights(findings, {
+    columnsForCode: getFieldPermissionHighlightColumnKeysForFindingCode,
+    rowKeyFor: ({ finding, parentId, objectApiName, code }) => {
+      // An object-scoped issue highlights every field row for the permission set + object, so it is
+      // stored once under the marker instead of being fanned out across fields we may not have rows for.
+      const fieldSegment =
+        code === PermissionExportFindingCode.FLS_WITHOUT_OLS_ROW
+          ? FIELD_PERMISSION_OBJECT_SCOPE_MARKER
+          : typeof finding.fieldApiName === 'string'
+            ? finding.fieldApiName.trim()
+            : '';
+      return fieldSegment ? fieldPermissionFindingRowKey(parentId, objectApiName, fieldSegment) : null;
+    },
+  });
 }
 
 export function fieldPermissionCellSeverity(
@@ -287,33 +298,6 @@ export function fieldPermissionCellSeverity(
   return fromSpecific ?? fromScope;
 }
 
-function isErrorLikeSeverity(value: unknown): boolean {
-  const normalized = String(value ?? '').toLowerCase();
-  return normalized === 'error' || normalized === 'errors';
-}
-
-function isWarningLikeSeverity(value: unknown): boolean {
-  const normalized = String(value ?? '').toLowerCase();
-  return normalized === 'warning' || normalized === 'warnings';
-}
-
-/**
- * Severity used for container-level badges (permission set / profile rows), from catalog definition or row payload.
- */
-function containerSeverityFromFinding(finding: PermissionAnalysisFinding, codeRaw: string): PermissionObjectFindingCellSeverity | null {
-  const def = getPermissionExportFindingDefinition(codeRaw);
-  if (def) {
-    return def.severity === 'error' ? 'error' : 'warning';
-  }
-  if (isErrorLikeSeverity(finding.severity)) {
-    return 'error';
-  }
-  if (isWarningLikeSeverity(finding.severity)) {
-    return 'warning';
-  }
-  return null;
-}
-
 /**
  * Max severity per permission-set container Id for profile / permission-set / assignment export rows.
  */
@@ -330,7 +314,7 @@ export function buildContainerIdFindingSeverity(
     if (!containerId) {
       continue;
     }
-    const next = containerSeverityFromFinding(finding, codeRaw);
+    const next = resolveFindingSeverity(finding);
     if (!next) {
       continue;
     }
@@ -441,8 +425,9 @@ export function aggregatePermissionAnalysisFindings(findings: PermissionAnalysis
     }
     const objectKeyRaw = String(row.objectApiName ?? '').trim();
     const objectKey = objectKeyRaw.length > 0 ? objectKeyRaw : '(no object)';
-    const isError = isErrorLikeSeverity(row.severity);
-    const isWarning = isWarningLikeSeverity(row.severity);
+    const severity = resolveFindingSeverity(row);
+    const isError = severity === 'error';
+    const isWarning = severity === 'warning';
 
     const codeAgg = byCodeMap.get(code) ?? { count: 0, errors: 0, warnings: 0 };
     codeAgg.count += 1;

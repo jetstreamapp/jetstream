@@ -16,12 +16,26 @@ function whereSobjectTypeIn(objectTypes?: string[]): WhereClause | undefined {
 }
 
 /**
+ * Optional `PermissionSet` columns that identify a permission set as NOT an admin-deletable custom one
+ * (managed package, Salesforce-standard, or the set backing a group / session activation). Read by
+ * `buildPermissionExportFindings` to keep `PERMSET_NO_ASSIGNMENTS` from advising deletion of something
+ * that cannot be deleted. Optional because availability varies by API version, so they go through the
+ * same describe intersection as the system permission columns.
+ */
+export const OPTIONAL_PERMISSION_SET_METADATA_FIELDS: readonly string[] = ['NamespacePrefix', 'IsCustom', 'Type'];
+
+/**
  * @param systemPermissionFields `PermissionSet.Permissions*` columns to SELECT. Defaults to the full
  *   {@link HIGH_RISK_SYSTEM_PERMISSIONS} catalog; callers should pass the subset that actually exists in
  *   the target org (many `Permissions*` columns are edition/license/feature dependent and selecting a
  *   missing one fails the whole query with INVALID_FIELD).
+ * @param metadataFields Subset of {@link OPTIONAL_PERMISSION_SET_METADATA_FIELDS} present in the org.
  */
-export function buildPermissionSetByIdSoql(ids: string[], systemPermissionFields?: readonly string[]): string {
+export function buildPermissionSetByIdSoql(
+  ids: string[],
+  systemPermissionFields?: readonly string[],
+  metadataFields: readonly string[] = OPTIONAL_PERMISSION_SET_METADATA_FIELDS,
+): string {
   const permissionFields = systemPermissionFields ?? HIGH_RISK_SYSTEM_PERMISSIONS.map((perm) => perm.field);
   return composeQuery({
     fields: [
@@ -36,6 +50,8 @@ export function buildPermissionSetByIdSoql(ids: string[], systemPermissionFields
       getField('LastModifiedDate'),
       getField('CreatedBy.Name'),
       getField('LastModifiedBy.Name'),
+      // Identify non-deletable permission sets (managed / standard / group / session backed).
+      ...metadataFields.map((field) => getField(field)),
       // High-risk system permissions, surfaced as findings (Modify All Data, View All Data, etc.).
       ...permissionFields.map((field) => getField(field)),
     ],

@@ -4,12 +4,28 @@ import {
   HIGH_RISK_SYSTEM_PERMISSIONS,
   PERMISSION_EXPORT_FINDING_DEFINITIONS,
   PermissionExportFindingCode,
+  type PermissionExportFindingCodeValue,
+  PermissionExportFindingSeverity,
 } from '@jetstream/shared/constants';
 
-export const MAX_PERMISSION_EXPORT_FINDINGS = 8_000;
+/**
+ * Per-severity cap on emitted issue rows. Bounds the stored (gzipped) job result; the constraint is
+ * browser memory / IndexedDB size, not a Salesforce limit. Errors and warnings are capped independently
+ * so a flood of low-value warnings can never crowd out the exposure findings — see
+ * {@link buildPermissionExportFindings} for the ordering guarantee.
+ */
+export const MAX_PERMISSION_EXPORT_FINDINGS = 50_000;
 
 /** Direct User assignment ids start with `005`; permission set groups / queues do not. */
 const USER_ID_PREFIX = '005';
+
+/**
+ * `PermissionSet.Type` values that are not user-manageable custom permission sets, so
+ * {@link PermissionExportFindingCode.PERMSET_NO_ASSIGNMENTS} ("may be safe to delete") must never fire
+ * for them. `Group` is the permission set backing a permission set group; `Session` is activated per
+ * session rather than assigned; `Profile` is already excluded via `IsOwnedByProfile`.
+ */
+const NON_DELETABLE_PERMISSION_SET_TYPES = new Set(['Group', 'Session', 'Profile']);
 
 export type PermissionExportFindingRecord = Record<string, unknown>;
 
@@ -31,6 +47,14 @@ export interface PermissionExportFindingsContext {
    * must ignore out-of-scope objects to avoid false "no access" calls. Empty/absent = unscoped.
    */
   objectScope?: readonly string[];
+  /**
+   * Every sobject API name in the org (from a global describe). Used to tell a tab that is backed by a
+   * real object from one that is not — `standard-home` / `standard-report` / `standard-Chatter` are tab
+   * names, not objects, and would otherwise each produce a bogus "grants no read access to home" finding.
+   * Absent = the describe was unavailable, in which case the tab-visibility pass is skipped entirely
+   * rather than guessed at.
+   */
+  knownObjectApiNames?: ReadonlySet<string> | readonly string[];
 }
 
 function readTrimmedString(row: Record<string, unknown>, key: string): string {
@@ -119,19 +143,39 @@ function buildGroupContext(context: PermissionExportFindingsContext | undefined)
   return { groupsByMember, membersByGroup, mutingGroupIds, groupMemberIds };
 }
 
-function permissionSetIdsWithDirectUserAssignment(context: PermissionExportFindingsContext | undefined): Set<string> {
-  const assigned = new Set<string>();
+/**
+ * Direct (User) assignment graph. Salesforce effective access is the union across everything assigned to
+ * a user, so this is what lets an alignment finding on one permission set be resolved by another.
+ */
+interface AssignmentContext {
+  /** permissionSetId → assigned User ids. */
+  readonly usersByPermissionSet: Map<string, Set<string>>;
+  /** User id → permissionSetIds assigned to them. */
+  readonly permissionSetsByUser: Map<string, Set<string>>;
+  /** permissionSetIds with at least one direct User assignment. */
+  readonly assignedPermissionSetIds: Set<string>;
+}
+
+function buildAssignmentContext(context: PermissionExportFindingsContext | undefined): AssignmentContext {
+  const usersByPermissionSet = new Map<string, Set<string>>();
+  const permissionSetsByUser = new Map<string, Set<string>>();
+  const assignedPermissionSetIds = new Set<string>();
+
   for (const row of context?.permissionSetAssignments ?? []) {
     if (!row || typeof row !== 'object') {
       continue;
     }
     const permissionSetId = readTrimmedString(row, 'PermissionSetId');
     const assigneeId = readTrimmedString(row, 'AssigneeId');
-    if (permissionSetId && assigneeId.startsWith(USER_ID_PREFIX)) {
-      assigned.add(permissionSetId);
+    if (!permissionSetId || !assigneeId.startsWith(USER_ID_PREFIX)) {
+      continue;
     }
+    assignedPermissionSetIds.add(permissionSetId);
+    addToSetMap(usersByPermissionSet, permissionSetId, assigneeId);
+    addToSetMap(permissionSetsByUser, assigneeId, permissionSetId);
   }
-  return assigned;
+
+  return { usersByPermissionSet, permissionSetsByUser, assignedPermissionSetIds };
 }
 
 function categoryTruncated(context: PermissionExportFindingsContext | undefined, category: string): boolean {
@@ -143,22 +187,21 @@ function categoryTruncated(context: PermissionExportFindingsContext | undefined,
 }
 
 /**
- * Resolves the object API name a PermissionSetTabSetting refers to, or `null` for tabs not backed by a
- * queryable object (Visualforce / web / Lightning page tabs). Standard tabs are `standard-<Object>`;
- * custom-object tabs use the object API name (often `<Name>__c`).
+ * Resolves the object API name a PermissionSetTabSetting refers to, or `null` for tabs not backed by an
+ * object. Standard tabs are `standard-<Object>`; custom-object tabs use the object API name (`<Name>__c`).
+ *
+ * The `standard-` prefix is NOT proof of an object — `standard-home`, `standard-report`,
+ * `standard-Chatter`, `standard-File` and friends are tab names with no sobject behind them. The
+ * candidate is therefore only accepted when it matches a real object from the org's global describe,
+ * and the describe's canonical casing is returned so the `ObjectPermissions.SobjectType` join lines up.
  */
-function tabSettingObjectApiName(tabName: string): string | null {
+function tabSettingObjectApiName(tabName: string, canonicalObjectNamesByLower: ReadonlyMap<string, string>): string | null {
   const name = tabName.trim();
   if (!name) {
     return null;
   }
-  if (name.startsWith('standard-')) {
-    return name.slice('standard-'.length);
-  }
-  if (name.endsWith('__c')) {
-    return name;
-  }
-  return null;
+  const candidate = name.startsWith('standard-') ? name.slice('standard-'.length) : name;
+  return canonicalObjectNamesByLower.get(candidate.toLowerCase()) ?? null;
 }
 
 /**
@@ -175,18 +218,32 @@ export function buildPermissionExportFindings(
   fieldPermissions: Record<string, unknown>[],
   context?: PermissionExportFindingsContext,
 ): PermissionExportFindingRecord[] {
-  const findings: PermissionExportFindingRecord[] = [];
-  let suppressedAfterCap = 0;
+  // Errors and warnings are collected separately and concatenated errors-first. The cap used to drop in
+  // emission order, which meant a warning-heavy org (field permissions are emitted first, and there can
+  // be hundreds of thousands of rows) exhausted the budget before the passes that emit the ONLY two
+  // error codes — an org granting Modify All Data could report zero errors. Exposure findings must
+  // survive truncation; that is the whole point of the report.
+  const errorFindings: PermissionExportFindingRecord[] = [];
+  const warningFindings: PermissionExportFindingRecord[] = [];
+  let suppressedErrors = 0;
+  let suppressedWarnings = 0;
 
   const tryPush = (finding: PermissionExportFindingRecord): void => {
-    if (findings.length < MAX_PERMISSION_EXPORT_FINDINGS) {
-      findings.push(finding);
+    const isError = finding.severity === PermissionExportFindingSeverity.Error;
+    const bucket = isError ? errorFindings : warningFindings;
+    if (bucket.length < MAX_PERMISSION_EXPORT_FINDINGS) {
+      bucket.push(finding);
       return;
     }
-    suppressedAfterCap += 1;
+    if (isError) {
+      suppressedErrors += 1;
+    } else {
+      suppressedWarnings += 1;
+    }
   };
 
   const group = buildGroupContext(context);
+  const assignment = buildAssignmentContext(context);
 
   const objectRowByKey = new Map<string, Record<string, unknown>>();
   for (const row of objectPermissions) {
@@ -236,21 +293,93 @@ export function buildPermissionExportFindings(
   };
 
   /**
-   * Emits an FLS/OLS-alignment finding unless a group sibling already supplies the access. When the
-   * group also contains muting permission sets we cannot be sure, so we emit a softened finding instead
-   * of suppressing it (fail safe — show it, annotated).
+   * Whether EVERY user assigned this permission set also holds another permission set that supplies the
+   * object access. Salesforce effective access is the union across a user's assignments, so in that case
+   * the field access does resolve for every affected user and the finding is a false positive.
+   *
+   * Deliberately all-or-nothing: if even one assignee lacks the access elsewhere, the misalignment is
+   * real for that user and the finding stands. A permission set with no assignees returns false —
+   * nothing is proven (and `PERMSET_NO_ASSIGNMENTS` already covers that case).
    */
-  const pushGroupAwareFlsFinding = (
+  const everyAssigneeCoveredElsewhere = (parentId: string, sobjectType: string, mode: 'read' | 'edit'): boolean => {
+    const assignees = assignment.usersByPermissionSet.get(parentId);
+    if (!assignees || assignees.size === 0) {
+      return false;
+    }
+    for (const userId of assignees) {
+      let covered = false;
+      for (const otherPermissionSetId of assignment.permissionSetsByUser.get(userId) ?? []) {
+        if (otherPermissionSetId === parentId) {
+          continue;
+        }
+        const row = objectRowByKey.get(objectPermissionKey(otherPermissionSetId, sobjectType));
+        if (row && (mode === 'read' ? objectGrantsEffectiveRead(row) : objectGrantsEffectiveEdit(row))) {
+          covered = true;
+          break;
+        }
+      }
+      if (!covered) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  type AlignmentCoverage =
+    /** No other container we can see supplies the access — the finding stands. */
+    | 'not-covered'
+    /** A group sibling or every assignee's other permission sets supply it — suppress. */
+    | 'covered'
+    /** A group sibling supplies it, but muting sets mean effective access is unproven — soften. */
+    | 'group-covered-but-muted';
+
+  /**
+   * Coverage depends only on (permission set, object, mode) — never on the field — but the alignment
+   * passes ask once per misaligned FIELD row. Without this memo the assignee scan is
+   * O(findings × assignees × their permission sets), which on a wide object with a broadly assigned
+   * permission set means re-walking the whole assignment graph for every column. Cached entries are
+   * bounded by the (parent, object) pairs that actually produce findings.
+   */
+  const alignmentCoverageCache = new Map<string, AlignmentCoverage>();
+
+  const resolveAlignmentCoverage = (parentId: string, sobjectType: string, mode: 'read' | 'edit'): AlignmentCoverage => {
+    const cacheKey = `${parentId}::${sobjectType}::${mode}`;
+    const cached = alignmentCoverageCache.get(cacheKey);
+    if (cached !== undefined) {
+      return cached;
+    }
+    let coverage: AlignmentCoverage;
+    if (siblingSuppliesAccess(parentId, sobjectType, mode)) {
+      coverage = parentInGroupWithMuting(parentId) ? 'group-covered-but-muted' : 'covered';
+    } else {
+      coverage = everyAssigneeCoveredElsewhere(parentId, sobjectType, mode) ? 'covered' : 'not-covered';
+    }
+    alignmentCoverageCache.set(cacheKey, coverage);
+    return coverage;
+  };
+
+  /**
+   * Emits an FLS/OLS-alignment finding unless another container that reaches the same users already
+   * supplies the object access — a permission set group sibling, or another permission set assigned to
+   * every one of this one's assignees. When the group also contains muting permission sets we cannot be
+   * sure, so we emit a softened finding instead of suppressing it (fail safe — show it, annotated).
+   *
+   * Note the remaining blind spot, which is why the messages say "this permission set" rather than
+   * "no effect": the assignees' PROFILE is not visible here (it needs `User.ProfileId`, which the export
+   * does not query), and permission sets outside the exported selection are not visible either.
+   */
+  const pushAlignmentFinding = (
     base: PermissionExportFindingRecord,
     parentId: string,
     sobjectType: string,
     mode: 'read' | 'edit',
   ): void => {
+    const coverage = resolveAlignmentCoverage(parentId, sobjectType, mode);
+    if (coverage === 'covered') {
+      return;
+    }
     const groupId = firstGroupId(parentId);
-    if (siblingSuppliesAccess(parentId, sobjectType, mode)) {
-      if (!parentInGroupWithMuting(parentId)) {
-        return; // satisfied by the group — not a real issue
-      }
+    if (coverage === 'group-covered-but-muted') {
       tryPush({
         ...base,
         ...(groupId ? { partOfGroupId: groupId } : {}),
@@ -298,11 +427,11 @@ export function buildPermissionExportFindings(
     const parentId = key.slice(0, separatorIdx);
     const sobjectType = key.slice(separatorIdx + 2);
     const def = PERMISSION_EXPORT_FINDING_DEFINITIONS[PermissionExportFindingCode.FLS_WITHOUT_OLS_ROW];
-    pushGroupAwareFlsFinding(
+    pushAlignmentFinding(
       {
         severity: def.severity,
         code: PermissionExportFindingCode.FLS_WITHOUT_OLS_ROW,
-        message: `Field permissions exist for ${sobjectType}, but there is no ObjectPermissions row for the same permission set and object.`,
+        message: `Field permissions exist for ${sobjectType}, but this permission set has no object permissions row for it — object access must come from the user's profile or another permission set.`,
         objectApiName: sobjectType,
         parentId,
         permissionSetId: parentId,
@@ -333,11 +462,11 @@ export function buildPermissionExportFindings(
 
     if (editMisaligned) {
       const def = PERMISSION_EXPORT_FINDING_DEFINITIONS[PermissionExportFindingCode.FLS_EDIT_NO_OBJECT_EDIT];
-      pushGroupAwareFlsFinding(
+      pushAlignmentFinding(
         {
           severity: def.severity,
           code: PermissionExportFindingCode.FLS_EDIT_NO_OBJECT_EDIT,
-          message: `Field ${field} on ${sobjectType} has Edit at field level, but the object permission does not grant Edit or Modify All Records.`,
+          message: `Field ${field} on ${sobjectType} has Edit at field level, but this permission set's object permission does not grant Edit or Modify All Records — object access must come from the user's profile or another permission set.`,
           objectApiName: sobjectType,
           fieldApiName: field,
           parentId,
@@ -353,11 +482,11 @@ export function buildPermissionExportFindings(
     // double-counting one misconfiguration as two findings.
     if (readMisaligned && !editMisaligned) {
       const def = PERMISSION_EXPORT_FINDING_DEFINITIONS[PermissionExportFindingCode.FLS_READ_NO_OBJECT_READ];
-      pushGroupAwareFlsFinding(
+      pushAlignmentFinding(
         {
           severity: def.severity,
           code: PermissionExportFindingCode.FLS_READ_NO_OBJECT_READ,
-          message: `Field ${field} on ${sobjectType} has Read at field level, but the object permission does not grant Read, View All Records, or Modify All Records.`,
+          message: `Field ${field} on ${sobjectType} has Read at field level, but this permission set's object permission does not grant Read, View All Records, or Modify All Records — object access must come from the user's profile or another permission set.`,
           objectApiName: sobjectType,
           fieldApiName: field,
           parentId,
@@ -440,7 +569,6 @@ export function buildPermissionExportFindings(
 
   // High-risk system permissions + orphaned permission sets (require the permission set rows).
   const permissionSets = context?.permissionSets ?? [];
-  const assignedSet = permissionSetIdsWithDirectUserAssignment(context);
   const assignmentsTruncated = categoryTruncated(context, 'permissionSetAssignments');
   for (const psRow of permissionSets) {
     if (!psRow || typeof psRow !== 'object') {
@@ -471,14 +599,36 @@ export function buildPermissionExportFindings(
       });
     }
 
-    // Orphaned permission set: not profile-owned, no direct user assignment, and not a member of any group
-    // (a group member may be assigned via its group). Skip when assignment data was truncated.
-    if (!isProfile && !assignmentsTruncated && !assignedSet.has(id) && !group.groupMemberIds.has(id)) {
+    // Orphaned permission set: no direct user assignment and not a member of any group (a group member
+    // may be assigned via its group). Skip when assignment data was truncated.
+    //
+    // Managed-package (`NamespacePrefix`), Salesforce-standard (`IsCustom = false`), and
+    // group/session-backing permission sets are excluded — several cannot be deleted at all, so calling
+    // them "safe to delete" would be wrong advice. Those columns go through the org describe intersection
+    // and could in principle be absent; Salesforce omits unselected fields from the row entirely, so an
+    // `in` check tells us whether we can actually classify deletability. When we cannot, the finding is
+    // still worth surfacing (the set really is unassigned) but the deletion advice is dropped rather than
+    // guessed — same fail-safe posture as the muting-permission-set softening above.
+    const canClassifyDeletability = 'NamespacePrefix' in psRow && 'IsCustom' in psRow && 'Type' in psRow;
+    const isKnownNonDeletable =
+      canClassifyDeletability &&
+      (!!readTrimmedString(psRow, 'NamespacePrefix') ||
+        psRow.IsCustom === false ||
+        NON_DELETABLE_PERMISSION_SET_TYPES.has(readTrimmedString(psRow, 'Type')));
+    if (
+      !isProfile &&
+      !isKnownNonDeletable &&
+      !assignmentsTruncated &&
+      !assignment.assignedPermissionSetIds.has(id) &&
+      !group.groupMemberIds.has(id)
+    ) {
       const def = PERMISSION_EXPORT_FINDING_DEFINITIONS[PermissionExportFindingCode.PERMSET_NO_ASSIGNMENTS];
       tryPush({
         severity: def.severity,
         code: PermissionExportFindingCode.PERMSET_NO_ASSIGNMENTS,
-        message: `Permission set "${label}" has no direct user assignments and is not part of a permission set group — it may be safe to delete.`,
+        message: canClassifyDeletability
+          ? `Permission set "${label}" has no direct user assignments and is not part of a permission set group — it may be safe to delete.`
+          : `Permission set "${label}" has no direct user assignments and is not part of a permission set group. This org did not expose the columns needed to confirm it is a deletable custom permission set, so verify it is not managed or Salesforce-provided before removing it.`,
         parentId: id,
         permissionSetId: id,
         containerId: id,
@@ -488,9 +638,17 @@ export function buildPermissionExportFindings(
 
   // Tab visible without object read. Tab settings are always fetched for ALL tabs, but ObjectPermissions
   // rows are only fetched for in-scope objects — so out-of-scope tabs cannot be evaluated. Skip the whole
-  // pass when ObjectPermissions was truncated (a missing row no longer proves "no access").
+  // pass when ObjectPermissions was truncated (a missing row no longer proves "no access"), or when the
+  // global describe is unavailable (without it a tab name cannot be told apart from an object name).
+  const canonicalObjectNamesByLower = new Map<string, string>();
+  for (const objectApiName of context?.knownObjectApiNames ?? []) {
+    if (typeof objectApiName === 'string' && objectApiName.length > 0) {
+      canonicalObjectNamesByLower.set(objectApiName.toLowerCase(), objectApiName);
+    }
+  }
+  const canEvaluateTabs = !objectPermissionsTruncated && canonicalObjectNamesByLower.size > 0;
   const scopedObjectNames = new Set((context?.objectScope ?? []).map((objectApiName) => objectApiName.toLowerCase()));
-  for (const tabRow of objectPermissionsTruncated ? [] : (context?.permissionSetTabSettings ?? [])) {
+  for (const tabRow of canEvaluateTabs ? (context?.permissionSetTabSettings ?? []) : []) {
     if (!tabRow || typeof tabRow !== 'object') {
       continue;
     }
@@ -500,9 +658,9 @@ export function buildPermissionExportFindings(
     if (!parentId || !tabName || visibility === '' || visibility === 'None' || visibility === 'Hidden') {
       continue;
     }
-    const objectApiName = tabSettingObjectApiName(tabName);
+    const objectApiName = tabSettingObjectApiName(tabName, canonicalObjectNamesByLower);
     if (!objectApiName) {
-      continue; // VF / web / Lightning page tab — no queryable object to check
+      continue; // home / reports / Chatter / VF / web / Lightning page tab — no object behind it
     }
     if (scopedObjectNames.size > 0 && !scopedObjectNames.has(objectApiName.toLowerCase())) {
       continue; // out-of-scope object — its ObjectPermissions rows were never fetched
@@ -523,12 +681,19 @@ export function buildPermissionExportFindings(
     });
   }
 
+  // Errors first — both so truncation drops warnings rather than exposure findings, and so the default
+  // order of the Issues grid leads with what matters. The UI re-sorts on top of this.
+  const findings = [...errorFindings, ...warningFindings];
+
+  const suppressedAfterCap = suppressedErrors + suppressedWarnings;
   if (suppressedAfterCap > 0) {
     const truncatedDef = PERMISSION_EXPORT_FINDING_DEFINITIONS[PermissionExportFindingCode.FINDINGS_TRUNCATED];
+    const errorCoverage =
+      suppressedErrors === 0 ? 'Every error was included' : `${suppressedErrors.toLocaleString()} of the omitted issues are errors`;
     findings.push({
       severity: truncatedDef.severity,
       code: PermissionExportFindingCode.FINDINGS_TRUNCATED,
-      message: `${suppressedAfterCap.toLocaleString()} additional issues were not included so the job result stays under ${MAX_PERMISSION_EXPORT_FINDINGS.toLocaleString()} rows. Narrow the permission set selection and re-run if you need full coverage.`,
+      message: `${suppressedAfterCap.toLocaleString()} additional issues were not included so the job result stays under ${MAX_PERMISSION_EXPORT_FINDINGS.toLocaleString()} rows per severity. ${errorCoverage}. Narrow the permission set or object selection and re-run if you need full coverage.`,
       objectApiName: undefined,
       fieldApiName: undefined,
       parentId: undefined,
@@ -559,10 +724,15 @@ export function buildIssueCodeSummary(findings: PermissionExportFindingRecord[])
     }
     const existing = summary[code] ?? { count: 0, errors: 0, warnings: 0 };
     existing.count += 1;
-    const severity = String(row.severity ?? '').toLowerCase();
-    if (severity === 'error' || severity === 'errors') {
+    // Catalog-first, matching the UI's `resolveFindingSeverity`, so the stored summary and the rendered
+    // rollups can never disagree about the same row.
+    const definition = PERMISSION_EXPORT_FINDING_DEFINITIONS[code as PermissionExportFindingCodeValue] as
+      | (typeof PERMISSION_EXPORT_FINDING_DEFINITIONS)[PermissionExportFindingCodeValue]
+      | undefined;
+    const severity = definition?.severity ?? String(row.severity ?? '').toLowerCase();
+    if (severity === PermissionExportFindingSeverity.Error) {
       existing.errors += 1;
-    } else if (severity === 'warning' || severity === 'warnings') {
+    } else if (severity === PermissionExportFindingSeverity.Warning) {
       existing.warnings += 1;
     }
     summary[code] = existing;

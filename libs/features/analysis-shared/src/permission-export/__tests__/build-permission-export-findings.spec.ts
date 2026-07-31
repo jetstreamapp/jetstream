@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildIssueCodeSummary, buildPermissionExportFindings } from '../build-permission-export-findings';
+import { buildIssueCodeSummary, buildPermissionExportFindings, MAX_PERMISSION_EXPORT_FINDINGS } from '../build-permission-export-findings';
 
 describe('buildPermissionExportFindings', () => {
   it('returns empty when there are no permission rows', () => {
@@ -284,10 +284,76 @@ describe('buildPermissionExportFindings — new findings', () => {
         { ParentId: parentId, Name: 'standard-Contact', Visibility: 'DefaultOn' },
         { ParentId: parentId, Name: 'My_VF_Tab', Visibility: 'DefaultOn' },
       ],
+      knownObjectApiNames: ['Account', 'Contact'],
     };
     const findings = buildPermissionExportFindings(objectPermissions, [], context).filter((f) => f.code === 'TAB_VISIBLE_NO_OBJECT_READ');
     expect(findings).toHaveLength(1);
     expect(findings[0].objectApiName).toBe('Account');
+  });
+
+  it('ignores standard tabs that are not backed by an object', () => {
+    const parentId = '0PS1';
+    const context = {
+      permissionSetTabSettings: [
+        { ParentId: parentId, Name: 'standard-home', Visibility: 'DefaultOn' },
+        { ParentId: parentId, Name: 'standard-report', Visibility: 'DefaultOn' },
+        { ParentId: parentId, Name: 'standard-Chatter', Visibility: 'DefaultOn' },
+        { ParentId: parentId, Name: 'standard-File', Visibility: 'DefaultOn' },
+        { ParentId: parentId, Name: 'standard-Account', Visibility: 'DefaultOn' },
+      ],
+      knownObjectApiNames: ['Account', 'Contact'],
+    };
+    const findings = buildPermissionExportFindings([], [], context).filter((f) => f.code === 'TAB_VISIBLE_NO_OBJECT_READ');
+    expect(findings).toHaveLength(1);
+    expect(findings[0].objectApiName).toBe('Account');
+  });
+
+  it('skips the tab pass entirely when the global describe was unavailable', () => {
+    const parentId = '0PS1';
+    const context = {
+      permissionSetTabSettings: [{ ParentId: parentId, Name: 'standard-Account', Visibility: 'DefaultOn' }],
+    };
+    const codes = buildPermissionExportFindings([], [], context).map((f) => f.code);
+    expect(codes).not.toContain('TAB_VISIBLE_NO_OBJECT_READ');
+  });
+
+  it('does not advise deleting managed, standard, or group-backed permission sets', () => {
+    // A real query result carries every selected column on every row, so all three deletability signals
+    // are present here (null where they do not apply).
+    const context = {
+      permissionSets: [
+        { Id: '0PS_MANAGED', Label: 'Packaged', IsOwnedByProfile: false, NamespacePrefix: 'acme', IsCustom: true, Type: 'Regular' },
+        {
+          Id: '0PS_STANDARD',
+          Label: 'Salesforce Provided',
+          IsOwnedByProfile: false,
+          NamespacePrefix: null,
+          IsCustom: false,
+          Type: 'Standard',
+        },
+        { Id: '0PS_GROUP', Label: 'Group Backed', IsOwnedByProfile: false, NamespacePrefix: null, IsCustom: true, Type: 'Group' },
+        { Id: '0PS_SESSION', Label: 'Session', IsOwnedByProfile: false, NamespacePrefix: null, IsCustom: true, Type: 'Session' },
+        { Id: '0PS_CUSTOM', Label: 'Real Orphan', IsOwnedByProfile: false, NamespacePrefix: null, IsCustom: true, Type: 'Regular' },
+      ],
+      permissionSetAssignments: [],
+    };
+    const findings = buildPermissionExportFindings([], [], context).filter((f) => f.code === 'PERMSET_NO_ASSIGNMENTS');
+    expect(findings.map((f) => f.permissionSetId)).toEqual(['0PS_CUSTOM']);
+    expect(String(findings[0].message)).toContain('may be safe to delete');
+  });
+
+  it('drops the deletion advice when the org did not expose the deletability columns', () => {
+    // Older / API-limited orgs where the describe intersection excluded NamespacePrefix / IsCustom / Type.
+    // The permission set really is unassigned, so the finding still surfaces — but without advice we
+    // cannot back up.
+    const context = {
+      permissionSets: [{ Id: '0PS_UNKNOWN', Label: 'Unassigned', IsOwnedByProfile: false }],
+      permissionSetAssignments: [],
+    };
+    const findings = buildPermissionExportFindings([], [], context).filter((f) => f.code === 'PERMSET_NO_ASSIGNMENTS');
+    expect(findings).toHaveLength(1);
+    expect(String(findings[0].message)).not.toContain('may be safe to delete');
+    expect(String(findings[0].message)).toContain('did not expose the columns');
   });
 });
 
@@ -323,6 +389,7 @@ describe('buildPermissionExportFindings — truncation and scope suppression', (
         { ParentId: parentId, Name: 'standard-Contact', Visibility: 'DefaultOn' },
       ],
       objectScope: ['Account'],
+      knownObjectApiNames: ['Account', 'Contact'],
     };
     const findings = buildPermissionExportFindings([], [], context).filter((f) => f.code === 'TAB_VISIBLE_NO_OBJECT_READ');
     // Contact tab is skipped — its ObjectPermissions rows were never fetched, so "no access" cannot be proven.
@@ -337,14 +404,82 @@ describe('buildPermissionExportFindings — truncation and scope suppression', (
   });
 });
 
+describe('buildPermissionExportFindings — effective access across assignments', () => {
+  const objectPermissions = [
+    // 0PS_FIELDS grants no object access; 0PS_OBJECT grants read on Account.
+    { ParentId: '0PS_OBJECT', SobjectType: 'Account', PermissionsRead: true },
+  ];
+  const fieldPermissions = [{ ParentId: '0PS_FIELDS', SobjectType: 'Account', Field: 'Account.Foo__c', PermissionsRead: true }];
+
+  it('suppresses the alignment finding when every assignee gets object access from another permission set', () => {
+    const codes = buildPermissionExportFindings(objectPermissions, fieldPermissions, {
+      permissionSetAssignments: [
+        { PermissionSetId: '0PS_FIELDS', AssigneeId: '005000000000001' },
+        { PermissionSetId: '0PS_OBJECT', AssigneeId: '005000000000001' },
+      ],
+    }).map((finding) => finding.code);
+    expect(codes).not.toContain('FLS_WITHOUT_OLS_ROW');
+  });
+
+  it('still flags when only some assignees get object access elsewhere', () => {
+    const codes = buildPermissionExportFindings(objectPermissions, fieldPermissions, {
+      permissionSetAssignments: [
+        { PermissionSetId: '0PS_FIELDS', AssigneeId: '005000000000001' },
+        { PermissionSetId: '0PS_OBJECT', AssigneeId: '005000000000001' },
+        // This user holds the field permissions but nothing that grants object access.
+        { PermissionSetId: '0PS_FIELDS', AssigneeId: '005000000000002' },
+      ],
+    }).map((finding) => finding.code);
+    expect(codes).toContain('FLS_WITHOUT_OLS_ROW');
+  });
+
+  it('still flags when the permission set has no assignees at all', () => {
+    const codes = buildPermissionExportFindings(objectPermissions, fieldPermissions, {}).map((finding) => finding.code);
+    expect(codes).toContain('FLS_WITHOUT_OLS_ROW');
+  });
+});
+
+describe('buildPermissionExportFindings — truncation keeps exposure findings', () => {
+  it('drops warnings rather than errors when the cap is reached', () => {
+    // Enough warning-only field misalignments to exhaust the warning budget, plus one permission set
+    // granting Modify All Data. Emission order puts the field pass first, so the naive cap would have
+    // dropped the error entirely.
+    const parentId = '0PS_BIG';
+    const objectPermissions = [{ ParentId: parentId, SobjectType: 'Account', PermissionsRead: false }];
+    const fieldPermissions = Array.from({ length: MAX_PERMISSION_EXPORT_FINDINGS + 25 }, (_, index) => ({
+      ParentId: parentId,
+      SobjectType: 'Account',
+      Field: `Account.Field${index}__c`,
+      PermissionsRead: true,
+    }));
+
+    const findings = buildPermissionExportFindings(objectPermissions, fieldPermissions, {
+      permissionSets: [{ Id: '0PS_ADMIN', Label: 'Admin', IsOwnedByProfile: false, PermissionsModifyAllData: true }],
+      permissionSetAssignments: [{ PermissionSetId: '0PS_ADMIN', AssigneeId: '005000000000001' }],
+    });
+
+    expect(findings.filter((finding) => finding.code === 'SYSTEM_PERM_HIGH_RISK')).toHaveLength(1);
+    // Errors sort ahead of warnings so they can never be the rows that get cut.
+    expect(findings[0].severity).toBe('error');
+    expect(findings.some((finding) => finding.code === 'FINDINGS_TRUNCATED')).toBe(true);
+  });
+});
+
 describe('buildIssueCodeSummary', () => {
   it('aggregates counts by code', () => {
     const summary = buildIssueCodeSummary([
-      { code: 'FLS_READ_NO_OBJECT_READ', severity: 'error' },
-      { code: 'FLS_READ_NO_OBJECT_READ', severity: 'error' },
+      { code: 'OBJECT_MODIFY_ALL_RECORDS', severity: 'error' },
+      { code: 'OBJECT_MODIFY_ALL_RECORDS', severity: 'error' },
       { code: 'OLS_READ_NO_FLS_ROWS', severity: 'warning' },
     ]);
-    expect(summary.FLS_READ_NO_OBJECT_READ).toEqual({ count: 2, errors: 2, warnings: 0 });
+    expect(summary.OBJECT_MODIFY_ALL_RECORDS).toEqual({ count: 2, errors: 2, warnings: 0 });
     expect(summary.OLS_READ_NO_FLS_ROWS).toEqual({ count: 1, errors: 0, warnings: 1 });
+  });
+
+  it('trusts the catalog over a stale stored severity', () => {
+    // FLS_READ_NO_OBJECT_READ is a warning in the catalog; a row claiming otherwise must not be counted
+    // as an error, or the stored summary would disagree with the UI's `resolveFindingSeverity`.
+    const summary = buildIssueCodeSummary([{ code: 'FLS_READ_NO_OBJECT_READ', severity: 'error' }]);
+    expect(summary.FLS_READ_NO_OBJECT_READ).toEqual({ count: 1, errors: 0, warnings: 1 });
   });
 });

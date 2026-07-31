@@ -32,6 +32,7 @@ import {
   formatObjectLabelForModalSummary,
   getFindingCodeDisplayParts,
   getFindingContainerId,
+  resolveFindingSeverity,
   type PermissionAnalysisFinding,
   type PermissionFindingCodeRollup,
   type PermissionFindingObjectRollup,
@@ -52,10 +53,6 @@ export interface PermissionAnalysisIssuesTabProps {
   sobjectExportDetails?: Record<string, SobjectExportDetail>;
 }
 
-function normalizeSeverity(value: string | undefined): string {
-  return (value ?? '').toLowerCase();
-}
-
 function groupIssueFindingsByColumnKey(
   rows: readonly PermissionAnalysisFinding[],
   columnKey: keyof PermissionAnalysisFinding,
@@ -65,8 +62,7 @@ function groupIssueFindingsByColumnKey(
     let key: string;
     switch (columnKey) {
       case 'severity': {
-        const normalized = normalizeSeverity(row.severity as string | undefined);
-        key = normalized.length > 0 ? normalized : '(none)';
+        key = resolveFindingSeverity(row) ?? '(none)';
         break;
       }
       case 'objectApiName': {
@@ -523,7 +519,7 @@ function sortFindings(rows: PermissionAnalysisFinding[], groupBy: IssuesGroupBy)
   const getter = (row: PermissionAnalysisFinding): string => {
     switch (groupBy) {
       case 'severity':
-        return normalizeSeverity(row.severity as string | undefined);
+        return resolveFindingSeverity(row) ?? '';
       case 'object':
         return String(row.objectApiName ?? '');
       case 'code':
@@ -551,14 +547,8 @@ type StandardFindingColumnKey =
 function mapStandardFindingColumn(key: StandardFindingColumnKey): ColumnWithFilter<RowWithKey> {
   const fieldType = key.endsWith('Id') ? 'salesforceId' : 'text';
   const base = setColumnFromType(key, fieldType);
-  const severityCellClass = (row: RowWithKey) => {
-    const finding = row as PermissionAnalysisFinding;
-    const severityValue = finding.severity as string | undefined;
-    if (isWarningSeverity(severityValue) && !isErrorSeverity(severityValue)) {
-      return 'permission-finding-severity-cell--warning';
-    }
-    return undefined;
-  };
+  const severityCellClass = (row: RowWithKey) =>
+    isWarningSeverity(row as PermissionAnalysisFinding) ? 'permission-finding-severity-cell--warning' : undefined;
   const renderCell =
     key === 'message'
       ? ({ row }: RenderCellProps<RowWithKey, unknown>) => (
@@ -670,11 +660,7 @@ const IssuesFindingTreeDataGrid: FunctionComponent<IssuesFindingTreeDataGridProp
       onExpandedGroupIdsChange={(nextExpanded) => setExpandedGroupIds(nextExpanded)}
       onSortedAndFilteredRowsChange={onSortedAndFilteredRowsChange}
       rowClass={(row) => {
-        const severityValue = (row as PermissionAnalysisFinding).severity as string | undefined;
-        if (isErrorSeverity(severityValue)) {
-          return 'permission-finding-row--error';
-        }
-        return undefined;
+        return isErrorSeverity(row as PermissionAnalysisFinding) ? 'permission-finding-row--error' : undefined;
       }}
     />
   );
@@ -1152,11 +1138,7 @@ export const PermissionAnalysisIssuesTab: FunctionComponent<PermissionAnalysisIs
                   context={{ defaultApiVersion }}
                   onSortedAndFilteredRowsChange={handleSortedAndFilteredRowsChange}
                   rowClass={(row) => {
-                    const severityValue = (row as PermissionAnalysisFinding).severity as string | undefined;
-                    if (isErrorSeverity(severityValue)) {
-                      return 'permission-finding-row--error';
-                    }
-                    return undefined;
+                    return isErrorSeverity(row as PermissionAnalysisFinding) ? 'permission-finding-row--error' : undefined;
                   }}
                 />
               ) : (
