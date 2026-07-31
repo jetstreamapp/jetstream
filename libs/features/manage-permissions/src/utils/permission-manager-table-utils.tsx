@@ -54,6 +54,7 @@ import {
 import classNames from 'classnames';
 import startCase from 'lodash/startCase';
 import { Fragment, useContext, useMemo, useRef, useState } from 'react';
+import { PermissionColumnGroupHeader } from '../PermissionColumnGroupHeader';
 import { supportsViewAllModifyAll, VIEW_ALL_MODIFY_ALL_UNSUPPORTED_MESSAGE } from './object-permission-support';
 import {
   SYSTEM_PERMISSION_DEPENDENCY_TOOLTIP,
@@ -652,6 +653,16 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
     key: `${id}-${actionKey}`,
     width: colWidth,
     filters: ['BOOLEAN_SET'],
+    // Only the first column of each group renders a header cell — the rest are covered by its colSpan.
+    // It must be non-sortable because a sortable header wraps its label in a <button>, and the group header
+    // hosts a popover trigger (also a button). Nothing is lost: sorting reads row["<id>-<action>"], which
+    // never exists on these rows, so it was already a no-op. Filtering uses `getValue` and is unaffected.
+    ...(isFirstItem
+      ? {
+          sortable: false,
+          renderHeaderCell: () => <PermissionColumnGroupHeader id={id} label={label} type={type} />,
+        }
+      : {}),
     cellClass: (row) => {
       if (permissionType === 'object') {
         const permission = row.permissions[id] as PermissionTableObjectCellPermission;

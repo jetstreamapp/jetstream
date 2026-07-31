@@ -196,6 +196,8 @@ export const ANALYTICS_KEYS = {
   permission_manager_reload: 'permission_manager_reload',
   permission_manager_saved: 'permission_manager_saved',
   permission_manager_save_cancelled: 'permission_manager_save_cancelled',
+  permission_manager_assignments_opened: 'permission_manager_assignments_opened',
+  permission_manager_assignments_saved: 'permission_manager_assignments_saved',
   /** USER SEARCH MODAL */
   user_search_opened: 'user_search_opened',
   user_search_view_user: 'user_search_view_user',
