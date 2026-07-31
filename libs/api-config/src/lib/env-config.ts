@@ -149,6 +149,8 @@ const envSchema = z.object({
   // canvas DSN (NX_PUBLIC_SENTRY_DSN_CANVAS). Canvas runs inside a Salesforce iframe under a strict
   // CSP, so this origin has to be allow-listed in `connect-src`. Parsed here rather than read raw at
   // the route so a malformed DSN fails at boot instead of silently blocking error reports.
+  // An empty value means "not configured" (an unset CI secret and `.env.example` both produce one),
+  // which disables canvas reporting; a non-empty but malformed DSN still fails the boot-time parse.
   CANVAS_SENTRY_INGEST_ORIGIN: z
     .url()
     .optional()
@@ -338,7 +340,7 @@ const parseResults = envSchema.safeParse({
   JETSTREAM_SERVER_URL: process.env.NX_PUBLIC_SERVER_URL || process.env.JETSTREAM_SERVER_URL,
   JETSTREAM_SERVER_DOMAIN: process.env.NX_PUBLIC_SERVER_DOMAIN || process.env.JETSTREAM_SERVER_DOMAIN,
   DISABLE_ERROR_REPORTING: process.env.NX_PUBLIC_DISABLE_ERROR_REPORTING || process.env.DISABLE_ERROR_REPORTING,
-  CANVAS_SENTRY_INGEST_ORIGIN: process.env.NX_PUBLIC_SENTRY_DSN_CANVAS,
+  CANVAS_SENTRY_INGEST_ORIGIN: process.env.NX_PUBLIC_SENTRY_DSN_CANVAS || undefined,
   VERSION,
 });
 

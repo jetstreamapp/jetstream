@@ -2,7 +2,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { getCanvasPreferences, updateCanvasPreferences } from '@jetstream/shared/data';
 import { initErrorTracker, setErrorTrackerUser, useObservable } from '@jetstream/shared/ui-utils';
-import { JetstreamEventSaveSoqlQueryFormatOptionsPayload } from '@jetstream/types';
+import { JetstreamEventSaveSoqlQueryFormatOptionsPayload, SalesforceOrgUi } from '@jetstream/types';
 import { AppLoading, fromJetstreamEvents } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { initDexieDb } from '@jetstream/ui/db';
@@ -35,15 +35,17 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
     fromJetstreamEvents.getObservable('saveSoqlQueryFormatOptions') as Observable<JetstreamEventSaveSoqlQueryFormatOptionsPayload>,
   );
 
-  const [initError] = useState<string | null>(() => {
+  // The signed request is only available in a canvas context, so this is where we find out if we
+  // have an org at all - everything downstream keys off the result instead of re-deriving it.
+  const [{ org, initError }] = useState<{ org: SalesforceOrgUi | null; initError: string | null }>(() => {
     try {
       const org = getCanvasOrg();
       setSalesforceOrgs([org]);
       setSelectedOrgId(org.uniqueId);
-      return null;
+      return { org, initError: null };
     } catch (ex) {
       logger.error('[CANVAS] Error initializing canvas org', ex);
-      return 'Failed to initialize Salesforce connection. The canvas context may not be available.';
+      return { org: null, initError: 'Failed to initialize Salesforce connection. The canvas context may not be available.' };
     }
   });
 
@@ -52,13 +54,10 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
       dsn: environment.sentryDsn,
       environment: environment.production ? 'production' : 'development',
     });
-    try {
-      const org = getCanvasOrg();
+    if (org) {
       setErrorTrackerUser({ id: org.userId, email: org.email });
-    } catch {
-      // Signed request may be unavailable in non-canvas contexts; user context is best-effort.
     }
-  }, []);
+  }, [org]);
 
   useEffect(() => {
     // wait until this data has initialized before proceeding
