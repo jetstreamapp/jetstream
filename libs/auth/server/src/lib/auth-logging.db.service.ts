@@ -33,7 +33,12 @@ export type Action =
   | 'SSO_START'
   | 'SSO_JIT_PROVISIONED'
   | 'CAPTCHA_FAILED'
-  | 'TOS_ACCEPTED';
+  | 'TOS_ACCEPTED'
+  | 'STEP_UP_AUTH'
+  | 'EMAIL_CHANGE_REQUEST'
+  | 'EMAIL_CHANGE_COMPLETED'
+  | 'EMAIL_CHANGE_CANCELLED'
+  | 'EMAIL_CHANGE_FAILED';
 
 export const actionDisplayName: Record<Action, string> = {
   LOGIN: 'Login Attempt',
@@ -64,6 +69,11 @@ export const actionDisplayName: Record<Action, string> = {
   SSO_JIT_PROVISIONED: 'SSO JIT User Provisioned',
   CAPTCHA_FAILED: 'Captcha Verification Failed',
   TOS_ACCEPTED: 'Terms of Service Accepted',
+  STEP_UP_AUTH: 'Re-authentication',
+  EMAIL_CHANGE_REQUEST: 'Email Change Requested',
+  EMAIL_CHANGE_COMPLETED: 'Email Change Completed',
+  EMAIL_CHANGE_CANCELLED: 'Email Change Cancelled',
+  EMAIL_CHANGE_FAILED: 'Email Change Failed',
 };
 
 export const methodDisplayName: Record<string, string> = {
@@ -72,6 +82,12 @@ export const methodDisplayName: Record<string, string> = {
   SALESFORCE: 'Salesforce',
   SAML: 'SAML SSO',
   OIDC: 'OIDC SSO',
+  USER_PROFILE: 'User Profile',
+  EMAIL_LINK: 'Email Link',
+  // Step-up factors, recorded as the uppercased StepUpMethod.
+  PASSWORD: 'Password',
+  '2FA-OTP': 'Authenticator App',
+  EMAIL: 'Emailed Code',
 };
 
 interface LoginActivity {

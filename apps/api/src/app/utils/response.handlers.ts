@@ -1,6 +1,6 @@
 import { ENV, errorTracker, getLogger, prisma } from '@jetstream/api-config';
 import type { Response } from '@jetstream/api-types';
-import { AuthError, createCSRFToken, getCookieConfig } from '@jetstream/auth/server';
+import { AuthError, createCSRFToken, getCookieConfig, StepUpAuthRequiredError } from '@jetstream/auth/server';
 import { isPrismaError, Prisma, SalesforceOrg, toTypedPrismaError } from '@jetstream/prisma';
 import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
 import { getErrorMessage } from '@jetstream/shared/utils';
@@ -236,8 +236,10 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
         deferredErrorBody.orgConnectionError = ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED_MSG;
       }
 
-      // Include auth error type so client can trigger logout if needed
-      if (err instanceof AuthenticationError && !err.skipLogout) {
+      // Step-up prompts must NOT set logout - checked first so the branches below cannot claim it.
+      if (err instanceof StepUpAuthRequiredError) {
+        deferredErrorBody.errorType = err.errorType;
+      } else if (err instanceof AuthenticationError && !err.skipLogout) {
         deferredErrorBody.logout = true;
         let logoutUrl = `${ENV.JETSTREAM_SERVER_URL}/auth/login`;
         if (req.session?.pendingVerification && req.session.pendingVerification.some(({ exp }) => exp > Date.now())) {
@@ -284,7 +286,18 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       res.status(err.status);
     }
 
-    if (err instanceof AuthError) {
+    if (err instanceof StepUpAuthRequiredError) {
+      // Must be handled BEFORE the AuthError branch below, and must never set X-AUTH-LOGOUT or
+      // redirect: the whole point is to prompt for re-authentication, not to end the session.
+      responseLogger.debug({ err }, '[RESPONSE][STEP_UP_REQUIRED]');
+      res.status(err.status);
+      return res.json({
+        error: true,
+        success: false,
+        errorType: err.errorType,
+        message: err.message,
+      });
+    } else if (err instanceof AuthError) {
       res.status(status || 400);
       // These errors are emitted during the authentication process
       responseLogger.warn({ err, type: err.type }, '[RESPONSE][AUTH_ERROR]');

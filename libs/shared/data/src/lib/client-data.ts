@@ -5,8 +5,14 @@ import type {
   LoginConfigurationUI,
   LoginConfigurationWithCallbacks,
   OidcConfiguration,
+  PendingEmailChange,
   Providers,
   SamlConfiguration,
+  StepUpAvailableMethods,
+  StepUpChallengeResponse,
+  StepUpMethod,
+  StepUpPurpose,
+  StepUpVerifyResponse,
   TwoFactorTypeWithoutEmail,
   UserProfileAuthFactor,
   UserProfileUiWithIdentities,
@@ -376,8 +382,42 @@ export async function unlinkIdentityFromProfile(identity: {
   return handleRequest({ method: 'DELETE', url: '/api/me/profile/identity', params: identity }).then(unwrapResponseIgnoreCache);
 }
 
-export async function resendVerificationEmail(identity: { provider: string; userId: string }): Promise<void> {
-  return handleRequest({ method: 'POST', url: '/api/me/profile/identity/verify-email', params: identity }).then(unwrapResponseIgnoreCache);
+/** Which factors this user can complete, so the prompt only offers ones that will work. */
+export async function getStepUpMethods(): Promise<StepUpAvailableMethods> {
+  return handleRequest({ method: 'GET', url: '/api/me/profile/step-up/methods' }).then(unwrapResponseIgnoreCache);
+}
+
+/** Sends the emailed step-up code. Only applies to the `email` method. */
+export async function initStepUpChallenge(): Promise<StepUpChallengeResponse> {
+  return handleRequest({ method: 'POST', url: '/api/me/profile/step-up/challenge', data: { method: 'email' } }).then(
+    unwrapResponseIgnoreCache,
+  );
+}
+
+export async function verifyStepUp(payload: {
+  purpose: StepUpPurpose;
+  method: StepUpMethod;
+  code?: string;
+  password?: string;
+}): Promise<StepUpVerifyResponse> {
+  return handleRequest({ method: 'POST', url: '/api/me/profile/step-up/verify', data: payload }).then(unwrapResponseIgnoreCache);
+}
+
+/**
+ * @param stepUpNonce omitted on the first attempt - the server responds 403 to ask for
+ * re-authentication, and the call is retried with the nonce that grant returns.
+ */
+export async function requestEmailChange(
+  newEmail: string,
+  stepUpNonce?: string,
+): Promise<{ pendingEmailChange: Maybe<PendingEmailChange>; confirmToken?: string; cancelToken?: string }> {
+  return handleRequest({ method: 'POST', url: '/api/me/profile/email-change', data: { newEmail, stepUpNonce } }).then(
+    unwrapResponseIgnoreCache,
+  );
+}
+
+export async function cancelEmailChange(): Promise<{ pendingEmailChange: Maybe<PendingEmailChange> }> {
+  return handleRequest({ method: 'DELETE', url: '/api/me/profile/email-change' }).then(unwrapResponseIgnoreCache);
 }
 
 export async function initCheckoutSession({

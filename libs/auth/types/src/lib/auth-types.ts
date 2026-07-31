@@ -36,6 +36,8 @@ export interface UserProfileUiWithIdentities extends UserProfile {
   identities: UserProfileIdentity[];
   authFactors: UserProfileAuthFactor[];
   teamMembership?: Maybe<UserProfileTeamMemberships>;
+  /** Rides along on the profile payload so the UI never needs a separate request or polling. */
+  pendingEmailChange?: Maybe<PendingEmailChange>;
 }
 
 export interface UserProfileIdentity {
@@ -138,6 +140,55 @@ export type TwoFactorTypeOtpEmail = '2fa-email';
 export type TwoFactorTypeWithoutEmail = TwoFactorTypeOtp | TwoFactorTypeOtpEmail;
 export type TwoFactorType = TwoFactorTypeEmail | TwoFactorTypeOtp | TwoFactorTypeOtpEmail;
 
+/**
+ * Step-up (re)authentication - proving identity again from an already-authenticated session before
+ * a sensitive action. `email` is the fallback for oauth/sso-only users who have no password.
+ */
+export const StepUpMethodSchema = z.enum(['password', '2fa-otp', 'email']);
+export type StepUpMethod = z.infer<typeof StepUpMethodSchema>;
+
+/**
+ * A step-up grant is bound to the action it was obtained for so it cannot be silently reused by a
+ * different sensitive route. Extend this as more routes adopt step-up.
+ */
+export const StepUpPurposeSchema = z.enum(['CHANGE_EMAIL']);
+export type StepUpPurpose = z.infer<typeof StepUpPurposeSchema>;
+
+/**
+ * `errorType` on the 403 that asks the caller to re-authenticate. Lives here because it is the wire
+ * contract between the server error class and the client response interceptor - a second copy on
+ * either side could drift without anything failing to compile.
+ */
+export const STEP_UP_AUTH_REQUIRED_ERROR_TYPE = 'STEP_UP_AUTH_REQUIRED';
+
+export interface StepUpAvailableMethods {
+  methods: StepUpMethod[];
+  /**
+   * Address the email fallback is sent to. Deliberately unmasked: step-up only ever runs inside an
+   * authenticated session, where the caller can already read their own address off the profile page,
+   * so masking it here would hide nothing and only leave the user guessing which inbox to check.
+   */
+  email: string;
+}
+
+export interface StepUpChallengeResponse {
+  method: StepUpMethod;
+  expiresAt: string;
+}
+
+export interface StepUpVerifyResponse {
+  /** Echoed back on the protected call so a grant cannot be ridden by a different browser tab. */
+  stepUpNonce: string;
+  expiresAt: string;
+}
+
+export interface PendingEmailChange {
+  id: string;
+  newEmail: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
 export interface SessionData {
   user: UserProfileSession;
   csrfToken: string;
@@ -167,6 +218,32 @@ export interface SessionData {
    * counter reaches MAX_VERIFICATION_ATTEMPTS.
    */
   pendingVerificationAttempts?: number;
+  /**
+   * Proof that the user re-authenticated recently, set by POST /api/me/profile/step-up/verify.
+   * Short-lived, single-use (deleted when the protected route consumes it), and bound to a purpose
+   * so a grant for one sensitive action cannot be reused by another.
+   *
+   * Stored on the session rather than in the database because the session is already the trust
+   * boundary checkAuth enforces (including the user-agent similarity guard), which makes the grant
+   * inherently device-scoped and means it dies with the session on revokeAllUserSessions.
+   */
+  stepUpAuth?: {
+    method: StepUpMethod;
+    purpose: StepUpPurpose;
+    verifiedAt: number;
+    expiresAt: number;
+    /**
+     * Returned to the client on verify and echoed back on the protected call. Lives only in that
+     * tab's memory - never a cookie or localStorage - so script in a background tab cannot ride a
+     * grant obtained elsewhere.
+     */
+    nonce: string;
+  } | null;
+  /** Failed step-up submissions for the current challenge. Reset on success and on a new challenge. */
+  stepUpAuthAttempts?: number;
+  stepUpAuthLockedUntil?: number;
+  /** In-flight emailed step-up code, for oauth/sso-only users who have no password. */
+  stepUpChallenge?: { type: TwoFactorTypeEmail; token: string; exp: number } | null;
   loginTime: number;
   provider: OauthProviderType | SsoProviderType | 'credentials';
   providerAccountId?: string;
@@ -524,7 +601,40 @@ export type LoginConfigurationUI = {
     email: boolean;
     otp: boolean;
   };
+  emailChange: {
+    allowed: boolean;
+    /**
+     * Non-null only when allowed is false. CASL can only answer yes/no, so the reason is carried
+     * separately to drive the specific explanation shown in the UI.
+     */
+    blockedReason: EmailChangeBlockedReason | null;
+  };
 };
+
+export type EmailChangeBlockedReason = 'SSO_MANAGED';
+
+/**
+ * Baseline configuration for a user with no team (or a team with no login configuration).
+ * Exported as a factory so every call site - including tests - picks up new keys automatically
+ * rather than silently omitting them.
+ */
+export function getDefaultLoginConfigurationUI(): LoginConfigurationUI {
+  return {
+    isPasswordAllowed: true,
+    isGoogleAllowed: true,
+    isSalesforceAllowed: true,
+    requireMfa: false,
+    allowIdentityLinking: true,
+    allowedMfaMethods: {
+      email: true,
+      otp: true,
+    },
+    emailChange: {
+      allowed: true,
+      blockedReason: null,
+    },
+  };
+}
 
 // TODO: could do discriminated union?
 export const ProviderBaseSchema = z.object({

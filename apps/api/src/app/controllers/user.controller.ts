@@ -21,7 +21,7 @@ import {
   toggleEnableDisableAuthFactor,
   verify2faTotpOrThrow,
 } from '@jetstream/auth/server';
-import { LoginConfigurationUI, OauthProviderTypeSchema } from '@jetstream/auth/types';
+import { getDefaultLoginConfigurationUI, LoginConfigurationUI, OauthProviderTypeSchema } from '@jetstream/auth/types';
 import {
   sendAuthenticationChangeConfirmation,
   sendGoodbyeEmail,
@@ -318,17 +318,7 @@ const revokeAllSessions = createRoute(routeDefinition.revokeAllSessions.validato
 });
 
 const getUserLoginConfiguration = createRoute(routeDefinition.getUserLoginConfiguration.validators, async ({ teamMembership }, _, res) => {
-  const defaultLoginConfiguration: LoginConfigurationUI = {
-    isPasswordAllowed: true,
-    isGoogleAllowed: true,
-    isSalesforceAllowed: true,
-    requireMfa: false,
-    allowIdentityLinking: true,
-    allowedMfaMethods: {
-      email: true,
-      otp: true,
-    },
-  };
+  const defaultLoginConfiguration = getDefaultLoginConfigurationUI();
 
   if (!teamMembership?.teamId) {
     sendJson(res, defaultLoginConfiguration);
@@ -339,6 +329,9 @@ const getUserLoginConfiguration = createRoute(routeDefinition.getUserLoginConfig
     if (!response) {
       return defaultLoginConfiguration;
     }
+    // When SSO is active the identity provider owns the email address - letting a member repoint it
+    // would desync the account from the IdP and leave a login path that survives IdP deprovisioning.
+    const isSsoManaged = response.ssoEnabled && response.ssoProvider !== 'NONE';
     return {
       isPasswordAllowed: response.allowedProviders.has('credentials'),
       isGoogleAllowed: response.allowedProviders.has('google'),
@@ -348,6 +341,10 @@ const getUserLoginConfiguration = createRoute(routeDefinition.getUserLoginConfig
       allowedMfaMethods: {
         email: response.allowedMfaMethods.has('2fa-email'),
         otp: response.allowedMfaMethods.has('2fa-otp'),
+      },
+      emailChange: {
+        allowed: !isSsoManaged,
+        blockedReason: isSsoManaged ? 'SSO_MANAGED' : null,
       },
     };
   });

@@ -7,7 +7,7 @@ import { UserProfileUi } from '@jetstream/types';
 import * as bcrypt from 'bcryptjs';
 import * as Bowser from 'bowser';
 import { Request as ExpressRequest } from 'express';
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 
 export const REMEMBER_DEVICE_DAYS = 30;
 
@@ -205,6 +205,29 @@ export function timingSafeStringCompare(a: string | undefined | null, b: string 
   } catch {
     return false;
   }
+}
+
+/**
+ * Hashes a high-entropy opaque token for storage, so a database or backup disclosure does not hand
+ * over usable tokens. Unsalted sha256 is appropriate here (and not for passwords) because the input
+ * is already 32 random bytes - there is nothing to brute force.
+ */
+export function hashOpaqueToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
+
+/**
+ * Masks an email address for display in contexts where the full value must not be revealed - e.g.
+ * telling someone which address a verification link came from without disclosing it to a stranger
+ * who received the message by mistake.
+ */
+export function maskEmail(email: string): string {
+  const [localPart, domain] = email.split('@');
+  if (!domain) {
+    return '***';
+  }
+  const visible = localPart.slice(0, 1);
+  return `${visible}${'*'.repeat(Math.max(localPart.length - 1, 3))}@${domain}`;
 }
 
 export function createCSRFToken({ secret }: CreateCSRFTokenParams) {

@@ -2,8 +2,9 @@ import { createRateLimit } from '@jetstream/api-config';
 import { MAX_VERIFICATION_ATTEMPTS } from '@jetstream/auth/server';
 import express, { Router } from 'express';
 import * as authController from '../controllers/auth.controller';
+import { routeDefinition as emailChangeController } from '../controllers/email-change.controller';
 import { rateLimitGetKeyGenerator, rateLimitGetMaxRequests } from '../utils/route.utils';
-import { passwordResetEmailRateLimit, verifyCaptcha } from './route.middleware';
+import { emailChangeTokenRateLimit, passwordResetEmailRateLimit, verifyCaptcha } from './route.middleware';
 
 /**
  * Authentication routes
@@ -87,6 +88,23 @@ routes.post(
 );
 // Finish resetting password
 routes.post('/password/reset/verify', STRICT_AuthRateLimit, authController.routeDefinition.validatePasswordReset.controllerFn());
+
+// Email address change confirm/cancel from the emailed links. Deliberately POST-only: the emailed
+// URL points at a page that merely renders, and the change is applied only after an explicit click,
+// so a mail scanner or link prefetcher following the URL cannot complete or cancel anything.
+// Neither route creates or elevates a session - the account is resolved from the token itself.
+routes.post(
+  '/email-change/confirm',
+  STRICT_AuthRateLimit,
+  emailChangeTokenRateLimit,
+  emailChangeController.confirmEmailChangeByToken.controllerFn(),
+);
+routes.post(
+  '/email-change/cancel',
+  STRICT_AuthRateLimit,
+  emailChangeTokenRateLimit,
+  emailChangeController.cancelEmailChangeByTokenRoute.controllerFn(),
+);
 
 // Get otp enrollment
 routes.get('/2fa-otp/enroll', STRICT_AuthRateLimit, authController.routeDefinition.getOtpEnrollmentData.controllerFn());

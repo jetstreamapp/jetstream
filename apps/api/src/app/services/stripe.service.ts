@@ -250,6 +250,14 @@ export async function createCustomer(user: Pick<UserProfile, 'id' | 'name' | 'em
 }
 
 /**
+ * Keeps the Stripe customer's email aligned with the account, so receipts and dunning notices reach
+ * the address the user actually reads.
+ */
+export async function updateCustomerEmail(customerId: string, email: string) {
+  return stripe.customers.update(customerId, { email });
+}
+
+/**
  * Update customer metadata to ensure that it matches based on the current state of Jetstream
  */
 export async function updateCustomerMetadata(

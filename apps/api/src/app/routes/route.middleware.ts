@@ -3,6 +3,7 @@ import { AuditLogAction, AuditLogResource, createTeamAuditLog } from '@jetstream
 import {
   AuthError,
   checkUserAgentSimilarity,
+  consumeStepUpAuthOrThrow,
   createUserActivityFromReq,
   ExpiredVerificationToken,
   generateHMACDoubleCSRFToken,
@@ -14,7 +15,7 @@ import {
   timingSafeStringCompare,
   validateHMACDoubleCSRFToken,
 } from '@jetstream/auth/server';
-import { UserProfileSession } from '@jetstream/auth/types';
+import { StepUpPurpose, UserProfileSession } from '@jetstream/auth/types';
 import { ApiConnection, exchangeRefreshToken, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import { HTTP } from '@jetstream/shared/constants';
 import { ensureBoolean, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
@@ -712,6 +713,107 @@ export const passwordResetEmailRateLimit = createRateLimit(
       }
       return req.session.user?.id || passwordResetEmailIpKeyGenerator(req, res);
     },
+  },
+  { distributed: true },
+);
+
+const stepUpIpKeyGenerator = rateLimitGetKeyGenerator();
+// Distributed ceiling that backstops the per-session attempt counter, which a client could otherwise
+// try to race across instances.
+export const stepUpVerifyRateLimit = createRateLimit(
+  'api_step_up_verify',
+  {
+    windowMs: 1000 * 60 * 15, // 15 minutes
+    limit: rateLimitGetMaxRequests(10),
+    keyGenerator: (req, res) => req.session.user?.id || req.sessionID || stepUpIpKeyGenerator(req, res),
+  },
+  { distributed: true },
+);
+
+// Bounds how many verification emails a single account can trigger for itself.
+export const stepUpChallengeRateLimit = createRateLimit(
+  'api_step_up_challenge',
+  {
+    windowMs: 1000 * 60 * 15, // 15 minutes
+    limit: rateLimitGetMaxRequests(3),
+    keyGenerator: (req, res) => req.session.user?.id || req.sessionID || stepUpIpKeyGenerator(req, res),
+  },
+  { distributed: true },
+);
+
+/**
+ * Requires the caller to have re-authenticated recently for this specific purpose, consuming the
+ * grant so it authorizes exactly one action. The factor that satisfied it is placed on
+ * res.locals.stepUpMethod for the controller, because consuming clears it from the session.
+ *
+ * Deliberately a per-route middleware rather than a flag on createRoute. createRoute wraps every
+ * route in the application, so an authorization check inside it makes every handler an
+ * authorization site - CodeQL's js/missing-rate-limiting flagged all 120 of them, and it is right
+ * to: a shared wrapper that can reject on credentials is a very different thing from one that
+ * cannot. Keeping the check here means only routes that actually opt in carry that property.
+ *
+ * Reads stepUpNonce off the raw body (body parsers run before the route mounts, see main.ts). It is
+ * only ever compared for equality against a value generated server-side, so it needs no schema
+ * validation to be safe.
+ *
+ * NOTE: this is positional - it must be listed on the route, ahead of the controller.
+ */
+export function requireStepUpAuth(purpose: StepUpPurpose) {
+  return (req: Request, res: express.Response, next: express.NextFunction) => {
+    try {
+      const stepUpNonce = typeof req.body?.stepUpNonce === 'string' ? req.body.stepUpNonce : undefined;
+      res.locals.stepUpMethod = consumeStepUpAuthOrThrow(req, purpose, stepUpNonce);
+      next();
+    } catch (ex) {
+      next(ex);
+    }
+  };
+}
+
+// Baseline ceiling for the authenticated account-management reads and the cancel action. These are
+// already behind checkAuth + CSRF and only ever touch the caller's own account, so the limit is set
+// well above normal UI usage - it exists to bound abuse of an authenticated session, not to shape
+// legitimate traffic.
+export const accountManagementRateLimit = createRateLimit(
+  'api_account_management',
+  {
+    windowMs: 1000 * 60 * 15, // 15 minutes
+    limit: rateLimitGetMaxRequests(60),
+    keyGenerator: (req, res) => req.session.user?.id || stepUpIpKeyGenerator(req, res),
+  },
+  { distributed: true },
+);
+
+const emailChangeIpKeyGenerator = rateLimitGetKeyGenerator();
+// Mirrors passwordResetEmailRateLimit: keyed on the TARGET (new) address so a third party cannot be
+// mailbox-bombed by an attacker rotating source IPs or using several accounts. The per-user
+// "once every 24 hours" rule is enforced separately as a database check, because distributed
+// limiters fail OPEN on a store error and that rule must not.
+export const emailChangeRequestRateLimit = createRateLimit(
+  'api_email_change_request',
+  {
+    windowMs: 1000 * 60 * 60, // 1 hour
+    limit: rateLimitGetMaxRequests(3),
+    keyGenerator: (req, res) => {
+      // Bounded before it becomes part of the distributed store key - see the note on
+      // passwordResetEmailRateLimit for why an oversized value must not be able to overflow it.
+      const email = typeof req.body?.newEmail === 'string' ? req.body.newEmail.trim().toLowerCase().slice(0, 254) : undefined;
+      if (email) {
+        return `email:${email}`;
+      }
+      return req.session.user?.id || emailChangeIpKeyGenerator(req, res);
+    },
+  },
+  { distributed: true },
+);
+
+// Confirm and cancel are token-bearing and unauthenticated, so the only stable key is the caller.
+export const emailChangeTokenRateLimit = createRateLimit(
+  'api_email_change_token',
+  {
+    windowMs: 1000 * 60 * 15, // 15 minutes
+    limit: rateLimitGetMaxRequests(10),
+    keyGenerator: (req, res) => req.session.user?.id || emailChangeIpKeyGenerator(req, res),
   },
   { distributed: true },
 );

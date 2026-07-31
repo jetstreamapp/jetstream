@@ -122,6 +122,7 @@ const authServerMocks = vi.hoisted(() => {
     validateRedirectUrl: vi.fn((url: string) => url || 'https://client.test'),
     verify2faTotpOrThrow: vi.fn(),
     verifyCSRFFromRequestOrThrow: vi.fn(),
+    verifyTotpCodeOnceOrThrow: vi.fn(),
   };
 });
 
@@ -656,9 +657,12 @@ describe('auth.controller - SSO callback redirect resolution', () => {
 
 /**
  * Regression coverage for single-use (replay) enforcement on the 2fa-otp verification path. A valid
- * TOTP code is accepted exactly once within its validity window: the controller records the
- * `${userId}:${code}` key via DbCacheProvider.consumeOnceAsync and rejects the request when that
- * atomic insert reports the code was already consumed, closing the replay window on an intercepted code.
+ * TOTP code is accepted exactly once within its validity window.
+ *
+ * The record-and-reject mechanism itself lives in verifyTotpCodeOnceOrThrow (auth.service), which
+ * shares one replay namespace with step-up re-authentication so a code burned signing in cannot then
+ * authorize a sensitive action. What is asserted here is the controller's contract: it delegates for
+ * the user and code in hand, and a rejection is treated as a bad-code error.
  */
 describe('auth.controller - 2fa-otp single-use replay enforcement', () => {
   const REAL_USER_ID = 'real-user-id';
@@ -697,7 +701,7 @@ describe('auth.controller - 2fa-otp single-use replay enforcement', () => {
     authServerMocks.getTotpAuthenticationFactor.mockResolvedValue({ secret: 'totp-secret' } as never);
     authServerMocks.verify2faTotpOrThrow.mockResolvedValue(undefined as never);
     // Default to first-use; the replay test overrides this for a single call.
-    dbCacheMocks.consumeOnceAsync.mockResolvedValue(true);
+    authServerMocks.verifyTotpCodeOnceOrThrow.mockResolvedValue(undefined as never);
   });
 
   it('accepts a valid TOTP code on first use and records it against the replay cache', async () => {
@@ -709,7 +713,7 @@ describe('auth.controller - 2fa-otp single-use replay enforcement', () => {
     await handler(req as never, res as never, next);
 
     expect(next).not.toHaveBeenCalled();
-    expect(dbCacheMocks.consumeOnceAsync).toHaveBeenCalledWith(`${REAL_USER_ID}:${OTP_CODE}`);
+    expect(authServerMocks.verifyTotpCodeOnceOrThrow).toHaveBeenCalledWith(REAL_USER_ID, OTP_CODE);
     expect(responseHandlerMocks.sendJson).toHaveBeenCalledWith(res, { error: false, redirect: 'https://client.test' });
     expect(authServerMocks.createUserActivityFromReq).toHaveBeenCalledWith(
       req,
@@ -718,8 +722,10 @@ describe('auth.controller - 2fa-otp single-use replay enforcement', () => {
     );
   });
 
-  it('rejects a replayed TOTP code (consumeOnceAsync returns false) and charges the attempt', async () => {
-    dbCacheMocks.consumeOnceAsync.mockResolvedValueOnce(false);
+  it('rejects a replayed TOTP code and charges the attempt', async () => {
+    authServerMocks.verifyTotpCodeOnceOrThrow.mockRejectedValueOnce(
+      new authServerMocks.InvalidVerificationToken('Provided code has already been used') as never,
+    );
     const req = make2faOtpReq();
     const res = makeRes();
     const next = vi.fn();
@@ -727,7 +733,7 @@ describe('auth.controller - 2fa-otp single-use replay enforcement', () => {
     const handler = routeDefinition.verification.controllerFn();
     await handler(req as never, res as never, next);
 
-    expect(dbCacheMocks.consumeOnceAsync).toHaveBeenCalledWith(`${REAL_USER_ID}:${OTP_CODE}`);
+    expect(authServerMocks.verifyTotpCodeOnceOrThrow).toHaveBeenCalledWith(REAL_USER_ID, OTP_CODE);
     expect(responseHandlerMocks.sendJson).not.toHaveBeenCalled();
     expect(next).toHaveBeenCalledTimes(1);
     expect(next.mock.calls[0][0]).toMatchObject({ message: 'Provided code has already been used' });

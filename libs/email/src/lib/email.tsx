@@ -9,6 +9,8 @@ import {
   AuthenticationChangeConfirmationEmail,
   AuthenticationChangeConfirmationEmailProps,
 } from './email-templates/auth/AuthenticationChangeConfirmationEmail';
+import { EmailChangeRequestedEmail } from './email-templates/auth/EmailChangeRequestedEmail';
+import { EmailChangeVerifyEmail } from './email-templates/auth/EmailChangeVerifyEmail';
 import { GenericEmail } from './email-templates/auth/GenericEmail';
 import { PasswordResetConfirmationEmail } from './email-templates/auth/PasswordResetConfirmationEmail';
 import { PasswordResetEmail } from './email-templates/auth/PasswordResetEmail';
@@ -168,6 +170,53 @@ export async function sendPasswordResetConfirmation(emailAddress: string) {
   await sendEmail({
     to: emailAddress,
     subject: 'Jetstream password reset confirmation',
+    text,
+    html,
+  });
+}
+
+/**
+ * Sent to the NEW address to prove the requester controls that mailbox.
+ *
+ * The token is deliberately kept out of the subject line: every subject is persisted to
+ * EmailActivity and retained for months, which is an acceptable risk for a short-lived 6-digit code
+ * but not for a link token that alone authorizes the change.
+ */
+export async function sendEmailChangeVerification(
+  emailAddress: string,
+  { token, currentEmailMasked, expMinutes }: { token: string; currentEmailMasked: string; expMinutes: number },
+) {
+  const component = (
+    <EmailChangeVerifyEmail
+      baseUrl={ENV.JETSTREAM_SERVER_URL}
+      token={token}
+      currentEmailMasked={currentEmailMasked}
+      expMinutes={expMinutes}
+    />
+  );
+  const [html, text] = await renderComponent(component);
+
+  await sendEmail({
+    to: emailAddress,
+    subject: 'Confirm your new Jetstream email address',
+    text,
+    html,
+  });
+}
+
+/** Sent to the OLD address so the account holder can spot - and stop - a change they did not make. */
+export async function sendEmailChangeRequestedNotice(
+  emailAddress: string,
+  { newEmail, cancelToken, expMinutes }: { newEmail: string; cancelToken: string; expMinutes: number },
+) {
+  const component = (
+    <EmailChangeRequestedEmail baseUrl={ENV.JETSTREAM_SERVER_URL} newEmail={newEmail} cancelToken={cancelToken} expMinutes={expMinutes} />
+  );
+  const [html, text] = await renderComponent(component);
+
+  await sendEmail({
+    to: emailAddress,
+    subject: 'A change to your Jetstream email address was requested',
     text,
     html,
   });

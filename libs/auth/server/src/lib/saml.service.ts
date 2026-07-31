@@ -58,7 +58,14 @@ export function resolveSamlIdentifiers(teamId: string) {
  * Using Postgres (rather than in-memory) so that AuthnRequest IDs generated on one
  * worker process are visible to whichever worker handles the ACS callback.
  */
-const sharedSamlCacheProvider = new DbCacheProvider('saml:authn-request', SAML_REQUEST_ID_EXPIRATION_MS);
+// Constructed lazily rather than at module load: this module sits behind the @jetstream/auth/server
+// barrel, so a load-time side effect forces every consumer of that barrel - and every test that
+// mocks @jetstream/api-config - to provide DbCacheProvider whether it touches SAML or not.
+let sharedSamlCacheProvider: DbCacheProvider | undefined;
+function getSharedSamlCacheProvider() {
+  sharedSamlCacheProvider = sharedSamlCacheProvider ?? new DbCacheProvider('saml:authn-request', SAML_REQUEST_ID_EXPIRATION_MS);
+  return sharedSamlCacheProvider;
+}
 
 /**
  * Tracks consumed SAML assertion IDs across all workers as defense-in-depth against replay.
@@ -69,7 +76,12 @@ const sharedSamlCacheProvider = new DbCacheProvider('saml:authn-request', SAML_R
  * expiry. DbCacheProvider.consumeOnceAsync performs an atomic INSERT whose primary-key conflict
  * detects any prior consumption across the whole cluster in a single round-trip.
  */
-const consumedAssertionCache = new DbCacheProvider('saml:consumed-assertion', CONSUMED_ASSERTION_TTL_MS);
+// Lazy for the same reason as sharedSamlCacheProvider above.
+let consumedAssertionCache: DbCacheProvider | undefined;
+function getConsumedAssertionCache() {
+  consumedAssertionCache = consumedAssertionCache ?? new DbCacheProvider('saml:consumed-assertion', CONSUMED_ASSERTION_TTL_MS);
+  return consumedAssertionCache;
+}
 
 /**
  * Derive a stable, replay-detecting identifier from the VERIFIED assertion.
@@ -143,7 +155,7 @@ export class SamlService {
       requestIdExpirationPeriodMs: SAML_REQUEST_ID_EXPIRATION_MS,
       // Bound the replay window to our own tight limit rather than trusting the IdP-set NotOnOrAfter.
       maxAssertionAgeMs: SAML_MAX_ASSERTION_AGE_MS,
-      cacheProvider: sharedSamlCacheProvider,
+      cacheProvider: getSharedSamlCacheProvider(),
 
       // If we need to sign requests
       ...(config.signRequests && config.spPrivateKey && config.spCertificate
@@ -287,7 +299,7 @@ export class SamlService {
       if (!assertionReplayKey) {
         throw new Error('Unable to derive a SAML assertion identifier for replay protection');
       }
-      const wasFirstUse = await consumedAssertionCache.consumeOnceAsync(assertionReplayKey);
+      const wasFirstUse = await getConsumedAssertionCache().consumeOnceAsync(assertionReplayKey);
       if (!wasFirstUse) {
         throw new Error('SAML assertion has already been consumed (replay detected)');
       }

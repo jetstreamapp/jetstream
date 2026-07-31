@@ -1,6 +1,7 @@
 type ErrorType =
   | 'AccountLocked'
   | 'AuthError'
+  | 'EmailChangeNotAllowed'
   | 'ExpiredVerificationToken'
   | 'IdentityLinkingNotAllowed'
   | 'InactiveUser'
@@ -9,6 +10,7 @@ type ErrorType =
   | 'InvalidCaptcha'
   | 'InvalidCredentials'
   | 'InvalidCsrfToken'
+  | 'InvalidOrExpiredEmailChangeToken'
   | 'InvalidOrExpiredResetToken'
   | 'InvalidParameters'
   | 'InvalidProvider'
@@ -116,6 +118,14 @@ export class InvalidVerificationToken extends AuthError {
 
 export class InvalidOrExpiredResetToken extends AuthError {
   static type: ErrorType = 'InvalidOrExpiredResetToken';
+}
+
+export class InvalidOrExpiredEmailChangeToken extends AuthError {
+  static type: ErrorType = 'InvalidOrExpiredEmailChangeToken';
+}
+
+export class EmailChangeNotAllowed extends AuthError {
+  static type: ErrorType = 'EmailChangeNotAllowed';
 }
 
 export class TooManyVerificationAttempts extends AuthError {

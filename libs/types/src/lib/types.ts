@@ -221,6 +221,11 @@ export const UserProfileUiSchema = z.object({
 
 export type UserProfileUi = z.infer<typeof UserProfileUiSchema>;
 
+// RFC 5321 caps a full address at 254 characters. Bounding it here also keeps the value safe to use
+// as part of a distributed rate-limit key, where the backing column is VarChar(512).
+export const EMAIL_MAX_LENGTH = 254;
+export const EmailSchema = z.email('Enter a valid email address').trim().toLowerCase().max(EMAIL_MAX_LENGTH);
+
 export const PASSWORD_MIN_LENGTH = 10;
 export const PASSWORD_NUMBER_AND_SPECIAL_CHAR_REGEX = /[0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/;
 export const PasswordSchema = z

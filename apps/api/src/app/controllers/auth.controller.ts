@@ -1,4 +1,4 @@
-import { DbCacheProvider, ENV, getLogger } from '@jetstream/api-config';
+import { ENV, getLogger } from '@jetstream/api-config';
 import {
   acceptTos,
   AuthError,
@@ -22,7 +22,6 @@ import {
   getCookieConfig,
   getLoginConfiguration,
   getTeamLoginConfigWithSso,
-  getTotpAuthenticationFactor,
   handleSignInOrRegistration,
   handleSsoLogin,
   hasRememberDeviceRecord,
@@ -51,6 +50,7 @@ import {
   validateRedirectUrl,
   verify2faTotpOrThrow,
   verifyCSRFFromRequestOrThrow,
+  verifyTotpCodeOnceOrThrow,
 } from '@jetstream/auth/server';
 import {
   OauthProviderType,
@@ -87,9 +87,6 @@ function normalizeRedirectCandidate(value: string | undefined): string | undefin
   const absolute = value.startsWith('/') ? `${ENV.JETSTREAM_CLIENT_URL}${value}` : value;
   return absolute.replace('/app/app', '/app');
 }
-
-// Single-use guard for TOTP codes.
-const totpReplayCache = new DbCacheProvider('2fa:otp-code', 1000 * 90);
 
 export const routeDefinition = {
   logout: {
@@ -771,15 +768,7 @@ const verification = createRoute(
             break;
           }
           case '2fa-otp': {
-            const { secret } = await getTotpAuthenticationFactor(req.session.user.id);
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            await verify2faTotpOrThrow(secret!, code);
-            // Enforce single use within the code's validity window: atomically record the code and
-            // reject if it was already consumed (replay) for this user.
-            const isFirstUse = await totpReplayCache.consumeOnceAsync(`${req.session.user.id}:${code}`);
-            if (!isFirstUse) {
-              throw new InvalidVerificationToken('Provided code has already been used');
-            }
+            await verifyTotpCodeOnceOrThrow(req.session.user.id, code);
             rememberDeviceId = rememberDevice ? generateRandomString(32) : undefined;
             break;
           }

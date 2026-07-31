@@ -23,6 +23,29 @@ export async function hasPasswordResetToken(email: string, token: string) {
   return (await prisma.passwordResetToken.count({ where: { email, token } })) > 0;
 }
 
+/**
+ * Counts delivery-log rows. Use this to assert an email was NOT sent - verifyEmailLogEntryExists
+ * polls for presence and is the wrong tool for proving absence.
+ */
+export async function countEmailLogEntries(email: string, subject: string) {
+  return await prisma.emailActivity.count({ where: { email: email.toLowerCase(), subject: { contains: subject } } });
+}
+
+export async function getPendingEmailChangeRequest(userId: string) {
+  return await prisma.emailChangeRequest.findFirst({
+    where: { userId, status: 'PENDING' },
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
+export async function getLatestEmailChangeRequest(userId: string) {
+  return await prisma.emailChangeRequest.findFirst({ where: { userId }, orderBy: { createdAt: 'desc' } });
+}
+
+export async function countExternalTokensForUser(userId: string) {
+  return await prisma.webExtensionToken.count({ where: { userId } });
+}
+
 export async function getUserSessionByEmail(email: string) {
   email = email.toLowerCase();
   const session = await prisma.sessions.findFirstOrThrow({
