@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { HIGH_RISK_SYSTEM_PERMISSIONS } from '@jetstream/shared/constants';
-import { describeSObject, queryWithRecordBudget } from '@jetstream/shared/data';
+import { describeGlobal, describeSObject, queryWithRecordBudget } from '@jetstream/shared/data';
 import { sanitizeSobjectApiNames, splitArrayToMaxSize, uniqueSalesforceIds } from '@jetstream/shared/utils';
 import type { PermissionExportFullResult, SalesforceOrgUi } from '@jetstream/types';
 import { buildIssueCodeSummary, buildPermissionExportFindings } from './build-permission-export-findings';
@@ -13,6 +13,7 @@ import {
   buildPermissionSetGroupByIdSoql,
   buildPermissionSetGroupComponentsByPermissionSetSoql,
   buildTabSettingsByParentSoql,
+  OPTIONAL_PERMISSION_SET_METADATA_FIELDS,
 } from './soql-templates';
 
 const PARENT_ID_CHUNK_SIZE = 200;
@@ -23,18 +24,24 @@ const OBJECT_SOBJECT_TYPE_IN_CHUNK_SIZE = 80;
 /**
  * Per-category row caps. Each category has its own independent budget so that one heavy category
  * (e.g. FieldPermissions on a large org) cannot silently starve later categories (Tab settings,
- * Assignments, Groups, MutingPermissionSets) of their budget. Caps sum to ~200K worst case but in
- * practice categories like Groups and TabSettings rarely use more than a few thousand rows.
+ * Assignments, Groups, MutingPermissionSets) of their budget.
+ *
+ * The binding constraint is browser memory (every row is retained and then gzipped into the stored job
+ * result), NOT a Salesforce limit — `queryMore` paging is unmetered beyond normal API call counts. The
+ * caps matter for accuracy, not just size: hitting one marks the category truncated, which DISABLES
+ * whole finding classes (see `truncatedCategories` in `buildPermissionExportFindings`), because a
+ * missing row is then indistinguishable from a row that was cut. So they are set as high as memory
+ * reasonably allows — rows are narrow (3-10 mostly-boolean columns).
  */
 const CATEGORY_BUDGETS = {
-  permissionSets: 10_000,
-  objectPermissions: 50_000,
-  fieldPermissions: 100_000,
-  permissionSetTabSettings: 10_000,
-  permissionSetAssignments: 100_000,
-  permissionSetGroupComponents: 10_000,
-  permissionSetGroups: 10_000,
-  mutingPermissionSets: 10_000,
+  permissionSets: 25_000,
+  objectPermissions: 150_000,
+  fieldPermissions: 250_000,
+  permissionSetTabSettings: 50_000,
+  permissionSetAssignments: 250_000,
+  permissionSetGroupComponents: 50_000,
+  permissionSetGroups: 25_000,
+  mutingPermissionSets: 25_000,
 } as const;
 
 type ExportCategory = keyof typeof CATEGORY_BUDGETS;
@@ -111,21 +118,45 @@ function throwIfCanceled(isCanceled: (() => boolean) | undefined): void {
   }
 }
 
+interface AvailablePermissionSetFields {
+  systemPermissionFields: string[];
+  metadataFields: string[];
+}
+
 /**
- * Many `PermissionSet.Permissions*` columns only exist when the org's edition/licenses/features enable
+ * Many `PermissionSet` columns only exist when the org's edition/licenses/features/API version enable
  * them — selecting a missing one fails the entire query with INVALID_FIELD. Intersect the high-risk
- * catalog with the org's actual PermissionSet fields so the export works in every org. If the describe
- * itself fails we fall back to the full catalog (the query will surface any real error).
+ * catalog and the optional metadata columns with the org's actual PermissionSet fields so the export
+ * works in every org. If the describe itself fails we fall back to the full catalog (the query will
+ * surface any real error).
  */
-async function getAvailableSystemPermissionFields(org: SalesforceOrgUi): Promise<string[]> {
+async function getAvailablePermissionSetFields(org: SalesforceOrgUi): Promise<AvailablePermissionSetFields> {
   const catalogFields = HIGH_RISK_SYSTEM_PERMISSIONS.map((perm) => perm.field);
   try {
     const describeResponse = await describeSObject(org, 'PermissionSet');
     const orgFieldNames = new Set(describeResponse.data.fields.map((field) => field.name));
-    return catalogFields.filter((field) => orgFieldNames.has(field));
+    return {
+      systemPermissionFields: catalogFields.filter((field) => orgFieldNames.has(field)),
+      metadataFields: OPTIONAL_PERMISSION_SET_METADATA_FIELDS.filter((field) => orgFieldNames.has(field)),
+    };
   } catch (ex) {
     logger.warn('[PERMISSION EXPORT] PermissionSet describe failed; selecting the full system permission catalog', ex);
-    return catalogFields;
+    return { systemPermissionFields: catalogFields, metadataFields: [...OPTIONAL_PERMISSION_SET_METADATA_FIELDS] };
+  }
+}
+
+/**
+ * Every sobject API name in the org, used to tell tabs backed by a real object from tabs that are not
+ * (`standard-home`, `standard-report`, …). Returns an empty set when the describe fails, which makes
+ * `buildPermissionExportFindings` skip the tab-visibility pass instead of guessing.
+ */
+async function getKnownObjectApiNames(org: SalesforceOrgUi): Promise<Set<string>> {
+  try {
+    const describeResponse = await describeGlobal(org);
+    return new Set(describeResponse.data.sobjects.map(({ name }) => name).filter((name): name is string => !!name));
+  } catch (ex) {
+    logger.warn('[PERMISSION EXPORT] Global describe failed; skipping tab visibility findings', ex);
+    return new Set();
   }
 }
 
@@ -200,11 +231,15 @@ export async function runPermissionExport(
   emitProgress(`Loading ${parentIds.length} permission set(s)`);
 
   throwIfCanceled(options?.isCanceled);
-  const systemPermissionFields = await getAvailableSystemPermissionFields(org);
+  // Both describes are cached and independent of each other, so run them together.
+  const [{ systemPermissionFields, metadataFields }, knownObjectApiNames] = await Promise.all([
+    getAvailablePermissionSetFields(org),
+    getKnownObjectApiNames(org),
+  ]);
   throwIfCanceled(options?.isCanceled);
   const permSetResult = await queryWithRecordBudget<Record<string, unknown>>(
     org,
-    buildPermissionSetByIdSoql(parentIds, systemPermissionFields),
+    buildPermissionSetByIdSoql(parentIds, systemPermissionFields, metadataFields),
     false,
     budgets.permissionSets,
     (page) => {
@@ -404,6 +439,7 @@ export async function runPermissionExport(
     permissionSetTabSettings,
     truncatedCategories,
     objectScope,
+    knownObjectApiNames,
   });
   const issueCodeSummary = buildIssueCodeSummary(findings);
 

@@ -5,8 +5,18 @@
  * - `error`   = EXPOSURE: real over-access a user can exploit (Modify All Records, Modify All Data, …).
  * - `warning` = INCONSISTENCY / DEAD-CONFIG / INCOMPLETE-SETUP / CLEANUP. Visible but not alarming.
  *
- * Note: field-level access that the object can never satisfy (FLS without OLS) is INERT — Salesforce
- * silently ignores it — so it is a `warning`, not an `error`. Errors are reserved for true exposure.
+ * Note: field-level access the same container never satisfies (FLS without OLS) is a `warning`, not an
+ * `error`. Errors are reserved for true exposure.
+ *
+ * SCOPE — read this before wording a new alignment code. Salesforce effective access is the UNION of the
+ * user's profile and every permission set assigned to them. The FLS/OLS alignment codes below compare a
+ * field permission against the object permission ON THE SAME CONTAINER, then suppress the finding when
+ * another container that reaches the same users supplies the missing access (permission set group
+ * siblings, and other permission sets sharing every assignee). What they cannot see is the assignees'
+ * PROFILE, and any permission set outside the exported selection. So these codes mean "this container
+ * alone does not grant it" — NEVER "the field access has no effect". Word labels and messages
+ * accordingly; claiming inertness is wrong for the common "object access on the profile, field access in
+ * a permission set" pattern.
  */
 
 export const PermissionExportFindingSeverity = {
@@ -20,7 +30,7 @@ export type PermissionExportFindingSeverityValue = (typeof PermissionExportFindi
  * Stored on each analysis row as `code` and referenced by `issueCodeSummary` keys.
  */
 export const PermissionExportFindingCode = {
-  // Inert / inconsistency (warning) — field access the object can't satisfy.
+  // Inconsistency (warning) — field access this container's own object permission does not satisfy.
   FLS_EDIT_NO_OBJECT_EDIT: 'FLS_EDIT_NO_OBJECT_EDIT',
   FLS_READ_NO_OBJECT_READ: 'FLS_READ_NO_OBJECT_READ',
   FLS_WITHOUT_OLS_ROW: 'FLS_WITHOUT_OLS_ROW',
@@ -51,15 +61,15 @@ export type PermissionExportFindingDefinition = {
 export const PERMISSION_EXPORT_FINDING_DEFINITIONS: Record<PermissionExportFindingCodeValue, PermissionExportFindingDefinition> = {
   [PermissionExportFindingCode.FLS_READ_NO_OBJECT_READ]: {
     severity: PermissionExportFindingSeverity.Warning,
-    label: 'Field read granted, but the object grants no read — field access has no effect.',
+    label: 'Field read granted, but this container grants no object read — access must come from elsewhere.',
   },
   [PermissionExportFindingCode.FLS_EDIT_NO_OBJECT_EDIT]: {
     severity: PermissionExportFindingSeverity.Warning,
-    label: 'Field edit granted, but the object grants no edit — field access has no effect.',
+    label: 'Field edit granted, but this container grants no object edit — access must come from elsewhere.',
   },
   [PermissionExportFindingCode.FLS_WITHOUT_OLS_ROW]: {
     severity: PermissionExportFindingSeverity.Warning,
-    label: 'Field permissions exist for the object, but there is no object permissions row.',
+    label: 'Field permissions exist for the object, but this container has no object permissions row.',
   },
   [PermissionExportFindingCode.OLS_READ_NO_FLS_ROWS]: {
     severity: PermissionExportFindingSeverity.Warning,

@@ -23,7 +23,7 @@ sidebar_label: Permission Analysis
 slug: /permission-analysis
 ---
 
-:::caution Pre-release · paid feature
+:::info
 
 Permission Analysis is available on a **paid Jetstream plan** and is currently in **pre-release**. It is fully functional, but the interface and the set of detected issues may change as we continue to refine it. Upgrade from within Jetstream (**Settings &rarr; Billing**) to enable it.
 
@@ -89,10 +89,18 @@ Examples of what is detected:
 
 - **Modify All Records** / **View All Records** on an object — bypasses the sharing model for that object.
 - **High-risk or elevated system permissions** — such as Modify All Data, View All Data, Author Apex, Manage Users, Customize Application, or Export Reports.
-- **Field access with no effect** — field Read or Edit is granted, but the object grants no corresponding access.
+- **Field access not backed by object access in the same container** — field Read or Edit is granted, but that profile or permission set grants no corresponding object access.
 - **Object permission with no field permissions configured** — default field-level security applies.
 - **Permission set with no direct assignments** that is also not part of a permission set group (likely dead configuration).
 - **Tab visible without object read** — a tab is visible but the underlying object grants no Read.
+
+:::note
+
+Salesforce effective access is the **union** of a user's profile and all of their assigned permission sets. Alignment findings compare a field permission against the object permission on the **same** profile or permission set, then suppress the finding when another permission set that reaches the same users already supplies the missing access — either a sibling in the same permission set group, or another permission set assigned to every one of its assignees.
+
+What Jetstream cannot see is the assignees' **profile**, and any permission set outside the selection you exported. So an alignment finding means _"this container alone does not grant it"_ — not _"this field access does nothing"_. If you deliberately grant object access on the profile and field access in a permission set, expect to see these as warnings.
+
+:::
 
 ### Working with the Issues tab
 
@@ -111,7 +119,7 @@ Completed runs are stored in your browser, per org. Use **Export history** on th
 
 :::info
 
-Permission Analysis is processed in your browser and results are cached locally. Very large exports may be truncated to keep the result size manageable; when that happens Jetstream shows a warning so you know some rows may be missing.
+Permission Analysis is processed in your browser and results are cached locally. Very large exports may be truncated to keep the result size manageable; when that happens Jetstream shows a warning so you know some rows may be missing. Errors are always kept ahead of warnings, so truncation never hides an exposure finding — but narrow the permission set or object selection and re-run if you need complete warning coverage.
 
 :::
 
