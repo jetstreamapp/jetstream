@@ -12,6 +12,7 @@ import {
 import { GenericEmail } from './email-templates/auth/GenericEmail';
 import { PasswordResetConfirmationEmail } from './email-templates/auth/PasswordResetConfirmationEmail';
 import { PasswordResetEmail } from './email-templates/auth/PasswordResetEmail';
+import { SsoCertificateExpirationEmail, SsoCertificateExpirationEmailProps } from './email-templates/auth/SsoCertificateExpirationEmail';
 import { TeamInvitation } from './email-templates/auth/TeamInvitationEmail';
 import { TwoStepVerificationEmail } from './email-templates/auth/TwoStepVerificationEmail';
 import { VerifyEmail } from './email-templates/auth/VerifyEmail';
@@ -305,4 +306,31 @@ export async function sendOrgExpirationWarningEmail({
   } catch (error) {
     logger.error({ ...getErrorMessageAndStackObj(error) }, 'Error sending org expiration warning email');
   }
+}
+
+/**
+ * Unlike the other senders here, failures propagate rather than being logged and swallowed. The cron
+ * only advances a team's reminder schedule once the send succeeds, so swallowing the error would
+ * silently burn a threshold and leave admins unwarned about an SSO outage.
+ */
+export async function sendSsoCertificateExpirationEmail({
+  emailAddress,
+  ...props
+}: { emailAddress: string } & Omit<SsoCertificateExpirationEmailProps, 'ssoSettingsUrl'>) {
+  const component = <SsoCertificateExpirationEmail {...props} ssoSettingsUrl={`${ENV.JETSTREAM_SERVER_URL}/app/teams`} />;
+  const [html, text] = await renderComponent(component);
+
+  // `daysUntilExpiration` is only negative once the certificate is actually past its expiration
+  // date — 0 is the final scheduled reminder, sent on the expiration date while it is still valid.
+  const { daysUntilExpiration } = props;
+  let subject: string;
+  if (daysUntilExpiration < 0) {
+    subject = 'Action Required: Your SSO Certificate Has Expired';
+  } else if (daysUntilExpiration === 0) {
+    subject = 'Action Required: Your SSO Certificate Expires Today';
+  } else {
+    subject = `Action Required: Your SSO Certificate Expires in ${daysUntilExpiration} ${pluralizeFromNumber('Day', daysUntilExpiration)}`;
+  }
+
+  await sendEmail({ to: emailAddress, subject, text, html });
 }

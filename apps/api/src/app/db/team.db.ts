@@ -9,6 +9,7 @@ import {
   UserProfileSession,
 } from '@jetstream/auth/types';
 import { Prisma } from '@jetstream/prisma';
+import { computeNextCertNotificationDate } from '@jetstream/shared/utils';
 import {
   BILLABLE_ROLES,
   DomainVerificationSchema,
@@ -1157,6 +1158,31 @@ export async function revokeTeamInvitation({
  * SSO Configuration CRUD Functions
  */
 
+/**
+ * Minimal lookup used by the in-app expiration banner. Returns null when the team has no SAML
+ * configuration, has SSO turned off, or the certificate expiration could not be parsed.
+ */
+export async function getSamlCertificateExpiration(teamId: string): Promise<{ configId: string; expiresAt: Date } | null> {
+  const team = await prisma.team.findUnique({
+    where: { id: teamId },
+    select: {
+      loginConfig: {
+        select: {
+          ssoEnabled: true,
+          samlConfiguration: { select: { id: true, idpCertificateExpiresAt: true } },
+        },
+      },
+    },
+  });
+
+  const samlConfiguration = team?.loginConfig.samlConfiguration;
+  if (!team?.loginConfig.ssoEnabled || !samlConfiguration?.idpCertificateExpiresAt) {
+    return null;
+  }
+
+  return { configId: samlConfiguration.id, expiresAt: samlConfiguration.idpCertificateExpiresAt };
+}
+
 export async function getSsoConfiguration(teamId: string): Promise<LoginConfigurationWithCallbacks> {
   const team = await prisma.team.findUnique({
     where: { id: teamId },
@@ -1204,6 +1230,20 @@ function parseCertificateExpiresAt(certBase64: string): Date | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Seed the reminder schedule for a newly saved certificate.
+ *
+ * Every threshold is already in the past for a certificate that has expired, so
+ * `computeNextCertNotificationDate` returns null — correct when the cron advances an exhausted
+ * schedule (null takes the configuration out of its query for good), but wrong as a seed, where it
+ * would silently opt the team out of ever being told. Falling back to "due on the next run" gives an
+ * expired certificate the same single catch-up notification the backfill migration gives
+ * pre-existing configurations; the cron then advances it to null, so it still only sends once.
+ */
+function resolveCertNotificationSeed(expiresAt: Date, now = new Date()): Date {
+  return computeNextCertNotificationDate(expiresAt, now) ?? now;
 }
 
 export async function createOrUpdateSamlConfiguration(teamId: string, userId: string, data: SamlConfigurationRequest) {
@@ -1256,11 +1296,25 @@ export async function createOrUpdateSamlConfiguration(teamId: string, userId: st
 
   const idpCertificateExpiresAt = samlData.idpCertificate ? parseCertificateExpiresAt(samlData.idpCertificate) : null;
 
+  // A new expiration date restarts the reminder schedule, so an admin who renews after the 7-day
+  // warning still gets the full 30/14/7/3 sequence against the new date. Keying off the expiration
+  // rather than the certificate value is deliberate: an unchanged expiration means the remaining
+  // reminders are already scheduled for the right days, and re-seeding would both replay reminders
+  // after any unrelated edit (renaming the config, tweaking attribute mapping) and risk re-sending a
+  // threshold that already fired earlier the same day.
+  const certificateExpirationChanged = previousSamlConfig?.idpCertificateExpiresAt?.getTime() !== idpCertificateExpiresAt?.getTime();
+  const notificationSchedule = certificateExpirationChanged
+    ? {
+        nextCertNotificationDate: idpCertificateExpiresAt ? resolveCertNotificationSeed(idpCertificateExpiresAt) : null,
+        lastCertNotificationAt: null,
+      }
+    : {};
+
   if (!isNew) {
     // Update existing
     await prisma.samlConfiguration.update({
       where: { loginConfigId: team.loginConfigId },
-      data: { ...samlData, idpCertificateExpiresAt },
+      data: { ...samlData, idpCertificateExpiresAt, ...notificationSchedule },
     });
   } else {
     // Create new
@@ -1268,6 +1322,7 @@ export async function createOrUpdateSamlConfiguration(teamId: string, userId: st
       data: {
         ...samlData,
         idpCertificateExpiresAt,
+        ...notificationSchedule,
         loginConfigId: team.loginConfigId,
       },
     });

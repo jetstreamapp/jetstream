@@ -4,4 +4,5 @@ export * from './lib/dedupe-field-usage-where-used';
 export * from './lib/password-validation';
 export * from './lib/regex';
 export * from './lib/sobject-api-name-utils';
+export * from './lib/sso-certificate-expiration';
 export * from './lib/utils';

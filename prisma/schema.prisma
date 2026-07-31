@@ -738,10 +738,17 @@ model SamlConfiguration {
   // Parsed from idpCertificate for expiration notifications (populated on save)
   idpCertificateExpiresAt DateTime? // can use to notify admins of upcoming IdP certificate expiration
 
+  // Drives the certificate expiration notification cron. nextCertNotificationDate is the date the next
+  // reminder is due (null = nothing further to send) and is reset whenever the certificate changes so a
+  // renewed certificate restarts the reminder schedule.
+  nextCertNotificationDate DateTime?
+  lastCertNotificationAt   DateTime?
+
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   authIdentities AuthIdentity[]
 
+  @@index([nextCertNotificationDate])
   @@map("sso_saml_configurations")
 }
 

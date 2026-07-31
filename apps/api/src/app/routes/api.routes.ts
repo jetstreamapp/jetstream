@@ -38,10 +38,10 @@ routes.use(validateDoubleCSRF);
 routes.use(addOrgsToLocal);
 
 // used to make sure the user is authenticated and can communicate with the server
-routes.get('/heartbeat', (_: express.Request, res: express.Response) => {
+routes.get('/heartbeat', async (req: express.Request, res: express.Response) => {
   const result: AppInfo = {
     version: ENV.VERSION || 'unknown',
-    announcements: getAnnouncements(),
+    announcements: await getAnnouncements(req.session.user),
     appInfo: getDefaultAppState({
       serverUrl: ENV.JETSTREAM_SERVER_URL,
       environment: ENV.ENVIRONMENT,

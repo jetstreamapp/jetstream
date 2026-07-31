@@ -24,6 +24,7 @@ import * as crypto from 'crypto';
 import * as dns from 'dns/promises';
 import { unparse } from 'papaparse';
 import { z } from 'zod';
+import { clearSsoCertificateAnnouncementCache } from '../announcements';
 import * as canvasOrgDb from '../db/canvas-entitlement.db';
 import * as teamDb from '../db/team.db';
 import * as teamService from '../services/team.service';
@@ -902,6 +903,10 @@ const createOrUpdateSamlConfig = createRoute(
         result: config,
       } = await teamDb.createOrUpdateSamlConfiguration(teamId, user.id, configData as any);
 
+      // A renewed certificate should clear the expiration banner immediately rather than after the
+      // heartbeat cache TTL, otherwise admins keep seeing a warning for something they just fixed.
+      clearSsoCertificateAnnouncementCache(teamId);
+
       sendJson(res, maskSsoSecrets(config));
 
       if (isNew) {
@@ -1097,6 +1102,8 @@ const updateSsoSettings = createRoute(routeDefinition.updateSsoSettings.validato
   try {
     const { teamId } = params;
     const { previousSettings, result: config } = await teamDb.updateSsoSettings(teamId, user.id, body);
+    // The banner is only shown while SSO is enabled, so toggling it must invalidate the cached lookup
+    clearSsoCertificateAnnouncementCache(teamId);
     sendJson(res, maskSsoSecrets(config));
 
     const changes: Record<string, { from: unknown; to: unknown }> = {};
@@ -1128,6 +1135,7 @@ const deleteSamlConfig = createRoute(routeDefinition.deleteSamlConfig.validators
   try {
     const { teamId } = params;
     const { deletedConfig, affectedIdentitiesCount } = await teamDb.deleteSamlConfiguration(teamId, user.id);
+    clearSsoCertificateAnnouncementCache(teamId);
     sendJson(res, { success: true });
 
     if (deletedConfig) {
