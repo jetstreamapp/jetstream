@@ -237,6 +237,33 @@ export function flattenRecord(record: SalesforceRecord, fields: string[], flattO
   }, {});
 }
 
+export type ConcurrencyLimiter = <T>(task: () => Promise<T>) => Promise<T>;
+
+/**
+ * Creates a function that runs at most `maxConcurrent` tasks at a time and queues the rest.
+ *
+ * Limiting each group of work on its own does not limit the total - a caller that fans out several groups at once
+ * should share a single limiter across all of them, otherwise the individual limits multiply.
+ */
+export function createConcurrencyLimiter(maxConcurrent: number): ConcurrencyLimiter {
+  const limit = Math.max(1, maxConcurrent);
+  const waitingForSlot: (() => void)[] = [];
+  let runningCount = 0;
+
+  return async function limitConcurrency<T>(task: () => Promise<T>): Promise<T> {
+    if (runningCount >= limit) {
+      await new Promise<void>((resolve) => waitingForSlot.push(resolve));
+    }
+    runningCount++;
+    try {
+      return await task();
+    } finally {
+      runningCount--;
+      waitingForSlot.shift()?.();
+    }
+  };
+}
+
 export function splitArrayToMaxSize<T = unknown>(items: T[], maxSize: number): T[][] {
   if (!maxSize || maxSize < 1) {
     throw new Error('maxSize must be greater than 0');

@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { describeSObject, queryAll, queryAllUsingOffset } from '@jetstream/shared/data';
+import { describeSObject, queryAll, queryAllUsingCursor } from '@jetstream/shared/data';
 import { tracker } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, groupByFlat, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { ConcurrencyLimiter, createConcurrencyLimiter, getErrorMessage, groupByFlat } from '@jetstream/shared/utils';
 import {
   EntityParticlePermissionsRecord,
   FieldPermissionDefinitionMap,
@@ -17,6 +17,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   getFieldDefinitionKey,
+  getPermissionableFieldObjectChunks,
   getQueryForAllPermissionableFields,
   getQueryForFieldPermissions,
   getQueryObjectPermissions,
@@ -68,24 +69,36 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
       if (hasError) {
         setHasError(false);
       }
+      // Every request below shares this limiter so that a large selection cannot flood Salesforce
+      const limit = createConcurrencyLimiter(QUERY_CONCURRENCY);
       // query all data and transform into state maps
       const output = await Promise.all([
-        describeSObject(selectedOrg, 'FieldPermissions'),
-        queryAndCombineResults<EntityParticlePermissionsRecord>(selectedOrg, getQueryForAllPermissionableFields(sobjects), true, true),
-        queryAndCombineResults<ObjectPermissionRecord>(selectedOrg, getQueryObjectPermissions(sobjects, permSetIds, profilePermSetIds)),
-        queryAndCombineResults<FieldPermissionRecord>(selectedOrg, getQueryForFieldPermissions(sobjects, permSetIds, profilePermSetIds)),
+        limit(() => describeSObject(selectedOrg, 'FieldPermissions')),
+        queryPermissionableFields(limit, selectedOrg, sobjects),
+        queryAndCombineResults<ObjectPermissionRecord>(
+          limit,
+          selectedOrg,
+          getQueryObjectPermissions(sobjects, permSetIds, profilePermSetIds),
+        ),
+        queryAndCombineResults<FieldPermissionRecord>(
+          limit,
+          selectedOrg,
+          getQueryForFieldPermissions(sobjects, permSetIds, profilePermSetIds),
+        ),
         queryAndCombineResults<TabVisibilityPermissionRecord>(
+          limit,
           selectedOrg,
           getQueryTabVisibilityPermissions(sobjects, permSetIds, profilePermSetIds),
         ).then((record) => record.map((item) => ({ ...item, Name: item.Name.replace('standard-', '') }))),
-        queryAndCombineResults<TabDefinitionRecord>(selectedOrg, getQueryTabDefinition(sobjects), false, true).then((tabs) =>
+        queryAndCombineResults<TabDefinitionRecord>(limit, selectedOrg, getQueryTabDefinition(sobjects), true).then((tabs) =>
           groupByFlat(tabs, 'SobjectName'),
         ),
         // System permissions are `Permissions*` columns on the PermissionSet record itself; describe to
         // learn which are settable in this org, then query their current values by permission set id.
-        describeSObject(selectedOrg, 'PermissionSet').then((describeResult) => {
+        limit(() => describeSObject(selectedOrg, 'PermissionSet')).then((describeResult) => {
           const systemPermissionFields = getSystemPermissionFieldsFromDescribe(describeResult.data.fields);
           return queryAndCombineResults<SystemPermissionSetRecord>(
+            limit,
             selectedOrg,
             getQuerySystemPermissions(
               [...permSetIds, ...profilePermSetIds],
@@ -198,30 +211,53 @@ function getSystemPermissionMap(
 }
 
 /**
- * Number of queries to run concurrently. Offset-paged queries (EntityParticle) are split into many small batches to stay
- * under Salesforce's OFFSET cap, so we run them in bounded waves rather than sequentially to keep large selections fast.
+ * Maximum requests in flight at once for a single load. Every query group shares one limiter, since limiting each
+ * group on its own would still let the groups fan out in parallel and multiply into a request flood.
  */
 const QUERY_CONCURRENCY = 5;
 
+/** Runs each item through `runItem` under the shared limiter and flattens the records they return. */
+async function queryChunks<TItem, TRecord>(
+  limit: ConcurrencyLimiter,
+  items: TItem[],
+  runItem: (item: TItem) => Promise<TRecord[]>,
+): Promise<TRecord[]> {
+  // Results are keyed/grouped downstream, so ordering across items does not matter
+  const results = await Promise.all(items.map((item) => limit(() => runItem(item))));
+  return results.flat();
+}
+
 // This could be eligible to pull into generic method for expanded use
 async function queryAndCombineResults<T>(
+  limit: ConcurrencyLimiter,
   selectedOrg: SalesforceOrgUi,
   queries: string[],
-  useOffset = false,
   isTooling = false,
 ): Promise<T[]> {
-  const runQuery = (currQuery: string) =>
-    useOffset ? queryAllUsingOffset<T>(selectedOrg, currQuery, isTooling) : queryAll<T>(selectedOrg, currQuery, isTooling);
+  return queryChunks(limit, queries, (currQuery) =>
+    queryAll<T>(selectedOrg, currQuery, isTooling).then(({ queryResults }) => queryResults.records),
+  );
+}
 
-  const output: T[] = [];
-  // Results are keyed/grouped downstream, so ordering does not matter - run each wave concurrently
-  for (const wave of splitArrayToMaxSize(queries, QUERY_CONCURRENCY)) {
-    const waveResults = await Promise.all(wave.map(runQuery));
-    for (const { queryResults } of waveResults) {
-      output.push(...queryResults.records);
-    }
-  }
-  return output;
+/**
+ * EntityParticle neither supports queryMore nor an OFFSET beyond 2000, so each chunk of objects is paged using a
+ * DurableId cursor. That removes the depth ceiling, letting one query cover many objects instead of a handful.
+ *
+ * Each chunk holds a single concurrency slot for all of its pages, since those pages must run in sequence.
+ */
+async function queryPermissionableFields(
+  limit: ConcurrencyLimiter,
+  selectedOrg: SalesforceOrgUi,
+  sobjects: string[],
+): Promise<EntityParticlePermissionsRecord[]> {
+  return queryChunks(limit, getPermissionableFieldObjectChunks(sobjects), (chunk) =>
+    queryAllUsingCursor<EntityParticlePermissionsRecord>(
+      selectedOrg,
+      (afterDurableId) => getQueryForAllPermissionableFields(chunk, afterDurableId),
+      ({ DurableId }) => DurableId,
+      true,
+    ).then(({ queryResults }) => queryResults.records),
+  );
 }
 
 function getAllFieldsByObject(fields: EntityParticlePermissionsRecord[]): Record<string, string[]> {
