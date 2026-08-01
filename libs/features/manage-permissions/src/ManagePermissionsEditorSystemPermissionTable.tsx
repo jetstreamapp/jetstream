@@ -23,13 +23,17 @@ export interface ManagePermissionsEditorSystemPermissionTableProps {
   rows: PermissionTableSystemPermissionCell[];
   totalCount: number;
   filterText?: string;
+  /** True when any row has a save error - gates the "errors only" toggle in the filter row */
+  hasErrors?: boolean;
+  errorsOnly?: boolean;
   onFilter: (value: string) => void;
+  onToggleErrorsOnly?: (value: boolean) => void;
   onBulkUpdate: (rows: PermissionTableSystemPermissionCell[], indexes?: number[]) => void;
   onDirtyRows?: (values: Record<string, DirtyRow<PermissionTableSystemPermissionCell>>) => void;
 }
 
 export const ManagePermissionsEditorSystemPermissionTable = forwardRef<any, ManagePermissionsEditorSystemPermissionTableProps>(
-  ({ columns, rows, totalCount, filterText, onFilter, onBulkUpdate, onDirtyRows }, ref) => {
+  ({ columns, rows, totalCount, filterText, hasErrors, errorsOnly, onFilter, onToggleErrorsOnly, onBulkUpdate, onDirtyRows }, ref) => {
     const tableRef = useRef<DataTableRef<PermissionTableSystemPermissionCell>>(null);
     const [dirtyRows, setDirtyRows] = useState<Record<string, DirtyRow<PermissionTableSystemPermissionCell>>>({});
 
@@ -74,7 +78,10 @@ export const ManagePermissionsEditorSystemPermissionTable = forwardRef<any, Mana
                 type: 'systemPermission',
                 totalCount,
                 filterValue: filterText,
+                hasErrors,
+                errorsOnly,
                 onFilterRows: onFilter,
+                onToggleErrorsOnly,
                 onColumnAction: handleColumnAction,
                 onBulkAction: onBulkUpdate,
               } as PermissionManagerTableContext

@@ -41,6 +41,12 @@ export interface ConnectedSobjectListMultiSelectProps {
   recentItemsEnabled?: boolean;
   recentItemsKey?: RecentHistoryItemType;
   filterFn?: (sobject: DescribeGlobalSObjectResult | null) => boolean;
+  /**
+   * Set to `false` while the caller is still loading data that its `filterFn` depends on (e.g. an async
+   * describe). Objects are not fetched until this is `true`, so the list is never populated using a
+   * filter that is not ready yet.
+   */
+  filterReady?: boolean;
   onSobjects: (sobjects: DescribeGlobalSObjectResult[] | null) => void;
   onSelectedSObjects: (selectedSObjects: string[]) => void;
   onRefresh?: () => void;
@@ -60,6 +66,7 @@ export const ConnectedSobjectListMultiSelect = forwardRef<any, ConnectedSobjectL
       recentItemsEnabled,
       recentItemsKey,
       filterFn = filterSobjectFn,
+      filterReady = true,
       onSobjects,
       onSelectedSObjects,
       onRefresh,
@@ -137,10 +144,10 @@ export const ConnectedSobjectListMultiSelect = forwardRef<any, ConnectedSobjectL
     // Auto-load is independent of `disabled`: a read-only list should still populate its data (the
     // `!sobjects` guard skips the fetch when a caller pre-supplies objects); `disabled` only gates interaction.
     useEffect(() => {
-      if (!disabled && selectedOrg && !loading && !errorMessage && !sobjects) {
+      if (filterReady && selectedOrg && !loading && !errorMessage && !sobjects) {
         loadObjects().then(NOOP);
       }
-    }, [disabled, selectedOrg, loading, errorMessage, sobjects, onSobjects, loadObjects]);
+    }, [filterReady, selectedOrg, loading, errorMessage, sobjects, onSobjects, loadObjects]);
 
     async function handleRefresh() {
       try {
@@ -169,7 +176,7 @@ export const ConnectedSobjectListMultiSelect = forwardRef<any, ConnectedSobjectL
             <Tooltip id={`sobject-list-refresh-tooltip`} content={lastRefreshed}>
               <button
                 className="slds-button slds-button_icon slds-button_icon-container"
-                disabled={disabled || loading}
+                disabled={disabled || loading || !filterReady}
                 onClick={handleRefresh}
               >
                 <Icon type="utility" icon="refresh" description={`Reload objects`} className="slds-button__icon" omitContainer />
@@ -180,7 +187,7 @@ export const ConnectedSobjectListMultiSelect = forwardRef<any, ConnectedSobjectL
         <SobjectListMultiSelect
           sobjects={sobjectsFiltered}
           selectedSObjects={selectedSObjects}
-          loading={loading}
+          loading={loading || !filterReady}
           errorMessage={errorMessage}
           allowSelectAll={allowSelectAll}
           disabled={disabled}

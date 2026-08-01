@@ -51,8 +51,10 @@ import {
   SummaryFilterRenderer,
   Tooltip,
 } from '@jetstream/ui';
+import classNames from 'classnames';
 import startCase from 'lodash/startCase';
 import { Fragment, useContext, useMemo, useRef, useState } from 'react';
+import { supportsViewAllModifyAll, VIEW_ALL_MODIFY_ALL_UNSUPPORTED_MESSAGE } from './object-permission-support';
 import {
   SYSTEM_PERMISSION_DEPENDENCY_TOOLTIP,
   SYSTEM_PERMISSION_DEPENDENT_CLOSURE,
@@ -89,7 +91,22 @@ type PermissionActionAction<T> = T extends 'object'
         ? SystemPermissionTypes
         : never;
 
+/**
+ * True when the permission is View All / Modify All on an object that does not support it. Every path
+ * that writes a permission value routes through this so a bulk action can never set what the checkbox
+ * refuses to set.
+ */
+function isBlockedViewAllModifyAll(which: PermissionTypes, row: PermissionTableCellExtended): boolean {
+  if (which !== 'viewAll' && which !== 'modifyAll') {
+    return false;
+  }
+  return 'allowViewAllModifyAllPermission' in row && !row.allowViewAllModifyAllPermission;
+}
+
 function setObjectValue(which: ObjectPermissionTypes, row: PermissionTableObjectCell, permissionId: string, value: boolean) {
+  if (isBlockedViewAllModifyAll(which, row)) {
+    return row;
+  }
   const newRow = { ...row, permissions: { ...row.permissions, [permissionId]: { ...row.permissions[permissionId] } } };
   const permission = newRow.permissions[permissionId];
   if (which === 'create') {
@@ -360,10 +377,8 @@ export function getObjectColumns(
       key: 'tableLabel',
       frozen: true,
       width: 300,
-      getValue: ({ column, row }) => {
-        const data: PermissionTableFieldCell = row[column.key as keyof PermissionTableObjectCell] as any;
-        return data && `${data.label} (${data.apiName})`;
-      },
+      // No `getValue` — `tableLabel` is already `Label (ApiName)`, so filtering, search and copy all
+      // read the row value directly.
       summaryCellClass: 'bg-color-gray-dark no-outline',
       renderSummaryCell: ({ row }) => {
         if (row.type === 'HEADING') {
@@ -434,11 +449,12 @@ export function getObjectRows(selectedSObjects: string[], objectPermissionMap: R
 
     const currRow: PermissionTableObjectCell = {
       key: sobject,
-      sobject: sobject,
+      sobject,
       apiName: objectPermission.apiName,
       label: objectPermission.label,
       tableLabel: `${objectPermission.label} (${objectPermission.apiName})`,
       allowEditPermission: true,
+      allowViewAllModifyAllPermission: supportsViewAllModifyAll(objectPermission.apiName),
       permissions: {},
     };
 
@@ -716,23 +732,34 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
         }
       }
 
-      const disabled = actionKey === 'edit' && 'allowEditPermission' in row && !row.allowEditPermission;
+      const unsupportedViewAllModifyAll = isBlockedViewAllModifyAll(actionKey as PermissionTypes, row);
+      const disabled = unsupportedViewAllModifyAll || (actionKey === 'edit' && 'allowEditPermission' in row && !row.allowEditPermission);
+
+      const checkbox = (
+        <input
+          type="checkbox"
+          id={`${row.key}-${id}-${actionKey}`}
+          checked={value}
+          tabIndex={-1}
+          // Stop the click from also reaching the wrapping div's onClick — otherwise a direct click
+          // (or programmatic keyboard activation) toggles via both handlers. onChange owns the toggle.
+          onClick={(ev) => ev.stopPropagation()}
+          onChange={(ev) => {
+            handleChange(ev.target.checked);
+          }}
+          disabled={disabled}
+        ></input>
+      );
 
       return (
         <div className="slds-align_absolute-center h-100" onClick={() => !disabled && handleChange(!value)}>
-          <input
-            type="checkbox"
-            id={`${row.key}-${id}-${actionKey}`}
-            checked={value}
-            tabIndex={-1}
-            // Stop the click from also reaching the wrapping div's onClick — otherwise a direct click
-            // (or programmatic keyboard activation) toggles via both handlers. onChange owns the toggle.
-            onClick={(ev) => ev.stopPropagation()}
-            onChange={(ev) => {
-              handleChange(ev.target.checked);
-            }}
-            disabled={disabled}
-          ></input>
+          {unsupportedViewAllModifyAll ? (
+            <Tooltip ariaRole="label" content={VIEW_ALL_MODIFY_ALL_UNSUPPORTED_MESSAGE}>
+              {checkbox}
+            </Tooltip>
+          ) : (
+            checkbox
+          )}
           {errorMessage && (
             <div
               css={css`
@@ -924,10 +951,8 @@ export function getTabVisibilityColumns(
       key: 'tableLabel',
       frozen: true,
       width: 300,
-      getValue: ({ column, row }) => {
-        const data: PermissionTableTabVisibilityCell = row[column.key as keyof PermissionTableTabVisibilityCell] as any;
-        return data && `${data.label} (${data.apiName})`;
-      },
+      // No `getValue` — `tableLabel` is already `Label (ApiName)`, so filtering, search and copy all
+      // read the row value directly.
       summaryCellClass: 'bg-color-gray-dark no-outline',
       renderSummaryCell: ({ row }) => {
         if (row.type === 'HEADING') {
@@ -1370,6 +1395,10 @@ export function updateRowsFromColumnAction<TRows extends PermissionTableCellExte
 ): TRows[] {
   const newRows = [...rows];
   return newRows.map((row, index) => {
+    // Reset restores the saved value, so it stays allowed even where the permission cannot be set
+    if (action !== 'reset' && isBlockedViewAllModifyAll(which, row)) {
+      return row;
+    }
     row = { ...row };
     let newValue = action === 'selectAll';
     row.permissions = { ...row.permissions };
@@ -1458,8 +1487,10 @@ export function updateRowsFromRowAction<TRows extends PermissionTableCellExtende
 
         permission.edit = checkboxesById['edit'].value;
         permission.delete = checkboxesById['delete'].value;
-        permission.viewAll = checkboxesById['viewAll'].value;
-        permission.modifyAll = checkboxesById['modifyAll'].value;
+        if (!isBlockedViewAllModifyAll('viewAll', row)) {
+          permission.viewAll = checkboxesById['viewAll'].value;
+          permission.modifyAll = checkboxesById['modifyAll'].value;
+        }
         permission.viewAllFields = checkboxesById['viewAllFields'].value;
 
         permission.createIsDirty = permission.create !== permission.record.create;
@@ -1615,15 +1646,21 @@ export const PinnedSelectAllRendererWrapper = ({ column }: RenderSummaryCellProp
   );
 };
 
-function defaultRowActionCheckboxes(type: PermissionType, allowEditPermission: boolean): BulkActionCheckbox[] {
+/**
+ * Checkbox list for the row / bulk action popovers. Omit `row` for the table-wide bulk action, which
+ * spans a mix of rows — per-row restrictions are enforced when the change is applied instead.
+ */
+function defaultRowActionCheckboxes(type: PermissionType, row?: PermissionTableCellExtended): BulkActionCheckbox[] {
+  const allowEditPermission = !row || !('allowEditPermission' in row) || row.allowEditPermission;
+  const allowViewAllModifyAll = !row || !isBlockedViewAllModifyAll('viewAll', row);
   if (type === 'object') {
     return [
       { id: 'create', label: 'Create', value: false, disabled: false },
       { id: 'read', label: 'Read', value: false, disabled: false },
       { id: 'edit', label: 'Edit', value: false, disabled: !allowEditPermission },
       { id: 'delete', label: 'Delete', value: false, disabled: false },
-      { id: 'viewAll', label: 'View All', value: false, disabled: false },
-      { id: 'modifyAll', label: 'Modify All', value: false, disabled: false },
+      { id: 'viewAll', label: 'View All', value: false, disabled: !allowViewAllModifyAll },
+      { id: 'modifyAll', label: 'Modify All', value: false, disabled: !allowViewAllModifyAll },
       { id: 'viewAllFields', label: 'View All Fields', value: false, disabled: false },
     ];
   } else if (type === 'field') {
@@ -1740,7 +1777,7 @@ export const RowActionRenderer = ({ column, commitEdit, row }: RenderCellProps<P
   const { type } = useContext(DataTableGenericContext) as PermissionManagerTableContext;
   const popoverRef = useRef<PopoverRef>(null);
   const [checkboxes, setCheckboxes] = useState<BulkActionCheckbox[]>(() => {
-    return defaultRowActionCheckboxes(type, 'allowEditPermission' in row ? row?.allowEditPermission : true);
+    return defaultRowActionCheckboxes(type, row);
   });
 
   /**
@@ -1781,7 +1818,7 @@ export const RowActionRenderer = ({ column, commitEdit, row }: RenderCellProps<P
 
   function handlePopoverChange(isOpen: boolean) {
     if (!isOpen) {
-      setCheckboxes(defaultRowActionCheckboxes(type, 'allowEditPermission' in row ? row.allowEditPermission : true));
+      setCheckboxes(defaultRowActionCheckboxes(type, row));
     }
   }
 
@@ -1848,8 +1885,44 @@ export const RowActionRenderer = ({ column, commitEdit, row }: RenderCellProps<P
  * This component provides a modal that the user can open to make changes that apply to an entire visible table
  */
 export const ColumnSearchFilter = () => {
-  const { filterValue: initialFilterValue, onFilterRows } = useContext(DataTableGenericContext) as PermissionManagerTableContext;
-  return <SearchInput id="column-filter" value={initialFilterValue || ''} placeholder="Filter..." onChange={onFilterRows} />;
+  const {
+    filterValue: initialFilterValue,
+    hasErrors,
+    errorsOnly,
+    onFilterRows,
+    onToggleErrorsOnly,
+  } = useContext(DataTableGenericContext) as PermissionManagerTableContext;
+  return (
+    <Grid verticalAlign="center">
+      <div className="slds-grow">
+        <SearchInput id="column-filter" value={initialFilterValue || ''} placeholder="Filter..." onChange={onFilterRows} />
+      </div>
+      {/* Only offered once a save has produced errors — otherwise it would always filter to nothing */}
+      {hasErrors && onToggleErrorsOnly && (
+        <Tooltip className="slds-m-left_x-small" content={errorsOnly ? 'Show all rows' : 'Show only rows with errors'}>
+          <button
+            type="button"
+            aria-pressed={!!errorsOnly}
+            className={classNames('slds-button slds-button_icon slds-button_icon-border', {
+              'slds-is-selected': errorsOnly,
+            })}
+            tabIndex={-1}
+            onClick={() => onToggleErrorsOnly(!errorsOnly)}
+          >
+            {/* `slds-is-selected` gives the button a blue background and its own white icon fill, so the
+                error color is only applied while the toggle is off */}
+            <Icon
+              type="utility"
+              icon="error"
+              className={classNames('slds-button__icon slds-button__icon_small', { 'slds-icon-text-error': !errorsOnly })}
+              omitContainer
+            />
+            <span className="slds-assistive-text">{errorsOnly ? 'Show all rows' : 'Show only rows with errors'}</span>
+          </button>
+        </Tooltip>
+      )}
+    </Grid>
+  );
 };
 
 export const ColumnSearchFilterSummary = () => {
@@ -1872,7 +1945,7 @@ export const ColumnSearchFilterSummary = () => {
 export const BulkActionRenderer = () => {
   const { type, rows, onBulkAction } = useContext(DataTableGenericContext) as PermissionManagerTableContext;
   const [isOpen, setIsOpen] = useState(false);
-  const [checkboxes, setCheckboxes] = useState(defaultRowActionCheckboxes(type, true));
+  const [checkboxes, setCheckboxes] = useState(() => defaultRowActionCheckboxes(type));
 
   const rowCount = useMemo(() => rows.filter((row) => !('canSetPermission' in row) || row.canSetPermission).length, [rows]);
 
@@ -1909,7 +1982,7 @@ export const BulkActionRenderer = () => {
   }
 
   function handleOpen() {
-    setCheckboxes(defaultRowActionCheckboxes(type, true));
+    setCheckboxes(defaultRowActionCheckboxes(type));
     setIsOpen(true);
   }
 

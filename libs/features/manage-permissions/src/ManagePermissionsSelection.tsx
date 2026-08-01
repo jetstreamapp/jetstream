@@ -42,7 +42,8 @@ import { useAtom, useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
 import { FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { filterPermissionsSobjects } from './utils/permission-manager-utils';
+import { usePermissionableSobjects } from './usePermissionableSobjects';
+import { getPermissionsSobjectFilter } from './utils/permission-manager-utils';
 
 const HEIGHT_BUFFER = 170;
 
@@ -110,6 +111,16 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
 
   const profilesAndPermSetsData = useProfilesAndPermSets(selectedOrg, profiles, permissionSets);
 
+  // Objects that cannot have an ObjectPermissions record (Task, ApexClass, Attachment, ...) fail on save
+  // with INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST, so they are excluded from the picker entirely.
+  const {
+    permissionableSobjects,
+    loading: permissionableSobjectsLoading,
+    refresh: refreshPermissionableSobjects,
+  } = usePermissionableSobjects(selectedOrg);
+
+  const sobjectFilterFn = useMemo(() => getPermissionsSobjectFilter(permissionableSobjects), [permissionableSobjects]);
+
   const hasSelectionsMade = useAtomValue(fromPermissionsState.hasSelectionsMade);
 
   const isAnalysis = selectionMode === 'permission-analysis';
@@ -146,6 +157,15 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
 
   function handleSobjectChange(sobjects: DescribeGlobalSObjectResult[] | null) {
     setSobjects(sobjects);
+  }
+
+  /**
+   * The object list is reloaded by `ConnectedSobjectListMultiSelect` before this fires, so it used the
+   * previous allow-list. Clearing the objects lets it reload once the refreshed allow-list settles.
+   */
+  function handleSobjectRefresh() {
+    setSobjects(null);
+    refreshPermissionableSobjects();
   }
 
   const handleContinueAnalysis = useCallback(() => {
@@ -378,9 +398,11 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
               selectedSObjects={selectedSObjects}
               recentItemsEnabled
               recentItemsKey="sobject"
-              filterFn={filterPermissionsSobjects}
+              filterFn={sobjectFilterFn}
+              filterReady={!permissionableSobjectsLoading}
               onSobjects={handleSobjectChange}
               onSelectedSObjects={setSelectedSObjects}
+              onRefresh={handleSobjectRefresh}
             />
           </div>
         </Split>

@@ -23,13 +23,17 @@ export interface ManagePermissionsEditorTabVisibilityTableProps {
   rows: PermissionTableTabVisibilityCell[];
   totalCount: number;
   filterText?: string;
+  /** True when any row has a save error - gates the "errors only" toggle in the filter row */
+  hasErrors?: boolean;
+  errorsOnly?: boolean;
   onFilter: (value: string) => void;
+  onToggleErrorsOnly?: (value: boolean) => void;
   onBulkUpdate: (rows: PermissionTableTabVisibilityCell[], indexes?: number[]) => void;
   onDirtyRows?: (values: Record<string, DirtyRow<PermissionTableTabVisibilityCell>>) => void;
 }
 
 export const ManagePermissionsEditorTabVisibilityTable = forwardRef<any, ManagePermissionsEditorTabVisibilityTableProps>(
-  ({ columns, rows, totalCount, filterText, onFilter, onBulkUpdate, onDirtyRows }, ref) => {
+  ({ columns, rows, totalCount, filterText, hasErrors, errorsOnly, onFilter, onToggleErrorsOnly, onBulkUpdate, onDirtyRows }, ref) => {
     const tableRef = useRef<DataTableRef<PermissionTableTabVisibilityCell>>(null);
     const [dirtyRows, setDirtyRows] = useState<Record<string, DirtyRow<PermissionTableTabVisibilityCell>>>({});
 
@@ -72,7 +76,10 @@ export const ManagePermissionsEditorTabVisibilityTable = forwardRef<any, ManageP
                 type: 'tabVisibility',
                 totalCount,
                 filterValue: filterText,
+                hasErrors,
+                errorsOnly,
                 onFilterRows: onFilter,
+                onToggleErrorsOnly,
                 onColumnAction: handleColumnAction,
                 onBulkAction: onBulkUpdate,
               } as PermissionManagerTableContext

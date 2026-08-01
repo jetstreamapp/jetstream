@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, MIME_TYPES } from '@jetstream/shared/constants';
 import { saveFile, tracker, useGoBackShortcut, usePrimaryActionShortcut } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, groupByFlat, multiWordObjectFilter } from '@jetstream/shared/utils';
+import { getErrorMessage, groupByFlat } from '@jetstream/shared/utils';
 import {
   AsyncJobNew,
   DirtyRow,
@@ -84,6 +84,7 @@ import {
 import {
   clearPermissionErrorMessage,
   collectProfileAndPermissionIds,
+  filterPermissionRows,
   getUpdatedFieldPermissions,
   getUpdatedObjectPermissions,
   getUpdatedSystemPermissions,
@@ -163,6 +164,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   const [visibleObjectRows, setVisibleObjectRows] = useState<PermissionTableObjectCell[] | null>(null);
   const [dirtyObjectRows, setDirtyObjectRows] = useState<Record<string, DirtyRow<PermissionTableObjectCell>>>({});
   const [objectFilter, setObjectFilter] = useState('');
+  const [objectErrorsOnly, setObjectErrorsOnly] = useState(false);
 
   const [tabVisibilityColumns, setTabVisibilityColumns] = useState<
     ColumnWithFilter<PermissionTableTabVisibilityCell, PermissionTableSummaryRow>[]
@@ -171,12 +173,14 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   const [visibleTabVisibilityRows, setVisibleTabVisibilityRows] = useState<PermissionTableTabVisibilityCell[] | null>(null);
   const [dirtyTabVisibilityRows, setDirtyTabVisibilityRows] = useState<Record<string, DirtyRow<PermissionTableTabVisibilityCell>>>({});
   const [tabVisibilityFilter, setTabVisibilityFilter] = useState('');
+  const [tabVisibilityErrorsOnly, setTabVisibilityErrorsOnly] = useState(false);
 
   const [fieldColumns, setFieldColumns] = useState<ColumnWithFilter<PermissionTableFieldCell, PermissionTableSummaryRow>[]>([]);
   const [fieldRows, setFieldRows] = useState<PermissionTableFieldCell[] | null>(null);
   const [visibleFieldRows, setVisibleFieldRows] = useState<PermissionTableFieldCell[] | null>(null);
   const [dirtyFieldRows, setDirtyFieldRows] = useState<Record<string, DirtyRow<PermissionTableFieldCell>>>({});
   const [fieldFilter, setFieldFilter] = useState('');
+  const [fieldErrorsOnly, setFieldErrorsOnly] = useState(false);
 
   const [systemPermissionColumns, setSystemPermissionColumns] = useState<
     ColumnWithFilter<PermissionTableSystemPermissionCell, PermissionTableSummaryRow>[]
@@ -187,6 +191,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     {},
   );
   const [systemPermissionFilter, setSystemPermissionFilter] = useState('');
+  const [systemPermissionErrorsOnly, setSystemPermissionErrorsOnly] = useState(false);
 
   const [dirtyObjectCount, setDirtyObjectCount] = useState<number>(0);
   const [dirtyFieldCount, setDirtyFieldCount] = useState<number>(0);
@@ -250,10 +255,29 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
 
   useEffect(() => {
     if (objectPermissionMap && fieldPermissionMap && tabVisibilityPermissionMap && systemPermissionMap) {
-      setObjectsHaveErrors(permissionsHaveError(objectPermissionMap));
-      setFieldsHaveErrors(permissionsHaveError(fieldPermissionMap));
-      setTabVisibilityHaveErrors(permissionsHaveError(tabVisibilityPermissionMap));
-      setSystemPermissionsHaveErrors(permissionsHaveError(systemPermissionMap));
+      const objectsHaveError = permissionsHaveError(objectPermissionMap);
+      const fieldsHaveError = permissionsHaveError(fieldPermissionMap);
+      const tabVisibilityHaveError = permissionsHaveError(tabVisibilityPermissionMap);
+      const systemPermissionsHaveError = permissionsHaveError(systemPermissionMap);
+      setObjectsHaveErrors(objectsHaveError);
+      setFieldsHaveErrors(fieldsHaveError);
+      setTabVisibilityHaveErrors(tabVisibilityHaveError);
+      setSystemPermissionsHaveErrors(systemPermissionsHaveError);
+      // The "errors only" toggle is only rendered while a table has errors, so clearing the errors (a successful
+      // re-save or a reset) must also clear the filter - otherwise the table stays filtered to zero rows with no
+      // control left to turn it back off.
+      if (!objectsHaveError) {
+        setObjectErrorsOnly(false);
+      }
+      if (!fieldsHaveError) {
+        setFieldErrorsOnly(false);
+      }
+      if (!tabVisibilityHaveError) {
+        setTabVisibilityErrorsOnly(false);
+      }
+      if (!systemPermissionsHaveError) {
+        setSystemPermissionErrorsOnly(false);
+      }
     }
   }, [objectPermissionMap, fieldPermissionMap, tabVisibilityPermissionMap, systemPermissionMap]);
 
@@ -279,36 +303,20 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   }, [dirtySystemPermissionRows]);
 
   useEffect(() => {
-    if (fieldRows && fieldFilter) {
-      setVisibleFieldRows(fieldRows.filter(multiWordObjectFilter(['label', 'apiName'], fieldFilter)));
-    } else {
-      setVisibleFieldRows(fieldRows);
-    }
-  }, [fieldFilter, fieldRows]);
+    setVisibleFieldRows(filterPermissionRows(fieldRows, fieldFilter, fieldErrorsOnly));
+  }, [fieldFilter, fieldRows, fieldErrorsOnly]);
 
   useEffect(() => {
-    if (objectRows && objectFilter) {
-      setVisibleObjectRows(objectRows.filter(multiWordObjectFilter(['label', 'apiName'], objectFilter)));
-    } else {
-      setVisibleObjectRows(objectRows);
-    }
-  }, [objectFilter, objectRows]);
+    setVisibleObjectRows(filterPermissionRows(objectRows, objectFilter, objectErrorsOnly));
+  }, [objectFilter, objectRows, objectErrorsOnly]);
 
   useEffect(() => {
-    if (tabVisibilityRows && tabVisibilityFilter) {
-      setVisibleTabVisibilityRows(tabVisibilityRows.filter(multiWordObjectFilter(['label', 'apiName'], tabVisibilityFilter)));
-    } else {
-      setVisibleTabVisibilityRows(tabVisibilityRows);
-    }
-  }, [tabVisibilityFilter, tabVisibilityRows]);
+    setVisibleTabVisibilityRows(filterPermissionRows(tabVisibilityRows, tabVisibilityFilter, tabVisibilityErrorsOnly));
+  }, [tabVisibilityFilter, tabVisibilityRows, tabVisibilityErrorsOnly]);
 
   useEffect(() => {
-    if (systemPermissionRows && systemPermissionFilter) {
-      setVisibleSystemPermissionRows(systemPermissionRows.filter(multiWordObjectFilter(['label', 'apiName'], systemPermissionFilter)));
-    } else {
-      setVisibleSystemPermissionRows(systemPermissionRows);
-    }
-  }, [systemPermissionFilter, systemPermissionRows]);
+    setVisibleSystemPermissionRows(filterPermissionRows(systemPermissionRows, systemPermissionFilter, systemPermissionErrorsOnly));
+  }, [systemPermissionFilter, systemPermissionRows, systemPermissionErrorsOnly]);
 
   const handleObjectBulkRowUpdate = useCallback((rows: PermissionTableObjectCell[], indexes?: number[]) => {
     const rowsByKey = groupByFlat(rows, 'key');
@@ -885,7 +893,10 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
                     rows={visibleObjectRows || []}
                     totalCount={objectRows?.length || 0}
                     filterText={objectFilter}
+                    hasErrors={objectsHaveErrors}
+                    errorsOnly={objectErrorsOnly}
                     onFilter={setObjectFilter}
+                    onToggleErrorsOnly={setObjectErrorsOnly}
                     onBulkUpdate={handleObjectBulkRowUpdate}
                     onDirtyRows={setDirtyObjectRows}
                   />
@@ -915,9 +926,12 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
                     ref={managePermissionsEditorObjectTableRef}
                     columns={tabVisibilityColumns}
                     rows={visibleTabVisibilityRows || []}
-                    totalCount={objectRows?.length || 0}
+                    totalCount={tabVisibilityRows?.length || 0}
                     filterText={tabVisibilityFilter}
+                    hasErrors={tabVisibilityHaveErrors}
+                    errorsOnly={tabVisibilityErrorsOnly}
                     onFilter={setTabVisibilityFilter}
+                    onToggleErrorsOnly={setTabVisibilityErrorsOnly}
                     onBulkUpdate={handleTabVisibilityBulkRowUpdate}
                     onDirtyRows={setDirtyTabVisibilityRows}
                   />
@@ -948,7 +962,10 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
                     rows={visibleFieldRows || []}
                     totalCount={fieldRows?.length || 0}
                     filterText={fieldFilter}
+                    hasErrors={fieldsHaveErrors}
+                    errorsOnly={fieldErrorsOnly}
                     onFilter={setFieldFilter}
+                    onToggleErrorsOnly={setFieldErrorsOnly}
                     onBulkUpdate={handleFieldBulkRowUpdate}
                     onDirtyRows={setDirtyFieldRows}
                   />
@@ -979,7 +996,10 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
                     rows={visibleSystemPermissionRows || []}
                     totalCount={systemPermissionRows?.length || 0}
                     filterText={systemPermissionFilter}
+                    hasErrors={systemPermissionsHaveErrors}
+                    errorsOnly={systemPermissionErrorsOnly}
                     onFilter={setSystemPermissionFilter}
+                    onToggleErrorsOnly={setSystemPermissionErrorsOnly}
                     onBulkUpdate={handleSystemPermissionBulkRowUpdate}
                     onDirtyRows={setDirtySystemPermissionRows}
                   />
