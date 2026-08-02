@@ -106,15 +106,45 @@ describe('verifyAndExtractFeatureFlags', () => {
     expect(result).toEqual(DEFAULT_FEATURE_FLAGS);
   });
 
-  it('does not propagate unknown keys even when the signature is valid', async () => {
-    // The canonical payload only covers ALL_FEATURE_FLAG_KEYS, so adding an extra key leaves the
-    // signature valid — the extracted result must still drop the unknown key.
+  it('falls back to code defaults when an unsigned key is injected into the payload', async () => {
+    // The canonical payload covers every transmitted key, so smuggling in an extra one changes the
+    // byte sequence and invalidates the signature rather than riding along unnoticed.
     const signedFlags = { [FLAG]: true } as FeatureFlags;
     const signature = signFlags(userId, signedFlags);
     const tampered = { ...signedFlags, 'evil-injected-flag': true } as unknown as FeatureFlags;
     const result = await verifyAndExtractFeatureFlags({ id: userId, featureFlags: tampered, featureFlagsSignature: signature });
+    expect(result).toEqual(DEFAULT_FEATURE_FLAGS);
     expect(result).not.toHaveProperty('evil-injected-flag');
-    expect(Object.keys(result).sort()).toEqual([...ALL_FEATURE_FLAG_KEYS].sort());
+  });
+
+  // Version skew: the desktop app and browser extension run builds that can be far behind the
+  // server, so the signed payload has to survive a flag registry that differs in either direction.
+  // Keying the payload off the local ALL_FEATURE_FLAG_KEYS instead used to break every one of these,
+  // silently resetting all flags to their code defaults on any out-of-date client.
+  describe('flag registry version skew', () => {
+    it('accepts flags from a server that knows a flag this build does not, ignoring the unknown key', async () => {
+      const serverFlags = { [FLAG]: true, 'flag-added-after-this-build': true } as unknown as FeatureFlags;
+      const result = await verifyAndExtractFeatureFlags({
+        id: userId,
+        featureFlags: serverFlags,
+        featureFlagsSignature: signFlags(userId, serverFlags),
+      });
+      expect(result[FLAG]).toBe(true);
+      expect(result).not.toHaveProperty('flag-added-after-this-build');
+      expect(Object.keys(result).sort()).toEqual([...ALL_FEATURE_FLAG_KEYS].sort());
+    });
+
+    it('accepts flags from a server that omits a flag this build knows, defaulting the missing one', async () => {
+      // An empty payload stands in for "the server sent nothing this build recognizes" and keeps the
+      // test stable no matter how many flags the registry currently holds.
+      const serverFlags = {} as FeatureFlags;
+      const result = await verifyAndExtractFeatureFlags({
+        id: userId,
+        featureFlags: serverFlags,
+        featureFlagsSignature: signFlags(userId, serverFlags),
+      });
+      expect(result).toEqual(DEFAULT_FEATURE_FLAGS);
+    });
   });
 
   it('coerces non-boolean values for known keys to false unless strictly true', async () => {
