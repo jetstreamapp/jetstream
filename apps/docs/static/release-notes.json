@@ -1,5 +1,51 @@
 [
   {
+    "slug": "v10.9.0",
+    "title": "10.9.0 - Manage permission set assignments",
+    "date": "2026-08-02",
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "10.9.0",
+      "desktop": "4.6.0",
+      "extension": "3.9.0"
+    },
+    "summary": "Assign and unassign users to permission sets without leaving Manage Permissions, control batch size and serial mode when saving record changes, and get advance warning before your SSO certificate expires.",
+    "highlights": [
+      {
+        "title": "Manage permission set assignments",
+        "description": "Assign and unassign users to a permission set directly from Manage Permissions, without switching to Salesforce Setup.",
+        "docLink": "/permissions"
+      },
+      {
+        "title": "Batch size and serial mode when saving records",
+        "description": "Choose how many records go in each save request, and send batches one at a time, when saving edits from query results.",
+        "docLink": "/query/results"
+      },
+      {
+        "title": "Progress while downloading large query results",
+        "description": "Downloading all records from a query now shows a progress bar with the number of records retrieved so far.",
+        "docLink": "/query/results"
+      },
+      {
+        "title": "Faster Manage Permissions in large orgs",
+        "description": "Loading object and field permissions is significantly faster and no longer stalls out on orgs with a lot of metadata.",
+        "docLink": "/permissions"
+      },
+      {
+        "title": "Advance warning before your SSO certificate expires",
+        "description": "Team admins get in-app and email reminders before the SAML signing certificate for their identity provider expires.",
+        "platforms": [
+          "web"
+        ],
+        "docLink": "/team-management/sso/overview"
+      }
+    ]
+  },
+  {
     "slug": "v10.8.0",
     "title": "10.8.0 - Download any Permission Analysis grid",
     "date": "2026-07-28",

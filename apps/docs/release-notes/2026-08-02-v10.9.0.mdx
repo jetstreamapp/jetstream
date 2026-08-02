@@ -1,0 +1,72 @@
+---
+slug: v10.9.0
+title: 10.9.0 - Manage permission set assignments
+date: '2026-08-02'
+tags: [web, desktop, extension]
+versions:
+  web: 10.9.0
+  desktop: 4.6.0
+  extension: 3.9.0
+summary: Assign and unassign users to permission sets without leaving Manage Permissions, control batch size and serial mode when saving record changes, and get advance warning before your SSO certificate expires.
+highlights:
+  - title: Manage permission set assignments
+    description: Assign and unassign users to a permission set directly from Manage Permissions, without switching to Salesforce Setup.
+    docLink: /permissions
+  - title: Batch size and serial mode when saving records
+    description: Choose how many records go in each save request, and send batches one at a time, when saving edits from query results.
+    docLink: /query/results
+  - title: Progress while downloading large query results
+    description: Downloading all records from a query now shows a progress bar with the number of records retrieved so far.
+    docLink: /query/results
+  - title: Faster Manage Permissions in large orgs
+    description: Loading object and field permissions is significantly faster and no longer stalls out on orgs with a lot of metadata.
+    docLink: /permissions
+  - title: Advance warning before your SSO certificate expires
+    description: Team admins get in-app and email reminders before the SAML signing certificate for their identity provider expires.
+    platforms: [web]
+    docLink: /team-management/sso/overview
+---
+
+{/* truncate */}
+
+## What's new
+
+### Manage permission set assignments
+
+Manage Permissions let you edit what a permission set grants, but changing who it applied to still meant a trip to Salesforce Setup. You can now open a Manage Assignments modal and add or remove users directly.
+
+There are two ways in: the info popover on the permission set list, and a new trigger in the column header above each permission set in the permissions editor. Search for users by name or username, stage your adds and removes, and save them all at once. If Salesforce rejects part of the change, the modal stays open with the error so you can fix it and try again.
+
+### Batch size and serial mode when saving records
+
+Saving edits from query results now has a Save Options section with two controls. Batch size sets how many records go into each API call, up to 200. Serial mode sends those batches one at a time instead of all at once.
+
+These are the same levers Load Records gives you, and they matter for the same reasons. Lowering the batch size helps when records fire heavy automation and hit governor limits, and serial mode avoids the record-locking errors you get when parallel batches touch related records, like several contacts on the same account.
+
+### Progress while downloading large query results
+
+Downloading every record from a query now reports progress using a progress bar with a running count of records retrieved, so you can see how much time is left for the download to complete.
+
+### Faster Manage Permissions in large orgs
+
+Loading permissions for a set of objects and fields is noticeably faster, especially in orgs with a lot of metadata.
+
+### Advance warning before your SSO certificate expires
+
+When the SAML signing certificate configured for your team is close to expiring, Jetstream now warns you instead of letting logins break unannounced. Team admins see a banner in the app starting 30 days out, and get email reminders at 30, 14, 7, and 3 days before expiration, plus one on the expiration date itself. Each message links straight to your SSO settings.
+
+Updating the certificate clears the warning, and if the certificate is later replaced with another one that is nearing expiration, the reminders start over.
+
+### Other fixes
+
+- The object picker in Manage Permissions now only offers objects that Salesforce will actually accept permissions for. Selecting setup objects, child objects whose access rolls up to a parent, or platform objects previously produced large numbers of save failures.
+- Permission Analysis no longer drops high-severity findings on very large orgs. Errors such as high-risk system permissions and Modify All Records are now reported first and no longer pushed out by lower-severity warnings, and the result limit has been raised substantially.
+- Permission Analysis findings about field access without object access are now scoped to the profile or permission set being analyzed, and are suppressed when the users involved get the missing object access somewhere else. Previously these could be reported as having no effect when they did.
+- Retrying failed records and downloading per-batch results from a bulk load now match results to the right records when a batch was automatically split because it was too large. This fix also shipped in 10.8.1.
+- Bulk loads now tell you when a batch was automatically split into smaller batches, so the batch count in the results makes sense.
+- Excel downloads with very long values now rebuild only the affected rows, which makes large exports noticeably quicker.
+- Signing out now fully ends your session, including any background data connections.
+- Desktop and the browser extension now report crashes so problems get fixed faster. You can turn this off from the Send crash reports to Jetstream option in the desktop app menu, or in the extension's settings.
+- Fixed sign-in on the desktop app failing to complete after returning from the browser.
+- Fixed the desktop app losing its connection for syncing data between windows.
+- Fixed the Permission Analysis and Data Analysis pages being unreachable in the browser extension even when the feature was turned on.
