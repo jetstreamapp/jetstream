@@ -188,6 +188,15 @@ export interface PermissionSetProfileRecord {
   UserType: string;
 }
 
+export interface PermissionSetAssignmentRecord {
+  attributes: RecordAttributes;
+  Id: string;
+  PermissionSetId: string;
+  AssigneeId: string;
+  /** Only populated when the query selects `Assignee.*` fields. */
+  Assignee?: { Id: string; Name: string; Username: string; IsActive: boolean };
+}
+
 export interface PermissionSetNoProfileRecord extends PermissionSetRecord {
   Type: 'Regular';
   IsOwnedByProfile: false;

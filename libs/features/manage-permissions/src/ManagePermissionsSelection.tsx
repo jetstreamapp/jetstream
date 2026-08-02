@@ -35,6 +35,7 @@ import {
   fromJetstreamEvents,
   fromPermissionsState,
   jobsState,
+  useAmplitude,
 } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState, useFeatureFlag } from '@jetstream/ui/app-state';
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
@@ -77,6 +78,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
   const selectedOrg = useAtomValue(selectedOrgState);
   const { serverUrl } = useAtomValue(applicationCookieState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
+  const { trackEvent } = useAmplitude();
 
   const renderPopoverTrigger = (recordType: ProfileOrPermSetRecordType) => (item: ListItem) => (
     <ProfileOrPermSetPopover
@@ -86,6 +88,8 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
       recordId={item.id}
       recordType={recordType}
       meta={item.meta as PermissionSetWithProfileRecord | PermissionSetNoProfileRecord | undefined}
+      allowManageAssignments={recordType === 'PermissionSet'}
+      trackEvent={trackEvent}
     />
   );
 
