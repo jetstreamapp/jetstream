@@ -30,6 +30,7 @@ export const IpcEventChannel = {
   updateStatus: 'update-status',
   openSettings: 'open-settings',
   googlePickerResult: 'google-picker-result',
+  crashReportingChanged: 'crash-reporting-changed',
 } as const;
 
 export interface ElectronApiCallback {
@@ -41,6 +42,7 @@ export interface ElectronApiCallback {
   onUpdateStatus: (callback: (status: UpdateStatus) => void) => () => void;
   onOpenSettings: (callback: () => void) => () => void;
   onGooglePickerResult: (callback: (result: GooglePickerResult) => void) => () => void;
+  onCrashReportingChanged: (callback: (enabled: boolean) => void) => () => void;
 }
 
 export interface ElectronApiRequestResponse {
@@ -51,6 +53,11 @@ export interface ElectronApiRequestResponse {
   selectFolder: () => Promise<Maybe<string>>;
   getPreferences: () => Promise<DesktopUserPreferences>;
   setPreferences: (preferences: DesktopUserPreferences) => Promise<DesktopUserPreferences>;
+  /**
+   * Hand the (public, build-time-baked) error-tracking DSN from the renderer to the main process so
+   * it can initialize crash reporting for the Node/Electron main process.
+   */
+  configureCrashReporter: (dsn: Maybe<string>) => Promise<void>;
   request: (payload: { url: string; request: IcpRequest }) => Promise<IcpResponse>;
   downloadZipToFile: (payload: DownloadZipPayload) => Promise<DownloadFileResult>;
   downloadBulkApiFile: (payload: JetstreamEventStreamFilePayload) => Promise<DownloadFileResult>;
@@ -165,6 +172,8 @@ export type AppData = z.infer<typeof AppDataSchema>;
 export const DesktopUserPreferencesSchema = z.object({
   skipFrontdoorLogin: z.boolean().optional().default(false),
   recordSyncEnabled: z.boolean().optional().default(false),
+  // Defaults to enabled - opting out is explicit, and the menu checkbox writes both states.
+  crashReportingEnabled: z.boolean().optional().default(true),
   soqlQueryFormatOptions: SoqlQueryFormatOptionsSchema.prefault({}),
   fileDownload: z
     .object({

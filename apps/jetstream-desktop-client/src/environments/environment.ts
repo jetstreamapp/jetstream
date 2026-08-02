@@ -1,11 +1,16 @@
-// This file can be replaced during build by using the `fileReplacements` array.
-// When building for production, this file is replaced with `environment.prod.ts`.
+// This is the ONLY environment file for the desktop client - `fileReplacements` are NOT applied by
+// the @nx/vite build (that is an Angular/Webpack-builder concept), so anything that has to be
+// correct per build is derived from `import.meta.env`, which Vite resolves per mode.
+//
+// `name` deliberately keeps the `JetstreamDev` value production has always shipped — it names the
+// local database, so correcting it would strand existing user data. That is also why we do not adopt
+// the `replaceFiles` plugin the web extension uses to do a real per-mode swap.
 
 export const environment = {
   name: 'JetstreamDev',
-  production: false,
-  // FIXME: we do want these in
-  sentryDsn: undefined,
+  production: import.meta.env.PROD,
+  sentryDsn: import.meta.env.NX_PUBLIC_SENTRY_DSN_DESKTOP,
+  // FIXME: we do want this in
   amplitudeToken: undefined,
   STRIPE_PUBLIC_KEY: '',
   BILLING_ENABLED: false,

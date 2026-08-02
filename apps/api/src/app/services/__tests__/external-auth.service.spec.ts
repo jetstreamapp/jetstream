@@ -1,7 +1,10 @@
+import { enrichRequestContext } from '@jetstream/api-config';
+import { HTTP } from '@jetstream/shared/constants';
 import { UserProfileUi } from '@jetstream/types';
+import * as express from 'express';
 import { Mock, vi } from 'vitest';
 import * as webExtDb from '../../db/web-extension.db';
-import { AUDIENCE_WEB_EXT, isTokenWithinRefreshWindow, rotateToken } from '../external-auth.service';
+import { addDeviceIdToLocals, AUDIENCE_WEB_EXT, getDeviceId, isTokenWithinRefreshWindow, rotateToken } from '../external-auth.service';
 import { decryptJwtTokenOrPlaintext, hashToken } from '../jwt-token-encryption.service';
 
 const SECONDS_PER_DAY = 60 * 60 * 24;
@@ -59,6 +62,18 @@ const mockUserProfile = {
   email: 'test@example.com',
   name: 'Test User',
 } as unknown as UserProfileUi;
+
+function buildRequest({ headers, body, query }: { headers?: Record<string, string>; body?: unknown; query?: unknown } = {}) {
+  return {
+    get: (name: string) => headers?.[name],
+    body,
+    query,
+  } as unknown as express.Request;
+}
+
+function buildResponse(locals: Record<string, unknown> = {}) {
+  return { locals } as unknown as express.Response;
+}
 
 const baseArgs = {
   userProfile: mockUserProfile,
@@ -179,6 +194,87 @@ describe('external-auth.service', () => {
       const token = makeTokenWithExp(nowSeconds + 5 * SECONDS_PER_DAY);
       expect(isTokenWithinRefreshWindow(token, 2)).toBe(false);
       expect(isTokenWithinRefreshWindow(token, 7)).toBe(true);
+    });
+  });
+
+  describe('getDeviceId', () => {
+    it('prefers an already-resolved res.locals.deviceId over every request source', () => {
+      const req = buildRequest({
+        headers: { [HTTP.HEADERS.X_EXT_DEVICE_ID]: 'header-device', [HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID]: 'legacy-header-device' },
+        body: { deviceId: 'body-device' },
+        query: { deviceId: 'query-device' },
+      });
+
+      expect(getDeviceId(req, buildResponse({ deviceId: 'locals-device' }))).toBe('locals-device');
+    });
+
+    it('prefers the desktop header over the legacy extension header and the body/query fallbacks', () => {
+      const req = buildRequest({
+        headers: { [HTTP.HEADERS.X_EXT_DEVICE_ID]: 'header-device', [HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID]: 'legacy-header-device' },
+        body: { deviceId: 'body-device' },
+        query: { deviceId: 'query-device' },
+      });
+
+      expect(getDeviceId(req, buildResponse())).toBe('header-device');
+    });
+
+    it('falls back to the legacy extension header when the standard header is absent', () => {
+      const req = buildRequest({
+        headers: { [HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID]: 'legacy-header-device' },
+        body: { deviceId: 'body-device' },
+      });
+
+      expect(getDeviceId(req, buildResponse())).toBe('legacy-header-device');
+    });
+
+    it('falls back to the request body for legacy clients that send no header', () => {
+      const req = buildRequest({ body: { deviceId: 'body-device' }, query: { deviceId: 'query-device' } });
+
+      expect(getDeviceId(req, buildResponse())).toBe('body-device');
+    });
+
+    it('falls back to the query string when no header or body deviceId is present', () => {
+      const req = buildRequest({ query: { deviceId: 'query-device' } });
+
+      expect(getDeviceId(req, buildResponse())).toBe('query-device');
+    });
+
+    it('returns a falsy value when no source provides a deviceId', () => {
+      expect(getDeviceId(buildRequest(), buildResponse())).toBeFalsy();
+    });
+
+    it('returns null instead of throwing when reading the request fails', () => {
+      const req = {
+        get: () => {
+          throw new Error('boom');
+        },
+      } as unknown as express.Request;
+
+      expect(getDeviceId(req, buildResponse())).toBeNull();
+    });
+  });
+
+  describe('addDeviceIdToLocals', () => {
+    it('stores the resolved deviceId on res.locals, binds it to the logger context, and continues', () => {
+      const res = buildResponse();
+      const next = vi.fn();
+
+      addDeviceIdToLocals(buildRequest({ headers: { [HTTP.HEADERS.X_EXT_DEVICE_ID]: 'header-device' } }), res, next);
+
+      expect(res.locals.deviceId).toBe('header-device');
+      expect(enrichRequestContext).toHaveBeenCalledWith({ deviceId: 'header-device' });
+      expect(next).toHaveBeenCalledTimes(1);
+    });
+
+    it('continues without a deviceId when the request has none', () => {
+      const res = buildResponse();
+      const next = vi.fn();
+
+      addDeviceIdToLocals(buildRequest(), res, next);
+
+      expect(res.locals.deviceId).toBeFalsy();
+      expect(enrichRequestContext).toHaveBeenCalledWith({ deviceId: undefined });
+      expect(next).toHaveBeenCalledTimes(1);
     });
   });
 });

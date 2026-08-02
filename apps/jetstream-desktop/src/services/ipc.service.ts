@@ -23,6 +23,7 @@ import { Method } from 'tiny-request-router';
 import { z } from 'zod';
 import { checkForUpdates, getCurrentUpdateStatus, installUpdate } from '../config/auto-updater';
 import { ENV } from '../config/environment';
+import { initMainErrorTracker } from '../config/error-tracker';
 import { desktopRoutes } from '../controllers/desktop.routes';
 import { getOrgFromHeaderOrQuery, initApiConnection } from '../utils/route.utils';
 import { openExternalSafe } from '../utils/url.utils';
@@ -74,6 +75,7 @@ export function registerIpc(): void {
   registerHandler('selectFolder', handleSelectFolderEvent);
   registerHandler('getPreferences', handleGetPreferences);
   registerHandler('setPreferences', handleSetPreferences);
+  registerHandler('configureCrashReporter', handleConfigureCrashReporter);
   // Handle API requests to Salesforce
   registerHandler('request', handleRequestEvent);
   // Handle zip download to file
@@ -110,6 +112,10 @@ const handleSetPreferences: MainIpcHandler<'setPreferences'> = async (_, payload
   return dataService.updateUserPreferences(payload);
 };
 
+const handleConfigureCrashReporter: MainIpcHandler<'configureCrashReporter'> = async (_, dsn) => {
+  initMainErrorTracker(dsn);
+};
+
 const handleLoginEvent: MainIpcHandler<'login'> = async (event) => {
   const { deviceId } = dataService.getAppData();
   // This is used to ensure the callback is coming from the same device
@@ -119,8 +125,12 @@ const handleLoginEvent: MainIpcHandler<'login'> = async (event) => {
 
   const handleCallback = async (requestUrlParams: Record<string, string>) => {
     try {
+      // The desktop already knows its own deviceId (the closure `deviceId` above); the callback URL
+      // only echoes it back. Accept it when present and assert it matches, but no longer require it,
+      // so the browser relay page can stop putting the deviceId in the jetstream:// callback URL.
+      // The `token` nonce (also generated here) is what proves the callback belongs to this login.
       const queryParams = z
-        .object({ deviceId: z.literal(deviceId), token: z.literal(token), accessToken: z.string() })
+        .object({ deviceId: z.literal(deviceId).optional(), token: z.literal(token), accessToken: z.string() })
         .parse(requestUrlParams);
 
       const accessToken = queryParams.accessToken;

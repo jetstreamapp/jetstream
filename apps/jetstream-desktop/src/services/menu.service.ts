@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { IpcEventChannel } from '@jetstream/desktop/types';
 import { truncateMiddle } from '@jetstream/shared/utils';
 import { app, BrowserWindow, Menu, shell } from 'electron';
 import logger from 'electron-log';
@@ -7,7 +8,7 @@ import { Browser } from '../browser/browser';
 import { checkForUpdates } from '../config/auto-updater';
 import { openExternalSafe } from '../utils/url.utils';
 import { isMac } from '../utils/utils';
-import { getUserPreferences } from './persistence.service';
+import { getUserPreferences, updateUserPreferences } from './persistence.service';
 
 type MenuItem = Parameters<typeof Menu.buildFromTemplate>[0][0];
 
@@ -135,6 +136,18 @@ export function initAppMenu() {
           },
         },
         { type: 'separator' },
+        {
+          type: 'checkbox',
+          label: 'Send crash reports to Jetstream',
+          checked: getUserPreferences().crashReportingEnabled,
+          click: (menuItem) => {
+            const enabled = menuItem.checked;
+            updateUserPreferences({ crashReportingEnabled: enabled });
+            // Notify every renderer so their in-app error tracker and preferences state honor the
+            // change immediately. The main-process tracker reads the preference directly.
+            BrowserWindow.getAllWindows().forEach(({ webContents }) => webContents.send(IpcEventChannel.crashReportingChanged, enabled));
+          },
+        },
         {
           label: 'Open Log File',
           click: async () => {

@@ -1,8 +1,8 @@
 /* eslint-disable no-restricted-globals */
 import { logger } from '@jetstream/shared/client-logger';
 import { getCanvasPreferences, updateCanvasPreferences } from '@jetstream/shared/data';
-import { useObservable } from '@jetstream/shared/ui-utils';
-import { JetstreamEventSaveSoqlQueryFormatOptionsPayload } from '@jetstream/types';
+import { initErrorTracker, setErrorTrackerUser, useObservable } from '@jetstream/shared/ui-utils';
+import { JetstreamEventSaveSoqlQueryFormatOptionsPayload, SalesforceOrgUi } from '@jetstream/types';
 import { AppLoading, fromJetstreamEvents } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { initDexieDb } from '@jetstream/ui/db';
@@ -10,6 +10,7 @@ import { useAtomValue, useSetAtom } from 'jotai';
 import localforage from 'localforage';
 import React, { FunctionComponent, useEffect, useState } from 'react';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 import { getCanvasOrg } from '../../utils/canvas.utils';
 import { canvasColorSchemeState } from './useCanvasColorScheme';
 
@@ -34,17 +35,29 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
     fromJetstreamEvents.getObservable('saveSoqlQueryFormatOptions') as Observable<JetstreamEventSaveSoqlQueryFormatOptionsPayload>,
   );
 
-  const [initError] = useState<string | null>(() => {
+  // The signed request is only available in a canvas context, so this is where we find out if we
+  // have an org at all - everything downstream keys off the result instead of re-deriving it.
+  const [{ org, initError }] = useState<{ org: SalesforceOrgUi | null; initError: string | null }>(() => {
     try {
       const org = getCanvasOrg();
       setSalesforceOrgs([org]);
       setSelectedOrgId(org.uniqueId);
-      return null;
+      return { org, initError: null };
     } catch (ex) {
       logger.error('[CANVAS] Error initializing canvas org', ex);
-      return 'Failed to initialize Salesforce connection. The canvas context may not be available.';
+      return { org: null, initError: 'Failed to initialize Salesforce connection. The canvas context may not be available.' };
     }
   });
+
+  useEffect(() => {
+    initErrorTracker({
+      dsn: environment.sentryDsn,
+      environment: environment.production ? 'production' : 'development',
+    });
+    if (org) {
+      setErrorTrackerUser({ id: org.userId, email: org.email });
+    }
+  }, [org]);
 
   useEffect(() => {
     // wait until this data has initialized before proceeding

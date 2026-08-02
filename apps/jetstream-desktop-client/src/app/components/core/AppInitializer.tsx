@@ -2,7 +2,7 @@ import { DesktopAuthInfo } from '@jetstream/desktop/types';
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP, HTTP_SOURCE_DESKTOP } from '@jetstream/shared/constants';
 import { disconnectSocket, initSocket, registerMiddleware } from '@jetstream/shared/data';
-import { initErrorTracker, setErrorTrackerUser, tracker, useObservable } from '@jetstream/shared/ui-utils';
+import { setErrorTrackerUser, tracker, useObservable } from '@jetstream/shared/ui-utils';
 import { Announcement, JetstreamEventSaveSoqlQueryFormatOptionsPayload, SalesforceOrgUi } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
@@ -14,6 +14,7 @@ import localforage from 'localforage';
 import React, { Fragment, FunctionComponent, useEffect } from 'react';
 import { Observable, Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { useDesktopErrorTracker } from './useDesktopErrorTracker';
 import { useElectronActionLoader } from './useElectronActionLoader';
 
 const orgConnectionError = new Subject<{ uniqueId: string; connectionError: string }>();
@@ -114,12 +115,10 @@ APP VERSION ${version}
   }, []);
 
   useEffect(() => {
-    initErrorTracker({ dsn: environment.sentryDsn, environment: appInfo.environment, version });
-  }, [appInfo.environment, version]);
-
-  useEffect(() => {
     setErrorTrackerUser(userProfile);
   }, [userProfile]);
+
+  useDesktopErrorTracker({ version, environment: appInfo.environment });
 
   useAmplitude();
 

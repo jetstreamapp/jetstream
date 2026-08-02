@@ -29,6 +29,7 @@ browser.storage.onChanged.addListener((changes, namespace) => {
         enabled: newState.local.options?.enabled ?? true,
         recordSyncEnabled: newState.local.options?.recordSyncEnabled ?? false,
         colorScheme: newState.local.options?.colorScheme ?? 'light',
+        crashReportingEnabled: newState.local.options?.crashReportingEnabled ?? true,
       };
 
       newState.sync.authTokens = newState.sync.authTokens ?? null;
@@ -55,6 +56,7 @@ async function initAuthState(): Promise<ChromeStorageState> {
         enabled: local?.options?.enabled ?? true,
         recordSyncEnabled: local?.options?.recordSyncEnabled ?? false,
         colorScheme: local?.options?.colorScheme ?? 'light',
+        crashReportingEnabled: local?.options?.crashReportingEnabled ?? true,
       },
     },
     sync: {
@@ -81,7 +83,7 @@ const DEFAULT_STATE: ChromeStorageState = {
     buttonPosition: DEFAULT_BUTTON_POSITION,
     soqlQueryFormatOptions: SoqlQueryFormatOptionsSchema.parse({}),
   },
-  local: { options: { enabled: true, recordSyncEnabled: false, colorScheme: 'light' } },
+  local: { options: { enabled: true, recordSyncEnabled: false, colorScheme: 'light', crashReportingEnabled: true } },
 };
 
 export const chromeStorageState = unwrap(chromeStorageAsyncState, (prev) => prev ?? DEFAULT_STATE);

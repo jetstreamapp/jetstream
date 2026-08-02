@@ -2,7 +2,12 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
 import { disconnectSocket, initSocket } from '@jetstream/shared/data';
-import { applyVerifiedFeatureFlags, getBrowserExtensionVersion, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import {
+  applyVerifiedFeatureFlags,
+  getBrowserExtensionVersion,
+  setErrorTrackerUser,
+  useNonInitialEffect,
+} from '@jetstream/shared/ui-utils';
 import { getDefaultAppState, getErrorMessage } from '@jetstream/shared/utils';
 import { JetstreamEventSaveSoqlQueryFormatOptionsPayload, UserProfileUi } from '@jetstream/types';
 import { ScopedNotification } from '@jetstream/ui';
@@ -17,6 +22,7 @@ import { useLocation } from 'react-router';
 import { Observable } from 'rxjs';
 import browser from 'webextension-polyfill';
 import { environment } from '../environments/environment';
+import { useExtensionErrorTracker } from '../hooks/useExtensionErrorTracker';
 import { chromeLocalStorage, chromeSyncStorage, UserProfileState } from '../utils/extension.store';
 import { sendMessage } from '../utils/web-extension.utils';
 import { GlobalExtensionError } from './GlobalExtensionError';
@@ -67,6 +73,12 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
       announcements: [],
     });
   }, [setAppInfo]);
+
+  useExtensionErrorTracker(options.crashReportingEnabled);
+
+  useEffect(() => {
+    setErrorTrackerUser(chromeUserProfile);
+  }, [chromeUserProfile]);
 
   useEffect(() => {
     // wait until this data has initialized before proceeding

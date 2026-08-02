@@ -2,6 +2,7 @@ import { UpdateStatus } from '@jetstream/desktop/types';
 import { BrowserWindow } from 'electron';
 import logger from 'electron-log';
 import { autoUpdater, UpdateInfo } from 'electron-updater';
+import { captureMainException } from './error-tracker';
 
 // Configure logging
 autoUpdater.logger = logger;
@@ -63,6 +64,7 @@ function setupAutoUpdaterListeners() {
 
   autoUpdater.on('error', (err) => {
     logger.error('Error in auto-updater:', err);
+    captureMainException(err, { source: 'auto-updater' });
     sendUpdateStatus({
       status: 'error',
       error: err.message || 'Unknown error occurred',
