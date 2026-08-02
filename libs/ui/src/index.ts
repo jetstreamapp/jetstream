@@ -13,6 +13,7 @@ export * from './lib/data-table/data-table-formatters';
 export type { ColumnWithFilter, ContextAction, ContextMenuActionData, DataTableRef, RowWithKey } from './lib/data-table/data-table-types';
 export {
   TABLE_CONTEXT_MENU_ITEMS,
+  computeFilterSetValues,
   copyGenericTableDataToClipboard,
   getColumnsForGenericTable,
   getRowTypeFromValue,

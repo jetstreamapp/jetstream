@@ -160,6 +160,8 @@ export type PermissionTableCellExtended =
 
 export interface PermissionTableObjectCell extends PermissionTableCell<PermissionTableObjectCellPermission> {
   allowEditPermission: boolean; // TODO: what other permissions may be restricted here??
+  /** False for objects where Salesforce silently drops View All / Modify All (Idea, Product2, ...) */
+  allowViewAllModifyAllPermission: boolean;
 }
 
 export interface PermissionTableFieldCell extends PermissionTableCell<PermissionTableFieldCellPermission> {
@@ -292,7 +294,11 @@ export interface PermissionManagerTableContext {
   rows: PermissionTableCellExtended[];
   totalCount: number;
   filterValue?: string;
+  /** True when any row in the table (not just the visible ones) has a save error */
+  hasErrors?: boolean;
+  errorsOnly?: boolean;
   onFilterRows: (value: string) => void;
+  onToggleErrorsOnly?: (value: boolean) => void;
   onRowAction: (action: 'selectAll' | 'unselectAll' | 'reset', columnKey: string) => void;
   onColumnAction: (action: 'selectAll' | 'unselectAll' | 'reset', columnKey: string) => void;
   onBulkAction: (rows: PermissionTableCellExtended[]) => void;

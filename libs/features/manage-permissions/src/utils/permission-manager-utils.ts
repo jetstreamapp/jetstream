@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { sobjectOperation, updatePermissionSetRecords } from '@jetstream/shared/data';
+import { describeSObject, sobjectOperation, updatePermissionSetRecords } from '@jetstream/shared/data';
 import { isErrorResponse } from '@jetstream/shared/ui-utils';
-import { splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { multiWordObjectFilter, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
   DescribeGlobalSObjectResult,
   EntityParticlePermissionsRecord,
@@ -9,6 +9,7 @@ import {
   FieldPermissionDefinitionMap,
   FieldPermissionRecord,
   FieldPermissionRecordForSave,
+  Maybe,
   ObjectPermissionDefinitionMap,
   ObjectPermissionRecord,
   ObjectPermissionRecordForSave,
@@ -20,6 +21,7 @@ import {
   PermissionSetWithProfileRecord,
   PermissionSystemSaveData,
   PermissionTabVisibilitySaveData,
+  PermissionTableCellExtended,
   PermissionTableCellPermission,
   PermissionTableFieldCellPermission,
   PermissionTableObjectCellPermission,
@@ -52,6 +54,46 @@ export function filterPermissionsSobjects(sobject: DescribeGlobalSObjectResult |
     return false;
   }
   return sobject.createable || sobject.updateable || sobject.name.endsWith('__e');
+}
+
+/**
+ * Reads the org's allow-list of objects that can have an `ObjectPermissions` record.
+ *
+ * `ObjectPermissions.SobjectType` is a restricted picklist whose values are exactly those objects.
+ * Objects with no independent CRUD are absent - setup/metadata objects (ApexClass, Profile, RecordType),
+ * children whose access rolls up to a parent (Task/Event, OpportunityLineItem, PricebookEntry, Attachment)
+ * and platform junctions (Group, FeedItem, User). Saving against any of them fails with
+ * `INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST`, so they must never reach the permission editor.
+ *
+ * Returns `null` when the allow-list cannot be determined, which signals callers to fall back to the
+ * name/CRUD heuristic rather than showing an empty object list.
+ */
+export async function getPermissionableSobjects(org: SalesforceOrgUi): Promise<Set<string> | null> {
+  try {
+    const { data } = await describeSObject(org, 'ObjectPermissions');
+    const picklistValues = data.fields.find(({ name }) => name === 'SobjectType')?.picklistValues;
+    if (!picklistValues?.length) {
+      logger.warn('[PERMISSIONS] ObjectPermissions.SobjectType returned no picklist values, falling back to heuristic filter');
+      return null;
+    }
+    // `active` is omitted on some describe responses - only drop values explicitly marked inactive
+    const permissionableSobjects = new Set(picklistValues.filter(({ active }) => active !== false).map(({ value }) => value));
+    return permissionableSobjects.size ? permissionableSobjects : null;
+  } catch (ex) {
+    logger.warn('[PERMISSIONS] Unable to describe ObjectPermissions, falling back to heuristic filter', ex);
+    return null;
+  }
+}
+
+/**
+ * Object list filter for the permission manager. Prefers the org's `ObjectPermissions.SobjectType`
+ * allow-list and falls back to the name/CRUD heuristic when it is unavailable.
+ */
+export function getPermissionsSobjectFilter(permissionableSobjects: Maybe<Set<string>>) {
+  if (!permissionableSobjects) {
+    return filterPermissionsSobjects;
+  }
+  return (sobject: DescribeGlobalSObjectResult | null) => !!sobject && permissionableSobjects.has(sobject.name);
 }
 
 export function getFieldDefinitionKey(record: EntityParticlePermissionsRecord) {
@@ -691,6 +733,32 @@ export function clearPermissionErrorMessage<T extends PermissionDefinitionMap>(p
 
 export function permissionsHaveError<T extends PermissionDefinitionMap>(permissionMap: Record<string, T>): boolean {
   return Object.values(permissionMap).some((item) => Object.values(item.permissions).some((permission) => permission.errorMessage));
+}
+
+export function rowHasError(row: PermissionTableCellExtended): boolean {
+  return Object.values(row.permissions).some((permission) => !!permission.errorMessage);
+}
+
+/**
+ * Row visibility for every permission table: the free-text filter plus the "errors only" toggle, which
+ * is how a user finds the handful of failures after saving a large selection.
+ */
+export function filterPermissionRows<T extends PermissionTableCellExtended>(
+  rows: Maybe<T[]>,
+  filterText: string,
+  errorsOnly: boolean,
+): T[] | null {
+  if (!rows) {
+    return null;
+  }
+  let visibleRows = rows;
+  if (filterText) {
+    visibleRows = visibleRows.filter(multiWordObjectFilter(['label', 'apiName'], filterText));
+  }
+  if (errorsOnly) {
+    visibleRows = visibleRows.filter(rowHasError);
+  }
+  return visibleRows;
 }
 
 /**
