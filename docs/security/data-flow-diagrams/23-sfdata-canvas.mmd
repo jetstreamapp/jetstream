@@ -5,6 +5,7 @@ sequenceDiagram
     participant PW as Parent Salesforce Window
     participant SF as Salesforce APIs
     participant API as Jetstream Server
+    participant BS as Better Stack (error tracking)
 
     Note over U,API: App already authenticated via the Canvas signed request<br/>(oauthToken + instanceUrl read from window.sr).
 
@@ -27,4 +28,10 @@ sequenceDiagram
     IF-->>API: (already done) signed-request verify + static asset delivery
     end
 
-    Note over U,API: No Salesforce data flows through Jetstream servers in Canvas mode.
+    rect rgb(243, 232, 253)
+    Note over IF,BS: Crash reporting - iframe straight to Better Stack (NO Salesforce data, no Jetstream hop)
+    IF->>BS: Error message, stack, breadcrumbs,<br/>Salesforce user id + email (from the signed request)
+    Note over IF,BS: The only egress the Canvas CSP allows besides Salesforce and Jetstream:<br/>connect-src explicitly allow-lists the Better Stack ingest origin.<br/>No per-user opt-out - crash reporting follows the org's package install.
+    end
+
+    Note over U,BS: No Salesforce data flows through Jetstream servers in Canvas mode,<br/>and none is included in a crash report.

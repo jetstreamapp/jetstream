@@ -5,6 +5,7 @@ sequenceDiagram
     participant SW as Extension Service Worker
     participant SF as Customer Salesforce Org
     participant API as Jetstream Server
+    participant BS as Better Stack (error tracking)
 
     Note over U,API: The extension runs on a Salesforce tab where the user is already logged in.
 
@@ -29,4 +30,10 @@ sequenceDiagram
     end
     end
 
-    Note over U,API: Salesforce record data and the Salesforce session token<br/>NEVER traverse Jetstream servers.
+    rect rgb(243, 232, 253)
+    Note over UI,BS: Crash reporting - extension straight to Better Stack (NO Salesforce data, no Jetstream hop)<br/>Sent only when an error occurs, and only while "Send crash reports to Jetstream"<br/>is on (Additional Settings; on by default).
+    UI->>BS: Error message, stack, breadcrumbs, extension version,<br/>Jetstream user id + email
+    Note over UI,BS: Extension UI pages only - content scripts and the service worker are NOT<br/>instrumented, so nothing is reported from the Salesforce page context.<br/>Frames originating in extension URLs are dropped; no session replay or tracing.
+    end
+
+    Note over U,BS: Salesforce record data and the Salesforce session token<br/>NEVER traverse Jetstream servers, and are never included in a crash report.

@@ -7,7 +7,7 @@ each product surface.
 - **Audience:** SOC 2 auditors (control A1 — maintained data flow diagrams / process
   flowcharts of internal & external information sources and flows), customers (PII and
   data-residency questions), and internal engineering/security reference.
-- **Accurate as of:** 2026-07-19, verified against the source code (see "Source of truth").
+- **Accurate as of:** 2026-08-02, verified against the source code (see "Source of truth").
 - **Formats:** each diagram is provided as a PNG (with the editable draw.io diagram
   embedded), a `.drawio` source, and — where authored in Mermaid — a `.mmd` source.
   `jetstream-data-flow-diagrams.pdf` contains all 11 diagrams as one file.
@@ -32,15 +32,23 @@ production database is encrypted at rest; on top of that, sensitive fields (Sale
 MFA/SSO secrets) receive an additional layer of application-level encryption and passwords are
 one-way hashed.
 
+**Crash reporting is the one other place personal data leaves the app.** All four surfaces (plus
+the backend) report unhandled errors to **Better Stack**, a sub-processor. A report carries the
+error message, stack trace, app version and the signed-in user's ID and email — never Salesforce
+record data, credentials or tokens — and goes from the app straight to Better Stack rather than
+through Jetstream servers. There is no session replay or performance tracing on any surface. The
+Desktop app and Browser Extension expose a "Send crash reports to Jetstream" opt-out (on by
+default); the Web App and Canvas do not. See diagrams 01 and 02 for the full breakdown.
+
 ## Diagram index
 
 ### Overviews (best for customers & as auditor orientation)
 
-| #   | File                         | Shows                                                                                                                                                                                                                                                             |
-| --- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 00  | `00-system-context`          | All systems, trust boundaries, and which links carry Salesforce data through Jetstream vs. direct to Salesforce                                                                                                                                                   |
-| 01  | `01-data-residency`          | Comparison matrix: does Salesforce data pass through Jetstream? where do credentials live? how are they protected? (per surface)                                                                                                                                  |
-| 02  | `02-pii-data-classification` | Every category of personal data Jetstream stores, where, and its protection. All data is encrypted at rest at the database layer; the diagram shows the additional application-level protection (field-level encryption / one-way hash / delegation) per category |
+| #   | File                         | Shows                                                                                                                                                                                                                                                                                                                  |
+| --- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 00  | `00-system-context`          | All systems, trust boundaries, and which links carry Salesforce data through Jetstream vs. direct to Salesforce                                                                                                                                                                                                        |
+| 01  | `01-data-residency`          | Comparison matrix: does Salesforce data pass through Jetstream? where do credentials live? how are they protected? what crash reporting runs and how a user turns it off? (per surface)                                                                                                                                |
+| 02  | `02-pii-data-classification` | Every category of personal data Jetstream stores, where, and its protection. All data is encrypted at rest at the database layer; the diagram shows the additional application-level protection (field-level encryption / one-way hash / delegation) per category, plus the personal data that leaves in crash reports |
 
 ### Authentication flows
 
@@ -59,6 +67,9 @@ one-way hashed.
 | 21  | `21-sfdata-web-extension` | Uses the live Salesforce session cookie; browser calls Salesforce directly — no data through Jetstream           |
 | 22  | `22-sfdata-desktop`       | Locally-stored encrypted orgs; main process calls Salesforce directly — no data through Jetstream                |
 | 23  | `23-sfdata-canvas`        | Canvas SDK proxies calls browser → parent Salesforce window → Salesforce — no data through Jetstream             |
+
+Each of 20–23 also shows that surface's crash-reporting egress to Better Stack — what it carries,
+what gates it, and that it never includes Salesforce data.
 
 ## Audience guidance
 
@@ -83,6 +94,13 @@ one-way hashed.
   encryption key is derived server-side in `apps/api/src/app/controllers/desktop-app.controller.ts`
 - Canvas: `apps/jetstream-canvas/**`, `apps/api/src/app/controllers/canvas.controller.ts`,
   `apps/api/src/app/utils/canvas.utils.ts`
+- Crash/error reporting: shared client tracker `libs/shared/ui-utils/src/lib/errorTracker.ts`
+  (ignore-list, per-session rate limits, opt-out); server tracker + payload redaction
+  `libs/api-config/src/lib/api-sentry-config.ts`; desktop main process
+  `apps/jetstream-desktop/src/config/error-tracker.ts` and the Help-menu opt-out in
+  `apps/jetstream-desktop/src/services/menu.service.ts`; extension opt-out
+  `apps/jetstream-web-extension/src/pages/additional-settings/AdditionalSettings.tsx`; the Canvas
+  CSP allow-list for the ingest origin `apps/api/src/app/routes/canvas.routes.ts`
 
 ## Editing / regenerating
 
@@ -105,8 +123,11 @@ Caveats (also documented in the script):
 - Diagram 00 is Mermaid-authored, but its `.drawio` was hand-edited to move the
   legend below the diagram (arrows were overlapping it). `regenerate.sh`
   intentionally **skips** 00's `.mmd` → `.drawio` conversion so that edit is
-  preserved. If you re-convert it, re-apply the legend move (set the `Legend:`
-  cell's `<mxGeometry>` to `x="560" y="635"`).
+  preserved. If you re-convert it, re-apply the legend move: set the `Legend:`
+  cell's `<mxGeometry>` to `x="717" y="645"` (below the content, which spans
+  x 90–2410 / y 25–621), then restore the committed `<diagram id>` so the PNG
+  doesn't churn. Re-check those numbers if you add or remove nodes — Mermaid
+  re-lays the whole graph out.
 - Diagrams 01 and 02 have no `.mmd` — edit the `.drawio` directly.
 - draw.io's Mermaid engine treats `__` in note text as Markdown **bold** and drops
   the underscores, so `jetstream__UserPreferences__c` (diagram 23) would come through

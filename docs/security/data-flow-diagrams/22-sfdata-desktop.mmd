@@ -6,6 +6,7 @@ sequenceDiagram
     participant FS as Local Encrypted Storage (orgs.json)
     participant SF as Customer Salesforce Org
     participant API as Jetstream Server
+    participant BS as Better Stack (error tracking)
 
     Note over U,API: Orgs are stored on the user's computer, encrypted with the<br/>user-derived key (delivered by the server at login; held in memory).
 
@@ -30,4 +31,11 @@ sequenceDiagram
     end
     end
 
-    Note over U,API: Salesforce credentials and record data stay on the device /<br/>go direct to Salesforce - never stored on Jetstream servers.
+    rect rgb(243, 232, 253)
+    Note over R,BS: Crash reporting - app straight to Better Stack (NO Salesforce data, no Jetstream hop)<br/>Sent only when an error occurs, and only while "Send crash reports to Jetstream"<br/>is on (Help menu checkbox; on by default).
+    R->>BS: Renderer error: message, stack, breadcrumbs, app version,<br/>Jetstream user id + email
+    M->>BS: Main-process error: message, stack, app version (no user attached)
+    Note over R,BS: One persisted preference gates both processes, so the menu checkbox and<br/>the running app can never disagree. Main-process reporting starts once the<br/>first window loads (earlier crashes stay in the local electron-log file only).
+    end
+
+    Note over U,BS: Salesforce credentials and record data stay on the device /<br/>go direct to Salesforce - never stored on Jetstream servers,<br/>and never included in a crash report.
