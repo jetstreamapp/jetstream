@@ -1,5 +1,34 @@
 # Changelog
 
+## [10.9.0](https://github.com/jetstreamapp/jetstream/compare/v10.8.1...v10.9.0) (2026-08-02)
+
+### Features
+
+* add job progress bar when downloading large query results ([338b55d](https://github.com/jetstreamapp/jetstream/commit/338b55d019f5ee55703215235f70738eb2ee5897))
+* add notification for auto-split batches in LoadRecordsBulkApiResults ([ae65e8a](https://github.com/jetstreamapp/jetstream/commit/ae65e8ab82bb9bbc537fc047970010082848adb1))
+* add Salesforce Canvas org management functionality ([04faca9](https://github.com/jetstreamapp/jetstream/commit/04faca90a7c9de35861261c2dd91d5f05bd9684c))
+* email team admins when SAML certificates are nearing expiration ([315ac30](https://github.com/jetstreamapp/jetstream/commit/315ac3092c5e10f2b2a6ae29fe5a7a798203644d))
+* implement batch size control and serial mode for record updates ([2a80d4e](https://github.com/jetstreamapp/jetstream/commit/2a80d4e984cb739fd18985d46e6415d67bfe1738))
+* improve query performance for manage permissions ([55d6c65](https://github.com/jetstreamapp/jetstream/commit/55d6c6529101ca99072fbafacf19ee87253c8390))
+* manage permission set assignments from the permissions manager ([ba4833f](https://github.com/jetstreamapp/jetstream/commit/ba4833fcfd95ebf003754ec00da94fa13ba3c274))
+* track errors on all platforms to ensure stability across all environments ([b2c49cb](https://github.com/jetstreamapp/jetstream/commit/b2c49cbe9679bcee6131050c26bcf12b97a53e43))
+
+### Bug Fixes
+
+* add routes for permission and data analysis features ([b4b3bff](https://github.com/jetstreamapp/jetstream/commit/b4b3bffc6d0e04d556584d55d5373a56ce3bd1bf))
+* address remaining code review findings from error tracker changes ([0349f9f](https://github.com/jetstreamapp/jetstream/commit/0349f9f6d9f832a3afd26ab82446107482de42ef))
+* **api:** namespace socket rooms to prevent cross-user data-sync leak ([903f8d0](https://github.com/jetstreamapp/jetstream/commit/903f8d053595c185de1b2951b830a594e53f4c62))
+* **api:** treat an empty canvas DSN as "not configured" instead of failing boot ([61c7840](https://github.com/jetstreamapp/jetstream/commit/61c7840734e32b91fe681f4afb62839b19d72229))
+* **auth:** block external token issuance for half-authenticated sessions ([4588851](https://github.com/jetstreamapp/jetstream/commit/4588851a2f78d6385f3b06da6109cbdabbb4aff3))
+* correct permission analysis issue detection and severity handling ([509be48](https://github.com/jetstreamapp/jetstream/commit/509be489a2359714ad1f619dcaf2ded7a7fa163c))
+* **desktop:** reduce plaintext session-token exposure at rest ([d00ac7d](https://github.com/jetstreamapp/jetstream/commit/d00ac7d9a03d9e92565e50b9011d636d12016bbf))
+* **desktop:** stop logging session token from deep-link URL ([9cec5a9](https://github.com/jetstreamapp/jetstream/commit/9cec5a90fd08f6b75a48d9513548c73afbc19749))
+* **desktop:** stop requiring deviceId in the jetstream:// auth callback ([12461b0](https://github.com/jetstreamapp/jetstream/commit/12461b0b3f2f6c39d8fd08baf8e225e4d9bcd40e))
+* **desktop:** tear down data-sync socket on logout to prevent session reuse ([0a7f9d1](https://github.com/jetstreamapp/jetstream/commit/0a7f9d1ae27924d7b3f79f0335a583b7f6eb9fce))
+* enhance desktop socket origin handling and add secure WebSocket route ([66d2618](https://github.com/jetstreamapp/jetstream/commit/66d2618f8af45cbfaeb4b7d57e5dc9c87d2dc237))
+* map bulk API results to the correct records when a batch is split by size ([83b7087](https://github.com/jetstreamapp/jetstream/commit/83b70874510d6d84cfdef1d17e02f5dbc839ab22))
+* stop permission manager from offering permissions Salesforce won't save ([b537c26](https://github.com/jetstreamapp/jetstream/commit/b537c265cc53ca4c122a1aabf45d717ecaecee84))
+
 ## [10.8.1](https://github.com/jetstreamapp/jetstream/compare/v10.8.0...v10.8.1) (2026-07-29)
 
 ### Bug Fixes
