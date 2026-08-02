@@ -33,7 +33,9 @@ DRAWIO="${DRAWIO:-/Applications/draw.io.app/Contents/MacOS/draw.io}"
 # the .mmd would discard that, so 00 is intentionally excluded from .mmd ->
 # .drawio conversion; its existing .drawio is exported as-is. If you ever do
 # re-convert 00, re-apply the legend move afterward: find the "Legend:" cell's
-# <mxGeometry> and set x="560" y="635".
+# <mxGeometry> and set x="717" y="645" (below the content, which spans x 90-2410
+# / y 25-621), then restore the committed <diagram id>. Re-check those numbers if
+# you add or remove nodes - Mermaid re-lays the whole graph out.
 MERMAID_DIAGRAMS=(
   10-auth-web-app
   11-auth-desktop

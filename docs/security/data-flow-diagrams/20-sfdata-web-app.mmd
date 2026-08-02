@@ -5,6 +5,7 @@ sequenceDiagram
     participant API as Jetstream Server
     participant DB as PostgreSQL
     participant SF as Customer Salesforce Org
+    participant BS as Better Stack (error tracking)
 
     rect rgb(230, 244, 234)
     Note over U,SF: Phase 1 - Connect a Salesforce org (OAuth) and encrypt credentials at rest
@@ -32,4 +33,11 @@ sequenceDiagram
     Note over API: Records pass through server MEMORY ONLY - not persisted.<br/>On 401, refresh token (advisory-locked), re-encrypt, persist.
     end
 
-    Note over U,SF: PII: Salesforce OAuth tokens encrypted at rest (per-user key).<br/>Salesforce record data is proxied through Jetstream but never stored.
+    rect rgb(243, 232, 253)
+    Note over B,BS: Phase 3 - Crash reporting (only when something fails)
+    B->>BS: Browser error: message, stack, breadcrumbs, app version,<br/>Jetstream user id + email
+    API->>BS: Server error: message, stack, request method/URL/IP/user-agent,<br/>Jetstream user id + email
+    Note over API,BS: Server-side payloads are redacted before send (any key matching<br/>token / password / secret / cookie / authorization / sid ...).<br/>No session replay, no performance tracing, sendDefaultPii off.
+    end
+
+    Note over U,BS: PII: Salesforce OAuth tokens encrypted at rest (per-user key).<br/>Salesforce record data is proxied through Jetstream but never stored,<br/>and is never included in a crash report.

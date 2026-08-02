@@ -22,6 +22,7 @@ flowchart TB
     google["Google / Salesforce<br/>OAuth login"]
     stripe["Stripe<br/>billing"]
     mailgun["Mailgun<br/>email"]
+    errors["Better Stack<br/>error / crash reports"]
   end
 
   user --> web
@@ -45,7 +46,13 @@ flowchart TB
   api -->|"billing IDs"| stripe
   api -->|email| mailgun
 
-  legend["Legend:  ══ Salesforce data via Jetstream server    ┄┄ Salesforce data direct to Salesforce (never touches Jetstream)"]
+  web -->|"crash reports"| errors
+  ext -->|"crash reports"| errors
+  desk -->|"crash reports"| errors
+  canvas -->|"crash reports"| errors
+  api -->|"crash reports"| errors
+
+  legend["Legend:  ══ Salesforce data via Jetstream server    ┄┄ Salesforce data direct to Salesforce (never touches Jetstream)<br/>Crash reports go from each app straight to Better Stack (never via the Jetstream server) and carry no Salesforce record data or credentials."]
 
   classDef trusted fill:#e8f0fe,stroke:#1a73e8,color:#0b1b3a
   classDef external fill:#fef7e0,stroke:#f9ab00,color:#3a2c05
@@ -56,5 +63,5 @@ flowchart TB
   class api,geo trusted
   class db store
   class web,ext,desk client
-  class sfapi,canvas,google,stripe,mailgun external
+  class sfapi,canvas,google,stripe,mailgun,errors external
   class legend note
