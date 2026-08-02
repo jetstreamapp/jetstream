@@ -58,6 +58,7 @@ import {
   Provider,
   ProviderKeysSchema,
   ProvidersSchema,
+  SsoProviderTypeSchema,
   UserProfileSession,
 } from '@jetstream/auth/types';
 import {
@@ -124,6 +125,7 @@ export const routeDefinition = {
       isVerificationExpired: z.boolean(),
       pendingTosAcceptance: z.boolean(),
       currentTosVersion: z.string(),
+      isSsoLogin: z.boolean(),
     }),
     validators: {
       hasSourceOrg: false,
@@ -346,6 +348,10 @@ const getSession = createRoute(routeDefinition.getSession.validators, async (_, 
       isVerificationExpired,
       pendingTosAcceptance: !!req.session.pendingTosAcceptance,
       currentTosVersion: CURRENT_TOS_VERSION,
+      // The SSO callbacks never consult a remembered device, so the verify page uses this to hide the
+      // "Remember this device" option rather than offer a choice that would have no effect. A team that
+      // turns on `ssoRequireMfa` wants the factor every time.
+      isSsoLogin: SsoProviderTypeSchema.safeParse(req.session.provider).success,
     });
   } catch (ex) {
     next(ensureAuthError(ex));
@@ -1587,7 +1593,7 @@ const handleOidcCallback = createRoute(routeDefinition.handleOidcCallback.valida
   }
 });
 
-const acceptTerms = createRoute(routeDefinition.acceptTerms.validators, async ({ body }, req, res, next) => {
+const acceptTerms = createRoute(routeDefinition.acceptTerms.validators, async ({ body, clearCookie }, req, res, next) => {
   try {
     if (!req.session.user) {
       throw new InvalidSession('Not authenticated');
@@ -1613,7 +1619,24 @@ const acceptTerms = createRoute(routeDefinition.acceptTerms.validators, async ({
       success: true,
     });
 
-    const safeRedirectUrl = validateRedirectUrl(null, [ENV.JETSTREAM_CLIENT_URL, ENV.JETSTREAM_SERVER_URL], ENV.JETSTREAM_CLIENT_URL);
+    // ToS acceptance can be the last gate of a flow that started somewhere other than the web app —
+    // the desktop app and web extension both stash their auth-callback URL in the redirectUrl cookie
+    // before sending the user here. Honor it (same as the 2FA and MFA-enrollment steps) or they land
+    // in the web app and never get their token back.
+    const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
+    const cookies = req.headers.cookie ? parseCookie(req.headers.cookie) : {};
+    let redirectUrl = ENV.JETSTREAM_CLIENT_URL;
+    const redirectValue = cookies[cookieConfig.redirectUrl.name];
+    if (redirectValue) {
+      redirectUrl = normalizeRedirectCandidate(redirectValue) ?? redirectUrl;
+      clearCookie(cookieConfig.redirectUrl.name, cookieConfig.redirectUrl.options);
+    }
+
+    const safeRedirectUrl = validateRedirectUrl(
+      redirectUrl,
+      [ENV.JETSTREAM_CLIENT_URL, ENV.JETSTREAM_SERVER_URL],
+      ENV.JETSTREAM_CLIENT_URL,
+    );
     sendJson(res, { error: false, redirect: safeRedirectUrl });
   } catch (ex) {
     next(ensureAuthError(ex));

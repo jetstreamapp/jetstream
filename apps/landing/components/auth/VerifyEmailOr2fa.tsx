@@ -44,9 +44,14 @@ interface VerifyEmailOr2faProps {
   csrfToken: string;
   email?: Maybe<string>;
   pendingVerifications: TwoFactorType[];
+  /**
+   * SSO sessions ignore remembered devices — the SAML/OIDC callbacks always require the configured
+   * factor — so the option is hidden (and never sent) instead of appearing to work.
+   */
+  isSsoLogin?: boolean;
 }
 
-export function VerifyEmailOr2fa({ csrfToken, email, pendingVerifications }: VerifyEmailOr2faProps) {
+export function VerifyEmailOr2fa({ csrfToken, email, pendingVerifications, isSsoLogin }: VerifyEmailOr2faProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string>();
@@ -67,7 +72,8 @@ export function VerifyEmailOr2fa({ csrfToken, email, pendingVerifications }: Ver
       csrfToken,
       captchaToken: '',
       type: activeFactor,
-      rememberDevice: true,
+      // Never request device remembering for SSO — the record would be written but never honored
+      rememberDevice: !isSsoLogin,
     },
   });
 
@@ -180,7 +186,9 @@ export function VerifyEmailOr2fa({ csrfToken, email, pendingVerifications }: Ver
               }}
             />
 
-            {activeFactor !== 'email' && <Checkbox inputProps={{ ...register('rememberDevice') }}>Remember this device</Checkbox>}
+            {activeFactor !== 'email' && !isSsoLogin && (
+              <Checkbox inputProps={{ ...register('rememberDevice') }}>Remember this device</Checkbox>
+            )}
 
             <div>
               <button

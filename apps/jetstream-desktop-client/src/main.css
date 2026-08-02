@@ -1,3 +1,14 @@
 .slds-global-header {
   app-region: drag;
 }
+
+/*
+ * The header drag region is an OS-level titlebar rect, so anything overlapping the top of the window
+ * has its mouse events consumed by window dragging no matter how it is stacked. Modals render above
+ * the header (z-index 9001 vs 100) and their close button sits at the very top of the container, so
+ * on a tall modal it lands inside that rect and looks clickable but cannot be clicked. Carve the
+ * whole modal back out of the drag region.
+ */
+.slds-modal {
+  app-region: no-drag;
+}

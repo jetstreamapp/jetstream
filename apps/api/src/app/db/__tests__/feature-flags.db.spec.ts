@@ -1,3 +1,4 @@
+import { ALL_FEATURE_FLAG_KEYS, DEFAULT_FEATURE_FLAGS } from '@jetstream/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const prismaMock = vi.hoisted(() => ({
@@ -13,8 +14,6 @@ vi.mock('@jetstream/api-config', () => ({
   logger: { error: vi.fn(), warn: vi.fn() },
   prisma: prismaMock,
 }));
-
-import { ALL_FEATURE_FLAG_KEYS, DEFAULT_FEATURE_FLAGS } from '@jetstream/types';
 
 // Drive fixtures off the real registry so renaming/retiring the example flag never breaks these tests.
 const FLAG = ALL_FEATURE_FLAG_KEYS[0];

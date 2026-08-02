@@ -15,6 +15,8 @@ interface AuthState {
   isVerificationExpired: boolean;
   pendingTosAcceptance: boolean;
   currentTosVersion: string;
+  /** Session was established through SAML/OIDC, where a remembered device does not skip MFA */
+  isSsoLogin: boolean;
 }
 
 export function useUserProfile() {
@@ -24,6 +26,7 @@ export function useUserProfile() {
     isVerificationExpired: false,
     pendingTosAcceptance: false,
     currentTosVersion: '',
+    isSsoLogin: false,
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -49,6 +52,7 @@ export function useUserProfile() {
             isVerificationExpired: boolean;
             pendingTosAcceptance: boolean;
             currentTosVersion: string;
+            isSsoLogin: boolean;
           };
         }) => {
           setAuthState(data);
