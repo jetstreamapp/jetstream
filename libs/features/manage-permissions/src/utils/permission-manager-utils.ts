@@ -36,15 +36,16 @@ import {
   TabVisibilityPermissionRecord,
   TabVisibilityPermissionRecordForSave,
 } from '@jetstream/types';
-import { Query, WhereClause, composeQuery, getField } from '@jetstreamapp/soql-parser-js';
+import { Condition, Query, WhereClause, composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 
 const MAX_OBJ_IN_QUERY = 100;
 
 /**
- * EntityParticle does not support queryMore, so we page it using OFFSET, which Salesforce caps at 2000 for this object.
- * Keep the objects really small to avoid hitting the 2000 limit
+ * EntityParticle does not support queryMore and Salesforce caps OFFSET at 2000 for this object, so it is paged
+ * with a DurableId cursor instead (see `queryAllUsingCursor`). Cursor paging has no depth ceiling, which lets many
+ * objects share one query - the prior OFFSET approach had to keep chunks tiny to stay under the 2000 limit.
  */
-const MAX_OBJ_IN_PERMISSIONABLE_FIELDS_QUERY = 2;
+const MAX_OBJ_IN_PERMISSIONABLE_FIELDS_QUERY = MAX_OBJ_IN_QUERY;
 
 export function filterPermissionsSobjects(sobject: DescribeGlobalSObjectResult | null) {
   if (!sobject) {
@@ -762,69 +763,95 @@ export function filterPermissionRows<T extends PermissionTableCellExtended>(
 }
 
 /**
- * Gets query for all permissionable fields
- * EntityParticle
- * @param allSobjects
- * @returns query for all permissionable fields
+ * Splits the selected objects into groups that can each be fetched with one cursor-paged EntityParticle query.
  */
-export function getQueryForAllPermissionableFields(allSobjects: string[]): string[] {
-  const queries = splitArrayToMaxSize(allSobjects, MAX_OBJ_IN_PERMISSIONABLE_FIELDS_QUERY).map((sobjects) => {
-    return composeQuery({
-      fields: [
-        getField('QualifiedApiName'),
-        getField('Label'),
-        getField('DataType'),
-        getField('DurableId'),
-        getField('EntityDefinition.QualifiedApiName'),
-        getField('FieldDefinitionId'),
-        getField('NamespacePrefix'),
-        getField('IsCompound'),
-        getField('IsCreatable'),
-        getField('IsUpdatable'),
-        getField('IsPermissionable'),
-      ],
-      sObject: 'EntityParticle',
-      where: {
-        left: {
-          field: 'EntityDefinition.QualifiedApiName',
-          operator: 'IN',
-          value: sobjects,
-          literalType: 'STRING',
-        },
-        operator: 'AND',
-        right: {
-          left: {
-            field: 'IsPermissionable',
-            operator: '=',
-            value: 'TRUE',
-            literalType: 'BOOLEAN',
-          },
-          operator: 'AND',
-          right: {
-            left: {
-              field: 'IsComponent',
-              operator: '=',
-              value: 'FALSE',
-              literalType: 'BOOLEAN',
-            },
-          },
-        },
-      },
-      orderBy: [
-        {
-          // EntityDefinition.QualifiedApiName is not supported in order by
-          field: 'EntityDefinitionId',
-          order: 'ASC',
-        },
-        {
-          field: 'QualifiedApiName',
-          order: 'ASC',
-        },
-      ],
+export function getPermissionableFieldObjectChunks(allSobjects: string[]): string[][] {
+  return splitArrayToMaxSize(allSobjects, MAX_OBJ_IN_PERMISSIONABLE_FIELDS_QUERY);
+}
+
+/**
+ * Gets one page of the query for all permissionable fields (EntityParticle).
+ *
+ * Results are ordered by DurableId so that `afterDurableId` can resume where the prior page ended.
+ * DurableId is unique and formatted as `{EntityDefinitionId}.{FieldApiName}`, so this ordering also keeps
+ * fields grouped by object and alphabetized within each object.
+ *
+ * @param sobjects a single chunk from {@link getPermissionableFieldObjectChunks}
+ * @param afterDurableId DurableId of the last record from the prior page, if any
+ */
+export function getQueryForAllPermissionableFields(sobjects: string[], afterDurableId?: Maybe<string>): string {
+  const conditions: Condition[] = [
+    {
+      field: 'EntityDefinition.QualifiedApiName',
+      operator: 'IN',
+      value: sobjects,
+      literalType: 'STRING',
+    },
+    {
+      field: 'IsPermissionable',
+      operator: '=',
+      value: 'TRUE',
+      literalType: 'BOOLEAN',
+    },
+    {
+      field: 'IsComponent',
+      operator: '=',
+      value: 'FALSE',
+      literalType: 'BOOLEAN',
+    },
+  ];
+
+  if (afterDurableId) {
+    conditions.push({
+      field: 'DurableId',
+      operator: '>',
+      value: afterDurableId,
+      literalType: 'STRING',
     });
+  }
+
+  const query = composeQuery({
+    fields: [
+      getField('QualifiedApiName'),
+      getField('Label'),
+      getField('DataType'),
+      getField('DurableId'),
+      getField('EntityDefinition.QualifiedApiName'),
+      getField('FieldDefinitionId'),
+      getField('NamespacePrefix'),
+      getField('IsCompound'),
+      getField('IsCreatable'),
+      getField('IsUpdatable'),
+      getField('IsPermissionable'),
+    ],
+    sObject: 'EntityParticle',
+    where: joinConditionsWithAnd(conditions),
+    orderBy: [
+      {
+        field: 'DurableId',
+        order: 'ASC',
+      },
+      {
+        // EntityDefinition.QualifiedApiName is not supported in order by
+        field: 'EntityDefinitionId',
+        order: 'ASC',
+      },
+      {
+        field: 'QualifiedApiName',
+        order: 'ASC',
+      },
+    ],
   });
-  logger.log('getFieldPermissionQueries()', queries);
-  return queries;
+  logger.log('getQueryForAllPermissionableFields()', query);
+  return query;
+}
+
+/**
+ * Chains conditions together with AND, since soql-parser-js models a where clause as a nested linked list.
+ */
+function joinConditionsWithAnd(conditions: Condition[]): WhereClause {
+  const [lastCondition, ...remainingInReverse] = [...conditions].reverse();
+  return remainingInReverse.reduce<WhereClause>((right, left) => ({ left, operator: 'AND', right }), { left: lastCondition });
 }
 
 /**

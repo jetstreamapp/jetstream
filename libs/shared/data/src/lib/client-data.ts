@@ -961,6 +961,54 @@ export async function queryAllUsingOffset<T = any>(
 }
 
 /**
+ * Query all records by paging on a strictly increasing unique cursor field ("keyset pagination").
+ *
+ * Some objects (e.g. EntityParticle) do not support queryMore and cap OFFSET at 2000, which forces
+ * {@link queryAllUsingOffset} callers to split work into tiny chunks to stay under that ceiling.
+ * Paging on a cursor has no such ceiling, so a caller can pull far more data per query.
+ *
+ * `getQuery` must return a query sorted ascending by the same field `getCursorValue` reads, and must
+ * not include its own LIMIT.
+ *
+ * @param getQuery builds the query, resuming after `afterCursor` when provided
+ * @param getCursorValue reads the cursor value from the last record of a page
+ */
+export async function queryAllUsingCursor<T = any>(
+  selectedOrg: SalesforceOrgUi,
+  getQuery: (afterCursor: Maybe<string>) => string,
+  getCursorValue: (record: T) => string,
+  isTooling = false,
+  pageSize = 2000,
+): Promise<QueryResults<T>> {
+  const results = await query<T>(selectedOrg, `${getQuery(null)} LIMIT ${pageSize}`, isTooling);
+  const records = results.queryResults.records;
+
+  // A full page means there may be more records, resume after the last record we received
+  let lastPageSize = records.length;
+  let cursor: Maybe<string> = lastPageSize ? getCursorValue(records[lastPageSize - 1]) : null;
+  while (lastPageSize === pageSize) {
+    const { queryResults } = await query<T>(selectedOrg, `${getQuery(cursor)} LIMIT ${pageSize}`, isTooling);
+    lastPageSize = queryResults.records.length;
+    if (!lastPageSize) {
+      break;
+    }
+    // A query that ignores the cursor would page forever, discard the page instead of duplicating records
+    const nextCursor = getCursorValue(queryResults.records[lastPageSize - 1]);
+    if (nextCursor === cursor) {
+      logger.warn('[queryAllUsingCursor] Cursor did not advance, stopping pagination');
+      break;
+    }
+    cursor = nextCursor;
+    records.push(...queryResults.records);
+  }
+
+  results.queryResults.records = records;
+  results.queryResults.totalSize = records.length;
+  results.queryResults.done = true;
+  return results;
+}
+
+/**
  * Query more using OFFSET clause with query cache
  *
  * NOTE: Some objects have a limited OFFSET support (max 2000),
