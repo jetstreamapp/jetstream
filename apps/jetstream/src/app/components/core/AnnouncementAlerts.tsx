@@ -2,6 +2,7 @@ import { setItemInLocalStorage } from '@jetstream/shared/ui-utils';
 import { Announcement } from '@jetstream/types';
 import { Alert } from '@jetstream/ui';
 import { useState } from 'react';
+import { Link } from 'react-router';
 
 interface UnverifiedEmailAlertProps {
   announcements: Announcement[];
@@ -41,7 +42,24 @@ export function AnnouncementAlert({ announcement }: { announcement: Announcement
         setDismissed(true);
       }}
     >
-      <span className="text-bold">{announcement.title}:</span> {announcement.content}
+      <span className="text-bold">{announcement.title}:</span> <AnnouncementContent announcement={announcement} />
     </Alert>
+  );
+}
+
+/** Splits the content around the link placeholder so the announcement can point at the page that resolves it. */
+function AnnouncementContent({ announcement: { content, link } }: { announcement: Announcement }) {
+  const placeholderIndex = link ? content.indexOf(link.key) : -1;
+
+  if (!link || placeholderIndex < 0) {
+    return <>{content}</>;
+  }
+
+  return (
+    <>
+      {content.slice(0, placeholderIndex)}
+      <Link to={link.to}>{link.label}</Link>
+      {content.slice(placeholderIndex + link.key.length)}
+    </>
   );
 }

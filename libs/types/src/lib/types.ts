@@ -18,6 +18,8 @@ export interface Announcement {
   title: string;
   content: string;
   replacementDates: { key: string; value: string }[];
+  /** Replaces the first occurrence of `key` in content with a link to an in-app route. */
+  link?: { key: string; label: string; to: string };
   expiresAt: string;
   createdAt: string;
 }
