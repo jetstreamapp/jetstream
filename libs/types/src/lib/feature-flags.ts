@@ -37,10 +37,28 @@ export function isFeatureFlagKey(key: string): key is FeatureFlagKey {
 
 /**
  * Canonical, stable serialization of a user's resolved flags. Used by BOTH the server signer and the
- * browser verifier, so the byte sequence must be deterministic regardless of object key order or
- * which keys happen to be present. Keys are sorted and values coerced to booleans.
+ * browser verifier, so the byte sequence must be deterministic regardless of object key order. Keys
+ * are sorted and values coerced to booleans.
+ *
+ * Keys come from `flags` itself, deliberately NOT from `ALL_FEATURE_FLAG_KEYS`. That constant is
+ * compiled into each build, and the desktop app and browser extension run builds that can be many
+ * versions behind the server, so keying off it made the payload depend on the *verifier's* registry:
+ * adding or retiring a single flag changed the byte sequence on the server but not on an older
+ * client, so every signature failed to verify there and the client silently fell back to code
+ * defaults for ALL flags. Deriving the keys from the transmitted object keeps both sides in
+ * agreement in either direction of version skew — a newer server sending an unknown flag, or an
+ * older server omitting one the client knows. The verifier still narrows the result to the flags its
+ * own build understands (see `verifyAndExtractFeatureFlags`).
+ *
+ * Trade-off: a payload signed before a flag existed still verifies, so a user can replay an earlier
+ * set of their own flags rather than it aging out on the next registry change. Flags are client-side
+ * rollout gating with tamper-evidence, not an authorization boundary — server-side `checkFeatureFlag`
+ * stays authoritative — and a replay only restores flags that user was genuinely granted, so that is
+ * the better trade than silently resetting every out-of-date client.
  */
-export function serializeFeatureFlagsForSigning(userId: string, flags: FeatureFlags): string {
-  const entries = [...ALL_FEATURE_FLAG_KEYS].sort().map((key) => [key, !!flags[key]] as const);
+export function serializeFeatureFlagsForSigning(userId: string, flags: Readonly<Record<string, boolean>>): string {
+  const entries = Object.keys(flags)
+    .sort()
+    .map((key) => [key, !!flags[key]] as const);
   return JSON.stringify({ userId, flags: entries });
 }

@@ -56,7 +56,7 @@ export async function applyVerifiedFeatureFlags<T extends Pick<UserProfileUi, 'i
 export async function verifyAndExtractFeatureFlags(
   profile: Pick<UserProfileUi, 'id' | 'featureFlags' | 'featureFlagsSignature'>,
 ): Promise<FeatureFlags> {
-  const received = (profile.featureFlags ?? {}) as FeatureFlags;
+  const received: Readonly<Record<string, boolean>> = profile.featureFlags ?? {};
   const signature = profile.featureFlagsSignature;
   try {
     if (!signature || !globalThis.crypto?.subtle) {
@@ -72,8 +72,9 @@ export async function verifyAndExtractFeatureFlags(
       logger.warn('[FEATURE FLAGS] Signature verification failed — using code defaults');
       return { ...DEFAULT_FEATURE_FLAGS };
     }
-    // Trust only known flag keys, coerced to booleans. The signature only covers the canonical
-    // known-key payload, so extra or non-boolean values on `received` must not propagate.
+    // The signature covers every transmitted key, so an unsigned key cannot reach this point — but a
+    // server newer than this build legitimately sends flags it does not know. Narrow to the keys this
+    // build understands (anything else stays at its code default) and require a strict boolean.
     const trusted: FeatureFlags = { ...DEFAULT_FEATURE_FLAGS };
     for (const flagKey of ALL_FEATURE_FLAG_KEYS) {
       if (Object.prototype.hasOwnProperty.call(received, flagKey)) {
