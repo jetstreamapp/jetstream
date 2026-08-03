@@ -1,4 +1,4 @@
-import { pluralizeFromNumber } from '@jetstream/shared/utils';
+import { ORG_INACTIVITY_EXPIRATION_DAYS, pluralizeFromNumber } from '@jetstream/shared/utils';
 import * as React from 'react';
 import { Body, Button, Container, Head, Heading, Html, Preview, Section, Text } from 'react-email';
 import { EmailFooter } from '../../components/EmailFooter';
@@ -14,9 +14,9 @@ export const OrgExpirationWarningEmail = ({ orgs, loginUrl }: OrgExpirationWarni
   const hasExpired = orgs.some((org) => org.daysUntilExpiration <= 0);
   const hasExpiring = orgs.some((org) => org.daysUntilExpiration > 0);
 
-  const preview = hasExpired ? 'Your Salesforce orgs have expired' : `Your Salesforce orgs are expiring soon`;
+  const preview = hasExpired ? 'Your Salesforce org connections have ended' : `Your Salesforce org connections are ending soon`;
 
-  const heading = hasExpired && !hasExpiring ? 'Salesforce Orgs Expired' : 'Salesforce Orgs Expiring Soon';
+  const heading = hasExpired && !hasExpiring ? 'Salesforce Org Connections Ended' : 'Salesforce Org Connections Ending Soon';
 
   return (
     <Html>
@@ -28,7 +28,10 @@ export const OrgExpirationWarningEmail = ({ orgs, loginUrl }: OrgExpirationWarni
           <Heading style={EMAIL_STYLES.title}>{heading}</Heading>
 
           <Section style={{ marginTop: 16, marginBottom: 16 }}>
-            <Text style={sectionText}>The following Salesforce orgs are scheduled for deactivation due to 90 days of inactivity:</Text>
+            <Text style={sectionText}>
+              Salesforce ends a connection when an org has not been used for {ORG_INACTIVITY_EXPIRATION_DAYS} days. These orgs are at or
+              past that limit:
+            </Text>
 
             {orgs.map((org, index) => (
               <React.Fragment key={index}>
@@ -41,21 +44,26 @@ export const OrgExpirationWarningEmail = ({ orgs, loginUrl }: OrgExpirationWarni
                   <br />
                   <span style={expirationText}>
                     {org.daysUntilExpiration <= 0
-                      ? '⚠️ Expired'
-                      : `Expires in ${org.daysUntilExpiration} ${pluralizeFromNumber('day', org.daysUntilExpiration)}`}
+                      ? '⚠️ Connection ended'
+                      : `Ends in ${org.daysUntilExpiration} ${pluralizeFromNumber('day', org.daysUntilExpiration)}`}
                   </span>
                 </Text>
               </React.Fragment>
             ))}
 
             {hasExpiring && (
-              <Text style={sectionText}>To prevent deactivation, use these orgs in Jetstream before the expiration date.</Text>
+              <Text style={sectionText}>To keep these connections, open each org in Jetstream before the date shown above.</Text>
             )}
 
-            {hasExpired && <Text style={sectionText}>To reactivate expired credentials, log in to Jetstream and reconnect the org.</Text>}
+            {hasExpired && (
+              <Text style={sectionText}>
+                These connections have already ended. Log in to Jetstream and reconnect the org to keep using it.
+              </Text>
+            )}
 
             <Text style={sectionText}>
-              This security measure ensures that unused credentials are automatically removed from Jetstream after 90 days of inactivity.
+              This limit is set by Salesforce for connected apps — it is not a Jetstream policy. Any time you use an org in Jetstream, its{' '}
+              {ORG_INACTIVITY_EXPIRATION_DAYS}-day clock resets.
             </Text>
           </Section>
 
@@ -77,13 +85,13 @@ OrgExpirationWarningEmail.PreviewProps = {
       username: 'admin@acme.com',
       organizationId: '00D000000000000EAA',
       instanceUrl: 'https://acme.my.salesforce.com',
-      daysUntilExpiration: 14,
+      daysUntilExpiration: 7,
     },
     {
       username: 'dev@acme.com.dev',
       organizationId: '00D000000000001EAA',
       instanceUrl: 'https://acme--dev.sandbox.my.salesforce.com',
-      daysUntilExpiration: 3,
+      daysUntilExpiration: 1,
     },
     {
       username: 'old@acme.com',

@@ -1,3 +1,4 @@
+import { getDaysUntilOrgExpiration } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { useMemo } from 'react';
 
@@ -6,7 +7,7 @@ export interface OrgExpirationStatus {
   isExpired: boolean;
   expiryDate: string | null;
   daysUntilExpiration: number | null;
-  severity: 'error' | 'warning' | 'info' | null;
+  severity: 'error' | 'warning' | null;
 }
 
 export interface ExpiringOrgsSummary {
@@ -30,23 +31,17 @@ export function calculateOrgExpiration(org: SalesforceOrgUi | null | undefined):
     };
   }
 
-  const now = new Date();
   const expirationDate = new Date(org.expirationScheduledFor);
-  const daysUntilExpiration = Math.ceil((expirationDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  const daysUntilExpiration = getDaysUntilOrgExpiration(expirationDate, new Date());
 
   const isExpired = daysUntilExpiration <= 0;
   const isExpiring = true;
 
-  let severity: 'error' | 'warning' | 'info' | null = null;
-  if (isExpired) {
-    severity = 'error';
-  } else if (daysUntilExpiration <= 3) {
-    severity = 'error';
-  } else if (daysUntilExpiration <= 7) {
-    severity = 'warning';
-  } else if (isExpiring) {
-    severity = 'info';
-  }
+  /**
+   * An org only has an expiration date once it is inside the warning window, so the range here is
+   * capped at ORG_EXPIRATION_WARNING_WINDOW_DAYS - there is no "far off" band to represent.
+   */
+  const severity: 'error' | 'warning' = daysUntilExpiration <= 3 ? 'error' : 'warning';
 
   return {
     isExpiring,

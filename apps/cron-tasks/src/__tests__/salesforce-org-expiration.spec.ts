@@ -2,8 +2,14 @@ import { sendEmail } from '@jetstream/api-config';
 import { createAuditLog } from '@jetstream/audit-logs';
 import { sendOrgExpirationWarningEmail } from '@jetstream/email';
 import { PrismaClient } from '@jetstream/prisma';
+import {
+  ORG_EXPIRATION_CONNECTION_ERROR,
+  ORG_EXPIRATION_WARNING_WINDOW_DAYS,
+  ORG_INACTIVITY_EXPIRATION_DAYS,
+  ORG_SCHEDULE_AFTER_IDLE_DAYS,
+} from '@jetstream/shared/utils';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { addDays, subDays } from 'date-fns';
+import { addDays, endOfDay, subDays } from 'date-fns';
 import * as dotenv from 'dotenv';
 import { v4 as uuid } from 'uuid';
 import { vi } from 'vitest';
@@ -158,65 +164,91 @@ describe('Org Expiration Integration Tests', () => {
     });
     await prisma.$disconnect();
   });
-
   describe('Scheduling orgs for expiration', () => {
-    it('should schedule orgs inactive for 90 days', async () => {
+    it('should schedule an org that just crossed into the warning window', async () => {
       const now = new Date();
-      const inactiveDate = subDays(now, 91); // 91 days ago
 
       await createOrg({
         userId: testUser.id,
-        lastActivityAt: inactiveDate,
+        lastActivityAt: subDays(now, ORG_SCHEDULE_AFTER_IDLE_DAYS),
       });
 
       const result = await manageOrgExpiration(prisma, now);
 
       expect(result.scheduled).toBe(1);
-      expect(result.notified30Days).toBe(1); // Also sends 30-day notification immediately
+      expect(result.realigned).toBe(0);
+      // The first warning goes out on the same run the date is derived
+      expect(result.notifiedByThreshold[7]).toBe(1);
 
-      // Verify DB state
       const org = await prisma.salesforceOrg.findFirst();
-      expect(org?.expirationScheduledFor).toBeTruthy();
+      // Derived from last activity, not granted from today
+      expect(org?.expirationScheduledFor?.toDateString()).toBe(addDays(now, ORG_EXPIRATION_WARNING_WINDOW_DAYS).toDateString());
+      expect(org?.nextExpirationNotificationDate?.toDateString()).toBe(addDays(now, 6).toDateString());
 
-      // Should be scheduled for 30 days from now
-      const expectedExpiration = addDays(now, 30);
-      expect(org?.expirationScheduledFor?.toDateString()).toBe(expectedExpiration.toDateString());
-
-      // Next notification should be 7 days before expiration (since 30-day was just sent)
-      const expectedNextNotification = addDays(expectedExpiration, -7);
-      expect(org?.nextExpirationNotificationDate?.toDateString()).toBe(expectedNextNotification.toDateString());
-
-      // Should have sent email
       expect(mockSendEmail).toHaveBeenCalledTimes(1);
     });
 
-    it('should not schedule orgs with existing expiration', async () => {
+    it('should not schedule an org that is still outside the warning window', async () => {
       const now = new Date();
-      const inactiveDate = subDays(now, 91);
-      const existingExpiration = addDays(now, 10);
 
       await createOrg({
         userId: testUser.id,
-        lastActivityAt: inactiveDate,
-        expirationScheduledFor: existingExpiration,
+        lastActivityAt: subDays(now, ORG_SCHEDULE_AFTER_IDLE_DAYS - 1),
       });
 
       const result = await manageOrgExpiration(prisma, now);
 
       expect(result.scheduled).toBe(0);
+      expect(mockSendEmail).not.toHaveBeenCalled();
 
-      // Expiration date should not change
       const org = await prisma.salesforceOrg.findFirst();
-      expect(org?.expirationScheduledFor?.toDateString()).toBe(existingExpiration.toDateString());
+      expect(org?.expirationScheduledFor).toBeNull();
+    });
+
+    it('should shrink a stale expiration left over from the old inactivity policy', async () => {
+      const now = new Date();
+      // Old policy granted a 30 day grace period on top of 90 days idle, which Salesforce does not honor
+      const staleExpiration = addDays(now, 25);
+
+      await createOrg({
+        userId: testUser.id,
+        lastActivityAt: subDays(now, 200),
+        expirationScheduledFor: staleExpiration,
+      });
+
+      const result = await manageOrgExpiration(prisma, now);
+
+      expect(result.scheduled).toBe(0);
+      expect(result.realigned).toBe(1);
+
+      const org = await prisma.salesforceOrg.findFirst();
+      expect(org?.expirationScheduledFor?.toDateString()).toBe(subDays(now, 170).toDateString());
+    });
+
+    it('should leave an already-correct expiration untouched', async () => {
+      const now = new Date();
+      const lastActivityAt = subDays(now, 25);
+
+      await createOrg({
+        userId: testUser.id,
+        lastActivityAt,
+        expirationScheduledFor: endOfDay(addDays(lastActivityAt, ORG_INACTIVITY_EXPIRATION_DAYS)),
+        nextExpirationNotificationDate: addDays(now, 4),
+      });
+
+      const result = await manageOrgExpiration(prisma, now);
+
+      expect(result.scheduled).toBe(0);
+      expect(result.realigned).toBe(0);
+      expect(mockSendEmail).not.toHaveBeenCalled();
     });
 
     it('should not schedule orgs with connection errors', async () => {
       const now = new Date();
-      const inactiveDate = subDays(now, 91);
 
       await createOrg({
         userId: testUser.id,
-        lastActivityAt: inactiveDate,
+        lastActivityAt: subDays(now, 91),
         connectionError: 'Invalid credentials',
       });
 
@@ -228,49 +260,54 @@ describe('Org Expiration Integration Tests', () => {
       expect(org?.expirationScheduledFor).toBeNull();
     });
 
-    it('should schedule orgs based on updatedAt if lastActivityAt is null', async () => {
+    it('should fall back to updatedAt and pin lastActivityAt when lastActivityAt is null', async () => {
       const now = new Date();
 
-      // Create org and manually set updatedAt to 91 days ago
-      const org = await createOrg({
-        userId: testUser.id,
-        lastActivityAt: null,
-      });
-
+      const org = await createOrg({ userId: testUser.id, lastActivityAt: null });
       await prisma.salesforceOrg.update({
         where: { id: org.id },
-        data: { updatedAt: subDays(now, 91) },
+        data: { updatedAt: subDays(now, 25) },
       });
 
       const result = await manageOrgExpiration(prisma, now);
 
       expect(result.scheduled).toBe(1);
+
+      const updatedOrg = await prisma.salesforceOrg.findUnique({ where: { id: org.id } });
+      expect(updatedOrg?.expirationScheduledFor?.toDateString()).toBe(addDays(now, 5).toDateString());
+      // Pinned so the derived date stops depending on updatedAt, which this cron mutates itself
+      expect(updatedOrg?.lastActivityAt?.toDateString()).toBe(subDays(now, 25).toDateString());
+    });
+
+    it('should not let an unrelated write to updatedAt extend the deadline', async () => {
+      const now = new Date();
+
+      const org = await createOrg({ userId: testUser.id, lastActivityAt: null });
+      await prisma.salesforceOrg.update({
+        where: { id: org.id },
+        data: { updatedAt: subDays(now, 25) },
+      });
+
+      await manageOrgExpiration(prisma, now);
+      const afterFirstRun = await prisma.salesforceOrg.findUnique({ where: { id: org.id } });
+
+      // Simulate a label edit bumping updatedAt long after the expiration was derived
+      vi.clearAllMocks();
+      await prisma.salesforceOrg.update({ where: { id: org.id }, data: { label: 'renamed' } });
+
+      const result = await manageOrgExpiration(prisma, now);
+
+      expect(result.scheduled).toBe(0);
+      expect(result.realigned).toBe(0);
+      expect(mockSendEmail).not.toHaveBeenCalled();
+
+      const afterSecondRun = await prisma.salesforceOrg.findUnique({ where: { id: org.id } });
+      expect(afterSecondRun?.expirationScheduledFor?.getTime()).toBe(afterFirstRun?.expirationScheduledFor?.getTime());
     });
   });
 
   describe('Sending notifications', () => {
-    it('should send 30-day warning notification', async () => {
-      const now = new Date();
-      const expirationDate = addDays(now, 30);
-
-      await createOrg({
-        userId: testUser.id,
-        expirationScheduledFor: expirationDate,
-        nextExpirationNotificationDate: now,
-      });
-
-      const result = await manageOrgExpiration(prisma, now);
-
-      expect(result.notified30Days).toBe(1);
-      expect(mockSendEmail).toHaveBeenCalledTimes(1);
-
-      // Verify next notification date is set to 7 days before expiration
-      const org = await prisma.salesforceOrg.findFirst();
-      const expectedNextNotification = addDays(expirationDate, -7);
-      expect(org?.nextExpirationNotificationDate?.toDateString()).toBe(expectedNextNotification.toDateString());
-    });
-
-    it('should send 7-day warning notification', async () => {
+    it('should send the 7 day warning', async () => {
       const now = new Date();
       const expirationDate = addDays(now, 7);
 
@@ -282,17 +319,16 @@ describe('Org Expiration Integration Tests', () => {
 
       const result = await manageOrgExpiration(prisma, now);
 
-      expect(result.notified7Days).toBe(1);
+      expect(result.notifiedByThreshold[7]).toBe(1);
       expect(mockSendEmail).toHaveBeenCalledTimes(1);
 
       const org = await prisma.salesforceOrg.findFirst();
-      const expectedNextNotification = addDays(expirationDate, -3);
-      expect(org?.nextExpirationNotificationDate?.toDateString()).toBe(expectedNextNotification.toDateString());
+      expect(org?.nextExpirationNotificationDate?.toDateString()).toBe(addDays(expirationDate, -1).toDateString());
     });
 
-    it('should send 3-day warning notification', async () => {
+    it('should send the 1 day warning', async () => {
       const now = new Date();
-      const expirationDate = addDays(now, 3);
+      const expirationDate = addDays(now, 1);
 
       await createOrg({
         userId: testUser.id,
@@ -302,49 +338,62 @@ describe('Org Expiration Integration Tests', () => {
 
       const result = await manageOrgExpiration(prisma, now);
 
-      expect(result.notified3Days).toBe(1);
+      expect(result.notifiedByThreshold[1]).toBe(1);
       expect(mockSendEmail).toHaveBeenCalledTimes(1);
 
       const org = await prisma.salesforceOrg.findFirst();
-      const expectedNextNotification = expirationDate; // Next is 0-day (expiration day)
-      expect(org?.nextExpirationNotificationDate?.toDateString()).toBe(expectedNextNotification.toDateString());
+      expect(org?.nextExpirationNotificationDate?.toDateString()).toBe(expirationDate.toDateString());
+    });
+
+    it('should send the final notice and clear the schedule on the expiration day', async () => {
+      const now = new Date();
+
+      await createOrg({
+        userId: testUser.id,
+        expirationScheduledFor: now,
+        nextExpirationNotificationDate: now,
+      });
+
+      const result = await manageOrgExpiration(prisma, now);
+
+      expect(result.notifiedByThreshold[0]).toBe(1);
+      expect(mockSendEmail).toHaveBeenCalledTimes(1);
+      expect(mockSendEmail.mock.calls[0][0].orgs[0].daysUntilExpiration).toBe(0);
+
+      const org = await prisma.salesforceOrg.findFirst();
+      expect(org?.nextExpirationNotificationDate).toBeNull();
     });
 
     it('should not resend notifications for already-notified thresholds', async () => {
       const now = new Date();
-      const expirationDate = addDays(now, 7);
 
-      // Next notification is in the future, so no notification should be sent
       await createOrg({
         userId: testUser.id,
-        expirationScheduledFor: expirationDate,
-        nextExpirationNotificationDate: addDays(now, 3), // Not due yet
+        expirationScheduledFor: addDays(now, 7),
+        nextExpirationNotificationDate: addDays(now, 6), // Not due yet
       });
 
       const result = await manageOrgExpiration(prisma, now);
 
-      expect(result.notified7Days).toBe(0);
+      expect(result.notifiedByThreshold[7]).toBe(0);
       expect(mockSendEmail).not.toHaveBeenCalled();
     });
 
     it('should catch up on missed notifications', async () => {
       const now = new Date();
-      const expirationDate = addDays(now, 3); // Currently at 3 days
+      const expirationDate = addDays(now, 1);
 
-      // Org scheduled but notification is due (missed notifications don't matter, just send one now)
       await createOrg({
         userId: testUser.id,
         expirationScheduledFor: expirationDate,
-        nextExpirationNotificationDate: subDays(now, 10), // Overdue notification
+        nextExpirationNotificationDate: subDays(now, 10), // Overdue
       });
 
       const result = await manageOrgExpiration(prisma, now);
 
-      // Only counts the actual day threshold
-      expect(result.notified3Days).toBe(1);
-      expect(mockSendEmail).toHaveBeenCalledTimes(1); // One email per user
+      expect(result.notifiedByThreshold[1]).toBe(1);
+      expect(mockSendEmail).toHaveBeenCalledTimes(1);
 
-      // Next notification should be set to expiration day (0-day)
       const org = await prisma.salesforceOrg.findFirst();
       expect(org?.nextExpirationNotificationDate?.toDateString()).toBe(expirationDate.toDateString());
     });
@@ -352,75 +401,45 @@ describe('Org Expiration Integration Tests', () => {
     it('should group multiple orgs by user in single email with different expiration dates', async () => {
       const now = new Date();
 
-      // Create multiple orgs for same user expiring on different days, all due for notification now
-      await createOrg({
-        userId: testUser.id,
-        expirationScheduledFor: addDays(now, 30),
-        nextExpirationNotificationDate: now,
-      });
-
-      await createOrg({
-        userId: testUser.id,
-        expirationScheduledFor: addDays(now, 7),
-        nextExpirationNotificationDate: now,
-      });
-
-      await createOrg({
-        userId: testUser.id,
-        expirationScheduledFor: addDays(now, 3),
-        nextExpirationNotificationDate: now,
-      });
+      await createOrg({ userId: testUser.id, expirationScheduledFor: addDays(now, 7), nextExpirationNotificationDate: now });
+      await createOrg({ userId: testUser.id, expirationScheduledFor: addDays(now, 1), nextExpirationNotificationDate: now });
+      await createOrg({ userId: testUser.id, expirationScheduledFor: now, nextExpirationNotificationDate: now });
 
       await manageOrgExpiration(prisma, now);
 
-      // Should send ONE email with all three orgs showing different expiration days
       expect(mockSendEmail).toHaveBeenCalledTimes(1);
       const emailCall = mockSendEmail.mock.calls[0][0];
       expect(emailCall.orgs).toHaveLength(3);
 
-      // Verify each org shows its own expiration countdown
       const orgExpirations = emailCall.orgs.map((o) => o.daysUntilExpiration).sort((a, b) => a - b);
-      expect(orgExpirations).toEqual([3, 7, 30]);
+      expect(orgExpirations).toEqual([0, 1, 7]);
     });
 
     it('should not email user twice on same cron run', async () => {
       const now = new Date();
 
-      // Create multiple orgs at same threshold
-      await createOrg({
-        userId: testUser.id,
-        expirationScheduledFor: addDays(now, 7),
-        nextExpirationNotificationDate: now,
-      });
-
-      await createOrg({
-        userId: testUser.id,
-        expirationScheduledFor: addDays(now, 7),
-        nextExpirationNotificationDate: now,
-      });
+      await createOrg({ userId: testUser.id, expirationScheduledFor: addDays(now, 7), nextExpirationNotificationDate: now });
+      await createOrg({ userId: testUser.id, expirationScheduledFor: addDays(now, 7), nextExpirationNotificationDate: now });
 
       await manageOrgExpiration(prisma, now);
 
-      // Should send ONE email, not two
       expect(mockSendEmail).toHaveBeenCalledTimes(1);
-      const emailCall = mockSendEmail.mock.calls[0][0];
-      expect(emailCall.orgs).toHaveLength(2);
+      expect(mockSendEmail.mock.calls[0][0].orgs).toHaveLength(2);
     });
 
     it('should skip orgs with connection errors', async () => {
       const now = new Date();
-      const expirationDate = addDays(now, 7);
 
       await createOrg({
         userId: testUser.id,
-        expirationScheduledFor: expirationDate,
+        expirationScheduledFor: addDays(now, 7),
         nextExpirationNotificationDate: now,
         connectionError: 'Invalid credentials',
       });
 
       const result = await manageOrgExpiration(prisma, now);
 
-      expect(result.notified7Days).toBe(0);
+      expect(result.notifiedByThreshold[7]).toBe(0);
       expect(mockSendEmail).not.toHaveBeenCalled();
     });
 
@@ -434,34 +453,94 @@ describe('Org Expiration Integration Tests', () => {
         nextExpirationNotificationDate: now,
       });
 
-      // First run - should send email
       await manageOrgExpiration(prisma, now);
       expect(mockSendEmail).toHaveBeenCalledTimes(1);
 
-      // Second run same day - should NOT send email again (nextExpirationNotificationDate was updated)
       vi.clearAllMocks();
       await manageOrgExpiration(prisma, now);
       expect(mockSendEmail).not.toHaveBeenCalled();
 
-      // Third run same day - still should NOT send
       await manageOrgExpiration(prisma, now);
       expect(mockSendEmail).not.toHaveBeenCalled();
 
-      // Verify next notification date is in the future
       const org = await prisma.salesforceOrg.findFirst();
-      const expectedNextNotification = addDays(expirationDate, -3);
-      expect(org?.nextExpirationNotificationDate?.toDateString()).toBe(expectedNextNotification.toDateString());
+      expect(org?.nextExpirationNotificationDate?.toDateString()).toBe(addDays(expirationDate, -1).toDateString());
+    });
+
+    it('should leave the schedule unadvanced when the email fails so it retries', async () => {
+      const now = new Date();
+
+      const org = await createOrg({
+        userId: testUser.id,
+        expirationScheduledFor: addDays(now, 7),
+        nextExpirationNotificationDate: now,
+      });
+
+      mockSendEmail.mockRejectedValueOnce(new Error('mailgun is down'));
+
+      const result = await manageOrgExpiration(prisma, now);
+
+      expect(result.emailFailures).toBe(1);
+      expect(result.usersNotified).toBe(0);
+      expect(mockCreateAuditLog).not.toHaveBeenCalled();
+
+      const afterFailure = await prisma.salesforceOrg.findUnique({ where: { id: org.id } });
+      expect(afterFailure?.nextExpirationNotificationDate?.toDateString()).toBe(now.toDateString());
+      expect(afterFailure?.lastExpirationNotificationAt).toBeNull();
+
+      // Next run retries rather than silently skipping the threshold
+      vi.clearAllMocks();
+      const retryResult = await manageOrgExpiration(prisma, now);
+      expect(retryResult.emailFailures).toBe(0);
+      expect(mockSendEmail).toHaveBeenCalledTimes(1);
+    });
+
+    it('should still warn a dormant user about an org they can save', async () => {
+      const now = new Date();
+      const dormantUser = await createUser(subDays(now, 200));
+
+      await createOrg({
+        userId: dormantUser.id,
+        lastActivityAt: subDays(now, ORG_SCHEDULE_AFTER_IDLE_DAYS),
+      });
+
+      const result = await manageOrgExpiration(prisma, now);
+
+      expect(result.usersNotified).toBe(1);
+      expect(result.usersSkipped).toBe(0);
+      expect(mockSendEmail).toHaveBeenCalledTimes(1);
+    });
+
+    it('should skip the terminal notice for a dormant user but still scrub the credentials', async () => {
+      const now = new Date();
+      const dormantUser = await createUser(subDays(now, 200));
+
+      const org = await createOrg({
+        userId: dormantUser.id,
+        lastActivityAt: subDays(now, 200),
+        accessToken: 'valid_token',
+      });
+
+      const result = await manageOrgExpiration(prisma, now);
+
+      expect(result.usersSkipped).toBe(1);
+      expect(mockSendEmail).not.toHaveBeenCalled();
+      expect(result.expired).toBe(1);
+
+      const updatedOrg = await prisma.salesforceOrg.findUnique({ where: { id: org.id } });
+      expect(updatedOrg?.accessToken).toBe('v2:EXPIRED_TOKEN_PLACEHOLDER');
+      // The schedule still advances so the skipped user is not reconsidered every run
+      expect(updatedOrg?.nextExpirationNotificationDate).toBeNull();
     });
   });
 
   describe('Expiring credentials', () => {
     it('should expire orgs on expiration day', async () => {
       const now = new Date();
-      const expirationDate = subDays(now, 1); // Yesterday
 
       const org = await createOrg({
         userId: testUser.id,
-        expirationScheduledFor: expirationDate,
+        expirationScheduledFor: subDays(now, 1),
         nextExpirationNotificationDate: null, // All notifications sent
         accessToken: 'valid_token',
       });
@@ -470,22 +549,20 @@ describe('Org Expiration Integration Tests', () => {
 
       expect(result.expired).toBe(1);
 
-      // Verify credentials were invalidated
       const updatedOrg = await prisma.salesforceOrg.findUnique({ where: { id: org.id } });
       expect(updatedOrg?.accessToken).toBe('v2:EXPIRED_TOKEN_PLACEHOLDER');
-      expect(updatedOrg?.connectionError).toBe('Credentials expired due to inactivity');
+      expect(updatedOrg?.connectionError).toBe(ORG_EXPIRATION_CONNECTION_ERROR);
     });
 
     it('should not re-expire already expired orgs', async () => {
       const now = new Date();
-      const expirationDate = subDays(now, 1);
 
       await createOrg({
         userId: testUser.id,
-        expirationScheduledFor: expirationDate,
+        expirationScheduledFor: subDays(now, 1),
         nextExpirationNotificationDate: null,
         accessToken: 'v2:EXPIRED_TOKEN_PLACEHOLDER',
-        connectionError: 'Credentials expired due to inactivity',
+        connectionError: ORG_EXPIRATION_CONNECTION_ERROR,
       });
 
       const result = await manageOrgExpiration(prisma, now);
@@ -495,11 +572,10 @@ describe('Org Expiration Integration Tests', () => {
 
     it('should create audit log for expired orgs', async () => {
       const now = new Date();
-      const expirationDate = subDays(now, 1);
 
       await createOrg({
         userId: testUser.id,
-        expirationScheduledFor: expirationDate,
+        expirationScheduledFor: subDays(now, 1),
         nextExpirationNotificationDate: null,
       });
 
@@ -516,62 +592,105 @@ describe('Org Expiration Integration Tests', () => {
   });
 
   describe('Complete workflow', () => {
-    it('should handle full expiration lifecycle', async () => {
+    it('should schedule, notify, and scrub a long-overdue org in a single run', async () => {
       const now = new Date();
 
-      // Day 0: Org becomes inactive
-      const inactiveDate = subDays(now, 90);
       const org = await createOrg({
         userId: testUser.id,
-        lastActivityAt: inactiveDate,
+        lastActivityAt: subDays(now, 200),
+        expirationScheduledFor: addDays(now, 25), // Stale date from the old policy
+        accessToken: 'valid_token',
       });
 
-      // Run 1: Schedule for expiration and send 30-day warning
+      const result = await manageOrgExpiration(prisma, now);
+
+      expect(result.realigned).toBe(1);
+      expect(result.notifiedByThreshold[0]).toBe(1);
+      expect(result.expired).toBe(1);
+
+      expect(mockSendEmail).toHaveBeenCalledTimes(1);
+      expect(mockSendEmail.mock.calls[0][0].orgs[0].daysUntilExpiration).toBe(0);
+
+      expect(mockCreateAuditLog).toHaveBeenCalledWith(expect.objectContaining({ action: 'ORG_EXPIRED' }));
+      expect(mockCreateAuditLog).toHaveBeenCalledWith(expect.objectContaining({ action: 'ORG_CREDENTIALS_EXPIRED' }));
+
+      const updatedOrg = await prisma.salesforceOrg.findUnique({ where: { id: org.id } });
+      expect(updatedOrg?.expirationScheduledFor?.toDateString()).toBe(subDays(now, 170).toDateString());
+      expect(updatedOrg?.accessToken).toBe('v2:EXPIRED_TOKEN_PLACEHOLDER');
+      expect(updatedOrg?.nextExpirationNotificationDate).toBeNull();
+
+      // Terminal: every subsequent run ignores it
+      vi.clearAllMocks();
+      const secondRun = await manageOrgExpiration(prisma, now);
+      expect(secondRun.realigned).toBe(0);
+      expect(secondRun.expired).toBe(0);
+      expect(mockSendEmail).not.toHaveBeenCalled();
+    });
+
+    it('should handle the full 30 day lifecycle', async () => {
+      const now = new Date();
+
+      // Day 23 of inactivity - the org enters the warning window
+      const org = await createOrg({
+        userId: testUser.id,
+        lastActivityAt: subDays(now, ORG_SCHEDULE_AFTER_IDLE_DAYS),
+      });
+
       let result = await manageOrgExpiration(prisma, now);
       expect(result.scheduled).toBe(1);
-      expect(result.notified30Days).toBe(1); // Sends immediately when scheduled
+      expect(result.notifiedByThreshold[7]).toBe(1);
       expect(mockSendEmail).toHaveBeenCalledTimes(1);
 
       let updatedOrg = await prisma.salesforceOrg.findUnique({ where: { id: org.id } });
-      expect(updatedOrg?.expirationScheduledFor).toBeTruthy();
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const expirationDate = updatedOrg!.expirationScheduledFor!;
+      expect(updatedOrg?.nextExpirationNotificationDate?.toDateString()).toBe(addDays(expirationDate, -1).toDateString());
 
-      // Next notification should be 7 days before expiration
-      let expectedNext = addDays(expirationDate, -7);
-      expect(updatedOrg?.nextExpirationNotificationDate?.toDateString()).toBe(expectedNext.toDateString());
-
-      // Run 2: 7 days before expiration
+      // Day 29 - one day left. Step 1 sees it again but must not rewrite anything.
       vi.clearAllMocks();
-      const day23 = addDays(now, 23);
-      result = await manageOrgExpiration(prisma, day23);
-      expect(result.notified7Days).toBe(1);
+      result = await manageOrgExpiration(prisma, addDays(now, 6));
+      expect(result.scheduled).toBe(0);
+      expect(result.realigned).toBe(0);
+      expect(result.notifiedByThreshold[1]).toBe(1);
+      expect(result.expired).toBe(0);
       expect(mockSendEmail).toHaveBeenCalledTimes(1);
 
       updatedOrg = await prisma.salesforceOrg.findUnique({ where: { id: org.id } });
-      expectedNext = addDays(expirationDate, -3);
-      expect(updatedOrg?.nextExpirationNotificationDate?.toDateString()).toBe(expectedNext.toDateString());
+      expect(updatedOrg?.nextExpirationNotificationDate?.toDateString()).toBe(expirationDate.toDateString());
 
-      // Run 3: 3 days before expiration
+      // Day 30 - final notice and the credentials are scrubbed in the same run
       vi.clearAllMocks();
-      const day27 = addDays(now, 27);
-      result = await manageOrgExpiration(prisma, day27);
-      expect(result.notified3Days).toBe(1);
-      expect(mockSendEmail).toHaveBeenCalledTimes(1);
-
-      updatedOrg = await prisma.salesforceOrg.findUnique({ where: { id: org.id } });
-      expectedNext = expirationDate; // 0-day
-      expect(updatedOrg?.nextExpirationNotificationDate?.toDateString()).toBe(expectedNext.toDateString());
-
-      // Run 4: Expiration day
-      vi.clearAllMocks();
-      const day30 = addDays(now, 30);
-      result = await manageOrgExpiration(prisma, day30);
+      result = await manageOrgExpiration(prisma, addDays(now, 7));
+      expect(result.notifiedByThreshold[0]).toBe(1);
       expect(result.expired).toBe(1);
 
       updatedOrg = await prisma.salesforceOrg.findUnique({ where: { id: org.id } });
       expect(updatedOrg?.accessToken).toBe('v2:EXPIRED_TOKEN_PLACEHOLDER');
-      expect(updatedOrg?.connectionError).toBe('Credentials expired due to inactivity');
+      expect(updatedOrg?.connectionError).toBe(ORG_EXPIRATION_CONNECTION_ERROR);
+      expect(updatedOrg?.nextExpirationNotificationDate).toBeNull();
+    });
+
+    it('should be idempotent when the same day is processed twice', async () => {
+      const now = new Date();
+
+      const org = await createOrg({
+        userId: testUser.id,
+        lastActivityAt: subDays(now, ORG_SCHEDULE_AFTER_IDLE_DAYS),
+      });
+
+      await manageOrgExpiration(prisma, now);
+      const afterFirstRun = await prisma.salesforceOrg.findUnique({ where: { id: org.id } });
+
+      vi.clearAllMocks();
+      const result = await manageOrgExpiration(prisma, now);
+
+      expect(result.scheduled).toBe(0);
+      expect(result.realigned).toBe(0);
+      expect(mockSendEmail).not.toHaveBeenCalled();
+
+      const afterSecondRun = await prisma.salesforceOrg.findUnique({ where: { id: org.id } });
+      expect(afterSecondRun?.expirationScheduledFor?.getTime()).toBe(afterFirstRun?.expirationScheduledFor?.getTime());
+      expect(afterSecondRun?.nextExpirationNotificationDate?.getTime()).toBe(afterFirstRun?.nextExpirationNotificationDate?.getTime());
     });
   });
 
@@ -592,22 +711,21 @@ describe('Org Expiration Integration Tests', () => {
 
     it('should not update database or send user emails in test mode', async () => {
       const now = new Date();
-      const inactiveDate = subDays(now, 91);
 
-      // Create org that would normally be scheduled for expiration
+      // Would be scheduled
       const org1 = await createOrg({
         userId: testUser.id,
-        lastActivityAt: inactiveDate,
+        lastActivityAt: subDays(now, ORG_SCHEDULE_AFTER_IDLE_DAYS),
       });
 
-      // Create org that would normally receive notification
+      // Would receive a notification
       const org2 = await createOrg({
         userId: testUser.id,
         expirationScheduledFor: addDays(now, 7),
         nextExpirationNotificationDate: now,
       });
 
-      // Create org that would normally be expired
+      // Would be expired
       const org3 = await createOrg({
         userId: testUser.id,
         expirationScheduledFor: subDays(now, 1),
@@ -617,9 +735,9 @@ describe('Org Expiration Integration Tests', () => {
 
       const result = await manageOrgExpiration(prisma, now);
 
-      // Results should reflect what WOULD have happened
+      expect(result.testMode).toBe(true);
       expect(result.scheduled).toBe(1);
-      expect(result.notified7Days).toBe(1);
+      expect(result.notifiedByThreshold[7]).toBe(2); // org1 (derived) and org2 (stored)
       expect(result.expired).toBe(1);
 
       // Verify NO database changes occurred
@@ -628,16 +746,13 @@ describe('Org Expiration Integration Tests', () => {
       expect(org1After?.nextExpirationNotificationDate).toBeNull();
 
       const org2After = await prisma.salesforceOrg.findUnique({ where: { id: org2.id } });
-      expect(org2After?.nextExpirationNotificationDate?.toDateString()).toBe(now.toDateString()); // Not updated
+      expect(org2After?.nextExpirationNotificationDate?.toDateString()).toBe(now.toDateString());
 
       const org3After = await prisma.salesforceOrg.findUnique({ where: { id: org3.id } });
-      expect(org3After?.accessToken).toBe('valid_token'); // Not expired
+      expect(org3After?.accessToken).toBe('valid_token');
       expect(org3After?.connectionError).toBeNull();
 
-      // Verify NO user notification emails were sent
       expect(mockSendEmail).not.toHaveBeenCalled();
-
-      // Verify NO audit logs were created
       expect(mockCreateAuditLog).not.toHaveBeenCalled();
 
       // Verify summary email WAS sent
@@ -654,25 +769,21 @@ describe('Org Expiration Integration Tests', () => {
         }),
       );
 
-      // Verify CSV attachments contain expected data
       const summaryCall = mockSendEmailConfig.mock.calls[0][0];
       expect(summaryCall.attachment).toHaveLength(3);
 
-      // Check scheduled orgs CSV
       const scheduledCsv = summaryCall.attachment.find((a: { filename: string }) => a.filename === 'scheduled-orgs.csv');
       expect(scheduledCsv).toBeDefined();
       const scheduledData = scheduledCsv.data.toString('utf-8');
       expect(scheduledData).toContain('orgId');
-      expect(scheduledData).toContain('uniqueId');
+      expect(scheduledData).toContain('realigned');
 
-      // Check notifications CSV
       const notificationsCsv = summaryCall.attachment.find((a: { filename: string }) => a.filename === 'notifications.csv');
       expect(notificationsCsv).toBeDefined();
       const notificationsData = notificationsCsv.data.toString('utf-8');
       expect(notificationsData).toContain('userEmail');
       expect(notificationsData).toContain('daysUntilExpiration');
 
-      // Check expired orgs CSV
       const expiredCsv = summaryCall.attachment.find((a: { filename: string }) => a.filename === 'expired-orgs.csv');
       expect(expiredCsv).toBeDefined();
       const expiredData = expiredCsv.data.toString('utf-8');
@@ -680,27 +791,39 @@ describe('Org Expiration Integration Tests', () => {
       expect(expiredData).toContain('username');
     });
 
-    it('should handle test mode with no changes needed', async () => {
+    it('should report the date it would derive rather than the stale stored date', async () => {
       const now = new Date();
 
-      // Create org that doesn't need any action
       await createOrg({
         userId: testUser.id,
-        lastActivityAt: now, // Active
+        lastActivityAt: subDays(now, 200),
+        expirationScheduledFor: addDays(now, 25),
       });
 
       const result = await manageOrgExpiration(prisma, now);
 
+      expect(result.realigned).toBe(1);
+      // Reported as already past, not as 25 days out
+      expect(result.notifiedByThreshold[0]).toBe(1);
+
+      const summaryCall = mockSendEmailConfig.mock.calls[0][0];
+      const notificationsCsv = summaryCall.attachment.find((a: { filename: string }) => a.filename === 'notifications.csv');
+      expect(notificationsCsv.data.toString('utf-8')).toContain(',0,');
+    });
+
+    it('should handle test mode with no changes needed', async () => {
+      const now = new Date();
+
+      await createOrg({ userId: testUser.id, lastActivityAt: now });
+
+      const result = await manageOrgExpiration(prisma, now);
+
       expect(result.scheduled).toBe(0);
-      expect(result.notified30Days).toBe(0);
-      expect(result.notified7Days).toBe(0);
-      expect(result.notified3Days).toBe(0);
+      expect(result.realigned).toBe(0);
+      expect(result.notifiedByThreshold).toEqual({ 0: 0, 1: 0, 7: 0 });
       expect(result.expired).toBe(0);
 
-      // Summary email should still be sent
       expect(mockSendEmailConfig).toHaveBeenCalledTimes(1);
-
-      // But with no attachments (no CSVs created)
       const summaryCall = mockSendEmailConfig.mock.calls[0][0];
       expect(summaryCall.attachment).toHaveLength(0);
     });

@@ -4,6 +4,7 @@ import { ComboboxWithGroupedItems } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
 import sortBy from 'lodash/sortBy';
 import { FunctionComponent, useEffect, useState } from 'react';
+import { calculateOrgExpiration } from './useOrgExpiration';
 
 function getSelectedItemLabel(item: ListItem<string, SalesforceOrgUi>) {
   const org = item.meta;
@@ -59,20 +60,14 @@ function orgHasError(org: Maybe<SalesforceOrgUi>): boolean {
 }
 
 function groupOrgs(orgs: SalesforceOrgUi[]): ListItemGroup<string, SalesforceOrgUi>[] {
-  const now = new Date();
   const orgsById = groupBy(sortBy(orgs, ['label']), 'orgName');
   return Object.keys(orgsById).map(
     (key): ListItemGroup => ({
       id: key,
       label: key,
       items: orgsById[key].map((org) => {
-        let expiryMessage: Maybe<string> = undefined;
-        if (org.expirationScheduledFor) {
-          const expirationDate = new Date(org.expirationScheduledFor);
-          const daysUntilExpiration = Math.ceil((expirationDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-          const isExpired = daysUntilExpiration <= 0;
-          expiryMessage = `${isExpired ? 'Expired' : 'Expires'} on ${new Date(org.expirationScheduledFor).toLocaleDateString()}`;
-        }
+        const { isExpired, expiryDate } = calculateOrgExpiration(org);
+        const expiryMessage: Maybe<string> = expiryDate ? `${isExpired ? 'Ended' : 'Ends'} on ${expiryDate}` : undefined;
 
         return {
           id: org.uniqueId,

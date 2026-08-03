@@ -1,4 +1,5 @@
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
+import { ORG_INACTIVITY_EXPIRATION_DAYS } from '@jetstream/shared/utils';
 import { ScopedNotification } from '@jetstream/ui';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
@@ -13,8 +14,8 @@ export const AppHomeOrgExpirationBanner = () => {
     return null;
   }
 
-  const expiredText = expired === 1 ? '1 org has expired' : `${expired} orgs have expired`;
-  const expiringSoonText = expiringSoon === 1 ? '1 org is expiring soon' : `${expiringSoon} orgs are expiring soon`;
+  const expiredText = expired === 1 ? '1 org has disconnected' : `${expired} orgs have disconnected`;
+  const expiringSoonText = expiringSoon === 1 ? '1 org will disconnect soon' : `${expiringSoon} orgs will disconnect soon`;
 
   let message: string;
   if (expired > 0 && expiringSoon > 0) {
@@ -26,9 +27,9 @@ export const AppHomeOrgExpirationBanner = () => {
   }
 
   return (
-    <ScopedNotification theme="info" className="slds-m-bottom_x-small">
-      {message} due to 90 days of inactivity. <Link to={APP_ROUTES.SALESFORCE_ORG_GROUPS.ROUTE}>View and manage your orgs</Link> to
-      reactivate them.
+    <ScopedNotification theme={expired > 0 ? 'error' : 'warning'} className="slds-m-bottom_x-small">
+      {message}. Salesforce ends a connection when an org has not been used for {ORG_INACTIVITY_EXPIRATION_DAYS} days, and using an org in
+      Jetstream keeps its connection alive. <Link to={APP_ROUTES.SALESFORCE_ORG_GROUPS.ROUTE}>View and manage your orgs</Link>.
     </ScopedNotification>
   );
 };
