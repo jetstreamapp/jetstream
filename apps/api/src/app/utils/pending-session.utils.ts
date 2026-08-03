@@ -14,6 +14,14 @@ export const PENDING_SESSION_REDIRECT_PATHS = {
 type PendingSessionState = Pick<SessionData, 'pendingVerification' | 'pendingMfaEnrollment' | 'pendingTosAcceptance'>;
 
 /**
+ * The only values this module can hand to a redirect. Callers pass the result straight to
+ * `res.redirect`, so keeping the return type a literal union (rather than `string`) makes it a
+ * compile error to ever return a session-derived value here — the session is attacker-influenced,
+ * and returning any part of it would turn these callers into an open redirect.
+ */
+export type PendingSessionRedirectPath = (typeof PENDING_SESSION_REDIRECT_PATHS)[keyof typeof PENDING_SESSION_REDIRECT_PATHS];
+
+/**
  * If the session is mid-authentication — the first factor passed (`req.session.user` is set) but
  * 2FA verification, MFA enrollment, or ToS acceptance is still outstanding — return the auth-flow
  * path the browser should be routed to. Returns `null` when the session has no outstanding
@@ -22,8 +30,12 @@ type PendingSessionState = Pick<SessionData, 'pendingVerification' | 'pendingMfa
  * External-token endpoints (desktop app, web extension) MUST consult this before issuing a token so
  * a half-authenticated session cannot be exchanged for a full-access token, which would bypass the
  * second factor. The ordering matches the post-login redirects in auth.controller.ts.
+ *
+ * The session is only ever read for truthiness — no session content becomes part of the returned
+ * path, which is always one of the fixed relative paths above. Callers may therefore redirect to it
+ * without running it through `validateRedirectUrl`.
  */
-export function getPendingSessionRedirectPath(session: Partial<PendingSessionState> | undefined): string | null {
+export function getPendingSessionRedirectPath(session: Partial<PendingSessionState> | undefined): PendingSessionRedirectPath | null {
   if (!session) {
     return null;
   }
