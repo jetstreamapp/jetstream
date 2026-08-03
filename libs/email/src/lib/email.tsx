@@ -278,6 +278,12 @@ export async function sendCloudflareSecurityAlertEmail({
   }
 }
 
+/**
+ * Failures propagate rather than being logged and swallowed. The cron only advances an org's
+ * notification schedule once the send succeeds — swallowing the error would silently burn a threshold,
+ * and with only a 7 day warning window that can consume the single actionable warning a user gets
+ * before Salesforce ends the connection.
+ */
 export async function sendOrgExpirationWarningEmail({
   emailAddress,
   orgs,
@@ -285,27 +291,23 @@ export async function sendOrgExpirationWarningEmail({
   emailAddress: string;
   orgs: Array<{ username: string; organizationId: string; instanceUrl: string; daysUntilExpiration: number }>;
 }) {
-  try {
-    const component = <OrgExpirationWarningEmail orgs={orgs} loginUrl={`${ENV.JETSTREAM_SERVER_URL}/app`} />;
-    const [html, text] = await renderComponent(component);
+  const component = <OrgExpirationWarningEmail orgs={orgs} loginUrl={`${ENV.JETSTREAM_SERVER_URL}/app`} />;
+  const [html, text] = await renderComponent(component);
 
-    const hasExpired = orgs.some((org) => org.daysUntilExpiration <= 0);
-    const positiveDays = orgs.map((org) => org.daysUntilExpiration).filter((days) => days > 0);
-    const minDays = positiveDays.length > 0 ? Math.min(...positiveDays) : 0;
+  const hasExpired = orgs.some((org) => org.daysUntilExpiration <= 0);
+  const positiveDays = orgs.map((org) => org.daysUntilExpiration).filter((days) => days > 0);
+  const minDays = positiveDays.length > 0 ? Math.min(...positiveDays) : 0;
 
-    const subject = hasExpired
-      ? 'Salesforce Org Credentials Expired'
-      : `Salesforce Org Credentials Expiring in ${minDays} ${pluralizeFromNumber('Day', minDays)}`;
+  const subject = hasExpired
+    ? 'Salesforce Org Connection Ended'
+    : `Salesforce Org Connection Ending in ${minDays} ${pluralizeFromNumber('Day', minDays)}`;
 
-    await sendEmail({
-      to: emailAddress,
-      subject,
-      text,
-      html,
-    });
-  } catch (error) {
-    logger.error({ ...getErrorMessageAndStackObj(error) }, 'Error sending org expiration warning email');
-  }
+  await sendEmail({
+    to: emailAddress,
+    subject,
+    text,
+    html,
+  });
 }
 
 /**

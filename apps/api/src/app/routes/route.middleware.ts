@@ -17,7 +17,7 @@ import {
 import { UserProfileSession } from '@jetstream/auth/types';
 import { ApiConnection, exchangeRefreshToken, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import { HTTP } from '@jetstream/shared/constants';
-import { ensureBoolean, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { ensureBoolean, getErrorMessageAndStackObj, ORG_INACTIVITY_EXPIRATION_DAYS } from '@jetstream/shared/utils';
 import { parseCookie } from 'cookie';
 import { addDays, getUnixTime, isBefore } from 'date-fns';
 import express, { Request } from 'express';
@@ -349,15 +349,24 @@ export async function getOrgForRequest(
 
   // Early exit if org is expired and the connection is invalid - this avoids updating activity and attempting to call salesforce
   if (accessToken === sfdcEncService.DUMMY_INVALID_ENCRYPTED_TOKEN && org.expirationScheduledFor) {
-    throw new UserFacingError('This org has expired due to inactivity. Reconnect the org to continue using it.');
+    throw new UserFacingError(
+      `Salesforce ended this connection because the org was not used for ${ORG_INACTIVITY_EXPIRATION_DAYS} days. Reconnect the org to continue using it.`,
+    );
   }
 
   // Clear expiration and update last activity when org is accessed
   // This should be done after decryption so that the org stays expired if decryption failed (we use placeholder decryption token)
   if (org.expirationScheduledFor) {
-    salesforceOrgsDb.clearExpiration(org.id, user.id).catch((err) => {
+    /**
+     * Awaited, unlike the activity update below: if this fails silently the org keeps a past
+     * expiration date and the cron scrubs credentials the user is actively using. This branch only
+     * runs for the handful of orgs inside the warning window, not on the hot path.
+     */
+    try {
+      await salesforceOrgsDb.clearExpiration(org.id, user.id);
+    } catch (err) {
       getLogger().error({ orgId: org.id, userId: user.id, err }, '[ORG][UPDATE] Error clearing expirationScheduledFor');
-    });
+    }
   } else {
     // Only update lastActivityAt if it's null or older than 1 day to reduce DB writes
     const oneDayAgo = addDays(new Date(), -1);

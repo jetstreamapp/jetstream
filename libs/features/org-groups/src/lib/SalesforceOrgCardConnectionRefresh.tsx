@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { checkOrgHealth, getOrgs } from '@jetstream/shared/data';
-import { pluralizeFromNumber } from '@jetstream/shared/utils';
+import { ORG_INACTIVITY_EXPIRATION_DAYS, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { AddOrgHandlerFn, BadgeType, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Badge, ConfirmationModalPromise, Grid, Icon, Spinner, Tooltip, fireToast } from '@jetstream/ui';
 import { AddOrg, OrgExpirationStatus, useOrgExpiration, useUpdateOrgs } from '@jetstream/ui-core';
@@ -24,16 +24,16 @@ function getConnectionState(orgExpiration: OrgExpirationStatus, connectionError:
   const connectionState = {
     badge: {
       isVisible: !!orgExpiration.isExpiring,
-      label: orgExpiration.isExpired ? 'Expired' : `Expires ${orgExpiration.expiryDate}`,
+      label: orgExpiration.isExpired ? 'Disconnected' : `Ends ${orgExpiration.expiryDate}`,
       tooltip: orgExpiration.isExpired
-        ? 'This org expired due to 90 days of inactivity. Reconnect the org to continue using it or delete it if it is no longer needed.'
-        : `This org will expire in ${orgExpiration.daysUntilExpiration} ${pluralizeFromNumber('day', orgExpiration.daysUntilExpiration || 0)} due to inactivity. Refresh it or use it to prevent expiration.`,
+        ? `Salesforce ended this connection because the org was not used in Jetstream for ${ORG_INACTIVITY_EXPIRATION_DAYS} days. Reconnect the org to continue using it, or remove it if you no longer need it.`
+        : `Salesforce will end this connection in ${orgExpiration.daysUntilExpiration} ${pluralizeFromNumber('day', orgExpiration.daysUntilExpiration || 0)} unless the org is used. Open or refresh the org in Jetstream to keep it connected.`,
       badgeType: (orgExpiration.severity === 'error' ? 'error' : 'warning') as BadgeType,
     },
     refreshIcon: {
       isVisible: (hasConnectionError && !orgExpiration.isExpired) || orgExpiration.isExpiring,
       tooltip: orgExpiration.isExpiring
-        ? 'Refresh the connection to remove the pending expiration'
+        ? `Refresh the connection now to reset the ${ORG_INACTIVITY_EXPIRATION_DAYS}-day inactivity clock`
         : `There was an error connecting to this org. You can try refreshing the connection otherwise you will need to reconnect the org. Error: ${connectionError}`,
     },
     reconnectOrg: {

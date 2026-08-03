@@ -237,6 +237,16 @@ export async function createOrUpdateSalesforceOrg(userId: string, salesforceOrgU
         ? parseISO(salesforceOrgUi.orgTrialExpirationDate)
         : existingOrg.orgTrialExpirationDate,
       connectionError: null,
+      /**
+       * Reconnecting issues a brand new refresh token, which restarts Salesforce's inactivity clock.
+       * The expiration state has to be reset along with it - otherwise the org still matches the
+       * expiration cron's predicate (valid token, no connection error, expiration date in the past)
+       * and gets re-expired on the next run, minutes after the user reconnected it.
+       */
+      lastActivityAt: new Date(),
+      expirationScheduledFor: null,
+      nextExpirationNotificationDate: null,
+      lastExpirationNotificationAt: null,
     };
     data.label = data.label || data.username;
     data.filterText = `${data.username}${data.orgName}${data.label || ''}`;
@@ -280,6 +290,8 @@ export async function createOrUpdateSalesforceOrg(userId: string, salesforceOrgU
         orgNamespacePrefix: salesforceOrgUi.orgNamespacePrefix,
         orgTrialExpirationDate: salesforceOrgUi.orgTrialExpirationDate && parseISO(salesforceOrgUi.orgTrialExpirationDate),
         connectionError: null,
+        // Give a newly connected org a real inactivity base rather than leaving the cron to fall back to updatedAt
+        lastActivityAt: new Date(),
         filterText: `${salesforceOrgUi.username}${salesforceOrgUi.orgName}${salesforceOrgUi.label}`,
       },
     });
