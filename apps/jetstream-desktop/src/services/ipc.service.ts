@@ -42,6 +42,44 @@ function registerHandler<Key extends keyof ElectronApiRequestResponse>(key: Key,
   ipcMain.handle(key, handler);
 }
 
+/** Abandon an OAuth flow whose callback never arrived, so its listener does not leak */
+const DEEP_LINK_FLOW_TIMEOUT_MS = 900000; // 15 minutes
+
+/** Cancel function for the in-flight flow of each deep-link action, keyed by action name */
+const pendingDeepLinkFlows = new Map<string, () => void>();
+
+/**
+ * Register a one-shot deep-link listener for an OAuth-style flow, cancelling whatever flow was
+ * already pending for the same action.
+ *
+ * A deep-link event is dispatched to EVERY listener registered for its action, so without this a
+ * second "Login" / "Add Org" click (e.g. the first one opened the wrong browser profile) would leave
+ * the abandoned listener registered alongside the new one. When the callback finally arrives both
+ * run: the current flow succeeds while the abandoned one fails its nonce / PKCE check, surfacing a
+ * spurious "error authenticating" toast next to the successful result.
+ */
+function startDeepLinkFlow(action: string, handleCallback: (params: Record<string, string>) => Promise<void>) {
+  pendingDeepLinkFlows.get(action)?.();
+
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  let disposeListener: () => void = () => undefined;
+
+  const cancel = () => {
+    clearTimeout(timeout);
+    disposeListener();
+    // Only clear the map entry if a newer flow has not already replaced this one
+    if (pendingDeepLinkFlows.get(action) === cancel) {
+      pendingDeepLinkFlows.delete(action);
+    }
+  };
+
+  disposeListener = deepLink.once(action, (params) => {
+    handleCallback(params).finally(cancel);
+  });
+  timeout = setTimeout(cancel, DEEP_LINK_FLOW_TIMEOUT_MS);
+  pendingDeepLinkFlows.set(action, cancel);
+}
+
 const handleOpenFile: MainIpcHandler<'openFile'> = async (_event, filePath: string): Promise<void> => {
   try {
     await shell.openPath(filePath);
@@ -168,17 +206,10 @@ const handleLoginEvent: MainIpcHandler<'login'> = async (event) => {
       logger.error('Error handling callback', ex);
       const payload: AuthenticateFailurePayload = { success: false, error: 'There was an unknown error authenticating your account' };
       event.sender.send(IpcEventChannel.authenticate, payload);
-    } finally {
-      clearTimeout(timeout);
     }
   };
 
-  const disposeListener = deepLink.once('auth', handleCallback);
-
-  // Remove the listener if it was not already removed - e.g. auth flow did not completed within 15 minutes
-  const timeout = setTimeout(() => {
-    disposeListener();
-  }, 900000); // 15 minutes in milliseconds
+  startDeepLinkFlow('auth', handleCallback);
 };
 
 // Tracked alongside the logout handler so handleCheckAuthEvent can detect when a logout
@@ -272,17 +303,10 @@ const handleAddOrgEvent: MainIpcHandler<'addOrg'> = async (event, payload) => {
 
       logger.error('Error handling callback', ex);
       event.sender.send(IpcEventChannel.toastMessage, { type: 'error', message });
-    } finally {
-      clearTimeout(timeout);
     }
   };
 
-  const disposeListener = deepLink.once('addOrg', handleCallback);
-
-  // Remove the listener if it was not already removed - e.g. auth flow did not completed within 15 minutes
-  const timeout = setTimeout(() => {
-    disposeListener();
-  }, 900000); // 15 minutes in milliseconds
+  startDeepLinkFlow('addOrg', handleCallback);
 };
 
 const handleOpenGooglePickerEvent: MainIpcHandler<'openGooglePicker'> = async (event, payload) => {
