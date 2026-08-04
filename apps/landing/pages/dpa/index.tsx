@@ -9,7 +9,7 @@ export default function Page() {
   return (
     <div className="m-8">
       <div className="flex items-center justify-between gap-4">
-        <LastUpdated className="text-gray-500" day={18} month="March" year={2026} />
+        <LastUpdated className="text-gray-500" day={4} month="August" year={2026} />
         <PrintButton />
       </div>
       <h1>Data Processing Agreement</h1>
@@ -62,7 +62,12 @@ export default function Page() {
       <h2>3. OBLIGATIONS OF THE PROCESSOR</h2>
       <p className="mb-2 pl-2">The Processor shall:</p>
       <ol className="list-decimal pl-6">
-        <li>Process Personal Data only on documented instructions from the Controller, unless otherwise required by applicable law;</li>
+        <li>
+          Process Personal Data only on documented instructions from the Controller, including with regard to transfers of Personal Data to
+          a third country or an international organization, unless required to do so by applicable law to which the Processor is subject; in
+          such a case, the Processor shall inform the Controller of that legal requirement before processing, unless that law prohibits such
+          information on important grounds of public interest;
+        </li>
         <li>Ensure that persons authorized to process the Personal Data are subject to appropriate confidentiality obligations;</li>
         <li>Implement appropriate technical and organizational measures designed to ensure a level of security appropriate to the risk;</li>
         <li>Assist the Controller in responding to requests from Data Subjects, taking into account the nature of the processing;</li>
@@ -71,10 +76,14 @@ export default function Page() {
           assessments, taking into account the nature of processing and the information available to Processor;
         </li>
         <li>
-          Delete or return Personal Data to the Controller after the end of the provision of services, in accordance with Section 13 of this
+          Delete or return Personal Data to the Controller after the end of the provision of services, in accordance with Section 14 of this
           DPA;
         </li>
-        <li>Make available to the Controller information reasonably necessary to demonstrate compliance with this DPA.</li>
+        <li>Make available to the Controller information reasonably necessary to demonstrate compliance with this DPA;</li>
+        <li>
+          Immediately inform the Controller if, in the Processor's opinion, an instruction from the Controller infringes applicable Data
+          Protection Laws.
+        </li>
       </ol>
 
       <h2>4. RIGHTS AND OBLIGATIONS OF THE CONTROLLER</h2>
@@ -106,6 +115,9 @@ export default function Page() {
         <li>Secure development, deployment, and operational practices;</li>
         <li>Measures designed to support the ongoing confidentiality, integrity, availability, and resilience of processing systems.</li>
       </ol>
+      <p className="mb-2 pl-2">
+        A description of the technical and organizational measures implemented by the Processor is set out in Annex 2 to this DPA.
+      </p>
 
       <h2>6. CONFIDENTIALITY</h2>
       <p className="mb-2 pl-2">
@@ -142,7 +154,7 @@ export default function Page() {
 
       <h2>9. SECURITY INCIDENT NOTIFICATION</h2>
       <p className="mb-2 pl-2">
-        The Processor shall notify the Controller without undue delay, and in any event no later than 72 hours after becoming aware of a
+        The Processor shall notify the Controller without undue delay, and in any event no later than 48 hours after becoming aware of a
         confirmed Security Incident affecting Personal Data processed on behalf of the Controller.
       </p>
       <p className="mb-2 pl-2">
@@ -173,17 +185,119 @@ export default function Page() {
       <h2>11. DATA TRANSFERS</h2>
       <p className="mb-2 pl-2">
         The Processor shall not transfer Personal Data outside the European Economic Area, the United Kingdom, or Switzerland unless it has
-        implemented appropriate safeguards in accordance with applicable Data Protection Laws, including, where applicable, Standard
-        Contractual Clauses or another lawful transfer mechanism.
+        implemented appropriate safeguards in accordance with applicable Data Protection Laws.
+      </p>
+      <p className="mb-2 pl-2">
+        Where the Processor processes Personal Data protected by the GDPR and transfers that Personal Data to a country that has not been
+        the subject of an adequacy decision, such transfers are governed by the standard contractual clauses adopted by the European
+        Commission in Implementing Decision (EU) 2021/914 (the "EU SCCs"), Module Two (Controller to Processor), which are incorporated into
+        this DPA by reference. For the purposes of the EU SCCs:
+      </p>
+      <ol className="list-decimal pl-6">
+        <li>Clause 7 (the docking clause) does not apply;</li>
+        <li>
+          In Clause 9(a), Option 2 (general written authorization) applies, and the minimum period for prior notice of Sub-processor changes
+          is 30 days, as described in Section 7 of this DPA;
+        </li>
+        <li>In Clause 11(a), the optional independent dispute resolution language does not apply;</li>
+        <li>In Clause 17, Option 1 applies and the EU SCCs are governed by the law of Ireland;</li>
+        <li>In Clause 18(b), disputes shall be resolved before the courts of Ireland;</li>
+        <li>
+          Annex I.A (List of Parties) is completed with the Controller as data exporter and Jetstream Solutions, LLC as data importer, using
+          the contact details set out in the Agreement and in Section 16 of this DPA;
+        </li>
+        <li>
+          Annex I.B (Description of Transfer) is set out in Annex 1 to this DPA, and the frequency of the transfer is continuous for the
+          duration of the Agreement;
+        </li>
+        <li>Annex I.C (Competent Supervisory Authority) is determined in accordance with Clause 13(a) of the EU SCCs;</li>
+        <li>Annex II (Technical and Organisational Measures) is set out in Annex 2 to this DPA; and</li>
+        <li>
+          Annex III (List of Sub-processors) is the list of Sub-processors published at{' '}
+          <Link href={ROUTES.SUB_PROCESSORS} className="underline">
+            {ROUTES.SUB_PROCESSORS}
+          </Link>
+          , as maintained from time to time in accordance with Section 7 of this DPA.
+        </li>
+      </ol>
+      <p className="mb-2 pl-2">
+        Where the Processor processes Personal Data protected by the UK GDPR, the EU SCCs apply as varied by the International Data Transfer
+        Addendum to the EU Commission Standard Contractual Clauses issued by the UK Information Commissioner under section 119A(1) of the
+        Data Protection Act 2018, version B1.0 (the "UK Addendum"), which is incorporated into this DPA by reference. Table 1 of the UK
+        Addendum is completed with the parties' details described above; Tables 2 and 3 are completed by reference to the EU SCCs and their
+        Annexes as described above; and in Table 4, neither party may end the UK Addendum as set out in Section 19 of the UK Addendum.
+      </p>
+      <p className="mb-2 pl-2">
+        Where the Processor processes Personal Data protected by the Swiss Federal Act on Data Protection ("FADP"), the EU SCCs apply with
+        the following adaptations: references to the GDPR are understood as references to the FADP; the competent supervisory authority is
+        the Swiss Federal Data Protection and Information Commissioner; and the term "member state" shall not be interpreted so as to
+        exclude Data Subjects in Switzerland from exercising their rights in their place of habitual residence.
+      </p>
+      <p className="mb-2 pl-2">
+        In the event of any conflict between the EU SCCs (including as varied by the UK Addendum, where applicable) and the other provisions
+        of this DPA, the EU SCCs prevail.
       </p>
 
-      <h2>12. TERM AND TERMINATION</h2>
+      <h2>12. CALIFORNIA CONSUMER PRIVACY ACT</h2>
+      <p className="mb-2 pl-2">
+        This Section 12 applies to the extent the Processor processes Personal Information on behalf of the Controller and the Controller is
+        a "business" as defined by the CCPA. Terms used in this Section 12 that are defined in the CCPA - including "business," "business
+        purpose," "commercial purpose," "consumer," "personal information," "sell," "share," and "service provider" - have the meanings
+        given to them in the CCPA.
+      </p>
+      <p className="mb-2 pl-2">
+        The parties acknowledge and agree that the Controller is a business and the Processor is a service provider. Personal Information is
+        made available by the Controller to the Processor solely for the limited and specified business purposes described in Section 2 of
+        this DPA and in Annex 1.
+      </p>
+      <p className="mb-2 pl-2">The Processor shall:</p>
+      <ol className="list-decimal pl-6">
+        <li>Not sell or share Personal Information;</li>
+        <li>
+          Not retain, use, or disclose Personal Information for any purpose other than the business purposes specified in this DPA and the
+          Agreement, including for a commercial purpose other than those business purposes, except as otherwise permitted by the CCPA;
+        </li>
+        <li>
+          Not retain, use, or disclose Personal Information outside the direct business relationship between the Processor and the
+          Controller;
+        </li>
+        <li>
+          Not combine Personal Information received from or on behalf of the Controller with Personal Information received from or on behalf
+          of any third party, or collected from the Processor's own interaction with a consumer, except as permitted by the CCPA;
+        </li>
+        <li>
+          Comply with the applicable obligations of the CCPA and provide the same level of privacy protection to Personal Information as is
+          required of the Controller by the CCPA;
+        </li>
+        <li>
+          Notify the Controller promptly, and in any event without undue delay, if the Processor determines that it can no longer meet its
+          obligations under the CCPA;
+        </li>
+        <li>
+          Impose on any Sub-processor engaged to process Personal Information, by written contract, the same restrictions and obligations
+          set out in this Section 12; and
+        </li>
+        <li>
+          Assist the Controller in responding to consumer requests to know, delete, correct, opt out of the sale or sharing of Personal
+          Information, and limit the use of sensitive personal information, taking into account the nature of the processing and the
+          information available to the Processor.
+        </li>
+      </ol>
+      <p className="mb-2 pl-2">
+        The Processor certifies that it understands the restrictions set out in this Section 12 and will comply with them.
+      </p>
+      <p className="mb-2 pl-2">
+        The Controller may, upon reasonable written notice, take reasonable and appropriate steps to stop and remediate unauthorized use of
+        Personal Information by the Processor, including through the information and audit rights set out in Section 10 of this DPA.
+      </p>
+
+      <h2>13. TERM AND TERMINATION</h2>
       <p className="mb-2 pl-2">
         This DPA shall remain in effect for as long as the Processor processes Personal Data on behalf of the Controller under the
         Agreement.
       </p>
 
-      <h2>13. RETURN OR DELETION OF DATA</h2>
+      <h2>14. RETURN OR DELETION OF DATA</h2>
       <p className="mb-2 pl-2">
         Upon termination of the services, the Processor shall, at the choice of the Controller, delete or return Personal Data to the
         Controller and delete existing copies unless applicable law requires retention of the Personal Data.
@@ -198,7 +312,7 @@ export default function Page() {
         Jetstream's applicable retention and deletion practices.
       </p>
 
-      <h2>14. MISCELLANEOUS PROVISIONS</h2>
+      <h2>15. MISCELLANEOUS PROVISIONS</h2>
       <p className="mb-2 pl-2">
         In case of conflict between this DPA and any other agreement between the parties, the provisions of this DPA shall prevail solely
         with respect to the parties' data protection obligations.
@@ -208,11 +322,15 @@ export default function Page() {
         the Agreement.
       </p>
       <p className="mb-2 pl-2">
+        This DPA is governed by the governing law and dispute resolution provisions set out in the Agreement, except that the EU SCCs and
+        the UK Addendum are governed by the law and subject to the forum specified in Section 11.
+      </p>
+      <p className="mb-2 pl-2">
         If any provision of this DPA is found by a court of competent jurisdiction to be invalid or unenforceable, the invalidity of such
         provision shall not affect the other provisions of this DPA, which shall remain in full force and effect.
       </p>
 
-      <h2>15. CONTACT INFORMATION</h2>
+      <h2>16. CONTACT INFORMATION</h2>
       <p className="mb-2 pl-2">
         For questions regarding this DPA, contact us at{' '}
         <a className="underline" href={`mailto:${email}?subject=Question about DPA`} target="_blank" rel="noreferrer">
@@ -242,6 +360,195 @@ export default function Page() {
         <strong>Duration of Processing:</strong> For the term of the Agreement and for any additional period required to complete the return
         or deletion process, comply with applicable law, or maintain limited retained data as described in this DPA.
       </p>
+
+      <h2>ANNEX 2 - TECHNICAL AND ORGANIZATIONAL MEASURES</h2>
+      <p className="mb-2 pl-2">
+        The following describes the technical and organizational measures implemented by the Processor. The Processor may update these
+        measures from time to time, provided that such updates do not materially decrease the overall level of protection afforded to
+        Personal Data.
+      </p>
+
+      <h3>Encryption and Key Management</h3>
+      <ul className="mb-2 list-disc pl-6">
+        <li>
+          Data in transit is encrypted using TLS 1.2 or higher (TLS 1.3 preferred). HTTPS is enforced on all public-facing endpoints;
+          plaintext HTTP is not served.
+        </li>
+        <li>
+          Sensitive data at rest - including Salesforce connection credentials, the production database, and backups - is encrypted using
+          AES-256 or equivalent, as provided by the infrastructure platform.
+        </li>
+        <li>
+          Industry-standard cryptographic libraries provided by the runtime and infrastructure platforms are used. No custom cryptographic
+          implementations are used.
+        </li>
+        <li>
+          Application-level secrets are stored in an encrypted environment-variable vault; administrative access to the vault requires
+          authenticated access with multi-factor authentication.
+        </li>
+        <li>Secrets are never committed to source control, stored in plaintext files, or written to logs.</li>
+        <li>
+          Keys are rotated immediately upon known or suspected compromise, or upon the departure of personnel with knowledge of key values.
+        </li>
+      </ul>
+
+      <h3>Access Control and Authentication</h3>
+      <ul className="mb-2 list-disc pl-6">
+        <li>Unique user IDs are required for all authentication to applications, operating systems, databases, and network devices.</li>
+        <li>Role-based access control is applied following the principle of least privilege.</li>
+        <li>
+          Access is provisioned based on documented business need, reviewed at each change in role, and revoked upon termination (target:
+          within one business day).
+        </li>
+        <li>
+          Multi-factor authentication is required for all administrative and production system access. WebAuthn hardware or embedded tokens
+          are preferred; authenticator applications are accepted where hardware is not supported.
+        </li>
+        <li>
+          Single Sign-On is used wherever the platform supports it. Where SSO is not available, password requirements follow NIST SP 800-63B
+          guidance, credentials are unique per account, and credentials are stored in an approved password manager.
+        </li>
+        <li>Privileged access is restricted, monitored, and reviewed at least quarterly.</li>
+        <li>
+          Quarterly independent external access reviews cover administrative accounts, privileged access, multi-factor authentication
+          status, and API keys and service accounts. Dated written sign-offs are retained as audit evidence.
+        </li>
+        <li>Authentication credentials can be revoked immediately upon suspected compromise, role change, or departure.</li>
+        <li>Access requests and approvals are recorded with a minimum retention of one year.</li>
+      </ul>
+
+      <h3>Endpoint and Device Security</h3>
+      <ul className="mb-2 list-disc pl-6">
+        <li>Full disk encryption is required on all devices with access to production systems.</li>
+        <li>Automatic screen lock is enforced after no more than five minutes of inactivity.</li>
+        <li>Automatic operating system and security updates are enabled.</li>
+        <li>Remote wipe capability is enabled. Jailbroken or rooted devices are prohibited.</li>
+        <li>Lost or stolen devices must be reported immediately and trigger incident response.</li>
+      </ul>
+
+      <h3>Network and Infrastructure Security</h3>
+      <ul className="mb-2 list-disc pl-6">
+        <li>DDoS protection and a Web Application Firewall are applied at the network edge.</li>
+        <li>Production, staging, and development environments are logically separated.</li>
+        <li>Database access is restricted to authorized IP addresses and authenticated via platform-managed network isolation.</li>
+        <li>Administrative access to infrastructure requires multi-factor authentication and is logged.</li>
+        <li>No inbound network access from the public internet is permitted to developer workstations.</li>
+        <li>
+          Production infrastructure is provided by cloud providers maintaining SOC 2 Type II certifications. Network device hardening,
+          patching, access control, and baseline configuration standards are inherited from those providers and validated through annual
+          review of their attestation reports.
+        </li>
+      </ul>
+
+      <h3>Logging and Monitoring</h3>
+      <ul className="mb-2 list-disc pl-6">
+        <li>Centralized log aggregation and analysis is performed across production infrastructure.</li>
+        <li>Application, system, authentication, and error logs are collected from production systems.</li>
+        <li>
+          Authentication and access audit events are retained for at least 365 days; application and system logs for 365 days; error and
+          exception metadata for 30 days; email logs for 180 days.
+        </li>
+        <li>System clocks are synchronized via platform-managed NTP to ensure accurate correlation of security events.</li>
+      </ul>
+
+      <h3>Secure Development and Change Management</h3>
+      <ul className="mb-2 list-disc pl-6">
+        <li>
+          All code changes undergo static analysis, automated dependency scanning, and supply chain monitoring, and are tested in continuous
+          integration before reaching production.
+        </li>
+        <li>Changes are tracked through version control with an auditable history.</li>
+        <li>
+          Critical vulnerabilities are expedited for remediation (target: within 48 hours of a fix being available); all other security
+          patches are remediated within 90 days of availability.
+        </li>
+      </ul>
+
+      <h3>Personnel Security</h3>
+      <ul className="mb-2 list-disc pl-6">
+        <li>Background and reference checks are performed prior to or within 30 days of hire, where legally permitted.</li>
+        <li>
+          Security awareness training is completed within seven days of start date or before system access is granted, whichever is earlier,
+          with annual refreshers thereafter.
+        </li>
+        <li>
+          All personnel acknowledge the Code of Conduct, Acceptable Use Policy, and confidentiality obligations prior to receiving access,
+          and re-acknowledge them annually.
+        </li>
+        <li>
+          On departure, access to production systems and SaaS applications is revoked on or before the departure date (target: within one
+          business day), devices are returned and securely wiped, and keys or secrets known to the departing individual are reviewed for
+          rotation.
+        </li>
+      </ul>
+
+      <h3>Sub-processor Management</h3>
+      <ul className="mb-2 list-disc pl-6">
+        <li>
+          Sub-processors and critical vendors are tracked in a vendor inventory with due diligence evidence, executed data protection
+          agreements, and annual review records.
+        </li>
+        <li>A security assessment is performed before engagement and at least annually thereafter for critical vendors.</li>
+        <li>
+          The current Sub-processor list is published at{' '}
+          <Link href={ROUTES.SUB_PROCESSORS} className="underline">
+            {ROUTES.SUB_PROCESSORS}
+          </Link>
+          .
+        </li>
+      </ul>
+
+      <h3>Business Continuity and Backup</h3>
+      <ul className="mb-2 list-disc pl-6">
+        <li>
+          A documented Business Continuity and Disaster Recovery plan defines recovery objectives, backup procedures, restoration
+          procedures, roles and responsibilities, and testing cadence.
+        </li>
+        <li>
+          Production database backups use continuous write-ahead-log streaming, enabling point-in-time recovery within a rolling seven-day
+          window.
+        </li>
+        <li>
+          A scheduled daily job exports a snapshot of the production database to a geographically separate location as an independent
+          off-platform copy, retained for seven days.
+        </li>
+        <li>Backup data is encrypted at rest under the infrastructure platform key management.</li>
+        <li>
+          Quarterly backup verification confirms point-in-time recovery currency, retention window, export size consistency, and
+          off-platform replication. A full restore capability test is conducted at least annually.
+        </li>
+        <li>Customer Salesforce record data is not stored and is therefore not included in backups.</li>
+      </ul>
+
+      <h3>Physical Security</h3>
+      <ul className="mb-2 list-disc pl-6">
+        <li>
+          Jetstream operates as a fully cloud-hosted, remote-first organization with no company-owned or leased office space, server room,
+          or data center.
+        </li>
+        <li>
+          Physical security of production infrastructure - including facility access controls, environmental protections, and surveillance -
+          is inherited from cloud providers maintaining SOC 2 Type II certifications and validated through annual review of their
+          attestation reports.
+        </li>
+        <li>
+          Devices are never left unattended in public spaces, screens are locked when unattended, and no customer data is stored on printed
+          media.
+        </li>
+        <li>
+          End-user devices are securely wiped using the manufacturer secure erase function before disposal, recycling, or repurposing.
+        </li>
+      </ul>
+
+      <h3>Governance and Compliance</h3>
+      <ul className="mb-2 list-disc pl-6">
+        <li>The security program is aligned with the SOC 2 Trust Services Criteria.</li>
+        <li>Security policies are documented, reviewed, and updated at least annually.</li>
+        <li>
+          A formal risk management process identifies, analyzes, prioritizes, treats, and monitors information security and operational
+          risks.
+        </li>
+      </ul>
     </div>
   );
 }
