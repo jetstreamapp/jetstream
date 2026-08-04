@@ -143,6 +143,8 @@ export default function Page() {
       <h2>SECTION 12 - PERSONAL INFORMATION</h2>
       <p className="mb-2 pl-2">
         Your submission of personal information through the Service is governed by our <Link href={ROUTES.PRIVACY}>Privacy Policy</Link>.
+        Where we process personal data on your behalf in connection with your use of the Service, our{' '}
+        <Link href={ROUTES.DPA}>Data Processing Agreement</Link> applies to that processing and forms part of these Terms.
       </p>
       <h2>SECTION 13 - ERRORS, INACCURACIES AND OMISSIONS</h2>
       <p className="mb-2 pl-2">

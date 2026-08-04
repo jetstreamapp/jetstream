@@ -95,8 +95,10 @@ export class AuthenticationPage {
     this.mfaTotpMenuButton = page.getByTestId('mfa-totp-menu-button');
     this.mfaEmailMenuButton = page.getByTestId('mfa-email-menu-button');
 
-    this.tosCheckbox = page.getByLabel('I agree to the Terms of Service and Privacy Policy');
-    this.acceptTermsCheckbox = page.getByLabel('I have read and agree to the Terms of Service and Privacy Policy');
+    this.tosCheckbox = page.getByLabel('I agree to the Terms of Service, Privacy Policy, and Data Processing Agreement');
+    this.acceptTermsCheckbox = page.getByLabel(
+      'I have read and agree to the Terms of Service, Privacy Policy, and Data Processing Agreement',
+    );
     this.acceptTermsButton = page.getByRole('button', { name: 'Accept and Continue' });
   }
 

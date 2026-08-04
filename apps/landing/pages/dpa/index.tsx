@@ -204,7 +204,7 @@ export default function Page() {
         <li>In Clause 18(b), disputes shall be resolved before the courts of Ireland;</li>
         <li>
           Annex I.A (List of Parties) is completed with the Controller as data exporter and Jetstream Solutions, LLC as data importer, using
-          the contact details set out in the Agreement and in Section 16 of this DPA;
+          the contact details set out in the Agreement and in Section 17 of this DPA;
         </li>
         <li>
           Annex I.B (Description of Transfer) is set out in Annex 1 to this DPA, and the frequency of the transfer is continuous for the
@@ -312,7 +312,33 @@ export default function Page() {
         Jetstream's applicable retention and deletion practices.
       </p>
 
-      <h2>15. MISCELLANEOUS PROVISIONS</h2>
+      <h2>15. CHANGES TO THIS DPA</h2>
+      <p className="mb-2 pl-2">
+        The Processor may update this DPA from time to time to reflect changes in the services, changes in applicable Data Protection Laws,
+        or improvements to the Processor's privacy and security practices. The current version of this DPA is published at{' '}
+        <Link href={ROUTES.DPA} className="underline">
+          {ROUTES.DPA}
+        </Link>
+        , the date of the most recent update appears at the top of this page, and prior versions are summarized in the Version History
+        below.
+      </p>
+      <p className="mb-2 pl-2">
+        Changes that add obligations on the Processor, clarify existing practices, correct errors, or are required to comply with applicable
+        law take effect upon posting. Where a change would materially and adversely affect the Controller's rights under this DPA, the
+        Processor will provide at least 30 days' advance notice by posting the updated DPA and, where the Controller has provided contact
+        details for privacy or legal notices, by email to those details. Changes to the list of Sub-processors are governed by Section 7 of
+        this DPA rather than by this Section 15.
+      </p>
+      <p className="mb-2 pl-2">
+        No update to this published DPA modifies any copy of this DPA that the parties have separately executed or countersigned. Such a
+        copy may be amended only by a written amendment signed by both parties.
+      </p>
+      <p className="mb-2 pl-2">
+        No update to this DPA may conflict with the EU SCCs or the UK Addendum incorporated under Section 11, and in the event of any
+        conflict, those clauses prevail.
+      </p>
+
+      <h2>16. MISCELLANEOUS PROVISIONS</h2>
       <p className="mb-2 pl-2">
         In case of conflict between this DPA and any other agreement between the parties, the provisions of this DPA shall prevail solely
         with respect to the parties' data protection obligations.
@@ -330,7 +356,7 @@ export default function Page() {
         provision shall not affect the other provisions of this DPA, which shall remain in full force and effect.
       </p>
 
-      <h2>16. CONTACT INFORMATION</h2>
+      <h2>17. CONTACT INFORMATION</h2>
       <p className="mb-2 pl-2">
         For questions regarding this DPA, contact us at{' '}
         <a className="underline" href={`mailto:${email}?subject=Question about DPA`} target="_blank" rel="noreferrer">
@@ -547,6 +573,28 @@ export default function Page() {
         <li>
           A formal risk management process identifies, analyzes, prioritizes, treats, and monitors information security and operational
           risks.
+        </li>
+      </ul>
+
+      <h2>VERSION HISTORY</h2>
+      <p className="mb-2 pl-2">
+        The following summarizes material revisions to this DPA. Copies separately executed or countersigned by the parties remain governed
+        by the version in effect at signing, as described in Section 15.
+      </p>
+      <ul className="mb-2 list-disc pl-6">
+        <li>
+          <strong>August 4, 2026</strong> - Incorporated the EU Standard Contractual Clauses, the UK Addendum, and Swiss FADP adaptations
+          (Section 11); added CCPA service provider restrictions (Section 12); shortened Security Incident notification from 72 hours to 48
+          hours (Section 9); added a Changes to this DPA section (Section 15); added Annex 2 (Technical and Organizational Measures);
+          expanded Processor obligations, audit rights, and data retention terms.
+        </li>
+        <li>
+          <strong>March 18, 2026</strong> - Clarified the relationship between this DPA and the Agreement; added the UK GDPR to the
+          definition of Data Protection Laws; added a definition of Security Incident; expanded Processor obligations and audit rights;
+          added Annex 1 (Details of Processing); extended Security Incident notification from 48 hours to 72 hours (Section 9).
+        </li>
+        <li>
+          <strong>April 5, 2025</strong> - Initial publication.
         </li>
       </ul>
     </div>

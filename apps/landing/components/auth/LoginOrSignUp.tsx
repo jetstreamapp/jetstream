@@ -59,7 +59,7 @@ const RegisterSchema = LoginSchema.omit({ action: true, password: true }).extend
   confirmPassword: PasswordSchema,
   tosVersion: z.string(),
   tosAccepted: z.boolean().refine((val) => val === true, {
-    message: 'You must accept the Terms of Service and Privacy Policy to continue',
+    message: 'You must accept the Terms of Service, Privacy Policy, and Data Processing Agreement to continue',
   }),
 });
 
@@ -337,10 +337,14 @@ export function LoginOrSignUp({ action, providers, csrfToken, currentTosVersion 
               By signing in with Google or Salesforce, you agree to our{' '}
               <a href={ROUTES.TERMS_OF_SERVICE} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-500 underline">
                 Terms of Service
-              </a>{' '}
-              and{' '}
+              </a>
+              ,{' '}
               <a href={ROUTES.PRIVACY} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-500 underline">
                 Privacy Policy
+              </a>
+              , and{' '}
+              <a href={ROUTES.DPA} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-500 underline">
+                Data Processing Agreement
               </a>
               .
             </p>
@@ -506,10 +510,14 @@ export function LoginOrSignUp({ action, providers, csrfToken, currentTosVersion 
                       className="text-blue-600 hover:text-blue-500 underline"
                     >
                       Terms of Service
-                    </a>{' '}
-                    and{' '}
+                    </a>
+                    ,{' '}
                     <a href={ROUTES.PRIVACY} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-500 underline">
                       Privacy Policy
+                    </a>
+                    , and{' '}
+                    <a href={ROUTES.DPA} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-500 underline">
+                      Data Processing Agreement
                     </a>
                   </Checkbox>
                   {(errors as FieldErrors<RegisterForm>)?.tosAccepted && (
