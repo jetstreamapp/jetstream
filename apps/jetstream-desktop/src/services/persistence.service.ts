@@ -13,27 +13,38 @@ import {
   UserProfileUiDesktop,
 } from '@jetstream/desktop/types';
 import { DEFAULT_FEATURE_FLAGS, SalesforceOrgUi, UserProfileUi } from '@jetstream/types';
-import { createCipheriv, createDecipheriv, randomBytes, randomUUID } from 'crypto';
+import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID } from 'crypto';
 import { fromUnixTime } from 'date-fns';
 import { app, safeStorage } from 'electron';
 import logger from 'electron-log';
 import { chmodSync, existsSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'fs';
 import { jwtDecode } from 'jwt-decode';
-import { join } from 'path';
+import { basename, join } from 'path';
 import writeFileAtomic from 'write-file-atomic';
 
 const userData = app.getPath('userData');
 const APP_DATA_FILE = join(userData, 'app-data.json');
-const SFDC_ORGS_FILE = join(userData, 'orgs.json');
 const USER_PREFERENCES_FILE = join(userData, 'preferences.json');
+
+/**
+ * Pre-user-scoping org file, shared by every account that signed in on this machine.
+ *
+ * Only ever read, never written to. Read on any cold-cache read where the signed-in user has no
+ * scoped file yet — so a user who does not own it (or whose migration fails) retries on every
+ * subsequent read, not just once. It is retired once the scoped file exists, which stands in for a
+ * contents check because the migrating write is atomic: it either lands whole or leaves nothing to
+ * find. Retirement renames rather than deletes, so the non-atomic fallback write failing halfway
+ * still leaves the data recoverable. See `adoptLegacyOrgsFile` and `retireLegacyOrgsFile`.
+ */
+const LEGACY_SFDC_ORGS_FILE = join(userData, 'orgs.json');
 
 /** Magic bytes identifying the portable AES-256-GCM encryption format */
 const JSEK_MAGIC = Buffer.from('JSEK');
 
 /**
  * Restrictive file mode (owner read/write only) for the credential-bearing files:
- * app-data.json (holds the Jetstream session JWT) and orgs.json (holds the AES-GCM-encrypted
- * Salesforce tokens). Defends against other local accounts and loosely-permissioned
+ * app-data.json (holds the Jetstream session JWT) and the per-user org files (which hold the
+ * AES-GCM-encrypted Salesforce tokens). Defends against other local accounts and loosely-permissioned
  * roaming/VDI profile shares reading these files. POSIX only — Node largely ignores mode bits
  * on Windows, where NTFS ACLs govern access. Applied on every atomic write, so pre-existing
  * world-readable files are tightened on the next write.
@@ -41,65 +52,91 @@ const JSEK_MAGIC = Buffer.from('JSEK');
 const SECURE_FILE_MODE = 0o600;
 
 let APP_DATA: AppData;
-let SALESFORCE_ORGS: SalesforceOrgServer[];
-let JETSTREAM_ORGS: JetstreamOrganizationServer[];
+let SALESFORCE_ORGS: SalesforceOrgServer[] | undefined;
+let JETSTREAM_ORGS: JetstreamOrganizationServer[] | undefined;
 let USER_PREFERENCES: DesktopUserPreferences;
 
-/** Per-user portable encryption key (in memory only, never persisted to disk) */
-let ORG_ENCRYPTION_KEY: Buffer | null = null;
+/**
+ * Org storage bound to the signed-in user: the file their orgs live in, and the portable
+ * encryption key derived from their user id. Held in memory only, never persisted to disk.
+ */
+interface OrgSession {
+  path: string;
+  key: Buffer;
+}
+
+/** Null while logged out, which blocks every org read and write. */
+let ORG_SESSION: OrgSession | null = null;
 
 /**
- * Set to true once we confirm the on-disk file uses the JSEK portable format.
- * Prevents saveOrgs from downgrading the file back to safeStorage format if the
- * encryption key is temporarily unavailable (e.g. network failure during auth).
+ * Org data lives in a per-user file so that signing in with a second account on a shared
+ * machine cannot destroy the first account's orgs. The encryption key is derived from the
+ * user id server-side, so a single shared file makes "another user's data" indistinguishable
+ * from "corrupt data" — both surface as a decryption failure.
+ *
+ * The filename is a hash of the user id rather than the id itself: it keeps the account id out
+ * of directory listings, and unlike a sanitized id it cannot escape the userData directory or
+ * realistically collide with another user's file (which would reintroduce the shared-file bug).
  */
-let ORG_FILE_IS_PORTABLE = false;
+function getOrgsFilePathForUser(userId: string): string {
+  const scopeHash = createHash('sha256').update(userId).digest('hex').slice(0, 32);
+  return join(userData, `orgs-${scopeHash}.json`);
+}
 
 /**
- * Sets the portable org encryption key derived from the server.
- * Must be called after successful authentication before reading/writing org data.
+ * Binds org storage to the signed-in user: their scoped file plus the portable encryption key
+ * derived from their user id server-side. Must be called after successful authentication before
+ * reading/writing org data.
  */
-export function setOrgEncryptionKey(hexKey: string): void {
-  if (!/^[0-9a-f]{64}$/i.test(hexKey)) {
-    throw new Error(`Invalid org encryption key: expected 64 hex characters (32 bytes), got ${hexKey.length} characters`);
+export function bindOrgStorageToUser({ userId, encryptionKey }: { userId: string; encryptionKey: string }): void {
+  if (!userId) {
+    throw new Error('Cannot bind org storage: a userId is required to resolve the user-scoped org file');
   }
-  ORG_ENCRYPTION_KEY = Buffer.from(hexKey, 'hex');
-  // Once a portable key is loaded, all future writes must use the portable format.
-  ORG_FILE_IS_PORTABLE = true;
+  if (!/^[0-9a-f]{64}$/i.test(encryptionKey)) {
+    throw new Error(
+      `Cannot bind org storage: the encryption key must be 64 hex characters (32 bytes), got ${encryptionKey.length} characters`,
+    );
+  }
+  // Assigned as a single value so a validation failure can never leave one user's key paired
+  // with another user's file.
+  ORG_SESSION = { path: getOrgsFilePathForUser(userId), key: Buffer.from(encryptionKey, 'hex') };
   // Invalidate in-memory cache so the next readOrgs() re-decrypts from disk with the new key.
   // Without this, a previously-cached empty result (from before the key was available) would persist.
-  SALESFORCE_ORGS = undefined as unknown as SalesforceOrgServer[];
-  JETSTREAM_ORGS = undefined as unknown as JetstreamOrganizationServer[];
-  logger.info('Portable org encryption key set — in-memory org cache invalidated');
+  SALESFORCE_ORGS = undefined;
+  JETSTREAM_ORGS = undefined;
+  // The file transport persists info logs to disk, so the raw user id stays out of this message —
+  // on a shared machine the log would otherwise accumulate a list of every account that signed in.
+  // Support can still identify the file by hashing a candidate user id the same way.
+  logger.info(`Org storage bound to user (${basename(ORG_SESSION.path)}) — in-memory org cache invalidated`);
 }
 
-export function isOrgEncryptionKeyLoaded(): boolean {
-  return ORG_ENCRYPTION_KEY !== null;
+export function isOrgStorageBound(): boolean {
+  return ORG_SESSION !== null;
 }
 
 /**
- * Clears all in-memory org state and the encryption key.
+ * Clears all in-memory org state and unbinds org storage from the user.
  * Must be called on logout to prevent leaking one user's data into the next session,
  * which is especially important in VDI/AVD hot-desk environments.
  */
 export function clearOrgState(): void {
   logger.info('Clearing org state (logout)');
-  ORG_ENCRYPTION_KEY = null;
-  // ORG_FILE_IS_PORTABLE intentionally NOT reset — it reflects on-disk state,
-  // preventing saveOrgs from downgrading the file to safeStorage after logout.
+  // Unbinding is what stops a post-logout write from landing in the previous user's file —
+  // readOrgs and saveOrgs both refuse to touch disk without a session.
+  ORG_SESSION = null;
   // Set to undefined (not []) so getSalesforceOrgs/getOrgGroups will re-read from disk
   // on next access, preventing a stale empty array from being written over the on-disk data.
-  SALESFORCE_ORGS = undefined as unknown as SalesforceOrgServer[];
-  JETSTREAM_ORGS = undefined as unknown as JetstreamOrganizationServer[];
+  SALESFORCE_ORGS = undefined;
+  JETSTREAM_ORGS = undefined;
 }
 
 /**
  * Encrypts org data using AES-256-GCM with the portable key.
  * Format: [4-byte magic 'JSEK'][12-byte IV][16-byte authTag][ciphertext]
  */
-function encryptOrgsData(data: string): Buffer {
+function encryptOrgsData(data: string, key: Buffer): Buffer {
   const iv = randomBytes(12);
-  const cipher = createCipheriv('aes-256-gcm', ORG_ENCRYPTION_KEY!, iv);
+  const cipher = createCipheriv('aes-256-gcm', key, iv);
   const encrypted = Buffer.concat([cipher.update(data, 'utf8'), cipher.final()]);
   const authTag = cipher.getAuthTag();
   return Buffer.concat([JSEK_MAGIC, iv, authTag, encrypted]);
@@ -108,11 +145,11 @@ function encryptOrgsData(data: string): Buffer {
 /**
  * Decrypts org data encrypted with the portable AES-256-GCM format.
  */
-function decryptOrgsData(data: Buffer): string {
+function decryptOrgsData(data: Buffer, key: Buffer): string {
   const iv = data.subarray(4, 16);
   const authTag = data.subarray(16, 32);
   const encrypted = data.subarray(32);
-  const decipher = createDecipheriv('aes-256-gcm', ORG_ENCRYPTION_KEY!, iv);
+  const decipher = createDecipheriv('aes-256-gcm', key, iv);
   decipher.setAuthTag(authTag);
   return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
 }
@@ -126,9 +163,10 @@ const PORTABLE_TOKEN_PREFIX = 'jsek:';
  * Falls back to safeStorage if the portable key is not available.
  */
 export function encryptTokenPortable(plaintext: string): string {
-  if (ORG_ENCRYPTION_KEY) {
+  const session = ORG_SESSION;
+  if (session) {
     const iv = randomBytes(12);
-    const cipher = createCipheriv('aes-256-gcm', ORG_ENCRYPTION_KEY, iv);
+    const cipher = createCipheriv('aes-256-gcm', session.key, iv);
     const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
     const authTag = cipher.getAuthTag();
     return PORTABLE_TOKEN_PREFIX + Buffer.concat([iv, authTag, encrypted]).toString('base64');
@@ -142,14 +180,15 @@ export function encryptTokenPortable(plaintext: string): string {
  */
 export function decryptTokenPortable(encoded: string): string {
   if (encoded.startsWith(PORTABLE_TOKEN_PREFIX)) {
-    if (!ORG_ENCRYPTION_KEY) {
+    const session = ORG_SESSION;
+    if (!session) {
       throw new Error('Portable encryption key not available to decrypt token');
     }
     const data = Buffer.from(encoded.slice(PORTABLE_TOKEN_PREFIX.length), 'base64');
     const iv = data.subarray(0, 12);
     const authTag = data.subarray(12, 28);
     const encrypted = data.subarray(28);
-    const decipher = createDecipheriv('aes-256-gcm', ORG_ENCRYPTION_KEY, iv);
+    const decipher = createDecipheriv('aes-256-gcm', session.key, iv);
     decipher.setAuthTag(authTag);
     return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
   }
@@ -377,86 +416,62 @@ function readOrgs(): OrgsPersistence {
     if (JETSTREAM_ORGS && SALESFORCE_ORGS) {
       return { jetstreamOrganizations: JETSTREAM_ORGS, salesforceOrgs: SALESFORCE_ORGS };
     }
-    if (!existsSync(SFDC_ORGS_FILE)) {
-      if (ORG_ENCRYPTION_KEY) {
-        // Create an empty portable-encrypted file so subsequent reads find it
-        const emptyData = JSON.stringify({ jetstreamOrganizations: [], salesforceOrgs: [] });
-        const encrypted = encryptOrgsData(emptyData);
-        try {
-          writeFileAtomic.sync(SFDC_ORGS_FILE, encrypted, { mode: SECURE_FILE_MODE });
-        } catch (error) {
-          logger.error('Error writing initial orgs file (atomic):', error);
-          writeFileSync(SFDC_ORGS_FILE, new Uint8Array(encrypted), { mode: SECURE_FILE_MODE });
-          // writeFileSync's mode is ignored for a pre-existing file, so chmod to guarantee 0600 (see writeFile).
-          chmodBestEffort(SFDC_ORGS_FILE);
-        }
-        ORG_FILE_IS_PORTABLE = true;
-      } else {
-        // No key yet (auth not complete) — return empty without creating a safeStorage file.
-        // A safeStorage file would be machine-specific and unreadable on other VDI sessions.
-        // The file will be created on the first saveOrgs() after the encryption key is available.
-        logger.info('Orgs file does not exist and encryption key is not yet available — returning empty');
-        return { jetstreamOrganizations: [], salesforceOrgs: [] };
-      }
+    const session = ORG_SESSION;
+    // No user to attribute a read to — cold start before auth completes, or after logout. Portable
+    // data cannot be decrypted without the key anyway, and the legacy safeStorage file technically
+    // could be (it is keyed to the machine, not the user) but reading it here would hand one
+    // account's orgs to whoever happened to launch the app, which is the shared-file bug this
+    // scoping exists to close. The caller retries once auth lands and binds a user.
+    if (!session) {
+      logger.info('Orgs requested before org storage is bound to a user — returning empty');
+      return { jetstreamOrganizations: [], salesforceOrgs: [] };
     }
 
-    const rawData = readFileSync(SFDC_ORGS_FILE);
-    let orgsJson: string;
+    if (!existsSync(session.path)) {
+      // First read for this user: adopt the pre-user-scoping orgs.json if it proves to be theirs,
+      // otherwise start empty. Nothing is written unless there is something to write, so a failed
+      // adoption is retried the next time the cache is cold (auth verify or restart) rather than
+      // being sealed off forever by an empty placeholder file.
+      const adopted = adoptLegacyOrgsFile(session);
+      JETSTREAM_ORGS = adopted?.jetstreamOrganizations ?? [];
+      SALESFORCE_ORGS = adopted?.salesforceOrgs ?? [];
+      if (adopted) {
+        try {
+          saveOrgs();
+          retireLegacyOrgsFile(session, adopted);
+        } catch (ex) {
+          // saveOrgs throws so mutations can surface a failed write, but a migration write is not a
+          // mutation — the adopted data is already in memory and the legacy file is still the source
+          // of truth, so the read succeeds and the next cold read retries. Skipping retirement on the
+          // way out is the point: a legacy file that was never copied must not be renamed away.
+          logger.error('Failed to persist migrated orgs — leaving the legacy file in place to retry on the next read', ex);
+        }
+      }
+      return { jetstreamOrganizations: JETSTREAM_ORGS, salesforceOrgs: SALESFORCE_ORGS };
+    }
 
-    if (rawData.subarray(0, 4).equals(JSEK_MAGIC)) {
-      // Portable AES-256-GCM format
-      if (!ORG_ENCRYPTION_KEY) {
-        // Key not yet available (e.g. app started but auth not complete) — return empty and let caller retry after auth
-        logger.warn('Org data is in portable format but encryption key is not yet set');
-        ORG_FILE_IS_PORTABLE = true;
-        return { jetstreamOrganizations: [], salesforceOrgs: [] };
-      }
+    const rawData = readFileSync(session.path);
+    let orgsJson: string;
+    try {
+      orgsJson = decryptOrgsData(rawData, session.key);
+    } catch (decryptError) {
+      // The file is scoped to this user and only ever written with this user's key, so a failure
+      // here means real corruption or a rotated server secret — never another account's data.
+      // Rename it to a timestamped backup for postmortem debugging, then start clean.
+      logger.warn('Unable to decrypt orgs file (corruption or rotated server secret). Backing up and starting fresh.', decryptError);
+      const corruptBackupPath = `${session.path}.corrupt-${Date.now()}`;
       try {
-        orgsJson = decryptOrgsData(rawData);
-        ORG_FILE_IS_PORTABLE = true;
-      } catch (decryptError) {
-        // Decryption failed — wrong key (e.g. server secret rotated) or file corruption.
-        // Rename the unreadable file to a timestamped backup for postmortem debugging,
-        // then the next write starts clean with the portable format.
-        logger.warn('Unable to decrypt portable orgs file (wrong key or corruption). Backing up and starting fresh.', decryptError);
-        ORG_FILE_IS_PORTABLE = true; // was portable on disk, prevent downgrade to safeStorage
-        const corruptBackupPath = `${SFDC_ORGS_FILE}.corrupt-${Date.now()}`;
+        renameSync(session.path, corruptBackupPath);
+        logger.info(`Backed up unreadable orgs file to ${corruptBackupPath}`);
+      } catch (renameError) {
+        logger.error('Failed to back up unreadable orgs file, attempting delete', renameError);
         try {
-          renameSync(SFDC_ORGS_FILE, corruptBackupPath);
-          logger.info(`Backed up unreadable portable orgs file to ${corruptBackupPath}`);
-        } catch (renameError) {
-          logger.error('Failed to back up unreadable portable orgs file, attempting delete', renameError);
-          try {
-            unlinkSync(SFDC_ORGS_FILE);
-          } catch (unlinkError) {
-            logger.error('Failed to delete unreadable portable orgs file', unlinkError);
-          }
+          unlinkSync(session.path);
+        } catch (unlinkError) {
+          logger.error('Failed to delete unreadable orgs file', unlinkError);
         }
-        return { jetstreamOrganizations: [], salesforceOrgs: [] };
       }
-    } else {
-      // Legacy safeStorage format — attempt to read and migrate
-      try {
-        orgsJson = safeStorage.decryptString(rawData);
-      } catch {
-        // safeStorage decryption failed, most likely because the file was encrypted on a different
-        // machine (common in AVD/VDI environments). Rename the unreadable file to a timestamped
-        // backup for postmortem debugging, then the next write starts clean with the portable format.
-        logger.warn('Unable to decrypt orgs file with safeStorage (likely a different machine). Backing up and starting fresh.');
-        const safeStorageBackupPath = `${SFDC_ORGS_FILE}.corrupt-${Date.now()}`;
-        try {
-          renameSync(SFDC_ORGS_FILE, safeStorageBackupPath);
-          logger.info(`Backed up unreadable safeStorage orgs file to ${safeStorageBackupPath}`);
-        } catch (renameError) {
-          logger.error('Failed to back up unreadable orgs file, attempting delete', renameError);
-          try {
-            unlinkSync(SFDC_ORGS_FILE);
-          } catch (unlinkError) {
-            logger.error('Failed to delete unreadable orgs file', unlinkError);
-          }
-        }
-        return { jetstreamOrganizations: [], salesforceOrgs: [] };
-      }
+      return { jetstreamOrganizations: [], salesforceOrgs: [] };
     }
 
     const { jetstreamOrganizations, salesforceOrgs } = OrgsPersistenceSchema.parse(JSON.parse(orgsJson));
@@ -464,60 +479,147 @@ function readOrgs(): OrgsPersistence {
     SALESFORCE_ORGS = salesforceOrgs;
     logger.info(`readOrgs: loaded ${salesforceOrgs.length} orgs and ${jetstreamOrganizations.length} groups from disk`);
 
-    // Migrate: if we just read a legacy safeStorage file and the portable key is available,
-    // re-encrypt per-org tokens portably and re-save the file in the new format.
-    if (!rawData.subarray(0, 4).equals(JSEK_MAGIC) && ORG_ENCRYPTION_KEY) {
-      logger.info('Migrating orgs file to portable encryption format');
-      SALESFORCE_ORGS = SALESFORCE_ORGS.map((org) => {
-        try {
-          // Decrypt the legacy safeStorage token and re-encrypt with the portable key
-          const tokenPlaintext = safeStorage.decryptString(Buffer.from(org.accessToken, 'base64'));
-          return { ...org, accessToken: encryptTokenPortable(tokenPlaintext) };
-        } catch {
-          logger.warn({ uniqueId: org.uniqueId }, 'Failed to migrate token for org — token will need re-auth');
-          return org;
-        }
-      });
-      saveOrgs();
-    }
-
-    return { jetstreamOrganizations: JETSTREAM_ORGS, salesforceOrgs: SALESFORCE_ORGS };
+    return { jetstreamOrganizations, salesforceOrgs };
   } catch (ex) {
     logger.error('Error reading orgs file', ex);
     return { jetstreamOrganizations: [], salesforceOrgs: [] };
   }
 }
 
-function saveOrgs() {
+/**
+ * Reads the pre-user-scoping `orgs.json` and returns its contents if it belongs to the signed-in
+ * user, otherwise null.
+ *
+ * That file was shared by every account that used the machine, so the only way to claim it is to
+ * decrypt it. If it does not decrypt with this user's key it belongs to a different account (or
+ * predates a server secret rotation) and is left completely untouched — the point of user scoping
+ * is that signing in never destroys data that might be someone else's.
+ *
+ * Nothing is cached or written here; the caller owns persisting the result, so any failure leaves
+ * the legacy file exactly as it was and the next read tries again.
+ */
+function adoptLegacyOrgsFile(session: OrgSession): OrgsPersistence | null {
+  if (!existsSync(LEGACY_SFDC_ORGS_FILE)) {
+    return null;
+  }
   try {
-    // Refuse to downgrade a portable-format file to safeStorage if the key is temporarily unavailable.
-    // This prevents silent data loss when, e.g., a token refresh triggers saveOrgs before the encryption
-    // key has been fetched (network failure on startup).
-    if (!ORG_ENCRYPTION_KEY && ORG_FILE_IS_PORTABLE) {
-      logger.error('saveOrgs: portable format required but encryption key is unavailable — skipping write to prevent data loss');
+    const rawData = readFileSync(LEGACY_SFDC_ORGS_FILE);
+    const isPortable = rawData.subarray(0, 4).equals(JSEK_MAGIC);
+    let orgsJson: string;
+    try {
+      // safeStorage predates per-user keys entirely and is machine- rather than user-scoped, so
+      // ownership can't be proven for those files. The first account to sign in claims it, which
+      // matches the single-shared-file behavior it was originally written under.
+      orgsJson = isPortable ? decryptOrgsData(rawData, session.key) : safeStorage.decryptString(rawData);
+    } catch (decryptError) {
+      // A portable file that will not decrypt was written with another account's key, so ownership is
+      // the only explanation. safeStorage is keyed to the OS credential store instead, so its failures
+      // are just as likely to be a profile that moved machines or a VDI session that rotated its DPAPI
+      // key. The file is left alone either way — the distinction only matters when reading these logs.
+      logger.info(
+        isPortable
+          ? 'Legacy orgs file did not decrypt for this user — it belongs to a different account, leaving it untouched'
+          : 'Legacy safeStorage orgs file did not decrypt — the OS credential store cannot read it (different machine or VDI session, or corruption), leaving it untouched',
+        decryptError,
+      );
+      // Contents are left alone, but a file that will not decrypt is never migrated and never
+      // written again, so this is the only chance to tighten whatever (potentially world-readable)
+      // mode bits predate SECURE_FILE_MODE. The owning account reads it just the same at 0600.
+      chmodBestEffort(LEGACY_SFDC_ORGS_FILE);
+      return null;
+    }
+
+    const { jetstreamOrganizations, salesforceOrgs } = OrgsPersistenceSchema.parse(JSON.parse(orgsJson));
+    return {
+      jetstreamOrganizations,
+      salesforceOrgs: isPortable ? salesforceOrgs : salesforceOrgs.map(reEncryptLegacyOrgToken),
+    };
+  } catch (ex) {
+    logger.error('Error reading legacy orgs file — leaving it in place to retry on the next read', ex);
+    return null;
+  }
+}
+
+/**
+ * Retires the legacy file once its contents are confirmed in the user's scoped file. Kept as a
+ * timestamped backup rather than deleted — a silent bug here costs the user every saved org.
+ */
+function retireLegacyOrgsFile(session: OrgSession, { jetstreamOrganizations, salesforceOrgs }: OrgsPersistence): void {
+  try {
+    if (!existsSync(session.path)) {
+      logger.error('Migration wrote no scoped orgs file — leaving the legacy file in place to retry on the next read');
+      // Nothing ever writes this file again, so it keeps whatever (potentially world-readable) mode
+      // bits predate SECURE_FILE_MODE unless it is tightened here.
+      chmodBestEffort(LEGACY_SFDC_ORGS_FILE);
       return;
     }
-    const orgCount = SALESFORCE_ORGS?.length ?? 0;
-    const groupCount = JETSTREAM_ORGS?.length ?? 0;
-    const data = { jetstreamOrganizations: JETSTREAM_ORGS, salesforceOrgs: SALESFORCE_ORGS };
-    if (ORG_ENCRYPTION_KEY) {
-      const encrypted = encryptOrgsData(JSON.stringify(data));
-      try {
-        writeFileAtomic.sync(SFDC_ORGS_FILE, encrypted, { mode: SECURE_FILE_MODE });
-      } catch (error) {
-        logger.error('Error writing orgs file (atomic):', error);
-        writeFileSync(SFDC_ORGS_FILE, new Uint8Array(encrypted), { mode: SECURE_FILE_MODE });
-        // writeFileSync's mode is ignored for a pre-existing file, so chmod to guarantee 0600 (see writeFile).
-        chmodBestEffort(SFDC_ORGS_FILE);
-      }
-      ORG_FILE_IS_PORTABLE = true;
-      logger.info(`saveOrgs: wrote ${orgCount} orgs and ${groupCount} groups (portable encryption)`);
-    } else {
-      writeFile(SFDC_ORGS_FILE, JSON.stringify(data), true);
-      logger.info(`saveOrgs: wrote ${orgCount} orgs and ${groupCount} groups (safeStorage fallback)`);
-    }
+    const migratedBackupPath = `${LEGACY_SFDC_ORGS_FILE}.migrated-${Date.now()}`;
+    renameSync(LEGACY_SFDC_ORGS_FILE, migratedBackupPath);
+    // A rename preserves the legacy file's mode bits, and this backup is never written again, so
+    // it would keep whatever (potentially world-readable) permissions predate SECURE_FILE_MODE.
+    chmodBestEffort(migratedBackupPath);
+    logger.info(
+      `Migrated ${salesforceOrgs.length} orgs and ${jetstreamOrganizations.length} groups to ${basename(
+        session.path,
+      )} — original preserved at ${migratedBackupPath}`,
+    );
+  } catch (ex) {
+    // The scoped file already holds the data, so the stale legacy file is simply ignored from here.
+    logger.error('Failed to retire the legacy orgs file after migration — leaving it on disk', ex);
+    // Same reason as the migrated backup above: a legacy file that survives retirement is never
+    // written again, so this is the only chance to stop it sitting there world-readable. Rename can
+    // fail on a directory this user cannot write while chmod on a file they own still succeeds.
+    chmodBestEffort(LEGACY_SFDC_ORGS_FILE);
+  }
+}
+
+/** Re-encrypts a legacy safeStorage org token with the portable key so it survives machine changes. */
+function reEncryptLegacyOrgToken(org: SalesforceOrgServer): SalesforceOrgServer {
+  try {
+    const tokenPlaintext = safeStorage.decryptString(Buffer.from(org.accessToken, 'base64'));
+    return { ...org, accessToken: encryptTokenPortable(tokenPlaintext) };
+  } catch {
+    logger.warn({ uniqueId: org.uniqueId }, 'Failed to migrate token for org — token will need re-auth');
+    return org;
+  }
+}
+
+/** Writes the encrypted org payload to the signed-in user's file, owner-readable only. */
+function writeOrgsFile({ path }: OrgSession, encrypted: Buffer) {
+  try {
+    writeFileAtomic.sync(path, encrypted, { mode: SECURE_FILE_MODE });
+  } catch (error) {
+    logger.error('Error writing orgs file (atomic):', error);
+    writeFileSync(path, new Uint8Array(encrypted), { mode: SECURE_FILE_MODE });
+    // writeFileSync's mode is ignored for a pre-existing file, so chmod to guarantee 0600 (see writeFile).
+    chmodBestEffort(path);
+  }
+}
+
+/**
+ * Throws when the org data cannot be persisted, whether because storage is not bound to a user or
+ * because the write itself failed. Every mutating API routes its write through here and surfaces a
+ * thrown error to the renderer, so a caller that gets no error can trust the change reached disk.
+ *
+ * Both failures are reachable while the app looks perfectly healthy: a cold start whose auth check
+ * hits a network error keeps the cached session without ever binding org storage, and a full or
+ * read-only disk fails the write. Swallowing either lets a mutation report success on nothing.
+ */
+function saveOrgs() {
+  const session = ORG_SESSION;
+  // Without a session there is no key to encrypt with, and the write would land in whichever
+  // user's file was last active.
+  if (!session) {
+    logger.error('saveOrgs: org storage is not bound to a user — refusing the write to prevent data loss');
+    throw new Error('Org storage is not bound to a signed-in user — sign in again before changing orgs');
+  }
+  try {
+    const data = { jetstreamOrganizations: JETSTREAM_ORGS ?? [], salesforceOrgs: SALESFORCE_ORGS ?? [] };
+    writeOrgsFile(session, encryptOrgsData(JSON.stringify(data), session.key));
+    logger.info(`saveOrgs: wrote ${data.salesforceOrgs.length} orgs and ${data.jetstreamOrganizations.length} groups`);
   } catch (ex) {
     logger.error('Error saving orgs file', ex);
+    throw ex;
   }
 }
 
