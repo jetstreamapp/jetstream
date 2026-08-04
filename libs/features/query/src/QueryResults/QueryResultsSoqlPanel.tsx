@@ -1,7 +1,7 @@
 import { sanitizePastedEditorText, useDebounce, useDisposables } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi, SoqlQueryFormatOptions } from '@jetstream/types';
 import { CheckboxToggle, Grid, Icon, Panel, Textarea, Tooltip } from '@jetstream/ui';
-import { fromQueryHistoryState, MonacoEditor, SoqlQueryFormatConfigPopover } from '@jetstream/ui-core';
+import { fromQueryHistoryState, MonacoEditor, SoqlQueryFormatConfigPopover, useSoqlCompletions } from '@jetstream/ui-core';
 import { formatQuery, parseQuery } from '@jetstreamapp/soql-parser-js';
 import { OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
@@ -84,6 +84,7 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
     isValid: true,
     sobjectName: sObject,
   });
+  const registerSoqlCompletions = useSoqlCompletions({ selectedOrg, isTooling: userTooling });
 
   const debouncedSoql = useDebounce(userSoql);
 
@@ -127,6 +128,7 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
     editorRef.current = currEditor;
 
     addDisposable(sanitizePastedEditorText(currEditor));
+    registerSoqlCompletions(currEditor, monaco);
 
     addDisposable(
       editorRef.current.addAction({
@@ -198,6 +200,11 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
             glyphMargin: false,
             folding: false,
             scrollBeyondLastLine: false,
+            // Suggestions come from org metadata - monaco's word-based fallback only echoes
+            // words already in the query, which reads as a broken autocomplete
+            wordBasedSuggestions: 'off',
+            // Picklist values are suggested inside quoted values, which monaco skips by default
+            quickSuggestions: { other: true, comments: false, strings: true },
           }}
           onMount={handleEditorMount}
           onChange={(value) => setUserSoql(value || '')}

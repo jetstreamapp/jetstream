@@ -9,11 +9,12 @@ import {
   SoqlQueryFormatConfigPopover,
   SoqlValidIndicator,
   useAmplitude,
+  useSoqlCompletions,
 } from '@jetstream/ui-core';
-import { soqlQueryFormatOptionsState } from '@jetstream/ui/app-state';
+import { selectedOrgState, soqlQueryFormatOptionsState } from '@jetstream/ui/app-state';
 import { formatQuery, isQueryValid } from '@jetstreamapp/soql-parser-js';
 import { OnMount } from '@monaco-editor/react';
-import { useAtom } from 'jotai';
+import { useAtom, useAtomValue } from 'jotai';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
@@ -36,6 +37,8 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
   const [queryIsValid, setQueryIsValid] = useState(false);
   const [userTooling, setUserTooling] = useState<boolean>(isTooling);
   const [soqlQueryFormatOptions, setSoqlQueryFormatOptions] = useAtom(soqlQueryFormatOptionsState);
+  const selectedOrg = useAtomValue(selectedOrgState);
+  const registerSoqlCompletions = useSoqlCompletions({ selectedOrg, isTooling: userTooling });
 
   useEffect(() => {
     isMounted.current = true;
@@ -102,6 +105,7 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
     currEditor.focus();
 
     addDisposable(sanitizePastedEditorText(currEditor));
+    registerSoqlCompletions(currEditor, monaco);
 
     const modelRange = currEditor.getModel()?.getFullModelRange();
     modelRange && currEditor.setSelection(modelRange);
@@ -193,6 +197,11 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
                   glyphMargin: false,
                   folding: false,
                   scrollBeyondLastLine: false,
+                  // Suggestions come from org metadata - monaco's word-based fallback only echoes
+                  // words already in the query, which reads as a broken autocomplete
+                  wordBasedSuggestions: 'off',
+                  // Picklist values are suggested inside quoted values, which monaco skips by default
+                  quickSuggestions: { other: true, comments: false, strings: true },
                 }}
                 onMount={handleEditorMount}
                 onChange={(value) => setSoql(value || '')}
