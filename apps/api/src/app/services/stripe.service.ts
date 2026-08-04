@@ -197,6 +197,8 @@ export function convertCustomerWithSubscriptionsToUserFacing(stripeCustomer: Str
           canceled_at,
           // current_period_end,
           // current_period_start,
+          discount,
+          discounts,
           ended_at,
           items,
           start_date,
@@ -214,6 +216,9 @@ export function convertCustomerWithSubscriptionsToUserFacing(stripeCustomer: Str
           endedAt: ended_at ? formatISO(fromUnixTime(ended_at)) : null,
           startDate: formatISO(fromUnixTime(start_date)),
           status: status.toUpperCase() as Uppercase<Stripe.Subscription.Status>,
+          // Existence check only — `discounts` entries are unexpanded ids, and a customer-level
+          // coupon discounts this subscription's invoices the same as a subscription-level one
+          hasDiscount: Boolean(stripeCustomer.discount || discount || discounts.length > 0),
           items: items.data.map(({ id, price, quantity }) => ({
             id,
             priceId: price.id,

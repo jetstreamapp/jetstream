@@ -1,4 +1,5 @@
 import { CheckIcon } from '@heroicons/react/20/solid';
+import { PRICING_COPY } from '@jetstream/shared/constants';
 import classNames from 'classnames';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -37,8 +38,11 @@ const tiers = [
     name: 'Professional',
     id: 'tier-professional',
     href: '#',
-    price: { monthly: { price: '$25', suffix: 'month' }, annually: { price: '$250', suffix: 'year' } },
-    description: 'Perfect for individual users',
+    price: {
+      monthly: { price: PRICING_COPY.PRO.monthly.pricePerMonth, suffix: '/month' },
+      annually: { price: PRICING_COPY.PRO.annual.pricePerMonth, suffix: '/month', secondaryLabel: 'billed annually' },
+    },
+    description: PRICING_COPY.PRO.description,
     features: [
       'Everything in Free plan',
       <Link href={ROUTES.DESKTOP} className="text-cyan-500 hover:underline">
@@ -58,17 +62,17 @@ const tiers = [
     name: 'Team',
     id: 'tier-team',
     href: '#',
-    price: { monthly: { price: '$125', suffix: 'month' }, annually: { price: '$1,100', suffix: 'year' } },
-    description: { monthly: `Includes 5 users ($25/user/month)`, annually: `Includes 5 users ($22/user/month)` },
-    features: [
-      'Everything in Professional',
-      'Manage team members',
-      'Up to 20 team members',
-      'SSO via OIDC and SAML',
-      'View & Manage team member session activity',
-      'Role-based access control',
-    ],
-    comingSoonFeatures: ['SOC 2 compliance (in-progress)', 'Share orgs between team members', 'Audit logs'],
+    price: {
+      monthly: { price: PRICING_COPY.TEAM.monthly.pricePerUserMonth, suffix: '/user/month' },
+      annually: { price: PRICING_COPY.TEAM.annual.pricePerUserMonth, suffix: '/user/month', secondaryLabel: 'billed annually' },
+    },
+    description: PRICING_COPY.TEAM.description,
+    pricingTiers: {
+      monthly: PRICING_COPY.TEAM.monthly.tiers,
+      annually: PRICING_COPY.TEAM.annual.tiers,
+    },
+    features: [...PRICING_COPY.TEAM.features],
+    comingSoonFeatures: [...PRICING_COPY.TEAM.comingSoonFeatures],
     mostPopular: false,
   },
   {
@@ -76,10 +80,11 @@ const tiers = [
     id: 'tier-enterprise',
     href: 'mailto:sales@getjetstream.app?subject=Enterprise Plan Inquiry',
     price: { monthly: { price: 'Custom', suffix: null }, annually: { price: 'Custom', suffix: null } },
-    description: 'Advanced features for large teams',
+    description: PRICING_COPY.ENTERPRISE.description,
     features: [
       'Everything in Team',
-      'Unlimited team members',
+      'SOC 2 Type II compliance',
+      'Audit logs',
       'Custom agreements and terms',
       'Dedicated account manager',
       'White-glove onboarding',
@@ -136,15 +141,29 @@ export default function Page() {
                   {tier.name}
                 </h3>
               </div>
-              <p className="mt-4 text-sm/6 text-gray-300">
-                {typeof tier.description === 'string' ? tier.description : tier.description[frequency.value]}
-              </p>
+              <p className="mt-4 text-sm/6 text-gray-300">{tier.description}</p>
               <p className="mt-6 flex items-baseline gap-x-1">
                 <span className="text-4xl font-semibold tracking-tight text-white">{tier.price[frequency.value].price}</span>
                 {tier.price[frequency.value]?.suffix && (
                   <span className="text-sm/6 font-semibold text-gray-300">{tier.price[frequency.value].suffix}</span>
                 )}
               </p>
+              {tier.price[frequency.value]?.secondaryLabel && (
+                <p className="mt-1 text-xs/5 text-gray-400">{tier.price[frequency.value].secondaryLabel}</p>
+              )}
+              {tier.pricingTiers && (
+                <div className="mt-4 overflow-hidden rounded-md ring-1 ring-white/10">
+                  {tier.pricingTiers[frequency.value].map((row: { seats: string; perUser: string }) => (
+                    <div
+                      key={row.seats}
+                      className="flex justify-between bg-white/5 px-3 py-1.5 text-xs/5 text-gray-200 not-last:border-b not-last:border-white/10"
+                    >
+                      <span className="font-semibold">{row.seats} seats</span>
+                      <span>{row.perUser}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
               <div className="mt-6 min-h-10">
                 <Link
                   href={

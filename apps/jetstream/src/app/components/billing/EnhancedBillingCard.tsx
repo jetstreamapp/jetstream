@@ -4,13 +4,19 @@ import { Icon } from '@jetstream/ui';
 import classNames from 'classnames';
 import { useId } from 'react';
 
+interface PricingTier {
+  seats: string;
+  perUser: string;
+}
+
 interface EnhancedBillingCardProps {
   planName: string;
   price: string;
   priceSubtext?: string;
   description?: string;
-  features: string[];
-  comingSoonFeatures?: string[];
+  features: readonly string[];
+  comingSoonFeatures?: readonly string[];
+  pricingTiers?: readonly PricingTier[];
   isEnterprise?: boolean;
   disabled?: boolean;
   disabledReason?: string;
@@ -199,6 +205,35 @@ const cardStyles = css`
     font-style: italic;
     position: relative;
   }
+
+  .pricing-tiers {
+    margin: 12px auto 0;
+    max-width: 260px;
+    border: 1px solid #e5e5e5;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .pricing-tier-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    padding: 6px 12px;
+    background: #fafafa;
+
+    &:not(:last-child) {
+      border-bottom: 1px solid #ececec;
+    }
+  }
+
+  .pricing-tier-seats {
+    color: #706e6b;
+    font-weight: 600;
+  }
+
+  .pricing-tier-amount {
+    color: #16325c;
+  }
 `;
 
 export const EnhancedBillingCard = ({
@@ -208,6 +243,7 @@ export const EnhancedBillingCard = ({
   description,
   features,
   comingSoonFeatures,
+  pricingTiers,
   isEnterprise = false,
   disabled = false,
   disabledReason,
@@ -256,6 +292,16 @@ export const EnhancedBillingCard = ({
           <div className="price">{price}</div>
           {priceSubtext && <div className="price-subtext">{priceSubtext}</div>}
           {description && <div className="description">{description}</div>}
+          {pricingTiers && pricingTiers.length > 0 && (
+            <div className="pricing-tiers">
+              {pricingTiers.map((tier) => (
+                <div key={tier.seats} className="pricing-tier-row">
+                  <span className="pricing-tier-seats">{tier.seats}</span>
+                  <span className="pricing-tier-amount">{tier.perUser}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="features-section">
