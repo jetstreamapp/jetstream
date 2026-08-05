@@ -1,5 +1,21 @@
 # Changelog
 
+## [10.10.0](https://github.com/jetstreamapp/jetstream/compare/v10.9.0...v10.10.0) (2026-08-05)
+
+### Features
+
+* allow users to change their email address ([4708b81](https://github.com/jetstreamapp/jetstream/commit/4708b812c2a42ea9b72357292c20782f678f430e))
+* **soql-completions:** implement SOQL completion context, keywords, and suggestions ([29991cb](https://github.com/jetstreamapp/jetstream/commit/29991cb4eccaa16b6d0f2a3be804249fedb370be))
+
+### Bug Fixes
+
+* align org expiration with Salesforce's 30-day refresh token policy ([bf20a61](https://github.com/jetstreamapp/jetstream/commit/bf20a6190d0e639cb12ffaab922eac7b276a0d09))
+* correct auth redirect, SSO device prompt, and desktop click handling ([1756b3f](https://github.com/jetstreamapp/jetstream/commit/1756b3fd24d9f02fdd6b3ee8a00d47a8b83269db))
+* handle feature flag key drift ([401f7be](https://github.com/jetstreamapp/jetstream/commit/401f7bebd8c2a437c6e12e583d99503c13103933))
+* implement per-user scoped org storage and migrate legacy orgs file ([9856ef9](https://github.com/jetstreamapp/jetstream/commit/9856ef945cb0c1b1a4a879b6fa843380a094341d))
+* update DPA with revised dates, obligations, and security measures ([f1a7c8e](https://github.com/jetstreamapp/jetstream/commit/f1a7c8e95bce089464535af7f6cdddbab7ec2cb6))
+* update Terms of Service to include Data Processing Agreement in acceptance prompts and messages ([7ad4a5a](https://github.com/jetstreamapp/jetstream/commit/7ad4a5af7fb9e3880793b27d83cc274e228efa79))
+
 ## [10.9.0](https://github.com/jetstreamapp/jetstream/compare/v10.8.1...v10.9.0) (2026-08-02)
 
 ### Features
