@@ -38,10 +38,51 @@ function writeCachedScheme(scheme: ColorScheme) {
   }
 }
 
+/**
+ * Keeps an installed app's title bar in step with the in-app theme. Chrome paints the PWA window
+ * title bar from `<meta name="theme-color">`; the manifest's `theme_color` only seeds it at install
+ * time, so without this a dark-mode user gets a permanently white bar above a dark app.
+ *
+ * Reads the app's resolved surface background instead of a hard-coded pair per scheme so it follows
+ * the SLDS brand ramp on its own - including 'system', where the OS decides. To adopt a fixed brand
+ * color instead (the Google-Meet look), replace this with a constant per scheme.
+ */
+function setThemeColorMeta() {
+  const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  if (!meta) {
+    return;
+  }
+  const backgroundColor = resolveSurfaceColor();
+  if (backgroundColor) {
+    meta.content = backgroundColor;
+  }
+}
+
+/**
+ * The painted app surface color, or null while nothing has painted yet (styles not applied - the
+ * ThemeApplier effect re-runs this on mount).
+ *
+ * `<html>` is checked first because that is where the surface is actually painted (see
+ * ui-styles/main.css); `<body>` carries the scheme class but no background of its own, so reading it
+ * alone always yields a transparent color and the theme color never updates. Reading `<html>` is
+ * still scheme-correct - SLDS mirrors the scheme up with `html:has(body.slds-color-scheme--dark)`,
+ * so `light-dark()` resolves to the scheme the user picked rather than the OS one.
+ */
+function resolveSurfaceColor(): string | null {
+  for (const element of [document.documentElement, document.body]) {
+    const { backgroundColor } = getComputedStyle(element);
+    if (backgroundColor && !backgroundColor.startsWith('rgba(0, 0, 0, 0)')) {
+      return backgroundColor;
+    }
+  }
+  return null;
+}
+
 function setBodyScheme(scheme: ColorScheme) {
   const { body } = document;
   body.classList.remove(...SCHEME_CLASSES);
   body.classList.add(`slds-color-scheme--${scheme}`);
+  setThemeColorMeta();
 }
 
 /**

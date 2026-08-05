@@ -34,6 +34,7 @@ import type { HeaderWhatsNewPopoverProps } from './HeaderWhatsNewPopover';
 import LogoPro from './jetstream-logo-pro-200w.png';
 import Logo from './jetstream-logo-v1-200w.png';
 import NotificationsRequestModal from './NotificationsRequestModal';
+import WebUpdateNotification from './WebUpdateNotification';
 
 // Lazy-loaded so the popover (and the release-notes fetch/validation code behind it) is code-split
 // into its own async chunk instead of being inlined into the main app bundle. The release-note data
@@ -262,9 +263,12 @@ export const HeaderNavbar = ({
   const rightHandMenuItems = useMemo(() => {
     // Spreads to nothing while the in-app popover is disabled (see SHOW_WHATS_NEW_POPOVER above).
     const whatsNewItems: React.ReactNode[] = SHOW_WHATS_NEW_POPOVER ? [<HeaderWhatsNewPopover platform={releaseNotePlatform} />] : [];
+    // Every variant below ends with the same actions; only the leading items differ. WebUpdateNotification
+    // renders nothing until a new server version is detected, so it costs no header space normally.
+    const trailingItems: React.ReactNode[] = [...whatsNewItems, <WebUpdateNotification />, <HeaderHelpPopover />];
 
     if (isReadOnlyUser) {
-      return [...whatsNewItems, <HeaderHelpPopover />];
+      return trailingItems;
     }
 
     if (isEmbeddedApp || isDesktop) {
@@ -291,20 +295,12 @@ export const HeaderNavbar = ({
         items.push(<HeaderUpdateNotification onCheckForUpdates={handleCheckForUpdates} onInstallUpdate={handleInstallUpdate} />);
       }
 
-      items.push(...whatsNewItems, <HeaderHelpPopover />);
+      items.push(...trailingItems);
       return items;
     }
 
     if (!isBillingEnabled) {
-      return [
-        <QuickQueryPopover />,
-        <RecordSearchPopover />,
-        <UserSearchPopover />,
-        <Jobs />,
-        ...whatsNewItems,
-        <HeaderHelpPopover />,
-        <HeaderDonatePopover />,
-      ];
+      return [<QuickQueryPopover />, <RecordSearchPopover />, <UserSearchPopover />, <Jobs />, ...trailingItems, <HeaderDonatePopover />];
     }
 
     if (!hasPaidPlan) {
@@ -314,12 +310,11 @@ export const HeaderNavbar = ({
         <RecordSearchPopover />,
         <UserSearchPopover />,
         <Jobs />,
-        ...whatsNewItems,
-        <HeaderHelpPopover />,
+        ...trailingItems,
       ];
     }
 
-    return [<QuickQueryPopover />, <RecordSearchPopover />, <UserSearchPopover />, <Jobs />, ...whatsNewItems, <HeaderHelpPopover />];
+    return [<QuickQueryPopover />, <RecordSearchPopover />, <UserSearchPopover />, <Jobs />, ...trailingItems];
   }, [
     isReadOnlyUser,
     isEmbeddedApp,

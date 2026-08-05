@@ -1,6 +1,6 @@
 import { getUserAbility } from '@jetstream/acl';
 import { logger } from '@jetstream/shared/client-logger';
-import { INDEXED_DB } from '@jetstream/shared/constants';
+import { INDEXED_DB, UNKNOWN_APP_VERSION } from '@jetstream/shared/constants';
 import { checkHeartbeat, getOrgGroups, getOrgs, getUserProfile } from '@jetstream/shared/data';
 import {
   applyVerifiedFeatureFlags,
@@ -197,7 +197,7 @@ export function getRecentlySelectedOrgForGroup(groupId: Maybe<string>): Maybe<st
   return map[groupId || NO_GROUP_KEY] || null;
 }
 
-const DEFAULT_APP_INFO: AppInfo = { appInfo: getBootstrapAppInfo(), version: 'unknown', announcements: [] as Announcement[] };
+const DEFAULT_APP_INFO: AppInfo = { appInfo: getBootstrapAppInfo(), version: UNKNOWN_APP_VERSION, announcements: [] as Announcement[] };
 
 async function fetchAppInfo(): Promise<AppInfo> {
   try {
@@ -226,6 +226,13 @@ export const actionInProgressState = atom<boolean>(false);
 
 export const appInfoState = atom<Promise<AppInfo> | AppInfo>(fetchAppInfo());
 export const appInfoSyncState = unwrap(appInfoState, (prev) => prev ?? DEFAULT_APP_INFO);
+
+/**
+ * Server version detected via heartbeat that is newer than the running client, or null when up to
+ * date. Set by the web AppInitializer's visibility-change heartbeat check; drives the header
+ * update notification. Only ever set in the web app (desktop has its own electron-updater flow).
+ */
+export const updateAvailableVersionState = atom<string | null>(null);
 
 export const applicationCookieState = atom((get) => get(appInfoSyncState).appInfo);
 export const appVersionState = atom((get) => get(appInfoSyncState).version);
@@ -256,6 +263,14 @@ export const featureFlagsState = atom<FeatureFlags>((get) => {
   const userProfile = get(userProfileSyncState);
   return { ...DEFAULT_FEATURE_FLAGS, ...userProfile.featureFlags } as FeatureFlags;
 });
+
+/**
+ * Whether `featureFlagsState` reflects a real server response. `fetchUserProfile` falls back to
+ * DEFAULT_PROFILE (code defaults, every flag off) when the request fails or is still in flight,
+ * which is indistinguishable from a user who genuinely has every flag disabled. Anything that takes
+ * a destructive or irreversible action when a flag is off must check this first.
+ */
+export const featureFlagsResolvedState = atom((get) => get(userProfileSyncState).id !== DEFAULT_PROFILE.id);
 
 /** Returns whether a single feature flag is enabled for the current user. */
 export function useFeatureFlag(key: FeatureFlagKey): boolean {
