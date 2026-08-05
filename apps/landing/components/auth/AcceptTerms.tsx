@@ -58,7 +58,8 @@ export function AcceptTerms({ csrfToken, currentTosVersion }: AcceptTermsProps) 
 
       <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm space-y-6">
         <p className="text-sm text-gray-600">
-          Our Terms of Service and/or Privacy Policy have been updated. Please review and accept to continue using Jetstream.
+          Our Terms of Service, Privacy Policy, and/or Data Processing Agreement have been updated. Please review and accept to continue
+          using Jetstream.
         </p>
 
         <Checkbox
@@ -70,10 +71,14 @@ export function AcceptTerms({ csrfToken, currentTosVersion }: AcceptTermsProps) 
           I have read and agree to the{' '}
           <a href={ROUTES.TERMS_OF_SERVICE} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-500 underline">
             Terms of Service
-          </a>{' '}
-          and{' '}
+          </a>
+          ,{' '}
           <a href={ROUTES.PRIVACY} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-500 underline">
             Privacy Policy
+          </a>
+          , and{' '}
+          <a href={ROUTES.DPA} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-500 underline">
+            Data Processing Agreement
           </a>
         </Checkbox>
 

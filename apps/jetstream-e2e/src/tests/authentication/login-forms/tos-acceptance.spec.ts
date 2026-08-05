@@ -36,7 +36,9 @@ test.describe('TOS Acceptance', () => {
 
       // Submit without accepting TOS — expect client-side validation error
       await authenticationPage.signUpButton.click();
-      await expect(page.getByText('You must accept the Terms of Service and Privacy Policy to continue')).toBeVisible();
+      await expect(
+        page.getByText('You must accept the Terms of Service, Privacy Policy, and Data Processing Agreement to continue'),
+      ).toBeVisible();
     });
 
     await test.step('Accept TOS and complete sign up', async () => {
