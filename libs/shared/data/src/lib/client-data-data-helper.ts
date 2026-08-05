@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { STEP_UP_AUTH_REQUIRED_ERROR_TYPE } from '@jetstream/auth/types';
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
 import { delay } from '@jetstream/shared/utils';
@@ -6,6 +7,7 @@ import {
   ApiResponse,
   ListMetadataResult,
   ListMetadataResultRaw,
+  Maybe,
   RetrieveResult,
   RetrieveResultRaw,
   SalesforceOrgUi,
@@ -25,6 +27,7 @@ import isString from 'lodash/isString';
 import { v4 as uuid } from 'uuid';
 import { getCacheItemHttp, saveCacheItemHttp } from './client-data-cache';
 import { SOBJECT_DESCRIBE_CACHED_RESPONSES } from './client-data-data-cached-responses';
+import { StepUpRequiredError } from './client-data-errors';
 import { errorMiddleware } from './middleware';
 
 interface RequestOptions {
@@ -375,6 +378,13 @@ function responseErrorInterceptor(options: {
         // LOG USER OUT
         const logoutUrl = getHeader(response.headers, HTTP.HEADERS.X_LOGOUT_URL) || '/auth/login';
         window.location.href = logoutUrl;
+      }
+
+      // Checked after shouldLogout so the heartbeat 403 keeps its existing behavior. A step-up
+      // response never carries the logout header, so the two cannot both apply.
+      const errorBody = response.data as Maybe<{ errorType?: string }>;
+      if (response.status === 403 && errorBody?.errorType === STEP_UP_AUTH_REQUIRED_ERROR_TYPE) {
+        throw new StepUpRequiredError(message);
       }
     } else if (error.code === AxiosError.ERR_CANCELED) {
       // Keep the capitalized form the error tracker's ignore list matches (axios's default is lowercase 'canceled')

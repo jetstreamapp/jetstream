@@ -323,6 +323,7 @@ export const ANALYTICS_KEYS = {
   platform_event_publish: 'platform_event_publish',
   /** Settings */
   settings_update_user: 'settings_update_user',
+  settings_email_change_action: 'settings_email_change_action',
   settings_link_account: 'settings_link_account',
   settings_unlink_account: 'settings_unlink_account',
   settings_resend_email_verification: 'settings_resend_email_verification',
@@ -1133,6 +1134,8 @@ export const AUTH_ERROR_MESSAGES = {
   InvalidCaptcha: 'Invalid captcha verification, refresh and try again to confirm you are not a bot.',
   InvalidCredentials: 'Sign in failed. Check the details you provided are correct.',
   InvalidCsrfToken: 'The action is invalid, refresh the page and start over.',
+  EmailChangeNotAllowed: 'Your email address cannot be changed right now.',
+  InvalidOrExpiredEmailChangeToken: 'This link is invalid or has expired. Start the email change again from your profile.',
   InvalidOrExpiredResetToken: 'Your reset token is invalid, Restart the reset process.',
   InvalidParameters: 'There was a problem with your submission, refresh the page and try again.',
   InvalidProvider: 'Your login provider is invalid or is not supported for your user.',

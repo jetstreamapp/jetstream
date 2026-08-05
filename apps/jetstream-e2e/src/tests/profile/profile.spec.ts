@@ -1,3 +1,4 @@
+import { getDefaultLoginConfigurationUI } from '@jetstream/auth/types';
 import { getDefaultProfile } from '@jetstream/test/e2e-utils';
 import { expect, test } from '../../fixtures/fixtures';
 
@@ -35,6 +36,7 @@ test.describe('Profile', () => {
       await profilePage.overrideProfile(profile);
 
       await profilePage.overrideLoginConfiguration({
+        ...getDefaultLoginConfigurationUI(),
         isPasswordAllowed: true,
         isGoogleAllowed: true,
         isSalesforceAllowed: true,
@@ -72,6 +74,7 @@ test.describe('Profile', () => {
       profile.authFactors = [{ type: '2fa-otp', enabled: true }];
       await profilePage.overrideProfile(profile);
       await profilePage.overrideLoginConfiguration({
+        ...getDefaultLoginConfigurationUI(),
         isPasswordAllowed: false,
         isGoogleAllowed: false,
         isSalesforceAllowed: true,
@@ -102,6 +105,7 @@ test.describe('Profile', () => {
       profile.authFactors = [{ type: '2fa-otp', enabled: true }];
       await profilePage.overrideProfile(profile);
       await profilePage.overrideLoginConfiguration({
+        ...getDefaultLoginConfigurationUI(),
         isPasswordAllowed: false,
         isGoogleAllowed: true,
         isSalesforceAllowed: false,
@@ -132,6 +136,7 @@ test.describe('Profile', () => {
       profile.authFactors = [{ type: '2fa-otp', enabled: true }];
       await profilePage.overrideProfile(profile);
       await profilePage.overrideLoginConfiguration({
+        ...getDefaultLoginConfigurationUI(),
         isPasswordAllowed: false,
         isGoogleAllowed: true,
         isSalesforceAllowed: true,
@@ -164,6 +169,7 @@ test.describe('Profile', () => {
       profile.authFactors = [{ type: '2fa-otp', enabled: true }];
       await profilePage.overrideProfile(profile);
       await profilePage.overrideLoginConfiguration({
+        ...getDefaultLoginConfigurationUI(),
         isPasswordAllowed: true,
         isGoogleAllowed: false,
         isSalesforceAllowed: false,

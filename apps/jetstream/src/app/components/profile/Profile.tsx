@@ -1,5 +1,5 @@
 import { getLoginConfigurationAbility, LoginConfigAbility } from '@jetstream/acl';
-import type { UserProfileAuthFactor, UserProfileUiWithIdentities } from '@jetstream/auth/types';
+import type { LoginConfigurationUI, UserProfileAuthFactor, UserProfileUiWithIdentities } from '@jetstream/auth/types';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import {
@@ -34,6 +34,7 @@ import { ProfileLinkedAccounts } from './ProfileLinkedAccounts';
 import { ProfileUserProfile } from './ProfileUserProfile';
 import { ProfileLoginActivity } from './session/ProfileLoginActivity';
 import { ProfileSessions } from './session/ProfileSessions';
+import { useEmailChange } from './useEmailChange';
 import { useSessionData } from './useSessionData';
 
 const HEIGHT_BUFFER = 170;
@@ -48,9 +49,15 @@ export const Profile = () => {
   const [fullUserProfile, setFullUserProfile] = useState<UserProfileUiWithIdentities>();
   const [modifiedUser, setModifiedUser] = useState<UserProfileUiWithIdentities>();
   const [loginConfigAbility, setLoginConfigAbility] = useState<LoginConfigAbility>();
+  // Retained (not just folded into the ability) because the UI needs blockedReason to explain WHY an
+  // action is unavailable - CASL can only answer whether it is.
+  const [loginConfiguration, setLoginConfiguration] = useState<LoginConfigurationUI | null>(null);
   const [editMode, setEditMode] = useState(false);
 
   const sessionData = useSessionData();
+  // Deliberately does not touch userProfileState: a pending request has not changed the address yet,
+  // and the effect below re-runs on that atom, which would trigger a redundant double fetch.
+  const { requestChange, cancelChange } = useEmailChange({ onProfileUpdated: setFullUserProfile });
 
   useEffect(() => {
     isMounted.current = true;
@@ -66,6 +73,7 @@ export const Profile = () => {
         setLoadingError(false);
         const loginConfiguration = await getLoginConfiguration();
         setFullUserProfile(await getFullUserProfile());
+        setLoginConfiguration(loginConfiguration);
         setLoginConfigAbility(getLoginConfigurationAbility({ user: userProfile, loginConfiguration }));
       } catch (ex) {
         logger.error('Settings: Error fetching user', { stack: ex.stack, message: ex.message });
@@ -195,6 +203,7 @@ export const Profile = () => {
                 name={modifiedUser?.name || ''}
                 editMode={editMode}
                 loginConfigAbility={loginConfigAbility}
+                loginConfiguration={loginConfiguration}
                 onEditMode={setEditMode}
                 onChange={handleProfileChange}
                 onSave={handleSave}
@@ -202,6 +211,8 @@ export const Profile = () => {
                 onSetPassword={handleSetPassword}
                 onResetPassword={handleResetPassword}
                 onRemovePassword={handleRemovePassword}
+                onRequestEmailChange={requestChange}
+                onCancelEmailChange={cancelChange}
               />
 
               <Profile2fa

@@ -11,8 +11,11 @@ type MfaSubjects = 'MFA' | { type: 'MFA'; method: 'email' | 'otp' };
 type PasswordActions = 'read' | 'update' | 'remove';
 type PasswordSubjects = 'Password';
 
+type EmailActions = 'update';
+type EmailSubjects = 'Email';
+
 export type LoginConfigAbility = MongoAbility<
-  [IdentityActions, IdentitySubjects] | [MfaActions, MfaSubjects] | [PasswordActions, PasswordSubjects]
+  [IdentityActions, IdentitySubjects] | [MfaActions, MfaSubjects] | [PasswordActions, PasswordSubjects] | [EmailActions, EmailSubjects]
 >;
 
 const createLoginConfigurationAbility = createMongoAbility as CreateAbility<LoginConfigAbility>;
@@ -46,10 +49,13 @@ function getAbilityRules({ user, loginConfiguration }: GetAbilityOptions) {
     can(['read', 'update', 'remove'], 'Password');
     can(['update', 'remove'], 'MFA');
 
+    // personal account - nobody else owns the identity
+    can('update', 'Email');
+
     return rules;
   }
 
-  const { allowIdentityLinking, allowedMfaMethods, isGoogleAllowed, isPasswordAllowed, isSalesforceAllowed, requireMfa } =
+  const { allowIdentityLinking, allowedMfaMethods, emailChange, isGoogleAllowed, isPasswordAllowed, isSalesforceAllowed, requireMfa } =
     loginConfiguration;
 
   // Password management
@@ -79,6 +85,12 @@ function getAbilityRules({ user, loginConfiguration }: GetAbilityOptions) {
   }
   if (allowedMfaMethods?.otp) {
     can(['update', 'remove'], 'MFA', { method: 'otp' });
+  }
+
+  // Email address management. This is a UI hint only - the same policy is re-derived from the
+  // database when the change is requested and again when it is confirmed.
+  if (emailChange?.allowed) {
+    can('update', 'Email');
   }
 
   return rules;

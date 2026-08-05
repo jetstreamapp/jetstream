@@ -1,3 +1,4 @@
+import { StepUpAuthRequiredError } from '@jetstream/auth/server';
 import { ApiRequestError } from '@jetstream/salesforce-api';
 import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
 import { PassThrough } from 'node:stream';
@@ -47,6 +48,11 @@ vi.mock('@jetstream/api-config', () => ({
 vi.mock('@jetstream/auth/server', () => ({
   AuthError: class AuthError extends Error {
     type = 'auth_error';
+  },
+  // Mirrors the real class: extends Error, NOT AuthError. See the "step-up" describe block below.
+  StepUpAuthRequiredError: class StepUpAuthRequiredError extends Error {
+    status = 403;
+    errorType = 'STEP_UP_AUTH_REQUIRED';
   },
   createCSRFToken: vi.fn(),
   getCookieConfig: vi.fn(),
@@ -168,6 +174,29 @@ describe('uncaughtErrorHandler logging levels', () => {
       '[RESPONSE][ERROR]',
     );
     expect(res.log.error).not.toHaveBeenCalled();
+  });
+
+  /**
+   * The load-bearing contract for step-up re-authentication: this response must prompt the user to
+   * verify, NOT sign them out. The AuthError branch redirects non-JSON requests to the login page
+   * and AuthenticationError sets X-AUTH-LOGOUT, which the client honours unconditionally - so this
+   * error is deliberately neither, and must be handled before both.
+   */
+  it('returns a 403 step-up prompt without logging the user out', async () => {
+    const { res } = await handleError(new StepUpAuthRequiredError('Please verify your identity to continue'));
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        error: true,
+        errorType: 'STEP_UP_AUTH_REQUIRED',
+        message: 'Please verify your identity to continue',
+      }),
+    );
+    // Neither of the two ways this handler can end a session may fire.
+    expect(res.set).not.toHaveBeenCalledWith(HTTP.HEADERS.X_LOGOUT, expect.anything());
+    expect(res.set).not.toHaveBeenCalledWith(HTTP.HEADERS.X_LOGOUT_URL, expect.anything());
+    expect(res.redirect).not.toHaveBeenCalled();
   });
 
   it('logs normal 404s at debug only', async () => {

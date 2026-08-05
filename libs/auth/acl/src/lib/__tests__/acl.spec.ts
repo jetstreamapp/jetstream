@@ -1,4 +1,4 @@
-import type { LoginConfigurationUI } from '@jetstream/auth/types';
+import { getDefaultLoginConfigurationUI, type LoginConfigurationUI } from '@jetstream/auth/types';
 import { type UserProfileUi } from '@jetstream/types';
 import { getUserAbility } from '../acl';
 import { getLoginConfigurationAbility } from '../acl.login-configuration';
@@ -312,6 +312,7 @@ describe('acl', () => {
     describe('password management', () => {
       it('should allow password actions when password is allowed', () => {
         const loginConfiguration: LoginConfigurationUI = {
+          ...getDefaultLoginConfigurationUI(),
           isPasswordAllowed: true,
           isGoogleAllowed: false,
           isSalesforceAllowed: false,
@@ -328,6 +329,7 @@ describe('acl', () => {
 
       it('should only allow password removal when password is not allowed', () => {
         const loginConfiguration: LoginConfigurationUI = {
+          ...getDefaultLoginConfigurationUI(),
           isPasswordAllowed: false,
           isGoogleAllowed: true,
           isSalesforceAllowed: false,
@@ -346,6 +348,7 @@ describe('acl', () => {
     describe('identity provider management', () => {
       it('should allow Google identity linking when enabled', () => {
         const loginConfiguration: LoginConfigurationUI = {
+          ...getDefaultLoginConfigurationUI(),
           isPasswordAllowed: true,
           isGoogleAllowed: true,
           isSalesforceAllowed: false,
@@ -366,6 +369,7 @@ describe('acl', () => {
 
       it('should allow Salesforce identity linking when enabled', () => {
         const loginConfiguration: LoginConfigurationUI = {
+          ...getDefaultLoginConfigurationUI(),
           isPasswordAllowed: true,
           isGoogleAllowed: false,
           isSalesforceAllowed: true,
@@ -382,6 +386,7 @@ describe('acl', () => {
 
       it('should deny all identity linking when disabled', () => {
         const loginConfiguration: LoginConfigurationUI = {
+          ...getDefaultLoginConfigurationUI(),
           isPasswordAllowed: true,
           isGoogleAllowed: true,
           isSalesforceAllowed: true,
@@ -399,6 +404,7 @@ describe('acl', () => {
     describe('MFA management', () => {
       it('should allow email MFA when enabled', () => {
         const loginConfiguration: LoginConfigurationUI = {
+          ...getDefaultLoginConfigurationUI(),
           isPasswordAllowed: true,
           isGoogleAllowed: false,
           isSalesforceAllowed: false,
@@ -416,6 +422,7 @@ describe('acl', () => {
 
       it('should allow OTP MFA when enabled', () => {
         const loginConfiguration: LoginConfigurationUI = {
+          ...getDefaultLoginConfigurationUI(),
           isPasswordAllowed: true,
           isGoogleAllowed: false,
           isSalesforceAllowed: false,
@@ -433,6 +440,7 @@ describe('acl', () => {
 
       it('should prevent MFA removal when MFA is required', () => {
         const loginConfiguration: LoginConfigurationUI = {
+          ...getDefaultLoginConfigurationUI(),
           isPasswordAllowed: true,
           isGoogleAllowed: false,
           isSalesforceAllowed: false,
@@ -451,6 +459,7 @@ describe('acl', () => {
 
       it('should allow generic MFA removal when not required', () => {
         const loginConfiguration: LoginConfigurationUI = {
+          ...getDefaultLoginConfigurationUI(),
           isPasswordAllowed: true,
           isGoogleAllowed: false,
           isSalesforceAllowed: false,
@@ -470,6 +479,7 @@ describe('acl', () => {
     describe('complex scenarios', () => {
       it('should handle multiple identity providers and MFA methods', () => {
         const loginConfiguration: LoginConfigurationUI = {
+          ...getDefaultLoginConfigurationUI(),
           isPasswordAllowed: true,
           isGoogleAllowed: true,
           isSalesforceAllowed: true,
@@ -495,6 +505,7 @@ describe('acl', () => {
 
       it('should handle identity-only authentication (no password)', () => {
         const loginConfiguration: LoginConfigurationUI = {
+          ...getDefaultLoginConfigurationUI(),
           isPasswordAllowed: false,
           isGoogleAllowed: true,
           isSalesforceAllowed: true,
@@ -513,6 +524,49 @@ describe('acl', () => {
         // Can manage identities
         expect(ability.can('link', { type: 'Identity', provider: 'google' })).toBe(true);
         expect(ability.can('link', { type: 'Identity', provider: 'salesforce' })).toBe(true);
+      });
+    });
+
+    describe('email change', () => {
+      it('should allow email change for a personal account with no login configuration', () => {
+        const ability = getLoginConfigurationAbility({ user: baseUser });
+        expect(ability.can('update', 'Email')).toBe(true);
+      });
+
+      it('should allow email change when the configuration permits it', () => {
+        const loginConfiguration: LoginConfigurationUI = {
+          ...getDefaultLoginConfigurationUI(),
+          emailChange: { allowed: true, blockedReason: null },
+        };
+
+        const ability = getLoginConfigurationAbility({ user: baseUser, loginConfiguration });
+        expect(ability.can('update', 'Email')).toBe(true);
+      });
+
+      it('should block email change when the team is SSO managed', () => {
+        const loginConfiguration: LoginConfigurationUI = {
+          ...getDefaultLoginConfigurationUI(),
+          emailChange: { allowed: false, blockedReason: 'SSO_MANAGED' },
+        };
+
+        const ability = getLoginConfigurationAbility({ user: baseUser, loginConfiguration });
+        expect(ability.can('update', 'Email')).toBe(false);
+      });
+
+      it('should not grant email change from unrelated permissions', () => {
+        // Guards against a future refactor accidentally coupling the Email subject to another rule -
+        // everything else here is permissive while email change is explicitly disallowed.
+        const loginConfiguration: LoginConfigurationUI = {
+          ...getDefaultLoginConfigurationUI(),
+          isPasswordAllowed: true,
+          allowIdentityLinking: true,
+          allowedMfaMethods: { email: true, otp: true },
+          emailChange: { allowed: false, blockedReason: 'SSO_MANAGED' },
+        };
+
+        const ability = getLoginConfigurationAbility({ user: baseUser, loginConfiguration });
+        expect(ability.can('update', 'Password')).toBe(true);
+        expect(ability.can('update', 'Email')).toBe(false);
       });
     });
   });

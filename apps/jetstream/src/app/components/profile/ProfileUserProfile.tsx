@@ -1,11 +1,12 @@
 import { css } from '@emotion/react';
 import { LoginConfigAbility } from '@jetstream/acl';
-import type { UserProfileUiWithIdentities } from '@jetstream/auth/types';
+import type { LoginConfigurationUI, UserProfileUiWithIdentities } from '@jetstream/auth/types';
 import { Form, FormRow, FormRowItem, Input, ReadOnlyFormItem } from '@jetstream/ui';
 import { abilityState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent, useMemo } from 'react';
 import { Link } from 'react-router';
+import { ProfileUserEmail } from './ProfileUserEmail';
 import { ProfileUserPassword } from './ProfileUserPassword';
 
 export interface ProfileUserProfileProps {
@@ -13,6 +14,7 @@ export interface ProfileUserProfileProps {
   name: string;
   editMode: boolean;
   loginConfigAbility: LoginConfigAbility;
+  loginConfiguration: LoginConfigurationUI | null;
   onEditMode: (value: true) => void;
   onChange: (value: { name: string }) => void;
   onSave: () => void;
@@ -20,6 +22,8 @@ export interface ProfileUserProfileProps {
   onSetPassword: (password: string) => Promise<void>;
   onResetPassword: () => Promise<void>;
   onRemovePassword: () => Promise<void>;
+  onRequestEmailChange: (newEmail: string) => Promise<boolean>;
+  onCancelEmailChange: () => Promise<void>;
 }
 
 export const ProfileUserProfile: FunctionComponent<ProfileUserProfileProps> = ({
@@ -27,6 +31,7 @@ export const ProfileUserProfile: FunctionComponent<ProfileUserProfileProps> = ({
   name,
   editMode,
   loginConfigAbility,
+  loginConfiguration,
   onEditMode,
   onChange,
   onSave,
@@ -34,6 +39,8 @@ export const ProfileUserProfile: FunctionComponent<ProfileUserProfileProps> = ({
   onSetPassword,
   onResetPassword,
   onRemovePassword,
+  onRequestEmailChange,
+  onCancelEmailChange,
 }) => {
   const ability = useAtomValue(abilityState);
   const invalidName = !name || name.length > 255;
@@ -77,11 +84,13 @@ export const ProfileUserProfile: FunctionComponent<ProfileUserProfileProps> = ({
               </Input>
             )}
           </FormRowItem>
-          <FormRowItem>
-            <ReadOnlyFormItem label="Email" horizontal omitEdit labelHelp="File a support ticket to change your email.">
-              {fullUserProfile.email}
-            </ReadOnlyFormItem>
-          </FormRowItem>
+          <ProfileUserEmail
+            fullUserProfile={fullUserProfile}
+            loginConfigAbility={loginConfigAbility}
+            loginConfiguration={loginConfiguration}
+            onRequestEmailChange={onRequestEmailChange}
+            onCancelEmailChange={onCancelEmailChange}
+          />
           {loginConfigAbility.can('read', 'Password') && (
             <ProfileUserPassword
               fullUserProfile={fullUserProfile}

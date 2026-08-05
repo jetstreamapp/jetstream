@@ -52,6 +52,7 @@ import {
 } from './auth.constants';
 import {
   AccountLocked,
+  AuthError,
   IdentityLinkingNotAllowed,
   InactiveUser,
   InvalidAction,
@@ -66,6 +67,7 @@ import {
 } from './auth.errors';
 import { ensureAuthError, lookupGeoLocationFromIpAddresses } from './auth.service';
 import { checkUserAgentSimilarity, hashPassword, REMEMBER_DEVICE_DAYS, timingSafeStringCompare, verifyPassword } from './auth.utils';
+import { expirePendingEmailChangeRequests } from './email-change.db.service';
 
 // This is potentially accessed multiple times in a transaction for a user, cache data to avoid DB access
 const LOGIN_CONFIGURATION_CACHE = new LRUCache<string, { value: LoginConfiguration | null }>({
@@ -154,6 +156,9 @@ export async function pruneExpiredRecords() {
       expiresAt: { lte: addDays(startOfDay(new Date()), -DELETE_EXPIRED_DOMAIN_VERIFICATION_DAYS) },
     },
   });
+  // Only flips abandoned requests to a terminal state - email_change_request rows are never deleted,
+  // they are the permanent history of every email change.
+  await expirePendingEmailChangeRequests();
   await DbCacheProvider.cleanupExpired();
   // Reap expired distributed rate-limit rows (PgRateLimitStore). Rows are only reset in place when
   // the same key is hit again, so without this every distinct IP/email key would leave a permanent row.
@@ -839,11 +844,19 @@ export async function revokeExternalSession(userId: string, sessionId: string) {
   });
 }
 
-export async function revokeAllUserSessions(userId: string, exceptId?: Maybe<string>) {
+/**
+ * @param client pass a transaction client when revocation must be atomic with the credential change
+ * that triggered it, so a partially-applied change can never leave a live session behind.
+ */
+export async function revokeAllUserSessions(
+  userId: string,
+  exceptId?: Maybe<string>,
+  client: Prisma.TransactionClient | typeof prisma = prisma,
+) {
   if (!userId) {
     throw new Error('Invalid parameters');
   }
-  await prisma.sessions.deleteMany({
+  await client.sessions.deleteMany({
     where: exceptId
       ? {
           userId: { equals: userId },
@@ -852,9 +865,21 @@ export async function revokeAllUserSessions(userId: string, exceptId?: Maybe<str
       : { userId },
   });
   // exceptId refers to a session sid, never a webExtensionToken UUID — always clear all of the user's tokens.
-  await prisma.webExtensionToken.deleteMany({
+  await client.webExtensionToken.deleteMany({
     where: { userId },
   });
+}
+
+/**
+ * Serializes every writer that claims an email address, so a uniqueness check and the write that
+ * depends on it cannot be interleaved by a concurrent transaction.
+ *
+ * This exists because User.email has no unique constraint (production contains duplicates, and the
+ * sign-in paths have explicit multi-match handling for them), so the database cannot reject a
+ * conflicting write on its own. The lock is transaction-scoped and released on COMMIT or ROLLBACK.
+ */
+export async function withEmailAddressLock(tx: Prisma.TransactionClient, email: string) {
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`email:${email.toLowerCase()}`}))`;
 }
 
 export async function updateUserSessionTeamMembership({
@@ -1064,7 +1089,7 @@ export const resetUserPassword = async (email: string, token: string, password: 
     throw new InvalidOrExpiredResetToken(GENERIC_INVALID_RESET_TOKEN_MESSAGE);
   }
 
-  await changeUserPassword(userId, password, restoreResetTokenOnPasswordReuse);
+  await changeUserPassword(userId, password, restoreResetTokenOnPasswordReuse, true);
 
   await revokeAllUserSessions(userId);
 
@@ -1119,6 +1144,72 @@ function convertSessionToUserSession(session: { sid: string; sess: unknown; expi
 // comparison result is ignored — the not-found branch always returns InvalidCredentials.
 const DUMMY_PASSWORD_HASH = '$2b$10$/nMyPEWfg3COKJfQ0K35c.2i2o4gTHdfdDYhDyFuBviJHrtgFl5VW';
 
+/**
+ * Shared tail of every password check: lockout, forced-reset, bcrypt compare, and failed-attempt
+ * accounting. Both the login path (resolved by email) and the step-up path (resolved by id) funnel
+ * through here so their security semantics cannot drift apart.
+ *
+ * `invalidCredentialsMessage` differs per caller: login must not distinguish a bad email from a bad
+ * password, while step-up already knows exactly which account it is checking.
+ */
+async function verifyPasswordForUserRecord(
+  userId: string,
+  hashedPassword: string,
+  password: string,
+  invalidCredentialsMessage: string,
+): Promise<{ error: AuthError | null; user?: AuthenticatedUser }> {
+  // Check if account is locked
+  const lockStatus = await isAccountLocked(userId);
+  if (lockStatus.isLocked) {
+    return {
+      error: new AccountLocked(
+        `Account is locked due to too many failed login attempts. Please try again later or reset your password.`,
+        lockStatus.lockedUntil,
+      ),
+    };
+  }
+
+  // Check if password reset is required
+  const resetRequired = await isPasswordResetRequired(userId);
+  if (resetRequired.required) {
+    return {
+      error: new PasswordResetRequired(resetRequired.reason || 'Password reset required'),
+    };
+  }
+
+  if (await verifyPassword(password, hashedPassword)) {
+    // Success - reset failed login attempts
+    await resetFailedLoginAttempts(userId);
+
+    return {
+      error: null,
+      user: await prisma.user
+        .findFirstOrThrow({
+          select: AuthenticatedUserSelect,
+          where: { id: userId },
+        })
+        .then((user) => AuthenticatedUserSchema.parse(user)),
+    };
+  }
+
+  // Failed login - record attempt
+  const failedAttempt = await recordFailedLoginAttempt(userId);
+
+  if (failedAttempt.isLocked) {
+    return {
+      error: new AccountLocked(
+        `Account has been locked due to too many failed login attempts. Please try again in ${ACCOUNT_LOCKOUT_DURATION_MINUTES} minutes or reset your password.`,
+      ),
+    };
+  }
+
+  // The userId is retained only as server-side metadata (for failed-attempt tracking/logging),
+  // never surfaced to the client.
+  return {
+    error: new InvalidCredentials(invalidCredentialsMessage, { userId }),
+  };
+}
+
 async function getUserAndVerifyPassword(email: string, password: string) {
   email = email.toLowerCase();
   const UNSAFE_userWithPassword = await prisma.user.findFirst({
@@ -1134,60 +1225,41 @@ async function getUserAndVerifyPassword(email: string, password: string) {
     return { error: new InvalidCredentials('Incorrect email or password') };
   }
 
-  // Check if account is locked
-  const lockStatus = await isAccountLocked(UNSAFE_userWithPassword.id);
-  if (lockStatus.isLocked) {
-    return {
-      error: new AccountLocked(
-        `Account is locked due to too many failed login attempts. Please try again later or reset your password.`,
-        lockStatus.lockedUntil,
-      ),
-    };
+  // Identical message/errorType on both failure paths so the response cannot be used to distinguish
+  // a registered email from an unregistered one.
+  return verifyPasswordForUserRecord(
+    UNSAFE_userWithPassword.id,
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    UNSAFE_userWithPassword.password!,
+    password,
+    'Incorrect email or password',
+  );
+}
+
+/**
+ * Password verification scoped by userId, for step-up re-authentication of an ALREADY authenticated
+ * session.
+ *
+ * getUserAndVerifyPassword() cannot be reused here: it resolves the account by email via findFirst,
+ * and User.email carries no unique constraint. For a duplicate-email account that would (a) accept a
+ * different user's password as proof of identity for this session, and (b) charge the failed-attempt
+ * counter - and therefore the lockout - to that unrelated user, handing anyone sharing an email
+ * address a lockout weapon.
+ */
+export async function verifyPasswordForUserId(userId: string, password: string): Promise<{ error: AuthError | null }> {
+  const UNSAFE_user = await prisma.user.findUnique({
+    select: { id: true, password: true },
+    where: { id: userId },
+  });
+
+  if (!UNSAFE_user?.password) {
+    // Same constant-cost dummy compare as the login path so a passwordless account is not
+    // distinguishable by response time.
+    await verifyPassword(password, DUMMY_PASSWORD_HASH);
+    return { error: new InvalidCredentials('Incorrect password') };
   }
 
-  // Check if password reset is required
-  const resetRequired = await isPasswordResetRequired(UNSAFE_userWithPassword.id);
-  if (resetRequired.required) {
-    return {
-      error: new PasswordResetRequired(resetRequired.reason || 'Password reset required'),
-    };
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  if (await verifyPassword(password, UNSAFE_userWithPassword.password!)) {
-    // Success - reset failed login attempts
-    await resetFailedLoginAttempts(UNSAFE_userWithPassword.id);
-
-    return {
-      error: null,
-      user: await prisma.user
-        .findFirstOrThrow({
-          select: AuthenticatedUserSelect,
-          where: { id: UNSAFE_userWithPassword.id },
-        })
-        .then((user) => AuthenticatedUserSchema.parse(user)),
-    };
-  }
-
-  // Failed login - record attempt
-  const failedAttempt = await recordFailedLoginAttempt(UNSAFE_userWithPassword.id);
-
-  if (failedAttempt.isLocked) {
-    return {
-      error: new AccountLocked(
-        `Account has been locked due to too many failed login attempts. Please try again in ${ACCOUNT_LOCKOUT_DURATION_MINUTES} minutes or reset your password.`,
-      ),
-    };
-  }
-
-  // Identical message/errorType to the account-not-found path above so the response cannot be used
-  // to distinguish a registered email from an unregistered one. The userId is retained only as
-  // server-side metadata (for failed-attempt tracking/logging), never surfaced to the client.
-  return {
-    error: new InvalidCredentials(`Incorrect email or password`, {
-      userId: UNSAFE_userWithPassword.id,
-    }),
-  };
+  return verifyPasswordForUserRecord(UNSAFE_user.id, UNSAFE_user.password, password, 'Incorrect password');
 }
 
 async function addIdentityToUser(userId: string, providerUser: ProviderUser, provider: OauthProviderType) {
@@ -2054,7 +2126,17 @@ export async function getTeamLoginConfigWithSso(teamId: string) {
  * Password Security Functions
  */
 
-export const changeUserPassword = async (userId: string, password: string, onReusedPassword?: () => Promise<void>) => {
+export const changeUserPassword = async (
+  userId: string,
+  password: string,
+  onReusedPassword?: () => Promise<void>,
+  /**
+   * True only for a reset driven by the emailed link, which anyone holding the mailbox can trigger.
+   * Recorded separately from passwordUpdatedAt (which is also stamped at registration and on an
+   * in-app change) so the email-change cool-down keys off the reset specifically.
+   */
+  isPasswordReset = false,
+) => {
   const hashedPassword = await hashPassword(password);
 
   await prisma.$transaction(async (tx) => {
@@ -2070,6 +2152,7 @@ export const changeUserPassword = async (userId: string, password: string, onReu
       data: {
         password: hashedPassword,
         passwordUpdatedAt: new Date(),
+        ...(isPasswordReset ? { passwordResetAt: new Date() } : {}),
         forcePasswordReset: false,
         passwordResetReason: null,
         failedLoginAttempts: 0,

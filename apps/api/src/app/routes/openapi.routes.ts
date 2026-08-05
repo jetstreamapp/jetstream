@@ -8,6 +8,7 @@ import { routeDefinition as authController } from '../controllers/auth.controlle
 import { routeDefinition as billingController } from '../controllers/billing.controller';
 import { routeDefinition as dataSyncController } from '../controllers/data-sync.controller';
 import { routeDefinition as desktopController } from '../controllers/desktop-app.controller';
+import { routeDefinition as emailChangeController } from '../controllers/email-change.controller';
 import { routeDefinition as oauthController } from '../controllers/oauth.controller';
 import { routeDefinition as jetstreamOrganizationsController } from '../controllers/org-groups.controller';
 import { routeDefinition as orgsController } from '../controllers/orgs.controller';
@@ -18,6 +19,7 @@ import { routeDefinition as metadataToolingController } from '../controllers/sf-
 import { routeDefinition as miscController } from '../controllers/sf-misc.controller';
 import { routeDefinition as queryController } from '../controllers/sf-query.controller';
 import { routeDefinition as recordController } from '../controllers/sf-record.controller';
+import { routeDefinition as stepUpAuthController } from '../controllers/step-up-auth.controller';
 import { routeDefinition as teamController } from '../controllers/team.controller';
 import { routeDefinition as userController } from '../controllers/user.controller';
 import { routeDefinition as webExtensionController } from '../controllers/web-extension.controller';
@@ -283,6 +285,12 @@ export function getOpenApiSpec() {
           }),
         },
       },
+      '/api/auth/email-change/confirm': {
+        post: { ...getRequest({ ...emailChangeController.confirmEmailChangeByToken.validators, tags: ['auth'] }) },
+      },
+      '/api/auth/email-change/cancel': {
+        post: { ...getRequest({ ...emailChangeController.cancelEmailChangeByTokenRoute.validators, tags: ['auth'] }) },
+      },
 
       // User Controller Routes (prefix: /api)
       '/api/me': {
@@ -324,6 +332,25 @@ export function getOpenApiSpec() {
       },
       '/api/me/profile/2fa/{type}': {
         delete: { ...getRequest({ ...userController.deleteAuthFactor.validators, tags: ['user'] }) },
+      },
+
+      // Step-up authentication and email change (prefix: /api)
+      '/api/me/profile/step-up/methods': {
+        get: { ...getRequest({ ...stepUpAuthController.getStepUpMethods.validators, tags: ['user'] }) },
+      },
+      '/api/me/profile/step-up/challenge': {
+        post: { ...getRequest({ ...stepUpAuthController.initStepUpChallenge.validators, tags: ['user'] }) },
+      },
+      '/api/me/profile/step-up/verify': {
+        post: { ...getRequest({ ...stepUpAuthController.verifyStepUp.validators, tags: ['user'] }) },
+      },
+      '/api/me/profile/email-change': {
+        get: { ...getRequest({ ...emailChangeController.getEmailChange.validators, tags: ['user'] }) },
+        post: { ...getRequest({ ...emailChangeController.requestEmailChange.validators, tags: ['user'] }) },
+        delete: { ...getRequest({ ...emailChangeController.cancelEmailChange.validators, tags: ['user'] }) },
+      },
+      '/api/me/profile/email-change/confirm': {
+        post: { ...getRequest({ ...emailChangeController.confirmEmailChangeAuthenticated.validators, tags: ['user'] }) },
       },
 
       // Data Sync Routes (prefix: /api)

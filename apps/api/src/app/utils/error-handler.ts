@@ -1,4 +1,5 @@
 import { logger } from '@jetstream/api-config';
+import { StepUpAuthRequiredError } from '@jetstream/auth/server';
 import { isPrismaError } from '@jetstream/prisma';
 import { ApiRequestError } from '@jetstream/salesforce-api';
 import z, { ZodError } from 'zod';
@@ -16,6 +17,9 @@ export function isKnownError(error: unknown) {
     error instanceof AuthenticationError ||
     error instanceof NotFoundError ||
     error instanceof NotAllowedError ||
+    // Forwarded as-is so the response handler can emit the 403 step-up prompt rather than having it
+    // rewrapped as a generic UserFacingError, which would lose the errorType the client keys on.
+    error instanceof StepUpAuthRequiredError ||
     isPrismaError(error)
   );
 }

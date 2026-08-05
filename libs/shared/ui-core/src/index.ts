@@ -24,6 +24,8 @@ export * from './app/NotificationsRequestModal';
 export * from './app/ProBadge';
 export * from './app/RequireMetadataApiBanner';
 export * from './app/ThemeApplier';
+export * from './auth/StepUpAuthModal';
+export * from './auth/useStepUpAuth';
 export * from './create-fields/create-fields-load-utils';
 export * from './create-fields/create-fields-types';
 export * from './create-fields/create-fields-utils';

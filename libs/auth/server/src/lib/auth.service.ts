@@ -1,4 +1,4 @@
-import { ENV, enrichRequestContext, getLogger } from '@jetstream/api-config';
+import { DbCacheProvider, ENV, enrichRequestContext, getLogger } from '@jetstream/api-config';
 import type { Request, Response } from '@jetstream/api-types';
 import { OauthProviderType, Providers, ResponseLocalsCookies, SessionIpData } from '@jetstream/auth/types';
 import { GeoIpLookupResponse } from '@jetstream/types';
@@ -9,7 +9,7 @@ import * as oauth from 'oauth4webapi';
 import * as QRCode from 'qrcode';
 import { OauthClientProvider, OauthClients } from './OauthClients';
 import { CURRENT_TOS_VERSION, EMAIL_VERIFICATION_TOKEN_DURATION_HOURS, TOKEN_DURATION_MINUTES } from './auth.constants';
-import { findUserById_UNSAFE, handleSignInOrRegistration } from './auth.db.service';
+import { findUserById_UNSAFE, getTotpAuthenticationFactor, handleSignInOrRegistration } from './auth.db.service';
 import { AuthError, InvalidCsrfToken, InvalidVerificationToken, InvalidVerificationType } from './auth.errors';
 import { generateHMACDoubleCSRFToken, getApiAddressFromReq, getCookieConfig, validateCSRFToken } from './auth.utils';
 
@@ -207,6 +207,34 @@ export async function verify2faTotpOrThrow(secret: string, code: string) {
   const validOTP = verifyTOTPWithGracePeriod(decodeHex(secret), TOTP_INTERVAL_SEC, TOTP_DIGITS, code, TOTP_GRACE_PERIOD_SEC);
   if (!validOTP) {
     throw new InvalidVerificationToken('Provided code does not match');
+  }
+}
+
+// Single-use guard for TOTP codes. A single shared instance so that every consumer - login
+// verification and step-up re-authentication alike - occupies the same namespace: a code burned
+// signing in cannot then be replayed to authorize a sensitive action, or vice versa.
+//
+// Constructed lazily rather than at module load: this module sits behind the @jetstream/auth/server
+// barrel, which is imported broadly, and a load-time side effect would force every consumer (and
+// every test that mocks @jetstream/api-config) to provide DbCacheProvider whether it uses TOTP or not.
+let totpReplayCache: DbCacheProvider | undefined;
+function getTotpReplayCache() {
+  totpReplayCache = totpReplayCache ?? new DbCacheProvider('2fa:otp-code', 1000 * 90);
+  return totpReplayCache;
+}
+
+/**
+ * Verifies a TOTP code for a user and burns it, so it cannot be used a second time within its
+ * validity window.
+ */
+export async function verifyTotpCodeOnceOrThrow(userId: string, code: string) {
+  const { secret } = await getTotpAuthenticationFactor(userId);
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  await verify2faTotpOrThrow(secret!, code);
+  // Atomically record the code and reject if it was already consumed (replay) for this user.
+  const isFirstUse = await getTotpReplayCache().consumeOnceAsync(`${userId}:${code}`);
+  if (!isFirstUse) {
+    throw new InvalidVerificationToken('Provided code has already been used');
   }
 }
 

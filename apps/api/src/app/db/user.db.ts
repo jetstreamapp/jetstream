@@ -1,4 +1,5 @@
 import { logger, prisma } from '@jetstream/api-config';
+import { getPendingEmailChangeForUser } from '@jetstream/auth/server';
 import { UserProfileSession } from '@jetstream/auth/types';
 import { Entitlement, Prisma } from '@jetstream/prisma';
 import {
@@ -135,10 +136,18 @@ const UserFacingProfileSelect = {
 } satisfies Prisma.UserSelect;
 
 export async function findUserWithIdentitiesById(id: string) {
-  return await prisma.user.findUniqueOrThrow({
-    select: FullUserFacingProfileSelect,
-    where: { id },
-  });
+  // pendingEmailChange rides along on the profile payload so the UI gets it without a second request
+  // or any polling - every profile mutation already returns this shape. What counts as "pending" is
+  // policy, so it is read through the canonical helper rather than restated here.
+  const [user, pendingEmailChange] = await Promise.all([
+    prisma.user.findUniqueOrThrow({
+      select: FullUserFacingProfileSelect,
+      where: { id },
+    }),
+    getPendingEmailChangeForUser(id),
+  ]);
+
+  return { ...user, pendingEmailChange };
 }
 
 export const findById = (id: string) => {

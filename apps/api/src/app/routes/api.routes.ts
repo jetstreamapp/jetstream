@@ -5,6 +5,7 @@ import express, { Router } from 'express';
 import { getAnnouncements } from '../announcements';
 import { routeDefinition as canvasOrgController } from '../controllers/canvas-org.controller';
 import { routeDefinition as dataSyncController } from '../controllers/data-sync.controller';
+import { routeDefinition as emailChangeController } from '../controllers/email-change.controller';
 import { routeDefinition as orgGroupController } from '../controllers/org-groups.controller';
 import { routeDefinition as orgsController } from '../controllers/orgs.controller';
 import { routeDefinition as salesforceApiReqController } from '../controllers/salesforce-api-requests.controller';
@@ -14,19 +15,26 @@ import { routeDefinition as metadataToolingController } from '../controllers/sf-
 import { routeDefinition as miscController } from '../controllers/sf-misc.controller';
 import { routeDefinition as queryController } from '../controllers/sf-query.controller';
 import { routeDefinition as recordController } from '../controllers/sf-record.controller';
+import { routeDefinition as stepUpAuthController } from '../controllers/step-up-auth.controller';
 import { routeDefinition as testController } from '../controllers/test.controller';
 import * as userFeedbackController from '../controllers/user-feedback.controller';
 import { routeDefinition as userController } from '../controllers/user.controller';
 import { deferredResponseMiddleware as dfr } from '../utils/deferred-response.middleware';
 import { sendJson } from '../utils/response.handlers';
 import {
+  accountManagementRateLimit,
   addOrgsToLocal,
   basicAuthMiddleware,
   checkAuth,
+  emailChangeRequestRateLimit,
+  emailChangeTokenRateLimit,
   ensureTargetOrgExists,
   feedbackRateLimit,
   feedbackUploadMiddleware,
   passwordResetEmailRateLimit,
+  requireStepUpAuth,
+  stepUpChallengeRateLimit,
+  stepUpVerifyRateLimit,
   validateDoubleCSRF,
   verifyEntitlement,
 } from './route.middleware';
@@ -76,6 +84,34 @@ routes.post('/me/profile/password/init', userController.initPassword.controllerF
 routes.post('/me/profile/password/reset', passwordResetEmailRateLimit, userController.initResetPassword.controllerFn());
 // TODO: should we allow users to remove their password if they have social login?
 routes.delete('/me/profile/password', userController.deletePassword.controllerFn());
+/**
+ * Step-up (re)authentication Routes - proving identity again before a sensitive account change
+ */
+routes.get('/me/profile/step-up/methods', accountManagementRateLimit, stepUpAuthController.getStepUpMethods.controllerFn());
+routes.post('/me/profile/step-up/challenge', stepUpChallengeRateLimit, stepUpAuthController.initStepUpChallenge.controllerFn());
+routes.post('/me/profile/step-up/verify', stepUpVerifyRateLimit, stepUpAuthController.verifyStepUp.controllerFn());
+/**
+ * Email Address Change Routes
+ */
+routes.get('/me/profile/email-change', accountManagementRateLimit, emailChangeController.getEmailChange.controllerFn());
+// Step-up runs BEFORE the mailbox-bombing limiter, which is keyed on the target address. The client
+// always posts once without a grant to discover that step-up is required, so counting that 403 would
+// spend two of the three hourly sends on a single successful change - and would let any authenticated
+// account exhaust the limit for someone else's address without re-authenticating at all. The per-user
+// accountManagementRateLimit leads so the un-granted preflight is still bounded by something.
+routes.post(
+  '/me/profile/email-change',
+  accountManagementRateLimit,
+  requireStepUpAuth('CHANGE_EMAIL'),
+  emailChangeRequestRateLimit,
+  emailChangeController.requestEmailChange.controllerFn(),
+);
+routes.post(
+  '/me/profile/email-change/confirm',
+  emailChangeTokenRateLimit,
+  emailChangeController.confirmEmailChangeAuthenticated.controllerFn(),
+);
+routes.delete('/me/profile/email-change', accountManagementRateLimit, emailChangeController.cancelEmailChange.controllerFn());
 /**
  * 2FA Routes
  */
