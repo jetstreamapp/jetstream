@@ -1,5 +1,49 @@
 [
   {
+    "slug": "v10.10.0",
+    "title": "10.10.0 - Change your email address, SOQL autocomplete",
+    "date": "2026-08-05",
+    "tags": [
+      "web",
+      "desktop"
+    ],
+    "versions": {
+      "web": "10.10.0",
+      "desktop": "4.7.0"
+    },
+    "summary": "Change the email address on your account without filing a support ticket, get autocomplete while writing SOQL, and see org connection expiration dates that match what Salesforce actually enforces.",
+    "highlights": [
+      {
+        "title": "Change your email address from your profile",
+        "description": "Update the email address on your Jetstream account yourself, confirmed from the new mailbox, instead of filing a support ticket.",
+        "platforms": [
+          "web"
+        ],
+        "docLink": "/user-profile-and-settings/user-profile"
+      },
+      {
+        "title": "Autocomplete while writing SOQL",
+        "description": "The SOQL editor suggests objects, fields, relationships, picklist values, and keywords from the org you have selected.",
+        "docLink": "/query"
+      },
+      {
+        "title": "Org expiration dates you can trust",
+        "description": "Connection expiration now reflects Salesforce's 30-day inactivity limit, with in-app and email warnings before a connection stops working.",
+        "platforms": [
+          "web"
+        ]
+      },
+      {
+        "title": "Orgs are saved per account on the desktop app",
+        "description": "Each Jetstream account signed in on the same computer keeps its own set of connected orgs.",
+        "platforms": [
+          "desktop"
+        ],
+        "docLink": "/desktop-app"
+      }
+    ]
+  },
+  {
     "slug": "v10.9.0",
     "title": "10.9.0 - Manage permission set assignments",
     "date": "2026-08-02",

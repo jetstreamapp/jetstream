@@ -1,0 +1,64 @@
+---
+slug: v10.10.0
+title: 10.10.0 - Change your email address, SOQL autocomplete
+date: '2026-08-05'
+tags: [web, desktop]
+versions:
+  web: 10.10.0
+  desktop: 4.7.0
+summary: Change the email address on your account without filing a support ticket, get autocomplete while writing SOQL, and see org connection expiration dates that match what Salesforce actually enforces.
+highlights:
+  - title: Change your email address from your profile
+    description: Update the email address on your Jetstream account yourself, confirmed from the new mailbox, instead of filing a support ticket.
+    platforms: [web]
+    docLink: /user-profile-and-settings/user-profile
+  - title: Autocomplete while writing SOQL
+    description: The SOQL editor suggests objects, fields, relationships, picklist values, and keywords from the org you have selected.
+    docLink: /query
+  - title: Org expiration dates you can trust
+    description: Connection expiration now reflects Salesforce's 30-day inactivity limit, with in-app and email warnings before a connection stops working.
+    platforms: [web]
+  - title: Orgs are saved per account on the desktop app
+    description: Each Jetstream account signed in on the same computer keeps its own set of connected orgs.
+    platforms: [desktop]
+    docLink: /desktop-app
+---
+
+{/* truncate */}
+
+## What's new
+
+### Change your email address from your profile
+
+Changing the email address on your Jetstream account used to mean filing a support ticket and waiting for someone to make the change by hand. You can now do it yourself: open your profile, click Edit next to Email, and enter the new address.
+
+Because your email address is how you sign in and how account recovery works, the change is deliberately careful. You confirm it is really you first, using your password, your authenticator app, or a code sent to your current email address. Jetstream then sends a confirmation link to the new address, which is what actually applies the change, so a typo can never lock you out of your own account. Your old address gets a heads-up at the same time with a link to cancel the request, in case the change was not something you asked for.
+
+While a request is outstanding, your profile shows the pending address, when the link expires, and a button to cancel it. Confirming the change signs you out everywhere and disconnects any connected apps, so anything still using the old address has to sign in again. If your team uses single sign-on, your email address is managed by your identity provider and this option points you to your administrator instead.
+
+### Autocomplete while writing SOQL
+
+Writing SOQL by hand meant remembering exact API names, or tabbing back and forth to look them up. The manual query editor and the SOQL panel on the query results page now offer suggestions as you type, pulled live from the org you have selected.
+
+Suggestions follow where your cursor is in the query. After `FROM` you get queryable objects. In the field list you get that object's fields, along with parent relationships you can keep traversing with a dot and child relationships that expand into a full subquery. After a comparison in a `WHERE` clause you get values that actually fit the field — picklist entries, true and false, and date literals like `LAST_N_DAYS:30`. Everywhere else you get the SOQL vocabulary itself: clauses, aggregate and date functions, `GROUP BY` and `ORDER BY` modifiers, and scope options.
+
+### Org expiration dates you can trust
+
+Salesforce now cuts off an org connection after 30 days without use, and that limit is theirs to enforce, not something Jetstream can extend. Jetstream's own policy was far more generous, which meant your orgs could look perfectly healthy in the app for months after Salesforce had already invalidated the credentials, and the first sign of trouble was a connection that suddenly stopped working.
+
+Expiration dates are now calculated from the last time you actually used the org, plus the 30 days Salesforce allows. Seven days before that date, the org gets a warning badge on its card and in the org dropdown, and a banner appears on the home page. Emails go out at seven days, one day, and on the day itself. Using the org at any point resets the clock, so an org you work in regularly will never warn you.
+
+### Orgs are saved per account on the desktop app
+
+The desktop app kept your connected orgs in a single file shared by everyone who signed in on that computer. On a shared or virtual desktop, a second person signing in could leave the first person unable to read their own orgs.
+
+Each account now gets its own org storage, so signing in with a different account never disturbs anyone else's connections. Your existing orgs move over automatically the first time you sign in after updating, and nothing needs to be reconnected.
+
+### Other fixes
+
+- Signing in to the desktop app or browser extension now returns you to the right place after you accept the Terms of Service, instead of dropping you into the web app.
+- The "Remember this device" option is no longer offered when signing in with single sign-on, where it never had any effect.
+- Starting a new sign-in or adding an org on the desktop app now cancels an earlier attempt you walked away from, so an abandoned login no longer reports an authentication error out of nowhere.
+- Buttons on desktop app dialogs that overlap the top of the window are clickable again.
+- Fixed newly released features being briefly unavailable right after an update, while the app and server were still on different versions.
+- Accepting the Terms of Service now also covers the Data Processing Agreement, and the agreement itself has been updated with current dates, obligations, and security measures.
