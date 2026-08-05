@@ -20,6 +20,8 @@ import { FakeFileStore } from '../file-store/fake-file-store';
 import { setHistoryFileStoreForTests } from '../file-store/file-store-factory';
 import { getOrgFolderName } from '../file-store/path-utils';
 
+const SPEC_USER_ID = 'spec-user-id';
+
 const org = { uniqueId: 'org-unique-id-1', label: 'My Dev Org' } as SalesforceOrgUi;
 
 let fakeStore: FakeFileStore;
@@ -90,7 +92,7 @@ describe('before initialization', () => {
 
 describe('initialized', () => {
   beforeAll(async () => {
-    await initDataHistory({ hasPaidPlan: true });
+    await initDataHistory({ userId: SPEC_USER_ID, hasPaidPlan: true });
   });
 
   beforeEach(async () => {
@@ -464,22 +466,22 @@ describe('paid-tier grace period', () => {
   });
 
   it('keeps paid limits during the grace window after the paid signal disappears', async () => {
-    await initDataHistory({ hasPaidPlan: true });
+    await initDataHistory({ userId: SPEC_USER_ID, hasPaidPlan: true });
     expect(getDataHistoryLimits()?.maxEntries).toBeNull();
 
     // e.g. a team dropping to PAST_DUE from an expired card
-    await initDataHistory({ hasPaidPlan: false });
+    await initDataHistory({ userId: SPEC_USER_ID, hasPaidPlan: false });
     expect(getDataHistoryLimits()?.maxEntries).toBeNull();
   });
 
   it('drops to free limits once the grace window has passed', async () => {
     await dataHistoryDb.savePaidPlanLastSeenAt(new Date(Date.now() - DATA_HISTORY_PAID_TIER_GRACE_MS - 1000));
-    await initDataHistory({ hasPaidPlan: false });
+    await initDataHistory({ userId: SPEC_USER_ID, hasPaidPlan: false });
     expect(getDataHistoryLimits()?.maxEntries).toBe(15);
   });
 
   it('applies free limits immediately for users who were never paid', async () => {
-    await initDataHistory({ hasPaidPlan: false });
+    await initDataHistory({ userId: SPEC_USER_ID, hasPaidPlan: false });
     expect(getDataHistoryLimits()?.maxEntries).toBe(15);
   });
 });

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { getEntryDirPath, getEntryFilePath, getOrgFolderName, getParentDirPath, splitRelativePath } from '../file-store/path-utils';
+import {
+  getEntryDirPath,
+  getEntryFilePath,
+  getOrgFolderName,
+  getParentDirPath,
+  getUserScopeDirName,
+  splitRelativePath,
+} from '../file-store/path-utils';
 
 describe('splitRelativePath', () => {
   it('splits a valid relative path', () => {
@@ -39,5 +46,30 @@ describe('getOrgFolderName', () => {
     const folderB = await getOrgFolderName('org!a');
     expect(folderA1).toBe(folderA2);
     expect(folderA1).not.toBe(folderB);
+  });
+});
+
+describe('getUserScopeDirName', () => {
+  it('is deterministic for the same user id', async () => {
+    expect(await getUserScopeDirName('user-123')).toBe(await getUserScopeDirName('user-123'));
+  });
+
+  it('produces a different directory for a different user id', async () => {
+    expect(await getUserScopeDirName('user-a')).not.toBe(await getUserScopeDirName('user-b'));
+  });
+
+  it('never exposes the raw user id — canvas scopes by Salesforce username', async () => {
+    const userId = 'someone@example.com.prod';
+    const dirName = await getUserScopeDirName(userId);
+    expect(dirName).not.toContain(userId);
+    expect(dirName).toMatch(/^u-[0-9a-f]{16}$/);
+  });
+
+  it('is a single safe path segment, so backends can join it onto a root', async () => {
+    expect(splitRelativePath(await getUserScopeDirName('user-123'))).toHaveLength(1);
+  });
+
+  it('rejects an empty user id rather than producing a shared directory', async () => {
+    await expect(getUserScopeDirName('')).rejects.toThrow();
   });
 });

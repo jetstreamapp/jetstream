@@ -37,14 +37,27 @@ vi.mock('../persistence.service', () => ({
 
 const TEXT_ENCODER = new TextEncoder();
 const GZIP_MAGIC = [0x1f, 0x8b];
+/** Stands in for the hashed user id the renderer sends on `init` */
+const SPEC_SCOPE_DIR = 'u-0123456789abcdef';
 
+/**
+ * Import the service and bind it to a user, as the renderer's `init` op does before any other
+ * op. Every path op resolves under the scope, so an uninitialized service is unusable by design.
+ */
 async function importService() {
-  return import('../data-history-file.service');
+  const service = await import('../data-history-file.service');
+  await service.handleDataHistoryOp({ op: 'init', scopeDir: SPEC_SCOPE_DIR });
+  return service;
 }
 
-/** The service's default base dir: `<userData>/data-history` */
+/** The history CONTAINER: `<userData>/data-history` — what the folder preference points at */
 function defaultBaseDir() {
   return join(mocks.userDataDir, 'data-history');
+}
+
+/** Where this user's files actually live: `<container>/<scope>` */
+function scopedBaseDir() {
+  return join(defaultBaseDir(), SPEC_SCOPE_DIR);
 }
 
 vi.setConfig({ testTimeout: 30_000 });
@@ -91,7 +104,7 @@ describe('data-history-file.service', () => {
       expect(gzipped.bytes).toBeGreaterThan(0);
       expect(gzipped.bytes).toBeLessThan(content.length);
 
-      const rawGzip = await fs.readFile(join(defaultBaseDir(), 'org-1', 'dh_a', 'input.csv.gz'));
+      const rawGzip = await fs.readFile(join(scopedBaseDir(), 'org-1', 'dh_a', 'input.csv.gz'));
       expect([rawGzip[0], rawGzip[1]]).toEqual(GZIP_MAGIC);
       expect(gunzipSync(rawGzip).toString('utf8')).toBe(content);
 
@@ -102,7 +115,7 @@ describe('data-history-file.service', () => {
       })) as Uint8Array;
       expect(Buffer.from(readBack).toString('utf8')).toBe('{"a":1}');
 
-      const entryFiles = await fs.readdir(join(defaultBaseDir(), 'org-1', 'dh_a'));
+      const entryFiles = await fs.readdir(join(scopedBaseDir(), 'org-1', 'dh_a'));
       expect(entryFiles.some((fileName) => fileName.endsWith('.tmp'))).toBe(false);
     });
 
@@ -120,7 +133,7 @@ describe('data-history-file.service', () => {
         gzip: false,
         bytes: TEXT_ENCODER.encode('v2'),
       });
-      const onDisk = await fs.readFile(join(defaultBaseDir(), 'org-1', 'dh_a', 'manifest.json'), 'utf8');
+      const onDisk = await fs.readFile(join(scopedBaseDir(), 'org-1', 'dh_a', 'manifest.json'), 'utf8');
       expect(onDisk).toBe('v2');
     });
 
@@ -146,7 +159,7 @@ describe('data-history-file.service', () => {
       await service.handleDataHistoryOp({ op: 'stream-write', streamId, bytes: TEXT_ENCODER.encode('001,true') });
       const closed = (await service.handleDataHistoryOp({ op: 'stream-close', streamId })) as { bytes: number };
 
-      const onDisk = await fs.readFile(join(defaultBaseDir(), 'org-1', 'dh_b', 'results.csv'), 'utf8');
+      const onDisk = await fs.readFile(join(scopedBaseDir(), 'org-1', 'dh_b', 'results.csv'), 'utf8');
       expect(onDisk).toBe('_id,_success\n001,true');
       expect(closed.bytes).toBe(onDisk.length);
     });
@@ -160,7 +173,7 @@ describe('data-history-file.service', () => {
       await service.handleDataHistoryOp({ op: 'stream-write', streamId, bytes: TEXT_ENCODER.encode('001,true') });
       const closed = (await service.handleDataHistoryOp({ op: 'stream-close', streamId })) as { bytes: number };
 
-      const rawGzip = await fs.readFile(join(defaultBaseDir(), 'org-1', 'dh_b', 'results.csv.gz'));
+      const rawGzip = await fs.readFile(join(scopedBaseDir(), 'org-1', 'dh_b', 'results.csv.gz'));
       expect([rawGzip[0], rawGzip[1]]).toEqual(GZIP_MAGIC);
       expect(gunzipSync(rawGzip).toString('utf8')).toBe('_id,_success\n001,true');
       expect(closed.bytes).toBe(rawGzip.byteLength);
@@ -173,7 +186,7 @@ describe('data-history-file.service', () => {
       };
       await service.handleDataHistoryOp({ op: 'stream-write', streamId, bytes: TEXT_ENCODER.encode('partial') });
       await service.handleDataHistoryOp({ op: 'stream-abort', streamId });
-      await expect(fs.access(join(defaultBaseDir(), 'org-1', 'dh_c', 'results.csv'))).rejects.toThrow();
+      await expect(fs.access(join(scopedBaseDir(), 'org-1', 'dh_c', 'results.csv'))).rejects.toThrow();
     });
 
     it('rejects stream ops from a different sender than the one that opened the stream', async () => {
@@ -192,7 +205,7 @@ describe('data-history-file.service', () => {
 
       await service.handleDataHistoryOp({ op: 'stream-write', streamId, bytes: TEXT_ENCODER.encode('mine') }, { senderId: 1 });
       await service.handleDataHistoryOp({ op: 'stream-close', streamId }, { senderId: 1 });
-      expect(await fs.readFile(join(defaultBaseDir(), 'org-1', 'dh_owner', 'results.csv'), 'utf8')).toBe('mine');
+      expect(await fs.readFile(join(scopedBaseDir(), 'org-1', 'dh_owner', 'results.csv'), 'utf8')).toBe('mine');
     });
 
     it('refuses delete-dir while a stream is open under that directory', async () => {
@@ -205,14 +218,14 @@ describe('data-history-file.service', () => {
 
       await service.handleDataHistoryOp({ op: 'stream-close', streamId });
       await expect(service.handleDataHistoryOp({ op: 'delete-dir', path: 'org-1/dh_del' })).resolves.toBeUndefined();
-      await expect(fs.access(join(defaultBaseDir(), 'org-1', 'dh_del'))).rejects.toThrow();
+      await expect(fs.access(join(scopedBaseDir(), 'org-1', 'dh_del'))).rejects.toThrow();
     });
 
     it('an fs error surfaces on the next stream op instead of crashing the process', async () => {
       const service = await importService();
       // Pre-create a DIRECTORY at the exact file path so the WriteStream's lazy open fails
       // (EISDIR) and emits 'error' with no op in flight.
-      await fs.mkdir(join(defaultBaseDir(), 'org-1', 'dh_d', 'results.csv'), { recursive: true });
+      await fs.mkdir(join(scopedBaseDir(), 'org-1', 'dh_d', 'results.csv'), { recursive: true });
       const { streamId } = (await service.handleDataHistoryOp({ op: 'open-stream', path: 'org-1/dh_d/results.csv', gzip: false })) as {
         streamId: number;
       };
@@ -247,7 +260,7 @@ describe('data-history-file.service', () => {
       await service.abortDataHistoryStreamsForSender(1);
 
       // partial file discarded, stream forgotten, and relocation works again
-      await expect(fs.access(join(defaultBaseDir(), 'org-1', 'dh_reload', 'results.csv'))).rejects.toThrow();
+      await expect(fs.access(join(scopedBaseDir(), 'org-1', 'dh_reload', 'results.csv'))).rejects.toThrow();
       await expect(
         service.handleDataHistoryOp({ op: 'stream-write', streamId, bytes: TEXT_ENCODER.encode('x') }, { senderId: 1 }),
       ).rejects.toThrow(/Unknown streamId/);
@@ -265,7 +278,7 @@ describe('data-history-file.service', () => {
 
       await service.handleDataHistoryOp({ op: 'stream-write', streamId, bytes: TEXT_ENCODER.encode('still open') }, { senderId: 2 });
       await service.handleDataHistoryOp({ op: 'stream-close', streamId }, { senderId: 2 });
-      expect(await fs.readFile(join(defaultBaseDir(), 'org-1', 'dh_other', 'results.csv'), 'utf8')).toBe('still open');
+      expect(await fs.readFile(join(scopedBaseDir(), 'org-1', 'dh_other', 'results.csv'), 'utf8')).toBe('still open');
     });
   });
 
@@ -290,7 +303,7 @@ describe('data-history-file.service', () => {
       const expectedTarget = join(newParent, 'jetstream-data-history');
       expect(result).toBe(expectedTarget);
       expect(mocks.preferences.dataHistoryFolder).toBe(expectedTarget);
-      const moved = await fs.readFile(join(expectedTarget, 'org-1', 'dh_a', 'manifest.json'), 'utf8');
+      const moved = await fs.readFile(join(expectedTarget, SPEC_SCOPE_DIR, 'org-1', 'dh_a', 'manifest.json'), 'utf8');
       expect(moved).toBe('{}');
       // Old base dir removed after a successful copy
       await expect(fs.access(defaultBaseDir())).rejects.toThrow();
@@ -325,25 +338,26 @@ describe('data-history-file.service', () => {
       await expect(service.setDataHistoryFolderPath(bogusParent)).rejects.toThrow();
 
       expect(mocks.preferences.dataHistoryFolder).toBeUndefined();
-      const original = await fs.readFile(join(defaultBaseDir(), 'org-1', 'dh_a', 'manifest.json'), 'utf8');
+      const original = await fs.readFile(join(scopedBaseDir(), 'org-1', 'dh_a', 'manifest.json'), 'utf8');
       expect(original).toBe('{}');
     });
 
     it('never deletes a pre-existing target folder when the copy fails', async () => {
       const service = await importService();
-      // Source contains a DIRECTORY named 'x'; pre-existing target contains a FILE named 'x' —
-      // fs.cp cannot overwrite a file with a directory, so the copy fails midway
+      // The container's top level is the scope dir, so that is where the collision has to be:
+      // source has it as a DIRECTORY, the pre-existing target as a FILE, and fs.cp cannot
+      // overwrite a file with a directory — so the copy fails midway
       await service.handleDataHistoryOp({ op: 'write-file', path: 'x/dh_a/manifest.json', gzip: false, bytes: TEXT_ENCODER.encode('{}') });
       const newParent = join(tempRoot, 'occupied-location');
       const preExistingTarget = join(newParent, 'jetstream-data-history');
       await fs.mkdir(preExistingTarget, { recursive: true });
-      await fs.writeFile(join(preExistingTarget, 'x'), 'pre-existing user data');
+      await fs.writeFile(join(preExistingTarget, SPEC_SCOPE_DIR), 'pre-existing user data');
 
       await expect(service.setDataHistoryFolderPath(newParent)).rejects.toThrow();
 
       expect(mocks.preferences.dataHistoryFolder).toBeUndefined();
       // The pre-existing target folder and its content must survive the failed attempt
-      const preserved = await fs.readFile(join(preExistingTarget, 'x'), 'utf8');
+      const preserved = await fs.readFile(join(preExistingTarget, SPEC_SCOPE_DIR), 'utf8');
       expect(preserved).toBe('pre-existing user data');
     });
 
@@ -422,6 +436,91 @@ describe('data-history-file.service', () => {
     it('rejects a target inside the current history folder', async () => {
       const service = await importService();
       await expect(service.setDataHistoryFolderPath(defaultBaseDir())).rejects.toThrow(/cannot be inside the current one/);
+    });
+  });
+
+  // ────────────────────────────────────────────────
+  // per-user scoping
+  // ────────────────────────────────────────────────
+  describe('per-user scoping', () => {
+    const OTHER_SCOPE_DIR = 'u-fedcba9876543210';
+
+    it('refuses every path op until a user is bound', async () => {
+      const service = await import('../data-history-file.service');
+      await expect(
+        service.handleDataHistoryOp({ op: 'write-file', path: 'org-1/dh_a/manifest.json', gzip: false, bytes: TEXT_ENCODER.encode('{}') }),
+      ).rejects.toThrow(/not been initialized for a user/);
+    });
+
+    it('rejects a scope that tries to escape the history folder', async () => {
+      const service = await import('../data-history-file.service');
+      await expect(service.handleDataHistoryOp({ op: 'init', scopeDir: '../..' })).rejects.toThrow(/Invalid path segment/);
+      await expect(service.handleDataHistoryOp({ op: 'init', scopeDir: 'a/b' })).rejects.toThrow(/Invalid data history user scope/);
+    });
+
+    it('keeps two accounts on one machine in separate trees', async () => {
+      const service = await importService();
+      await service.handleDataHistoryOp({
+        op: 'write-file',
+        path: 'org-1/dh_a/manifest.json',
+        gzip: false,
+        bytes: TEXT_ENCODER.encode('{"user":"a"}'),
+      });
+
+      // The second account signs in — on desktop this follows an app reload, so the same module
+      // is simply re-initialized with a different scope
+      await service.handleDataHistoryOp({ op: 'init', scopeDir: OTHER_SCOPE_DIR });
+      await service.handleDataHistoryOp({
+        op: 'write-file',
+        path: 'org-1/dh_b/manifest.json',
+        gzip: false,
+        bytes: TEXT_ENCODER.encode('{"user":"b"}'),
+      });
+
+      // `reindex` imports whatever this returns, so it must never surface the other account
+      expect(await service.handleDataHistoryOp({ op: 'list-entry-dirs' })).toEqual({ dirs: [{ orgFolder: 'org-1', entryKey: 'dh_b' }] });
+      await expect(service.handleDataHistoryOp({ op: 'read-file', path: 'org-1/dh_a/manifest.json', gunzip: false })).rejects.toThrow();
+
+      // The first account's files are untouched on disk and still readable once it signs back in
+      await service.handleDataHistoryOp({ op: 'init', scopeDir: SPEC_SCOPE_DIR });
+      const bytes = (await service.handleDataHistoryOp({ op: 'read-file', path: 'org-1/dh_a/manifest.json', gunzip: false })) as Uint8Array;
+      expect(new TextDecoder().decode(bytes)).toBe('{"user":"a"}');
+    });
+
+    it('deleting an entry dir cannot reach another account, which is what the retention sweep does', async () => {
+      const service = await importService();
+      await service.handleDataHistoryOp({
+        op: 'write-file',
+        path: 'org-1/dh_shared/manifest.json',
+        gzip: false,
+        bytes: TEXT_ENCODER.encode('{"user":"a"}'),
+      });
+
+      await service.handleDataHistoryOp({ op: 'init', scopeDir: OTHER_SCOPE_DIR });
+      await service.handleDataHistoryOp({ op: 'delete-dir', path: 'org-1/dh_shared' });
+
+      const survived = await fs.readFile(join(scopedBaseDir(), 'org-1', 'dh_shared', 'manifest.json'), 'utf8');
+      expect(survived).toBe('{"user":"a"}');
+    });
+
+    it('reports storage usage for the signed-in account only', async () => {
+      const service = await importService();
+      await service.handleDataHistoryOp({
+        op: 'write-file',
+        path: 'org-1/dh_a/manifest.json',
+        gzip: false,
+        bytes: TEXT_ENCODER.encode('aaaaaaaaaaaaaaaaaaaa'),
+      });
+
+      await service.handleDataHistoryOp({ op: 'init', scopeDir: OTHER_SCOPE_DIR });
+      await service.handleDataHistoryOp({
+        op: 'write-file',
+        path: 'org-1/dh_b/manifest.json',
+        gzip: false,
+        bytes: TEXT_ENCODER.encode('bb'),
+      });
+
+      expect(await service.handleDataHistoryOp({ op: 'estimate' })).toEqual({ usageBytes: 2 });
     });
   });
 });

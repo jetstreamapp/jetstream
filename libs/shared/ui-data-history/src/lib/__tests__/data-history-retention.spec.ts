@@ -6,6 +6,8 @@ import { initDataHistory, updateDataHistoryRetentionSettings } from '../data-his
 import { FakeFileStore } from '../file-store/fake-file-store';
 import { setHistoryFileStoreForTests } from '../file-store/file-store-factory';
 
+const SPEC_USER_ID = 'spec-user-id';
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 const TEXT_ENCODER = new TextEncoder();
 
@@ -57,7 +59,7 @@ async function seedEntry(overrides: Partial<DataHistoryItem> & { withFile?: bool
 // Free tier (jsdom is none of desktop/extension/canvas): 60-day retention, 500MB cap
 describe('runDataHistoryRetentionSweep', () => {
   beforeAll(async () => {
-    await initDataHistory({ hasPaidPlan: false });
+    await initDataHistory({ userId: SPEC_USER_ID, hasPaidPlan: false });
   });
 
   beforeEach(async () => {

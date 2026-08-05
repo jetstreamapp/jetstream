@@ -11,3 +11,4 @@ export * from './lib/file-store/file-store.types';
 export * from './lib/file-store/fsa-types';
 export * from './lib/file-store/native-fs-file-store';
 export * from './lib/file-store/path-utils';
+export * from './lib/file-store/user-scope';

@@ -19,6 +19,7 @@ import {
 import { HistoryFileStore } from './file-store/file-store.types';
 import { FsaDirectoryHandle, isFileSystemAccessSupported, showHistoryDirectoryPicker } from './file-store/fsa-types';
 import { DATA_HISTORY_FILE_NAMES, getParentDirPath } from './file-store/path-utils';
+import { getUserScopeDir } from './file-store/user-scope';
 import { isCanvasApp, isDesktopApp } from './platform';
 
 /**
@@ -108,7 +109,7 @@ export async function connectHistoryDirectory(onProgress?: DataHistoryMigrationP
   ) {
     throw new Error('Jetstream was not given permission to write to the selected folder');
   }
-  const store = new DirectoryHandleFileStore(handle);
+  const store = new DirectoryHandleFileStore(handle, await getUserScopeDir());
   await store.init();
   await activateBackend({ active: 'directory', directoryHandle: handle });
   const migrated = await migrateHistoryEntries({ to: store, onProgress });
@@ -174,9 +175,11 @@ export async function changeHistoryDirectory(
   ) {
     throw new Error('Jetstream was not given permission to write to the selected folder');
   }
-  const newStore = new DirectoryHandleFileStore(newHandle);
+  // Both folders are scoped to the SAME user — this is one account moving its own history
+  const scopeDir = await getUserScopeDir();
+  const newStore = new DirectoryHandleFileStore(newHandle, scopeDir);
   await newStore.init();
-  const oldStore = new DirectoryHandleFileStore(oldHandle);
+  const oldStore = new DirectoryHandleFileStore(oldHandle, scopeDir);
   let oldStoreAvailable = true;
   try {
     await oldStore.init();

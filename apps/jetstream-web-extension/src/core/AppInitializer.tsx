@@ -134,7 +134,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
     }
     initDexieDb({ userId: chromeUserProfile.id, dbName: LOCAL_STORE_DB_NAME, recordSyncEnabled })
       // No paid signal passed — the extension always gets the top history tier via platform detection
-      .then(() => initDataHistory())
+      .then(() => initDataHistory({ userId: chromeUserProfile.id }))
       .then(({ captureEnabled }) => {
         setDataHistoryCaptureEnabled(captureEnabled);
         setDataHistoryInitialized(true);

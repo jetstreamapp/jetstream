@@ -60,11 +60,23 @@ const workerScope = globalThis as unknown as HistoryWorkerScope;
 let rootDirPromise: Promise<FileSystemDirectoryHandle> | null = null;
 const openStreams = new Map<number, OpenStreamState>();
 
+/**
+ * Per-user directory the whole tree is rooted under, supplied by the `init` op. OPFS is per-ORIGIN,
+ * so without it every account on a shared browser profile would read and sweep one shared tree.
+ * Every other op resolves through `getRootDir()`, which throws until `init` has set this.
+ */
+let scopeDir: string | null = null;
+
 function getRootDir(): Promise<FileSystemDirectoryHandle> {
+  if (!scopeDir) {
+    throw new Error('History storage worker has not been initialized with a user scope');
+  }
   if (!rootDirPromise) {
+    const scopeDirName = scopeDir;
     rootDirPromise = navigator.storage
       .getDirectory()
-      .then((opfsRoot) => opfsRoot.getDirectoryHandle(DATA_HISTORY_ROOT_DIR, { create: true }));
+      .then((opfsRoot) => opfsRoot.getDirectoryHandle(DATA_HISTORY_ROOT_DIR, { create: true }))
+      .then((historyRoot) => historyRoot.getDirectoryHandle(scopeDirName, { create: true }));
     // Allow retry on failure rather than caching a rejected promise forever
     rootDirPromise.catch(() => {
       rootDirPromise = null;
@@ -190,6 +202,13 @@ async function handleReadFile(path: string, gunzip: boolean): Promise<Blob> {
   return await new Response(stream).blob();
 }
 
+/**
+ * Deliberately NOT per-user, unlike every other op here: `navigator.storage.estimate()` reports the
+ * whole ORIGIN, so on a shared browser profile this includes other accounts' history (and every
+ * other thing Jetstream stores). That is the right number anyway — the quota it is compared against
+ * is also per-origin, so this is what actually governs whether the next write succeeds. Per-user
+ * usage comes from the summed `sizeBytes` index on the history rows instead.
+ */
 async function handleEstimate(): Promise<EstimateResult> {
   const estimate = await navigator.storage.estimate();
   return { usageBytes: estimate.usage, quotaBytes: estimate.quota };
@@ -198,6 +217,12 @@ async function handleEstimate(): Promise<EstimateResult> {
 async function handleRequest(request: HistoryWorkerRequest): Promise<unknown> {
   switch (request.op) {
     case 'init': {
+      // A respawned worker re-inits, and the scope can only change across a logout (which disposes
+      // the store entirely) — so a changed scope means the cached root belongs to another account.
+      if (scopeDir !== request.scopeDir) {
+        scopeDir = request.scopeDir;
+        rootDirPromise = null;
+      }
       await getRootDir();
       return undefined;
     }

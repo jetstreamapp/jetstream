@@ -9,6 +9,7 @@ import { FakeFsaDirectoryHandle } from './fake-fsa-handles';
 
 const TEXT_ENCODER = new TextEncoder();
 const GZIP_MAGIC = [0x1f, 0x8b];
+const SPEC_SCOPE_DIR = 'u-0123456789abcdef';
 
 /**
  * Contract test suite every `HistoryFileStore` implementation must pass. The OPFS backend cannot
@@ -114,7 +115,7 @@ describe('FakeFileStore failure simulation', () => {
 });
 
 describeHistoryFileStoreContract('DirectoryHandleFileStore (fake FSA handles)', async () => {
-  const store = new DirectoryHandleFileStore(new FakeFsaDirectoryHandle());
+  const store = new DirectoryHandleFileStore(new FakeFsaDirectoryHandle(), SPEC_SCOPE_DIR);
   await store.init();
   return store;
 });
@@ -123,7 +124,7 @@ describe('DirectoryHandleFileStore permissions', () => {
   it('init throws DataHistoryDirectoryPermissionError when permission is not granted', async () => {
     const root = new FakeFsaDirectoryHandle();
     root.permissionState = 'prompt';
-    const store = new DirectoryHandleFileStore(root);
+    const store = new DirectoryHandleFileStore(root, SPEC_SCOPE_DIR);
     await expect(store.init()).rejects.toBeInstanceOf(DataHistoryDirectoryPermissionError);
   });
 
@@ -131,7 +132,7 @@ describe('DirectoryHandleFileStore permissions', () => {
     const root = new FakeFsaDirectoryHandle();
     root.permissionState = 'prompt';
     root.permissionStateAfterRequest = 'granted';
-    const store = new DirectoryHandleFileStore(root);
+    const store = new DirectoryHandleFileStore(root, SPEC_SCOPE_DIR);
     expect(await store.requestAccess()).toBe(true);
     await store.init();
   });
@@ -139,7 +140,7 @@ describe('DirectoryHandleFileStore permissions', () => {
 
 describe('DirectoryHandleFileStore abort semantics', () => {
   it('aborting an overwrite stream preserves the pre-existing file (FSA swap-file semantics)', async () => {
-    const store = new DirectoryHandleFileStore(new FakeFsaDirectoryHandle());
+    const store = new DirectoryHandleFileStore(new FakeFsaDirectoryHandle(), SPEC_SCOPE_DIR);
     await store.init();
     await store.writeFile('org-1/dh_x/results.csv', TEXT_ENCODER.encode('good data'), { gzip: false });
 
@@ -159,10 +160,21 @@ describe('DirectoryHandleFileStore abort semantics', () => {
  * mirroring its semantics (node zlib gzip, raw bytes over IPC) so NativeFsFileStore passes the
  * same contract as every other backend.
  */
-function createFakeElectronDataHistoryApi() {
-  const files = new Map<string, Uint8Array>();
+function createFakeElectronDataHistoryApi(sharedFiles?: Map<string, Uint8Array>) {
+  // Optionally shared between two API instances, so a test can prove that two users backed by the
+  // SAME history folder still cannot see each other's files.
+  const files = sharedFiles ?? new Map<string, Uint8Array>();
   const streams = new Map<number, { chunks: Uint8Array[]; gzip: boolean; path: string }>();
   let nextStreamId = 1;
+  // Mirrors the real main process: the scope arrives on `init` and every path resolves under it
+  let scopeDir: string | null = null;
+
+  function scoped(relativePath: string): string {
+    if (!scopeDir) {
+      throw new Error('Data history storage has not been initialized for a user');
+    }
+    return `${scopeDir}/${relativePath}`;
+  }
 
   function concat(chunks: Uint8Array[]): Uint8Array {
     const total = chunks.reduce((sum, chunk) => sum + chunk.byteLength, 0);
@@ -178,16 +190,17 @@ function createFakeElectronDataHistoryApi() {
   async function dataHistoryRequest(payload: any): Promise<unknown> {
     switch (payload.op) {
       case 'init': {
+        scopeDir = payload.scopeDir;
         return undefined;
       }
       case 'write-file': {
         const output = payload.gzip ? new Uint8Array(gzipSync(payload.bytes)) : payload.bytes;
-        files.set(payload.path, output);
+        files.set(scoped(payload.path), output);
         return { bytes: output.byteLength };
       }
       case 'open-stream': {
         const streamId = nextStreamId++;
-        streams.set(streamId, { chunks: [], gzip: payload.gzip, path: payload.path });
+        streams.set(streamId, { chunks: [], gzip: payload.gzip, path: scoped(payload.path) });
         return { streamId };
       }
       case 'stream-write': {
@@ -218,7 +231,7 @@ function createFakeElectronDataHistoryApi() {
         return undefined;
       }
       case 'read-file': {
-        const bytes = files.get(payload.path);
+        const bytes = files.get(scoped(payload.path));
         if (!bytes) {
           throw new Error(`File not found: ${payload.path}`);
         }
@@ -226,7 +239,7 @@ function createFakeElectronDataHistoryApi() {
       }
       case 'delete-dir': {
         for (const path of Array.from(files.keys())) {
-          if (path.startsWith(`${payload.path}/`)) {
+          if (path.startsWith(`${scoped(payload.path)}/`)) {
             files.delete(path);
           }
         }
@@ -234,8 +247,12 @@ function createFakeElectronDataHistoryApi() {
       }
       case 'list-entry-dirs': {
         const dirs = new Map<string, { orgFolder: string; entryKey: string }>();
+        const prefix = `${scoped('')}`;
         for (const path of files.keys()) {
-          const segments = path.split('/');
+          if (!path.startsWith(prefix)) {
+            continue;
+          }
+          const segments = path.slice(prefix.length).split('/');
           if (segments.length >= 3) {
             dirs.set(`${segments[0]}/${segments[1]}`, { orgFolder: segments[0], entryKey: segments[1] });
           }
@@ -243,8 +260,14 @@ function createFakeElectronDataHistoryApi() {
         return { dirs: Array.from(dirs.values()) };
       }
       case 'estimate': {
+        // Scoped like the real main process, which sizes only the signed-in user's subfolder
         let usageBytes = 0;
-        files.forEach((bytes) => (usageBytes += bytes.byteLength));
+        const prefix = `${scoped('')}`;
+        files.forEach((bytes, path) => {
+          if (path.startsWith(prefix)) {
+            usageBytes += bytes.byteLength;
+          }
+        });
         return { usageBytes };
       }
       default: {
@@ -258,7 +281,76 @@ function createFakeElectronDataHistoryApi() {
 
 describeHistoryFileStoreContract('NativeFsFileStore (fake electron API)', async () => {
   (window as any).electronAPI = createFakeElectronDataHistoryApi();
-  const store = new NativeFsFileStore();
+  const store = new NativeFsFileStore(SPEC_SCOPE_DIR);
   await store.init();
   return store;
+});
+
+/**
+ * The whole point of the per-user scope directory: accounts sharing a machine share the underlying
+ * storage (one OPFS origin, one desktop history folder, or the same folder picked twice), so
+ * isolation has to come from the path each store roots at. Without it the damage is not only a read
+ * leak — the retention sweep deletes entry dirs with no matching row, so whichever user signs in
+ * second silently destroys the first user's history, and `reindex` imports their entries.
+ */
+describe('per-user storage isolation', () => {
+  const USER_A_SCOPE = 'u-aaaaaaaaaaaaaaaa';
+  const USER_B_SCOPE = 'u-bbbbbbbbbbbbbbbb';
+
+  it('DirectoryHandleFileStore: two users pointed at the SAME folder never see each other', async () => {
+    const sharedFolder = new FakeFsaDirectoryHandle();
+    const storeA = new DirectoryHandleFileStore(sharedFolder, USER_A_SCOPE);
+    const storeB = new DirectoryHandleFileStore(sharedFolder, USER_B_SCOPE);
+    await storeA.init();
+    await storeB.init();
+
+    await storeA.writeFile('org-1/dh_a/manifest.json', TEXT_ENCODER.encode('{"user":"a"}'), { gzip: false });
+    await storeB.writeFile('org-1/dh_b/manifest.json', TEXT_ENCODER.encode('{"user":"b"}'), { gzip: false });
+
+    // Same relative path, different user -> different file
+    expect(await (await storeA.readFile('org-1/dh_a/manifest.json', { gunzip: false })).text()).toBe('{"user":"a"}');
+    await expect(storeB.readFile('org-1/dh_a/manifest.json', { gunzip: false })).rejects.toThrow();
+
+    // What reindex and the retention sweep enumerate: neither user's tree includes the other's
+    expect(await storeA.listEntryDirs()).toEqual([{ orgFolder: 'org-1', entryKey: 'dh_a' }]);
+    expect(await storeB.listEntryDirs()).toEqual([{ orgFolder: 'org-1', entryKey: 'dh_b' }]);
+  });
+
+  it('DirectoryHandleFileStore: one user deleting an entry dir leaves the other user intact', async () => {
+    const sharedFolder = new FakeFsaDirectoryHandle();
+    const storeA = new DirectoryHandleFileStore(sharedFolder, USER_A_SCOPE);
+    const storeB = new DirectoryHandleFileStore(sharedFolder, USER_B_SCOPE);
+    await storeA.init();
+    await storeB.init();
+    await storeA.writeFile('org-1/dh_shared/results.csv', TEXT_ENCODER.encode('a'), { gzip: false });
+    await storeB.writeFile('org-1/dh_shared/results.csv', TEXT_ENCODER.encode('b'), { gzip: false });
+
+    // Exactly what the sweep does to a dir it considers orphaned
+    await storeB.deleteEntryDir('org-1/dh_shared');
+
+    expect(await (await storeA.readFile('org-1/dh_shared/results.csv', { gunzip: false })).text()).toBe('a');
+    expect(await storeB.listEntryDirs()).toEqual([]);
+  });
+
+  it('NativeFsFileStore: two users in one desktop history folder never see each other', async () => {
+    const sharedFolder = new Map<string, Uint8Array>();
+
+    (window as any).electronAPI = createFakeElectronDataHistoryApi(sharedFolder);
+    const storeA = new NativeFsFileStore(USER_A_SCOPE);
+    await storeA.init();
+    await storeA.writeFile('org-1/dh_a/manifest.json', TEXT_ENCODER.encode('{"user":"a"}'), { gzip: false });
+
+    (window as any).electronAPI = createFakeElectronDataHistoryApi(sharedFolder);
+    const storeB = new NativeFsFileStore(USER_B_SCOPE);
+    await storeB.init();
+    await storeB.writeFile('org-1/dh_b/manifest.json', TEXT_ENCODER.encode('{"user":"b"}'), { gzip: false });
+
+    // Reindex is native-only and imports whatever it enumerates, so this is the leak that matters
+    expect(await storeB.listEntryDirs()).toEqual([{ orgFolder: 'org-1', entryKey: 'dh_b' }]);
+    await expect(storeB.readFile('org-1/dh_a/manifest.json', { gunzip: false })).rejects.toThrow();
+
+    // Usage drives the signed-in user's quota UI and must not count the other account's files
+    const estimate = await storeB.estimate();
+    expect(estimate?.usageBytes).toBe(TEXT_ENCODER.encode('{"user":"b"}').byteLength);
+  });
 });

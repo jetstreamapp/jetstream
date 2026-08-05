@@ -67,7 +67,6 @@ const pendingDeepLinkFlows = new Map<string, () => void>();
 function startDeepLinkFlow(action: string, handleCallback: (params: Record<string, string>) => Promise<void>) {
   pendingDeepLinkFlows.get(action)?.();
 
-  let timeout: ReturnType<typeof setTimeout> | undefined;
   let disposeListener: () => void = () => undefined;
 
   const cancel = () => {
@@ -82,7 +81,9 @@ function startDeepLinkFlow(action: string, handleCallback: (params: Record<strin
   disposeListener = deepLink.once(action, (params) => {
     handleCallback(params).finally(cancel);
   });
-  timeout = setTimeout(cancel, DEEP_LINK_FLOW_TIMEOUT_MS);
+  // Declared after `cancel` (which clears it) — safe because `cancel` only ever runs from an async
+  // path: this timer, or the deep-link callback's `.finally`, which is never synchronous.
+  const timeout = setTimeout(cancel, DEEP_LINK_FLOW_TIMEOUT_MS);
   pendingDeepLinkFlows.set(action, cancel);
 }
 

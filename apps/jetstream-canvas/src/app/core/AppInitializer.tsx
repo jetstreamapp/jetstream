@@ -81,7 +81,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
       initDexieDb({ userId: storageScopeId, dbName: LOCAL_STORE_DB_NAME, recordSyncEnabled })
         // No paid signal passed — canvas always gets the top history tier via platform detection (storage
         // is partitioned per Salesforce top-level origin and best-effort)
-        .then(() => initDataHistory())
+        .then(() => initDataHistory({ userId: storageScopeId }))
         .then(({ captureEnabled }) => {
           setDataHistoryCaptureEnabled(captureEnabled);
           setDataHistoryInitialized(true);
