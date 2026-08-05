@@ -19,6 +19,7 @@ const CspPolicy = {
     `ws://${SERVER_URL.host}`,
     `wss://${SERVER_URL.host}`,
     'https://*.salesforce.com',
+    'https://*.betterstackdata.com',
     'https://docs.getjetstream.app',
     'https://www.googleapis.com',
   ],
