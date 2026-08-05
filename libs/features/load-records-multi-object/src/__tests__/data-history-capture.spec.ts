@@ -18,6 +18,8 @@ import { buildRecordResultRows } from '../load/load-results-utils';
 // jsdom's Blob does not interoperate with Node's CompressionStream (cross-realm web streams).
 globalThis.Blob = NodeBlob as unknown as typeof Blob;
 
+const SPEC_USER_ID = 'load-multi-history-test-user';
+
 const org = { uniqueId: 'org-multi-1', label: 'Multi Org' } as SalesforceOrgUi;
 
 interface TestRecord {
@@ -98,9 +100,10 @@ describe('multi-object derivation helpers', () => {
 
 describe('multi-object Data History capture wiring', () => {
   beforeAll(async () => {
-    // Dexie is user-scoped and created lazily at login, so a scope has to be bound before any db access
-    await ensureLocalStorageReady({ userId: 'load-multi-history-test-user', dbName: 'Jetstream' });
-    await initDataHistory({ hasPaidPlan: true });
+    // Dexie and the history payload files are both scoped to the signed-in user, so bind the same
+    // id to each before any db access
+    await ensureLocalStorageReady({ userId: SPEC_USER_ID, dbName: 'Jetstream' });
+    await initDataHistory({ userId: SPEC_USER_ID, hasPaidPlan: true });
   });
 
   beforeEach(async () => {

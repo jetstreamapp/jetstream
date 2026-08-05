@@ -110,7 +110,7 @@ APP VERSION ${version}
     if (activeUserId) {
       initDexieDb({ userId: activeUserId, dbName: LOCAL_STORE_DB_NAME, recordSyncEnabled })
         .then(() => pruneAnalysisJobHistory())
-        .then(() => initDataHistory({ hasPaidPlan }))
+        .then(() => initDataHistory({ userId: activeUserId, hasPaidPlan }))
         .then(({ captureEnabled }) => {
           setDataHistoryCaptureEnabled(captureEnabled);
           setDataHistoryInitialized(true);

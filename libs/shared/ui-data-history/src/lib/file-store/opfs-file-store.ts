@@ -37,8 +37,18 @@ export class OpfsFileStore implements HistoryFileStore {
   private disposeRequested = false;
   private pendingRequests = new Map<number, { resolve: (value: unknown) => void; reject: (reason: Error) => void }>();
 
+  /**
+   * Per-user directory the worker roots its tree under. Held on the instance (rather than read from
+   * `user-scope` on demand) so a worker respawn can re-send it synchronously — see `getWorker`.
+   */
+  private readonly scopeDir: string;
+
+  constructor(scopeDir: string) {
+    this.scopeDir = scopeDir;
+  }
+
   async init(): Promise<void> {
-    await this.request({ op: 'init' });
+    await this.request({ op: 'init', scopeDir: this.scopeDir });
   }
 
   async createWriteStream(relativePath: string, options: { gzip: boolean }): Promise<HistoryWriteStream> {
@@ -134,6 +144,12 @@ export class OpfsFileStore implements HistoryFileStore {
         type: 'module',
         name: 'jetstream-data-history-storage',
       });
+      // A respawned worker (crash, or an op after dispose) starts with no scope, and every op
+      // resolves through its root — so re-scope it immediately rather than waiting for an `init()`
+      // that only the factory calls. Fire-and-forget is safe: the worker handles messages in order,
+      // so this lands before the op that triggered the spawn, and the reply's unknown id is ignored
+      // by the handler below.
+      this.worker.postMessage({ id: this.nextRequestId++, op: 'init', scopeDir: this.scopeDir });
       this.worker.onmessage = (event: MessageEvent<HistoryWorkerResponse>) => {
         const response = event.data;
         const pending = this.pendingRequests.get(response.id);

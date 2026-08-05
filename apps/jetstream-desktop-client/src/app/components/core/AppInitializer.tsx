@@ -103,7 +103,7 @@ APP VERSION ${version}
       initDexieDb({ userId: activeUserId, dbName: LOCAL_STORE_DB_NAME, recordSyncEnabled })
         .then(() => pruneAnalysisJobHistory())
         // No paid signal passed — desktop always gets the top history tier via platform detection
-        .then(() => initDataHistory())
+        .then(() => initDataHistory({ userId: activeUserId }))
         .then(({ captureEnabled }) => {
           setDataHistoryCaptureEnabled(captureEnabled);
           setDataHistoryInitialized(true);

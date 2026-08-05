@@ -5,7 +5,8 @@
  */
 
 export type HistoryWorkerRequest =
-  | { id: number; op: 'init' }
+  /** `scopeDir` is the per-user directory the whole tree is rooted under (see `user-scope.ts`) */
+  | { id: number; op: 'init'; scopeDir: string }
   | { id: number; op: 'write-file'; path: string; gzip: boolean; bytes: Uint8Array }
   | { id: number; op: 'open-stream'; streamId: number; path: string; gzip: boolean }
   | { id: number; op: 'stream-write'; streamId: number; bytes: Uint8Array }

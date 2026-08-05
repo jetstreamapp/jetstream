@@ -73,12 +73,39 @@ function splitRelativePath(relativePath: string): string[] {
   return segments;
 }
 
+/**
+ * The history CONTAINER: one folder per install, holding a subfolder per Jetstream account. This is
+ * what the folder preference points at and what relocation moves — never where files are read or
+ * written. Use {@link getScopedBaseDir} for that.
+ */
 function getBaseDir(): string {
   return getUserPreferences().dataHistoryFolder || join(app.getPath('userData'), HISTORY_DIR_NAME);
 }
 
+/**
+ * Per-user subfolder of the container, set by the `init` op.
+ *
+ * `<userData>` is per-OS-user but NOT per Jetstream account, so several accounts signing in on one
+ * machine would otherwise share a single history tree — where each one's retention sweep deletes
+ * the others' entries as orphans and `reindex` imports their manifests into its own index. Held in
+ * a module variable because a user switch reloads the whole desktop app, so a single active account
+ * per main process is an invariant, not an assumption about timing.
+ */
+let currentScopeDir: string | null = null;
+
+function requireScopeDir(): string {
+  if (!currentScopeDir) {
+    throw new Error('Data history storage has not been initialized for a user');
+  }
+  return currentScopeDir;
+}
+
+function getScopedBaseDir(): string {
+  return join(getBaseDir(), requireScopeDir());
+}
+
 function resolveRelativePath(relativePath: string): string {
-  return join(getBaseDir(), ...splitRelativePath(relativePath));
+  return join(getScopedBaseDir(), ...splitRelativePath(relativePath));
 }
 
 function writeToStream(stream: NodeJS.WritableStream, buffer: Buffer): Promise<void> {
@@ -168,7 +195,14 @@ export async function handleDataHistoryOp(
 ): Promise<DataHistoryFileOpResult<DataHistoryFileOpRequest>> {
   switch (request.op) {
     case 'init': {
-      await fs.mkdir(getBaseDir(), { recursive: true });
+      // Validated like any other path segment — it arrives from the renderer and is joined onto the
+      // history folder, so a crafted value must not be able to escape it.
+      const [scopeDir] = splitRelativePath(request.scopeDir);
+      if (splitRelativePath(request.scopeDir).length !== 1) {
+        throw new Error(`Invalid data history user scope: ${request.scopeDir}`);
+      }
+      currentScopeDir = scopeDir;
+      await fs.mkdir(getScopedBaseDir(), { recursive: true });
       return undefined;
     }
     case 'write-file': {
@@ -261,7 +295,7 @@ export async function handleDataHistoryOp(
     }
     case 'list-entry-dirs': {
       const dirs: Array<{ orgFolder: string; entryKey: string }> = [];
-      const baseDir = getBaseDir();
+      const baseDir = getScopedBaseDir();
       const orgFolders = await fs.readdir(baseDir, { withFileTypes: true }).catch(() => []);
       for (const orgFolder of orgFolders) {
         if (!orgFolder.isDirectory()) {
@@ -371,7 +405,9 @@ function invalidateDirectorySizeCache(): void {
 }
 
 async function getCachedDirectorySize(): Promise<number> {
-  const basePath = getBaseDir();
+  // Scoped: this figure drives the signed-in user's quota and retention UI, so it must not include
+  // other accounts' history. The cache keys on the path, so it can never serve another user's total.
+  const basePath = getScopedBaseDir();
   if (cachedDirectorySize?.basePath === basePath && Date.now() - cachedDirectorySize.computedAt < DIRECTORY_SIZE_CACHE_MS) {
     return cachedDirectorySize.bytes;
   }

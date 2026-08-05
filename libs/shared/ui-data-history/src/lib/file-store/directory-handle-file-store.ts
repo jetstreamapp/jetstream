@@ -27,13 +27,23 @@ export class DirectoryHandleFileStore implements HistoryFileStore {
   };
 
   private readonly rootHandle: FsaDirectoryHandle;
+  private readonly scopeDir: string;
   private readonly onPermissionError?: () => void;
+  /**
+   * `<chosen folder>/<scopeDir>` — the tree this store actually reads and writes, resolved by
+   * `init()`. Two accounts on one machine can pick the SAME folder (nothing stops them; the handle
+   * is stored per user but the filesystem is shared), and without this segment each would see the
+   * other's entries as orphans to sweep and as manifests to reindex into its own history.
+   */
+  private scopedRootHandle: FsaDirectoryHandle | null = null;
 
-  constructor(rootHandle: FsaDirectoryHandle, options?: { onPermissionError?: () => void }) {
+  constructor(rootHandle: FsaDirectoryHandle, scopeDir: string, options?: { onPermissionError?: () => void }) {
     this.rootHandle = rootHandle;
+    this.scopeDir = scopeDir;
     this.onPermissionError = options?.onPermissionError;
   }
 
+  /** The folder the USER picked — what settings displays, not the scoped subfolder underneath it */
   get directoryName(): string {
     return this.rootHandle.name;
   }
@@ -42,6 +52,15 @@ export class DirectoryHandleFileStore implements HistoryFileStore {
     if ((await this.rootHandle.queryPermission({ mode: 'readwrite' })) !== 'granted') {
       throw new DataHistoryDirectoryPermissionError();
     }
+    this.scopedRootHandle = await this.guardPermission(() => this.rootHandle.getDirectoryHandle(this.scopeDir, { create: true }));
+  }
+
+  /** Every read/write goes through the per-user root, never the folder the user picked. */
+  private get scopedRoot(): FsaDirectoryHandle {
+    if (!this.scopedRootHandle) {
+      throw new Error('Data history folder store has not been initialized');
+    }
+    return this.scopedRootHandle;
   }
 
   /** Must be called from a user gesture (settings "re-connect" button) */
@@ -55,7 +74,7 @@ export class DirectoryHandleFileStore implements HistoryFileStore {
     // pre-existing content — FSA writes land in a swap file, so an aborted overwrite leaves the
     // original file intact, and deleting the target here would destroy that good data.
     const fileExistedBefore = await this.fileExists(relativePath);
-    const fileHandle = await this.guardPermission(() => resolveFile<FsaFileHandle>(this.rootHandle, relativePath, true));
+    const fileHandle = await this.guardPermission(() => resolveFile<FsaFileHandle>(this.scopedRoot, relativePath, true));
     const writable = await this.guardPermission(() => fileHandle.createWritable());
     let bytesWritten = 0;
     const writeToFile = async (chunk: Uint8Array) => {
@@ -64,7 +83,7 @@ export class DirectoryHandleFileStore implements HistoryFileStore {
     };
     const discardTargetIfCreated = async () => {
       if (!fileExistedBefore) {
-        await removeFileQuietly(this.rootHandle, relativePath);
+        await removeFileQuietly(this.scopedRoot, relativePath);
       }
     };
 
@@ -100,7 +119,7 @@ export class DirectoryHandleFileStore implements HistoryFileStore {
 
   private async fileExists(relativePath: string): Promise<boolean> {
     try {
-      await resolveFile<FsaFileHandle>(this.rootHandle, relativePath, false);
+      await resolveFile<FsaFileHandle>(this.scopedRoot, relativePath, false);
       return true;
     } catch {
       return false;
@@ -110,7 +129,7 @@ export class DirectoryHandleFileStore implements HistoryFileStore {
   async writeFile(relativePath: string, data: Uint8Array | Blob, options: { gzip: boolean }): Promise<{ bytes: number }> {
     const input = ArrayBuffer.isView(data) ? data : new Uint8Array(await data.arrayBuffer());
     const output = options.gzip ? await gzipBytes(input) : input;
-    const fileHandle = await this.guardPermission(() => resolveFile<FsaFileHandle>(this.rootHandle, relativePath, true));
+    const fileHandle = await this.guardPermission(() => resolveFile<FsaFileHandle>(this.scopedRoot, relativePath, true));
     const writable = await this.guardPermission(() => fileHandle.createWritable());
     try {
       await this.guardPermission(() => writable.write(output));
@@ -123,7 +142,7 @@ export class DirectoryHandleFileStore implements HistoryFileStore {
   }
 
   async readFile(relativePath: string, options: { gunzip: boolean }): Promise<Blob> {
-    const fileHandle = await this.guardPermission(() => resolveFile<FsaFileHandle>(this.rootHandle, relativePath, false));
+    const fileHandle = await this.guardPermission(() => resolveFile<FsaFileHandle>(this.scopedRoot, relativePath, false));
     const file = await this.guardPermission(() => fileHandle.getFile());
     if (!options.gunzip) {
       return file;
@@ -133,11 +152,11 @@ export class DirectoryHandleFileStore implements HistoryFileStore {
   }
 
   async deleteEntryDir(relativeDirPath: string): Promise<void> {
-    return this.guardPermission(() => removeDir(this.rootHandle, relativeDirPath));
+    return this.guardPermission(() => removeDir(this.scopedRoot, relativeDirPath));
   }
 
   async listEntryDirs(): Promise<Array<{ orgFolder: string; entryKey: string }>> {
-    return this.guardPermission(() => listEntryDirs(this.rootHandle));
+    return this.guardPermission(() => listEntryDirs(this.scopedRoot));
   }
 
   async estimate(): Promise<{ usageBytes?: number; quotaBytes?: number } | null> {

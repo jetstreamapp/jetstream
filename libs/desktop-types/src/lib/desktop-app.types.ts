@@ -56,7 +56,8 @@ export interface ElectronApiCallback {
  * takes client-allocated stream ids), the main process allocates `streamId` and returns it.
  */
 export type DataHistoryFileOpRequest =
-  | { op: 'init' }
+  /** `scopeDir` is the per-user directory inside the history folder that all paths resolve under */
+  | { op: 'init'; scopeDir: string }
   | { op: 'write-file'; path: string; gzip: boolean; bytes: Uint8Array }
   | { op: 'open-stream'; path: string; gzip: boolean }
   | { op: 'stream-write'; streamId: number; bytes: Uint8Array }

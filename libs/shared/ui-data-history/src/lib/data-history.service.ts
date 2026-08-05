@@ -17,7 +17,7 @@ import {
   Maybe,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import { dataHistoryDb } from '@jetstream/ui/db';
+import { dataHistoryDb, onLocalStorageScopeCleared } from '@jetstream/ui/db';
 import { serializeRowsToCsvChunks } from './csv-utils';
 import {
   DATA_HISTORY_INLINE_PAYLOAD_MAX_BYTES,
@@ -41,9 +41,10 @@ import {
   requestPersistOnce,
   setTierLimits,
 } from './data-history-state';
-import { getFileStoreForBackend, getHistoryFileStore } from './file-store/file-store-factory';
+import { getFileStoreForBackend, getHistoryFileStore, resetHistoryFileStores } from './file-store/file-store-factory';
 import { HistoryFileStore, HistoryWriteStream } from './file-store/file-store.types';
 import { DATA_HISTORY_FILE_NAMES, getDataHistoryFileName, getEntryFilePath, getOrgFolderName } from './file-store/path-utils';
+import { clearDataHistoryUserScope, isDataHistoryUserScope, setDataHistoryUserScope } from './file-store/user-scope';
 export { getStoragePersisted, isPersistentStoragePromptEligible, requestPersistentStorage };
 
 /**
@@ -132,11 +133,22 @@ export interface DataHistoryStorageHealth {
  * Returns whether capture ended up enabled, which is the one thing every caller needs next (to seed
  * `dataHistoryCaptureEnabledState` so feature UI can read it synchronously).
  *
+ * `userId` scopes the payload files on disk to the signed-in account and is REQUIRED — see
+ * `user-scope.ts`. It is the same id the caller scopes the local database with, so history files and
+ * the history index can never end up bound to different accounts.
+ *
  * `hasPaidPlan` is the WEB app's paid signal. Desktop, the browser extension and canvas omit it —
  * `getDataHistoryTierLimits` grants them the top tier from platform detection.
  */
-export async function initDataHistory(options?: { hasPaidPlan?: boolean }): Promise<{ captureEnabled: boolean }> {
+export async function initDataHistory(options: { userId: string; hasPaidPlan?: boolean }): Promise<{ captureEnabled: boolean }> {
   try {
+    registerStorageScopeTeardownOnce();
+    // Re-scoping to a different user must not leave stores cached against the previous account's
+    // tree — they are resolved lazily, so dropping them here is enough to rebuild on next use.
+    if (!isDataHistoryUserScope(options.userId)) {
+      resetHistoryFileStores();
+    }
+    setDataHistoryUserScope(options.userId);
     const hasPaidPlan = await resolvePaidPlanWithGrace(options?.hasPaidPlan ?? false);
     setTierLimits(getDataHistoryTierLimits({ hasPaidPlan }));
     const captureEnabled = await isDataHistoryCaptureEnabled();
@@ -153,6 +165,35 @@ export async function initDataHistory(options?: { hasPaidPlan?: boolean }): Prom
     logger.warn('[DATA_HISTORY] Error initializing data history', ex);
     return { captureEnabled: false };
   }
+}
+
+/**
+ * End the session's data history storage: unbind the user scope and drop every cached file store.
+ *
+ * Without this, the module-level store cache outlives a logout — the next account on the same page
+ * would inherit the previous one's resolved store, including a `DirectoryHandleFileStore` holding
+ * an ALREADY-GRANTED handle to the folder the departing user chose. Pairs with
+ * `clearLocalStorageScope()`; both run wherever a session ends.
+ */
+export function clearDataHistoryStorageScope(): void {
+  resetHistoryFileStores();
+  clearDataHistoryUserScope();
+}
+
+let storageScopeTeardownRegistered = false;
+
+/**
+ * Subscribe teardown to the local-storage scope lifecycle, so a logout or account switch unbinds
+ * history storage through the SAME signal that unbinds the database — rather than relying on every
+ * logout site to remember a second call. Registered from init (not at module load) so merely
+ * importing this library never installs a listener.
+ */
+function registerStorageScopeTeardownOnce(): void {
+  if (storageScopeTeardownRegistered) {
+    return;
+  }
+  storageScopeTeardownRegistered = true;
+  onLocalStorageScopeCleared(clearDataHistoryStorageScope);
 }
 
 /**

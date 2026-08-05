@@ -148,6 +148,8 @@ class DexieInitializer {
     this.hasConnectedSync = false;
     setDexieDbInstance(null);
     setLocalStore(null);
+    // Per-user state outside the database (data history file stores) unbinds on the same signal
+    notifyLocalStorageScopeCleared();
   }
 
   async init(userId: string, dbName: string) {
@@ -249,6 +251,38 @@ export function ensureLocalStorageReady({ userId, dbName }: LocalStorageScope): 
  */
 export function clearLocalStorageScope(): void {
   DexieInitializer.getInstance().clearScope();
+}
+
+const storageScopeTeardownListeners = new Set<() => void>();
+
+/**
+ * Register a callback to run whenever the local storage scope is torn down — a logout, or a user
+ * switch (which clears the previous scope before building the new one).
+ *
+ * For per-user state that lives OUTSIDE the local database and so cannot be unbound by
+ * {@link clearLocalStorageScope} alone. `@jetstream/ui/data-history` registers here to drop its
+ * cached file stores, which hold OPFS workers and granted directory handles belonging to the
+ * departing account; a registry rather than a direct call because this module is a dependency of
+ * that one, so the import can only go this direction.
+ *
+ * Returns an unsubscribe function.
+ */
+export function onLocalStorageScopeCleared(listener: () => void): () => void {
+  storageScopeTeardownListeners.add(listener);
+  return () => {
+    storageScopeTeardownListeners.delete(listener);
+  };
+}
+
+function notifyLocalStorageScopeCleared(): void {
+  storageScopeTeardownListeners.forEach((listener) => {
+    // One listener failing must never leave the remaining teardown (or the caller's) work undone
+    try {
+      listener();
+    } catch (ex) {
+      logger.warn('[DB] Error in local storage scope teardown listener', ex);
+    }
+  });
 }
 
 /**

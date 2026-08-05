@@ -23,8 +23,16 @@ export class NativeFsFileStore implements HistoryFileStore {
     survivesSiteDataClear: true,
   };
 
+  private readonly scopeDir: string;
+
+  constructor(scopeDir: string) {
+    this.scopeDir = scopeDir;
+  }
+
   async init(): Promise<void> {
-    await this.request({ op: 'init' });
+    // The main process holds the scope for the rest of the session and resolves every subsequent
+    // path under it, so this must be the first op — the factory always awaits it before use.
+    await this.request({ op: 'init', scopeDir: this.scopeDir });
   }
 
   async createWriteStream(relativePath: string, options: { gzip: boolean }): Promise<HistoryWriteStream> {

@@ -7,6 +7,7 @@ import type { HistoryFileStore } from './file-store.types';
 import { DataHistoryDirectoryPermissionError, FsaDirectoryHandle, isFileSystemAccessSupported } from './fsa-types';
 import { NativeFsFileStore } from './native-fs-file-store';
 import { OpfsFileStore } from './opfs-file-store';
+import { getUserScopeDir } from './user-scope';
 
 /**
  * Resolves file stores from `data_history_config`. Three backends exist: OPFS (default),
@@ -130,9 +131,12 @@ export function setHistoryFileStoreForTests(store: HistoryFileStore | null): voi
 }
 
 async function createStoreForBackend(backend: DataHistoryStorageBackend): Promise<HistoryFileStore> {
+  // Every backend roots its tree under this, so no store can be built before a user is bound —
+  // see `user-scope.ts` for why an unscoped fallback would be worse than failing here.
+  const scopeDir = await getUserScopeDir();
   switch (backend) {
     case 'opfs': {
-      const store = new OpfsFileStore();
+      const store = new OpfsFileStore(scopeDir);
       await store.init();
       return store;
     }
@@ -142,7 +146,7 @@ async function createStoreForBackend(backend: DataHistoryStorageBackend): Promis
       if (!handle || !isFileSystemAccessSupported()) {
         throw new Error('No data history folder is connected in this browser');
       }
-      const store = new DirectoryHandleFileStore(handle, {
+      const store = new DirectoryHandleFileStore(handle, scopeDir, {
         onPermissionError: () => {
           // Permission revoked mid-session: drop cached stores so new writes fall back to OPFS and
           // surface the settings "re-connect" affordance (reset clears the flag, so set it after)
@@ -157,7 +161,7 @@ async function createStoreForBackend(backend: DataHistoryStorageBackend): Promis
       if (!isDesktopApp()) {
         throw new Error('Native data history storage is only available in the desktop app');
       }
-      const store = new NativeFsFileStore();
+      const store = new NativeFsFileStore(scopeDir);
       await store.init();
       return store;
     }
