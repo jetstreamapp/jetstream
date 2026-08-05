@@ -21,7 +21,7 @@ import type { ICreateChange, IDatabaseChange, IDeleteChange, IUpdateChange } fro
 import { ApplyRemoteChangesFunction } from 'dexie-syncable/api';
 import isString from 'lodash/isString';
 import { v4 as uuid } from 'uuid';
-import { dexieDb, getHashedRecordKey, SyncableEntities, SyncableTables } from './ui-db';
+import { getDexieDb, getHashedRecordKey, SyncableEntities, SyncableTables } from './ui-db';
 
 interface CreateOrUpdateEventBase {
   type: 'create' | 'update';
@@ -436,6 +436,7 @@ function enrichDataTypesForApiRequestHistory(data: Record<string, unknown>) {
  * Since ids have a prefix, that is used to know what tables to fetch from
  */
 async function getAllSyncableRecordsById(ids: string[]): Promise<Record<string, any>> {
+  const dexieDb = getDexieDb();
   const records = await Promise.all(
     Object.values(SyncableTables).map((syncableTable) => {
       const keys = ids.filter((id) => id.startsWith(syncableTable.keyPrefix)) as (typeof syncableTable)['keyPrefix'][];

@@ -18,9 +18,8 @@ import {
 } from '@jetstream/ui';
 import { SalesforceCanvasOrgs, SoqlQueryFormatConfig, useAmplitude } from '@jetstream/ui-core';
 import { fromAppState, useFeatureFlag, userProfileState } from '@jetstream/ui/app-state';
-import { dexieDataSync, recentHistoryItemsDb } from '@jetstream/ui/db';
+import { deleteAllLocalData, dexieDataSync, recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useAtom, useAtomValue } from 'jotai';
-import localforage from 'localforage';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnalyticsTrackingSetting } from './AnalyticsTrackingSetting';
 import LoggerConfig from './LoggerConfig';
@@ -133,24 +132,27 @@ export const Settings = () => {
     trackEvent(ANALYTICS_KEYS.settings_delete_account, { reason });
     setLoading(true);
     try {
-      localStorage.clear();
-      await localforage.clear();
-    } catch {
-      // error clearing local storage
-    }
-
-    try {
       await deleteUserProfile(reason);
-      eraseCookies();
-
-      window.location.href = '/goodbye/';
     } catch {
       // error deleting everything from server
       fireToast({
         message: 'There was a problem deleting your account. Try again or file a support ticket for assistance.',
         type: 'error',
       });
+      setLoading(false);
+      return;
     }
+
+    // Only wipe local data once the server-side delete succeeded — deleteAllLocalData unbinds the
+    // local stores, so doing it before a delete that then fails would leave the still-running app
+    // unable to read local storage. The redirect below immediately replaces the page.
+    try {
+      await deleteAllLocalData(userProfile.id);
+    } catch {
+      // error clearing local storage
+    }
+    eraseCookies();
+    window.location.href = '/goodbye/';
   }
 
   async function resetSync() {

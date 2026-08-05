@@ -6,12 +6,12 @@ import { setErrorTrackerUser, tracker, useObservable } from '@jetstream/shared/u
 import { Announcement, JetstreamEventSaveSoqlQueryFormatOptionsPayload, SalesforceOrgUi } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
-import { fromAppState } from '@jetstream/ui/app-state';
-import { initDexieDb, pruneAnalysisJobHistory } from '@jetstream/ui/db';
+import { DEFAULT_PROFILE, fromAppState } from '@jetstream/ui/app-state';
+import { ensureLocalStorageReady, initDexieDb, pruneAnalysisJobHistory } from '@jetstream/ui/db';
 import { AxiosResponse } from 'axios';
 import { useAtom, useAtomValue } from 'jotai';
 import localforage from 'localforage';
-import React, { Fragment, FunctionComponent, useEffect } from 'react';
+import React, { Fragment, FunctionComponent, use, useEffect } from 'react';
 import { Observable, Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { useDesktopErrorTracker } from './useDesktopErrorTracker';
@@ -29,9 +29,12 @@ registerMiddleware('Error', (response: AxiosResponse, org?: SalesforceOrgUi) => 
   }
 });
 
-// Configure IndexedDB database
+// IndexedDB database holding the localforage stores. The default instance is configured here for
+// the pre-auth surfaces that read it directly (see `getUnscopedLocalStore`); everything behind a
+// signed-in user goes through the per-user store scoped by `ensureLocalStorageReady` below.
+const LOCAL_STORE_DB_NAME = environment.name;
 localforage.config({
-  name: environment.name,
+  name: LOCAL_STORE_DB_NAME,
 });
 
 export interface AppInitializerProps {
@@ -55,6 +58,11 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ authInf
 
   const recordSyncEntitlementEnabled = ability.can('access', 'RecordSync');
   const recordSyncEnabled = recordSyncEntitlementEnabled && userProfile.preferences.recordSyncEnabled;
+
+  const activeUserId = userProfile.id && userProfile.id !== DEFAULT_PROFILE.id ? userProfile.id : null;
+  // Suspend until both local stores are scoped to this user, so no descendant reads local storage
+  // before it points at the right account.
+  use(ensureLocalStorageReady({ userId: activeUserId, dbName: LOCAL_STORE_DB_NAME }));
 
   useEffect(() => {
     console.log(
@@ -87,17 +95,20 @@ APP VERSION ${version}
     } else {
       disconnectSocket();
     }
-    initDexieDb({ recordSyncEnabled })
-      .then(() => pruneAnalysisJobHistory())
-      .catch((ex) => {
-        logger.error('[DB] Error initializing db', ex);
-      });
+
+    if (activeUserId) {
+      initDexieDb({ userId: activeUserId, dbName: LOCAL_STORE_DB_NAME, recordSyncEnabled })
+        .then(() => pruneAnalysisJobHistory())
+        .catch((ex) => {
+          logger.error('[DB] Error initializing db', ex);
+        });
+    }
     // Tear down the authenticated socket when this component unmounts (logout) or the auth
     // material changes, so a subsequent account never reuses the previous user's connection.
     return () => {
       disconnectSocket();
     };
-  }, [appInfo.serverUrl, authInfo.accessToken, authInfo.deviceId, recordSyncEnabled]);
+  }, [appInfo.serverUrl, authInfo.accessToken, authInfo.deviceId, recordSyncEnabled, activeUserId]);
 
   useEffect(() => {
     announcements && onAnnouncements && onAnnouncements(announcements);

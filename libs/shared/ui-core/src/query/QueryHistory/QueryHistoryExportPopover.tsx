@@ -4,7 +4,7 @@ import { getFilenameWithoutOrg, prepareCsvFile, saveFile } from '@jetstream/shar
 import { orderObjectsBy } from '@jetstream/shared/utils';
 import { QueryHistoryItem, SalesforceOrgUi } from '@jetstream/types';
 import { Icon, Popover, PopoverRef, Radio, RadioGroup } from '@jetstream/ui';
-import { dexieDb, withReopenOnDatabaseClosed } from '@jetstream/ui/db';
+import { getDexieDb, withReopenOnDatabaseClosed } from '@jetstream/ui/db';
 import isDate from 'lodash/isDate';
 import { FunctionComponent, useRef, useState } from 'react';
 import { useAmplitude } from '../..';
@@ -43,7 +43,7 @@ export const QueryHistoryExportPopover: FunctionComponent<QueryHistoryExportPopo
 
       // Get query history items
       const queryHistory = await withReopenOnDatabaseClosed(() =>
-        dexieDb.query_history.orderBy('lastRun').reverse().filter(filterFn).toArray(),
+        getDexieDb().query_history.orderBy('lastRun').reverse().filter(filterFn).toArray(),
       );
 
       if (queryHistory.length === 0) {

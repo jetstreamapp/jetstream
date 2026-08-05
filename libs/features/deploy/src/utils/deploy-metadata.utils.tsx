@@ -1,6 +1,7 @@
 import { getMetadataLabelFromFullName, ListMetadataResultItem } from '@jetstream/connected-ui';
 import { logger } from '@jetstream/shared/client-logger';
 import { DATE_FORMATS, INDEXED_DB } from '@jetstream/shared/constants';
+import { getLocalStore } from '@jetstream/shared/data';
 import { tracker } from '@jetstream/shared/ui-utils';
 import { ensureArray, getSuccessOrFailureChar, orderValues, pluralizeFromNumber } from '@jetstream/shared/utils';
 import {
@@ -36,7 +37,6 @@ import { formatISO } from 'date-fns/formatISO';
 import { isValid as isDateValid } from 'date-fns/isValid';
 import { parseISO } from 'date-fns/parseISO';
 import JSZip from 'jszip';
-import localforage from 'localforage';
 import isDate from 'lodash/isDate';
 import isString from 'lodash/isString';
 import { ReactNode } from 'react';
@@ -61,7 +61,7 @@ export function getLightningChangesetUrl(changeset: ChangeSet) {
 
 export async function getHistory() {
   try {
-    return (await localforage.getItem<SalesforceDeployHistoryItem[]>(INDEXED_DB.KEYS.deployHistory)) || [];
+    return (await getLocalStore().getItem<SalesforceDeployHistoryItem[]>(INDEXED_DB.KEYS.deployHistory)) || [];
   } catch (ex) {
     logger.warn('[DEPLOY][HISTORY][GET ERROR]', ex);
     return [];
@@ -71,7 +71,7 @@ export async function getHistory() {
 export async function getHistoryItemFile(item: SalesforceDeployHistoryItem) {
   let file: ArrayBuffer | null = null;
   if (item.fileKey) {
-    file = await localforage.getItem<ArrayBuffer>(item.fileKey);
+    file = await getLocalStore().getItem<ArrayBuffer>(item.fileKey);
   }
   if (!file) {
     throw new Error('The package file is not available');
@@ -135,17 +135,20 @@ export async function saveHistory({
         orgName: sourceOrg.orgName || '',
       };
     }
-    if (file && localforage.driver() === localforage.INDEXEDDB) {
+    const localStore = getLocalStore();
+    // The package file is only retained on IndexedDB — the other drivers cannot hold a blob this size
+    const canStorePackageFile = !!file && localStore.driver() === localStore.INDEXEDDB;
+    if (canStorePackageFile) {
       newItem.fileKey = `${INDEXED_DB.KEYS.deployHistory}:FILE:${newItem.key}`;
     }
     const existingItems = await getHistory();
     existingItems.unshift(newItem);
     try {
-      await localforage.setItem<SalesforceDeployHistoryItem[]>(INDEXED_DB.KEYS.deployHistory, existingItems.slice(0, MAX_HISTORY_ITEMS));
+      await localStore.setItem<SalesforceDeployHistoryItem[]>(INDEXED_DB.KEYS.deployHistory, existingItems.slice(0, MAX_HISTORY_ITEMS));
       logger.log('[DEPLOY][HISTORY][SAVE]', { newItem });
 
-      if (file && newItem.fileKey && localforage.driver() === localforage.INDEXEDDB) {
-        await localforage.setItem(newItem.fileKey, file);
+      if (canStorePackageFile && newItem.fileKey) {
+        await localStore.setItem(newItem.fileKey, file);
       }
     } catch (ex) {
       logger.warn('[DEPLOY][HISTORY][SAVE ERROR]', ex);
@@ -154,7 +157,7 @@ export async function saveHistory({
     try {
       if (existingItems.length > MAX_HISTORY_ITEMS) {
         for (const item of existingItems.slice(MAX_HISTORY_ITEMS).filter((item) => item.fileKey)) {
-          item.fileKey && (await localforage.removeItem(item.fileKey));
+          item.fileKey && (await getLocalStore().removeItem(item.fileKey));
         }
       }
     } catch (ex) {

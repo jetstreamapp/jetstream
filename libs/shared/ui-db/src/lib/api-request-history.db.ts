@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ApiHistoryItem, HttpMethod, SalesforceApiHistoryRequest, SalesforceApiHistoryResponse, SalesforceOrgUi } from '@jetstream/types';
-import { dexieDb, getHashedRecordKey, SyncableTables, wrapApiWithReopenOnDatabaseClosed } from './ui-db';
+import { getDexieDb, getHashedRecordKey, SyncableTables, wrapApiWithReopenOnDatabaseClosed } from './ui-db';
 
 export const apiRequestHistoryDb = wrapApiWithReopenOnDatabaseClosed({
   getAllQueryHistory,
@@ -13,7 +13,7 @@ function generateKey(orgUniqueId: string, method: HttpMethod, url: string): ApiH
 }
 
 async function getAllQueryHistory(): Promise<ApiHistoryItem[]> {
-  return await dexieDb.api_request_history.toArray();
+  return await getDexieDb().api_request_history.toArray();
 }
 
 async function saveApiHistoryItem(
@@ -21,6 +21,7 @@ async function saveApiHistoryItem(
   request: SalesforceApiHistoryRequest,
   response: SalesforceApiHistoryResponse,
 ): Promise<ApiHistoryItem> {
+  const dexieDb = getDexieDb();
   const key = generateKey(org.uniqueId, request.method, request.url);
   const hashedKey = await getHashedRecordKey(key);
   const existingItem = await dexieDb.api_request_history.get(key);
@@ -43,7 +44,7 @@ async function saveApiHistoryItem(
 
 async function deleteAllApiHistoryForOrg(org: SalesforceOrgUi): Promise<void> {
   try {
-    await dexieDb.api_request_history.where({ org: org.uniqueId }).delete();
+    await getDexieDb().api_request_history.where({ org: org.uniqueId }).delete();
   } catch (ex) {
     logger.error('[DB] Error deleting query history for org', ex);
   }

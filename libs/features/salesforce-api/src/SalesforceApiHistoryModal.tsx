@@ -4,7 +4,7 @@ import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { ApiHistoryItem, SalesforceApiHistoryRequest, SalesforceOrgUi, UpDown } from '@jetstream/types';
 import { Badge, CopyToClipboard, Grid, GridCol, Icon, List, Modal, SearchInput } from '@jetstream/ui';
 import { MonacoEditor } from '@jetstream/ui-core';
-import { dexieDb } from '@jetstream/ui/db';
+import { getDexieDb } from '@jetstream/ui/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { createRef, useEffect, useState } from 'react';
 import { HistoryWhichOrg } from './HistoryWhichOrg';
@@ -27,8 +27,8 @@ export const SalesforceApiHistoryModal = ({ selectedOrg, onSubmit, onClose }: Sa
 
   const historyItems = useLiveQuery(
     () =>
-      dexieDb.api_request_history
-        .orderBy('lastRun')
+      getDexieDb()
+        .api_request_history.orderBy('lastRun')
         .reverse()
         .filter((item) => whichOrg === 'ALL' || item.org === selectedOrg.uniqueId)
         .toArray(),
@@ -37,7 +37,7 @@ export const SalesforceApiHistoryModal = ({ selectedOrg, onSubmit, onClose }: Sa
   );
 
   const selectedHistoryItem = useLiveQuery(
-    () => (selectedItemKey ? dexieDb.api_request_history.get(selectedItemKey) : undefined),
+    () => (selectedItemKey ? getDexieDb().api_request_history.get(selectedItemKey) : undefined),
     [selectedItemKey],
   );
 

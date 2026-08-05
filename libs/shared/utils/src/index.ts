@@ -1,6 +1,7 @@
 export * from './lib/compression';
 export * from './lib/custom-field-tooling-names';
 export * from './lib/dedupe-field-usage-where-used';
+export * from './lib/hash.utils';
 export * from './lib/password-validation';
 export * from './lib/regex';
 export * from './lib/salesforce-org-expiration';

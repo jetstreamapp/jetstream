@@ -4,4 +4,5 @@ export { AxiosAdapterConfig, createMultipartFromFormData, getCsrfTokenFromCookie
 export * from './lib/client-data-errors';
 export * from './lib/client-socket-data';
 export * from './lib/data-utils';
+export * from './lib/local-store';
 export * from './lib/middleware';

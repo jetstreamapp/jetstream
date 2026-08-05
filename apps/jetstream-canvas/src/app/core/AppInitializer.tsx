@@ -5,18 +5,21 @@ import { initErrorTracker, setErrorTrackerUser, useObservable } from '@jetstream
 import { JetstreamEventSaveSoqlQueryFormatOptionsPayload, SalesforceOrgUi } from '@jetstream/types';
 import { AppLoading, fromJetstreamEvents } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
-import { initDexieDb } from '@jetstream/ui/db';
+import { ensureLocalStorageReady, initDexieDb } from '@jetstream/ui/db';
 import { useAtomValue, useSetAtom } from 'jotai';
 import localforage from 'localforage';
-import React, { FunctionComponent, useEffect, useState } from 'react';
+import React, { FunctionComponent, use, useEffect, useState } from 'react';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { getCanvasOrg } from '../../utils/canvas.utils';
+import { getCanvasOrg, getCanvasStorageScopeId } from '../../utils/canvas.utils';
 import { canvasColorSchemeState } from './useCanvasColorScheme';
 
-// Configure IndexedDB database
+// IndexedDB database holding the localforage stores. The default instance is configured here for
+// the surfaces that read it directly (see `getUnscopedLocalStore`); everything scoped to a user
+// goes through the per-user store set up by `ensureLocalStorageReady` below.
+const LOCAL_STORE_DB_NAME = 'jetstream-canvas';
 localforage.config({
-  name: 'jetstream-canvas',
+  name: LOCAL_STORE_DB_NAME,
 });
 
 export interface AppInitializerProps {
@@ -49,6 +52,15 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
     }
   });
 
+  // Canvas has no Jetstream login, so local storage is scoped by the user's production username, which
+  // is stable across a production org and its sandboxes (see getCanvasStorageScopeId) — the same user's
+  // history follows them between prod and sandbox, while different users stay isolated. Children are
+  // gated on `selectedOrg` below, so this runs before any descendant reads local storage.
+  const storageScopeId = selectedOrg?.uniqueId ? getCanvasStorageScopeId() : null;
+  // Suspend until both local stores are scoped to this user, so no descendant reads local storage
+  // before it points at the right account.
+  use(ensureLocalStorageReady({ userId: storageScopeId, dbName: LOCAL_STORE_DB_NAME }));
+
   useEffect(() => {
     initErrorTracker({
       dsn: environment.sentryDsn,
@@ -62,10 +74,12 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
   useEffect(() => {
     // wait until this data has initialized before proceeding
     const recordSyncEnabled = false;
-    initDexieDb({ recordSyncEnabled }).catch((ex) => {
-      logger.error('[DB] Error initializing db', ex);
-    });
-  }, []);
+    if (storageScopeId) {
+      initDexieDb({ userId: storageScopeId, dbName: LOCAL_STORE_DB_NAME, recordSyncEnabled }).catch((ex) => {
+        logger.error('[DB] Error initializing db', ex);
+      });
+    }
+  }, [storageScopeId]);
 
   // Load preferences from Salesforce custom setting on mount
   useEffect(() => {

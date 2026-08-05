@@ -62,7 +62,7 @@ import type {
   UploadToGoogleJob,
   WorkerMessage,
 } from '@jetstream/types';
-import { dexieDb, withReopenOnDatabaseClosed } from '@jetstream/ui/db';
+import { getDexieDb, withReopenOnDatabaseClosed } from '@jetstream/ui/db';
 import clamp from 'lodash/clamp';
 import isString from 'lodash/isString';
 
@@ -72,8 +72,9 @@ async function pruneAnalysisJobHistory(orgUniqueId: string, jobType: AnalysisJob
   try {
     // Wrap read + delete in a single transaction so a concurrent write (pin/unpin from another tab, or
     // another job finishing on the same org+type) cannot race between the sortBy and the bulkDelete.
-    await withReopenOnDatabaseClosed(() =>
-      dexieDb.transaction('rw', dexieDb.analysis_job_history, async () => {
+    await withReopenOnDatabaseClosed(() => {
+      const dexieDb = getDexieDb();
+      return dexieDb.transaction('rw', dexieDb.analysis_job_history, async () => {
         // sortBy returns ascending by createdAt; reverse the array to put newest first so slice(N) drops the older rows.
         const rowsAscending = await dexieDb.analysis_job_history
           .where('[org+jobType+createdAt]')
@@ -84,8 +85,8 @@ async function pruneAnalysisJobHistory(orgUniqueId: string, jobType: AnalysisJob
         if (overCap.length > 0) {
           await dexieDb.analysis_job_history.bulkDelete(overCap.map((row) => row.key));
         }
-      }),
-    );
+      });
+    });
   } catch (ex) {
     logger.warn('[JOB][ANALYSIS] Failed to prune analysis_job_history', ex);
   }
@@ -440,7 +441,7 @@ export class JobWorker {
             resultBlob: blob,
             resultBlobSize: blob.byteLength,
           };
-          await withReopenOnDatabaseClosed(() => dexieDb.analysis_job_history.put(historyRow));
+          await withReopenOnDatabaseClosed(() => getDexieDb().analysis_job_history.put(historyRow));
           await pruneAnalysisJobHistory(org.uniqueId, 'permission_export');
 
           const response: AsyncJobWorkerMessageResponse = {
@@ -472,7 +473,7 @@ export class JobWorker {
                 resultBlob: null,
                 resultBlobSize: 0,
               };
-              await withReopenOnDatabaseClosed(() => dexieDb.analysis_job_history.put(failedRow));
+              await withReopenOnDatabaseClosed(() => getDexieDb().analysis_job_history.put(failedRow));
               await pruneAnalysisJobHistory(org.uniqueId, 'permission_export');
             } catch (writeEx) {
               logger.warn('[JOB][PERMISSION_EXPORT] Failed to record failed analysis_job_history row', writeEx);
@@ -596,7 +597,7 @@ export class JobWorker {
             resultBlob: blob,
             resultBlobSize: blob.byteLength,
           };
-          await withReopenOnDatabaseClosed(() => dexieDb.analysis_job_history.put(historyRow));
+          await withReopenOnDatabaseClosed(() => getDexieDb().analysis_job_history.put(historyRow));
           await pruneAnalysisJobHistory(org.uniqueId, 'field_usage');
 
           const response: AsyncJobWorkerMessageResponse = {
@@ -627,7 +628,7 @@ export class JobWorker {
                 resultBlob: null,
                 resultBlobSize: 0,
               };
-              await withReopenOnDatabaseClosed(() => dexieDb.analysis_job_history.put(failedRow));
+              await withReopenOnDatabaseClosed(() => getDexieDb().analysis_job_history.put(failedRow));
               await pruneAnalysisJobHistory(org.uniqueId, 'field_usage');
             } catch (writeEx) {
               logger.warn('[JOB][FIELD_USAGE] Failed to record failed analysis_job_history row', writeEx);

@@ -1,11 +1,11 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
+import { getLocalStore } from '@jetstream/shared/data';
 import { groupByFlat } from '@jetstream/shared/utils';
 import { SalesforceApiHistoryItem } from '@jetstream/types';
 import { addDays } from 'date-fns/addDays';
 import { isBefore } from 'date-fns/isBefore';
 import { startOfDay } from 'date-fns/startOfDay';
-import localforage from 'localforage';
 
 let didRunCleanup = false;
 
@@ -36,7 +36,7 @@ export async function cleanUpHistoryState(): Promise<Record<string, SalesforceAp
       }
 
       logger.info('[API-HISTORY][CLEANUP]', 'Keeping items', itemsToKeep);
-      await localforage.setItem<Record<string, SalesforceApiHistoryItem>>(INDEXED_DB.KEYS.salesforceApiHistory, itemsToKeep);
+      await getLocalStore().setItem<Record<string, SalesforceApiHistoryItem>>(INDEXED_DB.KEYS.salesforceApiHistory, itemsToKeep);
       return itemsToKeep;
     }
   } catch (ex) {
@@ -46,7 +46,7 @@ export async function cleanUpHistoryState(): Promise<Record<string, SalesforceAp
 
 async function initSalesforceApiHistory(): Promise<Record<string, SalesforceApiHistoryItem>> {
   try {
-    return (await localforage.getItem<Record<string, SalesforceApiHistoryItem>>(INDEXED_DB.KEYS.salesforceApiHistory)) || {};
+    return (await getLocalStore().getItem<Record<string, SalesforceApiHistoryItem>>(INDEXED_DB.KEYS.salesforceApiHistory)) || {};
   } catch (ex) {
     logger.error('Error getting salesforceApiHistory from localforage', ex);
     return {};

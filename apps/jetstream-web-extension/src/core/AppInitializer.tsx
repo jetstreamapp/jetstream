@@ -13,11 +13,11 @@ import { JetstreamEventSaveSoqlQueryFormatOptionsPayload, UserProfileUi } from '
 import { ScopedNotification } from '@jetstream/ui';
 import { AppLoading, fromJetstreamEvents } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
-import { initDexieDb } from '@jetstream/ui/db';
+import { clearLocalStorageScope, ensureLocalStorageReady, initDexieDb, isDifferentUserThanPageSession } from '@jetstream/ui/db';
 import { useObservable } from 'dexie-react-hooks';
 import { useAtomValue, useSetAtom } from 'jotai';
 import localforage from 'localforage';
-import React, { FunctionComponent, useEffect, useState } from 'react';
+import React, { FunctionComponent, use, useEffect, useState } from 'react';
 import { useLocation } from 'react-router';
 import { Observable } from 'rxjs';
 import browser from 'webextension-polyfill';
@@ -31,9 +31,12 @@ import { GlobalExtensionLoggedOut } from './GlobalExtensionLoggedOut';
 const args = new URLSearchParams(location.search.slice(1));
 const salesforceHost = args.get('host');
 
-// Configure IndexedDB database
+// IndexedDB database holding the localforage stores. The default instance is configured here for
+// the surfaces that read it directly (see `getUnscopedLocalStore`); everything behind a signed-in
+// user goes through the per-user store scoped by `ensureLocalStorageReady` below.
+const LOCAL_STORE_DB_NAME = 'jetstream-web-ext-no-sync';
 localforage.config({
-  name: 'jetstream-web-ext-no-sync',
+  name: LOCAL_STORE_DB_NAME,
 });
 
 export interface AppInitializerProps {
@@ -61,6 +64,37 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
 
   const [fatalError, setFatalError] = useState<string>();
 
+  const activeUserId = chromeUserProfile?.id ?? null;
+  // Sign in and sign out reach this page through `browser.storage` events rather than a page load,
+  // so a second account can take over a page still holding the first account's in-memory state
+  // (jotai atoms, module level caches). Local storage re-scopes itself, the rest does not, so a
+  // different user gets a fresh page instead.
+  const isDifferentUser = isDifferentUserThanPageSession(activeUserId);
+
+  // Suspend until both local stores are scoped to this user, so no descendant reads local storage
+  // before it points at the right account. When a different account takes over, never scope to it
+  // in this page instance: the reload below owns the transition, and binding the new user's stores
+  // here would let in-flight async work from the departing account write into them. Leaving the
+  // departing account's stores bound until the reload effect clears them keeps its late writes
+  // attributed to its own database.
+  use(ensureLocalStorageReady({ userId: isDifferentUser ? null : activeUserId, dbName: LOCAL_STORE_DB_NAME }));
+
+  useEffect(() => {
+    if (isDifferentUser) {
+      clearLocalStorageScope();
+      window.location.reload();
+    }
+  }, [isDifferentUser]);
+
+  // Unlike every other surface, signing out here re-renders in place instead of reloading or
+  // navigating away, so unbind the stores explicitly - otherwise the departing account's data stays
+  // readable for as long as the page is open.
+  useEffect(() => {
+    if (!activeUserId) {
+      clearLocalStorageScope();
+    }
+  }, [activeUserId]);
+
   // Ensure the appInfoState has the correct serverUrl from the extension environment
   // The default is 'https://getjetstream.app' which is incorrect in dev
   useEffect(() => {
@@ -81,8 +115,9 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
   }, [chromeUserProfile]);
 
   useEffect(() => {
-    // wait until this data has initialized before proceeding
-    if (!authTokens?.accessToken || !extIdentifier?.id) {
+    // wait until this data has initialized before proceeding; never initialize for a different
+    // account taking over this page — the reload effect above replaces the page for it instead
+    if (!authTokens?.accessToken || !extIdentifier?.id || !chromeUserProfile?.id || isDifferentUser) {
       return;
     }
     const recordSyncEnabled = options.recordSyncEnabled && !!authTokens?.accessToken && !!extIdentifier?.id;
@@ -94,10 +129,10 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
     } else {
       disconnectSocket();
     }
-    initDexieDb({ recordSyncEnabled }).catch((ex) => {
+    initDexieDb({ userId: chromeUserProfile.id, dbName: LOCAL_STORE_DB_NAME, recordSyncEnabled }).catch((ex) => {
       logger.error('[DB] Error initializing db', ex);
     });
-  }, [authTokens?.accessToken, extIdentifier?.id, options.recordSyncEnabled, serverUrl]);
+  }, [authTokens?.accessToken, extIdentifier?.id, chromeUserProfile?.id, isDifferentUser, options.recordSyncEnabled, serverUrl]);
 
   // Ensure user access token is valid
   useEffect(() => {
@@ -172,6 +207,12 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
       }
     })();
   }, [setSalesforceOrgs, setSelectedOrgId]);
+
+  // Hold everything back until the reload above replaces the page - the app state still in memory
+  // belongs to the account that was signed in a moment ago, not to this one.
+  if (isDifferentUser) {
+    return <AppLoading />;
+  }
 
   if (fatalError) {
     return <GlobalExtensionError message={fatalError} />;

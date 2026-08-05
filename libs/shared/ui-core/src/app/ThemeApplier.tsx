@@ -1,7 +1,7 @@
 import { INDEXED_DB } from '@jetstream/shared/constants';
+import { getUnscopedLocalStore } from '@jetstream/shared/data';
 import { ColorScheme, UserProfilePreferences } from '@jetstream/types';
 import { useUserPreferenceState } from '@jetstream/ui/app-state';
-import localforage from 'localforage';
 import { useEffect } from 'react';
 
 const SCHEME_CLASSES = ['slds-color-scheme--light', 'slds-color-scheme--dark', 'slds-color-scheme--system'];
@@ -66,7 +66,10 @@ export async function applyThemeBeforeMount(forceScheme?: ColorScheme): Promise<
     return;
   }
   try {
-    const prefs = await localforage.getItem<UserProfilePreferences>(INDEXED_DB.KEYS.userPreferences);
+    // Runs before React mounts, so no user is scoped yet — read the shared store explicitly. Only a
+    // cold cache reaches this, and the mounted <ThemeApplier> immediately reconciles from the
+    // per-user preference and refreshes the cache.
+    const prefs = await getUnscopedLocalStore().getItem<UserProfilePreferences>(INDEXED_DB.KEYS.userPreferences);
     const scheme = prefs?.colorScheme ?? 'light';
     setBodyScheme(scheme);
     writeCachedScheme(scheme);

@@ -39,7 +39,7 @@ import {
 } from '@jetstream/ui';
 import { PermissionAnalysisHistoryModal, RequireMetadataApiBanner, fromJetstreamEvents, jobsState } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
-import { dexieDb } from '@jetstream/ui/db';
+import { getDexieDb } from '@jetstream/ui/db';
 import { isValid } from 'date-fns/isValid';
 import { parseISO } from 'date-fns/parseISO';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -605,7 +605,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
     if (!jobId || !selectedOrgId) {
       return undefined;
     }
-    const row = await dexieDb.analysis_job_history.get(jobId);
+    const row = await getDexieDb().analysis_job_history.get(jobId);
     return row && row.org === selectedOrgId ? row : undefined;
   }, [jobId, selectedOrgId]);
 

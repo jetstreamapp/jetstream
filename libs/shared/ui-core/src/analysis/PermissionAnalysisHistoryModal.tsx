@@ -3,7 +3,7 @@ import { formatNumber } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { AnalysisJobHistoryItem, AnalysisJobType, SalesforceOrgUi } from '@jetstream/types';
 import { Badge, EmptyState, Grid, Icon, List, Modal, Popover, PopoverRef, SearchInput, Spinner } from '@jetstream/ui';
-import { dexieDb } from '@jetstream/ui/db';
+import { getDexieDb } from '@jetstream/ui/db';
 import classNames from 'classnames';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { FunctionComponent, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -287,8 +287,8 @@ export const PermissionAnalysisHistoryModal: FunctionComponent<PermissionAnalysi
    */
   const dexieRows = useLiveQuery(
     () =>
-      dexieDb.analysis_job_history
-        .where('[org+jobType+createdAt]')
+      getDexieDb()
+        .analysis_job_history.where('[org+jobType+createdAt]')
         .between([selectedOrg.uniqueId, analysisJobType, new Date(0)], [selectedOrg.uniqueId, analysisJobType, new Date(8.64e15)])
         .sortBy('createdAt')
         .then((rows) => rows.reverse()),

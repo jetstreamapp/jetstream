@@ -5,7 +5,7 @@ import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { QueryHistoryItem, QueryHistorySelection, SalesforceOrgUi, UpDown } from '@jetstream/types';
 import { EmptyState, Grid, GridCol, Icon, List, Modal, SearchInput, Spinner } from '@jetstream/ui';
-import { dexieDb, queryHistoryDb } from '@jetstream/ui/db';
+import { getDexieDb, queryHistoryDb } from '@jetstream/ui/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import uniqBy from 'lodash/uniqBy';
 import { createRef, forwardRef, useCallback, useEffect, useState } from 'react';
@@ -53,8 +53,8 @@ export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ className
 
   const selectObjectsList = useLiveQuery(
     () =>
-      dexieDb._query_history_object
-        .orderBy('sObject')
+      getDexieDb()
+        ._query_history_object.orderBy('sObject')
         .filter((item) => whichOrg === 'ALL' || item.org === selectedOrg.uniqueId)
         .toArray()
         .then((items) => [
@@ -101,13 +101,13 @@ export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ className
 
   const queryHistory = useLiveQuery(
     // Since we want to sort by lastRun, we cannot use a normal where clause
-    () => dexieDb.query_history.orderBy('lastRun').reverse().filter(filterRecordsFn).limit(showingUpTo).toArray(),
+    () => getDexieDb().query_history.orderBy('lastRun').reverse().filter(filterRecordsFn).limit(showingUpTo).toArray(),
     [filterRecordsFn, showingUpTo, refreshCounter],
     [] as QueryHistoryItem[],
   );
 
   const totalRecordCount = useLiveQuery(
-    () => dexieDb.query_history.orderBy('lastRun').reverse().filter(filterRecordsFn).count(),
+    () => getDexieDb().query_history.orderBy('lastRun').reverse().filter(filterRecordsFn).count(),
     [filterRecordsFn, showingUpTo, refreshCounter],
     0,
   );

@@ -1,7 +1,7 @@
 import { getUserAbility } from '@jetstream/acl';
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
-import { checkHeartbeat, getOrgGroups, getOrgs, getUserProfile } from '@jetstream/shared/data';
+import { checkHeartbeat, getLocalStore, getOrgGroups, getOrgs, getUserProfile } from '@jetstream/shared/data';
 import {
   applyVerifiedFeatureFlags,
   getBrowserExtensionVersion,
@@ -32,8 +32,7 @@ import {
   type UserProfileUi,
 } from '@jetstream/types';
 import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { unwrap } from 'jotai/utils';
-import localforage from 'localforage';
+import { atomWithLazy, unwrap } from 'jotai/utils';
 import isString from 'lodash/isString';
 import z from 'zod';
 
@@ -105,7 +104,7 @@ function ensureUserProfileInit(pref?: Maybe<UserProfilePreferences>): UserProfil
 
 async function getUserPreferences(): Promise<UserProfilePreferences> {
   try {
-    const userPreferences = await localforage.getItem<UserProfilePreferences>(INDEXED_DB.KEYS.userPreferences);
+    const userPreferences = await getLocalStore().getItem<UserProfilePreferences>(INDEXED_DB.KEYS.userPreferences);
     return ensureUserProfileInit(userPreferences);
   } catch {
     return ensureUserProfileInit();
@@ -220,7 +219,12 @@ async function fetchUserProfile(): Promise<UserProfileUi> {
   return await applyVerifiedFeatureFlags(userProfile);
 }
 
-const userPreferenceState = atom<Promise<UserProfilePreferences>>(getUserPreferences());
+/**
+ * Lazy so the storage read happens on first render (after `ensureLocalStorageReady` has scoped the
+ * store to the current user) instead of at module evaluation, which would read the shared un-scoped
+ * store while every write lands in the per-user one.
+ */
+const userPreferenceState = atomWithLazy<Promise<UserProfilePreferences>>(getUserPreferences);
 
 export const actionInProgressState = atom<boolean>(false);
 
@@ -462,7 +466,7 @@ export const useUserPreferenceState = (): [UserProfilePreferences | undefined, (
   async function setUserPreferences(_userPreference: UserProfilePreferences) {
     setUserPreferenceState(Promise.resolve(_userPreference));
     try {
-      localforage.setItem<UserProfilePreferences>(INDEXED_DB.KEYS.userPreferences, _userPreference);
+      getLocalStore().setItem<UserProfilePreferences>(INDEXED_DB.KEYS.userPreferences, _userPreference);
     } catch {
       // could not save to localstorage
       logger.warn('could not save to localstorage');
