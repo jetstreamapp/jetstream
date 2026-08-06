@@ -1,0 +1,206 @@
+{
+  "extends": "./tsconfig.base.json",
+  "references": [
+    {
+      "path": "./libs/features/load-records-multi-object"
+    },
+    {
+      "path": "./libs/features/create-object-and-fields"
+    },
+    {
+      "path": "./libs/features/platform-event-monitor"
+    },
+    {
+      "path": "./libs/shared/cookie-consent-banner"
+    },
+    {
+      "path": "./libs/features/permission-analysis"
+    },
+    {
+      "path": "./libs/features/record-type-manager"
+    },
+    {
+      "path": "./apps/jetstream-desktop-client-e2e"
+    },
+    {
+      "path": "./libs/features/automation-control"
+    },
+    {
+      "path": "./libs/features/manage-permissions"
+    },
+    {
+      "path": "./apps/jetstream-web-extension-e2e"
+    },
+    {
+      "path": "./libs/features/formula-evaluator"
+    },
+    {
+      "path": "./libs/features/debug-log-viewer"
+    },
+    {
+      "path": "./libs/features/analysis-shared"
+    },
+    {
+      "path": "./apps/jetstream-desktop-client"
+    },
+    {
+      "path": "./libs/features/create-records"
+    },
+    {
+      "path": "./libs/features/salesforce-api"
+    },
+    {
+      "path": "./libs/features/sobject-export"
+    },
+    {
+      "path": "./libs/features/update-records"
+    },
+    {
+      "path": "./apps/jetstream-web-extension"
+    },
+    {
+      "path": "./libs/connected/connected-ui"
+    },
+    {
+      "path": "./libs/features/data-analysis"
+    },
+    {
+      "path": "./libs/features/load-records"
+    },
+    {
+      "path": "./libs/auth/salesforce-oauth"
+    },
+    {
+      "path": "./libs/shared/ui-record-form"
+    },
+    {
+      "path": "./libs/shared/ui-core-shared"
+    },
+    {
+      "path": "./libs/monaco-configuration"
+    },
+    {
+      "path": "./libs/shared/client-logger"
+    },
+    {
+      "path": "./libs/features/org-groups"
+    },
+    {
+      "path": "./libs/shared/ui-app-state"
+    },
+    {
+      "path": "./libs/features/anon-apex"
+    },
+    {
+      "path": "./apps/jetstream-desktop"
+    },
+    {
+      "path": "./libs/shared/node-utils"
+    },
+    {
+      "path": "./apps/jetstream-canvas"
+    },
+    {
+      "path": "./libs/shared/constants"
+    },
+    {
+      "path": "./libs/shared/ui-router"
+    },
+    {
+      "path": "./libs/shared/ui-styles"
+    },
+    {
+      "path": "./libs/features/deploy"
+    },
+    {
+      "path": "./libs/shared/ui-utils"
+    },
+    {
+      "path": "./libs/test/e2e-utils"
+    },
+    {
+      "path": "./libs/features/query"
+    },
+    {
+      "path": "./libs/features/teams"
+    },
+    {
+      "path": "./libs/salesforce-api"
+    },
+    {
+      "path": "./libs/shared/ui-core"
+    },
+    {
+      "path": "./libs/desktop-types"
+    },
+    {
+      "path": "./apps/jetstream-e2e"
+    },
+    {
+      "path": "./libs/release-notes"
+    },
+    {
+      "path": "./libs/icon-factory"
+    },
+    {
+      "path": "./libs/shared/utils"
+    },
+    {
+      "path": "./libs/shared/ui-db"
+    },
+    {
+      "path": "./libs/auth/server"
+    },
+    {
+      "path": "./libs/shared/data"
+    },
+    {
+      "path": "./libs/api-config"
+    },
+    {
+      "path": "./libs/audit-logs"
+    },
+    {
+      "path": "./libs/auth/types"
+    },
+    {
+      "path": "./apps/cron-tasks"
+    },
+    {
+      "path": "./apps/geo-ip-api"
+    },
+    {
+      "path": "./libs/test-utils"
+    },
+    {
+      "path": "./libs/api-types"
+    },
+    {
+      "path": "./apps/jetstream"
+    },
+    {
+      "path": "./libs/auth/acl"
+    },
+    {
+      "path": "./apps/landing"
+    },
+    {
+      "path": "./libs/splitjs"
+    },
+    {
+      "path": "./libs/prisma"
+    },
+    {
+      "path": "./libs/email"
+    },
+    {
+      "path": "./libs/types"
+    },
+    {
+      "path": "./apps/api"
+    },
+    {
+      "path": "./libs/ui"
+    }
+  ]
+}

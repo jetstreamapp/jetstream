@@ -9,7 +9,6 @@
     "lib": ["DOM", "ESNext"],
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "noEmit": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strictNullChecks": true,
@@ -18,7 +17,7 @@
     "useDefineForClassFields": true
   },
   "files": [],
-  "include": ["src"],
+  "include": [],
   "exclude": ["**/*.js/*.worker.ts"],
   "references": [
     {

@@ -1,7 +1,7 @@
 import { ENV, getLogger } from '@jetstream/api-config';
-import type { DeferredResponseState, Response } from '@jetstream/api-types';
 import { HTTP } from '@jetstream/shared/constants';
 import type { Response as ExpressResponse, NextFunction, Request } from 'express';
+import type { DeferredResponseState, Response } from '../types/route.types';
 import { setCookieHeaders } from './response.handlers';
 
 export type { DeferredResponseState };

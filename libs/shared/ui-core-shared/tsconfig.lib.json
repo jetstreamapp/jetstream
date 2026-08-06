@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "../../../dist/out-tsc",
+    "outDir": "../../../dist/out-tsc/libs/shared/ui-core-shared",
     "types": ["node", "google.accounts", "google.picker", "gapi.auth2"]
   },
   "exclude": [
@@ -18,5 +18,22 @@
     "vitest.config.ts",
     "vitest.config.mts"
   ],
-  "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"]
+  "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
+  "references": [
+    {
+      "path": "../data/tsconfig.lib.json"
+    },
+    {
+      "path": "../client-logger/tsconfig.lib.json"
+    },
+    {
+      "path": "../../types/tsconfig.lib.json"
+    },
+    {
+      "path": "../utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../ui-utils/tsconfig.lib.json"
+    }
+  ]
 }

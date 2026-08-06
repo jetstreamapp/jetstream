@@ -12,7 +12,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { addDays, endOfDay, subDays } from 'date-fns';
 import * as dotenv from 'dotenv';
 import { v4 as uuid } from 'uuid';
-import { vi } from 'vitest';
+import { vi, type MockedFunction } from 'vitest';
 import { manageOrgExpiration } from '../utils/salesforce-org-expiration.utils';
 
 dotenv.config();
@@ -135,9 +135,9 @@ export async function createOrg({
 
 describe('Org Expiration Integration Tests', () => {
   let testUser: Awaited<ReturnType<typeof createUser>>;
-  const mockSendEmail = sendOrgExpirationWarningEmail as vi.MockedFunction<typeof sendOrgExpirationWarningEmail>;
-  const mockSendEmailConfig = sendEmail as vi.MockedFunction<typeof sendEmail>;
-  const mockCreateAuditLog = createAuditLog as vi.MockedFunction<typeof createAuditLog>;
+  const mockSendEmail = sendOrgExpirationWarningEmail as MockedFunction<typeof sendOrgExpirationWarningEmail>;
+  const mockSendEmailConfig = sendEmail as MockedFunction<typeof sendEmail>;
+  const mockCreateAuditLog = createAuditLog as MockedFunction<typeof createAuditLog>;
 
   beforeAll(async () => {
     await prisma.$connect();
@@ -772,19 +772,23 @@ describe('Org Expiration Integration Tests', () => {
       const summaryCall = mockSendEmailConfig.mock.calls[0][0];
       expect(summaryCall.attachment).toHaveLength(3);
 
-      const scheduledCsv = summaryCall.attachment.find((a: { filename: string }) => a.filename === 'scheduled-orgs.csv');
+      const scheduledCsv = (summaryCall.attachment as { filename: string; data: Buffer }[]).find(
+        (a) => a.filename === 'scheduled-orgs.csv',
+      );
       expect(scheduledCsv).toBeDefined();
       const scheduledData = scheduledCsv.data.toString('utf-8');
       expect(scheduledData).toContain('orgId');
       expect(scheduledData).toContain('realigned');
 
-      const notificationsCsv = summaryCall.attachment.find((a: { filename: string }) => a.filename === 'notifications.csv');
+      const notificationsCsv = (summaryCall.attachment as { filename: string; data: Buffer }[]).find(
+        (a) => a.filename === 'notifications.csv',
+      );
       expect(notificationsCsv).toBeDefined();
       const notificationsData = notificationsCsv.data.toString('utf-8');
       expect(notificationsData).toContain('userEmail');
       expect(notificationsData).toContain('daysUntilExpiration');
 
-      const expiredCsv = summaryCall.attachment.find((a: { filename: string }) => a.filename === 'expired-orgs.csv');
+      const expiredCsv = (summaryCall.attachment as { filename: string; data: Buffer }[]).find((a) => a.filename === 'expired-orgs.csv');
       expect(expiredCsv).toBeDefined();
       const expiredData = expiredCsv.data.toString('utf-8');
       expect(expiredData).toContain('orgId');
@@ -807,7 +811,9 @@ describe('Org Expiration Integration Tests', () => {
       expect(result.notifiedByThreshold[0]).toBe(1);
 
       const summaryCall = mockSendEmailConfig.mock.calls[0][0];
-      const notificationsCsv = summaryCall.attachment.find((a: { filename: string }) => a.filename === 'notifications.csv');
+      const notificationsCsv = (summaryCall.attachment as { filename: string; data: Buffer }[]).find(
+        (a) => a.filename === 'notifications.csv',
+      );
       expect(notificationsCsv.data.toString('utf-8')).toContain(',0,');
     });
 

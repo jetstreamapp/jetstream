@@ -1,5 +1,4 @@
 import { ENV, getLogger } from '@jetstream/api-config';
-import type { Request, Response } from '@jetstream/api-types';
 import { refreshSessionUser } from '@jetstream/auth/server';
 import { STRIPE_PRICE_KEYS, TeamMemberRole, TeamMemberRoleSchema, UserProfileUi } from '@jetstream/types';
 import Stripe from 'stripe';
@@ -7,6 +6,7 @@ import { z } from 'zod';
 import * as teamDbService from '../db/team.db';
 import * as userDbService from '../db/user.db';
 import * as stripeService from '../services/stripe.service';
+import type { Request, Response } from '../types/route.types';
 import { NotFoundError, UserFacingError } from '../utils/error-handler';
 import { redirect, sendJson } from '../utils/response.handlers';
 import { createRoute, RouteValidator } from '../utils/route.utils';

@@ -2,7 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "allowJs": true,
-    "outDir": "../../dist/out-tsc",
+    "outDir": "../../dist/out-tsc/apps/jetstream-web-extension-e2e",
     "module": "commonjs",
     "sourceMap": false
   },
@@ -15,5 +15,14 @@
     "src/**/*.test.ts",
     "src/**/*.test.js",
     "src/**/*.d.ts"
-  ]
+  ],
+  "references": [
+    {
+      "path": "../../libs/api-config"
+    },
+    {
+      "path": "../../libs/test/e2e-utils"
+    }
+  ],
+  "exclude": ["eslint.config.js"]
 }

@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "../../dist/out-tsc",
+    "outDir": "../../dist/out-tsc/apps/jetstream-canvas",
     "types": [
       "vitest/globals",
       "vitest/importMeta",
@@ -27,5 +27,10 @@
     "src/**/*.spec.jsx",
     "src/**/*.d.ts",
     "canvas.types.d.ts"
+  ],
+  "references": [
+    {
+      "path": "./tsconfig.app.json"
+    }
   ]
 }

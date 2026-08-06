@@ -4,7 +4,14 @@ import { UserProfileUi } from '@jetstream/types';
 import * as express from 'express';
 import { Mock, vi } from 'vitest';
 import * as webExtDb from '../../db/web-extension.db';
-import { addDeviceIdToLocals, AUDIENCE_WEB_EXT, getDeviceId, isTokenWithinRefreshWindow, rotateToken } from '../external-auth.service';
+import {
+  addDeviceIdToLocals,
+  AUDIENCE_WEB_EXT,
+  getDeviceId,
+  isTokenWithinRefreshWindow,
+  rotateToken,
+  type Audience,
+} from '../external-auth.service';
 import { decryptJwtTokenOrPlaintext, hashToken } from '../jwt-token-encryption.service';
 
 const SECONDS_PER_DAY = 60 * 60 * 24;
@@ -77,7 +84,7 @@ function buildResponse(locals: Record<string, unknown> = {}) {
 
 const baseArgs = {
   userProfile: mockUserProfile,
-  audience: AUDIENCE_WEB_EXT,
+  audience: AUDIENCE_WEB_EXT as Audience,
   source: 'BROWSER_EXTENSION' as const,
   deviceId: 'device-abc',
   oldAccessToken: 'old-access-token',

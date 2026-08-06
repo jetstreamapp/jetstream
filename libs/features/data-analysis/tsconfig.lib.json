@@ -1,21 +1,52 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "../../../dist/out-tsc",
+    "outDir": "../../../dist/out-tsc/libs/features/data-analysis",
     "types": ["node"]
   },
-  "exclude": [
-    "src/**/*.spec.ts",
-    "src/**/*.test.ts",
-    "src/**/*.spec.tsx",
-    "src/**/*.test.tsx",
-    "vite.config.ts",
-    "vitest.config.ts"
-  ],
+  "exclude": ["src/**/*.spec.ts", "src/**/*.test.ts", "src/**/*.spec.tsx", "src/**/*.test.tsx", "vite.config.ts", "vitest.config.ts"],
   "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
   "files": [
     "../../../node_modules/@nx/react/typings/cssmodule.d.ts",
     "../../../node_modules/@nx/react/typings/image.d.ts",
     "../../../custom-typings/index.d.ts"
+  ],
+  "references": [
+    {
+      "path": "../../shared/ui-db/tsconfig.lib.json"
+    },
+    {
+      "path": "../../shared/client-logger/tsconfig.lib.json"
+    },
+    {
+      "path": "../deploy/tsconfig.lib.json"
+    },
+    {
+      "path": "../../ui/tsconfig.lib.json"
+    },
+    {
+      "path": "../../types/tsconfig.lib.json"
+    },
+    {
+      "path": "../../shared/utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../manage-permissions/tsconfig.lib.json"
+    },
+    {
+      "path": "../../shared/ui-app-state/tsconfig.lib.json"
+    },
+    {
+      "path": "../../shared/ui-core/tsconfig.lib.json"
+    },
+    {
+      "path": "../../shared/ui-utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../../shared/ui-router/tsconfig.lib.json"
+    },
+    {
+      "path": "../../shared/constants/tsconfig.lib.json"
+    }
   ]
 }

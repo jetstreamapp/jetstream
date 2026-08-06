@@ -8,7 +8,7 @@
     "types": ["node"]
   },
   "files": [],
-  "include": ["../../../custom-typings/index.d.ts"],
+  "include": [],
   "references": [
     {
       "path": "./tsconfig.lib.json"

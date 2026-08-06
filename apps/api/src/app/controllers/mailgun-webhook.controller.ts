@@ -1,9 +1,9 @@
 import { DbCacheProvider, ENV, logger, prisma } from '@jetstream/api-config';
-import type { Request, Response } from '@jetstream/api-types';
 import { timingSafeStringCompare } from '@jetstream/auth/server';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import crypto from 'crypto';
 import { z } from 'zod';
+import type { Request, Response } from '../types/route.types';
 
 // Shared cache for tracking used webhook tokens to prevent replay attacks across worker processes.
 // Tokens expire after 15 minutes, same as our timestamp validation window.

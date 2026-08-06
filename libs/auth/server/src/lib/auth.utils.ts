@@ -1,5 +1,4 @@
 import { logger } from '@jetstream/api-config';
-import { Request } from '@jetstream/api-types';
 import { CookieConfig, CreateCSRFTokenParams, UserProfileSession, ValidateCSRFTokenParams } from '@jetstream/auth/types';
 import { HTTP } from '@jetstream/shared/constants';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
@@ -300,7 +299,7 @@ export const convertUserProfileToSession_External = (user: UserProfileUi): UserP
 // Max length of a textual IP address (IPv6 with an embedded IPv4, e.g. ::ffff:255.255.255.255)
 const MAX_IP_ADDRESS_LENGTH = 45;
 
-export function getApiAddressFromReq(req: Request<unknown, unknown, unknown> | ExpressRequest<unknown, unknown, unknown, unknown>): string {
+export function getApiAddressFromReq(req: ExpressRequest<unknown, unknown, unknown, unknown>): string {
   try {
     // Use Express's trust-proxy-aware `req.ip` instead of raw client-supplied headers.
     const ipAddress = req.ip || req.socket?.remoteAddress || 'unknown';
@@ -311,7 +310,7 @@ export function getApiAddressFromReq(req: Request<unknown, unknown, unknown> | E
     }
     return 'unknown';
   } catch (ex) {
-    logger.error('Error fetching IP address', ex);
+    logger.error({ ...getErrorMessageAndStackObj(ex) }, 'Error fetching IP address');
     return 'unknown';
   }
 }

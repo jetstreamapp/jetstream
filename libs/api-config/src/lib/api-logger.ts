@@ -2,7 +2,7 @@ import { HTTP } from '@jetstream/shared/constants';
 import type express from 'express';
 import { createHash } from 'node:crypto';
 import pino from 'pino';
-import pinoHttp from 'pino-http';
+import pinoHttp, { type HttpLogger } from 'pino-http';
 import { v4 as uuid } from 'uuid';
 import { ENV } from './env-config';
 import { getHttpLogLevel } from './logging-policy';
@@ -146,7 +146,9 @@ export function hashSessionId(sessionId?: string): string | undefined {
   return sessionId ? createHash('sha256').update(sessionId).digest('hex').slice(0, 16) : sessionId;
 }
 
-export const httpLogger = pinoHttp<express.Request, express.Response>({
+// Explicit annotation required: the inferred type references express/qs internals that cannot be
+// named in the emitted declaration file (TS2883).
+export const httpLogger: HttpLogger<express.Request, express.Response> = pinoHttp<express.Request, express.Response>({
   logger,
   genReqId: (_, res) => res.locals.requestId || uuid(),
   customLogLevel: getHttpLogLevel,

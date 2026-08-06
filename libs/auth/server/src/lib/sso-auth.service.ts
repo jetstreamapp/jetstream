@@ -1,8 +1,8 @@
 import { ENV, logger, prisma } from '@jetstream/api-config';
-import type { Request } from '@jetstream/api-types';
 import { AuthenticatedUser, AuthenticatedUserSchema, LoginConfiguration, SsoProviderType, TwoFactorType } from '@jetstream/auth/types';
 import { isPrismaError, PrismaUniqueConstraintError, toTypedPrismaError } from '@jetstream/prisma';
 import { BILLABLE_ROLES, TEAM_BILLING_STATUS_PAST_DUE, TEAM_MEMBER_STATUS_ACTIVE, TeamMemberRole } from '@jetstream/types';
+import type { Request } from 'express';
 import { createUserActivity } from './auth-logging.db.service';
 import { AuthenticatedUserSelect, discoverSsoByDomain, getLoginConfiguration } from './auth.db.service';
 import {
@@ -291,7 +291,7 @@ export async function handleSsoLogin(
   provider: SsoProviderType,
   teamId: string,
   userInfo: SsoUserInfo,
-  req: Request,
+  req: Request<unknown, unknown, unknown, unknown>,
 ): Promise<AuthenticatedUser> {
   userInfo = sanitizeUserInfo(userInfo);
   const email = userInfo.email.toLowerCase();

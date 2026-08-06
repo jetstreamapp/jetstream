@@ -139,7 +139,9 @@ describe('uncaughtErrorHandler logging levels', () => {
   });
 
   it('logs validation/database 400s at warn', async () => {
-    const error = new prismaMocks.PrismaClientKnownRequestError('Unique constraint failed') as Error & { isPrismaError: boolean };
+    const error = new prismaMocks.PrismaClientKnownRequestError('Unique constraint failed') as unknown as Error & {
+      isPrismaError: boolean;
+    };
     error.isPrismaError = true;
 
     const { res } = await handleError(error);

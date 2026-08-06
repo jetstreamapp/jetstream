@@ -7,7 +7,14 @@
   "targets": {
     "build": {
       "executor": "@nx/esbuild:esbuild",
-      "dependsOn": ["^build", { "projects": ["prisma"], "target": "build" }],
+      "dependsOn": [
+        "^build",
+        {
+          "projects": ["prisma"],
+          "target": "build"
+        },
+        "typecheck"
+      ],
       "outputs": ["{options.outputPath}"],
       "defaultConfiguration": "production",
       "options": {
@@ -32,7 +39,9 @@
           "outExtension": {
             ".js": ".js"
           }
-        }
+        },
+        "skipTypeCheck": true,
+        "declaration": false
       },
       "configurations": {
         "development": {

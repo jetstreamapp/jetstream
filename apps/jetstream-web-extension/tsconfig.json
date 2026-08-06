@@ -8,7 +8,6 @@
     "lib": ["DOM", "ESNext"],
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "noEmit": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strictNullChecks": true,

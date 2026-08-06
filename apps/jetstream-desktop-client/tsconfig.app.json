@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "../../dist/out-tsc",
+    "outDir": "../../dist/out-tsc/apps/jetstream-desktop-client",
     "types": ["node", "google.accounts", "google.picker", "gapi.auth2"]
   },
   "exclude": ["**/*.spec.ts", "**/*.test.ts", "**/*.spec.tsx", "**/*.test.tsx"],
@@ -11,7 +11,109 @@
     "src/**/*.ts",
     "src/**/*.tsx",
     "../../custom-typings/index.d.ts",
-    "./jetstream-desktop-client.types.d.ts"
+    "./jetstream-desktop-client.types.d.ts",
+    "../../custom-typings/electron.d.ts"
   ],
-  "files": ["../../node_modules/@nx/react/typings/cssmodule.d.ts", "../../node_modules/@nx/react/typings/image.d.ts"]
+  "files": ["../../node_modules/@nx/react/typings/cssmodule.d.ts", "../../node_modules/@nx/react/typings/image.d.ts"],
+  "references": [
+    {
+      "path": "../../libs/shared/ui-styles"
+    },
+    {
+      "path": "../../libs/shared/utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/monaco-configuration/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/shared/ui-db/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/shared/ui-app-state/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/shared/data/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/shared/constants/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/shared/client-logger/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/shared/ui-utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/ui/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/types/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/features/platform-event-monitor/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/features/sobject-export/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/features/debug-log-viewer/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/features/salesforce-api/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/features/anon-apex/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/features/update-records/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/features/record-type-manager/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/features/formula-evaluator/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/features/create-object-and-fields/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/features/deploy/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/features/data-analysis/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/features/permission-analysis/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/features/manage-permissions/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/features/automation-control/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/features/query/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/features/create-records/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/features/load-records-multi-object/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/features/load-records/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/features/org-groups/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/shared/ui-core/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/shared/ui-router/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/desktop-types/tsconfig.lib.json"
+    }
+  ]
 }

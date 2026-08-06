@@ -2,7 +2,7 @@ import { createRateLimit, ENV, logger } from '@jetstream/api-config';
 import { json } from 'body-parser';
 import * as express from 'express';
 
-export const routes = express.Router();
+export const routes: express.Router = express.Router();
 
 // Lenient, dedicated limiter so report spam (browser extensions, third-party scripts) cannot
 // flood logs or the request pipeline. Reports are best-effort telemetry.

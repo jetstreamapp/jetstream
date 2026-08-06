@@ -4,7 +4,7 @@ import { stringifySetCookie } from 'cookie';
 import * as express from 'express';
 import { isString } from 'lodash';
 
-export const routes = express.Router();
+export const routes: express.Router = express.Router();
 
 routes.get('/', (req, res, next) => {
   const action = req.query.action as 'team-invite' | undefined;

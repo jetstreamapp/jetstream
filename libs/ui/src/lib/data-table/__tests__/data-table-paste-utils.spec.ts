@@ -17,6 +17,9 @@ function field(overrides: Partial<Field>): Field {
   } as Field;
 }
 
+// Part of the row contract but never invoked by the paste/revert utils under test.
+const rowAction: RowSalesforceRecordWithKey['_action'] = () => undefined;
+
 describe('coercePastedValue', () => {
   test('returns the raw string when there is no field metadata', () => {
     expect(coercePastedValue('hello', null)).toBe('hello');
@@ -64,13 +67,15 @@ describe('applyPasteCellsToRows', () => {
   function makeRow(key: string, record: Record<string, any>): RowSalesforceRecordWithKey {
     return {
       _key: key,
+      _action: rowAction,
+      _idx: 0,
       _record: record,
       _touchedColumns: new Set<string>(),
       _fieldErrors: {},
       _fieldWarnings: {},
       _recordErrors: [],
       ...record,
-    } as RowSalesforceRecordWithKey;
+    };
   }
 
   const fieldMetadata = {
@@ -119,6 +124,8 @@ describe('revertCellsInRows', () => {
   function makeRow(key: string, record: Record<string, any>, edits: Record<string, any>, touched: string[]): RowSalesforceRecordWithKey {
     return {
       _key: key,
+      _action: rowAction,
+      _idx: 0,
       _record: record,
       _touchedColumns: new Set<string>(touched),
       _fieldErrors: {},
@@ -126,7 +133,7 @@ describe('revertCellsInRows', () => {
       _recordErrors: [],
       ...record,
       ...edits,
-    } as RowSalesforceRecordWithKey;
+    };
   }
 
   test('restores original values and removes the column from the touched set', () => {

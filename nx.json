@@ -101,12 +101,7 @@
     },
     "@nx/eslint:lint": {
       "cache": true,
-      "inputs": [
-        "default",
-        "^default",
-        "{workspaceRoot}/.eslintrc.json",
-        "{workspaceRoot}/eslint.config.js"
-      ]
+      "inputs": ["default", "^default", "{workspaceRoot}/.eslintrc.json", "{workspaceRoot}/eslint.config.js"]
     },
     "@nx/vitest:test": {
       "cache": true,
@@ -159,6 +154,14 @@
       }
     },
     {
+      "plugin": "@nx/js/typescript",
+      "options": {
+        "typecheck": {
+          "targetName": "typecheck"
+        }
+      }
+    },
+    {
       "plugin": "@nx/eslint/plugin",
       "options": {
         "targetName": "lint"
@@ -167,5 +170,8 @@
   ],
   "defaultBase": "main",
   "useLegacyCache": false,
-  "analytics": false
+  "analytics": false,
+  "sync": {
+    "applyChanges": true
+  }
 }

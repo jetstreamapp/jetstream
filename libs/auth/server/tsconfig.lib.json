@@ -2,7 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "module": "commonjs",
-    "outDir": "../../../dist/out-tsc",
+    "outDir": "../../../dist/out-tsc/libs/auth/server",
     "declaration": true,
     "types": ["node"]
   },
@@ -20,5 +20,28 @@
     "src/**/*.test.jsx",
     "src/**/*.spec.jsx"
   ],
-  "include": ["src/**/*.ts", "../../../custom-express-typings"]
+  "include": ["src/**/*.ts", "../../../custom-express-typings"],
+  "references": [
+    {
+      "path": "../../shared/constants/tsconfig.lib.json"
+    },
+    {
+      "path": "../../shared/utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../../shared/node-utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../../prisma/tsconfig.lib.json"
+    },
+    {
+      "path": "../../types/tsconfig.lib.json"
+    },
+    {
+      "path": "../types/tsconfig.lib.json"
+    },
+    {
+      "path": "../../api-config/tsconfig.lib.json"
+    }
+  ]
 }

@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "../../../dist/out-tsc",
+    "outDir": "../../../dist/out-tsc/libs/shared/data",
     "types": ["node"]
   },
   "exclude": [
@@ -23,5 +23,22 @@
     "src/**/*.spec.jsx"
   ],
   "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
-  "files": ["../../../node_modules/@nx/react/typings/cssmodule.d.ts", "../../../node_modules/@nx/react/typings/image.d.ts"]
+  "files": ["../../../node_modules/@nx/react/typings/cssmodule.d.ts", "../../../node_modules/@nx/react/typings/image.d.ts"],
+  "references": [
+    {
+      "path": "../../auth/types/tsconfig.lib.json"
+    },
+    {
+      "path": "../utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../constants/tsconfig.lib.json"
+    },
+    {
+      "path": "../client-logger/tsconfig.lib.json"
+    },
+    {
+      "path": "../../types/tsconfig.lib.json"
+    }
+  ]
 }

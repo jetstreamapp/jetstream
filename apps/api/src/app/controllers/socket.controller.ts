@@ -1,5 +1,4 @@
 import { ENV, getLogger, logger } from '@jetstream/api-config';
-import type { Request, Response } from '@jetstream/api-types';
 import { convertUserProfileToSession_External } from '@jetstream/auth/server';
 import { HTTP, HTTP_SOURCE_DESKTOP } from '@jetstream/shared/constants';
 import { SocketEvent } from '@jetstream/types';
@@ -12,6 +11,7 @@ import cluster from 'node:cluster';
 import { Server } from 'socket.io';
 import { DefaultEventsMap } from 'socket.io/dist/typed-events';
 import * as externalAuthService from '../services/external-auth.service';
+import type { Request, Response } from '../types/route.types';
 
 let io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap>;
 

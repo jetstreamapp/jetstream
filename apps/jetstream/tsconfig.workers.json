@@ -2,7 +2,8 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "lib": ["es2018", "webworker"],
-    "types": []
+    "types": [],
+    "outDir": "../../dist/out-tsc/apps/jetstream/workers"
   },
   "include": ["**/*.js/*.worker.ts"],
   "files": ["../../node_modules/@nx/react/typings/cssmodule.d.ts", "../../node_modules/@nx/react/typings/image.d.ts"],

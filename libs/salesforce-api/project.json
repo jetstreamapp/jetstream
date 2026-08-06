@@ -7,7 +7,14 @@
   "targets": {
     "build": {
       "executor": "@nx/esbuild:esbuild",
-      "dependsOn": ["^build", { "projects": ["prisma"], "target": "build" }],
+      "dependsOn": [
+        "^build",
+        {
+          "projects": ["prisma"],
+          "target": "build"
+        },
+        "typecheck"
+      ],
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/libs/salesforce-api",
@@ -15,7 +22,9 @@
         "tsConfig": "libs/salesforce-api/tsconfig.lib.json",
         "assets": ["libs/salesforce-api/*.md"],
         "generatePackageJson": false,
-        "format": ["esm"]
+        "format": ["esm"],
+        "skipTypeCheck": true,
+        "declaration": false
       }
     },
     "lint": {

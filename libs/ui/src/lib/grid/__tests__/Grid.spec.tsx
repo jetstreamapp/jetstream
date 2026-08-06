@@ -54,7 +54,8 @@ describe('Grid', () => {
   });
 
   test('passes extra divProps to the container', () => {
-    const { container } = render(<Grid divProps={{ 'data-custom': 'value' }}>Content</Grid>);
+    // Cast required because `data-*` attributes are not part of React.HTMLAttributes
+    const { container } = render(<Grid divProps={{ 'data-custom': 'value' } as React.HTMLAttributes<HTMLDivElement>}>Content</Grid>);
     expect((container.firstChild as HTMLElement).getAttribute('data-custom')).toBe('value');
   });
 });
@@ -76,7 +77,11 @@ describe('GridCol', () => {
   });
 
   test('applies custom maxSize when provided', () => {
-    const { container } = render(<GridCol size={3} maxSize={6}>Content</GridCol>);
+    const { container } = render(
+      <GridCol size={3} maxSize={6}>
+        Content
+      </GridCol>,
+    );
     expect((container.firstChild as HTMLElement).className).toContain('slds-size_3-of-6');
   });
 

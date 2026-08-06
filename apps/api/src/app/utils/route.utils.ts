@@ -1,5 +1,4 @@
 import { ENV, errorTracker, getLogger } from '@jetstream/api-config';
-import { Request, Response } from '@jetstream/api-types';
 import { getApiAddressFromReq } from '@jetstream/auth/server';
 import { AuthenticatedUser, CookieOptions, UserProfileSession } from '@jetstream/auth/types';
 import { ApiConnection } from '@jetstream/salesforce-api';
@@ -9,6 +8,7 @@ import { NextFunction } from 'express';
 import { ipKeyGenerator, type ValueDeterminingMiddleware } from 'express-rate-limit';
 import { z } from 'zod';
 import { findByUniqueId_UNSAFE } from '../db/salesforce-org.db';
+import { Request, Response } from '../types/route.types';
 import { isKnownError, UserFacingError } from './error-handler';
 
 const DEV_CI_MAX_REQUESTS = 10000;

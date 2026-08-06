@@ -1,10 +1,10 @@
 import { DbCacheProvider, ENV, enrichRequestContext, getLogger } from '@jetstream/api-config';
-import type { Request, Response } from '@jetstream/api-types';
 import { OauthProviderType, Providers, ResponseLocalsCookies, SessionIpData } from '@jetstream/auth/types';
 import { GeoIpLookupResponse } from '@jetstream/types';
 import { parseCookie } from 'cookie';
 import * as crypto from 'crypto';
 import { addHours, addMinutes } from 'date-fns';
+import type { Request, Response } from 'express';
 import * as oauth from 'oauth4webapi';
 import * as QRCode from 'qrcode';
 import { OauthClientProvider, OauthClients } from './OauthClients';
@@ -361,7 +361,7 @@ export async function lookupGeoLocationFromIpAddresses(
 }
 
 export function initSession(
-  req: Request<unknown, unknown, unknown>,
+  req: Request<unknown, unknown, unknown, unknown>,
   {
     user,
     isNewUser,
@@ -455,7 +455,7 @@ export function initSession(
 /**
  * If the user is updated (e.x. added to a team) this can be used to ensure the session is updated
  */
-export async function refreshSessionUser(req: Request<unknown, unknown, unknown>): Promise<void> {
+export async function refreshSessionUser(req: Request<unknown, unknown, unknown, unknown>): Promise<void> {
   if (!req.session.user) {
     throw new AuthError('User not authenticated');
   }
