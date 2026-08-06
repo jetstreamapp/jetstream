@@ -1,11 +1,12 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "../../dist/out-tsc",
+    "outDir": "../../dist/out-tsc/libs/icon-factory",
     "types": ["node"]
   },
   "files": ["../../node_modules/@nx/react/typings/cssmodule.d.ts", "../../node_modules/@nx/react/typings/image.d.ts"],
   "exclude": [
+    "eslint.config.js",
     "**/*.spec.ts",
     "**/*.spec.tsx",
     "vite.config.ts",
@@ -21,5 +22,10 @@
     "src/**/*.test.jsx",
     "src/**/*.spec.jsx"
   ],
-  "include": ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx"]
+  "include": ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx"],
+  "references": [
+    {
+      "path": "../shared/client-logger/tsconfig.lib.json"
+    }
+  ]
 }

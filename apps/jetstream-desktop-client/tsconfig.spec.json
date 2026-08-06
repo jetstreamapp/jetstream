@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "../../dist/out-tsc",
+    "outDir": "../../dist/out-tsc/apps/jetstream-desktop-client",
     "module": "commonjs",
     "strictNullChecks": false,
     "types": ["node"]
@@ -17,5 +17,10 @@
     "**/*.test.jsx",
     "**/*.d.ts"
   ],
-  "files": ["../../node_modules/@nx/react/typings/cssmodule.d.ts", "../../node_modules/@nx/react/typings/image.d.ts"]
+  "files": ["../../node_modules/@nx/react/typings/cssmodule.d.ts", "../../node_modules/@nx/react/typings/image.d.ts"],
+  "references": [
+    {
+      "path": "./tsconfig.app.json"
+    }
+  ]
 }

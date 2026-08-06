@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "../../dist/out-tsc",
+    "outDir": "../../dist/out-tsc/apps/jetstream-desktop",
     "types": ["node", "google.accounts", "google.picker", "gapi.auth2"]
   },
   "exclude": [
@@ -22,6 +22,29 @@
     "src/**/*.test.jsx",
     "src/**/*.spec.jsx"
   ],
-  "include": ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx", "../../custom-typings/index.d.ts"],
-  "files": ["../../node_modules/@nx/react/typings/cssmodule.d.ts", "../../node_modules/@nx/react/typings/image.d.ts"]
+  "include": ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx", "../../custom-typings/index.d.ts", "../../custom-typings/electron.d.ts"],
+  "files": ["../../node_modules/@nx/react/typings/cssmodule.d.ts", "../../node_modules/@nx/react/typings/image.d.ts"],
+  "references": [
+    {
+      "path": "../../libs/auth/salesforce-oauth/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/api-types/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/salesforce-api/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/types/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/shared/utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/desktop-types/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/shared/constants/tsconfig.lib.json"
+    }
+  ]
 }

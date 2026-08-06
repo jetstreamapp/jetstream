@@ -4,7 +4,7 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "strictNullChecks": true,
-    "outDir": "../../dist/out-tsc",
+    "outDir": "../../dist/out-tsc/apps/geo-ip-api",
     "types": ["node", "express", "google.accounts", "google.picker", "gapi.auth2"]
   },
   "include": ["src/**/*.ts"],
@@ -21,5 +21,13 @@
     "src/**/*.spec.js",
     "src/**/*.test.jsx",
     "src/**/*.spec.jsx"
+  ],
+  "references": [
+    {
+      "path": "../../libs/types/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/api-config/tsconfig.lib.json"
+    }
   ]
 }

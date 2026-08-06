@@ -1,3 +1,5 @@
+import type { UserProfileSession } from '@jetstream/auth/types';
+import type { Request } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MAX_VERIFICATION_ATTEMPTS } from '../auth.constants';
 import { InvalidCredentials, InvalidVerificationToken, TooManyVerificationAttempts } from '../auth.errors';
@@ -43,7 +45,7 @@ function createRequest(overrides: Record<string, unknown> = {}) {
       ...((overrides.session as Record<string, unknown>) ?? {}),
     },
     externalAuth: overrides.externalAuth,
-  } as never;
+  } as unknown as Request;
 }
 
 beforeEach(() => {
@@ -229,7 +231,7 @@ describe('consumeStepUpAuthOrThrow', () => {
     // Bearer-token callers have no express session for a grant to live on - denying outright is the
     // only safe outcome, since silently skipping the check would bypass step-up entirely.
     const req = grantedRequest();
-    req.externalAuth = { user: { id: USER_ID } };
+    req.externalAuth = { user: { id: USER_ID } as UserProfileSession };
 
     expect(() => consumeStepUpAuthOrThrow(req, 'CHANGE_EMAIL', 'nonce-value')).toThrow(StepUpAuthRequiredError);
   });

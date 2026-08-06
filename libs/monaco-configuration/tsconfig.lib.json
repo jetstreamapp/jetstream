@@ -2,7 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "module": "commonjs",
-    "outDir": "../../dist/out-tsc",
+    "outDir": "../../dist/out-tsc/libs/monaco-configuration",
     "declaration": true,
     "types": ["node"]
   },
@@ -22,5 +22,13 @@
     "src/**/*.test.jsx",
     "src/**/*.spec.jsx"
   ],
-  "include": ["**/*.ts"]
+  "include": ["**/*.ts"],
+  "references": [
+    {
+      "path": "../shared/utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../shared/client-logger/tsconfig.lib.json"
+    }
+  ]
 }

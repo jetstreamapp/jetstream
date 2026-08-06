@@ -3,6 +3,9 @@
   "compilerOptions": {
     "jsx": "preserve",
     "allowJs": true,
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
     "types": ["node", "google.accounts", "google.picker", "gapi.auth2"],
     "strict": false,
     "forceConsistentCasingInFileNames": true,
@@ -19,5 +22,22 @@
   },
   "include": ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "next-env.d.ts"],
   "files": [],
-  "exclude": ["node_modules", "**/*.spec.ts", "**/*.test.ts"]
+  "exclude": ["node_modules", "**/*.spec.ts", "**/*.test.ts", "eslint.config.js"],
+  "references": [
+    {
+      "path": "../../libs/shared/cookie-consent-banner"
+    },
+    {
+      "path": "../../libs/shared/constants"
+    },
+    {
+      "path": "../../libs/shared/utils"
+    },
+    {
+      "path": "../../libs/auth/types"
+    },
+    {
+      "path": "../../libs/types"
+    }
+  ]
 }

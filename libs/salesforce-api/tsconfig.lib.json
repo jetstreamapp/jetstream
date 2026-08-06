@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "../../dist/out-tsc",
+    "outDir": "../../dist/out-tsc/libs/salesforce-api",
     "declaration": true,
     "types": ["node", "google.accounts", "google.picker"]
   },
@@ -19,5 +19,19 @@
     "src/**/*.spec.js",
     "src/**/*.test.jsx",
     "src/**/*.spec.jsx"
+  ],
+  "references": [
+    {
+      "path": "../api-types/tsconfig.lib.json"
+    },
+    {
+      "path": "../shared/constants/tsconfig.lib.json"
+    },
+    {
+      "path": "../shared/utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../types/tsconfig.lib.json"
+    }
   ]
 }

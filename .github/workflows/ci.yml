@@ -100,6 +100,21 @@ jobs:
       - name: Generate database client
         run: pnpm db:generate
 
+      # Fails when tsconfig project references drift from the dependency graph. Nx refuses to run
+      # tasks in that state anyway, so check it up front where the fix (`pnpm nx sync`) is obvious.
+      - name: Verify TypeScript project references are in sync
+        run: pnpm nx sync:check
+
+      # Bundlers strip types without checking them, so this is the only step that catches type errors
+      # (including in spec files, which no build touches).
+      - name: Typecheck all projects
+        if: github.event_name == 'push'
+        run: pnpm typecheck:all
+
+      - name: Typecheck affected projects
+        if: github.event_name == 'pull_request'
+        run: pnpm typecheck:affected
+
       - name: Run database migration
         run: pnpm db:migrate
 

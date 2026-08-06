@@ -2,7 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "allowJs": true,
-    "outDir": "../../dist/out-tsc",
+    "outDir": "../../dist/out-tsc/apps/jetstream-desktop-client-e2e",
     "sourceMap": false,
     "module": "commonjs"
   },
@@ -15,5 +15,6 @@
     "src/**/*.test.ts",
     "src/**/*.test.js",
     "src/**/*.d.ts"
-  ]
+  ],
+  "exclude": ["eslint.config.js"]
 }

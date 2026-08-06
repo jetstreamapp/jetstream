@@ -1,5 +1,4 @@
 import { ENV, errorTracker, getLogger, prisma } from '@jetstream/api-config';
-import type { Response } from '@jetstream/api-types';
 import { AuthError, createCSRFToken, getCookieConfig, StepUpAuthRequiredError } from '@jetstream/auth/server';
 import { isPrismaError, Prisma, SalesforceOrg, toTypedPrismaError } from '@jetstream/prisma';
 import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
@@ -9,6 +8,7 @@ import { stringifySetCookie } from 'cookie';
 import * as express from 'express';
 import { Duplex } from 'stream';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
+import type { Response } from '../types/route.types';
 import { clearDeferredTimers, writeDeferredResponse, type DeferredResponseState } from './deferred-response.middleware';
 import { AuthenticationError, NotFoundError, UserFacingError } from './error-handler';
 

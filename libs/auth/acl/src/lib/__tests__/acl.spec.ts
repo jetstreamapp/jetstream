@@ -1,7 +1,22 @@
 import { getDefaultLoginConfigurationUI, type LoginConfigurationUI } from '@jetstream/auth/types';
-import { type UserProfileUi } from '@jetstream/types';
+import { SoqlQueryFormatOptionsSchema, type UserProfileUi } from '@jetstream/types';
 import { getUserAbility } from '../acl';
 import { getLoginConfigurationAbility } from '../acl.login-configuration';
+
+const preferences: UserProfileUi['preferences'] = {
+  skipFrontdoorLogin: false,
+  recordSyncEnabled: false,
+  soqlQueryFormatOptions: SoqlQueryFormatOptionsSchema.parse({}),
+};
+
+const entitlements: UserProfileUi['entitlements'] = {
+  googleDrive: false,
+  chromeExtension: false,
+  desktop: false,
+  recordSync: false,
+  analysisTools: false,
+  salesforceCanvas: false,
+};
 
 describe('acl', () => {
   describe('getUserAbility', () => {
@@ -18,16 +33,8 @@ describe('acl', () => {
         emailVerified: true,
         picture: null,
         userId: '1',
-        preferences: {
-          skipFrontdoorLogin: false,
-          recordSyncEnabled: false,
-        },
-        entitlements: {
-          googleDrive: false,
-          chromeExtension: false,
-          desktop: false,
-          recordSync: false,
-        },
+        preferences,
+        entitlements,
         subscriptions: [],
         featureFlags: {},
       };
@@ -46,16 +53,8 @@ describe('acl', () => {
         emailVerified: true,
         picture: null,
         userId: '1',
-        preferences: {
-          skipFrontdoorLogin: false,
-          recordSyncEnabled: false,
-        },
-        entitlements: {
-          googleDrive: false,
-          chromeExtension: false,
-          desktop: false,
-          recordSync: false,
-        },
+        preferences,
+        entitlements,
         subscriptions: [],
         featureFlags: {},
         teamMembership: {
@@ -85,8 +84,8 @@ describe('acl', () => {
         emailVerified: true,
         picture: null,
         userId: '1',
-        preferences: { skipFrontdoorLogin: false, recordSyncEnabled: false },
-        entitlements: { googleDrive: false, chromeExtension: false, desktop: false, recordSync: false },
+        preferences,
+        entitlements,
         subscriptions: [],
         featureFlags: {},
         teamMembership: {
@@ -117,16 +116,8 @@ describe('acl', () => {
         emailVerified: true,
         picture: null,
         userId: '1',
-        preferences: {
-          skipFrontdoorLogin: false,
-          recordSyncEnabled: false,
-        },
-        entitlements: {
-          googleDrive: false,
-          chromeExtension: false,
-          desktop: false,
-          recordSync: false,
-        },
+        preferences,
+        entitlements,
         subscriptions: [],
         featureFlags: {},
       };
@@ -242,16 +233,8 @@ describe('acl', () => {
         emailVerified: true,
         picture: null,
         userId: '1',
-        preferences: {
-          skipFrontdoorLogin: false,
-          recordSyncEnabled: false,
-        },
-        entitlements: {
-          googleDrive: false,
-          chromeExtension: false,
-          desktop: false,
-          recordSync: false,
-        },
+        preferences,
+        entitlements,
         subscriptions: [],
         featureFlags: {},
       };
@@ -276,16 +259,8 @@ describe('acl', () => {
       emailVerified: true,
       picture: null,
       userId: '1',
-      preferences: {
-        skipFrontdoorLogin: false,
-        recordSyncEnabled: false,
-      },
-      entitlements: {
-        googleDrive: false,
-        chromeExtension: false,
-        desktop: false,
-        recordSync: false,
-      },
+      preferences,
+      entitlements,
       subscriptions: [],
       featureFlags: {},
     };

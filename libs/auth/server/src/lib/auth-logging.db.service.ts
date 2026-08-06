@@ -1,4 +1,5 @@
 import { logger, prisma } from '@jetstream/api-config';
+import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { Maybe } from '@jetstream/types';
 import type { Request, Response } from 'express';
 import { PLACEHOLDER_USER_ID } from './auth.constants';
@@ -119,10 +120,10 @@ export async function createUserActivityFromReq(
     const requestId = data.requestId || res.locals?.['requestId'];
 
     createUserActivity({ ...data, userId, email, ipAddress, userAgent, requestId }).catch((ex) =>
-      logger.error('Error creating login activity', ex),
+      logger.error({ ...getErrorMessageAndStackObj(ex) }, 'Error creating login activity'),
     );
   } catch (ex) {
-    logger.error('Error creating login activity', ex);
+    logger.error({ ...getErrorMessageAndStackObj(ex) }, 'Error creating login activity');
   }
 }
 
@@ -142,7 +143,7 @@ export async function createUserActivityFromReqWithError(
     }
     createUserActivityFromReq(req, res, data);
   } catch (ex) {
-    logger.error('Error creating login activity', ex);
+    logger.error({ ...getErrorMessageAndStackObj(ex) }, 'Error creating login activity');
   }
 }
 
@@ -154,8 +155,8 @@ export async function createUserActivity(data: LoginActivity) {
         data,
         select: { id: true },
       })
-      .catch((ex) => logger.error('Error creating login activity', ex));
+      .catch((ex) => logger.error({ ...getErrorMessageAndStackObj(ex) }, 'Error creating login activity'));
   } catch (ex) {
-    logger.error('Error creating login activity', ex);
+    logger.error({ ...getErrorMessageAndStackObj(ex) }, 'Error creating login activity');
   }
 }

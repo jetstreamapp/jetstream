@@ -36,7 +36,9 @@
           "outExtension": {
             ".js": ".js"
           }
-        }
+        },
+        "skipTypeCheck": true,
+        "declaration": false
       },
       "configurations": {
         "development": {
@@ -64,7 +66,8 @@
             }
           ]
         }
-      }
+      },
+      "dependsOn": ["^build", "typecheck"]
     },
     "serve": {
       "executor": "@nx/js:node",

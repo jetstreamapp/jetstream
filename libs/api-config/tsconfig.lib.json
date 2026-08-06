@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "../../dist/out-tsc",
+    "outDir": "../../dist/out-tsc/libs/api-config",
     "types": ["node"]
   },
   "exclude": [
@@ -20,5 +20,22 @@
     "src/**/*.test.jsx",
     "src/**/*.spec.jsx"
   ],
-  "include": ["**/*.ts"]
+  "include": ["**/*.ts"],
+  "references": [
+    {
+      "path": "../types/tsconfig.lib.json"
+    },
+    {
+      "path": "../auth/types/tsconfig.lib.json"
+    },
+    {
+      "path": "../shared/utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../shared/constants/tsconfig.lib.json"
+    },
+    {
+      "path": "../prisma/tsconfig.lib.json"
+    }
+  ]
 }

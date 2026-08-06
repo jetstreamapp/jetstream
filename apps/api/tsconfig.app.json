@@ -1,10 +1,54 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "../../dist/out-tsc",
+    "outDir": "../../dist/out-tsc/apps/api",
     "module": "commonjs",
     "types": ["node", "google.accounts", "google.picker", "gapi.auth2"]
   },
   "exclude": ["src/**/*.spec.ts", "src/**/*.test.ts"],
-  "include": ["src/**/*.ts", "../../custom-express-typings"]
+  "include": ["src/**/*.ts", "../../custom-express-typings"],
+  "references": [
+    {
+      "path": "../../libs/prisma/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/shared/node-utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/salesforce-api/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/audit-logs/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/desktop-types/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/auth/salesforce-oauth/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/api-types/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/email/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/auth/server/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/shared/constants/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/types/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/shared/utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/auth/types/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/api-config/tsconfig.lib.json"
+    }
+  ]
 }

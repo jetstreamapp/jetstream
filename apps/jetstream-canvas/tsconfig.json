@@ -10,7 +10,6 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "jsxImportSource": "@emotion/react",
-    "noEmit": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strictNullChecks": true,

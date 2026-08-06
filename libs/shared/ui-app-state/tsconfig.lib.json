@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "../../../dist/out-tsc",
+    "outDir": "../../../dist/out-tsc/libs/shared/ui-app-state",
     "types": ["node", "google.accounts", "google.picker", "gapi.auth2", "vite/client"]
   },
   "exclude": [
@@ -18,5 +18,28 @@
     "vitest.config.ts",
     "vitest.config.mts"
   ],
-  "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx", "../../../custom-typings/index.d.ts"]
+  "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx", "../../../custom-typings/index.d.ts"],
+  "references": [
+    {
+      "path": "../../types/tsconfig.lib.json"
+    },
+    {
+      "path": "../utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../ui-utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../data/tsconfig.lib.json"
+    },
+    {
+      "path": "../constants/tsconfig.lib.json"
+    },
+    {
+      "path": "../client-logger/tsconfig.lib.json"
+    },
+    {
+      "path": "../../auth/acl/tsconfig.lib.json"
+    }
+  ]
 }

@@ -19,6 +19,17 @@
         "commands": ["node -e \"fs.rmSync('libs/prisma/src/lib/generated/prisma', { recursive: true, force: true })\"", "prisma generate"],
         "parallel": false
       }
+    },
+    "typecheck": {
+      "dependsOn": ["build"],
+      "inputs": [
+        "default",
+        "^default",
+        "{workspaceRoot}/prisma/schema.prisma",
+        "{workspaceRoot}/prisma.config.ts",
+        "{workspaceRoot}/prisma/sql/**/*",
+        { "externalDependencies": ["prisma", "@prisma/client", "typescript"] }
+      ]
     }
   }
 }

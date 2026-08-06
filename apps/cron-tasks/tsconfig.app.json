@@ -4,7 +4,7 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "strictNullChecks": true,
-    "outDir": "../../dist/out-tsc",
+    "outDir": "../../dist/out-tsc/apps/cron-tasks",
     "target": "esnext",
     "types": ["node", "google.accounts", "google.picker", "gapi.auth2"],
     "jsx": "react"
@@ -25,5 +25,28 @@
     "src/**/*.test.jsx",
     "src/**/*.spec.jsx"
   ],
-  "include": ["**/*.ts"]
+  "include": ["**/*.ts"],
+  "references": [
+    {
+      "path": "../../libs/shared/constants/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/types/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/shared/utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/audit-logs/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/api-config/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/email/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/prisma/tsconfig.lib.json"
+    }
+  ]
 }

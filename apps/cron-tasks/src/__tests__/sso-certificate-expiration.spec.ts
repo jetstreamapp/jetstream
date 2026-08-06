@@ -5,7 +5,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { addDays, subDays } from 'date-fns';
 import * as dotenv from 'dotenv';
 import { v4 as uuid } from 'uuid';
-import { vi } from 'vitest';
+import { vi, type MockedFunction } from 'vitest';
 import { manageSsoCertificateExpiration } from '../utils/sso-certificate-expiration.utils';
 
 dotenv.config();
@@ -128,8 +128,8 @@ async function cleanUpTestData() {
 }
 
 describe('SSO Certificate Expiration Integration Tests', () => {
-  const mockSendEmail = sendSsoCertificateExpirationEmail as vi.MockedFunction<typeof sendSsoCertificateExpirationEmail>;
-  const mockCreateAuditLog = createAuditLog as vi.MockedFunction<typeof createAuditLog>;
+  const mockSendEmail = sendSsoCertificateExpirationEmail as MockedFunction<typeof sendSsoCertificateExpirationEmail>;
+  const mockCreateAuditLog = createAuditLog as MockedFunction<typeof createAuditLog>;
 
   beforeAll(async () => {
     await prisma.$connect();

@@ -99,7 +99,11 @@ export async function updateLoginConfiguration({
   teamId: string;
   runningUserId: string;
   loginConfiguration: TeamLoginConfigRequest;
-}): Promise<{ team: TeamUserFacing; previousLoginConfig: typeof result.previousLoginConfig; sessionsRevoked: number }> {
+}): Promise<{
+  team: TeamUserFacing;
+  previousLoginConfig: Awaited<ReturnType<typeof teamDbService.updateLoginConfiguration>>['previousLoginConfig'];
+  sessionsRevoked: number;
+}> {
   const result = await teamDbService.updateLoginConfiguration({ runningUserId, teamId, loginConfiguration });
 
   const sessionsRevoked = await teamDbService

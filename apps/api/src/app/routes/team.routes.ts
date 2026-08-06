@@ -1,9 +1,9 @@
 import { getLogger } from '@jetstream/api-config';
-import { Request, Response } from '@jetstream/api-types';
 import { TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING, TeamMemberRole, TeamMemberRoleSchema } from '@jetstream/types';
 import express, { Router } from 'express';
 import { routeDefinition as teamController } from '../controllers/team.controller';
 import { findActiveTeamMembershipForRoles } from '../db/team.db';
+import { Request, Response } from '../types/route.types';
 import { checkAuth, validateDoubleCSRF } from './route.middleware';
 
 /**

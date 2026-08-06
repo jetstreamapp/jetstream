@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "../../../dist/out-tsc",
+    "outDir": "../../../dist/out-tsc/libs/shared/ui-db",
     "declaration": true,
     "types": ["node", "google.accounts", "google.picker", "gapi.auth2"]
   },
@@ -19,5 +19,22 @@
     "src/**/*.spec.js",
     "src/**/*.test.jsx",
     "src/**/*.spec.jsx"
+  ],
+  "references": [
+    {
+      "path": "../constants/tsconfig.lib.json"
+    },
+    {
+      "path": "../../types/tsconfig.lib.json"
+    },
+    {
+      "path": "../client-logger/tsconfig.lib.json"
+    },
+    {
+      "path": "../utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../data/tsconfig.lib.json"
+    }
   ]
 }

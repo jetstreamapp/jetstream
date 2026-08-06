@@ -1,8 +1,8 @@
 import { prisma } from '@jetstream/api-config';
-import type { Request } from '@jetstream/api-types';
 import type { StepUpAvailableMethods, StepUpMethod, StepUpPurpose } from '@jetstream/auth/types';
 import { STEP_UP_AUTH_REQUIRED_ERROR_TYPE } from '@jetstream/auth/types';
 import { addMinutes } from 'date-fns';
+import type { Request } from 'express';
 import { MAX_VERIFICATION_ATTEMPTS, STEP_UP_AUTH_TTL_MINUTES, STEP_UP_LOCKOUT_MINUTES, TOKEN_DURATION_MINUTES } from './auth.constants';
 import { verifyPasswordForUserId } from './auth.db.service';
 import { InvalidAction, InvalidCredentials, InvalidVerificationToken, TooManyVerificationAttempts } from './auth.errors';

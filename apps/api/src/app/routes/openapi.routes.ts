@@ -158,7 +158,7 @@ function getRequest({
  *
  * These are manually maintained
  */
-export function getOpenApiSpec() {
+export function getOpenApiSpec(): ReturnType<typeof createDocument> {
   return createDocument({
     openapi: '3.1.1',
     info: {

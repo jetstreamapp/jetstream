@@ -1,9 +1,11 @@
 import type { ResponseLocalsCookies } from '@jetstream/auth/types';
 import type { SalesforceOrg } from '@jetstream/prisma';
-// eslint-disable-next-line @nx/enforce-module-boundaries
 import type { ApiConnection } from '@jetstream/salesforce-api';
 import type { Request as ExpressRequest, Response as ExpressResponse } from 'express';
 
+// These live in the api application instead of a shared library because they depend on ApiConnection,
+// and a library owning them would create a circular dependency (api-types <-> salesforce-api).
+//
 // Only declare route-specific locals here. Globally populated fields (requestId, cspNonce)
 // live on the Express.Locals augmentation in custom-express-typings/index.d.ts and are
 // merged in via intersection — do not duplicate them here.
