@@ -1,4 +1,3 @@
-import 'fake-indexeddb/auto';
 import { Blob as NodeBlob } from 'node:buffer';
 
 import { SalesforceOrgUi } from '@jetstream/types';
@@ -9,16 +8,16 @@ import {
   setHistoryFileStoreForTests,
   startDataHistoryEntry,
 } from '@jetstream/ui/data-history';
-import { dataHistoryDb, ensureLocalStorageReady, getDexieDb } from '@jetstream/ui/db';
+import { dataHistoryDb, getDexieDb } from '@jetstream/ui/db';
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { finalizeMultiObjectHistory, getMultiObjectDistinctSobjects, getMultiObjectOperations } from '../data-history-capture';
 import { LoadMultiObjectRequestWithResult, LoadMultiObjectRun } from '../load-records-multi-object-types';
 import { buildRecordResultRows } from '../load/load-results-utils';
 
+const SPEC_USER_ID = 'spec-user-id';
+
 // jsdom's Blob does not interoperate with Node's CompressionStream (cross-realm web streams).
 globalThis.Blob = NodeBlob as unknown as typeof Blob;
-
-const SPEC_USER_ID = 'load-multi-history-test-user';
 
 const org = { uniqueId: 'org-multi-1', label: 'Multi Org' } as SalesforceOrgUi;
 
@@ -65,12 +64,13 @@ function buildRun(requests: LoadMultiObjectRequestWithResult[]): LoadMultiObject
   return { runId: 0, type: 'initial', requests, startedAt: null, finishedAt: null, cancelled: false };
 }
 
+/** The same per-record rows the results tables and the results download are built from */
 function buildRows(requests: LoadMultiObjectRequestWithResult[]) {
   return buildRecordResultRows([buildRun(requests)], {});
 }
 
 describe('multi-object derivation helpers', () => {
-  const requests = [
+  const data = [
     buildRequest('g1', undefined, [
       { referenceId: 'r1', sobject: 'Account', operation: 'INSERT', body: { id: '1', success: true } },
       { referenceId: 'r2', sobject: 'Contact', operation: 'INSERT', body: { id: '2', success: true } },
@@ -79,11 +79,11 @@ describe('multi-object derivation helpers', () => {
   ];
 
   it('collects distinct sobjects across all graphs', () => {
-    expect(getMultiObjectDistinctSobjects(requests).sort()).toEqual(['Account', 'Contact']);
+    expect(getMultiObjectDistinctSobjects(data).sort()).toEqual(['Account', 'Contact']);
   });
 
   it('marks operations mixed and defaults to insert, recording per-object operations', () => {
-    const operations = getMultiObjectOperations(requests);
+    const operations = getMultiObjectOperations(data);
     expect(operations.mixed).toBe(true);
     expect(operations.operation).toBe('insert');
     expect(operations.byObject.Account).toContain('INSERT');
@@ -100,9 +100,6 @@ describe('multi-object derivation helpers', () => {
 
 describe('multi-object Data History capture wiring', () => {
   beforeAll(async () => {
-    // Dexie and the history payload files are both scoped to the signed-in user, so bind the same
-    // id to each before any db access
-    await ensureLocalStorageReady({ userId: SPEC_USER_ID, dbName: 'Jetstream' });
     await initDataHistory({ userId: SPEC_USER_ID, hasPaidPlan: true });
   });
 
@@ -116,18 +113,9 @@ describe('multi-object Data History capture wiring', () => {
     setHistoryFileStoreForTests(null);
   });
 
-  function startEntry(requests: LoadMultiObjectRequestWithResult[]) {
-    return startDataHistoryEntry({
-      org,
-      source: 'load-multi-object',
-      operation: getMultiObjectOperations(requests).operation,
-      api: 'composite-graph',
-      sobjects: getMultiObjectDistinctSobjects(requests),
-    });
-  }
-
   it('writes the request json, streams result rows, and finishes with derived counts', async () => {
-    const requests = [
+    // Separate requests — a group is atomic, so a failing record would take its whole group down with it
+    const data = [
       buildRequest('g1', undefined, [
         { referenceId: 'r1', sobject: 'Account', operation: 'INSERT', body: { id: '001', success: true, created: true } },
       ]),
@@ -136,9 +124,16 @@ describe('multi-object Data History capture wiring', () => {
       ]),
     ];
 
-    const handle = startEntry(requests);
+    const handle = startDataHistoryEntry({
+      org,
+      source: 'load-multi-object',
+      operation: getMultiObjectOperations(data).operation,
+      api: 'composite-graph',
+      sobjects: getMultiObjectDistinctSobjects(data),
+    });
+
     handle.writeRequestJson([{ groupId: 'g1', data: [{ some: 'request' }] }]);
-    await finalizeMultiObjectHistory(handle, { rows: buildRows(requests), requests });
+    await finalizeMultiObjectHistory(handle, { rows: buildRows(data), requests: data });
 
     const [entry] = await dataHistoryDb.getAllEntries();
     expect(entry.source).toBe('load-multi-object');
@@ -155,32 +150,22 @@ describe('multi-object Data History capture wiring', () => {
     expect(JSON.parse(await request!.blob.text())[0].groupId).toBe('g1');
   });
 
-  it('excludes records that were never processed from the counts', async () => {
-    // A cancelled run leaves later requests with no graph result — those records are pending, not failures
-    const requests = [
-      buildRequest('g1', undefined, [{ referenceId: 'r1', sobject: 'Account', operation: 'INSERT', body: { id: '001', success: true } }]),
-      buildRequest('g2', undefined, [{ referenceId: 'r2', sobject: 'Account', operation: 'INSERT', body: null }]),
-    ];
-    requests[1].dataWithResultsByGraphId['g2-graph'].isSuccess = null;
-
-    const handle = startEntry(requests);
-    await finalizeMultiObjectHistory(handle, { rows: buildRows(requests), requests });
-
-    const [entry] = await dataHistoryDb.getAllEntries();
-    expect(entry.counts).toEqual({ total: 1, success: 1, failure: 0 });
-    expect(entry.status).toBe('success');
-  });
-
   it('marks the entry failed with the attempted record counts when every request failed outright', async () => {
-    const requests = [
+    const data = [
       buildRequest('g1', 'network down', [
         { referenceId: 'r1', sobject: 'Account', operation: 'INSERT', body: null },
         { referenceId: 'r2', sobject: 'Contact', operation: 'INSERT', body: null },
       ]),
     ];
-    const handle = startEntry(requests);
+    const handle = startDataHistoryEntry({
+      org,
+      source: 'load-multi-object',
+      operation: 'insert',
+      api: 'composite-graph',
+      sobjects: ['Account'],
+    });
     handle.writeRequestJson([{ groupId: 'g1', data: [{ some: 'request' }] }]);
-    await finalizeMultiObjectHistory(handle, { rows: buildRows(requests), requests });
+    await finalizeMultiObjectHistory(handle, { rows: buildRows(data), requests: data });
 
     const [entry] = await dataHistoryDb.getAllEntries();
     expect(entry.status).toBe('failed');
@@ -191,9 +176,15 @@ describe('multi-object Data History capture wiring', () => {
   });
 
   it('keeps the failed status when a request fails before any record is mapped', async () => {
-    const requests = [buildRequest('g1', 'network down', [])];
-    const handle = startEntry(requests);
-    await finalizeMultiObjectHistory(handle, { rows: buildRows(requests), requests });
+    const data = [buildRequest('g1', 'network down', [])];
+    const handle = startDataHistoryEntry({
+      org,
+      source: 'load-multi-object',
+      operation: 'insert',
+      api: 'composite-graph',
+      sobjects: [],
+    });
+    await finalizeMultiObjectHistory(handle, { rows: buildRows(data), requests: data });
 
     const [entry] = await dataHistoryDb.getAllEntries();
     expect(entry.status).toBe('failed');

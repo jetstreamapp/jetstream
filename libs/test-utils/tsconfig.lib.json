@@ -22,6 +22,9 @@
   ],
   "references": [
     {
+      "path": "../shared/ui-db/tsconfig.lib.json"
+    },
+    {
       "path": "../types/tsconfig.lib.json"
     }
   ]

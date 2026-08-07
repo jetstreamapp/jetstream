@@ -1,26 +1,21 @@
-import 'fake-indexeddb/auto';
 import { Blob as NodeBlob } from 'node:buffer';
 
 import { BulkJobResultRecord, BulkJobWithBatches, SalesforceOrgUi } from '@jetstream/types';
 import { FakeFileStore, initDataHistory, readDataHistoryFile, setHistoryFileStoreForTests } from '@jetstream/ui/data-history';
-import { dataHistoryDb, ensureLocalStorageReady, getDexieDb } from '@jetstream/ui/db';
+import { dataHistoryDb, getDexieDb } from '@jetstream/ui/db';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { captureMassUpdateResults, startMassUpdateHistory } from '../data-history-capture';
 import { MetadataRowConfiguration } from '../mass-update-records.types';
 
+const SPEC_USER_ID = 'spec-user-id';
+
 // vitest hoists vi.hoisted + vi.mock above these imports at transform time, so `@jetstream/shared/data`
 // is mocked before the module under test resolves it (the textual order below is only for the linter).
 const { bulkApiGetRecordsMock } = vi.hoisted(() => ({ bulkApiGetRecordsMock: vi.fn() }));
-// Partial mock — the real localforage store factories are still needed to bind the user-scoped Dexie instance.
-vi.mock('@jetstream/shared/data', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@jetstream/shared/data')>()),
-  bulkApiGetRecords: bulkApiGetRecordsMock,
-}));
+vi.mock('@jetstream/shared/data', () => ({ bulkApiGetRecords: bulkApiGetRecordsMock }));
 
 // jsdom's Blob does not interoperate with Node's CompressionStream (cross-realm web streams).
 globalThis.Blob = NodeBlob as unknown as typeof Blob;
-
-const SPEC_USER_ID = 'mass-update-history-test-user';
 
 const org = { uniqueId: 'org-mass-1', label: 'Mass Org' } as SalesforceOrgUi;
 const configuration: MetadataRowConfiguration[] = [
@@ -37,9 +32,6 @@ async function getFinishedEntry(key: string) {
 
 describe('mass-update Data History capture wiring', () => {
   beforeAll(async () => {
-    // Dexie and the history payload files are both scoped to the signed-in user, so bind the same
-    // id to each before any db access
-    await ensureLocalStorageReady({ userId: SPEC_USER_ID, dbName: 'Jetstream' });
     await initDataHistory({ userId: SPEC_USER_ID, hasPaidPlan: true });
   });
 
