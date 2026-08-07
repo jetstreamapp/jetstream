@@ -3,9 +3,8 @@ import { logger } from '@jetstream/shared/client-logger';
 import { getCanvasPreferences, updateCanvasPreferences } from '@jetstream/shared/data';
 import { initErrorTracker, setErrorTrackerUser, useObservable } from '@jetstream/shared/ui-utils';
 import { JetstreamEventSaveSoqlQueryFormatOptionsPayload, SalesforceOrgUi } from '@jetstream/types';
-import { AppLoading, fromJetstreamEvents } from '@jetstream/ui-core';
+import { AppLoading, fromJetstreamEvents, useInitDataHistory } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
-import { initDataHistory } from '@jetstream/ui/data-history';
 import { ensureLocalStorageReady, initDexieDb } from '@jetstream/ui/db';
 import { useAtomValue, useSetAtom } from 'jotai';
 import localforage from 'localforage';
@@ -32,8 +31,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
   const setSelectedOrgId = useSetAtom(fromAppState.selectedOrgIdState);
   const setSalesforceOrgs = useSetAtom(fromAppState.salesforceOrgsState);
   const setUserProfile = useSetAtom(fromAppState.userProfileState);
-  const setDataHistoryCaptureEnabled = useSetAtom(fromAppState.dataHistoryCaptureEnabledState);
-  const setDataHistoryInitialized = useSetAtom(fromAppState.dataHistoryInitializedState);
+  const initDataHistoryAndSeedState = useInitDataHistory();
   const setCanvasColorScheme = useSetAtom(canvasColorSchemeState);
   const selectedOrg = useAtomValue(fromAppState.selectedOrgState);
 
@@ -79,18 +77,13 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
     const recordSyncEnabled = false;
     if (storageScopeId) {
       initDexieDb({ userId: storageScopeId, dbName: LOCAL_STORE_DB_NAME, recordSyncEnabled })
-        // No paid signal passed — canvas always gets the top history tier via platform detection (storage
-        // is partitioned per Salesforce top-level origin and best-effort)
-        .then(() => initDataHistory({ userId: storageScopeId }))
-        .then(({ captureEnabled }) => {
-          setDataHistoryCaptureEnabled(captureEnabled);
-          setDataHistoryInitialized(true);
-        })
+        // Canvas history storage is partitioned per Salesforce top-level origin and best-effort
+        .then(() => initDataHistoryAndSeedState({ userId: storageScopeId }))
         .catch((ex) => {
           logger.error('[DB] Error initializing db', ex);
         });
     }
-  }, [storageScopeId, setDataHistoryCaptureEnabled, setDataHistoryInitialized]);
+  }, [storageScopeId, initDataHistoryAndSeedState]);
 
   // Load preferences from Salesforce custom setting on mount
   useEffect(() => {

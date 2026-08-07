@@ -31,7 +31,7 @@ import {
 import { RequireMetadataApiBanner, useAmplitude } from '@jetstream/ui-core';
 import { EditFromErrors, handleEditFormErrorResponse, transformEditForm, validateEditForm } from '@jetstream/ui-core/shared';
 import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
-import { recordDataHistoryAction } from '@jetstream/ui/data-history';
+import { recordDataHistoryAction, RecordDataHistoryActionOptions } from '@jetstream/ui/data-history';
 import { useAtomValue } from 'jotai';
 import { useEffect, useRef, useState } from 'react';
 import { LastCreatedRecord } from './LastCreatedRecord';
@@ -207,6 +207,16 @@ export const CreateRecords = () => {
 
     setSaving(true);
 
+    // Base Data History payload shared by the success and thrown-error paths below
+    const historyBase = {
+      org: selectedOrg,
+      source: 'create-record',
+      operation: 'create',
+      api: 'collections',
+      sobjects: [selectedObject.name],
+      request: record,
+    } satisfies Pick<RecordDataHistoryActionOptions, 'org' | 'source' | 'operation' | 'api' | 'sobjects' | 'request'>;
+
     try {
       const recordResponse: RecordResult = (await sobjectOperation(selectedOrg, selectedObject.name, 'create', { records: [record] }))[0];
       const isErrorResult = isErrorResponse(recordResponse);
@@ -237,12 +247,7 @@ export const CreateRecords = () => {
       // Record the create to Data History (success OR error). Fire-and-forget + self-gating; the results
       // payload includes the re-fetched full record on success. Small single-record payload -> stored inline.
       void recordDataHistoryAction({
-        org: selectedOrg,
-        source: 'create-record',
-        operation: 'create',
-        api: 'collections',
-        sobjects: [selectedObject.name],
-        request: record,
+        ...historyBase,
         results: { result: recordResponse, record: retrievedRecord },
         counts: { total: 1, success: isErrorResult ? 0 : 1, failure: isErrorResult ? 1 : 0 },
         status: isErrorResult ? 'failed' : 'success',
@@ -256,12 +261,7 @@ export const CreateRecords = () => {
       // A THROWN create (network error, expired session) is still recorded — the request may even
       // have applied server-side (e.g. a timeout). Graceful error results are captured above.
       void recordDataHistoryAction({
-        org: selectedOrg,
-        source: 'create-record',
-        operation: 'create',
-        api: 'collections',
-        sobjects: [selectedObject.name],
-        request: record,
+        ...historyBase,
         results: { error: getErrorMessage(ex) },
         counts: { total: 1, success: 0, failure: 1 },
         status: 'failed',

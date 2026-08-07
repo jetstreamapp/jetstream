@@ -11,9 +11,8 @@ import {
 import { getDefaultAppState, getErrorMessage } from '@jetstream/shared/utils';
 import { JetstreamEventSaveSoqlQueryFormatOptionsPayload, UserProfileUi } from '@jetstream/types';
 import { ScopedNotification } from '@jetstream/ui';
-import { AppLoading, fromJetstreamEvents } from '@jetstream/ui-core';
+import { AppLoading, fromJetstreamEvents, useInitDataHistory } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
-import { initDataHistory } from '@jetstream/ui/data-history';
 import { clearLocalStorageScope, ensureLocalStorageReady, initDexieDb, isDifferentUserThanPageSession } from '@jetstream/ui/db';
 import { useObservable } from 'dexie-react-hooks';
 import { useAtomValue, useSetAtom } from 'jotai';
@@ -54,8 +53,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
   const { serverUrl } = useAtomValue(fromAppState.applicationCookieState);
   const setAppInfo = useSetAtom(fromAppState.appInfoState);
   const setUserProfile = useSetAtom(fromAppState.userProfileState);
-  const setDataHistoryCaptureEnabled = useSetAtom(fromAppState.dataHistoryCaptureEnabledState);
-  const setDataHistoryInitialized = useSetAtom(fromAppState.dataHistoryInitializedState);
+  const initDataHistoryAndSeedState = useInitDataHistory();
 
   const setSelectedOrgId = useSetAtom(fromAppState.selectedOrgIdState);
   const setSalesforceOrgs = useSetAtom(fromAppState.salesforceOrgsState);
@@ -133,12 +131,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
       disconnectSocket();
     }
     initDexieDb({ userId: chromeUserProfile.id, dbName: LOCAL_STORE_DB_NAME, recordSyncEnabled })
-      // No paid signal passed — the extension always gets the top history tier via platform detection
-      .then(() => initDataHistory({ userId: chromeUserProfile.id }))
-      .then(({ captureEnabled }) => {
-        setDataHistoryCaptureEnabled(captureEnabled);
-        setDataHistoryInitialized(true);
-      })
+      .then(() => initDataHistoryAndSeedState({ userId: chromeUserProfile.id }))
       .catch((ex) => {
         logger.error('[DB] Error initializing db', ex);
       });
@@ -149,8 +142,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
     isDifferentUser,
     options.recordSyncEnabled,
     serverUrl,
-    setDataHistoryCaptureEnabled,
-    setDataHistoryInitialized,
+    initDataHistoryAndSeedState,
   ]);
 
   // Ensure user access token is valid

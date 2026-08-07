@@ -68,10 +68,10 @@ describe('multi-object derivation helpers', () => {
     expect(getMultiObjectDistinctSobjects(data).sort()).toEqual(['Account', 'Contact']);
   });
 
-  it('marks operations mixed and defaults to insert, recording per-object operations', () => {
+  it('records the mixed operation when operations differ, recording per-object operations', () => {
     const operations = getMultiObjectOperations(data);
     expect(operations.mixed).toBe(true);
-    expect(operations.operation).toBe('insert');
+    expect(operations.operation).toBe('mixed');
     expect(operations.byObject.Account).toContain('INSERT');
     expect(operations.byObject.Account).toContain('UPDATE');
   });

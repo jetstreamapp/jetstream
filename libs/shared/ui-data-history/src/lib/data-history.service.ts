@@ -130,8 +130,10 @@ export interface DataHistoryStorageHealth {
  * reconcile sweep in the background when any history exists. Safe to call multiple times (e.g.
  * when the ability/profile changes). Never throws.
  *
- * Returns whether capture ended up enabled, which is the one thing every caller needs next (to seed
- * `dataHistoryCaptureEnabledState` so feature UI can read it synchronously).
+ * Returns whether capture ended up enabled and the resolved tier limits, which is what every caller
+ * needs next (to seed `dataHistoryCaptureEnabledState` / `dataHistoryLimitsState` so feature UI can
+ * read them synchronously). `limits` is null only when initialization failed before the tier was
+ * resolved.
  *
  * `userId` scopes the payload files on disk to the signed-in account and is REQUIRED — see
  * `user-scope.ts`. It is the same id the caller scopes the local database with, so history files and
@@ -140,7 +142,10 @@ export interface DataHistoryStorageHealth {
  * `hasPaidPlan` is the WEB app's paid signal. Desktop, the browser extension and canvas omit it —
  * `getDataHistoryTierLimits` grants them the top tier from platform detection.
  */
-export async function initDataHistory(options: { userId: string; hasPaidPlan?: boolean }): Promise<{ captureEnabled: boolean }> {
+export async function initDataHistory(options: {
+  userId: string;
+  hasPaidPlan?: boolean;
+}): Promise<{ captureEnabled: boolean; limits: DataHistoryTierLimits | null }> {
   try {
     registerStorageScopeTeardownOnce();
     // Re-scoping to a different user must not leave stores cached against the previous account's
@@ -160,10 +165,10 @@ export async function initDataHistory(options: { userId: string; hasPaidPlan?: b
     if (entryCount > 0) {
       void runDataHistoryRetentionSweep();
     }
-    return { captureEnabled };
+    return { captureEnabled, limits: getTierLimits() };
   } catch (ex) {
     logger.warn('[DATA_HISTORY] Error initializing data history', ex);
-    return { captureEnabled: false };
+    return { captureEnabled: false, limits: getTierLimits() };
   }
 }
 
@@ -240,6 +245,42 @@ export function startDataHistoryEntry(options: StartDataHistoryEntryOptions): Da
 }
 
 /**
+ * Freshly-started entry row with the in-progress defaults, shared by the entry-handle constructor
+ * and the inline one-shot path (which spreads its final-state overrides on top) so the two can
+ * never drift field-by-field.
+ */
+function buildNewHistoryItem(options: StartDataHistoryEntryOptions, now: Date): DataHistoryItem {
+  return {
+    key: dataHistoryDb.generateKey(),
+    org: options.org.uniqueId,
+    orgLabel: options.org.label || options.org.uniqueId,
+    source: options.source,
+    operation: options.operation,
+    api: options.api,
+    sobjects: options.sobjects,
+    status: 'in-progress',
+    counts: { total: 0, success: 0, failure: 0 },
+    config: options.config || {},
+    inputSource: options.inputSource,
+    jobId: options.jobId,
+    parentKey: options.parentKey,
+    files: [],
+    // Placeholder until the creation task resolves the active store — the row is never saved
+    // before that happens, so no row can be persisted with the wrong stamp.
+    storageBackend: 'opfs',
+    sizeBytes: 0,
+    inlinePayload: null,
+    pinned: false,
+    pinnedIdx: 'false',
+    errorMessage: null,
+    startedAt: now,
+    finishedAt: null,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+/**
  * Handle for an in-flight history entry. All methods are queued and fire-and-forget safe: any
  * internal error marks the entry `failed` and subsequent calls become no-ops — nothing ever
  * rejects into the calling flow. Await individual calls (or `flush()`) only when sequencing
@@ -271,35 +312,8 @@ export class DataHistoryEntryHandle {
 
   constructor(options: StartDataHistoryEntryOptions) {
     const now = new Date();
-    this.key = dataHistoryDb.generateKey();
-    this.item = {
-      key: this.key,
-      org: options.org.uniqueId,
-      orgLabel: options.org.label || options.org.uniqueId,
-      source: options.source,
-      operation: options.operation,
-      api: options.api,
-      sobjects: options.sobjects,
-      status: 'in-progress',
-      counts: { total: 0, success: 0, failure: 0 },
-      config: options.config || {},
-      inputSource: options.inputSource,
-      jobId: options.jobId,
-      parentKey: options.parentKey,
-      files: [],
-      // Placeholder until the creation task resolves the active store — the row is never saved
-      // before that happens, so no row can be persisted with the wrong stamp.
-      storageBackend: 'opfs',
-      sizeBytes: 0,
-      inlinePayload: null,
-      pinned: false,
-      pinnedIdx: 'false',
-      errorMessage: null,
-      startedAt: now,
-      finishedAt: null,
-      createdAt: now,
-      updatedAt: now,
-    };
+    this.item = buildNewHistoryItem(options, now);
+    this.key = this.item.key;
     // Guard the entry against a concurrent backend migration until the handle finishes/fails
     markEntryActive(this.key);
     this.queue = this.createEntry(options);
@@ -337,32 +351,23 @@ export class DataHistoryEntryHandle {
 
   /** Persist the exact request payload (JSON) as `request.json.gz` */
   writeRequestJson(payload: unknown): Promise<void> {
-    return this.run(async (store) => {
-      const compressed = store.capabilities.compressFiles;
-      const fileName = getDataHistoryFileName('request.json', compressed);
-      const path = this.filePath(fileName);
-      const { bytes } = await store.writeFile(path, TEXT_ENCODER.encode(JSON.stringify(payload)), { gzip: compressed });
-      await this.addFileRef(store, {
-        kind: 'request',
-        path,
-        fileName,
-        contentType: 'application/json',
-        compressed,
-        bytes,
-        rowCount: Array.isArray(payload) ? payload.length : undefined,
-      });
-    });
+    return this.writeJsonPayload('request', payload);
   }
 
   /** Persist the results payload (JSON) as `results.json.gz` — the one-shot counterpart to `appendResultsRows` */
   writeResultsJson(payload: unknown): Promise<void> {
+    return this.writeJsonPayload('results', payload);
+  }
+
+  /** Shared body of `writeRequestJson`/`writeResultsJson` — identical writes to `<kind>.json.gz` */
+  private writeJsonPayload(kind: 'request' | 'results', payload: unknown): Promise<void> {
     return this.run(async (store) => {
       const compressed = store.capabilities.compressFiles;
-      const fileName = getDataHistoryFileName('results.json', compressed);
+      const fileName = getDataHistoryFileName(`${kind}.json`, compressed);
       const path = this.filePath(fileName);
       const { bytes } = await store.writeFile(path, TEXT_ENCODER.encode(JSON.stringify(payload)), { gzip: compressed });
       await this.addFileRef(store, {
-        kind: 'results',
+        kind,
         path,
         fileName,
         contentType: 'application/json',
@@ -596,34 +601,16 @@ export async function recordDataHistoryAction(options: RecordDataHistoryActionOp
     if (TEXT_ENCODER.encode(payloadJson).byteLength <= DATA_HISTORY_INLINE_PAYLOAD_MAX_BYTES) {
       const now = new Date();
       const item: DataHistoryItem = {
-        key: dataHistoryDb.generateKey(),
-        org: options.org.uniqueId,
-        orgLabel: options.org.label || options.org.uniqueId,
-        source: options.source,
-        operation: options.operation,
-        api: options.api,
-        sobjects: options.sobjects,
+        ...buildNewHistoryItem(entryOptions, now),
         status: status ?? deriveStatusFromCounts(counts),
         counts,
-        config: options.config || {},
-        inputSource: options.inputSource,
-        jobId: undefined,
-        parentKey: undefined,
-        files: [],
         // Stamp with the ACTIVE backend even though the payload lives inline: a row claiming a
         // backend it does not live on makes the sweep's stranded-entry reconciliation re-visit it
         // forever. Best-effort — this path never touches the file store, so a broken store must
         // not stop it from capturing.
         storageBackend: await getActiveBackendType(),
-        sizeBytes: 0,
-        inlinePayload: null,
-        pinned: false,
-        pinnedIdx: 'false',
         errorMessage: errorMessage ?? null,
-        startedAt: now,
         finishedAt: now,
-        createdAt: now,
-        updatedAt: now,
       };
       item.inlinePayload = await gzipEncode({ request, results });
       item.sizeBytes = item.inlinePayload.byteLength;

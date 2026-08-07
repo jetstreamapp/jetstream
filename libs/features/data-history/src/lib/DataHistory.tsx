@@ -23,27 +23,24 @@ import {
   ScopedNotification,
   UpgradeToProButton,
 } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import {
+  useAmplitude,
+  useDataHistoryBackendStatus,
+  useReconnectHistoryFolder,
+  useRequestPersistentStorage,
+  useStoreHistoryInFolder,
+} from '@jetstream/ui-core';
 import { dataHistoryCaptureEnabledState, fromAppState } from '@jetstream/ui/app-state';
 import {
-  connectHistoryDirectory,
   DATA_HISTORY_FREE_TIER_LIMITS,
-  DataHistoryBackendStatus,
   deleteDataHistoryEntry,
-  enableNativeHistoryStorage,
-  getDataHistoryLimits,
-  getHistoryBackendStatus,
-  getStoragePersisted,
-  isPersistentStoragePromptEligible,
-  reconnectHistoryDirectory,
-  requestPersistentStorage,
   setDataHistoryEnabled,
   setDataHistoryPinned,
 } from '@jetstream/ui/data-history';
 import { dataHistoryDb } from '@jetstream/ui/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useAtom, useAtomValue } from 'jotai';
-import { FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { downloadDataHistoryFile } from './data-history-download';
 import {
@@ -94,6 +91,58 @@ function SortableHeader({
   );
 }
 
+/**
+ * "Files are saved to: <folder>" page-header indicator. Rendered as a button when the folder can be
+ * opened in the file manager (native/desktop backend), otherwise as plain text (browsers cannot
+ * open a user-chosen directory).
+ */
+function StorageFolderIndicator({ name, title, onClick }: { name?: string; title: string; onClick?: () => void }) {
+  const content = (
+    <Fragment>
+      <Icon
+        type="utility"
+        icon="open_folder"
+        className="slds-icon slds-icon-text-default slds-icon_xx-small slds-m-right_xx-small"
+        omitContainer
+      />
+      <span
+        className="slds-truncate"
+        css={css`
+          max-width: 22rem;
+        `}
+      >
+        Files are saved to: <strong>{name}</strong>
+      </span>
+    </Fragment>
+  );
+  if (onClick) {
+    return (
+      <button
+        className="slds-button slds-m-right_small"
+        css={css`
+          align-self: center;
+        `}
+        title={title}
+        onClick={onClick}
+      >
+        {content}
+      </button>
+    );
+  }
+  return (
+    <div
+      className="slds-grid slds-grid_vertical-align-center slds-text-color_weak slds-m-right_small"
+      css={css`
+        align-self: center;
+        height: 100%;
+      `}
+      title={title}
+    >
+      {content}
+    </div>
+  );
+}
+
 const ALL = '__ALL__';
 const HEIGHT_BUFFER = 170;
 const LIST_LIMIT = 250;
@@ -118,10 +167,9 @@ export const DataHistory: FunctionComponent = () => {
   const orgs = useAtomValue(fromAppState.salesforceOrgsState);
   const selectedOrg = useAtomValue(fromAppState.selectedOrgState);
   const [captureEnabled, setCaptureEnabled] = useAtom(dataHistoryCaptureEnabledState);
-  // Re-render once initDataHistory() resolves so tier-dependent UI is correct after a hard refresh landing here
-  const dataHistoryInitialized = useAtomValue(fromAppState.dataHistoryInitializedState);
+  const limits = useAtomValue(fromAppState.dataHistoryLimitsState);
   // The resolved tier is the free/paid signal — entry-capped means the free tier is active
-  const showUpgradeToPro = dataHistoryInitialized && getDataHistoryLimits()?.maxEntries != null;
+  const showUpgradeToPro = limits?.maxEntries != null;
 
   const [orgFilter, setOrgFilter] = useState<string>(() => selectedOrg?.uniqueId || ALL);
   const [sourceFilter, setSourceFilter] = useState<string>(ALL);
@@ -133,54 +181,21 @@ export const DataHistory: FunctionComponent = () => {
   const [detailKey, setDetailKey] = useState<string | null>(null);
   const [detailFallback, setDetailFallback] = useState<DataHistoryItem | null>(null);
   const [sort, setSort] = useState<DataHistorySort>({ column: 'date', direction: 'desc' });
-  const [backendStatus, setBackendStatus] = useState<DataHistoryBackendStatus | null>(null);
-  const [storageWorking, setStorageWorking] = useState(false);
-  const [persisted, setPersisted] = useState<boolean | null>(null);
-  const [requestingPersist, setRequestingPersist] = useState(false);
-  const persistPromptEligible = isPersistentStoragePromptEligible();
 
   useEffect(() => {
     trackEvent(ANALYTICS_KEYS.data_history_page_view);
   }, [trackEvent]);
 
-  const loadBackendStatus = useCallback(async () => {
-    try {
-      setBackendStatus(await getHistoryBackendStatus());
-    } catch (ex) {
-      logger.warn('[DATA_HISTORY] Unable to load storage backend status', ex);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadBackendStatus();
-  }, [loadBackendStatus]);
-
-  useEffect(() => {
-    if (persistPromptEligible) {
-      getStoragePersisted().then(setPersisted);
-    }
-  }, [persistPromptEligible]);
-
-  async function handleKeepHistory() {
-    try {
-      setRequestingPersist(true);
-      const granted = await requestPersistentStorage();
-      setPersisted(granted);
-      trackEvent(ANALYTICS_KEYS.data_history_settings_changed, { action: 'request-persist', granted, location: 'data-history-page' });
-      fireToast(
-        granted
-          ? { type: 'success', message: 'Your browser will keep this history and not remove it automatically.' }
-          : {
-              type: 'warning',
-              message: 'Your browser did not grant persistent storage. History is still saved, but may be removed if storage runs low.',
-            },
-      );
-    } catch (ex) {
-      logger.warn('[DATA_HISTORY] Error requesting persistent storage', ex);
-    } finally {
-      setRequestingPersist(false);
-    }
-  }
+  const { backendStatus, loadBackendStatus } = useDataHistoryBackendStatus();
+  const { persistPromptEligible, persisted, requestingPersist, requestPersist } = useRequestPersistentStorage({
+    analyticsLocation: 'data-history-page',
+  });
+  const { storeInFolder, working: storageWorking } = useStoreHistoryInFolder({
+    analyticsLocation: 'data-history-page',
+    nativeSupported: !!backendStatus?.nativeSupported,
+    onChanged: loadBackendStatus,
+  });
+  const { reconnectFolder } = useReconnectHistoryFolder({ onChanged: loadBackendStatus });
 
   const canStoreInFolder =
     !!backendStatus &&
@@ -189,41 +204,6 @@ export const DataHistory: FunctionComponent = () => {
   // When folder permission is revoked the directory is still the configured backend, but new writes fall back to
   // browser storage — treat it as "not actively storing to the folder" so we don't imply the folder is still in use.
   const directoryStorageActive = backendStatus?.active === 'directory' && !backendStatus.permissionNeeded;
-
-  async function handleStoreInFolder() {
-    setStorageWorking(true);
-    try {
-      if (backendStatus?.nativeSupported) {
-        await enableNativeHistoryStorage();
-        fireToast({ type: 'success', message: 'Your history is now stored on disk — manage the folder from Settings.' });
-      } else {
-        const result = await connectHistoryDirectory();
-        if (result) {
-          fireToast({ type: 'success', message: 'Your history is now stored in the selected folder.' });
-        }
-      }
-      trackEvent(ANALYTICS_KEYS.data_history_settings_changed, { backend: 'folder', location: 'data-history-page' });
-      await loadBackendStatus();
-    } catch (ex) {
-      logger.warn('[DATA_HISTORY] Error switching history storage', ex);
-      fireToast({ type: 'error', message: 'There was a problem changing the Data History storage location.' });
-    } finally {
-      setStorageWorking(false);
-    }
-  }
-
-  async function handleReconnectFolder() {
-    try {
-      if (await reconnectHistoryDirectory()) {
-        fireToast({ type: 'success', message: 'Folder re-connected — new history will be saved there.' });
-      } else {
-        fireToast({ type: 'warning', message: 'Permission was not granted.' });
-      }
-      await loadBackendStatus();
-    } catch (ex) {
-      logger.warn('[DATA_HISTORY] Error re-connecting folder', ex);
-    }
-  }
 
   const entries = useLiveQuery(
     () =>
@@ -337,60 +317,23 @@ export const DataHistory: FunctionComponent = () => {
           />
           <PageHeaderActions colType="actions" buttonType="separate">
             {directoryStorageActive && (
-              <div
-                className="slds-grid slds-grid_vertical-align-center slds-text-color_weak slds-m-right_small"
-                css={css`
-                  align-self: center;
-                  height: 100%;
-                `}
+              <StorageFolderIndicator
+                name={backendStatus.directoryName}
                 title={`History files are saved to the "${backendStatus.directoryName}" folder you selected on this computer. Browsers show only the folder's name (never its full path) and cannot open it in your file manager — manage the folder from Settings.`}
-              >
-                <Icon
-                  type="utility"
-                  icon="open_folder"
-                  className="slds-icon slds-icon-text-default slds-icon_xx-small slds-m-right_xx-small"
-                  omitContainer
-                />
-                <span
-                  className="slds-truncate"
-                  css={css`
-                    max-width: 22rem;
-                  `}
-                >
-                  Files are saved to: <strong>{backendStatus.directoryName}</strong>
-                </span>
-              </div>
+              />
             )}
             {backendStatus?.active === 'native' && (
-              <button
-                className="slds-button slds-m-right_small"
-                css={css`
-                  align-self: center;
-                `}
+              <StorageFolderIndicator
+                name={backendStatus.nativePath}
                 title={`Open ${backendStatus.nativePath} in your file manager`}
                 onClick={() => backendStatus.nativePath && window.electronAPI?.openFile?.(backendStatus.nativePath)}
-              >
-                <Icon
-                  type="utility"
-                  icon="open_folder"
-                  className="slds-icon slds-icon-text-default slds-icon_xx-small slds-m-right_xx-small"
-                  omitContainer
-                />
-                <span
-                  className="slds-truncate"
-                  css={css`
-                    max-width: 22rem;
-                  `}
-                >
-                  Files are saved to: <strong>{backendStatus.nativePath}</strong>
-                </span>
-              </button>
+              />
             )}
             {canStoreInFolder && (
               <button
                 className="slds-button slds-button_neutral"
                 disabled={storageWorking}
-                onClick={handleStoreInFolder}
+                onClick={storeInFolder}
                 title="Store history as regular files in a folder — visible, backed up with your other files, and kept when browser data is cleared"
               >
                 <Icon type="utility" icon="open_folder" className="slds-button__icon slds-button__icon_left" omitContainer />
@@ -432,7 +375,7 @@ export const DataHistory: FunctionComponent = () => {
               <button
                 className="slds-button slds-button_neutral slds-m-left_small"
                 css={scopedNotificationNeutralButtonCss}
-                onClick={handleReconnectFolder}
+                onClick={reconnectFolder}
               >
                 Re-connect Folder
               </button>
@@ -445,7 +388,7 @@ export const DataHistory: FunctionComponent = () => {
               <span className="slds-m-right_small">
                 Your browser may automatically delete this history to free up space. Ask it to keep your history saved on this device.
               </span>
-              <button className="slds-button slds-button_neutral" disabled={requestingPersist} onClick={handleKeepHistory}>
+              <button className="slds-button slds-button_neutral" disabled={requestingPersist} onClick={requestPersist}>
                 Keep My History
               </button>
             </Grid>
@@ -467,10 +410,10 @@ export const DataHistory: FunctionComponent = () => {
             history, use the Jetstream web or desktop app.
           </ScopedNotification>
         )}
-        {/* Gated on initialization: the atom defaults to false, so rendering earlier would flash a
-            false "disabled" warning on a hard refresh (and offer an Enable button that cannot
+        {/* Gated on initialization (`limits` stays null until then) — rendering earlier would flash
+            a false "disabled" warning on a hard refresh (and offer an Enable button that cannot
             persist the setting yet) */}
-        {dataHistoryInitialized && !captureEnabled && (
+        {limits != null && !captureEnabled && (
           <ScopedNotification theme="warning" className="slds-m-vertical_x-small">
             <Grid verticalAlign="center">
               <span>Data History is currently disabled — new data modifications are not being saved.</span>

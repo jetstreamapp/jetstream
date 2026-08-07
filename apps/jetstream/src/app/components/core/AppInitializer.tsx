@@ -4,13 +4,12 @@ import { checkHeartbeat, disconnectSocket, initSocket, registerMiddleware, updat
 import { initErrorTracker, setErrorTrackerUser, tracker, useObservable } from '@jetstream/shared/ui-utils';
 import { Announcement, JetstreamEventSaveSoqlQueryFormatOptionsPayload, SalesforceOrgUi } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
-import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
+import { fromJetstreamEvents, useAmplitude, useInitDataHistory } from '@jetstream/ui-core';
 import { DEFAULT_PROFILE, fromAppState } from '@jetstream/ui/app-state';
 import { CookieConsentBanner, useConditionalGoogleAnalytics } from '@jetstream/ui/cookie-consent-banner';
-import { initDataHistory } from '@jetstream/ui/data-history';
 import { ensureLocalStorageReady, initDexieDb, pruneAnalysisJobHistory } from '@jetstream/ui/db';
 import { AxiosResponse } from 'axios';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useAtom, useAtomValue } from 'jotai';
 import localforage from 'localforage';
 import React, { Fragment, FunctionComponent, use, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router';
@@ -52,8 +51,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onAnnou
     fromJetstreamEvents.getObservable('saveSoqlQueryFormatOptions') as Observable<JetstreamEventSaveSoqlQueryFormatOptionsPayload>,
   );
   const [analytics, setAnalytics] = useAtom(fromAppState.analyticsState);
-  const setDataHistoryCaptureEnabled = useSetAtom(fromAppState.dataHistoryCaptureEnabledState);
-  const setDataHistoryInitialized = useSetAtom(fromAppState.dataHistoryInitializedState);
+  const initDataHistoryAndSeedState = useInitDataHistory();
   const [searchParams, setSearchParams] = useSearchParams();
   const errorParam = searchParams.get('error');
 
@@ -110,16 +108,12 @@ APP VERSION ${version}
     if (activeUserId) {
       initDexieDb({ userId: activeUserId, dbName: LOCAL_STORE_DB_NAME, recordSyncEnabled })
         .then(() => pruneAnalysisJobHistory())
-        .then(() => initDataHistory({ userId: activeUserId, hasPaidPlan }))
-        .then(({ captureEnabled }) => {
-          setDataHistoryCaptureEnabled(captureEnabled);
-          setDataHistoryInitialized(true);
-        })
+        .then(() => initDataHistoryAndSeedState({ userId: activeUserId, hasPaidPlan }))
         .catch((ex) => {
           logger.error('[DB] Error initializing db', ex);
         });
     }
-  }, [appInfo.serverUrl, recordSyncEnabled, activeUserId, hasPaidPlan, setDataHistoryCaptureEnabled, setDataHistoryInitialized]);
+  }, [appInfo.serverUrl, recordSyncEnabled, activeUserId, hasPaidPlan, initDataHistoryAndSeedState]);
 
   useEffect(() => {
     announcements && onAnnouncements && onAnnouncements(announcements);

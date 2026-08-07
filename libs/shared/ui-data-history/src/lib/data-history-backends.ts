@@ -90,10 +90,10 @@ export async function getHistoryBackendStatus(): Promise<DataHistoryBackendStatu
 }
 
 /**
- * Prompt the user for a folder (MUST be called from a user gesture), make it the active backend,
- * and migrate existing entries into it. Returns null when the user cancels the picker.
+ * Show the directory picker and ensure a 'readwrite' grant on the chosen folder. Returns null when
+ * the user cancels the picker; throws when they refuse the write permission.
  */
-export async function connectHistoryDirectory(onProgress?: DataHistoryMigrationProgress): Promise<{ migrated: number } | null> {
+async function pickWritableHistoryDirectory(): Promise<FsaDirectoryHandle | null> {
   let handle: FsaDirectoryHandle;
   try {
     handle = await showHistoryDirectoryPicker();
@@ -108,6 +108,18 @@ export async function connectHistoryDirectory(onProgress?: DataHistoryMigrationP
     (await handle.requestPermission({ mode: 'readwrite' })) !== 'granted'
   ) {
     throw new Error('Jetstream was not given permission to write to the selected folder');
+  }
+  return handle;
+}
+
+/**
+ * Prompt the user for a folder (MUST be called from a user gesture), make it the active backend,
+ * and migrate existing entries into it. Returns null when the user cancels the picker.
+ */
+export async function connectHistoryDirectory(onProgress?: DataHistoryMigrationProgress): Promise<{ migrated: number } | null> {
+  const handle = await pickWritableHistoryDirectory();
+  if (!handle) {
+    return null;
   }
   const store = new DirectoryHandleFileStore(handle, await getUserScopeDir());
   await store.init();
@@ -160,20 +172,9 @@ export async function changeHistoryDirectory(
     const result = await connectHistoryDirectory(onProgress);
     return result && { migrated: result.migrated, skipped: 0 };
   }
-  let newHandle: FsaDirectoryHandle;
-  try {
-    newHandle = await showHistoryDirectoryPicker();
-  } catch (ex) {
-    if (ex instanceof DOMException && ex.name === 'AbortError') {
-      return null;
-    }
-    throw ex;
-  }
-  if (
-    (await newHandle.queryPermission({ mode: 'readwrite' })) !== 'granted' &&
-    (await newHandle.requestPermission({ mode: 'readwrite' })) !== 'granted'
-  ) {
-    throw new Error('Jetstream was not given permission to write to the selected folder');
+  const newHandle = await pickWritableHistoryDirectory();
+  if (!newHandle) {
+    return null;
   }
   // Both folders are scoped to the SAME user — this is one account moving its own history
   const scopeDir = await getUserScopeDir();
@@ -261,19 +262,16 @@ export async function disableNativeHistoryStorage(onProgress?: DataHistoryMigrat
 }
 
 /**
- * Desktop: move the on-disk history to a different folder. The main process moves the directory
- * and persists the preference; entry paths are relative so rows are untouched.
+ * Desktop: move the on-disk history to a different folder. The MAIN process shows the folder
+ * picker, moves the directory, and persists the preference — the chosen path never transits the
+ * renderer. Entry paths are relative so rows are untouched.
  * Returns the new base path, or null when the user cancels.
  */
 export async function changeNativeHistoryFolder(): Promise<string | null> {
-  if (!window.electronAPI?.selectFolder || !window.electronAPI.setDataHistoryFolder) {
+  if (!window.electronAPI?.pickDataHistoryFolder) {
     return null;
   }
-  const folderPath = await window.electronAPI.selectFolder();
-  if (!folderPath) {
-    return null;
-  }
-  return await window.electronAPI.setDataHistoryFolder({ folderPath });
+  return await window.electronAPI.pickDataHistoryFolder();
 }
 
 /**

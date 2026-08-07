@@ -62,7 +62,6 @@ export const LoadRecordsMultiObject = () => {
   const [inputFileData, setInputFileData] = useState<XLSX.WorkBook>();
   const [skipDataHistory, setSkipDataHistory] = useState(false);
   const historyHandleRef = useRef<DataHistoryEntryHandle | null>(null);
-  const historyFinalizedRef = useRef(false);
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const googleApiConfig = useMemo(
@@ -85,6 +84,7 @@ export const LoadRecordsMultiObject = () => {
     reset: loadResultsReset,
     data: loadResultsData,
     loading: dataLoadLoading,
+    finished: dataLoadFinished,
   } = useLoadFile(selectedOrg, serverUrl, defaultApiVersion);
 
   const [data, setData] = useState<LoadMultiObjectRequestWithResult[] | null>(null);
@@ -125,14 +125,16 @@ export const LoadRecordsMultiObject = () => {
   }, [fileProcessingData, loadResultsData]);
 
   // Finalize the Data History entry once the load completes — streams the flattened result rows and
-  // writes the counts derived from the same data. Fire-and-forget; guarded to run exactly once per run.
+  // writes the counts derived from the same data. Fire-and-forget; the handle is consumed (cleared)
+  // here so a run finalizes exactly once — the next run assigns a fresh handle before it can finish.
   useEffect(() => {
-    if (!loadStarted || dataLoadLoading || !loadResultsData || !historyHandleRef.current || historyFinalizedRef.current) {
+    if (!dataLoadFinished || !loadResultsData || !historyHandleRef.current) {
       return;
     }
-    historyFinalizedRef.current = true;
-    void finalizeMultiObjectHistory(historyHandleRef.current, loadResultsData);
-  }, [dataLoadLoading, loadResultsData, loadStarted]);
+    const historyHandle = historyHandleRef.current;
+    historyHandleRef.current = null;
+    void finalizeMultiObjectHistory(historyHandle, loadResultsData);
+  }, [dataLoadFinished, loadResultsData]);
 
   useEffect(() => {
     setInitialData(JSON.parse(JSON.stringify(fileProcessingData)));
@@ -194,8 +196,8 @@ export const LoadRecordsMultiObject = () => {
 
   /**
    * Begin a Data History entry for the load (self-gates, fire-and-forget). One entry covers the whole
-   * multi-object load — `sobjects` spans every object and `operation` is the shared op ('insert' when
-   * mixed, with the per-object operations recorded in `config`).
+   * multi-object load — `sobjects` spans every object and `operation` is the shared op ('mixed' when
+   * operations differ, with the per-object operations recorded in `config`).
    */
   function startDataHistoryCapture(dataToLoad: LoadMultiObjectRequestWithResult[]) {
     const operations = getMultiObjectOperations(dataToLoad);
@@ -220,7 +222,6 @@ export const LoadRecordsMultiObject = () => {
       skipHistory: skipDataHistory,
     });
     historyHandleRef.current = historyHandle;
-    historyFinalizedRef.current = false;
     historyHandle.writeRequestJson(buildMultiObjectRequestExport(dataToLoad));
   }
 
@@ -229,7 +230,6 @@ export const LoadRecordsMultiObject = () => {
     setInputFilename(null);
     setInputGoogleFileId(null);
     historyHandleRef.current = null;
-    historyFinalizedRef.current = false;
     fileProcessingReset();
     loadResultsReset();
     trackEvent(ANALYTICS_KEYS.load_StartOver);

@@ -25,7 +25,7 @@ export const dataHistorySourceSchema = z.enum([
 ]);
 export type DataHistorySource = z.infer<typeof dataHistorySourceSchema>;
 
-export const dataHistoryOperationSchema = z.enum(['insert', 'update', 'upsert', 'delete', 'undelete', 'create', 'edit', 'clone']);
+export const dataHistoryOperationSchema = z.enum(['insert', 'update', 'upsert', 'delete', 'undelete', 'create', 'edit', 'clone', 'mixed']);
 export type DataHistoryOperation = z.infer<typeof dataHistoryOperationSchema>;
 
 export const dataHistoryApiSchema = z.enum(['bulk-v1', 'batch-composite', 'composite-graph', 'collections', 'metadata']);
