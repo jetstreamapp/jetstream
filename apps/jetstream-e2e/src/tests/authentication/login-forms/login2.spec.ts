@@ -1,3 +1,4 @@
+import { decodeBase32IgnorePadding, generateTOTP } from '@jetstream/auth/server';
 import { getPasswordResetToken, verifyEmailLogEntryExists } from '@jetstream/test/e2e-utils';
 import { expect, test } from '../../../fixtures/fixtures';
 
@@ -46,9 +47,6 @@ test.describe('Login 2', () => {
   });
 
   test('Should SignUp, Add TOTP MFA, logout, login', async ({ page, authenticationPage, playwrightPage }) => {
-    const { decodeBase32IgnorePadding } = await import('@oslojs/encoding');
-    const { generateTOTP } = await import('@oslojs/otp');
-
     const { email, password } = await authenticationPage.signUpAndVerifyEmail();
 
     await playwrightPage.goToProfile();
@@ -66,7 +64,7 @@ test.describe('Login 2', () => {
 
     // save a valid token
     await page.getByTestId('settings-page').getByRole('textbox').click();
-    const code = await generateTOTP(decodeBase32IgnorePadding(secret), 30, 6);
+    const code = generateTOTP(decodeBase32IgnorePadding(secret), 30, 6);
     await page.getByTestId('settings-page').getByRole('textbox').fill(code);
     await page.getByRole('button', { name: 'Save' }).click();
     await expect(page.getByRole('heading', { name: 'Authenticator App Active' }).locator('span')).toBeVisible();

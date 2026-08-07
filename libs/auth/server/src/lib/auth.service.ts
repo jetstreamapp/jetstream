@@ -12,12 +12,12 @@ import { CURRENT_TOS_VERSION, EMAIL_VERIFICATION_TOKEN_DURATION_HOURS, TOKEN_DUR
 import { findUserById_UNSAFE, getTotpAuthenticationFactor, handleSignInOrRegistration } from './auth.db.service';
 import { AuthError, InvalidCsrfToken, InvalidVerificationToken, InvalidVerificationType } from './auth.errors';
 import { generateHMACDoubleCSRFToken, getApiAddressFromReq, getCookieConfig, validateCSRFToken } from './auth.utils';
-
-const osloEncodingPromise = import('@oslojs/encoding');
-const osloOtpPromise = import('@oslojs/otp');
+import { createTOTPKeyURI, decodeBase32IgnorePadding, encodeBase32NoPadding, verifyTOTPWithGracePeriod } from './totp.util';
 
 export const TOTP_DIGITS = 6;
 export const TOTP_INTERVAL_SEC = 30;
+/** 160 bits, the shared-secret length RFC 4226 section 4 recommends. */
+const TOTP_SECRET_BYTES = 20;
 // Clock-skew tolerance applied symmetrically by verifyTOTPWithGracePeriod. Kept well below a full
 // step so an OTP is not accepted for the previous AND next windows simultaneously.
 export const TOTP_GRACE_PERIOD_SEC = 15;
@@ -191,20 +191,31 @@ export async function verifyCSRFFromRequestOrThrow(csrfToken: string, cookieStri
   }
 }
 
-export async function convertBase32ToHex(base32String: string) {
-  const { encodeHexUpperCase, decodeBase32IgnorePadding } = await osloEncodingPromise;
-  return encodeHexUpperCase(decodeBase32IgnorePadding(base32String));
+/**
+ * TOTP secrets are stored as hex. Buffer.from(value, 'hex') stops silently at the first invalid
+ * character, so the round-trip is verified rather than trusted - a malformed secret would otherwise
+ * be truncated into a valid-looking key and checked against the wrong codes.
+ *
+ * Only a corrupt stored secret can reach this: the enrollment paths pass the output of
+ * convertBase32ToHex, which is valid hex by construction. That is a data-integrity failure rather
+ * than a bad code, but the user is told only that their code is invalid, so it is logged loudly -
+ * otherwise the account is locked out of 2FA with nothing surfacing why.
+ */
+function decodeTotpSecret(secret: string): Buffer {
+  const key = Buffer.from(secret, 'hex');
+  if (key.toString('hex') !== secret.toLowerCase()) {
+    getLogger().error('[2FA][TOTP] Stored TOTP secret is not valid hex');
+    throw new InvalidVerificationToken('Provided code does not match');
+  }
+  return key;
 }
 
-export async function generate2faTotpSecret() {
-  const { encodeHexUpperCase } = await osloEncodingPromise;
-  return encodeHexUpperCase(crypto.getRandomValues(new Uint8Array(20)));
+export function convertBase32ToHex(base32String: string) {
+  return decodeBase32IgnorePadding(base32String).toString('hex').toUpperCase();
 }
 
-export async function verify2faTotpOrThrow(secret: string, code: string) {
-  const { decodeHex } = await osloEncodingPromise;
-  const { verifyTOTPWithGracePeriod } = await osloOtpPromise;
-  const validOTP = verifyTOTPWithGracePeriod(decodeHex(secret), TOTP_INTERVAL_SEC, TOTP_DIGITS, code, TOTP_GRACE_PERIOD_SEC);
+export function verify2faTotpOrThrow(secret: string, code: string) {
+  const validOTP = verifyTOTPWithGracePeriod(decodeTotpSecret(secret), TOTP_INTERVAL_SEC, TOTP_DIGITS, code, TOTP_GRACE_PERIOD_SEC);
   if (!validOTP) {
     throw new InvalidVerificationToken('Provided code does not match');
   }
@@ -229,8 +240,15 @@ function getTotpReplayCache() {
  */
 export async function verifyTotpCodeOnceOrThrow(userId: string, code: string) {
   const { secret } = await getTotpAuthenticationFactor(userId);
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  await verify2faTotpOrThrow(secret!, code);
+  // The factor query filters out NULL secrets but not empty ones, and decryptString passes an empty
+  // value through unchanged - so an empty secret can reach here. It would clear decodeTotpSecret's
+  // round-trip check (empty is valid hex) and then verify codes against a zero-length HMAC key, which
+  // anyone could compute. Same class of data-integrity failure, and worth surfacing for the same reason.
+  if (!secret) {
+    getLogger().error({ userId }, '[2FA][TOTP] Authentication factor has no stored secret');
+    throw new InvalidVerificationToken('No TOTP secret is enrolled');
+  }
+  verify2faTotpOrThrow(secret, code);
   // Atomically record the code and reject if it was already consumed (replay) for this user.
   const isFirstUse = await getTotpReplayCache().consumeOnceAsync(`${userId}:${code}`);
   if (!isFirstUse) {
@@ -238,13 +256,19 @@ export async function verifyTotpCodeOnceOrThrow(userId: string, code: string) {
   }
 }
 
+/**
+ * Mints a TOTP secret and every representation of it a caller needs: `secret` is the hex form that
+ * gets stored, `secretToken` the base32 form shown to the user and echoed back at enrollment.
+ */
 export async function generate2faTotpUrl(userId: string) {
-  const { decodeHex } = await osloEncodingPromise;
-  const { createTOTPKeyURI } = await osloOtpPromise;
-  const secret = await generate2faTotpSecret();
-  const uri = createTOTPKeyURI('jetstream', userId, decodeHex(secret), TOTP_INTERVAL_SEC, TOTP_DIGITS);
-  const imageUri = await QRCode.toDataURL(uri);
-  return { secret, uri, imageUri };
+  const key = crypto.randomBytes(TOTP_SECRET_BYTES);
+  const uri = createTOTPKeyURI('jetstream', userId, key, TOTP_INTERVAL_SEC, TOTP_DIGITS);
+  return {
+    secret: key.toString('hex').toUpperCase(),
+    secretToken: encodeBase32NoPadding(key),
+    uri,
+    imageUri: await QRCode.toDataURL(uri),
+  };
 }
 
 export const generateRandomCode = (length = 6) => {

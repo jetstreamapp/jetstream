@@ -352,15 +352,15 @@ const getUserLoginConfiguration = createRoute(routeDefinition.getUserLoginConfig
 });
 
 const getOtpQrCode = createRoute(routeDefinition.getOtpQrCode.validators, async ({ user }, _, res) => {
-  const { secret, imageUri, uri } = await generate2faTotpUrl(user.id);
-  sendJson(res, { secret, secretToken: new URL(uri).searchParams.get('secret'), imageUri, uri });
+  const { secret, secretToken, imageUri, uri } = await generate2faTotpUrl(user.id);
+  sendJson(res, { secret, secretToken, imageUri, uri });
 });
 
 const saveOtpAuthFactor = createRoute(routeDefinition.saveOtpAuthFactor.validators, async ({ body, user }, req, res) => {
   try {
     const { code, secretToken } = body;
-    const secret = await convertBase32ToHex(secretToken);
-    await verify2faTotpOrThrow(secret, code);
+    const secret = convertBase32ToHex(secretToken);
+    verify2faTotpOrThrow(secret, code);
     const authFactors = await createOrUpdateOtpAuthFactor(user.id, secret);
     sendJson(res, authFactors);
 

@@ -1,9 +1,9 @@
 import { prisma } from '@jetstream/api-config';
 import { LoginConfiguration, SessionData } from '@jetstream/auth/types';
 import { TeamBillingStatusSchema, TeamMemberRole, TeamMemberRoleSchema, TeamMemberStatus, TeamMemberStatusSchema } from '@jetstream/types';
-import { encodeHexLowerCase, encodeHexUpperCase } from '@oslojs/encoding';
 import { Browser, BrowserContext, Page } from '@playwright/test';
 import chalk from 'chalk';
+import { randomBytes } from 'crypto';
 import { AuthenticationPage } from './pageObjectModels/AuthenticationPage.model';
 
 type Team = Awaited<ReturnType<TeamCreationUtils['createTeam']>>;
@@ -167,7 +167,7 @@ export class TeamCreationUtils {
           provider: 'google',
           type: 'oauth',
           isPrimary: false,
-          providerAccountId: encodeHexLowerCase(crypto.getRandomValues(new Uint8Array(11))),
+          providerAccountId: randomBytes(11).toString('hex'),
           userId: adminUserId,
         },
         {
@@ -179,7 +179,7 @@ export class TeamCreationUtils {
           provider: 'google',
           type: 'oauth',
           isPrimary: false,
-          providerAccountId: encodeHexLowerCase(crypto.getRandomValues(new Uint8Array(11))),
+          providerAccountId: randomBytes(11).toString('hex'),
           userId: user2Id,
         },
         {
@@ -191,7 +191,7 @@ export class TeamCreationUtils {
           provider: 'salesforce',
           type: 'oauth',
           isPrimary: false,
-          providerAccountId: `https://login.salesforce.com/id/00D50000000O712EAC/0056${encodeHexUpperCase(crypto.getRandomValues(new Uint8Array(7)))}`,
+          providerAccountId: `https://login.salesforce.com/id/00D50000000O712EAC/0056${randomBytes(7).toString('hex').toUpperCase()}`,
           userId: user2Id,
         },
         {
@@ -203,7 +203,7 @@ export class TeamCreationUtils {
           provider: 'google',
           type: 'oauth',
           isPrimary: false,
-          providerAccountId: encodeHexLowerCase(crypto.getRandomValues(new Uint8Array(11))),
+          providerAccountId: randomBytes(11).toString('hex'),
           userId: user3Id,
         },
       ],
@@ -309,7 +309,7 @@ export class TeamCreationUtils {
           },
         },
         billingAccount: {
-          create: { customerId: `test_${encodeHexLowerCase(crypto.getRandomValues(new Uint8Array(7)))}`, manualBilling, licenseCountLimit },
+          create: { customerId: `test_${randomBytes(7).toString('hex')}`, manualBilling, licenseCountLimit },
         },
       },
     });

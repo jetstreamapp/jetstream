@@ -699,7 +699,7 @@ describe('auth.controller - 2fa-otp single-use replay enforcement', () => {
     authServerMocks.ensureAuthError.mockImplementation((error: unknown) => error);
     authServerMocks.validateRedirectUrl.mockImplementation((url: string) => url || 'https://client.test');
     authServerMocks.getTotpAuthenticationFactor.mockResolvedValue({ secret: 'totp-secret' } as never);
-    authServerMocks.verify2faTotpOrThrow.mockResolvedValue(undefined as never);
+    authServerMocks.verify2faTotpOrThrow.mockReturnValue(undefined as never);
     // Default to first-use; the replay test overrides this for a single call.
     authServerMocks.verifyTotpCodeOnceOrThrow.mockResolvedValue(undefined as never);
   });

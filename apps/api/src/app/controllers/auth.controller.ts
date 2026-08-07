@@ -1145,9 +1145,9 @@ const getOtpEnrollmentData = createRoute(routeDefinition.getOtpEnrollmentData.va
       throw new InvalidAction('There is no pending MFA enrollment');
     }
 
-    const { secret, imageUri, uri } = await generate2faTotpUrl(user.id);
+    const { secret, secretToken, imageUri, uri } = await generate2faTotpUrl(user.id);
 
-    sendJson(res, { secret, secretToken: new URL(uri).searchParams.get('secret'), imageUri, uri });
+    sendJson(res, { secret, secretToken, imageUri, uri });
   } catch (ex) {
     next(ensureAuthError(ex));
   }
@@ -1172,8 +1172,8 @@ const enrollOtpFactor = createRoute(routeDefinition.enrollOtpFactor.validators, 
     const { csrfToken, code, secretToken } = body;
     await verifyCSRFFromRequestOrThrow(csrfToken, req.headers.cookie || '');
 
-    const secret = await convertBase32ToHex(secretToken);
-    await verify2faTotpOrThrow(secret, code);
+    const secret = convertBase32ToHex(secretToken);
+    verify2faTotpOrThrow(secret, code);
     await createOrUpdateOtpAuthFactor(user.id, secret);
 
     req.session.pendingMfaEnrollment = null;
