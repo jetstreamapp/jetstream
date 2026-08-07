@@ -1,5 +1,27 @@
 [
   {
+    "slug": "v10.10.1",
+    "title": "10.10.1 - Per-account history and preferences",
+    "date": "2026-08-06",
+    "tags": [
+      "web",
+      "desktop",
+      "extension"
+    ],
+    "versions": {
+      "web": "10.10.1",
+      "desktop": "4.7.1",
+      "extension": "3.10.1"
+    },
+    "summary": "Your query history, saved load mappings, recent records, and preferences are now kept separate for each account that signs in, so people sharing a computer or browser no longer see each other's history.",
+    "highlights": [
+      {
+        "title": "Locally saved history is separate for each account",
+        "description": "Query history, load mappings, recent records, and preferences follow the account you sign in with, so each account on the same computer keeps its own."
+      }
+    ]
+  },
+  {
     "slug": "v10.10.0",
     "title": "10.10.0 - Change your email address, SOQL autocomplete",
     "date": "2026-08-05",

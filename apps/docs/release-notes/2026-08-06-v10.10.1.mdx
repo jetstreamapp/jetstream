@@ -1,0 +1,32 @@
+---
+slug: v10.10.1
+title: 10.10.1 - Per-account history and preferences
+date: '2026-08-06'
+tags: [web, desktop, extension]
+versions:
+  web: 10.10.1
+  desktop: 4.7.1
+  extension: 3.10.1
+summary: Your query history, saved load mappings, recent records, and preferences are now kept separate for each account that signs in, so people sharing a computer or browser no longer see each other's history.
+highlights:
+  - title: Locally saved history is separate for each account
+    description: Query history, load mappings, recent records, and preferences follow the account you sign in with, so each account on the same computer keeps its own.
+---
+
+{/* truncate */}
+
+## What's new
+
+### Locally saved history is separate for each account
+
+Jetstream keeps a lot of your work on your own machine rather than on a server: query history and saved queries, load mappings, recently viewed records, Salesforce API request history, anonymous Apex and deployment history, permission and field usage analysis results, and preferences like your theme.
+
+All of that used to live in one place tied to the browser or computer rather than to the person signed in. On a machine more than one person uses — a shared workstation, a virtual desktop, or a laptop you handed to a coworker for an afternoon — signing out and signing back in as someone else showed the previous person's history.
+
+Each account now gets its own storage. Your history follows your account, and it is out of sight when someone else signs in on the same machine. Nothing is lost in the move: the history already saved on your machine carries over to the first account that signs in after this update and stays with that account from then on.
+
+If you are on a Pro plan with history sync turned on, your query history and load mappings continue to sync to your other devices exactly as before.
+
+### Other fixes
+
+- When Jetstream is embedded inside Salesforce, your history is now tied to your Salesforce user rather than to a specific org, so you see the same query history and saved mappings whether you are working in production or in one of its sandboxes.
