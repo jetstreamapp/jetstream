@@ -45,7 +45,7 @@ import {
   validateEditForm,
 } from '@jetstream/ui-core/shared';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
-import { recordDataHistoryAction } from '@jetstream/ui/data-history';
+import { recordDataHistoryAction, RecordDataHistoryActionOptions } from '@jetstream/ui/data-history';
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import { useAtomValue } from 'jotai';
 import isNumber from 'lodash/isNumber';
@@ -334,6 +334,16 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
 
     setSaving(true);
 
+    // Base Data History payload shared by the success and thrown-error paths below. `request` stays
+    // at each call site because `record` is reassigned inside the try for clone/create.
+    const historyBase = {
+      org: selectedOrg,
+      source: 'record-modal',
+      operation: action === 'edit' ? 'edit' : action === 'clone' ? 'clone' : 'create',
+      api: 'collections',
+      sobjects: [sobjectName],
+    } satisfies Pick<RecordDataHistoryActionOptions, 'org' | 'source' | 'operation' | 'api' | 'sobjects'>;
+
     try {
       let recordResponse: RecordResult;
 
@@ -364,11 +374,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
       // it never throws and never gates the UI. Small single-record payload -> stored inline in Dexie.
       const isErrorResult = isErrorResponse(recordResponse);
       void recordDataHistoryAction({
-        org: selectedOrg,
-        source: 'record-modal',
-        operation: action === 'edit' ? 'edit' : action === 'clone' ? 'clone' : 'create',
-        api: 'collections',
-        sobjects: [sobjectName],
+        ...historyBase,
         request: record,
         results: recordResponse,
         counts: { total: 1, success: isErrorResult ? 0 : 1, failure: isErrorResult ? 1 : 0 },
@@ -382,11 +388,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
       // applied server-side (e.g. a timeout), so "no record of the attempt" is the worst outcome.
       // Graceful per-record error results are captured on the success path above.
       void recordDataHistoryAction({
-        org: selectedOrg,
-        source: 'record-modal',
-        operation: action === 'edit' ? 'edit' : action === 'clone' ? 'clone' : 'create',
-        api: 'collections',
-        sobjects: [sobjectName],
+        ...historyBase,
         request: record,
         results: { error: getErrorMessage(ex) },
         counts: { total: 1, success: 0, failure: 1 },

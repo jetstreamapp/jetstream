@@ -19,14 +19,14 @@ import {
   SkipDataHistoryCheckbox,
   useAmplitude,
 } from '@jetstream/ui-core';
-import { buildDataHistoryInputSource, DataHistoryEntryHandle, startDataHistoryEntry } from '@jetstream/ui/data-history';
+import { DataHistoryEntryHandle } from '@jetstream/ui/data-history';
 import { useAtom, useAtomValue } from 'jotai';
 import startCase from 'lodash/startCase';
 import { ChangeEvent, FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import LoadRecordsAssignmentRules from '../components/LoadRecordsAssignmentRules';
 import LoadRecordsDuplicateWarning from '../components/LoadRecordsDuplicateWarning';
 import LoadRecordsResults from '../components/load-results/LoadRecordsResults';
-import { apiModeToDataHistoryApi, buildLoadRecordsHistoryConfig, loadTypeToDataHistoryOperation } from '../utils/data-history-capture';
+import { startLoadRecordsHistory } from '../utils/data-history-capture';
 
 interface LoadRun {
   id: number;
@@ -211,15 +211,16 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
       const inputHeader = inputFileHeader ?? (inputFileDataToLoad[0] ? Object.keys(inputFileDataToLoad[0]) : []);
       // The handle self-gates (captures nothing when disabled/opted out) and is never awaited on the
       // load's critical path — it is threaded to the results component to record results as they land.
-      const historyHandle = startDataHistoryEntry({
+      const historyHandle = startLoadRecordsHistory({
         org: selectedOrg,
-        source: 'load-records',
-        operation: loadTypeToDataHistoryOperation(loadType),
-        api: apiModeToDataHistoryApi(apiMode),
-        sobjects: [selectedSObject],
-        config: buildLoadRecordsHistoryConfig({
-          loadType,
-          apiMode,
+        loadType,
+        apiMode,
+        sobject: selectedSObject,
+        inputFilename,
+        inputFilenameType,
+        inputGoogleFileId: inputGoogleFile?.id,
+        skipHistory: skipDataHistory,
+        config: {
           numRecords: inputFileData.length,
           batchSize,
           insertNulls,
@@ -231,13 +232,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
           timesSameDataSubmitted: runs.length + 1,
           trialRun: isTrialRun,
           trialRunSize,
-        }),
-        inputSource: buildDataHistoryInputSource({
-          filename: inputFilename,
-          filenameType: inputFilenameType,
-          googleFileId: inputGoogleFile?.id,
-        }),
-        skipHistory: skipDataHistory,
+        },
       });
 
       if (isTrialRun) {
@@ -331,15 +326,16 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
       const newRunId = ++runIdCounter.current;
 
       // A retry is captured as a NEW history entry linked to the original run via parentKey
-      const historyHandle = startDataHistoryEntry({
+      const historyHandle = startLoadRecordsHistory({
         org: selectedOrg,
-        source: 'load-records',
-        operation: loadTypeToDataHistoryOperation(loadType),
-        api: apiModeToDataHistoryApi(apiMode),
-        sobjects: [selectedSObject],
-        config: buildLoadRecordsHistoryConfig({
-          loadType,
-          apiMode,
+        loadType,
+        apiMode,
+        sobject: selectedSObject,
+        inputFilename,
+        inputFilenameType,
+        inputGoogleFileId: inputGoogleFile?.id,
+        skipHistory: skipDataHistory,
+        config: {
           numRecords: recordsToRetry.length,
           batchSize,
           insertNulls,
@@ -350,14 +346,8 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
           hasZipAttachment: !!(activeRun?.inputZipFileData ?? inputZipFileData),
           timesSameDataSubmitted: runs.length + 1,
           retry: { retryCount, retrySource, totalFailedCount },
-        }),
-        inputSource: buildDataHistoryInputSource({
-          filename: inputFilename,
-          filenameType: inputFilenameType,
-          googleFileId: inputGoogleFile?.id,
-        }),
+        },
         parentKey: activeRun?.historyHandle?.key,
-        skipHistory: skipDataHistory,
       });
       // Retry records are PREPARED records (Batch API prepares nested objects for external-Id lookups),
       // so flatten against the mapped headers — CSV serialization does flat key lookup only.

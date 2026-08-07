@@ -3,15 +3,12 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { DataHistorySettings, Maybe } from '@jetstream/types';
 import { CheckboxToggle, ConfirmationModalPromise, fireToast, Spinner, UpgradeToProButton } from '@jetstream/ui';
-import { dataHistoryCaptureEnabledState, dataHistoryInitializedState } from '@jetstream/ui/app-state';
+import { dataHistoryCaptureEnabledState, dataHistoryLimitsState } from '@jetstream/ui/app-state';
 import {
   DataHistoryStorageHealth,
   deleteAllDataHistory,
-  getDataHistoryLimits,
   getDataHistorySettings,
   getDataHistoryStorageHealth,
-  isPersistentStoragePromptEligible,
-  requestPersistentStorage,
   setDataHistoryEnabled,
   updateDataHistoryRetentionSettings,
 } from '@jetstream/ui/data-history';
@@ -20,6 +17,7 @@ import { useAtomValue, useSetAtom } from 'jotai';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { useAmplitude } from '../analytics';
 import { ViewDataHistoryLink } from '../app/DataHistoryLinks';
+import { useRequestPersistentStorage } from './data-history-hooks';
 import { DataHistoryStorageLocation } from './DataHistoryStorageLocation';
 
 function formatBytes(sizeBytes: number): string {
@@ -48,15 +46,14 @@ export interface DataHistorySettingsSectionProps {
 export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSectionProps> = ({ hideViewHistoryLink }) => {
   const { trackEvent } = useAmplitude();
   const setCaptureEnabledAtom = useSetAtom(dataHistoryCaptureEnabledState);
-  // Seeded true by AppInitializer once initDataHistory() resolves — a hard refresh landing directly here
-  // mounts before that finishes, so we gate the first load on it instead of bailing to null forever
-  const dataHistoryInitialized = useAtomValue(dataHistoryInitializedState);
+  // Seeded (non-null) by AppInitializer once initDataHistory() resolves — a hard refresh landing
+  // directly here mounts before that finishes, so we gate the first load on it instead of bailing
+  // to null forever
+  const limits = useAtomValue(dataHistoryLimitsState);
   const [settings, setSettings] = useState<Maybe<DataHistorySettings>>(null);
   const [health, setHealth] = useState<Maybe<DataHistoryStorageHealth>>(null);
   const [retentionDaysInput, setRetentionDaysInput] = useState('');
   const [clearing, setClearing] = useState(false);
-  const [requestingPersist, setRequestingPersist] = useState(false);
-  const persistPromptEligible = isPersistentStoragePromptEligible();
 
   const loadSettingsAndHealth = useCallback(async () => {
     try {
@@ -69,11 +66,16 @@ export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSe
     }
   }, []);
 
+  const { persistPromptEligible, requestingPersist, requestPersist } = useRequestPersistentStorage({
+    analyticsLocation: 'settings',
+    onRequested: loadSettingsAndHealth,
+  });
+
   useEffect(() => {
-    if (dataHistoryInitialized) {
+    if (limits != null) {
       loadSettingsAndHealth();
     }
-  }, [dataHistoryInitialized, loadSettingsAndHealth]);
+  }, [limits, loadSettingsAndHealth]);
 
   async function handleEnabledChange(enabled: boolean) {
     try {
@@ -134,33 +136,11 @@ export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSe
     }
   }
 
-  async function handleRequestPersist() {
-    try {
-      setRequestingPersist(true);
-      const granted = await requestPersistentStorage();
-      trackEvent(ANALYTICS_KEYS.data_history_settings_changed, { action: 'request-persist', granted, location: 'settings' });
-      await loadSettingsAndHealth();
-      fireToast(
-        granted
-          ? { type: 'success', message: 'Your browser will keep this history and not remove it automatically.' }
-          : {
-              type: 'warning',
-              message: 'Your browser did not grant persistent storage. History is still saved, but may be removed if storage runs low.',
-            },
-      );
-    } catch (ex) {
-      logger.warn('[DATA_HISTORY] Error requesting persistent storage', ex);
-    } finally {
-      setRequestingPersist(false);
-    }
-  }
-
   // Settings resolve to null when the feature has not initialized for this session
   if (!settings) {
     return null;
   }
 
-  const limits = getDataHistoryLimits();
   const entryCapped = limits?.maxEntries != null;
   const usagePercent = health && health.maxTotalBytes > 0 ? Math.min(100, Math.round((health.usedBytes / health.maxTotalBytes) * 100)) : 0;
 
@@ -193,7 +173,7 @@ export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSe
       {persistPromptEligible && health?.persisted === false && (
         <div className="slds-m-top_small">
           <span className="slds-m-right_x-small">Your browser may remove this saved history to free up space.</span>
-          <button className="slds-button slds-button_neutral" disabled={requestingPersist} onClick={handleRequestPersist}>
+          <button className="slds-button slds-button_neutral" disabled={requestingPersist} onClick={requestPersist}>
             Keep History on This Device
           </button>
         </div>

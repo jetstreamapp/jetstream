@@ -115,6 +115,14 @@ export const useLoadFile = (org: SalesforceOrgUi, serverUrl: string, apiVersion:
     };
   }, []);
 
+  // Start Over clears the runs — drop the parent handle with them so a later retry can never be
+  // filed under a previous file's history entry
+  useEffect(() => {
+    if (!runs.length) {
+      initialHistoryHandleRef.current = null;
+    }
+  }, [runs.length]);
+
   const updateRunRequest = useCallback(
     (runId: number, key: string, applyUpdate: (request: LoadMultiObjectRequestWithResult) => LoadMultiObjectRequestWithResult) => {
       setRuns((priorRuns) =>

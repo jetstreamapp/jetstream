@@ -1,13 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import type { HistoryFileStore, HistoryFileStoreCapabilities, HistoryWriteStream } from './file-store.types';
-import type {
-  EstimateResult,
-  HistoryWorkerRequestBody,
-  HistoryWorkerResponse,
-  ListEntryDirsResult,
-  StreamCloseResult,
-  WriteFileResult,
-} from './worker-messages';
+import type { HistoryWorkerRequestBody, HistoryWorkerResponse, HistoryWorkerResultByOp } from './worker-messages';
 
 /**
  * Default Data History file store: OPFS, with all I/O delegated to a dedicated worker
@@ -74,7 +67,7 @@ export class OpfsFileStore implements HistoryFileStore {
       },
       close: async () => {
         try {
-          return (await this.request({ op: 'stream-close', streamId })) as StreamCloseResult;
+          return await this.request({ op: 'stream-close', streamId });
         } finally {
           releaseStream();
         }
@@ -95,11 +88,11 @@ export class OpfsFileStore implements HistoryFileStore {
     // NOT transferred: no other backend consumes the caller's buffer, and detaching it here would
     // make buffer reuse fail only on OPFS in production. Stream chunks (above) stay transferred —
     // they are freshly allocated per chunk.
-    return (await this.request({ op: 'write-file', path: relativePath, gzip: options.gzip, bytes })) as WriteFileResult;
+    return await this.request({ op: 'write-file', path: relativePath, gzip: options.gzip, bytes });
   }
 
   async readFile(relativePath: string, options: { gunzip: boolean }): Promise<Blob> {
-    return (await this.request({ op: 'read-file', path: relativePath, gunzip: options.gunzip })) as Blob;
+    return await this.request({ op: 'read-file', path: relativePath, gunzip: options.gunzip });
   }
 
   async deleteEntryDir(relativeDirPath: string): Promise<void> {
@@ -107,13 +100,13 @@ export class OpfsFileStore implements HistoryFileStore {
   }
 
   async listEntryDirs(): Promise<Array<{ orgFolder: string; entryKey: string }>> {
-    const { dirs } = (await this.request({ op: 'list-entry-dirs' })) as ListEntryDirsResult;
+    const { dirs } = await this.request({ op: 'list-entry-dirs' });
     return dirs;
   }
 
   async estimate(): Promise<{ usageBytes?: number; quotaBytes?: number } | null> {
     try {
-      return (await this.request({ op: 'estimate' })) as EstimateResult;
+      return await this.request({ op: 'estimate' });
     } catch {
       return null;
     }
@@ -181,7 +174,10 @@ export class OpfsFileStore implements HistoryFileStore {
     return this.worker;
   }
 
-  private request(message: HistoryWorkerRequestBody, transfer?: Transferable[]): Promise<unknown> {
+  private request<TBody extends HistoryWorkerRequestBody>(
+    message: TBody,
+    transfer?: Transferable[],
+  ): Promise<HistoryWorkerResultByOp[TBody['op']]> {
     return new Promise((resolve, reject) => {
       try {
         const worker = this.getWorker();
@@ -190,7 +186,9 @@ export class OpfsFileStore implements HistoryFileStore {
         // or a detached transfer buffer) there is no worker reply coming, so a pre-registered entry
         // would leak. The worker's onmessage can't run until this call stack unwinds, so this is safe.
         worker.postMessage({ ...message, id }, transfer || []);
-        this.pendingRequests.set(id, { resolve, reject });
+        // The worker replies with `unknown`; this is the single point where the untyped wire value
+        // becomes the op's declared result type.
+        this.pendingRequests.set(id, { resolve: resolve as (value: unknown) => void, reject });
       } catch (ex) {
         reject(ex instanceof Error ? ex : new Error(String(ex)));
       }

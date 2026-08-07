@@ -1,4 +1,4 @@
-import { DataHistoryOperation } from '@jetstream/types';
+import { DataHistoryOperation, InsertUpdateUpsert } from '@jetstream/types';
 import { DataHistoryEntryHandle } from '@jetstream/ui/data-history';
 import { LoadMultiObjectRequestWithResult } from './load-records-multi-object-types';
 import { RESULTS_DOWNLOAD_HEADER, RecordResultRow, buildResultsDownloadRows, getLoadResultsSummary } from './load/load-results-utils';
@@ -9,7 +9,7 @@ import { RESULTS_DOWNLOAD_HEADER, RecordResultRow, buildResultsDownloadRows, get
  * opted out, so nothing here needs null checks or its own error handling.
  */
 
-function multiObjectOperationToDataHistoryOperation(operation: string): DataHistoryOperation {
+function multiObjectOperationToDataHistoryOperation(operation: InsertUpdateUpsert): DataHistoryOperation {
   switch (operation) {
     case 'INSERT':
       return 'insert';
@@ -17,8 +17,10 @@ function multiObjectOperationToDataHistoryOperation(operation: string): DataHist
       return 'update';
     case 'UPSERT':
       return 'upsert';
-    default:
-      return 'insert';
+    default: {
+      const unhandledOperation: never = operation;
+      throw new Error(`Unhandled operation: ${unhandledOperation}`);
+    }
   }
 }
 
@@ -37,7 +39,7 @@ export function getMultiObjectDistinctSobjects(requests: LoadMultiObjectRequestW
 
 /**
  * Resolve the load's representative operation. When every object shares one operation that value is
- * used; when operations are mixed across objects the entry records `'insert'` and the caller stores
+ * used; when operations are mixed across objects the entry records `'mixed'` and the caller stores
  * the per-object operations in `config` (see `mixed`/`byObject`).
  */
 export function getMultiObjectOperations(requests: LoadMultiObjectRequestWithResult[]): {
@@ -45,18 +47,18 @@ export function getMultiObjectOperations(requests: LoadMultiObjectRequestWithRes
   byObject: Record<string, string>;
   mixed: boolean;
 } {
-  const operationsByObject: Record<string, Set<string>> = {};
+  const operationsByObject: Record<string, Set<InsertUpdateUpsert>> = {};
   requests.forEach((request) => {
     Object.values(request.recordWithResponseByRefId).forEach(({ sobject, operation }) => {
       if (!sobject || !operation) {
         return;
       }
-      operationsByObject[sobject] = operationsByObject[sobject] || new Set<string>();
+      operationsByObject[sobject] = operationsByObject[sobject] || new Set<InsertUpdateUpsert>();
       operationsByObject[sobject].add(operation);
     });
   });
 
-  const allOperations = new Set<string>();
+  const allOperations = new Set<InsertUpdateUpsert>();
   const byObject: Record<string, string> = {};
   Object.entries(operationsByObject).forEach(([sobject, operations]) => {
     operations.forEach((operation) => allOperations.add(operation));
@@ -65,11 +67,16 @@ export function getMultiObjectOperations(requests: LoadMultiObjectRequestWithRes
 
   const mixed = allOperations.size > 1;
   const [singleOperation] = Array.from(allOperations);
-  return {
-    operation: mixed || !singleOperation ? 'insert' : multiObjectOperationToDataHistoryOperation(singleOperation),
-    byObject,
-    mixed,
-  };
+  let operation: DataHistoryOperation;
+  if (mixed) {
+    operation = 'mixed';
+  } else if (!singleOperation) {
+    // Degenerate case: no record carried an operation at all — keep the historical default
+    operation = 'insert';
+  } else {
+    operation = multiObjectOperationToDataHistoryOperation(singleOperation);
+  }
+  return { operation, byObject, mixed };
 }
 
 export interface FinalizeMultiObjectHistoryOptions {

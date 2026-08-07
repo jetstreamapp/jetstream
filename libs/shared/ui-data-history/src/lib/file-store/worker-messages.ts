@@ -57,3 +57,22 @@ export interface EstimateResult {
   usageBytes?: number;
   quotaBytes?: number;
 }
+
+/**
+ * Result shape per op — the worker-side counterpart of `DataHistoryFileOpResultByOp` in
+ * `@jetstream/desktop/types`. The one deliberate difference: `read-file` is a `Blob` here (the
+ * worker's structured clone carries Blobs fine) but raw bytes over Electron IPC, where Blobs are
+ * not serializable.
+ */
+export interface HistoryWorkerResultByOp {
+  init: void;
+  'write-file': WriteFileResult;
+  'open-stream': OpenStreamResult;
+  'stream-write': void;
+  'stream-close': StreamCloseResult;
+  'stream-abort': void;
+  'read-file': Blob;
+  'delete-dir': void;
+  'list-entry-dirs': ListEntryDirsResult;
+  estimate: EstimateResult;
+}

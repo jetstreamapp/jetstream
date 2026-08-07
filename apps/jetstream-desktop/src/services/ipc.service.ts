@@ -119,14 +119,19 @@ const handleGetDataHistoryFolder: MainIpcHandler<'getDataHistoryFolder'> = async
   return getDataHistoryFolderPath();
 };
 
-const handleSetDataHistoryFolder: MainIpcHandler<'setDataHistoryFolder'> = async (_event, { folderPath }) => {
-  // Only accept folders the user actually picked through the OS dialog this session — the IPC
-  // surface is exposed on `window`, so without this a compromised renderer could silently redirect
-  // all history (existing and future Salesforce data) to any path it likes.
-  if (typeof folderPath !== 'string' || !userSelectedFolderPaths.has(folderPath)) {
-    throw new Error('The data history folder must be chosen through the folder picker');
+const handlePickDataHistoryFolder: MainIpcHandler<'pickDataHistoryFolder'> = async () => {
+  // The chosen path deliberately never transits the renderer: the dialog is shown AND applied here
+  // in the main process, so a compromised renderer cannot silently redirect all history (existing
+  // and future Salesforce data) to a path it chose — only a real user gesture in the OS dialog can.
+  const result = await dialog.showOpenDialog({
+    buttonLabel: 'Select Folder',
+    defaultPath: app.getPath('downloads'),
+    properties: ['openDirectory', 'createDirectory'],
+  });
+  if (result.canceled) {
+    return null;
   }
-  return await setDataHistoryFolderPath(folderPath);
+  return await setDataHistoryFolderPath(result.filePaths[0]);
 };
 
 const handleOpenFile: MainIpcHandler<'openFile'> = async (_event, filePath: string): Promise<void> => {
@@ -174,7 +179,7 @@ export function registerIpc(): void {
   // Handle native Data History storage
   registerHandler('dataHistoryRequest', handleDataHistoryRequest);
   registerHandler('getDataHistoryFolder', handleGetDataHistoryFolder);
-  registerHandler('setDataHistoryFolder', handleSetDataHistoryFolder);
+  registerHandler('pickDataHistoryFolder', handlePickDataHistoryFolder);
   // Handle auto-update requests
   registerHandler('checkForUpdates', handleCheckForUpdatesEvent);
   registerHandler('getUpdateStatus', handleGetUpdateStatusEvent);
@@ -182,9 +187,6 @@ export function registerIpc(): void {
   // Handle Google Picker
   registerHandler('openGooglePicker', handleOpenGooglePickerEvent);
 }
-
-/** Folder paths the user picked via the OS dialog this session — see `handleSetDataHistoryFolder` */
-const userSelectedFolderPaths = new Set<string>();
 
 const handleSelectFolderEvent: MainIpcHandler<'selectFolder'> = async () => {
   const result = await dialog.showOpenDialog({
@@ -195,7 +197,6 @@ const handleSelectFolderEvent: MainIpcHandler<'selectFolder'> = async () => {
   if (result.canceled) {
     return null;
   }
-  userSelectedFolderPaths.add(result.filePaths[0]);
   return result.filePaths[0];
 };
 

@@ -104,7 +104,12 @@ export interface ElectronApiRequestResponse {
   showFileInFolder: (filePath: string) => Promise<void>;
   dataHistoryRequest: <TRequest extends DataHistoryFileOpRequest>(payload: TRequest) => Promise<DataHistoryFileOpResult<TRequest>>;
   getDataHistoryFolder: () => Promise<string>;
-  setDataHistoryFolder: (payload: { folderPath: string }) => Promise<string>;
+  /**
+   * Shows the OS folder picker in the MAIN process and applies the selection (moves the history
+   * directory + persists the preference) without the path ever transiting the renderer.
+   * Resolves to the new base path, or null when the user cancels the dialog.
+   */
+  pickDataHistoryFolder: () => Promise<string | null>;
   checkForUpdates: (userInitiated?: boolean) => Promise<void>;
   getUpdateStatus: () => Promise<UpdateStatus>;
   installUpdate: () => void;

@@ -6,16 +6,15 @@ import {
   changeHistoryDirectory,
   changeNativeHistoryFolder,
   connectHistoryDirectory,
-  DataHistoryBackendStatus,
   disableNativeHistoryStorage,
   disconnectHistoryDirectory,
   enableNativeHistoryStorage,
-  getHistoryBackendStatus,
   reconnectHistoryDirectory,
   reindexHistoryFromActiveBackend,
 } from '@jetstream/ui/data-history';
-import { FunctionComponent, useCallback, useEffect, useState } from 'react';
+import { FunctionComponent, useState } from 'react';
 import { useAmplitude } from '../analytics';
+import { useDataHistoryBackendStatus } from './data-history-hooks';
 
 export interface DataHistoryStorageLocationProps {
   /** Called after any storage-location change so the parent can refresh usage numbers */
@@ -29,21 +28,9 @@ export interface DataHistoryStorageLocationProps {
  */
 export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLocationProps> = ({ onChanged }) => {
   const { trackEvent } = useAmplitude();
-  const [status, setStatus] = useState<Maybe<DataHistoryBackendStatus>>(null);
+  const { backendStatus: status, loadBackendStatus: loadStatus } = useDataHistoryBackendStatus();
   const [working, setWorking] = useState(false);
   const [migrationProgress, setMigrationProgress] = useState<Maybe<{ migrated: number; total: number }>>(null);
-
-  const loadStatus = useCallback(async () => {
-    try {
-      setStatus(await getHistoryBackendStatus());
-    } catch (ex) {
-      logger.warn('[DATA_HISTORY] Unable to load storage backend status', ex);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadStatus();
-  }, [loadStatus]);
 
   function handleMigrationProgress(migrated: number, total: number) {
     setMigrationProgress({ migrated, total });

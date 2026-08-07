@@ -1,4 +1,4 @@
-import { DataHistoryFileOpRequest, DataHistoryFileOpResult } from '@jetstream/desktop/types';
+import { DataHistoryFileOpRequest, DataHistoryFileOpResult, DataHistoryFileOpResultByOp } from '@jetstream/desktop/types';
 import { app } from 'electron';
 import logger from 'electron-log';
 import { createWriteStream, promises as fs, WriteStream } from 'fs';
@@ -189,131 +189,145 @@ async function pathExists(path: string): Promise<boolean> {
   }
 }
 
+/**
+ * One handler per op, typed so every implementation is CHECKED against exactly its op's declared
+ * result shape. A single switch typed as the union of all result shapes would leave each `return`
+ * unchecked while the renderer trusts the exact per-op shape.
+ */
+const opHandlers: {
+  [K in DataHistoryFileOpRequest['op']]: (
+    request: Extract<DataHistoryFileOpRequest, { op: K }>,
+    context?: { senderId?: number },
+  ) => Promise<DataHistoryFileOpResultByOp[K]>;
+} = {
+  init: async (request) => {
+    // Validated like any other path segment — it arrives from the renderer and is joined onto the
+    // history folder, so a crafted value must not be able to escape it.
+    const segments = splitRelativePath(request.scopeDir);
+    if (segments.length !== 1) {
+      throw new Error(`Invalid data history user scope: ${request.scopeDir}`);
+    }
+    currentScopeDir = segments[0];
+    await fs.mkdir(getScopedBaseDir(), { recursive: true });
+  },
+  'write-file': async (request) => {
+    assertNoRelocationInProgress();
+    const absolutePath = resolveRelativePath(request.path);
+    await fs.mkdir(dirname(absolutePath), { recursive: true });
+    const input = Buffer.from(request.bytes);
+    const output = request.gzip ? gzipSync(input) : input;
+    await writeFileAtomic(absolutePath, output);
+    invalidateDirectorySizeCache();
+    return { bytes: output.byteLength };
+  },
+  'open-stream': async (request, context) => {
+    assertNoRelocationInProgress();
+    const absolutePath = resolveRelativePath(request.path);
+    await fs.mkdir(dirname(absolutePath), { recursive: true });
+    const fileStream = createWriteStream(absolutePath);
+    const state: OpenStreamState = { fileStream, bytesWritten: 0, absolutePath, ownerId: context?.senderId };
+    const streamId = nextStreamId++;
+    fileStream.on('error', (error) => handleStreamError(streamId, state, error));
+    if (request.gzip) {
+      const gzip = createGzip();
+      gzip.on('data', (chunk: Buffer) => {
+        state.bytesWritten += chunk.length;
+      });
+      gzip.on('error', (error) => handleStreamError(streamId, state, error));
+      gzip.pipe(fileStream);
+      state.gzip = gzip;
+    }
+    openStreams.set(streamId, state);
+    return { streamId };
+  },
+  'stream-write': async (request, context) => {
+    const streamError = takeStreamError(request.streamId, context?.senderId);
+    if (streamError) {
+      throw streamError;
+    }
+    const state = getStream(request.streamId, context?.senderId);
+    const buffer = Buffer.from(request.bytes);
+    if (state.gzip) {
+      await writeToStream(state.gzip, buffer);
+    } else {
+      await writeToStream(state.fileStream, buffer);
+      state.bytesWritten += buffer.length;
+    }
+  },
+  'stream-close': async (request, context) => {
+    const streamError = takeStreamError(request.streamId, context?.senderId);
+    if (streamError) {
+      throw streamError;
+    }
+    const state = getStream(request.streamId, context?.senderId);
+    openStreams.delete(request.streamId);
+    if (state.gzip) {
+      state.gzip.end();
+    } else {
+      state.fileStream.end();
+    }
+    // A late fs error is safe here: the 'error' listeners prevent an uncaught exception and
+    // `finished` rejects (never hangs) when the stream is destroyed with an error.
+    await finished(state.fileStream);
+    invalidateDirectorySizeCache();
+    return { bytes: state.bytesWritten };
+  },
+  'stream-abort': async (request, context) => {
+    // A stream torn down by an fs error was already destroyed and its partial file removed
+    takeStreamError(request.streamId, context?.senderId);
+    const state = openStreams.get(request.streamId);
+    if (state && (state.ownerId === undefined || state.ownerId === context?.senderId)) {
+      openStreams.delete(request.streamId);
+      state.gzip?.destroy();
+      state.fileStream.destroy();
+      await fs.rm(state.absolutePath, { force: true }).catch(() => undefined);
+      invalidateDirectorySizeCache();
+    }
+  },
+  'read-file': async (request) => {
+    const buffer = await fs.readFile(resolveRelativePath(request.path));
+    return new Uint8Array(request.gunzip ? gunzipSync(buffer) : buffer);
+  },
+  'delete-dir': async (request) => {
+    assertNoRelocationInProgress();
+    const absoluteDirPath = resolveRelativePath(request.path);
+    assertNoOpenStreamsUnder(absoluteDirPath);
+    await fs.rm(absoluteDirPath, { recursive: true, force: true });
+    invalidateDirectorySizeCache();
+  },
+  'list-entry-dirs': async () => {
+    const dirs: Array<{ orgFolder: string; entryKey: string }> = [];
+    const baseDir = getScopedBaseDir();
+    const orgFolders = await fs.readdir(baseDir, { withFileTypes: true }).catch(() => []);
+    for (const orgFolder of orgFolders) {
+      if (!orgFolder.isDirectory()) {
+        continue;
+      }
+      const entryDirs = await fs.readdir(join(baseDir, orgFolder.name), { withFileTypes: true }).catch(() => []);
+      for (const entryDir of entryDirs) {
+        if (entryDir.isDirectory()) {
+          dirs.push({ orgFolder: orgFolder.name, entryKey: entryDir.name });
+        }
+      }
+    }
+    return { dirs };
+  },
+  estimate: async () => {
+    return { usageBytes: await getCachedDirectorySize() };
+  },
+};
+
 export async function handleDataHistoryOp(
   request: DataHistoryFileOpRequest,
   context?: { senderId?: number },
 ): Promise<DataHistoryFileOpResult<DataHistoryFileOpRequest>> {
-  switch (request.op) {
-    case 'init': {
-      // Validated like any other path segment — it arrives from the renderer and is joined onto the
-      // history folder, so a crafted value must not be able to escape it.
-      const [scopeDir] = splitRelativePath(request.scopeDir);
-      if (splitRelativePath(request.scopeDir).length !== 1) {
-        throw new Error(`Invalid data history user scope: ${request.scopeDir}`);
-      }
-      currentScopeDir = scopeDir;
-      await fs.mkdir(getScopedBaseDir(), { recursive: true });
-      return undefined;
-    }
-    case 'write-file': {
-      assertNoRelocationInProgress();
-      const absolutePath = resolveRelativePath(request.path);
-      await fs.mkdir(dirname(absolutePath), { recursive: true });
-      const input = Buffer.from(request.bytes);
-      const output = request.gzip ? gzipSync(input) : input;
-      await writeFileAtomic(absolutePath, output);
-      invalidateDirectorySizeCache();
-      return { bytes: output.byteLength };
-    }
-    case 'open-stream': {
-      assertNoRelocationInProgress();
-      const absolutePath = resolveRelativePath(request.path);
-      await fs.mkdir(dirname(absolutePath), { recursive: true });
-      const fileStream = createWriteStream(absolutePath);
-      const state: OpenStreamState = { fileStream, bytesWritten: 0, absolutePath, ownerId: context?.senderId };
-      const streamId = nextStreamId++;
-      fileStream.on('error', (error) => handleStreamError(streamId, state, error));
-      if (request.gzip) {
-        const gzip = createGzip();
-        gzip.on('data', (chunk: Buffer) => {
-          state.bytesWritten += chunk.length;
-        });
-        gzip.on('error', (error) => handleStreamError(streamId, state, error));
-        gzip.pipe(fileStream);
-        state.gzip = gzip;
-      }
-      openStreams.set(streamId, state);
-      return { streamId };
-    }
-    case 'stream-write': {
-      const streamError = takeStreamError(request.streamId, context?.senderId);
-      if (streamError) {
-        throw streamError;
-      }
-      const state = getStream(request.streamId, context?.senderId);
-      const buffer = Buffer.from(request.bytes);
-      if (state.gzip) {
-        await writeToStream(state.gzip, buffer);
-      } else {
-        await writeToStream(state.fileStream, buffer);
-        state.bytesWritten += buffer.length;
-      }
-      return undefined;
-    }
-    case 'stream-close': {
-      const streamError = takeStreamError(request.streamId, context?.senderId);
-      if (streamError) {
-        throw streamError;
-      }
-      const state = getStream(request.streamId, context?.senderId);
-      openStreams.delete(request.streamId);
-      if (state.gzip) {
-        state.gzip.end();
-      } else {
-        state.fileStream.end();
-      }
-      // A late fs error is safe here: the 'error' listeners prevent an uncaught exception and
-      // `finished` rejects (never hangs) when the stream is destroyed with an error.
-      await finished(state.fileStream);
-      invalidateDirectorySizeCache();
-      return { bytes: state.bytesWritten };
-    }
-    case 'stream-abort': {
-      // A stream torn down by an fs error was already destroyed and its partial file removed
-      takeStreamError(request.streamId, context?.senderId);
-      const state = openStreams.get(request.streamId);
-      if (state && (state.ownerId === undefined || state.ownerId === context?.senderId)) {
-        openStreams.delete(request.streamId);
-        state.gzip?.destroy();
-        state.fileStream.destroy();
-        await fs.rm(state.absolutePath, { force: true }).catch(() => undefined);
-        invalidateDirectorySizeCache();
-      }
-      return undefined;
-    }
-    case 'read-file': {
-      const buffer = await fs.readFile(resolveRelativePath(request.path));
-      return new Uint8Array(request.gunzip ? gunzipSync(buffer) : buffer);
-    }
-    case 'delete-dir': {
-      assertNoRelocationInProgress();
-      const absoluteDirPath = resolveRelativePath(request.path);
-      assertNoOpenStreamsUnder(absoluteDirPath);
-      await fs.rm(absoluteDirPath, { recursive: true, force: true });
-      invalidateDirectorySizeCache();
-      return undefined;
-    }
-    case 'list-entry-dirs': {
-      const dirs: Array<{ orgFolder: string; entryKey: string }> = [];
-      const baseDir = getScopedBaseDir();
-      const orgFolders = await fs.readdir(baseDir, { withFileTypes: true }).catch(() => []);
-      for (const orgFolder of orgFolders) {
-        if (!orgFolder.isDirectory()) {
-          continue;
-        }
-        const entryDirs = await fs.readdir(join(baseDir, orgFolder.name), { withFileTypes: true }).catch(() => []);
-        for (const entryDir of entryDirs) {
-          if (entryDir.isDirectory()) {
-            dirs.push({ orgFolder: orgFolder.name, entryKey: entryDir.name });
-          }
-        }
-      }
-      return { dirs };
-    }
-    case 'estimate': {
-      return { usageBytes: await getCachedDirectorySize() };
-    }
-  }
+  // TypeScript cannot connect `request.op`'s narrowing to the map's per-op signature from outside
+  // the map, so dispatch through one localized widening cast.
+  const handler = opHandlers[request.op] as (
+    request: DataHistoryFileOpRequest,
+    context?: { senderId?: number },
+  ) => Promise<DataHistoryFileOpResult<DataHistoryFileOpRequest>>;
+  return await handler(request, context);
 }
 
 export function getDataHistoryFolderPath(): string {
@@ -329,8 +343,8 @@ export function getDataHistoryFolderPath(): string {
  * move) — a failed copy rethrows and leaves the current folder authoritative and intact.
  */
 export async function setDataHistoryFolderPath(folderPath: string): Promise<string> {
-  // The path arrives from the renderer — never trust it to be a real user-picked folder. The IPC
-  // layer additionally requires it to match a value the OS folder dialog returned this session.
+  // The path normally comes straight from the main-process folder dialog, but validate anyway
+  // (defense in depth) in case a future caller passes something else.
   if (typeof folderPath !== 'string' || folderPath.trim().length === 0 || !isAbsolute(folderPath)) {
     throw new Error('The data history folder must be an absolute path');
   }

@@ -31,6 +31,7 @@ import {
   type UserProfilePreferences,
   type UserProfileUi,
 } from '@jetstream/types';
+import type { DataHistoryTierLimits } from '@jetstream/ui/data-history';
 import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { atomWithLazy, unwrap } from 'jotai/utils';
 import isString from 'lodash/isString';
@@ -257,19 +258,19 @@ export const actionInProgressState = atom<boolean>(false);
 
 /**
  * Whether local Data History capture is currently active. Seeded once during app init (each
- * AppInitializer calls `isDataHistoryCaptureEnabled()` after `initDataHistory()` and writes the
- * result here) so feature code can read it synchronously instead of awaiting an async check on
- * mount. Settings UI that toggles capture should update this atom too.
+ * AppInitializer seeds it via `useInitDataHistory` from the result of `initDataHistory()`) so
+ * feature code can read it synchronously instead of awaiting an async check on mount. Settings UI
+ * that toggles capture should update this atom too.
  */
 export const dataHistoryCaptureEnabledState = atom<boolean>(false);
 
 /**
- * Whether Data History has finished initializing for this session (tier limits resolved). Seeded to
- * true by each AppInitializer right after `initDataHistory()`. UI that renders only once history is
- * ready (e.g. the Settings section) gates its first load on this — otherwise a hard refresh landing
- * directly on that page renders before init completes and then never retries.
+ * Resolved Data History tier limits for this session. `null` means Data History has not initialized
+ * yet — seeded by `useInitDataHistory` (ui-core) once `initDataHistory()` resolves. UI that renders
+ * tier-dependent content gates on `limits != null` so a hard refresh landing directly on such a
+ * page doesn't render before init completes.
  */
-export const dataHistoryInitializedState = atom<boolean>(false);
+export const dataHistoryLimitsState = atom<DataHistoryTierLimits | null>(null);
 
 export const appInfoState = atom<Promise<AppInfo> | AppInfo>(fetchAppInfo());
 export const appInfoSyncState = unwrap(appInfoState, (prev) => prev ?? DEFAULT_APP_INFO);

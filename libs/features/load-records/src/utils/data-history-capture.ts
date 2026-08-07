@@ -9,11 +9,12 @@ import {
   FieldMapping,
   InsertUpdateUpsertDelete,
   LoadDataBulkApiStatusPayload,
+  LocalOrGoogle,
   Maybe,
   PrepareDataResponse,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import { DataHistoryEntryHandle } from '@jetstream/ui/data-history';
+import { buildDataHistoryInputSource, DataHistoryEntryHandle, startDataHistoryEntry } from '@jetstream/ui/data-history';
 import { fetchBulkApiAllBatchResults, getLoadResultsHeader } from '../components/load-results/load-results-utils';
 
 /**
@@ -35,8 +36,10 @@ export function loadTypeToDataHistoryOperation(loadType: InsertUpdateUpsertDelet
     case 'DELETE':
     case 'HARD_DELETE':
       return 'delete';
-    default:
-      return 'insert';
+    default: {
+      const unhandledLoadType: never = loadType;
+      throw new Error(`Unhandled load type: ${unhandledLoadType}`);
+    }
   }
 }
 
@@ -113,6 +116,53 @@ export function buildLoadRecordsHistoryConfig({
     numStaticFields: Object.values(fieldMapping).filter(({ type }) => type === 'STATIC').length,
     ...(retry ? { isRetry: true, ...retry } : {}),
   };
+}
+
+/**
+ * Begin a history entry for a Load Records run — initial load, trial run, or retry (a retry links to
+ * the run it retried via `parentKey`). Owns the envelope shared by every load-records entry; callers
+ * pass only the per-run values. The handle self-gates (captures nothing when disabled/opted out) and
+ * is never awaited on the load's critical path.
+ */
+export function startLoadRecordsHistory({
+  org,
+  loadType,
+  apiMode,
+  sobject,
+  inputFilename,
+  inputFilenameType,
+  inputGoogleFileId,
+  skipHistory,
+  config,
+  parentKey,
+}: {
+  org: SalesforceOrgUi;
+  loadType: InsertUpdateUpsertDelete;
+  apiMode: ApiMode;
+  sobject: string;
+  inputFilename: Maybe<string>;
+  inputFilenameType: Maybe<LocalOrGoogle>;
+  inputGoogleFileId: Maybe<string>;
+  skipHistory?: boolean;
+  /** Config snapshot values for `buildLoadRecordsHistoryConfig` — `loadType`/`apiMode` are added automatically */
+  config: Omit<Parameters<typeof buildLoadRecordsHistoryConfig>[0], 'loadType' | 'apiMode'>;
+  parentKey?: string;
+}): DataHistoryEntryHandle {
+  return startDataHistoryEntry({
+    org,
+    source: 'load-records',
+    operation: loadTypeToDataHistoryOperation(loadType),
+    api: apiModeToDataHistoryApi(apiMode),
+    sobjects: [sobject],
+    config: buildLoadRecordsHistoryConfig({ loadType, apiMode, ...config }),
+    inputSource: buildDataHistoryInputSource({
+      filename: inputFilename,
+      filenameType: inputFilenameType,
+      googleFileId: inputGoogleFileId,
+    }),
+    parentKey,
+    skipHistory,
+  });
 }
 
 /**
