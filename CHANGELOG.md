@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.10.1](https://github.com/jetstreamapp/jetstream/compare/v10.10.0...v10.10.1) (2026-08-07)
+
+### Bug Fixes
+
+* **desktop:** add betterstackdata.com to connect-src in CSP policy ([83ea026](https://github.com/jetstreamapp/jetstream/commit/83ea0265246552cff6870933b809c440f01cb1f8))
+* **security:** scope renderer local storage per user ([a02c437](https://github.com/jetstreamapp/jetstream/commit/a02c4379c8fe14534b16c6cde54c2cafa8f95ae4))
+
 ## [10.10.0](https://github.com/jetstreamapp/jetstream/compare/v10.9.0...v10.10.0) (2026-08-05)
 
 ### Features
