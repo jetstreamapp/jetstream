@@ -587,8 +587,11 @@ export class DataHistoryEntryHandle {
 
 /**
  * One-shot capture for synchronous flows (record modal, create record, query table edits).
- * Small payloads are stored inline in the Dexie row (gzip) to avoid file-store churn for frequent
- * single-record edits; larger ones are written as files. Never throws.
+ * On browser-managed storage (OPFS), small payloads are stored inline in the Dexie row (gzip) to
+ * avoid file-store churn for frequent single-record edits. On user-visible backends (user-chosen
+ * folder, desktop native) EVERY action is written as real files — the promise of "my history lives
+ * in my folder" breaks if query edits and record saves never appear there, and inline payloads
+ * cannot be recovered by a folder re-index. Never throws.
  */
 export async function recordDataHistoryAction(options: RecordDataHistoryActionOptions): Promise<void> {
   try {
@@ -598,7 +601,8 @@ export async function recordDataHistoryAction(options: RecordDataHistoryActionOp
     const { request, results, counts, status, errorMessage, ...entryOptions } = options;
 
     const payloadJson = JSON.stringify({ request, results });
-    if (TEXT_ENCODER.encode(payloadJson).byteLength <= DATA_HISTORY_INLINE_PAYLOAD_MAX_BYTES) {
+    const fitsInline = TEXT_ENCODER.encode(payloadJson).byteLength <= DATA_HISTORY_INLINE_PAYLOAD_MAX_BYTES;
+    if (fitsInline && !(await isActiveStoreUserVisible())) {
       const now = new Date();
       const item: DataHistoryItem = {
         ...buildNewHistoryItem(entryOptions, now),
@@ -780,5 +784,17 @@ async function getActiveBackendType(): Promise<DataHistoryStorageBackend> {
     return (await getHistoryFileStore()).type;
   } catch {
     return 'opfs';
+  }
+}
+
+/**
+ * Whether the active store keeps files the user can see (folder/native). Best-effort: a store that
+ * cannot resolve reports false so small captures fall back to the inline path rather than failing.
+ */
+async function isActiveStoreUserVisible(): Promise<boolean> {
+  try {
+    return (await getHistoryFileStore()).capabilities.userVisibleFiles;
+  } catch {
+    return false;
   }
 }

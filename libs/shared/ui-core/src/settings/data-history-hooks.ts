@@ -10,6 +10,7 @@ import {
   isPersistentStoragePromptEligible,
   reconnectHistoryDirectory,
   requestPersistentStorage,
+  whenDataHistoryUserScopeReady,
 } from '@jetstream/ui/data-history';
 import { useCallback, useEffect, useState } from 'react';
 import { useAmplitude } from '../analytics';
@@ -25,10 +26,14 @@ export function useDataHistoryBackendStatus() {
   const [backendStatus, setBackendStatus] = useState<DataHistoryBackendStatus | null>(null);
 
   // Promise-chain form (not async/await) so react-hooks/set-state-in-effect can see the setState
-  // is asynchronous — the await form false-positives inside custom hooks
+  // is asynchronous — the await form false-positives inside custom hooks.
+  // Waits for history storage to be bound to the signed-in user first: on a hard refresh straight
+  // onto this page, the mount effect runs before `initDataHistory()` has done that, and querying
+  // early would fail once and leave the status (and the storage controls it gates) empty.
   const loadBackendStatus = useCallback(
     () =>
-      getHistoryBackendStatus()
+      whenDataHistoryUserScopeReady()
+        .then(getHistoryBackendStatus)
         .then(setBackendStatus)
         .catch((ex) => {
           logger.warn('[DATA_HISTORY] Unable to load storage backend status', ex);

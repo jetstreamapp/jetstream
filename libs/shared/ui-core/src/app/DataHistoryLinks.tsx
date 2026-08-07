@@ -74,15 +74,18 @@ export const SkipDataHistoryCheckbox: FunctionComponent<SkipDataHistoryCheckboxP
 };
 
 /**
- * Inline "View Data History" text link for feature surfaces that capture history (load options,
- * mass-update advanced options, settings).
+ * Inline "View Data History" text link for feature surfaces that capture history (load pages,
+ * mass-update advanced options, settings). Opens in a new tab so it never navigates the user away
+ * from an in-progress load.
  */
 export const ViewDataHistoryLink: FunctionComponent<{ className?: string }> = ({ className }) => {
   return (
     <Link
       to={{ pathname: APP_ROUTES.DATA_HISTORY.ROUTE, search: APP_ROUTES.DATA_HISTORY.SEARCH_PARAM }}
       className={classNames('slds-grid slds-grid_vertical-align-center', className)}
-      title={APP_ROUTES.DATA_HISTORY.DESCRIPTION}
+      title={`${APP_ROUTES.DATA_HISTORY.DESCRIPTION} (opens in a new tab)`}
+      target="_blank"
+      rel="noreferrer"
     >
       <Icon
         type="utility"
@@ -91,6 +94,12 @@ export const ViewDataHistoryLink: FunctionComponent<{ className?: string }> = ({
         omitContainer
       />
       View Data History
+      <Icon
+        type="utility"
+        icon="new_window"
+        className="slds-icon slds-icon-text-default slds-icon_xx-small slds-m-left_xx-small"
+        omitContainer
+      />
     </Link>
   );
 };

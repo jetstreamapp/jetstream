@@ -272,9 +272,9 @@ describe('initialized', () => {
       expect(JSON.parse(await results!.blob.text())).toEqual([{ id: '001ABC', success: true }]);
     });
 
-    it('stamps inline entries with the ACTIVE backend, not a hardcoded opfs', async () => {
-      // A row claiming a backend it does not live on makes the retention sweep re-visit it as
-      // "stranded" on every app start — every record-modal/query edit would add to that churn.
+    it('writes even small payloads as files when the backend is user-visible (folder/native)', async () => {
+      // "My history lives in my folder" breaks if query edits and record saves never appear there —
+      // and inline payloads cannot be recovered by a folder re-index.
       fakeStore = new FakeFileStore('directory', { compressFiles: false, userVisibleFiles: true });
       setHistoryFileStoreForTests(fakeStore);
 
@@ -290,8 +290,13 @@ describe('initialized', () => {
       });
 
       const [entry] = await dataHistoryDb.getAllEntries();
-      expect(entry.inlinePayload).not.toBeNull();
+      expect(entry.inlinePayload).toBeNull();
       expect(entry.storageBackend).toBe('directory');
+      expect(entry.files.map(({ kind }) => kind).sort()).toEqual(['request', 'results']);
+      // request + results + manifest, uncompressed so the user can open them
+      expect(fakeStore.files.size).toBe(3);
+      const request = await readDataHistoryFile(entry, 'request');
+      expect(JSON.parse(await request!.blob.text())).toEqual({ Id: '001ABC' });
     });
 
     it('stores large payloads as files with a manifest', async () => {

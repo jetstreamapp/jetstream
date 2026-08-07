@@ -346,6 +346,7 @@ export const ANALYTICS_KEYS = {
   data_history_page_view: 'data_history_page_view',
   data_history_view_detail: 'data_history_view_detail',
   data_history_download: 'data_history_download',
+  data_history_copy_to_clipboard: 'data_history_copy_to_clipboard',
   data_history_pin: 'data_history_pin',
   data_history_delete: 'data_history_delete',
   data_history_delete_all: 'data_history_delete_all',

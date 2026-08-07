@@ -14,6 +14,7 @@ import classNames from 'classnames';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import React, {
+  CSSProperties,
   Fragment,
   FunctionComponent,
   KeyboardEvent,
@@ -70,6 +71,13 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const keyBuffer = useRef(new KeyBuffer());
   const [isOpen, setIsOpen] = useState<boolean>(false);
+  // Fixed-position styles for the portaled menu, computed from the trigger when opening. Portaled
+  // menus render in document.body (so clipping ancestors — virtualized grid cells, overflow
+  // containers — cannot truncate them) and therefore cannot rely on the CSS position of the trigger.
+  const [portalMenuStyles, setPortalMenuStyles] = useState<CSSProperties | undefined>();
+  // The portaled menu element lives outside the trigger's DOM tree, so outside-click detection
+  // must be told about it or clicking a menu item would close the menu before selection lands
+  const [menuElement, setMenuElement] = useState<HTMLDivElement | null>(null);
   const scrollLengthClass = useMemo<string | undefined>(
     () => (scrollLength ? `slds-dropdown_length-${scrollLength}` : undefined),
     [scrollLength],
@@ -174,8 +182,20 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
     setSelectedItem(id);
   }
 
+  function handleToggleOpen() {
+    if (!isOpen && usePortal && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setPortalMenuStyles(
+        position === 'right'
+          ? { position: 'fixed', top: rect.bottom, right: window.innerWidth - rect.right, left: 'auto' }
+          : { position: 'fixed', top: rect.bottom, left: rect.left, right: 'auto' },
+      );
+    }
+    setIsOpen(!isOpen);
+  }
+
   return (
-    <OutsideClickHandler onOutsideClick={() => setIsOpen(false)}>
+    <OutsideClickHandler onOutsideClick={() => setIsOpen(false)} additionalParentRef={menuElement}>
       <div
         ref={containerRef}
         className={classNames('slds-dropdown-trigger slds-dropdown-trigger_click', className, { 'slds-is-open': isOpen })}
@@ -186,7 +206,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
           aria-haspopup="true"
           aria-expanded={isOpen}
           title={actionText}
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={handleToggleOpen}
           disabled={disabled}
         >
           {buttonContent ? (
@@ -209,8 +229,11 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
           )}
         </button>
         {isOpen && (
-          <ConditionalPortal usePortal={usePortal} portalRef={portalRef || containerRef.current}>
+          // Default portal target is document.body (via ConditionalPortal) — portaling into the
+          // trigger's own container would leave the menu subject to the same clipping ancestors
+          <ConditionalPortal usePortal={usePortal} portalRef={portalRef}>
             <div
+              ref={setMenuElement}
               className={classNames(
                 'slds-dropdown',
                 {
@@ -220,6 +243,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
                 scrollLengthClass,
                 dropDownClassName,
               )}
+              style={usePortal ? portalMenuStyles : undefined}
             >
               <ul className="slds-dropdown__list" role="menu" aria-label={actionText} ref={ulContainerEl}>
                 {items.map(({ id, subheader, value, icon, disabled, title, trailingDivider, metadata }, i) => (
