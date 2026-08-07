@@ -30,6 +30,7 @@ export const dataHistoryDb = {
     getAllEntryKeys,
     getEntries,
     getEntryCount,
+    getPinnedCount,
     getTotalSizeBytes,
     setPinned,
     deleteEntries,
@@ -118,6 +119,11 @@ async function getEntries(filter: DataHistoryListFilter = {}): Promise<DataHisto
 
 async function getEntryCount(): Promise<number> {
   return await getDexieDb().data_history.count();
+}
+
+/** Count of pinned entries via the `pinnedIdx` index (booleans cannot be Dexie indexes) — no rows deserialized */
+async function getPinnedCount(): Promise<number> {
+  return await getDexieDb().data_history.where('pinnedIdx').equals('true').count();
 }
 
 /**

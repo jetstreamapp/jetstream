@@ -652,7 +652,6 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
           className="slds-m-vertical_xx-small"
           checked={skipDataHistory}
           disabled={loading}
-          showViewLink
           onChange={setSkipDataHistory}
         />
       </div>

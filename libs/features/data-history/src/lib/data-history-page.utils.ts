@@ -1,8 +1,24 @@
-import { BadgeType, DataHistoryFileKind, DataHistoryItem, DataHistorySource, DataHistoryStatus, ListItem, Maybe } from '@jetstream/types';
+import {
+  BadgeType,
+  DataHistoryApi,
+  DataHistoryFileKind,
+  DataHistoryItem,
+  DataHistoryOperation,
+  DataHistorySource,
+  DataHistoryStatus,
+  Maybe,
+} from '@jetstream/types';
 import { ColumnWithFilter } from '@jetstream/ui';
 import { formatDate } from 'date-fns/format';
 import { filesize } from 'filesize';
-import { parse as parseCsv } from 'papaparse';
+import {
+  DATA_HISTORY_EDITED_VIEW_LABEL,
+  DATA_HISTORY_PRIOR_VIEW_LABEL,
+  DataHistoryExportTarget,
+  DataHistoryPayloadView,
+  flattenPayloadRows,
+  isQueryTableEditRequest,
+} from './data-history-payload-views';
 
 export const DATA_HISTORY_SOURCE_LABELS: Record<DataHistorySource, string> = {
   'load-records': 'Load Records',
@@ -29,6 +45,26 @@ const DATA_HISTORY_FILE_KIND_LABELS: Record<DataHistoryFileKind, string> = {
   results: 'Output Data',
 };
 
+export const DATA_HISTORY_API_LABELS: Record<DataHistoryApi, string> = {
+  'bulk-v1': 'Bulk API',
+  'batch-composite': 'Batch API',
+  'composite-graph': 'Composite Graph API',
+  collections: 'Collections API',
+  metadata: 'Metadata API',
+};
+
+export const DATA_HISTORY_OPERATION_LABELS: Record<DataHistoryOperation, string> = {
+  insert: 'Insert',
+  update: 'Update',
+  upsert: 'Upsert',
+  delete: 'Delete',
+  undelete: 'Undelete',
+  create: 'Create',
+  edit: 'Edit',
+  clone: 'Clone',
+  mixed: 'Mixed',
+};
+
 export interface DataHistoryTableRow {
   _dhRowKey: string;
   [column: string]: string;
@@ -37,11 +73,11 @@ export interface DataHistoryTableRow {
 export interface DataHistoryTableData {
   columns: ColumnWithFilter<DataHistoryTableRow>[];
   rows: DataHistoryTableRow[];
-  /** True when the CSV had more rows than the preview cap and only the head is shown */
+  /** True when the payload had more rows than the preview cap and only the head is shown */
   truncated: boolean;
 }
 
-/** Cap on rows parsed for the in-modal preview — the full file is always available via download */
+/** Cap on rows shown in the in-modal preview — the full file is always available via download */
 export const DATA_HISTORY_CSV_PREVIEW_MAX_ROWS = 5000;
 
 /**
@@ -53,44 +89,43 @@ export const DATA_HISTORY_CSV_PREVIEW_MAX_ROWS = 5000;
 export const DATA_HISTORY_PREVIEW_MAX_BYTES = 2 * 1024 * 1024;
 
 /**
- * Parse a stored CSV payload into rows + column definitions for the generic `DataTable`. Column
- * order matches the CSV header; a synthetic `_dhRowKey` is added for stable row identity (a CSV
- * column literally named `_dhRowKey` would collide, which no Salesforce/results file produces).
+ * Build rows + column definitions for the generic `DataTable` from a parsed payload view. Column
+ * order matches the view header; a synthetic `_dhRowKey` is added for stable row identity (a column
+ * literally named `_dhRowKey` would collide, which no Salesforce/results file produces).
  *
- * Parsing is capped at `maxRows` (via Papaparse `preview`) so opening the preview on a huge
- * results/input file never blocks the main thread building hundreds of thousands of row objects —
- * the download path reads the full, uncapped file.
+ * Rows are capped at `maxRows` so the preview on a huge payload never blocks the main thread
+ * building hundreds of thousands of row objects — the download path reads the full, uncapped file.
  *
- * Pass `isPartialRead` when `csvText` is only the head of the file (see
- * `DATA_HISTORY_PREVIEW_MAX_BYTES`): the last line is then almost certainly cut mid-row, so it is
+ * Pass `isPartialRead` when the view was parsed from only the head of the file (see
+ * `DATA_HISTORY_PREVIEW_MAX_BYTES`): the last row is then almost certainly cut mid-record, so it is
  * dropped rather than shown as a row with missing values.
  */
-export function parseCsvToTable(
-  csvText: string,
+export function buildTableFromPayloadView(
+  view: DataHistoryPayloadView,
   maxRows: number = DATA_HISTORY_CSV_PREVIEW_MAX_ROWS,
   isPartialRead = false,
 ): DataHistoryTableData {
-  const { data, meta } = parseCsv<Record<string, string>>(csvText, {
-    header: true,
-    skipEmptyLines: true,
-    // Read one extra row so we can detect (and report) truncation without parsing the whole file
-    preview: maxRows + 1,
-  });
-  const fields = meta.fields ?? [];
-  const columns: ColumnWithFilter<DataHistoryTableRow>[] = fields.map((field) => ({
+  const columns: ColumnWithFilter<DataHistoryTableRow>[] = view.header.map((field) => ({
     key: field,
     name: field,
     sortable: true,
     resizable: true,
     getValue: ({ row }) => row[field] ?? '',
   }));
-  const overRowCap = data.length > maxRows;
-  let visibleRows = overRowCap ? data.slice(0, maxRows) : data;
+  const overRowCap = view.rows.length > maxRows;
+  let visibleRows = overRowCap ? view.rows.slice(0, maxRows) : view.rows;
   // A partially-read file ends mid-row; drop that fragment unless the row cap already cut it off
   if (isPartialRead && !overRowCap && visibleRows.length > 0) {
     visibleRows = visibleRows.slice(0, -1);
   }
-  const rows: DataHistoryTableRow[] = visibleRows.map((row, index) => ({ ...row, _dhRowKey: String(index) }));
+  const rows: DataHistoryTableRow[] = flattenPayloadRows(visibleRows, view.header).map((row, index) => {
+    const tableRow: DataHistoryTableRow = { _dhRowKey: String(index) };
+    view.header.forEach((column) => {
+      const value = row[column];
+      tableRow[column] = typeof value === 'string' ? value : String(value);
+    });
+    return tableRow;
+  });
   return { columns, rows, truncated: overRowCap || isPartialRead };
 }
 
@@ -112,27 +147,6 @@ export function getDataHistoryStatusBadgeType(status: DataHistoryStatus): BadgeT
       return 'inverse';
     }
   }
-}
-
-/**
- * Sources no capture surface writes yet, so they are omitted from the filter dropdown — offering a
- * filter that can only ever return the empty state reads as a broken filter. Their labels stay in
- * `DATA_HISTORY_SOURCE_LABELS` so any entry that does carry one still renders a friendly name.
- *
- * `load-custom-metadata`: the Load Records wizard routes custom-metadata objects through
- * `PerformLoadCustomMetadata` (Metadata API deploy, results keyed by fullName rather than by index),
- * which has no history capture wired up. The docs page calls this out explicitly.
- */
-const UNCAPTURED_DATA_HISTORY_SOURCES = new Set<DataHistorySource>(['load-custom-metadata']);
-
-export function getDataHistorySourceListItems(): ListItem[] {
-  return Object.entries(DATA_HISTORY_SOURCE_LABELS)
-    .filter(([value]) => !UNCAPTURED_DATA_HISTORY_SOURCES.has(value as DataHistorySource))
-    .map(([value, label]) => ({ id: value, label, value }));
-}
-
-export function getDataHistoryStatusListItems(): ListItem[] {
-  return Object.entries(DATA_HISTORY_STATUS_LABELS).map(([value, label]) => ({ id: value, label, value }));
 }
 
 export function formatDataHistoryCounts(item: DataHistoryItem): string {
@@ -159,20 +173,57 @@ export function formatDataHistoryDate(date: Maybe<Date>): string {
 }
 
 /**
+ * On-disk folder holding an entry's files, relative to the history root — shown for user-visible
+ * backends (user-chosen folder, desktop native) so entries can be matched to what the user sees in
+ * their file manager. Null for inline/OPFS entries, where the location is browser-internal.
+ */
+export function getDataHistoryEntryFolderPath(item: DataHistoryItem): string | null {
+  if (item.storageBackend === 'opfs' || item.files.length === 0) {
+    return null;
+  }
+  return item.files[0].path.split('/').slice(0, -1).join('/') || null;
+}
+
+/** Label for a payload kind, with a friendlier name for the inline query-grid edit request */
+export function getDataHistoryFileKindLabel(item: DataHistoryItem, kind: DataHistoryFileKind): string {
+  if (isQueryTableEditRequest(item, kind)) {
+    return 'Changes';
+  }
+  return DATA_HISTORY_FILE_KIND_LABELS[kind];
+}
+
+/**
  * The payload kinds that can be viewed/downloaded for an entry — file-backed entries expose their
  * file refs; inline entries always expose request + results (decoded from `inlinePayload`).
  */
 export function getAvailableFileKinds(item: DataHistoryItem): Array<{ kind: DataHistoryFileKind; label: string; bytes?: number }> {
   if (item.files.length > 0) {
-    return item.files.map(({ kind, bytes }) => ({ kind, label: DATA_HISTORY_FILE_KIND_LABELS[kind], bytes }));
+    return item.files.map(({ kind, bytes }) => ({ kind, label: getDataHistoryFileKindLabel(item, kind), bytes }));
   }
   if (item.inlinePayload) {
     return [
-      { kind: 'request', label: DATA_HISTORY_FILE_KIND_LABELS.request },
-      { kind: 'results', label: DATA_HISTORY_FILE_KIND_LABELS.results },
+      { kind: 'request', label: getDataHistoryFileKindLabel(item, 'request') },
+      { kind: 'results', label: getDataHistoryFileKindLabel(item, 'results') },
     ];
   }
   return [];
+}
+
+/**
+ * Downloadable/copyable data choices for an entry. Most payloads are one target per kind; the
+ * inline query-grid edit request splits into Modified Values (re-loadable to re-apply the changes)
+ * and Previous Values (the pre-edit state, for recovery).
+ */
+export function getDataHistoryExportTargets(item: DataHistoryItem): DataHistoryExportTarget[] {
+  return getAvailableFileKinds(item).flatMap<DataHistoryExportTarget>(({ kind, label }) => {
+    if (isQueryTableEditRequest(item, kind)) {
+      return [
+        { kind, viewId: 'edited', label: DATA_HISTORY_EDITED_VIEW_LABEL, slug: 'modified-values' },
+        { kind, viewId: 'prior', label: DATA_HISTORY_PRIOR_VIEW_LABEL, slug: 'previous-values' },
+      ];
+    }
+    return [{ kind, label, slug: kind }];
+  });
 }
 
 /**
@@ -185,37 +236,75 @@ export function getDataHistoryDownloadFileName(item: DataHistoryItem, fileName: 
   return `${item.source}_${objectPart}_${datePart}_${fileName.replace(/\.gz$/, '')}`;
 }
 
-export type DataHistorySortColumn = 'date' | 'org' | 'source' | 'sobjects' | 'status' | 'records';
-
-export interface DataHistorySort {
-  column: DataHistorySortColumn;
-  direction: 'asc' | 'desc';
+export interface DataHistoryConfigDisplayItem {
+  label: string;
+  value: string;
 }
 
-const SORT_VALUE_EXTRACTORS: Record<DataHistorySortColumn, (item: DataHistoryItem) => string | number> = {
-  date: (item) => item.createdAt.getTime(),
-  org: (item) => item.orgLabel.toLocaleLowerCase(),
-  source: (item) => DATA_HISTORY_SOURCE_LABELS[item.source].toLocaleLowerCase(),
-  sobjects: (item) => item.sobjects.join(',').toLocaleLowerCase(),
-  status: (item) => DATA_HISTORY_STATUS_LABELS[item.status].toLocaleLowerCase(),
-  records: (item) => item.counts.total,
-};
+function formatConfigValue(value: unknown): string {
+  if (typeof value === 'boolean') {
+    return value ? 'Yes' : 'No';
+  }
+  if (typeof value === 'number') {
+    return value.toLocaleString();
+  }
+  return String(value);
+}
 
-/** Client-side sort of the (already limited) visible entries — non-mutating */
-export function sortDataHistoryItems(items: DataHistoryItem[], sort: DataHistorySort): DataHistoryItem[] {
-  const getValue = SORT_VALUE_EXTRACTORS[sort.column];
-  const modifier = sort.direction === 'asc' ? 1 : -1;
-  return [...items].sort((itemA, itemB) => {
-    const valueA = getValue(itemA);
-    const valueB = getValue(itemB);
-    if (valueA < valueB) {
-      return -1 * modifier;
-    }
-    if (valueA > valueB) {
-      return 1 * modifier;
-    }
-    return 0;
-  });
+/**
+ * Allowlisted, labeled fields from an entry's raw `config` snapshot for the detail modal. Anything
+ * not listed here is internal bookkeeping (analytics mirrors, header echoes, retry internals) and is
+ * intentionally not displayed — the raw config stays stored on the entry untouched.
+ */
+const CONFIG_DISPLAY_FIELDS: Array<{
+  key: string;
+  label: string;
+  /** Skip the row entirely (e.g. flags that are only interesting when true) */
+  show?: (value: unknown, config: Record<string, unknown>) => boolean;
+  format?: (value: unknown, config: Record<string, unknown>) => string;
+}> = [
+  {
+    key: 'loadType',
+    label: 'Load Type',
+    format: (value) => DATA_HISTORY_OPERATION_LABELS[String(value).toLowerCase() as DataHistoryOperation] ?? String(value),
+  },
+  {
+    key: 'apiMode',
+    label: 'API Mode',
+    format: (value) => (value === 'BULK' ? 'Bulk API' : value === 'BATCH' ? 'Batch API' : String(value)),
+  },
+  { key: 'batchSize', label: 'Batch Size' },
+  { key: 'serialMode', label: 'Serial Mode' },
+  { key: 'insertNulls', label: 'Insert Null Values' },
+  // Only meaningful when a date field was part of the load
+  { key: 'dateFormat', label: 'Date Format', show: (_, config) => config.hasDateFieldMapped !== false },
+  { key: 'trialRun', label: 'Trial Run', show: (value) => value === true },
+  { key: 'trialRunSize', label: 'Trial Run Records', show: (_, config) => config.trialRun === true },
+  { key: 'hasZipAttachment', label: 'Includes ZIP Attachments', show: (value) => value === true },
+  { key: 'isRetry', label: 'Retry of a Previous Load', show: (value) => value === true },
+  { key: 'retryCount', label: 'Retry Attempt', show: (_, config) => config.isRetry === true },
+  { key: 'numGroups', label: 'Record Groups' },
+  {
+    key: 'transformations',
+    label: 'Updated Fields',
+    show: (value) => Array.isArray(value) && value.length > 0,
+    format: (value) =>
+      (value as Array<{ field?: unknown }>)
+        .map(({ field }) => field)
+        .filter(Boolean)
+        .join(', '),
+  },
+];
+
+/** User-friendly rows for the detail modal's Configuration section; empty when nothing is worth showing */
+export function getDataHistoryConfigDisplayItems(item: DataHistoryItem): DataHistoryConfigDisplayItem[] {
+  const config = item.config ?? {};
+  return CONFIG_DISPLAY_FIELDS.filter(({ key, show }) => config[key] != null && (!show || show(config[key], config))).map(
+    ({ key, label, format }) => ({
+      label,
+      value: format ? format(config[key], config) : formatConfigValue(config[key]),
+    }),
+  );
 }
 
 const PREVIEW_MAX_LINES = 200;

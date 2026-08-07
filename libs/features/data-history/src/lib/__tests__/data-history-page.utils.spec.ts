@@ -1,18 +1,27 @@
-import { DataHistoryItem, DataHistorySource, DataHistoryStatus } from '@jetstream/types';
+import { DataHistoryApi, DataHistoryItem, DataHistoryOperation, DataHistorySource, DataHistoryStatus } from '@jetstream/types';
 import { describe, expect, it } from 'vitest';
 import {
   buildDataHistoryPreviewText,
+  buildTableFromPayloadView,
+  DATA_HISTORY_API_LABELS,
+  DATA_HISTORY_OPERATION_LABELS,
   DATA_HISTORY_SOURCE_LABELS,
   DATA_HISTORY_STATUS_LABELS,
   formatDataHistoryCounts,
   formatDataHistorySize,
   getAvailableFileKinds,
+  getDataHistoryConfigDisplayItems,
   getDataHistoryDownloadFileName,
-  getDataHistorySourceListItems,
+  getDataHistoryExportTargets,
   getDataHistoryStatusBadgeType,
-  parseCsvToTable,
-  sortDataHistoryItems,
 } from '../data-history-page.utils';
+import { flattenPayloadRows, parseDataHistoryPayloadViews, parseJsonPayloadToViews } from '../data-history-payload-views';
+
+function parseCsvToTable(csvText: string, maxRows = 5000, isPartialRead = false) {
+  // Preview flow: parse one extra row so truncation is detectable, then cap while building the table
+  const [view] = parseDataHistoryPayloadViews(csvText, 'text/csv', { maxCsvRows: maxRows + 1 });
+  return buildTableFromPayloadView(view, maxRows, isPartialRead);
+}
 
 function buildItem(overrides: Partial<DataHistoryItem> = {}): DataHistoryItem {
   const now = new Date(2026, 6, 19, 13, 5, 0);
@@ -62,17 +71,11 @@ describe('labels and badges', () => {
     });
   });
 
-  it('builds list items from labels', () => {
-    const items = getDataHistorySourceListItems();
-    expect(items[0]).toEqual({ id: 'load-records', label: 'Load Records', value: 'load-records' });
-    items.forEach(({ value, label }) => expect(DATA_HISTORY_SOURCE_LABELS[value as DataHistorySource]).toBe(label));
-  });
-
-  it('omits sources no capture surface writes, so no filter can only ever return the empty state', () => {
-    const values = getDataHistorySourceListItems().map(({ value }) => value);
-    expect(values).not.toContain('load-custom-metadata');
-    // ...but the label is still available for rendering an entry that carries one
-    expect(DATA_HISTORY_SOURCE_LABELS['load-custom-metadata']).toBeTruthy();
+  it('has a label for every api and operation', () => {
+    const apis: DataHistoryApi[] = ['bulk-v1', 'batch-composite', 'composite-graph', 'collections', 'metadata'];
+    apis.forEach((api) => expect(DATA_HISTORY_API_LABELS[api]).toBeTruthy());
+    const operations: DataHistoryOperation[] = ['insert', 'update', 'upsert', 'delete', 'undelete', 'create', 'edit', 'clone', 'mixed'];
+    operations.forEach((operation) => expect(DATA_HISTORY_OPERATION_LABELS[operation]).toBeTruthy());
   });
 });
 
@@ -149,19 +152,140 @@ describe('buildDataHistoryPreviewText', () => {
   });
 });
 
-describe('sortDataHistoryItems', () => {
-  it('sorts by date and label columns in both directions without mutating input', () => {
-    const older = buildItem({ key: 'a', createdAt: new Date(2026, 0, 1), sizeBytes: 50, orgLabel: 'Zeta', sobjects: ['Lead'] });
-    const newer = buildItem({ key: 'b', createdAt: new Date(2026, 5, 1), sizeBytes: 10, orgLabel: 'alpha', sobjects: ['Account'] });
-    const items = [older, newer];
+describe('parseJsonPayloadToViews', () => {
+  it('splits the query-grid edit request into modified and previous views', () => {
+    const views = parseJsonPayloadToViews({
+      header: ['Id', 'Phone'],
+      edited: [{ Id: '001', Phone: '555-5555' }],
+      prior: [{ Id: '001', Phone: '(512) 757-6000' }],
+    });
+    expect(views.map(({ id }) => id)).toEqual(['edited', 'prior']);
+    expect(views[0].label).toBe('Modified Values');
+    expect(views[0].header).toEqual(['Id', 'Phone']);
+    expect(views[0].rows).toEqual([{ Id: '001', Phone: '555-5555' }]);
+    expect(views[1].label).toBe('Previous Values');
+    expect(views[1].rows).toEqual([{ Id: '001', Phone: '(512) 757-6000' }]);
+  });
 
-    expect(sortDataHistoryItems(items, { column: 'date', direction: 'desc' }).map(({ key }) => key)).toEqual(['b', 'a']);
-    expect(sortDataHistoryItems(items, { column: 'date', direction: 'asc' }).map(({ key }) => key)).toEqual(['a', 'b']);
-    // org label sorting is case-insensitive
-    expect(sortDataHistoryItems(items, { column: 'org', direction: 'asc' }).map(({ key }) => key)).toEqual(['b', 'a']);
-    expect(sortDataHistoryItems(items, { column: 'sobjects', direction: 'asc' }).map(({ key }) => key)).toEqual(['b', 'a']);
-    // input untouched
-    expect(items.map(({ key }) => key)).toEqual(['a', 'b']);
+  it('omits the previous-values view when prior data is empty', () => {
+    const views = parseJsonPayloadToViews({ header: ['Id'], edited: [{ Id: '001' }], prior: [] });
+    expect(views.map(({ id }) => id)).toEqual(['edited']);
+  });
+
+  it('builds a single view from an array of flat records with a union header (attributes excluded)', () => {
+    const views = parseJsonPayloadToViews([
+      { attributes: { type: 'Account' }, Id: '001', Name: 'Acme' },
+      { Id: '002', Industry: 'Tech' },
+    ]);
+    expect(views).toHaveLength(1);
+    expect(views[0].header).toEqual(['Id', 'Name', 'Industry']);
+    expect(views[0].rows).toHaveLength(2);
+  });
+
+  it('builds a single-row view from a flat record object', () => {
+    const views = parseJsonPayloadToViews({ Id: '001', Name: 'Acme' });
+    expect(views).toHaveLength(1);
+    expect(views[0].rows).toEqual([{ Id: '001', Name: 'Acme' }]);
+  });
+
+  it('returns nothing for nested or non-tabular payloads', () => {
+    // Multi-object request groups hold nested data — a table of JSON blobs reads worse than JSON
+    expect(parseJsonPayloadToViews([{ groupId: 'g1', data: [{ Id: '001' }] }])).toEqual([]);
+    // Error envelopes and single-field objects read better as JSON
+    expect(parseJsonPayloadToViews({ error: 'It broke' })).toEqual([]);
+    expect(parseJsonPayloadToViews('not an object')).toEqual([]);
+    expect(parseJsonPayloadToViews([])).toEqual([]);
+  });
+});
+
+describe('flattenPayloadRows', () => {
+  it('emits header columns in order, JSON-stringifies nested values, and blanks null/undefined', () => {
+    const rows = flattenPayloadRows([{ b: { nested: true }, a: 1, c: null }], ['a', 'b', 'c', 'd']);
+    expect(rows).toEqual([{ a: 1, b: '{"nested":true}', c: '', d: '' }]);
+  });
+});
+
+describe('getDataHistoryExportTargets', () => {
+  it('returns one target per kind for normal entries', () => {
+    const item = buildItem({
+      files: [
+        { kind: 'input', path: 'o/e/input.csv.gz', fileName: 'input.csv.gz', contentType: 'text/csv', compressed: true, bytes: 10 },
+        { kind: 'results', path: 'o/e/results.csv.gz', fileName: 'results.csv.gz', contentType: 'text/csv', compressed: true, bytes: 20 },
+      ],
+    });
+    expect(getDataHistoryExportTargets(item)).toEqual([
+      { kind: 'input', label: 'Input Data', slug: 'input' },
+      { kind: 'results', label: 'Output Data', slug: 'results' },
+    ]);
+  });
+
+  it('splits the query-grid edit request into modified and previous targets', () => {
+    const item = buildItem({ source: 'query-table-edit', inlinePayload: new Uint8Array([1]) });
+    expect(getDataHistoryExportTargets(item)).toEqual([
+      { kind: 'request', viewId: 'edited', label: 'Modified Values', slug: 'modified-values' },
+      { kind: 'request', viewId: 'prior', label: 'Previous Values', slug: 'previous-values' },
+      { kind: 'results', label: 'Output Data', slug: 'results' },
+    ]);
+  });
+});
+
+describe('getDataHistoryConfigDisplayItems', () => {
+  it('labels known load-records config fields and hides internal ones', () => {
+    const item = buildItem({
+      config: {
+        loadType: 'UPDATE',
+        apiMode: 'BULK',
+        numRecords: 1,
+        batchSize: 10000,
+        insertNulls: false,
+        serialMode: false,
+        hasDateFieldMapped: false,
+        dateFormat: 'MM/DD/YYYY',
+        trialRun: false,
+        trialRunSize: 1,
+        hasZipAttachment: false,
+        timesSameDataSubmitted: 1,
+        numStaticFields: 0,
+      },
+    });
+    expect(getDataHistoryConfigDisplayItems(item)).toEqual([
+      { label: 'Load Type', value: 'Update' },
+      { label: 'API Mode', value: 'Bulk API' },
+      { label: 'Batch Size', value: '10,000' },
+      { label: 'Serial Mode', value: 'No' },
+      { label: 'Insert Null Values', value: 'No' },
+    ]);
+  });
+
+  it('shows the date format only when a date field was mapped', () => {
+    const item = buildItem({ config: { hasDateFieldMapped: true, dateFormat: 'MM/DD/YYYY' } });
+    expect(getDataHistoryConfigDisplayItems(item)).toEqual([{ label: 'Date Format', value: 'MM/DD/YYYY' }]);
+  });
+
+  it('summarizes mass-update transformations as the list of updated fields', () => {
+    const item = buildItem({
+      source: 'mass-update',
+      config: {
+        serialMode: true,
+        batchSize: 5000,
+        numRecords: 7,
+        transformations: [
+          { field: 'Phone', option: 'staticValue', criteria: 'all' },
+          { field: 'Fax', option: 'anotherField', criteria: 'onlyIfBlankOrNull' },
+        ],
+      },
+    });
+    expect(getDataHistoryConfigDisplayItems(item)).toEqual([
+      { label: 'Batch Size', value: '5,000' },
+      { label: 'Serial Mode', value: 'Yes' },
+      { label: 'Updated Fields', value: 'Phone, Fax' },
+    ]);
+  });
+
+  it('returns nothing for configs with no user-meaningful fields', () => {
+    // query-table-edit config only echoes numRecords + header, neither of which is worth a row
+    expect(getDataHistoryConfigDisplayItems(buildItem({ config: { numRecords: 7, header: ['Id', 'Phone'] } }))).toEqual([]);
+    expect(getDataHistoryConfigDisplayItems(buildItem({ config: {} }))).toEqual([]);
   });
 });
 
