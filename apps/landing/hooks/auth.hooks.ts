@@ -133,10 +133,10 @@ export function useOtpEnrollment(isLoadingInitial = true) {
       });
   }, [router]);
 
-  const submitEnrollmentData = useCallback(async (csrfToken: string, secretToken: string, code: string) => {
+  const submitEnrollmentData = useCallback(async (csrfToken: string, code: string) => {
     const response = await fetch(ROUTES.AUTH.api_otp_enroll, {
       method: 'POST',
-      body: new URLSearchParams({ csrfToken, secretToken, code }).toString(),
+      body: new URLSearchParams({ csrfToken, code }).toString(),
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         Accept: 'application/json',
