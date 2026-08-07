@@ -1,3 +1,4 @@
+/// <reference types="chrome" />
 /**
  * Local platform detection, mirroring the pattern in `libs/shared/ui-db/src/lib/ui-db.ts` —
  * intentionally NOT imported from `@jetstream/shared/ui-utils` to keep this lib's import graph

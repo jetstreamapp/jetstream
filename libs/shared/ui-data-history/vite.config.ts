@@ -12,7 +12,7 @@ export default defineConfig(() => ({
     globals: true,
     environment: 'jsdom',
     // Order matters — see the comment in test-setup-indexeddb.ts
-    setupFiles: ['src/test-setup-indexeddb.ts', 'src/test-setup.ts'],
+    setupFiles: ['../../test-utils/src/test-setup-indexeddb.ts', 'src/test-setup.ts'],
     include: ['{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     reporters: ['default'],
     passWithNoTests: true,

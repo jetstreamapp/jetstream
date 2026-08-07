@@ -1,4 +1,3 @@
-import 'fake-indexeddb/auto';
 import { Blob as NodeBlob } from 'node:buffer';
 
 import { SalesforceOrgUi } from '@jetstream/types';
@@ -9,10 +8,12 @@ import {
   setHistoryFileStoreForTests,
   startDataHistoryEntry,
 } from '@jetstream/ui/data-history';
-import { dataHistoryDb, dexieDb } from '@jetstream/ui/db';
+import { dataHistoryDb, getDexieDb } from '@jetstream/ui/db';
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { finalizeMultiObjectHistory, getMultiObjectDistinctSobjects, getMultiObjectOperations } from '../data-history-capture';
 import { LoadMultiObjectRequestWithResult } from '../load-records-multi-object-types';
+
+const SPEC_USER_ID = 'spec-user-id';
 
 // jsdom's Blob does not interoperate with Node's CompressionStream (cross-realm web streams).
 globalThis.Blob = NodeBlob as unknown as typeof Blob;
@@ -85,12 +86,12 @@ describe('multi-object derivation helpers', () => {
 
 describe('multi-object Data History capture wiring', () => {
   beforeAll(async () => {
-    await initDataHistory({ hasPaidPlan: true });
+    await initDataHistory({ userId: SPEC_USER_ID, hasPaidPlan: true });
   });
 
   beforeEach(async () => {
-    await dexieDb.data_history.clear();
-    await dexieDb.data_history_config.clear();
+    await getDexieDb().data_history.clear();
+    await getDexieDb().data_history_config.clear();
     setHistoryFileStoreForTests(new FakeFileStore());
   });
 

@@ -1,11 +1,11 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "../../../dist/out-tsc",
+    "outDir": "../../../dist/out-tsc/libs/shared/ui-data-history",
     "declaration": true,
     "types": ["node", "google.accounts", "google.picker", "gapi.auth2"]
   },
-  "include": ["src/**/*.ts", "../../../custom-typings/index.d.ts"],
+  "include": ["src/**/*.ts", "../../../custom-typings/index.d.ts", "../../../custom-typings/electron.d.ts"],
   "exclude": [
     "src/test-setup.ts",
     "src/**/*.spec.ts",
@@ -20,5 +20,22 @@
     "src/**/*.spec.js",
     "src/**/*.test.jsx",
     "src/**/*.spec.jsx"
+  ],
+  "references": [
+    {
+      "path": "../../desktop-types/tsconfig.lib.json"
+    },
+    {
+      "path": "../utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../client-logger/tsconfig.lib.json"
+    },
+    {
+      "path": "../ui-db/tsconfig.lib.json"
+    },
+    {
+      "path": "../../types/tsconfig.lib.json"
+    }
   ]
 }

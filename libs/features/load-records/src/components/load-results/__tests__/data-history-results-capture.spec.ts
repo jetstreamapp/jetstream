@@ -1,4 +1,3 @@
-import 'fake-indexeddb/auto';
 import { Blob as NodeBlob } from 'node:buffer';
 
 import { buildBulkResultRow } from '@jetstream/shared/utils';
@@ -10,7 +9,7 @@ import {
   setHistoryFileStoreForTests,
   startDataHistoryEntry,
 } from '@jetstream/ui/data-history';
-import { dataHistoryDb, dexieDb } from '@jetstream/ui/db';
+import { dataHistoryDb, getDexieDb } from '@jetstream/ui/db';
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
   alignBatchSourceRecordsToResults,
@@ -18,6 +17,8 @@ import {
   getCompletedBatchSourceRecords,
   getLoadResultsHeader,
 } from '../load-results-utils';
+
+const SPEC_USER_ID = 'spec-user-id';
 
 // jsdom's Blob does not interoperate with Node's CompressionStream (cross-realm web streams);
 // Node's Blob shares a realm with the stream globals the capture code uses.
@@ -32,12 +33,12 @@ const org = { uniqueId: 'org-unique-id-1', label: 'My Dev Org' } as SalesforceOr
  */
 describe('Load Records Data History capture wiring', () => {
   beforeAll(async () => {
-    await initDataHistory({ hasPaidPlan: true });
+    await initDataHistory({ userId: SPEC_USER_ID, hasPaidPlan: true });
   });
 
   beforeEach(async () => {
-    await dexieDb.data_history.clear();
-    await dexieDb.data_history_config.clear();
+    await getDexieDb().data_history.clear();
+    await getDexieDb().data_history_config.clear();
     setHistoryFileStoreForTests(new FakeFileStore());
   });
 

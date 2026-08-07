@@ -1,12 +1,13 @@
-import 'fake-indexeddb/auto';
 import { Blob as NodeBlob } from 'node:buffer';
 
 import { BulkJobResultRecord, BulkJobWithBatches, SalesforceOrgUi } from '@jetstream/types';
 import { FakeFileStore, initDataHistory, readDataHistoryFile, setHistoryFileStoreForTests } from '@jetstream/ui/data-history';
-import { dataHistoryDb, dexieDb } from '@jetstream/ui/db';
+import { dataHistoryDb, getDexieDb } from '@jetstream/ui/db';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { captureMassUpdateResults, startMassUpdateHistory } from '../data-history-capture';
 import { MetadataRowConfiguration } from '../mass-update-records.types';
+
+const SPEC_USER_ID = 'spec-user-id';
 
 // vitest hoists vi.hoisted + vi.mock above these imports at transform time, so `@jetstream/shared/data`
 // is mocked before the module under test resolves it (the textual order below is only for the linter).
@@ -31,12 +32,12 @@ async function getFinishedEntry(key: string) {
 
 describe('mass-update Data History capture wiring', () => {
   beforeAll(async () => {
-    await initDataHistory({ hasPaidPlan: true });
+    await initDataHistory({ userId: SPEC_USER_ID, hasPaidPlan: true });
   });
 
   beforeEach(async () => {
-    await dexieDb.data_history.clear();
-    await dexieDb.data_history_config.clear();
+    await getDexieDb().data_history.clear();
+    await getDexieDb().data_history_config.clear();
     setHistoryFileStoreForTests(new FakeFileStore());
     bulkApiGetRecordsMock.mockReset();
   });
