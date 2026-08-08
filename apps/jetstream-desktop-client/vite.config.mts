@@ -13,7 +13,7 @@ export default defineConfig(() => ({
     port: 4201,
     host: 'localhost',
     fs: {
-      allow: ['..'],
+      allow: ['../../'],
     },
     proxy: {},
   },

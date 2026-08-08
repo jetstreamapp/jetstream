@@ -27,6 +27,9 @@
   ],
   "references": [
     {
+      "path": "../../shared/ui-data-history/tsconfig.lib.json"
+    },
+    {
       "path": "../../shared/utils/tsconfig.lib.json"
     },
     {

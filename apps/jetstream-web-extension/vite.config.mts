@@ -21,7 +21,11 @@ export default defineConfig(({ mode }) => {
     cacheDir: '../../node_modules/.vite/apps/jetstream-web-extension',
     envPrefix: 'NX',
     base: '',
-
+    server: {
+      fs: {
+        allow: ['../../'],
+      },
+    },
     plugins: [
       environmentReplacementPlugin(mode),
       react({

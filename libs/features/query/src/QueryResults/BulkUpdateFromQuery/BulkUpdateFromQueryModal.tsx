@@ -26,6 +26,7 @@ import {
   MassUpdateRecordsDeploymentRow,
   MassUpdateRecordsObjectRow,
   MetadataRowConfiguration,
+  SkipDataHistoryCheckbox,
   useDeployRecords,
 } from '@jetstream/ui-core';
 import { composeQuery, Query } from '@jetstreamapp/soql-parser-js';
@@ -101,6 +102,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
   const [batchSize, setBatchSize] = useState<Maybe<number>>(10000);
   const [batchSizeError, setBatchSizeError] = useState<string | null>(null);
   const [serialMode, setSerialMode] = useState(false);
+  const [skipDataHistory, setSkipDataHistory] = useState(false);
   const [deployResults, setDeployResults] = useAtom(deployResultsState);
   const [didDeploy, setDidDeploy] = useState(false);
   const resetDeployResults = useResetAtom(deployResultsState);
@@ -302,6 +304,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
         batchSize: batchSize ?? 10000,
         serialMode,
         configuration: selectedConfig,
+        skipHistory: skipDataHistory,
       });
       pollResultsUntilDone(getDeploymentResults);
     } catch (ex) {
@@ -544,6 +547,13 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
                 onChange={handleBatchSize}
               />
             </Input>
+            <SkipDataHistoryCheckbox
+              operation="update"
+              className="slds-m-top_x-small"
+              checked={skipDataHistory}
+              disabled={loading || deployInProgress}
+              onChange={setSkipDataHistory}
+            />
           </Section>
         )}
 

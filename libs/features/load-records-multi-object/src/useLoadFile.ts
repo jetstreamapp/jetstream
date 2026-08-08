@@ -181,7 +181,7 @@ export const useLoadFile = (org: SalesforceOrgUi, serverUrl: string, apiVersion:
     [org, apiVersion],
   );
 
-  return { loadFile, reset, loading, data };
+  return { loadFile, reset, loading, data, finished };
 };
 
 export default useLoadFile;

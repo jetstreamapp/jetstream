@@ -1,0 +1,8 @@
+{
+  "name": "features-data-history",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/features/data-history/src",
+  "projectType": "library",
+  "tags": ["scope:browser"],
+  "targets": {}
+}

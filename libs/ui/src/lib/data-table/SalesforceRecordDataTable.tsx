@@ -33,6 +33,7 @@ import { PopoverErrorButton } from '../popover/PopoverErrorButton';
 import { fireToast } from '../toast/AppToast';
 import Spinner from '../widgets/Spinner';
 import { DataTableSubqueryContext } from './data-table-context';
+import { RecordsSaveCaptureInfo, buildEditedRecordsExport, buildPriorRecordsExport } from './data-table-history-export';
 import { applyPasteCellsToRows, revertCellsInRows } from './data-table-paste-utils';
 import {
   ColumnWithFilter,
@@ -151,6 +152,12 @@ export interface SalesforceRecordDataTableProps {
   onGetAsApex: (record: any) => void;
   onSavedRecords: (results: { recordCount: number; failureCount: number }) => void;
   onReloadQuery: () => void;
+  /**
+   * Fired after a successful save with Data-History-ready snapshots (edited/prior values + results),
+   * captured BEFORE the save mutates each row's `_record` in place. Optional so `libs/ui` stays free of
+   * the data-history service — the host wires this to the capture layer.
+   */
+  onRecordsSaveCapture?: (info: RecordsSaveCaptureInfo) => void;
   /** Amplitude tracker (from the host's `useAmplitude`). Optional — defaults to a no-op. */
   trackEvent?: (key: string, value?: Record<string, any>) => void;
 }
@@ -185,6 +192,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
     onGetAsApex,
     onSavedRecords,
     onReloadQuery,
+    onRecordsSaveCapture,
     trackEvent = () => undefined,
   }: SalesforceRecordDataTableProps) => {
     const isMounted = useRef(true);
@@ -594,6 +602,21 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
         });
         setLastSaveResults(results);
 
+        // Snapshot the edited/prior values for Data History BEFORE the newRows mapping below mutates each
+        // row's `_record` in place (which would make a later diff drop every field). Built via the shared
+        // export builders so the history payload matches the "Download Changes"/"Download Results" files.
+        // Isolated in its own try/catch: the records are already saved in Salesforce, so a capture failure
+        // must never reach the outer catch (which would leave rows dirty and invite a duplicate save).
+        try {
+          onRecordsSaveCapture?.({
+            editedRecords: buildEditedRecordsExport(dirtyRows),
+            priorRecords: buildPriorRecordsExport(dirtyRows),
+            results,
+          });
+        } catch (ex) {
+          logger.warn('Error capturing saved records for data history', ex);
+        }
+
         const failedResultsById = results.reduce<Record<string, ErrorResult>>((acc, result, i) => {
           if (!result.success) {
             const id = result.id || getIdFromRecordUrl(dirtyRows[i]._record.attributes.url);
@@ -642,6 +665,18 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
       } catch (ex) {
         // This happens if exception thrown, normal behavior is to get records with result success/error
         logger.warn('Error saving records', ex);
+        // A thrown save (network error, expired session, timeout) still gets captured to Data
+        // History — a timed-out request may even have applied server-side, so "no record of the
+        // attempt" is the worst outcome. Same isolation as the success-path capture above.
+        try {
+          onRecordsSaveCapture?.({
+            editedRecords: buildEditedRecordsExport(dirtyRows),
+            priorRecords: buildPriorRecordsExport(dirtyRows),
+            errorMessage: getErrorMessage(ex) || 'The save request failed',
+          });
+        } catch (captureEx) {
+          logger.warn('Error capturing failed save for data history', captureEx);
+        }
         fireToast({
           message: `There was a problem saving your records. ${getErrorMessage(ex) || ''}`,
           type: 'error',

@@ -10,6 +10,7 @@ export * from './lib/color-picker/ColorSwatches';
 export * from './lib/confirmation-dialog/ConfirmationDialog';
 export * from './lib/data-table/data-table-context';
 export * from './lib/data-table/data-table-formatters';
+export * from './lib/data-table/data-table-history-export';
 export type { ColumnWithFilter, ContextAction, ContextMenuActionData, DataTableRef, RowWithKey } from './lib/data-table/data-table-types';
 export {
   TABLE_CONTEXT_MENU_ITEMS,

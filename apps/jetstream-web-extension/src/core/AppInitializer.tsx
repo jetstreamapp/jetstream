@@ -11,7 +11,7 @@ import {
 import { getDefaultAppState, getErrorMessage } from '@jetstream/shared/utils';
 import { JetstreamEventSaveSoqlQueryFormatOptionsPayload, UserProfileUi } from '@jetstream/types';
 import { ScopedNotification } from '@jetstream/ui';
-import { AppLoading, fromJetstreamEvents } from '@jetstream/ui-core';
+import { AppLoading, fromJetstreamEvents, useInitDataHistory } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { clearLocalStorageScope, ensureLocalStorageReady, initDexieDb, isDifferentUserThanPageSession } from '@jetstream/ui/db';
 import { useObservable } from 'dexie-react-hooks';
@@ -53,6 +53,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
   const { serverUrl } = useAtomValue(fromAppState.applicationCookieState);
   const setAppInfo = useSetAtom(fromAppState.appInfoState);
   const setUserProfile = useSetAtom(fromAppState.userProfileState);
+  const initDataHistoryAndSeedState = useInitDataHistory();
 
   const setSelectedOrgId = useSetAtom(fromAppState.selectedOrgIdState);
   const setSalesforceOrgs = useSetAtom(fromAppState.salesforceOrgsState);
@@ -129,10 +130,20 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
     } else {
       disconnectSocket();
     }
-    initDexieDb({ userId: chromeUserProfile.id, dbName: LOCAL_STORE_DB_NAME, recordSyncEnabled }).catch((ex) => {
-      logger.error('[DB] Error initializing db', ex);
-    });
-  }, [authTokens?.accessToken, extIdentifier?.id, chromeUserProfile?.id, isDifferentUser, options.recordSyncEnabled, serverUrl]);
+    initDexieDb({ userId: chromeUserProfile.id, dbName: LOCAL_STORE_DB_NAME, recordSyncEnabled })
+      .then(() => initDataHistoryAndSeedState({ userId: chromeUserProfile.id }))
+      .catch((ex) => {
+        logger.error('[DB] Error initializing db', ex);
+      });
+  }, [
+    authTokens?.accessToken,
+    extIdentifier?.id,
+    chromeUserProfile?.id,
+    isDifferentUser,
+    options.recordSyncEnabled,
+    serverUrl,
+    initDataHistoryAndSeedState,
+  ]);
 
   // Ensure user access token is valid
   useEffect(() => {

@@ -197,13 +197,13 @@ export function initializeDexieSync(name: string) {
 
       try {
         // Initial sync for application start
-        await pushAndPullAllRecords(baseRevision, changes, applyRemoteChanges, onChangesAccepted);
+        await pushAndPullAllRecords(baseRevision, changes, applyRemoteChanges, onChangesAccepted, true);
 
         // Ongoing sync
         onSuccess({
           async react(changes, baseRevision, partial, onChangesAccepted) {
             try {
-              await pushAndPullAllRecords(baseRevision, changes, applyRemoteChanges, onChangesAccepted);
+              await pushAndPullAllRecords(baseRevision, changes, applyRemoteChanges, onChangesAccepted, false);
               retryCount = 0; // Reset retry count on success
             } catch (ex) {
               // Without this catch, server-side rejections (e.g. unique-key conflicts from /api/data-sync/push)
@@ -236,22 +236,38 @@ async function pushAndPullAllRecords(
   changes: IDatabaseChange[],
   applyRemoteChanges: ApplyRemoteChangesFunction,
   onChangesAccepted: () => void,
+  isInitialSync: boolean,
 ) {
-  if (changes.length === 0) {
+  // dexie-observable reports changes for ALL tables, including local-only ones (data_history,
+  // analysis_job_history, ...). Only syncable-table changes belong on the server.
+  const syncableChanges = changes.filter(({ table }) => SyncableEntities.has(table as keyof typeof SyncableTables));
+
+  if (syncableChanges.length === 0) {
+    // Nothing to push. During ongoing (react) sync, a batch of purely local-only changes is
+    // acknowledged WITHOUT any network call — otherwise every local write (e.g. every data_history
+    // update) would trigger a wasteful empty POST to /api/data-sync/push, and live remote changes
+    // still arrive over the RECORD_SYNC socket. On the initial/reconnect sync we must still PULL so
+    // the device catches up on changes other sessions made while it was disconnected; skipping the
+    // network there would defer that catch-up until the next syncable write.
+    if (!isInitialSync && changes.length > 0) {
+      onChangesAccepted();
+      return;
+    }
     /**
      * Pull all changes from server based on syncedRevision
      */
     const response = await dataSyncPullAll({ updatedAt: syncedRevision });
     onChangesAccepted();
     await handleServerSyncResponse(response, applyRemoteChanges);
-  } else {
-    /**
-     * Push all changes to server based on revision
-     * this also includes all changes from server based on syncedRevision
-     */
-    const pushResponse = await sendChangesToServer(changes, syncedRevision, onChangesAccepted);
-    await handleServerSyncResponse(pushResponse, applyRemoteChanges);
+    return;
   }
+
+  /**
+   * Push all changes to server based on revision
+   * this also includes all changes from server based on syncedRevision
+   */
+  const pushResponse = await sendChangesToServer(syncableChanges, syncedRevision, onChangesAccepted);
+  await handleServerSyncResponse(pushResponse, applyRemoteChanges);
 }
 
 /**

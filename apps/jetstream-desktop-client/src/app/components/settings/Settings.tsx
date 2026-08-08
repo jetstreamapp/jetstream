@@ -6,7 +6,7 @@ import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { isEscapeKey, useGlobalEventHandler, useTitle } from '@jetstream/shared/ui-utils';
 import { SoqlQueryFormatOptions, SoqlQueryFormatOptionsSchema } from '@jetstream/types';
 import { AutoFullHeightContainer, CheckboxToggle, Grid, Icon, Input, Page, Spinner, fireToast } from '@jetstream/ui';
-import { SoqlQueryFormatConfig, useAmplitude } from '@jetstream/ui-core';
+import { DataHistorySettingsSection, SoqlQueryFormatConfig, useAmplitude } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { dexieDataSync, recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
@@ -291,6 +291,8 @@ export const Settings = () => {
                 Reset your list of recent objects. This will clear the list of objects you have recently viewed in Jetstream.
               </p>
             </div>
+
+            <DataHistorySettingsSection />
 
             <div className="slds-m-top_large">
               <h2 className="slds-text-heading_medium slds-m-vertical_small">Logging</h2>

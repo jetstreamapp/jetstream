@@ -28,6 +28,7 @@ import {
   getMaxBatchSize,
   getRecommendedApiMode,
   useAmplitude,
+  ViewDataHistoryLink,
 } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState, selectedOrgType } from '@jetstream/ui/app-state';
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
@@ -518,7 +519,10 @@ export const LoadRecords = () => {
               min-height: 19px;
             `}
           >
-            {loadSummaryText}
+            <Grid verticalAlign="center">
+              {loadSummaryText && <span className="slds-m-right_xx-small">{loadSummaryText} •</span>}
+              <ViewDataHistoryLink />
+            </Grid>
           </div>
         </PageHeaderRow>
       </PageHeader>

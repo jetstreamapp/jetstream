@@ -4,7 +4,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { describeSObject, sobjectOperation } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { filterCreateSobjects, isErrorResponse, useNonInitialEffect, tracker } from '@jetstream/shared/ui-utils';
+import { filterCreateSobjects, isErrorResponse, tracker, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import {
@@ -31,6 +31,7 @@ import {
 import { RequireMetadataApiBanner, useAmplitude } from '@jetstream/ui-core';
 import { EditFromErrors, handleEditFormErrorResponse, transformEditForm, validateEditForm } from '@jetstream/ui-core/shared';
 import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
+import { recordDataHistoryAction, RecordDataHistoryActionOptions } from '@jetstream/ui/data-history';
 import { useAtomValue } from 'jotai';
 import { useEffect, useRef, useState } from 'react';
 import { LastCreatedRecord } from './LastCreatedRecord';
@@ -206,22 +207,66 @@ export const CreateRecords = () => {
 
     setSaving(true);
 
+    // Base Data History payload shared by the success and thrown-error paths below
+    const historyBase = {
+      org: selectedOrg,
+      source: 'create-record',
+      operation: 'create',
+      api: 'collections',
+      sobjects: [selectedObject.name],
+      request: record,
+    } satisfies Pick<RecordDataHistoryActionOptions, 'org' | 'source' | 'operation' | 'api' | 'sobjects' | 'request'>;
+
     try {
       const recordResponse: RecordResult = (await sobjectOperation(selectedOrg, selectedObject.name, 'create', { records: [record] }))[0];
+      const isErrorResult = isErrorResponse(recordResponse);
+      let retrievedRecord: SalesforceRecord | undefined;
 
       if (isMounted.current) {
-        if (isErrorResponse(recordResponse)) {
+        if (isErrorResult) {
           setFormErrors(handleEditFormErrorResponse(recordResponse));
         } else {
-          const retrievedRecord = (await sobjectOperation(selectedOrg, selectedObject.name, 'retrieve', { ids: [recordResponse.id] }))[0];
-          setCreatedRecord({ id: recordResponse.id, sobject: selectedObject.name, record: retrievedRecord });
+          // The record WAS created at this point — a failure re-fetching it for display must not fall
+          // through to the outer catch (which reports the create itself as failed) or skip history capture.
+          try {
+            retrievedRecord = (await sobjectOperation(selectedOrg, selectedObject.name, 'retrieve', { ids: [recordResponse.id] }))[0];
+            setCreatedRecord({ id: recordResponse.id, sobject: selectedObject.name, record: retrievedRecord });
+          } catch (ex) {
+            logger.warn('Record was created but could not be re-fetched', ex);
+            if (isMounted.current) {
+              setFormErrors({
+                hasErrors: true,
+                fieldErrors: {},
+                generalErrors: [`Your record was created (${recordResponse.id}), but it could not be reloaded for display.`],
+              });
+            }
+          }
         }
       }
+
+      // Record the create to Data History (success OR error). Fire-and-forget + self-gating; the results
+      // payload includes the re-fetched full record on success. Small single-record payload -> stored inline.
+      void recordDataHistoryAction({
+        ...historyBase,
+        results: { result: recordResponse, record: retrievedRecord },
+        counts: { total: 1, success: isErrorResult ? 0 : 1, failure: isErrorResult ? 1 : 0 },
+        status: isErrorResult ? 'failed' : 'success',
+      });
+
       trackEvent(ANALYTICS_KEYS.create_record_save, { success: true });
     } catch (ex) {
       if (isMounted.current) {
         setFormErrors({ hasErrors: true, fieldErrors: {}, generalErrors: [getErrorMessage(ex) || 'An unknown problem has occurred.'] });
       }
+      // A THROWN create (network error, expired session) is still recorded — the request may even
+      // have applied server-side (e.g. a timeout). Graceful error results are captured above.
+      void recordDataHistoryAction({
+        ...historyBase,
+        results: { error: getErrorMessage(ex) },
+        counts: { total: 1, success: 0, failure: 1 },
+        status: 'failed',
+        errorMessage: getErrorMessage(ex),
+      });
       trackEvent(ANALYTICS_KEYS.create_record_save, { success: false });
     }
     if (isMounted.current) {

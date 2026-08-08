@@ -28,6 +28,12 @@ import { desktopRoutes } from '../controllers/desktop.routes';
 import { getOrgFromHeaderOrQuery, initApiConnection } from '../utils/route.utils';
 import { openExternalSafe } from '../utils/url.utils';
 import { AuthResponseSuccess, logout, verifyAuthToken } from './api.service';
+import {
+  abortDataHistoryStreamsForSender,
+  getDataHistoryFolderPath,
+  handleDataHistoryOp,
+  setDataHistoryFolderPath,
+} from './data-history-file.service';
 import { deepLink } from './deep-link.service';
 import { downloadAndZipFilesToDisk, downloadBulkApiFileAndSaveToDisk } from './file-download.service';
 import * as dataService from './persistence.service';
@@ -61,7 +67,6 @@ const pendingDeepLinkFlows = new Map<string, () => void>();
 function startDeepLinkFlow(action: string, handleCallback: (params: Record<string, string>) => Promise<void>) {
   pendingDeepLinkFlows.get(action)?.();
 
-  let timeout: ReturnType<typeof setTimeout> | undefined;
   let disposeListener: () => void = () => undefined;
 
   const cancel = () => {
@@ -76,9 +81,58 @@ function startDeepLinkFlow(action: string, handleCallback: (params: Record<strin
   disposeListener = deepLink.once(action, (params) => {
     handleCallback(params).finally(cancel);
   });
-  timeout = setTimeout(cancel, DEEP_LINK_FLOW_TIMEOUT_MS);
+  // Declared after `cancel` (which clears it) — safe because `cancel` only ever runs from an async
+  // path: this timer, or the deep-link callback's `.finally`, which is never synchronous.
+  const timeout = setTimeout(cancel, DEEP_LINK_FLOW_TIMEOUT_MS);
   pendingDeepLinkFlows.set(action, cancel);
 }
+
+/** webContents ids that already have the stream-cleanup listeners bound (see below) */
+const dataHistoryStreamOwners = new Set<number>();
+
+/**
+ * A renderer that reloads or closes while a history capture is streaming never sends
+ * `stream-close`/`stream-abort`, so its main-process write streams would stay open for the life of
+ * the app — leaking file handles and permanently blocking "Change Folder". Bind teardown once per
+ * webContents. `did-navigate` fires only for real document navigations (SPA routing emits
+ * `did-navigate-in-page` instead), so in-app navigation never cancels an in-flight capture.
+ */
+function registerDataHistoryStreamCleanup(sender: Electron.WebContents): void {
+  if (dataHistoryStreamOwners.has(sender.id)) {
+    return;
+  }
+  dataHistoryStreamOwners.add(sender.id);
+  const abortStreams = () => void abortDataHistoryStreamsForSender(sender.id);
+  sender.on('did-navigate', abortStreams);
+  sender.once('destroyed', () => {
+    dataHistoryStreamOwners.delete(sender.id);
+    abortStreams();
+  });
+}
+
+const handleDataHistoryRequest: MainIpcHandler<'dataHistoryRequest'> = async (event, payload) => {
+  registerDataHistoryStreamCleanup(event.sender);
+  return await handleDataHistoryOp(payload, { senderId: event.sender.id });
+};
+
+const handleGetDataHistoryFolder: MainIpcHandler<'getDataHistoryFolder'> = async () => {
+  return getDataHistoryFolderPath();
+};
+
+const handlePickDataHistoryFolder: MainIpcHandler<'pickDataHistoryFolder'> = async () => {
+  // The chosen path deliberately never transits the renderer: the dialog is shown AND applied here
+  // in the main process, so a compromised renderer cannot silently redirect all history (existing
+  // and future Salesforce data) to a path it chose — only a real user gesture in the OS dialog can.
+  const result = await dialog.showOpenDialog({
+    buttonLabel: 'Select Folder',
+    defaultPath: app.getPath('downloads'),
+    properties: ['openDirectory', 'createDirectory'],
+  });
+  if (result.canceled) {
+    return null;
+  }
+  return await setDataHistoryFolderPath(result.filePaths[0]);
+};
 
 const handleOpenFile: MainIpcHandler<'openFile'> = async (_event, filePath: string): Promise<void> => {
   try {
@@ -122,6 +176,10 @@ export function registerIpc(): void {
   // Handle file operations
   registerHandler('openFile', handleOpenFile);
   registerHandler('showFileInFolder', handleShowFileInFolder);
+  // Handle native Data History storage
+  registerHandler('dataHistoryRequest', handleDataHistoryRequest);
+  registerHandler('getDataHistoryFolder', handleGetDataHistoryFolder);
+  registerHandler('pickDataHistoryFolder', handlePickDataHistoryFolder);
   // Handle auto-update requests
   registerHandler('checkForUpdates', handleCheckForUpdatesEvent);
   registerHandler('getUpdateStatus', handleGetUpdateStatusEvent);

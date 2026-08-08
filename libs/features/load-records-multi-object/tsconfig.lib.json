@@ -32,6 +32,12 @@
       "path": "../../shared/client-logger/tsconfig.lib.json"
     },
     {
+      "path": "../../shared/ui-db/tsconfig.lib.json"
+    },
+    {
+      "path": "../../shared/ui-data-history/tsconfig.lib.json"
+    },
+    {
       "path": "../../shared/ui-app-state/tsconfig.lib.json"
     },
     {
