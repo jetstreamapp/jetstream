@@ -4,7 +4,9 @@
     "allowJs": true,
     "outDir": "../../dist/out-tsc/apps/jetstream-e2e",
     "module": "commonjs",
-    "sourceMap": false
+    "sourceMap": false,
+    "types": [],
+    "ignoreDeprecations": "6.0"
   },
   "include": [
     "**/*.ts",

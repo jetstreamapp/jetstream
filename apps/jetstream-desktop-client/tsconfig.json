@@ -14,7 +14,8 @@
     "strictNullChecks": true,
     "target": "ESNext",
     "types": ["vite/client", "google.accounts", "google.picker", "gapi.auth2"],
-    "useDefineForClassFields": true
+    "useDefineForClassFields": true,
+    "ignoreDeprecations": "6.0"
   },
   "files": [],
   "include": [],

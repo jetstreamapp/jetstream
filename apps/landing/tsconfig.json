@@ -18,7 +18,8 @@
       {
         "name": "next"
       }
-    ]
+    ],
+    "ignoreDeprecations": "6.0"
   },
   "include": ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "next-env.d.ts"],
   "files": [],
