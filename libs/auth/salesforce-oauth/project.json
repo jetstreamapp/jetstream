@@ -4,13 +4,5 @@
   "sourceRoot": "libs/auth/salesforce-oauth/src",
   "projectType": "library",
   "tags": ["scope:server"],
-  "targets": {
-    "test": {
-      "executor": "@nx/vitest:test",
-      "outputs": ["{options.reportsDirectory}"],
-      "options": {
-        "reportsDirectory": "{projectRoot}/../../../coverage/libs/auth/salesforce-oauth"
-      }
-    }
-  }
+  "targets": {}
 }

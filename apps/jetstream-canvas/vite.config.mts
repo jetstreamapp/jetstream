@@ -1,5 +1,4 @@
 /// <reference types="vitest/config" />
-import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
@@ -15,11 +14,8 @@ export default defineConfig(() => ({
     port: 4202,
     host: 'localhost',
   },
-  plugins: [react(), nxViteTsPaths()],
-  // Uncomment this if you are using workers.
-  // worker: {
-  //   plugins: () => [ nxViteTsPaths() ],
-  // },
+  plugins: [react()],
+  resolve: { tsconfigPaths: true },
   build: {
     outDir: '../../dist/apps/jetstream-canvas',
     emptyOutDir: true,

@@ -9,6 +9,8 @@
     "build": {
       "executor": "@nx/vite:build",
       "dependsOn": ["^build"],
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
       "options": {
         "outputPath": "dist/apps/jetstream"
       },
@@ -85,12 +87,11 @@
           "sourceMap": true,
           "vendorChunk": true
         }
-      },
-      "outputs": ["{options.outputPath}"],
-      "defaultConfiguration": "production"
+      }
     },
     "serve": {
       "executor": "@nx/vite:dev-server",
+      "defaultConfiguration": "development",
       "options": {
         "buildTarget": "jetstream:build",
         "hmr": true,
@@ -105,8 +106,7 @@
         "development": {
           "buildTarget": "jetstream:build:development"
         }
-      },
-      "defaultConfiguration": "development"
+      }
     },
     "lint": {
       "executor": "@nx/eslint:lint"
@@ -114,6 +114,7 @@
     "preview": {
       "executor": "@nx/vite:preview-server",
       "defaultConfiguration": "development",
+      "dependsOn": ["build"],
       "options": {
         "buildTarget": "jetstream:build",
         "open": true
@@ -125,14 +126,6 @@
         "production": {
           "buildTarget": "jetstream:build:production"
         }
-      },
-      "dependsOn": ["build"]
-    },
-    "test": {
-      "executor": "@nx/vitest:test",
-      "outputs": ["{options.reportsDirectory}"],
-      "options": {
-        "reportsDirectory": "{projectRoot}/../../coverage/apps/jetstream"
       }
     }
   }

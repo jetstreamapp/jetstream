@@ -4,13 +4,5 @@
   "sourceRoot": "libs/auth/acl/src",
   "projectType": "library",
   "tags": ["scope:shared"],
-  "targets": {
-    "test": {
-      "executor": "@nx/vitest:test",
-      "outputs": ["{options.reportsDirectory}"],
-      "options": {
-        "reportsDirectory": "{projectRoot}/../../../coverage/libs/auth/acl"
-      }
-    }
-  }
+  "targets": {}
 }

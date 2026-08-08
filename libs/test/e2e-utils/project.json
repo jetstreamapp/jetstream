@@ -4,13 +4,5 @@
   "sourceRoot": "libs/test/e2e-utils/src",
   "projectType": "library",
   "tags": ["scope:e2e"],
-  "targets": {
-    "test": {
-      "executor": "@nx/vitest:test",
-      "outputs": ["{options.reportsDirectory}"],
-      "options": {
-        "reportsDirectory": "{projectRoot}/../../../coverage/libs/test/e2e-utils"
-      }
-    }
-  }
+  "targets": {}
 }

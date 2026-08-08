@@ -4,13 +4,5 @@
   "sourceRoot": "libs/features/create-object-and-fields/src",
   "projectType": "library",
   "tags": ["scope:browser"],
-  "targets": {
-    "test": {
-      "executor": "@nx/vitest:test",
-      "outputs": ["{options.reportsDirectory}"],
-      "options": {
-        "reportsDirectory": "{projectRoot}/../../../coverage/libs/features/create-object-and-fields"
-      }
-    }
-  }
+  "targets": {}
 }

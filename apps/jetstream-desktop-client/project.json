@@ -62,11 +62,6 @@
         "buildTarget": "jetstream-desktop-client:build",
         "spa": true
       }
-    },
-    "test": {
-      "executor": "@nx/vitest:test",
-      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
-      "options": {}
     }
   }
 }

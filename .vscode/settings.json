@@ -9,6 +9,8 @@
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "js/ts.updateImportsOnFileMove.enabled": "always",
   "js/ts.preferences.importModuleSpecifier": "project-relative",
+  "js/ts.tsdk.path": "node_modules/typescript/lib",
+  "js/ts.tsdk.promptToUseWorkspaceVersion": true,
   "git.branchProtection": ["main", "release"],
   "eslint.useFlatConfig": true,
   "files.exclude": {

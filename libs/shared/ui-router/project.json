@@ -4,13 +4,5 @@
   "sourceRoot": "libs/shared/ui-router/src",
   "projectType": "library",
   "tags": ["scope:browser", "scope:allow-worker-import"],
-  "targets": {
-    "test": {
-      "executor": "@nx/vitest:test",
-      "outputs": ["{options.reportsDirectory}"],
-      "options": {
-        "reportsDirectory": "{projectRoot}/../../../coverage/libs/shared/ui-router"
-      }
-    }
-  }
+  "targets": {}
 }

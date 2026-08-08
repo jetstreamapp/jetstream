@@ -258,7 +258,6 @@
     "vite": "^8.2.0",
     "vite-plugin-dts": "4.5.4",
     "vite-plugin-eslint": "^1.8.1",
-    "vite-tsconfig-paths": "^6.1.1",
     "vitest": "4.1.10",
     "web-ext": "^10.6.0",
     "xml-crypto": "^6.1.2",

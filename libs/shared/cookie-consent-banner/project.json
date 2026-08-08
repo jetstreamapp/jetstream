@@ -4,13 +4,5 @@
   "sourceRoot": "libs/shared/cookie-consent-banner/src",
   "projectType": "library",
   "tags": ["scope:browser"],
-  "targets": {
-    "test": {
-      "executor": "@nx/vitest:test",
-      "outputs": ["{options.reportsDirectory}"],
-      "options": {
-        "reportsDirectory": "{projectRoot}/../../../coverage/libs/shared/cookie-consent-banner"
-      }
-    }
-  }
+  "targets": {}
 }
