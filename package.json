@@ -201,7 +201,7 @@
     "@types/google.picker": "^0.0.52",
     "@types/lodash": "^4.17.25",
     "@types/multer": "^2.2.0",
-    "@types/node": "26.1.2",
+    "@types/node": "24.1.0",
     "@types/papaparse": "^5.5.2",
     "@types/pg": "^8.20.4",
     "@types/qrcode": "^1.5.6",
