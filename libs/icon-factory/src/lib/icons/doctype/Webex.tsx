@@ -1,11 +1,17 @@
 import * as React from 'react';
 function SvgWebex(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5600 6400" aria-hidden="true" {...props}>
-      <path fill="#3ba755" d="M515 1A507 507 0 008 509v5384c0 280 227 507 507 507h4578c280 0 507-227 507-507V2032L3710 1z" />
-      <path fill="#22683e" d="M5598 2035v100H4318s-631-126-613-671c0 1 21 571 600 571z" />
-      <path fill="#cdefc4" d="M3707 0v1456c0 166 111 579 611 579h1280zM2046 5385a978 978 0 000-1953z" />
-      <path fill="unset" d="M1934 5385a978 978 0 010-1952z" />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 64" aria-hidden="true" {...props}>
+      <path d="M37 0l19 20v38c0 3.31-2.69 6-6 6H6c-3.31 0-6-2.69-6-6V6c0-3.31 2.69-6 6-6h31z" fill="#3ba755" />
+      <path d="M37 0l19 20v1H44c-3.87 0-7-3.13-7-7V0z" fill="#22683e" />
+      <path
+        d="M43 20h13L37 0v14c0 3.31 2.69 6 6 6zM20.52 54c2.56-.14 4.96-1.26 6.72-3.12a10.007 10.007 0 000-13.76A10.002 10.002 0 0020.52 34v20z"
+        fill="#cdefc4"
+      />
+      <path
+        d="M19.38 54c-2.54-.16-4.92-1.29-6.66-3.14-1.74-1.86-2.71-4.31-2.71-6.85s.97-5 2.71-6.85a9.97 9.97 0 016.66-3.14v19.99z"
+        fill="unset"
+      />
     </svg>
   );
 }

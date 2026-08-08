@@ -1,6 +1,6 @@
 import { EXCEL_MAX_CELL_CHARS, formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
-import { FileExtCsv, FileExtJson, FileExtXLSX, FileExtXml, FileExtZip } from '@jetstream/types';
+import { FileExtCsv, FileExtJson, FileExtXLSX, FileExtXml, FileExtZip, Maybe } from '@jetstream/types';
 import { fireToast } from '../toast/AppToast';
 
 export const RADIO_FORMAT_XLSX: FileExtXLSX = 'xlsx';
@@ -17,6 +17,34 @@ export const RADIO_SELECTED = 'selected';
 
 export const RADIO_DOWNLOAD_METHOD_STANDARD = 'radio-download-method-standard' as const;
 export const RADIO_DOWNLOAD_METHOD_BULK_API = 'radio-download-method-bulk-api' as const;
+
+/**
+ * The filtered/selected record subsets are only offered as radio options when they are non-empty
+ * and not identical to the full record set. Shared by the radio visibility checks and
+ * `getWhichRecordsDefaultValue` so the default value can never point at a hidden option.
+ */
+export const hasSelectableSubset = (subset: Maybe<unknown[]>, records: unknown[]): boolean => {
+  return Array.isArray(subset) && subset.length > 0 && subset.length !== records.length;
+};
+
+/**
+ * The "Selected records" option is only shown when some, but not all, records are selected.
+ * When it is available, it is the default choice since acting on a manual selection is the most likely intent.
+ */
+export const getWhichRecordsDefaultValue = ({
+  hasMoreRecords,
+  records,
+  selectedRecords,
+}: {
+  hasMoreRecords: boolean;
+  records: unknown[];
+  selectedRecords?: Maybe<unknown[]>;
+}): string => {
+  if (hasSelectableSubset(selectedRecords, records)) {
+    return RADIO_SELECTED;
+  }
+  return hasMoreRecords ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER;
+};
 
 const LS_KEY_PREFIX = 'RECENT_FILE_FORMAT_';
 export const getInitialDownloadFileFormat = <T>(allowedTypes: T[], localStorageKey: string): T => {

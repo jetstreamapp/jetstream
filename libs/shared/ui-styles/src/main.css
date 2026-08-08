@@ -242,7 +242,10 @@ pre {
   color: var(--slds-g-color-brand-base-50, #0176d3);
 }
 
-.slds-popover_x-large {
+/**
+ * Custom size, not part of SLDS. The double class is required to beat base class specificity.
+ */
+.slds-popover.slds-popover_x-large {
   width: 75%;
 }
 

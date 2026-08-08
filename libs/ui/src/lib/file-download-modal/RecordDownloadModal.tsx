@@ -39,6 +39,8 @@ import { PopoverErrorButton } from '../popover/PopoverErrorButton';
 import ScopedNotification from '../scoped-notification/ScopedNotification';
 import {
   getInitialDownloadFileFormat,
+  getWhichRecordsDefaultValue,
+  hasSelectableSubset,
   notifyExcelCellsTruncated,
   RADIO_ALL_BROWSER,
   RADIO_ALL_SERVER,
@@ -134,7 +136,9 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
       (googleIntegrationEnabled && !!google_apiKey && !!google_appId && !!google_clientId)) &&
     !!onDownloadFromServer;
   const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(false);
-  const [downloadRecordsValue, setDownloadRecordsValue] = useState<string>(hasMoreRecords ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);
+  const [downloadRecordsValue, setDownloadRecordsValue] = useState<string>(() =>
+    getWhichRecordsDefaultValue({ hasMoreRecords: false, records, selectedRecords }),
+  );
   const [fileFormat, setFileFormat] = useState(() => getInitialDownloadFileFormat(allowedTypes, LS_KEY));
   const [downloadMethod, setDownloadMethod] = useState<typeof RADIO_DOWNLOAD_METHOD_STANDARD | typeof RADIO_DOWNLOAD_METHOD_BULK_API>(
     RADIO_DOWNLOAD_METHOD_STANDARD,
@@ -209,11 +213,11 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
         setFileName(getFilename(org, ['records']));
       }
     } else {
-      setDownloadRecordsValue(hasMoreRecords ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);
+      setDownloadRecordsValue(getWhichRecordsDefaultValue({ hasMoreRecords, records, selectedRecords }));
       setFileFormat(getInitialDownloadFileFormat(allowedTypes, LS_KEY));
       setIncludeSubquery(true);
     }
-  }, [downloadModalOpen, hasMoreRecords, org, records]);
+  }, [downloadModalOpen, hasMoreRecords, org, records, selectedRecords]);
 
   useEffect(() => {
     if (doFocusInput && fileName && downloadModalOpen && inputEl.current) {
@@ -227,8 +231,8 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   useEffect(() => {
     const hasMoreRecordsTemp = !!totalRecordCount && !!records && (totalRecordCount < 0 || totalRecordCount > records.length);
     setHasMoreRecords(hasMoreRecordsTemp);
-    setDownloadRecordsValue(hasMoreRecordsTemp ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);
-  }, [totalRecordCount, records]);
+    setDownloadRecordsValue(getWhichRecordsDefaultValue({ hasMoreRecords: hasMoreRecordsTemp, records, selectedRecords }));
+  }, [totalRecordCount, records, selectedRecords]);
 
   function handleModalClose(canceled?: boolean) {
     onModalClose(canceled);
@@ -340,11 +344,11 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   }
 
   function hasFilteredRecords(): boolean {
-    return Array.isArray(filteredRecords) && filteredRecords.length && filteredRecords.length !== records.length ? true : false;
+    return hasSelectableSubset(filteredRecords, records);
   }
 
   function hasSelectedRecords(): boolean {
-    return Array.isArray(selectedRecords) && selectedRecords.length && selectedRecords.length !== records.length ? true : false;
+    return hasSelectableSubset(selectedRecords, records);
   }
 
   function handleKeyUp(event: KeyboardEvent<HTMLElement>) {
@@ -388,6 +392,24 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
               </ScopedNotification>
             )}
             <RadioGroup label="Which Records" required className="slds-m-bottom_small">
+              {hasSelectedRecords() && (
+                <Radio
+                  name="radio-download"
+                  label={`Selected records (${formatNumber(selectedRecords?.length || 0)})`}
+                  value={RADIO_SELECTED}
+                  checked={downloadRecordsValue === RADIO_SELECTED}
+                  onChange={setDownloadRecordsValue}
+                />
+              )}
+              {hasFilteredRecords() && (
+                <Radio
+                  name="radio-download"
+                  label={`Filtered records (${formatNumber(filteredRecords?.length || 0)})`}
+                  value={RADIO_FILTERED}
+                  checked={downloadRecordsValue === RADIO_FILTERED}
+                  onChange={setDownloadRecordsValue}
+                />
+              )}
               {hasMoreRecords && (
                 <Fragment>
                   <Radio
@@ -412,24 +434,6 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                   label={`All records (${formatNumber(totalRecordCount || records.length)})`}
                   value={RADIO_ALL_BROWSER}
                   checked={downloadRecordsValue === RADIO_ALL_BROWSER}
-                  onChange={setDownloadRecordsValue}
-                />
-              )}
-              {hasFilteredRecords() && (
-                <Radio
-                  name="radio-download"
-                  label={`Filtered records (${formatNumber(filteredRecords?.length || 0)})`}
-                  value={RADIO_FILTERED}
-                  checked={downloadRecordsValue === RADIO_FILTERED}
-                  onChange={setDownloadRecordsValue}
-                />
-              )}
-              {hasSelectedRecords() && (
-                <Radio
-                  name="radio-download"
-                  label={`Selected records (${formatNumber(selectedRecords?.length || 0)})`}
-                  value={RADIO_SELECTED}
-                  checked={downloadRecordsValue === RADIO_SELECTED}
                   onChange={setDownloadRecordsValue}
                 />
               )}

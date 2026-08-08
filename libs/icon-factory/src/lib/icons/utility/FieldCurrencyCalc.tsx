@@ -1,14 +1,11 @@
 import * as React from 'react';
 function SvgFieldCurrencyCalc(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <circle cx={32.4} cy={25.7} r={5.5} fill="unset" />
-      <path
-        d="M46.7 14.7H18.1c-1.8 0-3.3 1.5-3.3 3.3v15.9c0 1.8 1.5 3.3 3.3 3.3h28.6c1.8 0 3.3-1.5 3.3-3.3V18c0-1.9-1.5-3.4-3.3-3.4v.1zm0 15.5c-2.2 0-3.8 1.7-3.8 3.8H22c0-2.2-1.7-3.8-3.8-3.8V22c2.2 0 3.8-1.7 3.8-3.8h20.9c0 2.2 1.7 3.8 3.8 3.8v8.2z"
-        fill="unset"
-      />
-      <rect x={2} y={27.5} width={11} height={3.1} rx={0.8} ry={0.8} fill="unset" />
-      <path d="M12.2 20.7H2.8c-.4 0-.8.4-.8.8V23c0 .4.3.8.8.8h9.4c.4 0 .8-.3.8-.8v-1.5c0-.4-.3-.8-.8-.8z" fill="unset" />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <circle cx={324} cy={257} r={55} />
+      <path d="M467 147H181a33 33 0 00-33 33v159c0 18 15 33 33 33h286c18 0 33-15 33-33V180c0-19-15-34-33-34zm0 155a37 37 0 00-38 38H220c0-22-17-38-38-38v-82c22 0 38-17 38-38h209c0 22 17 38 38 38z" />
+      <rect width={110} height={31} x={20} y={275} rx={8} />
+      <path d="M122 207H28c-4 0-8 4-8 8v15c0 4 3 8 8 8h94c4 0 8-3 8-8v-15c0-4-3-8-8-8" />
     </svg>
   );
 }
