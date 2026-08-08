@@ -91,7 +91,7 @@ export default defineConfig(() => ({
     assetsDir: './',
     sourcemap: uploadSourcemaps ? ('hidden' as const) : false,
     emptyOutDir: true,
-    rollupOptions: {},
+    rolldownOptions: {},
   },
   test: {
     name: 'jetstream',
