@@ -11,7 +11,6 @@ import { Input } from '../form/Input';
 const FormSchema = z.object({
   csrfToken: z.string(),
   code: z.string().min(6).max(6),
-  secretToken: z.string(),
   rememberDevice: z.boolean().optional().default(true),
 });
 
@@ -20,7 +19,7 @@ type Form = z.infer<typeof FormSchema>;
 interface MfaEnrollmentProps {
   csrfToken: string;
   otp2fa: OtpEnrollmentData;
-  onSaveOtpFactor: (csrfToken: string, secretToken: string, code: string) => Promise<{ error: false; redirectUrl?: string }>;
+  onSaveOtpFactor: (csrfToken: string, code: string) => Promise<{ error: false; redirectUrl?: string }>;
 }
 
 export function MfaEnrollment({ csrfToken, otp2fa, onSaveOtpFactor }: MfaEnrollmentProps) {
@@ -34,7 +33,6 @@ export function MfaEnrollment({ csrfToken, otp2fa, onSaveOtpFactor }: MfaEnrollm
     resolver: zodResolver(FormSchema),
     defaultValues: {
       csrfToken,
-      secretToken: otp2fa.secretToken,
       code: '',
     },
   });
@@ -42,7 +40,7 @@ export function MfaEnrollment({ csrfToken, otp2fa, onSaveOtpFactor }: MfaEnrollm
   const onSubmit = async (payload: Form) => {
     try {
       setError(undefined);
-      const { redirectUrl } = await onSaveOtpFactor(payload.csrfToken, payload.secretToken, payload.code);
+      const { redirectUrl } = await onSaveOtpFactor(payload.csrfToken, payload.code);
 
       // eslint-disable-next-line react-hooks/immutability
       window.location.href = redirectUrl || ENVIRONMENT.CLIENT_URL;

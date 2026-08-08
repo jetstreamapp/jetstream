@@ -195,6 +195,21 @@ export interface SessionData {
   pendingMfaEnrollment?: {
     factor: TwoFactorTypeOtp;
   } | null;
+  /**
+   * A TOTP secret minted for the user by GET .../2fa-otp, held until they prove possession of it
+   * with a code. Deliberately separate from pendingMfaEnrollment: that field is a gate checkAuth
+   * reads to mean "this session may not use the app", so the logged-in profile enrollment flow
+   * cannot borrow it without locking the user out mid-enrollment.
+   *
+   * Kept on the session (server-side, in Postgres) rather than round-tripped through the client so
+   * enrollment always completes against the secret Jetstream issued rather than one the client
+   * chose. Encrypted the same way authFactors.secret is, and single-use.
+   */
+  pendingTotpEnrollment?: {
+    /** Encrypted with JETSTREAM_AUTH_OTP_SECRET - decrypt before use. */
+    secret: string;
+    exp: number;
+  } | null;
   pendingVerification?: Array<
     | {
         type: TwoFactorTypeEmail;

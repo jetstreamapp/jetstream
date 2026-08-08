@@ -13,6 +13,11 @@ export const EMAIL_VERIFICATION_TOKEN_DURATION_HOURS = 1;
 // (destroy the session for /auth/verify, delete the reset row for /password/reset/verify).
 export const MAX_VERIFICATION_ATTEMPTS = 5;
 
+// How long a minted-but-unconfirmed TOTP secret stays on the session. Long enough to install an
+// authenticator app and scan the code, short enough that an abandoned enrollment does not leave a
+// usable secret sitting on the session until it expires.
+export const TOTP_ENROLLMENT_TTL_MINUTES = 15;
+
 // How long a step-up grant remains usable. Kept short because the grant authorizes a sensitive
 // action - it is also single-use, so this only bounds the window between verifying and acting.
 export const STEP_UP_AUTH_TTL_MINUTES = 5;

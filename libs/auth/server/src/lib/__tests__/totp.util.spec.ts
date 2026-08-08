@@ -210,7 +210,7 @@ describe('totp.util', () => {
       const uri = new URL(createTOTPKeyURI('jetstream', 'user@example.com', key, INTERVAL_SEC, 6));
       const scannedSecret = uri.searchParams.get('secret')!;
 
-      // What convertBase32ToHex does with the secret the client posts back during enrollment.
+      // The base32 the authenticator scans has to decode to the hex Jetstream stores for the factor.
       expect(decodeBase32IgnorePadding(scannedSecret).toString('hex').toUpperCase()).toBe(storedSecretHex);
 
       const code = generateTOTP(decodeBase32IgnorePadding(scannedSecret), INTERVAL_SEC, 6);

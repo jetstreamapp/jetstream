@@ -2,8 +2,9 @@ import { ENV, getLogger } from '@jetstream/api-config';
 import {
   acceptTos,
   AuthError,
+  beginTotpEnrollment,
   clearOauthCookies,
-  convertBase32ToHex,
+  consumeTotpEnrollmentOrThrow,
   createOrUpdateOtpAuthFactor,
   createRememberDevice,
   createUserActivityFromReq,
@@ -13,7 +14,6 @@ import {
   EMAIL_VERIFICATION_TOKEN_DURATION_HOURS,
   ensureAuthError,
   ExpiredVerificationToken,
-  generate2faTotpUrl,
   generatePasswordResetToken,
   generateRandomCode,
   generateRandomString,
@@ -48,7 +48,6 @@ import {
   TooManyVerificationAttempts,
   validateCallback,
   validateRedirectUrl,
-  verify2faTotpOrThrow,
   verifyCSRFFromRequestOrThrow,
   verifyTotpCodeOnceOrThrow,
 } from '@jetstream/auth/server';
@@ -226,7 +225,7 @@ export const routeDefinition = {
   },
   getOtpEnrollmentData: {
     controllerFn: () => getOtpEnrollmentData,
-    responseType: z.object({ secret: z.string(), secretToken: z.string(), imageUri: z.string(), uri: z.string() }),
+    responseType: z.object({ secretToken: z.string(), imageUri: z.string(), uri: z.string() }),
     validators: {
       hasSourceOrg: false,
     } satisfies RouteValidator,
@@ -237,7 +236,6 @@ export const routeDefinition = {
     validators: {
       body: z.object({
         code: z.string().min(6).max(6),
-        secretToken: z.string().min(32).max(32),
         csrfToken: z.string(),
       }),
       hasSourceOrg: false,
@@ -1145,9 +1143,7 @@ const getOtpEnrollmentData = createRoute(routeDefinition.getOtpEnrollmentData.va
       throw new InvalidAction('There is no pending MFA enrollment');
     }
 
-    const { secret, secretToken, imageUri, uri } = await generate2faTotpUrl(user.id);
-
-    sendJson(res, { secret, secretToken, imageUri, uri });
+    sendJson(res, await beginTotpEnrollment(req.session, user.id));
   } catch (ex) {
     next(ensureAuthError(ex));
   }
@@ -1169,12 +1165,10 @@ const enrollOtpFactor = createRoute(routeDefinition.enrollOtpFactor.validators, 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const cookies = parseCookie(req.headers.cookie!);
 
-    const { csrfToken, code, secretToken } = body;
+    const { csrfToken, code } = body;
     await verifyCSRFFromRequestOrThrow(csrfToken, req.headers.cookie || '');
 
-    const secret = convertBase32ToHex(secretToken);
-    verify2faTotpOrThrow(secret, code);
-    await createOrUpdateOtpAuthFactor(user.id, secret);
+    await createOrUpdateOtpAuthFactor(user.id, consumeTotpEnrollmentOrThrow(req.session, code));
 
     req.session.pendingMfaEnrollment = null;
 
