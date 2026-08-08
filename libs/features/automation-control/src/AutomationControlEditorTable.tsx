@@ -1,3 +1,4 @@
+import { ensureBoolean } from '@jetstream/shared/utils';
 import { ContextMenuItem, SalesforceOrgUi } from '@jetstream/types';
 import {
   ColumnWithFilter,
@@ -10,7 +11,7 @@ import {
   setColumnFromType,
 } from '@jetstream/ui';
 import { ReactNode, forwardRef, useCallback, useMemo } from 'react';
-import { isTableRow } from './automation-control-data-utils';
+import { isTableRow, isTableRowItem } from './automation-control-data-utils';
 import { AdditionalDetailRenderer, ExpandingLabelRenderer, LoadingAndActiveRenderer } from './automation-control-table-renderers';
 import { TableRowOrItemOrChild } from './automation-control-types';
 
@@ -83,6 +84,9 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
           key: 'isActive',
           width: 110,
           cellClass: (row) => (!isTableRow(row) && row.isActive !== row.isActiveInitialState ? 'active-item-yellow-bg' : ''),
+          // Paste/clear eligibility only (no popup editor): pasted true/false values land on the same
+          // rows whose checkbox is enabled — never category rows or read-only items.
+          editable: (row: TableRowOrItemOrChild) => !isTableRow(row) && !(isTableRowItem(row) && row.readOnly),
           renderCell: ({ row }) => {
             return <LoadingAndActiveRenderer row={row} updateIsActiveFlag={updateIsActiveFlag} />;
           },
@@ -110,6 +114,27 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
     }, [serverUrl, selectedOrg, updateIsActiveFlag]);
 
     const fields = useMemo(() => columns.map((col) => col.key), [columns]);
+
+    // Paste (and Delete-to-clear) over the Active column: coerce each pasted string to a boolean and
+    // route it through the same flow as a checkbox click. The grid already restricted the target cells
+    // to editable (non-category, non-read-only) rows.
+    const handlePaste = useCallback(
+      ({ cells }: { cells: { rowKey: string; columnKey: string; value: string }[] }) => {
+        const rowByKey = new Map<string, TableRowOrItemOrChild>();
+        const visit = (row: TableRowOrItemOrChild) => {
+          rowByKey.set(row.key, row);
+          getSubRows(row, 0)?.forEach(visit);
+        };
+        rows.forEach(visit);
+        cells.forEach(({ rowKey, columnKey, value }) => {
+          const row = rowByKey.get(rowKey);
+          if (row && columnKey === 'isActive') {
+            updateIsActiveFlag(row, ensureBoolean(value.trim()));
+          }
+        });
+      },
+      [rows, getSubRows, updateIsActiveFlag],
+    );
 
     const handleContextMenuAction = useCallback(
       (item: ContextMenuItem<ContextAction>, data: ContextMenuActionData<RowWithKey>) => {
@@ -139,6 +164,7 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
           onSortedAndFilteredRowsChange={onSortedAndFilteredRowsChange}
           contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
           contextMenuAction={handleContextMenuAction}
+          onPaste={handlePaste}
         />
       </div>
     );

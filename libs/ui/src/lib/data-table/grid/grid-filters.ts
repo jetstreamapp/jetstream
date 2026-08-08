@@ -172,7 +172,7 @@ export function hasFilterApplied(filters: Record<string, DataTableFilter[]>, fil
  * Resolve the value used for filtering/grouping a cell — the column's `getValue` if present, else the
  * raw row property.
  */
-export function getFilterValue<TRow>(column: ColumnWithFilter<TRow>, row: TRow): unknown {
+export function getFilterValue<TRow extends object>(column: ColumnWithFilter<TRow>, row: TRow): unknown {
   if (column.getValue) {
     return column.getValue({ row, column });
   }
@@ -183,10 +183,11 @@ export function getFilterValue<TRow>(column: ColumnWithFilter<TRow>, row: TRow):
  * Compute the distinct selectable values for each SET / BOOLEAN_SET column. BOOLEAN_SET is always
  * `['True', 'False']`; SET columns derive their distinct values from the data (null → EMPTY_FIELD).
  */
-export function computeFilterSetValues<TRow>(
+export function computeFilterSetValues<TRow extends object>(
   columns: ColumnWithFilter<TRow>[],
   data: TRow[],
   ignoreRowInSetFilter?: (row: TRow) => boolean,
+  getSubRows?: (row: TRow, index: number) => TRow[] | undefined,
 ): Record<string, string[]> {
   const result: Record<string, string[]> = {};
 
@@ -211,15 +212,20 @@ export function computeFilterSetValues<TRow>(
   // `ignoreRowInSetFilter` once per row. The previous implementation scanned the entire dataset once PER
   // SET column (filter→map→Set→sort, with two row-length temp arrays each), which dominated the initial
   // render of wide query results.
-  for (const row of data) {
-    if (ignoreRowInSetFilter && ignoreRowInSetFilter(row)) {
-      continue;
+  //
+  // Trees (`getSubRows`) are traversed depth-first — the filterable values often live on CHILD rows
+  // (e.g. Automation Control: top-level rows are category headers excluded via `ignoreRowInSetFilter`,
+  // the automation items are their children), mirroring the quick-filter search index's traversal.
+  const visitRow = (row: TRow, index: number) => {
+    if (!ignoreRowInSetFilter || !ignoreRowInSetFilter(row)) {
+      for (const { column, values } of setColumns) {
+        const rowValue = getFilterValue(column, row);
+        values.add(isNil(rowValue) ? EMPTY_FIELD : String(rowValue));
+      }
     }
-    for (const { column, values } of setColumns) {
-      const rowValue = getFilterValue(column, row);
-      values.add(isNil(rowValue) ? EMPTY_FIELD : String(rowValue));
-    }
-  }
+    getSubRows?.(row, index)?.forEach(visitRow);
+  };
+  data.forEach(visitRow);
 
   for (const { column, values } of setColumns) {
     result[column.key] = orderValues(Array.from(values));

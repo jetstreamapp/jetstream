@@ -18,8 +18,8 @@ import Spinner from '../../../widgets/Spinner';
 import Tooltip from '../../../widgets/Tooltip';
 import { dataTableDateFormatter } from '../../data-table-formatters';
 import { ACTION_COLUMN_KEY, DEFAULT_ROW_HEIGHT, SELECT_COLUMN_KEY } from '../grid-constants';
-import { GridRecordActionContext, GridRuntimeContext } from '../grid-context';
-import { getRowId, getSfdcRetUrl, selectRowRange } from '../grid-row-utils';
+import { GridRecordActionContext } from '../grid-context';
+import { getRowId, getSfdcRetUrl } from '../grid-row-utils';
 import { ColumnWithFilter, DataTableCellProps, DataTableGroupCellProps, RowWithKey } from '../grid-types';
 import { getRowErrorMessages } from '../validate-cell-value';
 
@@ -352,6 +352,9 @@ export function getRecordErrorColumn(overrides?: Partial<ColumnWithFilter<RowWit
     sortable: false,
     filters: [],
     renderCell: RecordErrorMessageRenderer,
+    // The rendered text lives on `row.status`, not under this column's key — without this accessor,
+    // copying a cell/range from this column yields an empty string.
+    getValue: ({ row }) => (row as RowWithRecordError).status || null,
     ...overrides,
   };
 }
@@ -401,33 +404,22 @@ export function withCellValidation<TRow extends RowWithKey>(
 /** Row-selection checkbox renderer. The built-in select column (GridCell cellKind) usually handles this;
  * kept for compatibility with the spreadable SelectColumn definition.
  *
- * Supports shift-click range selection: holding Shift and clicking sets every row between the anchor
- * (the last row toggled when a range wasn't applied) and this row to the anchor's selected value. The Shift state is captured
- * from the wrapper's `mousedown` rather than the change event, because the visible control is the SLDS
- * `<label>`/faux checkbox and label-forwarded clicks drop modifier keys. */
+ * Shift-click range selection is TanStack's (v9 `getToggleSelectedHandler` tracks the anchor and
+ * applies the display-order range internally). The handler reads Shift off the event, but the visible
+ * control is the SLDS `<label>`/faux checkbox and label-forwarded clicks drop modifier keys — so Shift
+ * is captured on the wrapper's `mousedown` and stamped onto the event handed to TanStack. */
 export function SelectFormatter({ row, tanstackRow }: DataTableCellProps<any>): ReactNode {
-  const runtime = useContext(GridRuntimeContext);
   const shiftKeyRef = useRef(false);
 
   const handleChange = (event: React.SyntheticEvent<HTMLInputElement>) => {
-    const checked = event.currentTarget.checked;
     // `detail > 0` is a real pointer click; keyboard Space yields a synthetic click with detail 0, where
     // the shift ref would be stale — so range-select only on genuine mouse interactions.
     const wasMouseClick = (event.nativeEvent as MouseEvent).detail > 0;
-    const anchorRowId = runtime?.getRowSelectionAnchor?.();
-    if (
-      wasMouseClick &&
-      shiftKeyRef.current &&
-      anchorRowId &&
-      anchorRowId !== tanstackRow.id &&
-      runtime?.table &&
-      selectRowRange(runtime.table, anchorRowId, tanstackRow.id)
-    ) {
-      // Range applied — keep the anchor fixed so the user can re-shift-click to adjust the range.
-      return;
-    }
-    tanstackRow.toggleSelected(checked);
-    runtime?.setRowSelectionAnchor?.(tanstackRow.id);
+    // Minimal event shape: TanStack reads `target.checked` and `shiftKey`/`nativeEvent.shiftKey`.
+    tanstackRow.getToggleSelectedHandler()({
+      target: event.currentTarget,
+      shiftKey: wasMouseClick && shiftKeyRef.current,
+    });
   };
 
   return (

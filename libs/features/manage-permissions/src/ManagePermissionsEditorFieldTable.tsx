@@ -12,6 +12,7 @@ import { AutoFullHeightContainer, ColumnWithFilter, DataTableRef, DataTree } fro
 import groupBy from 'lodash/groupBy';
 import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
 import {
+  applyPastedPermissionCells,
   getFieldPermissionContextMenuItems,
   handleFieldPermissionContextMenuAction,
   resetGridChanges,
@@ -77,6 +78,17 @@ export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissio
       [onBulkUpdate],
     );
 
+    // Paste (and Delete-to-clear) over the permission checkboxes: coerce each pasted string to a
+    // boolean and apply it through the same helpers as a checkbox click. The grid already restricted
+    // the target cells to editable ones (mirroring the checkboxes' disabled rules).
+    const handlePaste = useCallback(
+      (event: { cells: { rowKey: string; columnKey: string; value: string }[] }) => {
+        const visibleRows = [...(tableRef.current?.getFilteredAndSortedRows() || rows)];
+        onBulkUpdate(applyPastedPermissionCells('field', visibleRows, event.cells));
+      },
+      [rows, onBulkUpdate],
+    );
+
     return (
       <div>
         <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={15}>
@@ -87,6 +99,7 @@ export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissio
             getRowKey={getRowKey}
             topSummaryRows={SUMMARY_ROWS}
             onRowsChange={handleRowsChange}
+            onPaste={handlePaste}
             context={
               {
                 type: 'field',

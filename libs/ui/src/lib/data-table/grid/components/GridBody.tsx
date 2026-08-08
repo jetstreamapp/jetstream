@@ -1,9 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Table } from '@tanstack/react-table';
+import { shallow, useSelector } from '@tanstack/react-store';
+import type { CellSelectionBounds } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { CSSProperties, RefObject, useEffect, useMemo, useRef } from 'react';
 import { DEFAULT_ROW_HEIGHT, HEADER_ROW_ID, isSummaryRowId } from '../grid-constants';
-import { GridMode, SelectionRange } from '../keyboard/useGridKeyboardNavigation';
+import { selectRowModelInputs } from '../grid-context';
+import { TanstackTable } from '../grid-types';
+import { GridMode } from '../keyboard/useGridKeyboardNavigation';
+import { getRowSelectionSpans } from '../selection/grid-selection';
 import { GridGroupRow } from './GridGroupRow';
 import { ActiveCell, GridRow } from './GridRow';
 
@@ -11,8 +15,8 @@ import { ActiveCell, GridRow } from './GridRow';
  * width (e.g. estimating wrapped-text lines) tracks user resizes. */
 export type RowHeightFn<TRow> = (args: { type: 'ROW' | 'GROUP'; row: TRow; columnWidths: Record<string, number> }) => number;
 
-export interface GridBodyProps<TRow> {
-  table: Table<TRow>;
+export interface GridBodyProps<TRow extends object> {
+  table: TanstackTable<TRow>;
   /** Scroll element that owns vertical scrolling (the virtualizer measures against it). */
   scrollRef: RefObject<HTMLDivElement | null>;
   gridTemplateColumns: string;
@@ -36,9 +40,9 @@ export interface GridBodyProps<TRow> {
   getLastInteractionSource?: () => 'mouse' | 'keyboard' | 'select-all';
   /** The cell currently being edited (its editor owns focus, so the body must not steal it). */
   editingCell?: ActiveCell | null;
-  /** Rectangular cell selection (display-index bounds), or null when collapsed to one cell. */
-  selectionRange?: SelectionRange | null;
-  onCellMouseDown?: (rowId: string, columnId: string, shiftKey: boolean, button?: number) => void;
+  /** Resolved cell-selection rectangles (inclusive display-index bounds; empty when collapsed). */
+  selectionBounds?: CellSelectionBounds[];
+  onCellMouseDown?: (rowId: string, columnId: string, shiftKey: boolean, button?: number, ctrlOrMetaKey?: boolean) => void;
   onCellMouseEnter?: (rowId: string, columnId: string) => void;
   onCellContextMenu?: (event: React.MouseEvent, rowId: string, columnId: string) => void;
   rowClass?: (row: TRow) => string | undefined;
@@ -62,7 +66,7 @@ const ACTIONABLE_FOCUSABLE_SELECTOR =
  * navigation's logical active-cell coordinate to a DOM element — scrolling it into view and focusing
  * it (retrying across a few frames while the virtualizer mounts the target row).
  */
-export function GridBody<TRow>({
+export function GridBody<TRow extends object>({
   table,
   scrollRef,
   gridTemplateColumns,
@@ -74,7 +78,7 @@ export function GridBody<TRow>({
   mode = 'navigation',
   getLastInteractionSource,
   editingCell,
-  selectionRange,
+  selectionBounds,
   onCellMouseDown,
   onCellMouseEnter,
   onCellContextMenu,
@@ -83,6 +87,11 @@ export function GridBody<TRow>({
   onCommitRow,
   autoRowHeight,
 }: GridBodyProps<TRow>) {
+  // The virtualizer's owner must re-render whenever the row model recomputes so `count`/`getItemKey`
+  // and the measure() effect see the new rows in the same render — this subscription covers the
+  // atom-owned `expanded` slice, whose changes no longer re-render the grid from above.
+  useSelector(table.store, selectRowModelInputs, { compare: shallow });
+
   const { rows } = table.getRowModel();
   const leafColumns = table.getVisibleLeafColumns();
 
@@ -94,7 +103,7 @@ export function GridBody<TRow>({
   // Live `columnId → resolved width` map handed to a rowHeight callback so width-dependent heights track
   // resizes. Read from `columnSizing` so it recomputes when a resize commits (columnResizeMode 'onEnd');
   // held in a ref so the stable estimateSize closure reads the latest without re-creating the virtualizer.
-  const columnSizing = table.getState().columnSizing;
+  const columnSizing = table.store.state.columnSizing;
   const columnWidths = useMemo(() => {
     const widths: Record<string, number> = {};
     leafColumns.forEach((column) => {
@@ -231,13 +240,6 @@ export function GridBody<TRow>({
 
   const style: CSSProperties = { blockSize: totalSize };
 
-  // Stable identity for the column-range slice of the selection — every in-range row shares it, so
-  // memo'd rows don't re-render just because GridBody re-rendered for an unrelated reason.
-  const selectionColRange = useMemo(
-    () => (selectionRange ? { start: selectionRange.minCol, end: selectionRange.maxCol } : null),
-    [selectionRange],
-  );
-
   if (rows.length === 0) {
     return (
       <div role="rowgroup" className="jgrid-body jgrid-body-empty">
@@ -261,6 +263,7 @@ export function GridBody<TRow>({
           return (
             <GridGroupRow
               key={row.id}
+              table={table}
               row={row}
               columns={leafColumns}
               gridTemplateColumns={gridTemplateColumns}
@@ -276,10 +279,13 @@ export function GridBody<TRow>({
             />
           );
         }
-        const rowInRange = !!selectionRange && virtualRow.index >= selectionRange.minRow && virtualRow.index <= selectionRange.maxRow;
+        // Per-row selection spans, identity-cached on the bounds array — rows outside every rectangle
+        // share the null result so their memo comparison still passes.
+        const selectionSpans = selectionBounds?.length ? getRowSelectionSpans(selectionBounds, virtualRow.index) : null;
         return (
           <GridRow
             key={row.id}
+            table={table}
             row={row}
             columns={leafColumns}
             gridTemplateColumns={gridTemplateColumns}
@@ -289,10 +295,9 @@ export function GridBody<TRow>({
             virtualStart={virtualRow.start}
             height={virtualRow.size}
             activeCell={rowActiveCell}
-            isSelected={row.getIsSelected()}
             isExpanded={row.getIsExpanded()}
             isLastRow={virtualRow.index === rows.length - 1}
-            selectionColRange={rowInRange ? selectionColRange : null}
+            selectionSpans={selectionSpans}
             rowClass={rowClass}
             onCellMouseDown={onCellMouseDown}
             onCellMouseEnter={onCellMouseEnter}

@@ -9,7 +9,7 @@ import {
 } from '@jetstream/types';
 import { AutoFullHeightContainer, ColumnWithFilter, DataTable, DataTableRef } from '@jetstream/ui';
 import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
-import { resetGridChanges, updateRowsFromColumnAction } from './utils/permission-manager-table-utils';
+import { applyPastedPermissionCells, resetGridChanges, updateRowsFromColumnAction } from './utils/permission-manager-table-utils';
 
 function getRowKey(row: PermissionTableTabVisibilityCell) {
   return row.key;
@@ -61,6 +61,17 @@ export const ManagePermissionsEditorTabVisibilityTable = forwardRef<any, ManageP
       [onBulkUpdate],
     );
 
+    // Paste (and Delete-to-clear) over the permission checkboxes: coerce each pasted string to a
+    // boolean and apply it through the same helpers as a checkbox click. The grid already restricted
+    // the target cells to editable ones (mirroring the checkboxes' disabled rules).
+    const handlePaste = useCallback(
+      (event: { cells: { rowKey: string; columnKey: string; value: string }[] }) => {
+        const visibleRows = [...(tableRef.current?.getFilteredAndSortedRows() || rows)];
+        onBulkUpdate(applyPastedPermissionCells('tabVisibility', visibleRows, event.cells));
+      },
+      [rows, onBulkUpdate],
+    );
+
     return (
       <div>
         <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={15}>
@@ -71,6 +82,7 @@ export const ManagePermissionsEditorTabVisibilityTable = forwardRef<any, ManageP
             getRowKey={getRowKey}
             topSummaryRows={SUMMARY_ROWS}
             onRowsChange={handleRowsChange}
+            onPaste={handlePaste}
             context={
               {
                 type: 'tabVisibility',

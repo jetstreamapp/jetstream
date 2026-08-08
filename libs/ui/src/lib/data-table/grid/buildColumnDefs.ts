@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { ColumnDef } from '@tanstack/react-table';
 import { jetstreamColumnFilterFn } from './filterFns';
 import { ACTION_COLUMN_KEY, DEFAULT_COLUMN_WIDTH, DEFAULT_MIN_COLUMN_WIDTH, SELECT_COLUMN_KEY } from './grid-constants';
-import { CellKind, ColumnWithFilter, DefaultColumnOptions, JetstreamColumnMeta } from './grid-types';
+import { CellKind, ColumnWithFilter, DefaultColumnOptions, JetstreamColumnMeta, TanstackColumnDef } from './grid-types';
 
 /**
  * Map our author-facing `ColumnWithFilter[]` to TanStack `ColumnDef[]`.
@@ -12,10 +11,10 @@ import { CellKind, ColumnWithFilter, DefaultColumnOptions, JetstreamColumnMeta }
  * only needs to get the data model right: stable id, accessor (drives sort/group), sizing, sortability,
  * filterability, and meta. `cellKind` replaces the legacy `dataTableRenderFnMap` renderer-identity trick.
  */
-export function buildColumnDefs<TRow, TSummaryRow = unknown>(
+export function buildColumnDefs<TRow extends object, TSummaryRow = unknown>(
   columns: ColumnWithFilter<TRow, TSummaryRow>[],
   defaultColumnOptions?: DefaultColumnOptions<TRow, TSummaryRow>,
-): ColumnDef<TRow, unknown>[] {
+): TanstackColumnDef<TRow>[] {
   return columns.map((column, index) => toColumnDef(column, index, defaultColumnOptions));
 }
 
@@ -29,11 +28,11 @@ function resolveCellKind(key: string): CellKind {
   return 'data';
 }
 
-function toColumnDef<TRow, TSummaryRow>(
+function toColumnDef<TRow extends object, TSummaryRow>(
   column: ColumnWithFilter<TRow, TSummaryRow>,
   index: number,
   defaultColumnOptions?: DefaultColumnOptions<TRow, TSummaryRow>,
-): ColumnDef<TRow, unknown> {
+): TanstackColumnDef<TRow> {
   const cellKind = resolveCellKind(column.key);
   const isDataColumn = cellKind === 'data';
 
@@ -64,7 +63,7 @@ function toColumnDef<TRow, TSummaryRow>(
     editorOptions: column.editorOptions,
   };
 
-  const columnDef: ColumnDef<TRow, unknown> = {
+  const columnDef: TanstackColumnDef<TRow> = {
     id: columnId,
     // Display (select/action) columns have no meaningful accessor. Data columns index by `columnId`
     // (not raw `column.key`) so a malformed/falsy key reads the unused fallback id — an empty column —
@@ -76,6 +75,9 @@ function toColumnDef<TRow, TSummaryRow>(
     enableColumnFilter: hasFilters,
     enableGlobalFilter: isDataColumn,
     enableGrouping: isDataColumn,
+    // Spreadsheet-style cell range selection applies to data cells only — the select/action/rowheader
+    // columns keep their own interactions (checkbox ranges, buttons) and can never join a cell range.
+    enableCellSelection: isDataColumn,
     size: typeof width === 'number' ? width : DEFAULT_COLUMN_WIDTH,
     minSize: minWidth,
     ...(typeof maxWidth === 'number' ? { maxSize: maxWidth } : {}),

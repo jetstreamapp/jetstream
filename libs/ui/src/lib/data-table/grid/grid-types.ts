@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ContextMenuItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import type { Header, Row, RowData, Table } from '@tanstack/react-table';
+import type { Cell, CellData, Column, ColumnDef, FilterFn, Header, Row, RowData, Table, TableFeatures } from '@tanstack/react-table';
 import { ReactNode } from 'react';
+import type { JetstreamTableFeatures } from './grid-features';
 
 /**
  * Jetstream Data Table — type definitions.
@@ -16,6 +17,52 @@ import { ReactNode } from 'react';
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type RowWithKey = Record<string, any> & { _key: string };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TanStack type aliases. v9 threads a `TFeatures` generic through every table type; these aliases
+// bake in Jetstream's single shared feature set so the rest of the grid never spells it out.
+// ("Tanstack*" naming matches the existing `tanstackRow` prop vocabulary and avoids colliding with
+// the GridRow/GridCell/GridHeader components.)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type TanstackTable<TRow extends object = RowWithKey> = Table<JetstreamTableFeatures, TRow>;
+export type TanstackRow<TRow extends object = RowWithKey> = Row<JetstreamTableFeatures, TRow>;
+export type TanstackColumn<TRow extends object = RowWithKey, TValue = unknown> = Column<JetstreamTableFeatures, TRow, TValue>;
+export type TanstackHeader<TRow extends object = RowWithKey, TValue extends CellData = CellData> = Header<
+  JetstreamTableFeatures,
+  TRow,
+  TValue
+>;
+export type TanstackCell<TRow extends object = RowWithKey, TValue extends CellData = CellData> = Cell<JetstreamTableFeatures, TRow, TValue>;
+export type TanstackColumnDef<TRow extends object = RowWithKey> = ColumnDef<JetstreamTableFeatures, TRow>;
+export type TanstackFilterFn<TRow extends object = any> = FilterFn<JetstreamTableFeatures, TRow>;
+
+/**
+ * The subset of the TanStack row surface exposed to cell renderers via the `tanstackRow` escape
+ * hatch. Deliberately NOT the full v9 `Row` type: v9 rows are invariant in their data generic, so
+ * `DataTableCellProps<ConcreteRow>` would stop being assignable to `DataTableCellProps<any>` —
+ * breaking the spreadable-column pattern (`SelectColumn.renderCell?.(args)`) used across feature
+ * code. Every member here keeps `TRow` in a variance-safe position; widen this interface if a
+ * renderer needs more of the row.
+ */
+export interface GridRowHandle<TRow extends object = RowWithKey> {
+  id: string;
+  depth: number;
+  original: TRow;
+  /** Set when this is a group header row — the column id this row's level is grouped by. */
+  groupingColumnId?: string;
+  getCanSelect: () => boolean;
+  getIsSelected: () => boolean;
+  /** "Some but not all descendants selected" (row-level semantics are unchanged in v9). */
+  getIsSomeSelected: () => boolean;
+  getIsAllSubRowsSelected: () => boolean;
+  toggleSelected: (value?: boolean) => void;
+  /** v9 handler: tracks the range-selection anchor and applies Shift ranges internally. */
+  getToggleSelectedHandler: () => (event: unknown) => void;
+  getCanExpand: () => boolean;
+  getIsExpanded: () => boolean;
+  toggleExpanded: (expanded?: boolean) => void;
+}
 
 export type RowSalesforceRecordWithKey = RowWithKey & {
   _action: (row: RowWithKey, action: 'view' | 'edit' | 'clone' | 'delete' | 'undelete' | 'apex') => void;
@@ -63,12 +110,7 @@ export type FilterType = 'TEXT' | 'NUMBER' | 'DATE' | 'TIME' | 'SET' | 'BOOLEAN_
 export const FILTER_SET_TYPES = new Set<FilterType>(['SET', 'BOOLEAN_SET']);
 
 export type DataTableFilter =
-  | DataTableTextFilter
-  | DataTableNumberFilter
-  | DataTableDateFilter
-  | DataTableTimeFilter
-  | DataTableSetFilter
-  | DataTableBooleanSetFilter;
+  DataTableTextFilter | DataTableNumberFilter | DataTableDateFilter | DataTableTimeFilter | DataTableSetFilter | DataTableBooleanSetFilter;
 
 export interface DataTableTextFilter {
   type: 'TEXT';
@@ -119,7 +161,7 @@ export interface SortColumn {
 // Render / edit prop contracts (replace react-data-grid `RenderCellProps`/`RenderEditCellProps`)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export interface DataTableCellProps<TRow = RowWithKey, TSummaryRow = unknown> {
+export interface DataTableCellProps<TRow extends object = RowWithKey, TSummaryRow = unknown> {
   /** Convenience alias for `tanstackRow.original` */
   row: TRow;
   column: ColumnWithFilter<TRow, TSummaryRow>;
@@ -129,8 +171,8 @@ export interface DataTableCellProps<TRow = RowWithKey, TSummaryRow = unknown> {
   rowIndex: number;
   /** rdg-compat alias of rowIndex */
   rowIdx: number;
-  /** Escape hatch to the underlying TanStack row */
-  tanstackRow: Row<TRow>;
+  /** Escape hatch to the underlying TanStack row (variance-safe subset — see GridRowHandle) */
+  tanstackRow: GridRowHandle<TRow>;
   /** Tree (getSubRows) sugar — depth of this row in the tree (0 = root). */
   depth: number;
   /** Tree (getSubRows) sugar — true when this row has child rows that can be expanded/collapsed. */
@@ -146,17 +188,17 @@ export interface DataTableCellProps<TRow = RowWithKey, TSummaryRow = unknown> {
   cancelEdit: () => void;
 }
 
-export interface DataTableHeaderProps<TRow = RowWithKey, TSummaryRow = unknown> {
+export interface DataTableHeaderProps<TRow extends object = RowWithKey, TSummaryRow = unknown> {
   column: ColumnWithFilter<TRow, TSummaryRow>;
   sortDirection?: SortDirection;
   /** Sort priority (1-based) when multi-column sorting is active */
   priority?: number;
-  header: Header<TRow, unknown>;
+  header: TanstackHeader<TRow>;
   /** Children-as-function pattern used by `FilterRenderer` */
   children?: ReactNode;
 }
 
-export interface DataTableGroupCellProps<TRow = RowWithKey, TSummaryRow = unknown> {
+export interface DataTableGroupCellProps<TRow extends object = RowWithKey, TSummaryRow = unknown> {
   /** The grouping value for this group header row */
   groupKey: unknown;
   /** Leaf rows belonging to this group */
@@ -164,16 +206,16 @@ export interface DataTableGroupCellProps<TRow = RowWithKey, TSummaryRow = unknow
   isExpanded: boolean;
   toggleGroup: () => void;
   column: ColumnWithFilter<TRow, TSummaryRow>;
-  /** Underlying TanStack grouped row */
-  tanstackRow: Row<TRow>;
+  /** Underlying TanStack grouped row (variance-safe subset — see GridRowHandle) */
+  tanstackRow: GridRowHandle<TRow>;
 }
 
-export interface DataTableSummaryCellProps<TRow = RowWithKey, TSummaryRow = unknown> {
+export interface DataTableSummaryCellProps<TRow extends object = RowWithKey, TSummaryRow = unknown> {
   row: TSummaryRow;
   column: ColumnWithFilter<TRow, TSummaryRow>;
 }
 
-export interface DataTableEditorProps<TRow = RowWithKey, TSummaryRow = unknown> {
+export interface DataTableEditorProps<TRow extends object = RowWithKey, TSummaryRow = unknown> {
   row: TRow;
   column: ColumnWithFilter<TRow, TSummaryRow>;
   rowIndex: number;
@@ -206,7 +248,7 @@ export type ColSpanArgs<TRow = RowWithKey> =
 // The public, author-facing column definition (detached from react-data-grid `Column`)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export interface ColumnWithFilter<TRow = RowWithKey, TSummaryRow = unknown> {
+export interface ColumnWithFilter<TRow extends object = RowWithKey, TSummaryRow = unknown> {
   /** Unique column id; maps to TanStack `ColumnDef.id` / accessor. */
   key: string;
   /** Header label / content. */
@@ -249,11 +291,11 @@ export interface ColumnWithFilter<TRow = RowWithKey, TSummaryRow = unknown> {
   meta?: Record<string, unknown>;
 }
 
-export type DefaultColumnOptions<TRow = RowWithKey, TSummaryRow = unknown> = Partial<
+export type DefaultColumnOptions<TRow extends object = RowWithKey, TSummaryRow = unknown> = Partial<
   Pick<ColumnWithFilter<TRow, TSummaryRow>, 'minWidth' | 'maxWidth' | 'width' | 'resizable' | 'sortable' | 'draggable'>
 >;
 
-export interface SalesforceQueryColumnDefinition<TRow, TSummaryRow = unknown> {
+export interface SalesforceQueryColumnDefinition<TRow extends object, TSummaryRow = unknown> {
   parentColumns: ColumnWithFilter<TRow, TSummaryRow>[];
   subqueryColumns: Record<string, ColumnWithFilter<TRow, TSummaryRow>[]>;
 }
@@ -262,7 +304,7 @@ export interface SalesforceQueryColumnDefinition<TRow, TSummaryRow = unknown> {
 // Imperative ref API (unchanged signatures)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export interface DataTableRef<T> {
+export interface DataTableRef<T extends object> {
   hasSortApplied: () => boolean;
   getFilteredAndSortedRows: () => readonly T[];
   hasReorderedColumns: () => boolean;
@@ -282,7 +324,7 @@ export interface FilterContextProps {
   updateFilter: (column: string, filter: DataTableFilter) => void;
 }
 
-export interface SubqueryContext<TRow = any> {
+export interface SubqueryContext<TRow extends object = any> {
   serverUrl: string;
   skipFrontdoorLogin: boolean;
   org: SalesforceOrgUi;
@@ -334,7 +376,7 @@ export type ContextAction =
   | 'COPY_TABLE_CSV'
   | 'VIEW_FIELD_METADATA';
 
-export type ContextMenuActionData<T> = {
+export type ContextMenuActionData<T extends object> = {
   row: T;
   rows: T[];
   rowIdx: number;
@@ -376,7 +418,7 @@ export interface PasteEvent {
  * custom menu for that cell (the native browser menu is allowed through). Builders run for data-row
  * right-clicks; column-header right-clicks use the static list (filtered to column-scoped actions).
  */
-export type ContextMenuItems<T> = ContextMenuItem[] | ((data: ContextMenuActionData<T>) => ContextMenuItem[]);
+export type ContextMenuItems<T extends object> = ContextMenuItem[] | ((data: ContextMenuActionData<T>) => ContextMenuItem[]);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Internal: meta carried on TanStack `ColumnDef.meta` so presentational components can
@@ -385,7 +427,7 @@ export type ContextMenuItems<T> = ContextMenuItem[] | ((data: ContextMenuActionD
 
 export type CellKind = 'data' | 'select' | 'action' | 'rowheader';
 
-export interface JetstreamColumnMeta<TRow = RowWithKey, TSummaryRow = unknown> {
+export interface JetstreamColumnMeta<TRow extends object = RowWithKey, TSummaryRow = unknown> {
   /** The original author-facing column, passed back to renderers/editors. */
   column: ColumnWithFilter<TRow, TSummaryRow>;
   filters?: FilterType[];
@@ -401,15 +443,14 @@ export interface JetstreamColumnMeta<TRow = RowWithKey, TSummaryRow = unknown> {
 }
 
 declare module '@tanstack/react-table' {
+  // Generic lists must mirror v9's declarations exactly (arity, constraints, variance) or the merge fails.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  interface ColumnMeta<TData extends RowData, TValue> {
+  interface ColumnMeta<in out TFeatures extends TableFeatures, in out TData extends RowData, TValue extends CellData = CellData> {
     jetstream?: JetstreamColumnMeta<TData>;
   }
   // Expose our table on the cell/header context without per-call casts
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-object-type
-  interface TableMeta<TData extends RowData> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface TableMeta<in out TFeatures extends TableFeatures, in out TData extends RowData> {
     gridId?: string;
   }
 }
-
-export type { Header, Row, Table };

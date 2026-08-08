@@ -1,14 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Table } from '@tanstack/react-table';
-import { CSSProperties, ReactNode } from 'react';
+import { CSSProperties, memo, ReactNode } from 'react';
 import { getSummaryRowId, HEADER_ROW_ID } from '../grid-constants';
-import { DataTableHeaderProps } from '../grid-types';
+import { DataTableHeaderProps, TanstackTable } from '../grid-types';
 import { ActiveCell } from './GridRow';
 import { GridSummaryRow } from './GridSummaryRow';
 import { HeaderCell } from './HeaderCell';
 
-export interface GridHeaderProps<TRow, TSummaryRow = unknown> {
-  table: Table<TRow>;
+export interface GridHeaderProps<TRow extends object, TSummaryRow = unknown> {
+  table: TanstackTable<TRow>;
   gridTemplateColumns: string;
   /** Visible leaf-column indexes to render (windowed + always-on frozen), keeps header aligned with the body. */
   visibleColumnIndexes: number[];
@@ -18,8 +17,9 @@ export interface GridHeaderProps<TRow, TSummaryRow = unknown> {
   /** Fixed height (px) per summary row; content-sized when omitted. */
   summaryRowHeight?: number;
   onHeaderContextMenu?: (event: React.MouseEvent, columnId: string) => void;
-  /** Active cell — used to drive roving tabindex when the header row is keyboard-focused. */
-  activeCell?: ActiveCell | null;
+  /** Active cell NARROWED to the sticky header/summary block (null while a body cell is active) —
+   * drives roving tabindex without re-rendering the memoized header on body-cell navigation. */
+  stickyActiveCell?: ActiveCell | null;
   /** Mouse down on a header cell — makes it the keyboard-active cell. */
   onHeaderCellMouseDown?: (columnId: string) => void;
   /** Mouse down on a summary cell — makes it the keyboard-active cell. */
@@ -34,7 +34,7 @@ export interface GridHeaderProps<TRow, TSummaryRow = unknown> {
   onColumnReorder?: (sourceColumnId: string, targetColumnId: string, side: 'left' | 'right') => void;
 }
 
-export function GridHeader<TRow, TSummaryRow = unknown>({
+function GridHeaderComponent<TRow extends object, TSummaryRow = unknown>({
   table,
   gridTemplateColumns,
   visibleColumnIndexes,
@@ -42,7 +42,7 @@ export function GridHeader<TRow, TSummaryRow = unknown>({
   summaryRows,
   summaryRowHeight,
   onHeaderContextMenu,
-  activeCell,
+  stickyActiveCell,
   onHeaderCellMouseDown,
   onSummaryCellMouseDown,
   draggingColumnId,
@@ -53,7 +53,7 @@ export function GridHeader<TRow, TSummaryRow = unknown>({
   const leafColumns = table.getVisibleLeafColumns();
   const style: CSSProperties = { gridTemplateColumns };
   const visibleIndexSet = new Set(visibleColumnIndexes);
-  const activeHeaderColumnId = activeCell?.rowId === HEADER_ROW_ID ? activeCell.columnId : null;
+  const activeHeaderColumnId = stickyActiveCell?.rowId === HEADER_ROW_ID ? stickyActiveCell.columnId : null;
 
   return (
     <div role="rowgroup" className="jgrid-header">
@@ -113,10 +113,17 @@ export function GridHeader<TRow, TSummaryRow = unknown>({
           ariaRowIndex={index + 2}
           height={summaryRowHeight}
           rowId={getSummaryRowId(index)}
-          activeCell={activeCell}
+          activeCell={stickyActiveCell}
           onSummaryCellMouseDown={onSummaryCellMouseDown}
         />
       ))}
     </div>
   );
 }
+
+// Shallow memo: every prop is either referentially stable (table facade, useCallback handlers,
+// upstream-memoized layout arrays) or changes exactly when the header must repaint (drag state,
+// stickyActiveCell, summary rows). Sort badges and the select-all checkbox re-render themselves via
+// their own fine-grained subscriptions in HeaderCell, so sort clicks / row selection / quick-filter
+// typing / body navigation all skip the entire header block.
+export const GridHeader = memo(GridHeaderComponent) as typeof GridHeaderComponent;

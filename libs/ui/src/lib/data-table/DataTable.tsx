@@ -20,7 +20,9 @@ import {
  * the legacy prop surface (selectedRows Set, rowHeight number|fn, topSummaryRows, etc.) so call sites
  * migrate with no code changes.
  */
-export interface DataTableProps<T = RowWithKey, TContext = Record<string, any>> {
+export interface DataTableProps<T extends object = RowWithKey, TContext = Record<string, any>> {
+  /** Spreadsheet-style cell range selection on data cells (drag / shift-click / Ctrl-click). Default true. */
+  enableCellSelection?: boolean;
   data: T[];
   columns: ColumnWithFilter<T>[];
   getRowKey: (row: T) => string;

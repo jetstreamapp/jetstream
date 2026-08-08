@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ContextMenuItem } from '@jetstream/types';
-import { Table } from '@tanstack/react-table';
+import { shallow, useSelector } from '@tanstack/react-store';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import classNames from 'classnames';
 import { CSSProperties, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ContextMenu } from '../../../form/context-menu/ContextMenu';
 import { EditorHost } from '../editors/EditorHost';
 import { reorderColumnOrder } from '../grid-column-utils';
-import { NON_DATA_COLUMN_KEYS } from '../grid-constants';
-import { GridRuntime, GridRuntimeContext } from '../grid-context';
+import { HEADER_ROW_ID, isSummaryRowId, NON_DATA_COLUMN_KEYS } from '../grid-constants';
+import { GridRuntime, GridRuntimeContext, selectRowModelInputs } from '../grid-context';
 import { computePasteTargets, flashPastedCells, parsePastedText } from '../grid-paste';
 import { getSortedFilteredLeafRows } from '../grid-row-utils';
 import {
@@ -19,8 +19,10 @@ import {
   GridCellRef,
   PasteEvent,
   RowWithKey,
+  TanstackTable,
 } from '../grid-types';
 import { useGridKeyboardNavigation } from '../keyboard/useGridKeyboardNavigation';
+import { getActiveRangeRect, getSelectionBounds, hasMultiCellSelection } from '../selection/grid-selection';
 import { GridBody, RowHeightFn } from './GridBody';
 import { GridHeader } from './GridHeader';
 import { ActiveCell } from './GridRow';
@@ -46,7 +48,7 @@ const COLUMN_SCOPED_CONTEXT_ACTIONS = new Set<unknown>([
   'COPY_TABLE_CSV',
 ]);
 
-interface ContextMenuState<TRow = any> {
+interface ContextMenuState<TRow extends object = any> {
   area: 'cell' | 'header';
   /** Set for cell menus; absent for header menus. */
   rowId?: string;
@@ -58,8 +60,8 @@ interface ContextMenuState<TRow = any> {
   actionData: ContextMenuActionData<TRow> | null;
 }
 
-export interface GridContainerProps<TRow> {
-  table: Table<TRow>;
+export interface GridContainerProps<TRow extends object> {
+  table: TanstackTable<TRow>;
   gridId: string;
   getRowKey: (row: TRow) => string;
   orderedColumns: ColumnWithFilter<TRow>[];
@@ -103,7 +105,7 @@ export interface GridContainerProps<TRow> {
   autoRowHeight?: boolean;
 }
 
-export function GridContainer<TRow = RowWithKey>({
+export function GridContainer<TRow extends object = RowWithKey>({
   table,
   gridId,
   getRowKey,
@@ -160,6 +162,25 @@ export function GridContainer<TRow = RowWithKey>({
     // keep the active cell so closing the overlay returns to a live grid coordinate.
     return relatedTarget instanceof HTMLElement && !!relatedTarget.closest('.jgrid-editor, .slds-popover, .slds-modal');
   }, []);
+
+  // Paste/clear eligibility: `editable` alone (no `renderEditCell` required). Checkbox-style tables
+  // (permission manager, automation control) mark columns editable WITHOUT the popup-editor framework —
+  // their cells accept pasted values via onPaste but Enter/double-click still activates the checkbox.
+  const isCellPasteTarget = useCallback(
+    (cell: ActiveCell): boolean => {
+      const column = table.getColumn(cell.columnId);
+      const editable = column?.columnDef.meta?.jetstream?.editable;
+      if (!editable) {
+        return false;
+      }
+      if (typeof editable === 'function') {
+        const row = table.getRowModel().rows.find((candidate) => candidate.id === cell.rowId);
+        return !!row && editable(row.original);
+      }
+      return editable === true;
+    },
+    [table],
+  );
 
   const isColumnEditable = useCallback(
     (cell: ActiveCell): boolean => {
@@ -262,6 +283,11 @@ export function GridContainer<TRow = RowWithKey>({
   // Announce the matching row count after the filter set changes (the filtered model is pre-grouping, so
   // this counts data rows and isn't perturbed by expanding/collapsing groups or sorting). Skips the
   // initial render so the grid doesn't announce on mount.
+  // Correctness linchpin now that `expanded` bypasses React state: the row model must be re-read
+  // (rowIndexById, the row-count announcer, context menus) whenever any of its inputs change — this
+  // subscription is what re-renders the container for internal-mode expand/collapse.
+  useSelector(table.store, selectRowModelInputs, { compare: shallow });
+
   const filteredRowCount = table.getFilteredRowModel().rows.length;
   const previousFilteredRowCountRef = useRef<number | null>(null);
   useEffect(() => {
@@ -272,7 +298,7 @@ export function GridContainer<TRow = RowWithKey>({
   }, [filteredRowCount, announce]);
 
   const leafColumns = table.getVisibleLeafColumns();
-  const columnSizing = table.getState().columnSizing;
+  const columnSizing = table.store.state.columnSizing;
 
   // Recompute the grid template whenever sizing changes. With `columnResizeMode: 'onEnd'` widths only
   // change when the drag is released (columnSizing updates), so this intentionally does NOT depend on
@@ -341,17 +367,9 @@ export function GridContainer<TRow = RowWithKey>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyboardNav.activeCell?.columnId]);
 
-  // Anchor for shift-click range selection — the last row whose checkbox was toggled when a range wasn't applied.
-  // A private ref exposed via stable getter/setter (a context value can't be mutated directly), so
-  // every select cell's range-select handler agrees on the anchor.
-  const rowSelectionAnchorRef = useRef<string | null>(null);
-  const getRowSelectionAnchor = useCallback(() => rowSelectionAnchorRef.current, []);
-  const setRowSelectionAnchor = useCallback((rowId: string | null) => {
-    rowSelectionAnchorRef.current = rowId;
-  }, []);
   const runtime: GridRuntime<TRow> = useMemo(
-    () => ({ table, gridId, getRowKey, columns: orderedColumns, getRowSelectionAnchor, setRowSelectionAnchor }),
-    [table, gridId, getRowKey, orderedColumns, getRowSelectionAnchor, setRowSelectionAnchor],
+    () => ({ table, gridId, getRowKey, columns: orderedColumns }),
+    [table, gridId, getRowKey, orderedColumns],
   );
 
   const rowModelRows = table.getRowModel().rows;
@@ -371,34 +389,39 @@ export function GridContainer<TRow = RowWithKey>({
     return map;
   }, [leafColumns]);
 
-  const { activeCell, anchorCell } = keyboardNav;
+  const { activeCell } = keyboardNav;
+  // Narrow the active cell to the sticky header/summary block. GridHeader is memoized, so handing it
+  // the raw (new-identity-per-move) activeCell would re-render the whole header on every body-cell
+  // arrow key; with this narrowing it only re-renders when focus enters/leaves/moves within the block.
+  const stickyActiveCell = useMemo(
+    () => (activeCell && (activeCell.rowId === HEADER_ROW_ID || isSummaryRowId(activeCell.rowId)) ? activeCell : null),
+    [activeCell],
+  );
+  // Re-render on any cell-selection change (the slice is atom-owned, so nothing above re-renders for
+  // it); the bounds read below is a memoized core lookup and stays fresh at render time.
+  const cellSelectionState = useSelector(table.atoms.cellSelection, (selection) => selection);
+  const selectionBounds = useMemo(
+    () => getSelectionBounds(table),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [table, cellSelectionState, rowIndexById, colIndexById],
+  );
+  const hasRangeSelection = hasMultiCellSelection(selectionBounds);
+  // Single-rectangle view of the ACTIVE range for paste/clear/revert targeting (Excel parity: those
+  // operate on one rectangle). Null when the selection is collapsed to a single cell — same contract
+  // as the legacy anchor/active-derived shape.
   const selectionRange = useMemo(() => {
-    if (!activeCell || !anchorCell) {
-      return null;
-    }
-    const anchorRow = rowIndexById.get(anchorCell.rowId);
-    const activeRow = rowIndexById.get(activeCell.rowId);
-    const anchorCol = colIndexById.get(anchorCell.columnId);
-    const activeCol = colIndexById.get(activeCell.columnId);
-    if (anchorRow == null || activeRow == null || anchorCol == null || activeCol == null) {
-      return null;
-    }
-    const minRow = Math.min(anchorRow, activeRow);
-    const maxRow = Math.max(anchorRow, activeRow);
-    const minCol = Math.min(anchorCol, activeCol);
-    const maxCol = Math.max(anchorCol, activeCol);
-    // A collapsed (single-cell) selection is just the active cell — no range highlight.
-    if (minRow === maxRow && minCol === maxCol) {
-      return null;
-    }
-    return { minRow, maxRow, minCol, maxCol };
-  }, [activeCell, anchorCell, rowIndexById, colIndexById]);
+    const rect = getActiveRangeRect(table);
+    return rect && (rect.minRow !== rect.maxRow || rect.minCol !== rect.maxCol) ? rect : null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [table, cellSelectionState, rowIndexById, colIndexById]);
 
-  // Resolve the editable cells in the current selection (single active cell or range) for the given
-  // fill matrix. Shared by paste (parsed clipboard), clear, and revert (a `[['']]` matrix enumerates
-  // every editable cell). Returns empty when the active cell is a header/summary (non-data) cell.
+  // Resolve the editable cells in the current selection for the given fill matrix. Shared by paste
+  // (parsed clipboard), clear, and revert (a `[['']]` matrix enumerates every editable cell). Paste
+  // targets the ACTIVE rectangle only (Excel parity — pasting into disjoint ranges is ambiguous);
+  // clear/revert pass `scope: 'all'` to hit every selection rectangle. Returns empty when the active
+  // cell is a header/summary (non-data) cell.
   const getEditableSelectionCells = useCallback(
-    (matrix: string[][]): PasteEvent => {
+    (matrix: string[][], scope: 'active' | 'all' = 'active'): PasteEvent => {
       if (!activeCell) {
         return { cells: [], skippedCount: 0 };
       }
@@ -407,17 +430,39 @@ export function GridContainer<TRow = RowWithKey>({
       if (activeRow == null || activeCol == null) {
         return { cells: [], skippedCount: 0 };
       }
-      const selRect = selectionRange ?? { minRow: activeRow, maxRow: activeRow, minCol: activeCol, maxCol: activeCol };
-      return computePasteTargets({
-        rows: rowModelRows,
-        columns: leafColumns,
-        selRect,
-        matrix,
-        isColumnEditable: (rowId, columnId) => isColumnEditable({ rowId, columnId }),
-        getRowKey,
-      });
+      const fallbackRect = { minRow: activeRow, maxRow: activeRow, minCol: activeCol, maxCol: activeCol };
+      const rects =
+        scope === 'all' && selectionBounds.length
+          ? selectionBounds.map((rect) => ({
+              minRow: rect.minRowIndex,
+              maxRow: rect.maxRowIndex,
+              minCol: rect.minColumnIndex,
+              maxCol: rect.maxColumnIndex,
+            }))
+          : [selectionRange ?? fallbackRect];
+      const combined: PasteEvent = { cells: [], skippedCount: 0 };
+      const seen = new Set<string>();
+      for (const selRect of rects) {
+        const { cells, skippedCount } = computePasteTargets({
+          rows: rowModelRows,
+          columns: leafColumns,
+          selRect,
+          matrix,
+          isColumnEditable: (rowId, columnId) => isCellPasteTarget({ rowId, columnId }),
+          getRowKey,
+        });
+        combined.skippedCount += skippedCount;
+        for (const cell of cells) {
+          const key = `${cell.rowKey}::${cell.columnKey}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            combined.cells.push(cell);
+          }
+        }
+      }
+      return combined;
     },
-    [activeCell, rowIndexById, colIndexById, selectionRange, rowModelRows, leafColumns, isColumnEditable, getRowKey],
+    [activeCell, rowIndexById, colIndexById, selectionRange, selectionBounds, rowModelRows, leafColumns, isCellPasteTarget, getRowKey],
   );
 
   // ── Paste (Ctrl/Cmd+V + context menu) ──────────────────────────────────────────────────────────
@@ -487,7 +532,7 @@ export function GridContainer<TRow = RowWithKey>({
     if (!onPaste) {
       return;
     }
-    const { cells, skippedCount } = getEditableSelectionCells([['']]);
+    const { cells, skippedCount } = getEditableSelectionCells([['']], 'all');
     if (!cells.length) {
       return;
     }
@@ -514,28 +559,37 @@ export function GridContainer<TRow = RowWithKey>({
       if (activeRow == null || activeCol == null) {
         return 0;
       }
-      const selRect = selectionRange ?? { minRow: activeRow, maxRow: activeRow, minCol: activeCol, maxCol: activeCol };
+      const rects = selectionBounds.length
+        ? selectionBounds.map((rect) => ({
+            minRow: rect.minRowIndex,
+            maxRow: rect.maxRowIndex,
+            minCol: rect.minColumnIndex,
+            maxCol: rect.maxColumnIndex,
+          }))
+        : [{ minRow: activeRow, maxRow: activeRow, minCol: activeCol, maxCol: activeCol }];
       let count = 0;
       let scanned = 0;
-      for (let rowIndex = selRect.minRow; rowIndex <= selRect.maxRow; rowIndex++) {
-        const row = rowModelRows[rowIndex];
-        // Synthetic group/aggregate rows have no editable data cells.
-        if (!row || row.getIsGrouped?.()) {
-          continue;
-        }
-        const rowKey = getRowKey(row.original);
-        for (let colIndex = selRect.minCol; colIndex <= selRect.maxCol; colIndex++) {
-          if (++scanned > REVERT_SCAN_CELL_BUDGET) {
-            return cap;
-          }
-          const column = leafColumns[colIndex];
-          if (!column || !isCellDirty(rowKey, column.id)) {
+      for (const selRect of rects) {
+        for (let rowIndex = selRect.minRow; rowIndex <= selRect.maxRow; rowIndex++) {
+          const row = rowModelRows[rowIndex];
+          // Synthetic group/aggregate rows have no editable data cells.
+          if (!row || row.getIsGrouped?.()) {
             continue;
           }
-          if (isColumnEditable({ rowId: row.id, columnId: column.id })) {
-            count++;
-            if (count >= cap) {
-              return count;
+          const rowKey = getRowKey(row.original);
+          for (let colIndex = selRect.minCol; colIndex <= selRect.maxCol; colIndex++) {
+            if (++scanned > REVERT_SCAN_CELL_BUDGET) {
+              return cap;
+            }
+            const column = leafColumns[colIndex];
+            if (!column || !isCellDirty(rowKey, column.id)) {
+              continue;
+            }
+            if (isColumnEditable({ rowId: row.id, columnId: column.id })) {
+              count++;
+              if (count >= cap) {
+                return count;
+              }
             }
           }
         }
@@ -548,7 +602,7 @@ export function GridContainer<TRow = RowWithKey>({
       activeCell,
       rowIndexById,
       colIndexById,
-      selectionRange,
+      selectionBounds,
       rowModelRows,
       leafColumns,
       isColumnEditable,
@@ -561,7 +615,7 @@ export function GridContainer<TRow = RowWithKey>({
     if (!onRevertCells || !isCellDirty) {
       return [];
     }
-    return getEditableSelectionCells([['']]).cells.filter((cell) => isCellDirty(cell.rowKey, cell.columnKey));
+    return getEditableSelectionCells([['']], 'all').cells.filter((cell) => isCellDirty(cell.rowKey, cell.columnKey));
   }, [onRevertCells, isCellDirty, getEditableSelectionCells]);
 
   const revertSelection = useCallback(
@@ -617,7 +671,7 @@ export function GridContainer<TRow = RowWithKey>({
       // requires an active cell to anchor the target, so match the renderer's `onPaste && activeCell`
       // gate — otherwise right-clicking before a cell is focused suppresses the native menu for an
       // empty custom one.
-      if (!items.length && !selectionRange && !(onPaste && activeCell)) {
+      if (!items.length && !hasRangeSelection && !(onPaste && activeCell)) {
         return;
       }
       event.preventDefault();
@@ -626,7 +680,7 @@ export function GridContainer<TRow = RowWithKey>({
       setContextMenu(null);
       setTimeout(() => setContextMenu({ area: 'cell', rowId, columnId, element, items, actionData }));
     },
-    [contextMenuAction, buildCellActionData, resolveCellMenuItems, selectionRange, onPaste, activeCell],
+    [contextMenuAction, buildCellActionData, resolveCellMenuItems, hasRangeSelection, onPaste, activeCell],
   );
 
   // Right-clicking a column HEADER offers the column/table-scoped copy actions — only for a static item
@@ -784,7 +838,7 @@ export function GridContainer<TRow = RowWithKey>({
               summaryRows={summaryRows}
               summaryRowHeight={summaryRowHeight}
               onHeaderContextMenu={handleHeaderContextMenu}
-              activeCell={keyboardNav.activeCell}
+              stickyActiveCell={stickyActiveCell}
               onHeaderCellMouseDown={keyboardNav.handleHeaderCellMouseDown}
               onSummaryCellMouseDown={keyboardNav.handleSummaryCellMouseDown}
               draggingColumnId={draggingColumnId}
@@ -804,7 +858,7 @@ export function GridContainer<TRow = RowWithKey>({
               mode={keyboardNav.mode}
               getLastInteractionSource={keyboardNav.getLastInteractionSource}
               editingCell={editingCell}
-              selectionRange={selectionRange}
+              selectionBounds={selectionBounds}
               onCellMouseDown={keyboardNav.handleCellMouseDown}
               onCellMouseEnter={keyboardNav.handleCellMouseEnter}
               onCellContextMenu={handleCellContextMenu}
@@ -845,7 +899,7 @@ export function GridContainer<TRow = RowWithKey>({
             const revertableCount = contextMenu.area === 'cell' ? countRevertableSelectionCells(2) : 0;
             // Grid-injected, selection-aware actions (copy/paste/revert), shown above the consumer's items.
             const gridItems: ContextMenuItem[] = [
-              ...(selectionRange
+              ...(hasRangeSelection
                 ? [
                     { label: 'Copy selected cells', value: COPY_RANGE_ACTION } as ContextMenuItem,
                     { label: 'Copy selected cells with header', value: COPY_RANGE_WITH_HEADER_ACTION } as ContextMenuItem,

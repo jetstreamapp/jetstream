@@ -37,7 +37,7 @@ function buildTabRow(label: string, apiName: string): PermissionTableTabVisibili
   };
 }
 
-function getTableLabelSetValues<TRow>(columns: ColumnWithFilter<TRow, any>[], rows: TRow[]) {
+function getTableLabelSetValues<TRow extends object>(columns: ColumnWithFilter<TRow, any>[], rows: TRow[]) {
   return computeFilterSetValues(columns as ColumnWithFilter<TRow>[], rows)['tableLabel'];
 }
 

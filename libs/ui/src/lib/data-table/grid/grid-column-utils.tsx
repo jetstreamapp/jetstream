@@ -243,7 +243,11 @@ function getColumnTypeFromQueryResultsColumn(col: QueryResultsColumn): ColumnTyp
   return 'text';
 }
 
-export function setColumnFromType<T>(key: string, fieldType: ColumnType, defaultProps?: Partial<Mutable<ColumnWithFilter<T>>>) {
+export function setColumnFromType<T extends object>(
+  key: string,
+  fieldType: ColumnType,
+  defaultProps?: Partial<Mutable<ColumnWithFilter<T>>>,
+) {
   const column: Partial<Mutable<ColumnWithFilter<T>>> = { ...defaultProps, key };
   updateColumnFromType(column as Mutable<ColumnWithFilter<T>>, fieldType);
   return column;

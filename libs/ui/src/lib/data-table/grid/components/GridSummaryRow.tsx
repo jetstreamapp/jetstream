@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Column } from '@tanstack/react-table';
 import classNames from 'classnames';
 import { CSSProperties } from 'react';
+import { TanstackColumn } from '../grid-types';
 import { ActiveCell } from './GridRow';
 import { getFrozenCellStyle } from './grid-layout';
 
-export interface GridSummaryRowProps<TRow, TSummaryRow> {
+export interface GridSummaryRowProps<TRow extends object, TSummaryRow> {
   summaryRow: TSummaryRow;
-  columns: Column<TRow, unknown>[];
+  columns: TanstackColumn<TRow>[];
   gridTemplateColumns: string;
   /** Visible leaf-column indexes to render (windowed + always-on frozen). */
   visibleColumnIndexes: number[];
@@ -27,7 +27,7 @@ export interface GridSummaryRowProps<TRow, TSummaryRow> {
  * `renderSummaryCell` (e.g. select-all / reset column actions, aggregates). Full content freedom —
  * the legacy grid faked these through react-data-grid's constrained summary mechanism.
  */
-export function GridSummaryRow<TRow, TSummaryRow>({
+export function GridSummaryRow<TRow extends object, TSummaryRow>({
   summaryRow,
   columns,
   gridTemplateColumns,

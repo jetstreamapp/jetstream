@@ -1,14 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Column, Row } from '@tanstack/react-table';
+import { useSelector } from '@tanstack/react-store';
 import { CSSProperties } from 'react';
 import Icon from '../../../widgets/Icon';
-import { DataTableGroupCellProps } from '../grid-types';
+import { DataTableGroupCellProps, TanstackColumn, TanstackRow, TanstackTable } from '../grid-types';
 import { ActiveCell } from './GridRow';
 import { getFrozenCellStyle } from './grid-layout';
 
-export interface GridGroupRowProps<TRow> {
-  row: Row<TRow>;
-  columns: Column<TRow, unknown>[];
+export interface GridGroupRowProps<TRow extends object> {
+  table: TanstackTable<TRow>;
+  row: TanstackRow<TRow>;
+  columns: TanstackColumn<TRow>[];
   gridTemplateColumns: string;
   /** Visible leaf-column indexes to render (windowed + always-on frozen). */
   visibleColumnIndexes: number[];
@@ -18,7 +19,7 @@ export interface GridGroupRowProps<TRow> {
   /** Pinned row height (px) from the virtualizer (see GridRow). */
   height: number;
   activeCell?: ActiveCell | null;
-  onCellMouseDown?: (rowId: string, columnId: string, shiftKey: boolean, button?: number) => void;
+  onCellMouseDown?: (rowId: string, columnId: string, shiftKey: boolean, button?: number, ctrlOrMetaKey?: boolean) => void;
   /** When true the group row sizes to its content instead of being pinned to `height`. */
   autoHeight?: boolean;
   /** Virtualizer `measureElement` ref; attached in auto-height mode so the row's real height is measured. */
@@ -29,7 +30,7 @@ export interface GridGroupRowProps<TRow> {
 // (instances are recreated whenever the row model recomputes, so the cache can never go stale).
 const childRowsCache = new WeakMap<object, unknown[]>();
 
-function getChildRows<TRow>(row: Row<TRow>): TRow[] {
+function getChildRows<TRow extends object>(row: TanstackRow<TRow>): TRow[] {
   let cached = childRowsCache.get(row);
   if (!cached) {
     cached = row.getLeafRows().map((leaf) => leaf.original);
@@ -44,7 +45,8 @@ function getChildRows<TRow>(row: Row<TRow>): TRow[] {
  * (honoring `colSpan`), or — when no column does — we fall back to a single full-width header with a
  * chevron, the grouping value, and the child count. This is the flexibility the rewrite was for.
  */
-export function GridGroupRow<TRow>({
+export function GridGroupRow<TRow extends object>({
+  table,
   row,
   columns,
   gridTemplateColumns,
@@ -58,6 +60,10 @@ export function GridGroupRow<TRow>({
   autoHeight,
   measureRef,
 }: GridGroupRowProps<TRow>) {
+  // Group select-all checkboxes derive from descendant selection, and rowSelection lives in an atom
+  // (no re-render from above on toggles) — subscribe to the whole slice; group rows are few, so the
+  // identity projection is cheap.
+  useSelector(table.atoms.rowSelection, (selection) => selection);
   const isExpanded = row.getIsExpanded();
   const firstColumnId = columns[0]?.id;
   const isActive = !!activeCell && activeCell.rowId === row.id;
