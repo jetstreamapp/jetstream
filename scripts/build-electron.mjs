@@ -2,7 +2,7 @@
 import 'dotenv/config';
 import { readFileSync, writeFileSync } from 'fs';
 import { copy, ensureDir, remove } from 'fs-extra';
-import yaml from 'js-yaml';
+import { dump as dumpYaml, load as loadYaml } from 'js-yaml';
 import minimist from 'minimist';
 import { join } from 'path';
 import { $, cd, chalk, usePowerShell } from 'zx'; // https://github.com/google/zx
@@ -113,7 +113,7 @@ const packageManagerAddProdDeps = () => {
 
 function prepareTargetPackageJson() {
   const rootPackageJson = JSON.parse(readFileSync(ROOT_PACKAGE_JSON_PATH, 'utf-8'));
-  const rootWorkspace = yaml.load(readFileSync(ROOT_PNPM_WORKSPACE_PATH, 'utf-8')) ?? {};
+  const rootWorkspace = loadYaml(readFileSync(ROOT_PNPM_WORKSPACE_PATH, 'utf-8'));
   const targetPackageJson = JSON.parse(readFileSync(TARGET_PACKAGE_JSON_PATH, 'utf-8'));
 
   targetPackageJson.engines = rootPackageJson.engines;
@@ -125,7 +125,7 @@ function prepareTargetPackageJson() {
   // TARGET_DIR becomes a self-contained workspace root with no nested member packages.
   // This isolates the subsequent `pnpm add` calls from the parent repo's workspace/lockfile.
   const targetWorkspace = { ...rootWorkspace, packages: [] };
-  writeFileSync(TARGET_PNPM_WORKSPACE_PATH, yaml.dump(targetWorkspace));
+  writeFileSync(TARGET_PNPM_WORKSPACE_PATH, dumpYaml(targetWorkspace));
 }
 
 async function build() {

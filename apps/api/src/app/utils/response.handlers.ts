@@ -51,10 +51,10 @@ export function setCookieHeaders(res: Response) {
     Object.values(res.locals?.cookies || {}).forEach(({ name, options, clear, value }) => {
       try {
         if (clear) {
-          res.appendHeader('Set-Cookie', stringifySetCookie(name, '', { ...options, expires: new Date(0) }));
+          res.appendHeader('Set-Cookie', stringifySetCookie({ name, value: '', ...options, expires: new Date(0) }));
           return;
         }
-        res.appendHeader('Set-Cookie', stringifySetCookie(name, value, options));
+        res.appendHeader('Set-Cookie', stringifySetCookie({ name, value, ...options }));
       } catch (ex) {
         getLogger().error({ err: ex }, 'Error setting cookie: %s', name);
       }
