@@ -9,7 +9,7 @@ import { DataTableRef, RowWithKey } from './grid/grid-types';
  * Public tree/grouped data table. Bridges the legacy `groupBy` / `expandedGroupIds` (Set of group
  * values) API to the new grid's TanStack grouping + expanded state.
  */
-export interface DataTreeProps<T = RowWithKey, TContext = Record<string, any>> extends DataTableProps<T, TContext> {
+export interface DataTreeProps<T extends object = RowWithKey, TContext = Record<string, any>> extends DataTableProps<T, TContext> {
   groupBy: readonly (keyof T)[];
   /** Accepted for API compatibility; the grid groups internally so this is not used. */
   rowGrouper?: (rows: readonly T[], columnKey: keyof T) => Record<string, readonly T[]>;
@@ -51,7 +51,9 @@ function DataTreeInner<T extends object = RowWithKey>(props: DataTreeProps<T>, r
   }, [onExpandedGroupIdsChange, groupColumnId]);
 
   const mapped = useMappedV2Props(rest as DataTableProps<T>);
-  return <DataTableV2<T> {...mapped} grouping={grouping} expanded={expanded} onExpandedChange={onExpandedChange} ref={ref} role="treegrid" />;
+  return (
+    <DataTableV2<T> {...mapped} grouping={grouping} expanded={expanded} onExpandedChange={onExpandedChange} ref={ref} role="treegrid" />
+  );
 }
 
 export const DataTree = forwardRef(DataTreeInner) as unknown as <T extends object = RowWithKey>(

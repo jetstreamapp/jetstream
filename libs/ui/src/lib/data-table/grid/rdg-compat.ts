@@ -17,35 +17,38 @@ export { SELECT_COLUMN_KEY } from './grid-constants';
 export type { SortColumn } from './grid-types';
 export { SelectColumn } from './renderers/CellRenderers';
 
-export type Column<TRow, TSummaryRow = unknown> = ColumnWithFilter<TRow, TSummaryRow>;
-export type CalculatedColumn<TRow, TSummaryRow = unknown> = ColumnWithFilter<TRow, TSummaryRow> & { readonly idx?: number };
+export type Column<TRow extends object, TSummaryRow = unknown> = ColumnWithFilter<TRow, TSummaryRow>;
+export type CalculatedColumn<TRow extends object, TSummaryRow = unknown> = ColumnWithFilter<TRow, TSummaryRow> & { readonly idx?: number };
 
-export type RenderCellProps<TRow, TSummaryRow = unknown> = DataTableCellProps<TRow, TSummaryRow>;
-export type RenderGroupCellProps<TRow, TSummaryRow = unknown> = DataTableGroupCellProps<TRow, TSummaryRow>;
-export type RenderHeaderCellProps<TRow, TSummaryRow = unknown> = DataTableHeaderProps<TRow, TSummaryRow>;
-export type RenderSummaryCellProps<TRow, TSummaryRow = unknown> = DataTableSummaryCellProps<TRow, TSummaryRow>;
-export type RenderEditCellProps<TRow, TSummaryRow = unknown> = DataTableEditorProps<TRow, TSummaryRow>;
+export type RenderCellProps<TRow extends object, TSummaryRow = unknown> = DataTableCellProps<TRow, TSummaryRow>;
+export type RenderGroupCellProps<TRow extends object, TSummaryRow = unknown> = DataTableGroupCellProps<TRow, TSummaryRow>;
+export type RenderHeaderCellProps<TRow extends object, TSummaryRow = unknown> = DataTableHeaderProps<TRow, TSummaryRow>;
+export type RenderSummaryCellProps<TRow extends object, TSummaryRow = unknown> = DataTableSummaryCellProps<TRow, TSummaryRow>;
+export type RenderEditCellProps<TRow extends object, TSummaryRow = unknown> = DataTableEditorProps<TRow, TSummaryRow>;
 
-export interface RowsChangeData<TRow, TSummaryRow = unknown> {
+export interface RowsChangeData<TRow extends object, TSummaryRow = unknown> {
   indexes: number[];
   column: ColumnWithFilter<TRow, TSummaryRow>;
 }
 
-export interface CellMouseArgs<TRow, TSummaryRow = unknown> {
+export interface CellMouseArgs<TRow extends object, TSummaryRow = unknown> {
   row: TRow;
   column: ColumnWithFilter<TRow, TSummaryRow>;
   rowIdx?: number;
   selectCell?: () => void;
 }
 
-export interface CellKeyDownArgs<TRow, TSummaryRow = unknown> {
+export interface CellKeyDownArgs<TRow extends object, TSummaryRow = unknown> {
   row: TRow;
   column: ColumnWithFilter<TRow, TSummaryRow>;
   rowIdx: number;
   mode?: 'SELECT' | 'EDIT';
 }
 
-export type CellKeyboardEvent = React.KeyboardEvent<HTMLDivElement> & { preventGridDefault: () => void; isGridDefaultPrevented: () => boolean };
+export type CellKeyboardEvent = React.KeyboardEvent<HTMLDivElement> & {
+  preventGridDefault: () => void;
+  isGridDefaultPrevented: () => boolean;
+};
 export type CellMouseEvent = React.MouseEvent<HTMLDivElement> & { preventGridDefault: () => void };
 
 export interface RowHeightArgs<TRow> {
@@ -58,7 +61,7 @@ export interface RenderSortStatusProps {
   priority: number | undefined;
 }
 
-export interface Renderers<TRow, TSummaryRow = unknown> {
+export interface Renderers<TRow extends object, TSummaryRow = unknown> {
   renderSortStatus?: (props: RenderSortStatusProps) => React.ReactNode;
   renderCell?: (key: React.Key, props: DataTableCellProps<TRow, TSummaryRow>) => React.ReactNode;
 }

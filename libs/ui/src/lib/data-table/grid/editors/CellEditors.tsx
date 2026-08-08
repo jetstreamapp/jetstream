@@ -33,7 +33,7 @@ function editLabel(column: { name: unknown; key: string }): string {
   return `Edit ${isString(column.name) ? column.name : column.key}`;
 }
 
-export function EditorText<TRow>({ row, column, onRowChange, onClose }: DataTableEditorProps<TRow>) {
+export function EditorText<TRow extends object>({ row, column, onRowChange, onClose }: DataTableEditorProps<TRow>) {
   return (
     <Input id={`edit-${column.key}`} hideLabel label={editLabel(column)}>
       <input
@@ -49,7 +49,7 @@ export function EditorText<TRow>({ row, column, onRowChange, onClose }: DataTabl
   );
 }
 
-export function EditorBoolean<TRow>({ row, column, onRowChange, onClose }: DataTableEditorProps<TRow>) {
+export function EditorBoolean<TRow extends object>({ row, column, onRowChange, onClose }: DataTableEditorProps<TRow>) {
   const value = ((row as any)[column.key] as boolean) || false;
   const id = `edit-${column.key}-checkbox`;
   return (
@@ -74,7 +74,7 @@ export function EditorBoolean<TRow>({ row, column, onRowChange, onClose }: DataT
   );
 }
 
-export function EditorDate<TRow>({ row, column, onRowChange, onClose }: DataTableEditorProps<TRow>) {
+export function EditorDate<TRow extends object>({ row, column, onRowChange, onClose }: DataTableEditorProps<TRow>) {
   const currentValue = (row as any)[column.key] as string;
   const currentDate = currentValue ? parseISO(currentValue) : undefined;
   return (
@@ -91,7 +91,11 @@ export function EditorDate<TRow>({ row, column, onRowChange, onClose }: DataTabl
         // setTimeout avoids a React flushSync-during-render warning from the date picker.
         setTimeout(() => {
           onRowChange(
-            { ...row, [column.key]: value ? formatISO(value, { representation: 'date' }) : null, _touchedColumns: withTouched(row, column.key) },
+            {
+              ...row,
+              [column.key]: value ? formatISO(value, { representation: 'date' }) : null,
+              _touchedColumns: withTouched(row, column.key),
+            },
             true,
           );
         });
@@ -102,7 +106,13 @@ export function EditorDate<TRow>({ row, column, onRowChange, onClose }: DataTabl
 
 const BLANK_LIST_ITEM: ListItem = { id: '_BLANK_', label: '--None--', value: '' };
 
-export function editorDropdown<TRow>({ values: providedValues, isMultiSelect }: { values: ListItem[]; isMultiSelect: boolean }) {
+export function editorDropdown<TRow extends object>({
+  values: providedValues,
+  isMultiSelect,
+}: {
+  values: ListItem[];
+  isMultiSelect: boolean;
+}) {
   return function EditorDropdown({ row, column, onRowChange, onClose }: DataTableEditorProps<TRow>) {
     const allValues = useRef(new Set([BLANK_LIST_ITEM.value, ...providedValues.map((item) => item.value)]));
     const [values, setValues] = useState<ListItem[]>(() => [BLANK_LIST_ITEM, ...providedValues]);
@@ -167,7 +177,7 @@ export function editorDropdown<TRow>({ values: providedValues, isMultiSelect }: 
   };
 }
 
-export function editorRecordLookup<TRow>({ sobjects }: { sobjects: string[] }) {
+export function editorRecordLookup<TRow extends object>({ sobjects }: { sobjects: string[] }) {
   return function EditorRecordLookup(props: DataTableEditorProps<TRow>) {
     const { row, column, onRowChange } = props;
     const currentValue = (row as any)[column.key] as string;

@@ -2,12 +2,11 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { RECORD_PREFIX_MAP } from '@jetstream/shared/constants';
 import { getIdFromRecordUrl } from '@jetstream/shared/utils';
-import type { Row, Table } from '@tanstack/react-table';
 import isNil from 'lodash/isNil';
 import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
 import uniqueId from 'lodash/uniqueId';
-import { ColumnType, ColumnWithFilter } from './grid-types';
+import { ColumnType, ColumnWithFilter, TanstackRow, TanstackTable } from './grid-types';
 
 /**
  * The filtered + sorted DATA rows, independent of group expansion state: collapsed groups' leaves are
@@ -20,9 +19,9 @@ import { ColumnType, ColumnWithFilter } from './grid-types';
  * passes through the GROUPED model, whose flatRows contain every leaf twice (pushed once during
  * recursion and once per-group). Hence the getIsGrouped filter AND the id de-dupe.
  */
-export function getSortedFilteredLeafRows<TRow>(table: Table<TRow>): Row<TRow>[] {
+export function getSortedFilteredLeafRows<TRow extends object>(table: TanstackTable<TRow>): TanstackRow<TRow>[] {
   const seenRowIds = new Set<string>();
-  const leafRows: Row<TRow>[] = [];
+  const leafRows: TanstackRow<TRow>[] = [];
   for (const row of table.getSortedRowModel().flatRows) {
     if (!row.getIsGrouped() && !seenRowIds.has(row.id)) {
       seenRowIds.add(row.id);
@@ -30,41 +29,6 @@ export function getSortedFilteredLeafRows<TRow>(table: Table<TRow>): Row<TRow>[]
     }
   }
   return leafRows;
-}
-
-/**
- * Shift-click range selection: set every row between `anchorRowId` and `targetRowId` (inclusive, in the
- * current filtered/sorted/flattened display order) to the SAME selected state as the anchor row. Group
- * header rows and non-selectable rows are skipped. Returns `false` (without mutating selection) when
- * either id is no longer in the row model (e.g. the anchor was filtered out) so the caller can fall back
- * to a plain single-row toggle.
- */
-export function selectRowRange<TRow>(table: Table<TRow>, anchorRowId: string, targetRowId: string): boolean {
-  const rows = table.getRowModel().rows;
-  const anchorIndex = rows.findIndex((row) => row.id === anchorRowId);
-  const targetIndex = rows.findIndex((row) => row.id === targetRowId);
-  if (anchorIndex === -1 || targetIndex === -1) {
-    return false;
-  }
-  const selected = rows[anchorIndex].getIsSelected();
-  const start = Math.min(anchorIndex, targetIndex);
-  const end = Math.max(anchorIndex, targetIndex);
-  table.setRowSelection((prev) => {
-    const next = { ...prev };
-    for (let i = start; i <= end; i++) {
-      const row = rows[i];
-      if (row.getIsGrouped() || !row.getCanSelect()) {
-        continue;
-      }
-      if (selected) {
-        next[row.id] = true;
-      } else {
-        delete next[row.id];
-      }
-    }
-    return next;
-  });
-  return true;
 }
 
 const SFDC_EMPTY_ID = '000000000000000AAA';
@@ -110,7 +74,7 @@ export function getRowId(data: any): string {
  * Build a per-row lowercase search index ({ rowKey: concatenatedText }) used by the global quick
  * filter. Computed once per data/column change so the quick filter stays cheap on large datasets.
  */
-export function getSearchTextByRow<T>(
+export function getSearchTextByRow<T extends object>(
   rows: T[],
   columns: ColumnWithFilter<T>[],
   getRowKey: (row: T) => string,

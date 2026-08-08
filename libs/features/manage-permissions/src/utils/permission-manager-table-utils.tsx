@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { groupByFlat, orderValues, pluralizeFromNumber } from '@jetstream/shared/utils';
+import { ensureBoolean, groupByFlat, orderValues, pluralizeFromNumber } from '@jetstream/shared/utils';
 import type { ContextMenuItem } from '@jetstream/types';
 import {
   BulkActionCheckbox,
@@ -663,6 +663,20 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
           renderHeaderCell: () => <PermissionColumnGroupHeader id={id} label={label} type={type} />,
         }
       : {}),
+    // Paste/clear eligibility only (no popup editor): mirrors the checkbox's own disabled logic so
+    // pasted true/false values can never land on cells the user couldn't click.
+    editable: (row) => {
+      if (permissionType === 'tabVisibility' && 'canSetPermission' in row && !row.canSetPermission) {
+        return false;
+      }
+      if (isBlockedViewAllModifyAll(actionKey as PermissionTypes, row)) {
+        return false;
+      }
+      if (actionKey === 'edit' && 'allowEditPermission' in row && !row.allowEditPermission) {
+        return false;
+      }
+      return true;
+    },
     cellClass: (row) => {
       if (permissionType === 'object') {
         const permission = row.permissions[id] as PermissionTableObjectCellPermission;
@@ -763,7 +777,7 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
       );
 
       return (
-        <div className="slds-align_absolute-center h-100" onClick={() => !disabled && handleChange(!value)}>
+        <div className="slds-align_absolute-center h-100">
           {unsupportedViewAllModifyAll ? (
             <Tooltip ariaRole="label" content={VIEW_ALL_MODIFY_ALL_UNSUPPORTED_MESSAGE}>
               {checkbox}
@@ -1658,7 +1672,51 @@ export const PinnedSelectAllRendererWrapper = ({ column }: RenderSummaryCellProp
 };
 
 /**
- * Checkbox list for the row / bulk action popovers. Omit `row` for the table-wide bulk action, which
+ * Apply pasted (or Delete-cleared) cell values to permission rows. `cells` come from the grid's paste
+ * pipeline, already restricted to editable cells; column keys are `<profileOrPermSetId>-<actionKey>`.
+ * Values coerce through `ensureBoolean` ('' — the Delete/clear fill — unchecks). Returns the input row
+ * array with updated row objects substituted, ready for the tables' `onBulkUpdate`.
+ */
+export function applyPastedPermissionCells<T extends PermissionTableCellExtended>(
+  permissionType: PermissionType,
+  visibleRows: T[],
+  cells: { rowKey: string; columnKey: string; value: string }[],
+): T[] {
+  const rowIndexByKey = new Map(visibleRows.map((row, index) => [row.key, index]));
+  const updatedRows = [...visibleRows];
+  cells.forEach(({ rowKey, columnKey, value }) => {
+    const rowIndex = rowIndexByKey.get(rowKey);
+    if (rowIndex === undefined) {
+      return;
+    }
+    const separatorIndex = columnKey.lastIndexOf('-');
+    const permissionId = columnKey.slice(0, separatorIndex);
+    const actionKey = columnKey.slice(separatorIndex + 1);
+    const row = updatedRows[rowIndex];
+    if (!row.permissions[permissionId]) {
+      return;
+    }
+    const newValue = ensureBoolean(value.trim());
+    if (permissionType === 'object') {
+      updatedRows[rowIndex] = setObjectValue(actionKey as ObjectPermissionTypes, row as any, permissionId, newValue) as unknown as T;
+    } else if (permissionType === 'field') {
+      updatedRows[rowIndex] = setFieldValue(actionKey as FieldPermissionTypes, row as any, permissionId, newValue) as unknown as T;
+    } else if (permissionType === 'tabVisibility') {
+      updatedRows[rowIndex] = setTabVisibilityValue(
+        actionKey as TabVisibilityPermissionTypes,
+        row as any,
+        permissionId,
+        newValue,
+      ) as unknown as T;
+    } else if (permissionType === 'systemPermission') {
+      updatedRows[rowIndex] = setSystemPermissionValue('enabled', row as any, permissionId, newValue) as unknown as T;
+    }
+  });
+  return updatedRows;
+}
+
+/**
+ * * Checkbox list for the row / bulk action popovers. Omit `row` for the table-wide bulk action, which
  * spans a mix of rows — per-row restrictions are enforced when the change is applied instead.
  */
 function defaultRowActionCheckboxes(type: PermissionType, row?: PermissionTableCellExtended): BulkActionCheckbox[] {

@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NOOP } from '@jetstream/shared/utils';
 import { CloneEditView, SalesforceOrgUi } from '@jetstream/types';
-import type { Table } from '@tanstack/react-table';
 import { createContext, useContext } from 'react';
-import { ColumnWithFilter, FilterContextProps, RowWithKey, SelectedRowsContext, SubqueryContext } from './grid-types';
+import { ColumnWithFilter, FilterContextProps, RowWithKey, SelectedRowsContext, SubqueryContext, TanstackTable } from './grid-types';
 
 /** Filter state for header filter UIs + renderers that need the active filters. */
 export const GridFilterContext = createContext<FilterContextProps>({
@@ -41,22 +40,35 @@ export const GridRecordActionContext = createContext<RecordActionContextValue>({
  * Shared grid runtime: the TanStack table instance + a few config values renderers/cells need without
  * threading props through every layer.
  */
-export interface GridRuntime<TRow = RowWithKey> {
-  table: Table<TRow>;
+export interface GridRuntime<TRow extends object = RowWithKey> {
+  table: TanstackTable<TRow>;
   gridId: string;
   getRowKey: (row: TRow) => string;
   /** Ordered, visible author-facing columns (kept in sync with TanStack column order). */
   columns: ColumnWithFilter<TRow>[];
-  /** Read the shift-click range-selection anchor — the last row whose checkbox was toggled when a
-   * range wasn't applied, or null. Backed by a stable ref in GridContainer so every select cell agrees on it. */
-  getRowSelectionAnchor?: () => string | null;
-  /** Set the shift-click range-selection anchor (or clear it with null). */
-  setRowSelectionAnchor?: (rowId: string | null) => void;
 }
+
+/** Row-model input slices. GridContainer and GridBody subscribe to these so anything that changes
+ * the set/order of rows re-renders them even when the change bypasses React state (the atom-owned
+ * `expanded` slice); the React-state slices are included for uniformity and cost nothing (their
+ * post-commit publish compares equal when unchanged). */
+export const selectRowModelInputs = (state: {
+  sorting: unknown;
+  columnFilters: unknown;
+  globalFilter: unknown;
+  grouping: unknown;
+  expanded: unknown;
+}) => ({
+  sorting: state.sorting,
+  columnFilters: state.columnFilters,
+  globalFilter: state.globalFilter,
+  grouping: state.grouping,
+  expanded: state.expanded,
+});
 
 export const GridRuntimeContext = createContext<GridRuntime | undefined>(undefined);
 
-export function useGridRuntime<TRow = RowWithKey>(): GridRuntime<TRow> {
+export function useGridRuntime<TRow extends object = RowWithKey>(): GridRuntime<TRow> {
   const runtime = useContext(GridRuntimeContext);
   if (!runtime) {
     throw new Error('useGridRuntime must be used within a GridContainer');

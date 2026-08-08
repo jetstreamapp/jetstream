@@ -80,10 +80,11 @@ export const LoadingAndActiveRenderer: FunctionComponent<{
     return null;
   } else if (isTableRowItem(row)) {
     return (
-      <div className="slds-p-left_x-small">
+      <div className="slds-align_absolute-center h-100 w-100">
         <Checkbox
           id={row.key}
           label="Active"
+          hideLabel
           checked={row.isActive}
           disabled={row.readOnly}
           onChange={(value) => updateIsActiveFlag(row, value)}
@@ -92,8 +93,8 @@ export const LoadingAndActiveRenderer: FunctionComponent<{
     );
   } else {
     return (
-      <div className="slds-p-left_x-small">
-        <Checkbox id={row.key} label="Active" checked={row.isActive} onChange={(value) => updateIsActiveFlag(row, value)} />
+      <div className="slds-align_absolute-center h-100 w-100">
+        <Checkbox id={row.key} label="Active" hideLabel checked={row.isActive} onChange={(value) => updateIsActiveFlag(row, value)} />
       </div>
     );
   }

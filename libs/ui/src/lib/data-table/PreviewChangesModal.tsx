@@ -17,8 +17,15 @@ import Tooltip from '../widgets/Tooltip';
 import { DataTable } from './DataTable';
 import { getRecordErrorColumn, getRecordErrorRowHeight } from './DataTableRenderers';
 import { dataTableDateFormatter } from './data-table-formatters';
-import { ColumnWithFilter, DataTableCellProps, RowSalesforceRecordWithKey, RowWithKey } from './data-table-types';
-import { getColumnsForGenericTable } from './data-table-utils';
+import {
+  ColumnWithFilter,
+  ContextAction,
+  ContextMenuActionData,
+  DataTableCellProps,
+  RowSalesforceRecordWithKey,
+  RowWithKey,
+} from './data-table-types';
+import { copyGenericTableDataToClipboard, getColumnsForGenericTable, TABLE_CONTEXT_MENU_ITEMS } from './data-table-utils';
 
 /** Salesforce's sObject Collections API accepts at most 200 records per call. */
 export const MAX_SAVE_BATCH_SIZE = 200;
@@ -38,6 +45,9 @@ export interface RecordChangeRow extends RowWithKey {
   recordName: string;
   /** Combined record-level status (field + record errors/warnings), or '' when clean. */
   status: string;
+  /** Mirror of `status` under the standalone error column's key so raw-field copies (context menu,
+   * row/table exports) include the message. */
+  errorMessage: string;
   severity: 'error' | 'warning' | 'none';
   /** Column keys this record actually changed — drives the yellow highlight. */
   _changedColumns: Set<string>;
@@ -67,9 +77,11 @@ function getRecordId(row: RowSalesforceRecordWithKey): string {
   return fromUrl ?? row._record?.Id ?? '';
 }
 
+/** Display value stored on the row. Empty stays '' (NOT the em-dash) so cell/row copies are blank —
+ * the em-dash affordance is applied at render time by FieldCellRenderer only. */
 function formatDisplayValue(value: unknown, field: Maybe<Field>): string {
   if (value === null || value === undefined || value === '') {
-    return EMPTY_DISPLAY;
+    return '';
   }
   if (typeof value === 'boolean') {
     return value ? 'True' : 'False';
@@ -145,6 +157,7 @@ export function buildRecordChangeList(
       recordId: getRecordId(row),
       recordName: row._record?.Name != null ? String(row._record.Name) : '',
       status,
+      errorMessage: status,
       severity,
       _changedColumns: changedColumns,
       _fieldErrors: fieldErrors,
@@ -280,12 +293,14 @@ function StatusRenderer({ row }: DataTableCellProps<RowWithKey>): ReactNode {
 function FieldCellRenderer({ row, column }: DataTableCellProps<RowWithKey>): ReactNode {
   const changeRow = row as RecordChangeRow;
   const key = column.key;
-  const value = changeRow[key] as string;
+  // Empty renders as an em-dash purely visually — the underlying row value stays '' so copies are blank.
+  const value = (changeRow[key] as string) || EMPTY_DISPLAY;
   const error = changeRow._fieldErrors?.[key];
   const warning = error ? undefined : changeRow._fieldWarnings?.[key];
   const message = error || warning;
   const changed = changeRow._changedColumns?.has(key);
-  const title = changed && changeRow._oldValues?.[key] !== undefined ? `Previous: ${changeRow._oldValues[key]}` : undefined;
+  const title =
+    changed && changeRow._oldValues?.[key] !== undefined ? `Previous: ${changeRow._oldValues[key] || EMPTY_DISPLAY}` : undefined;
   if (!message) {
     return (
       <div className="slds-truncate" title={title}>
@@ -417,7 +432,22 @@ export const PreviewChangesModal: FunctionComponent<PreviewChangesModalProps> = 
         {
           key: 'status',
           label: 'Status',
-          columnProps: { frozen: true, width: 80, sortable: false, filters: [], renderCell: StatusRenderer },
+          columnProps: {
+            frozen: true,
+            width: 80,
+            sortable: false,
+            filters: [],
+            renderCell: StatusRenderer,
+            // Copy the compact state the icon conveys; the full message belongs to the Warnings/Error
+            // column (raw `row.status` holds the whole message, which would duplicate it in row copies).
+            getValue: ({ row }) => {
+              const { severity, _saved } = row as RecordChangeRow;
+              if (_saved) {
+                return 'Saved';
+              }
+              return severity === 'none' ? 'Ready to save' : severity === 'warning' ? 'Warning' : 'Error';
+            },
+          },
         },
         {
           key: 'recordId',
@@ -488,6 +518,7 @@ export const PreviewChangesModal: FunctionComponent<PreviewChangesModalProps> = 
         ...row,
         _saved: true,
         status: '',
+        errorMessage: '',
         severity: 'none',
         _fieldErrors: {},
         _fieldWarnings: {},
@@ -568,6 +599,17 @@ export const PreviewChangesModal: FunctionComponent<PreviewChangesModalProps> = 
     ({ row, columnWidths }: { type: 'ROW' | 'GROUP'; row: RowWithKey; columnWidths: Record<string, number> }) =>
       getRecordErrorRowHeight(row, columnWidths),
     [],
+  );
+
+  // Standard copy context menu (cell/row/column/table), matching the other grids. The status icon
+  // column is excluded from row/table copies — its full-message raw value would duplicate the
+  // Warnings/Error column; its compact state is still available via copy-cell on the column itself.
+  const contextMenuFields = useMemo(() => displayColumns.map((column) => column.key).filter((key) => key !== 'status'), [displayColumns]);
+  const handleContextMenuAction = useCallback(
+    (item: { value: unknown }, data: ContextMenuActionData<RowWithKey>) => {
+      copyGenericTableDataToClipboard(item.value as ContextAction, contextMenuFields, data);
+    },
+    [contextMenuFields],
   );
 
   // The pending edits as exportable rows. Derived live before a save; afterward the rows' `_record`
@@ -731,6 +773,8 @@ export const PreviewChangesModal: FunctionComponent<PreviewChangesModalProps> = 
               rowHeight={getRowHeight}
               includeQuickFilter
               quickFilterText={globalFilter}
+              contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
+              contextMenuAction={handleContextMenuAction}
             />
           </AutoFullHeightContainer>
         </div>

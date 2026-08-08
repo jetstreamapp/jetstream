@@ -291,7 +291,10 @@ export function getColumnDefinitions(onViewItem?: (row: DeployMetadataTableRow) 
           />
           <span className="jgrid-group-toggle-label slds-truncate">{groupKey as string}</span>
           {!childRows.some((row) => row.loading) && (
-            <span className="slds-m-left_xx-small slds-text-body_small slds-text-color_weak">({childRows.length})</span>
+            <span className="slds-m-left_xx-small slds-text-body_small slds-text-color_weak">
+              {/* Exclude the "No metadata found" placeholder row (a row without metadata) from the count. */}(
+              {childRows.filter((row) => row.metadata).length})
+            </span>
           )}
         </button>
       ),
