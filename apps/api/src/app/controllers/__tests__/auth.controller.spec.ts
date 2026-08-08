@@ -67,14 +67,14 @@ const authServerMocks = vi.hoisted(() => {
     ProviderNotAllowed,
     acceptTos: vi.fn(),
     clearOauthCookies: vi.fn(),
-    convertBase32ToHex: vi.fn(),
     createOrUpdateOtpAuthFactor: vi.fn(),
     createRememberDevice: vi.fn(),
     createUserActivityFromReq: vi.fn(),
     createUserActivityFromReqWithError: vi.fn(),
     discoverSsoConfigByDomain: vi.fn(),
     ensureAuthError: vi.fn((error: unknown) => error),
-    generate2faTotpUrl: vi.fn(),
+    beginTotpEnrollment: vi.fn(),
+    consumeTotpEnrollmentOrThrow: vi.fn(),
     generatePasswordResetToken: vi.fn(),
     generateRandomCode: vi.fn(() => '123456'),
     generateRandomString: vi.fn(() => 'random-string'),
@@ -699,7 +699,7 @@ describe('auth.controller - 2fa-otp single-use replay enforcement', () => {
     authServerMocks.ensureAuthError.mockImplementation((error: unknown) => error);
     authServerMocks.validateRedirectUrl.mockImplementation((url: string) => url || 'https://client.test');
     authServerMocks.getTotpAuthenticationFactor.mockResolvedValue({ secret: 'totp-secret' } as never);
-    authServerMocks.verify2faTotpOrThrow.mockResolvedValue(undefined as never);
+    authServerMocks.verify2faTotpOrThrow.mockReturnValue(undefined as never);
     // Default to first-use; the replay test overrides this for a single call.
     authServerMocks.verifyTotpCodeOnceOrThrow.mockResolvedValue(undefined as never);
   });

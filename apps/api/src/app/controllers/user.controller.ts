@@ -1,12 +1,12 @@
 import { ENV, getLogger } from '@jetstream/api-config';
 import {
   AuthError,
-  convertBase32ToHex,
+  beginTotpEnrollment,
+  consumeTotpEnrollmentOrThrow,
   createOrUpdateOtpAuthFactor,
   createUserActivityFromReq,
   createUserActivityFromReqWithError,
   deleteAuthFactor,
-  generate2faTotpUrl,
   generatePasswordResetToken,
   getAllSessions,
   getLoginConfiguration,
@@ -19,7 +19,6 @@ import {
   revokeUserSession,
   setPasswordForUser,
   toggleEnableDisableAuthFactor,
-  verify2faTotpOrThrow,
 } from '@jetstream/auth/server';
 import { getDefaultLoginConfigurationUI, LoginConfigurationUI, OauthProviderTypeSchema } from '@jetstream/auth/types';
 import {
@@ -156,7 +155,6 @@ export const routeDefinition = {
     validators: {
       body: z.object({
         code: z.string().min(6).max(6),
-        secretToken: z.string().min(32).max(32),
       }),
       hasSourceOrg: false,
     } satisfies RouteValidator,
@@ -351,17 +349,14 @@ const getUserLoginConfiguration = createRoute(routeDefinition.getUserLoginConfig
   sendJson(res, loginConfiguration);
 });
 
-const getOtpQrCode = createRoute(routeDefinition.getOtpQrCode.validators, async ({ user }, _, res) => {
-  const { secret, imageUri, uri } = await generate2faTotpUrl(user.id);
-  sendJson(res, { secret, secretToken: new URL(uri).searchParams.get('secret'), imageUri, uri });
+const getOtpQrCode = createRoute(routeDefinition.getOtpQrCode.validators, async ({ user }, req, res) => {
+  sendJson(res, await beginTotpEnrollment(req.session, user.id));
 });
 
 const saveOtpAuthFactor = createRoute(routeDefinition.saveOtpAuthFactor.validators, async ({ body, user }, req, res) => {
   try {
-    const { code, secretToken } = body;
-    const secret = await convertBase32ToHex(secretToken);
-    await verify2faTotpOrThrow(secret, code);
-    const authFactors = await createOrUpdateOtpAuthFactor(user.id, secret);
+    const { code } = body;
+    const authFactors = await createOrUpdateOtpAuthFactor(user.id, consumeTotpEnrollmentOrThrow(req.session, code));
     sendJson(res, authFactors);
 
     await sendAuthenticationChangeConfirmation(user.email, 'A new 2FA method has been added to your account', {

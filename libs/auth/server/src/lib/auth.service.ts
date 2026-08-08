@@ -1,5 +1,6 @@
 import { DbCacheProvider, ENV, enrichRequestContext, getLogger } from '@jetstream/api-config';
-import { OauthProviderType, Providers, ResponseLocalsCookies, SessionIpData } from '@jetstream/auth/types';
+import { OauthProviderType, Providers, ResponseLocalsCookies, SessionData, SessionIpData } from '@jetstream/auth/types';
+import { decryptString, encryptString } from '@jetstream/shared/node-utils';
 import { GeoIpLookupResponse } from '@jetstream/types';
 import { parseCookie } from 'cookie';
 import * as crypto from 'crypto';
@@ -8,16 +9,28 @@ import type { Request, Response } from 'express';
 import * as oauth from 'oauth4webapi';
 import * as QRCode from 'qrcode';
 import { OauthClientProvider, OauthClients } from './OauthClients';
-import { CURRENT_TOS_VERSION, EMAIL_VERIFICATION_TOKEN_DURATION_HOURS, TOKEN_DURATION_MINUTES } from './auth.constants';
+import {
+  CURRENT_TOS_VERSION,
+  EMAIL_VERIFICATION_TOKEN_DURATION_HOURS,
+  TOKEN_DURATION_MINUTES,
+  TOTP_ENROLLMENT_TTL_MINUTES,
+} from './auth.constants';
 import { findUserById_UNSAFE, getTotpAuthenticationFactor, handleSignInOrRegistration } from './auth.db.service';
-import { AuthError, InvalidCsrfToken, InvalidVerificationToken, InvalidVerificationType } from './auth.errors';
+import {
+  AuthError,
+  ExpiredVerificationToken,
+  InvalidAction,
+  InvalidCsrfToken,
+  InvalidVerificationToken,
+  InvalidVerificationType,
+} from './auth.errors';
 import { generateHMACDoubleCSRFToken, getApiAddressFromReq, getCookieConfig, validateCSRFToken } from './auth.utils';
-
-const osloEncodingPromise = import('@oslojs/encoding');
-const osloOtpPromise = import('@oslojs/otp');
+import { createTOTPKeyURI, encodeBase32NoPadding, verifyTOTPWithGracePeriod } from './totp.util';
 
 export const TOTP_DIGITS = 6;
 export const TOTP_INTERVAL_SEC = 30;
+/** 160 bits, the shared-secret length RFC 4226 section 4 recommends. */
+const TOTP_SECRET_BYTES = 20;
 // Clock-skew tolerance applied symmetrically by verifyTOTPWithGracePeriod. Kept well below a full
 // step so an OTP is not accepted for the previous AND next windows simultaneously.
 export const TOTP_GRACE_PERIOD_SEC = 15;
@@ -191,20 +204,27 @@ export async function verifyCSRFFromRequestOrThrow(csrfToken: string, cookieStri
   }
 }
 
-export async function convertBase32ToHex(base32String: string) {
-  const { encodeHexUpperCase, decodeBase32IgnorePadding } = await osloEncodingPromise;
-  return encodeHexUpperCase(decodeBase32IgnorePadding(base32String));
+/**
+ * TOTP secrets are stored as hex. Buffer.from(value, 'hex') stops silently at the first invalid
+ * character, so the round-trip is verified rather than trusted - a malformed secret would otherwise
+ * be truncated into a valid-looking key and checked against the wrong codes.
+ *
+ * Only a corrupt secret can reach this: every caller passes one Jetstream itself hex-encoded, held
+ * either on the session mid-enrollment or on the auth factor. That is a data-integrity failure
+ * rather than a bad code, but the user is told only that their code is invalid, so it is logged
+ * loudly - otherwise the account is locked out of 2FA with nothing surfacing why.
+ */
+function decodeTotpSecret(secret: string): Buffer {
+  const key = Buffer.from(secret, 'hex');
+  if (key.toString('hex') !== secret.toLowerCase()) {
+    getLogger().error('[2FA][TOTP] Stored TOTP secret is not valid hex');
+    throw new InvalidVerificationToken('Provided code does not match');
+  }
+  return key;
 }
 
-export async function generate2faTotpSecret() {
-  const { encodeHexUpperCase } = await osloEncodingPromise;
-  return encodeHexUpperCase(crypto.getRandomValues(new Uint8Array(20)));
-}
-
-export async function verify2faTotpOrThrow(secret: string, code: string) {
-  const { decodeHex } = await osloEncodingPromise;
-  const { verifyTOTPWithGracePeriod } = await osloOtpPromise;
-  const validOTP = verifyTOTPWithGracePeriod(decodeHex(secret), TOTP_INTERVAL_SEC, TOTP_DIGITS, code, TOTP_GRACE_PERIOD_SEC);
+export function verify2faTotpOrThrow(secret: string, code: string) {
+  const validOTP = verifyTOTPWithGracePeriod(decodeTotpSecret(secret), TOTP_INTERVAL_SEC, TOTP_DIGITS, code, TOTP_GRACE_PERIOD_SEC);
   if (!validOTP) {
     throw new InvalidVerificationToken('Provided code does not match');
   }
@@ -229,8 +249,16 @@ function getTotpReplayCache() {
  */
 export async function verifyTotpCodeOnceOrThrow(userId: string, code: string) {
   const { secret } = await getTotpAuthenticationFactor(userId);
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  await verify2faTotpOrThrow(secret!, code);
+  // The factor query filters out NULL secrets but not empty ones, and decryptString passes an empty
+  // value through unchanged - so an empty secret can reach here. It would clear decodeTotpSecret's
+  // round-trip check (empty is valid hex) and then verify codes against a zero-length HMAC key, which
+  // anyone could compute. Logged rather than described to the caller, for the same reason as
+  // decodeTotpSecret: AuthError messages are returned to the client verbatim.
+  if (!secret) {
+    getLogger().error({ userId }, '[2FA][TOTP] Authentication factor has no stored secret');
+    throw new InvalidVerificationToken('Provided code does not match');
+  }
+  verify2faTotpOrThrow(secret, code);
   // Atomically record the code and reject if it was already consumed (replay) for this user.
   const isFirstUse = await getTotpReplayCache().consumeOnceAsync(`${userId}:${code}`);
   if (!isFirstUse) {
@@ -238,13 +266,55 @@ export async function verifyTotpCodeOnceOrThrow(userId: string, code: string) {
   }
 }
 
-export async function generate2faTotpUrl(userId: string) {
-  const { decodeHex } = await osloEncodingPromise;
-  const { createTOTPKeyURI } = await osloOtpPromise;
-  const secret = await generate2faTotpSecret();
-  const uri = createTOTPKeyURI('jetstream', userId, decodeHex(secret), TOTP_INTERVAL_SEC, TOTP_DIGITS);
-  const imageUri = await QRCode.toDataURL(uri);
-  return { secret, uri, imageUri };
+/** The slice of the session the TOTP enrollment handshake reads and writes. */
+type TotpEnrollmentSession = Pick<SessionData, 'pendingTotpEnrollment'>;
+
+/**
+ * Step one of TOTP enrollment: mint a secret, park it on the session, and return the forms the user
+ * needs in order to add it to their authenticator app.
+ *
+ * The secret is never asked for again. Calling this a second time replaces the pending secret, so
+ * the code the user is being shown right now is always the one that will be accepted.
+ */
+export async function beginTotpEnrollment(session: TotpEnrollmentSession, userId: string) {
+  const key = crypto.randomBytes(TOTP_SECRET_BYTES);
+  const uri = createTOTPKeyURI('jetstream', userId, key, TOTP_INTERVAL_SEC, TOTP_DIGITS);
+
+  session.pendingTotpEnrollment = {
+    secret: encryptString(key.toString('hex').toUpperCase(), ENV.JETSTREAM_AUTH_OTP_SECRET),
+    exp: addMinutes(new Date(), TOTP_ENROLLMENT_TTL_MINUTES).getTime(),
+  };
+
+  return { secretToken: encodeBase32NoPadding(key), uri, imageUri: await QRCode.toDataURL(uri) };
+}
+
+/**
+ * Step two: prove the user's authenticator holds the secret from {@link beginTotpEnrollment} and
+ * hand it back for storage.
+ *
+ * A wrong code leaves the pending secret in place so a typo does not force the user to re-scan.
+ * Nothing is protected by clearing it - the secret is on the page they just loaded, and enrolling a
+ * secret they cannot produce codes for only locks themselves out - and the route is rate limited.
+ *
+ * @returns the plaintext hex secret, ready for createOrUpdateOtpAuthFactor
+ */
+export function consumeTotpEnrollmentOrThrow(session: TotpEnrollmentSession, code: string): string {
+  const pendingTotpEnrollment = session.pendingTotpEnrollment;
+
+  if (!pendingTotpEnrollment) {
+    throw new InvalidAction('There is no TOTP enrollment in progress');
+  }
+  if (pendingTotpEnrollment.exp < Date.now()) {
+    session.pendingTotpEnrollment = null;
+    throw new ExpiredVerificationToken('The enrollment code expired, start over to get a new one');
+  }
+
+  const secret = decryptString(pendingTotpEnrollment.secret, ENV.JETSTREAM_AUTH_OTP_SECRET);
+  verify2faTotpOrThrow(secret, code);
+
+  // Burned only once it has been proven, so the same handshake cannot enroll a second factor.
+  session.pendingTotpEnrollment = null;
+  return secret;
 }
 
 export const generateRandomCode = (length = 6) => {

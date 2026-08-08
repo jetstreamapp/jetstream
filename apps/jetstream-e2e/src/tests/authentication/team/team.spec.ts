@@ -1,4 +1,5 @@
 import { prisma } from '@jetstream/api-config';
+import { decodeBase32IgnorePadding, generateTOTP } from '@jetstream/auth/server';
 import type { SessionData } from '@jetstream/auth/types';
 import type { Prisma } from '@jetstream/prisma';
 import { delay, groupByFlat } from '@jetstream/shared/utils';
@@ -28,13 +29,10 @@ function getEmailLink({ baseUrl, email, teamId, token }: { baseUrl: string; emai
 }
 
 async function enrollInTotp(page: Page) {
-  const { decodeBase32IgnorePadding } = await import('@oslojs/encoding');
-  const { generateTOTP } = await import('@oslojs/otp');
-
   await page.getByRole('button', { name: 'Set Up' }).click();
   const secret = await page.getByTestId('totp-secret').innerText();
   await page.getByTestId('settings-page').getByRole('textbox').click();
-  const code = await generateTOTP(decodeBase32IgnorePadding(secret), 30, 6);
+  const code = generateTOTP(decodeBase32IgnorePadding(secret), 30, 6);
   await page.getByTestId('settings-page').getByRole('textbox').fill(code);
   await page.getByRole('button', { name: 'Save' }).click();
   await expect(page.getByRole('heading', { name: 'Authenticator App Active' }).locator('span')).toBeVisible();

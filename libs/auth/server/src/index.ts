@@ -12,3 +12,4 @@ export * from './lib/sso-auth.service';
 export * from './lib/sso-crypto.util';
 export * from './lib/sso.types';
 export * from './lib/step-up-auth.service';
+export * from './lib/totp.util';

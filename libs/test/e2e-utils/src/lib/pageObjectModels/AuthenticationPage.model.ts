@@ -1,3 +1,4 @@
+import { decodeBase32IgnorePadding, generateTOTP } from '@jetstream/auth/server';
 import { PasswordSchema } from '@jetstream/types';
 import { expect, Locator, Page } from '@playwright/test';
 import { randomBytes } from 'crypto';
@@ -253,8 +254,6 @@ export class AuthenticationPage {
   }
 
   async enrollInOtpForLoggedInUser() {
-    const { decodeBase32IgnorePadding } = await import('@oslojs/encoding');
-    const { generateTOTP } = await import('@oslojs/otp');
     // go to profile page
     await this.page.getByRole('button', { name: 'Avatar' }).click();
     await this.page.getByRole('menuitem', { name: 'Profile' }).click();
@@ -263,7 +262,7 @@ export class AuthenticationPage {
     const secret = await this.page.getByTestId('totp-secret').innerText();
     // save a valid token
     await this.page.getByTestId('settings-page').getByRole('textbox').click();
-    const code = await generateTOTP(decodeBase32IgnorePadding(secret), 30, 6);
+    const code = generateTOTP(decodeBase32IgnorePadding(secret), 30, 6);
     await this.page.getByTestId('settings-page').getByRole('textbox').fill(code);
     await this.page.getByRole('button', { name: 'Save' }).click();
     await expect(this.page.getByRole('heading', { name: 'Authenticator App Active' }).locator('span')).toBeVisible();
@@ -272,15 +271,12 @@ export class AuthenticationPage {
   }
 
   async enrollInOtp(email: string) {
-    const { decodeBase32IgnorePadding } = await import('@oslojs/encoding');
-    const { generateTOTP } = await import('@oslojs/otp');
-
     await expect(this.page.getByRole('heading', { name: 'Scan the QR code with your' })).toBeVisible();
     const { pendingMfaEnrollment } = await getUserSessionByEmail(email);
     expect(pendingMfaEnrollment?.factor).toBeTruthy();
 
     const secret = await this.page.getByTestId('totp-secret').textContent();
-    const code = await generateTOTP(decodeBase32IgnorePadding(secret), 30, 6);
+    const code = generateTOTP(decodeBase32IgnorePadding(secret), 30, 6);
 
     await this.verificationCodeInput.fill(code);
     await this.continueButton.click();
@@ -348,9 +344,6 @@ export class AuthenticationPage {
   }
 
   async verifyTotp(email: string, secret: string, rememberMe = false) {
-    const { decodeBase32IgnorePadding } = await import('@oslojs/encoding');
-    const { generateTOTP } = await import('@oslojs/otp');
-
     const TOTP_INTERVAL_SEC = 30;
     const TOTP_INTERVAL_MS = TOTP_INTERVAL_SEC * 1000;
     // The server rejects a TOTP code that was already used within its replay window, so when two
@@ -374,7 +367,7 @@ export class AuthenticationPage {
     }
     this.lastTotpWindowConsumed = currentWindow;
 
-    const code = await generateTOTP(decodeBase32IgnorePadding(secret), TOTP_INTERVAL_SEC, 6);
+    const code = generateTOTP(decodeBase32IgnorePadding(secret), TOTP_INTERVAL_SEC, 6);
 
     // Get token from session
     const sessions = await getUserSessionsByEmail(email);

@@ -77,7 +77,7 @@ export const Profile2faOtp: FunctionComponent<Profile2faOtpProps> = ({ isConfigu
         return;
       }
       setIsLoading(true);
-      onUpdate(await saveOtpAuthFactor(otp2fa.secretToken, twoFaCode));
+      onUpdate(await saveOtpAuthFactor(twoFaCode));
     } catch (ex) {
       logger.error('Failed to save 2fa', ex);
       fireToast({ message: getErrorMessage(ex), type: 'error' });

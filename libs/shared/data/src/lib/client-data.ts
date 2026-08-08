@@ -5,6 +5,7 @@ import type {
   LoginConfigurationUI,
   LoginConfigurationWithCallbacks,
   OidcConfiguration,
+  OtpEnrollmentData,
   PendingEmailChange,
   Providers,
   SamlConfiguration,
@@ -356,12 +357,13 @@ export async function getLoginConfiguration(): Promise<LoginConfigurationUI | nu
   return handleRequest({ method: 'GET', url: '/api/me/profile/login-configuration' }).then(unwrapResponseIgnoreCache);
 }
 
-export async function getOtpQrCode(): Promise<{ secret: string; secretToken: string; imageUri: string; uri: string }> {
+export async function getOtpQrCode(): Promise<OtpEnrollmentData> {
   return handleRequest({ method: 'GET', url: '/api/me/profile/2fa-otp' }).then(unwrapResponseIgnoreCache);
 }
 
-export async function saveOtpAuthFactor(secretToken: string, code: string): Promise<UserProfileAuthFactor[]> {
-  return handleRequest({ method: 'POST', url: `/api/me/profile/2fa-otp`, data: { secretToken, code } }).then(unwrapResponseIgnoreCache);
+/** The secret is held on the server between these two calls, so only the code is submitted. */
+export async function saveOtpAuthFactor(code: string): Promise<UserProfileAuthFactor[]> {
+  return handleRequest({ method: 'POST', url: `/api/me/profile/2fa-otp`, data: { code } }).then(unwrapResponseIgnoreCache);
 }
 
 export async function toggleEnableDisableAuthFactor(
