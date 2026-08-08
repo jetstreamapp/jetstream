@@ -3,7 +3,8 @@
     "jsx": "react-jsx",
     "allowJs": false,
     "strict": true,
-    "jsxImportSource": "@emotion/react"
+    "jsxImportSource": "@emotion/react",
+    "ignoreDeprecations": "6.0"
   },
   "files": [],
   "include": [],
