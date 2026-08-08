@@ -11,7 +11,8 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strictNullChecks": true,
-    "types": ["chrome-types", "google.accounts", "google.picker", "gapi.auth2"]
+    "types": ["chrome-types", "google.accounts", "google.picker", "gapi.auth2"],
+    "ignoreDeprecations": "6.0"
   },
   "files": [],
   "include": [],

@@ -13,7 +13,8 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strictNullChecks": true,
-    "types": ["vite/client", "vitest", "./canvas.types.d.ts"]
+    "types": ["vite/client", "vitest", "./canvas.types.d.ts"],
+    "ignoreDeprecations": "6.0"
   },
   "files": [],
   "include": [],

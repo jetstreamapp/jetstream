@@ -76,7 +76,10 @@
       "@jetstream/salesforce-oauth": ["./libs/auth/salesforce-oauth/src/index.ts"],
       "@jetstream/ui-styles/main.css": ["./libs/shared/ui-styles/src/main.css"],
       "@jetstream/ui-styles/brand-theme.css": ["./libs/shared/ui-styles/src/brand-theme.css"]
-    }
+    },
+    "types": ["*"],
+    "esModuleInterop": false,
+    "ignoreDeprecations": "6.0"
   },
   "exclude": ["node_modules", "tmp"]
 }

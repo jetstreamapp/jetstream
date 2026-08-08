@@ -4,13 +4,5 @@
   "sourceRoot": "libs/auth/types/src",
   "projectType": "library",
   "tags": ["types", "scope:any"],
-  "targets": {
-    "test": {
-      "executor": "@nx/vitest:test",
-      "outputs": ["{options.reportsDirectory}"],
-      "options": {
-        "reportsDirectory": "{projectRoot}/../../../coverage/libs/auth/types"
-      }
-    }
-  }
+  "targets": {}
 }

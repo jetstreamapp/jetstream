@@ -4,5 +4,7 @@
     "transpileOnly": true,
     "files": true
   },
-  "compilerOptions": {}
+  "compilerOptions": {
+    "ignoreDeprecations": "6.0"
+  }
 }

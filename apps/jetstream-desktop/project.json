@@ -9,6 +9,7 @@
       "executor": "@nx/esbuild:esbuild",
       "outputs": ["{options.outputPath}"],
       "defaultConfiguration": "production",
+      "dependsOn": ["^build", "typecheck"],
       "options": {
         "platform": "node",
         "outputPath": "dist/apps/jetstream-desktop",
@@ -45,8 +46,7 @@
             }
           }
         }
-      },
-      "dependsOn": ["^build", "typecheck"]
+      }
     },
     "serve": {
       "executor": "@nx/js:node",
@@ -63,13 +63,6 @@
         "production": {
           "buildTarget": "jetstream-desktop:build:production"
         }
-      }
-    },
-    "test": {
-      "executor": "@nx/vitest:test",
-      "outputs": ["{options.reportsDirectory}"],
-      "options": {
-        "reportsDirectory": "{projectRoot}/../../coverage/apps/jetstream-desktop"
       }
     }
   }

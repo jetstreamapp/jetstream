@@ -6,7 +6,8 @@
     "lib": ["DOM", "ESNext"],
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "ignoreDeprecations": "6.0"
   },
   "files": [],
   "include": [],

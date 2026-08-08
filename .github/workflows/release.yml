@@ -152,12 +152,12 @@ jobs:
 
       - name: Build Web Extension
         if: ${{ inputs.release_web_extension }}
-        run: pnpm nx run-many --output-style=static --target=build --parallel=3
+        run: pnpm nx run-many --output-style=static --target=build --parallel=4
           --projects=jetstream-web-extension --configuration=production
 
       - name: Build Desktop
         if: ${{ inputs.release_desktop }}
-        run: pnpm nx run-many --output-style=static --target=build --parallel=3
+        run: pnpm nx run-many --output-style=static --target=build --parallel=4
           --projects=jetstream-desktop,jetstream-desktop-client
           --configuration=production
 

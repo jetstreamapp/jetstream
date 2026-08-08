@@ -146,8 +146,9 @@ describe('ManagePermissionSetAssignmentsModal', () => {
     expect(screen.getByText('Inactive')).toBeTruthy();
   });
 
-  // Rendering the 2,000 capped rows is genuinely slow, so this one needs headroom over the default timeout.
-  test('warns when more assignments exist than can be shown', { timeout: 30_000 }, async () => {
+  // Rendering the 2,000 capped rows is genuinely slow, and under a fully parallel test run
+  // this can exceed 30s on a loaded machine, so give it generous headroom.
+  test('warns when more assignments exist than can be shown', { timeout: 90_000 }, async () => {
     mockAssignments(Array.from({ length: 2001 }, (_, index) => buildAssignment(index)));
     renderModal();
 

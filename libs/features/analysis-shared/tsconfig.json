@@ -5,7 +5,8 @@
     "jsxImportSource": "@emotion/react",
     "allowJs": false,
     "lib": ["DOM", "ESNext"],
-    "strict": true
+    "strict": true,
+    "ignoreDeprecations": "6.0"
   },
   "files": [],
   "include": [],

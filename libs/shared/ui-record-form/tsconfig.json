@@ -4,7 +4,8 @@
     "jsx": "react-jsx",
     "jsxImportSource": "@emotion/react",
     "allowJs": true,
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "ignoreDeprecations": "6.0"
   },
   "files": [],
   "include": [],

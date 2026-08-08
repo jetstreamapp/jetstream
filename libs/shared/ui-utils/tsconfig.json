@@ -5,7 +5,8 @@
     "jsxImportSource": "@emotion/react",
     "allowJs": true,
     "strictNullChecks": true,
-    "types": ["node", "google.accounts", "google.picker", "gapi.auth2"]
+    "types": ["node", "google.accounts", "google.picker", "gapi.auth2"],
+    "ignoreDeprecations": "6.0"
   },
   "files": [],
   "include": [],

@@ -18,6 +18,8 @@ module.exports = [
       '@typescript-eslint/no-non-null-assertion': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
       'no-empty-function': 'off',
+      // Newly added to the recommended preset in eslint-plugin-playwright 2.11 (Nx 23.1 upgrade); was not enforced before
+      'playwright/no-unnecessary-assertions': 'off',
     },
   },
   {

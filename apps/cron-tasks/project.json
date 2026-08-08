@@ -9,6 +9,7 @@
       "executor": "@nx/esbuild:esbuild",
       "outputs": ["{options.outputPath}"],
       "defaultConfiguration": "production",
+      "dependsOn": ["^build", "typecheck"],
       "options": {
         "platform": "node",
         "outputPath": "dist/apps/cron-tasks",
@@ -43,8 +44,7 @@
       "configurations": {
         "development": {},
         "production": {}
-      },
-      "dependsOn": ["^build", "typecheck"]
+      }
     },
     "serve": {
       "executor": "@nx/js:node",
@@ -56,13 +56,6 @@
     "lint": {
       "executor": "@nx/eslint:lint",
       "outputs": ["{options.outputFile}"]
-    },
-    "test": {
-      "executor": "@nx/vitest:test",
-      "outputs": ["{options.reportsDirectory}"],
-      "options": {
-        "reportsDirectory": "{projectRoot}/../../coverage/apps/cron-tasks"
-      }
     }
   }
 }

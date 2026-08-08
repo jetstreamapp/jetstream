@@ -27,13 +27,6 @@
     },
     "serve": {
       "command": "nx build jetstream-web-extension --configuration=development --watch"
-    },
-    "test": {
-      "executor": "@nx/vitest:test",
-      "outputs": ["{options.reportsDirectory}"],
-      "options": {
-        "reportsDirectory": "{projectRoot}/../../coverage/apps/jetstream-web-extension"
-      }
     }
   }
 }

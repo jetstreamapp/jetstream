@@ -4,13 +4,5 @@
   "sourceRoot": "libs/features/record-type-manager/src",
   "projectType": "library",
   "tags": ["scope:browser"],
-  "targets": {
-    "test": {
-      "executor": "@nx/vitest:test",
-      "outputs": ["{options.reportsDirectory}"],
-      "options": {
-        "reportsDirectory": "{projectRoot}/../../../coverage/libs/features/record-type-manager"
-      }
-    }
-  }
+  "targets": {}
 }

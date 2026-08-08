@@ -4,13 +4,5 @@
   "sourceRoot": "libs/test-utils/src",
   "projectType": "library",
   "tags": ["scope:shared"],
-  "targets": {
-    "test": {
-      "executor": "@nx/vitest:test",
-      "outputs": ["{options.reportsDirectory}"],
-      "options": {
-        "reportsDirectory": "{projectRoot}/../../coverage/libs/test-utils"
-      }
-    }
-  }
+  "targets": {}
 }

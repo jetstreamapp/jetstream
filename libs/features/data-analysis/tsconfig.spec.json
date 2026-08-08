@@ -4,7 +4,15 @@
     "outDir": "../../../dist/out-tsc/libs/features/data-analysis",
     "types": ["vitest/globals", "vitest/importMeta", "vite/client", "node", "vitest"]
   },
-  "include": ["vite.config.ts", "src/**/*.test.ts", "src/**/*.spec.ts", "src/**/*.test.tsx", "src/**/*.spec.tsx", "src/**/*.d.ts"],
+  "include": [
+    "vite.config.ts",
+    "vite.config.mts",
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts",
+    "src/**/*.test.tsx",
+    "src/**/*.spec.tsx",
+    "src/**/*.d.ts"
+  ],
   "references": [
     {
       "path": "./tsconfig.lib.json"
