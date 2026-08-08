@@ -298,11 +298,11 @@ importers:
         specifier: ^6.9.1
         version: 6.9.1(@babel/core@7.29.0(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@playwright/test@1.62.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.98.0)
       '@salesforce-ux/design-system':
-        specifier: ^2.29.2
-        version: 2.29.2(postcss@8.5.25)
+        specifier: ^2.264.0
+        version: 2.264.0(postcss@8.5.25)
       '@salesforce-ux/design-system-2':
-        specifier: ^2.0.2
-        version: 2.0.2
+        specifier: ^2.264.0
+        version: 2.264.0
       '@sentry/node':
         specifier: ^10.69.0
         version: 10.69.0(@opentelemetry/core@2.10.0(@opentelemetry/api@1.9.1))(supports-color@7.2.0)
@@ -7178,12 +7178,13 @@ packages:
   '@rushstack/ts-command-line@5.3.9':
     resolution: {integrity: sha512-GIHqU+sRGQ3LGWAZu1O+9Yh++qwtyNIIGuNbcWHJjBTm2qRez0cwINUHZ+pQLR8UuzZDcMajrDaNbUYoaL/XtQ==}
 
-  '@salesforce-ux/design-system-2@2.0.2':
-    resolution: {integrity: sha512-Z8pkhlrJkPysW6RS0NCPHC+U08TPQ2X+j75dIKWiA9hBe2UjkpoY4YXulTfC2BPhlOIdtUC32mxVrsTxD1SBDw==}
+  '@salesforce-ux/design-system-2@2.264.0':
+    resolution: {integrity: sha512-sBEE3pjFIBNhUQqoPqTsZxUsUi0c8ig/FbhPYM3pKrwh+8f6YHAiuK90Xa6K1EEpplYBlXCmOP5QE6d1vGn8pA==}
     engines: {node: '>=20'}
 
-  '@salesforce-ux/design-system@2.29.2':
-    resolution: {integrity: sha512-OWjPnRGOnDzbIp/yKS/2YhirxoZDy5I6TXY6jW8Dkb3NzQrk3F/VleufM6+3YgpEiTzW1Zb9ZA07X53hHG/Rxw==}
+  '@salesforce-ux/design-system@2.264.0':
+    resolution: {integrity: sha512-3IS8BSiDMa5/BX704vTBhzRMXbZqyOEhLMrw74sLZ1ugC4FIAv3WR0Vh+DG1w2/LDRKhWYiGDoTYjZMkQ5wWmQ==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
       postcss: ^8.3.5
 
@@ -27475,9 +27476,9 @@ snapshots:
     transitivePeerDependencies:
       - '@types/node'
 
-  '@salesforce-ux/design-system-2@2.0.2': {}
+  '@salesforce-ux/design-system-2@2.264.0': {}
 
-  '@salesforce-ux/design-system@2.29.2(postcss@8.5.25)':
+  '@salesforce-ux/design-system@2.264.0(postcss@8.5.25)':
     dependencies:
       postcss: 8.5.25
 

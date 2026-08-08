@@ -1,11 +1,8 @@
 import * as React from 'react';
 function SvgBottomGroupAlignment(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        d="M48.4 50H3.6c-.88 0-1.6-.72-1.6-1.6v-3.2c0-.88.72-1.6 1.6-1.6h44.8c.88 0 1.6.72 1.6 1.6v3.2c0 .88-.72 1.6-1.6 1.6zM21.18 39.6h-8c-1.77 0-3.2-1.43-3.2-3.2V5.2c0-1.77 1.43-3.2 3.2-3.2h8c1.77 0 3.2 1.43 3.2 3.2v31.2c0 1.77-1.43 3.2-3.2 3.2zM38.83 39.6h-8c-1.77 0-3.2-1.43-3.2-3.2V13.2c0-1.77 1.43-3.2 3.2-3.2h8c1.77 0 3.2 1.43 3.2 3.2v23.2c0 1.77-1.43 3.2-3.2 3.2z"
-        fill="unset"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M484 500H36c-9 0-16-7-16-16v-32c0-9 7-16 16-16h448c9 0 16 7 16 16v32c0 9-7 16-16 16M212 396h-80c-18 0-32-14-32-32V52c0-18 14-32 32-32h80c18 0 32 14 32 32v312c0 18-14 32-32 32m176 0h-80c-17 0-32-14-32-32V132c0-18 15-32 32-32h80c18 0 32 14 32 32v232c0 18-14 32-32 32" />
     </svg>
   );
 }

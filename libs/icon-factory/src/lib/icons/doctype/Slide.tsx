@@ -1,11 +1,11 @@
 import * as React from 'react';
 function SvgSlide(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5600 6400" aria-hidden="true" {...props}>
-      <path fill="#0d9dda" d="M515 1A507 507 0 008 508v5384c0 281 227 508 507 508h4578c280 0 507-227 507-508V2032L3710 1z" />
-      <path fill="unset" d="M1012 3477v1909h1992V3477zm1811 1547H1193V3840h1630z" />
-      <path fill="#05628a" d="M5598 2035v100H4318s-631-126-613-671c0 1 21 571 600 571z" />
-      <path fill="#90d0fe" d="M3707 0v1456c0 166 111 579 611 579h1280z" />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 64" aria-hidden="true" {...props}>
+      <path d="M37 0l19 20v38c0 3.31-2.69 6-6 6H6c-3.31 0-6-2.69-6-6V6c0-3.31 2.69-6 6-6h31z" fill="#0d9dda" />
+      <path d="M37 0l19 20v1H44c-3.87 0-7-3.13-7-7V0z" fill="#05628a" />
+      <path d="M43 20h13L37 0v14c0 3.31 2.69 6 6 6z" fill="#90d0fe" />
+      <path d="M10 34v20h21V34H10zm19.09 16.21H11.91v-12.4h17.18v12.4z" fill="unset" />
     </svg>
   );
 }

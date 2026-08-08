@@ -1,15 +1,9 @@
 import * as React from 'react';
 function SvgAngle(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        d="M47.42 35.24L6.92 49.79c-2.7.97-5.33-1.61-4.41-4.33L16.46 4.32c.72-2.13 3.27-3 5.12-1.72 11.99 8.3 19 15.21 27.5 27.55 1.26 1.83.42 4.34-1.67 5.09z"
-        fill="unset"
-      />
-      <path
-        d="M21.59 2.6c-1.85-1.28-4.4-.41-5.12 1.72L2.51 45.46c-.92 2.72 1.71 5.3 4.41 4.33l40.51-14.55c2.09-.75 2.93-3.26 1.67-5.09C40.6 17.81 33.59 10.91 21.6 2.6z"
-        fill="unset"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M474 352L69 498a34 34 0 01-44-43L165 43c7-21 32-30 51-17a959 959 0 01275 276c12 18 4 43-17 50" />
+      <path d="M216 26c-19-13-44-4-51 17L25 455c-9 27 17 53 44 43l405-146c21-7 30-32 17-50A960 960 0 00216 26" />
     </svg>
   );
 }
