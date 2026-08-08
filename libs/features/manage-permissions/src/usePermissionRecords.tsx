@@ -46,6 +46,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
     null,
   );
   const [systemPermissionMap, setSystemPermissionMap] = useState<Record<string, SystemPermissionDefinitionMap> | null>(null);
+  const [systemPermissionsUnavailable, setSystemPermissionsUnavailable] = useState(false);
 
   useEffect(() => {
     isMounted.current = true;
@@ -64,11 +65,11 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
 
   const fetchMetadata = useCallback(async () => {
     try {
-      // init and reset in case of prior
+      // init and reset in case of prior. These are set unconditionally because this callback is memoized on
+      // `selectedOrg`, so reading the current flags to decide whether to clear them would read a stale closure.
       setLoading(true);
-      if (hasError) {
-        setHasError(false);
-      }
+      setHasError(false);
+      setSystemPermissionsUnavailable(false);
       // Every request below shares this limiter so that a large selection cannot flood Salesforce
       const limit = createConcurrencyLimiter(QUERY_CONCURRENCY);
       // query all data and transform into state maps
@@ -93,21 +94,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
         queryAndCombineResults<TabDefinitionRecord>(limit, selectedOrg, getQueryTabDefinition(sobjects), true).then((tabs) =>
           groupByFlat(tabs, 'SobjectName'),
         ),
-        // System permissions are `Permissions*` columns on the PermissionSet record itself; describe to
-        // learn which are settable in this org, then query their current values by permission set id.
-        limit(() => describeSObject(selectedOrg, 'PermissionSet')).then((describeResult) => {
-          const systemPermissionFields = getSystemPermissionFieldsFromDescribe(describeResult.data.fields);
-          return queryAndCombineResults<SystemPermissionSetRecord>(
-            limit,
-            selectedOrg,
-            getQuerySystemPermissions(
-              [...permSetIds, ...profilePermSetIds],
-              systemPermissionFields.map(({ name }) => name),
-            ),
-          ).then((permissionSetRecords) =>
-            getSystemPermissionMap(systemPermissionFields, profilePermSetIds, permSetIds, permissionSetRecords),
-          );
-        }),
+        querySystemPermissions(limit, selectedOrg, profilePermSetIds, permSetIds),
       ]).then(
         ([
           fieldPermissionMetadata,
@@ -138,7 +125,8 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
               tabVisibilityPermissions,
               tabDefinitions,
             ),
-            systemPermissionMap: systemPermissions,
+            systemPermissionMap: systemPermissions.permissionMap,
+            systemPermissionsUnavailable: systemPermissions.loadFailed,
           };
         },
       );
@@ -149,6 +137,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
         setFieldPermissionMap(output.fieldPermissionMap);
         setTabVisibilityPermissionMap(output.tabVisibilityPermissionMap);
         setSystemPermissionMap(output.systemPermissionMap);
+        setSystemPermissionsUnavailable(output.systemPermissionsUnavailable);
       }
     } catch (ex) {
       logger.warn('[usePermissionRecords][ERROR]', getErrorMessage(ex));
@@ -175,6 +164,8 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
     tabVisibilityPermissionMap,
     systemPermissionMap,
     hasError,
+    /** Every other tab loaded, but system permissions could not be read from Salesforce */
+    systemPermissionsUnavailable,
   };
 }
 
@@ -225,6 +216,85 @@ async function queryChunks<TItem, TRecord>(
   // Results are keyed/grouped downstream, so ordering across items does not matter
   const results = await Promise.all(items.map((item) => limit(() => runItem(item))));
   return results.flat();
+}
+
+/**
+ * Salesforce rejects a query against a field the object does not have. Depending on which API returned it, that
+ * surfaces as the error-code form (INVALID_FIELD) or the message form ("No such column 'x' on entity 'y'"), so
+ * both must be matched.
+ */
+const INVALID_FIELD_REGEX = /INVALID_FIELD|No such column/i;
+
+const MAX_TRACKED_ERROR_LENGTH = 500;
+
+/**
+ * Salesforce echoes the entire rejected query back in its error message, which buries the part that says what
+ * actually went wrong. The error tracker still receives the full error (its ignore rules and grouping rely on the
+ * complete message) - this trimmed tail rides alongside it purely to make the failure readable at a glance.
+ */
+function getTrackableErrorDetail(ex: unknown): string {
+  const message = getErrorMessage(ex);
+  return message.length > MAX_TRACKED_ERROR_LENGTH ? `...${message.slice(-MAX_TRACKED_ERROR_LENGTH)}` : message;
+}
+
+/** System permissions load independently of the other tabs, so report whether they made it rather than throwing. */
+interface SystemPermissionResult {
+  permissionMap: Record<string, SystemPermissionDefinitionMap>;
+  loadFailed: boolean;
+}
+
+/**
+ * System permissions are `Permissions*` columns on the PermissionSet record itself; describe to learn which are
+ * settable in this org, then query their current values by permission set id.
+ *
+ * The describe is cached for a few days, so an org whose schema changed since it was cached (a license or feature
+ * change, or a different API version) can produce a query against columns that no longer exist. Salesforce rejects
+ * the entire query in that case, so re-describe without the cache and try once more. Bypassing the cache also
+ * replaces the stale entry, which keeps later loads from hitting the same failure.
+ *
+ * Object, field and tab permissions do not depend on any of this, so a failure here degrades the System Permissions
+ * tab on its own instead of taking down the whole editor.
+ */
+async function querySystemPermissions(
+  limit: ConcurrencyLimiter,
+  selectedOrg: SalesforceOrgUi,
+  profilePermSetIds: string[],
+  permSetIds: string[],
+): Promise<SystemPermissionResult> {
+  const fetchUsingDescribe = async (skipDescribeCache: boolean) => {
+    const describeResult = await limit(() => describeSObject(selectedOrg, 'PermissionSet', false, skipDescribeCache));
+    const systemPermissionFields = getSystemPermissionFieldsFromDescribe(describeResult.data.fields);
+    const permissionSetRecords = await queryAndCombineResults<SystemPermissionSetRecord>(
+      limit,
+      selectedOrg,
+      getQuerySystemPermissions(
+        [...permSetIds, ...profilePermSetIds],
+        systemPermissionFields.map(({ name }) => name),
+      ),
+    );
+    return getSystemPermissionMap(systemPermissionFields, profilePermSetIds, permSetIds, permissionSetRecords);
+  };
+
+  const fetchRetryingStaleDescribe = async () => {
+    try {
+      return await fetchUsingDescribe(false);
+    } catch (ex) {
+      if (!INVALID_FIELD_REGEX.test(getErrorMessage(ex))) {
+        throw ex;
+      }
+      logger.warn('[usePermissionRecords] Cached PermissionSet describe is stale, retrying with a fresh describe');
+      return await fetchUsingDescribe(true);
+    }
+  };
+
+  try {
+    return { permissionMap: await fetchRetryingStaleDescribe(), loadFailed: false };
+  } catch (ex) {
+    // Nothing else fails when this does, so this is the only chance to report it
+    logger.warn('[usePermissionRecords][SYSTEM PERMISSIONS][ERROR]', getErrorMessage(ex));
+    tracker.error('[usePermissionRecords][SYSTEM PERMISSIONS][ERROR]', ex, { errorDetail: getTrackableErrorDetail(ex) });
+    return { permissionMap: {}, loadFailed: true };
+  }
 }
 
 // This could be eligible to pull into generic method for expanded use
