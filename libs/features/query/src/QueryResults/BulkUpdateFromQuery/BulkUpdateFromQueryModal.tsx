@@ -5,13 +5,13 @@ import { getErrorMessage, getRecordIdFromAttributes, pluralizeFromNumber } from 
 import { ListItem, Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import {
   Checkbox,
+  getWhichRecordsDefaultValue,
   Grid,
   Input,
   Modal,
   NotSeeingRecentMetadataPopover,
   ProgressIndicator,
   RADIO_ALL_BROWSER,
-  RADIO_ALL_SERVER,
   RADIO_FILTERED,
   RADIO_SELECTED,
   ScopedNotification,
@@ -95,7 +95,9 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
   const [selectedConfig, setSelectedConfig] = useState<MetadataRowConfiguration[]>([{ ...DEFAULT_FIELD_CONFIGURATION }]);
   const [fields, setFields] = useState<ListItem[]>([]);
   const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(false);
-  const [downloadRecordsValue, setDownloadRecordsValue] = useState<string>(hasMoreRecords ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);
+  const [downloadRecordsValue, setDownloadRecordsValue] = useState<string>(() =>
+    getWhichRecordsDefaultValue({ hasMoreRecords, records, selectedRecords }),
+  );
   const [batchSize, setBatchSize] = useState<Maybe<number>>(10000);
   const [batchSizeError, setBatchSizeError] = useState<string | null>(null);
   const [serialMode, setSerialMode] = useState(false);
@@ -132,8 +134,8 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
   useEffect(() => {
     const hasMoreRecordsTemp = !!totalRecordCount && !!records && totalRecordCount > records.length;
     setHasMoreRecords(hasMoreRecordsTemp);
-    setDownloadRecordsValue(hasMoreRecordsTemp ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);
-  }, [totalRecordCount, records]);
+    setDownloadRecordsValue(getWhichRecordsDefaultValue({ hasMoreRecords: hasMoreRecordsTemp, records, selectedRecords }));
+  }, [totalRecordCount, records, selectedRecords]);
 
   useEffect(() => {
     init();

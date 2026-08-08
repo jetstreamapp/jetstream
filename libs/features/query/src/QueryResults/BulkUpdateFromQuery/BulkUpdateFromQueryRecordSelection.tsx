@@ -1,6 +1,6 @@
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { SalesforceRecord } from '@jetstream/types';
-import { RADIO_ALL_BROWSER, RADIO_ALL_SERVER, RADIO_FILTERED, RADIO_SELECTED, Radio, RadioGroup } from '@jetstream/ui';
+import { hasSelectableSubset, Radio, RADIO_ALL_BROWSER, RADIO_ALL_SERVER, RADIO_FILTERED, RADIO_SELECTED, RadioGroup } from '@jetstream/ui';
 import { Query } from '@jetstreamapp/soql-parser-js';
 import { Fragment, FunctionComponent } from 'react';
 
@@ -28,11 +28,11 @@ export const BulkUpdateFromQueryRecordSelection: FunctionComponent<BulkUpdateFro
   onChange,
 }) => {
   function hasFilteredRecords(): boolean {
-    return Array.isArray(filteredRecords) && filteredRecords.length && filteredRecords.length !== records.length ? true : false;
+    return hasSelectableSubset(filteredRecords, records);
   }
 
   function hasSelectedRecords(): boolean {
-    return Array.isArray(selectedRecords) && selectedRecords.length && selectedRecords.length !== records.length ? true : false;
+    return hasSelectableSubset(selectedRecords, records);
   }
 
   return (
@@ -46,6 +46,26 @@ export const BulkUpdateFromQueryRecordSelection: FunctionComponent<BulkUpdateFro
       required
       className="slds-m-bottom_small"
     >
+      {hasSelectedRecords() && (
+        <Radio
+          name="radio-download"
+          label={`Selected records (${formatNumber(selectedRecords?.length || 0)})`}
+          value={RADIO_SELECTED}
+          checked={downloadRecordsValue === RADIO_SELECTED}
+          onChange={onChange}
+          disabled={disabled}
+        />
+      )}
+      {hasFilteredRecords() && (
+        <Radio
+          name="radio-download"
+          label={`Filtered records (${formatNumber(filteredRecords?.length || 0)})`}
+          value={RADIO_FILTERED}
+          checked={downloadRecordsValue === RADIO_FILTERED}
+          onChange={onChange}
+          disabled={disabled}
+        />
+      )}
       {hasMoreRecords && (
         <Fragment>
           <Radio
@@ -72,26 +92,6 @@ export const BulkUpdateFromQueryRecordSelection: FunctionComponent<BulkUpdateFro
           label={`All records (${formatNumber(totalRecordCount || records.length)})`}
           value={RADIO_ALL_BROWSER}
           checked={downloadRecordsValue === RADIO_ALL_BROWSER}
-          onChange={onChange}
-          disabled={disabled}
-        />
-      )}
-      {hasFilteredRecords() && (
-        <Radio
-          name="radio-download"
-          label={`Filtered records (${formatNumber(filteredRecords?.length || 0)})`}
-          value={RADIO_FILTERED}
-          checked={downloadRecordsValue === RADIO_FILTERED}
-          onChange={onChange}
-          disabled={disabled}
-        />
-      )}
-      {hasSelectedRecords() && (
-        <Radio
-          name="radio-download"
-          label={`Selected records (${formatNumber(selectedRecords?.length || 0)})`}
-          value={RADIO_SELECTED}
-          checked={downloadRecordsValue === RADIO_SELECTED}
           onChange={onChange}
           disabled={disabled}
         />
