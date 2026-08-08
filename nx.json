@@ -142,7 +142,7 @@
   },
   "useDaemonProcess": true,
   "neverConnectToCloud": true,
-  "parallel": 3,
+  "parallel": 4,
   "plugins": [
     {
       "plugin": "@nx/next/plugin",
