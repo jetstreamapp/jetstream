@@ -1,7 +1,7 @@
 /* eslint-disable playwright/no-conditional-in-test */
 import { prisma } from '@jetstream/api-config';
 import { expect, test } from '@playwright/test';
-import { parse as parseCookieHeader } from 'cookie';
+import { parseCookie } from 'cookie';
 import { createSign, generateKeyPairSync } from 'crypto';
 import { createServer, Server } from 'http';
 import { cleanupSsoFixture, createSsoFixture } from '../../../../utils/auth-fixtures';
@@ -182,7 +182,7 @@ test.describe('OIDC SSO happy path', () => {
     // 4) call callback reusing cookies from start
     const startCookie = cookieHeaderFromResponse(start);
     const mergedCookies = mergeCookies(csrfCookie, startCookie);
-    const cookies = parseCookieHeader(mergedCookies || '');
+    const cookies = parseCookie(mergedCookies || '');
     currentNonce = cookies['jetstream-auth.nonce'] || cookies['__Secure-jetstream-auth.nonce'] || currentNonce;
     const state = cookies['jetstream-auth.state'] || cookies['__Secure-jetstream-auth.state'] || cookies['jetstream-auth.state'] || '';
     currentEmail = `user@${fixture.domain}`;

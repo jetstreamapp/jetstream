@@ -34,7 +34,10 @@ routes.get('/', (req, res, next) => {
   }
 
   const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
-  res.appendHeader('Set-Cookie', stringifySetCookie(cookieConfig.redirectUrl.name, safeRedirectUrl, cookieConfig.redirectUrl.options));
+  res.appendHeader(
+    'Set-Cookie',
+    stringifySetCookie({ name: cookieConfig.redirectUrl.name, value: safeRedirectUrl, ...cookieConfig.redirectUrl.options }),
+  );
 
   const params = new URLSearchParams();
   if (isString(email)) {
@@ -44,11 +47,11 @@ routes.get('/', (req, res, next) => {
   if (action === 'team-invite' && isString(teamId) && isString(token)) {
     res.appendHeader(
       'Set-Cookie',
-      stringifySetCookie(
-        cookieConfig.teamInviteState.name,
-        new URLSearchParams({ token, teamId }).toString(),
-        cookieConfig.teamInviteState.options,
-      ),
+      stringifySetCookie({
+        name: cookieConfig.teamInviteState.name,
+        value: new URLSearchParams({ token, teamId }).toString(),
+        ...cookieConfig.teamInviteState.options,
+      }),
     );
   }
 

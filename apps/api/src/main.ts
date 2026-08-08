@@ -83,6 +83,10 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
 
   setupPrimary();
 
+  cluster.setupPrimary({
+    serialization: 'advanced', // required by @socket.io/sticky 2.x — preserves Buffers over IPC
+  });
+
   const rateLimiterStore = new ClusterMemoryStorePrimary();
   rateLimiterStore.init();
 
