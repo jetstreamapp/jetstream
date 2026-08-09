@@ -76,9 +76,11 @@ export interface DataTableV2Props<TRow extends object = RowWithKey, TContext = R
   summaryRows?: unknown[];
   /** Fixed height (px) for each pinned summary row; content-sized when omitted. */
   summaryRowHeight?: number;
-  /** Right-click context menu items — a static list or a per-cell builder (must be stable). */
+  /** Right-click context menu items — a static list or a per-cell builder (must be stable). Omit to get
+   * the standard copy cell/row/column/table actions, which the grid resolves and dispatches itself;
+   * pass `[]` to opt out of them. */
   contextMenuItems?: ContextMenuItems<TRow>;
-  /** Right-click context menu action handler (must be stable). */
+  /** Right-click context menu action handler (must be stable). Required only alongside `contextMenuItems`. */
   contextMenuAction?: (item: ContextMenuItem, data: ContextMenuActionData<TRow>) => void;
   /** Consumer-supplied builder for extra per-column header menu items (must be stable). */
   getColumnHeaderMenuItems?: (columnId: string) => ContextMenuItem[];

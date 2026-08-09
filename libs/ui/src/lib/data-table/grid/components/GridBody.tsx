@@ -45,6 +45,8 @@ export interface GridBodyProps<TRow extends object> {
   onCellMouseDown?: (rowId: string, columnId: string, shiftKey: boolean, button?: number, ctrlOrMetaKey?: boolean) => void;
   onCellMouseEnter?: (rowId: string, columnId: string) => void;
   onCellContextMenu?: (event: React.MouseEvent, rowId: string, columnId: string) => void;
+  /** Right-click on a GROUP header row — a separate menu from the data-cell one (see GridContainer). */
+  onGroupContextMenu?: (event: React.MouseEvent, rowId: string, columnId: string) => void;
   rowClass?: (row: TRow) => string | undefined;
   onStartEdit?: (rowId: string, columnId: string) => void;
   onCommitRow?: (updatedRow: TRow, rowId: string, columnId: string) => void;
@@ -82,6 +84,7 @@ export function GridBody<TRow extends object>({
   onCellMouseDown,
   onCellMouseEnter,
   onCellContextMenu,
+  onGroupContextMenu,
   rowClass,
   onStartEdit,
   onCommitRow,
@@ -274,6 +277,7 @@ export function GridBody<TRow extends object>({
               height={virtualRow.size}
               activeCell={rowActiveCell}
               onCellMouseDown={onCellMouseDown}
+              onContextMenu={onGroupContextMenu}
               autoHeight={autoRowHeight}
               measureRef={measureRowRef}
             />

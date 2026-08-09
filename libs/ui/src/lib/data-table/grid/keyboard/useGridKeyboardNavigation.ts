@@ -2,6 +2,7 @@
 import { copyRecordsToClipboard, transformTabularDataToExcelStr } from '@jetstream/shared/ui-utils';
 import { FocusEvent as ReactFocusEvent, KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { ActiveCell } from '../components/GridRow';
+import { getCellText, getColumnHeaderText } from '../grid-clipboard';
 import { getSummaryRowId, getSummaryRowIndex, HEADER_ROW_ID, isSummaryRowId, SELECT_COLUMN_KEY } from '../grid-constants';
 import { ColSpanArgs, TanstackColumn, TanstackRow, TanstackTable } from '../grid-types';
 import {
@@ -73,38 +74,6 @@ function resolveColumnStart<TRow extends object>(row: TanstackRow<TRow>, columns
     }
   }
   return owner;
-}
-
-function cellText<TRow extends object>(row: TanstackRow<TRow>, column: TanstackColumn<TRow>): string {
-  // Synthetic group header rows have no original row data.
-  if (row.original === null || row.original === undefined) {
-    return '';
-  }
-  const authorColumn = column.columnDef.meta?.jetstream?.column;
-  const value: unknown = authorColumn?.getValue
-    ? authorColumn.getValue({ row: row.original, column: authorColumn })
-    : (row.original as Record<string, unknown>)[column.id];
-  if (value === null || value === undefined) {
-    return '';
-  }
-  if (Array.isArray(value) || typeof value === 'object') {
-    return JSON.stringify(value);
-  }
-  return String(value);
-}
-
-/** Display label for a column header, used when copying a selection "with header". Falls back to the
- * string header / column id when the author's `name` is a ReactNode. */
-function headerText<TRow extends object>(column: TanstackColumn<TRow>): string {
-  const name = column.columnDef.meta?.jetstream?.column?.name;
-  if (typeof name === 'string') {
-    return name;
-  }
-  const header = column.columnDef.header;
-  if (typeof header === 'string') {
-    return header;
-  }
-  return column.id;
 }
 
 export interface UseGridKeyboardNavigationOptions<TRow extends object> {
@@ -595,7 +564,7 @@ export function useGridKeyboardNavigation<TRow extends object>({
         if (includeHeader) {
           const headerRecord: Record<string, string> = {};
           for (let colIndex = rect.minColumnIndex; colIndex <= rect.maxColumnIndex; colIndex++) {
-            headerRecord[`c${colIndex}`] = headerText(columns[colIndex]);
+            headerRecord[`c${colIndex}`] = getColumnHeaderText(columns[colIndex]);
           }
           records.push(headerRecord);
         }
@@ -605,7 +574,7 @@ export function useGridKeyboardNavigation<TRow extends object>({
           }
           const record: Record<string, string> = {};
           for (let colIndex = rect.minColumnIndex; colIndex <= rect.maxColumnIndex; colIndex++) {
-            record[`c${colIndex}`] = cellText(rows[rowIndex], columns[colIndex]);
+            record[`c${colIndex}`] = getCellText(rows[rowIndex], columns[colIndex]);
           }
           records.push(record);
         }

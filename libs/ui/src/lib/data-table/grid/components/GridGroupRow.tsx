@@ -20,6 +20,7 @@ export interface GridGroupRowProps<TRow extends object> {
   height: number;
   activeCell?: ActiveCell | null;
   onCellMouseDown?: (rowId: string, columnId: string, shiftKey: boolean, button?: number, ctrlOrMetaKey?: boolean) => void;
+  onContextMenu?: (event: React.MouseEvent, rowId: string, columnId: string) => void;
   /** When true the group row sizes to its content instead of being pinned to `height`. */
   autoHeight?: boolean;
   /** Virtualizer `measureElement` ref; attached in auto-height mode so the row's real height is measured. */
@@ -57,6 +58,7 @@ export function GridGroupRow<TRow extends object>({
   height,
   activeCell,
   onCellMouseDown,
+  onContextMenu,
   autoHeight,
   measureRef,
 }: GridGroupRowProps<TRow>) {
@@ -105,6 +107,7 @@ export function GridGroupRow<TRow extends object>({
           data-col-id={firstColumnId}
           tabIndex={isActive ? 0 : -1}
           onMouseDown={(event) => firstColumnId && onCellMouseDown?.(row.id, firstColumnId, event.shiftKey, event.button)}
+          onContextMenu={(event) => firstColumnId && onContextMenu?.(event, row.id, firstColumnId)}
         >
           <button
             type="button"
@@ -157,6 +160,7 @@ export function GridGroupRow<TRow extends object>({
           data-col-id={column.id}
           tabIndex={isActive && activeCell?.columnId === column.id ? 0 : -1}
           onMouseDown={(event) => onCellMouseDown?.(row.id, column.id, event.shiftKey, event.button)}
+          onContextMenu={(event) => onContextMenu?.(event, row.id, column.id)}
           style={{ gridColumn: `${startCol} / span ${span}`, ...getFrozenCellStyle(columns, index) }}
         >
           {meta?.renderGroupCell && groupCellProps ? meta.renderGroupCell(groupCellProps) : null}
