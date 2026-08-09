@@ -94,3 +94,4 @@ certificates
 .react-email/
 
 .nx/migrate-runs
+server.log

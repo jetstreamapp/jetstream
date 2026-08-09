@@ -1,0 +1,9 @@
+# Revisions to skip in `git blame`, because they only reformat code.
+#
+# Enable locally with:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# GitHub picks this file up automatically.
+
+# style: apply oxfmt formatting and oxlint autofixes (oxc migration)
+2578f7aad301400ceda8e3747ec78e956146df66
