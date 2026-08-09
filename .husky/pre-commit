@@ -7,8 +7,15 @@
 # `pnpm format` / `pnpm lint:fix` to fix, or `git commit --no-verify` to bypass.
 
 # enforce-module-boundaries silently skips when Nx's project graph cache is missing, so make sure
-# it exists before linting.
-pnpm nx show projects >/dev/null 2>&1
+# it exists before linting. A failure here means the boundary rule cannot run at all, so fail
+# loudly instead of letting oxlint pass without it (CI's lint job does the same).
+nx_graph_output=$(pnpm nx show projects 2>&1) || {
+  echo "$nx_graph_output"
+  echo ""
+  echo "Failed to compute the Nx project graph, so nx/enforce-module-boundaries cannot run."
+  echo "Fix the error above, or use 'git commit --no-verify' to bypass."
+  exit 1
+}
 
 pnpm exec oxfmt --check . || {
   echo ""
