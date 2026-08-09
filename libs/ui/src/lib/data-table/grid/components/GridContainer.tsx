@@ -733,9 +733,10 @@ export function GridContainer<TRow extends object = RowWithKey>({
           }
         : null;
       // Append any consumer-supplied per-column items (e.g. "View field metadata") to the copy actions.
+      // These dispatch only through `contextMenuAction`, so without it they'd render but no-op on select.
       const items = [
         ...resolveHeaderContextMenuItems(resolvedContextMenuItems, actionData),
-        ...(getColumnHeaderMenuItems?.(columnId) ?? []),
+        ...(contextMenuAction ? (getColumnHeaderMenuItems?.(columnId) ?? []) : []),
       ];
       if (!items.length) {
         return;
@@ -745,7 +746,7 @@ export function GridContainer<TRow extends object = RowWithKey>({
       setContextMenu(null);
       setTimeout(() => setContextMenu({ area: 'header', columnId, element, items, actionData }));
     },
-    [canDispatchMenuItems, resolvedContextMenuItems, table, orderedColumns, getColumnHeaderMenuItems],
+    [canDispatchMenuItems, resolvedContextMenuItems, table, orderedColumns, getColumnHeaderMenuItems, contextMenuAction],
   );
 
   // ── Grid-owned copy dispatch (the default menu + the group-row menu) ────────────────────────────
@@ -921,7 +922,9 @@ export function GridContainer<TRow extends object = RowWithKey>({
           (() => {
             // Capped count of modified editable cells under the right-clicked selection; gates the "Revert"
             // item and picks its label without enumerating the whole selection (full list computed on click).
-            const revertableCount = contextMenu.area === 'cell' ? countRevertableSelectionCells(2) : 0;
+            // Selection-scoped like the copy items, so group-header menus get it too (revert skips group
+            // rows); header menus render no grid items at all.
+            const revertableCount = contextMenu.area !== 'header' ? countRevertableSelectionCells(2) : 0;
             // Grid-injected, selection-aware actions (copy/paste/revert), shown above the consumer's items.
             const gridItems: ContextMenuItem[] = [
               ...(hasRangeSelection
