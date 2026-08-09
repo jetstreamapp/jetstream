@@ -1,0 +1,20 @@
+diff --git a/dist/src/utils/runtime-lint-utils.js b/dist/src/utils/runtime-lint-utils.js
+index d6d995fd9e79987b1bfc80b0a0b87bc888e98689..e37f377badf8b549accfca0219fe9fdd512e5d29 100644
+--- a/dist/src/utils/runtime-lint-utils.js
++++ b/dist/src/utils/runtime-lint-utils.js
+@@ -290,11 +290,15 @@ function hasBuildExecutor(projectGraph, buildTargets = ['build']) {
+ const ESLINT_REGEX = /node_modules.*[\/\\]eslint(?:\.js)?$/;
+ const JEST_REGEX = /node_modules\/.bin\/jest$/; // when we run unit tests in jest
+ const NRWL_CLI_REGEX = /nx[\/\\]dist[\/\\]bin[\/\\]run-executor\.js$/;
++const OXLINT_REGEX = /node_modules.*[\/\\]oxlint(?:\.exe)?$/; // oxlint CLI running this rule as a JS plugin
+ function isTerminalRun() {
+     return (process.argv.length > 1 &&
+         (!!process.argv[1].match(NRWL_CLI_REGEX) ||
+             !!process.argv[1].match(JEST_REGEX) ||
+             !!process.argv[1].match(ESLINT_REGEX) ||
++            // A one-shot oxlint CLI run is a terminal run and can reuse the cached project graph.
++            // Its LSP mode is long lived, so that must keep re-reading the graph for fresh metadata.
++            (!!process.argv[1].match(OXLINT_REGEX) && !process.argv.includes('--lsp')) ||
+             !!process.argv[1].endsWith('/bin/jest.js')));
+ }
+ /**

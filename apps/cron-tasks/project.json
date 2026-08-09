@@ -52,10 +52,6 @@
         "buildTarget": "cron-tasks:build",
         "inspect": true
       }
-    },
-    "lint": {
-      "executor": "@nx/eslint:lint",
-      "outputs": ["{options.outputFile}"]
     }
   }
 }

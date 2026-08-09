@@ -1,0 +1,157 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "react", "jsx-a11y", "import"],
+  "categories": {
+    "correctness": "error"
+  },
+  "jsPlugins": [{ "name": "nx", "specifier": "@nx/eslint-plugin" }],
+  "ignorePatterns": [
+    "**/assets/**",
+    "**/generated/**",
+    "**/monaco/vs/**",
+    "**/public/**",
+    "**/vite.config.*.timestamp*",
+    "**/vitest.config.*.timestamp*",
+    "apps-sfdx/**"
+  ],
+  "rules": {
+    "nx/enforce-module-boundaries": [
+      "error",
+      {
+        "allow": [],
+        "depConstraints": [
+          {
+            "sourceTag": "scope:server",
+            "onlyDependOnLibsWithTags": ["scope:server", "scope:type-only", "scope:shared", "scope:any"]
+          },
+          {
+            "sourceTag": "scope:browser",
+            "onlyDependOnLibsWithTags": ["scope:browser", "scope:type-only", "scope:shared", "scope:any"]
+          },
+          {
+            "sourceTag": "scope:e2e",
+            "onlyDependOnLibsWithTags": ["scope:server", "scope:browser", "scope:type-only", "scope:shared", "scope:e2e", "scope:any"]
+          },
+          {
+            "sourceTag": "scope:worker",
+            "onlyDependOnLibsWithTags": ["scope:allow-worker-import", "scope:type-only", "scope:shared", "scope:any"]
+          },
+          {
+            "sourceTag": "scope:allow-worker-import",
+            "onlyDependOnLibsWithTags": ["scope:allow-worker-import", "scope:type-only", "scope:any"]
+          },
+          {
+            "sourceTag": "*",
+            "onlyDependOnLibsWithTags": ["*"]
+          }
+        ]
+      }
+    ],
+
+    "no-empty-pattern": "off",
+    "object-shorthand": "warn",
+    "no-unused-expressions": [
+      "error",
+      {
+        "allowShortCircuit": true,
+        "allowTernary": true,
+        "allowTaggedTemplates": true
+      }
+    ],
+    "no-unused-vars": [
+      "warn",
+      {
+        "args": "all",
+        "argsIgnorePattern": "^_",
+        "caughtErrors": "all",
+        "caughtErrorsIgnorePattern": "^_",
+        "destructuredArrayIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "ignoreRestSiblings": true
+      }
+    ],
+
+    "typescript/explicit-function-return-type": "off",
+    "typescript/explicit-member-accessibility": "off",
+    "typescript/explicit-module-boundary-types": "off",
+    "typescript/no-empty-interface": "off",
+    "typescript/no-empty-object-type": "off",
+    "typescript/no-explicit-any": "warn",
+    "typescript/no-namespace": "error",
+
+    "react-hooks/exhaustive-deps": ["warn", { "additionalHooks": "(useNonInitialEffect)" }],
+    "react-hooks/rules-of-hooks": "error",
+
+    // `import * as X from 'cjs-pkg'` is correct under `esModuleInterop: false`, but this rule reads
+    // the package's ESM exports and reports the CJS namespace members as missing (e.g. `bowser`).
+    "import/namespace": "off",
+
+    // --- Surfaced by oxlint but not enforced before the migration -------------------------------
+    // Held at "warn" so the migration does not turn ~280 pre-existing findings into CI failures.
+    // Promote to "error" as each is burned down; `oxlint --fix` already handles a portion.
+    "react/jsx-key": "warn",
+    "react/no-children-prop": "warn",
+    "no-constant-binary-expression": "warn",
+    "no-control-regex": "warn",
+    "no-unsafe-optional-chaining": "warn",
+    "unicorn/no-empty-file": "warn",
+    "unicorn/no-new-array": "warn",
+    "unicorn/no-single-promise-in-promise-methods": "warn",
+    "unicorn/no-useless-fallback-in-spread": "warn",
+    "unicorn/no-useless-length-check": "warn",
+
+    // Accessibility was advisory before the migration (Nx's React preset reports these as
+    // warnings, and only the two React apps opted into the wider set). Keeping that posture.
+    "jsx-a11y/autocomplete-valid": "warn",
+    "jsx-a11y/click-events-have-key-events": "warn",
+    "jsx-a11y/control-has-associated-label": "warn",
+    "jsx-a11y/interactive-supports-focus": "warn",
+    "jsx-a11y/label-has-associated-control": "warn",
+    "jsx-a11y/no-autofocus": "warn",
+    "jsx-a11y/no-noninteractive-element-interactions": "warn",
+    "jsx-a11y/no-noninteractive-element-to-interactive-role": "warn",
+    "jsx-a11y/no-redundant-roles": "warn",
+    "jsx-a11y/no-static-element-interactions": "warn",
+    "jsx-a11y/prefer-tag-over-role": "warn"
+  },
+  "overrides": [
+    {
+      // Matches the pre-migration setup, where the lodash restriction applied only to the React apps.
+      "files": ["apps/jetstream/**", "apps/landing/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "lodash",
+                "message": "Import [module] from lodash/[module] instead"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      // Build and release scripts are plain Node; hook-shaped helper names trip the React rules.
+      "files": ["scripts/**", "*.mjs", "mock-idp/**"],
+      "rules": {
+        "react-hooks/rules-of-hooks": "off",
+        "react-hooks/exhaustive-deps": "off"
+      }
+    },
+    {
+      "files": [
+        "**/*-e2e/**/*.{ts,tsx}",
+        "**/e2e-utils/**/*.{ts,tsx}",
+        "**/__tests__/**/*.{ts,tsx}",
+        "**/{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"
+      ],
+      "rules": {
+        "no-unused-vars": "off",
+        "typescript/no-explicit-any": "off",
+        "typescript/no-non-null-assertion": "off"
+      }
+    }
+  ]
+}

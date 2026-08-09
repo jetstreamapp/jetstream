@@ -52,3 +52,16 @@ overrides:
   # ^7.x ranges, deduping the tree to a single tar version.
   tar: "^7.5.20"
   "next-images>loader-utils": "2.0.4"
+
+# TEMPORARY: `enforce-module-boundaries` caches the Nx project graph on globalThis, but the cache
+# gate `isTerminalRun()` only recognises eslint/jest/nx entrypoints. Under oxlint's JS-plugin host
+# it never matches, so the graph, file map and tsconfig are re-read for EVERY linted file — 3,454
+# reloads and ~50s across this workspace instead of 1 reload and ~2.7s.
+#
+# Upstream fix: https://github.com/nrwl/nx/pull/36612
+# Remove this patch (and the `patches/` file) once that lands in a version we depend on.
+#
+# The pin is deliberate: bumping @nx/eslint-plugin off 23.1.1 makes `pnpm install` fail with
+# ERR_PNPM_UNUSED_PATCH (exit 1), which is the reminder to check whether the fix has shipped.
+patchedDependencies:
+  "@nx/eslint-plugin@23.1.1": patches/@nx__eslint-plugin@23.1.1.patch

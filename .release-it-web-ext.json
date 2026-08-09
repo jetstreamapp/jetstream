@@ -28,7 +28,7 @@
   "hooks": {
     "before:init": "if [ \"$CI\" != \"true\" ]; then echo 'Local releases are disabled; run releases via CI only.'; exit 1; fi",
     "after:bump": [
-      "pnpm prettier --write apps/jetstream-web-extension/src/manifest.json",
+      "pnpm oxfmt apps/jetstream-web-extension/src/manifest.json",
       "pnpm build:web-extension",
       "version=v${version} pnpm build:web-extension:zip"
     ],

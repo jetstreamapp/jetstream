@@ -4,10 +4,5 @@
   "sourceRoot": "libs/icon-factory/src",
   "projectType": "library",
   "tags": ["scope:browser"],
-  "generators": {},
-  "targets": {
-    "lint": {
-      "executor": "@nx/eslint:lint"
-    }
-  }
+  "generators": {}
 }

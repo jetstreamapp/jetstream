@@ -15,7 +15,7 @@
 # Include specific files
 !/pnpm-lock.yaml
 !/pnpm-workspace.yaml
-!/.eslintrc.json
+!/.oxlintrc.json
 !/.gitignore
 !/babel.config.json
 !/Dockerfile

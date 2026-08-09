@@ -5,10 +5,5 @@
   "projectType": "library",
   "tags": ["scope:shared"],
   "implicitDependencies": [],
-  "generators": {},
-  "targets": {
-    "lint": {
-      "executor": "@nx/eslint:lint"
-    }
-  }
+  "generators": {}
 }

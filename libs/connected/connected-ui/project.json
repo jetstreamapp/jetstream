@@ -3,10 +3,5 @@
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/connected/connected-ui/src",
   "projectType": "library",
-  "tags": ["scope:browser"],
-  "targets": {
-    "lint": {
-      "executor": "@nx/eslint:lint"
-    }
-  }
+  "tags": ["scope:browser"]
 }

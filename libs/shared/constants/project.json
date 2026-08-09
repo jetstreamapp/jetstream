@@ -4,10 +4,5 @@
   "sourceRoot": "libs/shared/constants/src",
   "projectType": "library",
   "tags": ["scope:shared", "scope:allow-worker-import", "scope:any"],
-  "generators": {},
-  "targets": {
-    "lint": {
-      "executor": "@nx/eslint:lint"
-    }
-  }
+  "generators": {}
 }

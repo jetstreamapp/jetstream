@@ -13,67 +13,24 @@
   },
   "defaultProject": "jetstream",
   "generators": {
-    "@nrwl/nest": {
-      "application": {
-        "linter": "eslint"
-      }
-    },
     "@nx/web:application": {
       "style": "css",
-      "linter": "eslint",
       "unitTestRunner": "vitest",
       "e2eTestRunner": "none"
     },
     "@nx/web:library": {
       "style": "css",
-      "linter": "eslint",
       "unitTestRunner": "vitest"
-    },
-    "@nx/workspace": {
-      "library": {
-        "linter": "eslint"
-      }
-    },
-    "@nx/web": {
-      "application": {
-        "linter": "eslint"
-      }
-    },
-    "@nx/node": {
-      "application": {
-        "linter": "eslint"
-      },
-      "library": {
-        "linter": "eslint"
-      }
-    },
-    "@nx/express": {
-      "application": {
-        "linter": "eslint"
-      },
-      "library": {
-        "linter": "eslint"
-      }
-    },
-    "@nx/plugin": {
-      "plugin": {
-        "linter": "eslint"
-      }
     },
     "@nx/react": {
       "application": {
         "babel": true,
         "style": "@emotion/styled",
-        "linter": "eslint",
         "bundler": "vite"
       },
       "library": {
         "style": "@emotion/styled",
-        "linter": "eslint",
         "unitTestRunner": "vitest"
-      },
-      "storybook-configuration": {
-        "linter": "eslint"
       },
       "component": {
         "style": "@emotion/styled"
@@ -81,8 +38,7 @@
     },
     "@nx/next": {
       "application": {
-        "style": "scss",
-        "linter": "eslint"
+        "style": "scss"
       }
     }
   },
@@ -98,10 +54,6 @@
     },
     "e2e-ci": {
       "cache": true
-    },
-    "@nx/eslint:lint": {
-      "cache": true,
-      "inputs": ["default", "^default", "{workspaceRoot}/.eslintrc.json", "{workspaceRoot}/eslint.config.js"]
     },
     "@nx/vitest:test": {
       "cache": true,
@@ -136,8 +88,7 @@
       "!{projectRoot}/**/?(*.)+(spec|test).[jt]s?(x)?(.snap)",
       "!{projectRoot}/tsconfig.spec.json",
       "!{projectRoot}/vite.config.{js,ts,mjs,mts}",
-      "!{projectRoot}/src/test-setup.[jt]s",
-      "!{projectRoot}/eslint.config.js"
+      "!{projectRoot}/src/test-setup.[jt]s"
     ]
   },
   "useDaemonProcess": true,
@@ -159,12 +110,6 @@
         "typecheck": {
           "targetName": "typecheck"
         }
-      }
-    },
-    {
-      "plugin": "@nx/eslint/plugin",
-      "options": {
-        "targetName": "lint"
       }
     },
     {

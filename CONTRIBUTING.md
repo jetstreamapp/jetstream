@@ -18,7 +18,7 @@ Pull requests are the best way to propose changes to the codebase (we use [Githu
 1. Fork the repo and create your branch from `main`.
 2. If you've added code that should be tested, add tests.
 3. If you've added a new feature page, update the documentation. (or mention in the PR that the documentation should be updated)
-4. Make sure you have run prettier to format all code.
+4. Make sure you have run `pnpm format` to format all code.
 5. Issue that pull request! 🎉
 
 ## Any contributions you make will be under the GNU LESSER GENERAL PUBLIC LICENSE
@@ -31,10 +31,10 @@ We use GitHub issues to track public bugs. Report a bug by [opening a new issue]
 
 ## Use a Consistent Coding Style
 
-- Ensure that all of your touched files have been formatted by prettier.
-  - If you are using VSCode, ensure you have the [prettier extension](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) installed
+- Ensure that all of your touched files have been formatted by oxfmt (`pnpm format`).
+  - If you are using VSCode, ensure you have the [Oxc extension](https://marketplace.visualstudio.com/items?itemName=oxc.oxc-vscode) installed
   - Your files should be formatted on save if you are using VSCode, you can also Open the command pallette and run **Format Document**
-  - If you are using a different editor, ensure that you have manually run prettier to format anything you have modified
+  - If you are using a different editor, run `pnpm format` to format anything you have modified
 
 ## Releasing
 

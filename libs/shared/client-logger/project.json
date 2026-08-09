@@ -4,10 +4,5 @@
   "sourceRoot": "libs/shared/client-logger/src",
   "projectType": "library",
   "tags": ["scope:browser", "scope:allow-worker-import"],
-  "generators": {},
-  "targets": {
-    "lint": {
-      "executor": "@nx/eslint:lint"
-    }
-  }
+  "generators": {}
 }
