@@ -1,0 +1,23 @@
+#!/bin/sh
+# Format and lint the whole workspace. oxfmt/oxlint scan all 4k files in a couple of seconds, so
+# there is no need to narrow this to staged files (and doing so would risk rewriting or missing
+# partially-staged hunks).
+#
+# Both are read-only: they report and fail, they never rewrite your working tree. Run
+# `pnpm format` / `pnpm lint:fix` to fix, or `git commit --no-verify` to bypass.
+
+# enforce-module-boundaries silently skips when Nx's project graph cache is missing, so make sure
+# it exists before linting.
+pnpm nx show projects >/dev/null 2>&1
+
+pnpm exec oxfmt --check . || {
+  echo ""
+  echo "Formatting issues found. Run 'pnpm format' to fix."
+  exit 1
+}
+
+pnpm exec oxlint --quiet . || {
+  echo ""
+  echo "Lint errors found. Run 'pnpm lint:fix' to auto-fix what can be fixed."
+  exit 1
+}
