@@ -61,26 +61,24 @@ function orgHasError(org: Maybe<SalesforceOrgUi>): boolean {
 
 function groupOrgs(orgs: SalesforceOrgUi[]): ListItemGroup<string, SalesforceOrgUi>[] {
   const orgsById = groupBy(sortBy(orgs, ['label']), 'orgName');
-  return Object.keys(orgsById).map(
-    (key): ListItemGroup => ({
-      id: key,
-      label: key,
-      items: orgsById[key].map((org) => {
-        const { isExpired, expiryDate } = calculateOrgExpiration(org);
-        const expiryMessage: Maybe<string> = expiryDate ? `${isExpired ? 'Ended' : 'Ends'} on ${expiryDate}` : undefined;
+  return Object.keys(orgsById).map((key): ListItemGroup => ({
+    id: key,
+    label: key,
+    items: orgsById[key].map((org) => {
+      const { isExpired, expiryDate } = calculateOrgExpiration(org);
+      const expiryMessage: Maybe<string> = expiryDate ? `${isExpired ? 'Ended' : 'Ends'} on ${expiryDate}` : undefined;
 
-        return {
-          id: org.uniqueId,
-          label: org.label || org.username,
-          value: org.uniqueId,
-          secondaryLabel: org.username !== org.label ? org.username : undefined,
-          secondaryLabelOnNewLine: org.username !== org.label,
-          tertiaryLabel: expiryMessage,
-          meta: org,
-        };
-      }),
+      return {
+        id: org.uniqueId,
+        label: org.label || org.username,
+        value: org.uniqueId,
+        secondaryLabel: org.username !== org.label ? org.username : undefined,
+        secondaryLabelOnNewLine: org.username !== org.label,
+        tertiaryLabel: expiryMessage,
+        meta: org,
+      };
     }),
-  );
+  }));
 }
 
 export interface OrgsComboboxProps {

@@ -26,11 +26,7 @@ export function analysisJobRuntimeStateKey(orgUniqueId: string, jobType: Analysi
  * Returns true if the global jobs map currently holds an in-flight analysis job of the given type
  * for the given org. Used by selection screens to block double-enqueue.
  */
-export function isAnalysisJobActive(
-  jobs: Record<string, AsyncJob<unknown>>,
-  orgUniqueId: string,
-  jobType: AnalysisJobType,
-): boolean {
+export function isAnalysisJobActive(jobs: Record<string, AsyncJob<unknown>>, orgUniqueId: string, jobType: AnalysisJobType): boolean {
   return Object.values(jobs).some((job) => {
     if (!job) {
       return false;

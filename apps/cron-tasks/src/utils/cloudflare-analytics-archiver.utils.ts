@@ -165,15 +165,7 @@ async function completeCronRun(
            rows_deleted = $6,
            error = $7
      WHERE id = $1`,
-    [
-      id,
-      status,
-      details.zonesProcessed,
-      details.hoursProcessed,
-      details.rowsUpserted,
-      details.rowsDeleted,
-      details.error ?? null,
-    ],
+    [id, status, details.zonesProcessed, details.hoursProcessed, details.rowsUpserted, details.rowsDeleted, details.error ?? null],
   );
 }
 
@@ -189,10 +181,9 @@ export async function deleteOldFirewallEvents(pool: Pool, retentionDays: number)
     return 0;
   }
   try {
-    const result = await pool.query(
-      `DELETE FROM firewall_event_hourly WHERE hour_bucket < (now() - ($1 || ' days')::interval)`,
-      [retentionDays.toString()],
-    );
+    const result = await pool.query(`DELETE FROM firewall_event_hourly WHERE hour_bucket < (now() - ($1 || ' days')::interval)`, [
+      retentionDays.toString(),
+    ]);
     return result.rowCount ?? 0;
   } catch (error) {
     logger.error(
@@ -211,11 +202,7 @@ export async function deleteOldFirewallEvents(pool: Pool, retentionDays: number)
  * closed-hour data is stable, the only fields that need to move on conflict are
  * `count` and `updated_at`.
  */
-export async function upsertFirewallEvents(
-  pool: Pool,
-  zoneId: string,
-  rows: FirewallEventGroupRow[],
-): Promise<number> {
+export async function upsertFirewallEvents(pool: Pool, zoneId: string, rows: FirewallEventGroupRow[]): Promise<number> {
   if (rows.length === 0) {
     return 0;
   }
@@ -281,10 +268,7 @@ export async function archiveCloudflareAnalytics(pool: Pool, options: ArchiverOp
   const { windowStart, windowEnd, truncated } = planWindow(now, lastWindowEnd, maxBackfillHours);
 
   if (windowEnd.getTime() <= windowStart.getTime()) {
-    logger.info(
-      { windowStart: windowStart.toISOString(), windowEnd: windowEnd.toISOString() },
-      'No new hours to process — skipping run',
-    );
+    logger.info({ windowStart: windowStart.toISOString(), windowEnd: windowEnd.toISOString() }, 'No new hours to process — skipping run');
     return {
       windowStart,
       windowEnd,
@@ -338,10 +322,7 @@ export async function archiveCloudflareAnalytics(pool: Pool, options: ArchiverOp
         const upserted = await upsertFirewallEvents(pool, zoneId, rows);
         rowsUpserted += upserted;
         successfullyProcessedZones.add(zoneId);
-        logger.debug(
-          { zoneId, hourStart: hourStart.toISOString(), rows: rows.length, upserted },
-          'Processed zone-hour',
-        );
+        logger.debug({ zoneId, hourStart: hourStart.toISOString(), rows: rows.length, upserted }, 'Processed zone-hour');
       }
       hoursProcessed += 1;
     }
@@ -363,10 +344,7 @@ export async function archiveCloudflareAnalytics(pool: Pool, options: ArchiverOp
       rowsDeleted,
       error: message,
     }).catch((updateError) => {
-      logger.error(
-        { err: updateError instanceof Error ? updateError.message : String(updateError) },
-        'Failed to mark cron_run as failed',
-      );
+      logger.error({ err: updateError instanceof Error ? updateError.message : String(updateError) }, 'Failed to mark cron_run as failed');
     });
     throw error;
   }

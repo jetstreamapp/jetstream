@@ -897,7 +897,7 @@ export function getFieldRows(
 
       const currRow: PermissionTableFieldCell = {
         key: fieldKey,
-        sobject: sobject,
+        sobject,
         apiName: fieldPermission.apiName,
         label: fieldPermission.label,
         tableLabel: `${fieldPermission.label} (${fieldPermission.apiName})`,
@@ -1073,7 +1073,7 @@ export function getTabVisibilityRows(
 
     const currRow: PermissionTableTabVisibilityCell = {
       key: sobject,
-      sobject: sobject,
+      sobject,
       apiName: fieldPermission.apiName,
       label: fieldPermission.label,
       tableLabel: `${fieldPermission.label} (${fieldPermission.apiName})`,
@@ -1757,12 +1757,12 @@ export function updateCheckboxDependencies(
 ) {
   if (type === 'object') {
     if (which === 'create') {
-      checkboxesById['create'] = { ...checkboxesById['create'], value: value };
+      checkboxesById['create'] = { ...checkboxesById['create'], value };
       if (checkboxesById['create'].value) {
         checkboxesById['read'].value = true;
       }
     } else if (which === 'read') {
-      checkboxesById['read'] = { ...checkboxesById['read'], value: value };
+      checkboxesById['read'] = { ...checkboxesById['read'], value };
       if (!checkboxesById['read'].value) {
         checkboxesById['create'].value = false;
         checkboxesById['edit'].value = false;
@@ -1771,7 +1771,7 @@ export function updateCheckboxDependencies(
         checkboxesById['modifyAll'].value = false;
       }
     } else if (which === 'edit') {
-      checkboxesById['edit'] = { ...checkboxesById['edit'], value: value };
+      checkboxesById['edit'] = { ...checkboxesById['edit'], value };
       if (checkboxesById['edit'].value) {
         checkboxesById['read'].value = true;
       } else {
@@ -1779,7 +1779,7 @@ export function updateCheckboxDependencies(
         checkboxesById['modifyAll'].value = false;
       }
     } else if (which === 'delete') {
-      checkboxesById['delete'] = { ...checkboxesById['delete'], value: value };
+      checkboxesById['delete'] = { ...checkboxesById['delete'], value };
       if (checkboxesById['delete'].value) {
         checkboxesById['read'].value = true;
         checkboxesById['edit'].value = true;
@@ -1787,14 +1787,14 @@ export function updateCheckboxDependencies(
         checkboxesById['modifyAll'].value = false;
       }
     } else if (which === 'viewAll') {
-      checkboxesById['viewAll'] = { ...checkboxesById['viewAll'], value: value };
+      checkboxesById['viewAll'] = { ...checkboxesById['viewAll'], value };
       if (checkboxesById['viewAll'].value) {
         checkboxesById['read'].value = true;
       } else {
         checkboxesById['modifyAll'].value = false;
       }
     } else if (which === 'modifyAll') {
-      checkboxesById['modifyAll'] = { ...checkboxesById['modifyAll'], value: value };
+      checkboxesById['modifyAll'] = { ...checkboxesById['modifyAll'], value };
       if (checkboxesById['modifyAll'].value) {
         checkboxesById['read'].value = true;
         checkboxesById['edit'].value = true;
@@ -1802,35 +1802,35 @@ export function updateCheckboxDependencies(
         checkboxesById['viewAll'].value = true;
       }
     } else if (which === 'viewAllFields') {
-      checkboxesById['viewAllFields'] = { ...checkboxesById['viewAllFields'], value: value };
+      checkboxesById['viewAllFields'] = { ...checkboxesById['viewAllFields'], value };
     }
   } else if (type === 'field') {
     if (which === 'read') {
-      checkboxesById['read'] = { ...checkboxesById['read'], value: value };
+      checkboxesById['read'] = { ...checkboxesById['read'], value };
       if (!checkboxesById['read'].value) {
         checkboxesById['edit'].value = false;
       }
     } else if (which === 'edit') {
-      checkboxesById['edit'] = { ...checkboxesById['edit'], value: value };
+      checkboxesById['edit'] = { ...checkboxesById['edit'], value };
       if (checkboxesById['edit'].value) {
         checkboxesById['read'].value = true;
       }
     }
   } else if (type === 'tabVisibility') {
     if (which === 'available') {
-      checkboxesById['available'] = { ...checkboxesById['available'], value: value };
+      checkboxesById['available'] = { ...checkboxesById['available'], value };
       if (!checkboxesById['available'].value) {
         checkboxesById['visible'].value = false;
       }
     } else if (which === 'visible') {
-      checkboxesById['visible'] = { ...checkboxesById['visible'], value: value };
+      checkboxesById['visible'] = { ...checkboxesById['visible'], value };
       if (checkboxesById['visible'].value) {
         checkboxesById['available'].value = true;
       }
     }
   } else if (type === 'systemPermission') {
     if (which === 'enabled') {
-      checkboxesById['enabled'] = { ...checkboxesById['enabled'], value: value };
+      checkboxesById['enabled'] = { ...checkboxesById['enabled'], value };
     }
   }
 }

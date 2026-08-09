@@ -349,8 +349,7 @@ describe('ApiBulk XML parsing and type handling', () => {
   describe('getQueryResultsJobIds - XML parsing', () => {
     it('should parse result-list XML with single result', async () => {
       const mockFetch = createMockFetch({
-        '/services/async/65.0/job/750Kf00000R1wzRIAR/batch/751Kf000018uaV7IAI/result':
-          BULK_XML_RESPONSES.RESULT_LIST_SINGLE,
+        '/services/async/65.0/job/750Kf00000R1wzRIAR/batch/751Kf000018uaV7IAI/result': BULK_XML_RESPONSES.RESULT_LIST_SINGLE,
       });
 
       const connection = createConnectionWithXmlParsing(mockFetch);
@@ -366,8 +365,7 @@ describe('ApiBulk XML parsing and type handling', () => {
 
     it('should parse result-list XML with multiple results', async () => {
       const mockFetch = createMockFetch({
-        '/services/async/65.0/job/750Kf00000R1wzRIAR/batch/751Kf000018uaV7IAI/result':
-          BULK_XML_RESPONSES.RESULT_LIST_MULTIPLE,
+        '/services/async/65.0/job/750Kf00000R1wzRIAR/batch/751Kf000018uaV7IAI/result': BULK_XML_RESPONSES.RESULT_LIST_MULTIPLE,
       });
 
       const connection = createConnectionWithXmlParsing(mockFetch);

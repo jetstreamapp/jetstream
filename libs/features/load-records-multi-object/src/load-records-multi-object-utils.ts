@@ -226,7 +226,7 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
         } catch (ex) {
           errors.push({
             property: 'sobject',
-            worksheet: worksheet,
+            worksheet,
             location: WORKSHEET_LOCATIONS.sobject,
             locationType: 'CELL',
             message: `${getErrorMessage(ex)} - "${dataset.sobject}".`,
@@ -238,7 +238,7 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
       if (!errorsByProperty.operation && (!operation || !VALID_OPERATIONS.includes(operation))) {
         errors.push({
           property: 'operation',
-          worksheet: worksheet,
+          worksheet,
           location: WORKSHEET_LOCATIONS.operation,
           locationType: 'CELL',
           message: `The operation is not valid: "${operation}". Valid operations are "${VALID_OPERATIONS.map((operation) =>
@@ -252,7 +252,7 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
         if (!externalId) {
           errors.push({
             property: 'externalId',
-            worksheet: worksheet,
+            worksheet,
             location: WORKSHEET_LOCATIONS.externalId,
             locationType: 'CELL',
             message: `An external Id is required for upsert.`,
@@ -262,7 +262,7 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
           if (!headers.find((header) => header.toLowerCase() === externalIdLowercase)) {
             errors.push({
               property: 'externalId',
-              worksheet: worksheet,
+              worksheet,
               location: WORKSHEET_LOCATIONS.externalId,
               locationType: 'CELL',
               message: `The external Id "${externalId}" must be included as a field in the dataset.`,
@@ -271,7 +271,7 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
           if (!dataset.fieldsByName?.[externalIdLowercase] || !dataset.fieldsByName[externalIdLowercase].externalId) {
             errors.push({
               property: 'externalId',
-              worksheet: worksheet,
+              worksheet,
               location: WORKSHEET_LOCATIONS.externalId,
               locationType: 'CELL',
               message: `The external Id "${externalId}" must exist and must be marked as an external id in Salesforce.`,
@@ -288,7 +288,7 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
         if (!referenceColumnHeader) {
           errors.push({
             property: 'data',
-            worksheet: worksheet,
+            worksheet,
             location: WORKSHEET_LOCATIONS.referenceId,
             locationType: 'CELL',
             message: `The column header for the Reference Id is blank and must have a unique value.`,
@@ -299,7 +299,7 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
         if (missingFields.length) {
           errors.push({
             property: 'data',
-            worksheet: worksheet,
+            worksheet,
             location: `${WORKSHEET_LOCATIONS.dataStartRow + 1}`,
             locationType: 'ROW',
             message: `The following fields do not exist on the object "${
@@ -312,7 +312,7 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
         if (missingRefIds.length) {
           errors.push({
             property: 'data',
-            worksheet: worksheet,
+            worksheet,
             location: 'A',
             locationType: 'COLUMN',
             message: `${formatNumber(missingRefIds.length)} ${pluralizeFromNumber('row', missingRefIds.length)} ${
@@ -327,7 +327,7 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
         if (invalidRefIds.length) {
           errors.push({
             property: 'data',
-            worksheet: worksheet,
+            worksheet,
             location: 'A',
             locationType: 'COLUMN',
             message: `The following Reference ${pluralizeFromNumber('Id', invalidRefIds.length)} have invalid characters: ${invalidRefIds
@@ -345,7 +345,7 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
         if (referenceIds.has(referenceId)) {
           errors.push({
             property: 'data',
-            worksheet: worksheet,
+            worksheet,
             location: `A${WORKSHEET_LOCATIONS.dataStartRow + 2 + i}`,
             locationType: 'CELL',
             message: `The Reference Id "${referenceId}" is used for multiple records. Every record across all worksheets must have a unique Reference Id.`,
@@ -465,7 +465,7 @@ export function getDataGraph(
         recordIdForUpdate,
         referenceId: record[dataset.referenceColumnHeader],
         record: transformedRecord,
-        recordIdx: recordIdx,
+        recordIdx,
         dependsOn: dependencies,
       };
 
@@ -606,39 +606,37 @@ function transformGraphRequestsToRequestWithResults(
   graphs: CompositeGraphRequest[],
   recordsByRefId: Record<string, LoadMultiObjectRecord>,
 ): LoadMultiObjectRequestWithResult[] {
-  return splitRequestsToMaxSize(graphs, MAX_REQ_SIZE).map(
-    (compositeRequestGraph, i): LoadMultiObjectRequestWithResult => ({
-      key: `request-${i}`,
-      loading: false,
-      started: null,
-      finished: null,
-      data: compositeRequestGraph,
-      results: null,
-      dataWithResultsByGraphId: groupByFlat(
-        compositeRequestGraph.map((item) => ({
-          graphId: item.graphId,
-          isSuccess: null,
-          compositeRequest: item.compositeRequest || [],
-          compositeResponse: null,
-        })),
-        'graphId',
+  return splitRequestsToMaxSize(graphs, MAX_REQ_SIZE).map((compositeRequestGraph, i): LoadMultiObjectRequestWithResult => ({
+    key: `request-${i}`,
+    loading: false,
+    started: null,
+    finished: null,
+    data: compositeRequestGraph,
+    results: null,
+    dataWithResultsByGraphId: groupByFlat(
+      compositeRequestGraph.map((item) => ({
+        graphId: item.graphId,
+        isSuccess: null,
+        compositeRequest: item.compositeRequest || [],
+        compositeResponse: null,
+      })),
+      'graphId',
+    ),
+    recordWithResponseByRefId: groupByFlat(
+      compositeRequestGraph.flatMap(
+        ({ compositeRequest }) =>
+          compositeRequest?.map((item) => ({
+            referenceId: item.referenceId,
+            sobject: recordsByRefId[item.referenceId].sobject,
+            operation: recordsByRefId[item.referenceId].operation,
+            externalId: recordsByRefId[item.referenceId].externalId,
+            request: item,
+            response: null,
+          })) || [],
       ),
-      recordWithResponseByRefId: groupByFlat(
-        compositeRequestGraph.flatMap(
-          ({ compositeRequest }) =>
-            compositeRequest?.map((item) => ({
-              referenceId: item.referenceId,
-              sobject: recordsByRefId[item.referenceId].sobject,
-              operation: recordsByRefId[item.referenceId].operation,
-              externalId: recordsByRefId[item.referenceId].externalId,
-              request: item,
-              response: null,
-            })) || [],
-        ),
-        'referenceId',
-      ),
-    }),
-  );
+      'referenceId',
+    ),
+  }));
 }
 
 function splitRequestsToMaxSize(items: CompositeGraphRequest[], maxSize: number): CompositeGraphRequest[][] {

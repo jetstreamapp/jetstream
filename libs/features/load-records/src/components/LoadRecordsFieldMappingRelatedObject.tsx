@@ -74,13 +74,11 @@ export const LoadRecordsFieldMappingRelatedObject: FunctionComponent<LoadRecords
 
   const relatedObjects = useMemo(
     () =>
-      orderValues(fieldMappingItem.fieldMetadata?.referenceTo || []).map(
-        (item): ListItem => ({
-          id: item,
-          label: item,
-          value: item,
-        }),
-      ),
+      orderValues(fieldMappingItem.fieldMetadata?.referenceTo || []).map((item): ListItem => ({
+        id: item,
+        label: item,
+        value: item,
+      })),
     [fieldMappingItem.fieldMetadata],
   );
 

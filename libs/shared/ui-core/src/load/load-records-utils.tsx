@@ -124,14 +124,12 @@ export async function fetchRelatedFieldsForObjects(
     ({ queryResults }) => {
       const relatedEntitiesByObj = groupBy(queryResults.records, 'EntityDefinition.QualifiedApiName');
       return Object.entries(relatedEntitiesByObj).reduce<Record<string, FieldRelatedEntity[]>>((acc, [objName, particles]) => {
-        acc[objName] = particles.map(
-          (particle): FieldRelatedEntity => ({
-            name: particle.Name,
-            label: particle.Label,
-            type: particle.DataType,
-            isExternalId: particle.IsIdLookup,
-          }),
-        );
+        acc[objName] = particles.map((particle): FieldRelatedEntity => ({
+          name: particle.Name,
+          label: particle.Label,
+          type: particle.DataType,
+          isExternalId: particle.IsIdLookup,
+        }));
         return acc;
       }, {});
     },
@@ -143,14 +141,12 @@ export async function fetchRelatedFields(org: SalesforceOrgUi, sobject: string, 
     ? queryAllUsingOffset<EntityParticleRecord>(org, getExternalIdFieldsForSobjectsQuery([sobject]), false, 2000)
     : queryAllWithCacheUsingOffset<EntityParticleRecord>(org, getExternalIdFieldsForSobjectsQuery([sobject]), false, 2000);
   return await queryFn.then(({ queryResults }) =>
-    queryResults.records.map(
-      (particle): FieldRelatedEntity => ({
-        name: particle.Name,
-        label: particle.Label,
-        type: particle.DataType,
-        isExternalId: particle.IsIdLookup,
-      }),
-    ),
+    queryResults.records.map((particle): FieldRelatedEntity => ({
+      name: particle.Name,
+      label: particle.Label,
+      type: particle.DataType,
+      isExternalId: particle.IsIdLookup,
+    })),
   );
 }
 

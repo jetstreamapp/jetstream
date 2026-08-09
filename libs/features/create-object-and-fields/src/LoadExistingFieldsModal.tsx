@@ -112,13 +112,11 @@ export const LoadExistingFieldsModal: FunctionComponent<LoadExistingFieldsModalP
 
   const objectListItems = useMemo(
     () =>
-      selectedSObjects.map(
-        (sobject): ListItem => ({
-          id: sobject,
-          label: sobject,
-          value: sobject,
-        }),
-      ),
+      selectedSObjects.map((sobject): ListItem => ({
+        id: sobject,
+        label: sobject,
+        value: sobject,
+      })),
     [selectedSObjects],
   );
 

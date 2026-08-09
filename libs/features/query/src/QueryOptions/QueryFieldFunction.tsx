@@ -17,17 +17,15 @@ export const QueryFieldFunction = ({ hasGroupByClause, selectedFields }: QueryFi
 
   useEffect(() => {
     setFunctionFields(
-      selectedFields.map(
-        (field): ListItem<string, QueryFieldWithPolymorphic> => ({
-          id: field.field,
-          label: field.metadata?.label || field.field,
-          value: field.field,
-          secondaryLabel: field.field,
-          secondaryLabelOnNewLine: true,
-          tertiaryLabel: polyfillFieldDefinition(field.metadata),
-          meta: field,
-        }),
-      ),
+      selectedFields.map((field): ListItem<string, QueryFieldWithPolymorphic> => ({
+        id: field.field,
+        label: field.metadata?.label || field.field,
+        value: field.field,
+        secondaryLabel: field.field,
+        secondaryLabelOnNewLine: true,
+        tertiaryLabel: polyfillFieldDefinition(field.metadata),
+        meta: field,
+      })),
     );
   }, [selectedFields]);
 

@@ -143,13 +143,11 @@ export async function getToolingRecords<T>(
   apiVersion: string,
   fields: string[] = ['Id', 'FullName', 'Metadata'],
 ): Promise<CompositeResponse<T>> {
-  const compositeRequests = recordIds.map(
-    (id): CompositeRequestBody => ({
-      method: 'GET',
-      url: `/services/data/${apiVersion}/tooling/sobjects/${metadataType}/${id}?fields=${fields.join(',')}`,
-      referenceId: id,
-    }),
-  );
+  const compositeRequests = recordIds.map((id): CompositeRequestBody => ({
+    method: 'GET',
+    url: `/services/data/${apiVersion}/tooling/sobjects/${metadataType}/${id}?fields=${fields.join(',')}`,
+    referenceId: id,
+  }));
   return await makeToolingRequests<T>(selectedOrg, compositeRequests, apiVersion, false);
 }
 

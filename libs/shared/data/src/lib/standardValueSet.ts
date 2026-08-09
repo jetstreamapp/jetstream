@@ -1,21 +1,19 @@
 import { ListMetadataResultRaw } from '@jetstream/types';
 
 export function getStandardValueSetTypes(): ListMetadataResultRaw[] {
-  return STANDARD_VALUE_SET_TYPES.map(
-    (fullName): ListMetadataResultRaw => ({
-      createdById: '0056g000004tCpaAAE',
-      createdByName: 'System',
-      createdDate: '1970-01-01T00:00:00.000Z',
-      fileName: `standardValueSets/${fullName}.standardValueSet`,
-      fullName,
-      id: null,
-      lastModifiedById: '0056g000004tCpaAAE',
-      lastModifiedByName: 'System',
-      lastModifiedDate: '1970-01-01T00:00:00.000Z',
-      namespacePrefix: null,
-      type: 'StandardValueSet',
-    }),
-  );
+  return STANDARD_VALUE_SET_TYPES.map((fullName): ListMetadataResultRaw => ({
+    createdById: '0056g000004tCpaAAE',
+    createdByName: 'System',
+    createdDate: '1970-01-01T00:00:00.000Z',
+    fileName: `standardValueSets/${fullName}.standardValueSet`,
+    fullName,
+    id: null,
+    lastModifiedById: '0056g000004tCpaAAE',
+    lastModifiedByName: 'System',
+    lastModifiedDate: '1970-01-01T00:00:00.000Z',
+    namespacePrefix: null,
+    type: 'StandardValueSet',
+  }));
 }
 
 /**

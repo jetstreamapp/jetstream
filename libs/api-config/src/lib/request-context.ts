@@ -45,7 +45,7 @@ export function getRequestContext(): RequestContextStore | undefined {
  * the middleware chain inherits the context.
  */
 export function runWithRequestContext<T>(seed: { requestId: string; bindings?: Record<string, unknown> }, callback: () => T): T {
-  const bindings = { requestId: seed.requestId, ...(seed.bindings ?? {}) };
+  const bindings = { requestId: seed.requestId, ...seed.bindings };
   const store: RequestContextStore = {
     requestId: seed.requestId,
     bindings,

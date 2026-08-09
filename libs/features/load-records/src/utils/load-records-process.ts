@@ -368,19 +368,17 @@ export async function loadBatchApiData(
           statusCode = 'ABORTED';
         }
         responseWithRecord =
-          batch.records?.map(
-            (record, i): RecordResultWithRecord => ({
-              success: false,
-              errors: [
-                {
-                  fields: [],
-                  message,
-                  statusCode,
-                },
-              ],
-              record: originalBatchRecords[i],
-            }),
-          ) || [];
+          batch.records?.map((record, i): RecordResultWithRecord => ({
+            success: false,
+            errors: [
+              {
+                fields: [],
+                message,
+                statusCode,
+              },
+            ],
+            record: originalBatchRecords[i],
+          })) || [];
       } finally {
         // replyToMessage('loadDataStatus', { records: responseWithRecord });
         statusCallback(responseWithRecord);
@@ -389,19 +387,17 @@ export async function loadBatchApiData(
     // Handle and processing failures (these happen when processing binary data)
     if (failedRecords.length) {
       statusCallback(
-        failedRecords.map(
-          (record): RecordResultWithRecord => ({
-            success: false,
-            errors: [
-              {
-                fields: [],
-                message: `An unknown error has occurred while processing this record.`,
-                statusCode: 'UNKNOWN',
-              },
-            ],
-            record,
-          }),
-        ),
+        failedRecords.map((record): RecordResultWithRecord => ({
+          success: false,
+          errors: [
+            {
+              fields: [],
+              message: `An unknown error has occurred while processing this record.`,
+              statusCode: 'UNKNOWN',
+            },
+          ],
+          record,
+        })),
       );
     }
   } catch (ex) {
@@ -531,7 +527,7 @@ function getBatchSummary(
 }
 
 function extname(name: string): string | undefined {
-  const m = /(?:\.([^.\/\\]+))$/.exec(name);
+  const m = /(?:\.([^./\\]+))$/.exec(name);
   return m?.[1]?.toLowerCase();
 }
 

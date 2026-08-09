@@ -34,7 +34,6 @@ export const TeamMemberRow = ({
   return (
     <tr data-testid={`team-member-row-${member.user.email}`}>
       <td
-        role="gridcell"
         css={css`
           padding-left: 0.5rem !important;
         `}
@@ -55,7 +54,7 @@ export const TeamMemberRow = ({
           </div>
         </div>
       </th>
-      <td role="gridcell" className="slds-cell-wrap">
+      <td className="slds-cell-wrap">
         <Identities
           allowedProviders={allowedProviders}
           allowIdentityLinking={allowIdentityLinking}
@@ -64,16 +63,16 @@ export const TeamMemberRow = ({
           hasPasswordSet={member.user.hasPasswordSet}
         />
       </td>
-      <td role="gridcell" className="slds-cell-wrap">
+      <td className="slds-cell-wrap">
         <MfaTypes requireMfa={requireMfa} allowedMfaMethods={allowedMfaMethods} authFactors={member.user.authFactors} />
       </td>
-      <td role="gridcell" className="slds-cell-wrap">
+      <td className="slds-cell-wrap">
         <RoleCell role={member.role} />
       </td>
-      <td role="gridcell" className="slds-cell-wrap">
+      <td className="slds-cell-wrap">
         <StatusCell status={member.status} />
       </td>
-      <td role="gridcell" className="slds-cell-wrap">
+      <td className="slds-cell-wrap">
         <LastLoggedInCell lastLoggedIn={member.user.lastLoggedIn} />
       </td>
     </tr>

@@ -39,30 +39,12 @@ describe('Checkbox', () => {
   });
 
   test('renders error message when hasError and errorMessage are provided', () => {
-    render(
-      <Checkbox
-        id="cb-1"
-        checked={false}
-        label="Label"
-        hasError
-        errorMessage="This field is required"
-        onChange={() => {}}
-      />,
-    );
+    render(<Checkbox id="cb-1" checked={false} label="Label" hasError errorMessage="This field is required" onChange={() => {}} />);
     expect(screen.getByText('This field is required')).toBeTruthy();
   });
 
   test('does not render error message when hasError is false', () => {
-    render(
-      <Checkbox
-        id="cb-1"
-        checked={false}
-        label="Label"
-        hasError={false}
-        errorMessage="Error"
-        onChange={() => {}}
-      />,
-    );
+    render(<Checkbox id="cb-1" checked={false} label="Label" hasError={false} errorMessage="Error" onChange={() => {}} />);
     expect(screen.queryByText('Error')).toBeNull();
   });
 
@@ -78,9 +60,7 @@ describe('Checkbox', () => {
   });
 
   test('renders help text when helpText is provided', () => {
-    render(
-      <Checkbox id="cb-1" checked={false} label="Label" helpText="Helpful hint" onChange={() => {}} />,
-    );
+    render(<Checkbox id="cb-1" checked={false} label="Label" helpText="Helpful hint" onChange={() => {}} />);
     expect(screen.getByText('Helpful hint')).toBeTruthy();
   });
 

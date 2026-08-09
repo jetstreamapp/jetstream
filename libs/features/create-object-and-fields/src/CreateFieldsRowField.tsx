@@ -81,7 +81,7 @@ export const CreateFieldsRowField = forwardRef<unknown, CreateFieldsRowFieldProp
                 labelHelp:
                   typeof field.labelHelp === 'function' ? field.labelHelp(allValues.type.value as SalesforceFieldType) : field.labelHelp,
                 isRequired: field.required,
-                disabled: disabled,
+                disabled,
                 itemLength: 10,
               }}
               items={values}

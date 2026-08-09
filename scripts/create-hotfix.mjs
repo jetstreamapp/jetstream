@@ -55,9 +55,7 @@ const deployedDate = (await $`git log -1 --format=%cI ${deployedSha}`).stdout.tr
 
 // to the web app. Use Git's version-aware tag sorting so prereleases sort
 // lower than the corresponding stable release.
-const tagsAtShaRaw = (
-  await $`git tag --points-at ${deployedSha} --list 'v[0-9]*' --sort=-v:refname`
-).stdout.trim();
+const tagsAtShaRaw = (await $`git tag --points-at ${deployedSha} --list 'v[0-9]*' --sort=-v:refname`).stdout.trim();
 const webTags = tagsAtShaRaw
   .split('\n')
   .map((tag) => tag.trim())

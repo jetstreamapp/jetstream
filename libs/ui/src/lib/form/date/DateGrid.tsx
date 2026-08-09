@@ -351,7 +351,7 @@ export const DateGrid: FunctionComponent<DateGridProps> = ({
                   css={css`
                     ${day.readOnly && `cursor: not-allowed`}
                   `}
-                  role="gridcell"
+
                   aria-disabled={day.readOnly}
                   tabIndex={day.readOnly ? undefined : day.label === 1 && day.isCurrMonth ? 0 : -1}
                   onClick={() => !day.readOnly && onSelected(day.value)}

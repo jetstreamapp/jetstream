@@ -138,7 +138,7 @@ const Row = ({ item }: { item: LoginActivityUserFacing }) => {
 
   return (
     <tr>
-      <td role="gridcell" className="slds-cell-wrap">
+      <td className="slds-cell-wrap">
         {/* Revoke */}
         {/* <UserActionCell isCurrentUser={isCurrentUser} member={member} onUserAction={onUserAction} /> */}
       </td>
@@ -150,7 +150,7 @@ const Row = ({ item }: { item: LoginActivityUserFacing }) => {
           </div>
         )}
       </th>
-      <td role="gridcell" className="slds-cell-wrap">
+      <td className="slds-cell-wrap">
         {browserName && (
           <>
             <p>{osName}</p>
@@ -160,7 +160,7 @@ const Row = ({ item }: { item: LoginActivityUserFacing }) => {
           </>
         )}
       </td>
-      <td role="gridcell" className="slds-cell-wrap">
+      <td className="slds-cell-wrap">
         {ipAddress}
         {location && (
           <div>
@@ -168,13 +168,9 @@ const Row = ({ item }: { item: LoginActivityUserFacing }) => {
           </div>
         )}
       </td>
-      <td role="gridcell" className="slds-cell-wrap">
-        {action}
-      </td>
-      <td role="gridcell" className="slds-cell-wrap">
-        {parseISO(createdAt).toLocaleString()}
-      </td>
-      <td role="gridcell" className="slds-cell-wrap">
+      <td className="slds-cell-wrap">{action}</td>
+      <td className="slds-cell-wrap">{parseISO(createdAt).toLocaleString()}</td>
+      <td className="slds-cell-wrap">
         {success ? <p className="slds-text-color_success">Successful</p> : <p className="slds-text-color_error">Failed</p>}
       </td>
     </tr>

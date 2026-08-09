@@ -612,7 +612,8 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
         let fieldSaveResults: PermissionSaveResults<FieldPermissionRecordForSave, PermissionTableFieldCellPermission>[] | undefined =
           undefined;
         let tabVisibilitySaveResults:
-          PermissionSaveResults<TabVisibilityPermissionRecordForSave, PermissionTableTabVisibilityCellPermission>[] | undefined = undefined;
+          | PermissionSaveResults<TabVisibilityPermissionRecordForSave, PermissionTableTabVisibilityCellPermission>[]
+          | undefined = undefined;
         let systemSaveResults: SystemPermissionSaveRecord[] | undefined = undefined;
 
         if (objectPermissionData) {

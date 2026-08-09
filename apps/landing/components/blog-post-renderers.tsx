@@ -147,15 +147,7 @@ export function renderBlogPostRichText(richText: Document) {
             return <Fragment />;
           }
 
-          return (
-            <FigureImgWithViewFullScreen
-              src={url}
-              title={title}
-              description={description}
-              width={width}
-              height={height}
-            />
-          );
+          return <FigureImgWithViewFullScreen src={url} title={title} description={description} width={width} height={height} />;
         } catch (ex) {
           console.warn('[RENDER ASSET ERROR]', ex.message);
           return <Fragment />;

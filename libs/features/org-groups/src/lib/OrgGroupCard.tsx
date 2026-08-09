@@ -83,8 +83,9 @@ export function OrgGroupCardCard({
           &.slds-drop-zone::after {
             border-radius: var(--slds-c-card-radius-border, var(--slds-g-radius-border-2, 0.5rem));
           }
-          ${isActive
-            ? `
+          ${
+            isActive
+              ? `
             border: 1px solid var(--slds-g-color-brand-base-60, #1b96ff) !important;
             -webkit-box-shadow: 0 0 0 1px var(--slds-g-color-brand-base-60, #1b96ff) inset !important;
             ::after {
@@ -100,7 +101,8 @@ export function OrgGroupCardCard({
             border-top: 1rem solid transparent;
             border-top-color: var(--slds-g-color-brand-base-60, #1b96ff);
           }`
-            : ''}
+              : ''
+          }
         `}
         nestedBorder
         className={classNames({ 'slds-drop-zone slds-drop-zone_drag': isDropTarget })}

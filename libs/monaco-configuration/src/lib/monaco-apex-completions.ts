@@ -65,16 +65,14 @@ function getSuggestions(
     const key = completionsData.getProperCasedCompletionKey(priorWord);
     if (key && completionsData.APEX_COMPLETIONS[key]) {
       completions = completions.concat(
-        completionsData.APEX_COMPLETIONS[key].methods.map(
-          (method): monaco.languages.CompletionItem => ({
-            label: `${key}.${method.name}(${method.parameters.map((param) => `${param.type} ${param.name}`).join(', ')})`,
-            kind: monaco.languages.CompletionItemKind.Class,
-            filterText: method.name,
-            insertText: `${method.name}(${method.parameters.map((param, i) => `\${${i + 1}:${param.name}}`).join(', ')});`,
-            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-            range,
-          }),
-        ),
+        completionsData.APEX_COMPLETIONS[key].methods.map((method): monaco.languages.CompletionItem => ({
+          label: `${key}.${method.name}(${method.parameters.map((param) => `${param.type} ${param.name}`).join(', ')})`,
+          kind: monaco.languages.CompletionItemKind.Class,
+          filterText: method.name,
+          insertText: `${method.name}(${method.parameters.map((param, i) => `\${${i + 1}:${param.name}}`).join(', ')});`,
+          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          range,
+        })),
       );
     }
   } else if (textUntilPositionRaw.toLowerCase() === 'new' || textUntilPositionRaw.toLowerCase() === 'new ') {
@@ -109,16 +107,14 @@ function getSuggestions(
     const key = completionsData.getProperCasedCompletionKey(root);
     if (!other && key && completionsData.APEX_COMPLETIONS[key]) {
       completions = completions.concat(
-        completionsData.APEX_COMPLETIONS[key].methods.map(
-          (method): monaco.languages.CompletionItem => ({
-            label: `${key}.${method.name}(${method.parameters.map((param) => `${param.type} ${param.name}`).join(', ')})`,
-            kind: monaco.languages.CompletionItemKind.Class,
-            filterText: method.name,
-            insertText: `${method.name}(${method.parameters.map((param, i) => `\${${i + 1}:${param.name}}`).join(', ')});`,
-            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-            range,
-          }),
-        ),
+        completionsData.APEX_COMPLETIONS[key].methods.map((method): monaco.languages.CompletionItem => ({
+          label: `${key}.${method.name}(${method.parameters.map((param) => `${param.type} ${param.name}`).join(', ')})`,
+          kind: monaco.languages.CompletionItemKind.Class,
+          filterText: method.name,
+          insertText: `${method.name}(${method.parameters.map((param, i) => `\${${i + 1}:${param.name}}`).join(', ')});`,
+          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          range,
+        })),
       );
     } else {
       completions = completions.concat(

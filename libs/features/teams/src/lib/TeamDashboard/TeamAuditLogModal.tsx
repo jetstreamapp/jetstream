@@ -254,10 +254,8 @@ const AuditLogRow = ({ record }: { record: AuditLogUserFacing }) => {
 
   return (
     <tr>
-      <td role="gridcell" className="slds-cell-wrap">
-        {parseISO(createdAt).toLocaleString()}
-      </td>
-      <td role="gridcell" className="slds-cell-wrap">
+      <td className="slds-cell-wrap">{parseISO(createdAt).toLocaleString()}</td>
+      <td className="slds-cell-wrap">
         {performedBy ? (
           <div>
             <div>{performedBy.name}</div>
@@ -267,13 +265,9 @@ const AuditLogRow = ({ record }: { record: AuditLogUserFacing }) => {
           <span className="slds-text-color_weak">Unknown</span>
         )}
       </td>
-      <td role="gridcell" className="slds-cell-wrap">
-        {displayAction}
-      </td>
-      <td role="gridcell" className="slds-cell-wrap">
-        {ipAddress}
-      </td>
-      <td role="gridcell" className="slds-cell-wrap">
+      <td className="slds-cell-wrap">{displayAction}</td>
+      <td className="slds-cell-wrap">{ipAddress}</td>
+      <td className="slds-cell-wrap">
         {metadata ? (
           <pre className="slds-text-body_small" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', margin: 0 }}>
             {JSON.stringify(metadata, null, 2)}

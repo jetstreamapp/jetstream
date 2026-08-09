@@ -24,12 +24,20 @@ describe('Alert', () => {
   });
 
   test('shows close button when allowClose is true', () => {
-    render(<Alert type="info" allowClose onClose={() => {}}>Message</Alert>);
+    render(
+      <Alert type="info" allowClose onClose={() => {}}>
+        Message
+      </Alert>,
+    );
     expect(screen.getByTitle('Close')).toBeTruthy();
   });
 
   test('does not show close button when allowClose is false', () => {
-    render(<Alert type="info" allowClose={false}>Message</Alert>);
+    render(
+      <Alert type="info" allowClose={false}>
+        Message
+      </Alert>,
+    );
     expect(screen.queryByTitle('Close')).toBeNull();
   });
 
@@ -40,13 +48,21 @@ describe('Alert', () => {
 
   test('calls onClose callback when close button is clicked', () => {
     const onClose = vi.fn();
-    render(<Alert type="info" allowClose onClose={onClose}>Message</Alert>);
+    render(
+      <Alert type="info" allowClose onClose={onClose}>
+        Message
+      </Alert>,
+    );
     fireEvent.click(screen.getByTitle('Close'));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   test('applies custom className', () => {
-    const { container } = render(<Alert type="info" className="my-custom-class">Message</Alert>);
+    const { container } = render(
+      <Alert type="info" className="my-custom-class">
+        Message
+      </Alert>,
+    );
     expect((container.firstChild as HTMLElement).className).toContain('my-custom-class');
   });
 });

@@ -117,16 +117,14 @@ export const Jobs: FunctionComponent = () => {
 
   useEffect(() => {
     if (!!jobsWorker && newJobsToProcess && newJobsToProcess.length > 0) {
-      const newJobs = newJobsToProcess.map(
-        (job): AsyncJob<unknown> => ({
-          ...job,
-          id: uniqueId(job.type),
-          started: new Date(),
-          finished: new Date(),
-          lastActivity: new Date(),
-          status: 'in-progress',
-        }),
-      );
+      const newJobs = newJobsToProcess.map((job): AsyncJob<unknown> => ({
+        ...job,
+        id: uniqueId(job.type),
+        started: new Date(),
+        finished: new Date(),
+        lastActivity: new Date(),
+        status: 'in-progress',
+      }));
       newJobs.forEach((job) => {
         jobsWorker.postMessage({
           name: job.type,

@@ -4,7 +4,7 @@ import { $, chalk, fs, path } from 'zx'; // https://github.com/google/zx
 
 void (async function () {
   const htmlDocument = fs.readFileSync(path.join(__dirname, '../dist/apps/docs/index.html'), 'utf8');
-  const scriptText = htmlDocument.match(/\<script\>function gtag.+\<\/script\>/)[0].replace(/<script>|<\/script>/g, '');
+  const scriptText = htmlDocument.match(/<script>function gtag.+<\/script>/)[0].replace(/<script>|<\/script>/g, '');
   const scriptText2 = `window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}if(window.location.hostname!=='localhost'){gtag('js', new Date());gtag('config', 'G-GZJ9QQTK44');}`;
 
   $.verbose = false;

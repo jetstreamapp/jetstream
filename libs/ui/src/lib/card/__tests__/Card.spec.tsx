@@ -43,7 +43,11 @@ describe('Card', () => {
   });
 
   test('renders actions when title and actions are provided', () => {
-    render(<Card title="Card" actions={<button>Action</button>}>Content</Card>);
+    render(
+      <Card title="Card" actions={<button>Action</button>}>
+        Content
+      </Card>,
+    );
     expect(screen.getByText('Action')).toBeTruthy();
   });
 });

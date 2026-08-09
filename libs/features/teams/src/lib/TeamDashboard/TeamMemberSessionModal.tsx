@@ -182,7 +182,7 @@ const Row = ({
 
   return (
     <tr>
-      <td role="gridcell">
+      <td>
         {/* Revoke */}
         {/* <UserActionCell isCurrentUser={isCurrentUser} member={member} onUserAction={onUserAction} /> */}
       </td>
@@ -192,7 +192,7 @@ const Row = ({
           <div>{user.email}</div>
         </div>
       </th>
-      <td role="gridcell" className="slds-cell-wrap">
+      <td className="slds-cell-wrap">
         {browserName && (
           <>
             <p>{osName}</p>
@@ -202,7 +202,7 @@ const Row = ({
           </>
         )}
       </td>
-      <td role="gridcell" className="slds-cell-wrap">
+      <td className="slds-cell-wrap">
         {ipAddress}
         {location && (
           <div>
@@ -210,13 +210,9 @@ const Row = ({
           </div>
         )}
       </td>
-      <td role="gridcell" className="slds-cell-wrap">
-        {parseISO(loginTime).toLocaleString()}
-      </td>
-      <td role="gridcell" className="slds-cell-wrap">
-        {parseISO(expires).toLocaleString()}
-      </td>
-      <td role="gridcell" className="slds-cell-wrap">
+      <td className="slds-cell-wrap">{parseISO(loginTime).toLocaleString()}</td>
+      <td className="slds-cell-wrap">{parseISO(expires).toLocaleString()}</td>
+      <td className="slds-cell-wrap">
         {provider && (
           <p className="slds-text-color_weak">Logged in via {provider === 'credentials' ? 'Email & Password' : startCase(provider)}</p>
         )}

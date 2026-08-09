@@ -19,11 +19,7 @@ function filterHighlightsByPlatform(highlights: ReleaseHighlight[], platform: Re
  *
  * @param sinceDate Optional ISO date string (YYYY-MM-DD). If provided, only releases strictly newer are returned.
  */
-export function getVisibleReleases(
-  notes: ReleaseNote[],
-  platform: ReleasePlatform,
-  sinceDate?: string | null,
-): ReleaseNote[] {
+export function getVisibleReleases(notes: ReleaseNote[], platform: ReleasePlatform, sinceDate?: string | null): ReleaseNote[] {
   const result: ReleaseNote[] = [];
   for (const note of notes) {
     if (!platformMatches(note.tags, platform)) {
