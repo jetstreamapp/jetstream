@@ -6,7 +6,7 @@ import { CSSProperties, RefObject, useEffect, useMemo, useRef } from 'react';
 import { DEFAULT_ROW_HEIGHT, HEADER_ROW_ID, isSummaryRowId } from '../grid-constants';
 import { selectRowModelInputs } from '../grid-context';
 import { TanstackTable } from '../grid-types';
-import { GridMode } from '../keyboard/useGridKeyboardNavigation';
+import { GridInteractionSource, GridMode } from '../keyboard/useGridKeyboardNavigation';
 import { getRowSelectionSpans } from '../selection/grid-selection';
 import { GridGroupRow } from './GridGroupRow';
 import { ActiveCell, GridRow } from './GridRow';
@@ -35,9 +35,10 @@ export interface GridBodyProps<TRow extends object> {
   activeCell?: ActiveCell | null;
   mode?: GridMode;
   /** Whether the active cell last changed via mouse vs keyboard — on mouse we skip auto-focusing the
-   * cell so popovers/controls opened by the click keep focus; on 'select-all' we additionally skip
-   * scroll-into-view (Ctrl+A must not jump the viewport to the last row). */
-  getLastInteractionSource?: () => 'mouse' | 'keyboard' | 'select-all';
+   * cell so popovers/controls opened by the click keep focus; on 'select-all' and 'drag-autoscroll' we
+   * additionally skip scroll-into-view (Ctrl+A must not jump the viewport to the last row, and a range
+   * drag's own auto-scroll loop owns the scroll offset). */
+  getLastInteractionSource?: () => GridInteractionSource;
   /** The cell currently being edited (its editor owns focus, so the body must not steal it). */
   editingCell?: ActiveCell | null;
   /** Resolved cell-selection rectangles (inclusive display-index bounds; empty when collapsed). */
@@ -151,9 +152,11 @@ export function GridBody<TRow extends object>({
     if (!activeCell) {
       return;
     }
+    const interactionSource = getLastInteractionSource?.();
     // Select-all moves the active corner to the last cell purely as selection bookkeeping — never
-    // scroll or move focus for it.
-    if (getLastInteractionSource?.() === 'select-all') {
+    // scroll or move focus for it. A drag's edge auto-scroll owns the scroll offset while it runs, and
+    // `align: 'auto'` would snap the partially-visible edge row fully into view on every extend.
+    if (interactionSource === 'select-all' || interactionSource === 'drag-autoscroll') {
       return;
     }
     // The column header and pinned summary rows are virtual rows in the sticky header block (always
@@ -176,7 +179,7 @@ export function GridBody<TRow extends object>({
     // A mouse click already placed focus correctly — on the cell, or on an interactive control / portaled
     // popover rendered inside it. Re-focusing the cell here would steal focus back and close those
     // popovers, so only keyboard / programmatic activation drives cell focus.
-    if (getLastInteractionSource?.() === 'mouse') {
+    if (interactionSource === 'mouse') {
       return;
     }
 
@@ -277,6 +280,7 @@ export function GridBody<TRow extends object>({
               height={virtualRow.size}
               activeCell={rowActiveCell}
               onCellMouseDown={onCellMouseDown}
+              onCellMouseEnter={onCellMouseEnter}
               onContextMenu={onGroupContextMenu}
               autoHeight={autoRowHeight}
               measureRef={measureRowRef}

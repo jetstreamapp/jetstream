@@ -6,6 +6,7 @@ import classNames from 'classnames';
 import { CSSProperties, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ContextMenu } from '../../../form/context-menu/ContextMenu';
 import { EditorHost } from '../editors/EditorHost';
+import { computeEdgeScrollVelocity, createEdgeAutoScroller } from '../grid-auto-scroll';
 import { copyGridDataToClipboard, copyGridGroupRowsToClipboard, GridCopyResult } from '../grid-clipboard';
 import { reorderColumnOrder } from '../grid-column-utils';
 import { HEADER_ROW_ID, isSummaryRowId, NON_DATA_COLUMN_KEYS, TABLE_CONTEXT_MENU_ITEMS } from '../grid-constants';
@@ -271,6 +272,7 @@ export function GridContainer<TRow extends object = RowWithKey>({
   const keyboardNav = useGridKeyboardNavigation({
     table,
     getRootElement: () => gridRef.current,
+    getScrollElement: () => scrollRef.current,
     onRequestEdit: startEdit,
     shouldRetainFocusOnBlur,
     summaryRowCount: summaryRows?.length ?? 0,
@@ -355,9 +357,12 @@ export function GridContainer<TRow extends object = RowWithKey>({
   const visibleColumnIndexes = autoRowHeight ? allColumnIndexes : windowedColumnIndexes;
 
   // Scroll the active column into view (mirrors the active-row logic in GridBody) so keyboard
-  // navigation to off-screen columns brings them into the window before focus resolves.
+  // navigation to off-screen columns brings them into the window before focus resolves. Skipped while
+  // a range drag auto-scrolls: `align: 'auto'` resolves to `'end'` for the partially-visible edge
+  // column, so it would snap a full column width on every extend and override the velocity ramp.
   useEffect(() => {
-    if (!keyboardNav.activeCell || keyboardNav.getLastInteractionSource() === 'select-all') {
+    const interactionSource = keyboardNav.getLastInteractionSource();
+    if (!keyboardNav.activeCell || interactionSource === 'select-all' || interactionSource === 'drag-autoscroll') {
       return;
     }
     const index = leafColumns.findIndex((column) => column.id === keyboardNav.activeCell!.columnId);
@@ -795,62 +800,34 @@ export function GridContainer<TRow extends object = RowWithKey>({
   );
 
   // Edge auto-scroll: because columns are horizontally virtualized, the drop target may be off-screen.
-  // While a column drag is active and the cursor nears the scroller's left/right edge, nudge the
-  // horizontal scroll so more columns (and drop targets) render. The rAF loop runs only during a drag.
-  const autoScrollFrameRef = useRef<number | null>(null);
-  const autoScrollStepRef = useRef(0);
-
-  const stopAutoScroll = useCallback(() => {
-    if (autoScrollFrameRef.current !== null) {
-      cancelAnimationFrame(autoScrollFrameRef.current);
-      autoScrollFrameRef.current = null;
-    }
-    autoScrollStepRef.current = 0;
-  }, []);
-
-  const runAutoScroll = useCallback(() => {
-    const scroller = scrollRef.current;
-    if (!scroller || autoScrollStepRef.current === 0) {
-      autoScrollFrameRef.current = null;
-      return;
-    }
-    scroller.scrollLeft += autoScrollStepRef.current;
-    autoScrollFrameRef.current = requestAnimationFrame(runAutoScroll);
-  }, []);
+  // While a column drag is active and the cursor nears the scroller's left/right edge, scroll
+  // horizontally so more columns (and drop targets) render. Shares the range drag's scroller, so the
+  // speed is in px/sec and stays the same on a 120Hz display.
+  const [columnDragAutoScroll] = useState(() => createEdgeAutoScroller({ getScrollElement: () => scrollRef.current }));
 
   const handleColumnDragOverScroller = useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
       if (!draggingColumnId) {
         return;
       }
-      const EDGE_SIZE = 60;
-      const SCROLL_STEP = 12;
       const rect = event.currentTarget.getBoundingClientRect();
-      const distanceFromLeft = event.clientX - rect.left;
-      const distanceFromRight = rect.right - event.clientX;
-      let step = 0;
-      if (distanceFromLeft < EDGE_SIZE) {
-        step = -SCROLL_STEP;
-      } else if (distanceFromRight < EDGE_SIZE) {
-        step = SCROLL_STEP;
-      }
-      autoScrollStepRef.current = step;
-      if (step !== 0 && autoScrollFrameRef.current === null) {
-        autoScrollFrameRef.current = requestAnimationFrame(runAutoScroll);
-      } else if (step === 0) {
-        stopAutoScroll();
-      }
+      const { x } = computeEdgeScrollVelocity({
+        box: { top: rect.top, right: rect.left + event.currentTarget.clientWidth, bottom: rect.bottom, left: rect.left },
+        clientX: event.clientX,
+        clientY: event.clientY,
+      });
+      columnDragAutoScroll.setVelocity({ x, y: 0 });
     },
-    [draggingColumnId, runAutoScroll, stopAutoScroll],
+    [columnDragAutoScroll, draggingColumnId],
   );
 
   const handleColumnDragEnd = useCallback(() => {
     setDraggingColumnId(null);
-    stopAutoScroll();
-  }, [stopAutoScroll]);
+    columnDragAutoScroll.stop();
+  }, [columnDragAutoScroll]);
 
   // Stop any in-flight auto-scroll frame when the grid unmounts mid-drag.
-  useEffect(() => stopAutoScroll, [stopAutoScroll]);
+  useEffect(() => columnDragAutoScroll.stop, [columnDragAutoScroll]);
 
   return (
     <GridRuntimeContext.Provider value={runtime as GridRuntime}>

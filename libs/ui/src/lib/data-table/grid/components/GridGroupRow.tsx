@@ -20,6 +20,9 @@ export interface GridGroupRowProps<TRow extends object> {
   height: number;
   activeCell?: ActiveCell | null;
   onCellMouseDown?: (rowId: string, columnId: string, shiftKey: boolean, button?: number, ctrlOrMetaKey?: boolean) => void;
+  /** Mouse enters a group cell while dragging — lets a range drag sweep THROUGH group header rows
+   * instead of stalling on them (the rectangle passes over them; they render and copy nothing). */
+  onCellMouseEnter?: (rowId: string, columnId: string) => void;
   onContextMenu?: (event: React.MouseEvent, rowId: string, columnId: string) => void;
   /** When true the group row sizes to its content instead of being pinned to `height`. */
   autoHeight?: boolean;
@@ -58,6 +61,7 @@ export function GridGroupRow<TRow extends object>({
   height,
   activeCell,
   onCellMouseDown,
+  onCellMouseEnter,
   onContextMenu,
   autoHeight,
   measureRef,
@@ -107,6 +111,7 @@ export function GridGroupRow<TRow extends object>({
           data-col-id={firstColumnId}
           tabIndex={isActive ? 0 : -1}
           onMouseDown={(event) => firstColumnId && onCellMouseDown?.(row.id, firstColumnId, event.shiftKey, event.button)}
+          onMouseEnter={() => firstColumnId && onCellMouseEnter?.(row.id, firstColumnId)}
           onContextMenu={(event) => firstColumnId && onContextMenu?.(event, row.id, firstColumnId)}
         >
           <button
@@ -160,6 +165,7 @@ export function GridGroupRow<TRow extends object>({
           data-col-id={column.id}
           tabIndex={isActive && activeCell?.columnId === column.id ? 0 : -1}
           onMouseDown={(event) => onCellMouseDown?.(row.id, column.id, event.shiftKey, event.button)}
+          onMouseEnter={() => onCellMouseEnter?.(row.id, column.id)}
           onContextMenu={(event) => onContextMenu?.(event, row.id, column.id)}
           style={{ gridColumn: `${startCol} / span ${span}`, ...getFrozenCellStyle(columns, index) }}
         >
