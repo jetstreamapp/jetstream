@@ -1,20 +1,21 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { IconName } from '@jetstream/icon-factory';
-import { Header } from '@tanstack/react-table';
+import { useSelector } from '@tanstack/react-store';
+import { Subscribe } from '@tanstack/react-table';
 import classNames from 'classnames';
 import { CSSProperties, ReactNode, useId, useState } from 'react';
 import Checkbox from '../../../form/checkbox/Checkbox';
 import Icon from '../../../widgets/Icon';
 import { HeaderFilterButton } from '../filters/HeaderFilters';
 import { DEFAULT_MIN_COLUMN_WIDTH, HEADER_ROW_ID } from '../grid-constants';
-import { DataTableHeaderProps, SortDirection } from '../grid-types';
+import { DataTableHeaderProps, SortDirection, TanstackHeader } from '../grid-types';
 import { getFrozenCellStyle } from './grid-layout';
 
-export interface HeaderCellProps<TRow> {
-  header: Header<TRow, unknown>;
+export interface HeaderCellProps<TRow extends object> {
+  header: TanstackHeader<TRow>;
   colIndex: number;
   ariaColIndex: number;
-  allColumns: Header<TRow, unknown>['column'][];
+  allColumns: TanstackHeader<TRow>['column'][];
   /** Number of leaf columns this header spans (column-group header). Defaults to 1. */
   colSpan?: number;
   /** Slot for the header filter popover trigger (wired in phase 3). */
@@ -45,7 +46,7 @@ function toAriaSort(sorted: false | 'asc' | 'desc'): 'ascending' | 'descending' 
   return 'none';
 }
 
-export function HeaderCell<TRow>({
+export function HeaderCell<TRow extends object>({
   header,
   colIndex,
   ariaColIndex,
@@ -67,7 +68,18 @@ export function HeaderCell<TRow>({
   const canSort = header.column.getCanSort();
   const canResize = header.column.getCanResize();
   const table = header.getContext().table;
-  const isResizing = header.column.getIsResizing();
+
+  // The header row is memoized, so a sort click doesn't re-render it from above — this cell re-renders
+  // itself when ITS slice of the sort state changes (direction or 1-based priority; the projection is a
+  // compact string so unaffected columns stay quiet). The render logic below still reads the pull-based
+  // getters, which are always fresh; this subscription only schedules the re-render.
+  useSelector(table.atoms.sorting, (sortingState) => {
+    const sortIndex = sortingState.findIndex((sort) => sort.id === header.column.id);
+    if (sortIndex === -1) {
+      return 'none';
+    }
+    return `${sortingState[sortIndex].desc ? 'desc' : 'asc'}:${sortingState.length > 1 ? sortIndex + 1 : 0}`;
+  });
 
   // Column reorder (drag-and-drop). Only data columns that opted in and are not pinned can be moved or
   // can receive a drop. The reorder pipeline is wired through the owner (GridContainer → table.setColumnOrder).
@@ -119,19 +131,8 @@ export function HeaderCell<TRow>({
     }
   };
 
-  // With `columnResizeMode: 'onEnd'` the column keeps its width during the drag; only this handle
-  // (and its full-height ::after guide line) follows the cursor, clamped to the column's min/max so
-  // the guide never suggests a width the release won't honor. Widths apply once on mouse release.
-  let resizeIndicatorStyle: CSSProperties | undefined;
-  if (isResizing) {
-    const { deltaOffset, startSize } = table.getState().columnSizingInfo;
-    const currentSize = startSize ?? header.column.getSize();
-    const minDelta = (header.column.columnDef.minSize ?? DEFAULT_MIN_COLUMN_WIDTH) - currentSize;
-    const maxDelta = (header.column.columnDef.maxSize ?? Number.MAX_SAFE_INTEGER) - currentSize;
-    resizeIndicatorStyle = { transform: `translateX(${Math.min(Math.max(deltaOffset ?? 0, minDelta), maxDelta)}px)` };
-  }
   // 1-based sort priority, shown only when more than one column participates in the sort.
-  const sortPriority = sorted && table.getState().sorting.length > 1 ? header.column.getSortIndex() + 1 : undefined;
+  const sortPriority = sorted && table.store.state.sorting.length > 1 ? header.column.getSortIndex() + 1 : undefined;
 
   const headerProps: DataTableHeaderProps<TRow> | undefined = column
     ? {
@@ -157,17 +158,38 @@ export function HeaderCell<TRow>({
         className="jgrid-cell-select slds-grid slds-grid_align-center slds-grid_vertical-align-center"
         onClick={(event) => event.stopPropagation()}
       >
-        <Checkbox
-          id={selectAllId}
-          label="Select all rows"
-          hideLabel
-          // Keep out of the page tab order — the grid is a single tab stop and the header row is reached
-          // via roving tabindex; Enter/Space on the select-all header cell toggles this checkbox.
-          tabIndex={-1}
-          checked={table.getIsAllRowsSelected()}
-          indeterminate={table.getIsSomeRowsSelected()}
-          onChange={(checked) => table.toggleAllRowsSelected(checked)}
-        />
+        {/* Island: the memoized header row skips selection/filter re-renders, so the select-all
+            checkbox subscribes itself. Filter slices are included because all/some-selected are
+            evaluated against the FILTERED row model — without them the checkbox would go stale while
+            quick-filtering under an active selection. (Data swaps re-render this too: the filter
+            reducer re-INITs on data change, giving columnFilters a fresh identity.) */}
+        <Subscribe
+          source={table.store}
+          selector={(state) => ({
+            rowSelection: state.rowSelection,
+            columnFilters: state.columnFilters,
+            globalFilter: state.globalFilter,
+          })}
+        >
+          {() => {
+            const allSelected = table.getIsAllRowsSelected();
+            return (
+              <Checkbox
+                id={selectAllId}
+                label="Select all rows"
+                hideLabel
+                // Keep out of the page tab order — the grid is a single tab stop and the header row is
+                // reached via roving tabindex; Enter/Space on the select-all header cell toggles this.
+                tabIndex={-1}
+                checked={allSelected}
+                // v9 semantic change: getIsSomeRowsSelected() stays true when ALL rows are selected, so
+                // gate the indeterminate visual or the checkbox never reaches the checked look.
+                indeterminate={!allSelected && table.getIsSomeRowsSelected()}
+                onChange={(checked) => table.toggleAllRowsSelected(checked)}
+              />
+            );
+          }}
+        </Subscribe>
       </span>
     );
   }
@@ -238,20 +260,46 @@ export function HeaderCell<TRow>({
       ) : null}
 
       {canResize && (
-        <span
-          role="presentation"
-          // Not draggable, and while hovered the parent cell drops `draggable` too (see isOverResizeHandle),
-          // so a resize drag can never initiate a column reorder.
-          draggable={false}
-          className={classNames('jgrid-header-resize-handle', { 'jgrid-resizing': isResizing })}
-          style={resizeIndicatorStyle}
-          onMouseEnter={() => setIsOverResizeHandle(true)}
-          onMouseLeave={() => setIsOverResizeHandle(false)}
-          onMouseDown={header.getResizeHandler()}
-          onTouchStart={header.getResizeHandler()}
-          onClick={(event) => event.stopPropagation()}
-          onDoubleClick={() => header.column.resetSize()}
-        />
+        // Fine-grained island: during a drag only THIS column's handle re-renders (per rAF-coalesced
+        // mousemove); every other HeaderCell projects `null` and stays quiet. The hook owner opts out
+        // of store re-renders entirely, so this subscription is the resize guide's only render source.
+        <Subscribe
+          source={table.atoms.columnResizing}
+          selector={(resizing) =>
+            resizing.isResizingColumn === header.column.id ? { deltaOffset: resizing.deltaOffset, startSize: resizing.startSize } : null
+          }
+        >
+          {(activeResize) => {
+            // With `columnResizeMode: 'onEnd'` the column keeps its width during the drag; only this
+            // handle (and its full-height ::after guide line) follows the cursor, clamped to the
+            // column's min/max so the guide never suggests a width the release won't honor.
+            let resizeIndicatorStyle: CSSProperties | undefined;
+            if (activeResize) {
+              const currentSize = activeResize.startSize ?? header.column.getSize();
+              const minDelta = (header.column.columnDef.minSize ?? DEFAULT_MIN_COLUMN_WIDTH) - currentSize;
+              const maxDelta = (header.column.columnDef.maxSize ?? Number.MAX_SAFE_INTEGER) - currentSize;
+              resizeIndicatorStyle = {
+                transform: `translateX(${Math.min(Math.max(activeResize.deltaOffset ?? 0, minDelta), maxDelta)}px)`,
+              };
+            }
+            return (
+              <span
+                role="presentation"
+                // Not draggable, and while hovered the parent cell drops `draggable` too (see
+                // isOverResizeHandle), so a resize drag can never initiate a column reorder.
+                draggable={false}
+                className={classNames('jgrid-header-resize-handle', { 'jgrid-resizing': !!activeResize })}
+                style={resizeIndicatorStyle}
+                onMouseEnter={() => setIsOverResizeHandle(true)}
+                onMouseLeave={() => setIsOverResizeHandle(false)}
+                onMouseDown={header.getResizeHandler()}
+                onTouchStart={header.getResizeHandler()}
+                onClick={(event) => event.stopPropagation()}
+                onDoubleClick={() => header.column.resetSize()}
+              />
+            );
+          }}
+        </Subscribe>
       )}
     </div>
   );

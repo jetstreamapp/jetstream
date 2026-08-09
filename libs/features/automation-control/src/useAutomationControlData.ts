@@ -409,7 +409,14 @@ function reducer(state: State, action: Action): State {
       Object.keys(rowsByKey)
         .filter((key) => !isTableRow(rowsByKey[key]))
         .forEach((key) => {
-          rowsByKey[key] = { ...rowsByKey[key], isActive: (rowsByKey[key] as TableRowItem | TableRowItemChild).isActiveInitialState };
+          const row = rowsByKey[key] as TableRowItem | TableRowItemChild;
+          rowsByKey[key] = { ...row, isActive: row.isActiveInitialState };
+          // Flows/process builders also track which VERSION is active — leaving it stale made an
+          // untouched-looking flow show up in Review Changes as "active with no version" after a
+          // toggle + Reset (isActive was restored here but activeVersionNumber was not).
+          if (isTableRowItem(row)) {
+            (rowsByKey[key] as TableRowItem).activeVersionNumber = row.activeVersionNumberInitialState;
+          }
         });
       const output: State = {
         ...state,
@@ -454,94 +461,86 @@ function getRowsForItems({ type, records }: MetadataRecordType, loading: boolean
 
   switch (type) {
     case 'ApexTrigger': {
-      output.items = (records as ToolingApexTriggerRecord[]).map(
-        (record): TableRowItem => ({
-          path: [typeLabel, record.Name],
-          key: `${type}_${record.Id}`,
-          parentKey: type,
-          type,
-          record,
-          link: `/lightning/setup/ObjectManager/${record.EntityDefinitionId}/ApexTriggers/${record.Id}/view`,
-          sobject: record.EntityDefinition.QualifiedApiName,
-          readOnly: false,
-          isExpanded: true,
-          isActive: record.Status === 'Active',
-          isActiveInitialState: record.Status === 'Active',
-          label: record.Name,
-          lastModifiedBy: `${record.LastModifiedBy.Name} ${record.LastModifiedDate}`,
-          description: '',
-          additionalData: [],
-        }),
-      );
+      output.items = (records as ToolingApexTriggerRecord[]).map((record): TableRowItem => ({
+        path: [typeLabel, record.Name],
+        key: `${type}_${record.Id}`,
+        parentKey: type,
+        type,
+        record,
+        link: `/lightning/setup/ObjectManager/${record.EntityDefinitionId}/ApexTriggers/${record.Id}/view`,
+        sobject: record.EntityDefinition.QualifiedApiName,
+        readOnly: false,
+        isExpanded: true,
+        isActive: record.Status === 'Active',
+        isActiveInitialState: record.Status === 'Active',
+        label: record.Name,
+        lastModifiedBy: `${record.LastModifiedBy.Name} ${record.LastModifiedDate}`,
+        description: '',
+        additionalData: [],
+      }));
       break;
     }
     case 'DuplicateRule': {
-      output.items = (records as DuplicateRuleRecord[]).map(
-        (record): TableRowItem => ({
-          path: [typeLabel, record.DeveloperName],
-          key: `${type}_${record.Id}`,
-          parentKey: type,
-          type,
-          record,
-          link: `/lightning/setup/DuplicateRules/page?address=${encodeURIComponent(`/${record.Id}?setupid=DuplicateRules`)}`,
-          sobject: record.SobjectType,
-          readOnly: false,
-          isExpanded: true,
-          isActive: record.IsActive,
-          isActiveInitialState: record.IsActive,
-          label: record.MasterLabel,
-          lastModifiedBy: `${record.LastModifiedBy.Name} ${record.LastModifiedDate}`,
-          description: '',
-          additionalData: [],
-        }),
-      );
+      output.items = (records as DuplicateRuleRecord[]).map((record): TableRowItem => ({
+        path: [typeLabel, record.DeveloperName],
+        key: `${type}_${record.Id}`,
+        parentKey: type,
+        type,
+        record,
+        link: `/lightning/setup/DuplicateRules/page?address=${encodeURIComponent(`/${record.Id}?setupid=DuplicateRules`)}`,
+        sobject: record.SobjectType,
+        readOnly: false,
+        isExpanded: true,
+        isActive: record.IsActive,
+        isActiveInitialState: record.IsActive,
+        label: record.MasterLabel,
+        lastModifiedBy: `${record.LastModifiedBy.Name} ${record.LastModifiedDate}`,
+        description: '',
+        additionalData: [],
+      }));
       break;
     }
     case 'ValidationRule': {
-      output.items = (records as ToolingValidationRuleRecord[]).map(
-        (record): TableRowItem => ({
-          path: [typeLabel, record.ValidationName],
-          key: `${type}_${record.Id}`,
-          parentKey: type,
-          type,
-          record,
-          link: `/lightning/setup/ObjectManager/${record.EntityDefinitionId}/ValidationRules/${record.Id}/view`,
-          sobject: record.EntityDefinition.QualifiedApiName,
-          readOnly: false,
-          isExpanded: true,
-          isActive: record.Active,
-          isActiveInitialState: record.Metadata.active,
-          label: record.ValidationName,
-          lastModifiedBy: `${record.LastModifiedBy.Name} ${record.LastModifiedDate}`,
-          description: record.Description,
-          additionalData: [
-            { label: 'Condition', value: record.Metadata.errorConditionFormula },
-            { label: 'Message', value: record.ErrorMessage },
-          ],
-        }),
-      );
+      output.items = (records as ToolingValidationRuleRecord[]).map((record): TableRowItem => ({
+        path: [typeLabel, record.ValidationName],
+        key: `${type}_${record.Id}`,
+        parentKey: type,
+        type,
+        record,
+        link: `/lightning/setup/ObjectManager/${record.EntityDefinitionId}/ValidationRules/${record.Id}/view`,
+        sobject: record.EntityDefinition.QualifiedApiName,
+        readOnly: false,
+        isExpanded: true,
+        isActive: record.Active,
+        isActiveInitialState: record.Metadata.active,
+        label: record.ValidationName,
+        lastModifiedBy: `${record.LastModifiedBy.Name} ${record.LastModifiedDate}`,
+        description: record.Description,
+        additionalData: [
+          { label: 'Condition', value: record.Metadata.errorConditionFormula },
+          { label: 'Message', value: record.ErrorMessage },
+        ],
+      }));
       break;
     }
     case 'WorkflowRule': {
-      output.items = (records as ToolingWorkflowRuleRecord[]).map(
-        (record): TableRowItem => ({
-          path: [typeLabel, record.Name],
-          key: `${type}_${record.Id}`,
-          parentKey: type,
-          type,
-          record,
-          link: `/lightning/setup/WorkflowRules/page?address=${encodeURIComponent(`/${record.Id}?nodeId=DuplicateRules`)}`,
-          sobject: record.TableEnumOrId,
-          readOnly: false,
-          isExpanded: true,
-          isActive: record.Metadata.active,
-          isActiveInitialState: record.Metadata.active,
-          label: record.Name,
-          lastModifiedBy: `${record.LastModifiedBy.Name} ${record.LastModifiedDate}`,
-          description: record.Metadata.description,
-          additionalData: getAdditionalItemsWorkflowRuleText(record.Metadata),
-        }),
-      );
+      output.items = (records as ToolingWorkflowRuleRecord[]).map((record): TableRowItem => ({
+        path: [typeLabel, record.Name],
+        key: `${type}_${record.Id}`,
+        parentKey: type,
+        type,
+        record,
+        link: `/lightning/setup/WorkflowRules/page?address=${encodeURIComponent(`/${record.Id}?nodeId=DuplicateRules`)}`,
+        sobject: record.TableEnumOrId,
+        readOnly: false,
+        isExpanded: true,
+        isActive: record.Metadata.active,
+        isActiveInitialState: record.Metadata.active,
+        label: record.Name,
+        lastModifiedBy: `${record.LastModifiedBy.Name} ${record.LastModifiedDate}`,
+        description: record.Metadata.description,
+        additionalData: getAdditionalItemsWorkflowRuleText(record.Metadata),
+      }));
       break;
     }
     case 'FlowRecordTriggered':
@@ -584,27 +583,25 @@ function getRowsForItems({ type, records }: MetadataRecordType, loading: boolean
                 : null,
             },
           ].filter(({ value }) => !!value),
-          children: record.Versions.records.map(
-            (version): TableRowItemChild => ({
-              path: [typeLabel, record.ApiName, `Version ${version.VersionNumber}: ${version.Label}`],
-              key: `${type}_${record.DurableId}_${version.DurableId}`,
-              parentKey: `${type}_${record.DurableId}`,
-              type,
-              isExpanded: false,
-              record: version,
-              link: type === 'FlowProcessBuilder' ? null : `/builder_platform_interaction/flowBuilder.app?flowId=${version.DurableId}`,
-              sobject: record.TriggerObjectOrEvent?.QualifiedApiName || '',
-              isActive: version.DurableId === record.ActiveVersionId,
-              isActiveInitialState: version.DurableId === record.ActiveVersionId,
-              label: `${record.Label} (V${version.VersionNumber})`,
-              lastModifiedBy: `${version.LastModifiedDate}`,
-              description: version.Description,
-              additionalData: [
-                { label: 'Version', value: `${version.VersionNumber}` },
-                { label: 'API Version', value: version.ApiVersionRuntime },
-              ],
-            }),
-          ),
+          children: record.Versions.records.map((version): TableRowItemChild => ({
+            path: [typeLabel, record.ApiName, `Version ${version.VersionNumber}: ${version.Label}`],
+            key: `${type}_${record.DurableId}_${version.DurableId}`,
+            parentKey: `${type}_${record.DurableId}`,
+            type,
+            isExpanded: false,
+            record: version,
+            link: type === 'FlowProcessBuilder' ? null : `/builder_platform_interaction/flowBuilder.app?flowId=${version.DurableId}`,
+            sobject: record.TriggerObjectOrEvent?.QualifiedApiName || '',
+            isActive: version.DurableId === record.ActiveVersionId,
+            isActiveInitialState: version.DurableId === record.ActiveVersionId,
+            label: `${record.Label} (V${version.VersionNumber})`,
+            lastModifiedBy: `${version.LastModifiedDate}`,
+            description: version.Description,
+            additionalData: [
+              { label: 'Version', value: `${version.VersionNumber}` },
+              { label: 'API Version', value: version.ApiVersionRuntime },
+            ],
+          })),
         };
       });
       break;

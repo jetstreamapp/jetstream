@@ -1,10 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { copyRecordsToClipboard } from '@jetstream/shared/ui-utils';
-import type { Column, Row, Table } from '@tanstack/react-table';
+import { copyRecordsToClipboard, transformTabularDataToExcelStr } from '@jetstream/shared/ui-utils';
 import { FocusEvent as ReactFocusEvent, KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { ActiveCell } from '../components/GridRow';
 import { getSummaryRowId, getSummaryRowIndex, HEADER_ROW_ID, isSummaryRowId, SELECT_COLUMN_KEY } from '../grid-constants';
-import { ColSpanArgs } from '../grid-types';
+import { ColSpanArgs, TanstackColumn, TanstackRow, TanstackTable } from '../grid-types';
+import {
+  addOrExcludeCellRange,
+  clearCellSelection,
+  collapseSelectionTo,
+  extendActiveSelectionTo,
+  getSelectionBounds,
+  hasMultiCellSelection,
+  isCellInSelectionBounds,
+} from '../selection/grid-selection';
 
 export type GridMode = 'navigation' | 'actionable';
 
@@ -21,13 +29,6 @@ const ACTIVATABLE_SELECTOR =
   'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [role="button"], [aria-haspopup]';
 
 /** A rectangular cell-selection in display-index space (inclusive bounds). */
-export interface SelectionRange {
-  minRow: number;
-  maxRow: number;
-  minCol: number;
-  maxCol: number;
-}
-
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
@@ -37,7 +38,7 @@ function clamp(value: number, min: number, max: number): number {
  * positions for that row. Cells honor colSpan (GROUP for group headers, ROW for data rows), so a
  * spanned-over column has no DOM cell to focus; nav must step between, and snap onto, these owners.
  */
-function getRowSegmentStarts<TRow>(row: Row<TRow>, columns: Column<TRow, unknown>[]): number[] {
+function getRowSegmentStarts<TRow extends object>(row: TanstackRow<TRow>, columns: TanstackColumn<TRow>[]): number[] {
   const grouped = row.getIsGrouped();
   if (grouped) {
     // When no column supplies a group cell, GridGroupRow renders ONE full-width header at the first
@@ -61,7 +62,7 @@ function getRowSegmentStarts<TRow>(row: Row<TRow>, columns: Column<TRow, unknown
 
 /** The segment owner (start index) of the cell that covers `targetColIndex` in `row`. For a row with no
  * spans this is `targetColIndex` itself; for a spanned cell it's the column that renders it. */
-function resolveColumnStart<TRow>(row: Row<TRow>, columns: Column<TRow, unknown>[], targetColIndex: number): number {
+function resolveColumnStart<TRow extends object>(row: TanstackRow<TRow>, columns: TanstackColumn<TRow>[], targetColIndex: number): number {
   const starts = getRowSegmentStarts(row, columns);
   let owner = starts[0] ?? 0;
   for (const start of starts) {
@@ -74,13 +75,13 @@ function resolveColumnStart<TRow>(row: Row<TRow>, columns: Column<TRow, unknown>
   return owner;
 }
 
-function cellText<TRow>(row: Row<TRow>, column: Column<TRow, unknown>): string {
+function cellText<TRow extends object>(row: TanstackRow<TRow>, column: TanstackColumn<TRow>): string {
   // Synthetic group header rows have no original row data.
   if (row.original === null || row.original === undefined) {
     return '';
   }
   const authorColumn = column.columnDef.meta?.jetstream?.column;
-  let value: unknown = authorColumn?.getValue
+  const value: unknown = authorColumn?.getValue
     ? authorColumn.getValue({ row: row.original, column: authorColumn })
     : (row.original as Record<string, unknown>)[column.id];
   if (value === null || value === undefined) {
@@ -94,7 +95,7 @@ function cellText<TRow>(row: Row<TRow>, column: Column<TRow, unknown>): string {
 
 /** Display label for a column header, used when copying a selection "with header". Falls back to the
  * string header / column id when the author's `name` is a ReactNode. */
-function headerText<TRow>(column: Column<TRow, unknown>): string {
+function headerText<TRow extends object>(column: TanstackColumn<TRow>): string {
   const name = column.columnDef.meta?.jetstream?.column?.name;
   if (typeof name === 'string') {
     return name;
@@ -106,8 +107,8 @@ function headerText<TRow>(column: Column<TRow, unknown>): string {
   return column.id;
 }
 
-export interface UseGridKeyboardNavigationOptions<TRow> {
-  table: Table<TRow>;
+export interface UseGridKeyboardNavigationOptions<TRow extends object> {
+  table: TanstackTable<TRow>;
   /** Returns the grid root element so DOM focus/copy queries are scoped to this grid instance. */
   getRootElement: () => HTMLElement | null;
   /** Enter/F2 hook: if it starts editing the cell (returns true), the grid stays out of Actionable mode. */
@@ -132,7 +133,6 @@ export interface UseGridKeyboardNavigationOptions<TRow> {
 
 export interface GridKeyboardNavigation {
   activeCell: ActiveCell | null;
-  anchorCell: ActiveCell | null;
   mode: GridMode;
   setActiveCell: (cell: ActiveCell | null) => void;
   handleKeyDown: (event: ReactKeyboardEvent) => void;
@@ -148,7 +148,7 @@ export interface GridKeyboardNavigation {
   handleRootBlur: (event: ReactFocusEvent<HTMLElement>) => void;
   /** Mouse down on a cell — starts a (possibly shift-extended) selection / drag. Right-click keeps an
    * existing range when clicking inside it (spreadsheet behavior) so the context menu can act on it. */
-  handleCellMouseDown: (rowId: string, columnId: string, shiftKey: boolean, button?: number) => void;
+  handleCellMouseDown: (rowId: string, columnId: string, shiftKey: boolean, button?: number, ctrlOrMetaKey?: boolean) => void;
   /** Mouse enters a cell while dragging — extends the rectangular selection. */
   handleCellMouseEnter: (rowId: string, columnId: string) => void;
   /** Mouse down on a column header cell — makes it the keyboard-active cell (header row navigation). */
@@ -171,7 +171,7 @@ export interface GridKeyboardNavigation {
  * Focus + selection are stored as logical `{ rowId, columnId }` coordinates (not DOM nodes) so they
  * survive row virtualization recycling — GridBody resolves the active cell to a DOM element.
  */
-export function useGridKeyboardNavigation<TRow>({
+export function useGridKeyboardNavigation<TRow extends object>({
   table,
   getRootElement,
   onRequestEdit,
@@ -183,7 +183,6 @@ export function useGridKeyboardNavigation<TRow>({
   onClearSelection,
 }: UseGridKeyboardNavigationOptions<TRow>): GridKeyboardNavigation {
   const [activeCell, setActiveCellState] = useState<ActiveCell | null>(null);
-  const [anchorCell, setAnchorCell] = useState<ActiveCell | null>(null);
   const [mode, setMode] = useState<GridMode>('navigation');
   const isDraggingRef = useRef(false);
   // Tracks whether the most recent active-cell change was mouse- or keyboard-driven (see interface doc).
@@ -209,20 +208,37 @@ export function useGridKeyboardNavigation<TRow>({
     return () => window.removeEventListener('mouseup', onMouseUp);
   }, []);
 
-  // Apply a new active cell. `extend` keeps the existing anchor (range select); otherwise the anchor
-  // collapses onto the new cell. `keepDesiredCol` is set by vertical moves so they don't overwrite the
-  // user's sticky column with the (possibly snapped) column they're passing through.
+  // Apply a new active cell. `extend` grows the ACTIVE cell-selection range toward the target
+  // (v9 keeps the range's anchor corner fixed); otherwise the selection collapses onto the new cell.
+  // `keepDesiredCol` is set by vertical moves so they don't overwrite the user's sticky column with
+  // the (possibly snapped) column they're passing through.
   const applySelection = useCallback(
     (rowId: string, columnId: string, extend: boolean, keepDesiredCol = false) => {
+      const columns = table.getVisibleLeafColumns();
       if (!keepDesiredCol) {
-        const colIndex = table.getVisibleLeafColumns().findIndex((column) => column.id === columnId);
+        const colIndex = columns.findIndex((column) => column.id === columnId);
         if (colIndex >= 0) {
           desiredColRef.current = colIndex;
         }
       }
       setActiveCellState({ rowId, columnId });
       setMode('navigation');
-      setAnchorCell((prevAnchor) => (extend && prevAnchor ? prevAnchor : { rowId, columnId }));
+      // Cell selection (v9 state): extends may sweep any coordinate (group rows / non-data columns
+      // render nothing and copy nothing, but the rectangle passes through them — legacy behavior).
+      // A plain move participates only for body DATA cells on selectable columns; header/summary
+      // sentinels, group header rows, and the select/action columns are focus-only and clear it.
+      if (extend) {
+        extendActiveSelectionTo(table, rowId, columnId);
+        return;
+      }
+      const isSentinel = rowId === HEADER_ROW_ID || isSummaryRowId(rowId);
+      const columnSelectable = columns.find((column) => column.id === columnId)?.columnDef.enableCellSelection !== false;
+      const row = isSentinel ? undefined : table.getRowModel().rows.find((candidate) => candidate.id === rowId);
+      if (isSentinel || !columnSelectable || !row || row.getIsGrouped()) {
+        clearCellSelection(table);
+      } else {
+        collapseSelectionTo(table, rowId, columnId);
+      }
     },
     [table],
   );
@@ -231,15 +247,13 @@ export function useGridKeyboardNavigation<TRow>({
     (cell: ActiveCell | null) => {
       interactionSourceRef.current = 'keyboard';
       if (cell) {
-        const colIndex = table.getVisibleLeafColumns().findIndex((column) => column.id === cell.columnId);
-        if (colIndex >= 0) {
-          desiredColRef.current = colIndex;
-        }
+        applySelection(cell.rowId, cell.columnId, false);
+      } else {
+        setActiveCellState(null);
+        clearCellSelection(table);
       }
-      setActiveCellState(cell);
-      setAnchorCell(cell);
     },
-    [table],
+    [table, applySelection],
   );
 
   const moveTo = useCallback(
@@ -470,42 +484,20 @@ export function useGridKeyboardNavigation<TRow>({
         return;
       }
       setActiveCellState(null);
-      setAnchorCell(null);
+      clearCellSelection(table);
       setMode('navigation');
     },
-    [shouldRetainFocusOnBlur],
+    [shouldRetainFocusOnBlur, table],
   );
 
-  /** True when the cell falls inside the current (possibly single-cell) selection rectangle. */
+  /** True when the cell falls inside ANY selection rectangle (all ranges, exclusions applied). */
   const isCellInSelection = useCallback(
-    (rowId: string, columnId: string): boolean => {
-      if (!activeCell) {
-        return false;
-      }
-      const anchor = anchorCell ?? activeCell;
-      const rows = table.getRowModel().rows;
-      const columns = table.getVisibleLeafColumns();
-      const rowIndex = rows.findIndex((row) => row.id === rowId);
-      const colIndex = columns.findIndex((column) => column.id === columnId);
-      const activeRowIndex = rows.findIndex((row) => row.id === activeCell.rowId);
-      const anchorRowIndex = rows.findIndex((row) => row.id === anchor.rowId);
-      const activeColIndex = columns.findIndex((column) => column.id === activeCell.columnId);
-      const anchorColIndex = columns.findIndex((column) => column.id === anchor.columnId);
-      if (rowIndex < 0 || colIndex < 0 || activeRowIndex < 0 || anchorRowIndex < 0 || activeColIndex < 0 || anchorColIndex < 0) {
-        return false;
-      }
-      return (
-        rowIndex >= Math.min(activeRowIndex, anchorRowIndex) &&
-        rowIndex <= Math.max(activeRowIndex, anchorRowIndex) &&
-        colIndex >= Math.min(activeColIndex, anchorColIndex) &&
-        colIndex <= Math.max(activeColIndex, anchorColIndex)
-      );
-    },
-    [activeCell, anchorCell, table],
+    (rowId: string, columnId: string): boolean => isCellInSelectionBounds(table, rowId, columnId),
+    [table],
   );
 
   const handleCellMouseDown = useCallback(
-    (rowId: string, columnId: string, shiftKey: boolean, button = 0) => {
+    (rowId: string, columnId: string, shiftKey: boolean, button = 0, ctrlOrMetaKey = false) => {
       // Right/middle click: never start a drag. Right-click inside the current selection keeps it
       // (the context menu acts on the range — spreadsheet behavior); outside it, move the selection.
       if (button !== 0) {
@@ -521,12 +513,31 @@ export function useGridKeyboardNavigation<TRow>({
       // navigation continues from the checkbox.
       if (shiftKey && columnId !== SELECT_COLUMN_KEY) {
         applySelection(rowId, columnId, true);
-      } else {
-        applySelection(rowId, columnId, false);
+        // Keep dragging after a shift-extend (Excel behavior): mouseenter continues growing the SAME
+        // active range, since extend moves the focus corner while the anchor stays fixed.
         isDraggingRef.current = true;
+        return;
       }
+      // Ctrl/Cmd+click on a selectable data cell starts a NEW rectangle that adds to (unselected cell)
+      // or subtracts from (selected cell) the multi-range selection; a following drag grows it.
+      const columnSelectable =
+        table.getVisibleLeafColumns().find((column) => column.id === columnId)?.columnDef.enableCellSelection !== false;
+      const targetRow = table.getRowModel().rows.find((candidate) => candidate.id === rowId);
+      if (ctrlOrMetaKey && columnSelectable && targetRow && !targetRow.getIsGrouped()) {
+        const colIndex = table.getVisibleLeafColumns().findIndex((column) => column.id === columnId);
+        if (colIndex >= 0) {
+          desiredColRef.current = colIndex;
+        }
+        setActiveCellState({ rowId, columnId });
+        setMode('navigation');
+        addOrExcludeCellRange(table, rowId, columnId);
+        isDraggingRef.current = true;
+        return;
+      }
+      applySelection(rowId, columnId, false);
+      isDraggingRef.current = true;
     },
-    [applySelection, isCellInSelection],
+    [applySelection, isCellInSelection, table],
   );
 
   const handleCellMouseEnter = useCallback(
@@ -563,62 +574,74 @@ export function useGridKeyboardNavigation<TRow>({
     (includeHeader = false) => {
       const rows = table.getRowModel().rows;
       const columns = table.getVisibleLeafColumns();
-      if (!activeCell || !rows.length || !columns.length) {
+      if (!rows.length || !columns.length) {
         return;
       }
-      const anchor = anchorCell ?? activeCell;
-      const activeRowIndex = rows.findIndex((row) => row.id === activeCell.rowId);
-      const anchorRowIndex = rows.findIndex((row) => row.id === anchor.rowId);
-      const activeColIndex = columns.findIndex((column) => column.id === activeCell.columnId);
-      const anchorColIndex = columns.findIndex((column) => column.id === anchor.columnId);
-      if (activeRowIndex < 0 || anchorRowIndex < 0 || activeColIndex < 0 || anchorColIndex < 0) {
+      const boundsList = getSelectionBounds(table);
+      if (!boundsList.length) {
         return;
       }
-      const minRow = Math.min(activeRowIndex, anchorRowIndex);
-      const maxRow = Math.max(activeRowIndex, anchorRowIndex);
-      const minCol = Math.min(activeColIndex, anchorColIndex);
-      const maxCol = Math.max(activeColIndex, anchorColIndex);
 
-      // Build records keyed by synthetic field names (avoids dot-notation flattening on real column ids),
-      // then reuse copyRecordsToClipboard which writes BOTH text/html (a table) and an escaped text/plain
-      // Excel string — so it pastes into Excel/Sheets as a proper grid (handles tabs/newlines/quotes in cells).
-      const fields: string[] = [];
-      for (let colIndex = minCol; colIndex <= maxCol; colIndex++) {
-        fields.push(`c${colIndex}`);
-      }
-      const records: Record<string, string>[] = [];
-      // "With header": prepend the selected columns' display names as the first row (kept as data, keyed by
-      // the same synthetic fields, so the existing dot-notation-safe copy path is reused unchanged).
-      if (includeHeader) {
-        const headerRecord: Record<string, string> = {};
-        for (let colIndex = minCol; colIndex <= maxCol; colIndex++) {
-          headerRecord[`c${colIndex}`] = headerText(columns[colIndex]);
+      // Build records keyed by synthetic field names (avoids dot-notation flattening on real column ids).
+      // "With header" prepends the selected columns' display names as the first row (kept as data, keyed
+      // by the same synthetic fields, so the dot-notation-safe copy path is reused unchanged). Synthetic
+      // group header rows have no cell data — skipped so pasted output stays rectangular.
+      const buildRegion = (rect: { minRowIndex: number; maxRowIndex: number; minColumnIndex: number; maxColumnIndex: number }) => {
+        const fields: string[] = [];
+        for (let colIndex = rect.minColumnIndex; colIndex <= rect.maxColumnIndex; colIndex++) {
+          fields.push(`c${colIndex}`);
         }
-        records.push(headerRecord);
-      }
-      for (let rowIndex = minRow; rowIndex <= maxRow; rowIndex++) {
-        // Synthetic group header rows have no cell data — skip them so pasted output stays rectangular.
-        if (rows[rowIndex].getIsGrouped()) {
-          continue;
+        const records: Record<string, string>[] = [];
+        if (includeHeader) {
+          const headerRecord: Record<string, string> = {};
+          for (let colIndex = rect.minColumnIndex; colIndex <= rect.maxColumnIndex; colIndex++) {
+            headerRecord[`c${colIndex}`] = headerText(columns[colIndex]);
+          }
+          records.push(headerRecord);
         }
-        const record: Record<string, string> = {};
-        for (let colIndex = minCol; colIndex <= maxCol; colIndex++) {
-          record[`c${colIndex}`] = cellText(rows[rowIndex], columns[colIndex]);
+        for (let rowIndex = rect.minRowIndex; rowIndex <= rect.maxRowIndex; rowIndex++) {
+          if (rows[rowIndex].getIsGrouped()) {
+            continue;
+          }
+          const record: Record<string, string> = {};
+          for (let colIndex = rect.minColumnIndex; colIndex <= rect.maxColumnIndex; colIndex++) {
+            record[`c${colIndex}`] = cellText(rows[rowIndex], columns[colIndex]);
+          }
+          records.push(record);
         }
-        records.push(record);
-      }
-      void copyRecordsToClipboard(records, 'excel', fields, false);
-      flashCells(getRootElement(), rows, columns, minRow, maxRow, minCol, maxCol);
+        return { fields, records };
+      };
 
-      const copiedRowCount = records.length - (includeHeader ? 1 : 0);
-      const copiedColCount = fields.length;
-      onAnnounce?.(
-        `Copied ${copiedRowCount} ${copiedRowCount === 1 ? 'row' : 'rows'} by ${copiedColCount} ${
-          copiedColCount === 1 ? 'column' : 'columns'
-        }`,
-      );
+      if (boundsList.length === 1) {
+        // Single rectangle: copyRecordsToClipboard writes BOTH text/html (a table) and an escaped
+        // text/plain Excel string — pastes into Excel/Sheets as a proper grid.
+        const rect = boundsList[0];
+        const { fields, records } = buildRegion(rect);
+        void copyRecordsToClipboard(records, 'excel', fields, false);
+        flashCells(getRootElement(), rows, columns, rect.minRowIndex, rect.maxRowIndex, rect.minColumnIndex, rect.maxColumnIndex);
+        const copiedRowCount = records.length - (includeHeader ? 1 : 0);
+        const copiedColCount = fields.length;
+        onAnnounce?.(
+          `Copied ${copiedRowCount} ${copiedRowCount === 1 ? 'row' : 'rows'} by ${copiedColCount} ${
+            copiedColCount === 1 ? 'column' : 'columns'
+          }`,
+        );
+        return;
+      }
+
+      // Multiple disjoint rectangles: stack each region's Excel-escaped block separated by a blank line
+      // (the convention spreadsheet apps handle most predictably for disjoint copies).
+      let copiedCellCount = 0;
+      const blocks = boundsList.map((rect) => {
+        const { fields, records } = buildRegion(rect);
+        copiedCellCount += (records.length - (includeHeader ? 1 : 0)) * fields.length;
+        flashCells(getRootElement(), rows, columns, rect.minRowIndex, rect.maxRowIndex, rect.minColumnIndex, rect.maxColumnIndex);
+        return transformTabularDataToExcelStr(records, fields);
+      });
+      void navigator.clipboard.writeText(blocks.join('\n\n')).catch(() => undefined);
+      onAnnounce?.(`Copied ${copiedCellCount} cells across ${boundsList.length} ranges`);
     },
-    [activeCell, anchorCell, table, getRootElement, onAnnounce],
+    [table, getRootElement, onAnnounce],
   );
 
   const handleKeyDown = useCallback(
@@ -901,7 +924,7 @@ export function useGridKeyboardNavigation<TRow>({
             // everything must not jump the viewport to the bottom-right of the grid.
             interactionSourceRef.current = 'select-all';
             setActiveCellState({ rowId: rows[rows.length - 1].id, columnId: columns[columns.length - 1].id });
-            setAnchorCell({ rowId: rows[0].id, columnId: columns[0].id });
+            table.selectAllCells();
           }
           break;
         case ' ':
@@ -961,6 +984,14 @@ export function useGridKeyboardNavigation<TRow>({
             onRedo();
           }
           break;
+        case 'Escape':
+          // With a multi-cell selection, Escape collapses it to the active cell (and is consumed so it
+          // can't also close a hosting modal); with nothing to collapse it bubbles as before.
+          if (activeCell && hasMultiCellSelection(getSelectionBounds(table))) {
+            consume();
+            applySelection(activeCell.rowId, activeCell.columnId, false);
+          }
+          break;
         case 'Delete':
         case 'Backspace':
           // Clear the editable cells in the current selection (single cell or range). The consumer
@@ -994,7 +1025,6 @@ export function useGridKeyboardNavigation<TRow>({
 
   return {
     activeCell,
-    anchorCell,
     mode,
     setActiveCell,
     handleKeyDown,
@@ -1009,10 +1039,10 @@ export function useGridKeyboardNavigation<TRow>({
   };
 }
 
-function flashCells<TRow>(
+function flashCells<TRow extends object>(
   root: HTMLElement | null,
-  rows: Row<TRow>[],
-  columns: Column<TRow, unknown>[],
+  rows: TanstackRow<TRow>[],
+  columns: TanstackColumn<TRow>[],
   minRow: number,
   maxRow: number,
   minCol: number,

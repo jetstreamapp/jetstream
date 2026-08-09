@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { FilterFn, Row } from '@tanstack/react-table';
 import { filterRecord, getFilterValue, isFilterActive } from './grid-filters';
-import { ColumnWithFilter, DataTableFilter } from './grid-types';
+import { ColumnWithFilter, DataTableFilter, TanstackFilterFn, TanstackRow } from './grid-types';
 
 /**
  * Custom TanStack filter functions. The legacy table stored filters as `Record<colKey, DataTableFilter[]>`
@@ -12,7 +11,7 @@ import { ColumnWithFilter, DataTableFilter } from './grid-types';
  * needs: the active filters, the column (so `getValue` can run), and the count of distinct SET values
  * (so `isFilterActive` can tell whether a SET filter is actually narrowing).
  */
-export interface ColumnFilterValue<TRow = any> {
+export interface ColumnFilterValue<TRow extends object = any> {
   filters: DataTableFilter[];
   column: ColumnWithFilter<TRow>;
   totalSetValues: number;
@@ -20,7 +19,7 @@ export interface ColumnFilterValue<TRow = any> {
   rowAlwaysVisible?: (row: TRow) => boolean;
 }
 
-export const jetstreamColumnFilterFn: FilterFn<any> = (row: Row<any>, _columnId, filterValue: ColumnFilterValue) => {
+export const jetstreamColumnFilterFn: TanstackFilterFn = (row: TanstackRow<any>, _columnId, filterValue: ColumnFilterValue) => {
   if (!filterValue || !Array.isArray(filterValue.filters)) {
     return true;
   }
@@ -57,11 +56,11 @@ export interface GlobalFilterValue {
  * true when the row's concatenated lowercase text contains the needle. Ignores `columnId` (the same
  * answer holds for every column of a row), so the first column short-circuits.
  */
-export function makeGlobalFilterFn<TRow>(
+export function makeGlobalFilterFn<TRow extends object>(
   rowFilterText: Record<string, string>,
   getRowKey: (row: TRow) => string,
   rowAlwaysVisible?: (row: TRow) => boolean,
-): FilterFn<TRow> {
+): TanstackFilterFn<TRow> {
   return (row, _columnId, filterValue: GlobalFilterValue | string) => {
     const needle = typeof filterValue === 'string' ? filterValue : (filterValue?.text ?? '');
     if (!needle) {

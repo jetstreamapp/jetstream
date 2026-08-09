@@ -80,6 +80,35 @@ describe('computeFilterSetValues', () => {
     expect(result['NoFilter']).toBeUndefined();
   });
 
+  test('traverses getSubRows trees — values on child rows are collected, ignored parents are skipped', () => {
+    // Automation Control shape: top-level rows are category headers (excluded from the SET list via
+    // ignoreRowInSetFilter); the filterable values live on their children (and grandchildren).
+    interface TreeRow extends Row {
+      isCategory?: boolean;
+      children?: TreeRow[];
+    }
+    const tree: TreeRow[] = [
+      {
+        _key: 'cat-1',
+        Name: 'Apex Trigger',
+        Active: true,
+        isCategory: true,
+        children: [
+          { _key: 'i-1', Name: 'AccountTrigger', Active: true, children: [{ _key: 'i-1-v1', Name: 'AccountTriggerV1', Active: true }] },
+          { _key: 'i-2', Name: 'ContactTrigger', Active: false },
+        ],
+      },
+      { _key: 'cat-2', Name: 'Validation Rule', Active: true, isCategory: true, children: [] },
+    ];
+    const result = computeFilterSetValues(
+      columns as unknown as ColumnWithFilter<TreeRow>[],
+      tree,
+      (row) => !!row.isCategory,
+      (row) => row.children,
+    );
+    expect(result['Name'].sort()).toEqual(['AccountTrigger', 'AccountTriggerV1', 'ContactTrigger']);
+  });
+
   test('null values collapse to EMPTY_FIELD and ignoreRowInSetFilter excludes rows', () => {
     const withNull: Row[] = [...data, { _key: '4', Name: null as unknown as string, Active: true }];
     const result = computeFilterSetValues(columns, withNull, (row) => row._key === '4');

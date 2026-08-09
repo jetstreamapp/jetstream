@@ -6,7 +6,7 @@ import { useMemo, useState } from 'react';
 import { useAmplitude } from '../analytics';
 import { fromJetstreamEvents } from '../jetstream-events';
 
-export interface GridDownloadButtonProps<T = RowWithKey> {
+export interface GridDownloadButtonProps<T extends object = RowWithKey> {
   columns: ColumnWithFilter<T>[];
   /** Rows to export, in the order they should appear in the file (already sorted/grouped by the caller). */
   rows: readonly T[];
@@ -26,7 +26,7 @@ export interface GridDownloadButtonProps<T = RowWithKey> {
  * only supply the grid's `columns` + `rows` (the same ones handed to the grid) and a filename. Grouping is
  * flattened; the caller controls ordering and which columns to include.
  */
-export function GridDownloadButton<T = RowWithKey>({
+export function GridDownloadButton<T extends object = RowWithKey>({
   columns,
   rows,
   fileNameParts,

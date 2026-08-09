@@ -1,6 +1,5 @@
-import type { Column, Row } from '@tanstack/react-table';
 import { parse as parseCsv } from 'papaparse';
-import { PasteEvent, PasteTargetCell } from './grid-types';
+import { PasteEvent, PasteTargetCell, TanstackColumn, TanstackRow } from './grid-types';
 
 /**
  * Generic, consumer-agnostic clipboard-paste helpers — the paste counterpart to `grid-clipboard.ts`.
@@ -50,11 +49,11 @@ export function parsePastedText(text: string): string[][] {
   });
 }
 
-export interface ComputePasteTargetsParams<TRow> {
+export interface ComputePasteTargetsParams<TRow extends object> {
   /** Display-ordered data rows (`table.getRowModel().rows`). */
-  rows: Row<TRow>[];
+  rows: TanstackRow<TRow>[];
   /** Visible leaf columns (`table.getVisibleLeafColumns()`); `column.id` is the author key. */
-  columns: Column<TRow, unknown>[];
+  columns: TanstackColumn<TRow>[];
   /** The active selection rectangle (collapse a single cell to min===max). */
   selRect: PasteSelectionRect;
   matrix: string[][];
@@ -72,7 +71,7 @@ export interface ComputePasteTargetsParams<TRow> {
  * Everything is clipped to the grid bounds (this grid never adds rows), and grouped/non-editable cells
  * are skipped (the latter counted so the caller can announce how many read-only cells were ignored).
  */
-export function computePasteTargets<TRow>({
+export function computePasteTargets<TRow extends object>({
   rows,
   columns,
   selRect,

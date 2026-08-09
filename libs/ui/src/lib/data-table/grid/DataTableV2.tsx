@@ -20,7 +20,7 @@ import {
   SortColumn,
 } from './grid-types';
 
-export interface DataTableV2Props<TRow = RowWithKey, TContext = Record<string, any>> {
+export interface DataTableV2Props<TRow extends object = RowWithKey, TContext = Record<string, any>> {
   data: TRow[];
   columns: ColumnWithFilter<TRow>[];
   getRowKey: (row: TRow) => string;
@@ -54,6 +54,8 @@ export interface DataTableV2Props<TRow = RowWithKey, TContext = Record<string, a
   rowHeight?: number | RowHeightFn<TRow>;
   rowClass?: (row: TRow) => string | undefined;
   enableRowSelection?: boolean;
+  /** Spreadsheet-style cell range selection on data cells (drag / shift-click / Ctrl-click). Default true. */
+  enableCellSelection?: boolean;
   rowSelection?: RowSelectionState;
   onRowSelectionChange?: (selection: RowSelectionState) => void;
   /** Allow shift-click on headers to add secondary sorts (legacy grid parity). */
@@ -112,6 +114,7 @@ function DataTableV2Inner<TRow extends object = RowWithKey>(props: DataTableV2Pr
     rowHeight,
     rowClass,
     enableRowSelection,
+    enableCellSelection,
     rowSelection,
     onRowSelectionChange,
     enableMultiSort,
@@ -143,6 +146,7 @@ function DataTableV2Inner<TRow extends object = RowWithKey>(props: DataTableV2Pr
     ignoreRowInSetFilter,
     defaultColumnOptions,
     enableRowSelection,
+    enableCellSelection,
     rowSelection,
     onRowSelectionChange,
     enableMultiSort,

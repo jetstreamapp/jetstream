@@ -143,6 +143,13 @@
 .jgrid-header-resize-handle.jgrid-resizing::after {
   opacity: 1;
 }
+/* The handle's idle 1px divider sits on the cell's rightmost pixel and, being a child, paints OVER the
+   cell's inset focus ring — clipping the ring's right edge. Hide the idle divider while its cell has
+   focus (the ring visually replaces it); the hover/drag resize affordances still show. */
+.jgrid-header-cell:focus .jgrid-header-resize-handle:not(:hover):not(.jgrid-resizing)::before,
+.jgrid-header-cell:focus-visible .jgrid-header-resize-handle:not(:hover):not(.jgrid-resizing)::before {
+  background-color: transparent;
+}
 
 /* Column reorder (drag-and-drop). The whole header cell is the drag source/drop target; a grab cursor
    advertises it, the source dims while in flight, and a 2px brand-colored insertion line on the leading
@@ -245,6 +252,29 @@
 /* Rectangular cell-range selection highlight */
 .jgrid-cell-range {
   background-color: var(--slds-g-color-brand-base-90, #d8e6fe);
+  position: relative;
+}
+/* Selection-rectangle edge borders, drawn on a pointer-transparent overlay so they never compete with
+   the cell's own box-shadow stack (focus ring, error/warning rings, frozen divider) or its background.
+   Each edge class adds one inset ring segment; adjacent rectangles keep both their facing edges. */
+.jgrid-cell-range::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border: 0 solid var(--slds-g-color-brand-base-50, #0176d3);
+}
+.jgrid-cell-range-top::after {
+  border-top-width: 1px;
+}
+.jgrid-cell-range-right::after {
+  border-right-width: 1px;
+}
+.jgrid-cell-range-bottom::after {
+  border-bottom-width: 1px;
+}
+.jgrid-cell-range-left::after {
+  border-left-width: 1px;
 }
 
 /*
@@ -254,7 +284,10 @@
  * `inherit` here would override the header background and make frozen headers transparent.
  */
 .jgrid-cell-frozen {
-  box-shadow: 1px 0 0 var(--jgrid-border-color);
+  /* INSET divider: an outward shadow (1px 0 0) paints over the neighboring cell's first pixel, which
+     visibly clips the left edge of a selection/focus ring on the cell beside the frozen column. Drawing
+     the divider inside the (opaque) frozen cell keeps it visible while scrolled content slides under. */
+  box-shadow: inset -1px 0 0 var(--jgrid-border-color);
   z-index: 1;
 }
 
@@ -309,12 +342,12 @@
 /* Frozen cells own a right-divider box-shadow; combine it with the error/warning ring so neither is lost. */
 .jgrid-cell-frozen.active-item-error {
   box-shadow:
-    1px 0 0 var(--jgrid-border-color),
+    inset -1px 0 0 var(--jgrid-border-color),
     inset 0 0 0 2px var(--slds-g-color-error-base-50, #ea001e);
 }
 .jgrid-cell-frozen.active-item-warning {
   box-shadow:
-    1px 0 0 var(--jgrid-border-color),
+    inset -1px 0 0 var(--jgrid-border-color),
     inset 0 0 0 2px var(--slds-g-color-warning-base-50, #fe9339);
 }
 .jgrid-cell.copied {

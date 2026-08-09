@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Column, Row } from '@tanstack/react-table';
+import { useSelector } from '@tanstack/react-store';
 import classNames from 'classnames';
 import { CSSProperties, memo } from 'react';
-import { RowWithKey } from '../grid-types';
+import { RowWithKey, TanstackColumn, TanstackRow, TanstackTable } from '../grid-types';
+import { getCellRangeEdges, RowSelectionSpan } from '../selection/grid-selection';
 import { GridCell } from './GridCell';
 
 export interface ActiveCell {
@@ -10,9 +11,10 @@ export interface ActiveCell {
   columnId: string;
 }
 
-export interface GridRowProps<TRow> {
-  row: Row<TRow>;
-  columns: Column<TRow, unknown>[];
+export interface GridRowProps<TRow extends object> {
+  table: TanstackTable<TRow>;
+  row: TanstackRow<TRow>;
+  columns: TanstackColumn<TRow>[];
   gridTemplateColumns: string;
   /** Visible leaf-column indexes to render (windowed + always-on frozen). */
   visibleColumnIndexes: number[];
@@ -26,17 +28,15 @@ export interface GridRowProps<TRow> {
    * columns are windowed, so horizontal scrolling never resizes/reflows rows. */
   height: number;
   activeCell?: ActiveCell | null;
-  /** Explicit selection flag so the memo'd row re-renders when selection flips (row refs are stable). */
-  isSelected: boolean;
-  /** Explicit expanded flag — same reason as `isSelected`: TanStack reuses the Row instance across
-   * expand/collapse, so without this prop the memo'd row (and its chevron) never re-renders on toggle. */
+  /** Explicit expanded flag: TanStack reuses the Row instance across expand/collapse, so without this
+   * prop the memo'd row (and its chevron) never re-renders on toggle. */
   isExpanded: boolean;
   /** True for the last data row — lets its corner cells round to match the table's bottom corners. */
   isLastRow: boolean;
-  /** Inclusive column-index range selected on this row (cell range), or null. */
-  selectionColRange?: { start: number; end: number } | null;
+  /** Selection-rectangle spans intersecting this row (identity-stable per bounds), or null. */
+  selectionSpans?: RowSelectionSpan[] | null;
   rowClass?: (row: TRow) => string | undefined;
-  onCellMouseDown?: (rowId: string, columnId: string, shiftKey: boolean, button?: number) => void;
+  onCellMouseDown?: (rowId: string, columnId: string, shiftKey: boolean, button?: number, ctrlOrMetaKey?: boolean) => void;
   onCellMouseEnter?: (rowId: string, columnId: string) => void;
   onCellContextMenu?: (event: React.MouseEvent, rowId: string, columnId: string) => void;
   onStartEdit?: (rowId: string, columnId: string) => void;
@@ -47,7 +47,8 @@ export interface GridRowProps<TRow> {
   measureRef?: (el: HTMLElement | null) => void;
 }
 
-function GridRowComponent<TRow>({
+function GridRowComponent<TRow extends object>({
+  table,
   row,
   columns,
   gridTemplateColumns,
@@ -57,10 +58,9 @@ function GridRowComponent<TRow>({
   virtualStart,
   height,
   activeCell,
-  isSelected,
   isExpanded,
   isLastRow,
-  selectionColRange,
+  selectionSpans,
   rowClass,
   onCellMouseDown,
   onCellMouseEnter,
@@ -70,6 +70,9 @@ function GridRowComponent<TRow>({
   autoHeight,
   measureRef,
 }: GridRowProps<TRow>) {
+  // The row subscribes to its own selection slice: rowSelection lives in an atom (not React state),
+  // so a toggle re-renders exactly this row + the select-all island — nothing else.
+  const isSelected = useSelector(table.atoms.rowSelection, (selection) => !!selection[row.id]);
   const original = row.original as TRow & Partial<RowWithKey>;
   const consumerRowClass = rowClass?.(row.original);
   const cells = row.getVisibleCells();
@@ -124,7 +127,7 @@ function GridRowComponent<TRow>({
         isActive={!!activeCell && activeCell.rowId === row.id && activeCell.columnId === cell.column.id}
         isSelected={isSelected}
         rowIsExpanded={isExpanded}
-        isRangeSelected={!!selectionColRange && columnIndex >= selectionColRange.start && columnIndex <= selectionColRange.end}
+        rangeEdges={getCellRangeEdges(selectionSpans ?? null, columnIndex)}
         onCellMouseDown={onCellMouseDown}
         onCellMouseEnter={onCellMouseEnter}
         onCellContextMenu={onCellContextMenu}
@@ -176,10 +179,10 @@ function gridRowPropsAreEqual(prev: GridRowProps<any>, next: GridRowProps<any>):
     prev.virtualStart === next.virtualStart &&
     prev.height === next.height &&
     prev.activeCell === next.activeCell &&
-    prev.isSelected === next.isSelected &&
+    prev.table === next.table &&
     prev.isExpanded === next.isExpanded &&
     prev.isLastRow === next.isLastRow &&
-    prev.selectionColRange === next.selectionColRange &&
+    prev.selectionSpans === next.selectionSpans &&
     prev.rowClass === next.rowClass &&
     prev.autoHeight === next.autoHeight
   );

@@ -6,7 +6,7 @@ import { ColumnWithFilter, RowWithKey } from './grid/grid-types';
  * uses for search/sort, which resolves friendly labels — e.g. a permission-set name instead of its Id) and
  * falls back to the raw field. Objects/arrays are skipped rather than serialized to `[object Object]`.
  */
-function cellText<T>(column: ColumnWithFilter<T>, row: T): string {
+function cellText<T extends object>(column: ColumnWithFilter<T>, row: T): string {
   if (column.getValue) {
     const value = column.getValue({ row, column });
     return value == null ? '' : String(value);
@@ -30,7 +30,7 @@ export interface GridExportData {
  * The caller controls row ordering and which columns to include by passing the same `columns`/`rows` it
  * hands the grid.
  */
-export function buildGridExportData<T = RowWithKey>(columns: ColumnWithFilter<T>[], rows: readonly T[]): GridExportData {
+export function buildGridExportData<T extends object = RowWithKey>(columns: ColumnWithFilter<T>[], rows: readonly T[]): GridExportData {
   const exportColumns = columns.filter(
     (column) => !!column.key && column.key !== SELECT_COLUMN_KEY && typeof column.name === 'string' && column.name.trim().length > 0,
   );

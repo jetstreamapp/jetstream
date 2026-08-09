@@ -1,14 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Cell, Column } from '@tanstack/react-table';
 import classNames from 'classnames';
 import { CSSProperties, memo } from 'react';
-import { DataTableCellProps } from '../grid-types';
+import { DataTableCellProps, TanstackCell, TanstackColumn } from '../grid-types';
 import { getFrozenCellStyle } from './grid-layout';
 
-export interface GridCellProps<TRow> {
-  cell: Cell<TRow, unknown>;
+export interface GridCellProps<TRow extends object> {
+  cell: TanstackCell<TRow>;
   /** Visible leaf columns (for frozen offset math). */
-  columns: Column<TRow, unknown>[];
+  columns: TanstackColumn<TRow>[];
   rowIndex: number;
   colIndex: number;
   /** 1-based ARIA column index. */
@@ -23,8 +22,9 @@ export interface GridCellProps<TRow> {
    * across expand/collapse, so the memo needs this prop to re-render the chevron on toggle. */
   rowIsExpanded?: boolean;
   /** True when this cell is inside the rectangular cell-selection. */
-  isRangeSelected: boolean;
-  onCellMouseDown?: (rowId: string, columnId: string, shiftKey: boolean, button?: number) => void;
+  /** Selection bitmask: 16=selected fill, 1=top, 2=right, 4=bottom, 8=left rectangle edges (0 = none). */
+  rangeEdges: number;
+  onCellMouseDown?: (rowId: string, columnId: string, shiftKey: boolean, button?: number, ctrlOrMetaKey?: boolean) => void;
   onCellMouseEnter?: (rowId: string, columnId: string) => void;
   onCellContextMenu?: (event: React.MouseEvent, rowId: string, columnId: string) => void;
   onStartEdit?: (rowId: string, columnId: string) => void;
@@ -32,7 +32,7 @@ export interface GridCellProps<TRow> {
   onCommitRow?: (updatedRow: TRow, rowId: string, columnId: string) => void;
 }
 
-function GridCellComponent<TRow>({
+function GridCellComponent<TRow extends object>({
   cell,
   columns,
   rowIndex,
@@ -42,7 +42,7 @@ function GridCellComponent<TRow>({
   isActive,
   isSelected,
   rowIsExpanded,
-  isRangeSelected,
+  rangeEdges,
   onCellMouseDown,
   onCellMouseEnter,
   onCellContextMenu,
@@ -118,14 +118,18 @@ function GridCellComponent<TRow>({
       data-col-id={cell.column.id}
       aria-colindex={ariaColIndex}
       aria-readonly={isEditable ? undefined : true}
-      aria-selected={isRangeSelected || undefined}
+      aria-selected={rangeEdges !== 0 || undefined}
       tabIndex={isActive ? 0 : -1}
       className={classNames(
         'jgrid-cell',
         `jgrid-cell-kind-${cellKind}`,
         {
           'jgrid-cell-frozen': meta?.frozen,
-          'jgrid-cell-range': isRangeSelected,
+          'jgrid-cell-range': (rangeEdges & 16) !== 0,
+          'jgrid-cell-range-top': (rangeEdges & 1) !== 0,
+          'jgrid-cell-range-right': (rangeEdges & 2) !== 0,
+          'jgrid-cell-range-bottom': (rangeEdges & 4) !== 0,
+          'jgrid-cell-range-left': (rangeEdges & 8) !== 0,
           // Edge markers so a focused corner cell can round its focus ring to match the table corners.
           'jgrid-cell-col-first': colIndex === 0,
           'jgrid-cell-col-last': colIndex + colSpan >= columns.length,
@@ -133,7 +137,7 @@ function GridCellComponent<TRow>({
         dynamicClass,
       )}
       style={style}
-      onMouseDown={(event) => onCellMouseDown?.(cell.row.id, cell.column.id, event.shiftKey, event.button)}
+      onMouseDown={(event) => onCellMouseDown?.(cell.row.id, cell.column.id, event.shiftKey, event.button, event.ctrlKey || event.metaKey)}
       onMouseEnter={() => onCellMouseEnter?.(cell.row.id, cell.column.id)}
       onContextMenu={(event) => onCellContextMenu?.(event, cell.row.id, cell.column.id)}
       onDoubleClick={() => onStartEdit?.(cell.row.id, cell.column.id)}
@@ -165,7 +169,7 @@ function gridCellPropsAreEqual(prev: GridCellProps<any>, next: GridCellProps<any
     prev.isActive === next.isActive &&
     prev.isSelected === next.isSelected &&
     prev.rowIsExpanded === next.rowIsExpanded &&
-    prev.isRangeSelected === next.isRangeSelected
+    prev.rangeEdges === next.rangeEdges
   );
 }
 

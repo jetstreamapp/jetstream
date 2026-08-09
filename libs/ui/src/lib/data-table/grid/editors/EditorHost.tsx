@@ -1,14 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { FloatingPortal, autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/react';
-import type { Table } from '@tanstack/react-table';
 import { useState } from 'react';
 import { OutsideClickHandler } from '../../../utils/OutsideClickHandler';
 import { ActiveCell } from '../components/GridRow';
-import { ColumnWithFilter } from '../grid-types';
+import { ColumnWithFilter, TanstackTable } from '../grid-types';
 
-export interface EditorHostProps<TRow> {
+export interface EditorHostProps<TRow extends object> {
   editingCell: ActiveCell;
-  table: Table<TRow>;
+  table: TanstackTable<TRow>;
   /** Returns the grid root so the anchor cell can be located + scoped. */
   getRootElement: () => HTMLElement | null;
   /** Apply an edited row and let the consumer persist it. */
@@ -27,7 +26,7 @@ export interface EditorHostProps<TRow> {
  * commits (Enter/Tab/blur/outside click) — never per keystroke — and Escape discards the draft.
  * GridContainer keys this component by cell so the draft resets when editing moves to another cell.
  */
-export function EditorHost<TRow>({ editingCell, table, getRootElement, onCommitRow, onClose }: EditorHostProps<TRow>) {
+export function EditorHost<TRow extends object>({ editingCell, table, getRootElement, onCommitRow, onClose }: EditorHostProps<TRow>) {
   const rows = table.getRowModel().rows;
   const columns = table.getVisibleLeafColumns();
   const rowIndex = rows.findIndex((row) => row.id === editingCell.rowId);

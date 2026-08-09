@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { useCreateAtom } from '@tanstack/react-store';
 import {
+  CellSelectionState,
   ColumnFiltersState,
   ColumnOrderState,
   ColumnSizingState,
@@ -8,20 +10,15 @@ import {
   GroupingState,
   RowSelectionState,
   SortingState,
-  Table,
-  getCoreRowModel,
-  getExpandedRowModel,
-  getFilteredRowModel,
-  getGroupedRowModel,
-  getSortedRowModel,
-  useReactTable,
+  useTable,
 } from '@tanstack/react-table';
 import isNil from 'lodash/isNil';
 import uniqueId from 'lodash/uniqueId';
-import { useCallback, useEffect, useImperativeHandle, useMemo, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { buildColumnDefs } from '../buildColumnDefs';
 import { ColumnFilterValue, makeGlobalFilterFn } from '../filterFns';
 import { EMPTY_FIELD, NON_DATA_COLUMN_KEYS } from '../grid-constants';
+import { jetstreamTableFeatures } from '../grid-features';
 import { computeFilterSetValues, hasFilterApplied, isFilterActive, resetFilter } from '../grid-filters';
 import { getSearchTextByRow, getSortedFilteredLeafRows } from '../grid-row-utils';
 import {
@@ -32,9 +29,10 @@ import {
   FILTER_SET_TYPES,
   RowWithKey,
   SortColumn,
+  TanstackTable,
 } from '../grid-types';
 
-export interface UseJetstreamTableOptions<TRow = RowWithKey> {
+export interface UseJetstreamTableOptions<TRow extends object = RowWithKey> {
   data: TRow[];
   columns: ColumnWithFilter<TRow>[];
   getRowKey: (row: TRow) => string;
@@ -50,6 +48,9 @@ export interface UseJetstreamTableOptions<TRow = RowWithKey> {
   ignoreRowInSetFilter?: (row: TRow) => boolean;
   defaultColumnOptions?: DefaultColumnOptions<TRow>;
   enableRowSelection?: boolean;
+  /** Spreadsheet-style cell range selection (drag / shift-click / Ctrl-click blocks on data cells).
+   * Default true; per-consumer kill switch. */
+  enableCellSelection?: boolean;
   enableMultiSort?: boolean;
   rowSelection?: RowSelectionState;
   onRowSelectionChange?: (selection: RowSelectionState) => void;
@@ -68,8 +69,8 @@ export interface UseJetstreamTableOptions<TRow = RowWithKey> {
   defaultExpanded?: ExpandedState | boolean;
 }
 
-export interface UseJetstreamTableResult<TRow = RowWithKey> {
-  table: Table<TRow>;
+export interface UseJetstreamTableResult<TRow extends object = RowWithKey> {
+  table: TanstackTable<TRow>;
   gridId: string;
   columns: ColumnWithFilter<TRow>[];
   /** Ordered, visible author-facing columns kept in sync with the TanStack column order. */
@@ -93,14 +94,22 @@ interface FilterState {
 }
 
 type FilterAction =
-  | { type: 'INIT'; payload: { columns: ColumnWithFilter<any>[]; data: any[]; ignoreRowInSetFilter?: (row: any) => boolean } }
+  | {
+      type: 'INIT';
+      payload: {
+        columns: ColumnWithFilter<any>[];
+        data: any[];
+        ignoreRowInSetFilter?: (row: any) => boolean;
+        getSubRows?: (row: any, index: number) => any[] | undefined;
+      };
+    }
   | { type: 'ADD_EDITED_VALUES'; payload: { columnKey: string; values: unknown[] } }
   | { type: 'UPDATE_FILTER'; payload: { columnKey: string; filter: DataTableFilter } };
 
 function filterReducer(state: FilterState, action: FilterAction): FilterState {
   switch (action.type) {
     case 'INIT': {
-      const { columns, data, ignoreRowInSetFilter } = action.payload;
+      const { columns, data, ignoreRowInSetFilter, getSubRows } = action.payload;
       const columnMap = new Map(columns.map((column) => [column.key, column]));
 
       // Retain existing filter values when only the data changed (column count is the cheap proxy used by the legacy grid).
@@ -114,7 +123,7 @@ function filterReducer(state: FilterState, action: FilterAction): FilterState {
             return acc;
           }, {});
 
-      const distinctSetValues = computeFilterSetValues(columns, data, ignoreRowInSetFilter);
+      const distinctSetValues = computeFilterSetValues(columns, data, ignoreRowInSetFilter, getSubRows);
 
       // Default SET filters to "all selected" unless the user previously customized the selection.
       Object.keys(filters).forEach((columnKey) => {
@@ -157,11 +166,20 @@ function filterReducer(state: FilterState, action: FilterAction): FilterState {
   }
 }
 
+// Every state slice Jetstream registers is controlled React state in this hook, so the hook owner
+// already re-renders (via setState) whenever table state it cares about changes. Opting out of
+// `useTable`'s store-driven re-render (null selector) avoids a redundant post-commit pass — and means
+// the one internal slice (`columnResizing`, live drag info) re-renders ONLY the resize-handle island
+// in HeaderCell that subscribes to it, not the whole grid per mousemove.
+const NULL_STATE_SELECTOR = () => null;
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Hook
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function useJetstreamTable<TRow = RowWithKey>(options: UseJetstreamTableOptions<TRow>): UseJetstreamTableResult<TRow> {
+export function useJetstreamTable<TRow extends object = RowWithKey>(
+  options: UseJetstreamTableOptions<TRow>,
+): UseJetstreamTableResult<TRow> {
   const {
     data,
     columns,
@@ -174,6 +192,7 @@ export function useJetstreamTable<TRow = RowWithKey>(options: UseJetstreamTableO
     ignoreRowInSetFilter,
     defaultColumnOptions,
     enableRowSelection,
+    enableCellSelection,
     enableMultiSort = false,
     rowSelection: controlledRowSelection,
     onRowSelectionChange,
@@ -192,6 +211,7 @@ export function useJetstreamTable<TRow = RowWithKey>(options: UseJetstreamTableO
   // Hold getRowKey in a ref so an unstable (inline) callback identity does not force expensive work
   // (the search index rebuild) on every render. The wrapper is referentially stable.
   const getRowKeyRef = useRef(getRowKey);
+  // eslint-disable-next-line react-hooks/refs -- latest-ref pattern: the render-time assignment is the point
   getRowKeyRef.current = getRowKey;
   const stableGetRowKey = useCallback((row: TRow) => getRowKeyRef.current(row), []);
 
@@ -215,15 +235,23 @@ export function useJetstreamTable<TRow = RowWithKey>(options: UseJetstreamTableO
   );
   const [columnOrder, setColumnOrder] = useState<ColumnOrderState>(() => columns.map((column) => column.key));
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({});
-  const [internalRowSelection, setInternalRowSelection] = useState<RowSelectionState>({});
-  const rowSelection = controlledRowSelection ?? internalRowSelection;
-
   const groupingState: GroupingState = useMemo(() => grouping ?? [], [grouping]);
-  const isHierarchical = !!getSubRows || groupingState.length > 0;
-  const [internalExpanded, setInternalExpanded] = useState<ExpandedState>(() =>
-    defaultExpanded === true ? true : typeof defaultExpanded === 'object' ? defaultExpanded : {},
+
+  // Row selection + expansion live in EXTERNAL atoms (v9 `atoms` option) instead of React state: a
+  // selection toggle re-renders only the affected GridRow + the select-all island, and an expansion
+  // toggle re-renders only the row-model subscribers (GridContainer/GridBody) — never the whole grid
+  // from the hook down. The dual controlled/internal contract is preserved: in controlled mode the
+  // atom mirrors the prop (sync effects below) and the consumer callback stays the single authority;
+  // in internal mode the change handlers write the atom directly.
+  const rowSelectionAtom = useCreateAtom<RowSelectionState>(controlledRowSelection ?? {});
+  const expandedAtom = useCreateAtom<ExpandedState>(
+    controlledExpanded ?? (defaultExpanded === true ? true : typeof defaultExpanded === 'object' ? defaultExpanded : {}),
   );
-  const expanded = controlledExpanded ?? internalExpanded;
+  // Cell range selection is table-internal UI state (no controlled prop) — atom-owned so drag-extends
+  // re-render only the subscribed selection renderers, never the hook owner.
+  const cellSelectionAtom = useCreateAtom<CellSelectionState>([]);
+  // The `atoms` option is pinned at table construction — one stable object for the table's lifetime.
+  const [tableAtoms] = useState(() => ({ rowSelection: rowSelectionAtom, expanded: expandedAtom, cellSelection: cellSelectionAtom }));
 
   const [{ filters, filterSetValues }, dispatch] = useReducer(filterReducer, {
     hasFilters: false,
@@ -234,12 +262,14 @@ export function useJetstreamTable<TRow = RowWithKey>(options: UseJetstreamTableO
 
   // Initialize / refresh filters + distinct set values when columns or data change.
   useEffect(() => {
-    dispatch({ type: 'INIT', payload: { columns, data, ignoreRowInSetFilter } });
-  }, [columns, data, ignoreRowInSetFilter]);
+    dispatch({ type: 'INIT', payload: { columns, data, ignoreRowInSetFilter, getSubRows } });
+  }, [columns, data, ignoreRowInSetFilter, getSubRows]);
 
-  // Reset column order when the column set changes.
+  // Reset column order + cell selection when the column set changes (selection columns may no longer exist).
   useNonInitialEffect(() => {
     setColumnOrder(columns.map((column) => column.key));
+    cellSelectionAtom.set([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [columns]);
 
   const updateFilter = useCallback((columnKey: string, filter: DataTableFilter) => {
@@ -256,6 +286,7 @@ export function useJetstreamTable<TRow = RowWithKey>(options: UseJetstreamTableO
   const [quickFilterEngaged, setQuickFilterEngaged] = useState(false);
   useEffect(() => {
     if (!quickFilterEngaged && includeQuickFilter && !!quickFilterText) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot latch; fires at most once per grid
       setQuickFilterEngaged(true);
     }
   }, [quickFilterEngaged, includeQuickFilter, quickFilterText]);
@@ -268,6 +299,7 @@ export function useJetstreamTable<TRow = RowWithKey>(options: UseJetstreamTableO
     if (!includeQuickFilter || !quickFilterEngaged || !Array.isArray(data) || !data.length || !columns.length) {
       return {} as Record<string, string>;
     }
+    // eslint-disable-next-line react-hooks/refs -- stableGetRowKey wraps a latest-ref; safe to call in render
     return getSearchTextByRow(data, columns, stableGetRowKey, getSubRows);
   }, [includeQuickFilter, quickFilterEngaged, data, columns, stableGetRowKey, getSubRows]);
 
@@ -294,6 +326,7 @@ export function useJetstreamTable<TRow = RowWithKey>(options: UseJetstreamTableO
     [includeQuickFilter, quickFilterText, rowFilterText],
   );
   const globalFilterFn = useMemo(
+    // eslint-disable-next-line react-hooks/refs -- stableGetRowKey wraps a latest-ref; only ever called during filtering
     () => makeGlobalFilterFn(rowFilterText, stableGetRowKey, rowAlwaysVisible),
     [rowFilterText, stableGetRowKey, rowAlwaysVisible],
   );
@@ -311,73 +344,152 @@ export function useJetstreamTable<TRow = RowWithKey>(options: UseJetstreamTableO
     [sorting, onSortColumnsChange],
   );
 
+  // Latest-mode/callback ref so the handlers stay referentially stable while always seeing fresh props.
+  const selectionExpansionModeRef = useRef({
+    onRowSelectionChange,
+    rowSelectionControlled: controlledRowSelection !== undefined,
+    onExpandedChange,
+    expandedControlled: controlledExpanded !== undefined,
+  });
+  // eslint-disable-next-line react-hooks/refs -- latest-ref pattern: the render-time assignment is the point
+  selectionExpansionModeRef.current = {
+    onRowSelectionChange,
+    rowSelectionControlled: controlledRowSelection !== undefined,
+    onExpandedChange,
+    expandedControlled: controlledExpanded !== undefined,
+  };
+
   const handleExpandedChange = useCallback(
     (updater: ExpandedState | ((old: ExpandedState) => ExpandedState)) => {
-      const next = typeof updater === 'function' ? updater(expanded) : updater;
-      if (onExpandedChange) {
-        onExpandedChange(next);
-      }
-      if (controlledExpanded === undefined) {
-        setInternalExpanded(next);
+      // Resolve ONCE outside any React state updater (StrictMode double-invokes those) so consumer
+      // callbacks fire exactly once per interaction.
+      const next = typeof updater === 'function' ? updater(expandedAtom.get()) : updater;
+      selectionExpansionModeRef.current.onExpandedChange?.(next);
+      if (!selectionExpansionModeRef.current.expandedControlled) {
+        expandedAtom.set(next);
       }
     },
-    [expanded, onExpandedChange, controlledExpanded],
+    [expandedAtom],
   );
 
   const handleRowSelectionChange = useCallback(
     (updater: RowSelectionState | ((old: RowSelectionState) => RowSelectionState)) => {
-      const next = typeof updater === 'function' ? updater(rowSelection) : updater;
-      if (onRowSelectionChange) {
-        onRowSelectionChange(next);
-      }
-      if (controlledRowSelection === undefined) {
-        setInternalRowSelection(next);
+      const next = typeof updater === 'function' ? updater(rowSelectionAtom.get()) : updater;
+      selectionExpansionModeRef.current.onRowSelectionChange?.(next);
+      if (!selectionExpansionModeRef.current.rowSelectionControlled) {
+        rowSelectionAtom.set(next);
       }
     },
-    [rowSelection, onRowSelectionChange, controlledRowSelection],
+    [rowSelectionAtom],
   );
 
-  const table = useReactTable<TRow>({
-    data,
-    columns: columnDefs,
-    state: { sorting, columnFilters, globalFilter, columnOrder, columnSizing, rowSelection, grouping: groupingState, expanded },
-    // Coerce to string: `getRowKey` is typed to return a string but some callers derive it from `any`
-    // record data (e.g. a numeric id), and a non-string `row.id` later breaks string ops such as the
-    // `rowId.startsWith(...)` inside `isSummaryRowId` during keyboard navigation.
-    getRowId: (row) => String(stableGetRowKey(row)),
-    enableRowSelection: enableRowSelection ?? false,
-    enableMultiSort,
-    enableSortingRemoval: true,
-    // Don't collapse expanded groups/rows when data changes (a bulk edit or applying a column filter
-    // rebuilds the row model — without this TanStack resets expansion and the children disappear).
-    autoResetExpanded: false,
-    // Defer applying widths until mouse release (SLDS behavior): during the drag only the divider
-    // guide line moves, then the grid re-lays-out once. Live-resizing re-renders every visible row
-    // per mousemove, which lags on wide/tall tables.
-    columnResizeMode: 'onEnd',
-    // Keep declared column order (don't auto-move grouped columns to the front); we render group rows ourselves.
-    groupedColumnMode: false,
-    getSubRows,
-    // For getSubRows trees, filter from leaves up so a match on a child (e.g. a flow version) keeps its
-    // ancestor rows visible, instead of being dropped because the parent didn't match.
-    filterFromLeafRows: !!getSubRows,
-    globalFilterFn,
-    // Evaluate the quick filter on a single carrier column (see globalFilterColumnId). Falls back to
-    // TanStack's default (string columns) if there is no data column.
-    getColumnCanGlobalFilter: globalFilterColumnId ? (column) => column.id === globalFilterColumnId : undefined,
-    onSortingChange: handleSortingChange,
-    onColumnOrderChange: setColumnOrder,
-    onColumnSizingChange: setColumnSizing,
-    onRowSelectionChange: handleRowSelectionChange,
-    onExpandedChange: handleExpandedChange,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    // Only wire grouping/expansion row models when actually used, to keep flat tables lean.
-    ...(groupingState.length > 0 ? { getGroupedRowModel: getGroupedRowModel() } : {}),
-    ...(isHierarchical ? { getExpandedRowModel: getExpandedRowModel() } : {}),
-    meta: { gridId },
-  });
+  // Controlled mode: mirror the prop into the atom post-commit. Compare-before-set keeps StrictMode's
+  // doubled effect a no-op and prevents notification loops; these never fire consumer callbacks.
+  useLayoutEffect(() => {
+    if (controlledRowSelection !== undefined && rowSelectionAtom.get() !== controlledRowSelection) {
+      rowSelectionAtom.set(controlledRowSelection);
+    }
+  }, [controlledRowSelection, rowSelectionAtom]);
+  useLayoutEffect(() => {
+    if (controlledExpanded !== undefined && expandedAtom.get() !== controlledExpanded) {
+      expandedAtom.set(controlledExpanded);
+    }
+  }, [controlledExpanded, expandedAtom]);
+
+  // Coerce to string: `getRowKey` is typed to return a string but some callers derive it from `any`
+  // record data (e.g. a numeric id), and a non-string `row.id` later breaks string ops such as the
+  // `rowId.startsWith(...)` inside `isSummaryRowId` during keyboard navigation.
+  const getRowId = useCallback((row: TRow) => String(stableGetRowKey(row)), [stableGetRowKey]);
+
+  // Evaluate the quick filter on a single carrier column (see globalFilterColumnId). Falls back to
+  // TanStack's default (string columns) if there is no data column. v9 types this option as a
+  // universally-quantified generic fn, so the param is typed structurally (only `id` is read).
+  const getColumnCanGlobalFilter = useMemo(
+    () => (globalFilterColumnId ? (column: { id: string }) => column.id === globalFilterColumnId : undefined),
+    [globalFilterColumnId],
+  );
+
+  const state = useMemo(
+    () => ({ sorting, columnFilters, globalFilter, columnOrder, columnSizing, grouping: groupingState }),
+    [sorting, columnFilters, globalFilter, columnOrder, columnSizing, groupingState],
+  );
+
+  // v9's `useTable` rebuilds its returned wrapper whenever (options, state) change identity, so keep
+  // the options object memoized — otherwise the wrapper (and everything keyed on it) churns every render.
+  const tableOptions = useMemo(
+    () => ({
+      features: jetstreamTableFeatures,
+      data,
+      columns: columnDefs,
+      state,
+      atoms: tableAtoms,
+      getRowId,
+      enableRowSelection: enableRowSelection ?? false,
+      enableCellSelection: enableCellSelection ?? true,
+      // A data swap (inline edit, paste, refreshed query) must NOT wipe the cell selection — ranges are
+      // id-anchored, so rows that survive keep their selection and vanished rows contribute nothing.
+      autoResetCellSelection: false,
+      enableMultiSort,
+      enableSortingRemoval: true,
+      // Don't collapse expanded groups/rows when data changes (a bulk edit or applying a column filter
+      // rebuilds the row model — without this TanStack resets expansion and the children disappear).
+      autoResetExpanded: false,
+      // Defer applying widths until mouse release (SLDS behavior): during the drag only the divider
+      // guide line moves, then the grid re-lays-out once. Live-resizing re-renders every visible row
+      // per mousemove, which lags on wide/tall tables.
+      columnResizeMode: 'onEnd' as const,
+      // Keep declared column order (don't auto-move grouped columns to the front); we render group rows ourselves.
+      groupedColumnMode: false as const,
+      getSubRows,
+      // For getSubRows trees, filter from leaves up so a match on a child (e.g. a flow version) keeps its
+      // ancestor rows visible, instead of being dropped because the parent didn't match.
+      filterFromLeafRows: !!getSubRows,
+      globalFilterFn,
+      getColumnCanGlobalFilter,
+      onSortingChange: handleSortingChange,
+      onColumnOrderChange: setColumnOrder,
+      onColumnSizingChange: setColumnSizing,
+      onRowSelectionChange: handleRowSelectionChange,
+      onExpandedChange: handleExpandedChange,
+      meta: { gridId },
+    }),
+    [
+      data,
+      columnDefs,
+      state,
+      tableAtoms,
+      getRowId,
+      enableRowSelection,
+      enableCellSelection,
+      enableMultiSort,
+      getSubRows,
+      globalFilterFn,
+      getColumnCanGlobalFilter,
+      handleSortingChange,
+      handleRowSelectionChange,
+      handleExpandedChange,
+      gridId,
+    ],
+  );
+
+  const liveTable = useTable(tableOptions, NULL_STATE_SELECTOR);
+
+  // v9's `useTable` returns a NEW wrapper object per (options, state) change; only the core table
+  // underneath is referentially stable. Jetstream keys context values, memos, and effects on the table
+  // identity (v8 contract: one table instance per grid, forever), so expose a stable facade that
+  // forwards every property read to the latest wrapper. Reads are always live (the adapter re-stages
+  // options into the core during render, before any of our render code runs).
+  const latestTableRef = useRef(liveTable);
+  // eslint-disable-next-line react-hooks/refs -- latest-ref pattern: the render-time assignment is the point
+  latestTableRef.current = liveTable;
+  const [table] = useState(
+    // eslint-disable-next-line react-hooks/refs -- the facade closure intentionally captures the latest-ref
+    () =>
+      new Proxy({} as object, {
+        get: (_target, prop) => Reflect.get(latestTableRef.current as object, prop),
+        has: (_target, prop) => Reflect.has(latestTableRef.current as object, prop),
+      }) as TanstackTable<TRow>,
+  );
 
   const orderedColumns = useMemo(() => {
     const ordered = columnOrder.map((key) => columnByKey.get(key)).filter((column): column is ColumnWithFilter<TRow> => !!column);

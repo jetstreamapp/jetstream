@@ -1,5 +1,6 @@
 import { Field, SobjectCollectionResponse } from '@jetstream/types';
 import { describe, expect, test } from 'vitest';
+import { getRecordErrorColumn } from '../DataTableRenderers';
 import { ColumnWithFilter, RowSalesforceRecordWithKey } from '../grid/grid-types';
 import { buildEditedRecordsExport, buildRecordChangeList, buildResultsExport } from '../PreviewChangesModal';
 
@@ -67,7 +68,7 @@ describe('buildRecordChangeList', () => {
     expect(changeCount).toBe(0);
   });
 
-  test('renders empty/null new values as an em-dash and exposes the record id', () => {
+  test('stores empty/null new values as blank (the em-dash is render-only) and exposes the record id', () => {
     const dirty = [
       row({
         _key: 'r0',
@@ -77,7 +78,8 @@ describe('buildRecordChangeList', () => {
       }),
     ];
     const result = buildRecordChangeList(dirty, columns, fieldMetadata).rows[0];
-    expect(result.Name).toBe('—');
+    // Blank on the ROW so cell/row copies are blank; FieldCellRenderer shows the em-dash affordance.
+    expect(result.Name).toBe('');
     expect(result.recordId).toBe('0016g00000ETu0IAAT');
     expect(result.recordName).toBe('Acme');
   });
@@ -111,6 +113,33 @@ describe('buildRecordChangeList', () => {
     const result = buildRecordChangeList(dirty, columns, fieldMetadata).rows[0];
     expect(result.recordName).toBe('');
     expect(result.recordId).toBe('0016g00000ETu0IAAT');
+  });
+});
+
+describe('record error column copy value', () => {
+  test('rows mirror the status message under the error column key (raw-field copies)', () => {
+    const { rows } = buildRecordChangeList(
+      [
+        {
+          _key: '1',
+          _record: { Id: '001000000000001', Name: 'Acme' },
+          _touchedColumns: new Set(['Amount']),
+          _fieldErrors: {},
+          _fieldWarnings: { Amount: 'Not a valid number' },
+          Amount: 'abc',
+        } as unknown as RowSalesforceRecordWithKey,
+      ],
+      [] as ColumnWithFilter<RowSalesforceRecordWithKey>[],
+      {},
+    );
+    expect(rows[0].status).toBe('Not a valid number');
+    expect(rows[0].errorMessage).toBe('Not a valid number');
+  });
+
+  test('getRecordErrorColumn exposes the message via getValue (keyboard/range copy path)', () => {
+    const column = getRecordErrorColumn();
+    expect(column.getValue?.({ row: { _key: '1', status: 'boom' }, column })).toBe('boom');
+    expect(column.getValue?.({ row: { _key: '1' }, column })).toBeNull();
   });
 });
 
