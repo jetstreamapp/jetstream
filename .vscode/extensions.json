@@ -1,8 +1,7 @@
 {
   "recommendations": [
-    "dbaeumer.vscode-eslint",
+    "oxc.oxc-vscode",
     "eamodio.gitlens",
-    "esbenp.prettier-vscode",
     "mikestead.dotenv",
     "ms-playwright.playwright",
     "vitest.explorer",

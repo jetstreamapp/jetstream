@@ -118,14 +118,12 @@ export const PlatformEventMonitorEvents: FunctionComponent<PlatformEventMonitorE
   useEffect(() => {
     setRows(
       orderValues(Object.keys(messagesByChannel)).flatMap((channel) =>
-        messagesByChannel[channel].messages.map(
-          (message): PlatformEventRow => ({
-            event: channel,
-            payload: JSON.stringify(message.payload),
-            uuid: message.event.EventUuid,
-            replayId: message.event.replayId,
-          }),
-        ),
+        messagesByChannel[channel].messages.map((message): PlatformEventRow => ({
+          event: channel,
+          payload: JSON.stringify(message.payload),
+          uuid: message.event.EventUuid,
+          replayId: message.event.replayId,
+        })),
       ),
     );
   }, [messagesByChannel]);

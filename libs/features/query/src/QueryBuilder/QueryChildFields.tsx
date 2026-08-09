@@ -93,13 +93,11 @@ export const QueryChildFields: FunctionComponent<QueryChildFieldsProps> = ({
       .flatMap((queryField) => {
         // remove the first part of the key (which identified this object)
         const basePath = queryField.key.replace(/.+\|/, '');
-        return sortQueryFieldsStr(Array.from(queryField.selectedFields)).map(
-          (field): QueryFieldWithPolymorphic => ({
-            field: `${basePath}${field}`,
-            polymorphicObj: queryField.isPolymorphic ? queryField.sobject : undefined,
-            metadata: queryField.fields[field]?.metadata,
-          }),
-        );
+        return sortQueryFieldsStr(Array.from(queryField.selectedFields)).map((field): QueryFieldWithPolymorphic => ({
+          field: `${basePath}${field}`,
+          polymorphicObj: queryField.isPolymorphic ? queryField.sobject : undefined,
+          metadata: queryField.fields[field]?.metadata,
+        }));
       });
 
     onSelectionChanged(fields);

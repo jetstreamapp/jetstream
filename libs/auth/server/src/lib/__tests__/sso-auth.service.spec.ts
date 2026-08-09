@@ -400,13 +400,7 @@ describe('linkSsoIdentity', () => {
 
   it('throws SsoInvalidAction when called with neither or both config ids', async () => {
     await expect(
-      linkSsoIdentity(
-        'user-1',
-        'saml',
-        'user@example.com',
-        { email: 'user@example.com', userName: 'user', subject: 'nameid-abc' },
-        {},
-      ),
+      linkSsoIdentity('user-1', 'saml', 'user@example.com', { email: 'user@example.com', userName: 'user', subject: 'nameid-abc' }, {}),
     ).rejects.toMatchObject({ type: 'SsoInvalidAction' });
 
     await expect(

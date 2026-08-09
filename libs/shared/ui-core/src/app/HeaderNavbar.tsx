@@ -261,10 +261,12 @@ export const HeaderNavbar = ({
 
   const rightHandMenuItems = useMemo(() => {
     // Spreads to nothing while the in-app popover is disabled (see SHOW_WHATS_NEW_POPOVER above).
-    const whatsNewItems: React.ReactNode[] = SHOW_WHATS_NEW_POPOVER ? [<HeaderWhatsNewPopover platform={releaseNotePlatform} />] : [];
+    const whatsNewItems: React.ReactNode[] = SHOW_WHATS_NEW_POPOVER
+      ? [<HeaderWhatsNewPopover key="whats-new" platform={releaseNotePlatform} />]
+      : [];
 
     if (isReadOnlyUser) {
-      return [...whatsNewItems, <HeaderHelpPopover />];
+      return [...whatsNewItems, <HeaderHelpPopover key="help" />];
     }
 
     if (isEmbeddedApp || isDesktop) {
@@ -273,6 +275,7 @@ export const HeaderNavbar = ({
       if (showFullscreenLink && instanceUrl) {
         items.push(
           <a
+            key="open-fullscreen"
             href={`${instanceUrl}/apex/jetstream__JetstreamPage`}
             target="_blank"
             rel="noopener noreferrer"
@@ -284,42 +287,60 @@ export const HeaderNavbar = ({
         );
       }
 
-      items.push(<QuickQueryPopover />, <RecordSearchPopover />, <UserSearchPopover />, <Jobs />);
+      items.push(
+        <QuickQueryPopover key="quick-query" />,
+        <RecordSearchPopover key="record-search" />,
+        <UserSearchPopover key="user-search" />,
+        <Jobs key="jobs" />,
+      );
 
       // Add update notification for desktop
       if (isDesktop) {
-        items.push(<HeaderUpdateNotification onCheckForUpdates={handleCheckForUpdates} onInstallUpdate={handleInstallUpdate} />);
+        items.push(
+          <HeaderUpdateNotification
+            key="update-notification"
+            onCheckForUpdates={handleCheckForUpdates}
+            onInstallUpdate={handleInstallUpdate}
+          />,
+        );
       }
 
-      items.push(...whatsNewItems, <HeaderHelpPopover />);
+      items.push(...whatsNewItems, <HeaderHelpPopover key="help" />);
       return items;
     }
 
     if (!isBillingEnabled) {
       return [
-        <QuickQueryPopover />,
-        <RecordSearchPopover />,
-        <UserSearchPopover />,
-        <Jobs />,
+        <QuickQueryPopover key="quick-query" />,
+        <RecordSearchPopover key="record-search" />,
+        <UserSearchPopover key="user-search" />,
+        <Jobs key="jobs" />,
         ...whatsNewItems,
-        <HeaderHelpPopover />,
-        <HeaderDonatePopover />,
+        <HeaderHelpPopover key="help" />,
+        <HeaderDonatePopover key="donate" />,
       ];
     }
 
     if (!hasPaidPlan) {
       return [
-        <UpgradeToProButton trackEvent={trackEvent} source="navbar" />,
-        <QuickQueryPopover />,
-        <RecordSearchPopover />,
-        <UserSearchPopover />,
-        <Jobs />,
+        <UpgradeToProButton key="upgrade-to-pro" trackEvent={trackEvent} source="navbar" />,
+        <QuickQueryPopover key="quick-query" />,
+        <RecordSearchPopover key="record-search" />,
+        <UserSearchPopover key="user-search" />,
+        <Jobs key="jobs" />,
         ...whatsNewItems,
-        <HeaderHelpPopover />,
+        <HeaderHelpPopover key="help" />,
       ];
     }
 
-    return [<QuickQueryPopover />, <RecordSearchPopover />, <UserSearchPopover />, <Jobs />, ...whatsNewItems, <HeaderHelpPopover />];
+    return [
+      <QuickQueryPopover key="quick-query" />,
+      <RecordSearchPopover key="record-search" />,
+      <UserSearchPopover key="user-search" />,
+      <Jobs key="jobs" />,
+      ...whatsNewItems,
+      <HeaderHelpPopover key="help" />,
+    ];
   }, [
     isReadOnlyUser,
     isEmbeddedApp,

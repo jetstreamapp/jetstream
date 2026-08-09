@@ -4,10 +4,5 @@
   "sourceRoot": "libs/shared/node-utils/src",
   "projectType": "library",
   "tags": ["scope:server"],
-  "generators": {},
-  "targets": {
-    "lint": {
-      "executor": "@nx/eslint:lint"
-    }
-  }
+  "generators": {}
 }

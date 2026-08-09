@@ -224,7 +224,7 @@ describe('buildUserAssignmentsTreeRows', () => {
     const rows = buildUserAssignmentsTreeRows({
       assignments,
       permissionSets,
-      groupComponents: groupComponents,
+      groupComponents,
       groups,
       licensesByUserId,
     });

@@ -49,6 +49,41 @@ env:
   JWT_ENCRYPTION_KEY: ${{ secrets.JWT_ENCRYPTION_KEY }}
 
 jobs:
+  # Lint and formatting. Split out from build-and-test because oxlint/oxfmt need neither the
+  # database nor a build, and the whole workspace takes a few seconds to check.
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+        with:
+          version: 11.13.0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      - name: install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # enforce-module-boundaries reads Nx's *cached* project graph. On a cold checkout that cache
+      # does not exist, and the rule downgrades itself to a warning and skips, so boundary
+      # violations would pass CI silently. Materialise the graph first.
+      - name: Prime the Nx project graph
+        run: pnpm nx show projects > /dev/null
+
+      - name: Check formatting
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
   # Build application
   build-and-test:
     runs-on: ubuntu-latest

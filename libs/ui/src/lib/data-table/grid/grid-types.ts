@@ -110,7 +110,12 @@ export type FilterType = 'TEXT' | 'NUMBER' | 'DATE' | 'TIME' | 'SET' | 'BOOLEAN_
 export const FILTER_SET_TYPES = new Set<FilterType>(['SET', 'BOOLEAN_SET']);
 
 export type DataTableFilter =
-  DataTableTextFilter | DataTableNumberFilter | DataTableDateFilter | DataTableTimeFilter | DataTableSetFilter | DataTableBooleanSetFilter;
+  | DataTableTextFilter
+  | DataTableNumberFilter
+  | DataTableDateFilter
+  | DataTableTimeFilter
+  | DataTableSetFilter
+  | DataTableBooleanSetFilter;
 
 export interface DataTableTextFilter {
   type: 'TEXT';

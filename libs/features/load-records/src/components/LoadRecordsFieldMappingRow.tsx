@@ -37,17 +37,15 @@ export interface LoadRecordsFieldMappingRowProps {
 }
 
 function getFieldListItems(fields: FieldWithRelatedEntities[]) {
-  return fields.map(
-    (field): ListItem<string, FieldWithRelatedEntities> => ({
-      id: field.name,
-      label: field.label,
-      value: field.name,
-      secondaryLabel: field.name,
-      secondaryLabelOnNewLine: true,
-      tertiaryLabel: field.typeLabel,
-      meta: field,
-    }),
-  );
+  return fields.map((field): ListItem<string, FieldWithRelatedEntities> => ({
+    id: field.name,
+    label: field.label,
+    value: field.name,
+    secondaryLabel: field.name,
+    secondaryLabelOnNewLine: true,
+    tertiaryLabel: field.typeLabel,
+    meta: field,
+  }));
 }
 
 export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappingRowProps> = ({

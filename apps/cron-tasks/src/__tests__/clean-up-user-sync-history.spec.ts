@@ -44,7 +44,7 @@ export function generateSyncRecords({
   deletedAt: Date | null;
 }) {
   const createdAt = addDays(new Date(), -30);
-  return new Array(count).fill(0).map(() => {
+  return Array.from({ length: count }, () => {
     const key = `qh_${orgId}:SELECTIdFROMAccount${uuid()}`;
     const hashedKey = hashRecordSyncKey(key);
     return {

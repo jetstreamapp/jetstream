@@ -4,138 +4,138 @@
 
 ### Bug Fixes
 
-* **desktop:** add betterstackdata.com to connect-src in CSP policy ([83ea026](https://github.com/jetstreamapp/jetstream/commit/83ea0265246552cff6870933b809c440f01cb1f8))
-* **security:** scope renderer local storage per user ([a02c437](https://github.com/jetstreamapp/jetstream/commit/a02c4379c8fe14534b16c6cde54c2cafa8f95ae4))
+- **desktop:** add betterstackdata.com to connect-src in CSP policy ([83ea026](https://github.com/jetstreamapp/jetstream/commit/83ea0265246552cff6870933b809c440f01cb1f8))
+- **security:** scope renderer local storage per user ([a02c437](https://github.com/jetstreamapp/jetstream/commit/a02c4379c8fe14534b16c6cde54c2cafa8f95ae4))
 
 ## [10.10.0](https://github.com/jetstreamapp/jetstream/compare/v10.9.0...v10.10.0) (2026-08-05)
 
 ### Features
 
-* allow users to change their email address ([4708b81](https://github.com/jetstreamapp/jetstream/commit/4708b812c2a42ea9b72357292c20782f678f430e))
-* **soql-completions:** implement SOQL completion context, keywords, and suggestions ([29991cb](https://github.com/jetstreamapp/jetstream/commit/29991cb4eccaa16b6d0f2a3be804249fedb370be))
+- allow users to change their email address ([4708b81](https://github.com/jetstreamapp/jetstream/commit/4708b812c2a42ea9b72357292c20782f678f430e))
+- **soql-completions:** implement SOQL completion context, keywords, and suggestions ([29991cb](https://github.com/jetstreamapp/jetstream/commit/29991cb4eccaa16b6d0f2a3be804249fedb370be))
 
 ### Bug Fixes
 
-* align org expiration with Salesforce's 30-day refresh token policy ([bf20a61](https://github.com/jetstreamapp/jetstream/commit/bf20a6190d0e639cb12ffaab922eac7b276a0d09))
-* correct auth redirect, SSO device prompt, and desktop click handling ([1756b3f](https://github.com/jetstreamapp/jetstream/commit/1756b3fd24d9f02fdd6b3ee8a00d47a8b83269db))
-* handle feature flag key drift ([401f7be](https://github.com/jetstreamapp/jetstream/commit/401f7bebd8c2a437c6e12e583d99503c13103933))
-* implement per-user scoped org storage and migrate legacy orgs file ([9856ef9](https://github.com/jetstreamapp/jetstream/commit/9856ef945cb0c1b1a4a879b6fa843380a094341d))
-* update DPA with revised dates, obligations, and security measures ([f1a7c8e](https://github.com/jetstreamapp/jetstream/commit/f1a7c8e95bce089464535af7f6cdddbab7ec2cb6))
-* update Terms of Service to include Data Processing Agreement in acceptance prompts and messages ([7ad4a5a](https://github.com/jetstreamapp/jetstream/commit/7ad4a5af7fb9e3880793b27d83cc274e228efa79))
+- align org expiration with Salesforce's 30-day refresh token policy ([bf20a61](https://github.com/jetstreamapp/jetstream/commit/bf20a6190d0e639cb12ffaab922eac7b276a0d09))
+- correct auth redirect, SSO device prompt, and desktop click handling ([1756b3f](https://github.com/jetstreamapp/jetstream/commit/1756b3fd24d9f02fdd6b3ee8a00d47a8b83269db))
+- handle feature flag key drift ([401f7be](https://github.com/jetstreamapp/jetstream/commit/401f7bebd8c2a437c6e12e583d99503c13103933))
+- implement per-user scoped org storage and migrate legacy orgs file ([9856ef9](https://github.com/jetstreamapp/jetstream/commit/9856ef945cb0c1b1a4a879b6fa843380a094341d))
+- update DPA with revised dates, obligations, and security measures ([f1a7c8e](https://github.com/jetstreamapp/jetstream/commit/f1a7c8e95bce089464535af7f6cdddbab7ec2cb6))
+- update Terms of Service to include Data Processing Agreement in acceptance prompts and messages ([7ad4a5a](https://github.com/jetstreamapp/jetstream/commit/7ad4a5af7fb9e3880793b27d83cc274e228efa79))
 
 ## [10.9.0](https://github.com/jetstreamapp/jetstream/compare/v10.8.1...v10.9.0) (2026-08-02)
 
 ### Features
 
-* add job progress bar when downloading large query results ([338b55d](https://github.com/jetstreamapp/jetstream/commit/338b55d019f5ee55703215235f70738eb2ee5897))
-* add notification for auto-split batches in LoadRecordsBulkApiResults ([ae65e8a](https://github.com/jetstreamapp/jetstream/commit/ae65e8ab82bb9bbc537fc047970010082848adb1))
-* add Salesforce Canvas org management functionality ([04faca9](https://github.com/jetstreamapp/jetstream/commit/04faca90a7c9de35861261c2dd91d5f05bd9684c))
-* email team admins when SAML certificates are nearing expiration ([315ac30](https://github.com/jetstreamapp/jetstream/commit/315ac3092c5e10f2b2a6ae29fe5a7a798203644d))
-* implement batch size control and serial mode for record updates ([2a80d4e](https://github.com/jetstreamapp/jetstream/commit/2a80d4e984cb739fd18985d46e6415d67bfe1738))
-* improve query performance for manage permissions ([55d6c65](https://github.com/jetstreamapp/jetstream/commit/55d6c6529101ca99072fbafacf19ee87253c8390))
-* manage permission set assignments from the permissions manager ([ba4833f](https://github.com/jetstreamapp/jetstream/commit/ba4833fcfd95ebf003754ec00da94fa13ba3c274))
-* track errors on all platforms to ensure stability across all environments ([b2c49cb](https://github.com/jetstreamapp/jetstream/commit/b2c49cbe9679bcee6131050c26bcf12b97a53e43))
+- add job progress bar when downloading large query results ([338b55d](https://github.com/jetstreamapp/jetstream/commit/338b55d019f5ee55703215235f70738eb2ee5897))
+- add notification for auto-split batches in LoadRecordsBulkApiResults ([ae65e8a](https://github.com/jetstreamapp/jetstream/commit/ae65e8ab82bb9bbc537fc047970010082848adb1))
+- add Salesforce Canvas org management functionality ([04faca9](https://github.com/jetstreamapp/jetstream/commit/04faca90a7c9de35861261c2dd91d5f05bd9684c))
+- email team admins when SAML certificates are nearing expiration ([315ac30](https://github.com/jetstreamapp/jetstream/commit/315ac3092c5e10f2b2a6ae29fe5a7a798203644d))
+- implement batch size control and serial mode for record updates ([2a80d4e](https://github.com/jetstreamapp/jetstream/commit/2a80d4e984cb739fd18985d46e6415d67bfe1738))
+- improve query performance for manage permissions ([55d6c65](https://github.com/jetstreamapp/jetstream/commit/55d6c6529101ca99072fbafacf19ee87253c8390))
+- manage permission set assignments from the permissions manager ([ba4833f](https://github.com/jetstreamapp/jetstream/commit/ba4833fcfd95ebf003754ec00da94fa13ba3c274))
+- track errors on all platforms to ensure stability across all environments ([b2c49cb](https://github.com/jetstreamapp/jetstream/commit/b2c49cbe9679bcee6131050c26bcf12b97a53e43))
 
 ### Bug Fixes
 
-* add routes for permission and data analysis features ([b4b3bff](https://github.com/jetstreamapp/jetstream/commit/b4b3bffc6d0e04d556584d55d5373a56ce3bd1bf))
-* address remaining code review findings from error tracker changes ([0349f9f](https://github.com/jetstreamapp/jetstream/commit/0349f9f6d9f832a3afd26ab82446107482de42ef))
-* **api:** namespace socket rooms to prevent cross-user data-sync leak ([903f8d0](https://github.com/jetstreamapp/jetstream/commit/903f8d053595c185de1b2951b830a594e53f4c62))
-* **api:** treat an empty canvas DSN as "not configured" instead of failing boot ([61c7840](https://github.com/jetstreamapp/jetstream/commit/61c7840734e32b91fe681f4afb62839b19d72229))
-* **auth:** block external token issuance for half-authenticated sessions ([4588851](https://github.com/jetstreamapp/jetstream/commit/4588851a2f78d6385f3b06da6109cbdabbb4aff3))
-* correct permission analysis issue detection and severity handling ([509be48](https://github.com/jetstreamapp/jetstream/commit/509be489a2359714ad1f619dcaf2ded7a7fa163c))
-* **desktop:** reduce plaintext session-token exposure at rest ([d00ac7d](https://github.com/jetstreamapp/jetstream/commit/d00ac7d9a03d9e92565e50b9011d636d12016bbf))
-* **desktop:** stop logging session token from deep-link URL ([9cec5a9](https://github.com/jetstreamapp/jetstream/commit/9cec5a90fd08f6b75a48d9513548c73afbc19749))
-* **desktop:** stop requiring deviceId in the jetstream:// auth callback ([12461b0](https://github.com/jetstreamapp/jetstream/commit/12461b0b3f2f6c39d8fd08baf8e225e4d9bcd40e))
-* **desktop:** tear down data-sync socket on logout to prevent session reuse ([0a7f9d1](https://github.com/jetstreamapp/jetstream/commit/0a7f9d1ae27924d7b3f79f0335a583b7f6eb9fce))
-* enhance desktop socket origin handling and add secure WebSocket route ([66d2618](https://github.com/jetstreamapp/jetstream/commit/66d2618f8af45cbfaeb4b7d57e5dc9c87d2dc237))
-* map bulk API results to the correct records when a batch is split by size ([83b7087](https://github.com/jetstreamapp/jetstream/commit/83b70874510d6d84cfdef1d17e02f5dbc839ab22))
-* stop permission manager from offering permissions Salesforce won't save ([b537c26](https://github.com/jetstreamapp/jetstream/commit/b537c265cc53ca4c122a1aabf45d717ecaecee84))
+- add routes for permission and data analysis features ([b4b3bff](https://github.com/jetstreamapp/jetstream/commit/b4b3bffc6d0e04d556584d55d5373a56ce3bd1bf))
+- address remaining code review findings from error tracker changes ([0349f9f](https://github.com/jetstreamapp/jetstream/commit/0349f9f6d9f832a3afd26ab82446107482de42ef))
+- **api:** namespace socket rooms to prevent cross-user data-sync leak ([903f8d0](https://github.com/jetstreamapp/jetstream/commit/903f8d053595c185de1b2951b830a594e53f4c62))
+- **api:** treat an empty canvas DSN as "not configured" instead of failing boot ([61c7840](https://github.com/jetstreamapp/jetstream/commit/61c7840734e32b91fe681f4afb62839b19d72229))
+- **auth:** block external token issuance for half-authenticated sessions ([4588851](https://github.com/jetstreamapp/jetstream/commit/4588851a2f78d6385f3b06da6109cbdabbb4aff3))
+- correct permission analysis issue detection and severity handling ([509be48](https://github.com/jetstreamapp/jetstream/commit/509be489a2359714ad1f619dcaf2ded7a7fa163c))
+- **desktop:** reduce plaintext session-token exposure at rest ([d00ac7d](https://github.com/jetstreamapp/jetstream/commit/d00ac7d9a03d9e92565e50b9011d636d12016bbf))
+- **desktop:** stop logging session token from deep-link URL ([9cec5a9](https://github.com/jetstreamapp/jetstream/commit/9cec5a90fd08f6b75a48d9513548c73afbc19749))
+- **desktop:** stop requiring deviceId in the jetstream:// auth callback ([12461b0](https://github.com/jetstreamapp/jetstream/commit/12461b0b3f2f6c39d8fd08baf8e225e4d9bcd40e))
+- **desktop:** tear down data-sync socket on logout to prevent session reuse ([0a7f9d1](https://github.com/jetstreamapp/jetstream/commit/0a7f9d1ae27924d7b3f79f0335a583b7f6eb9fce))
+- enhance desktop socket origin handling and add secure WebSocket route ([66d2618](https://github.com/jetstreamapp/jetstream/commit/66d2618f8af45cbfaeb4b7d57e5dc9c87d2dc237))
+- map bulk API results to the correct records when a batch is split by size ([83b7087](https://github.com/jetstreamapp/jetstream/commit/83b70874510d6d84cfdef1d17e02f5dbc839ab22))
+- stop permission manager from offering permissions Salesforce won't save ([b537c26](https://github.com/jetstreamapp/jetstream/commit/b537c265cc53ca4c122a1aabf45d717ecaecee84))
 
 ## [10.8.1](https://github.com/jetstreamapp/jetstream/compare/v10.8.0...v10.8.1) (2026-07-29)
 
 ### Bug Fixes
 
-* map bulk API results to the correct records when a batch is split by size ([60f9bb0](https://github.com/jetstreamapp/jetstream/commit/60f9bb08035f9b216451eac1727510bc3c6134b9))
+- map bulk API results to the correct records when a batch is split by size ([60f9bb0](https://github.com/jetstreamapp/jetstream/commit/60f9bb08035f9b216451eac1727510bc3c6134b9))
 
 ## [10.8.0](https://github.com/jetstreamapp/jetstream/compare/v10.7.2...v10.8.0) (2026-07-28)
 
 ### Features
 
-* add grid download to permission analysis; reset dismissed notifications per run ([5955053](https://github.com/jetstreamapp/jetstream/commit/595505378b2366e77deb268457d6f3ad4a142d84))
-* enhance pluralization and formatting across various components ([ef0d329](https://github.com/jetstreamapp/jetstream/commit/ef0d32916bc472fb99416614cea9cb9e7497644a))
+- add grid download to permission analysis; reset dismissed notifications per run ([5955053](https://github.com/jetstreamapp/jetstream/commit/595505378b2366e77deb268457d6f3ad4a142d84))
+- enhance pluralization and formatting across various components ([ef0d329](https://github.com/jetstreamapp/jetstream/commit/ef0d32916bc472fb99416614cea9cb9e7497644a))
 
 ### Bug Fixes
 
-* enhance EditorHost to support dynamic editor swapping and add CSS global shim for tests ([4f33941](https://github.com/jetstreamapp/jetstream/commit/4f339418676f014e31556ff6106972eac442dde5))
-* enhance error handling and user feedback in SaveMappingPopover during field mapping save ([f6f65d1](https://github.com/jetstreamapp/jetstream/commit/f6f65d1cf40833cf1535d1cca2e8add89182013d))
-* enhance error tracking and handling for Salesforce API interactions ([452361e](https://github.com/jetstreamapp/jetstream/commit/452361ee1f6d6eb77f4e634b51c1e9b6593b0cae))
-* improve permission analysis UI and functionality with enhanced tooltips and layout adjustments ([e0f0bda](https://github.com/jetstreamapp/jetstream/commit/e0f0bdae353ecec2ccfdf1fbf0c59c1f059355fc))
-* prevent tracking user-initiated aborts as application errors in bulk API data preparation ([58c6c2e](https://github.com/jetstreamapp/jetstream/commit/58c6c2e8982057c82293ccf89596a53347de466a))
+- enhance EditorHost to support dynamic editor swapping and add CSS global shim for tests ([4f33941](https://github.com/jetstreamapp/jetstream/commit/4f339418676f014e31556ff6106972eac442dde5))
+- enhance error handling and user feedback in SaveMappingPopover during field mapping save ([f6f65d1](https://github.com/jetstreamapp/jetstream/commit/f6f65d1cf40833cf1535d1cca2e8add89182013d))
+- enhance error tracking and handling for Salesforce API interactions ([452361e](https://github.com/jetstreamapp/jetstream/commit/452361ee1f6d6eb77f4e634b51c1e9b6593b0cae))
+- improve permission analysis UI and functionality with enhanced tooltips and layout adjustments ([e0f0bda](https://github.com/jetstreamapp/jetstream/commit/e0f0bdae353ecec2ccfdf1fbf0c59c1f059355fc))
+- prevent tracking user-initiated aborts as application errors in bulk API data preparation ([58c6c2e](https://github.com/jetstreamapp/jetstream/commit/58c6c2e8982057c82293ccf89596a53347de466a))
 
 ## [10.7.2](https://github.com/jetstreamapp/jetstream/compare/v10.7.1...v10.7.2) (2026-07-27)
 
 ### Features
 
-* add feature flags support to desktop and web extensions ([b0f02ce](https://github.com/jetstreamapp/jetstream/commit/b0f02ce344096e799cac9540a63abfc2919e92f6))
+- add feature flags support to desktop and web extensions ([b0f02ce](https://github.com/jetstreamapp/jetstream/commit/b0f02ce344096e799cac9540a63abfc2919e92f6))
 
 ### Bug Fixes
 
-* Use composite API by default for all queries ([800cce6](https://github.com/jetstreamapp/jetstream/commit/800cce6fbd4172c4c3e47f3081b4c99a28d2d928))
+- Use composite API by default for all queries ([800cce6](https://github.com/jetstreamapp/jetstream/commit/800cce6fbd4172c4c3e47f3081b4c99a28d2d928))
 
 ## [10.7.1](https://github.com/jetstreamapp/jetstream/compare/v10.7.0...v10.7.1) (2026-07-22)
 
 ### Features
 
-* move docs json to docs app ([c22675b](https://github.com/jetstreamapp/jetstream/commit/c22675bbf51474f5d96cc366572105f13b9b6fc8))
+- move docs json to docs app ([c22675b](https://github.com/jetstreamapp/jetstream/commit/c22675bbf51474f5d96cc366572105f13b9b6fc8))
 
 ## [10.7.0](https://github.com/jetstreamapp/jetstream/compare/v10.6.1...v10.7.0) (2026-07-22)
 
 ### Features
 
-* add ability to modify system permissions ([25cab1c](https://github.com/jetstreamapp/jetstream/commit/25cab1c285cb48e807423fa3357f00474475707d))
-* add release notes to docs and in-app ([6356c36](https://github.com/jetstreamapp/jetstream/commit/6356c3695755182036a9ca938e42dada639aa0e7))
-* gate in-app What's New popover off for initial launch ([183d9da](https://github.com/jetstreamapp/jetstream/commit/183d9da8a11802ccd39b682f2947dadd83caad27))
+- add ability to modify system permissions ([25cab1c](https://github.com/jetstreamapp/jetstream/commit/25cab1c285cb48e807423fa3357f00474475707d))
+- add release notes to docs and in-app ([6356c36](https://github.com/jetstreamapp/jetstream/commit/6356c3695755182036a9ca938e42dada639aa0e7))
+- gate in-app What's New popover off for initial launch ([183d9da](https://github.com/jetstreamapp/jetstream/commit/183d9da8a11802ccd39b682f2947dadd83caad27))
 
 ### Bug Fixes
 
-* add placeholder database URI for Prisma client generation in macOS and Windows workflows ([2e16cc0](https://github.com/jetstreamapp/jetstream/commit/2e16cc044739cfa7888213d045ed5ef736b12afa))
-* generate Prisma client before desktop build in macOS and Windows workflows ([355258f](https://github.com/jetstreamapp/jetstream/commit/355258fda18dc0b4feaaf0641e80cdb884b99dc1))
-* update module resolution and module settings in tsconfig for salesforce-api ([e15e3c6](https://github.com/jetstreamapp/jetstream/commit/e15e3c63c8d359cd02536f9e4c6c016a1456e960))
-* update Windows signing configuration and clarify publisher name requirements ([9186998](https://github.com/jetstreamapp/jetstream/commit/91869988ad63574cb542067eb11948cac7dfb18c))
+- add placeholder database URI for Prisma client generation in macOS and Windows workflows ([2e16cc0](https://github.com/jetstreamapp/jetstream/commit/2e16cc044739cfa7888213d045ed5ef736b12afa))
+- generate Prisma client before desktop build in macOS and Windows workflows ([355258f](https://github.com/jetstreamapp/jetstream/commit/355258fda18dc0b4feaaf0641e80cdb884b99dc1))
+- update module resolution and module settings in tsconfig for salesforce-api ([e15e3c6](https://github.com/jetstreamapp/jetstream/commit/e15e3c63c8d359cd02536f9e4c6c016a1456e960))
+- update Windows signing configuration and clarify publisher name requirements ([9186998](https://github.com/jetstreamapp/jetstream/commit/91869988ad63574cb542067eb11948cac7dfb18c))
 
 ## [10.6.1](https://github.com/jetstreamapp/jetstream/compare/v10.6.0...v10.6.1) (2026-07-19)
 
 ### Features
 
-* add docs for analysis tools ([e5bc663](https://github.com/jetstreamapp/jetstream/commit/e5bc6630bdfcdb74c80955aaa4cc3eff96838fa0))
+- add docs for analysis tools ([e5bc663](https://github.com/jetstreamapp/jetstream/commit/e5bc6630bdfcdb74c80955aaa4cc3eff96838fa0))
 
 ### Bug Fixes
 
-* ensure Prisma types are generated on build ([2833144](https://github.com/jetstreamapp/jetstream/commit/283314414b47a7491b69fb8e133d9fae1403e035))
+- ensure Prisma types are generated on build ([2833144](https://github.com/jetstreamapp/jetstream/commit/283314414b47a7491b69fb8e133d9fae1403e035))
 
 ## [10.6.0](https://github.com/jetstreamapp/jetstream/compare/v10.5.1...v10.6.0) (2026-07-17)
 
 ### Features
 
-* add analysis tools for permissions and field usage ([9902a45](https://github.com/jetstreamapp/jetstream/commit/9902a456be2606fe8f454e323ccb5edc425b1dd5))
-* add feature flag for analysis tools and extract shared code to library ([a2c9578](https://github.com/jetstreamapp/jetstream/commit/a2c9578e005d2d92af0813943bf0495e022602d9))
-* add Salesforce release workflow and interactive release script ([e8b36ef](https://github.com/jetstreamapp/jetstream/commit/e8b36ef7fd236c6dffecca51b0ecf2e50233a74b))
-* add soql comment support ([b5d968e](https://github.com/jetstreamapp/jetstream/commit/b5d968eb5dbd1423209e2959c0ec6a39cac5a699))
-* dependency analysis tweaks and fixes ([84931a2](https://github.com/jetstreamapp/jetstream/commit/84931a2e632229e1ffb5fec7465a1385721e4efb))
-* enhance field usage analysis and permission export functionality ([90b7570](https://github.com/jetstreamapp/jetstream/commit/90b75700d43ed8e2fb8d5a155a98e278a8307855))
-* enhance OIDC configuration handling and discovery process ([fd92156](https://github.com/jetstreamapp/jetstream/commit/fd9215618bc6b16bf6cdf7f8cb4927e8d2be6e58))
-* gate canvas app behind entitlement ([0281bda](https://github.com/jetstreamapp/jetstream/commit/0281bda5ac45156186cd18f76da1358af4750afa))
-* move feature analysis from server to browser; add paid entitlement ([0bd0e43](https://github.com/jetstreamapp/jetstream/commit/0bd0e430b90369eeb7c72fb1c04badffdb2c9765))
-* prepare salesforce managed package for release ([c448a4d](https://github.com/jetstreamapp/jetstream/commit/c448a4d3b9adfc958ac8bebac140837beddd67bb))
-* security hardening ([da0a7fb](https://github.com/jetstreamapp/jetstream/commit/da0a7fb9622a70c9092402b4e00fab3a498cf337))
+- add analysis tools for permissions and field usage ([9902a45](https://github.com/jetstreamapp/jetstream/commit/9902a456be2606fe8f454e323ccb5edc425b1dd5))
+- add feature flag for analysis tools and extract shared code to library ([a2c9578](https://github.com/jetstreamapp/jetstream/commit/a2c9578e005d2d92af0813943bf0495e022602d9))
+- add Salesforce release workflow and interactive release script ([e8b36ef](https://github.com/jetstreamapp/jetstream/commit/e8b36ef7fd236c6dffecca51b0ecf2e50233a74b))
+- add soql comment support ([b5d968e](https://github.com/jetstreamapp/jetstream/commit/b5d968eb5dbd1423209e2959c0ec6a39cac5a699))
+- dependency analysis tweaks and fixes ([84931a2](https://github.com/jetstreamapp/jetstream/commit/84931a2e632229e1ffb5fec7465a1385721e4efb))
+- enhance field usage analysis and permission export functionality ([90b7570](https://github.com/jetstreamapp/jetstream/commit/90b75700d43ed8e2fb8d5a155a98e278a8307855))
+- enhance OIDC configuration handling and discovery process ([fd92156](https://github.com/jetstreamapp/jetstream/commit/fd9215618bc6b16bf6cdf7f8cb4927e8d2be6e58))
+- gate canvas app behind entitlement ([0281bda](https://github.com/jetstreamapp/jetstream/commit/0281bda5ac45156186cd18f76da1358af4750afa))
+- move feature analysis from server to browser; add paid entitlement ([0bd0e43](https://github.com/jetstreamapp/jetstream/commit/0bd0e430b90369eeb7c72fb1c04badffdb2c9765))
+- prepare salesforce managed package for release ([c448a4d](https://github.com/jetstreamapp/jetstream/commit/c448a4d3b9adfc958ac8bebac140837beddd67bb))
+- security hardening ([da0a7fb](https://github.com/jetstreamapp/jetstream/commit/da0a7fb9622a70c9092402b4e00fab3a498cf337))
 
 ### Bug Fixes
 
-* entitlement checks for analysis feature ([53b8d17](https://github.com/jetstreamapp/jetstream/commit/53b8d1792f754b248fd638c470de9ebd83438a9b))
-* improve bulk record update failure states ([c211ec0](https://github.com/jetstreamapp/jetstream/commit/c211ec041eccaa7c52661412205aa016b90d53f6))
-* improve team entitlement resolution ([a9f2d9e](https://github.com/jetstreamapp/jetstream/commit/a9f2d9e55f4e9ec134cc957e3e9c3408fb38f2aa))
-* post-rebase cleanup — migrate analysis files to react-router, align shared grid with main ([44d2d59](https://github.com/jetstreamapp/jetstream/commit/44d2d59e5647cfa0e9f90d600a559a14a16ceb41))
+- entitlement checks for analysis feature ([53b8d17](https://github.com/jetstreamapp/jetstream/commit/53b8d1792f754b248fd638c470de9ebd83438a9b))
+- improve bulk record update failure states ([c211ec0](https://github.com/jetstreamapp/jetstream/commit/c211ec041eccaa7c52661412205aa016b90d53f6))
+- improve team entitlement resolution ([a9f2d9e](https://github.com/jetstreamapp/jetstream/commit/a9f2d9e55f4e9ec134cc957e3e9c3408fb38f2aa))
+- post-rebase cleanup — migrate analysis files to react-router, align shared grid with main ([44d2d59](https://github.com/jetstreamapp/jetstream/commit/44d2d59e5647cfa0e9f90d600a559a14a16ceb41))
 
 ## [10.5.1](https://github.com/jetstreamapp/jetstream/compare/v10.5.0...v10.5.1) (2026-07-15)
 
@@ -143,122 +143,122 @@
 
 ### Features
 
-* add table copy/paste + preview before save 🚀 ([2495d7b](https://github.com/jetstreamapp/jetstream/commit/2495d7b8741d3685348bfbb2363dd4e7325b750a))
-* add table range selection ([730f414](https://github.com/jetstreamapp/jetstream/commit/730f414a59e8174db7a3938b9708aac9da373f22))
+- add table copy/paste + preview before save 🚀 ([2495d7b](https://github.com/jetstreamapp/jetstream/commit/2495d7b8741d3685348bfbb2363dd4e7325b750a))
+- add table range selection ([730f414](https://github.com/jetstreamapp/jetstream/commit/730f414a59e8174db7a3938b9708aac9da373f22))
 
 ### Bug Fixes
 
-* fix prisma-error types to fix geo-api-build failure ([5337de3](https://github.com/jetstreamapp/jetstream/commit/5337de37d347a9f100550dcc833e1aba97702295))
-* improve date handling by validating dates before formatting ([6f6891d](https://github.com/jetstreamapp/jetstream/commit/6f6891dd70c2d94059bd67d34da2b0463907a0dc))
-* maximum depth exceeded state update ([ba00a92](https://github.com/jetstreamapp/jetstream/commit/ba00a928c13786c9fc1c9058026d9b9539fb1876))
-* normalize Salesforce connection errors to appropriate HTTP status codes ([7f7d024](https://github.com/jetstreamapp/jetstream/commit/7f7d024f5c899efcfaf12837a67e98c0d36c61b8))
-* reduce number of objects included in query ([e31c7c1](https://github.com/jetstreamapp/jetstream/commit/e31c7c1e20e5217f30c9656e5cea20d46a2a847f))
-* update @xhmikosr/decompress to 10.2.1 to address security vulnerability ([59b9508](https://github.com/jetstreamapp/jetstream/commit/59b9508687c58c56296496dfcf6fa57e34bc0f29))
-* update secondaryType validation and add tests for convertFormulaSecondaryTypeToEvaluatorType ([9063f52](https://github.com/jetstreamapp/jetstream/commit/9063f523e0f2f97cd93ba89867aa1e9e00c07db2))
+- fix prisma-error types to fix geo-api-build failure ([5337de3](https://github.com/jetstreamapp/jetstream/commit/5337de37d347a9f100550dcc833e1aba97702295))
+- improve date handling by validating dates before formatting ([6f6891d](https://github.com/jetstreamapp/jetstream/commit/6f6891dd70c2d94059bd67d34da2b0463907a0dc))
+- maximum depth exceeded state update ([ba00a92](https://github.com/jetstreamapp/jetstream/commit/ba00a928c13786c9fc1c9058026d9b9539fb1876))
+- normalize Salesforce connection errors to appropriate HTTP status codes ([7f7d024](https://github.com/jetstreamapp/jetstream/commit/7f7d024f5c899efcfaf12837a67e98c0d36c61b8))
+- reduce number of objects included in query ([e31c7c1](https://github.com/jetstreamapp/jetstream/commit/e31c7c1e20e5217f30c9656e5cea20d46a2a847f))
+- update @xhmikosr/decompress to 10.2.1 to address security vulnerability ([59b9508](https://github.com/jetstreamapp/jetstream/commit/59b9508687c58c56296496dfcf6fa57e34bc0f29))
+- update secondaryType validation and add tests for convertFormulaSecondaryTypeToEvaluatorType ([9063f52](https://github.com/jetstreamapp/jetstream/commit/9063f523e0f2f97cd93ba89867aa1e9e00c07db2))
 
 ## [10.4.0](https://github.com/jetstreamapp/jetstream/compare/v10.3.5...v10.4.0) (2026-06-30)
 
 ### Features
 
-* add bulk update preview functionality with proposed changes display ([3d2e992](https://github.com/jetstreamapp/jetstream/commit/3d2e9926e012441b78b0cf9a2a6d7e351661d8e7))
-* add FieldMetadataModal and integrate with SalesforceRecordDataTable for enhanced field metadata viewing ([afdef89](https://github.com/jetstreamapp/jetstream/commit/afdef89fd09827b1ead835bbba56a026b655825e))
-* fis brand colors and structure to allow theming ([#1828](https://github.com/jetstreamapp/jetstream/issues/1828)) ([c77b086](https://github.com/jetstreamapp/jetstream/commit/c77b086abd7e0a875d968d9b3196faef0879be15))
-* implement feature flag system with database support and client-side verification ([#1823](https://github.com/jetstreamapp/jetstream/issues/1823)) ([3467201](https://github.com/jetstreamapp/jetstream/commit/34672011e27169e903fec1bf09b564d98ae904b3))
+- add bulk update preview functionality with proposed changes display ([3d2e992](https://github.com/jetstreamapp/jetstream/commit/3d2e9926e012441b78b0cf9a2a6d7e351661d8e7))
+- add FieldMetadataModal and integrate with SalesforceRecordDataTable for enhanced field metadata viewing ([afdef89](https://github.com/jetstreamapp/jetstream/commit/afdef89fd09827b1ead835bbba56a026b655825e))
+- fis brand colors and structure to allow theming ([#1828](https://github.com/jetstreamapp/jetstream/issues/1828)) ([c77b086](https://github.com/jetstreamapp/jetstream/commit/c77b086abd7e0a875d968d9b3196faef0879be15))
+- implement feature flag system with database support and client-side verification ([#1823](https://github.com/jetstreamapp/jetstream/issues/1823)) ([3467201](https://github.com/jetstreamapp/jetstream/commit/34672011e27169e903fec1bf09b564d98ae904b3))
 
 ### Bug Fixes
 
-* adjust z-index for column resize handle to prevent overlap with frozen headers ([f02443f](https://github.com/jetstreamapp/jetstream/commit/f02443f3bab8d08d93ed68c72a504c2fab635043))
-* center select-all checkbox in header cell and adjust margins for alignment ([#1827](https://github.com/jetstreamapp/jetstream/issues/1827)) ([101f11b](https://github.com/jetstreamapp/jetstream/commit/101f11bd62e77df2a3f6de90c97aee8b94c8440b))
-* disable persist-credentials for actions/checkout in CI workflows ([100e9af](https://github.com/jetstreamapp/jetstream/commit/100e9afafe4d1ef18fcbea9686a1b418a9635533))
+- adjust z-index for column resize handle to prevent overlap with frozen headers ([f02443f](https://github.com/jetstreamapp/jetstream/commit/f02443f3bab8d08d93ed68c72a504c2fab635043))
+- center select-all checkbox in header cell and adjust margins for alignment ([#1827](https://github.com/jetstreamapp/jetstream/issues/1827)) ([101f11b](https://github.com/jetstreamapp/jetstream/commit/101f11bd62e77df2a3f6de90c97aee8b94c8440b))
+- disable persist-credentials for actions/checkout in CI workflows ([100e9af](https://github.com/jetstreamapp/jetstream/commit/100e9afafe4d1ef18fcbea9686a1b418a9635533))
 
 ## [10.3.5](https://github.com/jetstreamapp/jetstream/compare/v10.3.1...v10.3.5) (2026-06-22)
 
 ### Features
 
-* optimize data table performance ([65cb462](https://github.com/jetstreamapp/jetstream/commit/65cb462fa1ec5082743912d62a3a4b118ed851e6))
+- optimize data table performance ([65cb462](https://github.com/jetstreamapp/jetstream/commit/65cb462fa1ec5082743912d62a3a4b118ed851e6))
 
 ### Bug Fixes
 
-* resolve data table crash by ensuring valid column IDs and coercing row IDs to strings ([#1821](https://github.com/jetstreamapp/jetstream/issues/1821)) ([afb0b55](https://github.com/jetstreamapp/jetstream/commit/afb0b555ee041e45d2c618afd38ede13ad0cb218))
+- resolve data table crash by ensuring valid column IDs and coercing row IDs to strings ([#1821](https://github.com/jetstreamapp/jetstream/issues/1821)) ([afb0b55](https://github.com/jetstreamapp/jetstream/commit/afb0b555ee041e45d2c618afd38ede13ad0cb218))
 
 ## [10.3.4](https://github.com/jetstreamapp/jetstream/compare/v10.3.3...v10.3.4) (2026-06-22)
 
 ### Bug Fixes
 
-* replace getPinnedPublicIpDispatcher with fetchWithPinnedPublicIp for SSRF protection in OIDC/SAML metadata fetching ([b08e56b](https://github.com/jetstreamapp/jetstream/commit/b08e56b357658b921f9e209a4c4670393201d69c))
+- replace getPinnedPublicIpDispatcher with fetchWithPinnedPublicIp for SSRF protection in OIDC/SAML metadata fetching ([b08e56b](https://github.com/jetstreamapp/jetstream/commit/b08e56b357658b921f9e209a4c4670393201d69c))
 
 ## [10.3.3](https://github.com/jetstreamapp/jetstream/compare/v10.3.1...v10.3.3) (2026-06-22)
 
 ### Features
 
-* optimize data table performance ([65cb462](https://github.com/jetstreamapp/jetstream/commit/65cb462fa1ec5082743912d62a3a4b118ed851e6))
+- optimize data table performance ([65cb462](https://github.com/jetstreamapp/jetstream/commit/65cb462fa1ec5082743912d62a3a4b118ed851e6))
 
 ### Bug Fixes
 
-* Enhance OIDC discovery error logging and improve IP resolution resilience ([7554874](https://github.com/jetstreamapp/jetstream/commit/7554874a75f1f1022b4fc76805a96a53fdf78dbb))
+- Enhance OIDC discovery error logging and improve IP resolution resilience ([7554874](https://github.com/jetstreamapp/jetstream/commit/7554874a75f1f1022b4fc76805a96a53fdf78dbb))
 
 ## [10.3.2](https://github.com/jetstreamapp/jetstream/compare/v10.3.1...v10.3.2) (2026-06-22)
 
 ### Features
 
-* optimize data table performance ([65cb462](https://github.com/jetstreamapp/jetstream/commit/65cb462fa1ec5082743912d62a3a4b118ed851e6))
+- optimize data table performance ([65cb462](https://github.com/jetstreamapp/jetstream/commit/65cb462fa1ec5082743912d62a3a4b118ed851e6))
 
 ### Bug Fixes
 
-* improve token verification for desktop and web extension sessions ([1976983](https://github.com/jetstreamapp/jetstream/commit/1976983ed65c59ee3e2c9e04bc37a85edf34827d))
+- improve token verification for desktop and web extension sessions ([1976983](https://github.com/jetstreamapp/jetstream/commit/1976983ed65c59ee3e2c9e04bc37a85edf34827d))
 
 ## [10.3.1](https://github.com/jetstreamapp/jetstream/compare/v10.3.0...v10.3.1) (2026-06-21)
 
 ### Bug Fixes
 
-* **data-table:** prevent column drag initiation during resize ([11a35ad](https://github.com/jetstreamapp/jetstream/commit/11a35adfbe177312f1d55f26305f5058bef58706))
-* increase tooltip open delay from 300ms to 500ms across multiple components ([5dc8da0](https://github.com/jetstreamapp/jetstream/commit/5dc8da0ff59dcc2c35be6ee908ea1b731c8380f6))
+- **data-table:** prevent column drag initiation during resize ([11a35ad](https://github.com/jetstreamapp/jetstream/commit/11a35adfbe177312f1d55f26305f5058bef58706))
+- increase tooltip open delay from 300ms to 500ms across multiple components ([5dc8da0](https://github.com/jetstreamapp/jetstream/commit/5dc8da0ff59dcc2c35be6ee908ea1b731c8380f6))
 
 ## [10.3.0](https://github.com/jetstreamapp/jetstream/compare/v10.2.0...v10.3.0) (2026-06-21)
 
 ### Features
 
-* add back/forward/submit keyboard shortcuts ([11dacb7](https://github.com/jetstreamapp/jetstream/commit/11dacb71d6a9d68f197a51dbff4c62ac072b538f))
-* add border to code editor ([82f4875](https://github.com/jetstreamapp/jetstream/commit/82f48754b34e1a334731db9af4aee9581173f2cd))
-* add table column re-ordering ([0a6dd25](https://github.com/jetstreamapp/jetstream/commit/0a6dd25ed8b188607b0f6764bdd4f04e5af73325))
-* **data-table:** add CSV copy functionality and enhance header copy option ([77bee80](https://github.com/jetstreamapp/jetstream/commit/77bee80509b0dbd442820c2aea77f2a0af2c8961))
-* **data-table:** enhance keyboard navigation and accessibility ([c857d75](https://github.com/jetstreamapp/jetstream/commit/c857d751e681cb8178ee397d1a935db22ba625a3))
-* migrate to tanstack table ([f12f59d](https://github.com/jetstreamapp/jetstream/commit/f12f59db7c220df1c56b75ecb7906a41769fd495))
-* **query:** Add filter/order/limit to subqueries ([aa1e786](https://github.com/jetstreamapp/jetstream/commit/aa1e7867300a73d6f63ffdf7f8934373ef817c05))
+- add back/forward/submit keyboard shortcuts ([11dacb7](https://github.com/jetstreamapp/jetstream/commit/11dacb71d6a9d68f197a51dbff4c62ac072b538f))
+- add border to code editor ([82f4875](https://github.com/jetstreamapp/jetstream/commit/82f48754b34e1a334731db9af4aee9581173f2cd))
+- add table column re-ordering ([0a6dd25](https://github.com/jetstreamapp/jetstream/commit/0a6dd25ed8b188607b0f6764bdd4f04e5af73325))
+- **data-table:** add CSV copy functionality and enhance header copy option ([77bee80](https://github.com/jetstreamapp/jetstream/commit/77bee80509b0dbd442820c2aea77f2a0af2c8961))
+- **data-table:** enhance keyboard navigation and accessibility ([c857d75](https://github.com/jetstreamapp/jetstream/commit/c857d751e681cb8178ee397d1a935db22ba625a3))
+- migrate to tanstack table ([f12f59d](https://github.com/jetstreamapp/jetstream/commit/f12f59db7c220df1c56b75ecb7906a41769fd495))
+- **query:** Add filter/order/limit to subqueries ([aa1e786](https://github.com/jetstreamapp/jetstream/commit/aa1e7867300a73d6f63ffdf7f8934373ef817c05))
 
 ### Bug Fixes
 
-* add border-radius styling to Spinner component ([007e55a](https://github.com/jetstreamapp/jetstream/commit/007e55ae45538617c59a2d1020686fc242e5df2c))
-* **data-table:** resolve duplicate export and improve GridCell aria attributes ([d9f3ded](https://github.com/jetstreamapp/jetstream/commit/d9f3ded76aab79ca307c5d72227188c9524bf79e))
-* improve table keyboard navigation and accessibility ([6923afe](https://github.com/jetstreamapp/jetstream/commit/6923afe9ad33351d56c24ab929abfc206c0482fe))
-* keyboard navigation when tables appear in modal ([79b1959](https://github.com/jetstreamapp/jetstream/commit/79b195966f49998654b337d1e853b3a2f0140f3b))
-* **query:** Adjust clear button behavior in QueryLimit component ([3272a3d](https://github.com/jetstreamapp/jetstream/commit/3272a3d81842c23ac3e896fb836bf873cb43fbe0))
-* update archiver import to use ZipArchive class ([f7c0cd6](https://github.com/jetstreamapp/jetstream/commit/f7c0cd6f8dc13bbb984f97a9b2264ac9b7d2beff))
-* update HeaderFilterButton icon color based on active state ([6ef3240](https://github.com/jetstreamapp/jetstream/commit/6ef3240857d501e9f922bc7f063baec6ba202c40))
+- add border-radius styling to Spinner component ([007e55a](https://github.com/jetstreamapp/jetstream/commit/007e55ae45538617c59a2d1020686fc242e5df2c))
+- **data-table:** resolve duplicate export and improve GridCell aria attributes ([d9f3ded](https://github.com/jetstreamapp/jetstream/commit/d9f3ded76aab79ca307c5d72227188c9524bf79e))
+- improve table keyboard navigation and accessibility ([6923afe](https://github.com/jetstreamapp/jetstream/commit/6923afe9ad33351d56c24ab929abfc206c0482fe))
+- keyboard navigation when tables appear in modal ([79b1959](https://github.com/jetstreamapp/jetstream/commit/79b195966f49998654b337d1e853b3a2f0140f3b))
+- **query:** Adjust clear button behavior in QueryLimit component ([3272a3d](https://github.com/jetstreamapp/jetstream/commit/3272a3d81842c23ac3e896fb836bf873cb43fbe0))
+- update archiver import to use ZipArchive class ([f7c0cd6](https://github.com/jetstreamapp/jetstream/commit/f7c0cd6f8dc13bbb984f97a9b2264ac9b7d2beff))
+- update HeaderFilterButton icon color based on active state ([6ef3240](https://github.com/jetstreamapp/jetstream/commit/6ef3240857d501e9f922bc7f063baec6ba202c40))
 
 ## [10.2.0](https://github.com/jetstreamapp/jetstream/compare/v10.1.3...v10.2.0) (2026-06-20)
 
 ### Features
 
-* migrate drag and drop library to dnd-kit ([81871b4](https://github.com/jetstreamapp/jetstream/commit/81871b49978b75d121ef05badb549212987772d4))
+- migrate drag and drop library to dnd-kit ([81871b4](https://github.com/jetstreamapp/jetstream/commit/81871b49978b75d121ef05badb549212987772d4))
 
 ### Bug Fixes
 
-* add xml-crypto dependency to package.json and update pnpm-lock.yaml ([6b3ac41](https://github.com/jetstreamapp/jetstream/commit/6b3ac41c7b8ec7568f27e9d3000c1bb6454cabfd))
-* ensure web extension build does not produce non-ascii characters ([04cba97](https://github.com/jetstreamapp/jetstream/commit/04cba970e0bda99ae05cde2c5d0f178216181c07))
-* improve keyboard navigation for popovers, org info, and app navigation ([58076f4](https://github.com/jetstreamapp/jetstream/commit/58076f4cd6cbc429f6dc448bdedf7f837f160395))
-* resolve org group state mismatch by implementing loadable state handling ([7df959b](https://github.com/jetstreamapp/jetstream/commit/7df959b6838ae4dc4edabcbfdcf83f9b396e6f5c))
-* web extension token churn ([5a3c66e](https://github.com/jetstreamapp/jetstream/commit/5a3c66e567c5e415049edff279d1326152b4f813))
+- add xml-crypto dependency to package.json and update pnpm-lock.yaml ([6b3ac41](https://github.com/jetstreamapp/jetstream/commit/6b3ac41c7b8ec7568f27e9d3000c1bb6454cabfd))
+- ensure web extension build does not produce non-ascii characters ([04cba97](https://github.com/jetstreamapp/jetstream/commit/04cba970e0bda99ae05cde2c5d0f178216181c07))
+- improve keyboard navigation for popovers, org info, and app navigation ([58076f4](https://github.com/jetstreamapp/jetstream/commit/58076f4cd6cbc429f6dc448bdedf7f837f160395))
+- resolve org group state mismatch by implementing loadable state handling ([7df959b](https://github.com/jetstreamapp/jetstream/commit/7df959b6838ae4dc4edabcbfdcf83f9b396e6f5c))
+- web extension token churn ([5a3c66e](https://github.com/jetstreamapp/jetstream/commit/5a3c66e567c5e415049edff279d1326152b4f813))
 
 ## [10.1.3](https://github.com/jetstreamapp/jetstream/compare/v10.1.2...v10.1.3) (2026-06-18)
 
 ### Features
 
-* **docs:** add required Salesforce permissions and data access reference ([4f82bc2](https://github.com/jetstreamapp/jetstream/commit/4f82bc2a71a1e384cfc70fbd99bf0e8934206216))
+- **docs:** add required Salesforce permissions and data access reference ([4f82bc2](https://github.com/jetstreamapp/jetstream/commit/4f82bc2a71a1e384cfc70fbd99bf0e8934206216))
 
 ### Bug Fixes
 
-* incorrect field casing on isCreatable ([a22795c](https://github.com/jetstreamapp/jetstream/commit/a22795ca5f084dfa5fa877ff03005ec79a35b69f))
+- incorrect field casing on isCreatable ([a22795c](https://github.com/jetstreamapp/jetstream/commit/a22795ca5f084dfa5fa877ff03005ec79a35b69f))
 
 ## [10.1.2](https://github.com/jetstreamapp/jetstream/compare/v10.1.1...v10.1.2) (2026-06-14)
 
@@ -266,384 +266,384 @@
 
 ### Features
 
-* enhance auto-updater error handling and user notifications for manual updates ([08be6e9](https://github.com/jetstreamapp/jetstream/commit/08be6e91a677c007b358456503bd2388b47760d3))
-* fix record lookup with existing value and improve value escaping ([9460871](https://github.com/jetstreamapp/jetstream/commit/946087147192a8f44f5c4e37c6cb79180b1bec27)), closes [#1767](https://github.com/jetstreamapp/jetstream/issues/1767)
+- enhance auto-updater error handling and user notifications for manual updates ([08be6e9](https://github.com/jetstreamapp/jetstream/commit/08be6e91a677c007b358456503bd2388b47760d3))
+- fix record lookup with existing value and improve value escaping ([9460871](https://github.com/jetstreamapp/jetstream/commit/946087147192a8f44f5c4e37c6cb79180b1bec27)), closes [#1767](https://github.com/jetstreamapp/jetstream/issues/1767)
 
 ## [10.1.0](https://github.com/jetstreamapp/jetstream/compare/v10.0.1...v10.1.0) (2026-06-13)
 
 ### Features
 
-* add Azure signing configuration for Windows builds ([9705788](https://github.com/jetstreamapp/jetstream/commit/970578840b4dbe8838c932f471198257feaa456e))
-* add github actions for publishing desktop builds ([9f8cfd7](https://github.com/jetstreamapp/jetstream/commit/9f8cfd7c28c45715ce5edb9b55e2bc7342c2fc5b))
-* enforce last-admin invariant for team member updates ([83d4c41](https://github.com/jetstreamapp/jetstream/commit/83d4c411abf8979037e593ff56b7d229022c0491))
-* handle P2034 serialization conflict as 409 Conflict in uncaughtErrorHandler ([03fa985](https://github.com/jetstreamapp/jetstream/commit/03fa985e78999e9e6f7cbe8c4d4392062abf7afa))
-* implement deriveAssertionReplayId function for stable SAML assertion replay protection ([fae91d3](https://github.com/jetstreamapp/jetstream/commit/fae91d3eed7814a8cd601ad80aa409962b056153))
-* implement scrubSensitiveEventData function to redact sensitive information from Sentry events ([b5cf376](https://github.com/jetstreamapp/jetstream/commit/b5cf3763261070f2168203fb83345f97b6288b68))
+- add Azure signing configuration for Windows builds ([9705788](https://github.com/jetstreamapp/jetstream/commit/970578840b4dbe8838c932f471198257feaa456e))
+- add github actions for publishing desktop builds ([9f8cfd7](https://github.com/jetstreamapp/jetstream/commit/9f8cfd7c28c45715ce5edb9b55e2bc7342c2fc5b))
+- enforce last-admin invariant for team member updates ([83d4c41](https://github.com/jetstreamapp/jetstream/commit/83d4c411abf8979037e593ff56b7d229022c0491))
+- handle P2034 serialization conflict as 409 Conflict in uncaughtErrorHandler ([03fa985](https://github.com/jetstreamapp/jetstream/commit/03fa985e78999e9e6f7cbe8c4d4392062abf7afa))
+- implement deriveAssertionReplayId function for stable SAML assertion replay protection ([fae91d3](https://github.com/jetstreamapp/jetstream/commit/fae91d3eed7814a8cd601ad80aa409962b056153))
+- implement scrubSensitiveEventData function to redact sensitive information from Sentry events ([b5cf376](https://github.com/jetstreamapp/jetstream/commit/b5cf3763261070f2168203fb83345f97b6288b68))
 
 ### Bug Fixes
 
-* add @inquirer/prompts missing dependency for release process ([c43492f](https://github.com/jetstreamapp/jetstream/commit/c43492fb8a94243b37a62773c8a97cd7400dd960))
-* enhance domain verification messaging and update file URL structure ([bbbcc92](https://github.com/jetstreamapp/jetstream/commit/bbbcc92072e60b65ecd77a1e849b91e212c92a22))
-* ensure SSO is classified as login provider ([946089d](https://github.com/jetstreamapp/jetstream/commit/946089d20251691ad9ecfb0b44f5d5942fcdd565)), closes [#1771](https://github.com/jetstreamapp/jetstream/issues/1771)
-* improve dark mode support and normalize styles to slds tokens ([149ecf5](https://github.com/jetstreamapp/jetstream/commit/149ecf5ee48545eea8600351a184e540ee8ce67d)), closes [#1778](https://github.com/jetstreamapp/jetstream/issues/1778)
-* improve error handling by using getErrorMessage utility ([c6d8768](https://github.com/jetstreamapp/jetstream/commit/c6d8768982fd58d23f86e63cd4fde0b26d7261d2))
-* remove duplicate entries for '@xmldom/xmldom' in pnpm-lock.yaml ([58f243e](https://github.com/jetstreamapp/jetstream/commit/58f243e3aeec9f4025f3ac72b173d2a05bcaafee))
-* update electron-builder to fix backblaze issue and shell-quote vulnerability ([f344e46](https://github.com/jetstreamapp/jetstream/commit/f344e462a4348978a0afbfd9f0fb7b69e2251e53))
+- add @inquirer/prompts missing dependency for release process ([c43492f](https://github.com/jetstreamapp/jetstream/commit/c43492fb8a94243b37a62773c8a97cd7400dd960))
+- enhance domain verification messaging and update file URL structure ([bbbcc92](https://github.com/jetstreamapp/jetstream/commit/bbbcc92072e60b65ecd77a1e849b91e212c92a22))
+- ensure SSO is classified as login provider ([946089d](https://github.com/jetstreamapp/jetstream/commit/946089d20251691ad9ecfb0b44f5d5942fcdd565)), closes [#1771](https://github.com/jetstreamapp/jetstream/issues/1771)
+- improve dark mode support and normalize styles to slds tokens ([149ecf5](https://github.com/jetstreamapp/jetstream/commit/149ecf5ee48545eea8600351a184e540ee8ce67d)), closes [#1778](https://github.com/jetstreamapp/jetstream/issues/1778)
+- improve error handling by using getErrorMessage utility ([c6d8768](https://github.com/jetstreamapp/jetstream/commit/c6d8768982fd58d23f86e63cd4fde0b26d7261d2))
+- remove duplicate entries for '@xmldom/xmldom' in pnpm-lock.yaml ([58f243e](https://github.com/jetstreamapp/jetstream/commit/58f243e3aeec9f4025f3ac72b173d2a05bcaafee))
+- update electron-builder to fix backblaze issue and shell-quote vulnerability ([f344e46](https://github.com/jetstreamapp/jetstream/commit/f344e462a4348978a0afbfd9f0fb7b69e2251e53))
 
 ## [10.0.1](https://github.com/jetstreamapp/jetstream/compare/v10.0.0...v10.0.1) (2026-06-10)
 
 ### Bug Fixes
 
-* add billing URLs to CSP directives for enhanced security ([0d6d991](https://github.com/jetstreamapp/jetstream/commit/0d6d9918e80cdd209287651df4c4a1815808fedf))
+- add billing URLs to CSP directives for enhanced security ([0d6d991](https://github.com/jetstreamapp/jetstream/commit/0d6d9918e80cdd209287651df4c4a1815808fedf))
 
 ## [10.0.0](https://github.com/jetstreamapp/jetstream/compare/v9.19.2...v10.0.0) (2026-06-10)
 
 ### Features
 
-* add script to organize TypeScript imports using language service ([2e1a4af](https://github.com/jetstreamapp/jetstream/commit/2e1a4af6136b7c7a0c021f69bf7bf8ad1609031f))
-* implement slds 2 cosmos theme with dark mode support ([aa4a1a8](https://github.com/jetstreamapp/jetstream/commit/aa4a1a85287b28be198d0aa16fd349c8922f59fa))
+- add script to organize TypeScript imports using language service ([2e1a4af](https://github.com/jetstreamapp/jetstream/commit/2e1a4af6136b7c7a0c021f69bf7bf8ad1609031f))
+- implement slds 2 cosmos theme with dark mode support ([aa4a1a8](https://github.com/jetstreamapp/jetstream/commit/aa4a1a85287b28be198d0aa16fd349c8922f59fa))
 
 ### Bug Fixes
 
-* enhance MonacoEditor theme handling with dynamic color scheme detection ([9c2c016](https://github.com/jetstreamapp/jetstream/commit/9c2c016eb529ce0951625e4c159870879d884a58))
-* enhance theme handling and improve component styling for better alignment ([e8cf06b](https://github.com/jetstreamapp/jetstream/commit/e8cf06b33c5c40ce733fdd3983a96761ee899476))
-* ensure pipelines generate db types ([e293c07](https://github.com/jetstreamapp/jetstream/commit/e293c076da2a2005954d373146c8159f179b1035))
-* remove unnecessary --no-frozen-lockfile flag in Dockerfile ([c83a3ef](https://github.com/jetstreamapp/jetstream/commit/c83a3eff94d223e5219ca0ef598792a5760378f0))
-* **web-extension:** improve handling of local options in storage state updates ([6f8ebbc](https://github.com/jetstreamapp/jetstream/commit/6f8ebbce77c490e36b752a333dc4ff8d8a475efc))
+- enhance MonacoEditor theme handling with dynamic color scheme detection ([9c2c016](https://github.com/jetstreamapp/jetstream/commit/9c2c016eb529ce0951625e4c159870879d884a58))
+- enhance theme handling and improve component styling for better alignment ([e8cf06b](https://github.com/jetstreamapp/jetstream/commit/e8cf06b33c5c40ce733fdd3983a96761ee899476))
+- ensure pipelines generate db types ([e293c07](https://github.com/jetstreamapp/jetstream/commit/e293c076da2a2005954d373146c8159f179b1035))
+- remove unnecessary --no-frozen-lockfile flag in Dockerfile ([c83a3ef](https://github.com/jetstreamapp/jetstream/commit/c83a3eff94d223e5219ca0ef598792a5760378f0))
+- **web-extension:** improve handling of local options in storage state updates ([6f8ebbc](https://github.com/jetstreamapp/jetstream/commit/6f8ebbce77c490e36b752a333dc4ff8d8a475efc))
 
 ## [9.19.2](https://github.com/jetstreamapp/jetstream/compare/v9.19.1...v9.19.2) (2026-06-05)
 
 ### Bug Fixes
 
-* SSRF security hardening ([40d323d](https://github.com/jetstreamapp/jetstream/commit/40d323d7391fb960b3d2836a28ab0b74b1356703))
-* update validation messages and logic for LongTextArea and Html fields ([bcddef0](https://github.com/jetstreamapp/jetstream/commit/bcddef0e8d3182c6c148c41532b0e79fb894959b)), closes [#1763](https://github.com/jetstreamapp/jetstream/issues/1763)
+- SSRF security hardening ([40d323d](https://github.com/jetstreamapp/jetstream/commit/40d323d7391fb960b3d2836a28ab0b74b1356703))
+- update validation messages and logic for LongTextArea and Html fields ([bcddef0](https://github.com/jetstreamapp/jetstream/commit/bcddef0e8d3182c6c148c41532b0e79fb894959b)), closes [#1763](https://github.com/jetstreamapp/jetstream/issues/1763)
 
 ## [9.19.1](https://github.com/jetstreamapp/jetstream/compare/v9.19.0...v9.19.1) (2026-06-02)
 
 ### Bug Fixes
 
-* prevent prototype pollution on data sync routes + ip detection ([8dbc13f](https://github.com/jetstreamapp/jetstream/commit/8dbc13ff27d11f77b76bbf1b7a8b3a57ed21afbb))
+- prevent prototype pollution on data sync routes + ip detection ([8dbc13f](https://github.com/jetstreamapp/jetstream/commit/8dbc13ff27d11f77b76bbf1b7a8b3a57ed21afbb))
 
 ## [9.19.0](https://github.com/jetstreamapp/jetstream/compare/v9.18.1...v9.19.0) (2026-05-30)
 
 ### Features
 
-* enhance full name field generation and add regeneration functionality ([65eab65](https://github.com/jetstreamapp/jetstream/commit/65eab6522a530e8385461d5c9503bd97f44262fd))
-* update IP address information ([bd19d73](https://github.com/jetstreamapp/jetstream/commit/bd19d73e675e8399fd31224d568a9915fbfcea17))
+- enhance full name field generation and add regeneration functionality ([65eab65](https://github.com/jetstreamapp/jetstream/commit/65eab6522a530e8385461d5c9503bd97f44262fd))
+- update IP address information ([bd19d73](https://github.com/jetstreamapp/jetstream/commit/bd19d73e675e8399fd31224d568a9915fbfcea17))
 
 ## [9.18.1](https://github.com/jetstreamapp/jetstream/compare/v9.18.0...v9.18.1) (2026-05-27)
 
 ### Bug Fixes
 
-* add missing resourceDrillInOnLoad prop to ExpressionContainer ([acc70db](https://github.com/jetstreamapp/jetstream/commit/acc70db11acbd22afff7b2783750ed7bf46ec52e)), closes [#1743](https://github.com/jetstreamapp/jetstream/issues/1743)
-* handle field metadata loading errors and show toast notifications ([70e7306](https://github.com/jetstreamapp/jetstream/commit/70e7306aac5e86b2a11c8e17fadd7c12566d4733))
+- add missing resourceDrillInOnLoad prop to ExpressionContainer ([acc70db](https://github.com/jetstreamapp/jetstream/commit/acc70db11acbd22afff7b2783750ed7bf46ec52e)), closes [#1743](https://github.com/jetstreamapp/jetstream/issues/1743)
+- handle field metadata loading errors and show toast notifications ([70e7306](https://github.com/jetstreamapp/jetstream/commit/70e7306aac5e86b2a11c8e17fadd7c12566d4733))
 
 ## [9.18.0](https://github.com/jetstreamapp/jetstream/compare/v9.17.1...v9.18.0) (2026-05-22)
 
 ### Features
 
-* add additional audit logs for Salesforce org actions ([10828f5](https://github.com/jetstreamapp/jetstream/commit/10828f533aa1f878e5bfb54144a05381a64db99c))
-* add PrintButton component and integrate into multiple pages ([d4e1d13](https://github.com/jetstreamapp/jetstream/commit/d4e1d138713cfd1d94192801cbcc0ed435c5f9cd))
-* enhance URL parameter handling for objectName and recordId in LoadRecords and Query components ([ffa9319](https://github.com/jetstreamapp/jetstream/commit/ffa93192b80b35280b9166ff7467eb2096c6c50f))
-* keep record modal open after edit/create/clone ([cf7933e](https://github.com/jetstreamapp/jetstream/commit/cf7933e799bfc8eb80d9ca944aa5dd8eaab1f880)), closes [#1738](https://github.com/jetstreamapp/jetstream/issues/1738)
+- add additional audit logs for Salesforce org actions ([10828f5](https://github.com/jetstreamapp/jetstream/commit/10828f533aa1f878e5bfb54144a05381a64db99c))
+- add PrintButton component and integrate into multiple pages ([d4e1d13](https://github.com/jetstreamapp/jetstream/commit/d4e1d138713cfd1d94192801cbcc0ed435c5f9cd))
+- enhance URL parameter handling for objectName and recordId in LoadRecords and Query components ([ffa9319](https://github.com/jetstreamapp/jetstream/commit/ffa93192b80b35280b9166ff7467eb2096c6c50f))
+- keep record modal open after edit/create/clone ([cf7933e](https://github.com/jetstreamapp/jetstream/commit/cf7933e799bfc8eb80d9ca944aa5dd8eaab1f880)), closes [#1738](https://github.com/jetstreamapp/jetstream/issues/1738)
 
 ### Bug Fixes
 
-* fix pnpm for ci and docs build ([7b0740d](https://github.com/jetstreamapp/jetstream/commit/7b0740d189ac31799dee68587cf64a40ae15c30c))
-* handle unknown message types in service worker and update package manager commands ([3716a03](https://github.com/jetstreamapp/jetstream/commit/3716a0373dcccc266ed42110fde151764a32dbf3))
-* improve logout handling and concurrent login detection in IPC service ([48438d2](https://github.com/jetstreamapp/jetstream/commit/48438d23cee733823c1ddd747ecd4acf0bb626e5))
-* update web extension callback api to match type changes ([c9a4482](https://github.com/jetstreamapp/jetstream/commit/c9a448252ce16cb5e056742755d717b77fd9f084))
+- fix pnpm for ci and docs build ([7b0740d](https://github.com/jetstreamapp/jetstream/commit/7b0740d189ac31799dee68587cf64a40ae15c30c))
+- handle unknown message types in service worker and update package manager commands ([3716a03](https://github.com/jetstreamapp/jetstream/commit/3716a0373dcccc266ed42110fde151764a32dbf3))
+- improve logout handling and concurrent login detection in IPC service ([48438d2](https://github.com/jetstreamapp/jetstream/commit/48438d23cee733823c1ddd747ecd4acf0bb626e5))
+- update web extension callback api to match type changes ([c9a4482](https://github.com/jetstreamapp/jetstream/commit/c9a448252ce16cb5e056742755d717b77fd9f084))
 
 ## [9.17.1](https://github.com/jetstreamapp/jetstream/compare/v9.17.0...v9.17.1) (2026-05-16)
 
 ### Bug Fixes
 
-* improve token rotation logging and handling in desktop and web extension controllers ([46129c9](https://github.com/jetstreamapp/jetstream/commit/46129c9fadcb2b0251b02c966814a9eb97a446c3))
+- improve token rotation logging and handling in desktop and web extension controllers ([46129c9](https://github.com/jetstreamapp/jetstream/commit/46129c9fadcb2b0251b02c966814a9eb97a446c3))
 
 ## [9.17.0](https://github.com/jetstreamapp/jetstream/compare/v9.16.0...v9.17.0) (2026-05-15)
 
 ### Features
 
-* enable select all option for SObject export ([e57183e](https://github.com/jetstreamapp/jetstream/commit/e57183e6484d0ead54e05b87c8d9fc209403691e))
-* enhance password reset functionality with validation and requirements display ([9def3f2](https://github.com/jetstreamapp/jetstream/commit/9def3f2f571003179ba7930bcf8854ed4cdde849))
+- enable select all option for SObject export ([e57183e](https://github.com/jetstreamapp/jetstream/commit/e57183e6484d0ead54e05b87c8d9fc209403691e))
+- enhance password reset functionality with validation and requirements display ([9def3f2](https://github.com/jetstreamapp/jetstream/commit/9def3f2f571003179ba7930bcf8854ed4cdde849))
 
 ### Bug Fixes
 
-* improve error handling and refactor permission saving logic ([3a5cc17](https://github.com/jetstreamapp/jetstream/commit/3a5cc17ca0bf48d3434f3bca83aa96eae7773a75))
-* refresh token rotation ([edd0dc1](https://github.com/jetstreamapp/jetstream/commit/edd0dc1edbaa1098b2b545504f93cb228d70f478)), closes [#1726](https://github.com/jetstreamapp/jetstream/issues/1726)
-* update button class for profile or permission set popover ([f0bb501](https://github.com/jetstreamapp/jetstream/commit/f0bb501e37c7d85fa8e77bdf8940c721faa767fd))
+- improve error handling and refactor permission saving logic ([3a5cc17](https://github.com/jetstreamapp/jetstream/commit/3a5cc17ca0bf48d3434f3bca83aa96eae7773a75))
+- refresh token rotation ([edd0dc1](https://github.com/jetstreamapp/jetstream/commit/edd0dc1edbaa1098b2b545504f93cb228d70f478)), closes [#1726](https://github.com/jetstreamapp/jetstream/issues/1726)
+- update button class for profile or permission set popover ([f0bb501](https://github.com/jetstreamapp/jetstream/commit/f0bb501e37c7d85fa8e77bdf8940c721faa767fd))
 
 ## [9.16.0](https://github.com/jetstreamapp/jetstream/compare/v9.15.2...v9.16.0) (2026-05-07)
 
 ### Features
 
-* add date shortcuts for quick selection in DateSelection component ([945b103](https://github.com/jetstreamapp/jetstream/commit/945b103714b5a111bed02dd1f89014dd1d7bdd89))
-* allow manual value in picklist static field mapping ([107b18c](https://github.com/jetstreamapp/jetstream/commit/107b18c8d5f3f04201f5906d1240d1bbafbf41bd))
-* enhance error tracking and configuration options ([12f9dfe](https://github.com/jetstreamapp/jetstream/commit/12f9dfe5c294ee5fe6468f856ab7e56d84fee506))
-* migrate from rollbar to betterstack for error tracking ([42a8744](https://github.com/jetstreamapp/jetstream/commit/42a874478e6d3148d81da534ffbad609879cf1f3))
-* security hardening + additional test coverage ([d6d4311](https://github.com/jetstreamapp/jetstream/commit/d6d43115a15ca4d79489b8dbe0f81f92b4c9f348))
+- add date shortcuts for quick selection in DateSelection component ([945b103](https://github.com/jetstreamapp/jetstream/commit/945b103714b5a111bed02dd1f89014dd1d7bdd89))
+- allow manual value in picklist static field mapping ([107b18c](https://github.com/jetstreamapp/jetstream/commit/107b18c8d5f3f04201f5906d1240d1bbafbf41bd))
+- enhance error tracking and configuration options ([12f9dfe](https://github.com/jetstreamapp/jetstream/commit/12f9dfe5c294ee5fe6468f856ab7e56d84fee506))
+- migrate from rollbar to betterstack for error tracking ([42a8744](https://github.com/jetstreamapp/jetstream/commit/42a874478e6d3148d81da534ffbad609879cf1f3))
+- security hardening + additional test coverage ([d6d4311](https://github.com/jetstreamapp/jetstream/commit/d6d43115a15ca4d79489b8dbe0f81f92b4c9f348))
 
 ### Bug Fixes
 
-* allow referrer header to be set + google drive origin ([a134725](https://github.com/jetstreamapp/jetstream/commit/a1347250b7813bb6bd1d5b1f96a858d0a6ae358f))
-* improve permission filtering logic in filterPermissionsSobjects function ([852ef7d](https://github.com/jetstreamapp/jetstream/commit/852ef7d2d2780e1f12d719a56ff211fcfe65165d))
-* metadata folder name resolution for deploy/compare metadata ([b5a41cc](https://github.com/jetstreamapp/jetstream/commit/b5a41cc5d7301b961e7ebe9ea64ac4f520d37e88))
+- allow referrer header to be set + google drive origin ([a134725](https://github.com/jetstreamapp/jetstream/commit/a1347250b7813bb6bd1d5b1f96a858d0a6ae358f))
+- improve permission filtering logic in filterPermissionsSobjects function ([852ef7d](https://github.com/jetstreamapp/jetstream/commit/852ef7d2d2780e1f12d719a56ff211fcfe65165d))
+- metadata folder name resolution for deploy/compare metadata ([b5a41cc](https://github.com/jetstreamapp/jetstream/commit/b5a41cc5d7301b961e7ebe9ea64ac4f520d37e88))
 
 ## [9.15.2](https://github.com/jetstreamapp/jetstream/compare/v9.15.1...v9.15.2) (2026-04-23)
 
 ### Features
 
-* add Cloudflare analytics archiver with database schema, cron entrypoint, and utility functions ([e9e7e2b](https://github.com/jetstreamapp/jetstream/commit/e9e7e2b97368520b528d54f83277f9c74cad716a))
-* add compare links for latest release tags in release script ([dd71a61](https://github.com/jetstreamapp/jetstream/commit/dd71a61303ac7874371d7f9c040774ac2eddd84a))
-* implement SSO user resolution and identity linking with error handling for ambiguous accounts ([6b2030f](https://github.com/jetstreamapp/jetstream/commit/6b2030fa2d35c8e17508924ade384ae67d2aa982))
+- add Cloudflare analytics archiver with database schema, cron entrypoint, and utility functions ([e9e7e2b](https://github.com/jetstreamapp/jetstream/commit/e9e7e2b97368520b528d54f83277f9c74cad716a))
+- add compare links for latest release tags in release script ([dd71a61](https://github.com/jetstreamapp/jetstream/commit/dd71a61303ac7874371d7f9c040774ac2eddd84a))
+- implement SSO user resolution and identity linking with error handling for ambiguous accounts ([6b2030f](https://github.com/jetstreamapp/jetstream/commit/6b2030fa2d35c8e17508924ade384ae67d2aa982))
 
 ### Bug Fixes
 
-* add PostgreSQL service for integration tests and run database migration ([dd97a6d](https://github.com/jetstreamapp/jetstream/commit/dd97a6d7d0d82e2f8c7d6c5f80110ea5576a4d7b))
-* enhance CI workflow to conditionally run E2E tests based on affected projects ([a68bad6](https://github.com/jetstreamapp/jetstream/commit/a68bad63f0d33e07c9f21f2c34e82da61ab1ec6f))
-* enhance SSO authentication flow and error handling in desktop app ([2000d6e](https://github.com/jetstreamapp/jetstream/commit/2000d6e50e35d551395ece217c32a6b38d2adbc7))
-* exclude specific projects from affected build and test commands ([6aa4cdf](https://github.com/jetstreamapp/jetstream/commit/6aa4cdf948afd09cc06367ace0eab6b4a8c145e7))
-* implement inline 404 handling with landing page response and add regression test ([aff84e1](https://github.com/jetstreamapp/jetstream/commit/aff84e16812b34b0623bff80eab8a8be3cf1ac51))
-* remove dead-code that was the source of confusion ([2df6be1](https://github.com/jetstreamapp/jetstream/commit/2df6be1829ca46149b11d8043eab44532c06ddec))
+- add PostgreSQL service for integration tests and run database migration ([dd97a6d](https://github.com/jetstreamapp/jetstream/commit/dd97a6d7d0d82e2f8c7d6c5f80110ea5576a4d7b))
+- enhance CI workflow to conditionally run E2E tests based on affected projects ([a68bad6](https://github.com/jetstreamapp/jetstream/commit/a68bad63f0d33e07c9f21f2c34e82da61ab1ec6f))
+- enhance SSO authentication flow and error handling in desktop app ([2000d6e](https://github.com/jetstreamapp/jetstream/commit/2000d6e50e35d551395ece217c32a6b38d2adbc7))
+- exclude specific projects from affected build and test commands ([6aa4cdf](https://github.com/jetstreamapp/jetstream/commit/6aa4cdf948afd09cc06367ace0eab6b4a8c145e7))
+- implement inline 404 handling with landing page response and add regression test ([aff84e1](https://github.com/jetstreamapp/jetstream/commit/aff84e16812b34b0623bff80eab8a8be3cf1ac51))
+- remove dead-code that was the source of confusion ([2df6be1](https://github.com/jetstreamapp/jetstream/commit/2df6be1829ca46149b11d8043eab44532c06ddec))
 
 ## [9.15.1](https://github.com/jetstreamapp/jetstream/compare/v9.15.0...v9.15.1) (2026-04-22)
 
 ### Features
 
-* delegate authentication-strength decisions to IdP by disabling requestedAuthnContext ([fc6a886](https://github.com/jetstreamapp/jetstream/commit/fc6a8867a27487371758b452292fdd2698b52b8b))
+- delegate authentication-strength decisions to IdP by disabling requestedAuthnContext ([fc6a886](https://github.com/jetstreamapp/jetstream/commit/fc6a8867a27487371758b452292fdd2698b52b8b))
 
 ## [9.15.0](https://github.com/jetstreamapp/jetstream/compare/v9.14.0...v9.15.0) (2026-04-21)
 
 ### Features
 
-* add provider and providerAccountId to session management and token handling ([b05c8fd](https://github.com/jetstreamapp/jetstream/commit/b05c8fdea57292a11d373ab12cb4447634364465))
+- add provider and providerAccountId to session management and token handling ([b05c8fd](https://github.com/jetstreamapp/jetstream/commit/b05c8fdea57292a11d373ab12cb4447634364465))
 
 ### Bug Fixes
 
-* add handling for expired access tokens in decryptAccessToken and update tests ([c6c5306](https://github.com/jetstreamapp/jetstream/commit/c6c5306db103352f588da2303ab14290b5bc4f2c))
-* add state parameter to OAuth flow for improved security and validation ([9f5520a](https://github.com/jetstreamapp/jetstream/commit/9f5520ae2c61f71ed0482c2e6b81d6b53f10884f))
-* enhance error handling in firewall spike detection and improve query structure ([3554c0a](https://github.com/jetstreamapp/jetstream/commit/3554c0a8750bfaa210855b3f6f6123d41d9276d6))
-* ensure all user tokens are cleared during session revocation ([7377ca2](https://github.com/jetstreamapp/jetstream/commit/7377ca24ead59efa047dd7ac695ab481b9912521))
-* handle undefined field mapping items in LoadRecordsFieldMapping ([132b2f0](https://github.com/jetstreamapp/jetstream/commit/132b2f02e101db4ea1f28a07dce62e46d4922a46))
-* improve quick filter functionality in useDataTable to handle invalid regex inputs ([95eac41](https://github.com/jetstreamapp/jetstream/commit/95eac41d0c5c371407276bbbd527ddc078587f5f))
-* preserve error context during session-ending errors in verification process ([d3e7eee](https://github.com/jetstreamapp/jetstream/commit/d3e7eee08a8b057ea99ce0d58c0b1a155c3c1d6d))
+- add handling for expired access tokens in decryptAccessToken and update tests ([c6c5306](https://github.com/jetstreamapp/jetstream/commit/c6c5306db103352f588da2303ab14290b5bc4f2c))
+- add state parameter to OAuth flow for improved security and validation ([9f5520a](https://github.com/jetstreamapp/jetstream/commit/9f5520ae2c61f71ed0482c2e6b81d6b53f10884f))
+- enhance error handling in firewall spike detection and improve query structure ([3554c0a](https://github.com/jetstreamapp/jetstream/commit/3554c0a8750bfaa210855b3f6f6123d41d9276d6))
+- ensure all user tokens are cleared during session revocation ([7377ca2](https://github.com/jetstreamapp/jetstream/commit/7377ca24ead59efa047dd7ac695ab481b9912521))
+- handle undefined field mapping items in LoadRecordsFieldMapping ([132b2f0](https://github.com/jetstreamapp/jetstream/commit/132b2f02e101db4ea1f28a07dce62e46d4922a46))
+- improve quick filter functionality in useDataTable to handle invalid regex inputs ([95eac41](https://github.com/jetstreamapp/jetstream/commit/95eac41d0c5c371407276bbbd527ddc078587f5f))
+- preserve error context during session-ending errors in verification process ([d3e7eee](https://github.com/jetstreamapp/jetstream/commit/d3e7eee08a8b057ea99ce0d58c0b1a155c3c1d6d))
 
 ## [9.14.0](https://github.com/jetstreamapp/jetstream/compare/v9.13.0...v9.14.0) (2026-04-19)
 
 ### Features
 
-* add ProfileOrPermSetPopover component and integrate it into various selection components ([0001090](https://github.com/jetstreamapp/jetstream/commit/00010903b2ee802dbc9e225f75ebe17b1ddb1091))
-* implement security headers and improve cookie handling; add tests for auth storage privacy ([e113cf0](https://github.com/jetstreamapp/jetstream/commit/e113cf0ec46378c0d3ebf07e013b5ce5b2010ed0))
+- add ProfileOrPermSetPopover component and integrate it into various selection components ([0001090](https://github.com/jetstreamapp/jetstream/commit/00010903b2ee802dbc9e225f75ebe17b1ddb1091))
+- implement security headers and improve cookie handling; add tests for auth storage privacy ([e113cf0](https://github.com/jetstreamapp/jetstream/commit/e113cf0ec46378c0d3ebf07e013b5ce5b2010ed0))
 
 ### Bug Fixes
 
-* add additional sources to CSP directives for enhanced security ([2e434ef](https://github.com/jetstreamapp/jetstream/commit/2e434efcd1094c21860ae19ffec0589ffaa560b9))
-* address review feedback - fire-and-forget email sends and fix comment wording ([c524a96](https://github.com/jetstreamapp/jetstream/commit/c524a96edeb4db7bd3a9284d4d8f94582745401d))
-* address second round of review feedback on placeholder email suppression ([ce42376](https://github.com/jetstreamapp/jetstream/commit/ce42376eadba34b95346b1f54ba0e6c6c4ccb449))
-* suppress verification emails for placeholder sessions in auth flow ([ad1a14e](https://github.com/jetstreamapp/jetstream/commit/ad1a14e8e3765977db941af8c8a63ade0ad300af))
-* update CSP policy to include additional image sources and https ([4702c22](https://github.com/jetstreamapp/jetstream/commit/4702c224576b1a5ee8d58b49cde52ff851031b01))
+- add additional sources to CSP directives for enhanced security ([2e434ef](https://github.com/jetstreamapp/jetstream/commit/2e434efcd1094c21860ae19ffec0589ffaa560b9))
+- address review feedback - fire-and-forget email sends and fix comment wording ([c524a96](https://github.com/jetstreamapp/jetstream/commit/c524a96edeb4db7bd3a9284d4d8f94582745401d))
+- address second round of review feedback on placeholder email suppression ([ce42376](https://github.com/jetstreamapp/jetstream/commit/ce42376eadba34b95346b1f54ba0e6c6c4ccb449))
+- suppress verification emails for placeholder sessions in auth flow ([ad1a14e](https://github.com/jetstreamapp/jetstream/commit/ad1a14e8e3765977db941af8c8a63ade0ad300af))
+- update CSP policy to include additional image sources and https ([4702c22](https://github.com/jetstreamapp/jetstream/commit/4702c224576b1a5ee8d58b49cde52ff851031b01))
 
 ## [9.13.0](https://github.com/jetstreamapp/jetstream/compare/v9.12.1...v9.13.0) (2026-04-19)
 
 ### Features
 
-* add automated-scanner routes and session handling for testing purposes ([f1d14fc](https://github.com/jetstreamapp/jetstream/commit/f1d14fc83876388a13a2e32da40a1c1adcda34b7))
-* add NameLinkRenderer for clickable record-lookup popover and update column type handling ([43c8c83](https://github.com/jetstreamapp/jetstream/commit/43c8c835cd630178ac608bf2011cb2ce151ea163))
-* add redirectIfNotAuthenticatedMiddleware to enforce authentication before accessing app routes ([e6db530](https://github.com/jetstreamapp/jetstream/commit/e6db530c883a0ae9cd3188de1e10d6bf423b2628))
-* enable refresh token rotation for salesforce ([1a60190](https://github.com/jetstreamapp/jetstream/commit/1a601904338a4f487af25787c6507d744dc09c07))
-* implement verification attempt limits for authentication flows ([fb8a8cb](https://github.com/jetstreamapp/jetstream/commit/fb8a8cb7774537c09491fe46664ea6f21baa30de))
-* introduce canvas application ([f0e27ba](https://github.com/jetstreamapp/jetstream/commit/f0e27ba48496425aea860f6e7b09a5e2453452ad))
-* introduce jetstream managed package ([c8e9990](https://github.com/jetstreamapp/jetstream/commit/c8e99909e069af4c4e4f37d6af36f4d3d46bd762))
-* revoke other sessions on password change to enhance security ([fffc08f](https://github.com/jetstreamapp/jetstream/commit/fffc08f59ab8147598deb2a558be6ce2573a21c8))
+- add automated-scanner routes and session handling for testing purposes ([f1d14fc](https://github.com/jetstreamapp/jetstream/commit/f1d14fc83876388a13a2e32da40a1c1adcda34b7))
+- add NameLinkRenderer for clickable record-lookup popover and update column type handling ([43c8c83](https://github.com/jetstreamapp/jetstream/commit/43c8c835cd630178ac608bf2011cb2ce151ea163))
+- add redirectIfNotAuthenticatedMiddleware to enforce authentication before accessing app routes ([e6db530](https://github.com/jetstreamapp/jetstream/commit/e6db530c883a0ae9cd3188de1e10d6bf423b2628))
+- enable refresh token rotation for salesforce ([1a60190](https://github.com/jetstreamapp/jetstream/commit/1a601904338a4f487af25787c6507d744dc09c07))
+- implement verification attempt limits for authentication flows ([fb8a8cb](https://github.com/jetstreamapp/jetstream/commit/fb8a8cb7774537c09491fe46664ea6f21baa30de))
+- introduce canvas application ([f0e27ba](https://github.com/jetstreamapp/jetstream/commit/f0e27ba48496425aea860f6e7b09a5e2453452ad))
+- introduce jetstream managed package ([c8e9990](https://github.com/jetstreamapp/jetstream/commit/c8e99909e069af4c4e4f37d6af36f4d3d46bd762))
+- revoke other sessions on password change to enhance security ([fffc08f](https://github.com/jetstreamapp/jetstream/commit/fffc08f59ab8147598deb2a558be6ce2573a21c8))
 
 ### Bug Fixes
 
-* enhance error handling in canvas controller and update fullscreen parameter comment ([25a74be](https://github.com/jetstreamapp/jetstream/commit/25a74bef5d320519ca807252234a47e79045d25f))
-* ensure @babel/traverse is on minimum patched version ([a62cedb](https://github.com/jetstreamapp/jetstream/commit/a62cedb9fd68d2d5220f00f895ee009f9c885c35))
-* handle placeholder user ID in user activity logging and constants ([bee11b3](https://github.com/jetstreamapp/jetstream/commit/bee11b3d941147d5a40c0bd2619f382389e8e755))
-* update release configurations to allow hotfix branches ([f1f265a](https://github.com/jetstreamapp/jetstream/commit/f1f265a7139d7dcc3f3ec6b93e2319eb192286e2))
+- enhance error handling in canvas controller and update fullscreen parameter comment ([25a74be](https://github.com/jetstreamapp/jetstream/commit/25a74bef5d320519ca807252234a47e79045d25f))
+- ensure @babel/traverse is on minimum patched version ([a62cedb](https://github.com/jetstreamapp/jetstream/commit/a62cedb9fd68d2d5220f00f895ee009f9c885c35))
+- handle placeholder user ID in user activity logging and constants ([bee11b3](https://github.com/jetstreamapp/jetstream/commit/bee11b3d941147d5a40c0bd2619f382389e8e755))
+- update release configurations to allow hotfix branches ([f1f265a](https://github.com/jetstreamapp/jetstream/commit/f1f265a7139d7dcc3f3ec6b93e2319eb192286e2))
 
 ## [9.12.1](https://github.com/jetstreamapp/jetstream/compare/v9.12.0...v9.12.1) (2026-04-14)
 
 ### Features
 
-* add ability to retry failed data loads ([741ff12](https://github.com/jetstreamapp/jetstream/commit/741ff128ba934f90ca45953d5d4c3580ff68ad48))
+- add ability to retry failed data loads ([741ff12](https://github.com/jetstreamapp/jetstream/commit/741ff128ba934f90ca45953d5d4c3580ff68ad48))
 
 ### Bug Fixes
 
-* add form-action directives to content security policy for third-party redirects ([4bc14f2](https://github.com/jetstreamapp/jetstream/commit/4bc14f2b671ed0a48c77a2fb9a8f87a322d9e8f3))
+- add form-action directives to content security policy for third-party redirects ([4bc14f2](https://github.com/jetstreamapp/jetstream/commit/4bc14f2b671ed0a48c77a2fb9a8f87a322d9e8f3))
 
 ## [9.12.0](https://github.com/jetstreamapp/jetstream/compare/v9.11.0...v9.12.0) (2026-04-14)
 
 ### Features
 
-* enhance bulk API error handling and add polling mechanism ([5be2ad7](https://github.com/jetstreamapp/jetstream/commit/5be2ad711eeda7c765f7b5f420af3f2917ec1971))
-* enhance CSP and server setup with nonce support and worker management improvements ([a126f33](https://github.com/jetstreamapp/jetstream/commit/a126f33302d8309862d2c44caff73696456bf9c7))
-* monitor waf traffic via cron job ([d96a631](https://github.com/jetstreamapp/jetstream/commit/d96a6317e31d4917050c8242cc5ba86595eae3fe))
+- enhance bulk API error handling and add polling mechanism ([5be2ad7](https://github.com/jetstreamapp/jetstream/commit/5be2ad711eeda7c765f7b5f420af3f2917ec1971))
+- enhance CSP and server setup with nonce support and worker management improvements ([a126f33](https://github.com/jetstreamapp/jetstream/commit/a126f33302d8309862d2c44caff73696456bf9c7))
+- monitor waf traffic via cron job ([d96a631](https://github.com/jetstreamapp/jetstream/commit/d96a6317e31d4917050c8242cc5ba86595eae3fe))
 
 ### Bug Fixes
 
-* adjust updatedAt calculation in user sync records generation test ([e3fdd77](https://github.com/jetstreamapp/jetstream/commit/e3fdd7700ef1430e080bd4db697848a6e5b1d739))
-* correct typo in comment for batch processing in loadBulkApiData ([aff3c3b](https://github.com/jetstreamapp/jetstream/commit/aff3c3ba1f8f8cd63fe30dd94bb458786b9dc731))
-* improve jobInfo and intervalCount state updates in LoadRecordsBulkApiResults ([8709f54](https://github.com/jetstreamapp/jetstream/commit/8709f54850d76d192f7ae4c0bfd9b5f1f87d6269))
-* update web extension asset path to public directory ([73d8c65](https://github.com/jetstreamapp/jetstream/commit/73d8c656da8b5cc23cdefbb07c8da3c8663f623c))
+- adjust updatedAt calculation in user sync records generation test ([e3fdd77](https://github.com/jetstreamapp/jetstream/commit/e3fdd7700ef1430e080bd4db697848a6e5b1d739))
+- correct typo in comment for batch processing in loadBulkApiData ([aff3c3b](https://github.com/jetstreamapp/jetstream/commit/aff3c3ba1f8f8cd63fe30dd94bb458786b9dc731))
+- improve jobInfo and intervalCount state updates in LoadRecordsBulkApiResults ([8709f54](https://github.com/jetstreamapp/jetstream/commit/8709f54850d76d192f7ae4c0bfd9b5f1f87d6269))
+- update web extension asset path to public directory ([73d8c65](https://github.com/jetstreamapp/jetstream/commit/73d8c656da8b5cc23cdefbb07c8da3c8663f623c))
 
 ## [9.11.0](https://github.com/jetstreamapp/jetstream/compare/v9.10.0...v9.11.0) (2026-04-11)
 
 ### Features
 
-* implement JWT token rotation for desktop and web extension authentication ([d04b6a0](https://github.com/jetstreamapp/jetstream/commit/d04b6a0b787eaa6b1f972ee6131410f86c612701))
+- implement JWT token rotation for desktop and web extension authentication ([d04b6a0](https://github.com/jetstreamapp/jetstream/commit/d04b6a0b787eaa6b1f972ee6131410f86c612701))
 
 ### Bug Fixes
 
-* correct isFieldSubquery and fieldMetadataSubquery lookups in data-table-utils ([fd7669a](https://github.com/jetstreamapp/jetstream/commit/fd7669a1b9c420c499d1ada8ed66c57a3e8b4593))
-* **create-fields:** enhance error handling by displaying detailed import errors ([09c3325](https://github.com/jetstreamapp/jetstream/commit/09c3325acb5bb7b30c74edcd8a6e8f1d9641dd2d)), closes [#1638](https://github.com/jetstreamapp/jetstream/issues/1638)
-* enhance subquery processing by tracking missing relationships in metadata ([08c16a8](https://github.com/jetstreamapp/jetstream/commit/08c16a8b62c22d274ea061de23bdc217f9a8c4cc))
-* improve handling of subquery fields and refactor query column mapping ([f0f341f](https://github.com/jetstreamapp/jetstream/commit/f0f341f927b4827540b7d47478405bb74acb66a6))
-* replace any[] with FieldValues[] and remove unnecessary eslint-disable comment in CreateFieldsImportExport ([20c99c0](https://github.com/jetstreamapp/jetstream/commit/20c99c070f43ffe03a541459f36f2160e44bc098))
-* use Partial<Record<FieldDefinitionType, FieldValue>>[] for exportData state and type getRowsForExport accumulator ([790ebe3](https://github.com/jetstreamapp/jetstream/commit/790ebe3de950a212a6daa0159a1fd7bf07ec2c31))
+- correct isFieldSubquery and fieldMetadataSubquery lookups in data-table-utils ([fd7669a](https://github.com/jetstreamapp/jetstream/commit/fd7669a1b9c420c499d1ada8ed66c57a3e8b4593))
+- **create-fields:** enhance error handling by displaying detailed import errors ([09c3325](https://github.com/jetstreamapp/jetstream/commit/09c3325acb5bb7b30c74edcd8a6e8f1d9641dd2d)), closes [#1638](https://github.com/jetstreamapp/jetstream/issues/1638)
+- enhance subquery processing by tracking missing relationships in metadata ([08c16a8](https://github.com/jetstreamapp/jetstream/commit/08c16a8b62c22d274ea061de23bdc217f9a8c4cc))
+- improve handling of subquery fields and refactor query column mapping ([f0f341f](https://github.com/jetstreamapp/jetstream/commit/f0f341f927b4827540b7d47478405bb74acb66a6))
+- replace any[] with FieldValues[] and remove unnecessary eslint-disable comment in CreateFieldsImportExport ([20c99c0](https://github.com/jetstreamapp/jetstream/commit/20c99c070f43ffe03a541459f36f2160e44bc098))
+- use Partial<Record<FieldDefinitionType, FieldValue>>[] for exportData state and type getRowsForExport accumulator ([790ebe3](https://github.com/jetstreamapp/jetstream/commit/790ebe3de950a212a6daa0159a1fd7bf07ec2c31))
 
 ## [9.10.0](https://github.com/jetstreamapp/jetstream/compare/v9.9.1...v9.10.0) (2026-04-08)
 
 ### Features
 
-* **create-fields:** add LoadExistingFieldsModal and integrate field loading functionality ([b94edf9](https://github.com/jetstreamapp/jetstream/commit/b94edf9c00c3cc3ae42a68dd9d6bfbe9ac5fb491)), closes [#1636](https://github.com/jetstreamapp/jetstream/issues/1636)
-* **csp:** add Cloudflare Web Analytics beacon inline script to CSP ([d9fc355](https://github.com/jetstreamapp/jetstream/commit/d9fc355b45f0622796cbd085b1482b1445c08b19))
-* **load-records:** add context menu actions and clipboard functionality for duplicate records table ([750d46a](https://github.com/jetstreamapp/jetstream/commit/750d46afa9a87be1c2698db9ef414c3dfbbcd9dd)), closes [#1635](https://github.com/jetstreamapp/jetstream/issues/1635)
-* **query-history:** update mouse wheel handling logic for scrollbar ([b124350](https://github.com/jetstreamapp/jetstream/commit/b1243509848f730d152f8d189a94285519f6ea46)), closes [#1502](https://github.com/jetstreamapp/jetstream/issues/1502)
-* **sobject-export:** add 'Description' field to export selections and definitions ([53d20b5](https://github.com/jetstreamapp/jetstream/commit/53d20b5eacece7bad715032c17ae30dada7cfe54))
+- **create-fields:** add LoadExistingFieldsModal and integrate field loading functionality ([b94edf9](https://github.com/jetstreamapp/jetstream/commit/b94edf9c00c3cc3ae42a68dd9d6bfbe9ac5fb491)), closes [#1636](https://github.com/jetstreamapp/jetstream/issues/1636)
+- **csp:** add Cloudflare Web Analytics beacon inline script to CSP ([d9fc355](https://github.com/jetstreamapp/jetstream/commit/d9fc355b45f0622796cbd085b1482b1445c08b19))
+- **load-records:** add context menu actions and clipboard functionality for duplicate records table ([750d46a](https://github.com/jetstreamapp/jetstream/commit/750d46afa9a87be1c2698db9ef414c3dfbbcd9dd)), closes [#1635](https://github.com/jetstreamapp/jetstream/issues/1635)
+- **query-history:** update mouse wheel handling logic for scrollbar ([b124350](https://github.com/jetstreamapp/jetstream/commit/b1243509848f730d152f8d189a94285519f6ea46)), closes [#1502](https://github.com/jetstreamapp/jetstream/issues/1502)
+- **sobject-export:** add 'Description' field to export selections and definitions ([53d20b5](https://github.com/jetstreamapp/jetstream/commit/53d20b5eacece7bad715032c17ae30dada7cfe54))
 
 ### Bug Fixes
 
-* **create-fields:** enhance error handling by displaying detailed import errors ([1ac867b](https://github.com/jetstreamapp/jetstream/commit/1ac867b643c4134ca5304e288d738e2988963ecf)), closes [#1638](https://github.com/jetstreamapp/jetstream/issues/1638)
-* **dependencies:** update fast-jwt to version 6.2.0 ([3eaaf54](https://github.com/jetstreamapp/jetstream/commit/3eaaf540f31d819e8c32d34bd97d9627d881dcfc))
-* **email:** fix toLocaleString runtime error, severity badge mismatch, and move style constants ([69f3816](https://github.com/jetstreamapp/jetstream/commit/69f381620722cc89d893559ff05821f200514798))
-* **getDeployMetadataFromComparisonTree:** filter out null metadata items ([656a871](https://github.com/jetstreamapp/jetstream/commit/656a8716724472de683f58157b136e99c49e15d7))
+- **create-fields:** enhance error handling by displaying detailed import errors ([1ac867b](https://github.com/jetstreamapp/jetstream/commit/1ac867b643c4134ca5304e288d738e2988963ecf)), closes [#1638](https://github.com/jetstreamapp/jetstream/issues/1638)
+- **dependencies:** update fast-jwt to version 6.2.0 ([3eaaf54](https://github.com/jetstreamapp/jetstream/commit/3eaaf540f31d819e8c32d34bd97d9627d881dcfc))
+- **email:** fix toLocaleString runtime error, severity badge mismatch, and move style constants ([69f3816](https://github.com/jetstreamapp/jetstream/commit/69f381620722cc89d893559ff05821f200514798))
+- **getDeployMetadataFromComparisonTree:** filter out null metadata items ([656a871](https://github.com/jetstreamapp/jetstream/commit/656a8716724472de683f58157b136e99c49e15d7))
 
 ## [9.9.1](https://github.com/jetstreamapp/jetstream/compare/v9.9.0...v9.9.1) (2026-04-05)
 
 ### Features
 
-* **security:** add Cloudflare Insights to CSP script sources ([0fc90c9](https://github.com/jetstreamapp/jetstream/commit/0fc90c9f95449575b2a0bc5e76ce99d370b36841))
+- **security:** add Cloudflare Insights to CSP script sources ([0fc90c9](https://github.com/jetstreamapp/jetstream/commit/0fc90c9f95449575b2a0bc5e76ce99d370b36841))
 
 ### Bug Fixes
 
-* **landing:** update SSO blog post link to use correct route ([56002cf](https://github.com/jetstreamapp/jetstream/commit/56002cff5c745b2e34d37e316d990aa5b2d0a5bd))
+- **landing:** update SSO blog post link to use correct route ([56002cf](https://github.com/jetstreamapp/jetstream/commit/56002cff5c745b2e34d37e316d990aa5b2d0a5bd))
 
 ## [9.9.0](https://github.com/jetstreamapp/jetstream/compare/v9.8.1...v9.9.0) (2026-04-04)
 
 ### Features
 
-* **api:** implement deferred response middleware for long-running requests ([c936fe9](https://github.com/jetstreamapp/jetstream/commit/c936fe959fecf6b314e52795b9f939a2b6ff0ef2))
+- **api:** implement deferred response middleware for long-running requests ([c936fe9](https://github.com/jetstreamapp/jetstream/commit/c936fe959fecf6b314e52795b9f939a2b6ff0ef2))
 
 ## [9.8.1](https://github.com/jetstreamapp/jetstream/compare/v9.8.0...v9.8.1) (2026-04-04)
 
 ### Bug Fixes
 
-* add empty data object to resendInvitation API request ([ea25480](https://github.com/jetstreamapp/jetstream/commit/ea254804e5b8556fb3545846ed3b0674e2b30c4b))
-* change bot route status code from 403 to 444 ([1806360](https://github.com/jetstreamapp/jetstream/commit/18063606d98a5a7178dc0b6bf95a525d2ba136f2))
+- add empty data object to resendInvitation API request ([ea25480](https://github.com/jetstreamapp/jetstream/commit/ea254804e5b8556fb3545846ed3b0674e2b30c4b))
+- change bot route status code from 403 to 444 ([1806360](https://github.com/jetstreamapp/jetstream/commit/18063606d98a5a7178dc0b6bf95a525d2ba136f2))
 
 ## [9.8.0](https://github.com/jetstreamapp/jetstream/compare/v9.7.0...v9.8.0) (2026-04-03)
 
 ### Features
 
-* add IdP-initiated OIDC login support and update documentation ([162f127](https://github.com/jetstreamapp/jetstream/commit/162f1276d9d217686095461f04c253409418c29b))
+- add IdP-initiated OIDC login support and update documentation ([162f127](https://github.com/jetstreamapp/jetstream/commit/162f1276d9d217686095461f04c253409418c29b))
 
 ### Bug Fixes
 
-* handle invalid SOQL syntax gracefully by ignoring formatting errors ([fc6882a](https://github.com/jetstreamapp/jetstream/commit/fc6882a8080f8620cefdaa079a0c5bf8255904a7))
-* remove unnecessary server root configuration from Rollbar setup ([9540522](https://github.com/jetstreamapp/jetstream/commit/95405227905b123f351478c0ef2951e6fb4501a3))
-* **ui:** correct aria-expanded in Section and add keyboard focus assertions ([3c1f581](https://github.com/jetstreamapp/jetstream/commit/3c1f5810ea4008e3dee69835cf9aefff83a3d3c7))
+- handle invalid SOQL syntax gracefully by ignoring formatting errors ([fc6882a](https://github.com/jetstreamapp/jetstream/commit/fc6882a8080f8620cefdaa079a0c5bf8255904a7))
+- remove unnecessary server root configuration from Rollbar setup ([9540522](https://github.com/jetstreamapp/jetstream/commit/95405227905b123f351478c0ef2951e6fb4501a3))
+- **ui:** correct aria-expanded in Section and add keyboard focus assertions ([3c1f581](https://github.com/jetstreamapp/jetstream/commit/3c1f5810ea4008e3dee69835cf9aefff83a3d3c7))
 
 ## [9.7.0](https://github.com/jetstreamapp/jetstream/compare/v9.6.0...v9.7.0) (2026-04-02)
 
 ### Features
 
-* update Terms of Service with new LastUpdated date and add compliance reporting information ([b2661ed](https://github.com/jetstreamapp/jetstream/commit/b2661eddbd88988458d5882c11e8b68f18579710))
+- update Terms of Service with new LastUpdated date and add compliance reporting information ([b2661ed](https://github.com/jetstreamapp/jetstream/commit/b2661eddbd88988458d5882c11e8b68f18579710))
 
 ## [9.6.0](https://github.com/jetstreamapp/jetstream/compare/v9.5.0...v9.6.0) (2026-04-02)
 
 ### Features
 
-* replace fast-xml-parser and fast-xml-builder with @jetstreamapp/simple-xml for XML parsing and building ([2db670a](https://github.com/jetstreamapp/jetstream/commit/2db670ad888be7d3add2243e42e932da365c7783))
+- replace fast-xml-parser and fast-xml-builder with @jetstreamapp/simple-xml for XML parsing and building ([2db670a](https://github.com/jetstreamapp/jetstream/commit/2db670ad888be7d3add2243e42e932da365c7783))
 
 ### Bug Fixes
 
-* simplify fetchUserProfile error handling to return DEFAULT_PROFILE on failure ([fda5665](https://github.com/jetstreamapp/jetstream/commit/fda5665510da26ee63e8f3ecc1b5c04ed6b6f514))
+- simplify fetchUserProfile error handling to return DEFAULT_PROFILE on failure ([fda5665](https://github.com/jetstreamapp/jetstream/commit/fda5665510da26ee63e8f3ecc1b5c04ed6b6f514))
 
 ## [9.5.0](https://github.com/jetstreamapp/jetstream/compare/v9.4.1...v9.5.0) (2026-04-01)
 
 ### Features
 
-* enhance persistence service with logging and improved app data handling ([11fd29f](https://github.com/jetstreamapp/jetstream/commit/11fd29f98464178bd77d5a6a6f9d76d29d59ee6d))
-* Replace formulon with sf-formula-parser for formula evaluation ([3abab4d](https://github.com/jetstreamapp/jetstream/commit/3abab4d87e76a1d4a72aacbc49ea461df0e3fadd))
+- enhance persistence service with logging and improved app data handling ([11fd29f](https://github.com/jetstreamapp/jetstream/commit/11fd29f98464178bd77d5a6a6f9d76d29d59ee6d))
+- Replace formulon with sf-formula-parser for formula evaluation ([3abab4d](https://github.com/jetstreamapp/jetstream/commit/3abab4d87e76a1d4a72aacbc49ea461df0e3fadd))
 
 ## [9.4.1](https://github.com/jetstreamapp/jetstream/compare/v9.4.0...v9.4.1) (2026-03-31)
 
 ### Features
 
-* enhance geo-IP functionality with improved data structures and error handling ([adc6456](https://github.com/jetstreamapp/jetstream/commit/adc6456b5ab4be121aec5d514b8d312ec4677888))
-* use jwt auth for e2e org ([b34e07e](https://github.com/jetstreamapp/jetstream/commit/b34e07e060b1e5bab28e5b78f1ed3f0f25274b56))
+- enhance geo-IP functionality with improved data structures and error handling ([adc6456](https://github.com/jetstreamapp/jetstream/commit/adc6456b5ab4be121aec5d514b8d312ec4677888))
+- use jwt auth for e2e org ([b34e07e](https://github.com/jetstreamapp/jetstream/commit/b34e07e060b1e5bab28e5b78f1ed3f0f25274b56))
 
 ### Bug Fixes
 
-* handle empty body in Salesforce API request ([49aafb6](https://github.com/jetstreamapp/jetstream/commit/49aafb6cfc2974ec7caa9c5d2f37bc7ef90727e5))
-* orgs and groups not showing in desktop app ([2d543af](https://github.com/jetstreamapp/jetstream/commit/2d543af4babb9ead5eccfde5dc26f01c7ad91bb3)), closes [#1615](https://github.com/jetstreamapp/jetstream/issues/1615)
-* update apex test and disable entity processing in XML parsing ([cfcc664](https://github.com/jetstreamapp/jetstream/commit/cfcc6645c5f0ddf52074fed6118e5a7a3f18a83f))
-* update Rollbar token environment variable in release workflow ([f9f5eba](https://github.com/jetstreamapp/jetstream/commit/f9f5eba9ded0df595fb3d7121f79b8bd73425fdf))
-* upgrade vulnerable dependencies ([3fb3449](https://github.com/jetstreamapp/jetstream/commit/3fb344929e81cc0248de797ba2792d7b3f8d1bcd))
+- handle empty body in Salesforce API request ([49aafb6](https://github.com/jetstreamapp/jetstream/commit/49aafb6cfc2974ec7caa9c5d2f37bc7ef90727e5))
+- orgs and groups not showing in desktop app ([2d543af](https://github.com/jetstreamapp/jetstream/commit/2d543af4babb9ead5eccfde5dc26f01c7ad91bb3)), closes [#1615](https://github.com/jetstreamapp/jetstream/issues/1615)
+- update apex test and disable entity processing in XML parsing ([cfcc664](https://github.com/jetstreamapp/jetstream/commit/cfcc6645c5f0ddf52074fed6118e5a7a3f18a83f))
+- update Rollbar token environment variable in release workflow ([f9f5eba](https://github.com/jetstreamapp/jetstream/commit/f9f5eba9ded0df595fb3d7121f79b8bd73425fdf))
+- upgrade vulnerable dependencies ([3fb3449](https://github.com/jetstreamapp/jetstream/commit/3fb344929e81cc0248de797ba2792d7b3f8d1bcd))
 
 ## [9.4.0](https://github.com/jetstreamapp/jetstream/compare/v9.3.0...v9.4.0) (2026-03-27)
 
 ### Features
 
-* add keyboard navigation to FeedbackWidget context menu ([#1532](https://github.com/jetstreamapp/jetstream/issues/1532)) ([07eb45e](https://github.com/jetstreamapp/jetstream/commit/07eb45e2520a7ab298b8ff525e3480d4c49d063f))
-* enhance geo-IP utilities and email summary with distance calculations and multi-IP session checks ([71e1fd7](https://github.com/jetstreamapp/jetstream/commit/71e1fd793c95a5110ca98042973e8a94be894327))
-* implement external google drive picker integration ([ac92aa3](https://github.com/jetstreamapp/jetstream/commit/ac92aa35845e4107ec67a1247fe1072b8b5bf976))
+- add keyboard navigation to FeedbackWidget context menu ([#1532](https://github.com/jetstreamapp/jetstream/issues/1532)) ([07eb45e](https://github.com/jetstreamapp/jetstream/commit/07eb45e2520a7ab298b8ff525e3480d4c49d063f))
+- enhance geo-IP utilities and email summary with distance calculations and multi-IP session checks ([71e1fd7](https://github.com/jetstreamapp/jetstream/commit/71e1fd793c95a5110ca98042973e8a94be894327))
+- implement external google drive picker integration ([ac92aa3](https://github.com/jetstreamapp/jetstream/commit/ac92aa35845e4107ec67a1247fe1072b8b5bf976))
 
 ### Bug Fixes
 
-* sfdx change tracking after creating new fields with permissions ([c9ddc03](https://github.com/jetstreamapp/jetstream/commit/c9ddc031f0258383f8b679667d030a4162dcfa6a)), closes [#1587](https://github.com/jetstreamapp/jetstream/issues/1587)
+- sfdx change tracking after creating new fields with permissions ([c9ddc03](https://github.com/jetstreamapp/jetstream/commit/c9ddc031f0258383f8b679667d030a4162dcfa6a)), closes [#1587](https://github.com/jetstreamapp/jetstream/issues/1587)
 
 ## [9.3.0](https://github.com/jetstreamapp/jetstream/compare/v9.2.0...v9.3.0) (2026-03-20)
 
 ### Features
 
-* **auth:** implement Terms of Service acceptance flow ([b2a0888](https://github.com/jetstreamapp/jetstream/commit/b2a0888f950d7365ec3d83a0e2b4ed6eb1b963fd))
+- **auth:** implement Terms of Service acceptance flow ([b2a0888](https://github.com/jetstreamapp/jetstream/commit/b2a0888f950d7365ec3d83a0e2b4ed6eb1b963fd))
 
 ### Bug Fixes
 
-* implement per-user encryption for desktop org data ([283760d](https://github.com/jetstreamapp/jetstream/commit/283760d4fd25d80bb04093b1de0d35241235ff58)), closes [#1595](https://github.com/jetstreamapp/jetstream/issues/1595)
+- implement per-user encryption for desktop org data ([283760d](https://github.com/jetstreamapp/jetstream/commit/283760d4fd25d80bb04093b1de0d35241235ff58)), closes [#1595](https://github.com/jetstreamapp/jetstream/issues/1595)
 
 ## [9.2.0](https://github.com/jetstreamapp/jetstream/compare/v9.1.0...v9.2.0) (2026-03-13)
 
 ### Features
 
-* refresh landing page ([4bd2d60](https://github.com/jetstreamapp/jetstream/commit/4bd2d601be50672d196a865727253545ac7a3bd7))
+- refresh landing page ([4bd2d60](https://github.com/jetstreamapp/jetstream/commit/4bd2d601be50672d196a865727253545ac7a3bd7))
 
 ### Bug Fixes
 
-* avoid interpolation in ci commands ([b0a8e24](https://github.com/jetstreamapp/jetstream/commit/b0a8e2413c2ff593b16448379401b49f0bd568c9))
-* correct malformed urls and unlinked commit references in changelog.md ([7edcfa0](https://github.com/jetstreamapp/jetstream/commit/7edcfa095c4bcf8346c6907e7eacb665fcf72f6b))
+- avoid interpolation in ci commands ([b0a8e24](https://github.com/jetstreamapp/jetstream/commit/b0a8e2413c2ff593b16448379401b49f0bd568c9))
+- correct malformed urls and unlinked commit references in changelog.md ([7edcfa0](https://github.com/jetstreamapp/jetstream/commit/7edcfa095c4bcf8346c6907e7eacb665fcf72f6b))
 
 ## [9.1.0](https://github.com/jetstreamapp/jetstream/compare/v9.0.1...v9.1.0) (2026-03-08)
 
 ### Features
 
-* implement text sanitization for pasted content in editors ([66680e7](https://github.com/jetstreamapp/jetstream/commit/66680e7518a6c804b873bd1946a01c3f544ad542))
+- implement text sanitization for pasted content in editors ([66680e7](https://github.com/jetstreamapp/jetstream/commit/66680e7518a6c804b873bd1946a01c3f544ad542))
 
 ### Bug Fixes
 
-* cancel in-flight ci jobs on prs ([1b1d15f](https://github.com/jetstreamapp/jetstream/commit/1b1d15f368c852654f6b12b97c08faa4a304b1d8))
-* fix api tests after hyperforce migration ([2900a16](https://github.com/jetstreamapp/jetstream/commit/2900a1621db9376c085344dbeaae6a5813affc69))
-* fix duplicated getstorage check ([f6d0a5a](https://github.com/jetstreamapp/jetstream/commit/f6d0a5af7c245e4ac564602ca0918bb62072aacf))
-* fix editor line number reset position ([f634dd0](https://github.com/jetstreamapp/jetstream/commit/f634dd040c9403c35e58d5f1c37acb636762e0f4))
-* fix error message and loading state ([7439dcc](https://github.com/jetstreamapp/jetstream/commit/7439dcc596edfae05d765002f114319b7378a4c2))
-* fix invalid export path ([f690d2d](https://github.com/jetstreamapp/jetstream/commit/f690d2dce6e389a08c8f05c5fbb4ff8615aaae12))
-* fix invalid icon types ([ca66298](https://github.com/jetstreamapp/jetstream/commit/ca6629894f8281d9d0e47f4fe29f61a00ccc54ed))
-* fix malformed ids ([ccc8862](https://github.com/jetstreamapp/jetstream/commit/ccc886267189ccc26a9f1b1d5321cceddf079ea1))
-* handle errors in stream processing ([68e7033](https://github.com/jetstreamapp/jetstream/commit/68e7033e2c22c1e1472aa87e0ecb0c9ddee432e8))
-* show actual error on bulk update failure ([2e4b70c](https://github.com/jetstreamapp/jetstream/commit/2e4b70c854ba4ded4a921b146cae4ab36ab3a17c))
+- cancel in-flight ci jobs on prs ([1b1d15f](https://github.com/jetstreamapp/jetstream/commit/1b1d15f368c852654f6b12b97c08faa4a304b1d8))
+- fix api tests after hyperforce migration ([2900a16](https://github.com/jetstreamapp/jetstream/commit/2900a1621db9376c085344dbeaae6a5813affc69))
+- fix duplicated getstorage check ([f6d0a5a](https://github.com/jetstreamapp/jetstream/commit/f6d0a5af7c245e4ac564602ca0918bb62072aacf))
+- fix editor line number reset position ([f634dd0](https://github.com/jetstreamapp/jetstream/commit/f634dd040c9403c35e58d5f1c37acb636762e0f4))
+- fix error message and loading state ([7439dcc](https://github.com/jetstreamapp/jetstream/commit/7439dcc596edfae05d765002f114319b7378a4c2))
+- fix invalid export path ([f690d2d](https://github.com/jetstreamapp/jetstream/commit/f690d2dce6e389a08c8f05c5fbb4ff8615aaae12))
+- fix invalid icon types ([ca66298](https://github.com/jetstreamapp/jetstream/commit/ca6629894f8281d9d0e47f4fe29f61a00ccc54ed))
+- fix malformed ids ([ccc8862](https://github.com/jetstreamapp/jetstream/commit/ccc886267189ccc26a9f1b1d5321cceddf079ea1))
+- handle errors in stream processing ([68e7033](https://github.com/jetstreamapp/jetstream/commit/68e7033e2c22c1e1472aa87e0ecb0c9ddee432e8))
+- show actual error on bulk update failure ([2e4b70c](https://github.com/jetstreamapp/jetstream/commit/2e4b70c854ba4ded4a921b146cae4ab36ab3a17c))
 
 ## [9.0.1](https://github.com/jetstreamapp/jetstream/compare/v9.0.0...v9.0.1) (2026-02-28)
 
@@ -651,80 +651,80 @@
 
 ### Features
 
-* add persisted cache provider for saml + others ([e72546e](https://github.com/jetstreamapp/jetstream/commit/e72546ef6ba1c726b6d7f33bab811424196b6a23))
-* add SSO support with SAML and OIDC configurations ([11fcba7](https://github.com/jetstreamapp/jetstream/commit/11fcba7f22b57889290aa5def73f54e21381265e))
-* **docs:** implement saml and oidc sso ([cf3c5c0](https://github.com/jetstreamapp/jetstream/commit/cf3c5c03acb6c6d19f0aa1ff7291d88331d56af4))
-* improve sso login form ([342a730](https://github.com/jetstreamapp/jetstream/commit/342a730e26509ca536c519fc1864375d02a8d421))
+- add persisted cache provider for saml + others ([e72546e](https://github.com/jetstreamapp/jetstream/commit/e72546ef6ba1c726b6d7f33bab811424196b6a23))
+- add SSO support with SAML and OIDC configurations ([11fcba7](https://github.com/jetstreamapp/jetstream/commit/11fcba7f22b57889290aa5def73f54e21381265e))
+- **docs:** implement saml and oidc sso ([cf3c5c0](https://github.com/jetstreamapp/jetstream/commit/cf3c5c03acb6c6d19f0aa1ff7291d88331d56af4))
+- improve sso login form ([342a730](https://github.com/jetstreamapp/jetstream/commit/342a730e26509ca536c519fc1864375d02a8d421))
 
 ### Bug Fixes
 
-* add totp grace period ([aba04a7](https://github.com/jetstreamapp/jetstream/commit/aba04a75cdc4ac999e563dc40093d83ef22f6bd3))
-* ensure package name is encoded ([9f2bf5c](https://github.com/jetstreamapp/jetstream/commit/9f2bf5c238eebbb04dee8d1168035f1be12d8f27))
-* improve cookie banner dismissal in e2e tests ([e8264de](https://github.com/jetstreamapp/jetstream/commit/e8264de282cf6b770c6ac57390f69165198abd71))
+- add totp grace period ([aba04a7](https://github.com/jetstreamapp/jetstream/commit/aba04a75cdc4ac999e563dc40093d83ef22f6bd3))
+- ensure package name is encoded ([9f2bf5c](https://github.com/jetstreamapp/jetstream/commit/9f2bf5c238eebbb04dee8d1168035f1be12d8f27))
+- improve cookie banner dismissal in e2e tests ([e8264de](https://github.com/jetstreamapp/jetstream/commit/e8264de282cf6b770c6ac57390f69165198abd71))
 
 ## [8.25.0](https://github.com/jetstreamapp/jetstream/compare/v8.24.0...v8.25.0) (2026-02-19)
 
 ### Features
 
-* **browser-extension:** add quick record view ([d4330f5](https://github.com/jetstreamapp/jetstream/commit/d4330f5a815f82efe3a924e6f97d2e464eb30972))
+- **browser-extension:** add quick record view ([d4330f5](https://github.com/jetstreamapp/jetstream/commit/d4330f5a815f82efe3a924e6f97d2e464eb30972))
 
 ### Bug Fixes
 
-* **browser-extension:** fix browser extension state ([a541fea](https://github.com/jetstreamapp/jetstream/commit/a541fead0d9360438faeb90e80d721f672482a04)), closes [#1549](https://github.com/jetstreamapp/jetstream/issues/1549)
-* **web-extension:** improve view/edit current record ([880150b](https://github.com/jetstreamapp/jetstream/commit/880150bcc18302b29cfae7b29f4c216d34ec5e8c))
+- **browser-extension:** fix browser extension state ([a541fea](https://github.com/jetstreamapp/jetstream/commit/a541fead0d9360438faeb90e80d721f672482a04)), closes [#1549](https://github.com/jetstreamapp/jetstream/issues/1549)
+- **web-extension:** improve view/edit current record ([880150b](https://github.com/jetstreamapp/jetstream/commit/880150bcc18302b29cfae7b29f4c216d34ec5e8c))
 
 ## [8.24.0](https://github.com/jetstreamapp/jetstream/compare/v8.23.1...v8.24.0) (2026-02-17)
 
 ### Features
 
-* add warning icon for invalid metadata audit info ([0820d9d](https://github.com/jetstreamapp/jetstream/commit/0820d9d8114b779bd98ead0c92465a7b599def21))
-* inject last modified date to custom metadata records ([5468a7e](https://github.com/jetstreamapp/jetstream/commit/5468a7ea791a41a363ac075c0810e60a2fef9860)), closes [#1544](https://github.com/jetstreamapp/jetstream/issues/1544)
-* remember google folder selection ([e13115a](https://github.com/jetstreamapp/jetstream/commit/e13115aa38d8f785a241438d5db4fe663381dd55))
+- add warning icon for invalid metadata audit info ([0820d9d](https://github.com/jetstreamapp/jetstream/commit/0820d9d8114b779bd98ead0c92465a7b599def21))
+- inject last modified date to custom metadata records ([5468a7e](https://github.com/jetstreamapp/jetstream/commit/5468a7ea791a41a363ac075c0810e60a2fef9860)), closes [#1544](https://github.com/jetstreamapp/jetstream/issues/1544)
+- remember google folder selection ([e13115a](https://github.com/jetstreamapp/jetstream/commit/e13115aa38d8f785a241438d5db4fe663381dd55))
 
 ### Bug Fixes
 
-* fix automation control in orgs with namespace ([91fa3f7](https://github.com/jetstreamapp/jetstream/commit/91fa3f7eddd1647fc27be951504477c7f4b7946a))
+- fix automation control in orgs with namespace ([91fa3f7](https://github.com/jetstreamapp/jetstream/commit/91fa3f7eddd1647fc27be951504477c7f4b7946a))
 
 ## [8.23.1](https://github.com/jetstreamapp/jetstream/compare/v8.23.0...v8.23.1) (2026-02-13)
 
 ### Bug Fixes
 
-* manage permission export to google fix ([c67fb77](https://github.com/jetstreamapp/jetstream/commit/c67fb775fa2bdfe3d844bf0545a43b9af892204a)), closes [#1541](https://github.com/jetstreamapp/jetstream/issues/1541)
+- manage permission export to google fix ([c67fb77](https://github.com/jetstreamapp/jetstream/commit/c67fb775fa2bdfe3d844bf0545a43b9af892204a)), closes [#1541](https://github.com/jetstreamapp/jetstream/issues/1541)
 
 ## [8.23.0](https://github.com/jetstreamapp/jetstream/compare/v8.22.0...v8.23.0) (2026-02-12)
 
 ### Features
 
-* better handling of audit fields when creating records ([419b7d3](https://github.com/jetstreamapp/jetstream/commit/419b7d347b194fdc7a54d87a4c4e968c8dca1854)), closes [#1536](https://github.com/jetstreamapp/jetstream/issues/1536)
+- better handling of audit fields when creating records ([419b7d3](https://github.com/jetstreamapp/jetstream/commit/419b7d347b194fdc7a54d87a4c4e968c8dca1854)), closes [#1536](https://github.com/jetstreamapp/jetstream/issues/1536)
 
 ### Bug Fixes
 
-* fix error boundary after upgrade ([c7afc1d](https://github.com/jetstreamapp/jetstream/commit/c7afc1d5c7bc851340e6e1fc1de7ab79b9a3319e))
-* keyboard navigation for lookup combobox ([0428958](https://github.com/jetstreamapp/jetstream/commit/0428958e56806175a5759e5cf370c31b5e044c3e)), closes [#1535](https://github.com/jetstreamapp/jetstream/issues/1535)
+- fix error boundary after upgrade ([c7afc1d](https://github.com/jetstreamapp/jetstream/commit/c7afc1d5c7bc851340e6e1fc1de7ab79b9a3319e))
+- keyboard navigation for lookup combobox ([0428958](https://github.com/jetstreamapp/jetstream/commit/0428958e56806175a5759e5cf370c31b5e044c3e)), closes [#1535](https://github.com/jetstreamapp/jetstream/issues/1535)
 
 ## [8.22.0](https://github.com/jetstreamapp/jetstream/compare/v8.21.0...v8.22.0) (2026-02-09)
 
 ### Features
 
-* auto-select org when changing groups ([5c02120](https://github.com/jetstreamapp/jetstream/commit/5c021205375076aaad4d711387cdb6ada9ad3a44)), closes [#1434](https://github.com/jetstreamapp/jetstream/issues/1434)
+- auto-select org when changing groups ([5c02120](https://github.com/jetstreamapp/jetstream/commit/5c021205375076aaad4d711387cdb6ada9ad3a44)), closes [#1434](https://github.com/jetstreamapp/jetstream/issues/1434)
 
 ## [8.21.0](https://github.com/jetstreamapp/jetstream/compare/v8.20.0...v8.21.0) (2026-02-07)
 
 ### Features
 
-* improve feedback widget ([5ae0ba8](https://github.com/jetstreamapp/jetstream/commit/5ae0ba8373e0fc8005eaa665c0535439900af9af)), closes [#1528](https://github.com/jetstreamapp/jetstream/issues/1528)
-* increase api limit for data loads ([d5c044c](https://github.com/jetstreamapp/jetstream/commit/d5c044ce5000698330df7d6c9b3fb5b2c3a3454c)), closes [#1521](https://github.com/jetstreamapp/jetstream/issues/1521)
-* increase download limit for file attachments ([230efd2](https://github.com/jetstreamapp/jetstream/commit/230efd26e194334a93ffad723042eb5b4615db0d)), closes [#1527](https://github.com/jetstreamapp/jetstream/issues/1527)
+- improve feedback widget ([5ae0ba8](https://github.com/jetstreamapp/jetstream/commit/5ae0ba8373e0fc8005eaa665c0535439900af9af)), closes [#1528](https://github.com/jetstreamapp/jetstream/issues/1528)
+- increase api limit for data loads ([d5c044c](https://github.com/jetstreamapp/jetstream/commit/d5c044ce5000698330df7d6c9b3fb5b2c3a3454c)), closes [#1521](https://github.com/jetstreamapp/jetstream/issues/1521)
+- increase download limit for file attachments ([230efd2](https://github.com/jetstreamapp/jetstream/commit/230efd26e194334a93ffad723042eb5b4615db0d)), closes [#1527](https://github.com/jetstreamapp/jetstream/issues/1527)
 
 ### Bug Fixes
 
-* retain permission manager filter text on tab change ([d913068](https://github.com/jetstreamapp/jetstream/commit/d913068a5061fbae54689f477e3e3434f2e32966)), closes [#1525](https://github.com/jetstreamapp/jetstream/issues/1525)
+- retain permission manager filter text on tab change ([d913068](https://github.com/jetstreamapp/jetstream/commit/d913068a5061fbae54689f477e3e3434f2e32966)), closes [#1525](https://github.com/jetstreamapp/jetstream/issues/1525)
 
 ## [8.20.0](https://github.com/jetstreamapp/jetstream/compare/v8.19.2...v8.20.0) (2026-02-03)
 
 ### Bug Fixes
 
-* improve permission export download ([b46454a](https://github.com/jetstreamapp/jetstream/commit/b46454a9c05e845dab5b1de1091efeb34690864d)), closes [#1522](https://github.com/jetstreamapp/jetstream/issues/1522)
+- improve permission export download ([b46454a](https://github.com/jetstreamapp/jetstream/commit/b46454a9c05e845dab5b1de1091efeb34690864d)), closes [#1522](https://github.com/jetstreamapp/jetstream/issues/1522)
 
 ## [8.19.2](https://github.com/jetstreamapp/jetstream/compare/v8.19.1...v8.19.2) (2026-02-02)
 
@@ -732,7 +732,7 @@
 
 ### Bug Fixes
 
-* field permissions missing correct values ([e87a33a](https://github.com/jetstreamapp/jetstream/commit/e87a33ae2e04e6bf8aed2f75d3baa866dbe85fe8)), closes [#1513](https://github.com/jetstreamapp/jetstream/issues/1513)
+- field permissions missing correct values ([e87a33a](https://github.com/jetstreamapp/jetstream/commit/e87a33ae2e04e6bf8aed2f75d3baa866dbe85fe8)), closes [#1513](https://github.com/jetstreamapp/jetstream/issues/1513)
 
 ## [8.19.0](https://github.com/jetstreamapp/jetstream/compare/v8.18.1...v8.19.0) (2026-01-23)
 
@@ -740,116 +740,116 @@
 
 ### Bug Fixes
 
-* remove email preview ([7556bcd](https://github.com/jetstreamapp/jetstream/commit/7556bcda521240f40b3401749435621317448c28))
+- remove email preview ([7556bcd](https://github.com/jetstreamapp/jetstream/commit/7556bcda521240f40b3401749435621317448c28))
 
 ## [8.18.0](https://github.com/jetstreamapp/jetstream/compare/v8.17.1...v8.18.0) (2026-01-20)
 
 ### Features
 
-* show preview of zip file on data loads ([33b76f4](https://github.com/jetstreamapp/jetstream/commit/33b76f43c25c6b5545538f03f0d163227330482c))
+- show preview of zip file on data loads ([33b76f4](https://github.com/jetstreamapp/jetstream/commit/33b76f43c25c6b5545538f03f0d163227330482c))
 
 ### Bug Fixes
 
-* add team-management page to docs ([179331f](https://github.com/jetstreamapp/jetstream/commit/179331f5015fc657646d5c965c8d4b76ea139326))
-* **api:** handle aborted download job ([1b64de5](https://github.com/jetstreamapp/jetstream/commit/1b64de588a3c57bbdc6e464869158c749550e451))
-* mark record as error if missing binary attachment ([451954e](https://github.com/jetstreamapp/jetstream/commit/451954ed44e15537c04a0afde50164010cc3975a)), closes [#1503](https://github.com/jetstreamapp/jetstream/issues/1503)
+- add team-management page to docs ([179331f](https://github.com/jetstreamapp/jetstream/commit/179331f5015fc657646d5c965c8d4b76ea139326))
+- **api:** handle aborted download job ([1b64de5](https://github.com/jetstreamapp/jetstream/commit/1b64de588a3c57bbdc6e464869158c749550e451))
+- mark record as error if missing binary attachment ([451954e](https://github.com/jetstreamapp/jetstream/commit/451954ed44e15537c04a0afde50164010cc3975a)), closes [#1503](https://github.com/jetstreamapp/jetstream/issues/1503)
 
 ## [8.17.1](https://github.com/jetstreamapp/jetstream/compare/v8.17.0...v8.17.1) (2026-01-15)
 
 ### Bug Fixes
 
-* manage permission invalid id ([610080d](https://github.com/jetstreamapp/jetstream/commit/610080d9c032b84b709738b402cd017283a9515b)), closes [#1504](https://github.com/jetstreamapp/jetstream/issues/1504)
+- manage permission invalid id ([610080d](https://github.com/jetstreamapp/jetstream/commit/610080d9c032b84b709738b402cd017283a9515b)), closes [#1504](https://github.com/jetstreamapp/jetstream/issues/1504)
 
 ## [8.17.0](https://github.com/jetstreamapp/jetstream/compare/v8.16.0...v8.17.0) (2026-01-12)
 
 ### Features
 
-* **desktop:** add menu option to open recent log file ([35d4c7a](https://github.com/jetstreamapp/jetstream/commit/35d4c7a36cd85387aceeb7731bc1df6dda87bf97))
-* **desktop:** add menu option to open settings ([fd39313](https://github.com/jetstreamapp/jetstream/commit/fd39313bf9b6b76897b8403d74ebf0ecbe786c3e))
-* **desktop:** show recent files in menu ([139d333](https://github.com/jetstreamapp/jetstream/commit/139d3332e4c666aa5de6d59aff3ec8750dbceb4c))
-* **desktop:** show recent files in menu ([9f03030](https://github.com/jetstreamapp/jetstream/commit/9f0303076657fbaee1812eef52718fcfeba72300))
+- **desktop:** add menu option to open recent log file ([35d4c7a](https://github.com/jetstreamapp/jetstream/commit/35d4c7a36cd85387aceeb7731bc1df6dda87bf97))
+- **desktop:** add menu option to open settings ([fd39313](https://github.com/jetstreamapp/jetstream/commit/fd39313bf9b6b76897b8403d74ebf0ecbe786c3e))
+- **desktop:** show recent files in menu ([139d333](https://github.com/jetstreamapp/jetstream/commit/139d3332e4c666aa5de6d59aff3ec8750dbceb4c))
+- **desktop:** show recent files in menu ([9f03030](https://github.com/jetstreamapp/jetstream/commit/9f0303076657fbaee1812eef52718fcfeba72300))
 
 ### Bug Fixes
 
-* **desktop:** disable logging in dev mode ([f704ff0](https://github.com/jetstreamapp/jetstream/commit/f704ff0e9514968cc8f52120948d5126809e15cc))
-* **desktop:** fix bulk API query download ([fa91968](https://github.com/jetstreamapp/jetstream/commit/fa91968904d073d0c0b4fb2bf8d7dd035b06a3e8))
-* **desktop:** fix desktop open org link ([15afc27](https://github.com/jetstreamapp/jetstream/commit/15afc271267ec5388dbfd563978e44d6aff769c8))
-* **desktop:** increase heap memory for electron ([e1133ad](https://github.com/jetstreamapp/jetstream/commit/e1133ad40367e7ea3f023220f7c9e4d005e4a299))
-* **desktop:** unsubscribe to electron callbacks ([7febf9b](https://github.com/jetstreamapp/jetstream/commit/7febf9b33bf2f40ad6fc7761b22a56f9829f08ea))
-* handle large xlsx files ([d940488](https://github.com/jetstreamapp/jetstream/commit/d9404882ddb10222f921848ef6522cf6a3db8e58))
+- **desktop:** disable logging in dev mode ([f704ff0](https://github.com/jetstreamapp/jetstream/commit/f704ff0e9514968cc8f52120948d5126809e15cc))
+- **desktop:** fix bulk API query download ([fa91968](https://github.com/jetstreamapp/jetstream/commit/fa91968904d073d0c0b4fb2bf8d7dd035b06a3e8))
+- **desktop:** fix desktop open org link ([15afc27](https://github.com/jetstreamapp/jetstream/commit/15afc271267ec5388dbfd563978e44d6aff769c8))
+- **desktop:** increase heap memory for electron ([e1133ad](https://github.com/jetstreamapp/jetstream/commit/e1133ad40367e7ea3f023220f7c9e4d005e4a299))
+- **desktop:** unsubscribe to electron callbacks ([7febf9b](https://github.com/jetstreamapp/jetstream/commit/7febf9b33bf2f40ad6fc7761b22a56f9829f08ea))
+- handle large xlsx files ([d940488](https://github.com/jetstreamapp/jetstream/commit/d9404882ddb10222f921848ef6522cf6a3db8e58))
 
 ## [8.16.0](https://github.com/jetstreamapp/jetstream/compare/v8.15.1...v8.16.0) (2026-01-02)
 
 ### Features
 
-* add delete button to org card ([81e3504](https://github.com/jetstreamapp/jetstream/commit/81e35042b0e6f54af3b2e8a457cbd667a4665a9d))
-* **desktop:** show org connection error on desktop ([0ec59c0](https://github.com/jetstreamapp/jetstream/commit/0ec59c0fdc299f46c1b2f0f49b24fe14d2c1248d))
-* enable team dashboard in desktop app ([3a80f5d](https://github.com/jetstreamapp/jetstream/commit/3a80f5dc3a513d10995a01d4066bfec2410bac05))
+- add delete button to org card ([81e3504](https://github.com/jetstreamapp/jetstream/commit/81e35042b0e6f54af3b2e8a457cbd667a4665a9d))
+- **desktop:** show org connection error on desktop ([0ec59c0](https://github.com/jetstreamapp/jetstream/commit/0ec59c0fdc299f46c1b2f0f49b24fe14d2c1248d))
+- enable team dashboard in desktop app ([3a80f5d](https://github.com/jetstreamapp/jetstream/commit/3a80f5dc3a513d10995a01d4066bfec2410bac05))
 
 ### Bug Fixes
 
-* change load static field dropdown styles ([4c4e576](https://github.com/jetstreamapp/jetstream/commit/4c4e57651edd9e69f6b5ddfae21944345d8f05a8))
-* error message typo ([d7770c3](https://github.com/jetstreamapp/jetstream/commit/d7770c363b57d5b3f096d23aab4d37f6bc4c70a6))
-* incorrect openapi route method ([f1e355c](https://github.com/jetstreamapp/jetstream/commit/f1e355c5559d5e7238fd190bdff837de59b9b5b6))
-* redirect url validation ([e31e980](https://github.com/jetstreamapp/jetstream/commit/e31e980753ffdd371ee7d5a99f7817ffb17ac2d9))
+- change load static field dropdown styles ([4c4e576](https://github.com/jetstreamapp/jetstream/commit/4c4e57651edd9e69f6b5ddfae21944345d8f05a8))
+- error message typo ([d7770c3](https://github.com/jetstreamapp/jetstream/commit/d7770c363b57d5b3f096d23aab4d37f6bc4c70a6))
+- incorrect openapi route method ([f1e355c](https://github.com/jetstreamapp/jetstream/commit/f1e355c5559d5e7238fd190bdff837de59b9b5b6))
+- redirect url validation ([e31e980](https://github.com/jetstreamapp/jetstream/commit/e31e980753ffdd371ee7d5a99f7817ffb17ac2d9))
 
 ## [8.15.1](https://github.com/jetstreamapp/jetstream/compare/v8.15.0...v8.15.1) (2025-12-23)
 
 ### Features
 
-* **load:** add hard delete option to load records ([36d16da](https://github.com/jetstreamapp/jetstream/commit/36d16da3a1252050b0d5bff3a594cd0b9ff12075)), closes [#1447](https://github.com/jetstreamapp/jetstream/issues/1447)
+- **load:** add hard delete option to load records ([36d16da](https://github.com/jetstreamapp/jetstream/commit/36d16da3a1252050b0d5bff3a594cd0b9ff12075)), closes [#1447](https://github.com/jetstreamapp/jetstream/issues/1447)
 
 ### Bug Fixes
 
-* ensure space does not scroll picklist menu ([94438ac](https://github.com/jetstreamapp/jetstream/commit/94438acead4cf4e68edf35b9d18c357bd279dd05))
-* **query:** data table editor lookup editor ([360312b](https://github.com/jetstreamapp/jetstream/commit/360312bb417989b077b2180e67c2ee5a2ce689fd)), closes [#1483](https://github.com/jetstreamapp/jetstream/issues/1483)
+- ensure space does not scroll picklist menu ([94438ac](https://github.com/jetstreamapp/jetstream/commit/94438acead4cf4e68edf35b9d18c357bd279dd05))
+- **query:** data table editor lookup editor ([360312b](https://github.com/jetstreamapp/jetstream/commit/360312bb417989b077b2180e67c2ee5a2ce689fd)), closes [#1483](https://github.com/jetstreamapp/jetstream/issues/1483)
 
 ## [8.15.0](https://github.com/jetstreamapp/jetstream/compare/v8.14.0...v8.15.0) (2025-12-16)
 
 ### Features
 
-* add user configurable soql format options ([993fa8c](https://github.com/jetstreamapp/jetstream/commit/993fa8c80932d8b556767fb5d814101e68971252)), closes [#1472](https://github.com/jetstreamapp/jetstream/issues/1472)
+- add user configurable soql format options ([993fa8c](https://github.com/jetstreamapp/jetstream/commit/993fa8c80932d8b556767fb5d814101e68971252)), closes [#1472](https://github.com/jetstreamapp/jetstream/issues/1472)
 
 ### Bug Fixes
 
-* desktop build editor assets ([ceaf863](https://github.com/jetstreamapp/jetstream/commit/ceaf86345dd5dcda0b10e9953458c551247eb7c6))
+- desktop build editor assets ([ceaf863](https://github.com/jetstreamapp/jetstream/commit/ceaf86345dd5dcda0b10e9953458c551247eb7c6))
 
 ## [8.14.0](https://github.com/jetstreamapp/jetstream/compare/v8.13.1...v8.14.0) (2025-12-14)
 
 ### Features
 
-* add record lookup to query filter value ([60154a9](https://github.com/jetstreamapp/jetstream/commit/60154a95e06b750a7c23c4046f503e287508f65a)), closes [#1463](https://github.com/jetstreamapp/jetstream/issues/1463)
+- add record lookup to query filter value ([60154a9](https://github.com/jetstreamapp/jetstream/commit/60154a95e06b750a7c23c4046f503e287508f65a)), closes [#1463](https://github.com/jetstreamapp/jetstream/issues/1463)
 
 ### Bug Fixes
 
-* record lookup clear button ([ed4ce71](https://github.com/jetstreamapp/jetstream/commit/ed4ce716c0514dd05966218ac316b5bf7034a1f6)), closes [#1471](https://github.com/jetstreamapp/jetstream/issues/1471)
+- record lookup clear button ([ed4ce71](https://github.com/jetstreamapp/jetstream/commit/ed4ce716c0514dd05966218ac316b5bf7034a1f6)), closes [#1471](https://github.com/jetstreamapp/jetstream/issues/1471)
 
 ## [8.13.1](https://github.com/jetstreamapp/jetstream/compare/v8.13.0...v8.13.1) (2025-12-13)
 
 ### Bug Fixes
 
-* lookup filter styles ([41e6674](https://github.com/jetstreamapp/jetstream/commit/41e6674b0a363744c67e42e4b385f956b0459418)), closes [#1471](https://github.com/jetstreamapp/jetstream/issues/1471)
+- lookup filter styles ([41e6674](https://github.com/jetstreamapp/jetstream/commit/41e6674b0a363744c67e42e4b385f956b0459418)), closes [#1471](https://github.com/jetstreamapp/jetstream/issues/1471)
 
 ## [8.13.0](https://github.com/jetstreamapp/jetstream/compare/v8.12.1...v8.13.0) (2025-12-13)
 
 ### Features
 
-* add lookup field for editing reference fields ([63d5d72](https://github.com/jetstreamapp/jetstream/commit/63d5d72442de407768df876a9cb87e5447eec813)), closes [#1471](https://github.com/jetstreamapp/jetstream/issues/1471)
+- add lookup field for editing reference fields ([63d5d72](https://github.com/jetstreamapp/jetstream/commit/63d5d72442de407768df876a9cb87e5447eec813)), closes [#1471](https://github.com/jetstreamapp/jetstream/issues/1471)
 
 ### Bug Fixes
 
-* fix accessibility issues ([28ff1aa](https://github.com/jetstreamapp/jetstream/commit/28ff1aa102f2df50186da0ec696a7a594eb510a9))
+- fix accessibility issues ([28ff1aa](https://github.com/jetstreamapp/jetstream/commit/28ff1aa102f2df50186da0ec696a7a594eb510a9))
 
 ## [8.12.1](https://github.com/jetstreamapp/jetstream/compare/v8.12.0...v8.12.1) (2025-12-12)
 
 ### Bug Fixes
 
-* Fix multiple feedback file attachments ([22cfa41](https://github.com/jetstreamapp/jetstream/commit/22cfa41))
+- Fix multiple feedback file attachments ([22cfa41](https://github.com/jetstreamapp/jetstream/commit/22cfa41))
 
 ## [8.12.0](https://github.com/jetstreamapp/jetstream/compare/v8.11.0...v8.12.0) (2025-12-12)
 
 ### Features
 
-* Introduce in-app feedback ([2064bc9](https://github.com/jetstreamapp/jetstream/commit/2064bc9))
+- Introduce in-app feedback ([2064bc9](https://github.com/jetstreamapp/jetstream/commit/2064bc9))
 
 # Release Changelog

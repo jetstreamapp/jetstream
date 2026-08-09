@@ -41,10 +41,10 @@ const tiers = [
     description: 'Perfect for individual users',
     features: [
       'Everything in Free plan',
-      <Link href={ROUTES.DESKTOP} className="text-cyan-500 hover:underline">
+      <Link key="desktop-application" href={ROUTES.DESKTOP} className="text-cyan-500 hover:underline">
         Desktop Application
       </Link>,
-      <Link href={ROUTES.BROWSER_EXTENSIONS} className="text-cyan-500 hover:underline">
+      <Link key="browser-extensions" href={ROUTES.BROWSER_EXTENSIONS} className="text-cyan-500 hover:underline">
         Browser Extensions (Chrome & Firefox)
       </Link>,
       'Save query history across devices',
@@ -164,8 +164,10 @@ export default function Page() {
                 </Link>
               </div>
               <ul className="mt-8 space-y-3 text-sm/6 text-gray-300 xl:mt-10">
-                {tier.features.map((feature) => (
-                  <li key={feature} className="flex gap-x-3">
+                {/* Feature lists are static per tier, and entries may be elements rather than strings,
+                    so index keys are both stable and the only unique option here. */}
+                {tier.features.map((feature, index) => (
+                  <li key={index} className="flex gap-x-3">
                     <CheckIcon aria-hidden="true" className="h-6 w-5 flex-none text-white" />
                     {feature}
                   </li>

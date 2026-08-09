@@ -45,14 +45,12 @@ export const subqueryConfigPanelState = atomWithReset<{ relationshipName: string
 function orderByClausesToSoql(orderByClauses: QueryOrderByClause[]): OrderByClause[] {
   return orderByClauses
     .filter((orderBy) => !!orderBy.field)
-    .map(
-      (orderBy): OrderByFieldClause => ({
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        field: orderBy.field!,
-        nulls: orderBy.nulls || undefined,
-        order: orderBy.order,
-      }),
-    );
+    .map((orderBy): OrderByFieldClause => ({
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      field: orderBy.field!,
+      nulls: orderBy.nulls || undefined,
+      order: orderBy.order,
+    }));
 }
 
 export const selectQueryField = atom<FieldType[]>((get) => {
@@ -250,14 +248,12 @@ export const queryOrderByState = atomWithReset<QueryOrderByClause[]>([initOrderB
 export const selectQueryOrderBy = atom<OrderByClause[]>((get) =>
   get(queryOrderByState)
     ?.filter((orderBy) => !!orderBy.field)
-    .map(
-      (orderBy): OrderByFieldClause => ({
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        field: orderBy.field!,
-        nulls: orderBy.nulls || undefined,
-        order: orderBy.order,
-      }),
-    ),
+    .map((orderBy): OrderByFieldClause => ({
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      field: orderBy.field!,
+      nulls: orderBy.nulls || undefined,
+      order: orderBy.order,
+    })),
 );
 
 export const querySoqlState = atomWithReset<string>('');

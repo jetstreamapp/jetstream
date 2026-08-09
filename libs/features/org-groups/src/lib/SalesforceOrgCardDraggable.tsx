@@ -44,8 +44,9 @@ export function SalesforceOrgCardDraggable({ org, isActive, onAddOrgHandlerFn }:
           border: 0.5px solid
             ${org.connectionError ? 'var(--slds-g-color-error-base-40, #ea001e)' : 'var(--slds-g-color-border-1, #c9c9c9)'};
           box-shadow: var(--slds-g-shadow-1, 0px 2px 2px rgba(0, 0, 0, 0.1));
-          ${isActive
-            ? `::after {
+          ${
+            isActive
+              ? `::after {
             content: '';
             position: absolute;
             top: 0;
@@ -58,7 +59,8 @@ export function SalesforceOrgCardDraggable({ org, isActive, onAddOrgHandlerFn }:
             border-top: 1rem solid transparent;
             border-top-color: var(--slds-g-color-brand-base-60, #1b96ff);
           }`
-            : ''}
+              : ''
+          }
         `}
         className="slds-box slds-box_link slds-box_x-small slds-media slds-is-relative"
       >

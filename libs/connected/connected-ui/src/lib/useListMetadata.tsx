@@ -373,17 +373,15 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
           setHasError(false);
         }
 
-        let itemsToProcess = types.map(
-          ({ type, folder, inFolder }): ListMetadataResultItem => ({
-            type,
-            folder,
-            inFolder: inFolder ?? false,
-            loading: true,
-            error: null,
-            lastRefreshed: null,
-            items: [],
-          }),
-        );
+        let itemsToProcess = types.map(({ type, folder, inFolder }): ListMetadataResultItem => ({
+          type,
+          folder,
+          inFolder: inFolder ?? false,
+          loading: true,
+          error: null,
+          lastRefreshed: null,
+          items: [],
+        }));
 
         const newMetadataItems = groupByFlat(itemsToProcess, 'type');
 

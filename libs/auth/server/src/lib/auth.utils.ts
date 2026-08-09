@@ -330,6 +330,7 @@ export function getApiAddressFromReq(req: ExpressRequest<unknown, unknown, unkno
 // Browsers normalize "\" to "/" per the WHATWG URL spec, so "/\evil.com" would otherwise be
 // parsed as the protocol-relative "//evil.com" and escape the origin even though it passes a
 // naive `startsWith('//')` check.
+// oxlint-disable-next-line no-control-regex -- matching control characters is the purpose of this guard
 const UNSAFE_REDIRECT_CHARS = /[\u0000-\u0020\u007F\\]/;
 
 export function validateRedirectUrl(url: string | null | undefined, allowedOrigins: string[], defaultUrl: string): string {

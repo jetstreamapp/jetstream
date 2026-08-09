@@ -40,8 +40,7 @@ vi.mock('../utils/cloudflare.utils', () => ({
     }
     return { blocked, challenged, managed, total: blocked + challenged + managed };
   },
-  sortAndLimit: <T extends { count: number }>(rows: T[], limit: number) =>
-    [...rows].sort((a, b) => b.count - a.count).slice(0, limit),
+  sortAndLimit: <T extends { count: number }>(rows: T[], limit: number) => [...rows].sort((a, b) => b.count - a.count).slice(0, limit),
 }));
 
 vi.mock('../utils/geo-ip.utils', () => ({

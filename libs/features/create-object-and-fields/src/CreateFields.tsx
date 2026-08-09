@@ -41,21 +41,17 @@ function SelectedItemsBadge({
   const [items] = useState<ListItem[]>(() => {
     if (labelListItem?.length) {
       const itemsById = groupByFlat(labelListItem, 'id');
-      return _items.map(
-        (item): ListItem => ({
-          id: item,
-          label: itemsById[item]?.label || item,
-          value: item,
-        }),
-      );
+      return _items.map((item): ListItem => ({
+        id: item,
+        label: itemsById[item]?.label || item,
+        value: item,
+      }));
     } else {
-      return _items.map(
-        (item): ListItem => ({
-          id: item,
-          label: item,
-          value: item,
-        }),
-      );
+      return _items.map((item): ListItem => ({
+        id: item,
+        label: item,
+        value: item,
+      }));
     }
   });
   if (!_items.length) {

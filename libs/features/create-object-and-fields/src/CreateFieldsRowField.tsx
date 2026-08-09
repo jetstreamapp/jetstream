@@ -81,7 +81,7 @@ export const CreateFieldsRowField = forwardRef<unknown, CreateFieldsRowFieldProp
                 labelHelp:
                   typeof field.labelHelp === 'function' ? field.labelHelp(allValues.type.value as SalesforceFieldType) : field.labelHelp,
                 isRequired: field.required,
-                disabled: disabled,
+                disabled,
                 itemLength: 10,
               }}
               items={values}
@@ -148,6 +148,7 @@ export const CreateFieldsRowField = forwardRef<unknown, CreateFieldsRowFieldProp
             >
               {values.map((_value) => (
                 <Radio
+                  key={_value.id}
                   idPrefix={id}
                   id={`${id}-${_value.id}`}
                   name={field.label}

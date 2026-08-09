@@ -228,13 +228,15 @@ const PopoverComponent = ({
                     &::after {
                       box-shadow: 2px 2px 4px 0 rgb(0 0 0 / 16%);
                     }
-                    ${footer?.props?.className?.includes('slds-popover__footer') &&
-                    !containerClassName?.includes('_error') &&
-                    !containerClassName?.includes('_warning') &&
-                    !containerClassName?.includes('_walkthrough') &&
-                    `&::before {
+                    ${
+                      footer?.props?.className?.includes('slds-popover__footer') &&
+                      !containerClassName?.includes('_error') &&
+                      !containerClassName?.includes('_warning') &&
+                      !containerClassName?.includes('_walkthrough') &&
+                      `&::before {
               background-color: var(--slds-s-container-footer-color-background, var(--slds-g-color-surface-container-2, #f3f2f2));
-            }`}
+            }`
+                    }
                   }
                 }
 
@@ -244,18 +246,24 @@ const PopoverComponent = ({
                     &::after {
                       box-shadow: -1px -1px 0 0 rgb(0 0 0 / 16%);
                     }
-                    ${containerClassName?.includes('_error') &&
-                    `&::before {
+                    ${
+                      containerClassName?.includes('_error') &&
+                      `&::before {
               background-color: var(--slds-g-color-error-container-1, #ba0517);
-            }`}
-                    ${containerClassName?.includes('_warning') &&
-                    `&::before {
+            }`
+                    }
+                    ${
+                      containerClassName?.includes('_warning') &&
+                      `&::before {
               background-color: var(--slds-g-color-warning-container-1, #fe9339);
-            }`}
-            ${containerClassName?.includes('_walkthrough') &&
-                    `&::before {
+            }`
+                    }
+                    ${
+                      containerClassName?.includes('_walkthrough') &&
+                      `&::before {
               background-color: var(--slds-g-color-surface-inverse-1, #032d60);
-            }`}
+            }`
+                    }
                   }
                 }
               `}

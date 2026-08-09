@@ -39,13 +39,19 @@ test.describe('QUICK QUERY POPOVER', () => {
     // Wait until Monaco's onDidPaste handler has replaced all lookalike spaces
     await page.waitForFunction((chars) => {
       const monacoInstance = (window as any).monaco;
-      const value = monacoInstance?.editor.getEditors().find((editor: any) => !editor.getRawOptions().readOnly)?.getValue();
+      const value = monacoInstance?.editor
+        .getEditors()
+        .find((editor: any) => !editor.getRawOptions().readOnly)
+        ?.getValue();
       return value && chars.every((char: string) => !value.includes(char));
     }, SANITIZED_CHARS);
 
     const editorValue = await page.evaluate(() => {
       const monacoInstance = (window as any).monaco;
-      return monacoInstance?.editor.getEditors().find((editor: any) => !editor.getRawOptions().readOnly)?.getValue();
+      return monacoInstance?.editor
+        .getEditors()
+        .find((editor: any) => !editor.getRawOptions().readOnly)
+        ?.getValue();
     });
 
     expect(editorValue).toBe(cleanQuery);

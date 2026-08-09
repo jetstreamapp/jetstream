@@ -18,7 +18,6 @@ export const TeamInviteRow = ({
   return (
     <tr data-testid={`team-member-row-invite-${invitation.email}`}>
       <td
-        role="gridcell"
         css={css`
           padding-left: 0.5rem !important;
         `}
@@ -37,16 +36,16 @@ export const TeamInviteRow = ({
           </div>
         </div>
       </th>
-      <td role="gridcell" className="slds-cell-wrap">
+      <td className="slds-cell-wrap">
         <RoleCell role={invitation.role} />
       </td>
-      <td role="gridcell" className="slds-cell-wrap">
+      <td className="slds-cell-wrap">
         <StatusCell expiresAt={invitation.expiresAt} />
       </td>
-      <td role="gridcell">
+      <td>
         <DateCell value={invitation.lastSentAt} />
       </td>
-      <td role="gridcell">
+      <td>
         <DateCell value={invitation.expiresAt} />
       </td>
     </tr>

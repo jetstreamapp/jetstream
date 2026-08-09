@@ -36,8 +36,8 @@ export const AnalysisToolsPaywall: FunctionComponent<AnalysisToolsPaywallProps> 
         />
         <h2 className="slds-text-heading_medium slds-m-bottom_x-small">{featureLabel} is a paid feature</h2>
         <p className="slds-text-body_regular slds-text-color_weak slds-m-bottom_medium">
-          Field Usage and Permission Analysis are available on a paid Jetstream plan. Upgrade to scan field population
-          across your objects, find unused fields, and audit profile and permission-set coverage.
+          Field Usage and Permission Analysis are available on a paid Jetstream plan. Upgrade to scan field population across your objects,
+          find unused fields, and audit profile and permission-set coverage.
         </p>
         <div className="slds-align_absolute-center">
           <UpgradeToProButton source="analysis-tools" trackEvent={trackEvent} />

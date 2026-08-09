@@ -46,13 +46,11 @@ export const SobjectExpandChildrenBtn: FunctionComponent<SobjectExpandChildrenBt
   useEffect(() => {
     if (Array.isArray(field.relatedSobject)) {
       setRelatedObjects(
-        orderValues(field.relatedSobject).map(
-          (relationship): ListItem => ({
-            id: relationship,
-            label: relationship,
-            value: relationship,
-          }),
-        ),
+        orderValues(field.relatedSobject).map((relationship): ListItem => ({
+          id: relationship,
+          label: relationship,
+          value: relationship,
+        })),
       );
     } else {
       setRelatedObjects([]);

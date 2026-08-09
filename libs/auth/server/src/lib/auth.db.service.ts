@@ -542,12 +542,10 @@ export async function getUserSessions(userId: string, omitLocationData?: boolean
   if (!omitLocationData && sessions.length > 0) {
     try {
       return await lookupGeoLocationFromIpAddresses(sessions.map(({ ipAddress }) => ipAddress)).then((locationInfo) =>
-        locationInfo.map(
-          ({ location }, i): UserSessionWithLocation => ({
-            ...sessions[i],
-            location,
-          }),
-        ),
+        locationInfo.map(({ location }, i): UserSessionWithLocation => ({
+          ...sessions[i],
+          location,
+        })),
       );
     } catch (ex) {
       logger.warn({ ...getErrorMessageAndStackObj(ex) }, 'Error fetching location data for sessions');
@@ -619,12 +617,10 @@ export async function getTeamUserSessions({
   if (!omitLocationData && sessions.length > 0) {
     try {
       return await lookupGeoLocationFromIpAddresses(sessions.map(({ ipAddress }) => ipAddress)).then((locationInfo) =>
-        locationInfo.map(
-          ({ location }, i): UserSessionWithLocationAndUser => ({
-            ...sessions[i],
-            location,
-          }),
-        ),
+        locationInfo.map(({ location }, i): UserSessionWithLocationAndUser => ({
+          ...sessions[i],
+          location,
+        })),
       );
     } catch (ex) {
       logger.warn({ ...getErrorMessageAndStackObj(ex) }, 'Error fetching location data for sessions');
@@ -699,12 +695,10 @@ export async function getUserWebExtensionSessions(userId: string, omitLocationDa
   if (!omitLocationData && webTokenSessions.length > 0) {
     try {
       return await lookupGeoLocationFromIpAddresses(webTokenSessions.map(({ ipAddress }) => ipAddress)).then((locationInfo) =>
-        locationInfo.map(
-          ({ location }, i): ExternalTokenSessionWithLocation => ({
-            ...webTokenSessions[i],
-            location,
-          }),
-        ),
+        locationInfo.map(({ location }, i): ExternalTokenSessionWithLocation => ({
+          ...webTokenSessions[i],
+          location,
+        })),
       );
     } catch (ex) {
       logger.warn({ ...getErrorMessageAndStackObj(ex) }, 'Error fetching location data for webTokens');

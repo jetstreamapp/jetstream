@@ -78,8 +78,7 @@ export async function sendCloudflareDailyDigest(_prisma: PrismaClient): Promise<
     15,
   );
   const ipsToEnrich = topMergedIps.map((row) => row.value);
-  const geoMap: Map<string, GeoIpResult | null> =
-    ipsToEnrich.length > 0 ? await lookupIpAddresses(ipsToEnrich) : new Map();
+  const geoMap: Map<string, GeoIpResult | null> = ipsToEnrich.length > 0 ? await lookupIpAddresses(ipsToEnrich) : new Map();
 
   const generatedAt = now.toLocaleString('en-US', { timeZone: 'America/Denver', dateStyle: 'full', timeStyle: 'short' });
 

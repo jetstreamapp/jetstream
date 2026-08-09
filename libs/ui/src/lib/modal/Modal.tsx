@@ -77,7 +77,7 @@ export const Modal = ({
   const titleId = useId();
 
   const { refs, context } = useFloating<HTMLElement>({
-    open: true && !hide,
+    open: !hide,
     onOpenChange: (open) => {
       if (!open && !closeDisabled) {
         onClose();

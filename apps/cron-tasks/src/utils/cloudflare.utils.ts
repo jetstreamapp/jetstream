@@ -405,13 +405,7 @@ export async function queryTopDimension(
 }
 
 const FIREWALL_EVENT_GROUPS_BY_DIMENSIONS_QUERY = /* GraphQL */ `
-  query FirewallEventGroupsByDimensions(
-    $zoneTag: String!
-    $since: Time!
-    $until: Time!
-    $actions: [String!]!
-    $limit: Int!
-  ) {
+  query FirewallEventGroupsByDimensions($zoneTag: String!, $since: Time!, $until: Time!, $actions: [String!]!, $limit: Int!) {
     viewer {
       zones(filter: { zoneTag: $zoneTag }) {
         firewallEventsAdaptiveGroups(

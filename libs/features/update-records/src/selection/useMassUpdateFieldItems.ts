@@ -277,7 +277,7 @@ function reducer(state: State, action: Action): State {
       const row = {
         ...state.rowsMap.get(sobject),
         loading: false,
-        validationResults: { impactedRecords, error: error, isValid: !error },
+        validationResults: { impactedRecords, error, isValid: !error },
       } as MetadataRow;
       row.isValid = isValidRow(row);
       rowsMap.set(sobject, row);

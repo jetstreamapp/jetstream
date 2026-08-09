@@ -104,7 +104,7 @@ export function sortFieldPermissionExportRowsForAnalysisTree(
     fieldKey: string;
   }
 
-  const decorated: DecoratedRow[] = new Array(fieldPermissionRows.length);
+  const decorated: DecoratedRow[] = Array.from({ length: fieldPermissionRows.length });
   for (let i = 0; i < fieldPermissionRows.length; i++) {
     const row = fieldPermissionRows[i];
     const parentId = typeof row.ParentId === 'string' ? row.ParentId : '';
@@ -139,7 +139,7 @@ export function sortFieldPermissionExportRowsForAnalysisTree(
     return collator.compare(a.fieldKey, b.fieldKey);
   });
 
-  const sorted: PermissionExportRow[] = new Array(decorated.length);
+  const sorted: PermissionExportRow[] = Array.from({ length: decorated.length });
   for (let i = 0; i < decorated.length; i++) {
     sorted[i] = decorated[i].row;
   }

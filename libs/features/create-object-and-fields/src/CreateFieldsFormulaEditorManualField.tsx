@@ -133,13 +133,13 @@ export const CreateFieldsFormulaEditorManualField = forwardRef<unknown, CreateFi
                 label: field,
                 className: 'slds-form-element_stacked slds-is-editing',
                 containerDisplay: 'contents',
-                disabled: disabled,
+                disabled,
               }}
               timeProps={{
                 label: 'Time',
                 className: 'slds-form-element_stacked slds-is-editing',
                 stepInMinutes: 1,
-                disabled: disabled,
+                disabled,
               }}
               onChange={(value) => onChange(fieldType, isDate(value) ? formatISO(value) : null)}
             />

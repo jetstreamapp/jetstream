@@ -19,5 +19,4 @@ description: Generate conventional commit messages following project commitlint 
 - **Case**: No restrictions on subject casing.
 - **Length**: No max length enforced for body, or footer; header is limited to 120 characters and is used to generate the changelog, so should be concise and descriptive.
 
-
 Full rules are defined in `commitlint.config.js`.

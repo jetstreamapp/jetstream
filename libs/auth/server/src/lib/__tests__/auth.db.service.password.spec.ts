@@ -120,8 +120,8 @@ describe('verifyPasswordForUserId', () => {
     const updateCalls = prismaMock.user.update.mock.calls;
     expect(updateCalls.length).toBeGreaterThan(0);
     updateCalls.forEach(([args]) => {
-      expect((args?.where as { id: string }).id).toBe(USER_A);
-      expect((args?.where as { id: string }).id).not.toBe(USER_B);
+      expect((args.where as { id: string }).id).toBe(USER_A);
+      expect((args.where as { id: string }).id).not.toBe(USER_B);
     });
   });
 

@@ -35,7 +35,7 @@ function getPlaceholderOrg(org: SalesforceDeploymentHistoryOrg) {
     accessToken: '',
     instanceUrl: 'https://login.salesforce.com',
     loginUrl: 'https://login.salesforce.com',
-    userId: userId,
+    userId,
     email: '',
     organizationId: orgId,
     username: org.label,

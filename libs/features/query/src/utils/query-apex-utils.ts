@@ -297,5 +297,5 @@ function getFieldAsApex([field, value]: [string, FieldValue], variableName: stri
 
 function getIndentation(options: RecordToApexOptions): string {
   const { indentation, tabSize } = options;
-  return new Array(tabSize).fill(indentation === 'spaces' ? SPACE : TAB).join(EMPTY);
+  return Array.from({ length: tabSize }, () => (indentation === 'spaces' ? SPACE : TAB)).join(EMPTY);
 }

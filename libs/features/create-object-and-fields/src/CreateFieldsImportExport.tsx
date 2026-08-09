@@ -91,33 +91,32 @@ export const CreateFieldsImportExport = ({ selectedOrg, rows, onImportRows, onLo
     });
     // transform data into correct format
     onImportRows(
-      data.map(
-        (row): FieldValues =>
-          allFields.reduce((output, field) => {
-            let value = row[field.toLowerCase()];
-            if (fieldDefinitions[field].type === 'checkbox') {
-              value = ensureBoolean(value);
-            }
-            if (field === 'type') {
-              value = ensureValidType(value);
-            }
-            if (field === 'deleteConstraint' && value) {
-              value = ['SetNull', 'Cascade', 'Restrict'].includes(value) ? value : 'SetNull';
-            }
-            if (field === 'secondaryType') {
-              value = ensureValidSecondaryType(value);
-            }
-            if (field === 'writeRequiresMasterRead' && value) {
-              value = value === 'true' ? 'true' : 'false';
-            }
-            output[field] = {
-              value,
-              touched: true,
-              isValid: true,
-              errorMessage: null,
-            };
-            return output;
-          }, {} as FieldValues),
+      data.map((row): FieldValues =>
+        allFields.reduce((output, field) => {
+          let value = row[field.toLowerCase()];
+          if (fieldDefinitions[field].type === 'checkbox') {
+            value = ensureBoolean(value);
+          }
+          if (field === 'type') {
+            value = ensureValidType(value);
+          }
+          if (field === 'deleteConstraint' && value) {
+            value = ['SetNull', 'Cascade', 'Restrict'].includes(value) ? value : 'SetNull';
+          }
+          if (field === 'secondaryType') {
+            value = ensureValidSecondaryType(value);
+          }
+          if (field === 'writeRequiresMasterRead' && value) {
+            value = value === 'true' ? 'true' : 'false';
+          }
+          output[field] = {
+            value,
+            touched: true,
+            isValid: true,
+            errorMessage: null,
+          };
+          return output;
+        }, {} as FieldValues),
       ),
     );
     popoverRef.current?.close();

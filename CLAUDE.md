@@ -12,7 +12,7 @@ Jetstream is a comprehensive Salesforce management platform that helps users wor
 
 **Frontend**: React 19, TypeScript, Vite, jotai (state), Emotion (styling), Monaco Editor, Salesforce Lightning Design System (SLDS)
 **Backend**: Node.js 22+, Express, Prisma ORM, PostgreSQL, Socket.io, in-house auth
-**Build**: Nx monorepo, Vitest (testing), Playwright (E2E), ESLint, Prettier
+**Build**: Nx monorepo, Vitest (testing), Playwright (E2E), oxlint (linting), oxfmt (formatting)
 
 ## Important Project Build Notes
 
@@ -41,8 +41,8 @@ if (true) {
   - e.g. `providers.map(provider => provider.value)`
 - Prefer destructuring while looping where it makes sense to avoid having to choose a variable name (favor clarity if needed)
   - e.g. `providers.map(({ value }) => value)`
-- Always run prettier after working on a code file
-- Always run organize-imports on any TypeScript files (`.ts`/`.tsx`/`.mts`/`.cts`) you modified, just like prettier. This invokes the TypeScript language server's "Organize Imports" action — the same one VSCode runs on save — and is NOT the ESLint import rule.
+- Always run `pnpm format` (oxfmt) after working on a code file
+- Always run organize-imports on any TypeScript files (`.ts`/`.tsx`/`.mts`/`.cts`) you modified, just like the formatter. This invokes the TypeScript language server's "Organize Imports" action — the same one VSCode runs on save — and is NOT a lint rule.
   - `pnpm organize-imports <files-or-globs...>` — sort, combine, and remove unused imports in place
   - `pnpm organize-imports:check <files-or-globs...>` — dry-run; exits non-zero if any file would change
 

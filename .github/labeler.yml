@@ -9,67 +9,67 @@ excludeLabels: []
 custom:
   - location: title
     keywords:
-      - 'bug:'
+      - "bug:"
     labels:
-      - ':beetle: bug'
+      - ":beetle: bug"
 
   - location: title
     keywords:
-      - 'anon'
-      - 'apex'
+      - "anon"
+      - "apex"
     labels:
       - ANON-APEX
 
   - location: title
     keywords:
-      - 'automation'
+      - "automation"
     labels:
       - AUTOMATION
 
   - location: title
     keywords:
-      - 'deploy'
+      - "deploy"
     labels:
       - DEPLOY
 
   - location: title
     keywords:
-      - 'docs'
+      - "docs"
     labels:
       - DOCS
 
   - location: title
     keywords:
-      - 'backend'
+      - "backend"
     labels:
       - BACKEND
 
   - location: title
     keywords:
-      - 'landing'
+      - "landing"
     labels:
       - LANDING
 
   - location: title
     keywords:
-      - 'load'
+      - "load"
     labels:
       - LOAD
 
   - location: title
     keywords:
-      - 'permission'
+      - "permission"
     labels:
       - PERMISSIONS
 
   - location: title
     keywords:
-      - 'query'
+      - "query"
     labels:
       - QUERY
 
   - location: title
     keywords:
-      - 'api'
+      - "api"
     labels:
       - SFDC-API

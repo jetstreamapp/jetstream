@@ -34,11 +34,7 @@ describe('cloudflare-analytics-archiver.utils', () => {
       const start = new Date('2026-04-21T10:00:00.000Z');
       const end = new Date('2026-04-21T13:00:00.000Z');
       const buckets = listHourBuckets(start, end).map((d) => d.toISOString());
-      expect(buckets).toEqual([
-        '2026-04-21T10:00:00.000Z',
-        '2026-04-21T11:00:00.000Z',
-        '2026-04-21T12:00:00.000Z',
-      ]);
+      expect(buckets).toEqual(['2026-04-21T10:00:00.000Z', '2026-04-21T11:00:00.000Z', '2026-04-21T12:00:00.000Z']);
     });
 
     it('returns an empty array when end <= start', () => {

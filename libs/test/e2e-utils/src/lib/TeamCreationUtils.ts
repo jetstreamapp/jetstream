@@ -44,14 +44,12 @@ export class TeamCreationUtils {
    * Create Team With Admin User But No Other Members
    */
   async createTestTeamWithoutMembers({ page }: { page: Page }) {
-    const [adminUser] = await Promise.all([
-      (async () => {
-        const authPage = new AuthenticationPage(page);
-        const user = await authPage.signUpAndVerifyEmail();
-        const otpSecret = await authPage.enrollInOtpForLoggedInUser();
-        return { user, otpSecret };
-      })(),
-    ]);
+    const adminUser = await (async () => {
+      const authPage = new AuthenticationPage(page);
+      const user = await authPage.signUpAndVerifyEmail();
+      const otpSecret = await authPage.enrollInOtpForLoggedInUser();
+      return { user, otpSecret };
+    })();
 
     this.users.push(adminUser.user);
     this.userEmails.push(adminUser.user.email);

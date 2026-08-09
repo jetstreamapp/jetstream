@@ -1,0 +1,26 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "singleQuote": true,
+  "printWidth": 140,
+  "sortPackageJson": false,
+  "ignorePatterns": [
+    "/dist",
+    "/coverage",
+    ".docusaurus/",
+    "/.nx/cache",
+    "/.nx/workspace-data",
+    "**/monaco/vs/",
+    ".nx/self-healing",
+    "**/assets/**",
+    "**/generated/**",
+    "apps-sfdx/**"
+  ],
+  "overrides": [
+    {
+      "files": ["*.yml", "*.yaml"],
+      "options": {
+        "singleQuote": false
+      }
+    }
+  ]
+}

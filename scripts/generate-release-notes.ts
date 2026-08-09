@@ -10,7 +10,7 @@
  * Run via: pnpm release-notes:generate
  */
 import matter from 'gray-matter';
-import { format, resolveConfig } from 'prettier';
+import { format } from 'oxfmt';
 import { chalk, fs, globby, path } from 'zx';
 import type { ReleaseNote } from '../libs/release-notes/src/lib/release-notes.types.ts';
 import { releaseNoteFrontmatterSchema, releaseNotesArraySchema } from '../libs/release-notes/src/lib/release-notes.types.ts';
@@ -74,10 +74,13 @@ if (!validated.success) {
 }
 
 await fs.ensureDir(path.dirname(OUTPUT_FILE));
-// Format with prettier so the generated file matches what `prettier --write` would produce,
+// Format with oxfmt so the generated file matches what `pnpm format` would produce,
 // otherwise editors and pre-commit formatting reflow the whole file on unrelated edits.
-const prettierConfig = await resolveConfig(OUTPUT_FILE);
-const formatted = await format(JSON.stringify(validated.data), { ...prettierConfig, filepath: OUTPUT_FILE });
+const oxfmtConfig = await fs.readJson(path.join(ROOT, '.oxfmtrc.json'));
+const { code: formatted } = await format(OUTPUT_FILE, JSON.stringify(validated.data), {
+  printWidth: oxfmtConfig.printWidth,
+  singleQuote: oxfmtConfig.singleQuote,
+});
 await fs.writeFile(OUTPUT_FILE, formatted);
 
 console.log(chalk.greenBright(`Wrote ${notes.length} release note${notes.length === 1 ? '' : 's'} → ${path.relative(ROOT, OUTPUT_FILE)}`));

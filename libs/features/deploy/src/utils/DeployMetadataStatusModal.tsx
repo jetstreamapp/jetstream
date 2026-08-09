@@ -102,8 +102,9 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
   }, [isDone]);
 
   function handleGoBack() {
-    trackEvent(ANALYTICS_KEYS.deploy_go_back, {
-      ...(results
+    trackEvent(
+      ANALYTICS_KEYS.deploy_go_back,
+      results
         ? {
             checkOnly: results.checkOnly,
             completedDate: results.completedDate,
@@ -118,8 +119,8 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
             startDate: results.startDate,
             success: results.success,
           }
-        : { results: 'none' }),
-    });
+        : { results: 'none' },
+    );
     onGoBack && onGoBack();
   }
 

@@ -59,14 +59,12 @@ export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ className
         .toArray()
         .then((items) => [
           defaultSelectedObject,
-          ...uniqBy(items, 'sObject').map(
-            (item): QueryHistorySelection => ({
-              key: item.sObject,
-              name: item.sObject,
-              label: item.sObjectLabel,
-              isTooling: item.isTooling === 'true',
-            }),
-          ),
+          ...uniqBy(items, 'sObject').map((item): QueryHistorySelection => ({
+            key: item.sObject,
+            name: item.sObject,
+            label: item.sObjectLabel,
+            isTooling: item.isTooling === 'true',
+          })),
         ]),
     [whichOrg],
     [] as QueryHistorySelection[],

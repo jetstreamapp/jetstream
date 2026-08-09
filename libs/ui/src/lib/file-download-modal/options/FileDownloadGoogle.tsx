@@ -130,6 +130,7 @@ const FileDownloadGoogleExternal: FunctionComponent<FileDownloadGoogleProps> = (
       setWhichFolder(restoredWhichFolder);
       setGoogleFolder(restoredGoogleFolder);
       // Notify parent of restored folder selection so the download target is correct on initial load
+      // oxlint-disable-next-line react-hooks/rules-of-hooks
       onFolderSelectedEvent(restoredWhichFolder === 'root' ? undefined : restoredGoogleFolder?.folderId);
     }
   }, []);
@@ -223,6 +224,7 @@ const FileDownloadGoogleWeb: FunctionComponent<FileDownloadGoogleProps> = ({
       setWhichFolder(restoredWhichFolder);
       setGoogleFolder(restoredGoogleFolder);
       // Notify parent of restored folder selection so the download target is correct on initial load
+      // oxlint-disable-next-line react-hooks/rules-of-hooks
       onFolderSelectedEvent(restoredWhichFolder === 'root' ? undefined : restoredGoogleFolder?.folderId);
     }
   }, []);
