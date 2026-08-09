@@ -4,7 +4,7 @@ import { CSSProperties } from 'react';
 import Icon from '../../../widgets/Icon';
 import { DataTableGroupCellProps, TanstackColumn, TanstackRow, TanstackTable } from '../grid-types';
 import { ActiveCell } from './GridRow';
-import { getFrozenCellStyle } from './grid-layout';
+import { getGroupCellStickyStyle } from './grid-layout';
 
 export interface GridGroupRowProps<TRow extends object> {
   table: TanstackTable<TRow>;
@@ -167,7 +167,7 @@ export function GridGroupRow<TRow extends object>({
           onMouseDown={(event) => onCellMouseDown?.(row.id, column.id, event.shiftKey, event.button)}
           onMouseEnter={() => onCellMouseEnter?.(row.id, column.id)}
           onContextMenu={(event) => onContextMenu?.(event, row.id, column.id)}
-          style={{ gridColumn: `${startCol} / span ${span}`, ...getFrozenCellStyle(columns, index) }}
+          style={{ gridColumn: `${startCol} / span ${span}`, ...getGroupCellStickyStyle(columns, index, span) }}
         >
           {meta?.renderGroupCell && groupCellProps ? meta.renderGroupCell(groupCellProps) : null}
         </div>,

@@ -1,11 +1,17 @@
 import { useTable } from '@tanstack/react-table';
 import { act, renderHook } from '@testing-library/react';
-import { describe, expect, test } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { SELECT_COLUMN_KEY } from '../grid-constants';
 import { jetstreamTableFeatures } from '../grid-features';
 import { TanstackColumnDef, TanstackTable } from '../grid-types';
 import { useGridKeyboardNavigation } from '../keyboard/useGridKeyboardNavigation';
 import { getSelectionBounds } from '../selection/grid-selection';
+
+const copyRecordsToClipboard = vi.hoisted(() => vi.fn());
+vi.mock('@jetstream/shared/ui-utils', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@jetstream/shared/ui-utils')>()),
+  copyRecordsToClipboard,
+}));
 
 interface Row {
   _key: string;
@@ -46,6 +52,66 @@ const frozenDataColumns: TanstackColumnDef<Row>[] = [
   { id: 'Name', accessorKey: 'Name', meta: { jetstream: { frozen: true } } as TanstackColumnDef<Row>['meta'] },
   { id: 'Amount', accessorKey: 'Amount' },
 ];
+
+describe('useGridKeyboardNavigation — copying a range', () => {
+  beforeEach(() => copyRecordsToClipboard.mockClear());
+
+  /** Deploy's metadata table: a "No metadata found" child row renders a message through a row-level
+   * colSpan and has no cell values. Row '2' is an ordinary row that happens to be blank. */
+  const spannerColumns: TanstackColumnDef<Row>[] = [
+    {
+      id: 'Name',
+      accessorKey: 'Name',
+      meta: {
+        jetstream: { colSpan: ({ type, row }) => (type === 'ROW' && (row as Row)?.Name === '' ? 2 : 1) },
+      } as TanstackColumnDef<Row>['meta'],
+    },
+    { id: 'Amount', accessorKey: 'Amount' },
+  ];
+  const spannerData: Row[] = [
+    { _key: '1', Name: 'Alpha', Amount: '10' },
+    { _key: '2', Name: '', Amount: '' },
+    { _key: '3', Name: '', Amount: '' },
+    { _key: '4', Name: 'Delta', Amount: '40' },
+  ];
+
+  function copyRange(columns: TanstackColumnDef<Row>[], data: Row[], from: [string, string], to: [string, string]) {
+    const { result } = renderHook(() => {
+      const table = useTable({
+        features: jetstreamTableFeatures,
+        data,
+        columns,
+        getRowId: (row) => row._key,
+      }) as unknown as TanstackTable<Row>;
+      return useGridKeyboardNavigation({ table, getRootElement: () => null });
+    });
+    act(() => result.current.handleCellMouseDown(from[0], from[1], false));
+    act(() => result.current.handleCellMouseEnter(to[0], to[1]));
+    act(() => result.current.copySelection());
+    return copyRecordsToClipboard.mock.calls[0][0] as Record<string, string>[];
+  }
+
+  test('skips placeholder spanner rows so they do not land as blank lines mid-range', () => {
+    // Rows '2' and '3' are spanners with nothing to copy; '4' must still follow '1' with no gap.
+    expect(copyRange(spannerColumns, spannerData, ['1', 'Name'], ['4', 'Amount'])).toEqual([
+      { c0: 'Alpha', c1: '10' },
+      { c0: 'Delta', c1: '40' },
+    ]);
+  });
+
+  test('keeps genuinely empty DATA rows — dropping them would misalign everything below', () => {
+    const emptyData: Row[] = [
+      { _key: '1', Name: 'Alpha', Amount: '10' },
+      { _key: '2', Name: '', Amount: '' },
+      { _key: '3', Name: 'Charlie', Amount: '30' },
+    ];
+    expect(copyRange(columns, emptyData, ['1', 'Name'], ['3', 'Amount'])).toEqual([
+      { c1: 'Alpha', c2: '10' },
+      { c1: '', c2: '' },
+      { c1: 'Charlie', c2: '30' },
+    ]);
+  });
+});
 
 describe('useGridKeyboardNavigation — mouse range drag', () => {
   test('mouseenter without a mousedown does not extend anything', () => {

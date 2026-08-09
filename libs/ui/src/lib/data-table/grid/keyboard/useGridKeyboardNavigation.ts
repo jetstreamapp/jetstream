@@ -83,6 +83,15 @@ function getRowSegmentStarts<TRow extends object>(row: TanstackRow<TRow>, column
   return starts;
 }
 
+/**
+ * True when the row renders at least one cell wider than a single column. Consumers use a row-level
+ * colSpan for message/placeholder rows ("No metadata found", "no rows found") — the tell that a row
+ * carries a rendered message rather than per-column data.
+ */
+function isSpannerRow<TRow extends object>(row: TanstackRow<TRow>, columns: TanstackColumn<TRow>[]): boolean {
+  return getRowSegmentStarts(row, columns).length < columns.length;
+}
+
 /** The segment owner (start index) of the cell that covers `targetColIndex` in `row`. For a row with no
  * spans this is `targetColIndex` itself; for a spanned cell it's the column that renders it. */
 function resolveColumnStart<TRow extends object>(row: TanstackRow<TRow>, columns: TanstackColumn<TRow>[], targetColIndex: number): number {
@@ -665,8 +674,18 @@ export function useGridKeyboardNavigation<TRow extends object>({
             continue;
           }
           const record: Record<string, string> = {};
+          let hasText = false;
           for (let colIndex = rect.minColumnIndex; colIndex <= rect.maxColumnIndex; colIndex++) {
-            record[`c${colIndex}`] = getCellText(rows[rowIndex], columns[colIndex]);
+            const text = getCellText(rows[rowIndex], columns[colIndex]);
+            hasText ||= text !== '';
+            record[`c${colIndex}`] = text;
+          }
+          // Placeholder rows (deploy's "No metadata found" child) render a message through a row-level
+          // colSpan and carry no cell values, so they'd land as a blank line mid-range. A genuinely
+          // empty DATA row has no span and must still be copied — dropping it would shift every row
+          // below it out of alignment with the source.
+          if (!hasText && isSpannerRow(rows[rowIndex], columns)) {
+            continue;
           }
           records.push(record);
         }
