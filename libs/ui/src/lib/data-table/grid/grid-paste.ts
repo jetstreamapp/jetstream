@@ -33,7 +33,8 @@ export function parsePastedText(text: string): string[][] {
   // doesn't blank out a real row, but keep intentional interior blanks.
   if (rows.length > 1) {
     const lastRow = rows[rows.length - 1];
-    if (lastRow.length === 0 || lastRow.every((cell) => cell === '')) {
+    // `every` is already true for an empty row, so no separate length check is needed.
+    if (lastRow.every((cell) => cell === '')) {
       rows = rows.slice(0, -1);
     }
   }

@@ -86,19 +86,16 @@
     // the package's ESM exports and reports the CJS namespace members as missing (e.g. `bowser`).
     "import/namespace": "off",
 
-    // --- Surfaced by oxlint but not enforced before the migration -------------------------------
-    // Held at "warn" so the migration does not turn ~280 pre-existing findings into CI failures.
-    // Promote to "error" as each is burned down; `oxlint --fix` already handles a portion.
-    "react/jsx-key": "warn",
-    "react/no-children-prop": "warn",
-    "no-constant-binary-expression": "warn",
-    "no-control-regex": "warn",
-    "no-unsafe-optional-chaining": "warn",
+    // Surfaced by oxlint and not enforced before the migration. The existing violations were
+    // fixed rather than grandfathered, so these run at the default "error" from the correctness
+    // category and need no entry here: react/jsx-key, react/no-children-prop,
+    // no-constant-binary-expression, no-control-regex, no-unsafe-optional-chaining,
+    // unicorn/no-new-array, unicorn/no-single-promise-in-promise-methods,
+    // unicorn/no-useless-fallback-in-spread, unicorn/no-useless-length-check.
+
+    // The only holdout: four files under apps/api and libs/features are fully commented-out,
+    // unreferenced dead code. Delete them and this line can go too.
     "unicorn/no-empty-file": "warn",
-    "unicorn/no-new-array": "warn",
-    "unicorn/no-single-promise-in-promise-methods": "warn",
-    "unicorn/no-useless-fallback-in-spread": "warn",
-    "unicorn/no-useless-length-check": "warn",
 
     // Accessibility was advisory before the migration (Nx's React preset reports these as
     // warnings, and only the two React apps opted into the wider set). Keeping that posture.

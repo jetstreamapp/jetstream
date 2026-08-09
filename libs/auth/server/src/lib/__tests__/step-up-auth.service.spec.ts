@@ -42,7 +42,7 @@ function createRequest(overrides: Record<string, unknown> = {}) {
     session: {
       id: 'session-id',
       user: { id: USER_ID, email: 'user@example.com' },
-      ...((overrides.session as Record<string, unknown>) ?? {}),
+      ...(overrides.session as Record<string, unknown>),
     },
     externalAuth: overrides.externalAuth,
   } as unknown as Request;

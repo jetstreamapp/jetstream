@@ -434,7 +434,7 @@ async function runWithConcurrency<TItem, TResult>(
   concurrency: number,
   handler: (item: TItem) => Promise<TResult>,
 ): Promise<TResult[]> {
-  const results: TResult[] = new Array(items.length);
+  const results: TResult[] = Array.from({ length: items.length });
   const cursor = { next: 0 };
   const worker = async (): Promise<void> => {
     while (true) {

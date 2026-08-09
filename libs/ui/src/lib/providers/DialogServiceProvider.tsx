@@ -66,7 +66,7 @@ export const ConfirmationServiceProvider: FunctionComponent<ConfirmationServiceP
 
   return (
     <Fragment>
-      <ConfirmationServiceContext.Provider value={contextValue.current} children={children} />
+      <ConfirmationServiceContext.Provider value={contextValue.current}>{children}</ConfirmationServiceContext.Provider>
 
       <ConfirmationDialog
         submitDisabled={!!confirmationState?.submitDisabled}

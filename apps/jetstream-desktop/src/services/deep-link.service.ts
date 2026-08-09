@@ -97,6 +97,7 @@ export const handleCustomUrl = (targetUrl: string) => {
  * Replace control characters before logging user-controlled deep-link values. Percent-decoded
  * param names can contain newlines or ANSI escapes, which would otherwise forge/corrupt log lines (CWE-117).
  */
+// oxlint-disable-next-line no-control-regex -- stripping control characters is the purpose of this sanitizer
 const sanitizeForLog = (value: string): string => value.replace(/[\u0000-\u001f\u007f-\u009f]/g, '?');
 
 /** Collect parameter names from both the query string and hash fragment, without their (possibly sensitive) values. */

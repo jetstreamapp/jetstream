@@ -357,7 +357,7 @@ describe('completeEmailChange', () => {
       Array.isArray(strings) ? strings.join('').includes('AuthIdentity') : false,
     );
     expect(identityUpdate).toBeTruthy();
-    expect((identityUpdate?.[0] as string[]).join('')).toContain("type = 'credentials'");
+    expect((identityUpdate![0] as string[]).join('')).toContain("type = 'credentials'");
   });
 });
 

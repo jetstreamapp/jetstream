@@ -148,6 +148,7 @@ export const CreateFieldsRowField = forwardRef<unknown, CreateFieldsRowFieldProp
             >
               {values.map((_value) => (
                 <Radio
+                  key={_value.id}
                   idPrefix={id}
                   id={`${id}-${_value.id}`}
                   name={field.label}
