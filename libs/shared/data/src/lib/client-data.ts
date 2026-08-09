@@ -684,10 +684,11 @@ export async function describeSObject(
   org: SalesforceOrgUi,
   SObject: string,
   isTooling = false,
+  skipRequestCache = false,
 ): Promise<ApiResponse<DescribeSObjectResult>> {
   return handleRequest(
     { method: 'GET', url: `/api/describe/${SObject}`, params: { isTooling } },
-    { org, useCache: true, useQueryParamsInCacheKey: true, mockHeaderKey: SObject.startsWith('@') ? SObject : undefined },
+    { org, useCache: true, skipRequestCache, useQueryParamsInCacheKey: true, mockHeaderKey: SObject.startsWith('@') ? SObject : undefined },
   ).then((results: ApiResponse<DescribeSObjectResult>) => {
     // There are some rare circumstances where objects have duplicate child relationships which breaks things
     // This is a Salesforce bug, but the best we can do is ignore duplicates

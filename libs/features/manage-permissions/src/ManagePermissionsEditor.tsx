@@ -101,7 +101,7 @@ import {
 
 const HEIGHT_BUFFER = 170;
 
-export function ErrorTooltip({ hasError, id }: { hasError: boolean; id: string }) {
+export function ErrorTooltip({ hasError, id, message }: { hasError: boolean; id: string; message?: string }) {
   if (!hasError) {
     return null;
   }
@@ -110,7 +110,7 @@ export function ErrorTooltip({ hasError, id }: { hasError: boolean; id: string }
       id={`tooltip-${id}`}
       content={
         <div>
-          <strong>There were errors saving your data, review the table for more information.</strong>
+          <strong>{message || 'There were errors saving your data, review the table for more information.'}</strong>
         </div>
       }
     >
@@ -612,8 +612,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
         let fieldSaveResults: PermissionSaveResults<FieldPermissionRecordForSave, PermissionTableFieldCellPermission>[] | undefined =
           undefined;
         let tabVisibilitySaveResults:
-          | PermissionSaveResults<TabVisibilityPermissionRecordForSave, PermissionTableTabVisibilityCellPermission>[]
-          | undefined = undefined;
+          PermissionSaveResults<TabVisibilityPermissionRecordForSave, PermissionTableTabVisibilityCellPermission>[] | undefined = undefined;
         let systemSaveResults: SystemPermissionSaveRecord[] | undefined = undefined;
 
         if (objectPermissionData) {
@@ -986,10 +985,21 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
                     </span>
                     System Permissions {dirtySystemPermissionCount ? `(${dirtySystemPermissionCount})` : ''}
                     <ErrorTooltip hasError={systemPermissionsHaveErrors} id="system-permission-errors" />
+                    <ErrorTooltip
+                      hasError={recordData.systemPermissionsUnavailable}
+                      id="system-permission-unavailable"
+                      message="System permissions could not be loaded from Salesforce."
+                    />
                   </Fragment>
                 ),
                 titleText: 'System Permissions',
-                content: (
+                // System permissions load on their own, so they can fail while every other tab is fine
+                content: recordData.systemPermissionsUnavailable ? (
+                  <ScopedNotification theme="error" className="slds-m-around_medium">
+                    System permissions could not be loaded from Salesforce, so they cannot be viewed or changed here. Every other tab loaded
+                    normally. Use <strong>Reload All Permissions</strong> to try again.
+                  </ScopedNotification>
+                ) : (
                   <ManagePermissionsEditorSystemPermissionTable
                     ref={managePermissionsEditorSystemPermissionTableRef}
                     columns={systemPermissionColumns}
