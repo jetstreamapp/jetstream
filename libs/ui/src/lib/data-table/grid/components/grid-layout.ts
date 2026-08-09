@@ -34,3 +34,22 @@ export function getFrozenCellStyle<TRow extends object>(columns: TanstackColumn<
     zIndex: 1,
   };
 }
+
+/**
+ * Sticky-left style for a GROUP row cell, which spans columns and so can straddle the frozen band.
+ * A group cell is pinned when its span covers ANY frozen column, not only when its own column is
+ * frozen: the permission manager's field table starts the expand/collapse cell on a scrollable column
+ * and spans it across the two pinned ones, so without this the toggle scrolls away underneath the
+ * frozen cells (which paint above it) and the group becomes impossible to collapse when scrolled right.
+ */
+export function getGroupCellStickyStyle<TRow extends object>(columns: TanstackColumn<TRow>[], index: number, span: number): CSSProperties {
+  const spansFrozenColumn = columns.slice(index, index + span).some(isFrozenColumn);
+  if (!spansFrozenColumn) {
+    return {};
+  }
+  return {
+    position: 'sticky',
+    left: getFrozenLeftOffset(columns, index),
+    zIndex: 1,
+  };
+}

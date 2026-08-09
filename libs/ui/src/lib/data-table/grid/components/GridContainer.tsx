@@ -6,13 +6,27 @@ import classNames from 'classnames';
 import { CSSProperties, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ContextMenu } from '../../../form/context-menu/ContextMenu';
 import { EditorHost } from '../editors/EditorHost';
+import { computeEdgeScrollVelocity, createEdgeAutoScroller } from '../grid-auto-scroll';
+import { copyGridDataToClipboard, copyGridGroupRowsToClipboard, GridCopyResult } from '../grid-clipboard';
 import { reorderColumnOrder } from '../grid-column-utils';
-import { HEADER_ROW_ID, isSummaryRowId, NON_DATA_COLUMN_KEYS } from '../grid-constants';
+import { HEADER_ROW_ID, isSummaryRowId, NON_DATA_COLUMN_KEYS, TABLE_CONTEXT_MENU_ITEMS } from '../grid-constants';
 import { GridRuntime, GridRuntimeContext, selectRowModelInputs } from '../grid-context';
+import {
+  COPY_GROUP_ACTION,
+  COPY_GROUP_WITH_HEADER_ACTION,
+  COPY_RANGE_ACTION,
+  COPY_RANGE_WITH_HEADER_ACTION,
+  GRID_OWNED_COPY_ACTIONS,
+  GROUP_CONTEXT_MENU_ITEMS,
+  PASTE_RANGE_ACTION,
+  resolveHeaderContextMenuItems,
+  REVERT_RANGE_ACTION,
+} from '../grid-context-menu';
 import { computePasteTargets, flashPastedCells, parsePastedText } from '../grid-paste';
 import { getSortedFilteredLeafRows } from '../grid-row-utils';
 import {
   ColumnWithFilter,
+  ContextAction,
   ContextMenuActionData,
   ContextMenuItems,
   DataTableHeaderProps,
@@ -28,35 +42,20 @@ import { GridHeader } from './GridHeader';
 import { ActiveCell } from './GridRow';
 import { getGridTemplateColumns } from './grid-layout';
 
-const COPY_RANGE_ACTION = '__COPY_RANGE__';
-const COPY_RANGE_WITH_HEADER_ACTION = '__COPY_RANGE_WITH_HEADER__';
-const PASTE_RANGE_ACTION = '__PASTE_RANGE__';
-const REVERT_RANGE_ACTION = '__REVERT_RANGE__';
 // Hard bound on cells examined when deciding whether to show the "Revert" context-menu item, so opening
 // the menu over a huge selection (e.g. select-all) can never stall. ~50k O(1) dirty checks is a few ms.
 const REVERT_SCAN_CELL_BUDGET = 50_000;
 
-/** Context-menu actions that operate on a column/table (no specific row) — the subset offered when
- * right-clicking a column HEADER. Matches the `ContextAction` values used by the standard
- * TABLE_CONTEXT_MENU_ITEMS; consumer items outside this set are cell-scoped and excluded. */
-const COLUMN_SCOPED_CONTEXT_ACTIONS = new Set<unknown>([
-  'COPY_COL',
-  'COPY_COL_JSON',
-  'COPY_COL_NO_HEADER',
-  'COPY_TABLE',
-  'COPY_TABLE_JSON',
-  'COPY_TABLE_CSV',
-]);
-
 interface ContextMenuState<TRow extends object = any> {
-  area: 'cell' | 'header';
-  /** Set for cell menus; absent for header menus. */
+  area: 'cell' | 'header' | 'group';
+  /** Set for cell/group menus; absent for header menus. */
   rowId?: string;
   columnId: string;
   element: HTMLElement;
   /** Items resolved when the menu opened (a per-cell builder may have produced these). */
   items: ContextMenuItem[];
-  /** Cell action data captured at open time, passed to `contextMenuAction` on selection. */
+  /** Cell action data captured at open time, passed to `contextMenuAction` on selection. Always null for
+   * a group menu — that payload is leaf-row-scoped, and a group header has no single row. */
   actionData: ContextMenuActionData<TRow> | null;
 }
 
@@ -91,7 +90,9 @@ export interface GridContainerProps<TRow extends object> {
   summaryRows?: unknown[];
   /** Fixed height (px) for each pinned summary row; content-sized when omitted. */
   summaryRowHeight?: number;
-  /** Right-click context menu items — a static list or a per-cell builder (must be stable). */
+  /** Right-click context menu items — a static list or a per-cell builder (must be stable). Omit to get
+   * the standard copy actions dispatched by the grid itself; pass `[]` to opt out of them. (The
+   * selection-aware items — copy range / paste / revert / copy group — are always available.) */
   contextMenuItems?: ContextMenuItems<TRow>;
   /** Right-click context menu action handler (must be stable). */
   contextMenuAction?: (item: ContextMenuItem, data: ContextMenuActionData<TRow>) => void;
@@ -271,6 +272,7 @@ export function GridContainer<TRow extends object = RowWithKey>({
   const keyboardNav = useGridKeyboardNavigation({
     table,
     getRootElement: () => gridRef.current,
+    getScrollElement: () => scrollRef.current,
     onRequestEdit: startEdit,
     shouldRetainFocusOnBlur,
     summaryRowCount: summaryRows?.length ?? 0,
@@ -355,9 +357,12 @@ export function GridContainer<TRow extends object = RowWithKey>({
   const visibleColumnIndexes = autoRowHeight ? allColumnIndexes : windowedColumnIndexes;
 
   // Scroll the active column into view (mirrors the active-row logic in GridBody) so keyboard
-  // navigation to off-screen columns brings them into the window before focus resolves.
+  // navigation to off-screen columns brings them into the window before focus resolves. Skipped while
+  // a range drag auto-scrolls: `align: 'auto'` resolves to `'end'` for the partially-visible edge
+  // column, so it would snap a full column width on every extend and override the velocity ramp.
   useEffect(() => {
-    if (!keyboardNav.activeCell || keyboardNav.getLastInteractionSource() === 'select-all') {
+    const interactionSource = keyboardNav.getLastInteractionSource();
+    if (!keyboardNav.activeCell || interactionSource === 'select-all' || interactionSource === 'drag-autoscroll') {
       return;
     }
     const index = leafColumns.findIndex((column) => column.id === keyboardNav.activeCell!.columnId);
@@ -651,12 +656,18 @@ export function GridContainer<TRow extends object = RowWithKey>({
     [table, orderedColumns],
   );
 
+  // A table that supplies no `contextMenuItems` gets the standard copy actions for free, dispatched by
+  // the grid (`copyGridDataToClipboard`) rather than a consumer handler. An explicit `[]` opts out.
+  const usesGridOwnedMenu = contextMenuItems === undefined;
+  const resolvedContextMenuItems: ContextMenuItems<TRow> = contextMenuItems ?? TABLE_CONTEXT_MENU_ITEMS;
+  const canDispatchMenuItems = usesGridOwnedMenu || !!contextMenuAction;
+
   // A static list, or a per-cell builder evaluated against the right-clicked cell (e.g. group-aware
   // "Copy column (Apex Classes)"). The builder returning `[]` suppresses the menu for that cell.
   const resolveCellMenuItems = useCallback(
     (data: ContextMenuActionData<TRow>): ContextMenuItem[] =>
-      typeof contextMenuItems === 'function' ? contextMenuItems(data) : Array.isArray(contextMenuItems) ? contextMenuItems : [],
-    [contextMenuItems],
+      typeof resolvedContextMenuItems === 'function' ? resolvedContextMenuItems(data) : resolvedContextMenuItems,
+    [resolvedContextMenuItems],
   );
 
   const handleCellContextMenu = useCallback(
@@ -664,7 +675,10 @@ export function GridContainer<TRow extends object = RowWithKey>({
       if (event.ctrlKey || event.metaKey) {
         return;
       }
-      const actionData = contextMenuAction ? buildCellActionData(rowId, columnId) : null;
+      // The grid-owned menu is pure copy actions, so it has nothing to offer on the select/action columns
+      // (a consumer's own items may still be meaningful there, so this only applies to the grid's).
+      const isGridMenuOnNonDataColumn = usesGridOwnedMenu && table.getColumn(columnId)?.columnDef.meta?.jetstream?.cellKind !== 'data';
+      const actionData = canDispatchMenuItems && !isGridMenuOnNonDataColumn ? buildCellActionData(rowId, columnId) : null;
       const items = actionData ? resolveCellMenuItems(actionData) : [];
       // Ctrl/Meta lets the native browser menu through; so does an empty menu with no selection and no
       // paste affordance (the rectangular copy + paste items are injected when the menu renders). Paste
@@ -680,31 +694,30 @@ export function GridContainer<TRow extends object = RowWithKey>({
       setContextMenu(null);
       setTimeout(() => setContextMenu({ area: 'cell', rowId, columnId, element, items, actionData }));
     },
-    [contextMenuAction, buildCellActionData, resolveCellMenuItems, hasRangeSelection, onPaste, activeCell],
+    [table, canDispatchMenuItems, usesGridOwnedMenu, buildCellActionData, resolveCellMenuItems, hasRangeSelection, onPaste, activeCell],
   );
 
-  // Right-clicking a column HEADER offers the column/table-scoped copy actions — only for a static item
-  // list (per-cell builders are cell-scoped). Non-data columns (select/action) keep the native menu.
-  const headerContextMenuItems = useMemo(
-    () =>
-      Array.isArray(contextMenuItems) && contextMenuAction
-        ? contextMenuItems.filter((item) => COLUMN_SCOPED_CONTEXT_ACTIONS.has(item.value))
-        : [],
-    [contextMenuItems, contextMenuAction],
-  );
+  // Right-clicking a GROUP header row copies that group's data rows. Always grid-owned: a consumer's
+  // items are built from (and act on) a single leaf row, which a group header doesn't have.
+  const handleGroupContextMenu = useCallback((event: React.MouseEvent, rowId: string, columnId: string) => {
+    if (event.ctrlKey || event.metaKey) {
+      return;
+    }
+    event.preventDefault();
+    const element = event.currentTarget as HTMLElement;
+    setContextMenu(null);
+    setTimeout(() => setContextMenu({ area: 'group', rowId, columnId, element, items: GROUP_CONTEXT_MENU_ITEMS, actionData: null }));
+  }, []);
+
+  // Right-clicking a column HEADER offers the column/table-scoped copy actions (see
+  // `resolveHeaderContextMenuItems`). Non-data columns keep the native menu.
   const handleHeaderContextMenu = useCallback(
     (event: React.MouseEvent, columnId: string) => {
-      // Append any consumer-supplied per-column items (e.g. "View field metadata") to the static
-      // column-scoped copy actions.
-      const extraItems = getColumnHeaderMenuItems?.(columnId) ?? [];
-      const items = [...headerContextMenuItems, ...extraItems];
-      // Every header item is dispatched through `contextMenuAction` on selection — without it the menu
-      // would open but be unusable (selections become no-ops), so don't present it.
-      if (event.ctrlKey || event.metaKey || !contextMenuAction || !items.length || NON_DATA_COLUMN_KEYS.has(columnId)) {
+      // Every header item is dispatched on selection — by the grid, or through `contextMenuAction`.
+      // Without either the menu would open but be unusable (selections become no-ops), so don't present it.
+      if (event.ctrlKey || event.metaKey || !canDispatchMenuItems || NON_DATA_COLUMN_KEYS.has(columnId)) {
         return;
       }
-      event.preventDefault();
-      const element = event.currentTarget as HTMLElement;
       // Column/table actions operate over the whole column — anchor on the first leaf row when present.
       // Build the payload directly (rather than via buildCellActionData) so header-only actions like
       // "View field metadata", which read just the column, still fire when the table has no rows.
@@ -719,10 +732,50 @@ export function GridContainer<TRow extends object = RowWithKey>({
             columns: orderedColumns,
           }
         : null;
+      // Append any consumer-supplied per-column items (e.g. "View field metadata") to the copy actions.
+      // These dispatch only through `contextMenuAction`, so without it they'd render but no-op on select.
+      const items = [
+        ...resolveHeaderContextMenuItems(resolvedContextMenuItems, actionData),
+        ...(contextMenuAction ? (getColumnHeaderMenuItems?.(columnId) ?? []) : []),
+      ];
+      if (!items.length) {
+        return;
+      }
+      event.preventDefault();
+      const element = event.currentTarget as HTMLElement;
       setContextMenu(null);
       setTimeout(() => setContextMenu({ area: 'header', columnId, element, items, actionData }));
     },
-    [headerContextMenuItems, table, orderedColumns, getColumnHeaderMenuItems, contextMenuAction],
+    [canDispatchMenuItems, resolvedContextMenuItems, table, orderedColumns, getColumnHeaderMenuItems, contextMenuAction],
+  );
+
+  // ── Grid-owned copy dispatch (the default menu + the group-row menu) ────────────────────────────
+  const announceCopy = useCallback(
+    (result: GridCopyResult | null) => {
+      if (!result) {
+        announce('Nothing to copy.');
+        return;
+      }
+      const { rowCount, columnCount } = result;
+      announce(`Copied ${rowCount} ${rowCount === 1 ? 'row' : 'rows'} by ${columnCount} ${columnCount === 1 ? 'column' : 'columns'}`);
+    },
+    [announce],
+  );
+
+  const copyMenuTarget = useCallback(
+    (menu: ContextMenuState<TRow>, action: ContextAction) => {
+      const row = menu.rowId ? rowModelRows.find((modelRow) => modelRow.id === menu.rowId) : null;
+      announceCopy(copyGridDataToClipboard({ table, action, row, column: table.getColumn(menu.columnId) }));
+    },
+    [table, rowModelRows, announceCopy],
+  );
+
+  const copyGroupRows = useCallback(
+    (rowId: string | undefined, includeHeader: boolean) => {
+      const groupRow = rowId ? rowModelRows.find((modelRow) => modelRow.id === rowId) : null;
+      announceCopy(groupRow ? copyGridGroupRowsToClipboard(table, groupRow, includeHeader) : null);
+    },
+    [table, rowModelRows, announceCopy],
   );
 
   // Closing the menu can strand DOM focus on <body> (the menu auto-focuses its items and unmounts on
@@ -733,7 +786,7 @@ export function GridContainer<TRow extends object = RowWithKey>({
     setContextMenu(null);
     requestAnimationFrame(() => {
       const focused = document.activeElement;
-      if ((!focused || focused === document.body) && menu?.area === 'cell' && menu.rowId) {
+      if ((!focused || focused === document.body) && menu?.area !== 'header' && menu?.rowId) {
         focusCellEl({ rowId: menu.rowId, columnId: menu.columnId });
       }
     });
@@ -748,62 +801,34 @@ export function GridContainer<TRow extends object = RowWithKey>({
   );
 
   // Edge auto-scroll: because columns are horizontally virtualized, the drop target may be off-screen.
-  // While a column drag is active and the cursor nears the scroller's left/right edge, nudge the
-  // horizontal scroll so more columns (and drop targets) render. The rAF loop runs only during a drag.
-  const autoScrollFrameRef = useRef<number | null>(null);
-  const autoScrollStepRef = useRef(0);
-
-  const stopAutoScroll = useCallback(() => {
-    if (autoScrollFrameRef.current !== null) {
-      cancelAnimationFrame(autoScrollFrameRef.current);
-      autoScrollFrameRef.current = null;
-    }
-    autoScrollStepRef.current = 0;
-  }, []);
-
-  const runAutoScroll = useCallback(() => {
-    const scroller = scrollRef.current;
-    if (!scroller || autoScrollStepRef.current === 0) {
-      autoScrollFrameRef.current = null;
-      return;
-    }
-    scroller.scrollLeft += autoScrollStepRef.current;
-    autoScrollFrameRef.current = requestAnimationFrame(runAutoScroll);
-  }, []);
+  // While a column drag is active and the cursor nears the scroller's left/right edge, scroll
+  // horizontally so more columns (and drop targets) render. Shares the range drag's scroller, so the
+  // speed is in px/sec and stays the same on a 120Hz display.
+  const [columnDragAutoScroll] = useState(() => createEdgeAutoScroller({ getScrollElement: () => scrollRef.current }));
 
   const handleColumnDragOverScroller = useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
       if (!draggingColumnId) {
         return;
       }
-      const EDGE_SIZE = 60;
-      const SCROLL_STEP = 12;
       const rect = event.currentTarget.getBoundingClientRect();
-      const distanceFromLeft = event.clientX - rect.left;
-      const distanceFromRight = rect.right - event.clientX;
-      let step = 0;
-      if (distanceFromLeft < EDGE_SIZE) {
-        step = -SCROLL_STEP;
-      } else if (distanceFromRight < EDGE_SIZE) {
-        step = SCROLL_STEP;
-      }
-      autoScrollStepRef.current = step;
-      if (step !== 0 && autoScrollFrameRef.current === null) {
-        autoScrollFrameRef.current = requestAnimationFrame(runAutoScroll);
-      } else if (step === 0) {
-        stopAutoScroll();
-      }
+      const { x } = computeEdgeScrollVelocity({
+        box: { top: rect.top, right: rect.left + event.currentTarget.clientWidth, bottom: rect.bottom, left: rect.left },
+        clientX: event.clientX,
+        clientY: event.clientY,
+      });
+      columnDragAutoScroll.setVelocity({ x, y: 0 });
     },
-    [draggingColumnId, runAutoScroll, stopAutoScroll],
+    [columnDragAutoScroll, draggingColumnId],
   );
 
   const handleColumnDragEnd = useCallback(() => {
     setDraggingColumnId(null);
-    stopAutoScroll();
-  }, [stopAutoScroll]);
+    columnDragAutoScroll.stop();
+  }, [columnDragAutoScroll]);
 
   // Stop any in-flight auto-scroll frame when the grid unmounts mid-drag.
-  useEffect(() => stopAutoScroll, [stopAutoScroll]);
+  useEffect(() => columnDragAutoScroll.stop, [columnDragAutoScroll]);
 
   return (
     <GridRuntimeContext.Provider value={runtime as GridRuntime}>
@@ -862,6 +887,7 @@ export function GridContainer<TRow extends object = RowWithKey>({
               onCellMouseDown={keyboardNav.handleCellMouseDown}
               onCellMouseEnter={keyboardNav.handleCellMouseEnter}
               onCellContextMenu={handleCellContextMenu}
+              onGroupContextMenu={handleGroupContextMenu}
               rowClass={rowClass}
               onStartEdit={handleStartEdit}
               onCommitRow={handleCellCommit}
@@ -896,7 +922,9 @@ export function GridContainer<TRow extends object = RowWithKey>({
           (() => {
             // Capped count of modified editable cells under the right-clicked selection; gates the "Revert"
             // item and picks its label without enumerating the whole selection (full list computed on click).
-            const revertableCount = contextMenu.area === 'cell' ? countRevertableSelectionCells(2) : 0;
+            // Selection-scoped like the copy items, so group-header menus get it too (revert skips group
+            // rows); header menus render no grid items at all.
+            const revertableCount = contextMenu.area !== 'header' ? countRevertableSelectionCells(2) : 0;
             // Grid-injected, selection-aware actions (copy/paste/revert), shown above the consumer's items.
             const gridItems: ContextMenuItem[] = [
               ...(hasRangeSelection
@@ -905,7 +933,10 @@ export function GridContainer<TRow extends object = RowWithKey>({
                     { label: 'Copy selected cells with header', value: COPY_RANGE_WITH_HEADER_ACTION } as ContextMenuItem,
                   ]
                 : []),
-              ...(onPaste && keyboardNav.activeCell ? [{ label: 'Paste', value: PASTE_RANGE_ACTION } as ContextMenuItem] : []),
+              // A group header row has no editable cells to anchor a paste on.
+              ...(onPaste && keyboardNav.activeCell && contextMenu.area !== 'group'
+                ? [{ label: 'Paste', value: PASTE_RANGE_ACTION } as ContextMenuItem]
+                : []),
               ...(revertableCount
                 ? [
                     {
@@ -933,10 +964,14 @@ export function GridContainer<TRow extends object = RowWithKey>({
                     keyboardNav.copySelection();
                   } else if (item.value === COPY_RANGE_WITH_HEADER_ACTION) {
                     keyboardNav.copySelection(true);
+                  } else if (item.value === COPY_GROUP_ACTION || item.value === COPY_GROUP_WITH_HEADER_ACTION) {
+                    copyGroupRows(contextMenu.rowId, item.value === COPY_GROUP_WITH_HEADER_ACTION);
                   } else if (item.value === PASTE_RANGE_ACTION) {
                     handleContextMenuPaste();
                   } else if (item.value === REVERT_RANGE_ACTION) {
                     revertSelection(getRevertableSelectionCells());
+                  } else if (usesGridOwnedMenu && GRID_OWNED_COPY_ACTIONS.has(item.value)) {
+                    copyMenuTarget(contextMenu, item.value as ContextAction);
                   } else if (contextMenuAction && contextMenu.actionData) {
                     // Action data (leaf rows only; group rows excluded) was captured when the menu opened.
                     contextMenuAction(item, contextMenu.actionData);

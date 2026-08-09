@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { copyRecordsToClipboard, transformTabularDataToExcelStr } from '@jetstream/shared/ui-utils';
 import { FocusEvent as ReactFocusEvent, KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { isFrozenColumn } from '../components/grid-layout';
 import { ActiveCell } from '../components/GridRow';
+import { getCellText, getColumnHeaderText } from '../grid-clipboard';
 import { getSummaryRowId, getSummaryRowIndex, HEADER_ROW_ID, isSummaryRowId, SELECT_COLUMN_KEY } from '../grid-constants';
 import { ColSpanArgs, TanstackColumn, TanstackRow, TanstackTable } from '../grid-types';
 import {
@@ -13,8 +15,19 @@ import {
   hasMultiCellSelection,
   isCellInSelectionBounds,
 } from '../selection/grid-selection';
+import { useRangeDragAutoScroll } from './useRangeDragAutoScroll';
 
 export type GridMode = 'navigation' | 'actionable';
+
+/**
+ * What drove the most recent active-cell change. Consumers use it to decide whether to move DOM focus
+ * and whether to scroll the cell into view:
+ *  - `mouse` — a click/hover already placed focus; don't steal it back.
+ *  - `select-all` — Ctrl+A moves the focus corner as bookkeeping only; never scroll or focus.
+ *  - `drag-autoscroll` — a range drag's own rAF loop owns the scroll offset; a `scrollToIndex` here
+ *    would snap the partially-visible edge row/column fully into view every frame and override it.
+ */
+export type GridInteractionSource = 'mouse' | 'keyboard' | 'select-all' | 'drag-autoscroll';
 
 /** Rows to jump on PageUp/PageDown (approximate viewport page). */
 const PAGE_SIZE = 12;
@@ -31,6 +44,16 @@ const ACTIVATABLE_SELECTOR =
 /** A rectangular cell-selection in display-index space (inclusive bounds). */
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
+}
+
+/**
+ * Combined width of the sticky-left band. Every frozen column stacks at the left edge in column order
+ * (`getFrozenLeftOffset`) whether or not the frozen columns are contiguous — the permission manager's
+ * field table pins columns 1 and 2 while column 0 scrolls underneath them — so this sums all of them,
+ * not just a leading run.
+ */
+function getFrozenBandWidth<TRow extends object>(table: TanstackTable<TRow>): number {
+  return table.getVisibleLeafColumns().reduce((width, column) => (isFrozenColumn(column) ? width + column.getSize() : width), 0);
 }
 
 /**
@@ -60,6 +83,15 @@ function getRowSegmentStarts<TRow extends object>(row: TanstackRow<TRow>, column
   return starts;
 }
 
+/**
+ * True when the row renders at least one cell wider than a single column. Consumers use a row-level
+ * colSpan for message/placeholder rows ("No metadata found", "no rows found") — the tell that a row
+ * carries a rendered message rather than per-column data.
+ */
+function isSpannerRow<TRow extends object>(row: TanstackRow<TRow>, columns: TanstackColumn<TRow>[]): boolean {
+  return getRowSegmentStarts(row, columns).length < columns.length;
+}
+
 /** The segment owner (start index) of the cell that covers `targetColIndex` in `row`. For a row with no
  * spans this is `targetColIndex` itself; for a spanned cell it's the column that renders it. */
 function resolveColumnStart<TRow extends object>(row: TanstackRow<TRow>, columns: TanstackColumn<TRow>[], targetColIndex: number): number {
@@ -75,42 +107,13 @@ function resolveColumnStart<TRow extends object>(row: TanstackRow<TRow>, columns
   return owner;
 }
 
-function cellText<TRow extends object>(row: TanstackRow<TRow>, column: TanstackColumn<TRow>): string {
-  // Synthetic group header rows have no original row data.
-  if (row.original === null || row.original === undefined) {
-    return '';
-  }
-  const authorColumn = column.columnDef.meta?.jetstream?.column;
-  const value: unknown = authorColumn?.getValue
-    ? authorColumn.getValue({ row: row.original, column: authorColumn })
-    : (row.original as Record<string, unknown>)[column.id];
-  if (value === null || value === undefined) {
-    return '';
-  }
-  if (Array.isArray(value) || typeof value === 'object') {
-    return JSON.stringify(value);
-  }
-  return String(value);
-}
-
-/** Display label for a column header, used when copying a selection "with header". Falls back to the
- * string header / column id when the author's `name` is a ReactNode. */
-function headerText<TRow extends object>(column: TanstackColumn<TRow>): string {
-  const name = column.columnDef.meta?.jetstream?.column?.name;
-  if (typeof name === 'string') {
-    return name;
-  }
-  const header = column.columnDef.header;
-  if (typeof header === 'string') {
-    return header;
-  }
-  return column.id;
-}
-
 export interface UseGridKeyboardNavigationOptions<TRow extends object> {
   table: TanstackTable<TRow>;
   /** Returns the grid root element so DOM focus/copy queries are scoped to this grid instance. */
   getRootElement: () => HTMLElement | null;
+  /** Returns the scroll container (`.jgrid-scroller`, owner of BOTH axes) that a range drag edge
+   * auto-scrolls. Omit it and drags simply stop extending at the viewport edge, as they did before. */
+  getScrollElement?: () => HTMLElement | null;
   /** Enter/F2 hook: if it starts editing the cell (returns true), the grid stays out of Actionable mode. */
   onRequestEdit?: (cell: ActiveCell) => boolean;
   /** Return true to keep the active cell/selection when focus leaves the grid root — used when focus
@@ -141,8 +144,8 @@ export interface GridKeyboardNavigation {
   handleRootFocus: (event: ReactFocusEvent<HTMLElement>) => void;
   /** Whether the last active-cell change came from the mouse or keyboard — lets GridBody skip stealing
    * focus back to the cell on mouse clicks (which would close popovers opened from a cell). The
-   * 'select-all' source additionally suppresses scroll-into-view (Ctrl+A must not jump the viewport). */
-  getLastInteractionSource: () => 'mouse' | 'keyboard' | 'select-all';
+   * 'select-all' and 'drag-autoscroll' sources additionally suppress scroll-into-view. */
+  getLastInteractionSource: () => GridInteractionSource;
   /** When focus leaves the grid entirely (e.g. Tab/Shift+Tab out), clear the active cell so the next
    * focus event re-seeds and the grid root re-enters the tab order. */
   handleRootBlur: (event: ReactFocusEvent<HTMLElement>) => void;
@@ -174,6 +177,7 @@ export interface GridKeyboardNavigation {
 export function useGridKeyboardNavigation<TRow extends object>({
   table,
   getRootElement,
+  getScrollElement,
   onRequestEdit,
   shouldRetainFocusOnBlur,
   summaryRowCount = 0,
@@ -186,7 +190,7 @@ export function useGridKeyboardNavigation<TRow extends object>({
   const [mode, setMode] = useState<GridMode>('navigation');
   const isDraggingRef = useRef(false);
   // Tracks whether the most recent active-cell change was mouse- or keyboard-driven (see interface doc).
-  const interactionSourceRef = useRef<'mouse' | 'keyboard' | 'select-all'>('keyboard');
+  const interactionSourceRef = useRef<GridInteractionSource>('keyboard');
   // The cell an activation opened a popover/modal from — focus is returned here once the overlay closes.
   const pendingReturnFocusCellRef = useRef<ActiveCell | null>(null);
   // Live mirror of activeCell for the document focus listeners (avoids re-subscribing on every move).
@@ -199,14 +203,31 @@ export function useGridKeyboardNavigation<TRow extends object>({
   // spreadsheet "sticky column" behavior.
   const desiredColRef = useRef<number | null>(null);
 
-  // Stop drag-select when the mouse is released anywhere.
-  useEffect(() => {
-    const onMouseUp = () => {
-      isDraggingRef.current = false;
-    };
-    window.addEventListener('mouseup', onMouseUp);
-    return () => window.removeEventListener('mouseup', onMouseUp);
-  }, []);
+  /** False for the select/action columns — they can never join a cell range (see buildColumnDefs). */
+  const isColumnCellSelectable = useCallback(
+    (columnId: string): boolean =>
+      table.getVisibleLeafColumns().find((column) => column.id === columnId)?.columnDef.enableCellSelection !== false,
+    [table],
+  );
+
+  /**
+   * Whether a MOUSE drag may extend onto this column. Stricter than `isColumnCellSelectable`: a
+   * sticky-left column that is currently covering scrolled-away content is not what the pointer is
+   * reaching for — the user is dragging toward whatever sits underneath it. Extending there would
+   * anchor the rectangle at the far-left column (selecting everything in between) and drag the
+   * active-column scroll-into-view effect back to the start of the table with it. Once the grid is
+   * scrolled home the band covers nothing, so its columns become ordinary drag targets again.
+   */
+  const isDragExtendTarget = useCallback(
+    (columnId: string): boolean => {
+      const column = table.getVisibleLeafColumns().find((candidate) => candidate.id === columnId);
+      if (!column || column.columnDef.enableCellSelection === false) {
+        return false;
+      }
+      return !isFrozenColumn(column) || (getScrollElement?.()?.scrollLeft ?? 0) === 0;
+    },
+    [table, getScrollElement],
+  );
 
   // Apply a new active cell. `extend` grows the ACTIVE cell-selection range toward the target
   // (v9 keeps the range's anchor corner fixed); otherwise the selection collapses onto the new cell.
@@ -223,16 +244,22 @@ export function useGridKeyboardNavigation<TRow extends object>({
       }
       setActiveCellState({ rowId, columnId });
       setMode('navigation');
-      // Cell selection (v9 state): extends may sweep any coordinate (group rows / non-data columns
-      // render nothing and copy nothing, but the rectangle passes through them — legacy behavior).
+      const columnSelectable = isColumnCellSelectable(columnId);
+      // Cell selection (v9 state): an extend may sweep any ROW (group rows render nothing and copy
+      // nothing, but the rectangle passes through them), never a non-selectable COLUMN. The select and
+      // action columns are frozen at indexes 0/1, so letting Shift+Arrow anchor an edge there would snap
+      // the rectangle to column 0 and swallow every column in between. Keyboard focus still moves onto
+      // them so navigation can pass through; a MOUSE drag ignores them entirely (handleCellMouseEnter),
+      // since moving the active cell there would drag the viewport back to column 0 with it.
       // A plain move participates only for body DATA cells on selectable columns; header/summary
       // sentinels, group header rows, and the select/action columns are focus-only and clear it.
       if (extend) {
-        extendActiveSelectionTo(table, rowId, columnId);
+        if (columnSelectable) {
+          extendActiveSelectionTo(table, rowId, columnId);
+        }
         return;
       }
       const isSentinel = rowId === HEADER_ROW_ID || isSummaryRowId(rowId);
-      const columnSelectable = columns.find((column) => column.id === columnId)?.columnDef.enableCellSelection !== false;
       const row = isSentinel ? undefined : table.getRowModel().rows.find((candidate) => candidate.id === rowId);
       if (isSentinel || !columnSelectable || !row || row.getIsGrouped()) {
         clearCellSelection(table);
@@ -240,8 +267,43 @@ export function useGridKeyboardNavigation<TRow extends object>({
         collapseSelectionTo(table, rowId, columnId);
       }
     },
-    [table],
+    [table, isColumnCellSelectable],
   );
+
+  // Edge auto-scroll: once the cursor leaves the scroll viewport there are no cells left to fire
+  // `mouseenter`, so a drag would stop growing. This scrolls the container while the pointer sits at
+  // (or beyond) an edge and extends the range to whatever cell scrolls under it.
+  const rangeDragAutoScroll = useRangeDragAutoScroll({
+    getScrollElement: getScrollElement ?? (() => null),
+    getRootElement,
+    getLeftInset: () => getFrozenBandWidth(table),
+    getActiveCell: () => activeCellRef.current,
+    onExtendToCell: (rowId, columnId) => {
+      if (!isDragExtendTarget(columnId)) {
+        return;
+      }
+      interactionSourceRef.current = 'drag-autoscroll';
+      applySelection(rowId, columnId, true);
+    },
+    onDragEnd: () => {
+      isDraggingRef.current = false;
+    },
+  });
+
+  const beginRangeDrag = useCallback(() => {
+    isDraggingRef.current = true;
+    rangeDragAutoScroll.start();
+  }, [rangeDragAutoScroll]);
+
+  // Stop drag-select when the mouse is released anywhere.
+  useEffect(() => {
+    const onMouseUp = () => {
+      isDraggingRef.current = false;
+      rangeDragAutoScroll.stop();
+    };
+    window.addEventListener('mouseup', onMouseUp);
+    return () => window.removeEventListener('mouseup', onMouseUp);
+  }, [rangeDragAutoScroll]);
 
   const setActiveCell = useCallback(
     (cell: ActiveCell | null) => {
@@ -515,7 +577,7 @@ export function useGridKeyboardNavigation<TRow extends object>({
         applySelection(rowId, columnId, true);
         // Keep dragging after a shift-extend (Excel behavior): mouseenter continues growing the SAME
         // active range, since extend moves the focus corner while the anchor stays fixed.
-        isDraggingRef.current = true;
+        beginRangeDrag();
         return;
       }
       // Ctrl/Cmd+click on a selectable data cell starts a NEW rectangle that adds to (unselected cell)
@@ -531,23 +593,31 @@ export function useGridKeyboardNavigation<TRow extends object>({
         setActiveCellState({ rowId, columnId });
         setMode('navigation');
         addOrExcludeCellRange(table, rowId, columnId);
-        isDraggingRef.current = true;
+        beginRangeDrag();
         return;
       }
       applySelection(rowId, columnId, false);
-      isDraggingRef.current = true;
+      beginRangeDrag();
     },
-    [applySelection, isCellInSelection, table],
+    [applySelection, beginRangeDrag, isCellInSelection, table],
   );
 
   const handleCellMouseEnter = useCallback(
     (rowId: string, columnId: string) => {
-      if (isDraggingRef.current) {
-        interactionSourceRef.current = 'mouse';
-        applySelection(rowId, columnId, true);
+      if (!isDraggingRef.current || !isDragExtendTarget(columnId)) {
+        return;
       }
+      // Auto-scrolling re-fires `mouseenter` for hover changes the scroll itself caused. Ignoring the
+      // ones that land back on the current focus corner keeps the source at 'drag-autoscroll' (so the
+      // virtualizers' scroll-into-view stays suppressed) and avoids a render that changes nothing.
+      const current = activeCellRef.current;
+      if (current && current.rowId === rowId && current.columnId === columnId) {
+        return;
+      }
+      interactionSourceRef.current = 'mouse';
+      applySelection(rowId, columnId, true);
     },
-    [applySelection],
+    [applySelection, isDragExtendTarget],
   );
 
   // Mouse-down on a header cell makes it the keyboard-active cell so arrow nav continues from the header.
@@ -595,7 +665,7 @@ export function useGridKeyboardNavigation<TRow extends object>({
         if (includeHeader) {
           const headerRecord: Record<string, string> = {};
           for (let colIndex = rect.minColumnIndex; colIndex <= rect.maxColumnIndex; colIndex++) {
-            headerRecord[`c${colIndex}`] = headerText(columns[colIndex]);
+            headerRecord[`c${colIndex}`] = getColumnHeaderText(columns[colIndex]);
           }
           records.push(headerRecord);
         }
@@ -604,8 +674,18 @@ export function useGridKeyboardNavigation<TRow extends object>({
             continue;
           }
           const record: Record<string, string> = {};
+          let hasText = false;
           for (let colIndex = rect.minColumnIndex; colIndex <= rect.maxColumnIndex; colIndex++) {
-            record[`c${colIndex}`] = cellText(rows[rowIndex], columns[colIndex]);
+            const text = getCellText(rows[rowIndex], columns[colIndex]);
+            hasText ||= text !== '';
+            record[`c${colIndex}`] = text;
+          }
+          // Placeholder rows (deploy's "No metadata found" child) render a message through a row-level
+          // colSpan and carry no cell values, so they'd land as a blank line mid-range. A genuinely
+          // empty DATA row has no span and must still be copied — dropping it would shift every row
+          // below it out of alignment with the source.
+          if (!hasText && isSpannerRow(rows[rowIndex], columns)) {
+            continue;
           }
           records.push(record);
         }
