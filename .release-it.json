@@ -31,7 +31,7 @@
   },
   "hooks": {
     "before:init": "if [ \"$CI\" != \"true\" ]; then echo 'Local releases are disabled; run releases via CI only.'; exit 1; fi",
-    "after:bump": "pnpm oxfmt package.json CHANGELOG.md",
+    "after:@release-it/conventional-changelog:beforeRelease": "pnpm oxfmt package.json CHANGELOG.md",
     "after:release": "echo Successfully released ${name} v${version}."
   }
 }
