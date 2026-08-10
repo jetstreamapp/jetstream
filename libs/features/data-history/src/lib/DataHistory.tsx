@@ -273,7 +273,12 @@ export const DataHistory: FunctionComponent = () => {
               <StorageFolderIndicator
                 name={backendStatus.nativePath}
                 title={`Open ${backendStatus.nativePath} in your file manager`}
-                onClick={() => backendStatus.nativePath && window.electronAPI?.openFile?.(backendStatus.nativePath)}
+                onClick={() =>
+                  backendStatus.nativePath &&
+                  window.electronAPI
+                    ?.openFile?.(backendStatus.nativePath)
+                    ?.catch((ex) => logger.warn('[DATA_HISTORY] Unable to open history folder', ex))
+                }
               />
             )}
             {canStoreInFolder && (

@@ -74,7 +74,12 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
               <button
                 className="slds-button"
                 title="Open this folder in your file manager"
-                onClick={() => status.nativePath && window.electronAPI?.openFile?.(status.nativePath)}
+                onClick={() =>
+                  status.nativePath &&
+                  window.electronAPI
+                    ?.openFile?.(status.nativePath)
+                    ?.catch((ex) => logger.warn('[DATA_HISTORY] Unable to open history folder', ex))
+                }
               >
                 {status.nativePath}
               </button>

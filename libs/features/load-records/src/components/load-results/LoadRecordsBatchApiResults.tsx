@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/refs */
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
