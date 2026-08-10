@@ -29,10 +29,19 @@ export default defineConfig({
   expect: {
     timeout: THIRTY_SECONDS,
   },
-  maxFailures: process.env.CI ? 2 : 0,
+  // CI runs the suite as 4 shards, so this budget is per shard — 2 each would tolerate 8 failures
+  // across the run before anything aborted.
+  maxFailures: process.env.CI ? 1 : 0,
   timeout: 120000,
+  // One worker per shard. Each shard is its own job with its own database, server and seeded
+  // users, but every shard talks to the same Salesforce org, so parallelism stays at the job level
+  // where the blast radius is understood.
   workers: process.env.CI ? 1 : undefined,
-  reporter: [['html', { outputFolder: 'playwright-report', open: process.env.CI ? 'never' : 'on-failure' }]],
+  // Shards emit blob reports that a follow-up job merges into a single HTML report. Note that
+  // Playwright resolves these paths relative to this config file, not the repo root.
+  reporter: process.env.CI
+    ? [['blob', { outputDir: 'blob-report' }]]
+    : [['html', { outputFolder: 'playwright-report', open: 'on-failure' }]],
   use: {
     actionTimeout: THIRTY_SECONDS,
     navigationTimeout: THIRTY_SECONDS,
