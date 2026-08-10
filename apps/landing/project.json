@@ -4,5 +4,9 @@
   "sourceRoot": "apps/landing",
   "projectType": "application",
   "tags": ["scope:browser"],
-  "targets": {}
+  "targets": {
+    "build": {
+      "dependsOn": ["^build", "^typecheck"]
+    }
+  }
 }
