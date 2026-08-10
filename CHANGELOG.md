@@ -1,5 +1,21 @@
 # Changelog
 
+## [10.11.0](https://github.com/jetstreamapp/jetstream/compare/v10.10.1...v10.11.0) (2026-08-10)
+
+### Features
+
+- auto-scroll the grid while drag-selecting a cell range ([6183547](https://github.com/jetstreamapp/jetstream/commit/61835476a25e3526dfefa868cd4466b8023153c3))
+- give every table a right-click copy menu by default ([4b0b0bf](https://github.com/jetstreamapp/jetstream/commit/4b0b0bf08e89980587b97e1754b47c789a5cc3b7))
+- update record selection logic in BulkUpdateFromQuery components ([2768939](https://github.com/jetstreamapp/jetstream/commit/2768939a2d3eeace1ac56b7311d879bf6d024b16))
+- upgrade TanStack Table to v9 with faster rendering and multi-range cell selection ([44bf10f](https://github.com/jetstreamapp/jetstream/commit/44bf10f936d97304a2af1b6f20ebfbc529291b65))
+
+### Bug Fixes
+
+- ensure custom popover size was applied ([8774f11](https://github.com/jetstreamapp/jetstream/commit/8774f11a49bfc5d124beb9e0a73731e34e7b1b1a))
+- keep group toggles reachable and drop placeholder rows from copies ([34cd8ec](https://github.com/jetstreamapp/jetstream/commit/34cd8ecb435b0a6ca0ba26d2f5430a08ba9a2c97))
+- **lint:** resolve violations surfaced by oxlint's correctness rules ([28b796e](https://github.com/jetstreamapp/jetstream/commit/28b796edd313ee55226cef60e2f30b9bedc26b50))
+- stop a stale describe from breaking the permission manager ([5ec2318](https://github.com/jetstreamapp/jetstream/commit/5ec2318f42df7f4274fa761111d57ab4e5d25d13))
+
 ## [10.10.1](https://github.com/jetstreamapp/jetstream/compare/v10.10.0...v10.10.1) (2026-08-07)
 
 ### Bug Fixes
