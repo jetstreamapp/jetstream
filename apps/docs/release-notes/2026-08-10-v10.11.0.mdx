@@ -1,0 +1,63 @@
+---
+slug: v10.11.0
+title: 10.11.0 - Faster tables, right-click copy everywhere, multi-range selection
+date: '2026-08-10'
+tags: [web]
+versions:
+  web: 10.11.0
+summary: Data tables across the app get a big upgrade — faster rendering, a right-click copy menu on every table, and spreadsheet-style multi-range cell selection — plus a permission manager that recovers on its own when your org's permissions change.
+highlights:
+  - title: Copy from any table with a right-click
+    description: Every data table now has right-click actions to copy a cell, row, column, or the whole table, matching your current filters, sorting, and column order.
+    docLink: /query/results
+  - title: Select multiple cell ranges at once
+    description: Hold Ctrl/Cmd while selecting to add another cell range, and drag-selection now auto-scrolls when you reach the edge of the table.
+  - title: Faster data tables
+    description: Tables across the app render and update more quickly, especially with large result sets.
+  - title: Permission manager recovers when org permissions change
+    description: If the permissions available in your org change, the permission manager now refreshes its metadata and retries automatically instead of failing to load.
+    docLink: /permissions
+  - title: Smarter record selection in bulk update
+    description: Updating records from query results now pre-selects the option that matches what you have selected in the table.
+    docLink: /load/update-records
+---
+
+{/* truncate */}
+
+## What's new
+
+### Copy from any table with a right-click
+
+The right-click copy menu — copy cell, copy row (as text, Excel, or JSON), copy column, copy table — was previously only available on some tables. It is now available on every data table in the app, so wherever you see data you can get it onto your clipboard.
+
+Copies also got smarter: they follow your current filters, sorting, column order, and hidden columns, so what you copy matches what you see. Grouped tables offer "Copy rows in group" on group headers, and checkbox columns (like the permission editors) now copy clean `true`/`false` values.
+
+### Spreadsheet-style cell selection
+
+Cell selection now works the way you expect from a spreadsheet:
+
+- Hold Ctrl (Cmd on Mac) while clicking or dragging to add another selection range — or to remove cells from one. Copy and delete apply across all selected ranges, and your selection survives sorting and filtering.
+- Drag-selection auto-scrolls when you reach the edge of the table, so you can select a range larger than one screenful without letting go.
+- Shift+Click a row checkbox to select a whole range of rows in any table with checkboxes.
+- In the permission manager editors and Automation Control's Active column, you can now paste values or press Delete to clear the selected cells.
+
+### Faster data tables
+
+The engine behind Jetstream's data tables was upgraded so that only the parts of the table that actually changed get re-rendered. Large query results, permission editors, and other big tables feel noticeably snappier when scrolling, editing, and selecting.
+
+### Permission manager recovers when org permissions change
+
+When a permission disappears from your org — after a license or feature change, or a Salesforce release — the permission manager could previously fail to load entirely, and the only fix was reloading your profiles and permission sets. Jetstream now detects this, refreshes its metadata for the org, and retries automatically. In the rare case system permissions still cannot load, the object, field, and tab permission tabs work normally and the System Permissions tab explains what happened.
+
+### Smarter record selection in bulk update
+
+When updating records from your query results, the "which records" choice now defaults to what you most likely want: if you have records selected in the table, it starts with just those records instead of making you switch every time.
+
+### Other fixes
+
+- The expand/collapse toggle on group rows no longer slides underneath frozen columns when you scroll a table horizontally.
+- Automation Control: the checkbox column filter now shows values correctly, Reset no longer marks unchanged flows as modified, and row checkboxes only toggle when you click the checkbox itself.
+- Deploy metadata: group counts no longer include the "No metadata found" placeholder row.
+- Error popovers are back to the high-contrast red header styling, making them easier to spot.
+- Popovers with a custom size now display at the intended size.
+- Security improvements to the two-factor authentication enrollment flow.
