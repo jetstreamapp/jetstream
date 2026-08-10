@@ -1,5 +1,38 @@
 [
   {
+    "slug": "v10.11.0",
+    "title": "10.11.0 - Faster tables, right-click copy everywhere, multi-range selection",
+    "date": "2026-08-10",
+    "tags": ["web"],
+    "versions": { "web": "10.11.0" },
+    "summary": "Data tables across the app get a big upgrade — faster rendering, a right-click copy menu on every table, and spreadsheet-style multi-range cell selection — plus a permission manager that recovers on its own when your org's permissions change.",
+    "highlights": [
+      {
+        "title": "Copy from any table with a right-click",
+        "description": "Every data table now has right-click actions to copy a cell, row, column, or the whole table, matching your current filters, sorting, and column order.",
+        "docLink": "/query/results"
+      },
+      {
+        "title": "Select multiple cell ranges at once",
+        "description": "Hold Ctrl/Cmd while selecting to add another cell range, and drag-selection now auto-scrolls when you reach the edge of the table."
+      },
+      {
+        "title": "Faster data tables",
+        "description": "Tables across the app render and update more quickly, especially with large result sets."
+      },
+      {
+        "title": "Permission manager recovers when org permissions change",
+        "description": "If the permissions available in your org change, the permission manager now refreshes its metadata and retries automatically instead of failing to load.",
+        "docLink": "/permissions"
+      },
+      {
+        "title": "Smarter record selection in bulk update",
+        "description": "Updating records from query results now pre-selects the option that matches what you have selected in the table.",
+        "docLink": "/load/update-records"
+      }
+    ]
+  },
+  {
     "slug": "v10.10.1",
     "title": "10.10.1 - Per-account history and preferences",
     "date": "2026-08-06",
