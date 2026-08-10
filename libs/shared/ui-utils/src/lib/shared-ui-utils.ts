@@ -87,7 +87,7 @@ export function initXlsx(_xlsx: typeof import('xlsx')) {
       .then((module) => {
         XLSX.set_cptable(module);
       })
-      .catch((ex) => {
+      .catch((_ex) => {
         // ignore error
       });
   }
@@ -591,7 +591,7 @@ export function convertFiltersToWhereClause<T extends WhereClause | HavingClause
   }
 
   // Process all where clauses
-  const whereOrHavingClauses = filters.rows.reduce((whereOrHavingClauses: T[], row, i) => {
+  const whereOrHavingClauses = filters.rows.reduce((whereOrHavingClauses: T[], row, _i) => {
     if (isExpressionConditionType(row)) {
       if (queryFilterHasValue(row)) {
         buildExpressionConditionWhereClause(whereOrHavingClauses, row, filters.action);
@@ -612,7 +612,7 @@ export function convertFiltersToWhereClause<T extends WhereClause | HavingClause
 
   // combine all where clauses
   const rootClause = whereOrHavingClauses[0];
-  whereOrHavingClauses.reduce((whereOrHavingClause: T, currClause, i) => {
+  whereOrHavingClauses.reduce((whereOrHavingClause: T, currClause, _i) => {
     if (whereOrHavingClause) {
       // TODO: should have better types
       (whereOrHavingClause as any).right = currClause;
@@ -1297,7 +1297,7 @@ export function readFile(file: File, type: 'text' | 'array_buffer' | 'data_url' 
     } else {
       reader.readAsText(file);
     }
-    reader.onload = (event: ProgressEvent<FileReader>) => {
+    reader.onload = (_event: ProgressEvent<FileReader>) => {
       resolve(reader.result || '');
     };
     reader.onabort = (event: ProgressEvent<FileReader>) => {

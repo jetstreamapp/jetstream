@@ -46,7 +46,7 @@ export function AppWrapperNotJetstreamOwnedPage({ children }: { children: ReactN
         });
         setHasInit(true);
       })
-      .catch((err) => {
+      .catch((_err) => {
         localforage.config({
           name: 'jetstream-web-ext-no-sync',
         });

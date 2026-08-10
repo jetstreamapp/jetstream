@@ -64,7 +64,7 @@ export const SaveFavoriteSoql: FunctionComponent<SaveFavoriteSoqlProps> = ({
         setIsDirty(false);
         setName('');
       }
-    } catch (ex) {
+    } catch {
       // TODO:
     } finally {
       setLoading(false);

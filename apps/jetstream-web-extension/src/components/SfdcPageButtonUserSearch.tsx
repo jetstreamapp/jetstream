@@ -131,7 +131,7 @@ export function SfdcPageButtonUserSearch({ sfHost }: SfdcPageButtonUserSearchPro
           items={usersResults.records}
           isActive={(item: User) => item.Id === searchTerm}
           // eslint-disable-next-line @typescript-eslint/no-empty-function
-          onSelected={(key: string) => {}}
+          onSelected={(_key: string) => {}}
           getContent={(user: User) => ({
             key: user.Id,
             id: user.Id,

@@ -100,23 +100,21 @@ export function buildFieldsWithRelated(): FieldWithRelatedEntities[] {
   ];
 }
 
-export const sfdcFieldWithRelatedTypesFactory: Factory<FieldWithRelatedEntities> = Factory.define<FieldWithRelatedEntities>(
-  ({ sequence }) => {
-    return {
-      label: 'Name',
-      name: 'Name',
-      type: 'string',
-      soapType: 'string',
-      typeLabel: 'Name',
-      externalId: false,
-      referenceTo: null,
-      relationshipName: null,
-      field: { ...sfdcFieldFactory.build(), typeLabel: 'Name' },
-    } satisfies FieldWithRelatedEntities;
-  },
-);
+export const sfdcFieldWithRelatedTypesFactory: Factory<FieldWithRelatedEntities> = Factory.define<FieldWithRelatedEntities>(() => {
+  return {
+    label: 'Name',
+    name: 'Name',
+    type: 'string',
+    soapType: 'string',
+    typeLabel: 'Name',
+    externalId: false,
+    referenceTo: null,
+    relationshipName: null,
+    field: { ...sfdcFieldFactory.build(), typeLabel: 'Name' },
+  } satisfies FieldWithRelatedEntities;
+});
 
-export const sfdcFieldFactory: Factory<Field> = Factory.define<Field>(({ sequence }) => {
+export const sfdcFieldFactory: Factory<Field> = Factory.define<Field>(() => {
   return {
     label: 'Name',
     name: 'Name__c',

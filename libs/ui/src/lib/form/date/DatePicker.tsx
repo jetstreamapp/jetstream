@@ -46,7 +46,6 @@ export interface DatePickerProps {
 export const DatePicker: FunctionComponent<DatePickerProps> = ({
   id: _id,
   className,
-  containerDisplay,
   label,
   hideLabel,
   labelHelp,

@@ -73,7 +73,7 @@ export const ComboboxWithGroupedItems = forwardRef<ComboboxWithGroupedItemsRef, 
     const selectedItemLabel = selectedItem ? selectedItemLabelFn(selectedItem) : null;
     const selectedItemTitle = selectedItem ? selectedItemTitleFn(selectedItem) || '' : null;
     const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
-    const refs = visibleItems.flatMap((group) => group.items).map((value) => createRef<HTMLLIElement>());
+    const refs = visibleItems.flatMap((group) => group.items).map((_value) => createRef<HTMLLIElement>());
 
     useImperativeHandle<unknown, ComboboxWithGroupedItemsRef>(
       ref,
@@ -219,9 +219,9 @@ export const ComboboxWithGroupedItems = forwardRef<ComboboxWithGroupedItemsRef, 
         onInputEnter={onInputEnter}
         onClose={onClose}
       >
-        {visibleItems.map((group, i) => (
+        {visibleItems.map((group, _i) => (
           <ComboboxListItemGroup key={group.id} label={group.label}>
-            {group.items.map((item, j) =>
+            {group.items.map((item, _j) =>
               !item.customRenderer ? (
                 <ComboboxListItem
                   key={item.id}
@@ -233,7 +233,7 @@ export const ComboboxWithGroupedItems = forwardRef<ComboboxWithGroupedItemsRef, 
                   tertiaryLabel={item.tertiaryLabel}
                   isDrillInItem={item.isDrillInItem}
                   selected={item === selectedItem}
-                  onSelection={(id) => {
+                  onSelection={(_id) => {
                     onSelected(item);
                     if (!item.isDrillInItem) {
                       comboboxRef.current?.close();
@@ -248,7 +248,7 @@ export const ComboboxWithGroupedItems = forwardRef<ComboboxWithGroupedItemsRef, 
                   ref={refs[counter++]}
                   id={item.id}
                   selected={item === selectedItem}
-                  onSelection={(id) => {
+                  onSelection={(_id) => {
                     onSelected(item);
                     if (!item.isDrillInItem) {
                       comboboxRef.current?.close();

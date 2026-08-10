@@ -58,7 +58,7 @@ browser.runtime.onInstalled.addListener(async () => {
   logger.log('Jetstream Extension successfully installed!');
 });
 
-browser.tabs.onActivated.addListener(async (info) => {
+browser.tabs.onActivated.addListener(async (_info) => {
   // ensure connections get initialized on activation
   if (initStorageSessionCache) {
     await initStorageSessionCache;
@@ -294,7 +294,7 @@ const doesAuthNeedToBeChecked = (authTokens: AuthTokensStorage['authTokens']): b
   return isAfter(new Date(), addMinutes(new Date(authTokens.lastChecked), AUTH_CHECK_INTERVAL_MIN));
 };
 
-function getConnection(uniqueId: string, sender: browser.Runtime.MessageSender) {
+function getConnection(uniqueId: string, _sender: browser.Runtime.MessageSender) {
   return connections[uniqueId || '_placeholder'];
 }
 
@@ -325,7 +325,7 @@ async function getConnectionFromHost(sfHost: string, sender: browser.Runtime.Mes
  * HANDLERS
  */
 
-async function handleGetExternalIdentifier(sender: browser.Runtime.MessageSender): Promise<ExternalIdentifier['response']> {
+async function handleGetExternalIdentifier(_sender: browser.Runtime.MessageSender): Promise<ExternalIdentifier['response']> {
   let result = (await browser.storage.sync.get(storageTypes.extIdentifier.key)) as Partial<ExtIdentifierStorage>;
   if (!result.extIdentifier) {
     result = { extIdentifier: { id: crypto.randomUUID() } };
@@ -341,7 +341,7 @@ async function handleGetExternalIdentifier(sender: browser.Runtime.MessageSender
 
 async function handleTokenExchange(
   { accessToken }: TokenExchange['request']['data'],
-  sender: browser.Runtime.MessageSender,
+  _sender: browser.Runtime.MessageSender,
 ): Promise<TokenExchange['response']> {
   const { exp, userProfile } = jwtDecode<JwtPayload>(accessToken);
   const expiresAt = exp ? fromUnixTime(exp) : new Date();
@@ -445,7 +445,7 @@ function runVerifyAuth(sender: browser.Runtime.MessageSender): Promise<VerifyAut
  * Verifies that user is logged in to Jetstream and has access to use the browser extension.
  * Exported for unit testing — production code reaches this via runVerifyAuth.
  */
-export async function handleVerifyAuth(sender: browser.Runtime.MessageSender): Promise<VerifyAuth['response']> {
+export async function handleVerifyAuth(_sender: browser.Runtime.MessageSender): Promise<VerifyAuth['response']> {
   try {
     await initStorageSyncCache;
     const { authTokens, extIdentifier } = storageSyncCache;
@@ -630,7 +630,7 @@ function handleGetPageUrl(page: string): GetPageUrl['response'] {
 
 async function handleInitOrg(
   { sessionInfo }: InitOrg['request']['data'],
-  sender: browser.Runtime.MessageSender,
+  _sender: browser.Runtime.MessageSender,
 ): Promise<InitOrg['response']> {
   const response = await initApiClientAndOrg(sessionInfo);
   await setConnection(response.org.uniqueId, { sessionInfo, org: response.org });

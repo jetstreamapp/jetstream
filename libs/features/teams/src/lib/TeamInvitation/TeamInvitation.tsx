@@ -89,7 +89,7 @@ export function TeamInvitation() {
       } else {
         setLoadingError('An error occurred while accepting the invitation.');
       }
-    } catch (error) {
+    } catch {
       setLoadingError('An error occurred while accepting the invitation. Please try again later.');
     } finally {
       setAccepting(false);

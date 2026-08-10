@@ -59,7 +59,7 @@ export function useUserProfile() {
           setIsLoading(false);
         },
       )
-      .catch((error) => {
+      .catch((_error) => {
         setIsLoading(false);
       });
   }, []);
@@ -150,7 +150,7 @@ export function useOtpEnrollment(isLoadingInitial = true) {
       .then((response) => {
         throw new Error(response.errorType || 'InvalidVerificationToken');
       })
-      .catch((error) => {
+      .catch((_error) => {
         throw new Error('InvalidVerificationToken');
       });
   }, []);

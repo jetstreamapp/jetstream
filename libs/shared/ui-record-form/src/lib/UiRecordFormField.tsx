@@ -202,7 +202,7 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
     setValue(formatter(event.currentTarget.value));
   }
 
-  function handleInputBlur(event: SyntheticEvent<HTMLInputElement | HTMLTextAreaElement>) {
+  function handleInputBlur(_event: SyntheticEvent<HTMLInputElement | HTMLTextAreaElement>) {
     checkIfDirtyAndEmit();
   }
 

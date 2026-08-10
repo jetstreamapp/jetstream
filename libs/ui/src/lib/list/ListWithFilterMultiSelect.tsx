@@ -86,7 +86,7 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
     setSelectedItemsSet(new Set<string>(selectedItems || []));
   }, [selectedItems]);
 
-  function handleSearchKeyboard(direction: UpDown) {
+  function handleSearchKeyboard(_direction: UpDown) {
     if (ulRef && ulRef.current) {
       ulRef.current.focus();
     }

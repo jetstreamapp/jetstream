@@ -1,8 +1,8 @@
-import { GetStaticProps, InferGetStaticPropsType } from 'next';
+import { GetStaticProps } from 'next';
 import LandingPage from '../components/landing/LandingPage';
 import { fetchBlogPosts } from '../utils/data';
 
-export default function Page({ omitBlogPosts }: InferGetStaticPropsType<typeof getStaticProps>) {
+export default function Page() {
   return <LandingPage />;
 }
 

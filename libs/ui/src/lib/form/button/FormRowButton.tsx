@@ -1,6 +1,6 @@
+import { IconObj } from '@jetstream/icon-factory';
 import React, { FunctionComponent } from 'react';
 import Icon from '../../widgets/Icon';
-import { IconObj } from '@jetstream/icon-factory';
 
 export interface FormRowButtonProps {
   title: string;
@@ -13,7 +13,7 @@ export interface FormRowButtonProps {
  * This is used when a button is inline on a form where there needs to be top-margin to align with the inputs
  * (e.x. ExpressionConditionRow)
  */
-export const FormRowButton: FunctionComponent<FormRowButtonProps> = ({ title, icon, onClick, children }) => {
+export const FormRowButton: FunctionComponent<FormRowButtonProps> = ({ title, icon, onClick }) => {
   return (
     <div className="slds-form-element">
       <span className="slds-form-element__label" style={{ marginTop: `15px` }} />

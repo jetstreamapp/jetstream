@@ -72,7 +72,7 @@ const binaryUpload = createRoute(routeDefinition.binaryUpload.validators, async 
   }
 });
 
-const recordOperation = createRoute(routeDefinition.recordOperation.validators, async ({ body, params, query, jetstreamConn }, req) => {
+const recordOperation = createRoute(routeDefinition.recordOperation.validators, async ({ body, params, query, jetstreamConn }, _req) => {
   try {
     const { sobject, operation } = params;
     const { allOrNone, externalId } = query;

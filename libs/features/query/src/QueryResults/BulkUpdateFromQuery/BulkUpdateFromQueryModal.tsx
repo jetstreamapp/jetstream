@@ -181,7 +181,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
       if (!filterLoadSobjects(describe)) {
         setFatalError('This object does not support loading in data.');
       }
-    } catch (ex) {
+    } catch {
       setFatalError('There was a problem loading metadata for this object. Please try again.');
     } finally {
       setLoading(false);

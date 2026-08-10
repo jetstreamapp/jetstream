@@ -73,7 +73,7 @@ export const routeDefinition = {
   },
 };
 
-const createJob = createRoute(routeDefinition.createJob.validators, async ({ body, jetstreamConn }, req) => {
+const createJob = createRoute(routeDefinition.createJob.validators, async ({ body, jetstreamConn }, _req) => {
   try {
     const options = body;
 
@@ -85,7 +85,7 @@ const createJob = createRoute(routeDefinition.createJob.validators, async ({ bod
   }
 });
 
-const getJob = createRoute(routeDefinition.getJob.validators, async ({ params, jetstreamConn }, req) => {
+const getJob = createRoute(routeDefinition.getJob.validators, async ({ params, jetstreamConn }, _req) => {
   try {
     const jobId = params.jobId;
 
@@ -97,7 +97,7 @@ const getJob = createRoute(routeDefinition.getJob.validators, async ({ params, j
   }
 });
 
-const closeOrAbortJob = createRoute(routeDefinition.closeOrAbortJob.validators, async ({ params, jetstreamConn }, req) => {
+const closeOrAbortJob = createRoute(routeDefinition.closeOrAbortJob.validators, async ({ params, jetstreamConn }, _req) => {
   try {
     const jobId = params.jobId;
     const action: 'Closed' | 'Aborted' = params.action === 'abort' ? 'Aborted' : 'Closed';
@@ -110,7 +110,7 @@ const closeOrAbortJob = createRoute(routeDefinition.closeOrAbortJob.validators, 
   }
 });
 
-const addBatchToJob = createRoute(routeDefinition.addBatchToJob.validators, async ({ body, params, query, jetstreamConn }, req) => {
+const addBatchToJob = createRoute(routeDefinition.addBatchToJob.validators, async ({ body, params, query, jetstreamConn }, _req) => {
   try {
     const jobId = params.jobId;
     const csv = body;
@@ -126,7 +126,7 @@ const addBatchToJob = createRoute(routeDefinition.addBatchToJob.validators, asyn
 
 const addBatchToJobWithBinaryAttachment = createRoute(
   routeDefinition.addBatchToJobWithBinaryAttachment.validators,
-  async ({ body, params, query, jetstreamConn }, req) => {
+  async ({ body, params, query, jetstreamConn }, _req) => {
     try {
       const jobId = params.jobId;
       const zip = body;
@@ -148,7 +148,7 @@ const addBatchToJobWithBinaryAttachment = createRoute(
  *  THIS IS USED BY BULK QUERY DOWNLOAD
  *
  */
-const downloadResultsFile = createRoute(routeDefinition.downloadResultsFile.validators, async ({ params, query, jetstreamConn }, req) => {
+const downloadResultsFile = createRoute(routeDefinition.downloadResultsFile.validators, async ({ params, query, jetstreamConn }, _req) => {
   try {
     const jobId = params.jobId;
     const batchId = params.batchId;
@@ -178,7 +178,7 @@ const downloadResultsFile = createRoute(routeDefinition.downloadResultsFile.vali
 /**
  * Download requests or results as JSON, transformed to JSON
  */
-const downloadResults = createRoute(routeDefinition.downloadResults.validators, async ({ params, query, jetstreamConn }, req) => {
+const downloadResults = createRoute(routeDefinition.downloadResults.validators, async ({ params, query, jetstreamConn }, _req) => {
   try {
     const jobId = params.jobId;
     const batchId = params.batchId;

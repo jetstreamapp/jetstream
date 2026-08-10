@@ -131,7 +131,7 @@ export function renderBlogPostRichText(richText: Document) {
         }
         return <p>{children}</p>;
       },
-      [BLOCKS.EMBEDDED_ASSET]: (node, children) => {
+      [BLOCKS.EMBEDDED_ASSET]: (node, _children) => {
         try {
           const asset: Asset = node.data.target;
           const file = asset.fields.file;

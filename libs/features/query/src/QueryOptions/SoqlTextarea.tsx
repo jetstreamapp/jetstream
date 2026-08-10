@@ -26,7 +26,7 @@ export const SoqlTextarea: FunctionComponent<SoqlTextareaProps> = memo(
     const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
     const { addDisposable } = useDisposables();
 
-    const handleEditorMount: OnMount = (currEditor, monaco) => {
+    const handleEditorMount: OnMount = (currEditor, _monaco) => {
       editorRef.current = currEditor;
       editorRef.current.layout();
 

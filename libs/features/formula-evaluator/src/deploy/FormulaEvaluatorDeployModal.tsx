@@ -127,7 +127,7 @@ export const FormulaEvaluatorDeployModal = ({
         permissionCount: selectedProfiles.length + selectedPermissionSets.length,
         layoutCount: layoutData.selectedLayoutIds.size,
       });
-    } catch (ex) {
+    } catch {
       fireToast({ type: 'error', message: 'There was an error preparing your field for deployment.' });
       trackEvent(ANALYTICS_KEYS.formula_export_results, {
         success: false,

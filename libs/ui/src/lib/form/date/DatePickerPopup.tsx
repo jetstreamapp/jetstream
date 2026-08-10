@@ -35,7 +35,6 @@ export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
   availableYears,
   minAvailableDate,
   maxAvailableDate,
-  dropDownPosition = 'left',
   onClose,
   onSelection,
   onClear,

@@ -37,7 +37,7 @@ async function getFileContent(data: JSZip, fileProperties: FilePropertiesWithCon
     if (!fileProperties.content) {
       fileProperties.content = await data.file(fileProperties.fileName)?.async('string');
     }
-  } catch (ex) {
+  } catch {
     logger.warn('[VIEW OR COMPARE][CONTENT] Could not load content', fileProperties.fileName);
   }
 }
@@ -125,7 +125,7 @@ export function compare(sourceFile: FilePropertiesWithContent, targetFiles: Reco
   if (!match && sourceFile.content && targetFiles[sourceFile.fileName]?.content) {
     try {
       match = sourceFile.content.trim() === targetFiles[sourceFile.fileName]?.content?.trim();
-    } catch (ex) {
+    } catch {
       // ignore failure
     }
   }

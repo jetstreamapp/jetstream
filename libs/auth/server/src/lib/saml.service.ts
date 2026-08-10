@@ -125,7 +125,7 @@ export class SamlService {
   /**
    * Initialize SAML strategy from configuration
    */
-  initializeSamlStrategy(config: SamlConfiguration, teamId: string): SAML {
+  initializeSamlStrategy(config: SamlConfiguration, _teamId: string): SAML {
     const samlConfig: SamlConfig = {
       // Service Provider (Jetstream)
       issuer: config.entityId,

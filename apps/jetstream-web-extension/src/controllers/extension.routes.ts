@@ -16,7 +16,7 @@ import { routeDefinition as userController } from './user.web-ext.controller';
 const router = new Router<(req: RequestOptions) => Promise<Response>>();
 export const extensionRoutes = router;
 
-router.get('/api/heartbeat', async (req) => {
+router.get('/api/heartbeat', async (_req) => {
   const result: AppInfo = {
     version: getBrowserExtensionVersion(),
     announcements: [],
@@ -27,7 +27,7 @@ router.get('/api/heartbeat', async (req) => {
   };
   return handleJsonResponse(result);
 });
-router.get('/api/me', async (req) => {
+router.get('/api/me', async (_req) => {
   return handleJsonResponse({
     id: 'unknown',
     userId: 'unknown',
@@ -54,7 +54,7 @@ router.post('/api/data-sync/push', dataSyncController.push.controllerFn());
  * orgsController Routes
  * ************************************
  */
-router.get('/api/orgs', async (req) => {
+router.get('/api/orgs', async (_req) => {
   return handleJsonResponse([]);
 });
 

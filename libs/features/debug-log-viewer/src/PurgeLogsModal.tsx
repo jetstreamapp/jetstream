@@ -48,7 +48,7 @@ export const PurgeLogsModal: FunctionComponent<PurgeLogsModalProps> = ({ selecte
         fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
         onModalClose();
       }
-    } catch (ex) {
+    } catch {
       setStatus('ERROR');
     }
   }

@@ -279,7 +279,7 @@ export const CreateFieldsDeployModal = ({
                         label={layout.Name}
                         checked={selectedLayoutIds.has(layout.Id)}
                         disabled={loadingLayouts || loading}
-                        onChange={(value) => handleSelectLayout(layout.Id)}
+                        onChange={(_value) => handleSelectLayout(layout.Id)}
                       />
                     ))}
                   </fieldset>

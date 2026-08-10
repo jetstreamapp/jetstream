@@ -66,7 +66,7 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
     setSearchTerm('');
   }, [isTooling]);
 
-  function handleSearchKeyboard(direction: UpDown) {
+  function handleSearchKeyboard(_direction: UpDown) {
     if (ulRef && ulRef.current) {
       ulRef.current.focus();
     }

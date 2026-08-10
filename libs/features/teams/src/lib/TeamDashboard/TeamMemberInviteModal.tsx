@@ -17,7 +17,7 @@ export function TeamMemberInviteModal({ teamId, hasManualBilling, userRole, onCl
   const [email, setEmail] = useState('');
   const [invalidEmail, setInvalidEmail] = useState(false);
   const [role, setRole] = useState<TeamMemberRole>('MEMBER');
-  const [features, setFeatures] = useState<Feature[]>(['ALL']);
+  const [features] = useState<Feature[]>(['ALL']);
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);

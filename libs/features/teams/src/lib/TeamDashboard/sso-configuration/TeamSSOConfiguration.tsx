@@ -350,7 +350,7 @@ export function TeamSSOConfiguration({
                     </Tooltip>
                   </legend>
                   <Grid>
-                    {Object.entries(TeamMemberRoleSchema.enum).map(([key, role]) => (
+                    {Object.values(TeamMemberRoleSchema.enum).map((role) => (
                       <Checkbox
                         key={`sso-bypass-${role}`}
                         id={`sso-bypass-${role}`}

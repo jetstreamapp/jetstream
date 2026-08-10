@@ -65,7 +65,7 @@ export const SobjectListMultiSelect: FunctionComponent<SobjectListMultiSelectPro
     setSelectedSObjectSet(new Set<string>(selectedSObjects || []));
   }, [selectedSObjects]);
 
-  function handleSearchKeyboard(direction: UpDown) {
+  function handleSearchKeyboard(_direction: UpDown) {
     if (ulRef && ulRef.current) {
       ulRef.current.focus();
     }

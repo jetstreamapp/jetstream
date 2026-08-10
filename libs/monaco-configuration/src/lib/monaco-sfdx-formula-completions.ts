@@ -7,7 +7,7 @@ const triggerChars = 'adefhijlmnsu';
 export async function configureSfdcFormulaCompletions(monaco: Monaco) {
   monaco.languages.registerCompletionItemProvider('sfdc-formula', {
     triggerCharacters: ['.', ...triggerChars.split(''), ...triggerChars.toUpperCase().split('')],
-    provideCompletionItems: (model, position, context, token) => {
+    provideCompletionItems: (model, position, _context, _token) => {
       return {
         suggestions: getSuggestions(monaco, model, position),
       };

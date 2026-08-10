@@ -226,7 +226,7 @@ function SobjectFieldListFilterSection({ field, label, labelHelp, idPrefix, item
           label={radioLabel}
           value={key}
           checked={key === value}
-          onChange={(value) => onChange(field, key)}
+          onChange={(_value) => onChange(field, key)}
         />
       ))}
     </RadioGroup>

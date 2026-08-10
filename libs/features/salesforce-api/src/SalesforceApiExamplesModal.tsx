@@ -39,7 +39,7 @@ export const SalesforceApiExamplesModal: FunctionComponent<SalesforceApiExamples
         setRequests(requests);
         setExpandedGroupIds(new Set(requests.map((item) => item.groupName)));
       }
-    } catch (ex) {
+    } catch {
       logger.warn('[SALESFORCE API] Error fetching requests');
       if (isMounted.current) {
         setIsLoading(false);

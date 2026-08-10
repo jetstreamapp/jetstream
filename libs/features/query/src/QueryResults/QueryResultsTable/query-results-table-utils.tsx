@@ -31,7 +31,7 @@ export function getQueryResultsCellContents(
       } else {
         try {
           content = <div className="slds-line-clamp_medium">{JSON.stringify(value)}</div>;
-        } catch (ex) {
+        } catch {
           content = '<unable to show contents>';
         }
       }

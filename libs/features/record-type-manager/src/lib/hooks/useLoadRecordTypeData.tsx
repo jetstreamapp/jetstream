@@ -37,13 +37,7 @@ export function useLoadRecordTypeData() {
   const [recordTypeMetadataByFullName, setRecordTypeMetadataByFullName] = useState<Record<string, ReadMetadataRecordTypeExtended>>({});
 
   const [
-    {
-      objectMetadata,
-      modifiedValues,
-      allValues,
-      errorsByField: configurationErrorsByField,
-      errorsByRecordType: configurationErrorsByRecordType,
-    },
+    { objectMetadata, modifiedValues, errorsByField: configurationErrorsByField, errorsByRecordType: configurationErrorsByRecordType },
     dispatch,
   ] = useReducer(recordTypeReducer, {
     allValues: [],

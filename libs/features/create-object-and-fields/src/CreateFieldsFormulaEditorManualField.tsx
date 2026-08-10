@@ -47,7 +47,7 @@ export interface CreateFieldsFormulaEditorManualFieldProps {
 }
 
 export const CreateFieldsFormulaEditorManualField = forwardRef<unknown, CreateFieldsFormulaEditorManualFieldProps>(
-  ({ field, fieldType, fieldValue, disabled, onChange }, ref) => {
+  ({ field, fieldType, fieldValue, disabled, onChange }, _ref) => {
     function handleTypeChange(item: ListItem<ManualFormulaFieldType, ManualFormulaFieldType>) {
       const value = fieldValue;
       const newType = item.value;

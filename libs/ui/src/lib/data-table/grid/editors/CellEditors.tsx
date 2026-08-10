@@ -74,7 +74,7 @@ export function EditorBoolean<TRow extends object>({ row, column, onRowChange, o
   );
 }
 
-export function EditorDate<TRow extends object>({ row, column, onRowChange, onClose }: DataTableEditorProps<TRow>) {
+export function EditorDate<TRow extends object>({ row, column, onRowChange }: DataTableEditorProps<TRow>) {
   const currentValue = (row as any)[column.key] as string;
   const currentDate = currentValue ? parseISO(currentValue) : undefined;
   return (

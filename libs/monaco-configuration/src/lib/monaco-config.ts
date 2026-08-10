@@ -12,14 +12,14 @@ export function configure(monaco: Monaco) {
   configureSoqlLanguage(monaco);
   configureApexLog(monaco);
   configureSfdcFormulaLanguage(monaco);
-  configureApexCompletions(monaco).catch((ex) => {
+  configureApexCompletions(monaco).catch((_ex) => {
     console.warn('Failed to load Apex completions');
   });
-  configureSfdcFormulaCompletions(monaco).catch((ex) => {
+  configureSfdcFormulaCompletions(monaco).catch((_ex) => {
     console.warn('Failed to load sfdc-formula completions');
   });
 
   monaco.languages.registerFoldingRangeProvider('apex-log', {
-    provideFoldingRanges: (model, context, token) => getApexLogFoldableRegions(model.getValue()),
+    provideFoldingRanges: (model, _context, _token) => getApexLogFoldableRegions(model.getValue()),
   });
 }

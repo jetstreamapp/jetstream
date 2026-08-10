@@ -59,7 +59,7 @@ export function useBrowserNotifications(serverUrl: string, isFocused?: () => boo
       logger.info('[NOTIFICATION]', options);
       if (window.Notification && Notification.permission === 'granted' && (document.hidden || (isFocused && !isFocused()))) {
         notification.current = new Notification(title, options);
-        notification.current.onclick = (event: Event) => window.focus();
+        notification.current.onclick = (_event: Event) => window.focus();
         notification.current.onerror = (event: Event) => logger.info('[NOTIFICATION][ERROR]', event);
       }
     },

@@ -23,7 +23,7 @@ function getRowKey(row: PermissionTableFieldCell) {
   return row.key;
 }
 
-function getRowHeight({ type, row }: RowHeightArgs<PermissionTableFieldCell>) {
+function getRowHeight({ type }: RowHeightArgs<PermissionTableFieldCell>) {
   if (type === 'ROW') {
     return 24;
   }

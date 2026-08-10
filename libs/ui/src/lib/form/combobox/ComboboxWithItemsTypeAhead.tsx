@@ -155,7 +155,7 @@ export const ComboboxWithItemsTypeAhead: FunctionComponent<ComboboxWithItemsType
           secondaryLabel={item.secondaryLabel}
           secondaryLabelOnNewLine={item.secondaryLabelOnNewLine}
           selected={item === selectedItem}
-          onSelection={(id) => {
+          onSelection={(_id) => {
             onSelected(item);
             comboboxRef.current?.close();
           }}

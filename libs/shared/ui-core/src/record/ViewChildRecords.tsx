@@ -133,7 +133,7 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
             </Grid>
           );
         },
-        renderGroupCell: ({ toggleGroup, groupKey, childRows }) => (
+        renderGroupCell: ({ toggleGroup, groupKey }) => (
           <button
             css={css`
               white-space: nowrap;

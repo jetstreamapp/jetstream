@@ -49,7 +49,7 @@ export const SobjectFieldCombobox = forwardRef<unknown, SobjectFieldComboboxProp
       selectedSObject,
       selectedField,
       isTooling,
-      filterFn = (field) => true,
+      filterFn = (_field) => true,
       onSelectField,
     },
     ref,
