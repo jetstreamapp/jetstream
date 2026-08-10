@@ -1,3 +1,6 @@
+// DO NOT MERGE — throwaway edit so `nx affected` marks `api` as affected and the sharded E2E
+// suite actually runs on this PR. Delete this comment; it has no functional effect.
+
 // this gets imported first to ensure some items that require early initialization run first
 import '@jetstream/api-config';
 
