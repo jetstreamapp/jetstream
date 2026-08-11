@@ -27,7 +27,7 @@ import isString from 'lodash/isString';
 import { v4 as uuid } from 'uuid';
 import { getCacheItemHttp, saveCacheItemHttp } from './client-data-cache';
 import { SOBJECT_DESCRIBE_CACHED_RESPONSES } from './client-data-data-cached-responses';
-import { StepUpRequiredError } from './client-data-errors';
+import { ApiRequestError, StepUpRequiredError } from './client-data-errors';
 import { errorMiddleware } from './middleware';
 
 interface RequestOptions {
@@ -56,6 +56,9 @@ const RETRY_CONFIG = {
     /^\/api\/bulk\/([a-zA-Z0-9]+)\/([a-zA-Z0-9]+)$/,
     // Idempotent pagination — a transient failure mid-loop otherwise discards all previously fetched pages
     /^\/api\/query-more$/,
+    // Fetched once during app boot and there is no second chance at it — a blip here costs the user
+    // their entire session (see `fetchUserProfile`)
+    /^\/api\/me$/,
   ],
   methods: new Set(['GET']),
   statusCodes: new Set([429, 500, 502, 503, 504]),
@@ -269,7 +272,9 @@ function retryInterceptor(config: AxiosRequestConfig, options: RequestOptions = 
 
       options = { ...options, retryCount };
       config.headers = { ...config.headers, [HTTP.HEADERS.X_RETRY]: String(retryCount) };
-      const axiosInstance = axios.create({ ...config });
+      // The adapter must be carried over from `handleRequest`, otherwise the retry falls back to the
+      // browser transport and skips the desktop/extension/canvas message-passing bridge entirely.
+      const axiosInstance = axios.create({ ...config, adapter: AxiosAdapterConfig.adapter });
       axiosInstance.interceptors.request.use(requestInterceptor(options));
       axiosInstance.interceptors.response.use(responseInterceptor(options), responseErrorInterceptor(options));
       return await axiosInstance.request(config);
@@ -397,7 +402,9 @@ function responseErrorInterceptor(options: {
           ? 'A network error occurred - check your connection and try again.'
           : error.message || message;
     }
-    throw new Error(message);
+    // Carries the status so callers can distinguish a rejection by the server from a request that
+    // never completed — a plain `Error` in every other respect.
+    throw new ApiRequestError(message, error.response?.status ?? null);
   };
 }
 

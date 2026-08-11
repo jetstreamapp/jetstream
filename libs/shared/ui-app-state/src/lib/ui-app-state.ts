@@ -1,7 +1,7 @@
 import { getUserAbility } from '@jetstream/acl';
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
-import { checkHeartbeat, getLocalStore, getOrgGroups, getOrgs, getUserProfile } from '@jetstream/shared/data';
+import { checkHeartbeat, getLocalStore, getOrgGroups, getOrgs, getUserProfile, isAuthenticationFailure } from '@jetstream/shared/data';
 import {
   applyVerifiedFeatureFlags,
   getBrowserExtensionVersion,
@@ -209,11 +209,38 @@ async function fetchAppInfo(): Promise<AppInfo> {
   }
 }
 
+/**
+ * `GET /api/me` failed for a reason that does not mean the user is signed out — a network failure,
+ * a server error, a request that never completed.
+ *
+ * Falling back to {@link DEFAULT_PROFILE} in that case is not harmless: the app presents the session
+ * as logged out, which leaves the per-user Dexie and localforage stores unscoped for the rest of the
+ * page session, and every read or write against them throws (query history, api request history,
+ * recent items, saved mappings, preferences). Failing the boot instead puts the user in front of an
+ * error they can act on rather than an app that silently keeps no history.
+ */
+export class UserProfileUnavailableError extends Error {
+  constructor(options?: { cause?: unknown }) {
+    super('Your user profile could not be loaded.', options);
+    this.name = 'UserProfileUnavailableError';
+  }
+}
+
 async function fetchUserProfile(): Promise<UserProfileUi> {
   if (isBrowserExtension() || isCanvasApp()) {
     return DEFAULT_PROFILE;
   }
-  const userProfile = await getUserProfile().catch(() => DEFAULT_PROFILE);
+  const userProfile = await getUserProfile().catch((error: unknown) => {
+    // 401/403 is the genuine signed-out path — the response interceptor is already sending the user
+    // to the login page, so keep handing out the logged out profile as before.
+    // Desktop is exempt from the throw below: its authoritative profile comes from the main process
+    // (see the desktop `Login` component, which overwrites this atom before the app renders) and it
+    // must still start with no connectivity.
+    if (isAuthenticationFailure(error) || isDesktop()) {
+      return DEFAULT_PROFILE;
+    }
+    throw new UserProfileUnavailableError({ cause: error });
+  });
   // Verify the server's signature once here so downstream atoms read trusted flags synchronously.
   // On any failure this returns code defaults (fail-safe), so we never trust a tampered payload.
   return await applyVerifiedFeatureFlags(userProfile);
@@ -237,7 +264,13 @@ export const AnnouncementState = atom((get) => get(appInfoSyncState).announcemen
 
 export const isBrowserExtensionState = atom<boolean>(isBrowserExtension());
 
-export const userProfileState = atom<Promise<UserProfileUi> | UserProfileUi>(fetchUserProfile());
+const userProfilePromise = fetchUserProfile();
+// React surfaces the rejection to the error boundary when a component first reads the atom, but the
+// fetch starts at module evaluation — mark it handled so a failed profile fetch is not also reported
+// as an unhandled rejection before anything has rendered.
+userProfilePromise.catch(() => undefined);
+
+export const userProfileState = atom<Promise<UserProfileUi> | UserProfileUi>(userProfilePromise);
 
 export const analyticsState = atom<'accepted' | 'rejected' | null>(null);
 

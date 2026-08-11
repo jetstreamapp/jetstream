@@ -3,6 +3,7 @@ import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { tracker } from '@jetstream/shared/ui-utils';
 import { ensureError } from '@jetstream/shared/utils';
 import { Icon } from '@jetstream/ui';
+import { UserProfileUnavailableError } from '@jetstream/ui/app-state';
 import { FunctionComponent, useEffect } from 'react';
 import { FallbackProps } from 'react-error-boundary';
 import { Link } from 'react-router';
@@ -28,6 +29,29 @@ export const ErrorBoundaryFallback: FunctionComponent<FallbackProps> = ({ error:
 
   function resetPage() {
     window.location.reload();
+  }
+
+  // The profile fetch happens once per page load and its rejected promise lives as long as the page,
+  // so re-rendering the tree cannot recover from this one - only a reload can. Say what happened
+  // instead of the generic copy below, since this is usually a passing network or server problem.
+  if (_error instanceof UserProfileUnavailableError) {
+    return (
+      <div className="slds-card slds-box">
+        <p>We were unable to load your account, so Jetstream could not finish starting up.</p>
+        <p className="slds-m-top_x-small">
+          This is usually caused by a temporary network or server problem. Reload the page to try again - if it keeps happening, email{' '}
+          <a href="mailto:support@getjetstream.app" target="_blank" rel="noreferrer">
+            support@getjetstream.app
+          </a>
+          .
+        </p>
+        <div className="slds-m-top_large">
+          <button className="slds-button slds-button_brand" onClick={resetPage}>
+            Reload Page
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
