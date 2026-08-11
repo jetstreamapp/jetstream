@@ -74,17 +74,18 @@ export class FakeFileStore implements HistoryFileStore {
     return { bytes: bytes.byteLength };
   }
 
-  async readFile(relativePath: string, options: { gunzip: boolean }): Promise<Blob> {
+  async readFile(relativePath: string, options: { gunzip: boolean; maxBytes?: number }): Promise<Blob> {
     this.throwIfFailureSimulated('read-file', relativePath);
     const file = this.files.get(relativePath);
     if (!file) {
       throw new Error(`File not found: ${relativePath}`);
     }
+    const capped = (blob: Blob) => (options.maxBytes == null ? blob : blob.slice(0, options.maxBytes));
     if (!options.gunzip) {
-      return new Blob([file.bytes as BlobPart]);
+      return capped(new Blob([file.bytes as BlobPart]));
     }
     const stream = new Blob([file.bytes as BlobPart]).stream().pipeThrough(new DecompressionStream('gzip'));
-    return await new Response(stream).blob();
+    return capped(await new Response(stream).blob());
   }
 
   async deleteEntryDir(relativeDirPath: string): Promise<void> {
@@ -107,10 +108,6 @@ export class FakeFileStore implements HistoryFileStore {
       }
     }
     return Array.from(dirs.values());
-  }
-
-  async estimate(): Promise<{ usageBytes?: number; quotaBytes?: number } | null> {
-    return null;
   }
 
   private throwIfFailureSimulated(op: string, path?: string) {

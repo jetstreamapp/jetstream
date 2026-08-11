@@ -1,25 +1,26 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import { Maybe } from '@jetstream/types';
 import { fireToast, Spinner } from '@jetstream/ui';
 import {
   changeHistoryDirectory,
   changeNativeHistoryFolder,
-  connectHistoryDirectory,
   disableNativeHistoryStorage,
   disconnectHistoryDirectory,
-  enableNativeHistoryStorage,
-  reconnectHistoryDirectory,
+  getDataHistoryStorageLocation,
   reindexHistoryFromActiveBackend,
 } from '@jetstream/ui/data-history';
 import { FunctionComponent, useState } from 'react';
 import { useAmplitude } from '../analytics';
-import { useDataHistoryBackendStatus } from './data-history-hooks';
+import { openHistoryFolder, useDataHistoryBackendStatus, useReconnectHistoryFolder, useStoreHistoryInFolder } from './data-history-hooks';
 
 export interface DataHistoryStorageLocationProps {
   /** Called after any storage-location change so the parent can refresh usage numbers */
   onChanged?: () => void;
 }
+
+const ANALYTICS_LOCATION = 'settings-storage-location';
 
 /**
  * "Storage location" controls for Data History: the Chromium user-chosen-folder backend (File
@@ -29,27 +30,47 @@ export interface DataHistoryStorageLocationProps {
 export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLocationProps> = ({ onChanged }) => {
   const { trackEvent } = useAmplitude();
   const { backendStatus: status, loadBackendStatus: loadStatus } = useDataHistoryBackendStatus();
-  const [working, setWorking] = useState(false);
+  const [actionWorking, setActionWorking] = useState(false);
   const [migrationProgress, setMigrationProgress] = useState<Maybe<{ migrated: number; total: number }>>(null);
 
   function handleMigrationProgress(migrated: number, total: number) {
     setMigrationProgress({ migrated, total });
   }
 
+  async function handleChanged() {
+    await loadStatus();
+    onChanged?.();
+  }
+
+  // Connect-a-folder and re-connect are shared with the Data History page — same service call, same
+  // copy, same analytics but for `location`. Only the flows this surface alone offers use `runAction`.
+  const { storeInFolder, working: storeWorking } = useStoreHistoryInFolder({
+    analyticsLocation: ANALYTICS_LOCATION,
+    nativeSupported: !!status?.nativeSupported,
+    onProgress: handleMigrationProgress,
+    onChanged: handleChanged,
+  });
+  const { reconnectFolder, working: reconnectWorking } = useReconnectHistoryFolder({
+    analyticsLocation: ANALYTICS_LOCATION,
+    onChanged: handleChanged,
+  });
+  const working = actionWorking || storeWorking || reconnectWorking;
+
   async function runAction(action: () => Promise<unknown>, analytics: Record<string, unknown>) {
-    setWorking(true);
+    setActionWorking(true);
     setMigrationProgress(null);
     try {
       await action();
-      trackEvent(ANALYTICS_KEYS.data_history_settings_changed, { ...analytics, location: 'settings-storage-location' });
-      await loadStatus();
-      onChanged?.();
+      trackEvent(ANALYTICS_KEYS.data_history_settings_changed, { ...analytics, location: ANALYTICS_LOCATION });
+      await handleChanged();
     } catch (ex) {
       logger.warn('[DATA_HISTORY] Storage location change failed', ex);
-      fireToast({ type: 'error', message: 'There was a problem changing the Data History storage location.' });
+      // Some failures carry an actionable message (e.g. desktop refuses to move the folder while a
+      // load is writing to it) — show it rather than a generic error the user can only retry against
+      fireToast({ type: 'error', message: getErrorMessage(ex) || 'There was a problem changing the Data History storage location.' });
       await loadStatus();
     } finally {
-      setWorking(false);
+      setActionWorking(false);
       setMigrationProgress(null);
     }
   }
@@ -58,6 +79,10 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
     return null;
   }
 
+  // `isDirectoryActive`/`isNativeActive` gate WHICH BUTTONS to offer, so they key on the configured
+  // backend. Where the files actually land is a different question with extra guards — derive it from
+  // the shared helper so this panel and the Data History page always agree.
+  const location = getDataHistoryStorageLocation(status);
   const isDirectoryActive = status.active === 'directory';
   const isNativeActive = status.active === 'native';
 
@@ -68,31 +93,22 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
 
       {status.nativeSupported ? (
         <div>
-          {isNativeActive ? (
+          {location.kind === 'native' ? (
             <p>
               Files are saved to:{' '}
               <button
                 className="slds-button"
                 title="Open this folder in your file manager"
-                onClick={() =>
-                  status.nativePath &&
-                  window.electronAPI
-                    ?.openFile?.(status.nativePath)
-                    ?.catch((ex) => logger.warn('[DATA_HISTORY] Unable to open history folder', ex))
-                }
+                onClick={() => openHistoryFolder(location.path)}
               >
-                {status.nativePath}
+                {location.path}
               </button>
             </p>
           ) : (
             <p>App-managed storage (default)</p>
           )}
           {!isNativeActive && (
-            <button
-              className="slds-button slds-button_neutral slds-m-top_x-small"
-              disabled={working}
-              onClick={() => runAction(() => enableNativeHistoryStorage(handleMigrationProgress), { backend: 'native' })}
-            >
+            <button className="slds-button slds-button_neutral slds-m-top_x-small" disabled={working} onClick={storeInFolder}>
               Store History in a Folder on Disk
             </button>
           )}
@@ -128,24 +144,11 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
         </div>
       ) : (
         <div>
-          <p>{isDirectoryActive ? `Files are saved to: ${status.directoryName}` : 'Browser storage (default)'}</p>
+          <p>{location.kind === 'directory' ? `Files are saved to: ${location.name}` : 'Browser storage (default)'}</p>
           {status.permissionNeeded && (
             <p className="slds-text-color_error slds-m-top_xx-small">
               Jetstream no longer has permission to your history folder — new history is temporarily saved to browser storage.
-              <button
-                className="slds-button slds-m-left_x-small"
-                disabled={working}
-                onClick={() =>
-                  runAction(
-                    async () => {
-                      if (!(await reconnectHistoryDirectory())) {
-                        throw new Error('Permission was not granted');
-                      }
-                    },
-                    { backend: 'directory', action: 'reconnect' },
-                  )
-                }
-              >
+              <button className="slds-button slds-m-left_x-small" disabled={working} onClick={reconnectFolder}>
                 Re-connect Folder
               </button>
             </p>
@@ -154,17 +157,7 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
             <button
               className="slds-button slds-button_neutral slds-m-top_x-small"
               disabled={working}
-              onClick={() =>
-                runAction(
-                  async () => {
-                    const result = await connectHistoryDirectory(handleMigrationProgress);
-                    if (result) {
-                      fireToast({ type: 'success', message: 'Your history is now stored in the selected folder.' });
-                    }
-                  },
-                  { backend: 'directory' },
-                )
-              }
+              onClick={storeInFolder}
               title="Store history as regular files in a folder you choose — visible, backed up with your other files, and kept when browser data is cleared"
             >
               Store History in a Folder on Your Computer…

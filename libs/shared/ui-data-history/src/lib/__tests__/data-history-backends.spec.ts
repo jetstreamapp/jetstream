@@ -28,7 +28,6 @@ async function seedEntry(overrides: Partial<DataHistoryItem> & { withFile?: bool
     files: [],
     storageBackend: 'opfs',
     sizeBytes: 0,
-    inlinePayload: null,
     pinned: false,
     pinnedIdx: 'false',
     errorMessage: null,
@@ -65,7 +64,9 @@ describe('migrateHistoryEntries', () => {
 
   it('copies files, rewrites the manifest, re-stamps entries, and removes the invisible OPFS source', async () => {
     const fileBacked = await seedEntry({ withFile: true });
-    const inlineOnly = await seedEntry({ inlinePayload: new Uint8Array([1, 2, 3]), sizeBytes: 3 });
+    // A capture that crashed before its first write has no bytes anywhere — re-stamping is the
+    // whole migration for it
+    const fileLess = await seedEntry({ status: 'incomplete' });
 
     const target = new FakeFileStore('directory');
     const migrated = await migrateHistoryEntries({ to: target });
@@ -73,7 +74,7 @@ describe('migrateHistoryEntries', () => {
     expect(migrated).toBe(2);
     const migratedFileBacked = await dataHistoryDb.getEntry(fileBacked.key);
     expect(migratedFileBacked?.storageBackend).toBe('directory');
-    expect((await dataHistoryDb.getEntry(inlineOnly.key))?.storageBackend).toBe('directory');
+    expect((await dataHistoryDb.getEntry(fileLess.key))?.storageBackend).toBe('directory');
 
     // file copied byte-for-byte (still gzip) + manifest re-written with the new backend stamp
     expect(target.files.has(fileBacked.files[0].path)).toBe(true);
@@ -229,7 +230,7 @@ describe('reindexHistoryFromActiveBackend', () => {
     expect(restoredEntry?.status).toBe('success');
     expect(restoredEntry?.storageBackend).toBe('directory');
     expect(restoredEntry?.createdAt).toBeInstanceOf(Date);
-    expect(restoredEntry?.inlinePayload).toBeNull();
+    expect(restoredEntry?.files.map(({ kind }) => kind)).toEqual(['results']);
     expect(await dataHistoryDb.getEntryCount()).toBe(2);
     expect((await dataHistoryDb.getEntry(known.key))?.key).toBe(known.key);
   });

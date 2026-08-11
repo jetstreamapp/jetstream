@@ -1,21 +1,21 @@
-/**
- * RPC protocol between `OpfsFileStore` (main thread) and `history-storage.worker.ts`.
- * Types only — this module must have zero runtime footprint so importing it does not grow the
- * worker bundle.
- */
+import type { DataHistoryFileOpCommon, DataHistoryFileOpCommonResults } from '@jetstream/types';
 
-export type HistoryWorkerRequest =
-  /** `scopeDir` is the per-user directory the whole tree is rooted under (see `user-scope.ts`) */
-  | { id: number; op: 'init'; scopeDir: string }
-  | { id: number; op: 'write-file'; path: string; gzip: boolean; bytes: Uint8Array }
-  | { id: number; op: 'open-stream'; streamId: number; path: string; gzip: boolean }
-  | { id: number; op: 'stream-write'; streamId: number; bytes: Uint8Array }
-  | { id: number; op: 'stream-close'; streamId: number }
-  | { id: number; op: 'stream-abort'; streamId: number }
-  | { id: number; op: 'read-file'; path: string; gunzip: boolean }
-  | { id: number; op: 'delete-dir'; path: string }
-  | { id: number; op: 'list-entry-dirs' }
-  | { id: number; op: 'estimate' };
+/**
+ * The postMessage transport of the shared Data History file-op protocol
+ * ({@link DataHistoryFileOpCommon}) between `OpfsFileStore` (main thread) and
+ * `history-storage.worker.ts`.
+ *
+ * Types only — this module must have zero runtime footprint so importing it does not grow the worker
+ * bundle, hence the `import type` above.
+ *
+ * Stream ids are allocated CLIENT-side here: a respawned worker restarts its own counters, so
+ * worker-side allocation could hand a fresh stream an id a stale handle still holds. (The Electron
+ * transport has no respawn and allocates server-side instead.)
+ */
+export type HistoryWorkerRequestBody = DataHistoryFileOpCommon | { op: 'open-stream'; streamId: number; path: string; gzip: boolean };
+
+/** A request body plus the id the promise-map RPC correlates its response with */
+export type HistoryWorkerRequest = HistoryWorkerRequestBody & { id: number };
 
 export interface HistoryWorkerSuccessResponse {
   id: number;
@@ -31,48 +31,12 @@ export interface HistoryWorkerErrorResponse {
 
 export type HistoryWorkerResponse = HistoryWorkerSuccessResponse | HistoryWorkerErrorResponse;
 
-/**
- * A request without its id, as passed to the RPC client. Plain `Omit` does not distribute over
- * unions (it would collapse the request variants to their common keys), so distribute manually.
- */
-export type HistoryWorkerRequestBody = HistoryWorkerRequest extends infer T ? (T extends { id: number } ? Omit<T, 'id'> : never) : never;
-
-export interface OpenStreamResult {
-  streamId: number;
-}
-
-export interface StreamCloseResult {
-  bytes: number;
-}
-
-export interface WriteFileResult {
-  bytes: number;
-}
-
-export interface ListEntryDirsResult {
-  dirs: Array<{ orgFolder: string; entryKey: string }>;
-}
-
-export interface EstimateResult {
-  usageBytes?: number;
-  quotaBytes?: number;
-}
-
-/**
- * Result shape per op — the worker-side counterpart of `DataHistoryFileOpResultByOp` in
- * `@jetstream/desktop/types`. The one deliberate difference: `read-file` is a `Blob` here (the
- * worker's structured clone carries Blobs fine) but raw bytes over Electron IPC, where Blobs are
- * not serializable.
- */
-export interface HistoryWorkerResultByOp {
-  init: void;
-  'write-file': WriteFileResult;
-  'open-stream': OpenStreamResult;
-  'stream-write': void;
-  'stream-close': StreamCloseResult;
-  'stream-abort': void;
+/** `read-file` is a Blob here (structured clone carries Blobs fine); every other op is shared. */
+export interface HistoryWorkerResultByOp extends DataHistoryFileOpCommonResults {
   'read-file': Blob;
-  'delete-dir': void;
-  'list-entry-dirs': ListEntryDirsResult;
-  estimate: EstimateResult;
 }
+
+export type OpenStreamResult = HistoryWorkerResultByOp['open-stream'];
+export type StreamCloseResult = HistoryWorkerResultByOp['stream-close'];
+export type WriteFileResult = HistoryWorkerResultByOp['write-file'];
+export type ListEntryDirsResult = HistoryWorkerResultByOp['list-entry-dirs'];

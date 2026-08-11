@@ -1,4 +1,3 @@
-import { logger } from '@jetstream/shared/client-logger';
 import { buildBulkResultRow } from '@jetstream/shared/utils';
 import {
   ApiMode,
@@ -14,8 +13,18 @@ import {
   PrepareDataResponse,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import { buildDataHistoryInputSource, DataHistoryEntryHandle, startDataHistoryEntry } from '@jetstream/ui/data-history';
-import { fetchBulkApiAllBatchResults, getLoadResultsHeader } from '../components/load-results/load-results-utils';
+import {
+  appendBulkJobBatchResults,
+  buildDataHistoryInputSource,
+  DataHistoryEntryHandle,
+  startDataHistoryEntry,
+} from '@jetstream/ui/data-history';
+import {
+  alignBatchSourceRecordsToResults,
+  getBulkJobCompletedBatches,
+  getLoadResultsHeader,
+  isDeleteLoadType,
+} from '../components/load-results/load-results-utils';
 
 /**
  * Helpers that adapt the Load Records feature to the `@jetstream/ui/data-history` capture API.
@@ -52,17 +61,39 @@ export function apiModeToDataHistoryApi(apiMode: ApiMode): DataHistoryApi {
  * prepare step). FINISH the entry — not fail — so the attempted count is recorded: every input
  * record counts as a failure rather than the entry looking like a capture malfunction.
  */
-export function finishHistoryAsPrepareFailure(
-  historyHandle: Maybe<DataHistoryEntryHandle>,
-  attemptedCount: number,
-  errorMessage: string,
-): void {
-  historyHandle?.finish({
+export function finishHistoryAsPrepareFailure(historyHandle: DataHistoryEntryHandle, attemptedCount: number, errorMessage: string): void {
+  historyHandle.finish({
     counts: { total: attemptedCount, success: 0, failure: attemptedCount },
     status: 'failed',
     errorMessage,
   });
 }
+
+/**
+ * Everything a Load Records run records about HOW it was configured. Named (rather than left as an
+ * inline parameter type) because the entry-start and per-run option types below are both derived
+ * from it — three layers of `Parameters<typeof …>[0]['config']` compiled the same but sent every
+ * reader on a hunt through unnamed function parameters to learn what five fields a call site passes.
+ */
+export interface LoadRecordsHistoryConfig {
+  loadType: InsertUpdateUpsertDelete;
+  apiMode: ApiMode;
+  numRecords: number;
+  batchSize: Maybe<number>;
+  insertNulls: boolean;
+  serialMode: boolean;
+  hasDateFieldMapped: boolean;
+  dateFormat: string;
+  fieldMapping: FieldMapping;
+  hasZipAttachment: boolean;
+  timesSameDataSubmitted: number;
+  trialRun?: boolean;
+  trialRunSize?: Maybe<number>;
+  retry?: { retryCount: number; retrySource: 'all' | 'selected'; totalFailedCount: number };
+}
+
+/** The config values a single run supplies — the rest come from the load wizard via `startLoadRecordsHistory` */
+export type LoadRecordsHistoryRunConfig = Omit<LoadRecordsHistoryConfig, 'loadType' | 'apiMode'>;
 
 /**
  * Metadata snapshot stored on the entry's `config`, mirroring the `load_Submitted` analytics payload
@@ -84,22 +115,7 @@ export function buildLoadRecordsHistoryConfig({
   trialRun = false,
   trialRunSize,
   retry,
-}: {
-  loadType: InsertUpdateUpsertDelete;
-  apiMode: ApiMode;
-  numRecords: number;
-  batchSize: Maybe<number>;
-  insertNulls: boolean;
-  serialMode: boolean;
-  hasDateFieldMapped: boolean;
-  dateFormat: string;
-  fieldMapping: FieldMapping;
-  hasZipAttachment: boolean;
-  timesSameDataSubmitted: number;
-  trialRun?: boolean;
-  trialRunSize?: Maybe<number>;
-  retry?: { retryCount: number; retrySource: 'all' | 'selected'; totalFailedCount: number };
-}): Record<string, unknown> {
+}: LoadRecordsHistoryConfig): Record<string, unknown> {
   return {
     loadType,
     apiMode,
@@ -144,8 +160,8 @@ export function startLoadRecordsHistory({
   inputFilenameType: Maybe<LocalOrGoogle>;
   inputGoogleFileId: Maybe<string>;
   skipHistory?: boolean;
-  /** Config snapshot values for `buildLoadRecordsHistoryConfig` — `loadType`/`apiMode` are added automatically */
-  config: Omit<Parameters<typeof buildLoadRecordsHistoryConfig>[0], 'loadType' | 'apiMode'>;
+  /** Config snapshot values — `loadType`/`apiMode` are added automatically */
+  config: LoadRecordsHistoryRunConfig;
   parentKey?: string;
 }): DataHistoryEntryHandle {
   return startDataHistoryEntry({
@@ -168,10 +184,14 @@ export function startLoadRecordsHistory({
 /**
  * Proactively capture a finished bulk job's per-record results, then finish the entry. Bulk results
  * expire server-side (~7 days), so they are fetched even when the user never clicks download.
+ * The fetch loop and its bounded-memory/skip-a-failed-batch policies live in
+ * `appendBulkJobBatchResults`; this supplies the load's batch resolution and row building.
  *
  * Skipped entirely — with no network calls — when capture is off, and a results-fetch failure still
  * finishes the entry with the counts the UI shows, because the load itself succeeded and must never
  * be recorded as failed. Fire-and-forget — the returned promise is only for sequencing in tests.
+ *
+ * Runs through `handle.finalize`, which finishes the entry with these counts and is one-shot.
  */
 export function captureBulkApiLoadResults({
   handle,
@@ -181,7 +201,6 @@ export function captureBulkApiLoadResults({
   preparedData,
   loadType,
   fields,
-  batchSize,
   counts,
 }: {
   handle: DataHistoryEntryHandle;
@@ -192,27 +211,26 @@ export function captureBulkApiLoadResults({
   loadType: InsertUpdateUpsertDelete;
   /** Mapped target field headers (`getFieldHeaderFromMapping`) */
   fields: string[];
-  batchSize: number;
   counts: DataHistoryCounts;
 }): Promise<void> {
-  return handle.capture(async () => {
-    try {
-      if (jobInfo.id) {
-        const { results, records } = await fetchBulkApiAllBatchResults({ selectedOrg, jobInfo, batchSummary, preparedData, loadType });
-        const header = getLoadResultsHeader(fields);
-        // Stream in batch-size chunks, awaiting each one: the capture methods only ENQUEUE work, so
-        // without the await the loop would build (and hold) every chunk's rows before any of them is
-        // serialized — the exact peak-memory spike the chunking exists to avoid.
-        for (let offset = 0; offset < results.length; offset += batchSize) {
-          const rows = results
-            .slice(offset, offset + batchSize)
-            .map((resultRecord, index) => buildBulkResultRow(resultRecord, records[offset + index]));
-          await handle.appendResultsRows(rows, header);
-        }
-      }
-    } catch (ex) {
-      logger.warn('[DATA_HISTORY] Failed to capture bulk results', ex);
+  return handle.finalize({ counts, jobId: jobInfo.id ?? undefined }, async () => {
+    if (!jobInfo.id) {
+      return;
     }
-    await handle.finish({ counts, jobId: jobInfo.id ?? undefined });
+    const isDelete = isDeleteLoadType(loadType);
+    const { batchIds, recordsByBatch } = getBulkJobCompletedBatches({ jobInfo, batchSummary, preparedData });
+    await appendBulkJobBatchResults({
+      handle,
+      org: selectedOrg,
+      jobId: jobInfo.id,
+      batchIds,
+      header: getLoadResultsHeader(fields),
+      buildBatchRows: (results, _batchId, batchIndex) => {
+        // Per-batch alignment, matching the single-batch download scope: for deletes Salesforce
+        // omits records with no mapped Id, and it applies that uniformly per batch
+        const records = alignBatchSourceRecordsToResults([recordsByBatch[batchIndex]], results.length, isDelete);
+        return results.map((resultRecord, recordIndex) => buildBulkResultRow(resultRecord, records[recordIndex]));
+      },
+    });
   });
 }

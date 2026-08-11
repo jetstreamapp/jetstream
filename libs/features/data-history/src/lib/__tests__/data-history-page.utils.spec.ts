@@ -5,6 +5,8 @@ import {
   buildTableFromPayloadView,
   DATA_HISTORY_API_LABELS,
   DATA_HISTORY_OPERATION_LABELS,
+  DATA_HISTORY_PREVIEW_COLUMN_MIN_WIDTH,
+  DATA_HISTORY_PREVIEW_COLUMN_WIDTH,
   DATA_HISTORY_SOURCE_LABELS,
   DATA_HISTORY_STATUS_LABELS,
   formatDataHistoryCounts,
@@ -39,7 +41,6 @@ function buildItem(overrides: Partial<DataHistoryItem> = {}): DataHistoryItem {
     files: [],
     storageBackend: 'opfs',
     sizeBytes: 0,
-    inlinePayload: null,
     pinned: false,
     pinnedIdx: 'false',
     errorMessage: null,
@@ -112,11 +113,7 @@ describe('getAvailableFileKinds', () => {
     expect(getAvailableFileKinds(item).map(({ kind }) => kind)).toEqual(['input', 'results']);
   });
 
-  it('exposes request+results for inline entries and nothing when no data', () => {
-    expect(getAvailableFileKinds(buildItem({ inlinePayload: new Uint8Array([1]) })).map(({ kind }) => kind)).toEqual([
-      'request',
-      'results',
-    ]);
+  it('exposes nothing when the entry has no files', () => {
     expect(getAvailableFileKinds(buildItem())).toEqual([]);
   });
 });
@@ -220,7 +217,27 @@ describe('getDataHistoryExportTargets', () => {
   });
 
   it('splits the query-grid edit request into modified and previous targets', () => {
-    const item = buildItem({ source: 'query-table-edit', inlinePayload: new Uint8Array([1]) });
+    const item = buildItem({
+      source: 'query-table-edit',
+      files: [
+        {
+          kind: 'request',
+          path: 'o/e/request.json.gz',
+          fileName: 'request.json.gz',
+          contentType: 'application/json',
+          compressed: true,
+          bytes: 10,
+        },
+        {
+          kind: 'results',
+          path: 'o/e/results.json.gz',
+          fileName: 'results.json.gz',
+          contentType: 'application/json',
+          compressed: true,
+          bytes: 20,
+        },
+      ],
+    });
     expect(getDataHistoryExportTargets(item)).toEqual([
       { kind: 'request', viewId: 'edited', label: 'Modified Values', slug: 'modified-values' },
       { kind: 'request', viewId: 'prior', label: 'Previous Values', slug: 'previous-values' },
@@ -335,5 +352,26 @@ describe('parseCsvToTable', () => {
     const { rows, truncated } = parseCsvToTable(csv, 4, true);
     expect(rows).toHaveLength(4);
     expect(truncated).toBe(true);
+  });
+});
+
+describe('payload preview column sizing', () => {
+  /**
+   * Without an explicit width a wide record splits into columns too narrow to read, and because the
+   * preview grid uses auto row height, a long value then wraps into a row taller than the viewport.
+   */
+  it('gives every payload column a readable default width', () => {
+    const { columns } = parseCsvToTable('Id,Name,Description\n001,Acme,Some description');
+    expect(columns).toHaveLength(3);
+    columns.forEach((column) => {
+      expect(column.width).toBe(DATA_HISTORY_PREVIEW_COLUMN_WIDTH);
+      expect(column.minWidth).toBe(DATA_HISTORY_PREVIEW_COLUMN_MIN_WIDTH);
+    });
+  });
+
+  it('keeps the full value on the row — the preview clips visually, it does not truncate the data', () => {
+    const longValue = 'x'.repeat(40_000);
+    const { rows } = parseCsvToTable(`Id,Notes\n001,${longValue}`);
+    expect(rows[0].Notes).toHaveLength(40_000);
   });
 });

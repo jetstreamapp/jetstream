@@ -79,8 +79,7 @@ async function getAllEntries(): Promise<DataHistoryItem[]> {
 
 /**
  * Every entry key without reading the rows. Used by the orphan-directory sweep, which only needs to
- * answer "does a row exist for this directory" — loading full rows there would deserialize every
- * entry's `inlinePayload` (up to 64KB each) for nothing.
+ * answer "does a row exist for this directory" — loading full rows there is wasted deserialization.
  */
 async function getAllEntryKeys(): Promise<string[]> {
   return (await getDexieDb().data_history.toCollection().primaryKeys()) as string[];
@@ -128,9 +127,8 @@ async function getPinnedCount(): Promise<number> {
 
 /**
  * Total bytes across every entry, summed from the `sizeBytes` INDEX so no row is ever deserialized —
- * same motivation as `getAllEntryKeys` above. Reading rows here (`each`/`toArray`) pulled every
- * entry's `inlinePayload` (up to 64KB of gzip bytes each) into memory just to add up one number, and
- * this runs on every settings/history page mount for users whose tier has no entry cap.
+ * same motivation as `getAllEntryKeys` above. This runs on every settings/history page mount, and
+ * for users whose tier has no entry cap that is an unbounded number of rows.
  *
  * IndexedDB omits records with a missing index key, so a row without `sizeBytes` is skipped — which
  * is what summing it as 0 would have done anyway.

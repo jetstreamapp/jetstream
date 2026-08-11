@@ -103,17 +103,30 @@ APP VERSION ${version}
       disconnectSocket();
     }
 
-    // Data history reads and writes the per-user database, so it must initialize inside the same
-    // `activeUserId` gate — never against the signed-out/default profile.
     if (activeUserId) {
       initDexieDb({ userId: activeUserId, dbName: LOCAL_STORE_DB_NAME, recordSyncEnabled })
         .then(() => pruneAnalysisJobHistory())
-        .then(() => initDataHistoryAndSeedState({ userId: activeUserId, hasPaidPlan }))
         .catch((ex) => {
           logger.error('[DB] Error initializing db', ex);
         });
     }
-  }, [appInfo.serverUrl, recordSyncEnabled, activeUserId, hasPaidPlan, initDataHistoryAndSeedState]);
+  }, [appInfo.serverUrl, recordSyncEnabled, activeUserId]);
+
+  /**
+   * Data history initialization is keyed on the paid signal (it decides the tier's limits), which the
+   * socket/database bootstrap above is not — a billing-status change must not re-run `initSocket` and
+   * `initDexieDb`. Safe to run outside that chain because the `use(ensureLocalStorageReady(...))`
+   * above suspends this component until the per-user Dexie instance is bound, which is all data
+   * history needs. It stays inside the same `activeUserId` gate so it never runs against the
+   * signed-out/default profile.
+   */
+  useEffect(() => {
+    if (activeUserId) {
+      initDataHistoryAndSeedState({ userId: activeUserId, hasPaidPlan }).catch((ex) => {
+        logger.error('[DATA_HISTORY] Error initializing data history', ex);
+      });
+    }
+  }, [activeUserId, hasPaidPlan, initDataHistoryAndSeedState]);
 
   useEffect(() => {
     announcements && onAnnouncements && onAnnouncements(announcements);

@@ -22,12 +22,20 @@ export interface HistoryFileStore {
   createWriteStream(relativePath: string, options: { gzip: boolean }): Promise<HistoryWriteStream>;
   /** One-shot write, replacing any existing file. Returns the size on disk (post-compression). */
   writeFile(relativePath: string, data: Uint8Array | Blob, options: { gzip: boolean }): Promise<{ bytes: number }>;
-  readFile(relativePath: string, options: { gunzip: boolean }): Promise<Blob>;
+  /**
+   * Read a payload back. `maxBytes` caps the read AT THE SOURCE and must be honored there rather
+   * than by slicing a fully-read Blob: the in-modal preview only ever shows a couple of MB, but a
+   * results file from a large bulk load runs to hundreds of MB — and reading it whole means
+   * inflating the entire gzip stream (OPFS) or pulling every byte across IPC (desktop) to display
+   * the head of it. Omit for downloads and migration, which genuinely need the whole file.
+   *
+   * Read `maxBytes + 1` when the caller needs to know whether the file was longer than the cap.
+   */
+  readFile(relativePath: string, options: { gunzip: boolean; maxBytes?: number }): Promise<Blob>;
   /** Recursively delete an entry directory. Resolves (not rejects) when the directory is absent. */
   deleteEntryDir(relativeDirPath: string): Promise<void>;
   /** Enumerate `<orgFolder>/<entryKey>` directories — used by the orphan/reconcile sweep. */
   listEntryDirs(): Promise<Array<{ orgFolder: string; entryKey: string }>>;
-  estimate(): Promise<{ usageBytes?: number; quotaBytes?: number } | null>;
   /**
    * Release any owned resources (e.g. the OPFS worker thread) when the store is discarded — called
    * by the factory when the active/cached stores are reset after a backend change. Idempotent.

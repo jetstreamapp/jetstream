@@ -4,7 +4,7 @@ import { dataHistoryDb } from '@jetstream/ui/db';
 import { isDesktopApp } from '../platform';
 import { DirectoryHandleFileStore } from './directory-handle-file-store';
 import type { HistoryFileStore } from './file-store.types';
-import { DataHistoryDirectoryPermissionError, FsaDirectoryHandle, isFileSystemAccessSupported } from './fsa-types';
+import { asDirectoryHandle, DataHistoryDirectoryPermissionError, isFileSystemAccessSupported } from './fsa-types';
 import { NativeFsFileStore } from './native-fs-file-store';
 import { OpfsFileStore } from './opfs-file-store';
 import { getUserScopeDir } from './user-scope';
@@ -142,7 +142,7 @@ async function createStoreForBackend(backend: DataHistoryStorageBackend): Promis
     }
     case 'directory': {
       const config = await dataHistoryDb.getBackendConfig();
-      const handle = config.directoryHandle as FsaDirectoryHandle | undefined;
+      const handle = asDirectoryHandle(config.directoryHandle);
       if (!handle || !isFileSystemAccessSupported()) {
         throw new Error('No data history folder is connected in this browser');
       }

@@ -49,16 +49,19 @@ async function sweep(): Promise<void> {
   }
   const now = Date.now();
 
-  // ONE full read for steps 1-4 and 6. Every row carries its `inlinePayload` (up to 64KB of gzip
-  // bytes), so re-reading the table per step deserialized hundreds of MB for a user with a year of
-  // history. Steps below track their own deletions against this snapshot instead. Newest-first, to
-  // match the ordering the count/size caps expect.
+  // ONE full read for steps 1-4 and 6 — re-reading the whole table per step is wasted work for a
+  // user with a year of history. Steps below track their own deletions against this snapshot
+  // instead. Newest-first, to match the ordering the count/size caps expect.
   const snapshot = (await dataHistoryDb.getAllEntries()).sort((entryA, entryB) => entryB.createdAt.getTime() - entryA.createdAt.getTime());
   const deletedKeys = new Set<string>();
   const getLiveEntries = () => snapshot.filter(({ key }) => !deletedKeys.has(key));
+  // Only entries that ACTUALLY went away are dropped from the live set — a failed delete (e.g. an
+  // entry stamped `directory` whose folder permission lapsed) leaves a row that later steps must
+  // still see, or the size backstop under-counts real usage
   const deleteEntry = async (entry: DataHistoryItem) => {
-    await deleteEntryQuietly(entry);
-    deletedKeys.add(entry.key);
+    if (await deleteEntryQuietly(entry)) {
+      deletedKeys.add(entry.key);
+    }
   };
 
   // 1) Stranded in-progress entries
@@ -92,8 +95,10 @@ async function sweep(): Promise<void> {
       if (totalBytes <= tier.maxTotalBytes) {
         break;
       }
-      await deleteEntry(entry);
-      totalBytes -= toByteCount(entry.sizeBytes);
+      if (await deleteEntryQuietly(entry)) {
+        deletedKeys.add(entry.key);
+        totalBytes -= toByteCount(entry.sizeBytes);
+      }
     }
   }
 
@@ -129,9 +134,9 @@ async function sweep(): Promise<void> {
   //    of the user's chosen folder because permission lapsed would be wrong.
   try {
     const config = await dataHistoryDb.getBackendConfig();
-    // A file-less (inline-payload) entry has no bytes on ANY backend, so its stamp cannot strand it
-    // — only entries with files need re-homing. `migrateHistoryEntries` re-reads the table itself,
-    // which it must: the steps above deleted rows the snapshot still lists.
+    // A file-less entry (a capture that crashed before its first write) has no bytes on ANY backend,
+    // so its stamp cannot strand it — only entries with files need re-homing. `migrateHistoryEntries`
+    // re-reads the table itself, which it must: the steps above deleted rows the snapshot still lists.
     const hasStrandedEntries = getLiveEntries().some((entry) => entry.files.length > 0 && entry.storageBackend !== store.type);
     if (store.type === config.active && hasStrandedEntries) {
       await migrateHistoryEntries({ to: store });
@@ -164,9 +169,13 @@ export async function pruneEntryCountOverage(entriesNewestFirst?: DataHistoryIte
       if (remaining <= tier.maxEntries) {
         break;
       }
-      await deleteEntryQuietly(entry);
-      deletedKeys.push(entry.key);
-      remaining--;
+      // Count down only on a real deletion — otherwise a backend that cannot delete (lost folder
+      // permission) makes this report a cap it did not actually enforce, and the caller's snapshot
+      // loses rows that still exist
+      if (await deleteEntryQuietly(entry)) {
+        deletedKeys.push(entry.key);
+        remaining--;
+      }
     }
   } catch (ex) {
     logger.warn('[DATA_HISTORY][SWEEP] Unable to enforce entry-count cap', ex);
@@ -179,10 +188,13 @@ function toByteCount(sizeBytes: number | undefined): number {
   return Number.isFinite(sizeBytes) ? (sizeBytes as number) : 0;
 }
 
-async function deleteEntryQuietly(entry: DataHistoryItem): Promise<void> {
+/** Delete an entry, reporting whether it actually went away. Never throws. */
+async function deleteEntryQuietly(entry: DataHistoryItem): Promise<boolean> {
   try {
     await deleteEntryFilesAndRow(entry);
+    return true;
   } catch (ex) {
     logger.warn('[DATA_HISTORY][SWEEP] Unable to delete entry', entry.key, ex);
+    return false;
   }
 }

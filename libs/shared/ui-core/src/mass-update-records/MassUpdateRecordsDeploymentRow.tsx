@@ -18,8 +18,8 @@ import MassUpdateRecordTransformationText from './MassUpdateRecordTransformation
 import { MetadataRow } from './mass-update-records.types';
 import {
   buildMassUpdateCombinedResults,
-  getFieldsToQuery,
   getMassUpdateBatchSourceRecords,
+  getMassUpdateQueriedFieldsHeader,
   getMassUpdateResultsHeader,
 } from './mass-update-records.utils';
 
@@ -117,7 +117,7 @@ export const MassUpdateRecordsDeploymentRow = ({
   }
 
   function handleDownloadProcessingErrors() {
-    const header = ['_id', '_success', '_errors'].concat(getFieldsToQuery(configuration));
+    const header = getMassUpdateQueriedFieldsHeader(configuration);
     setDownloadModalData({
       ...downloadModalData,
       open: true,
@@ -133,7 +133,8 @@ export const MassUpdateRecordsDeploymentRow = ({
   }
 
   function handleDownloadRecordsFromModal(type: 'results' | 'failures', data: any[]) {
-    const header = ['_id', '_success', '_errors'].concat(getFieldsToQuery(configuration));
+    // Deliberately wider than the view modal's header — the download includes the alternate source columns
+    const header = getMassUpdateQueriedFieldsHeader(configuration);
     setResultsModalData({ ...resultsModalData, open: false });
     setDownloadModalData({
       open: true,

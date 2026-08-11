@@ -100,6 +100,10 @@ export const DATA_HISTORY_PREVIEW_MAX_BYTES = 2 * 1024 * 1024;
  * `DATA_HISTORY_PREVIEW_MAX_BYTES`): the last row is then almost certainly cut mid-record, so it is
  * dropped rather than shown as a row with missing values.
  */
+/** Default width for a payload preview column — see the note in `buildTableFromPayloadView` */
+export const DATA_HISTORY_PREVIEW_COLUMN_WIDTH = 220;
+export const DATA_HISTORY_PREVIEW_COLUMN_MIN_WIDTH = 120;
+
 export function buildTableFromPayloadView(
   view: DataHistoryPayloadView,
   maxRows: number = DATA_HISTORY_CSV_PREVIEW_MAX_ROWS,
@@ -110,6 +114,11 @@ export function buildTableFromPayloadView(
     name: field,
     sortable: true,
     resizable: true,
+    // Payload columns are arbitrary Salesforce fields, so nothing here can size them from content.
+    // Without an explicit width a wide record splits into columns too narrow to read, and — because
+    // the preview grid uses auto row height — a long value then wraps into a very tall row.
+    width: DATA_HISTORY_PREVIEW_COLUMN_WIDTH,
+    minWidth: DATA_HISTORY_PREVIEW_COLUMN_MIN_WIDTH,
     getValue: ({ row }) => row[field] ?? '',
   }));
   const overRowCap = view.rows.length > maxRows;
@@ -175,7 +184,7 @@ export function formatDataHistoryDate(date: Maybe<Date>): string {
 /**
  * On-disk folder holding an entry's files, relative to the history root — shown for user-visible
  * backends (user-chosen folder, desktop native) so entries can be matched to what the user sees in
- * their file manager. Null for inline/OPFS entries, where the location is browser-internal.
+ * their file manager. Null for OPFS entries, where the location is browser-internal.
  */
 export function getDataHistoryEntryFolderPath(item: DataHistoryItem): string | null {
   if (item.storageBackend === 'opfs' || item.files.length === 0) {
@@ -192,21 +201,9 @@ export function getDataHistoryFileKindLabel(item: DataHistoryItem, kind: DataHis
   return DATA_HISTORY_FILE_KIND_LABELS[kind];
 }
 
-/**
- * The payload kinds that can be viewed/downloaded for an entry — file-backed entries expose their
- * file refs; inline entries always expose request + results (decoded from `inlinePayload`).
- */
+/** The payload kinds that can be viewed/downloaded for an entry — one per stored file */
 export function getAvailableFileKinds(item: DataHistoryItem): Array<{ kind: DataHistoryFileKind; label: string; bytes?: number }> {
-  if (item.files.length > 0) {
-    return item.files.map(({ kind, bytes }) => ({ kind, label: getDataHistoryFileKindLabel(item, kind), bytes }));
-  }
-  if (item.inlinePayload) {
-    return [
-      { kind: 'request', label: getDataHistoryFileKindLabel(item, 'request') },
-      { kind: 'results', label: getDataHistoryFileKindLabel(item, 'results') },
-    ];
-  }
-  return [];
+  return item.files.map(({ kind, bytes }) => ({ kind, label: getDataHistoryFileKindLabel(item, kind), bytes }));
 }
 
 /**

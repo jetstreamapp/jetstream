@@ -20,21 +20,24 @@ import {
   UpgradeToProButton,
 } from '@jetstream/ui';
 import {
+  openHistoryFolder,
   useAmplitude,
   useDataHistoryBackendStatus,
   useReconnectHistoryFolder,
   useRequestPersistentStorage,
+  useSetDataHistoryCaptureEnabled,
   useStoreHistoryInFolder,
 } from '@jetstream/ui-core';
 import { dataHistoryCaptureEnabledState, fromAppState } from '@jetstream/ui/app-state';
-import { deleteDataHistoryEntry, setDataHistoryEnabled, setDataHistoryPinned } from '@jetstream/ui/data-history';
+import { deleteDataHistoryEntry, getDataHistoryStorageLocation, setDataHistoryPinned } from '@jetstream/ui/data-history';
 import { dataHistoryDb } from '@jetstream/ui/db';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useAtom, useAtomValue } from 'jotai';
+import { useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { DataHistoryExportTarget } from './data-history-payload-views';
 import { DataHistoryDetailModal } from './DataHistoryDetailModal';
+import { DataHistoryFilters, DataHistoryFilterValue } from './DataHistoryFilters';
 import { DataHistoryFormatDownloadModal } from './DataHistoryFormatDownloadModal';
 import { DataHistoryTable } from './DataHistoryTable';
 
@@ -120,7 +123,8 @@ export const DataHistory: FunctionComponent = () => {
   useTitle(TITLES.DATA_HISTORY);
   const { trackEvent } = useAmplitude();
   const orgs = useAtomValue(fromAppState.salesforceOrgsState);
-  const [captureEnabled, setCaptureEnabled] = useAtom(dataHistoryCaptureEnabledState);
+  const captureEnabled = useAtomValue(dataHistoryCaptureEnabledState);
+  const setCaptureEnabled = useSetDataHistoryCaptureEnabled({ analyticsLocation: 'data-history-page' });
   const limits = useAtomValue(fromAppState.dataHistoryLimitsState);
   // The resolved tier is the free/paid signal — entry-capped means the free tier is active
   const showUpgradeToPro = limits?.maxEntries != null;
@@ -147,17 +151,25 @@ export const DataHistory: FunctionComponent = () => {
     nativeSupported: !!backendStatus?.nativeSupported,
     onChanged: loadBackendStatus,
   });
-  const { reconnectFolder } = useReconnectHistoryFolder({ onChanged: loadBackendStatus });
+  const { reconnectFolder } = useReconnectHistoryFolder({ analyticsLocation: 'data-history-page', onChanged: loadBackendStatus });
 
   const canStoreInFolder =
     !!backendStatus &&
     ((backendStatus.nativeSupported && backendStatus.active !== 'native') ||
       (backendStatus.directorySupported && backendStatus.active !== 'directory'));
-  // When folder permission is revoked the directory is still the configured backend, but new writes fall back to
-  // browser storage — treat it as "not actively storing to the folder" so we don't imply the folder is still in use.
-  const directoryStorageActive = backendStatus?.active === 'directory' && !backendStatus.permissionNeeded;
+  // The three-way "where do history files live" decision, shared with the Settings panel so the two
+  // surfaces can never give the user contradictory answers — see `getDataHistoryStorageLocation`.
+  const storageLocation = getDataHistoryStorageLocation(backendStatus);
 
-  const entries = useLiveQuery(() => dataHistoryDb.getEntries({ limit: LIST_LIMIT }), []);
+  const [filters, setFilters] = useState<DataHistoryFilterValue>({});
+  // Narrowed in Dexie (via the `[org+createdAt]` / `createdAt` indexes) rather than after the fact, so
+  // LIST_LIMIT caps each FILTERED view instead of capping history itself — without this, entries past
+  // the newest 1000 were unreachable no matter what the user searched for.
+  const entries = useLiveQuery(
+    () => dataHistoryDb.getEntries({ ...filters, limit: LIST_LIMIT }),
+    [filters.org, filters.createdAfter?.getTime(), filters.createdBefore?.getTime()],
+  );
+  const hasActiveFilter = !!(filters.org || filters.createdAfter || filters.createdBefore);
   const pinnedCount = useLiveQuery(() => dataHistoryDb.getPinnedCount(), []);
   // On the free tier the entry cap is enforced oldest-unpinned-first, so once every slot is pinned a
   // new capture is pruned right back out — warn the user their history is effectively frozen.
@@ -202,16 +214,6 @@ export const DataHistory: FunctionComponent = () => {
     },
     [openDetail],
   );
-
-  async function handleEnableCapture() {
-    try {
-      await setDataHistoryEnabled(true);
-      setCaptureEnabled(true);
-      trackEvent(ANALYTICS_KEYS.data_history_settings_changed, { enabled: true, location: 'data-history-page' });
-    } catch (ex) {
-      logger.warn('[DATA_HISTORY] Error enabling data history', ex);
-    }
-  }
 
   function handleDismissUpgradeBanner() {
     setUpgradeBannerDismissed(true);
@@ -263,22 +265,17 @@ export const DataHistory: FunctionComponent = () => {
             docsPath={APP_ROUTES.DATA_HISTORY.DOCS}
           />
           <PageHeaderActions colType="actions" buttonType="separate">
-            {directoryStorageActive && (
+            {storageLocation.kind === 'directory' && (
               <StorageFolderIndicator
-                name={backendStatus.directoryName}
-                title={`History files are saved to the "${backendStatus.directoryName}" folder you selected on this computer. Browsers show only the folder's name (never its full path) and cannot open it in your file manager. Manage the folder from Settings.`}
+                name={storageLocation.name}
+                title={`History files are saved to the "${storageLocation.name}" folder you selected on this computer. Browsers show only the folder's name (never its full path) and cannot open it in your file manager. Manage the folder from Settings.`}
               />
             )}
-            {backendStatus?.active === 'native' && (
+            {storageLocation.kind === 'native' && (
               <StorageFolderIndicator
-                name={backendStatus.nativePath}
-                title={`Open ${backendStatus.nativePath} in your file manager`}
-                onClick={() =>
-                  backendStatus.nativePath &&
-                  window.electronAPI
-                    ?.openFile?.(backendStatus.nativePath)
-                    ?.catch((ex) => logger.warn('[DATA_HISTORY] Unable to open history folder', ex))
-                }
+                name={storageLocation.path}
+                title={`Open ${storageLocation.path} in your file manager`}
+                onClick={() => openHistoryFolder(storageLocation.path)}
               />
             )}
             {canStoreInFolder && (
@@ -316,10 +313,10 @@ export const DataHistory: FunctionComponent = () => {
         <p className="slds-text-color_weak slds-m-vertical_x-small">
           Data History keeps a local copy of the record modifications you make in Salesforce with Jetstream, including data loads, mass
           updates, and record edits.{' '}
-          {directoryStorageActive && backendStatus?.directoryName
-            ? `Your history is stored in your selected folder ("${backendStatus.directoryName}") on this device and is never sent to Jetstream.`
-            : backendStatus?.active === 'native'
-              ? `Your history is stored on this computer (${backendStatus.nativePath}) and is never sent to Jetstream.`
+          {storageLocation.kind === 'directory'
+            ? `Your history is stored in your selected folder ("${storageLocation.name}") on this device and is never sent to Jetstream.`
+            : storageLocation.kind === 'native'
+              ? `Your history is stored on this computer (${storageLocation.path}) and is never sent to Jetstream.`
               : `Your history is stored locally on this device and is never sent to Jetstream. Clearing your browser's site data permanently deletes it, so download anything you need to keep long-term.`}
         </p>
         {backendStatus?.permissionNeeded && (
@@ -389,7 +386,7 @@ export const DataHistory: FunctionComponent = () => {
               <button
                 className="slds-button slds-button_neutral slds-m-left_small"
                 css={scopedNotificationNeutralButtonCss}
-                onClick={handleEnableCapture}
+                onClick={() => setCaptureEnabled(true)}
               >
                 Enable Data History
               </button>
@@ -397,8 +394,17 @@ export const DataHistory: FunctionComponent = () => {
           </ScopedNotification>
         )}
 
+        {(hasActiveFilter || (entries && entries.length > 0)) && <DataHistoryFilters orgs={orgs} value={filters} onChange={setFilters} />}
+
         {entries && entries.length === 0 && (
-          <EmptyState headline="No data history found" subHeading="Data modifications you make with Jetstream will show up here." />
+          <EmptyState
+            headline={hasActiveFilter ? 'No history matches your filters' : 'No data history found'}
+            subHeading={
+              hasActiveFilter
+                ? 'Try widening the date range or choosing a different org.'
+                : 'Data modifications you make with Jetstream will show up here.'
+            }
+          />
         )}
 
         {entries && entries.length > 0 && (
@@ -412,7 +418,10 @@ export const DataHistory: FunctionComponent = () => {
           />
         )}
         {entries && entries.length >= LIST_LIMIT && (
-          <p className="slds-text-color_weak slds-m-top_x-small">Showing the most recent {LIST_LIMIT.toLocaleString()} entries.</p>
+          <p className="slds-text-color_weak slds-m-top_x-small">
+            Showing the most recent {LIST_LIMIT.toLocaleString()} entries{hasActiveFilter ? ' that match your filters' : ''}. Narrow the org
+            or date range to see older history.
+          </p>
         )}
 
         {detailItem && (

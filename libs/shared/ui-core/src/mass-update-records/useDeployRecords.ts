@@ -5,6 +5,7 @@ import { checkIfBulkApiJobIsDone, convertDateToLocale, generateCsv, tracker, use
 import { delay, getErrorMessage, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { BulkJobBatchInfo, SalesforceOrgUi } from '@jetstream/types';
 import { applicationCookieState } from '@jetstream/ui/app-state';
+import { DataHistoryEntryHandle } from '@jetstream/ui/data-history';
 import { formatDate } from 'date-fns/format';
 import { useAtom } from 'jotai';
 import { useCallback, useEffect, useRef } from 'react';
@@ -22,16 +23,34 @@ export function useDeployRecords(
   const isMounted = useRef(true);
   const { notifyUser } = useBrowserNotifications(serverUrl);
   const { trackEvent } = useAmplitude();
-  // Data History capture handles keyed by sobject, stashed at submit time so the poll-done branch can
-  // finalize the matching entry. (Mass-update deployments are one-per-sobject, so sobject is the key.)
+  /**
+   * Capture contexts for deployments that are still IN FLIGHT, keyed by sobject — the poll loop is
+   * driven by rows that carry no handle, so it has to look its deployment's context up. Entries are
+   * added when a deployment starts and taken (removed) by whichever path settles it, so a lookup can
+   * never return a previous deployment's finished handle.
+   */
   const historyCaptureRef = useRef<Record<string, MassUpdateHistoryContext>>({});
+
+  /** Remove and return a deployment's capture context, so exactly one path can settle it */
+  const takeHistoryCapture = useCallback((sobject: string): MassUpdateHistoryContext | undefined => {
+    const context = historyCaptureRef.current[sobject];
+    delete historyCaptureRef.current[sobject];
+    return context;
+  }, []);
 
   useEffect(() => {
     isMounted.current = true;
     return () => {
       isMounted.current = false;
+      // Unmounting mid-deployment abandons the run: polling stops and every settle path is gated on
+      // isMounted, so nothing would otherwise settle these entries — see `abandonIfUnsettled` for why
+      // a stranded entry matters. Taking each context keeps "exactly one path settles it" true, and
+      // `Object.keys` snapshots the keys before `takeHistoryCapture` deletes them.
+      Object.keys(historyCaptureRef.current).forEach((sobject) => {
+        takeHistoryCapture(sobject)?.handle.abandonIfUnsettled('The update was abandoned before it finished');
+      });
     };
-  }, []);
+  }, [takeHistoryCapture]);
 
   /**
    * Submit bulk update job
@@ -44,8 +63,7 @@ export function useDeployRecords(
       records,
       batchSize,
       serialMode,
-      configuration,
-      skipHistory,
+      historyHandle,
     }: {
       deployResults: DeployResults;
       sobject: string;
@@ -54,27 +72,13 @@ export function useDeployRecords(
       records: any[];
       batchSize: number;
       serialMode: boolean;
-      configuration: MetadataRowConfiguration[];
-      skipHistory?: boolean;
+      /** This attempt's capture handle, started by the caller (fire-and-forget and self-gating) */
+      historyHandle: DataHistoryEntryHandle;
     }) => {
       deployResults = { ...deployResults };
       const jobInfo = await bulkApiCreateJob(org, { type: 'UPDATE', sObject: sobject, serialMode });
       const jobId = jobInfo.id || '';
 
-      // Begin the Data History entry now that the job id is known. Fire-and-forget and self-gating:
-      // the handle is stashed by sobject so the poll-done branch can stream results + finish it.
-      const historyHandle = startMassUpdateHistory({
-        org,
-        source,
-        sobject,
-        jobId,
-        records,
-        batchSize,
-        serialMode,
-        configuration,
-        skipHistory,
-      });
-      historyCaptureRef.current[sobject] = { handle: historyHandle, batchSize, configuration };
       historyHandle.writeRequestJson(records);
 
       const batches = splitArrayToMaxSize(records, batchSize).map((batch) => ({
@@ -120,7 +124,7 @@ export function useDeployRecords(
       deployResults.lastChecked = formatDate(new Date(), 'h:mm:ss');
       isMounted.current && onDeployResults(sobject, { ...deployResults });
     },
-    [org, source, onDeployResults],
+    [org, onDeployResults],
   );
 
   const loadDataForRow = useCallback(
@@ -141,6 +145,19 @@ export function useDeployRecords(
 
       onDeployResults(row.sobject, { ...deployResults });
 
+      // Registered BEFORE the query so a query/prepare failure is recorded against THIS attempt —
+      // `loadDataForRows`'s catch is what settles it in that case
+      const historyHandle = startMassUpdateHistory({
+        org,
+        source,
+        sobject: row.sobject,
+        batchSize,
+        serialMode,
+        configuration: row.configuration,
+        skipHistory,
+      });
+      historyCaptureRef.current[row.sobject] = { handle: historyHandle, batchSize, configuration: row.configuration };
+
       const records = await queryAndPrepareRecordsForUpdate(row, fields, org);
 
       if (!isMounted.current) {
@@ -159,6 +176,7 @@ export function useDeployRecords(
           status: 'Finished',
         };
         isMounted.current && onDeployResults(row.sobject, { ...deployResults });
+        takeHistoryCapture(row.sobject)?.handle.finish({ counts: { total: 0, success: 0, failure: 0 } });
         return;
       }
 
@@ -173,11 +191,10 @@ export function useDeployRecords(
         records,
         batchSize,
         serialMode,
-        configuration: row.configuration,
-        skipHistory,
+        historyHandle,
       });
     },
-    [org, performLoad, onDeployResults],
+    [org, source, performLoad, onDeployResults, takeHistoryCapture],
   );
 
   /**
@@ -206,14 +223,14 @@ export function useDeployRecords(
           };
 
           isMounted.current && onDeployResults(row.sobject, deployResults);
-          historyCaptureRef.current[row.sobject]?.handle.fail(getErrorMessage(ex));
+          takeHistoryCapture(row.sobject)?.handle.fail(getErrorMessage(ex));
 
           tracker.error('There was an error loading data for mass record update', ex);
           logger.error('Error loading data for row', ex);
         }
       }
     },
-    [trackEvent, source, loadDataForRow, onDeployResults],
+    [trackEvent, source, loadDataForRow, onDeployResults, takeHistoryCapture],
   );
 
   /**
@@ -271,6 +288,12 @@ export function useDeployRecords(
         }
 
         onDeployResults(sobject, { ...deployResults });
+
+        // Registered BEFORE prepareRecords so a transformation failure is recorded against THIS
+        // attempt — the catch below is what settles it in that case
+        const historyHandle = startMassUpdateHistory({ org, source, sobject, batchSize, serialMode, configuration, skipHistory });
+        historyCaptureRef.current[sobject] = { handle: historyHandle, batchSize, configuration };
+
         const records = prepareRecords(initialRecords, configuration);
 
         deployResults.status = 'In Progress - Uploading';
@@ -283,8 +306,7 @@ export function useDeployRecords(
           records,
           batchSize,
           serialMode,
-          configuration,
-          skipHistory,
+          historyHandle,
         });
       } catch (ex) {
         const newDeployResults: DeployResults = {
@@ -297,13 +319,13 @@ export function useDeployRecords(
         };
 
         onDeployResults(sobject, newDeployResults);
-        historyCaptureRef.current[sobject]?.handle.fail(getErrorMessage(ex));
+        takeHistoryCapture(sobject)?.handle.fail(getErrorMessage(ex));
 
         tracker.error('There was an error loading data for mass record update', ex);
         logger.error('Error loading data for row', ex);
       }
     },
-    [trackEvent, source, onDeployResults, performLoad],
+    [trackEvent, org, source, onDeployResults, performLoad, takeHistoryCapture],
   );
 
   const pollResults = useCallback(
@@ -328,8 +350,9 @@ export function useDeployRecords(
               deployResults.processingEndTime = convertDateToLocale(new Date());
 
               // Proactively capture per-record results to Data History (bulk results expire server-side).
-              // Runs exactly once per deployment — the row won't re-enter this branch once `done` is set.
-              const captureContext = historyCaptureRef.current[row.sobject];
+              // Taking the context settles this deployment — the row won't re-enter this branch once
+              // `done` is set, and nothing else can then act on a handle this is about to finish.
+              const captureContext = takeHistoryCapture(row.sobject);
               if (captureContext) {
                 void captureMassUpdateResults({
                   context: captureContext,
@@ -355,13 +378,13 @@ export function useDeployRecords(
               processingEndTime: convertDateToLocale(new Date()),
             };
             onDeployResults(row.sobject, deployResults, true);
-            historyCaptureRef.current[row.sobject]?.handle.fail(getErrorMessage(ex));
+            takeHistoryCapture(row.sobject)?.handle.fail(getErrorMessage(ex));
           }
         }
       }
       return allDone;
     },
-    [org, onDeployResults],
+    [org, onDeployResults, takeHistoryCapture],
   );
 
   /**

@@ -87,28 +87,32 @@ export interface FinalizeMultiObjectHistoryOptions {
 }
 
 /**
- * Finalize a run's history entry: stream the flattened result rows, then `finish` with counts derived
+ * Finalize a run's history entry: stream the flattened result rows, and `finish` with counts derived
  * from the same rows. Even when every request failed outright (nothing reached Salesforce) the entry is
  * finished rather than failed, so it keeps the attempted record counts and still gets a manifest written
- * for folder re-indexing. Nothing (not even the row building) happens when the entry is not being
- * captured. Fire-and-forget — the returned promise is only for sequencing in tests.
+ * for folder re-indexing. The row building happens only when the entry is being captured.
+ * Fire-and-forget — the returned promise is only for sequencing in tests.
+ *
+ * Runs through `handle.finalize`, which finishes the entry with the derived outcome and is one-shot.
  */
 export function finalizeMultiObjectHistory(
   handle: DataHistoryEntryHandle,
   { rows, requests }: FinalizeMultiObjectHistoryOptions,
 ): Promise<void> {
-  return handle.capture(async () => {
-    await handle.appendResultsRows(buildResultsDownloadRows(rows, 'results'), RESULTS_DOWNLOAD_HEADER);
-    const allRequestsFailed = requests.length > 0 && requests.every(({ errorMessage }) => !!errorMessage);
-    // Records left pending (the run was cancelled before their request was sent) were never
-    // attempted, so they are excluded from the entry totals rather than counted as failures.
-    const { successCount, failureCount } = getLoadResultsSummary(rows);
-    await handle.finish({
+  const allRequestsFailed = requests.length > 0 && requests.every(({ errorMessage }) => !!errorMessage);
+  // Records left pending (the run was cancelled before their request was sent) were never
+  // attempted, so they are excluded from the entry totals rather than counted as failures.
+  const { successCount, failureCount } = getLoadResultsSummary(rows);
+  return handle.finalize(
+    {
       counts: { total: successCount + failureCount, success: successCount, failure: failureCount },
       // The status must be explicit: a request that failed before any record was mapped contributes no
       // counts, which would otherwise be derived as a success
       status: allRequestsFailed ? 'failed' : undefined,
       errorMessage: allRequestsFailed ? requests.find(({ errorMessage }) => errorMessage)?.errorMessage || 'Load failed' : undefined,
-    });
-  });
+    },
+    async () => {
+      await handle.appendResultsRows(buildResultsDownloadRows(rows, 'results'), RESULTS_DOWNLOAD_HEADER);
+    },
+  );
 }

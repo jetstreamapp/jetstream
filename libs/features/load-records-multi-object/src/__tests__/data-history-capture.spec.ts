@@ -1,13 +1,8 @@
 import { Blob as NodeBlob } from 'node:buffer';
 
 import { SalesforceOrgUi } from '@jetstream/types';
-import {
-  FakeFileStore,
-  initDataHistory,
-  readDataHistoryFile,
-  setHistoryFileStoreForTests,
-  startDataHistoryEntry,
-} from '@jetstream/ui/data-history';
+import { initDataHistory, readDataHistoryFile, setHistoryFileStoreForTests, startDataHistoryEntry } from '@jetstream/ui/data-history';
+import { FakeFileStore } from '@jetstream/ui/data-history/testing';
 import { dataHistoryDb, getDexieDb } from '@jetstream/ui/db';
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { finalizeMultiObjectHistory, getMultiObjectDistinctSobjects, getMultiObjectOperations } from '../data-history-capture';

@@ -3,21 +3,20 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { DataHistorySettings, Maybe } from '@jetstream/types';
 import { CheckboxToggle, ConfirmationModalPromise, fireToast, Spinner, UpgradeToProButton } from '@jetstream/ui';
-import { dataHistoryCaptureEnabledState, dataHistoryLimitsState } from '@jetstream/ui/app-state';
+import { dataHistoryLimitsState } from '@jetstream/ui/app-state';
 import {
   DataHistoryStorageHealth,
   deleteAllDataHistory,
   getDataHistorySettings,
   getDataHistoryStorageHealth,
-  setDataHistoryEnabled,
   updateDataHistoryRetentionSettings,
 } from '@jetstream/ui/data-history';
 import { filesize } from 'filesize';
-import { useAtomValue, useSetAtom } from 'jotai';
+import { useAtomValue } from 'jotai';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { useAmplitude } from '../analytics';
 import { ViewDataHistoryLink } from '../app/DataHistoryLinks';
-import { useRequestPersistentStorage } from './data-history-hooks';
+import { useRequestPersistentStorage, useSetDataHistoryCaptureEnabled } from './data-history-hooks';
 import { DataHistoryStorageLocation } from './DataHistoryStorageLocation';
 
 function formatBytes(sizeBytes: number): string {
@@ -28,10 +27,6 @@ function formatBytes(sizeBytes: number): string {
  * "Data History" settings section, shared by the web app Settings page, the desktop Settings page,
  * and the browser extension Additional Settings page (they are separate components — this keeps
  * one implementation).
- *
- * IMPORTANT: the enable/disable toggle must update BOTH the persisted setting (service) and the
- * `dataHistoryCaptureEnabledState` jotai atom — the atom is only seeded at app boot and gates the
- * per-run opt-out checkboxes across features.
  */
 export interface DataHistorySettingsSectionProps {
   /**
@@ -45,7 +40,7 @@ export interface DataHistorySettingsSectionProps {
 
 export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSectionProps> = ({ hideViewHistoryLink }) => {
   const { trackEvent } = useAmplitude();
-  const setCaptureEnabledAtom = useSetAtom(dataHistoryCaptureEnabledState);
+  const setCaptureEnabled = useSetDataHistoryCaptureEnabled({ analyticsLocation: 'settings' });
   // Seeded (non-null) by AppInitializer once initDataHistory() resolves — a hard refresh landing
   // directly here mounts before that finishes, so we gate the first load on it instead of bailing
   // to null forever
@@ -78,14 +73,8 @@ export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSe
   }, [limits, loadSettingsAndHealth]);
 
   async function handleEnabledChange(enabled: boolean) {
-    try {
-      await setDataHistoryEnabled(enabled);
-      setCaptureEnabledAtom(enabled);
-      trackEvent(ANALYTICS_KEYS.data_history_settings_changed, { enabled, location: 'settings' });
+    if (await setCaptureEnabled(enabled)) {
       await loadSettingsAndHealth();
-    } catch (ex) {
-      logger.warn('[DATA_HISTORY] Error updating enabled setting', ex);
-      fireToast({ type: 'error', message: 'There was a problem updating your Data History settings.' });
     }
   }
 

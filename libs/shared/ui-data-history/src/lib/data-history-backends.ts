@@ -1,10 +1,12 @@
 import { logger } from '@jetstream/shared/client-logger';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import {
   DataHistoryBackendConfig,
   DataHistoryFileRef,
   DataHistoryItem,
   dataHistoryItemSchema,
   DataHistoryStorageBackend,
+  Maybe,
 } from '@jetstream/types';
 import { dataHistoryDb } from '@jetstream/ui/db';
 import { buildManifestJson } from './data-history-manifest';
@@ -17,7 +19,7 @@ import {
   invalidateHistoryBackends,
 } from './file-store/file-store-factory';
 import { HistoryFileStore } from './file-store/file-store.types';
-import { FsaDirectoryHandle, isFileSystemAccessSupported, showHistoryDirectoryPicker } from './file-store/fsa-types';
+import { asDirectoryHandle, FsaDirectoryHandle, isFileSystemAccessSupported, showHistoryDirectoryPicker } from './file-store/fsa-types';
 import { DATA_HISTORY_FILE_NAMES, getParentDirPath } from './file-store/path-utils';
 import { getUserScopeDir } from './file-store/user-scope';
 import { isCanvasApp, isDesktopApp } from './platform';
@@ -51,6 +53,34 @@ export interface DataHistoryBackendStatus {
   nativeSupported: boolean;
 }
 
+/**
+ * The three-way "where do my history files live" answer, as rendered to the user.
+ */
+export type DataHistoryStorageLocation = { kind: 'directory'; name: string } | { kind: 'native'; path?: string } | { kind: 'browser' };
+
+/**
+ * Resolve where history files are ACTUALLY landing right now. Every surface that tells the user
+ * where their data goes must render from this, so two of them can never give contradictory answers.
+ *
+ * Two states resolve to `browser` even though a folder is still the CONFIGURED backend, because
+ * that is where new writes really go until the user intervenes:
+ * - `permissionNeeded` — the folder is connected but unusable until a user gesture re-grants access.
+ * - a directory with no resolvable name — the browser dropped the persisted handle (see
+ *   `asDirectoryHandle`), so `getHistoryBackendStatus` leaves `directoryName` unset.
+ *
+ * Keying a "which button do I offer" decision on the CONFIGURED backend (`status.active`) is a
+ * separate, legitimate question — do not fold that into this.
+ */
+export function getDataHistoryStorageLocation(status: Maybe<DataHistoryBackendStatus>): DataHistoryStorageLocation {
+  if (status?.active === 'native') {
+    return { kind: 'native', path: status.nativePath };
+  }
+  if (status?.active === 'directory' && !status.permissionNeeded && status.directoryName) {
+    return { kind: 'directory', name: status.directoryName };
+  }
+  return { kind: 'browser' };
+}
+
 export type DataHistoryMigrationProgress = (migrated: number, total: number) => void;
 
 /**
@@ -76,8 +106,9 @@ export async function getHistoryBackendStatus(): Promise<DataHistoryBackendStatu
     directorySupported: !isDesktopApp() && !isCanvasApp() && isFileSystemAccessSupported(),
     nativeSupported,
   };
-  if (config.active === 'directory' && config.directoryHandle) {
-    status.directoryName = (config.directoryHandle as FsaDirectoryHandle).name;
+  const configuredHandle = asDirectoryHandle(config.directoryHandle);
+  if (config.active === 'directory' && configuredHandle) {
+    status.directoryName = configuredHandle.name;
   }
   if (nativeSupported && window.electronAPI?.getDataHistoryFolder) {
     try {
@@ -147,7 +178,7 @@ export async function disconnectHistoryDirectory(onProgress?: DataHistoryMigrati
 /** Re-grant folder permission (MUST be called from a user gesture). Returns true when granted. */
 export async function reconnectHistoryDirectory(): Promise<boolean> {
   const config = await dataHistoryDb.getBackendConfig();
-  const handle = config.directoryHandle as FsaDirectoryHandle | undefined;
+  const handle = asDirectoryHandle(config.directoryHandle);
   if (config.active !== 'directory' || !handle) {
     return false;
   }
@@ -167,7 +198,7 @@ export async function changeHistoryDirectory(
   onProgress?: DataHistoryMigrationProgress,
 ): Promise<{ migrated: number; skipped: number } | null> {
   const config = await dataHistoryDb.getBackendConfig();
-  const oldHandle = config.active === 'directory' ? (config.directoryHandle as FsaDirectoryHandle | undefined) : undefined;
+  const oldHandle = config.active === 'directory' ? asDirectoryHandle(config.directoryHandle) : undefined;
   if (!oldHandle) {
     const result = await connectHistoryDirectory(onProgress);
     return result && { migrated: result.migrated, skipped: 0 };
@@ -209,10 +240,9 @@ export async function changeHistoryDirectory(
         continue;
       }
       if (entry.files.length === 0) {
-        // Inline-payload entries have no files to move. This must stay BELOW the in-flight check:
-        // a capture's row exists with `files: []` before its first file lands, and marking it
-        // "copied" here would let its handle finish writing into the old folder after the repoint —
-        // stranding files on a folder the 'directory' stamp no longer resolves to.
+        // Nothing on disk to move. Reachable only for a capture that crashed before its first file
+        // landed (the sweep later reclassifies those as `incomplete`); live captures were already
+        // skipped by the in-flight check above, which is why this must stay BELOW it.
         copiedKeys.add(entry.key);
         continue;
       }
@@ -271,7 +301,15 @@ export async function changeNativeHistoryFolder(): Promise<string | null> {
   if (!window.electronAPI?.pickDataHistoryFolder) {
     return null;
   }
-  return await window.electronAPI.pickDataHistoryFolder();
+  try {
+    return await window.electronAPI.pickDataHistoryFolder();
+  } catch (ex) {
+    // ipcRenderer.invoke wraps main-process rejections ("Error invoking remote method '…': Error: …").
+    // Unwrap so the actionable message written in the main process (e.g. "try again when the current
+    // data load finishes") reaches the settings toast intact.
+    const message = getErrorMessage(ex).replace(/^Error invoking remote method '[^']*':\s*(?:Error:\s*)?/, '');
+    throw new Error(message || 'Unable to change the data history folder');
+  }
 }
 
 /**
@@ -302,15 +340,16 @@ export async function migrateHistoryEntries({
   let migrated = 0;
   for (const entry of entries) {
     try {
-      if (entry.files.length > 0) {
+      if (entry.files.length === 0) {
+        // A capture that crashed before its first file landed has no bytes on any backend, so
+        // re-stamping is the whole migration
+        await dataHistoryDb.updateEntry(entry.key, { storageBackend: to.type });
+      } else {
         const from = await getFileStoreForBackend(entry.storageBackend);
         await copyEntryToStore(entry, from, to);
         if (!from.capabilities.userVisibleFiles) {
           await from.deleteEntryDir(getParentDirPath(entry.files[0].path));
         }
-      } else {
-        // Inline-only entries have no files — just re-stamp
-        await dataHistoryDb.updateEntry(entry.key, { storageBackend: to.type });
       }
       migrated++;
       onProgress?.(migrated, entries.length);
@@ -332,15 +371,13 @@ async function copyEntryToStore(entry: DataHistoryItem, from: HistoryFileStore, 
   const updatedFileRefs: DataHistoryFileRef[] = [];
   for (const fileRef of entry.files) {
     if (fileRef.compressed === targetCompressed) {
-      // Raw byte-for-byte copy — encoding already matches
-      const blob = await from.readFile(fileRef.path, { gunzip: false });
-      await to.writeFile(fileRef.path, blob, { gzip: false });
-      updatedFileRefs.push(fileRef);
+      // Encoding already matches — copy the stored bytes through untouched
+      const bytes = await streamFileToStore(from, to, fileRef.path, fileRef.path, { gunzip: false, gzip: false });
+      updatedFileRefs.push({ ...fileRef, bytes });
     } else {
-      const blob = await from.readFile(fileRef.path, { gunzip: fileRef.compressed });
       const fileName = targetCompressed ? `${fileRef.fileName}.gz` : fileRef.fileName.replace(/\.gz$/, '');
       const path = `${entryDir}/${fileName}`;
-      const { bytes } = await to.writeFile(path, blob, { gzip: targetCompressed });
+      const bytes = await streamFileToStore(from, to, fileRef.path, path, { gunzip: fileRef.compressed, gzip: targetCompressed });
       updatedFileRefs.push({ ...fileRef, fileName, path, compressed: targetCompressed, bytes });
     }
   }
@@ -350,6 +387,40 @@ async function copyEntryToStore(entry: DataHistoryItem, from: HistoryFileStore, 
     gzip: false,
   });
   await dataHistoryDb.updateEntry(entry.key, { storageBackend: to.type, files: updatedFileRefs, sizeBytes });
+}
+
+/**
+ * Copy one file between stores CHUNK BY CHUNK, returning the bytes written to the target.
+ *
+ * A results file from a large bulk load runs to hundreds of MB, and `writeFile` takes the whole
+ * payload as one buffer — which for the native backend also means one IPC message carrying the whole
+ * file. Streaming keeps peak memory at one chunk regardless of entry size, which matters because
+ * migration runs over the user's ENTIRE history in one go.
+ */
+async function streamFileToStore(
+  from: HistoryFileStore,
+  to: HistoryFileStore,
+  sourcePath: string,
+  targetPath: string,
+  options: { gunzip: boolean; gzip: boolean },
+): Promise<number> {
+  const sourceBlob = await from.readFile(sourcePath, { gunzip: options.gunzip });
+  const stream = await to.createWriteStream(targetPath, { gzip: options.gzip });
+  const reader = sourceBlob.stream().getReader();
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+      await stream.write(value);
+    }
+    const { bytes } = await stream.close();
+    return bytes;
+  } catch (ex) {
+    await stream.abort().catch(() => undefined);
+    throw ex;
+  }
 }
 
 /**
@@ -389,7 +460,6 @@ function parseManifestToItem(manifest: Record<string, unknown>, backend: DataHis
   const revived = {
     ...manifest,
     manifestVersion: undefined,
-    inlinePayload: null,
     storageBackend: backend,
     startedAt: reviveDate(manifest.startedAt),
     finishedAt: manifest.finishedAt ? reviveDate(manifest.finishedAt) : null,

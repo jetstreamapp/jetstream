@@ -1,17 +1,22 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
+import { Maybe } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
+import { dataHistoryCaptureEnabledState } from '@jetstream/ui/app-state';
 import {
   connectHistoryDirectory,
   DataHistoryBackendStatus,
+  DataHistoryMigrationProgress,
   enableNativeHistoryStorage,
   getHistoryBackendStatus,
   getStoragePersisted,
   isPersistentStoragePromptEligible,
   reconnectHistoryDirectory,
   requestPersistentStorage,
+  setDataHistoryEnabled,
   whenDataHistoryUserScopeReady,
 } from '@jetstream/ui/data-history';
+import { useSetAtom } from 'jotai';
 import { useCallback, useEffect, useState } from 'react';
 import { useAmplitude } from '../analytics';
 
@@ -46,6 +51,39 @@ export function useDataHistoryBackendStatus() {
   }, [loadBackendStatus]);
 
   return { backendStatus, loadBackendStatus };
+}
+
+/**
+ * Turn Data History capture on or off — the ONE implementation, shared by the Settings toggle and
+ * the "Enable Data History" banner on the history page.
+ *
+ * Capture state lives in two places that must never disagree: the persisted Dexie setting (which
+ * `startDataHistoryEntry` re-reads on every capture) and `dataHistoryCaptureEnabledState`, the atom
+ * that gates the per-run opt-out checkbox on all four capture surfaces. A call site that updated
+ * only the setting would leave every opt-out checkbox hidden while capture was actually running,
+ * with nothing logged. Writing both here is what makes that unstateable.
+ *
+ * Returns `false` when the change could not be persisted, so callers can surface it. Never throws.
+ */
+export function useSetDataHistoryCaptureEnabled({ analyticsLocation }: { analyticsLocation: string }) {
+  const { trackEvent } = useAmplitude();
+  const setCaptureEnabledAtom = useSetAtom(dataHistoryCaptureEnabledState);
+
+  return useCallback(
+    async (enabled: boolean): Promise<boolean> => {
+      try {
+        await setDataHistoryEnabled(enabled);
+        setCaptureEnabledAtom(enabled);
+        trackEvent(ANALYTICS_KEYS.data_history_settings_changed, { enabled, location: analyticsLocation });
+        return true;
+      } catch (ex) {
+        logger.warn('[DATA_HISTORY] Error updating enabled setting', ex);
+        fireToast({ type: 'error', message: 'There was a problem updating your Data History settings.' });
+        return false;
+      }
+    },
+    [analyticsLocation, setCaptureEnabledAtom, trackEvent],
+  );
 }
 
 /**
@@ -97,18 +135,23 @@ export function useRequestPersistentStorage({
 }
 
 /**
- * The Data History page's combined "Store History in a Folder" flow: the native filesystem backend
- * when the environment supports it (desktop), otherwise the user-chosen-directory backend. The
- * Settings storage-location component intentionally does NOT use this — it exposes the two backends
- * as separate controls with migration progress and different analytics payloads.
+ * "Store History in a Folder" — the ONE implementation of connecting a folder, used by both the Data
+ * History page and the Settings storage-location controls. It picks the native filesystem backend
+ * when the environment supports it (desktop) and the user-chosen-directory backend otherwise, which
+ * is the same choice both surfaces make: each shows exactly one of the two.
+ *
+ * `onProgress` drives the caller's migration counter; the analytics event reports the backend that
+ * was actually connected, so the two surfaces differ only by `location`.
  */
 export function useStoreHistoryInFolder({
   analyticsLocation,
   nativeSupported,
+  onProgress,
   onChanged,
 }: {
   analyticsLocation: string;
   nativeSupported: boolean;
+  onProgress?: DataHistoryMigrationProgress;
   onChanged?: () => void | Promise<void>;
 }) {
   const { trackEvent } = useAmplitude();
@@ -118,15 +161,18 @@ export function useStoreHistoryInFolder({
     setWorking(true);
     try {
       if (nativeSupported) {
-        await enableNativeHistoryStorage();
+        await enableNativeHistoryStorage(onProgress);
         fireToast({ type: 'success', message: 'Your history is now stored on disk — manage the folder from Settings.' });
+      } else if (!(await connectHistoryDirectory(onProgress))) {
+        // The user cancelled the folder picker — nothing changed, so nothing to report
+        return;
       } else {
-        const result = await connectHistoryDirectory();
-        if (result) {
-          fireToast({ type: 'success', message: 'Your history is now stored in the selected folder.' });
-        }
+        fireToast({ type: 'success', message: 'Your history is now stored in the selected folder.' });
       }
-      trackEvent(ANALYTICS_KEYS.data_history_settings_changed, { backend: 'folder', location: analyticsLocation });
+      trackEvent(ANALYTICS_KEYS.data_history_settings_changed, {
+        backend: nativeSupported ? 'native' : 'directory',
+        location: analyticsLocation,
+      });
       await onChanged?.();
     } catch (ex) {
       logger.warn('[DATA_HISTORY] Error switching history storage', ex);
@@ -140,23 +186,53 @@ export function useStoreHistoryInFolder({
 }
 
 /**
- * Re-connect a previously chosen history folder after the browser revoked permission. Fires no
- * analytics — the flow never has. The Settings storage-location component keeps its own reconnect
- * (different toasts + analytics via its `runAction` wrapper).
+ * Re-connect a previously chosen history folder after the browser revoked permission — the ONE
+ * implementation, shared by the Data History page banner and the Settings storage-location warning.
  */
-export function useReconnectHistoryFolder({ onChanged }: { onChanged?: () => void | Promise<void> } = {}) {
+export function useReconnectHistoryFolder({
+  analyticsLocation,
+  onChanged,
+}: {
+  analyticsLocation: string;
+  onChanged?: () => void | Promise<void>;
+}) {
+  const { trackEvent } = useAmplitude();
+  const [working, setWorking] = useState(false);
+
   async function reconnectFolder() {
+    setWorking(true);
     try {
-      if (await reconnectHistoryDirectory()) {
-        fireToast({ type: 'success', message: 'Folder re-connected — new history will be saved there.' });
-      } else {
-        fireToast({ type: 'warning', message: 'Permission was not granted.' });
-      }
+      const granted = await reconnectHistoryDirectory();
+      fireToast(
+        granted
+          ? { type: 'success', message: 'Folder re-connected — new history will be saved there.' }
+          : { type: 'warning', message: 'Permission was not granted.' },
+      );
+      trackEvent(ANALYTICS_KEYS.data_history_settings_changed, {
+        backend: 'directory',
+        action: 'reconnect',
+        granted,
+        location: analyticsLocation,
+      });
       await onChanged?.();
     } catch (ex) {
       logger.warn('[DATA_HISTORY] Error re-connecting folder', ex);
+      fireToast({ type: 'error', message: 'There was a problem re-connecting the Data History folder.' });
+    } finally {
+      setWorking(false);
     }
   }
 
-  return { reconnectFolder };
+  return { reconnectFolder, working };
+}
+
+/**
+ * Reveal the desktop history folder in the OS file manager. Desktop-only and best-effort — both the
+ * history page and the settings section offer it on the path they display.
+ */
+export function openHistoryFolder(path: Maybe<string>): void {
+  if (!path) {
+    return;
+  }
+  window.electronAPI?.openFile?.(path)?.catch((ex) => logger.warn('[DATA_HISTORY] Unable to open history folder', ex));
 }

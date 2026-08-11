@@ -21,6 +21,7 @@ import {
   TeamBillingStatusSchema,
   type Announcement,
   type ApplicationState,
+  type DataHistoryTierLimits,
   type FeatureFlagKey,
   type FeatureFlags,
   type Maybe,
@@ -31,7 +32,6 @@ import {
   type UserProfilePreferences,
   type UserProfileUi,
 } from '@jetstream/types';
-import type { DataHistoryTierLimits } from '@jetstream/ui/data-history';
 import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { atomWithLazy, unwrap } from 'jotai/utils';
 import isString from 'lodash/isString';

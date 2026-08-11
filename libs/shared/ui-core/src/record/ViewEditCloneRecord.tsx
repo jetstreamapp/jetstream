@@ -45,7 +45,7 @@ import {
   validateEditForm,
 } from '@jetstream/ui-core/shared';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
-import { recordDataHistoryAction, RecordDataHistoryActionOptions } from '@jetstream/ui/data-history';
+import { recordSingleRecordAction, SingleRecordActionContext } from '@jetstream/ui/data-history';
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import { useAtomValue } from 'jotai';
 import isNumber from 'lodash/isNumber';
@@ -334,15 +334,15 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
 
     setSaving(true);
 
-    // Base Data History payload shared by the success and thrown-error paths below. `request` stays
-    // at each call site because `record` is reassigned inside the try for clone/create.
-    const historyBase = {
+    // Identity of the Data History entry, shared by the success and thrown-error paths below.
+    // `request` stays at each call site because `record` is reassigned inside the try for clone/create.
+    const historyEntry = {
       org: selectedOrg,
       source: 'record-modal',
       operation: action === 'edit' ? 'edit' : action === 'clone' ? 'clone' : 'create',
       api: 'collections',
       sobjects: [sobjectName],
-    } satisfies Pick<RecordDataHistoryActionOptions, 'org' | 'source' | 'operation' | 'api' | 'sobjects'>;
+    } satisfies Omit<SingleRecordActionContext, 'request'>;
 
     try {
       let recordResponse: RecordResult;
@@ -371,14 +371,12 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
       }
 
       // Record the modal save to Data History (success OR error result). Fire-and-forget and self-gating —
-      // it never throws and never gates the UI. Small single-record payload -> stored inline in Dexie.
-      const isErrorResult = isErrorResponse(recordResponse);
-      void recordDataHistoryAction({
-        ...historyBase,
+      // it never throws and never gates the UI. Written as request.json/results.json like every other
+      // capture, and rolled back all-or-nothing if any part of the capture fails.
+      void recordSingleRecordAction({
+        ...historyEntry,
         request: record,
-        results: recordResponse,
-        counts: { total: 1, success: isErrorResult ? 0 : 1, failure: isErrorResult ? 1 : 0 },
-        status: isErrorResult ? 'failed' : 'success',
+        outcome: { succeeded: !isErrorResponse(recordResponse), results: recordResponse },
       });
     } catch (ex) {
       if (isMounted.current) {
@@ -387,13 +385,10 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
       // A THROWN save (network error, expired session) is still recorded — the request may even have
       // applied server-side (e.g. a timeout), so "no record of the attempt" is the worst outcome.
       // Graceful per-record error results are captured on the success path above.
-      void recordDataHistoryAction({
-        ...historyBase,
+      void recordSingleRecordAction({
+        ...historyEntry,
         request: record,
-        results: { error: getErrorMessage(ex) },
-        counts: { total: 1, success: 0, failure: 1 },
-        status: 'failed',
-        errorMessage: getErrorMessage(ex),
+        outcome: { succeeded: false, results: { error: getErrorMessage(ex) }, errorMessage: getErrorMessage(ex) },
       });
     }
     if (isMounted.current) {

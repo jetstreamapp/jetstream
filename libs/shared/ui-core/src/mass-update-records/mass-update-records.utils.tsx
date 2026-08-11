@@ -157,6 +157,15 @@ export function getMassUpdateResultsHeader(configuration: MetadataRowConfigurati
 }
 
 /**
+ * WIDER variant of `getMassUpdateResultsHeader` for downloads whose rows carry the full QUERIED
+ * record (`getFieldsToQuery`): also includes any "value from another field" source columns, which
+ * the results view and the saved history file intentionally omit.
+ */
+export function getMassUpdateQueriedFieldsHeader(configuration: MetadataRowConfiguration[]): string[] {
+  return BULK_RESULTS_BASE_HEADER.concat(getFieldsToQuery(configuration));
+}
+
+/**
  * Zip a batch's bulk result records with the submitted source records into combined rows. Pass
  * `includeSuccesses: false` to keep only failed rows (used by the "failures" download).
  */

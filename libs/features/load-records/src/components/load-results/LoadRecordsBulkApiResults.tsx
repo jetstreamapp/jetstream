@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/refs */
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
@@ -61,7 +60,12 @@ import {
   loadBulkApiData,
   prepareData,
 } from '../../utils/load-records-process';
-import { alignBatchSourceRecordsToResults, fetchBulkApiAllBatchResults, getLoadResultsHeader } from './load-results-utils';
+import {
+  alignBatchSourceRecordsToResults,
+  fetchBulkApiAllBatchResults,
+  getLoadResultsHeader,
+  isDeleteLoadType,
+} from './load-results-utils';
 import { extractRetryRecords, registerRetryRecord } from './retry-record-map';
 
 type Status = 'Preparing Data' | 'Uploading Data' | 'Processing Data' | 'Aborting' | 'Finished' | 'Error';
@@ -111,7 +115,7 @@ async function collectFailedRecordsForRetry({
   }
 
   const jobId = jobInfo.id;
-  const isDelete = loadType === 'DELETE' || loadType === 'HARD_DELETE';
+  const isDelete = isDeleteLoadType(loadType);
   // Batches are capped by record count AND by CSV size, so an oversized batch gets split and the
   // records in a batch cannot be derived from `batchSize` — use the ranges the loader recorded.
   const recordsByBatchNumber = new Map<number, any[]>(
@@ -215,7 +219,7 @@ export interface LoadRecordsBulkApiResultsProps {
   /** Already-prepared records for retry — skips prepareData when provided */
   preparedInputData?: any[];
   /** Data History capture handle for this run (captures nothing when disabled/opted out) */
-  historyHandle?: Maybe<DataHistoryEntryHandle>;
+  historyHandle: DataHistoryEntryHandle;
   onFinish: (results: { success: number; failure: number; failedRecords: any[] }) => void;
   /** Called when user selects specific records to retry from the results modal */
   onRetrySelected?: (selectedRows: any[]) => void;
@@ -251,9 +255,8 @@ export const LoadRecordsBulkApiResults = ({
   const pollingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Ref to avoid stale closures in stable useCallback/useEffect — always call onFinishRef.current
   const onFinishRef = useRef(onFinish);
+  // eslint-disable-next-line react-hooks/refs -- latest-ref pattern: the render-time assignment is the point
   onFinishRef.current = onFinish;
-  // Ensures the proactive bulk-results capture runs at most once even if the done-branch re-enters
-  const historyCapturedRef = useRef(false);
   const { trackEvent } = useAmplitude();
   const { serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
@@ -300,8 +303,11 @@ export const LoadRecordsBulkApiResults = ({
         clearTimeout(pollingTimerRef.current);
         pollingTimerRef.current = null;
       }
+      // Unmounting mid-load abandons the run: polling stops, so nothing would ever settle the
+      // history entry — see `abandonIfUnsettled` for why a stranded entry matters
+      historyHandle.abandonIfUnsettled('The load was abandoned before it finished');
     };
-  }, []);
+  }, [historyHandle]);
 
   useEffect(() => {
     if (batchSummary && batchSummary.batchSummary) {
@@ -400,26 +406,24 @@ export const LoadRecordsBulkApiResults = ({
         })();
 
         // Proactively capture per-record results to Data History even if the user never clicks
-        // download — bulk results expire server-side (~7 days). Fully fire-and-forget.
-        if (historyHandle && !historyCapturedRef.current) {
-          historyCapturedRef.current = true;
-          captureBulkApiLoadResults({
-            handle: historyHandle,
-            selectedOrg,
-            jobInfo,
-            batchSummary,
-            preparedData,
-            loadType,
-            fields: getFieldHeaderFromMapping(fieldMapping),
-            batchSize,
-            counts: {
-              total: numSuccess + numFailure,
-              success: numSuccess,
-              failure: numFailure,
-              processingErrors: preparedData.errors.length,
-            },
-          });
-        }
+        // download — bulk results expire server-side (~7 days). Fully fire-and-forget, and safe to
+        // reach more than once: `finalize()` is one-shot on the handle, so a re-entered done-branch
+        // cannot re-fetch every batch's results.
+        captureBulkApiLoadResults({
+          handle: historyHandle,
+          selectedOrg,
+          jobInfo,
+          batchSummary,
+          preparedData,
+          loadType,
+          fields: getFieldHeaderFromMapping(fieldMapping),
+          counts: {
+            total: numSuccess + numFailure,
+            success: numSuccess,
+            failure: numFailure,
+            processingErrors: preparedData.errors.length,
+          },
+        });
       } else if (status === STATUSES.PROCESSING || status === STATUSES.ABORTING) {
         if (intervalCount >= BULK_JOB_POLL_MAX_CHECKS) {
           // Stop polling and hand control to the user - the job keeps running in Salesforce regardless.
@@ -599,7 +603,7 @@ export const LoadRecordsBulkApiResults = ({
         } else {
           setStatus(STATUSES.ERROR);
           onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
-          historyHandle?.fail(loadError.message);
+          historyHandle.fail(loadError.message);
           notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
             body: `❌ ${loadError.message}`,
             tag: 'load-records',
@@ -625,7 +629,7 @@ export const LoadRecordsBulkApiResults = ({
       setFatalError(getErrorMessage(ex));
       setStatus(STATUSES.ERROR);
       onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
-      historyHandle?.fail(getErrorMessage(ex));
+      historyHandle.fail(getErrorMessage(ex));
       notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
         body: `❌ ${getErrorMessage(ex)}`,
         tag: 'load-records',
@@ -688,7 +692,7 @@ export const LoadRecordsBulkApiResults = ({
       let results: BulkJobResultRecord[];
       let records: any[] = preparedData.data;
       let removedBatches = false;
-      const isDelete = loadType === 'DELETE' || loadType === 'HARD_DELETE';
+      const isDelete = isDeleteLoadType(loadType);
 
       if (scope === 'all') {
         // Download results across all completed batches, combining with the submitted records

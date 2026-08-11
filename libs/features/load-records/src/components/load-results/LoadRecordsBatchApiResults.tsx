@@ -64,7 +64,7 @@ export interface LoadRecordsBatchApiResultsProps {
   /** Already-prepared records for retry — skips prepareData when provided */
   preparedInputData?: any[];
   /** Data History capture handle for this run (captures nothing when disabled/opted out) */
-  historyHandle?: Maybe<DataHistoryEntryHandle>;
+  historyHandle: DataHistoryEntryHandle;
   onFinish: (results: { success: number; failure: number; failedRecords: any[] }) => void;
   /** Called when user selects specific records to retry from the results modal */
   onRetrySelected?: (selectedRows: any[]) => void;
@@ -127,8 +127,11 @@ export const LoadRecordsBatchApiResults = ({
     isMounted.current = true;
     return () => {
       isMounted.current = false;
+      // Unmounting mid-load abandons the run: the finish branch is gated on isMounted, so nothing
+      // would ever settle the history entry — see `abandonIfUnsettled` for why a stranded entry matters
+      historyHandle.abandonIfUnsettled('The load was abandoned before it finished');
     };
-  }, []);
+  }, [historyHandle]);
 
   const doPrepareData = useCallback(async () => {
     try {
@@ -259,7 +262,7 @@ export const LoadRecordsBatchApiResults = ({
           setProcessedRecords((previousProcessedRecords) => previousProcessedRecords.concat(batchRecords));
           // Stream this batch's results to Data History (fire-and-forget; same row shape as download)
           const fields = getFieldHeaderFromMapping(fieldMapping);
-          historyHandle?.appendResultsRows(
+          historyHandle.appendResultsRows(
             batchRecords.map((record) => buildBatchApiResultRow(record, fields)),
             getLoadResultsHeader(fields),
           );
@@ -280,7 +283,7 @@ export const LoadRecordsBatchApiResults = ({
 
       setStatus(STATUSES.FINISHED);
       onFinishRef.current({ success: successCount, failure: failureCount, failedRecords });
-      historyHandle?.finish({
+      historyHandle.finish({
         counts: {
           total: successCount + failureCount,
           success: successCount,
@@ -297,7 +300,7 @@ export const LoadRecordsBatchApiResults = ({
         onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
         setEndTime(dateString);
       }
-      historyHandle?.fail(getErrorMessage(ex));
+      historyHandle.fail(getErrorMessage(ex));
       notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
         body: `❌ ${getErrorMessage(ex)}`,
         tag: 'load-records',

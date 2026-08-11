@@ -55,9 +55,27 @@ export interface DataHistoryPayloadTabProps {
   onCopied: (format: CopyAsDataType) => void;
 }
 
+/** Roughly how many wrapped lines of a single cell stay visible before it is clipped */
+const PREVIEW_CELL_MAX_LINES = 6;
+const PREVIEW_CELL_LINE_HEIGHT_REM = 1.25;
+
 const tableContainerStyles = css`
   height: 50vh;
   position: relative;
+
+  /*
+   * Bound the auto-height rows. A single field can hold tens of thousands of characters (a long text
+   * area, a serialized blob), and auto row height measures the wrapped content — so one such value
+   * produces a row taller than this whole container, and scrolling past it becomes impossible.
+   *
+   * Clipping is deliberate over truncating the value: the text stays intact in the DOM for selection
+   * and for Copy, and Download always writes the untouched file. Scoped to this preview rather than
+   * the shared grid CSS so other auto-height tables keep their current behavior.
+   */
+  .jgrid-row-auto-height .jgrid-cell {
+    max-block-size: ${PREVIEW_CELL_MAX_LINES * PREVIEW_CELL_LINE_HEIGHT_REM}rem;
+    overflow: hidden;
+  }
 `;
 
 const jsonStyles = css`
@@ -78,7 +96,13 @@ export const DataHistoryPayloadTab: FunctionComponent<DataHistoryPayloadTabProps
 }) => {
   const [payload, setPayload] = useState<LoadedDataHistoryPayload | null>(() => cache.get(kind) ?? null);
   const [loading, setLoading] = useState(!cache.has(kind));
-  const [error, setError] = useState<DataHistoryErrorInfo | null>(null);
+  /**
+   * Split deliberately. `loadError` means there is no payload to act on, so the controls are disabled.
+   * `copyError` means the payload is fine but the chosen FORMAT was rejected — the controls must stay
+   * live or the user is stuck with a banner and no way to retry as a different format.
+   */
+  const [loadError, setLoadError] = useState<DataHistoryErrorInfo | null>(null);
+  const [copyError, setCopyError] = useState<DataHistoryErrorInfo | null>(null);
   const [activeViewId, setActiveViewId] = useState<string | null>(() => viewStateCache.get(kind) ?? null);
   const [copying, setCopying] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
@@ -88,6 +112,19 @@ export const DataHistoryPayloadTab: FunctionComponent<DataHistoryPayloadTabProps
   const activeViewTable = viewTables.find((viewTable) => viewTable.id === activeViewId) ?? viewTables[0];
   // For multi-view payloads the download/copy acts on the view the user is looking at
   const activeTarget = targets.find((target) => target.viewId === activeViewTable?.id) ?? targets[0];
+  /**
+   * Only offer spreadsheet formats when we KNOW they can work. A truncated read never attempts table
+   * parsing at all (see `buildPayloadPreview`), so an empty `viewTables` proves the payload is
+   * non-tabular only when the whole file was read — for a large payload the copy path reads the full
+   * file and may well produce a table, so leave every format available there.
+   */
+  const knownNonTabular = !!payload && viewTables.length === 0 && !payload.jsonTruncated;
+  const copyFormats: { id: CopyAsDataType; value: string }[] = knownNonTabular
+    ? [{ id: 'json', value: 'Copy as JSON' }]
+    : [
+        { id: 'csv', value: 'Copy as CSV' },
+        { id: 'json', value: 'Copy as JSON' },
+      ];
 
   useEffect(() => {
     if (cache.has(kind)) {
@@ -98,18 +135,24 @@ export const DataHistoryPayloadTab: FunctionComponent<DataHistoryPayloadTabProps
     let canceled = false;
     (async () => {
       setLoading(true);
-      setError(null);
+      setLoadError(null);
+      setCopyError(null);
       try {
-        const file = await readDataHistoryFile(item, kind);
-        if (!file) {
-          if (!canceled) {
-            setError({ type: 'warning', message: 'This data is no longer available on this device.' });
-          }
-          return;
-        }
         // Read only the HEAD of the payload. Request payloads hold every submitted record (a large
         // mass update runs to hundreds of MB), and materializing that as one string — let alone
         // parsing it — freezes or crashes the tab. Downloads always read the full file.
+        //
+        // The cap goes to the STORE rather than being applied to a fully-read blob here: on OPFS
+        // (every user's default) payloads are gzip'd, so reading whole would inflate the entire file
+        // before the slice, and on desktop it would pull every byte across IPC. One byte past the cap
+        // is requested so a file that is exactly at it isn't reported as truncated.
+        const file = await readDataHistoryFile(item, kind, { maxBytes: DATA_HISTORY_PREVIEW_MAX_BYTES + 1 });
+        if (!file) {
+          if (!canceled) {
+            setLoadError({ type: 'warning', message: 'This data is no longer available on this device.' });
+          }
+          return;
+        }
         const isPartialRead = file.blob.size > DATA_HISTORY_PREVIEW_MAX_BYTES;
         const text = await (isPartialRead ? file.blob.slice(0, DATA_HISTORY_PREVIEW_MAX_BYTES) : file.blob).text();
         const loaded = buildPayloadPreview(text, file.contentType, isPartialRead);
@@ -120,7 +163,7 @@ export const DataHistoryPayloadTab: FunctionComponent<DataHistoryPayloadTabProps
       } catch (ex) {
         logger.warn('[DATA_HISTORY] Error loading payload', ex);
         if (!canceled) {
-          setError({ type: 'error', message: getDataHistoryReadErrorMessage(ex) });
+          setLoadError({ type: 'error', message: getDataHistoryReadErrorMessage(ex) });
         }
       } finally {
         if (!canceled) {
@@ -136,14 +179,14 @@ export const DataHistoryPayloadTab: FunctionComponent<DataHistoryPayloadTabProps
   async function handleCopy(format: CopyAsDataType) {
     setCopying(true);
     setCopySuccess(false);
-    setError(null);
+    setCopyError(null);
     try {
-      const { success, error: copyError } = await copyDataHistoryPayloadToClipboard(item, kind, format, activeTarget);
+      const { success, error } = await copyDataHistoryPayloadToClipboard(item, kind, format, activeTarget);
       if (success) {
         setCopySuccess(true);
         onCopied(format);
-      } else if (copyError) {
-        setError(copyError);
+      } else if (error) {
+        setCopyError(error);
       }
     } finally {
       setCopying(false);
@@ -172,19 +215,27 @@ export const DataHistoryPayloadTab: FunctionComponent<DataHistoryPayloadTabProps
             ))}
           </RadioGroup>
         )}
-        <button className="slds-button slds-button_neutral" disabled={loading || !!error} onClick={() => onRequestDownload(activeTarget)}>
+        <button
+          className="slds-button slds-button_neutral"
+          disabled={loading || !!loadError}
+          onClick={() => onRequestDownload(activeTarget)}
+        >
           <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
           Download
         </button>
         <ButtonGroupContainer className="slds-m-left_x-small">
           <Tooltip
             openDelay={1000}
-            content="This will copy in a format compatible with a spreadsheet program, such as Excel or Google Sheets. Use the dropdown for additional options."
+            content={
+              knownNonTabular
+                ? 'This data is not in a table format, so it copies as JSON.'
+                : 'This will copy in a format compatible with a spreadsheet program, such as Excel or Google Sheets. Use the dropdown for additional options.'
+            }
           >
             <button
               className="slds-button slds-button_neutral slds-button_first slds-is-relative"
-              disabled={loading || copying || !!error}
-              onClick={() => handleCopy('excel')}
+              disabled={loading || copying || !!loadError}
+              onClick={() => handleCopy(knownNonTabular ? 'json' : 'excel')}
             >
               {copying && <Spinner size="x-small" />}
               <Icon type="utility" icon="copy_to_clipboard" className="slds-button__icon slds-button__icon_left" omitContainer />
@@ -195,11 +246,8 @@ export const DataHistoryPayloadTab: FunctionComponent<DataHistoryPayloadTabProps
             className="slds-button_last"
             dropDownClassName="slds-dropdown_actions"
             position="left"
-            disabled={loading || copying || !!error}
-            items={[
-              { id: 'csv', value: 'Copy as CSV' },
-              { id: 'json', value: 'Copy as JSON' },
-            ]}
+            disabled={loading || copying || !!loadError}
+            items={copyFormats}
             onSelected={(id) => handleCopy(id as CopyAsDataType)}
           />
         </ButtonGroupContainer>
@@ -216,9 +264,9 @@ export const DataHistoryPayloadTab: FunctionComponent<DataHistoryPayloadTabProps
         )}
       </div>
 
-      {error && (
-        <ScopedNotification theme={error.type} className="slds-m-bottom_small">
-          {error.message}
+      {(loadError ?? copyError) && (
+        <ScopedNotification theme={(loadError ?? copyError)!.type} className="slds-m-bottom_small">
+          {(loadError ?? copyError)!.message}
         </ScopedNotification>
       )}
 
@@ -258,7 +306,7 @@ export const DataHistoryPayloadTab: FunctionComponent<DataHistoryPayloadTabProps
         </div>
       )}
 
-      {!loading && !error && !payload && <p className="slds-text-color_weak">No data to display.</p>}
+      {!loading && !loadError && !payload && <p className="slds-text-color_weak">No data to display.</p>}
     </div>
   );
 };

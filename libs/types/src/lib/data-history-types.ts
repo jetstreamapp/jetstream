@@ -4,9 +4,9 @@ import { z } from 'zod';
  * Schemas + inferred types for the local "Data History" feature — a device-local log of data
  * modifications (data loads, mass updates, query grid edits, record modal saves).
  *
- * Metadata rows live in Dexie (`data_history` table); large request/result payloads live in a
- * pluggable file store (OPFS by default; File System Access API and Electron-native filesystem are
- * planned backends). See tmp/data-history-plan/02-data-model-and-flow.md for the full design.
+ * Metadata rows live in Dexie (`data_history` table); request/result payloads live in a pluggable
+ * file store (OPFS by default; File System Access API user-chosen folder on Chromium, Electron-native
+ * filesystem on desktop). User-facing docs: apps/docs/docs/load/data-history.mdx.
  *
  * BACKEND-PORTABILITY CONTRACT: rows store only backend-agnostic RELATIVE paths (never absolute
  * paths or FileSystemHandles) plus a per-entry `storageBackend` stamp so entries can live in
@@ -74,8 +74,9 @@ export const dataHistoryInputSourceSchema = z.object({
 export type DataHistoryInputSource = z.infer<typeof dataHistoryInputSourceSchema>;
 
 /**
- * Dexie row shape for `data_history`. This is the searchable catalog — payloads live in the file
- * store (or `inlinePayload` for small single-record actions) and are only decoded on demand.
+ * Dexie row shape for `data_history`. This is the searchable catalog — every payload lives in the
+ * file store as a real file and is only read on demand. An entry's payloads ARE its `files`; there
+ * is no second storage mode.
  */
 export const dataHistoryItemSchema = z.object({
   /** `dh_<uuid>` — also used as the entry's directory name in the file store */
@@ -103,13 +104,8 @@ export const dataHistoryItemSchema = z.object({
   parentKey: z.string().optional(),
   files: z.array(dataHistoryFileRefSchema),
   storageBackend: dataHistoryStorageBackendSchema,
-  /** Sum of files[].bytes + inlinePayload size — quota accounting without touching the file store */
+  /** Sum of files[].bytes — quota accounting without touching the file store */
   sizeBytes: z.number(),
-  /**
-   * Escape hatch for tiny single-record actions: gzip-compressed JSON of
-   * `DataHistoryInlinePayload` instead of file-store churn. List views must NOT decode this.
-   */
-  inlinePayload: z.instanceof(Uint8Array).nullable(),
   pinned: z.boolean(),
   /** Booleans cannot be Dexie indexes — mirrored from `pinned` via creating/updating hooks */
   pinnedIdx: z.enum(['true', 'false']),
@@ -121,10 +117,45 @@ export const dataHistoryItemSchema = z.object({
 });
 export type DataHistoryItem = z.infer<typeof dataHistoryItemSchema>;
 
-/** Decoded shape of `DataHistoryItem.inlinePayload` */
-export interface DataHistoryInlinePayload {
-  request: unknown;
-  results: unknown;
+/**
+ * The Data History file-operation protocol, defined ONCE for the two transports that execute it:
+ * the browser's OPFS storage worker (`history-storage.worker.ts`, over postMessage) and the Electron
+ * main process (`data-history-file.service.ts`, over IPC). Each transport re-exports these with only
+ * the parts that genuinely differ layered on top, so an op cannot be added to one side alone:
+ *
+ * - `open-stream` — the worker takes a CLIENT-allocated `streamId` (a respawned worker restarts its
+ *   own counters, so a stale handle must not be able to route into a live stream), while the main
+ *   process allocates and returns one.
+ * - `read-file` — a `Blob` over structured clone, raw bytes over IPC (Blobs are not IPC-serializable).
+ *
+ * Type-only by design: the worker bundle must stay dependency-free, so consumers `import type`.
+ */
+export type DataHistoryFileOpCommon =
+  /** `scopeDir` is the per-user directory inside the history root that all paths resolve under */
+  | { op: 'init'; scopeDir: string }
+  | { op: 'write-file'; path: string; gzip: boolean; bytes: Uint8Array }
+  | { op: 'stream-write'; streamId: number; bytes: Uint8Array }
+  | { op: 'stream-close'; streamId: number }
+  | { op: 'stream-abort'; streamId: number }
+  /** `maxBytes` caps the read at the source — see `HistoryFileStore.readFile` for why that matters */
+  | { op: 'read-file'; path: string; gunzip: boolean; maxBytes?: number }
+  | { op: 'delete-dir'; path: string }
+  | { op: 'list-entry-dirs' };
+
+/**
+ * Result shape per op for every op whose result is identical across transports. `read-file` is
+ * deliberately absent — it is the one result that differs, so each transport declares it and cannot
+ * forget to.
+ */
+export interface DataHistoryFileOpCommonResults {
+  init: void;
+  'write-file': { bytes: number };
+  'open-stream': { streamId: number };
+  'stream-write': void;
+  'stream-close': { bytes: number };
+  'stream-abort': void;
+  'delete-dir': void;
+  'list-entry-dirs': { dirs: Array<{ orgFolder: string; entryKey: string }> };
 }
 
 export const dataHistorySettingsSchema = z.object({
@@ -132,6 +163,21 @@ export const dataHistorySettingsSchema = z.object({
   retentionDays: z.number(),
 });
 export type DataHistorySettings = z.infer<typeof dataHistorySettingsSchema>;
+
+/**
+ * Resolved storage limits for the signed-in user's plan. The tiers themselves (and the platform
+ * rules that pick one) live in `data-history-limits.ts` in `@jetstream/ui/data-history`; only the
+ * SHAPE lives here, so app state can hold the resolved limits without depending on the storage
+ * library — see `dataHistoryLimitsState`.
+ */
+export interface DataHistoryTierLimits {
+  /** Internal size backstop — never surfaced as a user control */
+  maxTotalBytes: number;
+  /** Maximum stored entries (null = unlimited). The free-tier cap. */
+  maxEntries: number | null;
+  retentionDaysMax: number;
+  defaultRetentionDays: number;
+}
 
 /**
  * Value of the `data_history_config` row with key `backend`. `directoryHandle` is a persisted

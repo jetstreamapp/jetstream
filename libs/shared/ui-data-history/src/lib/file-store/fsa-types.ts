@@ -47,6 +47,26 @@ export function isFileSystemAccessSupported(): boolean {
   }
 }
 
+/**
+ * THE narrowing for `DataHistoryBackendConfig.directoryHandle`, which is `unknown` because the
+ * config type is consumed outside the DOM. This value decides which folder on the user's disk
+ * receives history writes, and a persisted config may no longer deserialize to a usable handle
+ * (a browser that dropped it, a profile carried to a non-Chromium browser) — so every reader
+ * narrows through this shape check instead of casting, and an unusable handle uniformly reads as
+ * "no folder connected" rather than an opaque TypeError at whichever property access hits first.
+ */
+export function asDirectoryHandle(value: unknown): FsaDirectoryHandle | undefined {
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as FsaDirectoryHandle).getDirectoryHandle === 'function' &&
+    typeof (value as FsaDirectoryHandle).queryPermission === 'function'
+  ) {
+    return value as FsaDirectoryHandle;
+  }
+  return undefined;
+}
+
 /** Must be called from a user gesture. Throws AbortError when the user cancels. */
 export function showHistoryDirectoryPicker(): Promise<FsaDirectoryHandle> {
   return (window as unknown as WindowWithDirectoryPicker).showDirectoryPicker({

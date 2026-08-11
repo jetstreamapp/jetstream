@@ -1,4 +1,4 @@
-import { decodeHtmlEntity, getIdFromRecordUrl } from '@jetstream/shared/utils';
+import { BULK_RESULTS_BASE_HEADER, decodeHtmlEntity, getIdFromRecordUrl } from '@jetstream/shared/utils';
 import { SobjectCollectionResponse } from '@jetstream/types';
 import { RowSalesforceRecordWithKey } from './data-table-types';
 
@@ -103,7 +103,7 @@ export interface RecordsSaveCaptureInfo {
  * every edited field) at the end. Rows zip to `saveResults` by index — the order they were submitted in.
  */
 export function buildResultsExport(editedExport: RecordExport, saveResults: SobjectCollectionResponse): RecordExport {
-  const header = ['_id', '_success', '_errors', ...editedExport.header];
+  const header = [...BULK_RESULTS_BASE_HEADER, ...editedExport.header];
   const data = editedExport.data.map((record, index) => {
     const result = saveResults[index];
     return {

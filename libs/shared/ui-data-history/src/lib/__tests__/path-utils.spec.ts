@@ -1,12 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  getEntryDirPath,
-  getEntryFilePath,
-  getOrgFolderName,
-  getParentDirPath,
-  getUserScopeDirName,
-  splitRelativePath,
-} from '../file-store/path-utils';
+import { getOrgFolderName, getUserScopeDirName } from '../file-store/hashed-dir-names';
+import { getEntryDirPath, getEntryFilePath, getParentDirPath, splitRelativePath } from '../file-store/path-utils';
 
 describe('splitRelativePath', () => {
   it('splits a valid relative path', () => {
@@ -46,6 +40,22 @@ describe('getOrgFolderName', () => {
     const folderB = await getOrgFolderName('org!a');
     expect(folderA1).toBe(folderA2);
     expect(folderA1).not.toBe(folderB);
+  });
+
+  it('trims underscores introduced by sanitizing the edges, but keeps interior ones', async () => {
+    expect(await getOrgFolderName('!!!org!!!')).toMatch(/^org-[0-9a-f]{8}$/);
+    expect(await getOrgFolderName('a!b')).toMatch(/^a_b-[0-9a-f]{8}$/);
+  });
+
+  /**
+   * Guards the trim staying linear. An id that alternates `_` with unsafe characters sanitizes into
+   * one long underscore run, which the previous `/^_+|_+$/` scanned quadratically; the trailing `b`
+   * is what forces the end anchor to fail and backtrack at every position of that run.
+   */
+  it('sanitizes a pathological id without quadratic blowup', async () => {
+    const folder = await getOrgFolderName(`a${'_!'.repeat(50_000)}b`);
+    expect(folder).toMatch(/^[a-z0-9_-]+-[0-9a-f]{8}$/);
+    expect(splitRelativePath(folder)).toHaveLength(1);
   });
 });
 

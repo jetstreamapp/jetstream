@@ -21,9 +21,6 @@
   "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx", "../../../custom-typings/index.d.ts"],
   "references": [
     {
-      "path": "../ui-data-history/tsconfig.lib.json"
-    },
-    {
       "path": "../utils/tsconfig.lib.json"
     },
     {

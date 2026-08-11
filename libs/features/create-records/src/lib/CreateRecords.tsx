@@ -31,7 +31,7 @@ import {
 import { RequireMetadataApiBanner, useAmplitude } from '@jetstream/ui-core';
 import { EditFromErrors, handleEditFormErrorResponse, transformEditForm, validateEditForm } from '@jetstream/ui-core/shared';
 import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
-import { recordDataHistoryAction, RecordDataHistoryActionOptions } from '@jetstream/ui/data-history';
+import { recordSingleRecordAction, SingleRecordActionContext } from '@jetstream/ui/data-history';
 import { useAtomValue } from 'jotai';
 import { useEffect, useRef, useState } from 'react';
 import { LastCreatedRecord } from './LastCreatedRecord';
@@ -235,15 +235,15 @@ export const CreateRecords = () => {
 
     setSaving(true);
 
-    // Base Data History payload shared by the success and thrown-error paths below
-    const historyBase = {
+    // Identity + request of the Data History entry, shared by the success and thrown-error paths below
+    const historyEntry = {
       org: selectedOrg,
       source: 'create-record',
       operation: 'create',
       api: 'collections',
       sobjects: [selectedObject.name],
       request: record,
-    } satisfies Pick<RecordDataHistoryActionOptions, 'org' | 'source' | 'operation' | 'api' | 'sobjects' | 'request'>;
+    } satisfies SingleRecordActionContext;
 
     try {
       const recordResponse: RecordResult = (await sobjectOperation(selectedOrg, selectedObject.name, 'create', { records: [record] }))[0];
@@ -273,12 +273,11 @@ export const CreateRecords = () => {
       }
 
       // Record the create to Data History (success OR error). Fire-and-forget + self-gating; the results
-      // payload includes the re-fetched full record on success. Small single-record payload -> stored inline.
-      void recordDataHistoryAction({
-        ...historyBase,
-        results: { result: recordResponse, record: retrievedRecord },
-        counts: { total: 1, success: isErrorResult ? 0 : 1, failure: isErrorResult ? 1 : 0 },
-        status: isErrorResult ? 'failed' : 'success',
+      // payload includes the re-fetched full record on success. Written as request.json/results.json like
+      // every other capture, and rolled back all-or-nothing if any part of the capture fails.
+      void recordSingleRecordAction({
+        ...historyEntry,
+        outcome: { succeeded: !isErrorResult, results: { result: recordResponse, record: retrievedRecord } },
       });
 
       trackEvent(ANALYTICS_KEYS.create_record_save, { success: true });
@@ -288,12 +287,9 @@ export const CreateRecords = () => {
       }
       // A THROWN create (network error, expired session) is still recorded — the request may even
       // have applied server-side (e.g. a timeout). Graceful error results are captured above.
-      void recordDataHistoryAction({
-        ...historyBase,
-        results: { error: getErrorMessage(ex) },
-        counts: { total: 1, success: 0, failure: 1 },
-        status: 'failed',
-        errorMessage: getErrorMessage(ex),
+      void recordSingleRecordAction({
+        ...historyEntry,
+        outcome: { succeeded: false, results: { error: getErrorMessage(ex) }, errorMessage: getErrorMessage(ex) },
       });
       trackEvent(ANALYTICS_KEYS.create_record_save, { success: false });
     }

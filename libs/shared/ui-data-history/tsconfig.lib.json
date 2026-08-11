@@ -26,6 +26,9 @@
       "path": "../../desktop-types/tsconfig.lib.json"
     },
     {
+      "path": "../data/tsconfig.lib.json"
+    },
+    {
       "path": "../utils/tsconfig.lib.json"
     },
     {

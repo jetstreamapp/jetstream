@@ -99,16 +99,47 @@ export function alignBatchSourceRecordsToResults(recordsByBatch: any[][], result
   return recordsByBatch.flat();
 }
 
+export function isDeleteLoadType(loadType: InsertUpdateUpsertDelete): boolean {
+  return loadType === 'DELETE' || loadType === 'HARD_DELETE';
+}
+
+/**
+ * Resolve a bulk job's downloadable batches paired with the source records submitted in each, from
+ * the batch summary the loader recorded. Batches are capped by record count AND by CSV size, so an
+ * oversized batch gets split and the records in a batch cannot be derived from `batchSize` — the
+ * per-batch ranges must come from the summary.
+ *
+ * Shared by the combined "Download All"/"View All" fetch and the per-batch Data History capture, so
+ * both pair results with the same records.
+ */
+export function getBulkJobCompletedBatches({
+  jobInfo,
+  batchSummary,
+  preparedData,
+}: {
+  jobInfo: BulkJobWithBatches;
+  batchSummary: LoadDataBulkApiStatusPayload;
+  preparedData: PrepareDataResponse;
+}): CompletedBatchSourceRecords {
+  // Indexed by original batch number so it lines up with the batch number `batchNumberById` resolves
+  const recordsByBatchNumber: any[][] = [];
+  batchSummary.batchSummary.forEach(({ batchNumber, startIndex, recordCount }) => {
+    recordsByBatchNumber[batchNumber] = preparedData.data.slice(startIndex, startIndex + recordCount);
+  });
+  const batchNumberById = new Map(
+    batchSummary.batchSummary.filter((batch) => batch.id).map((batch) => [batch.id as string, batch.batchNumber]),
+  );
+  return getCompletedBatchSourceRecords(jobInfo.batches, batchNumberById, recordsByBatchNumber);
+}
+
 /**
  * Fetch the combined per-record results across all completed batches of a bulk job and pair each
- * batch's results with the source records submitted in THAT batch (via the batch summary's original
- * submission positions), so the returned `results`/`records` arrays are index-aligned even when some
- * batches are `Failed`/`NotProcessed`. Shared by the "Download All"/"View All" handlers and the Data
- * History capture so both stay on one implementation.
+ * batch's results with the source records submitted in THAT batch, so the returned
+ * `results`/`records` arrays are index-aligned even when some batches are `Failed`/`NotProcessed`.
  *
- * Batches are capped by record count AND by CSV size, so an oversized batch gets split and the
- * records in a batch cannot be derived from `batchSize` — the per-batch ranges come from the summary
- * the loader recorded.
+ * This materializes EVERY result record in one array, which is why it backs only the user-initiated
+ * "Download All"/"View All" actions. Background capture streams batch-by-batch instead — see
+ * `captureBulkApiLoadResults`.
  *
  * `removedBatches` is true when any batch was excluded (drives the partial-results toast) — those
  * batches have no result rows and contribute no records. For delete operations only records with a
@@ -127,19 +158,10 @@ export async function fetchBulkApiAllBatchResults({
   preparedData: PrepareDataResponse;
   loadType: InsertUpdateUpsertDelete;
 }): Promise<{ results: BulkJobResultRecord[]; records: any[]; removedBatches: boolean }> {
-  const isDelete = loadType === 'DELETE' || loadType === 'HARD_DELETE';
-  // Indexed by original batch number so it lines up with the batch number `batchNumberById` resolves
-  const recordsByBatchNumber: any[][] = [];
-  batchSummary.batchSummary.forEach(({ batchNumber, startIndex, recordCount }) => {
-    recordsByBatchNumber[batchNumber] = preparedData.data.slice(startIndex, startIndex + recordCount);
-  });
-  const batchNumberById = new Map(
-    batchSummary.batchSummary.filter((batch) => batch.id).map((batch) => [batch.id as string, batch.batchNumber]),
-  );
-  const { batchIds, recordsByBatch } = getCompletedBatchSourceRecords(jobInfo.batches, batchNumberById, recordsByBatchNumber);
+  const { batchIds, recordsByBatch } = getBulkJobCompletedBatches({ jobInfo, batchSummary, preparedData });
   const removedBatches = batchIds.length !== jobInfo.batches.length;
   const results =
     batchIds.length > 0 ? await bulkApiGetRecordsFromAllBatches<BulkJobResultRecord>(selectedOrg, jobInfo.id as string, batchIds) : [];
-  const records = alignBatchSourceRecordsToResults(recordsByBatch, results.length, isDelete);
+  const records = alignBatchSourceRecordsToResults(recordsByBatch, results.length, isDeleteLoadType(loadType));
   return { results, records, removedBatches };
 }

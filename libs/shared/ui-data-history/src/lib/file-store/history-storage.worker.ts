@@ -1,8 +1,7 @@
 import { listEntryDirs, removeDir, removeFileQuietly, resolveFile } from './fs-handle-ops';
-import { GzipEncoder, createGzipEncoder, gzipBytes } from './gzip-utils';
+import { GzipEncoder, createGzipEncoder, gzipBytes, readStreamUpTo } from './gzip-utils';
 import { DATA_HISTORY_ROOT_DIR } from './path-utils';
 import type {
-  EstimateResult,
   HistoryWorkerRequest,
   HistoryWorkerResponse,
   ListEntryDirsResult,
@@ -192,26 +191,18 @@ async function handleStreamAbort(streamId: number): Promise<void> {
   await removeFileQuietly(await getRootDir(), state.path);
 }
 
-async function handleReadFile(path: string, gunzip: boolean): Promise<Blob> {
+async function handleReadFile(path: string, gunzip: boolean, maxBytes?: number): Promise<Blob> {
   const fileHandle = await resolveFile<FileSystemFileHandle>(await getRootDir(), path, false);
   const file = await fileHandle.getFile();
   if (!gunzip) {
-    return file;
+    // A File is lazily backed and clones by reference across postMessage, so neither branch here
+    // copies the stored bytes — slicing just narrows the window the main thread can read.
+    return maxBytes == null ? file : file.slice(0, maxBytes);
   }
   const stream = file.stream().pipeThrough(new DecompressionStream('gzip'));
-  return await new Response(stream).blob();
-}
-
-/**
- * Deliberately NOT per-user, unlike every other op here: `navigator.storage.estimate()` reports the
- * whole ORIGIN, so on a shared browser profile this includes other accounts' history (and every
- * other thing Jetstream stores). That is the right number anyway — the quota it is compared against
- * is also per-origin, so this is what actually governs whether the next write succeeds. Per-user
- * usage comes from the summed `sizeBytes` index on the history rows instead.
- */
-async function handleEstimate(): Promise<EstimateResult> {
-  const estimate = await navigator.storage.estimate();
-  return { usageBytes: estimate.usage, quotaBytes: estimate.quota };
+  // Every OPFS payload is gzip'd, so this — not the branch above — is the path a capped preview
+  // read actually takes. Inflating the whole file and slicing afterwards would defeat the cap.
+  return maxBytes == null ? await new Response(stream).blob() : await readStreamUpTo(stream, maxBytes);
 }
 
 async function handleRequest(request: HistoryWorkerRequest): Promise<unknown> {
@@ -242,16 +233,13 @@ async function handleRequest(request: HistoryWorkerRequest): Promise<unknown> {
       return await handleStreamAbort(request.streamId);
     }
     case 'read-file': {
-      return await handleReadFile(request.path, request.gunzip);
+      return await handleReadFile(request.path, request.gunzip, request.maxBytes);
     }
     case 'delete-dir': {
       return await removeDir(await getRootDir(), request.path);
     }
     case 'list-entry-dirs': {
       return { dirs: await listEntryDirs(await getRootDir()) } satisfies ListEntryDirsResult;
-    }
-    case 'estimate': {
-      return await handleEstimate();
     }
   }
 }

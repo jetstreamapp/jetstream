@@ -18,7 +18,7 @@ import {
 } from '../data-history.service';
 import { FakeFileStore } from '../file-store/fake-file-store';
 import { setHistoryFileStoreForTests } from '../file-store/file-store-factory';
-import { getOrgFolderName } from '../file-store/path-utils';
+import { getOrgFolderName } from '../file-store/hashed-dir-names';
 
 const SPEC_USER_ID = 'spec-user-id';
 
@@ -165,7 +165,6 @@ describe('initialized', () => {
       expect(manifest.manifestVersion).toBe(1);
       expect(manifest.key).toBe(handle.key);
       expect(manifest.status).toBe('partial');
-      expect(manifest.inlinePayload).toBeUndefined();
     });
 
     it('derives success status and supports explicit fail()', async () => {
@@ -199,29 +198,61 @@ describe('initialized', () => {
       expect(fakeStore.files.has(`${orgFolder}/${handle.key}/input.csv.gz`)).toBe(false);
     });
 
-    it('records nothing for a per-run opt-out or when disabled in settings, and skips capture-only work', async () => {
-      const captureTask = vi.fn().mockResolvedValue(undefined);
+    it('records nothing for a per-run opt-out or when disabled in settings, and skips finalize-only work', async () => {
+      const outcome = { counts: { total: 1, success: 1, failure: 0 } };
+      const finalizeTask = vi.fn().mockResolvedValue(undefined);
 
       const optedOut = startDataHistoryEntry(startOptions({ skipHistory: true }));
       await optedOut.writeInputRows([{ Name: 'Acme' }], ['Name']);
-      await optedOut.capture(captureTask);
+      await optedOut.finalize(outcome, finalizeTask);
       expect(await dataHistoryDb.getEntryCount()).toBe(0);
 
       await setDataHistoryEnabled(false);
       expect(await isDataHistoryCaptureEnabled()).toBe(false);
       const disabled = startDataHistoryEntry(startOptions());
       await disabled.writeInputRows([{ Name: 'Acme' }], ['Name']);
-      await disabled.capture(captureTask);
+      await disabled.finalize(outcome, finalizeTask);
       expect(await dataHistoryDb.getEntryCount()).toBe(0);
       expect(fakeStore.files.size).toBe(0);
-      // Expensive capture-only work (e.g. re-fetching bulk results) must never run for these
-      expect(captureTask).not.toHaveBeenCalled();
+      // Expensive finalize-only work (e.g. re-fetching bulk results) must never run for these
+      expect(finalizeTask).not.toHaveBeenCalled();
 
       await setDataHistoryEnabled(true);
       const enabled = startDataHistoryEntry(startOptions());
-      await enabled.capture(captureTask);
-      expect(captureTask).toHaveBeenCalledTimes(1);
+      await enabled.finalize(outcome, finalizeTask);
+      expect(finalizeTask).toHaveBeenCalledTimes(1);
       expect(await dataHistoryDb.getEntry(enabled.key)).toBeTruthy();
+    });
+
+    // Every caller re-fetches per-record results from Salesforce before writing them, so a second
+    // finalize would repeat that whole fetch — the hosts used to guard this themselves
+    it('runs finalize only once, even when re-entered before the first task finishes', async () => {
+      const handle = startDataHistoryEntry(startOptions());
+      const outcome = { counts: { total: 1, success: 1, failure: 0 } };
+      const finalizeTask = vi.fn().mockResolvedValue(undefined);
+
+      // Both calls made in the same tick — the guard cannot rely on the first task having completed
+      await Promise.all([handle.finalize(outcome, finalizeTask), handle.finalize(outcome, finalizeTask)]);
+      await handle.finalize(outcome, finalizeTask);
+
+      expect(finalizeTask).toHaveBeenCalledTimes(1);
+    });
+
+    it('finishes the entry with the given outcome even when the finalize task throws', async () => {
+      const handle = startDataHistoryEntry(startOptions());
+      await handle.writeInputRows([{ Name: 'Acme' }], ['Name']);
+
+      await handle.finalize({ counts: { total: 2, success: 1, failure: 1 } }, async () => {
+        await handle.appendResultsRows([{ _id: '001' }], ['_id']);
+        throw new Error('Row building blew up');
+      });
+
+      // The entry must never be stranded in-progress: its key would stay pinned in the
+      // active-entry set, blocking delete and migration for the life of the page
+      const entry = await dataHistoryDb.getEntry(handle.key);
+      expect(entry?.status).toBe('partial');
+      expect(entry?.counts).toEqual({ total: 2, success: 1, failure: 1 });
+      expect(entry?.finishedAt).toBeTruthy();
     });
   });
 
@@ -246,7 +277,7 @@ describe('initialized', () => {
   });
 
   describe('recordDataHistoryAction', () => {
-    it('stores small payloads inline without touching the file store', async () => {
+    it('stores single-record payloads as files, like every other capture', async () => {
       await recordDataHistoryAction({
         org,
         source: 'record-modal',
@@ -260,11 +291,10 @@ describe('initialized', () => {
 
       const [entry] = await dataHistoryDb.getAllEntries();
       expect(entry.status).toBe('success');
-      // ArrayBuffer.isView instead of toBeInstanceOf — realm-safe (instanceof fails cross-realm in jsdom)
-      expect(ArrayBuffer.isView(entry.inlinePayload)).toBe(true);
-      expect(entry.files).toHaveLength(0);
-      expect(entry.sizeBytes).toBe(entry.inlinePayload?.byteLength);
-      expect(fakeStore.files.size).toBe(0);
+      expect(entry.files.map(({ kind }) => kind).sort()).toEqual(['request', 'results']);
+      expect(entry.sizeBytes).toBe(entry.files.reduce((total, { bytes }) => total + bytes, 0));
+      // request + results + manifest
+      expect(fakeStore.files.size).toBe(3);
 
       const request = await readDataHistoryFile(entry, 'request');
       expect(JSON.parse(await request!.blob.text())).toEqual({ Id: '001ABC', Name: 'Updated Name' });
@@ -272,9 +302,8 @@ describe('initialized', () => {
       expect(JSON.parse(await results!.blob.text())).toEqual([{ id: '001ABC', success: true }]);
     });
 
-    it('writes even small payloads as files when the backend is user-visible (folder/native)', async () => {
-      // "My history lives in my folder" breaks if query edits and record saves never appear there —
-      // and inline payloads cannot be recovered by a folder re-index.
+    it('writes plain, user-openable files when the backend is user-visible (folder/native)', async () => {
+      // "My history lives in my folder" breaks if query edits and record saves never appear there
       fakeStore = new FakeFileStore('directory', { compressFiles: false, userVisibleFiles: true });
       setHistoryFileStoreForTests(fakeStore);
 
@@ -290,9 +319,9 @@ describe('initialized', () => {
       });
 
       const [entry] = await dataHistoryDb.getAllEntries();
-      expect(entry.inlinePayload).toBeNull();
       expect(entry.storageBackend).toBe('directory');
       expect(entry.files.map(({ kind }) => kind).sort()).toEqual(['request', 'results']);
+      expect(entry.files.every(({ compressed }) => !compressed)).toBe(true);
       // request + results + manifest, uncompressed so the user can open them
       expect(fakeStore.files.size).toBe(3);
       const request = await readDataHistoryFile(entry, 'request');
@@ -314,7 +343,6 @@ describe('initialized', () => {
 
       const [entry] = await dataHistoryDb.getAllEntries();
       expect(entry.status).toBe('failed');
-      expect(entry.inlinePayload).toBeNull();
       expect(entry.files.map(({ kind }) => kind).sort()).toEqual(['request', 'results']);
       // request + results + manifest
       expect(fakeStore.files.size).toBe(3);
@@ -323,7 +351,7 @@ describe('initialized', () => {
       expect(JSON.parse(await request!.blob.text())[0].Notes).toBe(bigValue);
     });
 
-    it('does not leave a row behind when large-payload file writes fail', async () => {
+    it('does not leave a row behind when file writes fail', async () => {
       fakeStore.simulateFailure = (op) => op === 'write-file';
 
       await recordDataHistoryAction({
@@ -340,6 +368,28 @@ describe('initialized', () => {
       // The row is saved before the files (orphan-sweep invariant) but rolled back on failure so
       // no entry claims payloads that were never written
       expect(await dataHistoryDb.getEntryCount()).toBe(0);
+    });
+
+    it('removes the files it did write when a later write fails, not just the row', async () => {
+      // The orphan sweep leaves rowless dirs alone on user-visible backends (they are recoverable
+      // history there), so a row-only rollback would strand a partial dir in the user's folder
+      fakeStore = new FakeFileStore('directory', { compressFiles: false, userVisibleFiles: true });
+      setHistoryFileStoreForTests(fakeStore);
+      fakeStore.simulateFailure = (_op, path) => !!path?.endsWith('results.json');
+
+      await recordDataHistoryAction({
+        org,
+        source: 'record-modal',
+        operation: 'edit',
+        api: 'collections',
+        sobjects: ['Account'],
+        request: { Id: '001ABC' },
+        results: [{ id: '001ABC', success: true }],
+        counts: { total: 1, success: 1, failure: 0 },
+      });
+
+      expect(await dataHistoryDb.getEntryCount()).toBe(0);
+      expect(fakeStore.files.size).toBe(0);
     });
   });
 

@@ -1,6 +1,5 @@
-import { bulkApiGetRecords } from '@jetstream/shared/data';
-import { BulkJobResultRecord, BulkJobWithBatches, DataHistoryCounts, SalesforceOrgUi } from '@jetstream/types';
-import { DataHistoryEntryHandle, startDataHistoryEntry } from '@jetstream/ui/data-history';
+import { BulkJobWithBatches, DataHistoryCounts, SalesforceOrgUi } from '@jetstream/types';
+import { appendBulkJobBatchResults, DataHistoryEntryHandle, startDataHistoryEntry } from '@jetstream/ui/data-history';
 import { MetadataRowConfiguration } from './mass-update-records.types';
 import { buildMassUpdateCombinedResults, getMassUpdateBatchSourceRecords, getMassUpdateResultsHeader } from './mass-update-records.utils';
 
@@ -12,20 +11,28 @@ import { buildMassUpdateCombinedResults, getMassUpdateBatchSourceRecords, getMas
 
 export type MassUpdateSource = 'STAND-ALONE' | 'QUERY';
 
-/** Per-sobject context stashed at submit time so the poll-done branch can finalize the right entry */
+/**
+ * A deployment's live capture context. The poll loop only sees `{ sobject, deployResults }`, so the
+ * batch size and configuration its finalize step needs have to be carried alongside the handle.
+ * Held only while the deployment is in flight — see `takeHistoryCapture` in `useDeployRecords`.
+ */
 export interface MassUpdateHistoryContext {
   handle: DataHistoryEntryHandle;
   batchSize: number;
   configuration: MetadataRowConfiguration[];
 }
 
-/** Begin a history entry for one sobject deployment (self-gates; never awaited on the critical path) */
+/**
+ * Begin a history entry for one sobject deployment, at the point the deployment STARTS — before the
+ * records are queried and prepared, so a failure in that step is recorded against this attempt
+ * rather than against whatever the previous deployment of the same sobject left behind. The record
+ * count therefore isn't known yet; it lands on the entry's `counts` when it finishes, and the bulk
+ * job id lands with it. Self-gates; never awaited on the critical path.
+ */
 export function startMassUpdateHistory({
   org,
   source,
   sobject,
-  jobId,
-  records,
   batchSize,
   serialMode,
   configuration,
@@ -34,8 +41,6 @@ export function startMassUpdateHistory({
   org: SalesforceOrgUi;
   source: MassUpdateSource;
   sobject: string;
-  jobId: string;
-  records: Record<string, unknown>[];
   batchSize: number;
   serialMode: boolean;
   configuration: MetadataRowConfiguration[];
@@ -47,12 +52,10 @@ export function startMassUpdateHistory({
     operation: 'update',
     api: 'bulk-v1',
     sobjects: [sobject],
-    jobId: jobId || undefined,
     // Snapshot the transformation/criteria configuration (field metadata is intentionally omitted — too large)
     config: {
       serialMode,
       batchSize,
-      numRecords: records.length,
       transformations: configuration.map(({ selectedField, transformationOptions }) => ({
         field: selectedField,
         option: transformationOptions.option,
@@ -77,12 +80,15 @@ function computeMassUpdateCounts(jobInfo: BulkJobWithBatches, processingErrorCou
 
 /**
  * Proactively capture per-record results when a deployment finishes. Bulk results expire server-side
- * (~7 days), so we fetch each completed batch's results, zip them with the submitted records, stream
- * them to the history entry, and finish with counts.
+ * (~7 days), so each completed batch's results are fetched, zipped with the submitted records, and
+ * streamed to the history entry. The fetch loop and its bounded-memory/skip-a-failed-batch policies
+ * live in `appendBulkJobBatchResults`; this supplies the deployment's batch resolution and row building.
  *
  * Skipped entirely — with no network calls — when the entry is not being captured, and a
  * results-fetch failure still finishes the entry with the job's counts. Fire-and-forget; the returned
  * promise is only for sequencing in tests.
+ *
+ * Runs through `handle.finalize`, which finishes the entry with the job's counts and is one-shot.
  */
 export function captureMassUpdateResults({
   context,
@@ -100,18 +106,18 @@ export function captureMassUpdateResults({
   processingErrorCount: number;
 }): Promise<void> {
   const { handle, batchSize, configuration } = context;
-  return handle.capture(async () => {
-    const header = getMassUpdateResultsHeader(configuration);
+  return handle.finalize({ counts: computeMassUpdateCounts(jobInfo, processingErrorCount), jobId: jobInfo.id ?? undefined }, async () => {
     const completedBatches = (jobInfo.batches || []).filter((batch) => batch && batch.id && batch.state === 'Completed');
-    for (const batch of completedBatches) {
-      try {
-        const resultRecords = await bulkApiGetRecords<BulkJobResultRecord>(org, jobInfo.id as string, batch.id, 'result');
-        const sourceRecords = getMassUpdateBatchSourceRecords(records, batchIdToIndex, batch.id, batchSize);
-        await handle.appendResultsRows(buildMassUpdateCombinedResults(resultRecords, sourceRecords, { includeSuccesses: true }), header);
-      } catch {
-        // One batch's results couldn't be fetched — skip it and still finish with the job counts
-      }
-    }
-    await handle.finish({ counts: computeMassUpdateCounts(jobInfo, processingErrorCount), jobId: jobInfo.id ?? undefined });
+    await appendBulkJobBatchResults({
+      handle,
+      org,
+      jobId: jobInfo.id as string,
+      batchIds: completedBatches.map(({ id }) => id),
+      header: getMassUpdateResultsHeader(configuration),
+      buildBatchRows: (resultRecords, batchId) => {
+        const sourceRecords = getMassUpdateBatchSourceRecords(records, batchIdToIndex, batchId, batchSize);
+        return buildMassUpdateCombinedResults(resultRecords, sourceRecords, { includeSuccesses: true });
+      },
+    });
   });
 }

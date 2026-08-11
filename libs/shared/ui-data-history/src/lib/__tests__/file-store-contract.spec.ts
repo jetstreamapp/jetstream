@@ -41,6 +41,26 @@ function describeHistoryFileStoreContract(name: string, createStore: () => Promi
       expect(await decompressed.text()).toBe(content);
     });
 
+    // The in-modal preview reads only the head of a payload; every backend has to honor that at the
+    // source, because reading whole and slicing is what makes previewing a large results file
+    // expensive in the first place.
+    it.each([
+      { label: 'uncompressed', path: 'org-1/dh_cap/results.csv', gzip: false, gunzip: false },
+      { label: 'gzip', path: 'org-1/dh_cap/results.csv.gz', gzip: true, gunzip: true },
+    ])('caps a $label read at maxBytes', async ({ path, gzip, gunzip }) => {
+      const store = await createStore();
+      const content = Array.from({ length: 2000 }, (_, i) => `row-${i}`).join('\n');
+      await store.writeFile(path, TEXT_ENCODER.encode(content), { gzip });
+
+      const capped = await store.readFile(path, { gunzip, maxBytes: 100 });
+      expect(capped.size).toBe(100);
+      expect(await capped.text()).toBe(content.slice(0, 100));
+
+      // A cap larger than the file yields the whole file, not a padded/short read
+      const wholeFile = await store.readFile(path, { gunzip, maxBytes: content.length * 10 });
+      expect(await wholeFile.text()).toBe(content);
+    });
+
     it('streams multiple chunks into one gzip file', async () => {
       const store = await createStore();
       const stream = await store.createWriteStream('org-1/dh_b/results.csv.gz', { gzip: true });
@@ -160,6 +180,9 @@ describe('DirectoryHandleFileStore abort semantics', () => {
  * mirroring its semantics (node zlib gzip, raw bytes over IPC) so NativeFsFileStore passes the
  * same contract as every other backend.
  */
+/** Bytes the fake `read-file-chunk` returns per call — small so every read spans several chunks */
+const SHORT_READ_BYTES = 5;
+
 function createFakeElectronDataHistoryApi(sharedFiles?: Map<string, Uint8Array>) {
   // Optionally shared between two API instances, so a test can prove that two users backed by the
   // SAME history folder still cannot see each other's files.
@@ -235,7 +258,20 @@ function createFakeElectronDataHistoryApi(sharedFiles?: Map<string, Uint8Array>)
         if (!bytes) {
           throw new Error(`File not found: ${payload.path}`);
         }
-        return payload.gunzip ? new Uint8Array(gunzipSync(bytes)) : bytes;
+        const output = payload.gunzip ? new Uint8Array(gunzipSync(bytes)) : bytes;
+        // The real main process caps here rather than sending the whole payload across IPC
+        return payload.maxBytes == null ? output : output.subarray(0, payload.maxBytes);
+      }
+      case 'read-file-chunk': {
+        const bytes = files.get(scoped(payload.path));
+        if (!bytes) {
+          throw new Error(`File not found: ${payload.path}`);
+        }
+        // Deliberately a SHORT read (a real `read(2)` may return fewer bytes than asked for, and the
+        // main process clamps at EOF), so every round-trip below exercises the caller's chunk loop
+        const start = Math.min(payload.offset, bytes.byteLength);
+        const end = Math.min(start + Math.min(payload.length, SHORT_READ_BYTES), bytes.byteLength);
+        return { bytes: bytes.subarray(start, end), totalBytes: bytes.byteLength };
       }
       case 'delete-dir': {
         for (const path of Array.from(files.keys())) {
@@ -258,17 +294,6 @@ function createFakeElectronDataHistoryApi(sharedFiles?: Map<string, Uint8Array>)
           }
         }
         return { dirs: Array.from(dirs.values()) };
-      }
-      case 'estimate': {
-        // Scoped like the real main process, which sizes only the signed-in user's subfolder
-        let usageBytes = 0;
-        const prefix = `${scoped('')}`;
-        files.forEach((bytes, path) => {
-          if (path.startsWith(prefix)) {
-            usageBytes += bytes.byteLength;
-          }
-        });
-        return { usageBytes };
       }
       default: {
         throw new Error(`Unknown op ${payload.op}`);
@@ -348,9 +373,5 @@ describe('per-user storage isolation', () => {
     // Reindex is native-only and imports whatever it enumerates, so this is the leak that matters
     expect(await storeB.listEntryDirs()).toEqual([{ orgFolder: 'org-1', entryKey: 'dh_b' }]);
     await expect(storeB.readFile('org-1/dh_a/manifest.json', { gunzip: false })).rejects.toThrow();
-
-    // Usage drives the signed-in user's quota UI and must not count the other account's files
-    const estimate = await storeB.estimate();
-    expect(estimate?.usageBytes).toBe(TEXT_ENCODER.encode('{"user":"b"}').byteLength);
   });
 });

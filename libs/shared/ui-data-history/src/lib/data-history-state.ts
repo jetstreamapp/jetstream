@@ -1,11 +1,6 @@
-import { DataHistoryCounts, DataHistoryItem, DataHistorySettings, DataHistoryStatus } from '@jetstream/types';
+import { DataHistoryCounts, DataHistoryItem, DataHistorySettings, DataHistoryStatus, DataHistoryTierLimits } from '@jetstream/types';
 import { dataHistoryDb } from '@jetstream/ui/db';
-import {
-  clampSettingsToTier,
-  DATA_HISTORY_STALE_IN_PROGRESS_MS,
-  DataHistoryTierLimits,
-  getDefaultDataHistorySettings,
-} from './data-history-limits';
+import { clampSettingsToTier, DATA_HISTORY_STALE_IN_PROGRESS_MS, getDefaultDataHistorySettings } from './data-history-limits';
 import { getFileStoreForBackend } from './file-store/file-store-factory';
 import { getParentDirPath } from './file-store/path-utils';
 import { isBrowserExtensionApp, isCanvasApp, isDesktopApp } from './platform';

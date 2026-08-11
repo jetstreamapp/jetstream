@@ -1,4 +1,6 @@
 import {
+  DataHistoryFileOpCommon,
+  DataHistoryFileOpCommonResults,
   FileNameFormat,
   InfoSuccessWarningError,
   InputReadFileContent,
@@ -46,40 +48,29 @@ export interface ElectronApiCallback {
 }
 
 /**
- * File operations for native Data History storage. Mirrors the op-based protocol the renderer's
- * OPFS storage worker uses (`@jetstream/ui/data-history` worker-messages) so the renderer file
- * store is a thin transport swap.
+ * The Electron transport of the shared Data History file-op protocol
+ * ({@link DataHistoryFileOpCommon}). A discriminated union so the main process gets its per-op
+ * fields from narrowing rather than hand-written runtime guards — this is the one boundary where a
+ * malformed message reaches `fs` calls in the privileged process.
  *
- * Modelled as a discriminated union so the main process gets its per-op fields from narrowing rather
- * than from hand-written runtime guards — this is the one boundary where a malformed message reaches
- * `fs` calls in the privileged process. Unlike the OPFS worker (which can be respawned and therefore
- * takes client-allocated stream ids), the main process allocates `streamId` and returns it.
+ * The main process allocates `streamId` and returns it (unlike the OPFS worker, which can be
+ * respawned and therefore takes client-allocated ids).
  */
 export type DataHistoryFileOpRequest =
-  /** `scopeDir` is the per-user directory inside the history folder that all paths resolve under */
-  | { op: 'init'; scopeDir: string }
-  | { op: 'write-file'; path: string; gzip: boolean; bytes: Uint8Array }
+  | DataHistoryFileOpCommon
   | { op: 'open-stream'; path: string; gzip: boolean }
-  | { op: 'stream-write'; streamId: number; bytes: Uint8Array }
-  | { op: 'stream-close'; streamId: number }
-  | { op: 'stream-abort'; streamId: number }
-  | { op: 'read-file'; path: string; gunzip: boolean }
-  | { op: 'delete-dir'; path: string }
-  | { op: 'list-entry-dirs' }
-  | { op: 'estimate' };
+  /**
+   * Transport-specific: a bounded slice of a stored file. Every IPC reply is structured-cloned
+   * through the main process, so reading a large payload back in one message copies the whole file
+   * twice. The worker transport needs no equivalent — it hands back a Blob, which clones by
+   * reference. Only meaningful for the plain files this backend writes (gzip cannot be seeked).
+   */
+  | { op: 'read-file-chunk'; path: string; offset: number; length: number };
 
-/** Result shape per op. `read-file` returns raw bytes because Blobs are not IPC-serializable. */
-export interface DataHistoryFileOpResultByOp {
-  init: void;
-  'write-file': { bytes: number };
-  'open-stream': { streamId: number };
-  'stream-write': void;
-  'stream-close': { bytes: number };
-  'stream-abort': void;
+/** `read-file` returns raw bytes because Blobs are not IPC-serializable; every other op is shared. */
+export interface DataHistoryFileOpResultByOp extends DataHistoryFileOpCommonResults {
   'read-file': Uint8Array;
-  'delete-dir': void;
-  'list-entry-dirs': { dirs: Array<{ orgFolder: string; entryKey: string }> };
-  estimate: { usageBytes?: number; quotaBytes?: number };
+  'read-file-chunk': { bytes: Uint8Array; totalBytes: number };
 }
 
 export type DataHistoryFileOpResult<TRequest extends DataHistoryFileOpRequest> = DataHistoryFileOpResultByOp[TRequest['op']];

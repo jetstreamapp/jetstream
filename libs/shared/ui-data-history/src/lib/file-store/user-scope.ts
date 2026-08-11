@@ -1,4 +1,4 @@
-import { getUserScopeDirName } from './path-utils';
+import { getUserScopeDirName } from './hashed-dir-names';
 
 /**
  * The authenticated user every file store is currently rooted under.

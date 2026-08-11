@@ -21,7 +21,7 @@ export interface LoadRecordsResultsProps {
   /** Already-prepared records for retry — skips prepareData when provided */
   preparedInputData?: any[];
   /** Data History capture handle for this run (captures nothing when disabled/opted out) */
-  historyHandle?: Maybe<DataHistoryEntryHandle>;
+  historyHandle: DataHistoryEntryHandle;
   onFinish: (results: { success: number; failure: number; failedRecords: any[] }) => void;
   /** Called when user selects specific records to retry from the results modal */
   onRetrySelected?: (selectedRows: any[]) => void;

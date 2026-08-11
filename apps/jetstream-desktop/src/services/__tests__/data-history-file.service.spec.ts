@@ -146,6 +146,82 @@ describe('data-history-file.service', () => {
   });
 
   // ────────────────────────────────────────────────
+  // chunked reads (large payloads must not cross IPC as one buffer)
+  // ────────────────────────────────────────────────
+
+  describe('read-file-chunk', () => {
+    const content = 'abcdefghij';
+
+    async function seedFile() {
+      const service = await importService();
+      await service.handleDataHistoryOp({
+        op: 'write-file',
+        path: 'org-1/dh_chunk/results.csv',
+        gzip: false,
+        bytes: TEXT_ENCODER.encode(content),
+      });
+      return service;
+    }
+
+    it('returns the requested slice plus the total size so the caller can walk to EOF', async () => {
+      const service = await seedFile();
+      const chunks: string[] = [];
+      let offset = 0;
+      let totalBytes = 0;
+      for (;;) {
+        const result = (await service.handleDataHistoryOp({
+          op: 'read-file-chunk',
+          path: 'org-1/dh_chunk/results.csv',
+          offset,
+          length: 4,
+        })) as {
+          bytes: Uint8Array;
+          totalBytes: number;
+        };
+        totalBytes = result.totalBytes;
+        offset += result.bytes.byteLength;
+        if (result.bytes.byteLength === 0) {
+          break;
+        }
+        chunks.push(Buffer.from(result.bytes).toString('utf8'));
+        if (offset >= result.totalBytes) {
+          break;
+        }
+      }
+      expect(totalBytes).toBe(content.length);
+      expect(chunks).toEqual(['abcd', 'efgh', 'ij']);
+      expect(chunks.join('')).toBe(content);
+    });
+
+    it('clamps a read that runs past the end rather than failing', async () => {
+      const service = await seedFile();
+      const result = (await service.handleDataHistoryOp({
+        op: 'read-file-chunk',
+        path: 'org-1/dh_chunk/results.csv',
+        offset: 8,
+        length: 1024,
+      })) as { bytes: Uint8Array; totalBytes: number };
+      expect(Buffer.from(result.bytes).toString('utf8')).toBe('ij');
+      expect(result.totalBytes).toBe(content.length);
+
+      const past = (await service.handleDataHistoryOp({
+        op: 'read-file-chunk',
+        path: 'org-1/dh_chunk/results.csv',
+        offset: 10,
+        length: 1024,
+      })) as { bytes: Uint8Array; totalBytes: number };
+      expect(past.bytes.byteLength).toBe(0);
+    });
+
+    it('rejects traversal paths', async () => {
+      const service = await importService();
+      await expect(service.handleDataHistoryOp({ op: 'read-file-chunk', path: '../evil.json', offset: 0, length: 10 })).rejects.toThrow(
+        /Invalid path segment/,
+      );
+    });
+  });
+
+  // ────────────────────────────────────────────────
   // streaming writes
   // ────────────────────────────────────────────────
 
@@ -501,26 +577,6 @@ describe('data-history-file.service', () => {
 
       const survived = await fs.readFile(join(scopedBaseDir(), 'org-1', 'dh_shared', 'manifest.json'), 'utf8');
       expect(survived).toBe('{"user":"a"}');
-    });
-
-    it('reports storage usage for the signed-in account only', async () => {
-      const service = await importService();
-      await service.handleDataHistoryOp({
-        op: 'write-file',
-        path: 'org-1/dh_a/manifest.json',
-        gzip: false,
-        bytes: TEXT_ENCODER.encode('aaaaaaaaaaaaaaaaaaaa'),
-      });
-
-      await service.handleDataHistoryOp({ op: 'init', scopeDir: OTHER_SCOPE_DIR });
-      await service.handleDataHistoryOp({
-        op: 'write-file',
-        path: 'org-1/dh_b/manifest.json',
-        gzip: false,
-        bytes: TEXT_ENCODER.encode('bb'),
-      });
-
-      expect(await service.handleDataHistoryOp({ op: 'estimate' })).toEqual({ usageBytes: 2 });
     });
   });
 });

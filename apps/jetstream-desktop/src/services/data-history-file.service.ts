@@ -217,7 +217,6 @@ const opHandlers: {
     const input = Buffer.from(request.bytes);
     const output = request.gzip ? gzipSync(input) : input;
     await writeFileAtomic(absolutePath, output);
-    invalidateDirectorySizeCache();
     return { bytes: output.byteLength };
   },
   'open-stream': async (request, context) => {
@@ -269,7 +268,6 @@ const opHandlers: {
     // A late fs error is safe here: the 'error' listeners prevent an uncaught exception and
     // `finished` rejects (never hangs) when the stream is destroyed with an error.
     await finished(state.fileStream);
-    invalidateDirectorySizeCache();
     return { bytes: state.bytesWritten };
   },
   'stream-abort': async (request, context) => {
@@ -281,19 +279,39 @@ const opHandlers: {
       state.gzip?.destroy();
       state.fileStream.destroy();
       await fs.rm(state.absolutePath, { force: true }).catch(() => undefined);
-      invalidateDirectorySizeCache();
     }
   },
   'read-file': async (request) => {
     const buffer = await fs.readFile(resolveRelativePath(request.path));
-    return new Uint8Array(request.gunzip ? gunzipSync(buffer) : buffer);
+    const output = request.gunzip ? gunzipSync(buffer) : buffer;
+    // Capped here rather than in the renderer so an oversized payload is not cloned across IPC in
+    // full just to be thrown away. A gzip stream cannot be read from an offset, so the inflate
+    // itself is unavoidable — the plain-file path uses `read-file-chunk`, which never reads it all.
+    return new Uint8Array(request.maxBytes == null ? output : output.subarray(0, request.maxBytes));
+  },
+  'read-file-chunk': async (request) => {
+    const absolutePath = resolveRelativePath(request.path);
+    const { size } = await fs.stat(absolutePath);
+    // Clamped rather than validated: the renderer walks to EOF by comparing against `totalBytes`, so
+    // a request that runs past the end is the normal last iteration, not an error
+    const length = Math.max(0, Math.min(request.length, size - request.offset));
+    if (length === 0) {
+      return { bytes: new Uint8Array(0), totalBytes: size };
+    }
+    const fileHandle = await fs.open(absolutePath, 'r');
+    try {
+      const buffer = Buffer.alloc(length);
+      const { bytesRead } = await fileHandle.read(buffer, 0, length, request.offset);
+      return { bytes: new Uint8Array(buffer.subarray(0, bytesRead)), totalBytes: size };
+    } finally {
+      await fileHandle.close();
+    }
   },
   'delete-dir': async (request) => {
     assertNoRelocationInProgress();
     const absoluteDirPath = resolveRelativePath(request.path);
     assertNoOpenStreamsUnder(absoluteDirPath);
     await fs.rm(absoluteDirPath, { recursive: true, force: true });
-    invalidateDirectorySizeCache();
   },
   'list-entry-dirs': async () => {
     const dirs: Array<{ orgFolder: string; entryKey: string }> = [];
@@ -311,9 +329,6 @@ const opHandlers: {
       }
     }
     return { dirs };
-  },
-  estimate: async () => {
-    return { usageBytes: await getCachedDirectorySize() };
   },
 };
 
@@ -387,7 +402,6 @@ export async function setDataHistoryFolderPath(folderPath: string): Promise<stri
       await fs.mkdir(target, { recursive: true });
     }
     updateUserPreferences({ dataHistoryFolder: target });
-    invalidateDirectorySizeCache();
     return target;
   } finally {
     relocationInProgress = false;
@@ -403,44 +417,4 @@ function getStream(streamId: number, senderId?: number): OpenStreamState {
     throw new Error(`Unknown streamId ${streamId}`);
   }
   return state;
-}
-
-/**
- * `getDirectorySize` stats every file under the history root, which on a paid-tier folder can be
- * tens of thousands of files. The settings page reads storage health on mount and after every
- * storage action, so the walk is cached: invalidated by any write/delete we perform, and expired on
- * a short timer so out-of-band changes (the user deleting files themselves) are still picked up.
- */
-const DIRECTORY_SIZE_CACHE_MS = 60_000;
-let cachedDirectorySize: { basePath: string; bytes: number; computedAt: number } | null = null;
-
-function invalidateDirectorySizeCache(): void {
-  cachedDirectorySize = null;
-}
-
-async function getCachedDirectorySize(): Promise<number> {
-  // Scoped: this figure drives the signed-in user's quota and retention UI, so it must not include
-  // other accounts' history. The cache keys on the path, so it can never serve another user's total.
-  const basePath = getScopedBaseDir();
-  if (cachedDirectorySize?.basePath === basePath && Date.now() - cachedDirectorySize.computedAt < DIRECTORY_SIZE_CACHE_MS) {
-    return cachedDirectorySize.bytes;
-  }
-  const bytes = await getDirectorySize(basePath);
-  cachedDirectorySize = { basePath, bytes, computedAt: Date.now() };
-  return bytes;
-}
-
-async function getDirectorySize(dirPath: string): Promise<number> {
-  let total = 0;
-  const entries = await fs.readdir(dirPath, { withFileTypes: true }).catch(() => []);
-  for (const entry of entries) {
-    const fullPath = join(dirPath, entry.name);
-    if (entry.isDirectory()) {
-      total += await getDirectorySize(fullPath);
-    } else if (entry.isFile()) {
-      const stat = await fs.stat(fullPath).catch(() => null);
-      total += stat?.size ?? 0;
-    }
-  }
-  return total;
 }

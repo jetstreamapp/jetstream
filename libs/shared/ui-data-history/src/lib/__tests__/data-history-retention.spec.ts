@@ -35,7 +35,6 @@ async function seedEntry(overrides: Partial<DataHistoryItem> & { withFile?: bool
     files: [],
     storageBackend: 'opfs',
     sizeBytes: 0,
-    inlinePayload: null,
     pinned: false,
     pinnedIdx: 'false',
     errorMessage: null,
@@ -212,14 +211,14 @@ describe('runDataHistoryRetentionSweep', () => {
     expect(fakeStore.files.has(stranded.files[0].path)).toBe(true);
   });
 
-  it('does not treat file-less (inline) entries as stranded, whatever backend they are stamped with', async () => {
-    // They have no bytes on ANY backend, so re-homing them is pure churn — a full table re-read
-    // plus a write per entry on every app start
-    const inlineOnly = await seedEntry({ storageBackend: 'directory', inlinePayload: new Uint8Array([1, 2, 3]), sizeBytes: 3 });
+  it('does not treat file-less entries as stranded, whatever backend they are stamped with', async () => {
+    // A capture that crashed before its first write has no bytes on ANY backend, so re-homing it is
+    // pure churn — a full table re-read plus a write per entry on every app start
+    const fileLess = await seedEntry({ storageBackend: 'directory', status: 'incomplete' });
 
     await runDataHistoryRetentionSweep();
 
-    expect((await dataHistoryDb.getEntry(inlineOnly.key))?.storageBackend).toBe('directory');
+    expect((await dataHistoryDb.getEntry(fileLess.key))?.storageBackend).toBe('directory');
   });
 
   it('does not delete the directory of an entry captured after the sweep took its snapshot', async () => {

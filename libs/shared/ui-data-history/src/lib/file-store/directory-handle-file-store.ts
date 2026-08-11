@@ -1,7 +1,7 @@
 import type { HistoryFileStore, HistoryFileStoreCapabilities, HistoryWriteStream } from './file-store.types';
 import { listEntryDirs, removeDir, removeFileQuietly, resolveFile } from './fs-handle-ops';
 import { DataHistoryDirectoryPermissionError, FsaDirectoryHandle, FsaFileHandle } from './fsa-types';
-import { abortQuietly, createGzipEncoder, gzipBytes } from './gzip-utils';
+import { abortQuietly, createGzipEncoder, gzipBytes, readStreamUpTo } from './gzip-utils';
 
 /**
  * File store backed by a USER-CHOSEN real directory via the File System Access API
@@ -141,14 +141,15 @@ export class DirectoryHandleFileStore implements HistoryFileStore {
     return { bytes: output.byteLength };
   }
 
-  async readFile(relativePath: string, options: { gunzip: boolean }): Promise<Blob> {
+  async readFile(relativePath: string, options: { gunzip: boolean; maxBytes?: number }): Promise<Blob> {
     const fileHandle = await this.guardPermission(() => resolveFile<FsaFileHandle>(this.scopedRoot, relativePath, false));
     const file = await this.guardPermission(() => fileHandle.getFile());
     if (!options.gunzip) {
-      return file;
+      // A File is lazily backed, so slicing reads only the window the caller asked for
+      return options.maxBytes == null ? file : file.slice(0, options.maxBytes);
     }
     const stream = file.stream().pipeThrough(new DecompressionStream('gzip'));
-    return await new Response(stream).blob();
+    return options.maxBytes == null ? await new Response(stream).blob() : await readStreamUpTo(stream, options.maxBytes);
   }
 
   async deleteEntryDir(relativeDirPath: string): Promise<void> {
@@ -157,11 +158,6 @@ export class DirectoryHandleFileStore implements HistoryFileStore {
 
   async listEntryDirs(): Promise<Array<{ orgFolder: string; entryKey: string }>> {
     return this.guardPermission(() => listEntryDirs(this.scopedRoot));
-  }
-
-  async estimate(): Promise<{ usageBytes?: number; quotaBytes?: number } | null> {
-    // Real filesystem — the browser storage quota does not apply
-    return null;
   }
 
   /**

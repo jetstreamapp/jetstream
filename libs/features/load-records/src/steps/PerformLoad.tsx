@@ -26,7 +26,17 @@ import { ChangeEvent, FunctionComponent, useCallback, useEffect, useMemo, useRef
 import LoadRecordsAssignmentRules from '../components/LoadRecordsAssignmentRules';
 import LoadRecordsDuplicateWarning from '../components/LoadRecordsDuplicateWarning';
 import LoadRecordsResults from '../components/load-results/LoadRecordsResults';
-import { startLoadRecordsHistory } from '../utils/data-history-capture';
+import { LoadRecordsHistoryConfig, startLoadRecordsHistory } from '../utils/data-history-capture';
+
+/**
+ * The only Data History values that differ between an initial load, a trial run and a retry —
+ * everything else comes from the load wizard via `startHistoryForRun`. Picked from the shared
+ * config interface so a renamed or removed field there cannot be silently missed here.
+ */
+type LoadRunHistoryOptions = Pick<LoadRecordsHistoryConfig, 'numRecords' | 'hasZipAttachment' | 'trialRun' | 'trialRunSize' | 'retry'> & {
+  /** Links a retry entry to the entry it retried */
+  parentKey?: string;
+};
 
 interface LoadRun {
   id: number;
@@ -43,7 +53,7 @@ interface LoadRun {
   /** Required when retrying prepared records that reference binary attachments */
   inputZipFileData?: Maybe<ArrayBuffer>;
   /** Data History capture handle for this run (captures nothing when disabled/opted out) */
-  historyHandle?: DataHistoryEntryHandle;
+  historyHandle: DataHistoryEntryHandle;
   result?: {
     success: number;
     failure: number;
@@ -106,7 +116,13 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   const inputFilenameType = useAtomValue(fromLoadRecordsState.inputFilenameTypeState);
   const inputGoogleFile = useAtomValue(fromLoadRecordsState.inputGoogleFileState);
   const [skipDataHistory, setSkipDataHistory] = useState(false);
-  const [trialRunHistoryHandle, setTrialRunHistoryHandle] = useState<DataHistoryEntryHandle | null>(null);
+  /**
+   * The trial run currently displayed, paired with its capture handle — the same "a run owns its
+   * handle" shape as the entries in `runs`, rather than a parallel piece of state that could get
+   * out of step with the run it belongs to. `loadNumber` keys the results component so each trial
+   * run remounts.
+   */
+  const [activeTrialRun, setActiveTrialRun] = useState<{ loadNumber: number; historyHandle: DataHistoryEntryHandle } | null>(null);
 
   const batchSizeError = useAtomValue(fromLoadRecordsState.selectBatchSizeError);
   const batchApiLimitWarning = useAtomValue(fromLoadRecordsState.selectBatchApiLimitWarning);
@@ -122,8 +138,6 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   const [runs, setRuns] = useState<LoadRun[]>([]);
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
 
-  // Trial run tracking (kept separate from the runs model for simplicity)
-  const [trialRunLoadNumber, setTrialRunLoadNumber] = useState(0);
   const [{ loading, loadInProgressTrialRun, hasLoadResultsTrialRun, inputFileDataTrialRun, inputFileDataToLoad }, setLoadState] =
     useState<LoadState>(() => ({
       loading: false,
@@ -195,6 +209,57 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
     }
   }
 
+  /**
+   * Start a Data History entry for one run, supplying everything that comes from the load wizard so
+   * call sites pass ONLY what actually differs between an initial load, a trial run and a retry.
+   *
+   * A retry entry is only meaningful next to the run it retried (that is what `parentKey` is for), so
+   * the two must describe the same load the same way — with the envelope spelled out per call site,
+   * the next config field added would land in one and not the other, and the divergence would only
+   * show up as two history entries that no longer compare.
+   */
+  const startHistoryForRun = useCallback(
+    ({ parentKey, ...runConfig }: LoadRunHistoryOptions) =>
+      startLoadRecordsHistory({
+        org: selectedOrg,
+        loadType,
+        apiMode,
+        sobject: selectedSObject,
+        inputFilename,
+        inputFilenameType,
+        inputGoogleFileId: inputGoogleFile?.id,
+        skipHistory: skipDataHistory,
+        parentKey,
+        config: {
+          batchSize,
+          insertNulls,
+          serialMode,
+          hasDateFieldMapped,
+          dateFormat,
+          fieldMapping,
+          timesSameDataSubmitted: runs.length + 1,
+          ...runConfig,
+        },
+      }),
+    [
+      selectedOrg,
+      loadType,
+      apiMode,
+      selectedSObject,
+      inputFilename,
+      inputFilenameType,
+      inputGoogleFile,
+      skipDataHistory,
+      batchSize,
+      insertNulls,
+      serialMode,
+      hasDateFieldMapped,
+      dateFormat,
+      fieldMapping,
+      runs.length,
+    ],
+  );
+
   async function handleStartLoad(isTrialRun = false) {
     // Defensive guard: ignore rapid double-clicks or re-entrant calls while a load is starting or already running.
     // Button `disabled` covers most cases, but the ConfirmationModalPromise await below leaves a race window.
@@ -211,34 +276,16 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
       const inputHeader = inputFileHeader ?? (inputFileDataToLoad[0] ? Object.keys(inputFileDataToLoad[0]) : []);
       // The handle self-gates (captures nothing when disabled/opted out) and is never awaited on the
       // load's critical path — it is threaded to the results component to record results as they land.
-      const historyHandle = startLoadRecordsHistory({
-        org: selectedOrg,
-        loadType,
-        apiMode,
-        sobject: selectedSObject,
-        inputFilename,
-        inputFilenameType,
-        inputGoogleFileId: inputGoogleFile?.id,
-        skipHistory: skipDataHistory,
-        config: {
-          numRecords: inputFileData.length,
-          batchSize,
-          insertNulls,
-          serialMode,
-          hasDateFieldMapped,
-          dateFormat,
-          fieldMapping,
-          hasZipAttachment,
-          timesSameDataSubmitted: runs.length + 1,
-          trialRun: isTrialRun,
-          trialRunSize,
-        },
+      const historyHandle = startHistoryForRun({
+        numRecords: inputFileData.length,
+        hasZipAttachment,
+        trialRun: isTrialRun,
+        trialRunSize,
       });
 
       if (isTrialRun) {
         historyHandle.writeInputRows(inputFileDataTrialRun, inputHeader);
-        setTrialRunHistoryHandle(historyHandle);
-        setTrialRunLoadNumber(trialRunLoadNumber + 1);
+        setActiveTrialRun((prevTrialRun) => ({ loadNumber: (prevTrialRun?.loadNumber ?? 0) + 1, historyHandle }));
         setLoadState((prevState) => ({
           ...prevState,
           loading: true,
@@ -326,27 +373,10 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
       const newRunId = ++runIdCounter.current;
 
       // A retry is captured as a NEW history entry linked to the original run via parentKey
-      const historyHandle = startLoadRecordsHistory({
-        org: selectedOrg,
-        loadType,
-        apiMode,
-        sobject: selectedSObject,
-        inputFilename,
-        inputFilenameType,
-        inputGoogleFileId: inputGoogleFile?.id,
-        skipHistory: skipDataHistory,
-        config: {
-          numRecords: recordsToRetry.length,
-          batchSize,
-          insertNulls,
-          serialMode,
-          hasDateFieldMapped,
-          dateFormat,
-          fieldMapping,
-          hasZipAttachment: !!(activeRun?.inputZipFileData ?? inputZipFileData),
-          timesSameDataSubmitted: runs.length + 1,
-          retry: { retryCount, retrySource, totalFailedCount },
-        },
+      const historyHandle = startHistoryForRun({
+        numRecords: recordsToRetry.length,
+        hasZipAttachment: !!(activeRun?.inputZipFileData ?? inputZipFileData),
+        retry: { retryCount, retrySource, totalFailedCount },
         parentKey: activeRun?.historyHandle?.key,
       });
       // Retry records are PREPARED records (Batch API prepares nested objects for external-Id lookups),
@@ -406,12 +436,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
       dateFormat,
       fieldMapping,
       inputZipFileData,
-      selectedOrg,
-      selectedSObject,
-      skipDataHistory,
-      inputFilename,
-      inputFilenameType,
-      inputGoogleFile,
+      startHistoryForRun,
     ],
   );
 
@@ -456,7 +481,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
             serialMode={serialMode}
             dateFormat={dateFormat}
             preparedInputData={run.preparedInputData}
-            historyHandle={run.historyHandle ?? null}
+            historyHandle={run.historyHandle}
             onFinish={(results) => handleFinishLoad(results, run.id)}
             onRetrySelected={canRetry && isActiveRun ? handleRetryFailedRecords : undefined}
             onRetryAll={canRetry && isActiveRun ? () => handleRetryFailedRecords() : undefined}
@@ -682,11 +707,11 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
       <h1 className="slds-text-heading_medium">Results</h1>
       <div className="slds-p-around_small">
         {/* DRY RUN LOAD */}
-        {trialRun && (loadInProgressTrialRun || hasLoadResultsTrialRun) && (
+        {trialRun && activeTrialRun && (loadInProgressTrialRun || hasLoadResultsTrialRun) && (
           <div className="slds-m-bottom_medium">
             <h2 className="slds-text-heading_small slds-m-bottom_x-small">Trial Run</h2>
             <LoadRecordsResults
-              key={`trial-run-${trialRunLoadNumber}`}
+              key={`trial-run-${activeTrialRun.loadNumber}`}
               selectedOrg={selectedOrg}
               selectedSObject={selectedSObject}
               fieldMapping={fieldMapping}
@@ -700,7 +725,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
               assignmentRuleId={assignmentRuleId}
               serialMode={serialMode}
               dateFormat={dateFormat}
-              historyHandle={trialRunHistoryHandle}
+              historyHandle={activeTrialRun.historyHandle}
               onFinish={(results) => handleFinishTrialRun(results)}
             />
           </div>

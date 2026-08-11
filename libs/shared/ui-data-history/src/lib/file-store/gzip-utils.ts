@@ -1,7 +1,8 @@
 /**
  * gzip helpers shared by every file-store backend that compresses in the browser (the OPFS worker
- * and the user-chosen-folder store). Uses the platform `CompressionStream` — no dependencies, so
- * importing this does not grow the worker bundle.
+ * and the user-chosen-folder store), plus the bounded read that caps those same decompression
+ * streams. Uses the platform `CompressionStream` — no dependencies, so importing this does not grow
+ * the worker bundle.
  *
  * `gzipEncode`/`gzipDecode` in `@jetstream/shared/utils` are JSON-oriented (they stringify/parse);
  * these deal in raw bytes and streams.
@@ -10,6 +11,32 @@
 export async function gzipBytes(bytes: Uint8Array): Promise<Uint8Array> {
   const stream = new Blob([bytes as BlobPart]).stream().pipeThrough(new CompressionStream('gzip'));
   return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+/**
+ * Collect at most `maxBytes` from a stream, then CANCEL it — the whole point of a capped read.
+ * `new Response(stream).blob()` followed by a slice would decompress the entire file first, which
+ * on a large bulk-load results file is exactly the work the cap exists to avoid.
+ */
+export async function readStreamUpTo(stream: ReadableStream<Uint8Array>, maxBytes: number): Promise<Blob> {
+  const reader = stream.getReader();
+  const chunks: BlobPart[] = [];
+  let bytesRead = 0;
+  try {
+    while (bytesRead < maxBytes) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+      const remaining = maxBytes - bytesRead;
+      chunks.push((value.byteLength > remaining ? value.subarray(0, remaining) : value) as BlobPart);
+      bytesRead += value.byteLength;
+    }
+  } finally {
+    // Releases the underlying source (and the file handle behind it) without draining the rest
+    await abortQuietly(reader.cancel());
+  }
+  return new Blob(chunks);
 }
 
 /** Await a cleanup promise that is allowed to fail (already closed/errored streams) */

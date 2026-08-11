@@ -197,23 +197,25 @@ function applySchema(db: DexieDb) {
     analysis_job_history: 'key,org,jobType,createdAt,pinned,[org+jobType+createdAt]',
   });
 
-  db.version(5).stores({
-    data_history: 'key,org,source,status,createdAt,pinnedIdx,[org+createdAt],[source+createdAt]',
-    data_history_config: 'key',
-  });
-
   /**
-   * Adds the `sizeBytes` index so total storage usage can be summed straight from the index
-   * (`orderBy('sizeBytes').keys()`) instead of reading every row — history rows carry up to 64KB of
-   * `inlinePayload` gzip bytes each, and the usage figure is read on every settings/history page mount.
+   * Every `data_history` index below is read by a query in `data-history.db.ts`, and the entry row is
+   * written several times per capture — so an index that serves no query is pure write cost on the
+   * hot path of every data load. Do not add one speculatively:
    *
-   * Deliberately a NEW version rather than an extra index on v5 above, even though both were authored
-   * together: anyone who already opened the db at v5 has its index set recorded, and changing a
-   * version's schema in place runs no upgrade transaction — the index would silently never be created
-   * and every read of it would throw. Do not fold this into v5.
+   * - `createdAt`      — the default newest-first list
+   * - `[org+createdAt]` — the same list narrowed to one org (a standalone `org` index would be
+   *                       redundant: the compound index serves org-only lookups too)
+   * - `pinnedIdx`      — pinned count without deserializing rows (booleans cannot be Dexie indexes,
+   *                       so `db-hooks` mirrors `pinned` into this string field)
+   * - `sizeBytes`      — total usage summed straight from the index, read on every settings/history
+   *                       page mount over an unbounded number of rows on tiers with no entry cap
+   *
+   * `source`/`status`/`pinnedOnly` in `DataHistoryListFilter` are deliberately NOT indexed — they are
+   * in-memory predicates applied after org/date narrowing has already made the result set small.
    */
-  db.version(6).stores({
-    data_history: 'key,org,source,status,createdAt,pinnedIdx,sizeBytes,[org+createdAt],[source+createdAt]',
+  db.version(5).stores({
+    data_history: 'key,createdAt,pinnedIdx,sizeBytes,[org+createdAt]',
+    data_history_config: 'key',
   });
 }
 

@@ -4,6 +4,7 @@ import * as dotenv from 'dotenv';
 import {
   ApiRequestUtils,
   AuthenticationPage,
+  DataHistoryPage,
   FormulaEvaluatorPage,
   LoadSingleObjectPage,
   LoadWithoutFilePage,
@@ -48,6 +49,7 @@ type MyFixtures = {
   teamCreationUtils3Users: TeamCreationUtils;
   playwrightPage: PlaywrightPage;
   authenticationPage: AuthenticationPage;
+  dataHistoryPage: DataHistoryPage;
   newUser: Awaited<ReturnType<AuthenticationPage['signUpAndVerifyEmail']>>;
   formulaEvaluatorPage: FormulaEvaluatorPage;
   queryPage: QueryPage;
@@ -113,6 +115,9 @@ export const test = base.extend<MyFixtures>({
   },
   authenticationPage: async ({ page }, use) => {
     await use(new AuthenticationPage(page));
+  },
+  dataHistoryPage: async ({ page }, use) => {
+    await use(new DataHistoryPage(page));
   },
   newUser: async ({ authenticationPage }, use) => {
     await use(await authenticationPage.signUpAndVerifyEmail());

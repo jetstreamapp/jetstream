@@ -1,7 +1,8 @@
 import { Blob as NodeBlob } from 'node:buffer';
 
 import { BulkJobResultRecord, BulkJobWithBatches, SalesforceOrgUi } from '@jetstream/types';
-import { FakeFileStore, initDataHistory, readDataHistoryFile, setHistoryFileStoreForTests } from '@jetstream/ui/data-history';
+import { initDataHistory, readDataHistoryFile, setHistoryFileStoreForTests } from '@jetstream/ui/data-history';
+import { FakeFileStore } from '@jetstream/ui/data-history/testing';
 import { dataHistoryDb, getDexieDb } from '@jetstream/ui/db';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { captureMassUpdateResults, startMassUpdateHistory } from '../data-history-capture';
@@ -63,8 +64,6 @@ describe('mass-update Data History capture wiring', () => {
       org,
       source: 'STAND-ALONE',
       sobject: 'Account',
-      jobId: 'job1',
-      records,
       batchSize: 200,
       serialMode: false,
       configuration,
@@ -112,8 +111,6 @@ describe('mass-update Data History capture wiring', () => {
       org,
       source: 'QUERY',
       sobject: 'Account',
-      jobId: 'job2',
-      records: [{ Id: '001', Industry: 'Tech' }],
       batchSize: 200,
       serialMode: false,
       configuration,

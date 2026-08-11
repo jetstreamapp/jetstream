@@ -91,8 +91,10 @@ export class OpfsFileStore implements HistoryFileStore {
     return await this.request({ op: 'write-file', path: relativePath, gzip: options.gzip, bytes });
   }
 
-  async readFile(relativePath: string, options: { gunzip: boolean }): Promise<Blob> {
-    return await this.request({ op: 'read-file', path: relativePath, gunzip: options.gunzip });
+  async readFile(relativePath: string, options: { gunzip: boolean; maxBytes?: number }): Promise<Blob> {
+    // `maxBytes` is applied in the worker, not here: the decompression that a capped read needs to
+    // stop early happens on that side of the wire.
+    return await this.request({ op: 'read-file', path: relativePath, gunzip: options.gunzip, maxBytes: options.maxBytes });
   }
 
   async deleteEntryDir(relativeDirPath: string): Promise<void> {
@@ -102,14 +104,6 @@ export class OpfsFileStore implements HistoryFileStore {
   async listEntryDirs(): Promise<Array<{ orgFolder: string; entryKey: string }>> {
     const { dirs } = await this.request({ op: 'list-entry-dirs' });
     return dirs;
-  }
-
-  async estimate(): Promise<{ usageBytes?: number; quotaBytes?: number } | null> {
-    try {
-      return await this.request({ op: 'estimate' });
-    } catch {
-      return null;
-    }
   }
 
   /**
