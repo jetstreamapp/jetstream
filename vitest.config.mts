@@ -6,6 +6,6 @@ export default defineConfig({
       TZ: 'UTC',
     },
     passWithNoTests: true,
-    projects: ['apps/*/{vitest,vite}.config.ts', 'libs/**/{vitest,vite}.config.ts'],
+    projects: ['apps/*/{vitest,vite}.config.{ts,mts}', 'libs/**/{vitest,vite}.config.{ts,mts}'],
   },
 });

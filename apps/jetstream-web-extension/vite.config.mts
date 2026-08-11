@@ -10,9 +10,14 @@ import {
   placeholderHtmlPlugin,
 } from './vite.plugins.mts';
 
-export default defineConfig(({ mode }) => {
-  // Force staging to be "production" mode
-  if (mode !== 'development') {
+export default defineConfig(({ command, mode }) => {
+  // Force staging to be "production" mode.
+  // Scoped to real builds because this mutates the shared process: the root vitest config loads
+  // every project's config into one process, and Vitest's mode is 'test', so an unguarded set here
+  // flips NODE_ENV to production for all 62 projects. React then resolves its production build,
+  // where `act` does not exist, and every React test in the repo fails with "React.act is not a
+  // function". The bundle's own value comes from the `define` below, not from this.
+  if (command === 'build' && mode !== 'development') {
     process.env.NODE_ENV = 'production';
   }
 
@@ -37,7 +42,11 @@ export default defineConfig(({ mode }) => {
       'globalThis.__IS_BROWSER_EXTENSION__': 'true',
       'import.meta.env.NX_PUBLIC_AMPLITUDE_KEY': JSON.stringify(process.env.NX_PUBLIC_AMPLITUDE_KEY || ''),
       'import.meta.env.NX_PUBLIC_SERVER_URL': JSON.stringify(getServerUrlForMode(mode)),
-      'process.env.NODE_ENV': JSON.stringify(mode === 'development' ? 'development' : 'production'),
+      // Build-only, for the same shared-process reason as the NODE_ENV mutation above: defines are
+      // textual rewrites, and under the root vitest config this one would replace the
+      // `process.env.NODE_ENV` check inside react-dom/test-utils with "production" for every
+      // project, so `React.act` would be missing and all React tests would fail.
+      ...(command === 'build' ? { 'process.env.NODE_ENV': JSON.stringify(mode === 'development' ? 'development' : 'production') } : {}),
     },
     esbuild: {
       charset: 'ascii',
