@@ -9,7 +9,7 @@ export default defineConfig(() => ({
     name: 'audit-logs',
     watch: false,
     globals: true,
-    environment: 'jsdom',
+    environment: 'node',
     include: ['{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     reporters: ['default'],
     passWithNoTests: true,

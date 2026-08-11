@@ -12,6 +12,7 @@
   "js/ts.tsdk.path": "node_modules/typescript/lib",
   "js/ts.tsdk.promptToUseWorkspaceVersion": true,
   "git.branchProtection": ["main", "release"],
+  "vitest.configSearchPatternExclude": "{**/node_modules/**,**/vendor/**,**/.*/**,**/dist/**,**/*.d.{ts,mts,cts}}",
   "files.exclude": {
     "**/.git": true,
     "**/.svn": true,

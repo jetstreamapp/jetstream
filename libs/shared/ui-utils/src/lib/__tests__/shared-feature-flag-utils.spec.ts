@@ -1,5 +1,12 @@
+/**
+ * Signs fixtures with node:crypto and the code under test only needs atob/TextEncoder/crypto.subtle,
+ * all of which Node provides natively — no DOM. Running this file under jsdom makes Vite externalize
+ * node:crypto for the browser, which breaks under the root config's multi-project run.
+ *
+ * @vitest-environment node
+ */
 import { ALL_FEATURE_FLAG_KEYS, DEFAULT_FEATURE_FLAGS, FeatureFlags, serializeFeatureFlagsForSigning } from '@jetstream/types';
-import { createPrivateKey, sign } from 'crypto';
+import { createPrivateKey, sign } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { applyVerifiedFeatureFlags, verifyAndExtractFeatureFlags } from '../shared-feature-flag-utils';
 
