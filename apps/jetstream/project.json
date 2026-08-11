@@ -7,122 +7,13 @@
   "generators": {},
   "targets": {
     "build": {
-      "executor": "@nx/vite:build",
-      "dependsOn": ["^build"],
-      "outputs": ["{options.outputPath}"],
+      "outputs": ["{workspaceRoot}/dist/apps/jetstream"],
       "defaultConfiguration": "production",
-      "options": {
-        "outputPath": "dist/apps/jetstream"
-      },
       "configurations": {
-        "production": {
-          "fileReplacements": [
-            {
-              "replace": "apps/jetstream/src/environments/environment.ts",
-              "with": "apps/jetstream/src/environments/environment.prod.ts"
-            }
-          ],
-          "optimization": true,
-          "outputHashing": "all",
-          "sourceMap": true,
-          "extractCss": true,
-          "namedChunks": false,
-          "extractLicenses": true,
-          "vendorChunk": false,
-          "budgets": [
-            {
-              "type": "initial",
-              "maximumWarning": "2mb",
-              "maximumError": "10mb"
-            }
-          ]
-        },
-        "docker": {
-          "fileReplacements": [
-            {
-              "replace": "apps/jetstream/src/environments/environment.ts",
-              "with": "apps/jetstream/src/environments/environment.prod.ts"
-            }
-          ],
-          "optimization": true,
-          "outputHashing": "all",
-          "sourceMap": false,
-          "extractCss": true,
-          "namedChunks": false,
-          "extractLicenses": true,
-          "vendorChunk": false,
-          "budgets": [
-            {
-              "type": "initial",
-              "maximumWarning": "2mb",
-              "maximumError": "10mb"
-            }
-          ]
-        },
-        "test": {
-          "fileReplacements": [
-            {
-              "replace": "apps/jetstream/src/environments/environment.ts",
-              "with": "apps/jetstream/src/environments/environment.test.ts"
-            }
-          ],
-          "optimization": false,
-          "outputHashing": "all",
-          "sourceMap": true,
-          "extractCss": true,
-          "namedChunks": false,
-          "extractLicenses": false,
-          "vendorChunk": false,
-          "budgets": [
-            {
-              "type": "initial",
-              "maximumWarning": "2mb",
-              "maximumError": "15mb"
-            }
-          ]
-        },
-        "development": {
-          "extractLicenses": false,
-          "optimization": false,
-          "sourceMap": true,
-          "vendorChunk": true
-        }
-      }
-    },
-    "serve": {
-      "executor": "@nx/vite:dev-server",
-      "defaultConfiguration": "development",
-      "options": {
-        "buildTarget": "jetstream:build",
-        "hmr": true,
-        "baseHref": "/app",
-        "proxyConfig": "proxy.conf.json",
-        "open": true
-      },
-      "configurations": {
-        "production": {
-          "buildTarget": "jetstream:build:production"
-        },
-        "development": {
-          "buildTarget": "jetstream:build:development"
-        }
-      }
-    },
-    "preview": {
-      "executor": "@nx/vite:preview-server",
-      "defaultConfiguration": "development",
-      "dependsOn": ["build"],
-      "options": {
-        "buildTarget": "jetstream:build",
-        "open": true
-      },
-      "configurations": {
-        "development": {
-          "buildTarget": "jetstream:build:development"
-        },
-        "production": {
-          "buildTarget": "jetstream:build:production"
-        }
+        "production": {},
+        "docker": {},
+        "test": {},
+        "development": {}
       }
     }
   }

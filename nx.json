@@ -59,11 +59,6 @@
       "cache": true,
       "inputs": ["default", "^production"]
     },
-    "@nx/vite:build": {
-      "cache": true,
-      "dependsOn": ["^build"],
-      "inputs": ["production", "^production"]
-    },
     "@nx/js:tsc": {
       "cache": true,
       "dependsOn": ["^build"],
@@ -103,6 +98,23 @@
         "startTargetName": "start",
         "serveStaticTargetName": "serve-static"
       }
+    },
+    {
+      "plugin": "@nx/vite/plugin",
+      "options": {
+        "buildTargetName": "build",
+        "serveTargetName": "serve",
+        "previewTargetName": "preview",
+        "serveStaticTargetName": "serve-static",
+        "devTargetName": "dev",
+        "typecheckTargetName": "typecheck"
+      },
+      "include": [
+        "apps/jetstream/**/*",
+        "apps/jetstream-canvas/**/*",
+        "apps/jetstream-desktop-client/**/*",
+        "apps/jetstream-web-extension/**/*"
+      ]
     },
     {
       "plugin": "@nx/js/typescript",

@@ -6,35 +6,14 @@
   "tags": ["scope:browser"],
   "targets": {
     "build": {
-      "executor": "@nx/vite:build",
-      "outputs": ["{options.outputPath}"],
+      "outputs": ["{workspaceRoot}/dist/apps/jetstream-canvas"],
       "defaultConfiguration": "production",
-      "options": {
-        "outputPath": "dist/apps/jetstream-canvas"
-      },
       "configurations": {
         "development": {
           "mode": "development"
         },
         "production": {
           "mode": "production"
-        }
-      }
-    },
-    "serve": {
-      "executor": "@nx/vite:dev-server",
-      "defaultConfiguration": "development",
-      "options": {
-        "buildTarget": "jetstream-canvas:build"
-      },
-      "configurations": {
-        "development": {
-          "buildTarget": "jetstream-canvas:build:development",
-          "hmr": true
-        },
-        "production": {
-          "buildTarget": "jetstream-canvas:build:production",
-          "hmr": false
         }
       }
     },

@@ -62,7 +62,6 @@
     "build:test": "npm-run-all db:generate generate:version build:client:test build:api:test build:landing",
     "build:client": "nx build jetstream --prod",
     "build:client:docker": "nx build jetstream --configuration=docker",
-    "build:client:stats": "nx build jetstream --prod --statsJson",
     "build:client:test": "nx build jetstream --configuration=test --verbose",
     "build:ui": "nx build ui --configuration=docker",
     "build:ui:test": "nx build ui --configuration=test",
