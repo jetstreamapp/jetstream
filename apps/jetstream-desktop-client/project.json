@@ -6,52 +6,14 @@
   "tags": [],
   "targets": {
     "build": {
-      "executor": "@nx/vite:build",
-      "outputs": ["{options.outputPath}"],
+      "outputs": ["{workspaceRoot}/dist/apps/jetstream-desktop-client"],
       "defaultConfiguration": "production",
-      "dependsOn": ["^build"],
-      "options": {
-        "outputPath": "dist/apps/jetstream-desktop-client"
-      },
       "configurations": {
         "development": {
           "mode": "development"
         },
         "production": {
           "mode": "production"
-        }
-      }
-    },
-    "serve": {
-      "executor": "@nx/vite:dev-server",
-      "defaultConfiguration": "development",
-      "options": {
-        "buildTarget": "jetstream-desktop-client:build"
-      },
-      "configurations": {
-        "development": {
-          "buildTarget": "jetstream-desktop-client:build:development",
-          "hmr": true
-        },
-        "production": {
-          "buildTarget": "jetstream-desktop-client:build:production",
-          "hmr": false
-        }
-      }
-    },
-    "preview": {
-      "dependsOn": ["build"],
-      "executor": "@nx/vite:preview-server",
-      "defaultConfiguration": "development",
-      "options": {
-        "buildTarget": "jetstream-desktop-client:build"
-      },
-      "configurations": {
-        "development": {
-          "buildTarget": "jetstream-desktop-client:build:development"
-        },
-        "production": {
-          "buildTarget": "jetstream-desktop-client:build:production"
         }
       }
     },

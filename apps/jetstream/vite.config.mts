@@ -9,6 +9,10 @@ import { baseHrefPlugin, cspNoncePlugin } from './vite.plugins.mts';
 
 dns.setDefaultResultOrder('verbatim');
 
+// Everything the dev server should hand off to the local API server instead of serving itself.
+const API_SERVER_URL = 'http://localhost:3333';
+const API_SERVER_PROXY_PATHS = ['/oauth', '/api', '/socket.io', '/platform-event', '/assets', '/fonts', '/landing'];
+
 // Opt-in sourcemap upload to Better Stack / Sentry. Set to 'true' on Render so the
 // prod build that actually ships is the one generating & uploading maps — keeps maps
 // and bundles perfectly in sync and avoids CI/Render env drift.
@@ -74,9 +78,11 @@ export default defineConfig(() => ({
   server: {
     port: 4200,
     host: 'localhost',
+    open: '/app',
     fs: {
       allow: ['..'],
     },
+    proxy: Object.fromEntries(API_SERVER_PROXY_PATHS.map((path) => [path, { target: API_SERVER_URL, secure: false }])),
   },
   base: './',
   build: {

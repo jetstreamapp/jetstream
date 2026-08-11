@@ -6,13 +6,8 @@
   "tags": ["scope:browser"],
   "targets": {
     "build": {
-      "executor": "@nx/vite:build",
-      "outputs": ["{options.outputPath}"],
+      "outputs": ["{workspaceRoot}/dist/apps/jetstream-web-extension"],
       "defaultConfiguration": "production",
-      "dependsOn": ["^build"],
-      "options": {
-        "outputPath": "dist/apps/jetstream-web-extension"
-      },
       "configurations": {
         "development": {
           "mode": "development"
