@@ -1,104 +1,57 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { genericRequest } from '@jetstream/shared/data';
 import { useBrowserNotifications } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, getSuccessOrFailureChar, groupByFlat, pluralizeFromNumber } from '@jetstream/shared/utils';
+import { getErrorMessage, getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { CompositeGraphResponse, CompositeGraphResponseBody, SalesforceOrgUi } from '@jetstream/types';
-import { useCallback, useEffect, useReducer, useRef } from 'react';
-import { LoadMultiObjectRequestWithResult } from './load-records-multi-object-types';
+import { useAtom, useSetAtom } from 'jotai';
+import { useCallback, useEffect, useRef } from 'react';
+import { LoadMultiObjectRequestWithResult, LoadMultiObjectRun } from './load-records-multi-object-types';
+import { loadIsRunningState, loadProgressState, loadRunsState } from './load-records-multi-object.state';
 
-type Action =
-  | { type: 'INIT'; payload: { loading: boolean; data: Record<string, LoadMultiObjectRequestWithResult> | null } }
-  | { type: 'ITEM_STARTED'; payload: { key: string } }
-  | { type: 'ITEM_FAILED'; payload: { key: string; errorMessage: string } }
-  | { type: 'ITEM_FINISHED'; payload: { key: string; results: CompositeGraphResponse[] } }
-  | { type: 'FINISHED' };
-
-interface State {
-  loading: boolean;
-  data: Record<string, LoadMultiObjectRequestWithResult> | null;
-  dataArray: LoadMultiObjectRequestWithResult[] | null;
-  finished: boolean;
+function getRecordCount(requests: LoadMultiObjectRequestWithResult[]) {
+  return requests.reduce(
+    (count, request) => count + request.data.reduce((graphCount, graph) => graphCount + (graph.compositeRequest?.length || 0), 0),
+    0,
+  );
 }
 
-function reducer(state: State, action: Action): State {
-  switch (action.type) {
-    case 'INIT':
-      return {
-        loading: action.payload.loading,
-        data: action.payload.data,
-        dataArray: action.payload.data ? Object.values(action.payload.data) : null,
-        finished: false,
-      };
-    case 'ITEM_STARTED': {
-      const { key } = action.payload;
-      const data: Record<string, LoadMultiObjectRequestWithResult> = { ...state.data };
-      data[key] = {
-        ...data[key],
-        started: new Date(),
-        loading: true,
-      };
-      return { ...state, data, dataArray: Object.values(data) };
-    }
-    case 'ITEM_FAILED': {
-      const { key, errorMessage } = action.payload;
-      const data: Record<string, LoadMultiObjectRequestWithResult> = { ...state.data };
-      data[key] = {
-        ...data[key],
-        finished: new Date(),
-        loading: false,
-        errorMessage,
-      };
-      logger.info('[LOAD MULTI OBJ] Failed data', { data });
-      return { ...state, data, dataArray: Object.values(data) };
-    }
-    case 'ITEM_FINISHED': {
-      const { key, results } = action.payload;
-      const data: Record<string, LoadMultiObjectRequestWithResult> = { ...state.data };
-      data[key] = {
-        ...data[key],
-        finished: new Date(),
-        loading: false,
-        results,
-        dataWithResultsByGraphId: { ...data[key].dataWithResultsByGraphId },
-        recordWithResponseByRefId: { ...data[key].recordWithResponseByRefId },
-      };
-      const currItem = data[key];
+/** Merge Salesforce composite graph responses into a fresh copy of the request (no shared-state mutation) */
+function applyResultsToRequest(
+  request: LoadMultiObjectRequestWithResult,
+  results: CompositeGraphResponse[],
+): LoadMultiObjectRequestWithResult {
+  const dataWithResultsByGraphId = { ...request.dataWithResultsByGraphId };
+  const recordWithResponseByRefId = { ...request.recordWithResponseByRefId };
 
-      // Update dataWithResultsByGraphId and recordWithResponseByRefId with response data
-      results.forEach((result) => {
-        // in some random cases the response is an array, but in all or most other cases the object is an object
-        result.graphResponse.compositeResponse.forEach((response) => {
-          response.body = Array.isArray(response.body) ? response.body[0] : response.body;
-        });
+  results.forEach((result) => {
+    // in some random cases the response body is an array, but in all or most other cases it is an object
+    const compositeResponse = result.graphResponse.compositeResponse.map((response) => ({
+      ...response,
+      body: Array.isArray(response.body) ? response.body[0] : response.body,
+    }));
 
-        currItem.dataWithResultsByGraphId[result.graphId] = {
-          ...currItem.dataWithResultsByGraphId[result.graphId],
-          isSuccess: result.isSuccessful,
-          compositeResponse: result.graphResponse.compositeResponse,
-        };
+    dataWithResultsByGraphId[result.graphId] = {
+      ...dataWithResultsByGraphId[result.graphId],
+      isSuccess: result.isSuccessful,
+      compositeResponse,
+    };
 
-        result.graphResponse.compositeResponse.forEach((recordResponse) => {
-          currItem.recordWithResponseByRefId[recordResponse.referenceId] = {
-            ...currItem.recordWithResponseByRefId[recordResponse.referenceId],
-            response: recordResponse,
-          };
-        });
-      });
-      logger.info('[LOAD MULTI OBJ] Loaded data', { data });
-      return { ...state, data, dataArray: Object.values(data) };
-    }
-    case 'FINISHED':
-      return { ...state, loading: false, finished: true };
-    default:
-      throw new Error('Invalid action');
-  }
+    compositeResponse.forEach((recordResponse) => {
+      recordWithResponseByRefId[recordResponse.referenceId] = {
+        ...recordWithResponseByRefId[recordResponse.referenceId],
+        response: recordResponse,
+      };
+    });
+  });
+
+  return { ...request, finished: new Date(), loading: false, results, dataWithResultsByGraphId, recordWithResponseByRefId };
 }
 
-function getNotification(dataToProcess: LoadMultiObjectRequestWithResult[]) {
-  const { success, failure } = dataToProcess.reduce(
+function getNotification(requests: LoadMultiObjectRequestWithResult[]) {
+  const { success, failure } = requests.reduce(
     (output, item) => {
       if (item.errorMessage) {
-        output.failure += item.data.length;
+        output.failure += item.data.reduce((count, graph) => count + (graph.compositeRequest?.length || 0), 0);
       } else {
         item.results?.forEach((result) => {
           if (result.isSuccessful) {
@@ -122,16 +75,19 @@ function getNotification(dataToProcess: LoadMultiObjectRequestWithResult[]) {
   )} failed`;
 }
 
+/**
+ * Executes composite graph requests sequentially, tracked as a list of runs (initial load + retries).
+ * Supports cancellation between requests - a request already sent to Salesforce cannot be aborted
+ * because each graph is an atomic transaction on the server.
+ */
 export const useLoadFile = (org: SalesforceOrgUi, serverUrl: string, apiVersion: string) => {
   const { notifyUser } = useBrowserNotifications(serverUrl);
-  const [{ loading, dataArray: data, finished }, dispatch] = useReducer(reducer, {
-    loading: false,
-    data: null,
-    dataArray: null,
-    finished: false,
-  });
+  const [runs, setRuns] = useAtom(loadRunsState);
+  const [loading, setLoading] = useAtom(loadIsRunningState);
+  const setProgress = useSetAtom(loadProgressState);
 
   const isMounted = useRef(true);
+  const cancelRequestedRef = useRef(false);
 
   useEffect(() => {
     isMounted.current = true;
@@ -140,48 +96,102 @@ export const useLoadFile = (org: SalesforceOrgUi, serverUrl: string, apiVersion:
     };
   }, []);
 
-  useEffect(() => {
-    if (finished && data) {
-      notifyUser(`Your data load is finished`, { body: getNotification(data), tag: 'load-multi-object' });
-    }
-  }, [finished]);
+  const updateRunRequest = useCallback(
+    (runId: number, key: string, applyUpdate: (request: LoadMultiObjectRequestWithResult) => LoadMultiObjectRequestWithResult) => {
+      setRuns((priorRuns) =>
+        priorRuns.map((run) =>
+          run.runId === runId
+            ? { ...run, requests: run.requests.map((request) => (request.key === key ? applyUpdate(request) : request)) }
+            : run,
+        ),
+      );
+    },
+    [setRuns],
+  );
 
-  function reset() {
-    dispatch({ type: 'INIT', payload: { loading: false, data: null } });
-  }
+  const executeRun = useCallback(
+    async (requestsToProcess: LoadMultiObjectRequestWithResult[], type: LoadMultiObjectRun['type']) => {
+      cancelRequestedRef.current = false;
+      // Deep clone so re-loads and retries never share result state with the pristine graph output
+      const requests: LoadMultiObjectRequestWithResult[] = JSON.parse(JSON.stringify(requestsToProcess));
+      let runId = 0;
+      setRuns((priorRuns) => {
+        runId = priorRuns.length;
+        return [...priorRuns, { runId, type, requests, startedAt: new Date(), finishedAt: null, cancelled: false }];
+      });
+      setLoading(true);
 
-  const loadFile = useCallback(
-    async (dataToProcess: LoadMultiObjectRequestWithResult[]) => {
-      dispatch({ type: 'INIT', payload: { loading: true, data: groupByFlat(dataToProcess, 'key') } });
+      const recordsTotal = getRecordCount(requests);
+      let recordsProcessed = 0;
+      let cancelled = false;
+      setProgress({ current: 0, total: requests.length, recordsProcessed, recordsTotal });
 
-      for (const currentRequest of dataToProcess) {
+      for (let requestIdx = 0; requestIdx < requests.length; requestIdx++) {
+        const currentRequest = requests[requestIdx];
+        if (cancelRequestedRef.current) {
+          cancelled = true;
+          break;
+        }
+        setProgress({ current: requestIdx + 1, total: requests.length, recordsProcessed, recordsTotal });
+        updateRunRequest(runId, currentRequest.key, (request) => ({ ...request, loading: true, started: new Date() }));
         try {
-          dispatch({ type: 'ITEM_STARTED', payload: { key: currentRequest.key } });
           const response = await genericRequest<CompositeGraphResponseBody>(org, {
             method: 'POST',
             url: `/services/data/${apiVersion}/composite/graph`,
             body: { graphs: currentRequest.data },
             isTooling: false,
           });
-          logger.info('[LOAD MULTI OBJ] Load Finished', { response });
+          logger.info('[LOAD MULTI OBJ] Request finished', { response });
           if (isMounted.current) {
-            dispatch({ type: 'ITEM_FINISHED', payload: { key: currentRequest.key, results: response.graphs } });
+            updateRunRequest(runId, currentRequest.key, (request) => applyResultsToRequest(request, response.graphs));
           }
         } catch (ex) {
           logger.error('[LOAD MULTI OBJ] Exception', ex);
           if (isMounted.current) {
-            dispatch({ type: 'ITEM_FAILED', payload: { key: currentRequest.key, errorMessage: getErrorMessage(ex) } });
+            updateRunRequest(runId, currentRequest.key, (request) => ({
+              ...request,
+              finished: new Date(),
+              loading: false,
+              errorMessage: getErrorMessage(ex),
+            }));
           }
         }
+        recordsProcessed += getRecordCount([currentRequest]);
+        if (isMounted.current) {
+          setProgress({ current: requestIdx + 1, total: requests.length, recordsProcessed, recordsTotal });
+        }
       }
+
       if (isMounted.current) {
-        dispatch({ type: 'FINISHED' });
+        setLoading(false);
+        let finishedRequests: LoadMultiObjectRequestWithResult[] = [];
+        setRuns((priorRuns) =>
+          priorRuns.map((run) => {
+            if (run.runId !== runId) {
+              return run;
+            }
+            finishedRequests = run.requests;
+            return { ...run, finishedAt: new Date(), cancelled };
+          }),
+        );
+        notifyUser(cancelled ? `Your data load was cancelled` : `Your data load is finished`, {
+          body: getNotification(finishedRequests),
+          tag: 'load-multi-object',
+        });
       }
     },
-    [org, apiVersion],
+    [org, apiVersion, notifyUser, setLoading, setProgress, setRuns, updateRunRequest],
   );
 
-  return { loadFile, reset, loading, data };
+  const loadFile = useCallback((requests: LoadMultiObjectRequestWithResult[]) => executeRun(requests, 'initial'), [executeRun]);
+
+  const retryFailed = useCallback((requests: LoadMultiObjectRequestWithResult[]) => executeRun(requests, 'retry'), [executeRun]);
+
+  const cancel = useCallback(() => {
+    cancelRequestedRef.current = true;
+  }, []);
+
+  return { loadFile, retryFailed, cancel, loading, runs };
 };
 
 export default useLoadFile;

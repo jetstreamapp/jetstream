@@ -3,12 +3,20 @@ import { describeSObject } from '@jetstream/shared/data';
 import { formatNumber, initXlsx } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getHttpMethod, groupByFlat, pluralizeFromNumber, transformRecordForDataLoad } from '@jetstream/shared/utils';
 import { CompositeGraphRequest, Field, SalesforceOrgUi } from '@jetstream/types';
-import { DepGraph } from 'dependency-graph';
+import { DepGraph, DepGraphCycleError } from 'dependency-graph';
 import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';
 import uniqueId from 'lodash/uniqueId';
 import * as XLSX from 'xlsx';
-import { LoadMultiObjectData, LoadMultiObjectRecord, LoadMultiObjectRequestWithResult } from './load-records-multi-object-types';
+import {
+  BuildDataGraphResult,
+  LoadMultiObjectData,
+  LoadMultiObjectDataError,
+  LoadMultiObjectGroupInfo,
+  LoadMultiObjectRecord,
+  LoadMultiObjectRequestWithResult,
+  ParseWorkbookResult,
+} from './load-records-multi-object-types';
 
 initXlsx(XLSX);
 
@@ -21,19 +29,84 @@ const WORKSHEET_LOCATIONS = {
   dataStartRow: 4,
 };
 
-const SURROUNDING_BRACKETS_RGX = /^{|}$/g;
-const IS_REFERENCE_HEADER_RGX = new RegExp('^{.+}$');
-const VALID_REF_ID_RGX = /^[0-9A-Za-z][0-9A-Za-z_]+$/;
+// Only ever used with .replace() - a global regex is unsafe with .test() because lastIndex persists between calls
+const SURROUNDING_BRACKETS_RGX = /^\{|\}$/g;
+const IS_REFERENCE_RGX = /^\{.+\}$/;
+const VALID_REF_ID_RGX = /^[0-9A-Za-z][0-9A-Za-z_]*$/;
 const VALID_OPERATIONS = ['INSERT', 'UPDATE', 'UPSERT'];
-const MAX_REQ_SIZE = 500;
+/** Salesforce limit on records within one composite graph (one atomic group of related records) */
+export const MAX_RECORDS_PER_GROUP = 500;
+
+/** Minimal record info required to map composite requests/results back to source rows */
+type RecordLookup = Record<string, Pick<LoadMultiObjectRecord, 'sobject' | 'operation' | 'externalId' | 'worksheet' | 'recordIdx'>>;
+
+function getExcelRow(recordIdx: number) {
+  return WORKSHEET_LOCATIONS.dataStartRow + 2 + recordIdx;
+}
+
+/** Returns the inner value if wrapped in {curly braces}, otherwise null */
+function getBracketedValue(value: unknown): string | null {
+  if (isString(value) && IS_REFERENCE_RGX.test(value.trim())) {
+    return value.trim().replace(SURROUNDING_BRACKETS_RGX, '').trim();
+  }
+  return null;
+}
 
 /**
- * Parses an excel workbook and builds datasets that can be validated and
- * @param workbook
- * @returns
+ * Row keys drop the {curly braces} that mark a lookup column, so every header - including the
+ * Reference Id header read from cell A5 - must go through this to line up with the parsed rows.
  */
-export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgUi): Promise<LoadMultiObjectData[]> {
-  const sheetNames = workbook.SheetNames.filter((sheet) => !sheet.toLowerCase().includes('instructions'));
+function normalizeHeader(header: unknown): string {
+  const trimmedHeader = isNil(header) ? '' : String(header).trim();
+  return IS_REFERENCE_RGX.test(trimmedHeader) ? trimmedHeader.replace(SURROUNDING_BRACKETS_RGX, '').trim() : trimmedHeader;
+}
+
+/**
+ * Reference Ids are matched as strings across all worksheets, but Excel hands back raw cell values,
+ * so a Reference Id of `1` arrives as a number while every lookup to it arrives as the string `'1'`.
+ * Normalize to a trimmed string before using one as a key, a graph node, or a comparison.
+ */
+export function getReferenceId(record: Record<string, unknown> | undefined, referenceColumnHeader: string | undefined): string | null {
+  const value = record?.[referenceColumnHeader || ''];
+  if (isNil(value)) {
+    return null;
+  }
+  return String(value).trim() || null;
+}
+
+/**
+ * Parses an excel workbook and builds datasets that can be validated and previewed.
+ * Datasets are always returned, even when they contain errors, so the UI can render the data with errors annotated.
+ */
+export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgUi): Promise<ParseWorkbookResult> {
+  const workbookErrors: LoadMultiObjectDataError[] = [];
+  const sheetNames = workbook.SheetNames.filter((sheetName) => {
+    const isSkipped = sheetName.toLowerCase().includes('instructions');
+    // The template ships with a tab named exactly "Instructions" - only warn when some other sheet is skipped by the name rule
+    if (isSkipped && sheetName.trim().toLowerCase() !== 'instructions') {
+      workbookErrors.push({
+        property: null,
+        worksheet: sheetName,
+        location: null,
+        locationType: 'SHEET',
+        severity: 'warning',
+        message: `The worksheet "${sheetName}" was skipped because its name contains "instructions".`,
+      });
+    }
+    return !isSkipped;
+  });
+
+  if (sheetNames.length === 0) {
+    workbookErrors.push({
+      property: null,
+      worksheet: 'Workbook',
+      location: null,
+      locationType: 'SHEET',
+      message: `No data worksheets were found in this file. Add at least one worksheet based on the template. Any worksheet with "instructions" in its name is skipped.`,
+    });
+    return { datasets: [], workbookErrors };
+  }
+
   const datasets = sheetNames.reduce((output: LoadMultiObjectData[], sheetName) => {
     const worksheet = workbook.Sheets[sheetName];
     const dataset: Partial<LoadMultiObjectData> = { worksheet: sheetName, errors: [] };
@@ -48,7 +121,7 @@ export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgU
         worksheet: sheetName,
         location: WORKSHEET_LOCATIONS.sobject,
         locationType: 'CELL',
-        message: `Error getting the object name.`,
+        message: `Cell B1 must contain the Object API Name (e.g. "Account"). The cell is blank or could not be read.`,
       });
     }
     try {
@@ -61,7 +134,7 @@ export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgU
         worksheet: sheetName,
         location: WORKSHEET_LOCATIONS.operation,
         locationType: 'CELL',
-        message: `Error getting the operation.`,
+        message: `Cell B2 must contain the operation: Insert, Update, or Upsert. The cell is blank or could not be read.`,
       });
     }
     try {
@@ -74,9 +147,9 @@ export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgU
         dataset.errors.push({
           property: 'externalId',
           worksheet: sheetName,
-          location: WORKSHEET_LOCATIONS.sobject,
+          location: WORKSHEET_LOCATIONS.externalId,
           locationType: 'CELL',
-          message: `Error getting the external Id`,
+          message: `Cell B3 must contain the API name of an External Id field when the operation is Upsert. The cell is blank or could not be read.`,
         });
       }
     }
@@ -91,7 +164,7 @@ export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgU
         header: 1,
       });
 
-      const dataHeaders = data[0].filter(Boolean).map((header) => header.trim());
+      const dataHeaders = (data[0] || []).filter(Boolean).map((header) => header.trim());
 
       if (dataHeaders.length !== new Set(dataHeaders).size) {
         dataset.errors = dataset.errors || [];
@@ -110,38 +183,45 @@ export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgU
             return currRow;
           }
 
-          const currHeader = SURROUNDING_BRACKETS_RGX.test(dataHeaders[i])
-            ? dataHeaders[i].replace(SURROUNDING_BRACKETS_RGX, '').trim()
-            : dataHeaders[i];
-          currRow[currHeader] = cell ?? null;
+          currRow[normalizeHeader(dataHeaders[i])] = cell ?? null;
           return currRow;
         }, {}),
       );
 
       // init remaining data
-      dataset.referenceColumnHeader = worksheet[WORKSHEET_LOCATIONS.referenceId]?.v;
+      dataset.referenceColumnHeader = normalizeHeader(worksheet[WORKSHEET_LOCATIONS.referenceId]?.v);
       const headers = dataHeaders.filter(
-        (field) => !!field && !field.toLowerCase().startsWith('__empty') && field !== dataset.referenceColumnHeader,
+        (field) => !!field && !field.toLowerCase().startsWith('__empty') && normalizeHeader(field) !== dataset.referenceColumnHeader,
       );
-      dataset.headers = headers.map((header) => header.replace(SURROUNDING_BRACKETS_RGX, '').trim());
-      dataset.referenceHeaders = new Set(
-        headers.filter((header) => IS_REFERENCE_HEADER_RGX.test(header)).map((header) => header.replace(SURROUNDING_BRACKETS_RGX, '')),
-      );
+      dataset.headers = headers.map(normalizeHeader);
+      dataset.referenceHeaders = new Set(headers.filter((header) => IS_REFERENCE_RGX.test(header.trim())).map(normalizeHeader));
       dataset.dataById = dataset.data.reduce((output: Record<string, any>, row, i) => {
-        const referenceId = row[dataset.referenceColumnHeader || ''] || uniqueId('reference_');
+        const referenceId = getReferenceId(row, dataset.referenceColumnHeader) || uniqueId('reference_');
         if (output[referenceId]) {
           dataset.errors = dataset.errors || [];
           dataset.errors.push({
             property: 'data',
             worksheet: sheetName,
-            location: `A${WORKSHEET_LOCATIONS.dataStartRow + 2 + i}`,
+            location: `A${getExcelRow(i)}`,
             locationType: 'CELL',
+            rowIndexes: [i],
             message: `The Reference Id "${referenceId}" is used for multiple records. Every record across all worksheets must have a unique Reference Id.`,
           });
         }
         output[referenceId] = row;
         return output;
       }, {});
+
+      if (dataset.data.length === 0) {
+        dataset.errors = dataset.errors || [];
+        dataset.errors.push({
+          property: 'data',
+          worksheet: sheetName,
+          location: null,
+          locationType: 'SHEET',
+          message: `This worksheet has no data rows. Add records starting on row 6, or remove the worksheet.`,
+        });
+      }
     } catch (ex) {
       logger.warn('Error parsing record data', ex);
       dataset.errors = dataset.errors || [];
@@ -150,16 +230,22 @@ export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgU
         worksheet: sheetName,
         location: WORKSHEET_LOCATIONS.dataStartCell,
         locationType: 'CELL',
-        message: `Error getting the record data.`,
+        message: `Jetstream could not read the data on this worksheet. Check that headers are on row 5, data starts on row 6, and the sheet matches the template layout.`,
       });
     }
+
+    // Ensure the dataset is always renderable by the preview UI, even when parsing partially failed
+    dataset.data = dataset.data || [];
+    dataset.dataById = dataset.dataById || {};
+    dataset.headers = dataset.headers || [];
+    dataset.referenceHeaders = dataset.referenceHeaders || new Set();
 
     return [...output, dataset as LoadMultiObjectData];
   }, []);
 
   await validateObjectData(org, datasets);
 
-  return datasets;
+  return { datasets, workbookErrors };
 }
 
 /**
@@ -229,7 +315,9 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
             worksheet,
             location: WORKSHEET_LOCATIONS.sobject,
             locationType: 'CELL',
-            message: `${getErrorMessage(ex)} - "${dataset.sobject}".`,
+            message: `The object "${dataset.sobject}" could not be loaded from the org. Check the API name in cell B1 and that you have access to this object. (Salesforce: ${getErrorMessage(
+              ex,
+            )})`,
           });
         }
       }
@@ -296,47 +384,59 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
         }
 
         const missingFields = headers.filter((header) => !dataset.fieldsByName?.[header.toLowerCase()]);
-        if (missingFields.length) {
+        missingFields.forEach((header) => {
           errors.push({
             property: 'data',
             worksheet,
-            location: `${WORKSHEET_LOCATIONS.dataStartRow + 1}`,
-            locationType: 'ROW',
-            message: `The following fields do not exist on the object "${
-              dataset.sobject
-            }" or you do not have permissions configured correctly: "${missingFields.join('", "')}".`,
-          });
-        }
-
-        const missingRefIds = dataset.data.filter((row) => !row[dataset.referenceColumnHeader]);
-        if (missingRefIds.length) {
-          errors.push({
-            property: 'data',
-            worksheet,
-            location: 'A',
+            location: header,
             locationType: 'COLUMN',
-            message: `${formatNumber(missingRefIds.length)} ${pluralizeFromNumber('row', missingRefIds.length)} ${
-              missingRefIds.length === 1 ? 'is' : 'are'
-            } missing a Reference Id. Make sure you do not have any accidental data in your spreadsheet and clear the contents of any unused rows/columns in your spreadsheet.`,
+            header,
+            message: `The field "${header}" does not exist on the object "${dataset.sobject}" or you do not have permission to access it.`,
           });
-        }
+        });
 
-        const invalidRefIds = dataset.data.filter(
-          (row) => !!row[dataset.referenceColumnHeader] && !VALID_REF_ID_RGX.test(row[dataset.referenceColumnHeader]),
-        );
-        if (invalidRefIds.length) {
-          errors.push({
-            property: 'data',
-            worksheet,
-            location: 'A',
-            locationType: 'COLUMN',
-            message: `The following Reference ${pluralizeFromNumber('Id', invalidRefIds.length)} have invalid characters: ${invalidRefIds
-              .slice(0, 25)
-              .map((row) => `"${row[dataset.referenceColumnHeader]}"`)
-              .join(
-                ', ',
-              )}. The referenceId must start with a letter or a number and must not contain anything besides letters, numbers, or underscores.`,
-          });
+        if (referenceColumnHeader) {
+          const missingRefIdRowIndexes = dataset.data.reduce((output: number[], row, i) => {
+            if (!getReferenceId(row, referenceColumnHeader)) {
+              output.push(i);
+            }
+            return output;
+          }, []);
+          if (missingRefIdRowIndexes.length) {
+            errors.push({
+              property: 'data',
+              worksheet,
+              location: 'A',
+              locationType: 'COLUMN',
+              header: referenceColumnHeader,
+              rowIndexes: missingRefIdRowIndexes,
+              message: `${formatNumber(missingRefIdRowIndexes.length)} ${pluralizeFromNumber('row', missingRefIdRowIndexes.length)} ${
+                missingRefIdRowIndexes.length === 1 ? 'is' : 'are'
+              } missing a Reference Id. Make sure you do not have any accidental data in your spreadsheet and clear the contents of any unused rows/columns in your spreadsheet.`,
+            });
+          }
+
+          const invalidRefIds = dataset.data.reduce((output: { rowIndex: number; referenceId: string }[], row, i) => {
+            const referenceId = getReferenceId(row, referenceColumnHeader);
+            if (referenceId && !VALID_REF_ID_RGX.test(referenceId)) {
+              output.push({ rowIndex: i, referenceId });
+            }
+            return output;
+          }, []);
+          if (invalidRefIds.length) {
+            errors.push({
+              property: 'data',
+              worksheet,
+              location: 'A',
+              locationType: 'COLUMN',
+              header: referenceColumnHeader,
+              rowIndexes: invalidRefIds.map(({ rowIndex }) => rowIndex),
+              message: `The following Reference ${pluralizeFromNumber('Id', invalidRefIds.length)} have invalid characters: ${invalidRefIds
+                .slice(0, 25)
+                .map(({ referenceId }) => `"${referenceId}"`)
+                .join(', ')}. A Reference Id must start with a letter or number and may only contain letters, numbers, and underscores.`,
+            });
+          }
         }
       }
 
@@ -346,8 +446,9 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
           errors.push({
             property: 'data',
             worksheet,
-            location: `A${WORKSHEET_LOCATIONS.dataStartRow + 2 + i}`,
+            location: `A${getExcelRow(i)}`,
             locationType: 'CELL',
+            rowIndexes: [i],
             message: `The Reference Id "${referenceId}" is used for multiple records. Every record across all worksheets must have a unique Reference Id.`,
           });
         }
@@ -367,24 +468,31 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
 }
 
 /**
- * Build a collection of graphs based on the dataset
+ * Build a collection of graphs based on the dataset.
+ *
+ * Pure function: never mutates the provided datasets and never throws for data problems.
+ * All problems are collected and returned in `errors`.
  *
  * @param datasets
  * @param apiVersion
  * @returns
  */
-export function getDataGraph(
+export function buildDataGraph(
   datasets: LoadMultiObjectData[],
   apiVersion: string,
   options: { insertNulls: boolean; dateFormat: string },
-): LoadMultiObjectRequestWithResult[] {
+): BuildDataGraphResult {
   const { dateFormat, insertNulls } = options;
+  const errors: LoadMultiObjectDataError[] = [];
   const graphs: Record<string, CompositeGraphRequest> = {};
 
   /** If there is an error during dependency processing, this links back to the dataset for error identification */
   const refIdToDataset = datasets.reduce((output: Record<string, LoadMultiObjectData>, dataset) => {
     dataset.data.forEach((record) => {
-      output[record[dataset.referenceColumnHeader]] = dataset;
+      const referenceId = getReferenceId(record, dataset.referenceColumnHeader);
+      if (referenceId) {
+        output[referenceId] = dataset;
+      }
     });
     return output;
   }, {});
@@ -410,30 +518,30 @@ export function getDataGraph(
         ) => {
           const isRelatedField = header.includes('.');
           const field = dataset.fieldsByName[header.toLowerCase()];
-          let value = record[header];
-          const valueIsNull = isNil(value) || (isString(value) && !value);
-          let isDependentField = false;
-          if (dataset.referenceHeaders.has(header)) {
-            isDependentField = true;
-          } else if (SURROUNDING_BRACKETS_RGX.test(record[header])) {
-            record[header] = record[header].replace(SURROUNDING_BRACKETS_RGX, '').trim();
-            isDependentField = true;
+          if (!field) {
+            // Missing fields are reported during validation - skip here so graph building never throws
+            return { transformedRecord, externalIdValue, recordIdForUpdate, dependencies };
           }
+          const rawValue = record[header];
+          const valueIsNull = isNil(rawValue) || (isString(rawValue) && !rawValue);
+          const bracketedValue = getBracketedValue(rawValue);
 
-          if (isDependentField) {
-            if (record[field.name]) {
+          if (dataset.referenceHeaders.has(header) || bracketedValue !== null) {
+            // Lookup to another record in this load - either the whole column is a reference column, or this one cell is {wrapped}
+            const referenceValue = bracketedValue ?? (valueIsNull ? null : String(rawValue).trim());
+            if (referenceValue) {
               // do not transform dependent field using transformRecordForDataLoad because we know it is a lookup
-              transformedRecord[field.name] = `@{${record[field.name]}.id}`;
-              dependencies.push(record[field.name]);
+              transformedRecord[field.name] = `@{${referenceValue}.id}`;
+              dependencies.push(referenceValue);
             } else if (insertNulls) {
               transformedRecord[field.name] = null;
             }
           } else if (dataset.operation === 'UPSERT' && !isRelatedField && lowercaseExternalId === field.name.toLowerCase()) {
             // External id used for upsert, this needs to be omitted from the record as the value is included in the URL
-            externalIdValue = value;
+            externalIdValue = rawValue;
           } else if (insertNulls || !valueIsNull) {
-            value = transformRecordForDataLoad(record[header], field.type, dateFormat);
-            if (header.includes('.')) {
+            const value = transformRecordForDataLoad(rawValue, field.type, dateFormat);
+            if (isRelatedField) {
               const [relationshipName] = header.toLowerCase().split('.');
               const relationshipField = dataset.fieldsByRelationshipName?.[relationshipName];
               if (relationshipField?.relationshipName && relationshipField.referenceTo?.length) {
@@ -463,8 +571,10 @@ export function getDataGraph(
         externalId: dataset.externalId,
         externalIdValue,
         recordIdForUpdate,
-        referenceId: record[dataset.referenceColumnHeader],
+        // must match the stringified dependency values below - the graph keys nodes by identity, not by coercion
+        referenceId: getReferenceId(record, dataset.referenceColumnHeader) ?? '',
         record: transformedRecord,
+        worksheet: dataset.worksheet,
         recordIdx,
         dependsOn: dependencies,
       };
@@ -475,7 +585,6 @@ export function getDataGraph(
   }, {});
 
   const overallGraph = new DepGraph();
-  let hasError = false;
 
   Object.values(recordsByRefId).forEach((value) => {
     overallGraph.addNode(value.referenceId);
@@ -485,25 +594,54 @@ export function getDataGraph(
     value.dependsOn.forEach((dependency) => {
       try {
         overallGraph.addDependency(value.referenceId, dependency);
-      } catch (ex) {
-        hasError = true;
+      } catch {
         const dataset = refIdToDataset[value.referenceId];
-        dataset.errors.push({
+        errors.push({
           property: 'data',
-          worksheet: dataset.worksheet,
-          location: `${WORKSHEET_LOCATIONS.dataStartRow + 1 + value.recordIdx + 1}`,
+          worksheet: dataset?.worksheet ?? value.worksheet,
+          location: `${getExcelRow(value.recordIdx)}`,
           locationType: 'ROW',
-          message: `The Reference Id "${dependency}" is invalid, there is not a row in your file that has this Reference Id.`,
+          rowIndexes: [value.recordIdx],
+          message: `The value "${dependency}" refers to a Reference Id that does not exist on any worksheet. Check for typos, or remove the curly braces if this should be a literal value.`,
         });
       }
     });
   });
 
-  if (hasError) {
-    throw new Error('There was an error parsing the record dependencies');
+  if (errors.length) {
+    return { requests: [], errors, groupsByRefId: {} };
   }
 
-  const topLevelNodes = overallGraph.overallOrder(true);
+  let topLevelNodes: string[];
+  try {
+    topLevelNodes = overallGraph.overallOrder(true);
+  } catch (ex) {
+    if (ex instanceof DepGraphCycleError) {
+      const { cyclePath } = ex;
+      const cycleDescription = cyclePath
+        .map((refId, i) => {
+          const cycleRecord = recordsByRefId[refId];
+          // the last entry repeats the first - render it bare to close the loop visually
+          if (!cycleRecord || (i === cyclePath.length - 1 && refId === cyclePath[0])) {
+            return refId;
+          }
+          return `${refId} (sheet "${cycleRecord.worksheet}", row ${getExcelRow(cycleRecord.recordIdx)})`;
+        })
+        .join(' → ');
+      const firstRecord = recordsByRefId[cyclePath[0]];
+      errors.push({
+        property: 'data',
+        worksheet: firstRecord?.worksheet ?? 'Unknown',
+        location: firstRecord ? `${getExcelRow(firstRecord.recordIdx)}` : null,
+        locationType: 'ROW',
+        rowIndexes: firstRecord ? [firstRecord.recordIdx] : undefined,
+        message: `These records link to each other in a loop, so there is no valid order to load them: ${cycleDescription}. Remove one of the {reference} values to break the loop.`,
+      });
+      return { requests: [], errors, groupsByRefId: {} };
+    }
+    throw ex;
+  }
+
   const unprocessedTopLevelNodes = new Set<string>(topLevelNodes);
   const nodeToTopLevelNodes: Record<string, string[]> = {};
 
@@ -549,23 +687,76 @@ export function getDataGraph(
       };
     });
 
-    if ((graphs[topLevelNode]?.compositeRequest?.length || 0) >= MAX_REQ_SIZE) {
+    const graphSize = graphs[topLevelNode]?.compositeRequest?.length || 0;
+    if (graphSize > MAX_RECORDS_PER_GROUP) {
       const dataset = refIdToDataset[topLevelNode];
       const record = recordsByRefId[topLevelNode];
-      dataset.errors.push({
+      errors.push({
         property: 'data',
-        worksheet: dataset.worksheet,
-        location: `${WORKSHEET_LOCATIONS.dataStartRow + 1 + record.recordIdx + 1}`,
+        worksheet: dataset?.worksheet ?? record.worksheet,
+        location: `${getExcelRow(record.recordIdx)}`,
         locationType: 'ROW',
-        message: `The Reference Id "${topLevelNode}" has ${formatNumber(
-          graphs[topLevelNode]?.compositeRequest?.length || 0,
-        )} dependent records. A maximum of ${MAX_REQ_SIZE} records can be related to each other in one data load`,
+        rowIndexes: [record.recordIdx],
+        message: `The record with Reference Id "${topLevelNode}" is connected to ${formatNumber(
+          graphSize,
+        )} related records. Rows linked by {Reference Id} values form one group, loaded as a single all-or-nothing transaction limited to ${MAX_RECORDS_PER_GROUP} records. This limit is per group, not per file. To fix: remove some {reference} links or split this group across multiple loads.`,
       });
-      throw new Error('There was an error parsing the record dependencies');
     }
   });
 
-  return transformGraphRequestsToRequestWithResults(Object.values(graphs), recordsByRefId);
+  const groupsByRefId: Record<string, LoadMultiObjectGroupInfo> = {};
+  Object.values(graphs).forEach(({ graphId, compositeRequest }) => {
+    const size = compositeRequest?.length || 0;
+    compositeRequest?.forEach(({ referenceId }) => {
+      groupsByRefId[referenceId] = { graphId, size };
+    });
+  });
+
+  if (errors.length) {
+    // groupsByRefId is still returned so the UI can show group membership/sizes alongside the errors
+    return { requests: [], errors, groupsByRefId };
+  }
+
+  return { requests: transformGraphRequestsToRequestWithResults(Object.values(graphs), recordsByRefId), errors: [], groupsByRefId };
+}
+
+/**
+ * Builds a fresh set of requests containing only the groups whose LATEST attempt failed,
+ * re-packed into new HTTP payloads. Pass requests in run order (initial load first, then retries)
+ * so a group fixed by a later retry is not retried again. Returns an empty array when nothing failed.
+ */
+export function buildRetryRequests(requests: LoadMultiObjectRequestWithResult[]): LoadMultiObjectRequestWithResult[] {
+  const latestByGraphId: Record<string, { isFailed: boolean; graph: CompositeGraphRequest }> = {};
+  const recordLookup: RecordLookup = {};
+
+  requests.forEach((request) => {
+    Object.values(request.dataWithResultsByGraphId).forEach(({ graphId, isSuccess, compositeRequest }) => {
+      // errorMessage means the entire HTTP request failed, so every graph in it failed
+      const isFailed = request.errorMessage ? true : isSuccess === false;
+      latestByGraphId[graphId] = { isFailed, graph: { graphId, compositeRequest } };
+      compositeRequest.forEach(({ referenceId }) => {
+        const recordInfo = request.recordWithResponseByRefId[referenceId];
+        if (recordInfo) {
+          recordLookup[referenceId] = {
+            sobject: recordInfo.sobject,
+            operation: recordInfo.operation,
+            externalId: recordInfo.externalId,
+            worksheet: recordInfo.worksheet,
+            recordIdx: recordInfo.rowIndex,
+          };
+        }
+      });
+    });
+  });
+
+  const failedGraphs = Object.values(latestByGraphId)
+    .filter(({ isFailed }) => isFailed)
+    .map(({ graph }) => graph);
+
+  if (!failedGraphs.length) {
+    return [];
+  }
+  return transformGraphRequestsToRequestWithResults(failedGraphs, recordLookup, 'retry');
 }
 
 function processGraphDependency(
@@ -587,7 +778,6 @@ function processGraphDependency(
           // Pull in related graph and process all nodes in that graph
           graph.addNode(dependency);
           nodeToTopLevelNodes[dependency].forEach((relatedTopLevelNode) => {
-            // unprocessedTopLevelNodes.delete(relatedTopLevelNode);
             if (unprocessedTopLevelNodes.has(relatedTopLevelNode)) {
               unprocessedTopLevelNodes.delete(relatedTopLevelNode);
               graph.addNode(relatedTopLevelNode);
@@ -604,10 +794,11 @@ function processGraphDependency(
 
 function transformGraphRequestsToRequestWithResults(
   graphs: CompositeGraphRequest[],
-  recordsByRefId: Record<string, LoadMultiObjectRecord>,
+  recordsByRefId: RecordLookup,
+  keyPrefix = 'request',
 ): LoadMultiObjectRequestWithResult[] {
-  return splitRequestsToMaxSize(graphs, MAX_REQ_SIZE).map((compositeRequestGraph, i): LoadMultiObjectRequestWithResult => ({
-    key: `request-${i}`,
+  return splitRequestsToMaxSize(graphs, MAX_RECORDS_PER_GROUP).map((compositeRequestGraph, i): LoadMultiObjectRequestWithResult => ({
+    key: `${keyPrefix}-${i}`,
     loading: false,
     started: null,
     finished: null,
@@ -624,12 +815,15 @@ function transformGraphRequestsToRequestWithResults(
     ),
     recordWithResponseByRefId: groupByFlat(
       compositeRequestGraph.flatMap(
-        ({ compositeRequest }) =>
+        ({ compositeRequest, graphId }) =>
           compositeRequest?.map((item) => ({
             referenceId: item.referenceId,
             sobject: recordsByRefId[item.referenceId].sobject,
             operation: recordsByRefId[item.referenceId].operation,
             externalId: recordsByRefId[item.referenceId].externalId,
+            worksheet: recordsByRefId[item.referenceId].worksheet,
+            rowIndex: recordsByRefId[item.referenceId].recordIdx,
+            graphId,
             request: item,
             response: null,
           })) || [],
@@ -639,7 +833,7 @@ function transformGraphRequestsToRequestWithResults(
   }));
 }
 
-function splitRequestsToMaxSize(items: CompositeGraphRequest[], maxSize: number): CompositeGraphRequest[][] {
+export function splitRequestsToMaxSize(items: CompositeGraphRequest[], maxSize: number): CompositeGraphRequest[][] {
   if (!maxSize || maxSize < 1) {
     throw new Error('maxSize must be greater than 0');
   }
@@ -662,14 +856,15 @@ function splitRequestsToMaxSize(items: CompositeGraphRequest[], maxSize: number)
      * 14 nodes per payload (node is determined by sobject endpoint + api version)
      * -> if there are more than 15 nodes in first dataset, then ignore this restriction (but it will likely fail to load)
      */
-    if (!currSet.length || (currSet.length < 75 && currCount + item.compositeRequest.length < maxSize && currPayloadNodes.size < 15)) {
+    if (!currSet.length || (currSet.length < 75 && currCount + item.compositeRequest.length <= maxSize && currPayloadNodes.size < 15)) {
       currSet.push(item);
       currCount += item.compositeRequest.length;
     } else {
       output.push(currSet);
       currSet = [item];
       currCount = item.compositeRequest.length;
-      currPayloadNodes = new Set();
+      // seed with the current item's nodes - a plain new Set() would under-count objects for every payload after the first
+      currPayloadNodes = new Set(item.compositeRequest.map((req) => req.url.split('/')[5]));
     }
   });
   if (currSet.length > 0) {

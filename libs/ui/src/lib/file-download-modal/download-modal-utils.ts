@@ -4,6 +4,8 @@ import { FileExtCsv, FileExtJson, FileExtXLSX, FileExtXml, FileExtZip, Maybe } f
 import { fireToast } from '../toast/AppToast';
 
 export const RADIO_FORMAT_XLSX: FileExtXLSX = 'xlsx';
+/** Excel download in the "Load Records to Multiple Objects" template format - only offered when the modal is given a `loadTemplateOption` */
+export const RADIO_FORMAT_XLSX_LOAD_TEMPLATE = 'xlsx-load-template' as const;
 export const RADIO_FORMAT_CSV: FileExtCsv = 'csv';
 export const RADIO_FORMAT_JSON: FileExtJson = 'json';
 export const RADIO_FORMAT_GDRIVE = 'gdrive';

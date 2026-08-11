@@ -1,4 +1,4 @@
-import { ANALYTICS_KEYS, DATE_FORMATS, INPUT_ACCEPT_FILETYPES, TITLES } from '@jetstream/shared/constants';
+import { ANALYTICS_KEYS, INPUT_ACCEPT_FILETYPES, TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import {
   formatNumber,
@@ -6,39 +6,44 @@ import {
   isBrowserExtension,
   isCanvasApp,
   isDesktop,
+  useGoBackShortcut,
   useNonInitialEffect,
+  usePrimaryActionShortcut,
   useTitle,
 } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
-import { InputReadFileContent, InputReadGoogleSheet, LocalOrGoogle, Maybe } from '@jetstream/types';
+import { InputReadFileContent, InputReadGoogleSheet } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
-  Checkbox,
-  ConfirmationModalPromise,
-  EmptyState,
   FileOrGoogleSelector,
-  Grid,
   Icon,
-  OpenRoadIllustration,
   Page,
   PageHeader,
   PageHeaderActions,
   PageHeaderRow,
   PageHeaderTitle,
-  ScopedNotification,
-  Select,
   Spinner,
   fireToast,
 } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState, selectedOrgType } from '@jetstream/ui/app-state';
-import { useAtomValue } from 'jotai';
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useEffect, useMemo, useRef } from 'react';
 import * as XLSX from 'xlsx';
-import LoadRecordsMultiObjectErrors from './LoadRecordsMultiObjectErrors';
-import LoadRecordsMultiObjectResults from './LoadRecordsMultiObjectResults';
-import { LoadMultiObjectRequestWithResult } from './load-records-multi-object-types';
-import useLoadFile from './useLoadFile';
+import LoadRecordsMultiObjectEmptyState from './LoadRecordsMultiObjectEmptyState';
+import {
+  allBlockingErrorsState,
+  currentStepIdxState,
+  datasetsState,
+  inputFileTypeState,
+  inputFilenameState,
+  isReadyToLoadState,
+  loadIsRunningState,
+  loadRunsState,
+  resetLoadRecordsMultiObjectState,
+} from './load-records-multi-object.state';
+import LoadRecordsMultiObjectLoad from './load/LoadRecordsMultiObjectLoad';
+import LoadRecordsMultiObjectReview from './review/LoadRecordsMultiObjectReview';
 import useProcessLoadFile from './useProcessLoadFile';
 
 initXlsx(XLSX);
@@ -46,100 +51,101 @@ initXlsx(XLSX);
 const TEMPLATE_DOWNLOAD_LINK = '/assets/content/Jetstream%20-%20Load%20Records%20to%20Multiple%20Objects%20-%20Template.xlsx';
 const HEIGHT_BUFFER = 170;
 
+/** Step 0 = upload and review, step 1 = load data and results */
+const STEP_COUNT = 2;
+
 export const LoadRecordsMultiObject = () => {
   useTitle(TITLES.LOAD);
-  const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
   const selectedOrg = useAtomValue(selectedOrgState);
   const orgType = useAtomValue(selectedOrgType);
-
-  const [inputFilename, setInputFilename] = useState<Maybe<string>>(null);
-  const [inputFileType, setInputFileType] = useState<LocalOrGoogle>();
-  const [inputFileData, setInputFileData] = useState<XLSX.WorkBook>();
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const googleApiConfig = useMemo(
     () => ({ apiKey: google_apiKey, appId: google_appId, clientId: google_clientId }),
     [google_apiKey, google_appId, google_clientId],
   );
-  const [templateUrl] = useState(`${TEMPLATE_DOWNLOAD_LINK}`);
-  const [insertNulls, setInsertNulls] = useState(false);
-  const [dateFormat, setDateFormat] = useState<string>(DATE_FORMATS.MM_DD_YYYY);
-  const [loadStarted, setLoadStarted] = useState(false);
-  const {
-    processFile,
-    reset: fileProcessingReset,
-    data: fileProcessingData,
-    errors: fileProcessingErrors,
-    loading: fileProcessingLoading,
-  } = useProcessLoadFile(selectedOrg, defaultApiVersion, { dateFormat, insertNulls });
-  const {
-    loadFile,
-    reset: loadResultsReset,
-    data: loadResultsData,
-    loading: dataLoadLoading,
-  } = useLoadFile(selectedOrg, serverUrl, defaultApiVersion);
 
-  const [data, setData] = useState<LoadMultiObjectRequestWithResult[] | null>(null);
-  /** This only stores the data provided from the init file read process, so if the user loads again this has the pre-load state */
-  const [initialData, setInitialData] = useState<LoadMultiObjectRequestWithResult[]>();
+  const [inputFilename, setInputFilename] = useAtom(inputFilenameState);
+  const [inputFileType, setInputFileType] = useAtom(inputFileTypeState);
+  const [currentStepIdx, setCurrentStepIdx] = useAtom(currentStepIdxState);
+  const datasets = useAtomValue(datasetsState);
+  const allBlockingErrors = useAtomValue(allBlockingErrorsState);
+  const isReadyToLoad = useAtomValue(isReadyToLoadState);
+  const loadIsRunning = useAtomValue(loadIsRunningState);
+  const runs = useAtomValue(loadRunsState);
+  const resetAll = useSetAtom(resetLoadRecordsMultiObjectState);
 
+  const { processFile, loading: fileParsing } = useProcessLoadFile(selectedOrg, defaultApiVersion);
+
+  // Served by the API server, so the link must be absolute for desktop/browser-extension/canvas shells
+  const templateUrl = `${serverUrl}${TEMPLATE_DOWNLOAD_LINK}`;
+
+  const lastTrackedParseRef = useRef<unknown>(null);
+  const lastTrackedRunIdRef = useRef<number | null>(null);
+
+  useNonInitialEffect(() => {
+    resetAll();
+  }, [selectedOrg, resetAll]);
+
+  // Live progress in the browser tab: loading state, then final success/failure counts
   useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
-
-  useNonInitialEffect(() => {
-    handleStartOver();
-  }, [selectedOrg]);
-
-  useNonInitialEffect(() => {
     try {
-      if (dataLoadLoading) {
+      if (loadIsRunning) {
         document.title = `Loading Records ${TITLES.BAR_JETSTREAM}`;
-      } else if (loadStarted && data) {
-        const success = data.flatMap((row) => row.results?.filter((row) => row.isSuccessful) || []).length;
-        const failures = data.flatMap((row) => row.results?.filter((row) => !row.isSuccessful) || []).length;
+      } else if (runs.length) {
+        const { success, failures } = runs
+          .flatMap(({ requests }) => requests)
+          .flatMap(({ results }) => results || [])
+          .reduce(
+            (output, result) => {
+              const recordCount = result.graphResponse.compositeResponse.length;
+              result.isSuccessful ? (output.success += recordCount) : (output.failures += recordCount);
+              return output;
+            },
+            { success: 0, failures: 0 },
+          );
         document.title = `${formatNumber(success)} Success - ${formatNumber(failures)} Failed ${TITLES.BAR_JETSTREAM}`;
       } else {
         document.title = TITLES.LOAD;
       }
-    } catch (ex) {
+    } catch {
       // ignore
     }
-  }, [data, dataLoadLoading, loadStarted]);
-
-  // prefer loadResultsData if it is set, otherwise use fileProcessingData
-  // It is all the same data, but loadResultsData clones the data as it is being processed and adds results
-  useEffect(() => {
-    setData(loadResultsData || fileProcessingData);
-  }, [fileProcessingData, loadResultsData]);
+  }, [loadIsRunning, runs]);
 
   useEffect(() => {
-    setInitialData(JSON.parse(JSON.stringify(fileProcessingData)));
-  }, [fileProcessingData]);
-
-  useNonInitialEffect(() => {
-    if (inputFileData) {
-      processFile(inputFileData);
+    if (datasets && datasets !== lastTrackedParseRef.current) {
+      lastTrackedParseRef.current = datasets;
+      trackEvent(ANALYTICS_KEYS.load_multi_obj_FileProcessed, {
+        worksheets: datasets.length,
+        records: datasets.reduce((count, { data }) => count + data.length, 0),
+        errors: allBlockingErrors.length,
+      });
     }
-  }, [inputFileData]);
+  }, [datasets, allBlockingErrors, trackEvent]);
 
-  function handleDateFormatChange(event: ChangeEvent<HTMLSelectElement>) {
-    setDateFormat(event.target.value);
-  }
+  useEffect(() => {
+    if (!loadIsRunning && runs.length) {
+      const latestRun = runs[runs.length - 1];
+      if (latestRun.finishedAt && latestRun.runId !== lastTrackedRunIdRef.current) {
+        lastTrackedRunIdRef.current = latestRun.runId;
+        trackEvent(ANALYTICS_KEYS.load_multi_obj_Finished, {
+          type: latestRun.type,
+          cancelled: latestRun.cancelled,
+          durationMs: latestRun.startedAt && latestRun.finishedAt ? latestRun.finishedAt.getTime() - latestRun.startedAt.getTime() : null,
+        });
+      }
+    }
+  }, [loadIsRunning, runs, trackEvent]);
 
   function handleFile({ content, filename }: InputReadFileContent) {
     try {
-      setLoadStarted(false);
       const workbook = XLSX.read(content, { cellText: false, cellDates: true, type: 'array' });
+      resetAll();
       setInputFilename(filename);
       setInputFileType('local');
-      setInputFileData(workbook);
-      fileProcessingReset();
-      loadResultsReset();
+      processFile(workbook);
     } catch (ex) {
       fireToast({
         message: `There was an error reading your file. ${getErrorMessage(ex)}`,
@@ -149,36 +155,28 @@ export const LoadRecordsMultiObject = () => {
   }
 
   function handleGoogleFile({ workbook, selectedFile }: InputReadGoogleSheet) {
-    setLoadStarted(false);
+    resetAll();
     setInputFilename(selectedFile.name);
     setInputFileType('google');
-    setInputFileData(workbook);
-    fileProcessingReset();
-    loadResultsReset();
-  }
-
-  async function handleLoadStarted() {
-    if (!initialData) {
-      return;
-    }
-    if (
-      !loadStarted ||
-      (await ConfirmationModalPromise({
-        content: 'This file has already been loaded, are you sure you want to load it again?',
-      }))
-    ) {
-      setLoadStarted(true);
-      loadFile(initialData);
-    }
+    processFile(workbook);
   }
 
   function handleStartOver() {
-    setLoadStarted(false);
-    setInputFilename(null);
-    fileProcessingReset();
-    loadResultsReset();
-    trackEvent(ANALYTICS_KEYS.load_StartOver);
+    resetAll();
+    trackEvent(ANALYTICS_KEYS.load_StartOver, { page: 'load-multi-object' });
   }
+
+  function changeStep(changeBy: number) {
+    setCurrentStepIdx(Math.min(Math.max(currentStepIdx + changeBy, 0), STEP_COUNT - 1));
+  }
+
+  const nextStepDisabled = currentStepIdx >= STEP_COUNT - 1 || !isReadyToLoad;
+  const prevStepDisabled = currentStepIdx === 0 || loadIsRunning;
+
+  usePrimaryActionShortcut(() => changeStep(1), { disabled: nextStepDisabled || fileParsing });
+  useGoBackShortcut(() => changeStep(-1), { disabled: prevStepDisabled });
+
+  const hasData = !!datasets?.length;
 
   return (
     <Page testId="load-records-multi-page">
@@ -191,114 +189,87 @@ export const LoadRecordsMultiObject = () => {
           />
           <PageHeaderActions colType="actions" buttonType="separate">
             <button
+              data-testid="start-over-button"
               className="slds-button slds-button_neutral"
-              disabled={fileProcessingLoading || dataLoadLoading}
+              disabled={(!hasData && !inputFilename) || fileParsing || loadIsRunning}
               onClick={() => handleStartOver()}
             >
               <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" />
               Start Over
             </button>
+            <button
+              data-testid="prev-step-button"
+              className="slds-button slds-button_neutral"
+              disabled={prevStepDisabled}
+              onClick={() => changeStep(-1)}
+            >
+              <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" />
+              Go Back
+            </button>
+            <button
+              data-testid="next-step-button"
+              className="slds-button slds-button_brand"
+              disabled={nextStepDisabled || fileParsing}
+              onClick={() => changeStep(1)}
+            >
+              Continue to Load
+            </button>
           </PageHeaderActions>
         </PageHeaderRow>
       </PageHeader>
       <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>
-        {fileProcessingLoading && <Spinner />}
-        <ScopedNotification theme="light" className="slds-m-top_x-small">
-          <p>
-            Download the{' '}
-            <a href={`${templateUrl}`} target="_blank" rel="noreferrer">
-              Excel template
-            </a>{' '}
-            to get started.
-          </p>
-        </ScopedNotification>
-
-        <Grid>
-          <fieldset className="slds-form-element slds-m-around_small">
-            <legend className="slds-form-element__legend slds-form-element__label">Load Options</legend>
-            <Checkbox
-              id={'insert-null-values'}
-              checked={insertNulls}
-              label={'Clear Fields with Blank Values'}
-              labelHelp="Select this option to clear any mapped fields where the field is blank in your file. This only applies to record updates."
-              disabled={loadStarted || fileProcessingLoading}
-              onChange={setInsertNulls}
-            />
-
-            <Select
-              id={'date-format'}
-              label={'Date Format'}
-              labelHelp="Specify the format of any date fields in your file. Jetstream just needs to know the order of the month and the day and will auto-detect the exact format."
-            >
-              <select
-                aria-describedby="date-format"
-                className="slds-select"
-                id="date-format-select"
-                required
-                value={dateFormat}
-                disabled={loadStarted || fileProcessingLoading}
-                onChange={handleDateFormatChange}
-              >
-                <option value={DATE_FORMATS.MM_DD_YYYY}>{DATE_FORMATS.MM_DD_YYYY}</option>
-                <option value={DATE_FORMATS.DD_MM_YYYY}>{DATE_FORMATS.DD_MM_YYYY}</option>
-                <option value={DATE_FORMATS.YYYY_MM_DD}>{DATE_FORMATS.YYYY_MM_DD}</option>
-              </select>
-            </Select>
-            <FileOrGoogleSelector
-              omitGoogle={!hasGoogleDriveAccess && !isDesktop() && !isBrowserExtension() && !isCanvasApp()}
-              hasExternalGoogleDriveAccess={isDesktop() || isBrowserExtension() || isCanvasApp()}
-              googleShowUpgradeToPro={googleShowUpgradeToPro}
-              fileSelectorProps={{
-                id: 'upload-load-template',
-                label: 'Data File (Excel File)',
-                filename: inputFileType === 'local' ? inputFilename : undefined,
-                accept: [INPUT_ACCEPT_FILETYPES.EXCEL],
-                disabled: fileProcessingLoading || dataLoadLoading,
-                onReadFile: handleFile,
-              }}
-              googleSelectorProps={{
-                apiConfig: googleApiConfig,
-                id: 'load-google-drive-file',
-                label: 'Google Drive',
-                buttonLabel: 'Choose Google Sheet',
-                filename: inputFileType === 'google' ? inputFilename : undefined,
-                disabled: fileProcessingLoading || dataLoadLoading,
-                onReadFile: handleGoogleFile,
-              }}
-              source="load_records_multi_object"
-              trackEvent={trackEvent}
-            />
-            <div className="slds-form-element__help slds-truncate">
-              Choose an Excel file that is in the correct format from the provided template.
-            </div>
-          </fieldset>
-        </Grid>
-
-        {!data && !fileProcessingErrors?.length && (
+        {fileParsing && <Spinner />}
+        {currentStepIdx === 0 && (
           <div>
-            <EmptyState headline="Load a file to continue" illustration={<OpenRoadIllustration />}>
-              <p>
-                Download the{' '}
-                <a href={`${templateUrl}`} target="_blank" rel="noreferrer">
+            <div className="slds-m-top_small">
+              <p className="slds-form-element__label slds-m-bottom_xx-small">
+                Upload a file based on the{' '}
+                <a
+                  href={templateUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  download
+                  onClick={() => trackEvent(ANALYTICS_KEYS.load_multi_obj_TemplateDownloaded)}
+                >
                   Excel template
-                </a>{' '}
-                to get started.
+                </a>
               </p>
-            </EmptyState>
-            ;
+              <FileOrGoogleSelector
+                omitGoogle={!hasGoogleDriveAccess && !isDesktop() && !isBrowserExtension() && !isCanvasApp()}
+                hasExternalGoogleDriveAccess={isDesktop() || isBrowserExtension() || isCanvasApp()}
+                googleShowUpgradeToPro={googleShowUpgradeToPro}
+                fileSelectorProps={{
+                  id: 'upload-load-template',
+                  label: 'Data File (Excel File)',
+                  filename: inputFileType === 'local' ? inputFilename : undefined,
+                  accept: [INPUT_ACCEPT_FILETYPES.EXCEL],
+                  disabled: fileParsing,
+                  onReadFile: handleFile,
+                }}
+                googleSelectorProps={{
+                  apiConfig: googleApiConfig,
+                  id: 'load-google-drive-file',
+                  label: 'Google Drive',
+                  buttonLabel: 'Choose Google Sheet',
+                  filename: inputFileType === 'google' ? inputFilename : undefined,
+                  disabled: fileParsing,
+                  onReadFile: handleGoogleFile,
+                }}
+                source="load_records_multi_object"
+                trackEvent={trackEvent}
+              />
+            </div>
+            {!hasData && !fileParsing && (
+              <LoadRecordsMultiObjectEmptyState
+                templateUrl={templateUrl}
+                onTemplateDownload={() => trackEvent(ANALYTICS_KEYS.load_multi_obj_TemplateDownloaded)}
+              />
+            )}
+            {hasData && <LoadRecordsMultiObjectReview />}
           </div>
         )}
-        {/* TODO: what if there are no rows in any of the loaded data? */}
-        {fileProcessingErrors?.length > 0 && <LoadRecordsMultiObjectErrors errors={fileProcessingErrors} />}
-        {data && data.length > 0 && (
-          <LoadRecordsMultiObjectResults
-            selectedOrg={selectedOrg}
-            orgType={orgType}
-            data={data}
-            loading={dataLoadLoading}
-            loadFinished={!!loadResultsData && !dataLoadLoading}
-            onLoadStarted={handleLoadStarted}
-          />
+        {currentStepIdx === 1 && (
+          <LoadRecordsMultiObjectLoad selectedOrg={selectedOrg} orgType={orgType} serverUrl={serverUrl} apiVersion={defaultApiVersion} />
         )}
       </AutoFullHeightContainer>
     </Page>

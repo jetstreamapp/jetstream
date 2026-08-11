@@ -14,7 +14,6 @@ import {
   CopyAsDataType,
   ErrorResult,
   Field,
-  FileExtCsvXLSXJsonGSheet,
   Maybe,
   PicklistFieldValues,
   RecordResult,
@@ -31,6 +30,7 @@ import {
   Modal,
   NotSeeingRecentMetadataPopover,
   PopoverErrorButton,
+  RecordDownloadFileFormat,
   RecordDownloadModal,
   SalesforceLogin,
   Spinner,
@@ -434,7 +434,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
     onClose();
   }
 
-  function handleDidDownload(fileFormat: FileExtCsvXLSXJsonGSheet, whichFields: 'all' | 'specified', includeSubquery: boolean) {
+  function handleDidDownload(fileFormat: RecordDownloadFileFormat, whichFields: 'all' | 'specified', includeSubquery: boolean) {
     trackEvent(ANALYTICS_KEYS.record_modal_download, {
       fileFormat,
       whichFields,

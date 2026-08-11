@@ -21,55 +21,107 @@ sidebar_label: Load Related Records
 slug: /load/with-related
 ---
 
-Jetstream allows you to load records to multiple objects with automatic relationships.
+Load records to one or more objects from a single Excel file, with the relationships between records resolved automatically. You give each row a temporary **Reference Id**, link rows to each other by that Id, and Jetstream works out the load order and fills in the real Salesforce Ids for you.
 
-**Example**: You want to insert new accounts and new contacts and you want to set the lookup field on the Contacts to the newly inserted Accounts.
+Two common use cases:
 
-Normally this would require two data loads and you would need to use External Ids or Excel vlookups to prepare the Contact file.
-
-## Preparing your load file
-
-:::tip
-
-Download the example Excel template from the top of the page to get started. The template has instructions with examples.
-
-:::
-
-The data load template has a section at the top where you will enter the **Object Api Name**, **Operation**, and optionally the **External Id**.
-
-Your record data starts on Row 5, and the first column is required to be a temporary unique identifier of your choosing for each record. If you are exporting data as a starting point, set the **Reference Id** as the record id of the org where you exported the data. This Id is only used for the load process.
-
-Create a new worksheet and repeat the process for any related records.
-
-For any relationship fields, like the **AccountId** from the example above, wrap the column header in curly brackets, like this `{AccountId}`, to indicate that the values in this column are reference Ids from other records in the file. All the values in that column must map to a value in the **Reference Id** column in the current or another worksheet.
-
-<img src={require('./load-related-example-1.png').default} alt="Load results" />
+- **Create a parent/child hierarchy in one load** - for example, insert Accounts, Contacts, and Opportunities together, with every Contact and Opportunity linked to the correct new Account. Normally this would take multiple loads plus External Ids or Excel vlookups to stitch the files together.
+- **Migrate records from one org to another** - query the records from org 1, use each record's Id as its Reference Id, and load the file into org 2. Exported lookup columns already contain the source org Ids, so the relationships come along without any extra file prep.
 
 :::tip
 
-Prepare data sheets quickly using the Query page to download records
-
-- Use the **Record Id** as the **Reference Id**. (See example template for an example)
-- For related records, the lookup field will already contain the parent Record Id, which is the **Reference Id**, so you don't need to change anything in your data.
+Download the example Excel template from the top of the page to get started. The template has instructions with working examples.
 
 :::
 
-## Previewing your data
+## Preparing your file
 
-When you upload your file, Jetstream will calculate all the relationships and will perform validations to ensure that there are no errors with your file.
+Create one worksheet for each object and operation combination. Every worksheet uses the same fixed layout:
 
-Jetstream will show a preview of all the groups of related records prior to being loaded into Salesforce. These may not be in the same order as your file depending on the calculated dependency graph.
+| Cell / Row | Contents                                                                                                                            |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **B1**     | Object API name, e.g. `Account`                                                                                                     |
+| **B2**     | Operation: `Insert`, `Update`, or `Upsert`                                                                                          |
+| **B3**     | External Id field API name - required for Upsert only, leave blank otherwise                                                        |
+| **Row 5**  | Column headers. Cell A5 is the Reference Id column header - it can have any unique name. The remaining headers are field API names. |
+| **Row 6+** | Your records, one per row                                                                                                           |
 
-<img src={require('./load-related-group-modal.png').default} alt="Load groups" />
+Any worksheet whose name contains "instructions" (in any casing) is skipped, so you can keep notes or the template instructions in your file.
 
-### Resolving errors
+### Reference Ids
 
-If you have errors with your file, you will be presented with detailed information for all the problems in the file and which cell(s) the problem was detected in.
+Every record needs a Reference Id in column A:
 
-<img src={require('./load-related-errors.png').default} alt="Load errors" />
+- It must be **unique across all worksheets** in the file.
+- It can contain letters, numbers, and underscores, and must start with a letter or number.
+- It is only used during the load to link records together - it is never saved to Salesforce.
+- **Tip**: when migrating records between orgs, use each record's Id from the source org as its Reference Id. Lookup columns you export from the source org will then already contain valid Reference Ids.
 
-## Loading into Salesforce
+## Linking records
 
-When you load your data, if any record in a given group fails, the entire group will be rolled back.
+There are three ways to set a lookup field on a record in your file:
 
-After the load is finished, you will be able to view and download the results.
+1. **Link a whole column** - wrap the column header in curly braces, e.g. `{AccountId}`. Every value in that column is treated as the Reference Id of another row in the workbook. Values can be left blank for rows that have no parent.
+2. **Link a single cell** - keep a plain header (e.g. `AccountId`) and wrap just one value in curly braces, e.g. `{account1}`. Only that row links to another row in the file - the other rows in the column can hold real Salesforce Ids.
+3. **Link by external Id** - use dot notation in the header with no braces, e.g. `Account.My_External_Id__c`. The lookup is set using an external Id value that already exists in the org. Use this when the parent records are not part of this load.
+
+{/* TODO: retake screenshot after UI redesign */}
+
+<img src={require('./load-related-example-1.png').default} alt="Example load file with a linked column" />
+
+## How records are grouped
+
+Rows that link to each other by Reference Id (directly or through other rows) form a **group**:
+
+```
+Sheet "Accounts"           Sheet "Contacts"
+
+account1  ◄──────────────  contact1  {AccountId} = account1  ┐
+account1  ◄──────────────  contact2  {AccountId} = account1  ┴─►  Group 1 (3 records, all-or-nothing)
+account2  ◄──────────────  contact3  {AccountId} = account2  ──►  Group 2 (2 records, all-or-nothing)
+```
+
+Each group is sent to Salesforce as a single **all-or-nothing** transaction: if any record in the group fails, every record in the group is rolled back, so related records are never left in a partial state. Groups that are not linked to each other load independently - a failure in one group has no effect on any other group.
+
+The review screen shows every computed group and its size before anything is loaded, so you can confirm the relationships were detected the way you intended.
+
+{/* TODO: retake screenshot after UI redesign */}
+
+<img src={require('./load-related-group-modal.png').default} alt="Preview of computed record groups" />
+
+## Limits
+
+:::info
+
+- **500 records per group of related records.** This limit is not per worksheet or per file - only records linked to each other count toward it. For example, a file with 5 worksheets of 263 rows each (1,315 records) loads fine when the rows form 263 groups of about 5 records.
+- **Around 15 different objects per group.**
+- **No overall file limit.** Jetstream automatically packs unrelated groups into multiple API calls and sends them one after another.
+
+:::
+
+## Reviewing and loading
+
+When you upload your file, Jetstream validates everything before any data is sent to Salesforce:
+
+1. **Review your data** - each worksheet is shown as a preview grid. Validation errors are highlighted on the exact cells and rows where the problem was found, with a message explaining how to fix it. Fix the problems in Excel and upload the file again.
+2. **Review the groups** - once the file is valid, you can see how the records were grouped before starting the load.
+3. **Load** - progress is shown live while the groups are sent to Salesforce, and the load can be cancelled.
+4. **Results** - every worksheet gets a per-record results table showing the created Ids and any failures. Failed groups can be retried after you correct the underlying issue (for example, deactivating a validation rule), and the results can be downloaded.
+
+{/* TODO: retake screenshot after UI redesign */}
+
+<img src={require('./load-related-errors.png').default} alt="Validation errors shown on the review screen" />
+
+## Troubleshooting
+
+| Error                                                                        | Cause                                                                                                                                  | Fix                                                                                                                                 |
+| ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Cell B1 / B2 / B3 is blank or could not be read                              | The worksheet does not match the template layout - the object, operation, or external Id cell was moved or left empty                  | Keep the fixed layout: object API name in B1, operation in B2, external Id in B3 (Upsert only)                                      |
+| The operation is not valid                                                   | B2 contains something other than `Insert`, `Update`, or `Upsert`                                                                       | Set B2 to one of the three valid operations                                                                                         |
+| An external Id is required for upsert / must be marked as an external id     | B3 is blank for an Upsert, the field is missing from your columns, or the field is not marked as an External Id in Salesforce          | Add the external Id field API name to B3 **and** as a data column, and confirm the field is flagged as an External Id in Salesforce |
+| The field does not exist on the object                                       | A column header has a typo, or your user does not have access to the field                                                             | Correct the field API name in row 5, or check field-level security                                                                  |
+| The Reference Id is used for multiple records                                | The same Reference Id appears on more than one row - Reference Ids must be unique across **all** worksheets, not just within one sheet | Give every record a unique Reference Id                                                                                             |
+| Rows are missing a Reference Id                                              | Accidental data in unused rows or columns makes Excel think those rows are records                                                     | Clear the contents of any unused rows and columns below and beside your data                                                        |
+| The value refers to a Reference Id that does not exist                       | A `{value}` in a linked column has a typo, or curly braces were put around a literal value such as a real Salesforce Id                | Fix the typo so it matches a Reference Id in the file, or remove the braces if the value should load as-is                          |
+| These records link to each other in a loop                                   | A circular reference (for example, record A links to B and B links back to A), so there is no valid order to load them                 | Follow the loop described in the error message and remove one of the `{reference}` values to break it                               |
+| The record is connected to too many related records (limit is 500 per group) | More than 500 records are linked together into one group - the limit is per group of related records, not per file                     | Remove some `{reference}` links, or split the group across multiple loads                                                           |

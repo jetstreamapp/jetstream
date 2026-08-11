@@ -11,22 +11,12 @@ import {
   isEnterKey,
   prepareCsvFile,
   prepareExcelFile,
+  prepareLoadMultiObjectTemplate,
   saveFile,
   tracker,
 } from '@jetstream/shared/ui-utils';
 import { flattenRecords, getErrorMessage, getMapOfBaseAndSubqueryRecords } from '@jetstream/shared/utils';
-import {
-  FileExtCsv,
-  FileExtCsvXLSXJsonGSheet,
-  FileExtGDrive,
-  FileExtJson,
-  FileExtXLSX,
-  Maybe,
-  MimeType,
-  QueryResultsColumn,
-  SalesforceOrgUi,
-  SalesforceRecord,
-} from '@jetstream/types';
+import { FileExtCsvXLSXJsonGSheet, Maybe, MimeType, QueryResultsColumn, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import { Fragment, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
 import FileDownloadGoogle from '../file-download-modal/options/FileDownloadGoogle';
 import Checkbox from '../form/checkbox/Checkbox';
@@ -51,9 +41,13 @@ import {
   RADIO_FORMAT_GDRIVE,
   RADIO_FORMAT_JSON,
   RADIO_FORMAT_XLSX,
+  RADIO_FORMAT_XLSX_LOAD_TEMPLATE,
   RADIO_SELECTED,
   saveFileFormatToStorage,
 } from './download-modal-utils';
+
+/** All formats the modal can produce - the load template format is only offered when `loadTemplateOption` is provided */
+export type RecordDownloadFileFormat = FileExtCsvXLSXJsonGSheet | typeof RADIO_FORMAT_XLSX_LOAD_TEMPLATE;
 
 export interface DownloadFromServerOpts {
   fileFormat: FileExtCsvXLSXJsonGSheet;
@@ -91,15 +85,21 @@ export interface RecordDownloadModalProps {
   totalRecordCount?: number;
   includeDeletedRecords?: boolean;
   source: string;
+  /**
+   * When provided, adds a "Load template (Excel)" format that generates a file in the
+   * "Load Records to Multiple Objects" template format for the given object.
+   * Only works with records already in the browser, so the server-side "all records" scope is disabled while selected.
+   */
+  loadTemplateOption?: { sobject: string };
   trackEvent: (key: string, value?: Record<string, any>) => void;
   onModalClose: (canceled?: boolean) => void;
-  onDownload?: (fileFormat: FileExtCsvXLSXJsonGSheet, whichFields: 'all' | 'specified', includeSubquery: boolean) => void;
+  onDownload?: (fileFormat: RecordDownloadFileFormat, whichFields: 'all' | 'specified', includeSubquery: boolean) => void;
   onDownloadFromServer?: (options: DownloadFromServerOpts) => void;
   children?: React.ReactNode;
 }
 
 const PROHIBITED_BULK_APEX_TYPES = new Set(['Address', 'Location', 'complexvaluetype']);
-const FILE_FORMAT_ALLOWED_BULK_API = new Set<FileExtCsvXLSXJsonGSheet>(['csv', 'gdrive']);
+const FILE_FORMAT_ALLOWED_BULK_API = new Set<RecordDownloadFileFormat>(['csv', 'gdrive']);
 const ALLOW_BULK_API_COUNT = 5_000;
 const REQUIRE_BULK_API_COUNT = 500_000;
 
@@ -123,6 +123,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   totalRecordCount,
   includeDeletedRecords = false,
   source,
+  loadTemplateOption,
   trackEvent,
   onModalClose,
   onDownload,
@@ -139,7 +140,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   const [downloadRecordsValue, setDownloadRecordsValue] = useState<string>(() =>
     getWhichRecordsDefaultValue({ hasMoreRecords: false, records, selectedRecords }),
   );
-  const [fileFormat, setFileFormat] = useState(() => getInitialDownloadFileFormat(allowedTypes, LS_KEY));
+  const [fileFormat, setFileFormat] = useState<RecordDownloadFileFormat>(() => getInitialDownloadFileFormat(allowedTypes, LS_KEY));
   const [downloadMethod, setDownloadMethod] = useState<typeof RADIO_DOWNLOAD_METHOD_STANDARD | typeof RADIO_DOWNLOAD_METHOD_BULK_API>(
     RADIO_DOWNLOAD_METHOD_STANDARD,
   );
@@ -160,6 +161,10 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   const [isGooglePickerVisible, setIsGooglePickerVisible] = useState(false);
 
   const hasSubqueryFields = subqueryFields && !!Object.keys(subqueryFields).length && (fileFormat === 'xlsx' || fileFormat === 'gdrive');
+
+  const isLoadTemplate = fileFormat === RADIO_FORMAT_XLSX_LOAD_TEMPLATE;
+  // The load template format is a regular .xlsx file - the format value is only distinct for option selection
+  const fileExtension = isLoadTemplate ? RADIO_FORMAT_XLSX : fileFormat;
 
   // Big objects report -1 as totalSize
   const totalRecordCountText =
@@ -196,6 +201,13 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
     }
   }, [isBulkApi]);
 
+  // The load template can only be generated from records already in the browser
+  useEffect(() => {
+    if (isLoadTemplate && downloadRecordsValue === RADIO_ALL_SERVER) {
+      setDownloadRecordsValue(RADIO_ALL_BROWSER);
+    }
+  }, [isLoadTemplate, downloadRecordsValue]);
+
   useEffect(() => {
     if (!fileName || (fileFormat === 'gdrive' && !isSignedInWithGoogle)) {
       setInvalidConfig(true);
@@ -204,14 +216,17 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
     }
   }, [fileName, fileFormat, googleFolder, isSignedInWithGoogle]);
 
+  function getDefaultFileName() {
+    if (records.length > 0 && records[0].attributes && records[0].attributes.type) {
+      return getFilename(org, ['records', records[0].attributes.type]);
+    }
+    return getFilename(org, ['records']);
+  }
+
   useEffect(() => {
     if (downloadModalOpen) {
       setDoFocusInput(true);
-      if (records.length > 0 && records[0].attributes && records[0].attributes.type) {
-        setFileName(getFilename(org, ['records', records[0].attributes.type]));
-      } else {
-        setFileName(getFilename(org, ['records']));
-      }
+      setFileName(getDefaultFileName());
     } else {
       setDownloadRecordsValue(getWhichRecordsDefaultValue({ hasMoreRecords, records, selectedRecords }));
       setFileFormat(getInitialDownloadFileFormat(allowedTypes, LS_KEY));
@@ -233,6 +248,17 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
     setHasMoreRecords(hasMoreRecordsTemp);
     setDownloadRecordsValue(getWhichRecordsDefaultValue({ hasMoreRecords: hasMoreRecordsTemp, records, selectedRecords }));
   }, [totalRecordCount, records, selectedRecords]);
+
+  function handleFileFormatChange(value: string) {
+    const newFileFormat = value as RecordDownloadFileFormat;
+    // Entering/leaving the load template format swaps the default filename to match the output
+    if (newFileFormat === RADIO_FORMAT_XLSX_LOAD_TEMPLATE && loadTemplateOption) {
+      setFileName(`${loadTemplateOption.sobject}-load-template`);
+    } else if (fileFormat === RADIO_FORMAT_XLSX_LOAD_TEMPLATE && newFileFormat !== RADIO_FORMAT_XLSX_LOAD_TEMPLATE) {
+      setFileName(getDefaultFileName());
+    }
+    setFileFormat(newFileFormat);
+  }
 
   function handleModalClose(canceled?: boolean) {
     onModalClose(canceled);
@@ -260,7 +286,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
     }
 
     try {
-      const fileNameWithExt = `${fileName}${fileFormat !== 'gdrive' ? `.${fileFormat}` : ''}`;
+      const fileNameWithExt = `${fileName}${fileFormat !== 'gdrive' ? `.${fileExtension}` : ''}`;
 
       let activeRecords = records;
       if (downloadRecordsValue === RADIO_FILTERED) {
@@ -270,7 +296,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
       }
 
       /** Google will always load in the background to account for upload to Google */
-      if (fileFormat === 'gdrive' || downloadRecordsValue === RADIO_ALL_SERVER) {
+      if ((fileFormat === 'gdrive' || downloadRecordsValue === RADIO_ALL_SERVER) && fileFormat !== RADIO_FORMAT_XLSX_LOAD_TEMPLATE) {
         // emit event, which starts job, which downloads in the background
         if (onDownloadFromServer) {
           onDownloadFromServer({
@@ -305,6 +331,16 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
             mimeType = MIME_TYPES.XLSX;
             break;
           }
+          case RADIO_FORMAT_XLSX_LOAD_TEMPLATE: {
+            const data = prepareLoadMultiObjectTemplate({
+              sobject: loadTemplateOption?.sobject || '',
+              fields: fieldsToUse,
+              records: activeRecords,
+            });
+            fileData = prepareExcelFile(data, undefined, undefined, { onCellsTruncated: notifyExcelCellsTruncated });
+            mimeType = MIME_TYPES.XLSX;
+            break;
+          }
           case 'csv': {
             const data = flattenRecords(activeRecords, fields);
             fileData = prepareCsvFile(data, fields);
@@ -335,7 +371,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
       // Cell values are truncated before writing, but other SheetJS limits (e.g. the 1,048,576-row cap) can still throw.
       if (getErrorMessage(ex).includes('32767')) {
         setErrorMessage(`One or more values exceed Excel's 32,767 character cell limit. Download as CSV or JSON to get full values.`);
-      } else if (fileFormat === 'xlsx') {
+      } else if (fileFormat === 'xlsx' || fileFormat === RADIO_FORMAT_XLSX_LOAD_TEMPLATE) {
         setErrorMessage('There was a problem preparing your file download. Try downloading as CSV or JSON.');
       } else {
         setErrorMessage('There was a problem preparing your file download.');
@@ -418,6 +454,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                     value={RADIO_ALL_SERVER}
                     checked={downloadRecordsValue === RADIO_ALL_SERVER}
                     onChange={setDownloadRecordsValue}
+                    disabled={isLoadTemplate}
                   />
                   <Radio
                     name="radio-download"
@@ -444,7 +481,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 label="Excel"
                 value={RADIO_FORMAT_XLSX}
                 checked={fileFormat === RADIO_FORMAT_XLSX}
-                onChange={(value: string) => setFileFormat(value as FileExtXLSX)}
+                onChange={handleFileFormatChange}
                 disabled={isBulkApi}
               />
               <Radio
@@ -452,23 +489,33 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 label="CSV"
                 value={RADIO_FORMAT_CSV}
                 checked={fileFormat === RADIO_FORMAT_CSV}
-                onChange={(value: string) => setFileFormat(value as FileExtCsv)}
+                onChange={handleFileFormatChange}
               />
               <Radio
                 name="radio-download-file-format"
                 label="JSON"
                 value={RADIO_FORMAT_JSON}
                 checked={fileFormat === RADIO_FORMAT_JSON}
-                onChange={(value: string) => setFileFormat(value as FileExtJson)}
+                onChange={handleFileFormatChange}
                 disabled={isBulkApi}
               />
+              {loadTemplateOption && (
+                <Radio
+                  name="radio-download-file-format"
+                  label="Load template (Excel)"
+                  value={RADIO_FORMAT_XLSX_LOAD_TEMPLATE}
+                  checked={fileFormat === RADIO_FORMAT_XLSX_LOAD_TEMPLATE}
+                  onChange={handleFileFormatChange}
+                  disabled={isBulkApi}
+                />
+              )}
               {hasGoogleInputConfigured && (
                 <Radio
                   name="radio-download-file-format"
                   label="Google Drive"
                   value={RADIO_FORMAT_GDRIVE}
                   checked={fileFormat === RADIO_FORMAT_GDRIVE}
-                  onChange={(value: string) => setFileFormat(value as FileExtGDrive)}
+                  onChange={handleFileFormatChange}
                 />
               )}
               {!googleIntegrationEnabled && googleShowUpgradeToPro && (
@@ -485,6 +532,14 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 />
               )}
             </RadioGroup>
+            {isLoadTemplate && (
+              <ScopedNotification theme="info" className="slds-m-vertical_x-small">
+                Creates an Excel file in the Load Records to Multiple Objects template format. Each record&apos;s Id becomes its Reference
+                Id and the operation is set to Insert - ideal for migrating records to another org. Adjust the operation, remove unwanted
+                columns, and wrap lookup column headers in {'{curly braces}'} to link related records in the same file. Relationship and
+                subquery fields are not included.
+              </ScopedNotification>
+            )}
             {hasSubqueryFields && (
               <Checkbox
                 id="subquery-checkbox"
@@ -555,7 +610,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
               id="download-filename"
               label="Filename"
               isRequired
-              rightAddon={fileFormat !== RADIO_FORMAT_GDRIVE ? `.${fileFormat}` : undefined}
+              rightAddon={fileFormat !== RADIO_FORMAT_GDRIVE ? `.${fileExtension}` : undefined}
               errorMessage="This field is required"
               errorMessageId="filename-error"
             >

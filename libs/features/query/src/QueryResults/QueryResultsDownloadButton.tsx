@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { AsyncJobNew, BulkDownloadJob, FileExtCsvXLSXJsonGSheet, Maybe, QueryResultsColumn, SalesforceOrgUi } from '@jetstream/types';
-import { DownloadFromServerOpts, Icon, RecordDownloadModal } from '@jetstream/ui';
+import { AsyncJobNew, BulkDownloadJob, Maybe, QueryResultsColumn, SalesforceOrgUi } from '@jetstream/types';
+import { DownloadFromServerOpts, Icon, RecordDownloadFileFormat, RecordDownloadModal } from '@jetstream/ui';
 import { fromJetstreamEvents, fromQueryState, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { composeQuery, parseQuery } from '@jetstreamapp/soql-parser-js';
@@ -45,7 +45,7 @@ export const QueryResultsDownloadButton = ({
   const [isDownloadModalOpen, setModalOpen] = useState<boolean>(false);
   const includeDeletedRecords = useAtomValue(fromQueryState.queryIncludeDeletedRecordsState);
 
-  function handleDidDownload(fileFormat: FileExtCsvXLSXJsonGSheet, whichFields: 'all' | 'specified', includeSubquery: boolean) {
+  function handleDidDownload(fileFormat: RecordDownloadFileFormat, whichFields: 'all' | 'specified', includeSubquery: boolean) {
     trackEvent(ANALYTICS_KEYS.query_DownloadResults, {
       source: 'BROWSER',
       fileFormat,
@@ -153,6 +153,7 @@ export const QueryResultsDownloadButton = ({
           onDownload={handleDidDownload}
           includeDeletedRecords={includeDeletedRecords}
           onDownloadFromServer={handleDownloadFromServer}
+          loadTemplateOption={sObject && !isTooling ? { sobject: sObject } : undefined}
           source="query_results"
           trackEvent={trackEvent}
         />

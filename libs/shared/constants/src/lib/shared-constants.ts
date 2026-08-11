@@ -272,6 +272,14 @@ export const ANALYTICS_KEYS = {
   load_Submitted: 'load_Submitted',
   load_ViewRecords: 'load_ViewRecords',
   load_DownloadRecords: 'load_DownloadRecords',
+  /** LOAD MULTI OBJECT */
+  load_multi_obj_TemplateDownloaded: 'load_multi_obj_TemplateDownloaded',
+  load_multi_obj_FileProcessed: 'load_multi_obj_FileProcessed',
+  load_multi_obj_Submitted: 'load_multi_obj_Submitted',
+  load_multi_obj_Finished: 'load_multi_obj_Finished',
+  load_multi_obj_Cancelled: 'load_multi_obj_Cancelled',
+  load_multi_obj_RetryFailed: 'load_multi_obj_RetryFailed',
+  load_multi_obj_DownloadResults: 'load_multi_obj_DownloadResults',
   /** MASS UPDATE */
   mass_update_Submitted: 'mass_update_Submitted',
   mass_update_ApplyAll: 'mass_update_ApplyAll',
