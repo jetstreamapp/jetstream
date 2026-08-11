@@ -5,6 +5,7 @@ import { Checkbox, ComboboxWithItems, Icon } from '@jetstream/ui';
 import classNames from 'classnames';
 import isNil from 'lodash/isNil';
 import { Fragment, FunctionComponent, useState } from 'react';
+import { getComboboxFieldName, getComboboxFieldTitle, getFieldListItems } from '../utils/field-mapping-utils';
 import { LoadRecordsFieldMappingRelatedObject } from './LoadRecordsFieldMappingRelatedObject';
 
 function getPreviewData(csvRowData: string | Date | boolean | number | null): string {
@@ -17,14 +18,6 @@ function getPreviewData(csvRowData: string | Date | boolean | number | null): st
   return `${csvRowData}`;
 }
 
-function getComboboxFieldName(item: ListItem) {
-  return `${item.label} (${item.value})`;
-}
-
-function getComboboxFieldTitle(item: ListItem) {
-  return `${item.label} (${item.value}) - ${item.secondaryLabel}`;
-}
-
 export interface LoadRecordsFieldMappingRowProps {
   org: SalesforceOrgUi;
   isCustomMetadataObject: boolean;
@@ -32,20 +25,8 @@ export interface LoadRecordsFieldMappingRowProps {
   fieldMappingItem: FieldMappingItemCsv;
   csvField: string;
   csvRowData: string;
-  binaryAttachmentBodyField?: string;
+  binaryAttachmentBodyField?: Maybe<string>;
   onSelectionChanged: (csvField: string, fieldMappingItem: FieldMappingItemCsv) => void;
-}
-
-function getFieldListItems(fields: FieldWithRelatedEntities[]) {
-  return fields.map((field): ListItem<string, FieldWithRelatedEntities> => ({
-    id: field.name,
-    label: field.label,
-    value: field.name,
-    secondaryLabel: field.name,
-    secondaryLabelOnNewLine: true,
-    tertiaryLabel: field.typeLabel,
-    meta: field,
-  }));
 }
 
 export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappingRowProps> = ({

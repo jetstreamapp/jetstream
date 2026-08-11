@@ -27,14 +27,11 @@ export interface FieldRelatedEntity {
 }
 
 export interface Step {
-  idx: number;
   name: StepName;
   label: string;
-  active: boolean;
-  enabled: boolean;
 }
 
-export type StepName = 'sobjectAndFile' | 'fieldMapping' | 'automationDeploy' | 'loadRecords' | 'automationRollback';
+export type StepName = 'sobjectAndFile' | 'fieldMapping' | 'loadRecords';
 
 type RecordAttributesWithRelatedRecords = RecordAttributes & { relatedRecords: EntityParticleRecord[] };
 

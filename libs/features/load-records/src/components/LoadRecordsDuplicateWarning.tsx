@@ -13,7 +13,7 @@ import {
   getColumnsForGenericTable,
 } from '@jetstream/ui';
 import { checkForDuplicateRecords } from '@jetstream/ui-core';
-import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 
 const DUPE_COLUMN = '_DUPLICATE';
 
@@ -45,20 +45,12 @@ export const LoadRecordsDuplicateWarning: FunctionComponent<LoadRecordsDuplicate
   isCustomMetadata = false,
   externalId,
 }) => {
-  const isMounted = useRef(true);
   const [columns, setColumns] = useState<Maybe<Column<RowWithKey>[]>>(null);
   const [fields, setFields] = useState<string[]>([]);
   const [rows, setRows] = useState<Maybe<RowWithKey[]>>(null);
   const [isOpen, setIsOpen] = useState(false);
 
   const [duplicates] = useState(() => checkForDuplicateRecords(fieldMapping, inputFileData, loadType, isCustomMetadata, externalId));
-
-  useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
 
   useEffect(() => {
     if (duplicates && inputFileHeader) {

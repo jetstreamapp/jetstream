@@ -458,12 +458,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
           onChange={setSerialMode}
         />
 
-        <LoadRecordsAssignmentRules
-          selectedOrg={selectedOrg}
-          apiMode={apiMode}
-          selectedSObject={selectedSObject}
-          onAssignmentRule={setAssignmentRuleId}
-        />
+        <LoadRecordsAssignmentRules selectedOrg={selectedOrg} selectedSObject={selectedSObject} onAssignmentRule={setAssignmentRuleId} />
 
         <Input
           id="batch-size"

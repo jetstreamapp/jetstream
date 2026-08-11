@@ -209,12 +209,14 @@ export type InputAcceptType =
   | InputAcceptTypeCsv
   | InputAcceptTypeTsv
   | InputAcceptTypeExcel
+  | InputAcceptTypeJson
   | InputAcceptTypeXml
   | InputAcceptTypeImage;
 export type InputAcceptTypeZip = '.zip';
 export type InputAcceptTypeCsv = '.csv';
 export type InputAcceptTypeTsv = '.tsv';
 export type InputAcceptTypeExcel = '.xlsx';
+export type InputAcceptTypeJson = '.json';
 export type InputAcceptTypeXml = '.xml';
 export type InputAcceptTypeImage = '.png' | '.jpg' | '.jpeg' | '.gif' | '.webp' | '.svg';
 

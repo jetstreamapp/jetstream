@@ -4,13 +4,13 @@ import { FunctionComponent } from 'react';
 
 export interface LoadRecordsProgressProps {
   currentStepIdx: number;
-  enabledSteps: Step[];
+  steps: Step[];
 }
 
-export const LoadRecordsProgress: FunctionComponent<LoadRecordsProgressProps> = ({ currentStepIdx, enabledSteps }) => {
+export const LoadRecordsProgress: FunctionComponent<LoadRecordsProgressProps> = ({ currentStepIdx, steps }) => {
   return (
     <ProgressStepIndicator currentStep={currentStepIdx} isVertical>
-      {enabledSteps.map((step, i) => (
+      {steps.map((step, i) => (
         <ProgressStepIndicatorListItem
           key={step.name}
           step={i}

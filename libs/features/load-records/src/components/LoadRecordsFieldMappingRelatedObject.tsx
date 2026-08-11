@@ -4,11 +4,8 @@ import { FieldMappingItem, FieldMappingItemCsv, FieldRelatedEntity, ListItem, Sa
 import { ComboboxWithItems, Grid, Icon, Tooltip } from '@jetstream/ui';
 import { fetchRelatedFields, SELF_LOOKUP_KEY } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { getComboboxFieldName } from '../utils/field-mapping-utils';
 import LoadRecordsFieldMappingRowLookupOption from './LoadRecordsFieldMappingRowLookupOption';
-
-function getComboboxFieldName(item: ListItem) {
-  return `${item.label} (${item.value})`;
-}
 
 export interface LoadRecordsFieldMappingRelatedObjectProps {
   org: SalesforceOrgUi;

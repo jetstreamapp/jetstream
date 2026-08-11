@@ -63,6 +63,7 @@ import isUndefined from 'lodash/isUndefined';
 import type { IDisposable, editor } from 'monaco-editor';
 import { UnparseConfig, parse as parseCsv, unparse, unparse as unparseCsv } from 'papaparse';
 import * as XLSX from 'xlsx';
+import { parseJson } from './parse-json';
 
 initXlsx(XLSX);
 
@@ -1253,7 +1254,7 @@ export function readFile(file: File, type: 'text' | 'array_buffer' | 'data_url' 
 
 /**
  * Parse file
- * Supported Types: CSV / XLSX
+ * Supported Types: CSV / TSV / XLSX / JSON
  *
  * TODO: support other filetypes (.zip)
  *
@@ -1274,6 +1275,10 @@ export async function parseFile(
   errors: string[];
 }> {
   options = options || {};
+  if (options.extension === INPUT_ACCEPT_FILETYPES.JSON) {
+    // FileSelector reads .json as text, but the signature permits an ArrayBuffer, so decode rather than assume
+    return parseJson(isString(content) ? content : new TextDecoder().decode(content));
+  }
   if (!options.isBinaryString && isString(content)) {
     // csv - read from papaparse
     let csvResult = parseCsv(content, {

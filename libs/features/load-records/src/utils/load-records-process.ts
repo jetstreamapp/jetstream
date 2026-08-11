@@ -380,7 +380,6 @@ export async function loadBatchApiData(
             record: originalBatchRecords[i],
           })) || [];
       } finally {
-        // replyToMessage('loadDataStatus', { records: responseWithRecord });
         statusCallback(responseWithRecord);
       }
     }

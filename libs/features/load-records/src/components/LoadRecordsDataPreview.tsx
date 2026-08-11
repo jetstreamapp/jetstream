@@ -4,6 +4,7 @@ import { query } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { REGEX, groupByFlat } from '@jetstream/shared/utils';
 import { ContextMenuItem, DescribeGlobalSObjectResult, InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import type { Column } from '@jetstream/ui';
 import {
   AutoFullHeightContainer,
   ContextAction,
@@ -23,7 +24,6 @@ import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/a
 import { useAtom, useAtomValue } from 'jotai';
 import isNil from 'lodash/isNil';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import type { Column } from '@jetstream/ui';
 import { ErrorBoundary } from 'react-error-boundary';
 
 const MAX_RECORD_FOR_PREVIEW = 100_000;
@@ -38,8 +38,6 @@ export interface LoadRecordsDataPreviewProps {
   data: Maybe<any[]>;
   header: Maybe<string[]>;
 }
-
-// function valueGetter: ((params: ValueGetterParams) => any) | string;
 
 function getLoadDescription(loadType: InsertUpdateUpsertDelete, totalRecordCount: number, omitTotalRecordCount: boolean, data: any[]) {
   let action: string;

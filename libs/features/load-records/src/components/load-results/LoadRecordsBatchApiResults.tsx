@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { convertDateToLocale, formatNumber, useBrowserNotifications, tracker } from '@jetstream/shared/ui-utils';
+import { convertDateToLocale, formatNumber, tracker, useBrowserNotifications } from '@jetstream/shared/ui-utils';
 import { decodeHtmlEntity, flattenRecord, getErrorMessage, getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
 import {
   ApiMode,
@@ -164,6 +164,10 @@ export const LoadRecordsBatchApiResults = ({
         throw new Error('Aborted');
       }
 
+      if (!isMounted.current) {
+        return;
+      }
+
       const dateString = convertDateToLocale(new Date(), { timeStyle: 'medium' });
 
       if (!preparedDataResponse?.data.length) {
@@ -191,9 +195,11 @@ export const LoadRecordsBatchApiResults = ({
       }
     } catch (ex) {
       logger.error('ERROR', ex);
-      setStatus(STATUSES.ERROR);
-      setFatalError(getErrorMessage(ex));
-      onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
+      if (isMounted.current) {
+        setStatus(STATUSES.ERROR);
+        setFatalError(getErrorMessage(ex));
+        onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
+      }
       notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
         body: `❌ ${getErrorMessage(ex)}`,
         tag: 'load-records',
@@ -243,6 +249,10 @@ export const LoadRecordsBatchApiResults = ({
         () => isAborted.current,
       );
 
+      if (!isMounted.current) {
+        return;
+      }
+
       const dateString = convertDateToLocale(new Date(), { timeStyle: 'medium' });
       const failedRecords = processedRecordsRef.current.filter((record) => !record.success).map((record) => record.record);
       // Compute counts directly from the ref — processingStatusRef may be stale since it's updated in a useEffect
@@ -256,9 +266,11 @@ export const LoadRecordsBatchApiResults = ({
     } catch (ex) {
       const dateString = convertDateToLocale(new Date(), { timeStyle: 'medium' });
       logger.error('ERROR', ex);
-      setStatus(STATUSES.ERROR);
-      onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
-      setEndTime(dateString);
+      if (isMounted.current) {
+        setStatus(STATUSES.ERROR);
+        onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
+        setEndTime(dateString);
+      }
       notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
         body: `❌ ${getErrorMessage(ex)}`,
         tag: 'load-records',
