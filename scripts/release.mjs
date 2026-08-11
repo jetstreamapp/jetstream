@@ -361,3 +361,60 @@ if (releaseExtension) {
     );
   }
 }
+
+// ── Sync local main ───────────────────────────────────────────────────────
+// release-it commits the version bumps and tags on whichever branch the workflow
+// ran from, so a normal release leaves local main behind — pull it down now. This
+// runs regardless of the branch checked out at this point: the release takes a
+// while and the user may have switched branches (e.g. to draft release notes).
+//
+// Hotfix releases commit to the hotfix branch instead; main only catches up once
+// that branch is merged back via PR. The fetch below still brings down the new
+// tags, so main stays the only branch worth pulling here.
+
+// Returns the worktree path where the branch is checked out, or null if it isn't
+// checked out anywhere. Git refuses to update a branch ref that any worktree has
+// checked out, so `git fetch origin main:main` is only safe when this is null.
+async function worktreePathForBranch(branch) {
+  const result = await $`git worktree list --porcelain`.quiet();
+  let worktreePath = null;
+  for (const line of result.stdout.split('\n')) {
+    if (line.startsWith('worktree ')) {
+      worktreePath = line.slice('worktree '.length).trim();
+    } else if (line.trim() === `branch refs/heads/${branch}`) {
+      return worktreePath;
+    }
+  }
+  return null;
+}
+
+console.log('');
+process.stdout.write(chalk.dim('Updating local main... '));
+
+// Resolved before the network calls so the hint printed on failure is always the
+// command this would have run — `git fetch origin main:main` is rejected outright
+// when a worktree has main checked out.
+let recoveryCommand = 'git fetch origin main:main';
+try {
+  const mainWorktree = await worktreePathForBranch('main');
+  if (mainWorktree) {
+    recoveryCommand = `git -C ${mainWorktree} pull --ff-only origin main`;
+  }
+
+  await $`git fetch origin --tags --prune --quiet`.quiet();
+
+  if (mainWorktree) {
+    // Pull in place wherever main lives (this worktree or another one)
+    await $({ cwd: mainWorktree })`git pull --ff-only origin main`.quiet();
+    const currentWorktree = (await $`git rev-parse --show-toplevel`.quiet()).stdout.trim();
+    console.log(chalk.green('done') + (mainWorktree === currentWorktree ? '' : chalk.dim(` (${mainWorktree})`)));
+  } else {
+    // main isn't checked out anywhere, so fast-forward the ref directly
+    await $`git fetch origin main:main`.quiet();
+    console.log(chalk.green('done'));
+  }
+} catch (error) {
+  console.log(chalk.yellow('skipped'));
+  console.log(chalk.dim(`  ${(error.stderr || error.message || '').trim().split('\n')[0]}`));
+  console.log('  ' + chalk.cyan(recoveryCommand));
+}
