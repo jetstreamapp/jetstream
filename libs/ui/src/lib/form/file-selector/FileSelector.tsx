@@ -8,7 +8,11 @@ import isString from 'lodash/isString';
 import { FunctionComponent, useCallback, useRef, useState } from 'react';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
+import { getPastedFile } from './getPastedFile';
 import { useFilename } from './useFilename';
+
+/** Everything else is read as an ArrayBuffer, which is what the xlsx/zip parsers expect */
+const TEXT_FILE_EXTENSIONS: InputAcceptType[] = ['.csv', '.tsv', '.xml', '.json'];
 
 export interface FileSelectorProps {
   className?: string;
@@ -105,11 +109,12 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
           setSystemErrorMessage(null);
           setManagedFilename(null);
           handleFile(item.getAsFile());
-        } else if (item.kind === 'string' && accept?.includes('.csv')) {
+        } else if (item.kind === 'string') {
           item.getAsString((content) => {
-            if (content && content.split('\n').length > 1) {
-              setManagedFilename('Clipboard-Paste.csv');
-              onReadFile({ filename: 'Clipboard-Paste.csv', extension: '.csv', content, isPasteFromClipboard: true });
+            const pastedFile = getPastedFile(content, accept);
+            if (pastedFile) {
+              setManagedFilename(pastedFile.filename);
+              onReadFile({ ...pastedFile, isPasteFromClipboard: true });
             }
           });
         }
@@ -161,8 +166,7 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
 
       setManagedFilename(file.name);
 
-      const readAsArrayBuffer = extension !== '.csv' && extension !== '.tsv' && extension !== '.xml';
-      const content = await (readAsArrayBuffer ? readFile(file, 'array_buffer') : readFile(file, 'text'));
+      const content = await (TEXT_FILE_EXTENSIONS.includes(extension) ? readFile(file, 'text') : readFile(file, 'array_buffer'));
 
       onReadFile({ filename: file.name, extension, content });
     } catch (ex) {

@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { queryWithCache } from '@jetstream/shared/data';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { ApiMode, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, Grid, Picklist, Spinner } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 
@@ -15,14 +15,12 @@ const allowedObjects = new Set(['lead', 'case']);
 let currKey = 0;
 export interface LoadRecordsAssignmentRulesProps {
   selectedOrg: SalesforceOrgUi;
-  apiMode: ApiMode;
   selectedSObject: string;
   onAssignmentRule: (assignmentRuleId: Maybe<string>) => void;
 }
 
 export const LoadRecordsAssignmentRules: FunctionComponent<LoadRecordsAssignmentRulesProps> = ({
   selectedOrg,
-  apiMode,
   selectedSObject,
   onAssignmentRule,
 }) => {
@@ -70,7 +68,7 @@ export const LoadRecordsAssignmentRules: FunctionComponent<LoadRecordsAssignment
         currKey++;
         setPickListKey(currKey);
       }
-    } catch (ex) {
+    } catch {
       if (isMounted.current) {
         setLoading(false);
       }

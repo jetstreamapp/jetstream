@@ -226,9 +226,14 @@ export const LoadRecordsSelectObjectAndFile = ({
                     id: 'load-record-file',
                     label: 'File to Load',
                     filename: inputFileType === 'local' ? inputFilename : undefined,
-                    accept: [INPUT_ACCEPT_FILETYPES.CSV, INPUT_ACCEPT_FILETYPES.TSV, INPUT_ACCEPT_FILETYPES.EXCEL],
+                    accept: [
+                      INPUT_ACCEPT_FILETYPES.CSV,
+                      INPUT_ACCEPT_FILETYPES.TSV,
+                      INPUT_ACCEPT_FILETYPES.EXCEL,
+                      INPUT_ACCEPT_FILETYPES.JSON,
+                    ],
                     allowFromClipboard: true,
-                    userHelpText: 'Choose CSV or XLSX file to upload',
+                    userHelpText: 'Choose a CSV, XLSX, or JSON file to upload',
                     onReadFile: handleFile,
                   }}
                   googleSelectorProps={{

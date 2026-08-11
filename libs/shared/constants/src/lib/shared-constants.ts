@@ -1,6 +1,7 @@
 import type {
   InputAcceptTypeCsv,
   InputAcceptTypeExcel,
+  InputAcceptTypeJson,
   InputAcceptTypeTsv,
   InputAcceptTypeXml,
   InputAcceptTypeZip,
@@ -26,12 +27,14 @@ export const INPUT_ACCEPT_FILETYPES: {
   CSV: InputAcceptTypeCsv;
   TSV: InputAcceptTypeTsv;
   EXCEL: InputAcceptTypeExcel;
+  JSON: InputAcceptTypeJson;
   XML: InputAcceptTypeXml;
 } = {
   ZIP: '.zip',
   CSV: '.csv',
   TSV: '.tsv',
   EXCEL: '.xlsx',
+  JSON: '.json',
   XML: '.xml',
 };
 

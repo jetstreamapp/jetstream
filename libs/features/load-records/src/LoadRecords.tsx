@@ -39,8 +39,6 @@ import { useSearchParams } from 'react-router';
 import LoadRecordsDataPreview from './components/LoadRecordsDataPreview';
 import LoadRecordsProgress from './components/LoadRecordsProgress';
 import LoadRecordsFieldMapping from './steps/FieldMapping';
-import LoadRecordsLoadAutomationDeploy from './steps/LoadRecordsAutomationDeploy';
-import LoadRecordsLoadAutomationRollback from './steps/LoadRecordsAutomationRollback';
 import PerformLoad from './steps/PerformLoad';
 import PerformLoadCustomMetadata from './steps/PerformLoadCustomMetadata';
 import LoadRecordsSelectObjectAndFile from './steps/SelectObjectAndFile';
@@ -48,15 +46,10 @@ import LoadRecordsSelectObjectAndFile from './steps/SelectObjectAndFile';
 const HEIGHT_BUFFER = 170;
 
 const steps: Step[] = [
-  { idx: 0, name: 'sobjectAndFile', label: 'Choose Object and Load File', active: true, enabled: true },
-  { idx: 1, name: 'fieldMapping', label: 'Map Fields', active: false, enabled: true },
-  { idx: 2, name: 'automationDeploy', label: 'Disable Automation (optional)', active: false, enabled: false },
-  { idx: 3, name: 'loadRecords', label: 'Load Data', active: false, enabled: true },
-  { idx: 4, name: 'automationRollback', label: 'Rollback Automation (optional)', active: false, enabled: false },
+  { name: 'sobjectAndFile', label: 'Choose Object and Load File' },
+  { name: 'fieldMapping', label: 'Map Fields' },
+  { name: 'loadRecords', label: 'Load Data' },
 ];
-
-const enabledSteps: Step[] = steps.filter((step) => step.enabled);
-const finalStep: Step = enabledSteps[enabledSteps.length - 1];
 
 export const LoadRecords = () => {
   useTitle(TITLES.LOAD);
@@ -67,7 +60,7 @@ export const LoadRecords = () => {
   // Capture pre-fill params (e.g. from browser extension popover) once on mount
   const [initialObjectName] = useState(() => searchParams.get('objectName'));
   const [hasAppliedInitialObjectName, setHasAppliedInitialObjectName] = useState(false);
-  const { defaultApiVersion, serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
+  const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const googleApiConfig = useMemo(
     () => ({ apiKey: google_apiKey, appId: google_appId, clientId: google_clientId }),
@@ -75,8 +68,7 @@ export const LoadRecords = () => {
   );
   const selectedOrg = useAtomValue(selectedOrgState);
   const orgType = useAtomValue(selectedOrgType);
-  // TODO: probably need this to know when to reset state
-  const [priorSelectedOrg, setPriorSelectedOrg] = useAtom(fromLoadRecordsState.priorSelectedOrg);
+  const [priorSelectedOrg, setPriorSelectedOrg] = useState<string | null>(null);
   const [sobjects, setSobjects] = useAtom(fromLoadRecordsState.sObjectsState);
   const [selectedSObject, setSelectedSObject] = useAtom(fromLoadRecordsState.selectedSObjectState);
   const isCustomMetadataObject = useAtomValue(fromLoadRecordsState.isCustomMetadataObject);
@@ -106,8 +98,8 @@ export const LoadRecords = () => {
   const [loadingFields, setLoadingFields] = useState<boolean>(false);
   const [didPerformDataLoad, setDidPerformDataLoad] = useState<boolean>(false);
 
-  const [currentStep, setCurrentStep] = useState<Step>(steps[0]);
-  const [currentStepIdx, setCurrentStepIdx] = useState<number>(0);
+  const [currentStepIdx, setCurrentStepIdx] = useState(0);
+  const currentStep = steps[currentStepIdx];
   const [currentStepText, setCurrentStepText] = useState<string>('');
   const [nextStepDisabled, setNextStepDisabled] = useState<boolean>(true);
   const [loadSummaryText, setLoadSummaryText] = useState<string>('');
@@ -158,7 +150,6 @@ export const LoadRecords = () => {
   }, [
     inputFileData,
     inputZipFileData,
-    resetBatchSizeState,
     resetTrialRunSizeState,
     resetTrialRunState,
     resetInsertNullsState,
@@ -212,7 +203,7 @@ export const LoadRecords = () => {
   useEffect(() => {
     if (priorSelectedOrg && selectedOrg && selectedOrg.uniqueId !== priorSelectedOrg) {
       setPriorSelectedOrg(selectedOrg.uniqueId);
-      setCurrentStep(steps[0]);
+      setCurrentStepIdx(0);
       resetLoadExistingRecordCount();
     } else {
       setPriorSelectedOrg(selectedOrg.uniqueId);
@@ -237,10 +228,6 @@ export const LoadRecords = () => {
       );
     }
   }, [hasAppliedInitialObjectName, initialObjectName, sobjects, setSelectedSObject, setSearchParams]);
-
-  useEffect(() => {
-    setCurrentStepIdx(enabledSteps.findIndex((step) => step.idx === currentStep.idx));
-  }, [currentStep]);
 
   const fetchFieldMetadata = useCallback(async () => {
     if (!selectedSObject) {
@@ -296,7 +283,6 @@ export const LoadRecords = () => {
   useEffect(() => {
     let currStepButtonText = '';
     let isNextStepDisabled = true;
-    let hasNextStep = true;
     switch (currentStep.name) {
       case 'sobjectAndFile':
         currStepButtonText = 'Continue to Map Fields';
@@ -307,10 +293,8 @@ export const LoadRecords = () => {
           !loadType ||
           (loadType === 'UPSERT' && !externalId) ||
           loadingFields;
-        hasNextStep = true;
         break;
       case 'fieldMapping':
-        // currStepButtonText = 'Continue to Disable Automation';
         currStepButtonText = 'Continue to Load Records';
         // Ensure at least one field is mapped
         isNextStepDisabled = !fieldMapping || Object.values(fieldMapping).filter((field) => field.targetField).length === 0;
@@ -332,30 +316,10 @@ export const LoadRecords = () => {
         if (!isNextStepDisabled && allowBinaryAttachment && inputZipFilename) {
           isNextStepDisabled = !Object.values(fieldMapping).find((field) => field.targetField === binaryAttachmentBodyField);
         }
-        hasNextStep = true;
-        break;
-      case 'automationDeploy':
-        currStepButtonText = 'Continue to Load Records';
-        isNextStepDisabled = false;
-        hasNextStep = true;
         break;
       case 'loadRecords':
-        // TODO: Only show this if automation was disabled
-        // currStepButtonText = 'Continue to Rollback Automation';
         currStepButtonText = 'No More Steps';
         isNextStepDisabled = true;
-        hasNextStep = false;
-        break;
-      // TODO: if we decide to add this back in, enable
-      // case 'automationRollback':
-      //   // TODO: Only show this if automation was disabled
-      //   currStepButtonText = 'No More Steps';
-      //   isNextStepDisabled = true;
-      //   hasNextStep = false;
-      //   break;
-      default:
-        currStepButtonText = currentStepText;
-        isNextStepDisabled = nextStepDisabled;
         break;
     }
     setCurrentStepText(currStepButtonText);
@@ -412,7 +376,7 @@ export const LoadRecords = () => {
   }
 
   function changeStep(changeBy: number) {
-    setCurrentStep(enabledSteps[currentStepIdx + changeBy]);
+    setCurrentStepIdx((priorStepIdx) => Math.min(Math.max(priorStepIdx + changeBy, 0), steps.length - 1));
     if (currentStepIdx === 0 && selectedSObject?.name) {
       recentHistoryItemsDb
         .addItemToRecentHistoryItems(selectedOrg.uniqueId, 'sobject', [selectedSObject.name])
@@ -423,7 +387,7 @@ export const LoadRecords = () => {
   // Cmd/Ctrl+Enter advances to the next step; mirrors the next-step button's disabled condition
   usePrimaryActionShortcut(() => changeStep(1), { disabled: nextStepDisabled || loading });
   // Cmd/Ctrl+Shift+Enter goes back one step; mirrors the go-back button's disabled condition
-  useGoBackShortcut(handleGoBackToPrev, { disabled: currentStep.idx === 0 || loading });
+  useGoBackShortcut(handleGoBackToPrev, { disabled: currentStepIdx === 0 || loading });
 
   const handleIsLoading = useCallback((isLoading: boolean) => {
     setLoading(isLoading);
@@ -431,7 +395,7 @@ export const LoadRecords = () => {
   }, []);
 
   function handleStartOver() {
-    setCurrentStep(enabledSteps[0]);
+    setCurrentStepIdx(0);
     resetSelectedSObjectState();
     resetLoadTypeState();
     resetInputFileDataState();
@@ -466,7 +430,7 @@ export const LoadRecords = () => {
             <button
               data-testid="start-over-button"
               className="slds-button slds-button_neutral collapsible-button collapsible-button-md"
-              disabled={(currentStep.idx === 0 && !inputFileData && !selectedSObject) || loading}
+              disabled={(currentStepIdx === 0 && !inputFileData && !selectedSObject) || loading}
               onClick={() => handleStartOver()}
             >
               <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" />
@@ -483,7 +447,7 @@ export const LoadRecords = () => {
               <button
                 data-testid="prev-step-button"
                 className="slds-button slds-button_neutral"
-                disabled={currentStep.idx === 0 || loading}
+                disabled={currentStepIdx === 0 || loading}
                 onClick={() => handleGoBackToPrev()}
               >
                 <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" />
@@ -578,11 +542,6 @@ export const LoadRecords = () => {
                 />
               </span>
             )}
-            {currentStep.name === 'automationDeploy' && selectedSObject && (
-              <span>
-                <LoadRecordsLoadAutomationDeploy />
-              </span>
-            )}
             {currentStep.name === 'loadRecords' && selectedSObject && inputFileData && (
               <span>
                 {!isCustomMetadataObject ? (
@@ -600,8 +559,6 @@ export const LoadRecords = () => {
                   />
                 ) : (
                   <PerformLoadCustomMetadata
-                    apiVersion={defaultApiVersion}
-                    serverUrl={serverUrl}
                     selectedOrg={selectedOrg}
                     orgType={orgType}
                     selectedSObject={selectedSObject.name}
@@ -614,14 +571,9 @@ export const LoadRecords = () => {
                 )}
               </span>
             )}
-            {currentStep.name === 'automationRollback' && (
-              <span>
-                <LoadRecordsLoadAutomationRollback />
-              </span>
-            )}
           </GridCol>
           <GridCol size={2}>
-            <LoadRecordsProgress currentStepIdx={currentStepIdx} enabledSteps={enabledSteps} />
+            <LoadRecordsProgress currentStepIdx={currentStepIdx} steps={steps} />
           </GridCol>
         </Grid>
       </AutoFullHeightContainer>

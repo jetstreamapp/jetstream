@@ -20,6 +20,7 @@ export * from './lib/hooks/useNonInitialEffect';
 export * from './lib/hooks/useObservable';
 export * from './lib/hooks/useProfilesAndPermSets';
 export * from './lib/hooks/useTitle';
+export * from './lib/parse-json';
 export * from './lib/queries';
 export * from './lib/shared-browser-extension-helpers';
 export * from './lib/shared-browser-utils';

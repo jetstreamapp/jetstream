@@ -401,6 +401,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
                     fieldMappingItem={mappingItem}
                     csvField={header}
                     csvRowData={activeRow?.[header]}
+                    binaryAttachmentBodyField={binaryAttachmentBodyField}
                     onSelectionChanged={handleFieldMappingChange}
                   />
                 );

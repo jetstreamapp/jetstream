@@ -161,6 +161,8 @@ export function registerDownloadHandler() {
 export function registerFileOpenHandler() {
   app.on('open-file', async (event, filePath) => {
     event.preventDefault();
+    // Must stay in sync with mac.extendInfo.CFBundleDocumentTypes in electron-builder.config.js - macOS only
+    // routes open-file events for the types declared there
     function isAllowedExtension(extension?: string): boolean {
       switch (extension) {
         case '.csv':
@@ -176,11 +178,14 @@ export function registerFileOpenHandler() {
       if (!isAllowedExtension(extension)) {
         return;
       }
+      // Node reads files under 32KB into a shared pool, so `.buffer` is the entire 64KB pool rather than
+      // this file's bytes - slice out the view or every small file arrives surrounded by unrelated data.
+      const fileBuffer = readFileSync(filePath);
       const fileData: DesktopActionLoadRecord = {
         action: 'LOAD_RECORD',
         payload: {
           fileContent: {
-            content: readFileSync(filePath).buffer as ArrayBuffer,
+            content: fileBuffer.buffer.slice(fileBuffer.byteOffset, fileBuffer.byteOffset + fileBuffer.byteLength),
             filename: name,
             extension,
             isPasteFromClipboard: false,
@@ -194,7 +199,7 @@ export function registerFileOpenHandler() {
           newWindow.webContents.send(IpcEventChannel.action, fileData);
         });
       } else if (newWindow) {
-        newWindow.webContents.send(IpcEventChannel.fileDropped, fileData);
+        newWindow.webContents.send(IpcEventChannel.action, fileData);
       }
     } catch (ex) {
       logger.error('Error opening file:', getErrorMessageAndStackObj(ex));

@@ -30,7 +30,7 @@ import { ChangeEvent, Fragment, useCallback, useState } from 'react';
 import LoadRecordsDuplicateWarning from '../components/LoadRecordsDuplicateWarning';
 import LoadRecordsCustomMetadataResultsTable from '../components/load-results/LoadRecordsCustomMetadataResultsTable';
 
-export function getDeploymentStatusUrl(id: string) {
+function getDeploymentStatusUrl(id: string) {
   const address = encodeURIComponent(
     `/changemgmt/monitorDeploymentsDetails.apexp?asyncId=${id}&retURL=${encodeURIComponent('/changemgmt/monitorDeployment.apexp')}`,
   );
@@ -39,8 +39,6 @@ export function getDeploymentStatusUrl(id: string) {
 
 export interface PerformLoadCustomMetadataProps {
   selectedOrg: SalesforceOrgUi;
-  apiVersion: string;
-  serverUrl: string;
   orgType: Maybe<SalesforceOrgUiType>;
   selectedSObject: string;
   inputFileHeader: string[] | null;

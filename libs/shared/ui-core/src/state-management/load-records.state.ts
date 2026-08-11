@@ -13,8 +13,6 @@ SUPPORTED_ATTACHMENT_OBJECTS.set('Document', { bodyField: 'Body' });
 SUPPORTED_ATTACHMENT_OBJECTS.set('ContentVersion', { bodyField: 'VersionData' });
 const DATE_FIELDS = new Set(['date', 'datetime']);
 
-export const priorSelectedOrg = atom<string | null>(null);
-
 export const sObjectsState = atomWithReset<DescribeGlobalSObjectResult[] | null>(null);
 
 export const selectedSObjectState = atomWithReset<DescribeGlobalSObjectResult | null>(null);

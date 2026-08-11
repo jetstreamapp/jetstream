@@ -4,6 +4,7 @@ import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { FieldMappingItemStatic, FieldWithRelatedEntities, ListItem, Maybe, PicklistFieldValues, SalesforceOrgUi } from '@jetstream/types';
 import { ComboboxWithItems, Icon, Picklist } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useId, useMemo, useState } from 'react';
+import { getComboboxFieldName, getComboboxFieldTitle, getFieldListItems } from '../utils/field-mapping-utils';
 
 type ValueInputMode = NonNullable<FieldMappingItemStatic['valueInputMode']>;
 
@@ -15,14 +16,6 @@ const VALUE_INPUT_MODE_OPTIONS: ListItem[] = [
 // Salesforce caps a multipicklist write at 100 selected values, each up to 255 chars
 const MULTIPICKLIST_MAX_TEXT_LENGTH = 100 * 255;
 
-function getComboboxFieldName(item: ListItem) {
-  return `${item.label} (${item.value})`;
-}
-
-function getComboboxFieldTitle(item: ListItem) {
-  return `${item.label} (${item.value}) - ${item.secondaryLabel}`;
-}
-
 export interface LoadRecordsFieldMappingStaticRowProps {
   org: SalesforceOrgUi;
   fields: FieldWithRelatedEntities[];
@@ -30,18 +23,6 @@ export interface LoadRecordsFieldMappingStaticRowProps {
   isCustomMetadata?: boolean;
   onSelectionChanged: (fieldMappingItem: FieldMappingItemStatic) => void;
   onRemoveRow: () => void;
-}
-
-function getFieldListItems(fields: FieldWithRelatedEntities[]) {
-  return fields.map((field) => ({
-    id: field.name,
-    label: field.label,
-    value: field.name,
-    secondaryLabel: field.name,
-    secondaryLabelOnNewLine: true,
-    tertiaryLabel: field.typeLabel,
-    meta: field,
-  }));
 }
 
 export const LoadRecordsFieldMappingStaticRow: FunctionComponent<LoadRecordsFieldMappingStaticRowProps> = ({

@@ -14,10 +14,6 @@ export function registerRetryRecord<TRow extends object, TRecord>(row: TRow, ori
   return row;
 }
 
-export function getRetryRecord<TRecord = unknown>(row: object): TRecord | undefined {
-  return retryRecordMap.get(row) as TRecord | undefined;
-}
-
 /**
  * Extract the original prepared records for a set of selected result rows. Rows without a
  * registered original record are skipped (and logged by the caller if needed).

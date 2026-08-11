@@ -1,6 +1,7 @@
 import { DesktopAction } from '@jetstream/desktop/types';
 import { logger } from '@jetstream/shared/client-logger';
 import { parseFile } from '@jetstream/shared/ui-utils';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import { fireToast, XlsxSheetSelectionModalPromise } from '@jetstream/ui';
 import { fromLoadRecordsState } from '@jetstream/ui-core';
 import { useSetAtom } from 'jotai';
@@ -51,6 +52,8 @@ export const useElectronActionLoader = () => {
         }
       } catch (ex) {
         logger.error('Error handling electron action:', ex);
+        // parseFile throws on unreadable content (e.g. malformed JSON), which would otherwise look like the app ignored the file
+        fireToast({ message: `There was an error reading your file. ${getErrorMessage(ex)}`, type: 'error' });
       }
     },
     [setInputFileData, setInputFileHeader, setInputFilename, setInputFilenameType],
