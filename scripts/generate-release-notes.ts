@@ -12,14 +12,16 @@
 import matter from 'gray-matter';
 import { format } from 'oxfmt';
 import { chalk, fs, globby, path } from 'zx';
-import type { ReleaseNote } from '../libs/release-notes/src/lib/release-notes.types.ts';
+import type { ReleaseNote, ReleaseNoteFrontmatter } from '../libs/release-notes/src/lib/release-notes.types.ts';
 import { releaseNoteFrontmatterSchema, releaseNotesArraySchema } from '../libs/release-notes/src/lib/release-notes.types.ts';
 
 const ROOT = path.resolve(__dirname, '..');
 const SOURCE_DIR = path.join(ROOT, 'apps/docs/release-notes');
+const DOCS_DIR = path.join(ROOT, 'apps/docs/docs');
 const OUTPUT_FILE = path.join(ROOT, 'apps/docs/static/release-notes.json');
 
 const files = await globby('*.mdx', { cwd: SOURCE_DIR, absolute: true });
+const docRoutes = await collectDocRoutes();
 
 if (files.length === 0) {
   console.log(chalk.yellow(`No MDX files found in ${path.relative(ROOT, SOURCE_DIR)}; writing empty array.`));
@@ -33,7 +35,11 @@ for (const file of [...files].sort()) {
   const { data } = matter(raw);
   const parsed = releaseNoteFrontmatterSchema.safeParse(data);
   if (!parsed.success) {
-    errors.push({ file: path.relative(ROOT, file), issues: parsed.error.issues });
+    // Zod issue paths may contain symbols; normalize so they satisfy the local issue shape.
+    errors.push({
+      file: path.relative(ROOT, file),
+      issues: parsed.error.issues.map(({ path: issuePath, message }) => ({ path: issuePath.map(String), message })),
+    });
     continue;
   }
   const normalizedDate = normalizeDate(parsed.data.date);
@@ -42,6 +48,11 @@ for (const file of [...files].sort()) {
       file: path.relative(ROOT, file),
       issues: [{ path: ['date'], message: `Invalid date "${String(parsed.data.date)}" — expected YYYY-MM-DD.` }],
     });
+    continue;
+  }
+  const docLinkIssues = validateDocLinks(parsed.data, docRoutes);
+  if (docLinkIssues.length) {
+    errors.push({ file: path.relative(ROOT, file), issues: docLinkIssues });
     continue;
   }
   notes.push({ ...parsed.data, date: normalizedDate });
@@ -84,6 +95,58 @@ const { code: formatted } = await format(OUTPUT_FILE, JSON.stringify(validated.d
 await fs.writeFile(OUTPUT_FILE, formatted);
 
 console.log(chalk.greenBright(`Wrote ${notes.length} release note${notes.length === 1 ? '' : 's'} → ${path.relative(ROOT, OUTPUT_FILE)}`));
+
+/**
+ * Published routes of every doc page, taken from the `slug` frontmatter under apps/docs/docs/.
+ * Highlight `docLink`s must point at one of these — the in-app "Learn more" links resolve against
+ * the live docs site, so an unknown route ships a 404 to users. Files with a `_` prefix are
+ * Docusaurus partials and never get a route.
+ */
+async function collectDocRoutes(): Promise<Set<string>> {
+  const docFiles = await globby(['**/*.mdx', '**/*.md'], { cwd: DOCS_DIR, absolute: true });
+  const routes = new Set<string>();
+  for (const file of docFiles) {
+    if (path.basename(file).startsWith('_')) {
+      continue;
+    }
+    const { data } = matter(await fs.readFile(file, 'utf8'));
+    if (typeof data.slug === 'string' && data.slug.length > 0) {
+      routes.add(normalizeRoute(data.slug));
+    }
+  }
+  return routes;
+}
+
+function normalizeRoute(route: string): string {
+  const withLeadingSlash = route.startsWith('/') ? route : `/${route}`;
+  return withLeadingSlash.length > 1 && withLeadingSlash.endsWith('/') ? withLeadingSlash.slice(0, -1) : withLeadingSlash;
+}
+
+/**
+ * Every internal docLink (and internal cta.href) must match a real doc slug. Absolute
+ * http(s) URLs are allowed as-is — the popover passes them through untouched.
+ */
+function validateDocLinks(
+  note: ReleaseNoteFrontmatter,
+  validRoutes: Set<string>,
+): Array<{ path: readonly (string | number)[]; message: string }> {
+  const issues: Array<{ path: readonly (string | number)[]; message: string }> = [];
+  const check = (link: string | undefined, issuePath: readonly (string | number)[]) => {
+    if (!link || /^https?:\/\//i.test(link)) {
+      return;
+    }
+    const route = normalizeRoute(link.split('#')[0]);
+    if (!validRoutes.has(route)) {
+      issues.push({
+        path: issuePath,
+        message: `"${link}" does not match the slug of any doc under apps/docs/docs — the in-app "Learn more" link would 404. Use the target doc's frontmatter slug, or remove the link.`,
+      });
+    }
+  };
+  note.highlights.forEach((highlight, index) => check(highlight.docLink, ['highlights', index, 'docLink']));
+  check(note.cta?.href, ['cta', 'href']);
+  return issues;
+}
 
 function compareSemver(a: string, b: string): number {
   const parse = (slug: string) =>

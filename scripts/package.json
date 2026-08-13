@@ -1,0 +1,5 @@
+{
+  "//": "Not a workspace package. This only marks scripts/ as ESM so node and tsc treat the .ts files here as ES modules (top-level await, import syntax) instead of guessing CommonJS.",
+  "private": true,
+  "type": "module"
+}
