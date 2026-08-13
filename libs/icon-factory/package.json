@@ -1,0 +1,8 @@
+{
+  "name": "icon-factory",
+  "private": true,
+  "sideEffects": [
+    "**/*.css",
+    "**/*.scss"
+  ]
+}

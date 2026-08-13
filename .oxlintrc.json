@@ -4,7 +4,10 @@
   "categories": {
     "correctness": "error"
   },
-  "jsPlugins": [{ "name": "nx", "specifier": "@nx/eslint-plugin" }],
+  "jsPlugins": [
+    { "name": "nx", "specifier": "@nx/eslint-plugin" },
+    { "name": "lib-purity", "specifier": "./tools/oxlint/lib-purity.mjs" }
+  ],
   "ignorePatterns": [
     "**/assets/**",
     "**/generated/**",
@@ -15,6 +18,7 @@
     "apps-sfdx/**"
   ],
   "rules": {
+    "lib-purity/no-top-level-side-effects": "error",
     "nx/enforce-module-boundaries": [
       "error",
       {

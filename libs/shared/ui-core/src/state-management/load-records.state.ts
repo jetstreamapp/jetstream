@@ -7,10 +7,11 @@ import { atomWithReset } from 'jotai/utils';
 import isNumber from 'lodash/isNumber';
 import { BATCH_RECOMMENDED_THRESHOLD, MAX_BULK, getLabelWithOptionalRecommended, getMaxBatchSize } from '../load/load-records-utils';
 
-const SUPPORTED_ATTACHMENT_OBJECTS = new Map<string, { bodyField: string }>();
-SUPPORTED_ATTACHMENT_OBJECTS.set('Attachment', { bodyField: 'Body' });
-SUPPORTED_ATTACHMENT_OBJECTS.set('Document', { bodyField: 'Body' });
-SUPPORTED_ATTACHMENT_OBJECTS.set('ContentVersion', { bodyField: 'VersionData' });
+const SUPPORTED_ATTACHMENT_OBJECTS = new Map<string, { bodyField: string }>([
+  ['Attachment', { bodyField: 'Body' }],
+  ['Document', { bodyField: 'Body' }],
+  ['ContentVersion', { bodyField: 'VersionData' }],
+]);
 const DATE_FIELDS = new Set(['date', 'datetime']);
 
 export const sObjectsState = atomWithReset<DescribeGlobalSObjectResult[] | null>(null);

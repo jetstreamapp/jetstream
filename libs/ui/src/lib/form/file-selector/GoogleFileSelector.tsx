@@ -1,7 +1,7 @@
 /// <reference types="@maxim_mazurok/gapi.client.drive-v3" />
 /// <reference types="google.picker" />
 import { logger } from '@jetstream/shared/client-logger';
-import { GoogleApiClientConfig, initXlsx, useDrivePicker } from '@jetstream/shared/ui-utils';
+import { ensureXlsxCodepageTable, GoogleApiClientConfig, useDrivePicker } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { InputReadGoogleSheet, Maybe } from '@jetstream/types';
 import classNames from 'classnames';
@@ -14,8 +14,6 @@ import Spinner from '../../widgets/Spinner';
 import Tooltip from '../../widgets/Tooltip';
 import { SCRIPT_LOAD_ERR_MESSAGE } from './file-selector-utils';
 import { useFilename } from './useFilename';
-
-initXlsx(XLSX);
 
 export interface GoogleFileSelectorProps {
   apiConfig: GoogleApiClientConfig;
@@ -99,6 +97,7 @@ export const GoogleFileSelector: FunctionComponent<GoogleFileSelectorProps> = ({
           resultBody = results.body;
         }
         try {
+          await ensureXlsxCodepageTable();
           const workbook = XLSX.read(resultBody, { cellText: false, cellDates: true, type: 'binary' });
           setSelectedFile(selectedItem);
           setManagedFilename(selectedItem.name);

@@ -49,10 +49,6 @@ import type { editor } from 'monaco-editor';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { FormulaEvaluatorDeployModal } from './deploy/FormulaEvaluatorDeployModal';
 
-window.addEventListener('unhandledrejection', function (event) {
-  console.log('unhandledrejection', event);
-});
-
 export function filterSobjectFn(sobject: DescribeGlobalSObjectResult): boolean {
   return (
     sobject.triggerable &&

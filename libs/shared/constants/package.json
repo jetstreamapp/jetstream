@@ -1,0 +1,8 @@
+{
+  "name": "shared-constants",
+  "private": true,
+  "sideEffects": [
+    "**/*.css",
+    "**/*.scss"
+  ]
+}

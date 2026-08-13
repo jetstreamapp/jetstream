@@ -1,8 +1,8 @@
 import { ANALYTICS_KEYS, INPUT_ACCEPT_FILETYPES, TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import {
+  ensureXlsxCodepageTable,
   formatNumber,
-  initXlsx,
   isBrowserExtension,
   isCanvasApp,
   isDesktop,
@@ -45,8 +45,6 @@ import {
 import LoadRecordsMultiObjectLoad from './load/LoadRecordsMultiObjectLoad';
 import LoadRecordsMultiObjectReview from './review/LoadRecordsMultiObjectReview';
 import useProcessLoadFile from './useProcessLoadFile';
-
-initXlsx(XLSX);
 
 const TEMPLATE_DOWNLOAD_LINK = '/assets/content/Jetstream%20-%20Load%20Records%20to%20Multiple%20Objects%20-%20Template.xlsx';
 const HEIGHT_BUFFER = 170;
@@ -138,6 +136,11 @@ export const LoadRecordsMultiObject = () => {
       }
     }
   }, [loadIsRunning, runs, trackEvent]);
+
+  // Registered on mount so the table is ready by the time a file is chosen.
+  useEffect(() => {
+    ensureXlsxCodepageTable();
+  }, []);
 
   function handleFile({ content, filename }: InputReadFileContent) {
     try {

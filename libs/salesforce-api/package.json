@@ -1,0 +1,8 @@
+{
+  "name": "salesforce-api",
+  "private": true,
+  "sideEffects": [
+    "**/*.css",
+    "**/*.scss"
+  ]
+}

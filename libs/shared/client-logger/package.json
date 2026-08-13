@@ -1,0 +1,8 @@
+{
+  "name": "shared-client-logger",
+  "private": true,
+  "sideEffects": [
+    "**/*.css",
+    "**/*.scss"
+  ]
+}

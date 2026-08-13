@@ -1,0 +1,8 @@
+{
+  "name": "shared-ui-utils",
+  "private": true,
+  "sideEffects": [
+    "**/*.css",
+    "**/*.scss"
+  ]
+}

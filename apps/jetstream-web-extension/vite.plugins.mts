@@ -113,17 +113,11 @@ export function extensionScriptsBuildPlugin(mode: string): PluginOption {
             ],
             resolve: { tsconfigPaths: true },
             define: sharedDefine,
-            // Chrome rejects content scripts that aren't UTF-8 encoded. esbuild's minifier defaults to
-            // `charset: 'utf8'` and emits raw non-ASCII bytes (accented chars, smart quotes, etc.) from deps.
-            // Force ASCII-only output so non-ASCII is escaped (\uXXXX), matching the main vite.config.ts.
-            esbuild: {
-              charset: 'ascii',
-            },
             build: {
               outDir: resolve(import.meta.dirname, '../../dist/apps/jetstream-web-extension'),
               emptyOutDir: false,
               sourcemap: mode === 'development' ? 'inline' : false,
-              minify: mode === 'development' ? false : 'esbuild',
+              minify: mode !== 'development',
               lib: {
                 entry,
                 formats: ['iife'],
