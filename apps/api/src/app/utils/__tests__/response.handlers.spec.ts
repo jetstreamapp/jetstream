@@ -348,6 +348,18 @@ describe('uncaughtErrorHandler Salesforce connection error normalization', () =>
     });
   });
 
+  it('marks the org invalid when its Salesforce hostname no longer resolves (deleted or refreshed org)', async () => {
+    const { res } = await handleError(new UserFacingError(new Error(ERROR_MESSAGES.SFDC_ORG_NOT_FOUND)), {
+      org: { id: 'org-1', uniqueId: 'unique-1' },
+    });
+
+    expect(res.status).toHaveBeenLastCalledWith(401);
+    expect(res.set).toHaveBeenCalledWith(HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR, ERROR_MESSAGES.SFDC_EXPIRED_TOKEN);
+    expect(salesforceOrgsDb.updateOrg_UNSAFE).toHaveBeenCalledWith(expect.objectContaining({ id: 'org-1' }), {
+      connectionError: ERROR_MESSAGES.SFDC_EXPIRED_TOKEN,
+    });
+  });
+
   it('normalizes a "REST API not enabled" error to 403', async () => {
     const apiRequestError = new ApiRequestError('API is not enabled for this Organization or Partner', { status: 500 } as any);
     const { res } = await handleError(new UserFacingError(apiRequestError));

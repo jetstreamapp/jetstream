@@ -142,6 +142,7 @@ export function handleErrorResponse(error: Error, additionalHeaders?: Record<str
     errorMessage === ERROR_MESSAGES.SFDC_EXPIRED_TOKEN ||
     errorMessage === ERROR_MESSAGES.SFDC_EXPIRED_SESSION ||
     errorMessage === ERROR_MESSAGES.SFDC_EXPIRED_TOKEN_VALIDITY ||
+    errorMessage === ERROR_MESSAGES.SFDC_ORG_NOT_FOUND ||
     ERROR_MESSAGES.SFDC_ORG_DOES_NOT_EXIST.test(errorMessage)
   ) {
     headers[HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR] = ERROR_MESSAGES.SFDC_EXPIRED_TOKEN;
