@@ -10,11 +10,18 @@ import {
 } from '@jetstream/types';
 
 export interface LoadMultiObjectDataError {
-  property: Omit<keyof LoadMultiObjectData, 'errors'>;
+  property: Exclude<keyof LoadMultiObjectData, 'errors'> | null;
   worksheet: string;
-  location: string;
-  locationType: 'CELL' | 'ROW' | 'COLUMN';
+  location: string | null;
+  /** SHEET errors apply to the worksheet as a whole (e.g. B1/B2/B3 configuration or an empty sheet) and have no single cell to point at */
+  locationType: 'CELL' | 'ROW' | 'COLUMN' | 'SHEET';
   message: string;
+  /** 0-based indexes into dataset.data for errors that apply to specific rows (e.g. missing or invalid Reference Ids) */
+  rowIndexes?: number[];
+  /** Header name for errors tied to a specific column */
+  header?: string;
+  /** Warnings do not block the load. Absent = 'error'. */
+  severity?: 'error' | 'warning';
 }
 
 export interface LoadMultiObjectData {
@@ -35,6 +42,12 @@ export interface LoadMultiObjectData {
   errors: LoadMultiObjectDataError[];
 }
 
+export interface ParseWorkbookResult {
+  datasets: LoadMultiObjectData[];
+  /** Errors/warnings that apply to the workbook rather than one dataset (e.g. skipped sheets, no data worksheets at all) */
+  workbookErrors: LoadMultiObjectDataError[];
+}
+
 export interface LoadMultiObjectRecord {
   sobject: string;
   operation: InsertUpdateUpsert;
@@ -43,6 +56,7 @@ export interface LoadMultiObjectRecord {
   recordIdForUpdate?: Maybe<string>;
   referenceId: string;
   record: any;
+  worksheet: string;
   recordIdx: number;
   dependsOn: string[];
 }
@@ -52,6 +66,11 @@ export interface RecordWithResponse {
   sobject: string;
   operation: InsertUpdateUpsert;
   externalId?: Maybe<string>;
+  worksheet: string;
+  /** 0-based index of the record within its worksheet's data rows */
+  rowIndex: number;
+  /** Reference Id of the top-level record of the group this record belongs to */
+  graphId: string;
   request: CompositeRequestBody;
   response: CompositeResponseItem | null;
 }
@@ -76,4 +95,35 @@ export interface LoadMultiObjectRequestWithResult {
   dataWithResultsByGraphId: Record<string, LoadMultiObjectRequestGraphResults>;
   // Same data as above, just grouped together by record reference id
   recordWithResponseByRefId: Record<string, RecordWithResponse>;
+}
+
+export interface LoadMultiObjectGroupInfo {
+  /** Reference Id of the top-level record of the group */
+  graphId: string;
+  /** Number of records in the group */
+  size: number;
+}
+
+export interface BuildDataGraphResult {
+  requests: LoadMultiObjectRequestWithResult[];
+  errors: LoadMultiObjectDataError[];
+  /** Group membership for every record, keyed by Reference Id. Populated whenever groups could be computed, even if a group exceeds the size limit. */
+  groupsByRefId: Record<string, LoadMultiObjectGroupInfo>;
+}
+
+export interface LoadMultiObjectRun {
+  runId: number;
+  type: 'initial' | 'retry';
+  requests: LoadMultiObjectRequestWithResult[];
+  startedAt: Date | null;
+  finishedAt: Date | null;
+  cancelled: boolean;
+}
+
+export interface LoadMultiObjectProgress {
+  /** 1-based request number currently processing (0 = not started) */
+  current: number;
+  total: number;
+  recordsProcessed: number;
+  recordsTotal: number;
 }

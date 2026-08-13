@@ -10,7 +10,16 @@ import {
   checkMetadataRetrieveResults,
   checkMetadataRetrieveResultsAndDeployToTarget,
 } from '@jetstream/shared/data';
-import { NOOP, REGEX, delay, ensureArray, ensureBoolean, getErrorMessage, orderObjectsBy } from '@jetstream/shared/utils';
+import {
+  NOOP,
+  REGEX,
+  delay,
+  ensureArray,
+  ensureBoolean,
+  getErrorMessage,
+  getExcelSafeSheetName,
+  orderObjectsBy,
+} from '@jetstream/shared/utils';
 import type {
   AddOrgHandlerFn,
   AndOr,
@@ -428,6 +437,56 @@ export function excelWorkbookToArrayBuffer(workbook: XLSX.WorkBook, options?: XL
     ...options,
   });
   return workbookArrayBuffer;
+}
+
+/**
+ * Build the sheet rows for a "Load Records to Multiple Objects" template from records already in the browser.
+ * Returns a map of sheet name to array-of-array rows, ready to pass to prepareExcelFile (or FileDownloadModal).
+ *
+ * Each record's Id becomes its Reference Id and the operation defaults to Insert, so the file can be loaded
+ * into another org as-is. Relationship ("." path), subquery, and other non-primitive (e.g. compound address)
+ * fields are excluded because the template only supports writable fields on the target object.
+ */
+export function prepareLoadMultiObjectTemplate({
+  sobject,
+  fields,
+  records,
+}: {
+  sobject: string;
+  fields: string[];
+  records: any[];
+}): Record<string, any[][]> {
+  const templateFields = fields.filter((field) => {
+    if (field === 'Id' || field.includes('.')) {
+      return false;
+    }
+    // Subquery results and compound values (e.g. address) surface as objects, which the template cannot represent
+    return !records.some((record) => record[field] !== null && typeof record[field] === 'object');
+  });
+
+  function getCellValue(value: unknown) {
+    if (value === null || value === undefined) {
+      return '';
+    }
+    // Object-valued fields were excluded above; this is a defensive guard for anything that slipped through
+    if (typeof value === 'object') {
+      return '';
+    }
+    return value;
+  }
+
+  const rows: any[][] = [
+    ['Object Api Name', sobject],
+    ['Operation', 'Insert'],
+    ['External Id (for upsert)', ''],
+    [],
+    ['Reference Id', ...templateFields],
+    ...records.map((record) => [record.Id ?? '', ...templateFields.map((field) => getCellValue(record[field]))]),
+  ];
+
+  // Salesforce API names cannot contain Excel's forbidden characters, but sanitize defensively
+  const sheetName = getExcelSafeSheetName(sobject.replace(/[:\\/?*[\]]/g, ''));
+  return { [sheetName]: rows };
 }
 
 export function prepareCsvFile(data: Record<string, string>[], header: string[]): string {
