@@ -66,6 +66,10 @@ export default defineConfig(({ command, mode }) => {
           entryFileNames: '[name].js',
           chunkFileNames: '[name]-[hash].js',
           assetFileNames: '[name].[ext]',
+          // configure-zod has to be its own chunk. Merged into an entry chunk it would run after every
+          // chunk that entry imports — including the one that builds schemas, which is too late.
+          // See libs/shared/utils/src/lib/configure-zod.ts
+          advancedChunks: { groups: [{ name: 'configure-zod', test: /configure-zod/, priority: 100 }] },
         },
       },
     },

@@ -1,4 +1,8 @@
 /* eslint-disable no-restricted-globals */
+// Must stay the first import — Zod probes for eval support when the first schema is constructed,
+// which happens while these imports are evaluated. See configure-zod.
+import '@jetstream/shared/utils/configure-zod';
+
 import { AnonymousApex } from '@jetstream/feature/anon-apex';
 import { AutomationControl, AutomationControlEditor, AutomationControlSelection } from '@jetstream/feature/automation-control';
 import { CreateFields, CreateFieldsSelection, CreateObjectAndFields } from '@jetstream/feature/create-object-and-fields';
