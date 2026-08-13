@@ -1,4 +1,5 @@
 import { Locator, Page, expect } from '@playwright/test';
+import { fillSalesforceLoginForm } from '../salesforce-login.utils';
 import { AuthenticationPage } from './AuthenticationPage.model';
 
 const ButtonAction = {
@@ -45,11 +46,7 @@ export class WebExtensionPage {
   async loginToSalesforce(url: string, username: string, password: string) {
     await this.page.goto(url);
 
-    await this.page.getByLabel('Username').click();
-    await this.page.getByLabel('Username').fill(username);
-
-    await this.page.getByLabel('Password').click();
-    await this.page.getByLabel('Password').fill(password);
+    await fillSalesforceLoginForm(this.page, username, password);
 
     await this.page.getByRole('button', { name: 'Log In' }).click();
 
