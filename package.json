@@ -27,6 +27,7 @@
     "release-notes:generate": "zx ./scripts/generate-release-notes.ts",
     "release-notes:context": "node ./scripts/release-notes-context.mjs",
     "new-release-note": "zx ./scripts/new-release-note.mjs",
+    "ci:failures": "node ./scripts/ci-failures.mjs",
     "nx": "nx",
     "start": "nx serve",
     "start:api": "nx serve api",
