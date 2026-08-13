@@ -1,5 +1,6 @@
 import { APIRequestContext, Locator, Page, expect } from '@playwright/test';
 import { ApiRequestUtils } from '../ApiRequestUtils';
+import { fillSalesforceLoginForm } from '../salesforce-login.utils';
 import { PlaywrightPage } from './PlaywrightPage.model';
 
 export class OrgGroupPage {
@@ -64,11 +65,7 @@ export class OrgGroupPage {
     // Sometimes SFDC clears the values from the form if they are typed in too quickly
     await salesforcePage.waitForTimeout(1000);
 
-    await salesforcePage.getByLabel('Username').click();
-    await salesforcePage.getByLabel('Username').fill(username);
-
-    await salesforcePage.getByLabel('Password').click();
-    await salesforcePage.getByLabel('Password').fill(password);
+    await fillSalesforceLoginForm(salesforcePage, username, password);
 
     const pageClosePromise = salesforcePage.waitForEvent('close', { timeout: 30000 });
 

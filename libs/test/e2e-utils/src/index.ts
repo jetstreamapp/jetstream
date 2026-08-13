@@ -11,4 +11,5 @@ export * from './lib/pageObjectModels/ProfilePage.model';
 export * from './lib/pageObjectModels/QueryPage.model';
 export * from './lib/pageObjectModels/TeamDashboardPage.model';
 export * from './lib/pageObjectModels/WebExtensionPage.model';
+export * from './lib/salesforce-login.utils';
 export * from './lib/TeamCreationUtils';

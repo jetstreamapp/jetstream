@@ -248,8 +248,12 @@ test.describe('Team Dashboard', () => {
 
     await test.step('Set user 2 to inactive', async () => {
       const row = page.getByTestId(`team-member-row-${member2.teamMembership.user.email}`);
-      await row.getByTestId('user-row-actions').click();
-      await row.getByRole('menuitem', { name: 'Deactivate' }).click();
+      const rowActions = row.getByTestId('user-row-actions');
+      await rowActions.click();
+      // The row's menu is portaled, so it is not reachable as a descendant of the row — tie the menu back
+      // to the row through the trigger instead, since only one row menu can be open at a time.
+      await expect(rowActions).toHaveAttribute('aria-expanded', 'true');
+      await page.getByRole('menu', { name: 'action' }).getByRole('menuitem', { name: 'Deactivate' }).click();
 
       const updateModal = page.getByTestId('team-member-status-update-modal');
 
