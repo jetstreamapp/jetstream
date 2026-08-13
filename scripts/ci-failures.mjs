@@ -22,7 +22,7 @@
  *   pnpm ci:failures --branch feat/thing --open
  *
  * Options:
- *   --run <id>        target a specific workflow run
+ *   --run <id>        target a specific workflow run, by the id from its URL (not the "CI #123" number)
  *   --branch <name>   target a branch instead of the current one
  *   --repo <o/r>      target a different repository (default: this checkout's remote)
  *   --workflow <name> only consider runs of this workflow (e.g. "CI")
@@ -55,6 +55,11 @@ const PLAYWRIGHT_ARTIFACT = 'playwright-report';
 const PLAYWRIGHT_SUMMARY_ARTIFACT = 'playwright-summary';
 const RUNS_TO_SCAN = 15;
 const FAILED_CONCLUSIONS = new Set(['failure', 'timed_out', 'cancelled', 'startup_failure']);
+
+// Everything below runs at the top level, so a thrown error would otherwise surface as an unhandled
+// rejection with a stack trace through this script's internals — noise that buries the actual problem.
+process.on('uncaughtException', reportFatalError);
+process.on('unhandledRejection', reportFatalError);
 
 const options = parseArgs(process.argv.slice(2));
 const repo = options.repo ?? currentRepoSlug();
@@ -140,12 +145,24 @@ function printHelpAndExit() {
   process.exit(0);
 }
 
+function reportFatalError(error) {
+  console.error(`\n${error?.message || error}\n`);
+  process.exit(1);
+}
+
 function gh(args, { json = true, buffer = false } = {}) {
-  const result = execFileSync('gh', args, {
-    cwd: ROOT,
-    maxBuffer: 512 * 1024 * 1024,
-    encoding: buffer ? 'buffer' : 'utf8',
-  });
+  let result;
+  try {
+    result = execFileSync('gh', args, {
+      cwd: ROOT,
+      maxBuffer: 512 * 1024 * 1024,
+      encoding: buffer ? 'buffer' : 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+  } catch (error) {
+    const detail = String(error.stderr || error.stdout || error.message).trim();
+    throw new Error(`\`gh ${args.join(' ')}\` failed:\n  ${detail.split('\n').join('\n  ')}`);
+  }
   if (buffer) {
     return result;
   }
@@ -179,7 +196,15 @@ function normalizeRun(raw) {
 
 async function resolveRun() {
   if (options.runId) {
-    return normalizeRun(gh(['api', `repos/${repo}/actions/runs/${options.runId}`]));
+    try {
+      return normalizeRun(gh(['api', `repos/${repo}/actions/runs/${options.runId}`]));
+    } catch {
+      throw new Error(
+        `No workflow run with id ${options.runId} in ${repo}.\n` +
+          `--run takes the id from the run URL (…/actions/runs/<id>), not the "CI #123" number shown in the summary.\n` +
+          `To target a run without its id, pass a PR number, a run URL, or --branch <name>.`,
+      );
+    }
   }
 
   // A PR is resolved by its head commit so that forks and renamed branches still work, and also by
@@ -211,15 +236,20 @@ async function resolveRun() {
   const selected = options.latest ? candidates[0] : (failed ?? candidates[0]);
 
   if (selected.id !== candidates[0].id) {
-    console.log(
-      `Note: the newest run ${candidates[0].conclusion ?? candidates[0].status}; using the newest failing run instead (--latest overrides).`,
-    );
+    console.log(`Note: the newest run ${describeRunOutcome(candidates[0])}; using the newest failing run instead (--latest overrides).`);
   }
   if (selected.status !== 'completed') {
     console.log(`Note: this run is still ${selected.status} — jobs that have not finished cannot report a failure yet.`);
   }
 
   return normalizeRun(selected);
+}
+
+function describeRunOutcome({ conclusion, status }) {
+  if (!conclusion) {
+    return `is still ${String(status).replace(/_/g, ' ')}`;
+  }
+  return conclusion === 'success' ? 'succeeded' : `finished as ${conclusion.replace(/_/g, ' ')}`;
 }
 
 async function fetchJobs(runId) {
