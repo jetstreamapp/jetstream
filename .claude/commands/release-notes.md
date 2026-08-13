@@ -43,6 +43,9 @@ Read two existing notes as exemplars for tone, length, and structure:
 - `apps/docs/release-notes/2026-04-08-v9.10.0.mdx` (single-platform `web`, rich highlights + an "Other fixes" list)
 - `apps/docs/release-notes/2026-04-19-v9.14.0.mdx` (multi-platform `web`/`desktop`/`extension` with a populated `versions` block)
 
+Do NOT treat the most recent notes as style anchors — several (roughly v10.5.0 through v10.11.0)
+drifted long and salesy and are the style we are moving away from. Match the two files above.
+
 ## Step 3 — Draft the MDX
 
 Create `apps/docs/release-notes/<YYYY-MM-DD>-v<version>.mdx` using the target version and date
@@ -86,12 +89,44 @@ in `versions`. If you are unsure which platforms a given highlight applies to, s
 `platforms: [...]` field. **Default to `web`** unless the digest clearly shows desktop/extension
 changes.
 
-### Body (MDX)
+### Voice and style
 
-**Tone:** warm, friendly, and end-user-focused — present tense, no emoji, not salesy. Give each
-meaningful change real context: what it does, when you'd reach for it, and why it helps — a couple of
-sentences, not a terse one-liner. Patch releases can be shorter, but still explain the user-facing
-impact of each fix rather than just naming it.
+These notes should read like a changelog written by the engineer who built the feature: plain,
+direct, specific, present tense, no emoji. Friendly is fine; enthusiastic is not. The reader is
+skimming — optimize for "understood in one pass," not for warmth.
+
+**Length caps (hard limits):**
+
+- `summary`: one or two plain sentences naming the top change(s). No "plus ..." chains.
+- highlight `title`: name the feature plainly, no cleverness.
+- highlight `description`: one sentence.
+- Body feature sections: two to four sentences. When a feature has several distinct behaviors,
+  use a short bullet list instead of packing them into a paragraph.
+- "Other fixes" bullets: one sentence each.
+
+**Banned — each of these is a tell that the note was AI-generated:**
+
+- Em-dashes (`—`) anywhere in the note. Use a period, a comma, or parentheses instead. (The plain
+  hyphen in the `10.4.0 - short description` title format is fine.)
+- Hype and evaluative wording: "big upgrade", "powerful", "noticeably", "snappier", "seamless",
+  "massive", "supercharged", "a lot more ...", "better than ever".
+- Flourishes and cute imagery: "trapped on screen", "at the mercy of", "quietly makes",
+  "just got", exclamation marks.
+- The triple-list-with-a-twist rhythm in summaries and titles ("X, Y, and Z — plus W").
+- "so you can ..." tails that restate the obvious ("copy a column so you can get it onto your
+  clipboard").
+
+**Benefits:** state a benefit only when it is not obvious from the change itself, and make it
+concrete ("lowering the batch size helps when records fire heavy automation and hit governor
+limits"), never aspirational. When the change speaks for itself, describe it and stop.
+
+**Accuracy — never invent motivation.** Only claim why something was built, or what was broken
+before, if the PR digest actually says so. PR bodies in the digest are truncated: if a significant
+change is under-described, run `gh pr view <number>` for the full body or `gh pr diff <number>` and
+read the real change instead of guessing. If you still cannot tell, describe the new behavior
+without a backstory — a wrong "previously, X was broken" claim is worse than no context.
+
+### Body (MDX)
 
 **Audience — leave out internal/technical noise.** These notes are for Salesforce admins and
 developers who _use_ Jetstream, not the people who build it. The PR digest is full of engineering
@@ -129,7 +164,8 @@ After the frontmatter, write:
 
 ### <Highlight headline>
 
-<A friendly paragraph or two: what changed, when it's useful, and the benefit. Plain language.>
+<Two to four plain sentences: what changed and how to use it. Bullet list if the feature has
+several distinct behaviors.>
 
 ### Other fixes
 
@@ -157,17 +193,37 @@ open the target under `apps/docs/docs/**` and copy its `slug:` value. Common cor
 `/query`, `/query/results`, `/load`, `/permissions`, `/deploy-fields`, `/deploy-metadata`,
 `/team-management`, `/team-management/sso/overview`. Omit `docLink` if there is no matching doc.
 
-## Step 4 — Validate
+`pnpm release-notes:generate` fails on any `docLink` that does not match a real doc slug, but
+that only proves the page exists — you are still responsible for the page actually covering the
+feature. Never invent a route, and never link a doc that merely sounds related.
+
+Validation runs against the doc files in your **working tree**, not the live site, so a doc page
+added in the same branch or PR passes even though it has not deployed yet (they deploy together).
+If the doc page does not exist in the tree at all — for example it will be written later — omit
+`docLink` now and add it in the PR that creates the doc, rather than linking a route that would
+404 in the meantime.
+
+## Step 4 — Validate and proofread
 
 ```
 pnpm release-notes:generate
 ```
 
-This re-parses every note, validates the new one against the schema, and refreshes
+This re-parses every note, validates the new one against the schema, **verifies every `docLink`
+against the real doc slugs under `apps/docs/docs/**`**, and refreshes
 `apps/docs/static/release-notes.json` — the file the docs site serves at
 `docs.getjetstream.app/release-notes.json` and the in-app popover fetches at runtime.
 Fix any reported errors. If you want to be thorough, run `pnpm --dir apps/docs build` to confirm
 the MDX compiles (slower; catches bare `<`/`{` issues).
+
+Then two final passes over the file you wrote:
+
+1. **Style check:** `grep -n '—' apps/docs/release-notes/<file>.mdx` must return nothing.
+   While you're at it, re-scan for the banned wording from the Voice section and cut any
+   sentence that reads like marketing.
+2. **Grammar proofread:** re-read the note once for grammar alone — subject-verb agreement with
+   feature names ("Manage Permissions lets", not "let"), missing articles, consistent present
+   tense, its/it's. Review bots flag exactly these on the release-note PR, so catch them here.
 
 ## Step 5 — Hand off
 

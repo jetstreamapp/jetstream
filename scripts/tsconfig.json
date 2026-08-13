@@ -5,6 +5,8 @@
     "files": true
   },
   "compilerOptions": {
-    "ignoreDeprecations": "6.0"
+    "ignoreDeprecations": "6.0",
+    "allowImportingTsExtensions": true,
+    "noEmit": true
   }
 }

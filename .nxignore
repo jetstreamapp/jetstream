@@ -1,4 +1,5 @@
-dist/
+.react-email/
 apps-sfdx/
 apps/docs/
-.react-email/
+dist/
+scripts/
