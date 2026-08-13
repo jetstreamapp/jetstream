@@ -349,15 +349,6 @@ jobs:
           retention-days: 1
           if-no-files-found: ignore
 
-      - name: Upload failure traces
-        if: failure() && steps.guard.outputs.should_run == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: test-results-${{ matrix.shardIndex }}
-          path: test-results
-          retention-days: 7
-          if-no-files-found: ignore
-
   # Stitches the 4 shard reports back into the single HTML report the old job produced.
   merge-e2e-reports:
     if: always() && !cancelled()
@@ -390,13 +381,19 @@ jobs:
 
       # The E2E job exits successfully without producing reports when the affected-guard skips it,
       # so an empty download here is expected rather than an error.
-      - name: Merge into HTML report
+      #
+      # Both reporters run off one merge: `html` for a human to open, `json` as a machine-readable
+      # summary of every result. Only the JSON name needs directing; `html` defaults to
+      # ./playwright-report, which is what the upload below expects.
+      - name: Merge into HTML report and JSON summary
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: playwright-summary.json
         run: |
           if [ -z "$(ls -A all-blob-reports 2>/dev/null)" ]; then
             echo "::notice::No blob reports found — E2E was skipped by the affected guard"
             exit 0
           fi
-          pnpm exec playwright merge-reports --reporter html ./all-blob-reports
+          pnpm exec playwright merge-reports --reporter html,json ./all-blob-reports
 
       - name: Upload HTML report
         if: hashFiles('playwright-report/**') != ''
@@ -405,6 +402,17 @@ jobs:
           name: playwright-report
           path: playwright-report
           retention-days: 14
+
+      # A few hundred KB against the HTML report's ~45MB, so it is worth keeping around longer.
+      # `pnpm ci:failures --no-report` reads this to explain a failure without the large download,
+      # and it is the only source left once the HTML report expires.
+      - name: Upload JSON summary
+        if: hashFiles('playwright-summary.json') != ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-summary
+          path: playwright-summary.json
+          retention-days: 30
 
   # The check branch protection points at.
   #
