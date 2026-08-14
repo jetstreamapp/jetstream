@@ -34,6 +34,9 @@ const TIME_FIELD_TYPES = new Set<FieldType>(['time']);
 const PICKLIST_FIELD_TYPES = new Set<FieldType>(['combobox', 'picklist', 'multipicklist']);
 const TEXTAREA_FIELD_TYPES = new Set<FieldType>(['textarea']);
 const NUMBER_TYPES = new Set<FieldType>(['int', 'double', 'currency', 'percent']);
+const MULTI_PICKLIST_SEPARATOR = ';';
+// Id and Name are already sorted to the top by sortQueryFields
+const FIELDS_SORTED_TO_TOP = new Set<string>(['Id', 'Name']);
 
 export const OWNER_AND_AUDIT_FIELDS = new Set<string>(['OwnerId', 'CreatedById', 'CreatedDate', 'LastModifiedById', 'LastModifiedDate']);
 
@@ -69,6 +72,21 @@ export function isPicklist(value: EditableFields): value is EditableFieldPicklis
   return value && value.type === 'picklist';
 }
 
+/**
+ * Sort the record type field just below Id and Name since it determines which values other fields allow,
+ * otherwise it sorts alphabetically and is easy to miss.
+ */
+function sortRecordFormFields(fields: Field[]): Field[] {
+  const sortedFields = sortQueryFields(fields);
+  const recordTypeFieldIndex = sortedFields.findIndex((field) => field.name === 'RecordTypeId');
+  if (recordTypeFieldIndex < 0) {
+    return sortedFields;
+  }
+  const [recordTypeField] = sortedFields.splice(recordTypeFieldIndex, 1);
+  sortedFields.splice(sortedFields.filter((field) => FIELDS_SORTED_TO_TOP.has(field.name)).length, 0, recordTypeField);
+  return sortedFields;
+}
+
 export function convertMetadataToEditableFields(
   fields: Field[],
   picklistValues: PicklistFieldValues,
@@ -76,7 +94,7 @@ export function convertMetadataToEditableFields(
   record: SalesforceRecord,
   isCustomMetadata = false,
 ): EditableFields[] {
-  return sortQueryFields(fields.filter((field) => !IGNORED_FIELD_TYPES.has(field.type))).map((field): EditableFields => {
+  return sortRecordFormFields(fields.filter((field) => !IGNORED_FIELD_TYPES.has(field.type))).map((field): EditableFields => {
     let readOnly = action === 'view';
     if (!readOnly && !isCustomMetadata) {
       readOnly = action === 'edit' ? !field.updateable : !field.createable;
@@ -162,6 +180,44 @@ export function convertMetadataToEditableFields(
     }
     return output as EditableFields;
   });
+}
+
+/**
+ * Remove any picklist selections that are not available for the provided picklist values, such as after the user changes the record type.
+ * Every other value the user entered is retained so that changing the record type does not throw away their work.
+ *
+ * Returns a cloned record along with the fields that had one or more values removed.
+ */
+export function removeUnavailablePicklistValues(
+  fields: Field[],
+  picklistValues: PicklistFieldValues,
+  record: SalesforceRecord,
+): { record: SalesforceRecord; fieldsWithClearedValues: Field[] } {
+  const picklistFieldsByName = new Map(fields.filter(({ type }) => PICKLIST_FIELD_TYPES.has(type)).map((field) => [field.name, field]));
+  const fieldsWithClearedValues: Field[] = [];
+
+  const updatedRecord = Object.keys(record).reduce<SalesforceRecord>((output, fieldName) => {
+    const value = record[fieldName];
+    const field = picklistFieldsByName.get(fieldName);
+    if (!field || !isString(value) || !value) {
+      output[fieldName] = value;
+      return output;
+    }
+
+    const availableValues = new Set(picklistValues[fieldName]?.values.map((picklistValue) => picklistValue.value) || []);
+    const currentValues = field.type === 'multipicklist' ? value.split(MULTI_PICKLIST_SEPARATOR) : [value];
+    const retainedValues = currentValues.filter((currentValue) => availableValues.has(currentValue));
+
+    if (retainedValues.length !== currentValues.length) {
+      fieldsWithClearedValues.push(field);
+    }
+    if (retainedValues.length) {
+      output[fieldName] = retainedValues.join(MULTI_PICKLIST_SEPARATOR);
+    }
+    return output;
+  }, {});
+
+  return { record: updatedRecord, fieldsWithClearedValues };
 }
 
 // UI API is not supported, artificially build picklist values

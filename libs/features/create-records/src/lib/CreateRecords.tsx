@@ -1,10 +1,10 @@
 import { css } from '@emotion/react';
-import { getPicklistValuesForRecordAndRecordType, UiRecordForm } from '@jetstream/record-form';
+import { getPicklistValuesForRecordAndRecordType, removeUnavailablePicklistValues, UiRecordForm } from '@jetstream/record-form';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { describeSObject, sobjectOperation } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { filterCreateSobjects, isErrorResponse, useNonInitialEffect, tracker } from '@jetstream/shared/ui-utils';
+import { filterCreateSobjects, isErrorResponse, tracker, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import {
@@ -43,7 +43,7 @@ export const CreateRecords = () => {
 
   const { defaultApiVersion } = useAtomValue(applicationCookieState);
   const selectedOrg = useAtomValue(selectedOrgState);
-  const [key, setKey] = useState(() => new Date().getTime());
+  const [formKey, setFormKey] = useState(0);
 
   const [loading, setLoading] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
@@ -98,7 +98,7 @@ export const CreateRecords = () => {
   function handleClearForm() {
     setInitialRecord({});
     setModifiedRecord({});
-    setKey(new Date().getTime());
+    setFormKey((priorKey) => priorKey + 1);
     setFormErrors({ hasErrors: false, fieldErrors: {}, generalErrors: [] });
     setCreatedRecord(null);
   }
@@ -108,16 +108,43 @@ export const CreateRecords = () => {
   }
 
   async function handleRecordTypeChange(recordTypeId: string) {
+    const priorRecordTypeId = selectedRecordTypeId;
     setSelectedRecordTypeId(recordTypeId);
-    calculatePicklistValues({ recordTypeId, updateLoadingState: true });
-    setModifiedRecord({});
     setFormErrors({ hasErrors: false, fieldErrors: {}, generalErrors: [] });
+
+    const updatedPicklistValues = await calculatePicklistValues({ recordTypeId, updateLoadingState: true });
+    if (!isMounted.current) {
+      return;
+    }
+    // Picklist values could not be obtained, the form still has the prior record type's values so the prior selection is restored
+    if (!updatedPicklistValues) {
+      setSelectedRecordTypeId(priorRecordTypeId);
+      return;
+    }
+
+    // Everything the user already entered is retained, only picklist values that the new record type does not allow are removed
+    const { record, fieldsWithClearedValues } = removeUnavailablePicklistValues(
+      sobjectMetadata?.fields || [],
+      updatedPicklistValues,
+      modifiedRecord,
+    );
+    setModifiedRecord(record);
+    setFormKey((priorKey) => priorKey + 1);
+
+    if (fieldsWithClearedValues.length) {
+      fireToast({
+        type: 'info',
+        message: `Some values were removed because they are not available for the selected record type: ${fieldsWithClearedValues
+          .map(({ label }) => label)
+          .join(', ')}`,
+      });
+    }
   }
 
   async function calculatePicklistValues({
     recordTypeId,
     updateLoadingState = false,
-  }: { recordTypeId?: string; updateLoadingState?: boolean } = {}) {
+  }: { recordTypeId?: string; updateLoadingState?: boolean } = {}): Promise<PicklistFieldValues | undefined> {
     try {
       if (updateLoadingState) {
         setLoading(true);
@@ -135,6 +162,7 @@ export const CreateRecords = () => {
         apiVersion: defaultApiVersion,
       });
       setPicklistValues(picklistValues);
+      return picklistValues;
     } catch (ex) {
       if (isMounted.current) {
         logger.error('Error calculating record types', ex);
@@ -305,7 +333,12 @@ export const CreateRecords = () => {
                 {Array.isArray(recordTypes) && (
                   <div className="slds-p-horizontal_xx-small">
                     <ComboboxWithItems
-                      comboboxProps={{ label: 'Record Type', labelHelp: 'The Record Type controls which picklist values are available' }}
+                      comboboxProps={{
+                        label: 'Record Type',
+                        labelHelp: 'The Record Type controls which picklist values are available',
+                        // Prevents overlapping picklist value requests from applying out of order
+                        disabled: loading || saving,
+                      }}
                       items={recordTypes}
                       selectedItemId={selectedRecordTypeId}
                       onSelected={(item) => handleRecordTypeChange(item.id)}
@@ -314,14 +347,16 @@ export const CreateRecords = () => {
                   </div>
                 )}
                 <UiRecordForm
-                  key={`${key}-${selectedRecordTypeId || ''}`}
+                  key={formKey}
                   org={selectedOrg}
                   controlClassName="slds-p-bottom_x-small slds-p-horizontal_xx-small"
                   action="create"
                   sobjectFields={sobjectMetadata.fields || []}
                   picklistValues={picklistValues || {}}
                   record={initialRecord}
+                  initialModifiedRecord={modifiedRecord}
                   saveErrors={formErrors.fieldErrors}
+                  disabled={loading || saving}
                   onChange={handleRecordChange}
                 />
               </>
