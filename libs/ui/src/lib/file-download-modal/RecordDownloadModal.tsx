@@ -499,7 +499,8 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 onChange={handleFileFormatChange}
                 disabled={isBulkApi}
               />
-              {loadTemplateOption && (
+              {/* Temporarily disabling, will re-enabled and re-word in follow-up PR */}
+              {/* {loadTemplateOption && (
                 <Radio
                   name="radio-download-file-format"
                   label="Load template (Excel)"
@@ -508,7 +509,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                   onChange={handleFileFormatChange}
                   disabled={isBulkApi}
                 />
-              )}
+              )} */}
               {hasGoogleInputConfigured && (
                 <Radio
                   name="radio-download-file-format"
