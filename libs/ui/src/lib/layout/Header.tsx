@@ -127,7 +127,7 @@ const HeaderContent: FunctionComponent<Omit<HeaderProps, 'children'>> = ({
                   buttonClassName="slds-button slds-global-actions__avatar slds-global-actions__item-action"
                   buttonContent={
                     <span className="slds-avatar slds-avatar_circle slds-avatar_medium">
-                      <img loading="lazy" alt="Avatar" src={avatarSrc} onError={(err) => setAvatarSrc(Avatar)} />
+                      <img loading="lazy" alt="Avatar" src={avatarSrc} onError={(_err) => setAvatarSrc(Avatar)} />
                     </span>
                   }
                   position="right"

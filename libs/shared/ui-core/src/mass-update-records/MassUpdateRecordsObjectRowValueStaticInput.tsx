@@ -54,7 +54,7 @@ export const MassUpdateRecordsObjectRowValueStaticInput: FunctionComponent<MassU
           position="right"
           items={[{ id: 'manual-toggle', value: useManualInput ? 'Use Automatic Input' : 'Use Text Input' }]}
           disabled={disabled}
-          onSelected={(item) => setUseManualInput(!useManualInput)}
+          onSelected={(_item) => setUseManualInput(!useManualInput)}
         />
       )}
     </Grid>

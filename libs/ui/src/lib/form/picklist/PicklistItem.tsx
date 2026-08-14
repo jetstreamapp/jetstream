@@ -15,7 +15,7 @@ export interface PicklistItemProps {
 }
 
 export const PicklistItem = forwardRef<HTMLLIElement, PicklistItemProps>(
-  ({ id, label, secondaryLabel, secondaryLabelOnNewLine, value, title, isSelected, onClick }, ref) => {
+  ({ id, label, secondaryLabel, secondaryLabelOnNewLine, isSelected, onClick }, ref) => {
     return (
       <li
         ref={ref}

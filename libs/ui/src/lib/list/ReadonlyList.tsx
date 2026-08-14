@@ -23,7 +23,7 @@ export const ReadonlyList = forwardRef<HTMLUListElement, ReadonlyListProps>(
       <Fragment>
         {Array.isArray(items) && items.length > 0 && (
           <ul ref={ref} className="slds-has-dividers_bottom-space">
-            {items.map((item, i) => {
+            {items.map((item, _i) => {
               const { key, heading, subheading } = getContent(item);
               return <ReadonlyListItem key={key} heading={heading} subheading={subheading} subheadingPlaceholder={subheadingPlaceholder} />;
             })}

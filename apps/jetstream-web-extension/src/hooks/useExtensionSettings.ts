@@ -59,7 +59,7 @@ export const useExtensionSettings = () => {
       .then(() => {
         setAuthError(null);
       })
-      .catch((err) => {
+      .catch((_err) => {
         setAuthError('There was a problem verifying your authentication. Please log in again.');
       });
   }

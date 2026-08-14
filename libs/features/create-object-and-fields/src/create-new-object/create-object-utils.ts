@@ -260,7 +260,7 @@ export function getTabXml(tabMotif: string) {
 </CustomTab>`;
 }
 
-export function getPackageXml(apiName: string, apiVersion: string, createTab: boolean, profiles: string[], permissionSets: string[]) {
+export function getPackageXml(apiName: string, apiVersion: string, createTab: boolean, _profiles: string[], _permissionSets: string[]) {
   let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
   <version>${apiVersion.replace('v', '')}</version>

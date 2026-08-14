@@ -38,7 +38,6 @@ export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = 
   isTooling,
   displayValue,
   removeFromTabOrder,
-  onRecordAction,
 }) => {
   const isMounted = useRef(true);
   const [loading, setLoading] = useState(false);

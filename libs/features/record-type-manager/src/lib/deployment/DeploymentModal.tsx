@@ -32,14 +32,7 @@ export function DeploymentModal({ modifiedValues, recordTypeMetadataByFullName, 
   const [inProgress, setInProgress] = useState(false);
   const [prepareError, setPrepareError] = useState(false);
 
-  const {
-    deployMetadata: doDeployMetadata,
-    results,
-    loading: deployLoading,
-    lastChecked,
-    hasError,
-    errorMessage,
-  } = useDeployMetadataPackage(serverUrl);
+  const { deployMetadata: doDeployMetadata, results, loading: deployLoading, errorMessage } = useDeployMetadataPackage(serverUrl);
 
   async function handleDownload() {
     const file = await prepareRecordTypeMetadataPackage({

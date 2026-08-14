@@ -1,6 +1,6 @@
 import React from 'react';
 
-export function PreviewIllustration(props: React.SVGProps<SVGSVGElement>) {
+export function PreviewIllustration(_props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg className="slds-illustration__svg" viewBox="0 0 272 146" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
       <defs>

@@ -10,7 +10,7 @@ class ErrorBoundaryWithoutContent extends React.Component<{ children?: React.Rea
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error: unknown) {
+  static getDerivedStateFromError(_error: unknown) {
     return { hasError: true };
   }
 

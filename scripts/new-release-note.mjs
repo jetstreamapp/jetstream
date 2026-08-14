@@ -32,7 +32,7 @@ try {
     .split('\n')
     .map((line) => line.trim())
     .filter((line) => /^(feat|fix)(\(|:)/i.test(line));
-} catch (error) {
+} catch {
   console.log(chalk.yellow('Could not read git log since last tag; leaving highlights blank.'));
 }
 

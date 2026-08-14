@@ -175,7 +175,7 @@ export function mockPicklistValuesFromSobjectDescribe(sobjectMetadata: DescribeS
         controllerValues: {},
         defaultValue: field.defaultValue,
         values:
-          field?.picklistValues?.map(({ label, value, validFor }) => ({
+          field?.picklistValues?.map(({ label, value }) => ({
             attributes: null,
             label: label || value,
             value,

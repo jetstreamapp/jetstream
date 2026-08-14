@@ -441,7 +441,7 @@ export function SelectFormatter({ row, tanstackRow }: DataTableCellProps<any>): 
 }
 
 /** Group-row "select all" checkbox — selects/deselects every leaf row in the group. */
-export function SelectHeaderGroupRenderer({ childRows, tanstackRow }: DataTableGroupCellProps<any>): ReactNode {
+export function SelectHeaderGroupRenderer({ tanstackRow }: DataTableGroupCellProps<any>): ReactNode {
   const allSelected = tanstackRow.getIsAllSubRowsSelected();
   const someSelected = tanstackRow.getIsSomeSelected();
   return (

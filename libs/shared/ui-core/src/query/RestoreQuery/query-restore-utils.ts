@@ -287,7 +287,7 @@ function processFieldFunctions(stateItems: Partial<QueryRestoreStateItems>, quer
 function processGroupBy(
   stateItems: Partial<QueryRestoreStateItems>,
   query: Query,
-  fieldWrapperWithParentKey: Record<string, FieldWrapperWithParentKey>,
+  _fieldWrapperWithParentKey: Record<string, FieldWrapperWithParentKey>,
 ) {
   if (!query.groupBy) {
     return;
@@ -787,7 +787,7 @@ function updateQueryFieldsMapForRelatedFields(
   baseKey: string,
   metadataTree: Record<string, SoqlMetadataTree>,
 ) {
-  function traverseChildren(children: SoqlMetadataTree[], parentKey: string) {
+  function traverseChildren(children: SoqlMetadataTree[], _parentKey: string) {
     children.forEach((currNode) => {
       const fieldMapItem = initQueryFieldStateItem(currNode.fieldKey, currNode.metadata.name, { expanded: false });
       const sobjectResults = convertDescribeToDescribeSObjectWithExtendedTypes(currNode.metadata);

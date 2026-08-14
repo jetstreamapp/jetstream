@@ -48,7 +48,7 @@ export interface AutomationControlEditorTableProps {
 export const AutomationControlEditorTable = forwardRef<any, AutomationControlEditorTableProps>(
   (
     { serverUrl, skipFrontdoorLogin, selectedOrg, rows, getSubRows, quickFilterText, updateIsActiveFlag, onSortedAndFilteredRowsChange },
-    ref,
+    _ref,
   ) => {
     const columns = useMemo(() => {
       return [

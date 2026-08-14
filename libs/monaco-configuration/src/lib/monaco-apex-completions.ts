@@ -10,7 +10,7 @@ export async function configureApexCompletions(monaco: Monaco) {
 
   monaco.languages.registerCompletionItemProvider('apex', {
     triggerCharacters: ['.', ...triggerChars.split(''), ...triggerChars.toUpperCase().split('')],
-    provideCompletionItems: (model, position, context, token) => {
+    provideCompletionItems: (model, position, _context, _token) => {
       return {
         suggestions: getSuggestions(completionsData, monaco, model, position),
       };
@@ -103,7 +103,7 @@ function getSuggestions(
       },
     ]);
   } else if (textUntilPosition.includes('.')) {
-    const [root, word, other] = textUntilPosition.split('.');
+    const [root, , other] = textUntilPosition.split('.');
     const key = completionsData.getProperCasedCompletionKey(root);
     if (!other && key && completionsData.APEX_COMPLETIONS[key]) {
       completions = completions.concat(

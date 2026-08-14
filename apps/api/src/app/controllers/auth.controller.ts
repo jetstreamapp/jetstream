@@ -1412,7 +1412,7 @@ const handleSamlCallback = createRoute(
   },
 );
 
-const getSamlMetadata = createRoute(routeDefinition.getSamlMetadata.validators, async ({ params }, req, res, next) => {
+const getSamlMetadata = createRoute(routeDefinition.getSamlMetadata.validators, async ({ params }, req, res, _next) => {
   try {
     const { teamId } = params;
 

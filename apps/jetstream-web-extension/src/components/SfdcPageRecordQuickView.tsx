@@ -20,7 +20,7 @@ interface RecordField {
   displayValue: string;
 }
 
-export function SfdcPageRecordQuickViewButton({ sfHost, recordId, sobject, onClose }: SfdcPageRecordQuickViewProps) {
+export function SfdcPageRecordQuickViewButton({ sfHost, recordId, sobject }: SfdcPageRecordQuickViewProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   if (!recordId || !sobject) {

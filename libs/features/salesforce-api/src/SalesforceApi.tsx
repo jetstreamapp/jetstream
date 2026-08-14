@@ -58,7 +58,7 @@ export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
             status: results.status || 200,
             statusText: results.statusText || 'OK',
           })
-          .then((updatedHistoryItems) => {
+          .then((_updatedHistoryItems) => {
             trackEvent(ANALYTICS_KEYS.sfdcApi_Submitted, { success: true });
           })
           .catch((ex) => {

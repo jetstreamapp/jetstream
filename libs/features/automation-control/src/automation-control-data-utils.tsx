@@ -76,23 +76,23 @@ export function isTableRowChild(item: TableRowOrItemOrChild): item is TableRowIt
   return item.path.length === 3;
 }
 
-export function isToolingApexRecord(type: AutomationMetadataType, record: any): record is ToolingApexTriggerRecord {
+export function isToolingApexRecord(type: AutomationMetadataType, _record: any): _record is ToolingApexTriggerRecord {
   return type === 'ApexTrigger';
 }
 
-export function isDuplicateRecord(type: AutomationMetadataType, record: any): record is DuplicateRuleRecord {
+export function isDuplicateRecord(type: AutomationMetadataType, _record: any): _record is DuplicateRuleRecord {
   return type === 'DuplicateRule';
 }
 
-export function isValidationRecord(type: AutomationMetadataType, record: any): record is ToolingValidationRuleRecord {
+export function isValidationRecord(type: AutomationMetadataType, _record: any): _record is ToolingValidationRuleRecord {
   return type === 'ValidationRule';
 }
 
-export function isWorkflowRuleRecord(type: AutomationMetadataType, record: any): record is ToolingWorkflowRuleRecord {
+export function isWorkflowRuleRecord(type: AutomationMetadataType, _record: any): _record is ToolingWorkflowRuleRecord {
   return type === 'WorkflowRule';
 }
 
-export function isFlowRecord(type: AutomationMetadataType, record: any): record is FlowViewRecord {
+export function isFlowRecord(type: AutomationMetadataType, _record: any): _record is FlowViewRecord {
   return type === 'FlowRecordTriggered' || type === 'FlowProcessBuilder';
 }
 
@@ -391,7 +391,7 @@ export async function getProcessBuildersMetadata(
 
     const definitionIdsBySObject = flowVersionWithMetadata.compositeResponse
       .map((item) => item.body)
-      .reduce((output: Record<string, string>, { Id, DefinitionId, Metadata }) => {
+      .reduce((output: Record<string, string>, { DefinitionId, Metadata }) => {
         try {
           if (Metadata) {
             let sobject: string | undefined = undefined;

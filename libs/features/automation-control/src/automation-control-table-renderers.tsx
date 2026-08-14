@@ -174,7 +174,7 @@ function getErrorMessageContent(deployError: Maybe<MetadataCompositeResponseErro
 
 function getErrorMessageContentString(deployError: Maybe<MetadataCompositeResponseError[]>) {
   if (Array.isArray(deployError) && deployError.length > 0) {
-    return deployError.map((item, i) => item.message).join('\n\n');
+    return deployError.map((item, _i) => item.message).join('\n\n');
   }
 }
 

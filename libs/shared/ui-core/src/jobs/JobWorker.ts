@@ -102,7 +102,7 @@ export class WorkerAdapter {
 
   onmessage!: (event: { data: WorkerMessage<AsyncJobType, AsyncJobWorkerMessageResponse> }) => void;
 
-  postMessage = ({ data, name, error }: WorkerMessage<AsyncJobType, AsyncJobWorkerMessagePayload>) => {
+  postMessage = ({ data, name }: WorkerMessage<AsyncJobType, AsyncJobWorkerMessagePayload>) => {
     this.jobWorker.handleMessage(name, data);
   };
 }
@@ -117,7 +117,7 @@ export class JobWorker {
     this.replyToMessage = replyToMessage;
   }
 
-  public async handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMessagePayload, port?: MessagePort) {
+  public async handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMessagePayload, _port?: MessagePort) {
     const { org, job, apiVersion } = payloadData || {};
     switch (name) {
       case 'CancelJob': {

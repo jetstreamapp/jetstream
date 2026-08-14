@@ -19,8 +19,6 @@ export function TeamMemberStatusUpdateModal({ teamId, teamMember, action, hasMan
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const isDirty = teamMember.role !== role;
-
   const handleUpdateStatusAndRole = async () => {
     setErrorMessage(null);
     setLoading(true);

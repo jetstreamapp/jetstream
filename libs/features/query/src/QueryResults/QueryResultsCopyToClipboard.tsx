@@ -141,7 +141,7 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
                 label={`All Records (${records?.length || 0})`}
                 value="all"
                 checked={whichRecords === 'all'}
-                onChange={(value) => setWhichRecords('all')}
+                onChange={(_value) => setWhichRecords('all')}
               />
               {hasFilteredRows && (
                 <Radio
@@ -151,7 +151,7 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
                   label={`Filtered Records (${filteredRows.length})`}
                   value="filtered"
                   checked={whichRecords === 'filtered'}
-                  onChange={(value) => setWhichRecords('filtered')}
+                  onChange={(_value) => setWhichRecords('filtered')}
                 />
               )}
               {hasPartialSelectedRows && (
@@ -162,7 +162,7 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
                   label={`Selected Records (${selectedRows.length})`}
                   value="selected"
                   checked={whichRecords === 'selected'}
-                  onChange={(value) => setWhichRecords('selected')}
+                  onChange={(_value) => setWhichRecords('selected')}
                 />
               )}
             </RadioGroup>

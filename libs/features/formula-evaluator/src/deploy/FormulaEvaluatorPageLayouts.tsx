@@ -53,7 +53,7 @@ export function FormulaEvaluatorPageLayouts({
               label={layout.Name}
               checked={selectedLayoutIds.has(layout.Id)}
               disabled={disabled || loading}
-              onChange={(value) => handleSelectLayout(layout.Id)}
+              onChange={(_value) => handleSelectLayout(layout.Id)}
             />
           ))}
         </fieldset>

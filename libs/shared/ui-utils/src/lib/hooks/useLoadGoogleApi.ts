@@ -1,9 +1,9 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { Maybe } from '@jetstream/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { tracker } from '../errorTracker';
 import { getUseInjectScript } from './useInjectScript';
 import { useNonInitialEffect } from './useNonInitialEffect';
-import { tracker } from '../errorTracker';
 
 const useInjectScript = getUseInjectScript('https://accounts.google.com/gsi/client');
 
@@ -57,7 +57,6 @@ export interface GoogleApiClientConfig {
  */
 export function useLoadGoogleApi({
   apiKey,
-  appId,
   clientId,
 }: GoogleApiClientConfig): [GoogleApiData, (options?: gapi.auth2.SigninOptions) => void, () => void] {
   const isMounted = useRef(true);

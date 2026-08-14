@@ -49,7 +49,7 @@ Page.getLayout = function getLayout(page) {
 };
 
 // This also gets called at build time
-export async function getStaticProps({ params }) {
+export async function getStaticProps() {
   // uses cached data
   const blogPostsWithRelated = await fetchBlogPosts();
 

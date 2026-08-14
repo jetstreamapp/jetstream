@@ -43,7 +43,7 @@ export interface QueryHistoryProps {
   onclose: () => void;
 }
 
-export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ className, selectedOrg, initialType, onRestore, onclose }, ref) => {
+export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ selectedOrg, initialType, onRestore, onclose }, _ref) => {
   const { trackEvent } = useAmplitude();
   const [whichType, setWhichType] = useState<QueryHistoryType>(() => initialType || 'HISTORY');
   const [whichOrg, setWhichOrg] = useState<WhichOrgType>('SELECTED');
@@ -151,7 +151,7 @@ export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ className
     onclose();
   }
 
-  function handleSearchKeyboard(direction: UpDown) {
+  function handleSearchKeyboard(_direction: UpDown) {
     if (ulRef && ulRef.current) {
       ulRef.current.focus();
     }

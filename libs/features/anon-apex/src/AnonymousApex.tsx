@@ -43,8 +43,6 @@ import AnonymousApexFilter from './AnonymousApexFilter';
 import AnonymousApexHistory from './AnonymousApexHistory';
 import * as fromApexState from './apex.state';
 
-// import { useApexCompletions } from './useApexCompletions';
-
 const USER_DEBUG_REGEX = /\|USER_DEBUG\|/;
 
 const LogLevelItems: ListItem<string, typeof LOG_LEVELS>[] = LOG_LEVELS.map((item) => ({
@@ -177,7 +175,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
     [selectedOrg, logLevel, trackEvent, notifyUser, setHistoryItems],
   );
 
-  function handleEditorChange(value?: string, event?: unknown) {
+  function handleEditorChange(value?: string, _event?: unknown) {
     setApex(value || '');
   }
 

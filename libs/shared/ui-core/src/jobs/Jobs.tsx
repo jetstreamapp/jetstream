@@ -178,7 +178,7 @@ export const Jobs: FunctionComponent = () => {
         },
         fileExtToGoogleDriveMimeType[fileType],
       )
-        .then(({ id, webViewLink }) => {
+        .then(({ webViewLink }) => {
           newJob.results = webViewLink;
         })
         .catch((err) => {

@@ -20,7 +20,6 @@ export interface PlatformEventMonitorSubscribeListenerCard {
 const REPLACE_NON_NUMERIC = /[^\d.-]/g;
 
 export const PlatformEventMonitorSubscribe: FunctionComponent<PlatformEventMonitorSubscribeListenerCard> = ({
-  picklistKey,
   platformEventsList,
   selectedSubscribeEvent,
   messagesByChannel,

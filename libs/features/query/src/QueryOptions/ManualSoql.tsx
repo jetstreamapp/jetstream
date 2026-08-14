@@ -59,7 +59,7 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
     setIsRestoring(true);
   }
 
-  function handleEndRestore(fatalError: boolean, errors?: any) {
+  function handleEndRestore(fatalError: boolean, _errors?: any) {
     if (isMounted.current) {
       setIsRestoring(false);
       if (!fatalError) {

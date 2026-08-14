@@ -591,7 +591,7 @@ export function getFieldColumns(
   ];
 
   // Create column groups for profiles
-  selectedProfiles.forEach((profileId, i) => {
+  selectedProfiles.forEach((profileId, _i) => {
     const profile = profilesById[profileId];
     (['read', 'edit'] as const).forEach((permissionType, i) => {
       newColumns.push(
@@ -608,7 +608,7 @@ export function getFieldColumns(
     });
   });
   // Create column groups for permission sets
-  selectedPermissionSets.forEach((permissionSetId, i) => {
+  selectedPermissionSets.forEach((permissionSetId, _i) => {
     const permissionSet = permissionSetsById[permissionSetId];
     (['read', 'edit'] as const).forEach((permissionType, i) => {
       newColumns.push(
@@ -807,7 +807,7 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
         </div>
       );
     },
-    getValue: ({ column, row }) => (row.permissions[id] as any)[actionKey as any],
+    getValue: ({ row }) => (row.permissions[id] as any)[actionKey as any],
     summaryCellClass: ({ type }) => (type === 'HEADING' ? 'bg-color-gray' : null),
     renderSummaryCell: (args) => {
       if (args.row.type === 'HEADING') {
@@ -1419,7 +1419,7 @@ export function updateRowsFromColumnAction<TRows extends PermissionTableCellExte
   rows: TRows[],
 ): TRows[] {
   const newRows = [...rows];
-  return newRows.map((row, index) => {
+  return newRows.map((row, _index) => {
     // Reset restores the saved value, so it stays allowed even where the permission cannot be set
     if (action !== 'reset' && isBlockedViewAllModifyAll(which, row)) {
       return row;
@@ -1842,7 +1842,7 @@ export function updateCheckboxDependencies(
  * PermissionTableObjectCell, PermissionTableSummaryRow
  * readonly renderCell?: Maybe<(props: RenderCellProps<TRow, TSummaryRow>) => ReactNode>;
  */
-export const RowActionRenderer = ({ column, commitEdit, row }: RenderCellProps<PermissionTableCellExtended, PermissionTableSummaryRow>) => {
+export const RowActionRenderer = ({ commitEdit, row }: RenderCellProps<PermissionTableCellExtended, PermissionTableSummaryRow>) => {
   const { type } = useContext(DataTableGenericContext) as PermissionManagerTableContext;
   const popoverRef = useRef<PopoverRef>(null);
   const [checkboxes, setCheckboxes] = useState<BulkActionCheckbox[]>(() => {

@@ -19,7 +19,7 @@ export const routeDefinition = {
   },
 };
 
-const pull = createRoute(routeDefinition.pull.validators, async ({ query }, req) => {
+const pull = createRoute(routeDefinition.pull.validators, async (_args, _req) => {
   try {
     // const { authTokens, extIdentifier } = await getTokens();
     // return await fetch(`${environment.serverUrl}/web-extension/data-sync/pull?${new URLSearchParams(query).toString()}`, {
@@ -36,7 +36,7 @@ const pull = createRoute(routeDefinition.pull.validators, async ({ query }, req)
   }
 });
 
-const push = createRoute(routeDefinition.push.validators, async ({ query, body }, req) => {
+const push = createRoute(routeDefinition.push.validators, async (_args, _req) => {
   try {
     // const { authTokens, extIdentifier } = await getTokens();
     // return await fetch(`${environment.serverUrl}/web-extension/data-sync/push?${new URLSearchParams(query).toString()}`, {

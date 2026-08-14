@@ -100,7 +100,7 @@ export const DescribeMetadataList: FunctionComponent<DescribeMetadataListProps> 
     }
   }, [itemsWithLabel, searchTerm]);
 
-  function handleSearchKeyboard(direction: UpDown) {
+  function handleSearchKeyboard(_direction: UpDown) {
     if (ulRef && ulRef.current) {
       ulRef.current.focus();
     }

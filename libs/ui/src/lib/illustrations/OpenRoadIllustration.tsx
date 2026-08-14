@@ -1,6 +1,6 @@
 import React from 'react';
 
-export function OpenRoadIllustration(props: React.SVGProps<SVGSVGElement>) {
+export function OpenRoadIllustration(_props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg className="slds-illustration__svg" viewBox="0 0 454 272" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
       <g fill="none" fillRule="evenodd" transform="translate(-65 -74)">

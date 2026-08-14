@@ -143,7 +143,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
     };
   }
 
-  function handleSearchKeyboard(direction: UpDown) {
+  function handleSearchKeyboard(_direction: UpDown) {
     if (ulRef && ulRef.current) {
       ulRef.current.focus();
     }

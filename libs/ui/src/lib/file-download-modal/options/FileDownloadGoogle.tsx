@@ -250,7 +250,7 @@ const FileDownloadGoogleWeb: FunctionComponent<FileDownloadGoogleProps> = ({
               label="Do not store in a folder"
               value="root"
               checked={whichFolder === 'root'}
-              onChange={(value) => {
+              onChange={(_value) => {
                 setWhichFolder('root');
                 if (userInfo) {
                   saveWhichFolderToStorage(userInfo, 'root');
@@ -263,7 +263,7 @@ const FileDownloadGoogleWeb: FunctionComponent<FileDownloadGoogleProps> = ({
               label="Choose a folder"
               value="specified"
               checked={whichFolder === 'specified'}
-              onChange={(value) => {
+              onChange={(_value) => {
                 setWhichFolder('specified');
                 if (userInfo) {
                   saveWhichFolderToStorage(userInfo, 'specified');

@@ -45,7 +45,7 @@ export interface CreateFieldsFormulaEditorProps {
 }
 
 export const CreateFieldsFormulaEditor = forwardRef<unknown, CreateFieldsFormulaEditorProps>(
-  ({ id, selectedOrg, selectedSObjects = [], allValues, field, valueState, disabled = false, rows, onChange, onBlur }, ref) => {
+  ({ id, selectedOrg, selectedSObjects = [], allValues, field, valueState, disabled = false, rows, onChange, onBlur }, _ref) => {
     const { value, touched, errorMessage } = valueState;
     const isMounted = useRef(true);
     const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
@@ -99,7 +99,7 @@ export const CreateFieldsFormulaEditor = forwardRef<unknown, CreateFieldsFormula
         try {
           const fields = extractFields(formulaValue || '');
           return fields;
-        } catch (ex) {
+        } catch {
           return prevValue;
         }
       });
@@ -214,7 +214,7 @@ export const CreateFieldsFormulaEditor = forwardRef<unknown, CreateFieldsFormula
     const handleTestFormulaRef = useRef(handleTestFormula);
     handleTestFormulaRef.current = handleTestFormula;
 
-    function handleEditorChange(value?: string, event?: unknown) {
+    function handleEditorChange(value?: string, _event?: unknown) {
       setFormulaValue(value || '');
     }
 

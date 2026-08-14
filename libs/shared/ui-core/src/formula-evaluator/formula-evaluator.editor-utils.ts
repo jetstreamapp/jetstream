@@ -40,7 +40,7 @@ export async function registerCompletions(
   try {
     priorCompletion = monaco.languages.registerCompletionItemProvider('sfdc-formula', {
       triggerCharacters: ['.', ...triggerChars.split(''), ...triggerChars.toUpperCase().split('')],
-      provideCompletionItems: async (model, position, context, token) => {
+      provideCompletionItems: async (model, position, _context, _token) => {
         const characterInfo = getCharacterInfo(model, position);
         return {
           suggestions: await fetchCompletions(monaco, characterInfo, selectedOrg, sobject, additionalFields),

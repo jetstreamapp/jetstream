@@ -184,7 +184,6 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
     onUndelete,
     onGetAsApex,
     onSavedRecords,
-    onReloadQuery,
     trackEvent = () => undefined,
   }: SalesforceRecordDataTableProps) => {
     const isMounted = useRef(true);

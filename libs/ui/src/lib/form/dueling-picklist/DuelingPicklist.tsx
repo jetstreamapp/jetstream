@@ -151,7 +151,7 @@ export const DuelingPicklist: FunctionComponent<DuelingPicklistProps> = ({
     setSelectedItems(new Set(outputSelectedItems));
   }
 
-  function handleSelection(which: 'LEFT' | 'RIGHT', items: DuelingPicklistItem[]) {
+  function handleSelection(which: 'LEFT' | 'RIGHT', _items: DuelingPicklistItem[]) {
     if (which === 'LEFT') {
       columnRightRef.current?.clearSelection();
     } else {

@@ -186,7 +186,7 @@ export const UserSearchPopover: FunctionComponent = () => {
                         org={selectedOrg}
                         returnUrl={`/lightning/setup/ManageUsers/page?address=${encodeURIComponent(`/${user.Id}?noredirect=1`)}`}
                         title="View user in Salesforce"
-                        onClick={(event, url) => event.stopPropagation()}
+                        onClick={(event, _url) => event.stopPropagation()}
                       >
                         View in Salesforce
                       </SalesforceLogin>

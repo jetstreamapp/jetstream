@@ -30,7 +30,7 @@ export function TeamName({ team, onSave }: { team: TeamUserFacing; onSave: (name
 
       setEditMode(false);
       onSave(updatedTeam);
-    } catch (error) {
+    } catch {
       fireToast({ type: 'error', message: 'There was an error saving the team name. Please try again.' });
       setValue(team?.name || '');
       setInvalidName(false);

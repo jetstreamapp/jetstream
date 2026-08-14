@@ -37,7 +37,7 @@ export function AcceptTerms({ csrfToken, currentTosVersion }: AcceptTermsProps) 
 
       const { data } = await response.json();
       window.location.href = data?.redirect || ENVIRONMENT.CLIENT_URL;
-    } catch (ex) {
+    } catch {
       setError('Something went wrong. Please try again.');
       setIsSubmitting(false);
     }

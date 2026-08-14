@@ -132,7 +132,7 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
       values.body = values.body || body;
       try {
         onSubmit({ url, method, headers: JSON.parse(values.headers) || {}, body: method === 'GET' ? '' : values.body, bodyType });
-      } catch (ex) {
+      } catch {
         // This should not happen as we check for valid headers prior to getting here
       }
     }

@@ -909,7 +909,7 @@ export function checkForDuplicateRecords(
     return {
       duplicateKey:
         mappingItem.csvField === mappingItem.targetField ? mappingItem.csvField : `${mappingItem.csvField} -> ${mappingItem.targetField}`,
-      duplicateRecords: Object.entries(rowsByMappedKeyField).filter(([key, values]) => values.length > 1),
+      duplicateRecords: Object.entries(rowsByMappedKeyField).filter(([, values]) => values.length > 1),
     };
   }
   return null;

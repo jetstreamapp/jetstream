@@ -29,7 +29,7 @@ function reducer(state: State, action: Action): State {
             return { ...state, isValid: true, sobjectName: parsedQuery.sObject };
           }
           return { ...state, isValid: false, sobjectName: null };
-        } catch (ex) {
+        } catch {
           return { ...state, isValid: false, sobjectName: null };
         }
       }
@@ -38,7 +38,7 @@ function reducer(state: State, action: Action): State {
       if (action.payload.soql) {
         try {
           return { ...state, formattedSoql: formatQuery(action.payload.soql, action.payload.soqlQueryFormatOptions) };
-        } catch (ex) {
+        } catch {
           return { ...state, isValid: false };
         }
       }

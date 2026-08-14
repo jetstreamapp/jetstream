@@ -89,7 +89,7 @@ export const QueryResultsGetRecAsApexModal: FunctionComponent<QueryResultsGetRec
     }
   }
 
-  function handleEditorChange(value?: string, event?: unknown) {
+  function handleEditorChange(value?: string, _event?: unknown) {
     setApex(value || '');
   }
 

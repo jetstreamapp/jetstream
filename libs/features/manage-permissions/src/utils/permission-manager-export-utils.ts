@@ -103,7 +103,7 @@ function generateObjectWorksheet(columns: PermissionExportColumn[], rows: Permis
       permissionKeys.push(col.key.split('-')[0]);
     });
 
-  rows.forEach((row, i) => {
+  rows.forEach((row, _i) => {
     const currRow = [row.sobject];
     permissionKeys.forEach((key) => {
       const permission = row.permissions[key];
@@ -153,7 +153,7 @@ function generateFieldWorksheet(columns: PermissionExportColumn[], rows: Permiss
       }
     });
 
-  rows.forEach((row, i) => {
+  rows.forEach((row, _i) => {
     const currRow = [row.sobject, row.apiName, row.label];
     permissionKeys.forEach((key) => {
       const permission = row.permissions[key];
@@ -196,7 +196,7 @@ function generateTabVisibilityWorksheet(columns: PermissionExportColumn[], rows:
       permissionKeys.push(col.key.split('-')[0]);
     });
 
-  rows.forEach((row, i) => {
+  rows.forEach((row, _i) => {
     const currRow = [row.sobject];
     permissionKeys.forEach((key) => {
       const permission = row.permissions[key];

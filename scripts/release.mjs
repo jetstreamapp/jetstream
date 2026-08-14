@@ -338,7 +338,7 @@ if (firstJobId) {
 console.log(chalk.bold('Watching workflow run...\n'));
 try {
   await $({ stdio: 'inherit' })`gh run watch ${runId} --repo ${REPO} --exit-status`;
-} catch (error) {
+} catch {
   // User cancelled (ctrl+c) or the run failed
   console.log(chalk.red('\nWorkflow run did not complete successfully.'));
   process.exit(1);
@@ -351,7 +351,7 @@ if (releaseExtension) {
   try {
     await $`rm -rf dist/web-extension-build && gh run download ${runId} --name web-extension-zips --dir dist/web-extension-build --repo ${REPO}`;
     console.log(chalk.green('Downloaded to dist/web-extension-build'));
-  } catch (error) {
+  } catch {
     console.log(chalk.red('Failed to download web extension zips.'));
     console.log(
       '  ' +

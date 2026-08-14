@@ -57,7 +57,7 @@ async function fetchTokens(deviceId: string) {
     const errorType = await response
       .json()
       .then(({ data }) => data?.errorType)
-      .catch((err) => null);
+      .catch((_err) => null);
     if (ERROR_MAP[errorType]) {
       throw new Error(ERROR_MAP[errorType]);
     }

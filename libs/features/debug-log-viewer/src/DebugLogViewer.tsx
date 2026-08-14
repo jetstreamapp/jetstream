@@ -158,7 +158,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
           updateLogsWithViewedFlag();
         }
       }
-    } catch (ex) {
+    } catch {
       // TODO: handle error state
     } finally {
       if (isMounted.current) {

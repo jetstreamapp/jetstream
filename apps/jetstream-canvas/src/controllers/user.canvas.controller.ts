@@ -12,7 +12,7 @@ export const routeDefinition = {
   },
 };
 
-const sendUserFeedbackEmail = createRoute(routeDefinition.sendUserFeedbackEmail.validators, async (_, req) => {
+const sendUserFeedbackEmail = createRoute(routeDefinition.sendUserFeedbackEmail.validators, async (_, _req) => {
   try {
     return handleErrorResponse(new Error('Not implemented'));
     // const { authTokens, extIdentifier } = await getTokens();

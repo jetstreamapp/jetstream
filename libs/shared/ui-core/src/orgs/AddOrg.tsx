@@ -175,7 +175,7 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
                 placeholder="org-domain"
                 value={customUrl}
                 onChange={(event) =>
-                  setCustomUrl((prevValue) => (event.target.value || '').replaceAll(/(https:\/\/)|(\.my\.salesforce\.com)/g, ''))
+                  setCustomUrl((_prevValue) => (event.target.value || '').replaceAll(/(https:\/\/)|(\.my\.salesforce\.com)/g, ''))
                 }
               />
             </Input>

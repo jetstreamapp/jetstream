@@ -58,7 +58,7 @@ export const SalesforceApiHistoryModal = ({ selectedOrg, onSubmit, onClose }: Sa
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [historyItems, filterValue]);
 
-  function handleSearchKeyboard(direction: UpDown) {
+  function handleSearchKeyboard(_direction: UpDown) {
     if (ulRef && ulRef.current) {
       ulRef.current.focus();
     }
