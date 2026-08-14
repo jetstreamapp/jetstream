@@ -11,7 +11,7 @@ import Grid from '../grid/Grid';
 import { Popover, PopoverRef } from '../popover/Popover';
 import Icon from '../widgets/Icon';
 
-export const TOGGLE_FILTER_TYPE_ITEMS = {
+export const TOGGLE_FILTER_TYPE_ITEMS = Object.freeze({
   standardCustom: [
     { value: 'all', label: 'All' },
     { value: 'custom', label: 'Custom' },
@@ -22,17 +22,16 @@ export const TOGGLE_FILTER_TYPE_ITEMS = {
     { value: 'unmanaged', label: 'Unmanaged' },
     { value: 'managed', label: 'Managed' },
   ],
-} as const;
-Object.freeze(TOGGLE_FILTER_TYPE_ITEMS);
+} as const);
 
-const CHECKBOX_FILTERS: { label: string; key: CheckboxFilters }[] = [
+const CHECKBOX_FILTERS: readonly { label: string; key: CheckboxFilters }[] = Object.freeze([
   { label: 'Custom Metadata', key: 'CUSTOM_METADATA' },
   { label: 'Share Objects', key: 'SHARE_OBJECT' },
   { label: 'History Tracking', key: 'HISTORY' },
   { label: 'Change Events', key: 'CHANGE_EVENT' },
-];
-Object.freeze(CHECKBOX_FILTERS);
+]);
 
+// Not frozen: `getDefaultSobjectFilters` hands out clones that callers mutate.
 const DEFAULT_VALUES = {
   STANDARD_CUSTOM: 'all' as 'all' | 'custom' | 'standard',
   MANAGED: 'all' as 'all' | 'unmanaged' | 'managed',
@@ -41,7 +40,6 @@ const DEFAULT_VALUES = {
   HISTORY: true as boolean,
   CHANGE_EVENT: true as boolean,
 };
-Object.freeze(CHECKBOX_FILTERS);
 
 export function getDefaultSobjectFilters() {
   return structuredClone(DEFAULT_VALUES);

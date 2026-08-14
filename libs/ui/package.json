@@ -1,0 +1,8 @@
+{
+  "name": "ui",
+  "private": true,
+  "sideEffects": [
+    "**/*.css",
+    "**/*.scss"
+  ]
+}

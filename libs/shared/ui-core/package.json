@@ -1,0 +1,8 @@
+{
+  "name": "ui-core",
+  "private": true,
+  "sideEffects": [
+    "**/*.css",
+    "**/*.scss"
+  ]
+}

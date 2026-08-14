@@ -74,23 +74,23 @@ import { UnparseConfig, parse as parseCsv, unparse, unparse as unparseCsv } from
 import * as XLSX from 'xlsx';
 import { parseJson } from './parse-json';
 
-initXlsx(XLSX);
+let codepageTablePromise: Promise<void> | undefined;
 
 /**
- * Lazy load cpexcel since it appears it was failing to load for at least one user
+ * Register the codepage table so XLSX can read workbooks saved in legacy non-unicode encodings.
+ * Call this before reading or writing a workbook; the table is fetched at most once per session.
+ *
+ * It is loaded lazily rather than imported, since it appears to have been failing to load for at
+ * least one user, and skipped entirely in the browser extension.
  * https://github.com/jetstreamapp/jetstream/issues/211
  * https://git.sheetjs.com/sheetjs/sheetjs/issues/2900
  */
-export function initXlsx(_xlsx: typeof import('xlsx')) {
-  if (!globalThis.__IS_BROWSER_EXTENSION__) {
-    import('xlsx/dist/cpexcel.full.mjs')
-      .then((module) => {
-        XLSX.set_cptable(module);
-      })
-      .catch((_ex) => {
-        // ignore error
-      });
+export function ensureXlsxCodepageTable(): Promise<void> {
+  if (globalThis.__IS_BROWSER_EXTENSION__) {
+    return Promise.resolve();
   }
+  codepageTablePromise ??= import('xlsx/dist/cpexcel.full.mjs').then((module) => XLSX.set_cptable(module)).catch(() => undefined);
+  return codepageTablePromise;
 }
 
 const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });

@@ -1,7 +1,7 @@
 /// <reference types="google.picker" />
 import { GooglePickerResultSuccess } from '@jetstream/desktop/types';
 import { logger } from '@jetstream/shared/client-logger';
-import { GoogleApiClientConfig, initXlsx, useDriveExternalPicker } from '@jetstream/shared/ui-utils';
+import { ensureXlsxCodepageTable, GoogleApiClientConfig, useDriveExternalPicker } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { InputReadGoogleSheet, Maybe } from '@jetstream/types';
 import { applicationCookieState } from '@jetstream/ui/app-state';
@@ -15,8 +15,6 @@ import Icon from '../../widgets/Icon';
 import Spinner from '../../widgets/Spinner';
 import Tooltip from '../../widgets/Tooltip';
 import { useFilename } from './useFilename';
-
-initXlsx(XLSX);
 
 const GOOGLE_APPS_MIME_PREFIX = 'application/vnd.google-apps.';
 const XLSX_EXPORT_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -126,6 +124,7 @@ export const GoogleFileSelectorExternalButton: FunctionComponent<GoogleFileSelec
         setErrorMessage(null);
 
         const arrayBuffer = await downloadGoogleDriveFile(fileId, mimeType, googleAccessToken);
+        await ensureXlsxCodepageTable();
         const workbook = XLSX.read(arrayBuffer, { cellText: false, cellDates: true, type: 'array' });
 
         const syntheticDoc = { id: fileId, name: fileName, mimeType } as google.picker.DocumentObject;

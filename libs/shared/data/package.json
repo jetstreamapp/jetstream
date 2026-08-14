@@ -1,0 +1,8 @@
+{
+  "name": "shared-data",
+  "private": true,
+  "sideEffects": [
+    "**/*.css",
+    "**/*.scss"
+  ]
+}

@@ -1,4 +1,4 @@
-import { excelWorkbookToArrayBuffer, getMaxWidthFromColumnContent, initXlsx } from '@jetstream/shared/ui-utils';
+import { ensureXlsxCodepageTable, excelWorkbookToArrayBuffer, getMaxWidthFromColumnContent } from '@jetstream/shared/ui-utils';
 import {
   PermissionTableFieldCell,
   PermissionTableObjectCell,
@@ -10,8 +10,6 @@ import { ColumnWithFilter } from '@jetstream/ui';
 import JSZip from 'jszip';
 import { unparse } from 'papaparse';
 import * as XLSX from 'xlsx';
-
-initXlsx(XLSX);
 
 type PermissionExportColumn =
   | ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>
@@ -25,6 +23,7 @@ export function generateExcelWorkbookFromTable(
   fieldData: { columns: PermissionExportColumn[]; rows: PermissionTableFieldCell[] },
   systemPermissionData: { columns: PermissionExportColumn[]; rows: PermissionTableSystemPermissionCell[] },
 ) {
+  ensureXlsxCodepageTable();
   const workbook = XLSX.utils.book_new();
   const objectWorksheet = generateObjectWorksheet(objectData.columns, objectData.rows);
   const tabVisibilityWorksheet = generateTabVisibilityWorksheet(tabVisibilityData.columns, tabVisibilityData.rows);

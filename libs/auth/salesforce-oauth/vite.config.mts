@@ -1,11 +1,9 @@
 /// <reference types='vitest' />
-import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin';
 import { defineConfig } from 'vite';
 
 export default defineConfig(() => ({
   root: import.meta.dirname,
   cacheDir: '../../../node_modules/.vite/libs/auth/salesforce-oauth',
-  plugins: [nxCopyAssetsPlugin(['*.md'])],
   resolve: { tsconfigPaths: true },
   test: {
     name: 'salesforce-oauth',

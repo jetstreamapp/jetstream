@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { describeSObject } from '@jetstream/shared/data';
-import { formatNumber, initXlsx } from '@jetstream/shared/ui-utils';
+import { formatNumber } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getHttpMethod, groupByFlat, pluralizeFromNumber, transformRecordForDataLoad } from '@jetstream/shared/utils';
 import { CompositeGraphRequest, Field, SalesforceOrgUi } from '@jetstream/types';
 import { DepGraph, DepGraphCycleError } from 'dependency-graph';
@@ -17,8 +17,6 @@ import {
   LoadMultiObjectRequestWithResult,
   ParseWorkbookResult,
 } from './load-records-multi-object-types';
-
-initXlsx(XLSX);
 
 const WORKSHEET_LOCATIONS = {
   sobject: 'B1',

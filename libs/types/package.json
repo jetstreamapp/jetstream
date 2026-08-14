@@ -1,0 +1,8 @@
+{
+  "name": "types",
+  "private": true,
+  "sideEffects": [
+    "**/*.css",
+    "**/*.scss"
+  ]
+}

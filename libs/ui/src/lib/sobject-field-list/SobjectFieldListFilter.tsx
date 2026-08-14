@@ -23,17 +23,16 @@ export interface FilterTypes {
   managed: ManagedFilter;
 }
 
-export const DEFAULT_FILTER_TYPES: FilterTypes = {
+export const DEFAULT_FILTER_TYPES: FilterTypes = Object.freeze({
   selected: 'all',
   editable: 'all',
   required: 'all',
   default: 'all',
   standardCustom: 'all',
   managed: 'all',
-};
-Object.freeze(DEFAULT_FILTER_TYPES);
+});
 
-export const DEFAULT_FILTER_TYPE_ITEMS = {
+export const DEFAULT_FILTER_TYPE_ITEMS = Object.freeze({
   selected: [
     { key: 'all', label: 'All' },
     { key: 'selected', label: 'Selected' },
@@ -64,8 +63,7 @@ export const DEFAULT_FILTER_TYPE_ITEMS = {
     { key: 'unmanaged', label: 'Unmanaged' },
     { key: 'managed', label: 'Managed' },
   ],
-};
-Object.freeze(DEFAULT_FILTER_TYPE_ITEMS);
+});
 
 export interface SobjectFieldListFilterProps {
   selectedItems: FilterTypes;

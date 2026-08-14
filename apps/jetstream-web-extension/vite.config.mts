@@ -48,14 +48,11 @@ export default defineConfig(({ command, mode }) => {
       // project, so `React.act` would be missing and all React tests would fail.
       ...(command === 'build' ? { 'process.env.NODE_ENV': JSON.stringify(mode === 'development' ? 'development' : 'production') } : {}),
     },
-    esbuild: {
-      charset: 'ascii',
-    },
     build: {
       outDir: '../../dist/apps/jetstream-web-extension',
       emptyOutDir: true,
       sourcemap: mode === 'development' ? 'inline' : false,
-      minify: mode === 'development' ? false : 'esbuild',
+      minify: mode !== 'development',
       rolldownOptions: {
         input: {
           app: resolve(import.meta.dirname, 'app.html'),
