@@ -1,5 +1,19 @@
 # Changelog
 
+## [10.12.0](https://github.com/jetstreamapp/jetstream/compare/v10.11.0...v10.12.0) (2026-08-14)
+
+### Features
+
+- add release notes for version 10.12.0 with multi-object load and JSON file support ([364089a](https://github.com/jetstreamapp/jetstream/commit/364089a5444af216890c58b2e56f0a8c45de354c))
+- **load:** support loading JSON files ([0752d2f](https://github.com/jetstreamapp/jetstream/commit/0752d2f58a8916d8906b9590e5b1743522028577))
+- redesign Load Records to Multiple Objects experience ([12a686f](https://github.com/jetstreamapp/jetstream/commit/12a686f574ba5a36d40d4b9db62a6ee4d5fb52ee))
+- retain form values on record type change and add utility for unavailable picklist values ([d4556d5](https://github.com/jetstreamapp/jetstream/commit/d4556d5205dfaa1baf31fcb43e9c9cd2e9315063))
+
+### Bug Fixes
+
+- show error message if fetching profile fails ([b8f5da1](https://github.com/jetstreamapp/jetstream/commit/b8f5da12e1b62a4869db97106895992ff60bede7))
+- vitest configuration ([89cd18d](https://github.com/jetstreamapp/jetstream/commit/89cd18daa51d7f881037fe50221a41175cceedcc))
+
 ## [10.11.0](https://github.com/jetstreamapp/jetstream/compare/v10.10.1...v10.11.0) (2026-08-10)
 
 ### Features
