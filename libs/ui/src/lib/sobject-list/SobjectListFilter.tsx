@@ -219,6 +219,40 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
           'slds-text-color_brand': hasFiltersApplied,
         }),
       }}
+      // Rendered as a sibling of the trigger button since a button cannot be nested within another button
+      triggerAfterContent={
+        !!hasFiltersApplied && (
+          <button
+            type="button"
+            title="Reset all filters"
+            aria-label="Reset all filters"
+            css={css`
+              position: absolute;
+              background-color: var(--slds-g-color-error-base-30, #ba0517);
+              top: -0.4rem;
+              right: -0.4rem;
+              border: none;
+              border-radius: 50%;
+              padding: 0;
+              width: 0.75rem;
+              height: 0.75rem;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              color: white;
+              font-size: 10px;
+              font-weight: bold;
+              line-height: 1;
+              cursor: pointer;
+              &:hover:after,
+              &:focus-visible:after {
+                content: 'X';
+              }
+            `}
+            onClick={handleReset}
+          ></button>
+        )
+      }
     >
       <Icon
         type="utility"
@@ -227,35 +261,6 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
         className="slds-button__icon slds-button__icon_medium"
         omitContainer
       />
-      {!!hasFiltersApplied && (
-        <div
-          title="Reset all filters"
-          css={css`
-            position: absolute;
-            background-color: var(--slds-g-color-error-base-30, #ba0517);
-            top: -0.4rem;
-            right: -0.4rem;
-            border-radius: 50%;
-            width: 0.75rem;
-            height: 0.75rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 10px;
-            font-weight: bold;
-            border-width: 2px;
-            border-color: white;
-            &:hover {
-              cursor: pointer;
-              &:after {
-                content: 'X';
-              }
-            }
-          `}
-          onClick={handleReset}
-        ></div>
-      )}
     </Popover>
   );
 };

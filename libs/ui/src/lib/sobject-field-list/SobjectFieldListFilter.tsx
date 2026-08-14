@@ -92,6 +92,9 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
     popoverRef.current?.close();
   }
 
+  // The badge only shows the count visually via a CSS pseudo-element, so it must be part of the accessible name
+  const resetFiltersLabel = `Reset all filters (${filterSelectedCount} applied)`;
+
   return (
     <Popover
       ref={popoverRef}
@@ -163,40 +166,45 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
           'slds-text-color_brand': !!filterSelectedCount,
         }),
       }}
-    >
-      <Icon type="utility" icon="filterList" description="Open filters menu" className="slds-button__icon" omitContainer />
-      {!!filterSelectedCount && (
-        <div
-          title="Reset all filters"
-          css={css`
-            position: absolute;
-            background-color: var(--slds-g-color-error-base-30, #ba0517);
-            top: -0.8rem;
-            right: -0.5rem;
-            border-radius: 50%;
-            width: 1rem;
-            height: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 10px;
-            font-weight: bold;
-            border-width: 2px;
-            border-color: white;
-            &:hover {
+      // Rendered as a sibling of the trigger button since a button cannot be nested within another button
+      triggerAfterContent={
+        !!filterSelectedCount && (
+          <button
+            type="button"
+            title={resetFiltersLabel}
+            aria-label={resetFiltersLabel}
+            css={css`
+              position: absolute;
+              background-color: var(--slds-g-color-error-base-30, #ba0517);
+              top: -0.8rem;
+              right: -0.5rem;
+              border: none;
+              border-radius: 50%;
+              padding: 0;
+              width: 1rem;
+              height: 1rem;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              color: white;
+              font-size: 10px;
+              font-weight: bold;
+              line-height: 1;
               cursor: pointer;
               &:after {
+                content: '${filterSelectedCount}';
+              }
+              &:hover:after,
+              &:focus-visible:after {
                 content: 'X';
               }
-            }
-            &:after {
-              content: '${filterSelectedCount}';
-            }
-          `}
-          onClick={handleReset}
-        ></div>
-      )}
+            `}
+            onClick={handleReset}
+          ></button>
+        )
+      }
+    >
+      <Icon type="utility" icon="filterList" description="Open filters menu" className="slds-button__icon" omitContainer />
     </Popover>
   );
 };
