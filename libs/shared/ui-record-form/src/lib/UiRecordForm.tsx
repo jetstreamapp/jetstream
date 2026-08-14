@@ -16,6 +16,11 @@ export interface UiRecordFormProps {
   sobjectFields: Field[];
   picklistValues: PicklistFieldValues;
   record: SalesforceRecord;
+  /**
+   * Values the user already entered, used to re-populate the form when it is re-mounted (e.g. the record type changed).
+   * This is only read when the component mounts, use the `key` prop to force a re-mount with updated values.
+   */
+  initialModifiedRecord?: SalesforceRecord;
   saveErrors?: Record<string, string | undefined>;
   disabled?: boolean;
   onChange: (record: SalesforceRecord) => void;
@@ -30,6 +35,7 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
   sobjectFields,
   picklistValues,
   record,
+  initialModifiedRecord,
   saveErrors,
   disabled = false,
   onChange,
@@ -39,7 +45,7 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
   const [showFieldTypes, setShowFieldTypes] = useState(false);
   const [limitToRequired, setLimitToRequired] = useState(false);
   const [limitToErrorFields, setLimitToErrorFields] = useState(false);
-  const [modifiedRecord, setModifiedRecord] = useState<SalesforceRecord>({});
+  const [modifiedRecord, setModifiedRecord] = useState<SalesforceRecord>(() => initialModifiedRecord || {});
   const [visibleFieldMetadataRows, setVisibleFieldMetadataRows] = useState<EditableFields[][]>();
   const [fieldMetadata, setFieldMetadata] = useState(() => {
     return convertMetadataToEditableFields(sobjectFields, picklistValues, action, record);
