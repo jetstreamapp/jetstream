@@ -1,0 +1,54 @@
+---
+slug: v10.12.0
+title: 10.12.0 - Rebuilt multi-object load and JSON file support
+date: '2026-08-14'
+tags: [web, desktop, extension]
+versions:
+  web: 10.12.0
+  desktop: 4.9.0
+  extension: 3.12.0
+summary: Load Records to Multiple Objects has been rebuilt as a two-step flow that shows your data, flags errors on the exact cells, and lets you retry failed record groups. The data loader also accepts JSON files.
+highlights:
+  - title: Load Records to Multiple Objects, rebuilt
+    description: A two-step flow with a data preview, validation errors shown on the exact cells and rows, live load progress, and retry of failed record groups.
+    docLink: /load/with-related
+  - title: Load JSON files
+    description: The data loader accepts .json files and pasted JSON, including records downloaded from the Query tool.
+    docLink: /load
+  - title: Record type changes keep the values you entered
+    description: Changing the record type on a record form now keeps the values you already filled in, clearing only picklist values that the new record type does not allow.
+    docLink: /load/create-record-without-file
+  - title: Desktop file open fix
+    description: Opening a file smaller than 32KB from the desktop app no longer loads corrupted data.
+    platforms: [desktop]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Load Records to Multiple Objects, rebuilt
+
+Loading related records is now a two-step flow, Upload & Review and Load Data, with your data on screen the whole time.
+
+- Every worksheet gets a preview grid, and validation errors are marked on the exact cell and row, with an error count per tab and a clickable error summary. The preview still renders when the file has errors, and every problem is reported at once instead of one at a time.
+- A Groups tab and a Group column on each row show how your records were grouped, along with a summary of records, groups, largest group against the 500 records per group limit, and how many API requests the load will take.
+- The load screen shows live progress (request x of y, records processed), can be cancelled between requests, and warns you before navigating away.
+- Results are broken out per worksheet with a failures filter, retry of failed groups, and downloads that include the worksheet name and row number. Parsed files and results survive navigating to another page.
+
+Query results can also be downloaded as a load template, with each record's Id used as its Reference Id, for moving records from one org to another. Validation messages were rewritten to say how to fix the problem, and several bugs were fixed along the way, including case-sensitive reference header matching, groups of exactly 500 records being rejected, and the upsert external Id error pointing at the wrong cell.
+
+### Load JSON files
+
+The data loader now accepts `.json` files, and JSON can be pasted from the clipboard. Records downloaded as JSON from the Query tool can be loaded back without converting them first. Nested relationship fields are flattened into columns like `Owner.Name` so the rows match what CSV and Excel files produce.
+
+### Record type changes keep the values you entered
+
+When you create or edit a record and change the record type, the values you already entered stay in the form. Picklist values that the new record type does not allow are still cleared, since they would fail on save. The Record Type field also moved to the top of the form, because it controls which picklist values the rest of the fields offer.
+
+### Other fixes
+
+- Loading attachments: manually remapping the attachment body column now attaches the file contents again.
+- Desktop: opening a file smaller than 32KB no longer loads corrupted data, and a file that cannot be read now shows an error message.
+- If your profile fails to load, usually from a network problem, the app now shows a full-page error you can reload from instead of ending up in a broken state.
+- The filter count badge on the field list is now a real button, so it can be reached with the keyboard and read by a screen reader.

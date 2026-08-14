@@ -1,5 +1,35 @@
 [
   {
+    "slug": "v10.12.0",
+    "title": "10.12.0 - Rebuilt multi-object load and JSON file support",
+    "date": "2026-08-14",
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.12.0", "desktop": "4.9.0", "extension": "3.12.0" },
+    "summary": "Load Records to Multiple Objects has been rebuilt as a two-step flow that shows your data, flags errors on the exact cells, and lets you retry failed record groups. The data loader also accepts JSON files.",
+    "highlights": [
+      {
+        "title": "Load Records to Multiple Objects, rebuilt",
+        "description": "A two-step flow with a data preview, validation errors shown on the exact cells and rows, live load progress, and retry of failed record groups.",
+        "docLink": "/load/with-related"
+      },
+      {
+        "title": "Load JSON files",
+        "description": "The data loader accepts .json files and pasted JSON, including records downloaded from the Query tool.",
+        "docLink": "/load"
+      },
+      {
+        "title": "Record type changes keep the values you entered",
+        "description": "Changing the record type on a record form now keeps the values you already filled in, clearing only picklist values that the new record type does not allow.",
+        "docLink": "/load/create-record-without-file"
+      },
+      {
+        "title": "Desktop file open fix",
+        "description": "Opening a file smaller than 32KB from the desktop app no longer loads corrupted data.",
+        "platforms": ["desktop"]
+      }
+    ]
+  },
+  {
     "slug": "v10.11.0",
     "title": "10.11.0 - Faster tables, right-click copy everywhere, multi-range selection",
     "date": "2026-08-10",
