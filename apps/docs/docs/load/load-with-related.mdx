@@ -57,6 +57,14 @@ Every record needs a Reference Id in column A:
 - It is only used during the load to link records together - it is never saved to Salesforce.
 - **Tip**: when migrating records between orgs, use each record's Id from the source org as its Reference Id. Lookup columns you export from the source org will then already contain valid Reference Ids.
 
+### Building a file from query results
+
+Instead of creating the file by hand, you can generate it from the Query page. Run your query, click **Download**, and choose the **Load template (Excel)** format. Each record's Id becomes its Reference Id and the operation is set to `Insert`, so the file is ready to load into another org.
+
+If your query includes a sub-query, e.g. `SELECT Id, Name, (SELECT Id, LastName FROM Contacts) FROM Account`, each sub-query becomes its own worksheet with the lookup back to the parent already linked, so the child records are created against the newly inserted parent record. Keep the [500 records per group](#limits) limit in mind - a parent and all of its related records count as one group.
+
+Open the downloaded file and adjust it before loading: change the operation, remove columns you do not want to load, and wrap any other lookup column headers in curly braces to link them to other rows in the file.
+
 ## Linking records
 
 There are three ways to set a lookup field on a record in your file:
@@ -65,9 +73,12 @@ There are three ways to set a lookup field on a record in your file:
 2. **Link a single cell** - keep a plain header (e.g. `AccountId`) and wrap just one value in curly braces, e.g. `{account1}`. Only that row links to another row in the file - the other rows in the column can hold real Salesforce Ids.
 3. **Link by external Id** - use dot notation in the header with no braces, e.g. `Account.My_External_Id__c`. The lookup is set using an external Id value that already exists in the org. Use this when the parent records are not part of this load.
 
-{/* TODO: retake screenshot after UI redesign */}
+The example below shows both worksheets of a file that creates three Accounts and three Contacts, with `account3` linked to `account1` as its parent and each Contact linked to the Account it belongs to.
 
-<img src={require('./load-related-example-1.png').default} alt="Example load file with a linked column" />
+<img
+  src={require('./load-to-multiple-objects-example.png').default}
+  alt="Two worksheets side by side. Each has the object API name in cell B1, the operation in B2, column headers on row 5, and records from row 6. Column A holds a Reference Id for every record, and columns with a header wrapped in curly braces - {ParentId} and {AccountId} - hold the Reference Id of the record they are related to."
+/>
 
 ## How records are grouped
 
@@ -112,16 +123,25 @@ When you upload your file, Jetstream validates everything before any data is sen
 
 <img src={require('./load-related-errors.png').default} alt="Validation errors shown on the review screen" />
 
+### Columns that will be skipped
+
+Some columns cannot be loaded. These are reported as warnings rather than errors: the column is highlighted in red in the preview and left out of the load, while every other column on those rows still loads. A column is skipped when:
+
+- **The header does not match a field on the object** - a typo, a field your user cannot access, or a column you added for your own notes.
+- **The field cannot be written by the operation** - system fields such as `CreatedDate`, `LastModifiedById`, and `IsDeleted` are never writable, and some fields can be set on create but not changed afterwards. This is checked against the operation on that worksheet, so changing the operation re-checks every column.
+
+Fix the header and upload the file again if the data was meant to be loaded. Read-only columns are safe to leave in the file - Salesforce rejects an entire record when it contains a field the operation cannot write, so Jetstream removes them for you.
+
 ## Troubleshooting
 
-| Error                                                                        | Cause                                                                                                                                  | Fix                                                                                                                                 |
-| ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Cell B1 / B2 / B3 is blank or could not be read                              | The worksheet does not match the template layout - the object, operation, or external Id cell was moved or left empty                  | Keep the fixed layout: object API name in B1, operation in B2, external Id in B3 (Upsert only)                                      |
-| The operation is not valid                                                   | B2 contains something other than `Insert`, `Update`, or `Upsert`                                                                       | Set B2 to one of the three valid operations                                                                                         |
-| An external Id is required for upsert / must be marked as an external id     | B3 is blank for an Upsert, the field is missing from your columns, or the field is not marked as an External Id in Salesforce          | Add the external Id field API name to B3 **and** as a data column, and confirm the field is flagged as an External Id in Salesforce |
-| The field does not exist on the object                                       | A column header has a typo, or your user does not have access to the field                                                             | Correct the field API name in row 5, or check field-level security                                                                  |
-| The Reference Id is used for multiple records                                | The same Reference Id appears on more than one row - Reference Ids must be unique across **all** worksheets, not just within one sheet | Give every record a unique Reference Id                                                                                             |
-| Rows are missing a Reference Id                                              | Accidental data in unused rows or columns makes Excel think those rows are records                                                     | Clear the contents of any unused rows and columns below and beside your data                                                        |
-| The value refers to a Reference Id that does not exist                       | A `{value}` in a linked column has a typo, or curly braces were put around a literal value such as a real Salesforce Id                | Fix the typo so it matches a Reference Id in the file, or remove the braces if the value should load as-is                          |
-| These records link to each other in a loop                                   | A circular reference (for example, record A links to B and B links back to A), so there is no valid order to load them                 | Follow the loop described in the error message and remove one of the `{reference}` values to break it                               |
-| The record is connected to too many related records (limit is 500 per group) | More than 500 records are linked together into one group - the limit is per group of related records, not per file                     | Remove some `{reference}` links, or split the group across multiple loads                                                           |
+| Error                                                                        | Cause                                                                                                                                                              | Fix                                                                                                                                 |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Cell B1 / B2 / B3 is blank or could not be read                              | The worksheet does not match the template layout - the object, operation, or external Id cell was moved or left empty                                              | Keep the fixed layout: object API name in B1, operation in B2, external Id in B3 (Upsert only)                                      |
+| The operation is not valid                                                   | B2 contains something other than `Insert`, `Update`, or `Upsert`                                                                                                   | Set B2 to one of the three valid operations                                                                                         |
+| An external Id is required for upsert / must be marked as an external id     | B3 is blank for an Upsert, the field is missing from your columns, or the field is not marked as an External Id in Salesforce                                      | Add the external Id field API name to B3 **and** as a data column, and confirm the field is flagged as an External Id in Salesforce |
+| The column will be skipped (warning)                                         | The header has a typo, your user cannot access the field, or the field is read-only for this operation - the column is dropped and the rest of the row still loads | Nothing to do for read-only fields; otherwise correct the field API name in row 5 or check field-level security and upload again    |
+| The Reference Id is used for multiple records                                | The same Reference Id appears on more than one row - Reference Ids must be unique across **all** worksheets, not just within one sheet                             | Give every record a unique Reference Id                                                                                             |
+| Rows are missing a Reference Id                                              | Accidental data in unused rows or columns makes Excel think those rows are records                                                                                 | Clear the contents of any unused rows and columns below and beside your data                                                        |
+| The value refers to a Reference Id that does not exist                       | A `{value}` in a linked column has a typo, or curly braces were put around a literal value such as a real Salesforce Id                                            | Fix the typo so it matches a Reference Id in the file, or remove the braces if the value should load as-is                          |
+| These records link to each other in a loop                                   | A circular reference (for example, record A links to B and B links back to A), so there is no valid order to load them                                             | Follow the loop described in the error message and remove one of the `{reference}` values to break it                               |
+| The record is connected to too many related records (limit is 500 per group) | More than 500 records are linked together into one group - the limit is per group of related records, not per file                                                 | Remove some `{reference}` links, or split the group across multiple loads                                                           |

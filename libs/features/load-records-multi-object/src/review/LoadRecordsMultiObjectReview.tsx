@@ -1,12 +1,11 @@
 import { css } from '@emotion/react';
-import { DATE_FORMATS } from '@jetstream/shared/constants';
+import { DATE_FORMATS, MAX_RECORDS_PER_GROUP } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { UiTabSection } from '@jetstream/types';
-import { Checkbox, Grid, Icon, Popover, Select, Tabs, TabsRef, Tooltip } from '@jetstream/ui';
-import { useAtom, useAtomValue } from 'jotai';
+import { Checkbox, DropDown, Grid, Icon, Popover, Select, Tabs, TabsRef, Tooltip } from '@jetstream/ui';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { FunctionComponent, useMemo, useRef } from 'react';
-import { MAX_RECORDS_PER_GROUP } from '../load-records-multi-object-utils';
 import {
   datasetsState,
   dateFormatState,
@@ -16,8 +15,11 @@ import {
   loadIsRunningState,
   parseErrorsState,
   parseWarningsState,
+  previewLayoutVersionState,
   requestsState,
 } from '../load-records-multi-object.state';
+import LoadRecordsMultiObjectDownloadModal from '../load/LoadRecordsMultiObjectDownloadModal';
+import useDownloadResults from '../load/useDownloadResults';
 import LoadRecordsMultiObjectErrorSummary from './LoadRecordsMultiObjectErrorSummary';
 import LoadRecordsMultiObjectGroupsOverview from './LoadRecordsMultiObjectGroupsOverview';
 import LoadRecordsMultiObjectSheetPreview from './LoadRecordsMultiObjectSheetPreview';
@@ -40,6 +42,8 @@ export const LoadRecordsMultiObjectReview: FunctionComponent = () => {
   const loadIsRunning = useAtomValue(loadIsRunningState);
   const [dateFormat, setDateFormat] = useAtom(dateFormatState);
   const [insertNulls, setInsertNulls] = useAtom(insertNullsState);
+  const setPreviewLayoutVersion = useSetAtom(previewLayoutVersionState);
+  const { downloadRequests, handleCloseDownloadModal, downloadModalData } = useDownloadResults();
 
   const tabsRef = useRef<TabsRef>(null);
 
@@ -48,6 +52,16 @@ export const LoadRecordsMultiObjectReview: FunctionComponent = () => {
   const { groupCount, largestGroupSize } = useMemo(() => getGroupSummary(groupsByRefId), [groupsByRefId]);
 
   const totalRecords = useMemo(() => (datasets || []).reduce((count, { data }) => count + data.length, 0), [datasets]);
+  const previewWorksheets = useMemo(() => new Set((datasets || []).map(({ worksheet }) => worksheet)), [datasets]);
+
+  /**
+   * A worksheet's own warnings are shown inside its tab, right next to the columns they are about. Only
+   * warnings with no tab to live in (e.g. a worksheet that was skipped entirely) are surfaced up here.
+   */
+  const workbookWarnings = useMemo(
+    () => parseWarnings.filter(({ worksheet }) => !previewWorksheets.has(worksheet)),
+    [parseWarnings, previewWorksheets],
+  );
 
   const sheetPreviews = useMemo(
     () =>
@@ -65,7 +79,7 @@ export const LoadRecordsMultiObjectReview: FunctionComponent = () => {
 
   const tabs = useMemo((): UiTabSection[] => {
     const sheetTabs = sheetPreviews.map(({ dataset, previewData }): UiTabSection => {
-      const { errorCount } = previewData;
+      const { errorCount, warnings } = previewData;
       return {
         id: dataset.worksheet,
         titleText: dataset.worksheet,
@@ -78,6 +92,14 @@ export const LoadRecordsMultiObjectReview: FunctionComponent = () => {
                 title={`${formatNumber(errorCount)} ${pluralizeFromNumber('error', errorCount)} on this worksheet`}
               >
                 {formatNumber(errorCount)}
+              </span>
+            )}
+            {errorCount === 0 && warnings.length > 0 && (
+              <span
+                className="slds-badge slds-theme_warning slds-m-left_x-small"
+                title={`${formatNumber(warnings.length)} ${pluralizeFromNumber('warning', warnings.length)} on this worksheet`}
+              >
+                {formatNumber(warnings.length)}
               </span>
             )}
           </span>
@@ -141,56 +163,76 @@ export const LoadRecordsMultiObjectReview: FunctionComponent = () => {
             </span>
           )}
         </div>
-        <Popover
-          placement="bottom-end"
-          header={
-            <header className="slds-popover__header">
-              <h2 className="slds-text-heading_small">Load Options</h2>
-            </header>
-          }
-          content={
-            <div>
-              <Checkbox
-                id="insert-null-values"
-                checked={insertNulls}
-                label="Clear Fields with Blank Values"
-                labelHelp="Select this option to clear any mapped fields where the field is blank in your file. This only applies to record updates."
-                disabled={loadIsRunning}
-                onChange={setInsertNulls}
-              />
-              <Select
-                id="date-format"
-                label="Date Format"
-                labelHelp="Specify the format of any date fields in your file. Jetstream just needs to know the order of the month and the day and will auto-detect the exact format."
-              >
-                <select
-                  aria-describedby="date-format"
-                  className="slds-select"
-                  id="date-format-select"
-                  required
-                  value={dateFormat}
+        <Grid verticalAlign="center">
+          {!!requests?.length && (
+            <DropDown
+              className="slds-m-right_xx-small"
+              position="right"
+              actionText="additional downloads"
+              items={[{ id: 'load-data', value: 'Download Load Data (JSON)', icon: { type: 'utility', icon: 'download' } }]}
+              onSelected={() => downloadRequests(requests)}
+            />
+          )}
+          <Popover
+            placement="bottom-end"
+            header={
+              <header className="slds-popover__header">
+                <h2 className="slds-text-heading_small">Load Options</h2>
+              </header>
+            }
+            content={
+              <div>
+                <Checkbox
+                  id="insert-null-values"
+                  checked={insertNulls}
+                  label="Clear Fields with Blank Values"
+                  labelHelp="Select this option to clear any mapped fields where the field is blank in your file. This only applies to record updates."
                   disabled={loadIsRunning}
-                  onChange={(event) => setDateFormat(event.target.value)}
+                  onChange={setInsertNulls}
+                />
+                <Select
+                  id="date-format"
+                  label="Date Format"
+                  labelHelp="Specify the format of any date fields in your file. Jetstream just needs to know the order of the month and the day and will auto-detect the exact format."
                 >
-                  <option value={DATE_FORMATS.MM_DD_YYYY}>{DATE_FORMATS.MM_DD_YYYY}</option>
-                  <option value={DATE_FORMATS.DD_MM_YYYY}>{DATE_FORMATS.DD_MM_YYYY}</option>
-                  <option value={DATE_FORMATS.YYYY_MM_DD}>{DATE_FORMATS.YYYY_MM_DD}</option>
-                </select>
-              </Select>
-            </div>
-          }
-          buttonProps={{ className: 'slds-button slds-button_neutral' }}
-        >
-          <Icon type="utility" icon="settings" className="slds-button__icon slds-button__icon_left" />
-          Load Options
-        </Popover>
+                  <select
+                    aria-describedby="date-format"
+                    className="slds-select"
+                    id="date-format-select"
+                    required
+                    value={dateFormat}
+                    disabled={loadIsRunning}
+                    onChange={(event) => setDateFormat(event.target.value)}
+                  >
+                    <option value={DATE_FORMATS.MM_DD_YYYY}>{DATE_FORMATS.MM_DD_YYYY}</option>
+                    <option value={DATE_FORMATS.DD_MM_YYYY}>{DATE_FORMATS.DD_MM_YYYY}</option>
+                    <option value={DATE_FORMATS.YYYY_MM_DD}>{DATE_FORMATS.YYYY_MM_DD}</option>
+                  </select>
+                </Select>
+              </div>
+            }
+            buttonProps={{ className: 'slds-button slds-button_neutral' }}
+          >
+            <Icon type="utility" icon="settings" className="slds-button__icon slds-button__icon_left" />
+            Load Options
+          </Popover>
+        </Grid>
       </Grid>
+      <LoadRecordsMultiObjectDownloadModal downloadModalData={downloadModalData} onClose={handleCloseDownloadModal} />
       <LoadRecordsMultiObjectErrorSummary
         errors={allErrors}
-        warnings={parseWarnings}
+        warnings={workbookWarnings}
+        previewWorksheets={previewWorksheets}
         onSelectWorksheet={(worksheet) => tabsRef.current?.changeTab(worksheet)}
+        onWarningsDismissed={() => setPreviewLayoutVersion((version) => version + 1)}
       />
-      <Tabs ref={tabsRef} tabs={tabs} renderAllContent initialActiveId={allErrors.length ? tabs[1]?.id : GROUPS_TAB_ID} />
+      <Tabs
+        ref={tabsRef}
+        tabs={tabs}
+        renderAllContent
+        initialActiveId={allErrors.length ? tabs[1]?.id : GROUPS_TAB_ID}
+        onChange={() => setPreviewLayoutVersion((version) => version + 1)}
+      />
     </div>
   );
 };

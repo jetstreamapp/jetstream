@@ -2,17 +2,17 @@ import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
-import { FileExtAllTypes, Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
-import { Badge, ConfirmationModalPromise, DropDown, FileDownloadModal, Grid, Icon } from '@jetstream/ui';
-import { ConfirmPageChange, fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
-import { fromAppState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
+import { Badge, ConfirmationModalPromise, DropDown, Grid, Icon, ScopedNotification } from '@jetstream/ui';
+import { ConfirmPageChange, useAmplitude } from '@jetstream/ui-core';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent, useMemo } from 'react';
 import { LoadMultiObjectRun } from '../load-records-multi-object-types';
 import { buildRetryRequests } from '../load-records-multi-object-utils';
-import { groupsByRefIdState, loadProgressState, requestsState } from '../load-records-multi-object.state';
+import { groupsByRefIdState, loadProgressState, requestsState, totalRecordsToLoadState } from '../load-records-multi-object.state';
 import { getGroupNumbersByGraphId } from '../review/review-utils';
 import useLoadFile from '../useLoadFile';
+import LoadRecordsMultiObjectDownloadModal from './LoadRecordsMultiObjectDownloadModal';
 import LoadRecordsMultiObjectResultsTables from './LoadRecordsMultiObjectResultsTables';
 import { buildRecordResultRows, getLoadResultsSummary } from './load-results-utils';
 import useDownloadResults from './useDownloadResults';
@@ -32,8 +32,6 @@ export const LoadRecordsMultiObjectLoad: FunctionComponent<LoadRecordsMultiObjec
   apiVersion,
 }) => {
   const { trackEvent } = useAmplitude();
-  const { google_apiKey, google_appId, google_clientId } = useAtomValue(fromAppState.applicationCookieState);
-  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const { downloadRequests, downloadResults, handleCloseDownloadModal, downloadModalData } = useDownloadResults();
 
   const requests = useAtomValue(requestsState);
@@ -52,10 +50,8 @@ export const LoadRecordsMultiObjectLoad: FunctionComponent<LoadRecordsMultiObjec
   const resultRows = useMemo(() => buildRecordResultRows(runsToDisplay, groupNumbersByGraphId), [runsToDisplay, groupNumbersByGraphId]);
   const { successCount, failureCount, pendingCount } = useMemo(() => getLoadResultsSummary(resultRows), [resultRows]);
 
-  const totalRecordCount = useMemo(
-    () => (requests || []).reduce((count, request) => count + Object.keys(request.recordWithResponseByRefId).length, 0),
-    [requests],
-  );
+  // Same count that gates "Continue to Load" on the review step, so the two can never disagree
+  const totalRecordCount = useAtomValue(totalRecordsToLoadState);
   const totalGroupCount = useMemo(
     () => (requests || []).reduce((count, request) => count + Object.keys(request.dataWithResultsByGraphId).length, 0),
     [requests],
@@ -111,24 +107,7 @@ export const LoadRecordsMultiObjectLoad: FunctionComponent<LoadRecordsMultiObjec
   return (
     <div>
       <ConfirmPageChange actionInProgress={loading} />
-      {downloadModalData.open && (
-        <FileDownloadModal
-          org={selectedOrg}
-          googleIntegrationEnabled={hasGoogleDriveAccess}
-          googleShowUpgradeToPro={googleShowUpgradeToPro}
-          google_apiKey={google_apiKey}
-          google_appId={google_appId}
-          google_clientId={google_clientId}
-          data={downloadModalData.data}
-          header={downloadModalData.header}
-          fileNameParts={downloadModalData.fileNameParts}
-          allowedTypes={downloadModalData.allowedTypes as FileExtAllTypes[]}
-          onModalClose={handleCloseDownloadModal}
-          emitUploadToGoogleEvent={fromJetstreamEvents.emit}
-          source="load_records_multi_object"
-          trackEvent={trackEvent}
-        />
-      )}
+      <LoadRecordsMultiObjectDownloadModal downloadModalData={downloadModalData} onClose={handleCloseDownloadModal} />
 
       <Grid align="spread" verticalAlign="center" wrap className="slds-p-around_small">
         <div>
@@ -146,8 +125,13 @@ export const LoadRecordsMultiObjectLoad: FunctionComponent<LoadRecordsMultiObjec
       </Grid>
 
       <div className="slds-p-horizontal_small">
-        {!loading && (
-          <button className="slds-button slds-button_brand" disabled={!requests?.length} onClick={handleLoadStarted}>
+        {totalRecordCount === 0 && (
+          <ScopedNotification theme="warning">
+            There are no records to load. Go back and check that your file has data and no unresolved errors.
+          </ScopedNotification>
+        )}
+        {!loading && totalRecordCount > 0 && (
+          <button className="slds-button slds-button_brand" onClick={handleLoadStarted}>
             Load <strong className="slds-m-horizontal_xx-small">{formatNumber(totalRecordCount)}</strong>
             {pluralizeFromNumber('Record', totalRecordCount)} ({formatNumber(totalGroupCount)}{' '}
             {pluralizeFromNumber('Group', totalGroupCount)}

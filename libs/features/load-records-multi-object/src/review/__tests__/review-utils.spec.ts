@@ -153,6 +153,30 @@ describe('buildSheetPreviewData', () => {
     expect(bannerErrors).toHaveLength(1);
   });
 
+  it('separates warnings from errors and flags the columns they apply to', () => {
+    const skippedColumn = buildError({
+      locationType: 'COLUMN',
+      location: 'Bogus__c',
+      header: 'Bogus__c',
+      severity: 'warning',
+      message: 'The column "Bogus__c" will be skipped',
+    });
+    const blockingError = buildError({ locationType: 'SHEET' });
+    const { warnings, skippedHeaders, bannerErrors, errorCount, rows } = buildSheetPreviewData({
+      dataset: buildDataset(),
+      errors: [skippedColumn, blockingError],
+      groupsByRefId: {},
+      groupNumbersByGraphId: {},
+    });
+
+    expect(warnings).toEqual([skippedColumn]);
+    expect(skippedHeaders).toEqual(new Set(['Bogus__c']));
+    // Warnings never block the load, so they stay out of the error banner and the error count
+    expect(bannerErrors).toEqual([blockingError]);
+    expect(errorCount).toBe(1);
+    expect(rows.every(({ status, _fieldErrors }) => !status && !_fieldErrors)).toBe(true);
+  });
+
   it('stacks multiple errors on the same cell and row', () => {
     const cellError1 = buildError({ locationType: 'COLUMN', location: 'A', header: 'Name', rowIndexes: [0], message: 'First' });
     const cellError2 = buildError({ locationType: 'COLUMN', location: 'A', header: 'Name', rowIndexes: [0], message: 'Second' });

@@ -480,3 +480,11 @@
 .jgrid-cell.permission-finding-cell--clickable {
   cursor: pointer;
 }
+
+/* A column whose data will not be used (consumer column class - e.g. a load file column that has no matching
+   field on the object). Tinted like `save-error` rows and applied to the header too, so the whole column
+   reads as excluded while the values stay legible. */
+.jgrid-header-cell.jgrid-column-excluded,
+.jgrid-cell.jgrid-column-excluded {
+  background-color: var(--slds-g-color-error-base-90, #ffdede);
+}

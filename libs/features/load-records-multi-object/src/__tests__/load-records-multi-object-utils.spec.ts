@@ -1,9 +1,11 @@
+import { MAX_RECORDS_PER_GROUP } from '@jetstream/shared/constants';
 import { describeSObject } from '@jetstream/shared/data';
+import { prepareLoadMultiObjectTemplate } from '@jetstream/shared/ui-utils';
 import { Field, SalesforceOrgUi } from '@jetstream/types';
 import * as XLSX from 'xlsx';
 import { LoadMultiObjectData, LoadMultiObjectRequestWithResult } from '../load-records-multi-object-types';
 import {
-  MAX_RECORDS_PER_GROUP,
+  applyDatasetConfiguration,
   buildDataGraph,
   buildRetryRequests,
   parseWorkbook,
@@ -21,26 +23,40 @@ const API_VERSION = 'v62.0';
 const GRAPH_OPTIONS = { insertNulls: false, dateFormat: 'MM/dd/yyyy' };
 
 function mockField(name: string, type = 'string', overrides: Partial<Field> = {}): Field {
-  return { name, type, externalId: false, relationshipName: null, referenceTo: [], ...overrides } as unknown as Field;
+  return {
+    name,
+    type,
+    externalId: false,
+    relationshipName: null,
+    referenceTo: [],
+    createable: true,
+    updateable: true,
+    ...overrides,
+  } as unknown as Field;
 }
+
+/** System/audit fields that Salesforce never allows a load to write - these ride along with an exported query */
+const READ_ONLY_FIELD_OVERRIDES: Partial<Field> = { createable: false, updateable: false };
 
 const OBJECT_METADATA: Record<string, { name: string; fields: Field[] }> = {
   account: {
     name: 'Account',
     fields: [
-      mockField('Id', 'id'),
+      mockField('Id', 'id', READ_ONLY_FIELD_OVERRIDES),
       mockField('Name'),
       mockField('ParentId', 'reference', { referenceTo: ['Account'] }),
       mockField('My_Ext_Id__c', 'string', { externalId: true }),
+      mockField('CreatedDate', 'datetime', READ_ONLY_FIELD_OVERRIDES),
+      mockField('Create_Only__c', 'string', { updateable: false }),
     ],
   },
   contact: {
     name: 'Contact',
     fields: [
-      mockField('Id', 'id'),
+      mockField('Id', 'id', READ_ONLY_FIELD_OVERRIDES),
       mockField('FirstName'),
       mockField('LastName'),
-      mockField('AccountId', 'reference', { referenceTo: ['Account'] }),
+      mockField('AccountId', 'reference', { referenceTo: ['Account'], relationshipName: 'Account' }),
     ],
   },
 };
@@ -248,7 +264,7 @@ describe('parseWorkbook', () => {
     expect(duplicateError?.rowIndexes).toEqual([0]);
   });
 
-  it('reports each unknown field as its own column error with the header attached', async () => {
+  it('reports each unknown field as its own non-blocking column warning with the header attached', async () => {
     const workbook = buildWorkbook({
       Sheet1: {
         sobject: 'Account',
@@ -263,6 +279,119 @@ describe('parseWorkbook', () => {
     expect(fieldErrors).toHaveLength(2);
     expect(fieldErrors.map(({ header }) => header)).toEqual(['Bogus__c', 'AlsoBogus__c']);
     expect(fieldErrors.every(({ locationType }) => locationType === 'COLUMN')).toBe(true);
+    // Unknown columns are dropped from the load instead of blocking it
+    expect(fieldErrors.every(({ severity }) => severity === 'warning')).toBe(true);
+  });
+
+  it('omits unknown columns from the record sent to Salesforce', async () => {
+    const workbook = buildWorkbook({
+      Sheet1: {
+        sobject: 'Account',
+        operation: 'Insert',
+        headers: ['Reference Id', 'Name', 'Bogus__c'],
+        rows: [['rec1', 'Acme', 'some value']],
+      },
+    });
+    const datasets = await parseDatasets(workbook);
+
+    const { requests, errors } = buildDataGraph(datasets, API_VERSION, GRAPH_OPTIONS);
+
+    expect(errors).toEqual([]);
+    expect(requests[0].recordWithResponseByRefId['rec1'].request.body).toEqual({ Name: 'Acme' });
+  });
+
+  it('skips fields the operation cannot write and keeps them out of the request', async () => {
+    const workbook = buildWorkbook({
+      Sheet1: {
+        sobject: 'Account',
+        operation: 'Insert',
+        headers: ['Reference Id', 'Name', 'CreatedDate'],
+        rows: [['rec1', 'Acme', '2026-01-01T00:00:00Z']],
+      },
+    });
+    const datasets = await parseDatasets(workbook);
+
+    const [warning] = allErrors(datasets);
+    expect(warning.severity).toBe('warning');
+    expect(warning.header).toBe('CreatedDate');
+    expect(warning.message).toContain('cannot be set when creating records');
+
+    const { requests, errors } = buildDataGraph(datasets, API_VERSION, GRAPH_OPTIONS);
+    expect(errors).toEqual([]);
+    expect(requests[0].recordWithResponseByRefId['rec1'].request.body).toEqual({ Name: 'Acme' });
+  });
+
+  it('keeps the Id column for updates, since it identifies the record to update', async () => {
+    const workbook = buildWorkbook({
+      Sheet1: {
+        sobject: 'Account',
+        operation: 'Update',
+        headers: ['Reference Id', 'Id', 'Name'],
+        rows: [['rec1', '001000000000001', 'Acme']],
+      },
+    });
+    const datasets = await parseDatasets(workbook);
+
+    expect(allErrors(datasets)).toEqual([]);
+    const { requests } = buildDataGraph(datasets, API_VERSION, GRAPH_OPTIONS);
+    expect(requests[0].recordWithResponseByRefId['rec1'].request.url).toContain('/sobjects/Account/001000000000001');
+  });
+
+  it('loads a relationship column that resolves to an external Id on the related object', async () => {
+    const workbook = buildWorkbook({
+      Sheet1: {
+        sobject: 'Contact',
+        operation: 'Insert',
+        headers: ['Reference Id', 'LastName', 'Account.My_Ext_Id__c'],
+        rows: [['rec1', 'Smith', 'EXT1']],
+      },
+    });
+    const datasets = await parseDatasets(workbook);
+
+    expect(allErrors(datasets)).toEqual([]);
+    const { requests } = buildDataGraph(datasets, API_VERSION, GRAPH_OPTIONS);
+    expect(requests[0].recordWithResponseByRefId['rec1'].request.body).toEqual({
+      LastName: 'Smith',
+      Account: { attributes: { type: 'Account' }, My_Ext_Id__c: 'EXT1' },
+    });
+  });
+
+  it('warns about a relationship column whose related field cannot be resolved instead of dropping it silently', async () => {
+    const workbook = buildWorkbook({
+      Sheet1: {
+        sobject: 'Contact',
+        operation: 'Insert',
+        // Name exists on Account but is not an external Id, so there is no way to match a parent record with it
+        headers: ['Reference Id', 'LastName', 'Account.Name'],
+        rows: [['rec1', 'Smith', 'Acme']],
+      },
+    });
+    const datasets = await parseDatasets(workbook);
+
+    const [warning] = allErrors(datasets);
+    expect(warning.severity).toBe('warning');
+    expect(warning.header).toBe('Account.Name');
+
+    // Whatever validation warns about is exactly what the graph builder leaves out - never one without the other
+    const { requests } = buildDataGraph(datasets, API_VERSION, GRAPH_OPTIONS);
+    expect(requests[0].recordWithResponseByRefId['rec1'].request.body).toEqual({ LastName: 'Smith' });
+  });
+
+  it('does not flag every column as unknown when the object could not be described', async () => {
+    const workbook = buildWorkbook({
+      Sheet1: {
+        sobject: 'NotARealObject__c',
+        operation: 'Insert',
+        headers: ['Reference Id', 'Name'],
+        rows: [['rec1', 'a']],
+      },
+    });
+    const datasets = await parseDatasets(workbook);
+
+    const errors = allErrors(datasets);
+    expect(errors.filter(({ severity }) => severity === 'warning')).toEqual([]);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toContain('could not be loaded from the org');
   });
 
   it('reports missing Reference Ids with the offending row indexes', async () => {
@@ -694,6 +823,78 @@ describe('buildDataGraph', () => {
   });
 });
 
+describe('applyDatasetConfiguration', () => {
+  async function buildAccountDataset(headers: string[], operation = 'Insert', externalId?: string): Promise<LoadMultiObjectData> {
+    const datasets = await parseDatasets(
+      buildWorkbook({
+        Sheet1: {
+          sobject: 'Account',
+          operation,
+          externalId,
+          headers: ['Reference Id', ...headers],
+          rows: [['rec1', 'a', 'b'].slice(0, headers.length + 1)],
+        },
+      }),
+    );
+    return datasets[0];
+  }
+
+  it('switches the operation and clears the external Id when it no longer applies', async () => {
+    const dataset = await buildAccountDataset(['Name', 'My_Ext_Id__c'], 'Upsert', 'My_Ext_Id__c');
+
+    const updated = applyDatasetConfiguration(dataset, { operation: 'INSERT' });
+
+    expect(updated.operation).toBe('INSERT');
+    expect(updated.externalId).toBeUndefined();
+    expect(updated.errors).toEqual([]);
+  });
+
+  it('requires an external Id for upsert', async () => {
+    const dataset = await buildAccountDataset(['Name', 'My_Ext_Id__c']);
+
+    const updated = applyDatasetConfiguration(dataset, { operation: 'UPSERT' });
+
+    expect(updated.errors).toHaveLength(1);
+    expect(updated.errors[0].message).toContain('An external Id is required for upsert');
+    expect(updated.errors[0].location).toBe('B3');
+  });
+
+  it('requires the external Id to be a column in the file and an external Id in Salesforce', async () => {
+    const dataset = await buildAccountDataset(['Name', 'My_Ext_Id__c']);
+
+    expect(applyDatasetConfiguration(dataset, { operation: 'UPSERT', externalId: 'My_Ext_Id__c' }).errors).toEqual([]);
+    // Name is a real field but is neither an external Id
+    expect(applyDatasetConfiguration(dataset, { operation: 'UPSERT', externalId: 'Name' }).errors[0].message).toContain(
+      'must be marked as an external id',
+    );
+  });
+
+  it('re-derives which columns can be written when the operation changes', async () => {
+    const dataset = await buildAccountDataset(['Name', 'Create_Only__c']);
+    expect(dataset.errors).toEqual([]);
+
+    // Create-only fields are fine on insert but cannot be written on an update
+    const asUpdate = applyDatasetConfiguration(dataset, { operation: 'UPDATE' });
+    expect(asUpdate.errors.map(({ header }) => header)).toEqual(['Create_Only__c']);
+    expect(asUpdate.errors[0].message).toContain('cannot be changed on existing records');
+
+    // Switching back drops the warning again rather than accumulating
+    expect(applyDatasetConfiguration(asUpdate, { operation: 'INSERT' }).errors).toEqual([]);
+  });
+
+  it('replaces prior operation/external Id errors without discarding unrelated problems', async () => {
+    const dataset = await buildAccountDataset(['Name', 'Bogus__c']);
+    const priorWarnings = dataset.errors.filter(({ severity }) => severity === 'warning');
+    expect(priorWarnings).toHaveLength(1);
+
+    const withError = applyDatasetConfiguration(dataset, { operation: 'UPSERT' });
+    const resolved = applyDatasetConfiguration(withError, { operation: 'INSERT' });
+
+    expect(withError.errors.filter(({ property }) => property === 'externalId')).toHaveLength(1);
+    expect(resolved.errors).toEqual(priorWarnings);
+  });
+});
+
 describe('splitRequestsToMaxSize', () => {
   function singleRecordGraph(id: string, sobject = 'Account'): { graphId: string; compositeRequest: any[] } {
     return {
@@ -701,6 +902,11 @@ describe('splitRequestsToMaxSize', () => {
       compositeRequest: [{ method: 'POST', url: `/services/data/v62.0/sobjects/${sobject}`, referenceId: id, body: {} }],
     };
   }
+
+  it('returns no payloads when there is nothing to load', () => {
+    // A single empty payload would present as a loadable request containing zero records
+    expect(splitRequestsToMaxSize([], 500)).toEqual([]);
+  });
 
   it('caps payloads at 75 graphs', () => {
     const graphs = Array.from({ length: 76 }, (_, i) => singleRecordGraph(`g${i}`));
@@ -788,5 +994,61 @@ describe('buildRetryRequests', () => {
 
     expect(retryRequests).toHaveLength(1);
     expect(retryRequests[0].data).toHaveLength(2);
+  });
+});
+
+/**
+ * The download modal generates this file shape from query results, so a change to either side that breaks the
+ * hand-off would otherwise only surface when a user tries to load the file they just downloaded.
+ */
+describe('template generated from query results', () => {
+  function buildQueryResultTemplate() {
+    return prepareLoadMultiObjectTemplate({
+      sobject: 'Account',
+      fields: ['Id', 'Name', 'Contacts'],
+      records: [
+        {
+          Id: '001000000000001',
+          Name: 'Account 1',
+          Contacts: {
+            totalSize: 2,
+            done: true,
+            records: [
+              { Id: '003000000000001', FirstName: 'Bob', LastName: 'Smith' },
+              { Id: '003000000000002', FirstName: 'Janet', LastName: 'Smith' },
+            ],
+          },
+        },
+        { Id: '001000000000002', Name: 'Account 2', Contacts: null },
+      ],
+      subqueryFields: { Contacts: ['Id', 'FirstName', 'LastName'] },
+      childRelationships: [
+        {
+          cascadeDelete: false,
+          childSObject: 'Contact',
+          deprecatedAndHidden: false,
+          field: 'AccountId',
+          junctionIdListNames: [],
+          junctionReferenceTo: [],
+          relationshipName: 'Contacts',
+          restrictedDelete: false,
+        },
+      ],
+    });
+  }
+
+  it('parses and loads with each subquery record linked to the parent it came from', async () => {
+    const datasets = await parseDatasets(buildWorkbook(buildQueryResultTemplate()));
+
+    expect(allErrors(datasets)).toEqual([]);
+    expect(datasets.map(({ sobject }) => sobject)).toEqual(['Account', 'Contact']);
+
+    const { requests, errors, groupsByRefId } = buildDataGraph(datasets, API_VERSION, GRAPH_OPTIONS);
+
+    expect(errors).toEqual([]);
+    expect(requests[0].recordWithResponseByRefId['003000000000001'].request.body.AccountId).toBe('@{001000000000001.id}');
+    // The parent and both of its contacts load as a single all-or-nothing group, the account without contacts on its own
+    expect(groupsByRefId['001000000000001'].size).toBe(3);
+    expect(groupsByRefId['001000000000002'].size).toBe(1);
   });
 });

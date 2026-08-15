@@ -25,6 +25,7 @@ import {
 } from '@jetstream/types';
 import {
   ConnectedSobjectList,
+  FileDropTarget,
   FileOrGoogleSelector,
   FileSelector,
   Grid,
@@ -34,7 +35,16 @@ import {
   fireToast,
 } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
+import { Fragment } from 'react';
 import LoadRecordsLoadTypeButtons from '../components/LoadRecordsLoadTypeButtons';
+
+/** File types the main data-file input accepts - shared with the page-wide drop target */
+const LOAD_FILE_ACCEPT_TYPES = [
+  INPUT_ACCEPT_FILETYPES.CSV,
+  INPUT_ACCEPT_FILETYPES.TSV,
+  INPUT_ACCEPT_FILETYPES.EXCEL,
+  INPUT_ACCEPT_FILETYPES.JSON,
+];
 
 export interface LoadRecordsSelectObjectAndFileProps {
   hasGoogleDriveAccess: boolean;
@@ -169,6 +179,15 @@ export const LoadRecordsSelectObjectAndFile = ({
     }
   }
 
+  /** A file dropped on the page could be either input, so route it by extension */
+  function handleDroppedFile(fileContent: InputReadFileContent) {
+    if (fileContent.extension === INPUT_ACCEPT_FILETYPES.ZIP) {
+      handleZip(fileContent as InputReadFileContent<ArrayBuffer>);
+      return;
+    }
+    handleFile(fileContent);
+  }
+
   async function handleZip({ content, filename }: InputReadFileContent<ArrayBuffer>) {
     try {
       onZipFileChange(content, filename);
@@ -186,122 +205,127 @@ export const LoadRecordsSelectObjectAndFile = ({
   }
 
   return (
-    <Split
-      sizes={[33, 77]}
-      minSize={[200, 300]}
-      gutterSize={sobjects?.length ? 10 : 0}
-      className="slds-gutters"
-      css={css`
-        display: flex;
-        flex-direction: row;
-      `}
-    >
-      <div className="slds-p-horizontal_x-small">
-        <ConnectedSobjectList
-          selectedOrg={selectedOrg}
-          sobjects={sobjects}
-          selectedSObject={selectedSObject}
-          recentItemsEnabled
-          recentItemsKey="sobject"
-          filterFn={filterLoadSobjects}
-          onSobjects={(sobjects) => onSobjects(sobjects || null)}
-          onSelectedSObject={(sobject) => {
-            if (sobject) {
-              onSelectedSobject(sobject);
-            }
-          }}
-        />
-      </div>
-      <div className="slds-p-horizontal_x-small">
-        <Grid vertical>
-          <GridCol>
-            <Grid verticalAlign="center">
-              <GridCol>
-                <FileOrGoogleSelector
-                  omitGoogle={!hasGoogleInputConfigured}
-                  hasExternalGoogleDriveAccess={isDesktop() || isBrowserExtension() || isCanvasApp()}
-                  googleShowUpgradeToPro={googleShowUpgradeToPro}
-                  initialSelectedTab={hasGoogleInputConfigured && inputFileType === 'google' && inputFilename ? 'google' : 'local'}
-                  fileSelectorProps={{
-                    id: 'load-record-file',
-                    label: 'File to Load',
-                    filename: inputFileType === 'local' ? inputFilename : undefined,
-                    accept: [
-                      INPUT_ACCEPT_FILETYPES.CSV,
-                      INPUT_ACCEPT_FILETYPES.TSV,
-                      INPUT_ACCEPT_FILETYPES.EXCEL,
-                      INPUT_ACCEPT_FILETYPES.JSON,
-                    ],
-                    allowFromClipboard: true,
-                    userHelpText: 'Choose a CSV, XLSX, or JSON file to upload',
-                    onReadFile: handleFile,
-                  }}
-                  googleSelectorProps={{
-                    apiConfig: googleApiConfig,
-                    id: 'load-google-drive-file',
-                    className: 'slds-m-left_x-small',
-                    label: 'Google Drive',
-                    buttonLabel: 'Choose Google Sheet',
-                    filename: inputFileType === 'google' ? inputFilename : undefined,
-                    inputGoogleFile,
-                    onReadFile: handleGoogleFile,
-                  }}
-                  source="load_records_single_object"
-                  trackEvent={trackEvent}
-                />
-              </GridCol>
-            </Grid>
-          </GridCol>
-          {allowBinaryAttachment && (
-            <GridCol className="slds-m-bottom_small">
+    <Fragment>
+      {/* Dropping a file anywhere on the page loads it, so the user never has to aim for the small file input */}
+      <FileDropTarget
+        accept={allowBinaryAttachment ? [...LOAD_FILE_ACCEPT_TYPES, INPUT_ACCEPT_FILETYPES.ZIP] : LOAD_FILE_ACCEPT_TYPES}
+        disabled={!selectedSObject}
+        // Only the attachments zip is size limited, matching the two file inputs on this page
+        maxAllowedSizeMB={(extension) => (extension === INPUT_ACCEPT_FILETYPES.ZIP ? filesizeLimit : undefined)}
+        onReadFile={handleDroppedFile}
+      />
+      <Split
+        sizes={[33, 77]}
+        minSize={[200, 300]}
+        gutterSize={sobjects?.length ? 10 : 0}
+        className="slds-gutters"
+        css={css`
+          display: flex;
+          flex-direction: row;
+        `}
+      >
+        <div className="slds-p-horizontal_x-small">
+          <ConnectedSobjectList
+            selectedOrg={selectedOrg}
+            sobjects={sobjects}
+            selectedSObject={selectedSObject}
+            recentItemsEnabled
+            recentItemsKey="sobject"
+            filterFn={filterLoadSobjects}
+            onSobjects={(sobjects) => onSobjects(sobjects || null)}
+            onSelectedSObject={(sobject) => {
+              if (sobject) {
+                onSelectedSobject(sobject);
+              }
+            }}
+          />
+        </div>
+        <div className="slds-p-horizontal_x-small">
+          <Grid vertical>
+            <GridCol>
               <Grid verticalAlign="center">
-                <GridCol size={6}>
-                  <FileSelector
-                    id="load-record-file-zip"
-                    label="Zip file with attachments"
-                    filename={inputZipFilename}
-                    accept={[INPUT_ACCEPT_FILETYPES.ZIP]}
-                    userHelpText="Choose a zip file with attachments to upload"
-                    maxAllowedSizeMB={filesizeLimit}
-                    onReadFile={(fileData) => handleZip(fileData as InputReadFileContent<ArrayBuffer>)}
-                  ></FileSelector>
+                <GridCol>
+                  <FileOrGoogleSelector
+                    omitGoogle={!hasGoogleInputConfigured}
+                    hasExternalGoogleDriveAccess={isDesktop() || isBrowserExtension() || isCanvasApp()}
+                    googleShowUpgradeToPro={googleShowUpgradeToPro}
+                    initialSelectedTab={hasGoogleInputConfigured && inputFileType === 'google' && inputFilename ? 'google' : 'local'}
+                    fileSelectorProps={{
+                      id: 'load-record-file',
+                      label: 'File to Load',
+                      filename: inputFileType === 'local' ? inputFilename : undefined,
+                      accept: LOAD_FILE_ACCEPT_TYPES,
+                      allowFromClipboard: true,
+                      userHelpText: 'Choose a CSV, XLSX, or JSON file to upload',
+                      onReadFile: handleFile,
+                    }}
+                    googleSelectorProps={{
+                      apiConfig: googleApiConfig,
+                      id: 'load-google-drive-file',
+                      className: 'slds-m-left_x-small',
+                      label: 'Google Drive',
+                      buttonLabel: 'Choose Google Sheet',
+                      filename: inputFileType === 'google' ? inputFilename : undefined,
+                      inputGoogleFile,
+                      onReadFile: handleGoogleFile,
+                    }}
+                    source="load_records_single_object"
+                    trackEvent={trackEvent}
+                  />
                 </GridCol>
-                <div>
-                  <p>This object supports loading attachments.</p>
-                  <p>
-                    In your file to load, the path to the file within your zipped file needs to be mapped to the{' '}
-                    <strong>{binaryAttachmentBodyField}</strong> field.
-                  </p>
-                  <p>
-                    <a href="https://docs.getjetstream.app/load/load-attachments" rel="noreferrer" target="_blank">
-                      Refer to the documentation for more information.
-                    </a>
-                  </p>
-                </div>
               </Grid>
             </GridCol>
-          )}
-          <GridCol>
-            <LoadRecordsLoadTypeButtons
-              selectedType={loadType}
-              externalIdFields={externalIdFields}
-              externalId={externalId}
-              loadingFields={loadingFields}
-              isCustomMetadataObject={isCustomMetadataObject}
-              onChange={handleLoadTypeChange}
-            />
-          </GridCol>
-          {isCustomMetadataObject && (
-            <GridCol className="slds-m-top_small slds-m-horizontal_small">
-              <ScopedNotification theme="info">
-                Custom metadata will always perform an upsert based on the <strong>DeveloperName</strong>.
-              </ScopedNotification>
+            {allowBinaryAttachment && (
+              <GridCol className="slds-m-bottom_small">
+                <Grid verticalAlign="center">
+                  <GridCol size={6}>
+                    <FileSelector
+                      id="load-record-file-zip"
+                      label="Zip file with attachments"
+                      filename={inputZipFilename}
+                      accept={[INPUT_ACCEPT_FILETYPES.ZIP]}
+                      userHelpText="Choose a zip file with attachments to upload"
+                      maxAllowedSizeMB={filesizeLimit}
+                      onReadFile={(fileData) => handleZip(fileData as InputReadFileContent<ArrayBuffer>)}
+                    ></FileSelector>
+                  </GridCol>
+                  <div>
+                    <p>This object supports loading attachments.</p>
+                    <p>
+                      In your file to load, the path to the file within your zipped file needs to be mapped to the{' '}
+                      <strong>{binaryAttachmentBodyField}</strong> field.
+                    </p>
+                    <p>
+                      <a href="https://docs.getjetstream.app/load/load-attachments" rel="noreferrer" target="_blank">
+                        Refer to the documentation for more information.
+                      </a>
+                    </p>
+                  </div>
+                </Grid>
+              </GridCol>
+            )}
+            <GridCol>
+              <LoadRecordsLoadTypeButtons
+                selectedType={loadType}
+                externalIdFields={externalIdFields}
+                externalId={externalId}
+                loadingFields={loadingFields}
+                isCustomMetadataObject={isCustomMetadataObject}
+                onChange={handleLoadTypeChange}
+              />
             </GridCol>
-          )}
-          <GridCol className="slds-m-top_large">{children}</GridCol>
-        </Grid>
-      </div>
-    </Split>
+            {isCustomMetadataObject && (
+              <GridCol className="slds-m-top_small slds-m-horizontal_small">
+                <ScopedNotification theme="info">
+                  Custom metadata will always perform an upsert based on the <strong>DeveloperName</strong>.
+                </ScopedNotification>
+              </GridCol>
+            )}
+            <GridCol className="slds-m-top_large">{children}</GridCol>
+          </Grid>
+        </div>
+      </Split>
+    </Fragment>
   );
 };
 

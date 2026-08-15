@@ -1,8 +1,9 @@
 import { logger } from '@jetstream/shared/client-logger';
+import { MAX_RECORDS_PER_GROUP } from '@jetstream/shared/constants';
 import { describeSObject } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getHttpMethod, groupByFlat, pluralizeFromNumber, transformRecordForDataLoad } from '@jetstream/shared/utils';
-import { CompositeGraphRequest, Field, SalesforceOrgUi } from '@jetstream/types';
+import { CompositeGraphRequest, Field, InsertUpdateUpsert, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { DepGraph, DepGraphCycleError } from 'dependency-graph';
 import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';
@@ -32,8 +33,6 @@ const SURROUNDING_BRACKETS_RGX = /^\{|\}$/g;
 const IS_REFERENCE_RGX = /^\{.+\}$/;
 const VALID_REF_ID_RGX = /^[0-9A-Za-z][0-9A-Za-z_]*$/;
 const VALID_OPERATIONS = ['INSERT', 'UPDATE', 'UPSERT'];
-/** Salesforce limit on records within one composite graph (one atomic group of related records) */
-export const MAX_RECORDS_PER_GROUP = 500;
 
 /** Minimal record info required to map composite requests/results back to source rows */
 type RecordLookup = Record<string, Pick<LoadMultiObjectRecord, 'sobject' | 'operation' | 'externalId' | 'worksheet' | 'recordIdx'>>;
@@ -70,6 +69,194 @@ export function getReferenceId(record: Record<string, unknown> | undefined, refe
     return null;
   }
   return String(value).trim() || null;
+}
+
+/** A column that will be sent to Salesforce, paired with the field its value is written to */
+export interface LoadableColumn {
+  header: string;
+  /** For a relationship column (`Account.Ext_Id__c`) this is the field on the RELATED object */
+  field: Field;
+}
+
+export interface DatasetColumns {
+  loadable: LoadableColumn[];
+  /** One warning per column that will be dropped, keyed to the column so the grid can flag it */
+  skipped: LoadMultiObjectDataError[];
+}
+
+/**
+ * Resolves a column header to the field its value is written to, plus the field that determines whether the
+ * operation is allowed to write it at all.
+ *
+ * A relationship column (`Account.Ext_Id__c`) is written as a nested lookup: the value belongs to the related
+ * object's field, but it reaches Salesforce through the lookup field on THIS object, so that is what has to be
+ * writable. Both must resolve - a relationship path pointing at a field that does not exist on the related
+ * object (or is not an external Id) cannot be loaded.
+ */
+function getFieldForHeader(dataset: LoadMultiObjectData, header: string): { field: Field; fieldToWriteThrough: Field } | undefined {
+  const field = dataset.fieldsByName?.[header.toLowerCase()];
+  if (!header.includes('.')) {
+    return field ? { field, fieldToWriteThrough: field } : undefined;
+  }
+  const [relationshipName] = header.toLowerCase().split('.');
+  const lookupField = dataset.fieldsByRelationshipName?.[relationshipName];
+  return field && lookupField ? { field, fieldToWriteThrough: lookupField } : undefined;
+}
+
+/** Why the operation cannot write this field, or null when it can */
+function getUnwritableFieldReason(
+  field: Field,
+  { operation, externalId }: { operation: InsertUpdateUpsert; externalId?: Maybe<string> },
+): string | null {
+  // The record Id identifies the record to update, and the upsert external Id is sent in the URL, not the body
+  if (operation === 'UPDATE' && field.name.toLowerCase() === 'id') {
+    return null;
+  }
+  if (operation === 'UPSERT' && externalId && field.name.toLowerCase() === externalId.toLowerCase()) {
+    return null;
+  }
+
+  if (operation === 'INSERT' && !field.createable) {
+    return `"${field.name}" cannot be set when creating records`;
+  }
+  if (operation === 'UPDATE' && !field.updateable) {
+    return `"${field.name}" cannot be changed on existing records`;
+  }
+  // Upsert creates some records and updates others, so a field has to be writable both ways to be safe
+  if (operation === 'UPSERT' && (!field.createable || !field.updateable)) {
+    return `"${field.name}" cannot be set when creating or updating records`;
+  }
+  return null;
+}
+
+function getSkippedColumnError(dataset: LoadMultiObjectData, header: string, reason: string): LoadMultiObjectDataError {
+  return {
+    property: 'data',
+    code: 'SKIPPED_COLUMN',
+    worksheet: dataset.worksheet,
+    location: header,
+    locationType: 'COLUMN',
+    header,
+    severity: 'warning',
+    message: `The column "${header}" will be skipped because ${reason}.`,
+  };
+}
+
+/**
+ * Splits a worksheet's columns into the ones that will be sent to Salesforce and the ones that will be dropped.
+ *
+ * This is the single source of truth for that decision: `buildDataGraph` builds every record from `loadable`
+ * and validation reports `skipped` as warnings, so a column can never be dropped without the user being told.
+ *
+ * Columns are dropped rather than blocking the load because Salesforce rejects the whole record when it
+ * contains a field the operation cannot write - system fields such as CreatedDate are the common case, since
+ * they come along with an exported query.
+ */
+export function getDatasetColumns(
+  dataset: LoadMultiObjectData,
+  { operation, externalId }: { operation: InsertUpdateUpsert; externalId?: Maybe<string> },
+): DatasetColumns {
+  // Nothing is knowable until the object was described - the object error already blocks the load
+  if (!dataset.metadata) {
+    return { loadable: [], skipped: [] };
+  }
+
+  return dataset.headers.reduce(
+    (output: DatasetColumns, header) => {
+      const resolvedField = getFieldForHeader(dataset, header);
+      if (!resolvedField) {
+        output.skipped.push(
+          getSkippedColumnError(
+            dataset,
+            header,
+            `the field does not exist on the object "${dataset.sobject}" or you do not have permission to access it`,
+          ),
+        );
+        return output;
+      }
+
+      const unwritableReason = getUnwritableFieldReason(resolvedField.fieldToWriteThrough, { operation, externalId });
+      if (unwritableReason) {
+        output.skipped.push(getSkippedColumnError(dataset, header, unwritableReason));
+        return output;
+      }
+
+      output.loadable.push({ header, field: resolvedField.field });
+      return output;
+    },
+    { loadable: [], skipped: [] },
+  );
+}
+
+/**
+ * Upsert requires an external Id that is both a column in the file and flagged as an External Id in Salesforce.
+ * Shared by the initial validation and by an operation change made in the UI, so the rules only exist once.
+ */
+function getExternalIdErrors(
+  dataset: LoadMultiObjectData,
+  { operation, externalId }: { operation: InsertUpdateUpsert; externalId?: Maybe<string> },
+): LoadMultiObjectDataError[] {
+  if (operation !== 'UPSERT') {
+    return [];
+  }
+  const toError = (message: string): LoadMultiObjectDataError => ({
+    property: 'externalId',
+    worksheet: dataset.worksheet,
+    location: WORKSHEET_LOCATIONS.externalId,
+    locationType: 'CELL',
+    message,
+  });
+
+  if (!externalId) {
+    return [toError(`An external Id is required for upsert.`)];
+  }
+
+  const errors: LoadMultiObjectDataError[] = [];
+  if (!dataset.headers.some((header) => header.toLowerCase() === externalId.toLowerCase())) {
+    errors.push(toError(`The external Id "${externalId}" must be included as a field in the dataset.`));
+  }
+  if (!dataset.fieldsByName?.[externalId.toLowerCase()]?.externalId) {
+    errors.push(toError(`The external Id "${externalId}" must exist and must be marked as an external id in Salesforce.`));
+  }
+  return errors;
+}
+
+/** The external Id stored with the casing Salesforce uses, falling back to what the file/user provided */
+function getExternalIdWithSalesforceCasing(dataset: LoadMultiObjectData, externalId: Maybe<string>): string | undefined {
+  if (!externalId) {
+    return undefined;
+  }
+  return dataset.fieldsByName?.[externalId.toLowerCase()]?.name || externalId;
+}
+
+/**
+ * Applies an operation/external Id change made in the UI to a worksheet, re-running the checks those two
+ * values control - which columns can be written included, since that depends on the operation. Every other
+ * error (Reference Ids, data) is unaffected by the change and is carried over untouched, so nothing has to be
+ * re-parsed or re-described.
+ *
+ * Returns a new dataset - the caller replaces it in state, which re-derives the errors and the graph.
+ */
+export function applyDatasetConfiguration(
+  dataset: LoadMultiObjectData,
+  { operation, externalId }: { operation: InsertUpdateUpsert; externalId?: Maybe<string> },
+): LoadMultiObjectData {
+  const errors = dataset.errors.filter(
+    ({ property, code }) => property !== 'operation' && property !== 'externalId' && code !== 'SKIPPED_COLUMN',
+  );
+  errors.push(...getExternalIdErrors(dataset, { operation, externalId }));
+
+  const updatedDataset: LoadMultiObjectData = {
+    ...dataset,
+    operation,
+    // The external Id is only meaningful for upsert, and is stored with the casing Salesforce uses
+    externalId: operation === 'UPSERT' ? getExternalIdWithSalesforceCasing(dataset, externalId) : undefined,
+    errors,
+  };
+
+  // Which columns are writable depends on the operation, so this is re-derived rather than carried over
+  updatedDataset.errors = [...errors, ...getDatasetColumns(updatedDataset, { operation, externalId: updatedDataset.externalId }).skipped];
+  return updatedDataset;
 }
 
 /**
@@ -335,39 +522,21 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
 
       /** EXTERNAL ID */
       if (!errorsByProperty.externalId && operation === 'UPSERT') {
-        if (!externalId) {
-          errors.push({
-            property: 'externalId',
-            worksheet,
-            location: WORKSHEET_LOCATIONS.externalId,
-            locationType: 'CELL',
-            message: `An external Id is required for upsert.`,
-          });
-        } else {
-          const externalIdLowercase = externalId.toLowerCase();
-          if (!headers.find((header) => header.toLowerCase() === externalIdLowercase)) {
-            errors.push({
-              property: 'externalId',
-              worksheet,
-              location: WORKSHEET_LOCATIONS.externalId,
-              locationType: 'CELL',
-              message: `The external Id "${externalId}" must be included as a field in the dataset.`,
-            });
-          }
-          if (!dataset.fieldsByName?.[externalIdLowercase] || !dataset.fieldsByName[externalIdLowercase].externalId) {
-            errors.push({
-              property: 'externalId',
-              worksheet,
-              location: WORKSHEET_LOCATIONS.externalId,
-              locationType: 'CELL',
-              message: `The external Id "${externalId}" must exist and must be marked as an external id in Salesforce.`,
-            });
-          } else {
-            // change External Id to properly cased value
-            dataset.externalId = dataset.fieldsByName[externalIdLowercase].name;
-          }
+        const externalIdErrors = getExternalIdErrors(dataset, { operation, externalId });
+        errors.push(...externalIdErrors);
+        if (!externalIdErrors.length) {
+          // change External Id to properly cased value
+          dataset.externalId = getExternalIdWithSalesforceCasing(dataset, externalId);
         }
       }
+
+      /**
+       * COLUMNS
+       * Columns that cannot be written are a warning, not a blocker - they are dropped from the load and
+       * everything else on the row still loads. This is derived outside the `data` guard so that the columns
+       * warned about here are always exactly the columns buildDataGraph drops.
+       */
+      errors.push(...getDatasetColumns(dataset, { operation: dataset.operation, externalId: dataset.externalId }).skipped);
 
       /** FIELDS */
       if (!errorsByProperty.data) {
@@ -380,18 +549,6 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
             message: `The column header for the Reference Id is blank and must have a unique value.`,
           });
         }
-
-        const missingFields = headers.filter((header) => !dataset.fieldsByName?.[header.toLowerCase()]);
-        missingFields.forEach((header) => {
-          errors.push({
-            property: 'data',
-            worksheet,
-            location: header,
-            locationType: 'COLUMN',
-            header,
-            message: `The field "${header}" does not exist on the object "${dataset.sobject}" or you do not have permission to access it.`,
-          });
-        });
 
         if (referenceColumnHeader) {
           const missingRefIdRowIndexes = dataset.data.reduce((output: number[], row, i) => {
@@ -496,10 +653,16 @@ export function buildDataGraph(
   }, {});
 
   const recordsByRefId = datasets.reduce((output: Record<string, LoadMultiObjectRecord>, dataset) => {
+    const lowercaseExternalId = dataset.externalId?.toLowerCase();
+    /**
+     * Columns the operation cannot write (unknown, system, read-only) never reach Salesforce - it rejects the
+     * entire record when one of them is included. Validation reports these same columns as warnings.
+     */
+    const { loadable } = getDatasetColumns(dataset, { operation: dataset.operation, externalId: dataset.externalId });
+
     dataset.data.forEach((record, recordIdx) => {
-      const lowercaseExternalId = dataset.externalId?.toLowerCase();
       /** Transform record values and flag which fields have references to other records */
-      const { transformedRecord, externalIdValue, recordIdForUpdate, dependencies } = dataset.headers.reduce(
+      const { transformedRecord, externalIdValue, recordIdForUpdate, dependencies } = loadable.reduce(
         (
           {
             transformedRecord,
@@ -512,14 +675,9 @@ export function buildDataGraph(
             recordIdForUpdate: string | null;
             dependencies: string[];
           },
-          header,
+          { header, field },
         ) => {
           const isRelatedField = header.includes('.');
-          const field = dataset.fieldsByName[header.toLowerCase()];
-          if (!field) {
-            // Missing fields are reported during validation - skip here so graph building never throws
-            return { transformedRecord, externalIdValue, recordIdForUpdate, dependencies };
-          }
           const rawValue = record[header];
           const valueIsNull = isNil(rawValue) || (isString(rawValue) && !rawValue);
           const bracketedValue = getBracketedValue(rawValue);
@@ -831,12 +989,21 @@ function transformGraphRequestsToRequestWithResults(
   }));
 }
 
+/** Total number of records across every graph in the provided requests */
+export function getRecordCount(requests: LoadMultiObjectRequestWithResult[]) {
+  return requests.reduce(
+    (count, request) => count + request.data.reduce((graphCount, graph) => graphCount + (graph.compositeRequest?.length || 0), 0),
+    0,
+  );
+}
+
 export function splitRequestsToMaxSize(items: CompositeGraphRequest[], maxSize: number): CompositeGraphRequest[][] {
   if (!maxSize || maxSize < 1) {
     throw new Error('maxSize must be greater than 0');
   }
+  // Nothing to load means no requests - returning one empty request would look like a loadable payload of zero records
   if (!items || items.length === 0) {
-    return [[]];
+    return [];
   }
   const output: CompositeGraphRequest[][] = [];
   let currSet: CompositeGraphRequest[] = [];

@@ -2,12 +2,21 @@ import { useCallback, useState } from 'react';
 import { LoadMultiObjectRequestWithResult } from '../load-records-multi-object-types';
 import { RESULTS_DOWNLOAD_HEADER, RecordResultRow, buildResultsDownloadRows } from './load-results-utils';
 
+export interface DownloadModalData {
+  open: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data: any[];
+  header: string[];
+  fileNameParts: string[];
+  allowedTypes: string[];
+}
+
 export const useDownloadResults = () => {
-  const [downloadModalData, setDownloadModalData] = useState({
+  const [downloadModalData, setDownloadModalData] = useState<DownloadModalData>({
     open: false,
-    data: [] as any[],
-    header: [] as string[],
-    fileNameParts: [] as string[],
+    data: [],
+    header: [],
+    fileNameParts: [],
     allowedTypes: ['xlsx', 'csv', 'json'],
   });
 

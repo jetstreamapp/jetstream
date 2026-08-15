@@ -22,7 +22,11 @@ export interface SheetPreviewData {
   rows: SheetPreviewRow[];
   /** Errors with no grid cell to attach to (B1/B2/B3 config, header row, empty sheet, unmappable) */
   bannerErrors: LoadMultiObjectDataError[];
-  /** Total number of distinct errors attributed to this sheet (banner + inline) */
+  /** Non-blocking problems for this sheet, e.g. columns that will be skipped */
+  warnings: LoadMultiObjectDataError[];
+  /** Headers that will not be loaded - rendered in red so the skipped columns are obvious in the grid */
+  skippedHeaders: Set<string>;
+  /** Total number of distinct blocking errors attributed to this sheet (banner + inline) */
   errorCount: number;
   hasRowErrors: boolean;
 }
@@ -83,6 +87,9 @@ export function buildSheetPreviewData({
   });
 
   const bannerErrors: LoadMultiObjectDataError[] = [];
+  const warnings = errors.filter(({ severity }) => severity === 'warning');
+  const blockingErrors = errors.filter(({ severity }) => severity !== 'warning');
+  const skippedHeaders = new Set(warnings.filter(({ header }) => !!header).map(({ header }) => header as string));
 
   function addFieldError(rowIndex: number, columnKey: string, message: string) {
     const row = rows[rowIndex];
@@ -106,7 +113,7 @@ export function buildSheetPreviewData({
     return true;
   }
 
-  errors.forEach((error) => {
+  blockingErrors.forEach((error) => {
     const { locationType, location, rowIndexes, header, message } = error;
 
     if (rowIndexes?.length) {
@@ -137,9 +144,29 @@ export function buildSheetPreviewData({
   return {
     rows,
     bannerErrors,
-    errorCount: errors.length,
+    warnings,
+    skippedHeaders,
+    errorCount: blockingErrors.length,
     hasRowErrors: rows.some(({ status, _fieldErrors }) => !!status || !!_fieldErrors),
   };
+}
+
+/**
+ * Stable identity for a set of warnings, used as a dismissal reset key so that dismissing a warning
+ * does not hide the warnings from the next file the user uploads.
+ */
+export function getWarningsKey(warnings: LoadMultiObjectDataError[]): string {
+  return warnings.map(({ worksheet, message }) => `${worksheet}:${message}`).join('|');
+}
+
+/**
+ * Build an element id scoped to a worksheet.
+ * Worksheet names allow spaces and punctuation, neither of which is valid in an element id. Each invalid
+ * character is encoded rather than collapsed to a dash, so two distinct worksheets ("A B" and "A-B") cannot
+ * produce the same id - every worksheet is mounted at once, so a collision would break label associations.
+ */
+export function getWorksheetElementId(prefix: string, worksheet: string): string {
+  return `${prefix}-${worksheet.replace(/[^a-zA-Z0-9_-]/g, (character) => `_${character.charCodeAt(0)}_`)}`;
 }
 
 /** Human-readable location suffix for an error, e.g. "(Cell B1)" */

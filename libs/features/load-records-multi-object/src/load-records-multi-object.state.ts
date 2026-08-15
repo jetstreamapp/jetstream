@@ -10,6 +10,7 @@ import {
   LoadMultiObjectRequestWithResult,
   LoadMultiObjectRun,
 } from './load-records-multi-object-types';
+import { getRecordCount } from './load-records-multi-object-utils';
 
 /**
  * State lives in atoms (not component state) so an accidental navigation away from the page
@@ -25,11 +26,20 @@ export const fileParsingState = atomWithReset(false);
 /** Parsed worksheets - always populated after parse, even when they contain errors, so the preview can render */
 export const datasetsState = atomWithReset<LoadMultiObjectData[] | null>(null);
 
-/** Blocking errors found while parsing/validating the workbook (workbook-level + per-sheet) */
-export const parseErrorsState = atomWithReset<LoadMultiObjectDataError[]>([]);
+/** Problems that apply to the workbook rather than one worksheet (e.g. skipped sheets, no data worksheets at all) */
+export const workbookErrorsState = atomWithReset<LoadMultiObjectDataError[]>([]);
 
-/** Non-blocking warnings (e.g. sheets skipped by the "instructions" name rule) */
-export const parseWarningsState = atomWithReset<LoadMultiObjectDataError[]>([]);
+/**
+ * Every problem found while parsing/validating, derived from the datasets so that editing a worksheet's
+ * configuration (operation/external Id) immediately re-derives what is blocking and what is not.
+ */
+const allParseProblemsState = atom((get) => [...get(workbookErrorsState), ...(get(datasetsState) || []).flatMap(({ errors }) => errors)]);
+
+/** Blocking errors found while parsing/validating the workbook (workbook-level + per-sheet) */
+export const parseErrorsState = atom((get) => get(allParseProblemsState).filter(({ severity }) => severity !== 'warning'));
+
+/** Non-blocking warnings (e.g. skipped sheets, columns that do not match a field on the object) */
+export const parseWarningsState = atom((get) => get(allParseProblemsState).filter(({ severity }) => severity === 'warning'));
 
 /** Errors found while building the dependency graph (unknown references, cycles, oversized groups) */
 export const graphErrorsState = atomWithReset<LoadMultiObjectDataError[]>([]);
@@ -46,6 +56,13 @@ export const insertNullsState = atomWithReset(false);
 
 export const currentStepIdxState = atomWithReset(0);
 
+/**
+ * Bumped whenever content above the preview grids is shown or hidden (the upload section is expanded/collapsed,
+ * a warning is dismissed). The grids measure their available height once, so this tells them to re-measure
+ * and take over the space that was freed up.
+ */
+export const previewLayoutVersionState = atomWithReset(0);
+
 export const loadRunsState = atomWithReset<LoadMultiObjectRun[]>([]);
 
 export const loadIsRunningState = atomWithReset(false);
@@ -54,9 +71,11 @@ export const loadProgressState = atomWithReset<LoadMultiObjectProgress | null>(n
 
 export const allBlockingErrorsState = atom((get) => [...get(parseErrorsState), ...get(graphErrorsState)]);
 
+export const totalRecordsToLoadState = atom((get) => getRecordCount(get(requestsState) || []));
+
 export const isReadyToLoadState = atom((get) => {
-  const requests = get(requestsState);
-  return !!requests?.length && get(allBlockingErrorsState).length === 0;
+  // Requests can exist without records (e.g. nothing was linked into a graph) - that is never loadable
+  return get(totalRecordsToLoadState) > 0 && get(allBlockingErrorsState).length === 0;
 });
 
 export const resetLoadRecordsMultiObjectState = atom(null, (_get, set) => {
@@ -64,12 +83,12 @@ export const resetLoadRecordsMultiObjectState = atom(null, (_get, set) => {
   set(inputFileTypeState, RESET);
   set(fileParsingState, RESET);
   set(datasetsState, RESET);
-  set(parseErrorsState, RESET);
-  set(parseWarningsState, RESET);
+  set(workbookErrorsState, RESET);
   set(graphErrorsState, RESET);
   set(requestsState, RESET);
   set(groupsByRefIdState, RESET);
   set(currentStepIdxState, RESET);
+  set(previewLayoutVersionState, RESET);
   set(loadRunsState, RESET);
   set(loadIsRunningState, RESET);
   set(loadProgressState, RESET);

@@ -1,5 +1,23 @@
+import { ChildRelationship } from '@jetstream/types';
 import * as XLSX from 'xlsx';
-import { prepareExcelFile, prepareLoadMultiObjectTemplate } from '../shared-ui-utils';
+import { planLoadMultiObjectTemplate, prepareExcelFile, prepareLoadMultiObjectTemplate } from '../shared-ui-utils';
+
+function getChildRelationship(relationshipName: string, childSObject: string, field: string): ChildRelationship {
+  return {
+    cascadeDelete: false,
+    childSObject,
+    deprecatedAndHidden: false,
+    field,
+    junctionIdListNames: [],
+    junctionReferenceTo: [],
+    relationshipName,
+    restrictedDelete: false,
+  };
+}
+
+function getSubqueryResults(records: any[]) {
+  return { totalSize: records.length, done: true, records };
+}
 
 describe('prepareLoadMultiObjectTemplate', () => {
   it('produces the exact Load Records to Multiple Objects template layout', () => {
@@ -82,6 +100,122 @@ describe('prepareLoadMultiObjectTemplate', () => {
     expect(Object.keys(longName)).toEqual(['A_Very_Long_Custom_Object_Api_N']);
   });
 
+  describe('subquery records', () => {
+    const accounts = [
+      {
+        Id: '001000000000001',
+        Name: 'Acme',
+        Contacts: getSubqueryResults([
+          { attributes: { type: 'Contact' }, Id: '003000000000001', LastName: 'Smith' },
+          { attributes: { type: 'Contact' }, Id: '003000000000002', LastName: 'Jones' },
+        ]),
+      },
+      { Id: '001000000000002', Name: 'Globex', Contacts: null },
+    ];
+
+    it('creates a worksheet per subquery with the parent linked through the lookup field', () => {
+      const output = prepareLoadMultiObjectTemplate({
+        sobject: 'Account',
+        fields: ['Id', 'Name', 'Contacts'],
+        records: accounts,
+        subqueryFields: { Contacts: ['Id', 'LastName'] },
+        childRelationships: [getChildRelationship('Contacts', 'Contact', 'AccountId')],
+      });
+
+      expect(Object.keys(output)).toEqual(['Account', 'Contacts']);
+      expect(output['Contacts']).toEqual([
+        ['Object Api Name', 'Contact'],
+        ['Operation', 'Insert'],
+        ['External Id (for upsert)', ''],
+        [],
+        ['Reference Id', '{AccountId}', 'LastName'],
+        ['003000000000001', '001000000000001', 'Smith'],
+        ['003000000000002', '001000000000001', 'Jones'],
+      ]);
+      // The parent reference values must match the Reference Ids on the parent worksheet
+      expect(output['Account'][5][0]).toEqual('001000000000001');
+    });
+
+    it('omits the subquery column from the parent worksheet even when no parent has child records', () => {
+      const output = prepareLoadMultiObjectTemplate({
+        sobject: 'Account',
+        fields: ['Id', 'Name', 'Contacts'],
+        records: [{ Id: '001000000000002', Name: 'Globex', Contacts: null }],
+        subqueryFields: { Contacts: ['Id', 'LastName'] },
+        childRelationships: [getChildRelationship('Contacts', 'Contact', 'AccountId')],
+      });
+
+      expect(Object.keys(output)).toEqual(['Account']);
+      expect(output['Account'][4]).toEqual(['Reference Id', 'Name']);
+    });
+
+    it('does not emit the lookup field twice when it was included in the subquery', () => {
+      const output = prepareLoadMultiObjectTemplate({
+        sobject: 'Account',
+        fields: ['Id', 'Contacts'],
+        records: [
+          {
+            Id: '001000000000001',
+            Contacts: getSubqueryResults([{ Id: '003000000000001', AccountId: '001000000000001', LastName: 'Smith' }]),
+          },
+        ],
+        subqueryFields: { Contacts: ['Id', 'AccountId', 'LastName'] },
+        childRelationships: [getChildRelationship('Contacts', 'Contact', 'AccountId')],
+      });
+
+      expect(output['Contacts'][4]).toEqual(['Reference Id', '{AccountId}', 'LastName']);
+      expect(output['Contacts'][5]).toEqual(['003000000000001', '001000000000001', 'Smith']);
+    });
+
+    it('matches the relationship name regardless of the casing used in the query', () => {
+      const output = prepareLoadMultiObjectTemplate({
+        sobject: 'Account',
+        fields: ['Id', 'contacts'],
+        records: [{ Id: '001000000000001', Contacts: getSubqueryResults([{ Id: '003000000000001', LastName: 'Smith' }]) }],
+        subqueryFields: { contacts: ['Id', 'LastName'] },
+        childRelationships: [getChildRelationship('Contacts', 'Contact', 'AccountId')],
+      });
+
+      expect(output['contacts'][5]).toEqual(['003000000000001', '001000000000001', 'Smith']);
+    });
+
+    it('skips subqueries without a matching child relationship, since the linking field is unknown', () => {
+      const output = prepareLoadMultiObjectTemplate({
+        sobject: 'Account',
+        fields: ['Id', 'Name', 'Contacts'],
+        records: accounts,
+        subqueryFields: { Contacts: ['Id', 'LastName'] },
+        childRelationships: [getChildRelationship('Opportunities', 'Opportunity', 'AccountId')],
+      });
+
+      expect(Object.keys(output)).toEqual(['Account']);
+      expect(output['Account'][4]).toEqual(['Reference Id', 'Name']);
+    });
+
+    it('excludes subqueries entirely when no child relationships are provided', () => {
+      const output = prepareLoadMultiObjectTemplate({
+        sobject: 'Account',
+        fields: ['Id', 'Name', 'Contacts'],
+        records: accounts,
+        subqueryFields: { Contacts: ['Id', 'LastName'] },
+      });
+
+      expect(Object.keys(output)).toEqual(['Account']);
+    });
+
+    it('keeps child worksheet names unique when a relationship name collides with the object worksheet', () => {
+      const output = prepareLoadMultiObjectTemplate({
+        sobject: 'Widget__c',
+        fields: ['Id', 'Widget__c'],
+        records: [{ Id: 'a01000000000001', Widget__c: getSubqueryResults([{ Id: 'a01000000000002' }]) }],
+        subqueryFields: { Widget__c: ['Id'] },
+        childRelationships: [getChildRelationship('Widget__c', 'Widget__c', 'Parent__c')],
+      });
+
+      expect(Object.keys(output)).toEqual(['Widget__c', 'Widget__c1']);
+    });
+  });
+
   it('round-trips through prepareExcelFile as an array-of-array sheet', () => {
     const output = prepareLoadMultiObjectTemplate({
       sobject: 'Account',
@@ -99,5 +233,62 @@ describe('prepareLoadMultiObjectTemplate', () => {
     expect(rows[2]).toEqual(['External Id (for upsert)', '']);
     expect(rows[4]).toEqual(['Reference Id', 'Name']);
     expect(rows[5]).toEqual(['001000000000001', 'Acme']);
+  });
+});
+
+describe('planLoadMultiObjectTemplate', () => {
+  const accountWithContacts = {
+    Id: '001000000000001',
+    Name: 'Acme',
+    Contacts: getSubqueryResults([{ Id: '003000000000001' }, { Id: '003000000000002' }]),
+  };
+
+  it('reports the worksheets that will be created, and the subqueries that cannot be linked', () => {
+    const { linked, skipped } = planLoadMultiObjectTemplate({
+      sobject: 'Account',
+      fields: ['Id', 'Name', 'Contacts', 'Opportunities'],
+      records: [accountWithContacts],
+      subqueryFields: { Contacts: ['Id'], Opportunities: ['Id'] },
+      childRelationships: [getChildRelationship('Contacts', 'Contact', 'AccountId')],
+    });
+
+    expect(linked.map(({ relationshipName }) => relationshipName)).toEqual(['Contacts']);
+    expect(skipped).toEqual(['Opportunities']);
+  });
+
+  it('sizes the largest group as one parent plus everything it brings with it', () => {
+    const { largestGroupSize } = planLoadMultiObjectTemplate({
+      sobject: 'Account',
+      fields: ['Id', 'Contacts'],
+      records: [accountWithContacts, { Id: '001000000000002', Contacts: null }],
+      subqueryFields: { Contacts: ['Id'] },
+      childRelationships: [getChildRelationship('Contacts', 'Contact', 'AccountId')],
+    });
+
+    expect(largestGroupSize).toBe(3);
+  });
+
+  it('names every worksheet whose query omits Id, since those records have no Reference Id', () => {
+    const { missingReferenceId } = planLoadMultiObjectTemplate({
+      sobject: 'Account',
+      fields: ['Name', 'Contacts'],
+      records: [accountWithContacts],
+      subqueryFields: { Contacts: ['LastName'] },
+      childRelationships: [getChildRelationship('Contacts', 'Contact', 'AccountId')],
+    });
+
+    expect(missingReferenceId).toEqual(['Account', 'Contacts']);
+  });
+
+  it('does not report a missing Reference Id when Id is selected on both levels', () => {
+    const { missingReferenceId } = planLoadMultiObjectTemplate({
+      sobject: 'Account',
+      fields: ['Id', 'Contacts'],
+      records: [accountWithContacts],
+      subqueryFields: { Contacts: ['Id'] },
+      childRelationships: [getChildRelationship('Contacts', 'Contact', 'AccountId')],
+    });
+
+    expect(missingReferenceId).toEqual([]);
   });
 });

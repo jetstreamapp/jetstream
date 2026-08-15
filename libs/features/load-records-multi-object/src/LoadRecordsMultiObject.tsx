@@ -14,7 +14,9 @@ import {
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { InputReadFileContent, InputReadGoogleSheet } from '@jetstream/types';
 import {
+  Accordion,
   AutoFullHeightContainer,
+  FileDropTarget,
   FileOrGoogleSelector,
   Icon,
   Page,
@@ -40,6 +42,7 @@ import {
   isReadyToLoadState,
   loadIsRunningState,
   loadRunsState,
+  previewLayoutVersionState,
   resetLoadRecordsMultiObjectState,
 } from './load-records-multi-object.state';
 import LoadRecordsMultiObjectLoad from './load/LoadRecordsMultiObjectLoad';
@@ -48,6 +51,7 @@ import useProcessLoadFile from './useProcessLoadFile';
 
 const TEMPLATE_DOWNLOAD_LINK = '/assets/content/Jetstream%20-%20Load%20Records%20to%20Multiple%20Objects%20-%20Template.xlsx';
 const HEIGHT_BUFFER = 170;
+const UPLOAD_SECTION_ID = 'upload-file';
 
 /** Step 0 = upload and review, step 1 = load data and results */
 const STEP_COUNT = 2;
@@ -72,6 +76,7 @@ export const LoadRecordsMultiObject = () => {
   const isReadyToLoad = useAtomValue(isReadyToLoadState);
   const loadIsRunning = useAtomValue(loadIsRunningState);
   const runs = useAtomValue(loadRunsState);
+  const setPreviewLayoutVersion = useSetAtom(previewLayoutVersionState);
   const resetAll = useSetAtom(resetLoadRecordsMultiObjectState);
 
   const { processFile, loading: fileParsing } = useProcessLoadFile(selectedOrg, defaultApiVersion);
@@ -181,6 +186,48 @@ export const LoadRecordsMultiObject = () => {
 
   const hasData = !!datasets?.length;
 
+  const uploadSection = (
+    <div>
+      <p className="slds-form-element__label slds-m-bottom_xx-small">
+        Upload a file based on the{' '}
+        <a
+          href={templateUrl}
+          target="_blank"
+          rel="noreferrer"
+          download
+          onClick={() => trackEvent(ANALYTICS_KEYS.load_multi_obj_TemplateDownloaded)}
+        >
+          Excel template
+        </a>
+      </p>
+      <FileOrGoogleSelector
+        omitGoogle={!hasGoogleDriveAccess && !isDesktop() && !isBrowserExtension() && !isCanvasApp()}
+        hasExternalGoogleDriveAccess={isDesktop() || isBrowserExtension() || isCanvasApp()}
+        googleShowUpgradeToPro={googleShowUpgradeToPro}
+        fileSelectorProps={{
+          id: 'upload-load-template',
+          label: 'Data File (Excel File)',
+          filename: inputFileType === 'local' ? inputFilename : undefined,
+          accept: [INPUT_ACCEPT_FILETYPES.EXCEL],
+          allowFromClipboard: true,
+          disabled: fileParsing,
+          onReadFile: handleFile,
+        }}
+        googleSelectorProps={{
+          apiConfig: googleApiConfig,
+          id: 'load-google-drive-file',
+          label: 'Google Drive',
+          buttonLabel: 'Choose Google Sheet',
+          filename: inputFileType === 'google' ? inputFilename : undefined,
+          disabled: fileParsing,
+          onReadFile: handleGoogleFile,
+        }}
+        source="load_records_multi_object"
+        trackEvent={trackEvent}
+      />
+    </div>
+  );
+
   return (
     <Page testId="load-records-multi-page">
       <PageHeader>
@@ -220,48 +267,40 @@ export const LoadRecordsMultiObject = () => {
           </PageHeaderActions>
         </PageHeaderRow>
       </PageHeader>
-      <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>
+      {/* Not `slds-scrollable_none`: the grids below have a minimum height, so this has to be able to scroll */}
+      <AutoFullHeightContainer className="slds-p-horizontal_x-small" bufferIfNotRendered={HEIGHT_BUFFER}>
         {fileParsing && <Spinner />}
         {currentStepIdx === 0 && (
           <div>
-            <div className="slds-m-top_small">
-              <p className="slds-form-element__label slds-m-bottom_xx-small">
-                Upload a file based on the{' '}
-                <a
-                  href={templateUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  download
-                  onClick={() => trackEvent(ANALYTICS_KEYS.load_multi_obj_TemplateDownloaded)}
-                >
-                  Excel template
-                </a>
-              </p>
-              <FileOrGoogleSelector
-                omitGoogle={!hasGoogleDriveAccess && !isDesktop() && !isBrowserExtension() && !isCanvasApp()}
-                hasExternalGoogleDriveAccess={isDesktop() || isBrowserExtension() || isCanvasApp()}
-                googleShowUpgradeToPro={googleShowUpgradeToPro}
-                fileSelectorProps={{
-                  id: 'upload-load-template',
-                  label: 'Data File (Excel File)',
-                  filename: inputFileType === 'local' ? inputFilename : undefined,
-                  accept: [INPUT_ACCEPT_FILETYPES.EXCEL],
-                  disabled: fileParsing,
-                  onReadFile: handleFile,
-                }}
-                googleSelectorProps={{
-                  apiConfig: googleApiConfig,
-                  id: 'load-google-drive-file',
-                  label: 'Google Drive',
-                  buttonLabel: 'Choose Google Sheet',
-                  filename: inputFileType === 'google' ? inputFilename : undefined,
-                  disabled: fileParsing,
-                  onReadFile: handleGoogleFile,
-                }}
-                source="load_records_multi_object"
-                trackEvent={trackEvent}
+            <FileDropTarget
+              accept={[INPUT_ACCEPT_FILETYPES.EXCEL]}
+              disabled={fileParsing || loadIsRunning}
+              label="Drop your Excel file to upload"
+              onReadFile={handleFile}
+            />
+            {hasData ? (
+              /* Once there is data to review, the upload controls collapse out of the way to give the preview room */
+              <Accordion
+                className="slds-m-top_x-small"
+                allowMultiple={false}
+                initOpenIds={[]}
+                sections={[
+                  {
+                    id: UPLOAD_SECTION_ID,
+                    testId: 'upload-section-toggle',
+                    title: 'Upload a different file',
+                    titleText: 'Upload a different file',
+                    titleSummaryIfCollapsed: inputFilename ? (
+                      <span className="slds-text-body_small slds-text-color_weak slds-m-left_x-small slds-truncate">{inputFilename}</span>
+                    ) : undefined,
+                    content: uploadSection,
+                  },
+                ]}
+                onActiveIdsChange={() => setPreviewLayoutVersion((version) => version + 1)}
               />
-            </div>
+            ) : (
+              <div className="slds-m-top_small">{uploadSection}</div>
+            )}
             {!hasData && !fileParsing && (
               <LoadRecordsMultiObjectEmptyState
                 templateUrl={templateUrl}

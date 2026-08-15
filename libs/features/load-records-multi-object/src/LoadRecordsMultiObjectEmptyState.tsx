@@ -1,6 +1,7 @@
 import { css } from '@emotion/react';
-import { EmptyState, Icon, OpenRoadIllustration } from '@jetstream/ui';
+import { Icon } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
+import ExampleImage from './images/load-to-multiple-objects-example.png';
 
 export interface LoadRecordsMultiObjectEmptyStateProps {
   templateUrl: string;
@@ -38,7 +39,8 @@ export const LoadRecordsMultiObjectEmptyState: FunctionComponent<LoadRecordsMult
 }) => {
   return (
     <div className="slds-m-top_medium">
-      <EmptyState headline="Prepare a file to get started" illustration={<OpenRoadIllustration />}>
+      <div className="slds-text-align_center slds-m-bottom_medium">
+        <h2 className="slds-text-heading_medium slds-m-bottom_x-small">Prepare a file to get started</h2>
         <a
           className="slds-button slds-button_brand"
           href={templateUrl}
@@ -50,8 +52,7 @@ export const LoadRecordsMultiObjectEmptyState: FunctionComponent<LoadRecordsMult
           <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" />
           Download Excel Template
         </a>
-      </EmptyState>
-      <h2 className="slds-text-heading_small slds-text-align_center slds-m-top_large slds-m-bottom_small">How it works</h2>
+      </div>
       <div
         css={css`
           display: grid;
@@ -75,6 +76,16 @@ export const LoadRecordsMultiObjectEmptyState: FunctionComponent<LoadRecordsMult
           </div>
         ))}
       </div>
+      <img
+        src={ExampleImage}
+        alt="Two worksheets side by side. Each has the object API name in cell B1, the operation in B2, column headers on row 5, and records from row 6. Column A holds a Reference Id for every record, and columns with a header wrapped in curly braces - {ParentId} and {AccountId} - hold the Reference Id of the record they are related to."
+        css={css`
+          display: block;
+          max-width: 100%;
+          width: 62rem;
+          margin: 1rem auto;
+        `}
+      />
     </div>
   );
 };
