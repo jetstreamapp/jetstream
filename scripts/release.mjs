@@ -388,6 +388,16 @@ async function worktreePathForBranch(branch) {
   return null;
 }
 
+// git writes progress ("From github.com:...") to stderr even when the command
+// fails, so the first line never explains anything — pull out the line that does.
+function gitFailureReason(error) {
+  const lines = String(error.stderr || error.message || '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  return lines.find((line) => /^(fatal|error):/i.test(line)) ?? lines.at(-1) ?? 'unknown error';
+}
+
 console.log('');
 process.stdout.write(chalk.dim('Updating local main... '));
 
@@ -398,14 +408,15 @@ let recoveryCommand = 'git fetch origin main:main';
 try {
   const mainWorktree = await worktreePathForBranch('main');
   if (mainWorktree) {
-    recoveryCommand = `git -C ${mainWorktree} pull --ff-only origin main`;
+    recoveryCommand = `git -C ${mainWorktree} merge --ff-only origin/main`;
   }
 
   await $`git fetch origin --tags --prune --quiet`.quiet();
 
   if (mainWorktree) {
-    // Pull in place wherever main lives (this worktree or another one)
-    await $({ cwd: mainWorktree })`git pull --ff-only origin main`.quiet();
+    // The fetch above already updated origin/main, so fast-forward in place
+    // wherever main lives (this worktree or another one) — no second round trip.
+    await $({ cwd: mainWorktree })`git merge --ff-only origin/main`.quiet();
     const currentWorktree = (await $`git rev-parse --show-toplevel`.quiet()).stdout.trim();
     console.log(chalk.green('done') + (mainWorktree === currentWorktree ? '' : chalk.dim(` (${mainWorktree})`)));
   } else {
@@ -415,6 +426,6 @@ try {
   }
 } catch (error) {
   console.log(chalk.yellow('skipped'));
-  console.log(chalk.dim(`  ${(error.stderr || error.message || '').trim().split('\n')[0]}`));
+  console.log(chalk.dim(`  ${gitFailureReason(error)}`));
   console.log('  ' + chalk.cyan(recoveryCommand));
 }
