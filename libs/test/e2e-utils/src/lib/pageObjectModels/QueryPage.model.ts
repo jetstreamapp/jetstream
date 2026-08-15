@@ -132,6 +132,39 @@ export class QueryPage {
     await this.page.getByTestId(relationshipName).click();
   }
 
+  /**
+   * Drill into the currently expanded relationship so its own child relationships can be selected,
+   * which is how a nested subquery is authored.
+   */
+  async drillIntoRelatedObject(childSObject: string) {
+    await this.page.getByRole('button', { name: `Add related object of ${childSObject}` }).click();
+  }
+
+  /** Navigate back up the subquery breadcrumb, e.x. to the root object by its name. */
+  async navigateToSubqueryBreadcrumb(label: string) {
+    await this.page.getByRole('navigation', { name: 'Breadcrumbs' }).getByRole('link', { name: label }).click();
+  }
+
+  /**
+   * Author a subquery nested inside another, e.x. Account > Contacts > Cases.
+   * Each entry selects its fields before drilling into the next level.
+   */
+  async selectNestedSubquery(levels: { relationshipName: string; childSObject: string; fieldLabels: string[] }[]) {
+    for (const [index, { relationshipName, childSObject, fieldLabels }] of levels.entries()) {
+      if (index === 0) {
+        await this.selectSubqueryObject(relationshipName);
+      } else {
+        // Already on the subquery tab, drilled into the parent - re-clicking the tab would be a no-op at best
+        await this.page.getByPlaceholder('Filter child objects').fill(relationshipName);
+        await this.page.getByTestId(relationshipName).click();
+      }
+      await this.selectFields(fieldLabels);
+      if (index < levels.length - 1) {
+        await this.drillIntoRelatedObject(childSObject);
+      }
+    }
+  }
+
   // getByTestId('sobject-fields-1-User').getByText('Account ID')
 
   async addFilter(

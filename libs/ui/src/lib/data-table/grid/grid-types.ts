@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ContextMenuItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { ContextMenuItem, Maybe, QueryResult, SalesforceOrgUi } from '@jetstream/types';
 import type { Cell, CellData, Column, ColumnDef, FilterFn, Header, Row, RowData, Table, TableFeatures } from '@tanstack/react-table';
 import { ReactNode } from 'react';
 import type { JetstreamTableFeatures } from './grid-features';
@@ -336,18 +336,38 @@ export interface FilterContextProps {
   updateFilter: (column: string, filter: DataTableFilter) => void;
 }
 
+/** One level of the subquery drill-down stack — the records being viewed and the record they came from. */
+export interface SubqueryLevel<TRow extends object = any> {
+  /** Relationship path from the root object, e.x. `Contacts` or `Contacts.Cases` */
+  relationshipPath: string;
+  /** Relationship name on its own, used as the modal header and breadcrumb label */
+  columnKey: string;
+  queryResults: QueryResult<TRow>;
+  parentRecord: TRow;
+}
+
 export interface SubqueryContext<TRow extends object = any> {
   serverUrl: string;
   skipFrontdoorLogin: boolean;
   org: SalesforceOrgUi;
   isTooling: boolean;
+  /** Keyed by lowercased relationship path, so a nested subquery resolves independently of a same-named one elsewhere */
   columnDefinitions?: Record<string, ColumnWithFilter<TRow, unknown>[]>;
-  onSubqueryFieldReorder?: (columnKey: string, fields: string[], columnOrder: number[]) => void;
+  onSubqueryFieldReorder?: (relationshipPath: string, fields: string[], columnOrder: number[]) => void;
   hasGoogleDriveAccess: boolean;
   googleShowUpgradeToPro: boolean;
   google_apiKey: string;
   google_appId: string;
   google_clientId: string;
+  /**
+   * Set only when rendering inside the subquery modal. Its presence is what tells a subquery cell to drill the
+   * modal down a level instead of opening its own, so the two fields travel together by construction.
+   */
+  nestedRender?: {
+    /** Relationship path of the subquery currently being rendered */
+    relationshipPath: string;
+    onDrillDown: (level: SubqueryLevel<TRow>) => void;
+  };
 }
 
 export interface SelectedRowsContext<TRow = any> {

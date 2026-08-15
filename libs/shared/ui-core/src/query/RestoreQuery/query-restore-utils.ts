@@ -1,4 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
+import { MAX_SUBQUERY_DEPTH } from '@jetstream/shared/constants';
 import {
   convertDescribeToDescribeSObjectWithExtendedTypes,
   fetchFieldsProcessResults,
@@ -9,7 +10,7 @@ import {
   unescapeSoqlString,
   unFlattenedListItemsById,
 } from '@jetstream/shared/ui-utils';
-import { groupByFlat, REGEX } from '@jetstream/shared/utils';
+import { getSubqueryPathDepth, groupByFlat, isSubqueryPathBelow, REGEX, walkSubqueries } from '@jetstream/shared/utils';
 import {
   ChildRelationship,
   DescribeGlobalSObjectResult,
@@ -43,7 +44,6 @@ import {
 import {
   Condition,
   DateLiteral,
-  FieldSubquery,
   HavingClause,
   isGroupByField,
   isGroupByFn,
@@ -62,6 +62,7 @@ import { fromQueryState } from '../..';
 
 export interface QueryRestoreErrors {
   missingFields: string[];
+  /** Keyed by the subquery's relationship path from the root object, e.x. `Contacts` or `Contacts.Cases` */
   missingSubqueryFields: Record<string, string[]>;
   missingMisc: string[];
 }
@@ -213,12 +214,55 @@ function processFields(data: SoqlFetchMetadataOutput, stateItems: Partial<QueryR
   // Set all fields as selected or mark as missing
   setSelectedFields(baseKey, data.selectedSobjectMetadata.sobject.fields, queryFields, data.metadata, stateItems);
 
-  // process subqueries
-  const childMetadataKeys = new Set(Object.keys(data.childMetadata).map((key) => key.toLowerCase()));
+  // process subqueries, including any nested within another subquery
+  processSubqueryFields(data, stateItems, queryFields);
+}
 
-  Object.keys(data.childMetadata).forEach((relationshipName) => {
-    const { objectMetadata, metadataTree } = data.childMetadata[relationshipName];
-    const childBaseKey = getSubqueryFieldBaseKey(objectMetadata.name, relationshipName);
+/**
+ * The query may not use the same casing as Salesforce metadata, so subqueries are matched on a lowercased
+ * relationship path and then referred to by their canonical path everywhere downstream.
+ */
+function getCanonicalSubqueryPathMap(data: SoqlFetchMetadataOutput): Record<string, string> {
+  return Object.keys(data.childMetadata).reduce((output: Record<string, string>, canonicalPath) => {
+    output[canonicalPath.toLowerCase()] = canonicalPath;
+    return output;
+  }, {});
+}
+
+/**
+ * Build state for every subquery within `queryFields`, including nested ones.
+ * Each subquery is identified by its relationship path from the root object, e.x. `Contacts.Cases`.
+ *
+ * mutates data in stateItems
+ */
+function processSubqueryFields(data: SoqlFetchMetadataOutput, stateItems: Partial<QueryRestoreStateItems>, queryFields: QueryFieldType[]) {
+  const { queryFieldsMapState: queryFieldsMap } = stateItems;
+  if (!queryFieldsMap) {
+    return;
+  }
+  const canonicalPathByLowercasePath = getCanonicalSubqueryPathMap(data);
+  // Anything below an unresolved subquery is unresolvable too, so report only the shallowest failure
+  const unresolvedPaths: string[] = [];
+
+  for (const { subquery, relationshipPath } of walkSubqueries(queryFields)) {
+    if (unresolvedPaths.some((unresolvedPath) => isSubqueryPathBelow(relationshipPath, unresolvedPath))) {
+      continue;
+    }
+    const canonicalPath = canonicalPathByLowercasePath[relationshipPath.toLowerCase()];
+
+    if (!canonicalPath) {
+      unresolvedPaths.push(relationshipPath);
+      stateItems.missingMisc = stateItems.missingMisc || [];
+      stateItems.missingMisc.push(
+        getSubqueryPathDepth(relationshipPath) > MAX_SUBQUERY_DEPTH
+          ? `Subquery '${relationshipPath}' is nested more than ${MAX_SUBQUERY_DEPTH} levels deep`
+          : `Child relationship '${relationshipPath}' was not found`,
+      );
+      continue;
+    }
+
+    const { objectMetadata, metadataTree } = data.childMetadata[canonicalPath];
+    const childBaseKey = getSubqueryFieldBaseKey(objectMetadata.name, canonicalPath);
 
     const childBaseQueryFieldMap = initQueryFieldStateItem(childBaseKey, objectMetadata.name);
     const childBaseObjectResults = convertDescribeToDescribeSObjectWithExtendedTypes(objectMetadata);
@@ -227,30 +271,8 @@ function processFields(data: SoqlFetchMetadataOutput, stateItems: Partial<QueryR
     updateQueryFieldsMapForRelatedFields(queryFieldsMap, childBaseKey, metadataTree);
 
     // Set all fields as selected or mark as missing
-    const subqueryField = queryFields.find(
-      (field) => field.type === 'FieldSubquery' && field.subquery.relationshipName.toLowerCase() === relationshipName.toLowerCase(),
-    ) as FieldSubquery;
-    if (subqueryField) {
-      setSelectedFields(
-        childBaseKey,
-        objectMetadata.fields,
-        subqueryField.subquery.fields || [],
-        metadataTree,
-        stateItems,
-        relationshipName,
-      );
-    }
-  });
-
-  // Track subquery relationships from the query that were not found in metadata
-  queryFields
-    .filter((field): field is FieldSubquery => field.type === 'FieldSubquery')
-    .forEach((field) => {
-      if (!childMetadataKeys.has(field.subquery.relationshipName.toLowerCase())) {
-        stateItems.missingMisc = stateItems.missingMisc || [];
-        stateItems.missingMisc.push(`Child relationship '${field.subquery.relationshipName}' was not found`);
-      }
-    });
+    setSelectedFields(childBaseKey, objectMetadata.fields, subquery.fields || [], metadataTree, stateItems, canonicalPath);
+  }
 }
 
 /**
@@ -539,7 +561,8 @@ function processLimit(stateItems: Partial<QueryRestoreStateItems>, query: Query)
 }
 
 /**
- * Walk every FieldSubquery in the query and populate per-relationship filter / orderBy / limit state.
+ * Walk every FieldSubquery in the query, including nested ones, and populate per-relationship
+ * filter / orderBy / limit state keyed by relationship path.
  * Restores SOQL features that were previously silently dropped during restore.
  */
 function processSubqueryOptions(stateItems: Partial<QueryRestoreStateItems>, query: Query, data: SoqlFetchMetadataOutput) {
@@ -547,25 +570,17 @@ function processSubqueryOptions(stateItems: Partial<QueryRestoreStateItems>, que
   stateItems.querySubqueryOrderByState = {};
   stateItems.querySubqueryLimitState = {};
 
-  const subqueryFields = (query.fields || []).filter((field): field is FieldSubquery => field.type === 'FieldSubquery');
-  if (subqueryFields.length === 0) {
-    return;
-  }
-  const childMetadataByLowerName = Object.keys(data.childMetadata).reduce((acc: Record<string, { canonicalName: string }>, name) => {
-    acc[name.toLowerCase()] = { canonicalName: name };
-    return acc;
-  }, {});
+  const canonicalPathByLowercasePath = getCanonicalSubqueryPathMap(data);
   const queryFieldsMap = stateItems.queryFieldsMapState || {};
 
-  subqueryFields.forEach((subqueryField) => {
-    const { subquery } = subqueryField;
-    const matchedChild = childMetadataByLowerName[subquery.relationshipName.toLowerCase()];
-    if (!matchedChild) {
-      return;
+  for (const { subquery, relationshipPath: queryRelationshipPath } of walkSubqueries(query.fields)) {
+    // Unresolved subqueries are reported by processSubqueryFields, so just skip them here
+    const relationshipPath = canonicalPathByLowercasePath[queryRelationshipPath.toLowerCase()];
+    if (!relationshipPath) {
+      continue;
     }
-    const relationshipName = matchedChild.canonicalName;
-    const childMeta = data.childMetadata[relationshipName];
-    const childBaseKey = getSubqueryFieldBaseKey(childMeta.objectMetadata.name, relationshipName);
+    const childMeta = data.childMetadata[relationshipPath];
+    const childBaseKey = getSubqueryFieldBaseKey(childMeta.objectMetadata.name, relationshipPath);
     const fieldWrapperForSubquery = getFieldWrapperPathForSubquery(queryFieldsMap, childBaseKey);
 
     if (subquery.where) {
@@ -573,7 +588,7 @@ function processSubqueryOptions(stateItems: Partial<QueryRestoreStateItems>, que
       const rows = flattenWhereClause(missingForSubquery, fieldWrapperForSubquery, subquery.where, 0);
       if (rows.length > 0) {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        stateItems.querySubqueryFiltersState![relationshipName] = {
+        stateItems.querySubqueryFiltersState![relationshipPath] = {
           action: isWhereClauseWithRightCondition(subquery.where) && subquery.where.operator === 'OR' ? 'OR' : 'AND',
           rows,
         };
@@ -582,7 +597,7 @@ function processSubqueryOptions(stateItems: Partial<QueryRestoreStateItems>, que
         stateItems.missingMisc = stateItems.missingMisc || [];
         missingForSubquery.forEach((message) => {
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          stateItems.missingMisc!.push(`Subquery '${relationshipName}': ${message}`);
+          stateItems.missingMisc!.push(`Subquery '${relationshipPath}': ${message}`);
         });
       }
     }
@@ -598,14 +613,14 @@ function processSubqueryOptions(stateItems: Partial<QueryRestoreStateItems>, que
           if (!foundField) {
             stateItems.missingMisc = stateItems.missingMisc || [];
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            stateItems.missingMisc!.push(`Subquery '${relationshipName}': Order By ${orderBy.field} was not found`);
+            stateItems.missingMisc!.push(`Subquery '${relationshipPath}': Order By ${orderBy.field} was not found`);
             return null;
           }
           const { fieldMetadata, fieldKey, parentKey } = foundField;
           const [, path] = parentKey.split('|');
-          // For a top-level subquery field the base segment is the internal `${childSObject}~${relationshipName}`
-          // key, which is not user-facing — use the relationship name so the restored label reads cleanly.
-          const groupLabel = path ? path.substring(0, path.length - 1) : relationshipName;
+          // For a field directly on the subquery the base segment is the internal `${childSObject}~${relationshipPath}`
+          // key, which is not user-facing — use the relationship path so the restored label reads cleanly.
+          const groupLabel = path ? path.substring(0, path.length - 1) : relationshipPath;
           if (!fieldMetadata) {
             return null;
           }
@@ -621,15 +636,15 @@ function processSubqueryOptions(stateItems: Partial<QueryRestoreStateItems>, que
 
       if (restoredOrderBys.length > 0) {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        stateItems.querySubqueryOrderByState![relationshipName] = restoredOrderBys;
+        stateItems.querySubqueryOrderByState![relationshipPath] = restoredOrderBys;
       }
     }
 
     if (subquery.limit != null) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      stateItems.querySubqueryLimitState![relationshipName] = `${subquery.limit}`;
+      stateItems.querySubqueryLimitState![relationshipPath] = `${subquery.limit}`;
     }
-  });
+  }
 }
 
 /**
@@ -645,7 +660,7 @@ function getFieldWrapperPathForSubquery(
     .filter((key) => key.startsWith(childBaseKey))
     .reduce((output: Record<string, FieldWrapperWithParentKey>, key) => {
       const queryField = queryFields[key];
-      // Keys for subqueries look like `${childSobject}~${relationshipName}|{optional.path.}`.
+      // Keys for subqueries look like `${childSobject}~${relationshipPath}|{optional.path.}`.
       // The "path" portion (after the pipe) is what should prefix each field key,
       // matching how soql-parser-js emits dotted field paths in subquery WHERE/ORDER BY.
       const fieldPath = key.slice(childBaseKey.length);
@@ -672,7 +687,7 @@ function setSelectedFields(
   queryFields: QueryFieldType[],
   metadataTree: Record<string, SoqlMetadataTree>,
   stateItems: Partial<QueryRestoreStateItems>,
-  subqueryRelationshipName?: string,
+  subqueryRelationshipPath?: string,
 ) {
   const {
     missingFields: missingFieldsTemp = [],
@@ -686,12 +701,12 @@ function setSelectedFields(
   let selectedQueryFields = selectedQueryFieldsTemp;
   let missingFields = missingFieldsTemp;
   // change target if working on subquery
-  if (subqueryRelationshipName) {
-    selectedSubqueryFields[subqueryRelationshipName] = selectedSubqueryFields[subqueryRelationshipName] || [];
-    selectedQueryFields = selectedSubqueryFields[subqueryRelationshipName];
+  if (subqueryRelationshipPath) {
+    selectedSubqueryFields[subqueryRelationshipPath] = selectedSubqueryFields[subqueryRelationshipPath] || [];
+    selectedQueryFields = selectedSubqueryFields[subqueryRelationshipPath];
 
-    missingSubqueryFields[subqueryRelationshipName] = missingSubqueryFields[subqueryRelationshipName] || [];
-    missingFields = missingSubqueryFields[subqueryRelationshipName];
+    missingSubqueryFields[subqueryRelationshipPath] = missingSubqueryFields[subqueryRelationshipPath] || [];
+    missingFields = missingSubqueryFields[subqueryRelationshipPath];
   }
   const baseFieldLowercaseMap = getLowercaseFieldMap(baseFields);
   const keyToMetadataTreeNode = getMapOfKeyToMetadataTreeNode(metadataTree);
@@ -768,6 +783,7 @@ function setSelectedFields(
         }
       });
     } else if (field.type !== 'FieldSubquery') {
+      // Subqueries at any level are handled by processSubqueryFields, which reports the ones it cannot resolve
       missingMisc.push(`${field.type} is not supported`);
     }
   });
@@ -856,6 +872,7 @@ function getFieldWrapperPath(queryFields: Record<string, QueryFields>): Record<s
 }
 
 export const __TEST_EXPORTS__ = {
+  processFields,
   processSubqueryOptions,
   getFieldWrapperPathForSubquery,
 };

@@ -19,8 +19,22 @@ export function getQueryFieldBaseKey(selectedSObject: string) {
   return `${selectedSObject}${BASE_FIELD_SEPARATOR}`;
 }
 
-export function getSubqueryFieldBaseKey(childSobject: string, relationshipName: string) {
-  return `${childSobject}${CHILD_FIELD_SEPARATOR}${relationshipName}${BASE_FIELD_SEPARATOR}`;
+export function getSubqueryFieldBaseKey(childSobject: string, relationshipPath: string) {
+  return `${childSobject}${CHILD_FIELD_SEPARATOR}${relationshipPath}${BASE_FIELD_SEPARATOR}`;
+}
+
+/**
+ * Pull the subquery relationship path back out of a fields map key, which looks like
+ * `${childSobject}~${relationshipPath}|${optional.parent.path.}`.
+ * Returns null for keys belonging to the base object, which have no `~` segment.
+ */
+export function getSubqueryPathFromFieldKey(key: string): string | null {
+  const childSeparatorIndex = key.indexOf(CHILD_FIELD_SEPARATOR);
+  if (childSeparatorIndex === -1) {
+    return null;
+  }
+  const baseSeparatorIndex = key.indexOf(BASE_FIELD_SEPARATOR, childSeparatorIndex);
+  return baseSeparatorIndex === -1 ? key.slice(childSeparatorIndex + 1) : key.slice(childSeparatorIndex + 1, baseSeparatorIndex);
 }
 
 export function initQueryFieldStateItem(key: string, sobject: string, props: Partial<QueryFields> = {}): QueryFields {

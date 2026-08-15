@@ -1,4 +1,5 @@
 import type {
+  FileExtXLSXLoadTemplate,
   InputAcceptTypeCsv,
   InputAcceptTypeExcel,
   InputAcceptTypeJson,
@@ -125,6 +126,13 @@ export const MIME_TYPES: {
   ZIP: 'application/zip;charset=utf-8',
   GSHEET: 'application/vnd.google-apps.spreadsheet',
 };
+
+/**
+ * Not a real file extension - an .xlsx built in the "Load Records to Multiple Objects" template shape.
+ * Lives here rather than with the download modal's radio constants so the download worker can switch on it
+ * without pulling in the UI library.
+ */
+export const FILE_FORMAT_XLSX_LOAD_TEMPLATE: FileExtXLSXLoadTemplate = 'xlsx-load-template';
 
 export const fileExtToMimeType = {
   csv: MIME_TYPES.CSV,
@@ -1102,6 +1110,21 @@ export const MAX_BINARY_DOWNLOAD_SIZE_BYTES = 1024 * 1024 * 1000; // 1GB
  * all-or-nothing composite graph request, which Salesforce limits to 500 records.
  */
 export const MAX_RECORDS_PER_GROUP = 500;
+
+/**
+ * Salesforce rejects a query whose subqueries go deeper than this with "SOQL statements cannot query aggregate
+ * relationships more than 4 level(s) away from the root entity object". The "five levels" in the docs counts the
+ * root entity itself, which leaves four levels of subquery.
+ *
+ * A top level subquery is depth 1, a subquery within that is depth 2, and so on.
+ */
+export const MAX_SUBQUERY_DEPTH = 4;
+
+/**
+ * Subqueries are identified by the path of relationship names from the root object, e.x. `Contacts.Cases`.
+ * A single segment path is a top level subquery.
+ */
+export const SUBQUERY_PATH_SEPARATOR = '.';
 
 /**
  * Public email provider domains that cannot be claimed for SSO domain verification.

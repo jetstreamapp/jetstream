@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { pluralizeFromNumber } from '@jetstream/shared/utils';
+import { pluralizeFromNumber, walkSubqueries } from '@jetstream/shared/utils';
 import { Field, Maybe, QueryResults, QueryResultsColumn } from '@jetstream/types';
-import { FieldSubquery, getField, getFlattenedFields, isFieldSubquery } from '@jetstreamapp/soql-parser-js';
+import { getField, getFlattenedFields, isFieldSubquery } from '@jetstreamapp/soql-parser-js';
 import {
   dataTableAddressValueFormatter,
   dataTableDateFormatter,
@@ -64,31 +64,17 @@ export function getColumnDefinitions(
       : false;
   const output: SalesforceQueryColumnDefinition<any> = { parentColumns: [], subqueryColumns: {} };
 
+  // Every subquery in the query, at any depth, keyed by lowercased relationship path
+  const subqueryRelationshipPaths = new Set<string>();
+  for (const { relationshipPath } of walkSubqueries(results.parsedQuery?.fields)) {
+    subqueryRelationshipPaths.add(relationshipPath.toLowerCase());
+  }
   const subqueryRelationshipNames = new Set(
     results.parsedQuery?.fields?.filter(isFieldSubquery).map((f) => f.subquery.relationshipName.toLowerCase()) || [],
   );
 
-  let queryColumnsByPath: Record<string, QueryResultsColumn> = {};
-  if (results.columns?.columns) {
-    queryColumnsByPath = results.columns.columns.reduce(
-      (out, curr) => {
-        out[curr.columnFullPath.toLowerCase()] = curr;
-        if (!Array.isArray(curr.childColumnPaths) && subqueryRelationshipNames.has(curr.columnFullPath.toLowerCase())) {
-          curr.childColumnPaths = [];
-        }
-        if (Array.isArray(curr.childColumnPaths)) {
-          curr.childColumnPaths.forEach((subqueryField) => {
-            out[subqueryField.columnFullPath.toLowerCase()] = {
-              ...subqueryField,
-              columnFullPath: subqueryField.columnFullPath.split('.').slice(1).join('.'),
-            } as QueryResultsColumn;
-          });
-        }
-        return out;
-      },
-      {} as Record<string, QueryResultsColumn>,
-    );
-  }
+  const queryColumnsByPath: Record<string, QueryResultsColumn> = {};
+  registerQueryColumns(results.columns?.columns, '', subqueryRelationshipPaths, queryColumnsByPath);
 
   const hasFieldsQuery = results.parsedQuery?.fields?.some(
     (field) => field.type === 'FieldFunctionExpression' && field.functionName === 'FIELDS',
@@ -119,40 +105,74 @@ export function getColumnDefinitions(
   }
   output.parentColumns = parentColumns;
 
-  results.parsedQuery?.fields
-    ?.filter((field) => isFieldSubquery(field))
-    .forEach((parentField: FieldSubquery) => {
-      const subqueryColumns = getFlattenedFields(parentField.subquery || {}).map((field) =>
-        getQueryResultColumn({
-          field,
-          subqueryRelationshipName: parentField.subquery.relationshipName,
-          queryColumnsByPath,
-          isSubquery: false,
-          allowEdit: false,
-          fieldMetadata: fieldMetadataSubquery?.[parentField.subquery.relationshipName.toLowerCase()],
-        }),
-      );
-      // The subquery modal enables row selection, and a checkbox cell only renders for a column keyed
-      // SELECT_COLUMN_KEY — without this the selection UI has nowhere to draw.
-      if (subqueryColumns.length > 0) {
-        subqueryColumns.unshift({ ...SelectColumn, key: SELECT_COLUMN_KEY, resizable: false });
-      }
-      output.subqueryColumns[parentField.subquery.relationshipName.toLowerCase()] = subqueryColumns;
-    });
+  // Keyed by lowercased relationship path so a nested subquery resolves independently of a same-named one elsewhere
+  for (const { subquery, relationshipPath } of walkSubqueries(results.parsedQuery?.fields)) {
+    const nestedRelationshipNames = new Set(
+      (subquery.fields || []).filter(isFieldSubquery).map(({ subquery }) => subquery.relationshipName.toLowerCase()),
+    );
+    const subqueryColumns = getFlattenedFields(subquery).map((field) =>
+      getQueryResultColumn({
+        field,
+        subqueryRelationshipPath: relationshipPath,
+        queryColumnsByPath,
+        isSubquery: nestedRelationshipNames.has(field.toLowerCase()),
+        allowEdit: false,
+        fieldMetadata: fieldMetadataSubquery?.[relationshipPath.toLowerCase()],
+      }),
+    );
+    // The subquery modal enables row selection, and a checkbox cell only renders for a column keyed
+    // SELECT_COLUMN_KEY — without this the selection UI has nowhere to draw.
+    if (subqueryColumns.length > 0) {
+      subqueryColumns.unshift({ ...SelectColumn, key: SELECT_COLUMN_KEY, resizable: false });
+    }
+    output.subqueryColumns[relationshipPath.toLowerCase()] = subqueryColumns;
+  }
 
   return output;
 }
 
+/**
+ * Index the columns Salesforce reported for the query by their lowercased full path (`contacts.cases.subject`).
+ *
+ * Each column's own `columnFullPath` is rewritten to be relative to the subquery it belongs to, because records
+ * within a subquery hold plain field keys (`Subject`), not the full path.
+ */
+function registerQueryColumns(
+  columns: Maybe<QueryResultsColumn[]>,
+  parentRelationshipPath: string,
+  subqueryRelationshipPaths: Set<string>,
+  output: Record<string, QueryResultsColumn>,
+) {
+  (columns || []).forEach((column) => {
+    const fullPath = column.columnFullPath;
+    // Salesforce omits childColumnPaths for a subquery that returned no rows, so fall back to the parsed query
+    // to keep the column typed as a subquery rather than plain text
+    const childColumnPaths =
+      !Array.isArray(column.childColumnPaths) && subqueryRelationshipPaths.has(fullPath.toLowerCase()) ? [] : column.childColumnPaths;
+
+    output[fullPath.toLowerCase()] = {
+      ...column,
+      childColumnPaths,
+      columnFullPath: parentRelationshipPath ? fullPath.slice(parentRelationshipPath.length + 1) : fullPath,
+    } as QueryResultsColumn;
+
+    if (Array.isArray(childColumnPaths)) {
+      registerQueryColumns(childColumnPaths, fullPath, subqueryRelationshipPaths, output);
+    }
+  });
+}
+
 function getQueryResultColumn({
   field,
-  subqueryRelationshipName,
+  subqueryRelationshipPath,
   queryColumnsByPath,
   isSubquery,
   fieldMetadata,
   allowEdit = true,
 }: {
   field: string;
-  subqueryRelationshipName?: string;
+  /** Relationship path of the subquery this column belongs to, empty for a column on the root object */
+  subqueryRelationshipPath?: string;
   queryColumnsByPath: Record<string, QueryResultsColumn>;
   isSubquery: boolean;
   fieldMetadata?: Maybe<Record<string, Field>>;
@@ -186,8 +206,8 @@ function getQueryResultColumn({
   };
 
   let fieldLowercase = field.toLowerCase();
-  if (subqueryRelationshipName) {
-    fieldLowercase = `${subqueryRelationshipName.toLowerCase()}.${fieldLowercase}`;
+  if (subqueryRelationshipPath) {
+    fieldLowercase = `${subqueryRelationshipPath.toLowerCase()}.${fieldLowercase}`;
   }
   const queryResultColumn = queryColumnsByPath[fieldLowercase];
   let resolvedType: ColumnType = 'text';
@@ -210,7 +230,7 @@ function getQueryResultColumn({
   const canonicalColumnPath = queryResultColumn?.columnFullPath ?? column.key;
   const isNameField =
     !!fieldMetadata?.[field.toLowerCase()]?.nameField || canonicalColumnPath === 'Name' || canonicalColumnPath.endsWith('.Name');
-  if (!subqueryRelationshipName && !queryResultColumn?.aggregate && resolvedType === 'text' && isNameField) {
+  if (!subqueryRelationshipPath && !queryResultColumn?.aggregate && resolvedType === 'text' && isNameField) {
     updateColumnFromType(column, 'salesforceName');
   }
 

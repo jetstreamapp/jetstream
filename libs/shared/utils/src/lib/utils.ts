@@ -13,15 +13,13 @@ import {
   Maybe,
   QueryColumnMetadata,
   QueryFieldWithPolymorphic,
-  QueryResult,
-  QueryResults,
   QueryResultsColumn,
   SalesforceOrgUi,
   SalesforceRecord,
   SoapNil,
   FieldType as jetstreamFieldType,
 } from '@jetstream/types';
-import { ComposeFieldTypeof, FieldSubquery, FieldType, getField } from '@jetstreamapp/soql-parser-js';
+import { ComposeFieldTypeof, FieldType, getField } from '@jetstreamapp/soql-parser-js';
 import { formatISO } from 'date-fns/formatISO';
 import { fromUnixTime } from 'date-fns/fromUnixTime';
 import { isMatch } from 'date-fns/isMatch';
@@ -36,6 +34,7 @@ import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
 import orderBy from 'lodash/orderBy';
 import { REGEX } from './regex';
+import { getSubqueryPathDepth, getSubqueryRelationshipName, isDirectChildSubqueryPath } from './subquery-path-utils';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function
 export function NOOP() {}
@@ -391,35 +390,6 @@ export function nullifyEmptyStrings<T extends Record<string, unknown>>(value: T,
     }
     return obj;
   }, {}) as T;
-}
-
-/**
- * Remove query wrapper from child records
- * NOTE: this ignores instances where there are more records
- * @param results
- */
-export function replaceSubqueryQueryResultsWithRecords(results: QueryResults<any>) {
-  if (results.parsedQuery) {
-    const subqueryFields = new Set<string>(
-      results.parsedQuery.fields
-        ?.filter((field) => field.type === 'FieldSubquery')
-        .map((field: FieldSubquery) => field.subquery.relationshipName),
-    );
-    if (subqueryFields.size > 0) {
-      results.queryResults.records.forEach((record) => {
-        try {
-          subqueryFields.forEach((field) => {
-            if (record[field]) {
-              record[field] = (record[field] as QueryResult<unknown>).records;
-            }
-          });
-        } catch {
-          // could not process field
-        }
-      });
-    }
-  }
-  return results;
 }
 
 export function queryResultColumnToTypeLabel(column: QueryResultsColumn, fallback = 'Unknown'): string {
@@ -892,29 +862,55 @@ export function getSuccessOrFailureOrWarningChar(itemSuccessCount: number, itemF
 }
 
 /**
+ * Column added to every subquery sheet holding the Id of the record the child rows came from.
+ * Without it a nested sheet cannot be tied back to the specific parent row it belongs to.
+ * Salesforce field names cannot start with an underscore, so this cannot collide with a queried field.
+ */
+export const SUBQUERY_PARENT_ID_COLUMN = '_ParentId';
+
+/**
+ * Returns the records from a subquery on a query result.
+ * Salesforce responds with the canonical relationship name, which may differ in casing from what was typed in the query.
+ */
+export function getSubqueryRecords(record: any, relationshipName: string): any[] {
+  if (!record) {
+    return [];
+  }
+  let subqueryResults = record[relationshipName];
+  if (!subqueryResults) {
+    const matchingKey = Object.keys(record).find((key) => key.toLowerCase() === relationshipName.toLowerCase());
+    subqueryResults = matchingKey ? record[matchingKey] : null;
+  }
+  return subqueryResults?.records || [];
+}
+
+/**
  * Returns a map of records
  * {
  *   records: [] // all base records (excludes subquery fields)
- *   // each subquery with records gets split out
- *   accounts__r: []
- *   contacts__r: []
+ *   // each subquery with records gets split out, keyed by relationship path
+ *   Contacts: []
+ *   'Contacts.Cases': []
  *   ...: []
  * }
  *
  * @param records
  * @param fields
- * @param subqueryFields
+ * @param subqueryFields keyed by relationship path, e.x. `Contacts` and `Contacts.Cases`
  */
 export function getMapOfBaseAndSubqueryRecords(records: any[], fields: string[], subqueryFields: Record<string, string[]>) {
   const output: Record<string, any[]> = {};
-  // output['records'] = flattenRecords(records, fields);
 
-  const subqueryFieldsSet = new Set(Object.keys(subqueryFields));
+  // Relationship paths carry whatever casing the query used, which is not guaranteed to match the casing of the
+  // fields list, so partition case-insensitively but carry the `subqueryFields` key forward - everything
+  // downstream looks the child fields and nested paths up by that key.
+  const subqueryPathByLowercase = new Map(Object.keys(subqueryFields).map((path) => [path.toLowerCase(), path]));
   // split fields into regular fields and subquery fields to partition record
   const [baseFieldsToUse, subqueryFieldsToUse] = fields.reduce(
     (output: [string[], string[]], field) => {
-      if (subqueryFieldsSet.has(field)) {
-        output[1].push(field);
+      const subqueryPath = subqueryPathByLowercase.get(field.toLowerCase());
+      if (subqueryPath) {
+        output[1].push(subqueryPath);
       } else {
         output[0].push(field);
       }
@@ -926,16 +922,66 @@ export function getMapOfBaseAndSubqueryRecords(records: any[], fields: string[],
   // records
   output['records'] = flattenRecords(records, baseFieldsToUse);
 
-  // add key in output for subquery records
-  if (subqueryFieldsToUse.length) {
-    subqueryFieldsToUse.forEach((field) => {
-      const childRecords = records.flatMap((record) => record[field]?.records || []).filter(Boolean);
-      if (childRecords.length) {
-        output[getExcelSafeSheetName(field)] = flattenRecords(childRecords, subqueryFields[field]);
-      }
-    });
-  }
+  // add key in output for subquery records, recursing so nested subqueries each get their own entry
+  subqueryFieldsToUse.forEach((relationshipPath) => {
+    addSubqueryRecords(output, records, relationshipPath, subqueryFields);
+  });
+
   return output;
+}
+
+function addSubqueryRecords(
+  output: Record<string, any[]>,
+  parentRecords: any[],
+  relationshipPath: string,
+  subqueryFields: Record<string, string[]>,
+) {
+  const relationshipName = getSubqueryRelationshipName(relationshipPath);
+  const childRecords = parentRecords.flatMap((parentRecord) => {
+    const records = getSubqueryRecords(parentRecord, relationshipName);
+    return records.filter(Boolean).map((record) => ({ ...record, [SUBQUERY_PARENT_ID_COLUMN]: getRecordIdFromAttributes(parentRecord) }));
+  });
+  if (!childRecords.length) {
+    return;
+  }
+
+  const nestedPaths = Object.keys(subqueryFields).filter((path) => isDirectChildSubqueryPath(path, relationshipPath));
+  // A nested subquery gets its own sheet, so drop it from this one rather than emitting it as a JSON blob
+  const nestedRelationshipNames = new Set(nestedPaths.map((path) => getSubqueryRelationshipName(path).toLowerCase()));
+  const ownFields = (subqueryFields[relationshipPath] || []).filter((field) => !nestedRelationshipNames.has(field.toLowerCase()));
+
+  output[getSubquerySheetName(relationshipPath, Object.keys(output))] = flattenRecords(childRecords, [
+    SUBQUERY_PARENT_ID_COLUMN,
+    ...ownFields,
+  ]);
+
+  nestedPaths.forEach((nestedPath) => addSubqueryRecords(output, childRecords, nestedPath, subqueryFields));
+}
+
+/** Characters Excel does not allow in a worksheet name - Salesforce API names cannot contain them, but sanitize defensively */
+const EXCEL_FORBIDDEN_SHEET_NAME_CHARS = /[:\\/?*[\]]/g;
+const EXCEL_MAX_SHEET_NAME_LENGTH = 31;
+
+export function sanitizeExcelSheetName(name: string): string {
+  return name.replace(EXCEL_FORBIDDEN_SHEET_NAME_CHARS, '');
+}
+
+/**
+ * Worksheet name for a subquery, which is its relationship path when that fits.
+ *
+ * Excel caps a sheet name at 31 characters, and blindly truncating a path cuts the tail - the part that says
+ * which level it is - while keeping the prefix every level shares. A four level `ChildAccounts` query would
+ * end up with `ChildAccounts.ChildAccounts.Chi` and `ChildAccounts.ChildAccounts.Ch4`. Naming the level by its
+ * own relationship plus its depth stays inside the limit and says what the sheet actually holds.
+ */
+export function getSubquerySheetName(relationshipPath: string, existingNames: string[] = []): string {
+  const sanitizedPath = sanitizeExcelSheetName(relationshipPath);
+  if (sanitizedPath.length <= EXCEL_MAX_SHEET_NAME_LENGTH) {
+    return getExcelSafeSheetName(sanitizedPath, existingNames);
+  }
+  const depthLabel = ` (L${getSubqueryPathDepth(sanitizedPath)})`;
+  const relationshipName = getSubqueryRelationshipName(sanitizedPath).substring(0, EXCEL_MAX_SHEET_NAME_LENGTH - depthLabel.length);
+  return getExcelSafeSheetName(`${relationshipName}${depthLabel}`, existingNames);
 }
 
 /**

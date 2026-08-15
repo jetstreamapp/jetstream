@@ -13,11 +13,13 @@ import {
   useNonInitialEffect,
   usePrimaryActionShortcut,
 } from '@jetstream/shared/ui-utils';
+import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { DescribeGlobalSObjectResult, Field, ListItem, QueryFieldWithPolymorphic, SoqlQueryFormatOptions } from '@jetstream/types';
 import {
   Accordion,
   AutoFullHeightContainer,
+  Badge,
   CheckboxToggle,
   ConnectedSobjectList,
   Grid,
@@ -124,6 +126,7 @@ export const QueryBuilder = () => {
   const queryKey = useAtomValue(fromQueryState.selectQueryKeyState);
   const [queryFilters, setQueryFilters] = useAtom(fromQueryState.queryFiltersState);
   const subqueryConfigPanel = useAtomValue(fromQueryState.subqueryConfigPanelState);
+  const subqueryCount = useAtomValue(fromQueryState.selectSubqueryCount);
   const resetSubqueryConfigPanel = useResetAtom(fromQueryState.subqueryConfigPanelState);
 
   const resetSelectedQueryFieldsState = useResetAtom(fromQueryState.selectedQueryFieldsState);
@@ -176,8 +179,8 @@ export const QueryBuilder = () => {
     }
   }, [isTooling, showWalkthrough, trackEvent]);
 
-  function handleSubquerySelectedField(relationshipName: string, fields: QueryFieldWithPolymorphic[]) {
-    const tempSelectedSubqueryFieldsState = { ...selectedSubqueryFieldsState, [relationshipName]: fields };
+  function handleSubquerySelectedField(relationshipPath: string, fields: QueryFieldWithPolymorphic[]) {
+    const tempSelectedSubqueryFieldsState = { ...selectedSubqueryFieldsState, [relationshipPath]: fields };
     setSelectedSubqueryFieldsState(tempSelectedSubqueryFieldsState);
   }
 
@@ -335,10 +338,10 @@ export const QueryBuilder = () => {
       {showWalkthrough && <QueryWalkthrough onClose={handleQueryWalkthroughClose} />}
       {subqueryConfigPanel && (
         <QuerySubqueryConfigPanel
-          key={subqueryConfigPanel.relationshipName}
+          key={subqueryConfigPanel.relationshipPath}
           org={selectedOrg}
           isOpen
-          relationshipName={subqueryConfigPanel.relationshipName}
+          relationshipPath={subqueryConfigPanel.relationshipPath}
           childSObject={subqueryConfigPanel.childSObject}
           onClose={resetSubqueryConfigPanel}
         />
@@ -432,8 +435,17 @@ export const QueryBuilder = () => {
                             />
                           </span>
                           {selectedSObject?.name} Fields
+                          {selectedFields.length > 0 && (
+                            <Badge
+                              className="slds-m-left_x-small"
+                              title={`${selectedFields.length} ${pluralizeFromNumber('field', selectedFields.length)} selected`}
+                            >
+                              {selectedFields.length}
+                            </Badge>
+                          )}
                         </Fragment>
                       ),
+                      titleText: `${selectedSObject?.name} Fields`,
                       content: (
                         <QueryFieldsComponent
                           selectedSObject={selectedSObject ? selectedSObject.name : undefined}
@@ -456,6 +468,14 @@ export const QueryBuilder = () => {
                             />
                           </span>
                           Related Objects (Subquery)
+                          {subqueryCount > 0 && (
+                            <Badge
+                              className="slds-m-left_x-small"
+                              title={`${subqueryCount} related ${pluralizeFromNumber('object', subqueryCount)} in the query`}
+                            >
+                              {subqueryCount}
+                            </Badge>
+                          )}
                         </Fragment>
                       ),
                       titleText: 'Related Objects (Subquery)',
@@ -466,6 +486,7 @@ export const QueryBuilder = () => {
                             serverUrl={serverUrl}
                             isTooling={isTooling}
                             childRelationships={childRelationships}
+                            rootSObjectName={selectedSObject?.name || ''}
                             onSelectionChanged={handleSubquerySelectedField}
                           />
                         </AutoFullHeightContainer>

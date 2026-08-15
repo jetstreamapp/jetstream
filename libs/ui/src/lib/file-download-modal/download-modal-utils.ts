@@ -1,3 +1,4 @@
+import { FILE_FORMAT_XLSX_LOAD_TEMPLATE } from '@jetstream/shared/constants';
 import { EXCEL_MAX_CELL_CHARS, formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { FileExtCsv, FileExtJson, FileExtXLSX, FileExtXml, FileExtZip, Maybe } from '@jetstream/types';
@@ -5,7 +6,7 @@ import { fireToast } from '../toast/AppToast';
 
 export const RADIO_FORMAT_XLSX: FileExtXLSX = 'xlsx';
 /** Excel download in the "Load Records to Multiple Objects" template format - only offered when the modal is given a `loadTemplateOption` */
-export const RADIO_FORMAT_XLSX_LOAD_TEMPLATE = 'xlsx-load-template' as const;
+export const RADIO_FORMAT_XLSX_LOAD_TEMPLATE = FILE_FORMAT_XLSX_LOAD_TEMPLATE;
 export const RADIO_FORMAT_CSV: FileExtCsv = 'csv';
 export const RADIO_FORMAT_JSON: FileExtJson = 'json';
 export const RADIO_FORMAT_GDRIVE = 'gdrive';

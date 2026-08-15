@@ -19,7 +19,13 @@ import {
   useObservable,
   usePrimaryActionShortcut,
 } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, getRecordIdFromAttributes, getSObjectNameFromAttributes, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import {
+  getErrorMessage,
+  getRecordIdFromAttributes,
+  getSObjectNameFromAttributes,
+  getSubqueryPathSegments,
+  splitArrayToMaxSize,
+} from '@jetstream/shared/utils';
 import {
   AsyncJobNew,
   CloneEditView,
@@ -62,7 +68,7 @@ import {
 import { getFlattenSubqueryFlattenedFieldMap } from '@jetstream/ui-core/shared';
 import { fromAppState, googleDriveAccessState, soqlQueryFormatOptionsState } from '@jetstream/ui/app-state';
 import { queryHistoryDb } from '@jetstream/ui/db';
-import { FieldSubquery, Query, composeQuery, formatQuery, isFieldSubquery, parseQuery, stripComments } from '@jetstreamapp/soql-parser-js';
+import { Query, composeQuery, formatQuery, parseQuery, stripComments } from '@jetstreamapp/soql-parser-js';
 import classNames from 'classnames';
 import { useAtom, useAtomValue } from 'jotai';
 import isString from 'lodash/isString';
@@ -76,6 +82,7 @@ import QueryResultsDownloadButton from './QueryResultsDownloadButton';
 import QueryResultsGetRecAsApexModal from './QueryResultsGetRecAsApexModal';
 import QueryResultsMoreActions from './QueryResultsMoreActions';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
+import { reorderSubqueryFields } from './query-results-utils';
 import { useQueryResultsFetchMetadata } from './useQueryResultsFetchMetadata';
 
 type SourceAction = 'STANDARD' | 'ORG_CHANGE' | 'BULK_DELETE' | 'HISTORY' | 'RECORD_ACTION' | 'RECORD_BULK_ACTION' | 'MANUAL' | 'RELOAD';
@@ -632,31 +639,26 @@ export const QueryResults = React.memo(() => {
     }
   }
 
-  function handleSubqueryFieldsChanged(columnKey: string, newFields: string[], columnOrder: number[]) {
+  /**
+   * Reorder the fields of a single subquery, which may itself be nested within another subquery.
+   *
+   * The subquery is located by walking its relationship path rather than by column position — the flattened
+   * column list only lines up with parsedQuery.fields at the top level, and not at all once TYPEOF or FIELDS()
+   * expansion is involved.
+   */
+  function handleSubqueryFieldsChanged(relationshipPath: string, newFields: string[], columnOrder: number[]) {
     try {
-      const subqueryIdx = fields?.findIndex((field) => field === columnKey) || -1;
-      if (
-        subqueryIdx >= 0 &&
-        newFields?.length &&
-        parsedQuery?.fields &&
-        Array.isArray(parsedQuery.fields) &&
-        isFieldSubquery(parsedQuery.fields[subqueryIdx])
-      ) {
-        const subqueryColumn = { ...(parsedQuery.fields[subqueryIdx] as FieldSubquery) };
-
-        subqueryColumn.subquery = {
-          ...subqueryColumn.subquery,
-          fields: columnOrder.map((idx) => subqueryColumn.subquery.fields![idx]),
-        };
-
-        const newParsedQuery = {
-          ...parsedQuery,
-          fields: parsedQuery.fields.map((field, idx) => (idx === subqueryIdx ? subqueryColumn : field)),
-        };
-        setParsedQuery(newParsedQuery);
-
-        setSoql(composeQuery(newParsedQuery, { format: true, formatOptions: soqlQueryFormatOptions }));
+      if (!newFields?.length || !parsedQuery?.fields || !Array.isArray(parsedQuery.fields)) {
+        return;
       }
+      const reorderedFields = reorderSubqueryFields(parsedQuery.fields, getSubqueryPathSegments(relationshipPath), columnOrder);
+      if (!reorderedFields) {
+        return;
+      }
+      const newParsedQuery = { ...parsedQuery, fields: reorderedFields };
+      setParsedQuery(newParsedQuery);
+
+      setSoql(composeQuery(newParsedQuery, { format: true, formatOptions: soqlQueryFormatOptions }));
     } catch (ex) {
       logger.warn('Error setting query after fields changed (Subquery)', getErrorMessage(ex));
     }

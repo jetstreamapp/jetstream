@@ -140,7 +140,7 @@ export interface SalesforceRecordDataTableProps {
   onFilteredRowsChanged: (rows: any[]) => void;
   /** Fired when query is loaded OR user changes column order */
   onFields: (fields: string[], columnOrder: number[]) => void;
-  onSubqueryFieldReorder: (columnKey: string, fields: string[], columnOrder: number[]) => void;
+  onSubqueryFieldReorder: (relationshipPath: string, fields: string[], columnOrder: number[]) => void;
   onLoadMoreRecords?: (queryResults: QueryResults<any>) => void;
   onEdit: (record: any, source: 'ROW_ACTION' | 'RELATED_RECORD_POPOVER') => void;
   onClone: (record: any, source: 'ROW_ACTION' | 'RELATED_RECORD_POPOVER') => void;
@@ -676,8 +676,8 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
     }, []);
     useGlobalEventHandler('keydown', handlePreviewShortcut);
 
-    function handleSubqueryFieldsChanged(columnKey: string, newFields: string[], columnOrder: number[]) {
-      onSubqueryFieldReorder(columnKey, newFields, columnOrder);
+    function handleSubqueryFieldsChanged(relationshipPath: string, newFields: string[], columnOrder: number[]) {
+      onSubqueryFieldReorder(relationshipPath, newFields, columnOrder);
       // FIXME: this causes an infinite render loop
       // The purpose of attempting this is to ensure that the query map is updated with the new column order for the specific subquery
       // without this the modal uses the prior column order if it is opened a second time - but the query is updated correctly
