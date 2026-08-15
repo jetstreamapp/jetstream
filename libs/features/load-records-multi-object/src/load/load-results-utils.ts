@@ -80,6 +80,17 @@ export function buildRecordResultRows(runs: LoadMultiObjectRun[], groupNumbersBy
   return Object.values(rowsByRefId);
 }
 
+/**
+ * Outcome for a whole group. Groups are atomic, so a group only counts as loaded once every record in it
+ * succeeded, and any failure fails the group. null = still pending.
+ */
+export function getGroupSuccess(rows: RecordResultRow[]): boolean | null {
+  if (rows.some(({ _success }) => _success === false)) {
+    return false;
+  }
+  return rows.length > 0 && rows.every(({ _success }) => _success === true) ? true : null;
+}
+
 export function getLoadResultsSummary(rows: RecordResultRow[]): LoadResultsSummary {
   return rows.reduce(
     (summary, { _success }) => {

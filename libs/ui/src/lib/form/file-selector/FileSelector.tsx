@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { readFile, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
+import { useGlobalEventHandler } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { InputAcceptType, InputReadFileContent, Maybe } from '@jetstream/types';
 import classNames from 'classnames';
@@ -8,11 +8,9 @@ import isString from 'lodash/isString';
 import { FunctionComponent, useCallback, useRef, useState } from 'react';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
+import { readFileForUpload } from './file-selector-utils';
 import { getPastedFile } from './getPastedFile';
 import { useFilename } from './useFilename';
-
-/** Everything else is read as an ArrayBuffer, which is what the xlsx/zip parsers expect */
-const TEXT_FILE_EXTENSIONS: InputAcceptType[] = ['.csv', '.tsv', '.xml', '.json'];
 
 export interface FileSelectorProps {
   className?: string;
@@ -152,23 +150,8 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
         return;
       }
       logger.info(file);
-      const fileSizeMb = file.size / 1000 / 1000;
-
-      const extension = (file.name.substring(file.name.lastIndexOf('.')) || '').toLowerCase() as InputAcceptType;
-
-      if (accept && !accept.includes(extension)) {
-        throw new Error(`File type ${extension} is not supported`);
-      }
-
-      if (maxAllowedSizeMB && fileSizeMb > maxAllowedSizeMB) {
-        throw new Error(`Maximum allowed file size is ${maxAllowedSizeMB}MB`);
-      }
-
       setManagedFilename(file.name);
-
-      const content = await (TEXT_FILE_EXTENSIONS.includes(extension) ? readFile(file, 'text') : readFile(file, 'array_buffer'));
-
-      onReadFile({ filename: file.name, extension, content });
+      onReadFile(await readFileForUpload(file, { accept, maxAllowedSizeMB }));
     } catch (ex) {
       setSystemErrorMessage(getErrorMessage(ex));
       setManagedFilename(null);

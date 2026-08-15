@@ -2,11 +2,12 @@ import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { SalesforceOrgUi, UiTabSection } from '@jetstream/types';
-import type { ColumnWithFilter, RenderCellProps, RowWithKey } from '@jetstream/ui';
+import type { ColumnWithFilter, RenderCellProps, RenderGroupCellProps, RowWithKey } from '@jetstream/ui';
 import {
   AutoFullHeightContainer,
   Checkbox,
-  DataTable,
+  DataTree,
+  ExpandCollapseButton,
   Grid,
   Icon,
   Spinner,
@@ -16,7 +17,9 @@ import {
 } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
 import { FunctionComponent, ReactNode, useMemo, useState } from 'react';
-import { RecordResultRow } from './load-results-utils';
+import { MIN_GRID_HEIGHT } from '../load-records-multi-object-constants';
+import useExpandedGroups from '../useExpandedGroups';
+import { RecordResultRow, getGroupSuccess } from './load-results-utils';
 
 const ALL_TAB_ID = '__all__';
 
@@ -29,22 +32,27 @@ export interface LoadRecordsMultiObjectResultsTablesProps {
   serverUrl: string;
 }
 
-function SuccessRenderer({ row, isRunning }: RenderCellProps<RowWithKey> & { isRunning: boolean }) {
-  const { _success } = row as unknown as RecordResultRow;
+function StatusIndicator({ success, isRunning, label }: { success: boolean | null; isRunning: boolean; label: string }) {
   let content: ReactNode;
-  if (_success === true) {
+  if (success === true) {
     content = (
       <Icon
         type="utility"
         icon="success"
         className="slds-icon slds-icon_x-small slds-icon-text-success"
-        title="Loaded successfully"
-        description="Loaded successfully"
+        title={`${label} loaded successfully`}
+        description={`${label} loaded successfully`}
       />
     );
-  } else if (_success === false) {
+  } else if (success === false) {
     content = (
-      <Icon type="utility" icon="error" className="slds-icon slds-icon_x-small slds-icon-text-error" title="Failed" description="Failed" />
+      <Icon
+        type="utility"
+        icon="error"
+        className="slds-icon slds-icon_x-small slds-icon-text-error"
+        title={`${label} failed`}
+        description={`${label} failed`}
+      />
     );
   } else if (isRunning) {
     content = <Spinner size="x-small" inline />;
@@ -69,6 +77,43 @@ function SuccessRenderer({ row, isRunning }: RenderCellProps<RowWithKey> & { isR
   );
 }
 
+function SuccessRenderer({ row, isRunning }: RenderCellProps<RowWithKey> & { isRunning: boolean }) {
+  return <StatusIndicator success={(row as unknown as RecordResultRow)._success} isRunning={isRunning} label="Record" />;
+}
+
+/** Group rows carry the outcome of the group as a whole - all-or-nothing, so one failure fails the group */
+function GroupSuccessRenderer({ childRows, isRunning }: RenderGroupCellProps<RowWithKey> & { isRunning: boolean }) {
+  return <StatusIndicator success={getGroupSuccess(childRows as unknown as RecordResultRow[])} isRunning={isRunning} label="Group" />;
+}
+
+/**
+ * Group header label. Once any column provides a group cell the grid stops rendering its own full-width
+ * header, so this owns the toggle, the group name, and the per-group counts.
+ */
+function GroupLabelRenderer({ groupKey, childRows, isExpanded, toggleGroup }: RenderGroupCellProps<RowWithKey>) {
+  const rows = childRows as unknown as RecordResultRow[];
+  const failureCount = rows.filter(({ _success }) => _success === false).length;
+  return (
+    <button
+      type="button"
+      className="jgrid-group-toggle slds-button_reset slds-grid slds-grid_vertical-align-center"
+      onClick={toggleGroup}
+      tabIndex={-1}
+    >
+      <Icon
+        type="utility"
+        icon={isExpanded ? 'chevrondown' : 'chevronright'}
+        className="slds-icon slds-icon-text-default slds-icon_x-small slds-m-right_xx-small"
+      />
+      <span className="jgrid-group-toggle-label">{groupKey === null || groupKey === undefined ? '—' : String(groupKey)}</span>
+      <span className="slds-text-body_small slds-text-color_weak slds-m-left_x-small">
+        {formatNumber(rows.length)} {pluralizeFromNumber('record', rows.length)}
+        {failureCount > 0 ? ` · ${formatNumber(failureCount)} failed` : ''}
+      </span>
+    </button>
+  );
+}
+
 function getColumns({
   includeWorksheet,
   includeRun,
@@ -87,6 +132,7 @@ function getColumns({
       sortable: true,
       filters: ['SET'],
       renderCell: (props) => <SuccessRenderer {...props} isRunning={isRunning} />,
+      renderGroupCell: (props) => <GroupSuccessRenderer {...props} isRunning={isRunning} />,
       getValue: ({ row }) => {
         const { _success } = row as unknown as RecordResultRow;
         return _success === true ? 'Success' : _success === false ? 'Failed' : 'Pending';
@@ -96,7 +142,16 @@ function getColumns({
       ? [{ name: 'Worksheet', key: 'worksheet', width: 160, sortable: true, filters: ['SET'] } as ColumnWithFilter<RowWithKey>]
       : []),
     { name: 'Row', key: 'rowNumber', width: 80, sortable: true, filters: ['NUMBER'] },
-    { name: 'Group', key: 'group', width: 110, sortable: true, filters: ['SET'] },
+    {
+      name: 'Group',
+      key: 'group',
+      width: 110,
+      sortable: true,
+      filters: ['SET'],
+      renderGroupCell: GroupLabelRenderer,
+      // The group label reads as a sentence, so let it run across the columns to the right of it
+      colSpan: (args) => (args.type === 'GROUP' ? Number.MAX_SAFE_INTEGER : undefined),
+    },
     { name: 'Reference Id', key: 'referenceId', width: 180, sortable: true, filters: ['TEXT', 'SET'] },
     { name: 'Object', key: 'sobject', width: 130, sortable: true, filters: ['SET'] },
     { name: 'Operation', key: 'operation', width: 110, sortable: true, filters: ['SET'] },
@@ -135,16 +190,23 @@ export const LoadRecordsMultiObjectResultsTables: FunctionComponent<LoadRecordsM
     [rows, showFailuresOnly],
   );
 
+  const groupIds = useMemo(() => Array.from(new Set(rows.map(({ group }) => group))), [rows]);
+  const { expandedGroupIds, setExpandedGroupIds, toggleAllGroups, hasExpandedGroups } = useExpandedGroups(groupIds);
+
   const tabs = useMemo((): UiTabSection[] => {
     const rowsByWorksheet = groupBy(visibleRows, 'worksheet');
 
     function buildTable(tableRows: RecordResultRow[], includeWorksheet: boolean) {
       return (
-        <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={25} bufferIfNotRendered={320}>
-          <DataTable
+        <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={25} bufferIfNotRendered={320} minHeight={MIN_GRID_HEIGHT}>
+          <DataTree
             data={tableRows as unknown as RowWithKey[]}
             columns={getColumns({ includeWorksheet, includeRun: hasMultipleRuns, isRunning })}
             getRowKey={(row) => (row as unknown as RecordResultRow)._key}
+            groupBy={['group']}
+            rowGrouper={groupBy}
+            expandedGroupIds={expandedGroupIds}
+            onExpandedGroupIdsChange={setExpandedGroupIds}
             org={selectedOrg}
             serverUrl={serverUrl}
             rowHeight={({ row, columnWidths }) => getRecordErrorRowHeight(row, columnWidths)}
@@ -188,7 +250,7 @@ export const LoadRecordsMultiObjectResultsTables: FunctionComponent<LoadRecordsM
         content: buildTable(worksheetRows, false),
       })),
     ];
-  }, [visibleRows, rows, hasMultipleRuns, isRunning, selectedOrg, serverUrl]);
+  }, [visibleRows, rows, hasMultipleRuns, isRunning, selectedOrg, serverUrl, expandedGroupIds, setExpandedGroupIds]);
 
   if (!rows.length) {
     return null;
@@ -196,7 +258,8 @@ export const LoadRecordsMultiObjectResultsTables: FunctionComponent<LoadRecordsM
 
   return (
     <div className="slds-m-top_small">
-      <Grid align="end">
+      <Grid align="spread" verticalAlign="center">
+        <ExpandCollapseButton isExpanded={hasExpandedGroups} onToggle={toggleAllGroups} />
         <Checkbox id="show-failures-only" checked={showFailuresOnly} label="Show failures only" onChange={setShowFailuresOnly} />
       </Grid>
       <Tabs tabs={tabs} />

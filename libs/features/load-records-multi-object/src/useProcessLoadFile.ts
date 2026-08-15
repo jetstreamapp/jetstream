@@ -14,8 +14,8 @@ import {
   groupsByRefIdState,
   insertNullsState,
   parseErrorsState,
-  parseWarningsState,
   requestsState,
+  workbookErrorsState,
 } from './load-records-multi-object.state';
 
 function toUnknownError(ex: unknown): LoadMultiObjectDataError {
@@ -36,8 +36,8 @@ function toUnknownError(ex: unknown): LoadMultiObjectDataError {
 export const useProcessLoadFile = (org: SalesforceOrgUi, apiVersion: string) => {
   const [loading, setLoading] = useAtom(fileParsingState);
   const [datasets, setDatasets] = useAtom(datasetsState);
-  const [parseErrors, setParseErrors] = useAtom(parseErrorsState);
-  const setParseWarnings = useSetAtom(parseWarningsState);
+  const parseErrors = useAtomValue(parseErrorsState);
+  const setWorkbookErrors = useSetAtom(workbookErrorsState);
   const setGraphErrors = useSetAtom(graphErrorsState);
   const setRequests = useSetAtom(requestsState);
   const setGroupsByRefId = useSetAtom(groupsByRefIdState);
@@ -57,22 +57,19 @@ export const useProcessLoadFile = (org: SalesforceOrgUi, apiVersion: string) => 
     async (workbook: XLSX.WorkBook) => {
       setLoading(true);
       setDatasets(null);
-      setParseErrors([]);
-      setParseWarnings([]);
+      setWorkbookErrors([]);
       try {
         const { datasets: parsedDatasets, workbookErrors } = await parseWorkbook(workbook, org);
         logger.info('[LOAD MULTI OBJ]', { datasets: parsedDatasets });
         if (isMounted.current) {
-          const allParseErrors = [...workbookErrors, ...parsedDatasets.flatMap(({ errors }) => errors)];
           setDatasets(parsedDatasets);
-          setParseErrors(allParseErrors.filter(({ severity }) => severity !== 'warning'));
-          setParseWarnings(allParseErrors.filter(({ severity }) => severity === 'warning'));
+          setWorkbookErrors(workbookErrors);
         }
       } catch (ex) {
         logger.error('[LOAD MULTI OBJ] Error parsing file', ex);
         if (isMounted.current) {
           setDatasets([]);
-          setParseErrors([toUnknownError(ex)]);
+          setWorkbookErrors([toUnknownError(ex)]);
         }
       } finally {
         if (isMounted.current) {
@@ -80,7 +77,7 @@ export const useProcessLoadFile = (org: SalesforceOrgUi, apiVersion: string) => 
         }
       }
     },
-    [org, setDatasets, setLoading, setParseErrors, setParseWarnings],
+    [org, setDatasets, setLoading, setWorkbookErrors],
   );
 
   // Derive the dependency graph whenever the datasets or load options change.

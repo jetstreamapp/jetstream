@@ -1096,6 +1096,12 @@ export const MAX_BINARY_DOWNLOAD_RECORDS_PAID_USER = 2_000;
 export const MAX_BINARY_DOWNLOAD_SIZE_BYTES = 1024 * 1024 * 1000; // 1GB
 
 /**
+ * Load Records to Multiple Objects: rows linked by {Reference Id} values form one group that is loaded as a single
+ * all-or-nothing composite graph request, which Salesforce limits to 500 records.
+ */
+export const MAX_RECORDS_PER_GROUP = 500;
+
+/**
  * Public email provider domains that cannot be claimed for SSO domain verification.
  * Prevents domain squatting and ensures no one can force SSO for shared email providers.
  */

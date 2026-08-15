@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS, MIME_TYPES } from '@jetstream/shared/constants';
+import { ANALYTICS_KEYS, MAX_RECORDS_PER_GROUP, MIME_TYPES } from '@jetstream/shared/constants';
+import { describeSObject } from '@jetstream/shared/data';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import {
   formatNumber,
   getFilename,
@@ -9,6 +11,7 @@ import {
   isCanvasApp,
   isDesktop,
   isEnterKey,
+  planLoadMultiObjectTemplate,
   prepareCsvFile,
   prepareExcelFile,
   prepareLoadMultiObjectTemplate,
@@ -16,8 +19,17 @@ import {
   tracker,
 } from '@jetstream/shared/ui-utils';
 import { flattenRecords, getErrorMessage, getMapOfBaseAndSubqueryRecords } from '@jetstream/shared/utils';
-import { FileExtCsvXLSXJsonGSheet, Maybe, MimeType, QueryResultsColumn, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
-import { Fragment, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
+import {
+  ChildRelationship,
+  FileExtCsvXLSXJsonGSheet,
+  Maybe,
+  MimeType,
+  QueryResultsColumn,
+  SalesforceOrgUi,
+  SalesforceRecord,
+} from '@jetstream/types';
+import { Fragment, FunctionComponent, KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router';
 import FileDownloadGoogle from '../file-download-modal/options/FileDownloadGoogle';
 import Checkbox from '../form/checkbox/Checkbox';
 import { GoogleSelectedProUpgradeButton } from '../form/file-selector/GoogleSelectedProUpgradeButton';
@@ -106,6 +118,17 @@ const REQUIRE_BULK_API_COUNT = 500_000;
 const LS_KEY = 'RecordDownloadModal';
 const allowedTypes: FileExtCsvXLSXJsonGSheet[] = [RADIO_FORMAT_XLSX, RADIO_FORMAT_CSV, RADIO_FORMAT_JSON, RADIO_FORMAT_GDRIVE];
 
+/**
+ * Child relationships come from the parent object describe. The status is tracked explicitly because an empty
+ * list means something different in each state - "not needed", "still fetching", "the org has none matching",
+ * and "the describe failed" all have to read differently to the user.
+ */
+interface ChildRelationshipsState {
+  status: 'idle' | 'loading' | 'loaded' | 'error';
+  data: ChildRelationship[];
+}
+const IDLE_CHILD_RELATIONSHIPS: ChildRelationshipsState = { status: 'idle', data: [] };
+
 export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = ({
   org,
   googleIntegrationEnabled,
@@ -160,11 +183,44 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
 
   const [isGooglePickerVisible, setIsGooglePickerVisible] = useState(false);
 
-  const hasSubqueryFields = subqueryFields && !!Object.keys(subqueryFields).length && (fileFormat === 'xlsx' || fileFormat === 'gdrive');
+  const [childRelationships, setChildRelationships] = useState<ChildRelationshipsState>(IDLE_CHILD_RELATIONSHIPS);
+  const isLoadingChildRelationships = childRelationships.status === 'loading';
+
+  const hasSubqueriesInQuery = !!subqueryFields && !!Object.keys(subqueryFields).length;
+  const hasSubqueryFields = hasSubqueriesInQuery && (fileFormat === 'xlsx' || fileFormat === 'gdrive');
 
   const isLoadTemplate = fileFormat === RADIO_FORMAT_XLSX_LOAD_TEMPLATE;
   // The load template format is a regular .xlsx file - the format value is only distinct for option selection
   const fileExtension = isLoadTemplate ? RADIO_FORMAT_XLSX : fileFormat;
+
+  const activeRecords = useMemo(() => {
+    if (downloadRecordsValue === RADIO_FILTERED) {
+      return filteredRecords || [];
+    }
+    if (downloadRecordsValue === RADIO_SELECTED) {
+      return selectedRecords || [];
+    }
+    return records;
+  }, [downloadRecordsValue, filteredRecords, selectedRecords, records]);
+
+  /**
+   * Exactly what the generated template will contain, derived by the same function that builds it, so the
+   * guidance shown here can never drift from the file the user downloads.
+   */
+  const templatePlan = useMemo(
+    () =>
+      planLoadMultiObjectTemplate({
+        sobject: loadTemplateOption?.sobject || '',
+        fields,
+        records: isLoadTemplate ? activeRecords : [],
+        // Subqueries only become worksheets when the user opted in and the parent describe resolved the linking field
+        subqueryFields: isLoadTemplate && includeSubquery ? subqueryFields : {},
+        childRelationships: childRelationships.data,
+      }),
+    [isLoadTemplate, includeSubquery, loadTemplateOption?.sobject, fields, activeRecords, subqueryFields, childRelationships.data],
+  );
+
+  const includeSubqueriesInTemplate = isLoadTemplate && !!templatePlan.linked.length;
 
   // Big objects report -1 as totalSize
   const totalRecordCountText =
@@ -207,6 +263,35 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
       setDownloadRecordsValue(RADIO_ALL_BROWSER);
     }
   }, [isLoadTemplate, downloadRecordsValue]);
+
+  // Subquery records can only be linked to their parent in the template if we know the lookup field on the child object
+  useEffect(() => {
+    const sobject = loadTemplateOption?.sobject;
+    if (!downloadModalOpen || !isLoadTemplate || !hasSubqueriesInQuery || !sobject) {
+      // React always runs this body after the previous effect's cleanup, so resetting here is what recovers the
+      // state when a fetch is abandoned mid-flight (e.g. the user picks a different format while it is running)
+      setChildRelationships(IDLE_CHILD_RELATIONSHIPS);
+      return;
+    }
+    let isCanceled = false;
+    setChildRelationships({ status: 'loading', data: [] });
+    describeSObject(org, sobject)
+      .then(({ data }) => {
+        if (!isCanceled) {
+          setChildRelationships({ status: 'loaded', data: data.childRelationships || [] });
+        }
+      })
+      .catch((ex) => {
+        // Without the relationships the parent records can still be downloaded, so this is surfaced as a notice instead of an error
+        logger.warn('[DOWNLOAD] Unable to load child relationships for load template', ex);
+        if (!isCanceled) {
+          setChildRelationships({ status: 'error', data: [] });
+        }
+      });
+    return () => {
+      isCanceled = true;
+    };
+  }, [downloadModalOpen, isLoadTemplate, hasSubqueriesInQuery, loadTemplateOption?.sobject, org]);
 
   useEffect(() => {
     if (!fileName || (fileFormat === 'gdrive' && !isSignedInWithGoogle)) {
@@ -288,13 +373,6 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
     try {
       const fileNameWithExt = `${fileName}${fileFormat !== 'gdrive' ? `.${fileExtension}` : ''}`;
 
-      let activeRecords = records;
-      if (downloadRecordsValue === RADIO_FILTERED) {
-        activeRecords = filteredRecords || [];
-      } else if (downloadRecordsValue === RADIO_SELECTED) {
-        activeRecords = selectedRecords || [];
-      }
-
       /** Google will always load in the background to account for upload to Google */
       if ((fileFormat === 'gdrive' || downloadRecordsValue === RADIO_ALL_SERVER) && fileFormat !== RADIO_FORMAT_XLSX_LOAD_TEMPLATE) {
         // emit event, which starts job, which downloads in the background
@@ -336,6 +414,9 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
               sobject: loadTemplateOption?.sobject || '',
               fields: fieldsToUse,
               records: activeRecords,
+              subqueryFields,
+              // Subqueries are only turned into worksheets when the linking field is known and the user opted in
+              childRelationships: includeSubqueriesInTemplate ? childRelationships.data : [],
             });
             fileData = prepareExcelFile(data, undefined, undefined, { onCellsTruncated: notifyExcelCellsTruncated });
             mimeType = MIME_TYPES.XLSX;
@@ -359,7 +440,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
         saveFile(fileData, fileNameWithExt, mimeType);
 
         if (onDownload) {
-          onDownload(fileFormat, whichFields, includeSubquery && hasSubqueryFields);
+          onDownload(fileFormat, whichFields, (includeSubquery && hasSubqueryFields) || includeSubqueriesInTemplate);
         }
         handleModalClose();
         saveFileFormatToStorage(fileFormat, LS_KEY);
@@ -388,7 +469,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   }
 
   function handleKeyUp(event: KeyboardEvent<HTMLElement>) {
-    if (isEnterKey(event) && !invalidConfig) {
+    if (isEnterKey(event) && !invalidConfig && !isLoadingChildRelationships) {
       handleDownload();
     }
   }
@@ -413,7 +494,11 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
               <button className="slds-button slds-button_neutral" onClick={() => handleModalClose(true)}>
                 Cancel
               </button>
-              <button className="slds-button slds-button_brand" onClick={handleDownload} disabled={invalidConfig}>
+              <button
+                className="slds-button slds-button_brand"
+                onClick={handleDownload}
+                disabled={invalidConfig || isLoadingChildRelationships}
+              >
                 Download
               </button>
             </Fragment>
@@ -499,8 +584,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 onChange={handleFileFormatChange}
                 disabled={isBulkApi}
               />
-              {/* Temporarily disabling, will re-enabled and re-word in follow-up PR */}
-              {/* {loadTemplateOption && (
+              {loadTemplateOption && (
                 <Radio
                   name="radio-download-file-format"
                   label="Load template (Excel)"
@@ -509,7 +593,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                   onChange={handleFileFormatChange}
                   disabled={isBulkApi}
                 />
-              )} */}
+              )}
               {hasGoogleInputConfigured && (
                 <Radio
                   name="radio-download-file-format"
@@ -535,18 +619,45 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
             </RadioGroup>
             {isLoadTemplate && (
               <ScopedNotification theme="info" className="slds-m-vertical_x-small">
-                Creates an Excel file in the Load Records to Multiple Objects template format. Each record&apos;s Id becomes its Reference
-                Id and the operation is set to Insert - ideal for migrating records to another org. Adjust the operation, remove unwanted
-                columns, and wrap lookup column headers in {'{curly braces}'} to link related records in the same file. Relationship and
-                subquery fields are not included.
+                Creates an Excel file in the{' '}
+                <Link
+                  to={{ pathname: APP_ROUTES.LOAD_MULTIPLE.ROUTE, search: APP_ROUTES.LOAD_MULTIPLE.SEARCH_PARAM }}
+                  target="_blank"
+                  className="slds-text-link"
+                >
+                  {APP_ROUTES.LOAD_MULTIPLE.TITLE}
+                </Link>{' '}
+                template format. Each record&apos;s Id becomes its Reference Id and the operation is set to Insert - ideal for migrating
+                records to another org. Adjust the operation, remove unwanted columns, and wrap lookup column headers in {'{curly braces}'}{' '}
+                to link related records in the same file. Relationship fields are not included.
+                {includeSubqueriesInTemplate && ' Each subquery becomes its own worksheet, linked back to the parent record.'}
+                {childRelationships.status === 'loaded' &&
+                  !!templatePlan.skipped.length &&
+                  ` These subqueries are not included because no matching relationship was found on ${loadTemplateOption?.sobject}: ${templatePlan.skipped.join(', ')}.`}
+                {childRelationships.status === 'error' &&
+                  ` Subqueries are not included because the relationships on ${loadTemplateOption?.sobject} could not be loaded from the org.`}
               </ScopedNotification>
             )}
-            {hasSubqueryFields && (
+            {isLoadTemplate && !!templatePlan.missingReferenceId.length && (
+              <ScopedNotification theme="warning" className="slds-m-vertical_x-small">
+                Add <strong>Id</strong> to your query so every record has a Reference Id to link on. Without it the Reference Id column is
+                blank and the file cannot be loaded ({templatePlan.missingReferenceId.join(', ')}).
+              </ScopedNotification>
+            )}
+            {includeSubqueriesInTemplate && templatePlan.largestGroupSize > MAX_RECORDS_PER_GROUP && (
+              <ScopedNotification theme="warning" className="slds-m-vertical_x-small">
+                One record and its related records add up to {formatNumber(templatePlan.largestGroupSize)} records. Each parent loads
+                together with its related records as one group, which is limited to {formatNumber(MAX_RECORDS_PER_GROUP)} records - remove
+                rows from the downloaded file before loading it.
+              </ScopedNotification>
+            )}
+            {(hasSubqueryFields || (isLoadTemplate && hasSubqueriesInQuery)) && (
               <Checkbox
                 id="subquery-checkbox"
                 className="slds-m-vertical_x-small"
-                label="Create a worksheet for each subquery"
+                label={isLoadTemplate ? 'Include subquery records as linked worksheets' : 'Create a worksheet for each subquery'}
                 checked={includeSubquery}
+                disabled={isLoadTemplate && isLoadingChildRelationships}
                 onChange={setIncludeSubquery}
               />
             )}

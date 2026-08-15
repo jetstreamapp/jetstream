@@ -11,14 +11,21 @@ import {
   getRecordErrorRowHeight,
   withCellValidation,
 } from '@jetstream/ui';
+import { useAtom } from 'jotai';
 import { FunctionComponent, useMemo, useState } from 'react';
+import { MIN_GRID_HEIGHT } from '../load-records-multi-object-constants';
 import { LoadMultiObjectData } from '../load-records-multi-object-types';
-import { SheetPreviewData, SheetPreviewRow, getErrorLocationLabel } from './review-utils';
+import { previewLayoutVersionState } from '../load-records-multi-object.state';
+import LoadRecordsMultiObjectSheetConfig from './LoadRecordsMultiObjectSheetConfig';
+import { SheetPreviewData, SheetPreviewRow, getErrorLocationLabel, getWarningsKey, getWorksheetElementId } from './review-utils';
 
 export interface LoadRecordsMultiObjectSheetPreviewProps {
   dataset: LoadMultiObjectData;
   previewData: SheetPreviewData;
 }
+
+/** Grid class that tints a skipped column's header and cells red - defined in the data-table stylesheet */
+const SKIPPED_COLUMN_CLASS = 'jgrid-column-excluded';
 
 function GroupCellRenderer({ row }: RenderCellProps<RowWithKey>) {
   const { _group, _groupSize } = row as SheetPreviewRow;
@@ -43,11 +50,11 @@ export const LoadRecordsMultiObjectSheetPreview: FunctionComponent<LoadRecordsMu
   dataset,
   previewData,
 }) => {
-  const { rows, bannerErrors, hasRowErrors } = previewData;
+  const { rows, bannerErrors, warnings, skippedHeaders, hasRowErrors } = previewData;
   const [quickFilterText, setQuickFilterText] = useState<string | null>(null);
+  const [previewLayoutVersion, setPreviewLayoutVersion] = useAtom(previewLayoutVersionState);
 
-  // Worksheet names allow spaces and punctuation, neither of which is valid in an element id
-  const filterInputId = `sheet-filter-${dataset.worksheet.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+  const filterInputId = getWorksheetElementId('sheet-filter', dataset.worksheet);
 
   const columns = useMemo((): ColumnWithFilter<RowWithKey>[] => {
     const referenceColumnKey = dataset.referenceColumnHeader || 'Reference Id';
@@ -71,21 +78,27 @@ export const LoadRecordsMultiObjectSheetPreview: FunctionComponent<LoadRecordsMu
         filters: ['SET'],
         renderCell: GroupCellRenderer,
       },
-      ...dataset.headers.map((header): ColumnWithFilter<RowWithKey> => ({
-        // show reference columns in the user's own file vocabulary: {AccountId}
-        name: dataset.referenceHeaders.has(header) ? `{${header}}` : header,
-        key: header,
-        resizable: true,
-        sortable: true,
-        filters: ['TEXT', 'SET'],
-        renderCell: withCellValidation(),
-      })),
+      ...dataset.headers.map((header): ColumnWithFilter<RowWithKey> => {
+        const isSkipped = skippedHeaders.has(header);
+        return {
+          // show reference columns in the user's own file vocabulary: {AccountId}
+          name: dataset.referenceHeaders.has(header) ? `{${header}}` : header,
+          key: header,
+          resizable: true,
+          sortable: true,
+          filters: ['TEXT', 'SET'],
+          // Skipped columns stay visible so the user can see what was in the file, but read as excluded
+          cellClass: isSkipped ? SKIPPED_COLUMN_CLASS : undefined,
+          headerCellClass: isSkipped ? SKIPPED_COLUMN_CLASS : undefined,
+          renderCell: withCellValidation(),
+        };
+      }),
     ];
     if (hasRowErrors) {
       dataColumns.push(getRecordErrorColumn());
     }
     return dataColumns;
-  }, [dataset, hasRowErrors]);
+  }, [dataset, hasRowErrors, skippedHeaders]);
 
   return (
     <div>
@@ -100,15 +113,42 @@ export const LoadRecordsMultiObjectSheetPreview: FunctionComponent<LoadRecordsMu
           </ul>
         </ScopedNotification>
       )}
+      {warnings.length > 0 && (
+        <ScopedNotification
+          theme="warning"
+          className="slds-m-vertical_x-small"
+          allowClose
+          // Dismissal is keyed to the warnings themselves, so a new file (or an operation change) re-shows them
+          dismissResetKey={getWarningsKey(warnings)}
+          onClose={() => setPreviewLayoutVersion((version) => version + 1)}
+        >
+          <ul className={warnings.length > 1 ? 'slds-list_dotted' : undefined}>
+            {warnings.map((warning, i) => (
+              <li key={i}>
+                {warning.message} {getErrorLocationLabel(warning)}
+              </li>
+            ))}
+          </ul>
+        </ScopedNotification>
+      )}
       <Grid align="spread" verticalAlign="center" className="slds-m-vertical_x-small">
-        <div className="slds-text-color_weak">
-          {formatNumber(rows.length)} {pluralizeFromNumber('record', rows.length)} • {dataset.sobject} • {dataset.operation}
-          {dataset.operation === 'UPSERT' && dataset.externalId ? ` (${dataset.externalId})` : ''}
-        </div>
+        <Grid verticalAlign="center">
+          <span className="slds-text-color_weak slds-m-right_xx-small">
+            {formatNumber(rows.length)} {pluralizeFromNumber('record', rows.length)} •
+          </span>
+          <LoadRecordsMultiObjectSheetConfig dataset={dataset} />
+        </Grid>
         <SearchInput id={filterInputId} placeholder="Filter records" onChange={setQuickFilterText} />
       </Grid>
       {rows.length > 0 && (
-        <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={25} bufferIfNotRendered={320}>
+        <AutoFullHeightContainer
+          fillHeight
+          setHeightAttr
+          bottomBuffer={25}
+          bufferIfNotRendered={320}
+          minHeight={MIN_GRID_HEIGHT}
+          recalculateKey={previewLayoutVersion}
+        >
           <DataTable
             data={rows as RowWithKey[]}
             columns={columns}

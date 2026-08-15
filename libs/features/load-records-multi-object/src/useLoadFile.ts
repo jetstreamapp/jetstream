@@ -6,14 +6,8 @@ import { CompositeGraphResponse, CompositeGraphResponseBody, SalesforceOrgUi } f
 import { useAtom, useSetAtom } from 'jotai';
 import { useCallback, useEffect, useRef } from 'react';
 import { LoadMultiObjectRequestWithResult, LoadMultiObjectRun } from './load-records-multi-object-types';
+import { getRecordCount } from './load-records-multi-object-utils';
 import { loadIsRunningState, loadProgressState, loadRunsState } from './load-records-multi-object.state';
-
-function getRecordCount(requests: LoadMultiObjectRequestWithResult[]) {
-  return requests.reduce(
-    (count, request) => count + request.data.reduce((graphCount, graph) => graphCount + (graph.compositeRequest?.length || 0), 0),
-    0,
-  );
-}
 
 /** Merge Salesforce composite graph responses into a fresh copy of the request (no shared-state mutation) */
 function applyResultsToRequest(

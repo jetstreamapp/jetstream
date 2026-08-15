@@ -22,6 +22,8 @@ export interface LoadMultiObjectDataError {
   header?: string;
   /** Warnings do not block the load. Absent = 'error'. */
   severity?: 'error' | 'warning';
+  /** Identifies problems that are re-derived when the worksheet configuration changes, so they can be replaced */
+  code?: 'SKIPPED_COLUMN';
 }
 
 export interface LoadMultiObjectData {

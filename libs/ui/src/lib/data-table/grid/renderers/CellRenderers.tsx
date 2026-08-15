@@ -271,8 +271,12 @@ export interface RowWithRecordError extends RowWithKey {
 
 /** Column id for the standalone record-error column, shared by the column factory and the height lookup. */
 const INLINE_ERROR_COLUMN_KEY = 'errorMessage';
-/** Default width of the standalone record-error column; the fallback when a live width isn't available. */
-export const RECORD_ERROR_COLUMN_WIDTH = 300;
+/**
+ * Default width of the standalone record-error column; the fallback when a live width isn't available.
+ * Salesforce error messages routinely run 250+ characters (a field list plus remediation advice), so this
+ * is sized to fit one in a handful of lines rather than to match the data columns.
+ */
+export const RECORD_ERROR_COLUMN_WIDTH = 400;
 // Horizontal cell padding (0.5rem each side ≈ 16px) removed before estimating how many chars fit per line.
 const RECORD_ERROR_CELL_PADDING = 16;
 // Approx character width at the grid's 13px font — intentionally generous so we round toward a taller row.
@@ -280,7 +284,7 @@ const RECORD_ERROR_CHAR_WIDTH = 7;
 // `line-height: normal` at 13px, rounded up for breathing room.
 const RECORD_ERROR_LINE_HEIGHT = 17;
 // Cap so one huge message can't balloon the row; the full text stays available via the title tooltip.
-const RECORD_ERROR_MAX_LINES = 6;
+const RECORD_ERROR_MAX_LINES = 10;
 
 /**
  * Inline record-level error/warning message for a standalone "Error" column. Wraps onto multiple lines

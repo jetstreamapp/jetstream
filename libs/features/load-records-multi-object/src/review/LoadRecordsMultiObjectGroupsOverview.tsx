@@ -1,10 +1,15 @@
+import { MAX_RECORDS_PER_GROUP } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import type { ColumnWithFilter, RowWithKey } from '@jetstream/ui';
-import { AutoFullHeightContainer, DataTree, ScopedNotification } from '@jetstream/ui';
+import { AutoFullHeightContainer, DataTree, ExpandCollapseButton, ScopedNotification } from '@jetstream/ui';
+import { useAtomValue } from 'jotai';
 import { FunctionComponent, useMemo } from 'react';
+import { MIN_GRID_HEIGHT } from '../load-records-multi-object-constants';
 import { LoadMultiObjectData, LoadMultiObjectGroupInfo } from '../load-records-multi-object-types';
-import { MAX_RECORDS_PER_GROUP, getReferenceId } from '../load-records-multi-object-utils';
+import { getReferenceId } from '../load-records-multi-object-utils';
+import { previewLayoutVersionState } from '../load-records-multi-object.state';
+import useExpandedGroups from '../useExpandedGroups';
 
 export interface LoadRecordsMultiObjectGroupsOverviewProps {
   datasets: LoadMultiObjectData[];
@@ -39,6 +44,7 @@ export const LoadRecordsMultiObjectGroupsOverview: FunctionComponent<LoadRecords
   groupsByRefId,
   groupNumbersByGraphId,
 }) => {
+  const previewLayoutVersion = useAtomValue(previewLayoutVersionState);
   const rows = useMemo((): GroupOverviewRow[] => {
     const output: GroupOverviewRow[] = [];
     datasets.forEach((dataset) => {
@@ -63,6 +69,9 @@ export const LoadRecordsMultiObjectGroupsOverview: FunctionComponent<LoadRecords
     return output.sort((rowA, rowB) => rowA._groupSort - rowB._groupSort);
   }, [datasets, groupsByRefId, groupNumbersByGraphId]);
 
+  const groupIds = useMemo(() => Array.from(new Set(rows.map(({ _group }) => _group))), [rows]);
+  const { expandedGroupIds, setExpandedGroupIds, toggleAllGroups, hasExpandedGroups } = useExpandedGroups(groupIds);
+
   if (!rows.length) {
     return (
       <ScopedNotification theme="light" className="slds-m-vertical_x-small">
@@ -77,12 +86,22 @@ export const LoadRecordsMultiObjectGroupsOverview: FunctionComponent<LoadRecords
         Records that reference each other form a group. Each group is sent to Salesforce as one all-or-nothing transaction: if any record in
         it fails, the whole group is rolled back. A group can contain up to {formatNumber(MAX_RECORDS_PER_GROUP)} records.
       </p>
-      <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={25} bufferIfNotRendered={320}>
+      <ExpandCollapseButton isExpanded={hasExpandedGroups} onToggle={toggleAllGroups} />
+      <AutoFullHeightContainer
+        fillHeight
+        setHeightAttr
+        bottomBuffer={25}
+        bufferIfNotRendered={320}
+        minHeight={MIN_GRID_HEIGHT}
+        recalculateKey={previewLayoutVersion}
+      >
         <DataTree
           data={rows as unknown as RowWithKey[]}
           columns={COLUMNS}
           getRowKey={(row) => (row as unknown as GroupOverviewRow)._key}
           groupBy={['_group']}
+          expandedGroupIds={expandedGroupIds}
+          onExpandedGroupIdsChange={setExpandedGroupIds}
         />
       </AutoFullHeightContainer>
     </div>
