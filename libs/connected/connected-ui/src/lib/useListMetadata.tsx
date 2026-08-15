@@ -7,7 +7,6 @@ import { ListMetadataQuery, ListMetadataResult, SalesforceOrgUi } from '@jetstre
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import { formatRelative } from 'date-fns/formatRelative';
 import { parseISO } from 'date-fns/parseISO';
-import uniqWith from 'lodash/uniqWith';
 import PQueue from 'p-queue';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -59,6 +58,24 @@ const getFolderSoqlQuery = (type: string) => {
 const getPersonTypeSoqlQuery = () => {
   return `SELECT DeveloperName, SobjectType FROM RecordType WHERE IsPersonType = TRUE`;
 };
+
+/**
+ * Some items are in the list twice (Salesforce bug - specifically Account shows up twice).
+ * Include id in the dedup key so Classic and Lightning EmailTemplates that share a fullName but
+ * have different ids are both kept.
+ *
+ */
+function dedupeListMetadataItems(items: ListMetadataResult[]): ListMetadataResult[] {
+  const seenKeys = new Set<string>();
+  return items.filter((item) => {
+    const key = `${item.type}:${item.fullName}:${item.id}`;
+    if (seenKeys.has(key)) {
+      return false;
+    }
+    seenKeys.add(key);
+    return true;
+  });
+}
 
 // helper method
 async function fetchListMetadata(
@@ -422,15 +439,8 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
               await mutateFullNameForFolderToIncludeFullPath(selectedOrg, responseItem);
             }
 
-            // Some sobjects are in the list twice (Salesforce bug - specifically Account shows up twice)
-            // Include id in the dedup key so Classic and Lightning EmailTemplates that share a fullName but have different ids are both kept
             if (responseItem?.items) {
-              responseItem.items = uniqWith(
-                responseItem.items,
-                (currValue, otherValue) =>
-                  `${currValue.type}:${currValue.fullName}:${currValue.id}` ===
-                  `${otherValue.type}:${otherValue.fullName}:${otherValue.id}`,
-              );
+              responseItem.items = dedupeListMetadataItems(responseItem.items);
             }
 
             if (!isMounted.current) {
@@ -503,11 +513,7 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
         }
 
         if (responseItem?.items) {
-          responseItem.items = uniqWith(
-            responseItem.items,
-            (currValue, otherValue) =>
-              `${currValue.type}:${currValue.fullName}:${currValue.id}` === `${otherValue.type}:${otherValue.fullName}:${otherValue.id}`,
-          );
+          responseItem.items = dedupeListMetadataItems(responseItem.items);
         }
 
         if (!isMounted.current) {
