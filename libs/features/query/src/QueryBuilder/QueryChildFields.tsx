@@ -15,7 +15,8 @@ export interface QueryChildFieldsProps {
   serverUrl: string;
   isTooling: boolean;
   selectedSObject: string;
-  parentRelationshipName: string;
+  /** Relationship path from the root object, e.x. `Contacts` or `Contacts.Cases` */
+  relationshipPath: string;
   onSelectionChanged: (fields: QueryFieldWithPolymorphic[]) => void;
 }
 
@@ -24,16 +25,16 @@ export const QueryChildFields: FunctionComponent<QueryChildFieldsProps> = ({
   serverUrl,
   isTooling,
   selectedSObject,
-  parentRelationshipName,
+  relationshipPath,
   onSelectionChanged,
 }) => {
   const [queryFieldsMap, setQueryFieldsMap] = useAtom(fromQueryState.queryFieldsMapState);
-  const [baseKey, setBaseKey] = useState<string>(getSubqueryFieldBaseKey(selectedSObject, parentRelationshipName));
+  const [baseKey, setBaseKey] = useState<string>(getSubqueryFieldBaseKey(selectedSObject, relationshipPath));
   const selectedOrg = useAtomValue(selectedOrgState);
 
   // Fetch fields for base object if the selected object changes
   useEffect(() => {
-    const BASE_KEY = getSubqueryFieldBaseKey(selectedSObject, parentRelationshipName);
+    const BASE_KEY = getSubqueryFieldBaseKey(selectedSObject, relationshipPath);
 
     let baseQueryFieldsMap: QueryFields = queryFieldsMap[BASE_KEY];
 
@@ -224,11 +225,17 @@ export const QueryChildFields: FunctionComponent<QueryChildFieldsProps> = ({
     }
   }
 
+  /**
+   * Only clear fields belonging to this subquery - the fields map holds the base object and every other
+   * subquery too, and only this subquery's selection is emitted back to the builder.
+   */
   function handleOnUnselectAll() {
     const clonedQueryFieldsMap = { ...queryFieldsMap };
-    Object.keys(clonedQueryFieldsMap).forEach((key) => {
-      clonedQueryFieldsMap[key] = { ...clonedQueryFieldsMap[key], selectedFields: new Set() };
-    });
+    Object.keys(clonedQueryFieldsMap)
+      .filter((key) => key.startsWith(baseKey))
+      .forEach((key) => {
+        clonedQueryFieldsMap[key] = { ...clonedQueryFieldsMap[key], selectedFields: new Set() };
+      });
     setQueryFieldsMap(clonedQueryFieldsMap);
     emitSelectedFieldsChanged(clonedQueryFieldsMap);
   }

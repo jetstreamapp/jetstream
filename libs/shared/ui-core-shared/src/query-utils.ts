@@ -1,7 +1,7 @@
 import { convertFiltersToWhereClause } from '@jetstream/shared/ui-utils';
-import { groupByFlat } from '@jetstream/shared/utils';
+import { groupByFlat, walkSubqueries } from '@jetstream/shared/utils';
 import { ErrorResult, ExpressionType, Field, FieldType, Maybe, SalesforceRecord, SoqlQueryFormatOptions } from '@jetstream/types';
-import { FieldSubquery, HavingClause, Query, WhereClause, composeQuery, getFlattenedFields } from '@jetstreamapp/soql-parser-js';
+import { HavingClause, Query, Subquery, WhereClause, composeQuery, getFlattenedFields } from '@jetstreamapp/soql-parser-js';
 import { formatISO } from 'date-fns/formatISO';
 import { isValid as isDateValid } from 'date-fns/isValid';
 import { parseISO } from 'date-fns/parseISO';
@@ -151,18 +151,16 @@ export function handleEditFormErrorResponse(result: ErrorResult, includeFieldErr
 }
 
 /**
- * Get an object with the subquery relationship field as the key and the parsed query for each child part
+ * Get an object with the subquery relationship path as the key and the flattened fields for each child part
+ * Recurses into nested subqueries, e.x. `{ Contacts: [...], 'Contacts.Cases': [...] }`
  *
  * @param query
  * @returns
  */
-export function getFlattenSubqueryFlattenedFieldMap(query: Maybe<Query>): Record<string, string[]> {
-  return (
-    query?.fields
-      ?.filter((field) => field.type === 'FieldSubquery')
-      .reduce((output: Record<string, string[]>, field: FieldSubquery) => {
-        output[field.subquery.relationshipName] = getFlattenedFields(field.subquery || {});
-        return output;
-      }, {}) || {}
-  );
+export function getFlattenSubqueryFlattenedFieldMap(query: Maybe<Query | Subquery>): Record<string, string[]> {
+  const output: Record<string, string[]> = {};
+  for (const { subquery, relationshipPath } of walkSubqueries(query?.fields)) {
+    output[relationshipPath] = getFlattenedFields(subquery);
+  }
+  return output;
 }

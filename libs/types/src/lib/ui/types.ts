@@ -33,6 +33,11 @@ export type FileExtCsvXLSX = FileExtCsv | FileExtXLSX;
 export type FileExtCsvXLSXJson = FileExtCsvXLSX | FileExtJson;
 export type FileExtCsvXLSXJsonGSheet = FileExtCsvXLSXJson | FileExtGDrive;
 export type FileExtAllTypes = FileExtCsv | FileExtXLSX | FileExtJson | FileExtXml | FileExtZip | FileExtGDrive;
+/**
+ * Not a real file extension - an .xlsx built in the "Load Records to Multiple Objects" template shape.
+ * Carried as a format so the download job knows which builder to use; the file itself is named `.xlsx`.
+ */
+export type FileExtXLSXLoadTemplate = 'xlsx-load-template';
 
 export type Edit = 'edit';
 export type Clone = 'clone';
@@ -581,6 +586,17 @@ export interface UploadToGoogleJob {
   googleFolder?: Maybe<string>;
 }
 
+/**
+ * Describe results a "Load Records to Multiple Objects" template download needs to resolve the lookup field
+ * linking each subquery's records back to their parent.
+ */
+export interface LoadTemplateDownloadOptions {
+  sobject: string;
+  childRelationships: ChildRelationship[];
+  /** Child relationships of each subquery's own child object, keyed by that subquery's relationship path */
+  childRelationshipsByPath: Record<string, ChildRelationship[]>;
+}
+
 export interface BulkDownloadJob {
   serverUrl: string;
   sObject: string;
@@ -592,12 +608,17 @@ export interface BulkDownloadJob {
   subqueryFields: Maybe<Record<string, string[]>>;
   records: Record<string, string>[];
   hasAllRecords: boolean;
-  fileFormat: FileExtAllTypes;
+  fileFormat: FileExtAllTypes | FileExtXLSXLoadTemplate;
   fileName: string;
   googleFolder: Maybe<string>;
   includeSubquery: boolean;
   includeDeletedRecords: boolean;
   useBulkApi: boolean;
+  /**
+   * Required when `fileFormat` is the load template - the describe results that resolve each subquery's linking field.
+   * Resolved before the job is queued so the generated file matches what the download modal previewed.
+   */
+  loadTemplate?: Maybe<LoadTemplateDownloadOptions>;
 }
 
 export interface DesktopFileDownloadJob {

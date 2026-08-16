@@ -24,6 +24,9 @@
       "path": "../data/tsconfig.lib.json"
     },
     {
+      "path": "../constants/tsconfig.lib.json"
+    },
+    {
       "path": "../client-logger/tsconfig.lib.json"
     },
     {

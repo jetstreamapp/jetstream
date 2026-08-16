@@ -6,6 +6,7 @@ import { describeSObject } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import {
   formatNumber,
+  getChildRelationshipForSubquery,
   getFilename,
   isBrowserExtension,
   isCanvasApp,
@@ -18,10 +19,19 @@ import {
   saveFile,
   tracker,
 } from '@jetstream/shared/ui-utils';
-import { flattenRecords, getErrorMessage, getMapOfBaseAndSubqueryRecords } from '@jetstream/shared/utils';
+import {
+  flattenRecords,
+  getErrorMessage,
+  getMapOfBaseAndSubqueryRecords,
+  getSubqueryParentPath,
+  getSubqueryPathDepth,
+  getSubqueryRelationshipName,
+  orderObjectsBy,
+} from '@jetstream/shared/utils';
 import {
   ChildRelationship,
   FileExtCsvXLSXJsonGSheet,
+  LoadTemplateDownloadOptions,
   Maybe,
   MimeType,
   QueryResultsColumn,
@@ -62,7 +72,7 @@ import {
 export type RecordDownloadFileFormat = FileExtCsvXLSXJsonGSheet | typeof RADIO_FORMAT_XLSX_LOAD_TEMPLATE;
 
 export interface DownloadFromServerOpts {
-  fileFormat: FileExtCsvXLSXJsonGSheet;
+  fileFormat: RecordDownloadFileFormat;
   fileName: string;
   fields: string[];
   subqueryFields: Record<string, string[]>;
@@ -78,6 +88,8 @@ export interface DownloadFromServerOpts {
   googleFolder?: Maybe<string>;
   includeDeletedRecords: boolean;
   useBulkApi: boolean; // FIXME: made req to see where used
+  /** Only set when fileFormat is the load template - the describe results the worker needs to link subquery records */
+  loadTemplate?: Maybe<LoadTemplateDownloadOptions>;
 }
 
 export interface RecordDownloadModalProps {
@@ -100,7 +112,6 @@ export interface RecordDownloadModalProps {
   /**
    * When provided, adds a "Load template (Excel)" format that generates a file in the
    * "Load Records to Multiple Objects" template format for the given object.
-   * Only works with records already in the browser, so the server-side "all records" scope is disabled while selected.
    */
   loadTemplateOption?: { sobject: string };
   trackEvent: (key: string, value?: Record<string, any>) => void;
@@ -126,8 +137,10 @@ const allowedTypes: FileExtCsvXLSXJsonGSheet[] = [RADIO_FORMAT_XLSX, RADIO_FORMA
 interface ChildRelationshipsState {
   status: 'idle' | 'loading' | 'loaded' | 'error';
   data: ChildRelationship[];
+  /** Child relationships of each subquery's own child object, keyed by relationship path - only needed for nested subqueries */
+  byPath: Record<string, ChildRelationship[]>;
 }
-const IDLE_CHILD_RELATIONSHIPS: ChildRelationshipsState = { status: 'idle', data: [] };
+const IDLE_CHILD_RELATIONSHIPS: ChildRelationshipsState = { status: 'idle', data: [], byPath: {} };
 
 export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = ({
   org,
@@ -216,11 +229,27 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
         // Subqueries only become worksheets when the user opted in and the parent describe resolved the linking field
         subqueryFields: isLoadTemplate && includeSubquery ? subqueryFields : {},
         childRelationships: childRelationships.data,
+        childRelationshipsByPath: childRelationships.byPath,
       }),
-    [isLoadTemplate, includeSubquery, loadTemplateOption?.sobject, fields, activeRecords, subqueryFields, childRelationships.data],
+    [
+      isLoadTemplate,
+      includeSubquery,
+      loadTemplateOption?.sobject,
+      fields,
+      activeRecords,
+      subqueryFields,
+      childRelationships.data,
+      childRelationships.byPath,
+    ],
   );
 
   const includeSubqueriesInTemplate = isLoadTemplate && !!templatePlan.linked.length;
+
+  /**
+   * Downloading all records pages the rest in from Salesforce after the modal closes, so the plan can only be
+   * sized from the records already here - which worksheets are created is unaffected, but the group size is a floor.
+   */
+  const isTemplatePlanFromSample = isLoadTemplate && downloadRecordsValue === RADIO_ALL_SERVER;
 
   // Big objects report -1 as totalSize
   const totalRecordCountText =
@@ -257,12 +286,24 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
     }
   }, [isBulkApi]);
 
-  // The load template can only be generated from records already in the browser
-  useEffect(() => {
-    if (isLoadTemplate && downloadRecordsValue === RADIO_ALL_SERVER) {
-      setDownloadRecordsValue(RADIO_ALL_BROWSER);
-    }
-  }, [isLoadTemplate, downloadRecordsValue]);
+  /**
+   * Subqueries that have something nested beneath them, so their own child object has to be described to
+   * resolve the nested lookup field. Keyed on the sorted path list rather than the `subqueryFields` object,
+   * which callers commonly recreate on every render.
+   */
+  const subqueryPathsKey = Object.keys(subqueryFields).sort().join('|');
+  const nestedParentPaths = useMemo(
+    () =>
+      orderObjectsBy(
+        Array.from(new Set(Object.keys(subqueryFields).map(getSubqueryParentPath).filter(Boolean))).map((relationshipPath) => ({
+          relationshipPath,
+          depth: getSubqueryPathDepth(relationshipPath),
+        })),
+        'depth',
+      ).map(({ relationshipPath }) => relationshipPath),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [subqueryPathsKey],
+  );
 
   // Subquery records can only be linked to their parent in the template if we know the lookup field on the child object
   useEffect(() => {
@@ -274,24 +315,47 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
       return;
     }
     let isCanceled = false;
-    setChildRelationships({ status: 'loading', data: [] });
-    describeSObject(org, sobject)
-      .then(({ data }) => {
-        if (!isCanceled) {
-          setChildRelationships({ status: 'loaded', data: data.childRelationships || [] });
+    setChildRelationships({ status: 'loading', data: [], byPath: {} });
+    (async () => {
+      const { data } = await describeSObject(org, sobject);
+      const rootRelationships = data.childRelationships || [];
+      const byPath: Record<string, ChildRelationship[]> = {};
+
+      for (const relationshipPath of nestedParentPaths) {
+        const grandParentPath = getSubqueryParentPath(relationshipPath);
+        const parentRelationships = grandParentPath ? byPath[grandParentPath] : rootRelationships;
+        const relationship =
+          parentRelationships && getChildRelationshipForSubquery(parentRelationships, getSubqueryRelationshipName(relationshipPath));
+        if (!relationship) {
+          continue;
         }
-      })
-      .catch((ex) => {
-        // Without the relationships the parent records can still be downloaded, so this is surfaced as a notice instead of an error
-        logger.warn('[DOWNLOAD] Unable to load child relationships for load template', ex);
-        if (!isCanceled) {
-          setChildRelationships({ status: 'error', data: [] });
+        try {
+          const childDescribe = await describeSObject(org, relationship.childSObject);
+          if (isCanceled) {
+            return;
+          }
+          byPath[relationshipPath] = childDescribe.data.childRelationships || [];
+        } catch (ex) {
+          // The root describe succeeded, so the top level subqueries can still be linked - only this nested
+          // one is unavailable, and it is reported as skipped like any other unresolvable relationship
+          logger.warn('[DOWNLOAD] Unable to describe nested object for load template', relationshipPath, ex);
         }
-      });
+      }
+
+      if (!isCanceled) {
+        setChildRelationships({ status: 'loaded', data: rootRelationships, byPath });
+      }
+    })().catch((ex) => {
+      // Without the relationships the parent records can still be downloaded, so this is surfaced as a notice instead of an error
+      logger.warn('[DOWNLOAD] Unable to load child relationships for load template', ex);
+      if (!isCanceled) {
+        setChildRelationships({ status: 'error', data: [], byPath: {} });
+      }
+    });
     return () => {
       isCanceled = true;
     };
-  }, [downloadModalOpen, isLoadTemplate, hasSubqueriesInQuery, loadTemplateOption?.sobject, org]);
+  }, [downloadModalOpen, isLoadTemplate, hasSubqueriesInQuery, loadTemplateOption?.sobject, org, nestedParentPaths]);
 
   useEffect(() => {
     if (!fileName || (fileFormat === 'gdrive' && !isSignedInWithGoogle)) {
@@ -359,7 +423,9 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
       return;
     }
 
-    let _includeSubquery = includeSubquery && hasSubqueryFields;
+    // `hasSubqueryFields` only covers the formats that emit a worksheet per subquery - the load template has its
+    // own opt-in, and without it the query sent to the server would have its subqueries stripped out
+    let _includeSubquery = includeSubquery && (hasSubqueryFields || includeSubqueriesInTemplate);
 
     // Remove invalid fields from query if necessary for bulk query
     if (downloadMethod === RADIO_DOWNLOAD_METHOD_BULK_API && allowBulkApiWithWarning) {
@@ -374,7 +440,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
       const fileNameWithExt = `${fileName}${fileFormat !== 'gdrive' ? `.${fileExtension}` : ''}`;
 
       /** Google will always load in the background to account for upload to Google */
-      if ((fileFormat === 'gdrive' || downloadRecordsValue === RADIO_ALL_SERVER) && fileFormat !== RADIO_FORMAT_XLSX_LOAD_TEMPLATE) {
+      if (fileFormat === 'gdrive' || downloadRecordsValue === RADIO_ALL_SERVER) {
         // emit event, which starts job, which downloads in the background
         if (onDownloadFromServer) {
           onDownloadFromServer({
@@ -389,6 +455,14 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
             googleFolder,
             includeDeletedRecords,
             useBulkApi: downloadMethod === RADIO_DOWNLOAD_METHOD_BULK_API,
+            // The worker cannot describe the object itself, so hand it the relationships already resolved here
+            loadTemplate: isLoadTemplate
+              ? {
+                  sobject: loadTemplateOption?.sobject || '',
+                  childRelationships: includeSubqueriesInTemplate ? childRelationships.data : [],
+                  childRelationshipsByPath: includeSubqueriesInTemplate ? childRelationships.byPath : {},
+                }
+              : null,
           });
         }
         handleModalClose();
@@ -417,6 +491,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
               subqueryFields,
               // Subqueries are only turned into worksheets when the linking field is known and the user opted in
               childRelationships: includeSubqueriesInTemplate ? childRelationships.data : [],
+              childRelationshipsByPath: includeSubqueriesInTemplate ? childRelationships.byPath : {},
             });
             fileData = prepareExcelFile(data, undefined, undefined, { onCellsTruncated: notifyExcelCellsTruncated });
             mimeType = MIME_TYPES.XLSX;
@@ -539,7 +614,6 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                     value={RADIO_ALL_SERVER}
                     checked={downloadRecordsValue === RADIO_ALL_SERVER}
                     onChange={setDownloadRecordsValue}
-                    disabled={isLoadTemplate}
                   />
                   <Radio
                     name="radio-download"
@@ -627,14 +701,16 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 >
                   {APP_ROUTES.LOAD_MULTIPLE.TITLE}
                 </Link>{' '}
-                template format. Each record&apos;s Id becomes its Reference Id and the operation is set to Insert - ideal for migrating
-                records to another org. Adjust the operation, remove unwanted columns, and wrap lookup column headers in {'{curly braces}'}{' '}
-                to link related records in the same file. Relationship fields are not included.
+                template format. Each record&apos;s Id becomes its Reference Id and the operation is set to Insert. Adjust the operation,
+                remove unwanted columns, and wrap lookup column headers in {'{curly braces}'} to link related records in the same file.
+                Relationship fields are not included. Use nested subqueries to include related child records in the template.
                 {includeSubqueriesInTemplate && ' Each subquery becomes its own worksheet, linked back to the parent record.'}
                 {childRelationships.status === 'loaded' &&
                   !!templatePlan.skipped.length &&
-                  ` These subqueries are not included because no matching relationship was found on ${loadTemplateOption?.sobject}: ${templatePlan.skipped.join(', ')}.`}
-                {childRelationships.status === 'error' &&
+                  ` These subqueries are not included because no matching child relationship was found: ${templatePlan.skipped.join(', ')}.`}
+                {/* Only a failure when the user asked for subqueries - otherwise they are excluded by choice, not by the failed describe */}
+                {includeSubquery &&
+                  childRelationships.status === 'error' &&
                   ` Subqueries are not included because the relationships on ${loadTemplateOption?.sobject} could not be loaded from the org.`}
               </ScopedNotification>
             )}
@@ -646,9 +722,9 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
             )}
             {includeSubqueriesInTemplate && templatePlan.largestGroupSize > MAX_RECORDS_PER_GROUP && (
               <ScopedNotification theme="warning" className="slds-m-vertical_x-small">
-                One record and its related records add up to {formatNumber(templatePlan.largestGroupSize)} records. Each parent loads
-                together with its related records as one group, which is limited to {formatNumber(MAX_RECORDS_PER_GROUP)} records - remove
-                rows from the downloaded file before loading it.
+                One record and its related records add up to {isTemplatePlanFromSample && 'at least '}
+                {formatNumber(templatePlan.largestGroupSize)} records. Each parent loads together with its related records as one group,
+                which is limited to {formatNumber(MAX_RECORDS_PER_GROUP)} records - remove rows from the downloaded file before loading it.
               </ScopedNotification>
             )}
             {(hasSubqueryFields || (isLoadTemplate && hasSubqueriesInQuery)) && (

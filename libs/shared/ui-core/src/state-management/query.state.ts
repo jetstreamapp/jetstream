@@ -1,5 +1,12 @@
 import { convertFiltersToWhereClause, queryFilterHasValue } from '@jetstream/shared/ui-utils';
-import { convertFieldWithPolymorphicToQueryFields, orderValues } from '@jetstream/shared/utils';
+import {
+  convertFieldWithPolymorphicToQueryFields,
+  getSubqueryPathWithAncestors,
+  getSubqueryRelationshipName,
+  isDirectChildSubqueryPath,
+  isSubqueryPathBelow,
+  orderValues,
+} from '@jetstream/shared/utils';
 import {
   ChildRelationship,
   DescribeGlobalSObjectResult,
@@ -11,6 +18,7 @@ import {
   QueryOrderByClause,
 } from '@jetstream/types';
 import { isExpressionConditionType } from '@jetstream/ui';
+import { getSubqueryPathFromFieldKey } from '@jetstream/ui-core/shared';
 import {
   FieldType,
   GroupByFieldClause,
@@ -20,6 +28,7 @@ import {
   Subquery,
   WhereClause,
   getField,
+  isFieldSubquery,
 } from '@jetstreamapp/soql-parser-js';
 import { atom } from 'jotai';
 import { atomWithReset } from 'jotai/utils';
@@ -33,6 +42,10 @@ export const queryFieldsKey = atomWithReset<string | null>(null);
 export const queryChildRelationships = atomWithReset<ChildRelationship[]>([]);
 export const queryFieldsMapState = atomWithReset<Record<string, QueryFields>>({});
 export const selectedQueryFieldsState = atomWithReset<QueryFieldWithPolymorphic[]>([]);
+/**
+ * Subqueries can be nested, so every subquery map below is keyed by the relationship path from the
+ * root object (`Contacts`, `Contacts.Cases`) rather than by relationship name alone.
+ */
 export const selectedSubqueryFieldsState = atomWithReset<Record<string, QueryFieldWithPolymorphic[]>>({});
 
 export const querySubqueryFiltersState = atomWithReset<Record<string, ExpressionType>>({});
@@ -40,7 +53,7 @@ export const querySubqueryOrderByState = atomWithReset<Record<string, QueryOrder
 export const querySubqueryLimitState = atomWithReset<Record<string, string>>({});
 
 /** Drives the page-level subquery config side panel. null = closed. */
-export const subqueryConfigPanelState = atomWithReset<{ relationshipName: string; childSObject: string } | null>(null);
+export const subqueryConfigPanelState = atomWithReset<{ relationshipPath: string; childSObject: string } | null>(null);
 
 function orderByClausesToSoql(orderByClauses: QueryOrderByClause[]): OrderByClause[] {
   return orderByClauses
@@ -53,6 +66,50 @@ function orderByClausesToSoql(orderByClauses: QueryOrderByClause[]): OrderByClau
     }));
 }
 
+interface SubqueryStateByPath {
+  fieldsByPath: Record<string, QueryFieldWithPolymorphic[]>;
+  filtersByPath: Record<string, ExpressionType>;
+  orderBysByPath: Record<string, QueryOrderByClause[]>;
+  limitsByPath: Record<string, string>;
+  /** Every configured subquery path, including ancestors that may not have any fields selected of their own */
+  allPaths: Set<string>;
+}
+
+/**
+ * Subquery state is stored in flat maps keyed by relationship path (`Contacts`, `Contacts.Cases`), so the
+ * nested SOQL structure is rebuilt here by walking one level at a time.
+ *
+ * A subquery is only emitted when it, or something nested within it, has fields selected.
+ */
+function buildSubqueryFields(parentRelationshipPath: string, subqueryState: SubqueryStateByPath): FieldType[] {
+  const { fieldsByPath, filtersByPath, orderBysByPath, limitsByPath, allPaths } = subqueryState;
+
+  return orderValues(Array.from(allPaths).filter((path) => isDirectChildSubqueryPath(path, parentRelationshipPath)))
+    .map((relationshipPath) => {
+      const nestedFields = buildSubqueryFields(relationshipPath, subqueryState);
+      const selectedFields = convertFieldWithPolymorphicToQueryFields(fieldsByPath[relationshipPath] || []);
+      // remove subquery if neither it nor anything nested within it has fields
+      if (selectedFields.length === 0 && nestedFields.length === 0) {
+        return null;
+      }
+
+      const where = filtersByPath[relationshipPath] ? convertFiltersToWhereClause<WhereClause>(filtersByPath[relationshipPath]) : undefined;
+      const orderBy = orderBysByPath[relationshipPath] ? orderByClausesToSoql(orderBysByPath[relationshipPath]) : undefined;
+      const limitRaw = limitsByPath[relationshipPath];
+      const limit = limitRaw && limitRaw.trim() ? Number(limitRaw) : undefined;
+
+      const subquery: Subquery = {
+        fields: selectedFields.concat(nestedFields),
+        relationshipName: getSubqueryRelationshipName(relationshipPath),
+        ...(where ? { where } : {}),
+        ...(orderBy && orderBy.length ? { orderBy } : {}),
+        ...(typeof limit === 'number' && !Number.isNaN(limit) ? { limit } : {}),
+      };
+      return getField({ subquery });
+    })
+    .filter((field): field is FieldType => !!field);
+}
+
 export const selectQueryField = atom<FieldType[]>((get) => {
   const filterFieldFns = get(fieldFilterFunctions).reduce((acc: Record<string, { fn: string; alias: string | null }>, item) => {
     if (!!item.selectedField && !!item.selectedFunction) {
@@ -60,35 +117,88 @@ export const selectQueryField = atom<FieldType[]>((get) => {
     }
     return acc;
   }, {});
-  let fields = convertFieldWithPolymorphicToQueryFields(get(selectedQueryFieldsState), filterFieldFns);
-  const fieldsByChildRelName = get(selectedSubqueryFieldsState);
-  const subqueryFilters = get(querySubqueryFiltersState);
-  const subqueryOrderBys = get(querySubqueryOrderByState);
-  const subqueryLimits = get(querySubqueryLimitState);
-  // Concat subquery fields
-  fields = fields.concat(
-    orderValues(Object.keys(fieldsByChildRelName))
-      // remove subquery if no fields
-      .filter((relationshipName) => fieldsByChildRelName[relationshipName].length > 0)
-      .map((relationshipName) => {
-        const where = subqueryFilters[relationshipName]
-          ? convertFiltersToWhereClause<WhereClause>(subqueryFilters[relationshipName])
-          : undefined;
-        const orderBy = subqueryOrderBys[relationshipName] ? orderByClausesToSoql(subqueryOrderBys[relationshipName]) : undefined;
-        const limitRaw = subqueryLimits[relationshipName];
-        const limit = limitRaw && limitRaw.trim() ? Number(limitRaw) : undefined;
+  const fields = convertFieldWithPolymorphicToQueryFields(get(selectedQueryFieldsState), filterFieldFns);
+  const fieldsByPath = get(selectedSubqueryFieldsState);
 
-        const subquery: Subquery = {
-          fields: convertFieldWithPolymorphicToQueryFields(fieldsByChildRelName[relationshipName]),
-          relationshipName,
-          ...(where ? { where } : {}),
-          ...(orderBy && orderBy.length ? { orderBy } : {}),
-          ...(typeof limit === 'number' && !Number.isNaN(limit) ? { limit } : {}),
-        };
-        return getField({ subquery });
-      }),
+  const allPaths = new Set<string>();
+  Object.keys(fieldsByPath).forEach((relationshipPath) => {
+    getSubqueryPathWithAncestors(relationshipPath).forEach((path) => allPaths.add(path));
+  });
+
+  // Concat subquery fields
+  return fields.concat(
+    buildSubqueryFields('', {
+      fieldsByPath,
+      filtersByPath: get(querySubqueryFiltersState),
+      orderBysByPath: get(querySubqueryOrderByState),
+      limitsByPath: get(querySubqueryLimitState),
+      allPaths,
+    }),
   );
-  return fields;
+});
+
+/**
+ * Number of top level subqueries the generated query will contain.
+ * Derived from the composed fields so it always agrees with the SOQL, including a subquery that only
+ * has fields on something nested within it.
+ */
+export const selectSubqueryCount = atom<number>((get) => get(selectQueryField).filter(isFieldSubquery).length);
+
+/**
+ * Clear the filter / order by / limit options for a single subquery, leaving its field selection and any
+ * nested subqueries intact.
+ */
+export const clearSubqueryOptionsForPath = atom(null, (get, set, relationshipPath: string) => {
+  const omitPath = <T>(prev: Record<string, T>): Record<string, T> => {
+    if (!(relationshipPath in prev)) {
+      return prev;
+    }
+    const next = { ...prev };
+    delete next[relationshipPath];
+    return next;
+  };
+
+  set(querySubqueryFiltersState, omitPath);
+  set(querySubqueryOrderByState, omitPath);
+  set(querySubqueryLimitState, omitPath);
+});
+
+/**
+ * Remove every subquery nested beneath `relationshipPath`, including its filter/orderBy/limit options and the
+ * field selections backing the field pickers. The subquery at `relationshipPath` itself is left alone, since it
+ * belongs to the level above. An empty path is the root object, which clears every subquery.
+ */
+export const clearSubqueriesBelow = atom(null, (get, set, relationshipPath: string) => {
+  const omitClearedPaths = <T>(prev: Record<string, T>): Record<string, T> =>
+    Object.keys(prev).reduce((output: Record<string, T>, path) => {
+      if (!isSubqueryPathBelow(path, relationshipPath)) {
+        output[path] = prev[path];
+      }
+      return output;
+    }, {});
+
+  set(selectedSubqueryFieldsState, omitClearedPaths);
+  set(querySubqueryFiltersState, omitClearedPaths);
+  set(querySubqueryOrderByState, omitClearedPaths);
+  set(querySubqueryLimitState, omitClearedPaths);
+
+  // The pickers read their checkmarks from the fields map, so clear the selections there too.
+  // Metadata is left in place so re-expanding a relationship does not have to re-fetch it.
+  set(queryFieldsMapState, (prev) =>
+    Object.keys(prev).reduce((output: Record<string, QueryFields>, key) => {
+      const subqueryPath = getSubqueryPathFromFieldKey(key);
+      output[key] =
+        subqueryPath !== null && isSubqueryPathBelow(subqueryPath, relationshipPath)
+          ? { ...prev[key], selectedFields: new Set<string>() }
+          : prev[key];
+      return output;
+    }, {}),
+  );
+
+  const configPanel = get(subqueryConfigPanelState);
+  if (configPanel && isSubqueryPathBelow(configPanel.relationshipPath, relationshipPath)) {
+    set(subqueryConfigPanelState, null);
+  }
 });
 
 export type SubqueryOptionsSummary = {

@@ -127,6 +127,37 @@ describe('getParsableFields — subquery with WHERE and ORDER BY', () => {
   });
 });
 
+describe('getParsableFields — nested subqueries', () => {
+  it('keys each nested subquery by its full relationship path', () => {
+    const query = parseQuery(
+      `SELECT Id, (SELECT Id, (SELECT Id, Name, AccountId FROM Assets), (SELECT Id, AccountId FROM Cases) FROM Contacts) FROM Account`,
+    );
+    const result = getParsableFields(query.fields || []);
+
+    expect(Object.keys(result.subqueries).sort()).toEqual(['Contacts', 'Contacts.Assets', 'Contacts.Cases']);
+    expect(result.subqueries['Contacts.Assets']).toEqual(['accountid', 'id', 'name']);
+    expect(result.subqueries['Contacts.Cases']).toEqual(['accountid', 'id']);
+  });
+
+  it('treats a nested subquery as a relationship rather than a field of its parent', () => {
+    const query = parseQuery(`SELECT Id, (SELECT Id, (SELECT Id FROM Cases) FROM Contacts) FROM Account`);
+    const result = getParsableFields(query.fields || []);
+
+    expect(result.subqueries['Contacts']).toEqual(['id']);
+    expect(result.fields).not.toContain('contacts');
+  });
+
+  it('collects nested subquery WHERE and ORDER BY fields under the nested path', () => {
+    const query = parseQuery(
+      `SELECT Id, (SELECT Id, (SELECT Id FROM Cases WHERE Status = 'New' ORDER BY CreatedDate DESC) FROM Contacts) FROM Account`,
+    );
+    const result = getParsableFields(query.fields || []);
+
+    expect(result.subqueries['Contacts.Cases']).toEqual(expect.arrayContaining(['id', 'status', 'createddate']));
+    expect(result.subqueries['Contacts']).toEqual(['id']);
+  });
+});
+
 describe('findRequiredRelationships', () => {
   it('should return an empty array when given an empty array of fields', () => {
     const fields: string[] = [];

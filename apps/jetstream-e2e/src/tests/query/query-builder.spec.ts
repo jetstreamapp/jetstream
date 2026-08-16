@@ -113,6 +113,70 @@ test.describe('QUERY BUILDER', () => {
     ]);
   });
 
+  // eslint-disable-next-line playwright/expect-expect
+  test('should work with nested subqueries', async ({ queryPage }) => {
+    await queryPage.goto();
+    await queryPage.selectObject('Account');
+
+    await queryPage.selectNestedSubquery([
+      { relationshipName: 'Contacts', childSObject: 'Contact', fieldLabels: ['Contact ID', 'Full Name'] },
+      { relationshipName: 'Cases', childSObject: 'Case', fieldLabels: ['Case ID', 'Subject'] },
+    ]);
+
+    await queryPage.validateQueryByLine([
+      'SELECT Id, Name, Description, OwnerId',
+      '(',
+      'SELECT Id, Name',
+      '(',
+      'SELECT Id, Subject',
+      'FROM Cases',
+      ')',
+      'FROM Contacts',
+      ')',
+      'FROM Account',
+    ]);
+  });
+
+  test('should restore nested subqueries', async ({ queryPage }) => {
+    const query = `SELECT Id,
+    (
+      SELECT Id,
+      (
+        SELECT Id, Subject
+        FROM Cases
+      )
+      FROM Contacts
+    )
+  FROM Account`;
+
+    await queryPage.setManualQuery(query, 'RESTORE');
+
+    await queryPage.validateQueryByLine([
+      'SELECT Id',
+      '(',
+      'SELECT Id',
+      '(',
+      'SELECT Id, Subject',
+      'FROM Cases',
+      ')',
+      'FROM Contacts',
+      ')',
+      'FROM Account',
+    ]);
+
+    // The nested subquery must be restored into the builder, not silently dropped
+    await queryPage.selectSubqueryObject('Contacts');
+    await expect(queryPage.getSelectedField('Contact ID')).toHaveAttribute('aria-selected', 'true');
+
+    await queryPage.drillIntoRelatedObject('Contact');
+    await queryPage.page.getByPlaceholder('Filter child objects').fill('Cases');
+    await queryPage.page.getByTestId('Cases').click();
+
+    for (const field of ['Case ID', 'Subject']) {
+      await expect(queryPage.getSelectedField(field)).toHaveAttribute('aria-selected', 'true');
+    }
+  });
+
   test('should restore queries', async ({ queryPage }) => {
     const query = `SELECT Id, Name,
     (

@@ -68,6 +68,7 @@ export const QueryResultsDownloadButton = ({
       googleFolder,
       includeDeletedRecords,
       useBulkApi,
+      loadTemplate,
     } = options;
     let _soql = soql;
 
@@ -114,6 +115,7 @@ export const QueryResultsDownloadButton = ({
           fileName,
           includeSubquery,
           googleFolder,
+          loadTemplate,
         },
       },
     ];

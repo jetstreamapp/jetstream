@@ -1,10 +1,10 @@
-import { DescribeSObjectResult, Field, FieldWrapper, QueryFields } from '@jetstream/types';
+import { ChildRelationship, DescribeSObjectResult, Field, FieldWrapper, QueryFields } from '@jetstream/types';
 import { getSubqueryFieldBaseKey, SoqlFetchMetadataOutput } from '@jetstream/ui-core/shared';
 import { parseQuery, Query } from '@jetstreamapp/soql-parser-js';
 import { describe, expect, it } from 'vitest';
 import { __TEST_EXPORTS__ } from '../query-restore-utils';
 
-const { processSubqueryOptions, getFieldWrapperPathForSubquery } = __TEST_EXPORTS__;
+const { processFields, processSubqueryOptions, getFieldWrapperPathForSubquery } = __TEST_EXPORTS__;
 
 function makeField(overrides: Partial<Field>): Field {
   return {
@@ -49,19 +49,49 @@ function makeQueryFields(key: string, fields: Field[]): QueryFields {
 }
 
 function makeMetadataOutput(relationshipName: string, childSObjectName: string): SoqlFetchMetadataOutput {
+  return makeMetadataOutputForPaths([{ relationshipPath: relationshipName, childSObjectName }]);
+}
+
+/**
+ * Builds metadata for one or more subqueries keyed by relationship path, e.x. `Contacts` and `Contacts.Cases`.
+ * `fields` are only needed by tests that exercise processFields.
+ */
+function makeMetadataOutputForPaths(
+  children: { relationshipPath: string; childSObjectName: string; fields?: Field[]; childRelationships?: ChildRelationship[] }[],
+  rootSObject?: Partial<DescribeSObjectResult>,
+): SoqlFetchMetadataOutput {
   return {
     sobjectMetadata: [],
-    selectedSobjectMetadata: { global: {} as any, sobject: {} as any },
+    selectedSobjectMetadata: {
+      global: { name: rootSObject?.name || 'Account' } as any,
+      sobject: { name: 'Account', fields: [], childRelationships: [], ...rootSObject } as DescribeSObjectResult,
+    },
     metadata: {},
     lowercaseFieldMap: {},
-    childMetadata: {
-      [relationshipName]: {
-        objectMetadata: { name: childSObjectName } as DescribeSObjectResult,
+    childMetadata: children.reduce((output: SoqlFetchMetadataOutput['childMetadata'], child) => {
+      output[child.relationshipPath] = {
+        objectMetadata: {
+          name: child.childSObjectName,
+          fields: child.fields || [],
+          childRelationships: child.childRelationships || [],
+        } as DescribeSObjectResult,
         metadataTree: {},
         lowercaseFieldMap: {},
-      },
-    },
+      };
+      return output;
+    }, {}),
   };
+}
+
+function makeRestoreStateItems() {
+  return {
+    queryFieldsMapState: {},
+    selectedQueryFieldsState: [],
+    selectedSubqueryFieldsState: {},
+    missingFields: [],
+    missingSubqueryFields: {},
+    missingMisc: [],
+  } as any;
 }
 
 describe('getFieldWrapperPathForSubquery', () => {
@@ -216,5 +246,127 @@ describe('processSubqueryOptions', () => {
     expect(stateItems.querySubqueryLimitState[canonicalRelationshipName]).toBe('3');
     // Should NOT write under the lowercase key
     expect(stateItems.querySubqueryFiltersState['contacts']).toBeUndefined();
+  });
+
+  it('restores filter, orderBy, and limit for a nested subquery keyed by its relationship path', () => {
+    const contactsBaseKey = getSubqueryFieldBaseKey('Contact', 'Contacts');
+    const casesBaseKey = getSubqueryFieldBaseKey('Case', 'Contacts.Cases');
+    const queryFields = {
+      [contactsBaseKey]: makeQueryFields(contactsBaseKey, [makeField({ name: 'Email' })]),
+      [casesBaseKey]: makeQueryFields(casesBaseKey, [
+        makeField({ name: 'Status', type: 'picklist' }),
+        makeField({ name: 'CreatedDate', type: 'datetime' }),
+      ]),
+    };
+    const metadata = makeMetadataOutputForPaths([
+      { relationshipPath: 'Contacts', childSObjectName: 'Contact' },
+      { relationshipPath: 'Contacts.Cases', childSObjectName: 'Case' },
+    ]);
+
+    const { stateItems } = runProcess(
+      `SELECT Id, (SELECT Id, (SELECT Id FROM Cases WHERE Status = 'New' ORDER BY CreatedDate DESC LIMIT 2) FROM Contacts WHERE Email != null) FROM Account`,
+      contactsBaseKey,
+      queryFields,
+      metadata,
+    );
+
+    expect(stateItems.querySubqueryFiltersState['Contacts.Cases'].rows[0].selected).toEqual(
+      expect.objectContaining({ resource: 'Status', value: 'New' }),
+    );
+    expect(stateItems.querySubqueryOrderByState['Contacts.Cases']).toEqual([
+      expect.objectContaining({ field: 'CreatedDate', order: 'DESC' }),
+    ]);
+    expect(stateItems.querySubqueryLimitState['Contacts.Cases']).toBe('2');
+    // Parent subquery options are still restored independently
+    expect(stateItems.querySubqueryFiltersState['Contacts']).toBeDefined();
+    expect(stateItems.missingMisc).toEqual([]);
+  });
+});
+
+describe('processFields — nested subqueries', () => {
+  const accountFields = [makeField({ name: 'Id' }), makeField({ name: 'Name', type: 'string' })];
+  const contactFields = [makeField({ name: 'Id' }), makeField({ name: 'Email', type: 'email' })];
+  const caseFields = [makeField({ name: 'Id' }), makeField({ name: 'Subject', type: 'string' })];
+
+  function runProcessFields(soql: string, metadata: SoqlFetchMetadataOutput) {
+    const stateItems = makeRestoreStateItems();
+    processFields(metadata, stateItems, parseQuery(soql).fields || []);
+    return stateItems;
+  }
+
+  it('selects fields for a nested subquery under its relationship path', () => {
+    const metadata = makeMetadataOutputForPaths(
+      [
+        { relationshipPath: 'Contacts', childSObjectName: 'Contact', fields: contactFields },
+        { relationshipPath: 'Contacts.Cases', childSObjectName: 'Case', fields: caseFields },
+      ],
+      { fields: accountFields },
+    );
+
+    const stateItems = runProcessFields(
+      `SELECT Id, (SELECT Id, Email, (SELECT Id, Subject FROM Cases) FROM Contacts) FROM Account`,
+      metadata,
+    );
+
+    expect(stateItems.selectedSubqueryFieldsState['Contacts'].map(({ field }: any) => field)).toEqual(['Id', 'Email']);
+    expect(stateItems.selectedSubqueryFieldsState['Contacts.Cases'].map(({ field }: any) => field)).toEqual(['Id', 'Subject']);
+    // A nested subquery must not be treated as a missing field of its parent
+    expect(stateItems.missingSubqueryFields['Contacts']).toEqual([]);
+    expect(stateItems.missingMisc).toEqual([]);
+  });
+
+  it('builds a queryFieldsMap entry keyed by the nested relationship path', () => {
+    const metadata = makeMetadataOutputForPaths(
+      [
+        { relationshipPath: 'Contacts', childSObjectName: 'Contact', fields: contactFields },
+        { relationshipPath: 'Contacts.Cases', childSObjectName: 'Case', fields: caseFields },
+      ],
+      { fields: accountFields },
+    );
+
+    const stateItems = runProcessFields(`SELECT Id, (SELECT Id, (SELECT Id FROM Cases) FROM Contacts) FROM Account`, metadata);
+
+    expect(stateItems.queryFieldsMapState[getSubqueryFieldBaseKey('Case', 'Contacts.Cases')]).toBeDefined();
+    expect(stateItems.queryFieldsMapState[getSubqueryFieldBaseKey('Case', 'Contacts.Cases')].selectedFields).toEqual(new Set(['Id']));
+  });
+
+  it('reports a nested child relationship that was not found instead of dropping it silently', () => {
+    const metadata = makeMetadataOutputForPaths([{ relationshipPath: 'Contacts', childSObjectName: 'Contact', fields: contactFields }], {
+      fields: accountFields,
+    });
+
+    const stateItems = runProcessFields(`SELECT Id, (SELECT Id, (SELECT Id FROM Bogus) FROM Contacts) FROM Account`, metadata);
+
+    expect(stateItems.missingMisc).toEqual(["Child relationship 'Contacts.Bogus' was not found"]);
+  });
+
+  it('reports only the shallowest failure when an unresolved relationship has its own subqueries', () => {
+    const metadata = makeMetadataOutputForPaths([{ relationshipPath: 'Contacts', childSObjectName: 'Contact', fields: contactFields }], {
+      fields: accountFields,
+    });
+
+    const stateItems = runProcessFields(
+      `SELECT Id, (SELECT Id, (SELECT Id, (SELECT Id FROM AlsoBogus) FROM Bogus) FROM Contacts) FROM Account`,
+      metadata,
+    );
+
+    // Everything under an unresolvable relationship is unresolvable too, so it would be noise to list each one
+    expect(stateItems.missingMisc).toEqual(["Child relationship 'Contacts.Bogus' was not found"]);
+  });
+
+  it('matches nested relationship casing against the canonical metadata path', () => {
+    const metadata = makeMetadataOutputForPaths(
+      [
+        { relationshipPath: 'Contacts', childSObjectName: 'Contact', fields: contactFields },
+        { relationshipPath: 'Contacts.Cases', childSObjectName: 'Case', fields: caseFields },
+      ],
+      { fields: accountFields },
+    );
+
+    const stateItems = runProcessFields(`SELECT Id, (SELECT Id, (SELECT Id FROM cases) FROM contacts) FROM Account`, metadata);
+
+    expect(stateItems.selectedSubqueryFieldsState['Contacts.Cases']).toBeDefined();
+    expect(stateItems.selectedSubqueryFieldsState['contacts.cases']).toBeUndefined();
+    expect(stateItems.missingMisc).toEqual([]);
   });
 });

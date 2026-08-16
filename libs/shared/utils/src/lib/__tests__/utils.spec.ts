@@ -1,5 +1,5 @@
 import { DATE_FORMATS } from '@jetstream/shared/constants';
-import { QueryResults, QueryResultsColumn, SalesforceRecord } from '@jetstream/types';
+import { QueryResultsColumn, SalesforceRecord } from '@jetstream/types';
 import {
   alwaysResolve,
   base64ToArrayBuffer,
@@ -12,6 +12,7 @@ import {
   getIdAndObjFromRecordUrl,
   getIdFromRecordUrl,
   getMapFromObj,
+  getMapOfBaseAndSubqueryRecords,
   getRecordIdFromAttributes,
   getSObjectFromRecordUrl,
   getSObjectNameFromAttributes,
@@ -24,7 +25,6 @@ import {
   pluralizeFromNumber,
   populateFromMapOf,
   queryResultColumnToTypeLabel,
-  replaceSubqueryQueryResultsWithRecords,
   splitArrayToMaxSize,
   toBoolean,
   toNumber,
@@ -988,107 +988,6 @@ describe('nullifyEmptyStrings', () => {
   });
 });
 
-describe('replaceSubqueryQueryResultsWithRecords', () => {
-  it('should replace subquery query results with records', () => {
-    const results: QueryResults<any> = {
-      parsedQuery: {
-        fields: [
-          { type: 'FieldSubquery', subquery: { relationshipName: 'subqueryField1' } },
-          { type: 'FieldSubquery', subquery: { relationshipName: 'subqueryField2' } },
-        ],
-      },
-      queryResults: {
-        records: [
-          { subqueryField1: { records: ['record1'] }, subqueryField2: { records: ['record2'] } },
-          { subqueryField1: { records: ['record3'] }, subqueryField2: { records: ['record4'] } },
-        ],
-        done: true,
-        totalSize: 2,
-      },
-    };
-
-    const expectedResults: QueryResults<any> = {
-      parsedQuery: {
-        fields: [
-          { type: 'FieldSubquery', subquery: { relationshipName: 'subqueryField1' } },
-          { type: 'FieldSubquery', subquery: { relationshipName: 'subqueryField2' } },
-        ],
-      },
-      queryResults: {
-        records: [
-          { subqueryField1: ['record1'], subqueryField2: ['record2'] },
-          { subqueryField1: ['record3'], subqueryField2: ['record4'] },
-        ],
-        done: true,
-        totalSize: 2,
-      },
-    };
-
-    const actualResults = replaceSubqueryQueryResultsWithRecords(results);
-    expect(actualResults).toEqual(expectedResults);
-  });
-
-  it('should handle empty parsedQuery', () => {
-    const results: QueryResults<any> = {
-      queryResults: {
-        records: [
-          { subqueryField1: { records: ['record1'] }, subqueryField2: { records: ['record2'] } },
-          { subqueryField1: { records: ['record3'] }, subqueryField2: { records: ['record4'] } },
-        ],
-        done: true,
-        totalSize: 2,
-      },
-    };
-
-    const expectedResults: QueryResults<any> = {
-      queryResults: {
-        records: [
-          { subqueryField1: { records: ['record1'] }, subqueryField2: { records: ['record2'] } },
-          { subqueryField1: { records: ['record3'] }, subqueryField2: { records: ['record4'] } },
-        ],
-        done: true,
-        totalSize: 2,
-      },
-    };
-
-    const actualResults = replaceSubqueryQueryResultsWithRecords(results);
-    expect(actualResults).toEqual(expectedResults);
-  });
-
-  it('should handle empty queryResults', () => {
-    const results: QueryResults<any> = {
-      parsedQuery: {
-        fields: [
-          { type: 'FieldSubquery', subquery: { relationshipName: 'subqueryField1' } },
-          { type: 'FieldSubquery', subquery: { relationshipName: 'subqueryField2' } },
-        ],
-      },
-      queryResults: {
-        records: [],
-        done: true,
-        totalSize: 0,
-      },
-    };
-
-    const expectedResults: QueryResults<any> = {
-      parsedQuery: {
-        fields: [
-          { type: 'FieldSubquery', subquery: { relationshipName: 'subqueryField1' } },
-          { type: 'FieldSubquery', subquery: { relationshipName: 'subqueryField2' } },
-        ],
-      },
-      queryResults: {
-        records: [],
-        done: true,
-        totalSize: 0,
-      },
-    };
-
-    const actualResults = replaceSubqueryQueryResultsWithRecords(results);
-    expect(actualResults).toEqual(expectedResults);
-  });
-});
-
 describe('queryResultColumnToTypeLabel', () => {
   it('should return "Text" for column with textType', () => {
     const column: QueryResultsColumn = { textType: true } as any;
@@ -1228,5 +1127,127 @@ describe('utils.base64ToArrayBuffer', () => {
     const decoder = new TextDecoder('utf-8');
     const decodedString = decoder.decode(arrayBuffer);
     expect(decodedString).toEqual('Hello, World!');
+  });
+});
+
+describe('utils.getMapOfBaseAndSubqueryRecords', () => {
+  function makeRecord(type: string, id: string, extra: Record<string, any> = {}) {
+    return { attributes: { type, url: `/services/data/v66.0/sobjects/${type}/${id}` }, Id: id, ...extra };
+  }
+
+  function wrap(records: any[]) {
+    return { totalSize: records.length, done: true, records };
+  }
+
+  it('splits a single subquery into its own sheet, keyed by relationship name', () => {
+    const records = [makeRecord('Account', '001A', { Contacts: wrap([makeRecord('Contact', '003A', { Email: 'a@b.co' })]) })];
+
+    const output = getMapOfBaseAndSubqueryRecords(records, ['Id', 'Contacts'], { Contacts: ['Id', 'Email'] });
+
+    expect(Object.keys(output)).toEqual(['records', 'Contacts']);
+    expect(output['records']).toEqual([{ Id: '001A' }]);
+    expect(output['Contacts']).toEqual([{ _ParentId: '001A', Id: '003A', Email: 'a@b.co' }]);
+  });
+
+  it('gives every nested subquery its own sheet named by relationship path', () => {
+    const records = [
+      makeRecord('Account', '001A', {
+        Contacts: wrap([
+          makeRecord('Contact', '003A', { Cases: wrap([makeRecord('Case', '500A', { Subject: 'One' })]) }),
+          makeRecord('Contact', '003B', { Cases: wrap([makeRecord('Case', '500B', { Subject: 'Two' })]) }),
+        ]),
+      }),
+    ];
+
+    const output = getMapOfBaseAndSubqueryRecords(records, ['Id', 'Contacts'], {
+      Contacts: ['Id', 'Cases'],
+      'Contacts.Cases': ['Id', 'Subject'],
+    });
+
+    expect(Object.keys(output)).toEqual(['records', 'Contacts', 'Contacts.Cases']);
+    // The nested relationship gets its own sheet rather than a JSON blob column on the parent sheet
+    expect(output['Contacts']).toEqual([
+      { _ParentId: '001A', Id: '003A' },
+      { _ParentId: '001A', Id: '003B' },
+    ]);
+    expect(output['Contacts.Cases']).toEqual([
+      { _ParentId: '003A', Id: '500A', Subject: 'One' },
+      { _ParentId: '003B', Id: '500B', Subject: 'Two' },
+    ]);
+  });
+
+  it('matches relationship names case-insensitively at every level', () => {
+    // Salesforce responds with the canonical relationship name, which may not match the casing the user typed
+    const records = [
+      makeRecord('Account', '001A', {
+        Contacts: wrap([makeRecord('Contact', '003A', { Cases: wrap([makeRecord('Case', '500A', { Subject: 'One' })]) })]),
+      }),
+    ];
+
+    const output = getMapOfBaseAndSubqueryRecords(records, ['Id', 'contacts'], {
+      contacts: ['Id', 'cases'],
+      'contacts.cases': ['Id', 'Subject'],
+    });
+
+    expect(Object.keys(output)).toEqual(['records', 'contacts', 'contacts.cases']);
+    expect(output['contacts']).toEqual([{ _ParentId: '001A', Id: '003A' }]);
+    expect(output['contacts.cases']).toEqual([{ _ParentId: '003A', Id: '500A', Subject: 'One' }]);
+  });
+
+  it('splits a subquery whose field casing differs from the relationship path key', () => {
+    // `fields` comes from column metadata while `subqueryFields` is keyed by the casing found in the query,
+    // so the two can disagree - the subquery still belongs on its own sheet rather than the base one
+    const records = [
+      makeRecord('Account', '001A', {
+        Contacts: wrap([makeRecord('Contact', '003A', { Cases: wrap([makeRecord('Case', '500A', { Subject: 'One' })]) })]),
+      }),
+    ];
+
+    const output = getMapOfBaseAndSubqueryRecords(records, ['Id', 'Contacts'], {
+      contacts: ['Id', 'cases'],
+      'contacts.cases': ['Id', 'Subject'],
+    });
+
+    expect(Object.keys(output)).toEqual(['records', 'contacts', 'contacts.cases']);
+    expect(output['records']).toEqual([{ Id: '001A' }]);
+    expect(output['contacts']).toEqual([{ _ParentId: '001A', Id: '003A' }]);
+    expect(output['contacts.cases']).toEqual([{ _ParentId: '003A', Id: '500A', Subject: 'One' }]);
+  });
+
+  it('omits a sheet for a subquery that returned no records', () => {
+    const records = [makeRecord('Account', '001A', { Contacts: null })];
+
+    const output = getMapOfBaseAndSubqueryRecords(records, ['Id', 'Contacts'], { Contacts: ['Id'], 'Contacts.Cases': ['Id'] });
+
+    expect(Object.keys(output)).toEqual(['records']);
+  });
+
+  it('names a deep relationship path by its own relationship and depth instead of truncating the shared prefix', () => {
+    function buildChain(depth: number): any {
+      return makeRecord('Account', `00${depth}`, {
+        ChildAccounts: depth > 0 ? wrap([buildChain(depth - 1)]) : null,
+      });
+    }
+    const paths = [
+      'ChildAccounts',
+      'ChildAccounts.ChildAccounts',
+      'ChildAccounts.ChildAccounts.ChildAccounts',
+      'ChildAccounts.ChildAccounts.ChildAccounts.ChildAccounts',
+    ];
+
+    const output = getMapOfBaseAndSubqueryRecords(
+      [buildChain(4)],
+      ['Id', 'ChildAccounts'],
+      paths.reduce((acc: Record<string, string[]>, path) => ({ ...acc, [path]: ['Id'] }), {}),
+    );
+
+    expect(Object.keys(output)).toEqual([
+      'records',
+      'ChildAccounts',
+      'ChildAccounts.ChildAccounts',
+      // These two used to collide into `ChildAccounts.ChildAccounts.Chi` and `...Chi1`
+      'ChildAccounts (L3)',
+      'ChildAccounts (L4)',
+    ]);
   });
 });

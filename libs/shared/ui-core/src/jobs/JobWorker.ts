@@ -7,7 +7,7 @@ import {
   runPermissionExport,
 } from '@jetstream/feature/analysis-shared';
 import { logger } from '@jetstream/shared/client-logger';
-import { MIME_TYPES } from '@jetstream/shared/constants';
+import { FILE_FORMAT_XLSX_LOAD_TEMPLATE, MIME_TYPES } from '@jetstream/shared/constants';
 import {
   bulkApiAddBatchToJob,
   bulkApiCreateJob,
@@ -28,6 +28,7 @@ import {
   pollRetrieveMetadataResultsUntilDone,
   prepareCsvFile,
   prepareExcelFile,
+  prepareLoadMultiObjectTemplate,
 } from '@jetstream/shared/ui-utils';
 import {
   base64ToArrayBuffer,
@@ -39,7 +40,6 @@ import {
   getSObjectFromRecordUrl,
   gzipEncode,
   pluralizeFromNumber,
-  replaceSubqueryQueryResultsWithRecords,
   splitArrayToMaxSize,
 } from '@jetstream/shared/utils';
 import type {
@@ -191,6 +191,7 @@ export class JobWorker {
             subqueryFields,
             includeSubquery,
             googleFolder,
+            loadTemplate,
           } = job.meta;
           let mimeType: string;
           let fileData;
@@ -215,7 +216,7 @@ export class JobWorker {
               const response: AsyncJobWorkerMessageResponse = { job, lastActivityUpdate: true, results: { progress } };
               this.replyToMessage(name, response);
 
-              const { queryResults } = await queryMore(org, nextRecordsUrl, isTooling).then(replaceSubqueryQueryResultsWithRecords);
+              const { queryResults } = await queryMore(org, nextRecordsUrl, isTooling);
               done = queryResults.done;
               nextRecordsUrl = queryResults.nextRecordsUrl;
               downloadedRecords = downloadedRecords.concat(queryResults.records);
@@ -289,6 +290,25 @@ export class JobWorker {
               } else {
                 fileData = prepareExcelFile(flattenRecords(downloadedRecords, fields), fields);
               }
+              mimeType = MIME_TYPES.XLSX;
+              break;
+            }
+            case FILE_FORMAT_XLSX_LOAD_TEMPLATE: {
+              if (!loadTemplate) {
+                throw new Error('The load template requires the child relationships for the object being downloaded');
+              }
+              fileData = prepareExcelFile(
+                prepareLoadMultiObjectTemplate({
+                  sobject: loadTemplate.sobject,
+                  fields,
+                  records: downloadedRecords,
+                  subqueryFields: subqueryFields || {},
+                  // The opt-in was already applied when the job was queued - no relationships are sent when the
+                  // user excluded subqueries, which is what leaves them out of the file
+                  childRelationships: loadTemplate.childRelationships,
+                  childRelationshipsByPath: loadTemplate.childRelationshipsByPath,
+                }),
+              );
               mimeType = MIME_TYPES.XLSX;
               break;
             }

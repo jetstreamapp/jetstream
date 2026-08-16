@@ -6,7 +6,7 @@ import { ExpressionType, Field, ListItem, QueryFields, QueryOrderByClause, Sales
 import { Panel, Spinner } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
 import { getSubqueryFieldBaseKey } from '@jetstream/ui-core/shared';
-import { useAtom, useAtomValue } from 'jotai';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import isEmpty from 'lodash/isEmpty';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
 import QueryFilter from '../QueryOptions/QueryFilter';
@@ -15,7 +15,7 @@ import QueryOrderBy from '../QueryOptions/QueryOrderBy';
 
 export interface QuerySubqueryConfigPanelProps {
   org: SalesforceOrgUi;
-  relationshipName: string;
+  relationshipPath: string;
   childSObject: string;
   isOpen: boolean;
   onClose: () => void;
@@ -41,7 +41,7 @@ const INITIAL_ORDER_BY: QueryOrderByClause[] = [fromQueryState.initOrderByClause
 
 export const QuerySubqueryConfigPanel: FunctionComponent<QuerySubqueryConfigPanelProps> = ({
   org,
-  relationshipName,
+  relationshipPath,
   childSObject,
   isOpen,
   onClose,
@@ -52,7 +52,7 @@ export const QuerySubqueryConfigPanel: FunctionComponent<QuerySubqueryConfigPane
   const [subqueryOrderBy, setSubqueryOrderBy] = useAtom(fromQueryState.querySubqueryOrderByState);
   const [subqueryLimit, setSubqueryLimit] = useAtom(fromQueryState.querySubqueryLimitState);
 
-  const childBaseKey = useMemo(() => getSubqueryFieldBaseKey(childSObject, relationshipName), [childSObject, relationshipName]);
+  const childBaseKey = useMemo(() => getSubqueryFieldBaseKey(childSObject, relationshipPath), [childSObject, relationshipPath]);
 
   const [isFetchingBaseFields, setIsFetchingBaseFields] = useState(false);
 
@@ -145,46 +145,35 @@ export const QuerySubqueryConfigPanel: FunctionComponent<QuerySubqueryConfigPane
     };
   }, [queryFieldsMap, childBaseKey]);
 
-  const filters = subqueryFilters[relationshipName] ?? EMPTY_FILTER;
-  const orderByClauses = subqueryOrderBy[relationshipName] ?? INITIAL_ORDER_BY;
-  const limit = subqueryLimit[relationshipName] ?? '';
+  const filters = subqueryFilters[relationshipPath] ?? EMPTY_FILTER;
+  const orderByClauses = subqueryOrderBy[relationshipPath] ?? INITIAL_ORDER_BY;
+  const limit = subqueryLimit[relationshipPath] ?? '';
 
   const handleFiltersChange = useCallback(
     (next: ExpressionType) => {
-      setSubqueryFilters((prev) => ({ ...prev, [relationshipName]: next }));
+      setSubqueryFilters((prev) => ({ ...prev, [relationshipPath]: next }));
     },
-    [relationshipName, setSubqueryFilters],
+    [relationshipPath, setSubqueryFilters],
   );
 
   const handleOrderByChange = useCallback(
     (next: QueryOrderByClause[]) => {
-      setSubqueryOrderBy((prev) => ({ ...prev, [relationshipName]: next }));
+      setSubqueryOrderBy((prev) => ({ ...prev, [relationshipPath]: next }));
     },
-    [relationshipName, setSubqueryOrderBy],
+    [relationshipPath, setSubqueryOrderBy],
   );
 
   const handleLimitChange = useCallback(
     (next: string) => {
-      setSubqueryLimit((prev) => ({ ...prev, [relationshipName]: next }));
+      setSubqueryLimit((prev) => ({ ...prev, [relationshipPath]: next }));
     },
-    [relationshipName, setSubqueryLimit],
+    [relationshipPath, setSubqueryLimit],
   );
 
-  const handleClearAll = useCallback(() => {
-    const omit = (prev: Record<string, unknown>) => {
-      if (!(relationshipName in prev)) {
-        return prev;
-      }
-      const next = { ...prev };
-      delete next[relationshipName];
-      return next;
-    };
-    setSubqueryFilters((prev) => omit(prev) as typeof prev);
-    setSubqueryOrderBy((prev) => omit(prev) as typeof prev);
-    setSubqueryLimit((prev) => omit(prev) as typeof prev);
-  }, [relationshipName, setSubqueryFilters, setSubqueryOrderBy, setSubqueryLimit]);
+  const clearSubqueryOptions = useSetAtom(fromQueryState.clearSubqueryOptionsForPath);
+  const handleClearAll = useCallback(() => clearSubqueryOptions(relationshipPath), [clearSubqueryOptions, relationshipPath]);
 
-  const summary = useAtomValue(fromQueryState.subqueryOptionsSummaryState)[relationshipName];
+  const summary = useAtomValue(fromQueryState.subqueryOptionsSummaryState)[relationshipPath];
   const hasAnyConfigured = !!summary && (summary.filterCount > 0 || summary.hasOrderBy || !!summary.limit);
 
   // Describe-on-demand drill-in for related fields in filter/orderBy rows.
@@ -245,7 +234,7 @@ export const QuerySubqueryConfigPanel: FunctionComponent<QuerySubqueryConfigPane
 
   return (
     <Panel
-      heading={`Subquery Options · ${relationshipName} (${childSObject})`}
+      heading={`Subquery Options · ${relationshipPath} (${childSObject})`}
       isOpen={isOpen}
       position="right"
       size="xl"
@@ -304,7 +293,7 @@ export const QuerySubqueryConfigPanel: FunctionComponent<QuerySubqueryConfigPane
 
               <section>
                 <h3 className="slds-text-heading_small slds-m-bottom_x-small">Limit</h3>
-                <QueryLimit idPrefix={`subquery-limit-${relationshipName}`} limit={limit} setLimit={handleLimitChange} />
+                <QueryLimit idPrefix={`subquery-limit-${relationshipPath}`} limit={limit} setLimit={handleLimitChange} />
               </section>
             </Fragment>
           )}

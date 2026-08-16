@@ -1,7 +1,14 @@
 import { logger } from '@jetstream/shared/client-logger';
+import { MAX_SUBQUERY_DEPTH } from '@jetstream/shared/constants';
 import { describeGlobal, describeSObject } from '@jetstream/shared/data';
 import { getFieldKey } from '@jetstream/shared/ui-utils';
-import { orderValues } from '@jetstream/shared/utils';
+import {
+  getSubqueryParentPath,
+  getSubqueryPath,
+  getSubqueryPathDepth,
+  getSubqueryRelationshipName,
+  orderValues,
+} from '@jetstream/shared/utils';
 import { DescribeGlobalSObjectResult, DescribeSObjectResult, Field, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import {
   OrderByClause,
@@ -31,8 +38,9 @@ export interface SoqlFetchMetadataOutput {
   sobjectMetadata: DescribeGlobalSObjectResult[];
   selectedSobjectMetadata: { global: DescribeGlobalSObjectResult; sobject: DescribeSObjectResult };
   metadata: Record<string, SoqlMetadataTree>;
+  /** Keyed by the canonical relationship path from the root object, e.x. `Contacts` or `Contacts.Cases` */
   childMetadata: {
-    [childRelationshipName: string]: {
+    [childRelationshipPath: string]: {
       objectMetadata: DescribeSObjectResult;
       metadataTree: Record<string, SoqlMetadataTree>;
       // includes full path
@@ -44,7 +52,8 @@ export interface SoqlFetchMetadataOutput {
 }
 interface ParsableFields {
   fields: string[];
-  subqueries: { [childRelationshipName: string]: string[] };
+  /** Keyed by the relationship path from the root object, using the casing found in the query */
+  subqueries: { [childRelationshipPath: string]: string[] };
 }
 
 const TYPEOF_SEPARATOR = '!';
@@ -116,33 +125,54 @@ export async function fetchMetadataFromSoql(
   // add entries to lowercaseFieldMap for all related objects
   getLowercaseFieldMapWithFullPath(output.metadata, output.lowercaseFieldMap);
 
-  for (const childRelationship in parsableFields.subqueries) {
-    const foundRelationship = rootSobjectDescribe.childRelationships.find(
-      (currChildRelationship) => currChildRelationship.relationshipName?.toLowerCase() === childRelationship.toLowerCase(),
-    );
-    if (foundRelationship && foundRelationship.relationshipName) {
-      // Use the canonical relationship name from Salesforce metadata for consistent downstream lookups
-      const canonicalRelationshipName = foundRelationship.relationshipName;
-      const rootSobjectChildDescribe = await describeSObjectWithLocalCache(org, foundRelationship.childSObject, isTooling, describeCache);
-      output.childMetadata[canonicalRelationshipName] = {
-        objectMetadata: rootSobjectChildDescribe,
-        metadataTree: await fetchAllMetadata(
-          org,
-          isTooling,
-          rootSobjectChildDescribe,
-          parsableFields.subqueries[childRelationship],
-          describeCache,
-          canonicalRelationshipName,
-        ),
-        lowercaseFieldMap: getLowercaseFieldMap(rootSobjectChildDescribe.fields),
-      };
+  // Subqueries are resolved shallowest first so that each level can be looked up against its own parent's describe
+  const describeByCanonicalPath: Record<string, DescribeSObjectResult> = { '': rootSobjectDescribe };
+  const canonicalPathByQueryPath: Record<string, string> = { '': '' };
+  const relationshipPaths = Object.keys(parsableFields.subqueries).sort(
+    (pathA, pathB) => getSubqueryPathDepth(pathA) - getSubqueryPathDepth(pathB),
+  );
 
-      // add entries to lowercaseFieldMap for all related objects
-      getLowercaseFieldMapWithFullPath(
-        output.childMetadata[canonicalRelationshipName].metadataTree,
-        output.childMetadata[canonicalRelationshipName].lowercaseFieldMap,
-      );
+  for (const relationshipPath of relationshipPaths) {
+    if (getSubqueryPathDepth(relationshipPath) > MAX_SUBQUERY_DEPTH) {
+      continue;
     }
+    // An unresolved parent means nothing nested within it can be resolved either
+    const parentCanonicalPath = canonicalPathByQueryPath[getSubqueryParentPath(relationshipPath).toLowerCase()];
+    if (parentCanonicalPath === undefined) {
+      continue;
+    }
+    const relationshipName = getSubqueryRelationshipName(relationshipPath);
+    const foundRelationship = describeByCanonicalPath[parentCanonicalPath].childRelationships.find(
+      (currChildRelationship) => currChildRelationship.relationshipName?.toLowerCase() === relationshipName.toLowerCase(),
+    );
+    if (!foundRelationship?.relationshipName) {
+      continue;
+    }
+    // Use the canonical relationship name from Salesforce metadata for consistent downstream lookups
+    const canonicalPath = getSubqueryPath(parentCanonicalPath, foundRelationship.relationshipName);
+    const childDescribe = await describeSObjectWithLocalCache(org, foundRelationship.childSObject, isTooling, describeCache);
+
+    describeByCanonicalPath[canonicalPath] = childDescribe;
+    canonicalPathByQueryPath[relationshipPath.toLowerCase()] = canonicalPath;
+
+    output.childMetadata[canonicalPath] = {
+      objectMetadata: childDescribe,
+      metadataTree: await fetchAllMetadata(
+        org,
+        isTooling,
+        childDescribe,
+        parsableFields.subqueries[relationshipPath],
+        describeCache,
+        canonicalPath,
+      ),
+      lowercaseFieldMap: getLowercaseFieldMap(childDescribe.fields),
+    };
+
+    // add entries to lowercaseFieldMap for all related objects
+    getLowercaseFieldMapWithFullPath(
+      output.childMetadata[canonicalPath].metadataTree,
+      output.childMetadata[canonicalPath].lowercaseFieldMap,
+    );
   }
   // return output as SoqlFetchMetadataOutput;
   return output;
@@ -167,13 +197,14 @@ function getParsableFieldsFromOrderBy(orderBy: Maybe<OrderByClause | OrderByClau
 
 /**
  * Extract and sort all fields from a parsed query
- * recursive for subqueries
+ * recursive for subqueries, which are keyed by their full relationship path from the root object
  *
  * All fields are normalized to lowercase
  *
  * @param fields
+ * @param parentRelationshipPath path to the subquery these fields belong to, empty for the root object
  */
-function getParsableFields(fields: QueryFieldType[]): ParsableFields {
+function getParsableFields(fields: QueryFieldType[], parentRelationshipPath = ''): ParsableFields {
   const sortedOutput = fields.reduce(
     (output: ParsableFields, field) => {
       if (field.type === 'Field') {
@@ -191,12 +222,15 @@ function getParsableFields(fields: QueryFieldType[]): ParsableFields {
           output.fields.push(`${firstCondition.objectType}${TYPEOF_SEPARATOR}${field.field}.${typeofField}`),
         );
       } else if (field.type === 'FieldSubquery') {
-        const subqueryFields = getParsableFields(field.subquery.fields || []).fields;
+        const relationshipPath = getSubqueryPath(parentRelationshipPath, field.subquery.relationshipName);
+        const nestedFields = getParsableFields(field.subquery.fields || [], relationshipPath);
         const subqueryFilterFields = getParsableFieldsFromFilter(field.subquery.where).map((fieldName) => fieldName.toLowerCase());
         const subqueryOrderByFields = getParsableFieldsFromOrderBy(field.subquery.orderBy).map((fieldName) => fieldName.toLowerCase());
-        output.subqueries[field.subquery.relationshipName] = orderValues(
-          Array.from(new Set([...subqueryFields, ...subqueryFilterFields, ...subqueryOrderByFields])),
+        output.subqueries[relationshipPath] = orderValues(
+          Array.from(new Set([...nestedFields.fields, ...subqueryFilterFields, ...subqueryOrderByFields])),
         );
+        // Nested subqueries are already keyed by their full path, so they can be hoisted into the flat map
+        Object.assign(output.subqueries, nestedFields.subqueries);
       }
       return output;
     },
@@ -235,11 +269,11 @@ async function fetchAllMetadata(
   describeSobject: DescribeSObjectResult,
   parsableFields: string[],
   describeCache: Record<string, DescribeSObjectResult>,
-  subqueryRelationshipName?: string,
+  subqueryRelationshipPath?: string,
 ) {
   const fields = findRequiredRelationships(parsableFields);
-  const baseKey = subqueryRelationshipName
-    ? getSubqueryFieldBaseKey(describeSobject.name, subqueryRelationshipName)
+  const baseKey = subqueryRelationshipPath
+    ? getSubqueryFieldBaseKey(describeSobject.name, subqueryRelationshipPath)
     : getQueryFieldBaseKey(describeSobject.name);
   const metadata = await fetchRecursiveMetadata(org, isTooling, fields, describeSobject, baseKey, describeCache);
   return metadata;

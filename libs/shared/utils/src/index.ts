@@ -7,4 +7,5 @@ export * from './lib/regex';
 export * from './lib/salesforce-org-expiration';
 export * from './lib/sobject-api-name-utils';
 export * from './lib/sso-certificate-expiration';
+export * from './lib/subquery-path-utils';
 export * from './lib/utils';
