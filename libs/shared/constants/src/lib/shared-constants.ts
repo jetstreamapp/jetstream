@@ -275,6 +275,8 @@ export const ANALYTICS_KEYS = {
   load_Submitted: 'load_Submitted',
   load_ViewRecords: 'load_ViewRecords',
   load_DownloadRecords: 'load_DownloadRecords',
+  load_PollingTimedOut: 'load_PollingTimedOut',
+  load_PollingResumed: 'load_PollingResumed',
   /** LOAD MULTI OBJECT */
   load_multi_obj_TemplateDownloaded: 'load_multi_obj_TemplateDownloaded',
   load_multi_obj_FileProcessed: 'load_multi_obj_FileProcessed',
