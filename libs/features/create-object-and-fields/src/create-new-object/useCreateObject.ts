@@ -58,11 +58,10 @@ export default function useCreateObject({ apiVersion, serverUrl, selectedOrg }: 
     async (data: CreateFieldParams) => {
       try {
         const { apiName } = data;
-        const { orgNamespacePrefix } = selectedOrg;
         logger.info('[deployMetadata]', data);
         setStatus('LOADING_METADATA');
         setPermissionRecordResults(null);
-        const permissionRecords = getObjectAndTabPermissionRecords(data, orgNamespacePrefix);
+        const permissionRecords = getObjectAndTabPermissionRecords(data);
         const file = await getMetadataPackage(apiVersion, data);
 
         try {

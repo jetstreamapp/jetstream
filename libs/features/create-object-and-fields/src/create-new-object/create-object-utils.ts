@@ -1,6 +1,6 @@
 import { queryAll, sobjectOperation } from '@jetstream/shared/data';
 import { REGEX, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { Maybe, ObjectPermissionRecordInsert, RecordResult, SalesforceOrgUi, TabPermissionRecordInsert } from '@jetstream/types';
+import { ObjectPermissionRecordInsert, RecordResult, SalesforceOrgUi, TabPermissionRecordInsert } from '@jetstream/types';
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import JSZip from 'jszip';
 import partition from 'lodash/partition';
@@ -72,11 +72,14 @@ export function generateApiNameFromLabel(value: string) {
   return apiNameLabel ? `${apiNameLabel}__c` : '';
 }
 
-export function getObjectAndTabPermissionRecords(
-  { apiName: apiNameWithoutNamespace, createTab, profiles, permissionSets, objectPermissions }: CreateFieldParams,
-  orgNamespacePrefix?: Maybe<string>,
-) {
-  const apiName = orgNamespacePrefix ? `${orgNamespacePrefix}__${apiNameWithoutNamespace}` : apiNameWithoutNamespace;
+/**
+ * `apiName` already carries the org's namespace prefix — it is applied once, where the form value is
+ * read (`CreateNewObjectModal`), and the same qualified name is what the metadata package and the
+ * post-deploy links use. Do not prefix it again here: doing so produced `myns__myns__ObjName__c` on
+ * `ObjectPermissions.SobjectType` and `PermissionSetTabSetting.Name`, so the object and tab deployed
+ * fine and only the permissions step failed.
+ */
+export function getObjectAndTabPermissionRecords({ apiName, createTab, profiles, permissionSets, objectPermissions }: CreateFieldParams) {
   const _objectPermissions: ObjectPermissionRecordInsert[] = [];
   const tabPermissions: TabPermissionRecordInsert[] = [];
 
