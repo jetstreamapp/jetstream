@@ -2,23 +2,26 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { describeSObject, query } from '@jetstream/shared/data';
 import {
-  getFlattenedListItemsById,
   getListItemsFromFieldWithRelatedItems,
+  getPolymorphicTargetListItems,
+  isPolymorphicReference,
+  isPolymorphicTargetItem,
+  PolymorphicTargetMeta,
+  setChildItemsForParent,
   sortQueryFields,
-  unFlattenedListItemsById,
-  useNonInitialEffect,
   tracker,
+  useNonInitialEffect,
 } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { DescribeSObjectResult, Field, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import {
   DEFAULT_FIELD_CONFIGURATION,
+  getValidationSoqlQuery,
+  isValidRow,
   MetadataRow,
   TransformationCriteria,
   TransformationOption,
   TransformationOptions,
-  getValidationSoqlQuery,
-  isValidRow,
   useAmplitude,
 } from '@jetstream/ui-core';
 import { useAtom, useAtomValue } from 'jotai';
@@ -250,9 +253,7 @@ function reducer(state: State, action: Action): State {
       }
 
       // Add child items to the parent
-      let allItems = getFlattenedListItemsById(existingRow.valueFields);
-      allItems = { ...allItems, [parentId]: { ...allItems[parentId], childItems: childFields } };
-      const valueFields = unFlattenedListItemsById(allItems);
+      const valueFields = setChildItemsForParent(existingRow.valueFields, parentId, childFields);
 
       rowsMap.set(sobject, {
         ...existingRow,
@@ -420,13 +421,24 @@ export function useMassUpdateFieldItems(org: SalesforceOrgUi, selectedSObjects: 
 
   const onLoadChildFields = useCallback(
     async (sobject: string, item: ListItem): Promise<ListItem[]> => {
-      const field = item.meta as Field;
-      if (!Array.isArray(field.referenceTo) || field.referenceTo.length <= 0) {
-        return [];
+      let childFields: ListItem[];
+      if (isPolymorphicTargetItem(item)) {
+        const { relationshipPath, sobject: relatedSobject } = item.meta as PolymorphicTargetMeta;
+        const { data } = await describeSObject(org, relatedSobject);
+        childFields = getListItemsFromFieldWithRelatedItems(sortQueryFields(data.fields), item.id, relationshipPath);
+      } else {
+        const field = item.meta as Field;
+        if (!Array.isArray(field.referenceTo) || field.referenceTo.length <= 0) {
+          return [];
+        }
+        // Let the user pick which object to read from rather than silently traversing the first one.
+        if (isPolymorphicReference(field)) {
+          childFields = getPolymorphicTargetListItems(field, item.id);
+        } else {
+          const { data } = await describeSObject(org, field.referenceTo[0]);
+          childFields = getListItemsFromFieldWithRelatedItems(sortQueryFields(data.fields), item.id);
+        }
       }
-      const { data } = await describeSObject(org, field.referenceTo?.[0] || '');
-      const allFieldMetadata = sortQueryFields(data.fields);
-      const childFields = getListItemsFromFieldWithRelatedItems(allFieldMetadata, item.id);
 
       dispatch({ type: 'CHILD_FIELDS_LOADED', payload: { sobject, parentId: item.id, childFields } });
       return childFields;
