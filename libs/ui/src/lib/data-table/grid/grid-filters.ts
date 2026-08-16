@@ -3,6 +3,7 @@ import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { ensureBoolean, orderValues } from '@jetstream/shared/utils';
 import { isAfter } from 'date-fns/isAfter';
 import { isBefore } from 'date-fns/isBefore';
+import { isEqual } from 'date-fns/isEqual';
 import { isSameDay } from 'date-fns/isSameDay';
 import { isValid as isDateValid } from 'date-fns/isValid';
 import { parse as parseDate } from 'date-fns/parse';
@@ -21,6 +22,21 @@ import { ColumnWithFilter, DataTableFilter, FILTER_SET_TYPES, FilterType } from 
  * filter identically.
  */
 
+/**
+ * Parse a grid cell's date value. Cells render dates as `yyyy-MM-dd h:mm:ss a`, so that format is tried
+ * first; anything else (ISO strings, date-only values) falls back to `parseISO`.
+ *
+ * Do NOT try to pick the strategy by inspecting the string's length — `h` is a 1-2 digit hour, so the
+ * formatted length varies with the time of day and any 10/11/12 o'clock value takes the wrong branch.
+ */
+function parseGridDate(value: string): Date {
+  const parsedWithKnownFormat = parseDate(value, DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a, new Date());
+  if (isDateValid(parsedWithKnownFormat)) {
+    return parsedWithKnownFormat;
+  }
+  return parseISO(value);
+}
+
 export function resetFilter(type: FilterType, setValues: string[] = []): DataTableFilter {
   switch (type) {
     case 'TEXT':
@@ -28,7 +44,7 @@ export function resetFilter(type: FilterType, setValues: string[] = []): DataTab
     case 'NUMBER':
       return { type, value: null, comparator: 'EQUALS' };
     case 'DATE':
-      return { type, value: '', comparator: 'GREATER_THAN' };
+      return { type, value: '', comparator: 'GREATER_THAN', ignoreTimestamp: false };
     case 'TIME':
       return { type, value: '', comparator: 'GREATER_THAN' };
     case 'SET':
@@ -77,8 +93,12 @@ export function filterRecord(filter: DataTableFilter, value: any): boolean {
       switch (filter.comparator) {
         case 'GREATER_THAN':
           return value > filterValue;
+        case 'GREATER_THAN_OR_EQUAL':
+          return value >= filterValue;
         case 'LESS_THAN':
           return value < filterValue;
+        case 'LESS_THAN_OR_EQUAL':
+          return value <= filterValue;
         case 'EQUALS':
         default:
           return value === filterValue;
@@ -88,21 +108,23 @@ export function filterRecord(filter: DataTableFilter, value: any): boolean {
       if (!value || !filter.value) {
         return false;
       }
+      // The filter value is always day-granular, so the record's date is compared against the start of
+      // the selected day. `ignoreTimestamp` additionally floors the record so comparisons are day-to-day.
       const dateFilter = startOfDay(parseISO(filter.value));
-      let date: Date;
-      if (value.length === 21) {
-        date = parseDate(value, DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a, new Date());
-      } else {
-        date = startOfDay(parseISO(value));
-      }
-      if (!isDateValid(date)) {
+      const parsedDate = parseGridDate(value);
+      if (!isDateValid(parsedDate) || !isDateValid(dateFilter)) {
         return false;
       }
+      const date = filter.ignoreTimestamp ? startOfDay(parsedDate) : parsedDate;
       switch (filter.comparator) {
         case 'GREATER_THAN':
           return isAfter(date, dateFilter);
+        case 'GREATER_THAN_OR_EQUAL':
+          return isAfter(date, dateFilter) || isSameDay(date, dateFilter);
         case 'LESS_THAN':
           return isBefore(date, dateFilter);
+        case 'LESS_THAN_OR_EQUAL':
+          return isBefore(date, dateFilter) || isSameDay(date, dateFilter);
         case 'EQUALS':
         default:
           return isSameDay(date, dateFilter);
@@ -117,14 +139,20 @@ export function filterRecord(filter: DataTableFilter, value: any): boolean {
       if (!isDateValid(dateFilter) || !isDateValid(date)) {
         return false;
       }
+      // Both sides parse against the same reference day, so every case compares the times directly.
+      // `isSameDay` must NOT be used here — it is always true and would make the comparator match everything.
       switch (filter.comparator) {
         case 'GREATER_THAN':
           return isAfter(date, dateFilter);
+        case 'GREATER_THAN_OR_EQUAL':
+          return !isBefore(date, dateFilter);
         case 'LESS_THAN':
           return isBefore(date, dateFilter);
+        case 'LESS_THAN_OR_EQUAL':
+          return !isAfter(date, dateFilter);
         case 'EQUALS':
         default:
-          return isSameDay(date, dateFilter);
+          return isEqual(date, dateFilter);
       }
     }
     case 'BOOLEAN_SET': {

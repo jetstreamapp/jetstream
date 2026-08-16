@@ -26,13 +26,16 @@ import {
   DataTableSetFilter,
   DataTableTextFilter,
   DataTableTimeFilter,
+  FilterComparator,
 } from '../grid-types';
 
-type Comparator = 'EQUALS' | 'GREATER_THAN' | 'LESS_THAN';
+type Comparator = FilterComparator;
 const COMPARATOR_ITEMS: ListItem<string, Comparator>[] = [
   { id: 'EQUALS', label: 'Equals', value: 'EQUALS' },
   { id: 'GREATER_THAN', label: 'Greater Than', value: 'GREATER_THAN' },
+  { id: 'GREATER_THAN_OR_EQUAL', label: 'Greater Than or Equal', value: 'GREATER_THAN_OR_EQUAL' },
   { id: 'LESS_THAN', label: 'Less Than', value: 'LESS_THAN' },
+  { id: 'LESS_THAN_OR_EQUAL', label: 'Less Than or Equal', value: 'LESS_THAN_OR_EQUAL' },
 ];
 
 interface UpdateFilterFn {
@@ -386,6 +389,10 @@ export const HeaderDateFilter = memo(({ columnKey, filter, updateFilter }: Heade
     updateFilter(columnKey, { ...filter, value: nextValue ? formatISO(nextValue) : null });
   }
 
+  function handleIgnoreTimestampChange(ignoreTimestamp: boolean) {
+    updateFilter(columnKey, { ...filter, ignoreTimestamp });
+  }
+
   return (
     <div>
       <Picklist
@@ -401,7 +408,16 @@ export const HeaderDateFilter = memo(({ columnKey, filter, updateFilter }: Heade
         hideLabel
         className="slds-m-top_small w-100"
         initialSelectedDate={value || undefined}
+        allowClear
         onChange={handleDateChange}
+      />
+      <Checkbox
+        id={`${columnKey}-ignore-timestamp`}
+        className="slds-m-top_x-small"
+        label="Ignore timestamp"
+        labelHelp="Compare calendar dates only, ignoring the time of day stored on each record."
+        checked={!!filter.ignoreTimestamp}
+        onChange={handleIgnoreTimestampChange}
       />
     </div>
   );

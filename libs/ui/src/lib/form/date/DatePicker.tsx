@@ -1,5 +1,6 @@
 // https://www.lightningdesignsystem.com/components/input/#Fixed-Text
 
+import { css } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { PositionLeftRight } from '@jetstream/types';
 import classNames from 'classnames';
@@ -40,6 +41,8 @@ export interface DatePickerProps {
   usePortal?: boolean;
   openOnInit?: boolean;
   trigger?: 'onChange' | 'onBlur';
+  /** Show an `x` in the input to clear the selected date without having to open the picker. */
+  allowClear?: boolean;
   onChange: (date: Date | null) => void;
 }
 
@@ -65,6 +68,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
   openOnInit = false,
   usePortal = false,
   trigger = 'onChange',
+  allowClear = false,
   onChange,
 }) => {
   initialSelectedDate = isValidDate(initialSelectedDate) ? initialSelectedDate : undefined;
@@ -162,6 +166,8 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
     onChange(null);
   }
 
+  const showClearButton = allowClear && !readOnly && !!value;
+
   function handleToggleOpen(value: boolean) {
     if (readOnly && !isOpen) {
       return;
@@ -189,7 +195,12 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
         {label}
       </label>
       {!hideLabel && labelHelp && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
-      <div className="slds-form-element__control slds-input-has-icon slds-input-has-icon_right">
+      <div
+        className={classNames('slds-form-element__control slds-input-has-icon', {
+          'slds-input-has-icon_group-right': showClearButton,
+          'slds-input-has-icon_right': !showClearButton,
+        })}
+      >
         <input
           ref={inputRef}
           aria-describedby={errorMessageId}
@@ -215,14 +226,33 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
           disabled={disabled}
           {...inputProps}
         />
-        <button
-          className="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
-          title="Select a date"
-          onClick={() => handleToggleOpen(!isOpen)}
-          disabled={disabled}
-        >
-          {!readOnly && <Icon type="utility" icon="event" className="slds-button__icon" omitContainer description="Select a date" />}
-        </button>
+        <div className={classNames({ 'slds-input__icon-group slds-input__icon-group_right': showClearButton })}>
+          {showClearButton && (
+            <button
+              type="button"
+              className="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
+              // The icon group stacks both buttons at the same offset, so shift the clear button inward
+              // to sit alongside the calendar button rather than underneath it.
+              css={css`
+                right: 1.75rem;
+              `}
+              title="Clear date"
+              onClick={handleClear}
+              disabled={disabled}
+            >
+              <Icon type="utility" icon="clear" className="slds-button__icon" omitContainer description="Clear date" />
+            </button>
+          )}
+          <button
+            type="button"
+            className="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
+            title="Select a date"
+            onClick={() => handleToggleOpen(!isOpen)}
+            disabled={disabled}
+          >
+            {!readOnly && <Icon type="utility" icon="event" className="slds-button__icon" omitContainer description="Select a date" />}
+          </button>
+        </div>
       </div>
       <div className="slds-assistive-text slds-form-element__help">Format: yyyy-mm-dd</div>
       <PopoverContainer
