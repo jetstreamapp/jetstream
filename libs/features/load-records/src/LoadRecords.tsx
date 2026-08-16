@@ -302,6 +302,11 @@ export const LoadRecords = () => {
         if (!isNextStepDisabled) {
           isNextStepDisabled = Object.values(fieldMapping).some((field) => field.mappedToLookup && !field.targetLookupField);
         }
+        // Any mapping error shown on a row (duplicate target field, record Id in an upsert) has to block
+        // the step — it is already surfaced in the UI and gates Save Mapping.
+        if (!isNextStepDisabled) {
+          isNextStepDisabled = Object.values(fieldMapping).some((field) => !!field.fieldErrorMsg);
+        }
         // Ensure required fields are mapped for custom metadata objects
         if (!isNextStepDisabled && isCustomMetadataObject) {
           isNextStepDisabled =

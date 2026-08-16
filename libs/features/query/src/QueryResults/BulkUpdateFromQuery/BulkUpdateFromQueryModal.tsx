@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { clearCacheForOrg } from '@jetstream/shared/data';
-import { convertDateToLocale, filterLoadSobjects, formatNumber, tracker } from '@jetstream/shared/ui-utils';
+import { convertDateToLocale, filterLoadSobjects, formatNumber, tracker, useIntegerInput } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getRecordIdFromAttributes, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { ListItem, Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import {
@@ -32,7 +32,7 @@ import { composeQuery, Query } from '@jetstreamapp/soql-parser-js';
 import { useAtom } from 'jotai';
 import { atomWithReset, useAtomCallback, useResetAtom } from 'jotai/utils';
 import isNumber from 'lodash/isNumber';
-import { ChangeEvent, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { buildProposedChanges, ProposedChangesResult } from './bulk-update-preview.utils';
 import BulkUpdateFromQueryRecordSelection from './BulkUpdateFromQueryRecordSelection';
 import BulkUpdateProposedChangesPreview from './BulkUpdateProposedChangesPreview';
@@ -100,6 +100,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
   );
   const [batchSize, setBatchSize] = useState<Maybe<number>>(10000);
   const [batchSizeError, setBatchSizeError] = useState<string | null>(null);
+  const batchSizeInput = useIntegerInput(batchSize, setBatchSize);
   const [serialMode, setSerialMode] = useState(false);
   const [deployResults, setDeployResults] = useAtom(deployResultsState);
   const [didDeploy, setDidDeploy] = useState(false);
@@ -337,15 +338,6 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
     onModalClose(didDeploy);
   };
 
-  function handleBatchSize(event: ChangeEvent<HTMLInputElement>) {
-    const value = Number.parseInt(event.target.value);
-    if (Number.isInteger(value)) {
-      setBatchSize(value);
-    } else if (!event.target.value) {
-      setBatchSize(null);
-    }
-  }
-
   const handleRefreshMetadata = async () => {
     setRefreshLoading(true);
     await clearCacheForOrg(selectedOrg);
@@ -538,10 +530,11 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
                 id="batch-size"
                 className="slds-input"
                 placeholder="Set batch size"
-                value={batchSize || ''}
+                value={batchSizeInput.inputValue}
                 aria-describedby={batchSizeError ? 'batch-size-error' : undefined}
                 disabled={loading || deployInProgress}
-                onChange={handleBatchSize}
+                onChange={batchSizeInput.handleChange}
+                onBlur={batchSizeInput.handleBlur}
               />
             </Input>
           </Section>

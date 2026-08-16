@@ -49,7 +49,11 @@ export const QueryWhereIsThisUsed = ({ org, sobject, field }: QueryWhereIsThisUs
     }
   }, [items]);
 
-  function handleOpen() {
+  function handleOpen(event: React.MouseEvent<HTMLButtonElement>) {
+    // This control sits inside the field list's ListItemCheckbox — without this the click bubbles up
+    // and toggles the field's selection.
+    event.preventDefault();
+    event.stopPropagation();
     setIsOpen(true);
   }
 
@@ -66,88 +70,98 @@ export const QueryWhereIsThisUsed = ({ org, sobject, field }: QueryWhereIsThisUs
     copyRecordsToClipboard(exportData, 'excel', ['Reference Type', 'Reference Label', 'Namespace']);
   }
 
+  // The modals render through a portal, but React events still travel the component tree, so clicks
+  // inside them would otherwise reach the surrounding ListItemCheckbox and toggle the field.
+  function stopModalEventPropagation(event: React.SyntheticEvent) {
+    event.stopPropagation();
+  }
+
   return (
     <Fragment>
       {exportModalOpen && (
-        <FileDownloadModal
-          org={org}
-          modalHeader="Download Field Dependencies"
-          googleIntegrationEnabled={hasGoogleDriveAccess}
-          googleShowUpgradeToPro={googleShowUpgradeToPro}
-          google_apiKey={google_apiKey}
-          google_appId={google_appId}
-          google_clientId={google_clientId}
-          data={exportData}
-          header={['Reference Type', 'Reference Label', 'Namespace']}
-          fileNameParts={['dependencies', `${sobject}.${field}`]}
-          onModalClose={() => setExportModalOpen(false)}
-          source="where_is_this_used"
-          // This one is too much trouble to pass down amplitude dependency
-          // eslint-disable-next-line @typescript-eslint/no-empty-function
-          trackEvent={() => {}}
-        />
+        <div onClick={stopModalEventPropagation} onKeyDown={stopModalEventPropagation}>
+          <FileDownloadModal
+            org={org}
+            modalHeader="Download Field Dependencies"
+            googleIntegrationEnabled={hasGoogleDriveAccess}
+            googleShowUpgradeToPro={googleShowUpgradeToPro}
+            google_apiKey={google_apiKey}
+            google_appId={google_appId}
+            google_clientId={google_clientId}
+            data={exportData}
+            header={['Reference Type', 'Reference Label', 'Namespace']}
+            fileNameParts={['dependencies', `${sobject}.${field}`]}
+            onModalClose={() => setExportModalOpen(false)}
+            source="where_is_this_used"
+            // This one is too much trouble to pass down amplitude dependency
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
+            trackEvent={() => {}}
+          />
+        </div>
       )}
       {isFieldEligible && (
         <Fragment>
           {isOpen && (
-            <Modal
-              closeOnEsc
-              closeOnBackdropClick
-              onClose={handleClose}
-              header="Where is this field used?"
-              tagline={`${sobject}: ${field}`}
-              footer={
-                <div>
-                  <button
-                    className="slds-button slds-button_neutral"
-                    onClick={handleCopyToClipboard}
-                    disabled={!hasLoaded || loading || !items?.length}
-                  >
-                    Copy to Clipboard
-                  </button>
-                  <button
-                    className="slds-button slds-button_neutral"
-                    onClick={handleDownload}
-                    disabled={!hasLoaded || loading || !items?.length}
-                  >
-                    Download
-                  </button>
-                  <button className="slds-button slds-button_brand" onClick={handleClose}>
-                    Close
-                  </button>
-                </div>
-              }
-            >
-              <div
-                className="slds-is-relative"
-                css={css`
-                  min-height: 100px;
-                `}
+            <div onClick={stopModalEventPropagation} onKeyDown={stopModalEventPropagation}>
+              <Modal
+                closeOnEsc
+                closeOnBackdropClick
+                onClose={handleClose}
+                header="Where is this field used?"
+                tagline={`${sobject}: ${field}`}
+                footer={
+                  <div>
+                    <button
+                      className="slds-button slds-button_neutral"
+                      onClick={handleCopyToClipboard}
+                      disabled={!hasLoaded || loading || !items?.length}
+                    >
+                      Copy to Clipboard
+                    </button>
+                    <button
+                      className="slds-button slds-button_neutral"
+                      onClick={handleDownload}
+                      disabled={!hasLoaded || loading || !items?.length}
+                    >
+                      Download
+                    </button>
+                    <button className="slds-button slds-button_brand" onClick={handleClose}>
+                      Close
+                    </button>
+                  </div>
+                }
               >
-                {loading && <Spinner />}
-                {hasError && <ScopedNotification theme="error">{errorMessage}</ScopedNotification>}
-                {hasLoaded && !loading && !hasError && (
-                  <Fragment>
-                    <p className="slds-text-color_weak slds-align_absolute-center">
-                      Up to the first 2,000 dependencies are shown and Reports are not included.
-                    </p>
-                    <p className="slds-text-color_weak slds-align_absolute-center">
-                      Dependencies may not be shown for standard objects, this is a Salesforce limitation.
-                    </p>
-                  </Fragment>
-                )}
-                {hasLoaded && !loading && !items?.length && !hasError && <EmptyState headline="No dependencies were found"></EmptyState>}
-                <ReadonlyList
-                  items={items || []}
-                  getContent={(item: ListItem<string, MetadataDependency>) => ({
-                    key: item.id,
-                    id: item.id,
-                    heading: item.label,
-                    subheading: item.secondaryLabel,
-                  })}
-                />
-              </div>
-            </Modal>
+                <div
+                  className="slds-is-relative"
+                  css={css`
+                    min-height: 100px;
+                  `}
+                >
+                  {loading && <Spinner />}
+                  {hasError && <ScopedNotification theme="error">{errorMessage}</ScopedNotification>}
+                  {hasLoaded && !loading && !hasError && (
+                    <Fragment>
+                      <p className="slds-text-color_weak slds-align_absolute-center">
+                        Up to the first 2,000 dependencies are shown and Reports are not included.
+                      </p>
+                      <p className="slds-text-color_weak slds-align_absolute-center">
+                        Dependencies may not be shown for standard objects, this is a Salesforce limitation.
+                      </p>
+                    </Fragment>
+                  )}
+                  {hasLoaded && !loading && !items?.length && !hasError && <EmptyState headline="No dependencies were found"></EmptyState>}
+                  <ReadonlyList
+                    items={items || []}
+                    getContent={(item: ListItem<string, MetadataDependency>) => ({
+                      key: item.id,
+                      id: item.id,
+                      heading: item.label,
+                      subheading: item.secondaryLabel,
+                    })}
+                  />
+                </div>
+              </Modal>
+            </div>
           )}
           <div className="slds-hint-parent">
             <button className="slds-button slds-button_icon" title="Where is this field used?" onClick={handleOpen}>
