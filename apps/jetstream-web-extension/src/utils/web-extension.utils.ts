@@ -15,7 +15,16 @@ type ResponseForRequest<R> = R extends { message: infer M }
   : never;
 
 const OBJECT_PAGE_REGEX = /\/lightning\/o\/[a-z0-9_]+\//i;
-const RECORD_PAGE_REGEX = /\/lightning\/r\/[a-z0-9_]+\/[a-z0-9]{18}\/(view|edit)$/i;
+
+/**
+ * Lightning record pages are `/lightning/r/<objectName>/<recordId>/<action>`. Both the object name and
+ * the record id are captured positionally — searching the path for an id-shaped substring instead would
+ * match the *object name* for anything with an API name of 18+ characters (OpportunityLineItem,
+ * ServiceAppointment, OpportunityContactRole, …).
+ */
+const RECORD_PAGE_REGEX = /\/lightning\/r\/(?<objectName>[a-z0-9_]+)\/(?<recordId>[a-z0-9]{18}|[a-z0-9]{15})\/(?:view|edit)$/i;
+/** Classic-style short URL, e.g. `/001D000000IqhSL`. */
+const CLASSIC_RECORD_PAGE_REGEX = /^\/(?<recordId>[a-z0-9]{18}|[a-z0-9]{15})$/i;
 
 function handleResponse<T>(response: MessageResponse<ResponseForRequest<T>>) {
   logger.log('RESPONSE', response);
@@ -47,8 +56,9 @@ export async function sendMessage<T extends MessageRequest>(message: T): Promise
   }
 }
 
-const is15or18Digits = /[a-z0-9]{15}|[a-z0-9]{18}/i;
-const is18Digits = /[a-z0-9]{18}/i;
+// Anchored so a longer string that merely contains an id-shaped run is rejected.
+const is15or18Digits = /^(?:[a-z0-9]{18}|[a-z0-9]{15})$/i;
+const is18Digits = /^[a-z0-9]{18}$/i;
 
 function isValidSalesforceRecordId(recordId?: string, allow15Char = true): boolean {
   const regex = allow15Char ? is15or18Digits : is18Digits;
@@ -77,15 +87,10 @@ export function getRecordPageRecordId(pathName: string) {
   if (!pathName) {
     return;
   }
-  let recordId: string | undefined;
-  if (RECORD_PAGE_REGEX.test(pathName)) {
-    // extract the record id by matching [a-zA-Z0-9]{18}
-    recordId = pathName.match(/[a-zA-Z0-9]{18}/i)?.[0];
-  } else if (/^\/[a-zA-Z0-9]{15}$/.test(pathName)) {
-    recordId = pathName.match(/\/[a-z0-9]{15}$/i)?.[0];
-  }
-  if (isValidSalesforceRecordId(recordId)) {
-    return recordId;
+  const match = RECORD_PAGE_REGEX.exec(pathName) ?? CLASSIC_RECORD_PAGE_REGEX.exec(pathName);
+  const recordId = match?.groups?.recordId;
+  if (!isValidSalesforceRecordId(recordId)) {
+    return;
   }
   return recordId;
 }
@@ -100,9 +105,5 @@ export function getRecordPageObject(pathName: string) {
       return objectName;
     }
   }
-  if (RECORD_PAGE_REGEX.test(pathName)) {
-    const objectName = pathName.replace('/lightning/r/', '').split('/')[0];
-    return objectName;
-  }
-  return;
+  return RECORD_PAGE_REGEX.exec(pathName)?.groups?.objectName;
 }
