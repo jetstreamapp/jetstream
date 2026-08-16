@@ -1,14 +1,49 @@
 import {
+  BULK_JOB_POLL_INITIAL_INTERVAL_MS,
+  BULK_JOB_POLL_INTERVAL_STEP_MS,
+  BULK_JOB_POLL_MAX_CHECKS,
+  BULK_JOB_POLL_MAX_INTERVAL_MS,
   BatchCsv,
   MAX_BATCH_CSV_CHARS,
   MAX_CONSECUTIVE_FAILURES,
   generateSizeCappedBatchCsvs,
+  getBulkJobPollInterval,
   isFatalBulkApiError,
 } from '../load-records-process';
 
 describe('MAX_CONSECUTIVE_FAILURES', () => {
   it('should equal 5', () => {
     expect(MAX_CONSECUTIVE_FAILURES).toBe(5);
+  });
+});
+
+describe('getBulkJobPollInterval', () => {
+  it('starts at the initial interval', () => {
+    expect(getBulkJobPollInterval(0)).toBe(BULK_JOB_POLL_INITIAL_INTERVAL_MS);
+  });
+
+  it('grows by one step per check', () => {
+    expect(getBulkJobPollInterval(1)).toBe(BULK_JOB_POLL_INITIAL_INTERVAL_MS + BULK_JOB_POLL_INTERVAL_STEP_MS);
+    expect(getBulkJobPollInterval(10)).toBe(BULK_JOB_POLL_INITIAL_INTERVAL_MS + 10 * BULK_JOB_POLL_INTERVAL_STEP_MS);
+  });
+
+  it('never exceeds the max interval', () => {
+    expect(getBulkJobPollInterval(BULK_JOB_POLL_MAX_CHECKS)).toBe(BULK_JOB_POLL_MAX_INTERVAL_MS);
+    expect(getBulkJobPollInterval(Number.MAX_SAFE_INTEGER)).toBe(BULK_JOB_POLL_MAX_INTERVAL_MS);
+  });
+
+  it('never gets faster as checks accumulate', () => {
+    for (let checkCount = 1; checkCount < BULK_JOB_POLL_MAX_CHECKS; checkCount++) {
+      expect(getBulkJobPollInterval(checkCount)).toBeGreaterThanOrEqual(getBulkJobPollInterval(checkCount - 1));
+    }
+  });
+
+  it('keeps polling for well over the previous fixed 10 minute runway before giving up', () => {
+    const totalPollingMs = Array.from({ length: BULK_JOB_POLL_MAX_CHECKS }, (_, checkCount) => getBulkJobPollInterval(checkCount)).reduce(
+      (total, interval) => total + interval,
+      0,
+    );
+    expect(totalPollingMs).toBeGreaterThan(30 * 60 * 1000);
   });
 });
 

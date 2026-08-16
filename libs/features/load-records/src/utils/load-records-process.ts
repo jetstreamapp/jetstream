@@ -74,6 +74,19 @@ export const MAX_CONSECUTIVE_FAILURES = 5;
 // even at modest batch sizes. Kept below the hard limit for encoding/newline headroom.
 export const MAX_BATCH_CSV_CHARS = 9_500_000;
 
+// Bulk API job status polling. Polling starts fast so small jobs feel responsive and slows down a
+// little on every check so long-running jobs get a much longer runway before we stop polling and
+// hand control back to the user (~38 minutes at these values, vs 10 minutes at a fixed 3s interval).
+export const BULK_JOB_POLL_INITIAL_INTERVAL_MS = 3_000;
+export const BULK_JOB_POLL_INTERVAL_STEP_MS = 100;
+export const BULK_JOB_POLL_MAX_INTERVAL_MS = 15_000;
+export const BULK_JOB_POLL_MAX_CHECKS = 200;
+
+/** Delay before the next job status check, growing linearly with the number of checks already made */
+export function getBulkJobPollInterval(checkCount: number): number {
+  return Math.min(BULK_JOB_POLL_INITIAL_INTERVAL_MS + checkCount * BULK_JOB_POLL_INTERVAL_STEP_MS, BULK_JOB_POLL_MAX_INTERVAL_MS);
+}
+
 export function isFatalBulkApiError(error: unknown): boolean {
   const message = getErrorMessage(error);
   return FATAL_BULK_ERROR_PATTERNS.some((pattern) => pattern.test(message));

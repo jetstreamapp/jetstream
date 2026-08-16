@@ -51,7 +51,13 @@ import {
 import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { LoadTypeDisplayNames, loadBulkApiData, prepareData } from '../../utils/load-records-process';
+import {
+  BULK_JOB_POLL_MAX_CHECKS,
+  LoadTypeDisplayNames,
+  getBulkJobPollInterval,
+  loadBulkApiData,
+  prepareData,
+} from '../../utils/load-records-process';
 import { extractRetryRecords, registerRetryRecord } from './retry-record-map';
 
 type Status = 'Preparing Data' | 'Uploading Data' | 'Processing Data' | 'Aborting' | 'Finished' | 'Error';
@@ -72,8 +78,6 @@ const STATUSES: {
   ERROR: 'Error',
 };
 
-const CHECK_INTERVAL = 3000;
-const MAX_INTERVAL_CHECK_COUNT = 200; // 3000*200/60=10 minutes
 const ABORTABLE_STATUSES = new Set<Status>([STATUSES.PREPARING, STATUSES.UPLOADING, STATUSES.PROCESSING, STATUSES.ABORTING]);
 const FETCH_FAILED_RECORDS_CONCURRENCY = 5;
 
@@ -257,6 +261,8 @@ export const LoadRecordsBulkApiResults = ({
   // Salesforce changes order of batches, so we want to ensure order is retained based on the input file
   const [batchIdByIndex, setBatchIdByIndex] = useState<Record<string, number>>();
   const [intervalCount, setIntervalCount] = useState<number>(0);
+  // Polling gives up after BULK_JOB_POLL_MAX_CHECKS so a runaway job doesn't poll forever; the user can resume it
+  const [pollingTimedOut, setPollingTimedOut] = useState(false);
   const [downloadModalData, setDownloadModalData] = useState<DownloadModalData>({
     open: false,
     data: [],
@@ -305,6 +311,46 @@ export const LoadRecordsBulkApiResults = ({
   }, [batchSummary]);
 
   /**
+   * Fetch the latest job status from Salesforce and store it, which re-triggers the polling effect.
+   * Salesforce returns batches in an arbitrary order, so they are re-ordered to match the input file.
+   * If the request fails, jobInfo is re-set with a fresh reference so polling carries on regardless.
+   */
+  async function pollJobStatus() {
+    if (!isMounted.current || !batchIdByIndex || !jobInfo?.id) {
+      return;
+    }
+    try {
+      const jobInfoWithBatches = await bulkApiGetJob(selectedOrg, jobInfo.id);
+      if (!isMounted.current) {
+        return;
+      }
+      const batches: BulkJobBatchInfo[] = [];
+      // re-order (if needed) while keeping the array dense
+      jobInfoWithBatches.batches.forEach((batch) => {
+        batches[batchIdByIndex[batch.id]] = batch;
+      });
+      jobInfoWithBatches.batches = batches.filter(Boolean);
+      setJobInfo(jobInfoWithBatches);
+    } catch (ex) {
+      logger.warn('Error polling bulk API job status', ex);
+      if (!isMounted.current) {
+        return;
+      }
+      // Set a new jobInfo reference to re-trigger the polling effect
+      setJobInfo((currentJobInfo) => (currentJobInfo ? { ...currentJobInfo } : currentJobInfo));
+    }
+    setIntervalCount((currentIntervalCount) => currentIntervalCount + 1);
+  }
+
+  /** Polling gave up on a long-running job - check it right away and start a fresh polling window */
+  function handleResumePolling() {
+    trackEvent(ANALYTICS_KEYS.load_PollingResumed, { loadType });
+    setPollingTimedOut(false);
+    setIntervalCount(0);
+    pollJobStatus();
+  }
+
+  /**
    * When jobInfo is modified, check to see if everything is done
    * If not done and status is processing, then continue polling
    */
@@ -343,34 +389,20 @@ export const LoadRecordsBulkApiResults = ({
             onFinishRef.current({ success: numSuccess, failure: numFailure, failedRecords });
           }
         })();
-      } else if ((status === STATUSES.PROCESSING || status === STATUSES.ABORTING) && intervalCount < MAX_INTERVAL_CHECK_COUNT) {
-        pollingTimerRef.current = setTimeout(async () => {
-          pollingTimerRef.current = null;
-          if (!isMounted.current || !batchIdByIndex || !jobInfo.id) {
-            return;
+      } else if (status === STATUSES.PROCESSING || status === STATUSES.ABORTING) {
+        if (intervalCount >= BULK_JOB_POLL_MAX_CHECKS) {
+          // Stop polling and hand control to the user - the job keeps running in Salesforce regardless.
+          // Guarded so a status change (e.g. abort) after timing out doesn't re-fire the event.
+          if (!pollingTimedOut) {
+            setPollingTimedOut(true);
+            trackEvent(ANALYTICS_KEYS.load_PollingTimedOut, { loadType, checkCount: intervalCount });
           }
-          try {
-            const jobInfoWithBatches = await bulkApiGetJob(selectedOrg, jobInfo.id);
-            if (!isMounted.current) {
-              return;
-            }
-            const batches: BulkJobBatchInfo[] = [];
-            // re-order (if needed) while keeping the array dense
-            jobInfoWithBatches.batches.forEach((batch) => {
-              batches[batchIdByIndex[batch.id]] = batch;
-            });
-            jobInfoWithBatches.batches = batches.filter(Boolean);
-            setJobInfo(jobInfoWithBatches);
-          } catch (ex) {
-            logger.warn('Error polling bulk API job status', ex);
-            if (!isMounted.current) {
-              return;
-            }
-            // Set a new jobInfo reference to re-trigger the polling effect
-            setJobInfo((currentJobInfo) => (currentJobInfo ? { ...currentJobInfo } : currentJobInfo));
-          }
-          setIntervalCount((currentIntervalCount) => currentIntervalCount + 1);
-        }, CHECK_INTERVAL);
+        } else {
+          pollingTimerRef.current = setTimeout(() => {
+            pollingTimerRef.current = null;
+            pollJobStatus();
+          }, getBulkJobPollInterval(intervalCount));
+        }
       }
     }
     return () => {
@@ -918,6 +950,20 @@ export const LoadRecordsBulkApiResults = ({
       {autoSplitBatchCount > 0 && (
         <ScopedNotification theme="info" className="slds-m-vertical_x-small" allowClose>
           Some of your batches were larger than Salesforce allows, so they were automatically split into smaller batches.
+        </ScopedNotification>
+      )}
+      {pollingTimedOut && (
+        <ScopedNotification theme="warning" className="slds-m-vertical_x-small">
+          <Grid verticalAlign="center" align="spread" wrap>
+            <span className="slds-m-right_small">
+              Jetstream stopped checking the status of this job because it has been running for a long time. The job continues in Salesforce
+              regardless - resume checking to pick up the latest status.
+            </span>
+            <button className="slds-button slds-button_neutral" onClick={handleResumePolling}>
+              <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
+              Resume checking status
+            </button>
+          </Grid>
         </ScopedNotification>
       )}
       {/* Data is being processed */}
