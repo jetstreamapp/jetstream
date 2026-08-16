@@ -1,5 +1,5 @@
 import { ANALYTICS_KEYS, DATE_FORMATS, TITLES } from '@jetstream/shared/constants';
-import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { formatNumber, useIntegerInput, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import {
   ApiMode,
@@ -88,6 +88,8 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   /** Only show date hint if the user has a mapped date/datetime field */
   const hasDateFieldMapped = useAtomValue(fromLoadRecordsState.selectHasDateFieldMapped);
 
+  const batchSizeInput = useIntegerInput(batchSize, setBatchSize);
+
   const batchSizeError = useAtomValue(fromLoadRecordsState.selectBatchSizeError);
   const batchApiLimitWarning = useAtomValue(fromLoadRecordsState.selectBatchApiLimitWarning);
   const batchApiLimitError = useAtomValue(fromLoadRecordsState.selectBatchApiLimitError);
@@ -165,15 +167,6 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
     onIsLoading(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trialRun, trialRunSize, inputFileData]);
-
-  function handleBatchSize(event: ChangeEvent<HTMLInputElement>) {
-    const value = Number.parseInt(event.target.value);
-    if (Number.isInteger(value)) {
-      setBatchSize(value);
-    } else if (!event.target.value) {
-      setBatchSize(null);
-    }
-  }
 
   function handletrialRunSize(event: ChangeEvent<HTMLInputElement>) {
     const value = Number.parseInt(event.target.value);
@@ -474,10 +467,11 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
             id="batch-size"
             className="slds-input"
             placeholder="Set batch size"
-            value={batchSize || ''}
+            value={batchSizeInput.inputValue}
             aria-describedby={'batch-size-error'}
             disabled={loading || hasZipAttachment}
-            onChange={handleBatchSize}
+            onChange={batchSizeInput.handleChange}
+            onBlur={batchSizeInput.handleBlur}
           />
         </Input>
 

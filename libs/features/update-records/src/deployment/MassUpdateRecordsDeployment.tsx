@@ -1,4 +1,4 @@
-import { useGoBackShortcut, usePrimaryActionShortcut } from '@jetstream/shared/ui-utils';
+import { useGoBackShortcut, useIntegerInput, usePrimaryActionShortcut } from '@jetstream/shared/ui-utils';
 import { BulkJobBatchInfo, Maybe } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -20,7 +20,7 @@ import { selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtomValue, useSetAtom } from 'jotai';
 import { useAtomCallback } from 'jotai/utils';
 import isNumber from 'lodash/isNumber';
-import { ChangeEvent, useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import * as fromMassUpdateState from '../mass-update-records.state';
 
@@ -52,6 +52,7 @@ export const MassUpdateRecordsDeployment = () => {
   const [loading, setLoading] = useState(false);
   const [batchSize, setBatchSize] = useState<Maybe<number>>(10000);
   const [batchSizeError, setBatchSizeError] = useState<string | null>(null);
+  const batchSizeInput = useIntegerInput(batchSize, setBatchSize);
   const [serialMode, setSerialMode] = useState(false);
   const setDeploymentState = useSetAtom(fromMassUpdateState.rowsMapState);
 
@@ -92,15 +93,6 @@ export const MassUpdateRecordsDeployment = () => {
       setBatchSizeError(null);
     }
   }, [batchSize, batchSizeError]);
-
-  function handleBatchSize(event: ChangeEvent<HTMLInputElement>) {
-    const value = Number.parseInt(event.target.value);
-    if (Number.isInteger(value)) {
-      setBatchSize(value);
-    } else if (!event.target.value) {
-      setBatchSize(null);
-    }
-  }
 
   return (
     <Page testId="mass-update-records-deployment-page">
@@ -173,10 +165,11 @@ export const MassUpdateRecordsDeployment = () => {
               id="batch-size"
               className="slds-input"
               placeholder="Set batch size"
-              value={batchSize || ''}
-              aria-describedby={batchSizeError || undefined}
+              value={batchSizeInput.inputValue}
+              aria-describedby={batchSizeError ? 'batch-size-error' : undefined}
               disabled={loading}
-              onChange={handleBatchSize}
+              onChange={batchSizeInput.handleChange}
+              onBlur={batchSizeInput.handleBlur}
             />
           </Input>
         </Section>
