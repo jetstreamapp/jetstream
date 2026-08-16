@@ -50,7 +50,22 @@ function buildChunkedIdInQueries(baseSoql: string, ids: string[]): string[] {
   return queries;
 }
 
-export const startsWithWhereRgx = /^( )*WHERE( )*/i;
+export const startsWithWhereRgx = /^\s*WHERE\b\s*/i;
+
+/**
+ * Users routinely paste a clause that still has its leading `WHERE` keyword. Every consumer normalizes
+ * through here so validation and query composition agree: previously only the input component stripped
+ * the keyword, so `WHERE Foo = 1` looked valid while `isValidRow` and the compose helpers rejected it —
+ * blocking the row with no message shown.
+ */
+export function normalizeWhereClause(whereClause: Maybe<string>): string {
+  return (whereClause || '').replace(startsWithWhereRgx, '').trim();
+}
+
+export function isValidWhereClause(whereClause: Maybe<string>): boolean {
+  const normalizedWhereClause = normalizeWhereClause(whereClause);
+  return !!normalizedWhereClause && isQueryValid(`WHERE ${normalizedWhereClause}`, { allowPartialQuery: true });
+}
 
 export const DEFAULT_FIELD_CONFIGURATION: MetadataRowConfiguration = {
   selectedField: null,
@@ -107,10 +122,8 @@ export function isValidRow(row: Maybe<MetadataRow>) {
     if (transformationOptions.option === 'staticValue' && !transformationOptions.staticValue) {
       return false;
     }
-    if (transformationOptions.criteria === 'custom') {
-      if (!transformationOptions.whereClause || !isQueryValid(`WHERE ${transformationOptions.whereClause}`, { allowPartialQuery: true })) {
-        return false;
-      }
+    if (transformationOptions.criteria === 'custom' && !isValidWhereClause(transformationOptions.whereClause)) {
+      return false;
     }
     return true;
   });
@@ -176,13 +189,8 @@ export function composeSoqlQueryOptionalCustomWhereClause(row: MetadataRow, fiel
         return `(${selectedField} = NULL)`;
       } else if (transformationOptions.criteria === 'onlyIfNotBlank' && selectedField) {
         return `(${selectedField} != NULL)`;
-      } else if (
-        includeCustom &&
-        transformationOptions.criteria === 'custom' &&
-        transformationOptions.whereClause &&
-        isQueryValid(`WHERE ${transformationOptions.whereClause}`, { allowPartialQuery: true })
-      ) {
-        return `(${transformationOptions.whereClause})`;
+      } else if (includeCustom && transformationOptions.criteria === 'custom' && isValidWhereClause(transformationOptions.whereClause)) {
+        return `(${normalizeWhereClause(transformationOptions.whereClause)})`;
       }
       return null;
     })
@@ -209,12 +217,9 @@ export function composeSoqlQueryCustomWhereClause(row: MetadataRow, fields: stri
 
   const whereClauses = row.configuration
     .filter(
-      ({ transformationOptions }) =>
-        transformationOptions.criteria === 'custom' &&
-        transformationOptions.whereClause &&
-        isQueryValid(`WHERE ${transformationOptions.whereClause}`, { allowPartialQuery: true }),
+      ({ transformationOptions }) => transformationOptions.criteria === 'custom' && isValidWhereClause(transformationOptions.whereClause),
     )
-    .map(({ transformationOptions }) => `(${transformationOptions.whereClause})`)
+    .map(({ transformationOptions }) => `(${normalizeWhereClause(transformationOptions.whereClause)})`)
     .join(' OR ');
 
   if (!whereClauses) {

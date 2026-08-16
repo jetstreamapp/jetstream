@@ -7,7 +7,9 @@ import {
   fetchRecordsWithRequiredFields,
   getFieldsToQuery,
   isValidRow,
+  isValidWhereClause,
   MAX_ID_QUERY_LENGTH,
+  normalizeWhereClause,
   prepareRecords,
 } from '../mass-update-records.utils';
 
@@ -105,6 +107,41 @@ describe('mass-update-records.utils#isValidRow', () => {
         ],
       } as any),
     ).toBe(false);
+  });
+});
+
+describe('mass-update-records.utils#normalizeWhereClause', () => {
+  test('strips a leading WHERE keyword regardless of case or spacing', () => {
+    expect(normalizeWhereClause('WHERE Foo = 1')).toBe('Foo = 1');
+    expect(normalizeWhereClause('  where   Foo = 1  ')).toBe('Foo = 1');
+    expect(normalizeWhereClause('WHERE(Foo = 1)')).toBe('(Foo = 1)');
+  });
+
+  test('leaves a clause without the keyword untouched', () => {
+    expect(normalizeWhereClause('Foo = 1')).toBe('Foo = 1');
+    // Only the keyword is stripped -- a field that merely starts with those letters must survive.
+    expect(normalizeWhereClause('Wherehouse__c = 1')).toBe('Wherehouse__c = 1');
+  });
+
+  test('handles empty input', () => {
+    expect(normalizeWhereClause(null)).toBe('');
+    expect(normalizeWhereClause('')).toBe('');
+  });
+});
+
+describe('mass-update-records.utils#isValidWhereClause', () => {
+  test('accepts a clause that includes the WHERE keyword', () => {
+    // Regression: the input stripped WHERE before validating but the consumers did not, so this
+    // silently blocked the row with no error surfaced.
+    expect(isValidWhereClause('WHERE Foo = 1')).toBe(true);
+    expect(isValidWhereClause('Foo = 1')).toBe(true);
+  });
+
+  test('rejects empty and malformed clauses', () => {
+    expect(isValidWhereClause('')).toBe(false);
+    expect(isValidWhereClause(null)).toBe(false);
+    expect(isValidWhereClause('WHERE')).toBe(false);
+    expect(isValidWhereClause('Foo =')).toBe(false);
   });
 });
 

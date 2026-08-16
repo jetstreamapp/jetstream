@@ -2,10 +2,9 @@ import { css } from '@emotion/react';
 import { useDebounce } from '@jetstream/shared/ui-utils';
 import { ListItem } from '@jetstream/types';
 import { ComboboxWithItems, ControlledTextarea, Grid, Textarea } from '@jetstream/ui';
-import { isQueryValid } from '@jetstreamapp/soql-parser-js';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { TransformationCriteria, TransformationOptions } from './mass-update-records.types';
-import { startsWithWhereRgx, transformationCriteriaListItems } from './mass-update-records.utils';
+import { isValidWhereClause, transformationCriteriaListItems } from './mass-update-records.utils';
 
 export interface MassUpdateRecordsObjectRowCriteriaProps {
   sobject: string;
@@ -26,10 +25,9 @@ export const MassUpdateRecordsObjectRowCriteria: FunctionComponent<MassUpdateRec
   const [whereClauseIsValid, setWhereClauseIsValid] = useState(true);
 
   useEffect(() => {
-    if (debouncedWhereClause) {
-      const whereClause = debouncedWhereClause.replace(startsWithWhereRgx, '');
-      setWhereClauseIsValid(isQueryValid(`WHERE ${whereClause}`, { allowPartialQuery: true }));
-    }
+    // An empty clause is incomplete rather than invalid — `isRequired` covers it, and leaving the
+    // previous result in place would keep an error on screen after the field is cleared.
+    setWhereClauseIsValid(!debouncedWhereClause || isValidWhereClause(debouncedWhereClause));
   }, [debouncedWhereClause]);
 
   function handleUpdateToApply(criteria: TransformationCriteria) {

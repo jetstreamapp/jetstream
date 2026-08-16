@@ -6,11 +6,10 @@ import {
   MetadataRow,
   TransformationCriteria,
   TransformationOption,
-  startsWithWhereRgx,
+  isValidWhereClause,
   transformationCriteriaListItems,
   transformationOptionListItems,
 } from '@jetstream/ui-core';
-import { isQueryValid } from '@jetstreamapp/soql-parser-js';
 import { FunctionComponent, useEffect, useState } from 'react';
 
 export interface MassUpdateRecordsApplyToAllRowProps {
@@ -38,10 +37,7 @@ export const MassUpdateRecordsApplyToAllRow: FunctionComponent<MassUpdateRecords
   const [whereClauseIsValid, setWhereClauseIsValid] = useState(true);
 
   useEffect(() => {
-    if (transformationCriteria === 'custom' && debouncedWhereClause) {
-      const whereClause = debouncedWhereClause.replace(startsWithWhereRgx, '');
-      setWhereClauseIsValid(isQueryValid(`WHERE ${whereClause}`, { allowPartialQuery: true }));
-    }
+    setWhereClauseIsValid(transformationCriteria !== 'custom' || !debouncedWhereClause || isValidWhereClause(debouncedWhereClause));
   }, [transformationCriteria, debouncedWhereClause]);
 
   useEffect(() => {
