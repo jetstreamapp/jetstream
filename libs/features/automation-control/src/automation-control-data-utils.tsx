@@ -88,6 +88,19 @@ export function isValidationRecord(type: AutomationMetadataType, _record: any): 
   return type === 'ValidationRule';
 }
 
+/**
+ * The Metadata API identifies a duplicate rule by `SobjectType.DeveloperName`, not by its developer
+ * name alone — an unqualified member matches nothing and the retrieve comes back with only a
+ * package.xml. Both the deploy and export paths build their manifests from these.
+ */
+export function getDuplicateRuleFullName(record: DuplicateRuleRecord): string {
+  return `${record.SobjectType}.${record.DeveloperName}`;
+}
+
+export function getDuplicateRuleFileName(record: DuplicateRuleRecord): string {
+  return `duplicateRules/${getDuplicateRuleFullName(record)}.duplicateRule`;
+}
+
 export function isWorkflowRuleRecord(type: AutomationMetadataType, _record: any): _record is ToolingWorkflowRuleRecord {
   return type === 'WorkflowRule';
 }
@@ -576,13 +589,12 @@ async function initiateDuplicateRulesMetadataRequest(selectedOrg: SalesforceOrgU
     .filter((item) => !item.deploy.metadataRetrieve)
     .map(({ deploy: item, metadata }): ListMetadataResult => {
       const record = metadata.record as DuplicateRuleRecord;
-      const fullName = `${record.SobjectType}.${record.DeveloperName}`;
       return {
         createdById: null,
         createdByName: null,
         createdDate: null,
-        fileName: `duplicateRules/${fullName}.duplicateRule`,
-        fullName,
+        fileName: getDuplicateRuleFileName(record),
+        fullName: getDuplicateRuleFullName(record),
         id: item.id,
         lastModifiedById: null,
         lastModifiedByName: null,
@@ -604,8 +616,8 @@ async function prepareMetadataForDuplicateRules(
   for (const duplicateRule of duplicateRules) {
     const record = duplicateRule.metadata.record as DuplicateRuleRecord;
     const deploymentItem = { ...itemsByKey[duplicateRule.metadata.key].deploy };
-    const fullName = `${record.SobjectType}.${record.DeveloperName}`;
-    const fileName = `duplicateRules/${fullName}.duplicateRule`;
+    const fullName = getDuplicateRuleFullName(record);
+    const fileName = getDuplicateRuleFileName(record);
     if (!salesforcePackage.files[fileName]) {
       deploymentItem.retrieveError = [{ message: 'There was an error getting metadata from Salesforce', errorCode: 'MISSING_FILE' }];
       output.push({ key: duplicateRule.metadata.key, deploymentItem });

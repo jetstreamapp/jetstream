@@ -32,6 +32,8 @@ import AutomationControlEditorTable from './AutomationControlEditorTable';
 import AutomationControlLastRefreshedPopover from './AutomationControlLastRefreshedPopover';
 import {
   getAutomationDeployType,
+  getDuplicateRuleFileName,
+  getDuplicateRuleFullName,
   isDuplicateRecord,
   isTableRow,
   isTableRowChild,
@@ -150,8 +152,8 @@ export const AutomationControlEditor = () => {
             fullName = record.Name;
             fileName = `triggers/${record.Name}.trigger`;
           } else if (isDuplicateRecord(item.type, record)) {
-            fullName = record.DeveloperName;
-            fileName = `objects/${record.SobjectType}.duplicateRule`;
+            fullName = getDuplicateRuleFullName(record);
+            fileName = getDuplicateRuleFileName(record);
           } else if (isValidationRecord(item.type, record)) {
             fullName = record.FullName;
             fileName = `objects/${record.EntityDefinition.QualifiedApiName}.object`;
