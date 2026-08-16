@@ -92,6 +92,20 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
     };
   }, []);
 
+  // Prune history that has grown past the retention limit. This is a no-op after the first run.
+  useEffect(() => {
+    fromApexState
+      .cleanUpHistoryState()
+      .then((prunedHistoryItems) => {
+        if (prunedHistoryItems && isMounted.current) {
+          setHistoryItems(prunedHistoryItems);
+        }
+      })
+      .catch((ex) => {
+        logger.warn('[ERROR] Could not clean up apex history', ex);
+      });
+  }, [setHistoryItems]);
+
   useNonInitialEffect(() => {
     if (logRef.current) {
       logRef.current.revealPosition({ column: 1, lineNumber: 1 });
