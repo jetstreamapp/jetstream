@@ -19,6 +19,7 @@ import {
   getErrorMessage,
   getExcelSafeSheetName,
   orderObjectsBy,
+  orderValues,
 } from '@jetstream/shared/utils';
 import type {
   AddOrgHandlerFn,
@@ -1915,6 +1916,32 @@ export function getFlattenedListItemsById(items: ListItem[], output: Record<stri
 }
 
 /**
+ * Attach freshly loaded children to one item in a drill-in tree.
+ *
+ * Walks to the item instead of round-tripping the whole tree through
+ * `getFlattenedListItemsById` → `unFlattenedListItemsById`. That round trip keys every item by `id`,
+ * which is lossy once a polymorphic relationship is involved: each target object hangs its own copy of
+ * a shared field off the same SOQL path (`Owner.Name` under both `Owner::User` and `Owner::Group`), so
+ * the map collapses the two and the rebuild re-nests the survivor under a single parent — silently
+ * dropping that field from the other target's list.
+ */
+export function setChildItemsForParent(items: ListItem[], parentId: string, childItems: ListItem[]): ListItem[] {
+  const updatedItems = items.map((item) => {
+    if (item.id === parentId) {
+      return { ...item, childItems };
+    }
+    if (!item.childItems?.length) {
+      return item;
+    }
+    const updatedChildItems = setChildItemsForParent(item.childItems, parentId, childItems);
+    return updatedChildItems === item.childItems ? item : { ...item, childItems: updatedChildItems };
+  });
+  // Only the branch containing `parentId` is rebuilt — everything else keeps its existing reference,
+  // and an id that matches nothing returns the original array untouched.
+  return updatedItems.some((item, index) => item !== items[index]) ? updatedItems : items;
+}
+
+/**
  * Given an object of all items by id, use the parentId field to create a tree structure
  * the parentId is blank for all the top level items and is "." delimited for all parentId's
  */
@@ -1940,8 +1967,16 @@ export function unFlattenedListItemsById(items: Record<string, ListItem>): ListI
   return output;
 }
 
-export function getListItemsFromFieldWithRelatedItems(fields: Field[], parentId = ''): ListItem[] {
-  const parentPath = parentId ? `${parentId}.` : '';
+/**
+ * Build drill-in list items for a set of fields.
+ *
+ * @param parentId Id of the item these fields hang off of, used to nest them in the drill-in tree.
+ * @param pathPrefix SOQL relationship path the generated ids are built from. Defaults to `parentId`,
+ *   which is the same thing for an ordinary lookup. They differ only under a polymorphic relationship,
+ *   where the tree has an extra level for choosing the target object but the SOQL path must not.
+ */
+export function getListItemsFromFieldWithRelatedItems(fields: Field[], parentId = '', pathPrefix = parentId): ListItem[] {
+  const parentPath = pathPrefix ? `${pathPrefix}.` : '';
   const allowChildren = parentPath.split('.').length <= 5;
   const relatedFields: ListItem[] = fields
     .filter((field) => allowChildren && Array.isArray(field.referenceTo) && field.referenceTo.length > 0 && field.relationshipName)
@@ -1950,7 +1985,7 @@ export function getListItemsFromFieldWithRelatedItems(fields: Field[], parentId 
       value: `${parentPath}${field.relationshipName}`,
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       label: field.relationshipName!,
-      secondaryLabel: field.referenceTo?.[0],
+      secondaryLabel: isPolymorphicReference(field) ? `${field.referenceTo?.length} related objects` : field.referenceTo?.[0],
       secondaryLabelOnNewLine: true,
       isDrillInItem: true,
       parentId,
@@ -1969,6 +2004,45 @@ export function getListItemsFromFieldWithRelatedItems(fields: Field[], parentId 
 
   return [...relatedFields, ...coreFields];
 }
+
+/** A lookup that can point at more than one object (`Owner`, `What`, `Who`, …). */
+export function isPolymorphicReference(field: Field): boolean {
+  return Array.isArray(field.referenceTo) && field.referenceTo.length > 1;
+}
+
+export interface PolymorphicTargetMeta {
+  _polymorphicTarget: true;
+  /** SOQL relationship path the chosen object hangs off of, e.g. `Owner` or `Account.Owner`. */
+  relationshipPath: string;
+  sobject: string;
+}
+
+export function isPolymorphicTargetItem(item: ListItem): boolean {
+  return !!(item.meta as Maybe<PolymorphicTargetMeta>)?._polymorphicTarget;
+}
+
+/**
+ * Drill-in items letting the user choose which object of a polymorphic lookup to read a field from.
+ * Previously the first entry in `referenceTo` was traversed silently, so the field list shown belonged
+ * to an arbitrary one of the possible objects.
+ *
+ * These ids are deliberately NOT SOQL paths — they only position the extra level in the drill-in tree.
+ * The fields loaded underneath still use `relationshipPath`, so the selected value stays a valid path.
+ */
+export function getPolymorphicTargetListItems(field: Field, relationshipPath: string): ListItem<string, PolymorphicTargetMeta>[] {
+  return orderValues(field.referenceTo || []).map((sobject) => ({
+    id: `${relationshipPath}${POLYMORPHIC_TARGET_ID_SEPARATOR}${sobject}`,
+    value: `${relationshipPath}${POLYMORPHIC_TARGET_ID_SEPARATOR}${sobject}`,
+    label: sobject,
+    secondaryLabel: `Fields from ${sobject}`,
+    secondaryLabelOnNewLine: true,
+    isDrillInItem: true,
+    parentId: relationshipPath,
+    meta: { _polymorphicTarget: true, relationshipPath, sobject },
+  }));
+}
+
+const POLYMORPHIC_TARGET_ID_SEPARATOR = '::';
 
 /**
  * If there is a change in UI that would make an element take a render ror more

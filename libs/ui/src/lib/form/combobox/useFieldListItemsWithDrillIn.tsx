@@ -1,9 +1,12 @@
 import { describeSObject } from '@jetstream/shared/data';
 import {
-  getFlattenedListItemsById,
   getListItemsFromFieldWithRelatedItems,
+  getPolymorphicTargetListItems,
+  isPolymorphicReference,
+  isPolymorphicTargetItem,
+  PolymorphicTargetMeta,
+  setChildItemsForParent,
   sortQueryFields,
-  unFlattenedListItemsById,
 } from '@jetstream/shared/ui-utils';
 import { DescribeSObjectResult, Field, ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useState } from 'react';
@@ -35,20 +38,26 @@ export function useFieldListItemsWithDrillIn(selectedOrg: SalesforceOrgUi) {
       if (!selectedOrg?.uniqueId) {
         throw new Error('Org is required');
       }
-      const field = item.meta as Field;
-      if (!Array.isArray(field.referenceTo) || field.referenceTo.length <= 0) {
-        return [];
+      let childFields: ListItem[];
+      if (isPolymorphicTargetItem(item)) {
+        const { relationshipPath, sobject } = item.meta as PolymorphicTargetMeta;
+        const { data } = await describeSObject(selectedOrg, sobject);
+        childFields = getListItemsFromFieldWithRelatedItems(sortQueryFields(data.fields), item.id, relationshipPath);
+      } else {
+        const field = item.meta as Field;
+        if (!Array.isArray(field.referenceTo) || field.referenceTo.length <= 0) {
+          return [];
+        }
+        // Let the user pick which object to read from rather than silently traversing the first one.
+        if (isPolymorphicReference(field)) {
+          childFields = getPolymorphicTargetListItems(field, item.id);
+        } else {
+          const { data } = await describeSObject(selectedOrg, field.referenceTo[0]);
+          childFields = getListItemsFromFieldWithRelatedItems(sortQueryFields(data.fields), item.id);
+        }
       }
-      const { data } = await describeSObject(selectedOrg, field.referenceTo?.[0] || '');
-      const allFieldMetadata = sortQueryFields(data.fields);
-      const childFields = getListItemsFromFieldWithRelatedItems(allFieldMetadata, item.id);
 
-      setFields((prevValues) => {
-        let allItems = getFlattenedListItemsById(prevValues);
-        allItems = { ...allItems, [item.id]: { ...allItems[item.id], childItems: childFields } };
-        const newItems = unFlattenedListItemsById(allItems);
-        return newItems;
-      });
+      setFields((prevValues) => setChildItemsForParent(prevValues, item.id, childFields));
       return childFields;
     },
     [selectedOrg],
