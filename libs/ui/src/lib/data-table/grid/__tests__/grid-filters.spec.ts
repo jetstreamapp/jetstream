@@ -7,7 +7,7 @@ describe('resetFilter', () => {
   test('produces empty defaults per type', () => {
     expect(resetFilter('TEXT')).toEqual({ type: 'TEXT', value: '' });
     expect(resetFilter('NUMBER')).toEqual({ type: 'NUMBER', value: null, comparator: 'EQUALS' });
-    expect(resetFilter('DATE')).toEqual({ type: 'DATE', value: '', comparator: 'GREATER_THAN' });
+    expect(resetFilter('DATE')).toEqual({ type: 'DATE', value: '', comparator: 'GREATER_THAN', ignoreTimestamp: false });
     expect(resetFilter('TIME')).toEqual({ type: 'TIME', value: '', comparator: 'GREATER_THAN' });
     expect(resetFilter('SET', ['a', 'b'])).toEqual({ type: 'SET', value: ['a', 'b'] });
     expect(resetFilter('BOOLEAN_SET', ['True', 'False'])).toEqual({ type: 'BOOLEAN_SET', value: ['True', 'False'] });
@@ -42,6 +42,78 @@ describe('filterRecord', () => {
     expect(filterRecord({ type: 'NUMBER', value: '5', comparator: 'EQUALS' }, 6)).toBe(false);
     expect(filterRecord({ type: 'NUMBER', value: '5', comparator: 'EQUALS' }, 'not-a-number')).toBe(false);
   });
+  describe('DATE', () => {
+    // Cells render dates as `yyyy-MM-dd h:mm:ss a`. `h` is a 1-2 digit hour, so the formatted string is
+    // 21 characters at 1-9 o'clock and 22 at 10/11/12 — the length the parser used to branch on.
+    const singleDigitHour = '2026-08-16 9:30:00 AM';
+    const doubleDigitHours = ['2026-08-16 10:30:00 AM', '2026-08-16 11:05:00 AM', '2026-08-16 12:00:00 PM', '2026-08-16 12:00:00 AM'];
+
+    test('regression: two-digit-hour timestamps are not dropped', () => {
+      // Every one of these parsed to Invalid Date and failed every comparison, silently removing the row.
+      doubleDigitHours.forEach((value) => {
+        expect(filterRecord({ type: 'DATE', value: '2026-08-15', comparator: 'GREATER_THAN' }, value)).toBe(true);
+        expect(filterRecord({ type: 'DATE', value: '2026-08-16', comparator: 'EQUALS' }, value)).toBe(true);
+        expect(filterRecord({ type: 'DATE', value: '2026-08-17', comparator: 'LESS_THAN' }, value)).toBe(true);
+      });
+    });
+
+    test('single-digit-hour timestamps keep working', () => {
+      expect(filterRecord({ type: 'DATE', value: '2026-08-15', comparator: 'GREATER_THAN' }, singleDigitHour)).toBe(true);
+      expect(filterRecord({ type: 'DATE', value: '2026-08-16', comparator: 'EQUALS' }, singleDigitHour)).toBe(true);
+      expect(filterRecord({ type: 'DATE', value: '2026-08-17', comparator: 'LESS_THAN' }, singleDigitHour)).toBe(true);
+    });
+
+    test('non-formatted values fall back to ISO parsing', () => {
+      expect(filterRecord({ type: 'DATE', value: '2026-08-15', comparator: 'GREATER_THAN' }, '2026-08-16')).toBe(true);
+      expect(filterRecord({ type: 'DATE', value: '2026-08-16', comparator: 'EQUALS' }, '2026-08-16')).toBe(true);
+    });
+
+    test('unparseable values and empty filters do not match', () => {
+      expect(filterRecord({ type: 'DATE', value: '2026-08-16', comparator: 'EQUALS' }, 'not-a-date')).toBe(false);
+      expect(filterRecord({ type: 'DATE', value: null, comparator: 'EQUALS' }, singleDigitHour)).toBe(false);
+      expect(filterRecord({ type: 'DATE', value: '2026-08-16', comparator: 'EQUALS' }, '')).toBe(false);
+    });
+
+    test('GREATER_THAN_OR_EQUAL / LESS_THAN_OR_EQUAL include the filter date itself', () => {
+      const sameDay = { type: 'DATE', value: '2026-08-16' } as const;
+      expect(filterRecord({ ...sameDay, comparator: 'GREATER_THAN_OR_EQUAL' }, '2026-08-16 10:30:00 AM')).toBe(true);
+      expect(filterRecord({ ...sameDay, comparator: 'LESS_THAN_OR_EQUAL' }, '2026-08-16 10:30:00 AM')).toBe(true);
+      expect(filterRecord({ ...sameDay, comparator: 'GREATER_THAN_OR_EQUAL' }, '2026-08-15 10:30:00 AM')).toBe(false);
+      expect(filterRecord({ ...sameDay, comparator: 'LESS_THAN_OR_EQUAL' }, '2026-08-17 10:30:00 AM')).toBe(false);
+    });
+
+    test('ignoreTimestamp compares calendar days only', () => {
+      const filter = { type: 'DATE', value: '2026-08-16', comparator: 'GREATER_THAN' } as const;
+      // Without it, a later time on the filter date still counts as "after" the start of that day.
+      expect(filterRecord({ ...filter }, '2026-08-16 10:30:00 AM')).toBe(true);
+      expect(filterRecord({ ...filter, ignoreTimestamp: true }, '2026-08-16 10:30:00 AM')).toBe(false);
+      expect(filterRecord({ ...filter, ignoreTimestamp: true }, '2026-08-17 10:30:00 AM')).toBe(true);
+    });
+  });
+
+  test('NUMBER supports inclusive comparators', () => {
+    expect(filterRecord({ type: 'NUMBER', value: '5', comparator: 'GREATER_THAN_OR_EQUAL' }, 5)).toBe(true);
+    expect(filterRecord({ type: 'NUMBER', value: '5', comparator: 'GREATER_THAN_OR_EQUAL' }, 4)).toBe(false);
+    expect(filterRecord({ type: 'NUMBER', value: '5', comparator: 'LESS_THAN_OR_EQUAL' }, 5)).toBe(true);
+    expect(filterRecord({ type: 'NUMBER', value: '5', comparator: 'LESS_THAN_OR_EQUAL' }, 6)).toBe(false);
+  });
+
+  test('TIME supports inclusive comparators', () => {
+    const filter = { type: 'TIME', value: '13:30:00.0000' } as const;
+    expect(filterRecord({ ...filter, comparator: 'GREATER_THAN_OR_EQUAL' }, '1:30:00 PM')).toBe(true);
+    expect(filterRecord({ ...filter, comparator: 'LESS_THAN_OR_EQUAL' }, '1:30:00 PM')).toBe(true);
+    expect(filterRecord({ ...filter, comparator: 'GREATER_THAN' }, '1:30:00 PM')).toBe(false);
+    expect(filterRecord({ ...filter, comparator: 'GREATER_THAN_OR_EQUAL' }, '2:30:00 PM')).toBe(true);
+    expect(filterRecord({ ...filter, comparator: 'LESS_THAN_OR_EQUAL' }, '2:30:00 PM')).toBe(false);
+  });
+
+  test('TIME EQUALS compares the time of day, not the reference day', () => {
+    const filter = { type: 'TIME', value: '13:30:00.0000', comparator: 'EQUALS' } as const;
+    expect(filterRecord(filter, '1:30:00 PM')).toBe(true);
+    expect(filterRecord(filter, '2:30:00 PM')).toBe(false);
+    expect(filterRecord(filter, '1:31:00 PM')).toBe(false);
+  });
+
   test('SET matches selected values and EMPTY_FIELD matches null', () => {
     expect(filterRecord({ type: 'SET', value: ['Alpha', 'Bravo'] }, 'Alpha')).toBe(true);
     expect(filterRecord({ type: 'SET', value: ['Alpha'] }, 'Bravo')).toBe(false);

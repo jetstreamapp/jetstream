@@ -122,22 +122,29 @@ export interface DataTableTextFilter {
   value: string;
 }
 
+export type FilterComparator = 'EQUALS' | 'GREATER_THAN' | 'GREATER_THAN_OR_EQUAL' | 'LESS_THAN' | 'LESS_THAN_OR_EQUAL';
+
 export interface DataTableNumberFilter {
   type: 'NUMBER';
   value: string | null;
-  comparator: 'EQUALS' | 'GREATER_THAN' | 'LESS_THAN';
+  comparator: FilterComparator;
 }
 
 export interface DataTableDateFilter {
   type: 'DATE';
   value: string | null;
-  comparator: 'EQUALS' | 'GREATER_THAN' | 'LESS_THAN';
+  comparator: FilterComparator;
+  /**
+   * Compare calendar days only, discarding the record's time-of-day. Without this, a record stamped
+   * later the same day as the filter date counts as "greater than" it.
+   */
+  ignoreTimestamp?: boolean;
 }
 
 export interface DataTableTimeFilter {
   type: 'TIME';
   value: string;
-  comparator: 'EQUALS' | 'GREATER_THAN' | 'LESS_THAN';
+  comparator: FilterComparator;
 }
 
 export interface DataTableSetFilter {
