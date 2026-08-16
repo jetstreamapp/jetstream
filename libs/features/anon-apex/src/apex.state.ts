@@ -100,25 +100,18 @@ export async function initNewApexHistoryItem(org: SalesforceOrgUi, apex: string)
  */
 export const apexHistoryState = atomWithLazy<Promise<Record<string, ApexHistoryItem>> | Record<string, ApexHistoryItem>>(initApexHistory);
 
-export const apexHistoryWhichOrg = atom<'ALL' | 'SELECTED'>('SELECTED');
-
 /**
- * Returns based on selected org and either all items or saved items
+ * History for the selected org. Unlike query and API history there is no all-orgs view — the apex
+ * history picker is a plain select with nowhere to put the toggle.
  */
 const selectApexHistoryItems = atom((get) => {
-  const whichOrg = get(apexHistoryWhichOrg);
   const apexHistoryItems = get(apexHistoryState) as Record<string, ApexHistoryItem>;
   const selectedOrg = get(selectedOrgState) as SalesforceOrgUi;
   if (!selectedOrg?.uniqueId || !apexHistoryItems) {
     return [];
   }
 
-  return Object.values(apexHistoryItems).filter((item) => {
-    if (whichOrg === 'SELECTED' && item.org !== selectedOrg.uniqueId) {
-      return false;
-    }
-    return true;
-  });
+  return Object.values(apexHistoryItems).filter((item) => item.org === selectedOrg.uniqueId);
 });
 
 export const selectApexHistoryState = atom((get) => {
