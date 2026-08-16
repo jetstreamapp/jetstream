@@ -42,13 +42,12 @@ import {
 } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import type { FieldSchema, FormulaContext, FormulaValue } from '@jetstreamapp/sf-formula-parser';
-import { evaluateFormula, extractFieldsByCategory } from '@jetstreamapp/sf-formula-parser';
+import { evaluateFormula, extractFieldsByCategory, formatFormula } from '@jetstreamapp/sf-formula-parser';
 import { OnMount, useMonaco } from '@monaco-editor/react';
 import { useAtom, useAtomValue } from 'jotai';
 import type { editor } from 'monaco-editor';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { FormulaEvaluatorDeployModal } from './deploy/FormulaEvaluatorDeployModal';
-import { formatSalesforceFormula } from './formula-formatter';
 
 export function filterSobjectFn(sobject: DescribeGlobalSObjectResult): boolean {
   return (
@@ -203,12 +202,13 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
 
   usePrimaryActionShortcut(handleTestFormulaShortcut, { disabled: testFormulaDisabled });
 
-  const handleFormat = async (value = formulaValue) => {
+  // Formulas that fail to parse are left alone
+  const handleFormat = (value = formulaValue) => {
     try {
       if (!editorRef.current || !value) {
         return;
       }
-      editorRef.current.setValue(await formatSalesforceFormula(value));
+      editorRef.current.setValue(formatFormula(value));
     } catch (ex) {
       logger.warn('failed to format', ex);
     }

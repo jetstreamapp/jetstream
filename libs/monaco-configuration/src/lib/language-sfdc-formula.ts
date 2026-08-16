@@ -6,18 +6,6 @@ export function configureSfdcFormulaLanguage(monaco: Monaco) {
   monaco.languages.register({ id: 'sfdc-formula' });
   monaco.languages.setLanguageConfiguration('sfdc-formula', languageConfiguration);
   monaco.languages.setMonarchTokensProvider('sfdc-formula', language);
-
-  // TODO: format formula (maybe call to server an use prettier?)
-  // monaco.languages.registerDocumentFormattingEditProvider('sfdc-formula', {
-  //   provideDocumentFormattingEdits: async (model, options, token) => {
-  //     return [
-  //       {
-  //         range: model.getFullModelRange(),
-  //         text: (await soqlParserJs).formatQuery(model.getValue()),
-  //       },
-  //     ];
-  //   },
-  // });
 }
 
 export const languageConfiguration: monaco.languages.LanguageConfiguration = {
