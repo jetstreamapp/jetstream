@@ -122,17 +122,22 @@ export function getColumnDefinitions(
   results.parsedQuery?.fields
     ?.filter((field) => isFieldSubquery(field))
     .forEach((parentField: FieldSubquery) => {
-      output.subqueryColumns[parentField.subquery.relationshipName.toLowerCase()] = getFlattenedFields(parentField.subquery || {}).map(
-        (field) =>
-          getQueryResultColumn({
-            field,
-            subqueryRelationshipName: parentField.subquery.relationshipName,
-            queryColumnsByPath,
-            isSubquery: false,
-            allowEdit: false,
-            fieldMetadata: fieldMetadataSubquery?.[parentField.subquery.relationshipName.toLowerCase()],
-          }),
+      const subqueryColumns = getFlattenedFields(parentField.subquery || {}).map((field) =>
+        getQueryResultColumn({
+          field,
+          subqueryRelationshipName: parentField.subquery.relationshipName,
+          queryColumnsByPath,
+          isSubquery: false,
+          allowEdit: false,
+          fieldMetadata: fieldMetadataSubquery?.[parentField.subquery.relationshipName.toLowerCase()],
+        }),
       );
+      // The subquery modal enables row selection, and a checkbox cell only renders for a column keyed
+      // SELECT_COLUMN_KEY — without this the selection UI has nowhere to draw.
+      if (subqueryColumns.length > 0) {
+        subqueryColumns.unshift({ ...SelectColumn, key: SELECT_COLUMN_KEY, resizable: false });
+      }
+      output.subqueryColumns[parentField.subquery.relationshipName.toLowerCase()] = subqueryColumns;
     });
 
   return output;
