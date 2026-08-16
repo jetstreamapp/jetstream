@@ -21,6 +21,7 @@
       }
     },
     "serve": {
+      "continuous": true,
       "command": "nx build jetstream-web-extension --configuration=development --watch"
     }
   }

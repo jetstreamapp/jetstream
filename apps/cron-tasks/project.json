@@ -48,6 +48,7 @@
     },
     "serve": {
       "executor": "@nx/js:node",
+      "continuous": true,
       "options": {
         "buildTarget": "cron-tasks:build",
         "inspect": true
