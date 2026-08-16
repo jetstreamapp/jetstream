@@ -48,6 +48,7 @@ import { useAtom, useAtomValue } from 'jotai';
 import type { editor } from 'monaco-editor';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { FormulaEvaluatorDeployModal } from './deploy/FormulaEvaluatorDeployModal';
+import { formatSalesforceFormula } from './formula-formatter';
 
 export function filterSobjectFn(sobject: DescribeGlobalSObjectResult): boolean {
   return (
@@ -207,21 +208,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
       if (!editorRef.current || !value) {
         return;
       }
-      const prettier = await import('prettier/standalone');
-      const prettierPluginBabel = await import('prettier/plugins/babel');
-      const prettierPluginEstree = await import('prettier/plugins/estree');
-      editorRef.current.setValue(
-        await prettier.format(value, {
-          parser: 'babel',
-          plugins: [prettierPluginBabel, prettierPluginEstree as any],
-          bracketSpacing: false,
-          semi: false,
-          singleQuote: true,
-          trailingComma: 'none',
-          useTabs: false,
-          tabWidth: 2,
-        }),
-      );
+      editorRef.current.setValue(await formatSalesforceFormula(value));
     } catch (ex) {
       logger.warn('failed to format', ex);
     }
