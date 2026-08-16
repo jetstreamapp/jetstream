@@ -52,6 +52,7 @@
     },
     "serve": {
       "executor": "@nx/js:node",
+      "continuous": true,
       "defaultConfiguration": "development",
       "options": {
         "buildTarget": "geo-ip-api:build",

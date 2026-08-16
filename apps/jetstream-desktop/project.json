@@ -50,6 +50,7 @@
     },
     "serve": {
       "executor": "@nx/js:node",
+      "continuous": true,
       "defaultConfiguration": "development",
       "dependsOn": ["build"],
       "options": {
