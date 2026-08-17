@@ -434,20 +434,24 @@ export const QueryResults = React.memo(() => {
     }
   }
 
+  /**
+   * `results.queryResults.records` is the complete record set, not just the page that was fetched - the table
+   * merges pages by record identity (a parent whose child records were truncated can be returned again), so
+   * appending here would duplicate any record that came back more than once.
+   */
   function handleLoadMore(results: IQueryResults<any>) {
     if (isMounted.current) {
+      const existingRecordCount = records?.length || 0;
       const sobjectName = results.parsedQuery?.sObject || results.columns?.entityName;
+      const allRecords = results.queryResults.records;
       setNextRecordsUrl(results.queryResults.nextRecordsUrl);
       sobjectName && saveQueryHistory(soql, sobjectName, isTooling);
-      if (records) {
-        const newRecords = records.concat(results.queryResults.records);
-        setRecordCount(getTotalRecordCount(results.queryResults, newRecords));
-        setTotalRecordCount(getTotalRecordCount(results.queryResults, newRecords));
-        setRecords(newRecords);
-      }
+      setRecordCount(getTotalRecordCount(results.queryResults, allRecords));
+      setTotalRecordCount(getTotalRecordCount(results.queryResults, allRecords));
+      setRecords(allRecords);
       trackEvent(ANALYTICS_KEYS.query_LoadMore, {
-        existingRecordCount: records?.length || 0,
-        nextSetCount: results.queryResults.records.length,
+        existingRecordCount,
+        nextSetCount: allRecords.length - existingRecordCount,
         totalSize: results.queryResults.totalSize,
         isTooling,
       });

@@ -1,7 +1,16 @@
+/* eslint-disable import/first -- vi.mock calls must be evaluated before the modules they intercept are imported */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
+
+const { mockedQueryRemainingSubqueryResults } = vi.hoisted(() => ({ mockedQueryRemainingSubqueryResults: vi.fn() }));
+
+vi.mock('@jetstream/shared/data', async () => {
+  const actual = await vi.importActual<typeof import('@jetstream/shared/data')>('@jetstream/shared/data');
+  return { ...actual, queryRemainingSubqueryResults: mockedQueryRemainingSubqueryResults };
+});
+
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, test, vi } from 'vitest';
 import { GridSubqueryContext } from '../grid-context';
 import { ColumnWithFilter, SubqueryContext, SubqueryLevel } from '../grid-types';
 import { SubqueryRenderer } from '../renderers/SubqueryRenderer';
@@ -10,15 +19,16 @@ function makeColumns(keys: string[]): ColumnWithFilter<any>[] {
   return keys.map((key) => ({ key, name: key })) as ColumnWithFilter<any>[];
 }
 
-function makeQueryResult(count: number) {
-  return {
-    done: true,
-    totalSize: count,
-    records: Array.from({ length: count }, (_, index) => ({
-      Id: `00${index}`,
-      attributes: { type: 'Case', url: `/services/data/v66.0/sobjects/Case/00${index}` },
-    })),
-  };
+function makeRecords(count: number, type = 'Case', extra: (index: number) => Record<string, unknown> = () => ({})) {
+  return Array.from({ length: count }, (_, index) => ({
+    Id: `00${index}`,
+    attributes: { type, url: `/services/data/v66.0/sobjects/${type}/00${index}` },
+    ...extra(index),
+  }));
+}
+
+function makeQueryResult(count: number, { done = true, nextRecordsUrl = undefined as string | undefined, totalSize = count } = {}) {
+  return { done, totalSize, records: makeRecords(count), ...(nextRecordsUrl ? { nextRecordsUrl } : {}) };
 }
 
 function renderCell({ columnKey, row, context }: { columnKey: string; row: any; context: Partial<SubqueryContext> }) {
@@ -42,7 +52,13 @@ function renderCell({ columnKey, row, context }: { columnKey: string; row: any; 
   );
 }
 
+const WARNING_NAME = /Some related records were not loaded/;
+
 describe('SubqueryRenderer', () => {
+  beforeEach(() => {
+    mockedQueryRemainingSubqueryResults.mockReset();
+  });
+
   test('renders nothing when the subquery returned no records', () => {
     renderCell({ columnKey: 'Cases', row: { Cases: { done: true, totalSize: 0, records: [] } }, context: {} });
 
@@ -114,5 +130,115 @@ describe('SubqueryRenderer', () => {
     });
 
     expect(screen.getByRole('button', { name: /1 Records/ })).toBeTruthy();
+  });
+
+  describe('truncated child records', () => {
+    test('shows no warning when Salesforce returned every child record', () => {
+      renderCell({
+        columnKey: 'Cases',
+        row: { _key: '001A', Cases: makeQueryResult(2) },
+        context: { columnDefinitions: { cases: makeColumns(['Id']) } },
+      });
+
+      expect(screen.queryByRole('button', { name: WARNING_NAME })).toBeNull();
+    });
+
+    test('warns with the loaded and total counts when the subquery itself was truncated', async () => {
+      renderCell({
+        columnKey: 'Cases',
+        row: { _key: '001A', Cases: makeQueryResult(2, { done: false, nextRecordsUrl: '/next', totalSize: 2317 }) },
+        context: { columnDefinitions: { cases: makeColumns(['Id']) }, onSubqueryRecordsLoaded: vi.fn() },
+      });
+
+      await userEvent.click(screen.getByRole('button', { name: WARNING_NAME }));
+
+      expect(screen.getByText(/Salesforce returned 2 of 2,317 Cases records/)).toBeTruthy();
+    });
+
+    test('warns when only a subquery nested inside the child records was truncated', () => {
+      const casesWithTruncatedComments = {
+        done: true,
+        totalSize: 1,
+        records: makeRecords(1, 'Case', () => ({
+          CaseComments: { done: false, totalSize: 500, records: [], nextRecordsUrl: '/next/comments' },
+        })),
+      };
+      renderCell({
+        columnKey: 'Cases',
+        row: { _key: '001A', Cases: casesWithTruncatedComments },
+        context: { columnDefinitions: { cases: makeColumns(['Id']) } },
+      });
+
+      expect(screen.getByRole('button', { name: WARNING_NAME })).toBeTruthy();
+    });
+
+    test('loads the remaining records and hands them back to the record that owns them', async () => {
+      const onSubqueryRecordsLoaded = vi.fn();
+      const completed = makeQueryResult(3);
+      mockedQueryRemainingSubqueryResults.mockResolvedValue(completed);
+
+      renderCell({
+        columnKey: 'Cases',
+        row: { _key: '001A', Cases: makeQueryResult(1, { done: false, nextRecordsUrl: '/next', totalSize: 3 }) },
+        context: { columnDefinitions: { cases: makeColumns(['Id']) }, onSubqueryRecordsLoaded },
+      });
+
+      await userEvent.click(screen.getByRole('button', { name: WARNING_NAME }));
+      await userEvent.click(screen.getByRole('button', { name: 'Load remaining records' }));
+
+      await waitFor(() => expect(onSubqueryRecordsLoaded).toHaveBeenCalledWith('001A', 'Cases', completed));
+      // The popover closes itself once the records are handed off
+      await waitFor(() => expect(screen.queryByRole('button', { name: 'Load remaining records' })).toBeNull());
+    });
+
+    test('does not load anything when the owner refuses to replace its records', async () => {
+      const onSubqueryRecordsLoaded = vi.fn();
+      renderCell({
+        columnKey: 'Cases',
+        row: { _key: '001A', Cases: makeQueryResult(1, { done: false, nextRecordsUrl: '/next', totalSize: 3 }) },
+        context: {
+          columnDefinitions: { cases: makeColumns(['Id']) },
+          onSubqueryRecordsLoaded,
+          confirmReplaceRecords: () => Promise.resolve(false),
+        },
+      });
+
+      await userEvent.click(screen.getByRole('button', { name: WARNING_NAME }));
+      await userEvent.click(screen.getByRole('button', { name: 'Load remaining records' }));
+
+      await waitFor(() => expect(screen.queryByRole('button', { name: 'Load remaining records' })).toBeNull());
+      expect(mockedQueryRemainingSubqueryResults).not.toHaveBeenCalled();
+      expect(onSubqueryRecordsLoaded).not.toHaveBeenCalled();
+    });
+
+    test("the modal's own load action asks before replacing records too", async () => {
+      const onSubqueryRecordsLoaded = vi.fn();
+      const confirmReplaceRecords = vi.fn().mockResolvedValue(false);
+
+      renderCell({
+        columnKey: 'Cases',
+        row: { _key: '001A', Cases: makeQueryResult(1, { done: false, nextRecordsUrl: '/next', totalSize: 3 }) },
+        context: { columnDefinitions: { cases: makeColumns(['Id']) }, onSubqueryRecordsLoaded, confirmReplaceRecords },
+      });
+
+      await userEvent.click(screen.getByRole('button', { name: /1 Records/ }));
+      await userEvent.click(await screen.findByRole('button', { name: 'Load Remaining' }));
+
+      await waitFor(() => expect(confirmReplaceRecords).toHaveBeenCalled());
+      expect(mockedQueryRemainingSubqueryResults).not.toHaveBeenCalled();
+      expect(onSubqueryRecordsLoaded).not.toHaveBeenCalled();
+    });
+
+    test('omits the load action when there is nowhere to put the records', async () => {
+      renderCell({
+        columnKey: 'Cases',
+        row: { _key: '001A', Cases: makeQueryResult(1, { done: false, nextRecordsUrl: '/next', totalSize: 3 }) },
+        context: { columnDefinitions: { cases: makeColumns(['Id']) } },
+      });
+
+      await userEvent.click(screen.getByRole('button', { name: WARNING_NAME }));
+
+      expect(screen.queryByRole('button', { name: 'Load remaining records' })).toBeNull();
+    });
   });
 });

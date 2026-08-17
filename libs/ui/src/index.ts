@@ -126,6 +126,7 @@ export * from './lib/list/ReadonlyList';
 export * from './lib/modal/ConfirmationModalPromise';
 export * from './lib/modal/Modal';
 export * from './lib/modal/PortalContext';
+export * from './lib/modal/WhichRecordsToCopyModalPromise';
 export * from './lib/modal/XlsxSheetSelectionModalPromise';
 export * from './lib/nav/Navbar';
 export * from './lib/nav/NavbarAppLauncher';
