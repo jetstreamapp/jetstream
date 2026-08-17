@@ -177,6 +177,24 @@ test.describe('QUERY BUILDER', () => {
     }
   });
 
+  test('should jump to a nested subquery from the navigator', async ({ queryPage }) => {
+    await queryPage.goto();
+    await queryPage.selectObject('Account');
+
+    await queryPage.selectNestedSubquery([
+      { relationshipName: 'Contacts', childSObject: 'Contact', fieldLabels: ['Contact ID'] },
+      { relationshipName: 'Cases', childSObject: 'Case', fieldLabels: ['Case ID', 'Subject'] },
+    ]);
+
+    // Back at the top level the nested subquery is not listed, so the navigator is the only way to reach it
+    await queryPage.navigateToSubqueryBreadcrumb('Account');
+    await queryPage.navigateToSubqueryFromNavigator('Cases', 'Case');
+
+    for (const field of ['Case ID', 'Subject']) {
+      await expect(queryPage.getSelectedField(field)).toHaveAttribute('aria-selected', 'true');
+    }
+  });
+
   test('should restore queries', async ({ queryPage }) => {
     const query = `SELECT Id, Name,
     (

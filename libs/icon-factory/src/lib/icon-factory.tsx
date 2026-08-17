@@ -25,8 +25,8 @@ import StandardIcon_Billing from './icons/standard/Billing';
 import StandardIcon_BundleConfig from './icons/standard/BundleConfig';
 import StandardIcon_Chart from './icons/standard/Chart';
 import StandardIcon_ConnectedApps from './icons/standard/ConnectedApps';
-import StandardIcon_Customers from './icons/standard/Customers';
 import StandardIcon_CustomerPortalUsers from './icons/standard/CustomerPortalUsers';
+import StandardIcon_Customers from './icons/standard/Customers';
 import StandardIcon_DataStreams from './icons/standard/DataStreams';
 import StandardIcon_EmployeeOrganization from './icons/standard/EmployeeOrganization';
 import StandardIcon_Entity from './icons/standard/Entity';
@@ -106,6 +106,7 @@ import UtilityIcon_Forward from './icons/utility/Forward';
 import UtilityIcon_Help from './icons/utility/Help';
 import UtilityIcon_HelpDocExt from './icons/utility/HelpDocExt';
 import UtilityIcon_Hide from './icons/utility/Hide';
+import UtilityIcon_Hierarchy from './icons/utility/Hierarchy';
 import UtilityIcon_Home from './icons/utility/Home';
 import UtilityIcon_Identity from './icons/utility/Identity';
 import UtilityIcon_Image from './icons/utility/Image';
@@ -312,6 +313,7 @@ const utilityIcons = {
   help: UtilityIcon_Help,
   help_doc_ext: UtilityIcon_HelpDocExt,
   hide: UtilityIcon_Hide,
+  hierarchy: UtilityIcon_Hierarchy,
   home: UtilityIcon_Home,
   identity: UtilityIcon_Identity,
   image: UtilityIcon_Image,

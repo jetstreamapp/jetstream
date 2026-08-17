@@ -3,7 +3,7 @@
 import { UiSection } from '@jetstream/types';
 import classNames from 'classnames';
 import isFunction from 'lodash/isFunction';
-import { Fragment, FunctionComponent, ReactNode, useState } from 'react';
+import { Fragment, FunctionComponent, ReactNode, useEffect, useRef, useState } from 'react';
 import Icon from '../widgets/Icon';
 
 export interface AccordionProps {
@@ -18,6 +18,11 @@ export interface AccordionProps {
    * Additional content to display next to the expand/collapse all button.
    */
   expandAllExtraContent?: ReactNode;
+  /**
+   * Scroll the section opened by `initOpenIds` into view as the accordion mounts, for when the accordion is
+   * rendered already scrolled past the section that matters.
+   */
+  scrollInitOpenIdIntoView?: boolean;
   onActiveIdsChange?: (openIds: string[]) => void;
 }
 
@@ -30,9 +35,20 @@ export const Accordion: FunctionComponent<AccordionProps> = ({
   expandAllClassName,
   expandAllContainerClassName,
   expandAllExtraContent,
+  scrollInitOpenIdIntoView = false,
   onActiveIdsChange,
 }) => {
   const [openIds, setOpenIds] = useState<Set<string>>(new Set(initOpenIds));
+  // initOpenIds is only honored as the accordion mounts, so the section to scroll to is captured the same way
+  const scrollTargetIdRef = useRef(initOpenIds[0]);
+  const scrollTargetRef = useRef<HTMLLIElement | null>(null);
+
+  useEffect(() => {
+    if (scrollInitOpenIdIntoView) {
+      scrollTargetRef.current?.scrollIntoView({ block: 'nearest' });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function handleClick(id: string) {
     if (allowMultiple) {
@@ -105,7 +121,12 @@ export const Accordion: FunctionComponent<AccordionProps> = ({
             }
           }
           return (
-            <li className={classNames('slds-accordion__list-item', item.className)} key={item.id} style={item.style || undefined}>
+            <li
+              className={classNames('slds-accordion__list-item', item.className)}
+              key={item.id}
+              ref={item.id === scrollTargetIdRef.current ? scrollTargetRef : undefined}
+              style={item.style || undefined}
+            >
               <section className={classNames('slds-accordion__section', { 'slds-is-open': isOpen })}>
                 <div className="slds-accordion__summary">
                   <h3 className="slds-accordion__summary-heading">

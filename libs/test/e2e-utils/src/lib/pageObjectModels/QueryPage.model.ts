@@ -146,6 +146,15 @@ export class QueryPage {
   }
 
   /**
+   * Jump to a related object from the tree of everything in the query, which is the only way to reach a nested
+   * subquery without drilling back into each of its ancestors.
+   */
+  async navigateToSubqueryFromNavigator(relationshipName: string, childSObject: string) {
+    await this.page.getByTestId('subquery-navigator-button').click();
+    await this.page.getByTestId('subquery-navigator-popover').getByTitle(`${relationshipName} (${childSObject})`).click();
+  }
+
+  /**
    * Author a subquery nested inside another, e.x. Account > Contacts > Cases.
    * Each entry selects its fields before drilling into the next level.
    */

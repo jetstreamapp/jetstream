@@ -102,6 +102,12 @@ describe('Breadcrumbs', () => {
     expect(screen.getByRole('navigation')).toBeTruthy();
   });
 
+  // An anchor without an href is exposed as generic instead of a link and cannot be focused with the keyboard
+  test('renders each item as a link', () => {
+    render(<Breadcrumbs items={items} currentItem="Current Page" onClick={() => {}} />);
+    expect(screen.getAllByRole('link').map((link) => link.textContent)).toEqual(['Home', 'Products', 'Detail']);
+  });
+
   test('renders currentItem when provided', () => {
     render(<Breadcrumbs items={items} currentItem="Current Page" onClick={() => {}} />);
     expect(screen.getByText('Current Page')).toBeTruthy();
