@@ -319,6 +319,10 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
           error: true,
           success: false,
           errorType: err.type,
+          // The app's HTTP client surfaces the top-level message; `data` is the shape the sign in
+          // screens read. Without this, an auth error on an in-app route (e.g. a rejected email
+          // change) reaches the user as a generic "unknown error".
+          message: err.message,
           data: {
             error: true,
             success: false,

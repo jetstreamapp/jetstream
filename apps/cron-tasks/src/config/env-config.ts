@@ -33,6 +33,9 @@ export const ENV = {
 
   ADMIN_NOTIFICATION_EMAIL: process.env.ADMIN_NOTIFICATION_EMAIL,
 
+  // Overrides the upstream disposable-email blocklist source; falls back to the community list.
+  BLOCKED_EMAIL_DOMAIN_LIST_URL: process.env.BLOCKED_EMAIL_DOMAIN_LIST_URL,
+
   // CLOUDFLARE
   CLOUDFLARE_API_TOKEN: process.env.CLOUDFLARE_API_TOKEN,
   CLOUDFLARE_ZONE_IDS: process.env.CLOUDFLARE_ZONE_IDS, // comma-separated list of zone tags
