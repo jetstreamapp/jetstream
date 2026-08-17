@@ -12,6 +12,7 @@ import {
   CURRENT_TOS_VERSION,
   discoverSsoConfigByDomain,
   EMAIL_VERIFICATION_TOKEN_DURATION_HOURS,
+  EmailDomainNotAllowed,
   ensureAuthError,
   ExpiredVerificationToken,
   generatePasswordResetToken,
@@ -32,6 +33,7 @@ import {
   InvalidProvider,
   InvalidSession,
   InvalidVerificationToken,
+  isEmailDomainBlocked,
   linkIdentityToUser,
   getProviders as listProviders,
   MAX_VERIFICATION_ATTEMPTS,
@@ -978,6 +980,17 @@ const requestPasswordReset = createRoute(routeDefinition.requestPasswordReset.va
     let userId: string | undefined;
 
     try {
+      // Throwing here (rather than returning an error) keeps the response identical to every other
+      // outcome of this endpoint, which is the whole point of its design - a distinct
+      // "blocked domain" response would be a new differential signal on an endpoint that is
+      // deliberately uniform. The block is enforced at registration; this only stops us mailing the
+      // accounts that predate it, where the send would just bounce.
+      //
+      // Runs for every request, including unregistered addresses, so it adds no timing difference
+      // between the two paths.
+      if (await isEmailDomainBlocked(email)) {
+        throw new EmailDomainNotAllowed('Password reset skipped for a blocked email domain');
+      }
       const { token, userId: _userId } = await generatePasswordResetToken(email);
       userId = _userId;
       // Fire-and-forget the email: awaiting the Mailgun round trip here made the response for a

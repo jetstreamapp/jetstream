@@ -4,6 +4,7 @@ export * from './lib/auth.db.service';
 export * from './lib/auth.errors';
 export * from './lib/auth.service';
 export * from './lib/auth.utils';
+export * from './lib/blocked-email-domain.db.service';
 export * from './lib/email-change.db.service';
 export { OauthClients } from './lib/OauthClients';
 export * from './lib/oidc.service';

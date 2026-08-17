@@ -47,6 +47,7 @@ const authServerMocks = vi.hoisted(() => {
   class IdentityLinkingNotAllowed extends AuthError {}
   class ProviderEmailNotVerified extends AuthError {}
   class ProviderNotAllowed extends AuthError {}
+  class EmailDomainNotAllowed extends AuthError {}
 
   return {
     PLACEHOLDER_USER_ID,
@@ -65,6 +66,7 @@ const authServerMocks = vi.hoisted(() => {
     IdentityLinkingNotAllowed,
     ProviderEmailNotVerified,
     ProviderNotAllowed,
+    EmailDomainNotAllowed,
     acceptTos: vi.fn(),
     clearOauthCookies: vi.fn(),
     createOrUpdateOtpAuthFactor: vi.fn(),
@@ -100,6 +102,7 @@ const authServerMocks = vi.hoisted(() => {
     handleSsoLogin: vi.fn(),
     hasRememberDeviceRecord: vi.fn(),
     initSession: vi.fn(),
+    isEmailDomainBlocked: vi.fn(),
     linkIdentityToUser: vi.fn(),
     getProviders: vi.fn(() => ({
       credentials: { type: 'credentials', provider: 'credentials' },
@@ -803,6 +806,95 @@ describe('auth.controller - 2fa-otp single-use replay enforcement', () => {
       res,
       expect.objectContaining({ message: 'Provided code has already been used' }),
       expect.objectContaining({ action: '2FA_VERIFICATION', success: false }),
+    );
+  });
+});
+
+/**
+ * `requestPasswordReset` answers identically no matter what happens internally — that uniformity is
+ * the endpoint's anti-enumeration defense. The blocked-domain skip added a new internal branch, so
+ * these lock in that it suppresses the send without altering the response the caller observes.
+ */
+describe('auth.controller - password reset blocked domain handling', () => {
+  const BLOCKED_EMAIL = 'someone@mailinator.com';
+  const ALLOWED_EMAIL = 'someone@example.com';
+
+  function makePasswordResetReq(email: string) {
+    return makeReq({ body: { csrfToken: 'csrf-token', email } });
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    authServerMocks.ensureAuthError.mockImplementation((error: unknown) => error);
+    authServerMocks.isEmailDomainBlocked.mockResolvedValue(false as never);
+    authServerMocks.generatePasswordResetToken.mockResolvedValue({ token: 'reset-token', userId: 'user-id' } as never);
+    emailMocks.sendPasswordReset.mockResolvedValue(undefined);
+  });
+
+  it('does not generate a token or send an email for a blocked domain', async () => {
+    authServerMocks.isEmailDomainBlocked.mockResolvedValue(true as never);
+    const req = makePasswordResetReq(BLOCKED_EMAIL);
+    const res = makeRes();
+    const next = vi.fn();
+
+    const handler = routeDefinition.requestPasswordReset.controllerFn();
+    await handler(req as never, res as never, next);
+
+    expect(authServerMocks.isEmailDomainBlocked).toHaveBeenCalledWith(BLOCKED_EMAIL);
+    expect(authServerMocks.generatePasswordResetToken).not.toHaveBeenCalled();
+    expect(emailMocks.sendPasswordReset).not.toHaveBeenCalled();
+  });
+
+  it('responds to a blocked domain exactly as it does to an allowed one', async () => {
+    const blockedRes = makeRes();
+    const allowedRes = makeRes();
+    const next = vi.fn();
+    const handler = routeDefinition.requestPasswordReset.controllerFn();
+
+    authServerMocks.isEmailDomainBlocked.mockResolvedValue(true as never);
+    await handler(makePasswordResetReq(BLOCKED_EMAIL) as never, blockedRes as never, next);
+    const blockedResponse = responseHandlerMocks.sendJson.mock.calls.at(-1)?.[1];
+
+    authServerMocks.isEmailDomainBlocked.mockResolvedValue(false as never);
+    await handler(makePasswordResetReq(ALLOWED_EMAIL) as never, allowedRes as never, next);
+    const allowedResponse = responseHandlerMocks.sendJson.mock.calls.at(-1)?.[1];
+
+    expect(next).not.toHaveBeenCalled();
+    expect(blockedResponse).toEqual({ error: false });
+    expect(blockedResponse).toEqual(allowedResponse);
+  });
+
+  it('records the request as unsuccessful activity without surfacing an error to the caller', async () => {
+    authServerMocks.isEmailDomainBlocked.mockResolvedValue(true as never);
+    const req = makePasswordResetReq(BLOCKED_EMAIL);
+    const res = makeRes();
+    const next = vi.fn();
+
+    const handler = routeDefinition.requestPasswordReset.controllerFn();
+    await handler(req as never, res as never, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(authServerMocks.createUserActivityFromReq).toHaveBeenCalledWith(
+      req,
+      res,
+      expect.objectContaining({ action: 'PASSWORD_RESET_REQUEST', email: BLOCKED_EMAIL, success: false }),
+    );
+  });
+
+  it('still sends the reset email for an allowed domain', async () => {
+    const req = makePasswordResetReq(ALLOWED_EMAIL);
+    const res = makeRes();
+    const next = vi.fn();
+
+    const handler = routeDefinition.requestPasswordReset.controllerFn();
+    await handler(req as never, res as never, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(authServerMocks.generatePasswordResetToken).toHaveBeenCalledWith(ALLOWED_EMAIL);
+    expect(emailMocks.sendPasswordReset).toHaveBeenCalledWith(
+      ALLOWED_EMAIL,
+      'reset-token',
+      authServerMocks.PASSWORD_RESET_DURATION_MINUTES,
     );
   });
 });
