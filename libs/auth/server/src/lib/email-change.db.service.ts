@@ -1,6 +1,7 @@
 import { logger, prisma } from '@jetstream/api-config';
 import type { PendingEmailChange, StepUpMethod } from '@jetstream/auth/types';
 import { Prisma } from '@jetstream/prisma';
+import { AUTH_ERROR_MESSAGES } from '@jetstream/shared/constants';
 import type { Maybe } from '@jetstream/types';
 import { addHours, addMinutes } from 'date-fns';
 import {
@@ -12,6 +13,7 @@ import { getLoginConfiguration, revokeAllUserSessions, withEmailAddressLock } fr
 import { EmailChangeNotAllowed, InvalidOrExpiredEmailChangeToken } from './auth.errors';
 import { generateRandomString } from './auth.service';
 import { hashOpaqueToken, timingSafeStringCompare } from './auth.utils';
+import { isEmailDomainBlocked } from './blocked-email-domain.db.service';
 
 export type EmailChangeStatus = 'PENDING' | 'COMPLETED' | 'CANCELLED' | 'EXPIRED' | 'SUPERSEDED' | 'FAILED';
 export type EmailChangeResolvedVia = 'USER_PROFILE' | 'EMAIL_LINK' | 'SUPERSEDED' | 'EXPIRED_SWEEP';
@@ -31,8 +33,14 @@ interface RequestContext {
 }
 
 /**
- * Policy gate for starting an email change. Re-evaluated at confirm time as well, so a policy or
- * data change while a request is in flight cannot be exploited by sitting on a token.
+ * Policy gate for starting an email change.
+ *
+ * The checks that a token-holder could otherwise wait out - address availability and SSO policy -
+ * are re-evaluated by completeEmailChange, so a data or policy change while a request is in flight
+ * cannot be exploited by sitting on a token. The blocked-domain check below is deliberately
+ * request-time only: exploiting it would mean the sync adding that exact domain inside the token's
+ * short validity window, and re-checking would reject a link the user was legitimately sent with
+ * the intentionally generic "invalid or expired" message.
  */
 export async function assertEmailChangeAllowedOrThrow({
   userId,
@@ -56,6 +64,14 @@ export async function assertEmailChangeAllowedOrThrow({
 
   if (user.email.toLowerCase() === normalizedEmail) {
     throw new EmailChangeNotAllowed('That is already your email address');
+  }
+
+  // Same rule as credentials registration: the user freely chooses this address and we mail it, so a
+  // burner domain here is the same deliverability problem - and would otherwise be a trivial way to
+  // land on one anyway (register with a real address, then change to a burner).
+  if (await isEmailDomainBlocked(normalizedEmail)) {
+    logger.warn({ userId }, '[EMAIL_CHANGE] Rejected email change to a blocked email domain');
+    throw new EmailChangeNotAllowed(AUTH_ERROR_MESSAGES.EmailDomainNotAllowed);
   }
 
   // When SSO is enabled the identity provider owns the address: a divergent User.email desyncs the

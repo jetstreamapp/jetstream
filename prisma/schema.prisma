@@ -70,6 +70,13 @@ model User {
   teamMemberInvitationCreatedBy TeamMemberInvitation[] @relation("TeamMemberInvitationCreatedBy")
   teamMemberInvitationUpdatedBy TeamMemberInvitation[] @relation("TeamMemberInvitationUpdatedBy")
 
+  // Serves findUsersByEmail, generatePasswordResetToken, getUserAndVerifyPassword, resolveSsoUser
+  // and the email-change availability checks. NON-UNIQUE on purpose: production contains duplicate
+  // emails and the sign-in paths have explicit multi-match handling for them, so uniqueness is
+  // enforced in the application instead.
+  //
+  // Created as hand-written DDL in 20260731023007_email_change_tracking and declared here so
+  // `migrate dev` stops reporting it as drift and generating a DROP INDEX for it.
   @@index([email])
 }
 
@@ -518,6 +525,37 @@ model MailgunWebhookEvent {
   @@index([deliveryCode, event])
   @@index([timestamp])
   @@map("mailgun_webhook_event")
+}
+
+// How a BlockedEmailDomain row got here. The sync job owns LIST_SYNC rows exclusively - it never
+// touches MANUAL rows, so a hand-authored decision (either direction) always survives the next sync.
+enum BlockedEmailDomainSource {
+  MANUAL
+  LIST_SYNC
+}
+
+// Domains we refuse to accept for user-chosen email addresses, primarily disposable/burner mail
+// providers. This is a deliverability control rather than a security one: burner signups generate
+// bounces that damage sending reputation and make the bounce rate useless as an abuse signal.
+//
+// `blocked = false` is a deliberate allowlist entry, used to keep legitimate forwarding services
+// (Apple Hide My Email, Firefox Relay, DuckDuckGo) usable even though public disposable-domain lists
+// tend to include them. Those services are seeded as MANUAL rows by this table's migration.
+model BlockedEmailDomain {
+  id String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+
+  /// Always stored lowercase. Lookups lowercase the address first and the unique index is case
+  /// sensitive, so a mixed-case row could never match. Enforced by the hand-written
+  /// blocked_email_domain_domain_lowercase CHECK constraint, which Prisma cannot express here.
+  domain   String                   @unique @db.VarChar(255)
+  blocked  Boolean                  @default(true)
+  source   BlockedEmailDomainSource @default(MANUAL)
+  comments String?                  @db.VarChar(500)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("blocked_email_domain")
 }
 
 model UserPreference {

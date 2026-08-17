@@ -1222,6 +1222,7 @@ export const AUTH_ERROR_MESSAGES = {
   InvalidCredentials: 'Sign in failed. Check the details you provided are correct.',
   InvalidCsrfToken: 'The action is invalid, refresh the page and start over.',
   EmailChangeNotAllowed: 'Your email address cannot be changed right now.',
+  EmailDomainNotAllowed: 'Disposable email addresses are not supported. Use a permanent email address to continue.',
   InvalidOrExpiredEmailChangeToken: 'This link is invalid or has expired. Start the email change again from your profile.',
   InvalidOrExpiredResetToken: 'Your reset token is invalid, Restart the reset process.',
   InvalidParameters: 'There was a problem with your submission, refresh the page and try again.',
