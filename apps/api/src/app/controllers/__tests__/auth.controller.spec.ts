@@ -91,6 +91,7 @@ const authServerMocks = vi.hoisted(() => {
       rememberDevice: { name: 'rememberDevice', options: {} },
       redirectUrl: { name: 'redirectUrl', options: {} },
       teamInviteState: { name: 'teamInviteState', options: {} },
+      lastLoginMethod: { name: 'lastLoginMethod', options: {} },
     })),
     getLoginConfiguration: vi.fn(),
     getTeamLoginConfigWithSso: vi.fn(),
@@ -237,6 +238,7 @@ describe('auth.controller - placeholder session email suppression', () => {
       rememberDevice: { name: 'rememberDevice', options: {} },
       redirectUrl: { name: 'redirectUrl', options: {} },
       teamInviteState: { name: 'teamInviteState', options: {} },
+      lastLoginMethod: { name: 'lastLoginMethod', options: {} },
     } as never);
     authServerMocks.getProviders.mockReturnValue({
       credentials: { type: 'credentials', provider: 'credentials' },
@@ -554,6 +556,11 @@ describe('auth.controller - placeholder session email suppression', () => {
  * when the `returnUrl` cookie is missing (the desktop login interstitial only sets `redirectUrl`),
  * and (3) `normalizeRedirectCandidate` collapses the `/app/app` path that the frontend sometimes
  * emits, so post-login navigation lands on a real route.
+ *
+ * They also pin down the `lastLoginMethod` cookie, the API half of a cross-app contract with
+ * `getLastUsedLoginMethod` in the landing app. Only the callbacks know that SSO actually succeeded,
+ * so a change to the cookie name or payload shape here breaks the login form's returning-user view
+ * with nothing else to catch it.
  */
 describe('auth.controller - SSO callback redirect resolution', () => {
   const TEAM_ID = '550e8400-e29b-41d4-a716-446655440000';
@@ -571,6 +578,7 @@ describe('auth.controller - SSO callback redirect resolution', () => {
       rememberDevice: { name: 'rememberDevice', options: {} },
       redirectUrl: { name: 'redirectUrl', options: {} },
       teamInviteState: { name: 'teamInviteState', options: {} },
+      lastLoginMethod: { name: 'lastLoginMethod', options: {} },
     } as never);
     authServerMocks.ensureAuthError.mockImplementation((error: unknown) => error);
     authServerMocks.validateRedirectUrl.mockImplementation((url: string) => url || 'https://client.test');
@@ -653,6 +661,56 @@ describe('auth.controller - SSO callback redirect resolution', () => {
     );
     expect(responseHandlerMocks.redirect).toHaveBeenCalledWith(res, 'https://client.test/app/query');
   });
+
+  it('SAML callback: records the successful SSO login so the login form can offer it again', async () => {
+    const req = makeReq({
+      headers: { cookie: '' },
+      params: { teamId: TEAM_ID },
+      body: { SAMLResponse: 'fake-saml-response', RelayState: 'https://client.test/app' },
+    });
+    const res = makeRes();
+    const next = vi.fn();
+
+    const handler = routeDefinition.handleSamlCallback.controllerFn();
+    await handler(req as never, res as never, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.locals.cookies).toEqual(
+      expect.objectContaining({
+        lastLoginMethod: {
+          name: 'lastLoginMethod',
+          value: JSON.stringify({ method: 'sso', email: 'sso@example.com' }),
+          options: {},
+        },
+      }),
+    );
+  });
+
+  it('OIDC callback: records the successful SSO login so the login form can offer it again', async () => {
+    const req = makeReq({
+      headers: { cookie: 'state=state-val; pkceCodeVerifier=pkce-val; nonce=nonce-val' },
+      params: { teamId: TEAM_ID },
+      query: { code: 'auth-code', state: 'state-val' },
+      body: {},
+    });
+    (req as MockRequest & { originalUrl: string }).originalUrl = '/api/auth/sso/oidc/callback?code=auth-code&state=state-val';
+    const res = makeRes();
+    const next = vi.fn();
+
+    const handler = routeDefinition.handleOidcCallback.controllerFn();
+    await handler(req as never, res as never, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.locals.cookies).toEqual(
+      expect.objectContaining({
+        lastLoginMethod: {
+          name: 'lastLoginMethod',
+          value: JSON.stringify({ method: 'sso', email: 'sso@example.com' }),
+          options: {},
+        },
+      }),
+    );
+  });
 });
 
 /**
@@ -695,6 +753,7 @@ describe('auth.controller - 2fa-otp single-use replay enforcement', () => {
       rememberDevice: { name: 'rememberDevice', options: {} },
       redirectUrl: { name: 'redirectUrl', options: {} },
       teamInviteState: { name: 'teamInviteState', options: {} },
+      lastLoginMethod: { name: 'lastLoginMethod', options: {} },
     } as never);
     authServerMocks.ensureAuthError.mockImplementation((error: unknown) => error);
     authServerMocks.validateRedirectUrl.mockImplementation((url: string) => url || 'https://client.test');

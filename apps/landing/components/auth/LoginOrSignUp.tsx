@@ -4,31 +4,29 @@ import { containsUserInfo } from '@jetstream/shared/utils';
 import { PASSWORD_MIN_LENGTH, PasswordSchema } from '@jetstream/types';
 import type { TurnstileInstance } from '@marsidev/react-turnstile';
 import classNames from 'classnames';
-import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment, ReactNode, useEffect, useRef, useState } from 'react';
 import { FieldErrors, useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { useSsoLogin } from '../../hooks/sso.hooks';
 import { ENVIRONMENT, ROUTES } from '../../utils/environment';
 import { getLastUsedLoginMethod, setLastUsedLoginMethod } from '../../utils/utils';
+import Alert from '../Alert';
 import { ErrorQueryParamErrorBanner } from '../ErrorQueryParamErrorBanner';
 import { Checkbox } from '../form/Checkbox';
 import { Input } from '../form/Input';
 import { Captcha, isCaptchaRequired } from './Captcha';
+import { ContinueWithSsoButton } from './ContinueWithSsoButton';
 import { ForgotPasswordLink } from './ForgotPasswordLink';
+import { LastUsedSsoLogin } from './LastUsedSsoLogin';
+import { LoginOrSignUpHeader } from './LoginOrSignUpHeader';
 import { LoginOrSignUpOAuthButton } from './LoginOrSignUpOAuthButton';
 import { PasswordStrengthIndicator } from './PasswordStrengthIndicator';
 import { RegisterOrSignUpLink } from './RegisterOrSignUpLink';
 import { ShowPasswordButton } from './ShowPasswordButton';
-
-const SsoDiscoveryResponseSchema = z.object({
-  data: z.object({
-    available: z.boolean(),
-  }),
-});
-
-type SsoDiscoveryResponse = z.infer<typeof SsoDiscoveryResponseSchema>;
+import { SsoAvailableBanner } from './SsoAvailableBanner';
+import { SsoEmailStep } from './SsoEmailStep';
 
 const LoginSchema = z.object({
   action: z.literal('login'),
@@ -84,6 +82,41 @@ const FormSchema = z.discriminatedUnion('action', [LoginSchema, RegisterSchema])
 type RegisterForm = z.infer<typeof RegisterSchema>;
 type Form = z.infer<typeof FormSchema>;
 
+/**
+ * `lastUsedSso` mirrors the returning SSO user experience - the only login method offered is the
+ * one that worked last time. `ssoEmail` collects just an email address to resolve the identity
+ * provider from, without the credential fields getting in the way.
+ */
+type LoginFormView = 'lastUsedSso' | 'default' | 'ssoEmail';
+
+/**
+ * Whether the email address has been checked for an SSO configuration. Only meaningful on the
+ * `default` view - the other two views never run discovery.
+ */
+type SsoDiscoveryState = 'unchecked' | 'unavailable' | 'available';
+
+/** Shared by the credentials form and the SSO email step so the field behaves the same in both */
+const EMAIL_INPUT_PROPS = {
+  type: 'email',
+  required: true,
+  autoComplete: 'email',
+  spellCheck: 'false',
+  autoCapitalize: 'off',
+} as const;
+
+/** Chrome shared by every view so switching views cannot change the page framing */
+function LoginFormShell({ action, children }: { action: 'login' | 'register'; children: ReactNode }) {
+  return (
+    <Fragment>
+      <ErrorQueryParamErrorBanner />
+      <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8">
+        <LoginOrSignUpHeader action={action} />
+        {children}
+      </div>
+    </Fragment>
+  );
+}
+
 interface LoginOrSignUpProps {
   action: 'login' | 'register';
   providers: Providers;
@@ -95,16 +128,22 @@ export function LoginOrSignUp({ action, providers, csrfToken, currentTosVersion 
   const router = useRouter();
   const [showPasswordActive, setShowPasswordActive] = useState(false);
   const [{ lastUsedLogin, rememberedEmail }] = useState(getLastUsedLoginMethod);
-  const [ssoInfo, setSsoInfo] = useState<SsoDiscoveryResponse['data'] | null>(null);
-  const [hasCheckedSso, setHasCheckedSso] = useState(false);
-  const [checkingSso, setCheckingSso] = useState(false);
-  const [discoveryError, setDiscoveryError] = useState<string | null>(null);
+  const [ssoDiscovery, setSsoDiscovery] = useState<SsoDiscoveryState>('unchecked');
 
   const captchaRef = useRef<TurnstileInstance>(null);
+  const isCheckingSsoRef = useRef(false);
   const searchParams = useSearchParams();
 
-  const emailHint = searchParams?.get('email') || (action === 'login' ? rememberedEmail : null);
+  const emailAddressHint = searchParams?.get('email');
+  const emailHint = emailAddressHint || (action === 'login' ? rememberedEmail : null);
   const returnUrl = searchParams?.get('returnUrl');
+
+  const { discoverSso, startSsoLogin, isCheckingSso, isStartingSso, ssoError, clearSsoError } = useSsoLogin({ csrfToken, returnUrl });
+
+  // A login link for a specific email address takes priority over the remembered SSO login
+  const [view, setView] = useState<LoginFormView>(() =>
+    action === 'login' && lastUsedLogin === 'sso' && rememberedEmail && !emailAddressHint ? 'lastUsedSso' : 'default',
+  );
 
   const {
     register,
@@ -112,6 +151,7 @@ export function LoginOrSignUp({ action, providers, csrfToken, currentTosVersion 
     watch,
     resetField,
     trigger,
+    getValues,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(FormSchema),
@@ -134,12 +174,11 @@ export function LoginOrSignUp({ action, providers, csrfToken, currentTosVersion 
 
   useEffect(() => {
     // Reset state when email changes
-    setSsoInfo(null);
-    setHasCheckedSso(false);
-    setDiscoveryError(null);
+    setSsoDiscovery('unchecked');
+    clearSsoError();
     resetField('password');
     resetField('confirmPassword');
-  }, [watchEmail, resetField]);
+  }, [watchEmail, resetField, clearSsoError]);
 
   const onSubmit = async (payload: Form) => {
     try {
@@ -219,332 +258,299 @@ export function LoginOrSignUp({ action, providers, csrfToken, currentTosVersion 
     }
   };
 
-  const checkSso = async (email: string): Promise<SsoDiscoveryResponse['data'] | null> => {
-    if (!email || !email.includes('@')) {
-      return null;
+  const handleContinue = async () => {
+    // Both the Continue button and Enter on the email input land here, and validation is awaited
+    // before discovery flips `isCheckingSso`, so a ref rather than that state is what keeps a second
+    // press from firing a duplicate request against the rate limited discovery endpoint. Concurrent
+    // calls would also let the first one to finish hide the "Checking for SSO" indicator early.
+    if (isCheckingSsoRef.current) {
+      return;
     }
+    isCheckingSsoRef.current = true;
 
     try {
-      const response = await fetch(ROUTES.AUTH.api_sso_discover, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ email, csrfToken }),
-      });
-
-      if (!response.ok) {
-        return null;
+      const emailValid = await trigger('email');
+      if (!emailValid) {
+        return;
       }
 
-      const { data } = await response.json().then((data) => SsoDiscoveryResponseSchema.parse(data));
+      const checkedEmail = watchEmail;
+      const isAvailable = await discoverSso(checkedEmail);
 
-      return response.ok && data.available ? data : null;
-    } catch (error) {
-      console.error('Error discovering SSO', error);
-      return null;
+      // The email input stays editable while discovery is in flight, and changing it resets discovery.
+      // Applying a result for an address the user has already moved on from would report SSO
+      // availability for an address that was never checked.
+      if (getValues('email') !== checkedEmail) {
+        return;
+      }
+
+      setSsoDiscovery(isAvailable ? 'available' : 'unavailable');
+    } finally {
+      isCheckingSsoRef.current = false;
     }
   };
 
-  const handleContinue = async () => {
+  /** SSO was explicitly requested, so the domain is resolved by starting the login rather than discovering first */
+  const handleSsoEmailContinue = async () => {
     const emailValid = await trigger('email');
     if (!emailValid) {
       return;
     }
 
-    setCheckingSso(true);
-    setDiscoveryError(null);
-    const data = await checkSso(watchEmail);
-    setSsoInfo(data);
-    setHasCheckedSso(true);
-    setCheckingSso(false);
-    if (!data) {
-      setDiscoveryError(null);
-    }
+    await startSsoLogin(watchEmail);
   };
 
-  const handleSsoLogin = async () => {
-    if (!ssoInfo?.available) {
-      return;
-    }
-
-    const url = new URL(ROUTES.AUTH.api_sso_start, window.location.origin);
-    if (returnUrl) {
-      url.searchParams.set('returnUrl', returnUrl);
-    }
-
-    const response = await fetch(url.toString(), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ csrfToken, email: watchEmail }),
-    });
-
-    if (!response.ok) {
-      // TODO: show error to user
-      return;
-    }
-
-    const {
-      data: { redirectUrl },
-    } = (await response.json()) as { data: { redirectUrl: string } };
-
-    setLastUsedLoginMethod({
-      lastUsedLogin: 'sso',
-      rememberedEmail: watchEmail,
-      ssoAvailable: ssoInfo?.available,
-    });
-    window.location.href = redirectUrl;
+  // The button that was clicked is gone once the view changes, so focus lands on the email address -
+  // the one input every view has. Each view renders its own tree, so the freshly mounted input's
+  // `autoFocus` is what moves focus; focusing from here would target the input that is unmounting.
+  const handleShowSsoEmailView = () => {
+    clearSsoError();
+    setView('ssoEmail');
   };
 
-  return (
-    <Fragment>
-      <ErrorQueryParamErrorBanner />
-      <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8">
+  const handleShowDefaultView = () => {
+    clearSsoError();
+    setView('default');
+  };
+
+  if (view === 'lastUsedSso' && rememberedEmail) {
+    return (
+      <LoginFormShell action={action}>
+        <LastUsedSsoLogin
+          email={rememberedEmail}
+          isStartingSso={isStartingSso}
+          error={ssoError}
+          onLogin={() => startSsoLogin(rememberedEmail)}
+          onUseAnotherMethod={handleShowDefaultView}
+        />
         <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-          <Link href={ROUTES.HOME}>
-            <img
-              alt="Jetstream"
-              src="https://res.cloudinary.com/getjetstream/image/upload/v1634516624/public/jetstream-logo.svg"
-              className="mx-auto h-10 w-auto"
-            />
-          </Link>
-          <h2 className="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
-            {action === 'login' ? 'Sign in' : 'Sign up'}
-          </h2>
+          <RegisterOrSignUpLink action={action} emailHint={rememberedEmail} />
         </div>
+      </LoginFormShell>
+    );
+  }
 
-        <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-          <div className="grid grid-cols-2 gap-4">
-            <LoginOrSignUpOAuthButton
-              action={action}
-              provider={providers?.google}
-              csrfToken={csrfToken}
-              returnUrl={returnUrl}
-              lastUsedLogin={lastUsedLogin}
-              setLastUsed={setLastUsedLoginMethod}
-            />
-
-            <LoginOrSignUpOAuthButton
-              action={action}
-              provider={providers?.salesforce}
-              csrfToken={csrfToken}
-              returnUrl={returnUrl}
-              lastUsedLogin={lastUsedLogin}
-              setLastUsed={setLastUsedLoginMethod}
-            />
-          </div>
-
-          {action === 'register' && (
-            <p className="text-xs text-center text-gray-500">
-              By signing in with Google or Salesforce, you agree to our{' '}
-              <a href={ROUTES.TERMS_OF_SERVICE} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-500 underline">
-                Terms of Service
-              </a>
-              ,{' '}
-              <a href={ROUTES.PRIVACY} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-500 underline">
-                Privacy Policy
-              </a>
-              , and{' '}
-              <a href={ROUTES.DPA} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-500 underline">
-                Data Processing Agreement
-              </a>
-              .
-            </p>
-          )}
-
-          <div>
-            <div className="relative mt-10">
-              <div aria-hidden="true" className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200" />
-              </div>
-              <div className="relative flex justify-center text-sm font-medium leading-6">
-                <span className="bg-white px-6 text-gray-900">or continue with</span>
-              </div>
-            </div>
-          </div>
-
-          <form
-            action={providers?.credentials.callbackUrl}
-            onSubmit={handleSubmit(onSubmit)}
-            method="POST"
-            noValidate
-            className="space-y-6"
-          >
-            <input type="hidden" {...register('csrfToken')} />
-            <input type="hidden" {...register('action')} />
-            {action === 'register' && <input type="hidden" {...register('tosVersion')} />}
-
+  if (view === 'ssoEmail') {
+    return (
+      <LoginFormShell action={action}>
+        <SsoEmailStep
+          isStartingSso={isStartingSso}
+          error={ssoError}
+          onContinue={handleSsoEmailContinue}
+          onBack={handleShowDefaultView}
+          emailInput={
             <Input
               label="Email Address"
               error={errors?.email?.message}
               inputProps={{
-                type: 'email',
+                ...EMAIL_INPUT_PROPS,
                 autoFocus: true,
-                required: true,
-                autoComplete: 'email',
-                spellCheck: 'false',
-                autoCapitalize: 'off',
                 ...register('email'),
-                onKeyDown: (e) => {
-                  if (e.key === 'Enter' && !ssoInfo && !hasCheckedSso) {
-                    e.preventDefault();
-                    handleContinue();
+                onKeyDown: (event) => {
+                  if (event.key !== 'Enter') {
+                    return;
                   }
+                  event.preventDefault();
+                  handleSsoEmailContinue();
                 },
               }}
             />
-            {checkingSso && <p className="text-sm text-gray-500">Checking for SSO…</p>}
-            {discoveryError && <p className="text-sm text-red-600">{discoveryError}</p>}
+          }
+        />
+        <div className="sm:mx-auto sm:w-full sm:max-w-sm">
+          <RegisterOrSignUpLink action={action} emailHint={emailHint} />
+        </div>
+      </LoginFormShell>
+    );
+  }
 
-            {ssoInfo?.available && (
-              <div className="rounded-md bg-blue-50 p-4">
-                <div className="flex">
-                  <div className="shrink-0">
-                    <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path
-                        fillRule="evenodd"
-                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </div>
-                  {/* TODO: add a "last used" indicator on SSO */}
-                  <div className="ml-3 flex-1 md:flex md:justify-between">
-                    <p className="text-sm text-blue-700">Single Sign-On is available</p>
-                    <p className="mt-3 text-sm md:ml-6 md:mt-0">
-                      <button
-                        type="button"
-                        onClick={handleSsoLogin}
-                        className="whitespace-nowrap font-medium text-blue-700 hover:text-blue-600"
-                        autoFocus={true}
-                      >
-                        Log in with SSO <span aria-hidden="true">&rarr;</span>
-                      </button>
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
+  return (
+    <LoginFormShell action={action}>
+      <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
+        <div className="grid grid-cols-2 gap-4">
+          <LoginOrSignUpOAuthButton
+            action={action}
+            provider={providers?.google}
+            csrfToken={csrfToken}
+            returnUrl={returnUrl}
+            lastUsedLogin={lastUsedLogin}
+            setLastUsed={setLastUsedLoginMethod}
+          />
 
-            {!hasCheckedSso && (
+          <LoginOrSignUpOAuthButton
+            action={action}
+            provider={providers?.salesforce}
+            csrfToken={csrfToken}
+            returnUrl={returnUrl}
+            lastUsedLogin={lastUsedLogin}
+            setLastUsed={setLastUsedLoginMethod}
+          />
+        </div>
+
+        <ContinueWithSsoButton isLastUsed={action === 'login' && lastUsedLogin === 'sso'} onClick={handleShowSsoEmailView} />
+
+        <div>
+          <div className="relative mt-10">
+            <div aria-hidden="true" className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200" />
+            </div>
+            <div className="relative flex justify-center text-sm font-medium leading-6">
+              <span className="bg-white px-6 text-gray-900">or continue with</span>
+            </div>
+          </div>
+        </div>
+
+        <form action={providers?.credentials.callbackUrl} onSubmit={handleSubmit(onSubmit)} method="POST" noValidate className="space-y-6">
+          <input type="hidden" {...register('csrfToken')} />
+          <input type="hidden" {...register('action')} />
+          {action === 'register' && <input type="hidden" {...register('tosVersion')} />}
+
+          <Input
+            label="Email Address"
+            error={errors?.email?.message}
+            inputProps={{
+              ...EMAIL_INPUT_PROPS,
+              autoFocus: true,
+              ...register('email'),
+              onKeyDown: (event) => {
+                // Once discovery has run the form can submit normally
+                if (event.key !== 'Enter' || ssoDiscovery !== 'unchecked') {
+                  return;
+                }
+                event.preventDefault();
+                handleContinue();
+              },
+            }}
+          />
+          {isCheckingSso && <p className="text-sm text-gray-500">Checking for SSO…</p>}
+          {ssoError && <Alert type="error" message={ssoError} />}
+
+          {ssoDiscovery === 'available' && <SsoAvailableBanner isStartingSso={isStartingSso} onLogin={() => startSsoLogin(watchEmail)} />}
+
+          {ssoDiscovery === 'unchecked' && (
+            <Fragment>
               <button
                 type="button"
                 onClick={handleContinue}
                 className="mt-4 flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold leading-6 text-white shadow-xs hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-                disabled={checkingSso}
+                disabled={isCheckingSso}
               >
                 Continue
               </button>
+
+              <RegisterOrSignUpLink action={action} emailHint={emailHint} />
+            </Fragment>
+          )}
+
+          {/* We want the components to render in the DOM to allow for password auto-fill */}
+          <span className={classNames('space-y-6', { invisible: ssoDiscovery === 'unchecked' })}>
+            {action === 'register' && (
+              <Input
+                label="Full Name"
+                error={(errors as FieldErrors<RegisterForm>)?.name?.message}
+                inputProps={{
+                  type: 'text',
+                  required: true,
+                  spellCheck: 'false',
+                  autoComplete: 'name',
+                  ...register('name'),
+                }}
+              />
             )}
 
-            {!hasCheckedSso && <RegisterOrSignUpLink action={action} emailHint={emailHint} />}
-
-            {/* We want the components to render in the DOM to allow for password auto-fill */}
-            <span className={classNames('space-y-6', { invisible: !hasCheckedSso })}>
-              {action === 'register' && (
-                <Input
-                  label="Full Name"
-                  error={(errors as FieldErrors<RegisterForm>)?.name?.message}
-                  inputProps={{
-                    type: 'text',
-                    required: true,
-                    spellCheck: 'false',
-                    autoComplete: 'name',
-                    ...register('name'),
-                  }}
-                />
+            <Input
+              label="Password"
+              error={errors?.password?.message}
+              inputProps={{
+                type: showPasswordActive ? 'text' : 'password',
+                required: true,
+                autoComplete: action === 'login' ? 'current-password' : 'new-password',
+                spellCheck: 'false',
+                minLength: action === 'register' ? PASSWORD_MIN_LENGTH : 8,
+                maxLength: 255,
+                // Only once discovery has ruled SSO out, so it does not take focus from the email
+                // address while the credential fields are still hidden
+                autoFocus: ssoDiscovery === 'unavailable',
+                ...register('password'),
+              }}
+            >
+              {action !== 'register' && (
+                <div className="flex items-center justify-between">
+                  <Checkbox inputProps={{ ...register('rememberMe') }}>Remember Me</Checkbox>
+                  <ShowPasswordButton isActive={showPasswordActive} onClick={() => setShowPasswordActive(!showPasswordActive)} />
+                </div>
               )}
+            </Input>
 
+            {action === 'register' && (
               <Input
-                label="Password"
-                error={errors?.password?.message}
+                label="Confirm Password"
+                error={(errors as FieldErrors<RegisterForm>)?.confirmPassword?.message}
                 inputProps={{
                   type: showPasswordActive ? 'text' : 'password',
                   required: true,
-                  autoComplete: action === 'login' ? 'current-password' : 'new-password',
-                  spellCheck: 'false',
-                  minLength: action === 'register' ? PASSWORD_MIN_LENGTH : 8,
+                  autoComplete: 'new-password',
+                  minLength: PASSWORD_MIN_LENGTH,
                   maxLength: 255,
-                  autoFocus: !ssoInfo?.available,
-                  ...register('password'),
+                  ...register('confirmPassword'),
                 }}
               >
-                {action !== 'register' && (
-                  <div className="flex items-center justify-between">
-                    <Checkbox inputProps={{ ...register('rememberMe') }}>Remember Me</Checkbox>
-                    <ShowPasswordButton isActive={showPasswordActive} onClick={() => setShowPasswordActive(!showPasswordActive)} />
-                  </div>
-                )}
-              </Input>
-
-              {action === 'register' && (
-                <Input
-                  label="Confirm Password"
-                  error={(errors as FieldErrors<RegisterForm>)?.confirmPassword?.message}
-                  inputProps={{
-                    type: showPasswordActive ? 'text' : 'password',
-                    required: true,
-                    autoComplete: 'new-password',
-                    minLength: PASSWORD_MIN_LENGTH,
-                    maxLength: 255,
-                    ...register('confirmPassword'),
-                  }}
-                >
-                  <div className="flex items-center justify-between">
-                    <Checkbox inputProps={{ ...register('rememberMe') }}>Remember Me</Checkbox>
-                    <ShowPasswordButton isActive={showPasswordActive} onClick={() => setShowPasswordActive(!showPasswordActive)} />
-                  </div>
-                </Input>
-              )}
-
-              {action === 'register' && watchPassword && (
-                <PasswordStrengthIndicator password={watchPassword} confirmPassword={watchConfirmPassword} email={watchEmail} />
-              )}
-
-              {action === 'register' && (
-                <div className="space-y-1">
-                  <Checkbox inputProps={{ ...register('tosAccepted') }}>
-                    I agree to the{' '}
-                    <a
-                      href={ROUTES.TERMS_OF_SERVICE}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-blue-600 hover:text-blue-500 underline"
-                    >
-                      Terms of Service
-                    </a>
-                    ,{' '}
-                    <a href={ROUTES.PRIVACY} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-500 underline">
-                      Privacy Policy
-                    </a>
-                    , and{' '}
-                    <a href={ROUTES.DPA} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-500 underline">
-                      Data Processing Agreement
-                    </a>
-                  </Checkbox>
-                  {(errors as FieldErrors<RegisterForm>)?.tosAccepted && (
-                    <p className="text-sm text-red-600">{(errors as FieldErrors<RegisterForm>).tosAccepted?.message}</p>
-                  )}
+                <div className="flex items-center justify-between">
+                  <Checkbox inputProps={{ ...register('rememberMe') }}>Remember Me</Checkbox>
+                  <ShowPasswordButton isActive={showPasswordActive} onClick={() => setShowPasswordActive(!showPasswordActive)} />
                 </div>
-              )}
+              </Input>
+            )}
 
-              <div className="flex items-center justify-end">
-                <ForgotPasswordLink />
+            {action === 'register' && watchPassword && (
+              <PasswordStrengthIndicator password={watchPassword} confirmPassword={watchConfirmPassword} email={watchEmail} />
+            )}
+
+            {action === 'register' && (
+              <div className="space-y-1">
+                <Checkbox inputProps={{ ...register('tosAccepted') }}>
+                  I agree to the{' '}
+                  <a
+                    href={ROUTES.TERMS_OF_SERVICE}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-blue-600 hover:text-blue-500 underline"
+                  >
+                    Terms of Service
+                  </a>
+                  ,{' '}
+                  <a href={ROUTES.PRIVACY} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-500 underline">
+                    Privacy Policy
+                  </a>
+                  , and{' '}
+                  <a href={ROUTES.DPA} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-500 underline">
+                    Data Processing Agreement
+                  </a>
+                </Checkbox>
+                {(errors as FieldErrors<RegisterForm>)?.tosAccepted && (
+                  <p className="text-sm text-red-600">{(errors as FieldErrors<RegisterForm>).tosAccepted?.message}</p>
+                )}
               </div>
+            )}
 
-              <Captcha ref={captchaRef} action={action} />
+            <div className="flex items-center justify-end">
+              <ForgotPasswordLink />
+            </div>
 
-              <button
-                type="submit"
-                className="flex w-full justify-center rounded-md bg-blue-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-xs hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-                disabled={!hasCheckedSso || isSubmitting}
-              >
-                {action === 'login' ? 'Sign in' : 'Sign up'}
-              </button>
-            </span>
-          </form>
+            <Captcha ref={captchaRef} action={action} />
 
-          {hasCheckedSso && <RegisterOrSignUpLink action={action} emailHint={emailHint} />}
-        </div>
+            <button
+              type="submit"
+              className="flex w-full justify-center rounded-md bg-blue-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-xs hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+              disabled={ssoDiscovery === 'unchecked' || isSubmitting}
+            >
+              {action === 'login' ? 'Sign in' : 'Sign up'}
+            </button>
+          </span>
+        </form>
+
+        {ssoDiscovery !== 'unchecked' && <RegisterOrSignUpLink action={action} emailHint={emailHint} />}
       </div>
-    </Fragment>
+    </LoginFormShell>
   );
 }

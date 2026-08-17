@@ -32,7 +32,7 @@ setup('login and ensure org exists', async ({ page, request }) => {
   await page.getByRole('link', { name: 'Log in' }).click();
   await page.getByLabel('Email Address').click();
   await page.getByLabel('Email Address').fill(user.email);
-  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
   await page.getByLabel('Password').click();
   await page.getByLabel('Password').fill(ENV.EXAMPLE_USER_PASSWORD as string);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();

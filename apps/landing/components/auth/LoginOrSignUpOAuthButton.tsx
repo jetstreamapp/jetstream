@@ -1,15 +1,17 @@
-import type { Provider, Providers } from '@jetstream/auth/types';
+import type { Provider } from '@jetstream/auth/types';
 import { Maybe } from '@jetstream/types';
 import classNames from 'classnames';
 import { useMemo } from 'react';
+import type { LastUsedLoginMethod } from '../../utils/utils';
+import { LastUsedBadge } from './LastUsedBadge';
 
 interface LoginOrSignUpOAuthButtonProps {
   action: 'login' | 'register';
   provider: Provider;
   csrfToken: string;
   returnUrl?: Maybe<string>;
-  lastUsedLogin: keyof Providers | null;
-  setLastUsed: (data: { lastUsedLogin?: keyof Providers | null; rememberedEmail?: string | null }) => void;
+  lastUsedLogin: LastUsedLoginMethod | null;
+  setLastUsed: (data: { lastUsedLogin?: LastUsedLoginMethod | null; rememberedEmail?: string | null }) => void;
 }
 
 export function LoginOrSignUpOAuthButton({
@@ -69,11 +71,7 @@ export function LoginOrSignUpOAuthButton({
           <img src={logo} alt={`Sign in with ${label} Logo`} className="h-5 w-5" />
           <span className="text-sm font-semibold leading-6">{label}</span>
         </button>
-        {action === 'login' && lastUsedLogin === provider.provider && (
-          <span className="mt-1 justify-center inline-flex items-center bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700 dark:bg-blue-400/10 dark:text-blue-400">
-            Last Used
-          </span>
-        )}
+        {action === 'login' && lastUsedLogin === provider.provider && <LastUsedBadge className="mt-1 justify-center" />}
       </div>
     </form>
   );

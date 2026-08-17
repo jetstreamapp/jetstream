@@ -57,9 +57,9 @@ test.describe('Auth rate limit UI behavior', () => {
       await authPage.goToLogin(false);
 
       await authPage.emailInput.fill(`user@${fixture.domain}`);
-      await page.getByRole('button', { name: 'Continue' }).click();
+      await authPage.continueButton.click();
 
-      // checkSso returns null when the response is not ok (including 429), so the UI
+      // discoverSso returns false when the response is not ok (including 429), so the UI
       // silently falls back to the regular password login form without showing an error.
       await expect(authPage.passwordInput).toBeVisible();
       await expect(page.getByText('Single Sign-On is available')).toBeHidden();
