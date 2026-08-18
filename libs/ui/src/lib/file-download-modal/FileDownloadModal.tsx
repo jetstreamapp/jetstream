@@ -241,9 +241,9 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
 
         saveFile(fileData, fileNameWithExt, mimeType);
         onModalClose();
-        saveFileFormatToStorage(fileFormat, LS_KEY);
       }
-      trackEvent(ANALYTICS_KEYS.file_download, { source, fileFormat, component: 'FileFauxDownloadModal' });
+      saveFileFormatToStorage(fileFormat, LS_KEY);
+      trackEvent(ANALYTICS_KEYS.file_download, { source, fileFormat, component: 'FileDownloadModal' });
     } catch (ex) {
       logger.error('[FILE DOWNLOAD][ERROR]', ex);
       onError && onError(ensureError(ex));

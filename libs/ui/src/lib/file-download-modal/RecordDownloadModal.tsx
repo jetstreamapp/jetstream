@@ -518,6 +518,10 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
           onDownload(fileFormat, whichFields, (includeSubquery && hasSubqueryFields) || includeSubqueriesInTemplate);
         }
         handleModalClose();
+      }
+      // The load template is only offered to callers that provide `loadTemplateOption`, so persisting it would
+      // discard a usable preference in favor of one that cannot be restored anywhere else
+      if (!isLoadTemplate) {
         saveFileFormatToStorage(fileFormat, LS_KEY);
       }
       trackEvent(ANALYTICS_KEYS.file_download, { source, fileFormat, component: 'RecordDownloadModal' });
