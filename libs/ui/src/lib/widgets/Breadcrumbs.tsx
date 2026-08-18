@@ -12,7 +12,9 @@ export function Breadcrumbs({ items, currentItem, onClick }: BreadcrumbsProps) {
       <ol className="slds-breadcrumb slds-list_horizontal slds-wrap">
         {items.map((item, i) => (
           <li key={`${item.id}_${i}`} className="slds-breadcrumb__item">
+            {/* Navigation is handled in JS, but the href is what makes this a link to a screen reader and reachable by keyboard */}
             <a
+              href="#"
               onClick={(event) => {
                 event.preventDefault();
                 onClick(item);

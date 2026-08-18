@@ -1,6 +1,5 @@
 import { MAX_SUBQUERY_DEPTH } from '@jetstream/shared/constants';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { isSubqueryPathBelow } from '@jetstream/shared/utils';
 import { ChildRelationship, QueryFieldWithPolymorphic, SalesforceOrgUi } from '@jetstream/types';
 import { Breadcrumbs, DesertIllustration, EmptyState, Grid, GridCol, Icon } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
@@ -8,14 +7,27 @@ import { getSubqueryFieldBaseKey } from '@jetstream/ui-core/shared';
 import { useAtomValue, useSetAtom } from 'jotai';
 import isNumber from 'lodash/isNumber';
 import { Fragment, FunctionComponent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  buildSelectedSubqueryTree,
+  countSubqueriesBelow,
+  getAncestorDrillLevels,
+  getSelectedSubqueryNodesByPath,
+  getSubquerySObjectByPath,
+  SubqueryDrillLevel,
+} from '../utils/subquery-navigation-utils';
 import QuerySubqueryLevel from './QuerySubqueryLevel';
+import QuerySubqueryNavigator from './QuerySubqueryNavigator';
 
-/** One level of drill-in. An empty array means the base object's child relationships are being shown. */
-interface SubqueryDrillLevel {
-  relationshipPath: string;
-  relationshipName: string;
-  childSObject: string;
+interface SubqueryNavigationState {
+  /** Levels drilled into. An empty array means the base object's child relationships are being shown. */
+  levels: SubqueryDrillLevel[];
+  /** Set when arriving from the navigator so the subquery that was picked is opened rather than just listed */
+  focusedRelationshipPath: string | null;
+  /** Bumped on each jump from the navigator so picking the same subquery again re-opens it */
+  jumpCount: number;
 }
+
+const INITIAL_NAVIGATION: SubqueryNavigationState = { levels: [], focusedRelationshipPath: null, jumpCount: 0 };
 
 export interface QuerySubquerySObjectsProps {
   org: SalesforceOrgUi;
@@ -53,12 +65,13 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
     [],
   );
 
-  const [drillPath, setDrillPath] = useState<SubqueryDrillLevel[]>([]);
+  const [navigation, setNavigation] = useState<SubqueryNavigationState>(INITIAL_NAVIGATION);
   const selectedFieldState = useAtomValue(fromQueryState.selectedSubqueryFieldsState);
   const queryFieldsMap = useAtomValue(fromQueryState.queryFieldsMapState);
   const clearSubqueries = useSetAtom(fromQueryState.clearSubqueriesBelow);
 
-  const currentLevel = drillPath[drillPath.length - 1];
+  const { levels, focusedRelationshipPath, jumpCount } = navigation;
+  const currentLevel = levels[levels.length - 1];
   const currentRelationshipPath = currentLevel?.relationshipPath || '';
 
   // Child relationships of the object being viewed. Below the root these come from the fields already
@@ -71,19 +84,28 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
     [childRelationships, currentLevel, queryFieldsMap],
   );
 
+  /** Every related object the query contains, which the navigator, the clear action, and each level are scoped from */
+  const selectedSubqueryTree = useMemo(
+    () => buildSelectedSubqueryTree(selectedFieldState, getSubquerySObjectByPath(queryFieldsMap)),
+    [queryFieldsMap, selectedFieldState],
+  );
+  const selectedSubqueryNodesByPath = useMemo(() => getSelectedSubqueryNodesByPath(selectedSubqueryTree), [selectedSubqueryTree]);
+
   // Related objects that "Clear all" would remove: everything listed at this level plus anything nested beneath them
   const clearableSubqueryCount = useMemo(
-    () =>
-      Object.keys(selectedFieldState).filter(
-        (path) => isSubqueryPathBelow(path, currentRelationshipPath) && selectedFieldState[path]?.length,
-      ).length,
-    [currentRelationshipPath, selectedFieldState],
+    () => countSubqueriesBelow(selectedSubqueryTree, currentRelationshipPath),
+    [currentRelationshipPath, selectedSubqueryTree],
   );
 
   useNonInitialEffect(() => {
-    setDrillPath([]);
+    setNavigation(INITIAL_NAVIGATION);
     fieldPickerCacheRef.current = {};
   }, [childRelationships]);
+
+  /** Every move other than a navigator jump drops the focused subquery so that it is not re-opened on arrival */
+  function goToLevels(getLevels: (currentLevels: SubqueryDrillLevel[]) => SubqueryDrillLevel[]) {
+    setNavigation((prev) => ({ ...prev, levels: getLevels(prev.levels), focusedRelationshipPath: null }));
+  }
 
   /**
    * Nothing is left to configure at this level once it is cleared, so step back up to the level that
@@ -91,57 +113,85 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
    */
   function handleClearAll() {
     clearSubqueries(currentRelationshipPath);
-    setDrillPath((prev) => prev.slice(0, -1));
+    goToLevels((currentLevels) => currentLevels.slice(0, -1));
   }
 
   /**
-   * Link to remove every related object at the level being viewed and anything nested beneath it.
-   * Rendered next to the breadcrumb when drilled in, and in the object list header at the root.
+   * Jump straight to a related object picked from the navigator, which requires drilling into each of its
+   * ancestors so the level that lists it is the one being viewed.
    */
+  function handleNavigate(relationshipPath: string) {
+    setNavigation((prev) => ({
+      levels: getAncestorDrillLevels(selectedSubqueryTree, relationshipPath),
+      focusedRelationshipPath: relationshipPath || null,
+      jumpCount: prev.jumpCount + 1,
+    }));
+  }
+
+  /** Breadcrumb items carry the index of the level they navigate back to, and -1 for the root object */
+  function handleBreadcrumbClick(levelIndex: unknown) {
+    if (!isNumber(levelIndex)) {
+      return;
+    }
+    goToLevels((currentLevels) => currentLevels.slice(0, levelIndex + 1));
+  }
+
+  /** Only rendered when the level being viewed has something to clear */
   function renderClearAllButton() {
-    if (!clearableSubqueryCount) {
+    if (clearableSubqueryCount === 0) {
       return null;
     }
     return (
-      <GridCol growNone>
-        <button
-          className="slds-button"
-          type="button"
-          title={
-            currentLevel
-              ? `Remove all related objects nested under ${currentLevel.relationshipName}, including anything nested within them`
-              : 'Remove all related objects from the query, including nested ones'
-          }
-          onClick={handleClearAll}
-        >
-          <Icon type="utility" icon="clear" className="slds-button__icon slds-button__icon_left" omitContainer />
-          Clear all ({clearableSubqueryCount})
-        </button>
-      </GridCol>
+      <button
+        className="slds-button"
+        type="button"
+        title={
+          currentLevel
+            ? `Remove all related objects nested under ${currentLevel.relationshipName}, including anything nested within them`
+            : 'Remove all related objects from the query, including nested ones'
+        }
+        onClick={handleClearAll}
+      >
+        <Icon type="utility" icon="clear" className="slds-button__icon slds-button__icon_left" omitContainer />
+        Clear all ({clearableSubqueryCount})
+      </button>
     );
   }
 
   return (
     <Fragment>
-      {drillPath.length > 0 && (
+      {levels.length > 0 && (
         <div className="slds-p-around_x-small slds-border_bottom">
           <Breadcrumbs
             items={[
               { id: 'subquery-root', label: rootSObjectName, metadata: -1 },
-              ...drillPath.slice(0, -1).map((level, index) => ({
+              ...levels.slice(0, -1).map((level, index) => ({
                 id: level.relationshipPath,
                 label: level.relationshipName,
                 metadata: index,
               })),
             ]}
             currentItem={currentLevel?.relationshipName}
-            onClick={(item) => isNumber(item.metadata) && setDrillPath((prev) => prev.slice(0, item.metadata + 1))}
+            onClick={(item) => handleBreadcrumbClick(item.metadata)}
           />
-          <Grid align="spread" verticalAlign="center" wrap className="slds-m-top_xx-small">
-            <GridCol className="slds-text-body_small slds-text-color_weak">
-              Related objects of {currentLevel?.childSObject} · depth {drillPath.length + 1} of {MAX_SUBQUERY_DEPTH}
+          <div className="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
+            Related objects of {currentLevel?.childSObject} · depth {levels.length + 1} of {MAX_SUBQUERY_DEPTH}
+          </div>
+        </div>
+      )}
+      {/* Kept outside the level so that the navigator stays reachable even on a level with nothing to list */}
+      {selectedSubqueryTree.length > 0 && (
+        <div className="slds-p-horizontal_xx-small slds-p-top_xx-small">
+          <Grid align="spread" verticalAlign="center" wrap>
+            <GridCol growNone>
+              <QuerySubqueryNavigator
+                rootSObjectName={rootSObjectName}
+                selectedSubqueryTree={selectedSubqueryTree}
+                currentRelationshipPath={currentRelationshipPath}
+                onNavigate={handleNavigate}
+              />
             </GridCol>
-            {renderClearAllButton()}
+            <GridCol growNone>{renderClearAllButton()}</GridCol>
           </Grid>
         </div>
       )}
@@ -152,19 +202,20 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
         ></EmptyState>
       )}
       {currentChildRelationships.length > 0 && (
-        // Remounting on level change resets the per-level filters and collapses the accordion
+        // Remounting on navigation resets the per-level filters, collapses the accordion, and lets a subquery
+        // picked from the navigator be opened as the accordion initializes
         <QuerySubqueryLevel
-          key={`${rootSObjectName}:${currentRelationshipPath}`}
+          key={`${rootSObjectName}:${currentRelationshipPath}:${focusedRelationshipPath || ''}:${jumpCount}`}
           org={org}
           serverUrl={serverUrl}
           isTooling={isTooling}
           relationshipPath={currentRelationshipPath}
           childRelationships={currentChildRelationships}
           fieldPickerCacheRef={fieldPickerCacheRef}
-          // Once drilled in the clear action lives in the breadcrumb block instead, next to the level it applies to
-          clearAllButton={drillPath.length === 0 ? renderClearAllButton() : undefined}
+          focusedRelationshipPath={focusedRelationshipPath}
+          selectedSubqueryNodesByPath={selectedSubqueryNodesByPath}
           onSelectionChanged={handleSelectionChanged}
-          onDrillIn={(level) => setDrillPath((prev) => [...prev, level])}
+          onDrillIn={(level) => goToLevels((currentLevels) => [...currentLevels, level])}
         />
       )}
     </Fragment>

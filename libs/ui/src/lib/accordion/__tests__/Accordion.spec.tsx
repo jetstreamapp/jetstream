@@ -9,6 +9,20 @@ const sections: UiSection[] = [
 ];
 
 describe('Accordion', () => {
+  // jsdom does not implement scrollIntoView, so the tests that cover it provide their own
+  const originalScrollIntoView = Element.prototype.scrollIntoView;
+  afterEach(() => {
+    Element.prototype.scrollIntoView = originalScrollIntoView;
+  });
+
+  function stubScrollIntoView() {
+    const scrolledElements: Element[] = [];
+    Element.prototype.scrollIntoView = vi.fn(function scrollIntoViewStub(this: Element) {
+      scrolledElements.push(this);
+    });
+    return scrolledElements;
+  }
+
   test('renders all section titles', () => {
     render(<Accordion sections={sections} initOpenIds={[]} />);
 
@@ -118,5 +132,22 @@ describe('Accordion', () => {
     sectionButtons.forEach((btn) => {
       expect(btn.getAttribute('aria-expanded')).toBe('false');
     });
+  });
+
+  test('scrollInitOpenIdIntoView scrolls the section opened on mount into view', () => {
+    const scrolledElements = stubScrollIntoView();
+
+    render(<Accordion sections={sections} initOpenIds={['section-2']} scrollInitOpenIdIntoView />);
+
+    expect(scrolledElements).toHaveLength(1);
+    expect(scrolledElements[0].contains(screen.getByText('Content Two'))).toBe(true);
+  });
+
+  test('nothing is scrolled into view without scrollInitOpenIdIntoView', () => {
+    const scrolledElements = stubScrollIntoView();
+
+    render(<Accordion sections={sections} initOpenIds={['section-2']} />);
+
+    expect(scrolledElements).toHaveLength(0);
   });
 });

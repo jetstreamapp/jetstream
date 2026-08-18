@@ -1,15 +1,7 @@
 import { css } from '@emotion/react';
 import { MAX_SUBQUERY_DEPTH } from '@jetstream/shared/constants';
 import { formatNumber, queryFilterHasValue } from '@jetstream/shared/ui-utils';
-import {
-  getSubqueryPath,
-  getSubqueryPathDepth,
-  getSubqueryPathWithAncestors,
-  isDirectChildSubqueryPath,
-  isSubqueryPathBelow,
-  multiWordObjectFilter,
-  pluralizeFromNumber,
-} from '@jetstream/shared/utils';
+import { getSubqueryPath, getSubqueryPathDepth, multiWordObjectFilter, pluralizeFromNumber } from '@jetstream/shared/utils';
 import {
   ChildRelationship,
   ExpressionConditionType,
@@ -22,6 +14,7 @@ import { Accordion, Badge, EmptyState, Grid, GridCol, Icon, isExpressionConditio
 import { fromQueryState } from '@jetstream/ui-core';
 import { useAtomValue, useSetAtom } from 'jotai';
 import { Fragment, FunctionComponent, MutableRefObject, ReactNode, useMemo, useState } from 'react';
+import { SelectedSubqueryNode, SubqueryDrillLevel } from '../utils/subquery-navigation-utils';
 import QueryChildFields from './QueryChildFields';
 import QuerySubqueryFilter, { DEFAULT_SUBQUERY_OBJECT_FILTER, SubqueryObjectFilter } from './QuerySubqueryFilter';
 
@@ -156,6 +149,10 @@ function ButtonWithDisabledHint({
   );
 }
 
+function getSectionId(currentRelationshipPath: string, { relationshipName, childSObject, field }: ChildRelationship) {
+  return `${getSubqueryPath(currentRelationshipPath, relationshipName || '')}-${childSObject}.${field}`;
+}
+
 export interface QuerySubqueryLevelProps {
   org: SalesforceOrgUi;
   serverUrl: string;
@@ -166,9 +163,15 @@ export interface QuerySubqueryLevelProps {
   childRelationships: ChildRelationship[];
   /** Shared across levels so an expanded field picker survives navigating away and back */
   fieldPickerCacheRef: MutableRefObject<Record<string, ReactNode>>;
-  clearAllButton?: ReactNode;
+  /** Subquery to open and scroll to as this level is rendered, set when navigating from the navigator */
+  focusedRelationshipPath: string | null;
+  /**
+   * Every related object the query contains, keyed by lower cased relationship path. The level reads which of
+   * its relationships are in the query, and what is nested within each, from here rather than re-deriving it.
+   */
+  selectedSubqueryNodesByPath: Map<string, SelectedSubqueryNode>;
   onSelectionChanged: (relationshipPath: string, fields: QueryFieldWithPolymorphic[]) => void;
-  onDrillIn: (level: { relationshipPath: string; relationshipName: string; childSObject: string }) => void;
+  onDrillIn: (level: SubqueryDrillLevel) => void;
 }
 
 /**
@@ -184,7 +187,8 @@ export const QuerySubqueryLevel: FunctionComponent<QuerySubqueryLevelProps> = ({
   relationshipPath: currentRelationshipPath,
   childRelationships,
   fieldPickerCacheRef,
-  clearAllButton,
+  focusedRelationshipPath,
+  selectedSubqueryNodesByPath,
   onSelectionChanged,
   onDrillIn,
 }) => {
@@ -197,32 +201,38 @@ export const QuerySubqueryLevel: FunctionComponent<QuerySubqueryLevelProps> = ({
   const setConfigPanel = useSetAtom(fromQueryState.subqueryConfigPanelState);
   const clearSubqueryOptions = useSetAtom(fromQueryState.clearSubqueryOptionsForPath);
 
+  /** The node for one of this level's relationships, which exists only when the query contains it */
+  function getSelectedSubqueryNode(relationshipPath: string) {
+    return selectedSubqueryNodesByPath.get(relationshipPath.toLowerCase());
+  }
+
   /**
-   * Every relationship path that contributes to the query, including ancestors of a nested selection so that
-   * a parent still counts as selected when only something beneath it has fields.
+   * The accordion only honors initOpenIds as it mounts, and this component is remounted whenever navigation
+   * changes, so opening and scrolling to a subquery picked from the navigator happens as part of that mount.
    */
-  const selectedRelationshipPaths = useMemo(() => {
-    const paths = new Set<string>();
-    Object.keys(selectedFieldState).forEach((path) => {
-      if (selectedFieldState[path]?.length) {
-        getSubqueryPathWithAncestors(path).forEach((ancestorPath) => paths.add(ancestorPath.toLowerCase()));
-      }
-    });
-    return paths;
-  }, [selectedFieldState]);
+  const focusedSectionId = useMemo(() => {
+    const focusedChildRelationship =
+      focusedRelationshipPath &&
+      childRelationships.find(
+        ({ relationshipName }) =>
+          !!relationshipName &&
+          getSubqueryPath(currentRelationshipPath, relationshipName).toLowerCase() === focusedRelationshipPath.toLowerCase(),
+      );
+    return focusedChildRelationship ? getSectionId(currentRelationshipPath, focusedChildRelationship) : null;
+  }, [childRelationships, currentRelationshipPath, focusedRelationshipPath]);
 
   const visibleChildRelationships = useMemo(() => {
     let relationships = childRelationships;
     if (objectFilter === 'selected') {
-      relationships = relationships.filter((childRelationship) =>
-        selectedRelationshipPaths.has(getSubqueryPath(currentRelationshipPath, childRelationship.relationshipName || '').toLowerCase()),
+      relationships = relationships.filter(({ relationshipName }) =>
+        selectedSubqueryNodesByPath.has(getSubqueryPath(currentRelationshipPath, relationshipName || '').toLowerCase()),
       );
     }
     if (textFilter) {
       relationships = relationships.filter(multiWordObjectFilter(['relationshipName', 'childSObject', 'field'], textFilter));
     }
     return relationships;
-  }, [childRelationships, currentRelationshipPath, objectFilter, selectedRelationshipPaths, textFilter]);
+  }, [childRelationships, currentRelationshipPath, objectFilter, selectedSubqueryNodesByPath, textFilter]);
 
   function getContent(childRelationship: ChildRelationship) {
     return () => {
@@ -252,9 +262,7 @@ export const QuerySubqueryLevel: FunctionComponent<QuerySubqueryLevelProps> = ({
       const hasSelectedFields = (selectedFieldState[relationshipPath]?.length ?? 0) > 0;
       // A subquery stays in the query when only something nested within it has fields, so drilling in has to
       // stay available in that case - otherwise those nested objects become unreachable and unremovable.
-      const hasNestedSelections = Object.keys(selectedFieldState).some(
-        (path) => isSubqueryPathBelow(path, relationshipPath) && selectedFieldState[path]?.length,
-      );
+      const hasNestedSelections = (getSelectedSubqueryNode(relationshipPath)?.children.length ?? 0) > 0;
       const canDrillIn = hasSelectedFields || hasNestedSelections;
       const canNestFurther = getSubqueryPathDepth(relationshipPath) < MAX_SUBQUERY_DEPTH;
       const childSObject = childRelationship.childSObject;
@@ -367,11 +375,8 @@ export const QuerySubqueryLevel: FunctionComponent<QuerySubqueryLevelProps> = ({
     const relationshipPath = getSubqueryPath(currentRelationshipPath, childRelationship.relationshipName);
     const queryFields = selectedFieldState[relationshipPath];
     const summary = subquerySummary[relationshipPath];
-    // Surfaces nested subqueries on the collapsed row, which is the only hint they exist without drilling in.
-    // Counted from the ancestor-inclusive set so a child whose only selections are nested beneath it still shows.
-    const nestedSubqueryCount = Array.from(selectedRelationshipPaths).filter((path) =>
-      isDirectChildSubqueryPath(path, relationshipPath),
-    ).length;
+    // Surfaces nested subqueries on the collapsed row, which is the only hint they exist without drilling in
+    const nestedSubqueryCount = getSelectedSubqueryNode(relationshipPath)?.children.length ?? 0;
 
     if (!Array.isArray(queryFields) && !summary && !nestedSubqueryCount) {
       return;
@@ -417,23 +422,25 @@ export const QuerySubqueryLevel: FunctionComponent<QuerySubqueryLevelProps> = ({
   return (
     <Fragment>
       <SearchInput id="subquery-filter" className="slds-p-around_xx-small" placeholder="Filter child objects" onChange={setTextFilter} />
-      <Grid align="spread" verticalAlign="center" wrap className="slds-p-horizontal_xx-small slds-p-bottom_xx-small">
-        <GridCol className="slds-text-body_small slds-text-color_weak">
-          Showing {formatNumber(visibleChildRelationships.length)} of {formatNumber(childRelationships.length)} objects
-        </GridCol>
-        {clearAllButton}
-        <GridCol growNone>
-          <QuerySubqueryFilter selectedFilter={objectFilter} onChange={setObjectFilter} />
-        </GridCol>
-      </Grid>
+      <div className="slds-p-horizontal_xx-small slds-p-bottom_xx-small">
+        <Grid align="spread" verticalAlign="center">
+          <GridCol className="slds-text-body_small slds-text-color_weak">
+            Showing {formatNumber(visibleChildRelationships.length)} of {formatNumber(childRelationships.length)} objects
+          </GridCol>
+          <GridCol growNone>
+            <QuerySubqueryFilter selectedFilter={objectFilter} onChange={setObjectFilter} />
+          </GridCol>
+        </Grid>
+      </div>
       {visibleChildRelationships.length === 0 && (
         <EmptyState headline="There are no matching objects" subHeading="Adjust your selection."></EmptyState>
       )}
       <Accordion
-        initOpenIds={[]}
+        initOpenIds={focusedSectionId ? [focusedSectionId] : []}
+        scrollInitOpenIdIntoView
         allowMultiple={false}
         sections={visibleChildRelationships.map((childRelationship) => ({
-          id: `${getSubqueryPath(currentRelationshipPath, childRelationship.relationshipName || '')}-${childRelationship.childSObject}.${childRelationship.field}`,
+          id: getSectionId(currentRelationshipPath, childRelationship),
           testId: childRelationship.relationshipName,
           titleText: `${childRelationship.relationshipName} (${childRelationship.childSObject}.${childRelationship.field})`,
           title: (
