@@ -1,5 +1,45 @@
 [
   {
+    "slug": "v10.13.0",
+    "title": "10.13.0 - Nested subqueries and multi-object load improvements",
+    "date": "2026-08-17",
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.13.0", "desktop": "4.10.0", "extension": "3.13.0" },
+    "summary": "The query builder now supports parent-to-child subqueries nested up to four levels deep, and Load Records to Multiple Objects can build a file from query results.",
+    "highlights": [
+      {
+        "title": "Nested subqueries",
+        "description": "Build, restore, view, and export parent-to-child subqueries nested up to four levels below the root object.",
+        "docLink": "/query"
+      },
+      {
+        "title": "Related records Salesforce left out",
+        "description": "Query results warn when a subquery is missing child records and can load the rest, including into downloads.",
+        "docLink": "/query/results"
+      },
+      {
+        "title": "Build a multi-object load file from query results",
+        "description": "Downloading query results as a load template turns each subquery into its own worksheet, linked back to its parent record.",
+        "docLink": "/load/with-related"
+      },
+      {
+        "title": "Bulk load status checks run longer",
+        "description": "Jetstream checks a bulk job's status for about 38 minutes instead of 10, and shows a resume button when it stops.",
+        "docLink": "/load"
+      },
+      {
+        "title": "Sign in with SSO from the login page",
+        "description": "Continue with SSO sits alongside the Google and Salesforce buttons, and returning SSO users get a one button sign in."
+      },
+      {
+        "title": "View and edit record on objects with long API names",
+        "description": "The browser extension's view and edit record actions work again on objects with API names of 18 or more characters.",
+        "platforms": ["extension"],
+        "docLink": "/browser-extension"
+      }
+    ]
+  },
+  {
     "slug": "v10.12.0",
     "title": "10.12.0 - Rebuilt multi-object load and JSON file support",
     "date": "2026-08-14",

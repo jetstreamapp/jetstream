@@ -1,0 +1,99 @@
+---
+slug: v10.13.0
+title: 10.13.0 - Nested subqueries and multi-object load improvements
+date: '2026-08-17'
+tags: [web, desktop, extension]
+versions:
+  web: 10.13.0
+  desktop: 4.10.0
+  extension: 3.13.0
+summary: The query builder now supports parent-to-child subqueries nested up to four levels deep, and Load Records to Multiple Objects can build a file from query results.
+highlights:
+  - title: Nested subqueries
+    description: Build, restore, view, and export parent-to-child subqueries nested up to four levels below the root object.
+    docLink: /query
+  - title: Related records Salesforce left out
+    description: Query results warn when a subquery is missing child records and can load the rest, including into downloads.
+    docLink: /query/results
+  - title: Build a multi-object load file from query results
+    description: Downloading query results as a load template turns each subquery into its own worksheet, linked back to its parent record.
+    docLink: /load/with-related
+  - title: Bulk load status checks run longer
+    description: Jetstream checks a bulk job's status for about 38 minutes instead of 10, and shows a resume button when it stops.
+    docLink: /load
+  - title: Sign in with SSO from the login page
+    description: Continue with SSO sits alongside the Google and Salesforce buttons, and returning SSO users get a one button sign in.
+  - title: View and edit record on objects with long API names
+    description: The browser extension's view and edit record actions work again on objects with API names of 18 or more characters.
+    docLink: /browser-extension
+    platforms: [extension]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Nested subqueries
+
+Salesforce allows parent-to-child subqueries up to four levels below the root object. Jetstream treated a subquery as a single flat level, so anything deeper could not be authored, rendered as a blank cell in query results, and was dropped without warning when restoring a query. Nesting is now supported everywhere a subquery appears.
+
+- The **Related Objects (Subquery)** tab shows one level at a time with a breadcrumb, a drill-in action to add a related object of the one you are on, and a depth indicator. It also gained field counts on both field tabs, an All/Selected objects filter, and a **Clear all** action scoped to the level you are viewing.
+- A **Selected** popover lists every related object in the query as a tree, with the fields chosen on each one. Picking an object drills into it and scrolls it into view, so a nested subquery can be reached from any level.
+- Query results drill through nested subqueries in one modal with a breadcrumb trail instead of opening a modal per level.
+- Restoring a query resolves each relationship against its own parent, keeps nested `WHERE`, `ORDER BY`, and `LIMIT` clauses, and reports subqueries it could not restore.
+- Exports write one worksheet per subquery path, each carrying a `_ParentId` column so the sheets can be joined. This column is new for single-level exports too.
+
+Three related bugs were fixed along the way: **Unselect all** on a subquery's field list cleared fields on the base object and every sibling subquery, reordering subquery columns could map them back to the wrong field, and bulk downloads dropped subquery rows from every batch after the first.
+
+### Related records that Salesforce left out
+
+Salesforce counts a subquery's child rows toward the batch size of the parent query, so an account with 2,317 contacts can come back carrying only the first 499 of them. Nothing in the app said so: the cell read "499 Records", the modal loaded one batch at a time, and downloads shipped the short set.
+
+- The subquery cell warns when child records are missing, at any nesting depth, with a popover reporting how many of the total are loaded and an action to fetch the rest.
+- **Load Remaining** in the subquery modal replaces **Load More**, loading every remaining child record and then completing subqueries nested inside what it loaded.
+- **Load All Records** completes truncated subqueries at every depth as well as fetching the remaining parent records, and is offered whenever the loaded records report missing children.
+- Records loaded from either place are folded back into the row the table owns, so they reach exports instead of living only inside the modal.
+- A parent whose child records were truncated could be added to the results a second time when a later page returned it. Pages are now merged by record, and the repeated parent's children are folded into the row already loaded.
+
+Row selection in the subquery modal is wired up as well. Selected rows feed the download modal's **Selected records** option, and **Copy to Clipboard** now matches the main query results page with Copy as CSV and Copy as JSON, including the prompt for which records when a subset is selected or filtered.
+
+### Load Records to Multiple Objects
+
+Downloading query results as a **Load template (Excel)** now includes your subqueries. Each one becomes its own worksheet with a lookup column holding the parent's Reference Id, so child records are created against the newly inserted parent. Subqueries with no matching lookup field on the child object are named in the download modal instead of being left out, and you are warned before download when a parent and its related records would exceed the 500 records per group limit.
+
+Reviewing an uploaded file also changed:
+
+- Columns that cannot be loaded are warnings, not errors. Unknown columns, and fields the operation cannot write, such as `CreatedDate` on insert, are dropped from the request and reported instead of blocking the load. Skipped columns are tinted red in the preview.
+- The operation and external Id can be changed per worksheet from a popover, which revalidates that worksheet and rebuilds the record groups.
+- A file dropped anywhere on the page loads it, on both the single-object and multi-object load pages, and the multi-object page accepts data pasted from the clipboard.
+- Results are grouped by record group and expanded by default, with the group's outcome on the group row.
+- An empty file no longer looks loadable and then reports zero records to load, and the record error column is wider so a typical Salesforce error is not cut off.
+
+### Sign in with SSO
+
+Single sign-on used to be reachable only by typing an email address and waiting for domain discovery to run. **Continue with SSO** now sits alongside the Google and Salesforce buttons and opens an email step that resolves your identity provider. If your last successful sign in used SSO, the login page opens on a single button for that account, with every other method one click away.
+
+### Bulk load status checks run longer
+
+Status checks on a bulk job stopped after 10 minutes with no message, so a long job looked stuck at whatever percentage it had reached. Checks now start 3 seconds apart and space out to 15 seconds as the job runs, covering roughly 38 minutes. If Jetstream does stop checking, a banner explains that the job continues to run in Salesforce and gives you a **Resume checking status** button.
+
+### Choose the object for a polymorphic lookup
+
+In Update Records and bulk update from query results, drilling into a lookup to pick a value from a related field used to show the fields of whichever object the relationship happened to list first. A polymorphic relationship such as `Owner` now expands to a list of every object it can point to, and picking one loads that object's fields.
+
+### Date column filters
+
+Filtering a date column dropped rows whose timestamp hour was two digits, so a filter over 500 records created in the same batch could return one row. The displayed value is now parsed correctly. The filter menu also adds **Greater Than or Equal** and **Less Than or Equal** comparators, which apply to number and time columns as well, and an **Ignore timestamp** option that compares calendar days only. The date picker now has a clear button.
+
+### Other fixes
+
+- Downloads: the file format you pick now sticks for downloads that run in the background, such as Google Drive and **All records** downloads, which previously reverted to the last format used.
+- Deploy Metadata: listing metadata no longer freezes the page on orgs with a large number of components.
+- Formula Evaluator: **Format** no longer rewrites double-quoted strings to single quotes or adds a leading semicolon, either of which could turn a working formula into one that fails to deploy.
+- Create New Object: in an org with a namespace, the namespace prefix is no longer applied twice when saving object and tab permissions.
+- Automation Control: duplicate rules are now included when you export automation as a metadata package. Previously the retrieve came back with no metadata in it.
+- Query: opening the field usage popover no longer toggles the field's checkbox.
+- Load Records: you can no longer continue past field mapping while there are mapping errors.
+- Load Records: the batch size input no longer clears itself while you type. The same fix applies to mass update deployment and bulk update from query.
+- Update Records: a custom criteria value that starts with `WHERE` is now accepted instead of failing validation.
+- Anonymous Apex: history no longer grows without bound.
