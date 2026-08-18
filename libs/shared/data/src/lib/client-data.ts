@@ -22,7 +22,13 @@ import type {
 } from '@jetstream/auth/types';
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP, MIME_TYPES } from '@jetstream/shared/constants';
-import { splitArrayToMaxSize } from '@jetstream/shared/utils';
+import {
+  hasIncompleteSubqueries,
+  isIncompleteSubqueryResult,
+  isSubqueryResult,
+  mergeSubqueryResults,
+  splitArrayToMaxSize,
+} from '@jetstream/shared/utils';
 import {
   AnonymousApexResponse,
   ApexCompletionResponse,
@@ -63,6 +69,7 @@ import {
   OrgGroup,
   PullResponse,
   PullResponseSchema,
+  QueryResult,
   QueryResults,
   RecordResult,
   RetrieveResult,
@@ -889,6 +896,92 @@ export async function queryRemaining<T = any>(
   }
   results.queryResults.done = true;
   return results;
+}
+
+/**
+ * Fetch every child record Salesforce truncated from the subqueries on these records and return records carrying
+ * the complete child sets. Subqueries can be nested, so this walks the whole tree - a truncated subquery several
+ * levels down is completed just like a top level one. Records with nothing missing are returned untouched.
+ *
+ * Each subquery is completed through its own query locator, so the result is exact regardless of how the parent
+ * query itself was paged. Records with nothing truncated cost nothing - they are never requested.
+ */
+export async function queryRemainingSubqueryRecords<T = any>(
+  org: SalesforceOrgUi,
+  records: T[],
+  isTooling = false,
+  onProgress?: (fetchedChildRecordCount: number) => void,
+): Promise<T[]> {
+  if (!records.some(hasIncompleteSubqueries)) {
+    return records;
+  }
+  const progress = { fetched: 0 };
+  const output: T[] = [];
+  for (const record of records) {
+    output.push(await completeSubqueryRecords(org, record, isTooling, progress, onProgress));
+  }
+  return output;
+}
+
+/**
+ * Same as `queryRemainingSubqueryRecords` for a single subquery result: fetches whatever Salesforce truncated from
+ * it, then does the same for every subquery nested within its child records.
+ */
+export async function queryRemainingSubqueryResults<T = any>(
+  org: SalesforceOrgUi,
+  queryResults: QueryResult<T>,
+  isTooling = false,
+  onProgress?: (fetchedChildRecordCount: number) => void,
+): Promise<QueryResult<T>> {
+  return completeSubqueryResults(org, queryResults, isTooling, { fetched: 0 }, onProgress);
+}
+
+async function completeSubqueryResults<T = any>(
+  org: SalesforceOrgUi,
+  queryResults: QueryResult<T>,
+  isTooling: boolean,
+  progress: { fetched: number },
+  onProgress?: (fetchedChildRecordCount: number) => void,
+): Promise<QueryResult<T>> {
+  if (!isIncompleteSubqueryResult(queryResults)) {
+    return queryResults;
+  }
+  let output = queryResults;
+  if (!output.done && output.nextRecordsUrl) {
+    const results = await queryRemaining<T>(org, output.nextRecordsUrl, isTooling);
+    progress.fetched += results.queryResults.records.length;
+    onProgress?.(progress.fetched);
+    output = mergeSubqueryResults(output, results.queryResults);
+  }
+  if (!output.records.some(hasIncompleteSubqueries)) {
+    return output;
+  }
+  const records: T[] = [];
+  for (const record of output.records) {
+    records.push(await completeSubqueryRecords(org, record, isTooling, progress, onProgress));
+  }
+  return { ...output, records };
+}
+
+async function completeSubqueryRecords<T = any>(
+  org: SalesforceOrgUi,
+  record: T,
+  isTooling: boolean,
+  progress: { fetched: number },
+  onProgress?: (fetchedChildRecordCount: number) => void,
+): Promise<T> {
+  if (!hasIncompleteSubqueries(record)) {
+    return record;
+  }
+  let output: any = record;
+  // Every subquery on the record, whether it was truncated itself or only has truncated subqueries beneath it
+  for (const [relationshipName, value] of Object.entries(output)) {
+    if (!isSubqueryResult(value)) {
+      continue;
+    }
+    output = { ...output, [relationshipName]: await completeSubqueryResults(org, value, isTooling, progress, onProgress) };
+  }
+  return output;
 }
 
 /**

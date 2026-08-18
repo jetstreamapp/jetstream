@@ -2,15 +2,18 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { queryRemaining } from '@jetstream/shared/data';
+import { queryRemaining, queryRemainingSubqueryRecords } from '@jetstream/shared/data';
 import { formatNumber, hasCtrlOrMeta, isEnterKey, tracker, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
 import {
   flattenRecord,
   getErrorMessage,
   getIdFromRecordUrl,
   groupByFlat,
+  hasIncompleteSubqueries,
   isInvalidQueryLocatorError,
+  mergeQueryRecordPages,
   nullifyEmptyStrings,
+  pluralizeFromNumber,
 } from '@jetstream/shared/utils';
 import {
   CloneEditView,
@@ -18,6 +21,7 @@ import {
   ErrorResult,
   Field,
   Maybe,
+  QueryResult,
   QueryResults,
   SalesforceOrgUi,
   SobjectCollectionResponse,
@@ -32,6 +36,7 @@ import { ConfirmationModalPromise } from '../modal/ConfirmationModalPromise';
 import { PopoverErrorButton } from '../popover/PopoverErrorButton';
 import { fireToast } from '../toast/AppToast';
 import Spinner from '../widgets/Spinner';
+import Tooltip from '../widgets/Tooltip';
 import { DataTableSubqueryContext } from './data-table-context';
 import { applyPasteCellsToRows, revertCellsInRows } from './data-table-paste-utils';
 import {
@@ -52,6 +57,7 @@ import {
 } from './data-table-utils';
 import { DataTable } from './DataTable';
 import { FieldMetadataModal } from './FieldMetadataModal';
+import { replaceSubqueryOnRecord } from './grid/grid-row-utils';
 import { RowsChangeData } from './grid/rdg-compat';
 import { getRowErrorMessages, mapSaveErrorsToRow, summarizeRowErrors, validateRow } from './grid/validate-cell-value';
 import { DownloadConfig, MAX_SAVE_BATCH_SIZE, PreviewChangesModal } from './PreviewChangesModal';
@@ -203,6 +209,8 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
 
     const [totalRecordCountText, setTotalRecordCountText] = useState<string>();
     const [isLoadingMore, setIsLoadingMore] = useState(false);
+    // Completing truncated subqueries can take far longer than fetching the parent records, so it reports its own progress
+    const [loadedChildRecordCount, setLoadedChildRecordCount] = useState(0);
     const [loadMoreErrorMessage, setLoadMoreErrorMessage] = useState<string | null>(null);
     const [hasMoreRecords, setHasMoreRecords] = useState(false);
     const [nextRecordsUrl, setNextRecordsUrl] = useState<Maybe<string>>(null);
@@ -374,36 +382,69 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
       redoStackRef.current = [];
     }, [columns, handleRowAction, records]);
 
+    /**
+     * Replacing the records rebuilds every row, which drops in-progress edits - so anything that does it has to
+     * offer the user a way out first. Resolves true when there is nothing to lose.
+     */
+    async function confirmDiscardUnsavedChanges(): Promise<boolean> {
+      if (!dirtyRows?.length) {
+        return true;
+      }
+      return ConfirmationModalPromise({ content: 'If you load these records your unsaved changes will not be saved.' });
+    }
+
+    /**
+     * Load everything Salesforce held back: the remaining parent records, and the child records truncated from
+     * subqueries at any depth.
+     *
+     * Child rows count toward a query's batch size, so a query can be reported as incomplete purely because a
+     * parent's related records did not fit - in which case there are no parent records left to fetch at all, only
+     * child records. Both halves are handled here because either one alone leaves an export short of records.
+     */
     async function loadRemaining() {
       try {
-        if (
-          dirtyRows?.length &&
-          !(await ConfirmationModalPromise({
-            content: 'If you load all records your unsaved changes will not be saved.',
-          }))
-        ) {
-          return;
-        }
-
-        if (!nextRecordsUrl) {
+        if (!(await confirmDiscardUnsavedChanges())) {
           return;
         }
         setIsLoadingMore(true);
         setLoadMoreErrorMessage(null);
-        const results = await queryRemaining(org, nextRecordsUrl, isTooling);
+        setLoadedChildRecordCount(0);
+
+        let allRecords = records || [];
+        let latestQueryResults = queryResults?.queryResults;
+
+        if (nextRecordsUrl) {
+          const results = await queryRemaining(org, nextRecordsUrl, isTooling);
+          if (!isMounted.current) {
+            return;
+          }
+          latestQueryResults = results.queryResults;
+          allRecords = mergeQueryRecordPages(allRecords, results.queryResults.records);
+          setNextRecordsUrl(results.queryResults.nextRecordsUrl);
+        }
+
+        allRecords = await queryRemainingSubqueryRecords(org, allRecords, isTooling, (fetched) => {
+          if (isMounted.current) {
+            setLoadedChildRecordCount(fetched);
+          }
+        });
         if (!isMounted.current) {
           return;
         }
-        setNextRecordsUrl(results.queryResults.nextRecordsUrl);
-        if (results.queryResults.done) {
-          setHasMoreRecords(false);
-        }
-        const newRecords = (records || []).concat(results.queryResults.records);
-        setRecords(newRecords);
-        setTotalRecordCountText(getTotalCountText({ ...results.queryResults, records: newRecords }));
+
+        setHasMoreRecords(false);
+        setRecords(allRecords);
+        setTotalRecordCountText(
+          getTotalCountText({ totalSize: latestQueryResults?.totalSize ?? allRecords.length, done: true, records: allRecords }),
+        );
         setIsLoadingMore(false);
-        if (onLoadMoreRecords) {
-          onLoadMoreRecords(results);
+        // Hand back the complete record set rather than just the new page - the parent pages were merged by record
+        // identity here, so appending them again upstream would double up any record that came back more than once.
+        if (onLoadMoreRecords && queryResults) {
+          onLoadMoreRecords({
+            ...queryResults,
+            queryResults: { ...queryResults.queryResults, done: true, nextRecordsUrl: undefined, records: allRecords },
+          });
         }
       } catch (ex) {
         if (!isMounted.current) {
@@ -420,6 +461,38 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
         }
       }
     }
+
+    // Read instead of the render's copy of `records`: the subquery modal can publish several loads in a row from
+    // different levels, and each has to fold into the result of the one before it.
+    const recordsRef = useRef(records);
+    recordsRef.current = records;
+
+    /**
+     * A subquery cell finished loading the child records Salesforce had truncated. The completed set has to land
+     * back on the record here *and* be handed to the host - the host's copy is what feeds the page level downloads
+     * and copy-to-clipboard, so stopping at local state would leave the very exports this exists to fix incomplete.
+     */
+    const handleSubqueryRecordsLoaded = useCallback(
+      (parentRowKey: string, relationshipName: string, subqueryResults: QueryResult<any>) => {
+        const allRecords = replaceSubqueryOnRecord(recordsRef.current || [], parentRowKey, relationshipName, subqueryResults);
+        recordsRef.current = allRecords;
+        setRecords(allRecords);
+        // Paging state is passed through as it stands rather than reported as complete - only child records were
+        // fetched here, and any parent records still unloaded have to stay loadable.
+        if (onLoadMoreRecords && queryResults) {
+          onLoadMoreRecords({
+            ...queryResults,
+            queryResults: {
+              ...queryResults.queryResults,
+              done: !nextRecordsUrl,
+              nextRecordsUrl: nextRecordsUrl ?? undefined,
+              records: allRecords,
+            },
+          });
+        }
+      },
+      [nextRecordsUrl, onLoadMoreRecords, queryResults],
+    );
 
     const handleSortedAndFilteredRowsChange = useCallback(
       (rows: readonly RowSalesforceRecordWithKey[]) => {
@@ -714,6 +787,10 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
 
     const hasBlockingErrors = useMemo(() => dirtyRows.some((row) => rowHasBlockingErrors(row, fieldMetadata)), [dirtyRows, fieldMetadata]);
 
+    // Salesforce reports the query as incomplete when child records were truncated, but the records are what say
+    // what is actually missing - this also covers a complete set of parents whose related records were cut short.
+    const hasRecordsToLoad = useMemo(() => hasMoreRecords || !!records?.some(hasIncompleteSubqueries), [hasMoreRecords, records]);
+
     return records ? (
       <Fragment>
         <Grid className="slds-p-around_xx-small" align="spread">
@@ -721,16 +798,26 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
             <div className="slds-p-around_x-small">
               Showing {formatNumber(visibleRecordCount)} of {totalRecordCountText} records
             </div>
-            {hasMoreRecords && (
+            {hasRecordsToLoad && (
               <div>
-                <button
-                  className="slds-button slds-button_brand slds-m-left_x-small slds-is-relative"
-                  onClick={loadRemaining}
-                  disabled={isLoadingMore}
+                <Tooltip
+                  openDelay={1000}
+                  content="Fetch every record Salesforce left out, including related records missing from subqueries."
                 >
-                  Load All Records
-                  {isLoadingMore && <Spinner size="small" />}
-                </button>
+                  <button
+                    className="slds-button slds-button_brand slds-m-left_x-small slds-is-relative"
+                    onClick={loadRemaining}
+                    disabled={isLoadingMore}
+                  >
+                    Load All Records
+                    {isLoadingMore && <Spinner size="small" />}
+                  </button>
+                </Tooltip>
+                {isLoadingMore && !!loadedChildRecordCount && (
+                  <span className="slds-m-left_x-small slds-text-body_small">
+                    Loaded {formatNumber(loadedChildRecordCount)} related {pluralizeFromNumber('record', loadedChildRecordCount)}
+                  </span>
+                )}
                 {loadMoreErrorMessage && <PopoverErrorButton errors={loadMoreErrorMessage} />}
               </div>
             )}
@@ -822,6 +909,8 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
               isTooling,
               columnDefinitions: subqueryColumnsMap,
               onSubqueryFieldReorder: handleSubqueryFieldsChanged,
+              onSubqueryRecordsLoaded: handleSubqueryRecordsLoaded,
+              confirmReplaceRecords: confirmDiscardUnsavedChanges,
               hasGoogleDriveAccess,
               googleShowUpgradeToPro,
               google_apiKey,

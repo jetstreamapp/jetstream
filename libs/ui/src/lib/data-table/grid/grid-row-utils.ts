@@ -2,6 +2,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { RECORD_PREFIX_MAP } from '@jetstream/shared/constants';
 import { getIdFromRecordUrl } from '@jetstream/shared/utils';
+import { QueryResult } from '@jetstream/types';
 import isNil from 'lodash/isNil';
 import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
@@ -68,6 +69,21 @@ export function getRowId(data: any): string {
     return data && typeof data === 'object' ? getOrGenerateId(data) : uniqueId('row-id');
   }
   return nodeId;
+}
+
+/**
+ * Fold a completed subquery result back onto the record that owns it.
+ *
+ * Records only ever become complete by being written back through here - the table's own record set, and each
+ * level of the subquery modal's drill-down stack, all replace a subquery the same way.
+ */
+export function replaceSubqueryOnRecord(
+  records: any[],
+  parentRowKey: string,
+  relationshipName: string,
+  queryResults: QueryResult<any>,
+): any[] {
+  return records.map((record) => (getRowId(record) === parentRowKey ? { ...record, [relationshipName]: queryResults } : record));
 }
 
 /**

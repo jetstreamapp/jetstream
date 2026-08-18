@@ -354,6 +354,17 @@ export interface SubqueryContext<TRow extends object = any> {
   /** Keyed by lowercased relationship path, so a nested subquery resolves independently of a same-named one elsewhere */
   columnDefinitions?: Record<string, ColumnWithFilter<TRow, unknown>[]>;
   onSubqueryFieldReorder?: (relationshipPath: string, fields: string[], columnOrder: number[]) => void;
+  /**
+   * Replaces a subquery result on the record that owns it, once the child records Salesforce truncated have been
+   * fetched. The owner of the records has to hold the completed set - otherwise it would only ever exist inside
+   * the modal, and everything else reading those records (downloads above all) would stay incomplete.
+   */
+  onSubqueryRecordsLoaded?: (parentRowKey: string, relationshipName: string, queryResults: QueryResult<TRow>) => void;
+  /**
+   * Asked before records are replaced so an owner holding unsaved inline edits can warn first; loading proceeds
+   * when it resolves true. Treated as allowed when not provided.
+   */
+  confirmReplaceRecords?: () => Promise<boolean>;
   hasGoogleDriveAccess: boolean;
   googleShowUpgradeToPro: boolean;
   google_apiKey: string;
