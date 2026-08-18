@@ -1,5 +1,33 @@
 # Changelog
 
+## [10.13.0](https://github.com/jetstreamapp/jetstream/compare/v10.12.0...v10.13.0) (2026-08-18)
+
+### Features
+
+- improve file prep and review for Load Records to Multiple Objects ([dc04068](https://github.com/jetstreamapp/jetstream/commit/dc04068c8f03e201925930e3605f95a629408158))
+- **query:** add a navigator for jumping to any subquery ([d58fbb9](https://github.com/jetstreamapp/jetstream/commit/d58fbb92fddb1c554a48e970626e21f72a2fa6f4))
+- **query:** support nested (multi-level) SOQL subqueries ([d1e6e1e](https://github.com/jetstreamapp/jetstream/commit/d1e6e1e9d1e3231d6f12087fe36a1e17ab8242b2))
+- **query:** surface and load subquery records Salesforce truncated ([e968554](https://github.com/jetstreamapp/jetstream/commit/e9685540274d6ffd7b8c5415c01e67eeee9eafd5))
+- surface SSO on the login form and remember successful logins ([857288f](https://github.com/jetstreamapp/jetstream/commit/857288f72aea1697fb69e7a949d06bc69c933bfb))
+- **update-records:** choose which object to use for a polymorphic lookup ([3938485](https://github.com/jetstreamapp/jetstream/commit/39384859e7f7ec87b69eedc9544ce7cc9037b14b)), closes [#1470](https://github.com/jetstreamapp/jetstream/issues/1470)
+
+### Bug Fixes
+
+- **automation-control:** include duplicate rules in the exported package ([c289149](https://github.com/jetstreamapp/jetstream/commit/c289149683035923e23d07150f35ace29cc35fae)), closes [#1134](https://github.com/jetstreamapp/jetstream/issues/1134)
+- back off bulk load status polling and surface when it stops ([381fdae](https://github.com/jetstreamapp/jetstream/commit/381fdae4eeec96b5e72f58874433f1f4ab5deb7f)), closes [#1147](https://github.com/jetstreamapp/jetstream/issues/1147) [#1448](https://github.com/jetstreamapp/jetstream/issues/1448), references [#1147](https://github.com/jetstreamapp/jetstream/issues/1147) [#1448](https://github.com/jetstreamapp/jetstream/issues/1448)
+- **create-object:** stop doubling the namespace prefix in namespaced orgs ([32bdf77](https://github.com/jetstreamapp/jetstream/commit/32bdf7777948d3d3fa9804e3402588f8124bf7c5)), closes [#1673](https://github.com/jetstreamapp/jetstream/issues/1673)
+- **data-table:** add the checkbox column to subquery result tables ([75ddb28](https://github.com/jetstreamapp/jetstream/commit/75ddb28d2c1528045f56c832ad80074863e4a780)), closes [#161](https://github.com/jetstreamapp/jetstream/issues/161)
+- **data-table:** stop date filters dropping rows and add inclusive comparators ([2c339bd](https://github.com/jetstreamapp/jetstream/commit/2c339bd3b54f298809f8ae19099dc55a36f59188)), closes [#1446](https://github.com/jetstreamapp/jetstream/issues/1446)
+- **download:** retain the selected file format for server-side downloads ([10d9afd](https://github.com/jetstreamapp/jetstream/commit/10d9afd697cba26ce852560de0d8054ef8137d5b)), references [#1950](https://github.com/jetstreamapp/jetstream/issues/1950)
+- **extension:** restore View/Edit Record for objects with long API names ([e51f4f3](https://github.com/jetstreamapp/jetstream/commit/e51f4f3b26b306d0aaefe0c61fdac934b9de4a50)), closes [#1240](https://github.com/jetstreamapp/jetstream/issues/1240)
+- **formula-evaluator:** stop Format producing formulas that fail to deploy ([0051dd1](https://github.com/jetstreamapp/jetstream/commit/0051dd17b6b04babfb221c45c405f3f8dbb2153c)), closes [#227](https://github.com/jetstreamapp/jetstream/issues/227)
+- improve error handling in git operations ([45e9699](https://github.com/jetstreamapp/jetstream/commit/45e9699890802d33e8c64fe236a6d641a4e40bd1))
+- improve metadata deduplication logic in useListMetadata ([59f83a2](https://github.com/jetstreamapp/jetstream/commit/59f83a2839e6e6d703e463fee88bb1a30246bf71)), closes [#1916](https://github.com/jetstreamapp/jetstream/issues/1916)
+- **load:** block the next step when a field mapping has an error ([070c2ce](https://github.com/jetstreamapp/jetstream/commit/070c2ce2c7be5dba0e6c3ef1b8c432e48a023678)), closes [#528](https://github.com/jetstreamapp/jetstream/issues/528)
+- **load:** keep the batch size input usable while editing ([7294773](https://github.com/jetstreamapp/jetstream/commit/7294773ab30118a11673e720d9a0ba0e49a41176)), closes [#513](https://github.com/jetstreamapp/jetstream/issues/513)
+- **query:** stop the field usage popover from selecting the field ([fde0cf7](https://github.com/jetstreamapp/jetstream/commit/fde0cf7e845b0f2d7fd04f34e49f7c6f44aac4a2)), closes [#1750](https://github.com/jetstreamapp/jetstream/issues/1750)
+- **update-records:** accept custom criteria that include the WHERE keyword ([33b1486](https://github.com/jetstreamapp/jetstream/commit/33b1486df0eb182c95e425293a77375a7fcc2a61)), closes [#1010](https://github.com/jetstreamapp/jetstream/issues/1010)
+
 ## [10.12.0](https://github.com/jetstreamapp/jetstream/compare/v10.11.0...v10.12.0) (2026-08-14)
 
 ### Features
