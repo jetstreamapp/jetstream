@@ -12,6 +12,7 @@ export const REMEMBER_DEVICE_DAYS = 30;
 
 const TIME_15_MIN = 60 * 15;
 const REMEMBER_DEVICE_MAX_AGE = REMEMBER_DEVICE_DAYS * 24 * 60 * 60;
+const LAST_LOGIN_METHOD_MAX_AGE = 400 * 24 * 60 * 60;
 
 /**
  * Name of the express-session cookie. Uses the `__Host-` prefix when cookies are secure so the
@@ -123,6 +124,23 @@ export function getCookieConfig(useSecureCookies: boolean): CookieConfig {
         path: '/',
         secure: useSecureCookies,
         maxAge: TIME_15_MIN,
+      },
+    },
+    /**
+     * Records which login method actually succeeded so the login form can offer it again on the next
+     * visit. Written only after the identity provider has authenticated the user, which is why it is
+     * a cookie rather than something the login page could set itself before redirecting away.
+     * Unprefixed and not httpOnly on purpose - the landing page reads it from JavaScript and does not
+     * know whether the API issued secure cookies, so the name has to be stable across environments.
+     */
+    lastLoginMethod: {
+      name: `jetstream-auth.last-login-method`,
+      options: {
+        httpOnly: false,
+        sameSite: 'lax',
+        path: '/',
+        secure: useSecureCookies,
+        maxAge: LAST_LOGIN_METHOD_MAX_AGE,
       },
     },
     teamInviteState: {

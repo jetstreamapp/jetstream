@@ -25,6 +25,17 @@ const errorClassMap = {
   },
 };
 
+/**
+ * Failures interrupt whatever the screen reader is saying, everything else waits for a pause.
+ * `alert` is an assertive live region, so using it for a success or info banner talks over the user.
+ */
+const roleByType: Record<keyof typeof errorClassMap, 'alert' | 'status'> = {
+  error: 'alert',
+  warning: 'alert',
+  success: 'status',
+  info: 'status',
+};
+
 interface AlertProps {
   message: string;
   type?: keyof typeof errorClassMap;
@@ -43,7 +54,7 @@ export default function Alert({ message, type = 'error', dismissable }: AlertPro
   }
 
   return (
-    <div className={classNames('rounded-md p-4', errorClassMap[type].container)}>
+    <div role={roleByType[type]} className={classNames('rounded-md p-4', errorClassMap[type].container)}>
       <div className="flex">
         <div className="shrink-0">
           <XCircleIcon aria-hidden="true" className={classNames('h-5 w-5', errorClassMap[type].icon)} />

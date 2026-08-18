@@ -52,6 +52,7 @@ import {
   verifyTotpCodeOnceOrThrow,
 } from '@jetstream/auth/server';
 import {
+  CookieOptions,
   OauthProviderType,
   OauthProviderTypeSchema,
   Provider,
@@ -1319,9 +1320,22 @@ const startSso = createRoute(routeDefinition.startSso.validators, async ({ body,
   }
 });
 
+/**
+ * Records that SSO is the method that actually worked on this device, which the login form uses to
+ * offer the same login again on the next visit. Only called once the identity provider has
+ * authenticated the user - the login page cannot set this itself, because it navigates away before
+ * knowing whether the login succeeded.
+ *
+ * The value shape is a contract with `getLastUsedLoginMethod` in the landing app.
+ */
+function setLastLoginMethodCookie(setCookie: (name: string, value: string, options: CookieOptions) => void, email: string) {
+  const { lastLoginMethod } = getCookieConfig(ENV.USE_SECURE_COOKIES);
+  setCookie(lastLoginMethod.name, JSON.stringify({ method: 'sso', email }), lastLoginMethod.options);
+}
+
 const handleSamlCallback = createRoute(
   routeDefinition.handleSamlCallback.validators,
-  async ({ params, body, clearCookie }, req, res, next) => {
+  async ({ params, body, setCookie, clearCookie }, req, res, next) => {
     try {
       const { teamId } = params;
       const { SAMLResponse } = body;
@@ -1353,6 +1367,8 @@ const handleSamlCallback = createRoute(
         teamId,
         success: true,
       });
+
+      setLastLoginMethodCookie(setCookie, user.email);
 
       const { returnUrl: returnUrlCookie, redirectUrl: redirectUrlCookie } = getCookieConfig(ENV.USE_SECURE_COOKIES);
       const cookies = req.headers.cookie ? parseCookie(req.headers.cookie) : {};
@@ -1477,104 +1493,109 @@ const initiateOidcLogin = createRoute(routeDefinition.initiateOidcLogin.validato
   }
 });
 
-const handleOidcCallback = createRoute(routeDefinition.handleOidcCallback.validators, async ({ params, clearCookie }, req, res, next) => {
-  try {
-    const { teamId } = params;
+const handleOidcCallback = createRoute(
+  routeDefinition.handleOidcCallback.validators,
+  async ({ params, setCookie, clearCookie }, req, res, next) => {
+    try {
+      const { teamId } = params;
 
-    const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
-    const cookies = req.headers.cookie ? parseCookie(req.headers.cookie) : {};
+      const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
+      const cookies = req.headers.cookie ? parseCookie(req.headers.cookie) : {};
 
-    const state = cookies[cookieConfig.state.name];
-    const codeVerifier = cookies[cookieConfig.pkceCodeVerifier.name];
-    const nonce = cookies[cookieConfig.nonce.name];
-    // Fall back to the `redirectUrl` cookie when `returnUrl` is absent — this is what the desktop
-    // login middleware (desktop-app.controller.ts) and other pre-login interstitials set, and what
-    // the credentials/OAuth callbacks already honor. Without this, desktop SSO users land on /app
-    // instead of /desktop-app/auth and have to log in a second time.
-    const returnUrlCandidate = normalizeRedirectCandidate(cookies[cookieConfig.returnUrl.name] || cookies[cookieConfig.redirectUrl.name]);
-    if (cookies[cookieConfig.redirectUrl.name]) {
-      clearCookie(cookieConfig.redirectUrl.name, cookieConfig.redirectUrl.options);
-    }
-    const returnUrl = validateRedirectUrl(
-      returnUrlCandidate,
-      [ENV.JETSTREAM_CLIENT_URL, ENV.JETSTREAM_SERVER_URL],
-      ENV.JETSTREAM_CLIENT_URL,
-    );
-
-    // Clear cookies
-    clearOauthCookies(res);
-
-    if (!state || !codeVerifier || !nonce) {
-      throw new InvalidSession('Missing or invalid OIDC state');
-    }
-
-    const team = await getTeamLoginConfigWithSso(teamId);
-
-    if (!team?.loginConfig.oidcConfiguration) {
-      throw new InvalidProvider('OIDC not configured for this team');
-    }
-
-    const config = team.loginConfig.oidcConfiguration;
-
-    // Build current URL from request
-    const currentUrl = new URL(`${ENV.JETSTREAM_SERVER_URL}${req.originalUrl}`);
-
-    // Validate callback and exchange code for tokens
-    const { claims, idTokenResult } = await oidcService.validateOidcCallback(config, teamId, currentUrl, state, codeVerifier, nonce);
-
-    // Extract user info from claims
-    const attributeMapping = config.attributeMapping as any;
-    const userInfo = await oidcService.extractUserInfo(config, claims, idTokenResult.access_token, attributeMapping);
-
-    // Handle SSO login (create/update user, add to team, create session)
-    const user = await handleSsoLogin('oidc', teamId, userInfo, req as any);
-
-    // Log success
-    createUserActivityFromReq(req, res, {
-      action: 'SSO_LOGIN',
-      method: 'OIDC',
-      userId: user.id,
-      email: user.email,
-      teamId,
-      success: true,
-    });
-
-    // Send verification email and redirect to verify page if verification is pending (e.g. MFA)
-    if (Array.isArray(req.session.pendingVerification) && req.session.pendingVerification.length > 0) {
-      const initialVerification = req.session.pendingVerification[0];
-      if (initialVerification.type === 'email') {
-        await sendEmailVerification(user.email, initialVerification.token, EMAIL_VERIFICATION_TOKEN_DURATION_HOURS);
-      } else if (initialVerification.type === '2fa-email') {
-        await sendVerificationCode(user.email, initialVerification.token, TOKEN_DURATION_MINUTES);
+      const state = cookies[cookieConfig.state.name];
+      const codeVerifier = cookies[cookieConfig.pkceCodeVerifier.name];
+      const nonce = cookies[cookieConfig.nonce.name];
+      // Fall back to the `redirectUrl` cookie when `returnUrl` is absent — this is what the desktop
+      // login middleware (desktop-app.controller.ts) and other pre-login interstitials set, and what
+      // the credentials/OAuth callbacks already honor. Without this, desktop SSO users land on /app
+      // instead of /desktop-app/auth and have to log in a second time.
+      const returnUrlCandidate = normalizeRedirectCandidate(cookies[cookieConfig.returnUrl.name] || cookies[cookieConfig.redirectUrl.name]);
+      if (cookies[cookieConfig.redirectUrl.name]) {
+        clearCookie(cookieConfig.redirectUrl.name, cookieConfig.redirectUrl.options);
       }
-      setCsrfCookie(res);
-      redirect(res, '/auth/verify');
-    } else if (req.session.pendingMfaEnrollment) {
-      redirect(res, '/auth/mfa-enroll');
-    } else if (req.session.pendingTosAcceptance) {
-      setCsrfCookie(res);
-      redirect(res, '/auth/accept-terms');
-    } else {
-      if (req.session.sendNewUserEmailAfterVerify) {
-        req.session.sendNewUserEmailAfterVerify = undefined;
-        await sendWelcomeEmail(user.email);
-      }
-      redirect(res, returnUrl);
-    }
-  } catch (ex) {
-    getLogger().error(getErrorMessageAndStackObj(ex), '[AUTH][OIDC_CALLBACK] Error processing OIDC callback');
-    createUserActivityFromReqWithError(req, res, ex, {
-      action: 'SSO_LOGIN',
-      method: 'OIDC',
-      teamId: params.teamId,
-      success: false,
-    });
+      const returnUrl = validateRedirectUrl(
+        returnUrlCandidate,
+        [ENV.JETSTREAM_CLIENT_URL, ENV.JETSTREAM_SERVER_URL],
+        ENV.JETSTREAM_CLIENT_URL,
+      );
 
-    req.session.destroy(() => {
-      next(ensureAuthError(ex));
-    });
-  }
-});
+      // Clear cookies
+      clearOauthCookies(res);
+
+      if (!state || !codeVerifier || !nonce) {
+        throw new InvalidSession('Missing or invalid OIDC state');
+      }
+
+      const team = await getTeamLoginConfigWithSso(teamId);
+
+      if (!team?.loginConfig.oidcConfiguration) {
+        throw new InvalidProvider('OIDC not configured for this team');
+      }
+
+      const config = team.loginConfig.oidcConfiguration;
+
+      // Build current URL from request
+      const currentUrl = new URL(`${ENV.JETSTREAM_SERVER_URL}${req.originalUrl}`);
+
+      // Validate callback and exchange code for tokens
+      const { claims, idTokenResult } = await oidcService.validateOidcCallback(config, teamId, currentUrl, state, codeVerifier, nonce);
+
+      // Extract user info from claims
+      const attributeMapping = config.attributeMapping as any;
+      const userInfo = await oidcService.extractUserInfo(config, claims, idTokenResult.access_token, attributeMapping);
+
+      // Handle SSO login (create/update user, add to team, create session)
+      const user = await handleSsoLogin('oidc', teamId, userInfo, req as any);
+
+      // Log success
+      createUserActivityFromReq(req, res, {
+        action: 'SSO_LOGIN',
+        method: 'OIDC',
+        userId: user.id,
+        email: user.email,
+        teamId,
+        success: true,
+      });
+
+      setLastLoginMethodCookie(setCookie, user.email);
+
+      // Send verification email and redirect to verify page if verification is pending (e.g. MFA)
+      if (Array.isArray(req.session.pendingVerification) && req.session.pendingVerification.length > 0) {
+        const initialVerification = req.session.pendingVerification[0];
+        if (initialVerification.type === 'email') {
+          await sendEmailVerification(user.email, initialVerification.token, EMAIL_VERIFICATION_TOKEN_DURATION_HOURS);
+        } else if (initialVerification.type === '2fa-email') {
+          await sendVerificationCode(user.email, initialVerification.token, TOKEN_DURATION_MINUTES);
+        }
+        setCsrfCookie(res);
+        redirect(res, '/auth/verify');
+      } else if (req.session.pendingMfaEnrollment) {
+        redirect(res, '/auth/mfa-enroll');
+      } else if (req.session.pendingTosAcceptance) {
+        setCsrfCookie(res);
+        redirect(res, '/auth/accept-terms');
+      } else {
+        if (req.session.sendNewUserEmailAfterVerify) {
+          req.session.sendNewUserEmailAfterVerify = undefined;
+          await sendWelcomeEmail(user.email);
+        }
+        redirect(res, returnUrl);
+      }
+    } catch (ex) {
+      getLogger().error(getErrorMessageAndStackObj(ex), '[AUTH][OIDC_CALLBACK] Error processing OIDC callback');
+      createUserActivityFromReqWithError(req, res, ex, {
+        action: 'SSO_LOGIN',
+        method: 'OIDC',
+        teamId: params.teamId,
+        success: false,
+      });
+
+      req.session.destroy(() => {
+        next(ensureAuthError(ex));
+      });
+    }
+  },
+);
 
 const acceptTerms = createRoute(routeDefinition.acceptTerms.validators, async ({ body, clearCookie }, req, res, next) => {
   try {

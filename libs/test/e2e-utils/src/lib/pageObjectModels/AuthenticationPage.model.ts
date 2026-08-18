@@ -77,7 +77,8 @@ export class AuthenticationPage {
 
     this.signInButton = page.getByRole('button', { name: 'Sign in', exact: true });
     this.signUpButton = page.getByRole('button', { name: 'Sign up', exact: true });
-    this.continueButton = page.getByRole('button', { name: 'Continue' });
+    // Exact so it never resolves to the "Continue with SSO" button that sits next to it on the login form
+    this.continueButton = page.getByRole('button', { name: 'Continue', exact: true });
     this.submitButton = page.getByRole('button', { name: 'Submit' });
 
     this.showHidePasswordButton = page.getByRole('button', { name: /(Show|Hide) Password/ });

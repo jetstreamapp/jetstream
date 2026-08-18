@@ -389,6 +389,7 @@ export type CookiePrefixOptions = 'host' | 'secure';
 // Auth Related Cookies
 type CallbackUrlCookie = 'callbackUrl';
 type CsrfTokenCookie = 'csrfToken';
+type LastLoginMethodCookie = 'lastLoginMethod';
 type LinkIdentityCookie = 'linkIdentity';
 type NonceCookie = 'nonce';
 type PkceCodeVerifierCookie = 'pkceCodeVerifier';
@@ -403,6 +404,7 @@ type DoubleCSRFTokenCookie = 'doubleCSRFToken';
 type CookieConfigKey =
   | CallbackUrlCookie
   | CsrfTokenCookie
+  | LastLoginMethodCookie
   | LinkIdentityCookie
   | NonceCookie
   | PkceCodeVerifierCookie
