@@ -33,8 +33,9 @@ export function AdditionalSettings() {
     setEnabled,
     recordSyncEnabled,
     setRecordSyncEnabled,
-    crashReportingEnabled,
-    setCrashReportingEnabled,
+    // TEMPORARILY DISABLED - see the commented-out toggle below
+    // crashReportingEnabled,
+    // setCrashReportingEnabled,
     soqlQueryFormatOptions,
     setSoqlQueryFormatOptions,
     authError,
@@ -78,6 +79,8 @@ export function AdditionalSettings() {
                 onChange={(value) => setEnabled(value)}
               />
 
+              {/* TEMPORARILY DISABLED alongside the error tracker itself - there is nothing to opt out of
+                  while crash reporting is off, and offering the toggle would imply reports are still sent.
               <CheckboxToggle
                 id="enable-crash-reporting"
                 checked={crashReportingEnabled}
@@ -85,7 +88,7 @@ export function AdditionalSettings() {
                 labelHelp="Automatically send error and crash reports to help us diagnose and fix issues."
                 labelPosition="right"
                 onChange={(value) => setCrashReportingEnabled(value)}
-              />
+              /> */}
 
               <SoqlQueryFormatConfig
                 className="slds-m-top_large"
