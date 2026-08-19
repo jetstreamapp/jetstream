@@ -53,6 +53,22 @@ export function initQueryFieldStateItem(key: string, sobject: string, props: Par
   };
 }
 
+/**
+ * A fetch that never writes its result - the component unmounted, or a newer org/object was selected -
+ * leaves a `{ loading: true }` entry behind. Every caller treats the presence of an entry as
+ * "already loaded", so the abandoned entry becomes a spinner that nothing ever retries.
+ * Dropping the entry lets the next render start the fetch over.
+ */
+export function removeInFlightQueryFields(fieldsMap: Record<string, QueryFields>, keyPrefix: string): Record<string, QueryFields> {
+  const inFlightKeys = Object.keys(fieldsMap).filter((key) => key.startsWith(keyPrefix) && fieldsMap[key]?.loading);
+  if (!inFlightKeys.length) {
+    return fieldsMap;
+  }
+  const updatedFieldsMap = { ...fieldsMap };
+  inFlightKeys.forEach((key) => delete updatedFieldsMap[key]);
+  return updatedFieldsMap;
+}
+
 export function getSelectedFieldsFromQueryFields(fieldsMap: Record<string, QueryFields>): QueryFieldWithPolymorphic[] {
   const fields: QueryFieldWithPolymorphic[] = orderObjectsBy(
     Object.values(fieldsMap)

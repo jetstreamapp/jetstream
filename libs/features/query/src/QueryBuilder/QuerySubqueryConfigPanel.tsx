@@ -5,7 +5,7 @@ import { groupByFlat } from '@jetstream/shared/utils';
 import { ExpressionType, Field, ListItem, QueryFields, QueryOrderByClause, SalesforceOrgUi } from '@jetstream/types';
 import { Panel, Spinner } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
-import { getSubqueryFieldBaseKey } from '@jetstream/ui-core/shared';
+import { getSubqueryFieldBaseKey, removeInFlightQueryFields } from '@jetstream/ui-core/shared';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import isEmpty from 'lodash/isEmpty';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
@@ -107,14 +107,7 @@ export const QuerySubqueryConfigPanel: FunctionComponent<QuerySubqueryConfigPane
       cancelled = true;
       // If the fetch hasn't resolved, drop the loading placeholder so the next
       // mount retries instead of short-circuiting on a stale `{ loading: true }` entry.
-      setQueryFieldsMap((prev) => {
-        if (prev[childBaseKey]?.loading) {
-          const next = { ...prev };
-          delete next[childBaseKey];
-          return next;
-        }
-        return prev;
-      });
+      setQueryFieldsMap((prev) => removeInFlightQueryFields(prev, childBaseKey));
     };
     // We intentionally depend only on open + base key; queryFieldsMap is a moving target
     // and isTooling is stable for the life of a panel instance.

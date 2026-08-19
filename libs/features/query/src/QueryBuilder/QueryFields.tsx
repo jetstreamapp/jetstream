@@ -9,11 +9,12 @@ import {
   getQueryFieldKey,
   getSelectedFieldsFromQueryFields,
   initQueryFieldStateItem,
+  removeInFlightQueryFields,
 } from '@jetstream/ui-core/shared';
 import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import isEmpty from 'lodash/isEmpty';
-import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, FunctionComponent, useCallback, useEffect, useRef } from 'react';
 
 export interface QueryFieldsProps {
   selectedSObject: Maybe<string>;
@@ -24,15 +25,14 @@ export interface QueryFieldsProps {
 export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ selectedSObject, isTooling, onSelectionChanged }) => {
   const [{ serverUrl }] = useAtom(applicationCookieState);
   const isMounted = useRef(true);
-  const _selectedSObject = useRef(selectedSObject);
   const [queryFieldsMap, setQueryFieldsMap] = useAtom(fromQueryState.queryFieldsMapState);
   const [queryFieldsKey, setQueryFieldsKey] = useAtom(fromQueryState.queryFieldsKey);
   const setFilterFields = useSetAtom(fromQueryState.filterQueryFieldsState);
   const setOrderByFields = useSetAtom(fromQueryState.orderByQueryFieldsState);
   const setGroupByFields = useSetAtom(fromQueryState.groupByQueryFieldsState);
   const setChildRelationships = useSetAtom(fromQueryState.queryChildRelationships);
-  const [baseKey, setBaseKey] = useState<string>(`${selectedSObject}|`);
   const selectedOrg = useAtomValue(selectedOrgState);
+  const baseKey = selectedSObject ? getQueryFieldBaseKey(selectedSObject) : '';
 
   useEffect(() => {
     isMounted.current = true;
@@ -41,89 +41,89 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
     };
   }, []);
 
-  useEffect(() => {
-    _selectedSObject.current = selectedSObject;
-  }, [selectedSObject]);
-
-  // Fetch fields for base object if the selected object changes
-  useEffect(() => {
-    if (!selectedSObject) {
-      return;
-    }
-    const fieldKey = getQueryFieldKey(selectedOrg, selectedSObject);
-    if (isEmpty(queryFieldsMap) || fieldKey !== queryFieldsKey) {
-      // init query fields when object changes
-      let tempQueryFieldsMap: Record<string, QueryFields> = {};
-      setQueryFieldsMap(tempQueryFieldsMap);
-      if (selectedSObject) {
-        const BASE_KEY = getQueryFieldBaseKey(selectedSObject);
-        setBaseKey(BASE_KEY);
-        tempQueryFieldsMap = { ...tempQueryFieldsMap };
-        tempQueryFieldsMap[BASE_KEY] = initQueryFieldStateItem(BASE_KEY, selectedSObject, { loading: true });
-        setChildRelationships([]);
-        setQueryFieldsMap(tempQueryFieldsMap);
-        setQueryFieldsKey(fieldKey);
-
-        queryBaseFields(fieldKey, BASE_KEY, tempQueryFieldsMap);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedOrg, selectedSObject, isTooling]);
-
   const queryBaseFields = useCallback(
-    async (fieldKey: string, BASE_KEY: string, tempQueryFieldsMap: Record<string, QueryFields>) => {
-      tempQueryFieldsMap = { ...tempQueryFieldsMap };
+    async (fieldKey: string, baseFieldKey: string, sobject: string, isAbandoned: () => boolean) => {
+      let baseQueryFields = initQueryFieldStateItem(baseFieldKey, sobject, { loading: true });
       try {
-        tempQueryFieldsMap[BASE_KEY] = await fetchFields(selectedOrg, tempQueryFieldsMap[BASE_KEY], BASE_KEY, isTooling);
-        if (isMounted.current) {
-          // set filter fields and order by fields
-          const fields = Object.values(tempQueryFieldsMap[BASE_KEY].fields).map((item) => item.metadata);
-          setFilterFields(getListItemsFromFieldWithRelatedItems(sortQueryFields(fields.filter((field) => field.filterable))));
-          setOrderByFields(getListItemsFromFieldWithRelatedItems(sortQueryFields(fields.filter((field) => field.sortable))));
-          setGroupByFields(
-            getListItemsFromFieldWithRelatedItems(sortQueryFields(fields.filter((field) => field.groupable || field.type === 'datetime'))),
-          );
-
-          tempQueryFieldsMap[BASE_KEY] = { ...tempQueryFieldsMap[BASE_KEY], loading: false };
-          setChildRelationships(tempQueryFieldsMap[BASE_KEY].childRelationships || []);
-          if (tempQueryFieldsMap[BASE_KEY].fields.Id) {
-            tempQueryFieldsMap[BASE_KEY].selectedFields.add('Id');
-            emitSelectedFieldsChanged(tempQueryFieldsMap);
-          }
-        }
+        baseQueryFields = { ...(await fetchFields(selectedOrg, baseQueryFields, baseFieldKey, isTooling)), loading: false };
       } catch (ex) {
         logger.warn('Query SObject error', ex);
-        tempQueryFieldsMap[BASE_KEY] = { ...tempQueryFieldsMap[BASE_KEY], loading: false, hasError: true };
-      } finally {
-        if (isMounted.current) {
-          setQueryFieldsMap(tempQueryFieldsMap);
-          setQueryFieldsKey(fieldKey);
+        baseQueryFields = { ...baseQueryFields, loading: false, hasError: true };
+      }
+
+      // A newer org/object was selected, or the component went away, while this fetch was in flight.
+      // Writing now would replace the current object's fields with fields nobody asked for.
+      if (isAbandoned()) {
+        return;
+      }
+
+      if (!baseQueryFields.hasError) {
+        // set filter fields and order by fields
+        const fields = Object.values(baseQueryFields.fields).map(({ metadata }) => metadata);
+        setFilterFields(getListItemsFromFieldWithRelatedItems(sortQueryFields(fields.filter((field) => field.filterable))));
+        setOrderByFields(getListItemsFromFieldWithRelatedItems(sortQueryFields(fields.filter((field) => field.sortable))));
+        setGroupByFields(
+          getListItemsFromFieldWithRelatedItems(sortQueryFields(fields.filter((field) => field.groupable || field.type === 'datetime'))),
+        );
+        setChildRelationships(baseQueryFields.childRelationships || []);
+        if (baseQueryFields.fields.Id) {
+          baseQueryFields.selectedFields.add('Id');
         }
+      }
+
+      const updatedQueryFieldsMap = { [baseFieldKey]: baseQueryFields };
+      setQueryFieldsMap(updatedQueryFieldsMap);
+      // Only claim the key once the fields behind it actually landed, otherwise an abandoned fetch
+      // leaves the key pointing at fields that were never loaded
+      setQueryFieldsKey(fieldKey);
+      if (baseQueryFields.fields.Id) {
+        emitSelectedFieldsChanged(updatedQueryFieldsMap);
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [selectedOrg, isTooling],
   );
 
+  // Fetch fields for base object if the selected object changes
+  useEffect(() => {
+    if (!selectedSObject) {
+      return;
+    }
+    const BASE_KEY = getQueryFieldBaseKey(selectedSObject);
+    const fieldKey = getQueryFieldKey(selectedOrg, selectedSObject);
+    let abandoned = false;
+
+    // Anything already in the map under this exact org + object was loaded (or restored) previously
+    if (fieldKey !== queryFieldsKey || isEmpty(queryFieldsMap[BASE_KEY])) {
+      setChildRelationships([]);
+      setQueryFieldsMap({ [BASE_KEY]: initQueryFieldStateItem(BASE_KEY, selectedSObject, { loading: true }) });
+      queryBaseFields(fieldKey, BASE_KEY, selectedSObject, () => abandoned);
+    }
+
+    return () => {
+      abandoned = true;
+      setQueryFieldsMap((priorFieldsMap) => removeInFlightQueryFields(priorFieldsMap, BASE_KEY));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedOrg, selectedSObject, isTooling]);
+
   const queryRelatedFields = useCallback(
-    async (fieldKey: string, tempQueryFieldsMap: Record<string, QueryFields>) => {
+    async (fieldKey: string, relatedFieldsPlaceholder: QueryFields) => {
+      let relatedQueryFields: QueryFields;
       try {
-        tempQueryFieldsMap[fieldKey] = await fetchFields(selectedOrg, tempQueryFieldsMap[fieldKey], fieldKey, isTooling);
-        if (isMounted.current) {
-          // ensure selected object did not change
-          if (tempQueryFieldsMap[fieldKey]) {
-            tempQueryFieldsMap[fieldKey] = { ...tempQueryFieldsMap[fieldKey], loading: false };
-            setQueryFieldsMap(tempQueryFieldsMap);
-          }
-        }
+        relatedQueryFields = { ...(await fetchFields(selectedOrg, relatedFieldsPlaceholder, fieldKey, isTooling)), loading: false };
       } catch (ex) {
         logger.warn('Query SObject error', ex);
-        tempQueryFieldsMap = { ...tempQueryFieldsMap, [fieldKey]: { ...tempQueryFieldsMap[fieldKey], loading: false, hasError: true } };
-      } finally {
-        if (isMounted.current) {
-          setQueryFieldsMap(tempQueryFieldsMap);
-        }
+        relatedQueryFields = { ...relatedFieldsPlaceholder, loading: false, hasError: true };
       }
+      if (!isMounted.current) {
+        return;
+      }
+      // Replace only this key - sibling expansions may have resolved, and the base object may have
+      // been swapped out entirely, while this fetch was in flight
+      setQueryFieldsMap((priorFieldsMap) =>
+        priorFieldsMap[fieldKey] ? { ...priorFieldsMap, [fieldKey]: relatedQueryFields } : priorFieldsMap,
+      );
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [selectedOrg, isTooling],
@@ -135,30 +135,37 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
     onSelectionChanged(fields);
   }
 
-  async function handleToggleFieldExpand(parentKey: string, field: FieldWrapper, relatedSobject: string) {
+  function handleToggleFieldExpand(parentKey: string, field: FieldWrapper, relatedSobject: string) {
     const key = getFieldKey(parentKey, field.metadata);
+    const existingFields = queryFieldsMap[key];
     // if field is already initialized
-    const tempQueryFieldsMap = { ...queryFieldsMap };
-    if (tempQueryFieldsMap[key] && tempQueryFieldsMap[key].sobject === relatedSobject) {
-      tempQueryFieldsMap[key] = { ...tempQueryFieldsMap[key], expanded: !tempQueryFieldsMap[key].expanded };
-    } else {
-      // this is a new expansion that we have not seen, we need to fetch the fields and init the object
-      tempQueryFieldsMap[key] = initQueryFieldStateItem(key, relatedSobject, {
-        loading: true,
-        isPolymorphic: Array.isArray(field.relatedSobject),
+    if (existingFields && existingFields.sobject === relatedSobject) {
+      // Toggle against the published map rather than this render's snapshot - a sibling fetch may
+      // have resolved into it since, and rewriting the snapshot would undo that
+      setQueryFieldsMap((priorFieldsMap) => {
+        const currentFields = priorFieldsMap[key] || existingFields;
+        return { ...priorFieldsMap, [key]: { ...currentFields, expanded: !currentFields.expanded } };
       });
-      // fetch fields and update once resolved
-      queryRelatedFields(key, tempQueryFieldsMap);
+      return;
     }
-    setQueryFieldsMap({ ...tempQueryFieldsMap });
+    // this is a new expansion that we have not seen, we need to fetch the fields and init the object
+    const relatedFieldsPlaceholder = initQueryFieldStateItem(key, relatedSobject, {
+      loading: true,
+      isPolymorphic: Array.isArray(field.relatedSobject),
+    });
+    setQueryFieldsMap((priorFieldsMap) => ({ ...priorFieldsMap, [key]: relatedFieldsPlaceholder }));
+    // fetch fields and update once resolved
+    queryRelatedFields(key, relatedFieldsPlaceholder);
   }
 
-  async function handleErrorReattempt(key: string) {
-    const tempQueryFieldsMap = { ...queryFieldsMap };
-    tempQueryFieldsMap[key] = { ...tempQueryFieldsMap[key], loading: true, hasError: false };
-    setQueryFieldsMap({ ...tempQueryFieldsMap });
+  function handleErrorReattempt(key: string) {
+    if (!queryFieldsMap[key]) {
+      return;
+    }
+    const relatedFieldsPlaceholder = { ...queryFieldsMap[key], loading: true, hasError: false };
+    setQueryFieldsMap((priorFieldsMap) => ({ ...priorFieldsMap, [key]: relatedFieldsPlaceholder }));
 
-    queryRelatedFields(key, tempQueryFieldsMap);
+    queryRelatedFields(key, relatedFieldsPlaceholder);
   }
 
   function handleFieldSelection(key: string, field: FieldWrapper) {
