@@ -58,43 +58,84 @@ export function filterPermissionsSobjects(sobject: DescribeGlobalSObjectResult |
 }
 
 /**
- * Reads the org's allow-list of objects that can have an `ObjectPermissions` record.
+ * The objects the permission manager can manage, split by what each one actually supports.
  *
- * `ObjectPermissions.SobjectType` is a restricted picklist whose values are exactly those objects.
- * Objects with no independent CRUD are absent - setup/metadata objects (ApexClass, Profile, RecordType),
- * children whose access rolls up to a parent (Task/Event, OpportunityLineItem, PricebookEntry, Attachment)
- * and platform junctions (Group, FeedItem, User). Saving against any of them fails with
- * `INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST`, so they must never reach the permission editor.
- *
- * Returns `null` when the allow-list cannot be determined, which signals callers to fall back to the
- * name/CRUD heuristic rather than showing an empty object list.
+ * Salesforce models object CRUD and field-level security as two independent allow-lists. Neither is a
+ * subset of the other: `PricebookEntry`, `Task`, `Event`, `OpportunityLineItem`, `OrderItem` and `User`
+ * accept `FieldPermissions` but have no `ObjectPermissions` record, because their record-level access
+ * rolls up to a parent object.
  */
-export async function getPermissionableSobjects(org: SalesforceOrgUi): Promise<Set<string> | null> {
+export interface PermissionableSobjects {
+  /** Objects that accept an `ObjectPermissions` record, so object-level CRUD can be granted. */
+  objectPermissions: Set<string>;
+  /** Every manageable object - object CRUD, field-level security, or both. Drives the object picker. */
+  all: Set<string>;
+}
+
+/**
+ * Reads the active values of a restricted picklist that Salesforce uses as a permissions allow-list.
+ * Returns `null` when the describe fails or the picklist is empty, which callers treat as "unknown"
+ * rather than "nothing is allowed".
+ */
+async function getPermissionAllowList(org: SalesforceOrgUi, sobject: string, fieldName: string): Promise<string[] | null> {
   try {
-    const { data } = await describeSObject(org, 'ObjectPermissions');
-    const picklistValues = data.fields.find(({ name }) => name === 'SobjectType')?.picklistValues;
+    const { data } = await describeSObject(org, sobject);
+    const picklistValues = data.fields.find(({ name }) => name === fieldName)?.picklistValues;
     if (!picklistValues?.length) {
-      logger.warn('[PERMISSIONS] ObjectPermissions.SobjectType returned no picklist values, falling back to heuristic filter');
+      logger.warn(`[PERMISSIONS] ${sobject}.${fieldName} returned no picklist values`);
       return null;
     }
     // `active` is omitted on some describe responses - only drop values explicitly marked inactive
-    const permissionableSobjects = new Set(picklistValues.filter(({ active }) => active !== false).map(({ value }) => value));
-    return permissionableSobjects.size ? permissionableSobjects : null;
+    return picklistValues.filter(({ active }) => active !== false).map(({ value }) => value);
   } catch (ex) {
-    logger.warn('[PERMISSIONS] Unable to describe ObjectPermissions, falling back to heuristic filter', ex);
+    logger.warn(`[PERMISSIONS] Unable to describe ${sobject}`, ex);
     return null;
   }
 }
 
 /**
- * Object list filter for the permission manager. Prefers the org's `ObjectPermissions.SobjectType`
- * allow-list and falls back to the name/CRUD heuristic when it is unavailable.
+ * Reads the org's allow-lists of objects that can have permissions assigned.
+ *
+ * `ObjectPermissions.SobjectType` covers object CRUD and omits anything with no independent access -
+ * setup/metadata objects (ApexClass, Profile, RecordType) and children whose access rolls up to a parent
+ * (PricebookEntry, OpportunityLineItem, Task). Saving object permissions against those fails with
+ * `INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST`.
+ *
+ * Many of those children still support field-level security, so `FieldPermissions.SobjectType` is unioned
+ * in. It is the same list Salesforce's own permission set UI shows, which includes objects that expose no
+ * settable field (PricebookEntry, CampaignMember, User, ...). Those are kept deliberately: tab visibility
+ * may still apply, and it leaves room for per-object settings we add later. `FieldPermissions.Field` would
+ * be the narrower "has at least one settable field" signal, but filtering on it would hide those objects
+ * entirely and diverge from Salesforce.
+ *
+ * Returns `null` when neither allow-list can be determined, which signals callers to fall back to the
+ * name/CRUD heuristic rather than showing an empty object list.
  */
-export function getPermissionsSobjectFilter(permissionableSobjects: Maybe<Set<string>>) {
+export async function getPermissionableSobjects(org: SalesforceOrgUi): Promise<PermissionableSobjects | null> {
+  const [objectPermissionValues, fieldPermissionValues] = await Promise.all([
+    getPermissionAllowList(org, 'ObjectPermissions', 'SobjectType'),
+    getPermissionAllowList(org, 'FieldPermissions', 'SobjectType'),
+  ]);
+
+  const objectPermissions = new Set(objectPermissionValues || []);
+  const all = new Set([...objectPermissions, ...(fieldPermissionValues || [])]);
+
+  if (!all.size) {
+    logger.warn('[PERMISSIONS] No permissionable objects could be determined, falling back to heuristic filter');
+    return null;
+  }
+  return { objectPermissions, all };
+}
+
+/**
+ * Object list filter for the permission manager. Prefers the org's allow-lists and falls back to the
+ * name/CRUD heuristic when they are unavailable.
+ */
+export function getPermissionsSobjectFilter(permissionableSobjects: Maybe<PermissionableSobjects>) {
   if (!permissionableSobjects) {
     return filterPermissionsSobjects;
   }
-  return (sobject: DescribeGlobalSObjectResult | null) => !!sobject && permissionableSobjects.has(sobject.name);
+  return (sobject: DescribeGlobalSObjectResult | null) => !!sobject && permissionableSobjects.all.has(sobject.name);
 }
 
 export function getFieldDefinitionKey(record: EntityParticlePermissionsRecord) {

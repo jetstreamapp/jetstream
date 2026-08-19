@@ -21,6 +21,7 @@ function buildObjectRow(label: string, apiName: string): PermissionTableObjectCe
     tableLabel: `${label} (${apiName})`,
     allowEditPermission: true,
     allowViewAllModifyAllPermission: true,
+    allowObjectPermission: true,
     permissions: {},
   };
 }

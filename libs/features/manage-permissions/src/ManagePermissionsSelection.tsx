@@ -115,8 +115,9 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
 
   const profilesAndPermSetsData = useProfilesAndPermSets(selectedOrg, profiles, permissionSets);
 
-  // Objects that cannot have an ObjectPermissions record (Task, ApexClass, Attachment, ...) fail on save
-  // with INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST, so they are excluded from the picker entirely.
+  // Objects Salesforce will not accept any permission record for (ApexClass, Attachment, ...) are excluded
+  // from the picker. Objects that support only field-level security (PricebookEntry, Task, ...) are kept,
+  // and the object permission table marks them read-only.
   const {
     permissionableSobjects,
     loading: permissionableSobjectsLoading,

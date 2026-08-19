@@ -1,9 +1,9 @@
 import { SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getPermissionableSobjects } from './utils/permission-manager-utils';
+import { PermissionableSobjects, getPermissionableSobjects } from './utils/permission-manager-utils';
 
 /**
- * Loads the set of objects that can have an `ObjectPermissions` record in the selected org.
+ * Loads the set of objects that can have permissions assigned in the selected org.
  *
  * `permissionableSobjects` is `null` when the allow-list could not be determined, which callers treat
  * as "fall back to the heuristic filter" rather than "no objects". `loading` stays `true` until the
@@ -12,7 +12,7 @@ import { getPermissionableSobjects } from './utils/permission-manager-utils';
 export function usePermissionableSobjects(selectedOrg: SalesforceOrgUi) {
   const isMounted = useRef(true);
   const [refreshCount, setRefreshCount] = useState(0);
-  const [loaded, setLoaded] = useState<{ key: string; permissionableSobjects: Set<string> | null } | null>(null);
+  const [loaded, setLoaded] = useState<{ key: string; permissionableSobjects: PermissionableSobjects | null } | null>(null);
 
   const orgUniqueId = selectedOrg?.uniqueId || null;
   // Changing the key marks the current results stale without a synchronous state update
