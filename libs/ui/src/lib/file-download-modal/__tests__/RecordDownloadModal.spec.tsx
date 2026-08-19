@@ -106,3 +106,31 @@ describe('RecordDownloadModal file format persistence', () => {
     expect(localStorage.getItem(LS_KEY)).toBe('csv');
   });
 });
+
+/**
+ * `requireBulkApi` used to be derived from the "bulk API with a warning" case, which is mutually exclusive with
+ * the clean case - so a query the bulk API could handle losslessly was never forced onto it, and a large enough
+ * download failed with `RangeError: Invalid string length` while the browser built the file.
+ */
+describe('RecordDownloadModal bulk API requirement', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.clearAllMocks();
+  });
+
+  test('forces the bulk API and CSV for a bulk-eligible query above the record threshold', () => {
+    localStorage.setItem(LS_KEY, 'xlsx');
+    setup({ totalRecordCount: 600_000 });
+
+    expect(screen.getByLabelText<HTMLInputElement>('Salesforce Bulk API').checked).toBe(true);
+    expect(screen.getByLabelText<HTMLInputElement>('Standard').disabled).toBe(true);
+    expect(screen.getByLabelText<HTMLInputElement>('CSV').checked).toBe(true);
+  });
+
+  test('leaves the download method up to the user below the record threshold', () => {
+    setup({ totalRecordCount: 10_000 });
+
+    expect(screen.getByLabelText<HTMLInputElement>('Standard').checked).toBe(true);
+    expect(screen.getByLabelText<HTMLInputElement>('Standard').disabled).toBe(false);
+  });
+});

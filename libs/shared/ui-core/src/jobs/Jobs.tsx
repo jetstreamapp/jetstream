@@ -24,6 +24,7 @@ import {
   AsyncJobType,
   AsyncJobWorkerMessagePayload,
   AsyncJobWorkerMessageResponse,
+  BulkDownloadJob,
   ErrorResult,
   FileExtAllTypes,
   FileExtCsvXLSX,
@@ -59,6 +60,26 @@ function getGoogleAccessToken(): string | undefined {
     return getExternalGoogleAccessToken()?.accessToken ?? undefined;
   }
   return gapi?.client?.getToken()?.access_token;
+}
+
+/**
+ * Downloads are the one job type where the browser itself is regularly the limit - a standard download builds
+ * the whole file as a single string and throws `RangeError: Invalid string length` past ~512MB. The jobs popover
+ * only ever shows the raw message, so report the inputs needed to tell a browser limit apart from a Salesforce
+ * failure. The SOQL and the records themselves are deliberately left out.
+ */
+function trackDownloadFailure(job: AsyncJob, errorMessage: string) {
+  const { fileFormat, sObject, totalRecordCount, fields, useBulkApi, includeSubquery, isTooling } = (job.meta ||
+    {}) as Partial<BulkDownloadJob>;
+  tracker.error('Bulk download job failed', new Error(errorMessage), {
+    fileFormat,
+    sObject,
+    totalRecordCount,
+    fieldCount: fields?.length,
+    useBulkApi,
+    includeSubquery,
+    isTooling,
+  });
 }
 
 export const Jobs: FunctionComponent = () => {
@@ -292,6 +313,7 @@ export const Jobs: FunctionComponent = () => {
             };
             setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
             notifyUser(`Download records failed`, { body: newJob.statusMessage, tag: 'BulkDownload' });
+            trackDownloadFailure(newJob, error);
           } else if (data.lastActivityUpdate) {
             const progress = (data.results as { progress?: AsyncJobProgress } | undefined)?.progress;
             newJob = {
@@ -357,6 +379,7 @@ export const Jobs: FunctionComponent = () => {
                       };
                       setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
                       notifyUser(`Download records failed`, { body: newJob.statusMessage, tag: 'BulkDownload' });
+                      trackDownloadFailure(newJob, getErrorMessage(error));
                     });
                 } else {
                   fromJetstreamEvents.emit({
