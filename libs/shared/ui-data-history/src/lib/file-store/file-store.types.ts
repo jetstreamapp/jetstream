@@ -3,11 +3,11 @@ import { DataHistoryStorageBackend } from '@jetstream/types';
 /**
  * Pluggable storage backend for Data History payload files.
  *
- * BACKEND-PORTABILITY CONTRACT: implementations exist for OPFS today, with the File System Access
- * API (Chrome/Edge user-chosen folder) and Electron-native filesystem planned. To keep those
- * additive, this interface deals exclusively in backend-agnostic RELATIVE paths
- * (`<orgFolder>/<entryKey>/<fileName>`) and `Uint8Array`/`Blob` payloads — no OPFS types,
- * `FileSystemHandle`s, or absolute paths may appear in this contract or leak out of an
+ * BACKEND-PORTABILITY CONTRACT: three implementations share it — OPFS (every user's default), the
+ * File System Access API (Chrome/Edge user-chosen folder) and the Electron-native filesystem — and
+ * entries on different backends coexist, so this interface deals exclusively in backend-agnostic
+ * RELATIVE paths (`<orgFolder>/<entryKey>/<fileName>`) and `Uint8Array`/`Blob` payloads — no OPFS
+ * types, `FileSystemHandle`s, or absolute paths may appear in this contract or leak out of an
  * implementation.
  */
 export interface HistoryFileStore {

@@ -195,7 +195,10 @@ export const DataHistoryDetailModal: FunctionComponent<DataHistoryDetailModalPro
       id: tabIdForKind(kind),
       title: label,
       content: (
+        // Keyed so each payload kind is its own instance — the tab only renders the active content, and
+        // without a key switching Input -> Output would reuse one component (and its error/copied state)
         <DataHistoryPayloadTab
+          key={kind}
           item={item}
           kind={kind}
           cache={payloadCache}

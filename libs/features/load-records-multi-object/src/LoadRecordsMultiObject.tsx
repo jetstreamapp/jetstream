@@ -154,7 +154,7 @@ export const LoadRecordsMultiObject = () => {
   function handleFile({ content, filename }: InputReadFileContent) {
     try {
       const workbook = XLSX.read(content, { cellText: false, cellDates: true, type: 'array' });
-      resetAll();
+      resetAll({ keepSkipDataHistory: true });
       setInputFilename(filename);
       setInputFileType('local');
       setInputGoogleFileId(null);
@@ -168,7 +168,7 @@ export const LoadRecordsMultiObject = () => {
   }
 
   function handleGoogleFile({ workbook, selectedFile }: InputReadGoogleSheet) {
-    resetAll();
+    resetAll({ keepSkipDataHistory: true });
     setInputFilename(selectedFile.name);
     setInputFileType('google');
     setInputGoogleFileId(selectedFile.id);

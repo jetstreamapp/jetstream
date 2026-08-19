@@ -165,10 +165,13 @@ export const useLoadFile = (org: SalesforceOrgUi, serverUrl: string, apiVersion:
           filenameType: inputFileType,
           googleFileId: inputGoogleFileId,
         }),
-        parentKey: type === 'retry' ? runs.find((run) => run.type === 'initial')?.historyEntryKey : undefined,
+        // A retry retries whatever has failed as of the LATEST run (a re-load appends another
+        // 'initial' run), so it links to that run — the same chaining Load Records uses
+        parentKey: type === 'retry' ? runs[runs.length - 1]?.historyEntryKey : undefined,
         skipHistory: skipDataHistory,
       });
 
+      historyHandle.setSubmittedCount(getRecordCount(requests));
       historyHandle.writeRequestJson(buildRequestExport(requests));
       return historyHandle;
     },

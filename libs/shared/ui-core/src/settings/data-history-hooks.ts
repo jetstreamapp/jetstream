@@ -1,9 +1,11 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import { Maybe } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
 import { dataHistoryCaptureEnabledState } from '@jetstream/ui/app-state';
 import {
+  changeNativeHistoryFolder,
   connectHistoryDirectory,
   DataHistoryBackendStatus,
   DataHistoryMigrationProgress,
@@ -158,12 +160,16 @@ export function fireMigrationResultToast({ migrated, skipped }: DataHistoryMigra
 }
 
 /**
- * "Store History in a Folder" — the ONE implementation of connecting a folder, used by both the Data
- * History page and the Settings storage-location controls. It picks the native filesystem backend
- * when the environment supports it (desktop) and the user-chosen-directory backend otherwise, which
- * is the same choice both surfaces make: each shows exactly one of the two. Also serves "Change
- * Folder…" — connecting a folder while one is active moves the history across (see
- * `connectHistoryDirectory`).
+ * "Store History in a Folder" and "Change Folder…" — the ONE implementation of each, used by both
+ * the Data History page and the Settings storage-location controls. Picks the native filesystem
+ * backend when the environment supports it (desktop) and the user-chosen-directory backend
+ * otherwise, which is the same choice both surfaces make: each shows exactly one of the two.
+ *
+ * `storeInFolder` connects a folder when none is active; `changeFolder` moves the history to a
+ * different one while a folder IS active — on the web that is the same `connectHistoryDirectory`
+ * call (picking a folder while one is connected copies the history across), on desktop the main
+ * process moves the directory. They differ only in toast copy and the analytics `action`, so they
+ * share one try/toast/track/working lifecycle here instead of each surface rebuilding it.
  *
  * `onProgress` drives the caller's migration counter; the analytics event reports the backend that
  * was actually connected, so the two surfaces differ only by `location`.
@@ -182,41 +188,78 @@ export function useStoreHistoryInFolder({
   const { trackEvent } = useAmplitude();
   const [working, setWorking] = useState(false);
   const nativeSupported = !!backendStatus?.nativeSupported;
-  // Whether to OFFER the button — keyed on the configured backend, not on where writes currently land
+  // Whether to OFFER "Store History in a Folder" — keyed on the configured backend, not on where
+  // writes currently land. "Change Folder…" is offered by the caller while a folder is configured.
   const available =
     !!backendStatus &&
     ((nativeSupported && backendStatus.active !== 'native') || (backendStatus.directorySupported && backendStatus.active !== 'directory'));
 
-  async function storeInFolder() {
+  /**
+   * Runs one of the four folder flows. `action` resolves false when the user cancelled a picker —
+   * nothing changed, so there is no toast, no analytics event, and no `onChanged`.
+   */
+  async function runFolderAction(action: () => Promise<boolean>, analytics: Record<string, unknown>) {
     setWorking(true);
     try {
-      if (nativeSupported) {
-        fireMigrationResultToast(
-          await enableNativeHistoryStorage(onProgress),
-          'Your history is now stored on disk — manage the folder from Settings.',
-        );
-      } else {
-        const result = await connectHistoryDirectory(onProgress);
-        if (!result) {
-          // The user cancelled the folder picker — nothing changed, so nothing to report
-          return;
-        }
-        fireMigrationResultToast(result, 'Your history is now stored in the selected folder.');
+      if (!(await action())) {
+        return;
       }
-      trackEvent(ANALYTICS_KEYS.data_history_settings_changed, {
-        backend: nativeSupported ? 'native' : 'directory',
-        location: analyticsLocation,
-      });
+      trackEvent(ANALYTICS_KEYS.data_history_settings_changed, { ...analytics, location: analyticsLocation });
       await onChanged?.();
     } catch (ex) {
       logger.warn('[DATA_HISTORY] Error switching history storage', ex);
-      fireToast({ type: 'error', message: 'There was a problem changing the Data History storage location.' });
+      // Some failures carry an actionable message (the previous folder needs access re-granted, desktop
+      // refuses to move the folder mid-load) — show it rather than a generic error the user can only retry
+      fireToast({ type: 'error', message: getErrorMessage(ex) || 'There was a problem changing the Data History storage location.' });
     } finally {
       setWorking(false);
     }
   }
 
-  return { storeInFolder, available, working };
+  function storeInFolder() {
+    return runFolderAction(
+      async () => {
+        if (nativeSupported) {
+          fireMigrationResultToast(
+            await enableNativeHistoryStorage(onProgress),
+            'Your history is now stored on disk — manage the folder from Settings.',
+          );
+          return true;
+        }
+        const result = await connectHistoryDirectory(onProgress);
+        if (!result) {
+          return false;
+        }
+        fireMigrationResultToast(result, 'Your history is now stored in the selected folder.');
+        return true;
+      },
+      { backend: nativeSupported ? 'native' : 'directory' },
+    );
+  }
+
+  function changeFolder() {
+    return runFolderAction(
+      async () => {
+        if (nativeSupported) {
+          const newPath = await changeNativeHistoryFolder();
+          if (!newPath) {
+            return false;
+          }
+          fireToast({ type: 'success', message: `History moved to ${newPath}` });
+          return true;
+        }
+        const result = await connectHistoryDirectory(onProgress);
+        if (!result) {
+          return false;
+        }
+        fireMigrationResultToast(result, 'Your history was moved to the new folder.');
+        return true;
+      },
+      { backend: nativeSupported ? 'native' : 'directory', action: nativeSupported ? 'relocate' : 'change-folder' },
+    );
+  }
+
+  return { storeInFolder, changeFolder, available, working };
 }
 
 /**

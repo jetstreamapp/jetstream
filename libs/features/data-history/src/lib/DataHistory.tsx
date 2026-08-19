@@ -183,6 +183,23 @@ export const DataHistory: FunctionComponent = () => {
   // new capture is pruned right back out — warn the user their history is effectively frozen.
   const allEntriesPinned = limits?.maxEntries != null && pinnedCount != null && pinnedCount >= limits.maxEntries;
 
+  // Every banner above the table, decided ONCE: the JSX renders from these, and the table's
+  // `recalculateKey` is derived from the same object, so a banner can never be added to one and
+  // missed by the other (the grid measures its height from its own top edge and the banners mount
+  // asynchronously — status/persist/limits load after first paint).
+  const banners = {
+    permissionNeeded: !!backendStatus?.permissionNeeded,
+    folderUnavailable: !!backendStatus?.folderUnavailable,
+    persistPrompt: persistPromptEligible && persisted === false && !persistBannerDismissed,
+    allEntriesPinned,
+    upgrade: showUpgradeToPro && !upgradeBannerDismissed && !allEntriesPinned,
+    canvas: isCanvasApp(),
+    // Gated on initialization (`limits` stays null until then) — rendering earlier would flash a
+    // false "disabled" warning on a hard refresh (and offer an Enable button that cannot persist
+    // the setting yet)
+    captureDisabled: limits != null && !captureEnabled,
+  };
+
   // Subscribe to the open entry directly (not through the limited list) so the modal keeps updating
   // even when the entry falls outside the visible window. `useLiveQuery` returns undefined while
   // loading (and when the entry has been deleted), so the open-time snapshot fills those windows and
@@ -344,7 +361,7 @@ export const DataHistory: FunctionComponent = () => {
               ? `Your history is stored on this computer (${storageLocation.path}) and is never sent to Jetstream.`
               : `Your history is stored locally on this device and is never sent to Jetstream. Clearing your browser's site data permanently deletes it, so download anything you need to keep long-term.`}
         </p>
-        {backendStatus?.permissionNeeded && (
+        {banners.permissionNeeded && (
           <ScopedNotification theme="warning" className="slds-m-vertical_x-small">
             <Grid verticalAlign="center">
               <span>Jetstream no longer has permission to your history folder. New history is temporarily saved to browser storage.</span>
@@ -359,18 +376,18 @@ export const DataHistory: FunctionComponent = () => {
             </Grid>
           </ScopedNotification>
         )}
-        {backendStatus?.folderUnavailable && (
+        {banners.folderUnavailable && (
           <ScopedNotification theme="warning" className="slds-m-vertical_x-small">
             <Grid verticalAlign="center">
               <span>
                 Your history folder can’t be opened — it may have been moved or deleted. New history is temporarily saved to{' '}
-                {backendStatus.nativeSupported ? 'app-managed' : 'browser'} storage. Choose a different folder or switch back from Data
+                {backendStatus?.nativeSupported ? 'app-managed' : 'browser'} storage. Choose a different folder or switch back from Data
                 History Settings.
               </span>
             </Grid>
           </ScopedNotification>
         )}
-        {persistPromptEligible && persisted === false && !persistBannerDismissed && (
+        {banners.persistPrompt && (
           <ScopedNotification theme="info" className="slds-m-vertical_x-small">
             <Grid verticalAlign="center" align="spread">
               <Grid verticalAlign="center">
@@ -387,7 +404,7 @@ export const DataHistory: FunctionComponent = () => {
             </Grid>
           </ScopedNotification>
         )}
-        {allEntriesPinned && (
+        {banners.allEntriesPinned && (
           <ScopedNotification theme="warning" className="slds-m-vertical_x-small">
             <Grid verticalAlign="center">
               <span className="slds-m-right_small">
@@ -397,7 +414,7 @@ export const DataHistory: FunctionComponent = () => {
             </Grid>
           </ScopedNotification>
         )}
-        {showUpgradeToPro && !upgradeBannerDismissed && !allEntriesPinned && (
+        {banners.upgrade && (
           <ScopedNotification theme="info" className="slds-m-vertical_x-small">
             <Grid verticalAlign="center" align="spread">
               <Grid verticalAlign="center">
@@ -412,16 +429,13 @@ export const DataHistory: FunctionComponent = () => {
             </Grid>
           </ScopedNotification>
         )}
-        {isCanvasApp() && (
+        {banners.canvas && (
           <ScopedNotification theme="info" className="slds-m-vertical_x-small">
             History is stored per Salesforce domain when Jetstream runs inside Salesforce and may be cleared by your browser. For a durable
             history, use the Jetstream web or desktop app.
           </ScopedNotification>
         )}
-        {/* Gated on initialization (`limits` stays null until then) — rendering earlier would flash
-            a false "disabled" warning on a hard refresh (and offer an Enable button that cannot
-            persist the setting yet) */}
-        {limits != null && !captureEnabled && (
+        {banners.captureDisabled && (
           <ScopedNotification theme="warning" className="slds-m-vertical_x-small">
             <Grid verticalAlign="center">
               <span>Data History is currently disabled. New data modifications are not being saved.</span>
@@ -453,17 +467,8 @@ export const DataHistory: FunctionComponent = () => {
           <DataHistoryTable
             items={entries}
             orgs={orgs}
-            // The banners above mount asynchronously (status/persist/limits load after first paint), and
-            // the grid measures its height from its own top edge — re-measure when any of them toggles
-            recalculateKey={[
-              backendStatus?.permissionNeeded,
-              backendStatus?.folderUnavailable,
-              persistPromptEligible && persisted === false && !persistBannerDismissed,
-              allEntriesPinned,
-              showUpgradeToPro && !upgradeBannerDismissed,
-              limits != null && !captureEnabled,
-              hasActiveFilter,
-            ].join('|')}
+            // Re-measure when any banner above (or the filter bar) toggles — see `banners`
+            recalculateKey={[...Object.values(banners), hasActiveFilter].join('|')}
             onView={openDetail}
             onDownload={handleRowDownload}
             onTogglePin={handleTogglePin}

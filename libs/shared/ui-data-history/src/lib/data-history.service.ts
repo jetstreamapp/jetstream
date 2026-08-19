@@ -440,53 +440,79 @@ export class DataHistoryEntryHandle {
 
   /** Finalize the entry: close streams, set status/counts, and write the manifest */
   finish(outcome: FinishDataHistoryEntryOptions): Promise<void> {
-    return this.run(async (store) => {
-      if (this.resultsStream) {
-        const compressed = store.capabilities.compressFiles;
-        const { bytes } = await this.resultsStream.close();
-        this.resultsStream = null;
-        const fileName = getDataHistoryFileName('results.csv', compressed);
-        await this.addFileRef(store, {
-          kind: 'results',
-          path: this.filePath(fileName),
-          fileName,
-          contentType: 'text/csv',
-          compressed,
-          bytes,
-          rowCount: this.resultsRowCount,
-        });
-      }
-      this.item = {
-        ...this.item,
-        status: outcome.status ?? deriveStatusFromCounts(outcome.counts),
-        counts: outcome.counts,
-        jobId: outcome.jobId ?? this.item.jobId,
-        errorMessage: outcome.errorMessage ?? null,
-        finishedAt: new Date(),
-      };
-      await dataHistoryDb.updateEntry(this.key, {
-        status: this.item.status,
-        counts: this.item.counts,
-        jobId: this.item.jobId,
-        errorMessage: this.item.errorMessage,
-        finishedAt: this.item.finishedAt,
-      });
-      try {
-        await this.writeManifest(store);
-      } catch (ex) {
-        // The manifest only exists for folder re-indexing — a failed write here must not flip an
-        // already-recorded accurate final status to 'failed' (every payload file was written fine)
-        logger.warn('[DATA_HISTORY] Unable to write manifest for entry', this.key, ex);
-      }
-      this.finished = true;
-      markEntryInactive(this.key);
-    });
+    return this.run((store) => this.finishEntry(store, outcome));
   }
 
-  /** Mark the entry failed (e.g. the load itself hit a fatal error) */
+  /**
+   * Body of `finish()`, split out so the settle-with-current-counts callers (`fail`,
+   * `abandonIfUnsettled`) can read `this.item.counts` INSIDE the queued task — after a
+   * `setSubmittedCount` queued just before them has run — rather than at call time.
+   */
+  private async finishEntry(store: HistoryFileStore, outcome: FinishDataHistoryEntryOptions): Promise<void> {
+    if (this.resultsStream) {
+      const compressed = store.capabilities.compressFiles;
+      const { bytes } = await this.resultsStream.close();
+      this.resultsStream = null;
+      const fileName = getDataHistoryFileName('results.csv', compressed);
+      await this.addFileRef(store, {
+        kind: 'results',
+        path: this.filePath(fileName),
+        fileName,
+        contentType: 'text/csv',
+        compressed,
+        bytes,
+        rowCount: this.resultsRowCount,
+      });
+    }
+    this.item = {
+      ...this.item,
+      status: outcome.status ?? deriveStatusFromCounts(outcome.counts),
+      counts: outcome.counts,
+      jobId: outcome.jobId ?? this.item.jobId,
+      errorMessage: outcome.errorMessage ?? null,
+      finishedAt: new Date(),
+    };
+    await dataHistoryDb.updateEntry(this.key, {
+      status: this.item.status,
+      counts: this.item.counts,
+      jobId: this.item.jobId,
+      errorMessage: this.item.errorMessage,
+      finishedAt: this.item.finishedAt,
+    });
+    try {
+      await this.writeManifest(store);
+    } catch (ex) {
+      // The manifest only exists for folder re-indexing — a failed write here must not flip an
+      // already-recorded accurate final status to 'failed' (every payload file was written fine)
+      logger.warn('[DATA_HISTORY] Unable to write manifest for entry', this.key, ex);
+    }
+    this.finished = true;
+    markEntryInactive(this.key);
+  }
+
+  /**
+   * The user's operation itself failed (a thrown load, a job that could not be created). This is an
+   * OUTCOME, not a capture malfunction, so the entry is finished like any other — result rows already
+   * streamed are kept, the manifest is written, and the submitted count (if recorded) survives — just
+   * with `failed` status and the error. Hosts that know how many records the failure covers should
+   * call `finish({ counts, status: 'failed', errorMessage })` directly; this is for the ones that
+   * only know it blew up. The capture-malfunction teardown (`markFailed`) stays internal to `run()`.
+   */
   fail(errorMessage: string): Promise<void> {
+    return this.run((store) => this.finishEntry(store, { counts: this.item.counts, status: 'failed', errorMessage }));
+  }
+
+  /**
+   * Record how many records the run submits, as soon as the host knows it (alongside the input rows).
+   * `finish()` sets the final counts, but some entries render BEFORE or WITHOUT it — the live
+   * `in-progress` row, an entry abandoned by its host mid-run (`abandonIfUnsettled`), one the retention
+   * sweep reclassifies as `incomplete`, and one that `fail()`ed before any result came back — and all
+   * of them can only show "N submitted" if the total was persisted up front. Without this they show "—".
+   */
+  setSubmittedCount(total: number): Promise<void> {
     return this.run(async () => {
-      await this.markFailed(errorMessage);
+      this.item = { ...this.item, counts: { ...this.item.counts, total } };
+      await dataHistoryDb.updateEntry(this.key, { counts: this.item.counts });
     });
   }
 
@@ -498,8 +524,9 @@ export class DataHistoryEntryHandle {
    * Settles as `incomplete`, NOT `failed`: by the time a host unmounts, the Bulk job or mass update
    * has usually been submitted and finishes on Salesforce regardless — the OUTCOME is unknown, not
    * bad. `incomplete` is exactly the status the retention sweep assigns to a capture a crashed tab
-   * left behind, and it renders as "N submitted" rather than a red Failed badge with "—" counts for
-   * a load that most likely succeeded. Results streamed so far are kept (`finish` closes the stream).
+   * left behind, and it renders as "N submitted" (the total recorded by `setSubmittedCount`) rather
+   * than a red Failed badge for a load that most likely succeeded. Results streamed so far are kept
+   * (`finish` closes the stream).
    *
    * No-op once `finalize()` has started: a capture already running in the background finishes the
    * entry itself. A `finish()` or `fail()` already in flight also wins — the `finish()` below is
@@ -509,7 +536,7 @@ export class DataHistoryEntryHandle {
     if (this.finalizePromise) {
       return;
     }
-    void this.finish({ counts: this.item.counts, status: 'incomplete', errorMessage });
+    void this.run((store) => this.finishEntry(store, { counts: this.item.counts, status: 'incomplete', errorMessage }));
   }
 
   /**

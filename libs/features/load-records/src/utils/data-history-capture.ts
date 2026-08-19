@@ -57,11 +57,13 @@ export function apiModeToDataHistoryApi(apiMode: ApiMode): DataHistoryApi {
 }
 
 /**
- * A run that failed before any record reached Salesforce (pre-processing/query errors, or a thrown
- * prepare step). FINISH the entry — not fail — so the attempted count is recorded: every input
- * record counts as a failure rather than the entry looking like a capture malfunction.
+ * A run that failed before any record reached Salesforce (pre-processing/query errors, a thrown
+ * prepare step, a Bulk job that accepted no batch). Every attempted record is recorded as failed —
+ * the results component reports the same `failure: attemptedCount` to its parent, so the entry and
+ * the UI agree. A failure whose outcome is UNKNOWN (a throw mid-load) is `handle.fail()` instead,
+ * which keeps the results streamed so far and only the submitted count.
  */
-export function finishHistoryAsPrepareFailure(historyHandle: DataHistoryEntryHandle, attemptedCount: number, errorMessage: string): void {
+export function finishHistoryAsAllFailed(historyHandle: DataHistoryEntryHandle, attemptedCount: number, errorMessage: string): void {
   historyHandle.finish({
     counts: { total: attemptedCount, success: 0, failure: attemptedCount },
     status: 'failed',

@@ -84,6 +84,7 @@ export function useDeployRecords(
       // Exactly the columns the batches below submit, streamed as CSV in bounded chunks. This is the
       // "every record in the object" surface, so a single JSON blob of the full queried rows would
       // be held several times over in memory on the main thread while the upload is still running.
+      historyHandle.setSubmittedCount(records.length);
       historyHandle.writeInputRows(records, fields);
 
       const batches = splitArrayToMaxSize(records, batchSize).map((batch) => ({

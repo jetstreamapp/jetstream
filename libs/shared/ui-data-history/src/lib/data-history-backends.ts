@@ -19,13 +19,7 @@ import {
   invalidateHistoryBackends,
 } from './file-store/file-store-factory';
 import { HistoryFileStore } from './file-store/file-store.types';
-import {
-  asDirectoryHandle,
-  DataHistoryDirectoryPermissionError,
-  FsaDirectoryHandle,
-  isFileSystemAccessSupported,
-  showHistoryDirectoryPicker,
-} from './file-store/fsa-types';
+import { asDirectoryHandle, FsaDirectoryHandle, isFileSystemAccessSupported, showHistoryDirectoryPicker } from './file-store/fsa-types';
 import { DATA_HISTORY_FILE_NAMES, getEntryDirPath, getParentDirPath } from './file-store/path-utils';
 import { getUserScopeDir } from './file-store/user-scope';
 import { isCanvasApp, isDesktopApp } from './platform';
@@ -192,11 +186,27 @@ async function pickWritableHistoryDirectory(): Promise<FsaDirectoryHandle | null
  * not copied across is permanently unreadable (its stamp equals the active backend, so the sweep's
  * reconcile step cannot tell it is stranded). Copying old -> new BEFORE the repoint is what keeps
  * that from happening; see `copyEntriesFromPreviousFolder` for what it can and cannot rescue.
+ *
+ * Access to the previous folder is resolved BEFORE the picker is shown: the picker consumes the user
+ * gesture (and the OS dialog outlives the activation window anyway), and `requestPermission` is
+ * refused without one — asked afterwards, a folder in the common post-restart 'prompt' state fails
+ * the check silently, every entry in it is skipped, and the repoint strands them. A refusal throws
+ * rather than proceeding, for the same reason `disconnectHistoryDirectory` does: moving on would
+ * leave the entries unreadable behind a toast that says they stayed put. Neither the prompt nor the
+ * refusal applies when nothing in the previous folder needs moving (a folder disconnected long ago,
+ * everything already copied back) — and a folder that is GONE still gets skipped rather than
+ * blocking, because a permission grant says nothing about whether the directory exists.
  */
 export async function connectHistoryDirectory(onProgress?: DataHistoryMigrationProgress): Promise<DataHistoryMigrationResult | null> {
   const config = await dataHistoryDb.getBackendConfig();
   // Retained after a disconnect as well as while active — see `disconnectHistoryDirectory`
   const previousHandle = asDirectoryHandle(config.directoryHandle);
+  const previousFolderHasEntries = (await dataHistoryDb.getAllEntries()).some(
+    (entry) => entry.storageBackend === 'directory' && entry.files.length > 0,
+  );
+  if (previousHandle && previousFolderHasEntries && !(await ensureReadWritePermission(previousHandle))) {
+    throw new Error('Jetstream needs access to your current history folder to move your history. Allow access and try again.');
+  }
   const newHandle = await pickWritableHistoryDirectory();
   if (!newHandle) {
     return null;
@@ -211,7 +221,6 @@ export async function connectHistoryDirectory(onProgress?: DataHistoryMigrationP
   if (previousHandle) {
     const previousStore = new DirectoryHandleFileStore(previousHandle, scopeDir);
     ({ copied: copiedFromPreviousFolder, skipped: skippedInPreviousFolder } = await copyEntriesFromPreviousFolder(
-      previousHandle,
       previousStore,
       newStore,
       onProgress,
@@ -235,19 +244,16 @@ export async function connectHistoryDirectory(onProgress?: DataHistoryMigrationP
  * writing to the previous folder), a previous folder that cannot be opened (blocking the change
  * would hold the user hostage to a folder that may be gone for good), and an entry whose own files
  * cannot be read (the user deleting one entry's folder by hand is an allowed state in a user-visible
- * backend, and must not make every future folder change impossible).
+ * backend, and must not make every future folder change impossible). Permission to the previous
+ * folder is NOT resolved here — the caller does that inside the user gesture, before the picker.
  */
 async function copyEntriesFromPreviousFolder(
-  previousHandle: FsaDirectoryHandle,
   previousStore: DirectoryHandleFileStore,
   newStore: DirectoryHandleFileStore,
   onProgress?: DataHistoryMigrationProgress,
 ): Promise<{ copied: number; skipped: number }> {
   let previousStoreAvailable = true;
   try {
-    if (!(await ensureReadWritePermission(previousHandle))) {
-      throw new DataHistoryDirectoryPermissionError();
-    }
     await previousStore.init();
   } catch (ex) {
     previousStoreAvailable = false;

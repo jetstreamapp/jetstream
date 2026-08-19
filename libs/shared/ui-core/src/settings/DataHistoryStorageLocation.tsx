@@ -4,8 +4,6 @@ import { getErrorMessage } from '@jetstream/shared/utils';
 import { Maybe } from '@jetstream/types';
 import { fireToast, Spinner } from '@jetstream/ui';
 import {
-  changeNativeHistoryFolder,
-  connectHistoryDirectory,
   disableNativeHistoryStorage,
   disconnectHistoryDirectory,
   getDataHistoryStorageLocation,
@@ -48,10 +46,12 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
     onChanged?.();
   }
 
-  // Connect-a-folder and re-connect are shared with the Data History page — same service call, same
-  // copy, same analytics but for `location`. Only the flows this surface alone offers use `runAction`.
+  // Connect-a-folder, change-folder and re-connect are shared with the Data History page — same
+  // service call, same copy, same analytics but for `location`. Only the flows this surface alone
+  // offers (switch back, re-index) use `runAction`.
   const {
     storeInFolder,
+    changeFolder,
     available: canStoreInFolder,
     working: storeWorking,
   } = useStoreHistoryInFolder({
@@ -66,23 +66,35 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
   });
   const working = actionWorking || storeWorking || reconnectWorking;
 
-  async function runAction(action: () => Promise<unknown>, analytics: Record<string, unknown>) {
-    setActionWorking(true);
+  /**
+   * The ONE owner of the "Moving history — N of N" counter's lifecycle. Every flow that reports
+   * progress (the shared hook's and this panel's own) runs through here, so the counter can never
+   * outlive the action that drove it.
+   */
+  async function withMigrationProgress(action: () => Promise<unknown>) {
     setMigrationProgress(null);
     try {
       await action();
-      trackEvent(ANALYTICS_KEYS.data_history_settings_changed, { ...analytics, location: ANALYTICS_LOCATION });
-      await handleChanged();
-    } catch (ex) {
-      logger.warn('[DATA_HISTORY] Storage location change failed', ex);
-      // Some failures carry an actionable message (e.g. desktop refuses to move the folder while a
-      // load is writing to it) — show it rather than a generic error the user can only retry against
-      fireToast({ type: 'error', message: getErrorMessage(ex) || 'There was a problem changing the Data History storage location.' });
-      await loadStatus();
     } finally {
-      setActionWorking(false);
       setMigrationProgress(null);
     }
+  }
+
+  function runAction(action: () => Promise<unknown>, analytics: Record<string, unknown>) {
+    return withMigrationProgress(async () => {
+      setActionWorking(true);
+      try {
+        await action();
+        trackEvent(ANALYTICS_KEYS.data_history_settings_changed, { ...analytics, location: ANALYTICS_LOCATION });
+        await handleChanged();
+      } catch (ex) {
+        logger.warn('[DATA_HISTORY] Storage location change failed', ex);
+        fireToast({ type: 'error', message: getErrorMessage(ex) || 'There was a problem changing the Data History storage location.' });
+        await loadStatus();
+      } finally {
+        setActionWorking(false);
+      }
+    });
   }
 
   if (!status || (!status.directorySupported && !status.nativeSupported)) {
@@ -125,27 +137,17 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
             </p>
           )}
           {canStoreInFolder && (
-            <button className="slds-button slds-button_neutral slds-m-top_x-small" disabled={working} onClick={storeInFolder}>
+            <button
+              className="slds-button slds-button_neutral slds-m-top_x-small"
+              disabled={working}
+              onClick={() => withMigrationProgress(storeInFolder)}
+            >
               Store History in a Folder on Disk
             </button>
           )}
           {isNativeActive && (
             <div className="slds-m-top_x-small">
-              <button
-                className="slds-button slds-button_neutral"
-                disabled={working}
-                onClick={() =>
-                  runAction(
-                    async () => {
-                      const newPath = await changeNativeHistoryFolder();
-                      if (newPath) {
-                        fireToast({ type: 'success', message: `History moved to ${newPath}` });
-                      }
-                    },
-                    { backend: 'native', action: 'relocate' },
-                  )
-                }
-              >
+              <button className="slds-button slds-button_neutral" disabled={working} onClick={() => withMigrationProgress(changeFolder)}>
                 Change Folder…
               </button>
               <button
@@ -189,7 +191,7 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
             <button
               className="slds-button slds-button_neutral slds-m-top_x-small"
               disabled={working}
-              onClick={storeInFolder}
+              onClick={() => withMigrationProgress(storeInFolder)}
               title="Store history as regular files in a folder you choose — visible, backed up with your other files, and kept when browser data is cleared"
             >
               Store History in a Folder on Your Computer…
@@ -200,18 +202,7 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
               <button
                 className="slds-button slds-button_neutral slds-m-right_x-small"
                 disabled={working}
-                onClick={() =>
-                  runAction(
-                    async () => {
-                      // Picking a folder while one is connected moves the history across — see `connectHistoryDirectory`
-                      const result = await connectHistoryDirectory(handleMigrationProgress);
-                      if (result) {
-                        fireMigrationResultToast(result, 'Your history was moved to the new folder.');
-                      }
-                    },
-                    { backend: 'directory', action: 'change-folder' },
-                  )
-                }
+                onClick={() => withMigrationProgress(changeFolder)}
                 title="Pick a different folder — your history is copied there; files in the old folder are left in place"
               >
                 Change Folder…

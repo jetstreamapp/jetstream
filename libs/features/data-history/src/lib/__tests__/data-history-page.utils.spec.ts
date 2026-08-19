@@ -89,8 +89,17 @@ describe('formatDataHistoryCounts', () => {
 
   it('handles in-progress, incomplete, and empty counts', () => {
     expect(formatDataHistoryCounts(buildItem({ status: 'in-progress', counts: { total: 5, success: 0, failure: 0 } }))).toBe('5 submitted');
+    expect(formatDataHistoryCounts(buildItem({ status: 'incomplete', counts: { total: 5, success: 0, failure: 0 } }))).toBe('5 submitted');
     expect(formatDataHistoryCounts(buildItem({ status: 'incomplete', counts: { total: 0, success: 0, failure: 0 } }))).toBe('—');
     expect(formatDataHistoryCounts(buildItem({ status: 'failed', counts: { total: 0, success: 0, failure: 0 } }))).toBe('—');
+  });
+
+  it('shows only the submitted total for a failed entry with no per-record outcome', () => {
+    // `fail()` settles with the submitted count but no success/failure breakdown — "0 of 5 succeeded" would be a claim
+    expect(formatDataHistoryCounts(buildItem({ status: 'failed', counts: { total: 5, success: 0, failure: 0 } }))).toBe('5 submitted');
+    expect(formatDataHistoryCounts(buildItem({ status: 'failed', counts: { total: 5, success: 0, failure: 5 } }))).toBe(
+      '0 of 5 succeeded • 5 failed',
+    );
   });
 });
 

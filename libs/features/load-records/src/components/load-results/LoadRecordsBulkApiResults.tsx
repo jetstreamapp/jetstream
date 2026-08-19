@@ -52,7 +52,7 @@ import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth
 import { DataHistoryEntryHandle } from '@jetstream/ui/data-history';
 import { useAtomValue } from 'jotai';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { captureBulkApiLoadResults, finishHistoryAsPrepareFailure } from '../../utils/data-history-capture';
+import { captureBulkApiLoadResults, finishHistoryAsAllFailed } from '../../utils/data-history-capture';
 import {
   BULK_JOB_POLL_MAX_CHECKS,
   LoadTypeDisplayNames,
@@ -309,6 +309,22 @@ export const LoadRecordsBulkApiResults = ({
     };
   }, [historyHandle]);
 
+  /**
+   * Every failed exit settles through here. The component status, the parent's `onFinish` (every
+   * input record counts as failed), the history entry, and the user notification are four channels
+   * that must move together — with them in one place no terminal path can update some and forget
+   * the rest (a forgotten history call strands the entry `in-progress` until unmount). `fatalError`,
+   * timestamps, the mock job info and error tracking stay with the caller: which of them each exit
+   * sets is its own concern. Nothing reached Salesforce on any of these exits (prepare failed, the
+   * job accepted no batch, or the upload threw), so the entry records every input row as failed.
+   */
+  function failLoad(errorMessage: string, notificationBody = `❌ ${errorMessage}`) {
+    setStatus(STATUSES.ERROR);
+    onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
+    finishHistoryAsAllFailed(historyHandle, inputFileData.length, errorMessage);
+    notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, { body: notificationBody, tag: 'load-records' });
+  }
+
   useEffect(() => {
     if (batchSummary && batchSummary.batchSummary) {
       const batchSummariesWithId = batchSummary.batchSummary.filter((batch) => batch.id);
@@ -501,11 +517,11 @@ export const LoadRecordsBulkApiResults = ({
       const dateString = convertDateToLocale(new Date(), { timeStyle: 'medium' });
 
       if (!preparedDataResponse?.data.length) {
-        if (preparedDataResponse?.queryErrors?.length) {
-          setFatalError(preparedDataResponse.queryErrors.join('\n'));
+        const queryErrors = preparedDataResponse?.queryErrors?.length ? preparedDataResponse.queryErrors.join('\n') : null;
+        if (queryErrors) {
+          setFatalError(queryErrors);
         }
         // processing failed on every record
-        setStatus(STATUSES.ERROR);
         setPreparedData(preparedDataResponse);
         setProcessingEndTime(dateString);
         // mock response to ensure results table is visible
@@ -533,16 +549,7 @@ export const LoadRecordsBulkApiResults = ({
           totalProcessingTime: 0,
           batches: [],
         });
-        onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
-        finishHistoryAsPrepareFailure(
-          historyHandle,
-          inputFileData.length,
-          preparedDataResponse?.queryErrors?.length ? preparedDataResponse.queryErrors.join('\n') : 'Pre-processing records failed',
-        );
-        notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
-          body: `❌ Pre-processing records failed.`,
-          tag: 'load-records',
-        });
+        failLoad(queryErrors ?? 'Pre-processing records failed', `❌ Pre-processing records failed.`);
       } else {
         setStatus(STATUSES.UPLOADING);
         setPreparedData(preparedDataResponse);
@@ -552,14 +559,8 @@ export const LoadRecordsBulkApiResults = ({
       }
     } catch (ex) {
       logger.error('ERROR', ex);
-      setStatus(STATUSES.ERROR);
       setFatalError(getErrorMessage(ex));
-      onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
-      finishHistoryAsPrepareFailure(historyHandle, inputFileData.length, getErrorMessage(ex));
-      notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
-        body: `❌ ${getErrorMessage(ex)}`,
-        tag: 'load-records',
-      });
+      failLoad(getErrorMessage(ex));
       // A user-initiated abort throws 'Aborted' through this same path — keep the UI messaging but
       // don't report it as an application error.
       if (!isAborted.current) {
@@ -611,14 +612,8 @@ export const LoadRecordsBulkApiResults = ({
           setJobInfo(jobInfo);
           setStatus(STATUSES.PROCESSING);
         } else {
-          setStatus(STATUSES.ERROR);
-          onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
           // Job created but no batch accepted: nothing reached Salesforce, same as a prepare failure
-          finishHistoryAsPrepareFailure(historyHandle, inputFileData.length, loadError.message);
-          notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
-            body: `❌ ${loadError.message}`,
-            tag: 'load-records',
-          });
+          failLoad(loadError.message);
         }
         // A user-initiated abort surfaces through the same loadError path — keep the UI messaging but
         // don't report it as an application error. Aborting also makes Salesforce reject any in-flight
@@ -638,13 +633,7 @@ export const LoadRecordsBulkApiResults = ({
     } catch (ex) {
       logger.error('ERROR', ex);
       setFatalError(getErrorMessage(ex));
-      setStatus(STATUSES.ERROR);
-      onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
-      finishHistoryAsPrepareFailure(historyHandle, inputFileData.length, getErrorMessage(ex));
-      notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
-        body: `❌ ${getErrorMessage(ex)}`,
-        tag: 'load-records',
-      });
+      failLoad(getErrorMessage(ex));
       return;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

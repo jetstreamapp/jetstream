@@ -157,11 +157,13 @@ export function getDataHistoryStatusBadgeType(status: DataHistoryStatus): BadgeT
 
 export function formatDataHistoryCounts(item: DataHistoryItem): string {
   const { total, success, failure } = item.counts;
-  if (item.status === 'in-progress' || item.status === 'incomplete') {
-    return total > 0 ? `${total.toLocaleString()} submitted` : '—';
-  }
   if (total === 0) {
     return '—';
+  }
+  // No per-record outcome recorded — still running, abandoned/reclassified as `incomplete`, or
+  // `fail()`ed before any result came back. Only the submitted total (`setSubmittedCount`) is known.
+  if (success + failure === 0) {
+    return `${total.toLocaleString()} submitted`;
   }
   let text = `${success.toLocaleString()} of ${total.toLocaleString()} succeeded`;
   if (failure > 0) {

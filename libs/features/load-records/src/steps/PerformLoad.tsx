@@ -284,6 +284,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
       });
 
       if (isTrialRun) {
+        historyHandle.setSubmittedCount(inputFileDataTrialRun.length);
         historyHandle.writeInputRows(inputFileDataTrialRun, inputHeader);
         setActiveTrialRun((prevTrialRun) => ({ loadNumber: (prevTrialRun?.loadNumber ?? 0) + 1, historyHandle }));
         setLoadState((prevState) => ({
@@ -293,6 +294,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
           hasLoadResultsTrialRun: false,
         }));
       } else {
+        historyHandle.setSubmittedCount(inputFileDataToLoad.length);
         historyHandle.writeInputRows(inputFileDataToLoad, inputHeader);
         const newRunId = ++runIdCounter.current;
         // Label counts only non-retry runs so "Run N" reflects how many times the full file
@@ -382,6 +384,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
       // Retry records are PREPARED records (Batch API prepares nested objects for external-Id lookups),
       // so flatten against the mapped headers — CSV serialization does flat key lookup only.
       const retryInputFields = getFieldHeaderFromMapping(fieldMapping);
+      historyHandle.setSubmittedCount(recordsToRetry.length);
       historyHandle.writeInputRows(
         recordsToRetry.map((record) => flattenRecord(record, retryInputFields)),
         retryInputFields,

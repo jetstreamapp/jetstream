@@ -23,7 +23,7 @@ import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/ap
 import { DataHistoryEntryHandle } from '@jetstream/ui/data-history';
 import { useAtomValue } from 'jotai';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { finishHistoryAsPrepareFailure } from '../../utils/data-history-capture';
+import { finishHistoryAsAllFailed } from '../../utils/data-history-capture';
 import { loadBatchApiData, LoadTypeDisplayNames, prepareData } from '../../utils/load-records-process';
 import LoadRecordsBatchApiResultsTable from './LoadRecordsBatchApiResultsTable';
 import { buildBatchApiResultRow, getLoadResultsHeader } from './load-results-utils';
@@ -133,6 +133,35 @@ export const LoadRecordsBatchApiResults = ({
     };
   }, [historyHandle]);
 
+  /**
+   * Every failed exit settles through here. The component status, the parent's `onFinish` (every
+   * input record counts as failed), the history entry, and the user notification are four channels
+   * that must move together — with them in one place no terminal path can update some and forget
+   * the rest (a forgotten history call strands the entry `in-progress` until unmount). Timestamps,
+   * `fatalError` and error tracking stay with the caller: which of them each exit sets is its own
+   * concern. State updates are skipped once unmounted; history and notification are not, since
+   * they outlive the component.
+   *
+   * `reached` — whether any record may have reached Salesforce. 'none' (a prepare/pre-processing
+   * failure) records every input row as failed; 'unknown' (a throw mid-load) keeps the results
+   * streamed so far and only the submitted count — see `DataHistoryEntryHandle.fail`.
+   */
+  function failLoad(
+    errorMessage: string,
+    { reached, notificationBody = `❌ ${errorMessage}` }: { reached: 'none' | 'unknown'; notificationBody?: string },
+  ) {
+    if (isMounted.current) {
+      setStatus(STATUSES.ERROR);
+      onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
+    }
+    if (reached === 'none') {
+      finishHistoryAsAllFailed(historyHandle, inputFileData.length, errorMessage);
+    } else {
+      historyHandle.fail(errorMessage);
+    }
+    notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, { body: notificationBody, tag: 'load-records' });
+  }
+
   const doPrepareData = useCallback(async () => {
     try {
       setStatus(STATUSES.PREPARING);
@@ -180,24 +209,18 @@ export const LoadRecordsBatchApiResults = ({
       const dateString = convertDateToLocale(new Date(), { timeStyle: 'medium' });
 
       if (!preparedDataResponse?.data.length) {
-        if (preparedDataResponse?.queryErrors?.length) {
-          setFatalError(preparedDataResponse.queryErrors.join('\n'));
+        const queryErrors = preparedDataResponse?.queryErrors?.length ? preparedDataResponse.queryErrors.join('\n') : null;
+        if (queryErrors) {
+          setFatalError(queryErrors);
         }
 
-        setStatus(STATUSES.ERROR);
         setPreparedData(preparedDataResponse);
         setProcessingEndTime(dateString);
         setStartTime(dateString);
         setEndTime(dateString);
-        onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
-        finishHistoryAsPrepareFailure(
-          historyHandle,
-          inputFileData.length,
-          preparedDataResponse?.queryErrors?.length ? preparedDataResponse.queryErrors.join('\n') : 'Pre-processing records failed',
-        );
-        notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
-          body: `❌ Pre-processing records failed.`,
-          tag: 'load-records',
+        failLoad(queryErrors ?? 'Pre-processing records failed', {
+          reached: 'none',
+          notificationBody: `❌ Pre-processing records failed.`,
         });
       } else {
         setStatus(STATUSES.PROCESSING);
@@ -210,15 +233,9 @@ export const LoadRecordsBatchApiResults = ({
     } catch (ex) {
       logger.error('ERROR', ex);
       if (isMounted.current) {
-        setStatus(STATUSES.ERROR);
         setFatalError(getErrorMessage(ex));
-        onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
       }
-      finishHistoryAsPrepareFailure(historyHandle, inputFileData.length, getErrorMessage(ex));
-      notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
-        body: `❌ ${getErrorMessage(ex)}`,
-        tag: 'load-records',
-      });
+      failLoad(getErrorMessage(ex), { reached: 'none' });
       tracker.error('Error preparing batch api data', ex);
       return;
     }
@@ -296,15 +313,9 @@ export const LoadRecordsBatchApiResults = ({
       const dateString = convertDateToLocale(new Date(), { timeStyle: 'medium' });
       logger.error('ERROR', ex);
       if (isMounted.current) {
-        setStatus(STATUSES.ERROR);
-        onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
         setEndTime(dateString);
       }
-      historyHandle.fail(getErrorMessage(ex));
-      notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
-        body: `❌ ${getErrorMessage(ex)}`,
-        tag: 'load-records',
-      });
+      failLoad(getErrorMessage(ex), { reached: 'unknown' });
       tracker.error('Error loading batches', ex);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

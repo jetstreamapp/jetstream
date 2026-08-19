@@ -181,6 +181,40 @@ describe('initialized', () => {
       expect(failedEntry?.errorMessage).toBe('Salesforce rejected the job');
     });
 
+    // `fail()` records the OUTCOME of the user's operation — it is not the capture-malfunction
+    // teardown, so nothing already captured is thrown away
+    it('fail() keeps the results streamed so far, the submitted count, and writes the manifest', async () => {
+      const handle = startDataHistoryEntry(startOptions());
+      // Queued in the same tick as fail() — the count must still land in the failed entry
+      handle.setSubmittedCount(5);
+      handle.appendResultsRows([{ _id: '001', _success: true }], ['_id', '_success']);
+      await handle.fail('Batch 2 threw');
+
+      const entry = await dataHistoryDb.getEntry(handle.key);
+      expect(entry?.status).toBe('failed');
+      expect(entry?.counts).toEqual({ total: 5, success: 0, failure: 0 });
+      expect(entry?.files.map(({ kind }) => kind)).toEqual(['results']);
+      expect(await (await readDataHistoryFile(entry!, 'results'))!.blob.text()).toBe('_id,_success\n001,true');
+      const orgFolder = await getOrgFolderName(org.uniqueId);
+      expect(fakeStore.files.get(`${orgFolder}/${handle.key}/manifest.json`)).toBeTruthy();
+      // Settled, so no longer guarded as in flight
+      expect(await deleteDataHistoryEntry(handle.key)).toEqual({ deleted: true });
+    });
+
+    it('setSubmittedCount is what an abandoned entry reports, and finish() still owns the final counts', async () => {
+      const abandoned = startDataHistoryEntry(startOptions());
+      abandoned.setSubmittedCount(25);
+      abandoned.abandonIfUnsettled('Left the page');
+      await abandoned.flush();
+      expect((await dataHistoryDb.getEntry(abandoned.key))?.counts).toEqual({ total: 25, success: 0, failure: 0 });
+
+      const finished = startDataHistoryEntry(startOptions());
+      await finished.setSubmittedCount(25);
+      expect((await dataHistoryDb.getEntry(finished.key))?.counts).toEqual({ total: 25, success: 0, failure: 0 });
+      await finished.finish({ counts: { total: 24, success: 20, failure: 4 } });
+      expect((await dataHistoryDb.getEntry(finished.key))?.counts).toEqual({ total: 24, success: 20, failure: 4 });
+    });
+
     it('NEVER rejects into the caller when the store dies mid-write; entry is marked failed', async () => {
       const handle = startDataHistoryEntry(startOptions());
       fakeStore.simulateFailure = (op) => op === 'stream-write';

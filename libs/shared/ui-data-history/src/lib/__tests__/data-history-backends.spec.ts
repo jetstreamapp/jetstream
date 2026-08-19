@@ -390,9 +390,15 @@ describe('folder connect / disconnect flows', () => {
     return entry;
   }
 
-  function stubPicker(handle: FakeFsaDirectoryHandle) {
-    (window as unknown as { showDirectoryPicker: () => Promise<FakeFsaDirectoryHandle> }).showDirectoryPicker = () =>
-      Promise.resolve(handle);
+  /**
+   * `onShown` models what the real picker does to the page: it consumes the user gesture, so any
+   * `requestPermission` made after it resolves can no longer prompt
+   */
+  function stubPicker(handle: FakeFsaDirectoryHandle, onShown?: () => void) {
+    (window as unknown as { showDirectoryPicker: () => Promise<FakeFsaDirectoryHandle> }).showDirectoryPicker = () => {
+      onShown?.();
+      return Promise.resolve(handle);
+    };
   }
 
   beforeEach(async () => {
@@ -456,11 +462,14 @@ describe('folder connect / disconnect flows', () => {
     getBackendConfigSpy.mockResolvedValue({ active: 'opfs', directoryHandle: previousHandle });
     const straggler = await seedFolderEntry(previousHandle);
     const browserEntry = await seedEntry({ withFile: true });
-    // …and, as in every new session, the old folder's permission has reset and must be re-requested
+    // …and, as in every new session, the old folder's permission has reset and must be re-requested —
+    // BEFORE the picker, which consumes the gesture a permission prompt needs
     previousHandle.permissionState = 'prompt';
     previousHandle.permissionStateAfterRequest = 'granted';
     const newHandle = new FakeFsaDirectoryHandle('New Docs');
-    stubPicker(newHandle);
+    stubPicker(newHandle, () => {
+      previousHandle.permissionStateAfterRequest = 'prompt';
+    });
 
     expect(await connectHistoryDirectory()).toEqual({ migrated: 2, skipped: 0 });
 
@@ -473,6 +482,40 @@ describe('folder connect / disconnect flows', () => {
       expect(updated?.storageBackend).toBe('directory');
       expect(await (await newStore.readFile(updated!.files[0].path, { gunzip: false })).text()).toBe('_id,_success\n001,true');
     }
+  });
+
+  it('connecting a new folder refuses to repoint when access to the previous folder is denied and entries still live there', async () => {
+    const previousHandle = new FakeFsaDirectoryHandle('Old Docs');
+    getBackendConfigSpy.mockResolvedValue({ active: 'directory', directoryHandle: previousHandle });
+    const straggler = await seedFolderEntry(previousHandle);
+    previousHandle.permissionState = 'prompt';
+    previousHandle.permissionStateAfterRequest = 'denied';
+    const picker = vi.fn();
+    stubPicker(new FakeFsaDirectoryHandle('New Docs'), picker);
+
+    await expect(connectHistoryDirectory()).rejects.toThrow(/needs access to your current history folder/);
+
+    // Nothing happened: no picker, no repoint, the entry still resolves to the folder that holds it
+    expect(picker).not.toHaveBeenCalled();
+    expect(saveBackendConfigSpy).not.toHaveBeenCalled();
+    expect((await dataHistoryDb.getEntry(straggler.key))?.storageBackend).toBe('directory');
+  });
+
+  it('connecting a new folder does not prompt for a previous folder that has nothing left to move', async () => {
+    const previousHandle = new FakeFsaDirectoryHandle('Old Docs');
+    // Disconnected earlier and everything was copied back — the retained handle is irrelevant now
+    getBackendConfigSpy.mockResolvedValue({ active: 'opfs', directoryHandle: previousHandle });
+    const browserEntry = await seedEntry({ withFile: true });
+    previousHandle.permissionState = 'prompt';
+    previousHandle.permissionStateAfterRequest = 'denied';
+    const newHandle = new FakeFsaDirectoryHandle('New Docs');
+    stubPicker(newHandle);
+
+    expect(await connectHistoryDirectory()).toEqual({ migrated: 1, skipped: 0 });
+
+    expect(previousHandle.permissionState).toBe('prompt');
+    expect(saveBackendConfigSpy).toHaveBeenCalledWith({ active: 'directory', directoryHandle: newHandle });
+    expect((await dataHistoryDb.getEntry(browserEntry.key))?.storageBackend).toBe('directory');
   });
 
   it('connecting a new folder leaves an unreadable entry behind and reports it, rather than aborting the whole move', async () => {
