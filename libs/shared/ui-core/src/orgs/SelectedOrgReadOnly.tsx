@@ -40,7 +40,7 @@ export const SelectedOrgReadOnly = () => {
         <p className="slds-box slds-box_xx-small">{selectedOrg?.label}</p>
         {selectedOrg && (
           <div className="slds-col slds-m-left--xx-small org-info-button">
-            {<OrgInfoPopover org={selectedOrg} disableOrgActions={actionInProgress} isReadOnly />}
+            {<OrgInfoPopover source="read-only" org={selectedOrg} disableOrgActions={actionInProgress} isReadOnly />}
           </div>
         )}
       </Grid>

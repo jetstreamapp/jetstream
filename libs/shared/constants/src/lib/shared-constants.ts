@@ -356,14 +356,24 @@ export const ANALYTICS_KEYS = {
 
   /** ORGANIZATIONS */
   organizations_create_modal_open: 'organizations_create_modal_open',
+  organizations_edit_modal_open: 'organizations_edit_modal_open',
   organizations_created: 'organizations_created',
   organizations_deleted: 'organizations_deleted',
   organizations_deleted_with_orgs: 'organizations_deleted_with_orgs',
   organizations_updated: 'organizations_updated',
   organizations_moved: 'organizations_moved',
+  organizations_selected: 'organizations_selected',
 
   /** SFDC ORGS */
   sfdc_org_add_org: 'sfdc_org_add_org',
+  sfdc_org_info_opened: 'sfdc_org_info_opened',
+  sfdc_org_updated: 'sfdc_org_updated',
+  sfdc_org_clear_cache: 'sfdc_org_clear_cache',
+  sfdc_org_removed: 'sfdc_org_removed',
+  sfdc_org_refresh_connection: 'sfdc_org_refresh_connection',
+  sfdc_org_refresh_all: 'sfdc_org_refresh_all',
+  sfdc_org_delete_modal_open: 'sfdc_org_delete_modal_open',
+  sfdc_org_bulk_deleted: 'sfdc_org_bulk_deleted',
 
   /** FEEDBACK */
   donate_popover_open: 'donate_popover_open',

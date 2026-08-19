@@ -1,9 +1,10 @@
 import { logger } from '@jetstream/shared/client-logger';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { checkOrgHealth, getOrgs } from '@jetstream/shared/data';
 import { ORG_INACTIVITY_EXPIRATION_DAYS, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { AddOrgHandlerFn, BadgeType, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Badge, ConfirmationModalPromise, Grid, Icon, Spinner, Tooltip, fireToast } from '@jetstream/ui';
-import { AddOrg, OrgExpirationStatus, useOrgExpiration, useUpdateOrgs } from '@jetstream/ui-core';
+import { AddOrg, OrgExpirationStatus, useAmplitude, useOrgExpiration, useUpdateOrgs } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useSetAtom } from 'jotai';
 import { useState } from 'react';
@@ -58,33 +59,49 @@ export function SalesforceOrgCardConnectionRefresh({
   onRemoveOrg,
 }: SalesforceOrgCardConnectionRefreshProps) {
   const orgExpiration = useOrgExpiration(org);
+  const { trackEvent } = useAmplitude();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const setOrgs = useSetAtom(fromAppState.salesforceOrgsAsyncState);
 
   const handleRefreshOrg = async () => {
     setIsRefreshing(true);
+    let success = true;
     try {
       await checkOrgHealth(org);
-      // Re-fetch orgs to update state
-      const updatedOrgs = await getOrgs();
-      setOrgs(updatedOrgs);
       fireToast({
         type: 'success',
         message: 'Org connection refreshed successfully',
       });
     } catch (error) {
+      success = false;
       logger.error('Error refreshing org', error);
       fireToast({
         type: 'error',
         message: 'Failed to refresh org connection. Reconnect the org to continue using it.',
       });
     } finally {
+      /**
+       * Re-fetch on failure as well as success - a failed health check is exactly when the server records the
+       * connection error, and without this the card keeps showing stale status until the page is reloaded.
+       */
+      try {
+        setOrgs(await getOrgs());
+      } catch (error) {
+        logger.error('Error re-fetching orgs after refresh', error);
+      }
       setIsRefreshing(false);
+      trackEvent(ANALYTICS_KEYS.sfdc_org_refresh_connection, {
+        success,
+        isExpiring: orgExpiration.isExpiring,
+        isExpired: orgExpiration.isExpired,
+        hadConnectionError: !!org.connectionError,
+      });
     }
   };
 
   const handleRemoveOrg = async () => {
     if (await ConfirmationModalPromise({ content: 'Are you sure you want to remove this org from Jetstream?', confirm: 'Remove Org' })) {
+      trackEvent(ANALYTICS_KEYS.sfdc_org_removed, { source: 'org-groups-card', isExpired: orgExpiration.isExpired });
       onRemoveOrg(org);
     }
   };
