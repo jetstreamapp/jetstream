@@ -22,7 +22,6 @@ import {
 
 export const DATA_HISTORY_SOURCE_LABELS: Record<DataHistorySource, string> = {
   'load-records': 'Load Records',
-  'load-custom-metadata': 'Load Custom Metadata',
   'load-multi-object': 'Load Records to Multiple Objects',
   'mass-update': 'Update Records Without a File',
   'mass-update-from-query': 'Bulk Update From Query',
@@ -50,7 +49,6 @@ export const DATA_HISTORY_API_LABELS: Record<DataHistoryApi, string> = {
   'batch-composite': 'Batch API',
   'composite-graph': 'Composite Graph API',
   collections: 'Collections API',
-  metadata: 'Metadata API',
 };
 
 export const DATA_HISTORY_OPERATION_LABELS: Record<DataHistoryOperation, string> = {
@@ -58,7 +56,6 @@ export const DATA_HISTORY_OPERATION_LABELS: Record<DataHistoryOperation, string>
   update: 'Update',
   upsert: 'Upsert',
   delete: 'Delete',
-  undelete: 'Undelete',
   create: 'Create',
   edit: 'Edit',
   clone: 'Clone',

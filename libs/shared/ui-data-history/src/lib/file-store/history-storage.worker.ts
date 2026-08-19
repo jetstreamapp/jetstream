@@ -117,7 +117,14 @@ async function handleOpenStream(streamId: number, path: string, gzip: boolean): 
     throw new Error(`Duplicate streamId ${streamId}`);
   }
   const accessHandle = await openSyncAccessHandle(path);
-  accessHandle.truncate(0);
+  try {
+    accessHandle.truncate(0);
+  } catch (ex) {
+    // A sync access handle is EXCLUSIVE: leaving it open on a throw makes every later open of this
+    // path fail until the worker is restarted
+    accessHandle.close();
+    throw ex;
+  }
 
   const state: OpenStreamState = { accessHandle, bytesWritten: 0, path };
   if (gzip) {

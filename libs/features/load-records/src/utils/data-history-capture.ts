@@ -202,6 +202,7 @@ export function captureBulkApiLoadResults({
   loadType,
   fields,
   counts,
+  errorMessage,
 }: {
   handle: DataHistoryEntryHandle;
   selectedOrg: SalesforceOrgUi;
@@ -212,8 +213,10 @@ export function captureBulkApiLoadResults({
   /** Mapped target field headers (`getFieldHeaderFromMapping`) */
   fields: string[];
   counts: DataHistoryCounts;
+  /** Why the load stopped early, when it did (records never submitted are in `counts.failure`) */
+  errorMessage?: string;
 }): Promise<void> {
-  return handle.finalize({ counts, jobId: jobInfo.id ?? undefined }, async () => {
+  return handle.finalize({ counts, jobId: jobInfo.id ?? undefined, errorMessage }, async () => {
     if (!jobInfo.id) {
       return;
     }

@@ -56,7 +56,6 @@ describe('labels and badges', () => {
   it('has a label for every source and status', () => {
     const sources: DataHistorySource[] = [
       'load-records',
-      'load-custom-metadata',
       'load-multi-object',
       'mass-update',
       'mass-update-from-query',
@@ -73,9 +72,9 @@ describe('labels and badges', () => {
   });
 
   it('has a label for every api and operation', () => {
-    const apis: DataHistoryApi[] = ['bulk-v1', 'batch-composite', 'composite-graph', 'collections', 'metadata'];
+    const apis: DataHistoryApi[] = ['bulk-v1', 'batch-composite', 'composite-graph', 'collections'];
     apis.forEach((api) => expect(DATA_HISTORY_API_LABELS[api]).toBeTruthy());
-    const operations: DataHistoryOperation[] = ['insert', 'update', 'upsert', 'delete', 'undelete', 'create', 'edit', 'clone', 'mixed'];
+    const operations: DataHistoryOperation[] = ['insert', 'update', 'upsert', 'delete', 'create', 'edit', 'clone', 'mixed'];
     operations.forEach((operation) => expect(DATA_HISTORY_OPERATION_LABELS[operation]).toBeTruthy());
   });
 });

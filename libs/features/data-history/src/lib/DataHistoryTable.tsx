@@ -107,13 +107,23 @@ const getRowKey = (row: DataHistoryTableRowItem) => row.item.key;
 export interface DataHistoryTableProps {
   items: DataHistoryItem[];
   orgs: SalesforceOrgUi[];
+  /** Changes whenever content above the table mounts/unmounts, so the full-height grid re-measures its top edge */
+  recalculateKey?: string | number | boolean;
   onView: (item: DataHistoryItem) => void;
   onDownload: (item: DataHistoryItem, target: DataHistoryExportTarget) => void;
   onTogglePin: (item: DataHistoryItem) => void;
   onDelete: (item: DataHistoryItem) => void;
 }
 
-export const DataHistoryTable: FunctionComponent<DataHistoryTableProps> = ({ items, orgs, onView, onDownload, onTogglePin, onDelete }) => {
+export const DataHistoryTable: FunctionComponent<DataHistoryTableProps> = ({
+  items,
+  orgs,
+  recalculateKey,
+  onView,
+  onDownload,
+  onTogglePin,
+  onDelete,
+}) => {
   // Salesforce org ids for the org column — entries only store the uniqueId + label snapshot
   const orgIdByUniqueId = useMemo(() => new Map(orgs.map(({ uniqueId, organizationId }) => [uniqueId, organizationId])), [orgs]);
 
@@ -139,7 +149,7 @@ export const DataHistoryTable: FunctionComponent<DataHistoryTableProps> = ({ ite
   );
 
   return (
-    <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={10}>
+    <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={10} recalculateKey={recalculateKey}>
       <DataTable<DataHistoryTableRowItem>
         aria-label="Data history"
         data={rows}

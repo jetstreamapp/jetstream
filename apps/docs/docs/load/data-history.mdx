@@ -59,20 +59,22 @@ button on the Data History page (or in Settings) to grant it yourself.
 Each entry records the org, feature, object(s), operation, status, and record counts. Depending on
 the feature, the detail view lets you preview or download:
 
-- **Input Data** — the records that were loaded (file-based loads)
-- **Request** — exactly what was submitted to Salesforce (mass updates, loads to multiple objects,
-  query result edits, and record saves)
+- **Input Data** — the records that were submitted (file-based loads and mass updates)
+- **Request** — exactly what was sent to Salesforce (loads to multiple objects, query result edits,
+  and record saves)
 - **Output Data** — per-record success/failure, including error messages
 
-Downloads are regular CSV/JSON files, so you can re-load them or archive them anywhere you like.
+Tabular data can be downloaded as **CSV, Excel (XLSX), or JSON**, so you can re-load it or archive
+it anywhere you like; payloads that are not tabular are downloaded as the stored JSON file.
 
 ## Retention, pinning, and limits
 
 History is cleaned up automatically: the oldest entries are removed as new ones are saved.
 **Pin** any entry to exclude it from automatic cleanup.
 
-Limits depend on your plan — free plans keep your **15 most recent entries**, while paid plans
-(and the desktop app and browser extension) keep unlimited entries for up to a full year.
+Limits depend on your plan — free plans keep your **15 most recent entries** for up to **60 days**,
+while paid plans (and the desktop app, browser extension, and Jetstream inside Salesforce) keep
+unlimited entries for up to a full year.
 
 ## Settings
 

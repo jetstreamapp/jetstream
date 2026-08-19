@@ -47,7 +47,9 @@ export function useDeployRecords(
       // a stranded entry matters. Taking each context keeps "exactly one path settles it" true, and
       // `Object.keys` snapshots the keys before `takeHistoryCapture` deletes them.
       Object.keys(historyCaptureRef.current).forEach((sobject) => {
-        takeHistoryCapture(sobject)?.handle.abandonIfUnsettled('The update was abandoned before it finished');
+        takeHistoryCapture(sobject)?.handle.abandonIfUnsettled(
+          'The update was still running when you left the page, so its final outcome was not recorded.',
+        );
       });
     };
   }, [takeHistoryCapture]);
@@ -79,7 +81,10 @@ export function useDeployRecords(
       const jobInfo = await bulkApiCreateJob(org, { type: 'UPDATE', sObject: sobject, serialMode });
       const jobId = jobInfo.id || '';
 
-      historyHandle.writeRequestJson(records);
+      // Exactly the columns the batches below submit, streamed as CSV in bounded chunks. This is the
+      // "every record in the object" surface, so a single JSON blob of the full queried rows would
+      // be held several times over in memory on the main thread while the upload is still running.
+      historyHandle.writeInputRows(records, fields);
 
       const batches = splitArrayToMaxSize(records, batchSize).map((batch) => ({
         records: batch,
@@ -335,7 +340,11 @@ export function useDeployRecords(
         if (!row.deployResults.done && row.deployResults.jobInfo?.id) {
           try {
             const jobInfo = await bulkApiGetJob(org, row.deployResults.jobInfo.id);
-            const done = checkIfBulkApiJobIsDone(jobInfo, row.deployResults.numberOfBatches ?? 0);
+            // Compared against the batches that were actually ADDED to the job, not the planned count:
+            // a batch whose upload failed never appears in the job, so waiting for the planned count
+            // would poll forever (and leave the history entry in-progress until unmount)
+            const submittedBatchCount = Object.keys(row.deployResults.batchIdToIndex).length;
+            const done = submittedBatchCount === 0 || checkIfBulkApiJobIsDone(jobInfo, submittedBatchCount);
             // the batch order is not stable with bulkApiGetJob - ensure order is correct
             const batches: BulkJobBatchInfo[] = [];
             jobInfo.batches.forEach((batch) => {

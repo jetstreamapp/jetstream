@@ -36,6 +36,11 @@ export async function appendBulkJobBatchResults({
   buildBatchRows: (results: BulkJobResultRecord[], batchId: string, batchIndex: number) => Record<string, unknown>[];
 }): Promise<void> {
   for (const [batchIndex, batchId] of batchIds.entries()) {
+    // Once the entry has failed (a write error marks it so), every further append is a no-op — the
+    // remaining fetches would be network calls whose results go nowhere
+    if (handle.didFail) {
+      return;
+    }
     try {
       const results = await bulkApiGetRecords<BulkJobResultRecord>(org, jobId, batchId, 'result');
       await handle.appendResultsRows(buildBatchRows(results, batchId, batchIndex), header);

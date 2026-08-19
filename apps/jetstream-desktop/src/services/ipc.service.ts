@@ -205,7 +205,13 @@ const handleGetPreferences: MainIpcHandler<'getPreferences'> = async () => {
 };
 
 const handleSetPreferences: MainIpcHandler<'setPreferences'> = async (_, payload) => {
-  return dataService.updateUserPreferences(payload);
+  // `dataHistoryFolder` is owned by the main process — only `pickDataHistoryFolder` (an OS folder
+  // dialog the user drives) may set it, and the renderer is deliberately never told the path (see
+  // that handler). The renderer round-trips its whole preferences snapshot through here on every
+  // toggle, so without this a snapshot taken before a relocation would silently point history back
+  // at the old folder — and any renderer code could aim all history I/O at an arbitrary path.
+  const { dataHistoryFolder: _mainProcessOwned, ...rendererPreferences } = payload;
+  return dataService.updateUserPreferences(rendererPreferences);
 };
 
 const handleConfigureCrashReporter: MainIpcHandler<'configureCrashReporter'> = async (_, dsn) => {

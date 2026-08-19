@@ -1,4 +1,4 @@
-import { DataHistoryOperation, InsertUpdateUpsert } from '@jetstream/types';
+import { DataHistoryOperation, DataHistoryStatus, InsertUpdateUpsert } from '@jetstream/types';
 import { DataHistoryEntryHandle } from '@jetstream/ui/data-history';
 import { LoadMultiObjectRequestWithResult } from './load-records-multi-object-types';
 import { RESULTS_DOWNLOAD_HEADER, RecordResultRow, buildResultsDownloadRows, getLoadResultsSummary } from './load/load-results-utils';
@@ -102,17 +102,46 @@ export function finalizeMultiObjectHistory(
   const allRequestsFailed = requests.length > 0 && requests.every(({ errorMessage }) => !!errorMessage);
   // Records left pending (the run was cancelled before their request was sent) were never
   // attempted, so they are excluded from the entry totals rather than counted as failures.
-  const { successCount, failureCount } = getLoadResultsSummary(rows);
+  const { successCount, failureCount, pendingCount } = getLoadResultsSummary(rows);
   return handle.finalize(
     {
       counts: { total: successCount + failureCount, success: successCount, failure: failureCount },
-      // The status must be explicit: a request that failed before any record was mapped contributes no
-      // counts, which would otherwise be derived as a success
-      status: allRequestsFailed ? 'failed' : undefined,
-      errorMessage: allRequestsFailed ? requests.find(({ errorMessage }) => errorMessage)?.errorMessage || 'Load failed' : undefined,
+      status: getFinalStatus({ allRequestsFailed, successCount, failureCount, pendingCount }),
+      errorMessage: allRequestsFailed
+        ? requests.find(({ errorMessage }) => errorMessage)?.errorMessage || 'Load failed'
+        : pendingCount > 0
+          ? `The load was cancelled — ${pendingCount.toLocaleString()} ${pendingCount === 1 ? 'record was' : 'records were'} not attempted.`
+          : undefined,
     },
     async () => {
       await handle.appendResultsRows(buildResultsDownloadRows(rows, 'results'), RESULTS_DOWNLOAD_HEADER);
     },
   );
+}
+
+/**
+ * The status has to be explicit in two cases the count-derived default gets wrong: a request that
+ * failed before any record was mapped contributes no counts (derived as a success), and a cancelled
+ * run leaves pending records that are excluded from the counts — so a run cancelled before anything
+ * was sent would also derive as a clean 0/0 success. A cancelled run that did load some records is a
+ * partial success; one that loaded nothing has no outcome to report and is `incomplete`.
+ */
+function getFinalStatus({
+  allRequestsFailed,
+  successCount,
+  failureCount,
+  pendingCount,
+}: {
+  allRequestsFailed: boolean;
+  successCount: number;
+  failureCount: number;
+  pendingCount: number;
+}): DataHistoryStatus | undefined {
+  if (allRequestsFailed) {
+    return 'failed';
+  }
+  if (pendingCount > 0) {
+    return successCount + failureCount > 0 ? 'partial' : 'incomplete';
+  }
+  return undefined;
 }

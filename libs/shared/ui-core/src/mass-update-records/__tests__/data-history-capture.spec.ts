@@ -68,7 +68,7 @@ describe('mass-update Data History capture wiring', () => {
       serialMode: false,
       configuration,
     });
-    handle.writeRequestJson(records);
+    handle.writeInputRows(records, ['Id', 'Industry']);
 
     const jobInfo = {
       id: 'job1',
@@ -93,7 +93,7 @@ describe('mass-update Data History capture wiring', () => {
     expect(entry.jobId).toBe('job1');
     expect(entry.status).toBe('partial');
     expect(entry.counts).toEqual({ total: 3, success: 2, failure: 1, processingErrors: 0 });
-    expect(entry.files.map(({ kind }) => kind).sort()).toEqual(['request', 'results']);
+    expect(entry.files.map(({ kind }) => kind).sort()).toEqual(['input', 'results']);
 
     const results = await readDataHistoryFile(entry, 'results');
     const lines = (await results!.blob.text()).split('\n');
@@ -101,11 +101,12 @@ describe('mass-update Data History capture wiring', () => {
     expect(lines).toHaveLength(4);
     expect(lines[3]).toBe('003,false,FIELD_INTEGRITY_EXCEPTION,003,Tech');
 
-    const request = await readDataHistoryFile(entry, 'request');
-    expect(JSON.parse(await request!.blob.text())).toHaveLength(3);
+    // The submitted records land as CSV with exactly the submitted columns — the same shape a file load captures
+    const input = await readDataHistoryFile(entry, 'input');
+    expect((await input!.blob.text()).split('\n')).toEqual(['Id,Industry', '001,Tech', '002,Tech', '003,Tech']);
   });
 
-  it('counts client-side processing errors as failures', async () => {
+  it('anchors counts on the submitted records, so batches that never ran count as failures', async () => {
     bulkApiGetRecordsMock.mockResolvedValue([{ Id: '001', Success: true, Created: false, Error: null }] as BulkJobResultRecord[]);
     const handle = startMassUpdateHistory({
       org,
@@ -122,11 +123,16 @@ describe('mass-update Data History capture wiring', () => {
       batches: [{ id: 'b', state: 'Completed' }],
     } as unknown as BulkJobWithBatches;
 
+    // Three submitted; one batch ran (1 processed, 0 failed), the other two records' batch failed to upload
     await captureMassUpdateResults({
       context: { handle, batchSize: 200, configuration },
       org,
       jobInfo,
-      records: [{ Id: '001', Industry: 'Tech' }],
+      records: [
+        { Id: '001', Industry: 'Tech' },
+        { Id: '002', Industry: 'Tech' },
+        { Id: '003', Industry: 'Tech' },
+      ],
       batchIdToIndex: { b: 0 },
       processingErrorCount: 2,
     });

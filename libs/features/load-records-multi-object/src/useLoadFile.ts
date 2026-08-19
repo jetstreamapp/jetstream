@@ -105,30 +105,21 @@ export const useLoadFile = (org: SalesforceOrgUi, serverUrl: string, apiVersion:
 
   const isMounted = useRef(true);
   const cancelRequestedRef = useRef(false);
-  /** Handle for the initial run's history entry — retry runs are recorded as its children */
-  const initialHistoryHandleRef = useRef<DataHistoryEntryHandle | null>(null);
-  /** Handle for the run currently in flight — cleared as soon as that run settles its entry */
+  /** Handle for the run currently in flight */
   const activeHistoryHandleRef = useRef<DataHistoryEntryHandle | null>(null);
 
   useEffect(() => {
     isMounted.current = true;
     return () => {
       isMounted.current = false;
-      // Unmounting mid-load abandons the run. Settle its entry rather than dropping the handle: an
-      // abandoned entry stays `in-progress` forever and its key stays in the active set, which locks
-      // it against delete and migration for the life of the page.
-      activeHistoryHandleRef.current?.fail('The load was abandoned before it finished');
-      activeHistoryHandleRef.current = null;
+      // Unmounting mid-load abandons the run: the finalizer below only runs while mounted, so nothing
+      // else would settle the entry — see `abandonIfUnsettled` for why a stranded entry matters (and
+      // for why a run whose finalizer already started is left alone)
+      activeHistoryHandleRef.current?.abandonIfUnsettled(
+        'The load was still running when you left the page, so its final outcome was not recorded.',
+      );
     };
   }, []);
-
-  // Start Over clears the runs — drop the parent handle with them so a later retry can never be
-  // filed under a previous file's history entry
-  useEffect(() => {
-    if (!runs.length) {
-      initialHistoryHandleRef.current = null;
-    }
-  }, [runs.length]);
 
   const updateRunRequest = useCallback(
     (runId: number, key: string, applyUpdate: (request: LoadMultiObjectRequestWithResult) => LoadMultiObjectRequestWithResult) => {
@@ -147,7 +138,9 @@ export const useLoadFile = (org: SalesforceOrgUi, serverUrl: string, apiVersion:
    * Begin a Data History entry for a run (self-gates, fire-and-forget). One entry covers the whole
    * multi-object run — `sobjects` spans every object and `operation` is the shared op ('mixed' when
    * operations differ, with the per-object operations recorded in `config`). Retry runs hang off the
-   * initial run.
+   * initial run's entry, found through the run list rather than a ref held by this hook: the hook
+   * lives in the load step, which unmounts when the user steps back, while the runs (and so the
+   * link) survive until Start Over clears them.
    */
   const startHistoryCapture = useCallback(
     (requests: LoadMultiObjectRequestWithResult[], type: LoadMultiObjectRun['type']): DataHistoryEntryHandle => {
@@ -172,17 +165,14 @@ export const useLoadFile = (org: SalesforceOrgUi, serverUrl: string, apiVersion:
           filenameType: inputFileType,
           googleFileId: inputGoogleFileId,
         }),
-        parentKey: type === 'retry' ? initialHistoryHandleRef.current?.key : undefined,
+        parentKey: type === 'retry' ? runs.find((run) => run.type === 'initial')?.historyEntryKey : undefined,
         skipHistory: skipDataHistory,
       });
 
-      if (type === 'initial') {
-        initialHistoryHandleRef.current = historyHandle;
-      }
       historyHandle.writeRequestJson(buildRequestExport(requests));
       return historyHandle;
     },
-    [dateFormat, inputFileType, inputFilename, inputGoogleFileId, insertNulls, org, skipDataHistory],
+    [dateFormat, inputFileType, inputFilename, inputGoogleFileId, insertNulls, org, runs, skipDataHistory],
   );
 
   const executeRun = useCallback(
@@ -195,7 +185,10 @@ export const useLoadFile = (org: SalesforceOrgUi, serverUrl: string, apiVersion:
       let runId = 0;
       setRuns((priorRuns) => {
         runId = priorRuns.length;
-        return [...priorRuns, { runId, type, requests, startedAt: new Date(), finishedAt: null, cancelled: false }];
+        return [
+          ...priorRuns,
+          { runId, type, requests, startedAt: new Date(), finishedAt: null, cancelled: false, historyEntryKey: historyHandle.key },
+        ];
       });
       setLoading(true);
 
@@ -257,9 +250,6 @@ export const useLoadFile = (org: SalesforceOrgUi, serverUrl: string, apiVersion:
           body: getNotification(finishedRequests),
           tag: 'load-multi-object',
         });
-        // Hand ownership of the entry to the finalizer, so the unmount cleanup can tell "settled"
-        // apart from "abandoned mid-load"
-        activeHistoryHandleRef.current = null;
         void finalizeMultiObjectHistory(historyHandle, {
           rows: buildRecordResultRows(
             [{ runId, type, requests: finishedRequests, startedAt: null, finishedAt, cancelled }],

@@ -1,4 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { DataHistoryItem, FileExtAllTypes, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal, fireToast, Modal, Spinner } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
@@ -16,9 +17,9 @@ import { DataHistoryExportTarget, DataHistoryPayloadView, flattenPayloadRows } f
 export interface DataHistoryFormatDownloadModalProps {
   item: DataHistoryItem;
   target: DataHistoryExportTarget;
+  /** Which surface opened the download — the only thing that differs between hosts in the analytics payload */
+  analyticsLocation: 'detail-modal' | 'table';
   onClose: () => void;
-  /** Fired after the file was saved. `format` is `raw-csv`/`raw-json` for the stored-format fallback. */
-  onDownloaded: (target: DataHistoryExportTarget, format: string) => void;
   /** Report failures here instead of a toast — used by the detail modal, where toasts render behind the overlay */
   onError?: (info: DataHistoryErrorInfo) => void;
 }
@@ -32,8 +33,8 @@ export interface DataHistoryFormatDownloadModalProps {
 export const DataHistoryFormatDownloadModal: FunctionComponent<DataHistoryFormatDownloadModalProps> = ({
   item,
   target,
+  analyticsLocation,
   onClose,
-  onDownloaded,
   onError = fireToast,
 }) => {
   const { trackEvent } = useAmplitude();
@@ -44,6 +45,28 @@ export const DataHistoryFormatDownloadModal: FunctionComponent<DataHistoryFormat
   const chosenFormat = useRef<FileExtAllTypes>('csv');
   // Guards the load effect from re-running (e.g. React StrictMode) — the raw fallback SAVES A FILE as its side effect
   const startedRef = useRef(false);
+  // Closing the modal mid-read must cancel it: the raw fallback would otherwise still save a file (and
+  // report a download) seconds after the user dismissed the dialog. A ref rather than effect-local state
+  // because StrictMode's simulated unmount runs the cleanup once while the single read is still in flight.
+  const unmountedRef = useRef(false);
+
+  /** `format` is `raw-csv`/`raw-json` for the stored-format fallback */
+  function trackDownloaded(format: string) {
+    trackEvent(ANALYTICS_KEYS.data_history_download, {
+      kind: target.kind,
+      view: target.viewId,
+      format,
+      source: item.source,
+      location: analyticsLocation,
+    });
+  }
+
+  useEffect(() => {
+    unmountedRef.current = false;
+    return () => {
+      unmountedRef.current = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (startedRef.current) {
@@ -53,6 +76,9 @@ export const DataHistoryFormatDownloadModal: FunctionComponent<DataHistoryFormat
     (async () => {
       try {
         const exportData = await loadDataHistoryExportData(item, target.kind, target);
+        if (unmountedRef.current) {
+          return;
+        }
         if (exportData.type === 'missing') {
           onError({ type: 'warning', message: 'This data is no longer available on this device.' });
           onClose();
@@ -63,12 +89,15 @@ export const DataHistoryFormatDownloadModal: FunctionComponent<DataHistoryFormat
           if (exportData.reason === 'too-large') {
             fireToast({ type: 'info', message: 'This file is too large to convert, so it was downloaded in its original format.' });
           }
-          onDownloaded(target, exportData.contentType === 'text/csv' ? 'raw-csv' : 'raw-json');
+          trackDownloaded(exportData.contentType === 'text/csv' ? 'raw-csv' : 'raw-json');
           onClose();
           return;
         }
         setView(exportData.view);
       } catch (ex) {
+        if (unmountedRef.current) {
+          return;
+        }
         logger.warn('[DATA_HISTORY] Error preparing download', ex);
         onError({ type: 'error', message: getDataHistoryReadErrorMessage(ex) });
         onClose();
@@ -108,7 +137,7 @@ export const DataHistoryFormatDownloadModal: FunctionComponent<DataHistoryFormat
       }}
       onModalClose={(canceled) => {
         if (!canceled) {
-          onDownloaded(target, chosenFormat.current);
+          trackDownloaded(chosenFormat.current);
         }
         onClose();
       }}

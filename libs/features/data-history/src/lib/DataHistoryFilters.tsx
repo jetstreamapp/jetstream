@@ -1,18 +1,11 @@
 import { SalesforceOrgUi } from '@jetstream/types';
 import { DatePicker, Grid, Picklist } from '@jetstream/ui';
+import { DataHistoryListFilter } from '@jetstream/ui/db';
 import { endOfDay, startOfDay } from 'date-fns';
 import { FunctionComponent, useMemo } from 'react';
 
-/**
- * Server-side (Dexie) narrowing for the history list. Deliberately limited to what the
- * `[org+createdAt]` / `createdAt` indexes can serve — the table's own column filters handle
- * everything else, but they only ever see rows the query already returned.
- */
-export interface DataHistoryFilterValue {
-  org?: string;
-  createdAfter?: Date;
-  createdBefore?: Date;
-}
+/** The user-editable part of the list query — the page adds the page-size `limit` itself */
+export type DataHistoryFilterValue = Omit<DataHistoryListFilter, 'limit'>;
 
 export interface DataHistoryFiltersProps {
   orgs: SalesforceOrgUi[];

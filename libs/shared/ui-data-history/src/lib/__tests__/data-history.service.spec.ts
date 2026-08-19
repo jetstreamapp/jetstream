@@ -7,6 +7,7 @@ import {
   deleteAllDataHistory,
   deleteDataHistoryEntry,
   getDataHistoryLimits,
+  getDataHistorySettings,
   getDataHistoryStorageHealth,
   initDataHistory,
   isDataHistoryCaptureEnabled,
@@ -15,6 +16,7 @@ import {
   setDataHistoryEnabled,
   setDataHistoryPinned,
   startDataHistoryEntry,
+  updateDataHistoryRetentionSettings,
 } from '../data-history.service';
 import { FakeFileStore } from '../file-store/fake-file-store';
 import { setHistoryFileStoreForTests } from '../file-store/file-store-factory';
@@ -236,6 +238,39 @@ describe('initialized', () => {
       await handle.finalize(outcome, finalizeTask);
 
       expect(finalizeTask).toHaveBeenCalledTimes(1);
+    });
+
+    // A host unmounting mid-run (SPA navigation, modal close) is the caller. The Bulk job it submitted
+    // finishes on Salesforce regardless, so the outcome is UNKNOWN — which is what `incomplete` means.
+    it('abandonIfUnsettled settles an open entry as incomplete, keeping the results streamed so far', async () => {
+      const handle = startDataHistoryEntry(startOptions());
+      await handle.appendResultsRows([{ _id: '001', _success: true }], ['_id', '_success']);
+
+      handle.abandonIfUnsettled('Left the page');
+      await handle.flush();
+
+      const entry = await dataHistoryDb.getEntry(handle.key);
+      expect(entry?.status).toBe('incomplete');
+      expect(entry?.errorMessage).toBe('Left the page');
+      expect(entry?.finishedAt).toBeTruthy();
+      expect(entry?.files.map(({ kind }) => kind)).toEqual(['results']);
+      // Settled entries are no longer in flight, so they can be deleted
+      expect(await deleteDataHistoryEntry(handle.key)).toEqual({ deleted: true });
+    });
+
+    it('abandonIfUnsettled is a no-op once finalize has started or the entry has settled', async () => {
+      const finalizing = startDataHistoryEntry(startOptions());
+      const finalizePromise = finalizing.finalize({ counts: { total: 1, success: 1, failure: 0 } }, async () => undefined);
+      finalizing.abandonIfUnsettled('Left the page');
+      await finalizePromise;
+      await finalizing.flush();
+      expect((await dataHistoryDb.getEntry(finalizing.key))?.status).toBe('success');
+
+      const failed = startDataHistoryEntry(startOptions());
+      await failed.fail('Salesforce rejected the job');
+      failed.abandonIfUnsettled('Left the page');
+      await failed.flush();
+      expect((await dataHistoryDb.getEntry(failed.key))?.status).toBe('failed');
     });
 
     it('finishes the entry with the given outcome even when the finalize task throws', async () => {
@@ -538,5 +573,21 @@ describe('paid-tier grace period', () => {
   it('applies free limits immediately for users who were never paid', async () => {
     await initDataHistory({ userId: SPEC_USER_ID, hasPaidPlan: false });
     expect(getDataHistoryLimits()?.maxEntries).toBe(15);
+  });
+
+  // Free-tier enforcement clamps retention to 60 days on READ; writing a setting while resolved as
+  // free must not persist that clamp, or the paid retention is gone for good when the plan comes back
+  it('toggling capture while resolved as free does not overwrite a paid retention setting', async () => {
+    await initDataHistory({ userId: SPEC_USER_ID, hasPaidPlan: true });
+    await updateDataHistoryRetentionSettings({ retentionDays: 365 });
+
+    await dataHistoryDb.savePaidPlanLastSeenAt(new Date(Date.now() - DATA_HISTORY_PAID_TIER_GRACE_MS - 1000));
+    await initDataHistory({ userId: SPEC_USER_ID, hasPaidPlan: false });
+    expect((await getDataHistorySettings())?.retentionDays).toBe(60);
+    await setDataHistoryEnabled(false);
+    await setDataHistoryEnabled(true);
+
+    await initDataHistory({ userId: SPEC_USER_ID, hasPaidPlan: true });
+    expect((await getDataHistorySettings())?.retentionDays).toBe(365);
   });
 });

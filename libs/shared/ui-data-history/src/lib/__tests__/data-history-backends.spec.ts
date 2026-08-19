@@ -1,10 +1,22 @@
 import { DataHistoryItem } from '@jetstream/types';
 import { dataHistoryDb, getDexieDb } from '@jetstream/ui/db';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { disableNativeHistoryStorage, migrateHistoryEntries, reindexHistoryFromActiveBackend } from '../data-history-backends';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  connectHistoryDirectory,
+  DataHistoryBackendStatus,
+  disableNativeHistoryStorage,
+  disconnectHistoryDirectory,
+  getDataHistoryStorageLocation,
+  migrateHistoryEntries,
+  reconnectHistoryDirectory,
+  reindexHistoryFromActiveBackend,
+} from '../data-history-backends';
 import { buildManifestJson } from '../data-history-manifest';
+import { DirectoryHandleFileStore } from '../file-store/directory-handle-file-store';
 import { FakeFileStore } from '../file-store/fake-file-store';
 import { setHistoryFileStoreForTests } from '../file-store/file-store-factory';
+import { getUserScopeDir, setDataHistoryUserScope } from '../file-store/user-scope';
+import { FakeFsaDirectoryHandle } from './fake-fsa-handles';
 
 const TEXT_ENCODER = new TextEncoder();
 
@@ -69,7 +81,7 @@ describe('migrateHistoryEntries', () => {
     const fileLess = await seedEntry({ status: 'incomplete' });
 
     const target = new FakeFileStore('directory');
-    const migrated = await migrateHistoryEntries({ to: target });
+    const { migrated } = await migrateHistoryEntries({ to: target });
 
     expect(migrated).toBe(2);
     const migratedFileBacked = await dataHistoryDb.getEntry(fileBacked.key);
@@ -88,7 +100,7 @@ describe('migrateHistoryEntries', () => {
     const alreadyThere = await seedEntry({ storageBackend: 'directory' });
 
     const target = new FakeFileStore('directory');
-    const migrated = await migrateHistoryEntries({ to: target });
+    const { migrated } = await migrateHistoryEntries({ to: target });
 
     expect(migrated).toBe(0);
     expect((await dataHistoryDb.getEntry(alreadyThere.key))?.storageBackend).toBe('directory');
@@ -100,7 +112,7 @@ describe('migrateHistoryEntries', () => {
     const entry = await seedEntry({ storageBackend: 'directory', withFile: true });
 
     const target = new FakeFileStore('native', { compressFiles: false, userVisibleFiles: true });
-    const migrated = await migrateHistoryEntries({ to: target });
+    const { migrated } = await migrateHistoryEntries({ to: target });
 
     expect(migrated).toBe(1);
     expect((await dataHistoryDb.getEntry(entry.key))?.storageBackend).toBe('native');
@@ -114,11 +126,33 @@ describe('migrateHistoryEntries', () => {
     const healthy = await seedEntry({ withFile: true });
 
     const target = new FakeFileStore('directory');
-    const migrated = await migrateHistoryEntries({ to: target });
+    const { migrated } = await migrateHistoryEntries({ to: target });
 
     expect(migrated).toBe(1);
     expect((await dataHistoryDb.getEntry(broken.key))?.storageBackend).toBe('opfs');
     expect((await dataHistoryDb.getEntry(healthy.key))?.storageBackend).toBe('directory');
+  });
+
+  it('reports entries it could not move as skipped, so the UI never claims everything moved', async () => {
+    const movable = await seedEntry({ withFile: true });
+    const inFlight = await seedEntry({ withFile: true, status: 'in-progress', startedAt: new Date() });
+    const unreadable = await seedEntry({ withFile: true });
+    sourceStore.simulateFailure = (op, path) => op === 'read-file' && !!path?.includes(unreadable.key);
+
+    const target = new FakeFileStore('directory', { compressFiles: false, userVisibleFiles: true });
+    expect(await migrateHistoryEntries({ to: target })).toEqual({ migrated: 1, skipped: 2 });
+    expect((await dataHistoryDb.getEntry(movable.key))?.storageBackend).toBe('directory');
+    expect((await dataHistoryDb.getEntry(inFlight.key))?.storageBackend).toBe('opfs');
+    expect((await dataHistoryDb.getEntry(unreadable.key))?.storageBackend).toBe('opfs');
+  });
+
+  it('counts an entry whose source cleanup failed as migrated — it IS on the new backend', async () => {
+    const entry = await seedEntry({ withFile: true });
+    sourceStore.simulateFailure = (op) => op === 'delete-dir';
+
+    const target = new FakeFileStore('directory', { compressFiles: false, userVisibleFiles: true });
+    expect(await migrateHistoryEntries({ to: target })).toEqual({ migrated: 1, skipped: 0 });
+    expect((await dataHistoryDb.getEntry(entry.key))?.storageBackend).toBe('directory');
   });
 
   it('skips entries that are likely still being written — including captures from another tab', async () => {
@@ -130,7 +164,7 @@ describe('migrateHistoryEntries', () => {
     });
 
     const target = new FakeFileStore('directory');
-    const migrated = await migrateHistoryEntries({ to: target });
+    const { migrated } = await migrateHistoryEntries({ to: target });
 
     // The recent in-progress entry may have an open capture handle in another tab; the stale one is
     // a crash remnant and migrates normally
@@ -235,6 +269,31 @@ describe('reindexHistoryFromActiveBackend', () => {
     expect((await dataHistoryDb.getEntry(known.key))?.key).toBe(known.key);
   });
 
+  // A manifest is a plain file the user can copy anywhere: one duplicated into another entry's folder
+  // must not overwrite that entry's row, and paths pointing outside the folder must not be trusted
+  it('ignores a manifest that does not describe the directory it was read from', async () => {
+    const store = new FakeFileStore('directory', { supportsReindex: true });
+    setHistoryFileStoreForTests(store);
+    sourceStore = store;
+
+    const original = await seedEntry({ withFile: true, storageBackend: 'directory' });
+    await dataHistoryDb.deleteEntries([original.key]);
+    // The same manifest copied by hand into a second entry folder
+    await store.writeFile(`org-1-folder/dh_copied_elsewhere/manifest.json`, TEXT_ENCODER.encode(buildManifestJson(original)), {
+      gzip: false,
+    });
+    // A manifest from an unknown (future) version
+    await store.writeFile(
+      `org-1-folder/dh_future/manifest.json`,
+      TEXT_ENCODER.encode(JSON.stringify({ ...JSON.parse(buildManifestJson({ ...original, key: 'dh_future' })), manifestVersion: 99 })),
+      { gzip: false },
+    );
+
+    expect(await reindexHistoryFromActiveBackend()).toBe(1);
+    expect((await dataHistoryDb.getEntry(original.key))?.key).toBe(original.key);
+    expect(await dataHistoryDb.getEntryCount()).toBe(1);
+  });
+
   it('does not resurrect tombstoned (user-deleted) entries', async () => {
     const store = new FakeFileStore('directory', { supportsReindex: true });
     setHistoryFileStoreForTests(store);
@@ -247,5 +306,194 @@ describe('reindexHistoryFromActiveBackend', () => {
 
     expect(await reindexHistoryFromActiveBackend()).toBe(0);
     expect(await dataHistoryDb.getEntry(deleted.key)).toBeUndefined();
+  });
+});
+
+describe('getDataHistoryStorageLocation', () => {
+  const baseStatus: DataHistoryBackendStatus = {
+    active: 'opfs',
+    effective: 'opfs',
+    permissionNeeded: false,
+    folderUnavailable: false,
+    directorySupported: true,
+    nativeSupported: false,
+  };
+
+  it('renders the backend writes actually land on — `effective`, not the configured one', () => {
+    expect(getDataHistoryStorageLocation(null)).toEqual({ kind: 'browser' });
+    expect(getDataHistoryStorageLocation({ ...baseStatus, active: 'directory', effective: 'directory', directoryName: 'Docs' })).toEqual({
+      kind: 'directory',
+      name: 'Docs',
+    });
+    expect(getDataHistoryStorageLocation({ ...baseStatus, active: 'native', effective: 'native', nativePath: '/tmp/h' })).toEqual({
+      kind: 'native',
+      path: '/tmp/h',
+    });
+  });
+
+  it('reads as browser storage whenever the configured folder could not be opened, whatever the reason', () => {
+    // Lost permission (re-grantable) …
+    expect(
+      getDataHistoryStorageLocation({
+        ...baseStatus,
+        active: 'directory',
+        effective: 'opfs',
+        permissionNeeded: true,
+        directoryName: 'Docs',
+      }),
+    ).toEqual({ kind: 'browser' });
+    // … a deleted/renamed folder …
+    expect(
+      getDataHistoryStorageLocation({
+        ...baseStatus,
+        active: 'directory',
+        effective: 'opfs',
+        folderUnavailable: true,
+        directoryName: 'Docs',
+      }),
+    ).toEqual({ kind: 'browser' });
+    // … and a native folder on an unmounted drive — the UI must not say "Files are saved to: /Volumes/…"
+    expect(
+      getDataHistoryStorageLocation({
+        ...baseStatus,
+        active: 'native',
+        effective: 'opfs',
+        folderUnavailable: true,
+        nativePath: '/Volumes/x',
+      }),
+    ).toEqual({ kind: 'browser' });
+  });
+});
+
+/**
+ * Folder flows over in-memory File System Access handles. The backend config is stubbed at the db
+ * boundary because a live handle (an object with methods) does not survive the IndexedDB round trip
+ * in tests, and the factory override serves as the OPFS store.
+ */
+describe('folder connect / disconnect flows', () => {
+  const SPEC_USER_ID = 'spec-backends-user';
+  let opfsStore: FakeFileStore;
+  let getBackendConfigSpy: ReturnType<typeof vi.spyOn>;
+  let saveBackendConfigSpy: ReturnType<typeof vi.spyOn>;
+
+  /** Seed an entry whose files live in a real folder handle, stamped 'directory' */
+  async function seedFolderEntry(handle: FakeFsaDirectoryHandle): Promise<DataHistoryItem> {
+    const store = new DirectoryHandleFileStore(handle, await getUserScopeDir());
+    await store.init();
+    const entry = await seedEntry({ storageBackend: 'directory' });
+    const path = `org-1-folder/${entry.key}/results.csv`;
+    const { bytes } = await store.writeFile(path, TEXT_ENCODER.encode('_id,_success\n001,true'), { gzip: false });
+    entry.files = [{ kind: 'results', path, fileName: 'results.csv', contentType: 'text/csv', compressed: false, bytes }];
+    entry.sizeBytes = bytes;
+    await dataHistoryDb.saveEntry(entry);
+    await store.writeFile(`org-1-folder/${entry.key}/manifest.json`, TEXT_ENCODER.encode(buildManifestJson(entry)), { gzip: false });
+    return entry;
+  }
+
+  function stubPicker(handle: FakeFsaDirectoryHandle) {
+    (window as unknown as { showDirectoryPicker: () => Promise<FakeFsaDirectoryHandle> }).showDirectoryPicker = () =>
+      Promise.resolve(handle);
+  }
+
+  beforeEach(async () => {
+    await getDexieDb().data_history.clear();
+    await getDexieDb().data_history_config.clear();
+    setDataHistoryUserScope(SPEC_USER_ID);
+    opfsStore = new FakeFileStore('opfs');
+    setHistoryFileStoreForTests(opfsStore);
+    sourceStore = opfsStore;
+    getBackendConfigSpy = vi.spyOn(dataHistoryDb, 'getBackendConfig');
+    saveBackendConfigSpy = vi.spyOn(dataHistoryDb, 'saveBackendConfig').mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    setHistoryFileStoreForTests(null);
+    vi.restoreAllMocks();
+    delete (window as unknown as { showDirectoryPicker?: unknown }).showDirectoryPicker;
+  });
+
+  it('disconnect re-requests folder access inside the gesture and refuses when it is not granted', async () => {
+    // Chromium resets a persisted handle to 'prompt' at the start of most sessions — the common case
+    const handle = new FakeFsaDirectoryHandle('Docs');
+    handle.permissionState = 'prompt';
+    handle.permissionStateAfterRequest = 'denied';
+    getBackendConfigSpy.mockResolvedValue({ active: 'directory', directoryHandle: handle });
+    const entry = await seedEntry({ storageBackend: 'directory' });
+
+    await expect(disconnectHistoryDirectory()).rejects.toThrow(/needs access to your history folder/);
+    // Nothing was switched: the entry would otherwise be stranded on a backend that is no longer active
+    expect(saveBackendConfigSpy).not.toHaveBeenCalled();
+    expect((await dataHistoryDb.getEntry(entry.key))?.storageBackend).toBe('directory');
+  });
+
+  it('disconnect copies entries back once access is granted and RETAINS the handle for stragglers', async () => {
+    const handle = new FakeFsaDirectoryHandle('Docs');
+    handle.permissionState = 'prompt';
+    handle.permissionStateAfterRequest = 'granted';
+    getBackendConfigSpy.mockResolvedValue({ active: 'directory', directoryHandle: handle });
+    // The factory override serves every backend, so the folder-stamped entry's bytes live in it
+    const entry = await seedEntry({ withFile: true, storageBackend: 'directory' });
+    const straggler = await seedEntry({ withFile: true, storageBackend: 'directory', status: 'in-progress', startedAt: new Date() });
+
+    expect(await disconnectHistoryDirectory()).toEqual({ migrated: 1, skipped: 1 });
+    expect(saveBackendConfigSpy).toHaveBeenCalledWith({ active: 'opfs', directoryHandle: handle });
+    expect((await dataHistoryDb.getEntry(entry.key))?.storageBackend).toBe('opfs');
+    expect((await dataHistoryDb.getEntry(straggler.key))?.storageBackend).toBe('directory');
+  });
+
+  it('reconnect works for a handle retained after a disconnect, not only for the active folder', async () => {
+    const handle = new FakeFsaDirectoryHandle('Docs');
+    handle.permissionState = 'prompt';
+    getBackendConfigSpy.mockResolvedValue({ active: 'opfs', directoryHandle: handle });
+
+    expect(await reconnectHistoryDirectory()).toBe(true);
+    expect(handle.permissionState).toBe('granted');
+  });
+
+  it('connecting a new folder first copies stragglers out of a previously connected folder', async () => {
+    const previousHandle = new FakeFsaDirectoryHandle('Old Docs');
+    // Disconnected earlier with this entry left behind (stamped 'directory', files only in the old folder)
+    getBackendConfigSpy.mockResolvedValue({ active: 'opfs', directoryHandle: previousHandle });
+    const straggler = await seedFolderEntry(previousHandle);
+    const browserEntry = await seedEntry({ withFile: true });
+    // …and, as in every new session, the old folder's permission has reset and must be re-requested
+    previousHandle.permissionState = 'prompt';
+    previousHandle.permissionStateAfterRequest = 'granted';
+    const newHandle = new FakeFsaDirectoryHandle('New Docs');
+    stubPicker(newHandle);
+
+    expect(await connectHistoryDirectory()).toEqual({ migrated: 2, skipped: 0 });
+
+    expect(saveBackendConfigSpy).toHaveBeenCalledWith({ active: 'directory', directoryHandle: newHandle });
+    // Both entries now resolve to the new folder, where their files actually are
+    const newStore = new DirectoryHandleFileStore(newHandle, await getUserScopeDir());
+    await newStore.init();
+    for (const entry of [straggler, browserEntry]) {
+      const updated = await dataHistoryDb.getEntry(entry.key);
+      expect(updated?.storageBackend).toBe('directory');
+      expect(await (await newStore.readFile(updated!.files[0].path, { gunzip: false })).text()).toBe('_id,_success\n001,true');
+    }
+  });
+
+  it('connecting a new folder leaves an unreadable entry behind and reports it, rather than aborting the whole move', async () => {
+    const previousHandle = new FakeFsaDirectoryHandle('Old Docs');
+    getBackendConfigSpy.mockResolvedValue({ active: 'directory', directoryHandle: previousHandle });
+    const intact = await seedFolderEntry(previousHandle);
+    const deletedByHand = await seedFolderEntry(previousHandle);
+    // The user deleted one entry's folder in their file manager — an allowed state in a visible backend
+    const scopeDir = await getUserScopeDir();
+    const orgDir = await (await previousHandle.getDirectoryHandle(scopeDir)).getDirectoryHandle('org-1-folder');
+    await orgDir.removeEntry(deletedByHand.key, { recursive: true });
+    const newHandle = new FakeFsaDirectoryHandle('New Docs');
+    stubPicker(newHandle);
+
+    expect(await connectHistoryDirectory()).toEqual({ migrated: 1, skipped: 1 });
+
+    expect(saveBackendConfigSpy).toHaveBeenCalledWith({ active: 'directory', directoryHandle: newHandle });
+    const newStore = new DirectoryHandleFileStore(newHandle, scopeDir);
+    await newStore.init();
+    await expect(newStore.readFile((await dataHistoryDb.getEntry(intact.key))!.files[0].path, { gunzip: false })).resolves.toBeTruthy();
+    // No half-written copy of the skipped entry in the new folder
+    expect((await newStore.listEntryDirs()).map(({ entryKey }) => entryKey)).toEqual([intact.key]);
   });
 });

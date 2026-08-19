@@ -1,4 +1,5 @@
 import { sha1Hex } from '@jetstream/shared/utils';
+import trim from 'lodash/trim';
 
 /**
  * Directory names derived from an identifier by hashing. Deliberately SEPARATE from `path-utils`:
@@ -36,31 +37,16 @@ export async function getUserScopeDirName(userId: string): Promise<string> {
 }
 
 /**
- * Strip leading and trailing `_` in a single linear pass.
- *
- * Deliberately not `/^_+|_+$/` — the `_+$` branch backtracks over every position of an interior
- * underscore run before failing the end anchor, which is quadratic on the long runs that sanitizing
- * an untrusted org id readily produces (a punctuation-heavy id collapses to one `_` per character).
- */
-function trimUnderscores(value: string): string {
-  let start = 0;
-  let end = value.length;
-  while (start < end && value[start] === '_') {
-    start++;
-  }
-  while (end > start && value[end - 1] === '_') {
-    end--;
-  }
-  return value.slice(start, end);
-}
-
-/**
  * Stable, filesystem-safe folder name for an org. The readable prefix keeps user-visible backends
  * (FSA/native) meaningful; the hash suffix prevents collisions between org ids that sanitize to
  * the same string.
+ *
+ * The `_` trim is lodash's (linear) rather than `/^_+|_+$/` — the `_+$` branch backtracks over
+ * every position of an interior underscore run before failing the end anchor, which is quadratic on
+ * the long runs sanitizing an untrusted org id readily produces.
  */
 export async function getOrgFolderName(orgUniqueId: string): Promise<string> {
-  const sanitized = trimUnderscores(orgUniqueId.toLowerCase().replace(/[^a-z0-9_-]+/g, '_')).slice(0, 40) || 'org';
+  const sanitized = trim(orgUniqueId.toLowerCase().replace(/[^a-z0-9_-]+/g, '_'), '_').slice(0, 40) || 'org';
   const hash = await sha1Hex(orgUniqueId);
   return `${sanitized}-${hash.slice(0, 8)}`;
 }

@@ -39,13 +39,27 @@ const TEXT_ENCODER = new TextEncoder();
 const GZIP_MAGIC = [0x1f, 0x8b];
 /** Stands in for the hashed user id the renderer sends on `init` */
 const SPEC_SCOPE_DIR = 'u-0123456789abcdef';
+/**
+ * Every op arrives from SOME renderer window in production (the IPC handler always supplies
+ * `event.sender.id`); this is the spec's default window. Tests about cross-window isolation pass
+ * their own.
+ */
+const CONTEXT = { senderId: 1 };
+
+type DataHistoryFileService = typeof import('../data-history-file.service');
 
 /**
  * Import the service and bind it to a user, as the renderer's `init` op does before any other
  * op. Every path op resolves under the scope, so an uninitialized service is unusable by design.
+ * `handleDataHistoryOp` is wrapped so the default window context can be omitted.
  */
 async function importService() {
-  const service = await import('../data-history-file.service');
+  const module = await import('../data-history-file.service');
+  const service = {
+    ...module,
+    handleDataHistoryOp: (request: Parameters<DataHistoryFileService['handleDataHistoryOp']>[0], context = CONTEXT) =>
+      module.handleDataHistoryOp(request, context),
+  };
   await service.handleDataHistoryOp({ op: 'init', scopeDir: SPEC_SCOPE_DIR });
   return service;
 }
@@ -385,6 +399,38 @@ describe('data-history-file.service', () => {
       await expect(fs.access(defaultBaseDir())).rejects.toThrow();
     });
 
+    it('repoints the preference BEFORE removing the previous folder, so a crash mid-removal never strands the copy', async () => {
+      const service = await importService();
+      await service.handleDataHistoryOp({
+        op: 'write-file',
+        path: 'org-1/dh_a/manifest.json',
+        gzip: false,
+        bytes: TEXT_ENCODER.encode('{}'),
+      });
+      const newParent = join(tempRoot, 'ordered-location');
+      await fs.mkdir(newParent, { recursive: true });
+      const expectedTarget = join(newParent, 'jetstream-data-history');
+
+      // Reads are not guarded by the relocation flag, so between copy and removal they must already
+      // resolve to the complete copy — i.e. the preference has to be repointed by the time `rm` runs
+      let preferenceWhenSourceRemoved: string | undefined;
+      const realRm = fs.rm.bind(fs);
+      const rmSpy = vi.spyOn(fs, 'rm').mockImplementation(async (path, options) => {
+        if (path === defaultBaseDir()) {
+          preferenceWhenSourceRemoved = mocks.preferences.dataHistoryFolder;
+        }
+        return await realRm(path, options);
+      });
+      try {
+        await service.setDataHistoryFolderPath(newParent);
+      } finally {
+        rmSpy.mockRestore();
+      }
+
+      expect(preferenceWhenSourceRemoved).toBe(expectedTarget);
+      await expect(fs.access(defaultBaseDir())).rejects.toThrow();
+    });
+
     it('creates a fresh folder when there is no existing history', async () => {
       const service = await importService();
       const newParent = join(tempRoot, 'fresh-location');
@@ -524,14 +570,19 @@ describe('data-history-file.service', () => {
     it('refuses every path op until a user is bound', async () => {
       const service = await import('../data-history-file.service');
       await expect(
-        service.handleDataHistoryOp({ op: 'write-file', path: 'org-1/dh_a/manifest.json', gzip: false, bytes: TEXT_ENCODER.encode('{}') }),
+        service.handleDataHistoryOp(
+          { op: 'write-file', path: 'org-1/dh_a/manifest.json', gzip: false, bytes: TEXT_ENCODER.encode('{}') },
+          CONTEXT,
+        ),
       ).rejects.toThrow(/not been initialized for a user/);
     });
 
     it('rejects a scope that tries to escape the history folder', async () => {
       const service = await import('../data-history-file.service');
-      await expect(service.handleDataHistoryOp({ op: 'init', scopeDir: '../..' })).rejects.toThrow(/Invalid path segment/);
-      await expect(service.handleDataHistoryOp({ op: 'init', scopeDir: 'a/b' })).rejects.toThrow(/Invalid data history user scope/);
+      await expect(service.handleDataHistoryOp({ op: 'init', scopeDir: '../..' }, CONTEXT)).rejects.toThrow(/Invalid path segment/);
+      await expect(service.handleDataHistoryOp({ op: 'init', scopeDir: 'a/b' }, CONTEXT)).rejects.toThrow(
+        /Invalid data history user scope/,
+      );
     });
 
     it('keeps two accounts on one machine in separate trees', async () => {

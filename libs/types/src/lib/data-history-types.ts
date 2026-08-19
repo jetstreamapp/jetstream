@@ -15,7 +15,6 @@ import { z } from 'zod';
 
 export const dataHistorySourceSchema = z.enum([
   'load-records',
-  'load-custom-metadata',
   'load-multi-object',
   'mass-update',
   'mass-update-from-query',
@@ -25,10 +24,10 @@ export const dataHistorySourceSchema = z.enum([
 ]);
 export type DataHistorySource = z.infer<typeof dataHistorySourceSchema>;
 
-export const dataHistoryOperationSchema = z.enum(['insert', 'update', 'upsert', 'delete', 'undelete', 'create', 'edit', 'clone', 'mixed']);
+export const dataHistoryOperationSchema = z.enum(['insert', 'update', 'upsert', 'delete', 'create', 'edit', 'clone', 'mixed']);
 export type DataHistoryOperation = z.infer<typeof dataHistoryOperationSchema>;
 
-export const dataHistoryApiSchema = z.enum(['bulk-v1', 'batch-composite', 'composite-graph', 'collections', 'metadata']);
+export const dataHistoryApiSchema = z.enum(['bulk-v1', 'batch-composite', 'composite-graph', 'collections']);
 export type DataHistoryApi = z.infer<typeof dataHistoryApiSchema>;
 
 /**

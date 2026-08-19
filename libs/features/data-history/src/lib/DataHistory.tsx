@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { isBrowserExtension, isCanvasApp, setItemInLocalStorage, useTitle } from '@jetstream/shared/ui-utils';
-import { CopyAsDataType, DataHistoryFileKind, DataHistoryItem } from '@jetstream/types';
+import { DataHistoryItem } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ConfirmationModalPromise,
@@ -96,10 +96,11 @@ function StorageFolderIndicator({ name, title, onClick }: { name?: string; title
 const HEIGHT_BUFFER = 170;
 const LIST_LIMIT = 1000;
 const UPGRADE_BANNER_DISMISSED_KEY = 'DATA_HISTORY_UPGRADE_BANNER_DISMISSED';
+const PERSIST_BANNER_DISMISSED_KEY = 'DATA_HISTORY_PERSIST_BANNER_DISMISSED';
 
-function getUpgradeBannerDismissed(): boolean {
+function getBannerDismissed(key: string): boolean {
   try {
-    return localStorage.getItem(UPGRADE_BANNER_DISMISSED_KEY) === 'true';
+    return localStorage.getItem(key) === 'true';
   } catch {
     return false;
   }
@@ -128,7 +129,11 @@ export const DataHistory: FunctionComponent = () => {
   const limits = useAtomValue(fromAppState.dataHistoryLimitsState);
   // The resolved tier is the free/paid signal — entry-capped means the free tier is active
   const showUpgradeToPro = limits?.maxEntries != null;
-  const [upgradeBannerDismissed, setUpgradeBannerDismissed] = useState(getUpgradeBannerDismissed);
+  const [upgradeBannerDismissed, setUpgradeBannerDismissed] = useState(() => getBannerDismissed(UPGRADE_BANNER_DISMISSED_KEY));
+  // Also set when the browser declines: Chromium decides `persist()` heuristically (site engagement,
+  // bookmarks, an installed PWA) with no prompt, so a declined request will not succeed on retry and
+  // an undismissable banner would nag forever. Settings keeps offering the button.
+  const [persistBannerDismissed, setPersistBannerDismissed] = useState(() => getBannerDismissed(PERSIST_BANNER_DISMISSED_KEY));
 
   // Track the detail entry by key so the modal reflects live updates (e.g. an in-progress load that
   // finishes while open); `detailFallback` is the open-time snapshot, used while the live query is
@@ -146,17 +151,20 @@ export const DataHistory: FunctionComponent = () => {
   const { persistPromptEligible, persisted, requestingPersist, requestPersist } = useRequestPersistentStorage({
     analyticsLocation: 'data-history-page',
   });
-  const { storeInFolder, working: storageWorking } = useStoreHistoryInFolder({
+  const {
+    storeInFolder,
+    available: canStoreInFolder,
+    working: storageWorking,
+  } = useStoreHistoryInFolder({
     analyticsLocation: 'data-history-page',
-    nativeSupported: !!backendStatus?.nativeSupported,
+    backendStatus,
     onChanged: loadBackendStatus,
   });
-  const { reconnectFolder } = useReconnectHistoryFolder({ analyticsLocation: 'data-history-page', onChanged: loadBackendStatus });
+  const { reconnectFolder, working: reconnectWorking } = useReconnectHistoryFolder({
+    analyticsLocation: 'data-history-page',
+    onChanged: loadBackendStatus,
+  });
 
-  const canStoreInFolder =
-    !!backendStatus &&
-    ((backendStatus.nativeSupported && backendStatus.active !== 'native') ||
-      (backendStatus.directorySupported && backendStatus.active !== 'directory'));
   // The three-way "where do history files live" decision, shared with the Settings panel so the two
   // surfaces can never give the user contradictory answers — see `getDataHistoryStorageLocation`.
   const storageLocation = getDataHistoryStorageLocation(backendStatus);
@@ -220,6 +228,17 @@ export const DataHistory: FunctionComponent = () => {
     setItemInLocalStorage(UPGRADE_BANNER_DISMISSED_KEY, 'true');
   }
 
+  function handleDismissPersistBanner() {
+    setPersistBannerDismissed(true);
+    setItemInLocalStorage(PERSIST_BANNER_DISMISSED_KEY, 'true');
+  }
+
+  async function handleRequestPersist() {
+    if (!(await requestPersist())) {
+      handleDismissPersistBanner();
+    }
+  }
+
   const handleTogglePin = useCallback(
     async (item: DataHistoryItem) => {
       try {
@@ -242,7 +261,13 @@ export const DataHistory: FunctionComponent = () => {
         ) {
           const { deleted } = await deleteDataHistoryEntry(item.key);
           if (!deleted) {
-            fireToast({ type: 'warning', message: 'This entry is still being written. Try again once the load finishes.' });
+            // Refused for a live capture AND for a recent in-progress entry a closed tab left behind —
+            // the latter only becomes deletable once the sweep marks it incomplete
+            fireToast({
+              type: 'warning',
+              message:
+                'This entry is still being written, or its load was interrupted less than 24 hours ago. Try again once the load finishes, or after 24 hours.',
+            });
             return;
           }
           trackEvent(ANALYTICS_KEYS.data_history_delete, { source: item.source });
@@ -326,6 +351,7 @@ export const DataHistory: FunctionComponent = () => {
               <button
                 className="slds-button slds-button_neutral slds-m-left_small"
                 css={scopedNotificationNeutralButtonCss}
+                disabled={reconnectWorking}
                 onClick={reconnectFolder}
               >
                 Re-connect Folder
@@ -333,14 +359,30 @@ export const DataHistory: FunctionComponent = () => {
             </Grid>
           </ScopedNotification>
         )}
-        {persistPromptEligible && persisted === false && (
-          <ScopedNotification theme="info" className="slds-m-vertical_x-small">
+        {backendStatus?.folderUnavailable && (
+          <ScopedNotification theme="warning" className="slds-m-vertical_x-small">
             <Grid verticalAlign="center">
-              <span className="slds-m-right_small">
-                Your browser may automatically delete this history to free up space. Ask it to keep your history saved on this device.
+              <span>
+                Your history folder can’t be opened — it may have been moved or deleted. New history is temporarily saved to{' '}
+                {backendStatus.nativeSupported ? 'app-managed' : 'browser'} storage. Choose a different folder or switch back from Data
+                History Settings.
               </span>
-              <button className="slds-button slds-button_neutral" disabled={requestingPersist} onClick={requestPersist}>
-                Keep My History
+            </Grid>
+          </ScopedNotification>
+        )}
+        {persistPromptEligible && persisted === false && !persistBannerDismissed && (
+          <ScopedNotification theme="info" className="slds-m-vertical_x-small">
+            <Grid verticalAlign="center" align="spread">
+              <Grid verticalAlign="center">
+                <span className="slds-m-right_small">
+                  Your browser may automatically delete this history to free up space. Ask it to keep your history saved on this device.
+                </span>
+                <button className="slds-button slds-button_neutral" disabled={requestingPersist} onClick={handleRequestPersist}>
+                  Keep My History
+                </button>
+              </Grid>
+              <button className="slds-button slds-button_icon" title="Dismiss" onClick={handleDismissPersistBanner}>
+                <Icon type="utility" icon="close" className="slds-button__icon" omitContainer description="Dismiss" />
               </button>
             </Grid>
           </ScopedNotification>
@@ -411,6 +453,17 @@ export const DataHistory: FunctionComponent = () => {
           <DataHistoryTable
             items={entries}
             orgs={orgs}
+            // The banners above mount asynchronously (status/persist/limits load after first paint), and
+            // the grid measures its height from its own top edge — re-measure when any of them toggles
+            recalculateKey={[
+              backendStatus?.permissionNeeded,
+              backendStatus?.folderUnavailable,
+              persistPromptEligible && persisted === false && !persistBannerDismissed,
+              allEntriesPinned,
+              showUpgradeToPro && !upgradeBannerDismissed,
+              limits != null && !captureEnabled,
+              hasActiveFilter,
+            ].join('|')}
             onView={openDetail}
             onDownload={handleRowDownload}
             onTogglePin={handleTogglePin}
@@ -425,39 +478,14 @@ export const DataHistory: FunctionComponent = () => {
         )}
 
         {detailItem && (
-          <DataHistoryDetailModal
-            key={detailItem.key}
-            item={detailItem}
-            onClose={closeDetail}
-            onDownload={(target: DataHistoryExportTarget, format: string) =>
-              trackEvent(ANALYTICS_KEYS.data_history_download, {
-                kind: target.kind,
-                view: target.viewId,
-                format,
-                source: detailItem.source,
-                location: 'detail-modal',
-              })
-            }
-            onCopy={(kind: DataHistoryFileKind, format: CopyAsDataType) =>
-              trackEvent(ANALYTICS_KEYS.data_history_copy_to_clipboard, { kind, format, source: detailItem.source })
-            }
-            onViewEntry={handleViewEntry}
-          />
+          <DataHistoryDetailModal key={detailItem.key} item={detailItem} onClose={closeDetail} onViewEntry={handleViewEntry} />
         )}
         {rowDownload && (
           <DataHistoryFormatDownloadModal
             item={rowDownload.item}
             target={rowDownload.target}
+            analyticsLocation="table"
             onClose={() => setRowDownload(null)}
-            onDownloaded={(target, format) =>
-              trackEvent(ANALYTICS_KEYS.data_history_download, {
-                kind: target.kind,
-                view: target.viewId,
-                format,
-                source: rowDownload.item.source,
-                location: 'table',
-              })
-            }
           />
         )}
       </AutoFullHeightContainer>

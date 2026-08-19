@@ -11,6 +11,7 @@ const { readDataHistoryFileMock, copyPayloadMock } = vi.hoisted(() => ({
 }));
 
 vi.mock('@jetstream/ui/data-history', () => ({ readDataHistoryFile: readDataHistoryFileMock }));
+vi.mock('@jetstream/ui-core', () => ({ useAmplitude: () => ({ trackEvent: vi.fn() }) }));
 vi.mock('../data-history-download', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../data-history-download')>()),
   copyDataHistoryPayloadToClipboard: copyPayloadMock,
@@ -46,14 +47,7 @@ const item = {
 
 function renderTab() {
   return render(
-    <DataHistoryPayloadTab
-      item={item}
-      kind="request"
-      cache={new Map()}
-      viewStateCache={new Map()}
-      onRequestDownload={vi.fn()}
-      onCopied={vi.fn()}
-    />,
+    <DataHistoryPayloadTab item={item} kind="request" cache={new Map()} viewStateCache={new Map()} onRequestDownload={vi.fn()} />,
   );
 }
 

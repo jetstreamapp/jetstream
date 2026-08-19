@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import { CopyAsDataType, DataHistoryFileKind, DataHistoryItem, UiTabSection } from '@jetstream/types';
+import { DataHistoryFileKind, DataHistoryItem, UiTabSection } from '@jetstream/types';
 import { Badge, DropDown, Grid, Icon, Modal, ScopedNotification, Tabs, TabsRef } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useMemo, useRef, useState } from 'react';
 import { DataHistoryErrorInfo } from './data-history-download';
@@ -24,8 +24,6 @@ import { DataHistoryPayloadCache, DataHistoryPayloadTab } from './DataHistoryPay
 export interface DataHistoryDetailModalProps {
   item: DataHistoryItem;
   onClose: () => void;
-  onDownload: (target: DataHistoryExportTarget, format: string) => void;
-  onCopy: (kind: DataHistoryFileKind, format: CopyAsDataType) => void;
   /** Open another entry in this modal (used by the "Retry Of" link to jump to the original run) */
   onViewEntry?: (key: string) => void;
 }
@@ -46,13 +44,7 @@ function tabIdForKind(kind: DataHistoryFileKind): string {
   return `payload-${kind}`;
 }
 
-export const DataHistoryDetailModal: FunctionComponent<DataHistoryDetailModalProps> = ({
-  item,
-  onClose,
-  onDownload,
-  onCopy,
-  onViewEntry,
-}) => {
+export const DataHistoryDetailModal: FunctionComponent<DataHistoryDetailModalProps> = ({ item, onClose, onViewEntry }) => {
   const tabsRef = useRef<TabsRef>(null);
   // Parsed payloads are cached here (stable Map identity) so switching tabs does not re-read/re-parse the files
   const [payloadCache] = useState<DataHistoryPayloadCache>(() => new Map());
@@ -209,7 +201,6 @@ export const DataHistoryDetailModal: FunctionComponent<DataHistoryDetailModalPro
           cache={payloadCache}
           viewStateCache={viewStateCache}
           onRequestDownload={openDownload}
-          onCopied={(format) => onCopy(kind, format)}
         />
       ),
     })),
@@ -245,8 +236,8 @@ export const DataHistoryDetailModal: FunctionComponent<DataHistoryDetailModalPro
         <DataHistoryFormatDownloadModal
           item={item}
           target={downloadTarget}
+          analyticsLocation="detail-modal"
           onClose={() => setDownloadTarget(null)}
-          onDownloaded={onDownload}
           onError={setFileError}
         />
       )}

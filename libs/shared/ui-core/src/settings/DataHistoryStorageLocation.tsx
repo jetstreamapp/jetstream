@@ -4,8 +4,8 @@ import { getErrorMessage } from '@jetstream/shared/utils';
 import { Maybe } from '@jetstream/types';
 import { fireToast, Spinner } from '@jetstream/ui';
 import {
-  changeHistoryDirectory,
   changeNativeHistoryFolder,
+  connectHistoryDirectory,
   disableNativeHistoryStorage,
   disconnectHistoryDirectory,
   getDataHistoryStorageLocation,
@@ -13,7 +13,13 @@ import {
 } from '@jetstream/ui/data-history';
 import { FunctionComponent, useState } from 'react';
 import { useAmplitude } from '../analytics';
-import { openHistoryFolder, useDataHistoryBackendStatus, useReconnectHistoryFolder, useStoreHistoryInFolder } from './data-history-hooks';
+import {
+  fireMigrationResultToast,
+  openHistoryFolder,
+  useDataHistoryBackendStatus,
+  useReconnectHistoryFolder,
+  useStoreHistoryInFolder,
+} from './data-history-hooks';
 
 export interface DataHistoryStorageLocationProps {
   /** Called after any storage-location change so the parent can refresh usage numbers */
@@ -44,9 +50,13 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
 
   // Connect-a-folder and re-connect are shared with the Data History page — same service call, same
   // copy, same analytics but for `location`. Only the flows this surface alone offers use `runAction`.
-  const { storeInFolder, working: storeWorking } = useStoreHistoryInFolder({
+  const {
+    storeInFolder,
+    available: canStoreInFolder,
+    working: storeWorking,
+  } = useStoreHistoryInFolder({
     analyticsLocation: ANALYTICS_LOCATION,
-    nativeSupported: !!status?.nativeSupported,
+    backendStatus: status,
     onProgress: handleMigrationProgress,
     onChanged: handleChanged,
   });
@@ -107,7 +117,14 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
           ) : (
             <p>App-managed storage (default)</p>
           )}
-          {!isNativeActive && (
+          {status.folderUnavailable && (
+            <p className="slds-text-color_error slds-m-top_xx-small">
+              Your history folder{status.nativePath ? ` (${status.nativePath})` : ''} can’t be opened — it may have been moved, deleted, or
+              be on a drive that isn’t connected. New history is temporarily saved to app-managed storage. Choose a different folder or
+              switch back to app-managed storage.
+            </p>
+          )}
+          {canStoreInFolder && (
             <button className="slds-button slds-button_neutral slds-m-top_x-small" disabled={working} onClick={storeInFolder}>
               Store History in a Folder on Disk
             </button>
@@ -134,7 +151,16 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
               <button
                 className="slds-button slds-button_neutral slds-m-left_x-small"
                 disabled={working}
-                onClick={() => runAction(() => disableNativeHistoryStorage(handleMigrationProgress), { backend: 'opfs' })}
+                onClick={() =>
+                  runAction(
+                    async () =>
+                      fireMigrationResultToast(
+                        await disableNativeHistoryStorage(handleMigrationProgress),
+                        'Your history is now in app-managed storage.',
+                      ),
+                    { backend: 'opfs' },
+                  )
+                }
                 title="Copy history back to app-managed storage. The files already on disk are left in place."
               >
                 Switch Back to App-Managed Storage
@@ -153,7 +179,13 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
               </button>
             </p>
           )}
-          {!isDirectoryActive && (
+          {status.folderUnavailable && (
+            <p className="slds-text-color_error slds-m-top_xx-small">
+              Your history folder{status.directoryName ? ` ("${status.directoryName}")` : ''} can’t be opened — it may have been moved or
+              deleted. New history is temporarily saved to browser storage. Choose a different folder or switch back to browser storage.
+            </p>
+          )}
+          {canStoreInFolder && (
             <button
               className="slds-button slds-button_neutral slds-m-top_x-small"
               disabled={working}
@@ -171,16 +203,10 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
                 onClick={() =>
                   runAction(
                     async () => {
-                      const result = await changeHistoryDirectory(handleMigrationProgress);
-                      if (result && result.skipped > 0) {
-                        fireToast({
-                          type: 'warning',
-                          message: `Your history was moved, but ${result.skipped.toLocaleString()} ${
-                            result.skipped === 1 ? 'entry' : 'entries'
-                          } could not be moved (still being written, or the previous folder is no longer readable). Their files remain in the old folder.`,
-                        });
-                      } else if (result) {
-                        fireToast({ type: 'success', message: 'Your history was moved to the new folder.' });
+                      // Picking a folder while one is connected moves the history across — see `connectHistoryDirectory`
+                      const result = await connectHistoryDirectory(handleMigrationProgress);
+                      if (result) {
+                        fireMigrationResultToast(result, 'Your history was moved to the new folder.');
                       }
                     },
                     { backend: 'directory', action: 'change-folder' },
@@ -213,7 +239,16 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
               <button
                 className="slds-button slds-button_neutral slds-m-left_x-small"
                 disabled={working}
-                onClick={() => runAction(() => disconnectHistoryDirectory(handleMigrationProgress), { backend: 'opfs' })}
+                onClick={() =>
+                  runAction(
+                    async () =>
+                      fireMigrationResultToast(
+                        await disconnectHistoryDirectory(handleMigrationProgress),
+                        'Your history is now in browser storage.',
+                      ),
+                    { backend: 'opfs' },
+                  )
+                }
                 title="Copy history back to browser storage. The files already in your folder are left in place."
               >
                 Switch Back to Browser Storage

@@ -121,7 +121,9 @@ export function buildResultsDownloadRows(rows: RecordResultRow[], which: 'result
       Id: row._id,
       Success: row._success === true,
       Created: row.created,
-      Error: row.status || '',
+      // A pending row was never sent (the run was cancelled first) — say so rather than leaving a
+      // `Success: false` row with a blank error that reads like an unexplained failure
+      Error: row.status || (row._success === null ? 'Not attempted — the load was cancelled before this record was sent' : ''),
     }));
 }
 

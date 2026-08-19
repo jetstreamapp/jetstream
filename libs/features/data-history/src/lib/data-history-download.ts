@@ -6,6 +6,7 @@ import { DataHistoryDirectoryPermissionError, readDataHistoryFile } from '@jetst
 import copyToClipboard from 'copy-to-clipboard';
 import { getDataHistoryDownloadFileName } from './data-history-page.utils';
 import {
+  DATA_HISTORY_CLIPBOARD_MAX_BYTES,
   DATA_HISTORY_EXPORT_PARSE_MAX_BYTES,
   DataHistoryExportTarget,
   DataHistoryPayloadView,
@@ -52,13 +53,20 @@ export async function loadDataHistoryExportData(
   if (blob.size > DATA_HISTORY_EXPORT_PARSE_MAX_BYTES) {
     return { type: 'raw', blob, fileName, contentType, reason: 'too-large' };
   }
-  const text = await blob.text();
-  const views = parseDataHistoryPayloadViews(text, contentType);
-  const view = findViewForTarget(views, target ?? {});
+  const view = parseExportView(await blob.text(), contentType, target);
   if (!view) {
     return { type: 'raw', blob, fileName, contentType, reason: 'not-tabular' };
   }
   return { type: 'table', view };
+}
+
+/** The tabular view a payload converts to for the requested target, or undefined when it has none */
+function parseExportView(
+  text: string,
+  contentType: 'text/csv' | 'application/json',
+  target?: Pick<DataHistoryExportTarget, 'viewId'>,
+): DataHistoryPayloadView | undefined {
+  return findViewForTarget(parseDataHistoryPayloadViews(text, contentType), target ?? {});
 }
 
 /** Save a payload in its stored format (used as the fallback when format conversion is not possible) */
@@ -75,10 +83,17 @@ export interface CopyDataHistoryResult {
   error?: DataHistoryErrorInfo;
 }
 
+const TOO_LARGE_TO_COPY: DataHistoryErrorInfo = {
+  type: 'warning',
+  message: 'This data is too large to copy to the clipboard. Download it instead.',
+};
+
 /**
  * Copy a payload to the clipboard in the requested format (same formats as the query results copy).
- * Reads the FULL payload — the in-modal preview may be truncated. Non-tabular payloads can still be
- * copied as JSON (the raw payload text); spreadsheet formats require tabular data.
+ * Reads the FULL payload — the in-modal preview may be truncated — but only up to the clipboard cap:
+ * the read is capped AT THE STORE (like the preview) so an oversized payload is never inflated or
+ * pulled across IPC just to be refused. Non-tabular payloads can still be copied as JSON (the raw
+ * payload text); spreadsheet formats require tabular data.
  */
 export async function copyDataHistoryPayloadToClipboard(
   item: DataHistoryItem,
@@ -87,28 +102,35 @@ export async function copyDataHistoryPayloadToClipboard(
   target?: Pick<DataHistoryExportTarget, 'viewId'>,
 ): Promise<CopyDataHistoryResult> {
   try {
-    const exportData = await loadDataHistoryExportData(item, kind, target);
-    if (exportData.type === 'missing') {
+    // One byte past the cap so a payload exactly at it is not refused
+    const file = await readDataHistoryFile(item, kind, { maxBytes: DATA_HISTORY_CLIPBOARD_MAX_BYTES + 1 });
+    if (!file) {
       return { success: false, error: { type: 'warning', message: 'This data is no longer available on this device.' } };
     }
-    if (exportData.type === 'raw') {
-      if (exportData.reason === 'too-large') {
-        return {
-          success: false,
-          error: { type: 'warning', message: 'This data is too large to copy to the clipboard. Download it instead.' },
-        };
-      }
-      if (format === 'json') {
-        copyToClipboard(await exportData.blob.text(), { format: 'text/plain' });
-        return { success: true };
-      }
+    if (file.blob.size > DATA_HISTORY_CLIPBOARD_MAX_BYTES) {
+      return { success: false, error: TOO_LARGE_TO_COPY };
+    }
+    const text = await file.blob.text();
+    const view = parseExportView(text, file.contentType, target);
+    let copied: boolean;
+    if (view) {
+      copied = await copyRecordsToClipboard(view.rows, format, view.header);
+    } else if (format === 'json') {
+      copied = await copyToClipboard(text, { format: 'text/plain' });
+    } else {
       return {
         success: false,
         error: { type: 'warning', message: 'This data is not in a table format. Copy it as JSON instead.' },
       };
     }
-    const { view } = exportData;
-    await copyRecordsToClipboard(view.rows, format, view.header);
+    // The copy itself can fail after the read succeeded — clipboard access refused, or the user
+    // gesture expired during the read on a slow backend — and reporting "Copied" then is a lie
+    if (!copied) {
+      return {
+        success: false,
+        error: { type: 'error', message: 'The data could not be copied to the clipboard. Try again, or download it instead.' },
+      };
+    }
     return { success: true };
   } catch (ex) {
     logger.warn('[DATA_HISTORY] Error copying payload to clipboard', ex);

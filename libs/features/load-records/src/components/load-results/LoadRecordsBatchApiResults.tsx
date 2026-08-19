@@ -129,7 +129,7 @@ export const LoadRecordsBatchApiResults = ({
       isMounted.current = false;
       // Unmounting mid-load abandons the run: the finish branch is gated on isMounted, so nothing
       // would ever settle the history entry — see `abandonIfUnsettled` for why a stranded entry matters
-      historyHandle.abandonIfUnsettled('The load was abandoned before it finished');
+      historyHandle.abandonIfUnsettled('The load was still running when you left the page, so its final outcome was not recorded.');
     };
   }, [historyHandle]);
 

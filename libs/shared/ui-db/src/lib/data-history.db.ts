@@ -3,8 +3,6 @@ import {
   DataHistoryBackendConfig,
   DataHistoryItem,
   DataHistorySettings,
-  DataHistorySource,
-  DataHistoryStatus,
   dataHistorySettingsSchema,
   dataHistoryStorageBackendSchema,
 } from '@jetstream/types';
@@ -45,11 +43,13 @@ export const dataHistoryDb = {
   }),
 };
 
+/**
+ * Narrowing for the history list — deliberately limited to what the `[org+createdAt]` / `createdAt`
+ * indexes can serve. Anything else is the table's own column filters, which only ever see rows the
+ * query already returned.
+ */
 export interface DataHistoryListFilter {
   org?: string;
-  source?: DataHistorySource;
-  status?: DataHistoryStatus;
-  pinnedOnly?: boolean;
   createdAfter?: Date;
   createdBefore?: Date;
   limit?: number;
@@ -87,11 +87,10 @@ async function getAllEntryKeys(): Promise<string[]> {
 
 /**
  * List entries newest-first. Uses the `[org+createdAt]` index when an org filter is provided and
- * the `createdAt` index otherwise; remaining filters are applied in memory (result sets are small
- * once org/date narrowing is applied, and `sobjects` is an array which Dexie cannot index).
+ * the `createdAt` index otherwise.
  */
 async function getEntries(filter: DataHistoryListFilter = {}): Promise<DataHistoryItem[]> {
-  const { org, source, status, pinnedOnly, createdAfter, createdBefore, limit } = filter;
+  const { org, createdAfter, createdBefore, limit } = filter;
   const { data_history } = getDexieDb();
 
   let collection = org
@@ -101,12 +100,6 @@ async function getEntries(filter: DataHistoryListFilter = {}): Promise<DataHisto
     : data_history.where('createdAt').between(createdAfter ?? new Date(0), createdBefore ?? new Date(8.64e15), true, true);
 
   collection = collection.reverse();
-
-  if (source || status || pinnedOnly) {
-    collection = collection.filter(
-      (row) => (!source || row.source === source) && (!status || row.status === status) && (!pinnedOnly || row.pinned),
-    );
-  }
 
   if (limit && limit > 0) {
     collection = collection.limit(limit);

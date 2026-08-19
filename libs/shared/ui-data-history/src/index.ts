@@ -1,15 +1,15 @@
-export * from './lib/csv-utils';
+/**
+ * Public surface of `@jetstream/ui/data-history`. Deliberately NARROW: the capture/read service, the
+ * backend-management flows, and the bulk-results appender are the feature's API; everything under
+ * `file-store/` (the stores, the factory, path/scope helpers) and the retention sweep are internals
+ * whose invariants `activateBackend()` and the service enforce. Exposing them would put every way of
+ * switching backends or sweeping entries without those guards one import away.
+ */
 export * from './lib/data-history-backends';
 export * from './lib/data-history-bulk-results';
-export * from './lib/data-history-limits';
-export * from './lib/data-history-manifest';
-export * from './lib/data-history-retention';
 export * from './lib/data-history.service';
-export * from './lib/file-store/directory-handle-file-store';
-export * from './lib/file-store/file-store-factory';
-export * from './lib/file-store/file-store.types';
-export * from './lib/file-store/fsa-types';
-export * from './lib/file-store/hashed-dir-names';
-export * from './lib/file-store/native-fs-file-store';
-export * from './lib/file-store/path-utils';
-export * from './lib/file-store/user-scope';
+// The only internals consumers legitimately need: the test seam on the real factory, the "is storage
+// bound to a user yet" gate, and the error type read paths surface to the UI
+export { setHistoryFileStoreForTests } from './lib/file-store/file-store-factory';
+export { DataHistoryDirectoryPermissionError } from './lib/file-store/fsa-types';
+export { whenDataHistoryUserScopeReady } from './lib/file-store/user-scope';

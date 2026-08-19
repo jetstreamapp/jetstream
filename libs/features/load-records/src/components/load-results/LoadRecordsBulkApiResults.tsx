@@ -305,7 +305,7 @@ export const LoadRecordsBulkApiResults = ({
       }
       // Unmounting mid-load abandons the run: polling stops, so nothing would ever settle the
       // history entry — see `abandonIfUnsettled` for why a stranded entry matters
-      historyHandle.abandonIfUnsettled('The load was abandoned before it finished');
+      historyHandle.abandonIfUnsettled('The load was still running when you left the page, so its final outcome was not recorded.');
     };
   }, [historyHandle]);
 
@@ -409,6 +409,13 @@ export const LoadRecordsBulkApiResults = ({
         // download — bulk results expire server-side (~7 days). Fully fire-and-forget, and safe to
         // reach more than once: `finalize()` is one-shot on the handle, so a re-entered done-branch
         // cannot re-fetch every batch's results.
+        //
+        // The permanent record anchors on how many records were IN THE FILE, not on the job's
+        // processed/failed numbers: those cover only batches Salesforce ran, so records in a batch
+        // that never uploaded (consecutive-failure bail-out) or ended `Failed`/`NotProcessed` would
+        // otherwise vanish from the entry and a 1,000-row load with 600 rows never sent would read
+        // as 400/400 succeeded. The notification above keeps the job's own numbers, as it always has.
+        const attemptedCount = preparedData.data.length + preparedData.errors.length;
         captureBulkApiLoadResults({
           handle: historyHandle,
           selectedOrg,
@@ -418,11 +425,14 @@ export const LoadRecordsBulkApiResults = ({
           loadType,
           fields: getFieldHeaderFromMapping(fieldMapping),
           counts: {
-            total: numSuccess + numFailure,
+            total: attemptedCount,
             success: numSuccess,
-            failure: numFailure,
+            failure: attemptedCount - numSuccess,
             processingErrors: preparedData.errors.length,
           },
+          // Set when batch submission stopped early (`loadError` with a job already created) — the
+          // reason those records never reached Salesforce belongs on the entry
+          errorMessage: fatalError ?? undefined,
         });
       } else if (status === STATUSES.PROCESSING || status === STATUSES.ABORTING) {
         if (intervalCount >= BULK_JOB_POLL_MAX_CHECKS) {
@@ -603,7 +613,8 @@ export const LoadRecordsBulkApiResults = ({
         } else {
           setStatus(STATUSES.ERROR);
           onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
-          historyHandle.fail(loadError.message);
+          // Job created but no batch accepted: nothing reached Salesforce, same as a prepare failure
+          finishHistoryAsPrepareFailure(historyHandle, inputFileData.length, loadError.message);
           notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
             body: `❌ ${loadError.message}`,
             tag: 'load-records',
@@ -629,7 +640,7 @@ export const LoadRecordsBulkApiResults = ({
       setFatalError(getErrorMessage(ex));
       setStatus(STATUSES.ERROR);
       onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
-      historyHandle.fail(getErrorMessage(ex));
+      finishHistoryAsPrepareFailure(historyHandle, inputFileData.length, getErrorMessage(ex));
       notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
         body: `❌ ${getErrorMessage(ex)}`,
         tag: 'load-records',

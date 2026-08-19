@@ -1,5 +1,6 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { CopyAsDataType, DataHistoryFileKind, DataHistoryItem } from '@jetstream/types';
 import {
   ButtonGroupContainer,
@@ -12,6 +13,7 @@ import {
   Spinner,
   Tooltip,
 } from '@jetstream/ui';
+import { useAmplitude } from '@jetstream/ui-core';
 import { readDataHistoryFile } from '@jetstream/ui/data-history';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { copyDataHistoryPayloadToClipboard, DataHistoryErrorInfo, getDataHistoryReadErrorMessage } from './data-history-download';
@@ -52,7 +54,6 @@ export interface DataHistoryPayloadTabProps {
   viewStateCache: Map<DataHistoryFileKind, string>;
   /** Open the format download modal for the given target (hosted by the detail modal) */
   onRequestDownload: (target: DataHistoryExportTarget) => void;
-  onCopied: (format: CopyAsDataType) => void;
 }
 
 /** Roughly how many wrapped lines of a single cell stay visible before it is clipped */
@@ -92,8 +93,8 @@ export const DataHistoryPayloadTab: FunctionComponent<DataHistoryPayloadTabProps
   cache,
   viewStateCache,
   onRequestDownload,
-  onCopied,
 }) => {
+  const { trackEvent } = useAmplitude();
   const [payload, setPayload] = useState<LoadedDataHistoryPayload | null>(() => cache.get(kind) ?? null);
   const [loading, setLoading] = useState(!cache.has(kind));
   /**
@@ -184,7 +185,7 @@ export const DataHistoryPayloadTab: FunctionComponent<DataHistoryPayloadTabProps
       const { success, error } = await copyDataHistoryPayloadToClipboard(item, kind, format, activeTarget);
       if (success) {
         setCopySuccess(true);
-        onCopied(format);
+        trackEvent(ANALYTICS_KEYS.data_history_copy_to_clipboard, { kind, format, source: item.source });
       } else if (error) {
         setCopyError(error);
       }

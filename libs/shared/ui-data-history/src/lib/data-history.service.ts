@@ -26,6 +26,7 @@ import {
   deriveStatusFromCounts,
   getEffectiveSettings,
   getStoragePersisted,
+  getStoredSettings,
   getTierLimits,
   isEntryLikelyInFlight,
   isPersistentStoragePromptEligible,
@@ -115,8 +116,6 @@ export interface DataHistoryStorageHealth {
   maxTotalBytes: number;
   /** Tier entry-count cap (null = unlimited) */
   maxEntries: number | null;
-  /** Null when the browser does not expose persisted() */
-  persisted: boolean | null;
 }
 
 /**
@@ -301,7 +300,6 @@ export class DataHistoryEntryHandle {
   /** Promise of the first `finalize()` call — see that method for why it is one-shot */
   private finalizePromise: Promise<void> | null = null;
   private resultsStream: HistoryWriteStream | null = null;
-  private resultsHeaderWritten = false;
   private resultsRowCount = 0;
 
   constructor(options: StartDataHistoryEntryOptions) {
@@ -383,16 +381,16 @@ export class DataHistoryEntryHandle {
         return;
       }
       const compressed = store.capabilities.compressFiles;
+      // The header goes out with the first rows of a fresh stream — and only then
+      const isFirstChunk = !this.resultsStream;
       if (!this.resultsStream) {
         this.resultsStream = await store.createWriteStream(this.filePath(getDataHistoryFileName('results.csv', compressed)), {
           gzip: compressed,
         });
-        this.resultsHeaderWritten = false;
       }
-      for (const chunk of serializeRowsToCsvChunks(rows, header, { includeHeader: !this.resultsHeaderWritten })) {
+      for (const chunk of serializeRowsToCsvChunks(rows, header, { includeHeader: isFirstChunk })) {
         await this.resultsStream.write(chunk);
       }
-      this.resultsHeaderWritten = true;
       this.resultsRowCount += rows.length;
     });
   }
@@ -493,20 +491,25 @@ export class DataHistoryEntryHandle {
   }
 
   /**
-   * Settle an entry whose load was abandoned — the host component unmounting mid-load (SPA
-   * navigation) is the caller. Without this, an abandoned entry stays `in-progress` forever and its
+   * Settle an entry whose host went away mid-run — the host component unmounting (SPA navigation,
+   * modal close) is the caller. Without this, an abandoned entry stays `in-progress` forever and its
    * key stays in the active-entry set, blocking delete and migration for the life of the page.
    *
+   * Settles as `incomplete`, NOT `failed`: by the time a host unmounts, the Bulk job or mass update
+   * has usually been submitted and finishes on Salesforce regardless — the OUTCOME is unknown, not
+   * bad. `incomplete` is exactly the status the retention sweep assigns to a capture a crashed tab
+   * left behind, and it renders as "N submitted" rather than a red Failed badge with "—" counts for
+   * a load that most likely succeeded. Results streamed so far are kept (`finish` closes the stream).
+   *
    * No-op once `finalize()` has started: a capture already running in the background finishes the
-   * entry itself, and failing it here would misreport a load that actually succeeded. A `finish()`
-   * or `fail()` already in flight also wins — the `fail()` below is queued behind it and then
-   * no-ops against the settled entry.
+   * entry itself. A `finish()` or `fail()` already in flight also wins — the `finish()` below is
+   * queued behind it and then no-ops against the settled entry.
    */
   abandonIfUnsettled(errorMessage: string): void {
     if (this.finalizePromise) {
       return;
     }
-    void this.fail(errorMessage);
+    void this.finish({ counts: this.item.counts, status: 'incomplete', errorMessage });
   }
 
   /**
@@ -809,8 +812,10 @@ export async function getDataHistorySettings(): Promise<DataHistorySettings | nu
   return await getEffectiveSettings();
 }
 
+// Both writers spread from the STORED settings, never the effective (tier-clamped) ones — see
+// `getStoredSettings` for the retention loss that spreading the clamped copy back would cause.
 export async function setDataHistoryEnabled(enabled: boolean): Promise<void> {
-  const settings = await getEffectiveSettings();
+  const settings = await getStoredSettings();
   if (!settings) {
     return;
   }
@@ -818,9 +823,8 @@ export async function setDataHistoryEnabled(enabled: boolean): Promise<void> {
 }
 
 export async function updateDataHistoryRetentionSettings(changes: { retentionDays?: number }): Promise<void> {
-  const settings = await getEffectiveSettings();
-  const tier = getTierLimits();
-  if (!settings || !tier) {
+  const settings = await getStoredSettings();
+  if (!settings) {
     return;
   }
   await dataHistoryDb.saveSettings({
@@ -838,12 +842,8 @@ export async function getDataHistoryStorageHealth(): Promise<DataHistoryStorageH
     if (!settings || !tier) {
       return null;
     }
-    const [entryCount, usedBytes, persisted] = await Promise.all([
-      dataHistoryDb.getEntryCount(),
-      dataHistoryDb.getTotalSizeBytes(),
-      getStoragePersisted(),
-    ]);
-    return { entryCount, usedBytes, maxTotalBytes: tier.maxTotalBytes, maxEntries: tier.maxEntries, persisted };
+    const [entryCount, usedBytes] = await Promise.all([dataHistoryDb.getEntryCount(), dataHistoryDb.getTotalSizeBytes()]);
+    return { entryCount, usedBytes, maxTotalBytes: tier.maxTotalBytes, maxEntries: tier.maxEntries };
   } catch (ex) {
     logger.warn('[DATA_HISTORY] Unable to compute storage health', ex);
     return null;

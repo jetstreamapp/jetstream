@@ -71,8 +71,9 @@ describe('useDeployRecords Data History lifecycle', () => {
 
     unmount();
 
+    // `incomplete`, not `failed`: the outcome is unknown — a submitted job finishes on Salesforce regardless
     await vi.waitFor(async () => {
-      expect((await dataHistoryDb.getEntry(key))?.status).toBe('failed');
+      expect((await dataHistoryDb.getEntry(key))?.status).toBe('incomplete');
     });
     // The symptom the user hits: a stranded entry refuses to delete with "still being written"
     expect(await deleteDataHistoryEntry(key)).toEqual({ deleted: true });

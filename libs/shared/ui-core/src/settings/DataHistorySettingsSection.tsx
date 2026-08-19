@@ -61,9 +61,8 @@ export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSe
     }
   }, []);
 
-  const { persistPromptEligible, requestingPersist, requestPersist } = useRequestPersistentStorage({
+  const { persistPromptEligible, persisted, requestingPersist, requestPersist } = useRequestPersistentStorage({
     analyticsLocation: 'settings',
-    onRequested: loadSettingsAndHealth,
   });
 
   useEffect(() => {
@@ -159,7 +158,7 @@ export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSe
         </p>
       )}
 
-      {persistPromptEligible && health?.persisted === false && (
+      {persistPromptEligible && persisted === false && (
         <div className="slds-m-top_small">
           <span className="slds-m-right_x-small">Your browser may remove this saved history to free up space.</span>
           <button className="slds-button slds-button_neutral" disabled={requestingPersist} onClick={requestPersist}>
@@ -167,7 +166,7 @@ export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSe
           </button>
         </div>
       )}
-      {persistPromptEligible && health?.persisted === true && (
+      {persistPromptEligible && persisted === true && (
         <p className="slds-text-color_weak slds-m-top_small">
           Your browser has been asked to keep this history and won’t remove it automatically.
         </p>

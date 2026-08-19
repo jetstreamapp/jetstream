@@ -7,6 +7,7 @@ import {
   connectHistoryDirectory,
   DataHistoryBackendStatus,
   DataHistoryMigrationProgress,
+  DataHistoryMigrationResult,
   enableNativeHistoryStorage,
   getHistoryBackendStatus,
   getStoragePersisted,
@@ -88,16 +89,10 @@ export function useSetDataHistoryCaptureEnabled({ analyticsLocation }: { analyti
 
 /**
  * "Keep history on this device" flow — asks the browser for persistent storage and reports the
- * outcome. `onRequested` runs after the analytics event but before the outcome toast (the Settings
- * section refreshes its usage numbers there).
+ * outcome. Owns `persisted` (the browser's current answer) for whichever surface renders it, so no
+ * surface keeps a second copy to refresh.
  */
-export function useRequestPersistentStorage({
-  analyticsLocation,
-  onRequested,
-}: {
-  analyticsLocation: string;
-  onRequested?: (granted: boolean) => void | Promise<void>;
-}) {
+export function useRequestPersistentStorage({ analyticsLocation }: { analyticsLocation: string }) {
   const { trackEvent } = useAmplitude();
   const [requestingPersist, setRequestingPersist] = useState(false);
   const [persisted, setPersisted] = useState<boolean | null>(null);
@@ -109,13 +104,13 @@ export function useRequestPersistentStorage({
     }
   }, [persistPromptEligible]);
 
-  async function requestPersist() {
+  async function requestPersist(): Promise<boolean> {
+    let granted = false;
     try {
       setRequestingPersist(true);
-      const granted = await requestPersistentStorage();
+      granted = await requestPersistentStorage();
       setPersisted(granted);
       trackEvent(ANALYTICS_KEYS.data_history_settings_changed, { action: 'request-persist', granted, location: analyticsLocation });
-      await onRequested?.(granted);
       fireToast(
         granted
           ? { type: 'success', message: 'Your browser will keep this history and not remove it automatically.' }
@@ -129,45 +124,84 @@ export function useRequestPersistentStorage({
     } finally {
       setRequestingPersist(false);
     }
+    return granted;
   }
 
   return { persistPromptEligible, persisted, requestingPersist, requestPersist };
 }
 
 /**
+ * Report the outcome of moving history between backends. Every migration can leave entries behind —
+ * captures still being written, a previous folder that could not be read, a single entry whose files
+ * are gone — and each of those entries stays readable where it was, so the user is told how many
+ * rather than shown an unconditional "moved" toast. The ONE place that wording lives.
+ */
+export function fireMigrationResultToast({ migrated, skipped }: DataHistoryMigrationResult, successMessage: string): void {
+  if (skipped > 0) {
+    fireToast({
+      type: 'warning',
+      message: `${successMessage} ${skipped.toLocaleString()} ${
+        skipped === 1 ? 'entry' : 'entries'
+      } could not be moved (still being written, or no longer readable from the previous location) and ${
+        skipped === 1 ? 'stays' : 'stay'
+      } where ${skipped === 1 ? 'it was' : 'they were'}.`,
+    });
+    return;
+  }
+  fireToast({
+    type: 'success',
+    message:
+      migrated > 0
+        ? `${successMessage} ${migrated.toLocaleString()} ${migrated === 1 ? 'entry was' : 'entries were'} moved.`
+        : successMessage,
+  });
+}
+
+/**
  * "Store History in a Folder" — the ONE implementation of connecting a folder, used by both the Data
  * History page and the Settings storage-location controls. It picks the native filesystem backend
  * when the environment supports it (desktop) and the user-chosen-directory backend otherwise, which
- * is the same choice both surfaces make: each shows exactly one of the two.
+ * is the same choice both surfaces make: each shows exactly one of the two. Also serves "Change
+ * Folder…" — connecting a folder while one is active moves the history across (see
+ * `connectHistoryDirectory`).
  *
  * `onProgress` drives the caller's migration counter; the analytics event reports the backend that
  * was actually connected, so the two surfaces differ only by `location`.
  */
 export function useStoreHistoryInFolder({
   analyticsLocation,
-  nativeSupported,
+  backendStatus,
   onProgress,
   onChanged,
 }: {
   analyticsLocation: string;
-  nativeSupported: boolean;
+  backendStatus: DataHistoryBackendStatus | null;
   onProgress?: DataHistoryMigrationProgress;
   onChanged?: () => void | Promise<void>;
 }) {
   const { trackEvent } = useAmplitude();
   const [working, setWorking] = useState(false);
+  const nativeSupported = !!backendStatus?.nativeSupported;
+  // Whether to OFFER the button — keyed on the configured backend, not on where writes currently land
+  const available =
+    !!backendStatus &&
+    ((nativeSupported && backendStatus.active !== 'native') || (backendStatus.directorySupported && backendStatus.active !== 'directory'));
 
   async function storeInFolder() {
     setWorking(true);
     try {
       if (nativeSupported) {
-        await enableNativeHistoryStorage(onProgress);
-        fireToast({ type: 'success', message: 'Your history is now stored on disk — manage the folder from Settings.' });
-      } else if (!(await connectHistoryDirectory(onProgress))) {
-        // The user cancelled the folder picker — nothing changed, so nothing to report
-        return;
+        fireMigrationResultToast(
+          await enableNativeHistoryStorage(onProgress),
+          'Your history is now stored on disk — manage the folder from Settings.',
+        );
       } else {
-        fireToast({ type: 'success', message: 'Your history is now stored in the selected folder.' });
+        const result = await connectHistoryDirectory(onProgress);
+        if (!result) {
+          // The user cancelled the folder picker — nothing changed, so nothing to report
+          return;
+        }
+        fireMigrationResultToast(result, 'Your history is now stored in the selected folder.');
       }
       trackEvent(ANALYTICS_KEYS.data_history_settings_changed, {
         backend: nativeSupported ? 'native' : 'directory',
@@ -182,7 +216,7 @@ export function useStoreHistoryInFolder({
     }
   }
 
-  return { storeInFolder, working };
+  return { storeInFolder, available, working };
 }
 
 /**

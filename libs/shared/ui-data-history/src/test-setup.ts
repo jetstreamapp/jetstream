@@ -1,7 +1,7 @@
 import { createDexieInstance, registerDbHooks, setDexieDbInstance } from '@jetstream/ui/db';
 import { Blob as NodeBlob } from 'node:buffer';
 
-// `fake-indexeddb/auto` is loaded ahead of this file via `setupFiles` — see vite.config.ts for why
+// `fake-indexeddb/auto` is loaded ahead of this file via `setupFiles` — see vite.config.mts for why
 // it cannot be a static import here.
 
 // jsdom's Blob does not interoperate with Node's CompressionStream/Response (cross-realm web

@@ -59,12 +59,27 @@ export function getTierLimits(): DataHistoryTierLimits | null {
   return tierLimits;
 }
 
+/**
+ * The settings as the user SAVED them (defaults when nothing is saved yet). This is what every write
+ * must spread from: `getEffectiveSettings` clamps to the CURRENT tier, and persisting that clamped copy
+ * back would silently overwrite a paid user's chosen retention with the free-tier ceiling the moment
+ * they toggle anything while resolved as free (a billing lapse past the grace window, a stale paid
+ * signal) — a loss that survives the plan coming back.
+ */
+export async function getStoredSettings(): Promise<DataHistorySettings | null> {
+  if (!tierLimits) {
+    return null;
+  }
+  return await dataHistoryDb.getSettings(getDefaultDataHistorySettings(tierLimits));
+}
+
+/** The stored settings clamped to the current tier — what capture and retention actually apply */
 export async function getEffectiveSettings(): Promise<DataHistorySettings | null> {
   if (!tierLimits) {
     return null;
   }
-  const settings = await dataHistoryDb.getSettings(getDefaultDataHistorySettings(tierLimits));
-  return clampSettingsToTier(settings, tierLimits);
+  const settings = await getStoredSettings();
+  return settings && clampSettingsToTier(settings, tierLimits);
 }
 
 /**

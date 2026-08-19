@@ -209,9 +209,6 @@ function applySchema(db: DexieDb) {
    *                       so `db-hooks` mirrors `pinned` into this string field)
    * - `sizeBytes`      — total usage summed straight from the index, read on every settings/history
    *                       page mount over an unbounded number of rows on tiers with no entry cap
-   *
-   * `source`/`status`/`pinnedOnly` in `DataHistoryListFilter` are deliberately NOT indexed — they are
-   * in-memory predicates applied after org/date narrowing has already made the result set small.
    */
   db.version(5).stores({
     data_history: 'key,createdAt,pinnedIdx,sizeBytes,[org+createdAt]',

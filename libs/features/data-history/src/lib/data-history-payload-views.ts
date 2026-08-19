@@ -7,9 +7,9 @@ import { parse as parseCsv } from 'papaparse';
  * in-modal previews all work from the same rows + header regardless of how the payload was captured.
  *
  * Stored payload shapes by source:
- * - CSV files (load-records input/results, mass-update results, multi-object results): tabular as-is
+ * - CSV files (load-records and mass-update input/results, multi-object results): tabular as-is
  * - `query-table-edit` request: `{ header, edited, prior }` -> TWO views (modified vs previous values)
- * - `mass-update*` request, `query-table-edit` results: array of flat records -> one view
+ * - `query-table-edit` results: array of flat records -> one view
  * - `record-modal` request: a single record object -> one single-row view
  * - everything else (multi-object request groups, error payloads, create-record results): not
  *   tabular; callers fall back to the raw JSON
@@ -39,6 +39,14 @@ export const DATA_HISTORY_PRIOR_VIEW_LABEL = 'Previous Values';
  * hundreds of MB into row objects on the main thread would freeze the tab.
  */
 export const DATA_HISTORY_EXPORT_PARSE_MAX_BYTES = 64 * 1024 * 1024;
+
+/**
+ * Much smaller byte cap for COPYING a payload. A clipboard copy holds the parsed rows plus the
+ * serialized text (and, for the spreadsheet format, an HTML rendering on top) in memory at once —
+ * several times the payload size — and a clipboard is not where tens of MB of records belong anyway;
+ * beyond this the user is pointed at Download.
+ */
+export const DATA_HISTORY_CLIPBOARD_MAX_BYTES = 16 * 1024 * 1024;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value);

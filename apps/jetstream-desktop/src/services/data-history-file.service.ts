@@ -4,6 +4,7 @@ import logger from 'electron-log';
 import { createWriteStream, promises as fs, WriteStream } from 'fs';
 import { dirname, isAbsolute, join, resolve, sep } from 'path';
 import { finished } from 'stream/promises';
+import writeFileAtomic from 'write-file-atomic';
 import { createGzip, gunzipSync, Gzip, gzipSync } from 'zlib';
 import { getUserPreferences, updateUserPreferences } from './persistence.service';
 
@@ -20,13 +21,22 @@ const SAFE_SEGMENT_REGEX = /^[a-zA-Z0-9._-]+$/;
 const HISTORY_DIR_NAME = 'data-history';
 const RELOCATED_DIR_NAME = 'jetstream-data-history';
 
+/**
+ * Identifies the renderer window an op came from. Every op arrives through the IPC handler, which
+ * always supplies `event.sender.id` — there is no such thing as an unowned stream, and the owner
+ * check is what stops one window from writing into or closing a stream another window opened.
+ */
+export interface DataHistoryOpContext {
+  senderId: number;
+}
+
 interface OpenStreamState {
   fileStream: WriteStream;
   gzip?: Gzip;
   bytesWritten: number;
   absolutePath: string;
   /** `webContents.id` of the renderer that opened the stream — see `abortDataHistoryStreamsForSender` */
-  ownerId?: number;
+  ownerId: number;
   /** Set once `handleStreamError` has torn this stream down (guards duplicate 'error' events) */
   errored?: boolean;
 }
@@ -34,15 +44,28 @@ interface OpenStreamState {
 let nextStreamId = 1;
 const openStreams = new Map<number, OpenStreamState>();
 let relocationInProgress = false;
+/** Mutating ops currently between their relocation check and their last filesystem write — see `withMutationGuard` */
+let inFlightMutations = 0;
 
 /**
  * Mutating ops must not interleave with a folder relocation: the relocation's copy can take many
  * seconds on a large history, and a file written under the source folder mid-copy is silently lost
  * when the source is removed (POSIX keeps writing to the unlinked inode and reports success).
+ *
+ * Checked once up front AND counted for the op's whole duration: an op that passed the check and is
+ * awaiting its first `mkdir` holds no open stream yet, so the relocation's `openStreams` check alone
+ * would let it start while the copy is already running. IPC handlers run on the main thread, so the
+ * check-and-increment here and the check-and-set in `setDataHistoryFolderPath` never interleave.
  */
-function assertNoRelocationInProgress(): void {
+async function withMutationGuard<T>(task: () => Promise<T>): Promise<T> {
   if (relocationInProgress) {
     throw new Error('The data history folder is being moved — try again when the move completes');
+  }
+  inFlightMutations++;
+  try {
+    return await task();
+  } finally {
+    inFlightMutations--;
   }
 }
 
@@ -61,7 +84,7 @@ function assertNoOpenStreamsUnder(absoluteDirPath: string): void {
 // Errors from streams torn down by `handleStreamError`, parked until the renderer's next op on
 // that stream collects them. The renderer always follows a failed write with close/abort, so
 // entries here are short-lived.
-const erroredStreams = new Map<number, { error: Error; ownerId?: number }>();
+const erroredStreams = new Map<number, { error: Error; ownerId: number }>();
 
 function splitRelativePath(relativePath: string): string[] {
   const segments = relativePath.split('/');
@@ -77,9 +100,14 @@ function splitRelativePath(relativePath: string): string[] {
  * The history CONTAINER: one folder per install, holding a subfolder per Jetstream account. This is
  * what the folder preference points at and what relocation moves — never where files are read or
  * written. Use {@link getScopedBaseDir} for that.
+ *
+ * The preference is only ever written by `setDataHistoryFolderPath` (the IPC preferences handler
+ * strips it), but the file it lives in is plain JSON on disk — a relative or empty value is treated
+ * as unset rather than resolved against the process cwd.
  */
 function getBaseDir(): string {
-  return getUserPreferences().dataHistoryFolder || join(app.getPath('userData'), HISTORY_DIR_NAME);
+  const configured = getUserPreferences().dataHistoryFolder;
+  return configured && isAbsolute(configured) ? configured : join(app.getPath('userData'), HISTORY_DIR_NAME);
 }
 
 /**
@@ -136,9 +164,9 @@ function handleStreamError(streamId: number, state: OpenStreamState, error: Erro
  * Collect (and clear) the parked error for a stream torn down by `handleStreamError`. Owner-checked
  * like `getStream` so another window can neither consume nor clear a stream's parked error.
  */
-function takeStreamError(streamId: number, senderId?: number): Error | undefined {
+function takeStreamError(streamId: number, senderId: number): Error | undefined {
   const parked = erroredStreams.get(streamId);
-  if (!parked || (parked.ownerId !== undefined && parked.ownerId !== senderId)) {
+  if (!parked || parked.ownerId !== senderId) {
     return undefined;
   }
   erroredStreams.delete(streamId);
@@ -168,18 +196,6 @@ export async function abortDataHistoryStreamsForSender(ownerId: number): Promise
   }
 }
 
-/** Temp-file + rename so a crash mid-write can never leave a truncated file at the target path */
-async function writeFileAtomic(absolutePath: string, data: Buffer): Promise<void> {
-  const tempPath = `${absolutePath}.tmp`;
-  try {
-    await fs.writeFile(tempPath, data);
-    await fs.rename(tempPath, absolutePath);
-  } catch (ex) {
-    await fs.rm(tempPath, { force: true }).catch(() => undefined);
-    throw ex;
-  }
-}
-
 async function pathExists(path: string): Promise<boolean> {
   try {
     await fs.access(path);
@@ -197,7 +213,7 @@ async function pathExists(path: string): Promise<boolean> {
 const opHandlers: {
   [K in DataHistoryFileOpRequest['op']]: (
     request: Extract<DataHistoryFileOpRequest, { op: K }>,
-    context?: { senderId?: number },
+    context: DataHistoryOpContext,
   ) => Promise<DataHistoryFileOpResultByOp[K]>;
 } = {
   init: async (request) => {
@@ -210,41 +226,43 @@ const opHandlers: {
     currentScopeDir = segments[0];
     await fs.mkdir(getScopedBaseDir(), { recursive: true });
   },
-  'write-file': async (request) => {
-    assertNoRelocationInProgress();
-    const absolutePath = resolveRelativePath(request.path);
-    await fs.mkdir(dirname(absolutePath), { recursive: true });
-    const input = Buffer.from(request.bytes);
-    const output = request.gzip ? gzipSync(input) : input;
-    await writeFileAtomic(absolutePath, output);
-    return { bytes: output.byteLength };
-  },
-  'open-stream': async (request, context) => {
-    assertNoRelocationInProgress();
-    const absolutePath = resolveRelativePath(request.path);
-    await fs.mkdir(dirname(absolutePath), { recursive: true });
-    const fileStream = createWriteStream(absolutePath);
-    const state: OpenStreamState = { fileStream, bytesWritten: 0, absolutePath, ownerId: context?.senderId };
-    const streamId = nextStreamId++;
-    fileStream.on('error', (error) => handleStreamError(streamId, state, error));
-    if (request.gzip) {
-      const gzip = createGzip();
-      gzip.on('data', (chunk: Buffer) => {
-        state.bytesWritten += chunk.length;
-      });
-      gzip.on('error', (error) => handleStreamError(streamId, state, error));
-      gzip.pipe(fileStream);
-      state.gzip = gzip;
-    }
-    openStreams.set(streamId, state);
-    return { streamId };
-  },
-  'stream-write': async (request, context) => {
-    const streamError = takeStreamError(request.streamId, context?.senderId);
+  'write-file': (request) =>
+    withMutationGuard(async () => {
+      const absolutePath = resolveRelativePath(request.path);
+      await fs.mkdir(dirname(absolutePath), { recursive: true });
+      const input = Buffer.from(request.bytes);
+      const output = request.gzip ? gzipSync(input) : input;
+      // Temp-file + fsync + rename (the same helper the preferences file uses), so a crash mid-write
+      // can never leave a truncated file at the target path
+      await writeFileAtomic(absolutePath, output);
+      return { bytes: output.byteLength };
+    }),
+  'open-stream': (request, { senderId }) =>
+    withMutationGuard(async () => {
+      const absolutePath = resolveRelativePath(request.path);
+      await fs.mkdir(dirname(absolutePath), { recursive: true });
+      const fileStream = createWriteStream(absolutePath);
+      const state: OpenStreamState = { fileStream, bytesWritten: 0, absolutePath, ownerId: senderId };
+      const streamId = nextStreamId++;
+      fileStream.on('error', (error) => handleStreamError(streamId, state, error));
+      if (request.gzip) {
+        const gzip = createGzip();
+        gzip.on('data', (chunk: Buffer) => {
+          state.bytesWritten += chunk.length;
+        });
+        gzip.on('error', (error) => handleStreamError(streamId, state, error));
+        gzip.pipe(fileStream);
+        state.gzip = gzip;
+      }
+      openStreams.set(streamId, state);
+      return { streamId };
+    }),
+  'stream-write': async (request, { senderId }) => {
+    const streamError = takeStreamError(request.streamId, senderId);
     if (streamError) {
       throw streamError;
     }
-    const state = getStream(request.streamId, context?.senderId);
+    const state = getStream(request.streamId, senderId);
     const buffer = Buffer.from(request.bytes);
     if (state.gzip) {
       await writeToStream(state.gzip, buffer);
@@ -253,12 +271,12 @@ const opHandlers: {
       state.bytesWritten += buffer.length;
     }
   },
-  'stream-close': async (request, context) => {
-    const streamError = takeStreamError(request.streamId, context?.senderId);
+  'stream-close': async (request, { senderId }) => {
+    const streamError = takeStreamError(request.streamId, senderId);
     if (streamError) {
       throw streamError;
     }
-    const state = getStream(request.streamId, context?.senderId);
+    const state = getStream(request.streamId, senderId);
     openStreams.delete(request.streamId);
     if (state.gzip) {
       state.gzip.end();
@@ -270,11 +288,11 @@ const opHandlers: {
     await finished(state.fileStream);
     return { bytes: state.bytesWritten };
   },
-  'stream-abort': async (request, context) => {
+  'stream-abort': async (request, { senderId }) => {
     // A stream torn down by an fs error was already destroyed and its partial file removed
-    takeStreamError(request.streamId, context?.senderId);
+    takeStreamError(request.streamId, senderId);
     const state = openStreams.get(request.streamId);
-    if (state && (state.ownerId === undefined || state.ownerId === context?.senderId)) {
+    if (state && state.ownerId === senderId) {
       openStreams.delete(request.streamId);
       state.gzip?.destroy();
       state.fileStream.destroy();
@@ -307,12 +325,12 @@ const opHandlers: {
       await fileHandle.close();
     }
   },
-  'delete-dir': async (request) => {
-    assertNoRelocationInProgress();
-    const absoluteDirPath = resolveRelativePath(request.path);
-    assertNoOpenStreamsUnder(absoluteDirPath);
-    await fs.rm(absoluteDirPath, { recursive: true, force: true });
-  },
+  'delete-dir': (request) =>
+    withMutationGuard(async () => {
+      const absoluteDirPath = resolveRelativePath(request.path);
+      assertNoOpenStreamsUnder(absoluteDirPath);
+      await fs.rm(absoluteDirPath, { recursive: true, force: true });
+    }),
   'list-entry-dirs': async () => {
     const dirs: Array<{ orgFolder: string; entryKey: string }> = [];
     const baseDir = getScopedBaseDir();
@@ -334,13 +352,13 @@ const opHandlers: {
 
 export async function handleDataHistoryOp(
   request: DataHistoryFileOpRequest,
-  context?: { senderId?: number },
+  context: DataHistoryOpContext,
 ): Promise<DataHistoryFileOpResult<DataHistoryFileOpRequest>> {
   // TypeScript cannot connect `request.op`'s narrowing to the map's per-op signature from outside
   // the map, so dispatch through one localized widening cast.
   const handler = opHandlers[request.op] as (
     request: DataHistoryFileOpRequest,
-    context?: { senderId?: number },
+    context: DataHistoryOpContext,
   ) => Promise<DataHistoryFileOpResult<DataHistoryFileOpRequest>>;
   return await handler(request, context);
 }
@@ -355,7 +373,11 @@ export function getDataHistoryFolderPath(): string {
  * rows are untouched — they resolve against the new base.
  *
  * The preference is only repointed after a fully successful copy (or when there is nothing to
- * move) — a failed copy rethrows and leaves the current folder authoritative and intact.
+ * move) — a failed copy rethrows and leaves the current folder authoritative and intact. It IS
+ * repointed BEFORE the old folder is removed: the repoint is the point of no return, after which
+ * every read resolves to the complete copy. Removing first would leave reads (which are not guarded
+ * by the relocation flag) resolving into a folder being deleted, and a process exit mid-removal
+ * would leave the preference pointing at a half-deleted folder with the complete copy unreferenced.
  */
 export async function setDataHistoryFolderPath(folderPath: string): Promise<string> {
   // The path normally comes straight from the main-process folder dialog, but validate anyway
@@ -371,12 +393,12 @@ export async function setDataHistoryFolderPath(folderPath: string): Promise<stri
   if (resolve(target).startsWith(resolve(current) + sep)) {
     throw new Error('The new data history folder cannot be inside the current one');
   }
-  if (openStreams.size > 0) {
+  if (openStreams.size > 0 || inFlightMutations > 0) {
     throw new Error('Cannot move the history folder while history files are being written — try again when the current data load finishes');
   }
-  // The copy below can run for many seconds, so the openStreams check above is only a point-in-time
-  // check — this flag makes every mutating op reject until the relocation settles. The pair is
-  // race-free: IPC handlers run on the main thread, so nothing interleaves between check and set.
+  // The copy below can run for many seconds, so the check above is only a point-in-time check —
+  // this flag makes every mutating op reject until the relocation settles. The pair is race-free:
+  // IPC handlers run on the main thread, so nothing interleaves between check and set.
   relocationInProgress = true;
   try {
     const hasExistingHistory = await pathExists(current);
@@ -392,28 +414,30 @@ export async function setDataHistoryFolderPath(folderPath: string): Promise<stri
         }
         throw ex;
       }
+      // The copy is complete, so the new location is authoritative from here on
+      updateUserPreferences({ dataHistoryFolder: target });
       try {
         await fs.rm(current, { recursive: true, force: true });
       } catch (ex) {
-        // The copy is complete so the new location is authoritative; leftover source files are harmless
+        // Leftover source files are harmless — nothing resolves there any more
         logger.warn('[DATA_HISTORY] Unable to remove the previous history folder after copying', ex);
       }
     } else {
       await fs.mkdir(target, { recursive: true });
+      updateUserPreferences({ dataHistoryFolder: target });
     }
-    updateUserPreferences({ dataHistoryFolder: target });
     return target;
   } finally {
     relocationInProgress = false;
   }
 }
 
-function getStream(streamId: number, senderId?: number): OpenStreamState {
+function getStream(streamId: number, senderId: number): OpenStreamState {
   const state = openStreams.get(streamId);
   // An owner mismatch reads exactly like an unknown id: stream ids are small sequential numbers
   // shared across all windows, so one window must not be able to write into, close, or abort a
   // stream another window opened.
-  if (!state || (state.ownerId !== undefined && state.ownerId !== senderId)) {
+  if (!state || state.ownerId !== senderId) {
     throw new Error(`Unknown streamId ${streamId}`);
   }
   return state;
