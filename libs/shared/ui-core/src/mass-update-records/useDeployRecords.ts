@@ -31,6 +31,32 @@ export function useDeployRecords(
    */
   const historyCaptureRef = useRef<Record<string, MassUpdateHistoryContext>>({});
 
+  /**
+   * Start a deployment's capture and register its context in the same step — a handle that was
+   * started but never registered is one the poll loop can never find, so it would sit `in-progress`
+   * until unmount with no error. Pairs with `takeHistoryCapture` below.
+   */
+  const beginHistoryCapture = useCallback(
+    ({
+      sobject,
+      batchSize,
+      serialMode,
+      configuration,
+      skipHistory,
+    }: {
+      sobject: string;
+      batchSize: number;
+      serialMode: boolean;
+      configuration: MetadataRowConfiguration[];
+      skipHistory?: boolean;
+    }): DataHistoryEntryHandle => {
+      const handle = startMassUpdateHistory({ org, source, sobject, batchSize, serialMode, configuration, skipHistory });
+      historyCaptureRef.current[sobject] = { handle, batchSize, configuration };
+      return handle;
+    },
+    [org, source],
+  );
+
   /** Remove and return a deployment's capture context, so exactly one path can settle it */
   const takeHistoryCapture = useCallback((sobject: string): MassUpdateHistoryContext | undefined => {
     const context = historyCaptureRef.current[sobject];
@@ -135,6 +161,11 @@ export function useDeployRecords(
 
   const loadDataForRow = useCallback(
     async (row: MetadataRow, { batchSize, serialMode, skipHistory }: { batchSize: number; serialMode: boolean; skipHistory?: boolean }) => {
+      // `loadDataForRows` keeps iterating after the host unmounts; a row started now would register
+      // its capture AFTER the unmount cleanup ran, so nothing would ever settle it
+      if (!isMounted.current) {
+        return;
+      }
       const deployResults: DeployResults = {
         done: false,
         processingStartTime: convertDateToLocale(new Date()),
@@ -153,20 +184,22 @@ export function useDeployRecords(
 
       // Registered BEFORE the query so a query/prepare failure is recorded against THIS attempt —
       // `loadDataForRows`'s catch is what settles it in that case
-      const historyHandle = startMassUpdateHistory({
-        org,
-        source,
+      const historyHandle = beginHistoryCapture({
         sobject: row.sobject,
         batchSize,
         serialMode,
         configuration: row.configuration,
         skipHistory,
       });
-      historyCaptureRef.current[row.sobject] = { handle: historyHandle, batchSize, configuration: row.configuration };
 
       const records = await queryAndPrepareRecordsForUpdate(row, fields, org);
 
       if (!isMounted.current) {
+        // Normally already taken by the unmount cleanup; settling here keeps every exit path of this
+        // function responsible for its own entry
+        takeHistoryCapture(row.sobject)?.handle.abandonIfUnsettled(
+          'The update was still running when you left the page, so its final outcome was not recorded.',
+        );
         return;
       }
 
@@ -200,7 +233,7 @@ export function useDeployRecords(
         historyHandle,
       });
     },
-    [org, source, performLoad, onDeployResults, takeHistoryCapture],
+    [org, performLoad, onDeployResults, beginHistoryCapture, takeHistoryCapture],
   );
 
   /**
@@ -297,8 +330,7 @@ export function useDeployRecords(
 
         // Registered BEFORE prepareRecords so a transformation failure is recorded against THIS
         // attempt — the catch below is what settles it in that case
-        const historyHandle = startMassUpdateHistory({ org, source, sobject, batchSize, serialMode, configuration, skipHistory });
-        historyCaptureRef.current[sobject] = { handle: historyHandle, batchSize, configuration };
+        const historyHandle = beginHistoryCapture({ sobject, batchSize, serialMode, configuration, skipHistory });
 
         const records = prepareRecords(initialRecords, configuration);
 
@@ -331,7 +363,7 @@ export function useDeployRecords(
         logger.error('Error loading data for row', ex);
       }
     },
-    [trackEvent, org, source, onDeployResults, performLoad, takeHistoryCapture],
+    [trackEvent, source, onDeployResults, performLoad, beginHistoryCapture, takeHistoryCapture],
   );
 
   const pollResults = useCallback(

@@ -266,7 +266,7 @@ describe('getDataHistoryConfigDisplayItems', () => {
         serialMode: false,
         hasDateFieldMapped: false,
         dateFormat: 'MM/DD/YYYY',
-        trialRun: false,
+        isTrialRun: false,
         trialRunSize: 1,
         hasZipAttachment: false,
         timesSameDataSubmitted: 1,

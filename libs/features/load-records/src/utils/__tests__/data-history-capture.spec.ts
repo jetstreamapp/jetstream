@@ -52,7 +52,7 @@ describe('buildLoadRecordsHistoryConfig', () => {
       serialMode: false,
       hasDateFieldMapped: true,
       dateFormat: 'MM-DD-YYYY',
-      trialRun: false,
+      isTrialRun: false,
       trialRunSize: undefined,
       hasZipAttachment: false,
       timesSameDataSubmitted: 1,
@@ -61,8 +61,8 @@ describe('buildLoadRecordsHistoryConfig', () => {
   });
 
   it('records the trial-run size when this is a trial run', () => {
-    expect(buildLoadRecordsHistoryConfig({ ...baseConfigArgs, trialRun: true, trialRunSize: 10 })).toMatchObject({
-      trialRun: true,
+    expect(buildLoadRecordsHistoryConfig({ ...baseConfigArgs, isTrialRun: true, trialRunSize: 10 })).toMatchObject({
+      isTrialRun: true,
       trialRunSize: 10,
     });
   });

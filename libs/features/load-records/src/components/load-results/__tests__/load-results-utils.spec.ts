@@ -1,12 +1,29 @@
+import { bulkApiGetRecords } from '@jetstream/shared/data';
 import { BULK_RESULTS_BASE_HEADER, buildBulkResultRow } from '@jetstream/shared/utils';
-import { BulkJobBatchInfo, BulkJobResultRecord, RecordResultWithRecord } from '@jetstream/types';
-import { describe, expect, it } from 'vitest';
+import {
+  BulkJobBatchInfo,
+  BulkJobResultRecord,
+  BulkJobWithBatches,
+  LoadDataBulkApiStatusPayload,
+  PrepareDataResponse,
+  RecordResultWithRecord,
+  SalesforceOrgUi,
+} from '@jetstream/types';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   alignBatchSourceRecordsToResults,
   buildBatchApiResultRow,
+  collectFailedRecordsForRetry,
+  createBatchResultsFetcher,
   getCompletedBatchSourceRecords,
   getLoadResultsHeader,
 } from '../load-results-utils';
+
+vi.mock('@jetstream/shared/data', () => ({
+  bulkApiGetRecords: vi.fn(),
+  bulkApiGetRecordsFromAllBatches: vi.fn(),
+}));
+const bulkApiGetRecordsMock = vi.mocked(bulkApiGetRecords);
 
 describe('getLoadResultsHeader', () => {
   it('prefixes the mapped field headers with the standard result columns', () => {
@@ -191,5 +208,151 @@ describe('bulk result pairing end-to-end (failed batch 1, completed batch 2)', (
       { _id: '001C', _success: true, _errors: '', Id: '001C', Name: 'Batch2-A' },
       { _id: '001D', _success: false, _errors: 'FIELD_INTEGRITY_EXCEPTION', Id: '001D', Name: 'Batch2-B' },
     ]);
+  });
+});
+
+describe('createBatchResultsFetcher', () => {
+  const org = { uniqueId: 'org-1' } as SalesforceOrgUi;
+
+  beforeEach(() => {
+    bulkApiGetRecordsMock.mockReset();
+  });
+
+  it('downloads each batch once even when two consumers ask for it concurrently', async () => {
+    bulkApiGetRecordsMock.mockResolvedValue([{ Id: '001A', Success: true, Created: false, Error: null }]);
+    const fetchBatchResults = createBatchResultsFetcher(org, 'job-1');
+
+    const [first, second] = await Promise.all([fetchBatchResults('batch-1'), fetchBatchResults('batch-1')]);
+    await fetchBatchResults('batch-2');
+
+    expect(first).toBe(second);
+    expect(bulkApiGetRecordsMock).toHaveBeenCalledTimes(2);
+    expect(bulkApiGetRecordsMock).toHaveBeenCalledWith(org, 'job-1', 'batch-1', 'result');
+    expect(bulkApiGetRecordsMock).toHaveBeenCalledWith(org, 'job-1', 'batch-2', 'result');
+  });
+
+  it('evicts a rejected fetch so the next consumer retries for real', async () => {
+    bulkApiGetRecordsMock.mockRejectedValueOnce(new Error('transient')).mockResolvedValueOnce([]);
+    const fetchBatchResults = createBatchResultsFetcher(org, 'job-1');
+
+    await expect(fetchBatchResults('batch-1')).rejects.toThrow('transient');
+    await expect(fetchBatchResults('batch-1')).resolves.toEqual([]);
+    expect(bulkApiGetRecordsMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('collectFailedRecordsForRetry', () => {
+  const records = [
+    { Id: '001A', Name: 'Batch1-A' },
+    { Id: '001B', Name: 'Batch1-B' },
+    { Id: '001C', Name: 'Batch2-A' },
+    { Id: '001D', Name: 'Batch2-B' },
+  ];
+  const preparedData = { data: records, errors: [] } as unknown as PrepareDataResponse;
+  const batchSummary = {
+    batchSummary: [
+      { id: 'batch-1', batchNumber: 0, startIndex: 0, recordCount: 2 },
+      { id: 'batch-2', batchNumber: 1, startIndex: 2, recordCount: 2 },
+    ],
+  } as LoadDataBulkApiStatusPayload;
+  const jobWith = (states: BulkJobBatchInfo['state'][]): BulkJobWithBatches =>
+    ({ id: 'job-1', batches: states.map((state, index) => ({ id: `batch-${index + 1}`, state })) }) as BulkJobWithBatches;
+  const success = (Id: string): BulkJobResultRecord => ({ Id, Success: true, Created: false, Error: null });
+  const failure = (Id: string): BulkJobResultRecord => ({ Id, Success: false, Created: false, Error: 'ERR' });
+
+  it('returns nothing when there were no failures and skips the fetch entirely', async () => {
+    const fetchBatchResults = vi.fn();
+    const failed = await collectFailedRecordsForRetry({
+      numFailure: 0,
+      jobInfo: jobWith(['Completed', 'Completed']),
+      batchSummary,
+      preparedData,
+      loadType: 'INSERT',
+      fetchBatchResults,
+    });
+    expect(failed).toEqual([]);
+    expect(fetchBatchResults).not.toHaveBeenCalled();
+  });
+
+  it('returns the failed records of every completed batch, in batch order', async () => {
+    const fetchBatchResults = vi.fn(async (batchId: string) =>
+      batchId === 'batch-1' ? [failure('001A'), success('001B')] : [success('001C'), failure('001D')],
+    );
+    const failed = await collectFailedRecordsForRetry({
+      numFailure: 2,
+      jobInfo: jobWith(['Completed', 'Completed']),
+      batchSummary,
+      preparedData,
+      loadType: 'UPDATE',
+      fetchBatchResults,
+    });
+    expect(failed).toEqual([records[0], records[3]]);
+  });
+
+  it('treats every record of a batch whose results could not be fetched as failed', async () => {
+    const fetchBatchResults = vi.fn(async (batchId: string) => {
+      if (batchId === 'batch-1') {
+        throw new Error('transient');
+      }
+      return [success('001C'), success('001D')];
+    });
+    const failed = await collectFailedRecordsForRetry({
+      numFailure: 1,
+      jobInfo: jobWith(['Completed', 'Completed']),
+      batchSummary,
+      preparedData,
+      loadType: 'UPDATE',
+      fetchBatchResults,
+    });
+    expect(failed).toEqual([records[0], records[1]]);
+  });
+
+  it('includes every record of a batch that never completed, after the resolved failures', async () => {
+    const fetchBatchResults = vi.fn(async () => [success('001C'), failure('001D')]);
+    const failed = await collectFailedRecordsForRetry({
+      numFailure: 3,
+      jobInfo: jobWith(['Failed', 'Completed']),
+      batchSummary,
+      preparedData,
+      loadType: 'UPDATE',
+      fetchBatchResults,
+    });
+    expect(fetchBatchResults).toHaveBeenCalledTimes(1);
+    expect(fetchBatchResults).toHaveBeenCalledWith('batch-2');
+    expect(failed).toEqual([records[3], records[0], records[1]]);
+  });
+
+  it('falls back to every record when no batch completed', async () => {
+    const fetchBatchResults = vi.fn();
+    const failed = await collectFailedRecordsForRetry({
+      numFailure: 4,
+      jobInfo: jobWith(['Failed', 'NotProcessed']),
+      batchSummary,
+      preparedData,
+      loadType: 'UPDATE',
+      fetchBatchResults,
+    });
+    expect(failed).toEqual(records);
+    expect(failed).not.toBe(records);
+    expect(fetchBatchResults).not.toHaveBeenCalled();
+  });
+
+  it('on a delete, pairs results with the Id-bearing records and counts the omitted ones as failed', async () => {
+    const deleteRecords = [{ Id: '001A' }, { Name: 'no-id' }, { Id: '001B' }];
+    const deletePreparedData = { data: deleteRecords, errors: [] } as unknown as PrepareDataResponse;
+    const deleteSummary = {
+      batchSummary: [{ id: 'batch-1', batchNumber: 0, startIndex: 0, recordCount: 3 }],
+    } as LoadDataBulkApiStatusPayload;
+    // Salesforce returns result rows only for the two records that had an Id
+    const fetchBatchResults = vi.fn(async () => [success('001A'), failure('001B')]);
+    const failed = await collectFailedRecordsForRetry({
+      numFailure: 1,
+      jobInfo: jobWith(['Completed']),
+      batchSummary: deleteSummary,
+      preparedData: deletePreparedData,
+      loadType: 'DELETE',
+      fetchBatchResults,
+    });
+    expect(failed).toEqual([deleteRecords[2], deleteRecords[1]]);
   });
 });

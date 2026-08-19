@@ -40,6 +40,7 @@ export const dataHistoryDb = {
     savePaidPlanLastSeenAt,
     getDeletedEntryTombstones,
     addDeletedEntryTombstone,
+    addDeletedEntryTombstones,
   }),
 };
 
@@ -221,7 +222,20 @@ async function getDeletedEntryTombstones(): Promise<string[]> {
 }
 
 async function addDeletedEntryTombstone(key: string): Promise<void> {
+  await addDeletedEntryTombstones([key]);
+}
+
+/**
+ * Add many tombstones in ONE read + ONE write. The tombstone list is a single row holding the whole
+ * array, so bulk callers (delete-all) must not loop over the single-key variant — that rewrites the
+ * full list once per entry.
+ */
+async function addDeletedEntryTombstones(keys: string[]): Promise<void> {
+  if (keys.length === 0) {
+    return;
+  }
+  const addedKeys = new Set(keys);
   const existing = await getDeletedEntryTombstones();
-  const updated = [...existing.filter((existingKey) => existingKey !== key), key].slice(-TOMBSTONE_LIMIT);
+  const updated = [...existing.filter((existingKey) => !addedKeys.has(existingKey)), ...addedKeys].slice(-TOMBSTONE_LIMIT);
   await getDexieDb().data_history_config.put({ key: 'deletedEntryTombstones', value: updated, updatedAt: new Date() });
 }

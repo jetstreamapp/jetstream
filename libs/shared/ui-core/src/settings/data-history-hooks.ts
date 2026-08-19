@@ -132,6 +132,67 @@ export function useRequestPersistentStorage({ analyticsLocation }: { analyticsLo
   return { persistPromptEligible, persisted, requestingPersist, requestPersist };
 }
 
+const STORAGE_ACTION_ERROR_MESSAGE = 'There was a problem changing the Data History storage location.';
+
+/**
+ * The ONE lifecycle around a Data History storage action — the working flag, the analytics event and
+ * `onChanged` refresh after it, the warn + error toast when it throws. Every storage button on the
+ * Data History page and in Settings (connect / change / re-connect / switch back / re-index) runs
+ * through this, so toast copy, the analytics shape and the spinner contract live in one place.
+ *
+ * An action resolves `false` when the user cancelled (a dismissed folder picker): nothing changed, so
+ * there is no analytics event and no `onChanged`. Resolves whether the action completed.
+ */
+export function useRunStorageAction({
+  analyticsLocation,
+  onChanged,
+  onFailed,
+}: {
+  analyticsLocation: string;
+  /** Runs after the action completed — surfaces refresh their backend status / usage numbers here */
+  onChanged?: () => void | Promise<void>;
+  /** Runs after the action threw — a surface showing backend status re-reads it, since a partial change may already have landed */
+  onFailed?: () => void | Promise<void>;
+}) {
+  const { trackEvent } = useAmplitude();
+  const [working, setWorking] = useState(false);
+
+  async function runStorageAction(
+    action: () => Promise<boolean | void>,
+    /** The `data_history_settings_changed` payload (minus `location`); a thunk when it depends on the action's outcome */
+    analytics: Record<string, unknown> | (() => Record<string, unknown>),
+    options?: {
+      /**
+       * Shown verbatim instead of the thrown error's message. By default the error's own message is
+       * shown when it has one — some failures carry an actionable message (the previous folder needs
+       * access re-granted, desktop refuses to move the folder mid-load) — rather than a generic error
+       * the user can only retry.
+       */
+      errorMessage?: string;
+    },
+  ): Promise<boolean> {
+    setWorking(true);
+    try {
+      if ((await action()) === false) {
+        return false;
+      }
+      const analyticsPayload = typeof analytics === 'function' ? analytics() : analytics;
+      trackEvent(ANALYTICS_KEYS.data_history_settings_changed, { ...analyticsPayload, location: analyticsLocation });
+      await onChanged?.();
+      return true;
+    } catch (ex) {
+      logger.warn('[DATA_HISTORY] Storage action failed', ex);
+      fireToast({ type: 'error', message: options?.errorMessage ?? (getErrorMessage(ex) || STORAGE_ACTION_ERROR_MESSAGE) });
+      await onFailed?.();
+      return false;
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  return { runStorageAction, working };
+}
+
 /**
  * Report the outcome of moving history between backends. Every migration can leave entries behind —
  * captures still being written, a previous folder that could not be read, a single entry whose files
@@ -172,21 +233,23 @@ export function fireMigrationResultToast({ migrated, skipped }: DataHistoryMigra
  * share one try/toast/track/working lifecycle here instead of each surface rebuilding it.
  *
  * `onProgress` drives the caller's migration counter; the analytics event reports the backend that
- * was actually connected, so the two surfaces differ only by `location`.
+ * was actually connected, so the two surfaces differ only by `location`. The four flows resolve
+ * `false` when the user dismissed the picker — see `useRunStorageAction`.
  */
 export function useStoreHistoryInFolder({
   analyticsLocation,
   backendStatus,
   onProgress,
   onChanged,
+  onFailed,
 }: {
   analyticsLocation: string;
   backendStatus: DataHistoryBackendStatus | null;
   onProgress?: DataHistoryMigrationProgress;
   onChanged?: () => void | Promise<void>;
+  onFailed?: () => void | Promise<void>;
 }) {
-  const { trackEvent } = useAmplitude();
-  const [working, setWorking] = useState(false);
+  const { runStorageAction, working } = useRunStorageAction({ analyticsLocation, onChanged, onFailed });
   const nativeSupported = !!backendStatus?.nativeSupported;
   // Whether to OFFER "Store History in a Folder" — keyed on the configured backend, not on where
   // writes currently land. "Change Folder…" is offered by the caller while a folder is configured.
@@ -194,30 +257,8 @@ export function useStoreHistoryInFolder({
     !!backendStatus &&
     ((nativeSupported && backendStatus.active !== 'native') || (backendStatus.directorySupported && backendStatus.active !== 'directory'));
 
-  /**
-   * Runs one of the four folder flows. `action` resolves false when the user cancelled a picker —
-   * nothing changed, so there is no toast, no analytics event, and no `onChanged`.
-   */
-  async function runFolderAction(action: () => Promise<boolean>, analytics: Record<string, unknown>) {
-    setWorking(true);
-    try {
-      if (!(await action())) {
-        return;
-      }
-      trackEvent(ANALYTICS_KEYS.data_history_settings_changed, { ...analytics, location: analyticsLocation });
-      await onChanged?.();
-    } catch (ex) {
-      logger.warn('[DATA_HISTORY] Error switching history storage', ex);
-      // Some failures carry an actionable message (the previous folder needs access re-granted, desktop
-      // refuses to move the folder mid-load) — show it rather than a generic error the user can only retry
-      fireToast({ type: 'error', message: getErrorMessage(ex) || 'There was a problem changing the Data History storage location.' });
-    } finally {
-      setWorking(false);
-    }
-  }
-
   function storeInFolder() {
-    return runFolderAction(
+    return runStorageAction(
       async () => {
         if (nativeSupported) {
           fireMigrationResultToast(
@@ -238,7 +279,7 @@ export function useStoreHistoryInFolder({
   }
 
   function changeFolder() {
-    return runFolderAction(
+    return runStorageAction(
       async () => {
         if (nativeSupported) {
           const newPath = await changeNativeHistoryFolder();
@@ -269,35 +310,28 @@ export function useStoreHistoryInFolder({
 export function useReconnectHistoryFolder({
   analyticsLocation,
   onChanged,
+  onFailed,
 }: {
   analyticsLocation: string;
   onChanged?: () => void | Promise<void>;
+  onFailed?: () => void | Promise<void>;
 }) {
-  const { trackEvent } = useAmplitude();
-  const [working, setWorking] = useState(false);
+  const { runStorageAction, working } = useRunStorageAction({ analyticsLocation, onChanged, onFailed });
 
-  async function reconnectFolder() {
-    setWorking(true);
-    try {
-      const granted = await reconnectHistoryDirectory();
-      fireToast(
-        granted
-          ? { type: 'success', message: 'Folder re-connected — new history will be saved there.' }
-          : { type: 'warning', message: 'Permission was not granted.' },
-      );
-      trackEvent(ANALYTICS_KEYS.data_history_settings_changed, {
-        backend: 'directory',
-        action: 'reconnect',
-        granted,
-        location: analyticsLocation,
-      });
-      await onChanged?.();
-    } catch (ex) {
-      logger.warn('[DATA_HISTORY] Error re-connecting folder', ex);
-      fireToast({ type: 'error', message: 'There was a problem re-connecting the Data History folder.' });
-    } finally {
-      setWorking(false);
-    }
+  function reconnectFolder() {
+    let granted = false;
+    return runStorageAction(
+      async () => {
+        granted = await reconnectHistoryDirectory();
+        fireToast(
+          granted
+            ? { type: 'success', message: 'Folder re-connected — new history will be saved there.' }
+            : { type: 'warning', message: 'Permission was not granted.' },
+        );
+      },
+      () => ({ backend: 'directory', action: 'reconnect', granted }),
+      { errorMessage: 'There was a problem re-connecting the Data History folder.' },
+    );
   }
 
   return { reconnectFolder, working };

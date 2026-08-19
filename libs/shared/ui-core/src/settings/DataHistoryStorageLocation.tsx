@@ -1,6 +1,3 @@
-import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { getErrorMessage } from '@jetstream/shared/utils';
 import { Maybe } from '@jetstream/types';
 import { fireToast, Spinner } from '@jetstream/ui';
 import {
@@ -10,12 +7,12 @@ import {
   reindexHistoryFromActiveBackend,
 } from '@jetstream/ui/data-history';
 import { FunctionComponent, useState } from 'react';
-import { useAmplitude } from '../analytics';
 import {
   fireMigrationResultToast,
   openHistoryFolder,
   useDataHistoryBackendStatus,
   useReconnectHistoryFolder,
+  useRunStorageAction,
   useStoreHistoryInFolder,
 } from './data-history-hooks';
 
@@ -32,9 +29,7 @@ const ANALYTICS_LOCATION = 'settings-storage-location';
  * environments that support neither (Firefox/Safari web, canvas).
  */
 export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLocationProps> = ({ onChanged }) => {
-  const { trackEvent } = useAmplitude();
   const { backendStatus: status, loadBackendStatus: loadStatus } = useDataHistoryBackendStatus();
-  const [actionWorking, setActionWorking] = useState(false);
   const [migrationProgress, setMigrationProgress] = useState<Maybe<{ migrated: number; total: number }>>(null);
 
   function handleMigrationProgress(migrated: number, total: number) {
@@ -46,9 +41,11 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
     onChanged?.();
   }
 
-  // Connect-a-folder, change-folder and re-connect are shared with the Data History page — same
-  // service call, same copy, same analytics but for `location`. Only the flows this surface alone
-  // offers (switch back, re-index) use `runAction`.
+  // Every storage button runs through the one `useRunStorageAction` lifecycle. Connect-a-folder,
+  // change-folder and re-connect are shared with the Data History page — same service call, same
+  // copy, same analytics but for `location`; the flows this surface alone offers (switch back,
+  // re-index) use `runStorageAction` directly. This panel SHOWS the backend status, so every flow
+  // re-reads it on failure too — a partial change may already have landed.
   const {
     storeInFolder,
     changeFolder,
@@ -59,10 +56,17 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
     backendStatus: status,
     onProgress: handleMigrationProgress,
     onChanged: handleChanged,
+    onFailed: loadStatus,
   });
   const { reconnectFolder, working: reconnectWorking } = useReconnectHistoryFolder({
     analyticsLocation: ANALYTICS_LOCATION,
     onChanged: handleChanged,
+    onFailed: loadStatus,
+  });
+  const { runStorageAction, working: actionWorking } = useRunStorageAction({
+    analyticsLocation: ANALYTICS_LOCATION,
+    onChanged: handleChanged,
+    onFailed: loadStatus,
   });
   const working = actionWorking || storeWorking || reconnectWorking;
 
@@ -80,21 +84,8 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
     }
   }
 
-  function runAction(action: () => Promise<unknown>, analytics: Record<string, unknown>) {
-    return withMigrationProgress(async () => {
-      setActionWorking(true);
-      try {
-        await action();
-        trackEvent(ANALYTICS_KEYS.data_history_settings_changed, { ...analytics, location: ANALYTICS_LOCATION });
-        await handleChanged();
-      } catch (ex) {
-        logger.warn('[DATA_HISTORY] Storage location change failed', ex);
-        fireToast({ type: 'error', message: getErrorMessage(ex) || 'There was a problem changing the Data History storage location.' });
-        await loadStatus();
-      } finally {
-        setActionWorking(false);
-      }
-    });
+  function runAction(action: () => Promise<void>, analytics: Record<string, unknown>) {
+    return withMigrationProgress(() => runStorageAction(action, analytics));
   }
 
   if (!status || (!status.directorySupported && !status.nativeSupported)) {

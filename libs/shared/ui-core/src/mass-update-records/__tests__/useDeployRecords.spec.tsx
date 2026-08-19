@@ -78,4 +78,38 @@ describe('useDeployRecords Data History lifecycle', () => {
     // The symptom the user hits: a stranded entry refuses to delete with "still being written"
     expect(await deleteDataHistoryEntry(key)).toEqual({ deleted: true });
   });
+
+  /**
+   * The multi-object variant: `loadDataForRows` keeps iterating after the host unmounts, so rows
+   * that start AFTER the unmount cleanup ran must not begin a capture at all — nothing could ever
+   * settle them.
+   */
+  it('does not start history entries for rows that begin after the host unmounts', async () => {
+    let resolveFirstQuery: (records: unknown[]) => void = () => undefined;
+    queryAndPrepareMock.mockReturnValueOnce(new Promise<unknown[]>((resolve) => (resolveFirstQuery = resolve)));
+    queryAndPrepareMock.mockResolvedValue([]);
+    const contactRow = { ...row, sobject: 'Contact' } as MetadataRow;
+
+    const { result, unmount } = renderHook(() => useDeployRecords(org, vi.fn(), 'STAND-ALONE'));
+    const loadPromise = result.current.loadDataForRows([row, contactRow], { batchSize: 200, serialMode: false });
+
+    const firstKey = await vi.waitFor(async () => {
+      const [entry] = await dataHistoryDb.getEntries({});
+      expect(entry?.status).toBe('in-progress');
+      return entry.key;
+    });
+
+    unmount();
+    // Let the first row's query settle AFTER the unmount, so the loop moves on to the Contact row
+    resolveFirstQuery([]);
+    await loadPromise;
+
+    await vi.waitFor(async () => {
+      expect((await dataHistoryDb.getEntry(firstKey))?.status).toBe('incomplete');
+    });
+    // Only the Account entry exists — the Contact row never started one
+    const entries = await dataHistoryDb.getEntries({});
+    expect(entries.map(({ sobjects }) => sobjects)).toEqual([['Account']]);
+    expect(await deleteDataHistoryEntry(firstKey)).toEqual({ deleted: true });
+  });
 });

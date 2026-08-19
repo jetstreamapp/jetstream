@@ -21,6 +21,7 @@ import {
 } from '@jetstream/ui/data-history';
 import {
   alignBatchSourceRecordsToResults,
+  BatchResultsFetcher,
   getBulkJobCompletedBatches,
   getLoadResultsHeader,
   isDeleteLoadType,
@@ -89,18 +90,29 @@ export interface LoadRecordsHistoryConfig {
   fieldMapping: FieldMapping;
   hasZipAttachment: boolean;
   timesSameDataSubmitted: number;
-  trialRun?: boolean;
+  isTrialRun?: boolean;
   trialRunSize?: Maybe<number>;
   retry?: { retryCount: number; retrySource: 'all' | 'selected'; totalFailedCount: number };
 }
 
-/** The config values a single run supplies — the rest come from the load wizard via `startLoadRecordsHistory` */
-export type LoadRecordsHistoryRunConfig = Omit<LoadRecordsHistoryConfig, 'loadType' | 'apiMode'>;
+/**
+ * The built run snapshot: what is stored on the entry's `config` AND sent as the `load_Submitted`
+ * analytics payload — one object serves both so the two can never drift. A type alias (not an
+ * interface) so it stays assignable to the `Record<string, unknown>` both consumers take.
+ */
+export type LoadRecordsHistorySnapshot = Omit<LoadRecordsHistoryConfig, 'fieldMapping' | 'retry' | 'isTrialRun'> & {
+  isTrialRun: boolean;
+  numStaticFields: number;
+  isRetry?: true;
+  retryCount?: number;
+  retrySource?: 'all' | 'selected';
+  totalFailedCount?: number;
+};
 
 /**
- * Metadata snapshot stored on the entry's `config`, mirroring the `load_Submitted` analytics payload
- * (the loaded rows themselves are captured as files). Shared by the initial-load and retry paths so
- * the two records stay comparable — `retry` adds the retry-specific fields on top.
+ * Metadata snapshot of HOW a Load Records run was configured (the loaded rows themselves are
+ * captured as files). Shared by the initial-load and retry paths so the two records stay comparable
+ * — `retry` adds the retry-specific fields on top.
  */
 export function buildLoadRecordsHistoryConfig({
   loadType,
@@ -114,10 +126,10 @@ export function buildLoadRecordsHistoryConfig({
   fieldMapping,
   hasZipAttachment,
   timesSameDataSubmitted,
-  trialRun = false,
+  isTrialRun = false,
   trialRunSize,
   retry,
-}: LoadRecordsHistoryConfig): Record<string, unknown> {
+}: LoadRecordsHistoryConfig): LoadRecordsHistorySnapshot {
   return {
     loadType,
     apiMode,
@@ -127,7 +139,7 @@ export function buildLoadRecordsHistoryConfig({
     serialMode,
     hasDateFieldMapped,
     dateFormat,
-    trialRun,
+    isTrialRun,
     trialRunSize,
     hasZipAttachment,
     timesSameDataSubmitted,
@@ -139,13 +151,12 @@ export function buildLoadRecordsHistoryConfig({
 /**
  * Begin a history entry for a Load Records run — initial load, trial run, or retry (a retry links to
  * the run it retried via `parentKey`). Owns the envelope shared by every load-records entry; callers
- * pass only the per-run values. The handle self-gates (captures nothing when disabled/opted out) and
- * is never awaited on the load's critical path.
+ * pass the run snapshot they already built (see `buildLoadRecordsHistoryConfig`), so the same object
+ * goes to analytics. The handle self-gates (captures nothing when disabled/opted out) and is never
+ * awaited on the load's critical path.
  */
 export function startLoadRecordsHistory({
   org,
-  loadType,
-  apiMode,
   sobject,
   inputFilename,
   inputFilenameType,
@@ -155,24 +166,21 @@ export function startLoadRecordsHistory({
   parentKey,
 }: {
   org: SalesforceOrgUi;
-  loadType: InsertUpdateUpsertDelete;
-  apiMode: ApiMode;
   sobject: string;
   inputFilename: Maybe<string>;
   inputFilenameType: Maybe<LocalOrGoogle>;
   inputGoogleFileId: Maybe<string>;
   skipHistory?: boolean;
-  /** Config snapshot values — `loadType`/`apiMode` are added automatically */
-  config: LoadRecordsHistoryRunConfig;
+  config: LoadRecordsHistorySnapshot;
   parentKey?: string;
 }): DataHistoryEntryHandle {
   return startDataHistoryEntry({
     org,
     source: 'load-records',
-    operation: loadTypeToDataHistoryOperation(loadType),
-    api: apiModeToDataHistoryApi(apiMode),
+    operation: loadTypeToDataHistoryOperation(config.loadType),
+    api: apiModeToDataHistoryApi(config.apiMode),
     sobjects: [sobject],
-    config: buildLoadRecordsHistoryConfig({ loadType, apiMode, ...config }),
+    config,
     inputSource: buildDataHistoryInputSource({
       filename: inputFilename,
       filenameType: inputFilenameType,
@@ -205,6 +213,7 @@ export function captureBulkApiLoadResults({
   fields,
   counts,
   errorMessage,
+  fetchBatchResults,
 }: {
   handle: DataHistoryEntryHandle;
   selectedOrg: SalesforceOrgUi;
@@ -217,6 +226,8 @@ export function captureBulkApiLoadResults({
   counts: DataHistoryCounts;
   /** Why the load stopped early, when it did (records never submitted are in `counts.failure`) */
   errorMessage?: string;
+  /** Shared with the retry-record collector so each batch is downloaded once — see `createBatchResultsFetcher` */
+  fetchBatchResults?: BatchResultsFetcher;
 }): Promise<void> {
   return handle.finalize({ counts, jobId: jobInfo.id ?? undefined, errorMessage }, async () => {
     if (!jobInfo.id) {
@@ -230,6 +241,7 @@ export function captureBulkApiLoadResults({
       jobId: jobInfo.id,
       batchIds,
       header: getLoadResultsHeader(fields),
+      fetchBatchResults,
       buildBatchRows: (results, _batchId, batchIndex) => {
         // Per-batch alignment, matching the single-batch download scope: for deletes Salesforce
         // omits records with no mapped Id, and it applies that uniformly per batch

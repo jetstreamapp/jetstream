@@ -18,6 +18,7 @@ import {
 } from '@jetstream/ui';
 import { DataHistorySettingsSection, SalesforceCanvasOrgs, SoqlQueryFormatConfig, useAmplitude } from '@jetstream/ui-core';
 import { fromAppState, useFeatureFlag, userProfileState } from '@jetstream/ui/app-state';
+import { deleteAllDataHistoryFiles } from '@jetstream/ui/data-history';
 import { deleteAllLocalData, dexieDataSync, recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useAtom, useAtomValue } from 'jotai';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -146,6 +147,9 @@ export const Settings = () => {
     // Only wipe local data once the server-side delete succeeded — deleteAllLocalData unbinds the
     // local stores, so doing it before a delete that then fails would leave the still-running app
     // unable to read local storage. The redirect below immediately replaces the page.
+    // Data history payload files live outside the databases deleteAllLocalData removes and are rooted
+    // under the user scope it unbinds, so they go first. Both are best-effort and never throw.
+    await deleteAllDataHistoryFiles();
     try {
       await deleteAllLocalData(userProfile.id);
     } catch {

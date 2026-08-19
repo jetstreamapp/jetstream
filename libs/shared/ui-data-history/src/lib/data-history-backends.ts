@@ -412,6 +412,11 @@ export async function migrateHistoryEntries({
   // active-handle set cannot see.
   const entries = candidates.filter((entry) => !isEntryLikelyInFlight(entry));
   let migrated = 0;
+  // A source backend that cannot be opened (a folder whose handle lapsed, a desktop folder on an
+  // unmounted drive) fails for EVERY entry stamped with it, and the store factory does not cache a
+  // failed store — so remember the failure here, or every straggler re-reads the backend config,
+  // re-probes permission / the IPC bridge and logs again, on every init sweep.
+  const unavailableBackends = new Set<DataHistoryStorageBackend>();
   for (const entry of entries) {
     try {
       if (entry.files.length === 0) {
@@ -419,7 +424,13 @@ export async function migrateHistoryEntries({
         // re-stamping is the whole migration
         await dataHistoryDb.updateEntry(entry.key, { storageBackend: to.type });
       } else {
-        const from = await getFileStoreForBackend(entry.storageBackend);
+        if (unavailableBackends.has(entry.storageBackend)) {
+          continue;
+        }
+        const from = await getFileStoreForBackend(entry.storageBackend).catch((ex) => {
+          unavailableBackends.add(entry.storageBackend);
+          throw ex;
+        });
         await copyEntryToStore(entry, from, to);
         if (!from.capabilities.userVisibleFiles) {
           // The entry IS migrated at this point (copied and re-stamped) — a failed source cleanup

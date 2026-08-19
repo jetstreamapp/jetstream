@@ -26,14 +26,14 @@ import { ChangeEvent, FunctionComponent, useCallback, useEffect, useMemo, useRef
 import LoadRecordsAssignmentRules from '../components/LoadRecordsAssignmentRules';
 import LoadRecordsDuplicateWarning from '../components/LoadRecordsDuplicateWarning';
 import LoadRecordsResults from '../components/load-results/LoadRecordsResults';
-import { LoadRecordsHistoryConfig, startLoadRecordsHistory } from '../utils/data-history-capture';
+import { buildLoadRecordsHistoryConfig, LoadRecordsHistoryConfig, startLoadRecordsHistory } from '../utils/data-history-capture';
 
 /**
  * The only Data History values that differ between an initial load, a trial run and a retry —
  * everything else comes from the load wizard via `startHistoryForRun`. Picked from the shared
  * config interface so a renamed or removed field there cannot be silently missed here.
  */
-type LoadRunHistoryOptions = Pick<LoadRecordsHistoryConfig, 'numRecords' | 'hasZipAttachment' | 'trialRun' | 'trialRunSize' | 'retry'> & {
+type LoadRunHistoryOptions = Pick<LoadRecordsHistoryConfig, 'numRecords' | 'hasZipAttachment' | 'isTrialRun' | 'trialRunSize' | 'retry'> & {
   /** Links a retry entry to the entry it retried */
   parentKey?: string;
 };
@@ -217,30 +217,36 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
    * the two must describe the same load the same way — with the envelope spelled out per call site,
    * the next config field added would land in one and not the other, and the divergence would only
    * show up as two history entries that no longer compare.
+   *
+   * Returns the run snapshot alongside the handle: it is the `load_Submitted` analytics payload too,
+   * so the call site sends the SAME object rather than restating the fields.
    */
   const startHistoryForRun = useCallback(
-    ({ parentKey, ...runConfig }: LoadRunHistoryOptions) =>
-      startLoadRecordsHistory({
-        org: selectedOrg,
+    ({ parentKey, ...runConfig }: LoadRunHistoryOptions) => {
+      const runSnapshot = buildLoadRecordsHistoryConfig({
         loadType,
         apiMode,
+        batchSize,
+        insertNulls,
+        serialMode,
+        hasDateFieldMapped,
+        dateFormat,
+        fieldMapping,
+        timesSameDataSubmitted: runs.length + 1,
+        ...runConfig,
+      });
+      const historyHandle = startLoadRecordsHistory({
+        org: selectedOrg,
         sobject: selectedSObject,
         inputFilename,
         inputFilenameType,
         inputGoogleFileId: inputGoogleFile?.id,
         skipHistory: skipDataHistory,
         parentKey,
-        config: {
-          batchSize,
-          insertNulls,
-          serialMode,
-          hasDateFieldMapped,
-          dateFormat,
-          fieldMapping,
-          timesSameDataSubmitted: runs.length + 1,
-          ...runConfig,
-        },
-      }),
+        config: runSnapshot,
+      });
+      return { historyHandle, runSnapshot };
+    },
     [
       selectedOrg,
       loadType,
@@ -276,10 +282,10 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
       const inputHeader = inputFileHeader ?? (inputFileDataToLoad[0] ? Object.keys(inputFileDataToLoad[0]) : []);
       // The handle self-gates (captures nothing when disabled/opted out) and is never awaited on the
       // load's critical path — it is threaded to the results component to record results as they land.
-      const historyHandle = startHistoryForRun({
+      const { historyHandle, runSnapshot } = startHistoryForRun({
         numRecords: inputFileData.length,
         hasZipAttachment,
-        trialRun: isTrialRun,
+        isTrialRun,
         trialRunSize,
       });
 
@@ -315,21 +321,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
         setLoadState((prevState) => ({ ...prevState, loading: true }));
       }
       onIsLoading(true);
-      trackEvent(ANALYTICS_KEYS.load_Submitted, {
-        loadType,
-        apiMode,
-        numRecords: inputFileData.length,
-        batchSize,
-        insertNulls,
-        serialMode,
-        hasDateFieldMapped,
-        dateFormat,
-        isTrialRun,
-        trialRunSize,
-        hasZipAttachment: !!hasZipAttachment,
-        timesSameDataSubmitted: runs.length + 1,
-        numStaticFields: Object.values(fieldMapping).filter(({ type }) => type === 'STATIC').length,
-      });
+      trackEvent(ANALYTICS_KEYS.load_Submitted, runSnapshot);
       document.title = `Loading Records | ${TITLES.BAR_JETSTREAM}`;
     }
   }
@@ -375,7 +367,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
       const newRunId = ++runIdCounter.current;
 
       // A retry is captured as a NEW history entry linked to the original run via parentKey
-      const historyHandle = startHistoryForRun({
+      const { historyHandle, runSnapshot } = startHistoryForRun({
         numRecords: recordsToRetry.length,
         hasZipAttachment: !!(activeRun?.inputZipFileData ?? inputZipFileData),
         retry: { retryCount, retrySource, totalFailedCount },
@@ -405,42 +397,10 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
       setActiveRunId(String(newRunId));
       setLoadState((prevState) => ({ ...prevState, loading: true }));
       onIsLoading(true);
-      trackEvent(ANALYTICS_KEYS.load_Submitted, {
-        loadType,
-        apiMode,
-        numRecords: recordsToRetry.length,
-        batchSize,
-        insertNulls,
-        serialMode,
-        hasDateFieldMapped,
-        dateFormat,
-        isTrialRun: false,
-        isRetry: true,
-        retryCount,
-        retrySource,
-        totalFailedCount,
-        hasZipAttachment: !!(activeRun?.inputZipFileData ?? inputZipFileData),
-        timesSameDataSubmitted: runs.length + 1,
-        numStaticFields: Object.values(fieldMapping).filter(({ type }) => type === 'STATIC').length,
-      });
+      trackEvent(ANALYTICS_KEYS.load_Submitted, runSnapshot);
       document.title = `Loading Records | ${TITLES.BAR_JETSTREAM}`;
     },
-    [
-      activeRun,
-      runs,
-      onIsLoading,
-      trackEvent,
-      loadType,
-      apiMode,
-      batchSize,
-      insertNulls,
-      serialMode,
-      hasDateFieldMapped,
-      dateFormat,
-      fieldMapping,
-      inputZipFileData,
-      startHistoryForRun,
-    ],
+    [activeRun, runs, onIsLoading, trackEvent, apiMode, batchSize, fieldMapping, inputZipFileData, startHistoryForRun],
   );
 
   function hasDataInputError(): boolean {

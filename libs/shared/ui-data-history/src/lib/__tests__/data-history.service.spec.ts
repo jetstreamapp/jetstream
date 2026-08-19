@@ -5,6 +5,7 @@ import { DATA_HISTORY_PAID_TIER_GRACE_MS } from '../data-history-limits';
 import {
   buildDataHistoryInputSource,
   deleteAllDataHistory,
+  deleteAllDataHistoryFiles,
   deleteDataHistoryEntry,
   getDataHistoryLimits,
   getDataHistorySettings,
@@ -573,6 +574,43 @@ describe('initialized', () => {
       expect(await deleteAllDataHistory()).toEqual({ deleted: 1, skipped: 1 });
       expect(await dataHistoryDb.getEntry(inFlight.key)).toBeDefined();
       await inFlight.finish({ counts: { total: 1, success: 1, failure: 0 } });
+    });
+
+    it('deleteAllDataHistoryFiles removes every payload file even when the rows are already gone', async () => {
+      const handle = startDataHistoryEntry(startOptions());
+      await handle.writeInputRows([{ Name: 'a' }], ['Name']);
+      await handle.finish({ counts: { total: 1, success: 1, failure: 0 } });
+      expect(fakeStore.files.size).toBeGreaterThan(0);
+      // Account deletion drops the database first in the worst case — the files must still go
+      await getDexieDb().data_history.clear();
+
+      await deleteAllDataHistoryFiles();
+      expect(fakeStore.files.size).toBe(0);
+    });
+
+    it('deleteAllDataHistoryFiles never throws', async () => {
+      fakeStore.simulateFailure = (op) => op === 'list-entry-dirs';
+      await expect(deleteAllDataHistoryFiles()).resolves.toBeUndefined();
+    });
+
+    it('clear-all tombstones every entry whose files could not be removed, in one write', async () => {
+      const keys: string[] = [];
+      for (let i = 0; i < 3; i++) {
+        const handle = startDataHistoryEntry(startOptions());
+        await handle.writeInputRows([{ Name: `row-${i}` }], ['Name']);
+        await handle.finish({ counts: { total: 1, success: 1, failure: 0 } });
+        keys.push(handle.key);
+      }
+      // A folder whose handle has lapsed fails for EVERY entry — the common delete-all failure shape
+      fakeStore.simulateFailure = (op) => op === 'delete-dir';
+      const tombstoneWrites = vi.spyOn(dataHistoryDb, 'addDeletedEntryTombstones');
+
+      expect(await deleteAllDataHistory()).toEqual({ deleted: 3, skipped: 0 });
+      expect(await dataHistoryDb.getEntryCount()).toBe(0);
+      expect(tombstoneWrites).toHaveBeenCalledTimes(1);
+      const tombstones = await dataHistoryDb.getDeletedEntryTombstones();
+      keys.forEach((key) => expect(tombstones).toContain(key));
+      tombstoneWrites.mockRestore();
     });
   });
 });

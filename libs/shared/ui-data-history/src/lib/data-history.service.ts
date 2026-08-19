@@ -725,11 +725,10 @@ async function rollbackFailedOneShot(key: string): Promise<void> {
   try {
     const item = await dataHistoryDb.getEntry(key);
     if (item) {
-      await deleteEntryFilesAndRow(item);
+      await deleteEntryFilesThenRow(item);
     }
   } catch (ex) {
     logger.warn('[DATA_HISTORY] Unable to roll back failed one-shot capture', key, ex);
-    await dataHistoryDb.deleteEntries([key]).catch(() => undefined);
   }
 }
 
@@ -796,14 +795,43 @@ export async function deleteAllDataHistory(): Promise<{ deleted: number; skipped
   const entries = await dataHistoryDb.getAllEntries();
   const deletableEntries = entries.filter((entry) => !isEntryLikelyInFlight(entry));
   const deletedKeys: string[] = [];
+  const tombstoneKeys: string[] = [];
   for (const entry of deletableEntries) {
     if (!(await deleteEntryFilesQuietly(entry))) {
-      await dataHistoryDb.addDeletedEntryTombstone(entry.key).catch(() => undefined);
+      tombstoneKeys.push(entry.key);
     }
     deletedKeys.push(entry.key);
   }
+  // One write for every entry whose files stayed behind — a folder whose handle has lapsed fails
+  // for EVERY entry, so this is the common case there, not the exception
+  await dataHistoryDb.addDeletedEntryTombstones(tombstoneKeys).catch(() => undefined);
   await dataHistoryDb.deleteEntries(deletedKeys);
   return { deleted: deletedKeys.length, skipped: entries.length - deletedKeys.length };
+}
+
+/**
+ * Erase every payload file in the user's OPFS scope, INDEPENDENT of the Dexie rows — for account
+ * deletion, where the rows are wiped with the database and nothing could ever reach these files
+ * again (a later sign-in is a different user id, so a different scope directory; the init sweep
+ * only looks for orphans when rows exist). Without this, up to the tier's full quota of the user's
+ * Salesforce record payloads would stay in the browser's origin storage indefinitely.
+ *
+ * OPFS only: a user-chosen folder or the desktop history folder holds the user's own visible files,
+ * which every other flow (disconnect, disable, migrate) deliberately leaves in place. Best-effort
+ * and never throws — a local cleanup failure must not block deleting the account. Must run BEFORE
+ * the local-storage scope is cleared, which unbinds the user scope every store is rooted under.
+ */
+export async function deleteAllDataHistoryFiles(): Promise<void> {
+  try {
+    const store = await getFileStoreForBackend('opfs');
+    for (const { orgFolder, entryKey } of await store.listEntryDirs()) {
+      await store.deleteEntryDir(`${orgFolder}/${entryKey}`).catch((ex) => {
+        logger.warn('[DATA_HISTORY] Unable to delete entry files', `${orgFolder}/${entryKey}`, ex);
+      });
+    }
+  } catch (ex) {
+    logger.warn('[DATA_HISTORY] Unable to delete data history files', ex);
+  }
 }
 
 /**

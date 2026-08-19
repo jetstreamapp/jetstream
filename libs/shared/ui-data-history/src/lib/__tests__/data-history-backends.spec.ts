@@ -146,6 +146,28 @@ describe('migrateHistoryEntries', () => {
     expect((await dataHistoryDb.getEntry(unreadable.key))?.storageBackend).toBe('opfs');
   });
 
+  it('probes an unavailable source backend once, not once per straggler', async () => {
+    // Two file-backed entries (and one file-less one) stamped with a folder that can no longer be
+    // opened — with the factory override removed, building the 'directory' store fails for real
+    const strandedA = await seedEntry({ storageBackend: 'directory', withFile: true });
+    const strandedB = await seedEntry({ storageBackend: 'directory', withFile: true });
+    const fileLess = await seedEntry({ storageBackend: 'directory', status: 'incomplete' });
+    setHistoryFileStoreForTests(null);
+    setDataHistoryUserScope('spec-user-migrate');
+    const getBackendConfigSpy = vi.spyOn(dataHistoryDb, 'getBackendConfig');
+
+    const target = new FakeFileStore('opfs');
+    expect(await migrateHistoryEntries({ to: target })).toEqual({ migrated: 1, skipped: 2 });
+
+    // The store is built (and fails) once for the whole backend, instead of per entry
+    expect(getBackendConfigSpy).toHaveBeenCalledTimes(1);
+    expect((await dataHistoryDb.getEntry(strandedA.key))?.storageBackend).toBe('directory');
+    expect((await dataHistoryDb.getEntry(strandedB.key))?.storageBackend).toBe('directory');
+    // No bytes anywhere, so re-stamping is still the whole migration for it
+    expect((await dataHistoryDb.getEntry(fileLess.key))?.storageBackend).toBe('opfs');
+    getBackendConfigSpy.mockRestore();
+  });
+
   it('counts an entry whose source cleanup failed as migrated — it IS on the new backend', async () => {
     const entry = await seedEntry({ withFile: true });
     sourceStore.simulateFailure = (op) => op === 'delete-dir';

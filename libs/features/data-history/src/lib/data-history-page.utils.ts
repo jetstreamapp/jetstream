@@ -274,8 +274,8 @@ const CONFIG_DISPLAY_FIELDS: Array<{
   { key: 'insertNulls', label: 'Insert Null Values' },
   // Only meaningful when a date field was part of the load
   { key: 'dateFormat', label: 'Date Format', show: (_, config) => config.hasDateFieldMapped !== false },
-  { key: 'trialRun', label: 'Trial Run', show: (value) => value === true },
-  { key: 'trialRunSize', label: 'Trial Run Records', show: (_, config) => config.trialRun === true },
+  { key: 'isTrialRun', label: 'Trial Run', show: (value) => value === true },
+  { key: 'trialRunSize', label: 'Trial Run Records', show: (_, config) => config.isTrialRun === true },
   { key: 'hasZipAttachment', label: 'Includes ZIP Attachments', show: (value) => value === true },
   { key: 'isRetry', label: 'Retry of a Previous Load', show: (value) => value === true },
   { key: 'retryCount', label: 'Retry Attempt', show: (_, config) => config.isRetry === true },

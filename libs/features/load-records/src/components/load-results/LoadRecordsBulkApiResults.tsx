@@ -3,13 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { bulkApiAbortJob, bulkApiGetJob, bulkApiGetRecords } from '@jetstream/shared/data';
 import { checkIfBulkApiJobIsDone, convertDateToLocale, formatNumber, tracker, useBrowserNotifications } from '@jetstream/shared/ui-utils';
-import {
-  buildBulkResultRow,
-  getErrorMessage,
-  getSuccessOrFailureChar,
-  pluralizeFromNumber,
-  splitArrayToMaxSize,
-} from '@jetstream/shared/utils';
+import { buildBulkResultRow, getErrorMessage, getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
 import {
   ApiMode,
   BulkJobBatchInfo,
@@ -62,6 +56,8 @@ import {
 } from '../../utils/load-records-process';
 import {
   alignBatchSourceRecordsToResults,
+  collectFailedRecordsForRetry,
+  createBatchResultsFetcher,
   fetchBulkApiAllBatchResults,
   getLoadResultsHeader,
   isDeleteLoadType,
@@ -87,121 +83,6 @@ const STATUSES: {
 };
 
 const ABORTABLE_STATUSES = new Set<Status>([STATUSES.PREPARING, STATUSES.UPLOADING, STATUSES.PROCESSING, STATUSES.ABORTING]);
-const FETCH_FAILED_RECORDS_CONCURRENCY = 5;
-
-/**
- * Recover the original prepared records that failed during a Bulk API load so the user can
- * retry them. Resilient to per-batch fetch failures: any batch whose results can't be fetched
- * is treated as fully failed (all records included as "failed"), rather than losing the
- * entire retry set due to one transient error.
- */
-async function collectFailedRecordsForRetry({
-  numFailure,
-  jobInfo,
-  batchSummary,
-  preparedData,
-  loadType,
-  selectedOrg,
-}: {
-  numFailure: number;
-  jobInfo: BulkJobWithBatches;
-  batchSummary: LoadDataBulkApiStatusPayload;
-  preparedData: PrepareDataResponse;
-  loadType: InsertUpdateUpsertDelete;
-  selectedOrg: SalesforceOrgUi;
-}): Promise<any[]> {
-  if (numFailure <= 0 || !jobInfo.id) {
-    return [];
-  }
-
-  const jobId = jobInfo.id;
-  const isDelete = isDeleteLoadType(loadType);
-  // Batches are capped by record count AND by CSV size, so an oversized batch gets split and the
-  // records in a batch cannot be derived from `batchSize` — use the ranges the loader recorded.
-  const recordsByBatchNumber = new Map<number, any[]>(
-    batchSummary.batchSummary.map(({ batchNumber, startIndex, recordCount }) => [
-      batchNumber,
-      preparedData.data.slice(startIndex, startIndex + recordCount),
-    ]),
-  );
-  const failedRecords: any[] = [];
-
-  const completedBatchIds = jobInfo.batches
-    .filter((batch) => batch.state === 'Completed')
-    .map((batch) => batch.id)
-    .filter((batchId): batchId is string => !!batchId);
-
-  // No completed batches means either everything failed up-front or was unsubmitted/aborted.
-  // Fall back to treating every record as failed.
-  if (completedBatchIds.length === 0) {
-    return preparedData.data.slice();
-  }
-
-  const batchNumberById = new Map(
-    batchSummary.batchSummary.filter((batch) => batch.id).map((batch) => [batch.id as string, batch.batchNumber]),
-  );
-
-  // Fetch per-batch results, chunking concurrency to avoid overwhelming the SFDC API. Each batch
-  // is wrapped in its own try/catch so a single transient failure doesn't discard already-fetched
-  // results — the failed batch simply falls through to the "treat all records as failed" path.
-  const completedBatchResults: { batchId: string; results: BulkJobResultRecord[] }[] = [];
-  for (const batchIdChunk of splitArrayToMaxSize(completedBatchIds, FETCH_FAILED_RECORDS_CONCURRENCY)) {
-    const chunkResults = await Promise.all(
-      batchIdChunk.map(async (batchId) => {
-        try {
-          const results = await bulkApiGetRecords<BulkJobResultRecord>(selectedOrg, jobId, batchId, 'result');
-          return { batchId, results };
-        } catch (ex) {
-          logger.warn('Failed to fetch results for batch; treating its records as failed', { batchId, error: ex });
-          return null;
-        }
-      }),
-    );
-    chunkResults.forEach((entry) => {
-      if (entry) {
-        completedBatchResults.push(entry);
-      }
-    });
-  }
-
-  const resolvedBatchNumbers = new Set<number>();
-  completedBatchResults.forEach(({ batchId, results }) => {
-    const originalBatchIndex = batchNumberById.get(batchId);
-    const recordsForBatch = typeof originalBatchIndex === 'number' ? recordsByBatchNumber.get(originalBatchIndex) : undefined;
-    if (typeof originalBatchIndex !== 'number' || !recordsForBatch) {
-      return;
-    }
-    const recordsWithIds = recordsForBatch.filter((record: Record<string, unknown>) => !!record.Id);
-    const resultsExcludeMissingIdRecords =
-      isDelete && results.length === recordsWithIds.length && recordsWithIds.length !== recordsForBatch.length;
-    const recordsForResults = resultsExcludeMissingIdRecords ? recordsWithIds : recordsForBatch;
-
-    resolvedBatchNumbers.add(originalBatchIndex);
-
-    results.forEach((resultRecord, i) => {
-      if (!resultRecord.Success && recordsForResults[i]) {
-        failedRecords.push(recordsForResults[i]);
-      }
-    });
-
-    // For delete batches where SFDC omitted records missing an Id, include them as failures here
-    // since they'll never have a result row.
-    if (resultsExcludeMissingIdRecords) {
-      failedRecords.push(...recordsForBatch.filter((record: Record<string, unknown>) => !record.Id));
-    }
-  });
-
-  // Include all records from any batch we couldn't resolve (fetch failed, unmapped batch id,
-  // state !== Completed, etc.). These are conservatively considered failed and retryable.
-  recordsByBatchNumber.forEach((records, batchNumber) => {
-    if (!resolvedBatchNumbers.has(batchNumber)) {
-      failedRecords.push(...records);
-    }
-  });
-
-  return failedRecords;
-}
-
 export interface LoadRecordsBulkApiResultsProps {
   selectedOrg: SalesforceOrgUi;
   selectedSObject: string;
@@ -403,6 +284,10 @@ export const LoadRecordsBulkApiResults = ({
           tag: 'load-records',
         });
 
+        // The retry collector and the history capture below both need every completed batch's
+        // results — one memoized fetcher so each batch is downloaded once, not twice
+        const fetchBatchResults = createBatchResultsFetcher(selectedOrg, jobInfo.id ?? '');
+
         // Fetch failed records for retry capability, then emit completion with the recovered
         // failedRecords. We intentionally delay `onFinish` until the fetch resolves so that the
         // parent stays in `loadInProgress` until the run's state is fully populated — this
@@ -414,7 +299,7 @@ export const LoadRecordsBulkApiResults = ({
             batchSummary,
             preparedData,
             loadType,
-            selectedOrg,
+            fetchBatchResults,
           });
           if (isMounted.current) {
             onFinishRef.current({ success: numSuccess, failure: numFailure, failedRecords });
@@ -449,6 +334,7 @@ export const LoadRecordsBulkApiResults = ({
           // Set when batch submission stopped early (`loadError` with a job already created) — the
           // reason those records never reached Salesforce belongs on the entry
           errorMessage: fatalError ?? undefined,
+          fetchBatchResults,
         });
       } else if (status === STATUSES.PROCESSING || status === STATUSES.ABORTING) {
         if (intervalCount >= BULK_JOB_POLL_MAX_CHECKS) {

@@ -25,6 +25,7 @@ export async function appendBulkJobBatchResults({
   batchIds,
   header,
   buildBatchRows,
+  fetchBatchResults = (batchId) => bulkApiGetRecords<BulkJobResultRecord>(org, jobId, batchId, 'result'),
 }: {
   handle: DataHistoryEntryHandle;
   org: SalesforceOrgUi;
@@ -34,6 +35,13 @@ export async function appendBulkJobBatchResults({
   header: string[];
   /** Combine one fetched batch's results with the caller's source records; index is the batch's position in `batchIds` */
   buildBatchRows: (results: BulkJobResultRecord[], batchId: string, batchIndex: number) => Record<string, unknown>[];
+  /**
+   * Override the per-batch fetch — for a caller that downloads the same batches for another purpose
+   * at the same time (Load Records' retry collector) and shares one memoized fetcher so each batch
+   * is requested once. The one-batch-at-a-time bound above then holds only as far as that fetcher
+   * retains results. Defaults to a plain `bulkApiGetRecords`.
+   */
+  fetchBatchResults?: (batchId: string) => Promise<BulkJobResultRecord[]>;
 }): Promise<void> {
   for (const [batchIndex, batchId] of batchIds.entries()) {
     // Once the entry has failed (a write error marks it so), every further append is a no-op — the
@@ -42,7 +50,7 @@ export async function appendBulkJobBatchResults({
       return;
     }
     try {
-      const results = await bulkApiGetRecords<BulkJobResultRecord>(org, jobId, batchId, 'result');
+      const results = await fetchBatchResults(batchId);
       await handle.appendResultsRows(buildBatchRows(results, batchId, batchIndex), header);
     } catch (ex) {
       logger.warn('[DATA_HISTORY] Failed to capture bulk results for batch', batchId, ex);
