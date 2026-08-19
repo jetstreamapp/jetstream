@@ -1,7 +1,7 @@
-const { composePlugins, withNx } = require('@nx/next');
+const isDevelopment = process.env.NODE_ENV === 'development';
 
 /**
- * @type {import('@nx/next/plugins/with-nx').WithNxOptions}
+ * @type {import('next').NextConfig}
  **/
 const nextConfig = {
   env: {
@@ -14,11 +14,9 @@ const nextConfig = {
     GOOGLE_API_KEY: process.env.GOOGLE_API_KEY,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
   },
-  rewrites: async () => {
-    if (process.env.NODE_ENV !== 'development') {
-      return [];
-    }
-    return [
+  // Rewrites are ignored by `output: 'export'`, so only register them for the dev server to avoid a build-time warning.
+  ...(isDevelopment && {
+    rewrites: async () => [
       {
         source: '/api/:path*',
         destination: 'http://localhost:3333/api/:path*', // Proxy to Backend
@@ -29,21 +27,11 @@ const nextConfig = {
           },
         ],
       },
-    ];
-  },
+    ],
+  }),
   trailingSlash: true,
-  nx: {
-    // Set this to true if you would like to use SVGR
-    // See: https://github.com/gregberge/svgr
-    svgr: false,
-  },
   output: 'export',
   distDir: '../../dist/apps/landing',
 };
 
-const plugins = [
-  // Add more Next.js plugins to this list if needed.
-  withNx,
-];
-
-module.exports = composePlugins(...plugins)(nextConfig);
+module.exports = nextConfig;
