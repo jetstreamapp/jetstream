@@ -10,14 +10,14 @@ import { formatDate } from 'date-fns/format';
 import { useAtom } from 'jotai';
 import { useCallback, useEffect, useRef } from 'react';
 import { useAmplitude } from '../analytics';
-import { captureMassUpdateResults, MassUpdateHistoryContext, startMassUpdateHistory } from './data-history-capture';
+import { captureMassUpdateResults, MassUpdateHistoryContext, MassUpdateSource, startMassUpdateHistory } from './data-history-capture';
 import { DeployResults, MetadataRow, MetadataRowConfiguration } from './mass-update-records.types';
 import { getFieldsToQuery, prepareRecords, queryAndPrepareRecordsForUpdate } from './mass-update-records.utils';
 
 export function useDeployRecords(
   org: SalesforceOrgUi,
   onDeployResults: (sobject: string, deployResults: DeployResults, fatalError?: boolean) => void,
-  source: 'STAND-ALONE' | 'QUERY' = 'STAND-ALONE',
+  source: MassUpdateSource = 'STAND-ALONE',
 ) {
   const [{ serverUrl }] = useAtom(applicationCookieState);
   const isMounted = useRef(true);
@@ -198,11 +198,7 @@ export function useDeployRecords(
       const records = await queryAndPrepareRecordsForUpdate(row, fields, org);
 
       if (!isMounted.current) {
-        // Normally already taken by the unmount cleanup; settling here keeps every exit path of this
-        // function responsible for its own entry
-        takeHistoryCapture(row.sobject)?.handle.abandonIfUnsettled(
-          'The update was still running when you left the page, so its final outcome was not recorded.',
-        );
+        // The unmount cleanup already took and abandoned this deployment's capture context
         return;
       }
 

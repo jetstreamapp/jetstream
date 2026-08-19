@@ -21,7 +21,7 @@ export interface HistoryFileStore {
    */
   createWriteStream(relativePath: string, options: { gzip: boolean }): Promise<HistoryWriteStream>;
   /** One-shot write, replacing any existing file. Returns the size on disk (post-compression). */
-  writeFile(relativePath: string, data: Uint8Array | Blob, options: { gzip: boolean }): Promise<{ bytes: number }>;
+  writeFile(relativePath: string, data: Uint8Array, options: { gzip: boolean }): Promise<{ bytes: number }>;
   /**
    * Read a payload back. `maxBytes` caps the read AT THE SOURCE and must be honored there rather
    * than by slicing a fully-read Blob: the in-modal preview only ever shows a couple of MB, but a

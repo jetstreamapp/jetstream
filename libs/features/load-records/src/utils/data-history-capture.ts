@@ -58,13 +58,29 @@ export function apiModeToDataHistoryApi(apiMode: ApiMode): DataHistoryApi {
 }
 
 /**
- * A run that failed before any record reached Salesforce (pre-processing/query errors, a thrown
- * prepare step, a Bulk job that accepted no batch). Every attempted record is recorded as failed —
- * the results component reports the same `failure: attemptedCount` to its parent, so the entry and
- * the UI agree. A failure whose outcome is UNKNOWN (a throw mid-load) is `handle.fail()` instead,
- * which keeps the results streamed so far and only the submitted count.
+ * Whether any record may have reached Salesforce when a load failed. 'none' — a pre-processing/query
+ * error, a thrown prepare step, a Bulk job that accepted no batch. 'unknown' — a throw after records
+ * were sent (a Batch request mid-load, the Bulk job-status read after every batch was submitted).
  */
-export function finishHistoryAsAllFailed(historyHandle: DataHistoryEntryHandle, attemptedCount: number, errorMessage: string): void {
+export type LoadFailureReach = 'none' | 'unknown';
+
+/**
+ * The ONE rule for settling a failed run's history entry — both results components delegate here
+ * rather than each picking a settle call, so the rule cannot drift between them.
+ *
+ * 'none': every attempted record is recorded as failed — the results component reports the same
+ * `failure: attemptedCount` to its parent, so the entry and the UI agree. 'unknown': `handle.fail()`,
+ * which keeps the results streamed so far and only the submitted count — recording "every record
+ * failed" for a job Salesforce may well be processing would be a wrong permanent record.
+ */
+export function settleHistoryForFailedLoad(
+  historyHandle: DataHistoryEntryHandle,
+  { reached, attemptedCount, errorMessage }: { reached: LoadFailureReach; attemptedCount: number; errorMessage: string },
+): void {
+  if (reached === 'unknown') {
+    historyHandle.fail(errorMessage);
+    return;
+  }
   historyHandle.finish({
     counts: { total: attemptedCount, success: 0, failure: attemptedCount },
     status: 'failed',

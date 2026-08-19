@@ -1,6 +1,12 @@
 import { FieldMapping } from '@jetstream/types';
-import { describe, expect, it } from 'vitest';
-import { apiModeToDataHistoryApi, buildLoadRecordsHistoryConfig, loadTypeToDataHistoryOperation } from '../data-history-capture';
+import { DataHistoryEntryHandle } from '@jetstream/ui/data-history';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  apiModeToDataHistoryApi,
+  buildLoadRecordsHistoryConfig,
+  loadTypeToDataHistoryOperation,
+  settleHistoryForFailedLoad,
+} from '../data-history-capture';
 
 const fieldMapping = {
   Name: { type: 'CSV' },
@@ -38,6 +44,33 @@ describe('apiModeToDataHistoryApi', () => {
   it('maps BULK to bulk-v1 and BATCH to batch-composite', () => {
     expect(apiModeToDataHistoryApi('BULK')).toBe('bulk-v1');
     expect(apiModeToDataHistoryApi('BATCH')).toBe('batch-composite');
+  });
+});
+
+describe('settleHistoryForFailedLoad', () => {
+  function createHandle() {
+    return { finish: vi.fn(), fail: vi.fn() } as unknown as DataHistoryEntryHandle & {
+      finish: ReturnType<typeof vi.fn>;
+      fail: ReturnType<typeof vi.fn>;
+    };
+  }
+
+  it("records every attempted record as failed when nothing reached Salesforce ('none')", () => {
+    const handle = createHandle();
+    settleHistoryForFailedLoad(handle, { reached: 'none', attemptedCount: 25, errorMessage: 'Pre-processing records failed' });
+    expect(handle.finish).toHaveBeenCalledWith({
+      counts: { total: 25, success: 0, failure: 25 },
+      status: 'failed',
+      errorMessage: 'Pre-processing records failed',
+    });
+    expect(handle.fail).not.toHaveBeenCalled();
+  });
+
+  it("fails the entry without inventing per-record failures when the outcome is unknown ('unknown')", () => {
+    const handle = createHandle();
+    settleHistoryForFailedLoad(handle, { reached: 'unknown', attemptedCount: 25, errorMessage: 'Job status read timed out' });
+    expect(handle.fail).toHaveBeenCalledWith('Job status read timed out');
+    expect(handle.finish).not.toHaveBeenCalled();
   });
 });
 

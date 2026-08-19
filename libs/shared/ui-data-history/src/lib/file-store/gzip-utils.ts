@@ -1,8 +1,8 @@
 /**
  * gzip helpers shared by every file-store backend that compresses in the browser (the OPFS worker
- * and the user-chosen-folder store), plus the bounded read that caps those same decompression
- * streams. Uses the platform `CompressionStream` — no dependencies, so importing this does not grow
- * the worker bundle.
+ * and the user-chosen-folder store): the stream encoders a write stream drives, and the bounded
+ * read that caps those same decompression streams. Uses the platform `CompressionStream` — no
+ * dependencies, so importing this does not grow the worker bundle.
  *
  * `gzipEncode`/`gzipDecode` in `@jetstream/shared/utils` are JSON-oriented (they stringify/parse);
  * these deal in raw bytes and streams.
@@ -39,6 +39,20 @@ export async function readStreamUpTo(stream: ReadableStream<Uint8Array>, maxByte
   return new Blob(chunks);
 }
 
+/**
+ * The read side every browser backend shares once it holds the stored `Blob`: a plain file is sliced
+ * (a `File` is lazily backed, so slicing reads only the window asked for), a gzip'd one is inflated
+ * through `DecompressionStream` and — with `maxBytes` — capped AT THE STREAM rather than inflated in
+ * full and sliced afterwards, which would defeat the cap.
+ */
+export async function readStoredBlob(file: Blob, { gunzip, maxBytes }: { gunzip: boolean; maxBytes?: number }): Promise<Blob> {
+  if (!gunzip) {
+    return maxBytes == null ? file : file.slice(0, maxBytes);
+  }
+  const stream = file.stream().pipeThrough(new DecompressionStream('gzip'));
+  return maxBytes == null ? await new Response(stream).blob() : await readStreamUpTo(stream, maxBytes);
+}
+
 /** Await a cleanup promise that is allowed to fail (already closed/errored streams) */
 export async function abortQuietly(promise: Promise<unknown>): Promise<void> {
   try {
@@ -48,13 +62,32 @@ export async function abortQuietly(promise: Promise<unknown>): Promise<void> {
   }
 }
 
-export interface GzipEncoder {
-  /** Compress one chunk. Rejects if the drain has failed — never hangs. */
+/**
+ * What a write stream drives between the caller's chunks and the backend's sink. A backend picks
+ * `createGzipEncoder` or `createPassthroughEncoder` when the stream opens and then runs ONE
+ * write/close/abort lifecycle — rather than carrying "gzip or not" as optional state and branching on
+ * it at every step, which is how a teardown path gets written once per branch per backend.
+ */
+export interface StreamEncoder {
+  /** Hand one chunk towards the sink. Rejects if the sink has failed — never hangs. */
   write(chunk: Uint8Array): Promise<void>;
-  /** Flush the gzip trailer and wait for every compressed chunk to reach the sink. */
+  /** Flush anything still buffered (the gzip trailer) and wait for every byte to reach the sink. */
   close(): Promise<void>;
   /** Best-effort teardown; the caller still discards its partial file. */
   abort(): Promise<void>;
+}
+
+export type StreamEncoderSink = (chunk: Uint8Array) => Promise<void> | void;
+
+/** Uncompressed streams: every chunk goes straight to the sink; nothing is buffered, so close/abort are no-ops. */
+export function createPassthroughEncoder(writeChunk: StreamEncoderSink): StreamEncoder {
+  return {
+    write: async (chunk: Uint8Array) => {
+      await writeChunk(chunk);
+    },
+    close: async () => undefined,
+    abort: async () => undefined,
+  };
 }
 
 /**
@@ -67,7 +100,7 @@ export interface GzipEncoder {
  * park the next `write()` forever on a readable nothing is draining — hanging the capture queue with
  * the file still locked.
  */
-export function createGzipEncoder(writeCompressedChunk: (chunk: Uint8Array) => Promise<void> | void): GzipEncoder {
+export function createGzipEncoder(writeCompressedChunk: StreamEncoderSink): StreamEncoder {
   const compression = new CompressionStream('gzip');
   const writer = compression.writable.getWriter();
   const reader = compression.readable.getReader();

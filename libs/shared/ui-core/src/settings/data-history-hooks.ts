@@ -10,6 +10,8 @@ import {
   DataHistoryBackendStatus,
   DataHistoryMigrationProgress,
   DataHistoryMigrationResult,
+  disableNativeHistoryStorage,
+  disconnectHistoryDirectory,
   enableNativeHistoryStorage,
   getHistoryBackendStatus,
   getStoragePersisted,
@@ -30,8 +32,8 @@ import { useAmplitude } from '../analytics';
  * report so every surface keeps its own payload.
  */
 
-/** Loads the storage backend status on mount and exposes a stable refresher. */
-export function useDataHistoryBackendStatus() {
+/** Loads the storage backend status on mount and exposes a stable refresher — internal to `useDataHistoryStorage`. */
+function useDataHistoryBackendStatus() {
   const [backendStatus, setBackendStatus] = useState<DataHistoryBackendStatus | null>(null);
 
   // Promise-chain form (not async/await) so react-hooks/set-state-in-effect can see the setState
@@ -148,7 +150,7 @@ export type DataHistoryStorageActionOutcome = Record<string, unknown> | false;
  * are gone — and each of those entries stays readable where it was, so the user is told how many
  * rather than shown an unconditional "moved" toast. The ONE place that wording lives.
  */
-export function fireMigrationResultToast({ migrated, skipped }: DataHistoryMigrationResult, successMessage: string): void {
+function fireMigrationResultToast({ migrated, skipped }: DataHistoryMigrationResult, successMessage: string): void {
   if (skipped > 0) {
     fireToast({
       type: 'warning',
@@ -170,37 +172,41 @@ export function fireMigrationResultToast({ migrated, skipped }: DataHistoryMigra
 }
 
 /**
- * The ONE lifecycle around every Data History storage action — connect / change / re-connect a
- * folder, switch back, re-index — shared by the Data History page and the Settings storage-location
- * panel. It owns the `working` flag AND the "Moving history — N of N" counter: `runStorageAction`
- * clears the counter before and after every action and hands the action the `onProgress` callback
- * that drives it, so a surface cannot strand a stale counter or a stuck spinner by forgetting a
- * wrapper. Toast copy, the analytics shape and the error handling live here as well.
+ * Data History storage for a surface that shows it — the backend status, and the ONE lifecycle around
+ * every action that changes it: connect / change / re-connect a folder, switch back to the default
+ * store, re-index. Shared by the Data History page and the Settings storage-location panel.
+ *
+ * Owning both halves is the point: every action re-reads the status when it completes AND when it
+ * throws (a partial change may already have landed), so a surface cannot show a stale "Files are
+ * saved to" line or keep offering "Store in a folder" for a state that no longer exists — no caller
+ * wires that refresh, so no two callers can wire it differently. The hook also owns the `working`
+ * flag and the "Moving history — N of N" counter: `runStorageAction` clears the counter before and
+ * after every action and hands the action the `onProgress` callback that drives it, so a surface
+ * cannot strand a stale counter or a stuck spinner. Toast copy, the analytics shape and the error
+ * handling live here as well.
  *
  * An action resolves with its analytics payload (minus `location`, which each surface supplies), or
  * `false` when the user cancelled (a dismissed folder picker): nothing changed, so there is no
- * analytics event and no `onChanged`. `runStorageAction` resolves whether the action completed.
+ * analytics event, no status re-read and no `onChanged`. `runStorageAction` resolves whether the
+ * action completed; surfaces reach for it directly only for flows they alone offer (re-index).
  *
  * `storeInFolder` connects a folder when none is active; `changeFolder` moves the history to a
  * different one while a folder IS active — on the web that is the same `connectHistoryDirectory`
  * call (picking a folder while one is connected copies the history across), on desktop the main
- * process moves the directory. Both pick the native backend when the environment supports it
- * (desktop) and the user-chosen-directory backend otherwise; each surface shows exactly one of the two.
+ * process moves the directory; `switchBackToDefault` copies it back to the default store (OPFS).
+ * All three pick the native backend when the environment supports it (desktop) and the user-chosen-
+ * directory backend otherwise; each surface shows exactly one of the two.
  */
-export function useDataHistoryStorageActions({
+export function useDataHistoryStorage({
   analyticsLocation,
-  backendStatus,
   onChanged,
-  onFailed,
 }: {
   analyticsLocation: string;
-  backendStatus: DataHistoryBackendStatus | null;
-  /** Runs after an action completed — surfaces refresh their backend status / usage numbers here */
+  /** Runs after an action completed and the status was re-read — refresh usage numbers and the like here */
   onChanged?: () => void | Promise<void>;
-  /** Runs after an action threw — a surface showing backend status re-reads it, since a partial change may already have landed */
-  onFailed?: () => void | Promise<void>;
 }) {
   const { trackEvent } = useAmplitude();
+  const { backendStatus, loadBackendStatus } = useDataHistoryBackendStatus();
   const [working, setWorking] = useState(false);
   const [migrationProgress, setMigrationProgress] = useState<Maybe<{ migrated: number; total: number }>>(null);
 
@@ -224,12 +230,13 @@ export function useDataHistoryStorageActions({
         return false;
       }
       trackEvent(ANALYTICS_KEYS.data_history_settings_changed, { ...analytics, location: analyticsLocation });
+      await loadBackendStatus();
       await onChanged?.();
       return true;
     } catch (ex) {
       logger.warn('[DATA_HISTORY] Storage action failed', ex);
       fireToast({ type: 'error', message: options?.errorMessage ?? (getErrorMessage(ex) || STORAGE_ACTION_ERROR_MESSAGE) });
-      await onFailed?.();
+      await loadBackendStatus();
       return false;
     } finally {
       setWorking(false);
@@ -297,7 +304,29 @@ export function useDataHistoryStorageActions({
     );
   }
 
-  return { storeInFolder, changeFolder, reconnectFolder, runStorageAction, available, working, migrationProgress };
+  /** Copy history back to the default (app-managed / browser) store; the files already in the folder are left in place */
+  function switchBackToDefault() {
+    return runStorageAction(async (onProgress) => {
+      if (nativeSupported) {
+        fireMigrationResultToast(await disableNativeHistoryStorage(onProgress), 'Your history is now in app-managed storage.');
+      } else {
+        fireMigrationResultToast(await disconnectHistoryDirectory(onProgress), 'Your history is now in browser storage.');
+      }
+      return { backend: 'opfs' };
+    });
+  }
+
+  return {
+    backendStatus,
+    storeInFolder,
+    changeFolder,
+    reconnectFolder,
+    switchBackToDefault,
+    runStorageAction,
+    available,
+    working,
+    migrationProgress,
+  };
 }
 
 /**

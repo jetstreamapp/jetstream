@@ -1,7 +1,7 @@
 import type { HistoryFileStore, HistoryFileStoreCapabilities, HistoryWriteStream } from './file-store.types';
 import { listEntryDirs, removeDir, removeFileQuietly, resolveFile } from './fs-handle-ops';
 import { DataHistoryDirectoryPermissionError, FsaDirectoryHandle, FsaFileHandle } from './fsa-types';
-import { abortQuietly, createGzipEncoder, gzipBytes, readStreamUpTo } from './gzip-utils';
+import { abortQuietly, createGzipEncoder, createPassthroughEncoder, gzipBytes, readStoredBlob } from './gzip-utils';
 
 /**
  * File store backed by a USER-CHOSEN real directory via the File System Access API
@@ -76,21 +76,7 @@ export class DirectoryHandleFileStore implements HistoryFileStore {
       }
     };
 
-    if (!options.gzip) {
-      return {
-        write: writeToFile,
-        close: async () => {
-          await this.guardPermission(() => writable.close());
-          return { bytes: bytesWritten };
-        },
-        abort: async () => {
-          await abortQuietly(writable.abort());
-          await discardTargetIfCreated();
-        },
-      };
-    }
-
-    const encoder = createGzipEncoder(writeToFile);
+    const encoder = options.gzip ? createGzipEncoder(writeToFile) : createPassthroughEncoder(writeToFile);
     return {
       write: (chunk: Uint8Array) => encoder.write(chunk),
       close: async () => {
@@ -115,9 +101,8 @@ export class DirectoryHandleFileStore implements HistoryFileStore {
     }
   }
 
-  async writeFile(relativePath: string, data: Uint8Array | Blob, options: { gzip: boolean }): Promise<{ bytes: number }> {
-    const input = ArrayBuffer.isView(data) ? data : new Uint8Array(await data.arrayBuffer());
-    const output = options.gzip ? await gzipBytes(input) : input;
+  async writeFile(relativePath: string, data: Uint8Array, options: { gzip: boolean }): Promise<{ bytes: number }> {
+    const output = options.gzip ? await gzipBytes(data) : data;
     const fileHandle = await this.guardPermission(() => resolveFile<FsaFileHandle>(this.scopedRoot, relativePath, true));
     const writable = await this.guardPermission(() => fileHandle.createWritable());
     try {
@@ -133,12 +118,7 @@ export class DirectoryHandleFileStore implements HistoryFileStore {
   async readFile(relativePath: string, options: { gunzip: boolean; maxBytes?: number }): Promise<Blob> {
     const fileHandle = await this.guardPermission(() => resolveFile<FsaFileHandle>(this.scopedRoot, relativePath, false));
     const file = await this.guardPermission(() => fileHandle.getFile());
-    if (!options.gunzip) {
-      // A File is lazily backed, so slicing reads only the window the caller asked for
-      return options.maxBytes == null ? file : file.slice(0, options.maxBytes);
-    }
-    const stream = file.stream().pipeThrough(new DecompressionStream('gzip'));
-    return options.maxBytes == null ? await new Response(stream).blob() : await readStreamUpTo(stream, options.maxBytes);
+    return readStoredBlob(file, options);
   }
 
   async deleteEntryDir(relativeDirPath: string): Promise<void> {

@@ -1,5 +1,5 @@
 import { listEntryDirs, removeDir, removeFileQuietly, resolveFile } from './fs-handle-ops';
-import { GzipEncoder, createGzipEncoder, gzipBytes, readStreamUpTo } from './gzip-utils';
+import { StreamEncoder, createGzipEncoder, createPassthroughEncoder, gzipBytes, readStoredBlob } from './gzip-utils';
 import { DATA_HISTORY_ROOT_DIR } from './path-utils';
 import type {
   HistoryWorkerRequest,
@@ -48,8 +48,8 @@ interface HistoryWorkerScope {
 interface OpenStreamState {
   accessHandle: OpfsSyncAccessHandle;
   bytesWritten: number;
-  /** Present only for gzip streams */
-  gzipEncoder?: GzipEncoder;
+  /** gzip or passthrough — chosen when the stream opens, so write/close/abort never branch on it */
+  encoder: StreamEncoder;
   path: string;
 }
 
@@ -126,12 +126,17 @@ async function handleOpenStream(streamId: number, path: string, gzip: boolean): 
     throw ex;
   }
 
-  const state: OpenStreamState = { accessHandle, bytesWritten: 0, path };
-  if (gzip) {
-    state.gzipEncoder = createGzipEncoder((chunk) => {
-      state.bytesWritten += writeAt(accessHandle, chunk, state.bytesWritten);
-    });
-  }
+  // Appends at the running offset. `state` is assigned just below and no chunk can arrive before
+  // the stream's first `stream-write` message, so the forward reference is never read early.
+  const appendToFile = (chunk: Uint8Array) => {
+    state.bytesWritten += writeAt(accessHandle, chunk, state.bytesWritten);
+  };
+  const state: OpenStreamState = {
+    accessHandle,
+    bytesWritten: 0,
+    path,
+    encoder: gzip ? createGzipEncoder(appendToFile) : createPassthroughEncoder(appendToFile),
+  };
 
   openStreams.set(streamId, state);
   return { streamId };
@@ -146,18 +151,31 @@ function getStream(streamId: number): OpenStreamState {
 }
 
 async function handleStreamWrite(streamId: number, bytes: Uint8Array): Promise<void> {
-  const state = getStream(streamId);
-  if (state.gzipEncoder) {
-    await state.gzipEncoder.write(bytes);
-  } else {
-    state.bytesWritten += writeAt(state.accessHandle, bytes, state.bytesWritten);
+  await getStream(streamId).encoder.write(bytes);
+}
+
+/**
+ * The ONE teardown for a stream that will not complete — an explicit abort, or a close that failed
+ * part-way: forget the stream, release the exclusive lock, discard the partial file. The stream
+ * cannot stay in `openStreams` (the caller's follow-up abort may never arrive), and forgetting it
+ * WITHOUT removing the file would leak an untracked partial file inside a live entry's directory —
+ * invisible to the orphan sweep, and charged against the very quota that may just have run out.
+ */
+async function discardStream(streamId: number, state: OpenStreamState): Promise<void> {
+  openStreams.delete(streamId);
+  await state.encoder.abort();
+  try {
+    state.accessHandle.close();
+  } catch {
+    // already closed
   }
+  await removeFileQuietly(await getRootDir(), state.path);
 }
 
 async function handleStreamClose(streamId: number): Promise<StreamCloseResult> {
   const state = getStream(streamId);
   try {
-    await state.gzipEncoder?.close();
+    await state.encoder.close();
     state.accessHandle.flush();
     openStreams.delete(streamId);
     try {
@@ -167,49 +185,25 @@ async function handleStreamClose(streamId: number): Promise<StreamCloseResult> {
     }
     return { bytes: state.bytesWritten };
   } catch (ex) {
-    // A failed close (e.g. quota exhausted flushing the gzip trailer) must clean up like an abort:
-    // forget the stream, release the lock, discard the partial file. The stream cannot stay in
-    // `openStreams` (the caller's follow-up abort may never arrive), and forgetting it WITHOUT
-    // removing the file would leak an untracked partial file inside a live entry's directory —
-    // invisible to the orphan sweep, and charged against the very quota that just ran out.
-    openStreams.delete(streamId);
-    try {
-      state.accessHandle.close();
-    } catch {
-      // already closed
-    }
-    await removeFileQuietly(await getRootDir(), state.path);
+    // e.g. quota exhausted flushing the gzip trailer — must clean up exactly like an abort
+    await discardStream(streamId, state);
     throw ex;
   }
 }
 
 async function handleStreamAbort(streamId: number): Promise<void> {
   const state = openStreams.get(streamId);
-  if (!state) {
-    return;
+  if (state) {
+    await discardStream(streamId, state);
   }
-  openStreams.delete(streamId);
-  await state.gzipEncoder?.abort();
-  try {
-    state.accessHandle.close();
-  } catch {
-    // best-effort
-  }
-  await removeFileQuietly(await getRootDir(), state.path);
 }
 
 async function handleReadFile(path: string, gunzip: boolean, maxBytes?: number): Promise<Blob> {
   const fileHandle = await resolveFile<FileSystemFileHandle>(await getRootDir(), path, false);
   const file = await fileHandle.getFile();
-  if (!gunzip) {
-    // A File is lazily backed and clones by reference across postMessage, so neither branch here
-    // copies the stored bytes — slicing just narrows the window the main thread can read.
-    return maxBytes == null ? file : file.slice(0, maxBytes);
-  }
-  const stream = file.stream().pipeThrough(new DecompressionStream('gzip'));
-  // Every OPFS payload is gzip'd, so this — not the branch above — is the path a capped preview
-  // read actually takes. Inflating the whole file and slicing afterwards would defeat the cap.
-  return maxBytes == null ? await new Response(stream).blob() : await readStreamUpTo(stream, maxBytes);
+  // A File clones by reference across postMessage, so the plain path copies nothing — and every
+  // OPFS payload is gzip'd, so the capped-inflate path is the one a preview read actually takes
+  return readStoredBlob(file, { gunzip, maxBytes });
 }
 
 async function handleRequest(request: HistoryWorkerRequest): Promise<unknown> {

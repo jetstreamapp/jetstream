@@ -1,7 +1,30 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { bulkApiGetRecords } from '@jetstream/shared/data';
-import { BulkJobResultRecord, SalesforceOrgUi } from '@jetstream/types';
+import { BulkJobResultRecord, BulkJobWithBatches, DataHistoryCounts, SalesforceOrgUi } from '@jetstream/types';
 import { DataHistoryEntryHandle } from './data-history.service';
+
+/**
+ * Counts for a bulk job's permanent record, anchored on how many records were SUBMITTED rather than
+ * on what Salesforce reports back — THE one formula, shared by Load Records and Mass Update.
+ * `numberRecordsProcessed`/`numberRecordsFailed` only cover batches Salesforce actually ran: a batch
+ * that never uploaded (a client-side processing error, a consecutive-failure bail-out) or ended
+ * `Failed`/`NotProcessed` contributes to neither, so an entry derived from those two numbers alone
+ * would read as a clean success for a load that never touched most of its rows — a 1,000-row load
+ * with 600 rows never sent would show 400/400 succeeded. Success is clamped to what was submitted
+ * (and to zero) so an over-reporting job can never push the failure count negative.
+ *
+ * `submitted` — every record the run attempted, including those that failed client-side
+ * pre-processing; `processingErrors` — how many of those never reached a batch.
+ */
+export function buildBulkJobHistoryCounts(
+  jobInfo: Pick<BulkJobWithBatches, 'numberRecordsProcessed' | 'numberRecordsFailed'>,
+  { submitted, processingErrors }: { submitted: number; processingErrors: number },
+): DataHistoryCounts {
+  const numFailed = jobInfo.numberRecordsFailed || 0;
+  const numProcessed = jobInfo.numberRecordsProcessed || 0;
+  const success = Math.min(submitted, Math.max(0, numProcessed - numFailed));
+  return { total: submitted, success, failure: submitted - success, processingErrors };
+}
 
 /**
  * Fetch a finished bulk job's per-record results and append them to a history entry, one batch at a

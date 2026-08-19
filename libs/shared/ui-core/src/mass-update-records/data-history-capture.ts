@@ -1,5 +1,10 @@
-import { BulkJobWithBatches, DataHistoryCounts, SalesforceOrgUi } from '@jetstream/types';
-import { appendBulkJobBatchResults, DataHistoryEntryHandle, startDataHistoryEntry } from '@jetstream/ui/data-history';
+import { BulkJobWithBatches, SalesforceOrgUi } from '@jetstream/types';
+import {
+  appendBulkJobBatchResults,
+  buildBulkJobHistoryCounts,
+  DataHistoryEntryHandle,
+  startDataHistoryEntry,
+} from '@jetstream/ui/data-history';
 import { MetadataRowConfiguration } from './mass-update-records.types';
 import { buildMassUpdateCombinedResults, getMassUpdateBatchSourceRecords, getMassUpdateResultsHeader } from './mass-update-records.utils';
 
@@ -70,20 +75,6 @@ export function startMassUpdateHistory({
 }
 
 /**
- * Counts for the permanent record, anchored on how many records the user SUBMITTED rather than on
- * what Salesforce reports back. `numberRecordsProcessed`/`numberRecordsFailed` only cover batches
- * Salesforce actually ran — a batch that failed to upload (a client-side processing error) or ended
- * in the `Failed`/`NotProcessed` state contributes to neither, and an entry derived from those two
- * numbers alone would read as a clean success for a deployment that never touched most of its rows.
- */
-function computeMassUpdateCounts(jobInfo: BulkJobWithBatches, submittedCount: number, processingErrorCount: number): DataHistoryCounts {
-  const numFailed = jobInfo.numberRecordsFailed || 0;
-  const numProcessed = jobInfo.numberRecordsProcessed || 0;
-  const success = Math.min(submittedCount, Math.max(0, numProcessed - numFailed));
-  return { total: submittedCount, success, failure: submittedCount - success, processingErrors: processingErrorCount };
-}
-
-/**
  * Proactively capture per-record results when a deployment finishes. Bulk results expire server-side
  * (~7 days), so each completed batch's results are fetched, zipped with the submitted records, and
  * streamed to the history entry. The fetch loop and its bounded-memory/skip-a-failed-batch policies
@@ -112,7 +103,10 @@ export function captureMassUpdateResults({
   processingErrorCount: number;
 }): Promise<void> {
   const { handle, batchSize, configuration } = context;
-  const outcome = { counts: computeMassUpdateCounts(jobInfo, records.length, processingErrorCount), jobId: jobInfo.id ?? undefined };
+  const outcome = {
+    counts: buildBulkJobHistoryCounts(jobInfo, { submitted: records.length, processingErrors: processingErrorCount }),
+    jobId: jobInfo.id ?? undefined,
+  };
   return handle.finalize(outcome, async () => {
     const completedBatches = (jobInfo.batches || []).filter((batch) => batch && batch.id && batch.state === 'Completed');
     await appendBulkJobBatchResults({

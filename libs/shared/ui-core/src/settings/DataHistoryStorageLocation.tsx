@@ -1,17 +1,7 @@
 import { fireToast, Spinner } from '@jetstream/ui';
-import {
-  disableNativeHistoryStorage,
-  disconnectHistoryDirectory,
-  getDataHistoryStorageLocation,
-  reindexHistoryFromActiveBackend,
-} from '@jetstream/ui/data-history';
+import { getDataHistoryStorageLocation, reindexHistoryFromActiveBackend } from '@jetstream/ui/data-history';
 import { FunctionComponent } from 'react';
-import {
-  fireMigrationResultToast,
-  openHistoryFolder,
-  useDataHistoryBackendStatus,
-  useDataHistoryStorageActions,
-} from './data-history-hooks';
+import { openHistoryFolder, useDataHistoryStorage } from './data-history-hooks';
 
 export interface DataHistoryStorageLocationProps {
   /** Called after any storage-location change so the parent can refresh usage numbers */
@@ -26,33 +16,21 @@ const ANALYTICS_LOCATION = 'settings-storage-location';
  * environments that support neither (Firefox/Safari web, canvas).
  */
 export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLocationProps> = ({ onChanged }) => {
-  const { backendStatus: status, loadBackendStatus: loadStatus } = useDataHistoryBackendStatus();
-
-  async function handleChanged() {
-    await loadStatus();
-    onChanged?.();
-  }
-
-  // Every storage button runs through the one `useDataHistoryStorageActions` lifecycle, which owns the
-  // spinner and the "Moving history — N of N" counter. Connect-a-folder, change-folder and re-connect are
-  // shared with the Data History page — same service call, same copy, same analytics but for `location`;
-  // the flows this surface alone offers (switch back, re-index) use `runStorageAction` directly. This
-  // panel SHOWS the backend status, so every flow re-reads it on failure too — a partial change may
-  // already have landed.
+  // Every storage button runs through the one `useDataHistoryStorage` lifecycle, which owns the status
+  // this panel shows (re-read after every action, completed or failed), the spinner and the "Moving
+  // history — N of N" counter. Re-index is the only flow this surface alone offers, so it is the only
+  // one built on `runStorageAction` directly.
   const {
+    backendStatus: status,
     storeInFolder,
     changeFolder,
     reconnectFolder,
+    switchBackToDefault,
     runStorageAction,
     available: canStoreInFolder,
     working,
     migrationProgress,
-  } = useDataHistoryStorageActions({
-    analyticsLocation: ANALYTICS_LOCATION,
-    backendStatus: status,
-    onChanged: handleChanged,
-    onFailed: loadStatus,
-  });
+  } = useDataHistoryStorage({ analyticsLocation: ANALYTICS_LOCATION, onChanged });
 
   if (!status || (!status.directorySupported && !status.nativeSupported)) {
     return null;
@@ -107,12 +85,7 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
               <button
                 className="slds-button slds-button_neutral slds-m-left_x-small"
                 disabled={working}
-                onClick={() =>
-                  runStorageAction(async (onProgress) => {
-                    fireMigrationResultToast(await disableNativeHistoryStorage(onProgress), 'Your history is now in app-managed storage.');
-                    return { backend: 'opfs' };
-                  })
-                }
+                onClick={switchBackToDefault}
                 title="Copy history back to app-managed storage. The files already on disk are left in place."
               >
                 Switch Back to App-Managed Storage
@@ -183,12 +156,7 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
               <button
                 className="slds-button slds-button_neutral slds-m-left_x-small"
                 disabled={working}
-                onClick={() =>
-                  runStorageAction(async (onProgress) => {
-                    fireMigrationResultToast(await disconnectHistoryDirectory(onProgress), 'Your history is now in browser storage.');
-                    return { backend: 'opfs' };
-                  })
-                }
+                onClick={switchBackToDefault}
                 title="Copy history back to browser storage. The files already in your folder are left in place."
               >
                 Switch Back to Browser Storage

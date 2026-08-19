@@ -43,10 +43,10 @@ import {
   useAmplitude,
 } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
-import { DataHistoryEntryHandle } from '@jetstream/ui/data-history';
+import { DataHistoryEntryHandle, buildBulkJobHistoryCounts } from '@jetstream/ui/data-history';
 import { useAtomValue } from 'jotai';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { captureBulkApiLoadResults, finishHistoryAsAllFailed } from '../../utils/data-history-capture';
+import { LoadFailureReach, captureBulkApiLoadResults, settleHistoryForFailedLoad } from '../../utils/data-history-capture';
 import {
   BULK_JOB_POLL_MAX_CHECKS,
   LoadTypeDisplayNames,
@@ -196,13 +196,20 @@ export const LoadRecordsBulkApiResults = ({
    * that must move together — with them in one place no terminal path can update some and forget
    * the rest (a forgotten history call strands the entry `in-progress` until unmount). `fatalError`,
    * timestamps, the mock job info and error tracking stay with the caller: which of them each exit
-   * sets is its own concern. Nothing reached Salesforce on any of these exits (prepare failed, the
-   * job accepted no batch, or the upload threw), so the entry records every input row as failed.
+   * sets is its own concern.
+   *
+   * `reached` — whether any record may have reached Salesforce; how the history entry is settled for
+   * each value lives in `settleHistoryForFailedLoad`. Prepare failures are always 'none'; the upload
+   * exits derive it from `anyBatchAccepted`, since `loadBulkApiData` throws both before any batch
+   * is sent (job creation) and after every batch was (the trailing job-status read).
    */
-  function failLoad(errorMessage: string, notificationBody = `❌ ${errorMessage}`) {
+  function failLoad(
+    errorMessage: string,
+    { reached, notificationBody = `❌ ${errorMessage}` }: { reached: LoadFailureReach; notificationBody?: string },
+  ) {
     setStatus(STATUSES.ERROR);
     onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
-    finishHistoryAsAllFailed(historyHandle, inputFileData.length, errorMessage);
+    settleHistoryForFailedLoad(historyHandle, { reached, attemptedCount: inputFileData.length, errorMessage });
     notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, { body: notificationBody, tag: 'load-records' });
   }
 
@@ -312,11 +319,8 @@ export const LoadRecordsBulkApiResults = ({
         // cannot re-fetch every batch's results.
         //
         // The permanent record anchors on how many records were IN THE FILE, not on the job's
-        // processed/failed numbers: those cover only batches Salesforce ran, so records in a batch
-        // that never uploaded (consecutive-failure bail-out) or ended `Failed`/`NotProcessed` would
-        // otherwise vanish from the entry and a 1,000-row load with 600 rows never sent would read
-        // as 400/400 succeeded. The notification above keeps the job's own numbers, as it always has.
-        const attemptedCount = preparedData.data.length + preparedData.errors.length;
+        // processed/failed numbers (see `buildBulkJobHistoryCounts`). The notification above keeps
+        // the job's own numbers, as it always has.
         captureBulkApiLoadResults({
           handle: historyHandle,
           selectedOrg,
@@ -325,12 +329,10 @@ export const LoadRecordsBulkApiResults = ({
           preparedData,
           loadType,
           fields: getFieldHeaderFromMapping(fieldMapping),
-          counts: {
-            total: attemptedCount,
-            success: numSuccess,
-            failure: attemptedCount - numSuccess,
+          counts: buildBulkJobHistoryCounts(jobInfo, {
+            submitted: preparedData.data.length + preparedData.errors.length,
             processingErrors: preparedData.errors.length,
-          },
+          }),
           // Set when batch submission stopped early (`loadError` with a job already created) — the
           // reason those records never reached Salesforce belongs on the entry
           errorMessage: fatalError ?? undefined,
@@ -435,7 +437,10 @@ export const LoadRecordsBulkApiResults = ({
           totalProcessingTime: 0,
           batches: [],
         });
-        failLoad(queryErrors ?? 'Pre-processing records failed', `❌ Pre-processing records failed.`);
+        failLoad(queryErrors ?? 'Pre-processing records failed', {
+          reached: 'none',
+          notificationBody: `❌ Pre-processing records failed.`,
+        });
       } else {
         setStatus(STATUSES.UPLOADING);
         setPreparedData(preparedDataResponse);
@@ -446,7 +451,7 @@ export const LoadRecordsBulkApiResults = ({
     } catch (ex) {
       logger.error('ERROR', ex);
       setFatalError(getErrorMessage(ex));
-      failLoad(getErrorMessage(ex));
+      failLoad(getErrorMessage(ex), { reached: 'none' });
       // A user-initiated abort throws 'Aborted' through this same path — keep the UI messaging but
       // don't report it as an application error.
       if (!isAborted.current) {
@@ -466,6 +471,9 @@ export const LoadRecordsBulkApiResults = ({
       return;
     }
 
+    // Flipped by the first status callback that carries an accepted batch — the only signal the
+    // failure exits below have for whether records reached Salesforce before the throw
+    let anyBatchAccepted = false;
     try {
       const loadDataPayload: LoadDataPayload = {
         org: selectedOrg,
@@ -485,6 +493,7 @@ export const LoadRecordsBulkApiResults = ({
         (resultsSummary) => {
           setBatchSummary(resultsSummary);
           if (Array.isArray(resultsSummary?.jobInfo.batches) && resultsSummary?.jobInfo.batches.length) {
+            anyBatchAccepted = true;
             setJobInfo(resultsSummary.jobInfo);
           }
         },
@@ -498,8 +507,10 @@ export const LoadRecordsBulkApiResults = ({
           setJobInfo(jobInfo);
           setStatus(STATUSES.PROCESSING);
         } else {
-          // Job created but no batch accepted: nothing reached Salesforce, same as a prepare failure
-          failLoad(loadError.message);
+          // No batch came back on the job. Normally none was accepted (nothing reached Salesforce,
+          // same as a prepare failure) — but a job-status read that dropped accepted batches is the
+          // 'unknown' case, and the ref is the only thing that tells the two apart.
+          failLoad(loadError.message, { reached: anyBatchAccepted ? 'unknown' : 'none' });
         }
         // A user-initiated abort surfaces through the same loadError path — keep the UI messaging but
         // don't report it as an application error. Aborting also makes Salesforce reject any in-flight
@@ -519,7 +530,9 @@ export const LoadRecordsBulkApiResults = ({
     } catch (ex) {
       logger.error('ERROR', ex);
       setFatalError(getErrorMessage(ex));
-      failLoad(getErrorMessage(ex));
+      // `bulkApiCreateJob` throws before anything is sent; the trailing `bulkApiGetJob` throws after
+      // every batch was — Salesforce is still processing that job, so its outcome is unknown
+      failLoad(getErrorMessage(ex), { reached: anyBatchAccepted ? 'unknown' : 'none' });
       return;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

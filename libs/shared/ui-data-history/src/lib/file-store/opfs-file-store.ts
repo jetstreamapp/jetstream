@@ -80,9 +80,7 @@ export class OpfsFileStore implements HistoryFileStore {
     };
   }
 
-  async writeFile(relativePath: string, data: Uint8Array | Blob, options: { gzip: boolean }): Promise<{ bytes: number }> {
-    // ArrayBuffer.isView instead of instanceof — realm-safe (instanceof fails cross-realm in jsdom)
-    const bytes = ArrayBuffer.isView(data) ? data : new Uint8Array(await data.arrayBuffer());
+  async writeFile(relativePath: string, bytes: Uint8Array, options: { gzip: boolean }): Promise<{ bytes: number }> {
     // NOT transferred: no other backend consumes the caller's buffer, and detaching it here would
     // make buffer reuse fail only on OPFS in production. Stream chunks (above) stay transferred —
     // they are freshly allocated per chunk.

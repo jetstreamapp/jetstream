@@ -23,7 +23,7 @@ import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/ap
 import { DataHistoryEntryHandle } from '@jetstream/ui/data-history';
 import { useAtomValue } from 'jotai';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { finishHistoryAsAllFailed } from '../../utils/data-history-capture';
+import { LoadFailureReach, settleHistoryForFailedLoad } from '../../utils/data-history-capture';
 import { loadBatchApiData, LoadTypeDisplayNames, prepareData } from '../../utils/load-records-process';
 import LoadRecordsBatchApiResultsTable from './LoadRecordsBatchApiResultsTable';
 import { buildBatchApiResultRow, getLoadResultsHeader } from './load-results-utils';
@@ -142,23 +142,18 @@ export const LoadRecordsBatchApiResults = ({
    * concern. State updates are skipped once unmounted; history and notification are not, since
    * they outlive the component.
    *
-   * `reached` — whether any record may have reached Salesforce. 'none' (a prepare/pre-processing
-   * failure) records every input row as failed; 'unknown' (a throw mid-load) keeps the results
-   * streamed so far and only the submitted count — see `DataHistoryEntryHandle.fail`.
+   * `reached` — whether any record may have reached Salesforce; how the history entry is settled for
+   * each value lives in `settleHistoryForFailedLoad`.
    */
   function failLoad(
     errorMessage: string,
-    { reached, notificationBody = `❌ ${errorMessage}` }: { reached: 'none' | 'unknown'; notificationBody?: string },
+    { reached, notificationBody = `❌ ${errorMessage}` }: { reached: LoadFailureReach; notificationBody?: string },
   ) {
     if (isMounted.current) {
       setStatus(STATUSES.ERROR);
       onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
     }
-    if (reached === 'none') {
-      finishHistoryAsAllFailed(historyHandle, inputFileData.length, errorMessage);
-    } else {
-      historyHandle.fail(errorMessage);
-    }
+    settleHistoryForFailedLoad(historyHandle, { reached, attemptedCount: inputFileData.length, errorMessage });
     notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, { body: notificationBody, tag: 'load-records' });
   }
 

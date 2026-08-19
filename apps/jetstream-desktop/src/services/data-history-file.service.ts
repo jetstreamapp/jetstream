@@ -143,6 +143,18 @@ function writeToStream(stream: NodeJS.WritableStream, buffer: Buffer): Promise<v
 }
 
 /**
+ * The ONE teardown for a stream that will not complete — an fs error, an explicit abort, or its
+ * renderer going away: forget it, destroy the Node streams (releasing the descriptor), and discard
+ * the partial file so nothing untracked is left inside a live entry's directory.
+ */
+function discardStream(streamId: number, state: OpenStreamState): Promise<void> {
+  openStreams.delete(streamId);
+  state.gzip?.destroy();
+  state.fileStream.destroy();
+  return fs.rm(state.absolutePath, { force: true }).catch(() => undefined);
+}
+
+/**
  * A write-stream 'error' (disk full, folder deleted, ...) with no listener would surface as an
  * uncaught exception in the main process. Tear the stream down, discard the partial file, and
  * park the error for the renderer's next op on this stream to collect.
@@ -153,11 +165,8 @@ function handleStreamError(streamId: number, state: OpenStreamState, error: Erro
   }
   state.errored = true;
   logger.warn('[DATA_HISTORY] History write stream failed', state.absolutePath, error);
-  openStreams.delete(streamId);
   erroredStreams.set(streamId, { error, ownerId: state.ownerId });
-  state.gzip?.destroy();
-  state.fileStream.destroy();
-  void fs.rm(state.absolutePath, { force: true }).catch(() => undefined);
+  void discardStream(streamId, state);
 }
 
 /**
@@ -181,13 +190,9 @@ function takeStreamError(streamId: number, senderId: number): Error | undefined 
  */
 export async function abortDataHistoryStreamsForSender(ownerId: number): Promise<void> {
   for (const [streamId, state] of Array.from(openStreams.entries())) {
-    if (state.ownerId !== ownerId) {
-      continue;
+    if (state.ownerId === ownerId) {
+      await discardStream(streamId, state);
     }
-    openStreams.delete(streamId);
-    state.gzip?.destroy();
-    state.fileStream.destroy();
-    await fs.rm(state.absolutePath, { force: true }).catch(() => undefined);
   }
   for (const [streamId, parked] of Array.from(erroredStreams.entries())) {
     if (parked.ownerId === ownerId) {
@@ -293,10 +298,7 @@ const opHandlers: {
     takeStreamError(request.streamId, senderId);
     const state = openStreams.get(request.streamId);
     if (state && state.ownerId === senderId) {
-      openStreams.delete(request.streamId);
-      state.gzip?.destroy();
-      state.fileStream.destroy();
-      await fs.rm(state.absolutePath, { force: true }).catch(() => undefined);
+      await discardStream(request.streamId, state);
     }
   },
   'read-file': async (request) => {

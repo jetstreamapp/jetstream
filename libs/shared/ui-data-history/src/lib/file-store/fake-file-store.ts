@@ -1,6 +1,6 @@
 import { DataHistoryStorageBackend } from '@jetstream/types';
 import type { HistoryFileStore, HistoryFileStoreCapabilities, HistoryWriteStream } from './file-store.types';
-import { gzipBytes } from './gzip-utils';
+import { gzipBytes, readStoredBlob } from './gzip-utils';
 import { splitRelativePath } from './path-utils';
 
 /**
@@ -62,12 +62,10 @@ export class FakeFileStore implements HistoryFileStore {
     };
   }
 
-  async writeFile(relativePath: string, data: Uint8Array | Blob, options: { gzip: boolean }): Promise<{ bytes: number }> {
+  async writeFile(relativePath: string, data: Uint8Array, options: { gzip: boolean }): Promise<{ bytes: number }> {
     this.throwIfFailureSimulated('write-file', relativePath);
     splitRelativePath(relativePath);
-    // ArrayBuffer.isView instead of instanceof — realm-safe (instanceof fails cross-realm in jsdom)
-    const input = ArrayBuffer.isView(data) ? data : new Uint8Array(await data.arrayBuffer());
-    const bytes = options.gzip ? await gzipBytes(input) : input;
+    const bytes = options.gzip ? await gzipBytes(data) : data;
     this.files.set(relativePath, { bytes, gzip: options.gzip });
     return { bytes: bytes.byteLength };
   }
@@ -78,12 +76,7 @@ export class FakeFileStore implements HistoryFileStore {
     if (!file) {
       throw new Error(`File not found: ${relativePath}`);
     }
-    const capped = (blob: Blob) => (options.maxBytes == null ? blob : blob.slice(0, options.maxBytes));
-    if (!options.gunzip) {
-      return capped(new Blob([file.bytes as BlobPart]));
-    }
-    const stream = new Blob([file.bytes as BlobPart]).stream().pipeThrough(new DecompressionStream('gzip'));
-    return capped(await new Response(stream).blob());
+    return readStoredBlob(new Blob([file.bytes as BlobPart]), options);
   }
 
   async deleteEntryDir(relativeDirPath: string): Promise<void> {

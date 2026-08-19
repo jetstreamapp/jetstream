@@ -50,9 +50,8 @@ export class NativeFsFileStore implements HistoryFileStore {
     };
   }
 
-  async writeFile(relativePath: string, data: Uint8Array | Blob, options: { gzip: boolean }): Promise<{ bytes: number }> {
+  async writeFile(relativePath: string, bytes: Uint8Array, options: { gzip: boolean }): Promise<{ bytes: number }> {
     assertSafeRelativePath(relativePath);
-    const bytes = ArrayBuffer.isView(data) ? data : new Uint8Array(await data.arrayBuffer());
     return await this.request({ op: 'write-file', path: relativePath, gzip: options.gzip, bytes });
   }
 

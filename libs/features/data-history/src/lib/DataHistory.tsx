@@ -22,8 +22,7 @@ import {
 import {
   openHistoryFolder,
   useAmplitude,
-  useDataHistoryBackendStatus,
-  useDataHistoryStorageActions,
+  useDataHistoryStorage,
   useRequestPersistentStorage,
   useSetDataHistoryCaptureEnabled,
 } from '@jetstream/ui-core';
@@ -146,20 +145,16 @@ export const DataHistory: FunctionComponent = () => {
     trackEvent(ANALYTICS_KEYS.data_history_page_view);
   }, [trackEvent]);
 
-  const { backendStatus, loadBackendStatus } = useDataHistoryBackendStatus();
   const { persistPromptEligible, persisted, requestingPersist, requestPersist } = useRequestPersistentStorage({
     analyticsLocation: 'data-history-page',
   });
   const {
+    backendStatus,
     storeInFolder,
     reconnectFolder,
     available: canStoreInFolder,
     working: storageWorking,
-  } = useDataHistoryStorageActions({
-    analyticsLocation: 'data-history-page',
-    backendStatus,
-    onChanged: loadBackendStatus,
-  });
+  } = useDataHistoryStorage({ analyticsLocation: 'data-history-page' });
 
   // The three-way "where do history files live" decision, shared with the Settings panel so the two
   // surfaces can never give the user contradictory answers — see `getDataHistoryStorageLocation`.
