@@ -49,10 +49,6 @@ export function clearDataHistoryUserScope(): void {
   scopeDirPromise = null;
 }
 
-export function hasDataHistoryUserScope(): boolean {
-  return !!scopeDirPromise;
-}
-
 /**
  * Resolves once storage is bound to a user (immediately when already bound). UI that queries
  * history storage on mount awaits this rather than racing `initDataHistory()` — on a hard refresh

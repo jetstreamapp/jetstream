@@ -185,4 +185,27 @@ describe('multi-object Data History capture wiring', () => {
     expect(entry.status).toBe('failed');
     expect(entry.counts).toEqual({ total: 0, success: 0, failure: 0 });
   });
+
+  it('marks a cancelled run failed (not partial) when every attempted record failed and nothing succeeded', async () => {
+    const failedRequest = buildRequest('g1', 'network down', [{ referenceId: 'r1', sobject: 'Account', operation: 'INSERT', body: null }]);
+    // Never sent — the run was cancelled before this request started, so its record stays pending
+    const pendingRequest = buildRequest('g2', undefined, [{ referenceId: 'r2', sobject: 'Account', operation: 'INSERT', body: null }]);
+    pendingRequest.results = null;
+    pendingRequest.dataWithResultsByGraphId['g2-graph'].isSuccess = null;
+    const data = [failedRequest, pendingRequest];
+
+    const handle = startDataHistoryEntry({
+      org,
+      source: 'load-multi-object',
+      operation: 'insert',
+      api: 'composite-graph',
+      sobjects: ['Account'],
+    });
+    await finalizeMultiObjectHistory(handle, { rows: buildRows(data), requests: data });
+
+    const [entry] = await dataHistoryDb.getAllEntries();
+    expect(entry.status).toBe('failed');
+    expect(entry.counts).toEqual({ total: 1, success: 0, failure: 1 });
+    expect(entry.errorMessage).toContain('cancelled');
+  });
 });

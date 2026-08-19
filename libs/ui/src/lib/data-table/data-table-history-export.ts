@@ -85,17 +85,23 @@ export function buildPriorRecordsExport(dirtyRows: RowSalesforceRecordWithKey[])
 }
 
 /**
+ * How an inline-edit save call turned out: it either resolved with per-record outcomes (`results`,
+ * which can still include per-record failures) or threw before any per-record results existed
+ * (`errorMessage`). Each variant declares the other field as `undefined` so `info.results` narrows
+ * without an `in` check.
+ */
+export type RecordsSaveOutcome =
+  | { results: SobjectCollectionResponse; errorMessage?: undefined }
+  | { results?: undefined; errorMessage: string };
+
+/**
  * Snapshots handed to the host after an inline-edit save settles (see
  * `SalesforceRecordDataTableProps.onRecordsSaveCapture`) — captured BEFORE the table mutates its rows.
- * Exactly one of `results` (the save call resolved, including per-record failures) or `errorMessage`
- * (the save call itself threw — no per-record results exist) is present.
  */
-export interface RecordsSaveCaptureInfo {
+export type RecordsSaveCaptureInfo = {
   editedRecords: RecordExport;
   priorRecords: RecordExport;
-  results?: SobjectCollectionResponse;
-  errorMessage?: string;
-}
+} & RecordsSaveOutcome;
 
 /**
  * Build the post-save results export: each record's save outcome (`_id`/`_success`/`_errors`, matching

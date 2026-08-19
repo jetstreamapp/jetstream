@@ -24,9 +24,7 @@ export class FakeFileStore implements HistoryFileStore {
     this.capabilities = {
       compressFiles: true,
       userVisibleFiles: false,
-      needsPermissionCheck: false,
       supportsReindex: false,
-      survivesSiteDataClear: false,
       ...capabilities,
     };
   }

@@ -13,17 +13,16 @@ import { abortQuietly, createGzipEncoder, gzipBytes, readStreamUpTo } from './gz
  * OPFS worker (`fs-handle-ops` / `gzip-utils`); only the write API differs.
  *
  * `init()` throws `DataHistoryDirectoryPermissionError` when the persisted handle has lost
- * read-write permission — re-granting requires a user gesture (`requestAccess`), so callers fall
- * back to OPFS and surface a "re-connect" affordance in settings.
+ * read-write permission — re-granting requires a user gesture (`ensureReadWritePermission` in
+ * `data-history-backends.ts`), so callers fall back to OPFS and surface a "re-connect" affordance
+ * in settings.
  */
 export class DirectoryHandleFileStore implements HistoryFileStore {
   readonly type = 'directory' as const;
   readonly capabilities: HistoryFileStoreCapabilities = {
     compressFiles: false,
     userVisibleFiles: true,
-    needsPermissionCheck: true,
     supportsReindex: true,
-    survivesSiteDataClear: true,
   };
 
   private readonly rootHandle: FsaDirectoryHandle;
@@ -43,11 +42,6 @@ export class DirectoryHandleFileStore implements HistoryFileStore {
     this.onPermissionError = options?.onPermissionError;
   }
 
-  /** The folder the USER picked — what settings displays, not the scoped subfolder underneath it */
-  get directoryName(): string {
-    return this.rootHandle.name;
-  }
-
   async init(): Promise<void> {
     if ((await this.rootHandle.queryPermission({ mode: 'readwrite' })) !== 'granted') {
       throw new DataHistoryDirectoryPermissionError();
@@ -61,11 +55,6 @@ export class DirectoryHandleFileStore implements HistoryFileStore {
       throw new Error('Data history folder store has not been initialized');
     }
     return this.scopedRootHandle;
-  }
-
-  /** Must be called from a user gesture (settings "re-connect" button) */
-  async requestAccess(): Promise<boolean> {
-    return (await this.rootHandle.requestPermission({ mode: 'readwrite' })) === 'granted';
   }
 
   async createWriteStream(relativePath: string, options: { gzip: boolean }): Promise<HistoryWriteStream> {

@@ -147,15 +147,6 @@ describe('DirectoryHandleFileStore permissions', () => {
     const store = new DirectoryHandleFileStore(root, SPEC_SCOPE_DIR);
     await expect(store.init()).rejects.toBeInstanceOf(DataHistoryDirectoryPermissionError);
   });
-
-  it('requestAccess re-grants and init succeeds afterwards', async () => {
-    const root = new FakeFsaDirectoryHandle();
-    root.permissionState = 'prompt';
-    root.permissionStateAfterRequest = 'granted';
-    const store = new DirectoryHandleFileStore(root, SPEC_SCOPE_DIR);
-    expect(await store.requestAccess()).toBe(true);
-    await store.init();
-  });
 });
 
 describe('DirectoryHandleFileStore abort semantics', () => {

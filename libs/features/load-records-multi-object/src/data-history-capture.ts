@@ -124,7 +124,8 @@ export function finalizeMultiObjectHistory(
  * failed before any record was mapped contributes no counts (derived as a success), and a cancelled
  * run leaves pending records that are excluded from the counts — so a run cancelled before anything
  * was sent would also derive as a clean 0/0 success. A cancelled run that did load some records is a
- * partial success; one that loaded nothing has no outcome to report and is `incomplete`.
+ * partial success; one where every attempted record failed is `failed`; one that attempted nothing
+ * has no outcome to report and is `incomplete`.
  */
 function getFinalStatus({
   allRequestsFailed,
@@ -141,7 +142,10 @@ function getFinalStatus({
     return 'failed';
   }
   if (pendingCount > 0) {
-    return successCount + failureCount > 0 ? 'partial' : 'incomplete';
+    if (successCount > 0) {
+      return 'partial';
+    }
+    return failureCount > 0 ? 'failed' : 'incomplete';
   }
   return undefined;
 }

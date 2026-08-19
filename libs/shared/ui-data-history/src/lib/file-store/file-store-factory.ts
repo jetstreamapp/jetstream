@@ -45,9 +45,25 @@ function createBackendChangeChannel(): BroadcastChannel | null {
 }
 
 const backendChangeChannel = createBackendChangeChannel();
+const backendChangeListeners = new Set<() => void>();
 if (backendChangeChannel) {
   backendChangeChannel.onmessage = () => {
     resetHistoryFileStores();
+    backendChangeListeners.forEach((listener) => listener());
+  };
+}
+
+/**
+ * Subscribe to backend changes made in ANOTHER document (a second tab, the extension's settings
+ * page) so UI showing the storage location can re-read it instead of going stale until a remount.
+ * Fires after the cached stores have been dropped, so a subscriber re-reading status sees the new
+ * backend. The document that performed the change does not receive its own message — it refreshes
+ * through its own action's `onChanged`. Returns the unsubscribe function.
+ */
+export function subscribeToHistoryBackendChanges(listener: () => void): () => void {
+  backendChangeListeners.add(listener);
+  return () => {
+    backendChangeListeners.delete(listener);
   };
 }
 

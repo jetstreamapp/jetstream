@@ -14,9 +14,7 @@ export class OpfsFileStore implements HistoryFileStore {
   readonly capabilities: HistoryFileStoreCapabilities = {
     compressFiles: true,
     userVisibleFiles: false,
-    needsPermissionCheck: false,
     supportsReindex: false,
-    survivesSiteDataClear: false,
   };
 
   private worker: Worker | null = null;

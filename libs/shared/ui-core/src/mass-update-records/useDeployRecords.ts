@@ -104,14 +104,17 @@ export function useDeployRecords(
       historyHandle: DataHistoryEntryHandle;
     }) => {
       deployResults = { ...deployResults };
-      const jobInfo = await bulkApiCreateJob(org, { type: 'UPDATE', sObject: sobject, serialMode });
-      const jobId = jobInfo.id || '';
 
+      // Recorded BEFORE the job is created so a failed `bulkApiCreateJob` still leaves an entry that
+      // shows "N submitted" with its input file, rather than "—" and nothing to inspect.
       // Exactly the columns the batches below submit, streamed as CSV in bounded chunks. This is the
       // "every record in the object" surface, so a single JSON blob of the full queried rows would
       // be held several times over in memory on the main thread while the upload is still running.
       historyHandle.setSubmittedCount(records.length);
       historyHandle.writeInputRows(records, fields);
+
+      const jobInfo = await bulkApiCreateJob(org, { type: 'UPDATE', sObject: sobject, serialMode });
+      const jobId = jobInfo.id || '';
 
       const batches = splitArrayToMaxSize(records, batchSize).map((batch) => ({
         records: batch,
@@ -373,15 +376,20 @@ export function useDeployRecords(
         if (!row.deployResults.done && row.deployResults.jobInfo?.id) {
           try {
             const jobInfo = await bulkApiGetJob(org, row.deployResults.jobInfo.id);
-            // Compared against the batches that were actually ADDED to the job, not the planned count:
+            const { batchIdToIndex } = row.deployResults;
+            // Compared against the batches that were actually RECORDED as added, not the planned count:
             // a batch whose upload failed never appears in the job, so waiting for the planned count
-            // would poll forever (and leave the history entry in-progress until unmount)
-            const submittedBatchCount = Object.keys(row.deployResults.batchIdToIndex).length;
+            // would poll forever (and leave the history entry in-progress until unmount). The converse
+            // also happens — Salesforce accepted a batch but the response never reached the client
+            // (gateway timeout on a large upload) — so batches with no recorded id are dropped first,
+            // otherwise the job would hold more batches than we know about and never read as done.
+            jobInfo.batches = jobInfo.batches.filter((batch) => batchIdToIndex[batch.id] !== undefined);
+            const submittedBatchCount = Object.keys(batchIdToIndex).length;
             const done = submittedBatchCount === 0 || checkIfBulkApiJobIsDone(jobInfo, submittedBatchCount);
             // the batch order is not stable with bulkApiGetJob - ensure order is correct
             const batches: BulkJobBatchInfo[] = [];
             jobInfo.batches.forEach((batch) => {
-              batches[row.deployResults.batchIdToIndex[batch.id]] = batch;
+              batches[batchIdToIndex[batch.id]] = batch;
             });
             jobInfo.batches = batches;
 
@@ -420,7 +428,15 @@ export function useDeployRecords(
               processingEndTime: convertDateToLocale(new Date()),
             };
             onDeployResults(row.sobject, deployResults, true);
-            takeHistoryCapture(row.sobject)?.handle.fail(getErrorMessage(ex));
+            // The job was created and its batches uploaded before polling began, so a failed status
+            // poll says nothing about the update itself — Salesforce finishes the job regardless. Settle
+            // the entry as `incomplete` (outcome unknown — the same status an abandoned run gets), not
+            // `failed`, which would record a most-likely-successful update as a failure.
+            takeHistoryCapture(row.sobject)?.handle.finish({
+              counts: { total: row.deployResults.records.length, success: 0, failure: 0 },
+              status: 'incomplete',
+              errorMessage: `Polling for results failed: ${getErrorMessage(ex)}`,
+            });
           }
         }
       }

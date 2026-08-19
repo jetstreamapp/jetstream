@@ -23,10 +23,9 @@ import {
   openHistoryFolder,
   useAmplitude,
   useDataHistoryBackendStatus,
-  useReconnectHistoryFolder,
+  useDataHistoryStorageActions,
   useRequestPersistentStorage,
   useSetDataHistoryCaptureEnabled,
-  useStoreHistoryInFolder,
 } from '@jetstream/ui-core';
 import { dataHistoryCaptureEnabledState, fromAppState } from '@jetstream/ui/app-state';
 import { deleteDataHistoryEntry, getDataHistoryStorageLocation, setDataHistoryPinned } from '@jetstream/ui/data-history';
@@ -153,15 +152,12 @@ export const DataHistory: FunctionComponent = () => {
   });
   const {
     storeInFolder,
+    reconnectFolder,
     available: canStoreInFolder,
     working: storageWorking,
-  } = useStoreHistoryInFolder({
+  } = useDataHistoryStorageActions({
     analyticsLocation: 'data-history-page',
     backendStatus,
-    onChanged: loadBackendStatus,
-  });
-  const { reconnectFolder, working: reconnectWorking } = useReconnectHistoryFolder({
-    analyticsLocation: 'data-history-page',
     onChanged: loadBackendStatus,
   });
 
@@ -368,7 +364,7 @@ export const DataHistory: FunctionComponent = () => {
               <button
                 className="slds-button slds-button_neutral slds-m-left_small"
                 css={scopedNotificationNeutralButtonCss}
-                disabled={reconnectWorking}
+                disabled={storageWorking}
                 onClick={reconnectFolder}
               >
                 Re-connect Folder

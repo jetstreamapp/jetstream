@@ -43,12 +43,6 @@ export const DataHistoryFormatDownloadModal: FunctionComponent<DataHistoryFormat
   // The org is only used for the generated filename — history outlives org removal, so fall back to the label snapshot
   const org = orgs.find(({ uniqueId }) => uniqueId === item.org) ?? ({ username: item.orgLabel } as SalesforceOrgUi);
   const chosenFormat = useRef<FileExtAllTypes>('csv');
-  // Guards the load effect from re-running (e.g. React StrictMode) — the raw fallback SAVES A FILE as its side effect
-  const startedRef = useRef(false);
-  // Closing the modal mid-read must cancel it: the raw fallback would otherwise still save a file (and
-  // report a download) seconds after the user dismissed the dialog. A ref rather than effect-local state
-  // because StrictMode's simulated unmount runs the cleanup once while the single read is still in flight.
-  const unmountedRef = useRef(false);
 
   /** `format` is `raw-csv`/`raw-json` for the stored-format fallback */
   function trackDownloaded(format: string) {
@@ -62,21 +56,13 @@ export const DataHistoryFormatDownloadModal: FunctionComponent<DataHistoryFormat
   }
 
   useEffect(() => {
-    unmountedRef.current = false;
-    return () => {
-      unmountedRef.current = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (startedRef.current) {
-      return;
-    }
-    startedRef.current = true;
+    // Closing the modal mid-read must cancel it: the raw fallback SAVES A FILE as its side effect, and would
+    // otherwise still save (and report a download) seconds after the user dismissed the dialog
+    let cancelled = false;
     (async () => {
       try {
         const exportData = await loadDataHistoryExportData(item, target.kind, target);
-        if (unmountedRef.current) {
+        if (cancelled) {
           return;
         }
         if (exportData.type === 'missing') {
@@ -87,7 +73,7 @@ export const DataHistoryFormatDownloadModal: FunctionComponent<DataHistoryFormat
         if (exportData.type === 'raw') {
           saveRawDataHistoryFile(item, exportData);
           if (exportData.reason === 'too-large') {
-            fireToast({ type: 'info', message: 'This file is too large to convert, so it was downloaded in its original format.' });
+            onError({ type: 'info', message: 'This file is too large to convert, so it was downloaded in its original format.' });
           }
           trackDownloaded(exportData.contentType === 'text/csv' ? 'raw-csv' : 'raw-json');
           onClose();
@@ -95,7 +81,7 @@ export const DataHistoryFormatDownloadModal: FunctionComponent<DataHistoryFormat
         }
         setView(exportData.view);
       } catch (ex) {
-        if (unmountedRef.current) {
+        if (cancelled) {
           return;
         }
         logger.warn('[DATA_HISTORY] Error preparing download', ex);
@@ -103,6 +89,11 @@ export const DataHistoryFormatDownloadModal: FunctionComponent<DataHistoryFormat
         onClose();
       }
     })();
+    return () => {
+      cancelled = true;
+    };
+    // One read per mount: both hosts mount this modal per download (item/target are fixed for its life) and
+    // pass an inline onClose, so listing deps would restart the read on every parent render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

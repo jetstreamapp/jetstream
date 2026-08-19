@@ -53,11 +53,8 @@ export interface HistoryFileStoreCapabilities {
    * way — existing files carry their own `compressed` flag.
    */
   compressFiles: boolean;
-  /** `init()` may fail on a lost permission that requires a user gesture to restore (FSA) */
-  needsPermissionCheck: boolean;
   /** The backend can rebuild Dexie rows from on-disk `manifest.json` files */
   supportsReindex: boolean;
-  survivesSiteDataClear: boolean;
 }
 
 export interface HistoryWriteStream {

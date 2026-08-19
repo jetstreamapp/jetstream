@@ -21,9 +21,7 @@ export class NativeFsFileStore implements HistoryFileStore {
   readonly capabilities: HistoryFileStoreCapabilities = {
     compressFiles: false,
     userVisibleFiles: true,
-    needsPermissionCheck: false,
     supportsReindex: true,
-    survivesSiteDataClear: true,
   };
 
   private readonly scopeDir: string;

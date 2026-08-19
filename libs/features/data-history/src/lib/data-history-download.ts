@@ -14,8 +14,9 @@ import {
   parseDataHistoryPayloadViews,
 } from './data-history-payload-views';
 
+/** User-facing notice about a payload read/convert — info (e.g. a fallback was taken), warning, or error */
 export interface DataHistoryErrorInfo {
-  type: 'warning' | 'error';
+  type: 'info' | 'warning' | 'error';
   message: string;
 }
 

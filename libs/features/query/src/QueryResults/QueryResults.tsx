@@ -520,22 +520,23 @@ export const QueryResults = React.memo(() => {
    */
   function handleRecordsSaveCapture(info: RecordsSaveCaptureInfo) {
     const type = sobject || undefined;
+    const { editedRecords, priorRecords, results, errorMessage } = info;
     // No `results` means the save call itself threw — record the attempt as failed for every record
-    const total = info.results?.length ?? info.editedRecords.data.length;
-    const successCount = info.results?.filter((result) => result.success).length ?? 0;
+    const total = results?.length ?? editedRecords.data.length;
+    const successCount = results?.filter(({ success }) => success).length ?? 0;
     void recordDataHistoryAction({
       org: selectedOrg,
       source: 'query-table-edit',
       operation: 'update',
       api: 'collections',
       sobjects: type ? [type] : [],
-      config: { numRecords: total, header: info.editedRecords.header },
+      config: { numRecords: total, header: editedRecords.header },
       inputSource: { type: 'inline' },
-      request: { header: info.editedRecords.header, edited: info.editedRecords.data, prior: info.priorRecords.data },
-      results: info.results ? buildResultsExport(info.editedRecords, info.results).data : { error: info.errorMessage },
+      request: { header: editedRecords.header, edited: editedRecords.data, prior: priorRecords.data },
+      results: results ? buildResultsExport(editedRecords, results).data : { error: errorMessage },
       counts: { total, success: successCount, failure: total - successCount },
-      status: info.results ? undefined : 'failed',
-      errorMessage: info.errorMessage,
+      status: results ? undefined : 'failed',
+      errorMessage,
     });
   }
 

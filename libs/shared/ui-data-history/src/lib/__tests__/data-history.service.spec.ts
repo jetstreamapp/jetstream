@@ -2,12 +2,12 @@ import { SalesforceOrgUi } from '@jetstream/types';
 import { dataHistoryDb, getDexieDb } from '@jetstream/ui/db';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DATA_HISTORY_PAID_TIER_GRACE_MS } from '../data-history-limits';
+import { getTierLimits } from '../data-history-state';
 import {
   buildDataHistoryInputSource,
   deleteAllDataHistory,
   deleteAllDataHistoryFiles,
   deleteDataHistoryEntry,
-  getDataHistoryLimits,
   getDataHistorySettings,
   getDataHistoryStorageHealth,
   initDataHistory,
@@ -629,22 +629,22 @@ describe('paid-tier grace period', () => {
 
   it('keeps paid limits during the grace window after the paid signal disappears', async () => {
     await initDataHistory({ userId: SPEC_USER_ID, hasPaidPlan: true });
-    expect(getDataHistoryLimits()?.maxEntries).toBeNull();
+    expect(getTierLimits()?.maxEntries).toBeNull();
 
     // e.g. a team dropping to PAST_DUE from an expired card
     await initDataHistory({ userId: SPEC_USER_ID, hasPaidPlan: false });
-    expect(getDataHistoryLimits()?.maxEntries).toBeNull();
+    expect(getTierLimits()?.maxEntries).toBeNull();
   });
 
   it('drops to free limits once the grace window has passed', async () => {
     await dataHistoryDb.savePaidPlanLastSeenAt(new Date(Date.now() - DATA_HISTORY_PAID_TIER_GRACE_MS - 1000));
     await initDataHistory({ userId: SPEC_USER_ID, hasPaidPlan: false });
-    expect(getDataHistoryLimits()?.maxEntries).toBe(15);
+    expect(getTierLimits()?.maxEntries).toBe(15);
   });
 
   it('applies free limits immediately for users who were never paid', async () => {
     await initDataHistory({ userId: SPEC_USER_ID, hasPaidPlan: false });
-    expect(getDataHistoryLimits()?.maxEntries).toBe(15);
+    expect(getTierLimits()?.maxEntries).toBe(15);
   });
 
   // Free-tier enforcement clamps retention to 60 days on READ; writing a setting while resolved as

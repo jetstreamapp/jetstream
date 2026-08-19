@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { clearDataHistoryStorageScope, initDataHistory } from '../data-history.service';
 import { setHistoryFileStoreForTests } from '../file-store/file-store-factory';
 import { getUserScopeDirName } from '../file-store/hashed-dir-names';
-import { clearDataHistoryUserScope, getUserScopeDir, hasDataHistoryUserScope, isDataHistoryUserScope } from '../file-store/user-scope';
+import { clearDataHistoryUserScope, getUserScopeDir, isDataHistoryUserScope } from '../file-store/user-scope';
 
 const USER_A = 'user-a';
 const USER_B = 'user-b';
@@ -38,9 +38,9 @@ describe('data history user scope', () => {
 
   it('unbinds on explicit teardown', async () => {
     await initDataHistory({ userId: USER_A });
-    expect(hasDataHistoryUserScope()).toBe(true);
+    expect(isDataHistoryUserScope(USER_A)).toBe(true);
     clearDataHistoryStorageScope();
-    expect(hasDataHistoryUserScope()).toBe(false);
+    expect(isDataHistoryUserScope(USER_A)).toBe(false);
     expect(() => getUserScopeDir()).toThrow();
   });
 
@@ -51,11 +51,11 @@ describe('data history user scope', () => {
    */
   it('unbinds when the local storage scope is cleared, without a second call at the logout site', async () => {
     await initDataHistory({ userId: USER_A });
-    expect(hasDataHistoryUserScope()).toBe(true);
+    expect(isDataHistoryUserScope(USER_A)).toBe(true);
 
     clearLocalStorageScope();
 
-    expect(hasDataHistoryUserScope()).toBe(false);
+    expect(isDataHistoryUserScope(USER_A)).toBe(false);
     expect(() => getUserScopeDir()).toThrow();
   });
 });

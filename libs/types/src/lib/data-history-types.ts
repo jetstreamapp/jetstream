@@ -186,7 +186,6 @@ export interface DataHistoryTierLimits {
 export interface DataHistoryBackendConfig {
   active: DataHistoryStorageBackend;
   directoryHandle?: unknown;
-  nativePath?: string;
 }
 
 /** Dexie row shape for `data_history_config` — fixed keys, one row per concern */

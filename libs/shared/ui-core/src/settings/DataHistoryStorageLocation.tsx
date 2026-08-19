@@ -1,4 +1,3 @@
-import { Maybe } from '@jetstream/types';
 import { fireToast, Spinner } from '@jetstream/ui';
 import {
   disableNativeHistoryStorage,
@@ -6,14 +5,12 @@ import {
   getDataHistoryStorageLocation,
   reindexHistoryFromActiveBackend,
 } from '@jetstream/ui/data-history';
-import { FunctionComponent, useState } from 'react';
+import { FunctionComponent } from 'react';
 import {
   fireMigrationResultToast,
   openHistoryFolder,
   useDataHistoryBackendStatus,
-  useReconnectHistoryFolder,
-  useRunStorageAction,
-  useStoreHistoryInFolder,
+  useDataHistoryStorageActions,
 } from './data-history-hooks';
 
 export interface DataHistoryStorageLocationProps {
@@ -30,63 +27,32 @@ const ANALYTICS_LOCATION = 'settings-storage-location';
  */
 export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLocationProps> = ({ onChanged }) => {
   const { backendStatus: status, loadBackendStatus: loadStatus } = useDataHistoryBackendStatus();
-  const [migrationProgress, setMigrationProgress] = useState<Maybe<{ migrated: number; total: number }>>(null);
-
-  function handleMigrationProgress(migrated: number, total: number) {
-    setMigrationProgress({ migrated, total });
-  }
 
   async function handleChanged() {
     await loadStatus();
     onChanged?.();
   }
 
-  // Every storage button runs through the one `useRunStorageAction` lifecycle. Connect-a-folder,
-  // change-folder and re-connect are shared with the Data History page — same service call, same
-  // copy, same analytics but for `location`; the flows this surface alone offers (switch back,
-  // re-index) use `runStorageAction` directly. This panel SHOWS the backend status, so every flow
-  // re-reads it on failure too — a partial change may already have landed.
+  // Every storage button runs through the one `useDataHistoryStorageActions` lifecycle, which owns the
+  // spinner and the "Moving history — N of N" counter. Connect-a-folder, change-folder and re-connect are
+  // shared with the Data History page — same service call, same copy, same analytics but for `location`;
+  // the flows this surface alone offers (switch back, re-index) use `runStorageAction` directly. This
+  // panel SHOWS the backend status, so every flow re-reads it on failure too — a partial change may
+  // already have landed.
   const {
     storeInFolder,
     changeFolder,
+    reconnectFolder,
+    runStorageAction,
     available: canStoreInFolder,
-    working: storeWorking,
-  } = useStoreHistoryInFolder({
+    working,
+    migrationProgress,
+  } = useDataHistoryStorageActions({
     analyticsLocation: ANALYTICS_LOCATION,
     backendStatus: status,
-    onProgress: handleMigrationProgress,
     onChanged: handleChanged,
     onFailed: loadStatus,
   });
-  const { reconnectFolder, working: reconnectWorking } = useReconnectHistoryFolder({
-    analyticsLocation: ANALYTICS_LOCATION,
-    onChanged: handleChanged,
-    onFailed: loadStatus,
-  });
-  const { runStorageAction, working: actionWorking } = useRunStorageAction({
-    analyticsLocation: ANALYTICS_LOCATION,
-    onChanged: handleChanged,
-    onFailed: loadStatus,
-  });
-  const working = actionWorking || storeWorking || reconnectWorking;
-
-  /**
-   * The ONE owner of the "Moving history — N of N" counter's lifecycle. Every flow that reports
-   * progress (the shared hook's and this panel's own) runs through here, so the counter can never
-   * outlive the action that drove it.
-   */
-  async function withMigrationProgress(action: () => Promise<unknown>) {
-    setMigrationProgress(null);
-    try {
-      await action();
-    } finally {
-      setMigrationProgress(null);
-    }
-  }
-
-  function runAction(action: () => Promise<void>, analytics: Record<string, unknown>) {
-    return withMigrationProgress(() => runStorageAction(action, analytics));
-  }
 
   if (!status || (!status.directorySupported && !status.nativeSupported)) {
     return null;
@@ -98,6 +64,7 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
   const location = getDataHistoryStorageLocation(status);
   const isDirectoryActive = status.active === 'directory';
   const isNativeActive = status.active === 'native';
+  const canReindexFolder = isDirectoryActive && !status.permissionNeeded && !status.folderUnavailable;
 
   return (
     <div className="slds-m-top_small slds-is-relative">
@@ -128,31 +95,23 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
             </p>
           )}
           {canStoreInFolder && (
-            <button
-              className="slds-button slds-button_neutral slds-m-top_x-small"
-              disabled={working}
-              onClick={() => withMigrationProgress(storeInFolder)}
-            >
+            <button className="slds-button slds-button_neutral slds-m-top_x-small" disabled={working} onClick={storeInFolder}>
               Store History in a Folder on Disk
             </button>
           )}
           {isNativeActive && (
             <div className="slds-m-top_x-small">
-              <button className="slds-button slds-button_neutral" disabled={working} onClick={() => withMigrationProgress(changeFolder)}>
+              <button className="slds-button slds-button_neutral" disabled={working} onClick={changeFolder}>
                 Change Folder…
               </button>
               <button
                 className="slds-button slds-button_neutral slds-m-left_x-small"
                 disabled={working}
                 onClick={() =>
-                  runAction(
-                    async () =>
-                      fireMigrationResultToast(
-                        await disableNativeHistoryStorage(handleMigrationProgress),
-                        'Your history is now in app-managed storage.',
-                      ),
-                    { backend: 'opfs' },
-                  )
+                  runStorageAction(async (onProgress) => {
+                    fireMigrationResultToast(await disableNativeHistoryStorage(onProgress), 'Your history is now in app-managed storage.');
+                    return { backend: 'opfs' };
+                  })
                 }
                 title="Copy history back to app-managed storage. The files already on disk are left in place."
               >
@@ -182,7 +141,7 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
             <button
               className="slds-button slds-button_neutral slds-m-top_x-small"
               disabled={working}
-              onClick={() => withMigrationProgress(storeInFolder)}
+              onClick={storeInFolder}
               title="Store history as regular files in a folder you choose — visible, backed up with your other files, and kept when browser data is cleared"
             >
               Store History in a Folder on Your Computer…
@@ -193,43 +152,42 @@ export const DataHistoryStorageLocation: FunctionComponent<DataHistoryStorageLoc
               <button
                 className="slds-button slds-button_neutral slds-m-right_x-small"
                 disabled={working}
-                onClick={() => withMigrationProgress(changeFolder)}
+                onClick={changeFolder}
                 title="Pick a different folder — your history is copied there; files in the old folder are left in place"
               >
                 Change Folder…
               </button>
-              <button
-                className="slds-button slds-button_neutral"
-                disabled={working}
-                onClick={() =>
-                  runAction(
-                    async () => {
+              {/* Re-indexing reads the folder, so it is only offered while the folder is actually usable: with
+                  permission lost or the folder gone, writes fall back to browser storage and the re-index would
+                  silently run against that instead — reporting "no new entries" for a folder it never opened */}
+              {canReindexFolder && (
+                <button
+                  className="slds-button slds-button_neutral"
+                  disabled={working}
+                  onClick={() =>
+                    runStorageAction(async () => {
                       const restored = await reindexHistoryFromActiveBackend();
                       fireToast({
                         type: 'success',
                         message:
                           restored > 0 ? `Restored ${restored} history entries from the folder.` : 'No new entries found in the folder.',
                       });
-                    },
-                    { backend: 'directory', action: 'reindex' },
-                  )
-                }
-                title="Rebuild the history list from the files in the connected folder (e.g. after restoring a backup)"
-              >
-                Restore Entries From Folder
-              </button>
+                      return { backend: 'directory', action: 'reindex' };
+                    })
+                  }
+                  title="Rebuild the history list from the files in the connected folder (e.g. after restoring a backup)"
+                >
+                  Restore Entries From Folder
+                </button>
+              )}
               <button
                 className="slds-button slds-button_neutral slds-m-left_x-small"
                 disabled={working}
                 onClick={() =>
-                  runAction(
-                    async () =>
-                      fireMigrationResultToast(
-                        await disconnectHistoryDirectory(handleMigrationProgress),
-                        'Your history is now in browser storage.',
-                      ),
-                    { backend: 'opfs' },
-                  )
+                  runStorageAction(async (onProgress) => {
+                    fireMigrationResultToast(await disconnectHistoryDirectory(onProgress), 'Your history is now in browser storage.');
+                    return { backend: 'opfs' };
+                  })
                 }
                 title="Copy history back to browser storage. The files already in your folder are left in place."
               >

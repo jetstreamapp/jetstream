@@ -78,11 +78,21 @@ export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSe
   }
 
   async function handleRetentionDaysCommit() {
-    if (!settings) {
+    if (!settings || !limits) {
       return;
     }
-    const retentionDays = Number.parseInt(retentionDaysInput, 10);
-    if (!Number.isFinite(retentionDays) || retentionDays < 1 || retentionDays === settings.retentionDays) {
+    const parsedDays = Number.parseInt(retentionDaysInput, 10);
+    // Below 1 is rejected rather than clamped up — lowering retention sweeps entries immediately, so a
+    // stray "0" must not silently become the most aggressive setting there is
+    if (!Number.isFinite(parsedDays) || parsedDays < 1) {
+      setRetentionDaysInput(String(settings.retentionDays));
+      return;
+    }
+    // Cap at the tier's maximum up front so what is saved is what the field shows — the service clamps
+    // the effective value anyway, but persisting the raw number would make the field snap back to a
+    // different value on the next load with no explanation
+    const retentionDays = Math.min(parsedDays, limits.retentionDaysMax);
+    if (retentionDays === settings.retentionDays) {
       setRetentionDaysInput(String(settings.retentionDays));
       return;
     }
@@ -92,6 +102,8 @@ export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSe
       await loadSettingsAndHealth();
     } catch (ex) {
       logger.warn('[DATA_HISTORY] Error updating retention days', ex);
+      fireToast({ type: 'error', message: 'There was a problem updating your Data History settings.' });
+      setRetentionDaysInput(String(settings.retentionDays));
     }
   }
 
@@ -196,6 +208,7 @@ export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSe
               `}
               type="number"
               min={1}
+              max={limits?.retentionDaysMax}
               value={retentionDaysInput}
               onChange={(event) => setRetentionDaysInput(event.target.value)}
               onBlur={handleRetentionDaysCommit}

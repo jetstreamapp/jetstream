@@ -8,8 +8,9 @@
 export * from './lib/data-history-backends';
 export * from './lib/data-history-bulk-results';
 export * from './lib/data-history.service';
-// The only internals consumers legitimately need: the test seam on the real factory, the "is storage
-// bound to a user yet" gate, and the error type read paths surface to the UI
-export { setHistoryFileStoreForTests } from './lib/file-store/file-store-factory';
+// The only internals consumers legitimately need: the test seam on the real factory, the cross-document
+// "backend changed elsewhere" subscription, the "is storage bound to a user yet" gate, and the error
+// type read paths surface to the UI
+export { setHistoryFileStoreForTests, subscribeToHistoryBackendChanges } from './lib/file-store/file-store-factory';
 export { DataHistoryDirectoryPermissionError } from './lib/file-store/fsa-types';
 export { whenDataHistoryUserScopeReady } from './lib/file-store/user-scope';

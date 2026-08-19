@@ -213,11 +213,6 @@ async function resolvePaidPlanWithGrace(hasPaidPlan: boolean): Promise<boolean> 
   }
 }
 
-/** Resolved tier limits for this session (null before initialization) — for settings UI display */
-export function getDataHistoryLimits(): DataHistoryTierLimits | null {
-  return getTierLimits();
-}
-
 /** Whether capture is currently active (initialized + not disabled in settings) */
 export async function isDataHistoryCaptureEnabled(): Promise<boolean> {
   try {

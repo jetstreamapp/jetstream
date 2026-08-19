@@ -17,6 +17,7 @@ import {
   reconnectHistoryDirectory,
   requestPersistentStorage,
   setDataHistoryEnabled,
+  subscribeToHistoryBackendChanges,
   whenDataHistoryUserScopeReady,
 } from '@jetstream/ui/data-history';
 import { useSetAtom } from 'jotai';
@@ -51,6 +52,10 @@ export function useDataHistoryBackendStatus() {
 
   useEffect(() => {
     loadBackendStatus();
+    // A storage change made in ANOTHER document (a second tab, the extension's settings page) must
+    // show here too — otherwise this surface keeps offering "Store in a folder" / "Re-connect" and
+    // the old "Files are saved to" line for a state that no longer exists until something remounts it
+    return subscribeToHistoryBackendChanges(loadBackendStatus);
   }, [loadBackendStatus]);
 
   return { backendStatus, loadBackendStatus };
@@ -134,64 +139,8 @@ export function useRequestPersistentStorage({ analyticsLocation }: { analyticsLo
 
 const STORAGE_ACTION_ERROR_MESSAGE = 'There was a problem changing the Data History storage location.';
 
-/**
- * The ONE lifecycle around a Data History storage action — the working flag, the analytics event and
- * `onChanged` refresh after it, the warn + error toast when it throws. Every storage button on the
- * Data History page and in Settings (connect / change / re-connect / switch back / re-index) runs
- * through this, so toast copy, the analytics shape and the spinner contract live in one place.
- *
- * An action resolves `false` when the user cancelled (a dismissed folder picker): nothing changed, so
- * there is no analytics event and no `onChanged`. Resolves whether the action completed.
- */
-export function useRunStorageAction({
-  analyticsLocation,
-  onChanged,
-  onFailed,
-}: {
-  analyticsLocation: string;
-  /** Runs after the action completed — surfaces refresh their backend status / usage numbers here */
-  onChanged?: () => void | Promise<void>;
-  /** Runs after the action threw — a surface showing backend status re-reads it, since a partial change may already have landed */
-  onFailed?: () => void | Promise<void>;
-}) {
-  const { trackEvent } = useAmplitude();
-  const [working, setWorking] = useState(false);
-
-  async function runStorageAction(
-    action: () => Promise<boolean | void>,
-    /** The `data_history_settings_changed` payload (minus `location`); a thunk when it depends on the action's outcome */
-    analytics: Record<string, unknown> | (() => Record<string, unknown>),
-    options?: {
-      /**
-       * Shown verbatim instead of the thrown error's message. By default the error's own message is
-       * shown when it has one — some failures carry an actionable message (the previous folder needs
-       * access re-granted, desktop refuses to move the folder mid-load) — rather than a generic error
-       * the user can only retry.
-       */
-      errorMessage?: string;
-    },
-  ): Promise<boolean> {
-    setWorking(true);
-    try {
-      if ((await action()) === false) {
-        return false;
-      }
-      const analyticsPayload = typeof analytics === 'function' ? analytics() : analytics;
-      trackEvent(ANALYTICS_KEYS.data_history_settings_changed, { ...analyticsPayload, location: analyticsLocation });
-      await onChanged?.();
-      return true;
-    } catch (ex) {
-      logger.warn('[DATA_HISTORY] Storage action failed', ex);
-      fireToast({ type: 'error', message: options?.errorMessage ?? (getErrorMessage(ex) || STORAGE_ACTION_ERROR_MESSAGE) });
-      await onFailed?.();
-      return false;
-    } finally {
-      setWorking(false);
-    }
-  }
-
-  return { runStorageAction, working };
-}
+/** The `data_history_settings_changed` payload an action reports (minus `location`), or `false` when the user cancelled it */
+export type DataHistoryStorageActionOutcome = Record<string, unknown> | false;
 
 /**
  * Report the outcome of moving history between backends. Every migration can leave entries behind —
@@ -221,35 +170,73 @@ export function fireMigrationResultToast({ migrated, skipped }: DataHistoryMigra
 }
 
 /**
- * "Store History in a Folder" and "Change Folder…" — the ONE implementation of each, used by both
- * the Data History page and the Settings storage-location controls. Picks the native filesystem
- * backend when the environment supports it (desktop) and the user-chosen-directory backend
- * otherwise, which is the same choice both surfaces make: each shows exactly one of the two.
+ * The ONE lifecycle around every Data History storage action — connect / change / re-connect a
+ * folder, switch back, re-index — shared by the Data History page and the Settings storage-location
+ * panel. It owns the `working` flag AND the "Moving history — N of N" counter: `runStorageAction`
+ * clears the counter before and after every action and hands the action the `onProgress` callback
+ * that drives it, so a surface cannot strand a stale counter or a stuck spinner by forgetting a
+ * wrapper. Toast copy, the analytics shape and the error handling live here as well.
+ *
+ * An action resolves with its analytics payload (minus `location`, which each surface supplies), or
+ * `false` when the user cancelled (a dismissed folder picker): nothing changed, so there is no
+ * analytics event and no `onChanged`. `runStorageAction` resolves whether the action completed.
  *
  * `storeInFolder` connects a folder when none is active; `changeFolder` moves the history to a
  * different one while a folder IS active — on the web that is the same `connectHistoryDirectory`
  * call (picking a folder while one is connected copies the history across), on desktop the main
- * process moves the directory. They differ only in toast copy and the analytics `action`, so they
- * share one try/toast/track/working lifecycle here instead of each surface rebuilding it.
- *
- * `onProgress` drives the caller's migration counter; the analytics event reports the backend that
- * was actually connected, so the two surfaces differ only by `location`. The four flows resolve
- * `false` when the user dismissed the picker — see `useRunStorageAction`.
+ * process moves the directory. Both pick the native backend when the environment supports it
+ * (desktop) and the user-chosen-directory backend otherwise; each surface shows exactly one of the two.
  */
-export function useStoreHistoryInFolder({
+export function useDataHistoryStorageActions({
   analyticsLocation,
   backendStatus,
-  onProgress,
   onChanged,
   onFailed,
 }: {
   analyticsLocation: string;
   backendStatus: DataHistoryBackendStatus | null;
-  onProgress?: DataHistoryMigrationProgress;
+  /** Runs after an action completed — surfaces refresh their backend status / usage numbers here */
   onChanged?: () => void | Promise<void>;
+  /** Runs after an action threw — a surface showing backend status re-reads it, since a partial change may already have landed */
   onFailed?: () => void | Promise<void>;
 }) {
-  const { runStorageAction, working } = useRunStorageAction({ analyticsLocation, onChanged, onFailed });
+  const { trackEvent } = useAmplitude();
+  const [working, setWorking] = useState(false);
+  const [migrationProgress, setMigrationProgress] = useState<Maybe<{ migrated: number; total: number }>>(null);
+
+  async function runStorageAction(
+    action: (onProgress: DataHistoryMigrationProgress) => Promise<DataHistoryStorageActionOutcome>,
+    options?: {
+      /**
+       * Shown verbatim instead of the thrown error's message. By default the error's own message is
+       * shown when it has one — some failures carry an actionable message (the previous folder needs
+       * access re-granted, desktop refuses to move the folder mid-load) — rather than a generic error
+       * the user can only retry.
+       */
+      errorMessage?: string;
+    },
+  ): Promise<boolean> {
+    setWorking(true);
+    setMigrationProgress(null);
+    try {
+      const analytics = await action((migrated, total) => setMigrationProgress({ migrated, total }));
+      if (analytics === false) {
+        return false;
+      }
+      trackEvent(ANALYTICS_KEYS.data_history_settings_changed, { ...analytics, location: analyticsLocation });
+      await onChanged?.();
+      return true;
+    } catch (ex) {
+      logger.warn('[DATA_HISTORY] Storage action failed', ex);
+      fireToast({ type: 'error', message: options?.errorMessage ?? (getErrorMessage(ex) || STORAGE_ACTION_ERROR_MESSAGE) });
+      await onFailed?.();
+      return false;
+    } finally {
+      setWorking(false);
+      setMigrationProgress(null);
+    }
+  }
+
   const nativeSupported = !!backendStatus?.nativeSupported;
   // Whether to OFFER "Store History in a Folder" — keyed on the configured backend, not on where
   // writes currently land. "Change Folder…" is offered by the caller while a folder is configured.
@@ -258,83 +245,59 @@ export function useStoreHistoryInFolder({
     ((nativeSupported && backendStatus.active !== 'native') || (backendStatus.directorySupported && backendStatus.active !== 'directory'));
 
   function storeInFolder() {
-    return runStorageAction(
-      async () => {
-        if (nativeSupported) {
-          fireMigrationResultToast(
-            await enableNativeHistoryStorage(onProgress),
-            'Your history is now stored on disk — manage the folder from Settings.',
-          );
-          return true;
-        }
-        const result = await connectHistoryDirectory(onProgress);
-        if (!result) {
-          return false;
-        }
-        fireMigrationResultToast(result, 'Your history is now stored in the selected folder.');
-        return true;
-      },
-      { backend: nativeSupported ? 'native' : 'directory' },
-    );
+    return runStorageAction(async (onProgress) => {
+      if (nativeSupported) {
+        fireMigrationResultToast(
+          await enableNativeHistoryStorage(onProgress),
+          'Your history is now stored on disk — manage the folder from Settings.',
+        );
+        return { backend: 'native' };
+      }
+      const result = await connectHistoryDirectory(onProgress);
+      if (!result) {
+        return false;
+      }
+      fireMigrationResultToast(result, 'Your history is now stored in the selected folder.');
+      return { backend: 'directory' };
+    });
   }
 
   function changeFolder() {
-    return runStorageAction(
-      async () => {
-        if (nativeSupported) {
-          const newPath = await changeNativeHistoryFolder();
-          if (!newPath) {
-            return false;
-          }
-          fireToast({ type: 'success', message: `History moved to ${newPath}` });
-          return true;
-        }
-        const result = await connectHistoryDirectory(onProgress);
-        if (!result) {
+    return runStorageAction(async (onProgress) => {
+      if (nativeSupported) {
+        const newPath = await changeNativeHistoryFolder();
+        if (!newPath) {
           return false;
         }
-        fireMigrationResultToast(result, 'Your history was moved to the new folder.');
-        return true;
-      },
-      { backend: nativeSupported ? 'native' : 'directory', action: nativeSupported ? 'relocate' : 'change-folder' },
-    );
+        fireToast({ type: 'success', message: `History moved to ${newPath}` });
+        return { backend: 'native', action: 'relocate' };
+      }
+      const result = await connectHistoryDirectory(onProgress);
+      if (!result) {
+        return false;
+      }
+      fireMigrationResultToast(result, 'Your history was moved to the new folder.');
+      return { backend: 'directory', action: 'change-folder' };
+    });
   }
 
-  return { storeInFolder, changeFolder, available, working };
-}
-
-/**
- * Re-connect a previously chosen history folder after the browser revoked permission — the ONE
- * implementation, shared by the Data History page banner and the Settings storage-location warning.
- */
-export function useReconnectHistoryFolder({
-  analyticsLocation,
-  onChanged,
-  onFailed,
-}: {
-  analyticsLocation: string;
-  onChanged?: () => void | Promise<void>;
-  onFailed?: () => void | Promise<void>;
-}) {
-  const { runStorageAction, working } = useRunStorageAction({ analyticsLocation, onChanged, onFailed });
-
+  /** Re-connect a previously chosen history folder after the browser revoked permission */
   function reconnectFolder() {
-    let granted = false;
     return runStorageAction(
       async () => {
-        granted = await reconnectHistoryDirectory();
+        const granted = await reconnectHistoryDirectory();
         fireToast(
           granted
             ? { type: 'success', message: 'Folder re-connected — new history will be saved there.' }
             : { type: 'warning', message: 'Permission was not granted.' },
         );
+        return { backend: 'directory', action: 'reconnect', granted };
       },
-      () => ({ backend: 'directory', action: 'reconnect', granted }),
       { errorMessage: 'There was a problem re-connecting the Data History folder.' },
     );
   }
 
-  return { reconnectFolder, working };
+  return { storeInFolder, changeFolder, reconnectFolder, runStorageAction, available, working, migrationProgress };
 }
 
 /**
