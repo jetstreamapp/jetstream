@@ -4,11 +4,11 @@ import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { FieldWrapper, QueryFieldWithPolymorphic, QueryFields, SalesforceOrgUi } from '@jetstream/types';
 import { SobjectFieldList } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
-import { getSubqueryFieldBaseKey } from '@jetstream/ui-core/shared';
+import { getSubqueryFieldBaseKey, initQueryFieldStateItem, removeInFlightQueryFields } from '@jetstream/ui-core/shared';
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
 import isEmpty from 'lodash/isEmpty';
-import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect } from 'react';
 
 export interface QueryChildFieldsProps {
   org: SalesforceOrgUi;
@@ -29,57 +29,53 @@ export const QueryChildFields: FunctionComponent<QueryChildFieldsProps> = ({
   onSelectionChanged,
 }) => {
   const [queryFieldsMap, setQueryFieldsMap] = useAtom(fromQueryState.queryFieldsMapState);
-  const [baseKey, setBaseKey] = useState<string>(getSubqueryFieldBaseKey(selectedSObject, relationshipPath));
   const selectedOrg = useAtomValue(selectedOrgState);
+  const baseKey = getSubqueryFieldBaseKey(selectedSObject, relationshipPath);
 
   // Fetch fields for base object if the selected object changes
   useEffect(() => {
     const BASE_KEY = getSubqueryFieldBaseKey(selectedSObject, relationshipPath);
+    let abandoned = false;
 
-    let baseQueryFieldsMap: QueryFields = queryFieldsMap[BASE_KEY];
-
-    if (isEmpty(baseQueryFieldsMap)) {
-      setBaseKey(BASE_KEY);
-      // clone so we can mutate
-      let tempQueryFieldsMap = { ...queryFieldsMap };
-      // clone so we can mutate
-      baseQueryFieldsMap = { ...baseQueryFieldsMap };
-      baseQueryFieldsMap = {
-        key: BASE_KEY,
-        isPolymorphic: false,
-        expanded: true,
-        loading: true,
-        hasError: false,
-        filterTerm: '',
-        sobject: selectedSObject,
-        fields: {},
-        visibleFields: new Set(),
-        selectedFields: new Set(),
-      };
+    if (isEmpty(queryFieldsMap[BASE_KEY])) {
+      const baseFieldsPlaceholder = initQueryFieldStateItem(BASE_KEY, selectedSObject, { loading: true });
       // set to loading state while base fields are fetched
-      tempQueryFieldsMap[BASE_KEY] = baseQueryFieldsMap;
-      setQueryFieldsMap(tempQueryFieldsMap);
+      setQueryFieldsMap((priorFieldsMap) => ({ ...priorFieldsMap, [BASE_KEY]: baseFieldsPlaceholder }));
       (async () => {
-        tempQueryFieldsMap = { ...queryFieldsMap };
-        baseQueryFieldsMap = { ...baseQueryFieldsMap };
+        let baseQueryFields: QueryFields;
         try {
-          // fetch fields
-          baseQueryFieldsMap = await fetchFields(selectedOrg, baseQueryFieldsMap, BASE_KEY, isTooling);
-          // clone and set to loading
-          baseQueryFieldsMap = { ...baseQueryFieldsMap, loading: false };
-          // update object on core state
-          tempQueryFieldsMap[BASE_KEY] = baseQueryFieldsMap;
+          baseQueryFields = { ...(await fetchFields(selectedOrg, baseFieldsPlaceholder, BASE_KEY, isTooling)), loading: false };
         } catch (ex) {
           logger.warn('[SUBQUERY] Query SObject error', ex);
-          baseQueryFieldsMap = { ...baseQueryFieldsMap, loading: false, hasError: true };
-          tempQueryFieldsMap[BASE_KEY] = baseQueryFieldsMap;
-        } finally {
-          setQueryFieldsMap(tempQueryFieldsMap);
+          baseQueryFields = { ...baseFieldsPlaceholder, loading: false, hasError: true };
         }
+        if (abandoned) {
+          return;
+        }
+        setQueryFieldsMap((priorFieldsMap) => ({ ...priorFieldsMap, [BASE_KEY]: baseQueryFields }));
       })();
     }
+
+    return () => {
+      abandoned = true;
+      // Drop the placeholders for any fetch that will never write its result, otherwise the guards
+      // above and in handleToggleFieldExpand treat them as loaded and the spinner never clears
+      setQueryFieldsMap((priorFieldsMap) => removeInFlightQueryFields(priorFieldsMap, BASE_KEY));
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedOrg, selectedSObject]);
+  }, [selectedOrg, selectedSObject, relationshipPath, isTooling]);
+
+  async function fetchRelatedFields(key: string, relatedFieldsPlaceholder: QueryFields) {
+    let relatedQueryFields: QueryFields;
+    try {
+      relatedQueryFields = { ...(await fetchFields(selectedOrg, relatedFieldsPlaceholder, key, isTooling)), loading: false };
+    } catch (ex) {
+      logger.warn('Query SObject error', ex);
+      relatedQueryFields = { ...relatedFieldsPlaceholder, loading: false, hasError: true };
+    }
+    // Replace only this key - sibling expansions may have resolved while this fetch was in flight
+    setQueryFieldsMap((priorFieldsMap) => (priorFieldsMap[key] ? { ...priorFieldsMap, [key]: relatedQueryFields } : priorFieldsMap));
+  }
 
   /**
    * FIXME: This is rather complicated to follow the code path
@@ -104,67 +100,39 @@ export const QueryChildFields: FunctionComponent<QueryChildFieldsProps> = ({
     onSelectionChanged(fields);
   }
 
-  async function handleToggleFieldExpand(parentKey: string, field: FieldWrapper, relatedSobject: string) {
+  function handleToggleFieldExpand(parentKey: string, field: FieldWrapper, relatedSobject: string) {
     // FIXME: should be centralized:
     // const key = `${parentKey}${field.metadata.relationshipName}.`;
     const key = getFieldKey(parentKey, field.metadata);
+    const existingFields = queryFieldsMap[key];
     // if field is already initialized
-    const clonedQueryFieldsMap = { ...queryFieldsMap };
-    if (clonedQueryFieldsMap[key]) {
-      clonedQueryFieldsMap[key] = { ...clonedQueryFieldsMap[key], expanded: !clonedQueryFieldsMap[key].expanded };
-    } else {
-      // this is a new expansion that we have not seen, we need to fetch the fields and init the object
-      clonedQueryFieldsMap[key] = {
-        key,
-        expanded: true,
-        loading: true,
-        hasError: false,
-        filterTerm: '',
-        sobject: relatedSobject,
-        isPolymorphic: Array.isArray(field.relatedSobject),
-        fields: {},
-        visibleFields: new Set(),
-        selectedFields: new Set(),
-      };
-      // fetch fields and update once resolved
-      (async () => {
-        try {
-          clonedQueryFieldsMap[key] = await fetchFields(selectedOrg, clonedQueryFieldsMap[key], key, isTooling);
-          // ensure selected object did not change
-          if (clonedQueryFieldsMap[key]) {
-            clonedQueryFieldsMap[key] = { ...clonedQueryFieldsMap[key], loading: false };
-            setQueryFieldsMap(clonedQueryFieldsMap);
-          }
-        } catch (ex) {
-          logger.warn('Query SObject error', ex);
-          clonedQueryFieldsMap[key] = { ...clonedQueryFieldsMap[key], loading: false, hasError: true };
-        } finally {
-          setQueryFieldsMap(clonedQueryFieldsMap);
-        }
-      })();
+    if (existingFields) {
+      // Toggle against the published map rather than this render's snapshot - a sibling fetch may
+      // have resolved into it since, and rewriting the snapshot would undo that
+      setQueryFieldsMap((priorFieldsMap) => {
+        const currentFields = priorFieldsMap[key] || existingFields;
+        return { ...priorFieldsMap, [key]: { ...currentFields, expanded: !currentFields.expanded } };
+      });
+      return;
     }
-    setQueryFieldsMap({ ...clonedQueryFieldsMap });
+    // this is a new expansion that we have not seen, we need to fetch the fields and init the object
+    const relatedFieldsPlaceholder = initQueryFieldStateItem(key, relatedSobject, {
+      loading: true,
+      isPolymorphic: Array.isArray(field.relatedSobject),
+    });
+    setQueryFieldsMap((priorFieldsMap) => ({ ...priorFieldsMap, [key]: relatedFieldsPlaceholder }));
+    // fetch fields and update once resolved
+    fetchRelatedFields(key, relatedFieldsPlaceholder);
   }
 
-  async function handleErrorReattempt(key: string) {
-    const clonedQueryFieldsMap = { ...queryFieldsMap };
-    clonedQueryFieldsMap[key] = { ...clonedQueryFieldsMap[key], loading: true, hasError: false };
-    setQueryFieldsMap({ ...clonedQueryFieldsMap });
-
-    // This is a candidate to pull into shared function
-    try {
-      clonedQueryFieldsMap[key] = await fetchFields(selectedOrg, clonedQueryFieldsMap[key], key, isTooling);
-      // ensure selected object did not change
-      if (clonedQueryFieldsMap[key]) {
-        clonedQueryFieldsMap[key] = { ...clonedQueryFieldsMap[key], loading: false };
-        setQueryFieldsMap(clonedQueryFieldsMap);
-      }
-    } catch (ex) {
-      logger.warn('Query SObject error', ex);
-      clonedQueryFieldsMap[key] = { ...clonedQueryFieldsMap[key], loading: false, hasError: true };
-    } finally {
-      setQueryFieldsMap(clonedQueryFieldsMap);
+  function handleErrorReattempt(key: string) {
+    if (!queryFieldsMap[key]) {
+      return;
     }
+    const relatedFieldsPlaceholder = { ...queryFieldsMap[key], loading: true, hasError: false };
+    setQueryFieldsMap((priorFieldsMap) => ({ ...priorFieldsMap, [key]: relatedFieldsPlaceholder }));
+
+    fetchRelatedFields(key, relatedFieldsPlaceholder);
   }
 
   function handleFieldSelection(key: string, field: FieldWrapper) {

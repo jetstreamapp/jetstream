@@ -61,6 +61,7 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
   onSearchTermChange,
 }) => {
   const isMounted = useRef(true);
+  const latestRequestId = useRef(0);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<string>(_lastRefreshed);
@@ -98,13 +99,16 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
   }, [recentItems, selectedFilters, sobjects]);
 
   const loadObjects = useCallback(async () => {
-    const uniqueId = selectedOrg.uniqueId;
-    const priorToolingValue = isTooling;
+    // The org or api can change while the describe is in flight - a superseded request must not
+    // publish the prior org's objects. `selectedOrg` cannot be re-read for this because it is
+    // captured in this closure, so requests are tracked by id instead.
+    const requestId = ++latestRequestId.current;
+    const isSuperseded = () => !isMounted.current || requestId !== latestRequestId.current;
     try {
       setLoading(true);
       const resultsWithCache = await describeGlobal(selectedOrg, isTooling);
       const results = resultsWithCache.data;
-      if (!isMounted.current || uniqueId !== selectedOrg.uniqueId || priorToolingValue !== isTooling) {
+      if (isSuperseded()) {
         return;
       }
       if (resultsWithCache.cache) {
@@ -114,12 +118,16 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
       onSobjects(orderObjectsBy(results.sobjects.filter(filterFn), 'label'));
     } catch (ex) {
       logger.error(ex);
-      if (!isMounted.current || uniqueId !== selectedOrg.uniqueId || priorToolingValue !== isTooling) {
+      if (isSuperseded()) {
         return;
       }
       setErrorMessage(getErrorMessage(ex));
     } finally {
-      setLoading(false);
+      // The newest request owns the loading state - a superseded one clearing it would let the
+      // load effect fire again while that newer describe is still in flight
+      if (!isSuperseded()) {
+        setLoading(false);
+      }
     }
   }, [filterFn, onSobjects, selectedOrg, isTooling]);
 

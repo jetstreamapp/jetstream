@@ -35,6 +35,7 @@ import { DraggableSfdcCard, SfdcCardDropTarget } from './organization-group.type
 import OrgGroupCardCard from './OrgGroupCard';
 import { OrgGroupCardNoOrganization } from './OrgGroupCardNoOrganization';
 import { OrgGroupModal } from './OrgGroupModal';
+import { RefreshAllOrgsButton } from './RefreshAllOrgsButton';
 import { SalesforceOrgsActions } from './SalesforceOrgsActions';
 
 export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHandlerFn }) {
@@ -138,10 +139,10 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
   const handleCreateOrUpdate = async (orgGroup: OrgGroupCreateUpdatePayload, groupToUpdateId?: string) => {
     let createdOrgGroup: OrgGroup;
     if (groupToUpdateId) {
-      trackEvent(ANALYTICS_KEYS.organizations_created, { priorCount: groups.length });
+      trackEvent(ANALYTICS_KEYS.organizations_updated, { count: groups.length });
       createdOrgGroup = await updateOrgGroup(groupToUpdateId, orgGroup);
     } else {
-      trackEvent(ANALYTICS_KEYS.organizations_updated, { count: groups.length });
+      trackEvent(ANALYTICS_KEYS.organizations_created, { priorCount: groups.length });
       createdOrgGroup = await createOrgGroup(orgGroup);
     }
     setOrgGroupsFromDb(async (_prevGroups) => {
@@ -225,6 +226,7 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
 
   const handleOrgGroupChange = useCallback(
     (group?: Maybe<OrgGroupWithOrgs>) => {
+      trackEvent(ANALYTICS_KEYS.organizations_selected, { hasGroup: !!group, orgCount: group?.orgs.length ?? 0 });
       setActiveOrgGroupId(group?.id);
       if (group && (!selectedOrg || !group.orgs.find(({ uniqueId }) => uniqueId === selectedOrg.uniqueId))) {
         // Try to select the recently selected org for this group
@@ -252,7 +254,7 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
         }
       }
     },
-    [allOrgs, selectedOrg, setActiveOrgGroupId, setSelectedOrgId],
+    [allOrgs, selectedOrg, setActiveOrgGroupId, setSelectedOrgId, trackEvent],
   );
 
   const handleOpenCreateOrganizationModal = async () => {
@@ -260,16 +262,21 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
     setModalState({ open: true });
   };
 
+  const handleOpenEditOrganizationModal = async (organization: OrgGroupWithOrgs) => {
+    trackEvent(ANALYTICS_KEYS.organizations_edit_modal_open, { orgCount: organization.orgs.length });
+    setModalState({ open: true, organization });
+  };
+
   const handleCloseOrganizationModal = async () => {
     setModalState({ open: false });
     setSelectedOrgGroup(null);
   };
 
+  // Deletion itself is tracked in DeleteOrgsModal where the success/failure counts are known
   const handleOrgsDeleted = async () => {
     setOrgGroupsFromDb(getOrgGroups());
     const refreshedOrgs = await getOrgs();
     setOrgs(refreshedOrgs);
-    trackEvent(ANALYTICS_KEYS.organizations_deleted, { priorCount: allOrgs.length });
   };
 
   return (
@@ -289,6 +296,7 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
               onAddOrg={handleAddOrg}
               onAddOrgHandlerFn={onAddOrgHandlerFn}
             />
+            {allOrgs.length > 0 && <RefreshAllOrgsButton className="slds-button_middle" orgs={allOrgs} />}
             <button
               className={classNames('slds-button slds-button_brand', { 'slds-button_last': allOrgs.length === 0 })}
               onClick={() => handleOpenCreateOrganizationModal()}
@@ -321,9 +329,7 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
                   group={organization}
                   activeSalesforceOrgId={selectedOrg?.uniqueId}
                   onSelected={() => handleOrgGroupChange(organization)}
-                  onEditOrg={() => {
-                    setModalState({ open: true, organization });
-                  }}
+                  onEditOrg={() => handleOpenEditOrganizationModal(organization)}
                   onDeleteOrg={() => handleDelete(organization)}
                   onDeleteOrgWithOrgs={() => handleDeleteAll(organization)}
                   onAddOrgHandlerFn={onAddOrgHandlerFn}

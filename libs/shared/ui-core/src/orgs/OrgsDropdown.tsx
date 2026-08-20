@@ -130,6 +130,7 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = ({
           {selectedOrg && (
             <div className="slds-col slds-m-horizontal--xx-small org-info-button">
               <OrgInfoPopover
+                source="org-dropdown"
                 org={selectedOrg}
                 loading={orgLoading}
                 disableOrgActions={actionInProgress}

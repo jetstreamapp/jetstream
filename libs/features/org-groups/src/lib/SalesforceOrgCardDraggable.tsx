@@ -82,6 +82,7 @@ export function SalesforceOrgCardDraggable({ org, isActive, onAddOrgHandlerFn }:
                 />
               )}
               <OrgInfoPopover
+                source="org-groups"
                 org={org}
                 loading={orgLoading}
                 disableOrgActions={actionInProgress}

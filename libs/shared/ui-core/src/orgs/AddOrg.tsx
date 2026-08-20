@@ -102,6 +102,7 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
       advancedOptionsEnabled,
       addLoginTrue,
       addToActiveOrganization: addToActiveOrgGroup,
+      isReconnect: !!existingOrg,
     });
   }
 
