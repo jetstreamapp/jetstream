@@ -12,7 +12,7 @@
  */
 export const FEATURE_FLAGS = {
   'analysis-tools': {
-    defaultValue: false,
+    defaultValue: true,
     description: 'Data and record analysis tools.',
   },
   'salesforce-canvas': {
