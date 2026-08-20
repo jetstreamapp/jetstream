@@ -60,7 +60,12 @@ export function apiModeToDataHistoryApi(apiMode: ApiMode): DataHistoryApi {
 /**
  * Whether any record may have reached Salesforce when a load failed. 'none' — a pre-processing/query
  * error, a thrown prepare step, a Bulk job that accepted no batch. 'unknown' — a throw after records
- * were sent (a Batch request mid-load, the Bulk job-status read after every batch was submitted).
+ * were sent (the Batch results callback once batches were submitted, the Bulk job-status read after
+ * every batch was submitted).
+ *
+ * Both APIs turn a failed request for one batch into failed rows rather than a throw, so neither
+ * reaches a call site's catch — 'unknown' is about the throws that happen around submission, not
+ * about a batch Salesforce rejected.
  */
 export type LoadFailureReach = 'none' | 'unknown';
 

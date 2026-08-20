@@ -8,6 +8,14 @@
 export * from './lib/data-history-backends';
 export * from './lib/data-history-bulk-results';
 export * from './lib/data-history.service';
+// Lets the host app point swallowed capture failures at its error tracker (this lib cannot import
+// one — see `failure-reporter.ts`)
+export {
+  setDataHistoryFailureReporter,
+  type DataHistoryFailureInfo,
+  type DataHistoryFailureOperation,
+  type DataHistoryFailureReporter,
+} from './lib/failure-reporter';
 // The only internals consumers legitimately need: the test seam on the real factory, the cross-document
 // "backend changed elsewhere" subscription, the "is storage bound to a user yet" gate, and the error
 // type read paths surface to the UI

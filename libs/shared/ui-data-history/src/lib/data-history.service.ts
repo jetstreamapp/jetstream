@@ -36,6 +36,7 @@ import {
   requestPersistOnce,
   setTierLimits,
 } from './data-history-state';
+import { reportDataHistoryFailure } from './failure-reporter';
 import { getFileStoreForBackend, getHistoryFileStore, resetHistoryFileStores } from './file-store/file-store-factory';
 import { HistoryFileStore, HistoryWriteStream } from './file-store/file-store.types';
 import { getOrgFolderName } from './file-store/hashed-dir-names';
@@ -161,6 +162,7 @@ export async function initDataHistory(options: {
     return { captureEnabled, limits: getTierLimits() };
   } catch (ex) {
     logger.warn('[DATA_HISTORY] Error initializing data history', ex);
+    reportDataHistoryFailure({ operation: 'init', error: ex });
     return { captureEnabled: false, limits: getTierLimits() };
   }
 }
@@ -428,6 +430,7 @@ export class DataHistoryEntryHandle {
       await task();
     } catch (ex) {
       logger.warn('[DATA_HISTORY] Finalize task failed for entry', this.key, ex);
+      reportDataHistoryFailure({ operation: 'finalize', error: ex, entryKey: this.key, backend: this.store?.type });
     }
     // `finish()` is queued, so awaiting it also waits out every write the task enqueued
     await this.finish(outcome);
@@ -566,6 +569,7 @@ export class DataHistoryEntryHandle {
       void pruneEntryCountOverage();
     } catch (ex) {
       logger.warn('[DATA_HISTORY] Unable to start history entry', ex);
+      reportDataHistoryFailure({ operation: 'start-entry', error: ex, entryKey: this.key, backend: this.item.storageBackend });
       markEntryInactive(this.key);
     }
   }
@@ -599,6 +603,7 @@ export class DataHistoryEntryHandle {
         await task(store);
       } catch (ex) {
         logger.warn('[DATA_HISTORY] Capture step failed for entry', this.key, ex);
+        reportDataHistoryFailure({ operation: 'capture-step', error: ex, entryKey: this.key, backend: store.type });
         await this.markFailed(getErrorMessage(ex));
       }
     });
