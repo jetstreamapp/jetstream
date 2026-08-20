@@ -1,5 +1,34 @@
 [
   {
+    "slug": "v10.14.0",
+    "title": "10.14.0 - Data History and Refresh All Orgs",
+    "date": "2026-08-20",
+    "tags": ["web", "desktop", "extension"],
+    "versions": { "web": "10.14.0", "desktop": "4.11.0", "extension": "3.14.0" },
+    "summary": "Jetstream now keeps a local history of the data modifications you make, and you can check every org connection at once from the org list.",
+    "highlights": [
+      {
+        "title": "Data History",
+        "description": "A local record of the data modifications you make with Jetstream, including the records you submitted and the per-record results.",
+        "docLink": "/load/data-history"
+      },
+      {
+        "title": "Refresh All Orgs",
+        "description": "Check every org connection at once from the org list, which also resets Salesforce's 30-day inactivity clock."
+      },
+      {
+        "title": "Large downloads use the Bulk API",
+        "description": "Downloads of 500,000 or more records now use the Bulk API instead of failing partway through building the file.",
+        "docLink": "/query/results"
+      },
+      {
+        "title": "Query field loading fixes",
+        "description": "Switching objects while fields are loading no longer shows the wrong object's fields or leaves a spinner that never finishes.",
+        "docLink": "/query"
+      }
+    ]
+  },
+  {
     "slug": "v10.13.0",
     "title": "10.13.0 - Nested subqueries and multi-object load improvements",
     "date": "2026-08-17",

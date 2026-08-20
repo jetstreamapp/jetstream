@@ -1,0 +1,69 @@
+---
+slug: v10.14.0
+title: 10.14.0 - Data History and Refresh All Orgs
+date: '2026-08-20'
+tags: [web, desktop, extension]
+versions:
+  web: 10.14.0
+  desktop: 4.11.0
+  extension: 3.14.0
+summary: Jetstream now keeps a local history of the data modifications you make, and you can check every org connection at once from the org list.
+highlights:
+  - title: Data History
+    description: A local record of the data modifications you make with Jetstream, including the records you submitted and the per-record results.
+    docLink: /load/data-history
+  - title: Refresh All Orgs
+    description: Check every org connection at once from the org list, which also resets Salesforce's 30-day inactivity clock.
+  - title: Large downloads use the Bulk API
+    description: Downloads of 500,000 or more records now use the Bulk API instead of failing partway through building the file.
+    docLink: /query/results
+  - title: Query field loading fixes
+    description: Switching objects while fields are loading no longer shows the wrong object's fields or leaves a spinner that never finishes.
+    docLink: /query
+---
+
+{/* truncate */}
+
+## What's new
+
+### Data History
+
+Jetstream keeps a local history of the data modifications you make: what you changed, when, and what
+Salesforce returned. Open it from the clock icon in the header, the Load Records menu, or the home
+page.
+
+- History is captured for Load Records (including retries and trial runs), Load Records to Multiple
+  Objects, Update Records Without a File, Bulk Update From Query, query result edits, and record
+  saves from the record modal.
+- Each entry records the org, feature, object, operation, status, and record counts. The detail view
+  can preview or download the records you submitted, what was sent to Salesforce, and the per-record
+  success and failure results as CSV, Excel, or JSON.
+- Free plans keep the 15 most recent entries for up to 60 days. Paid plans, the desktop app, and the
+  browser extension keep unlimited entries for up to a year. Pin an entry to exclude it from
+  automatic cleanup.
+- Settings has controls to turn Data History off, adjust how long entries are kept, see how much
+  storage it is using, and delete everything saved on the device. On Chrome, Edge, and the desktop
+  app you can also store history in a folder on your computer, where the files are visible, backed
+  up, and survive clearing browser data.
+
+History is stored on your device and is never sent to the Jetstream server. That also means clearing
+your browser's site data deletes it, so download anything you need to keep. Loading Custom Metadata
+records is not captured, since those loads go through the Metadata API rather than the data APIs.
+
+### Refresh All Orgs
+
+The org list has a **Refresh All Orgs** button that checks every org connection and reports how many
+succeeded. Salesforce ends a connection when an org has not been used for 30 days, so this also
+resets that clock across all of your orgs. Orgs that fail the check are called out so you know which
+ones to reconnect.
+
+Refreshing a single org from its card now updates the card when the check fails. Previously a failed
+refresh left the card showing its old status until you reloaded the page.
+
+### Other fixes
+
+- Query: downloads of 500,000 or more records now use the Bulk API. They previously stayed on the
+  standard path and failed partway through building the file.
+- Query: switching objects while a field list was still loading could show the fields of the object
+  you switched away from, or leave a spinner that never finished. Field loads are now tied to the
+  object that requested them.
