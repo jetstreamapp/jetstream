@@ -1,6 +1,43 @@
-@import 'tailwindcss';
+@import 'tailwindcss' source(none);
 
-@config '../tailwind.config.js';
+@source './**/*.{js,ts,jsx,tsx}';
+@source '../components/**/*.{js,ts,jsx,tsx}';
+
+@plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/typography';
+
+@theme {
+  --font-sans:
+    'Salesforce Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', 'Noto Sans', Arial, sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  /* Preflight resolves `--default-font-family` from the built-in theme, so point it at our override explicitly. */
+  --default-font-family: var(--font-sans);
+
+  --color-blue-50: #eef4ff;
+  --color-blue-100: #d8e6fe;
+  --color-blue-200: #aacbff;
+  --color-blue-300: #78b0fd;
+  --color-blue-400: #57a3fd;
+  --color-blue-500: #1b96ff;
+  --color-blue-600: #0176d3;
+  --color-blue-700: #0b5cab;
+  --color-blue-800: #014486;
+  --color-blue-900: #032d60;
+  --color-blue-950: #001639;
+
+  --animate-fadeIn: fadeIn 0.3s ease-out;
+
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
 
 /*
   The default border color has changed to `currentcolor` in Tailwind CSS v4,
