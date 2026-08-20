@@ -1,5 +1,24 @@
 # Changelog
 
+## [10.14.0](https://github.com/jetstreamapp/jetstream/compare/v10.13.0...v10.14.0) (2026-08-20)
+
+### Features
+
+- add data history for load multi ([db73efd](https://github.com/jetstreamapp/jetstream/commit/db73efd7adc2da6388c7398439f005915ce5caac))
+- add data history for misc record modification events ([4a46af5](https://github.com/jetstreamapp/jetstream/commit/4a46af516d605f9bf8ef221cc441496c6781e358))
+- add data history page and settings ([9a1e79c](https://github.com/jetstreamapp/jetstream/commit/9a1e79cb7287834a38e0f6e71c75f21d57a91f51))
+- add file history tracking to data load ([4055bb1](https://github.com/jetstreamapp/jetstream/commit/4055bb1dd3a476d9cb15c2c0f2bb55eb45751c46))
+- **org-groups:** add bulk connection refresh and track org management usage ([da4b514](https://github.com/jetstreamapp/jetstream/commit/da4b514831d9314b69f23869ab1a4938797c6c50)), closes [#1445](https://github.com/jetstreamapp/jetstream/issues/1445)
+- prepare storage layer for full record modification history ([af44b29](https://github.com/jetstreamapp/jetstream/commit/af44b2942160f4874083e8bca73be90f70894de4))
+- save data history as plain files in user-selected folders ([8a5fa1d](https://github.com/jetstreamapp/jetstream/commit/8a5fa1da7e9a1c61991647c3d9d6581deeacea95))
+- tabbed data history detail modal with data tables ([0fe3d70](https://github.com/jetstreamapp/jetstream/commit/0fe3d7058a0389b7806d26ef5104d3cdf813af89))
+
+### Bug Fixes
+
+- correct Batch load failure classification and surface capture failures ([5ae99bf](https://github.com/jetstreamapp/jetstream/commit/5ae99bfa9c9053ce878901c92f4d1998b85e21e1))
+- **download:** force the Bulk API for large downloads and report failures ([13d90cb](https://github.com/jetstreamapp/jetstream/commit/13d90cb6beb7346f6226babc099b828982f58903))
+- **query:** stop in-flight field fetches from clobbering the current object ([24a300b](https://github.com/jetstreamapp/jetstream/commit/24a300b3fe8a039fa32bfa853a1fa8cf0906d073)), closes [#233](https://github.com/jetstreamapp/jetstream/issues/233) [#364](https://github.com/jetstreamapp/jetstream/issues/364)
+
 ## [10.13.0](https://github.com/jetstreamapp/jetstream/compare/v10.12.0...v10.13.0) (2026-08-18)
 
 ### Features
