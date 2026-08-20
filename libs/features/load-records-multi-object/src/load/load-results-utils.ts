@@ -1,5 +1,5 @@
 import { InsertUpdateUpsert, Maybe } from '@jetstream/types';
-import { LoadMultiObjectRun } from '../load-records-multi-object-types';
+import { LoadMultiObjectRequestWithResult, LoadMultiObjectRun } from '../load-records-multi-object-types';
 
 export interface RecordResultRow {
   _key: string;
@@ -121,7 +121,9 @@ export function buildResultsDownloadRows(rows: RecordResultRow[], which: 'result
       Id: row._id,
       Success: row._success === true,
       Created: row.created,
-      Error: row.status || '',
+      // A pending row was never sent (the run was cancelled first) — say so rather than leaving a
+      // `Success: false` row with a blank error that reads like an unexplained failure
+      Error: row.status || (row._success === null ? 'Not attempted — the load was cancelled before this record was sent' : ''),
     }));
 }
 
@@ -137,3 +139,11 @@ export const RESULTS_DOWNLOAD_HEADER = [
   'Created',
   'Error',
 ];
+
+/**
+ * Raw composite-graph request payload - shared by the "Download Load Data" action and the Data
+ * History capture so the two exports never drift.
+ */
+export function buildRequestExport(requests: LoadMultiObjectRequestWithResult[]): { groupId: string; data: unknown[] }[] {
+  return requests.map((request) => ({ groupId: request.key, data: Object.values(request.dataWithResultsByGraphId) }));
+}

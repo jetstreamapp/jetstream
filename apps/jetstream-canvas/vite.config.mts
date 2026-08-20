@@ -9,6 +9,9 @@ export default defineConfig(() => ({
   server: {
     port: 4202,
     host: 'localhost',
+    fs: {
+      allow: ['../../'],
+    },
   },
   preview: {
     port: 4202,

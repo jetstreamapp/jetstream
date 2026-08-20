@@ -4,7 +4,7 @@ import { checkHeartbeat, disconnectSocket, initSocket, registerMiddleware, updat
 import { initErrorTracker, setErrorTrackerUser, tracker, useObservable } from '@jetstream/shared/ui-utils';
 import { Announcement, JetstreamEventSaveSoqlQueryFormatOptionsPayload, SalesforceOrgUi } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
-import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
+import { fromJetstreamEvents, useAmplitude, useInitDataHistory } from '@jetstream/ui-core';
 import { DEFAULT_PROFILE, fromAppState } from '@jetstream/ui/app-state';
 import { CookieConsentBanner, useConditionalGoogleAnalytics } from '@jetstream/ui/cookie-consent-banner';
 import { ensureLocalStorageReady, initDexieDb, pruneAnalysisJobHistory } from '@jetstream/ui/db';
@@ -51,6 +51,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onAnnou
     fromJetstreamEvents.getObservable('saveSoqlQueryFormatOptions') as Observable<JetstreamEventSaveSoqlQueryFormatOptionsPayload>,
   );
   const [analytics, setAnalytics] = useAtom(fromAppState.analyticsState);
+  const initDataHistoryAndSeedState = useInitDataHistory();
   const [searchParams, setSearchParams] = useSearchParams();
   const errorParam = searchParams.get('error');
 
@@ -58,6 +59,9 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onAnnou
 
   const recordSyncEntitlementEnabled = ability.can('access', 'RecordSync');
   const recordSyncEnabled = recordSyncEntitlementEnabled && userProfile.preferences.recordSyncEnabled;
+  // Data history is available to everyone; paid plans get higher limits (canonical paid signal,
+  // NOT an individual entitlement — some paid plans lack specific entitlements)
+  const hasPaidPlan = useAtomValue(fromAppState.hasPaidPlanState);
 
   const activeUserId = userProfile.id && userProfile.id !== DEFAULT_PROFILE.id ? userProfile.id : null;
   // Suspend until both local stores are scoped to this user, so no descendant reads local storage
@@ -107,6 +111,22 @@ APP VERSION ${version}
         });
     }
   }, [appInfo.serverUrl, recordSyncEnabled, activeUserId]);
+
+  /**
+   * Data history initialization is keyed on the paid signal (it decides the tier's limits), which the
+   * socket/database bootstrap above is not — a billing-status change must not re-run `initSocket` and
+   * `initDexieDb`. Safe to run outside that chain because the `use(ensureLocalStorageReady(...))`
+   * above suspends this component until the per-user Dexie instance is bound, which is all data
+   * history needs. It stays inside the same `activeUserId` gate so it never runs against the
+   * signed-out/default profile.
+   */
+  useEffect(() => {
+    if (activeUserId) {
+      initDataHistoryAndSeedState({ userId: activeUserId, hasPaidPlan }).catch((ex) => {
+        logger.error('[DATA_HISTORY] Error initializing data history', ex);
+      });
+    }
+  }, [activeUserId, hasPaidPlan, initDataHistoryAndSeedState]);
 
   useEffect(() => {
     announcements && onAnnouncements && onAnnouncements(announcements);

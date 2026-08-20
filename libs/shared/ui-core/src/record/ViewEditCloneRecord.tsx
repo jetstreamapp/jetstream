@@ -6,6 +6,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, SOBJECT_NAME_FIELD_MAP } from '@jetstream/shared/constants';
 import { clearCacheForOrg, describeGlobal, describeSObject, query, sobjectOperation } from '@jetstream/shared/data';
 import { copyRecordsToClipboard, isErrorResponse, tracker, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import {
   AsyncJobNew,
   BulkDownloadJob,
@@ -44,6 +45,7 @@ import {
   validateEditForm,
 } from '@jetstream/ui-core/shared';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { recordSingleRecordAction, SingleRecordActionContext } from '@jetstream/ui/data-history';
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import { useAtomValue } from 'jotai';
 import isNumber from 'lodash/isNumber';
@@ -332,6 +334,16 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
 
     setSaving(true);
 
+    // Identity of the Data History entry, shared by the success and thrown-error paths below.
+    // `request` stays at each call site because `record` is reassigned inside the try for clone/create.
+    const historyEntry = {
+      org: selectedOrg,
+      source: 'record-modal',
+      operation: action === 'edit' ? 'edit' : action === 'clone' ? 'clone' : 'create',
+      api: 'collections',
+      sobjects: [sobjectName],
+    } satisfies Omit<SingleRecordActionContext, 'request'>;
+
     try {
       let recordResponse: RecordResult;
 
@@ -357,10 +369,27 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
           });
         }
       }
+
+      // Record the modal save to Data History (success OR error result). Fire-and-forget and self-gating —
+      // it never throws and never gates the UI. Written as request.json/results.json like every other
+      // capture, and rolled back all-or-nothing if any part of the capture fails.
+      void recordSingleRecordAction({
+        ...historyEntry,
+        request: record,
+        outcome: { succeeded: !isErrorResponse(recordResponse), results: recordResponse },
+      });
     } catch (ex) {
       if (isMounted.current) {
         setFormErrors({ hasErrors: true, fieldErrors: {}, generalErrors: ['An unknown problem has occurred.'] });
       }
+      // A THROWN save (network error, expired session) is still recorded — the request may even have
+      // applied server-side (e.g. a timeout), so "no record of the attempt" is the worst outcome.
+      // Graceful per-record error results are captured on the success path above.
+      void recordSingleRecordAction({
+        ...historyEntry,
+        request: record,
+        outcome: { succeeded: false, results: { error: getErrorMessage(ex) }, errorMessage: getErrorMessage(ex) },
+      });
     }
     if (isMounted.current) {
       setSaving(false);

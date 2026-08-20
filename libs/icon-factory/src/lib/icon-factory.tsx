@@ -20,6 +20,7 @@ import DoctypeIcon_Zip from './icons/doctype/Zip';
 import StandardIcon_ActionsAndButtons from './icons/standard/ActionsAndButtons';
 import StandardIcon_Activations from './icons/standard/Activations';
 import StandardIcon_Apex from './icons/standard/Apex';
+import StandardIcon_AssetAudit from './icons/standard/AssetAudit';
 import StandardIcon_AssetRelationship from './icons/standard/AssetRelationship';
 import StandardIcon_Billing from './icons/standard/Billing';
 import StandardIcon_BundleConfig from './icons/standard/BundleConfig';
@@ -130,6 +131,8 @@ import UtilityIcon_Page from './icons/utility/Page';
 import UtilityIcon_Paste from './icons/utility/Paste';
 import UtilityIcon_Pause from './icons/utility/Pause';
 import UtilityIcon_People from './icons/utility/People';
+import UtilityIcon_Pin from './icons/utility/Pin';
+import UtilityIcon_Pinned from './icons/utility/Pinned';
 import UtilityIcon_Play from './icons/utility/Play';
 import UtilityIcon_Preview from './icons/utility/Preview';
 import UtilityIcon_ProfileAlt from './icons/utility/ProfileAlt';
@@ -209,6 +212,7 @@ const standardIcons = {
   actions_and_buttons: StandardIcon_ActionsAndButtons,
   activations: StandardIcon_Activations,
   apex: StandardIcon_Apex,
+  asset_audit: StandardIcon_AssetAudit,
   asset_relationship: StandardIcon_AssetRelationship,
   billing: StandardIcon_Billing,
   bundle_config: StandardIcon_BundleConfig,
@@ -337,6 +341,8 @@ const utilityIcons = {
   paste: UtilityIcon_Paste,
   pause: UtilityIcon_Pause,
   people: UtilityIcon_People,
+  pin: UtilityIcon_Pin,
+  pinned: UtilityIcon_Pinned,
   play: UtilityIcon_Play,
   preview: UtilityIcon_Preview,
   profile_alt: UtilityIcon_ProfileAlt,

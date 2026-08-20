@@ -1,0 +1,8 @@
+{
+  "name": "ui-data-history",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/shared/ui-data-history/src",
+  "projectType": "library",
+  "tags": ["scope:browser"],
+  "targets": {}
+}

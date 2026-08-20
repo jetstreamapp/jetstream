@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { getCanvasPreferences, updateCanvasPreferences } from '@jetstream/shared/data';
 import { initErrorTracker, setErrorTrackerUser, useObservable } from '@jetstream/shared/ui-utils';
 import { JetstreamEventSaveSoqlQueryFormatOptionsPayload, SalesforceOrgUi } from '@jetstream/types';
-import { AppLoading, fromJetstreamEvents } from '@jetstream/ui-core';
+import { AppLoading, fromJetstreamEvents, useInitDataHistory } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { ensureLocalStorageReady, initDexieDb } from '@jetstream/ui/db';
 import { useAtomValue, useSetAtom } from 'jotai';
@@ -31,6 +31,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
   const setSelectedOrgId = useSetAtom(fromAppState.selectedOrgIdState);
   const setSalesforceOrgs = useSetAtom(fromAppState.salesforceOrgsState);
   const setUserProfile = useSetAtom(fromAppState.userProfileState);
+  const initDataHistoryAndSeedState = useInitDataHistory();
   const setCanvasColorScheme = useSetAtom(canvasColorSchemeState);
   const selectedOrg = useAtomValue(fromAppState.selectedOrgState);
 
@@ -75,11 +76,14 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
     // wait until this data has initialized before proceeding
     const recordSyncEnabled = false;
     if (storageScopeId) {
-      initDexieDb({ userId: storageScopeId, dbName: LOCAL_STORE_DB_NAME, recordSyncEnabled }).catch((ex) => {
-        logger.error('[DB] Error initializing db', ex);
-      });
+      initDexieDb({ userId: storageScopeId, dbName: LOCAL_STORE_DB_NAME, recordSyncEnabled })
+        // Canvas history storage is partitioned per Salesforce top-level origin and best-effort
+        .then(() => initDataHistoryAndSeedState({ userId: storageScopeId }))
+        .catch((ex) => {
+          logger.error('[DB] Error initializing db', ex);
+        });
     }
-  }, [storageScopeId]);
+  }, [storageScopeId, initDataHistoryAndSeedState]);
 
   // Load preferences from Salesforce custom setting on mount
   useEffect(() => {

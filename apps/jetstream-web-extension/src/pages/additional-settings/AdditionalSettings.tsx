@@ -9,7 +9,7 @@ import {
   ScopedNotification,
   Spinner,
 } from '@jetstream/ui';
-import { SoqlQueryFormatConfig } from '@jetstream/ui-core';
+import { DataHistorySettingsSection, SoqlQueryFormatConfig } from '@jetstream/ui-core';
 import { dexieDataSync } from '@jetstream/ui/db';
 import { useState } from 'react';
 import { AppWrapper } from '../../core/AppWrapper';
@@ -115,6 +115,9 @@ export function AdditionalSettings() {
             If you have having an issue with your data syncing from Jetstream to the Extension, you can reset your extension data to pull in
             all your Jetstream data.
           </p>
+
+          {/* No link into the app — this page has no Salesforce `host` param, so Data History is reached from the app nav */}
+          <DataHistorySettingsSection hideViewHistoryLink />
         </AutoFullHeightContainer>
       </Page>
     </div>

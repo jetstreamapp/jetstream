@@ -294,6 +294,10 @@ export async function fetchActiveLog(org: SalesforceOrgUi, id: string): Promise<
  * Copy records to clipboard in various formats
  * Copy the content in both plain text and HTML to be compatible with pasting to excel
  * along with other applications at the same time
+ *
+ * Resolves to whether the copy landed. Never throws — most callers fire-and-forget — but a caller
+ * that reports "Copied" to the user must check the result: the clipboard write fails when clipboard
+ * access is unavailable or the user gesture expired during an async read before the copy.
  */
 export async function copyRecordsToClipboard(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -301,13 +305,14 @@ export async function copyRecordsToClipboard(
   copyFormat: CopyAsDataType = 'excel',
   fields?: Maybe<string[]>,
   includeHeader = true,
-) {
+): Promise<boolean> {
   try {
+    let copied = false;
     if (copyFormat === 'excel') {
       recordsToCopy = fields ? flattenRecords(recordsToCopy, fields) : recordsToCopy;
       const plainText = transformTabularDataToExcelStr(recordsToCopy, fields, includeHeader);
       const excelString = transformTabularDataToHtml(recordsToCopy, fields, includeHeader);
-      await copyToClipboard(excelString, {
+      copied = await copyToClipboard(excelString, {
         format: 'text/html',
         onCopy: () =>
           new ClipboardItem({
@@ -318,18 +323,20 @@ export async function copyRecordsToClipboard(
     } else if (copyFormat === 'csv') {
       recordsToCopy = fields ? flattenRecords(recordsToCopy, fields) : recordsToCopy;
       const csvString = unparse(recordsToCopy, { header: includeHeader });
-      await copyToClipboard(csvString, {
+      copied = await copyToClipboard(csvString, {
         format: 'text/plain',
       });
     } else if (copyFormat === 'json') {
       const jsonString = JSON.stringify(recordsToCopy, null, 2);
-      await copyToClipboard(jsonString, {
+      copied = await copyToClipboard(jsonString, {
         format: 'text/plain',
       });
     }
     logger.info('[Clipboard][Copied]', { recordsToCopy });
+    return copied;
   } catch (ex) {
     logger.error('Copy to clipboard failed', getErrorMessage(ex));
+    return false;
   }
 }
 

@@ -4,6 +4,8 @@ import { sha1Hex } from '@jetstream/shared/utils';
 import type {
   AnalysisJobHistoryItem,
   ApiHistoryItem,
+  DataHistoryConfigItem,
+  DataHistoryItem,
   LoadSavedMappingItem,
   QueryHistoryItem,
   QueryHistoryObject,
@@ -46,6 +48,8 @@ export type DexieDb = Dexie & {
   recent_history_item: EntityTable<RecentHistoryItem, 'key'>;
   api_request_history: EntityTable<ApiHistoryItem, 'key'>;
   analysis_job_history: EntityTable<AnalysisJobHistoryItem, 'key'>;
+  data_history: EntityTable<DataHistoryItem, 'key'>;
+  data_history_config: EntityTable<DataHistoryConfigItem, 'key'>;
 };
 
 export type SyncableEntity = keyof typeof SyncableTables;
@@ -77,6 +81,14 @@ export const LocalOnlyTables = {
   analysis_job_history: {
     name: 'analysis_job_history',
     keyPrefix: 'aj',
+  },
+  data_history: {
+    name: 'data_history',
+    keyPrefix: 'dh',
+  },
+  data_history_config: {
+    name: 'data_history_config',
+    keyPrefix: 'dhc',
   },
 } as const;
 
@@ -183,6 +195,24 @@ function applySchema(db: DexieDb) {
 
   db.version(4).stores({
     analysis_job_history: 'key,org,jobType,createdAt,pinned,[org+jobType+createdAt]',
+  });
+
+  /**
+   * Every `data_history` index below is read by a query in `data-history.db.ts`, and the entry row is
+   * written several times per capture — so an index that serves no query is pure write cost on the
+   * hot path of every data load. Do not add one speculatively:
+   *
+   * - `createdAt`      — the default newest-first list
+   * - `[org+createdAt]` — the same list narrowed to one org (a standalone `org` index would be
+   *                       redundant: the compound index serves org-only lookups too)
+   * - `pinnedIdx`      — pinned count without deserializing rows (booleans cannot be Dexie indexes,
+   *                       so `db-hooks` mirrors `pinned` into this string field)
+   * - `sizeBytes`      — total usage summed straight from the index, read on every settings/history
+   *                       page mount over an unbounded number of rows on tiers with no entry cap
+   */
+  db.version(5).stores({
+    data_history: 'key,createdAt,pinnedIdx,sizeBytes,[org+createdAt]',
+    data_history_config: 'key',
   });
 }
 

@@ -3,6 +3,7 @@ import { BulkJobBatchInfo, Maybe } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Checkbox,
+  getModifierKey,
   Icon,
   Input,
   KeyboardShortcut,
@@ -13,9 +14,8 @@ import {
   ToolbarItemActions,
   ToolbarItemGroup,
   Tooltip,
-  getModifierKey,
 } from '@jetstream/ui';
-import { DeployResults, MassUpdateRecordsDeploymentRow, MetadataRow, useDeployRecords } from '@jetstream/ui-core';
+import { DeployResults, MassUpdateRecordsDeploymentRow, MetadataRow, SkipDataHistoryCheckbox, useDeployRecords } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtomValue, useSetAtom } from 'jotai';
 import { useAtomCallback } from 'jotai/utils';
@@ -54,6 +54,7 @@ export const MassUpdateRecordsDeployment = () => {
   const [batchSizeError, setBatchSizeError] = useState<string | null>(null);
   const batchSizeInput = useIntegerInput(batchSize, setBatchSize);
   const [serialMode, setSerialMode] = useState(false);
+  const [skipDataHistory, setSkipDataHistory] = useState(false);
   const setDeploymentState = useSetAtom(fromMassUpdateState.rowsMapState);
 
   const getRows = useAtomCallback(
@@ -79,7 +80,7 @@ export const MassUpdateRecordsDeployment = () => {
 
   async function handleDeploy() {
     setLoading(true);
-    await loadDataForRows(rows, { batchSize: batchSize ?? 10000, serialMode });
+    await loadDataForRows(rows, { batchSize: batchSize ?? 10000, serialMode, skipHistory: skipDataHistory });
     pollResultsUntilDone(getRows);
   }
 
@@ -172,6 +173,14 @@ export const MassUpdateRecordsDeployment = () => {
               onBlur={batchSizeInput.handleBlur}
             />
           </Input>
+          <SkipDataHistoryCheckbox
+            operation="update"
+            className="slds-m-top_x-small"
+            checked={skipDataHistory}
+            disabled={loading}
+            showViewLink
+            onChange={setSkipDataHistory}
+          />
         </Section>
 
         {rows.map((row) => (

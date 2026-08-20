@@ -221,6 +221,7 @@
     "electron-builder": "^26.15.3",
     "electron-updater": "^6.8.9",
     "esbuild": "^0.28.1",
+    "fake-indexeddb": "^6.2.5",
     "fishery": "^2.4.0",
     "gray-matter": "^4.0.3",
     "husky": "^9.1.7",

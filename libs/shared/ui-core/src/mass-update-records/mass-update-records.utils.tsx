@@ -2,7 +2,8 @@ import { logger } from '@jetstream/shared/client-logger';
 import { SFDC_BULK_API_NULL_VALUE } from '@jetstream/shared/constants';
 import { queryAll, queryAllFromList } from '@jetstream/shared/data';
 import { escapeSoqlString } from '@jetstream/shared/ui-utils';
-import { DescribeGlobalSObjectResult, ListItem, Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
+import { BULK_RESULTS_BASE_HEADER, buildBulkResultRow } from '@jetstream/shared/utils';
+import { BulkJobResultRecord, DescribeGlobalSObjectResult, ListItem, Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import { Query, composeQuery, getField, isQueryValid } from '@jetstreamapp/soql-parser-js';
 import lodashGet from 'lodash/get';
 import isNil from 'lodash/isNil';
@@ -140,6 +141,57 @@ export function getFieldsToQuery(configuration: MetadataRowConfiguration[]): str
     fields = Array.from(new Set(fields));
   });
   return fields.filter(Boolean) as string[];
+}
+
+/**
+ * The combined per-record result rows (`{_id, _success, _errors, ...record}`) used by BOTH the
+ * interactive download/view in `MassUpdateRecordsDeploymentRow` and the Data History capture share
+ * their shape with Load Records — the canonical builder is `buildBulkResultRow` in
+ * `@jetstream/shared/utils`; only the header derivation differs per feature.
+ */
+
+/** Results/failures header: base result columns + the updated fields (`Id` + each selected field) */
+export function getMassUpdateResultsHeader(configuration: MetadataRowConfiguration[]): string[] {
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  return BULK_RESULTS_BASE_HEADER.concat(['Id', ...configuration.map(({ selectedField }) => selectedField!)]);
+}
+
+/**
+ * WIDER variant of `getMassUpdateResultsHeader` for downloads whose rows carry the full QUERIED
+ * record (`getFieldsToQuery`): also includes any "value from another field" source columns, which
+ * the results view and the saved history file intentionally omit.
+ */
+export function getMassUpdateQueriedFieldsHeader(configuration: MetadataRowConfiguration[]): string[] {
+  return BULK_RESULTS_BASE_HEADER.concat(getFieldsToQuery(configuration));
+}
+
+/**
+ * Zip a batch's bulk result records with the submitted source records into combined rows. Pass
+ * `includeSuccesses: false` to keep only failed rows (used by the "failures" download).
+ */
+export function buildMassUpdateCombinedResults(
+  resultRecords: BulkJobResultRecord[],
+  sourceRecords: Record<string, unknown>[],
+  { includeSuccesses = true }: { includeSuccesses?: boolean } = {},
+): Record<string, unknown>[] {
+  const combinedResults: Record<string, unknown>[] = [];
+  resultRecords.forEach((resultRecord, i) => {
+    if (includeSuccesses || !resultRecord.Success) {
+      combinedResults.push(buildBulkResultRow(resultRecord, sourceRecords[i]));
+    }
+  });
+  return combinedResults;
+}
+
+/** Slice the source records submitted for a given batch, matching the CSV split order */
+export function getMassUpdateBatchSourceRecords(
+  records: Record<string, unknown>[],
+  batchIdToIndex: Record<string, number>,
+  batchId: string,
+  batchSize: number,
+): Record<string, unknown>[] {
+  const startIdx = batchIdToIndex[batchId] * batchSize;
+  return records.slice(startIdx, startIdx + batchSize);
 }
 
 export function getValidationSoqlQuery(row: MetadataRow) {

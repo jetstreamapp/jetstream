@@ -34,7 +34,7 @@ const HOME_ITEMS: HomeCard[] = [
   {
     title: 'Load',
     icon: { type: 'standard', icon: 'record_update' },
-    items: [APP_ROUTES.LOAD, APP_ROUTES.LOAD_MULTIPLE, APP_ROUTES.LOAD_MASS_UPDATE, APP_ROUTES.LOAD_CREATE_RECORD],
+    items: [APP_ROUTES.LOAD, APP_ROUTES.LOAD_MULTIPLE, APP_ROUTES.LOAD_MASS_UPDATE, APP_ROUTES.LOAD_CREATE_RECORD, APP_ROUTES.DATA_HISTORY],
   },
   {
     title: 'Automation',

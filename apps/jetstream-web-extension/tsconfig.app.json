@@ -69,6 +69,9 @@
       "path": "../../libs/features/debug-log-viewer/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/features/data-history/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/features/data-analysis/tsconfig.lib.json"
     },
     {

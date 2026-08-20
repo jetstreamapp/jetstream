@@ -1,0 +1,201 @@
+import { Blob as NodeBlob } from 'node:buffer';
+
+import { buildBulkResultRow } from '@jetstream/shared/utils';
+import { BulkJobBatchInfo, BulkJobResultRecord, RecordResultWithRecord, SalesforceOrgUi } from '@jetstream/types';
+import { initDataHistory, readDataHistoryFile, setHistoryFileStoreForTests, startDataHistoryEntry } from '@jetstream/ui/data-history';
+import { FakeFileStore } from '@jetstream/ui/data-history/testing';
+import { dataHistoryDb, getDexieDb } from '@jetstream/ui/db';
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import {
+  alignBatchSourceRecordsToResults,
+  buildBatchApiResultRow,
+  getCompletedBatchSourceRecords,
+  getLoadResultsHeader,
+} from '../load-results-utils';
+
+const SPEC_USER_ID = 'spec-user-id';
+
+// jsdom's Blob does not interoperate with Node's CompressionStream (cross-realm web streams);
+// Node's Blob shares a realm with the stream globals the capture code uses.
+globalThis.Blob = NodeBlob as unknown as typeof Blob;
+
+const org = { uniqueId: 'org-unique-id-1', label: 'My Dev Org' } as SalesforceOrgUi;
+
+/**
+ * Integration coverage for the Load Records → Data History wiring: the shared result-row builders
+ * feed a real `DataHistoryEntryHandle` (backed by the in-memory FakeFileStore) and the persisted
+ * results.csv / entry counts are asserted end-to-end.
+ */
+describe('Load Records Data History capture wiring', () => {
+  beforeAll(async () => {
+    await initDataHistory({ userId: SPEC_USER_ID, hasPaidPlan: true });
+  });
+
+  beforeEach(async () => {
+    await getDexieDb().data_history.clear();
+    await getDexieDb().data_history_config.clear();
+    setHistoryFileStoreForTests(new FakeFileStore());
+  });
+
+  afterEach(() => {
+    setHistoryFileStoreForTests(null);
+  });
+
+  it('captures BATCH results streamed batch-by-batch with a single header row', async () => {
+    const handle = startDataHistoryEntry({
+      org,
+      source: 'load-records',
+      operation: 'insert',
+      api: 'batch-composite',
+      sobjects: ['Account'],
+      config: { apiMode: 'BATCH' },
+    });
+    expect(handle.key).toMatch(/^dh_/);
+
+    const fields = ['Name', 'Industry'];
+    const header = getLoadResultsHeader(fields);
+
+    handle.writeInputRows(
+      [
+        { Name: 'Acme', Industry: 'Tech' },
+        { Name: 'Globex', Industry: 'Energy' },
+        { Name: 'Bad', Industry: '' },
+      ],
+      fields,
+    );
+
+    // First batch (two successes), appended as it "completes"
+    const firstBatch: RecordResultWithRecord[] = [
+      { success: true, id: '001', record: { Name: 'Acme', Industry: 'Tech' } },
+      { success: true, id: '002', record: { Name: 'Globex', Industry: 'Energy' } },
+    ];
+    handle.appendResultsRows(
+      firstBatch.map((record) => buildBatchApiResultRow(record, fields)),
+      header,
+    );
+
+    // Second batch (a failure), appended separately
+    const secondBatch: RecordResultWithRecord[] = [
+      {
+        success: false,
+        errors: [{ statusCode: 'REQUIRED_FIELD_MISSING', message: 'Name required', fields: ['Name'] }],
+        record: { Name: '', Industry: '' },
+      },
+    ];
+    handle.appendResultsRows(
+      secondBatch.map((record) => buildBatchApiResultRow(record, fields)),
+      header,
+    );
+
+    await handle.finish({ counts: { total: 3, success: 2, failure: 1, processingErrors: 0 } });
+    await handle.flush();
+
+    const entry = await dataHistoryDb.getEntry(handle.key);
+    expect(entry?.status).toBe('partial');
+    expect(entry?.counts).toEqual({ total: 3, success: 2, failure: 1, processingErrors: 0 });
+    expect(entry?.files.map(({ kind }) => kind).sort()).toEqual(['input', 'results']);
+
+    const results = await readDataHistoryFile(entry!, 'results');
+    const lines = (await results!.blob.text()).split('\n');
+    expect(lines[0]).toBe('_id,_success,_errors,Name,Industry');
+    // header + 3 data rows, and the header appears exactly once despite two appends
+    expect(lines).toHaveLength(4);
+    expect(lines.filter((line) => line === lines[0])).toHaveLength(1);
+    expect(lines[3]).toBe(',false,REQUIRED_FIELD_MISSING: Name required,,');
+  });
+
+  it('captures BULK results combined from Salesforce result records + submitted records', async () => {
+    const handle = startDataHistoryEntry({
+      org,
+      source: 'load-records',
+      operation: 'update',
+      api: 'bulk-v1',
+      sobjects: ['Contact'],
+      config: { apiMode: 'BULK' },
+    });
+
+    const fields = ['Id', 'LastName'];
+    const header = getLoadResultsHeader(fields);
+    const submittedRecords = [
+      { Id: '003A', LastName: 'Smith' },
+      { Id: '003B', LastName: 'Jones' },
+    ];
+    const resultRecords: BulkJobResultRecord[] = [
+      { Id: '003A', Success: true, Created: false, Error: null },
+      { Id: '003B', Success: false, Created: false, Error: 'FIELD_INTEGRITY_EXCEPTION' },
+    ];
+
+    handle.appendResultsRows(
+      resultRecords.map((resultRecord, index) => buildBulkResultRow(resultRecord, submittedRecords[index])),
+      header,
+    );
+    await handle.finish({ counts: { total: 2, success: 1, failure: 1 }, jobId: '750XX' });
+    await handle.flush();
+
+    const entry = await dataHistoryDb.getEntry(handle.key);
+    expect(entry?.status).toBe('partial');
+    expect(entry?.jobId).toBe('750XX');
+
+    const results = await readDataHistoryFile(entry!, 'results');
+    const lines = (await results!.blob.text()).split('\n');
+    expect(lines[0]).toBe('_id,_success,_errors,Id,LastName');
+    expect(lines[1]).toBe('003A,true,,003A,Smith');
+    expect(lines[2]).toBe('003B,false,FIELD_INTEGRITY_EXCEPTION,003B,Jones');
+  });
+
+  it('pairs BULK results with the records of the batch that produced them when an earlier batch failed', async () => {
+    const handle = startDataHistoryEntry({
+      org,
+      source: 'load-records',
+      operation: 'update',
+      api: 'bulk-v1',
+      sobjects: ['Account'],
+      config: { apiMode: 'BULK' },
+    });
+
+    const fields = ['Id', 'Name'];
+    const header = getLoadResultsHeader(fields);
+    // Records as they were split for submission — batch 1 failed at the batch level, so Salesforce
+    // only returns result rows for batch 2's records
+    const splitRecords = [
+      [
+        { Id: '001A', Name: 'Batch1-A' },
+        { Id: '001B', Name: 'Batch1-B' },
+      ],
+      [
+        { Id: '001C', Name: 'Batch2-A' },
+        { Id: '001D', Name: 'Batch2-B' },
+      ],
+    ];
+    const batchNumberById = new Map([
+      ['batch-1', 0],
+      ['batch-2', 1],
+    ]);
+    const jobBatches: Pick<BulkJobBatchInfo, 'id' | 'state'>[] = [
+      { id: 'batch-1', state: 'Failed' },
+      { id: 'batch-2', state: 'Completed' },
+    ];
+    const resultRecords: BulkJobResultRecord[] = [
+      { Id: '001C', Success: true, Created: false, Error: null },
+      { Id: '001D', Success: false, Created: false, Error: 'FIELD_INTEGRITY_EXCEPTION' },
+    ];
+
+    const { batchIds, recordsByBatch } = getCompletedBatchSourceRecords(jobBatches, batchNumberById, splitRecords);
+    expect(batchIds).toEqual(['batch-2']);
+    const records = alignBatchSourceRecordsToResults(recordsByBatch, resultRecords.length, false);
+    handle.appendResultsRows(
+      resultRecords.map((resultRecord, index) => buildBulkResultRow(resultRecord, records[index])),
+      header,
+    );
+    await handle.finish({ counts: { total: 4, success: 1, failure: 3 } });
+    await handle.flush();
+
+    const entry = await dataHistoryDb.getEntry(handle.key);
+    const results = await readDataHistoryFile(entry!, 'results');
+    const lines = (await results!.blob.text()).split('\n');
+    // header + 2 rows: batch 2's outcomes paired with batch 2's records — never batch 1's
+    expect(lines).toHaveLength(3);
+    expect(lines[1]).toBe('001C,true,,001C,Batch2-A');
+    expect(lines[2]).toBe('001D,false,FIELD_INTEGRITY_EXCEPTION,001D,Batch2-B');
+  });
+});

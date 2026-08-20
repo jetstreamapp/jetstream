@@ -21,16 +21,10 @@
   "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx", "../../../custom-typings/index.d.ts"],
   "references": [
     {
-      "path": "../../types/tsconfig.lib.json"
-    },
-    {
       "path": "../utils/tsconfig.lib.json"
     },
     {
       "path": "../ui-utils/tsconfig.lib.json"
-    },
-    {
-      "path": "../data/tsconfig.lib.json"
     },
     {
       "path": "../constants/tsconfig.lib.json"
@@ -40,6 +34,12 @@
     },
     {
       "path": "../../auth/acl/tsconfig.lib.json"
+    },
+    {
+      "path": "../../types/tsconfig.lib.json"
+    },
+    {
+      "path": "../data/tsconfig.lib.json"
     }
   ]
 }

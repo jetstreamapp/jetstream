@@ -1,8 +1,9 @@
 import { Field, SobjectCollectionResponse } from '@jetstream/types';
 import { describe, expect, test } from 'vitest';
+import { buildEditedRecordsExport, buildResultsExport } from '../data-table-history-export';
 import { getRecordErrorColumn } from '../DataTableRenderers';
 import { ColumnWithFilter, RowSalesforceRecordWithKey } from '../grid/grid-types';
-import { buildEditedRecordsExport, buildRecordChangeList, buildResultsExport } from '../PreviewChangesModal';
+import { buildRecordChangeList } from '../PreviewChangesModal';
 
 function row(overrides: Partial<RowSalesforceRecordWithKey> & { _key: string; _record: Record<string, any> }): RowSalesforceRecordWithKey {
   return {

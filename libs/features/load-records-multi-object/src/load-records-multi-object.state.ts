@@ -21,6 +21,12 @@ export const inputFilenameState = atomWithReset<Maybe<string>>(null);
 
 export const inputFileTypeState = atomWithReset<Maybe<LocalOrGoogle>>(null);
 
+/** Drive file id for a Google Sheet input - recorded on the Data History entry's input source */
+export const inputGoogleFileIdState = atomWithReset<Maybe<string>>(null);
+
+/** Per-load opt out of Data History capture */
+export const skipDataHistoryState = atomWithReset(false);
+
 export const fileParsingState = atomWithReset(false);
 
 /** Parsed worksheets - always populated after parse, even when they contain errors, so the preview can render */
@@ -78,19 +84,31 @@ export const isReadyToLoadState = atom((get) => {
   return get(totalRecordsToLoadState) > 0 && get(allBlockingErrorsState).length === 0;
 });
 
-export const resetLoadRecordsMultiObjectState = atom(null, (_get, set) => {
-  set(inputFilenameState, RESET);
-  set(inputFileTypeState, RESET);
-  set(fileParsingState, RESET);
-  set(datasetsState, RESET);
-  set(workbookErrorsState, RESET);
-  set(graphErrorsState, RESET);
-  set(requestsState, RESET);
-  set(groupsByRefIdState, RESET);
-  set(currentStepIdxState, RESET);
-  set(previewLayoutVersionState, RESET);
-  set(loadRunsState, RESET);
-  set(loadIsRunningState, RESET);
-  set(loadProgressState, RESET);
-  // dateFormat/insertNulls are user preferences within the session - intentionally kept across Start Over
-});
+/**
+ * `keepSkipDataHistory`: the per-run "don't save this load" opt-out sits on the upload step, so the
+ * user can tick it BEFORE choosing a file — choosing (or re-choosing) the file must not silently undo
+ * it. Start Over and an org change are a new run, so those reset it like everything else.
+ */
+export const resetLoadRecordsMultiObjectState = atom(
+  null,
+  (_get, set, { keepSkipDataHistory = false }: { keepSkipDataHistory?: boolean } = {}) => {
+    set(inputFilenameState, RESET);
+    set(inputFileTypeState, RESET);
+    set(inputGoogleFileIdState, RESET);
+    if (!keepSkipDataHistory) {
+      set(skipDataHistoryState, RESET);
+    }
+    set(fileParsingState, RESET);
+    set(datasetsState, RESET);
+    set(workbookErrorsState, RESET);
+    set(graphErrorsState, RESET);
+    set(requestsState, RESET);
+    set(groupsByRefIdState, RESET);
+    set(currentStepIdxState, RESET);
+    set(previewLayoutVersionState, RESET);
+    set(loadRunsState, RESET);
+    set(loadIsRunningState, RESET);
+    set(loadProgressState, RESET);
+    // dateFormat/insertNulls are user preferences within the session - intentionally kept across Start Over
+  },
+);

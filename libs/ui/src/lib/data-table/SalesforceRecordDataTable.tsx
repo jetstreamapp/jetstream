@@ -38,6 +38,7 @@ import { fireToast } from '../toast/AppToast';
 import Spinner from '../widgets/Spinner';
 import Tooltip from '../widgets/Tooltip';
 import { DataTableSubqueryContext } from './data-table-context';
+import { RecordsSaveCaptureInfo, RecordsSaveOutcome, buildEditedRecordsExport, buildPriorRecordsExport } from './data-table-history-export';
 import { applyPasteCellsToRows, revertCellsInRows } from './data-table-paste-utils';
 import {
   ColumnWithFilter,
@@ -157,6 +158,12 @@ export interface SalesforceRecordDataTableProps {
   onGetAsApex: (record: any) => void;
   onSavedRecords: (results: { recordCount: number; failureCount: number }) => void;
   onReloadQuery: () => void;
+  /**
+   * Fired after a save settles (resolved OR threw) with Data-History-ready snapshots (edited/prior values
+   * + outcome), captured BEFORE the save mutates each row's `_record` in place. Optional so `libs/ui`
+   * stays free of the data-history service — the host wires this to the capture layer.
+   */
+  onRecordsSaveCapture?: (info: RecordsSaveCaptureInfo) => void;
   /** Amplitude tracker (from the host's `useAmplitude`). Optional — defaults to a no-op. */
   trackEvent?: (key: string, value?: Record<string, any>) => void;
 }
@@ -190,6 +197,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
     onUndelete,
     onGetAsApex,
     onSavedRecords,
+    onRecordsSaveCapture,
     trackEvent = () => undefined,
   }: SalesforceRecordDataTableProps) => {
     const isMounted = useRef(true);
@@ -626,6 +634,26 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
       setRecords((records) => (records ? [...records] : records));
     };
 
+    /**
+     * Hand the edited/prior snapshots plus the save outcome to the host for Data History. Built via the
+     * shared export builders so the history payload matches the "Download Changes"/"Download Results"
+     * files. Must run BEFORE the post-save row mapping mutates each row's `_record` in place (which would
+     * make a later diff drop every field). Isolated in its own try/catch: the records may already be
+     * saved in Salesforce, so a capture failure must never reach the save's catch (which would leave rows
+     * dirty and invite a duplicate save).
+     */
+    const captureSaveForHistory = (rowsToCapture: RowSalesforceRecordWithKey[], outcome: RecordsSaveOutcome) => {
+      try {
+        onRecordsSaveCapture?.({
+          editedRecords: buildEditedRecordsExport(rowsToCapture),
+          priorRecords: buildPriorRecordsExport(rowsToCapture),
+          ...outcome,
+        });
+      } catch (ex) {
+        logger.warn('Error capturing save for data history', ex);
+      }
+    };
+
     const handleSaveRecords = async () => {
       // Guards stay OUTSIDE the try: an early `return` inside it still runs the `finally`, which would
       // clear isSavingRef / saving state while a concurrent save is mid-flight — allowing overlapping saves.
@@ -665,6 +693,9 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
           serialMode,
         });
         setLastSaveResults(results);
+
+        // Capture BEFORE the newRows mapping below mutates each row's `_record` in place.
+        captureSaveForHistory(dirtyRows, { results });
 
         const failedResultsById = results.reduce<Record<string, ErrorResult>>((acc, result, i) => {
           if (!result.success) {
@@ -714,6 +745,10 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
       } catch (ex) {
         // This happens if exception thrown, normal behavior is to get records with result success/error
         logger.warn('Error saving records', ex);
+        // A thrown save (network error, expired session, timeout) still gets captured to Data
+        // History — a timed-out request may even have applied server-side, so "no record of the
+        // attempt" is the worst outcome.
+        captureSaveForHistory(dirtyRows, { errorMessage: getErrorMessage(ex) || 'The save request failed' });
         fireToast({
           message: `There was a problem saving your records. ${getErrorMessage(ex) || ''}`,
           type: 'error',

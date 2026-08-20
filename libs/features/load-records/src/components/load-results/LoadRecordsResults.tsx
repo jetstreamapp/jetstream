@@ -1,4 +1,5 @@
 import { ApiMode, FieldMapping, InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { DataHistoryEntryHandle } from '@jetstream/ui/data-history';
 import { FunctionComponent } from 'react';
 import LoadRecordsBatchApiResults from './LoadRecordsBatchApiResults';
 import LoadRecordsBulkApiResults from './LoadRecordsBulkApiResults';
@@ -19,6 +20,8 @@ export interface LoadRecordsResultsProps {
   dateFormat: string;
   /** Already-prepared records for retry — skips prepareData when provided */
   preparedInputData?: any[];
+  /** Data History capture handle for this run (captures nothing when disabled/opted out) */
+  historyHandle: DataHistoryEntryHandle;
   onFinish: (results: { success: number; failure: number; failedRecords: any[] }) => void;
   /** Called when user selects specific records to retry from the results modal */
   onRetrySelected?: (selectedRows: any[]) => void;
@@ -43,6 +46,7 @@ export const LoadRecordsResults: FunctionComponent<LoadRecordsResultsProps> = ({
   serialMode,
   dateFormat,
   preparedInputData,
+  historyHandle,
   onFinish,
   onRetrySelected,
   onRetryAll,
@@ -66,6 +70,7 @@ export const LoadRecordsResults: FunctionComponent<LoadRecordsResultsProps> = ({
           serialMode={serialMode}
           dateFormat={dateFormat}
           preparedInputData={preparedInputData}
+          historyHandle={historyHandle}
           onFinish={onFinish}
           onRetrySelected={onRetrySelected}
           onRetryAll={onRetryAll}
@@ -88,6 +93,7 @@ export const LoadRecordsResults: FunctionComponent<LoadRecordsResultsProps> = ({
           serialMode={serialMode}
           dateFormat={dateFormat}
           preparedInputData={preparedInputData}
+          historyHandle={historyHandle}
           onFinish={onFinish}
           onRetrySelected={onRetrySelected}
           onRetryAll={onRetryAll}

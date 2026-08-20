@@ -46,12 +46,14 @@ import {
   Icon,
   KeyboardShortcut,
   MAX_SAVE_BATCH_SIZE,
+  RecordsSaveCaptureInfo,
   SalesforceRecordDataTable,
   Spinner,
   Toolbar,
   ToolbarItemActions,
   ToolbarItemGroup,
   Tooltip,
+  buildResultsExport,
   getModifierKey,
   useConfirmation,
 } from '@jetstream/ui';
@@ -67,6 +69,7 @@ import {
 } from '@jetstream/ui-core';
 import { getFlattenSubqueryFlattenedFieldMap } from '@jetstream/ui-core/shared';
 import { fromAppState, googleDriveAccessState, soqlQueryFormatOptionsState } from '@jetstream/ui/app-state';
+import { recordDataHistoryAction } from '@jetstream/ui/data-history';
 import { queryHistoryDb } from '@jetstream/ui/db';
 import { Query, composeQuery, formatQuery, parseQuery, stripComments } from '@jetstreamapp/soql-parser-js';
 import classNames from 'classnames';
@@ -510,6 +513,33 @@ export const QueryResults = React.memo(() => {
     return results;
   }
 
+  /**
+   * Record an inline table edit save to Data History. Fire-and-forget — `recordDataHistoryAction` self-gates
+   * and never throws, so it must not gate the grid's post-save state. The edited/prior/results snapshots are
+   * pre-built by the table (before it mutates its rows) via the shared export builders.
+   */
+  function handleRecordsSaveCapture(info: RecordsSaveCaptureInfo) {
+    const type = sobject || undefined;
+    const { editedRecords, priorRecords, results, errorMessage } = info;
+    // No `results` means the save call itself threw — record the attempt as failed for every record
+    const total = results?.length ?? editedRecords.data.length;
+    const successCount = results?.filter(({ success }) => success).length ?? 0;
+    void recordDataHistoryAction({
+      org: selectedOrg,
+      source: 'query-table-edit',
+      operation: 'update',
+      api: 'collections',
+      sobjects: type ? [type] : [],
+      config: { numRecords: total, header: editedRecords.header },
+      inputSource: { type: 'inline' },
+      request: { header: editedRecords.header, edited: editedRecords.data, prior: priorRecords.data },
+      results: results ? buildResultsExport(editedRecords, results).data : { error: errorMessage },
+      counts: { total, success: successCount, failure: total - successCount },
+      status: results ? undefined : 'failed',
+      errorMessage,
+    });
+  }
+
   async function handleDelete(record?: SalesforceRecord) {
     const label = record.Name || record.Id || getRecordIdFromAttributes(record);
     await confirm({
@@ -878,6 +908,7 @@ export const QueryResults = React.memo(() => {
               onSavedRecords={(data) => {
                 trackEvent(ANALYTICS_KEYS.query_InlineEditSave, data);
               }}
+              onRecordsSaveCapture={handleRecordsSaveCapture}
               onEdit={(record, source) => {
                 handleCloneEditView(record, 'edit', source);
               }}

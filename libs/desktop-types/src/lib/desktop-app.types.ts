@@ -1,4 +1,6 @@
 import {
+  DataHistoryFileOpCommon,
+  DataHistoryFileOpCommonResults,
   FileNameFormat,
   InfoSuccessWarningError,
   InputReadFileContent,
@@ -45,6 +47,34 @@ export interface ElectronApiCallback {
   onCrashReportingChanged: (callback: (enabled: boolean) => void) => () => void;
 }
 
+/**
+ * The Electron transport of the shared Data History file-op protocol
+ * ({@link DataHistoryFileOpCommon}). A discriminated union so the main process gets its per-op
+ * fields from narrowing rather than hand-written runtime guards — this is the one boundary where a
+ * malformed message reaches `fs` calls in the privileged process.
+ *
+ * The main process allocates `streamId` and returns it (unlike the OPFS worker, which can be
+ * respawned and therefore takes client-allocated ids).
+ */
+export type DataHistoryFileOpRequest =
+  | DataHistoryFileOpCommon
+  | { op: 'open-stream'; path: string; gzip: boolean }
+  /**
+   * Transport-specific: a bounded slice of a stored file. Every IPC reply is structured-cloned
+   * through the main process, so reading a large payload back in one message copies the whole file
+   * twice. The worker transport needs no equivalent — it hands back a Blob, which clones by
+   * reference. Only meaningful for the plain files this backend writes (gzip cannot be seeked).
+   */
+  | { op: 'read-file-chunk'; path: string; offset: number; length: number };
+
+/** `read-file` returns raw bytes because Blobs are not IPC-serializable; every other op is shared. */
+export interface DataHistoryFileOpResultByOp extends DataHistoryFileOpCommonResults {
+  'read-file': Uint8Array;
+  'read-file-chunk': { bytes: Uint8Array; totalBytes: number };
+}
+
+export type DataHistoryFileOpResult<TRequest extends DataHistoryFileOpRequest> = DataHistoryFileOpResultByOp[TRequest['op']];
+
 export interface ElectronApiRequestResponse {
   login: () => Promise<void>;
   logout: () => void;
@@ -63,6 +93,14 @@ export interface ElectronApiRequestResponse {
   downloadBulkApiFile: (payload: JetstreamEventStreamFilePayload) => Promise<DownloadFileResult>;
   openFile: (filePath: string) => Promise<void>;
   showFileInFolder: (filePath: string) => Promise<void>;
+  dataHistoryRequest: <TRequest extends DataHistoryFileOpRequest>(payload: TRequest) => Promise<DataHistoryFileOpResult<TRequest>>;
+  getDataHistoryFolder: () => Promise<string>;
+  /**
+   * Shows the OS folder picker in the MAIN process and applies the selection (moves the history
+   * directory + persists the preference) without the path ever transiting the renderer.
+   * Resolves to the new base path, or null when the user cancels the dialog.
+   */
+  pickDataHistoryFolder: () => Promise<string | null>;
   checkForUpdates: (userInitiated?: boolean) => Promise<void>;
   getUpdateStatus: () => Promise<UpdateStatus>;
   installUpdate: () => void;
@@ -174,6 +212,8 @@ export const DesktopUserPreferencesSchema = z.object({
   recordSyncEnabled: z.boolean().optional().default(false),
   // Defaults to enabled - opting out is explicit, and the menu checkbox writes both states.
   crashReportingEnabled: z.boolean().optional().default(true),
+  /** Base directory for native Data History storage — defaults to `<userData>/data-history` when unset */
+  dataHistoryFolder: z.string().optional(),
   soqlQueryFormatOptions: SoqlQueryFormatOptionsSchema.prefault({}),
   fileDownload: z
     .object({

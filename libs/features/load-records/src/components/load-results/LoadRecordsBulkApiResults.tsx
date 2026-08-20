@@ -1,15 +1,9 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { bulkApiAbortJob, bulkApiGetJob, bulkApiGetRecords, bulkApiGetRecordsFromAllBatches } from '@jetstream/shared/data';
+import { bulkApiAbortJob, bulkApiGetJob, bulkApiGetRecords } from '@jetstream/shared/data';
 import { checkIfBulkApiJobIsDone, convertDateToLocale, formatNumber, tracker, useBrowserNotifications } from '@jetstream/shared/ui-utils';
-import {
-  decodeHtmlEntity,
-  getErrorMessage,
-  getSuccessOrFailureChar,
-  pluralizeFromNumber,
-  splitArrayToMaxSize,
-} from '@jetstream/shared/utils';
+import { buildBulkResultRow, getErrorMessage, getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
 import {
   ApiMode,
   BulkJobBatchInfo,
@@ -49,8 +43,10 @@ import {
   useAmplitude,
 } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
+import { DataHistoryEntryHandle, buildBulkJobHistoryCounts } from '@jetstream/ui/data-history';
 import { useAtomValue } from 'jotai';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { LoadFailureReach, captureBulkApiLoadResults, settleHistoryForFailedLoad } from '../../utils/data-history-capture';
 import {
   BULK_JOB_POLL_MAX_CHECKS,
   LoadTypeDisplayNames,
@@ -58,6 +54,14 @@ import {
   loadBulkApiData,
   prepareData,
 } from '../../utils/load-records-process';
+import {
+  alignBatchSourceRecordsToResults,
+  collectFailedRecordsForRetry,
+  createBatchResultsFetcher,
+  fetchBulkApiAllBatchResults,
+  getLoadResultsHeader,
+  isDeleteLoadType,
+} from './load-results-utils';
 import { extractRetryRecords, registerRetryRecord } from './retry-record-map';
 
 type Status = 'Preparing Data' | 'Uploading Data' | 'Processing Data' | 'Aborting' | 'Finished' | 'Error';
@@ -79,121 +83,6 @@ const STATUSES: {
 };
 
 const ABORTABLE_STATUSES = new Set<Status>([STATUSES.PREPARING, STATUSES.UPLOADING, STATUSES.PROCESSING, STATUSES.ABORTING]);
-const FETCH_FAILED_RECORDS_CONCURRENCY = 5;
-
-/**
- * Recover the original prepared records that failed during a Bulk API load so the user can
- * retry them. Resilient to per-batch fetch failures: any batch whose results can't be fetched
- * is treated as fully failed (all records included as "failed"), rather than losing the
- * entire retry set due to one transient error.
- */
-async function collectFailedRecordsForRetry({
-  numFailure,
-  jobInfo,
-  batchSummary,
-  preparedData,
-  loadType,
-  selectedOrg,
-}: {
-  numFailure: number;
-  jobInfo: BulkJobWithBatches;
-  batchSummary: LoadDataBulkApiStatusPayload;
-  preparedData: PrepareDataResponse;
-  loadType: InsertUpdateUpsertDelete;
-  selectedOrg: SalesforceOrgUi;
-}): Promise<any[]> {
-  if (numFailure <= 0 || !jobInfo.id) {
-    return [];
-  }
-
-  const jobId = jobInfo.id;
-  const isDelete = loadType === 'DELETE' || loadType === 'HARD_DELETE';
-  // Batches are capped by record count AND by CSV size, so an oversized batch gets split and the
-  // records in a batch cannot be derived from `batchSize` — use the ranges the loader recorded.
-  const recordsByBatchNumber = new Map<number, any[]>(
-    batchSummary.batchSummary.map(({ batchNumber, startIndex, recordCount }) => [
-      batchNumber,
-      preparedData.data.slice(startIndex, startIndex + recordCount),
-    ]),
-  );
-  const failedRecords: any[] = [];
-
-  const completedBatchIds = jobInfo.batches
-    .filter((batch) => batch.state === 'Completed')
-    .map((batch) => batch.id)
-    .filter((batchId): batchId is string => !!batchId);
-
-  // No completed batches means either everything failed up-front or was unsubmitted/aborted.
-  // Fall back to treating every record as failed.
-  if (completedBatchIds.length === 0) {
-    return preparedData.data.slice();
-  }
-
-  const batchNumberById = new Map(
-    batchSummary.batchSummary.filter((batch) => batch.id).map((batch) => [batch.id as string, batch.batchNumber]),
-  );
-
-  // Fetch per-batch results, chunking concurrency to avoid overwhelming the SFDC API. Each batch
-  // is wrapped in its own try/catch so a single transient failure doesn't discard already-fetched
-  // results — the failed batch simply falls through to the "treat all records as failed" path.
-  const completedBatchResults: { batchId: string; results: BulkJobResultRecord[] }[] = [];
-  for (const batchIdChunk of splitArrayToMaxSize(completedBatchIds, FETCH_FAILED_RECORDS_CONCURRENCY)) {
-    const chunkResults = await Promise.all(
-      batchIdChunk.map(async (batchId) => {
-        try {
-          const results = await bulkApiGetRecords<BulkJobResultRecord>(selectedOrg, jobId, batchId, 'result');
-          return { batchId, results };
-        } catch (ex) {
-          logger.warn('Failed to fetch results for batch; treating its records as failed', { batchId, error: ex });
-          return null;
-        }
-      }),
-    );
-    chunkResults.forEach((entry) => {
-      if (entry) {
-        completedBatchResults.push(entry);
-      }
-    });
-  }
-
-  const resolvedBatchNumbers = new Set<number>();
-  completedBatchResults.forEach(({ batchId, results }) => {
-    const originalBatchIndex = batchNumberById.get(batchId);
-    const recordsForBatch = typeof originalBatchIndex === 'number' ? recordsByBatchNumber.get(originalBatchIndex) : undefined;
-    if (typeof originalBatchIndex !== 'number' || !recordsForBatch) {
-      return;
-    }
-    const recordsWithIds = recordsForBatch.filter((record: Record<string, unknown>) => !!record.Id);
-    const resultsExcludeMissingIdRecords =
-      isDelete && results.length === recordsWithIds.length && recordsWithIds.length !== recordsForBatch.length;
-    const recordsForResults = resultsExcludeMissingIdRecords ? recordsWithIds : recordsForBatch;
-
-    resolvedBatchNumbers.add(originalBatchIndex);
-
-    results.forEach((resultRecord, i) => {
-      if (!resultRecord.Success && recordsForResults[i]) {
-        failedRecords.push(recordsForResults[i]);
-      }
-    });
-
-    // For delete batches where SFDC omitted records missing an Id, include them as failures here
-    // since they'll never have a result row.
-    if (resultsExcludeMissingIdRecords) {
-      failedRecords.push(...recordsForBatch.filter((record: Record<string, unknown>) => !record.Id));
-    }
-  });
-
-  // Include all records from any batch we couldn't resolve (fetch failed, unmapped batch id,
-  // state !== Completed, etc.). These are conservatively considered failed and retryable.
-  recordsByBatchNumber.forEach((records, batchNumber) => {
-    if (!resolvedBatchNumbers.has(batchNumber)) {
-      failedRecords.push(...records);
-    }
-  });
-
-  return failedRecords;
-}
-
 export interface LoadRecordsBulkApiResultsProps {
   selectedOrg: SalesforceOrgUi;
   selectedSObject: string;
@@ -210,6 +99,8 @@ export interface LoadRecordsBulkApiResultsProps {
   dateFormat: string;
   /** Already-prepared records for retry — skips prepareData when provided */
   preparedInputData?: any[];
+  /** Data History capture handle for this run (captures nothing when disabled/opted out) */
+  historyHandle: DataHistoryEntryHandle;
   onFinish: (results: { success: number; failure: number; failedRecords: any[] }) => void;
   /** Called when user selects specific records to retry from the results modal */
   onRetrySelected?: (selectedRows: any[]) => void;
@@ -234,6 +125,7 @@ export const LoadRecordsBulkApiResults = ({
   serialMode,
   dateFormat,
   preparedInputData,
+  historyHandle,
   onFinish,
   onRetrySelected,
   onRetryAll,
@@ -244,6 +136,7 @@ export const LoadRecordsBulkApiResults = ({
   const pollingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Ref to avoid stale closures in stable useCallback/useEffect — always call onFinishRef.current
   const onFinishRef = useRef(onFinish);
+  // eslint-disable-next-line react-hooks/refs -- latest-ref pattern: the render-time assignment is the point
   onFinishRef.current = onFinish;
   const { trackEvent } = useAmplitude();
   const { serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
@@ -291,8 +184,34 @@ export const LoadRecordsBulkApiResults = ({
         clearTimeout(pollingTimerRef.current);
         pollingTimerRef.current = null;
       }
+      // Unmounting mid-load abandons the run: polling stops, so nothing would ever settle the
+      // history entry — see `abandonIfUnsettled` for why a stranded entry matters
+      historyHandle.abandonIfUnsettled('The load was still running when you left the page, so its final outcome was not recorded.');
     };
-  }, []);
+  }, [historyHandle]);
+
+  /**
+   * Every failed exit settles through here. The component status, the parent's `onFinish` (every
+   * input record counts as failed), the history entry, and the user notification are four channels
+   * that must move together — with them in one place no terminal path can update some and forget
+   * the rest (a forgotten history call strands the entry `in-progress` until unmount). `fatalError`,
+   * timestamps, the mock job info and error tracking stay with the caller: which of them each exit
+   * sets is its own concern.
+   *
+   * `reached` — whether any record may have reached Salesforce; how the history entry is settled for
+   * each value lives in `settleHistoryForFailedLoad`. Prepare failures are always 'none'; the upload
+   * exits derive it from `anyBatchAccepted`, since `loadBulkApiData` throws both before any batch
+   * is sent (job creation) and after every batch was (the trailing job-status read).
+   */
+  function failLoad(
+    errorMessage: string,
+    { reached, notificationBody = `❌ ${errorMessage}` }: { reached: LoadFailureReach; notificationBody?: string },
+  ) {
+    setStatus(STATUSES.ERROR);
+    onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
+    settleHistoryForFailedLoad(historyHandle, { reached, attemptedCount: inputFileData.length, errorMessage });
+    notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, { body: notificationBody, tag: 'load-records' });
+  }
 
   useEffect(() => {
     if (batchSummary && batchSummary.batchSummary) {
@@ -372,6 +291,10 @@ export const LoadRecordsBulkApiResults = ({
           tag: 'load-records',
         });
 
+        // The retry collector and the history capture below both need every completed batch's
+        // results — one memoized fetcher so each batch is downloaded once, not twice
+        const fetchBatchResults = createBatchResultsFetcher(selectedOrg, jobInfo.id ?? '');
+
         // Fetch failed records for retry capability, then emit completion with the recovered
         // failedRecords. We intentionally delay `onFinish` until the fetch resolves so that the
         // parent stays in `loadInProgress` until the run's state is fully populated — this
@@ -383,12 +306,38 @@ export const LoadRecordsBulkApiResults = ({
             batchSummary,
             preparedData,
             loadType,
-            selectedOrg,
+            fetchBatchResults,
           });
           if (isMounted.current) {
             onFinishRef.current({ success: numSuccess, failure: numFailure, failedRecords });
           }
         })();
+
+        // Proactively capture per-record results to Data History even if the user never clicks
+        // download — bulk results expire server-side (~7 days). Fully fire-and-forget, and safe to
+        // reach more than once: `finalize()` is one-shot on the handle, so a re-entered done-branch
+        // cannot re-fetch every batch's results.
+        //
+        // The permanent record anchors on how many records were IN THE FILE, not on the job's
+        // processed/failed numbers (see `buildBulkJobHistoryCounts`). The notification above keeps
+        // the job's own numbers, as it always has.
+        captureBulkApiLoadResults({
+          handle: historyHandle,
+          selectedOrg,
+          jobInfo,
+          batchSummary,
+          preparedData,
+          loadType,
+          fields: getFieldHeaderFromMapping(fieldMapping),
+          counts: buildBulkJobHistoryCounts(jobInfo, {
+            submitted: preparedData.data.length + preparedData.errors.length,
+            processingErrors: preparedData.errors.length,
+          }),
+          // Set when batch submission stopped early (`loadError` with a job already created) — the
+          // reason those records never reached Salesforce belongs on the entry
+          errorMessage: fatalError ?? undefined,
+          fetchBatchResults,
+        });
       } else if (status === STATUSES.PROCESSING || status === STATUSES.ABORTING) {
         if (intervalCount >= BULK_JOB_POLL_MAX_CHECKS) {
           // Stop polling and hand control to the user - the job keeps running in Salesforce regardless.
@@ -456,11 +405,11 @@ export const LoadRecordsBulkApiResults = ({
       const dateString = convertDateToLocale(new Date(), { timeStyle: 'medium' });
 
       if (!preparedDataResponse?.data.length) {
-        if (preparedDataResponse?.queryErrors?.length) {
-          setFatalError(preparedDataResponse.queryErrors.join('\n'));
+        const queryErrors = preparedDataResponse?.queryErrors?.length ? preparedDataResponse.queryErrors.join('\n') : null;
+        if (queryErrors) {
+          setFatalError(queryErrors);
         }
         // processing failed on every record
-        setStatus(STATUSES.ERROR);
         setPreparedData(preparedDataResponse);
         setProcessingEndTime(dateString);
         // mock response to ensure results table is visible
@@ -488,10 +437,9 @@ export const LoadRecordsBulkApiResults = ({
           totalProcessingTime: 0,
           batches: [],
         });
-        onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
-        notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
-          body: `❌ Pre-processing records failed.`,
-          tag: 'load-records',
+        failLoad(queryErrors ?? 'Pre-processing records failed', {
+          reached: 'none',
+          notificationBody: `❌ Pre-processing records failed.`,
         });
       } else {
         setStatus(STATUSES.UPLOADING);
@@ -502,13 +450,8 @@ export const LoadRecordsBulkApiResults = ({
       }
     } catch (ex) {
       logger.error('ERROR', ex);
-      setStatus(STATUSES.ERROR);
       setFatalError(getErrorMessage(ex));
-      onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
-      notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
-        body: `❌ ${getErrorMessage(ex)}`,
-        tag: 'load-records',
-      });
+      failLoad(getErrorMessage(ex), { reached: 'none' });
       // A user-initiated abort throws 'Aborted' through this same path — keep the UI messaging but
       // don't report it as an application error.
       if (!isAborted.current) {
@@ -528,6 +471,9 @@ export const LoadRecordsBulkApiResults = ({
       return;
     }
 
+    // Flipped by the first status callback that carries an accepted batch — the only signal the
+    // failure exits below have for whether records reached Salesforce before the throw
+    let anyBatchAccepted = false;
     try {
       const loadDataPayload: LoadDataPayload = {
         org: selectedOrg,
@@ -547,6 +493,7 @@ export const LoadRecordsBulkApiResults = ({
         (resultsSummary) => {
           setBatchSummary(resultsSummary);
           if (Array.isArray(resultsSummary?.jobInfo.batches) && resultsSummary?.jobInfo.batches.length) {
+            anyBatchAccepted = true;
             setJobInfo(resultsSummary.jobInfo);
           }
         },
@@ -560,12 +507,10 @@ export const LoadRecordsBulkApiResults = ({
           setJobInfo(jobInfo);
           setStatus(STATUSES.PROCESSING);
         } else {
-          setStatus(STATUSES.ERROR);
-          onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
-          notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
-            body: `❌ ${loadError.message}`,
-            tag: 'load-records',
-          });
+          // No batch came back on the job. Normally none was accepted (nothing reached Salesforce,
+          // same as a prepare failure) — but a job-status read that dropped accepted batches is the
+          // 'unknown' case, and the ref is the only thing that tells the two apart.
+          failLoad(loadError.message, { reached: anyBatchAccepted ? 'unknown' : 'none' });
         }
         // A user-initiated abort surfaces through the same loadError path — keep the UI messaging but
         // don't report it as an application error. Aborting also makes Salesforce reject any in-flight
@@ -585,12 +530,9 @@ export const LoadRecordsBulkApiResults = ({
     } catch (ex) {
       logger.error('ERROR', ex);
       setFatalError(getErrorMessage(ex));
-      setStatus(STATUSES.ERROR);
-      onFinishRef.current({ success: 0, failure: inputFileData.length, failedRecords: [] });
-      notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
-        body: `❌ ${getErrorMessage(ex)}`,
-        tag: 'load-records',
-      });
+      // `bulkApiCreateJob` throws before anything is sent; the trailing `bulkApiGetJob` throws after
+      // every batch was — Salesforce is still processing that job, so its outcome is unknown
+      failLoad(getErrorMessage(ex), { reached: anyBatchAccepted ? 'unknown' : 'none' });
       return;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -649,29 +591,14 @@ export const LoadRecordsBulkApiResults = ({
       let results: BulkJobResultRecord[];
       let records: any[] = preparedData.data;
       let removedBatches = false;
-      const isDelete = loadType === 'DELETE' || loadType === 'HARD_DELETE';
+      const isDelete = isDeleteLoadType(loadType);
 
       if (scope === 'all') {
-        // Download results across all batches. Results only come back for completed batches, so the
-        // records must be built from those same batches in the same order — using the full prepared
-        // data would shift every row after a non-completed batch onto the wrong result. Both the
-        // fetch and the records are derived from one list so they cannot diverge.
-        const summaryByBatchId = new Map(batchSummary.batchSummary.filter(({ id }) => id).map((item) => [item.id as string, item]));
-        const includedBatches = jobInfo.batches.flatMap((batch) => {
-          const summaryItem = batch.state === 'Completed' ? summaryByBatchId.get(batch.id) : undefined;
-          return summaryItem ? [{ batchId: batch.id, summaryItem }] : [];
-        });
-        removedBatches = includedBatches.length !== jobInfo.batches.length;
-        // download records, combine results from salesforce with actual records, open download modal
-        results = await bulkApiGetRecordsFromAllBatches<BulkJobResultRecord>(
-          selectedOrg,
-          jobInfo.id,
-          includedBatches.map(({ batchId }) => batchId),
-        );
-        /** For delete, only records with a mapped Id will be included in response from SFDC */
-        records = includedBatches
-          .flatMap(({ summaryItem }) => preparedData.data.slice(summaryItem.startIndex, summaryItem.startIndex + summaryItem.recordCount))
-          .filter((record) => (isDelete ? !!record.Id : true));
+        // Download results across all completed batches, combining with the submitted records
+        const allBatchResults = await fetchBulkApiAllBatchResults({ selectedOrg, jobInfo, batchSummary, preparedData, loadType });
+        results = allBatchResults.results;
+        records = allBatchResults.records;
+        removedBatches = allBatchResults.removedBatches;
       } else {
         // Download results for a single batch
         // download records, combine results from salesforce with actual records, open download modal
@@ -682,30 +609,27 @@ export const LoadRecordsBulkApiResults = ({
          * Get records from this one batch. Batches are capped by record count AND by CSV size, so an
          * oversized batch gets split — the record range comes from the batch summary rather than
          * `batchNumber * batchSize`, which is only correct when no batch was split.
-         * For delete, only records with a mapped Id will be included in response from SFDC
          */
         const startIdx = batchSummaryItem?.startIndex ?? batchIndex * batchSize;
         const recordCount = batchSummaryItem?.recordCount ?? batchSize;
-        records = preparedData.data.slice(startIdx, startIdx + recordCount).filter((record) => (isDelete ? !!record.Id : true));
+        // Same alignment rule as the 'all' scope so both downloads pair results with the same source
+        // records — an unconditional Id filter here would shift every row when Salesforce DID return
+        // a result for an Id-less record.
+        records = alignBatchSourceRecordsToResults([preparedData.data.slice(startIdx, startIdx + recordCount)], results.length, isDelete);
       }
 
-      const combinedResults: BulkJobResultRecord[] = [];
+      const combinedResults: any[] = [];
 
       results.forEach((resultRecord, i) => {
         // show all if results, otherwise just include errors
         if (type === 'results' || !resultRecord.Success) {
-          const resultRow = {
-            _id: resultRecord.Id || records[i].Id || null,
-            _success: resultRecord.Success,
-            _errors: decodeHtmlEntity(resultRecord.Error),
-            ...records[i],
-          };
+          const resultRow = buildBulkResultRow(resultRecord, records[i]);
           registerRetryRecord(resultRow, records[i]);
           combinedResults.push(resultRow);
         }
       });
       logger.debug({ combinedResults, results });
-      const header = ['_id', '_success', '_errors'].concat(getFieldHeaderFromMapping(fieldMapping));
+      const header = getLoadResultsHeader(getFieldHeaderFromMapping(fieldMapping));
       if (action === 'view') {
         setResultsModalData({ ...downloadModalData, open: true, header, data: combinedResults, type });
         trackEvent(ANALYTICS_KEYS.load_DownloadRecords, { loadType, type, numRows: combinedResults.length, scope });
@@ -738,7 +662,7 @@ export const LoadRecordsBulkApiResults = ({
     if (!preparedData) {
       return;
     }
-    const header = ['_id', '_success', '_errors'].concat(getFieldHeaderFromMapping(fieldMapping));
+    const header = getLoadResultsHeader(getFieldHeaderFromMapping(fieldMapping));
     setDownloadModalData({
       ...downloadModalData,
       open: true,
@@ -755,7 +679,7 @@ export const LoadRecordsBulkApiResults = ({
 
   function handleDownloadRecordsFromModal(type: 'results' | 'failures', rows: any[]) {
     const fields = getFieldHeaderFromMapping(fieldMapping);
-    const header = ['_id', '_success', '_errors'].concat(fields);
+    const header = getLoadResultsHeader(fields);
     setResultsModalData({ ...resultsModalData, open: false });
     setDownloadModalData({
       open: true,

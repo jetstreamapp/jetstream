@@ -57,6 +57,7 @@ const sidebar = {
         'load/load-with-related',
         'load/update-records',
         'load/create-record-without-file',
+        'load/data-history',
       ],
     },
     'automation-control/automation-control',

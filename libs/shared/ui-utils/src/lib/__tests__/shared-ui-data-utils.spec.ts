@@ -124,14 +124,21 @@ describe('copyRecordsToClipboard', () => {
   });
 
   describe('error handling', () => {
-    it('swallows clipboard failures and logs the error', async () => {
+    it('swallows clipboard failures, logs the error, and reports the copy did not land', async () => {
       const loggerErrorSpy = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
       mockedCopyToClipboard.mockImplementation(() => {
         throw new Error('clipboard unavailable');
       });
 
-      await expect(copyRecordsToClipboard([{ Id: '001' }], 'csv', ['Id'])).resolves.toBeUndefined();
+      await expect(copyRecordsToClipboard([{ Id: '001' }], 'csv', ['Id'])).resolves.toBe(false);
       expect(loggerErrorSpy).toHaveBeenCalledWith('Copy to clipboard failed', 'clipboard unavailable');
+    });
+
+    it('reports whether the clipboard write itself succeeded', async () => {
+      mockedCopyToClipboard.mockResolvedValue(false);
+      await expect(copyRecordsToClipboard([{ Id: '001' }], 'csv', ['Id'])).resolves.toBe(false);
+      mockedCopyToClipboard.mockResolvedValue(true);
+      await expect(copyRecordsToClipboard([{ Id: '001' }], 'csv', ['Id'])).resolves.toBe(true);
     });
   });
 });

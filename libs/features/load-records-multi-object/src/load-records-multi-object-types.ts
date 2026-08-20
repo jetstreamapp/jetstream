@@ -120,6 +120,8 @@ export interface LoadMultiObjectRun {
   startedAt: Date | null;
   finishedAt: Date | null;
   cancelled: boolean;
+  /** Key of the run's Data History entry — a retry links to the initial run's entry through it */
+  historyEntryKey?: string;
 }
 
 export interface LoadMultiObjectProgress {

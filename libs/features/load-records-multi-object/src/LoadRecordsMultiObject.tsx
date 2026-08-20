@@ -27,7 +27,7 @@ import {
   Spinner,
   fireToast,
 } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { SkipDataHistoryCheckbox, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState, selectedOrgType } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useEffect, useMemo, useRef } from 'react';
@@ -39,11 +39,13 @@ import {
   datasetsState,
   inputFileTypeState,
   inputFilenameState,
+  inputGoogleFileIdState,
   isReadyToLoadState,
   loadIsRunningState,
   loadRunsState,
   previewLayoutVersionState,
   resetLoadRecordsMultiObjectState,
+  skipDataHistoryState,
 } from './load-records-multi-object.state';
 import LoadRecordsMultiObjectLoad from './load/LoadRecordsMultiObjectLoad';
 import LoadRecordsMultiObjectReview from './review/LoadRecordsMultiObjectReview';
@@ -70,7 +72,9 @@ export const LoadRecordsMultiObject = () => {
 
   const [inputFilename, setInputFilename] = useAtom(inputFilenameState);
   const [inputFileType, setInputFileType] = useAtom(inputFileTypeState);
+  const setInputGoogleFileId = useSetAtom(inputGoogleFileIdState);
   const [currentStepIdx, setCurrentStepIdx] = useAtom(currentStepIdxState);
+  const [skipDataHistory, setSkipDataHistory] = useAtom(skipDataHistoryState);
   const datasets = useAtomValue(datasetsState);
   const allBlockingErrors = useAtomValue(allBlockingErrorsState);
   const isReadyToLoad = useAtomValue(isReadyToLoadState);
@@ -150,9 +154,10 @@ export const LoadRecordsMultiObject = () => {
   function handleFile({ content, filename }: InputReadFileContent) {
     try {
       const workbook = XLSX.read(content, { cellText: false, cellDates: true, type: 'array' });
-      resetAll();
+      resetAll({ keepSkipDataHistory: true });
       setInputFilename(filename);
       setInputFileType('local');
+      setInputGoogleFileId(null);
       processFile(workbook);
     } catch (ex) {
       fireToast({
@@ -163,9 +168,10 @@ export const LoadRecordsMultiObject = () => {
   }
 
   function handleGoogleFile({ workbook, selectedFile }: InputReadGoogleSheet) {
-    resetAll();
+    resetAll({ keepSkipDataHistory: true });
     setInputFilename(selectedFile.name);
     setInputFileType('google');
+    setInputGoogleFileId(selectedFile.id);
     processFile(workbook);
   }
 
@@ -301,6 +307,14 @@ export const LoadRecordsMultiObject = () => {
             ) : (
               <div className="slds-m-top_small">{uploadSection}</div>
             )}
+            <SkipDataHistoryCheckbox
+              operation="load"
+              className="slds-m-top_x-small"
+              checked={skipDataHistory}
+              disabled={fileParsing || loadIsRunning}
+              showViewLink
+              onChange={setSkipDataHistory}
+            />
             {!hasData && !fileParsing && (
               <LoadRecordsMultiObjectEmptyState
                 templateUrl={templateUrl}

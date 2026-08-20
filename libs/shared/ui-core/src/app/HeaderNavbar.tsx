@@ -25,6 +25,7 @@ import { SelectedOrgReadOnly } from '../orgs/SelectedOrgReadOnly';
 import { QuickQueryPopover } from '../query/QuickQueryPopover';
 import { RecordSearchPopover } from '../record/RecordSearchPopover';
 import { UserSearchPopover } from '../record/UserSearchPopover';
+import { HeaderDataHistoryButton } from './DataHistoryLinks';
 import HeaderDonatePopover from './HeaderDonatePopover';
 import HeaderHelpPopover from './HeaderHelpPopover';
 import { useHeaderNavbarItems } from './HeaderNavbarItems';
@@ -292,6 +293,7 @@ export const HeaderNavbar = ({
         <RecordSearchPopover key="record-search" />,
         <UserSearchPopover key="user-search" />,
         <Jobs key="jobs" />,
+        <HeaderDataHistoryButton key="data-history" />,
       );
 
       // Add update notification for desktop
@@ -315,6 +317,7 @@ export const HeaderNavbar = ({
         <RecordSearchPopover key="record-search" />,
         <UserSearchPopover key="user-search" />,
         <Jobs key="jobs" />,
+        <HeaderDataHistoryButton key="data-history" />,
         ...whatsNewItems,
         <HeaderHelpPopover key="help" />,
         <HeaderDonatePopover key="donate" />,
@@ -328,6 +331,7 @@ export const HeaderNavbar = ({
         <RecordSearchPopover key="record-search" />,
         <UserSearchPopover key="user-search" />,
         <Jobs key="jobs" />,
+        <HeaderDataHistoryButton key="data-history" />,
         ...whatsNewItems,
         <HeaderHelpPopover key="help" />,
       ];
@@ -338,6 +342,7 @@ export const HeaderNavbar = ({
       <RecordSearchPopover key="record-search" />,
       <UserSearchPopover key="user-search" />,
       <Jobs key="jobs" />,
+      <HeaderDataHistoryButton key="data-history" />,
       ...whatsNewItems,
       <HeaderHelpPopover key="help" />,
     ];

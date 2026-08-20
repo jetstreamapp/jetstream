@@ -29,6 +29,9 @@
       "path": "../../libs/shared/ui-styles"
     },
     {
+      "path": "../../libs/shared/ui-data-history/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/shared/utils/tsconfig.lib.json"
     },
     {
@@ -111,6 +114,9 @@
     },
     {
       "path": "../../libs/features/query/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/features/data-history/tsconfig.lib.json"
     },
     {
       "path": "../../libs/features/create-records/tsconfig.lib.json"
