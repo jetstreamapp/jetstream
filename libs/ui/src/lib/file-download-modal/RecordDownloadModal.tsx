@@ -124,6 +124,11 @@ export interface RecordDownloadModalProps {
 const PROHIBITED_BULK_APEX_TYPES = new Set(['Address', 'Location', 'complexvaluetype']);
 const FILE_FORMAT_ALLOWED_BULK_API = new Set<RecordDownloadFileFormat>(['csv', 'gdrive']);
 const ALLOW_BULK_API_COUNT = 5_000;
+/**
+ * A standard download is built entirely in the browser as a single string, so it fails with
+ * `RangeError: Invalid string length` once the generated file crosses the ~512MB max string length.
+ * XLSX reaches that ceiling first - its XML runs 2-3x the size of the equivalent CSV.
+ */
 const REQUIRE_BULK_API_COUNT = 500_000;
 
 const LS_KEY = 'RecordDownloadModal';
@@ -270,7 +275,11 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
     records?.[0]?.attributes?.type !== 'AggregateResult' &&
     downloadRecordsValue === RADIO_ALL_SERVER;
 
-  const requireBulkApi = allowBulkApiWithWarning && (totalRecordCount || 0) >= REQUIRE_BULK_API_COUNT;
+  /**
+   * Past this volume the browser cannot build the file at all, which is true of the lossless case as much as
+   * the lossy one - so both are forced onto the Bulk API rather than only `allowBulkApiWithWarning`.
+   */
+  const requireBulkApi = (allowBulkApi || allowBulkApiWithWarning) && (totalRecordCount || 0) >= REQUIRE_BULK_API_COUNT;
   const isBulkApi = downloadMethod === RADIO_DOWNLOAD_METHOD_BULK_API;
 
   useEffect(() => {
@@ -527,7 +536,12 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
       trackEvent(ANALYTICS_KEYS.file_download, { source, fileFormat, component: 'RecordDownloadModal' });
     } catch (ex) {
       logger.error('Error downloading file', ex);
-      tracker.error('Record download error', ex);
+      tracker.error('Record download error', ex, {
+        fileFormat,
+        recordCount: activeRecords.length,
+        fieldCount: fieldsToUse.length,
+        downloadMethod,
+      });
       // Cell values are truncated before writing, but other SheetJS limits (e.g. the 1,048,576-row cap) can still throw.
       if (getErrorMessage(ex).includes('32767')) {
         setErrorMessage(`One or more values exceed Excel's 32,767 character cell limit. Download as CSV or JSON to get full values.`);
