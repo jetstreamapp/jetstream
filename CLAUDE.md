@@ -73,6 +73,20 @@ After updating the DB schema, generate types.
 pnpm db:generate # Regenerate Prisma client after schema changes
 ```
 
+### Calling the Salesforce API
+
+If you need real data from a Salesforce org (verify a describe result, check field metadata, test a query),
+use `pnpm sf:api` (`scripts/sf-api.mjs`). It authenticates with the JWT bearer flow using the `SF_LOCAL_*`
+variables in `.env`, so there is no interactive login. Run `pnpm sf:api --help` for the full command list.
+
+```bash
+pnpm sf:api query "SELECT Id, Name FROM Account LIMIT 5"
+pnpm sf:api get sobjects/Account/describe
+pnpm sf:api query "SELECT Id, Name FROM ApexClass" --tooling
+```
+
+This targets a personal dev org, so it is safe to create and modify records there.
+
 <!-- nx configuration start-->
 <!-- Leave the start & end comments to automatically receive updates. -->
 
