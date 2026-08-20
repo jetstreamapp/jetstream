@@ -246,6 +246,14 @@ export const LoadRecordsBatchApiResults = ({
       return;
     }
 
+    /**
+     * Whether any batch was submitted, which decides how a thrown load settles its history entry.
+     * `loadBatchApiData` converts every per-batch request failure into failed rows instead of
+     * throwing, so a throw that reaches the catch below comes from either batch preparation (a bad
+     * zip — nothing was sent) or the results callback (batches were already sent).
+     */
+    let anyBatchSubmitted = false;
+
     try {
       const loadDataPayload: LoadDataPayload = {
         org: selectedOrg,
@@ -264,6 +272,7 @@ export const LoadRecordsBatchApiResults = ({
       await loadBatchApiData(
         loadDataPayload,
         (records) => {
+          anyBatchSubmitted = true;
           const batchRecords = records || [];
           if (!batchRecords.length) {
             return;
@@ -310,7 +319,7 @@ export const LoadRecordsBatchApiResults = ({
       if (isMounted.current) {
         setEndTime(dateString);
       }
-      failLoad(getErrorMessage(ex), { reached: 'unknown' });
+      failLoad(getErrorMessage(ex), { reached: anyBatchSubmitted ? 'unknown' : 'none' });
       tracker.error('Error loading batches', ex);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
