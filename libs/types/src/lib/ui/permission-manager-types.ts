@@ -33,6 +33,8 @@ export interface ObjectPermissionDefinitionMap {
   apiName: string;
   label: string;
   metadata: string; // FIXME: this should probably be Describe metadata
+  /** False for objects that only support field-level security (PricebookEntry, Task, ...) */
+  supportsObjectPermissions: boolean;
   // used to retain order of permissions
   permissionKeys: string[]; // this is permission set ids, which could apply to profile or perm set
   permissions: Record<string, ObjectPermissionItem>;
@@ -162,6 +164,8 @@ export interface PermissionTableObjectCell extends PermissionTableCell<Permissio
   allowEditPermission: boolean; // TODO: what other permissions may be restricted here??
   /** False for objects where Salesforce silently drops View All / Modify All (Idea, Product2, ...) */
   allowViewAllModifyAllPermission: boolean;
+  /** False for objects that accept field permissions but have no ObjectPermissions record (PricebookEntry, Task, ...) */
+  allowObjectPermission: boolean;
 }
 
 export interface PermissionTableFieldCell extends PermissionTableCell<PermissionTableFieldCellPermission> {

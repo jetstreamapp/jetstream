@@ -75,6 +75,8 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
       // query all data and transform into state maps
       const output = await Promise.all([
         limit(() => describeSObject(selectedOrg, 'FieldPermissions')),
+        // Cached from the object picker - identifies objects with no ObjectPermissions record (PricebookEntry, Task, ...)
+        limit(() => describeSObject(selectedOrg, 'ObjectPermissions')),
         queryPermissionableFields(limit, selectedOrg, sobjects),
         queryAndCombineResults<ObjectPermissionRecord>(
           limit,
@@ -98,6 +100,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
       ]).then(
         ([
           fieldPermissionMetadata,
+          objectPermissionMetadata,
           fieldDefinition,
           objectPermissions,
           fieldPermissions,
@@ -113,10 +116,23 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
           fieldDefinition = availableFields.size
             ? fieldDefinition.filter((field) => availableFields.has(`${field.EntityDefinition.QualifiedApiName}.${field.QualifiedApiName}`))
             : fieldDefinition;
+          // `active` is omitted on some describe responses - only drop values explicitly marked inactive
+          const objectPermissionableSobjects = new Set<string>(
+            objectPermissionMetadata.data.fields
+              .find((field) => field.name === 'SobjectType')
+              ?.picklistValues?.filter(({ active }) => active !== false)
+              .map(({ value }) => value),
+          );
           return {
             fieldsByObject: getAllFieldsByObject(fieldDefinition),
             fieldsByKey: groupFields(fieldDefinition),
-            objectPermissionMap: getObjectPermissionMap(sobjects, profilePermSetIds, permSetIds, objectPermissions),
+            objectPermissionMap: getObjectPermissionMap(
+              sobjects,
+              profilePermSetIds,
+              permSetIds,
+              objectPermissions,
+              objectPermissionableSobjects,
+            ),
             fieldPermissionMap: getFieldPermissionMap(fieldDefinition, profilePermSetIds, permSetIds, fieldPermissions),
             tabVisibilityPermissionMap: getTabVisibilityPermissionMap(
               sobjects,
@@ -345,11 +361,16 @@ function groupFields(fields: EntityParticlePermissionsRecord[]): Record<string, 
   }, {});
 }
 
+/**
+ * @param objectPermissionableSobjects `ObjectPermissions.SobjectType` allow-list. An empty set means the
+ * describe gave us nothing to filter on, so every object is treated as supported rather than none.
+ */
 function getObjectPermissionMap(
   sobjects: string[],
   selectedProfiles: string[],
   selectedPermissionSets: string[],
   permissions: ObjectPermissionRecord[],
+  objectPermissionableSobjects: Set<string>,
 ): Record<string, ObjectPermissionDefinitionMap> {
   const objectPermissionsByFieldByParentId = permissions.reduce((output: Record<string, Record<string, ObjectPermissionRecord>>, item) => {
     output[item.SobjectType] = output[item.SobjectType] || {};
@@ -362,6 +383,7 @@ function getObjectPermissionMap(
       apiName: item,
       label: item, // FIXME:
       metadata: item,
+      supportsObjectPermissions: !objectPermissionableSobjects.size || objectPermissionableSobjects.has(item),
       permissions: {},
       permissionKeys: [],
     };

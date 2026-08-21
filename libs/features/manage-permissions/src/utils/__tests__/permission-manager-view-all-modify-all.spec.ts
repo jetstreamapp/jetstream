@@ -22,6 +22,7 @@ function buildPermissionMap(apiName: string): Record<string, ObjectPermissionDef
       apiName,
       label: apiName,
       metadata: '',
+      supportsObjectPermissions: true,
       permissionKeys: [PARENT_ID],
       permissions: { [PARENT_ID]: buildPermissionItem() },
     },
@@ -38,6 +39,7 @@ function buildRow(apiName: string, permissionOverrides: Partial<PermissionTableO
     tableLabel: `${apiName} (${apiName})`,
     allowEditPermission: true,
     allowViewAllModifyAllPermission: supportsViewAllModifyAll(apiName),
+    allowObjectPermission: true,
     permissions: {
       [PARENT_ID]: {
         rowKey: apiName,

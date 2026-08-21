@@ -17,3 +17,10 @@ export const VIEW_ALL_MODIFY_ALL_UNSUPPORTED_MESSAGE =
 export function supportsViewAllModifyAll(sobject: string): boolean {
   return !OBJECTS_WITHOUT_VIEW_ALL_MODIFY_ALL.has(sobject);
 }
+
+/**
+ * Shown in place of the checkboxes for objects that accept `FieldPermissions` but have no
+ * `ObjectPermissions` record (PricebookEntry, OpportunityLineItem, Task, ...). They stay in the object
+ * list because their field permissions are still editable on the Field Permissions tab.
+ */
+export const OBJECT_PERMISSIONS_UNSUPPORTED_MESSAGE = 'Access is inherited from the parent object. Only field permissions can be set.';

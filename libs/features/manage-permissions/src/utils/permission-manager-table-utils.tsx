@@ -55,7 +55,11 @@ import classNames from 'classnames';
 import startCase from 'lodash/startCase';
 import { Fragment, useContext, useMemo, useRef, useState } from 'react';
 import { PermissionColumnGroupHeader } from '../PermissionColumnGroupHeader';
-import { supportsViewAllModifyAll, VIEW_ALL_MODIFY_ALL_UNSUPPORTED_MESSAGE } from './object-permission-support';
+import {
+  OBJECT_PERMISSIONS_UNSUPPORTED_MESSAGE,
+  supportsViewAllModifyAll,
+  VIEW_ALL_MODIFY_ALL_UNSUPPORTED_MESSAGE,
+} from './object-permission-support';
 import {
   SYSTEM_PERMISSION_DEPENDENCY_TOOLTIP,
   SYSTEM_PERMISSION_DEPENDENT_CLOSURE,
@@ -104,8 +108,17 @@ function isBlockedViewAllModifyAll(which: PermissionTypes, row: PermissionTableC
   return 'allowViewAllModifyAllPermission' in row && !row.allowViewAllModifyAllPermission;
 }
 
+/**
+ * True when the row's object has no `ObjectPermissions` record to write to (field-only objects like
+ * PricebookEntry/Task). Every path that writes an object permission value routes through this so a bulk
+ * action can never set what the checkbox refuses to set.
+ */
+function isBlockedObjectPermission(row: PermissionTableCellExtended): boolean {
+  return 'allowObjectPermission' in row && !row.allowObjectPermission;
+}
+
 function setObjectValue(which: ObjectPermissionTypes, row: PermissionTableObjectCell, permissionId: string, value: boolean) {
-  if (isBlockedViewAllModifyAll(which, row)) {
+  if (isBlockedViewAllModifyAll(which, row) || isBlockedObjectPermission(row)) {
     return row;
   }
   const newRow = { ...row, permissions: { ...row.permissions, [permissionId]: { ...row.permissions[permissionId] } } };
@@ -389,6 +402,11 @@ export function getObjectColumns(
         }
         return undefined;
       },
+      cellClass: (row) => {
+        if (!row.allowObjectPermission) {
+          return 'slds-text-color_weak';
+        }
+      },
     },
     {
       name: '',
@@ -456,6 +474,7 @@ export function getObjectRows(selectedSObjects: string[], objectPermissionMap: R
       tableLabel: `${objectPermission.label} (${objectPermission.apiName})`,
       allowEditPermission: true,
       allowViewAllModifyAllPermission: supportsViewAllModifyAll(objectPermission.apiName),
+      allowObjectPermission: objectPermission.supportsObjectPermissions,
       permissions: {},
     };
 
@@ -669,6 +688,9 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
       if (permissionType === 'tabVisibility' && 'canSetPermission' in row && !row.canSetPermission) {
         return false;
       }
+      if (permissionType === 'object' && 'allowObjectPermission' in row && !row.allowObjectPermission) {
+        return false;
+      }
       if (isBlockedViewAllModifyAll(actionKey as PermissionTypes, row)) {
         return false;
       }
@@ -679,6 +701,9 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
     },
     cellClass: (row) => {
       if (permissionType === 'object') {
+        if ('allowObjectPermission' in row && !row.allowObjectPermission) {
+          return 'is-disabled';
+        }
         const permission = row.permissions[id] as PermissionTableObjectCellPermission;
         if (
           (actionKey === 'create' && permission.createIsDirty) ||
@@ -720,12 +745,21 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
       if (args.type === 'ROW' && permissionType === 'tabVisibility' && 'canSetPermission' in args.row && !args.row.canSetPermission) {
         return numItems;
       }
+      if (args.type === 'ROW' && permissionType === 'object' && 'allowObjectPermission' in args.row && !args.row.allowObjectPermission) {
+        return numItems;
+      }
       return undefined;
     },
     renderCell: ({ row, commitEdit }) => {
       // If the row is not editable, then we don't want to show the checkbox
       if (permissionType === 'tabVisibility' && 'canSetPermission' in row && !row.canSetPermission) {
         return null;
+      }
+      // Objects that only support field-level security have no object permissions to set
+      if (permissionType === 'object' && 'allowObjectPermission' in row && !row.allowObjectPermission) {
+        return (
+          <div className="slds-text-color_weak slds-text-body_small slds-p-left_x-small">{OBJECT_PERMISSIONS_UNSUPPORTED_MESSAGE}</div>
+        );
       }
 
       const errorMessage = row.permissions[id].errorMessage;
@@ -1420,6 +1454,9 @@ export function updateRowsFromColumnAction<TRows extends PermissionTableCellExte
 ): TRows[] {
   const newRows = [...rows];
   return newRows.map((row, _index) => {
+    if (isBlockedObjectPermission(row)) {
+      return row;
+    }
     // Reset restores the saved value, so it stays allowed even where the permission cannot be set
     if (action !== 'reset' && isBlockedViewAllModifyAll(which, row)) {
       return row;
@@ -1505,7 +1542,7 @@ export function updateRowsFromRowAction<TRows extends PermissionTableCellExtende
     row.permissions = { ...row.permissions };
     for (const permissionId in row.permissions) {
       row.permissions = { ...row.permissions, [permissionId]: { ...row.permissions[permissionId] } } as any;
-      if (type === 'object') {
+      if (type === 'object' && !isBlockedObjectPermission(row)) {
         const permission = row.permissions[permissionId] as PermissionTableObjectCellPermission;
         permission.create = checkboxesById['create'].value;
         permission.read = checkboxesById['read'].value;
@@ -1722,15 +1759,16 @@ export function applyPastedPermissionCells<T extends PermissionTableCellExtended
 function defaultRowActionCheckboxes(type: PermissionType, row?: PermissionTableCellExtended): BulkActionCheckbox[] {
   const allowEditPermission = !row || !('allowEditPermission' in row) || row.allowEditPermission;
   const allowViewAllModifyAll = !row || !isBlockedViewAllModifyAll('viewAll', row);
+  const allowObjectPermission = !row || !isBlockedObjectPermission(row);
   if (type === 'object') {
     return [
-      { id: 'create', label: 'Create', value: false, disabled: false },
-      { id: 'read', label: 'Read', value: false, disabled: false },
-      { id: 'edit', label: 'Edit', value: false, disabled: !allowEditPermission },
-      { id: 'delete', label: 'Delete', value: false, disabled: false },
-      { id: 'viewAll', label: 'View All', value: false, disabled: !allowViewAllModifyAll },
-      { id: 'modifyAll', label: 'Modify All', value: false, disabled: !allowViewAllModifyAll },
-      { id: 'viewAllFields', label: 'View All Fields', value: false, disabled: false },
+      { id: 'create', label: 'Create', value: false, disabled: !allowObjectPermission },
+      { id: 'read', label: 'Read', value: false, disabled: !allowObjectPermission },
+      { id: 'edit', label: 'Edit', value: false, disabled: !allowObjectPermission || !allowEditPermission },
+      { id: 'delete', label: 'Delete', value: false, disabled: !allowObjectPermission },
+      { id: 'viewAll', label: 'View All', value: false, disabled: !allowObjectPermission || !allowViewAllModifyAll },
+      { id: 'modifyAll', label: 'Modify All', value: false, disabled: !allowObjectPermission || !allowViewAllModifyAll },
+      { id: 'viewAllFields', label: 'View All Fields', value: false, disabled: !allowObjectPermission },
     ];
   } else if (type === 'field') {
     return [
@@ -2016,7 +2054,10 @@ export const BulkActionRenderer = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [checkboxes, setCheckboxes] = useState(() => defaultRowActionCheckboxes(type));
 
-  const rowCount = useMemo(() => rows.filter((row) => !('canSetPermission' in row) || row.canSetPermission).length, [rows]);
+  const rowCount = useMemo(
+    () => rows.filter((row) => (!('canSetPermission' in row) || row.canSetPermission) && !isBlockedObjectPermission(row)).length,
+    [rows],
+  );
 
   /**
    * Set all dependencies when fields change
