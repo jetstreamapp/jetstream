@@ -1,5 +1,11 @@
 # Changelog
 
+## [10.14.1](https://github.com/jetstreamapp/jetstream/compare/v10.14.0...v10.14.1) (2026-08-21)
+
+### Bug Fixes
+
+- show objects that only support field permissions ([5a0633d](https://github.com/jetstreamapp/jetstream/commit/5a0633d1096d352ff7662373ccf7f08df08d2111))
+
 ## [10.14.0](https://github.com/jetstreamapp/jetstream/compare/v10.13.0...v10.14.0) (2026-08-20)
 
 ### Features
