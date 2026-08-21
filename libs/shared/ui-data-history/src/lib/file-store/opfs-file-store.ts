@@ -148,8 +148,22 @@ export class OpfsFileStore implements HistoryFileStore {
         this.maybeTerminate();
       };
       this.worker.onerror = (event) => {
-        logger.warn('[DATA_HISTORY][OPFS] Storage worker crashed, rejecting pending requests', event.message);
-        const error = new Error(`Data history storage worker error: ${event.message || 'unknown'}`);
+        // `event.message` is blank for some crash shapes (e.g. the worker module itself failing to load) —
+        // filename/lineno/colno and the underlying Error (when the browser provides one) survive those cases
+        // and are the only way to tell "unknown" errors apart in error tracking.
+        const errorDetails = {
+          message: event.message || undefined,
+          filename: event.filename || undefined,
+          lineno: event.lineno || undefined,
+          colno: event.colno || undefined,
+          errorName: event.error instanceof Error ? event.error.name : undefined,
+          errorMessage: event.error instanceof Error ? event.error.message : undefined,
+          errorStack: event.error instanceof Error ? event.error.stack : undefined,
+        };
+        logger.warn('[DATA_HISTORY][OPFS] Storage worker crashed, rejecting pending requests', errorDetails);
+        const summary = errorDetails.errorMessage || errorDetails.message || errorDetails.errorName || 'unknown';
+        const location = errorDetails.filename ? ` (${errorDetails.filename}:${errorDetails.lineno}:${errorDetails.colno})` : '';
+        const error = new Error(`Data history storage worker error: ${summary}${location}`);
         const pending = Array.from(this.pendingRequests.values());
         this.pendingRequests.clear();
         pending.forEach(({ reject }) => reject(error));
