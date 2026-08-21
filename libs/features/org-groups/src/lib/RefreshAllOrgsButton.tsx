@@ -12,7 +12,7 @@ import PQueue from 'p-queue';
 import { useState } from 'react';
 
 /** Each health check is a round trip to Salesforce, so fan out enough to stay quick without flooding the user's orgs */
-const REFRESH_CONCURRENCY = 4;
+const REFRESH_CONCURRENCY = 2;
 
 interface RefreshAllOrgsButtonProps {
   className?: string;

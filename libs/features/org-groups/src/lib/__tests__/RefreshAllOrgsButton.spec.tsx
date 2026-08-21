@@ -96,8 +96,17 @@ describe('RefreshAllOrgsButton', () => {
 
     expect(button.hasAttribute('disabled')).toBe(true);
     expect(button.textContent).toContain('Refreshing 0 of 3');
+    // The queue caps in-flight checks, so the remaining orgs stay queued until an earlier one settles
+    expect(checkOrgHealth).toHaveBeenCalledTimes(2);
 
-    await act(async () => pendingHealthChecks.forEach((resolve) => resolve()));
+    // Resolve in waves - each wave lets the queue start the orgs that were still waiting behind it
+    await act(async () => {
+      while (pendingHealthChecks.length > 0) {
+        pendingHealthChecks.splice(0).forEach((resolve) => resolve());
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      }
+    });
+    expect(checkOrgHealth).toHaveBeenCalledTimes(3);
     await waitFor(() => expect(button.hasAttribute('disabled')).toBe(false));
   });
 

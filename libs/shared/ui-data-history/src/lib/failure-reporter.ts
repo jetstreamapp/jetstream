@@ -16,6 +16,28 @@ export interface DataHistoryFailureInfo {
 export type DataHistoryFailureReporter = (info: DataHistoryFailureInfo) => void;
 
 /**
+ * Diagnostic context attached to an Error so it survives the trip to the error tracker. `logger.warn`
+ * is a no-op unless the user turns logging on, and the reported Error is the only thing that reaches
+ * the reporter — so anything a failure needs to be diagnosable has to ride on the Error itself. The
+ * host app forwards these alongside the operation context (see `useInitDataHistory`).
+ */
+export type DataHistoryErrorDetails = Record<string, string | number | boolean | undefined>;
+
+const ERROR_DETAILS_KEY = 'dataHistoryErrorDetails';
+
+export function withDataHistoryErrorDetails<TError extends Error>(error: TError, details: DataHistoryErrorDetails): TError {
+  return Object.assign(error, { [ERROR_DETAILS_KEY]: details });
+}
+
+export function getDataHistoryErrorDetails(error: unknown): DataHistoryErrorDetails | undefined {
+  if (typeof error !== 'object' || error === null) {
+    return undefined;
+  }
+  const details = (error as Record<string, unknown>)[ERROR_DETAILS_KEY];
+  return typeof details === 'object' && details !== null ? (details as DataHistoryErrorDetails) : undefined;
+}
+
+/**
  * Conditions where the environment said no rather than Jetstream being broken: the user revoked or
  * denied folder access, a picker ran outside a user gesture, or a stream was aborted because the
  * user cancelled or the backend switched. Every one of these has a UI affordance already and is
