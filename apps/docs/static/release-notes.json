@@ -1,5 +1,20 @@
 [
   {
+    "slug": "v10.14.1",
+    "title": "10.14.1 - Manage Permissions object list fix",
+    "date": "2026-08-21",
+    "tags": ["web"],
+    "versions": { "web": "10.14.1" },
+    "summary": "Manage Permissions now shows objects that only support field-level security, such as Price Book Entry and Task, which were missing from the object list.",
+    "highlights": [
+      {
+        "title": "Manage Permissions object list fix",
+        "description": "Objects that only support field-level security are back in the object picker, and show as read-only on the Object Permissions tab instead of failing to save.",
+        "docLink": "/permissions"
+      }
+    ]
+  },
+  {
     "slug": "v10.14.0",
     "title": "10.14.0 - Data History and Refresh All Orgs",
     "date": "2026-08-20",

@@ -1,0 +1,28 @@
+---
+slug: v10.14.1
+title: 10.14.1 - Manage Permissions object list fix
+date: '2026-08-21'
+tags: [web]
+versions:
+  web: 10.14.1
+summary: Manage Permissions now shows objects that only support field-level security, such as Price Book Entry and Task, which were missing from the object list.
+highlights:
+  - title: Manage Permissions object list fix
+    description: Objects that only support field-level security are back in the object picker, and show as read-only on the Object Permissions tab instead of failing to save.
+    docLink: /permissions
+---
+
+{/* truncate */}
+
+## What's new
+
+### Manage Permissions object list fix
+
+The object picker in Manage Permissions only checked Salesforce's object-CRUD allow-list, so any
+object that supports field-level security but not object permissions was missing entirely. That
+left out more than 40 objects, including Price Book Entry, Task, Event, Opportunity Product, Order
+Product, and User. The picker now shows the union of both allow-lists, so these objects are
+selectable again for field and tab visibility permissions.
+
+Objects without an object-permissions record now show as read-only on the Object Permissions tab
+instead of offering checkboxes that failed when saved.
