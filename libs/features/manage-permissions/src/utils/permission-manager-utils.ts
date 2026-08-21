@@ -4,6 +4,7 @@ import { isErrorResponse } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
   DescribeGlobalSObjectResult,
+  DescribeSObjectResult,
   EntityParticlePermissionsRecord,
   Field,
   FieldPermissionDefinitionMap,
@@ -71,15 +72,20 @@ export function filterPermissionsSobjects(sobject: DescribeGlobalSObjectResult |
  */
 export async function getPermissionableSobjects(org: SalesforceOrgUi): Promise<Set<string> | null> {
   try {
-    const { data } = await describeSObject(org, 'ObjectPermissions');
-    const picklistValues = data.fields.find(({ name }) => name === 'SobjectType')?.picklistValues;
-    if (!picklistValues?.length) {
+    const getPicklistValues = (data: DescribeSObjectResult) =>
+      data?.fields
+        .find(({ name }) => name === 'SobjectType')
+        // `active` is omitted on some describe responses - only drop values explicitly marked inactive
+        ?.picklistValues?.filter((item) => item.active != false)
+        ?.map((item) => item.value) || [];
+    const picklistValues1 = await describeSObject(org, 'ObjectPermissions').then(({ data }) => getPicklistValues(data));
+    const picklistValues2 = await describeSObject(org, 'FieldPermissions').then(({ data }) => getPicklistValues(data));
+    const permissionableSobjects = new Set([...picklistValues1, ...picklistValues2]);
+    if (!permissionableSobjects?.size) {
       logger.warn('[PERMISSIONS] ObjectPermissions.SobjectType returned no picklist values, falling back to heuristic filter');
       return null;
     }
-    // `active` is omitted on some describe responses - only drop values explicitly marked inactive
-    const permissionableSobjects = new Set(picklistValues.filter(({ active }) => active !== false).map(({ value }) => value));
-    return permissionableSobjects.size ? permissionableSobjects : null;
+    return permissionableSobjects;
   } catch (ex) {
     logger.warn('[PERMISSIONS] Unable to describe ObjectPermissions, falling back to heuristic filter', ex);
     return null;
