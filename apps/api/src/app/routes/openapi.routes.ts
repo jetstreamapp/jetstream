@@ -106,7 +106,6 @@ function getRequest({
       .meta({
         description: 'CSRF Token for non-get requests. Auth routes include this in the body instead of a header.',
         param: { required: false },
-        override: { required: false },
       }),
   };
   if (hasSourceOrg) {
