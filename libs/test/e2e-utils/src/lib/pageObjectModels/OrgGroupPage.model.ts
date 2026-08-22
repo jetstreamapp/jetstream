@@ -43,7 +43,7 @@ export class OrgGroupPage {
         break;
       }
       case 'sandbox': {
-        await this.page.getByText('Production / Developer').click();
+        await this.page.getByText('Sandbox (test.salesforce.com)').click();
         break;
       }
       case 'pre-release': {
@@ -52,8 +52,9 @@ export class OrgGroupPage {
       }
       case 'custom': {
         await this.page.getByText('Custom Login URL').click();
-        await this.page.getByPlaceholder('org-domain').click();
-        await this.page.getByPlaceholder('org-domain').fill(method.domain);
+        const customUrlInput = this.page.locator('#org-custom-url');
+        await customUrlInput.click();
+        await customUrlInput.fill(method.domain);
         break;
       }
     }
