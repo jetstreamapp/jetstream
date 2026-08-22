@@ -66,6 +66,7 @@ export * from './mass-update-records/MassUpdateRecordsDeploymentRow';
 export * from './mass-update-records/MassUpdateRecordsObjectRow';
 export * from './mass-update-records/MassUpdateRecordsObjectRowCriteria';
 export * from './mass-update-records/MassUpdateRecordsObjectRowField';
+export * from './mass-update-records/MassUpdateRecordsObjectRowLimit';
 export * from './mass-update-records/MassUpdateRecordsObjectRowValue';
 export * from './mass-update-records/MassUpdateRecordsObjectRowValueStaticInput';
 export * from './mass-update-records/useDeployRecords';

@@ -50,6 +50,7 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
     applyCommonOption,
     applyCommonCriteria,
     handleOptionChange,
+    handleRecordLimitChange,
     handleAddField,
     handleRemoveField,
     validateAllRowRecords,
@@ -183,6 +184,7 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
                 applyCommonOption={applyCommonOption}
                 applyCommonCriteria={applyCommonCriteria}
                 handleOptionChange={handleOptionChange}
+                handleRecordLimitChange={handleRecordLimitChange}
                 handleAddField={handleAddField}
                 handleRemoveField={handleRemoveField}
                 validateRowRecords={validateRowRecords}

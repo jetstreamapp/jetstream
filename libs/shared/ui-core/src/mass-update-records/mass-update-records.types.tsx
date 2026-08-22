@@ -10,6 +10,11 @@ export interface MetadataRow {
   fields: ListItem[];
   valueFields: ListItem[];
   configuration: MetadataRowConfiguration[];
+  /**
+   * Optional SOQL `LIMIT` applied to every query for this object, which lets a user work through a
+   * data volume that is too large to update in one pass.
+   */
+  limit?: Maybe<number>;
   validationResults?: Maybe<ValidationResults>;
   deployResults: DeployResults;
 }

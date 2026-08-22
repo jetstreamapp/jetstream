@@ -18,6 +18,7 @@ import MassUpdateRecordTransformationText from './MassUpdateRecordTransformation
 import { MetadataRow } from './mass-update-records.types';
 import {
   buildMassUpdateCombinedResults,
+  getEffectiveRecordLimit,
   getMassUpdateBatchSourceRecords,
   getMassUpdateQueriedFieldsHeader,
   getMassUpdateResultsHeader,
@@ -41,13 +42,14 @@ export type MassUpdateRecordsDeploymentRowProps = {
   batchSize: number;
   omitTransformationText?: boolean;
   onModalOpenChange?: (isOpen: boolean) => void;
-} & Pick<MetadataRow, 'sobject' | 'deployResults' | 'configuration'>;
+} & Pick<MetadataRow, 'sobject' | 'deployResults' | 'configuration' | 'limit'>;
 
 export const MassUpdateRecordsDeploymentRow = ({
   selectedOrg,
   sobject,
   deployResults,
   configuration,
+  limit,
   hasExternalWhereClause,
   validationResults,
   batchSize,
@@ -62,6 +64,7 @@ export const MassUpdateRecordsDeploymentRow = ({
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
 
   const { done, processingErrors, status, fatalErrorMessage, jobInfo, processingEndTime, processingStartTime } = deployResults;
+  const effectiveLimit = getEffectiveRecordLimit(limit);
 
   useEffect(() => {
     onModalOpenChange && onModalOpenChange(downloadModalData.open || resultsModalData.open);
@@ -218,6 +221,12 @@ export const MassUpdateRecordsDeploymentRow = ({
               {formatNumber(validationResults?.impactedRecords)} {pluralizeFromNumber('record', validationResults?.impactedRecords)}
             </span>{' '}
             were found matching this criteria.
+          </div>
+        )}
+        {!processingStartTime && !!effectiveLimit && (
+          <div className="slds-m-left_medium">
+            At most <span className="text-bold">{formatNumber(effectiveLimit)}</span> {pluralizeFromNumber('record', effectiveLimit)} will
+            be updated.
           </div>
         )}
         <div className="slds-scrollable_x">

@@ -41,6 +41,7 @@ type Action =
       type: 'TRANSFORMATION_OPTION_CHANGED';
       payload: { sobject: string; transformationOptions: TransformationOptions; configIndex: number };
     }
+  | { type: 'RECORD_LIMIT_CHANGED'; payload: { sobject: string; limit: Maybe<number> } }
   | { type: 'ADD_FIELD'; payload: { sobject: string } }
   | { type: 'REMOVE_FIELD'; payload: { sobject: string; configIndex: number } }
   | { type: 'METADATA_LOADED'; payload: { sobject: string; metadata: DescribeSObjectResult } }
@@ -186,6 +187,17 @@ function reducer(state: State, action: Action): State {
       const prevRow = state.rowsMap.get(sobject)!;
       const row: MetadataRow = { ...prevRow, validationResults: null, configuration: [...prevRow.configuration] };
       row.configuration[configIndex] = { ...row.configuration[configIndex], transformationOptions };
+      row.isValid = isValidRow(row);
+      rowsMap.set(sobject, row);
+      return { ...state, rowsMap, allRowsValid: Array.from(rowsMap.values()).every((row) => row.isValid) };
+    }
+    case 'RECORD_LIMIT_CHANGED': {
+      const { sobject, limit } = action.payload;
+      const rowsMap = new Map(state.rowsMap);
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const prevRow = state.rowsMap.get(sobject)!;
+      // The prior validation counted a different set of records, so it has to be re-run
+      const row: MetadataRow = { ...prevRow, limit, validationResults: null };
       row.isValid = isValidRow(row);
       rowsMap.set(sobject, row);
       return { ...state, rowsMap, allRowsValid: Array.from(rowsMap.values()).every((row) => row.isValid) };
@@ -494,6 +506,10 @@ export function useMassUpdateFieldItems(org: SalesforceOrgUi, selectedSObjects: 
     dispatch({ type: 'TRANSFORMATION_OPTION_CHANGED', payload: { sobject, transformationOptions, configIndex } });
   }
 
+  function handleRecordLimitChange(sobject: string, limit: Maybe<number>) {
+    dispatch({ type: 'RECORD_LIMIT_CHANGED', payload: { sobject, limit } });
+  }
+
   function handleAddField(sobject: string) {
     dispatch({ type: 'ADD_FIELD', payload: { sobject } });
   }
@@ -513,6 +529,7 @@ export function useMassUpdateFieldItems(org: SalesforceOrgUi, selectedSObjects: 
     applyCommonOption,
     applyCommonCriteria,
     handleOptionChange,
+    handleRecordLimitChange,
     handleAddField,
     handleRemoveField,
     validateAllRowRecords,
