@@ -60,6 +60,7 @@ import {
   supportsViewAllModifyAll,
   VIEW_ALL_MODIFY_ALL_UNSUPPORTED_MESSAGE,
 } from './object-permission-support';
+import { FIELD_AUDIT_COLUMN_KEY_SET, FIELD_AUDIT_COLUMNS } from './permission-manager-field-audit-columns';
 import {
   SYSTEM_PERMISSION_DEPENDENCY_TOOLTIP,
   SYSTEM_PERMISSION_DEPENDENT_CLOSURE,
@@ -535,6 +536,27 @@ export function updateObjectRowsAfterSave(
   });
 }
 
+/**
+ * The optional created/modified columns. Values are read straight off the row by key, so these keys must match
+ * the flattened properties on `PermissionTableFieldCell`.
+ *
+ * These are plain data columns - no `renderGroupCell` or `renderSummaryCell`, so the grid leaves their group and
+ * summary cells empty - and deliberately not `editable`, which also keeps them out of paste targets.
+ */
+function getFieldAuditColumns(): ColumnWithFilter<PermissionTableFieldCell, PermissionTableSummaryRow>[] {
+  const auditSummaryCellClass = ({ type }: PermissionTableSummaryRow) => (type === 'HEADING' ? 'bg-color-gray' : null);
+  return FIELD_AUDIT_COLUMNS.map(({ key, label, type }) => ({
+    ...(setColumnFromType(key, type) as any),
+    name: label,
+    key,
+    width: type === 'date' ? 170 : 150,
+    resizable: true,
+    // Timestamps are near-unique per row, so a SET filter would build a distinct value list the size of the table
+    ...(type === 'date' ? { filters: ['DATE'] } : {}),
+    summaryCellClass: auditSummaryCellClass,
+  }));
+}
+
 export function getFieldColumns(
   selectedProfiles: string[],
   selectedPermissionSets: string[],
@@ -607,6 +629,11 @@ export function getFieldColumns(
         return undefined;
       },
     },
+    // Audit columns. Always built, then filtered out by the caller unless the user has opted in - keeping the
+    // builder unaware of visibility means the export path gets all of them without having to ask.
+    // They sit after the frozen block (`tableLabel` + `_ROW_ACTION`) so the frozen columns stay contiguous, and
+    // ahead of the permission groups so they are not stranded behind a long horizontal scroll.
+    ...getFieldAuditColumns(),
   ];
 
   // Create column groups for profiles
@@ -887,8 +914,8 @@ export function getFieldPermissionContextMenuItems(data: ContextMenuActionData<P
     // The object value repeats once per field — copy the de-duplicated list of object names.
     return [{ label: 'Copy column (All Objects)', value: COPY_COL_OBJECTS_UNIQUE }];
   }
-  if (data.column.key === 'tableLabel') {
-    // Field column: the field names for the clicked object, or for every object.
+  if (data.column.key === 'tableLabel' || FIELD_AUDIT_COLUMN_KEY_SET.has(data.column.key)) {
+    // Field and audit columns: the values for the clicked object, or for every object.
     return [
       { label: `Copy column (${data.row.sobject})`, value: COPY_COL_OBJECT },
       { label: 'Copy column (All Objects)', value: 'COPY_COL' },
@@ -897,11 +924,29 @@ export function getFieldPermissionContextMenuItems(data: ContextMenuActionData<P
   return [];
 }
 
+/**
+ * `copyGenericTableDataToClipboard` reads the raw row property, while the grid's own copy path and the exports
+ * both render through `getValue`. Pre-resolving the clicked column keeps all three in agreement - without it the
+ * audit date columns copy raw Salesforce ISO strings instead of the formatted value shown in the cell.
+ *
+ * A no-op for the text columns, which have no `getValue`.
+ */
+function withFormattedColumnValue(
+  column: ColumnWithFilter<PermissionTableFieldCell, unknown>,
+  rows: PermissionTableFieldCell[],
+): PermissionTableFieldCell[] {
+  const { getValue } = column;
+  if (!getValue) {
+    return rows;
+  }
+  return rows.map((row) => ({ ...row, [column.key]: getValue({ row, column }) }) as PermissionTableFieldCell);
+}
+
 export function handleFieldPermissionContextMenuAction(item: ContextMenuItem, data: ContextMenuActionData<PermissionTableFieldCell>): void {
   const fields = data.columns.map((column) => column.key);
   if (item.value === COPY_COL_OBJECT) {
     const rowsForObject = data.rows.filter((row) => row.sobject === data.row.sobject);
-    copyGenericTableDataToClipboard('COPY_COL', fields, { ...data, rows: rowsForObject });
+    copyGenericTableDataToClipboard('COPY_COL', fields, { ...data, rows: withFormattedColumnValue(data.column, rowsForObject) });
     return;
   }
   if (item.value === COPY_COL_OBJECTS_UNIQUE) {
@@ -913,10 +958,13 @@ export function handleFieldPermissionContextMenuAction(item: ContextMenuItem, da
       seen.add(row.sobject);
       return true;
     });
-    copyGenericTableDataToClipboard('COPY_COL', fields, { ...data, rows: uniqueRows });
+    copyGenericTableDataToClipboard('COPY_COL', fields, { ...data, rows: withFormattedColumnValue(data.column, uniqueRows) });
     return;
   }
-  copyGenericTableDataToClipboard(item.value as ContextAction, fields, data);
+  copyGenericTableDataToClipboard(item.value as ContextAction, fields, {
+    ...data,
+    rows: withFormattedColumnValue(data.column, data.rows),
+  });
 }
 
 export function getFieldRows(
@@ -938,6 +986,11 @@ export function getFieldRows(
         type: fieldPermission.metadata.DataType,
         // Compound fields (e.x. BillingAddress) show up as non-editable, but they are editable
         allowEditPermission: fieldPermission.metadata.IsCompound || fieldPermission.metadata.IsUpdatable,
+        // Undefined for standard fields, which have no audit data in Salesforce
+        createdDate: fieldPermission.auditMetadata?.createdDate,
+        createdBy: fieldPermission.auditMetadata?.createdBy,
+        lastModifiedDate: fieldPermission.auditMetadata?.lastModifiedDate,
+        lastModifiedBy: fieldPermission.auditMetadata?.lastModifiedBy,
         permissions: {},
       };
 

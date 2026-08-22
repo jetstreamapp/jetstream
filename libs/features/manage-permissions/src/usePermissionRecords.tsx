@@ -3,7 +3,9 @@ import { describeSObject, queryAll, queryAllUsingCursor } from '@jetstream/share
 import { tracker } from '@jetstream/shared/ui-utils';
 import { ConcurrencyLimiter, createConcurrencyLimiter, getErrorMessage, groupByFlat } from '@jetstream/shared/utils';
 import {
+  CustomFieldAuditRecord,
   EntityParticlePermissionsRecord,
+  FieldAuditMetadata,
   FieldPermissionDefinitionMap,
   FieldPermissionRecord,
   ObjectPermissionDefinitionMap,
@@ -19,6 +21,7 @@ import {
   getFieldDefinitionKey,
   getPermissionableFieldObjectChunks,
   getQueryForAllPermissionableFields,
+  getQueryForCustomFieldAudit,
   getQueryForFieldPermissions,
   getQueryObjectPermissions,
   getQuerySystemPermissions,
@@ -31,6 +34,8 @@ import {
 type SystemPermissionSetRecord = { Id: string } & Record<string, boolean | string>;
 
 const INVALID_ID_PREFIX = '000';
+/** Salesforce ids are returned as 18 characters, but FieldDefinitionId embeds the 15 character form */
+const FIFTEEN_CHARACTER_ID_LENGTH = 15;
 
 export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: string[], profilePermSetIds: string[], permSetIds: string[]) {
   const isMounted = useRef(true);
@@ -47,6 +52,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
   );
   const [systemPermissionMap, setSystemPermissionMap] = useState<Record<string, SystemPermissionDefinitionMap> | null>(null);
   const [systemPermissionsUnavailable, setSystemPermissionsUnavailable] = useState(false);
+  const [fieldAuditUnavailable, setFieldAuditUnavailable] = useState(false);
 
   useEffect(() => {
     isMounted.current = true;
@@ -70,6 +76,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
       setLoading(true);
       setHasError(false);
       setSystemPermissionsUnavailable(false);
+      setFieldAuditUnavailable(false);
       // Every request below shares this limiter so that a large selection cannot flood Salesforce
       const limit = createConcurrencyLimiter(QUERY_CONCURRENCY);
       // query all data and transform into state maps
@@ -97,6 +104,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
           groupByFlat(tabs, 'SobjectName'),
         ),
         querySystemPermissions(limit, selectedOrg, profilePermSetIds, permSetIds),
+        queryFieldAuditMetadata(limit, selectedOrg, sobjects),
       ]).then(
         ([
           fieldPermissionMetadata,
@@ -107,6 +115,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
           tabVisibilityPermissions,
           tabDefinitions,
           systemPermissions,
+          fieldAudit,
         ]) => {
           // Exclude any fields which are not available in the FieldPermissions.Field picklist (meaning that permissions cannot be set on them)
           // They show up as "permissionable" but are not supported for permissioning :shrug:
@@ -133,7 +142,13 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
               objectPermissions,
               objectPermissionableSobjects,
             ),
-            fieldPermissionMap: getFieldPermissionMap(fieldDefinition, profilePermSetIds, permSetIds, fieldPermissions),
+            fieldPermissionMap: getFieldPermissionMap(
+              fieldDefinition,
+              profilePermSetIds,
+              permSetIds,
+              fieldPermissions,
+              fieldAudit.auditByFieldDefinitionId,
+            ),
             tabVisibilityPermissionMap: getTabVisibilityPermissionMap(
               sobjects,
               profilePermSetIds,
@@ -143,6 +158,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
             ),
             systemPermissionMap: systemPermissions.permissionMap,
             systemPermissionsUnavailable: systemPermissions.loadFailed,
+            fieldAuditUnavailable: fieldAudit.loadFailed,
           };
         },
       );
@@ -154,6 +170,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
         setTabVisibilityPermissionMap(output.tabVisibilityPermissionMap);
         setSystemPermissionMap(output.systemPermissionMap);
         setSystemPermissionsUnavailable(output.systemPermissionsUnavailable);
+        setFieldAuditUnavailable(output.fieldAuditUnavailable);
       }
     } catch (ex) {
       logger.warn('[usePermissionRecords][ERROR]', getErrorMessage(ex));
@@ -182,6 +199,8 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
     hasError,
     /** Every other tab loaded, but system permissions could not be read from Salesforce */
     systemPermissionsUnavailable,
+    /** Everything else loaded, but the field audit columns have no data because the query failed */
+    fieldAuditUnavailable,
   };
 }
 
@@ -313,6 +332,49 @@ async function querySystemPermissions(
   }
 }
 
+/** Audit data is supplemental, so report whether it made it rather than failing the whole load. */
+interface FieldAuditResult {
+  /** Keyed by `EntityParticle.FieldDefinitionId` so it can be joined onto the field list directly */
+  auditByFieldDefinitionId: Record<string, FieldAuditMetadata>;
+  loadFailed: boolean;
+}
+
+/**
+ * Created/modified dates and users for every custom field on the selected objects.
+ *
+ * EntityParticle carries no audit fields, so this comes from the Tooling `CustomField` object and is joined back
+ * on the FieldDefinitionId the field list already provides. Standard fields have no CustomField record, so they
+ * are absent here and their audit columns stay blank - Salesforce tracks no audit data for them.
+ *
+ * These columns are opt-in and purely informational, so a failure (CustomField can be denied where EntityParticle
+ * is allowed) leaves the columns empty rather than taking down the editor.
+ */
+async function queryFieldAuditMetadata(
+  limit: ConcurrencyLimiter,
+  selectedOrg: SalesforceOrgUi,
+  sobjects: string[],
+): Promise<FieldAuditResult> {
+  try {
+    const records = await queryAndCombineResults<CustomFieldAuditRecord>(limit, selectedOrg, getQueryForCustomFieldAudit(sobjects), true);
+    const auditByFieldDefinitionId = records.reduce((output: Record<string, FieldAuditMetadata>, record) => {
+      // FieldDefinitionId is `{EntityDefinitionId}.{15 character CustomField id}`
+      output[`${record.EntityDefinitionId}.${record.Id.slice(0, FIFTEEN_CHARACTER_ID_LENGTH)}`] = {
+        createdDate: record.CreatedDate,
+        createdBy: record.CreatedBy?.Name,
+        lastModifiedDate: record.LastModifiedDate,
+        lastModifiedBy: record.LastModifiedBy?.Name,
+      };
+      return output;
+    }, {});
+    return { auditByFieldDefinitionId, loadFailed: false };
+  } catch (ex) {
+    // Nothing else fails when this does, so this is the only chance to report it
+    logger.warn('[usePermissionRecords][FIELD AUDIT][ERROR]', getErrorMessage(ex));
+    tracker.error('[usePermissionRecords][FIELD AUDIT][ERROR]', ex, { errorDetail: getTrackableErrorDetail(ex) });
+    return { auditByFieldDefinitionId: {}, loadFailed: true };
+  }
+}
+
 // This could be eligible to pull into generic method for expanded use
 async function queryAndCombineResults<T>(
   limit: ConcurrencyLimiter,
@@ -431,6 +493,7 @@ function getFieldPermissionMap(
   selectedProfiles: string[],
   selectedPermissionSets: string[],
   permissions: FieldPermissionRecord[],
+  auditByFieldDefinitionId: Record<string, FieldAuditMetadata>,
 ): Record<string, FieldPermissionDefinitionMap> {
   const fieldPermissionsByFieldByParentId = permissions.reduce((output: Record<string, Record<string, FieldPermissionRecord>>, field) => {
     output[field.Field] = output[field.Field] || {};
@@ -444,6 +507,7 @@ function getFieldPermissionMap(
       apiName: field.QualifiedApiName,
       label: field.Label,
       metadata: field,
+      auditMetadata: auditByFieldDefinitionId[field.FieldDefinitionId],
       permissions: {},
       permissionKeys: [],
     };

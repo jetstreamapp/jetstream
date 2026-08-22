@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, MIME_TYPES } from '@jetstream/shared/constants';
-import { saveFile, tracker, useGoBackShortcut, usePrimaryActionShortcut } from '@jetstream/shared/ui-utils';
+import { saveFile, setItemInLocalStorage, tracker, useGoBackShortcut, usePrimaryActionShortcut } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, groupByFlat } from '@jetstream/shared/utils';
 import {
   AsyncJobNew,
@@ -50,17 +50,24 @@ import {
   getModifierKey,
 } from '@jetstream/ui';
 import { ConfirmPageChange, RequireMetadataApiBanner, fromJetstreamEvents, fromPermissionsState, useAmplitude } from '@jetstream/ui-core';
-import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
+import { STORAGE_KEYS, applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
-import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { FieldAuditColumnsPopover } from './FieldAuditColumnsPopover';
 import ManagePermissionsEditorFieldTable from './ManagePermissionsEditorFieldTable';
 import ManagePermissionsEditorObjectTable from './ManagePermissionsEditorObjectTable';
 import ManagePermissionsEditorSystemPermissionTable from './ManagePermissionsEditorSystemPermissionTable';
 import ManagePermissionsEditorTabVisibilityTable from './ManagePermissionsEditorTabVisibilityTable';
 import { usePermissionRecords } from './usePermissionRecords';
 import { generateCsvFilesFromTable, generateExcelWorkbookFromTable } from './utils/permission-manager-export-utils';
+import {
+  FIELD_AUDIT_COLUMN_KEY_SET,
+  FieldAuditColumnKey,
+  parseVisibleFieldAuditColumns,
+  serializeVisibleFieldAuditColumns,
+} from './utils/permission-manager-field-audit-columns';
 import {
   applySystemPermissionDependencies,
   getConfirmationModalContent,
@@ -100,6 +107,21 @@ import {
 } from './utils/permission-manager-utils';
 
 const HEIGHT_BUFFER = 170;
+
+const FIELD_PERMISSIONS_TAB_ID = 'field-permissions';
+
+/**
+ * A stale or hand-edited value should not break the table, so anything unparseable is discarded and the columns
+ * fall back to hidden.
+ */
+function getStoredVisibleFieldAuditColumns(): ReadonlySet<FieldAuditColumnKey> {
+  try {
+    return parseVisibleFieldAuditColumns(localStorage.getItem(STORAGE_KEYS.PERMISSION_MANAGER_FIELD_AUDIT_COLUMNS));
+  } catch (ex) {
+    logger.warn('[MANAGE PERMISSIONS] Could not read stored field audit columns', ex);
+    return new Set();
+  }
+}
 
 export function ErrorTooltip({ hasError, id, message }: { hasError: boolean; id: string; message?: string }) {
   if (!hasError) {
@@ -181,6 +203,11 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   const [dirtyFieldRows, setDirtyFieldRows] = useState<Record<string, DirtyRow<PermissionTableFieldCell>>>({});
   const [fieldFilter, setFieldFilter] = useState('');
   const [fieldErrorsOnly, setFieldErrorsOnly] = useState(false);
+  const [visibleFieldAuditColumns, setVisibleFieldAuditColumns] =
+    useState<ReadonlySet<FieldAuditColumnKey>>(getStoredVisibleFieldAuditColumns);
+
+  // The audit column toggles only apply to the field table, so the toolbar button is hidden on the other tabs
+  const [activeTabId, setActiveTabId] = useState(FIELD_PERMISSIONS_TAB_ID);
 
   const [systemPermissionColumns, setSystemPermissionColumns] = useState<
     ColumnWithFilter<PermissionTableSystemPermissionCell, PermissionTableSummaryRow>[]
@@ -203,6 +230,40 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   const [fieldsHaveErrors, setFieldsHaveErrors] = useState<boolean>(false);
   const [tabVisibilityHaveErrors, setTabVisibilityHaveErrors] = useState<boolean>(false);
   const [systemPermissionsHaveErrors, setSystemPermissionsHaveErrors] = useState<boolean>(false);
+
+  /**
+   * `fieldColumns` always holds every column, including the opt-in audit ones - the export path reads the full set
+   * straight from the builder. Memoized because the grid re-initializes its filters and clears cell selection
+   * whenever the column array identity changes.
+   */
+  const visibleFieldColumns = useMemo(
+    () =>
+      fieldColumns.filter(
+        (column) => !FIELD_AUDIT_COLUMN_KEY_SET.has(column.key) || visibleFieldAuditColumns.has(column.key as FieldAuditColumnKey),
+      ),
+    [fieldColumns, visibleFieldAuditColumns],
+  );
+
+  const handleToggleFieldAuditColumn = useCallback(
+    (columnKey: FieldAuditColumnKey, visible: boolean) => {
+      const newValue = new Set(visibleFieldAuditColumns);
+      if (visible) {
+        newValue.add(columnKey);
+      } else {
+        newValue.delete(columnKey);
+      }
+      setVisibleFieldAuditColumns(newValue);
+      setItemInLocalStorage(STORAGE_KEYS.PERMISSION_MANAGER_FIELD_AUDIT_COLUMNS, serializeVisibleFieldAuditColumns(newValue));
+      trackEvent(ANALYTICS_KEYS.permission_manager_field_audit_columns_toggled, { columnKey, visible });
+    },
+    [trackEvent, visibleFieldAuditColumns],
+  );
+
+  const handleResetFieldAuditColumns = useCallback(() => {
+    setVisibleFieldAuditColumns(new Set());
+    setItemInLocalStorage(STORAGE_KEYS.PERMISSION_MANAGER_FIELD_AUDIT_COLUMNS, '');
+    trackEvent(ANALYTICS_KEYS.permission_manager_field_audit_columns_toggled, { columnKey: 'all', visible: false });
+  }, [trackEvent]);
 
   useEffect(() => {
     isMounted.current = true;
@@ -714,6 +775,9 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   }
 
   async function reloadPermissions() {
+    // `Tabs` unmounts while reloading and remounts on `initialActiveId` without firing `onChange`, so the
+    // mirrored tab id has to be reset here or the field-only toolbar controls stay hidden after a reload.
+    setActiveTabId(FIELD_PERMISSIONS_TAB_ID);
     setHasLoaded(false);
     await refetchMetadata();
     trackEvent(ANALYTICS_KEYS.permission_manager_reload);
@@ -820,6 +884,14 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" />
             <span>Reset Changes</span>
           </button>
+          {activeTabId === FIELD_PERMISSIONS_TAB_ID && (
+            <FieldAuditColumnsPopover
+              visibleColumns={visibleFieldAuditColumns}
+              dataUnavailable={recordData.fieldAuditUnavailable}
+              onToggle={handleToggleFieldAuditColumn}
+              onReset={handleResetFieldAuditColumns}
+            />
+          )}
           <button
             className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
             onClick={exportChanges}
@@ -866,7 +938,8 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
         )}
         {hasLoaded && (
           <Tabs
-            initialActiveId="field-permissions"
+            initialActiveId={FIELD_PERMISSIONS_TAB_ID}
+            onChange={setActiveTabId}
             tabs={[
               {
                 id: 'object-permissions',
@@ -939,7 +1012,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
               },
 
               {
-                id: 'field-permissions',
+                id: FIELD_PERMISSIONS_TAB_ID,
                 title: (
                   <Fragment>
                     <span className="slds-tabs__left-icon">
@@ -958,7 +1031,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
                 content: (
                   <ManagePermissionsEditorFieldTable
                     ref={managePermissionsEditorFieldTableRef}
-                    columns={fieldColumns}
+                    columns={visibleFieldColumns}
                     rows={visibleFieldRows || []}
                     totalCount={fieldRows?.length || 0}
                     filterText={fieldFilter}

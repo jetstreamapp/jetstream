@@ -1036,6 +1036,46 @@ export function getQueryTabDefinition(allSobjects: string[]): string[] {
 }
 
 /**
+ * Field audit data (created/modified date and user) from the Tooling `CustomField` object.
+ *
+ * EntityParticle - the source for the field list itself - exposes no audit fields at all, so this is a
+ * separate query joined back on `` `${EntityDefinitionId}.${Id.slice(0, 15)}` ``, which is exactly the
+ * `EntityParticle.FieldDefinitionId` already selected by {@link getQueryForAllPermissionableFields}.
+ *
+ * Standard fields have no CustomField record, so they are simply absent from these results - Salesforce
+ * does not track audit data for them anywhere.
+ *
+ * Unlike EntityParticle, CustomField supports queryMore, so each chunk is a plain query.
+ */
+export function getQueryForCustomFieldAudit(allSobjects: string[]): string[] {
+  const queries = splitArrayToMaxSize(allSobjects, MAX_OBJ_IN_QUERY).map((sobjects) => {
+    const query: Query = {
+      fields: [
+        getField('Id'),
+        getField('EntityDefinitionId'),
+        getField('CreatedDate'),
+        getField('CreatedBy.Name'),
+        getField('LastModifiedDate'),
+        getField('LastModifiedBy.Name'),
+      ],
+      sObject: 'CustomField',
+      where: {
+        left: {
+          field: 'EntityDefinition.QualifiedApiName',
+          operator: 'IN',
+          value: sobjects,
+          literalType: 'STRING',
+        },
+      },
+    };
+
+    return composeQuery(query);
+  });
+  logger.log('getQueryForCustomFieldAudit()', queries);
+  return queries;
+}
+
+/**
  * The settable system permissions available in the org. `Permissions*` boolean fields on the
  * PermissionSet object are edition/license/feature dependent, so we derive the list from the describe
  * (rather than a hardcoded catalog) and only include the ones that can actually be updated. The
