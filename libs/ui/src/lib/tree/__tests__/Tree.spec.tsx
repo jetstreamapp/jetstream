@@ -112,6 +112,33 @@ describe('Tree', () => {
     expect(screen.getByText('Child 1A')).toBeTruthy();
   });
 
+  test('reEmitSelectionOnItemsChange re-emits the selected item when the items change', () => {
+    const onSelected = vi.fn();
+    const { rerender } = render(<Tree items={nestedItems} expandAllOnInit reEmitSelectionOnItemsChange onSelected={onSelected} />);
+    fireEvent.click(screen.getByText('Child 2A'));
+    onSelected.mockClear();
+
+    rerender(
+      <Tree items={nestedItems.map((item) => ({ ...item }))} expandAllOnInit reEmitSelectionOnItemsChange onSelected={onSelected} />,
+    );
+
+    expect(onSelected).toHaveBeenCalledTimes(1);
+    expect(onSelected).toHaveBeenCalledWith(expect.objectContaining({ id: 'child-2a' }));
+  });
+
+  test('reEmitSelectionOnItemsChange selects the first remaining leaf when the selected item is removed', () => {
+    const onSelected = vi.fn();
+    const { rerender } = render(<Tree items={nestedItems} expandAllOnInit reEmitSelectionOnItemsChange onSelected={onSelected} />);
+    fireEvent.click(screen.getByText('Child 2A'));
+    onSelected.mockClear();
+
+    const filteredItems = nestedItems.filter((item) => item.id !== 'parent-2');
+    rerender(<Tree items={filteredItems} expandAllOnInit reEmitSelectionOnItemsChange onSelected={onSelected} />);
+
+    expect(onSelected).toHaveBeenCalledTimes(1);
+    expect(onSelected).toHaveBeenCalledWith(expect.objectContaining({ id: 'child-1a' }));
+  });
+
   test('each tree item has role=treeitem', () => {
     render(<Tree items={flatItems} />);
     const treeItems = screen.getAllByRole('treeitem');
