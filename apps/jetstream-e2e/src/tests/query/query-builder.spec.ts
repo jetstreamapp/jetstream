@@ -92,6 +92,28 @@ test.describe('QUERY BUILDER', () => {
     ]);
   });
 
+  test('should combine repeated conditions into an In condition', async ({ queryPage, page }) => {
+    await queryPage.goto();
+    await queryPage.selectObject('Account');
+    await queryPage.selectFields(['Account Name']);
+
+    await queryPage.setFilterAction('OR');
+    await queryPage.addFilter({ conditionNumber: 1 }, 'Account Name', 'eq', { type: 'text', value: 'Acme' });
+    await queryPage.addCondition();
+    await queryPage.addFilter({ conditionNumber: 2 }, 'Account Name', 'eq', { type: 'text', value: 'Initech' });
+
+    await expect(page.getByText(/appears in 2 conditions/)).toBeVisible();
+
+    await page.getByRole('button', { name: 'Use In operator for Name' }).click();
+
+    // the two conditions collapse into one row using the multi value textarea
+    await expect(page.getByText(/appears in 2 conditions/)).toBeHidden();
+    await expect(page.getByRole('group', { name: 'Condition 2' })).toBeHidden();
+    await expect(page.getByRole('group', { name: 'Condition 1' }).getByLabel('Value')).toHaveValue('Acme\nInitech');
+
+    await expect(page.getByRole('code').locator('div').filter({ hasText: `WHERE Name IN ('Acme', 'Initech')` }).first()).toBeVisible();
+  });
+
   // eslint-disable-next-line playwright/expect-expect
   test('should work with subqueries', async ({ queryPage }) => {
     await queryPage.goto();

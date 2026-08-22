@@ -31,6 +31,7 @@ export * from './lib/data-table/gridExport';
 export * from './lib/data-table/PreviewChangesModal';
 export * from './lib/data-table/SalesforceRecordDataTable';
 export * from './lib/docked-composer/DockedComposer';
+export * from './lib/expression-group/expression-list-operator-utils';
 export * from './lib/expression-group/expression-utils';
 export * from './lib/expression-group/ExpressionContainer';
 export * from './lib/file-download-modal/download-modal-utils';

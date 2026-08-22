@@ -249,6 +249,7 @@ export const ANALYTICS_KEYS = {
   query_ResetPage: 'query_ResetPage',
   query_InlineEditSave: 'query_InlineEditSave',
   query_FieldMetadataViewed: 'query_FieldMetadataViewed',
+  query_FilterConvertedToListOperator: 'query_FilterConvertedToListOperator',
   query_FieldMetadataDownloaded: 'query_FieldMetadataDownloaded',
   query_InlineEditPaste: 'query_InlineEditPaste',
   query_InlineEditClear: 'query_InlineEditClear',

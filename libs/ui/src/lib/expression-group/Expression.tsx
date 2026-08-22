@@ -12,6 +12,8 @@ export interface ExpressionProps {
   actionHelpText?: string;
   actionLabel: string;
   ancillaryOptions?: React.ReactNode;
+  /** Rendered between the action dropdown and the condition rows (e.x. filter suggestions) */
+  notification?: React.ReactNode;
   onActionChange: (value: AndOr) => void;
   onAddCondition: () => void;
   onAddGroup: () => void;
@@ -24,6 +26,7 @@ export const Expression: FunctionComponent<ExpressionProps> = ({
   actionLabel,
   actionHelpText,
   ancillaryOptions,
+  notification,
   children,
   onActionChange,
   onAddCondition,
@@ -56,6 +59,7 @@ export const Expression: FunctionComponent<ExpressionProps> = ({
           ancillaryOptions={ancillaryOptions}
           onChange={onActionChange}
         />
+        {notification}
         <ul>{children}</ul>
       </div>
       <div className="slds-expression__buttons">

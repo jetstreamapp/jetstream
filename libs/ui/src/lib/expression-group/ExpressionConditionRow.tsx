@@ -252,6 +252,11 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                 label: operatorLabel,
                 labelHelp: operatorHelpText,
                 itemLength: 10,
+                /**
+                 * The query builder body is `overflow: hidden`, so a dropdown this tall gets clipped when there is not
+                 * enough room below the input and it flips upwards - hiding the first operators behind the page header.
+                 */
+                usePortal: true,
               }}
               items={operators}
               selectedItemId={selected.operator}
