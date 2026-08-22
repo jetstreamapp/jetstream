@@ -46,7 +46,8 @@ export const SaveMappingPopover: FunctionComponent<SaveMappingPopoverProps> = ({
       Object.keys(fieldMapping).reduce((acc: LoadSavedMappingItem, key) => {
         const field = fieldMapping[key];
         if (field.targetField) {
-          acc.csvFields.push(key);
+          // csvField rather than key so additional mappings record the real column, keeping availability checks accurate
+          acc.csvFields.push(field.csvField);
           acc.sobjectFields.push(field.targetField);
           acc.mapping[key] = omit({ ...field }, 'fieldMetadata');
         }

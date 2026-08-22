@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { LoadSavedMappingItem } from '@jetstream/types';
 import { BadgeNotification, EmptyState, fireToast, Icon, Popover, PopoverRef } from '@jetstream/ui';
-import { STATIC_MAPPING_PREFIX } from '@jetstream/ui-core';
+import { isStaticValuePlaceholder } from '@jetstream/ui-core';
 import { getDexieDb, withReopenOnDatabaseClosed } from '@jetstream/ui/db';
 import classNames from 'classnames';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -26,7 +26,7 @@ export const LoadMappingPopover: FunctionComponent<LoadMappingPopoverProps> = ({
         .equalsIgnoreCase(sobject)
         .filter(
           (item) =>
-            item.csvFields.filter((field) => !field.startsWith(STATIC_MAPPING_PREFIX)).every((field) => csvFields.has(field)) &&
+            item.csvFields.filter((field) => !isStaticValuePlaceholder(field)).every((field) => csvFields.has(field)) &&
             item.sobjectFields.every((field) => objectFields.has(field)),
         )
         .toArray(),
