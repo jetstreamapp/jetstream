@@ -28,14 +28,15 @@ import {
 import {
   autoMapFields,
   checkFieldsForMappingError,
-  checkForDuplicateFieldMappings,
+  initAdditionalFieldMappingItem,
   initStaticFieldMappingItem,
+  isAdditionalMapping,
   loadFieldMappingFromSavedMapping,
   resetFieldMapping,
   useAmplitude,
 } from '@jetstream/ui-core';
 import classNames from 'classnames';
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import LoadRecordsFieldMappingRow from '../components/LoadRecordsFieldMappingRow';
 import LoadRecordsFieldMappingStaticRow from '../components/LoadRecordsFieldMappingStaticRow';
 import { LoadMappingPopover } from '../components/load-mapping-storage/LoadMappingPopover';
@@ -86,11 +87,6 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
     const [csvFields, setCsvFields] = useState(() => new Set(inputHeader));
     const [objectFields, setObjectFields] = useState(() => new Set(fields.map((field) => field.name)));
     const [visibleHeaders, setVisibleHeaders] = useState(inputHeader);
-    const [staticRowHeaders, setStaticRowHeaders] = useState<string[]>(() =>
-      Object.values(fieldMappingInit)
-        .filter((item) => item.type === 'STATIC')
-        .map((item) => item.csvField),
-    );
     const [activeRowIndex, setActiveRowIndex] = useState(0);
     const [activeRow, setActiveRow] = useState<Record<string, any>>(() => fileData[activeRowIndex]);
     // hack to force child re-render when fields are re-mapped
@@ -102,6 +98,28 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
     const [searchTerm, setSearchTerm] = useState('');
 
     const debouncedSelectedValue = useDebounce(activeRowIndex, 150);
+
+    /**
+     * Static rows and additional mappings are derived from the mapping object rather than tracked in their own
+     * state arrays, which keeps them correct through clear/reset/load-saved without any extra bookkeeping.
+     * Key insertion order is the order the user added them.
+     */
+    const staticMappingKeys = useMemo(
+      () => Object.keys(fieldMapping).filter((mappingKey) => fieldMapping[mappingKey].type === 'STATIC'),
+      [fieldMapping],
+    );
+
+    const additionalMappingKeysByCsvField = useMemo(
+      () =>
+        Object.entries(fieldMapping).reduce<Record<string, string[]>>((output, [mappingKey, fieldMappingItem]) => {
+          if (isAdditionalMapping(mappingKey, fieldMappingItem)) {
+            output[fieldMappingItem.csvField] = output[fieldMappingItem.csvField] || [];
+            output[fieldMappingItem.csvField].push(mappingKey);
+          }
+          return output;
+        }, {}),
+      [fieldMapping],
+    );
 
     useNonInitialEffect(() => {
       setActiveRow(fileData[debouncedSelectedValue] || fileData[0]);
@@ -149,9 +167,17 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
     }, [externalId, fieldMapping, isCustomMetadataObject, loadType]);
 
     useNonInitialEffect(() => {
+      /**
+       * The two filters are intentionally asymmetric.
+       * Mapped considers a column and its additional mappings as a unit, otherwise a hidden additional row could
+       * block the next step with no visible error. Unmapped only looks at the column's own row, since a blank
+       * additional row is inert - it is skipped by the load, by saved mappings, and by every next-step check.
+       */
       let tempVisibleHeaders = inputHeader;
       if (filter === FILTER_MAPPED) {
-        tempVisibleHeaders = tempVisibleHeaders.filter((header) => !!fieldMapping[header]?.targetField);
+        const rowGroup = (header: string) =>
+          [fieldMapping[header], ...(additionalMappingKeysByCsvField[header] || []).map((key) => fieldMapping[key])].filter(Boolean);
+        tempVisibleHeaders = tempVisibleHeaders.filter((header) => rowGroup(header).some((item) => !!item.targetField));
       } else if (filter === FILTER_UNMAPPED) {
         tempVisibleHeaders = tempVisibleHeaders.filter((header) => !fieldMapping[header]?.targetField);
       }
@@ -169,21 +195,19 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
      * comboboxes are expensive to re-render if there are many on the page
      *
      */
-    function handleFieldMappingChange(csvField: string, fieldMappingItem: FieldMappingItem) {
+    function handleFieldMappingChange(mappingKey: string, fieldMappingItem: FieldMappingItem) {
       setFieldMapping((fieldMapping) =>
-        checkFieldsForMappingError({ ...fieldMapping, [csvField]: fieldMappingItem }, loadType, externalId),
+        checkFieldsForMappingError({ ...fieldMapping, [mappingKey]: fieldMappingItem }, loadType, externalId),
       );
     }
 
     function handleAction(id: DropDownAction) {
       switch (id) {
         case MAPPING_CLEAR:
-          setStaticRowHeaders([]);
           setFieldMapping(resetFieldMapping(inputHeader));
           trackEvent(ANALYTICS_KEYS.load_MappingAutomationChanged, { action: id });
           break;
         case MAPPING_RESET:
-          setStaticRowHeaders([]);
           autoMapFields(org, inputHeader, fields, binaryAttachmentBodyField, loadType, externalId).then(setFieldMapping);
           setFilter(FILTER_ALL);
           trackEvent(ANALYTICS_KEYS.load_MappingAutomationChanged, { action: id });
@@ -203,11 +227,6 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
     function handleLoadMapping(savedMapping: LoadSavedMappingItem) {
       const newMapping = loadFieldMappingFromSavedMapping(savedMapping, inputHeader, fields, binaryAttachmentBodyField);
       setFieldMapping(newMapping);
-      setStaticRowHeaders(
-        Object.values(newMapping)
-          .filter((item) => item.type === 'STATIC')
-          .map((item) => item.csvField),
-      );
       trackEvent(ANALYTICS_KEYS.load_SavedMappingLoaded);
       setKeyPrefix(new Date().getTime());
     }
@@ -233,18 +252,23 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
     }
 
     function handleAddRow() {
-      const fieldMappingItem = initStaticFieldMappingItem();
-      setFieldMapping((fieldMapping) => ({ ...fieldMapping, [fieldMappingItem.csvField]: fieldMappingItem }));
-      setStaticRowHeaders((prevValue) => [...prevValue, fieldMappingItem.csvField]);
+      const { mappingKey, fieldMappingItem } = initStaticFieldMappingItem();
+      setFieldMapping((fieldMapping) => ({ ...fieldMapping, [mappingKey]: fieldMappingItem }));
     }
 
-    function handleRemoveRow(csvField: string) {
+    function handleRemoveRow(mappingKey: string) {
       setFieldMapping((fieldMapping) => {
         const clonedMapping = { ...fieldMapping };
-        delete clonedMapping[csvField];
-        return checkForDuplicateFieldMappings(clonedMapping);
+        delete clonedMapping[mappingKey];
+        return checkFieldsForMappingError(clonedMapping, loadType, externalId);
       });
-      setStaticRowHeaders((prevValue) => prevValue.filter((value) => value !== csvField));
+    }
+
+    /** Map a file column that is already mapped to an additional Salesforce field */
+    function handleAddAdditionalMapping(csvField: string) {
+      const { mappingKey, fieldMappingItem } = initAdditionalFieldMappingItem(csvField);
+      setFieldMapping((fieldMapping) => ({ ...fieldMapping, [mappingKey]: fieldMappingItem }));
+      trackEvent(ANALYTICS_KEYS.load_MappingAdditionalFieldAdded);
     }
 
     return (
@@ -387,39 +411,58 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
               </tr>
             </thead>
             <tbody>
-              {visibleHeaders.map((header, i) => {
+              {visibleHeaders.flatMap((header) => {
                 const mappingItem = fieldMapping[header] as FieldMappingItemCsv | undefined;
                 if (!mappingItem) {
-                  return null;
+                  return [];
                 }
-                return (
+                return [
                   <LoadRecordsFieldMappingRow
-                    key={`${keyPrefix}-csv-${i}`}
+                    key={`${keyPrefix}-${header}`}
                     org={org}
                     isCustomMetadataObject={isCustomMetadataObject}
                     fields={fields}
                     fieldMappingItem={mappingItem}
                     csvField={header}
+                    mappingKey={header}
                     csvRowData={activeRow?.[header]}
                     binaryAttachmentBodyField={binaryAttachmentBodyField}
+                    isAdditionalMapping={false}
+                    onAddAdditionalMapping={() => handleAddAdditionalMapping(header)}
                     onSelectionChanged={handleFieldMappingChange}
-                  />
-                );
+                  />,
+                  ...(additionalMappingKeysByCsvField[header] || []).map((mappingKey) => (
+                    <LoadRecordsFieldMappingRow
+                      key={`${keyPrefix}-${mappingKey}`}
+                      org={org}
+                      isCustomMetadataObject={isCustomMetadataObject}
+                      fields={fields}
+                      fieldMappingItem={fieldMapping[mappingKey] as FieldMappingItemCsv}
+                      csvField={header}
+                      mappingKey={mappingKey}
+                      csvRowData={activeRow?.[header]}
+                      binaryAttachmentBodyField={binaryAttachmentBodyField}
+                      isAdditionalMapping
+                      onRemoveRow={() => handleRemoveRow(mappingKey)}
+                      onSelectionChanged={handleFieldMappingChange}
+                    />
+                  )),
+                ];
               })}
-              {staticRowHeaders.map((header, i) => {
-                const mappingItem = fieldMapping[header] as FieldMappingItemStatic | undefined;
+              {staticMappingKeys.map((mappingKey) => {
+                const mappingItem = fieldMapping[mappingKey] as FieldMappingItemStatic | undefined;
                 if (!mappingItem) {
                   return null;
                 }
                 return (
                   <LoadRecordsFieldMappingStaticRow
-                    key={`${keyPrefix}-static-${i}`}
+                    key={`${keyPrefix}-${mappingKey}`}
                     org={org}
                     fields={fields}
                     fieldMappingItem={mappingItem}
                     isCustomMetadata={isCustomMetadataObject}
-                    onSelectionChanged={(value) => handleFieldMappingChange(header, value)}
-                    onRemoveRow={() => handleRemoveRow(header)}
+                    onSelectionChanged={(value) => handleFieldMappingChange(mappingKey, value)}
+                    onRemoveRow={() => handleRemoveRow(mappingKey)}
                   />
                 );
               })}

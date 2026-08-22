@@ -34,6 +34,7 @@ export interface SavedFieldMapping {
 
 export const SELF_LOOKUP_KEY = '~SELF_LOOKUP~';
 export const STATIC_MAPPING_PREFIX = '~STATIC~MAPPING~';
+export const ADDITIONAL_MAPPING_PREFIX = '~ADDITIONAL~MAPPING~';
 export const BATCH_RECOMMENDED_THRESHOLD = 2000;
 export const MAX_BULK = 10000;
 export const MAX_BATCH = 200;
@@ -275,19 +276,81 @@ export function resetFieldMapping(inputHeader: string[]): FieldMapping {
   }, {});
 }
 
-export function initStaticFieldMappingItem(): FieldMappingItemStatic {
-  const csvValuePlaceholder = uniqueId(STATIC_MAPPING_PREFIX);
+/**
+ * Static value row, which has no file column at all.
+ * The generated key doubles as the csvField placeholder so the two can never drift apart.
+ */
+export function initStaticFieldMappingItem(): { mappingKey: string; fieldMappingItem: FieldMappingItemStatic } {
+  const mappingKey = uniqueId(STATIC_MAPPING_PREFIX);
   return {
-    type: 'STATIC',
-    csvField: csvValuePlaceholder,
-    staticValue: '',
-    targetField: null,
-    mappedToLookup: false,
-    fieldMetadata: undefined,
-    selectedReferenceTo: undefined,
-    lookupOptionUseFirstMatch: DEFAULT_NON_EXT_ID_MAPPING_OPT,
-    lookupOptionNullIfNoMatch: DEFAULT_NULL_IF_NO_MATCH_MAPPING_OPT,
-    isBinaryBodyField: false,
+    mappingKey,
+    fieldMappingItem: {
+      type: 'STATIC',
+      csvField: mappingKey,
+      staticValue: '',
+      targetField: null,
+      mappedToLookup: false,
+      fieldMetadata: undefined,
+      selectedReferenceTo: undefined,
+      lookupOptionUseFirstMatch: DEFAULT_NON_EXT_ID_MAPPING_OPT,
+      lookupOptionNullIfNoMatch: DEFAULT_NULL_IF_NO_MATCH_MAPPING_OPT,
+      isBinaryBodyField: false,
+    },
+  };
+}
+
+/**
+ * Additional mapping for a file column that is already mapped, allowing one column to be loaded into multiple Salesforce fields.
+ * The FieldMapping key is synthetic so the column can appear more than once, while csvField still points at the real column.
+ */
+export function initAdditionalFieldMappingItem(csvField: string): { mappingKey: string; fieldMappingItem: FieldMappingItemCsv } {
+  return {
+    mappingKey: uniqueId(ADDITIONAL_MAPPING_PREFIX),
+    fieldMappingItem: {
+      type: 'CSV',
+      csvField,
+      targetField: null,
+      mappedToLookup: false,
+      fieldMetadata: undefined,
+      selectedReferenceTo: undefined,
+      lookupOptionUseFirstMatch: DEFAULT_NON_EXT_ID_MAPPING_OPT,
+      lookupOptionNullIfNoMatch: DEFAULT_NULL_IF_NO_MATCH_MAPPING_OPT,
+      isBinaryBodyField: false,
+    },
+  };
+}
+
+/**
+ * True for the placeholder value that static rows store in `csvField` - it is a generated key, not a real file column.
+ * Saved mappings record that placeholder in `csvFields`, so column-availability checks have to skip it.
+ */
+export function isStaticValuePlaceholder(csvField: string): boolean {
+  return csvField.startsWith(STATIC_MAPPING_PREFIX);
+}
+
+/** An extra mapping row that reads from a file column already mapped by another row */
+export function isAdditionalMapping(mappingKey: string, fieldMappingItem: FieldMappingItem): fieldMappingItem is FieldMappingItemCsv {
+  return fieldMappingItem.type === 'CSV' && mappingKey.startsWith(ADDITIONAL_MAPPING_PREFIX);
+}
+
+/**
+ * Rebuilds a mapping item from a saved record, which is stored without field metadata.
+ * csvField is always supplied by the caller because the stored value is never trusted - it is the matched file
+ * column for CSV rows and a freshly generated placeholder for static rows.
+ */
+function hydrateSavedMappingItem(
+  savedMappingItem: Omit<FieldMappingItem, 'fieldMetadata'>,
+  {
+    csvField,
+    fieldMetadata,
+    binaryBodyField,
+  }: { csvField: string; fieldMetadata: FieldWithRelatedEntities; binaryBodyField: Maybe<string> },
+) {
+  return {
+    ...savedMappingItem,
+    csvField,
+    fieldMetadata: { ...fieldMetadata },
+    isBinaryBodyField: !!binaryBodyField && savedMappingItem.targetField === binaryBodyField,
   };
 }
 
@@ -298,47 +361,54 @@ export function loadFieldMappingFromSavedMapping(
   binaryBodyField: Maybe<string>,
 ): FieldMapping {
   const fieldMetadataByName = groupByFlat(fields, 'name');
-  const newMapping = inputHeader.reduce((output: FieldMapping, field) => {
-    const matchedMapping = savedMapping.mapping[field];
-    if (matchedMapping && matchedMapping.targetField && fieldMetadataByName[matchedMapping.targetField]) {
-      output[field] = {
-        ...savedMapping.mapping[field],
-        fieldMetadata: {
-          ...fieldMetadataByName[matchedMapping.targetField],
-        },
-        isBinaryBodyField: !!binaryBodyField && matchedMapping.targetField === binaryBodyField,
-      } as FieldMappingItemCsv;
-    } else {
-      output[field] = {
-        type: 'CSV',
-        csvField: field,
-        targetField: null,
-        mappedToLookup: false,
-        fieldMetadata: undefined,
-        selectedReferenceTo: undefined,
-        lookupOptionUseFirstMatch: DEFAULT_NON_EXT_ID_MAPPING_OPT,
-        lookupOptionNullIfNoMatch: DEFAULT_NULL_IF_NO_MATCH_MAPPING_OPT,
-        isBinaryBodyField: false,
-      };
-    }
-    return output;
-  }, {});
+  const inputHeaderSet = new Set(inputHeader);
 
-  Object.keys(savedMapping.mapping)
-    .filter((key) => key.startsWith(STATIC_MAPPING_PREFIX))
-    .forEach((field) => {
-      const mapping = savedMapping.mapping[field];
-      if (mapping.targetField) {
-        newMapping[field] = {
-          ...mapping,
-          type: 'STATIC',
-          fieldMetadata: {
-            ...fieldMetadataByName[mapping.targetField],
-          },
-          isBinaryBodyField: false,
-        } as FieldMappingItemStatic;
-      }
-    });
+  // Every file column gets a row; it is only restored from the saved record if the target field still exists on the object
+  const newMapping = resetFieldMapping(inputHeader);
+  inputHeader.forEach((field) => {
+    const matchedMapping = savedMapping.mapping[field];
+    if (matchedMapping?.targetField && fieldMetadataByName[matchedMapping.targetField]) {
+      newMapping[field] = hydrateSavedMappingItem(matchedMapping, {
+        csvField: field,
+        fieldMetadata: fieldMetadataByName[matchedMapping.targetField],
+        binaryBodyField,
+      }) as FieldMappingItemCsv;
+    }
+  });
+
+  /**
+   * Synthetic keys are re-generated instead of being restored verbatim.
+   * `uniqueId` restarts at 1 each page load, so a saved key such as `~STATIC~MAPPING~3` would otherwise be
+   * silently overwritten by the third row the user adds by hand during the same session.
+   */
+  Object.entries(savedMapping.mapping).forEach(([savedKey, savedMappingItem]) => {
+    const { targetField } = savedMappingItem;
+    if (!targetField || !fieldMetadataByName[targetField]) {
+      return;
+    }
+    if (savedKey.startsWith(STATIC_MAPPING_PREFIX)) {
+      // Static rows use their key as the csvField placeholder, so both have to move together
+      const mappingKey = uniqueId(STATIC_MAPPING_PREFIX);
+      newMapping[mappingKey] = {
+        ...hydrateSavedMappingItem(savedMappingItem, {
+          csvField: mappingKey,
+          fieldMetadata: fieldMetadataByName[targetField],
+          binaryBodyField: null,
+        }),
+        type: 'STATIC',
+      } as FieldMappingItemStatic;
+    } else if (savedKey.startsWith(ADDITIONAL_MAPPING_PREFIX) && inputHeaderSet.has(savedMappingItem.csvField)) {
+      // Additional mappings are only restored if the file still has the column they read from
+      newMapping[uniqueId(ADDITIONAL_MAPPING_PREFIX)] = {
+        ...hydrateSavedMappingItem(savedMappingItem, {
+          csvField: savedMappingItem.csvField,
+          fieldMetadata: fieldMetadataByName[targetField],
+          binaryBodyField,
+        }),
+        type: 'CSV',
+      } as FieldMappingItemCsv;
+    }
+  });
 
   return newMapping;
 }
@@ -495,7 +565,8 @@ export async function transformData({ data, fieldMapping, sObject, insertNulls, 
         const fieldMappingItem = fieldMapping[field];
         const isCheckbox = fieldMappingItem.fieldMetadata?.type === 'boolean';
         // SFDC handles automatic type conversion with both bulk and batch apis (if possible, otherwise the record errors)
-        let value = fieldMappingItem.type === 'STATIC' ? fieldMappingItem.staticValue : row[field];
+        // csvField is read instead of the mapping key so that additional mappings, which have a synthetic key, resolve to the real column
+        let value = fieldMappingItem.type === 'STATIC' ? fieldMappingItem.staticValue : row[fieldMappingItem.csvField];
 
         if (isNil(value) || (isString(value) && !value)) {
           if (apiMode === 'BULK' && insertNulls) {

@@ -10,14 +10,14 @@ import LoadRecordsFieldMappingRowLookupOption from './LoadRecordsFieldMappingRow
 export interface LoadRecordsFieldMappingRelatedObjectProps {
   org: SalesforceOrgUi;
   fieldMappingItem: FieldMappingItemCsv;
-  csvField: string;
-  onSelectionChanged: (csvField: string, fieldMappingItem: FieldMappingItemCsv) => void;
+  mappingKey: string;
+  onSelectionChanged: (mappingKey: string, fieldMappingItem: FieldMappingItemCsv) => void;
 }
 
 export const LoadRecordsFieldMappingRelatedObject: FunctionComponent<LoadRecordsFieldMappingRelatedObjectProps> = ({
   org,
   fieldMappingItem,
-  csvField,
+  mappingKey,
   onSelectionChanged,
 }) => {
   const [relatedFields, setRelatedFields] = useState<ListItem<string, FieldRelatedEntity>[]>([]);
@@ -80,7 +80,7 @@ export const LoadRecordsFieldMappingRelatedObject: FunctionComponent<LoadRecords
   );
 
   function handleRelatedObjectSelectionChanged(field: string) {
-    onSelectionChanged(csvField, {
+    onSelectionChanged(mappingKey, {
       ...fieldMappingItem,
       mappedToLookup: true,
       selectedReferenceTo: field,
@@ -104,7 +104,7 @@ export const LoadRecordsFieldMappingRelatedObject: FunctionComponent<LoadRecords
       newFieldMappingItem.lookupOptionUseFirstMatch = 'ERROR_IF_MULTIPLE';
     }
 
-    onSelectionChanged(csvField, newFieldMappingItem);
+    onSelectionChanged(mappingKey, newFieldMappingItem);
   }
 
   return (
@@ -157,10 +157,10 @@ export const LoadRecordsFieldMappingRelatedObject: FunctionComponent<LoadRecords
       </Grid>
       {fieldMappingItem.targetLookupField && (
         <LoadRecordsFieldMappingRowLookupOption
-          csvField={csvField}
+          mappingKey={mappingKey}
           fieldMappingItem={fieldMappingItem}
           disabled={!!fieldMappingItem.relatedFieldMetadata?.isExternalId && fieldMappingItem.relationshipName !== SELF_LOOKUP_KEY}
-          onSelectionChanged={(csvField, fieldMappingItem) => onSelectionChanged(csvField, fieldMappingItem as FieldMappingItemCsv)}
+          onSelectionChanged={(mappingKey, fieldMappingItem) => onSelectionChanged(mappingKey, fieldMappingItem as FieldMappingItemCsv)}
         />
       )}
     </Fragment>
