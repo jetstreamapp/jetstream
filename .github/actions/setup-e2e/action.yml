@@ -1,0 +1,104 @@
+name: Setup E2E
+description: >-
+  Shared setup for the Playwright E2E jobs: nx SHAs, pnpm/node, install, the affected guard, prisma
+  client, and the Playwright browser cache. Everything up to (but not including) the app build,
+  which differs per suite.
+
+  Checkout stays in the calling job on purpose — a local `uses: ./...` action has to already be on
+  disk before the runner can load it, so it cannot check the repo out itself.
+
+inputs:
+  affected-projects:
+    description: >-
+      Extended-regex alternation of app names that should trigger this suite, e.g.
+      "api|jetstream". Matched against `nx show projects --affected --type=app`.
+    required: true
+  suite-name:
+    description: Human-readable suite name, used only in the skip/run notices.
+    required: true
+
+outputs:
+  should_run:
+    description: '"true" when this suite should run for the current event.'
+    value: ${{ steps.guard.outputs.should_run }}
+  playwright-cache-hit:
+    description: '"true" when the Playwright browser cache was restored.'
+    value: ${{ steps.playwright-cache.outputs.cache-hit }}
+
+runs:
+  using: composite
+  steps:
+    - name: Setup branch tracking
+      if: success() && github.ref != 'refs/heads/main'
+      shell: bash
+      run: git branch --track main origin/main
+
+    - name: Derive appropriate SHAs for base and head for `nx affected` commands
+      uses: nrwl/nx-set-shas@afb73a62d26e41464e9254689e1fd6122ee683c1 # v5.0.1
+
+    - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      with:
+        version: 11.20.0
+
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      with:
+        node-version: "24"
+        cache: "pnpm"
+
+    - name: install dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile
+
+    - id: guard
+      name: Check if ${{ inputs.suite-name }} is affected
+      shell: bash
+      run: |
+        if [ "${{ github.event_name }}" = "push" ]; then
+          echo "should_run=true" >> "$GITHUB_OUTPUT"
+          echo "::notice::Running ${{ inputs.suite-name }} — push event always runs the full suite"
+          exit 0
+        fi
+        affected=$(pnpm nx show projects --affected --type=app)
+        echo "Affected apps:"
+        echo "$affected"
+        if echo "$affected" | grep -qE '^(${{ inputs.affected-projects }})$'; then
+          echo "should_run=true" >> "$GITHUB_OUTPUT"
+          echo "::notice::Running ${{ inputs.suite-name }} — a matching project is affected"
+        else
+          echo "should_run=false" >> "$GITHUB_OUTPUT"
+          echo "::notice::Skipping ${{ inputs.suite-name }} — no matching project is affected"
+        fi
+
+    # Prisma client must be generated before building since the api build imports it
+    - name: Generate database client
+      if: steps.guard.outputs.should_run == 'true'
+      shell: bash
+      run: pnpm db:generate
+
+    # Only the Desktop Chrome project is defined in either playwright.config.ts, so firefox and
+    # webkit would be downloaded and never used.
+    - name: Resolve Playwright version
+      if: steps.guard.outputs.should_run == 'true'
+      id: playwright-version
+      shell: bash
+      run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+    - name: Cache Playwright browsers
+      if: steps.guard.outputs.should_run == 'true'
+      id: playwright-cache
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+
+    # The browser binaries are cacheable but the OS packages are not, so on a cache hit we still
+    # have to install those separately.
+    - name: Install Playwright browsers
+      if: steps.guard.outputs.should_run == 'true' && steps.playwright-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: pnpm exec playwright install --with-deps chromium
+
+    - name: Install Playwright system dependencies
+      if: steps.guard.outputs.should_run == 'true' && steps.playwright-cache.outputs.cache-hit == 'true'
+      shell: bash
+      run: pnpm exec playwright install-deps chromium

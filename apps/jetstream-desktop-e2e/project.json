@@ -1,0 +1,31 @@
+{
+  "name": "jetstream-desktop-e2e",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/jetstream-desktop-e2e/src",
+  "projectType": "application",
+  "implicitDependencies": ["jetstream-desktop", "jetstream-desktop-client"],
+  "tags": ["scope:e2e"],
+  "targets": {
+    "e2e": {
+      "executor": "@nx/playwright:playwright",
+      "outputs": ["{workspaceRoot}/dist/.playwright/apps/jetstream-desktop-e2e"],
+      "options": {
+        "config": "apps/jetstream-desktop-e2e/playwright.config.ts"
+      }
+    },
+    "e2e-ci": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/playwright-report", "{projectRoot}/playwright-summary.json"],
+      "options": {
+        "command": "pnpm start-server-and-test --expect 200 'pnpm start:e2e' http://localhost:3333 'pnpm start:desktop:client' http://localhost:4201 'xvfb-run --auto-servernum -- pnpm nx run jetstream-desktop-e2e:e2e'"
+      },
+      "dependsOn": [
+        {
+          "projects": ["jetstream-desktop"],
+          "target": "build",
+          "params": "ignore"
+        }
+      ]
+    }
+  }
+}
