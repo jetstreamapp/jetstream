@@ -5,12 +5,18 @@ import {
   composeSoqlQueryCustomWhereClause,
   composeSoqlQueryOptionalCustomWhereClause,
   fetchRecordsWithRequiredFields,
+  getEffectiveRecordLimit,
   getFieldsToQuery,
+  getRecordLimitError,
+  getRecordOffsetError,
+  getValidationSoqlQuery,
   isValidRow,
   isValidWhereClause,
   MAX_ID_QUERY_LENGTH,
+  MAX_SOQL_OFFSET,
   normalizeWhereClause,
   prepareRecords,
+  queryAndPrepareRecordsForUpdate,
 } from '../mass-update-records.utils';
 
 vi.mock('@jetstream/shared/data');
@@ -287,7 +293,7 @@ describe('mass-update-records.utils#composeSoqlQueryOptionalCustomWhereClause', 
 
     expect(soql).toBe(`SELECT Id, FirstName, LastName, Fax FROM Contact WHERE (FirstName = NULL) OR (LastName != NULL)`);
 
-    soql = composeSoqlQueryOptionalCustomWhereClause(config, ['Count()'], true);
+    soql = composeSoqlQueryOptionalCustomWhereClause(config, ['Count()'], { includeCustom: true });
     expect(soql).toBe(`SELECT Count() FROM Contact WHERE (FirstName = NULL) OR (LastName != NULL) OR (Id = '12345')`);
   });
 
@@ -590,6 +596,202 @@ describe('mass-update-records.utils#prepareRecords', () => {
     expect(record1.Name).toBe('Jenny Jenny');
     expect(record2.Name).toBe(null);
     expect(record3.Name).toBe('Jenny Jenny');
+  });
+});
+
+describe('mass-update-records.utils#record limit and offset', () => {
+  const selectedOrg = { uniqueId: 'org1' } as any;
+
+  function buildRow({ criteria = 'all', limit, offset }: { criteria?: string; limit?: number | null; offset?: number | null }) {
+    return {
+      sobject: 'Account',
+      limit,
+      offset,
+      configuration: [
+        {
+          selectedField: 'Industry',
+          transformationOptions: {
+            criteria,
+            option: 'staticValue',
+            staticValue: 'Tech',
+            alternateField: null,
+            whereClause: `Id = '12345'`,
+          },
+        },
+      ],
+    } as any;
+  }
+
+  /** A row that mixes standard criteria with custom criteria - the case a limit has to window as a union */
+  function buildMixedCriteriaRow({ limit, offset }: { limit?: number | null; offset?: number | null }) {
+    return {
+      sobject: 'Account',
+      limit,
+      offset,
+      configuration: [
+        {
+          selectedField: 'Industry',
+          transformationOptions: { criteria: 'onlyIfBlank', option: 'staticValue', staticValue: 'Tech', whereClause: '' },
+        },
+        {
+          selectedField: 'Rating',
+          transformationOptions: { criteria: 'custom', option: 'staticValue', staticValue: 'Hot', whereClause: `Id = '12345'` },
+        },
+      ],
+    } as any;
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('Should append the limit and offset after the where clause', () => {
+    expect(composeSoqlQueryOptionalCustomWhereClause(buildRow({ criteria: 'onlyIfBlank', limit: 5000, offset: 100 }), ['Id'])).toBe(
+      `SELECT Id FROM Account WHERE (Industry = NULL) ORDER BY Id LIMIT 5000 OFFSET 100`,
+    );
+    expect(composeSoqlQueryCustomWhereClause(buildRow({ criteria: 'custom', limit: 5000, offset: 100 }), ['Id'])).toBe(
+      `SELECT Id FROM Account WHERE (Id = '12345') ORDER BY Id LIMIT 5000 OFFSET 100`,
+    );
+  });
+
+  it('Should append the limit and offset when there is no where clause', () => {
+    expect(composeSoqlQueryOptionalCustomWhereClause(buildRow({ limit: 5000, offset: 100 }), ['Id'])).toBe(
+      `SELECT Id FROM Account ORDER BY Id LIMIT 5000 OFFSET 100`,
+    );
+  });
+
+  it('Should order a limited query by Id so an offset pages through records without repeating any', () => {
+    expect(composeSoqlQueryOptionalCustomWhereClause(buildRow({ limit: 5000 }), ['Id'])).toContain('ORDER BY Id');
+  });
+
+  it('Should include the limit and offset in the validation query, which Salesforce cannot order', () => {
+    expect(getValidationSoqlQuery(buildRow({ limit: 5000, offset: 100 }))).toBe(`SELECT Count() FROM Account LIMIT 5000 OFFSET 100`);
+  });
+
+  it('Should omit the limit and offset when not provided or not meaningful', () => {
+    expect(composeSoqlQueryOptionalCustomWhereClause(buildRow({}), ['Id'])).toBe(`SELECT Id FROM Account`);
+    expect(composeSoqlQueryOptionalCustomWhereClause(buildRow({ limit: null, offset: null }), ['Id'])).toBe(`SELECT Id FROM Account`);
+    expect(composeSoqlQueryOptionalCustomWhereClause(buildRow({ offset: 0 }), ['Id'])).toBe(`SELECT Id FROM Account`);
+  });
+
+  it('Should window the union of both criteria with a single query when the row has a limit', async () => {
+    // A limit must window the union that validation counted. Limiting each criteria's query separately
+    // would overshoot the limit and, once an offset is added, walk the two queries past each other so
+    // that records matching only the custom criteria are never updated by any chunk.
+    const row = buildMixedCriteriaRow({ limit: 3 });
+
+    vi.mocked(clientData.queryAll).mockResolvedValueOnce({
+      queryResults: { records: [{ Id: '001a' }, { Id: '001b' }, { Id: '001d' }], totalSize: 3, done: true },
+    } as any);
+    vi.mocked(clientData.queryAllFromList).mockResolvedValueOnce({
+      queryResults: { records: [{ Id: '001d' }], totalSize: 1, done: true },
+    } as any);
+
+    const records = await queryAndPrepareRecordsForUpdate(row, ['Id', 'Industry', 'Rating'], selectedOrg);
+
+    expect(clientData.queryAll).toHaveBeenCalledTimes(1);
+    expect(clientData.queryAll).toHaveBeenCalledWith(
+      selectedOrg,
+      `SELECT Id, Industry, Rating FROM Account WHERE (Industry = NULL) OR (Id = '12345') ORDER BY Id LIMIT 3`,
+    );
+    expect(records.map(({ Id }) => Id)).toEqual(['001a', '001b', '001d']);
+  });
+
+  it('Should resolve custom criteria membership within the windowed records', async () => {
+    const row = buildMixedCriteriaRow({ limit: 3 });
+
+    vi.mocked(clientData.queryAll).mockResolvedValueOnce({
+      queryResults: { records: [{ Id: '001a' }, { Id: '001d' }], totalSize: 2, done: true },
+    } as any);
+    vi.mocked(clientData.queryAllFromList).mockResolvedValueOnce({
+      queryResults: { records: [{ Id: '001d' }], totalSize: 1, done: true },
+    } as any);
+
+    const records = await queryAndPrepareRecordsForUpdate(row, ['Id', 'Industry', 'Rating'], selectedOrg);
+
+    expect(clientData.queryAllFromList).toHaveBeenCalledWith(selectedOrg, [
+      `SELECT Id FROM Account WHERE Id IN ('001a','001d') AND ((Id = '12345'))`,
+    ]);
+    // Only the record matching the custom criteria gets the custom field's value; the other is left untouched
+    expect(records).toEqual([
+      { Id: '001a', Industry: 'Tech', Rating: null },
+      { Id: '001d', Industry: 'Tech', Rating: 'Hot' },
+    ]);
+  });
+
+  it('Should merge both criteria queries without an extra membership query when the row has no limit', async () => {
+    const row = buildMixedCriteriaRow({});
+
+    vi.mocked(clientData.queryAll)
+      .mockResolvedValueOnce({
+        queryResults: { records: [{ Id: '001a' }, { Id: '001b' }], totalSize: 2, done: true },
+      } as any)
+      .mockResolvedValueOnce({
+        queryResults: { records: [{ Id: '001d' }], totalSize: 1, done: true },
+      } as any);
+
+    const records = await queryAndPrepareRecordsForUpdate(row, ['Id', 'Industry', 'Rating'], selectedOrg);
+
+    expect(clientData.queryAll).toHaveBeenCalledTimes(2);
+    expect(clientData.queryAllFromList).not.toHaveBeenCalled();
+    expect(records.map(({ Id }) => Id)).toEqual(['001a', '001b', '001d']);
+  });
+
+  it('Should treat every windowed record as a custom match when all criteria are custom', async () => {
+    const row = {
+      sobject: 'Account',
+      limit: 2,
+      configuration: [
+        {
+          selectedField: 'Rating',
+          transformationOptions: { criteria: 'custom', option: 'staticValue', staticValue: 'Hot', whereClause: `Id = '12345'` },
+        },
+      ],
+    } as any;
+
+    vi.mocked(clientData.queryAll).mockResolvedValueOnce({
+      queryResults: { records: [{ Id: '001a' }, { Id: '001b' }], totalSize: 2, done: true },
+    } as any);
+
+    const records = await queryAndPrepareRecordsForUpdate(row, ['Id', 'Rating'], selectedOrg);
+
+    expect(clientData.queryAllFromList).not.toHaveBeenCalled();
+    expect(records.map(({ Rating }) => Rating)).toEqual(['Hot', 'Hot']);
+  });
+
+  it('Should normalize a limit and offset that cannot mean anything to a query', () => {
+    expect(getEffectiveRecordLimit({ limit: 10, offset: 5 })).toEqual({ limit: 10, offset: 5 });
+    expect(getEffectiveRecordLimit({ limit: null, offset: undefined })).toEqual({ limit: null, offset: null });
+    expect(getEffectiveRecordLimit({ limit: 0, offset: 0 })).toEqual({ limit: null, offset: null });
+    expect(getEffectiveRecordLimit({ limit: -1, offset: -1 })).toEqual({ limit: null, offset: null });
+  });
+
+  it('Should only allow a limit of one or greater', () => {
+    expect(getRecordLimitError(null)).toBeNull();
+    expect(getRecordLimitError(1)).toBeNull();
+    expect(getRecordLimitError(0)).toEqual(expect.any(String));
+    expect(getRecordLimitError(-1)).toEqual(expect.any(String));
+  });
+
+  it('Should only allow an offset within the range Salesforce supports', () => {
+    expect(getRecordOffsetError(null)).toBeNull();
+    expect(getRecordOffsetError(0)).toBeNull();
+    expect(getRecordOffsetError(MAX_SOQL_OFFSET)).toBeNull();
+    expect(getRecordOffsetError(MAX_SOQL_OFFSET + 1)).toEqual(expect.any(String));
+    expect(getRecordOffsetError(-1)).toEqual(expect.any(String));
+  });
+
+  it('Should treat a row with an unusable limit or offset as invalid', () => {
+    const configuration = [
+      {
+        selectedField: 'Industry',
+        transformationOptions: { criteria: 'all', option: 'staticValue', staticValue: 'Tech' },
+      },
+    ];
+    expect(isValidRow({ configuration } as any)).toBe(true);
+    expect(isValidRow({ configuration, limit: 100, offset: 100 } as any)).toBe(true);
+    expect(isValidRow({ configuration, limit: 0 } as any)).toBe(false);
+    expect(isValidRow({ configuration, offset: MAX_SOQL_OFFSET + 1 } as any)).toBe(false);
   });
 });
 

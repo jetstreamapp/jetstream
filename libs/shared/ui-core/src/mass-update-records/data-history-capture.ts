@@ -1,4 +1,4 @@
-import { BulkJobWithBatches, SalesforceOrgUi } from '@jetstream/types';
+import { BulkJobWithBatches, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import {
   appendBulkJobBatchResults,
   buildBulkJobHistoryCounts,
@@ -41,6 +41,8 @@ export function startMassUpdateHistory({
   batchSize,
   serialMode,
   configuration,
+  limit,
+  offset,
   skipHistory,
 }: {
   org: SalesforceOrgUi;
@@ -49,6 +51,8 @@ export function startMassUpdateHistory({
   batchSize: number;
   serialMode: boolean;
   configuration: MetadataRowConfiguration[];
+  limit?: Maybe<number>;
+  offset?: Maybe<number>;
   skipHistory?: boolean;
 }): DataHistoryEntryHandle {
   return startDataHistoryEntry({
@@ -61,6 +65,9 @@ export function startMassUpdateHistory({
     config: {
       serialMode,
       batchSize,
+      // Recorded so an entry that updated a subset does not read as though it processed everything
+      recordLimit: limit ?? undefined,
+      recordOffset: offset ?? undefined,
       transformations: configuration.map(({ selectedField, transformationOptions }) => ({
         field: selectedField,
         option: transformationOptions.option,

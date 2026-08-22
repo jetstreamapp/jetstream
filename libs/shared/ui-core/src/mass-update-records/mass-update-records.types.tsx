@@ -10,9 +10,18 @@ export interface MetadataRow {
   fields: ListItem[];
   valueFields: ListItem[];
   configuration: MetadataRowConfiguration[];
+  /**
+   * Optional SOQL `LIMIT` / `OFFSET` applied to every query for this object, which lets a user work
+   * through a data volume that is too large to update in one pass. `offset` is capped by Salesforce
+   * at `MAX_SOQL_OFFSET` in `mass-update-records.utils`.
+   */
+  limit?: Maybe<number>;
+  offset?: Maybe<number>;
   validationResults?: Maybe<ValidationResults>;
   deployResults: DeployResults;
 }
+
+export type RecordLimitAndOffset = Pick<MetadataRow, 'limit' | 'offset'>;
 
 export interface MetadataRowConfiguration {
   selectedField?: Maybe<string>;

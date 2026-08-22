@@ -46,6 +46,23 @@ After selecting an object, you need to configure the fields that you would like 
   - **Only if not blank**
   - **Customer criteria** allows you to provide a custom `soql` WHERE clause to target the exact records you want. If you are unfamiliar with doing this by hand, you can use the Query Builder to build this for you.
 
+### Limiting how many records are updated
+
+If you are working with a very large number of records, you can limit how many are updated at one time.
+
+- **Maximum records to update** limits how many records will be included. Leave this blank to update every record that meets your criteria.
+- **Skip records** ignores the first records that meet your criteria, which allows you to work through a large data volume in chunks.
+
+The number of impacted records shown when you validate takes both of these into account, so you will always see exactly how many records will be updated.
+
+:::note
+
+Salesforce does not allow skipping more than 2,000 records in a single query.
+
+If your criteria targets records that no longer match after they are updated, for example **Only if blank**, then you do not need to skip records at all - just run the update again to process the next set of records.
+
+:::
+
 After you have configured your field, you will need to validate the results. Validating the results will make sure your configuration is accurate and let you know how many records will be modified with this change.
 
 If you have specified a custom criteria that is not valid, Salesforce will return an error message. You will need to resolve this before continuing.
