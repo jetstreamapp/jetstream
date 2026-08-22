@@ -1,5 +1,5 @@
 import { isRecordWithId } from '@jetstream/shared/utils';
-import { QueryFilterOperator, QueryResults } from '@jetstream/types';
+import { AndOr, QueryFilterOperator, QueryResults } from '@jetstream/types';
 import { Locator, Page, expect } from '@playwright/test';
 import { isNumber } from 'lodash';
 import type { editor } from 'monaco-editor';
@@ -199,6 +199,12 @@ export class QueryPage {
     } else {
       await condition.getByRole('option', { name: value.value }).click();
     }
+  }
+
+  /** Switches the top level filter between "All conditions are met" (AND) and "Any conditions are met" (OR) */
+  async setFilterAction(action: AndOr) {
+    await this.page.getByLabel('Filter When').click();
+    await this.page.getByRole('option', { name: action === 'AND' ? 'All conditions are met' : 'Any conditions are met' }).click();
   }
 
   async addCondition() {
