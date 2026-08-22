@@ -52,10 +52,23 @@ export interface ObjectPermissionItem {
   errorMessage?: string;
 }
 
+/**
+ * Field-metadata audit info sourced from the Tooling `CustomField` object.
+ * Absent for standard fields - Salesforce does not track audit data for them.
+ */
+export interface FieldAuditMetadata {
+  createdDate: string;
+  createdBy: Maybe<string>;
+  lastModifiedDate: string;
+  lastModifiedBy: Maybe<string>;
+}
+
 export interface FieldPermissionDefinitionMap {
   apiName: string;
   label: string;
   metadata: EntityParticlePermissionsRecord;
+  /** Undefined for standard fields, and for every field if the audit query failed */
+  auditMetadata?: Maybe<FieldAuditMetadata>;
   // used to retain order of permissions
   permissionKeys: string[]; // this is permission set ids, which could apply to profile or perm set
   permissions: Record<string, FieldPermissionItem>;
@@ -171,6 +184,14 @@ export interface PermissionTableObjectCell extends PermissionTableCell<Permissio
 export interface PermissionTableFieldCell extends PermissionTableCell<PermissionTableFieldCellPermission> {
   type: string;
   allowEditPermission: boolean;
+  // Audit values are flattened onto the row because the audit columns are built with `setColumnFromType`,
+  // which reads `row[column.key]`. The property names must stay in sync with FIELD_AUDIT_COLUMN_KEYS.
+  /** Raw ISO string - the column formats it for display */
+  createdDate?: Maybe<string>;
+  createdBy?: Maybe<string>;
+  /** Raw ISO string - the column formats it for display */
+  lastModifiedDate?: Maybe<string>;
+  lastModifiedBy?: Maybe<string>;
 }
 
 export interface PermissionTableTabVisibilityCell extends PermissionTableCell<PermissionTableTabVisibilityCellPermission> {

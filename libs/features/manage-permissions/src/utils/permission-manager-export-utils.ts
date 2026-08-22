@@ -6,16 +6,35 @@ import {
   PermissionTableSystemPermissionCell,
   PermissionTableTabVisibilityCell,
 } from '@jetstream/types';
-import { ColumnWithFilter } from '@jetstream/ui';
+import { ColumnWithFilter, dataTableDateFormatter } from '@jetstream/ui';
 import JSZip from 'jszip';
 import { unparse } from 'papaparse';
 import * as XLSX from 'xlsx';
+import { FIELD_AUDIT_COLUMNS, FIELD_AUDIT_EXPORT_HEADERS } from './permission-manager-field-audit-columns';
 
 type PermissionExportColumn =
   | ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>
   | ColumnWithFilter<PermissionTableFieldCell, PermissionTableSummaryRow>
   | ColumnWithFilter<PermissionTableTabVisibilityCell, PermissionTableSummaryRow>
   | ColumnWithFilter<PermissionTableSystemPermissionCell, PermissionTableSummaryRow>;
+
+/**
+ * Leading columns of the field permissions export, before the per profile / permission set groups.
+ *
+ * Audit columns are always exported even when hidden in the grid - a spreadsheet has no width pressure, and
+ * they are most useful there.
+ */
+const FIELD_EXPORT_PREFIX = ['Object', 'Field Api Name', 'Field Label', ...FIELD_AUDIT_EXPORT_HEADERS];
+
+function getFieldExportRowPrefix(row: PermissionTableFieldCell): string[] {
+  return [
+    row.sobject,
+    row.apiName,
+    row.label,
+    // Derived from the same list as `FIELD_AUDIT_EXPORT_HEADERS`, so values cannot drift out from under headers
+    ...FIELD_AUDIT_COLUMNS.map(({ key, type }) => (type === 'date' ? dataTableDateFormatter(row[key]) : row[key]) ?? ''),
+  ];
+}
 
 export function generateExcelWorkbookFromTable(
   objectData: { columns: PermissionExportColumn[]; rows: PermissionTableObjectCell[] },
@@ -123,10 +142,10 @@ function generateObjectWorksheet(columns: PermissionExportColumn[], rows: Permis
   return worksheet;
 }
 
-function generateFieldWorksheet(columns: PermissionExportColumn[], rows: PermissionTableFieldCell[]) {
+export function generateFieldWorksheet(columns: PermissionExportColumn[], rows: PermissionTableFieldCell[]) {
   const merges: XLSX.Range[] = [];
-  const header1: string[] = ['', '', ''];
-  const header2: string[] = ['Object', 'Field Api Name', 'Field Label'];
+  const header1: string[] = FIELD_EXPORT_PREFIX.map(() => '');
+  const header2: string[] = [...FIELD_EXPORT_PREFIX];
   const excelRows = [header1, header2];
 
   const permissionKeys: string[] = [];
@@ -153,7 +172,7 @@ function generateFieldWorksheet(columns: PermissionExportColumn[], rows: Permiss
     });
 
   rows.forEach((row, _i) => {
-    const currRow = [row.sobject, row.apiName, row.label];
+    const currRow = getFieldExportRowPrefix(row);
     permissionKeys.forEach((key) => {
       const permission = row.permissions[key];
       currRow.push(permission.read ? 'TRUE' : 'FALSE');
@@ -251,9 +270,9 @@ function generateObjectCsv(columns: PermissionExportColumn[], rows: PermissionTa
   return unparse(csvRows);
 }
 
-function generateFieldCsv(columns: PermissionExportColumn[], rows: PermissionTableFieldCell[]) {
-  const header1: string[] = ['', '', ''];
-  const header2: string[] = ['Object', 'Field Api Name', 'Field Label'];
+export function generateFieldCsv(columns: PermissionExportColumn[], rows: PermissionTableFieldCell[]) {
+  const header1: string[] = FIELD_EXPORT_PREFIX.map(() => '');
+  const header2: string[] = [...FIELD_EXPORT_PREFIX];
   const csvRows: string[][] = [];
 
   const permissionKeys: string[] = [];
@@ -274,7 +293,7 @@ function generateFieldCsv(columns: PermissionExportColumn[], rows: PermissionTab
   csvRows.push(header1, header2);
 
   rows.forEach((row) => {
-    const currRow = [row.sobject, row.apiName, row.label];
+    const currRow = getFieldExportRowPrefix(row);
     permissionKeys.forEach((key) => {
       const permission = row.permissions[key];
       currRow.push(permission.read ? 'TRUE' : 'FALSE', permission.edit ? 'TRUE' : 'FALSE');
