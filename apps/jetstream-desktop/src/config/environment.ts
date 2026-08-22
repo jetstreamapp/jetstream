@@ -15,6 +15,10 @@ for (const arg of args) {
   }
 }
 
+// Passed by the desktop E2E harness (apps/jetstream-desktop-e2e/src/utils/electron-launch.utils.ts).
+// It suppresses local-dev conveniences that get in the way of driving the app programmatically.
+const isAutomatedTesting = args.includes('--automated-testing');
+
 const { defaultApiVersion } = getDefaultAppState();
 
 const ENV_INTERNAL_DEV = {
@@ -56,6 +60,7 @@ const envSchema = z.object({
     return environment.ENVIRONMENT === 'development' ? 'debug' : 'info';
   }),
   CI: booleanSchema,
+  AUTOMATED_TESTING: booleanSchema,
   ENVIRONMENT: z
     .enum(['development', 'production'])
     .optional()
@@ -71,6 +76,7 @@ const envSchema = z.object({
 const parseResults = envSchema.safeParse({
   ...environment,
   LOG_LEVEL: process.env.LOG_LEVEL,
+  AUTOMATED_TESTING: isAutomatedTesting,
 });
 
 if (!parseResults.success) {

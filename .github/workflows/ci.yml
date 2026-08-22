@@ -238,90 +238,26 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Setup branch tracking
-        if: success() && github.ref != 'refs/heads/main'
-        run: git branch --track main origin/main
-
-      - name: Derive appropriate SHAs for base and head for `nx affected` commands
-        uses: nrwl/nx-set-shas@afb73a62d26e41464e9254689e1fd6122ee683c1 # v5.0.1
-
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - name: Setup
+        id: setup
+        uses: ./.github/actions/setup-e2e
         with:
-          version: 11.20.0
-
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: "24"
-          cache: "pnpm"
-
-      - name: install dependencies
-        run: pnpm install --frozen-lockfile
-
-      # Gate the slow E2E work on "is api or jetstream actually affected by this change?"
-      # For push-to-main we always run (full-regression safety net). The job itself still
-      # completes (exit 0) when skipped so branch protection stays satisfied.
-      - id: guard
-        name: Check if api or jetstream is affected
-        run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
-            echo "should_run=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::Running E2E — push event always runs the full suite"
-            exit 0
-          fi
-          affected=$(pnpm nx show projects --affected --type=app)
-          echo "Affected apps:"
-          echo "$affected"
-          if echo "$affected" | grep -qE '^(api|jetstream)$'; then
-            echo "should_run=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::Running E2E — api or jetstream is affected"
-          else
-            echo "should_run=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Skipping E2E — neither api nor jetstream is affected"
-          fi
-
-      # Prisma client must be generated before building since the api build imports it
-      - name: Generate database client
-        if: steps.guard.outputs.should_run == 'true'
-        run: pnpm db:generate
+          affected-projects: api|jetstream
+          suite-name: E2E
 
       # build:ci compiles all nine apps; E2E only reaches three of them. api/src/main.ts statically
       # serves ../landing (auth pages) and ../jetstream (the app), and nothing in the suite touches
       # canvas, the web extension, desktop, geo-ip-api or cron-tasks.
       - name: Build
-        if: steps.guard.outputs.should_run == 'true'
+        if: steps.setup.outputs.should_run == 'true'
         run: pnpm build:e2e
 
-      # Only the Desktop Chrome project is defined in playwright.config.ts, so firefox and webkit
-      # were being downloaded and never used.
-      - name: Resolve Playwright version
-        if: steps.guard.outputs.should_run == 'true'
-        id: playwright-version
-        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
-
-      - name: Cache Playwright browsers
-        if: steps.guard.outputs.should_run == 'true'
-        id: playwright-cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
-
-      # The browser binaries are cacheable but the OS packages are not, so on a cache hit we still
-      # have to install those separately.
-      - name: Install Playwright browsers
-        if: steps.guard.outputs.should_run == 'true' && steps.playwright-cache.outputs.cache-hit != 'true'
-        run: pnpm exec playwright install --with-deps chromium
-
-      - name: Install Playwright system dependencies
-        if: steps.guard.outputs.should_run == 'true' && steps.playwright-cache.outputs.cache-hit == 'true'
-        run: pnpm exec playwright install-deps chromium
-
       - name: Run database migration
-        if: steps.guard.outputs.should_run == 'true'
+        if: steps.setup.outputs.should_run == 'true'
         run: pnpm db:migrate
 
       - name: Seed DB
-        if: steps.guard.outputs.should_run == 'true'
+        if: steps.setup.outputs.should_run == 'true'
         run: pnpm db:seed
         env:
           POSTGRES_HOST: localhost
@@ -332,7 +268,7 @@ jobs:
           PGDATABASE: postgres
 
       - name: Run E2E tests
-        if: steps.guard.outputs.should_run == 'true'
+        if: steps.setup.outputs.should_run == 'true'
         run: >-
           pnpm start-server-and-test --expect 200
           'pnpm start:e2e' http://localhost:3333
@@ -341,12 +277,113 @@ jobs:
       # Blob reports are merged into one HTML report by the merge-e2e-reports job below.
       - name: Upload blob report
         # Upload even on failure, but only when the suite actually ran.
-        if: always() && steps.guard.outputs.should_run == 'true'
+        if: always() && steps.setup.outputs.should_run == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: blob-report-${{ matrix.shardIndex }}
           path: apps/jetstream-e2e/blob-report
           retention-days: 1
+          if-no-files-found: ignore
+
+  # Playwright's _electron support needs a real BrowserWindow, which a headless GitHub-hosted
+  # runner has no display server for — xvfb-run provides a virtual one. Single job, single worker
+  # (no sharding, unlike e2e-shard): Electron launches are heavier than browser contexts and there's
+  # no data yet on safe parallelism.
+  desktop-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      E2E_LOGIN_URL: "https://jetstream-e2e-dev-ed.develop.my.salesforce.com"
+      E2E_LOGIN_USERNAME: "integration@jetstream.app.e2e"
+      SFDC_CI_CONSUMER_KEY: ${{ secrets.SFDC_CI_CONSUMER_KEY }}
+      SFDC_CI_PRIVATE_KEY_BASE64: ${{ secrets.SFDC_CI_PRIVATE_KEY_BASE64 }}
+      EXAMPLE_USER_OVERRIDE: true
+      EXAMPLE_USER_PASSWORD: "EXAMPLE_123!"
+
+    services:
+      postgres:
+        image: postgres:16.1-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        name: Checkout [master]
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup
+        id: setup
+        uses: ./.github/actions/setup-e2e
+        with:
+          affected-projects: jetstream-desktop|jetstream-desktop-client|jetstream-desktop-e2e
+          suite-name: Desktop E2E
+
+      # api statically serves ../landing (auth pages, used by global.setup.ts's UI login) and
+      # ../jetstream, so both are needed even though this suite never opens the web app itself.
+      # jetstream-desktop is the main process the tests launch. jetstream-desktop-client is
+      # deliberately absent: it is served by the Vite dev server (start:desktop:client), which
+      # compiles on demand and never reads a production build.
+      - name: Build
+        if: steps.setup.outputs.should_run == 'true'
+        run: pnpm nx run-many --target=build --projects=api,jetstream,landing,jetstream-desktop --configuration=production
+
+      # Electron's real BrowserWindow needs a display server, which this runner doesn't have —
+      # the `xvfb-run` wrapper inside the e2e-ci target provides a virtual one. Not part of
+      # Playwright's own system deps.
+      - name: Install Xvfb
+        if: steps.setup.outputs.should_run == 'true'
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+
+      - name: Run database migration
+        if: steps.setup.outputs.should_run == 'true'
+        run: pnpm db:migrate
+
+      - name: Seed DB
+        if: steps.setup.outputs.should_run == 'true'
+        run: pnpm db:seed
+        env:
+          POSTGRES_HOST: localhost
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: postgres
+
+      # Both servers, xvfb and Playwright all live in the e2e-ci target so this invocation and a
+      # local one cannot drift apart.
+      - name: Run Desktop E2E tests
+        if: steps.setup.outputs.should_run == 'true'
+        run: pnpm nx run jetstream-desktop-e2e:e2e-ci
+
+      - name: Upload Playwright report
+        if: always() && steps.setup.outputs.should_run == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: desktop-e2e-report
+          path: apps/jetstream-desktop-e2e/playwright-report
+          retention-days: 14
+          if-no-files-found: ignore
+
+      # A few hundred KB against the HTML report's tens of MB, so it is kept far longer — this is
+      # what `pnpm ci:failures --no-report` reads, and the only record left once the report expires.
+      - name: Upload JSON summary
+        if: always() && steps.setup.outputs.should_run == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: desktop-playwright-summary
+          path: apps/jetstream-desktop-e2e/playwright-summary.json
+          retention-days: 30
           if-no-files-found: ignore
 
   # Stitches the 4 shard reports back into the single HTML report the old job produced.

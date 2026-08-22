@@ -59,6 +59,7 @@ package-lock.json
 # Playwright
 **/test-results
 **/playwright-report
+**/playwright-summary.json
 **/playwright/.cache
 
 .nx/cache

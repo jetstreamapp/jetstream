@@ -20,7 +20,7 @@
       "path": "./libs/features/record-type-manager"
     },
     {
-      "path": "./apps/jetstream-desktop-client-e2e"
+      "path": "./apps/jetstream-desktop-e2e"
     },
     {
       "path": "./libs/features/automation-control"
