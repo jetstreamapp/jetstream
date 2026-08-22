@@ -12,13 +12,15 @@ import {
   QueryFilterOperator,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import { FunctionComponent, memo, useCallback, useEffect, useReducer, useState } from 'react';
+import { FunctionComponent, memo, useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import DropDown from '../form/dropdown/DropDown';
 import Expression from './Expression';
+import { getListOperatorSuggestions, getListOperatorSuggestionValue, ListOperatorSuggestion } from './expression-list-operator-utils';
 import { DraggableRow, RowDropTarget } from './expression-types';
 import { isExpressionConditionType, isExpressionGroupType } from './expression-utils';
 import ExpressionConditionRow from './ExpressionConditionRow';
 import ExpressionGroup from './ExpressionGroup';
+import ExpressionListOperatorSuggestions from './ExpressionListOperatorSuggestions';
 
 const DISPLAY_OPT_ROW = 'expression-ancillary-row';
 const DISPLAY_OPT_WRAP = 'expression-ancillary-wrap';
@@ -46,6 +48,8 @@ export interface ExpressionContainerProps {
   // if declared, these are called any time the resource changes
   getResourceTypeFns?: ExpressionGetResourceTypeFns;
   disableValueForOperators?: QueryFilterOperator[];
+  /** Invoked after the user accepts a suggestion to combine repeated conditions into an In / Not In condition */
+  onConvertToListOperator?: (suggestion: ListOperatorSuggestion) => void;
   onChange: (expression: ExpressionType) => void;
 }
 
@@ -67,7 +71,8 @@ type Action =
       type: 'ROW_MOVED';
       payload: { row: DraggableRow; targetGroupKey?: number };
     }
-  | { type: 'DELETE_ROW'; payload: { row: ExpressionConditionType; group?: ExpressionGroupType } };
+  | { type: 'DELETE_ROW'; payload: { row: ExpressionConditionType; group?: ExpressionGroupType } }
+  | { type: 'CONVERT_ROWS_TO_LIST_OPERATOR'; payload: { suggestion: ListOperatorSuggestion } };
 
 interface State {
   getResourceTypeFns?: ExpressionGetResourceTypeFns;
@@ -284,9 +289,73 @@ function reducer(state: State, action: Action): State {
         showDragHandles: shouldShowDragHandles(expression),
       };
     }
+    case 'CONVERT_ROWS_TO_LIST_OPERATOR': {
+      const { suggestion } = action.payload;
+      const expression = { ...state.expression, rows: [...state.expression.rows] };
+
+      if (suggestion.groupKey == null) {
+        expression.rows = convertRowsToListOperator(expression.rows, suggestion, state.getResourceTypeFns);
+      } else {
+        const groupIdx = expression.rows.findIndex((item) => item.key === suggestion.groupKey);
+        if (groupIdx < 0) {
+          return state;
+        }
+        const group = { ...(expression.rows[groupIdx] as ExpressionGroupType) };
+        group.rows = convertRowsToListOperator(group.rows, suggestion, state.getResourceTypeFns);
+        expression.rows[groupIdx] = group;
+      }
+
+      return {
+        ...state,
+        expression,
+      };
+    }
     default:
       throw new Error('Invalid action');
   }
+}
+
+/**
+ * Replaces every row named by the suggestion with one row using the list operator, keeping the position of
+ * the first matched row. Rows the suggestion does not name (including groups) are left untouched.
+ */
+function convertRowsToListOperator<T extends ExpressionConditionType | ExpressionGroupType>(
+  rows: T[],
+  suggestion: ListOperatorSuggestion,
+  getResourceTypeFns?: ExpressionGetResourceTypeFns,
+): T[] {
+  const [firstRowKey] = suggestion.rowKeys;
+  const rowKeysToReplace = new Set(suggestion.rowKeys);
+  return rows.reduce((newRows: T[], row) => {
+    if (!isExpressionConditionType(row) || !rowKeysToReplace.has(row.key)) {
+      newRows.push(row);
+    } else if (row.key === firstRowKey) {
+      newRows.push(buildListOperatorRow(row, suggestion, getResourceTypeFns) as T);
+    }
+    return newRows;
+  }, []);
+}
+
+function buildListOperatorRow(
+  row: ExpressionConditionType,
+  suggestion: ListOperatorSuggestion,
+  getResourceTypeFns?: ExpressionGetResourceTypeFns,
+): ExpressionConditionType {
+  const selected: ExpressionConditionRowSelectedItems = {
+    ...row.selected,
+    operator: suggestion.toOperator,
+    resourceType: suggestion.targetResourceType,
+    value: getListOperatorSuggestionValue(suggestion),
+  };
+  const newRow: ExpressionConditionType = { ...row, resourceType: suggestion.targetResourceType, selected };
+  if (getResourceTypeFns) {
+    // recalculates the value input and its options so picklist values not in the field's list are kept
+    updateResourcesOnRow(newRow, selected, getResourceTypeFns);
+    // checkSelected normalizes the value for the field type and can wrap the merged value in an array
+    // (e.x. a picklist field using the Text input), which would collapse every value into one literal
+    newRow.selected = { ...newRow.selected, value: getListOperatorSuggestionValue(suggestion) };
+  }
+  return newRow;
 }
 
 function initExpression(expression?: ExpressionType): ExpressionType {
@@ -384,10 +453,19 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
     expressionInitValue,
     getResourceTypeFns,
     disableValueForOperators,
+    onConvertToListOperator,
     onChange,
   }) => {
     const [displayOption, setDisplayOption] = useState(DISPLAY_OPT_WRAP);
     const [{ expression, showDragHandles }, dispatch] = useReducer(reducer, expressionInitValue, getInitialState);
+    // dismissals are intentionally scoped to the lifetime of the component - remounting (a new sobject or a
+    // restored query) produces a different set of conditions, which deserves a fresh suggestion
+    const [dismissedSuggestionIds, setDismissedSuggestionIds] = useState<Set<string>>(() => new Set());
+
+    const suggestions = useMemo(
+      () => getListOperatorSuggestions(expression, getResourceTypeFns, operators).filter(({ id }) => !dismissedSuggestionIds.has(id)),
+      [dismissedSuggestionIds, expression, getResourceTypeFns, operators],
+    );
 
     useEffect(() => {
       dispatch({ type: 'RESOURCE_FILTERS', payload: { getResourceTypeFns } });
@@ -398,6 +476,18 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
         onChange(expression);
       }
     }, [expression, onChange]);
+
+    const handleConvertToListOperator = useCallback(
+      (suggestion: ListOperatorSuggestion) => {
+        dispatch({ type: 'CONVERT_ROWS_TO_LIST_OPERATOR', payload: { suggestion } });
+        onConvertToListOperator?.(suggestion);
+      },
+      [onConvertToListOperator],
+    );
+
+    const handleDismissSuggestion = useCallback(({ id }: ListOperatorSuggestion) => {
+      setDismissedSuggestionIds((priorIds) => new Set(priorIds).add(id));
+    }, []);
 
     const moveRowToGroup = useCallback((row: DraggableRow, targetGroupKey?: number) => {
       dispatch({ type: 'ROW_MOVED', payload: { row, targetGroupKey } });
@@ -477,6 +567,13 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
                 onSelected={(id) => setDisplayOption(id)}
               />
             </div>
+          }
+          notification={
+            <ExpressionListOperatorSuggestions
+              suggestions={suggestions}
+              onConvert={handleConvertToListOperator}
+              onDismiss={handleDismissSuggestion}
+            />
           }
           onActionChange={handleExpressionActionChange}
           onAddCondition={handleAddCondition}
