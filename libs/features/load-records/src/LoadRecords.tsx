@@ -348,9 +348,14 @@ export const LoadRecords = () => {
       }
 
       if (inputFileHeader) {
-        const fieldMappingItems = Object.values(fieldMapping);
-        const numItemsMapped = fieldMappingItems.filter((item) => item.targetField).length;
-        text.push(`${formatNumber(numItemsMapped)} of ${formatNumber(inputFileHeader.length)} fields mapped`);
+        // Counts distinct file columns rather than mapped rows, otherwise static values and additional
+        // mappings push the count above the number of columns in the file
+        const mappedColumns = new Set(
+          Object.values(fieldMapping)
+            .filter((item) => item.type === 'CSV' && item.targetField)
+            .map(({ csvField }) => csvField),
+        );
+        text.push(`${formatNumber(mappedColumns.size)} of ${formatNumber(inputFileHeader.length)} fields mapped`);
       }
     }
 

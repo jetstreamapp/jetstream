@@ -4,26 +4,26 @@ import { FunctionComponent } from 'react';
 
 export interface LoadRecordsFieldMappingRowLookupOptionProps {
   fieldMappingItem: FieldMappingItem;
-  csvField: string;
+  mappingKey: string;
   disabled: boolean;
-  onSelectionChanged: (csvField: string, fieldMappingItem: FieldMappingItem) => void;
+  onSelectionChanged: (mappingKey: string, fieldMappingItem: FieldMappingItem) => void;
 }
 
 export const LoadRecordsFieldMappingRowLookupOption: FunctionComponent<LoadRecordsFieldMappingRowLookupOptionProps> = ({
   fieldMappingItem,
-  csvField,
+  mappingKey,
   disabled,
   onSelectionChanged,
 }) => {
   function handleLookupOptionChange(lookupOptionUseFirstMatch: NonExtIdLookupOption) {
-    onSelectionChanged(csvField, { ...fieldMappingItem, lookupOptionUseFirstMatch });
+    onSelectionChanged(mappingKey, { ...fieldMappingItem, lookupOptionUseFirstMatch });
   }
 
   function handleLookupOptionNullIfNoMatch(lookupOptionNullIfNoMatch: boolean) {
-    onSelectionChanged(csvField, { ...fieldMappingItem, lookupOptionNullIfNoMatch } as FieldMappingItem);
+    onSelectionChanged(mappingKey, { ...fieldMappingItem, lookupOptionNullIfNoMatch } as FieldMappingItem);
   }
 
-  const idPrefix = `multiple-match-${fieldMappingItem.csvField}`;
+  const idPrefix = `multiple-match-${mappingKey}`;
 
   return (
     <div className="slds-cell-wrap">

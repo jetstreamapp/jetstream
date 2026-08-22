@@ -67,13 +67,14 @@ function getTargetField(item: Omit<FieldMappingItem, 'fieldMetadata'>): string {
 }
 
 const TooltipContent = ({ mapping }: { mapping: LoadSavedMappingItem }) => {
-  const items: Omit<FieldMappingItem, 'fieldMetadata'>[] = Object.values(mapping.mapping);
+  // Keyed by mapping key rather than csvField, since one column can be mapped to multiple fields
+  const items: [string, Omit<FieldMappingItem, 'fieldMetadata'>][] = Object.entries(mapping.mapping);
   const visibleItems = items.slice(0, 25);
   const remainingItems = items.length - visibleItems.length;
   return (
     <ul>
-      {visibleItems.map((item) => (
-        <li key={item.csvField}>
+      {visibleItems.map(([mappingKey, item]) => (
+        <li key={mappingKey}>
           <span>{item.csvField}</span> {'->'} <span>{getTargetField(item)}</span>
         </li>
       ))}
