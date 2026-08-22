@@ -172,6 +172,7 @@ export const DATE_FORMATS = {
   MM_DD_YYYY: 'MM/DD/YYYY', // NOT DATE-FN COMPATIBLE
   DD_MM_YYYY: 'DD/MM/YYYY', // NOT DATE-FN COMPATIBLE
   yyyy_MM_dd: 'yyyy-MM-dd',
+  yyyy_MM_dd_HH_mm_ss: 'yyyy-MM-dd HH:mm:ss',
   YYYY_MM_DD, // NOT DATE-FN COMPATIBLE
   YYYY_MM_DD__HH_mm_ss, // NOT DATE-FN COMPATIBLE
   YYYY_MM_DD_HH_mm_ss_z, // NOT DATE-FN COMPATIBLE
@@ -209,6 +210,7 @@ export const ANALYTICS_KEYS = {
   permission_manager_save_cancelled: 'permission_manager_save_cancelled',
   permission_manager_assignments_opened: 'permission_manager_assignments_opened',
   permission_manager_assignments_saved: 'permission_manager_assignments_saved',
+  permission_manager_field_audit_columns_toggled: 'permission_manager_field_audit_columns_toggled',
   /** USER SEARCH MODAL */
   user_search_opened: 'user_search_opened',
   user_search_view_user: 'user_search_view_user',

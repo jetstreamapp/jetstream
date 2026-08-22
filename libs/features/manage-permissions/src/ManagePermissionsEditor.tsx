@@ -53,13 +53,15 @@ import { ConfirmPageChange, RequireMetadataApiBanner, fromJetstreamEvents, fromP
 import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
-import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { FieldAuditColumnsPopover } from './FieldAuditColumnsPopover';
 import ManagePermissionsEditorFieldTable from './ManagePermissionsEditorFieldTable';
 import ManagePermissionsEditorObjectTable from './ManagePermissionsEditorObjectTable';
 import ManagePermissionsEditorSystemPermissionTable from './ManagePermissionsEditorSystemPermissionTable';
 import ManagePermissionsEditorTabVisibilityTable from './ManagePermissionsEditorTabVisibilityTable';
 import { usePermissionRecords } from './usePermissionRecords';
+import { useVisibleFieldAuditColumns } from './useVisibleFieldAuditColumns';
 import { generateCsvFilesFromTable, generateExcelWorkbookFromTable } from './utils/permission-manager-export-utils';
 import {
   applySystemPermissionDependencies,
@@ -100,6 +102,8 @@ import {
 } from './utils/permission-manager-utils';
 
 const HEIGHT_BUFFER = 170;
+
+const FIELD_PERMISSIONS_TAB_ID = 'field-permissions';
 
 export function ErrorTooltip({ hasError, id, message }: { hasError: boolean; id: string; message?: string }) {
   if (!hasError) {
@@ -181,6 +185,15 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   const [dirtyFieldRows, setDirtyFieldRows] = useState<Record<string, DirtyRow<PermissionTableFieldCell>>>({});
   const [fieldFilter, setFieldFilter] = useState('');
   const [fieldErrorsOnly, setFieldErrorsOnly] = useState(false);
+  const {
+    visibleColumns: visibleFieldAuditColumns,
+    toggleColumn: handleToggleFieldAuditColumn,
+    toggleAll: handleToggleAllFieldAuditColumns,
+    filterColumns: filterVisibleFieldAuditColumns,
+  } = useVisibleFieldAuditColumns();
+
+  // The audit column toggles only apply to the field table, so the toolbar button is hidden on the other tabs
+  const [activeTabId, setActiveTabId] = useState(FIELD_PERMISSIONS_TAB_ID);
 
   const [systemPermissionColumns, setSystemPermissionColumns] = useState<
     ColumnWithFilter<PermissionTableSystemPermissionCell, PermissionTableSummaryRow>[]
@@ -203,6 +216,13 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   const [fieldsHaveErrors, setFieldsHaveErrors] = useState<boolean>(false);
   const [tabVisibilityHaveErrors, setTabVisibilityHaveErrors] = useState<boolean>(false);
   const [systemPermissionsHaveErrors, setSystemPermissionsHaveErrors] = useState<boolean>(false);
+
+  /**
+   * `fieldColumns` always holds every column, including the opt-in audit ones - the export path reads the full set
+   * straight from the builder. Memoized because the grid re-initializes its filters and clears cell selection
+   * whenever the column array identity changes.
+   */
+  const visibleFieldColumns = useMemo(() => filterVisibleFieldAuditColumns(fieldColumns), [fieldColumns, filterVisibleFieldAuditColumns]);
 
   useEffect(() => {
     isMounted.current = true;
@@ -715,6 +735,9 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
 
   async function reloadPermissions() {
     setHasLoaded(false);
+    // Clearing `hasLoaded` unmounts `Tabs`, which remounts on `initialActiveId` without firing `onChange`, so the
+    // mirrored tab id is reset alongside it or the field-only toolbar controls stay hidden after a reload.
+    setActiveTabId(FIELD_PERMISSIONS_TAB_ID);
     await refetchMetadata();
     trackEvent(ANALYTICS_KEYS.permission_manager_reload);
   }
@@ -794,6 +817,14 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           </Tooltip>
         </ToolbarItemGroup>
         <ToolbarItemActions>
+          {hasLoaded && activeTabId === FIELD_PERMISSIONS_TAB_ID && (
+            <FieldAuditColumnsPopover
+              visibleColumns={visibleFieldAuditColumns}
+              dataUnavailable={recordData.fieldAuditUnavailable}
+              onToggle={handleToggleFieldAuditColumn}
+              onToggleAll={handleToggleAllFieldAuditColumns}
+            />
+          )}
           <button
             className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
             onClick={reloadPermissions}
@@ -866,7 +897,8 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
         )}
         {hasLoaded && (
           <Tabs
-            initialActiveId="field-permissions"
+            initialActiveId={FIELD_PERMISSIONS_TAB_ID}
+            onChange={setActiveTabId}
             tabs={[
               {
                 id: 'object-permissions',
@@ -939,7 +971,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
               },
 
               {
-                id: 'field-permissions',
+                id: FIELD_PERMISSIONS_TAB_ID,
                 title: (
                   <Fragment>
                     <span className="slds-tabs__left-icon">
@@ -958,7 +990,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
                 content: (
                   <ManagePermissionsEditorFieldTable
                     ref={managePermissionsEditorFieldTableRef}
-                    columns={fieldColumns}
+                    columns={visibleFieldColumns}
                     rows={visibleFieldRows || []}
                     totalCount={fieldRows?.length || 0}
                     filterText={fieldFilter}

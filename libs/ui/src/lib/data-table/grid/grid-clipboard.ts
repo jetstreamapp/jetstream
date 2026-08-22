@@ -1,7 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { copyRecordsToClipboard } from '@jetstream/shared/ui-utils';
 import { getSortedFilteredLeafRows } from './grid-row-utils';
-import { ContextAction, ContextMenuActionData, RowWithKey, TanstackColumn, TanstackRow, TanstackTable } from './grid-types';
+import {
+  ColumnWithFilter,
+  ContextAction,
+  ContextMenuActionData,
+  RowWithKey,
+  TanstackColumn,
+  TanstackRow,
+  TanstackTable,
+} from './grid-types';
 
 /**
  * Clipboard copy helpers for the table context menu.
@@ -172,6 +180,21 @@ export function copyGridGroupRowsToClipboard<TRow extends object>(
   return copyRegion(groupRow.getLeafRows(), getCopyableColumns(table), 'excel', includeHeader);
 }
 
+/**
+ * A row as it should be copied as text: every column that defines `getValue` is replaced by its rendered value so
+ * the clipboard matches what the cell shows (formatted dates, resolved lookups, ...), everything else is the raw
+ * row property. JSON copies deliberately skip this and keep the raw data.
+ */
+function withRenderedColumnValues<T extends Record<string, any>>(row: T, columns: ColumnWithFilter<T, unknown>[]): Record<string, unknown> {
+  const resolved: Record<string, unknown> = { ...row };
+  columns.forEach((column) => {
+    if (column.getValue) {
+      resolved[column.key] = column.getValue({ row, column });
+    }
+  });
+  return resolved;
+}
+
 export function copyGenericTableDataToClipboard<T extends Record<string, any>>(
   action: ContextAction,
   fields: string[],
@@ -183,15 +206,17 @@ export function copyGenericTableDataToClipboard<T extends Record<string, any>>(
   let fieldsToCopy = columns.map((column) => column.key).filter((field) => fieldsSet.has(field));
   let format: 'plain' | 'excel' | 'json' | 'csv' = 'plain';
 
+  const getColumnValue = (currentRow: T) => (column.getValue ? column.getValue({ row: currentRow, column }) : currentRow[column.key]);
+
   switch (action) {
     case 'COPY_CELL':
       includeHeader = false;
       fieldsToCopy = [column.key];
-      recordsToCopy = [row];
+      recordsToCopy = [{ [column.key]: getColumnValue(row) }];
       break;
     case 'COPY_ROW_EXCEL':
       format = 'excel';
-      recordsToCopy = [row];
+      recordsToCopy = [withRenderedColumnValues(row, columns)];
       break;
     case 'COPY_ROW_JSON':
       recordsToCopy = [row];
@@ -199,7 +224,7 @@ export function copyGenericTableDataToClipboard<T extends Record<string, any>>(
       break;
     case 'COPY_COL':
       fieldsToCopy = fieldsToCopy.filter((field) => field === column.key);
-      recordsToCopy = rows.map((row) => ({ [column.key]: row[column.key] }));
+      recordsToCopy = rows.map((row) => ({ [column.key]: getColumnValue(row) }));
       format = 'excel';
       break;
     case 'COPY_COL_JSON':
@@ -210,18 +235,18 @@ export function copyGenericTableDataToClipboard<T extends Record<string, any>>(
     case 'COPY_COL_NO_HEADER':
       includeHeader = false;
       fieldsToCopy = fieldsToCopy.filter((field) => field === column.key);
-      recordsToCopy = rows.map((row) => ({ [column.key]: row[column.key] }));
+      recordsToCopy = rows.map((row) => ({ [column.key]: getColumnValue(row) }));
       format = 'plain';
       break;
     case 'COPY_TABLE':
-      recordsToCopy = rows;
+      recordsToCopy = rows.map((row) => withRenderedColumnValues(row, columns));
       break;
     case 'COPY_TABLE_JSON':
       recordsToCopy = rows;
       format = 'json';
       break;
     case 'COPY_TABLE_CSV':
-      recordsToCopy = rows;
+      recordsToCopy = rows.map((row) => withRenderedColumnValues(row, columns));
       format = 'csv';
       break;
     default:
