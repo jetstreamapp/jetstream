@@ -346,6 +346,7 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
                           <Checkbox
                             id="hide-unchanged-regions"
                             label="Hide Unchanged Regions"
+                            labelHelp="Collapse matching lines within the file comparison."
                             checked={hideUnchangedRegions}
                             onChange={(enabled) => {
                               setHideUnchangedRegions(enabled);
