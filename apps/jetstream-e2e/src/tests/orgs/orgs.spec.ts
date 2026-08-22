@@ -70,7 +70,8 @@ test.describe('Salesforce Orgs + Jetstream Orgs', () => {
       await orgGroupPage.orgDropdownContainer.click();
       const orgGroup = orgGroupPage.orgDropdownContainer.getByRole('listbox').getByRole('group').getByRole('option');
       await expect(orgGroup).toHaveCount(2);
-      await expect(orgGroup).toHaveText([environment.TEST_ORG_2, environment.TEST_ORG_3]);
+      // Options render the username plus an org-type badge, so match on containment rather than exact text
+      await expect(orgGroup).toContainText([environment.TEST_ORG_2, environment.TEST_ORG_3]);
     });
 
     await test.step('Edit Org Group', async () => {

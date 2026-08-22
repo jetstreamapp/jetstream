@@ -1,10 +1,24 @@
 import { css, SerializedStyles } from '@emotion/react';
+import { getOrgType } from '@jetstream/shared/ui-utils';
+import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { ListItem, ListItemGroup, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { ComboboxWithGroupedItems } from '@jetstream/ui';
+import { Badge, ComboboxWithGroupedItems } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
 import sortBy from 'lodash/sortBy';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { calculateOrgExpiration } from './useOrgExpiration';
+
+/**
+ * Everything a user might reasonably search the org list by. The default combobox filter only looks
+ * at `label` and `value`, which hides the username as soon as an org is given a custom label.
+ * `uniqueId` (`<organizationId>-<userId>`) is kept so pasting a full org id still works.
+ */
+const ORG_SEARCH_FIELDS: Array<keyof SalesforceOrgUi> = ['label', 'username', 'orgName', 'organizationId', 'instanceUrl', 'uniqueId'];
+
+const orgFilterFn = (filter: string) => {
+  const matchesOrg = multiWordObjectFilter<SalesforceOrgUi>(ORG_SEARCH_FIELDS, filter);
+  return (item: ListItem<string, SalesforceOrgUi>) => !!item.meta && matchesOrg(item.meta);
+};
 
 function getSelectedItemLabel(item: ListItem<string, SalesforceOrgUi>) {
   const org = item.meta;
@@ -30,8 +44,12 @@ function getSelectedItemTitle(item: ListItem<string, SalesforceOrgUi>) {
   return `${org.orgInstanceName} - ${org.label}${subtext}`;
 }
 
+/**
+ * The color is intentionally kept even when the org has a connection error - knowing which org you
+ * are pointed at matters most when something is wrong. The error styling layers on top of it.
+ */
 function getSelectedItemStyle(org: Maybe<SalesforceOrgUi>): SerializedStyles | undefined {
-  if (!org || !org.color || !!org.connectionError) {
+  if (!org || !org.color) {
     return;
   }
   return css({
@@ -57,6 +75,18 @@ function orgHasError(org: Maybe<SalesforceOrgUi>): boolean {
     return false;
   }
   return !!org.connectionError || !!org.expirationScheduledFor;
+}
+
+function getOrgTypeBadge(org: Maybe<SalesforceOrgUi>) {
+  const orgType = getOrgType(org);
+  if (!orgType) {
+    return undefined;
+  }
+  return (
+    <Badge type={orgType === 'Production' ? 'warning' : 'light'} title={orgType}>
+      {orgType}
+    </Badge>
+  );
 }
 
 function groupOrgs(orgs: SalesforceOrgUi[]): ListItemGroup<string, SalesforceOrgUi>[] {
@@ -127,16 +157,19 @@ export const OrgsCombobox: FunctionComponent<OrgsComboboxProps> = ({
           itemLength: 7,
           hasError: orgHasError(selectedOrg),
           disabled,
-          // onInputChange: (filter) => setFilterText(filter),
-          // selectedItemLabel: getSelectedItemLabel(selectedOrg),
-          // selectedItemTitle: getSelectedItemTitle(selectedOrg),
           inputCss: getSelectedItemStyle(selectedOrg),
+          // Usernames often differ only by a trailing sandbox suffix, so the panel is allowed to
+          // grow past the input rather than ellipsing away the part that distinguishes the orgs.
+          dropdownWidth: { minWidth: '100%', maxWidth: '32rem' },
         }}
         itemProps={(item) => ({
           hasError: orgHasError(item.meta),
           textBodyCss: getDropdownOrgStyle(item.meta),
+          labelSuffix: getOrgTypeBadge(item.meta),
+          allowWrap: true,
         })}
         groups={groupedOrgs}
+        filterFn={orgFilterFn}
         onSelected={(item) => onSelected(item.meta)}
         selectedItemId={selectedOrg?.uniqueId}
         selectedItemLabelFn={getSelectedItemLabel}

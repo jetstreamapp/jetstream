@@ -101,6 +101,12 @@ export interface ComboboxProps {
    */
   isVirtual?: boolean;
   usePortal?: boolean;
+  /**
+   * Sizes the open dropdown panel independently of the input, which is otherwise pinned to the
+   * input width. Both values must be provided - omitting maxWidth falls back to a narrower default
+   * than the input in most layouts. Omit entirely for the default fluid behavior.
+   */
+  dropdownWidth?: { minWidth: string; maxWidth: string };
   onInputChange?: (value: string) => void;
   /** Same as onInputChange, but does not get called when closed */
   onFilterInputChange?: (value: string) => void;
@@ -162,6 +168,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
       showSelectionAsButton,
       isVirtual,
       usePortal,
+      dropdownWidth,
       children,
       onInputChange,
       onFilterInputChange,
@@ -444,7 +451,11 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                     ref={popoverRef}
                     isOpen={isOpen}
                     referenceElement={inputEl.current}
-                    className={classNames(`slds-dropdown_length-${itemLength}`, { 'slds-dropdown_fluid': !usePortal })}
+                    className={classNames(`slds-dropdown_length-${itemLength}`, {
+                      'slds-dropdown_fluid': !usePortal && !dropdownWidth,
+                    })}
+                    minWidth={dropdownWidth?.minWidth}
+                    maxWidth={dropdownWidth?.maxWidth}
                     id={listId}
                     role="listbox"
                     isEager={isVirtual}

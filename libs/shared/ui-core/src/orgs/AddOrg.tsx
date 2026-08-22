@@ -1,27 +1,37 @@
 import { css } from '@emotion/react';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
+import { ANALYTICS_KEYS, SFDC_LOGIN_URL_PRE_RELEASE, SFDC_LOGIN_URL_PROD, SFDC_LOGIN_URL_SANDBOX } from '@jetstream/shared/constants';
 import { addOrg } from '@jetstream/shared/ui-utils';
 import { AddOrgHandlerFn, SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, CheckboxToggle, Grid, GridCol, Icon, Input, Popover, PopoverRef, Radio, RadioGroup } from '@jetstream/ui';
 import { fromAppState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
-import { FunctionComponent, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, useMemo, useRef, useState } from 'react';
 import { useAmplitude } from '..';
+import { parseSalesforceLoginUrl } from './salesforce-login-url.utils';
 
 type OrgType = 'prod' | 'sandbox' | 'pre-release' | 'custom';
 
 const loginUrlMap = {
-  prod: 'https://login.salesforce.com',
-  sandbox: 'https://test.salesforce.com',
-  'pre-release': 'https://prerellogin.pre.salesforce.com',
+  prod: SFDC_LOGIN_URL_PROD,
+  sandbox: SFDC_LOGIN_URL_SANDBOX,
+  'pre-release': SFDC_LOGIN_URL_PRE_RELEASE,
 };
 
-const CUSTOM_LOGIN_PROTOCOL = 'https://';
-const CUSTOM_LOGIN_SUFFIX = '.my.salesforce.com';
-
-function getFQDN(customUrl: string) {
-  return `${CUSTOM_LOGIN_PROTOCOL}${customUrl}${CUSTOM_LOGIN_SUFFIX}`;
+/**
+ * Orgs connected through login.salesforce.com store a login endpoint or a legacy instance url rather
+ * than a My Domain, so reconnecting those falls back to the production login instead of prefilling a
+ * custom domain that was never theirs.
+ *
+ * The prefill is the full host rather than the bare domain: it is what re-parsing is guaranteed to
+ * round-trip on, so reconnecting always lands on the host the org actually serves.
+ */
+function getExistingOrgDomain(existingOrg?: SalesforceOrgUi): string | null {
+  if (!existingOrg?.instanceUrl) {
+    return null;
+  }
+  const parsed = parseSalesforceLoginUrl(existingOrg.instanceUrl);
+  return parsed.success ? parsed.loginUrl.replace(/^https:\/\//, '') : null;
 }
 
 export interface AddOrgProps {
@@ -54,33 +64,18 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
 }) => {
   const popoverRef = useRef<PopoverRef>(null);
   const { trackEvent } = useAmplitude();
-  const [orgType, setOrgType] = useState<OrgType>(() => (existingOrg ? 'custom' : 'prod'));
-  const [customUrl, setCustomUrl] = useState<string>(() => {
-    if (!existingOrg) {
-      return '';
-    }
-    try {
-      return new URL(existingOrg.instanceUrl).hostname.replace('.my.salesforce.com', '');
-    } catch {
-      return '';
-    }
-  });
-  const [loginUrl, setLoginUrl] = useState<string | null>(() => (existingOrg?.instanceUrl ? existingOrg.instanceUrl : loginUrlMap.prod));
+  const [orgType, setOrgType] = useState<OrgType>(() => (getExistingOrgDomain(existingOrg) ? 'custom' : 'prod'));
+  const [customUrl, setCustomUrl] = useState<string>(() => getExistingOrgDomain(existingOrg) || '');
   const [advancedOptionsEnabled, setAdvancedOptionsEnabled] = useState(false);
   const [addLoginTrue, setAddLoginTrue] = useState(false);
   const [addToActiveOrgGroup, setAddToActiveOrgGroup] = useState(true);
   const applicationState = useAtomValue(fromAppState.applicationCookieState);
   const orgGroup = useAtomValue(fromAppState.jetstreamActiveGroupSelector);
 
-  useEffect(() => {
-    let url: string;
-    if (orgType === 'custom') {
-      url = getFQDN(customUrl);
-    } else {
-      url = loginUrlMap[orgType] || 'https://login.salesforce.com';
-    }
-    setLoginUrl(url);
-  }, [orgType, customUrl]);
+  const parsedCustomUrl = useMemo(() => parseSalesforceLoginUrl(customUrl), [customUrl]);
+  const showCustomUrlError = orgType === 'custom' && !!customUrl.trim() && !parsedCustomUrl.success;
+  const loginUrl = orgType === 'custom' ? (parsedCustomUrl.success ? parsedCustomUrl.loginUrl : null) : loginUrlMap[orgType];
+  const canContinue = !!loginUrl;
 
   function handleAddOrg() {
     loginUrl &&
@@ -112,7 +107,6 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
     }
     setOrgType('prod');
     setCustomUrl('');
-    setLoginUrl(loginUrlMap.prod);
     setAdvancedOptionsEnabled(false);
     setAddLoginTrue(false);
     setAddToActiveOrgGroup(true);
@@ -122,6 +116,7 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
     // TODO: figure out way to close this once an org is added - this was fixed, but it caused the component to fully re-render each time!
     <Popover
       ref={popoverRef}
+      size="large"
       onChange={(isOpen) => !isOpen && handleReset()}
       // placement="bottom-end"
       header={
@@ -141,7 +136,13 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
               checked={orgType === 'prod'}
               onChange={() => setOrgType('prod')}
             />
-            <Radio name="sandbox" label="Sandbox" value="sandbox" checked={orgType === 'sandbox'} onChange={() => setOrgType('sandbox')} />
+            <Radio
+              name="sandbox"
+              label="Sandbox (test.salesforce.com)"
+              value="sandbox"
+              checked={orgType === 'sandbox'}
+              onChange={() => setOrgType('sandbox')}
+            />
             <Radio
               name="pre-release"
               label="Pre-release"
@@ -161,23 +162,43 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
           {orgType === 'custom' && (
             <Input
               id="org-custom-url"
-              label="Custom Salesforce Url"
-              isRequired={false}
-              hasError={false}
-              errorMessageId="Error"
-              errorMessage="This is not valid"
-              leftAddon={CUSTOM_LOGIN_PROTOCOL}
-              rightAddon={CUSTOM_LOGIN_SUFFIX}
-              helpText={customUrl ? getFQDN(customUrl) : null}
+              label="Salesforce Login URL"
+              labelHelp="Enter your My Domain, or paste any Salesforce URL. A domain containing -- is treated as a sandbox unless it names another environment, such as .develop."
+              isRequired
+              hasError={showCustomUrlError}
+              errorMessageId="org-custom-url-error"
+              errorMessage={!parsedCustomUrl.success ? parsedCustomUrl.error : null}
+              helpText={
+                parsedCustomUrl.success ? (
+                  <Grid vertical>
+                    <span className="slds-truncate" title={parsedCustomUrl.loginUrl}>
+                      {parsedCustomUrl.loginUrl}
+                    </span>
+                    {parsedCustomUrl.isSandbox && (
+                      <span>
+                        <Icon
+                          type="utility"
+                          icon="success"
+                          className="slds-icon slds-icon_xx-small slds-icon-text-success slds-m-right_xx-small"
+                          omitContainer
+                        />
+                        Sandbox detected
+                      </span>
+                    )}
+                  </Grid>
+                ) : null
+              }
             >
               <input
                 id="org-custom-url"
                 className="slds-input"
-                placeholder="org-domain"
+                placeholder="acme or acme--uat.sandbox"
                 value={customUrl}
-                onChange={(event) =>
-                  setCustomUrl((_prevValue) => (event.target.value || '').replaceAll(/(https:\/\/)|(\.my\.salesforce\.com)/g, ''))
-                }
+                aria-describedby={showCustomUrlError ? 'org-custom-url-error' : undefined}
+                aria-invalid={showCustomUrlError}
+                autoComplete="off"
+                spellCheck={false}
+                onChange={(event) => setCustomUrl(event.target.value || '')}
               />
             </Input>
           )}
@@ -220,7 +241,7 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
               </a>
             </GridCol>
             <GridCol bump="left">
-              <button className="slds-button slds-button_brand" onClick={handleAddOrg}>
+              <button className="slds-button slds-button_brand" onClick={handleAddOrg} disabled={!canContinue}>
                 Continue
               </button>
             </GridCol>

@@ -5,6 +5,34 @@ import classNames from 'classnames';
 import React, { forwardRef, Fragment, useEffect, useRef } from 'react';
 import Icon from '../../widgets/Icon';
 
+/**
+ * Overrides the nowrap/ellipsis that SLDS bakes into `slds-truncate` and
+ * `slds-listbox__option-text_entity`. `overflow-wrap: anywhere` is required because values like
+ * Salesforce usernames are single unbroken tokens that `break-word` will not split.
+ */
+const allowWrapCss = css`
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+`;
+
+/**
+ * Lays the label and its suffix out side-by-side. With no suffix there is nothing to lay out, so the
+ * label is emitted as-is rather than adding a wrapper element to every combobox item in the app.
+ */
+const LabelRow: React.FunctionComponent<{ labelSuffix?: React.ReactNode; children: React.ReactNode }> = ({ labelSuffix, children }) => {
+  if (!labelSuffix) {
+    return <Fragment>{children}</Fragment>;
+  }
+  return (
+    <div className="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+      {children}
+      <div className="slds-m-left_x-small slds-no-flex">{labelSuffix}</div>
+    </div>
+  );
+};
+
 export interface ComboboxListItemProps {
   id: string;
   className?: string;
@@ -24,6 +52,16 @@ export interface ComboboxListItemProps {
    * If true, will show icon to indicate child items shown after selected
    */
   isDrillInItem?: boolean;
+  /**
+   * Rendered next to the label, outside of the truncating/wrapping text flow.
+   * Intended for a short status indicator such as a badge.
+   */
+  labelSuffix?: React.ReactNode;
+  /**
+   * Let long values wrap onto additional lines instead of truncating with an ellipsis.
+   * Applies to both the single-line and the stacked "entity" layouts.
+   */
+  allowWrap?: boolean;
   /**
    * fallback to label if label is not a string
    */
@@ -54,6 +92,8 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
       secondaryLabelOnNewLine,
       tertiaryLabel,
       isDrillInItem,
+      labelSuffix,
+      allowWrap,
       title,
       selected,
       disabled,
@@ -77,6 +117,7 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
 
     const backupTitle = `${label || ''} ${secondaryLabel || ''}`;
     title = title || backupTitle;
+    const wrapCss = allowWrap ? allowWrapCss : undefined;
     return (
       <li
         ref={combinedRef}
@@ -126,23 +167,29 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
             css={textBodyCss}
           >
             {label && (!secondaryLabel || !secondaryLabelOnNewLine) && (
-              <span className={classNames('slds-truncate', textClassName)} title={title} css={textCss}>
-                <span>{label}</span>
-                {secondaryLabel && <span className="slds-text-color_weak slds-m-left_xx-small">{secondaryLabel}</span>}
-                {tertiaryLabel && (
-                  <span className="slds-listbox__option-meta">
-                    <div className="slds-truncate">
-                      <strong>{tertiaryLabel}</strong>
-                    </div>
-                  </span>
-                )}
-              </span>
+              <LabelRow labelSuffix={labelSuffix}>
+                <span className={classNames({ 'slds-truncate': !allowWrap }, textClassName)} title={title} css={[wrapCss, textCss]}>
+                  <span>{label}</span>
+                  {secondaryLabel && <span className="slds-text-color_weak slds-m-left_xx-small">{secondaryLabel}</span>}
+                  {tertiaryLabel && (
+                    <span className="slds-listbox__option-meta">
+                      <div className="slds-truncate">
+                        <strong>{tertiaryLabel}</strong>
+                      </div>
+                    </span>
+                  )}
+                </span>
+              </LabelRow>
             )}
             {label && secondaryLabel && secondaryLabelOnNewLine && (
               <Fragment>
-                <div className="slds-listbox__option-text slds-listbox__option-text_entity">{label}</div>
+                <LabelRow labelSuffix={labelSuffix}>
+                  <div className="slds-listbox__option-text slds-listbox__option-text_entity" css={wrapCss}>
+                    {label}
+                  </div>
+                </LabelRow>
                 <div className="slds-listbox__option-meta">
-                  <div className="slds-truncate" title={secondaryLabel}>
+                  <div className={classNames({ 'slds-truncate': !allowWrap })} title={secondaryLabel} css={wrapCss}>
                     {secondaryLabel}
                   </div>
                 </div>
