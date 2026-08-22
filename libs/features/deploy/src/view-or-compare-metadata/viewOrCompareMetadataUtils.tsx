@@ -132,6 +132,37 @@ export function compare(sourceFile: FilePropertiesWithContent, targetFiles: Reco
   return match;
 }
 
+/**
+ * Remove files that match the target org, along with any folders that are left empty.
+ * Node ids and labels are carried over untouched so that the tree's expansion state survives the filter.
+ *
+ * Files missing from the target org are always retained - when the source file content could not be read
+ * both sides compare as undefined, which would otherwise classify a missing file as a match.
+ */
+export function filterUnchangedFiles(files: TreeItems<FileItemMetadata | null>[]): TreeItems<FileItemMetadata | null>[] {
+  return files.reduce<TreeItems<FileItemMetadata | null>[]>((output, item) => {
+    // Files have metadata, folders do not
+    if (item.meta) {
+      if (!item.meta.sourceAndTargetMatch || !item.meta.target) {
+        output.push(item);
+      }
+      return output;
+    }
+    const treeItems = filterUnchangedFiles(item.treeItems ?? []);
+    if (treeItems.length) {
+      output.push({ ...item, treeItems });
+    }
+    return output;
+  }, []);
+}
+
+/**
+ * Number of files in the tree, folders are not counted
+ */
+export function countMetadataFiles(files: TreeItems<FileItemMetadata | null>[]): number {
+  return files.reduce((count, item) => (item.meta ? count + 1 : count + countMetadataFiles(item.treeItems ?? [])), 0);
+}
+
 export function getDeployMetadataFromComparisonTree(files: TreeItems<FileItemMetadata | null>[]): DeployFromCompareMetadataItem[] {
   return files
     .map((metadata) => ({
