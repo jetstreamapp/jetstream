@@ -2,9 +2,9 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "allowJs": true,
-    "outDir": "../../dist/out-tsc/apps/jetstream-desktop-client-e2e",
-    "sourceMap": false,
+    "outDir": "../../dist/out-tsc/apps/jetstream-desktop-e2e",
     "module": "commonjs",
+    "sourceMap": false,
     "types": [],
     "ignoreDeprecations": "6.0"
   },
@@ -17,6 +17,23 @@
     "src/**/*.test.ts",
     "src/**/*.test.js",
     "src/**/*.d.ts"
+  ],
+  "references": [
+    {
+      "path": "../../libs/auth/salesforce-oauth"
+    },
+    {
+      "path": "../../libs/shared/constants"
+    },
+    {
+      "path": "../../libs/desktop-types"
+    },
+    {
+      "path": "../../libs/api-config"
+    },
+    {
+      "path": "../../libs/test/e2e-utils"
+    }
   ],
   "exclude": ["eslint.config.js"]
 }
