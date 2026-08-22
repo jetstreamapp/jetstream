@@ -1,6 +1,6 @@
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Tooltip } from '@jetstream/ui';
-import { MassUpdateRecordObjectHeading, MassUpdateRecordsObjectRow, MetadataRow } from '@jetstream/ui-core';
+import { MassUpdateRecordObjectHeading, MassUpdateRecordsObjectRow, MetadataRow, RecordLimitAndOffset } from '@jetstream/ui-core';
 import { FunctionComponent, useCallback } from 'react';
 import { useMassUpdateFieldItems } from './useMassUpdateFieldItems';
 
@@ -10,6 +10,7 @@ export interface MassUpdateRecordsObjectProps {
   commonFields: ListItem[];
   onFieldSelected: ReturnType<typeof useMassUpdateFieldItems>['onFieldSelected'];
   handleOptionChange: ReturnType<typeof useMassUpdateFieldItems>['handleOptionChange'];
+  handleRecordLimitChange: (sobject: string, limitAndOffset: RecordLimitAndOffset) => void;
   onLoadChildFields: (sobject: string, item: ListItem) => Promise<ListItem[]>;
   validateRowRecords: (sobject: string) => void;
   handleAddField: (sobject: string) => void;
@@ -24,6 +25,7 @@ export const MassUpdateRecordsObject: FunctionComponent<MassUpdateRecordsObjectP
   onFieldSelected,
   onLoadChildFields,
   handleOptionChange,
+  handleRecordLimitChange,
   validateRowRecords,
   handleAddField,
   handleRemoveField,
@@ -45,6 +47,11 @@ export const MassUpdateRecordsObject: FunctionComponent<MassUpdateRecordsObjectP
         valueFields={row.valueFields}
         fieldConfigurations={row.configuration}
         validationResults={row.validationResults}
+        recordLimit={{
+          limit: row.limit,
+          offset: row.offset,
+          onChange: (limitAndOffset) => handleRecordLimitChange(row.sobject, limitAndOffset),
+        }}
         onFieldChange={(index, selectedField) => onFieldSelected(index, row.sobject, selectedField)}
         onOptionsChange={(index, sobject, options) => handleOptionChange(index, sobject, options)}
         onLoadChildFields={handleLoadChildFields}

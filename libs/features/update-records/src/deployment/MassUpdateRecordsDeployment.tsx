@@ -190,6 +190,8 @@ export const MassUpdateRecordsDeployment = () => {
             deployResults={row.deployResults}
             sobject={row.sobject}
             configuration={row.configuration}
+            limit={row.limit}
+            offset={row.offset}
             validationResults={row.validationResults}
             batchSize={batchSize ?? 1000}
           />
