@@ -106,6 +106,20 @@ This will add a row to the mapping table and you will need to select a field and
 
 <img src={require('./field-mapping-manual-value.png').default} alt="Map using a manual value" />
 
+### Map one column to multiple fields
+
+A column in your file can be loaded into more than one Salesforce field. Use the `+` button on any row to add an
+additional mapping for that column, which appears directly beneath it.
+
+Some common uses:
+
+- Load the same value into two different fields.
+- Use one column as a normal value and also as a **reference** to set a lookup field, using the related field options
+  described above.
+- Populate both `Label` and `DeveloperName` on Custom Metadata records from a single column.
+
+Each Salesforce field can still only be mapped once, so every additional mapping must point to a different field.
+
 ## Load data
 
 There are some final options available before loading your data to Salesforce.

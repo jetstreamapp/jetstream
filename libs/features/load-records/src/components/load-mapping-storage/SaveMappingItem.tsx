@@ -3,7 +3,7 @@ import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { FieldMappingItem, LoadSavedMappingItem } from '@jetstream/types';
 import { ButtonGroupContainer, DropDown, Grid, Tooltip } from '@jetstream/ui';
-import { SELF_LOOKUP_KEY } from '@jetstream/ui-core';
+import { isStaticValuePlaceholder, SELF_LOOKUP_KEY } from '@jetstream/ui-core';
 import { formatDate } from 'date-fns/format';
 import isDate from 'lodash/isDate';
 import { FunctionComponent } from 'react';
@@ -67,14 +67,15 @@ function getTargetField(item: Omit<FieldMappingItem, 'fieldMetadata'>): string {
 }
 
 const TooltipContent = ({ mapping }: { mapping: LoadSavedMappingItem }) => {
-  const items: Omit<FieldMappingItem, 'fieldMetadata'>[] = Object.values(mapping.mapping);
+  // Keyed by mapping key rather than csvField, since one column can be mapped to multiple fields
+  const items: [string, Omit<FieldMappingItem, 'fieldMetadata'>][] = Object.entries(mapping.mapping);
   const visibleItems = items.slice(0, 25);
   const remainingItems = items.length - visibleItems.length;
   return (
     <ul>
-      {visibleItems.map((item) => (
-        <li key={item.csvField}>
-          <span>{item.csvField}</span> {'->'} <span>{getTargetField(item)}</span>
+      {visibleItems.map(([mappingKey, item]) => (
+        <li key={mappingKey}>
+          <span>{isStaticValuePlaceholder(item.csvField) ? 'Manual value' : item.csvField}</span> {'->'} <span>{getTargetField(item)}</span>
         </li>
       ))}
       {items.length > visibleItems.length && <li>...{formatNumber(remainingItems)} more...</li>}

@@ -280,6 +280,7 @@ export const ANALYTICS_KEYS = {
   load_GoBackToPrevStep: 'load_GoBackToPrevStep',
   load_MappingAutomationChanged: 'load_MappingAutomationChanged',
   load_SavedMappingLoaded: 'load_SavedMappingLoaded',
+  load_MappingAdditionalFieldAdded: 'load_MappingAdditionalFieldAdded',
   load_MappingFilterChanged: 'load_MappingFilterChanged',
   load_MappingRowPreviewChanged: 'load_MappingRowPreviewChanged',
   load_StartOver: 'load_StartOver',

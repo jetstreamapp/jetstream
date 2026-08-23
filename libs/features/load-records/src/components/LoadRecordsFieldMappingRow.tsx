@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { FieldMappingItemCsv, FieldWithRelatedEntities, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { Checkbox, ComboboxWithItems, Icon } from '@jetstream/ui';
+import { Checkbox, ComboboxWithItems, Grid, Icon, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
 import isNil from 'lodash/isNil';
 import { Fragment, FunctionComponent, useState } from 'react';
@@ -24,9 +24,15 @@ export interface LoadRecordsFieldMappingRowProps {
   fields: FieldWithRelatedEntities[];
   fieldMappingItem: FieldMappingItemCsv;
   csvField: string;
+  /** Key this row occupies in the FieldMapping object. Matches csvField unless this is an additional mapping for an already mapped column. */
+  mappingKey: string;
   csvRowData: string;
   binaryAttachmentBodyField?: Maybe<string>;
-  onSelectionChanged: (csvField: string, fieldMappingItem: FieldMappingItemCsv) => void;
+  /** An additional mapping can be removed, a column's own row can spawn more */
+  isAdditionalMapping: boolean;
+  onRemoveRow?: () => void;
+  onAddAdditionalMapping?: () => void;
+  onSelectionChanged: (mappingKey: string, fieldMappingItem: FieldMappingItemCsv) => void;
 }
 
 export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappingRowProps> = ({
@@ -35,8 +41,12 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
   fields,
   fieldMappingItem,
   csvField,
+  mappingKey,
   csvRowData,
   binaryAttachmentBodyField,
+  isAdditionalMapping,
+  onRemoveRow,
+  onAddAdditionalMapping,
   onSelectionChanged,
 }) => {
   const [fieldListItems, setFieldListItems] = useState<ListItem<string, FieldWithRelatedEntities>[]>(() => getFieldListItems(fields));
@@ -47,7 +57,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
 
   function handleSelectionChanged(field: Maybe<FieldWithRelatedEntities>) {
     if (!field) {
-      onSelectionChanged(csvField, {
+      onSelectionChanged(mappingKey, {
         type: 'CSV',
         csvField,
         targetField: null,
@@ -59,7 +69,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
         isBinaryBodyField: false,
       });
     } else if (field.name !== fieldMappingItem.targetField) {
-      onSelectionChanged(csvField, {
+      onSelectionChanged(mappingKey, {
         ...fieldMappingItem,
         targetField: field.name,
         mappedToLookup: false,
@@ -77,7 +87,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
     if (fieldMappingItem.selectedReferenceTo && referenceToItems.includes(fieldMappingItem.selectedReferenceTo)) {
       selectedReferenceTo = fieldMappingItem.selectedReferenceTo;
     }
-    onSelectionChanged(csvField, {
+    onSelectionChanged(mappingKey, {
       ...fieldMappingItem,
       mappedToLookup: value,
       selectedReferenceTo,
@@ -109,6 +119,14 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
       </td>
       <th scope="row" className="slds-align-top">
         <div className="slds-line-clamp_medium slds-m-top_x-small" title={csvField}>
+          {isAdditionalMapping && (
+            <Icon
+              type="utility"
+              icon="arrow_right"
+              className="slds-icon slds-icon-text-default slds-icon_xx-small slds-m-right_x-small"
+              description="Additional mapping for this field"
+            />
+          )}
           {csvField}
         </div>
       </th>
@@ -136,7 +154,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
             label: 'Salesforce Fields',
             hasError: !!fieldMappingItem.fieldErrorMsg,
             errorMessage: fieldMappingItem.fieldErrorMsg,
-            errorMessageId: `${csvField}-${fieldMappingItem.targetField}-mapping-error`,
+            errorMessageId: `${mappingKey}-${fieldMappingItem.targetField}-mapping-error`,
           }}
           items={fieldListItems}
           selectedItemId={fieldMappingItem.targetField}
@@ -161,7 +179,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
           <Fragment>
             <div>
               <Checkbox
-                id={`${csvField}-${fieldMappingItem.targetField}-map-to-related`}
+                id={`${mappingKey}-${fieldMappingItem.targetField}-map-to-related`}
                 checked={fieldMappingItem.mappedToLookup}
                 label="Map using related field"
                 labelHelp={
@@ -180,7 +198,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
               <LoadRecordsFieldMappingRelatedObject
                 org={org}
                 fieldMappingItem={fieldMappingItem}
-                csvField={csvField}
+                mappingKey={mappingKey}
                 onSelectionChanged={onSelectionChanged}
               />
             )}
@@ -188,7 +206,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
         )}
       </td>
       <td className="slds-align-top">
-        <div>
+        <Grid>
           <button
             className={classNames('slds-button slds-button_icon slds-button_icon-border', {
               'slds-button_icon-error': fieldMappingItem.targetField,
@@ -202,7 +220,30 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
             <Icon type="utility" icon="clear" className="slds-button__icon" omitContainer />
             <span className="slds-assistive-text">Clear Mapping</span>
           </button>
-        </div>
+          {isAdditionalMapping ? (
+            <Tooltip content="Remove this additional mapping">
+              <button
+                className="slds-button slds-button_icon slds-button_icon-border slds-button_icon-error slds-m-left_xx-small"
+                onClick={onRemoveRow}
+              >
+                <Icon type="utility" icon="delete" className="slds-button__icon" omitContainer />
+                <span className="slds-assistive-text">Remove Additional Mapping</span>
+              </button>
+            </Tooltip>
+          ) : (
+            onAddAdditionalMapping && (
+              <Tooltip content={`Map ${csvField} to an additional Salesforce field`}>
+                <button
+                  className="slds-button slds-button_icon slds-button_icon-border slds-m-left_xx-small"
+                  onClick={onAddAdditionalMapping}
+                >
+                  <Icon type="utility" icon="add" className="slds-button__icon" omitContainer />
+                  <span className="slds-assistive-text">Map to another field</span>
+                </button>
+              </Tooltip>
+            )
+          )}
+        </Grid>
       </td>
     </tr>
   );
