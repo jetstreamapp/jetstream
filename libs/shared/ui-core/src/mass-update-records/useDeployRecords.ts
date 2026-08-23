@@ -3,7 +3,7 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { bulkApiAddBatchToJob, bulkApiCreateJob, bulkApiGetJob } from '@jetstream/shared/data';
 import { checkIfBulkApiJobIsDone, convertDateToLocale, generateCsv, tracker, useBrowserNotifications } from '@jetstream/shared/ui-utils';
 import { delay, getErrorMessage, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { BulkJobBatchInfo, SalesforceOrgUi } from '@jetstream/types';
+import { BulkJobBatchInfo, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { applicationCookieState } from '@jetstream/ui/app-state';
 import { DataHistoryEntryHandle } from '@jetstream/ui/data-history';
 import { formatDate } from 'date-fns/format';
@@ -12,7 +12,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useAmplitude } from '../analytics';
 import { captureMassUpdateResults, MassUpdateHistoryContext, MassUpdateSource, startMassUpdateHistory } from './data-history-capture';
 import { DeployResults, MetadataRow, MetadataRowConfiguration } from './mass-update-records.types';
-import { getFieldsToQuery, prepareRecords, queryAndPrepareRecordsForUpdate } from './mass-update-records.utils';
+import { getEffectiveRecordLimit, getFieldsToQuery, prepareRecords, queryAndPrepareRecordsForUpdate } from './mass-update-records.utils';
 
 export function useDeployRecords(
   org: SalesforceOrgUi,
@@ -42,15 +42,17 @@ export function useDeployRecords(
       batchSize,
       serialMode,
       configuration,
+      limit,
       skipHistory,
     }: {
       sobject: string;
       batchSize: number;
       serialMode: boolean;
       configuration: MetadataRowConfiguration[];
+      limit?: Maybe<number>;
       skipHistory?: boolean;
     }): DataHistoryEntryHandle => {
-      const handle = startMassUpdateHistory({ org, source, sobject, batchSize, serialMode, configuration, skipHistory });
+      const handle = startMassUpdateHistory({ org, source, sobject, batchSize, serialMode, configuration, limit, skipHistory });
       historyCaptureRef.current[sobject] = { handle, batchSize, configuration };
       return handle;
     },
@@ -192,6 +194,7 @@ export function useDeployRecords(
         batchSize,
         serialMode,
         configuration: row.configuration,
+        limit: row.limit,
         skipHistory,
       });
 
@@ -245,6 +248,7 @@ export function useDeployRecords(
         batchSize: options.batchSize,
         serialMode: options.serialMode,
         numObjects: rows.length,
+        hasRecordLimit: rows.some((row) => !!getEffectiveRecordLimit(row.limit)),
         source,
       });
       for (const row of rows) {

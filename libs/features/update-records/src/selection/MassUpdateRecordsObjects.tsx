@@ -1,4 +1,4 @@
-import { ListItem, SalesforceOrgUi } from '@jetstream/types';
+import { ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, EmptyState, OpenRoadIllustration } from '@jetstream/ui';
 import { MetadataRow, TransformationOptions } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent } from 'react';
@@ -16,6 +16,7 @@ export interface MassUpdateRecordsObjectsProps {
   applyCommonOption: ReturnType<typeof useMassUpdateFieldItems>['applyCommonOption'];
   applyCommonCriteria: ReturnType<typeof useMassUpdateFieldItems>['applyCommonCriteria'];
   handleOptionChange: (configIndex: number, sobject: string, transformationOptions: TransformationOptions) => void;
+  handleRecordLimitChange: (sobject: string, limit: Maybe<number>) => void;
   handleAddField: (sobject: string) => void;
   handleRemoveField: (sobject: string, configIndex: number) => void;
   validateRowRecords: (sobject: string) => void;
@@ -31,6 +32,7 @@ export const MassUpdateRecordsObjects: FunctionComponent<MassUpdateRecordsObject
   applyCommonOption,
   applyCommonCriteria,
   handleOptionChange,
+  handleRecordLimitChange,
   handleAddField,
   handleRemoveField,
   validateRowRecords,
@@ -57,6 +59,7 @@ export const MassUpdateRecordsObjects: FunctionComponent<MassUpdateRecordsObject
                 onFieldSelected={onFieldSelected}
                 onLoadChildFields={onLoadChildFields}
                 handleOptionChange={handleOptionChange}
+                handleRecordLimitChange={handleRecordLimitChange}
                 validateRowRecords={validateRowRecords}
                 handleAddField={handleAddField}
                 handleRemoveField={handleRemoveField}

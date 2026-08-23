@@ -1,6 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { queryAll } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { Field, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
@@ -14,13 +13,10 @@ import { fromJetstreamEvents } from '../jetstream-events';
 import MassUpdateRecordTransformationText from './MassUpdateRecordTransformationText';
 import MassUpdateRecordsObjectRowCriteria from './MassUpdateRecordsObjectRowCriteria';
 import MassUpdateRecordsObjectRowField from './MassUpdateRecordsObjectRowField';
+import MassUpdateRecordsObjectRowLimit from './MassUpdateRecordsObjectRowLimit';
 import MassUpdateRecordsObjectRowValue from './MassUpdateRecordsObjectRowValue';
 import { MetadataRow, MetadataRowConfiguration, TransformationOptions, ValidationResults } from './mass-update-records.types';
-import {
-  composeSoqlQueryCustomWhereClause,
-  composeSoqlQueryOptionalCustomWhereClause,
-  getFieldsToQuery,
-} from './mass-update-records.utils';
+import { getFieldsToQuery, queryRecordsForRow } from './mass-update-records.utils';
 
 export interface MassUpdateRecordsObjectRowProps {
   org: SalesforceOrgUi;
@@ -32,6 +28,11 @@ export interface MassUpdateRecordsObjectRowProps {
   fieldConfigurations: MetadataRowConfiguration[];
   validationResults?: Maybe<ValidationResults>;
   hasExternalWhereClause?: boolean;
+  /**
+   * When provided, inputs to limit / skip records are shown. Omitted where the records to update are
+   * already scoped by something else, such as the query results entry point.
+   */
+  recordLimit?: { limit: Maybe<number>; onChange: (limit: Maybe<number>) => void };
   disabled?: boolean;
   onFieldChange: (index: number, selectedField: string, fieldMetadata: Field) => void;
   onOptionsChange: (index: number, sobject: string, options: TransformationOptions) => void;
@@ -53,6 +54,7 @@ export const MassUpdateRecordsObjectRow: FunctionComponent<MassUpdateRecordsObje
   fieldConfigurations,
   validationResults,
   hasExternalWhereClause,
+  recordLimit,
   disabled,
   onFieldChange,
   onOptionsChange,
@@ -78,33 +80,18 @@ export const MassUpdateRecordsObjectRow: FunctionComponent<MassUpdateRecordsObje
     try {
       setDownloadRecordsLoading(true);
       const fieldsToQuery = getFieldsToQuery(fieldConfigurations);
-      const row = { sobject, configuration: fieldConfigurations } as MetadataRow;
-      const standardQuery = composeSoqlQueryOptionalCustomWhereClause(row, fieldsToQuery);
-      const customQuery = composeSoqlQueryCustomWhereClause(row, fieldsToQuery);
-
-      const recordsById: Record<string, any> = {};
-
-      if (standardQuery) {
-        const result = await queryAll(org, standardQuery);
-        result.queryResults.records.forEach((record) => {
-          recordsById[record.Id] = record;
-        });
-      }
-
-      if (customQuery) {
-        const result = await queryAll(org, customQuery);
-        result.queryResults.records.forEach((record) => {
-          recordsById[record.Id] = record;
-        });
-      }
+      const row = { sobject, configuration: fieldConfigurations, limit: recordLimit?.limit } as MetadataRow;
+      // Shares the deploy path's fetch so the previewed records are exactly the records that will be updated.
+      // Custom criteria membership is skipped because the download shows the raw queried records.
+      const { records } = await queryRecordsForRow(row, fieldsToQuery, org, { resolveCustomCriteria: false });
 
       setDownloadModalData({
         open: true,
-        data: Object.values(recordsById),
+        data: records,
         header: fieldsToQuery,
         fileNameParts: ['mass-update', sobject.toLowerCase(), 'validation-records'],
       });
-      trackEvent(ANALYTICS_KEYS.mass_update_DownloadRecords, { type: 'validation', numRows: Object.keys(recordsById).length });
+      trackEvent(ANALYTICS_KEYS.mass_update_DownloadRecords, { type: 'validation', numRows: records.length });
     } catch (ex) {
       logger.error('[DOWNLOAD VALIDATION RECORDS]', ex);
       fireToast({ type: 'error', message: `Failed to download records. ${getErrorMessage(ex)}` });
@@ -181,6 +168,16 @@ export const MassUpdateRecordsObjectRow: FunctionComponent<MassUpdateRecordsObje
             </button>
           </div>
         </GridCol>
+        {recordLimit && (
+          <GridCol size={12} className="slds-m-top_small">
+            <MassUpdateRecordsObjectRowLimit
+              sobject={sobject}
+              limit={recordLimit.limit}
+              disabled={disabled}
+              onChange={recordLimit.onChange}
+            />
+          </GridCol>
+        )}
       </Grid>
       {validationResults && (
         <footer className="slds-card__footer">

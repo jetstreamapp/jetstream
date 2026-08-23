@@ -7,6 +7,7 @@ import { BulkJobResultRecord, DescribeGlobalSObjectResult, ListItem, Maybe, Sale
 import { Query, composeQuery, getField, isQueryValid } from '@jetstreamapp/soql-parser-js';
 import lodashGet from 'lodash/get';
 import isNil from 'lodash/isNil';
+import isNumber from 'lodash/isNumber';
 import { MetadataRow, MetadataRowConfiguration } from './mass-update-records.types';
 
 /**
@@ -18,19 +19,46 @@ import { MetadataRow, MetadataRowConfiguration } from './mass-update-records.typ
  */
 export const MAX_ID_QUERY_LENGTH = 9500;
 
+/** Validation message for a row's record limit, or null when the limit is unset or usable */
+export function getRecordLimitError(limit: Maybe<number>): string | null {
+  if (isNumber(limit) && limit < 1) {
+    return 'The limit must be 1 or greater';
+  }
+  return null;
+}
+
+/**
+ * Normalized `LIMIT` for a row. `Maybe<number>` admits `null`, `undefined`, `0` and negative values,
+ * none of which mean anything to a query, so every consumer reads the limit through here and checks
+ * plain truthiness instead of restating which values count.
+ */
+export function getEffectiveRecordLimit(limit: Maybe<number>): number | null {
+  return isNumber(limit) && limit > 0 ? limit : null;
+}
+
+/**
+ * `LIMIT` suffix for a row. Appended by hand instead of through `composeQuery` because the WHERE
+ * clauses are composed as raw strings after the query is built, and the limit must follow them.
+ */
+function getLimitClause(row: Pick<MetadataRow, 'limit'>): string {
+  const limit = getEffectiveRecordLimit(row.limit);
+  return limit ? ` LIMIT ${limit}` : '';
+}
+
 /**
  * Split a set of record Ids into as few `WHERE Id IN (...)` queries as possible while keeping each query
  * under {@link MAX_ID_QUERY_LENGTH} so it does not blow past Salesforce's query-URL length limit.
  */
-function buildChunkedIdInQueries(baseSoql: string, ids: string[]): string[] {
+function buildChunkedIdInQueries(baseSoql: string, ids: string[], additionalWhereClause?: Maybe<string>): string[] {
   const queries: string[] = [];
-  const wrapperLength = baseSoql.length + ' WHERE Id IN ()'.length;
+  const additionalClause = additionalWhereClause ? ` AND (${additionalWhereClause})` : '';
+  const wrapperLength = baseSoql.length + ' WHERE Id IN ()'.length + additionalClause.length;
   let chunk: string[] = [];
   let chunkLength = wrapperLength;
 
   const flushChunk = () => {
     if (chunk.length > 0) {
-      queries.push(`${baseSoql} WHERE Id IN (${chunk.join(',')})`);
+      queries.push(`${baseSoql} WHERE Id IN (${chunk.join(',')})${additionalClause}`);
       chunk = [];
       chunkLength = wrapperLength;
     }
@@ -111,6 +139,9 @@ export const transformationCriteriaListItems: ListItem[] = [
  */
 export function isValidRow(row: Maybe<MetadataRow>) {
   if (!row?.configuration?.length) {
+    return false;
+  }
+  if (getRecordLimitError(row.limit)) {
     return false;
   }
   return row.configuration.every(({ selectedField, transformationOptions }) => {
@@ -195,10 +226,84 @@ export function getMassUpdateBatchSourceRecords(
 }
 
 export function getValidationSoqlQuery(row: MetadataRow) {
-  return composeSoqlQueryOptionalCustomWhereClause(row, [`Count()`], true);
+  return composeSoqlQueryOptionalCustomWhereClause(row, [`Count()`], { includeCustom: true });
 }
 
-export async function queryAndPrepareRecordsForUpdate(row: MetadataRow, fields: string[], org: SalesforceOrgUi) {
+/**
+ * The `(clause) OR (clause)` WHERE fragment for the row's custom criteria, or null when it has none.
+ */
+function getCustomCriteriaWhereClause(row: Pick<MetadataRow, 'configuration'>): string | null {
+  const whereClauses = row.configuration
+    .filter(
+      ({ transformationOptions }) => transformationOptions.criteria === 'custom' && isValidWhereClause(transformationOptions.whereClause),
+    )
+    .map(({ transformationOptions }) => `(${normalizeWhereClause(transformationOptions.whereClause)})`)
+    .join(' OR ');
+  return whereClauses || null;
+}
+
+/**
+ * Which of the already-fetched `records` match the row's custom criteria, resolved with `WHERE Id IN (...)`
+ * queries scoped to those records. Short-circuited when every criteria on the row is custom, because the
+ * fetched records are then all custom matches by construction and there is nothing to narrow.
+ */
+async function queryCustomCriteriaRecordIds(
+  row: MetadataRow,
+  records: SalesforceRecord[],
+  customWhereClause: string,
+  org: SalesforceOrgUi,
+): Promise<Set<string>> {
+  const recordIds = records.map(({ Id }) => Id);
+  if (!recordIds.length) {
+    return new Set();
+  }
+  if (row.configuration.every(({ transformationOptions }) => transformationOptions.criteria === 'custom')) {
+    return new Set(recordIds);
+  }
+
+  const baseSoql = composeQuery({ fields: [getField('Id')], sObject: row.sobject });
+  const { queryResults } = await queryAllFromList<SalesforceRecord>(org, buildChunkedIdInQueries(baseSoql, recordIds, customWhereClause));
+  return new Set(queryResults.records.map(({ Id }) => Id));
+}
+
+/**
+ * The records a row will update, plus which of them matched the row's custom criteria (which
+ * {@link prepareRecords} needs to decide per-field whether the criteria was met).
+ *
+ * A row can mix custom criteria with `all` / `onlyIfBlank` / `onlyIfNotBlank` criteria, and a single
+ * query cannot both union the two and report which records matched which - so without a limit this is
+ * just two queries merged. With a limit it cannot be, because a `LIMIT` on each query windows each
+ * criteria independently rather than windowing the union that validation counted: the merged set would
+ * overshoot the limit. A limited row therefore fetches the same unioned window validation counted,
+ * then resolves custom-criteria membership within that window by Id.
+ *
+ * Pass `resolveCustomCriteria: false` when only the records themselves are needed (the validation
+ * records download): membership does not change which records are returned, and resolving it costs an
+ * extra chunked `WHERE Id IN (...)` query for every ~450 records in the window.
+ */
+export async function queryRecordsForRow(
+  row: MetadataRow,
+  fields: string[],
+  org: SalesforceOrgUi,
+  { resolveCustomCriteria = true }: { resolveCustomCriteria?: boolean } = {},
+): Promise<{ records: SalesforceRecord[]; customCriteriaRecordIds: Set<string> }> {
+  const limit = getEffectiveRecordLimit(row.limit);
+  const customWhereClause = getCustomCriteriaWhereClause(row);
+
+  if (limit) {
+    const windowQuery = composeSoqlQueryOptionalCustomWhereClause(row, fields, { includeCustom: true });
+    if (!windowQuery) {
+      return { records: [], customCriteriaRecordIds: new Set() };
+    }
+    const { queryResults } = await queryAll<SalesforceRecord>(org, windowQuery);
+    const records = queryResults.records;
+    return {
+      records,
+      customCriteriaRecordIds:
+        resolveCustomCriteria && customWhereClause ? await queryCustomCriteriaRecordIds(row, records, customWhereClause, org) : new Set(),
+    };
+  }
+
   const standardQuery = composeSoqlQueryOptionalCustomWhereClause(row, fields);
   const customWhereClauseQuery = composeSoqlQueryCustomWhereClause(row, fields);
 
@@ -222,10 +327,19 @@ export async function queryAndPrepareRecordsForUpdate(row: MetadataRow, fields: 
     );
   }
 
-  return prepareRecords(Object.values(recordsById), row.configuration, customCriteriaRecordIds);
+  return { records: Object.values(recordsById), customCriteriaRecordIds };
 }
 
-export function composeSoqlQueryOptionalCustomWhereClause(row: MetadataRow, fields: string[], includeCustom = false) {
+export async function queryAndPrepareRecordsForUpdate(row: MetadataRow, fields: string[], org: SalesforceOrgUi) {
+  const { records, customCriteriaRecordIds } = await queryRecordsForRow(row, fields, org);
+  return prepareRecords(records, row.configuration, customCriteriaRecordIds);
+}
+
+export function composeSoqlQueryOptionalCustomWhereClause(
+  row: MetadataRow,
+  fields: string[],
+  { includeCustom = false }: { includeCustom?: boolean } = {},
+) {
   const query: Query = {
     fields: fields.map((field) => getField(field)),
     sObject: row.sobject,
@@ -257,6 +371,8 @@ export function composeSoqlQueryOptionalCustomWhereClause(row: MetadataRow, fiel
     soql += ` WHERE ${whereClauses}`;
   }
 
+  soql += getLimitClause(row);
+
   logger.info('composeSoqlQueryExceptCustomWhereClause()', { soql });
   return soql;
 }
@@ -267,17 +383,13 @@ export function composeSoqlQueryCustomWhereClause(row: MetadataRow, fields: stri
     sObject: row.sobject,
   };
 
-  const whereClauses = row.configuration
-    .filter(
-      ({ transformationOptions }) => transformationOptions.criteria === 'custom' && isValidWhereClause(transformationOptions.whereClause),
-    )
-    .map(({ transformationOptions }) => `(${normalizeWhereClause(transformationOptions.whereClause)})`)
-    .join(' OR ');
+  const whereClauses = getCustomCriteriaWhereClause(row);
 
   if (!whereClauses) {
     return null;
   }
 
+  // Never limited: a limit is only meaningful on the unioned query (see queryRecordsForRow)
   const soql = `${composeQuery(query)} WHERE ${whereClauses}`;
 
   logger.info('composeSoqlQueryCustomWhereClause()', { soql });
