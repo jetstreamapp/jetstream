@@ -3,6 +3,7 @@ import { describeSObject, sobjectOperation, updatePermissionSetRecords } from '@
 import { isErrorResponse } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
+  CustomFieldAuditRecord,
   DescribeGlobalSObjectResult,
   EntityParticlePermissionsRecord,
   Field,
@@ -46,6 +47,9 @@ const MAX_OBJ_IN_QUERY = 100;
  * objects share one query - the prior OFFSET approach had to keep chunks tiny to stay under the 2000 limit.
  */
 const MAX_OBJ_IN_PERMISSIONABLE_FIELDS_QUERY = MAX_OBJ_IN_QUERY;
+
+/** Salesforce ids are returned as 18 characters, but FieldDefinitionId embeds the 15 character form */
+const FIFTEEN_CHARACTER_ID_LENGTH = 15;
 
 export function filterPermissionsSobjects(sobject: DescribeGlobalSObjectResult | null) {
   if (!sobject) {
@@ -140,6 +144,16 @@ export function getPermissionsSobjectFilter(permissionableSobjects: Maybe<Permis
 
 export function getFieldDefinitionKey(record: EntityParticlePermissionsRecord) {
   return `${record.EntityDefinition.QualifiedApiName}.${record.QualifiedApiName}`;
+}
+
+/**
+ * Join key that lines a Tooling `CustomField` record up with the `FieldDefinitionId` the field list already carries.
+ *
+ * `EntityDefinitionId` is the object api name for standard objects (`Account`) and the 15 character CustomObject id
+ * for custom objects (`01I...`), which is exactly what `FieldDefinitionId` is prefixed with.
+ */
+export function getFieldDefinitionKeyFromCustomField(record: CustomFieldAuditRecord) {
+  return `${record.EntityDefinitionId}.${record.Id.slice(0, FIFTEEN_CHARACTER_ID_LENGTH)}`;
 }
 
 export function getObjectPermissionKey(record: ObjectPermissionRecord) {
@@ -1032,6 +1046,46 @@ export function getQueryTabDefinition(allSobjects: string[]): string[] {
     return composeQuery(query);
   });
   logger.log('getQueryTabDefinition()', queries);
+  return queries;
+}
+
+/**
+ * Field audit data (created/modified date and user) from the Tooling `CustomField` object.
+ *
+ * EntityParticle - the source for the field list itself - exposes no audit fields at all, so this is a
+ * separate query joined back on `` `${EntityDefinitionId}.${Id.slice(0, 15)}` ``, which is exactly the
+ * `EntityParticle.FieldDefinitionId` already selected by {@link getQueryForAllPermissionableFields}.
+ *
+ * Standard fields have no CustomField record, so they are simply absent from these results - Salesforce
+ * does not track audit data for them anywhere.
+ *
+ * Unlike EntityParticle, CustomField supports queryMore, so each chunk is a plain query.
+ */
+export function getQueryForCustomFieldAudit(allSobjects: string[]): string[] {
+  const queries = splitArrayToMaxSize(allSobjects, MAX_OBJ_IN_QUERY).map((sobjects) => {
+    const query: Query = {
+      fields: [
+        getField('Id'),
+        getField('EntityDefinitionId'),
+        getField('CreatedDate'),
+        getField('CreatedBy.Name'),
+        getField('LastModifiedDate'),
+        getField('LastModifiedBy.Name'),
+      ],
+      sObject: 'CustomField',
+      where: {
+        left: {
+          field: 'EntityDefinition.QualifiedApiName',
+          operator: 'IN',
+          value: sobjects,
+          literalType: 'STRING',
+        },
+      },
+    };
+
+    return composeQuery(query);
+  });
+  logger.log('getQueryForCustomFieldAudit()', queries);
   return queries;
 }
 

@@ -168,6 +168,22 @@ export interface EntityParticlePermissionsRecord {
   IsPermissionable: boolean;
 }
 
+/**
+ * Tooling `CustomField`, queried for the audit fields that `EntityParticle` does not expose.
+ *
+ * Joins back to {@link EntityParticlePermissionsRecord.FieldDefinitionId} as
+ * `` `${EntityDefinitionId}.${Id.slice(0, 15)}` ``. Standard fields have no CustomField record,
+ * so Salesforce exposes no audit data for them at all.
+ */
+export interface CustomFieldAuditRecord {
+  Id: string;
+  EntityDefinitionId: string;
+  CreatedDate: string;
+  CreatedBy: { Name: string } | null;
+  LastModifiedDate: string;
+  LastModifiedBy: { Name: string } | null;
+}
+
 export interface PermissionSetRecord {
   attributes: RecordAttributes;
   Id: string;

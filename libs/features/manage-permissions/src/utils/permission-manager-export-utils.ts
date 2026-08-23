@@ -1,5 +1,7 @@
+import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { ensureXlsxCodepageTable, excelWorkbookToArrayBuffer, getMaxWidthFromColumnContent } from '@jetstream/shared/ui-utils';
 import {
+  Maybe,
   PermissionTableFieldCell,
   PermissionTableObjectCell,
   PermissionTableSummaryRow,
@@ -7,15 +9,81 @@ import {
   PermissionTableTabVisibilityCell,
 } from '@jetstream/types';
 import { ColumnWithFilter } from '@jetstream/ui';
+import { formatDate } from 'date-fns/format';
+import { isValid as isDateValid } from 'date-fns/isValid';
+import { parseISO } from 'date-fns/parseISO';
 import JSZip from 'jszip';
 import { unparse } from 'papaparse';
 import * as XLSX from 'xlsx';
+import { FIELD_AUDIT_COLUMNS, getFieldAuditExportHeaders } from './permission-manager-field-audit-columns';
+
+/**
+ * Excel number format for the audit date cells. `hh` is 24 hour here because the format has no AM/PM token, which
+ * keeps the worksheet rendering the same as `DATE_FORMATS.yyyy_MM_dd_HH_mm_ss` in the csv.
+ */
+const AUDIT_DATE_EXCEL_FORMAT = 'yyyy-mm-dd hh:mm:ss';
 
 type PermissionExportColumn =
   | ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>
   | ColumnWithFilter<PermissionTableFieldCell, PermissionTableSummaryRow>
   | ColumnWithFilter<PermissionTableTabVisibilityCell, PermissionTableSummaryRow>
   | ColumnWithFilter<PermissionTableSystemPermissionCell, PermissionTableSummaryRow>;
+
+/**
+ * Leading columns of the field permissions export, before the per profile / permission set groups.
+ *
+ * Audit columns are always exported even when hidden in the grid - a spreadsheet has no width pressure, and
+ * they are most useful there.
+ */
+function getFieldExportPrefix(): string[] {
+  return ['Object', 'Field Api Name', 'Field Label', ...getFieldAuditExportHeaders()];
+}
+
+/** Audit timestamps arrive as raw ISO strings from the Tooling API */
+function parseAuditDate(value: Maybe<string>): Date | null {
+  if (!value) {
+    return null;
+  }
+  const parsedDate = parseISO(value);
+  return isDateValid(parsedDate) ? parsedDate : null;
+}
+
+/**
+ * Leading columns of a single field row.
+ *
+ * `formatAuditDate` decides how the date columns are emitted - the csv needs a sortable string while the worksheet
+ * needs a real Date, which Excel turns into a native date cell instead of text that cannot be sorted or filtered
+ * chronologically.
+ */
+function getFieldExportRowPrefix<TDateValue extends string | Date>(
+  row: PermissionTableFieldCell,
+  formatAuditDate: (date: Date) => TDateValue,
+): (string | TDateValue)[] {
+  return [
+    row.sobject,
+    row.apiName,
+    row.label,
+    // Derived from the same list as `getFieldAuditExportHeaders`, so values cannot drift out from under headers
+    ...FIELD_AUDIT_COLUMNS.map(({ key, type }) => {
+      const value = row[key] ?? '';
+      if (type !== 'date') {
+        return value;
+      }
+      const parsedDate = parseAuditDate(value);
+      // Keep the raw value rather than dropping data if Salesforce ever returns an unparseable timestamp
+      return parsedDate ? formatAuditDate(parsedDate) : value;
+    }),
+  ];
+}
+
+/** 24 hour and zero padded so the column sorts correctly even when a spreadsheet treats it as text */
+function getFieldCsvRowPrefix(row: PermissionTableFieldCell): string[] {
+  return getFieldExportRowPrefix(row, (date) => formatDate(date, DATE_FORMATS.yyyy_MM_dd_HH_mm_ss));
+}
+
+function getFieldWorksheetRowPrefix(row: PermissionTableFieldCell): (string | Date)[] {
+  return getFieldExportRowPrefix(row, (date) => date);
+}
 
 export function generateExcelWorkbookFromTable(
   objectData: { columns: PermissionExportColumn[]; rows: PermissionTableObjectCell[] },
@@ -123,11 +191,12 @@ function generateObjectWorksheet(columns: PermissionExportColumn[], rows: Permis
   return worksheet;
 }
 
-function generateFieldWorksheet(columns: PermissionExportColumn[], rows: PermissionTableFieldCell[]) {
+export function generateFieldWorksheet(columns: PermissionExportColumn[], rows: PermissionTableFieldCell[]) {
   const merges: XLSX.Range[] = [];
-  const header1: string[] = ['', '', ''];
-  const header2: string[] = ['Object', 'Field Api Name', 'Field Label'];
-  const excelRows = [header1, header2];
+  const exportPrefix = getFieldExportPrefix();
+  const header1: string[] = exportPrefix.map(() => '');
+  const header2: string[] = [...exportPrefix];
+  const excelRows: (string | Date)[][] = [header1, header2];
 
   const permissionKeys: string[] = [];
 
@@ -153,7 +222,7 @@ function generateFieldWorksheet(columns: PermissionExportColumn[], rows: Permiss
     });
 
   rows.forEach((row, _i) => {
-    const currRow = [row.sobject, row.apiName, row.label];
+    const currRow = getFieldWorksheetRowPrefix(row);
     permissionKeys.forEach((key) => {
       const permission = row.permissions[key];
       currRow.push(permission.read ? 'TRUE' : 'FALSE');
@@ -162,8 +231,13 @@ function generateFieldWorksheet(columns: PermissionExportColumn[], rows: Permiss
     excelRows.push(currRow);
   });
 
-  const worksheet = XLSX.utils.aoa_to_sheet(excelRows);
-  worksheet['!cols'] = getMaxWidthFromColumnContent(excelRows, new Set([0]));
+  const worksheet = XLSX.utils.aoa_to_sheet(excelRows, { cellDates: true, dateNF: AUDIT_DATE_EXCEL_FORMAT });
+  // Column widths are measured from the stringified value, and a Date stringifies to the full js date string,
+  // so the date cells are measured against how Excel will actually render them
+  worksheet['!cols'] = getMaxWidthFromColumnContent(
+    excelRows.map((row) => row.map((value) => (value instanceof Date ? formatDate(value, DATE_FORMATS.yyyy_MM_dd_HH_mm_ss) : value))),
+    new Set([0]),
+  );
   worksheet['!merges'] = merges;
   return worksheet;
 }
@@ -251,9 +325,10 @@ function generateObjectCsv(columns: PermissionExportColumn[], rows: PermissionTa
   return unparse(csvRows);
 }
 
-function generateFieldCsv(columns: PermissionExportColumn[], rows: PermissionTableFieldCell[]) {
-  const header1: string[] = ['', '', ''];
-  const header2: string[] = ['Object', 'Field Api Name', 'Field Label'];
+export function generateFieldCsv(columns: PermissionExportColumn[], rows: PermissionTableFieldCell[]) {
+  const exportPrefix = getFieldExportPrefix();
+  const header1: string[] = exportPrefix.map(() => '');
+  const header2: string[] = [...exportPrefix];
   const csvRows: string[][] = [];
 
   const permissionKeys: string[] = [];
@@ -274,7 +349,7 @@ function generateFieldCsv(columns: PermissionExportColumn[], rows: PermissionTab
   csvRows.push(header1, header2);
 
   rows.forEach((row) => {
-    const currRow = [row.sobject, row.apiName, row.label];
+    const currRow = getFieldCsvRowPrefix(row);
     permissionKeys.forEach((key) => {
       const permission = row.permissions[key];
       currRow.push(permission.read ? 'TRUE' : 'FALSE', permission.edit ? 'TRUE' : 'FALSE');

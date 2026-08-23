@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { useJetstreamTable } from '../core/useJetstreamTable';
-import { copyGridDataToClipboard, copyGridGroupRowsToClipboard } from '../grid-clipboard';
+import { copyGenericTableDataToClipboard, copyGridDataToClipboard, copyGridGroupRowsToClipboard } from '../grid-clipboard';
 import { ColumnWithFilter, TanstackTable } from '../grid-types';
 
 const copyRecordsToClipboard = vi.hoisted(() => vi.fn());
@@ -140,5 +140,45 @@ describe('copyGridGroupRowsToClipboard', () => {
     copyRecordsToClipboard.mockClear();
     copyGridGroupRowsToClipboard(table, groupRow!, true);
     expect(copiedRecords().records[0]).toEqual({ c0: 'Type', c1: 'Record Name', c2: 'Account Name', c3: 'Detail' });
+  });
+});
+
+describe('copyGenericTableDataToClipboard', () => {
+  beforeEach(() => copyRecordsToClipboard.mockClear());
+
+  const detailColumn = columns.find(({ key }) => key === 'Detail')!;
+  const nameColumn = columns.find(({ key }) => key === 'Name')!;
+  const fields = columns.map(({ key }) => key);
+  const actionData = (column: ColumnWithFilter<Row>) => ({ row: data[0], rows: data, rowIdx: 0, column, columns });
+
+  test('copies a column through getValue so the clipboard matches the rendered cell', () => {
+    copyGenericTableDataToClipboard('COPY_COL', fields, actionData(detailColumn));
+    const [records, format, copiedFields] = copyRecordsToClipboard.mock.calls[0];
+    expect(format).toBe('excel');
+    expect(copiedFields).toEqual(['Detail']);
+    expect(records).toEqual([{ Detail: '1 items' }, { Detail: '2 items' }, { Detail: '3 items' }]);
+  });
+
+  test('falls back to the raw row property for columns without getValue', () => {
+    copyGenericTableDataToClipboard('COPY_CELL', fields, actionData(nameColumn));
+    const [records, , copiedFields] = copyRecordsToClipboard.mock.calls[0];
+    expect(copiedFields).toEqual(['Name']);
+    expect(records).toEqual([{ Name: 'One' }]);
+  });
+
+  test('resolves getValue for every column when copying whole rows as text', () => {
+    copyGenericTableDataToClipboard('COPY_ROW_EXCEL', fields, actionData(nameColumn));
+    const [records, format] = copyRecordsToClipboard.mock.calls[0];
+    expect(format).toBe('excel');
+    expect(records[0]).toMatchObject({ Name: 'One', Detail: '1 items' });
+  });
+
+  test('keeps raw values for JSON copies', () => {
+    copyGenericTableDataToClipboard('COPY_ROW_JSON', fields, actionData(nameColumn));
+    expect(copyRecordsToClipboard.mock.calls[0][0][0]).toMatchObject({ Detail: { count: 1 } });
+
+    copyRecordsToClipboard.mockClear();
+    copyGenericTableDataToClipboard('COPY_COL_JSON', fields, actionData(detailColumn));
+    expect(copyRecordsToClipboard.mock.calls[0][0]).toEqual([{ Detail: { count: 1 } }, { Detail: { count: 2 } }, { Detail: { count: 3 } }]);
   });
 });
