@@ -124,8 +124,11 @@ function prepareTargetPackageJson() {
   // Inherit root pnpm-workspace.yaml settings but reset `packages` to an empty list so
   // TARGET_DIR becomes a self-contained workspace root with no nested member packages.
   // This isolates the subsequent `pnpm add` calls from the parent repo's workspace/lockfile.
-  const targetWorkspace = { ...rootWorkspace, packages: [] };
-  writeFileSync(TARGET_PNPM_WORKSPACE_PATH, dumpYaml(targetWorkspace));
+  // Drop `patchedDependencies` too: it points at files under the root `patches/` directory,
+  // which isn't copied into TARGET_DIR, and the patched packages (e.g. dev-only lint tooling)
+  // aren't part of the desktop build's dependency set anyway.
+  const { patchedDependencies, ...targetWorkspace } = rootWorkspace;
+  writeFileSync(TARGET_PNPM_WORKSPACE_PATH, dumpYaml({ ...targetWorkspace, packages: [] }));
 }
 
 async function build() {
