@@ -1,5 +1,20 @@
 # Changelog
 
+## [10.15.0](https://github.com/jetstreamapp/jetstream/compare/v10.14.1...v10.15.0) (2026-08-23)
+
+### Features
+
+- add optional field audit columns to permission manager ([2740976](https://github.com/jetstreamapp/jetstream/commit/27409761cf15857f0ae17cea77af3c3b825d1d4a)), closes [#900](https://github.com/jetstreamapp/jetstream/issues/900)
+- add record limit to update records ([9be1d59](https://github.com/jetstreamapp/jetstream/commit/9be1d59fa49a69b9e4f763b1c371af3189665dfa)), closes [#1030](https://github.com/jetstreamapp/jetstream/issues/1030)
+- add release notes for version 10.14.1 - Manage Permissions object list fix ([303a973](https://github.com/jetstreamapp/jetstream/commit/303a97317a53ce50d33649f849c3590e58a78f33))
+- allow one file column to be mapped to multiple Salesforce fields ([17ab18a](https://github.com/jetstreamapp/jetstream/commit/17ab18a34955f2b248c0cbc72398c6d7718f1981)), closes [#646](https://github.com/jetstreamapp/jetstream/issues/646)
+- hide unchanged files when comparing metadata between orgs ([e0e98c5](https://github.com/jetstreamapp/jetstream/commit/e0e98c5f3523b0f27836332e6177fb960ce47df0)), closes [#1334](https://github.com/jetstreamapp/jetstream/issues/1334)
+- suggest combining repeated query filters into In / Not In ([9ee3db9](https://github.com/jetstreamapp/jetstream/commit/9ee3db966998685d71ebf59d4fb1dfa37aff3a9a)), closes [#1987](https://github.com/jetstreamapp/jetstream/issues/1987)
+
+### Bug Fixes
+
+- lower Refresh All Orgs concurrency and improve OPFS worker error detail ([7f0d237](https://github.com/jetstreamapp/jetstream/commit/7f0d237874bc849823df5f5bbcbf18ab4641b0fa))
+
 ## [10.14.1](https://github.com/jetstreamapp/jetstream/compare/v10.14.0...v10.14.1) (2026-08-21)
 
 ### Bug Fixes
