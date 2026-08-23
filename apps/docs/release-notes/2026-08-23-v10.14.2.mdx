@@ -1,0 +1,58 @@
+---
+slug: v10.14.2
+title: 10.14.2 - Record limit for Update Records, map one column to multiple fields
+date: '2026-08-23'
+tags: [web]
+versions:
+  web: 10.14.2
+summary: Update Records can limit how many records are updated at a time, and Load Records can map one file column to multiple Salesforce fields.
+highlights:
+  - title: Record limit in Update Records
+    description: Set a maximum number of records to update per object to work through large data volumes a chunk at a time.
+    docLink: /load/update-records
+  - title: Map one column to multiple fields
+    description: Load Records lets you map the same file column to more than one Salesforce field without duplicating the column in your file.
+    docLink: /load
+  - title: Hide unchanged files when comparing metadata
+    description: A new checkbox in the metadata comparison view hides files that are identical in both orgs.
+    docLink: /deploy-metadata
+  - title: Field audit columns in Manage Permissions
+    description: The Field Permissions tab can show created and last modified date and user for each custom field, and exports always include them.
+    docLink: /permissions
+  - title: Combine repeated query filters into In or Not In
+    description: The query builder suggests collapsing multiple conditions on the same field into a single In or Not In condition.
+    docLink: /query
+---
+
+{/* truncate */}
+
+## What's new
+
+### Record limit in Update Records
+
+Each object in Update Records now has an optional **Maximum records to update** field. Leave it blank to update every record that matches your criteria. To work through a large object in chunks, pair the limit with a criteria that stops matching once a record is updated (for example **Only if blank**) and re-run the update. The limit is applied to the query itself, so the impacted record count shown during validation, the Download Records button, and the update all use the same set of records.
+
+### Map one column to multiple fields
+
+In Load Records, a single column from your file can now be mapped to more than one Salesforce field. This includes using the same column both as a field value and as a lookup reference. Previously the column had to be duplicated in the source file.
+
+### Hide unchanged files when comparing metadata
+
+When comparing metadata between two orgs in Deploy Metadata, a new **Hide Unchanged Files** checkbox filters the file tree down to files that differ between the orgs. A "Showing X of Y files" count appears alongside the checkbox.
+
+### Field audit columns in Manage Permissions
+
+The Field Permissions tab in Manage Permissions can now show the created date, created by, last modified date, and last modified by for each field. Turn the columns on from the gear menu on the tab. Exports always include these columns. Standard fields do not have audit information in Salesforce, so those cells are blank.
+
+### Combine repeated query filters into In or Not In
+
+When the query builder detects two or more conditions on the same field that can be combined, it shows a dismissible hint above the filter rows with a one-click conversion:
+
+- **OR** with **Equals** becomes a single **In** condition
+- **AND** with **Does Not Equal** becomes a single **Not In** condition
+
+Conditions that use a date picker or a field function are left as-is.
+
+### Other fixes
+
+- Refresh All Orgs now checks fewer orgs at once, which reduces failed health checks on pages with a large number of orgs.

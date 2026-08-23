@@ -1,5 +1,40 @@
 [
   {
+    "slug": "v10.14.2",
+    "title": "10.14.2 - Record limit for Update Records, map one column to multiple fields",
+    "date": "2026-08-23",
+    "tags": ["web"],
+    "versions": { "web": "10.14.2" },
+    "summary": "Update Records can limit how many records are updated at a time, and Load Records can map one file column to multiple Salesforce fields.",
+    "highlights": [
+      {
+        "title": "Record limit in Update Records",
+        "description": "Set a maximum number of records to update per object to work through large data volumes a chunk at a time.",
+        "docLink": "/load/update-records"
+      },
+      {
+        "title": "Map one column to multiple fields",
+        "description": "Load Records lets you map the same file column to more than one Salesforce field without duplicating the column in your file.",
+        "docLink": "/load"
+      },
+      {
+        "title": "Hide unchanged files when comparing metadata",
+        "description": "A new checkbox in the metadata comparison view hides files that are identical in both orgs.",
+        "docLink": "/deploy-metadata"
+      },
+      {
+        "title": "Field audit columns in Manage Permissions",
+        "description": "The Field Permissions tab can show created and last modified date and user for each custom field, and exports always include them.",
+        "docLink": "/permissions"
+      },
+      {
+        "title": "Combine repeated query filters into In or Not In",
+        "description": "The query builder suggests collapsing multiple conditions on the same field into a single In or Not In condition.",
+        "docLink": "/query"
+      }
+    ]
+  },
+  {
     "slug": "v10.14.1",
     "title": "10.14.1 - Manage Permissions object list fix",
     "date": "2026-08-21",
