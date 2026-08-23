@@ -11,7 +11,9 @@ export * from './lib/data-history.service';
 // Lets the host app point swallowed capture failures at its error tracker (this lib cannot import
 // one — see `failure-reporter.ts`)
 export {
+  getDataHistoryErrorDetails,
   setDataHistoryFailureReporter,
+  type DataHistoryErrorDetails,
   type DataHistoryFailureInfo,
   type DataHistoryFailureOperation,
   type DataHistoryFailureReporter,

@@ -1,6 +1,14 @@
 import { logger } from '@jetstream/shared/client-logger';
+import { withDataHistoryErrorDetails } from '../failure-reporter';
 import type { HistoryFileStore, HistoryFileStoreCapabilities, HistoryWriteStream } from './file-store.types';
 import type { HistoryWorkerRequestBody, HistoryWorkerResponse, HistoryWorkerResultByOp } from './worker-messages';
+
+/**
+ * Used for error messages only. The bundler emits the worker chunk by pattern-matching the literal
+ * `new Worker(new URL(...))` call below, so the specifier cannot be shared with it — and the resolved
+ * href is not obtainable at runtime, since the built worker lives at a hashed path of its own.
+ */
+const WORKER_MODULE = './history-storage.worker.ts';
 
 /**
  * Default Data History file store: OPFS, with all I/O delegated to a dedicated worker
@@ -148,8 +156,28 @@ export class OpfsFileStore implements HistoryFileStore {
         this.maybeTerminate();
       };
       this.worker.onerror = (event) => {
-        logger.warn('[DATA_HISTORY][OPFS] Storage worker crashed, rejecting pending requests', event.message);
-        const error = new Error(`Data history storage worker error: ${event.message || 'unknown'}`);
+        // Neither crash shape hands us the thrown value: an uncaught exception inside a running worker
+        // arrives as an ErrorEvent whose `error` is always null (the value cannot cross the agent
+        // boundary), and a worker whose module never loads arrives as a plain `error` Event carrying no
+        // message, filename, lineno or colno at all. An empty message with no filename is therefore the
+        // only signal that we are looking at a failed load rather than a crash mid-run.
+        const moduleLoadFailed = !event.message && !event.filename;
+        const errorDetails = {
+          message: event.message || undefined,
+          filename: event.filename || undefined,
+          lineno: event.lineno || undefined,
+          colno: event.colno || undefined,
+          workerModule: moduleLoadFailed ? WORKER_MODULE : undefined,
+        };
+        logger.warn('[DATA_HISTORY][OPFS] Storage worker crashed, rejecting pending requests', errorDetails);
+        const summary = moduleLoadFailed ? `worker module failed to load (${WORKER_MODULE})` : errorDetails.message || 'unknown';
+        // lineno/colno are 0 (normalized to undefined above) for load failures, so only append what we actually have.
+        const location = errorDetails.filename
+          ? ` (${[errorDetails.filename, errorDetails.lineno, errorDetails.colno].filter(Boolean).join(':')})`
+          : '';
+        // The detail rides on the Error, not the log line: `logger.warn` is a no-op in production, while
+        // this Error is what reaches the error tracker through `reportDataHistoryFailure`.
+        const error = withDataHistoryErrorDetails(new Error(`Data history storage worker error: ${summary}${location}`), errorDetails);
         const pending = Array.from(this.pendingRequests.values());
         this.pendingRequests.clear();
         pending.forEach(({ reject }) => reject(error));

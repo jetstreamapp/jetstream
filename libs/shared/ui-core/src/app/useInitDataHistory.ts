@@ -1,7 +1,12 @@
 import { tracker } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { dataHistoryCaptureEnabledState, dataHistoryLimitsState } from '@jetstream/ui/app-state';
-import { DataHistoryFailureInfo, initDataHistory, setDataHistoryFailureReporter } from '@jetstream/ui/data-history';
+import {
+  DataHistoryFailureInfo,
+  getDataHistoryErrorDetails,
+  initDataHistory,
+  setDataHistoryFailureReporter,
+} from '@jetstream/ui/data-history';
 import { useSetAtom } from 'jotai';
 import { useCallback } from 'react';
 
@@ -16,6 +21,10 @@ import { useCallback } from 'react';
  */
 function reportDataHistoryFailureToTracker({ operation, error, entryKey, backend }: DataHistoryFailureInfo): void {
   tracker.error(`[DATA_HISTORY] ${operation} failed`, error, {
+    // Spread first so the operation context below always wins on a key collision. Detail the error
+    // carries (e.g. which worker crashed and where) only reaches the tracker this way — the logger is
+    // a no-op in production.
+    ...getDataHistoryErrorDetails(error),
     entryKey,
     backend,
     // Included explicitly: FSA and OPFS reject with DOMException, which the tracker cannot unwrap
