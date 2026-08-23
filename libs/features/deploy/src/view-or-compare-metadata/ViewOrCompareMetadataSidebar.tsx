@@ -1,10 +1,12 @@
+import { formatNumber } from '@jetstream/shared/ui-utils';
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { RadioButton, RadioGroup, ScopedNotification, Spinner, Tree, TreeItems } from '@jetstream/ui';
+import { Checkbox, RadioButton, RadioGroup, ScopedNotification, Spinner, Tree, TreeItems } from '@jetstream/ui';
 import { OrgsCombobox } from '@jetstream/ui-core';
 import { salesforceOrgsOmitSelectedState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
-import { FunctionComponent } from 'react';
+import { FunctionComponent, useMemo, useState } from 'react';
 import { FileItemMetadata } from './viewOrCompareMetadataTypes';
+import { countMetadataFiles, filterUnchangedFiles } from './viewOrCompareMetadataUtils';
 
 export interface ViewOrCompareMetadataSidebarProps {
   editorType: 'SOURCE' | 'TARGET' | 'DIFF';
@@ -38,6 +40,17 @@ export const ViewOrCompareMetadataSidebar: FunctionComponent<ViewOrCompareMetada
   onTargetOrgChange,
 }) => {
   const orgs = useAtomValue(salesforceOrgsOmitSelectedState);
+  const [hideUnchangedFiles, setHideUnchangedFiles] = useState(false);
+
+  const allFiles = useMemo(() => files ?? [], [files]);
+  const hasErrors = !!sourceError || !!targetError;
+  // The filter is only meaningful once a target org has been compared - without comparison data every file reads as changed, so the toggle would do nothing
+  const allowHideUnchangedFiles = hasTargetResults && !hasErrors;
+  const isFilterActive = allowHideUnchangedFiles && hideUnchangedFiles;
+
+  const visibleFiles = useMemo(() => (isFilterActive ? filterUnchangedFiles(allFiles) : allFiles), [allFiles, isFilterActive]);
+  const visibleFileCount = useMemo(() => countMetadataFiles(visibleFiles), [visibleFiles]);
+  const totalFileCount = useMemo(() => countMetadataFiles(allFiles), [allFiles]);
 
   function handleSelectedFile(item: TreeItems<FileItemMetadata>) {
     if (item.meta) {
@@ -48,8 +61,8 @@ export const ViewOrCompareMetadataSidebar: FunctionComponent<ViewOrCompareMetada
   return (
     <>
       {!isSingleOrgMode && (
-        <>
-          <div className="slds-is-relative slds-m-bottom_x-small slds-m-right_x-small">
+        <div className="slds-m-horizontal_x-small">
+          <div className="slds-is-relative slds-m-bottom_x-small">
             {targetLoading && <Spinner />}
             <OrgsCombobox
               label="Compare metadata with different org"
@@ -90,7 +103,7 @@ export const ViewOrCompareMetadataSidebar: FunctionComponent<ViewOrCompareMetada
               />
             </RadioGroup>
           </div>
-        </>
+        </div>
       )}
       {sourceError && (
         <ScopedNotification theme="error" className="slds-m-top_medium">
@@ -102,17 +115,38 @@ export const ViewOrCompareMetadataSidebar: FunctionComponent<ViewOrCompareMetada
           There was an error getting metadata from the target org: {targetError}
         </ScopedNotification>
       )}
-      {treeSettingsContent && !sourceError && !targetError && treeSettingsContent}
-      {!!files?.length && (
+      {allowHideUnchangedFiles && (
+        <div className="slds-m-top_x-small slds-p-left_xx-small">
+          <Checkbox
+            id="hide-unchanged-files"
+            label="Hide Unchanged Files"
+            labelHelp="Only show metadata files that are different from or missing in the target org."
+            checked={hideUnchangedFiles}
+            onChange={setHideUnchangedFiles}
+          />
+        </div>
+      )}
+      {treeSettingsContent && !hasErrors && treeSettingsContent}
+      {allowHideUnchangedFiles && (
+        <div className="slds-text-body_small slds-text-color_weak slds-p-left_xx-small slds-m-bottom_x-small">
+          Showing {formatNumber(visibleFileCount)} of {formatNumber(totalFileCount)} files
+        </div>
+      )}
+      {!!totalFileCount && (
         <Tree
           header="Metadata Files"
-          items={files}
+          items={visibleFiles}
           expandAllOnInit
           onlyEmitOnLeafNodeClick
           selectFirstLeafNodeOnInit
           reEmitSelectionOnItemsChange
           onSelected={handleSelectedFile}
         />
+      )}
+      {isFilterActive && !!totalFileCount && !visibleFiles.length && (
+        <ScopedNotification theme="light" className="slds-m-top_small">
+          All metadata matches the target org.
+        </ScopedNotification>
       )}
     </>
   );

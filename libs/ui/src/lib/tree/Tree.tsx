@@ -20,7 +20,10 @@ export interface TreeProps {
   selectFirstLeafNodeOnInit?: boolean;
   /** If true, don't call onSelected when an expandable node is called */
   onlyEmitOnLeafNodeClick?: boolean;
-  /** If the list of items changes, then re-emit the selected item. Existing use-case is that some additional metadata is added to items and parent needs to know about it */
+  /**
+   * If the list of items changes, then re-emit the selected item. Existing use-case is that some additional metadata is added to items and parent needs to know about it.
+   * If the selected item is no longer in the list of items (e.g. it was filtered out), the first remaining leaf node is selected and emitted instead.
+   */
   reEmitSelectionOnItemsChange?: boolean;
   onSelected?: (item: TreeItems) => void;
 }
@@ -47,6 +50,10 @@ function getAllIds(
   return output;
 }
 
+function getFirstLeafNodeId(ids: Set<string>, idMap: Record<string, TreeItems>): string | undefined {
+  return Array.from(ids).find((id) => !idMap[id].treeItems?.length);
+}
+
 export const Tree = forwardRef<any, TreeProps>(
   (
     {
@@ -67,12 +74,21 @@ export const Tree = forwardRef<any, TreeProps>(
     onSelectedRef.current = onSelected;
 
     useNonInitialEffect(() => {
-      if (onSelectedRef.current && reEmitSelectionOnItemsChange && items?.length > 0 && selectedItem) {
-        const { idMap } = getAllIds(items);
-        const item = idMap[selectedItem];
-        if (item) {
-          onSelectedRef.current(item);
-        }
+      if (!onSelectedRef.current || !reEmitSelectionOnItemsChange || !items?.length || !selectedItem) {
+        return;
+      }
+      const { ids, idMap } = getAllIds(items);
+      const item = idMap[selectedItem];
+      if (item) {
+        onSelectedRef.current(item);
+        return;
+      }
+      // The selected item is no longer in the tree (e.g. it was filtered out), fall back to the first remaining leaf node.
+      // Updating the selection re-runs this effect, which is what emits the new selection.
+      const firstLeafNode = getFirstLeafNodeId(ids, idMap);
+      if (firstLeafNode) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setSelectedItem(firstLeafNode);
       }
     }, [items, reEmitSelectionOnItemsChange, selectedItem]);
 
@@ -84,7 +100,7 @@ export const Tree = forwardRef<any, TreeProps>(
           setExpandedItems(new Set(Array.from(ids).filter((id) => idMap[id].treeItems?.length)));
         }
         if (selectFirstLeafNodeOnInit) {
-          const firstLeafNode = Array.from(ids).find((id) => !idMap[id].treeItems?.length);
+          const firstLeafNode = getFirstLeafNodeId(ids, idMap);
           if (firstLeafNode) {
             setSelectedItem(firstLeafNode);
             onSelectedRef.current && onSelectedRef.current(idMap[firstLeafNode]);

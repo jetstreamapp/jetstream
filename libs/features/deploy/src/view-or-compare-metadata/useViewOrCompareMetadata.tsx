@@ -50,6 +50,7 @@ function reducer(state: State, action: Action): State {
           sourceStatus: 'Loading',
           sourceLastChecked: new Date(),
           sourceResults: null,
+          sourceError: null,
           targetLoading: false,
           targetStatus: 'Not Started',
           targetResults: null,
@@ -67,6 +68,7 @@ function reducer(state: State, action: Action): State {
           targetStatus: 'Loading',
           targetLastChecked: new Date(),
           targetResults: null,
+          targetError: null,
           files,
         };
       }
