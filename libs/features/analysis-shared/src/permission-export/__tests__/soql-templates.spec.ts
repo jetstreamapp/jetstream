@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildFieldPermissionsByParentSoql,
-  buildMutingPermissionSetsByGroupSoql,
+  buildMutingPermissionSetsByIdSoql,
   buildObjectPermissionsByParentSoql,
   buildPermissionSetAssignmentsByPermissionSetSoql,
   buildPermissionSetByIdSoql,
   buildPermissionSetGroupByIdSoql,
+  buildPermissionSetGroupComponentsByGroupSoql,
   buildPermissionSetGroupComponentsByPermissionSetSoql,
   buildTabSettingsByParentSoql,
 } from '../soql-templates';
@@ -62,9 +63,16 @@ describe('soql-templates permission export', () => {
     expect(soql).toContain("Id IN ('g1')");
   });
 
-  it('buildMutingPermissionSetsByGroupSoql composes muting permission set query', () => {
-    const soql = buildMutingPermissionSetsByGroupSoql(['g1']);
-    expect(soql).toContain('FROM MutingPermissionSet');
+  it('buildPermissionSetGroupComponentsByGroupSoql composes component-by-group query', () => {
+    const soql = buildPermissionSetGroupComponentsByGroupSoql(['g1']);
+    expect(soql).toContain('FROM PermissionSetGroupComponent');
     expect(soql).toContain("PermissionSetGroupId IN ('g1')");
+  });
+
+  it('buildMutingPermissionSetsByIdSoql filters MutingPermissionSet by Id (it has no group column)', () => {
+    const soql = buildMutingPermissionSetsByIdSoql(['0QM000000000001']);
+    expect(soql).toContain('FROM MutingPermissionSet');
+    expect(soql).toContain("Id IN ('0QM000000000001')");
+    expect(soql).not.toContain('PermissionSetGroupId');
   });
 });

@@ -6,11 +6,12 @@ import type { PermissionExportFullResult, SalesforceOrgUi } from '@jetstream/typ
 import { buildIssueCodeSummary, buildPermissionExportFindings } from './build-permission-export-findings';
 import {
   buildFieldPermissionsByParentSoql,
-  buildMutingPermissionSetsByGroupSoql,
+  buildMutingPermissionSetsByIdSoql,
   buildObjectPermissionsByParentSoql,
   buildPermissionSetAssignmentsByPermissionSetSoql,
   buildPermissionSetByIdSoql,
   buildPermissionSetGroupByIdSoql,
+  buildPermissionSetGroupComponentsByGroupSoql,
   buildPermissionSetGroupComponentsByPermissionSetSoql,
   buildTabSettingsByParentSoql,
   OPTIONAL_PERMISSION_SET_METADATA_FIELDS,
@@ -18,6 +19,8 @@ import {
 
 const PARENT_ID_CHUNK_SIZE = 200;
 const GROUP_ID_CHUNK_SIZE = 200;
+/** Salesforce key prefix for MutingPermissionSet ids — how muting members are told apart from regular ones. */
+const MUTING_PERMISSION_SET_ID_PREFIX = '0QM';
 /** Keeps `SobjectType IN (...)` clauses within typical SOQL length limits when many objects are selected. */
 const OBJECT_SOBJECT_TYPE_IN_CHUNK_SIZE = 80;
 
@@ -168,7 +171,8 @@ async function getKnownObjectApiNames(org: SalesforceOrgUi): Promise<Set<string>
  * Mirrors the original server `runPermissionExportSoql` algorithm: PermissionSet first, then per
  * parent-id chunk of 200 we fetch ObjectPermissions/FieldPermissions (optionally re-chunked by
  * sobject type), Tab settings, Assignments, and Group components. Group ids harvested from the
- * components query then drive PermissionSetGroup + MutingPermissionSet queries.
+ * components query then drive PermissionSetGroup queries plus a second components pass that discovers
+ * each group's muting permission sets (MutingPermissionSet itself has no group column to filter on).
  */
 export async function runPermissionExport(
   org: SalesforceOrgUi,
@@ -401,18 +405,55 @@ export async function runPermissionExport(
 
     throwIfCanceled(options?.isCanceled);
     emitProgress(`Loading muting permission sets${groupChunkLabel}`);
+    // MutingPermissionSet cannot be queried by group — it has no PermissionSetGroupId column in any API.
+    // The only link is a PermissionSetGroupComponent row whose PermissionSetId holds the muting set's id,
+    // so discover muting members from the groups' full component lists, then load the muting rows by id
+    // and stamp the group id back on so downstream joins (mutingGroupIds in findings) keep working.
     if (budgets.mutingPermissionSets.remaining > 0) {
-      const mutingResult = await queryWithRecordBudget<Record<string, unknown>>(
+      const groupIdsByMutingPermissionSetId = new Map<string, string>();
+      const discoveryBudget = { remaining: CATEGORY_BUDGETS.permissionSetGroupComponents };
+      const discoveryResult = await queryWithRecordBudget<Record<string, unknown>>(
         org,
-        buildMutingPermissionSetsByGroupSoql(groupIdChunk),
+        buildPermissionSetGroupComponentsByGroupSoql(groupIdChunk),
         false,
-        budgets.mutingPermissionSets,
+        discoveryBudget,
         (page) => {
-          mutingPermissionSets.push(...page);
+          for (const row of page) {
+            const memberId = row.PermissionSetId;
+            const groupId = row.PermissionSetGroupId;
+            if (
+              typeof memberId === 'string' &&
+              memberId.startsWith(MUTING_PERMISSION_SET_ID_PREFIX) &&
+              typeof groupId === 'string' &&
+              groupId.length > 0
+            ) {
+              groupIdsByMutingPermissionSetId.set(memberId, groupId);
+            }
+          }
         },
       );
-      if (mutingResult.truncated) {
+      if (discoveryResult.truncated) {
+        // Incomplete component discovery means an unknown set of muting members, not lost component rows.
         truncatedCategories.add('mutingPermissionSets');
+      }
+
+      const mutingPermissionSetIds = [...groupIdsByMutingPermissionSetId.keys()];
+      if (mutingPermissionSetIds.length > 0) {
+        const mutingResult = await queryWithRecordBudget<Record<string, unknown>>(
+          org,
+          buildMutingPermissionSetsByIdSoql(mutingPermissionSetIds),
+          false,
+          budgets.mutingPermissionSets,
+          (page) => {
+            for (const row of page) {
+              const groupId = typeof row.Id === 'string' ? groupIdsByMutingPermissionSetId.get(row.Id) : undefined;
+              mutingPermissionSets.push(groupId ? { ...row, PermissionSetGroupId: groupId } : row);
+            }
+          },
+        );
+        if (mutingResult.truncated) {
+          truncatedCategories.add('mutingPermissionSets');
+        }
       }
     } else {
       truncatedCategories.add('mutingPermissionSets');

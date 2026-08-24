@@ -139,7 +139,8 @@ describe('runPermissionExport', () => {
     const mutingRows: Record<string, unknown>[] = [];
 
     // The order of queries matches the algorithm: permission sets, then (per parent chunk) object,
-    // field, tabs, assignments, components, then (per group chunk) group + muting.
+    // field, tabs, assignments, components, then (per group chunk) group + component-by-group muting
+    // discovery. No muting members here, so no MutingPermissionSet query is issued.
     mockedQuery
       .mockResolvedValueOnce(done(permissionSetRows))
       .mockResolvedValueOnce(done(objectPermissionRows))
@@ -148,7 +149,7 @@ describe('runPermissionExport', () => {
       .mockResolvedValueOnce(done(assignmentRows))
       .mockResolvedValueOnce(done(componentRows))
       .mockResolvedValueOnce(done(groupRows))
-      .mockResolvedValueOnce(done(mutingRows));
+      .mockResolvedValueOnce(done(componentRows));
 
     const onProgress = vi.fn();
 
@@ -189,6 +190,85 @@ describe('runPermissionExport', () => {
     const lastProgressCall = onProgress.mock.calls.at(-1)?.[0];
     expect(lastProgressCall?.label).toBe('Complete');
     expect(lastProgressCall?.percent).toBe(100);
+
+    // No group member had the muting key prefix, so the MutingPermissionSet query is skipped entirely.
+    expect(mockedQuery).toHaveBeenCalledTimes(8);
+    expect(mockedQuery.mock.calls.some(([, soql]) => (soql as string).includes('FROM MutingPermissionSet'))).toBe(false);
+  });
+
+  it('discovers muting permission sets via group components and stamps the group id onto each row', async () => {
+    const mutingPermissionSetId = '0QM000000000001';
+    const permissionSetRows = [{ Id: PERM_SET_ID, Name: 'CustomPermSet', IsOwnedByProfile: false }];
+    const memberComponentRows = [{ Id: '0PC000000000001', PermissionSetGroupId: GROUP_ID, PermissionSetId: PERM_SET_ID }];
+    const groupComponentRows = [
+      ...memberComponentRows,
+      { Id: '0PC000000000002', PermissionSetGroupId: GROUP_ID, PermissionSetId: mutingPermissionSetId },
+    ];
+    const mutingRows = [{ Id: mutingPermissionSetId, DeveloperName: 'Muting_A', MasterLabel: 'Muting A' }];
+
+    mockedQuery
+      .mockResolvedValueOnce(done(permissionSetRows))
+      .mockResolvedValueOnce(done([])) // object permissions
+      .mockResolvedValueOnce(done([])) // field permissions
+      .mockResolvedValueOnce(done([])) // tab settings
+      .mockResolvedValueOnce(done([])) // assignments
+      .mockResolvedValueOnce(done(memberComponentRows))
+      .mockResolvedValueOnce(done([{ Id: GROUP_ID, DeveloperName: 'GroupA', MasterLabel: 'Group A' }]))
+      .mockResolvedValueOnce(done(groupComponentRows))
+      .mockResolvedValueOnce(done(mutingRows));
+
+    const result = await runPermissionExport(ORG, [], [PERM_SET_ID]);
+
+    expect(result.truncated).toBe(false);
+    expect(result.full.counts.mutingPermissionSets).toBe(1);
+    expect(result.full.mutingPermissionSets).toEqual([
+      { Id: mutingPermissionSetId, DeveloperName: 'Muting_A', MasterLabel: 'Muting A', PermissionSetGroupId: GROUP_ID },
+    ]);
+    // Only member components for the selected permission sets are retained in the export payload.
+    expect(result.full.permissionSetGroupComponents).toEqual(memberComponentRows);
+
+    const mutingSoql = mockedQuery.mock.calls.at(-1)?.[1] as string;
+    expect(mutingSoql).toContain('FROM MutingPermissionSet');
+    expect(mutingSoql).toContain(`Id IN ('${mutingPermissionSetId}')`);
+    expect(mutingSoql).not.toContain('PermissionSetGroupId');
+  });
+
+  it('still discovers muting permission sets when the component budget is exhausted by the member pass', async () => {
+    const mutingPermissionSetId = '0QM000000000001';
+    // One more member component row than the 50k retained-row budget, so the member pass exhausts it.
+    const memberComponentRows = Array.from({ length: 50_001 }, (_, i) => ({
+      Id: `0PC${String(i).padStart(12, '0')}`,
+      PermissionSetGroupId: GROUP_ID,
+      PermissionSetId: PERM_SET_ID,
+    }));
+    const groupComponentRows = [
+      { Id: '0PC000000000001', PermissionSetGroupId: GROUP_ID, PermissionSetId: PERM_SET_ID },
+      { Id: '0PC000000000002', PermissionSetGroupId: GROUP_ID, PermissionSetId: mutingPermissionSetId },
+    ];
+    const mutingRows = [{ Id: mutingPermissionSetId, DeveloperName: 'Muting_A', MasterLabel: 'Muting A' }];
+
+    mockedQuery
+      .mockResolvedValueOnce(done([{ Id: PERM_SET_ID, Name: 'CustomPermSet', IsOwnedByProfile: false }]))
+      .mockResolvedValueOnce(done([])) // object permissions
+      .mockResolvedValueOnce(done([])) // field permissions
+      .mockResolvedValueOnce(done([])) // tab settings
+      .mockResolvedValueOnce(done([])) // assignments
+      .mockResolvedValueOnce(done(memberComponentRows))
+      .mockResolvedValueOnce(done([{ Id: GROUP_ID, DeveloperName: 'GroupA', MasterLabel: 'Group A' }]))
+      .mockResolvedValueOnce(done(groupComponentRows))
+      .mockResolvedValueOnce(done(mutingRows));
+
+    const result = await runPermissionExport(ORG, [], [PERM_SET_ID]);
+
+    // Component truncation is reported, but discovery runs on its own transient budget so the muting
+    // permission set is still found and mutingPermissionSets is NOT marked truncated.
+    expect(result.truncated).toBe(true);
+    expect(result.full.summary).toContain('PermissionSetGroupComponent');
+    expect(result.full.summary).not.toContain('MutingPermissionSet');
+    expect(result.full.counts.permissionSetGroupComponents).toBe(50_000);
+    expect(result.full.mutingPermissionSets).toEqual([
+      { Id: mutingPermissionSetId, DeveloperName: 'Muting_A', MasterLabel: 'Muting A', PermissionSetGroupId: GROUP_ID },
+    ]);
   });
 
   it('throws when isCanceled returns true before queries run', async () => {
