@@ -34,7 +34,10 @@ export const PlatformArchSchema = z.union([
 export type PlatformArch = z.infer<typeof PlatformArchSchema>;
 
 function getDownloadUrl(filename: string) {
-  return `https://releases.getjetstream.app/${ASSET_FOLDER}/${filename}`;
+  // release-updates.getjetstream.app is the R2 custom domain the auto-updater uses (see
+  // electron-builder.config.js publish config) and is the one known-working domain for the
+  // desktop-updates bucket. releases.getjetstream.app was never wired up and served 404s.
+  return `https://release-updates.getjetstream.app/${ASSET_FOLDER}/${filename}`;
 }
 
 async function getAndParseVersionFile(s3Client: S3Client, key: string) {

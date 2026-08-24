@@ -59,7 +59,7 @@ export function buildCspDirectives(extraFrameAncestors: string[] = []): CspDirec
       'https://hooks.stripe.com',
       'https://js.stripe.com',
       'https://maps.googleapis.com',
-      'https://releases.getjetstream.app',
+      'https://release-updates.getjetstream.app',
       'https://*.js.stripe.com',
       // Scope WebSocket connections to the app's own origin instead of a blanket `wss:`.
       // In development the socket server runs on localhost over an arbitrary port.

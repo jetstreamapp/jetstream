@@ -55,8 +55,6 @@ export const routeDefinition = {
 
 const getDownloadLink = createRoute(routeDefinition.getDownloadLink.validators, async ({ params }, _req, res) => {
   try {
-    const { arch, platform } = params;
-
     // Get latest version info from your S3 bucket
     const latestVersion = await getLatestDesktopVersion(params);
 
@@ -65,8 +63,9 @@ const getDownloadLink = createRoute(routeDefinition.getDownloadLink.validators, 
       return;
     }
 
-    // Generate direct download URL using friendly subdomain
-    const downloadUrl = `https://releases.getjetstream.app/jetstream/${platform}/${arch}/${latestVersion.filename}`;
+    // Use the service-provided link — artifacts only exist at jetstream/releases/<filename>
+    // in the bucket; the old "friendly" jetstream/<platform>/<arch>/ path never had objects.
+    const downloadUrl = latestVersion.link;
 
     // Return download information
     res.json({

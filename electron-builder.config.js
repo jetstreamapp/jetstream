@@ -1,4 +1,6 @@
 require('dotenv/config');
+const { createRequire } = require('node:module');
+const fs = require('node:fs');
 const path = require('node:path');
 
 /** @typedef {import('electron-builder').Configuration} Configuration */
@@ -66,8 +68,118 @@ if (ENV.IS_CODESIGNING_ENABLED && process.platform === 'win32') {
   };
 }
 
+/**
+ * `@electron/asar` is not a direct dependency of the build dir — resolve it through
+ * electron-builder -> app-builder-lib, which always ships a compatible version.
+ */
+function resolveElectronAsar() {
+  const requireFromElectronBuilder = createRequire(require.resolve('electron-builder/package.json'));
+  const requireFromAppBuilderLib = createRequire(requireFromElectronBuilder.resolve('app-builder-lib/package.json'));
+  return requireFromAppBuilderLib('@electron/asar');
+}
+
+/**
+ * Fail the build if the packaged app.asar is missing any module in the production dependency
+ * closure. electron-builder's pnpm collector (<= 26.15.x) can silently drop a transitive
+ * dependency when pnpm's `list --json` output only expands it beneath a deduped subtree — it
+ * logs warn-level "cannot find path for dependency" / "unresolved duplicate dependency
+ * references" lines and keeps going. Desktop 4.12.0 shipped without `supports-color` (required
+ * by chalk@4) that way and crashed on startup on every install. This hook turns that class of
+ * silent packaging corruption into a hard build failure.
+ *
+ * @param {import('electron-builder').AfterPackContext} context
+ */
+async function verifyAsarDependencyClosure(context) {
+  const asar = resolveElectronAsar();
+
+  const resourcesDir =
+    context.electronPlatformName === 'darwin' || context.electronPlatformName === 'mas'
+      ? path.join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`, 'Contents', 'Resources')
+      : path.join(context.appOutDir, 'resources');
+  const asarPath = path.join(resourcesDir, 'app.asar');
+  if (!fs.existsSync(asarPath)) {
+    throw new Error(`afterPack dependency verification: app.asar not found at ${asarPath}`);
+  }
+
+  // Normalize the archive listing to posix-style paths without a leading slash.
+  const packagedFiles = new Set(asar.listPackage(asarPath).map((entry) => entry.split(path.sep).join('/').replace(/^\//, '')));
+
+  const readPackagedJson = (relativePath) => {
+    try {
+      return JSON.parse(asar.extractFile(asarPath, relativePath).toString('utf-8'));
+    } catch {
+      // Files excluded from the archive via asarUnpack live next to it on disk.
+      const unpackedPath = path.join(resourcesDir, 'app.asar.unpacked', relativePath);
+      if (fs.existsSync(unpackedPath)) {
+        return JSON.parse(fs.readFileSync(unpackedPath, 'utf-8'));
+      }
+      return null;
+    }
+  };
+
+  // Resolve a dependency the way Node does: nearest nested node_modules first, then walk up.
+  const resolvePackagedDependency = (dependentDir, depName) => {
+    let currentDir = dependentDir;
+    while (true) {
+      const candidate = currentDir === '' ? `node_modules/${depName}` : `${currentDir}/node_modules/${depName}`;
+      if (packagedFiles.has(`${candidate}/package.json`)) {
+        return candidate;
+      }
+      if (currentDir === '') {
+        return null;
+      }
+      const parent = currentDir.split('/').slice(0, -1).join('/');
+      currentDir = parent === currentDir ? '' : parent;
+    }
+  };
+
+  const rootPackageJson = readPackagedJson('package.json');
+  if (!rootPackageJson) {
+    throw new Error('afterPack dependency verification: could not read package.json from app.asar');
+  }
+
+  const missing = [];
+  const visited = new Set();
+  const queue = Object.keys(rootPackageJson.dependencies ?? {}).map((depName) => ({ depName, dependentDir: '', optional: false }));
+
+  while (queue.length > 0) {
+    const { depName, dependentDir, optional } = queue.shift();
+    const packageDir = resolvePackagedDependency(dependentDir, depName);
+    if (packageDir == null) {
+      // Optional dependencies (e.g. platform-specific binaries) are legitimately absent.
+      if (!optional) {
+        missing.push(`${depName} (required by ${dependentDir || 'the app'})`);
+      }
+      continue;
+    }
+    if (visited.has(packageDir)) {
+      continue;
+    }
+    visited.add(packageDir);
+
+    const packageJson = readPackagedJson(`${packageDir}/package.json`);
+    if (!packageJson) {
+      throw new Error(`afterPack dependency verification: could not read ${packageDir}/package.json from app.asar`);
+    }
+    const optionalDeps = packageJson.optionalDependencies ?? {};
+    for (const childName of Object.keys({ ...packageJson.dependencies, ...optionalDeps })) {
+      queue.push({ depName: childName, dependentDir: packageDir, optional: childName in optionalDeps });
+    }
+  }
+
+  if (missing.length > 0) {
+    throw new Error(
+      `app.asar is missing ${missing.length} production dependenc${missing.length === 1 ? 'y' : 'ies'}: ${missing.join(', ')}. ` +
+        `electron-builder's node-module collector dropped them (look for "cannot find path for dependency" warnings above). ` +
+        `The packaged app would crash at runtime with "Cannot find module".`,
+    );
+  }
+  console.log(`afterPack dependency verification passed: ${visited.size} packaged modules, dependency closure complete`);
+}
+
 /** @type {Configuration} */
 const config = {
+  afterPack: verifyAsarDependencyClosure,
   appId: 'app.getjetstream',
   productName: 'Jetstream',
   copyright: `Copyright © ${new Date().getFullYear()} Jetstream Solutions`,

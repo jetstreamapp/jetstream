@@ -1,5 +1,11 @@
 # Changelog
 
+## [10.15.1](https://github.com/jetstreamapp/jetstream/compare/v10.15.0...v10.15.1) (2026-08-24)
+
+### Bug Fixes
+
+- **desktop:** fail builds on incomplete app.asar and fix download links ([1f35d90](https://github.com/jetstreamapp/jetstream/commit/1f35d903817dcfab3209bab45163508f72bd7326))
+
 ## [10.15.0](https://github.com/jetstreamapp/jetstream/compare/v10.14.1...v10.15.0) (2026-08-23)
 
 ### Features
