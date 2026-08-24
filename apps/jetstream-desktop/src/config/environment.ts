@@ -1,6 +1,5 @@
 import { getDefaultAppState } from '@jetstream/shared/utils';
 import type { Maybe } from '@jetstream/types';
-import chalk from 'chalk';
 import { app } from 'electron';
 import { z } from 'zod';
 
@@ -75,8 +74,8 @@ const parseResults = envSchema.safeParse({
 });
 
 if (!parseResults.success) {
-  console.error(`❌ ${chalk.red('Error parsing environment variables:')}
-${chalk.yellow(JSON.stringify(z.treeifyError(parseResults.error), null, 2))}
+  console.error(`❌ Error parsing environment variables:
+${JSON.stringify(z.treeifyError(parseResults.error), null, 2)}
 `);
   process.exit(1);
 }

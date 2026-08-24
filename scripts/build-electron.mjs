@@ -99,7 +99,7 @@ const packageManagerAddProdDeps = () => {
   const { devDependencies, dependencies } = JSON.parse(readFileSync(ROOT_PACKAGE_JSON_PATH, 'utf-8'));
   const allDependencies = { ...devDependencies, ...dependencies };
 
-  return ['electron-updater'].map((dep) => {
+  const prodDeps = ['electron-updater'].map((dep) => {
     const matchingDependency = Object.entries(allDependencies).find(([packageName]) => packageName === dep);
     if (!matchingDependency) {
       // For packages not in root, use latest
@@ -109,6 +109,8 @@ const packageManagerAddProdDeps = () => {
     const [packageName, packageVersion] = matchingDependency;
     return `${packageName}@${packageVersion}`;
   });
+
+  return prodDeps;
 };
 
 function prepareTargetPackageJson() {
