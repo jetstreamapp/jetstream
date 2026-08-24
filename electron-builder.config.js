@@ -93,7 +93,7 @@ async function verifyAsarDependencyClosure(context) {
   const asar = resolveElectronAsar();
 
   const resourcesDir =
-    context.electronPlatformName === 'darwin'
+    context.electronPlatformName === 'darwin' || context.electronPlatformName === 'mas'
       ? path.join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`, 'Contents', 'Resources')
       : path.join(context.appOutDir, 'resources');
   const asarPath = path.join(resourcesDir, 'app.asar');
@@ -159,7 +159,7 @@ async function verifyAsarDependencyClosure(context) {
 
     const packageJson = readPackagedJson(`${packageDir}/package.json`);
     if (!packageJson) {
-      continue;
+      throw new Error(`afterPack dependency verification: could not read ${packageDir}/package.json from app.asar`);
     }
     const optionalDeps = packageJson.optionalDependencies ?? {};
     for (const childName of Object.keys({ ...packageJson.dependencies, ...optionalDeps })) {
