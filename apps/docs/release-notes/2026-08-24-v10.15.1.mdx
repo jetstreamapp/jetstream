@@ -1,0 +1,30 @@
+---
+slug: v10.15.1
+title: 10.15.1 - Desktop startup crash fix
+date: '2026-08-24'
+tags: [web, desktop]
+versions:
+  web: 10.15.1
+  desktop: 4.12.1
+summary: Fixes the desktop app crash on startup in desktop version 4.12.0. If you installed 4.12.0, reinstall the app from the download page.
+highlights:
+  - title: Desktop startup crash fix
+    description: Desktop version 4.12.0 crashed on startup because of a packaging issue; reinstall the app to get the fixed version.
+    docLink: /desktop-app
+    platforms: [desktop]
+  - title: Fixed desktop download links
+    description: Download links for the desktop app now point to the correct location.
+    platforms: [web]
+---
+
+{/* truncate */}
+
+## What's new
+
+### Desktop startup crash fix
+
+Desktop version 4.12.0 crashed immediately on startup because a packaging issue left a required module out of the installed app. Version 4.12.1 fixes this, and the build process now verifies the packaged app is complete before a release can ship. Because 4.12.0 cannot start, it cannot update itself: if you installed it, download the latest installer from the [download page](https://getjetstream.app/desktop-app/) and reinstall.
+
+### Other fixes
+
+- Desktop app download links pointed to a location that no longer worked; they now download the correct installer for your platform.
