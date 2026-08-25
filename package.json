@@ -95,6 +95,7 @@
     "scripts:replace-deps": "node ./scripts/replace-package-deps.mjs",
     "scripts:generate-env": "node ./scripts/generate.env.mjs",
     "sf:api": "node ./scripts/sf-api.mjs",
+    "gh:bot": "node ./scripts/gh-app-token.mjs",
     "scripts:copy-monaco-assets:desktop": "node scripts/copy-monaco-assets.mjs --target desktop",
     "scripts:copy-monaco-assets:web-extension": "node scripts/copy-monaco-assets.mjs --target web-extension",
     "release": "node scripts/release.mjs",
