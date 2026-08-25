@@ -1,0 +1,21 @@
+---
+slug: v10.15.2
+title: 10.15.2 - Permission Analysis fix for permission set groups
+date: '2026-08-25'
+tags: [web]
+versions:
+  web: 10.15.2
+summary: Fixes a Permission Analysis error when a selected permission set belongs to a permission set group.
+highlights:
+  - title: Permission Analysis fix for permission set groups
+    description: Running an analysis no longer fails when a selected permission set is part of a permission set group.
+    docLink: /permission-analysis
+---
+
+{/* truncate */}
+
+## What's new
+
+### Permission Analysis fix for permission set groups
+
+Running a Permission Analysis failed with a Salesforce query error when any selected permission set belonged to a permission set group. The analysis now loads the group's muting permission sets correctly, so these selections run and report findings as expected.
