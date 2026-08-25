@@ -24,6 +24,7 @@ concurrency:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   build-windows:
@@ -93,3 +94,29 @@ jobs:
       - name: Package, sign, and publish Windows installers
         working-directory: dist/desktop-build
         run: pnpm publish:win
+
+      - name: File GitHub issue for failed publish
+        if: ${{ failure() }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PLATFORM: Windows
+          REPO: ${{ github.repository }}
+          REF_NAME: ${{ github.event.inputs.ref || github.ref_name }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ASSIGNEE: paustint
+        run: |
+          TITLE="Desktop publish failed (${PLATFORM}): ${REF_NAME}"
+          {
+            echo "The ${PLATFORM} desktop publish run for \`${REF_NAME}\` failed: ${RUN_URL}"
+            echo ""
+            echo "No installers or update metadata were uploaded to the release feed for this run, so the auto-update feed still points at the previous successful release."
+            echo ""
+            echo "cc @${ASSIGNEE}"
+          } > "$RUNNER_TEMP/issue-body.md"
+          EXISTING_ISSUE=$(gh issue list --repo "$REPO" --state open --search "in:title \"$TITLE\"" --json number --jq '.[0].number // empty')
+          if [[ -n "$EXISTING_ISSUE" ]]; then
+            gh issue comment "$EXISTING_ISSUE" --repo "$REPO" --body "Another failed run: ${RUN_URL}"
+          else
+            gh issue create --repo "$REPO" --title "$TITLE" --body-file "$RUNNER_TEMP/issue-body.md" --assignee "$ASSIGNEE"
+          fi

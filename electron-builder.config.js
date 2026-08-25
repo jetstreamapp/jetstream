@@ -1,6 +1,8 @@
 require('dotenv/config');
+const { spawn } = require('node:child_process');
 const { createRequire } = require('node:module');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 
 /** @typedef {import('electron-builder').Configuration} Configuration */
@@ -177,9 +179,104 @@ async function verifyAsarDependencyClosure(context) {
   console.log(`afterPack dependency verification passed: ${visited.size} packaged modules, dependency closure complete`);
 }
 
+const SMOKE_TEST_LAUNCH_TIMEOUT_MS = 90_000;
+
+/**
+ * Launch the freshly packaged app binary with `--smoke-test` and require it to boot to a fully
+ * loaded renderer before publishing (see apps/jetstream-desktop/src/config/smoke-test.ts for the
+ * in-app side). This is the runtime complement to verifyAsarDependencyClosure above: the static
+ * walk proves every module is *present*, this proves the artifact actually *starts* — catching
+ * broken native modules, bad env inlining, missing client assets, or anything else that only
+ * fails at runtime.
+ *
+ * Runs per platform+arch from afterPack, which is before signing/notarization and before any
+ * upload, so a broken build can never reach the release feed. Launching the not-yet-signed app
+ * directly is fine on both platforms (Gatekeeper only gates quarantined downloads).
+ *
+ * On arm64 macOS hosts the x64 slice runs under Rosetta 2 (installed on GitHub's macOS runners).
+ * Set SKIP_PACKAGED_SMOKE_TEST=true to bypass on machines that can't execute a foreign arch or
+ * have no display.
+ *
+ * @param {import('electron-builder').AfterPackContext} context
+ */
+async function smokeTestPackagedApp(context) {
+  if (process.env.SKIP_PACKAGED_SMOKE_TEST === 'true') {
+    console.warn('packaged smoke test: skipped via SKIP_PACKAGED_SMOKE_TEST');
+    return;
+  }
+
+  const productFilename = context.packager.appInfo.productFilename;
+  let executablePath;
+  if (context.electronPlatformName === 'darwin') {
+    executablePath = path.join(context.appOutDir, `${productFilename}.app`, 'Contents', 'MacOS', productFilename);
+  } else if (context.electronPlatformName === 'win32') {
+    executablePath = path.join(context.appOutDir, `${productFilename}.exe`);
+  } else {
+    console.warn(`packaged smoke test: no launcher for platform ${context.electronPlatformName}, skipping`);
+    return;
+  }
+  if (!fs.existsSync(executablePath)) {
+    throw new Error(`packaged smoke test: executable not found at ${executablePath}`);
+  }
+
+  // An isolated userData dir keeps the run hermetic: no state from a previous run or a locally
+  // installed Jetstream, and no single-instance-lock collision with one already running.
+  const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'jetstream-smoke-test-'));
+
+  console.log(`packaged smoke test: launching ${executablePath}`);
+  try {
+    await new Promise((resolve, reject) => {
+      // The runAsNode fuse is enabled, so an inherited ELECTRON_RUN_AS_NODE (set by e.g. VSCode
+      // terminals) would make the app run as plain Node and crash before Electron even starts.
+      const { ELECTRON_RUN_AS_NODE, ...spawnEnv } = process.env;
+      const child = spawn(executablePath, [`--user-data-dir=${userDataDir}`, '--smoke-test'], {
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: spawnEnv,
+      });
+
+      let timedOut = false;
+      const timeout = setTimeout(() => {
+        timedOut = true;
+        child.kill('SIGKILL');
+      }, SMOKE_TEST_LAUNCH_TIMEOUT_MS);
+
+      // Mirror the app's [SMOKE TEST] output (and any crash spew) into the build log.
+      child.stdout.on('data', (data) => process.stdout.write(data));
+      child.stderr.on('data', (data) => process.stderr.write(data));
+
+      child.on('error', (error) => {
+        clearTimeout(timeout);
+        reject(new Error(`packaged smoke test: failed to launch ${executablePath}: ${error.message}`));
+      });
+
+      child.on('close', (code) => {
+        clearTimeout(timeout);
+        if (timedOut) {
+          reject(new Error(`packaged smoke test: app did not exit within ${SMOKE_TEST_LAUNCH_TIMEOUT_MS / 1000}s and was killed`));
+        } else if (code !== 0) {
+          reject(new Error(`packaged smoke test: app exited with code ${code} - the packaged build is broken at startup`));
+        } else {
+          console.log('packaged smoke test: passed');
+          resolve(undefined);
+        }
+      });
+    });
+  } finally {
+    fs.rmSync(userDataDir, { recursive: true, force: true });
+  }
+}
+
+/**
+ * @param {import('electron-builder').AfterPackContext} context
+ */
+async function afterPack(context) {
+  await verifyAsarDependencyClosure(context);
+  await smokeTestPackagedApp(context);
+}
+
 /** @type {Configuration} */
 const config = {
-  afterPack: verifyAsarDependencyClosure,
+  afterPack,
   appId: 'app.getjetstream',
   productName: 'Jetstream',
   copyright: `Copyright © ${new Date().getFullYear()} Jetstream Solutions`,

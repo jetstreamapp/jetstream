@@ -19,6 +19,10 @@ for (const arg of args) {
 // It suppresses local-dev conveniences that get in the way of driving the app programmatically.
 const isAutomatedTesting = args.includes('--automated-testing');
 
+// Passed by the packaged-build verification in electron-builder.config.js: boot, prove the
+// renderer fully loads, then exit with a pass/fail code. See config/smoke-test.ts.
+const isSmokeTest = args.includes('--smoke-test');
+
 const { defaultApiVersion } = getDefaultAppState();
 
 const ENV_INTERNAL_DEV = {
@@ -61,6 +65,7 @@ const envSchema = z.object({
   }),
   CI: booleanSchema,
   AUTOMATED_TESTING: booleanSchema,
+  SMOKE_TEST: booleanSchema,
   ENVIRONMENT: z
     .enum(['development', 'production'])
     .optional()
@@ -77,6 +82,7 @@ const parseResults = envSchema.safeParse({
   ...environment,
   LOG_LEVEL: process.env.LOG_LEVEL,
   AUTOMATED_TESTING: isAutomatedTesting,
+  SMOKE_TEST: isSmokeTest,
 });
 
 if (!parseResults.success) {
