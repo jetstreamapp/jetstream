@@ -189,15 +189,36 @@ export function buildPermissionSetGroupByIdSoql(groupIds: string[]): string {
   });
 }
 
-export function buildMutingPermissionSetsByGroupSoql(groupIds: string[]): string {
+/**
+ * All components of the given groups (not just the selected permission sets). This is how muting
+ * permission sets are discovered: `MutingPermissionSet` has no group column in any API, the only
+ * link is a `PermissionSetGroupComponent` row whose `PermissionSetId` holds the muting set's id
+ * (key prefix `0QM`).
+ */
+export function buildPermissionSetGroupComponentsByGroupSoql(groupIds: string[]): string {
   return composeQuery({
-    fields: [getField('Id'), getField('PermissionSetGroupId'), getField('DeveloperName'), getField('MasterLabel')],
-    sObject: 'MutingPermissionSet',
+    fields: [getField('Id'), getField('PermissionSetGroupId'), getField('PermissionSetId')],
+    sObject: 'PermissionSetGroupComponent',
     where: {
       left: {
         field: 'PermissionSetGroupId',
         operator: 'IN',
         value: groupIds,
+        literalType: 'STRING',
+      },
+    },
+  });
+}
+
+export function buildMutingPermissionSetsByIdSoql(mutingPermissionSetIds: string[]): string {
+  return composeQuery({
+    fields: [getField('Id'), getField('DeveloperName'), getField('MasterLabel')],
+    sObject: 'MutingPermissionSet',
+    where: {
+      left: {
+        field: 'Id',
+        operator: 'IN',
+        value: mutingPermissionSetIds,
         literalType: 'STRING',
       },
     },
