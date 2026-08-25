@@ -104,7 +104,9 @@ The features that require one of these permissions are:
 - [Automation Control](../automation-control/automation-control.mdx)
 - [Debug Logs](../developer/debug-logs.mdx)
 
-:::info Limited Access indicator
+:::info
+
+**Limited Access indicator**
 
 When you select an org where your user has **neither** `Modify Metadata` nor `Modify All Data`, Jetstream shows a **"Limited Access"** badge next to the org selector. Data features will continue to work, but the Metadata API features listed above may not function correctly.
 
@@ -115,6 +117,8 @@ Jetstream determines this by running the following query against the selected or
 ```sql
 SELECT Id, PermissionsModifyAllData, PermissionsModifyMetadata FROM UserPermissionAccess
 ```
+
+:::
 
 ## Are these high-privilege permissions required?
 
