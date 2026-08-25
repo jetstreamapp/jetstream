@@ -1,5 +1,11 @@
 # Changelog
 
+## [10.15.2](https://github.com/jetstreamapp/jetstream/compare/v10.15.1...v10.15.2) (2026-08-25)
+
+### Bug Fixes
+
+- **permission-analysis:** stop export failing when a selection is in a permission set group ([1d60c1f](https://github.com/jetstreamapp/jetstream/commit/1d60c1f1e4f6c6c3d8d87387eeae5b1383ecbe11))
+
 ## [10.15.1](https://github.com/jetstreamapp/jetstream/compare/v10.15.0...v10.15.1) (2026-08-24)
 
 ### Bug Fixes
