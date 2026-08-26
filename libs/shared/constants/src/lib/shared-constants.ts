@@ -105,6 +105,11 @@ export const ERROR_MESSAGES = {
   SFDC_ORG_DOES_NOT_EXIST: /^getaddrinfo ENOTFOUND [a-z0-9-.]+\.salesforce\.com$/i,
   SFDC_REST_API_NOT_ENABLED: /api is not enabled/i,
   SFDC_REST_API_NOT_ENABLED_MSG: 'Your org/user does not have API access which is required for Jetstream to communicate with Salesforce.',
+  // Node's fetch collapses every transport failure into an opaque "fetch failed", which used to reach
+  // users verbatim. These replace it. The timeout wording deliberately avoids saying the operation
+  // failed — the request did reach Salesforce, so it may well have been applied with the response lost.
+  SFDC_UPSTREAM_TIMEOUT: 'Salesforce did not respond in time. The operation may still have been applied — reload to check before retrying.',
+  SFDC_UPSTREAM_UNREACHABLE: 'Unable to reach Salesforce. Check your connection and try again.',
 } as const;
 
 export const MIME_TYPES: {

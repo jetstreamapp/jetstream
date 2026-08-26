@@ -12,6 +12,7 @@ vi.mock('@jetstream/api-config', () => ({
     DEFERRED_RESPONSE_ENABLED: true,
     DEFERRED_RESPONSE_THRESHOLD_MS: 75_000,
     DEFERRED_RESPONSE_KEEPALIVE_MS: 25_000,
+    DEFERRED_RESPONSE_MAX_DURATION_MS: 600_000,
   },
   getLogger: () => loggerHolder.current,
 }));
@@ -307,8 +308,10 @@ describe('writeDeferredResponse', () => {
     const res = createMockRes();
     const deferred: DeferredResponseState = {
       active: true,
+      abandoned: false,
       timer: null,
       keepaliveInterval: null,
+      maxDurationTimer: null,
       startTime: Date.now() - 50_000,
       keepaliveCount: 2,
     };
@@ -327,8 +330,10 @@ describe('writeDeferredResponse', () => {
     const res = createMockRes();
     const deferred: DeferredResponseState = {
       active: true,
+      abandoned: false,
       timer: null,
       keepaliveInterval: null,
+      maxDurationTimer: null,
       startTime: Date.now() - 60_000,
       keepaliveCount: 3,
     };
@@ -350,8 +355,10 @@ describe('writeDeferredResponse', () => {
     });
     const deferred: DeferredResponseState = {
       active: true,
+      abandoned: false,
       timer: null,
       keepaliveInterval: null,
+      maxDurationTimer: null,
       startTime: Date.now() - 50_000,
       keepaliveCount: 2,
     };
@@ -372,8 +379,10 @@ describe('writeDeferredResponse', () => {
     const res = createMockRes();
     const deferred: DeferredResponseState = {
       active: true,
+      abandoned: false,
       timer: null,
       keepaliveInterval: null,
+      maxDurationTimer: null,
       startTime: Date.now() - 50_000,
       keepaliveCount: 2,
     };
@@ -405,8 +414,10 @@ describe('writeDeferredResponse', () => {
     });
     const deferred: DeferredResponseState = {
       active: true,
+      abandoned: false,
       timer: null,
       keepaliveInterval: null,
+      maxDurationTimer: null,
       startTime: Date.now() - 50_000,
       keepaliveCount: 2,
     };
@@ -430,8 +441,10 @@ describe('writeDeferredResponse', () => {
     });
     const deferred: DeferredResponseState = {
       active: true,
+      abandoned: false,
       timer: null,
       keepaliveInterval: null,
+      maxDurationTimer: null,
       startTime: Date.now() - 50_000,
       keepaliveCount: 2,
     };
@@ -449,10 +462,13 @@ describe('writeDeferredResponse', () => {
     const res = createMockRes();
     const timer = setTimeout(() => {}, 10_000);
     const interval = setInterval(() => {}, 5_000);
+    const maxDurationTimer = setTimeout(() => {}, 600_000);
     const deferred: DeferredResponseState = {
       active: true,
+      abandoned: false,
       timer,
       keepaliveInterval: interval,
+      maxDurationTimer,
       startTime: Date.now() - 50_000,
       keepaliveCount: 2,
     };
@@ -462,6 +478,7 @@ describe('writeDeferredResponse', () => {
 
     expect(deferred.timer).toBeNull();
     expect(deferred.keepaliveInterval).toBeNull();
+    expect(deferred.maxDurationTimer).toBeNull();
     vi.useRealTimers();
   });
 
@@ -469,8 +486,10 @@ describe('writeDeferredResponse', () => {
     const res = createMockRes();
     const deferred: DeferredResponseState = {
       active: true,
+      abandoned: false,
       timer: null,
       keepaliveInterval: null,
+      maxDurationTimer: null,
       startTime: Date.now() - 50_000,
       keepaliveCount: 2,
     };
@@ -487,8 +506,10 @@ describe('writeDeferredResponse', () => {
     const res = createMockRes();
     const deferred: DeferredResponseState = {
       active: true,
+      abandoned: false,
       timer: null,
       keepaliveInterval: null,
+      maxDurationTimer: null,
       startTime: Date.now() - 50_000,
       keepaliveCount: 2,
     };
@@ -505,8 +526,10 @@ describe('writeDeferredResponse', () => {
     const res = createMockRes();
     const deferred: DeferredResponseState = {
       active: true,
+      abandoned: false,
       timer: null,
       keepaliveInterval: null,
+      maxDurationTimer: null,
       startTime: Date.now() - 50_000,
       keepaliveCount: 2,
     };
@@ -518,6 +541,99 @@ describe('writeDeferredResponse', () => {
 
     expect(res.log.info).toHaveBeenCalledWith(expect.any(Object), expect.stringContaining('[DEFERRED][COMPLETE]'));
     expect(res.log.warn).not.toHaveBeenCalledWith(expect.any(Object), expect.stringContaining('[DEFERRED][PREMATURE_CLOSE]'));
+  });
+});
+
+describe('deferred response max duration backstop', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('should abandon the response with an error body once max duration elapses', () => {
+    const req = createMockReq();
+    const res = createMockRes();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    deferredResponseMiddleware(req as any, res as any, vi.fn());
+    vi.advanceTimersByTime(75_000);
+    expect((res.locals._deferred as DeferredResponseState).active).toBe(true);
+
+    vi.advanceTimersByTime(600_000);
+
+    expect(res.log.error).toHaveBeenCalledWith(expect.any(Object), expect.stringContaining('[DEFERRED][MAX_DURATION]'));
+    expect(res._ended()).toBe(true);
+
+    // Headers were locked at 200 when deferring, so the failure has to arrive in the body.
+    const body = JSON.parse(res._chunks.join(''));
+    expect(body).toMatchObject({ error: true, success: false });
+    expect(body.message).toContain('may still have been applied');
+  });
+
+  it('should measure max duration from when the request arrived, not from when it was deferred', () => {
+    const req = createMockReq();
+    const res = createMockRes();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    deferredResponseMiddleware(req as any, res as any, vi.fn());
+    vi.advanceTimersByTime(75_000);
+
+    // One tick short of the 600s total budget, so the 75s already spent has to have been subtracted.
+    vi.advanceTimersByTime(524_999);
+    expect(res._ended()).toBe(false);
+
+    vi.advanceTimersByTime(1);
+    expect(res._ended()).toBe(true);
+  });
+
+  it('should flag the response as abandoned so a late controller response is not reported as unhandled', () => {
+    const req = createMockReq();
+    const res = createMockRes();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    deferredResponseMiddleware(req as any, res as any, vi.fn());
+    vi.advanceTimersByTime(75_000);
+    expect((res.locals._deferred as DeferredResponseState).abandoned).toBe(false);
+
+    vi.advanceTimersByTime(600_000);
+
+    expect((res.locals._deferred as DeferredResponseState).abandoned).toBe(true);
+    expect((res.locals._deferred as DeferredResponseState).active).toBe(false);
+  });
+
+  it('should not fire once the controller has produced a response', () => {
+    const req = createMockReq();
+    const res = createMockRes();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    deferredResponseMiddleware(req as any, res as any, vi.fn());
+    vi.advanceTimersByTime(75_000);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    writeDeferredResponse(res as any, { data: 'real result' });
+
+    vi.advanceTimersByTime(600_000);
+
+    expect(res.log.error).not.toHaveBeenCalledWith(expect.any(Object), expect.stringContaining('[DEFERRED][MAX_DURATION]'));
+    expect(JSON.parse(res._chunks.join(''))).toEqual({ data: 'real result' });
+  });
+
+  it('should stop keepalives so the socket cannot be held indefinitely', () => {
+    const req = createMockReq();
+    const res = createMockRes();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    deferredResponseMiddleware(req as any, res as any, vi.fn());
+    vi.advanceTimersByTime(75_000);
+    vi.advanceTimersByTime(600_000);
+
+    const chunkCountAfterAbandon = res._chunks.length;
+    vi.advanceTimersByTime(300_000);
+
+    expect(res._chunks.length).toBe(chunkCountAfterAbandon);
   });
 });
 
