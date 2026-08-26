@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { bulkApiGetRecords, bulkApiGetRecordsFromAllBatches } from '@jetstream/shared/data';
-import { BULK_RESULTS_BASE_HEADER, decodeHtmlEntity, flattenRecord, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { BULK_RESULTS_BASE_HEADER, decodeHtmlEntity, flattenRecord, pushAll, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
   BulkJobBatchInfo,
   BulkJobResultRecord,
@@ -267,7 +267,10 @@ export async function collectFailedRecordsForRetry({
     // For delete batches where SFDC omitted records missing an Id, include them as failures here
     // since they'll never have a result row.
     if (recordsForResults.length !== recordsForBatch.length) {
-      failedRecords.push(...recordsForBatch.filter((record) => !record?.Id));
+      pushAll(
+        failedRecords,
+        recordsForBatch.filter((record) => !record?.Id),
+      );
     }
     recordsForBatch.forEach((record) => resolvedRecords.add(record));
   });
@@ -275,6 +278,10 @@ export async function collectFailedRecordsForRetry({
   // Include all records from any batch we couldn't resolve (fetch failed, unmapped batch id,
   // state !== Completed, etc.). These are conservatively considered failed and retryable. Batches
   // are contiguous slices of the prepared data, so this walks the unresolved batches in order.
-  failedRecords.push(...preparedData.data.filter((record) => !resolvedRecords.has(record)));
+  // pushAll rather than `push(...spread)` - hundreds of thousands of records can be unresolved.
+  pushAll(
+    failedRecords,
+    preparedData.data.filter((record) => !resolvedRecords.has(record)),
+  );
   return failedRecords;
 }
