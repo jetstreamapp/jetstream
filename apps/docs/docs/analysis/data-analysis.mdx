@@ -21,7 +21,7 @@ sidebar_label: Data Analysis
 slug: /data-analysis
 ---
 
-:::caution Pre-release · paid feature
+:::caution[Pre-release · paid feature]
 
 Data Analysis (Field Usage) is available on a **paid Jetstream plan** and is currently in **pre-release**. It is fully functional, but the interface may change as we continue to refine it. Upgrade from within Jetstream (**Settings &rarr; Billing**) to enable it.
 
@@ -118,7 +118,7 @@ Rows that are not eligible show an info icon explaining why (for example _"Refer
 
 <img src={require('./data-analysis-delete-fields.png').default} alt="Data Analysis delete fields confirmation" />
 
-:::tip Scan everything before deleting
+:::tip[Scan everything before deleting]
 
 If an object's scan was truncated, use **Load All Records** to start a new job that scans every row (no per-object cap) before deleting. A full scan can take a while and use many API calls, so Jetstream asks you to confirm first. Fields on truncated objects cannot be deleted until you have complete counts.
 
