@@ -125,6 +125,44 @@ user lacks the underlying Salesforce access.
 Saving changes writes back to `ObjectPermissions`, `FieldPermissions`, and `PermissionSetTabSetting`,
 which requires **Manage Profiles and Permission Sets**.
 
+### Permission Analysis
+
+Permission Analysis is entirely **read-only** — it never writes anything back to Salesforce. The
+export is processed in the browser and results are stored locally, per org. Despite the advisory
+metadata-access banner shown on the Permission Analysis page in the Jetstream UI, the feature does
+not call the Metadata API.
+
+| Object                        | Fields                                                                                                                                                                                                                                                                                                                                                                                                                  | API     | Access | Degrades                                                       |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ------ | -------------------------------------------------------------- |
+| `PermissionSet` (+ `Profile`) | `Id, Name, Label, Description, Type, IsCustom, IsOwnedByProfile, NamespacePrefix, ProfileId, Profile.Name, CreatedDate, LastModifiedDate, CreatedBy.Name, LastModifiedBy.Name` plus system-permission fields (`PermissionsModifyAllData`, `PermissionsViewAllData`, `PermissionsAuthorApex`, `PermissionsManageUsers`, `PermissionsCustomizeApplication`, `PermissionsViewSetup`, and similar) used for issue detection | REST    | R      | Export job fails                                               |
+| `ObjectPermissions`           | `Id, ParentId, SobjectType, PermissionsRead, PermissionsCreate, PermissionsEdit, PermissionsDelete, PermissionsViewAllRecords, PermissionsModifyAllRecords, PermissionsViewAllFields`                                                                                                                                                                                                                                   | REST    | R      | Export job fails                                               |
+| `FieldPermissions`            | `Id, ParentId, SobjectType, Field, PermissionsRead, PermissionsEdit`                                                                                                                                                                                                                                                                                                                                                    | REST    | R      | Export job fails                                               |
+| `PermissionSetTabSetting`     | `Id, ParentId, Name, Visibility`                                                                                                                                                                                                                                                                                                                                                                                        | REST    | R      | Export job fails                                               |
+| `PermissionSetAssignment`     | `Id, PermissionSetId, AssigneeId`                                                                                                                                                                                                                                                                                                                                                                                       | REST    | R      | Assignment data unavailable                                    |
+| `PermissionSetGroup`          | `Id, DeveloperName, MasterLabel`                                                                                                                                                                                                                                                                                                                                                                                        | REST    | R      | Group details unavailable                                      |
+| `PermissionSetGroupComponent` | `Id, PermissionSetGroupId, PermissionSetId`                                                                                                                                                                                                                                                                                                                                                                             | REST    | R      | Group membership unavailable                                   |
+| `MutingPermissionSet`         | `Id, DeveloperName, MasterLabel`                                                                                                                                                                                                                                                                                                                                                                                        | REST    | R      | Muting permission sets not shown                               |
+| `User`                        | `Id, Name, Username, IsActive, ProfileId, Profile.Name`                                                                                                                                                                                                                                                                                                                                                                 | REST    | R      | Tolerated; assignments fall back to showing raw user Ids       |
+| `PermissionSetLicenseAssign`  | `AssigneeId, PermissionSetLicenseId, PermissionSetLicense.{MasterLabel,DeveloperName}`                                                                                                                                                                                                                                                                                                                                  | REST    | R      | Tolerated; license details not shown                           |
+| `EntityDefinition`            | `QualifiedApiName, Label, Description`                                                                                                                                                                                                                                                                                                                                                                                  | Tooling | R      | Tolerated; object labels fall back to API names                |
+| `TabDefinition`               | `Name, Label`                                                                                                                                                                                                                                                                                                                                                                                                           | Tooling | R      | Tolerated; tab labels fall back to API names                   |
+| `FieldDefinition`             | `QualifiedApiName, Label, Description, DurableId`                                                                                                                                                                                                                                                                                                                                                                       | Tooling | R      | Tolerated; field labels fall back to API names, no Setup links |
+
+### Data Analysis (Field Usage)
+
+Field usage is computed in the browser: scanned record values are counted and discarded — only the
+per-field counts are kept, stored locally per org. The only write is the **optional** deletion of
+unused custom fields, which uses the same destructive Metadata API deploy as Deploy Metadata.
+
+| Object / call                              | Fields                                                                                                                     | API           | Access | Degrades                                                                        |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- | ------------- | ------ | ------------------------------------------------------------------------------- |
+| User-selected sObject (aggregate counts)   | `SELECT COUNT(Id), COUNT(<field>), … ` — counts only, no record data is returned                                           | REST query    | R      | Fields fall back to the row scan                                                |
+| User-selected sObject (row scan)           | `Id, LastModifiedDate` plus the analyzed fields, up to 100,000 rows per object by default (values are counted, not stored) | REST query    | R      | Governed by object & field access; inaccessible objects are reported as errored |
+| `CustomField`                              | `Id, DeveloperName, TableEnumOrId, EntityDefinition.QualifiedApiName, NamespacePrefix`                                     | Tooling       | R      | Where Used cannot be resolved; affected fields are never eligible for deletion  |
+| `MetadataComponentDependency`              | `RefMetadataComponentId, MetadataComponentId, MetadataComponentType, MetadataComponentName`                                | Tooling       | R      | Where Used cannot be resolved; affected fields are never eligible for deletion  |
+| `Flow`                                     | `Id, VersionNumber`                                                                                                        | Tooling       | R      | Flow references shown without version detail                                    |
+| Metadata deploy (`destructiveChanges.xml`) | Deletion of the unused custom fields you select                                                                            | Metadata SOAP | W      | Cannot delete fields (requires **Modify Metadata** or **Modify All Data**)      |
+
 ### Automation Control
 
 | Object                              | Fields                                                                                                                                                                                                                                                                                       | API                                | Access                               | Degrades                                        |
@@ -190,36 +228,42 @@ which requires **Manage Profiles and Permission Sets**.
 
 Every Salesforce object Jetstream reads or writes behind the scenes for various features.
 
-| Object                                       | Used by                                              | API                            | Access            |
-| -------------------------------------------- | ---------------------------------------------------- | ------------------------------ | ----------------- |
-| `ApexLog`                                    | Debug Logs                                           | REST                           | R/W (delete)      |
-| `ApexTrigger`                                | Automation Control                                   | Tooling                        | R + status W      |
-| `Attachment` / `ContentVersion` / `Document` | File upload & download                               | REST                           | R/W               |
-| `CustomField`                                | Create Fields, field utilities                       | Tooling                        | R                 |
-| `DebugLevel`                                 | Debug Logs                                           | Tooling                        | R/W               |
-| `DuplicateRule`                              | Automation Control                                   | REST (read) + Metadata (write) | R/W               |
-| `EntityParticle`                             | Manage Permissions                                   | Tooling                        | R                 |
-| `FieldDefinition`                            | Field metadata                                       | Tooling                        | R                 |
-| `FieldPermissions`                           | Manage Permissions                                   | REST                           | R/W               |
-| `FlowDefinitionView` (+ `Versions`)          | Automation Control                                   | REST + Tooling (write)         | R/W               |
-| `Folder`                                     | Metadata browser                                     | Tooling                        | R                 |
-| `GlobalValueSet`                             | Create Fields                                        | REST                           | R                 |
-| `MetadataComponentDependency`                | "Where is this used"                                 | Tooling                        | R                 |
-| `ObjectPermissions`                          | Manage Permissions                                   | REST                           | R/W               |
-| `Organization`                               | Org connection                                       | REST                           | R                 |
-| `PermissionSet` (+ `Profile`)                | Manage Permissions, Create Fields, Formula Evaluator | REST                           | R                 |
-| `PermissionSetAssignment`                    | Assignee popover                                     | REST                           | R                 |
-| `PermissionSetTabSetting`                    | Manage Permissions                                   | REST                           | R/W               |
-| `RecordType`                                 | Metadata browser                                     | Tooling                        | R                 |
-| `StaticResource`                             | Metadata retrieve                                    | Tooling / REST                 | R                 |
-| `TabDefinition`                              | Manage Permissions                                   | Tooling                        | R                 |
-| `TraceFlag`                                  | Debug Logs                                           | Tooling                        | R/W               |
-| `User`                                       | Formula Evaluator, assignee popover                  | REST                           | R                 |
-| `UserPermissionAccess`                       | "Limited Access" badge                               | REST                           | R                 |
-| `ValidationRule`                             | Automation Control                                   | Tooling                        | R/W               |
-| `WorkflowRule`                               | Automation Control                                   | Tooling                        | R/W               |
-| `<CustomMetadataType>__mdt`                  | Metadata browser                                     | Tooling                        | R                 |
-| _Any user-selected object_                   | Query, Load, Create, Update, Delete, Undelete        | REST / Bulk / Tooling          | per user's access |
+| Object                                       | Used by                                                                                   | API                            | Access            |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------ | ----------------- |
+| `ApexLog`                                    | Debug Logs                                                                                | REST                           | R/W (delete)      |
+| `ApexTrigger`                                | Automation Control                                                                        | Tooling                        | R + status W      |
+| `Attachment` / `ContentVersion` / `Document` | File upload & download                                                                    | REST                           | R/W               |
+| `CustomField`                                | Create Fields, field utilities, Data Analysis (Where Used)                                | Tooling                        | R                 |
+| `DebugLevel`                                 | Debug Logs                                                                                | Tooling                        | R/W               |
+| `DuplicateRule`                              | Automation Control                                                                        | REST (read) + Metadata (write) | R/W               |
+| `EntityDefinition`                           | Permission Analysis (object labels)                                                       | Tooling                        | R                 |
+| `EntityParticle`                             | Manage Permissions                                                                        | Tooling                        | R                 |
+| `FieldDefinition`                            | Field metadata, Permission Analysis (field labels)                                        | Tooling                        | R                 |
+| `FieldPermissions`                           | Manage Permissions, Permission Analysis (read)                                            | REST                           | R/W               |
+| `Flow`                                       | Data Analysis (Where Used)                                                                | Tooling                        | R                 |
+| `FlowDefinitionView` (+ `Versions`)          | Automation Control                                                                        | REST + Tooling (write)         | R/W               |
+| `Folder`                                     | Metadata browser                                                                          | Tooling                        | R                 |
+| `GlobalValueSet`                             | Create Fields                                                                             | REST                           | R                 |
+| `MetadataComponentDependency`                | "Where is this used", Data Analysis (Where Used)                                          | Tooling                        | R                 |
+| `MutingPermissionSet`                        | Permission Analysis                                                                       | REST                           | R                 |
+| `ObjectPermissions`                          | Manage Permissions, Permission Analysis (read)                                            | REST                           | R/W               |
+| `Organization`                               | Org connection                                                                            | REST                           | R                 |
+| `PermissionSet` (+ `Profile`)                | Manage Permissions, Create Fields, Formula Evaluator, Permission Analysis                 | REST                           | R                 |
+| `PermissionSetAssignment`                    | Assignee popover, Permission Analysis                                                     | REST                           | R                 |
+| `PermissionSetGroup`                         | Permission Analysis                                                                       | REST                           | R                 |
+| `PermissionSetGroupComponent`                | Permission Analysis                                                                       | REST                           | R                 |
+| `PermissionSetLicenseAssign`                 | Permission Analysis                                                                       | REST                           | R                 |
+| `PermissionSetTabSetting`                    | Manage Permissions, Permission Analysis (read)                                            | REST                           | R/W               |
+| `RecordType`                                 | Metadata browser                                                                          | Tooling                        | R                 |
+| `StaticResource`                             | Metadata retrieve                                                                         | Tooling / REST                 | R                 |
+| `TabDefinition`                              | Manage Permissions, Permission Analysis                                                   | Tooling                        | R                 |
+| `TraceFlag`                                  | Debug Logs                                                                                | Tooling                        | R/W               |
+| `User`                                       | Formula Evaluator, assignee popover, Permission Analysis                                  | REST                           | R                 |
+| `UserPermissionAccess`                       | "Limited Access" badge                                                                    | REST                           | R                 |
+| `ValidationRule`                             | Automation Control                                                                        | Tooling                        | R/W               |
+| `WorkflowRule`                               | Automation Control                                                                        | Tooling                        | R/W               |
+| `<CustomMetadataType>__mdt`                  | Metadata browser                                                                          | Tooling                        | R                 |
+| _Any user-selected object_                   | Query, Load, Create, Update, Delete, Undelete; Data Analysis (read-only field-usage scan) | REST / Bulk / Tooling          | per user's access |
 
 ## See also
 

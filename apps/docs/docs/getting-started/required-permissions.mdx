@@ -51,11 +51,11 @@ In these cases, Jetstream may display a warning banner and/or a "Limited Access"
 
 Some features also rely on standard Salesforce permissions for the underlying operation, enforced by Salesforce exactly as they would be in Setup:
 
-| Permission                   | API Name                          | Required for                                                                                                                      |
-| ---------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| View Setup and Configuration | `PermissionsViewSetup`            | Reading setup metadata behind Automation Control, Manage Permissions, "Where is this used", and the metadata browser.             |
-| Customize Application        | `PermissionsCustomizeApplication` | Creating/editing objects, fields, record types, and picklists; activating/deactivating validation, workflow, and duplicate rules. |
-| Author Apex                  | `PermissionsAuthorApex`           | Running Anonymous Apex; enabling/disabling Apex triggers in Automation Control.                                                   |
+| Permission                   | API Name                          | Required for                                                                                                                                                               |
+| ---------------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| View Setup and Configuration | `PermissionsViewSetup`            | Reading setup metadata behind Automation Control, Manage Permissions, Permission Analysis, "Where is this used" / Where Used, and the metadata browser.                    |
+| Customize Application        | `PermissionsCustomizeApplication` | Creating/editing objects, fields, record types, and picklists; deleting unused fields in Data Analysis; activating/deactivating validation, workflow, and duplicate rules. |
+| Author Apex                  | `PermissionsAuthorApex`           | Running Anonymous Apex; enabling/disabling Apex triggers in Automation Control.                                                                                            |
 
 ## Connecting an org
 
@@ -68,6 +68,8 @@ Connecting an org does not, by itself, grant Jetstream any data or metadata acce
 Data features such as [Query](../query/query.mdx), [Load](../load/load.mdx), and [Create Records](../load/create-record-without-file.mdx) rely entirely on the user's existing **object-level** and **field-level** permissions and **sharing** settings. To work with a given object or field in Jetstream, the user simply needs the corresponding Read/Create/Edit/Delete access in Salesforce.
 
 No special "admin" permission is required for these features — grant only the object and field access each user actually needs.
+
+The same applies to the field-usage scan in [Data Analysis](../analysis/data-analysis.mdx): it **reads** records from the objects you select (aggregate `COUNT` queries plus a row-by-row scan for field types Salesforce cannot aggregate) and is governed entirely by the user's object and field access. The scan never modifies records, and scanned values are counted in the browser and discarded — only the per-field counts are kept.
 
 :::note
 
@@ -103,8 +105,17 @@ The features that require one of these permissions are:
 - [Manage Permissions](../permissions/permissions.mdx)
 - [Automation Control](../automation-control/automation-control.mdx)
 - [Debug Logs](../developer/debug-logs.mdx)
+- [Data Analysis (Field Usage)](../analysis/data-analysis.mdx) — required only for **deleting unused fields**, which uses a Metadata API destructive deploy. Running the usage analysis itself does not use the Metadata API.
 
-:::info Limited Access indicator
+:::note
+
+[Permission Analysis](../analysis/permission-analysis.mdx) is **read-only** and does not call the Metadata API — it queries permission-related setup objects (`PermissionSet`, `ObjectPermissions`, `FieldPermissions`, and related objects) through the REST and Tooling APIs. It may display the metadata-access banner, but Modify Metadata / Modify All Data is not what gates it; the user needs to be able to **read** those setup objects (typically **View Setup and Configuration**).
+
+:::
+
+:::info
+
+**Limited Access indicator**
 
 When you select an org where your user has **neither** `Modify Metadata` nor `Modify All Data`, Jetstream shows a **"Limited Access"** badge next to the org selector. Data features will continue to work, but the Metadata API features listed above may not function correctly.
 
@@ -116,18 +127,20 @@ Jetstream determines this by running the following query against the selected or
 SELECT Id, PermissionsModifyAllData, PermissionsModifyMetadata FROM UserPermissionAccess
 ```
 
+:::
+
 ## Are these high-privilege permissions required?
 
 Administrators frequently ask whether Jetstream needs broad administrative permissions. In most cases it does not — Jetstream acts as the connected user and never elevates privileges.
 
-| Permission                          | Required?                    | Details                                                                                                                                                                                                                                                         |
-| ----------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Modify All Data                     | **No**                       | Accepted as an alternative for [Metadata API features](#metadata-api-features), but **Modify Metadata Through Metadata API Functions** is the recommended least-privilege option. Modify All Data also bypasses sharing and FLS, which Jetstream does not need. |
-| Manage Users                        | **No**                       | Jetstream only **reads** `User` records (for the Formula Evaluator "run as" search and permission-set assignee popovers). This permission is required if you would like to create/update users using Jetstream data loader.                                     |
-| Manage Profiles and Permission Sets | **Only to save permissions** | Needed solely to save edits in [Manage Permissions](../permissions/permissions.mdx). Every other feature works without it.                                                                                                                                      |
-| View Setup and Configuration        | **Only for some features**   | Used to read setup metadata behind Automation Control, Manage Permissions, "Where is this used", and the metadata browser. Not needed for data features.                                                                                                        |
-| Customize Application               | **Only for some features**   | Enforced by Salesforce for the underlying changes when you create/edit objects, fields, record types, or picklists, or toggle validation/workflow/duplicate rules. Not needed for data or read-only features.                                                   |
-| Author Apex                         | **Only for some features**   | Enforced by Salesforce when running Anonymous Apex or enabling/disabling Apex triggers. Not needed for any other feature.                                                                                                                                       |
+| Permission                          | Required?                    | Details                                                                                                                                                                                                                                                            |
+| ----------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Modify All Data                     | **No**                       | Accepted as an alternative for [Metadata API features](#metadata-api-features), but **Modify Metadata Through Metadata API Functions** is the recommended least-privilege option. Modify All Data also bypasses sharing and FLS, which Jetstream does not need.    |
+| Manage Users                        | **No**                       | Jetstream only **reads** `User` records (for the Formula Evaluator "run as" search, permission-set assignee popovers, and Permission Analysis user assignments). This permission is required if you would like to create/update users using Jetstream data loader. |
+| Manage Profiles and Permission Sets | **Only to save permissions** | Needed solely to save edits in [Manage Permissions](../permissions/permissions.mdx). Every other feature works without it — [Permission Analysis](../analysis/permission-analysis.mdx) only reads permissions and does not need it.                                |
+| View Setup and Configuration        | **Only for some features**   | Used to read setup metadata behind Automation Control, Manage Permissions, Permission Analysis, "Where is this used" / Where Used, and the metadata browser. Not needed for data features.                                                                         |
+| Customize Application               | **Only for some features**   | Enforced by Salesforce for the underlying changes when you create/edit objects, fields, record types, or picklists, delete unused fields in Data Analysis, or toggle validation/workflow/duplicate rules. Not needed for data or read-only features.               |
+| Author Apex                         | **Only for some features**   | Enforced by Salesforce when running Anonymous Apex or enabling/disabling Apex triggers. Not needed for any other feature.                                                                                                                                          |
 
 ## Recommendations for least privilege
 
