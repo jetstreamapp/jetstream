@@ -96,7 +96,10 @@ export class Browser {
 
     browserWindow.once('ready-to-show', () => {
       browserWindow.show();
-      if (ENV.ENVIRONMENT === 'development') {
+      // A local-dev convenience only. Docked DevTools claims most of the window width, which
+      // collapses the responsive navbar into its "More" overflow menu, and Playwright counts the
+      // DevTools view as a second application window - both break the desktop E2E suite.
+      if (ENV.ENVIRONMENT === 'development' && !ENV.AUTOMATED_TESTING) {
         browserWindow.webContents.openDevTools();
       }
     });

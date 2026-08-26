@@ -51,8 +51,10 @@ const JSZip = require('jszip');
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUTPUT_ROOT = path.join(ROOT, 'tmp', 'ci-failures');
-const PLAYWRIGHT_ARTIFACT = 'playwright-report';
-const PLAYWRIGHT_SUMMARY_ARTIFACT = 'playwright-summary';
+// The web suite's artifact, then the desktop suite's. A run normally produces one or the other
+// (each job's affected-guard gates it independently); when both are present the web one wins.
+const PLAYWRIGHT_REPORT_ARTIFACTS = ['playwright-report', 'desktop-e2e-report'];
+const PLAYWRIGHT_SUMMARY_ARTIFACTS = ['playwright-summary', 'desktop-playwright-summary'];
 const RUNS_TO_SCAN = 15;
 const FAILED_CONCLUSIONS = new Set(['failure', 'timed_out', 'cancelled', 'startup_failure']);
 
@@ -376,8 +378,10 @@ async function collectPlaywrightReport() {
   const { artifacts = [] } = gh(['api', `repos/${repo}/actions/runs/${run.id}/artifacts?per_page=100`]);
   const byName = (wanted) => artifacts.find(({ name, expired }) => name === wanted && !expired);
 
-  const reportArtifact = byName(PLAYWRIGHT_ARTIFACT);
-  const summary = byName(PLAYWRIGHT_SUMMARY_ARTIFACT);
+  const reportName = PLAYWRIGHT_REPORT_ARTIFACTS.find((name) => byName(name));
+  const reportArtifact = reportName ? byName(reportName) : undefined;
+  const summaryName = PLAYWRIGHT_SUMMARY_ARTIFACTS.find((name) => byName(name));
+  const summary = summaryName ? byName(summaryName) : undefined;
 
   // `--no-report` avoids the large *download*; a report already sitting in the bundle is free, and
   // discarding it would silently downgrade a bundle that already had screenshots and traces.
@@ -387,8 +391,10 @@ async function collectPlaywrightReport() {
 
   if (!useReport && !summary) {
     if (!options.report && reportArtifact) {
-      console.log(`  ! --no-report was passed and this run has no ${PLAYWRIGHT_SUMMARY_ARTIFACT} artifact — using job logs only.`);
-    } else if (artifacts.some(({ name, expired }) => name === PLAYWRIGHT_ARTIFACT && expired)) {
+      console.log(
+        `  ! --no-report was passed and this run has no ${PLAYWRIGHT_SUMMARY_ARTIFACTS.join(' or ')} artifact — using job logs only.`,
+      );
+    } else if (artifacts.some(({ name, expired }) => PLAYWRIGHT_REPORT_ARTIFACTS.includes(name) && expired)) {
       console.log('  ! The Playwright artifacts for this run have expired — using job logs only.');
     }
     return null;
@@ -399,9 +405,9 @@ async function collectPlaywrightReport() {
 
   if (useReport) {
     if (!reportOnDisk) {
-      console.log(`  · downloading ${PLAYWRIGHT_ARTIFACT} (${(reportArtifact.size_in_bytes / 1024 / 1024).toFixed(1)} MB)…`);
+      console.log(`  · downloading ${reportName} (${(reportArtifact.size_in_bytes / 1024 / 1024).toFixed(1)} MB)…`);
       await mkdir(reportDir, { recursive: true });
-      downloadArtifact(PLAYWRIGHT_ARTIFACT, reportDir);
+      downloadArtifact(reportName, reportDir);
     }
     try {
       return { ...(await extractPlaywrightFailures(reportDir, failuresDir, { includeTraces: options.traces })), reportDir };
@@ -417,7 +423,7 @@ async function collectPlaywrightReport() {
   const summaryDir = path.join(bundleDir, 'playwright');
   const summaryPath = path.join(summaryDir, 'playwright-summary.json');
   if (!existsSync(summaryPath)) {
-    downloadArtifact(PLAYWRIGHT_SUMMARY_ARTIFACT, summaryDir);
+    downloadArtifact(summaryName, summaryDir);
   }
 
   try {
@@ -499,9 +505,9 @@ function buildSummary(jobReports, playwright) {
     push('## Failed Playwright tests', '');
     if (playwright.textOnly) {
       push(
-        'Read from the small `playwright-summary` artifact: error text and code frames only. For the',
+        'Read from the small `playwright-summary` artifact (or `desktop-playwright-summary`): error text and code frames only. For the',
         'screenshots, the page snapshot and the trace, re-run without `--no-report` while the',
-        '`playwright-report` artifact still exists (it is kept for 14 days).',
+        '`playwright-report` (or `desktop-e2e-report`) artifact still exists (it is kept for 14 days).',
         '',
       );
     }

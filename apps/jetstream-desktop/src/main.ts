@@ -2,6 +2,8 @@ import { app, BrowserWindow } from 'electron';
 import logger from 'electron-log';
 import { Browser } from './browser/browser';
 import { initializeAutoUpdater } from './config/auto-updater';
+import { ENV } from './config/environment';
+import { initializeSmokeTest } from './config/smoke-test';
 import { initDeepLink } from './services/deep-link.service';
 import { registerIpc } from './services/ipc.service';
 import { initAppMenu } from './services/menu.service';
@@ -50,7 +52,14 @@ app.whenReady().then(async () => {
 
   let mainWindow = Browser.create(() => registerIpc());
 
-  initializeAutoUpdater();
+  // In smoke-test mode (packaged-build verification) the app exits as soon as the renderer
+  // loads, so skip anything that talks to live services — most importantly the auto-updater,
+  // which would otherwise hit the production update feed from CI.
+  if (ENV.SMOKE_TEST) {
+    initializeSmokeTest(mainWindow);
+  } else {
+    initializeAutoUpdater();
+  }
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0 || !mainWindow || mainWindow.isDestroyed()) {
@@ -62,5 +71,7 @@ app.whenReady().then(async () => {
   registerDownloadHandler();
   registerFileOpenHandler();
 
-  registerNotificationPoller();
+  if (!ENV.SMOKE_TEST) {
+    registerNotificationPoller();
+  }
 });
