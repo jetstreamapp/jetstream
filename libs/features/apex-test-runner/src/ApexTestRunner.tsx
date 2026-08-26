@@ -5,6 +5,7 @@ import { AutoFullHeightContainer, Page, PageHeader, PageHeaderRow, PageHeaderTit
 import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import CoverageTab from './coverage/CoverageTab';
 import TestRunsTab from './runs/TestRunsTab';
 import RunTestsTab from './selection/RunTestsTab';
 import type { SelectedTestRun } from './useApexTestRun';
@@ -93,7 +94,7 @@ export const ApexTestRunner: FunctionComponent = () => {
             {
               id: 'code-coverage',
               title: 'Code Coverage',
-              content: <div key={selectedOrg.uniqueId}>Code coverage coming soon</div>,
+              content: <CoverageTab key={selectedOrg.uniqueId} selectedOrg={selectedOrg} />,
             },
           ]}
         />
