@@ -90,6 +90,7 @@ export interface ApexTestRunResultRecord {
   /** Total test execution time in milliseconds */
   TestTime: number | null;
   UserId: string;
+  User: { Name: string } | null;
   CreatedDate: string;
 }
 

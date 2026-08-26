@@ -1,16 +1,23 @@
 import { TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useTitle } from '@jetstream/shared/ui-utils';
-import { AutoFullHeightContainer, Page, PageHeader, PageHeaderRow, PageHeaderTitle, Tabs } from '@jetstream/ui';
-import { selectedOrgState } from '@jetstream/ui/app-state';
+import { AutoFullHeightContainer, Page, PageHeader, PageHeaderRow, PageHeaderTitle, Tabs, TabsRef } from '@jetstream/ui';
+import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
-import { FunctionComponent } from 'react';
+import { FunctionComponent, useRef, useState } from 'react';
+import TestRunsTab from './runs/TestRunsTab';
+import type { SelectedTestRun } from './useApexTestRun';
+import { useApexTestRunsList } from './useApexTestRunsList';
 
 const HEIGHT_BUFFER = 170;
 
 export const ApexTestRunner: FunctionComponent = () => {
   useTitle(TITLES.APEX_TESTS);
   const selectedOrg = useAtomValue(selectedOrgState);
+  const { defaultApiVersion } = useAtomValue(applicationCookieState);
+  const tabsRef = useRef<TabsRef>(null);
+  const [selectedRun, setSelectedRun] = useState<SelectedTestRun | null>(null);
+  const runsList = useApexTestRunsList(selectedOrg);
 
   return (
     <Page testId="apex-test-runner-page">
@@ -25,6 +32,7 @@ export const ApexTestRunner: FunctionComponent = () => {
         bufferIfNotRendered={HEIGHT_BUFFER}
       >
         <Tabs
+          ref={tabsRef}
           renderAllContent
           tabs={[
             {
@@ -35,7 +43,16 @@ export const ApexTestRunner: FunctionComponent = () => {
             {
               id: 'test-runs',
               title: 'Test Runs',
-              content: <div key={selectedOrg.uniqueId}>Test runs coming soon</div>,
+              content: (
+                <TestRunsTab
+                  key={selectedOrg.uniqueId}
+                  selectedOrg={selectedOrg}
+                  apiVersion={defaultApiVersion}
+                  runsList={runsList}
+                  selectedRun={selectedRun}
+                  onSelectedRunChange={setSelectedRun}
+                />
+              ),
             },
             {
               id: 'code-coverage',

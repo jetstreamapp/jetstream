@@ -38,6 +38,7 @@ export function getApexTestRunsQuery(limit = 50) {
       getField('EndTime'),
       getField('TestTime'),
       getField('UserId'),
+      getField('User.Name'),
       getField('CreatedDate'),
     ],
     sObject: 'ApexTestRunResult',
