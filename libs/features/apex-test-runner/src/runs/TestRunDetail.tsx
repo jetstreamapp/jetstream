@@ -35,7 +35,8 @@ export const TestRunDetail: FunctionComponent<TestRunDetailProps> = ({
   }
 
   const inProgress = isTestRunInProgress(run);
-  const methodsRun = (run.MethodsCompleted ?? 0) + (run.MethodsFailed ?? 0);
+  // MethodsCompleted includes failed methods
+  const methodsRun = run.MethodsCompleted ?? 0;
 
   return (
     <div

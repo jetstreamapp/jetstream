@@ -63,6 +63,9 @@ export const CoverageSourceModal: FunctionComponent<CoverageSourceModalProps> = 
   const [body, setBody] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [lineDetailUnavailable, setLineDetailUnavailable] = useState(false);
+  /** Freshly fetched aggregate — the table row's counts can lag behind (e.g. tests ran since the table loaded) */
+  const [freshCoverageRecord, setFreshCoverageRecord] = useState<ApexCodeCoverageAggregateRecord | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,6 +81,10 @@ export const CoverageSourceModal: FunctionComponent<CoverageSourceModalProps> = 
         }
         setBody(classOrTrigger?.Body ?? null);
         setCoverage(detail?.Coverage ?? null);
+        setFreshCoverageRecord(detail);
+        // Salesforce leaves the line arrays empty on stale aggregate rows (e.g. class changed since tests last ran)
+        const hasLineDetail = !!detail?.Coverage && (detail.Coverage.coveredLines.length > 0 || detail.Coverage.uncoveredLines.length > 0);
+        setLineDetailUnavailable(!hasLineDetail && detail !== null && detail.NumLinesCovered + detail.NumLinesUncovered > 0);
         setLoading(false);
       } catch (ex) {
         if (!cancelled) {
@@ -91,7 +98,8 @@ export const CoverageSourceModal: FunctionComponent<CoverageSourceModalProps> = 
     };
   }, [selectedOrg, coverageRecord, setCoverage]);
 
-  const percentage = getCoveragePercentage(coverageRecord);
+  const displayRecord = freshCoverageRecord ?? coverageRecord;
+  const percentage = getCoveragePercentage(displayRecord);
 
   return (
     <Modal
@@ -100,8 +108,8 @@ export const CoverageSourceModal: FunctionComponent<CoverageSourceModalProps> = 
       tagline={
         <Grid verticalAlign="center">
           <span>
-            {percentage === null ? 'No coverable lines' : `${percentage}% covered`} — {coverageRecord.NumLinesCovered} covered /{' '}
-            {coverageRecord.NumLinesUncovered} uncovered
+            {percentage === null ? 'No coverable lines' : `${percentage}% covered`} — {displayRecord.NumLinesCovered} covered /{' '}
+            {displayRecord.NumLinesUncovered} uncovered
           </span>
           <span
             className="slds-m-left_small"
@@ -141,6 +149,11 @@ export const CoverageSourceModal: FunctionComponent<CoverageSourceModalProps> = 
         {errorMessage && (
           <ScopedNotification theme="error" className="slds-m-bottom_x-small">
             {errorMessage}
+          </ScopedNotification>
+        )}
+        {!loading && lineDetailUnavailable && (
+          <ScopedNotification theme="info" className="slds-m-bottom_x-small">
+            Line-level coverage detail is not available for this class — run tests that cover it to refresh the data.
           </ScopedNotification>
         )}
         {!loading && body !== null && (

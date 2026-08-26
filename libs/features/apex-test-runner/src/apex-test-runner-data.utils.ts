@@ -5,12 +5,12 @@ import { splitArrayToMaxSize } from '@jetstream/shared/utils';
 import type {
   ApexClassRecord,
   ApexCodeCoverageAggregateRecord,
+  ApexOrgWideCoverageRecord,
   ApexTestQueueItemRecord,
   ApexTestResultRecord,
   ApexTestRunResultRecord,
   ApexTestSuiteRecord,
   ApexTriggerRecord,
-  OrgWideApexCoverageRecord,
   RunTestsAsyncPayload,
   SalesforceOrgUi,
   TestSuiteMembershipRecord,
@@ -129,7 +129,7 @@ export function getCoverageDetailQuery(apexClassOrTriggerId: string) {
 }
 
 export function getOrgWideCoverageQuery() {
-  return composeQuery({ fields: [getField('Id'), getField('PercentCovered')], sObject: 'OrgWideApexCoverage' });
+  return composeQuery({ fields: [getField('Id'), getField('PercentCovered')], sObject: 'ApexOrgWideCoverage' });
 }
 
 export function getApexClassManifestQuery() {
@@ -279,7 +279,7 @@ export async function fetchApexClassOrTriggerBody(org: SalesforceOrgUi, apexClas
 }
 
 export async function fetchOrgWideCoverage(org: SalesforceOrgUi): Promise<number | null> {
-  const records = (await query<OrgWideApexCoverageRecord>(org, getOrgWideCoverageQuery(), true)).queryResults.records;
+  const records = (await query<ApexOrgWideCoverageRecord>(org, getOrgWideCoverageQuery(), true)).queryResults.records;
   return records[0]?.PercentCovered ?? null;
 }
 

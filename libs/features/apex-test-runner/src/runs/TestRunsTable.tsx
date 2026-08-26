@@ -67,7 +67,8 @@ export const TestRunsTable: FunctionComponent<TestRunsTableProps> = ({ runs, sel
       runs.map((run) => ({
         ...run,
         'User.Name': run.User?.Name ?? null,
-        progress: run.MethodsEnqueued === null ? '' : `${(run.MethodsCompleted ?? 0) + (run.MethodsFailed ?? 0)} / ${run.MethodsEnqueued}`,
+        // MethodsCompleted includes failed methods, so no need to add MethodsFailed
+        progress: run.MethodsEnqueued === null ? '' : `${run.MethodsCompleted ?? 0} / ${run.MethodsEnqueued}`,
       })),
     [runs],
   );
@@ -104,7 +105,8 @@ export const TestRunsTable: FunctionComponent<TestRunsTableProps> = ({ runs, sel
   );
 
   return (
-    <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={25} maxHeight={maxHeight} recalculateKey={maxHeight}>
+    // fillHeight sets a viewport-based min-height which beats max-height in CSS, so it must be off when the table is capped
+    <AutoFullHeightContainer fillHeight={!maxHeight} setHeightAttr bottomBuffer={25} maxHeight={maxHeight} recalculateKey={maxHeight}>
       <DataTable columns={columns} data={rows} getRowKey={getRowId} rowClass={rowClass} defaultColumnOptions={{ sortable: true }} />
     </AutoFullHeightContainer>
   );

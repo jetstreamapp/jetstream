@@ -136,7 +136,7 @@ export interface ApexCodeCoverageAggregateRecord {
   };
 }
 
-export interface OrgWideApexCoverageRecord {
+export interface ApexOrgWideCoverageRecord {
   Id: string;
   PercentCovered: number;
 }
