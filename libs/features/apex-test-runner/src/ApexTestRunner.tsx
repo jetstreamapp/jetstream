@@ -67,7 +67,14 @@ export const ApexTestRunner: FunctionComponent = () => {
             {
               id: 'run-tests',
               title: 'Run Tests',
-              content: <RunTestsTab key={selectedOrg.uniqueId} selectedOrg={selectedOrg} onRunStarted={handleRunStarted} />,
+              content: (
+                <RunTestsTab
+                  key={selectedOrg.uniqueId}
+                  selectedOrg={selectedOrg}
+                  apiVersion={defaultApiVersion}
+                  onRunStarted={handleRunStarted}
+                />
+              ),
             },
             {
               id: 'test-runs',
