@@ -118,7 +118,7 @@ export function useApexTestRunsList(org: SalesforceOrgUi) {
   }, []);
 
   const hasRunsInProgress = runs.some(isTestRunInProgress);
-  const intervalDelay = numPollErrors.current > MAX_POLL_ERRORS ? null : hasRunsInProgress ? ACTIVE_POLL_INTERVAL : IDLE_POLL_INTERVAL;
+  const intervalDelay = numPollErrors.current >= MAX_POLL_ERRORS ? null : hasRunsInProgress ? ACTIVE_POLL_INTERVAL : IDLE_POLL_INTERVAL;
 
   useInterval(handlePoll, intervalDelay);
 

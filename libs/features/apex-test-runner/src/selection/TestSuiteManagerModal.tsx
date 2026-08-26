@@ -1,9 +1,21 @@
 import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { getErrorMessage, multiWordObjectFilter } from '@jetstream/shared/utils';
-import { Checkbox, ConfirmationModalPromise, Grid, Icon, Input, Modal, ScopedNotification, SearchInput, Spinner } from '@jetstream/ui';
+import {
+  Checkbox,
+  ConfirmationModalPromise,
+  Grid,
+  Icon,
+  Input,
+  List,
+  Modal,
+  ScopedNotification,
+  SearchInput,
+  Spinner,
+} from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
 import { FunctionComponent, useEffect, useMemo, useState } from 'react';
+import { validateTestSuiteName } from '../apex-test-runner-data.utils';
 import type { TestClassListItem } from '../apex-test-runner-types';
 import type { useApexTestSuites } from '../useApexTestSuites';
 
@@ -26,6 +38,23 @@ export const TestSuiteManagerModal: FunctionComponent<TestSuiteManagerModalProps
 
   const selectedSuite = suites.find(({ Id }) => Id === selectedSuiteId) ?? null;
 
+  const existingSuiteNames = useMemo(() => suites.map(({ TestSuiteName }) => TestSuiteName), [suites]);
+  const newSuiteNameError = newSuiteName ? validateTestSuiteName(newSuiteName, existingSuiteNames) : null;
+  const renameError =
+    renameValue && renameValue !== selectedSuite?.TestSuiteName
+      ? validateTestSuiteName(
+          renameValue,
+          existingSuiteNames.filter((name) => name !== selectedSuite?.TestSuiteName),
+        )
+      : null;
+
+  // Auto-select the first suite so the editor is immediately useful
+  useEffect(() => {
+    if (!selectedSuiteId && suites.length > 0) {
+      setSelectedSuiteId(suites[0].Id);
+    }
+  }, [selectedSuiteId, suites]);
+
   // Re-initialize the editor whenever a different suite is chosen or fresh data arrives
   useEffect(() => {
     if (selectedSuite) {
@@ -42,8 +71,12 @@ export const TestSuiteManagerModal: FunctionComponent<TestSuiteManagerModalProps
     [testClasses, searchTerm],
   );
 
+  const visibleSelectedCount = filteredClasses.filter(({ classId }) => memberClassIds.has(classId)).length;
+  const allVisibleSelected = filteredClasses.length > 0 && visibleSelectedCount === filteredClasses.length;
+  const someVisibleSelected = visibleSelectedCount > 0 && !allVisibleSelected;
+
   async function handleCreateSuite() {
-    if (!newSuiteName.trim()) {
+    if (!newSuiteName.trim() || newSuiteNameError) {
       return;
     }
     try {
@@ -61,7 +94,7 @@ export const TestSuiteManagerModal: FunctionComponent<TestSuiteManagerModalProps
   }
 
   async function handleRename() {
-    if (!selectedSuite || !renameValue.trim() || renameValue.trim() === selectedSuite.TestSuiteName) {
+    if (!selectedSuite || !renameValue.trim() || renameValue.trim() === selectedSuite.TestSuiteName || renameError) {
       return;
     }
     try {
@@ -124,6 +157,16 @@ export const TestSuiteManagerModal: FunctionComponent<TestSuiteManagerModalProps
     });
   }
 
+  function handleSelectAllVisible() {
+    setMemberClassIds((prior) => {
+      const updated = new Set(prior);
+      for (const { classId } of filteredClasses) {
+        allVisibleSelected ? updated.delete(classId) : updated.add(classId);
+      }
+      return updated;
+    });
+  }
+
   return (
     <Modal
       size="lg"
@@ -155,7 +198,14 @@ export const TestSuiteManagerModal: FunctionComponent<TestSuiteManagerModalProps
         <Grid gutters>
           <div className="slds-col slds-size_1-of-3">
             <Grid verticalAlign="end">
-              <Input label="New Suite Name" className="slds-grow">
+              <Input
+                label="New Suite Name"
+                className="slds-grow"
+                hasError={!!newSuiteNameError}
+                errorMessage={newSuiteNameError}
+                errorMessageId="new-suite-name-error"
+                labelHelp="Can only contain letters, numbers, and underscores. Must begin with a letter, cannot end with an underscore, and cannot contain two consecutive underscores."
+              >
                 <input
                   id="new-suite-name"
                   className="slds-input"
@@ -166,33 +216,27 @@ export const TestSuiteManagerModal: FunctionComponent<TestSuiteManagerModalProps
               </Input>
               <button
                 className="slds-button slds-button_neutral slds-m-left_x-small"
-                disabled={!newSuiteName.trim() || saving}
+                disabled={!newSuiteName.trim() || !!newSuiteNameError || saving}
                 onClick={handleCreateSuite}
               >
                 Create
               </button>
             </Grid>
-            <ul className="slds-has-dividers_bottom-space slds-m-top_small">
-              {suites.map((suite) => (
-                <li
-                  key={suite.Id}
-                  className={`slds-item ${suite.Id === selectedSuiteId ? 'slds-is-selected' : ''}`}
-                  css={css`
-                    cursor: pointer;
-                  `}
-                >
-                  <button
-                    className={`slds-button ${suite.Id === selectedSuiteId ? 'slds-text-heading_small' : ''}`}
-                    onClick={() => setSelectedSuiteId(suite.Id)}
-                  >
-                    {suite.TestSuiteName}
-                    <span className="slds-m-left_x-small slds-text-body_small slds-text-color_weak">
-                      ({(membershipsBySuiteId.get(suite.Id) ?? []).length})
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <div className="slds-m-top_small">
+              <List
+                items={suites}
+                isActive={(suite) => suite.Id === selectedSuiteId}
+                onSelected={setSelectedSuiteId}
+                getContent={(suite) => ({
+                  key: suite.Id,
+                  testId: suite.TestSuiteName,
+                  heading: suite.TestSuiteName,
+                  subheading: `${(membershipsBySuiteId.get(suite.Id) ?? []).length} ${
+                    (membershipsBySuiteId.get(suite.Id) ?? []).length === 1 ? 'class' : 'classes'
+                  }`,
+                })}
+              />
+            </div>
             {!suites.length && !loading && <p className="slds-m-top_small">No test suites exist in this org yet.</p>}
           </div>
           <div className="slds-col slds-size_2-of-3">
@@ -200,7 +244,13 @@ export const TestSuiteManagerModal: FunctionComponent<TestSuiteManagerModalProps
             {selectedSuite && (
               <div>
                 <Grid verticalAlign="end" className="slds-m-bottom_small">
-                  <Input label="Suite Name" className="slds-grow">
+                  <Input
+                    label="Suite Name"
+                    className="slds-grow"
+                    hasError={!!renameError}
+                    errorMessage={renameError}
+                    errorMessageId="rename-suite-error"
+                  >
                     <input
                       id="rename-suite"
                       className="slds-input"
@@ -211,7 +261,7 @@ export const TestSuiteManagerModal: FunctionComponent<TestSuiteManagerModalProps
                   </Input>
                   <button
                     className="slds-button slds-button_neutral slds-m-left_x-small"
-                    disabled={saving || !renameValue.trim() || renameValue.trim() === selectedSuite.TestSuiteName}
+                    disabled={saving || !renameValue.trim() || renameValue.trim() === selectedSuite.TestSuiteName || !!renameError}
                     onClick={handleRename}
                   >
                     Rename
@@ -230,6 +280,14 @@ export const TestSuiteManagerModal: FunctionComponent<TestSuiteManagerModalProps
                     </button>
                   </div>
                 </Grid>
+                <Checkbox
+                  id="suite-class-select-all"
+                  checked={allVisibleSelected}
+                  indeterminate={someVisibleSelected}
+                  disabled={filteredClasses.length === 0}
+                  label="Select All"
+                  onChange={handleSelectAllVisible}
+                />
                 <div
                   css={css`
                     max-height: 45vh;

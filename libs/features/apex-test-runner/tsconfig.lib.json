@@ -54,6 +54,9 @@
     },
     {
       "path": "../../shared/constants/tsconfig.lib.json"
+    },
+    {
+      "path": "../../connected/connected-ui/tsconfig.lib.json"
     }
   ]
 }

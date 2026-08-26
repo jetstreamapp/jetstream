@@ -185,8 +185,20 @@ export interface ApexSymbolTableMethod {
   location: { line: number; column: number };
 }
 
+export interface RunTestsAsyncOptions {
+  /** Stop executing new tests after this many failures (0 to 1,000,000). Omit for no limit. */
+  maxFailedTests?: number;
+  /** Skip collecting code coverage for a faster run */
+  skipCodeCoverage?: boolean;
+}
+
 /**
  * Request body for POST /tooling/runTestsAsynchronous.
  * classids/suiteids are comma-delimited id lists; tests allows method-level selection.
  */
-export type RunTestsAsyncPayload = { classids: string } | { suiteids: string } | { tests: { classId: string; testMethods?: string[] }[] };
+export type RunTestsAsyncPayload = (
+  | { classids: string }
+  | { suiteids: string }
+  | { tests: { classId: string; testMethods?: string[] }[] }
+) &
+  RunTestsAsyncOptions;

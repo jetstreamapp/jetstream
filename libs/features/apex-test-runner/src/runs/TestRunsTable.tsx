@@ -4,9 +4,16 @@ import { AutoFullHeightContainer, Badge, ColumnWithFilter, DataTable, RenderCell
 import { FunctionComponent, useCallback, useMemo } from 'react';
 import { formatTestTime, getRunStatusBadgeType } from './test-run-utils';
 
-type TestRunRow = ApexTestRunResultRecord & { 'User.Name': string | null; progress: string };
+type TestRunRow = ApexTestRunResultRecord & { 'User.Name': string | null; progress: string; testRunId: string };
 
 const StatusRenderer = ({ row }: RenderCellProps<TestRunRow>) => <Badge type={getRunStatusBadgeType(row.Status)}>{row.Status}</Badge>;
+
+const FailuresRenderer = ({ row }: RenderCellProps<TestRunRow>) => {
+  if (row.MethodsFailed === null) {
+    return null;
+  }
+  return <span className={row.MethodsFailed > 0 ? 'slds-text-color_error' : 'slds-text-color_success'}>{row.MethodsFailed}</span>;
+};
 
 const COLUMNS: ColumnWithFilter<TestRunRow>[] = [
   {
@@ -18,15 +25,22 @@ const COLUMNS: ColumnWithFilter<TestRunRow>[] = [
   },
   {
     ...setColumnFromType('progress', 'text'),
-    name: 'Methods Run',
+    name: 'Tests Run',
     key: 'progress',
     width: 120,
+  },
+  {
+    ...setColumnFromType('testRunId', 'text'),
+    name: 'Test Run Id',
+    key: 'testRunId',
+    width: 160,
   },
   {
     ...setColumnFromType('MethodsFailed', 'number'),
     name: 'Failures',
     key: 'MethodsFailed',
     width: 100,
+    renderCell: FailuresRenderer,
   },
   {
     ...setColumnFromType('User.Name', 'text'),
@@ -44,7 +58,7 @@ const COLUMNS: ColumnWithFilter<TestRunRow>[] = [
     ...setColumnFromType('TestTime', 'text'),
     name: 'Test Time',
     key: 'TestTime',
-    width: 100,
+    width: 120,
     renderCell: ({ row }: RenderCellProps<TestRunRow>) => <span>{formatTestTime(row.TestTime)}</span>,
   },
 ];
@@ -69,6 +83,8 @@ export const TestRunsTable: FunctionComponent<TestRunsTableProps> = ({ runs, sel
         'User.Name': run.User?.Name ?? null,
         // MethodsCompleted includes failed methods, so no need to add MethodsFailed
         progress: run.MethodsEnqueued === null ? '' : `${run.MethodsCompleted ?? 0} / ${run.MethodsEnqueued}`,
+        // 15-character form to match what the Developer Console displays
+        testRunId: run.Id.startsWith('optimistic-') ? '' : run.AsyncApexJobId.slice(0, 15),
       })),
     [runs],
   );
@@ -100,8 +116,7 @@ export const TestRunsTable: FunctionComponent<TestRunsTableProps> = ({ runs, sel
           ),
         };
       }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+    [onRowSelection],
   );
 
   return (

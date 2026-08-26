@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import type { SalesforceOrgUi } from '@jetstream/types';
-import { ComboboxWithItems, Grid, Icon, ScopedNotification, Spinner } from '@jetstream/ui';
+import { Checkbox, Grid, Icon, Input, ScopedNotification, Spinner } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
 import { FunctionComponent, useCallback, useMemo, useState } from 'react';
 import { buildRunTestsPayload, runTestsAsync } from '../apex-test-runner-data.utils';
@@ -10,6 +10,7 @@ import { useApexTestClasses } from '../useApexTestClasses';
 import { useApexTestSuites } from '../useApexTestSuites';
 import TestClassSelection from './TestClassSelection';
 import TestSuiteManagerModal from './TestSuiteManagerModal';
+import TestSuitesPopover from './TestSuitesPopover';
 
 export interface RunTestsTabProps {
   selectedOrg: SalesforceOrgUi;
@@ -22,17 +23,21 @@ export const RunTestsTab: FunctionComponent<RunTestsTabProps> = ({ selectedOrg, 
   const { testClasses, unknownClasses, loading, progressText, errorMessage, refresh } = useApexTestClasses(selectedOrg);
   const suitesState = useApexTestSuites(selectedOrg, apiVersion);
   const [selectedClasses, setSelectedClasses] = useState<Map<string, Set<string> | 'ALL'>>(() => new Map());
-  const [selectedSuiteId, setSelectedSuiteId] = useState<string | null>(null);
   const [suiteManagerOpen, setSuiteManagerOpen] = useState(false);
   const [launching, setLaunching] = useState(false);
   const [launchError, setLaunchError] = useState<string | null>(null);
+  const [maxFailedTests, setMaxFailedTests] = useState('');
+  const [skipCodeCoverage, setSkipCodeCoverage] = useState(false);
 
-  const suiteItems = useMemo(
-    () => suitesState.suites.map((suite) => ({ id: suite.Id, label: suite.TestSuiteName, value: suite.Id })),
-    [suitesState.suites],
-  );
+  const runOptions = useMemo(() => {
+    const parsedMaxFailedTests = Number.parseInt(maxFailedTests, 10);
+    return {
+      maxFailedTests: Number.isInteger(parsedMaxFailedTests) && parsedMaxFailedTests >= 0 ? parsedMaxFailedTests : undefined,
+      skipCodeCoverage,
+    };
+  }, [maxFailedTests, skipCodeCoverage]);
 
-  const classesByid = useMemo(
+  const classesById = useMemo(
     () => new Map([...testClasses, ...unknownClasses].map((item) => [item.classId, item])),
     [testClasses, unknownClasses],
   );
@@ -40,10 +45,10 @@ export const RunTestsTab: FunctionComponent<RunTestsTabProps> = ({ selectedOrg, 
   const selectedMethodCount = useMemo(() => {
     let count = 0;
     for (const [classId, selection] of selectedClasses) {
-      count += selection === 'ALL' ? (classesByid.get(classId)?.methods.length ?? 0) : selection.size;
+      count += selection === 'ALL' ? (classesById.get(classId)?.methods.length ?? 0) : selection.size;
     }
     return count;
-  }, [selectedClasses, classesByid]);
+  }, [selectedClasses, classesById]);
 
   const handleToggleClass = useCallback((classId: string) => {
     setSelectedClasses((prior) => {
@@ -57,7 +62,7 @@ export const RunTestsTab: FunctionComponent<RunTestsTabProps> = ({ selectedOrg, 
     (classId: string, method: string) => {
       setSelectedClasses((prior) => {
         const updated = new Map(prior);
-        const allMethods = classesByid.get(classId)?.methods ?? [];
+        const allMethods = classesById.get(classId)?.methods ?? [];
         const current = updated.get(classId);
         let methods: Set<string>;
         if (current === 'ALL') {
@@ -78,19 +83,34 @@ export const RunTestsTab: FunctionComponent<RunTestsTabProps> = ({ selectedOrg, 
         return updated;
       });
     },
-    [classesByid],
+    [classesById],
   );
+
+  const handleSelectAllVisible = useCallback((classIds: string[], select: boolean) => {
+    setSelectedClasses((prior) => {
+      const updated = new Map(prior);
+      for (const classId of classIds) {
+        select ? updated.set(classId, 'ALL') : updated.delete(classId);
+      }
+      return updated;
+    });
+  }, []);
 
   const handleRunTests = useCallback(async () => {
     try {
       setLaunching(true);
       setLaunchError(null);
       const hasMethodLevelSelection = Array.from(selectedClasses.values()).some((selection) => selection !== 'ALL');
-      const asyncApexJobId = await runTestsAsync(selectedOrg, buildRunTestsPayload({ type: 'tests', classes: selectedClasses }));
+      const asyncApexJobId = await runTestsAsync(
+        selectedOrg,
+        buildRunTestsPayload({ type: 'tests', classes: selectedClasses }, runOptions),
+      );
       trackEvent(ANALYTICS_KEYS.apex_tests_run, {
         classCount: selectedClasses.size,
         methodCount: selectedMethodCount,
         hasMethodLevelSelection,
+        skipCodeCoverage: runOptions.skipCodeCoverage,
+        hasMaxFailedTests: runOptions.maxFailedTests !== undefined,
         source: 'classes',
       });
       onRunStarted(asyncApexJobId);
@@ -99,24 +119,28 @@ export const RunTestsTab: FunctionComponent<RunTestsTabProps> = ({ selectedOrg, 
     } finally {
       setLaunching(false);
     }
-  }, [selectedOrg, selectedClasses, selectedMethodCount, trackEvent, onRunStarted]);
+  }, [selectedOrg, selectedClasses, selectedMethodCount, runOptions, trackEvent, onRunStarted]);
 
-  const handleRunSuite = useCallback(async () => {
-    if (!selectedSuiteId) {
-      return;
-    }
-    try {
-      setLaunching(true);
-      setLaunchError(null);
-      const asyncApexJobId = await runTestsAsync(selectedOrg, buildRunTestsPayload({ type: 'suite', suiteId: selectedSuiteId }));
-      trackEvent(ANALYTICS_KEYS.apex_tests_run, { source: 'suite' });
-      onRunStarted(asyncApexJobId);
-    } catch (ex) {
-      setLaunchError(getErrorMessage(ex));
-    } finally {
-      setLaunching(false);
-    }
-  }, [selectedOrg, selectedSuiteId, trackEvent, onRunStarted]);
+  const handleRunSuite = useCallback(
+    async (suiteId: string) => {
+      try {
+        setLaunching(true);
+        setLaunchError(null);
+        const asyncApexJobId = await runTestsAsync(selectedOrg, buildRunTestsPayload({ type: 'suite', suiteId }, runOptions));
+        trackEvent(ANALYTICS_KEYS.apex_tests_run, {
+          skipCodeCoverage: runOptions.skipCodeCoverage,
+          hasMaxFailedTests: runOptions.maxFailedTests !== undefined,
+          source: 'suite',
+        });
+        onRunStarted(asyncApexJobId);
+      } catch (ex) {
+        setLaunchError(getErrorMessage(ex));
+      } finally {
+        setLaunching(false);
+      }
+    },
+    [selectedOrg, runOptions, trackEvent, onRunStarted],
+  );
 
   const handleRefresh = useCallback(() => {
     refresh();
@@ -133,6 +157,12 @@ export const RunTestsTab: FunctionComponent<RunTestsTabProps> = ({ selectedOrg, 
           <Icon type="utility" icon="play" className="slds-button__icon slds-button__icon_left" omitContainer />
           Run Selected Tests
         </button>
+        <TestSuitesPopover
+          suitesState={suitesState}
+          launching={launching}
+          onRunSuite={handleRunSuite}
+          onOpenManager={() => setSuiteManagerOpen(true)}
+        />
         {!!selectedClasses.size && (
           <span className="slds-m-left_small">
             {selectedClasses.size} {selectedClasses.size === 1 ? 'class' : 'classes'}
@@ -157,35 +187,34 @@ export const RunTestsTab: FunctionComponent<RunTestsTabProps> = ({ selectedOrg, 
         </div>
       </Grid>
       <Grid verticalAlign="end" className="slds-m-bottom_x-small">
-        <div
+        <Input
+          label="Stop After Failures"
+          labelHelp="Stop executing new tests after this many failures. Leave blank for no limit. Applies to class and suite runs."
           css={css`
-            min-width: 240px;
+            width: 170px;
           `}
         >
-          <ComboboxWithItems
-            comboboxProps={{
-              label: 'Test Suite',
-              hideLabel: true,
-              placeholder: suiteItems.length ? 'Select a test suite' : 'No test suites in this org',
-              itemLength: 10,
-              disabled: !suiteItems.length,
-            }}
-            items={suiteItems}
-            selectedItemId={selectedSuiteId}
-            onSelected={(item) => setSelectedSuiteId(item.id)}
+          <input
+            id="max-failed-tests"
+            className="slds-input"
+            type="number"
+            min={0}
+            step={1}
+            placeholder="No limit"
+            disabled={launching}
+            value={maxFailedTests}
+            onChange={(event) => setMaxFailedTests(event.target.value)}
           />
-        </div>
-        <button
-          className="slds-button slds-button_neutral slds-m-left_x-small"
-          disabled={launching || !selectedSuiteId}
-          onClick={handleRunSuite}
-        >
-          <Icon type="utility" icon="play" className="slds-button__icon slds-button__icon_left" omitContainer />
-          Run Suite
-        </button>
-        <button className="slds-button slds-button_neutral slds-m-left_x-small" onClick={() => setSuiteManagerOpen(true)}>
-          Manage Suites
-        </button>
+        </Input>
+        <Checkbox
+          id="skip-code-coverage"
+          className="slds-m-left_small slds-m-bottom_xx-small"
+          checked={skipCodeCoverage}
+          disabled={launching}
+          label="Skip code coverage"
+          labelHelp="Runs faster, but coverage results are not collected. Applies to class and suite runs."
+          onChange={setSkipCodeCoverage}
+        />
       </Grid>
       {launchError && (
         <ScopedNotification theme="error" className="slds-m-vertical_x-small">
@@ -210,6 +239,7 @@ export const RunTestsTab: FunctionComponent<RunTestsTabProps> = ({ selectedOrg, 
           selectedClasses={selectedClasses}
           onToggleClass={handleToggleClass}
           onToggleMethod={handleToggleMethod}
+          onSelectAllVisible={handleSelectAllVisible}
         />
       )}
     </div>

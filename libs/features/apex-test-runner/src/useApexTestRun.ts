@@ -62,6 +62,7 @@ export function useApexTestRun(org: SalesforceOrgUi, apiVersion: string, selecte
         return;
       }
       numPollErrors.current = 0;
+      setErrorMessage(null);
       setDetail(results);
       setLoading(false);
       const isTerminal = !results.run || !isTestRunInProgress(results.run);

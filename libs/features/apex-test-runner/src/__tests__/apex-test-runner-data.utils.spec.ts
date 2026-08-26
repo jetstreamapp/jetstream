@@ -7,6 +7,7 @@ import {
   getApexTestRunsQuery,
   getCoverageAggregateQuery,
   getCoverageDetailQuery,
+  validateTestSuiteName,
 } from '../apex-test-runner-data.utils';
 import type { TestRunSelection } from '../apex-test-runner-types';
 
@@ -37,6 +38,41 @@ describe('buildRunTestsPayload', () => {
     expect(buildRunTestsPayload(selection)).toEqual({
       tests: [{ classId: '01p000000000001' }, { classId: '01p000000000002', testMethods: ['testOne', 'testTwo'] }],
     });
+  });
+
+  it('includes run options only when set', () => {
+    const selection: TestRunSelection = { type: 'suite', suiteId: '05F000000000001' };
+    expect(buildRunTestsPayload(selection, { maxFailedTests: 1, skipCodeCoverage: true })).toEqual({
+      suiteids: '05F000000000001',
+      maxFailedTests: 1,
+      skipCodeCoverage: true,
+    });
+    expect(buildRunTestsPayload(selection, { maxFailedTests: 0 })).toEqual({ suiteids: '05F000000000001', maxFailedTests: 0 });
+    expect(buildRunTestsPayload(selection, { maxFailedTests: undefined, skipCodeCoverage: false })).toEqual({
+      suiteids: '05F000000000001',
+    });
+    expect(buildRunTestsPayload(selection, { maxFailedTests: -1 })).toEqual({ suiteids: '05F000000000001' });
+  });
+});
+
+describe('validateTestSuiteName', () => {
+  it('accepts valid names', () => {
+    expect(validateTestSuiteName('MySuite')).toBeNull();
+    expect(validateTestSuiteName('My_Suite_1')).toBeNull();
+  });
+
+  it('rejects invalid characters and structure', () => {
+    expect(validateTestSuiteName('')).toBeTruthy();
+    expect(validateTestSuiteName('1Suite')).toBeTruthy();
+    expect(validateTestSuiteName('My Suite')).toBeTruthy();
+    expect(validateTestSuiteName('My-Suite')).toBeTruthy();
+    expect(validateTestSuiteName('MySuite_')).toBeTruthy();
+    expect(validateTestSuiteName('My__Suite')).toBeTruthy();
+  });
+
+  it('rejects duplicate names case-insensitively', () => {
+    expect(validateTestSuiteName('MySuite', ['mysuite'])).toBeTruthy();
+    expect(validateTestSuiteName('MySuite', ['OtherSuite'])).toBeNull();
   });
 });
 

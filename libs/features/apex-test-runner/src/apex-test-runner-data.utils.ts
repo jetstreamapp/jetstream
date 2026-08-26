@@ -11,6 +11,7 @@ import type {
   ApexTestRunResultRecord,
   ApexTestSuiteRecord,
   ApexTriggerRecord,
+  RunTestsAsyncOptions,
   RunTestsAsyncPayload,
   SalesforceOrgUi,
   TestSuiteMembershipRecord,
@@ -194,18 +195,52 @@ export function getTestSuiteMembershipsQuery(suiteId?: string) {
  * Build the runTestsAsynchronous request body from the user's selection.
  * Method-level picks require the `tests` shape; whole-class selections use the smaller `classids` shape.
  */
-export function buildRunTestsPayload(selection: TestRunSelection): RunTestsAsyncPayload {
+export function buildRunTestsPayload(selection: TestRunSelection, options: RunTestsAsyncOptions = {}): RunTestsAsyncPayload {
+  const runOptions: RunTestsAsyncOptions = {};
+  if (Number.isInteger(options.maxFailedTests) && (options.maxFailedTests as number) >= 0) {
+    runOptions.maxFailedTests = options.maxFailedTests;
+  }
+  if (options.skipCodeCoverage) {
+    runOptions.skipCodeCoverage = true;
+  }
   if (selection.type === 'suite') {
-    return { suiteids: selection.suiteId };
+    return { suiteids: selection.suiteId, ...runOptions };
   }
   const classEntries = Array.from(selection.classes.entries());
   const hasMethodLevelSelection = classEntries.some(([, methods]) => methods !== 'ALL');
   if (!hasMethodLevelSelection) {
-    return { classids: classEntries.map(([classId]) => classId).join(',') };
+    return { classids: classEntries.map(([classId]) => classId).join(','), ...runOptions };
   }
   return {
     tests: classEntries.map(([classId, methods]) => (methods === 'ALL' ? { classId } : { classId, testMethods: Array.from(methods) })),
+    ...runOptions,
   };
+}
+
+const TEST_SUITE_NAME_REGEX = /^[a-zA-Z][a-zA-Z0-9_]*$/;
+
+/**
+ * Validate an Apex Test Suite API name against Salesforce's rules. Returns an error message or null when valid.
+ * Rules: alphanumeric + underscores only, must begin with a letter, no spaces, cannot end with an
+ * underscore, no two consecutive underscores, and must be unique in the org.
+ */
+export function validateTestSuiteName(name: string, existingNames: string[] = []): string | null {
+  if (!name) {
+    return 'Enter a test suite name';
+  }
+  if (!TEST_SUITE_NAME_REGEX.test(name)) {
+    return 'Name can only contain letters, numbers, and underscores, and must begin with a letter';
+  }
+  if (name.endsWith('_')) {
+    return 'Name cannot end with an underscore';
+  }
+  if (name.includes('__')) {
+    return 'Name cannot contain two consecutive underscores';
+  }
+  if (existingNames.some((existingName) => existingName.toLowerCase() === name.toLowerCase())) {
+    return 'A test suite with this name already exists';
+  }
+  return null;
 }
 
 export async function runTestsAsync(org: SalesforceOrgUi, payload: RunTestsAsyncPayload): Promise<string> {
@@ -254,6 +289,20 @@ export async function fetchTestRunDetail(org: SalesforceOrgUi, runId: string, as
     queueItems: queueItemResults.queryResults.records,
     testResults: testResults.queryResults.records,
   };
+}
+
+/**
+ * Salesforce links debug logs to test results asynchronously, so ApexLogId can be null in result snapshots
+ * queried right as a run completes. Re-fetch a single result's log id on demand to pick up a late-linked log.
+ */
+export async function fetchTestResultLogId(org: SalesforceOrgUi, testResultId: string): Promise<string | null> {
+  const soql = composeQuery({
+    fields: [getField('Id'), getField('ApexLogId')],
+    sObject: 'ApexTestResult',
+    where: { left: { field: 'Id', operator: '=', value: testResultId, literalType: 'STRING' } },
+  });
+  const results = await query<Pick<ApexTestResultRecord, 'Id' | 'ApexLogId'>>(org, soql, true);
+  return results.queryResults.records[0]?.ApexLogId ?? null;
 }
 
 export async function fetchCoverageAggregates(org: SalesforceOrgUi) {
@@ -321,12 +370,13 @@ export async function createTestSuite(org: SalesforceOrgUi, testSuiteName: strin
 }
 
 export async function renameTestSuite(org: SalesforceOrgUi, suiteId: string, testSuiteName: string) {
+  // Some orgs reject a direct PATCH on this resource ("MediaType of 'json' is not supported"),
+  // so tunnel it through POST the same way the Developer Console does
   await genericRequest(org, {
     isTooling: true,
-    method: 'PATCH',
-    url: `/tooling/sobjects/ApexTestSuite/${suiteId}`,
+    method: 'POST',
+    url: `/tooling/sobjects/ApexTestSuite/${suiteId}?_HttpMethod=PATCH`,
     body: { TestSuiteName: testSuiteName },
-    options: { noContentResponse: true },
   });
 }
 
@@ -335,7 +385,6 @@ export async function deleteTestSuite(org: SalesforceOrgUi, suiteId: string) {
     isTooling: true,
     method: 'DELETE',
     url: `/tooling/sobjects/ApexTestSuite/${suiteId}`,
-    options: { noContentResponse: true },
   });
 }
 

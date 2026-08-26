@@ -419,6 +419,10 @@ export const QueryBuilder = () => {
                 <Tabs
                   key={selectedSObject.name}
                   initialActiveId="BaseFields"
+                  // Keep both tabs mounted: QueryFieldsComponent owns the base describe fetch and abandons it on
+                  // unmount, so unmounting it on a tab switch mid-fetch would leave the child relationship list
+                  // (and the filter/order by/group by field lists) permanently empty
+                  renderAllContent
                   contentClassname="slds-p-bottom_none"
                   tabs={[
                     {
@@ -480,7 +484,9 @@ export const QueryBuilder = () => {
                       ),
                       titleText: 'Related Objects (Subquery)',
                       content: (
-                        <AutoFullHeightContainer bottomBuffer={10}>
+                        // With renderAllContent this mounts while hidden, where the top position measures 0,
+                        // so fall back to the same buffer the adjacent panels use
+                        <AutoFullHeightContainer bottomBuffer={10} bufferIfNotRendered={HEIGHT_BUFFER}>
                           <QuerySubquerySObjects
                             org={selectedOrg}
                             serverUrl={serverUrl}

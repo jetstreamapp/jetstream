@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import type { ApexTestResultRecord } from '@jetstream/types';
+import type { ApexTestResultRecord, SalesforceOrgUi } from '@jetstream/types';
 import { Badge, Grid, Icon, ScopedNotification, Spinner, Tooltip } from '@jetstream/ui';
 import { FunctionComponent, useState } from 'react';
 import type { TestRunDetailViewModel } from '../apex-test-runner-types';
@@ -9,6 +9,7 @@ import TestRunResultsTable from './TestRunResultsTable';
 import { formatTestTime, getRunStatusBadgeType } from './test-run-utils';
 
 export interface TestRunDetailProps {
+  selectedOrg: SalesforceOrgUi;
   detail: TestRunDetailViewModel;
   loading: boolean;
   aborting: boolean;
@@ -19,6 +20,7 @@ export interface TestRunDetailProps {
 }
 
 export const TestRunDetail: FunctionComponent<TestRunDetailProps> = ({
+  selectedOrg,
   detail,
   loading,
   aborting,
@@ -45,7 +47,9 @@ export const TestRunDetail: FunctionComponent<TestRunDetailProps> = ({
         min-height: 60px;
       `}
     >
-      {selectedResult && <TestResultDetailModal testResult={selectedResult} onClose={() => setSelectedResult(null)} />}
+      {selectedResult && (
+        <TestResultDetailModal selectedOrg={selectedOrg} testResult={selectedResult} onClose={() => setSelectedResult(null)} />
+      )}
       {loading && !testResults.length && <Spinner size="small" />}
       <Grid verticalAlign="center" wrap className="slds-m-vertical_x-small">
         <Badge type={getRunStatusBadgeType(run.Status)}>{run.Status}</Badge>
@@ -53,7 +57,7 @@ export const TestRunDetail: FunctionComponent<TestRunDetailProps> = ({
         <span className="slds-m-left_small">
           {run.MethodsEnqueued !== null && (
             <>
-              <strong>{methodsRun}</strong> of <strong>{run.MethodsEnqueued}</strong> methods run
+              <strong>{methodsRun}</strong> of <strong>{run.MethodsEnqueued}</strong> tests run
             </>
           )}
         </span>

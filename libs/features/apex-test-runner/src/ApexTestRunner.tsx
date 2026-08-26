@@ -1,3 +1,4 @@
+import { useSetTraceFlag } from '@jetstream/connected-ui';
 import { TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useTitle } from '@jetstream/shared/ui-utils';
@@ -21,6 +22,8 @@ export const ApexTestRunner: FunctionComponent = () => {
   const [selectedRun, setSelectedRun] = useState<SelectedTestRun | null>(null);
   const runsList = useApexTestRunsList(selectedOrg);
   const { addOptimisticRun, fetchRuns, runs } = runsList;
+  // Keep a trace flag active while the page is open so test runs capture debug logs (same as Anonymous Apex)
+  useSetTraceFlag(selectedOrg, 1);
 
   const handleRunStarted = useCallback(
     (asyncApexJobId: string) => {

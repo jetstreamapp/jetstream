@@ -35,7 +35,7 @@ If a class shows as **methods unavailable**, Salesforce could not provide its me
 
 ## Test suites
 
-Use the suite picker to run an existing [Apex test suite](https://help.salesforce.com/s/articleView?id=platform.code_apex_test_suite.htm&type=5), or open **Manage Suites** to create, rename, or delete suites and choose which test classes belong to each one.
+Open **Test Suites** to run an existing [Apex test suite](https://help.salesforce.com/s/articleView?id=platform.code_apex_test_suite.htm&type=5), or open **Manage Suites** from within it to create, rename, or delete suites and choose which test classes belong to each one. Suite runs use the same run options (**Stop After Failures** and **Skip code coverage**) as class runs.
 
 ## Monitoring test runs
 
@@ -45,7 +45,13 @@ Select a run to see:
 
 - Overall status and how many test methods have completed
 - Per-class progress while the run is executing
-- Every test method's outcome, runtime, and failure message — select a row to see the full error message and stack trace
+- Every test method's outcome, runtime, and failure message — select a row to see the full error message, stack trace, and the test's debug log
+
+:::tip
+
+While the Apex Test Runner page is open, Jetstream keeps a debug trace active for your user so tests you run capture debug logs. Rows with a captured log show a file icon.
+
+:::
 
 Use **Abort Remaining Tests** to cancel a run that is still in progress. The test class that is currently executing will finish, and all remaining tests are cancelled.
 

@@ -80,6 +80,7 @@ export const TestRunsTab: FunctionComponent<TestRunsTabProps> = ({
       )}
       {selectedRun && runDetail.detail && (
         <TestRunDetail
+          selectedOrg={selectedOrg}
           detail={runDetail.detail}
           loading={runDetail.loading}
           aborting={runDetail.aborting}
