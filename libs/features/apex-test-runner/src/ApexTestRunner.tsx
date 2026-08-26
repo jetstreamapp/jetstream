@@ -4,8 +4,9 @@ import { useTitle } from '@jetstream/shared/ui-utils';
 import { AutoFullHeightContainer, Page, PageHeader, PageHeaderRow, PageHeaderTitle, Tabs, TabsRef } from '@jetstream/ui';
 import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
-import { FunctionComponent, useRef, useState } from 'react';
+import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import TestRunsTab from './runs/TestRunsTab';
+import RunTestsTab from './selection/RunTestsTab';
 import type { SelectedTestRun } from './useApexTestRun';
 import { useApexTestRunsList } from './useApexTestRunsList';
 
@@ -18,6 +19,34 @@ export const ApexTestRunner: FunctionComponent = () => {
   const tabsRef = useRef<TabsRef>(null);
   const [selectedRun, setSelectedRun] = useState<SelectedTestRun | null>(null);
   const runsList = useApexTestRunsList(selectedOrg);
+  const { addOptimisticRun, fetchRuns, runs } = runsList;
+
+  const handleRunStarted = useCallback(
+    (asyncApexJobId: string) => {
+      addOptimisticRun(asyncApexJobId, selectedOrg.userId ?? '');
+      setSelectedRun({ runId: `optimistic-${asyncApexJobId}`, asyncApexJobId });
+      tabsRef.current?.changeTab('test-runs');
+      fetchRuns();
+    },
+    [addOptimisticRun, fetchRuns, selectedOrg.userId],
+  );
+
+  // Once the real ApexTestRunResult for an optimistic selection arrives, swap the selection to it so run detail polling begins
+  useEffect(() => {
+    if (selectedRun?.runId.startsWith('optimistic-')) {
+      const realRun = runs.find(
+        (run) => !run.Id.startsWith('optimistic-') && run.AsyncApexJobId.slice(0, 15) === selectedRun.asyncApexJobId.slice(0, 15),
+      );
+      if (realRun) {
+        setSelectedRun({ runId: realRun.Id, asyncApexJobId: realRun.AsyncApexJobId });
+      }
+    }
+  }, [runs, selectedRun]);
+
+  // Clear the run selection when the org changes — the runs list resets as well
+  useEffect(() => {
+    setSelectedRun(null);
+  }, [selectedOrg.uniqueId]);
 
   return (
     <Page testId="apex-test-runner-page">
@@ -38,7 +67,7 @@ export const ApexTestRunner: FunctionComponent = () => {
             {
               id: 'run-tests',
               title: 'Run Tests',
-              content: <div key={selectedOrg.uniqueId}>Run tests coming soon</div>,
+              content: <RunTestsTab key={selectedOrg.uniqueId} selectedOrg={selectedOrg} onRunStarted={handleRunStarted} />,
             },
             {
               id: 'test-runs',
