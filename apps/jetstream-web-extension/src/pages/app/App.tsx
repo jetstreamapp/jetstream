@@ -1,5 +1,6 @@
 /* eslint-disable no-restricted-globals */
 import { AnonymousApex } from '@jetstream/feature/anon-apex';
+import { ApexTestRunner } from '@jetstream/feature/apex-test-runner';
 import { AutomationControl, AutomationControlEditor, AutomationControlSelection } from '@jetstream/feature/automation-control';
 import { CreateFields, CreateFieldsSelection, CreateObjectAndFields } from '@jetstream/feature/create-object-and-fields';
 import { DataAnalysis, DataAnalysisSelection, FieldUsageAnalysisView } from '@jetstream/feature/data-analysis';
@@ -124,6 +125,7 @@ export function App() {
               </Route>
               <Route path={APP_ROUTES.DATA_HISTORY.ROUTE} element={<DataHistory />} />
               <Route path={APP_ROUTES.ANON_APEX.ROUTE} element={<AnonymousApex />} />
+              <Route path={APP_ROUTES.APEX_TESTS.ROUTE} element={<ApexTestRunner />} />
               <Route path={APP_ROUTES.SALESFORCE_API.ROUTE} element={<SalesforceApi />} />
               <Route path={APP_ROUTES.DEBUG_LOG_VIEWER.ROUTE} element={<DebugLogViewer />} />
               <Route path={APP_ROUTES.PLATFORM_EVENT_MONITOR.ROUTE} element={<PlatformEventMonitor />} />

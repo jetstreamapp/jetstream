@@ -156,6 +156,13 @@ export function useHeaderNavbarItems(): NavbarItemConfig[] {
             label: APP_ROUTES.ANON_APEX.TITLE,
           },
           {
+            id: 'apex-tests',
+            path: APP_ROUTES.APEX_TESTS.ROUTE,
+            search: APP_ROUTES.APEX_TESTS.SEARCH_PARAM,
+            title: APP_ROUTES.APEX_TESTS.DESCRIPTION,
+            label: APP_ROUTES.APEX_TESTS.TITLE,
+          },
+          {
             id: 'debug-logs',
             path: APP_ROUTES.DEBUG_LOG_VIEWER.ROUTE,
             search: APP_ROUTES.DEBUG_LOG_VIEWER.SEARCH_PARAM,

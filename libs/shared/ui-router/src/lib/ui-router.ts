@@ -18,6 +18,7 @@ type RouteKey =
   | 'FORMULA_EVALUATOR'
   | 'RECORD_TYPE_MANAGER'
   | 'ANON_APEX'
+  | 'APEX_TESTS'
   | 'DEBUG_LOG_VIEWER'
   | 'OBJECT_EXPORT'
   | 'SALESFORCE_API'
@@ -179,6 +180,13 @@ export const APP_ROUTES: RouteMap = {
     DOCS: 'https://docs.getjetstream.app/developer/anonymous-apex',
     TITLE: 'Anonymous Apex',
     DESCRIPTION: 'Write and execute anonymous Apex',
+  },
+  APEX_TESTS: {
+    ...getRoutePath('/apex-tests'),
+    DOCS: 'https://docs.getjetstream.app/developer/apex-tests',
+    TITLE: 'Apex Test Runner',
+    DESCRIPTION: 'Run Apex tests and view code coverage',
+    NEW_UNTIL: new Date(2026, 10, 30, 23, 59, 59).getTime(), // November 30, 2026
   },
   DEBUG_LOG_VIEWER: {
     ...getRoutePath('/debug-logs'),

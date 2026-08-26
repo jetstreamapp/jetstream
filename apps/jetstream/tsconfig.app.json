@@ -83,6 +83,9 @@
       "path": "../../libs/features/salesforce-api/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/features/apex-test-runner/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/features/anon-apex/tsconfig.lib.json"
     },
     {

@@ -29,6 +29,7 @@
       "@jetstream/desktop/types": ["./libs/desktop-types/src/index.ts"],
       "@jetstream/email": ["./libs/email/src/index.ts"],
       "@jetstream/feature/anon-apex": ["./libs/features/anon-apex/src/index.ts"],
+      "@jetstream/feature/apex-test-runner": ["./libs/features/apex-test-runner/src/index.ts"],
       "@jetstream/feature/automation-control": ["./libs/features/automation-control/src/index.ts"],
       "@jetstream/feature/create-object-and-fields": ["./libs/features/create-object-and-fields/src/index.ts"],
       "@jetstream/feature/create-records": ["./libs/features/create-records/src/index.ts"],

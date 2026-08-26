@@ -155,6 +155,7 @@ export const INDEXED_DB = {
     queryHistory: 'HISTORY:QUERY',
     loadSavedMapping: 'LOAD:SAVED_MAPPING',
     apexHistory: 'HISTORY:APEX',
+    apexTestClassCache: 'CACHE:APEX_TEST_CLASSES',
     deployHistory: 'HISTORY:DEPLOY',
     salesforceApiHistory: 'HISTORY:SALESFORCE_API',
     httpCache: 'HTTP:CACHE',
@@ -304,6 +305,14 @@ export const ANALYTICS_KEYS = {
   mass_update_ViewRecords: 'mass_update_ViewRecords',
   /** ANON APEX */
   apex_Submitted: 'apex_Submitted',
+  /** APEX TESTS */
+  apex_tests_run: 'apex_tests_run',
+  apex_tests_aborted: 'apex_tests_aborted',
+  apex_tests_class_refresh: 'apex_tests_class_refresh',
+  apex_tests_suite_created: 'apex_tests_suite_created',
+  apex_tests_suite_updated: 'apex_tests_suite_updated',
+  apex_tests_suite_deleted: 'apex_tests_suite_deleted',
+  apex_tests_coverage_viewed: 'apex_tests_coverage_viewed',
   /** SFDC API */
   sfdcApi_Submitted: 'sfdcApi_Submitted',
   sfdcApi_Sample: 'sfdcApi_Sample',
@@ -404,6 +413,7 @@ export const TITLES = {
   BAR_JETSTREAM: '| Jetstream',
   BILLING: 'Billing | Jetstream',
   ANON_APEX: 'Anonymous Apex | Jetstream',
+  APEX_TESTS: 'Apex Test Runner | Jetstream',
   API_EXPLORER: 'Salesforce Api | Jetstream',
   AUTOMATION_CONTROL: 'Automation Control | Jetstream',
   CREATE_OBJ_FIELD: 'Create Fields | Jetstream',

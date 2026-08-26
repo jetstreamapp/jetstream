@@ -63,6 +63,7 @@ const HOME_ITEMS: HomeCard[] = [
     icon: { type: 'standard', icon: 'apex' },
     items: [
       APP_ROUTES.ANON_APEX,
+      APP_ROUTES.APEX_TESTS,
       APP_ROUTES.DEBUG_LOG_VIEWER,
       APP_ROUTES.OBJECT_EXPORT,
       APP_ROUTES.SALESFORCE_API,

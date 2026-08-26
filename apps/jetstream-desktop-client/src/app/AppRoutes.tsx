@@ -95,6 +95,7 @@ const MassUpdateRecordsDeployment = lazy(() =>
 );
 
 const AnonymousApex = lazy(() => import('@jetstream/feature/anon-apex').then((module) => ({ default: module.AnonymousApex })));
+const ApexTestRunner = lazy(() => import('@jetstream/feature/apex-test-runner').then((module) => ({ default: module.ApexTestRunner })));
 
 const SalesforceApi = lazy(() => import('@jetstream/feature/salesforce-api').then((module) => ({ default: module.SalesforceApi })));
 
@@ -303,6 +304,14 @@ export const AppRoutes = () => {
         element={
           <OrgSelectionRequired>
             <AnonymousApex />
+          </OrgSelectionRequired>
+        }
+      />
+      <Route
+        path={APP_ROUTES.APEX_TESTS.ROUTE}
+        element={
+          <OrgSelectionRequired>
+            <ApexTestRunner />
           </OrgSelectionRequired>
         }
       />

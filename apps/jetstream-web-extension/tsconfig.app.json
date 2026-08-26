@@ -81,6 +81,9 @@
       "path": "../../libs/features/automation-control/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/features/apex-test-runner/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/features/anon-apex/tsconfig.lib.json"
     },
     {
