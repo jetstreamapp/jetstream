@@ -83,6 +83,7 @@ const sidebar = {
       label: 'Developer Tools',
       items: [
         'developer/anonymous-apex',
+        'developer/apex-tests',
         'developer/debug-logs',
         'developer/export-object-metadata',
         'developer/salesforce-api',

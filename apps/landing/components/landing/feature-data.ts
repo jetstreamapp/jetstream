@@ -3,6 +3,7 @@ import {
   ArrowPathIcon,
   BeakerIcon,
   BugAntIcon,
+  CheckCircleIcon,
   CircleStackIcon,
   CloudArrowDownIcon,
   CloudArrowUpIcon,
@@ -278,6 +279,7 @@ export const FEATURE_CATEGORIES: FeatureCategory[] = [
         'Execute anonymous Apex with a real code editor, subscribe to and view debug logs in real time, explore the Salesforce API, and monitor Platform Events, all without leaving Jetstream. Everything a Salesforce developer needs, without the pain of Developer Console.',
       bullets: [
         'Execute anonymous Apex with syntax highlighting and auto-complete',
+        'Run Apex tests and view code coverage with per-line highlighting',
         'Subscribe to and view debug logs without the Developer Console',
         'Interact with the Salesforce REST and SOAP APIs directly',
         'Subscribe to and publish Platform Events',
@@ -291,6 +293,11 @@ export const FEATURE_CATEGORIES: FeatureCategory[] = [
         icon: CodeBracketIcon,
         title: 'Anonymous Apex',
         description: 'Write and execute Apex with a full-featured code editor, syntax highlighting and all.',
+      },
+      {
+        icon: CheckCircleIcon,
+        title: 'Apex Test Runner',
+        description: 'Run Apex tests, monitor runs in real time, and view code coverage with per-line highlighting.',
       },
       {
         icon: BugAntIcon,
