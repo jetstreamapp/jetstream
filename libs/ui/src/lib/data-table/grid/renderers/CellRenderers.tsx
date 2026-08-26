@@ -374,7 +374,9 @@ export function withCellValidation<TRow extends RowWithKey>(
 ): (props: DataTableCellProps<TRow>) => ReactNode {
   return function CellWithValidation(props: DataTableCellProps<TRow>): ReactNode {
     const { row, column } = props;
-    const baseContent = baseRender ? baseRender(props) : <div className="slds-truncate">{(row as any)?.[column.key]}</div>;
+    // GenericRenderer handles non-primitive values (Date instances from spreadsheet parsing, objects) that
+    // would crash React if rendered directly as children
+    const baseContent = baseRender ? baseRender(props) : <GenericRenderer {...(props as DataTableCellProps<RowWithKey>)} />;
     const error = (row as any)?._fieldErrors?.[column.key] as string | undefined;
     const warning = error ? undefined : ((row as any)?._fieldWarnings?.[column.key] as string | undefined);
     const message = error || warning;

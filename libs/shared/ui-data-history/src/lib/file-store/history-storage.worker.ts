@@ -245,9 +245,33 @@ async function handleRequest(request: HistoryWorkerRequest): Promise<unknown> {
   }
 }
 
+/**
+ * Ops that resolve their file/directory through `getRootDir()`. When the underlying directory tree is
+ * swept and recreated out from under a cached handle (e.g. another tab's cleanup), Chromium throws
+ * InvalidStateError ("An operation that depends on state cached in an interface object was made but
+ * the state had changed since it was read from disk") — re-resolving from a fresh root succeeds, so
+ * these ops retry once. Stream write/close/abort operate on an already-open exclusive access handle,
+ * which a fresh root cannot repair, so they are excluded.
+ */
+const ROOT_RESOLVED_OPS = new Set<HistoryWorkerRequest['op']>([
+  'init',
+  'write-file',
+  'open-stream',
+  'read-file',
+  'delete-dir',
+  'list-entry-dirs',
+]);
+
 workerScope.onmessage = (event: MessageEvent<HistoryWorkerRequest>) => {
   const request = event.data;
   handleRequest(request)
+    .catch((ex: unknown) => {
+      if ((ex as { name?: string } | null)?.name === 'InvalidStateError' && ROOT_RESOLVED_OPS.has(request.op)) {
+        rootDirPromise = null;
+        return handleRequest(request);
+      }
+      throw ex;
+    })
     .then((result) => {
       workerScope.postMessage({ id: request.id, success: true, result });
     })

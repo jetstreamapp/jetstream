@@ -259,6 +259,13 @@ async function queryChunks<TItem, TRecord>(
  */
 const INVALID_FIELD_REGEX = /INVALID_FIELD|No such column/i;
 
+/**
+ * Users without View Setup access cannot query the Tooling `CustomField` object. Depending on which
+ * path returned it, that surfaces as the error-code form (INVALID_TYPE) or the message form
+ * ("sObject type 'CustomField' is not supported"), so both must be matched.
+ */
+const CUSTOM_FIELD_NOT_SUPPORTED_REGEX = /INVALID_TYPE|sObject type 'CustomField' is not supported/i;
+
 const MAX_TRACKED_ERROR_LENGTH = 500;
 
 /**
@@ -366,9 +373,14 @@ async function queryFieldAuditMetadata(
     }, {});
     return { auditByFieldDefinitionId, loadFailed: false };
   } catch (ex) {
+    const errorMessage = getErrorMessage(ex);
     // Nothing else fails when this does, so this is the only chance to report it
-    logger.warn('[usePermissionRecords][FIELD AUDIT][ERROR]', getErrorMessage(ex));
-    tracker.error('[usePermissionRecords][FIELD AUDIT][ERROR]', ex, { errorDetail: getTrackableErrorDetail(ex) });
+    logger.warn('[usePermissionRecords][FIELD AUDIT][ERROR]', errorMessage);
+    // Missing View Setup access is the expected degradation this catch exists for, not an application
+    // error worth reporting
+    if (!CUSTOM_FIELD_NOT_SUPPORTED_REGEX.test(errorMessage)) {
+      tracker.error('[usePermissionRecords][FIELD AUDIT][ERROR]', ex, { errorDetail: getTrackableErrorDetail(ex) });
+    }
     return { auditByFieldDefinitionId: {}, loadFailed: true };
   }
 }

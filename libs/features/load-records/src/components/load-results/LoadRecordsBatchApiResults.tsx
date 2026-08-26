@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { convertDateToLocale, formatNumber, tracker, useBrowserNotifications } from '@jetstream/shared/ui-utils';
-import { flattenRecord, getErrorMessage, getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
+import { flattenRecord, getErrorMessage, getSuccessOrFailureChar, pluralizeFromNumber, pushAll } from '@jetstream/shared/utils';
 import {
   ApiMode,
   DownloadModalData,
@@ -279,7 +279,7 @@ export const LoadRecordsBatchApiResults = ({
           }
           // Mutate the ref array (O(n) total) instead of reallocating the full accumulated array
           // on every batch via concat (O(n^2) total) — matters for large loads.
-          processedRecordsRef.current.push(...batchRecords);
+          pushAll(processedRecordsRef.current, batchRecords);
           setProcessedRecords((previousProcessedRecords) => previousProcessedRecords.concat(batchRecords));
           // Stream this batch's results to Data History (fire-and-forget; same row shape as download)
           const fields = getFieldHeaderFromMapping(fieldMapping);

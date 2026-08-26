@@ -263,6 +263,19 @@ export function createConcurrencyLimiter(maxConcurrent: number): ConcurrencyLimi
   };
 }
 
+/**
+ * Append every item to `target` without spreading. `target.push(...items)` passes each item as a call
+ * argument, so it overflows the call stack once `items` reaches the engine's argument limit (~125k in
+ * V8). Whether a given call site is safe depends on runtime data volume, so prefer this for any input
+ * that is not strictly bounded.
+ */
+export function pushAll<T>(target: T[], items: readonly T[]): T[] {
+  for (const item of items) {
+    target.push(item);
+  }
+  return target;
+}
+
 export function splitArrayToMaxSize<T = unknown>(items: T[], maxSize: number): T[][] {
   if (!maxSize || maxSize < 1) {
     throw new Error('maxSize must be greater than 0');

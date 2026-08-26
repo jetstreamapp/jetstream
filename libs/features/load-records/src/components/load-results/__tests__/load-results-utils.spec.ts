@@ -337,6 +337,36 @@ describe('collectFailedRecordsForRetry', () => {
     expect(fetchBatchResults).not.toHaveBeenCalled();
   });
 
+  it('handles hundreds of thousands of unresolved records without overflowing the call stack', async () => {
+    // Regression test: `failedRecords.push(...records)` blew the max call stack when a large batch
+    // never completed, since every one of its records is spread as an argument
+    const largeRecordCount = 200_000;
+    const largeRecords = [
+      { Id: '001A', Name: 'Completed-A' },
+      { Id: '001B', Name: 'Completed-B' },
+      ...Array.from({ length: largeRecordCount }, (_, i) => ({ Id: `002${i}`, Name: `Unresolved-${i}` })),
+    ];
+    const largePreparedData = { data: largeRecords, errors: [] } as unknown as PrepareDataResponse;
+    const largeSummary = {
+      batchSummary: [
+        { id: 'batch-1', batchNumber: 0, startIndex: 0, recordCount: 2 },
+        { id: 'batch-2', batchNumber: 1, startIndex: 2, recordCount: largeRecordCount },
+      ],
+    } as LoadDataBulkApiStatusPayload;
+    const fetchBatchResults = vi.fn(async () => [success('001A'), failure('001B')]);
+    const failed = await collectFailedRecordsForRetry({
+      numFailure: largeRecordCount + 1,
+      jobInfo: jobWith(['Completed', 'Failed']),
+      batchSummary: largeSummary,
+      preparedData: largePreparedData,
+      loadType: 'UPDATE',
+      fetchBatchResults,
+    });
+    expect(failed).toHaveLength(largeRecordCount + 1);
+    expect(failed[0]).toBe(largeRecords[1]);
+    expect(failed[1]).toBe(largeRecords[2]);
+  });
+
   it('on a delete, pairs results with the Id-bearing records and counts the omitted ones as failed', async () => {
     const deleteRecords = [{ Id: '001A' }, { Name: 'no-id' }, { Id: '001B' }];
     const deletePreparedData = { data: deleteRecords, errors: [] } as unknown as PrepareDataResponse;
