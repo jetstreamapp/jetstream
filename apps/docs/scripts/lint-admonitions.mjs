@@ -9,9 +9,9 @@ import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { fileURLToPath } from 'url';
 
-const docsRoot = join(fileURLToPath(import.meta.url), '../..');
+const docsRoot = fileURLToPath(new URL('..', import.meta.url));
 const CONTENT_DIRS = ['docs', 'release-notes'];
-const INVALID_ADMONITION_TITLE = /^\s*:{3,}(note|tip|info|warning|danger|caution|important|success)[ \t]+\S/;
+const INVALID_ADMONITION_TITLE = /^\s*:{3,}[a-zA-Z][\w-]*[ \t]+\S/;
 
 function collectMarkdownFiles(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -26,10 +26,22 @@ function collectMarkdownFiles(dir) {
 const violations = [];
 for (const contentDir of CONTENT_DIRS) {
   for (const file of collectMarkdownFiles(join(docsRoot, contentDir))) {
+    // Content inside fenced code blocks renders literally, so the invalid pattern is fine there
+    // (e.g. a doc showing the broken syntax as an example).
+    let openingFence = null;
     readFileSync(file, 'utf-8')
       .split('\n')
       .forEach((line, index) => {
-        if (INVALID_ADMONITION_TITLE.test(line)) {
+        const fence = line.match(/^\s*(`{3,}|~{3,})/)?.[1];
+        if (fence) {
+          if (!openingFence) {
+            openingFence = fence;
+          } else if (fence[0] === openingFence[0] && fence.length >= openingFence.length) {
+            openingFence = null;
+          }
+          return;
+        }
+        if (!openingFence && INVALID_ADMONITION_TITLE.test(line)) {
           violations.push(`${file}:${index + 1}\n    ${line.trim()}`);
         }
       });
