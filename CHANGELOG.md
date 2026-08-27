@@ -1,5 +1,18 @@
 # Changelog
 
+## [10.16.0](https://github.com/jetstreamapp/jetstream/compare/v10.15.2...v10.16.0) (2026-08-27)
+
+### Features
+
+- add analysis tools to permissions docs ([b96939e](https://github.com/jetstreamapp/jetstream/commit/b96939eb9df7adec40913e38471abbd2d4907e77))
+- **orgs:** show full usernames in org dropdown and simplify custom domain input ([93a595c](https://github.com/jetstreamapp/jetstream/commit/93a595cc4db7b9faf3292349b84eadf04fb95a32)), closes [#1246](https://github.com/jetstreamapp/jetstream/issues/1246)
+
+### Bug Fixes
+
+- crashes on large load retries, date cells, and OPFS captures ([10c0155](https://github.com/jetstreamapp/jetstream/commit/10c0155fbb75a73a6b96cf22bf18804166d9ef1c))
+- **docs:** dedupe lockfile to restore the docs build ([ccfa610](https://github.com/jetstreamapp/jetstream/commit/ccfa610b5f5c395a8d28bb69b8e871bfcb0083cf)), references [#1993](https://github.com/jetstreamapp/jetstream/issues/1993)
+- **docs:** titled admonitions rendered as literal text ([a311807](https://github.com/jetstreamapp/jetstream/commit/a3118079b27145f012740b49ce77896aa696a439)), references [#2001](https://github.com/jetstreamapp/jetstream/issues/2001)
+
 ## [10.15.2](https://github.com/jetstreamapp/jetstream/compare/v10.15.1...v10.15.2) (2026-08-25)
 
 ### Bug Fixes
