@@ -1,5 +1,28 @@
 [
   {
+    "slug": "v10.16.0",
+    "title": "10.16.0 - Org dropdown improvements and large load retry fix",
+    "date": "2026-08-27",
+    "tags": ["web"],
+    "versions": { "web": "10.16.0" },
+    "summary": "The org dropdown shows full usernames and labels each org with its type. Also fixes a crash when retrying failed records on very large data loads.",
+    "highlights": [
+      {
+        "title": "Full usernames and org types in the org dropdown",
+        "description": "The org dropdown shows full usernames without truncation and labels each org with its type, so sandboxes stand out."
+      },
+      {
+        "title": "Paste any Salesforce URL to add a custom domain",
+        "description": "The custom domain field on the add-org form accepts a full pasted Salesforce URL, including sandbox URLs, and extracts the domain for you."
+      },
+      {
+        "title": "Fix for load retries with 100,000+ records",
+        "description": "Retrying failed records on very large data loads no longer crashes the page.",
+        "docLink": "/load"
+      }
+    ]
+  },
+  {
     "slug": "v10.15.2",
     "title": "10.15.2 - Permission Analysis fix for permission set groups",
     "date": "2026-08-25",
