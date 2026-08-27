@@ -47,7 +47,7 @@ export function buildCspDirectives(extraFrameAncestors: string[] = []): CspDirec
       'https://*.googleapis.com',
       'https://*.gstatic.com',
       'https://*.betterstackdata.com',
-      'https://api.amplitude.com',
+      'https://betterstack.net',
       'https://api.cloudinary.com',
       'https://api.stripe.com',
       'https://challenges.cloudflare.com',
@@ -107,6 +107,8 @@ export function buildCspDirectives(extraFrameAncestors: string[] = []): CspDirec
     scriptSrc: [
       "'self'",
       nonceDirective,
+      // Better Stack RUM tag (b.js)
+      'https://betterstack.net',
       'https://*.google.com',
       'https://*.gstatic.com',
       'https://*.google-analytics.com',

@@ -16,7 +16,7 @@ import {
   fireToast,
   getModifierKey,
 } from '@jetstream/ui';
-import { ConfirmPageChange, fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
+import { ConfirmPageChange, fromJetstreamEvents, useAnalytics } from '@jetstream/ui-core';
 import { fromAppState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
@@ -48,7 +48,7 @@ interface DeployMetadataHistoryModalProps {
 }
 
 export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryModalProps) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const { serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(fromAppState.applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const [isOpen, setIsOpen] = useState(false);

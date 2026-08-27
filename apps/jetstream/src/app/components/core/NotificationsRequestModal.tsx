@@ -1,6 +1,6 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { DockedComposer, DockedComposerRef } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { useAnalytics } from '@jetstream/ui-core';
 import { useUserPreferenceState } from '@jetstream/ui/app-state';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import NotificationExampleImage from './jetstream-sample-notification.png';
@@ -20,7 +20,7 @@ export const NotificationsRequestModal: FunctionComponent<NotificationsRequestMo
   const composerRef = useRef<DockedComposerRef>(null);
   const [userPreferences, setUserPreferences] = useUserPreferenceState();
   const [isDismissed, setIsDismissed] = useState(true);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
 
   // ask user for notification permissions on load
   useEffect(() => {

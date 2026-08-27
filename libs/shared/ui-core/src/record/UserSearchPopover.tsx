@@ -21,7 +21,7 @@ import {
 import { applicationCookieState, selectedOrgState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { useAmplitude } from '../analytics';
+import { useAnalytics } from '../analytics';
 import { getSearchUserSoql } from './record-utils';
 
 interface User {
@@ -58,7 +58,7 @@ export const UserSearchPopover: FunctionComponent = () => {
   const [{ serverUrl }] = useAtom(applicationCookieState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
   const selectedOrg = useAtomValue(selectedOrgState);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);

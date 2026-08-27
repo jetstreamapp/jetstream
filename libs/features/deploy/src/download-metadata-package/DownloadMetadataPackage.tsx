@@ -1,9 +1,9 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Icon } from '@jetstream/ui';
+import { useAnalytics } from '@jetstream/ui-core';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent, useState } from 'react';
-import { useAmplitude } from '@jetstream/ui-core';
 import DownloadPackageWithFileSelector from '../utils/DownloadPackageWithFileSelector';
 import DownloadMetadataPackageConfigModal from './DownloadMetadataPackageConfigModal';
 
@@ -16,7 +16,7 @@ export const DownloadMetadataPackage: FunctionComponent<DownloadMetadataPackageP
   className,
   selectedOrg: initiallySelectedOrg,
 }) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi>(initiallySelectedOrg);
   const [configModalOpen, setConfigModalOpen] = useState<boolean>(false);
   const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState<boolean>(false);

@@ -16,7 +16,7 @@ import {
   ScopedNotification,
   Spinner,
 } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { useAnalytics } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useAtom } from 'jotai';
 import { useCallback, useEffect, useState } from 'react';
@@ -39,7 +39,7 @@ const HEIGHT_BUFFER = 170;
 
 export const Billing = () => {
   useTitle(TITLES.BILLING);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [userProfile, setUserProfile] = useAtom(fromAppState.userProfileState);
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState(false);
@@ -153,7 +153,7 @@ export const Billing = () => {
           <PageHeaderTitle icon={{ type: 'standard', icon: 'billing' }} label="Billing" docsPath={APP_ROUTES.BILLING.DOCS} />
           {customerWithSubscriptions && (
             <PageHeaderActions colType="actions" buttonType="separate">
-              <form method="POST" action="/api/billing/portal" target="_blank">
+              <form method="POST" action="/api/billing/portal" target="_blank" onSubmit={() => trackEvent(ANALYTICS_KEYS.billing_portal)}>
                 {csrfToken && <input type="hidden" name={HTTP.BODY.CSRF_TOKEN} value={csrfToken} />}
                 <button className="slds-button slds-button_brand">
                   Billing Portal

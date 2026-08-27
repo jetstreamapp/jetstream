@@ -6,7 +6,7 @@ import { appActionObservable } from '@jetstream/shared/ui-utils';
 import { ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { ComboboxWithItemsTypeAhead, Grid, Icon, Tooltip } from '@jetstream/ui';
 import { FunctionComponent, useCallback, useRef, useState } from 'react';
-import { useAmplitude } from '../analytics';
+import { useAnalytics } from '../analytics';
 
 export interface FormulaEvaluatorRecordSearchProps {
   selectedOrg: SalesforceOrgUi;
@@ -26,7 +26,7 @@ export const FormulaEvaluatorRecordSearch: FunctionComponent<FormulaEvaluatorRec
   const nameField = useRef<{ selectedSObject: string; nameField: string }>(null);
   const [records, setRecords] = useState<ListItem<string, any>[]>([]);
   const [selectedRecord, setSelectedRecords] = useState<ListItem<string, any> | null>(null);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
 
   const handleSearch = useCallback(
     async (searchTerm: string) => {

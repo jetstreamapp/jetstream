@@ -2,7 +2,7 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { ExpressionType, ListItem, QueryFilterOperator, SalesforceOrgUi } from '@jetstream/types';
 import { ExpressionContainer, ListOperatorSuggestion } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { useAnalytics } from '@jetstream/ui-core';
 import { QUERY_FIELD_FUNCTIONS, QUERY_OPERATORS, getResourceTypeFnsFromFields } from '@jetstream/ui-core/shared';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 
@@ -28,7 +28,7 @@ export const QueryFilter: FunctionComponent<QueryFilterProps> = ({
   onLoadRelatedFields,
 }) => {
   const isMounted = useRef(true);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
 
   const [initialQueryFilters] = useState(filtersOrHaving);
   const [getResourceTypeFns, setResourceTypeFns] = useState(() => getResourceTypeFnsFromFields(fields));

@@ -21,7 +21,7 @@ import {
   Tooltip,
   getModifierKey,
 } from '@jetstream/ui';
-import { RequireMetadataApiBanner, fromAutomationControlState, fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
+import { RequireMetadataApiBanner, fromAutomationControlState, fromJetstreamEvents, useAnalytics } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
@@ -49,7 +49,7 @@ const HEIGHT_BUFFER = 170;
 
 export const AutomationControlEditor = () => {
   useTitle(TITLES.AUTOMATION_CONTROL);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const navigate = useNavigate();
 
   const selectedOrg = useAtomValue(selectedOrgState);

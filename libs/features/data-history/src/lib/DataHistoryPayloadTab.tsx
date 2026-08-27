@@ -13,7 +13,7 @@ import {
   Spinner,
   Tooltip,
 } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { useAnalytics } from '@jetstream/ui-core';
 import { readDataHistoryFile } from '@jetstream/ui/data-history';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { copyDataHistoryPayloadToClipboard, DataHistoryErrorInfo, getDataHistoryReadErrorMessage } from './data-history-download';
@@ -94,7 +94,7 @@ export const DataHistoryPayloadTab: FunctionComponent<DataHistoryPayloadTabProps
   viewStateCache,
   onRequestDownload,
 }) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [payload, setPayload] = useState<LoadedDataHistoryPayload | null>(() => cache.get(kind) ?? null);
   const [loading, setLoading] = useState(!cache.has(kind));
   /**

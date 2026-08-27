@@ -1,7 +1,7 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { DeployOptions, DeployResult, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal, Icon } from '@jetstream/ui';
-import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
+import { fromJetstreamEvents, useAnalytics } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
@@ -16,7 +16,7 @@ export interface DeployMetadataPackageProps {
 }
 
 export const DeployMetadataPackage = ({ className, selectedOrg: initialSelectedOrg }: DeployMetadataPackageProps) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi>(initialSelectedOrg);

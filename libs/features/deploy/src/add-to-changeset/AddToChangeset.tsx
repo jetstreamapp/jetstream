@@ -9,7 +9,7 @@ import {
   SalesforceOrgUi,
 } from '@jetstream/types';
 import { FileDownloadModal, Icon } from '@jetstream/ui';
-import { fromDeployMetadataState, fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
+import { fromDeployMetadataState, fromJetstreamEvents, useAnalytics } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtom, useAtomValue } from 'jotai';
@@ -26,7 +26,7 @@ export interface AddToChangesetProps {
 }
 
 export const AddToChangeset = ({ className, selectedOrg, loading, selectedRows }: AddToChangesetProps) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const [configModalOpen, setConfigModalOpen] = useState(false);

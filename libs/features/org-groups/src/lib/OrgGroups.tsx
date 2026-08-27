@@ -26,7 +26,7 @@ import {
   PageHeaderRow,
   PageHeaderTitle,
 } from '@jetstream/ui';
-import { AddOrg, useAmplitude, useUpdateOrgs } from '@jetstream/ui-core';
+import { AddOrg, useAnalytics, useUpdateOrgs } from '@jetstream/ui-core';
 import { fromAppState, getRecentlySelectedOrgForGroup } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
@@ -40,7 +40,7 @@ import { SalesforceOrgsActions } from './SalesforceOrgsActions';
 
 export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHandlerFn }) {
   useTitle(TITLES.ORG_GROUPS);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const selectedOrg = useAtomValue(fromAppState.selectedOrgStateWithoutPlaceholder);
   const setSelectedOrgId = useSetAtom(fromAppState.selectedOrgIdState);
   const [allOrgs, setOrgs] = useAtom(fromAppState.salesforceOrgsState);

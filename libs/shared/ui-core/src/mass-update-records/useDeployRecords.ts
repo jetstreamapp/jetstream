@@ -9,7 +9,7 @@ import { DataHistoryEntryHandle } from '@jetstream/ui/data-history';
 import { formatDate } from 'date-fns/format';
 import { useAtom } from 'jotai';
 import { useCallback, useEffect, useRef } from 'react';
-import { useAmplitude } from '../analytics';
+import { useAnalytics } from '../analytics';
 import { captureMassUpdateResults, MassUpdateHistoryContext, MassUpdateSource, startMassUpdateHistory } from './data-history-capture';
 import { DeployResults, MetadataRow, MetadataRowConfiguration } from './mass-update-records.types';
 import { getEffectiveRecordLimit, getFieldsToQuery, prepareRecords, queryAndPrepareRecordsForUpdate } from './mass-update-records.utils';
@@ -22,7 +22,7 @@ export function useDeployRecords(
   const [{ serverUrl }] = useAtom(applicationCookieState);
   const isMounted = useRef(true);
   const { notifyUser } = useBrowserNotifications(serverUrl);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   /**
    * Capture contexts for deployments that are still IN FLIGHT, keyed by sobject — the poll loop is
    * driven by rows that carry no handle, so it has to look its deployment's context up. Entries are

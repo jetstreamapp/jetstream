@@ -14,7 +14,7 @@ import {
 import { filesize } from 'filesize';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
-import { useAmplitude } from '../analytics';
+import { useAnalytics } from '../analytics';
 import { ViewDataHistoryLink } from '../app/DataHistoryLinks';
 import { useRequestPersistentStorage, useSetDataHistoryCaptureEnabled } from './data-history-hooks';
 import { DataHistoryStorageLocation } from './DataHistoryStorageLocation';
@@ -39,7 +39,7 @@ export interface DataHistorySettingsSectionProps {
 }
 
 export const DataHistorySettingsSection: FunctionComponent<DataHistorySettingsSectionProps> = ({ hideViewHistoryLink }) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const setCaptureEnabled = useSetDataHistoryCaptureEnabled({ analyticsLocation: 'settings' });
   // Seeded (non-null) by AppInitializer once initDataHistory() resolves — a hard refresh landing
   // directly here mounts before that finishes, so we gate the first load on it instead of bailing

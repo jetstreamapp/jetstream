@@ -37,7 +37,7 @@ import {
   fromQueryState,
   QueryHistory,
   QueryHistoryRef,
-  useAmplitude,
+  useAnalytics,
 } from '@jetstream/ui-core';
 import { applicationCookieState, selectedOrgState, soqlQueryFormatOptionsState } from '@jetstream/ui/app-state';
 import { formatQuery } from '@jetstreamapp/soql-parser-js';
@@ -104,7 +104,7 @@ const ConnectedQueryLimit: FunctionComponent = () => {
 };
 
 export const QueryBuilder = () => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const navigate = useNavigate();
   const [{ serverUrl }] = useAtom(applicationCookieState);
   const queryHistoryRef = useRef<QueryHistoryRef>(null);

@@ -20,7 +20,7 @@ import {
   Tooltip,
   getModifierKey,
 } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { useAnalytics } from '@jetstream/ui-core';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { DeploymentModal } from './deployment/DeploymentModal';
@@ -34,7 +34,7 @@ const HEIGHT_BUFFER = 170;
 export function RecordTypeManagerEditor() {
   const navigate = useNavigate();
   const isMounted = useRef(true);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [viewMode, setViewMode] = useState<ViewMode>('RECORD_TYPE');
   const [deployModalOpen, setDeployModalOpen] = useState(false);
 

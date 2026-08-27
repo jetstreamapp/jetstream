@@ -17,7 +17,7 @@ vi.mock('@jetstream/shared/data', () => ({
 }));
 
 vi.mock('@jetstream/ui-core', () => ({
-  useAmplitude: () => ({ trackEvent }),
+  useAnalytics: () => ({ trackEvent }),
 }));
 
 vi.mock('@jetstream/ui/app-state', () => ({

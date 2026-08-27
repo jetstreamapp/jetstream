@@ -20,7 +20,7 @@ import {
   ToolbarItemGroup,
   Tooltip,
 } from '@jetstream/ui';
-import { fromDeployMetadataState, fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
+import { fromDeployMetadataState, fromJetstreamEvents, useAnalytics } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
 import { addMinutes } from 'date-fns/addMinutes';
 import { formatISO as formatISODate } from 'date-fns/formatISO';
@@ -54,7 +54,7 @@ const TABLE_ACTION_DELETE_METADATA = 'delete-manifest';
 export interface DeployMetadataDeploymentProps {}
 
 export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymentProps> = () => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const navigate = useNavigate();
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
@@ -83,7 +83,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
   const dateRangeStartState = useAtomValue(fromDeployMetadataState.dateRangeStartState);
   const dateRangeEndState = useAtomValue(fromDeployMetadataState.dateRangeEndState);
   const includeManagedPackageItems = useAtomValue(fromDeployMetadataState.includeManagedPackageItems);
-  const amplitudeSubmissionSelector = useAtomValue(fromDeployMetadataState.amplitudeSubmissionSelector);
+  const analyticsSubmissionSelector = useAtomValue(fromDeployMetadataState.analyticsSubmissionSelector);
 
   const [exportData, setExportData] = useState<Record<string, any> | null>(null);
   const [rows, setRows] = useState<DeployMetadataTableRow[]>();
@@ -225,7 +225,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
 
   function handleCloseSidePanel() {
     setIsSidePanelOpen(false);
-    trackEvent(ANALYTICS_KEYS.deploy_configuration, { page: 'deploy-table', ...amplitudeSubmissionSelector });
+    trackEvent(ANALYTICS_KEYS.deploy_configuration, { page: 'deploy-table', ...analyticsSubmissionSelector });
   }
 
   function handleDropdownMenuSelect(id: string) {

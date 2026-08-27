@@ -41,7 +41,6 @@ export default defineConfig(() => ({
   resolve: { tsconfigPaths: true },
   define: {
     'import.meta.vitest': undefined,
-    'import.meta.env.NX_PUBLIC_AMPLITUDE_KEY': null,
     'globalThis.__IS_BROWSER_EXTENSION__': false,
     'globalThis.__IS_DESKTOP__': true,
   },

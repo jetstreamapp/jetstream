@@ -3,7 +3,7 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { SoqlQueryFormatOptions } from '@jetstream/types';
 import { fireToast, Icon, Popover, PopoverRef } from '@jetstream/ui';
 import { useRef } from 'react';
-import { useAmplitude } from '../analytics';
+import { useAnalytics } from '../analytics';
 import { SoqlQueryFormatConfig } from './SoqlQueryFormatConfig';
 
 interface SoqlQueryFormatConfigPopoverProps {
@@ -16,7 +16,7 @@ interface SoqlQueryFormatConfigPopoverProps {
 }
 
 export const SoqlQueryFormatConfigPopover = ({ location, value, onChange }: SoqlQueryFormatConfigPopoverProps) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const popoverRef = useRef<PopoverRef>(null);
 
   async function handleSave(updatedValue: SoqlQueryFormatOptions) {
@@ -34,7 +34,7 @@ export const SoqlQueryFormatConfigPopover = ({ location, value, onChange }: Soql
       placement="top"
       onChange={(isOpen) => {
         if (isOpen) {
-          trackEvent(ANALYTICS_KEYS.soql_format_opened, { location });
+          trackEvent(ANALYTICS_KEYS.soql_format_open, { location });
         }
       }}
       header={

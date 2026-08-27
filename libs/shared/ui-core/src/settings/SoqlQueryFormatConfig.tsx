@@ -3,7 +3,7 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { SoqlQueryFormatOptions } from '@jetstream/types';
 import { Checkbox, Input } from '@jetstream/ui';
 import { useEffect, useState } from 'react';
-import { useAmplitude } from '../analytics';
+import { useAnalytics } from '../analytics';
 
 interface SoqlQueryFormatConfigProps {
   className?: string;
@@ -22,7 +22,7 @@ export const SoqlQueryFormatConfig = ({
   onChange,
   onCancel,
 }: SoqlQueryFormatConfigProps) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [currentValue, setCurrentValue] = useState(value);
   // Local state for input fields to allow clearing
   const [fieldMaxLineLengthInput, setFieldMaxLineLengthInput] = useState(String(value.fieldMaxLineLength ?? 1));

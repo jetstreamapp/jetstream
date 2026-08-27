@@ -1,6 +1,6 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { JetstreamPricesByLookupKey, StripeUserFacingCustomer } from '@jetstream/types';
-import { useAmplitude } from '@jetstream/ui-core';
+import { useAnalytics } from '@jetstream/ui-core';
 import { useState } from 'react';
 import { EnhancedBillingCard } from './EnhancedBillingCard';
 import {
@@ -23,7 +23,7 @@ export const BillingExistingSubscriptions = ({
   pricesByLookupKey,
   hasManualBilling,
 }: BillingExistingSubscriptionsProps) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(() => {
     const priceId =
       customerWithSubscriptions.subscriptions.find(({ status }) => ACTIVE_SUBSCRIPTION_STATUSES.has(status))?.items[0].priceId || null;

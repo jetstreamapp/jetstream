@@ -4,7 +4,7 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { salesforceApiReq } from '@jetstream/shared/data';
 import { SalesforceApiRequest } from '@jetstream/types';
 import { AutoFullHeightContainer, ColumnWithFilter, DataTree, Grid, Icon, Modal, setColumnFromType, Spinner } from '@jetstream/ui';
-import { ErrorBoundaryFallback, useAmplitude } from '@jetstream/ui-core';
+import { ErrorBoundaryFallback, useAnalytics } from '@jetstream/ui-core';
 import groupBy from 'lodash/groupBy';
 import { FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
@@ -17,7 +17,7 @@ export interface SalesforceApiExamplesModalProps {
 
 export const SalesforceApiExamplesModal: FunctionComponent<SalesforceApiExamplesModalProps> = ({ onExecute }) => {
   const isMounted = useRef(true);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [requests, setRequests] = useState<SalesforceApiRequest[]>([]);

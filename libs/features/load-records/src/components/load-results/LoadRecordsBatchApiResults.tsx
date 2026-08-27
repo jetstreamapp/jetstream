@@ -18,7 +18,7 @@ import {
   ViewModalData,
 } from '@jetstream/types';
 import { FileDownloadModal, Grid, Icon, ProgressRing, Spinner, Tooltip } from '@jetstream/ui';
-import { fromJetstreamEvents, getFieldHeaderFromMapping, LoadRecordsResultsModal, useAmplitude } from '@jetstream/ui-core';
+import { fromJetstreamEvents, getFieldHeaderFromMapping, LoadRecordsResultsModal, useAnalytics } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { DataHistoryEntryHandle } from '@jetstream/ui/data-history';
 import { useAtomValue } from 'jotai';
@@ -100,7 +100,7 @@ export const LoadRecordsBatchApiResults = ({
   // Ref to avoid stale closures in stable useCallback/useEffect — always call onFinishRef.current
   const onFinishRef = useRef(onFinish);
   onFinishRef.current = onFinish;
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const processingStatusRef = useRef<{ success: number; failure: number }>({ success: 0, failure: 0 });
   const processedRecordsRef = useRef<RecordResultWithRecord[]>([]);
   const [preparedData, setPreparedData] = useState<PrepareDataResponse>();

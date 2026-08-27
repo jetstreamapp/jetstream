@@ -3,7 +3,7 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { setItemInLocalStorage } from '@jetstream/shared/ui-utils';
 import { PermissionTableFieldCell, PermissionTableSummaryRow } from '@jetstream/types';
 import { ColumnWithFilter } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { useAnalytics } from '@jetstream/ui-core';
 import { STORAGE_KEYS } from '@jetstream/ui/app-state';
 import { useCallback, useState } from 'react';
 import {
@@ -32,7 +32,7 @@ function getStoredVisibleFieldAuditColumns(): ReadonlySet<FieldAuditColumnKey> {
  * to local storage, and the analytics event fired on every change.
  */
 export function useVisibleFieldAuditColumns() {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [visibleColumns, setVisibleColumns] = useState<ReadonlySet<FieldAuditColumnKey>>(getStoredVisibleFieldAuditColumns);
 
   const persist = useCallback(

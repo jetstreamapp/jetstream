@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { AsyncJobNew, BulkDownloadJob, Maybe, QueryResultsColumn, SalesforceOrgUi } from '@jetstream/types';
 import { DownloadFromServerOpts, Icon, RecordDownloadFileFormat, RecordDownloadModal } from '@jetstream/ui';
-import { fromJetstreamEvents, fromQueryState, useAmplitude } from '@jetstream/ui-core';
+import { fromJetstreamEvents, fromQueryState, useAnalytics } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { composeQuery, parseQuery } from '@jetstreamapp/soql-parser-js';
 import { useAtomValue } from 'jotai';
@@ -39,7 +39,7 @@ export const QueryResultsDownloadButton = ({
   selectedRows,
   totalRecordCount,
 }: QueryResultsDownloadButtonProps) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const { google_apiKey, google_appId, google_clientId, serverUrl } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const [isDownloadModalOpen, setModalOpen] = useState<boolean>(false);

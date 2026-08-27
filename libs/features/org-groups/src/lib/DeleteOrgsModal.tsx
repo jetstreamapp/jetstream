@@ -4,7 +4,7 @@ import { deleteOrg } from '@jetstream/shared/data';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Badge, Checkbox, Grid, Icon, Modal, RadioButton, RadioGroup, Spinner, fireToast } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { useAnalytics } from '@jetstream/ui-core';
 import classNames from 'classnames';
 import groupBy from 'lodash/groupBy';
 import sortBy from 'lodash/sortBy';
@@ -17,7 +17,7 @@ interface DeleteOrgsModalProps {
 }
 
 export const DeleteOrgsModal = ({ orgs, onClose, onDeleted }: DeleteOrgsModalProps) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [selectedOrgIds, setSelectedOrgIds] = useState<Set<string>>(new Set());
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);

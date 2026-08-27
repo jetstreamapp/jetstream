@@ -7,7 +7,7 @@ import { Icon, Popover, PopoverRef, Radio, RadioGroup } from '@jetstream/ui';
 import { getDexieDb, withReopenOnDatabaseClosed } from '@jetstream/ui/db';
 import isDate from 'lodash/isDate';
 import { FunctionComponent, useRef, useState } from 'react';
-import { useAmplitude } from '../..';
+import { useAnalytics } from '../..';
 
 type ExportScope = 'ALL' | 'CURRENT';
 type ExportType = 'ALL' | 'FAVORITES';
@@ -19,7 +19,7 @@ export interface QueryHistoryExportPopoverProps {
 
 export const QueryHistoryExportPopover: FunctionComponent<QueryHistoryExportPopoverProps> = ({ selectedOrg, whichType }) => {
   const popoverRef = useRef<PopoverRef>(null);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [exportScope, setExportScope] = useState<ExportScope>('ALL');
   const [exportType, setExportType] = useState<ExportType>('ALL');
   const [isExporting, setIsExporting] = useState(false);

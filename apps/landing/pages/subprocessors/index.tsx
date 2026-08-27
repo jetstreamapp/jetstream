@@ -29,16 +29,6 @@ const webSubProcessors = [
     salesforceCanvas: false,
   },
   {
-    name: 'Amplitude',
-    function: 'Telemetry',
-    location: 'US',
-    optional: 'Yes, opt-in via cookie consent banner.',
-    web: true,
-    extension: false,
-    desktop: false,
-    salesforceCanvas: false,
-  },
-  {
     name: 'Cloudflare',
     function: 'CDN / DDoS Protection / WAF / DNS',
     location: 'US',
@@ -90,9 +80,10 @@ const webSubProcessors = [
   },
   {
     name: 'Better Stack',
-    function: 'Bug reporting and tracking',
+    function:
+      'Bug reporting and tracking; product analytics (page views, web vitals, and product usage events — no session replay or fingerprinting)',
     location: 'US',
-    optional: NoIcon,
+    optional: 'Analytics is opt-in via cookie consent banner.',
     web: true,
     extension: false,
     desktop: false,

@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { Icon, UpgradeToProButton } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
-import { useAmplitude } from '../analytics';
+import { useAnalytics } from '../analytics';
 
 export interface AnalysisToolsPaywallProps {
   /** Feature name shown in the heading, e.g. "Field Usage Analysis". Defaults to "Analysis Tools". */
@@ -14,7 +14,7 @@ export interface AnalysisToolsPaywallProps {
  * for bookmarked/shared URLs. Processing is browser-only, so there is no server-side enforcement.
  */
 export const AnalysisToolsPaywall: FunctionComponent<AnalysisToolsPaywallProps> = ({ featureLabel = 'Analysis Tools' }) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   return (
     <div
       className="slds-p-around_large slds-align_absolute-center"

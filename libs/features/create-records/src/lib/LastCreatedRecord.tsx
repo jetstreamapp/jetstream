@@ -2,7 +2,7 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { appActionObservable } from '@jetstream/shared/ui-utils';
 import { CloneEditView, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, RecordLookupPopover } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { useAnalytics } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 
@@ -12,7 +12,7 @@ interface LastCreatedRecordProps {
 }
 
 export function LastCreatedRecord({ selectedOrg, recordId }: LastCreatedRecordProps) {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
 
   const { serverUrl } = useAtomValue(applicationCookieState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);

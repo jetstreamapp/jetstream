@@ -16,7 +16,7 @@ import {
   Spinner,
   fireToast,
 } from '@jetstream/ui';
-import { DataHistorySettingsSection, SalesforceCanvasOrgs, SoqlQueryFormatConfig, useAmplitude } from '@jetstream/ui-core';
+import { DataHistorySettingsSection, SalesforceCanvasOrgs, SoqlQueryFormatConfig, useAnalytics } from '@jetstream/ui-core';
 import { fromAppState, useFeatureFlag, userProfileState } from '@jetstream/ui/app-state';
 import { deleteAllDataHistoryFiles } from '@jetstream/ui/data-history';
 import { deleteAllLocalData, dexieDataSync, recentHistoryItemsDb } from '@jetstream/ui/db';
@@ -30,7 +30,7 @@ const HEIGHT_BUFFER = 170;
 export const Settings = () => {
   useTitle(TITLES.SETTINGS);
   const isMounted = useRef(true);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState(false);
   const [userProfile, setUserProfile] = useAtom(userProfileState);

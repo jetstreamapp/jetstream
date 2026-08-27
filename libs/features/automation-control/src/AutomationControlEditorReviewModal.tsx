@@ -4,7 +4,7 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { SalesforceOrgUi } from '@jetstream/types';
 import type { Column } from '@jetstream/ui';
 import { AutoFullHeightContainer, DataTable, Icon, Modal, Spinner } from '@jetstream/ui';
-import { ConfirmPageChange, useAmplitude } from '@jetstream/ui-core';
+import { ConfirmPageChange, useAnalytics } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
 import { deployMetadata, getAutomationTypeLabel, preparePayloads } from './automation-control-data-utils';
 import { AutomationDeployStatusRenderer, BooleanAndVersionRenderer } from './automation-control-table-renderers';
@@ -97,7 +97,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
   rows,
   onClose,
 }) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [deploymentItemMap, setDeploymentItemMap] = useState<DeploymentItemMap>(() => getDeploymentItemMap(rows));
   const [deploymentItems, setDeploymentItems] = useState<DeploymentItem[]>([]);

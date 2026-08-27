@@ -6,7 +6,7 @@ import { fromAppState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
 import { Link } from 'react-router';
-import { useAmplitude } from '../../analytics';
+import { useAnalytics } from '../../analytics';
 
 const CURRENT_TIME = new Date().getTime();
 const IS_NEW =
@@ -14,7 +14,7 @@ const IS_NEW =
   (APP_ROUTES.DESKTOP_APPLICATION.NEW_UNTIL && APP_ROUTES.DESKTOP_APPLICATION.NEW_UNTIL >= CURRENT_TIME);
 
 export const AppHomeAlternativeApplicationFormats = () => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const ability = useAtomValue(fromAppState.abilityState);
   const hasExtensionAccess = ability.can('access', 'ChromeExtension');
   const hasDesktopAccess = ability.can('access', 'Desktop');

@@ -4,7 +4,7 @@ import { isBrowserExtension, useNonInitialEffect, useTitle } from '@jetstream/sh
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { ListItem, ListItemGroup } from '@jetstream/types';
 import { AutoFullHeightContainer, FileDownloadModal } from '@jetstream/ui';
-import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
+import { fromJetstreamEvents, useAnalytics } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { useEffect, useRef, useState } from 'react';
@@ -23,7 +23,7 @@ export const PlatformEventMonitor = ({
   unsubscribeOverrideFn?: UnsubscribeOverrideFn;
 }) => {
   useTitle(TITLES.PLATFORM_EVENTS);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [isWebExtension] = useState(() => isBrowserExtension());
   const { serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);

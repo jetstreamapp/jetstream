@@ -24,7 +24,7 @@ import {
 } from '@jetstream/ui/data-history';
 import { useSetAtom } from 'jotai';
 import { useCallback, useEffect, useState } from 'react';
-import { useAmplitude } from '../analytics';
+import { useAnalytics } from '../analytics';
 
 /**
  * Shared Data History storage flows (service call + toasts + analytics), used by both the Data
@@ -76,7 +76,7 @@ function useDataHistoryBackendStatus() {
  * Returns `false` when the change could not be persisted, so callers can surface it. Never throws.
  */
 export function useSetDataHistoryCaptureEnabled({ analyticsLocation }: { analyticsLocation: string }) {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const setCaptureEnabledAtom = useSetAtom(dataHistoryCaptureEnabledState);
 
   return useCallback(
@@ -102,7 +102,7 @@ export function useSetDataHistoryCaptureEnabled({ analyticsLocation }: { analyti
  * surface keeps a second copy to refresh.
  */
 export function useRequestPersistentStorage({ analyticsLocation }: { analyticsLocation: string }) {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [requestingPersist, setRequestingPersist] = useState(false);
   const [persisted, setPersisted] = useState<boolean | null>(null);
   const persistPromptEligible = isPersistentStoragePromptEligible();
@@ -205,7 +205,7 @@ export function useDataHistoryStorage({
   /** Runs after an action completed and the status was re-read — refresh usage numbers and the like here */
   onChanged?: () => void | Promise<void>;
 }) {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const { backendStatus, loadBackendStatus } = useDataHistoryBackendStatus();
   const [working, setWorking] = useState(false);
   const [migrationProgress, setMigrationProgress] = useState<Maybe<{ migrated: number; total: number }>>(null);

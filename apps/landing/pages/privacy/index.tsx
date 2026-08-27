@@ -141,10 +141,11 @@ export default function Page() {
       <h2>SHARING YOUR PERSONAL INFORMATION</h2>
       <p className="mb-2 pl-2">
         We share your Personal Information with third parties to help us use your Personal Information, as described above. For example, we
-        use Stripe to power our payment collection. We use Amplitude to track what parts of the application is used and in which ways to
-        help make product decisions. We also use Google Analytics to help us understand how our customers use the Site - you can read more
-        about how Google uses your Personal Information here: https://www.google.com/intl/en/policies/privacy/. You can also opt-out of
-        Google Analytics here: https://tools.google.com/dlpage/gaoptout. Finally, we may also share your Personal Information to comply with
+        use Stripe to power our payment collection. We use Better Stack to track what parts of the application are used and in which ways to
+        help make product decisions — this is opt-in via our cookie consent banner and does not include session replay or browser
+        fingerprinting. We also use Google Analytics to help us understand how our customers use the Site - you can read more about how
+        Google uses your Personal Information here: https://www.google.com/intl/en/policies/privacy/. You can also opt-out of Google
+        Analytics here: https://tools.google.com/dlpage/gaoptout. Finally, we may also share your Personal Information to comply with
         applicable laws and regulations, to respond to a subpoena, search warrant or other lawful request for information we receive, or to
         otherwise protect our rights.
       </p>

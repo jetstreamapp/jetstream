@@ -29,8 +29,7 @@ export default defineConfig(() => ({
   },
   define: {
     'import.meta.vitest': undefined,
-    'import.meta.env.NX_PUBLIC_AMPLITUDE_KEY': null,
-    // Canvas vite has no `envPrefix`, so inline the DSN explicitly (mirrors the amplitude handling above).
+    // Canvas vite has no `envPrefix`, so inline the DSN explicitly.
     'import.meta.env.NX_PUBLIC_SENTRY_DSN_CANVAS': JSON.stringify(process.env.NX_PUBLIC_SENTRY_DSN_CANVAS ?? ''),
     'globalThis.__IS_CANVAS_APP__': true,
   },

@@ -50,7 +50,7 @@ export interface ManagePermissionSetAssignmentsModalProps {
   permissionSetName?: string;
   /** Profile-owned permission sets cannot be assigned — the modal renders an explanation instead of the editor. */
   isOwnedByProfile?: boolean;
-  /** Amplitude tracker (from the host's useAmplitude). Optional — defaults to a no-op. */
+  /** Analytics tracker (from the host's useAnalytics). Optional — defaults to a no-op. */
   trackEvent?: (key: string, value?: Record<string, any>) => void;
   /** Assignments changed on the server — the host should refresh anything showing them. */
   onSaved: () => void;

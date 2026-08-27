@@ -27,7 +27,7 @@ import {
   getFieldMetadata,
   getMaxBatchSize,
   getRecommendedApiMode,
-  useAmplitude,
+  useAnalytics,
   ViewDataHistoryLink,
 } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState, selectedOrgType } from '@jetstream/ui/app-state';
@@ -56,7 +56,7 @@ export const LoadRecords = () => {
   useTitle(TITLES.LOAD);
   const isMounted = useRef(true);
   const [searchParams, setSearchParams] = useSearchParams();
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
 
   // Capture pre-fill params (e.g. from browser extension popover) once on mount
   const [initialObjectName] = useState(() => searchParams.get('objectName'));

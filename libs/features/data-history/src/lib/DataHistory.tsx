@@ -21,7 +21,7 @@ import {
 } from '@jetstream/ui';
 import {
   openHistoryFolder,
-  useAmplitude,
+  useAnalytics,
   useDataHistoryStorage,
   useRequestPersistentStorage,
   useSetDataHistoryCaptureEnabled,
@@ -120,7 +120,7 @@ const scopedNotificationNeutralButtonCss = css`
 
 export const DataHistory: FunctionComponent = () => {
   useTitle(TITLES.DATA_HISTORY);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const orgs = useAtomValue(fromAppState.salesforceOrgsState);
   const captureEnabled = useAtomValue(dataHistoryCaptureEnabledState);
   const setCaptureEnabled = useSetDataHistoryCaptureEnabled({ analyticsLocation: 'data-history-page' });

@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { DataHistoryItem, FileExtAllTypes, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal, fireToast, Modal, Spinner } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { useAnalytics } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
@@ -37,7 +37,7 @@ export const DataHistoryFormatDownloadModal: FunctionComponent<DataHistoryFormat
   onClose,
   onError = fireToast,
 }) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const orgs = useAtomValue(fromAppState.salesforceOrgsState);
   const [view, setView] = useState<DataHistoryPayloadView | null>(null);
   // The org is only used for the generated filename — history outlives org removal, so fall back to the label snapshot

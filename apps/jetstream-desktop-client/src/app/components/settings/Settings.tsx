@@ -6,7 +6,7 @@ import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { isEscapeKey, useGlobalEventHandler, useTitle } from '@jetstream/shared/ui-utils';
 import { SoqlQueryFormatOptions, SoqlQueryFormatOptionsSchema } from '@jetstream/types';
 import { AutoFullHeightContainer, CheckboxToggle, Grid, Icon, Input, Page, Spinner, fireToast } from '@jetstream/ui';
-import { DataHistorySettingsSection, SoqlQueryFormatConfig, useAmplitude } from '@jetstream/ui-core';
+import { DataHistorySettingsSection, SoqlQueryFormatConfig, useAnalytics } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { dexieDataSync, recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
@@ -20,7 +20,7 @@ const HEIGHT_BUFFER = 170;
 export const Settings = () => {
   useTitle(TITLES.SETTINGS);
   const isMounted = useRef(true);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const navigate = useNavigate();
   const setUserProfile = useSetAtom(fromAppState.userProfileState);
   const ability = useAtomValue(fromAppState.abilityState);

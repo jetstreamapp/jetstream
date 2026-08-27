@@ -20,7 +20,6 @@ import { json, raw, urlencoded } from 'body-parser';
 import pgSimple from 'connect-pg-simple';
 import cors from 'cors';
 import express from 'express';
-import proxy from 'express-http-proxy';
 import session from 'express-session';
 import helmet from 'helmet';
 import cluster from 'node:cluster';
@@ -168,31 +167,6 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   );
 
   app.use(setPermissionPolicy);
-
-  if (ENV.ENVIRONMENT === 'development') {
-    app.use('/analytics', cors({ origin: /http:\/\/localhost:[0-9]+$/ }), (_, res) => res.status(200).send('success'));
-  } else {
-    app.use(
-      '/analytics',
-      proxy('https://api2.amplitude.com', {
-        proxyReqPathResolver: (req) => req.originalUrl.replace('/analytics', '/2/httpapi'),
-        // express-http-proxy forwards ALL incoming headers by default. /analytics is same-origin
-        // with the SPA and mounted after sessionMiddleware, so a browser beacon carries the
-        // first-party session + CSRF cookies and Authorization header — strip them so a live
-        // session credential never leaves our trust boundary for Amplitude.
-        proxyReqOptDecorator: (proxyReqOpts) => {
-          if (proxyReqOpts.headers) {
-            delete proxyReqOpts.headers['cookie'];
-            delete proxyReqOpts.headers['Cookie'];
-            delete proxyReqOpts.headers['authorization'];
-            delete proxyReqOpts.headers['Authorization'];
-            delete proxyReqOpts.headers[HTTP.HEADERS.X_CSRF_TOKEN];
-          }
-          return proxyReqOpts;
-        },
-      }),
-    );
-  }
 
   app.use(httpLogger);
   app.use(requestContextMiddleware);

@@ -15,7 +15,7 @@ import {
   PageHeaderTitle,
   Tooltip,
 } from '@jetstream/ui';
-import { fromDeployMetadataState, RequireMetadataApiBanner, useAmplitude } from '@jetstream/ui-core';
+import { fromDeployMetadataState, RequireMetadataApiBanner, useAnalytics } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent } from 'react';
@@ -34,16 +34,16 @@ const HEIGHT_BUFFER = 170;
 export interface DeployMetadataSelectionProps {}
 
 export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionProps> = () => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const navigate = useNavigate();
   const selectedOrg = useAtomValue(selectedOrgState);
-  const amplitudeSubmissionSelector = useAtomValue(fromDeployMetadataState.amplitudeSubmissionSelector);
+  const analyticsSubmissionSelector = useAtomValue(fromDeployMetadataState.analyticsSubmissionSelector);
   const metadataItems = useAtomValue(fromDeployMetadataState.metadataItemsState);
   const hasSelectionsMade = useAtomValue(fromDeployMetadataState.hasSelectionsMadeSelector);
   const hasSelectionsMadeMessage = useAtomValue(fromDeployMetadataState.hasSelectionsMadeMessageSelector);
 
   function trackContinue() {
-    trackEvent(ANALYTICS_KEYS.deploy_configuration, { page: 'initial-selection', ...amplitudeSubmissionSelector });
+    trackEvent(ANALYTICS_KEYS.deploy_configuration, { page: 'initial-selection', ...analyticsSubmissionSelector });
   }
 
   usePrimaryActionShortcut(

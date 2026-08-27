@@ -4,7 +4,7 @@ import { checkOrgHealth, getOrgs } from '@jetstream/shared/data';
 import { ORG_INACTIVITY_EXPIRATION_DAYS, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { AddOrgHandlerFn, BadgeType, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Badge, ConfirmationModalPromise, Grid, Icon, Spinner, Tooltip, fireToast } from '@jetstream/ui';
-import { AddOrg, OrgExpirationStatus, useAmplitude, useOrgExpiration, useUpdateOrgs } from '@jetstream/ui-core';
+import { AddOrg, OrgExpirationStatus, useAnalytics, useOrgExpiration, useUpdateOrgs } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useSetAtom } from 'jotai';
 import { useState } from 'react';
@@ -59,7 +59,7 @@ export function SalesforceOrgCardConnectionRefresh({
   onRemoveOrg,
 }: SalesforceOrgCardConnectionRefreshProps) {
   const orgExpiration = useOrgExpiration(org);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const setOrgs = useSetAtom(fromAppState.salesforceOrgsAsyncState);
 

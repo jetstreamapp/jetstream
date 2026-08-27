@@ -9,7 +9,7 @@ import { Card, FileDownloadModal, Grid, SalesforceLogin, ScopedNotification, Spi
 import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { Fragment, useEffect, useState } from 'react';
-import { useAmplitude } from '../analytics';
+import { useAnalytics } from '../analytics';
 import ConfirmPageChange from '../app/ConfirmPageChange';
 import { fromJetstreamEvents } from '../jetstream-events';
 import LoadRecordsBulkApiResultsTable from '../load-records-results/LoadRecordsBulkApiResultsTable';
@@ -56,7 +56,7 @@ export const MassUpdateRecordsDeploymentRow = ({
   omitTransformationText,
   onModalOpenChange,
 }: MassUpdateRecordsDeploymentRowProps) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [downloadModalData, setDownloadModalData] = useState<DownloadModalData>({ open: false, data: [], header: [], fileNameParts: [] });
   const [resultsModalData, setResultsModalData] = useState<ViewModalData>({ open: false, data: [], header: [], type: 'results' });
   const { serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);

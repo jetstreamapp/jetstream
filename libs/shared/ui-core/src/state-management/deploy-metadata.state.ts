@@ -100,7 +100,7 @@ export const listMetadataQueriesSelector = atom<ListMetadataQueryExtended[]>((ge
     });
 });
 
-export const amplitudeSubmissionSelector = atom((get) => {
+export const analyticsSubmissionSelector = atom((get) => {
   const metadataSelectionType = get(metadataSelectionTypeState);
   const userSelection = get(userSelectionState);
   const dateRangeSelection = get(dateRangeSelectionState);

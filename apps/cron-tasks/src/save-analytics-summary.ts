@@ -1,45 +1,72 @@
+import { startOfDay, subDays } from 'date-fns';
 import { prisma } from './config/db.config';
 import { logger } from './config/logger.config';
-import { getAmplitudeChart } from './utils/amplitude-dashboard-api';
+import { queryDailyEventCounts } from './utils/betterstack-telemetry-api';
 
-const CHART_IDS = {
-  LOAD: {
-    YEAR: 'rens73dw',
-    MONTH: 'iyt2blcf',
-    WEEK: 'so649gq9',
-  },
-  QUERY: {
-    YEAR: '33tylew6',
-    MONTH: 'icruamqk',
-    WEEK: 'zs6f0dl8',
-  },
-};
+const ROLLUP_TYPES = {
+  LOAD: 'LOAD',
+  QUERY: 'QUERY',
+} as const;
+
+/**
+ * Number of trailing days re-fetched from Better Stack on every run. Days are upserted, so
+ * re-fetching a window makes the job idempotent and tolerant of missed runs or late-arriving events.
+ */
+const REFRESH_WINDOW_DAYS = 7;
+
+async function upsertDailyRollup(date: Date, type: string, count: number) {
+  await prisma.analyticsEventRollup.upsert({
+    create: { date, type, count },
+    update: { count },
+    where: { date_type: { date, type } },
+  });
+}
+
+async function sumRollupSince(type: string, since: Date): Promise<number> {
+  const result = await prisma.analyticsEventRollup.aggregate({
+    _sum: { count: true },
+    where: { type, date: { gte: since } },
+  });
+  return result._sum.count ?? 0;
+}
 
 (async () => {
   try {
-    logger.info('[ANALYTICS SUMMARY] Exporting data from amplitude');
+    logger.info('[ANALYTICS SUMMARY] Fetching daily event counts from Better Stack');
 
-    const CHART_LOAD_YEAR = (await getAmplitudeChart(CHART_IDS.LOAD.YEAR)).data.seriesCollapsed[0][0].value;
-    const CHART_LOAD_MONTH = (await getAmplitudeChart(CHART_IDS.LOAD.MONTH)).data.seriesCollapsed[0][0].value;
-    const CHART_LOAD_WEEK = (await getAmplitudeChart(CHART_IDS.LOAD.WEEK)).data.seriesCollapsed[0][0].value;
+    const today = startOfDay(new Date());
+    const dailyCounts = await queryDailyEventCounts({ startDate: subDays(today, REFRESH_WINDOW_DAYS), endDate: today });
 
-    const CHART_QUERY_YEAR = (await getAmplitudeChart(CHART_IDS.QUERY.YEAR)).data.seriesCollapsed[0][0].value;
-    const CHART_QUERY_MONTH = (await getAmplitudeChart(CHART_IDS.QUERY.MONTH)).data.seriesCollapsed[0][0].value;
-    const CHART_QUERY_WEEK = (await getAmplitudeChart(CHART_IDS.QUERY.WEEK)).data.seriesCollapsed[0][0].value;
+    logger.info(`[ANALYTICS SUMMARY] Saving ${dailyCounts.length} day(s) of rollup data`);
+
+    for (const { date, loadRecords, queryCount } of dailyCounts) {
+      const day = new Date(`${date}T00:00:00.000Z`);
+      await upsertDailyRollup(day, ROLLUP_TYPES.LOAD, loadRecords);
+      await upsertDailyRollup(day, ROLLUP_TYPES.QUERY, queryCount);
+    }
+
+    const [loadWeek, loadMonth, loadYear, queryWeek, queryMonth, queryYear] = await Promise.all([
+      sumRollupSince(ROLLUP_TYPES.LOAD, subDays(today, 7)),
+      sumRollupSince(ROLLUP_TYPES.LOAD, subDays(today, 30)),
+      sumRollupSince(ROLLUP_TYPES.LOAD, subDays(today, 365)),
+      sumRollupSince(ROLLUP_TYPES.QUERY, subDays(today, 7)),
+      sumRollupSince(ROLLUP_TYPES.QUERY, subDays(today, 30)),
+      sumRollupSince(ROLLUP_TYPES.QUERY, subDays(today, 365)),
+    ]);
 
     logger.info('[ANALYTICS SUMMARY] Saving data to database');
 
     const loadResults = await prisma.analyticsSummary.upsert({
       create: {
         type: 'LOAD_SUMMARY',
-        year: CHART_LOAD_YEAR,
-        month: CHART_LOAD_MONTH,
-        week: CHART_LOAD_WEEK,
+        year: loadYear,
+        month: loadMonth,
+        week: loadWeek,
       },
       update: {
-        year: CHART_LOAD_YEAR,
-        month: CHART_LOAD_MONTH,
-        week: CHART_LOAD_WEEK,
+        year: loadYear,
+        month: loadMonth,
+        week: loadWeek,
       },
       where: {
         type: 'LOAD_SUMMARY',
@@ -51,14 +78,14 @@ const CHART_IDS = {
     const queryResults = await prisma.analyticsSummary.upsert({
       create: {
         type: 'QUERY_SUMMARY',
-        year: CHART_QUERY_YEAR,
-        month: CHART_QUERY_MONTH,
-        week: CHART_QUERY_WEEK,
+        year: queryYear,
+        month: queryMonth,
+        week: queryWeek,
       },
       update: {
-        year: CHART_QUERY_YEAR,
-        month: CHART_QUERY_MONTH,
-        week: CHART_QUERY_WEEK,
+        year: queryYear,
+        month: queryMonth,
+        week: queryWeek,
       },
       where: {
         type: 'QUERY_SUMMARY',

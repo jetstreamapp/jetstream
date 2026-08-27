@@ -4,7 +4,7 @@ import { checkHeartbeat, disconnectSocket, initSocket, registerMiddleware, updat
 import { initErrorTracker, setErrorTrackerUser, tracker, useObservable } from '@jetstream/shared/ui-utils';
 import { Announcement, JetstreamEventSaveSoqlQueryFormatOptionsPayload, SalesforceOrgUi } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
-import { fromJetstreamEvents, useAmplitude, useInitDataHistory } from '@jetstream/ui-core';
+import { fromJetstreamEvents, useAnalytics, useInitDataHistory } from '@jetstream/ui-core';
 import { DEFAULT_PROFILE, fromAppState } from '@jetstream/ui/app-state';
 import { CookieConsentBanner, useConditionalGoogleAnalytics } from '@jetstream/ui/cookie-consent-banner';
 import { ensureLocalStorageReady, initDexieDb, pruneAnalysisJobHistory } from '@jetstream/ui/db';
@@ -15,6 +15,7 @@ import React, { Fragment, FunctionComponent, use, useCallback, useEffect } from 
 import { useSearchParams } from 'react-router';
 import { Observable, Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { useAnalyticsTagLoader } from './analytics-tag-loader';
 
 const orgConnectionError = new Subject<{ uniqueId: string; connectionError: string }>();
 const orgConnectionError$ = orgConnectionError.asObservable();
@@ -140,7 +141,9 @@ APP VERSION ${version}
     setErrorTrackerUser(userProfile);
   }, [userProfile]);
 
-  useAmplitude(analytics !== 'accepted');
+  // Loader must be called before useAnalytics so the tag stub exists when the identify effect runs
+  useAnalyticsTagLoader(analytics === 'accepted');
+  useAnalytics(analytics !== 'accepted');
 
   useEffect(() => {
     if (onSaveSoqlQueryFormatOptions?.value) {

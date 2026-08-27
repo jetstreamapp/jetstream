@@ -11,7 +11,7 @@ const { readDataHistoryFileMock, copyPayloadMock } = vi.hoisted(() => ({
 }));
 
 vi.mock('@jetstream/ui/data-history', () => ({ readDataHistoryFile: readDataHistoryFileMock }));
-vi.mock('@jetstream/ui-core', () => ({ useAmplitude: () => ({ trackEvent: vi.fn() }) }));
+vi.mock('@jetstream/ui-core', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
 vi.mock('../data-history-download', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../data-history-download')>()),
   copyDataHistoryPayloadToClipboard: copyPayloadMock,

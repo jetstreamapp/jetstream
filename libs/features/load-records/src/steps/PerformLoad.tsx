@@ -17,7 +17,7 @@ import {
   getFieldHeaderFromMapping,
   getMaxBatchSize,
   SkipDataHistoryCheckbox,
-  useAmplitude,
+  useAnalytics,
 } from '@jetstream/ui-core';
 import { DataHistoryEntryHandle } from '@jetstream/ui/data-history';
 import { useAtom, useAtomValue } from 'jotai';
@@ -96,7 +96,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   onIsLoading,
 }) => {
   const hasZipAttachment = !!inputZipFileData;
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const runIdCounter = useRef(0);
 
   const [apiMode, setApiMode] = useAtom(fromLoadRecordsState.apiModeState);

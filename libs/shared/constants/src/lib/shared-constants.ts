@@ -197,7 +197,6 @@ export const ANALYTICS_KEYS = {
   record_modal_view_related: 'record_modal_view_related',
   record_modal_view_children: 'record_modal_view_children',
   record_modal_download: 'record_modal_download',
-  record_modal_json: 'record_modal_json',
   record_modal_save: 'record_modal_save',
   record_modal_clipboard: 'record_modal_clipboard',
   /** Create Record */
@@ -213,14 +212,12 @@ export const ANALYTICS_KEYS = {
   permission_manager_field_audit_columns_toggled: 'permission_manager_field_audit_columns_toggled',
   /** USER SEARCH MODAL */
   user_search_opened: 'user_search_opened',
-  user_search_view_user: 'user_search_view_user',
   user_search_copy_item: 'user_search_copy_item',
   user_search_did_search: 'user_search_did_search',
   /** AUTOMATION CONTROL */
   automation_selection: 'automation_selection',
   automation_review: 'automation_review',
   automation_deploy: 'automation_deploy',
-  automation_rollback: 'automation_rollback',
   automation_toggle_all: 'automation_toggle_all',
   automation_process_builder_refresh: 'automation_process_builder_refresh',
   automation_export: 'automation_export',
@@ -236,7 +233,6 @@ export const ANALYTICS_KEYS = {
   query_HistoryModalOpened: 'query_HistoryModalOpened',
   query_HistoryRestore: 'query_HistoryRestore',
   query_HistorySaveQueryToggled: 'query_HistorySaveQueryToggled',
-  query_HistoryUpdateLabel: 'query_HistoryUpdateLabel',
   query_HistoryUpdateQuery: 'query_HistoryUpdateQuery',
   query_HistoryShowMore: 'query_HistoryShowMore',
   query_HistoryTypeChanged: 'query_HistoryTypeChanged',
@@ -245,7 +241,6 @@ export const ANALYTICS_KEYS = {
   query_LoadMore: 'query_LoadMore',
   query_ManualQueryOpened: 'query_ManualQueryOpened',
   query_ManualSoqlOpened: 'query_ManualSoqlOpened',
-  query_MetadataQueryToggled: 'query_MetadataQueryToggled',
   query_RecordAction: 'query_RecordAction',
   query_UpdateRecordsInline: 'query_UpdateRecordsInline',
   query_ResetPage: 'query_ResetPage',
@@ -269,7 +264,7 @@ export const ANALYTICS_KEYS = {
   /** SOQL FORMAT */
   soql_format_saved: 'soql_format_saved',
   soql_format_reset: 'soql_format_reset',
-  soql_format_opened: 'soql_format_open',
+  soql_format_open: 'soql_format_open',
   /** DOWNLOAD FILES */
   attachment_QueriedEligibleObject: 'attachment_QueriedEligibleObject',
   attachment_ModalOpened: 'attachment_ModalOpened',
@@ -360,7 +355,6 @@ export const ANALYTICS_KEYS = {
   settings_email_change_action: 'settings_email_change_action',
   settings_link_account: 'settings_link_account',
   settings_unlink_account: 'settings_unlink_account',
-  settings_resend_email_verification: 'settings_resend_email_verification',
   settings_delete_account: 'settings_delete_account',
 
   settings_password_action: 'settings_password_action',

@@ -40,7 +40,7 @@ import {
   LoadRecordsResultsModal,
   fromJetstreamEvents,
   getFieldHeaderFromMapping,
-  useAmplitude,
+  useAnalytics,
 } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { DataHistoryEntryHandle, buildBulkJobHistoryCounts } from '@jetstream/ui/data-history';
@@ -138,7 +138,7 @@ export const LoadRecordsBulkApiResults = ({
   const onFinishRef = useRef(onFinish);
   // eslint-disable-next-line react-hooks/refs -- latest-ref pattern: the render-time assignment is the point
   onFinishRef.current = onFinish;
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const { serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);

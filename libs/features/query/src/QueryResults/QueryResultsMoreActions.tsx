@@ -4,7 +4,7 @@ import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { REGEX, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { AsyncJobNew, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { DropDown, Input, getSfdcRetUrl, salesforceLoginAndRedirect, useConfirmation } from '@jetstream/ui';
-import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
+import { fromJetstreamEvents, useAnalytics } from '@jetstream/ui-core';
 import { Query } from '@jetstreamapp/soql-parser-js';
 import { Fragment, FunctionComponent, useState } from 'react';
 import BulkUpdateFromQueryModal from './BulkUpdateFromQuery/BulkUpdateFromQueryModal';
@@ -72,7 +72,7 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
   refreshRecords,
   onCreateNewRecord,
 }) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const { confirm, setOptions } = useConfirmation();
   const [openModal, setOpenModal] = useState<false | 'bulk-update' | 'apex'>(false);
 

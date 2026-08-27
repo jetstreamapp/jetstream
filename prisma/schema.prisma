@@ -723,6 +723,21 @@ model AnalyticsSummary {
   updatedAt DateTime @updatedAt
 }
 
+/// Daily event counts accumulated from Better Stack RUM analytics events.
+/// Durable store for the rolling week/month/year sums in AnalyticsSummary, since
+/// Better Stack event retention is shorter than a year.
+model AnalyticsEventRollup {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  date      DateTime @db.Date
+  type      String
+  count     Int      @default(0)
+  createdAt DateTime @default(now()) @db.Timestamp(6)
+  updatedAt DateTime @updatedAt
+
+  @@unique([date, type])
+  @@map("analytics_event_rollup")
+}
+
 model UserSyncData {
   id        String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   userId    String    @db.Uuid

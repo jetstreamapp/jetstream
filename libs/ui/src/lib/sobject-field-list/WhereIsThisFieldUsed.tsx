@@ -93,7 +93,7 @@ export const QueryWhereIsThisUsed = ({ org, sobject, field }: QueryWhereIsThisUs
             fileNameParts={['dependencies', `${sobject}.${field}`]}
             onModalClose={() => setExportModalOpen(false)}
             source="where_is_this_used"
-            // This one is too much trouble to pass down amplitude dependency
+            // This one is too much trouble to pass down the analytics dependency
             // eslint-disable-next-line @typescript-eslint/no-empty-function
             trackEvent={() => {}}
           />

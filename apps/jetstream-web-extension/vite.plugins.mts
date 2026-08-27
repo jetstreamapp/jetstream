@@ -96,7 +96,6 @@ export function extensionScriptsBuildPlugin(mode: string): PluginOption {
 
       const sharedDefine = {
         'globalThis.__IS_BROWSER_EXTENSION__': 'true',
-        'import.meta.env.NX_PUBLIC_AMPLITUDE_KEY': JSON.stringify(process.env.NX_PUBLIC_AMPLITUDE_KEY || ''),
         'import.meta.env.NX_PUBLIC_SERVER_URL': JSON.stringify(getServerUrlForMode(mode)),
         'process.env.NODE_ENV': JSON.stringify(mode === 'development' ? 'development' : 'production'),
       };

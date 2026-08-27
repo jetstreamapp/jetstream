@@ -22,7 +22,7 @@ import {
   TransformationCriteria,
   TransformationOption,
   TransformationOptions,
-  useAmplitude,
+  useAnalytics,
 } from '@jetstream/ui-core';
 import { useAtom, useAtomValue } from 'jotai';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
@@ -307,7 +307,7 @@ function reducer(state: State, action: Action): State {
 
 export function useMassUpdateFieldItems(org: SalesforceOrgUi, selectedSObjects: string[]) {
   const isMounted = useRef(true);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const currentSelectedObjects = useRef(new Set<string>());
 
   const rows = useAtomValue(fromMassUpdateState.rowsState);

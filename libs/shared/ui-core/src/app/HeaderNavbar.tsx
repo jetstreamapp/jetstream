@@ -18,7 +18,7 @@ import {
 import { useAtomValue } from 'jotai';
 import { Fragment, lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { useAmplitude } from '../analytics';
+import { clearAnalyticsUser, useAnalytics } from '../analytics';
 import Jobs from '../jobs/Jobs';
 import OrgsDropdown from '../orgs/OrgsDropdown';
 import { SelectedOrgReadOnly } from '../orgs/SelectedOrgReadOnly';
@@ -70,6 +70,7 @@ export interface HeaderNavbarProps {
 }
 
 function logout(serverUrl: string) {
+  clearAnalyticsUser();
   const logoutUrl = `${serverUrl}/api/auth/logout`;
   // eslint-disable-next-line no-restricted-globals
   location.href = logoutUrl;
@@ -166,7 +167,7 @@ export const HeaderNavbar = ({
   onColorSchemeChange,
 }: HeaderNavbarProps) => {
   const navigate = useNavigate();
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const ability = useAtomValue(abilityState);
   const userProfile = useAtomValue(userProfileState);
   const isReadOnlyUser = useAtomValue(isReadOnlyUserState);

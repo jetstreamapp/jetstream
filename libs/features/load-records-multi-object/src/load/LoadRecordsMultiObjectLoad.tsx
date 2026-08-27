@@ -4,7 +4,7 @@ import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 import { Badge, ConfirmationModalPromise, DropDown, Grid, Icon, ScopedNotification } from '@jetstream/ui';
-import { ConfirmPageChange, useAmplitude } from '@jetstream/ui-core';
+import { ConfirmPageChange, useAnalytics } from '@jetstream/ui-core';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent, useMemo } from 'react';
 import { LoadMultiObjectRun } from '../load-records-multi-object-types';
@@ -31,7 +31,7 @@ export const LoadRecordsMultiObjectLoad: FunctionComponent<LoadRecordsMultiObjec
   serverUrl,
   apiVersion,
 }) => {
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const { downloadRequests, downloadResults, handleCloseDownloadModal, downloadModalData } = useDownloadResults();
 
   const requests = useAtomValue(requestsState);

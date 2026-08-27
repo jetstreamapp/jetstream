@@ -14,6 +14,5 @@ export const environment = {
   // can guarantee no customer data is included. A null dsn makes `initErrorTracker` a no-op.
   // sentryDsn: import.meta.env.NX_PUBLIC_SENTRY_DSN_CANVAS,
   sentryDsn: null,
-  amplitudeToken: null,
   isWebExtension: false,
 };

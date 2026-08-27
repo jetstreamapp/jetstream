@@ -7,7 +7,7 @@ import { fromAppState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
-import { useAmplitude } from '..';
+import { useAnalytics } from '..';
 
 type OrgType = 'prod' | 'sandbox' | 'pre-release' | 'custom';
 
@@ -53,7 +53,7 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
   onAddOrgHandlerFn = addOrg,
 }) => {
   const popoverRef = useRef<PopoverRef>(null);
-  const { trackEvent } = useAmplitude();
+  const { trackEvent } = useAnalytics();
   const [orgType, setOrgType] = useState<OrgType>(() => (existingOrg ? 'custom' : 'prod'));
   const [customUrl, setCustomUrl] = useState<string>(() => {
     if (!existingOrg) {

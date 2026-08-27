@@ -1,98 +1,96 @@
-/// <reference types="vite/client" />
-import * as amplitude from '@amplitude/analytics-browser';
 import { logger } from '@jetstream/shared/client-logger';
-import { ApplicationState } from '@jetstream/types';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import isBoolean from 'lodash/isBoolean';
 import { useEffect } from 'react';
 
-const amplitudeToken = import.meta.env.NX_PUBLIC_AMPLITUDE_KEY;
+export type BetterStackCommand =
+  | ['init', { environment: string; release: string; autoPageview?: boolean; debug?: boolean }]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  | ['track', string, Record<string, any>?]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  | ['user', Record<string, any> | null];
 
-let hasInit = false;
-let hasProfileInit = false;
-
-function init(appState: ApplicationState, version: string) {
-  hasInit = true;
-  if (!amplitudeToken) {
-    return;
-  }
-  amplitude.init(amplitudeToken, {
-    serverUrl: `${appState.serverUrl}/analytics`,
-    appVersion: version || 'unknown',
-    defaultTracking: {
-      attribution: true,
-      pageViews: true,
-      sessions: true,
-      formInteractions: false,
-      fileDownloads: false,
-    },
-    autocapture: {
-      attribution: true,
-      pageViews: true,
-      sessions: true,
-      formInteractions: false,
-      fileDownloads: false,
-    },
-  });
+/** The command-queue stub defined before the remote script loads; b.js drains `q` on load. */
+export interface BetterStackTag {
+  (...args: BetterStackCommand): void;
+  q?: BetterStackCommand[];
+  l?: number;
 }
 
-export function useAmplitude(optOut?: boolean) {
-  const { appInfo, version } = useAtomValue(fromAppState.appInfoState);
+declare global {
+  interface Window {
+    betterstack?: BetterStackTag;
+  }
+}
+
+let hasIdentified = false;
+// Fail-closed: only AppInitializer flips this (via the optOut param) once the user
+// accepts the cookie consent banner. Feature components call useAnalytics() with no
+// argument and never change consent state.
+let consentGranted = false;
+
+/**
+ * This module intentionally contains NO remote-script loading. Browser-extension stores reject
+ * bundles that load remote code, and this file is bundled into every host app via shared feature
+ * components. The Better Stack tag injection lives in the web app only (useAnalyticsTagLoader in
+ * apps/jetstream); everywhere else `window.betterstack` never exists and every call here no-ops.
+ */
+export function useAnalytics(optOut?: boolean) {
+  const { appInfo } = useAtomValue(fromAppState.appInfoState);
   const userProfile = useAtomValue(fromAppState.userProfileState);
   const userPreferences = useAtomValue(fromAppState.selectUserPreferenceState);
 
   useEffect(() => {
     if (isBoolean(optOut)) {
-      if (optOut) {
-        amplitude.setOptOut(true);
-      } else {
-        amplitude.setOptOut(false);
+      const wasGranted = consentGranted;
+      consentGranted = !optOut;
+      if (wasGranted && optOut) {
+        // Consent revoked mid-session: stop custom events immediately and drop the user
+        // association. The already-loaded tag's automatic page views stop on the next
+        // full page load, when the script is simply never loaded again.
+        clearAnalyticsUser();
+        hasIdentified = false;
       }
     }
   }, [optOut]);
 
   useEffect(() => {
-    if (!hasInit && appInfo && !optOut) {
-      init(appInfo, version);
-    }
-  }, [appInfo, optOut, version]);
-
-  useEffect(() => {
-    if (!amplitudeToken) {
+    if (!consentGranted || !window.betterstack) {
       return;
     }
-    if (!hasProfileInit && userProfile && appInfo) {
-      hasProfileInit = true;
-      const identify = new amplitude.Identify()
-        .set('id', userProfile.id)
-        .set('email-verified', userProfile.emailVerified)
-        .set('environment', appInfo.environment)
-        .add('app-init-count', 1)
-        .set('application-type', 'web');
-
-      if (userPreferences.deniedNotifications) {
-        identify.set('denied-notifications', userPreferences.deniedNotifications);
-      }
-
-      amplitude.identify(identify);
-      amplitude.setUserId(userProfile.id);
+    if (!hasIdentified && userProfile && appInfo) {
+      hasIdentified = true;
+      // Intentionally no email/username - the user id is the only identifier sent.
+      window.betterstack('user', {
+        id: userProfile.id,
+        email_verified: userProfile.emailVerified,
+        application_type: 'web',
+        ...(userPreferences.deniedNotifications ? { denied_notifications: userPreferences.deniedNotifications } : {}),
+      });
     }
-  }, [userProfile, appInfo, userPreferences]);
+  }, [userProfile, appInfo, userPreferences, optOut]);
 
   return {
     trackEvent: track,
-    project: amplitude,
   };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function track(key: string, value?: Record<string, any>) {
   try {
-    if (!amplitudeToken) {
+    if (!consentGranted || !window.betterstack) {
       return;
     }
-    amplitude.track(key, value);
+    window.betterstack('track', key, value);
+  } catch (ex) {
+    logger.warn('[TRACKING ERROR]', ex);
+  }
+}
+
+export function clearAnalyticsUser() {
+  try {
+    window.betterstack?.('user', null);
   } catch (ex) {
     logger.warn('[TRACKING ERROR]', ex);
   }
