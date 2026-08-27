@@ -87,6 +87,13 @@ pnpm sf:api query "SELECT Id, Name FROM ApexClass" --tooling
 
 This targets a personal dev org, so it is safe to create and modify records there.
 
+### Writing documentation (apps/docs)
+
+Docusaurus 3 admonitions must never have a space-separated title. `:::tip Some Title` silently renders
+the entire block as literal text (the build does not fail). Write plain `:::tip`, or use the bracket
+form `:::tip[Some Title]` when a title is needed. `pnpm --dir apps/docs lint` checks for this, and the
+docs build runs the same check.
+
 <!-- nx configuration start-->
 <!-- Leave the start & end comments to automatically receive updates. -->
 

@@ -16,7 +16,8 @@
   "scripts": {
     "docusaurus": "docusaurus",
     "start": "docusaurus start",
-    "build": "docusaurus build && node scripts/generate-csp.mjs",
+    "build": "node scripts/lint-admonitions.mjs && docusaurus build && node scripts/generate-csp.mjs",
+    "lint": "node scripts/lint-admonitions.mjs",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",
     "clear": "docusaurus clear",
