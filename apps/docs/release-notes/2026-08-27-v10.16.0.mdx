@@ -1,0 +1,41 @@
+---
+slug: v10.16.0
+title: 10.16.0 - Org dropdown improvements and large load retry fix
+date: '2026-08-27'
+tags: [web]
+versions:
+  web: 10.16.0
+summary: The org dropdown shows full usernames and labels each org with its type. Also fixes a crash when retrying failed records on very large data loads.
+highlights:
+  - title: Full usernames and org types in the org dropdown
+    description: The org dropdown shows full usernames without truncation and labels each org with its type, so sandboxes stand out.
+  - title: Paste any Salesforce URL to add a custom domain
+    description: The custom domain field on the add-org form accepts a full pasted Salesforce URL, including sandbox URLs, and extracts the domain for you.
+  - title: Fix for load retries with 100,000+ records
+    description: Retrying failed records on very large data loads no longer crashes the page.
+    docLink: /load
+---
+
+{/* truncate */}
+
+## What's new
+
+### Org dropdown improvements
+
+The org dropdown is easier to read and search:
+
+- Full usernames are shown without truncation, and the dropdown panel is wider to fit them.
+- Each org is labeled with its org type, so sandboxes are distinguishable at a glance.
+- Searching now matches the username and org ID.
+- The org color indicator still shows when an org has a connection error.
+- Org Group cards now include a sandbox indicator.
+
+### Paste any Salesforce URL to add a custom domain
+
+When connecting an org with a custom domain, you can now paste the full URL from your browser into a single input and Jetstream extracts the domain, including sandbox domains.
+
+### Other fixes
+
+- Retrying failed records no longer crashes the page on data loads with more than 100,000 records.
+- The multi-object load file preview no longer crashes when a spreadsheet contains date cells.
+- Fixed an intermittent error that could prevent data history from being saved when Jetstream is open in multiple browser tabs.
