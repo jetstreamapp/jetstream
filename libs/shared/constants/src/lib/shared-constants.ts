@@ -23,6 +23,17 @@ export const SFDC_BULK_API_NULL_VALUE = '#N/A';
 export const SFDC_BLANK_PICKLIST_VALUE = '--None--';
 export const HTTP_SOURCE_DESKTOP = 'JETSTREAM_DESKTOP';
 
+/**
+ * Login endpoints and the My Domain host shape the API accepts to start the Salesforce OAuth flow.
+ * Shared so the client-side url builder and the server allowlist cannot drift apart - a client that
+ * produces a url outside this set gets a 400 from the oauth route.
+ */
+export const SFDC_LOGIN_URL_PROD = 'https://login.salesforce.com';
+export const SFDC_LOGIN_URL_SANDBOX = 'https://test.salesforce.com';
+export const SFDC_LOGIN_URL_WELCOME = 'https://welcome.salesforce.com';
+export const SFDC_LOGIN_URL_PRE_RELEASE = 'https://prerellogin.pre.salesforce.com';
+export const SFDC_MY_DOMAIN_LOGIN_URL_REGEX = /^https:\/\/[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*\.my\.salesforce\.com$/;
+
 export const INPUT_ACCEPT_FILETYPES: {
   ZIP: InputAcceptTypeZip;
   CSV: InputAcceptTypeCsv;

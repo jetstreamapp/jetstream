@@ -3,7 +3,14 @@ import { AuditLogAction, AuditLogResource, createTeamAuditLog } from '@jetstream
 import { getApiAddressFromReq } from '@jetstream/auth/server';
 import { ApiConnection, ApiRequestError, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import * as oauthService from '@jetstream/salesforce-oauth';
-import { ERROR_MESSAGES } from '@jetstream/shared/constants';
+import {
+  ERROR_MESSAGES,
+  SFDC_LOGIN_URL_PRE_RELEASE,
+  SFDC_LOGIN_URL_PROD,
+  SFDC_LOGIN_URL_SANDBOX,
+  SFDC_LOGIN_URL_WELCOME,
+  SFDC_MY_DOMAIN_LOGIN_URL_REGEX,
+} from '@jetstream/shared/constants';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { Maybe, SalesforceOrgUi, SObjectOrganization } from '@jetstream/types';
 import { ResponseBodyError } from 'oauth4webapi';
@@ -27,11 +34,11 @@ export const routeDefinition = {
     validators: {
       query: z.object({
         loginUrl: z.union([
-          z.literal('https://login.salesforce.com'),
-          z.literal('https://test.salesforce.com'),
-          z.literal('https://welcome.salesforce.com'),
-          z.literal('https://prerellogin.pre.salesforce.com'),
-          z.string().regex(/^https:\/\/[a-zA-Z0-9.-]+\.my\.salesforce\.com$/),
+          z.literal(SFDC_LOGIN_URL_PROD),
+          z.literal(SFDC_LOGIN_URL_SANDBOX),
+          z.literal(SFDC_LOGIN_URL_WELCOME),
+          z.literal(SFDC_LOGIN_URL_PRE_RELEASE),
+          z.string().regex(SFDC_MY_DOMAIN_LOGIN_URL_REGEX),
         ]),
         addLoginParam: z
           .enum(['true', 'false'])

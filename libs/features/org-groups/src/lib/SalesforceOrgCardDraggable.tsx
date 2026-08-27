@@ -1,7 +1,8 @@
 import { useDraggable } from '@dnd-kit/react';
 import { css } from '@emotion/react';
+import { getOrgType } from '@jetstream/shared/ui-utils';
 import { AddOrgHandlerFn, SalesforceOrgUi } from '@jetstream/types';
-import { Grid, Icon } from '@jetstream/ui';
+import { Badge, Grid, Icon } from '@jetstream/ui';
 import { OrgInfoPopover, useUpdateOrgs } from '@jetstream/ui-core';
 import { DraggableSfdcCard } from './organization-group.types';
 import { SalesforceOrgCardConnectionRefresh } from './SalesforceOrgCardConnectionRefresh';
@@ -18,6 +19,7 @@ interface SalesforceOrgCardDraggableProps {
 
 export function SalesforceOrgCardDraggable({ org, isActive, onAddOrgHandlerFn }: SalesforceOrgCardDraggableProps) {
   const { actionInProgress, orgLoading, handleAddOrg, handleRemoveOrg, handleUpdateOrg } = useUpdateOrgs();
+  const orgType = getOrgType(org);
 
   const { ref, isDragging } = useDraggable<DraggableSfdcCard>({
     id: org.uniqueId,
@@ -72,7 +74,12 @@ export function SalesforceOrgCardDraggable({ org, isActive, onAddOrgHandlerFn }:
         >
           <Grid align="spread" className="slds-m-right_medium">
             <h2 className="slds-truncate slds-text-heading_small">{org.label}</h2>
-            <Grid>
+            <Grid verticalAlign="center">
+              {orgType && (
+                <Badge type={orgType === 'Production' ? 'warning' : 'light'} title={orgType} className="slds-m-right_x-small">
+                  {orgType}
+                </Badge>
+              )}
               {org.color && (
                 <div
                   className="slds-swatch slds-m-right_x-small"
