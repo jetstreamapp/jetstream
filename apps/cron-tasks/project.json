@@ -18,7 +18,6 @@
         "main": "apps/cron-tasks/src/main.ts",
         "additionalEntryPoints": [
           "apps/cron-tasks/src/clean-up-user-sync-history.ts",
-          "apps/cron-tasks/src/save-analytics-summary.ts",
           "apps/cron-tasks/src/geo-ip-api-updater.ts",
           "apps/cron-tasks/src/geo-ip-db-updater.ts",
           "apps/cron-tasks/src/salesforce-org-expiration.ts",

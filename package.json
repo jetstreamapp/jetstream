@@ -39,7 +39,6 @@
     "start:prod": "cross-env NODE_ENV=production node --enable-source-maps dist/apps/api/main.js",
     "start:staging": "cross-env NODE_ENV=production node --enable-source-maps dist/apps/api/main.js",
     "start:e2e": "node dist/apps/api/main.js",
-    "start:cron:save-analytics-summary": "node dist/apps/cron-tasks/save-analytics-summary.js",
     "start:cron:geo-ip-api-updater": "node dist/apps/cron-tasks/geo-ip-api-updater.js",
     "start:cron:salesforce-org-expiration": "node dist/apps/cron-tasks/salesforce-org-expiration.js",
     "start:cron:salesforce-org-expiration:test-mode": "TEST_MODE=true node dist/apps/cron-tasks/salesforce-org-expiration.js",

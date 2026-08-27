@@ -417,14 +417,6 @@ export interface PlatformEventMessageData {
   replayId: number;
 }
 
-export interface AnalyticStat {
-  id: string;
-  name: string;
-  value: string;
-  valueRaw: number;
-  lastUpdated: string;
-}
-
 export type NullNumberBehavior = 'ZERO' | 'BLANK';
 
 export interface FormulaFieldsByType {
