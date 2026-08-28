@@ -45,7 +45,7 @@
   "targetDefaults": {
     "build": {
       "dependsOn": ["^build"],
-      "inputs": ["production", "^production"],
+      "inputs": ["production", "^production", { "env": "NX_PUBLIC_SERVER_URL" }, { "env": "NX_PUBLIC_CLIENT_URL" }],
       "cache": true
     },
     "e2e": {

@@ -60,6 +60,22 @@ Prefer using Salesforce lightning design system CSS classes when applicable, but
 - E2E tests with Playwright in `apps/*-e2e/` directories
 - Always ensure that there are no type errors
 
+### Running web E2E tests locally
+
+Use `pnpm e2e:local` — it builds api/jetstream/landing (nx cache applies), starts the built server on an isolated port (3322 by default, so it never conflicts with `start:api` on 3333 or the Vite dev server on 4200), runs Playwright headless, and shuts the server down. No `.env` changes are needed. Requires a running local postgres; by default the run shares the dev database, or pass `--db <postgres-uri>` (or set `E2E_POSTGRES_DBURI` in `.env`) to use a dedicated database — it is created, migrated and seeded automatically.
+
+```bash
+pnpm e2e:local                        # full suite
+pnpm e2e:local query-results.spec.ts  # one spec (auth setup still runs first)
+pnpm e2e:local query                  # folder filter — everything under src/tests/query
+pnpm e2e:local --grep "load records"  # unknown args pass through to `playwright test`
+pnpm e2e:local --skip-build           # reuse the existing dist build
+```
+
+Spec filters are regexes matched against test file paths (see `apps/jetstream-e2e/src/tests/` for the actual filenames — e.g. there is no `query.spec.ts`, the specs are `query-builder`, `query-editor` and `query-results`).
+
+Server logs go to `dist/e2e-server.log`; traces, screenshots and `error-context.md` files for failures land in `dist/.playwright/apps/jetstream-e2e/test-output`. Known pre-existing flake: the query-builder nested-subquery tests ("Filter child objects" timeout) fail intermittently on main — not caused by your changes.
+
 ## Common Development Tasks
 
 ### Working with Database

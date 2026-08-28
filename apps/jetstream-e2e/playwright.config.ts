@@ -12,6 +12,11 @@ const THIRTY_SECONDS = 30 * ONE_SECOND;
 // const baseURL = process.env.CI ? 'http://localhost:3333/' : 'http://localhost:4200/';
 const baseURL = process.env.NX_PUBLIC_SERVER_URL || process.env.JETSTREAM_SERVER_URL || 'http://localhost:3333';
 
+// Guard PLAYWRIGHT_HTML_OPEN to the values the html reporter understands — anything else
+// (e.g. a typo) falls back to the default rather than being passed through.
+const HTML_OPEN_VALUES = ['never', 'always', 'on-failure'] as const;
+const htmlOpen = HTML_OPEN_VALUES.find((value) => value === process.env.PLAYWRIGHT_HTML_OPEN) ?? 'on-failure';
+
 console.log('Using baseURL:', baseURL);
 
 // Ensure tests run via VSCode debugger are run from the root of the repo
@@ -39,9 +44,19 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   // Shards emit blob reports that a follow-up job merges into a single HTML report. Note that
   // Playwright resolves these paths relative to this config file, not the repo root.
+  // PLAYWRIGHT_HTML_OPEN=never prevents the report server from blocking non-interactive local
+  // runs (scripts/run-e2e.mjs sets it automatically when stdout is not a TTY).
   reporter: process.env.CI
     ? [['blob', { outputDir: 'blob-report' }]]
-    : [['html', { outputFolder: 'playwright-report', open: 'on-failure' }]],
+    : [
+        [
+          'html',
+          {
+            outputFolder: 'playwright-report',
+            open: htmlOpen,
+          },
+        ],
+      ],
   use: {
     actionTimeout: THIRTY_SECONDS,
     navigationTimeout: THIRTY_SECONDS,

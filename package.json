@@ -124,6 +124,7 @@
     "typecheck:all": "nx run-many -t typecheck --output-style=stream",
     "typecheck:affected": "nx affected -t typecheck --output-style=stream",
     "e2e": "nx e2e",
+    "e2e:local": "node scripts/run-e2e.mjs",
     "playwright:open": "pnpm playwright open http://localhost:3333",
     "playwright:test:with-server": "pnpm start-server-and-test --expect 200 \"pnpm start:e2e\" http://localhost:3333 \"pnpm playwright:test\"",
     "playwright:test": "pnpm playwright test src --config apps/jetstream-e2e/playwright.config.ts",
