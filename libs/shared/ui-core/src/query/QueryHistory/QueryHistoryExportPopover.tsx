@@ -6,7 +6,7 @@ import { QueryHistoryItem, SalesforceOrgUi } from '@jetstream/types';
 import { Icon, Popover, PopoverRef, Radio, RadioGroup } from '@jetstream/ui';
 import { getDexieDb, withReopenOnDatabaseClosed } from '@jetstream/ui/db';
 import isDate from 'lodash/isDate';
-import { FunctionComponent, useRef, useState } from 'react';
+import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useAmplitude } from '../..';
 
 type ExportScope = 'ALL' | 'CURRENT';
@@ -21,18 +21,20 @@ export const QueryHistoryExportPopover: FunctionComponent<QueryHistoryExportPopo
   const popoverRef = useRef<PopoverRef>(null);
   const { trackEvent } = useAmplitude();
   const [exportScope, setExportScope] = useState<ExportScope>('ALL');
-  const [exportType, setExportType] = useState<ExportType>('ALL');
+  const [exportType, setExportType] = useState<ExportType>(() => (whichType === 'SAVED' ? 'FAVORITES' : 'ALL'));
   const [isExporting, setIsExporting] = useState(false);
+
+  // Default the query selection to match the active tab, the user can still choose either option before exporting
+  useEffect(() => {
+    setExportType(whichType === 'SAVED' ? 'FAVORITES' : 'ALL');
+  }, [whichType]);
 
   async function handleExport() {
     setIsExporting(true);
     try {
-      // Build filter function based on export type and which type
+      // Build filter function based on the selected options
       const filterFn = (item: QueryHistoryItem) => {
         if (exportScope === 'CURRENT' && item.org !== selectedOrg.uniqueId) {
-          return false;
-        }
-        if (whichType === 'SAVED' && !item.isFavorite) {
           return false;
         }
         if (exportType === 'FAVORITES' && !item.isFavorite) {
