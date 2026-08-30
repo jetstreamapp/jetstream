@@ -5,7 +5,9 @@ import {
   DownloadFileStream,
   ErrorBoundaryEmptyFallback,
   ErrorBoundaryFallback,
+  FocusMainContentOnRouteChange,
   HeaderNavbar,
+  MAIN_CONTENT_ID,
   ThemeApplier,
   ViewEditCloneRecordWrapper,
 } from '@jetstream/ui-core';
@@ -38,17 +40,16 @@ export const App = () => {
             <NotificationsRequestModal loadDelay={10000} />
             <DownloadFileStream />
             <ViewEditCloneRecordWrapper />
-            <ErrorBoundary FallbackComponent={ErrorBoundaryEmptyFallback}>
-              <UserFeedbackWidget />
-            </ErrorBoundary>
+            <FocusMainContentOnRouteChange />
             <div>
               <SkipToContent />
               <div data-testid="header">
                 <HeaderNavbar isBillingEnabled={environment.BILLING_ENABLED} />
               </div>
-              <div
-                id="main-content"
+              <main
+                id={MAIN_CONTENT_ID}
                 tabIndex={-1}
+                style={{ outline: 'none' }}
                 className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small"
                 data-testid="content"
               >
@@ -58,8 +59,12 @@ export const App = () => {
                     <AppRoutes />
                   </ErrorBoundary>
                 </Suspense>
-              </div>
+              </main>
             </div>
+            {/* Rendered after the content so the floating button is the LAST tab stop on the page, not the first. */}
+            <ErrorBoundary FallbackComponent={ErrorBoundaryEmptyFallback}>
+              <UserFeedbackWidget />
+            </ErrorBoundary>
           </AppInitializer>
         </Suspense>
       </ConfirmationServiceProvider>
