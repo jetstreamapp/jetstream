@@ -195,7 +195,7 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
                       }
                     `}
                     id={`${inputId}-selected-value`}
-                    aria-controls={id}
+                    aria-controls={isOpen ? id : undefined}
                     aria-expanded={isOpen}
                     aria-haspopup="listbox"
                     aria-labelledby={`${inputId}-label`}
@@ -216,7 +216,7 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
                       'slds-has-focus': isOpen,
                     })}
                     id={`${inputId}-selected-value`}
-                    aria-controls={id}
+                    aria-controls={isOpen ? id : undefined}
                     aria-expanded={isOpen}
                     aria-haspopup="listbox"
                     aria-labelledby={`${inputId}-label`}

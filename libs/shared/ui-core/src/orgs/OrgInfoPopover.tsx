@@ -443,6 +443,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
       }
       buttonProps={{
         className: iconButtonClassName || 'slds-button slds-button_icon',
+        'aria-label': 'Salesforce org details',
         'data-testid': 'org-info-popover-button',
       }}
     >
