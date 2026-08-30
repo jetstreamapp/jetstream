@@ -6,7 +6,7 @@ import { Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 import { Badge, ConfirmationModalPromise, DropDown, Grid, Icon, ScopedNotification } from '@jetstream/ui';
 import { ConfirmPageChange, useAmplitude } from '@jetstream/ui-core';
 import { useAtomValue } from 'jotai';
-import { FunctionComponent, useMemo } from 'react';
+import { FunctionComponent, useEffect, useMemo, useRef } from 'react';
 import { LoadMultiObjectRun } from '../load-records-multi-object-types';
 import { buildRetryRequests } from '../load-records-multi-object-utils';
 import { groupsByRefIdState, loadProgressState, requestsState, totalRecordsToLoadState } from '../load-records-multi-object.state';
@@ -104,6 +104,27 @@ export const LoadRecordsMultiObjectLoad: FunctionComponent<LoadRecordsMultiObjec
 
   const progressPercent = progress && progress.recordsTotal ? Math.round((progress.recordsProcessed / progress.recordsTotal) * 100) : 0;
 
+  // The Load and Cancel buttons replace each other, unmounting whichever is focused. Hand focus
+  // along the chain (Load -> Cancel on start, Cancel -> Load on finish), but only when focus was
+  // actually dropped to <body> so we never steal it from a user who moved elsewhere.
+  const loadButtonRef = useRef<HTMLButtonElement>(null);
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
+  const wasLoadingRef = useRef(loading);
+  useEffect(() => {
+    const wasLoading = wasLoadingRef.current;
+    wasLoadingRef.current = loading;
+    if (wasLoading === loading) {
+      return;
+    }
+    window.setTimeout(() => {
+      const active = document.activeElement;
+      if (active && active !== document.body) {
+        return;
+      }
+      (loading ? cancelButtonRef.current : loadButtonRef.current)?.focus();
+    });
+  }, [loading]);
+
   return (
     <div>
       <ConfirmPageChange actionInProgress={loading} />
@@ -131,7 +152,7 @@ export const LoadRecordsMultiObjectLoad: FunctionComponent<LoadRecordsMultiObjec
           </ScopedNotification>
         )}
         {!loading && totalRecordCount > 0 && (
-          <button className="slds-button slds-button_brand" onClick={handleLoadStarted}>
+          <button ref={loadButtonRef} className="slds-button slds-button_brand" onClick={handleLoadStarted}>
             Load <strong className="slds-m-horizontal_xx-small">{formatNumber(totalRecordCount)}</strong>
             {pluralizeFromNumber('Record', totalRecordCount)} ({formatNumber(totalGroupCount)}{' '}
             {pluralizeFromNumber('Group', totalGroupCount)}
@@ -140,7 +161,7 @@ export const LoadRecordsMultiObjectLoad: FunctionComponent<LoadRecordsMultiObjec
           </button>
         )}
         {loading && (
-          <button className="slds-button slds-button_text-destructive" onClick={handleCancel}>
+          <button ref={cancelButtonRef} className="slds-button slds-button_text-destructive" onClick={handleCancel}>
             Cancel Remaining Requests
           </button>
         )}
