@@ -8,6 +8,10 @@ input[type='radio'] {
 
 html {
   background: var(--slds-g-color-surface-2, #f3f3f3);
+  /* The header is fixed, so anything the browser scrolls into view (focusing the main landmark on a
+     route change, a #hash deep link, keyboard paging) must stop below it — without this the main
+     content's top landed under the header on every navigation to a page taller than the viewport */
+  scroll-padding-top: var(--app-top-offset);
 }
 
 /* SLDS button-group :first-child / :last-child selectors break when a button
