@@ -97,6 +97,11 @@ export interface ComboboxProps {
    */
   showSelectionAsButton?: boolean;
   /**
+   * Render a clear (X) button in place of the chevron while an item is selected, WITHOUT the
+   * selection-as-button behavior above (the input stays clickable/typeable). Requires `onClear()`.
+   */
+  showClearButton?: boolean;
+  /**
    * If using virtual list, this ensures child detection for keyboard navigation is correct.
    */
   isVirtual?: boolean;
@@ -166,6 +171,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
       errorMessageId,
       errorMessage,
       showSelectionAsButton,
+      showClearButton,
       isVirtual,
       usePortal,
       dropdownWidth,
@@ -368,7 +374,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
     };
 
     const iconNotLoading =
-      showSelectionAsButton && onClear && selectedItemLabel ? (
+      (showSelectionAsButton || showClearButton) && onClear && selectedItemLabel ? (
         <div className="slds-input__icon-group slds-input__icon-group_right">
           <button
             className="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
