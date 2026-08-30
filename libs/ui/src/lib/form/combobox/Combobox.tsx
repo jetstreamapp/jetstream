@@ -3,6 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import {
   focusElementFromRefWhenAvailable,
   isAlphaNumericKey,
+  isTabKey,
   isArrowDownKey,
   isArrowRightKey,
   isArrowUpKey,
@@ -26,6 +27,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { useEscapeToCloseLayer } from '../../hooks/useEscapeToCloseLayer';
 import PopoverContainer from '../../popover/PopoverContainer';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
@@ -260,6 +262,18 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
     }, [selectedItemLabel]);
 
     /**
+     * Enter while the list is open selects (handled on keyup below) — mark the keydown as handled so a
+     * wrapping form does not submit and page-level Cmd/Ctrl+Enter shortcuts (which honour
+     * defaultPrevented) do not also fire on the same press
+     */
+    function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+      if (isOpen && isEnterKey(event)) {
+        event.preventDefault();
+      }
+      inputProps?.onKeyDown?.(event);
+    }
+
+    /**
      * When on input, move focus down the first list item
      */
     function handleInputKeyUp(event: KeyboardEvent<HTMLInputElement>) {
@@ -267,9 +281,9 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
         return;
       }
       if (isEscapeKey(event)) {
-        // Escape is handled on keydown (see handleInputKeyDown) so it can preempt an ancestor's
-        // keydown listener (e.g. a Panel with closeOnEscape). Ignore it here so it does not fall
-        // through to the onInputChange/onFilterInputChange branch below.
+        // While open, Escape is fully consumed by useEscapeToCloseLayer (keydown AND keyup); this
+        // guard covers the CLOSED state, where the keyup must not fall through to the
+        // onInputChange/onFilterInputChange branch below.
         return;
       }
       if (isArrowUpKey(event)) {
@@ -291,22 +305,13 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
       }
     }
 
-    /**
-     * Handle Escape on keydown so an open dropdown closes before any ancestor keydown listener
-     * (e.g. a Panel with closeOnEscape) reacts. When the dropdown is already closed, Escape is left
-     * to bubble so the ancestor can handle it.
-     */
-    function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-      if (disabled || preventOpen) {
-        return;
-      }
-      if (isEscapeKey(event) && isOpen) {
-        event.stopPropagation();
-        event.preventDefault();
-        setIsOpen(false);
-        onClose && onClose();
-      }
-    }
+    // Escape closes ONLY this menu (and returns focus to the input) — consumed at document capture
+    // so an ancestor modal/popover cannot also close on the same press
+    useEscapeToCloseLayer(isOpen, () => {
+      setIsOpen(false);
+      onClose && onClose();
+      inputEl.current?.focus();
+    });
 
     /**
      * Handle keyboard interaction when list items have focus
@@ -314,18 +319,28 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
      */
     function handleListKeyDown(event: KeyboardEvent<HTMLDivElement>) {
       try {
-        if (isOpen && isEscapeKey(event)) {
-          event.preventDefault();
-          event.stopPropagation();
-          setIsOpen(false);
-          onClose && onClose();
-          inputEl.current?.focus();
-          return;
-        }
+        // Escape is deliberately absent: the list only has focus while open, and
+        // useEscapeToCloseLayer consumes Escape at document capture for that state
         if (isEnterOrSpace(event)) {
           event.preventDefault();
           event.stopPropagation();
           onKeyboardNavigation('enter');
+          return;
+        }
+        // Tab leaves the combobox: hand focus back to the input WITHOUT preventDefault so the browser's
+        // sequential navigation continues from the input (with usePortal the option list lives at the
+        // end of the portal root, so the default Tab would jump to the end of the page) and close
+        if (isTabKey(event)) {
+          inputEl.current?.focus();
+          setIsOpen(false);
+          onClose && onClose();
+          return;
+        }
+        // Typing while an option has focus returns focus to the input so the keystroke lands there and
+        // filters the list (focus moves during keydown, so the browser inserts the character into the
+        // input) — the APG "focus moves to the option" pattern still expects typing to filter
+        if (!event.metaKey && !event.ctrlKey && !event.altKey && (isAlphaNumericKey(event) || event.key === 'Backspace')) {
+          inputEl.current?.focus();
           return;
         }
         if (isArrowUpKey(event)) {
@@ -454,13 +469,14 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                       placeholder={placeholder}
                       disabled={disabled}
                       readOnly={preventOpen}
-                      onKeyDown={handleInputKeyDown}
                       onKeyUp={handleInputKeyUp}
                       onChange={(event) => setValue(event.target.value)}
                       value={value}
                       title={selectedItemTitle || value}
                       onBlur={handleBlur}
                       {...inputProps}
+                      // After the spread so a caller's inputProps.onKeyDown is chained, not replaced
+                      onKeyDown={handleInputKeyDown}
                     />
                     {loading ? iconLoading : iconNotLoading}
                   </div>
