@@ -10,6 +10,7 @@ import {
 import { QueryHistoryItem, SoqlQueryFormatOptions } from '@jetstream/types';
 import {
   CheckboxToggle,
+  getAriaKeyshortcuts,
   getModifierKey,
   Grid,
   GridCol,
@@ -368,7 +369,9 @@ export const QuickQueryPopover = () => {
         buttonProps={{
           className:
             'slds-button slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__help slds-global-actions__item-action cursor-pointer',
-          title: 'Query Search - ctrl/command + e',
+          // The shortcut is conveyed by aria-keyshortcuts below; repeating it in the name doubled the announcement
+          title: 'Query Search',
+          'aria-keyshortcuts': getAriaKeyshortcuts([getModifierKey(), 'e']),
           disabled: !selectedOrg || !!selectedOrg.connectionError,
           onClick: () => {
             trackEvent(ANALYTICS_KEYS.quick_query_Open, { method: 'keyboard' });

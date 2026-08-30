@@ -16,6 +16,7 @@ import {
   PageHeaderRow,
   PageHeaderTitle,
   Tooltip,
+  getAriaKeyshortcuts,
   getModifierKey,
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, fromAutomationControlState } from '@jetstream/ui-core';
@@ -97,7 +98,12 @@ export const AutomationControlSelection = () => {
                   </div>
                 }
               >
-                <Link className="slds-button slds-button_brand" to="editor" onClick={handleContinue}>
+                <Link
+                  className="slds-button slds-button_brand"
+                  aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+                  to="editor"
+                  onClick={handleContinue}
+                >
                   Continue
                   <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
                 </Link>

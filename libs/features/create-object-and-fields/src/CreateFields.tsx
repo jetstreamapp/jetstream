@@ -14,6 +14,7 @@ import {
   ToolbarItemActions,
   ToolbarItemGroup,
   Tooltip,
+  getAriaKeyshortcuts,
   getModifierKey,
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, useAmplitude } from '@jetstream/ui-core';
@@ -189,6 +190,7 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
           >
             <Link
               className="slds-button slds-button_brand slds-m-right_x-small"
+              aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'shift', 'enter'])}
               to=".."
               title="Going back will keep all of your fields configured as-is, but you can change your selected objects, profiles, and permission sets."
             >
@@ -232,7 +234,12 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
               )
             }
           >
-            <button className="slds-button slds-button_brand" onClick={() => handleSubmit()} disabled={!allValid}>
+            <button
+              className="slds-button slds-button_brand"
+              aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+              onClick={() => handleSubmit()}
+              disabled={!allValid}
+            >
               <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" omitContainer />
               Upsert Fields
             </button>
