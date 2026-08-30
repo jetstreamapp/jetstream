@@ -130,28 +130,28 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
         <div className="slds-text-align_left">
           <RadioGroup label="Salesforce Org Type">
             <Radio
-              name="prod"
+              name="org-type"
               label="Production / Developer"
               value="prod"
               checked={orgType === 'prod'}
               onChange={() => setOrgType('prod')}
             />
             <Radio
-              name="sandbox"
+              name="org-type"
               label="Sandbox (test.salesforce.com)"
               value="sandbox"
               checked={orgType === 'sandbox'}
               onChange={() => setOrgType('sandbox')}
             />
             <Radio
-              name="pre-release"
+              name="org-type"
               label="Pre-release"
               value="pre-release"
               checked={orgType === 'pre-release'}
               onChange={() => setOrgType('pre-release')}
             />
             <Radio
-              name="custom"
+              name="org-type"
               label="Custom Login URL"
               value="custom"
               checked={orgType === 'custom'}

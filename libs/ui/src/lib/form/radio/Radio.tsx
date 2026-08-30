@@ -14,7 +14,7 @@ export interface RadioProps {
 
 export const Radio: FunctionComponent<RadioProps> = ({
   id = uniqueId('radio'),
-  idPrefix = uniqueId('pref'),
+  idPrefix,
   name,
   label,
   value,
@@ -32,7 +32,9 @@ export const Radio: FunctionComponent<RadioProps> = ({
         checked={checked}
         disabled={disabled}
         onChange={() => onChange(value)}
-        aria-describedby={`${idPrefix}-label-help-text ${idPrefix}-error-message`}
+        // Only when the caller shares its RadioGroup's idPrefix: a defaulted prefix referenced ids that
+        // never exist (the group's fieldset already carries the help/error association)
+        aria-describedby={idPrefix ? `${idPrefix}-label-help-text ${idPrefix}-error-message` : undefined}
       />
       <label className="slds-radio__label" htmlFor={id}>
         <span className="slds-radio_faux" style={{ marginRight: '0.5rem' }}></span>
