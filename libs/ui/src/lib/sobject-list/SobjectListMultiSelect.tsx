@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter, orderValues } from '@jetstream/shared/utils';
 import { DescribeGlobalSObjectResult, Maybe, UpDown } from '@jetstream/types';
-import { ForwardedRef, Fragment, FunctionComponent, createRef, forwardRef, useEffect, useState } from 'react';
+import { ForwardedRef, forwardRef, Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import Checkbox from '../form/checkbox/Checkbox';
 import SearchInput from '../form/search-input/SearchInput';
 import EmptyState from '../illustrations/EmptyState';
@@ -51,7 +51,7 @@ export const SobjectListMultiSelect: FunctionComponent<SobjectListMultiSelectPro
   });
   const [selectedSObjectSet, setSelectedSObjectSet] = useState<Set<string>>(new Set<string>(selectedSObjects || []));
   const [searchInputId] = useState(() => `object-filter-${Date.now()}`);
-  const ulRef = createRef<HTMLUListElement>();
+  const ulRef = useRef<HTMLUListElement>(null);
 
   useEffect(() => {
     if (sobjects && sobjects.length > 0 && searchTerm) {
@@ -165,6 +165,7 @@ export const SobjectListMultiSelect: FunctionComponent<SobjectListMultiSelectPro
                     content: (
                       <AutoFullHeightContainer bottomBuffer={25}>
                         <SobjectListContent
+                          ref={ulRef}
                           disabled={disabled}
                           selectedSObjectSet={selectedSObjectSet}
                           filteredSobjects={filteredSobjects}
@@ -181,6 +182,7 @@ export const SobjectListMultiSelect: FunctionComponent<SobjectListMultiSelectPro
                     content: (
                       <AutoFullHeightContainer bottomBuffer={25}>
                         <SobjectListContent
+                          ref={ulRef}
                           disabled={disabled}
                           selectedSObjectSet={selectedSObjectSet}
                           filteredSobjects={filteredSobjects}
@@ -195,6 +197,7 @@ export const SobjectListMultiSelect: FunctionComponent<SobjectListMultiSelectPro
             ) : (
               <AutoFullHeightContainer bottomBuffer={25}>
                 <SobjectListContent
+                  ref={ulRef}
                   disabled={disabled}
                   selectedSObjectSet={selectedSObjectSet}
                   filteredSobjects={filteredSobjects}
