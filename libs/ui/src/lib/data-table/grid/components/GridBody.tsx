@@ -192,6 +192,16 @@ export function GridBody<TRow extends object>({
       if (cancelled) {
         return;
       }
+      // Never steal focus from an overlay opened FROM the grid (record popover, filter popover,
+      // dropdown menu): keyboard activation re-applies the active cell, and without this guard the
+      // effect's refocus raced the overlay's own focus management and yanked focus back to the cell.
+      // An overlay that CONTAINS the grid (a modal hosting it) doesn't count.
+      const overlayWithFocus = (document.activeElement as HTMLElement | null)?.closest?.(
+        '.slds-popover, .slds-modal, .slds-dropdown, [role="dialog"]',
+      );
+      if (overlayWithFocus && (!scrollRef.current || !overlayWithFocus.contains(scrollRef.current))) {
+        return;
+      }
       const cellEl = scrollRef.current?.querySelector<HTMLElement>(
         `[data-row-id="${CSS.escape(activeCell.rowId)}"][data-col-id="${CSS.escape(activeCell.columnId)}"]`,
       );
