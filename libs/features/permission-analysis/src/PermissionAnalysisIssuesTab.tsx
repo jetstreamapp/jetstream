@@ -363,6 +363,7 @@ const AggregatedIssueCodeRollupCard: FunctionComponent<{
       tabIndex={0}
       css={aggregatedRollupRowInteractiveCss}
       title="View issue details"
+      aria-label={`View issue details for ${row.label.trim() || row.code}: ${row.count} ${row.count === 1 ? 'issue' : 'issues'}, ${row.errorCount} ${row.errorCount === 1 ? 'error' : 'errors'}, ${row.warningCount} ${row.warningCount === 1 ? 'warning' : 'warnings'}`}
       onClick={onOpen}
       onKeyDown={aggregatedRollupRowKeyDown(onOpen)}
     >
@@ -448,6 +449,7 @@ const AggregatedObjectRollupCard: FunctionComponent<{
       tabIndex={0}
       css={aggregatedRollupRowInteractiveCss}
       title="View issue details"
+      aria-label={`View issue details for ${row.objectApiName}: ${row.count} ${row.count === 1 ? 'issue' : 'issues'}, ${row.errorCount} ${row.errorCount === 1 ? 'error' : 'errors'}, ${row.warningCount} ${row.warningCount === 1 ? 'warning' : 'warnings'}`}
       onClick={onOpen}
       onKeyDown={aggregatedRollupRowKeyDown(onOpen)}
     >
