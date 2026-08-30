@@ -275,10 +275,11 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
                         {isString(value) ? (
                           <span className="slds-truncate" title={title || value}>
                             {icon && (
+                              // Decorative beside the visible item text — a description doubled the
+                              // item's accessible name ("DeleteDelete") once icons stopped being aria-hidden
                               <Icon
                                 type={icon.type as IconType}
                                 icon={icon.icon as IconName}
-                                description={icon.description}
                                 omitContainer
                                 className="slds-icon slds-icon_x-small slds-icon-text-default slds-m-right_x-small"
                               />
