@@ -68,14 +68,20 @@ export const DataHistoryDetailModal: FunctionComponent<DataHistoryDetailModalPro
     setDownloadTarget(target);
   }
 
-  function renderDownloadControl(kind: DataHistoryFileKind) {
+  // Every Saved Data row renders identical "Preview"/"Download" buttons — the accessible names carry
+  // the row's label (e.g. "Download Request data") so screen reader users know which file they act on
+  function renderDownloadControl(kind: DataHistoryFileKind, label: string) {
     const targets = exportTargets.filter((target) => target.kind === kind);
     if (targets.length === 0) {
       return null;
     }
     if (targets.length === 1) {
       return (
-        <button className="slds-button slds-button_neutral slds-m-left_x-small" onClick={() => openDownload(targets[0])}>
+        <button
+          className="slds-button slds-button_neutral slds-m-left_x-small"
+          aria-label={`Download ${label}`}
+          onClick={() => openDownload(targets[0])}
+        >
           <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
           Download
         </button>
@@ -89,6 +95,7 @@ export const DataHistoryDetailModal: FunctionComponent<DataHistoryDetailModalPro
           <span>
             <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
             Download
+            <span className="slds-assistive-text"> {label}</span>
             <Icon
               type="utility"
               icon="down"
@@ -97,7 +104,7 @@ export const DataHistoryDetailModal: FunctionComponent<DataHistoryDetailModalPro
             />
           </span>
         }
-        actionText="Download saved data"
+        actionText={`Download ${label}`}
         items={targets.map((target) => ({ id: `${target.kind}:${target.viewId ?? ''}`, value: target.label, metadata: target }))}
         onSelected={(_, target) => openDownload(target as DataHistoryExportTarget)}
       />
@@ -166,11 +173,12 @@ export const DataHistoryDetailModal: FunctionComponent<DataHistoryDetailModalPro
           </span>
           <button
             className="slds-button slds-button_neutral slds-m-left_small"
+            aria-label={`Preview ${label}`}
             onClick={() => tabsRef.current?.changeTab(tabIdForKind(kind))}
           >
             Preview
           </button>
-          {renderDownloadControl(kind)}
+          {renderDownloadControl(kind, label)}
         </Grid>
       ))}
 

@@ -34,18 +34,16 @@ export function PinnedCellRenderer({ row }: RenderCellProps<DataHistoryTableRowI
   const { onTogglePin } = useTableContext();
   const { item } = row;
   return (
+    // Toggle-button semantics: constant name + aria-pressed state, so the cell announces
+    // "Pin entry, pressed" instead of an unlabeled icon flip
     <button
       className="slds-button slds-button_icon slds-button_icon-border"
       title={item.pinned ? 'Unpin (allow automatic cleanup)' : 'Pin (exclude from automatic cleanup)'}
+      aria-label="Pin entry"
+      aria-pressed={item.pinned}
       onClick={() => onTogglePin(item)}
     >
-      <Icon
-        type="utility"
-        icon={item.pinned ? 'pinned' : 'pin'}
-        className="slds-button__icon"
-        omitContainer
-        description={item.pinned ? 'Unpin' : 'Pin'}
-      />
+      <Icon type="utility" icon={item.pinned ? 'pinned' : 'pin'} className="slds-button__icon" omitContainer />
     </button>
   );
 }
