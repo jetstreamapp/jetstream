@@ -10,6 +10,12 @@ export interface ToastProps {
   className?: string;
   headingClassName?: string;
   children?: ReactNode;
+  /**
+   * Render the toast itself as a live region (default). AppToast passes false for non-error toasts
+   * because it announces them through one persistent region instead — a status region that is
+   * inserted already containing its text is unreliably announced.
+   */
+  liveRegion?: boolean;
   onClose?: () => void;
 }
 
@@ -42,12 +48,22 @@ export const Toast: FunctionComponent<ToastProps> = ({
   showIcon = true,
   className = 'slds-notify_container slds-is-relative',
   headingClassName = 'slds-text-heading_small',
+  liveRegion = true,
   onClose,
   children,
 }) => {
+  const liveRegionProps = liveRegion
+    ? {
+        // Errors interrupt (assertive); everything else waits its turn. aria-atomic so the whole
+        // toast is announced, not just the text node that changed.
+        role: type === 'error' ? 'alert' : 'status',
+        'aria-live': type === 'error' ? ('assertive' as const) : ('polite' as const),
+        'aria-atomic': true,
+      }
+    : {};
   return (
     <div className={className}>
-      <div className={classNames('slds-notify slds-notify_toast', getCssClass(type))} role="status">
+      <div className={classNames('slds-notify slds-notify_toast', getCssClass(type))} {...liveRegionProps}>
         <span className="slds-assistive-text">{type || 'info'}</span>
         {showIcon && getIcon(type)}
         <div

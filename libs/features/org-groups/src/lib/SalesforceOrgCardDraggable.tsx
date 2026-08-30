@@ -21,7 +21,9 @@ export function SalesforceOrgCardDraggable({ org, isActive, onAddOrgHandlerFn }:
   const { actionInProgress, orgLoading, handleAddOrg, handleRemoveOrg, handleUpdateOrg } = useUpdateOrgs();
   const orgType = getOrgType(org);
 
-  const { ref, isDragging } = useDraggable<DraggableSfdcCard>({
+  // A dedicated drag handle keeps dnd-kit's role="button"/tabindex off the card itself — the card
+  // contains interactive children (org popover, refresh), which a button role must not
+  const { ref, handleRef, isDragging } = useDraggable<DraggableSfdcCard>({
     id: org.uniqueId,
     type: 'SalesforceOrg',
     data: { uniqueId: org.uniqueId, organizationId: org.jetstreamOrganizationId ?? null },
@@ -73,7 +75,20 @@ export function SalesforceOrgCardDraggable({ org, isActive, onAddOrgHandlerFn }:
           `}
         >
           <Grid align="spread" className="slds-m-right_medium">
-            <h2 className="slds-truncate slds-text-heading_small">{org.label}</h2>
+            <Grid className="slds-has-flexi-truncate">
+              <button
+                ref={handleRef}
+                type="button"
+                aria-label={`Drag ${org.label}`}
+                className="slds-button slds-button_icon slds-button_icon-x-small slds-m-right_xx-small"
+                css={css`
+                  cursor: grab;
+                `}
+              >
+                <Icon type="utility" icon="drag_and_drop" className="slds-button__icon" omitContainer />
+              </button>
+              <h2 className="slds-truncate slds-text-heading_small">{org.label}</h2>
+            </Grid>
             <Grid verticalAlign="center">
               {orgType && (
                 <Badge type={orgType === 'Production' ? 'warning' : 'light'} title={orgType} className="slds-m-right_x-small">

@@ -1,3 +1,4 @@
+import { css } from '@emotion/react';
 import { ANALYTICS_KEYS, INPUT_ACCEPT_FILETYPES, TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import {
@@ -201,6 +202,10 @@ export const LoadRecordsMultiObject = () => {
           target="_blank"
           rel="noreferrer"
           download
+          // Underline so the link is distinguishable from surrounding text without relying on color (WCAG 1.4.1)
+          css={css`
+            text-decoration: underline;
+          `}
           onClick={() => trackEvent(ANALYTICS_KEYS.load_multi_obj_TemplateDownloaded)}
         >
           Excel template

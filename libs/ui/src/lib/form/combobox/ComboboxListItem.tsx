@@ -121,7 +121,11 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
     return (
       <li
         ref={combinedRef}
-        role="presentation"
+        // The li is the element that receives focus during arrow-key navigation, so it must carry
+        // the option semantics — with role="presentation" here, screen readers announced nothing
+        role="option"
+        aria-selected={selected}
+        aria-disabled={disabled}
         className={classNames('slds-listbox__item slds-item', className)}
         onClick={() => onSelection(id)}
         tabIndex={-1}
@@ -130,7 +134,6 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
       >
         <div
           id={id}
-          aria-disabled={disabled}
           className={classNames(
             'slds-listbox__option slds-media slds-media_center',
             {
@@ -143,8 +146,6 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
             },
             textContainerClassName,
           )}
-          role="option"
-          aria-selected={selected}
         >
           {!placeholder && (
             <span className="slds-media__figure slds-listbox__option-icon">
