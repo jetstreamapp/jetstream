@@ -435,7 +435,10 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                       id={id}
                       css={inputCss}
                       aria-controls={isOpen ? listId : undefined}
-                      aria-describedby={errorMessageId}
+                      aria-describedby={
+                        [labelHelp && !hideLabel ? `${id}-label-help-text` : undefined, errorMessageId].filter(Boolean).join(' ') ||
+                        undefined
+                      }
                       autoComplete="off"
                       placeholder={placeholder}
                       disabled={disabled}
