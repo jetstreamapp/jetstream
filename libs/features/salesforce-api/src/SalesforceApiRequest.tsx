@@ -11,6 +11,7 @@ import { getErrorMessage } from '@jetstream/shared/utils';
 import { HttpMethod, SalesforceApiHistoryRequest, SalesforceApiRequest as SalesforceApiReqSample, SalesforceOrgUi } from '@jetstream/types';
 import {
   Card,
+  getAriaKeyshortcuts,
   getModifierKey,
   Grid,
   HelpText,
@@ -247,6 +248,7 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
             >
               <button
                 className="slds-button slds-button_brand"
+                aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
                 onClick={() => handleSubmit()}
                 disabled={loading || !!headersErrorMessage || !!bodyErrorMessage}
               >
