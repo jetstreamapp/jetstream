@@ -159,6 +159,7 @@ export const UserSearchPopover: FunctionComponent = () => {
                   max-height: 75vh;
                   overflow-y: auto;
                 `}
+                ariaLabel="Users"
                 items={usersResults.queryResults.records}
                 isActive={(item: User) => item.Id === searchTerm}
                 onSelected={(key: string) => {
@@ -202,7 +203,7 @@ export const UserSearchPopover: FunctionComponent = () => {
       buttonProps={{
         className:
           'slds-button slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__help slds-global-actions__item-action cursor-pointer',
-        title: 'View Record Details - ctrl/command + k',
+        title: 'View User Details',
         disabled: !selectedOrg || !!selectedOrg.connectionError,
       }}
     >

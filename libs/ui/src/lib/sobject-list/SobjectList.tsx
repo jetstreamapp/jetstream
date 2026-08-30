@@ -183,6 +183,7 @@ const SobjectListContent = forwardRef(
       <>
         <List
           ref={ref}
+          ariaLabel="Salesforce objects"
           autoScrollToFocus
           items={filteredSobjects}
           isActive={(item: DescribeGlobalSObjectResult) => item.name === selectedSObject?.name}
