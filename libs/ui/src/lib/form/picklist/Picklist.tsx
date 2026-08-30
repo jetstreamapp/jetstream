@@ -324,7 +324,11 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
     return (
       <OutsideClickHandler display={containerDisplay} onOutsideClick={() => handleClose()}>
         <div data-testid={`dropdown-${label || id}`} className={classNames('slds-form-element', className, { 'slds-has-error': hasError })}>
-          <label className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })} htmlFor={comboboxId}>
+          <label
+            id={`${comboboxId}-label`}
+            className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })}
+            htmlFor={comboboxId}
+          >
             {isRequired && (
               <abbr className="slds-required" title="required">
                 *{' '}
@@ -335,21 +339,24 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
           {labelHelp && !hideLabel && <HelpText id={`${comboboxId}-label-help-text`} content={labelHelp} />}
           <div className="slds-form-element__control" ref={divContainerEl}>
             <div className={containerClassName || 'slds-combobox_container'}>
+              {/* ARIA 1.2: the combobox role and expanded state live on the focused input below, not
+                  this wrapper — screen readers only announce expand/collapse for the focused element */}
               <div
                 className={classNames('slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click', { 'slds-is-open': isOpen })}
-                aria-expanded={isOpen}
-                // Point at the listbox (not the input) and only while it is mounted (popover renders when open)
-                aria-controls={isOpen ? listboxId : undefined}
-                aria-haspopup="listbox"
-                role="combobox"
+                // Only catches clicks bubbling from the input/icon area; the keyboard path is the input
+                role="presentation"
                 onClick={handleInputClick}
               >
                 <div className="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right" role="none">
                   <input
                     ref={inputRef}
+                    role="combobox"
+                    aria-expanded={isOpen}
+                    aria-haspopup="listbox"
                     type="text"
                     className={classNames('slds-input slds-combobox__input slds-combobox__input-value', { 'slds-has-focus': isOpen })}
                     id={comboboxId}
+                    // Point at the listbox (not the input) and only while it is mounted (popover renders when open)
                     aria-controls={isOpen ? listboxId : undefined}
                     aria-describedby={
                       [labelHelp && !hideLabel ? `${comboboxId}-label-help-text` : undefined, errorMessageId].filter(Boolean).join(' ') ||
@@ -380,6 +387,8 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
                   className={classNames('slds-dropdown_fluid', scrollLengthClass)}
                   referenceElement={inputRef.current}
                   role="listbox"
+                  aria-labelledby={`${comboboxId}-label`}
+                  aria-multiselectable={multiSelection || undefined}
                   onKeyDown={handleKeyDown}
                 >
                   {Array.isArray(items) && (

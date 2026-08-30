@@ -17,9 +17,11 @@ export class PlaywrightPage {
   ) {
     const { searchForValue } = options;
     const dropdown = this.page.getByTestId(`dropdown-${label}`);
-    await dropdown.getByLabel(label).click();
+    // The open listbox is labelled by the same field label, so address the input by its role
+    const input = dropdown.getByRole('combobox', { name: label });
+    await input.click();
     if (searchForValue) {
-      await dropdown.getByLabel(label).fill(value);
+      await input.fill(value);
     }
     await dropdown.getByRole('option', { name: value }).click();
     return dropdown;
