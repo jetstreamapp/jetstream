@@ -1,6 +1,7 @@
 import { AutoFullHeightContainer, Page, PageHeader, PageHeaderRow, PageHeaderTitle, ScopedNotification } from '@jetstream/ui';
 import {
   DataHistorySettingsSection,
+  EditorSettingsSection,
   HistorySyncSettings,
   SettingsGroup,
   SettingsLayout,
@@ -120,6 +121,7 @@ export function AdditionalSettings() {
                       onChange={(value) => setCrashReportingEnabled(value)}
                     /> */}
                   </SettingsGroup>
+                  <EditorSettingsSection />
                 </SettingsSection>
 
                 <SettingsSection id="query" title="Query">
