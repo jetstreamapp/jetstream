@@ -124,6 +124,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
           serverUrl={serverUrl}
           skipFrontDoorAuth={skipFrontDoorAuth}
           recordId={item.id}
+          buttonTitle={`View details for ${item.label}`}
           recordType={recordType}
           meta={meta}
           allowManageAssignments={recordType === 'PermissionSet' && canDeployMetadata}
