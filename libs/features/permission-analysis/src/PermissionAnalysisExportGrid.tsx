@@ -313,6 +313,7 @@ function mergeFindingCellClass<T extends RowWithKey>(
   extraClass: (row: T) => string | undefined,
 ): ColumnWithFilter<T> {
   const prior = column.cellClass;
+  const priorRender = column.renderCell;
   return {
     ...column,
     cellClass: (row: T) => {
@@ -320,6 +321,28 @@ function mergeFindingCellClass<T extends RowWithKey>(
       const b = extraClass(row);
       const merged = [a, b].filter(Boolean).join(' ');
       return merged.length > 0 ? merged : undefined;
+    },
+    // Finding cells were mouse-only (a DOM click delegate opens the modal): an sr-only button gives
+    // keyboard/SR users the same path — grid Enter clicks it, the click bubbles to the same delegate,
+    // and the cell announces that details are available
+    renderCell: (props) => {
+      const base = priorRender
+        ? priorRender(props)
+        : (column.getValue?.({ row: props.row, column: props.column }) ??
+          (props.row as Record<string, unknown>)[String(column.key)] ??
+          null);
+      const extra = extraClass(props.row);
+      if (!extra || !extra.includes('permission-finding-cell--clickable')) {
+        return base;
+      }
+      return (
+        <>
+          {base}
+          <button type="button" className="slds-assistive-text">
+            {extra.includes('--error') ? 'View error details' : 'View warning details'}
+          </button>
+        </>
+      );
     },
   } as ColumnWithFilter<T>;
 }
