@@ -91,6 +91,37 @@ export const Tabs = forwardRef<TabsRef, TabsProps>(
       }
     }
 
+    // WAI-ARIA tabs pattern: arrow keys (orientation-aware) plus Home/End move between tabs with
+    // automatic activation. Guarded to events from the tabs themselves so the vertical filter
+    // input's cursor keys are unaffected.
+    function handleTabListKeyDown(event: React.KeyboardEvent<HTMLUListElement>) {
+      const target = event.target as HTMLElement;
+      if (target.getAttribute('role') !== 'tab' || filteredTabs.length === 0) {
+        return;
+      }
+      const previousKey = position === 'vertical' ? 'ArrowUp' : 'ArrowLeft';
+      const nextKey = position === 'vertical' ? 'ArrowDown' : 'ArrowRight';
+      const currentIndex = filteredTabs.findIndex((tab) => tab.id === activeId);
+      let nextIndex: number | null = null;
+      if (event.key === previousKey) {
+        nextIndex = currentIndex <= 0 ? filteredTabs.length - 1 : currentIndex - 1;
+      } else if (event.key === nextKey) {
+        nextIndex = currentIndex >= filteredTabs.length - 1 ? 0 : currentIndex + 1;
+      } else if (event.key === 'Home') {
+        nextIndex = 0;
+      } else if (event.key === 'End') {
+        nextIndex = filteredTabs.length - 1;
+      }
+      if (nextIndex === null) {
+        return;
+      }
+      event.preventDefault();
+      const nextTab = filteredTabs[nextIndex];
+      setActiveId(nextTab.id);
+      onChange?.(nextTab.id);
+      document.getElementById(`tab-${nextTab.id}`)?.focus();
+    }
+
     function getContent() {
       if (renderAllContent && tabs && tabs.length > 0) {
         return tabs.map((tab) => (
@@ -154,6 +185,7 @@ export const Tabs = forwardRef<TabsRef, TabsProps>(
           role="tablist"
           aria-orientation={position}
           style={ulStyle}
+          onKeyDown={handleTabListKeyDown}
         >
           {children}
           {filterVisible && position === 'vertical' && (
