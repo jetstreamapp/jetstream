@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { DescribeGlobalSObjectResult, Maybe, UpDown } from '@jetstream/types';
-import { ForwardedRef, Fragment, FunctionComponent, createRef, forwardRef, useEffect, useState } from 'react';
+import { ForwardedRef, forwardRef, Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import SearchInput from '../form/search-input/SearchInput';
 import EmptyState from '../illustrations/EmptyState';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
@@ -50,7 +50,7 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
     }
   });
   const [searchInputId] = useState(`object-filter-${Date.now()}`);
-  const ulRef = createRef<HTMLUListElement>();
+  const ulRef = useRef<HTMLUListElement>(null);
 
   useEffect(() => {
     if (sobjects && sobjects.length > 0 && searchTerm) {
@@ -120,6 +120,7 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
                     content: (
                       <AutoFullHeightContainer bottomBuffer={25}>
                         <SobjectListContent
+                          ref={ulRef}
                           sobjects={sobjects}
                           selectedSObject={selectedSObject}
                           loading={loading}
@@ -137,6 +138,7 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
                     content: (
                       <AutoFullHeightContainer bottomBuffer={25}>
                         <SobjectListContent
+                          ref={ulRef}
                           sobjects={sobjects}
                           selectedSObject={selectedSObject}
                           loading={loading}
@@ -152,6 +154,7 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
             ) : (
               <AutoFullHeightContainer bottomBuffer={25}>
                 <SobjectListContent
+                  ref={ulRef}
                   sobjects={sobjects}
                   selectedSObject={selectedSObject}
                   loading={loading}
