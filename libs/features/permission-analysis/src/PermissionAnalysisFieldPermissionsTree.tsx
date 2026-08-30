@@ -797,8 +797,25 @@ export const PermissionAnalysisFieldPermissionsTree: FunctionComponent<Permissio
       }
       const fieldType = getRowTypeFromValue(row0[key], false);
       const headerLabel = getExportColumnHeaderLabel(key);
+      const baseColumn = setColumnFromType<FieldPermissionTreeRow>(key, fieldType);
+      // Reads through findingCellHighlightsRef (like cellClass below) so the columns memo stays stable
+      const severityForRow = (row: FieldPermissionTreeRow) => {
+        if (!isFieldPermissionLeafRow(row)) {
+          return undefined;
+        }
+        if (key !== 'PermissionsRead' && key !== 'PermissionsEdit') {
+          return undefined;
+        }
+        const parentId = typeof row.ParentId === 'string' ? row.ParentId.trim() : '';
+        const sobjectType = typeof row.SobjectType === 'string' ? row.SobjectType.trim() : '';
+        const fieldFull = typeof row.Field === 'string' ? row.Field.trim() : '';
+        if (!parentId || !sobjectType || !fieldFull) {
+          return undefined;
+        }
+        return fieldPermissionCellSeverity(findingCellHighlightsRef.current, parentId, sobjectType, fieldFull, key);
+      };
       permissionCols.push({
-        ...setColumnFromType<FieldPermissionTreeRow>(key, fieldType),
+        ...baseColumn,
         name: headerLabel,
         key,
         field: key,
@@ -806,19 +823,7 @@ export const PermissionAnalysisFieldPermissionsTree: FunctionComponent<Permissio
         width: TREE_COL_PERMISSION_BOOL,
         minWidth: TREE_MIN_PERMISSION_BOOL,
         cellClass: (row: FieldPermissionTreeRow) => {
-          if (!isFieldPermissionLeafRow(row)) {
-            return undefined;
-          }
-          if (key !== 'PermissionsRead' && key !== 'PermissionsEdit') {
-            return undefined;
-          }
-          const parentId = typeof row.ParentId === 'string' ? row.ParentId.trim() : '';
-          const sobjectType = typeof row.SobjectType === 'string' ? row.SobjectType.trim() : '';
-          const fieldFull = typeof row.Field === 'string' ? row.Field.trim() : '';
-          if (!parentId || !sobjectType || !fieldFull) {
-            return undefined;
-          }
-          const severity = fieldPermissionCellSeverity(findingCellHighlightsRef.current, parentId, sobjectType, fieldFull, key);
+          const severity = severityForRow(row);
           if (severity === 'error') {
             return 'permission-finding-cell--error permission-finding-cell--clickable';
           }
@@ -826,6 +831,24 @@ export const PermissionAnalysisFieldPermissionsTree: FunctionComponent<Permissio
             return 'permission-finding-severity-cell--warning permission-finding-cell--clickable';
           }
           return undefined;
+        },
+        // Finding cells were mouse-only (a DOM click delegate opens the modal): an sr-only button
+        // gives keyboard/SR users the same path — grid Enter clicks it, the click bubbles to the
+        // same delegate, and the cell announces that details are available
+        renderCell: (props) => {
+          const base = baseColumn.renderCell ? baseColumn.renderCell(props) : ((props.row as Record<string, unknown>)[key] ?? null);
+          const severity = severityForRow(props.row);
+          if (!severity) {
+            return base;
+          }
+          return (
+            <>
+              {base}
+              <button type="button" className="slds-assistive-text">
+                {severity === 'error' ? `View error details for ${headerLabel}` : `View warning details for ${headerLabel}`}
+              </button>
+            </>
+          );
         },
       } as ColumnWithFilter<FieldPermissionTreeRow>);
     }
