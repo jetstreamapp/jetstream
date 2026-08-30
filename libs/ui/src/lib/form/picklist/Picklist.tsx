@@ -17,7 +17,19 @@ import { DropDownItemLength, ListItem, ListItemGroup } from '@jetstream/types';
 import classNames from 'classnames';
 import isNumber from 'lodash/isNumber';
 import uniqueId from 'lodash/uniqueId';
-import React, { createRef, forwardRef, KeyboardEvent, RefObject, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import React, {
+  createRef,
+  FocusEvent,
+  forwardRef,
+  KeyboardEvent,
+  RefObject,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { useEscapeToCloseLayer } from '../../hooks/useEscapeToCloseLayer';
 import PopoverContainer from '../../popover/PopoverContainer';
 import OutsideClickHandler from '../../utils/OutsideClickHandler';
 import HelpText from '../../widgets/HelpText';
@@ -117,6 +129,7 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
     ref,
   ) => {
     const inputRef = useRef<HTMLInputElement>(null);
+    const popoverRef = useRef<HTMLDivElement>(null);
     const keyBuffer = useRef(new KeyBuffer());
     const [comboboxId] = useState(() => uniqueId(id || 'picklist'));
     const [listboxId] = useState(() => uniqueId('listbox'));
@@ -238,11 +251,20 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
         setSelectedItemsIdsSet(new Set([item.id]));
       }
     }
+    // Escape closes ONLY this menu (and returns focus to the input) — consumed at document capture
+    // so an ancestor modal/popover cannot also close on the same press
+    useEscapeToCloseLayer(isOpen, () => {
+      setIsOpen(false);
+      inputRef.current?.focus();
+    });
 
     function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
       let newFocusedItem = focusedItem;
 
-      if (isTabKey(event) || isEscapeKey(event)) {
+      // While open, Escape never reaches here (useEscapeToCloseLayer consumes it at document
+      // capture); the isEscapeKey half guards the CLOSED state, where falling through would hit
+      // the open-on-any-key branch at the bottom and pop the list open on Escape.
+      if (isEscapeKey(event)) {
         event.preventDefault();
         event.stopPropagation();
         setIsOpen(false);
@@ -250,8 +272,24 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
         return;
       }
 
+      // Tab leaves the picklist. From a focused option (keydown, via the list container) hand focus
+      // back to the input WITHOUT preventDefault so the browser's sequential navigation continues from
+      // the input in one press; from the input itself (keyup) focus has already moved on — just close
+      if (isTabKey(event)) {
+        if (event.type === 'keydown') {
+          inputRef.current?.focus();
+        }
+        setIsOpen(false);
+        return;
+      }
+
       if (isEnterKey(event) || isSpaceKey(event)) {
         event.preventDefault();
+        // Closed: Enter/Space opens the list (APG select-only combobox), nothing to select yet
+        if (!isOpen) {
+          setIsOpen(true);
+          return;
+        }
         const item = items[focusedItem ?? -1];
         if (item) {
           handleKeyboardSelection(item);
@@ -321,6 +359,21 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
       onClose?.();
     }
 
+    /**
+     * Close when focus leaves the widget (Tab out of the input, focus pulled elsewhere). Focus moving
+     * between the input and its option list stays inside the widget. Without this, a list left open
+     * after Tab kept its Escape layer registered and stole the next Escape from the hosting modal.
+     */
+    function handleFocusLeft(event: FocusEvent<HTMLElement>) {
+      const nextFocus = event.relatedTarget as Node | null;
+      if (divContainerEl.current?.contains(nextFocus) || popoverRef.current?.contains(nextFocus)) {
+        return;
+      }
+      if (isOpen) {
+        handleClose();
+      }
+    }
+
     return (
       <OutsideClickHandler display={containerDisplay} onOutsideClick={() => handleClose()}>
         <div data-testid={`dropdown-${label || id}`} className={classNames('slds-form-element', className, { 'slds-has-error': hasError })}>
@@ -369,7 +422,10 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
                     title={selectedItemText}
                     disabled={disabled}
                     onKeyUp={handleKeyDown}
-                    onBlur={onBlur}
+                    onBlur={(event) => {
+                      handleFocusLeft(event);
+                      onBlur?.();
+                    }}
                     {...inputProps}
                   />
                   <span className="slds-icon_container slds-icon-utility-down slds-input__icon slds-input__icon_right">
@@ -382,10 +438,15 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
                   </span>
                 </div>
                 <PopoverContainer
+                  ref={popoverRef}
                   id={listboxId}
                   isOpen={isOpen}
                   className={classNames('slds-dropdown_fluid', scrollLengthClass)}
                   referenceElement={inputRef.current}
+                  // Keep focus in the input when the list's scrollbar or an option is clicked, so the
+                  // blur-close above does not fire mid-interaction (same as Combobox)
+                  onMouseDown={(event) => event.preventDefault()}
+                  onBlur={handleFocusLeft}
                   role="listbox"
                   aria-labelledby={`${comboboxId}-label`}
                   aria-multiselectable={multiSelection || undefined}
