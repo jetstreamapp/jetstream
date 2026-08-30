@@ -183,6 +183,14 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
       selectedItemTitle={selectedItemTitle}
       isVirtual
       onInputChange={setFilterText}
+      // Same close contract as ComboboxWithItems: reset the filter so reopening doesn't flash the
+      // previous search's subset (the debounce made the stale flash even longer here)
+      onClose={() => {
+        setFilterText('');
+        setFocusedIndex(null);
+        comboboxRef.current?.clearInputText();
+        comboboxProps.onClose?.();
+      }}
       onInputEnter={onInputEnter}
       onKeyboardNavigation={handleKeyboardNavigation}
     >
