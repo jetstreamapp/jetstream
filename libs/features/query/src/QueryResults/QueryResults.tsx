@@ -54,6 +54,7 @@ import {
   ToolbarItemGroup,
   Tooltip,
   buildResultsExport,
+  getAriaKeyshortcuts,
   getModifierKey,
   useConfirmation,
 } from '@jetstream/ui';
@@ -726,6 +727,7 @@ export const QueryResults = React.memo(() => {
               className="slds-button slds-button_brand slds-m-right_x-small"
               to={{ pathname: APP_ROUTES.QUERY.ROUTE, search: APP_ROUTES.QUERY.SEARCH_PARAM }}
               state={{ soql }}
+              aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'shift', 'enter'])}
             >
               <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
               Back
