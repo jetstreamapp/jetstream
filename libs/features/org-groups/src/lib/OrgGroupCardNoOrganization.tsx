@@ -42,6 +42,7 @@ export function OrgGroupCardNoOrganization({
       <Card
         ref={dropRef}
         testId={`org-group-card-empty`}
+        ariaLabel="Org group: Unassigned"
         css={css`
           &.slds-drop-zone::after {
             border-radius: var(--slds-c-card-radius-border, var(--slds-g-radius-border-2, 0.5rem));
@@ -72,7 +73,7 @@ export function OrgGroupCardNoOrganization({
         actions={
           <div className="slds-m-right_medium">
             {!isActive && (
-              <button className="slds-button slds-button_neutral" onClick={() => onSelected()}>
+              <button className="slds-button slds-button_neutral" aria-label="Make Active - Unassigned" onClick={() => onSelected()}>
                 Make Active
               </button>
             )}
