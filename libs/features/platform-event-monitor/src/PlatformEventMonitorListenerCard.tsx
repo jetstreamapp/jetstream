@@ -52,9 +52,15 @@ export const PlatformEventMonitorListenerCard = ({
       }
       actions={
         <>
-          <button className="slds-button slds-m-right_x-small" onClick={() => fetchPlatformEvents(true)}>
-            Just added a new event?
-          </button>
+          <Tooltip content="Reload the list of platform events from Salesforce, bypassing the cache">
+            <button
+              className="slds-button slds-m-right_x-small"
+              aria-label="Just added a new event? Reload the list of platform events"
+              onClick={() => fetchPlatformEvents(true)}
+            >
+              Just added a new event?
+            </button>
+          </Tooltip>
           <Tooltip content={'Unsubscribe from all events and clear results.'}>
             <button
               className="slds-button slds-button_icon slds-button_icon-border slds-button_icon-container slds-m-right_xx-small"
