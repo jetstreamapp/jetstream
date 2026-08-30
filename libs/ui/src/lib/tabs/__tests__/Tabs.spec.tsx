@@ -1,3 +1,4 @@
+import { axeScan } from '@jetstream/test-utils';
 import { UiTabSection } from '@jetstream/types';
 import { fireEvent, render, screen } from '@testing-library/react';
 import Tabs from '../Tabs';
@@ -68,6 +69,12 @@ describe('Tabs', () => {
 
     const tabPanel = screen.getByRole('tabpanel');
     expect(tabPanel.textContent).toContain('Gamma Content');
+  });
+
+  test('has no axe violations', async () => {
+    const { container } = render(<Tabs tabs={tabs} />);
+    const results = await axeScan(container);
+    expect(results.violations).toEqual([]);
   });
 
   test('all tab titles are rendered in the tablist', () => {

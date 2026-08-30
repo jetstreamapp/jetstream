@@ -285,6 +285,17 @@ jobs:
           retention-days: 1
           if-no-files-found: ignore
 
+      # Raw axe-core scan results from the a11y specs — evidence artifacts for the accessibility
+      # conformance report (VPAT) and inputs to scripts/a11y-merge-baseline.mjs.
+      - name: Upload a11y scan results
+        if: always() && steps.setup.outputs.should_run == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: a11y-results-${{ matrix.shardIndex }}
+          path: apps/jetstream-e2e/a11y-results
+          retention-days: 30
+          if-no-files-found: ignore
+
   # Playwright's _electron support needs a real BrowserWindow, which a headless GitHub-hosted
   # runner has no display server for — xvfb-run provides a virtual one. Single job, single worker
   # (no sharding, unlike e2e-shard): Electron launches are heavier than browser contexts and there's
