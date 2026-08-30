@@ -98,7 +98,11 @@ export const SearchInput: FunctionComponent<SearchInputProps> = ({
       iconLeftType="utility"
       loading={loading}
       clearButton={!!value}
-      onClear={() => setValue('')}
+      onClear={() => {
+        setValue('');
+        // The X removes itself when the value empties — put focus back in the input
+        inputEl.current?.focus();
+      }}
     >
       <input
         ref={inputEl}
@@ -109,6 +113,12 @@ export const SearchInput: FunctionComponent<SearchInputProps> = ({
         value={value}
         autoFocus={autoFocus}
         autoComplete="off"
+        // Password managers inject autofill UI into inputs, which screen readers then announce
+        // ("1Password menu available") — these are the vendors' documented opt-outs, appropriate
+        // for search/filter fields that never hold credentials
+        data-1p-ignore
+        data-lpignore="true"
+        data-bwignore="true"
         disabled={disabled}
         onChange={(event) => setValue(event.currentTarget.value)}
         onKeyDown={handleKeyDown}
