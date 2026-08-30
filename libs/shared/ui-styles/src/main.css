@@ -42,28 +42,55 @@ html {
    focus — a natively disabled element drops focus to <body>, which restarts tabbing from
    the top of the page. These rules mirror SLDS 2's :disabled styling for aria-disabled.
    Click handlers must guard on the same condition, since aria-disabled is not enforced
-   by the browser (pointer-events below blocks the mouse, but not Enter/Space). */
-.slds-button[aria-disabled='true'] {
+   by the browser (pointer-events below blocks the mouse, but not Enter/Space).
+   Every rule also covers hover, focus and active — SLDS's styles for those states would
+   otherwise restore the enabled colors (white text on a grey brand button once focused). */
+.slds-button[aria-disabled='true'],
+.slds-button[aria-disabled='true']:is(:hover, :focus, :active) {
   background-color: transparent;
   border-color: transparent;
   color: var(--slds-g-color-disabled-1);
   cursor: default;
   pointer-events: none;
 }
-.slds-button_neutral[aria-disabled='true'] {
+/* A title usually explains why the button is disabled, and the browser only shows it to a pointer
+   that reaches the button — the click itself is still guarded in JS */
+.slds-button[aria-disabled='true'][title] {
+  pointer-events: auto;
+}
+.slds-button_neutral[aria-disabled='true'],
+.slds-button_neutral[aria-disabled='true']:is(:hover, :focus, :active) {
   background-color: var(--slds-g-color-disabled-container-1);
   border-color: var(--slds-g-color-border-disabled-1);
   color: var(--slds-g-color-on-disabled-1);
 }
-.slds-button_brand[aria-disabled='true'] {
+.slds-button_outline-brand[aria-disabled='true'],
+.slds-button_outline-brand[aria-disabled='true']:is(:hover, :focus, :active),
+.slds-button_text-destructive[aria-disabled='true'],
+.slds-button_text-destructive[aria-disabled='true']:is(:hover, :focus, :active) {
+  background-color: var(--slds-g-color-disabled-container-1);
+  border-color: var(--slds-g-color-border-disabled-1);
+}
+.slds-button_brand[aria-disabled='true'],
+.slds-button_brand[aria-disabled='true']:is(:hover, :focus, :active),
+.slds-button_destructive[aria-disabled='true'],
+.slds-button_destructive[aria-disabled='true']:is(:hover, :focus, :active),
+.slds-button_success[aria-disabled='true'],
+.slds-button_success[aria-disabled='true']:is(:hover, :focus, :active) {
   background-color: var(--slds-g-color-disabled-container-2);
   border-color: var(--slds-g-color-disabled-container-2);
   color: var(--slds-g-color-on-disabled-2);
 }
 .slds-button_icon-border-filled[aria-disabled='true'],
-.slds-button_icon-border[aria-disabled='true'] {
+.slds-button_icon-border-filled[aria-disabled='true']:is(:hover, :focus, :active),
+.slds-button_icon-border[aria-disabled='true'],
+.slds-button_icon-border[aria-disabled='true']:is(:hover, :focus, :active) {
   border-color: var(--slds-g-color-border-disabled-1);
   color: var(--slds-g-color-on-disabled-2);
+}
+.slds-button_icon-border-filled[aria-disabled='true'],
+.slds-button_icon-border-filled[aria-disabled='true']:is(:hover, :focus, :active) {
+  background-color: var(--slds-g-color-disabled-container-1);
 }
 
 .app {
@@ -312,8 +339,19 @@ pre {
 .collapsible-button {
   min-height: 2rem;
 
-  span:not(.slds-icon_container) {
-    display: none;
+  /* Collapsed state hides the label visually but keeps it in the accessible name — display: none
+     made every collapsed button announce as a bare "button" to screen readers. An Icon description
+     span (.slds-assistive-text) is excluded from both states so the expanded reset never reveals it */
+  span:not(.slds-icon_container):not(.slds-assistive-text) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
 
   svg.slds-button__icon_left {
@@ -328,8 +366,15 @@ pre {
     }
 
     @media (min-width: 500px) {
-      span {
-        display: inline;
+      span:not(.slds-icon_container):not(.slds-assistive-text) {
+        position: static;
+        width: auto;
+        height: auto;
+        margin: 0;
+        padding: 0;
+        overflow: visible;
+        clip: auto;
+        white-space: normal;
       }
 
       svg.slds-button__icon_left {
@@ -346,8 +391,15 @@ pre {
     }
 
     @media (min-width: 800px) {
-      span {
-        display: inline;
+      span:not(.slds-icon_container):not(.slds-assistive-text) {
+        position: static;
+        width: auto;
+        height: auto;
+        margin: 0;
+        padding: 0;
+        overflow: visible;
+        clip: auto;
+        white-space: normal;
       }
 
       svg.slds-button__icon_left {
@@ -364,8 +416,15 @@ pre {
     }
 
     @media (min-width: 830px) {
-      span {
-        display: inline;
+      span:not(.slds-icon_container):not(.slds-assistive-text) {
+        position: static;
+        width: auto;
+        height: auto;
+        margin: 0;
+        padding: 0;
+        overflow: visible;
+        clip: auto;
+        white-space: normal;
       }
 
       svg.slds-button__icon_left {
@@ -382,8 +441,15 @@ pre {
     }
 
     @media (min-width: 890px) {
-      span {
-        display: inline;
+      span:not(.slds-icon_container):not(.slds-assistive-text) {
+        position: static;
+        width: auto;
+        height: auto;
+        margin: 0;
+        padding: 0;
+        overflow: visible;
+        clip: auto;
+        white-space: normal;
       }
 
       svg.slds-button__icon_left {
@@ -400,8 +466,15 @@ pre {
     }
 
     @media (min-width: 1000px) {
-      span {
-        display: inline;
+      span:not(.slds-icon_container):not(.slds-assistive-text) {
+        position: static;
+        width: auto;
+        height: auto;
+        margin: 0;
+        padding: 0;
+        overflow: visible;
+        clip: auto;
+        white-space: normal;
       }
 
       svg.slds-button__icon_left {
@@ -418,8 +491,15 @@ pre {
     }
 
     @media (min-width: 1075px) {
-      span {
-        display: inline;
+      span:not(.slds-icon_container):not(.slds-assistive-text) {
+        position: static;
+        width: auto;
+        height: auto;
+        margin: 0;
+        padding: 0;
+        overflow: visible;
+        clip: auto;
+        white-space: normal;
       }
 
       svg.slds-button__icon_left {
