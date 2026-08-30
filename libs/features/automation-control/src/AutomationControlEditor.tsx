@@ -4,6 +4,7 @@ import { formatNumber, useGoBackShortcut, usePrimaryActionShortcut, useTitle } f
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { FileExtAllTypes, ListMetadataResult, Maybe, MimeType, RetrievePackageFromListMetadataJob } from '@jetstream/types';
 import {
+  AssistiveStatus,
   AutoFullHeightContainer,
   Badge,
   ButtonGroupContainer,
@@ -66,6 +67,7 @@ export const AutomationControlEditor = () => {
   const [quickFilterText, setQuickFilterText] = useState<string | null>(null);
 
   const [exportDataModalOpen, setExportDataModalOpen] = useState<boolean>(false);
+  const [toggleAllStatusMessage, setToggleAllStatusMessage] = useState('');
   const [exportDataModalData, setExportDataModalData] = useState<any[]>([]);
 
   const [exportMetadataModalOpen, setExportMetadataModalOpen] = useState<boolean>(false);
@@ -239,6 +241,13 @@ export const AutomationControlEditor = () => {
     trackEvent(ANALYTICS_KEYS.automation_export, { type: 'spreadsheet' });
   }
 
+  /** Toggling all rows gives sighted users flipped checkboxes + the modified-count badge — announce the same outcome */
+  function handleToggleAll(value: boolean) {
+    toggleAll(value);
+    setToggleAllStatusMessage('');
+    window.setTimeout(() => setToggleAllStatusMessage(`All visible items marked ${value ? 'active' : 'inactive'}`), 100);
+  }
+
   return (
     <div>
       {exportDataModalOpen && (
@@ -343,6 +352,7 @@ export const AutomationControlEditor = () => {
             </button>
           </ButtonGroupContainer>
           <Tooltip
+            className="slds-m-left_x-small"
             openDelay={500}
             content={
               <div className="slds-p-bottom_small">
@@ -371,7 +381,7 @@ export const AutomationControlEditor = () => {
               <button
                 className={classNames('slds-button slds-button_neutral')}
                 title="Enable All"
-                onClick={() => toggleAll(true)}
+                onClick={() => handleToggleAll(true)}
                 disabled={loading}
               >
                 <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
@@ -380,13 +390,14 @@ export const AutomationControlEditor = () => {
               <button
                 className={classNames('slds-button slds-button_neutral')}
                 title="Disable All"
-                onClick={() => toggleAll(false)}
+                onClick={() => handleToggleAll(false)}
                 disabled={loading}
               >
                 <Icon type="utility" icon="dash" className="slds-button__icon slds-button__icon_left" omitContainer />
                 Disable All
               </button>
             </ButtonGroupContainer>
+            <AssistiveStatus message={toggleAllStatusMessage} />
             <Badge>
               {formatNumber(dirtyCount)} {pluralizeFromNumber('item', dirtyCount)} modified
             </Badge>
