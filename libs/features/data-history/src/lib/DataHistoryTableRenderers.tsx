@@ -41,6 +41,11 @@ export function PinnedCellRenderer({ row }: RenderCellProps<DataHistoryTableRowI
       title={item.pinned ? 'Unpin (allow automatic cleanup)' : 'Pin (exclude from automatic cleanup)'}
       aria-label="Pin entry"
       aria-pressed={item.pinned}
+      // Arrow navigation focuses this button directly (APG single-widget cell) so its toggle role,
+      // pressed state, and Enter/Space affordance are all announced; tabIndex -1 keeps the grid a
+      // single page tab stop
+      data-grid-inner-focus
+      tabIndex={-1}
       onClick={() => onTogglePin(item)}
     >
       <Icon type="utility" icon={item.pinned ? 'pinned' : 'pin'} className="slds-button__icon" omitContainer />
