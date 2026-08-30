@@ -212,10 +212,15 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
               'slds-button_icon-error': fieldMappingItem.targetField,
             })}
             title="Clear mapping"
+            // aria-disabled (not disabled) so the button keeps focus after its own click disables it —
+            // a natively disabled element drops focus to <body> and Tab restarts from the page top.
+            aria-disabled={!fieldMappingItem.targetField ? true : undefined}
             onClick={() => {
+              if (!fieldMappingItem.targetField) {
+                return;
+              }
               handleSelectionChanged(null);
             }}
-            disabled={!fieldMappingItem.targetField}
           >
             <Icon type="utility" icon="clear" className="slds-button__icon" omitContainer />
             <span className="slds-assistive-text">Clear Mapping</span>
