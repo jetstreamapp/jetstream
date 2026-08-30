@@ -38,6 +38,8 @@ export interface TooltipProps {
    * (e.g. a bare info icon) — without focus, keyboard users can never reveal the tooltip (WCAG 1.4.13).
    */
   triggerTabIndex?: number;
+  /** Extra attributes for the trigger wrapper (e.g. data-grid-inner-focus so grid navigation focuses it) */
+  triggerProps?: React.HTMLAttributes<HTMLElement> & { [dataAttribute: `data-${string}`]: string | boolean | undefined };
   children?: React.ReactNode;
 }
 
@@ -49,6 +51,7 @@ const TooltipComponent: FunctionComponent<TooltipProps> = ({
   ariaRole = 'tooltip',
   onClick,
   triggerTabIndex,
+  triggerProps,
   children,
 }) => {
   const { portalRoot } = usePortalContext();
@@ -192,6 +195,7 @@ const TooltipComponent: FunctionComponent<TooltipProps> = ({
         className={className}
         style={{ display: 'inline-block' }}
         {...getReferenceProps({
+          ...triggerProps,
           onClick,
           tabIndex: triggerTabIndex,
           // A focusable trigger with a click action is a de-facto button: expose the role and
