@@ -123,7 +123,12 @@ export const Input: FunctionComponent<InputProps> = ({
           )}
           {leftAddon && <span className="slds-form-element__addon">{leftAddon}</span>}
           {/* Input field must be passed through */}
-          {associateErrorsWithControls(children, hasError, errorMessageId)}
+          {associateErrorsWithControls(
+            children,
+            hasError,
+            errorMessageId,
+            labelHelp && !hideLabel && id ? `${id}-label-help-text` : undefined,
+          )}
           {loading && (
             <div className="slds-input__icon-group slds-input__icon-group_right">
               <Spinner className="slds-spinner slds-spinner_brand slds-spinner_x-small slds-input__spinner" hasContainer={false} />
