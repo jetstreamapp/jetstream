@@ -797,6 +797,14 @@ export function useGridKeyboardNavigation<TRow extends object>({
             );
             const nextIndex = (currentIndex + (backward ? -1 : 1) + controls.length) % controls.length;
             controls[nextIndex].focus();
+          } else if (event.key === 'Tab') {
+            // A lone control (e.g. a summary-row filter input) has nothing to cycle to — treat Tab
+            // like Escape and return to the cell so focus stays inside the grid instead of exiting it.
+            // Only Tab: an arrow press with nothing to cycle is left alone rather than silently
+            // dropping the user out of Actionable mode without moving the active cell.
+            consume();
+            setMode('navigation');
+            cellEl?.focus();
           }
           return;
         }

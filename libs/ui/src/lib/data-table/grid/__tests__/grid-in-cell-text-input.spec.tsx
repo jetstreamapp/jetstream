@@ -83,6 +83,21 @@ describe('in-cell text inputs keep their own keyboard and clipboard behavior', (
     }
   });
 
+  // A cell whose only control is the filter input has nothing for Tab to cycle to, so Tab is the way
+  // back to the cell — focus must stay inside the grid instead of escaping to the next page tab stop.
+  test('Tab in actionable mode returns focus to the cell when there is only one control', () => {
+    const { getByLabelText } = renderTable({ onPaste: vi.fn() });
+    const input = getByLabelText('Filter') as HTMLInputElement;
+    const cell = input.closest('[data-row-id]') as HTMLElement;
+
+    fireEvent.mouseDown(cell);
+    fireEvent.keyDown(cell, { key: 'Enter' });
+    input.focus();
+
+    expect(fireEvent.keyDown(input, { key: 'Tab' })).toBe(false);
+    expect(document.activeElement).toBe(cell);
+  });
+
   test('pasting into a data cell still reaches the grid', () => {
     const onPaste = vi.fn();
     renderTable({ onPaste });
