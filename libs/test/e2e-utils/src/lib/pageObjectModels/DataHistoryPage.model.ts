@@ -46,11 +46,15 @@ export class DataHistoryPage {
 
   /**
    * Download the first saved payload from the open detail modal. Each file kind renders its own
-   * `Download` button, which opens the shared file-download modal (`Download <label>`) where the
-   * footer's `Download` actually writes the file.
+   * download button, accessibly named `Download <label>` (e.g. `Download Input Data`) so screen
+   * readers can tell them apart. Clicking one opens the shared file-download modal
+   * (`Download <label>`) where the footer's `Download` actually writes the file.
    */
   async downloadFirstPayload(): Promise<Download> {
-    await this.detailDialog.getByRole('button', { name: 'Download', exact: true }).first().click();
+    await this.detailDialog
+      .getByRole('button', { name: /^Download / })
+      .first()
+      .click();
 
     const downloadDialog = this.page.getByRole('dialog', { name: /^Download / });
     await expect(downloadDialog).toBeVisible();
