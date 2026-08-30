@@ -261,8 +261,10 @@ export const LoadRecordsMultiObject = () => {
             <button
               data-testid="prev-step-button"
               className="slds-button slds-button_neutral"
-              disabled={prevStepDisabled}
-              onClick={() => changeStep(-1)}
+              // aria-disabled (not disabled): stepping flips these conditions and a natively
+              // disabled button drops the user's focus to <body>; changeStep guards the same way
+              aria-disabled={prevStepDisabled ? true : undefined}
+              onClick={() => !prevStepDisabled && changeStep(-1)}
             >
               <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" />
               Go Back
@@ -270,8 +272,8 @@ export const LoadRecordsMultiObject = () => {
             <button
               data-testid="next-step-button"
               className="slds-button slds-button_brand"
-              disabled={nextStepDisabled || fileParsing}
-              onClick={() => changeStep(1)}
+              aria-disabled={nextStepDisabled || fileParsing ? true : undefined}
+              onClick={() => !(nextStepDisabled || fileParsing) && changeStep(1)}
             >
               Continue to Load
             </button>
