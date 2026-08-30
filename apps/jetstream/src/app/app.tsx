@@ -1,5 +1,5 @@
 import { Announcement } from '@jetstream/types';
-import { AppToast, ConfirmationServiceProvider, UserFeedbackWidget } from '@jetstream/ui';
+import { AppToast, ConfirmationServiceProvider, SkipToContent, UserFeedbackWidget } from '@jetstream/ui';
 import {
   AppLoading,
   DownloadFileStream,
@@ -42,10 +42,16 @@ export const App = () => {
               <UserFeedbackWidget />
             </ErrorBoundary>
             <div>
+              <SkipToContent />
               <div data-testid="header">
                 <HeaderNavbar isBillingEnabled={environment.BILLING_ENABLED} />
               </div>
-              <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
+              <div
+                id="main-content"
+                tabIndex={-1}
+                className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small"
+                data-testid="content"
+              >
                 <AnnouncementAlerts announcements={announcements} />
                 <Suspense fallback={<AppLoading />}>
                   <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>

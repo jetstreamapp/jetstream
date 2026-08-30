@@ -1,6 +1,7 @@
-import React, { FunctionComponent, Fragment, ReactNode } from 'react';
-import HelpText from '../../widgets/HelpText';
 import classNames from 'classnames';
+import React, { Fragment, FunctionComponent, ReactNode } from 'react';
+import HelpText from '../../widgets/HelpText';
+import { associateErrorsWithControls } from '../form-a11y.utils';
 
 export interface SelectProps {
   id: string;
@@ -43,7 +44,7 @@ export const Select: FunctionComponent<SelectProps> = ({
         </Fragment>
       )}
       <div className="slds-form-element__control">
-        <div className="slds-select_container">{children}</div>
+        <div className="slds-select_container">{associateErrorsWithControls(children, hasError, errorMessageId)}</div>
       </div>
       {helpText && <div className="slds-form-element__help">{helpText}</div>}
       {hasError && errorMessage && (

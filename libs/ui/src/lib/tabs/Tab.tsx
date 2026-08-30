@@ -29,7 +29,8 @@ export const Tab = ({ tab, isHorizontal, activeId, searchTerm, highlightText, ha
       <a
         className={classNames({ 'slds-tabs_default__link': isHorizontal, 'slds-vertical-tabs__link': !isHorizontal })}
         role="tab"
-        tabIndex={0}
+        // Roving tabindex: only the active tab is in the page tab order; arrow keys move between tabs
+        tabIndex={activeId === tab.id ? 0 : -1}
         aria-selected={activeId === tab.id}
         aria-controls={tab.id}
         id={`tab-${tab.id}`}

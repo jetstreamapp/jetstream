@@ -24,7 +24,8 @@ describe('Toast', () => {
 
   test('applies slds-theme_error for error type', () => {
     render(<Toast type="error">Message</Toast>);
-    expect(screen.getByRole('status').className).toContain('slds-theme_error');
+    // Error toasts are interruptions, so they render as role="alert" instead of role="status"
+    expect(screen.getByRole('alert').className).toContain('slds-theme_error');
   });
 
   test('renders children content', () => {

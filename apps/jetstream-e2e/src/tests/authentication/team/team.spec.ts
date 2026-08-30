@@ -191,7 +191,7 @@ test.describe('Team Dashboard', () => {
       // Make sure member is logged in
       const member = billingMember1;
 
-      const getByPageBannerPromise = expect(page.getByText('Session revoked successfully.')).toBeVisible();
+      const getByPageBannerPromise = expect(page.getByRole('heading', { name: 'Session revoked successfully.' })).toBeVisible();
       await teamDashboardPage.revokeUserSession(member.user.email);
       await getByPageBannerPromise;
 
