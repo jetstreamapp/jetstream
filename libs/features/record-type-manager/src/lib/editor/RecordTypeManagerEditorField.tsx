@@ -33,6 +33,7 @@ export function RecordTypeManagerEditorField({
           {Object.entries(recordTypeValues).map(([recordTypeName, { picklistValues }]) => (
             <RecordTypeManagerEditorFieldItem
               key={recordTypeName}
+              contextLabel={`${recordTypeName} record type — ${getNameOrNameAndLabelFromObj(picklistFieldEntry, 'fieldName', 'fieldLabel')} field`}
               label={recordTypeName}
               picklistValues={picklistValues}
               recordTypeName={recordTypeName}
