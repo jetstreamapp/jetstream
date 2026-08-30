@@ -46,8 +46,8 @@ export const ListItemCheckbox = memo<ListItemCheckboxProps>(
     }
     return (
       <li
-        role="option"
-        aria-selected={isActive}
+        // Not role="option": options cannot contain interactive children, and focus deliberately
+        // moves to the labeled checkbox, which announces its own name and checked state
         data-testid={testId}
         className={classNames('slds-item', { 'is-active': isActive })}
         tabIndex={-1}

@@ -102,7 +102,11 @@ export class OrgGroupPage {
   }
 
   async dragOrgToGroup(jetstreamOrgName: string, salesforceOrgLabel: string) {
-    const source = this.page.getByTestId(`salesforce-org-${salesforceOrgLabel}`);
+    // Drag initiates from the card's dedicated drag handle (the card body hosts other interactive
+    // controls, so dnd-kit's activator lives on the handle)
+    const source = this.page
+      .getByTestId(`salesforce-org-${salesforceOrgLabel}`)
+      .getByRole('button', { name: `Drag ${salesforceOrgLabel}` });
     const target = this.page.getByTestId(`org-group-card-${jetstreamOrgName}`);
 
     const sourceBox = await source.boundingBox();

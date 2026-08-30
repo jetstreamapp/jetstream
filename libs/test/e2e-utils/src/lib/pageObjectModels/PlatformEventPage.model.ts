@@ -28,13 +28,14 @@ export class PlatformEventPage {
     await this.listenerCard.getByPlaceholder('Select an Option').click();
     await this.listenerCard.getByRole('option', { name: `(${eventName}) /event/${eventName}` }).click();
     await this.listenerCard.getByRole('button', { name: 'Subscribe', exact: true }).click();
-    // Ensure subscription was successful
-    await expect(this.listenerCard.getByRole('button', { name: 'Unsubscribe' })).toBeVisible();
+    // Ensure subscription was successful. exact: true — the header's icon button is named
+    // "Unsubscribe from all events and clear results", which substring-matches 'Unsubscribe'
+    await expect(this.listenerCard.getByRole('button', { name: 'Unsubscribe', exact: true })).toBeVisible();
     await expect(this.listenerCard.getByPlaceholder('-1')).toBeDisabled();
   }
 
   async unsubscribeToEvent() {
-    await this.listenerCard.getByRole('button', { name: 'Unsubscribe' }).click();
+    await this.listenerCard.getByRole('button', { name: 'Unsubscribe', exact: true }).click();
     await expect(this.listenerCard.getByPlaceholder('-1')).toBeEnabled();
     await expect(this.listenerCard.getByRole('button', { name: 'Subscribe', exact: true })).toBeVisible();
   }

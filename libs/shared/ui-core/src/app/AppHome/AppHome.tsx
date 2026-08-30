@@ -209,15 +209,17 @@ export const AppHome = ({ showAlternativeAppFormats, hideConnectedAppBanner = fa
                           <dd className="slds-item_detail">{DESCRIPTION}</dd>
                           {/* Docs stay visible while locked — someone deciding whether to upgrade needs to read what the feature does. */}
                           {DOCS && (
-                            <a href={DOCS} target="_blank" className="slds-text-body_small" rel="noreferrer">
-                              Documentation
-                              <Icon
-                                type="utility"
-                                icon="help_doc_ext"
-                                className="slds-icon slds-icon_xx-small slds-icon-text-default slds-m-left_xx-small"
-                                omitContainer
-                              />
-                            </a>
+                            <dd className="slds-item_detail">
+                              <a href={DOCS} target="_blank" className="slds-text-body_small" rel="noreferrer">
+                                Documentation
+                                <Icon
+                                  type="utility"
+                                  icon="help_doc_ext"
+                                  className="slds-icon slds-icon_xx-small slds-icon-text-default slds-m-left_xx-small"
+                                  omitContainer
+                                />
+                              </a>
+                            </dd>
                           )}
                         </Fragment>
                       ))}
