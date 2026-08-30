@@ -122,6 +122,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
     return {
       key: item.name,
       id: `${itemKey}${item.name}`,
+      label: `${item.label} (${item.name})`,
       heading: (
         <SobjectFieldListItem
           org={org}
