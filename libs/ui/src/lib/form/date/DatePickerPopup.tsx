@@ -87,8 +87,43 @@ export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
     setVisibleMonth(setYear(visibleMonth, currYear));
   }
 
+  /**
+   * Dialog-wide keyboard contract (the popup renders as role="dialog"):
+   * - Escape closes from ANY element — previously only the date grid cells handled it, so Escape on
+   *   the month selector or the Clear/Today footer buttons did nothing
+   * - Tab/Shift+Tab wrap within the popup (a dialog traps Tab per the APG)
+   */
+  function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      onClose();
+      return;
+    }
+    if (event.key !== 'Tab') {
+      return;
+    }
+    const focusables = Array.from(
+      event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), select:not(:disabled), [tabindex="0"]'),
+    );
+    if (!focusables.length) {
+      return;
+    }
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
   return (
-    <div ref={ref}>
+    // Delegated dialog-level handler (Escape / Tab trap) — the wrapping PopoverContainer provides role="dialog"
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+    <div ref={ref} onKeyDown={handleKeyDown}>
       <DateGridPrevNextSelector
         id="date-picker"
         currMonth={currMonthString}
