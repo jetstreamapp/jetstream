@@ -2,7 +2,17 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { AutomationControlHistorySource, AutomationControlRestoreAction, SalesforceOrgUi } from '@jetstream/types';
 import type { Column } from '@jetstream/ui';
-import { AutoFullHeightContainer, DataTable, Grid, Icon, Modal, ScopedNotification, Spinner, getWrappedTextRowHeight } from '@jetstream/ui';
+import {
+  AssistiveStatus,
+  AutoFullHeightContainer,
+  DataTable,
+  Grid,
+  Icon,
+  Modal,
+  ScopedNotification,
+  Spinner,
+  getWrappedTextRowHeight,
+} from '@jetstream/ui';
 import { ConfirmPageChange } from '@jetstream/ui-core';
 import { useOperationAccess } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
@@ -142,6 +152,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
   const [didDeploy, setDidDeploy] = useState(false);
   const [didRollback, setDidRollback] = useState(false);
   const [didDeployMetadata, setDidDeployMetadata] = useState(false);
+  const primaryButtonRef = useRef<HTMLButtonElement>(null);
 
   const deploymentItemRows: DeploymentItemRow[] = useMemo(
     () =>
@@ -169,6 +180,19 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
     const errorCount = deploymentItems.filter(({ status }) => status === 'Error').length;
     return { errorCount, message: `${successCount} succeeded, ${errorCount} failed.` };
   }, [didDeploy, inProgress, deploymentItems]);
+
+  // Mirrors what sighted users see (spinner, per-row status column, modal header) for each phase:
+  // initial metadata retrieval, deploy/rollback progress, and the final outcome with counts
+  const assistiveMessage = useMemo(() => {
+    if (inProgress) {
+      return currentStep === 0 ? 'Loading current automation metadata for review' : modalLabel;
+    }
+    if (deployResultsSummary) {
+      return `${modalLabel}. ${deployResultsSummary.message}`;
+    }
+    const errorCount = deploymentItems.filter(({ status }) => status === 'Error').length;
+    return `Ready to review. ${deploymentItems.length} changes loaded${errorCount ? `, ${errorCount} with errors` : ''}.`;
+  }, [inProgress, currentStep, modalLabel, deploymentItems, deployResultsSummary]);
 
   const handlePreparePayloads = useCallback(() => {
     return preparePayloads(defaultApiVersion, selectedOrg, deploymentItemMap).subscribe({
@@ -369,12 +393,16 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
     }
   }
 
+  // Only the first step deploys, so the deploy permission gates just that step
+  const nextButtonDisabled = inProgress || (currentStep === 0 && !deployAccess.allowed);
+
   return (
     <Fragment>
       <ConfirmPageChange actionInProgress={inProgress} />
       <Modal
         size="lg"
         header={modalLabel}
+        tagline="Each row shows the current (old) and pending (new) active state. Deploying applies the new values to the selected org, and successful changes can be rolled back afterwards."
         closeOnBackdropClick={false}
         closeOnEsc={false}
         hide={!!packageDownload}
@@ -387,17 +415,35 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
               onSelected={(variant) => preparePackage(getPackageItemsFromRows(rows, variant), variant)}
             />
             <div>
+              {/* aria-disabled (not disabled) keeps the footer buttons focusable while a deploy is in
+                  flight, so focus is not dropped mid-operation */}
               {!didDeploy && (
-                <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={inProgress}>
+                <button
+                  className="slds-button slds-button_neutral"
+                  aria-disabled={inProgress}
+                  onClick={() => {
+                    if (!inProgress) {
+                      onClose();
+                    }
+                  }}
+                >
                   Cancel
                 </button>
               )}
               {didDeploy && !didRollback && (
                 <button
                   className="slds-button slds-button_neutral"
-                  onClick={() => handleRollbackMetadata()}
                   title={deployAccess.deniedReason ?? 'Revert all successfully deployed items'}
-                  disabled={inProgress || !deployAccess.allowed}
+                  aria-disabled={inProgress || !deployAccess.allowed}
+                  onClick={() => {
+                    if (inProgress || !deployAccess.allowed) {
+                      return;
+                    }
+                    handleRollbackMetadata();
+                    // This button unmounts when the rollback finishes — hand focus to the primary
+                    // button (which becomes "Close") so focus survives the removal
+                    primaryButtonRef.current?.focus();
+                  }}
                 >
                   <Icon type="utility" icon="undo" className="slds-button__icon slds-button__icon_left" omitContainer />
                   Rollback
@@ -405,10 +451,15 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
               )}
               {/* The first step's next button deploys, later steps only close the modal */}
               <button
+                ref={primaryButtonRef}
                 className="slds-button slds-button_brand"
-                onClick={() => setCurrentStep(currentStep + 1)}
-                disabled={inProgress || (currentStep === 0 && !deployAccess.allowed)}
+                aria-disabled={nextButtonDisabled}
                 title={currentStep === 0 ? deployAccess.deniedReason : undefined}
+                onClick={() => {
+                  if (!nextButtonDisabled) {
+                    setCurrentStep(currentStep + 1);
+                  }
+                }}
               >
                 {nextButtonLabel}
               </button>
@@ -427,6 +478,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
             min-height: 50vh;
           `}
         >
+          <AssistiveStatus debounceMs={500} message={assistiveMessage} />
           {inProgress && <Spinner />}
           {deployResultsSummary && (
             <div className="slds-m-bottom_x-small">
