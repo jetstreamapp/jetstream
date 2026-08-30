@@ -9,6 +9,7 @@ import EmptyState from '../illustrations/EmptyState';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import List from '../list/List';
 import Tabs from '../tabs/Tabs';
+import AssistiveStatus from '../widgets/AssistiveStatus';
 import ItemSelectionSummary from '../widgets/ItemSelectionSummary';
 import Spinner from '../widgets/Spinner';
 
@@ -129,6 +130,7 @@ export const SobjectListMultiSelect: FunctionComponent<SobjectListMultiSelectPro
               />
               <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
                 Showing {formatNumber(filteredSobjects.length)} of {formatNumber(sobjects.length)} objects
+                <AssistiveStatus debounceMs={600} message={`Showing ${filteredSobjects.length} of ${sobjects.length} objects`} />
               </div>
               {allowSelectAll && (
                 <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
