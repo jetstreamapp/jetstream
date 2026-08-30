@@ -51,8 +51,19 @@ export const CreateFieldsRow: FunctionComponent<CreateFieldsRowProps> = ({
     onChange(field, value);
   }
 
+  // Row identity for screen readers: every card repeats the same controls, so the card itself (and
+  // its Clone/Delete buttons) carry which field they act on; configuration status is part of the
+  // name since the status icon is visual-only
+  const rowName = `Field ${rowIdx + 1}${values.label.value ? `: ${values.label.value}` : ''}`;
+  const rowNameWithStatus = `${rowName}${allValid ? '' : ' — not yet configured'}`;
+
   return (
-    <div className="slds-box slds-box_small slds-m-bottom_xx-small">
+    <div
+      role="listitem"
+      aria-label={rowNameWithStatus}
+      data-field-row-index={rowIdx}
+      className="slds-box slds-box_small slds-m-bottom_xx-small"
+    >
       <Grid wrap>
         {baseFields.map((field) => (
           <CreateFieldsRowField
@@ -142,7 +153,7 @@ export const CreateFieldsRow: FunctionComponent<CreateFieldsRowProps> = ({
       </Grid>
       <Grid className="slds-m-top_small" align="spread" verticalAlign="end">
         <div>
-          <button className="slds-button" onClick={() => onClone()}>
+          <button className="slds-button" aria-label={`Clone ${rowName}`} onClick={() => onClone()}>
             <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
             Clone
           </button>
@@ -175,7 +186,7 @@ export const CreateFieldsRow: FunctionComponent<CreateFieldsRowProps> = ({
         </div>
         <div>
           {enableDelete && (
-            <button className="slds-button slds-button_text-destructive" onClick={() => onDelete()}>
+            <button className="slds-button slds-button_text-destructive" aria-label={`Delete ${rowName}`} onClick={() => onDelete()}>
               <Icon type="utility" icon="delete" className="slds-button__icon slds-button__icon_left" omitContainer />
               Delete
             </button>
