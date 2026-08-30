@@ -1450,6 +1450,7 @@ export const FieldUsageAnalysisView: FunctionComponent = () => {
                   <button
                     type="button"
                     className="slds-button slds-button_neutral collapsible-button collapsible-button-xs slds-m-left_xx-small"
+                    title="Load All Records"
                     disabled={isFieldUsageJobActiveForOrg}
                     onClick={() => setLoadAllRecordsModalOpen(true)}
                   >
