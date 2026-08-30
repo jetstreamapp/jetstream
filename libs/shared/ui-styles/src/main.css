@@ -33,6 +33,35 @@ html {
   padding-inline-end: var(--slds-g-spacing-5, 1.5rem);
 }
 
+/* Buttons that disable themselves as a result of their own click (e.g. "Clear mapping",
+   "Start load") use aria-disabled instead of the disabled attribute so they KEEP keyboard
+   focus — a natively disabled element drops focus to <body>, which restarts tabbing from
+   the top of the page. These rules mirror SLDS 2's :disabled styling for aria-disabled.
+   Click handlers must guard on the same condition, since aria-disabled is not enforced
+   by the browser (pointer-events below blocks the mouse, but not Enter/Space). */
+.slds-button[aria-disabled='true'] {
+  background-color: transparent;
+  border-color: transparent;
+  color: var(--slds-g-color-disabled-1);
+  cursor: default;
+  pointer-events: none;
+}
+.slds-button_neutral[aria-disabled='true'] {
+  background-color: var(--slds-g-color-disabled-container-1);
+  border-color: var(--slds-g-color-border-disabled-1);
+  color: var(--slds-g-color-on-disabled-1);
+}
+.slds-button_brand[aria-disabled='true'] {
+  background-color: var(--slds-g-color-disabled-container-2);
+  border-color: var(--slds-g-color-disabled-container-2);
+  color: var(--slds-g-color-on-disabled-2);
+}
+.slds-button_icon-border-filled[aria-disabled='true'],
+.slds-button_icon-border[aria-disabled='true'] {
+  border-color: var(--slds-g-color-border-disabled-1);
+  color: var(--slds-g-color-on-disabled-2);
+}
+
 .app {
   /* brand styling */
 }
