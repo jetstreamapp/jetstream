@@ -42,11 +42,24 @@ let totalSeriousOrCritical = 0;
 
 for (const path of paths) {
   const url = new URL(path, baseUrl).toString();
-  const scanKey = `url-${(new URL(url).pathname.replace(/\/+$/, '') || '/').replaceAll('/', '_').replace(/^_/, '') || 'root'}`;
+  // Key includes host+port so the same path on different surfaces (landing vs docs) can't collide
+  const { hostname, port, pathname, protocol } = new URL(url);
+  const pathKey = (pathname.replace(/\/+$/, '') || '/').replaceAll('/', '_').replace(/^_/, '') || 'root';
+  const scanKey = `url-${hostname}-${port || (protocol === 'https:' ? '443' : '80')}-${pathKey}`;
   try {
     await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
   } catch {
-    await page.waitForTimeout(2000);
+    // networkidle can time out on pages with long-polling even though navigation landed. Retry with
+    // a lighter wait condition; if navigation itself fails, skip the scan so evidence is never
+    // captured from the previously loaded page under this scanKey.
+    try {
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await page.waitForTimeout(2000);
+    } catch (error) {
+      console.error(`${url}\n  failed to load, scan skipped: ${error.message}`);
+      process.exitCode = 1;
+      continue;
+    }
   }
   const results = await new AxeBuilder({ page }).withTags(WCAG_21_AA_TAGS).analyze();
 
