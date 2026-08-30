@@ -19,6 +19,7 @@ import {
   ToolbarItemActions,
   ToolbarItemGroup,
   Tooltip,
+  getAriaKeyshortcuts,
   getModifierKey,
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, fromAutomationControlState, fromJetstreamEvents, useAnalytics } from '@jetstream/ui-core';
@@ -310,6 +311,7 @@ export const AutomationControlEditor = () => {
             <Link
               className="slds-button slds-button_brand"
               title="Go back"
+              aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'shift', 'enter'])}
               to=".."
               // onClick={handleGoBack}
             >
@@ -375,6 +377,7 @@ export const AutomationControlEditor = () => {
           >
             <button
               className="slds-button slds-button_brand slds-m-left_xx-small"
+              aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
               disabled={reviewChangesDisabled}
               onClick={handleReviewChanges}
             >

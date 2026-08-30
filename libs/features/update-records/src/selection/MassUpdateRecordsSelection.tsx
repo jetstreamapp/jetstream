@@ -12,6 +12,7 @@ import {
   PageHeaderRow,
   PageHeaderTitle,
   Tooltip,
+  getAriaKeyshortcuts,
   getModifierKey,
 } from '@jetstream/ui';
 import { filterMassUpdateSobject } from '@jetstream/ui-core';
@@ -119,7 +120,12 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
                   </div>
                 }
               >
-                <Link className="slds-button slds-button_brand" to="deployment" onClick={handleContinue}>
+                <Link
+                  className="slds-button slds-button_brand"
+                  aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+                  to="deployment"
+                  onClick={handleContinue}
+                >
                   Review Changes
                 </Link>
               </Tooltip>

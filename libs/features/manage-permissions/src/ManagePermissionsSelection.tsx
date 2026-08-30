@@ -37,6 +37,7 @@ import {
   ProfileOrPermSetRecordType,
   Tooltip,
   fireToast,
+  getAriaKeyshortcuts,
   getModifierKey,
 } from '@jetstream/ui';
 import {
@@ -371,7 +372,12 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
                   </div>
                 }
               >
-                <Link className="slds-button slds-button_brand" to="editor" onClick={handleContinue}>
+                <Link
+                  className="slds-button slds-button_brand"
+                  aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+                  to="editor"
+                  onClick={handleContinue}
+                >
                   Continue
                   <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
                 </Link>
@@ -386,7 +392,12 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
                   </div>
                 }
               >
-                <button type="button" className="slds-button slds-button_brand" onClick={handleContinueAnalysis}>
+                <button
+                  type="button"
+                  className="slds-button slds-button_brand"
+                  aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+                  onClick={handleContinueAnalysis}
+                >
                   Continue
                   <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
                 </button>
