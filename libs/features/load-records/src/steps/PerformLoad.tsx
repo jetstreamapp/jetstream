@@ -399,6 +399,11 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
       onIsLoading(true);
       trackEvent(ANALYTICS_KEYS.load_Submitted, runSnapshot);
       document.title = `Loading Records | ${TITLES.BAR_JETSTREAM}`;
+      // The retry button the user activated unmounts with the old results view, which would drop
+      // focus to <body> — land on the new run's tab instead (Tab.tsx renders anchors as tab-<id>)
+      window.setTimeout(() => {
+        document.getElementById(`tab-${newRunId}`)?.focus();
+      });
     },
     [activeRun, runs, onIsLoading, trackEvent, apiMode, batchSize, fieldMapping, inputZipFileData, startHistoryForRun],
   );
