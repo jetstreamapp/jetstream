@@ -123,11 +123,13 @@ describe('AddOrg', () => {
       selectCustom();
       fireEvent.change(getCustomUrlInput(), { target: { value: 'https://evil.com' } });
 
-      expect(getCustomUrlInput().getAttribute('aria-describedby')).toBe('org-custom-url-error');
+      // The label-help association is always present; the error id joins it only while invalid
+      expect(getCustomUrlInput().getAttribute('aria-describedby')).toContain('org-custom-url-error');
       expect(getCustomUrlInput().getAttribute('aria-invalid')).toBe('true');
 
       fireEvent.change(getCustomUrlInput(), { target: { value: 'acme' } });
-      expect(getCustomUrlInput().getAttribute('aria-describedby')).toBeNull();
+      expect(getCustomUrlInput().getAttribute('aria-describedby')).not.toContain('org-custom-url-error');
+      expect(getCustomUrlInput().getAttribute('aria-describedby')).toContain('label-help-text');
     });
 
     it('builds the login url from shorthand', () => {
