@@ -16,6 +16,7 @@ import classNames from 'classnames';
 import isNumber from 'lodash/isNumber';
 import uniqueId from 'lodash/uniqueId';
 import { createRef, FunctionComponent, KeyboardEvent, RefObject, useEffect, useRef, useState } from 'react';
+import { useEscapeToCloseLayer } from '../../hooks/useEscapeToCloseLayer';
 import OutsideClickHandler from '../../utils/OutsideClickHandler';
 import Icon from '../../widgets/Icon';
 
@@ -89,15 +90,39 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
   function selectItem(item: FormGroupDropdownItem) {
     setSelectedItem(item);
     setIsOpen(false);
+    // The focused option unmounts with the list, which would drop focus to <body> — return it to the
+    // trigger (as Escape does) BEFORE notifying, so anything the selection opens records the trigger
+    // as its return-focus target
+    if (inputRef.current && typeof inputRef.current.focus === 'function') {
+      inputRef.current.focus();
+    }
     if (onSelected) {
       onSelected(item);
     }
   }
 
+  // Escape closes ONLY this menu (and returns focus to the trigger) — consumed at document capture
+  // so an ancestor modal/popover cannot also close on the same press
+  useEscapeToCloseLayer(isOpen, () => {
+    setIsOpen(false);
+    if (inputRef.current && typeof inputRef.current.focus === 'function') {
+      inputRef.current.focus();
+    }
+  });
+
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement | HTMLInputElement | HTMLLIElement>) {
     try {
       if (isTabKey(event)) {
+        // A focused option unmounts with the list — hand focus to the trigger WITHOUT preventDefault so
+        // the browser's sequential navigation continues from there in the same press
+        if (event.target !== inputRef.current && inputRef.current && typeof inputRef.current.focus === 'function') {
+          inputRef.current.focus();
+        }
         setIsOpen(false);
+        return;
+      }
+      // Modified keys are browser/app shortcuts (reload, page-level Cmd+Enter), not type-ahead
+      if (event.metaKey || event.ctrlKey || event.altKey) {
         return;
       }
 
@@ -105,11 +130,10 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
       event.stopPropagation();
       let newFocusedItem;
 
+      // While open, Escape never reaches here (useEscapeToCloseLayer consumes it at document
+      // capture); this guard covers the CLOSED state, keeping Escape out of the type-ahead buffer
+      // in the fallback branch below
       if (isEscapeKey(event)) {
-        setIsOpen(false);
-        if (inputRef.current && typeof inputRef.current.focus === 'function') {
-          inputRef.current.focus();
-        }
         return;
       }
 
@@ -131,7 +155,7 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
         } else {
           newFocusedItem = focusedItem + 1;
         }
-      } else if (isEnterKey(event) && isNumber(focusedItem)) {
+      } else if (isOpen && (isEnterKey(event) || isSpaceKey(event)) && isNumber(focusedItem)) {
         const item = items[focusedItem];
         selectItem(item);
       } else {

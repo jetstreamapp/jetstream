@@ -36,15 +36,41 @@ function buildColumns(renderEditCell: ColumnWithFilter<Row>['renderEditCell']): 
   ];
 }
 
-function Harness({ columns, getRootElement }: { columns: ColumnWithFilter<Row>[]; getRootElement: () => HTMLElement | null }) {
+/** Mirrors a multi-select picklist: Tab closes its list and commits through onClose, and the key still bubbles */
+function EditorClosesOnTab({ row, onRowChange, onClose }: DataTableEditorProps<Row>) {
+  return (
+    <input
+      data-testid="editor-closes-on-tab"
+      value={row.Name || ''}
+      onChange={(event) => onRowChange({ ...row, Name: event.target.value })}
+      onKeyDown={(event) => {
+        if (event.key === 'Tab') {
+          onClose(true, true);
+        }
+      }}
+    />
+  );
+}
+
+function Harness({
+  columns,
+  getRootElement,
+  onCommitRow = vi.fn(),
+  onClose = vi.fn(),
+}: {
+  columns: ColumnWithFilter<Row>[];
+  getRootElement: () => HTMLElement | null;
+  onCommitRow?: () => void;
+  onClose?: () => void;
+}) {
   const { table } = useJetstreamTable<Row>({ data, columns, getRowKey: (row) => row._key });
   return (
     <EditorHost
       editingCell={{ rowId: '1', columnId: 'Name' }}
       table={table}
       getRootElement={getRootElement}
-      onCommitRow={vi.fn()}
-      onClose={vi.fn()}
+      onCommitRow={onCommitRow}
+      onClose={onClose}
     />
   );
 }
@@ -63,6 +89,21 @@ function createGridRoot(): HTMLElement {
 describe('EditorHost', () => {
   afterEach(() => {
     document.body.innerHTML = '';
+  });
+
+  test('an edit closed by the editor and by the same Tab press commits once', () => {
+    const root = createGridRoot();
+    const onCommitRow = vi.fn();
+    const onClose = vi.fn();
+    render(<Harness columns={buildColumns(EditorClosesOnTab)} getRootElement={() => root} onCommitRow={onCommitRow} onClose={onClose} />);
+    const editor = screen.getByTestId('editor-closes-on-tab');
+
+    fireEvent.change(editor, { target: { value: 'Drafted value' } });
+    fireEvent.keyDown(editor, { key: 'Tab' });
+
+    // A second commit of the same draft would push a second, empty undo step
+    expect(onCommitRow).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   test('swapping to a hook-bearing editor mid-edit remounts the editor instead of crashing (React #310 regression)', () => {
