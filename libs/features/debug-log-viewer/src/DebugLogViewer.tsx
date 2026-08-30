@@ -4,6 +4,7 @@ import { fetchActiveLog, saveFile, useNonInitialEffect, useObservable, useTitle 
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { ApexLogWithViewed } from '@jetstream/types';
 import {
+  AssistiveStatus,
   AutoFullHeightContainer,
   Card,
   Checkbox,
@@ -47,6 +48,10 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
   const [loadingLog, setLoadingLog] = useState(false);
   const [activeLogId, setActiveLogId] = useState<string | null>(null);
   const [activeLog, setActiveLog] = useState<string>('');
+
+  // Activating a log row loads it into the Monaco pane on the right with no visible focus change —
+  // announce the load so screen reader users know the activation did something
+  const logStatusMessage = loadingLog ? 'Loading debug log' : activeLog ? 'Debug log loaded in the viewer panel' : '';
   const [userDebug, setUserDebug] = useState(false);
   const [textFilter, setTextFilter] = useState<string>('');
   const [visibleResults, setVisibleResults] = useState<string>('');
@@ -192,6 +197,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
   return (
     <AutoFullHeightContainer fillHeight bottomBuffer={10} setHeightAttr className="slds-p-horizontal_x-small slds-scrollable_none">
       <RequireMetadataApiBanner />
+      <AssistiveStatus debounceMs={300} message={logStatusMessage} />
       {purgeModalOpen && <PurgeLogsModal selectedOrg={selectedOrg} onModalClose={() => setPurgeModalOpen(false)} />}
       <Split
         sizes={[66, 33]}

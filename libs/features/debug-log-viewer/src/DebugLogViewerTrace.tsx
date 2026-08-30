@@ -37,6 +37,7 @@ export const DebugLogViewerTrace: FunctionComponent<DebugLogViewerTraceProps> = 
       <div>
         <Popover
           ref={popoverRef}
+          trapFocus
           header={
             <header className="slds-popover__header">
               <h2 className="slds-text-heading_small" title="Debug Levels">
@@ -52,16 +53,24 @@ export const DebugLogViewerTrace: FunctionComponent<DebugLogViewerTraceProps> = 
                     <Fragment key={debugLevel.Id}>
                       {debugLevel.Id === activeDebugLevel?.Id && (
                         <li className="slds-item">
-                          <div className="slds-truncate" title={debugLevel.DeveloperName}>
+                          <div className="slds-truncate" title={debugLevel.DeveloperName} aria-current="true">
                             {debugLevel.DeveloperName}
+                            <span className="slds-assistive-text"> (current)</span>
                           </div>
                         </li>
                       )}
                       {debugLevel.Id !== activeDebugLevel?.Id && (
-                        <li className="slds-item slds-text-link" onClick={() => handleChangeLogLevel(debugLevel)}>
-                          <div className="slds-truncate" title={debugLevel.DeveloperName}>
+                        <li className="slds-item">
+                          {/* Real button: the clickable li was mouse-only (no focus, no Enter/Space) */}
+                          <button
+                            type="button"
+                            className="slds-button slds-button_reset slds-text-link slds-truncate w-100 slds-text-align_left"
+                            title={debugLevel.DeveloperName}
+                            onClick={() => handleChangeLogLevel(debugLevel)}
+                          >
+                            <span className="slds-assistive-text">Set log level to </span>
                             {debugLevel.DeveloperName}
-                          </div>
+                          </button>
                         </li>
                       )}
                     </Fragment>
