@@ -130,6 +130,8 @@ export const SettingsSection = ({ id, title, description, children }: SettingsSe
 };
 
 export interface SettingsGroupProps {
+  /** Deep link target, for a group that is linked to directly rather than through its section */
+  id?: string;
   title?: ReactNode;
   description?: ReactNode;
   /** Rendered on the right side of the group header */
@@ -140,9 +142,9 @@ export interface SettingsGroupProps {
 }
 
 /** Bordered card of `SettingsRow`s, with an optional header */
-export const SettingsGroup = ({ title, description, actions, variant = 'default', testId, children }: SettingsGroupProps) => {
+export const SettingsGroup = ({ id, title, description, actions, variant = 'default', testId, children }: SettingsGroupProps) => {
   return (
-    <div css={[groupCss, variant === 'danger' && dangerGroupCss]} data-testid={testId}>
+    <div id={id} css={[groupCss, variant === 'danger' && dangerGroupCss]} data-testid={testId}>
       {(title || actions) && (
         <div css={groupHeaderCss}>
           <div>
