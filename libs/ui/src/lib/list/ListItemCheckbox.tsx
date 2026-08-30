@@ -10,6 +10,7 @@ export interface ListItemCheckboxProps {
   id: string;
   testId?: string;
   inputRef?: RefObject<HTMLInputElement>;
+  label?: Maybe<string>;
   heading?: Maybe<string | ReactNode>;
   subheading?: Maybe<string>;
   isActive?: boolean;
@@ -26,6 +27,7 @@ export const ListItemCheckbox = memo<ListItemCheckboxProps>(
     id,
     testId,
     inputRef,
+    label,
     heading,
     subheading,
     isActive,
@@ -42,6 +44,11 @@ export const ListItemCheckbox = memo<ListItemCheckboxProps>(
     });
     function handleClick(ev: MouseEvent<HTMLLIElement>) {
       ev.stopPropagation();
+      // Activating the checkbox itself (Space, or clicking the box/label) fires its own change
+      // event AND a bubbled click — toggling again here would cancel the user's action out
+      if ((ev.target as HTMLElement).closest('input, label')) {
+        return;
+      }
       !disabled && onSelected && onSelected();
     }
     return (
@@ -61,8 +68,11 @@ export const ListItemCheckbox = memo<ListItemCheckboxProps>(
               checked={!!isActive}
               // The visible heading is not associated with the input, so give the checkbox an
               // assistive-text label (heading when it is plain text, else subheading/id)
-              label={(isString(heading) ? heading : subheading) || id}
+              label={label || (isString(heading) ? heading : subheading) || id}
               hideLabel
+              // Roving tabindex: the list is a single tab stop (the ul) and arrow keys move focus
+              // between checkboxes — without this, every field checkbox floods the page tab order
+              tabIndex={-1}
               disabled={disabled}
               onChange={() => !disabled && onSelected && onSelected()}
             />
