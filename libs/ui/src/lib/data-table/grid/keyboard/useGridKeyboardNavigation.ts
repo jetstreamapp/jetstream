@@ -463,19 +463,18 @@ export function useGridKeyboardNavigation<TRow extends object>({
   // overlay; when it closes and focus would fall to <body>, pull it back to the cell so arrow navigation
   // continues. Works for popovers/modals opened by mouse OR keyboard, from a body cell or the header.
   useEffect(() => {
-    // Returns overlays (portaled popovers/modals) that are NOT an ancestor of this grid — i.e. a popover
-    // opened FROM the grid, excluding a modal that merely hosts the grid.
+    // Returns overlays (portaled popovers/modals/dropdown menus) that are NOT an ancestor of this grid —
+    // i.e. an overlay opened FROM the grid, excluding a modal that merely hosts the grid.
+    const OVERLAY_SELECTOR = '.slds-popover, .slds-modal, .slds-dropdown, [role="dialog"]';
     const hasForeignOverlayOpen = () => {
       const root = getRootElement();
-      return Array.from(document.querySelectorAll('.slds-popover, .slds-modal, [role="dialog"]')).some(
-        (overlay) => !root || !overlay.contains(root),
-      );
+      return Array.from(document.querySelectorAll(OVERLAY_SELECTOR)).some((overlay) => !root || !overlay.contains(root));
     };
 
     // When focus moves into such an overlay, remember the active cell so we can restore it on close.
     const handleFocusIn = (event: FocusEvent) => {
       const target = event.target as HTMLElement | null;
-      const overlay = target?.closest?.('.slds-popover, .slds-modal, [role="dialog"]');
+      const overlay = target?.closest?.(OVERLAY_SELECTOR);
       const root = getRootElement();
       if (overlay && (!root || !overlay.contains(root)) && activeCellRef.current) {
         pendingReturnFocusCellRef.current = activeCellRef.current;
