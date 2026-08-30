@@ -739,7 +739,9 @@ export const QueryResults = React.memo(() => {
             <Tooltip
               openDelay={500}
               content={
+                // The tooltip replaces the button's title, which would have shown as a second tooltip
                 <div className="slds-p-bottom_small">
+                  <p className="slds-m-bottom_x-small">Re-run the current query</p>
                   <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
                 </div>
               }
@@ -751,7 +753,6 @@ export const QueryResults = React.memo(() => {
                 onClick={() => executeQuery(soql, SOURCE_RELOAD, { isTooling })}
                 disabled={!!(loading || errorMessage)}
                 aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
-                title="Re-run the current query"
               >
                 <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
                 <span>Reload</span>
