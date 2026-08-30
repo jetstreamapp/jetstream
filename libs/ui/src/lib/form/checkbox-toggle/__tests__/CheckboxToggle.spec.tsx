@@ -25,6 +25,30 @@ describe('CheckboxToggle', () => {
     expect(onChange).toHaveBeenCalledWith(true);
   });
 
+  test('with labelHelp, the label text still toggles the checkbox and names it (help button is not the label control)', async () => {
+    const onChange = vi.fn();
+    render(
+      <CheckboxToggle
+        id="toggle-1"
+        checked={false}
+        label="Include deleted records"
+        labelHelp="Deleted records are returned with an IsDeleted flag"
+        onChange={onChange}
+      />,
+    );
+
+    expect(screen.getByRole('checkbox', { name: /Include deleted records/ })).toBeTruthy();
+    await userEvent.click(screen.getByText('Include deleted records'));
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
+  test('a hidden label still names the checkbox', () => {
+    render(<CheckboxToggle id="toggle-1" checked={false} label="Include deleted records" hideLabel />);
+
+    expect(screen.getByRole('checkbox', { name: /Include deleted records/ })).toBeTruthy();
+  });
+
   test('does not toggle when disabled', async () => {
     const onChange = vi.fn();
     render(<CheckboxToggle id="toggle-1" checked={false} label="Include deleted records" disabled onChange={onChange} />);
@@ -37,7 +61,7 @@ describe('CheckboxToggle', () => {
   test('has no axe violations', async () => {
     const { baseElement } = render(
       <main>
-        <CheckboxToggle id="toggle-1" checked={false} label="Include deleted records" />
+        <CheckboxToggle id="toggle-1" checked={false} label="Include deleted records" labelHelp="Deleted records are included" />
       </main>,
     );
     const results = await axeScan(baseElement);

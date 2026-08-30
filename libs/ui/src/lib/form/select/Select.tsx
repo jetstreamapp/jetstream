@@ -44,7 +44,9 @@ export const Select: FunctionComponent<SelectProps> = ({
         </Fragment>
       )}
       <div className="slds-form-element__control">
-        <div className="slds-select_container">{associateErrorsWithControls(children, hasError, errorMessageId)}</div>
+        <div className="slds-select_container">
+          {associateErrorsWithControls(children, hasError, errorMessageId, labelHelp && id ? `${id}-label-help-text` : undefined)}
+        </div>
       </div>
       {helpText && <div className="slds-form-element__help">{helpText}</div>}
       {hasError && errorMessage && (
