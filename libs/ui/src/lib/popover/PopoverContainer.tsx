@@ -37,18 +37,6 @@ export const PopoverContainer = forwardRef<HTMLElement, PopoverContainerProps>(
       },
     });
 
-    useEffect(() => {
-      if (!ref) {
-        return;
-      }
-      const floatingElement = refs.floating.current;
-      if (floatingElement && typeof ref === 'function') {
-        ref(floatingElement);
-      } else if (floatingElement && typeof ref !== 'function') {
-        ref.current = floatingElement;
-      }
-    }, [refs.floating, ref]);
-
     // Ensure positioning is updated when the popover is opened - mostly impacts isEager popovers
     useEffect(() => {
       isOpen && update && update();
@@ -64,7 +52,16 @@ export const PopoverContainer = forwardRef<HTMLElement, PopoverContainerProps>(
     const content = (
       <div
         {...rest}
-        ref={refs.setFloating}
+        // Composed callback ref: the previous effect-based forwarding ran once at mount, before a
+        // non-eager popover had rendered its floating div, so the forwarded ref stayed null forever
+        ref={(node) => {
+          refs.setFloating(node);
+          if (typeof ref === 'function') {
+            ref(node);
+          } else if (ref) {
+            ref.current = node;
+          }
+        }}
         className={className}
         // Selectively picked from `slds-dropdown` - removed margin as that must be set via popover offset
         css={css`
