@@ -4,7 +4,9 @@ import { AppToast, ConfirmationServiceProvider, SkipToContent } from '@jetstream
 import {
   AppLoading,
   ErrorBoundaryFallback,
+  FocusMainContentOnRouteChange,
   HeaderNavbar,
+  MAIN_CONTENT_ID,
   NotificationsRequestModal,
   ThemeApplier,
   ViewEditCloneRecordWrapper,
@@ -39,6 +41,7 @@ export const App = () => {
               <NotificationsRequestModal loadDelay={10000} />
               <DownloadFileStreamDesktop />
               <ViewEditCloneRecordWrapper />
+              <FocusMainContentOnRouteChange />
               <div>
                 <SkipToContent />
                 <div
@@ -57,9 +60,10 @@ export const App = () => {
                     onLogoutHandlerFn={onLogout}
                   />
                 </div>
-                <div
-                  id="main-content"
+                <main
+                  id={MAIN_CONTENT_ID}
                   tabIndex={-1}
+                  style={{ outline: 'none' }}
                   className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small"
                   data-testid="content"
                 >
@@ -69,7 +73,7 @@ export const App = () => {
                       <AppRoutes />
                     </ErrorBoundary>
                   </Suspense>
-                </div>
+                </main>
               </div>
             </AppInitializer>
           )}
