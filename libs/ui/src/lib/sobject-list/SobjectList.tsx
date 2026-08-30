@@ -8,6 +8,7 @@ import EmptyState from '../illustrations/EmptyState';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import List from '../list/List';
 import Tabs from '../tabs/Tabs';
+import AssistiveStatus from '../widgets/AssistiveStatus';
 import Spinner from '../widgets/Spinner';
 
 export interface SobjectListProps {
@@ -106,6 +107,7 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
               />
               <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
                 Showing {formatNumber(filteredSobjects.length)} of {formatNumber(sobjects.length)} objects
+                <AssistiveStatus debounceMs={600} message={`Showing ${filteredSobjects.length} of ${sobjects.length} objects`} />
               </div>
             </div>
             {recentItemsEnabled ? (
