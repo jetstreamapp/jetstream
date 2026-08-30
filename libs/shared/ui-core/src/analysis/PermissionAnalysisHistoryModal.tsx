@@ -580,6 +580,7 @@ export const PermissionAnalysisHistoryModal: FunctionComponent<PermissionAnalysi
             `}
           >
             <List
+              ariaLabel="Permission analysis history"
               items={filteredRows}
               isActive={(item: PermissionAnalysisHistoryRow) => item.key === selectedKey}
               onSelected={handleListSelect}

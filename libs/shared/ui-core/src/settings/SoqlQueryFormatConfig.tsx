@@ -63,12 +63,14 @@ export const SoqlQueryFormatConfig = ({
         `}
       >
         <Input
+          id="soql-format-max-line-length"
           label="Max Characters per line"
           labelHelp="Set the maximum number of characters per line for formatted SOQL queries. Set to 1 to have each field on its own line."
           hasError={!isFieldMaxLineLengthValid}
           errorMessage={!isFieldMaxLineLengthValid ? 'Must be a number greater than or equal to 1' : undefined}
         >
           <input
+            id="soql-format-max-line-length"
             className="slds-input"
             pattern="[0-9]"
             type="number"
@@ -86,12 +88,14 @@ export const SoqlQueryFormatConfig = ({
           />
         </Input>
         <Input
+          id="soql-format-indent-size"
           label="Indent Size"
           labelHelp="Set the number of spaces to use for each indentation level in formatted SOQL queries."
           hasError={!isNumIndentValid}
           errorMessage={!isNumIndentValid ? 'Must be a number greater than or equal to 1' : undefined}
         >
           <input
+            id="soql-format-indent-size"
             className="slds-input"
             pattern="[0-9]"
             type="number"

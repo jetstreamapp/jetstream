@@ -227,6 +227,7 @@ const SobjectListContent = forwardRef(
       <>
         <List
           ref={ref}
+          ariaLabel="Salesforce objects"
           items={filteredSobjects}
           isMultiSelect
           disabled={disabled}
