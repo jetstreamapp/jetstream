@@ -178,7 +178,11 @@ export const SalesforceApiHistoryModal = ({ selectedOrg, onSubmit, onClose }: Sa
                     <Badge type={getBadgeTypeFromMethod(selectedHistoryItem.request.method)}>{selectedHistoryItem.request.method}</Badge>
                   </div>
                   <div>
-                    <CopyToClipboard content={selectedHistoryItem.request.url} className="slds-m-horizontal_xx-small" />
+                    <CopyToClipboard
+                      content={selectedHistoryItem.request.url}
+                      icon={{ type: 'utility', icon: 'copy', description: 'Copy request URL' }}
+                      className="slds-m-horizontal_xx-small"
+                    />
                   </div>
                   <span className="slds-line-clamp_large" title={selectedHistoryItem.request.url}>
                     {selectedHistoryItem.request.url}
@@ -189,6 +193,7 @@ export const SalesforceApiHistoryModal = ({ selectedOrg, onSubmit, onClose }: Sa
                   Request Headers{' '}
                   <CopyToClipboard
                     content={JSON.stringify(selectedHistoryItem.request.headers || {}, null, 2)}
+                    icon={{ type: 'utility', icon: 'copy', description: 'Copy request headers' }}
                     className="slds-m-horizontal_xx-small"
                   />
                 </h2>
@@ -205,7 +210,12 @@ export const SalesforceApiHistoryModal = ({ selectedOrg, onSubmit, onClose }: Sa
                 {selectedHistoryItem.request.body && (
                   <>
                     <h2 className="slds-text-heading_small slds-m-top_small">
-                      Request Body <CopyToClipboard content={selectedHistoryItem.request.body} className="slds-m-horizontal_xx-small" />
+                      Request Body{' '}
+                      <CopyToClipboard
+                        content={selectedHistoryItem.request.body}
+                        icon={{ type: 'utility', icon: 'copy', description: 'Copy request body' }}
+                        className="slds-m-horizontal_xx-small"
+                      />
                     </h2>
                     <MonacoEditor
                       height="20vh"
