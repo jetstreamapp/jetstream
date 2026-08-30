@@ -36,6 +36,9 @@
       "path": "../shared/ui-db/tsconfig.lib.json"
     },
     {
+      "path": "../test-utils/tsconfig.lib.json"
+    },
+    {
       "path": "../shared/ui-app-state/tsconfig.lib.json"
     },
     {
@@ -45,10 +48,10 @@
       "path": "../shared/ui-router/tsconfig.lib.json"
     },
     {
-      "path": "../shared/data/tsconfig.lib.json"
+      "path": "../shared/utils/tsconfig.lib.json"
     },
     {
-      "path": "../shared/utils/tsconfig.lib.json"
+      "path": "../shared/data/tsconfig.lib.json"
     },
     {
       "path": "../shared/constants/tsconfig.lib.json"

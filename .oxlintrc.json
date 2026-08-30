@@ -97,8 +97,9 @@
     // unicorn/no-new-array, unicorn/no-single-promise-in-promise-methods,
     // unicorn/no-useless-fallback-in-spread, unicorn/no-useless-length-check.
 
-    // Accessibility was advisory before the migration (Nx's React preset reports these as
-    // warnings, and only the two React apps opted into the wider set). Keeping that posture.
+    // Accessibility ratchet (docs/accessibility/README.md): each rule is promoted from `warn` to
+    // `error` once its violation count reaches zero — see the lint census in
+    // docs/accessibility/audit-2026/findings.md for current counts. Never demote a promoted rule.
     "jsx-a11y/autocomplete-valid": "warn",
     "jsx-a11y/click-events-have-key-events": "warn",
     "jsx-a11y/control-has-associated-label": "warn",
@@ -106,7 +107,7 @@
     "jsx-a11y/label-has-associated-control": "warn",
     "jsx-a11y/no-noninteractive-element-interactions": "warn",
     "jsx-a11y/no-noninteractive-element-to-interactive-role": "warn",
-    "jsx-a11y/no-redundant-roles": "warn",
+    "jsx-a11y/no-redundant-roles": "error",
     "jsx-a11y/no-static-element-interactions": "warn",
 
     // Focus placement in modals/popovers is deliberate (StepUpAuthModal, grid filter inputs, etc.).
