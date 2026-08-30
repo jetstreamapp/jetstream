@@ -29,6 +29,7 @@ import {
   Spinner,
   Tooltip,
   ViewDocsLink,
+  getAriaKeyshortcuts,
   getModifierKey,
 } from '@jetstream/ui';
 import { MonacoEditor } from '@jetstream/ui-core';
@@ -305,7 +306,12 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
                     </div>
                   }
                 >
-                  <button className="slds-button slds-button_brand" disabled={!hasApex} onClick={() => onSubmit(apex)}>
+                  <button
+                    className="slds-button slds-button_brand"
+                    disabled={!hasApex}
+                    aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+                    onClick={() => onSubmit(apex)}
+                  >
                     <Icon type="utility" icon="apex" className="slds-button__icon slds-button__icon_left" omitContainer />
                     Submit
                   </button>
