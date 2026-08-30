@@ -26,7 +26,7 @@ export const QueryHistoryWhichType: FunctionComponent<QueryHistoryWhichTypeProps
         name="query-history"
         label={
           <span css={labelCss}>
-            <Icon type="utility" icon="date_time" description="Manually enter query" className="slds-button__icon slds-button__icon_left" />
+            <Icon type="utility" icon="date_time" className="slds-button__icon slds-button__icon_left" />
             History
           </span>
         }
@@ -39,7 +39,7 @@ export const QueryHistoryWhichType: FunctionComponent<QueryHistoryWhichTypeProps
         name="query-history"
         label={
           <span css={labelCss}>
-            <Icon type="utility" icon="favorite" description="Manually enter query" className="slds-button__icon slds-button__icon_left" />
+            <Icon type="utility" icon="favorite" className="slds-button__icon slds-button__icon_left" />
             Saved Queries
           </span>
         }
