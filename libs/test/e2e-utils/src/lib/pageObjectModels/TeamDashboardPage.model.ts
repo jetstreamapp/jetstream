@@ -107,7 +107,7 @@ export class TeamDashboardPage {
     const row = this.userSessionModal.getByRole('row', { name: email }).first();
     await row.getByTestId('user-session-row-actions').click();
 
-    const getByPageBannerPromise = expect(this.page.getByText('Session revoked successfully.')).toBeVisible();
+    const getByPageBannerPromise = expect(this.page.getByRole('heading', { name: 'Session revoked successfully.' })).toBeVisible();
     await row.getByRole('menuitem', { name: 'Revoke Session' }).click();
     await this.userSessionModal.getByRole('button', { name: 'Close' }).click();
     await getByPageBannerPromise;

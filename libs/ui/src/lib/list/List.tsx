@@ -22,7 +22,10 @@ type RefObjType = RefObject<HTMLLIElement>[] | RefObject<HTMLInputElement>[];
 
 export interface ListProps {
   className?: string;
-  /** Accessible name for the listbox — required for screen readers since the list has no visible label element */
+  /**
+   * Accessible name for the list. Optional in the type, but strongly encouraged — the list renders
+   * no visible label element, so a listbox-mode list has no accessible name without it.
+   */
   ariaLabel?: string;
   items: any[];
   isMultiSelect?: boolean;
@@ -179,9 +182,12 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
         {Array.isArray(items) && items.length > 0 && (
           <ul
             ref={ref}
-            role="listbox"
+            // Checkbox mode moves focus into the checkboxes themselves, and options must not contain
+            // interactive children — so checkbox lists are plain lists of labeled checkboxes, while
+            // single-select lists keep listbox/option semantics.
+            role={useCheckbox ? undefined : 'listbox'}
             aria-label={ariaLabel}
-            aria-multiselectable={isMultiSelect}
+            aria-multiselectable={useCheckbox ? undefined : isMultiSelect}
             className={classNames('slds-has-dividers_bottom-space', className)}
             tabIndex={0}
             onKeyDown={handleKeyDown}
