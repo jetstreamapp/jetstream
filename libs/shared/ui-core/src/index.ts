@@ -96,6 +96,7 @@ export * from './record/ViewEditCloneRecord';
 export * from './record/ViewEditCloneRecordWrapper';
 export * from './settings/data-history-hooks';
 export * from './settings/DataHistorySettingsSection';
+export * from './settings/EditorSettingsSection';
 export * from './settings/DataHistoryStorageLocation';
 export * from './settings/SalesforceCanvasOrgs';
 export * from './settings/SoqlQueryFormatConfig';

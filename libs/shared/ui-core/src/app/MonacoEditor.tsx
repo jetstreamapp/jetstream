@@ -2,6 +2,7 @@ import { ClassNames, type ClassNamesContent } from '@emotion/react';
 import { ColorScheme } from '@jetstream/types';
 import EditorImpl, { DiffEditor as DiffEditorImpl, DiffEditorProps, EditorProps } from '@monaco-editor/react';
 import { useMemo, useSyncExternalStore } from 'react';
+import { getEditorAccessibilitySupport } from '../settings/editor-screen-reader-mode';
 
 const SCHEME_CLASS_PREFIX = 'slds-color-scheme--';
 
@@ -134,8 +135,12 @@ function buildEditorBorderWrapperProps<T extends { className?: string }>(
  * `editor.updateOptions` in a `useEffect([options])`, so returning a fresh object
  * every render would force an `updateOptions` on every parent re-render.
  */
-function useEditorOptions<T extends { fixedOverflowWidgets?: boolean }>(options: T | undefined): T {
-  return useMemo(() => ({ fixedOverflowWidgets: true, ...options }) as T, [options]);
+function useEditorOptions<T extends { fixedOverflowWidgets?: boolean; accessibilitySupport?: 'auto' | 'on' | 'off' }>(
+  options: T | undefined,
+): T {
+  // Spread order makes caller-supplied options win — a caller passing accessibilitySupport would
+  // override the user's Settings opt-in, which is why no caller sets it (verified at adoption)
+  return useMemo(() => ({ fixedOverflowWidgets: true, accessibilitySupport: getEditorAccessibilitySupport(), ...options }) as T, [options]);
 }
 
 /**
