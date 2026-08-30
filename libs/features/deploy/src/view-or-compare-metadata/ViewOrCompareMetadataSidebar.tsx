@@ -76,7 +76,7 @@ export const ViewOrCompareMetadataSidebar: FunctionComponent<ViewOrCompareMetada
             />
           </div>
           <div>
-            <RadioGroup isButtonGroup>
+            <RadioGroup label="Metadata view" isButtonGroup>
               <RadioButton
                 name="which-code"
                 label="Source"
@@ -87,7 +87,7 @@ export const ViewOrCompareMetadataSidebar: FunctionComponent<ViewOrCompareMetada
               />
               <RadioButton
                 name="which-code"
-                label="target"
+                label="Target"
                 value="TARGET"
                 checked={editorType === 'TARGET'}
                 disabled={!hasTargetResults || !!sourceError}
