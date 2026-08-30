@@ -84,7 +84,9 @@ export const Slider: FunctionComponent<SliderProps> = ({
             value={value}
             disabled={readOnly || disabled}
             readOnly={readOnly}
-            aria-describedby={errorMessageId}
+            aria-describedby={
+              [labelHelp && !hideLabel ? `${id}-label-help-text` : undefined, errorMessageId].filter(Boolean).join(' ') || undefined
+            }
             min={min}
             max={max}
             step={step}

@@ -50,7 +50,14 @@ export const CheckboxToggle: FunctionComponent<CheckboxCheckboxToggleProps> = ({
       <label className={classNames('slds-checkbox_toggle slds-grid', labelClassname)}>
         {!hideLabel && labelPosition === 'left' && <span className="slds-form-element__label slds-m-bottom_none">{label}</span>}
         {labelHelp && <HelpText id={`${id}-label-help-text`} className="slds-m-right_xx-small" content={labelHelp} />}
-        <input type="checkbox" name={id} aria-describedby={id} checked={checked} disabled={disabled} onChange={() => handleChange()} />
+        <input
+          type="checkbox"
+          name={id}
+          aria-describedby={labelHelp ? `${id}-label-help-text ${id}` : id}
+          checked={checked}
+          disabled={disabled}
+          onChange={() => handleChange()}
+        />
         <span id={id} className="slds-checkbox_faux_container" aria-live="assertive">
           <span className="slds-checkbox_faux"></span>
           <span className="slds-checkbox_on">{onText}</span>
