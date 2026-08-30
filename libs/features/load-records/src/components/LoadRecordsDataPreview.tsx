@@ -218,7 +218,7 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
             >
               <p className="slds-text-heading_small">File Preview</p>
               <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
-                <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={25}>
+                <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={25} minHeight="300px">
                   <DataTable
                     org={selectedOrg}
                     serverUrl={serverUrl}
