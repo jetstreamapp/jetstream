@@ -171,9 +171,9 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
         // lets those controls stay out of the page tab order without becoming keyboard-unreachable.
         const rowElement = (event.target as HTMLElement).closest('li');
         if (rowElement) {
-          const focusables = Array.from(rowElement.querySelectorAll<HTMLElement>('input, button, a[href], select, textarea')).filter(
-            (el) => !el.hasAttribute('disabled') && el.closest('li') === rowElement,
-          );
+          const focusables = Array.from(
+            rowElement.querySelectorAll<HTMLElement>('input, button, a[href], select, textarea, [tabindex]'),
+          ).filter((el) => !el.hasAttribute('disabled') && el.closest('li') === rowElement);
           const currentIndex = focusables.indexOf(event.target as HTMLElement);
           const next = isArrowRightKey(event) ? focusables[currentIndex + 1] : focusables[currentIndex - 1];
           if (next) {
