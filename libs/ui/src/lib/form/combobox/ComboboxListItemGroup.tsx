@@ -9,7 +9,7 @@ export interface ComboboxListItemGroupProps {
 export const ComboboxListItemGroup = forwardRef<HTMLUListElement, ComboboxListItemGroupProps>(({ label, children }, ref) => {
   return (
     <ul ref={ref} className="slds-listbox slds-listbox_vertical" role="group" aria-label={label}>
-      <ComboboxListItemHeading label={label} />
+      {label && <ComboboxListItemHeading label={label} />}
       {children}
     </ul>
   );

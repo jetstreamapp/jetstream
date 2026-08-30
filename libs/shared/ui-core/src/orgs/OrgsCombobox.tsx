@@ -3,9 +3,10 @@ import { getOrgType } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { ListItem, ListItemGroup, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Badge, ComboboxWithGroupedItems } from '@jetstream/ui';
+import classNames from 'classnames';
 import groupBy from 'lodash/groupBy';
 import sortBy from 'lodash/sortBy';
-import { FunctionComponent, useEffect, useState } from 'react';
+import { FunctionComponent, ReactNode, useMemo } from 'react';
 import { calculateOrgExpiration } from './useOrgExpiration';
 
 /**
@@ -17,13 +18,24 @@ const ORG_SEARCH_FIELDS: Array<keyof SalesforceOrgUi> = ['label', 'username', 'o
 
 const orgFilterFn = (filter: string) => {
   const matchesOrg = multiWordObjectFilter<SalesforceOrgUi>(ORG_SEARCH_FIELDS, filter);
-  return (item: ListItem<string, SalesforceOrgUi>) => !!item.meta && matchesOrg(item.meta);
+  const matchesItemLabel = multiWordObjectFilter<ListItem<string, SalesforceOrgUi>>(['label'], filter);
+  // Items without an org attached (the "All Orgs" choice) can only match on their label
+  return (item: ListItem<string, SalesforceOrgUi>) => (item.meta ? matchesOrg(item.meta) : matchesItemLabel(item));
+};
+
+const ALL_ORGS_ITEM_ID = '__ALL_ORGS__';
+
+/** Rendered as a headerless group so the choice sits above the per-org groups */
+const ALL_ORGS_GROUP: ListItemGroup<string, SalesforceOrgUi> = {
+  id: ALL_ORGS_ITEM_ID,
+  label: '',
+  items: [{ id: ALL_ORGS_ITEM_ID, label: 'All Orgs', value: ALL_ORGS_ITEM_ID }],
 };
 
 function getSelectedItemLabel(item: ListItem<string, SalesforceOrgUi>) {
   const org = item.meta;
   if (!org) {
-    return '';
+    return item.label;
   }
   let subtext = '';
   if (org.label !== org.username) {
@@ -35,7 +47,7 @@ function getSelectedItemLabel(item: ListItem<string, SalesforceOrgUi>) {
 function getSelectedItemTitle(item: ListItem<string, SalesforceOrgUi>) {
   const org = item.meta;
   if (!org) {
-    return '';
+    return item.label;
   }
   let subtext = '';
   if (org.label !== org.username) {
@@ -117,10 +129,17 @@ export interface OrgsComboboxProps {
   label?: string;
   hideLabel?: boolean;
   placeholder?: string;
+  helpText?: ReactNode | string;
+  containerClassName?: string;
   isRequired?: boolean;
   disabled?: boolean;
   minWidth?: number;
   onSelected: (org: SalesforceOrgUi) => void;
+  /**
+   * When provided, an "All Orgs" choice is shown above the org list and this is called when it is
+   * chosen (instead of onSelected). The choice shows as selected whenever selectedOrg is empty.
+   */
+  onSelectedAllOrgs?: () => void;
 }
 
 export const OrgsCombobox: FunctionComponent<OrgsComboboxProps> = ({
@@ -129,20 +148,23 @@ export const OrgsCombobox: FunctionComponent<OrgsComboboxProps> = ({
   label = 'Orgs',
   hideLabel = true,
   placeholder = 'Select an Org',
+  helpText,
+  containerClassName,
   isRequired,
   disabled,
   minWidth = 300,
   onSelected,
+  onSelectedAllOrgs,
 }) => {
-  const [groupedOrgs, setGroupedOrgs] = useState<ListItemGroup<string, SalesforceOrgUi>[]>(() => groupOrgs(orgs));
-
-  useEffect(() => {
-    setGroupedOrgs(groupOrgs(orgs));
-  }, [orgs]);
+  const includeAllOrgs = !!onSelectedAllOrgs;
+  const groupedOrgs = useMemo<ListItemGroup<string, SalesforceOrgUi>[]>(
+    () => (includeAllOrgs ? [ALL_ORGS_GROUP, ...groupOrgs(orgs)] : groupOrgs(orgs)),
+    [orgs, includeAllOrgs],
+  );
 
   return (
     <div
-      className="slds-col"
+      className={classNames('slds-col', containerClassName)}
       css={css`
         ${minWidth ? `min-width: ${minWidth}px;` : undefined}
       `}
@@ -154,6 +176,7 @@ export const OrgsCombobox: FunctionComponent<OrgsComboboxProps> = ({
           label,
           hideLabel,
           placeholder,
+          helpText,
           itemLength: 7,
           hasError: orgHasError(selectedOrg),
           disabled,
@@ -170,8 +193,14 @@ export const OrgsCombobox: FunctionComponent<OrgsComboboxProps> = ({
         })}
         groups={groupedOrgs}
         filterFn={orgFilterFn}
-        onSelected={(item) => onSelected(item.meta)}
-        selectedItemId={selectedOrg?.uniqueId}
+        onSelected={(item) => {
+          if (item.meta) {
+            onSelected(item.meta);
+          } else {
+            onSelectedAllOrgs?.();
+          }
+        }}
+        selectedItemId={selectedOrg?.uniqueId ?? (includeAllOrgs ? ALL_ORGS_ITEM_ID : undefined)}
         selectedItemLabelFn={getSelectedItemLabel}
         selectedItemTitleFn={getSelectedItemTitle}
       />

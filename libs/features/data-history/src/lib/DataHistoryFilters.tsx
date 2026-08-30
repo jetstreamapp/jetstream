@@ -1,5 +1,6 @@
 import { SalesforceOrgUi } from '@jetstream/types';
-import { DatePicker, Grid, Picklist } from '@jetstream/ui';
+import { DatePicker, Grid } from '@jetstream/ui';
+import { OrgsCombobox } from '@jetstream/ui-core';
 import { DataHistoryListFilter } from '@jetstream/ui/db';
 import { endOfDay, startOfDay } from 'date-fns';
 import { FunctionComponent, useMemo } from 'react';
@@ -13,27 +14,19 @@ export interface DataHistoryFiltersProps {
   onChange: (value: DataHistoryFilterValue) => void;
 }
 
-const ALL_ORGS_ID = '__ALL__';
-
 export const DataHistoryFilters: FunctionComponent<DataHistoryFiltersProps> = ({ orgs, value, onChange }) => {
-  const orgItems = useMemo(
-    () => [
-      { id: ALL_ORGS_ID, label: 'All orgs', value: ALL_ORGS_ID },
-      ...orgs.map(({ uniqueId, label }) => ({ id: uniqueId, label, value: uniqueId })),
-    ],
-    [orgs],
-  );
+  const selectedOrg = useMemo(() => orgs.find(({ uniqueId }) => uniqueId === value.org) ?? null, [orgs, value.org]);
 
   return (
     <Grid verticalAlign="end" wrap className="slds-m-bottom_x-small slds-gutters_xx-small">
       <div className="slds-col slds-m-right_x-small">
-        <Picklist
+        <OrgsCombobox
           label="Org"
-          containerClassName="slds-size_small"
-          items={orgItems}
-          selectedItemIds={[value.org ?? ALL_ORGS_ID]}
-          allowDeselection={false}
-          onChange={([selected]) => onChange({ ...value, org: selected?.id === ALL_ORGS_ID ? undefined : selected?.id })}
+          hideLabel={false}
+          orgs={orgs}
+          selectedOrg={selectedOrg}
+          onSelected={(org) => onChange({ ...value, org: org.uniqueId })}
+          onSelectedAllOrgs={() => onChange({ ...value, org: undefined })}
         />
       </div>
       <div className="slds-col slds-m-right_x-small">

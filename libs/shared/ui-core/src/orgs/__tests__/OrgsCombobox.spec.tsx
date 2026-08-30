@@ -114,4 +114,41 @@ describe('OrgsCombobox', () => {
       expect(within(listbox).getByText('There are no items for selection')).toBeTruthy();
     });
   });
+
+  describe('all orgs option', () => {
+    function renderWithAllOrgs(selectedOrg: SalesforceOrgUi | null = null) {
+      const onSelected = vi.fn();
+      const onSelectedAllOrgs = vi.fn();
+      const result = render(
+        <OrgsCombobox orgs={orgs} selectedOrg={selectedOrg} onSelected={onSelected} onSelectedAllOrgs={onSelectedAllOrgs} />,
+      );
+      const input = result.container.querySelector('input') as HTMLInputElement;
+      return { ...result, input, onSelected, onSelectedAllOrgs };
+    }
+
+    it('is not shown unless opted in', () => {
+      const { listbox } = renderOpen();
+      expect(within(listbox).queryByText('All Orgs')).toBeNull();
+    });
+
+    it('is shown above the org list and reflects an empty selection', () => {
+      const { input, container } = renderWithAllOrgs(null);
+      expect(input.value).toBe('All Orgs');
+
+      fireEvent.click(input);
+      const listbox = container.querySelector('[role="listbox"]') as HTMLElement;
+      const options = within(listbox).getAllByRole('option');
+      expect(options[0].textContent).toContain('All Orgs');
+      expect(options[0].getAttribute('aria-selected')).toBe('true');
+    });
+
+    it('calls onSelectedAllOrgs instead of onSelected when chosen', () => {
+      const { input, container, onSelected, onSelectedAllOrgs } = renderWithAllOrgs(production);
+      fireEvent.click(input);
+      const listbox = container.querySelector('[role="listbox"]') as HTMLElement;
+      fireEvent.click(within(listbox).getByText('All Orgs'));
+      expect(onSelectedAllOrgs).toHaveBeenCalledTimes(1);
+      expect(onSelected).not.toHaveBeenCalled();
+    });
+  });
 });
