@@ -86,13 +86,24 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
     );
 
     // Reset the filter on close: without this, reopening the dropdown briefly showed the previous
-    // search's subset and then jumped when the full list replaced it
+    // search's subset and then jumped when the full list replaced it.
+    // This is the ONLY close notification path — Combobox fires it for natural closes AND from the
+    // imperative close(), so selection handlers must not also call onClose (that double-fired it).
     const handleClose = useCallback(() => {
       setFilterText('');
+      setFocusedIndex(null);
       comboboxRef.current?.clearInputText();
-      onClose && onClose();
+      comboboxProps.onClose?.();
+      onClose?.();
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [onClose]);
+    }, [comboboxProps.onClose, onClose]);
+
+    // Typing changes (and re-orders) visibleItems, so a focused index from before the filter
+    // points at a different item — without the reset, ArrowDown resumed from the stale position
+    const handleInputChange = useCallback((value: string) => {
+      setFilterText(value);
+      setFocusedIndex(null);
+    }, []);
 
     const onInputEnter = useCallback(() => {
       if (visibleItems.length > 0) {
@@ -158,7 +169,6 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
               }
             } else {
               comboboxRef.current?.close();
-              onClose && onClose();
             }
             return;
           }
@@ -206,7 +216,7 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
         selectedItemTitle={selectedItemTitle}
         isEmpty={visibleItems.length === 0}
         onKeyboardNavigation={handleKeyboardNavigation}
-        onInputChange={setFilterText}
+        onInputChange={handleInputChange}
         onInputEnter={onInputEnter}
         onClose={handleClose}
       >
@@ -227,7 +237,6 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
                 onSelected(item);
                 if (!item.isDrillInItem) {
                   comboboxRef.current?.close();
-                  onClose && onClose();
                 }
               }}
               {...itemProps(item)}
@@ -242,7 +251,6 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
                 onSelected(item);
                 if (!item.isDrillInItem) {
                   comboboxRef.current?.close();
-                  onClose && onClose();
                 }
               }}
               {...itemProps(item)}

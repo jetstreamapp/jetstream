@@ -101,8 +101,8 @@ export const ComboboxWithItemsTypeAhead: FunctionComponent<ComboboxWithItemsType
           const item = items[focusedIndex];
           onSelected(item);
           setFocusedIndex(null);
+          // close() fires the Combobox onClose handler below, which notifies this component's onClose
           comboboxRef.current?.close();
-          onClose && onClose();
           return;
         }
         break;
@@ -142,6 +142,13 @@ export const ComboboxWithItemsTypeAhead: FunctionComponent<ComboboxWithItemsType
       selectedItemTitle={selectedItemTitle}
       onKeyboardNavigation={handleKeyboardNavigation}
       onFilterInputChange={setFilterText}
+      // Deliberate exception to the ComboboxWithItems close contract: the filter is NOT reset here,
+      // because filter text drives onSearch — clearing it would fire a server fetch on every close
+      onClose={() => {
+        setFocusedIndex(null);
+        comboboxProps.onClose?.();
+        onClose?.();
+      }}
       onInputEnter={onInputEnter}
       onClear={handleClear}
       showSelectionAsButton
