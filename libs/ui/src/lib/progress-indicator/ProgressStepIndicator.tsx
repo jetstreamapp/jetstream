@@ -20,6 +20,7 @@ export const ProgressStepIndicator = ({ className, isVertical, currentStep, chil
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={progressValue}
+        aria-label="Progress"
         role="progressbar"
       >
         {isVertical && <span className="slds-assistive-text">Progress: {progressValue}%</span>}

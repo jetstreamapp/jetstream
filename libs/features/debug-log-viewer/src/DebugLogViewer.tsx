@@ -252,7 +252,13 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
                           className="slds-button slds-button_icon slds-button_icon-container slds-m-around_xxx-small"
                           onClick={() => togglePause()}
                         >
-                          <Icon type="utility" icon={isPaused ? 'play' : 'pause'} className="slds-button__icon" omitContainer />
+                          <Icon
+                            type="utility"
+                            icon={isPaused ? 'play' : 'pause'}
+                            description={isPaused ? 'Resume checking for logs' : 'Pause checking for new logs'}
+                            className="slds-button__icon"
+                            omitContainer
+                          />
                         </button>
                       </Tooltip>
                       <p title={pollTitle} className="slds-text-color_weak slds-truncate">
@@ -263,6 +269,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
                           <Icon
                             type="utility"
                             icon="refresh"
+                            description="Check for new logs"
                             className={classNames('slds-button__icon', { spin: loading })}
                             omitContainer
                           />

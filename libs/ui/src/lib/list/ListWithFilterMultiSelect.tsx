@@ -124,7 +124,12 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
               <h2 className="slds-text-heading_medium slds-grow slds-text-align_center">{labels.listHeading}</h2>
               <div>
                 <Tooltip id={`sobject-list-refresh-tooltip`} content={lastRefreshed || ''}>
-                  <button className="slds-button slds-button_icon slds-button_icon-container" disabled={loading} onClick={onRefresh}>
+                  <button
+                    className="slds-button slds-button_icon slds-button_icon-container"
+                    aria-label={`Reload ${labels.descriptorPlural}`}
+                    disabled={loading}
+                    onClick={onRefresh}
+                  >
                     <Icon
                       type="utility"
                       icon="refresh"
@@ -203,6 +208,7 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
             <AutoFullHeightContainer bottomBuffer={15} {...autoFillContainerProps}>
               <List
                 ref={ulRef}
+                ariaLabel={labels.listHeading || labels.descriptorPlural}
                 items={filteredItems}
                 isMultiSelect
                 isActive={(item: ListItemType) => selectedItemsSet.has(item.id)}

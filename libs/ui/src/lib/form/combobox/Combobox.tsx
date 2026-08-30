@@ -413,7 +413,8 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                   className={classNames('slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click', { 'slds-is-open': isOpen })}
                   aria-expanded={isOpen}
                   aria-haspopup="listbox"
-                  aria-controls={listId}
+                  // The listbox popover only mounts while open; a closed combobox must not reference a non-existent id
+                  aria-controls={isOpen ? listId : undefined}
                   role="combobox"
                   onClick={handleInputClick}
                 >
@@ -431,7 +432,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                       className={classNames('slds-input slds-combobox__input', { 'slds-text-color_error': hasError })}
                       id={id}
                       css={inputCss}
-                      aria-controls={listId}
+                      aria-controls={isOpen ? listId : undefined}
                       aria-describedby={errorMessageId}
                       autoComplete="off"
                       placeholder={placeholder}
