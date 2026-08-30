@@ -15,6 +15,7 @@ import {
   PageHeaderTitle,
   ScopedNotification,
   Tooltip,
+  getAriaKeyshortcuts,
   getModifierKey,
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, fromRecordTypeManagerState } from '@jetstream/ui-core';
@@ -75,7 +76,11 @@ export function RecordTypeManagerSelection() {
                   </div>
                 }
               >
-                <Link className="slds-button slds-button_brand" to="editor">
+                <Link
+                  className="slds-button slds-button_brand"
+                  aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+                  to="editor"
+                >
                   Continue
                   <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
                 </Link>
