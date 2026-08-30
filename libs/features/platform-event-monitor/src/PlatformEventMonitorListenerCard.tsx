@@ -61,7 +61,13 @@ export const PlatformEventMonitorListenerCard = ({
               disabled={!hasSubscriptions}
               onClick={() => onClearAll()}
             >
-              <Icon type="utility" icon="delete" className="slds-button__icon" omitContainer />
+              <Icon
+                type="utility"
+                icon="delete"
+                description="Unsubscribe from all events and clear results"
+                className="slds-button__icon"
+                omitContainer
+              />
             </button>
           </Tooltip>
           <Tooltip content={'Clear current results and retain subscriptions.'}>
@@ -70,7 +76,13 @@ export const PlatformEventMonitorListenerCard = ({
               disabled={!hasSubscriptions}
               onClick={() => onClearEvents()}
             >
-              <Icon type="utility" icon="refresh" className="slds-button__icon" omitContainer />
+              <Icon
+                type="utility"
+                icon="refresh"
+                description="Clear current results and retain subscriptions"
+                className="slds-button__icon"
+                omitContainer
+              />
             </button>
           </Tooltip>
           <button className="slds-button slds-button_neutral" disabled={!hasEvents} onClick={() => onDownload()}>
