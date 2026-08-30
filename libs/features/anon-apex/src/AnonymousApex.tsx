@@ -337,7 +337,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
                 )}
               </div>
             }
-            actions={<CopyToClipboard type="button" content={results} disabled={!results} />}
+            actions={<CopyToClipboard type="button" buttonText="Copy Results" content={results} disabled={!results} />}
           >
             {loading && <Spinner />}
             <AnonymousApexFilter
