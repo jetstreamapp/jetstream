@@ -13,7 +13,10 @@ const DEFAULT_OPTIONS: IFuseOptions<unknown> = {
 export function useFuzzySearchFilter<T extends object>(items: T[], filter: string, options: IFuseOptions<unknown> = DEFAULT_OPTIONS) {
   const fuse = useMemo(() => new Fuse<T>(items, { ...options }), [items, options]);
 
-  const filterText = useDebounce(filter, 300);
+  const debouncedFilter = useDebounce(filter, 300);
+  // Clearing must apply immediately: a debounced reset made lists visibly "pop in" 300ms after
+  // the input was cleared or a previously-filtered dropdown was reopened
+  const filterText = filter ? debouncedFilter : '';
   const [visibleItems, setVisibleItems] = useState(items);
 
   useEffect(() => {

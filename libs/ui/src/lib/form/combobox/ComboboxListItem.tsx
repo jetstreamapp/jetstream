@@ -129,7 +129,15 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
         className={classNames('slds-listbox__item slds-item', className)}
         onClick={() => onSelection(id)}
         tabIndex={-1}
-        css={containerCss}
+        css={[
+          css`
+            &:focus-visible {
+              outline: 2px solid var(--slds-g-color-brand-base-50, #0176d3);
+              outline-offset: -2px;
+            }
+          `,
+          containerCss,
+        ]}
         data-type={isDrillInItem ? 'drill-in' : 'item'}
       >
         <div
