@@ -113,10 +113,17 @@ export class QueryPage {
     }
   }
 
+  /**
+   * Field rows are plain list items containing a labeled checkbox (not listbox options — options
+   * cannot contain interactive children). Selection state is the checkbox's checked state.
+   */
   getSelectedField(label: string) {
-    return this.fieldsList.getByRole('option').filter({
-      has: this.page.getByText(label, { exact: true }).first(),
-    });
+    return this.fieldsList
+      .getByRole('listitem')
+      .filter({
+        has: this.page.getByText(label, { exact: true }).first(),
+      })
+      .getByRole('checkbox');
   }
 
   async selectSubqueryObject(relationshipName: string) {
