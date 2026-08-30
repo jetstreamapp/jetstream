@@ -493,7 +493,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
           <Radio
             idPrefix="apiMode"
             id="apiMode-bulk"
-            name="BULK"
+            name="api-mode"
             label={bulkApiModeLabel}
             value="BULK"
             checked={apiMode === 'BULK'}
@@ -503,7 +503,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
           <Radio
             idPrefix="apiMode"
             id="apiMode-batch"
-            name="BATCH"
+            name="api-mode"
             label={batchApiModeLabel}
             value="BATCH"
             checked={apiMode === 'BATCH'}
