@@ -98,7 +98,7 @@ export const Checkbox: FunctionComponent<CheckboxProps> = ({
             disabled={readOnly || disabled}
             readOnly={readOnly}
             tabIndex={tabIndex}
-            aria-describedby={errorMessageId}
+            aria-describedby={[labelHelp ? `${id}-label-help-text` : undefined, errorMessageId].filter(Boolean).join(' ') || undefined}
             onChange={(event) => {
               onChange && onChange(event.target?.checked || false);
               onChangeNative && onChangeNative(event);
