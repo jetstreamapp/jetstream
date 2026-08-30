@@ -324,6 +324,7 @@ export const AutomationControlEditor = () => {
             <Tooltip content="Downloading as a metadata zip package will allow you to re-deploy the changes on the Deploy Metadata page.">
               <button
                 className="slds-button slds-button_neutral slds-button_first collapsible-button collapsible-button-xl"
+                title="Export as Zip"
                 disabled={loading}
                 onClick={exportPackage}
               >
