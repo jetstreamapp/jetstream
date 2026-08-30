@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { FloatingPortal, autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/react';
 import { useState } from 'react';
+import { EscapeLayerPropagationContext } from '../../../hooks/useEscapeToCloseLayer';
 import { OutsideClickHandler } from '../../../utils/OutsideClickHandler';
 import { ActiveCell } from '../components/GridRow';
 import { ColumnWithFilter, TanstackTable } from '../grid-types';
@@ -121,14 +122,18 @@ export function EditorHost<TRow extends object>({ editingCell, table, getRootEle
           className="slds-p-around_x-small"
           onOutsideClick={() => handleClose(draftRow !== null ? true : (authorColumn.editorOptions?.commitOnOutsideClick ?? false), false)}
         >
-          <EditCell
-            row={draftRow ?? row.original}
-            column={authorColumn}
-            rowIndex={rowIndex}
-            colIndex={colIndex}
-            onRowChange={handleRowChange}
-            onClose={handleClose}
-          />
+          {/* The editor's popup (date picker, picklist, combobox list) IS the editing surface: one Escape
+              must discard the draft, not merely close the popup and demand a second press */}
+          <EscapeLayerPropagationContext.Provider value="propagate">
+            <EditCell
+              row={draftRow ?? row.original}
+              column={authorColumn}
+              rowIndex={rowIndex}
+              colIndex={colIndex}
+              onRowChange={handleRowChange}
+              onClose={handleClose}
+            />
+          </EscapeLayerPropagationContext.Provider>
         </OutsideClickHandler>
       </div>
     </FloatingPortal>

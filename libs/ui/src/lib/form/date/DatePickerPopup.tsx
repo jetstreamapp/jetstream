@@ -92,17 +92,11 @@ export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
 
   /**
    * Dialog-wide keyboard contract (the popup renders as role="dialog"):
-   * - Escape closes from ANY element — previously only the date grid cells handled it, so Escape on
-   *   the month selector or the Clear/Today footer buttons did nothing
+   * - Escape closes from ANY element — owned by DatePicker's useEscapeToCloseLayer, which consumes
+   *   the key at document capture before this handler could ever see it
    * - Tab/Shift+Tab wrap within the popup (a dialog traps Tab per the APG)
    */
   function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      event.stopPropagation();
-      onClose();
-      return;
-    }
     if (event.key !== 'Tab') {
       return;
     }
