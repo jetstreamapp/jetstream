@@ -1,3 +1,4 @@
+import { css } from '@emotion/react';
 import { INPUT_ACCEPT_FILETYPES, TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import {
@@ -180,7 +181,16 @@ export const LoadRecordsMultiObject = () => {
     <div>
       <p className="slds-form-element__label slds-m-bottom_xx-small">
         Upload a file based on the{' '}
-        <a href={templateUrl} target="_blank" rel="noreferrer" download>
+        <a
+          href={templateUrl}
+          target="_blank"
+          rel="noreferrer"
+          download
+          // Underline so the link is distinguishable from surrounding text without relying on color (WCAG 1.4.1)
+          css={css`
+            text-decoration: underline;
+          `}
+        >
           Excel template
         </a>
       </p>
