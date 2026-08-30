@@ -53,6 +53,7 @@ export const ProgressIndicator = ({ className, currentValue: _currentValue, isIn
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={currentValue}
+      aria-label="Progress"
       role="progressbar"
     >
       <span className="slds-progress-bar__value" style={{ width: `${width}%`, marginLeft: `${marginLeft}%` }}>

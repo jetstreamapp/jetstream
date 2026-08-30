@@ -113,6 +113,7 @@ export const SalesforceApiHistoryModal = ({ selectedOrg, onSubmit, onClose }: Sa
             </div>
             <List
               ref={ulRef}
+              ariaLabel="API request history"
               items={filteredHistoryItems}
               isActive={(item: ApiHistoryItem) => item.key === selectedItemKey}
               subheadingPlaceholder

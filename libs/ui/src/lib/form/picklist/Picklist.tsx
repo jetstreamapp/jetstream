@@ -338,7 +338,8 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
               <div
                 className={classNames('slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click', { 'slds-is-open': isOpen })}
                 aria-expanded={isOpen}
-                aria-controls={comboboxId}
+                // Point at the listbox (not the input) and only while it is mounted (popover renders when open)
+                aria-controls={isOpen ? listboxId : undefined}
                 aria-haspopup="listbox"
                 role="combobox"
                 onClick={handleInputClick}
@@ -349,7 +350,7 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
                     type="text"
                     className={classNames('slds-input slds-combobox__input slds-combobox__input-value', { 'slds-has-focus': isOpen })}
                     id={comboboxId}
-                    aria-controls={listboxId}
+                    aria-controls={isOpen ? listboxId : undefined}
                     aria-describedby={errorMessageId}
                     autoComplete="off"
                     placeholder={placeholder}
