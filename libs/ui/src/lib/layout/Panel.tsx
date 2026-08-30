@@ -81,6 +81,49 @@ export const Panel: FunctionComponent<PanelProps> = ({
 }) => {
   const [expanded, setExpanded] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+
+  // Non-modal drawer focus contract: opening moves focus INTO the panel (announcing its heading),
+  // closing returns focus to whatever opened it — unless the user closed it by moving focus
+  // elsewhere themselves (e.g. an outside click), in which case focus is left alone.
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+    returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const panelEl = panelRef.current;
+    panelEl?.querySelector<HTMLElement>('[data-panel-focus-target]')?.focus();
+    return () => {
+      const active = document.activeElement;
+      const focusWasInsidePanel = !active || active === document.body || !!panelEl?.contains(active);
+      const returnTarget = returnFocusRef.current;
+      if (focusWasInsidePanel && returnTarget && document.contains(returnTarget)) {
+        returnTarget.focus();
+      }
+    };
+  }, [isOpen]);
+
+  // Escape with focus INSIDE the panel always closes it (a keyboard user must be able to leave the
+  // drawer the way they entered); the closeOnEscape prop additionally closes on Escape from anywhere.
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+    const handler = (event: KeyboardEvent) => {
+      if (
+        event.key === 'Escape' &&
+        !event.defaultPrevented &&
+        panelRef.current?.contains(document.activeElement) &&
+        document.activeElement !== document.body
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+        onClosed();
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [isOpen, onClosed]);
 
   useEffect(() => {
     if (!isOpen || !closeOnEscape) {
@@ -131,6 +174,10 @@ export const Panel: FunctionComponent<PanelProps> = ({
       `}
     >
       <div
+        role="region"
+        aria-label={heading}
+        tabIndex={-1}
+        data-panel-focus-target
         className={classNames('slds-panel slds-panel_docked slds-is-open', getPositionClass(position), getSizeClass(size))}
         aria-hidden="false"
       >
@@ -149,8 +196,13 @@ export const Panel: FunctionComponent<PanelProps> = ({
             {heading}
           </h2>
 
-          <button className="slds-button slds-button_icon slds-button_icon-small" onClick={() => setExpanded(!expanded)}>
+          <button
+            className="slds-button slds-button_icon slds-button_icon-small"
+            title={expanded ? `Restore ${heading} size` : `Expand ${heading} to full width`}
+            onClick={() => setExpanded(!expanded)}
+          >
             <Icon type="utility" icon={expandCollapseIcon} className="slds-button__icon" />
+            <span className="slds-assistive-text">{expanded ? `Restore ${heading} size` : `Expand ${heading} to full width`}</span>
           </button>
           <button
             className="slds-button slds-button_icon slds-button_icon-small slds-panel__close"
