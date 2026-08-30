@@ -8,8 +8,9 @@ export interface ProgressStepIndicatorListItemProps {
   isVertical?: boolean;
   isActive?: boolean;
   isComplete?: boolean;
-  disabled?: boolean; // does not apply to vertical
-  onChangeStep?: (step: number) => void; // does not apply to vertical
+  // Horizontal only - when omitted, the marker renders as a non-interactive span.
+  // (a disabled button is not an option, `.slds-button:disabled` makes the marker circle transparent)
+  onChangeStep?: (step: number) => void;
 }
 
 export const ProgressStepIndicatorListItem = ({
@@ -18,7 +19,6 @@ export const ProgressStepIndicatorListItem = ({
   isVertical,
   isActive,
   isComplete,
-  disabled,
   onChangeStep,
 }: ProgressStepIndicatorListItemProps) => {
   const stepTitleVertical = `Step ${step + 1}`;
@@ -50,18 +50,23 @@ export const ProgressStepIndicatorListItem = ({
           <div className="slds-progress__item_content slds-grid slds-grid_align-spread">{stepText || stepTitleVertical}</div>
         </Fragment>
       )}
-      {!isVertical && (
+      {!isVertical && onChangeStep && (
         <button
           className={classNames('slds-button slds-progress__marker', {
             'slds-button_icon slds-progress__marker_icon': isComplete,
           })}
           title={stepText || stepTitle}
-          disabled={disabled}
-          onClick={() => onChangeStep && onChangeStep(step)}
+          onClick={() => onChangeStep(step)}
         >
           {isComplete && <Icon type="utility" icon="success" className="slds-button__icon" omitContainer />}
           <span className="slds-assistive-text">{stepText || stepTitle}</span>
         </button>
+      )}
+      {!isVertical && !onChangeStep && (
+        <span className={classNames('slds-progress__marker', { 'slds-progress__marker_icon': isComplete })} title={stepText || stepTitle}>
+          {isComplete && <Icon type="utility" icon="success" className="slds-button__icon" omitContainer />}
+          <span className="slds-assistive-text">{stepText || stepTitle}</span>
+        </span>
       )}
     </li>
   );

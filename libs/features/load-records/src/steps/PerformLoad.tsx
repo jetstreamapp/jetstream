@@ -471,7 +471,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   ]);
 
   return (
-    <div style={{ overflow: 'hidden', maxWidth: '80vw' }}>
+    <div>
       <ConfirmPageChange actionInProgress={loadInProgress} />
       <LoadRecordsDuplicateWarning
         className="slds-m-vertical_x-small"

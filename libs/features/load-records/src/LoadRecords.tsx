@@ -10,7 +10,6 @@ import {
   fireToast,
   getModifierKey,
   Grid,
-  GridCol,
   Icon,
   KeyboardShortcut,
   Page,
@@ -386,6 +385,12 @@ export const LoadRecords = () => {
     trackEvent(ANALYTICS_KEYS.load_GoBackToPrevStep, { step: currentStepIdx });
   }
 
+  // Only completed steps are clickable in the progress indicator, so this is always backwards navigation
+  function handleJumpToStep(stepIdx: number) {
+    setCurrentStepIdx(stepIdx);
+    trackEvent(ANALYTICS_KEYS.load_GoBackToPrevStep, { step: currentStepIdx, targetStep: stepIdx });
+  }
+
   function changeStep(changeBy: number) {
     setCurrentStepIdx((priorStepIdx) => Math.min(Math.max(priorStepIdx + changeBy, 0), steps.length - 1));
     if (currentStepIdx === 0 && selectedSObject?.name) {
@@ -498,98 +503,92 @@ export const LoadRecords = () => {
               <ViewDataHistoryLink />
             </Grid>
           </div>
+          <LoadRecordsProgress currentStepIdx={currentStepIdx} steps={steps} disabled={loading} onStepChange={handleJumpToStep} />
         </PageHeaderRow>
       </PageHeader>
       <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>
-        <Grid gutters>
-          <GridCol>
-            {currentStep.name === 'sobjectAndFile' && (
-              <LoadRecordsSelectObjectAndFile
-                hasGoogleDriveAccess={hasGoogleDriveAccess}
-                googleShowUpgradeToPro={googleShowUpgradeToPro}
-                googleApiConfig={googleApiConfig}
+        {currentStep.name === 'sobjectAndFile' && (
+          <LoadRecordsSelectObjectAndFile
+            hasGoogleDriveAccess={hasGoogleDriveAccess}
+            googleShowUpgradeToPro={googleShowUpgradeToPro}
+            googleApiConfig={googleApiConfig}
+            selectedOrg={selectedOrg}
+            sobjects={sobjects}
+            selectedSObject={selectedSObject}
+            isCustomMetadataObject={!!isCustomMetadataObject}
+            loadType={loadType}
+            externalIdFields={externalIdFields}
+            loadingFields={loadingFields}
+            externalId={externalId}
+            inputFilename={inputFilename}
+            inputFileType={inputFilenameType}
+            inputGoogleFile={inputGoogleFile}
+            allowBinaryAttachment={!!allowBinaryAttachment}
+            binaryAttachmentBodyField={binaryAttachmentBodyField}
+            inputZipFilename={inputZipFilename}
+            onSobjects={setSobjects}
+            onSelectedSobject={setSelectedSObject}
+            onFileChange={handleFileChange}
+            onZipFileChange={handleZipFileChange}
+            onLoadTypeChange={setLoadType}
+            onExternalIdChange={setExternalId}
+          >
+            <LoadRecordsDataPreview
+              selectedOrg={selectedOrg}
+              selectedSObject={selectedSObject}
+              loadType={loadType}
+              data={inputFileData}
+              header={inputFileHeader}
+            />
+          </LoadRecordsSelectObjectAndFile>
+        )}
+        {currentStep.name === 'fieldMapping' && selectedSObject && inputFileHeader && inputFileData && (
+          <span>
+            <LoadRecordsFieldMapping
+              org={selectedOrg}
+              sobject={selectedSObject?.name}
+              isCustomMetadataObject={!!isCustomMetadataObject}
+              fields={mappableFields}
+              inputHeader={inputFileHeader}
+              fieldMapping={fieldMapping}
+              fileData={inputFileData}
+              loadType={loadType}
+              externalId={externalId}
+              binaryAttachmentBodyField={binaryAttachmentBodyField}
+              onFieldMappingChange={setFieldMapping}
+              onRefreshFields={handleFieldRefresh}
+            />
+          </span>
+        )}
+        {currentStep.name === 'loadRecords' && selectedSObject && inputFileData && (
+          <span>
+            {!isCustomMetadataObject ? (
+              <PerformLoad
                 selectedOrg={selectedOrg}
-                sobjects={sobjects}
-                selectedSObject={selectedSObject}
-                isCustomMetadataObject={!!isCustomMetadataObject}
+                orgType={orgType}
+                selectedSObject={selectedSObject.name}
+                inputFileHeader={inputFileHeader}
                 loadType={loadType}
-                externalIdFields={externalIdFields}
-                loadingFields={loadingFields}
+                fieldMapping={fieldMapping}
+                inputFileData={inputFileData}
+                inputZipFileData={inputZipFileData}
                 externalId={externalId}
-                inputFilename={inputFilename}
-                inputFileType={inputFilenameType}
-                inputGoogleFile={inputGoogleFile}
-                allowBinaryAttachment={!!allowBinaryAttachment}
-                binaryAttachmentBodyField={binaryAttachmentBodyField}
-                inputZipFilename={inputZipFilename}
-                onSobjects={setSobjects}
-                onSelectedSobject={setSelectedSObject}
-                onFileChange={handleFileChange}
-                onZipFileChange={handleZipFileChange}
-                onLoadTypeChange={setLoadType}
-                onExternalIdChange={setExternalId}
-              >
-                <LoadRecordsDataPreview
-                  selectedOrg={selectedOrg}
-                  selectedSObject={selectedSObject}
-                  loadType={loadType}
-                  data={inputFileData}
-                  header={inputFileHeader}
-                />
-              </LoadRecordsSelectObjectAndFile>
+                onIsLoading={handleIsLoading}
+              />
+            ) : (
+              <PerformLoadCustomMetadata
+                selectedOrg={selectedOrg}
+                orgType={orgType}
+                selectedSObject={selectedSObject.name}
+                inputFileHeader={inputFileHeader}
+                fields={mappableFields}
+                fieldMapping={fieldMapping}
+                inputFileData={inputFileData}
+                onIsLoading={handleIsLoading}
+              />
             )}
-            {currentStep.name === 'fieldMapping' && selectedSObject && inputFileHeader && inputFileData && (
-              <span>
-                <LoadRecordsFieldMapping
-                  org={selectedOrg}
-                  sobject={selectedSObject?.name}
-                  isCustomMetadataObject={!!isCustomMetadataObject}
-                  fields={mappableFields}
-                  inputHeader={inputFileHeader}
-                  fieldMapping={fieldMapping}
-                  fileData={inputFileData}
-                  loadType={loadType}
-                  externalId={externalId}
-                  binaryAttachmentBodyField={binaryAttachmentBodyField}
-                  onFieldMappingChange={setFieldMapping}
-                  onRefreshFields={handleFieldRefresh}
-                />
-              </span>
-            )}
-            {currentStep.name === 'loadRecords' && selectedSObject && inputFileData && (
-              <span>
-                {!isCustomMetadataObject ? (
-                  <PerformLoad
-                    selectedOrg={selectedOrg}
-                    orgType={orgType}
-                    selectedSObject={selectedSObject.name}
-                    inputFileHeader={inputFileHeader}
-                    loadType={loadType}
-                    fieldMapping={fieldMapping}
-                    inputFileData={inputFileData}
-                    inputZipFileData={inputZipFileData}
-                    externalId={externalId}
-                    onIsLoading={handleIsLoading}
-                  />
-                ) : (
-                  <PerformLoadCustomMetadata
-                    selectedOrg={selectedOrg}
-                    orgType={orgType}
-                    selectedSObject={selectedSObject.name}
-                    inputFileHeader={inputFileHeader}
-                    fields={mappableFields}
-                    fieldMapping={fieldMapping}
-                    inputFileData={inputFileData}
-                    onIsLoading={handleIsLoading}
-                  />
-                )}
-              </span>
-            )}
-          </GridCol>
-          <GridCol size={2}>
-            <LoadRecordsProgress currentStepIdx={currentStepIdx} steps={steps} />
-          </GridCol>
-        </Grid>
+          </span>
+        )}
       </AutoFullHeightContainer>
     </Page>
   );
