@@ -106,9 +106,12 @@ async function verifyAsarDependencyClosure(context) {
   // Normalize the archive listing to posix-style paths without a leading slash.
   const packagedFiles = new Set(asar.listPackage(asarPath).map((entry) => entry.split(path.sep).join('/').replace(/^\//, '')));
 
+  // @electron/asar resolves archive paths by splitting on path.sep, so the posix-style paths
+  // used throughout this walk must be converted to backslashes on Windows before extraction —
+  // with forward slashes the lookup silently misses and every read appears to fail.
   const readPackagedJson = (relativePath) => {
     try {
-      return JSON.parse(asar.extractFile(asarPath, relativePath).toString('utf-8'));
+      return JSON.parse(asar.extractFile(asarPath, relativePath.split('/').join(path.sep)).toString('utf-8'));
     } catch {
       // Files excluded from the archive via asarUnpack live next to it on disk.
       const unpackedPath = path.join(resourcesDir, 'app.asar.unpacked', relativePath);
@@ -179,7 +182,11 @@ async function verifyAsarDependencyClosure(context) {
   console.log(`afterPack dependency verification passed: ${visited.size} packaged modules, dependency closure complete`);
 }
 
-const SMOKE_TEST_LAUNCH_TIMEOUT_MS = 90_000;
+// Generous because the x64 slice runs under Rosetta 2 on GitHub's arm64 macOS runners, where
+// first-launch binary translation of the Electron framework alone can take well over a minute
+// (the 4.13.0 release run needed ~80s just to reach "App starting..."). Real post-boot hangs are
+// caught by the app's own 30s renderer timer (smoke-test.ts); this only guards a failure to boot.
+const SMOKE_TEST_LAUNCH_TIMEOUT_MS = 300_000;
 
 /**
  * Launch the freshly packaged app binary with `--smoke-test` and require it to boot to a fully
@@ -228,7 +235,9 @@ async function smokeTestPackagedApp(context) {
     await new Promise((resolve, reject) => {
       // The runAsNode fuse is enabled, so an inherited ELECTRON_RUN_AS_NODE (set by e.g. VSCode
       // terminals) would make the app run as plain Node and crash before Electron even starts.
-      const { ELECTRON_RUN_AS_NODE, ...spawnEnv } = process.env;
+      // NODE_OPTIONS (set in CI) is dropped too: the enableNodeOptionsEnvironmentVariable fuse is
+      // disabled, so Electron would just log a loud startup error about it on every launch.
+      const { ELECTRON_RUN_AS_NODE, NODE_OPTIONS, ...spawnEnv } = process.env;
       const child = spawn(executablePath, [`--user-data-dir=${userDataDir}`, '--smoke-test'], {
         stdio: ['ignore', 'pipe', 'pipe'],
         env: spawnEnv,
