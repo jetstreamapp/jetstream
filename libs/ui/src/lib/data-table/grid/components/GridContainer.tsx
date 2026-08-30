@@ -297,10 +297,17 @@ export function GridContainer<TRow extends object = RowWithKey>({
   const filteredRowCount = table.getFilteredRowModel().rows.length;
   const previousFilteredRowCountRef = useRef<number | null>(null);
   useEffect(() => {
-    if (previousFilteredRowCountRef.current !== null && previousFilteredRowCountRef.current !== filteredRowCount) {
-      announce(`${filteredRowCount} ${filteredRowCount === 1 ? 'row' : 'rows'}`);
-    }
+    const previousCount = previousFilteredRowCountRef.current;
     previousFilteredRowCountRef.current = filteredRowCount;
+    if (previousCount === null || previousCount === filteredRowCount) {
+      return;
+    }
+    // Debounced: quick-filter typing changes the count every keystroke, and screen readers drop
+    // polite live-region churn during typing — announce once after the count settles
+    const timeout = window.setTimeout(() => {
+      announce(`${filteredRowCount} ${filteredRowCount === 1 ? 'row' : 'rows'}`);
+    }, 600);
+    return () => window.clearTimeout(timeout);
   }, [filteredRowCount, announce]);
 
   const leafColumns = table.getVisibleLeafColumns();
