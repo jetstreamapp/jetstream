@@ -26,13 +26,33 @@ export function getSpokenKeyboardShortcut(keys: string[]) {
 }
 
 /**
- * Value for the trigger's aria-keyshortcuts attribute (e.g. "Meta+Enter") — the shortcut is then
- * announced at focus time, which a tooltip-attached description is too late for. Only pass real
- * keys (not 'click' variants).
+ * `aria-keyshortcuts` value for a control whose shortcut is shown visually via <KeyboardShortcut />
+ * (usually in a tooltip, which is announced too late — the attribute is read at focus time). Takes
+ * the same display keys (e.g. `[getModifierKey(), 'enter']`) and maps them to the attribute's
+ * canonical key names so visual and announced shortcuts cannot drift. Only pass real keys (not
+ * 'click' variants).
  */
-export function getAriaKeyshortcuts(keys: string[]) {
-  const ariaNames: Record<string, string> = { '⌘': 'Meta', CTRL: 'Control', ctrl: 'Control', esc: 'Escape' };
-  return keys.map((key) => ariaNames[key] ?? key.charAt(0).toUpperCase() + key.slice(1)).join('+');
+export function getAriaKeyshortcuts(keys: string[]): string {
+  return keys
+    .map((key) => {
+      switch (key.toLowerCase()) {
+        case '⌘':
+        case 'cmd':
+        case 'command':
+          return 'Meta';
+        case 'ctrl':
+        case 'control':
+          return 'Control';
+        case 'option':
+          return 'Alt';
+        case 'esc':
+          return 'Escape';
+        default:
+          // Single characters stay as-is ("k"); words are capitalized ("shift" -> "Shift").
+          return key.length === 1 ? key : key.charAt(0).toUpperCase() + key.slice(1).toLowerCase();
+      }
+    })
+    .join('+');
 }
 
 export interface KeyboardShortcutProps extends GridProps {
