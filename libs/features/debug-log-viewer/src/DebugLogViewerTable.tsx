@@ -142,6 +142,8 @@ export const DebugLogViewerTable: FunctionComponent<DebugLogViewerTableProps> = 
             <div
               role="button"
               tabIndex={-1}
+              // Empty cells would otherwise be nameless buttons; non-empty cells are named by their content
+              aria-label={props.value === null || props.value === undefined || props.value === '' ? 'View log' : undefined}
               css={css`
                 width: 100%;
                 height: 100%;

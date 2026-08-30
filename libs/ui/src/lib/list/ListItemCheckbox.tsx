@@ -59,7 +59,9 @@ export const ListItemCheckbox = memo<ListItemCheckboxProps>(
               inputRef={inputRef}
               id={id}
               checked={!!isActive}
-              label=""
+              // The visible heading is not associated with the input, so give the checkbox an
+              // assistive-text label (heading when it is plain text, else subheading/id)
+              label={(isString(heading) ? heading : subheading) || id}
               hideLabel
               disabled={disabled}
               onChange={() => !disabled && onSelected && onSelected()}

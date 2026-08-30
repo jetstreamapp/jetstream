@@ -22,6 +22,8 @@ type RefObjType = RefObject<HTMLLIElement>[] | RefObject<HTMLInputElement>[];
 
 export interface ListProps {
   className?: string;
+  /** Accessible name for the listbox — required for screen readers since the list has no visible label element */
+  ariaLabel?: string;
   items: any[];
   isMultiSelect?: boolean;
   autoScrollToFocus?: boolean;
@@ -48,6 +50,7 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
   (
     {
       className,
+      ariaLabel,
       items,
       autoScrollToFocus = false,
       useCheckbox = false,
@@ -177,6 +180,7 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
           <ul
             ref={ref}
             role="listbox"
+            aria-label={ariaLabel}
             aria-multiselectable={isMultiSelect}
             className={classNames('slds-has-dividers_bottom-space', className)}
             tabIndex={0}
