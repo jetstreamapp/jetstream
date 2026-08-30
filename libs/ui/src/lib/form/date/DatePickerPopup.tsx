@@ -92,17 +92,13 @@ export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
 
   /**
    * Dialog-wide keyboard contract (the popup renders as role="dialog"):
-   * - Escape closes from ANY element — previously only the date grid cells handled it, so Escape on
-   *   the month selector or the Clear/Today footer buttons did nothing
-   * - Tab/Shift+Tab wrap within the popup (a dialog traps Tab per the APG)
+   * - Escape closes from ANY element — owned by DatePicker's useEscapeToCloseLayer, which consumes
+   *   the key at document capture before this handler could ever see it
+   * - Tab past the last control / Shift+Tab before the first closes the popup and carries on from the
+   *   trigger, like the combobox, picklist and menu lists. The popup is not modal, and someone who opened
+   *   the calendar and decided against picking a date expects Tab to move on as it always has.
    */
   function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      event.stopPropagation();
-      onClose();
-      return;
-    }
     if (event.key !== 'Tab') {
       return;
     }
@@ -114,17 +110,15 @@ export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
     }
     const first = focusables[0];
     const last = focusables[focusables.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
+    const isLeavingPopup = event.shiftKey ? document.activeElement === first : document.activeElement === last;
+    if (isLeavingPopup) {
+      // onClose returns focus to the trigger; the key's default action then moves on from there
+      onClose();
     }
   }
 
   return (
-    // Delegated dialog-level handler (Escape / Tab trap) — the wrapping PopoverContainer provides role="dialog"
+    // Delegated dialog-level handler (Tab leaves the popup) — the wrapping PopoverContainer provides role="dialog"
     // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div ref={ref} onKeyDown={handleKeyDown}>
       <DateGridPrevNextSelector
