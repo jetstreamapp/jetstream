@@ -403,6 +403,11 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
       setLoadState((prevState) => ({ ...prevState, loading: true }));
       onIsLoading(true);
       document.title = `Loading Records | ${TITLES.BAR_JETSTREAM}`;
+      // The retry button the user activated unmounts with the old results view, which would drop
+      // focus to <body> — land on the new run's tab instead (Tab.tsx renders anchors as tab-<id>)
+      window.setTimeout(() => {
+        document.getElementById(`tab-${newRunId}`)?.focus();
+      });
     },
     [activeRun, runs, onIsLoading, apiMode, batchSize, fieldMapping, inputZipFileData, startHistoryForRun],
   );
