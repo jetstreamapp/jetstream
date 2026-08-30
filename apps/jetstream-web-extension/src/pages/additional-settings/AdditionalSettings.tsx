@@ -8,6 +8,7 @@ import {
   SettingsToggleRow,
   SoqlQueryFormatSettings,
 } from '@jetstream/ui-core';
+import { useEffect } from 'react';
 import { AppWrapper } from '../../core/AppWrapper';
 import { applyExtensionThemeBeforeMount } from '../../core/ExtensionThemeApplier';
 import { useExtensionSettings } from '../../hooks/useExtensionSettings';
@@ -45,6 +46,38 @@ export function AdditionalSettings() {
     setSoqlQueryFormatOptions,
     authError,
   } = useExtensionSettings();
+
+  // This page lives outside the SPA router, so the `#data-history` deep link from Data History has
+  // no FocusMainContentOnRouteChange to land it. The target section mounts after its settings load
+  // asynchronously — the browser's native fragment jump misses it — so poll briefly, then focus and
+  // scroll it the same way the in-app deep link does.
+  useEffect(() => {
+    const { hash } = window.location;
+    if (!hash) {
+      return;
+    }
+    let attemptsRemaining = 20;
+    let cancelled = false;
+    const tryFocusHashTarget = () => {
+      if (cancelled) {
+        return;
+      }
+      const target = document.getElementById(hash.slice(1));
+      if (target) {
+        target.scrollIntoView?.({ block: 'start' });
+        target.focus();
+        return;
+      }
+      attemptsRemaining--;
+      if (attemptsRemaining > 0) {
+        window.setTimeout(tryFocusHashTarget, 50);
+      }
+    };
+    tryFocusHashTarget();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
