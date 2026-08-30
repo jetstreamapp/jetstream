@@ -10,6 +10,7 @@ import Grid from '../grid/Grid';
 import EmptyState from '../illustrations/EmptyState';
 import { FishIllustration } from '../illustrations/FishIllustration';
 import AutoFullHeightContainer, { AutoFullHeightContainerProps } from '../layout/AutoFullHeightContainer';
+import AssistiveStatus from '../widgets/AssistiveStatus';
 import Icon from '../widgets/Icon';
 import ItemSelectionSummary from '../widgets/ItemSelectionSummary';
 import Spinner from '../widgets/Spinner';
@@ -183,6 +184,7 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
                 Showing {formatNumber(filteredItems.length)} of {formatNumber(items.length)}{' '}
                 {pluralizeIfMultiple(labels.descriptorSingular, items)}
               </div>
+              <AssistiveStatus debounceMs={600} message={`Showing ${filteredItems.length} of ${items.length} ${labels.descriptorPlural}`} />
               {allowSelectAll && (
                 <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
                   <Checkbox

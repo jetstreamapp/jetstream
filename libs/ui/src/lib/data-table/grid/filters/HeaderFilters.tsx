@@ -315,7 +315,13 @@ export const HeaderSetFilter = memo(({ columnKey, filter, values, updateFilter }
         max-height: 25vh;
       `}
     >
-      <SearchInput id={`${columnKey}-filter`} className="slds-p-bottom_x-small" placeholder="Search..." onChange={setSearchTerm} />
+      <SearchInput
+        id={`${columnKey}-filter`}
+        ariaLabel="Search filter values"
+        className="slds-p-bottom_x-small"
+        placeholder="Search..."
+        onChange={setSearchTerm}
+      />
       {!hasVisibleItems && <div>No items</div>}
       {hasVisibleItems && (
         <>

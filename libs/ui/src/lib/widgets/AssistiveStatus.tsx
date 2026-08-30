@@ -1,5 +1,13 @@
+import { useEffect, useState } from 'react';
+
 export interface AssistiveStatusProps {
   message: string;
+  /**
+   * Delay before a changed message is committed to the live region. Use for messages that update
+   * per keystroke (filter result counts): screen readers drop polite live-region churn during
+   * typing, so announce once after the value settles.
+   */
+  debounceMs?: number;
 }
 
 /**
@@ -9,10 +17,23 @@ export interface AssistiveStatusProps {
  * inserted into the DOM already containing its text (e.g. a spinner with baked-in "Loading"
  * assistive text) is unreliably announced, and an unmounting spinner announces nothing at all.
  */
-export const AssistiveStatus = ({ message }: AssistiveStatusProps) => (
-  <span role="status" aria-live="polite" aria-atomic="true" className="slds-assistive-text">
-    {message}
-  </span>
-);
+export const AssistiveStatus = ({ message, debounceMs }: AssistiveStatusProps) => {
+  const [displayedMessage, setDisplayedMessage] = useState(message);
+
+  useEffect(() => {
+    if (!debounceMs) {
+      setDisplayedMessage(message);
+      return;
+    }
+    const timeout = window.setTimeout(() => setDisplayedMessage(message), debounceMs);
+    return () => window.clearTimeout(timeout);
+  }, [message, debounceMs]);
+
+  return (
+    <span role="status" aria-live="polite" aria-atomic="true" className="slds-assistive-text">
+      {displayedMessage}
+    </span>
+  );
+};
 
 export default AssistiveStatus;
