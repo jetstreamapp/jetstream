@@ -53,6 +53,7 @@ import {
   ToolbarItemGroup,
   Tooltip,
   fireToast,
+  getAriaKeyshortcuts,
   getModifierKey,
   notifyExcelCellsTruncated,
 } from '@jetstream/ui';
@@ -1092,7 +1093,12 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
               </div>
             }
           >
-            <Link className="slds-button slds-button_brand" to=".." onClick={handleGoBack}>
+            <Link
+              className="slds-button slds-button_brand"
+              aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'shift', 'enter'])}
+              to=".."
+              onClick={handleGoBack}
+            >
               <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
               Go Back
             </Link>
@@ -1152,7 +1158,12 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
               )
             }
           >
-            <button className="slds-button slds-button_brand slds-m-left_xx-small" onClick={saveChanges} disabled={saveDisabled}>
+            <button
+              className="slds-button slds-button_brand slds-m-left_xx-small"
+              aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+              onClick={saveChanges}
+              disabled={saveDisabled}
+            >
               <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" />
               Save
             </button>
