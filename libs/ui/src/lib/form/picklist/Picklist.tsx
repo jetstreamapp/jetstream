@@ -18,6 +18,7 @@ import classNames from 'classnames';
 import isNumber from 'lodash/isNumber';
 import uniqueId from 'lodash/uniqueId';
 import React, { createRef, forwardRef, KeyboardEvent, RefObject, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { useEscapeToCloseLayer } from '../../hooks/useEscapeToCloseLayer';
 import PopoverContainer from '../../popover/PopoverContainer';
 import OutsideClickHandler from '../../utils/OutsideClickHandler';
 import HelpText from '../../widgets/HelpText';
@@ -238,10 +239,19 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
         setSelectedItemsIdsSet(new Set([item.id]));
       }
     }
+    // Escape closes ONLY this menu (and returns focus to the input) — consumed at document capture
+    // so an ancestor modal/popover cannot also close on the same press
+    useEscapeToCloseLayer(isOpen, () => {
+      setIsOpen(false);
+      inputRef.current?.focus();
+    });
 
     function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
       let newFocusedItem = focusedItem;
 
+      // While open, Escape never reaches here (useEscapeToCloseLayer consumes it at document
+      // capture); the isEscapeKey half guards the CLOSED state, where falling through would hit
+      // the open-on-any-key branch at the bottom and pop the list open on Escape.
       if (isTabKey(event) || isEscapeKey(event)) {
         event.preventDefault();
         event.stopPropagation();

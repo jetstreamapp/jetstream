@@ -20,6 +20,7 @@ import { FullWidth, sizeXLarge, SmallMediumLarge } from '@jetstream/types';
 import classNames from 'classnames';
 import { createElement, CSSProperties, memo, ReactNode, RefObject, useCallback, useEffect, useImperativeHandle, useState } from 'react';
 import { Tooltip, TooltipProps } from '../..';
+import { useEscapeToCloseLayer } from '../hooks/useEscapeToCloseLayer';
 import { usePortalContext } from '../modal/PortalContext';
 import { Icon } from '../widgets/Icon';
 
@@ -134,6 +135,9 @@ const PopoverComponent = ({
   const dismiss = useDismiss(context, {
     outsidePressEvent: 'mousedown',
     ancestorScroll: false,
+    // Escape is owned by useEscapeToCloseLayer below — useDismiss's keydown handler neither
+    // consumes the event nor stops the keyup that a hosting Modal closes on
+    escapeKey: false,
   });
   const role = useRole(context);
 
@@ -154,6 +158,15 @@ const PopoverComponent = ({
   const handleClose = useCallback(() => {
     setIsOpen(false);
   }, []);
+
+  // Escape closes ONLY this popover — consumed at document capture (keydown AND keyup) so a hosting
+  // Modal, which closes on Escape keyup, cannot also close on the same press. A layer open INSIDE
+  // the popover (combobox, date picker) is above this one on the layer stack and closes first.
+  // FloatingFocusManager's returnFocus hands focus back to the trigger when the popover unmounts.
+  useEscapeToCloseLayer(isOpen, () => {
+    setIsOpen(false);
+    onChange?.(false);
+  });
 
   /**
    * Popovers used in modals did not close when clicking outside of them.

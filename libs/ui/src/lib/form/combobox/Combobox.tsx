@@ -26,6 +26,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { useEscapeToCloseLayer } from '../../hooks/useEscapeToCloseLayer';
 import PopoverContainer from '../../popover/PopoverContainer';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
@@ -267,9 +268,9 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
         return;
       }
       if (isEscapeKey(event)) {
-        // Escape is handled on keydown (see handleInputKeyDown) so it can preempt an ancestor's
-        // keydown listener (e.g. a Panel with closeOnEscape). Ignore it here so it does not fall
-        // through to the onInputChange/onFilterInputChange branch below.
+        // While open, Escape is fully consumed by useEscapeToCloseLayer (keydown AND keyup); this
+        // guard covers the CLOSED state, where the keyup must not fall through to the
+        // onInputChange/onFilterInputChange branch below.
         return;
       }
       if (isArrowUpKey(event)) {
@@ -291,22 +292,13 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
       }
     }
 
-    /**
-     * Handle Escape on keydown so an open dropdown closes before any ancestor keydown listener
-     * (e.g. a Panel with closeOnEscape) reacts. When the dropdown is already closed, Escape is left
-     * to bubble so the ancestor can handle it.
-     */
-    function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-      if (disabled || preventOpen) {
-        return;
-      }
-      if (isEscapeKey(event) && isOpen) {
-        event.stopPropagation();
-        event.preventDefault();
-        setIsOpen(false);
-        onClose && onClose();
-      }
-    }
+    // Escape closes ONLY this menu (and returns focus to the input) — consumed at document capture
+    // so an ancestor modal/popover cannot also close on the same press
+    useEscapeToCloseLayer(isOpen, () => {
+      setIsOpen(false);
+      onClose && onClose();
+      inputEl.current?.focus();
+    });
 
     /**
      * Handle keyboard interaction when list items have focus
@@ -314,14 +306,8 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
      */
     function handleListKeyDown(event: KeyboardEvent<HTMLDivElement>) {
       try {
-        if (isOpen && isEscapeKey(event)) {
-          event.preventDefault();
-          event.stopPropagation();
-          setIsOpen(false);
-          onClose && onClose();
-          inputEl.current?.focus();
-          return;
-        }
+        // Escape is deliberately absent: the list only has focus while open, and
+        // useEscapeToCloseLayer consumes Escape at document capture for that state
         if (isEnterOrSpace(event)) {
           event.preventDefault();
           event.stopPropagation();
@@ -450,7 +436,6 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                       placeholder={placeholder}
                       disabled={disabled}
                       readOnly={preventOpen}
-                      onKeyDown={handleInputKeyDown}
                       onKeyUp={handleInputKeyUp}
                       onChange={(event) => setValue(event.target.value)}
                       value={value}

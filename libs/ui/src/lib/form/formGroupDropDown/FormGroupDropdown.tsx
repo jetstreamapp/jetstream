@@ -16,6 +16,7 @@ import classNames from 'classnames';
 import isNumber from 'lodash/isNumber';
 import uniqueId from 'lodash/uniqueId';
 import { createRef, FunctionComponent, KeyboardEvent, RefObject, useEffect, useRef, useState } from 'react';
+import { useEscapeToCloseLayer } from '../../hooks/useEscapeToCloseLayer';
 import OutsideClickHandler from '../../utils/OutsideClickHandler';
 import Icon from '../../widgets/Icon';
 
@@ -94,6 +95,15 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
     }
   }
 
+  // Escape closes ONLY this menu (and returns focus to the trigger) — consumed at document capture
+  // so an ancestor modal/popover cannot also close on the same press
+  useEscapeToCloseLayer(isOpen, () => {
+    setIsOpen(false);
+    if (inputRef.current && typeof inputRef.current.focus === 'function') {
+      inputRef.current.focus();
+    }
+  });
+
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement | HTMLInputElement | HTMLLIElement>) {
     try {
       if (isTabKey(event)) {
@@ -105,11 +115,10 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
       event.stopPropagation();
       let newFocusedItem;
 
+      // While open, Escape never reaches here (useEscapeToCloseLayer consumes it at document
+      // capture); this guard covers the CLOSED state, keeping Escape out of the type-ahead buffer
+      // in the fallback branch below
       if (isEscapeKey(event)) {
-        setIsOpen(false);
-        if (inputRef.current && typeof inputRef.current.focus === 'function') {
-          inputRef.current.focus();
-        }
         return;
       }
 
