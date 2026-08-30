@@ -6,6 +6,7 @@ import { queryAll, queryAllFromList, queryAllWithCache } from '@jetstream/shared
 import { getErrorMessage, groupByFlat, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { ChildRelationship, QueryResult, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import {
+  AssistiveStatus,
   AutoFullHeightContainer,
   ColumnWithFilter,
   DataTree,
@@ -323,52 +324,65 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchChildRecords]);
 
-  if (loading) {
-    return (
-      <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={300}>
-        <Spinner />
-      </AutoFullHeightContainer>
-    );
-  }
-
   return (
     <>
-      {!!fetchErrors.length && (
+      {/* Persistent status region in a stable tree position for BOTH states — remounting a live
+          region (or a spinner with baked-in text) is announced unreliably; swapping the message on
+          the mounted region is what screen readers reliably announce */}
+      <AssistiveStatus
+        message={
+          loading
+            ? 'Loading related records'
+            : fetchErrors.length
+              ? 'Related records loaded, but some child records failed to load'
+              : 'Related records loaded'
+        }
+      />
+      {loading && (
+        <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={300}>
+          <Spinner />
+        </AutoFullHeightContainer>
+      )}
+      {!loading && !!fetchErrors.length && (
         <ScopedNotification theme="warning">
           There was an error fetching some child records. <PopoverErrorButton errors={fetchErrors} />
         </ScopedNotification>
       )}
-      <Grid
-        align="end"
-        css={css`
-          margin-top: -0.5rem;
-        `}
-      >
-        <Tooltip
-          content={
-            'Child records are cached to speed things up, but the records may be out of date. You can reload data to get the latest version of all the records.'
-          }
-        >
-          <button className="slds-button slds-m-right_small" disabled={loading} onClick={() => fetchChildRecords(true)}>
-            <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
-            Reload Records
-          </button>
-        </Tooltip>
-      </Grid>
-      <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={300}>
-        <DataTree
-          columns={columns}
-          data={rows}
-          serverUrl={serverUrl}
-          skipFrontdoorLogin={skipFrontDoorAuth}
-          getRowKey={getRowId}
-          includeQuickFilter
-          groupBy={groupedRows}
-          rowGrouper={groupBy}
-          expandedGroupIds={expandedGroupIds}
-          onExpandedGroupIdsChange={(items) => setExpandedGroupIds(items)}
-        />
-      </AutoFullHeightContainer>
+      {!loading && (
+        <>
+          <Grid
+            align="end"
+            css={css`
+              margin-top: -0.5rem;
+            `}
+          >
+            <Tooltip
+              content={
+                'Child records are cached to speed things up, but the records may be out of date. You can reload data to get the latest version of all the records.'
+              }
+            >
+              <button className="slds-button slds-m-right_small" disabled={loading} onClick={() => fetchChildRecords(true)}>
+                <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
+                Reload Records
+              </button>
+            </Tooltip>
+          </Grid>
+          <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={300}>
+            <DataTree
+              columns={columns}
+              data={rows}
+              serverUrl={serverUrl}
+              skipFrontdoorLogin={skipFrontDoorAuth}
+              getRowKey={getRowId}
+              includeQuickFilter
+              groupBy={groupedRows}
+              rowGrouper={groupBy}
+              expandedGroupIds={expandedGroupIds}
+              onExpandedGroupIdsChange={(items) => setExpandedGroupIds(items)}
+            />
+          </AutoFullHeightContainer>
+        </>
+      )}
     </>
   );
 };
