@@ -6,6 +6,35 @@ export function getModifierKey() {
   return typeof navigator === 'object' && /Mac|iPod|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'CTRL';
 }
 
+// The visual glyphs read terribly (or not at all) in screen readers — '⌘' announces as
+// "place of interest sign" at best
+const SPOKEN_KEYS: Record<string, string> = {
+  '⌘': 'Command',
+  CTRL: 'Control',
+  ctrl: 'Control',
+  alt: 'Alt',
+  option: 'Option',
+  shift: 'Shift',
+  enter: 'Enter',
+  esc: 'Escape',
+  'right-click': 'right click',
+  click: 'click',
+};
+
+export function getSpokenKeyboardShortcut(keys: string[]) {
+  return keys.map((key) => SPOKEN_KEYS[key] ?? key).join(' + ');
+}
+
+/**
+ * Value for the trigger's aria-keyshortcuts attribute (e.g. "Meta+Enter") — the shortcut is then
+ * announced at focus time, which a tooltip-attached description is too late for. Only pass real
+ * keys (not 'click' variants).
+ */
+export function getAriaKeyshortcuts(keys: string[]) {
+  const ariaNames: Record<string, string> = { '⌘': 'Meta', CTRL: 'Control', ctrl: 'Control', esc: 'Escape' };
+  return keys.map((key) => ariaNames[key] ?? key.charAt(0).toUpperCase() + key.slice(1)).join('+');
+}
+
 export interface KeyboardShortcutProps extends GridProps {
   keys: string[];
   preContent?: ReactNode;
@@ -23,9 +52,11 @@ export function KeyboardShortcut({ keys, preContent, postContent, separator = '+
   return (
     <Grid verticalAlign="center" {...rest}>
       {preContent && <span className="slds-m-right_x-small">{preContent}</span>}
+      <span className="slds-assistive-text">{getSpokenKeyboardShortcut(keys)}</span>
       {keys.map((key, i) => (
         <Fragment key={key}>
           <kbd
+            aria-hidden="true"
             className={i === keys.length - 1 ? 'slds-m-right_x-small' : ''}
             css={css`
               align-items: center;
@@ -64,7 +95,11 @@ export function KeyboardShortcut({ keys, preContent, postContent, separator = '+
           >
             {key}
           </kbd>
-          {i !== keys.length - 1 && <span className="slds-m-horizontal_xx-small">{separator}</span>}
+          {i !== keys.length - 1 && (
+            <span aria-hidden="true" className="slds-m-horizontal_xx-small">
+              {separator}
+            </span>
+          )}
         </Fragment>
       ))}
       {postContent}

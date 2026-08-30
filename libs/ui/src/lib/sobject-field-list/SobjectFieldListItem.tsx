@@ -86,6 +86,7 @@ export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> 
               id={`${parentKey}-${relationshipKey}-${field.name}-helptext`}
               content={field.metadata.inlineHelpText}
               className="slds-m-left_xx-small"
+              triggerTabIndex={-1}
             >
               <Icon type="utility" icon="info" className="slds-icon slds-icon-text-default slds-icon_xx-small cursor-pointer" />
               <span className="slds-assistive-text">{field.metadata.inlineHelpText}</span>
