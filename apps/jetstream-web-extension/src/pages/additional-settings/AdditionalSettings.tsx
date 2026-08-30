@@ -9,7 +9,7 @@ import {
   ScopedNotification,
   Spinner,
 } from '@jetstream/ui';
-import { DataHistorySettingsSection, SoqlQueryFormatConfig } from '@jetstream/ui-core';
+import { DataHistorySettingsSection, EditorSettingsSection, SoqlQueryFormatConfig } from '@jetstream/ui-core';
 import { dexieDataSync } from '@jetstream/ui/db';
 import { useEffect, useState } from 'react';
 import { AppWrapper } from '../../core/AppWrapper';
@@ -150,6 +150,7 @@ export function AdditionalSettings() {
 
           {/* No link into the app — this page has no Salesforce `host` param, so Data History is reached from the app nav */}
           <DataHistorySettingsSection hideViewHistoryLink />
+          <EditorSettingsSection />
         </AutoFullHeightContainer>
       </Page>
     </div>
