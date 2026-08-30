@@ -5,8 +5,10 @@ import {
   KeyBuffer,
   isArrowDownKey,
   isArrowUpKey,
+  isEndKey,
   isEnterKey,
-  isEscapeKey,
+  isHomeKey,
+  isTabKey,
   menuItemSelectScroll,
   selectMenuItemFromKeyboard,
 } from '@jetstream/shared/ui-utils';
@@ -27,6 +29,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { useEscapeToCloseLayer } from '../../hooks/useEscapeToCloseLayer';
 import { usePortalContext } from '../../modal/PortalContext';
 import OutsideClickHandler from '../../utils/OutsideClickHandler';
 import { ConditionalPortal } from '../../widgets/ConditionalPortal';
@@ -162,18 +165,32 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
+  // Escape closes ONLY this menu (and returns focus to the trigger) — consumed at document capture
+  // so an ancestor modal/popover cannot also close on the same press
+  useEscapeToCloseLayer(isOpen, () => {
+    setIsOpen(false);
+    focusTrigger();
+  });
+
+  // Menu-item keyboard handling. Escape is deliberately absent: the items only have focus while
+  // the menu is open, and useEscapeToCloseLayer consumes Escape at document capture for that state.
   function handleKeyDown(event: KeyboardEvent<HTMLAnchorElement>) {
+    // Tab leaves the menu (APG menu button): focus the trigger first so the browser's sequential
+    // navigation continues from it (the menu is portaled), close, and let the default Tab proceed
+    if (isTabKey(event)) {
+      focusTrigger();
+      setIsOpen(false);
+      return;
+    }
     event.preventDefault();
     event.stopPropagation();
     let newFocusedItem;
 
-    if (isEscapeKey(event)) {
-      setIsOpen(false);
-      focusTrigger();
-      return;
-    }
-
-    if (isArrowUpKey(event)) {
+    if (isHomeKey(event)) {
+      newFocusedItem = 0;
+    } else if (isEndKey(event)) {
+      newFocusedItem = items.length - 1;
+    } else if (isArrowUpKey(event)) {
       if (!isNumber(focusedItem) || focusedItem === 0) {
         newFocusedItem = items.length - 1;
       } else {
