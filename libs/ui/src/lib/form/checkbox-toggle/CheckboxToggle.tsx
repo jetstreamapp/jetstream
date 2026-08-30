@@ -46,14 +46,14 @@ export const CheckboxToggle: FunctionComponent<CheckboxCheckboxToggleProps> = ({
 
   return (
     <div className={classNames('slds-form-element', containerClassname)} {...extraProps}>
-      <label className={classNames('slds-checkbox_toggle slds-grid', labelClassname)} onClick={(ev) => ev.preventDefault()}>
+      {/* No click handlers: the label natively forwards clicks to the input, which fires a single
+          change event. The previous preventDefault + manual span handlers (added to stop that
+          forwarding from double-toggling) canceled the checkbox's native activation, which broke
+          toggling with the Space key entirely. */}
+      <label className={classNames('slds-checkbox_toggle slds-grid', labelClassname)}>
         {/* A hidden label still names the toggle for screen readers, matching the other form controls */}
         {hideLabel && <span className="slds-assistive-text">{label}</span>}
-        {!hideLabel && labelPosition === 'left' && (
-          <span className="slds-form-element__label slds-m-bottom_none" onClick={handleChange}>
-            {label}
-          </span>
-        )}
+        {!hideLabel && labelPosition === 'left' && <span className="slds-form-element__label slds-m-bottom_none">{label}</span>}
         {labelHelp && <HelpText id={`${id}-label-help-text`} className="slds-m-right_xx-small" content={labelHelp} />}
         <input
           type="checkbox"
@@ -61,17 +61,15 @@ export const CheckboxToggle: FunctionComponent<CheckboxCheckboxToggleProps> = ({
           aria-describedby={ariaDescribedBy ? `${id} ${ariaDescribedBy}` : id}
           checked={checked}
           disabled={disabled}
-          onChange={(_ex) => handleChange()}
+          onChange={() => handleChange()}
         />
-        <span id={id} className="slds-checkbox_faux_container" aria-live="assertive" onClick={handleChange}>
+        <span id={id} className="slds-checkbox_faux_container" aria-live="assertive">
           <span className="slds-checkbox_faux"></span>
           <span className="slds-checkbox_on">{onText}</span>
           <span className="slds-checkbox_off">{offText}</span>
         </span>
         {!hideLabel && labelPosition === 'right' && (
-          <span className="slds-form-element__label slds-m-left_xx-small slds-m-bottom_none" onClick={handleChange}>
-            {label}
-          </span>
+          <span className="slds-form-element__label slds-m-left_xx-small slds-m-bottom_none">{label}</span>
         )}
       </label>
     </div>
