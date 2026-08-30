@@ -113,7 +113,7 @@ export const FormulaEvaluatorRecordSearch: FunctionComponent<FormulaEvaluatorRec
             onClick={handleViewRecord}
             disabled={disabled || !selectedRecord}
           >
-            <Icon type="utility" icon="record_lookup" className="slds-button__icon" omitContainer />
+            <Icon type="utility" icon="record_lookup" description="View record details" className="slds-button__icon" omitContainer />
           </button>
         </Tooltip>
       </div>
