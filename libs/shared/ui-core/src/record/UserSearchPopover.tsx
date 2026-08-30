@@ -6,6 +6,7 @@ import { appActionObservable, hasModifierKey, isUKey, useDebounce, useGlobalEven
 import { QueryResults, SalesforceOrgUi } from '@jetstream/types';
 import {
   CopyToClipboard,
+  getAriaKeyshortcuts,
   getModifierKey,
   Grid,
   Icon,
@@ -204,6 +205,7 @@ export const UserSearchPopover: FunctionComponent = () => {
         className:
           'slds-button slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__help slds-global-actions__item-action cursor-pointer',
         title: 'View User Details',
+        'aria-keyshortcuts': getAriaKeyshortcuts([getModifierKey(), 'u']),
         disabled: !selectedOrg || !!selectedOrg.connectionError,
       }}
     >
