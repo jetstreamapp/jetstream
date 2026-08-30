@@ -351,7 +351,10 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
                     className={classNames('slds-input slds-combobox__input slds-combobox__input-value', { 'slds-has-focus': isOpen })}
                     id={comboboxId}
                     aria-controls={isOpen ? listboxId : undefined}
-                    aria-describedby={errorMessageId}
+                    aria-describedby={
+                      [labelHelp && !hideLabel ? `${comboboxId}-label-help-text` : undefined, errorMessageId].filter(Boolean).join(' ') ||
+                      undefined
+                    }
                     autoComplete="off"
                     placeholder={placeholder}
                     readOnly

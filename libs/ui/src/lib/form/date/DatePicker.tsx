@@ -203,7 +203,9 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
       >
         <input
           ref={inputRef}
-          aria-describedby={[`${id}-date-format`, errorMessageId].filter(Boolean).join(' ')}
+          aria-describedby={[!hideLabel && labelHelp ? `${id}-label-help-text` : undefined, `${id}-date-format`, errorMessageId]
+            .filter(Boolean)
+            .join(' ')}
           type="text"
           autoComplete="false"
           id={id}
