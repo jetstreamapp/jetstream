@@ -4,7 +4,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { describeSObject, sobjectOperation } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { filterCreateSobjects, isErrorResponse, tracker, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { filterCreateSobjects, isErrorResponse, tracker, useNonInitialEffect, usePrimaryActionShortcut } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import {
@@ -16,10 +16,14 @@ import {
   SalesforceRecord,
 } from '@jetstream/types';
 import {
+  AssistiveStatus,
   AutoFullHeightContainer,
   ComboboxWithItems,
   ConnectedSobjectList,
   fireToast,
+  getAriaKeyshortcuts,
+  getModifierKey,
+  KeyboardShortcut,
   Page,
   PageHeader,
   PageHeaderActions,
@@ -27,6 +31,7 @@ import {
   PageHeaderTitle,
   ScopedNotification,
   Spinner,
+  Tooltip,
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, useAmplitude } from '@jetstream/ui-core';
 import { EditFromErrors, handleEditFormErrorResponse, transformEditForm, validateEditForm } from '@jetstream/ui-core/shared';
@@ -61,6 +66,23 @@ export const CreateRecords = () => {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [createdRecord, setCreatedRecord] = useState<{ id: string; sobject: string; record: any } | null>(null);
+
+  const [assistiveMessage, setAssistiveMessage] = useState('');
+  // Ref (not state) so back-to-back Cmd+Enter presses can't double-submit before React re-renders
+  const saveInProgress = useRef(false);
+
+  /**
+   * Announce async outcomes (form loaded, record created, save failed) to screen readers.
+   * Clear-then-set so repeating the same outcome (e.g. two saves failing identically) still announces.
+   */
+  function announce(message: string) {
+    setAssistiveMessage('');
+    window.setTimeout(() => {
+      if (isMounted.current) {
+        setAssistiveMessage(message);
+      }
+    }, 100);
+  }
 
   useEffect(() => {
     isMounted.current = true;
@@ -202,6 +224,7 @@ export const CreateRecords = () => {
       await calculatePicklistValues();
 
       setInitialRecord({});
+      announce(`${sobjectMetadata.data.label} record form loaded to the right of the object list and is ready to fill out.`);
     } catch (ex) {
       if (isMounted.current) {
         logger.error('Error fetching metadata', ex);
@@ -211,6 +234,7 @@ export const CreateRecords = () => {
           fieldErrors: {},
           generalErrors: ['Oops. There was a problem loading the record information. Make sure the record id is valid.'],
         });
+        announce('There was a problem loading the record information.');
         setLoading(false);
       }
     } finally {
@@ -219,7 +243,7 @@ export const CreateRecords = () => {
   }
 
   async function handleSave() {
-    if (!selectedObject) {
+    if (!selectedObject || saveInProgress.current) {
       return;
     }
     const record = transformEditForm(sobjectMetadata?.fields || [], modifiedRecord);
@@ -227,12 +251,15 @@ export const CreateRecords = () => {
 
     if (currentFormErrors.hasErrors) {
       setFormErrors({ hasErrors: true, fieldErrors: currentFormErrors.fieldErrors, generalErrors: [] });
+      const errorCount = Object.keys(currentFormErrors.fieldErrors).length;
+      announce(`Record was not saved. ${errorCount} ${errorCount === 1 ? 'field has' : 'fields have'} errors.`);
       return;
     } else if (formErrors.hasErrors) {
       // reset state since there are no longer any errors
       setFormErrors({ hasErrors: false, fieldErrors: {}, generalErrors: [] });
     }
 
+    saveInProgress.current = true;
     setSaving(true);
 
     // Identity + request of the Data History entry, shared by the success and thrown-error paths below
@@ -252,21 +279,35 @@ export const CreateRecords = () => {
 
       if (isMounted.current) {
         if (isErrorResult) {
-          setFormErrors(handleEditFormErrorResponse(recordResponse));
+          const saveErrors = handleEditFormErrorResponse(recordResponse);
+          setFormErrors(saveErrors);
+          const fieldErrorCount = Object.keys(saveErrors.fieldErrors).length;
+          announce(
+            [
+              'Record was not saved.',
+              ...saveErrors.generalErrors,
+              fieldErrorCount ? `${fieldErrorCount} ${fieldErrorCount === 1 ? 'field has' : 'fields have'} errors.` : '',
+            ]
+              .filter(Boolean)
+              .join(' '),
+          );
         } else {
           // The record WAS created at this point — a failure re-fetching it for display must not fall
           // through to the outer catch (which reports the create itself as failed) or skip history capture.
           try {
             retrievedRecord = (await sobjectOperation(selectedOrg, selectedObject.name, 'retrieve', { ids: [recordResponse.id] }))[0];
             setCreatedRecord({ id: recordResponse.id, sobject: selectedObject.name, record: retrievedRecord });
+            announce('Record created successfully.');
           } catch (ex) {
             logger.warn('Record was created but could not be re-fetched', ex);
             if (isMounted.current) {
+              const createdButNotReloadedMessage = `Your record was created (${recordResponse.id}), but it could not be reloaded for display.`;
               setFormErrors({
                 hasErrors: true,
                 fieldErrors: {},
-                generalErrors: [`Your record was created (${recordResponse.id}), but it could not be reloaded for display.`],
+                generalErrors: [createdButNotReloadedMessage],
               });
+              announce(createdButNotReloadedMessage);
             }
           }
         }
@@ -283,7 +324,9 @@ export const CreateRecords = () => {
       trackEvent(ANALYTICS_KEYS.create_record_save, { success: true });
     } catch (ex) {
       if (isMounted.current) {
-        setFormErrors({ hasErrors: true, fieldErrors: {}, generalErrors: [getErrorMessage(ex) || 'An unknown problem has occurred.'] });
+        const thrownErrorMessage = getErrorMessage(ex) || 'An unknown problem has occurred.';
+        setFormErrors({ hasErrors: true, fieldErrors: {}, generalErrors: [thrownErrorMessage] });
+        announce(`Record was not saved. ${thrownErrorMessage}`);
       }
       // A THROWN create (network error, expired session) is still recorded — the request may even
       // have applied server-side (e.g. a timeout). Graceful error results are captured above.
@@ -293,14 +336,19 @@ export const CreateRecords = () => {
       });
       trackEvent(ANALYTICS_KEYS.create_record_save, { success: false });
     }
+    saveInProgress.current = false;
     if (isMounted.current) {
       setSaving(false);
     }
   }
 
+  const saveDisabled = !selectedObject || loading || saving;
+  usePrimaryActionShortcut(handleSave, { disabled: saveDisabled });
+
   return (
     <Page key={selectedOrg.uniqueId} testId="manage-permissions-page">
       <RequireMetadataApiBanner />
+      <AssistiveStatus message={assistiveMessage} />
       <PageHeader>
         <PageHeaderRow>
           <PageHeaderTitle
@@ -318,9 +366,29 @@ export const CreateRecords = () => {
                 Clear
               </button>
             )}
-            <button className="slds-button slds-button_brand" disabled={!selectedObject} onClick={() => handleSave()}>
-              Save
-            </button>
+            <Tooltip
+              openDelay={500}
+              content={
+                <div className="slds-p-bottom_small">
+                  <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+                </div>
+              }
+            >
+              {/* aria-disabled (not disabled) keeps the button focusable so keyboard users can reach
+                  the shortcut tooltip, and preserves focus while a save is in flight */}
+              <button
+                className="slds-button slds-button_brand"
+                aria-disabled={saveDisabled}
+                aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+                onClick={() => {
+                  if (!saveDisabled) {
+                    handleSave();
+                  }
+                }}
+              >
+                Save
+              </button>
+            </Tooltip>
           </PageHeaderActions>
         </PageHeaderRow>
         <PageHeaderRow>
@@ -369,39 +437,41 @@ export const CreateRecords = () => {
                 </ul>
               </ScopedNotification>
             )}
-            {selectedObject && sobjectMetadata?.fields && (
-              <>
-                {Array.isArray(recordTypes) && (
-                  <div className="slds-p-horizontal_xx-small">
-                    <ComboboxWithItems
-                      comboboxProps={{
-                        label: 'Record Type',
-                        labelHelp: 'The Record Type controls which picklist values are available',
-                        // Prevents overlapping picklist value requests from applying out of order
-                        disabled: loading || saving,
-                      }}
-                      items={recordTypes}
-                      selectedItemId={selectedRecordTypeId}
-                      onSelected={(item) => handleRecordTypeChange(item.id)}
-                    />
-                    <hr className="slds-m-vertical_small" />
-                  </div>
-                )}
-                <UiRecordForm
-                  key={formKey}
-                  org={selectedOrg}
-                  controlClassName="slds-p-bottom_x-small slds-p-horizontal_xx-small"
-                  action="create"
-                  sobjectFields={sobjectMetadata.fields || []}
-                  picklistValues={picklistValues || {}}
-                  record={initialRecord}
-                  initialModifiedRecord={modifiedRecord}
-                  saveErrors={formErrors.fieldErrors}
-                  disabled={loading || saving}
-                  onChange={handleRecordChange}
-                />
-              </>
-            )}
+            {selectedObject &&
+              sobjectMetadata?.fields && (
+                // Landmark so screen reader users can jump straight to the form for the chosen object
+                <section aria-label={`${selectedObject.label} record form`}>
+                  {Array.isArray(recordTypes) && (
+                    <div className="slds-p-horizontal_xx-small">
+                      <ComboboxWithItems
+                        comboboxProps={{
+                          label: 'Record Type',
+                          labelHelp: 'The Record Type controls which picklist values are available',
+                          // Prevents overlapping picklist value requests from applying out of order
+                          disabled: loading || saving,
+                        }}
+                        items={recordTypes}
+                        selectedItemId={selectedRecordTypeId}
+                        onSelected={(item) => handleRecordTypeChange(item.id)}
+                      />
+                      <hr className="slds-m-vertical_small" />
+                    </div>
+                  )}
+                  <UiRecordForm
+                    key={formKey}
+                    org={selectedOrg}
+                    controlClassName="slds-p-bottom_x-small slds-p-horizontal_xx-small"
+                    action="create"
+                    sobjectFields={sobjectMetadata.fields || []}
+                    picklistValues={picklistValues || {}}
+                    record={initialRecord}
+                    initialModifiedRecord={modifiedRecord}
+                    saveErrors={formErrors.fieldErrors}
+                    disabled={loading || saving}
+                    onChange={handleRecordChange}
+                  />
+                </section>
+              )}
           </AutoFullHeightContainer>
         </Split>
       </AutoFullHeightContainer>
