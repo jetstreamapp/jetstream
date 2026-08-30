@@ -41,6 +41,9 @@
       "path": "../../libs/api-types"
     },
     {
+      "path": "../../libs/shared/ui-router"
+    },
+    {
       "path": "../../libs/api-config"
     },
     {
