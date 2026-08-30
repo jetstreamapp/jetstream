@@ -87,6 +87,7 @@ export * from './lib/form/time-picker/TimePicker';
 export * from './lib/google/GoogleSignIn';
 export * from './lib/grid/Grid';
 export * from './lib/grid/GridCol';
+export * from './lib/hooks/useEscapeToCloseLayer';
 export * from './lib/hooks/useHighlightedText';
 export * from './lib/illustrations/AxeIllustration';
 export * from './lib/illustrations/CampingIllustration';

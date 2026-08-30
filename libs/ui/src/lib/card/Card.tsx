@@ -16,6 +16,8 @@ export interface CardProps {
   title?: string | ReactNode;
   icon?: IconObj;
   actions?: ReactNode;
+  /** 'start' top-aligns the actions with a multi-line title (default: vertically centered) */
+  actionsAlignment?: 'center' | 'start';
   footer?: ReactNode;
   nestedBorder?: boolean;
   children?: ReactNode;
@@ -27,7 +29,19 @@ export interface CardProps {
  */
 export const Card = forwardRef<HTMLElement, CardProps>(
   (
-    { testId, ariaLabel, className, bodyClassName = 'slds-card__body_inner', title, icon, actions, footer, nestedBorder, children },
+    {
+      testId,
+      ariaLabel,
+      className,
+      bodyClassName = 'slds-card__body_inner',
+      title,
+      icon,
+      actions,
+      actionsAlignment,
+      footer,
+      nestedBorder,
+      children,
+    },
     ref,
   ) => {
     const titleContent = isString(title) ? <span className="slds-truncate">{title}</span> : title;
@@ -77,6 +91,7 @@ export const Card = forwardRef<HTMLElement, CardProps>(
                 <Grid
                   wrap
                   css={css`
+                    align-self: ${actionsAlignment === 'start' ? 'flex-start' : 'center'};
                     margin-left: auto;
                   `}
                 >

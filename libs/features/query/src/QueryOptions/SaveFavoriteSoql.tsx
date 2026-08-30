@@ -72,7 +72,8 @@ export const SaveFavoriteSoql: FunctionComponent<SaveFavoriteSoqlProps> = ({
   }
 
   async function handleSave() {
-    if (!queryHistoryItem || !sObject || !sObjectLabel) {
+    // Guard for aria-disabled (not browser-enforced) and the form-submit path
+    if (!isDirty || !queryHistoryItem || !sObject || !sObjectLabel) {
       return;
     }
     const newQueryHistoryItem: QueryHistoryItem = { ...queryHistoryItem, customLabel: name.trim(), isFavorite: true };
@@ -193,7 +194,9 @@ export const SaveFavoriteSoql: FunctionComponent<SaveFavoriteSoqlProps> = ({
               <button
                 form="save-favorite-form"
                 className="slds-button slds-button_brand"
-                disabled={!isDirty}
+                // aria-disabled (not disabled): saving flips isDirty and a natively disabled button
+                // would drop the user's focus to <body>; handleSave guards on the same condition
+                aria-disabled={!isDirty ? true : undefined}
                 onClick={() => handleSave()}
                 type="submit"
               >
