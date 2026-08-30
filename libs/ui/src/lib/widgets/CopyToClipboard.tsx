@@ -41,7 +41,11 @@ export const CopyToClipboard: FunctionComponent<CopyToClipboardProps> = ({
 
   function handleCopy(event: React.MouseEvent<HTMLButtonElement>) {
     event.stopPropagation();
+    const buttonEl = event.currentTarget;
     setClipboard();
+    // The copy-to-clipboard library selects a temporary off-screen element to execute the copy and
+    // then removes it, which drops focus on <body> — put focus back on the button
+    buttonEl.focus();
   }
 
   useEffect(() => {
@@ -75,9 +79,15 @@ export const CopyToClipboard: FunctionComponent<CopyToClipboardProps> = ({
         )}
         type={currentIcon.type}
         icon={currentIcon.icon}
-        description={currentIcon.description}
+        // With visible text the icon is decorative — a description would double up the accessible
+        // name ("copy to clipboard Copy to Clipboard")
+        description={type === 'button' ? undefined : currentIcon.description}
       />
       {type === 'button' ? buttonText : null}
+      {/* The success checkmark is visual-only — announce the outcome (focus stays on this button) */}
+      <span role="status" aria-live="polite" className="slds-assistive-text">
+        {isCopied ? 'Copied to clipboard' : ''}
+      </span>
     </button>
   );
 };
