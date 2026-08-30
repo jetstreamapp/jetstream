@@ -4,6 +4,7 @@ import { Maybe } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Checkbox,
+  getAriaKeyshortcuts,
   getModifierKey,
   Icon,
   Input,
@@ -112,7 +113,11 @@ export const MassUpdateRecordsDeployment = () => {
                 </div>
               }
             >
-              <Link className="slds-button slds-button_neutral slds-m-right_x-small" to="..">
+              <Link
+                className="slds-button slds-button_neutral slds-m-right_x-small"
+                aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'shift', 'enter'])}
+                to=".."
+              >
                 <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
                 Go Back
               </Link>
@@ -130,7 +135,12 @@ export const MassUpdateRecordsDeployment = () => {
               )
             }
           >
-            <button className="slds-button slds-button_brand slds-is-relative" onClick={handleDeploy} disabled={deployDisabled}>
+            <button
+              className="slds-button slds-button_brand slds-is-relative"
+              aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+              onClick={handleDeploy}
+              disabled={deployDisabled}
+            >
               {loading && <Spinner size="small" />}
               Update Records
             </button>
