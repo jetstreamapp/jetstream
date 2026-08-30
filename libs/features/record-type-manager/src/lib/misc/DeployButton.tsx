@@ -1,6 +1,6 @@
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { Maybe } from '@jetstream/types';
-import { Tooltip } from '@jetstream/ui';
+import { getAriaKeyshortcuts, getModifierKey, Tooltip } from '@jetstream/ui';
 import { Fragment } from 'react';
 import { RecordTypePicklistSummary } from '../types/record-types.types';
 
@@ -18,6 +18,7 @@ export function DeployButton({ modifiedValues, configurationErrors, handleDeploy
   const deployButton = (
     <button
       className="slds-button slds-button_brand"
+      aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
       disabled={!!configurationErrors || modifiedValues.length === 0}
       onClick={handleDeploy}
     >
@@ -26,7 +27,7 @@ export function DeployButton({ modifiedValues, configurationErrors, handleDeploy
   );
 
   if (!hasModifiedValue) {
-    <Tooltip content="Change one or more values to enable deployment.">{deployButton}</Tooltip>;
+    return <Tooltip content="Change one or more values to enable deployment.">{deployButton}</Tooltip>;
   }
 
   if (!configurationErrors) {

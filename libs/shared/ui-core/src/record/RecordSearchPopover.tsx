@@ -1,7 +1,18 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { describeGlobal } from '@jetstream/shared/data';
 import { appActionObservable, convertId15To18, hasModifierKey, isKKey, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
-import { getModifierKey, Grid, Icon, Input, KeyboardShortcut, Popover, PopoverRef, ScopedNotification, Spinner } from '@jetstream/ui';
+import {
+  getAriaKeyshortcuts,
+  getModifierKey,
+  Grid,
+  Icon,
+  Input,
+  KeyboardShortcut,
+  Popover,
+  PopoverRef,
+  ScopedNotification,
+  Spinner,
+} from '@jetstream/ui';
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
@@ -181,6 +192,7 @@ export const RecordSearchPopover: FunctionComponent = () => {
         className:
           'slds-button slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__help slds-global-actions__item-action cursor-pointer',
         title: 'View Record Details - ctrl/command + k',
+        'aria-keyshortcuts': getAriaKeyshortcuts([getModifierKey(), 'k']),
         disabled: !selectedOrg || !!selectedOrg.connectionError,
       }}
     >

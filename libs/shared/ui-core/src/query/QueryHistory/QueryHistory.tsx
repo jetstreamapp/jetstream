@@ -3,7 +3,7 @@ import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { hasModifierKey, hasShiftModifierKey, isHKey, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { ButtonGroupContainer, getModifierKey, Icon, KeyboardShortcut, Tooltip } from '@jetstream/ui';
+import { ButtonGroupContainer, getAriaKeyshortcuts, getModifierKey, Icon, KeyboardShortcut, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
 import { forwardRef, Fragment, useCallback, useEffect, useImperativeHandle, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
@@ -92,6 +92,7 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
         >
           <button
             aria-label="Query History"
+            aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'h'])}
             className={classNames('slds-button slds-button_neutral', { 'slds-button_first': !embedded }, className)}
             css={css`
               padding: 0.5rem;
@@ -113,6 +114,7 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
         >
           <button
             aria-label="Saved Queries"
+            aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'shift', 'h'])}
             className={classNames('slds-button slds-button_neutral slds-button_last', className)}
             css={css`
               padding: 0.5rem;
