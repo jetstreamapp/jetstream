@@ -240,6 +240,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
                       `}
                       type="utility"
                       icon="new_window"
+                      description="View object in Salesforce setup"
                       className="slds-icon slds-icon-text-default slds-icon_xx-small"
                       omitContainer
                     />
@@ -248,7 +249,13 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
               )}
               <Tooltip content="Download metadata for object" openDelay={500}>
                 <button className="slds-button slds-button_icon slds-m-horizontal_xx-small" onClick={handleDownloadMetadata}>
-                  <Icon type="utility" icon="download" className="slds-button__icon" omitContainer />
+                  <Icon
+                    type="utility"
+                    icon="download"
+                    description="Download metadata for object"
+                    className="slds-button__icon"
+                    omitContainer
+                  />
                 </button>
               </Tooltip>
               <SobjectFieldListFilter selectedItems={activeFilters} onChange={handleFilterChange} />
@@ -256,6 +263,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
           </Grid>
           <List
             ref={ulRef}
+            ariaLabel="Object fields"
             items={filteredFields}
             useCheckbox
             isActive={isFieldActive}

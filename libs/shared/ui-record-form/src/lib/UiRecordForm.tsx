@@ -115,7 +115,7 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
         <Grid>
           <Select id={'num-columns'} className="slds-m-right_small">
             <select
-              aria-describedby="num-columns"
+              aria-label="Number of columns"
               className="slds-select"
               id="num-columns-select"
               required

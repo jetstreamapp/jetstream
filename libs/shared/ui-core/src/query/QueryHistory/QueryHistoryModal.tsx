@@ -227,6 +227,7 @@ export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ selectedO
             </div>
             <List
               ref={ulRef}
+              ariaLabel="Salesforce objects"
               items={filteredSelectObjectsList}
               isActive={(item: QueryHistorySelection) => item.key === selectedObject}
               subheadingPlaceholder
