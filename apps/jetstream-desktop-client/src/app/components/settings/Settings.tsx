@@ -11,6 +11,7 @@ import {
   AppearanceSetting,
   DataHistorySettingsSection,
   DiagnosticLoggingSetting,
+  EditorSettingsSection,
   getPreferencesToRestore,
   HistorySyncSettings,
   RecentObjectsSetting,
@@ -292,6 +293,7 @@ export const Settings = () => {
                   )}
                 </SettingsRow>
               </SettingsGroup>
+              <EditorSettingsSection />
             </SettingsSection>
 
             <SettingsSection id="query" title="Query">
