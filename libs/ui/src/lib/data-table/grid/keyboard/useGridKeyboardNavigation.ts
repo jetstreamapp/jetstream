@@ -921,6 +921,20 @@ export function useGridKeyboardNavigation<TRow extends object>({
         return;
       }
 
+      // A cell marked for inner-widget focus (data-grid-inner-focus) keeps NATIVE activation: focus
+      // sits on the widget itself, so Enter/Space fire its click through the browser — the grid must
+      // neither consume the key (that would block the native click) nor also activate the cell
+      // (that would double-fire the action).
+      if ((event.key === 'Enter' || event.key === ' ') && !ctrlOrMeta && event.target instanceof HTMLElement) {
+        const innerFocusControl = event.target.closest('[data-grid-inner-focus]');
+        // Space activates every control natively; Enter is native for buttons/links but a NO-OP on
+        // checkboxes — for those, fall through so the grid's activate path clicks the checkbox.
+        const enterIsNative = !(innerFocusControl instanceof HTMLInputElement && innerFocusControl.type === 'checkbox');
+        if (innerFocusControl && (event.key === ' ' || enterIsNative)) {
+          return;
+        }
+      }
+
       // ── Navigation mode ──
       // Vertical moves target the sticky desired column (not the possibly-snapped current column), so
       // passing through a group header or a spanned "no rows" row doesn't drag the user sideways.

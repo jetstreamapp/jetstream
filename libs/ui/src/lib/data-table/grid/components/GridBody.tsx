@@ -207,7 +207,11 @@ export function GridBody<TRow extends object>({
             (focusable ?? cellEl).focus();
           }
         } else if (!cellEl.contains(document.activeElement)) {
-          cellEl.focus();
+          // APG grid pattern: a cell whose only content is a single interactive widget marks it with
+          // data-grid-inner-focus — arrow navigation focuses the widget itself so its role and state
+          // are announced (e.g. "Pin entry, toggle button, pressed") and Enter/Space activate natively
+          const innerFocusTarget = cellEl.querySelector<HTMLElement>('[data-grid-inner-focus]:not(:disabled)');
+          (innerFocusTarget ?? cellEl).focus();
         }
         return;
       }

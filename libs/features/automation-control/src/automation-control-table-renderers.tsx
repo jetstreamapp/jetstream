@@ -87,6 +87,10 @@ export const LoadingAndActiveRenderer: FunctionComponent<{
           hideLabel
           checked={row.isActive}
           disabled={row.readOnly}
+          // Grid arrow navigation focuses the checkbox itself (APG single-widget cell) so its role,
+          // checked state, and Space affordance are announced; tabIndex -1 keeps the grid one tab stop
+          tabIndex={-1}
+          inputProps={row.readOnly ? undefined : { 'data-grid-inner-focus': true }}
           onChange={(value) => updateIsActiveFlag(row, value)}
         />
       </div>
@@ -94,7 +98,15 @@ export const LoadingAndActiveRenderer: FunctionComponent<{
   } else {
     return (
       <div className="slds-align_absolute-center h-100 w-100">
-        <Checkbox id={row.key} label="Active" hideLabel checked={row.isActive} onChange={(value) => updateIsActiveFlag(row, value)} />
+        <Checkbox
+          id={row.key}
+          label="Active"
+          hideLabel
+          checked={row.isActive}
+          tabIndex={-1}
+          inputProps={{ 'data-grid-inner-focus': true }}
+          onChange={(value) => updateIsActiveFlag(row, value)}
+        />
       </div>
     );
   }
