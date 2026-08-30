@@ -192,7 +192,7 @@ export const DeployMetadataOptions: FunctionComponent<DeployMetadataOptionsProps
             {testLevelOptions.map((item) => (
               <Radio
                 key={item.value || 'default'}
-                name={item.label}
+                name="deploy-test-level"
                 label={item.label}
                 value={item.value || ''}
                 disabled={disabledOptions.has('testLevel')}
