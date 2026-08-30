@@ -43,7 +43,11 @@ export function SalesforceOrgCardDraggable({ org, isActive, onAddOrgHandlerFn }:
       <div
         css={css`
           height: 120px;
-          cursor: grabbing;
+          /* Only the drag handle is draggable now — the slds-box_link hover rule would otherwise
+             show a pointer cursor over the whole card, implying it is clickable */
+          &&:hover {
+            cursor: default;
+          }
           border-radius: var(--slds-c-card-radius-border, var(--slds-g-radius-border-2, 0.5rem));
           border: 0.5px solid
             ${org.connectionError ? 'var(--slds-g-color-error-base-40, #ea001e)' : 'var(--slds-g-color-border-1, #c9c9c9)'};
@@ -68,12 +72,7 @@ export function SalesforceOrgCardDraggable({ org, isActive, onAddOrgHandlerFn }:
         `}
         className="slds-box slds-box_link slds-box_x-small slds-media slds-is-relative"
       >
-        <div
-          className="slds-media__body slds-p-around_xx-small"
-          css={css`
-            cursor: grabbing;
-          `}
-        >
+        <div className="slds-media__body slds-p-around_xx-small">
           <Grid align="spread" className="slds-m-right_medium">
             <Grid className="slds-has-flexi-truncate">
               <button
@@ -83,6 +82,9 @@ export function SalesforceOrgCardDraggable({ org, isActive, onAddOrgHandlerFn }:
                 className="slds-button slds-button_icon slds-button_icon-x-small slds-m-right_xx-small"
                 css={css`
                   cursor: grab;
+                  &:active {
+                    cursor: grabbing;
+                  }
                 `}
               >
                 <Icon type="utility" icon="drag_and_drop" className="slds-button__icon" omitContainer />
