@@ -104,20 +104,21 @@ export const PlatformEventMonitorSubscribe: FunctionComponent<PlatformEventMonit
           margin-left: auto;
         `}
       >
-        {currentEventSubscribed && (
-          <button
-            className="slds-button slds-button_neutral"
-            onClick={() => selectedSubscribeEvent && unsubscribe(selectedSubscribeEvent)}
-            disabled={!selectedSubscribeEvent}
-          >
-            Unsubscribe
-          </button>
-        )}
-        {!currentEventSubscribed && (
-          <button className="slds-button slds-button_brand" onClick={handleSubscribe} disabled={!selectedSubscribeEvent}>
-            Subscribe
-          </button>
-        )}
+        {/* One stable element for both states — swapping two buttons dropped keyboard focus to
+            <body> the moment the subscription state flipped */}
+        <button
+          className={currentEventSubscribed ? 'slds-button slds-button_neutral' : 'slds-button slds-button_brand'}
+          onClick={(event) => {
+            if (currentEventSubscribed) {
+              selectedSubscribeEvent && unsubscribe(selectedSubscribeEvent);
+            } else {
+              handleSubscribe(event);
+            }
+          }}
+          disabled={!selectedSubscribeEvent}
+        >
+          {currentEventSubscribed ? 'Unsubscribe' : 'Subscribe'}
+        </button>
       </div>
     </Grid>
   );
