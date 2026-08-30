@@ -8,6 +8,7 @@ import {
   FloatingPortal,
   offset,
   shift,
+  size as sizeMiddleware,
   useClick,
   useDismiss,
   useFloating,
@@ -108,6 +109,15 @@ const PopoverComponent = ({
       offset(12),
       flip(),
       shift({ padding: 8 }),
+      // Cap the popover to the viewport: at high zoom a popover taller than the screen clips its
+      // header/close button off-screen no matter which side flip() picks — instead the panel gets a
+      // max-height and its body scrolls (see the flex/overflow rules on the section below)
+      sizeMiddleware({
+        padding: 8,
+        apply({ availableHeight, elements }) {
+          elements.floating.style.maxHeight = `${Math.max(150, availableHeight)}px`;
+        },
+      }),
       arrow({
         element: arrowElement,
       }),
@@ -204,6 +214,22 @@ const PopoverComponent = ({
               {...getFloatingProps()}
               className={classNames('slds-popover', size ? `slds-popover_${size}` : undefined, containerClassName)}
               css={css`
+                /* Pairs with the size() middleware max-height: header/footer stay pinned and the
+                   body scrolls when the popover is taller than the viewport (high zoom) */
+                display: flex;
+                flex-direction: column;
+                & > .slds-popover__body {
+                  overflow-y: auto;
+                  min-height: 0;
+                }
+                /* The close button is positioned by slds-float_right, but floats are IGNORED on flex
+                   items — as a flex child it stacked above the header at the top-left. Pin it to the
+                   corner instead; its SLDS 0.25rem margin reproduces the floated inset exactly. */
+                & > .slds-popover__close {
+                  position: absolute;
+                  top: 0;
+                  right: 0;
+                }
                 &[data-placement^='right'] {
                   .popover-arrow {
                     left: -0.5rem;
