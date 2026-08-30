@@ -10,6 +10,12 @@ function removeFromTabOrder(element: Element) {
   if (!(element instanceof HTMLElement) || element.tabIndex === -1) {
     return;
   }
+  // Escape hatch for controls OUTSIDE the cell navigation model (e.g. the permission manager's
+  // column-group-header popover trigger) — grid keyboard navigation never visits group headers,
+  // so Tab is the only way to reach them.
+  if (element.hasAttribute('data-grid-keep-tab-stop')) {
+    return;
+  }
   // Only sweep content INSIDE a cell: the cells themselves (and the grid root) own the roving tabindex.
   if (element.matches(CELL_SELECTOR) || !element.closest(CELL_SELECTOR)) {
     return;
