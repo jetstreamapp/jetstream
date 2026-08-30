@@ -892,6 +892,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           )}
           <button
             className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
+            title="Reload All Permissions"
             onClick={reloadPermissions}
             disabled={loading}
           >
@@ -900,6 +901,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           </button>
           <button
             className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
+            title="Reset Changes"
             onClick={resetChanges}
             disabled={
               loading ||
