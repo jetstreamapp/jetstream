@@ -67,7 +67,8 @@ export class QueryPage {
     await this.setQueryInEditor(query);
 
     if (isTooling) {
-      await manualQueryPopover.locator('#is-tooling-user-soql span').first().click();
+      // The id sits on the (visually hidden) checkbox input; its label holds the switch that takes the click
+      await manualQueryPopover.locator('label[for="is-tooling-user-soql"] .slds-checkbox_faux').click();
     }
 
     if (action === 'EXECUTE') {
