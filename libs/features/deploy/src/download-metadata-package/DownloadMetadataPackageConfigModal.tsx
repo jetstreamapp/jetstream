@@ -46,26 +46,18 @@ export const DownloadMetadataPackageConfigModal: FunctionComponent<DownloadMetad
     setPackageNames(selectedItems.map((item) => item.value));
   }
 
-  function handleDownloadFromPackageNames() {
-    // combine selected packages with manually entered packages
-    onDownloadFromPackageNames(
-      destinationOrg,
-      Array.from(
-        new Set(
-          packageNames
-            .concat(packageNamesStr.replace(SPLIT_LINE_COMMA, ',').split(','))
-            .map((item) => item.trim())
-            .filter((item) => !!item),
-        ),
-      ),
-    );
-  }
+  // combine selected packages with manually entered packages
+  const combinedPackageNames = Array.from(
+    new Set(
+      packageNames
+        .concat(packageNamesStr.replace(SPLIT_LINE_COMMA, ',').split(','))
+        .map((item) => item.trim())
+        .filter((item) => !!item),
+    ),
+  );
 
-  function isPackageNameDownloadButtonEnabled() {
-    if (packageNames.length || setPackageNamesStr.length) {
-      return false;
-    }
-    return true;
+  function handleDownloadFromPackageNames() {
+    onDownloadFromPackageNames(destinationOrg, combinedPackageNames);
   }
 
   return (
@@ -171,7 +163,7 @@ export const DownloadMetadataPackageConfigModal: FunctionComponent<DownloadMetad
             <button
               className="slds-button slds-button_brand slds-m-top_medium"
               onClick={handleDownloadFromPackageNames}
-              disabled={isPackageNameDownloadButtonEnabled()}
+              disabled={combinedPackageNames.length === 0}
             >
               Download
             </button>
