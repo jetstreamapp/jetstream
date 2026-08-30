@@ -64,6 +64,20 @@ zero critical violations remain** — see per-finding status below.
 
 Full per-page evidence: `apps/jetstream-e2e/a11y-results/*.json` (regenerate with `pnpm playwright:test:a11y`).
 
+## Secondary surfaces (landing + docs, axe scan 2026-08-26)
+
+226 pages scanned (`pnpm a11y:scan-urls`): all ~210 docs content pages plus 17 landing/auth pages.
+
+| #   | Finding                                                                                                                                     | WCAG  | Severity | Where                                                     | Status                     |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------- | ----- | -------- | --------------------------------------------------------- | -------------------------- |
+| L1  | `<html>` missing `lang` attribute on every landing/auth page                                                                                | 3.1.1 | P1       | `apps/landing/pages/_document.js`                         | fixed — `<Html lang="en">` |
+| L2  | `color-contrast` on footer headings (`text-gray-400` uppercase) and similar muted text — 11 pages (landing marketing pages + docs homepage) | 1.4.3 | P2       | shared footer components (landing + docs custom homepage) | open                       |
+| L3  | `link-in-text-block` on the goodbye page (link distinguished by color alone)                                                                | 1.4.1 | P3       | `apps/landing/pages/goodbye`                              | open                       |
+
+Docs content pages (Docusaurus theme): **zero violations** — conformance is inherited from the
+theme and only the custom homepage/footer needs attention. Note: the docs and landing homepages
+share the `url-root` scan key, so the results file holds whichever ran last.
+
 ## Manual audit findings
 
 _To be populated during the keyboard / screen reader / visual passes. One row per finding, same columns as the component findings table._

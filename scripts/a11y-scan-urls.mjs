@@ -14,7 +14,7 @@
 import { AxeBuilder } from '@axe-core/playwright';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { chromium } from 'playwright';
+import { chromium } from '@playwright/test';
 
 const WCAG_21_AA_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 const RESULTS_DIR = 'apps/jetstream-e2e/a11y-results';
@@ -35,7 +35,9 @@ if (args.includes('--sitemap')) {
 mkdirSync(RESULTS_DIR, { recursive: true });
 
 const browser = await chromium.launch();
-const page = await browser.newPage();
+// @axe-core/playwright requires a page created from an explicit context
+const context = await browser.newContext();
+const page = await context.newPage();
 let totalSeriousOrCritical = 0;
 
 for (const path of paths) {
