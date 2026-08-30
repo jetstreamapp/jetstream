@@ -10,7 +10,7 @@ test.describe('QUICK QUERY POPOVER', () => {
   test('Should sanitize non-breaking spaces from pasted text', async ({ page, apiRequestUtils }) => {
     await apiRequestUtils.selectDefaultOrg();
 
-    await page.getByRole('button', { name: 'Query Search - ctrl/command' }).click();
+    await page.getByRole('button', { name: 'Query Search', exact: true }).click();
 
     const editorContainer = page.locator('.monaco-editor').first();
     await editorContainer.waitFor({ state: 'visible' });
