@@ -80,6 +80,7 @@ export const ViewOrCompareMetadataModalFooter: FunctionComponent<ViewOrCompareMe
           disabled={!hasSourceMetadata || sourceLoading}
         >
           <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+          <span className="slds-assistive-text">Download </span>
           Source Package
         </button>
 
@@ -91,11 +92,13 @@ export const ViewOrCompareMetadataModalFooter: FunctionComponent<ViewOrCompareMe
               disabled={!hasTargetMetadata || targetLoading || !hasTargetMetadataContent}
             >
               <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+              <span className="slds-assistive-text">Download </span>
               Target Package
             </button>
 
             <button className="slds-button slds-button_neutral" onClick={() => onExportSummary()} disabled={!hasBoth}>
               <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+              <span className="slds-assistive-text">Download </span>
               Export Comparison
             </button>
           </>
