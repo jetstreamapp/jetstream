@@ -1,8 +1,8 @@
 import { css } from '@emotion/react';
 import { isEnterKey } from '@jetstream/shared/ui-utils';
 import { ListItemGroup, Maybe } from '@jetstream/types';
-import { ComboboxWithGroupedItems, Grid, Input } from '@jetstream/ui';
-import React, { FunctionComponent, KeyboardEvent, useEffect, useState } from 'react';
+import { AssistiveStatus, ComboboxWithGroupedItems, Grid, Input } from '@jetstream/ui';
+import React, { FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { PlatformEventObject } from './platform-event-monitor.types';
 import { MessagesByChannel } from './usePlatformEvent';
 
@@ -29,9 +29,19 @@ export const PlatformEventMonitorSubscribe: FunctionComponent<PlatformEventMonit
 }) => {
   const [replayId, setReplayId] = useState('-1');
   const [currentEventSubscribed, setCurrentEventSubscribed] = useState(false);
+  const [subscriptionStatusMessage, setSubscriptionStatusMessage] = useState('');
+  const previousSubscriptionRef = useRef<{ channel: Maybe<string>; subscribed: boolean } | null>(null);
 
+  // Subscribe / Unsubscribe only swap the button label, which is not announced — announce the outcome
+  // when the selected event's subscription state flips (selecting a different event is not an outcome)
   useEffect(() => {
-    setCurrentEventSubscribed(!!selectedSubscribeEvent && !!messagesByChannel[selectedSubscribeEvent]);
+    const subscribed = !!selectedSubscribeEvent && !!messagesByChannel[selectedSubscribeEvent];
+    setCurrentEventSubscribed(subscribed);
+    const previous = previousSubscriptionRef.current;
+    if (previous && selectedSubscribeEvent && previous.channel === selectedSubscribeEvent && previous.subscribed !== subscribed) {
+      setSubscriptionStatusMessage(subscribed ? `Subscribed to ${selectedSubscribeEvent}` : `Unsubscribed from ${selectedSubscribeEvent}`);
+    }
+    previousSubscriptionRef.current = { channel: selectedSubscribeEvent, subscribed };
   }, [selectedSubscribeEvent, messagesByChannel]);
 
   useEffect(() => {
@@ -104,20 +114,22 @@ export const PlatformEventMonitorSubscribe: FunctionComponent<PlatformEventMonit
           margin-left: auto;
         `}
       >
-        {currentEventSubscribed && (
-          <button
-            className="slds-button slds-button_neutral"
-            onClick={() => selectedSubscribeEvent && unsubscribe(selectedSubscribeEvent)}
-            disabled={!selectedSubscribeEvent}
-          >
-            Unsubscribe
-          </button>
-        )}
-        {!currentEventSubscribed && (
-          <button className="slds-button slds-button_brand" onClick={handleSubscribe} disabled={!selectedSubscribeEvent}>
-            Subscribe
-          </button>
-        )}
+        {/* One stable element for both states — swapping two buttons dropped keyboard focus to
+            <body> the moment the subscription state flipped */}
+        <button
+          className={currentEventSubscribed ? 'slds-button slds-button_neutral' : 'slds-button slds-button_brand'}
+          onClick={(event) => {
+            if (currentEventSubscribed) {
+              selectedSubscribeEvent && unsubscribe(selectedSubscribeEvent);
+            } else {
+              handleSubscribe(event);
+            }
+          }}
+          disabled={!selectedSubscribeEvent}
+        >
+          {currentEventSubscribed ? 'Unsubscribe' : 'Subscribe'}
+        </button>
+        <AssistiveStatus message={subscriptionStatusMessage} />
       </div>
     </Grid>
   );
