@@ -128,6 +128,9 @@
     "playwright:test:with-server": "pnpm start-server-and-test --expect 200 \"pnpm start:e2e\" http://localhost:3333 \"pnpm playwright:test\"",
     "playwright:test": "pnpm playwright test src --config apps/jetstream-e2e/playwright.config.ts",
     "playwright:test:query-results": "pnpm playwright test query-results.spec.ts --config apps/jetstream-e2e/playwright.config.ts --headed",
+    "playwright:test:a11y": "pnpm playwright test src/tests/a11y --config apps/jetstream-e2e/playwright.config.ts",
+    "a11y:merge-baseline": "node scripts/a11y-merge-baseline.mjs",
+    "a11y:scan-urls": "node scripts/a11y-scan-urls.mjs",
     "playwright:web-extension:test": "pnpm playwright test src --config apps/jetstream-web-extension-e2e/playwright.config.ts --headed",
     "e2e:desktop": "pnpm nx run jetstream-desktop-e2e:e2e",
     "playwright:web-extension:open": "pnpm playwright open http://localhost:3333 --config apps/jetstream-web-extension-e2e/playwright.config.ts",
@@ -144,6 +147,7 @@
   },
   "private": true,
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@commitlint/cli": "^21.2.2",
     "@commitlint/config-conventional": "^21.2.2",
     "@contentful/rich-text-react-renderer": "^16.2.2",
@@ -209,6 +213,7 @@
     "@vitejs/plugin-react": "^6.1.1",
     "@vitest/coverage-v8": "5.0.0",
     "archiver": "^8.0.0",
+    "axe-core": "^4.13.0",
     "chrome-types": "^0.1.442",
     "contentful": "^11.12.9",
     "cross-env": "^10.1.0",
@@ -238,6 +243,7 @@
     "typescript": "6.0.3",
     "vite": "^8.2.2",
     "vitest": "5.0.0",
+    "vitest-axe": "^0.1.0",
     "web-ext": "^10.6.0",
     "xml-crypto": "^6.1.2",
     "zx": "^8.8.5"
