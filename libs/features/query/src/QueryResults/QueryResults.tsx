@@ -736,15 +736,27 @@ export const QueryResults = React.memo(() => {
               <Icon type="utility" icon="component_customization" className="slds-button__icon slds-button__icon_left" omitContainer />
               <span>SOQL Query</span>
             </button>
-            <button
-              className="slds-button slds-button_neutral collapsible-button collapsible-button-md"
-              onClick={() => executeQuery(soql, SOURCE_RELOAD, { isTooling })}
-              disabled={!!(loading || errorMessage)}
-              title="Re-run the current query"
+            <Tooltip
+              openDelay={500}
+              content={
+                <div className="slds-p-bottom_small">
+                  <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+                </div>
+              }
             >
-              <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
-              <span>Reload</span>
-            </button>
+              {/* slds-button_middle: the tooltip wrapper hides this button's place in the group from the
+                  child-position selectors, which would give it a second divider border */}
+              <button
+                className="slds-button slds-button_neutral slds-button_middle collapsible-button collapsible-button-md"
+                onClick={() => executeQuery(soql, SOURCE_RELOAD, { isTooling })}
+                disabled={!!(loading || errorMessage)}
+                aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+                title="Re-run the current query"
+              >
+                <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
+                <span>Reload</span>
+              </button>
+            </Tooltip>
             <QueryHistory ref={queryHistoryRef} embedded selectedOrg={selectedOrg} onRestore={handleRestoreFromHistory} />
           </ButtonGroupContainer>
         </ToolbarItemGroup>
