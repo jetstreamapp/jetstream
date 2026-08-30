@@ -160,9 +160,9 @@ export function GridContainer<TRow extends object = RowWithKey>({
     if (editingCellRef.current || contextMenuRef.current) {
       return true;
     }
-    // A popover/modal opened from a cell (via Space/Enter or click) moves focus into its portaled panel;
-    // keep the active cell so closing the overlay returns to a live grid coordinate.
-    return relatedTarget instanceof HTMLElement && !!relatedTarget.closest('.jgrid-editor, .slds-popover, .slds-modal');
+    // A popover/modal/dropdown menu opened from a cell (via Space/Enter or click) moves focus into its
+    // portaled panel; keep the active cell so closing the overlay returns to a live grid coordinate.
+    return relatedTarget instanceof HTMLElement && !!relatedTarget.closest('.jgrid-editor, .slds-popover, .slds-modal, .slds-dropdown');
   }, []);
 
   // Paste/clear eligibility: `editable` alone (no `renderEditCell` required). Checkbox-style tables
