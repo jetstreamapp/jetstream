@@ -89,3 +89,49 @@ describe('List row-local navigation (checkbox mode)', () => {
     expect(document.activeElement).toBe(checkbox);
   });
 });
+
+describe('List row-local navigation (listbox mode)', () => {
+  function renderList({ withTrailing = true }: { withTrailing?: boolean } = {}) {
+    return render(
+      <List
+        ariaLabel="Profiles"
+        items={[{ key: 'profile-1' }]}
+        isActive={() => false}
+        getContent={() => ({
+          key: 'profile-1',
+          heading: 'Admin',
+          trailingHeader: withTrailing ? (
+            <button type="button" tabIndex={-1}>
+              View details
+            </button>
+          ) : undefined,
+        })}
+        onSelected={() => undefined}
+      />,
+    );
+  }
+
+  test('ArrowRight moves focus from the option to the trailing action, ArrowLeft returns to the option', () => {
+    renderList();
+
+    const option = screen.getByRole('option');
+    const rowAction = screen.getByRole('button', { name: 'View details' });
+
+    option.focus();
+    fireEvent.keyDown(option, { key: 'ArrowRight' });
+    expect(document.activeElement).toBe(rowAction);
+
+    // The option li itself is stop zero — ArrowLeft from the first trailing control must land on it
+    fireEvent.keyDown(rowAction, { key: 'ArrowLeft' });
+    expect(document.activeElement).toBe(option);
+  });
+
+  test('the Right Arrow discoverability hint renders only when a row has trailing actions', () => {
+    const { unmount } = renderList({ withTrailing: false });
+    expect(screen.queryByText('Press Right Arrow for additional actions')).toBeNull();
+    unmount();
+
+    renderList();
+    expect(screen.getByText('Press Right Arrow for additional actions')).toBeTruthy();
+  });
+});

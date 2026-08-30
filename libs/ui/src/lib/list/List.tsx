@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { css } from '@emotion/react';
 import {
   hasMetaModifierKey,
   isArrowDownKey,
@@ -13,10 +14,10 @@ import {
   useNonInitialEffect,
 } from '@jetstream/shared/ui-utils';
 import { Maybe } from '@jetstream/types';
-import { css } from '@emotion/react';
 import classNames from 'classnames';
 import isNil from 'lodash/isNil';
 import isNumber from 'lodash/isNumber';
+import uniqueId from 'lodash/uniqueId';
 import { ForwardedRef, Fragment, KeyboardEvent, ReactNode, RefObject, createRef, forwardRef, useEffect, useRef, useState } from 'react';
 import ListItem from './ListItem';
 import ListItemCheckbox from './ListItemCheckbox';
@@ -74,6 +75,7 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
     ref: ForwardedRef<HTMLUListElement>,
   ) => {
     const [focusedItem, setFocusedItem] = useState<number | null>(null);
+    const [trailingHintId] = useState(() => uniqueId('list-trailing-hint-'));
     const [didScrollIntoView, setDidScrollIntoView] = useState(false);
     const elRefs = useRef<RefObjType>([]);
 
@@ -166,15 +168,19 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
         event.stopPropagation();
         event.preventDefault();
         newFocusedItem = items.length - 1;
-      } else if (useCheckbox && (isArrowRightKey(event) || isArrowLeftKey(event))) {
-        // Row-local navigation: ArrowRight steps through a row's secondary controls (e.g. the
-        // "where is this field used" button), ArrowLeft steps back toward the row checkbox. This
-        // lets those controls stay out of the page tab order without becoming keyboard-unreachable.
+      } else if (isArrowRightKey(event) || isArrowLeftKey(event)) {
+        // Row-local navigation (both list modes): ArrowRight steps through a row's secondary controls
+        // (e.g. a details popover trigger), ArrowLeft steps back toward the row itself. This lets
+        // those controls stay out of the page tab order without becoming keyboard-unreachable — in
+        // listbox mode the focused option li matches [tabindex], so it is the natural first stop.
         const rowElement = (event.target as HTMLElement).closest('li');
         if (rowElement) {
-          const focusables = Array.from(
+          const descendants = Array.from(
             rowElement.querySelectorAll<HTMLElement>('input, button, a[href], select, textarea, [tabindex]'),
           ).filter((el) => !el.hasAttribute('disabled') && el.closest('li') === rowElement);
+          // querySelectorAll only returns descendants, so the focusable option li itself must be
+          // prepended explicitly — it is stop zero, the ArrowLeft target from the first control
+          const focusables = rowElement.matches('[tabindex]') ? [rowElement as HTMLElement, ...descendants] : descendants;
           const currentIndex = focusables.indexOf(event.target as HTMLElement);
           const next = isArrowRightKey(event) ? focusables[currentIndex + 1] : focusables[currentIndex - 1];
           if (next) {
@@ -198,6 +204,8 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
         setFocusedItem(newFocusedItem);
       }
     }
+
+    const hasTrailingActions = Array.isArray(items) && items.some((item) => !!getContent(item).trailingHeader);
 
     return (
       // eslint-disable-next-line react/jsx-no-useless-fragment
@@ -254,6 +262,7 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
                     key={key}
                     testId={testId}
                     liRef={elRefs.current[i] as RefObject<HTMLLIElement>}
+                    describedById={trailingHeader ? trailingHintId : undefined}
                     isActive={isActive(item)}
                     heading={heading}
                     subheading={subheading}
@@ -270,6 +279,14 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
               })}
             </ul>
           )}
+        {/* Discoverability hint for rows with trailing actions — read after the option's name/state.
+            Only rendered when some row actually has them, so lists without trailing controls don't
+            carry stray assistive text */}
+        {hasTrailingActions && (
+          <span id={trailingHintId} className="slds-assistive-text">
+            Press Right Arrow for additional actions
+          </span>
+        )}
       </Fragment>
     );
   },
