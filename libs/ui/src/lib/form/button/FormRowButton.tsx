@@ -16,7 +16,11 @@ export interface FormRowButtonProps {
 export const FormRowButton: FunctionComponent<FormRowButtonProps> = ({ title, icon, onClick }) => {
   return (
     <div className="slds-form-element">
-      <span className="slds-form-element__label" style={{ marginTop: `15px` }} />
+      {/* Invisible label mirrors the real labels' exact height so the button aligns with sibling
+          inputs — the old fixed 15px margin sat a couple px short of a real label row */}
+      <span className="slds-form-element__label" aria-hidden="true" style={{ visibility: 'hidden' }}>
+        &nbsp;
+      </span>
       <div className="slds-form-element__control">
         <button className="slds-button slds-button_icon slds-button_icon-border-filled" title={title} onClick={() => onClick()}>
           <Icon type={icon.type} icon={icon.icon} description={icon.description || title} className="slds-button__icon" omitContainer />
