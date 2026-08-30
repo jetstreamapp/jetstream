@@ -22,7 +22,9 @@ export function SalesforceOrgCardDraggable({ org, isActive, onAddOrgHandlerFn }:
   const { actionInProgress, orgLoading, handleAddOrg, handleRemoveOrg, handleUpdateOrg } = useUpdateOrgs();
   const orgType = getOrgType(org);
 
-  const { ref, isDragging } = useDraggable<DraggableSfdcCard>({
+  // A dedicated drag handle keeps dnd-kit's role="button"/tabindex off the card itself — the card
+  // contains interactive children (org popover, refresh), which a button role must not
+  const { ref, handleRef, isDragging } = useDraggable<DraggableSfdcCard>({
     id: org.uniqueId,
     type: 'SalesforceOrg',
     data: { uniqueId: org.uniqueId, organizationId: org.jetstreamOrganizationId ?? null },
@@ -74,22 +76,41 @@ export function SalesforceOrgCardDraggable({ org, isActive, onAddOrgHandlerFn }:
           `}
         >
           <Grid align="spread" className="slds-m-right_medium">
-            <h2
-              className="slds-text-heading_small"
+            <Grid
+              verticalAlign="center"
               css={css`
                 min-width: 0;
                 flex: 1 1 auto;
               `}
             >
-              {/* The end of a username is what distinguishes sandboxes, so truncate the middle of default labels */}
-              {org.label === org.username ? (
-                <MiddleTruncatedText text={org.label} />
-              ) : (
-                <span className="slds-truncate" title={org.label}>
-                  {org.label}
-                </span>
-              )}
-            </h2>
+              <button
+                ref={handleRef}
+                type="button"
+                aria-label={`Drag ${org.label}`}
+                className="slds-button slds-button_icon slds-button_icon-x-small slds-m-right_xx-small"
+                css={css`
+                  cursor: grab;
+                `}
+              >
+                <Icon type="utility" icon="drag_and_drop" className="slds-button__icon" omitContainer />
+              </button>
+              <h2
+                className="slds-text-heading_small"
+                css={css`
+                  min-width: 0;
+                  flex: 1 1 auto;
+                `}
+              >
+                {/* The end of a username is what distinguishes sandboxes, so truncate the middle of default labels */}
+                {org.label === org.username ? (
+                  <MiddleTruncatedText text={org.label} />
+                ) : (
+                  <span className="slds-truncate" title={org.label}>
+                    {org.label}
+                  </span>
+                )}
+              </h2>
+            </Grid>
             <Grid verticalAlign="center" className="slds-shrink-none slds-m-left_x-small">
               {org.color && (
                 <div
