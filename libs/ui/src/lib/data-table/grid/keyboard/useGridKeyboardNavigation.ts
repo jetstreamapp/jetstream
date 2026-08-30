@@ -782,6 +782,12 @@ export function useGridKeyboardNavigation<TRow extends object>({
             );
             const nextIndex = (currentIndex + (backward ? -1 : 1) + controls.length) % controls.length;
             controls[nextIndex].focus();
+          } else {
+            // A lone control (e.g. a summary-row filter input) has nothing to cycle to — treat Tab
+            // like Escape and return to the cell so focus stays inside the grid instead of exiting it.
+            consume();
+            setMode('navigation');
+            cellEl?.focus();
           }
           return;
         }

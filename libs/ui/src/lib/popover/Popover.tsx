@@ -46,7 +46,9 @@ export interface PopoverProps {
   header?: React.ReactNode;
   footer?: JSX.Element;
   panelStyle?: CSSProperties;
-  buttonProps?: React.HTMLProps<HTMLButtonElement> & { as?: string; 'data-testid'?: string };
+  buttonProps?: React.HTMLProps<HTMLButtonElement> & { as?: string; 'data-testid'?: string; 'data-grid-inner-focus'?: boolean };
+  /** Trap Tab inside the popover until it is explicitly closed (rich dialog-like popovers). */
+  trapFocus?: boolean;
   panelProps?: Omit<React.HTMLProps<HTMLDivElement>, 'children' | 'className' | 'as' | 'refName' | 'onKeyDown'>;
   buttonStyle?: CSSProperties;
   /**
@@ -78,6 +80,7 @@ const PopoverComponent = ({
   footer,
   panelStyle,
   buttonProps,
+  trapFocus = false,
   panelProps,
   buttonStyle,
   tooltipProps,
@@ -206,7 +209,7 @@ const PopoverComponent = ({
       {triggerAfterContent}
       {isOpen && (
         <FloatingPortal root={portalRoot}>
-          <FloatingFocusManager context={context} modal={false} returnFocus>
+          <FloatingFocusManager context={context} modal={trapFocus} returnFocus>
             <section
               ref={refs.setFloating}
               data-testid={testId}
