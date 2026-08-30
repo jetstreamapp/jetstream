@@ -203,7 +203,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
       >
         <input
           ref={inputRef}
-          aria-describedby={errorMessageId}
+          aria-describedby={[`${id}-date-format`, errorMessageId].filter(Boolean).join(' ')}
           type="text"
           autoComplete="false"
           id={id}
@@ -246,6 +246,8 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
           <button
             type="button"
             className="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
+            aria-haspopup="dialog"
+            aria-expanded={isOpen}
             title="Select a date"
             onClick={() => handleToggleOpen(!isOpen)}
             disabled={disabled}
@@ -254,9 +256,13 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
           </button>
         </div>
       </div>
-      <div className="slds-assistive-text slds-form-element__help">Format: yyyy-mm-dd</div>
+      <div id={`${id}-date-format`} className="slds-assistive-text slds-form-element__help">
+        Format: yyyy-mm-dd
+      </div>
       <PopoverContainer
         isOpen={isOpen}
+        role="dialog"
+        aria-label="Choose a date"
         className={`slds-datepicker`}
         referenceElement={inputRef.current}
         onBlur={handleBlur}
