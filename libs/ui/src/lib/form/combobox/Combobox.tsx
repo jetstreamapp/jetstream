@@ -411,13 +411,10 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                 })}
                 ref={entireContainerEl}
               >
+                {/* ARIA 1.2: the combobox role and expanded state live on the focused input below, not
+                    this wrapper — screen readers only announce expand/collapse for the focused element */}
                 <div
                   className={classNames('slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click', { 'slds-is-open': isOpen })}
-                  aria-expanded={isOpen}
-                  aria-haspopup="listbox"
-                  // The listbox popover only mounts while open; a closed combobox must not reference a non-existent id
-                  aria-controls={isOpen ? listId : undefined}
-                  role="combobox"
                   onClick={handleInputClick}
                 >
                   <div
@@ -429,11 +426,15 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                   >
                     <input
                       ref={inputEl}
+                      role="combobox"
+                      aria-expanded={isOpen}
+                      aria-haspopup="listbox"
                       aria-autocomplete="list"
                       type="text"
                       className={classNames('slds-input slds-combobox__input', { 'slds-text-color_error': hasError })}
                       id={id}
                       css={inputCss}
+                      // The listbox popover only mounts while open; a closed combobox must not reference a non-existent id
                       aria-controls={isOpen ? listId : undefined}
                       aria-describedby={
                         [labelHelp && !hideLabel ? `${id}-label-help-text` : undefined, errorMessageId].filter(Boolean).join(' ') ||

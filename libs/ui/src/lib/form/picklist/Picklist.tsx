@@ -335,21 +335,22 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
           {labelHelp && !hideLabel && <HelpText id={`${comboboxId}-label-help-text`} content={labelHelp} />}
           <div className="slds-form-element__control" ref={divContainerEl}>
             <div className={containerClassName || 'slds-combobox_container'}>
+              {/* ARIA 1.2: the combobox role and expanded state live on the focused input below, not
+                  this wrapper — screen readers only announce expand/collapse for the focused element */}
               <div
                 className={classNames('slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click', { 'slds-is-open': isOpen })}
-                aria-expanded={isOpen}
-                // Point at the listbox (not the input) and only while it is mounted (popover renders when open)
-                aria-controls={isOpen ? listboxId : undefined}
-                aria-haspopup="listbox"
-                role="combobox"
                 onClick={handleInputClick}
               >
                 <div className="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right" role="none">
                   <input
                     ref={inputRef}
+                    role="combobox"
+                    aria-expanded={isOpen}
+                    aria-haspopup="listbox"
                     type="text"
                     className={classNames('slds-input slds-combobox__input slds-combobox__input-value', { 'slds-has-focus': isOpen })}
                     id={comboboxId}
+                    // Point at the listbox (not the input) and only while it is mounted (popover renders when open)
                     aria-controls={isOpen ? listboxId : undefined}
                     aria-describedby={
                       [labelHelp && !hideLabel ? `${comboboxId}-label-help-text` : undefined, errorMessageId].filter(Boolean).join(' ') ||
