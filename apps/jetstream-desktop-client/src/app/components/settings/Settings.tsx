@@ -11,6 +11,7 @@ import {
   AppearanceSetting,
   DataHistorySettingsSection,
   DiagnosticLoggingSetting,
+  EditorSettingsSection,
   getPreferencesToRestore,
   HistorySyncSettings,
   RecentObjectsSetting,
@@ -296,6 +297,7 @@ export const Settings = () => {
                 onChange={(trustSystemCertificates) => savePreferences({ trustSystemCertificates })}
               />
             </SettingsGroup>
+            <EditorSettingsSection />
           </SettingsSection>
 
           <SettingsSection id="query" title="Query">
