@@ -224,6 +224,13 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
                     // Stop click/keyboard propagation so the trailing action doesn't toggle row selection.
                     trailingHeader: trailing ? (
                       <span
+                        // Trailing controls are reached with the row-local ArrowRight (see List), NOT Tab —
+                        // a per-row popover trigger would otherwise add a tab stop for every list item
+                        ref={(node) => {
+                          node?.querySelectorAll<HTMLElement>('a[href], button, input, select, textarea, [tabindex]').forEach((el) => {
+                            el.tabIndex = -1;
+                          });
+                        }}
                         onClick={(event) => event.stopPropagation()}
                         onKeyDown={(event) => {
                           if (event.key === 'Enter' || event.key === ' ') {

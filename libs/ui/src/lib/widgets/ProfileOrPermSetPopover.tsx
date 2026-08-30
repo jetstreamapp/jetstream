@@ -30,6 +30,8 @@ interface PermissionSetAssignmentQueryRecord {
 }
 
 export interface ProfileOrPermSetPopoverProps {
+  /** Keep the trigger in the page tab order even inside a data-table grid (column-group headers). */
+  keepGridTabStop?: boolean;
   org: SalesforceOrgUi;
   serverUrl: string;
   skipFrontDoorAuth?: boolean;
@@ -112,6 +114,7 @@ function getEffectiveRecordId(
 }
 
 export const ProfileOrPermSetPopover: FunctionComponent<ProfileOrPermSetPopoverProps> = ({
+  keepGridTabStop,
   org,
   serverUrl,
   skipFrontDoorAuth,
@@ -220,6 +223,9 @@ export const ProfileOrPermSetPopover: FunctionComponent<ProfileOrPermSetPopoverP
     <Fragment>
       <Popover
         size="medium"
+        // Rich dialog-like content (links, search, list) — without a trap, Tab tunnels out of the
+        // portaled panel and strands keyboard users outside the page's flow
+        trapFocus
         onChange={setIsOpen}
         panelProps={{
           onClick: (event) => event.stopPropagation(),
@@ -334,6 +340,9 @@ export const ProfileOrPermSetPopover: FunctionComponent<ProfileOrPermSetPopoverP
           className: classNames('slds-button', { 'slds-button_icon': !displayValue }),
           title: buttonTitle ?? `View ${recordType === 'Profile' ? 'profile' : 'permission set'} details`,
           onClick: (event) => event.stopPropagation(),
+          // Column-group headers sit outside the grid's cell navigation, so the trigger must stay a
+          // real page tab stop (see useGridTabOrderContainment)
+          ...(keepGridTabStop ? { 'data-grid-keep-tab-stop': 'true' } : {}),
         }}
       >
         <span
@@ -350,7 +359,15 @@ export const ProfileOrPermSetPopover: FunctionComponent<ProfileOrPermSetPopoverP
             }
           }}
         >
-          {displayValue ?? <Icon type="utility" icon="info" description="View details" className="slds-button__icon" omitContainer />}
+          {displayValue ?? (
+            <Icon
+              type="utility"
+              icon="info"
+              description={buttonTitle ?? `View ${recordType === 'Profile' ? 'profile' : 'permission set'} details`}
+              className="slds-button__icon"
+              omitContainer
+            />
+          )}
         </span>
       </Popover>
       {/*
