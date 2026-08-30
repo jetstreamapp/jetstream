@@ -10,6 +10,7 @@ import SearchInput from '../form/search-input/SearchInput';
 import Grid from '../grid/Grid';
 import EmptyState from '../illustrations/EmptyState';
 import List from '../list/List';
+import AssistiveStatus from '../widgets/AssistiveStatus';
 import Icon from '../widgets/Icon';
 import SalesforceLogin from '../widgets/SalesforceLogin';
 import Spinner from '../widgets/Spinner';
@@ -197,6 +198,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
                 />
                 <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
                   Showing {formatNumber(filteredFields.length)} of {formatNumber(fieldLength)} fields
+                  <AssistiveStatus debounceMs={600} message={`Showing ${filteredFields.length} of ${fieldLength} fields`} />
                 </div>
               </div>
               {level === 0 && !!onUnselectAll && (
