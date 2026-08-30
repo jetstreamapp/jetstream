@@ -84,6 +84,28 @@ function getRowSegmentStarts<TRow extends object>(row: TanstackRow<TRow>, column
 }
 
 /**
+ * Column indexes at which the HEADER row starts a rendered header cell — honors HEADER colSpans
+ * (column-group headers like the permission manager's profile name spanning its sub-columns), so
+ * header navigation steps between rendered cells instead of walking every spanned-over track.
+ */
+function getHeaderSegmentStarts<TRow extends object>(columns: TanstackColumn<TRow>[]): number[] {
+  const starts: number[] = [];
+  let index = 0;
+  while (index < columns.length) {
+    starts.push(index);
+    const span = Math.max(1, columns[index].columnDef.meta?.jetstream?.colSpan?.({ type: 'HEADER' }) ?? 1);
+    index += span;
+  }
+  return starts;
+}
+
+/** The next/previous segment start relative to `colIndex` within `starts` (clamped at the ends). */
+function stepSegment(starts: number[], colIndex: number, direction: 1 | -1): number {
+  const segmentIndex = Math.max(0, starts.filter((start) => start <= colIndex).length - 1);
+  return starts[clamp(segmentIndex + direction, 0, starts.length - 1)];
+}
+
+/**
  * True when the row renders at least one cell wider than a single column. Consumers use a row-level
  * colSpan for message/placeholder rows ("No metadata found", "no rows found") — the tell that a row
  * carries a rendered message rather than per-column data.
@@ -825,22 +847,27 @@ export function useGridKeyboardNavigation<TRow extends object>({
           case 'ArrowUp':
             consume();
             break;
+          // Header cells honor HEADER colSpans (e.g. a profile-name group header spanning its
+          // Read/Edit sub-columns) — arrows step between RENDERED cells, not underlying tracks,
+          // otherwise a spanned header needs one press per covered column to cross.
           case 'ArrowRight':
             consume();
-            applySelection(HEADER_ROW_ID, columns[clamp(headerColIndex + 1, 0, columns.length - 1)].id, false);
+            applySelection(HEADER_ROW_ID, columns[stepSegment(getHeaderSegmentStarts(columns), headerColIndex, 1)].id, false);
             break;
           case 'ArrowLeft':
             consume();
-            applySelection(HEADER_ROW_ID, columns[clamp(headerColIndex - 1, 0, columns.length - 1)].id, false);
+            applySelection(HEADER_ROW_ID, columns[stepSegment(getHeaderSegmentStarts(columns), headerColIndex, -1)].id, false);
             break;
           case 'Home':
             consume();
             applySelection(HEADER_ROW_ID, columns[0].id, false);
             break;
-          case 'End':
+          case 'End': {
             consume();
-            applySelection(HEADER_ROW_ID, columns[columns.length - 1].id, false);
+            const headerStarts = getHeaderSegmentStarts(columns);
+            applySelection(HEADER_ROW_ID, columns[headerStarts[headerStarts.length - 1]].id, false);
             break;
+          }
           case 'Enter':
           case 'F2':
             // Let Cmd/Ctrl+Enter bubble to app-level handlers (e.g. save).
@@ -974,7 +1001,10 @@ export function useGridKeyboardNavigation<TRow extends object>({
             // Tree (real data row with children): Right expands a collapsed row.
             currentRow.toggleExpanded();
           } else {
-            moveTo(rowIndex, colIndex + 1, extend);
+            // Segment-aware: from a cell that spans several columns (e.g. a full-width message row),
+            // +1 lands inside the same span and snaps back to its owner — step to the next rendered
+            // cell instead. Rows without spans get plain +1 (every column is a segment start).
+            moveTo(rowIndex, currentRow ? stepSegment(getRowSegmentStarts(currentRow, columns), colIndex, 1) : colIndex + 1, extend);
           }
           break;
         }
@@ -995,7 +1025,7 @@ export function useGridKeyboardNavigation<TRow extends object>({
             const parentIndex = parent ? rows.findIndex((row) => row.id === parent.id) : -1;
             moveTo(parentIndex >= 0 ? parentIndex : rowIndex, parentIndex >= 0 ? colIndex : colIndex - 1, extend);
           } else {
-            moveTo(rowIndex, colIndex - 1, extend);
+            moveTo(rowIndex, currentRow ? stepSegment(getRowSegmentStarts(currentRow, columns), colIndex, -1) : colIndex - 1, extend);
           }
           break;
         }

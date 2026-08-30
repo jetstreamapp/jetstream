@@ -196,6 +196,22 @@ export function GridBody<TRow extends object>({
         `[data-row-id="${CSS.escape(activeCell.rowId)}"][data-col-id="${CSS.escape(activeCell.columnId)}"]`,
       );
       if (cellEl) {
+        // Native focus scrolling only ensures the cell is inside the viewport — sticky frozen
+        // columns overlay the left edge, so a cell can land hidden UNDERNEATH the frozen band.
+        // Nudge the scroller left by the overlap so the cell is actually visible.
+        const scroller = scrollRef.current;
+        if (scroller && !cellEl.classList.contains('jgrid-cell-frozen')) {
+          const frozenBandWidth = leafColumns.reduce(
+            (width, column) => (column.columnDef.meta?.jetstream?.frozen ? width + column.getSize() : width),
+            0,
+          );
+          if (frozenBandWidth > 0) {
+            const overlap = frozenBandWidth - (cellEl.getBoundingClientRect().left - scroller.getBoundingClientRect().left);
+            if (overlap > 0) {
+              scroller.scrollLeft -= overlap;
+            }
+          }
+        }
         if (mode === 'actionable') {
           // Move focus to the first interactive control. The cell DIV holding focus (the navigation-mode
           // state) must NOT count as "already inside" — otherwise entering actionable mode from the cell
