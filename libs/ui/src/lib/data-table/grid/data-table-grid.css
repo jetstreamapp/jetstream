@@ -197,8 +197,18 @@
   grid-auto-rows: minmax(0, 1fr);
   box-sizing: border-box;
   border-block-end: 1px solid var(--jgrid-border-color);
-  background-color: var(--jgrid-surface);
   will-change: transform;
+}
+
+/* DEFAULT row/cell surfaces live in zero-specificity `:where()` rules so that consumer-supplied
+   `rowClass`/`cellClass`/`summaryCellClass` background utilities from main.css (`active-item-yellow-bg`,
+   `bg-color-gray*`, `is-disabled`, …) always win. The two stylesheets land in different bundler chunks,
+   and their order differs per app: the web app happens to emit this file first, but the web extension
+   emits main.css first, which made these equal-specificity defaults suppress the utilities there
+   (no yellow dirty-cell highlight in the permission manager — issue #2024). State rules (hover,
+   selected, save-error, edited) keep their normal specificity and are unaffected. */
+:where(.jgrid-row) {
+  background-color: var(--jgrid-surface);
 }
 
 .jgrid-row:hover {
@@ -239,10 +249,15 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  background-color: inherit;
   /* Native text selection is disabled so drag-to-select a cell range doesn't select text;
      use Ctrl/Cmd+C (single cell or range) to copy instead. */
   user-select: none;
+}
+
+/* Cells inherit the (opaque) row surface unless a consumer cellClass sets its own background —
+   zero specificity for the same stylesheet-order reason as the `:where(.jgrid-row)` default above. */
+:where(.jgrid-cell) {
+  background-color: inherit;
 }
 
 .jgrid-header-cell {
@@ -447,8 +462,14 @@
 }
 
 .jgrid-summary-cell {
-  background-color: var(--jgrid-surface-alt);
   font-weight: 600;
+}
+
+/* Zero specificity so `summaryCellClass` utilities (`bg-color-gray`, `bg-color-gray-dark`) win —
+   see the `:where(.jgrid-row)` default above. Placed after `:where(.jgrid-cell)` so the alt surface
+   still beats the plain cell default at equal (zero) specificity. */
+:where(.jgrid-summary-cell) {
+  background-color: var(--jgrid-surface-alt);
 }
 
 .jgrid-body-empty {
