@@ -12,7 +12,8 @@ import { isValid as isValidDate } from 'date-fns/isValid';
 import { parseISO } from 'date-fns/parseISO';
 import { startOfDay } from 'date-fns/startOfDay';
 import uniqueId from 'lodash/uniqueId';
-import { ChangeEvent, FocusEvent, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
+import { ChangeEvent, FocusEvent, FunctionComponent, useEffect, useRef, useState } from 'react';
+import { useEscapeToCloseLayer } from '../../hooks/useEscapeToCloseLayer';
 import PopoverContainer from '../../popover/PopoverContainer';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
@@ -157,6 +158,17 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
     }
   }
 
+  // Escape closes ONLY the calendar popup — consumed at document capture so an ancestor
+  // modal/popover cannot also close on the same press. Focus is pulled back to the trigger only
+  // when it sat inside the popup (which unmounts); when the user is typing in the text input
+  // (the popup opens on input click), focus must stay in the input.
+  useEscapeToCloseLayer(isOpen, () => {
+    setIsOpen(false);
+    if (datePickerRef.current?.contains(document.activeElement)) {
+      triggerButtonRef.current?.focus();
+    }
+  });
+
   // The popup unmounts on close, so focus must be handed back to the calendar trigger or it drops to <body>
   function returnFocusToTrigger() {
     triggerButtonRef.current?.focus();
@@ -229,11 +241,6 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
           onClick={() => {
             if (!isOpen) {
               handleToggleOpen(true);
-            }
-          }}
-          onKeyUp={(event: KeyboardEvent<HTMLInputElement>) => {
-            if (isOpen && event.keyCode === 27) {
-              handleToggleOpen(false);
             }
           }}
           disabled={disabled}
