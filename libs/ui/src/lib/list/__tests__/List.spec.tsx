@@ -56,12 +56,28 @@ describe('List', () => {
     expect(screen.queryByRole('listbox')).toBeNull();
   });
 
-  test('keyboard ArrowDown moves focus to next item', () => {
-    render(<List items={items} isActive={(item) => item.id === 'item-1'} getContent={getContent} onSelected={() => {}} />);
+  test('keyboard ArrowDown from the listbox lands on the active option (APG: focus the selected option on entry)', () => {
+    render(<List items={items} isActive={(item) => item.id === 'item-2'} getContent={getContent} onSelected={() => {}} />);
     const listbox = screen.getByRole('listbox');
     const options = screen.getAllByRole('option');
     fireEvent.keyDown(listbox, { key: 'ArrowDown', code: 'ArrowDown' });
     expect(document.activeElement).toBe(options[1]);
+  });
+
+  test('keyboard ArrowDown from a focused option moves to the next item, even after the items array is re-created', () => {
+    const { rerender } = render(
+      <List items={items} isActive={(item) => item.id === 'item-1'} getContent={getContent} onSelected={() => {}} />,
+    );
+    const listbox = screen.getByRole('listbox');
+    const options = screen.getAllByRole('option');
+    fireEvent.keyDown(listbox, { key: 'ArrowDown', code: 'ArrowDown' });
+    expect(document.activeElement).toBe(options[0]);
+    // A parent re-creating `items` (every toggle/filter does) must not reset the position
+    rerender(<List items={[...items]} isActive={(item) => item.id === 'item-1'} getContent={getContent} onSelected={() => {}} />);
+    fireEvent.keyDown(options[0], { key: 'ArrowDown', code: 'ArrowDown' });
+    expect(document.activeElement).toBe(options[1]);
+    fireEvent.keyDown(options[1], { key: 'ArrowDown', code: 'ArrowDown' });
+    expect(document.activeElement).toBe(options[2]);
   });
 
   test('keyboard Home moves focus to first item', () => {
