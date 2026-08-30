@@ -22,7 +22,8 @@ test.describe('LOAD WITHOUT FILE', () => {
     await loadWithoutFilePage.selectObject('Account');
     await loadWithoutFilePage.selectField('Account Type');
 
-    await expect(page.getByRole('button', { name: 'Review Changes' })).toBeDisabled();
+    // Review Changes is a stable link with aria-disabled (M35) so its explanation tooltip stays keyboard-reachable
+    await expect(page.getByRole('link', { name: 'Review Changes' })).toBeDisabled();
 
     await loadWithoutFilePage.configureStaticPicklistField('Installation Partner');
     await page.getByTitle('"Type" will be set to "Installation Partner" on all records').waitFor();
