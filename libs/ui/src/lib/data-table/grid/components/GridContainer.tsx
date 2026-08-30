@@ -36,6 +36,7 @@ import {
   TanstackTable,
 } from '../grid-types';
 import { useGridKeyboardNavigation } from '../keyboard/useGridKeyboardNavigation';
+import { useGridTabOrderContainment } from '../keyboard/useGridTabOrderContainment';
 import { getActiveRangeRect, getSelectionBounds, hasMultiCellSelection } from '../selection/grid-selection';
 import { GridBody, RowHeightFn } from './GridBody';
 import { GridHeader } from './GridHeader';
@@ -281,6 +282,9 @@ export function GridContainer<TRow extends object = RowWithKey>({
     onRedo,
     onClearSelection: onPaste ? stableClearSelection : undefined,
   });
+
+  // The grid is a single page tab stop — strip consumer-rendered in-cell controls from the tab order.
+  useGridTabOrderContainment(useCallback(() => gridRef.current, []));
 
   // Announce the matching row count after the filter set changes (the filtered model is pre-grouping, so
   // this counts data rows and isn't perturbed by expanding/collapsing groups or sorting). Skips the
