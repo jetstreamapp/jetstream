@@ -54,6 +54,7 @@ function Content({ field, org }: SobjectFieldListTypeProps) {
         <Tooltip
           id={`${field.name}-type-tooltip`}
           content={tooltipContent}
+          triggerTabIndex={-1}
           onClick={(ev) => {
             ev.stopPropagation();
             copyToClipboardValue && copy(copyToClipboardValue);
@@ -83,6 +84,7 @@ function Content({ field, org }: SobjectFieldListTypeProps) {
       <Tooltip
         id={`${field.name}-type-tooltip`}
         content={tooltipContent}
+        triggerTabIndex={-1}
         onClick={() => copyToClipboardValue && copy(copyToClipboardValue)}
       >
         <span className="slds-badge__icon slds-badge__icon_left slds-badge__icon_inverse">
