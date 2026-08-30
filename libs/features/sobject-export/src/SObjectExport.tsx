@@ -26,6 +26,7 @@ import {
   ScopedNotification,
   Spinner,
   Tooltip,
+  getAriaKeyshortcuts,
   getModifierKey,
 } from '@jetstream/ui';
 import { fromJetstreamEvents } from '@jetstream/ui-core';
@@ -249,7 +250,12 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
                   </div>
                 }
               >
-                <button className="slds-button slds-button_brand" disabled={!hasSelectionsMade || loading} onClick={handleExport}>
+                <button
+                  className="slds-button slds-button_brand"
+                  aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+                  disabled={!hasSelectionsMade || loading}
+                  onClick={handleExport}
+                >
                   Download
                 </button>
               </Tooltip>
