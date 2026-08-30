@@ -18,10 +18,13 @@ export const ComboboxListItemHeading = forwardRef<HTMLLIElement, ComboboxListIte
       onActionClick && onActionClick();
     };
 
-    const handleKeyup = (event: KeyboardEvent<HTMLButtonElement>) => {
-      event.preventDefault();
-      event.stopPropagation();
+    const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+      // Only consume the keys this handles — the unconditional preventDefault/stopPropagation
+      // trapped focus on the button (Tab could not move) and swallowed Escape before the
+      // combobox's close handler could see it
       if (isEnterOrSpace(event)) {
+        event.preventDefault();
+        event.stopPropagation();
         onActionClick && onActionClick();
       }
     };
@@ -34,7 +37,7 @@ export const ComboboxListItemHeading = forwardRef<HTMLLIElement, ComboboxListIte
           </h3>
         </div>
         {actionLabel && onActionClick && (
-          <button className="slds-button slds-m-right_medium" onClick={handleClick} onKeyDown={handleKeyup}>
+          <button className="slds-button slds-m-right_medium" onClick={handleClick} onKeyDown={handleKeyDown}>
             {actionLabel}
           </button>
         )}
