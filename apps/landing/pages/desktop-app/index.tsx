@@ -51,7 +51,7 @@ export default function DesktopDownloadPage() {
                 <p className="text-gray-300 mb-6">Sign in to access the desktop app for your platform</p>
                 <Link
                   href={ROUTES.AUTH.login}
-                  className="inline-flex items-center px-6 py-3 text-lg font-semibold text-white bg-cyan-500 rounded-lg shadow-lg hover:bg-cyan-400 focus:outline-hidden focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+                  className="inline-flex items-center px-6 py-3 text-lg font-semibold text-white bg-cyan-700 rounded-lg shadow-lg hover:bg-cyan-600 focus:outline-hidden focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-gray-900"
                 >
                   Login
                 </Link>
@@ -104,7 +104,7 @@ export default function DesktopDownloadPage() {
                       <p className="text-sm font-semibold text-cyan-400 mb-4">Recommended for your device</p>
                       <a
                         href={recommendedDownload.downloadUrl}
-                        className="inline-flex items-center px-8 py-4 text-lg font-semibold text-white bg-cyan-500 rounded-lg shadow-lg hover:bg-cyan-400 focus:outline-hidden focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+                        className="inline-flex items-center px-8 py-4 text-lg font-semibold text-white bg-cyan-700 rounded-lg shadow-lg hover:bg-cyan-600 focus:outline-hidden focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-gray-900"
                         download
                       >
                         <ArrowDownTrayIcon className="h-6 w-6 mr-3" />

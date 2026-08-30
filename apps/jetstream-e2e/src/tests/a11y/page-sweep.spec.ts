@@ -18,7 +18,7 @@ const routesToScan = Object.entries(APP_ROUTES).filter(
 );
 
 test.describe('a11y page sweep', () => {
-  for (const [routeKey, { ROUTE, TITLE }] of routesToScan) {
+  for (const [routeKey, { ROUTE }] of routesToScan) {
     test(`${routeKey} (${ROUTE})`, async ({ page, apiRequestUtils }, testInfo) => {
       // Most tool pages render an org-required empty state without an org, which would make the
       // scan meaningless — select the default org first so real page content is evaluated.

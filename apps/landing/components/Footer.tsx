@@ -47,7 +47,7 @@ export const Footer = ({ omitLinks = [] }: FooterProps) => (
         <div className="mt-12 grid grid-cols-3 gap-8 xl:mt-0 xl:col-span-2">
           <div className="md:grid md:grid-cols-1 md:gap-8">
             <div className="mt-12 md:mt-0">
-              <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">Support</h3>
+              <h3 className="text-sm font-semibold text-gray-600 tracking-wider uppercase">Support</h3>
               <ul className="mt-4 space-y-4">
                 {footerNavigation.support
                   .filter((item) => !omitLinks.includes(item.href))
@@ -69,7 +69,7 @@ export const Footer = ({ omitLinks = [] }: FooterProps) => (
             </div>
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">Resources</h3>
+            <h3 className="text-sm font-semibold text-gray-600 tracking-wider uppercase">Resources</h3>
             <ul className="mt-4 space-y-4">
               {footerNavigation.resources
                 .filter((item) => !omitLinks.includes(item.href))
@@ -83,7 +83,7 @@ export const Footer = ({ omitLinks = [] }: FooterProps) => (
             </ul>
           </div>
           <div className="mt-12 md:mt-0">
-            <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">Legal</h3>
+            <h3 className="text-sm font-semibold text-gray-600 tracking-wider uppercase">Legal</h3>
             <ul className="mt-4 space-y-4">
               {footerNavigation.legal
                 .filter((item) => !omitLinks.includes(item.href))
@@ -99,7 +99,7 @@ export const Footer = ({ omitLinks = [] }: FooterProps) => (
         </div>
       </div>
       <div className="mt-12 border-t border-gray-200 py-8">
-        <p className="text-base text-gray-400 xl:text-center">
+        <p className="text-base text-gray-600 xl:text-center">
           &copy; {new Date().getFullYear()} Jetstream Solutions, LLC. All rights reserved.
         </p>
       </div>

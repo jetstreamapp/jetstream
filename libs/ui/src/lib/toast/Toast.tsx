@@ -47,7 +47,14 @@ export const Toast: FunctionComponent<ToastProps> = ({
 }) => {
   return (
     <div className={className}>
-      <div className={classNames('slds-notify slds-notify_toast', getCssClass(type))} role="status">
+      <div
+        className={classNames('slds-notify slds-notify_toast', getCssClass(type))}
+        // Errors interrupt (assertive); everything else waits its turn. aria-atomic so the whole
+        // toast is announced, not just the text node that changed.
+        role={type === 'error' ? 'alert' : 'status'}
+        aria-live={type === 'error' ? 'assertive' : 'polite'}
+        aria-atomic="true"
+      >
         <span className="slds-assistive-text">{type || 'info'}</span>
         {showIcon && getIcon(type)}
         <div
