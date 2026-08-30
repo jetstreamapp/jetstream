@@ -64,7 +64,10 @@ export const ComboboxWithGroupedItems = forwardRef<ComboboxWithGroupedItemsRef, 
   ) => {
     const comboboxRef = useRef<ComboboxPropsRef>(null);
     const [filterTextNonDebounced, setFilterText] = useState<string>('');
-    const filterText = useDebounce(filterTextNonDebounced, 300);
+    const debouncedFilterText = useDebounce(filterTextNonDebounced, 300);
+    // Clearing applies immediately (M13): a debounced reset showed the previous search's subset for
+    // 300ms when the list was cleared or reopened — same rule as ComboboxWithItems
+    const filterText = filterTextNonDebounced ? debouncedFilterText : '';
     const [visibleItems, setVisibleItems] = useState(groups);
     // Derived during render rather than mirrored into state with effects — see ComboboxWithItems
     // for why the effect-synced version risked "Maximum update depth exceeded".
