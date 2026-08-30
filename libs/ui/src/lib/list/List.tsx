@@ -3,6 +3,8 @@
 import {
   hasMetaModifierKey,
   isArrowDownKey,
+  isArrowLeftKey,
+  isArrowRightKey,
   isArrowUpKey,
   isEndKey,
   isEnterOrSpace,
@@ -41,6 +43,8 @@ export interface ListProps {
     key: string;
     id?: string;
     testId?: string;
+    /** Accessible name for the row checkbox — required when heading is a ReactNode, which cannot label the input */
+    label?: string;
     heading?: Maybe<string | ReactNode>;
     subheading?: Maybe<string>;
     trailingHeader?: ReactNode;
@@ -161,6 +165,24 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
         event.stopPropagation();
         event.preventDefault();
         newFocusedItem = items.length - 1;
+      } else if (useCheckbox && (isArrowRightKey(event) || isArrowLeftKey(event))) {
+        // Row-local navigation: ArrowRight steps through a row's secondary controls (e.g. the
+        // "where is this field used" button), ArrowLeft steps back toward the row checkbox. This
+        // lets those controls stay out of the page tab order without becoming keyboard-unreachable.
+        const rowElement = (event.target as HTMLElement).closest('li');
+        if (rowElement) {
+          const focusables = Array.from(rowElement.querySelectorAll<HTMLElement>('input, button, a[href], select, textarea')).filter(
+            (el) => !el.hasAttribute('disabled') && el.closest('li') === rowElement,
+          );
+          const currentIndex = focusables.indexOf(event.target as HTMLElement);
+          const next = isArrowRightKey(event) ? focusables[currentIndex + 1] : focusables[currentIndex - 1];
+          if (next) {
+            event.stopPropagation();
+            event.preventDefault();
+            next.focus();
+          }
+        }
+        return;
       } else if (!useCheckbox && !hasMetaModifierKey(event) && isEnterOrSpace(event)) {
         event.stopPropagation();
         event.preventDefault();
@@ -193,12 +215,13 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
             onKeyDown={handleKeyDown}
           >
             {items.map((item, i) => {
-              const { key, id, testId, heading, subheading, trailingHeader, children } = getContent(item);
+              const { key, id, testId, label, heading, subheading, trailingHeader, children } = getContent(item);
               return useCheckbox ? (
                 <ListItemCheckbox
                   inputRef={elRefs.current[i] as RefObject<HTMLInputElement>}
                   key={key}
                   id={id || key}
+                  label={label}
                   testId={testId}
                   isActive={isActive(item)}
                   heading={heading}
