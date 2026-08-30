@@ -41,7 +41,10 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
 }) => {
   const comboboxRef = useRef<ComboboxPropsRef>(null);
   const [filterTextNonDebounced, setFilterText] = useState<string>('');
-  const filterText = useDebounce(filterTextNonDebounced, 300);
+  const debouncedFilterText = useDebounce(filterTextNonDebounced, 300);
+  // Clearing applies immediately (M13): a debounced reset showed the previous search's subset for
+  // 300ms when the list was cleared or reopened — same rule as ComboboxWithItems
+  const filterText = filterTextNonDebounced ? debouncedFilterText : '';
   const [visibleItems, setVisibleItems] = useState(items);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   // Derived during render rather than mirrored into state with effects — see ComboboxWithItems
