@@ -146,7 +146,13 @@ export const SobjectFieldListTypeRollupSummaryDetails: FunctionComponent<Sobject
       <Tooltip
         id={`${field.name}-type-tooltip`}
         content={<TooltipContent field={field} org={org} onContent={setContent} />}
-        onClick={() => content && copy(content)}
+        // Reached with ArrowRight from the row checkbox, like the picklist/formula badges
+        triggerTabIndex={-1}
+        onClick={(ev) => {
+          // Without this the click bubbles to the row and toggles the field's selection
+          ev.stopPropagation();
+          content && copy(content);
+        }}
       >
         <span className="slds-badge__icon slds-badge__icon_left slds-badge__icon_inverse">
           <Icon
