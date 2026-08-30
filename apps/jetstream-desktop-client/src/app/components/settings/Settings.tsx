@@ -6,7 +6,7 @@ import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { isEscapeKey, useGlobalEventHandler, useTitle } from '@jetstream/shared/ui-utils';
 import { SoqlQueryFormatOptions, SoqlQueryFormatOptionsSchema } from '@jetstream/types';
 import { AutoFullHeightContainer, CheckboxToggle, Grid, Icon, Input, Page, Spinner, fireToast } from '@jetstream/ui';
-import { DataHistorySettingsSection, SoqlQueryFormatConfig, useAmplitude } from '@jetstream/ui-core';
+import { DataHistorySettingsSection, EditorSettingsSection, SoqlQueryFormatConfig, useAmplitude } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { dexieDataSync, recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
@@ -293,6 +293,7 @@ export const Settings = () => {
             </div>
 
             <DataHistorySettingsSection />
+            <EditorSettingsSection />
 
             <div className="slds-m-top_large">
               <h2 className="slds-text-heading_medium slds-m-vertical_small">Logging</h2>
