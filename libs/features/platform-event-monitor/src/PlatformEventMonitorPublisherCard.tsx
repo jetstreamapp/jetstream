@@ -222,7 +222,13 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
                       disabled={loadingPlatformEvents}
                       onClick={() => fetchSobjectDescribe(true)}
                     >
-                      <Icon type="utility" icon="refresh" className="slds-button__icon" omitContainer />
+                      <Icon
+                        type="utility"
+                        icon="refresh"
+                        description="Reload platform events"
+                        className="slds-button__icon"
+                        omitContainer
+                      />
                     </button>
                   </Tooltip>
                 </div>
