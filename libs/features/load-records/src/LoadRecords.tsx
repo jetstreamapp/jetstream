@@ -447,6 +447,7 @@ export const LoadRecords = () => {
             <button
               data-testid="start-over-button"
               className="slds-button slds-button_neutral collapsible-button collapsible-button-md"
+              title="Start Over"
               disabled={(currentStepIdx === 0 && !inputFileData && !selectedSObject) || loading}
               onClick={() => handleStartOver()}
             >
