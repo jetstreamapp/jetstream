@@ -14,18 +14,54 @@ export const MAIN_CONTENT_ID = 'main-content';
  * is still mounted (e.g. switching sub-routes inside a feature) — yanking focus to the top there would
  * lose the user's place.
  *
+ * When the navigation carries a `#hash`, focus (and scroll to) the element with that id instead —
+ * this is how in-app deep links (e.g. Settings#data-history) land the user on the right section.
+ * The target must have `tabIndex={-1}`, and may mount after async data loads, so it is polled for
+ * briefly.
+ *
  * Render once per app shell, inside the router provider. The shell must give its content container
  * `id={MAIN_CONTENT_ID}` and `tabIndex={-1}`.
  */
 export function FocusMainContentOnRouteChange() {
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
   const isInitialRender = useRef(true);
 
   useEffect(() => {
     if (isInitialRender.current) {
       isInitialRender.current = false;
-      return;
+      // The plain-pathname focus reset below must not run on app load (it would steal focus for no
+      // navigation), but a #hash deep link on a HARD load is exactly a request to land on that
+      // section — and the browser's native fragment scroll misses targets that mount after async
+      // data loads, which the polling below exists to handle. So only skip when there is no hash.
+      if (!hash) {
+        return;
+      }
     }
+
+    if (hash) {
+      let attemptsRemaining = 20;
+      let cancelled = false;
+      const tryFocusHashTarget = () => {
+        if (cancelled) {
+          return;
+        }
+        const target = document.getElementById(hash.slice(1));
+        if (target) {
+          target.scrollIntoView?.({ block: 'start' });
+          target.focus();
+          return;
+        }
+        attemptsRemaining--;
+        if (attemptsRemaining > 0) {
+          window.setTimeout(tryFocusHashTarget, 50);
+        }
+      };
+      tryFocusHashTarget();
+      return () => {
+        cancelled = true;
+      };
+    }
+
     const container = document.getElementById(MAIN_CONTENT_ID);
     if (!container) {
       return;
@@ -35,7 +71,7 @@ export function FocusMainContentOnRouteChange() {
       return;
     }
     container.focus();
-  }, [pathname]);
+  }, [pathname, hash]);
 
   return null;
 }
