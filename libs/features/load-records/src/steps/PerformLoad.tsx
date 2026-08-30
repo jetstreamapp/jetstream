@@ -710,6 +710,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
               initialActiveId={activeRunId ?? undefined}
               onChange={setActiveRunId}
               renderAllContent
+              truncateLabels={false}
               style={{ maxWidth: '100%', minWidth: 0 }}
               // Hide the tab nav when there's only one run; a single-tab header adds UI noise
               // without value. The tabs themselves stay rendered so React preserves panel state

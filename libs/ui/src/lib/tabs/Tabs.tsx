@@ -27,6 +27,8 @@ export interface TabsProps {
    * must survive tab switches (e.g. in-progress network requests, accumulated results).
    */
   renderAllContent?: boolean;
+  /** Set false when the tab bar scrolls horizontally — labels keep full width and the bar scrolls */
+  truncateLabels?: boolean;
   onFilterValueChange?: (value: string) => void;
   onChange?: (activeId: string) => void;
   children?: ReactNode;
@@ -46,6 +48,7 @@ export const Tabs = forwardRef<TabsRef, TabsProps>(
       ulStyle,
       emptyState = <h3 className="slds-text-heading_medium slds-m-around_medium">Select an item to continue</h3>,
       renderAllContent = false,
+      truncateLabels,
       onFilterValueChange,
       onChange,
       children,
@@ -207,6 +210,7 @@ export const Tabs = forwardRef<TabsRef, TabsProps>(
               key={tab.id}
               tab={tab}
               isHorizontal={isHorizontal}
+              truncateLabels={truncateLabels}
               activeId={activeId}
               searchTerm={filterValue}
               highlightText
