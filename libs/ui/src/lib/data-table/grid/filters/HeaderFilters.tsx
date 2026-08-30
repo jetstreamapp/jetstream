@@ -102,9 +102,21 @@ export const HeaderFilterButton = memo(({ columnKey, columnName }: { columnKey: 
   }
 
   return (
-    <div onClick={(ev) => ev.stopPropagation()} onPointerDown={(ev) => ev.stopPropagation()} onKeyDown={(ev) => ev.stopPropagation()}>
+    <div
+      onClick={(ev) => ev.stopPropagation()}
+      onPointerDown={(ev) => ev.stopPropagation()}
+      onKeyDown={(ev) => {
+        // Only swallow activation keys (the grid would ALSO sort/filter the header cell) — arrows and
+        // Escape must keep bubbling to the grid, or focus landing back on this trigger after the
+        // popover closes leaves the user with dead table navigation
+        if (ev.key === 'Enter' || ev.key === ' ') {
+          ev.stopPropagation();
+        }
+      }}
+    >
       <Popover
         ref={popoverRef}
+        trapFocus
         header={
           <header className="slds-popover__header" onPointerDown={(ev) => ev.stopPropagation()}>
             <h2 className="slds-text-heading_small">Filter</h2>
