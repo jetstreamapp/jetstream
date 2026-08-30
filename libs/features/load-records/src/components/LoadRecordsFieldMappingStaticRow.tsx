@@ -3,7 +3,7 @@ import { EditableFields, UiRecordFormField, convertMetadataToEditableFields } fr
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { FieldMappingItemStatic, FieldWithRelatedEntities, ListItem, Maybe, PicklistFieldValues, SalesforceOrgUi } from '@jetstream/types';
 import { ComboboxWithItems, Icon, Picklist } from '@jetstream/ui';
-import { FunctionComponent, useEffect, useId, useMemo, useState } from 'react';
+import { FunctionComponent, MouseEvent, useEffect, useId, useMemo, useState } from 'react';
 import { getComboboxFieldName, getComboboxFieldTitle, getFieldListItems } from '../utils/field-mapping-utils';
 
 type ValueInputMode = NonNullable<FieldMappingItemStatic['valueInputMode']>;
@@ -22,7 +22,7 @@ export interface LoadRecordsFieldMappingStaticRowProps {
   fieldMappingItem: FieldMappingItemStatic;
   isCustomMetadata?: boolean;
   onSelectionChanged: (fieldMappingItem: FieldMappingItemStatic) => void;
-  onRemoveRow: () => void;
+  onRemoveRow: (event?: MouseEvent<HTMLButtonElement>) => void;
 }
 
 export const LoadRecordsFieldMappingStaticRow: FunctionComponent<LoadRecordsFieldMappingStaticRowProps> = ({
@@ -205,7 +205,7 @@ export const LoadRecordsFieldMappingStaticRow: FunctionComponent<LoadRecordsFiel
           <button
             className="slds-button slds-button_icon slds-button_icon-border slds-button_icon-error"
             title="Delete mapping"
-            onClick={() => onRemoveRow()}
+            onClick={(event) => onRemoveRow(event)}
           >
             <Icon type="utility" icon="delete" className="slds-button__icon" omitContainer />
             <span className="slds-assistive-text">Delete Mapping</span>
