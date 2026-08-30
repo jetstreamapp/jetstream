@@ -218,6 +218,7 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
         className: classNames('slds-m-left_xx-small slds-button slds-button_icon', {
           'slds-text-color_brand': hasFiltersApplied,
         }),
+        'aria-label': 'Filter objects',
       }}
       // Rendered as a sibling of the trigger button since a button cannot be nested within another button
       triggerAfterContent={
