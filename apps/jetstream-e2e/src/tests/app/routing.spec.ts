@@ -41,6 +41,7 @@ const testCases = [
     menu: 'Developer Tools',
     items: [
       { link: 'Anonymous Apex', path: '/apex' },
+      { link: 'Apex Test Runner', path: '/apex-tests' },
       { link: 'View Debug Logs', path: '/debug-logs' },
       { link: 'Export Object Metadata', path: '/object-export' },
       { link: 'Salesforce API', path: '/salesforce-api' },

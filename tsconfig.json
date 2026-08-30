@@ -204,6 +204,9 @@
     },
     {
       "path": "./libs/features/data-history"
+    },
+    {
+      "path": "./libs/features/apex-test-runner"
     }
   ],
   "compilerOptions": {

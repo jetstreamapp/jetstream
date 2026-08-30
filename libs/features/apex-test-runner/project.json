@@ -1,0 +1,8 @@
+{
+  "name": "features-apex-test-runner",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/features/apex-test-runner/src",
+  "projectType": "library",
+  "tags": ["scope:browser"],
+  "targets": {}
+}

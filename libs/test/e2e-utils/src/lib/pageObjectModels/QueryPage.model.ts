@@ -29,7 +29,9 @@ export class QueryPage {
     this.apiRequestUtils = apiRequestUtils;
     this.page = page;
     this.sobjectList = page.getByTestId('sobject-list');
-    this.fieldsList = page.getByTestId('sobject-fields');
+    // The base object's field list and an open subquery's field list share this testid, and both tabs
+    // stay mounted (the inactive one hidden) - scope to whichever list is currently shown
+    this.fieldsList = page.getByTestId('sobject-fields').filter({ visible: true });
     this.soqlQuery = page.getByText('Generated SOQL');
     this.executeBtn = page.getByTestId('execute-query-button');
   }

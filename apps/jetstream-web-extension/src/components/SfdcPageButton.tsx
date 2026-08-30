@@ -58,6 +58,10 @@ const PAGE_LINKS: PageLink[] = [
     link: APP_ROUTES.ANON_APEX.ROUTE,
     label: 'Anonymous Apex',
   },
+  {
+    link: APP_ROUTES.APEX_TESTS.ROUTE,
+    label: 'Apex Test Runner',
+  },
 ];
 
 const ItemColStyles = css`
