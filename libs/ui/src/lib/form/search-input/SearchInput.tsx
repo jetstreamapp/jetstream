@@ -65,6 +65,13 @@ export const SearchInput: FunctionComponent<SearchInputProps> = ({
     ) {
       event.stopPropagation();
     }
+    // The Up/Down action itself fires on keyup (below), but the keydown must be consumed here too:
+    // when this input sits inside a List (nested field lists), the bubbled keydown would move the
+    // parent list's focus before the keyup ever ran.
+    if (onArrowKeyUpDown && (isArrowUpKey(event) || isArrowDownKey(event))) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
   }
 
   function handleKeyUp(event: KeyboardEvent<HTMLInputElement>) {
