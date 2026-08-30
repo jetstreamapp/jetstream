@@ -23,6 +23,8 @@ export interface CheckboxProps {
   isStandAlone?: boolean;
   errorMessageId?: string;
   errorMessage?: React.ReactNode | string;
+  /** Extra attributes for the native input (e.g. data-grid-inner-focus for grid cells) */
+  inputProps?: React.InputHTMLAttributes<HTMLInputElement> & { [dataAttribute: `data-${string}`]: string | boolean | undefined };
   onChange?: (value: boolean) => void;
   onChangeNative?: (event: SyntheticEvent<HTMLInputElement>) => void;
   onBlur?: () => void;
@@ -48,6 +50,7 @@ export const Checkbox: FunctionComponent<CheckboxProps> = ({
   tabIndex,
   hideLabel = false,
   isStandAlone = false,
+  inputProps,
   onChange,
   onChangeNative,
   onBlur,
@@ -104,6 +107,7 @@ export const Checkbox: FunctionComponent<CheckboxProps> = ({
               onChangeNative && onChangeNative(event);
             }}
             onBlur={onBlur}
+            {...inputProps}
           />
           {isStandAlone && <span className="slds-checkbox_faux"></span>}
           {!isStandAlone && (

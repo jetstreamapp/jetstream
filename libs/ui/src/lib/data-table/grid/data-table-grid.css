@@ -314,6 +314,12 @@
   outline: none;
   box-shadow: var(--slds-g-shadow-insetinverse-focus-1, inset 0 0 0 2px #0176d3);
 }
+/* Navigation focuses a cell's own control ([data-grid-inner-focus], e.g. a permission checkbox) instead of the
+   cell, so the cell keeps the same ring. A rule of its own: a browser without :has() would drop a whole
+   selector list containing it. */
+.jgrid-cell:has([data-grid-inner-focus]:focus-visible) {
+  box-shadow: var(--slds-g-shadow-insetinverse-focus-1, inset 0 0 0 2px #0176d3);
+}
 
 /* Round the table's four corner cells to match the scroller's radius. The focus ring is an INSET
    box-shadow, so without a matching corner radius it draws a square ring just inside the rounded table
