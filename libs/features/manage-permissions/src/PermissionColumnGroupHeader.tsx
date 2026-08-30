@@ -68,6 +68,7 @@ export function PermissionColumnGroupHeader({ id, label, type }: PermissionColum
         onKeyDown={(event) => event.stopPropagation()}
       >
         <ProfileOrPermSetPopover
+          keepGridTabStop
           org={selectedOrg}
           serverUrl={serverUrl}
           skipFrontDoorAuth={skipFrontDoorAuth}
