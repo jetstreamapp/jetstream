@@ -69,6 +69,8 @@ model User {
   teamMemberUpdatedBy           TeamMember[]           @relation("TeamMemberUpdatedBy")
   teamMemberInvitationCreatedBy TeamMemberInvitation[] @relation("TeamMemberInvitationCreatedBy")
   teamMemberInvitationUpdatedBy TeamMemberInvitation[] @relation("TeamMemberInvitationUpdatedBy")
+
+  @@index([email])
 }
 
 model AuthFactors {
@@ -711,16 +713,6 @@ model sessions {
 
   @@index([expire], map: "IDX_session_expire")
   @@index([userId, createdAt(sort: Desc), sid(sort: Desc)], map: "idx_sessions_user_expire_sid")
-}
-
-model AnalyticsSummary {
-  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  type      String   @unique
-  week      Int
-  month     Int
-  year      Int
-  createdAt DateTime @default(now()) @db.Timestamp(6)
-  updatedAt DateTime @updatedAt
 }
 
 model UserSyncData {
