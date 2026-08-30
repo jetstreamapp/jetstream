@@ -79,6 +79,7 @@ export function OrgGroupCardCard({
       <Card
         ref={dropRef}
         testId={`org-group-card-${group.name}`}
+        ariaLabel={`Org group: ${name}`}
         css={css`
           &.slds-drop-zone::after {
             border-radius: var(--slds-c-card-radius-border, var(--slds-g-radius-border-2, 0.5rem));
@@ -114,18 +115,24 @@ export function OrgGroupCardCard({
         actions={
           <ButtonGroupContainer className="slds-m-right_medium">
             {!isActive && (
-              <button className="slds-button slds-button_neutral slds-button_first" onClick={() => onSelected()}>
+              <button
+                className="slds-button slds-button_neutral slds-button_first"
+                aria-label={`Make Active - ${name}`}
+                onClick={() => onSelected()}
+              >
                 Make Active
               </button>
             )}
             <button
               className={classNames('slds-button slds-button_neutral', { 'slds-button_first': isActive, 'slds-button_middle': !isActive })}
+              aria-label={`Edit - ${name}`}
               onClick={() => onEditOrg()}
             >
               Edit
             </button>
             <DropDown
               className="slds-button_last"
+              actionText={`More Actions - ${name}`}
               dropDownClassName="slds-dropdown_actions"
               position="right"
               items={tertiaryActionMenuItems}
