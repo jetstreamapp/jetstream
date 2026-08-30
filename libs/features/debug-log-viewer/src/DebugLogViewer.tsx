@@ -15,6 +15,7 @@ import {
   Tooltip,
   ViewDocsLink,
   dataTableFileSizeFormatter,
+  useAnnouncer,
 } from '@jetstream/ui';
 import { MonacoEditor, RequireMetadataApiBanner, fromJetstreamEvents, isAsyncJob } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState, useCanPerformOperation } from '@jetstream/ui/app-state';
@@ -48,6 +49,10 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
   const [loadingLog, setLoadingLog] = useState(false);
   const [activeLogId, setActiveLogId] = useState<string | null>(null);
   const [activeLog, setActiveLog] = useState<string>('');
+
+  // Activating a log row loads it into the Monaco pane on the right with no visible focus change —
+  // announce each load (clear-then-set, so re-selecting a cached log announces again)
+  const { announce, announcer } = useAnnouncer();
   const [userDebug, setUserDebug] = useState(false);
   const [textFilter, setTextFilter] = useState<string>('');
   const [visibleResults, setVisibleResults] = useState<string>('');
@@ -140,12 +145,15 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
   }, [logs]);
 
   const getActiveLog = useCallback(async () => {
+    if (!activeLogId) {
+      return;
+    }
+    const log = logs.find(({ Id }) => Id === activeLogId);
+    const logName = log ? `${log.Operation} log from ${log.LogUser.Name}` : 'Debug log';
     try {
-      if (!activeLogId) {
-        return;
-      }
       if (logCache.current[activeLogId]) {
         setActiveLog(logCache.current[activeLogId]);
+        announce(`${logName} loaded in the viewer panel`);
         return;
       }
       const orgId = selectedOrg.uniqueId;
@@ -153,6 +161,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
       const results = await fetchActiveLog(selectedOrg, activeLogId);
       if (isMounted.current) {
         setActiveLog(results);
+        announce(`${logName} loaded in the viewer panel`);
         // save log in local cache
         if (activeOrgId.current === orgId) {
           logCache.current = { ...logCache.current, [activeLogId]: results };
@@ -161,12 +170,15 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
       }
     } catch {
       // TODO: handle error state
+      if (isMounted.current) {
+        announce(`${logName} could not be loaded`);
+      }
     } finally {
       if (isMounted.current) {
         setLoadingLog(false);
       }
     }
-  }, [selectedOrg, activeLogId]);
+  }, [selectedOrg, activeLogId, logs, announce]);
 
   useNonInitialEffect(() => {
     if (activeLogId) {
@@ -193,6 +205,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
   return (
     <AutoFullHeightContainer fillHeight bottomBuffer={10} setHeightAttr className="slds-p-horizontal_x-small slds-scrollable_none">
       <RequireMetadataApiBanner />
+      {announcer}
       {purgeModalOpen && <PurgeLogsModal selectedOrg={selectedOrg} onModalClose={() => setPurgeModalOpen(false)} />}
       <Split
         sizes={[66, 33]}
