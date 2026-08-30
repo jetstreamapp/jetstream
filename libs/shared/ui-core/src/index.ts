@@ -102,6 +102,7 @@ export * from './settings/data-history-hooks';
 export * from './settings/DataHistorySettingsSection';
 export * from './settings/DataHistoryStorageLocation';
 export * from './settings/DiagnosticLoggingSetting';
+export * from './settings/EditorSettingsSection';
 export * from './settings/HistorySyncSettings';
 export * from './settings/layout/SettingsLayout';
 export * from './settings/layout/SettingsSection';
