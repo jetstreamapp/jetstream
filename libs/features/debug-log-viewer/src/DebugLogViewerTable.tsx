@@ -138,21 +138,26 @@ export const DebugLogViewerTable: FunctionComponent<DebugLogViewerTableProps> = 
         const renderCell = column.renderCell;
         return {
           ...column,
-          renderCell: (props: RenderCellProps<ApexLogWithViewed>) => (
-            <div
-              role="button"
-              tabIndex={-1}
-              // Empty cells would otherwise be nameless buttons; non-empty cells are named by their content
-              aria-label={props.value === null || props.value === undefined || props.value === '' ? 'View log' : undefined}
-              css={css`
-                width: 100%;
-                height: 100%;
-              `}
-              onClick={() => handleSelectionChanged({ row: props.row, column: props.column, rowIdx: props.rowIdx })}
-            >
-              {renderCell ? renderCell(props) : props.value === null || props.value === undefined ? '' : String(props.value)}
-            </div>
-          ),
+          renderCell: (props: RenderCellProps<ApexLogWithViewed>) => {
+            const content = renderCell ? renderCell(props) : props.value === null || props.value === undefined ? '' : String(props.value);
+            // Cells with no rendered content would otherwise be nameless buttons; cells with content
+            // (including falsy values like 0 that still render) are named by it
+            const isEmptyContent = content === null || content === undefined || content === '';
+            return (
+              <div
+                role="button"
+                tabIndex={-1}
+                aria-label={isEmptyContent ? 'View log' : undefined}
+                css={css`
+                  width: 100%;
+                  height: 100%;
+                `}
+                onClick={() => handleSelectionChanged({ row: props.row, column: props.column, rowIdx: props.rowIdx })}
+              >
+                {content}
+              </div>
+            );
+          },
         };
       }),
     // `onRowSelection` is stable for this component; columns only need to be built once.

@@ -5,6 +5,7 @@ import { Fragment, FunctionComponent, MouseEvent } from 'react';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
 import Spinner from '../../widgets/Spinner';
+import { associateErrorsWithControls } from '../form-a11y.utils';
 
 export interface InputProps {
   id?: string;
@@ -122,7 +123,7 @@ export const Input: FunctionComponent<InputProps> = ({
           )}
           {leftAddon && <span className="slds-form-element__addon">{leftAddon}</span>}
           {/* Input field must be passed through */}
-          {children}
+          {associateErrorsWithControls(children, hasError, errorMessageId)}
           {loading && (
             <div className="slds-input__icon-group slds-input__icon-group_right">
               <Spinner className="slds-spinner slds-spinner_brand slds-spinner_x-small slds-input__spinner" hasContainer={false} />
