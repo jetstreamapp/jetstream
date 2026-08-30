@@ -166,7 +166,8 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
           <div className={classNames('slds-combobox_container', { 'slds-has-icon-only': !!iconOnly })}>
             <div
               className={classNames('slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click', { 'slds-is-open': isOpen })}
-              aria-controls={comboboxId}
+              // Only catches clicks bubbling from the trigger/icon area; the keyboard path is the trigger
+              role="presentation"
               onClick={() => setIsOpen(true)}
             >
               <div
@@ -238,6 +239,7 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
                   id={id}
                   className={`slds-dropdown slds-dropdown_length-7 slds-dropdown_x-small slds-dropdown_${variant === 'end' ? 'right' : 'left'}`}
                   role="listbox"
+                  aria-labelledby={`${inputId}-label`}
                 >
                   <ul className="slds-listbox slds-listbox_vertical" role="group" ref={ulContainerEl}>
                     {headingLabel && (
@@ -258,7 +260,11 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
                         key={item.id}
                         ref={elRefs.current[i]}
                         tabIndex={-1}
-                        role="presentation"
+                        // The li receives focus during arrow-key navigation, so it carries the option
+                        // semantics (same fix as ComboboxListItem/PicklistItem) — with role="presentation"
+                        // here, screen readers announced nothing while arrowing
+                        role="option"
+                        aria-selected={item.id === selectedItem.id}
                         className="slds-listbox__item slds-item"
                         onKeyDown={handleKeyDown}
                         onClick={(event) => {
@@ -271,8 +277,6 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
                           className={classNames('slds-media slds-listbox__option slds-listbox__option_plain slds-media_small', {
                             'slds-is-selected': item.id === selectedItem.id,
                           })}
-                          aria-selected={item.id === selectedItem.id}
-                          role="option"
                         >
                           <span className="slds-media__figure slds-listbox__option-icon">
                             {item.icon && (
