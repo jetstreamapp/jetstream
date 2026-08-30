@@ -85,6 +85,15 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
       [],
     );
 
+    // Reset the filter on close: without this, reopening the dropdown briefly showed the previous
+    // search's subset and then jumped when the full list replaced it
+    const handleClose = useCallback(() => {
+      setFilterText('');
+      comboboxRef.current?.clearInputText();
+      onClose && onClose();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [onClose]);
+
     const onInputEnter = useCallback(() => {
       if (visibleItems.length > 0) {
         onSelected(visibleItems[0]);
@@ -199,7 +208,7 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
         onKeyboardNavigation={handleKeyboardNavigation}
         onInputChange={setFilterText}
         onInputEnter={onInputEnter}
-        onClose={onClose}
+        onClose={handleClose}
       >
         {heading && <ComboboxListItemHeading label={heading.label} actionLabel={heading.actionLabel} onActionClick={handleHeadingClick} />}
         {visibleItems.map((item, i) =>

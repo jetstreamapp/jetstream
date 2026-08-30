@@ -341,7 +341,9 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
     }
 
     const handleBlur = (event: FocusEvent) => {
-      if (entireContainerEl.current?.contains(event.relatedTarget as Node)) {
+      // With usePortal the option list (which receives real focus during arrow navigation) is NOT
+      // inside the container — without the popover check, the first arrow press closed the menu
+      if (entireContainerEl.current?.contains(event.relatedTarget as Node) || popoverRef.current?.contains(event.relatedTarget as Node)) {
         return;
       }
       setIsOpen(false);
