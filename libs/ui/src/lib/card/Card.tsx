@@ -9,6 +9,8 @@ import Icon from '../widgets/Icon';
 
 export interface CardProps {
   testId?: string;
+  /** Accessible name for the card region — announced when focus enters, giving repeated per-card actions context */
+  ariaLabel?: string;
   className?: string;
   bodyClassName?: Maybe<string>;
   title?: string | ReactNode;
@@ -24,10 +26,18 @@ export interface CardProps {
  * (e.x. ExpressionConditionRow)
  */
 export const Card = forwardRef<HTMLElement, CardProps>(
-  ({ testId, className, bodyClassName = 'slds-card__body_inner', title, icon, actions, footer, nestedBorder, children }, ref) => {
+  (
+    { testId, ariaLabel, className, bodyClassName = 'slds-card__body_inner', title, icon, actions, footer, nestedBorder, children },
+    ref,
+  ) => {
     const titleContent = isString(title) ? <span className="slds-truncate">{title}</span> : title;
     return (
-      <article data-testid={testId} className={classNames('slds-card', { 'slds-card_boundary': nestedBorder }, className)} ref={ref}>
+      <article
+        data-testid={testId}
+        aria-label={ariaLabel}
+        className={classNames('slds-card', { 'slds-card_boundary': nestedBorder }, className)}
+        ref={ref}
+      >
         {title && (
           <div className="slds-card__header slds-grid">
             <header
