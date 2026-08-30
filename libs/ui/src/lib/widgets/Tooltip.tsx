@@ -38,6 +38,8 @@ export interface TooltipProps {
    * (e.g. a bare info icon) — without focus, keyboard users can never reveal the tooltip (WCAG 1.4.13).
    */
   triggerTabIndex?: number;
+  /** Extra attributes for the trigger wrapper (e.g. data-grid-inner-focus so grid navigation focuses it) */
+  triggerProps?: React.HTMLAttributes<HTMLElement> & { [dataAttribute: `data-${string}`]: string | boolean | undefined };
   children?: React.ReactNode;
 }
 
@@ -49,6 +51,7 @@ const TooltipComponent: FunctionComponent<TooltipProps> = ({
   ariaRole = 'tooltip',
   onClick,
   triggerTabIndex,
+  triggerProps,
   children,
 }) => {
   const { portalRoot } = usePortalContext();
@@ -192,21 +195,25 @@ const TooltipComponent: FunctionComponent<TooltipProps> = ({
         className={className}
         style={{ display: 'inline-block' }}
         {...getReferenceProps({
-          onClick,
-          tabIndex: triggerTabIndex,
-          // A focusable trigger with a click action is a de-facto button: expose the role and
-          // support keyboard activation, since a span provides neither natively
-          role: onClick && triggerTabIndex !== undefined ? 'button' : undefined,
-          onKeyDown:
-            onClick && triggerTabIndex !== undefined
-              ? (event: React.KeyboardEvent<HTMLElement>) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    onClick(event as unknown as MouseEvent<HTMLElement>);
-                  }
+          ...triggerProps,
+          // Entries are conditional so an absent prop can't clobber a same-named handler or
+          // attribute supplied via triggerProps with `undefined`
+          ...(onClick && { onClick }),
+          ...(triggerTabIndex !== undefined && { tabIndex: triggerTabIndex }),
+          ...(onClick &&
+            triggerTabIndex !== undefined && {
+              // A focusable trigger with a click action is a de-facto button: expose the role and
+              // support keyboard activation, since a span provides neither natively
+              role: 'button',
+              onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  // Dispatch a real click so onClick receives a genuine MouseEvent
+                  event.currentTarget.click();
                 }
-              : undefined,
+              },
+            }),
         })}
       >
         {children}
