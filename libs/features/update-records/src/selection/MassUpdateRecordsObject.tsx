@@ -64,11 +64,23 @@ export const MassUpdateRecordsObject: FunctionComponent<MassUpdateRecordsObjectP
               <Tooltip
                 content={
                   row.isValid
-                    ? 'Configure this object before you can validate the number of impacted records.'
-                    : 'Check the number of records that will be updated'
+                    ? 'Check the number of records that will be updated'
+                    : 'Configure this object before you can validate the number of impacted records.'
                 }
               >
-                <button className="slds-button slds-button_neutral" disabled={!row.isValid} onClick={() => validateRowRecords(row.sobject)}>
+                {/* aria-disabled (not disabled) keeps the button focusable so keyboard users can reach
+                    the tooltip explaining why validation is unavailable; the aria-label scopes the
+                    accessible name per object since every card renders this same button */}
+                <button
+                  className="slds-button slds-button_neutral"
+                  aria-disabled={!row.isValid}
+                  aria-label={`Validate Results for ${row.sobject}`}
+                  onClick={() => {
+                    if (row.isValid) {
+                      validateRowRecords(row.sobject);
+                    }
+                  }}
+                >
                   Validate Results
                 </button>
               </Tooltip>
