@@ -12,6 +12,7 @@ import {
 } from '@jetstream/shared/ui-utils';
 import { DataHistoryItem } from '@jetstream/types';
 import {
+  AssistiveStatus,
   AutoFullHeightContainer,
   ConfirmationModalPromise,
   EmptyState,
@@ -231,11 +232,19 @@ export const DataHistory: FunctionComponent = () => {
     }
   }
 
+  // The grid activates the pin toggle while focus stays on the cell (single-control cells are
+  // clicked in place), so the state change must be announced through a live region
+  const [pinStatusMessage, setPinStatusMessage] = useState('');
+
   const handleTogglePin = useCallback(async (item: DataHistoryItem) => {
     try {
       await setDataHistoryPinned(item.key, !item.pinned);
+      // Clear-then-set so toggling the same entry repeatedly still announces each change
+      setPinStatusMessage('');
+      window.setTimeout(() => setPinStatusMessage(!item.pinned ? 'Entry pinned' : 'Entry unpinned'), 100);
     } catch (ex) {
       logger.warn('[DATA_HISTORY] Error pinning entry', ex);
+      fireToast({ type: 'error', message: 'There was a problem updating the pinned state.' });
     }
   }, []);
 
@@ -266,6 +275,7 @@ export const DataHistory: FunctionComponent = () => {
 
   return (
     <Page testId="data-history-page">
+      <AssistiveStatus message={pinStatusMessage} />
       <PageHeader>
         <PageHeaderRow>
           <PageHeaderTitle
@@ -301,7 +311,12 @@ export const DataHistory: FunctionComponent = () => {
             {/* Canvas has no settings surface; the extension's settings live on a separate html page outside the SPA router */}
             {!isCanvasApp() &&
               (isBrowserExtension() ? (
-                <a className="slds-button slds-button_neutral" href="/additional-settings.html" target="_blank" rel="noreferrer">
+                <a
+                  className="slds-button slds-button_neutral"
+                  href="/additional-settings.html#data-history"
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   <Icon type="utility" icon="settings" className="slds-button__icon slds-button__icon_left" omitContainer />
                   Data History Settings
                 </a>
@@ -311,7 +326,7 @@ export const DataHistory: FunctionComponent = () => {
                   Data History Settings
                 </button>
               ) : (
-                <Link className="slds-button slds-button_neutral" to={APP_ROUTES.SETTINGS.ROUTE}>
+                <Link className="slds-button slds-button_neutral" to={`${APP_ROUTES.SETTINGS.ROUTE}#data-history`}>
                   <Icon type="utility" icon="settings" className="slds-button__icon slds-button__icon_left" omitContainer />
                   Data History Settings
                 </Link>
