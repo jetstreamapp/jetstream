@@ -8,6 +8,7 @@ import { FieldWithRelatedEntities, LocalOrGoogle, Maybe, Step } from '@jetstream
 import {
   AutoFullHeightContainer,
   fireToast,
+  getAriaKeyshortcuts,
   getModifierKey,
   Grid,
   Icon,
@@ -463,8 +464,11 @@ export const LoadRecords = () => {
               <button
                 data-testid="prev-step-button"
                 className="slds-button slds-button_neutral"
-                disabled={currentStepIdx === 0 || loading}
-                onClick={() => handleGoBackToPrev()}
+                aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'shift', 'enter'])}
+                // aria-disabled (not disabled) so the button keeps focus when clicking it disables it
+                // (reaching the first step) — a natively disabled element drops focus to <body>.
+                aria-disabled={currentStepIdx === 0 || loading ? true : undefined}
+                onClick={() => currentStepIdx !== 0 && !loading && handleGoBackToPrev()}
               >
                 <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" />
                 Go Back To Previous Step
@@ -481,8 +485,11 @@ export const LoadRecords = () => {
               <button
                 data-testid="next-step-button"
                 className="slds-button slds-button_brand slds-is-relative"
-                disabled={nextStepDisabled || loading}
-                onClick={() => changeStep(1)}
+                aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
+                // aria-disabled (not disabled) so the button keeps focus when clicking it disables it
+                // (advancing to the final step) — a natively disabled element drops focus to <body>.
+                aria-disabled={nextStepDisabled || loading ? true : undefined}
+                onClick={() => !nextStepDisabled && !loading && changeStep(1)}
               >
                 {currentStepText}
                 <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
