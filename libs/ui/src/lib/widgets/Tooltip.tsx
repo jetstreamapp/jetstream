@@ -33,6 +33,11 @@ export interface TooltipProps {
    */
   ariaRole?: 'tooltip' | 'label';
   onClick?: (event: MouseEvent<HTMLElement>) => void;
+  /**
+   * Makes the trigger wrapper itself focusable. Needed when children contain no focusable element
+   * (e.g. a bare info icon) — without focus, keyboard users can never reveal the tooltip (WCAG 1.4.13).
+   */
+  triggerTabIndex?: number;
   children?: React.ReactNode;
 }
 
@@ -43,6 +48,7 @@ const TooltipComponent: FunctionComponent<TooltipProps> = ({
   closeDelay,
   ariaRole = 'tooltip',
   onClick,
+  triggerTabIndex,
   children,
 }) => {
   const { portalRoot } = usePortalContext();
@@ -181,7 +187,28 @@ const TooltipComponent: FunctionComponent<TooltipProps> = ({
 
   return (
     <>
-      <span ref={refs.setReference} className={className} onClick={onClick} style={{ display: 'inline-block' }} {...getReferenceProps()}>
+      <span
+        ref={refs.setReference}
+        className={className}
+        style={{ display: 'inline-block' }}
+        {...getReferenceProps({
+          onClick,
+          tabIndex: triggerTabIndex,
+          // A focusable trigger with a click action is a de-facto button: expose the role and
+          // support keyboard activation, since a span provides neither natively
+          role: onClick && triggerTabIndex !== undefined ? 'button' : undefined,
+          onKeyDown:
+            onClick && triggerTabIndex !== undefined
+              ? (event: React.KeyboardEvent<HTMLElement>) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onClick(event as unknown as MouseEvent<HTMLElement>);
+                  }
+                }
+              : undefined,
+        })}
+      >
         {children}
       </span>
       {tooltipContent && <FloatingPortal root={portalRoot}>{tooltipContent}</FloatingPortal>}
