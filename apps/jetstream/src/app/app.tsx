@@ -4,7 +4,9 @@ import {
   AppLoading,
   DownloadFileStream,
   ErrorBoundaryFallback,
+  FocusMainContentOnRouteChange,
   HeaderNavbar,
+  MAIN_CONTENT_ID,
   NotificationsRequestModal,
   ThemeApplier,
   ViewEditCloneRecordWrapper,
@@ -37,14 +39,16 @@ export const App = () => {
             <NotificationsRequestModal loadDelay={10000} />
             <DownloadFileStream />
             <ViewEditCloneRecordWrapper />
+            <FocusMainContentOnRouteChange />
             <div>
               <SkipToContent />
               <div data-testid="header">
                 <HeaderNavbar isBillingEnabled={environment.BILLING_ENABLED} />
               </div>
-              <div
-                id="main-content"
+              <main
+                id={MAIN_CONTENT_ID}
                 tabIndex={-1}
+                style={{ outline: 'none' }}
                 className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small"
                 data-testid="content"
               >
@@ -54,7 +58,7 @@ export const App = () => {
                     <AppRoutes />
                   </ErrorBoundary>
                 </Suspense>
-              </div>
+              </main>
             </div>
           </AppInitializer>
         </Suspense>
