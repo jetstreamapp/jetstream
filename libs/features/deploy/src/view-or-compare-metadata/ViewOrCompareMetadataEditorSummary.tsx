@@ -37,9 +37,21 @@ const Content = ({
         <strong>Last Modified</strong> By {item.lastModifiedByName || 'unknown'} on {new Date(item.lastModifiedDate).toLocaleString()}
       </div>
       <div className={classNames({ 'slds-text-align_right': align === 'right' })}>
-        {align === 'right' && <CopyToClipboard type="icon" content={item.content || ''} />}
+        {align === 'right' && (
+          <CopyToClipboard
+            type="icon"
+            content={item.content || ''}
+            icon={{ type: 'utility', icon: 'copy', description: `Copy ${org.label} metadata to clipboard` }}
+          />
+        )}
         {org.label}
-        {align === 'left' && <CopyToClipboard type="icon" content={item.content || ''} />}
+        {align === 'left' && (
+          <CopyToClipboard
+            type="icon"
+            content={item.content || ''}
+            icon={{ type: 'utility', icon: 'copy', description: `Copy ${org.label} metadata to clipboard` }}
+          />
+        )}
       </div>
     </div>
   );
