@@ -1,6 +1,6 @@
-import React, { FunctionComponent, ReactNode } from 'react';
-import Icon from './Icon';
 import classNames from 'classnames';
+import { FunctionComponent, ReactNode } from 'react';
+import Icon from './Icon';
 
 export interface PillProps {
   className?: string;
@@ -16,8 +16,18 @@ export const Pill: FunctionComponent<PillProps> = ({ title, className, onRemove,
         {children}
       </span>
       {onRemove && (
-        <button className="slds-button slds-button_icon slds-button_icon slds-pill__remove" title="Remove" onClick={onRemove}>
-          <Icon type="utility" icon="close" className="slds-button__icon" description="Remove" omitContainer />
+        <button
+          className="slds-button slds-button_icon slds-button_icon slds-pill__remove"
+          title={title ? `Remove: ${title}` : 'Remove'}
+          onClick={onRemove}
+        >
+          <Icon
+            type="utility"
+            icon="close"
+            className="slds-button__icon"
+            description={title ? `Remove: ${title}` : 'Remove'}
+            omitContainer
+          />
         </button>
       )}
     </span>
