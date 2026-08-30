@@ -52,7 +52,8 @@ export function BooleanRenderer({ column, row }: DataTableCellProps<any>): React
       className="slds-align_absolute-center"
       id={`${column.key}-${getRowId(row)}`}
       checked={value}
-      label="value"
+      // Named after the column so screen readers hear e.g. "Read, checkbox, ticked" instead of "value"
+      label={typeof column.name === 'string' && column.name.trim() ? column.name : 'value'}
       hideLabel
       readOnly
     />
