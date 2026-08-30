@@ -37,9 +37,21 @@ const Content = ({
         <strong>Last Modified</strong> By {item.lastModifiedByName || 'unknown'} on {new Date(item.lastModifiedDate).toLocaleString()}
       </div>
       <div className={classNames({ 'slds-text-align_right': align === 'right' })}>
-        {align === 'right' && <CopyToClipboard type="icon" content={item.content || ''} />}
+        {align === 'right' && (
+          <CopyToClipboard
+            type="icon"
+            content={item.content || ''}
+            icon={{ type: 'utility', icon: 'copy', description: `Copy ${org.label} metadata to clipboard` }}
+          />
+        )}
         {org.label}
-        {align === 'left' && <CopyToClipboard type="icon" content={item.content || ''} />}
+        {align === 'left' && (
+          <CopyToClipboard
+            type="icon"
+            content={item.content || ''}
+            icon={{ type: 'utility', icon: 'copy', description: `Copy ${org.label} metadata to clipboard` }}
+          />
+        )}
       </div>
     </div>
   );
@@ -84,7 +96,13 @@ export const ViewOrCompareMetadataEditorSummary: FunctionComponent<ViewOrCompare
             content="Swap source and target view. Sometimes it is easier to see the old state on the left and the changed state on the right when comparing a lower environment to a higher environment."
           >
             <button className="slds-button slds-button_icon" onClick={onSwap}>
-              <Icon type="utility" icon="rotate" className="slds-button__icon slds-button__icon_large" omitContainer />
+              <Icon
+                type="utility"
+                icon="rotate"
+                className="slds-button__icon slds-button__icon_large"
+                omitContainer
+                description="Swap source and target view"
+              />
             </button>
           </Tooltip>
         </div>
