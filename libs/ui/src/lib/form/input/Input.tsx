@@ -69,6 +69,18 @@ export const Input: FunctionComponent<InputProps> = ({
     iconLeftType = 'utility';
   }
 
+  // Scope the name per field — a form can render many clear buttons and "Clear" alone is ambiguous
+  const clearButtonLabel = label ? `Clear ${label}` : 'Clear';
+
+  function handleClear(event: MouseEvent<HTMLButtonElement>) {
+    // Focus the input BEFORE the callback: clearing usually empties the value, which unmounts this
+    // button (clearButton is typically `!!value`) and would drop focus on <body>
+    if (id) {
+      document.getElementById(id)?.focus();
+    }
+    onClear?.(event);
+  }
+
   return (
     <div className={classNames('slds-form-element', className, { 'slds-has-error': hasError })}>
       {label && (
@@ -133,7 +145,12 @@ export const Input: FunctionComponent<InputProps> = ({
             <div className="slds-input__icon-group slds-input__icon-group_right">
               <Spinner className="slds-spinner slds-spinner_brand slds-spinner_x-small slds-input__spinner" hasContainer={false} />
               {clearButton && (
-                <button className="slds-button slds-button_icon slds-input__icon slds-input__icon_right" title="Clear" onClick={onClear}>
+                <button
+                  className="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
+                  title={clearButtonLabel}
+                  aria-label={clearButtonLabel}
+                  onClick={handleClear}
+                >
                   {/* No slds-icon-text-light: it resolves to #444 in dark mode (invisible on dark inputs);
                       inheriting the icon-button accent color stays visible in both schemes */}
                   <Icon type="utility" icon="clear" omitContainer className="slds-button__icon" />
@@ -143,7 +160,12 @@ export const Input: FunctionComponent<InputProps> = ({
           )}
           {rightAddon && <span className="slds-form-element__addon">{rightAddon}</span>}
           {!rightAddon && clearButton && !loading && (
-            <button className="slds-button slds-button_icon slds-input__icon slds-input__icon_right" title="Clear" onClick={onClear}>
+            <button
+              className="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
+              title={clearButtonLabel}
+              aria-label={clearButtonLabel}
+              onClick={handleClear}
+            >
               <Icon type="utility" icon="clear" omitContainer className="slds-button__icon" />
             </button>
           )}
