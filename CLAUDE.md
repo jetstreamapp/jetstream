@@ -54,6 +54,14 @@ This project does NOT use `@salesforce/design-system-react`, all components were
 
 Prefer using Salesforce lightning design system CSS classes when applicable, but can use `import { css } from '@emotion/react'` where needed.
 
+## Accessibility
+
+The product targets WCAG 2.1 AA — program docs, findings log, and the conformance report live in `docs/accessibility/`.
+
+- New or changed interactive UI must be keyboard operable with correct ARIA (names, roles, states) and managed focus. Reference implementations: `libs/ui/src/lib/modal/Modal.tsx`, `popover/Popover.tsx`, `form/dropdown/DropDown.tsx`, and the grid under `data-table/grid/`.
+- Add an `axeScan()` assertion (from `@jetstream/test-utils`) to specs for interactive `libs/ui` components — see `libs/ui/src/lib/modal/__tests__/Modal.spec.tsx`.
+- E2E axe scans in `apps/jetstream-e2e/src/tests/a11y/` gate against `a11y-baseline.json` (ratchet: it only shrinks). The `jsx-a11y` lint rules in `.oxlintrc.json` follow the same ratchet — never demote one from `error`, and don't add new violations to the `warn`-tier rules.
+
 ## Testing Approach
 
 - Unit tests with Vitest (co-located with source files, but in a `__tests__` folder example: `__tests__/*.spec.ts`)
