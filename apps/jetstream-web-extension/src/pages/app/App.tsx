@@ -24,12 +24,11 @@ import { SkipToContent, UserFeedbackWidget } from '@jetstream/ui';
 import {
   AppHome,
   AppLoading,
+  AppMainContent,
   ErrorBoundaryEmptyFallback,
   ErrorBoundaryFallback,
   Feedback,
-  FocusMainContentOnRouteChange,
   HeaderNavbar,
-  MAIN_CONTENT_ID,
 } from '@jetstream/ui-core';
 import { Suspense, useEffect } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
@@ -77,16 +76,9 @@ export function App() {
 
   return (
     <div>
-      <FocusMainContentOnRouteChange />
       <SkipToContent />
       <HeaderNavbar isBillingEnabled={false} isEmbeddedApp colorScheme={colorScheme} onColorSchemeChange={setColorScheme} />
-      <main
-        id={MAIN_CONTENT_ID}
-        tabIndex={-1}
-        style={{ outline: 'none' }}
-        className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small"
-        data-testid="content"
-      >
+      <AppMainContent>
         <Suspense fallback={<AppLoading />}>
           <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
             <Routes>
@@ -149,7 +141,7 @@ export function App() {
             </Routes>
           </ErrorBoundary>
         </Suspense>
-      </main>
+      </AppMainContent>
       {/* Rendered after the content so the floating button is the LAST tab stop on the page, not the first. */}
       <ErrorBoundary FallbackComponent={ErrorBoundaryEmptyFallback}>
         <UserFeedbackWidget />
