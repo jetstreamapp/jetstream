@@ -20,6 +20,14 @@ import { useRangeDragAutoScroll } from './useRangeDragAutoScroll';
 export type GridMode = 'navigation' | 'actionable';
 
 /**
+ * Portaled overlays that can hold focus on behalf of the grid — popovers, modals, dropdown menus,
+ * dialogs. Shared by every "is focus inside an overlay?" check (keyboard navigation, GridBody's
+ * refocus guard, GridContainer's blur guard) so the list cannot drift between copies again — a
+ * missing `.slds-dropdown` in one copy was a real bug.
+ */
+export const GRID_OVERLAY_SELECTOR = '.slds-popover, .slds-modal, .slds-dropdown, [role="dialog"]';
+
+/**
  * What drove the most recent active-cell change. Consumers use it to decide whether to move DOM focus
  * and whether to scroll the cell into view:
  *  - `mouse` — a click/hover already placed focus; don't steal it back.
@@ -487,16 +495,15 @@ export function useGridKeyboardNavigation<TRow extends object>({
   useEffect(() => {
     // Returns overlays (portaled popovers/modals/dropdown menus) that are NOT an ancestor of this grid —
     // i.e. an overlay opened FROM the grid, excluding a modal that merely hosts the grid.
-    const OVERLAY_SELECTOR = '.slds-popover, .slds-modal, .slds-dropdown, [role="dialog"]';
     const hasForeignOverlayOpen = () => {
       const root = getRootElement();
-      return Array.from(document.querySelectorAll(OVERLAY_SELECTOR)).some((overlay) => !root || !overlay.contains(root));
+      return Array.from(document.querySelectorAll(GRID_OVERLAY_SELECTOR)).some((overlay) => !root || !overlay.contains(root));
     };
 
     // When focus moves into such an overlay, remember the active cell so we can restore it on close.
     const handleFocusIn = (event: FocusEvent) => {
       const target = event.target as HTMLElement | null;
-      const overlay = target?.closest?.(OVERLAY_SELECTOR);
+      const overlay = target?.closest?.(GRID_OVERLAY_SELECTOR);
       const root = getRootElement();
       if (overlay && (!root || !overlay.contains(root)) && activeCellRef.current) {
         pendingReturnFocusCellRef.current = activeCellRef.current;
