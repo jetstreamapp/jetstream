@@ -5,6 +5,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import classNames from 'classnames';
 import { CSSProperties, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ContextMenu } from '../../../form/context-menu/ContextMenu';
+import { FILTER_COUNT_ANNOUNCE_DEBOUNCE_MS } from '../../../widgets/AssistiveStatus';
 import { EditorHost } from '../editors/EditorHost';
 import { computeEdgeScrollVelocity, createEdgeAutoScroller } from '../grid-auto-scroll';
 import { copyGridDataToClipboard, copyGridGroupRowsToClipboard, GridCopyResult } from '../grid-clipboard';
@@ -306,7 +307,7 @@ export function GridContainer<TRow extends object = RowWithKey>({
     // polite live-region churn during typing — announce once after the count settles
     const timeout = window.setTimeout(() => {
       announce(`${filteredRowCount} ${filteredRowCount === 1 ? 'row' : 'rows'}`);
-    }, 600);
+    }, FILTER_COUNT_ANNOUNCE_DEBOUNCE_MS);
     return () => window.clearTimeout(timeout);
   }, [filteredRowCount, announce]);
 

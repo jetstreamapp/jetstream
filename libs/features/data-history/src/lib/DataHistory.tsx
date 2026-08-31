@@ -5,7 +5,6 @@ import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { isBrowserExtension, isCanvasApp, setItemInLocalStorage, useTitle } from '@jetstream/shared/ui-utils';
 import { DataHistoryItem } from '@jetstream/types';
 import {
-  AssistiveStatus,
   AutoFullHeightContainer,
   ConfirmationModalPromise,
   EmptyState,
@@ -19,6 +18,7 @@ import {
   PageHeaderTitle,
   ScopedNotification,
   UpgradeToProButton,
+  useAnnouncer,
 } from '@jetstream/ui';
 import {
   openHistoryFolder,
@@ -250,22 +250,20 @@ export const DataHistory: FunctionComponent = () => {
 
   // The grid activates the pin toggle while focus stays on the cell (single-control cells are
   // clicked in place), so the state change must be announced through a live region
-  const [pinStatusMessage, setPinStatusMessage] = useState('');
+  const { announce, announcer } = useAnnouncer();
 
   const handleTogglePin = useCallback(
     async (item: DataHistoryItem) => {
       try {
         await setDataHistoryPinned(item.key, !item.pinned);
         trackEvent(ANALYTICS_KEYS.data_history_pin, { pinned: !item.pinned });
-        // Clear-then-set so toggling the same entry repeatedly still announces each change
-        setPinStatusMessage('');
-        window.setTimeout(() => setPinStatusMessage(!item.pinned ? 'Entry pinned' : 'Entry unpinned'), 100);
+        announce(!item.pinned ? 'Entry pinned' : 'Entry unpinned');
       } catch (ex) {
         logger.warn('[DATA_HISTORY] Error pinning entry', ex);
         fireToast({ type: 'error', message: 'There was a problem updating the pinned state.' });
       }
     },
-    [trackEvent],
+    [announce, trackEvent],
   );
 
   const handleDelete = useCallback(
@@ -299,7 +297,7 @@ export const DataHistory: FunctionComponent = () => {
 
   return (
     <Page testId="data-history-page">
-      <AssistiveStatus message={pinStatusMessage} />
+      {announcer}
       <PageHeader>
         <PageHeaderRow>
           <PageHeaderTitle

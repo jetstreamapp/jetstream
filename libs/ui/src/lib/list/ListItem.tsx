@@ -7,8 +7,6 @@ import { useHighlightedText } from '../hooks/useHighlightedText';
 
 export interface ListItemProps {
   liRef?: RefObject<HTMLLIElement>;
-  /** id of a hidden hint (e.g. "Press Right Arrow for additional actions") for rows with trailing controls */
-  describedById?: string;
   testId?: Maybe<string>;
   heading?: Maybe<string | ReactNode>;
   subheading?: Maybe<string>;
@@ -29,7 +27,6 @@ export interface ListItemProps {
 export const ListItem = memo<ListItemProps>(
   ({
     liRef,
-    describedById,
     testId,
     heading = '',
     subheading,
@@ -59,7 +56,6 @@ export const ListItem = memo<ListItemProps>(
         tabIndex={-1}
         role="option"
         aria-selected={isActive}
-        aria-describedby={describedById}
         data-testid={testId}
         className={classNames('slds-item', { 'is-active': isActive, disabled })}
         onClick={(event) => {
