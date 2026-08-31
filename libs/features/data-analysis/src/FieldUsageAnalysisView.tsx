@@ -94,7 +94,7 @@ const TREE_GROUP_BY = ['objectApiName'] as const;
 
 /** Tall enough for two-line Object/Field cell + padded "Where Used" control (react-data-grid clips overflow). */
 const TREE_ROW_HEIGHT_LEAF_PX = 56;
-/** Single-line truncated object summary (see {@link renderFieldUsageObjectGroupCell}). */
+/** Two truncated small-text lines: object label + API name, counts underneath (see {@link FieldUsageObjectGroupCell}). */
 const TREE_ROW_HEIGHT_GROUP_PX = 48;
 
 /** Same reference every render — new arrays/functions here break TreeDataGrid measurement and can cause an update loop. */
@@ -363,15 +363,13 @@ function FieldUsageObjectGroupCell(
         padding: '0.25rem 0.5rem 0.25rem 0.25rem',
       }}
     >
-      <span
-        className="slds-text-body_small slds-truncate"
+      <div
         css={css`
-          display: block;
           flex: 1;
           min-width: 0;
           text-align: left;
         `}
-        onClick={(event: MouseEvent<HTMLSpanElement>) => {
+        onClick={(event: MouseEvent<HTMLDivElement>) => {
           if (event.shiftKey || event.ctrlKey || event.metaKey) {
             if (!canDeepLink || !org || !serverUrl) {
               return;
@@ -387,17 +385,18 @@ function FieldUsageObjectGroupCell(
           }
         }}
       >
-        <span className="slds-text-bold">{label}</span> <code>{api}</code>
-        <span className="slds-text-color_weak">
-          {' '}
-          · {formatNumber(analyzedFieldCount)} {pluralizeFromNumber('field', analyzedFieldCount)}
+        <div className="slds-text-body_small slds-truncate">
+          <span className="slds-text-bold">{label}</span> <code>{api}</code>
+        </div>
+        <div className="slds-text-body_small slds-text-color_weak slds-truncate">
+          {formatNumber(analyzedFieldCount)} {pluralizeFromNumber('field', analyzedFieldCount)}
           {' · '}
           {formatNumber(rowCount)} rows scanned
           {sample?.objectQueryTruncated ? ' · truncated' : ''}
           {sample?.objectCustomizable ? '' : ' · not customizable'}
-        </span>
-        {sample?.objectError ? <span className="slds-text-color_error"> · {sample.objectError}</span> : null}
-      </span>
+          {sample?.objectError ? <span className="slds-text-color_error"> · {sample.objectError}</span> : null}
+        </div>
+      </div>
     </Popover>
   );
 }
