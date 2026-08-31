@@ -8,6 +8,8 @@ import Tab from './Tab';
 
 export interface TabsRef {
   changeTab: (id: string) => void;
+  /** Move keyboard focus to a tab by id — e.g. when the control the user activated unmounts */
+  focusTab: (id: string) => void;
 }
 
 export interface TabsProps {
@@ -76,6 +78,9 @@ export const Tabs = forwardRef<TabsRef, TabsProps>(
       changeTab: (id: string) => {
         setActiveId(id);
         onChange?.(id);
+      },
+      focusTab: (id: string) => {
+        document.getElementById(`tab-${id}`)?.focus();
       },
     }));
 
