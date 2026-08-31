@@ -18,11 +18,55 @@ import classNames from 'classnames';
 import isNil from 'lodash/isNil';
 import isNumber from 'lodash/isNumber';
 import uniqueId from 'lodash/uniqueId';
-import { ForwardedRef, Fragment, KeyboardEvent, ReactNode, RefObject, createRef, forwardRef, useEffect, useRef, useState } from 'react';
+import {
+  FocusEvent,
+  ForwardedRef,
+  Fragment,
+  KeyboardEvent,
+  ReactNode,
+  RefObject,
+  createRef,
+  forwardRef,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import ListItem from './ListItem';
 import ListItemCheckbox from './ListItemCheckbox';
 
 type RefObjType = RefObject<HTMLLIElement>[] | RefObject<HTMLInputElement>[];
+
+/**
+ * Focus the row a keyboard user should land on when entering a List from outside (e.g. ArrowDown from
+ * the panel's filter input): the active/selected row, else the first row, else the list itself.
+ */
+export function focusListEntryRow(listElement: HTMLUListElement | null) {
+  if (!listElement) {
+    return;
+  }
+  const entryRow =
+    listElement.querySelector<HTMLElement>('[role="option"][aria-selected="true"], input[type="checkbox"]:checked') ??
+    listElement.querySelector<HTMLElement>('[role="option"], input[type="checkbox"]');
+  (entryRow ?? listElement).focus();
+}
+
+function focusListRow(rowRefs: RefObjType, listRef: ForwardedRef<HTMLUListElement>, index: number) {
+  if (!rowRefs[index]) {
+    return;
+  }
+  try {
+    rowRefs[index].current?.focus();
+
+    if (listRef && typeof listRef !== 'function' && listRef.current) {
+      menuItemSelectScroll({
+        container: listRef.current,
+        focusedIndex: index,
+      });
+    }
+  } catch {
+    // silent failure
+  }
+}
 
 export interface ListProps {
   className?: string;
@@ -53,6 +97,24 @@ export interface ListProps {
     children?: ReactNode;
   };
   onSelected: (key: string) => void;
+}
+
+/** The row's own secondary controls (not a nested list's), in DOM order — the stops of row-local ArrowRight */
+function getRowSecondaryControls(rowElement: HTMLElement) {
+  return Array.from(rowElement.querySelectorAll<HTMLElement>('input, button, a[href], select, textarea, [tabindex]')).filter(
+    (element) => !element.hasAttribute('disabled') && element.closest('li') === rowElement,
+  );
+}
+
+/** Controls where ArrowLeft/Right move the caret rather than focus */
+function isTextEntryElement(target: EventTarget | null): boolean {
+  if (target instanceof HTMLTextAreaElement) {
+    return true;
+  }
+  if (target instanceof HTMLInputElement) {
+    return !['checkbox', 'radio', 'button', 'submit', 'reset', 'range', 'file', 'color'].includes(target.type);
+  }
+  return target instanceof HTMLElement && target.isContentEditable;
 }
 
 export const List = forwardRef<HTMLUListElement, ListProps>(
@@ -107,19 +169,8 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
     }, [autoScrollToFocus, items]);
 
     useNonInitialEffect(() => {
-      if (elRefs.current && isNumber(focusedItem) && elRefs.current[focusedItem] && elRefs.current[focusedItem]) {
-        try {
-          elRefs.current?.[focusedItem]?.current?.focus();
-
-          if (ref && typeof ref !== 'function' && ref.current) {
-            menuItemSelectScroll({
-              container: ref.current,
-              focusedIndex: focusedItem,
-            });
-          }
-        } catch {
-          // silent failure
-        }
+      if (isNumber(focusedItem)) {
+        focusListRow(elRefs.current, ref, focusedItem);
       }
     }, [focusedItem]);
 
@@ -132,16 +183,37 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
 
     function handleKeyDown(event: KeyboardEvent<HTMLUListElement>) {
       let newFocusedItem;
-      let currFocusedItem = focusedItem;
+      // React bubbles keys from a row's portaled popover/modal up to this ul even though that content
+      // lives elsewhere in the DOM — those keys belong to the overlay, whatever it contains
+      if (!event.currentTarget.contains(event.target as Node)) {
+        return;
+      }
+      // The ul itself has no row. A List nested inside another list's row (child relationship field
+      // lists) or an accordion section must not resolve the OUTER li as its focused row — that made the
+      // guard below swallow the arrow keys that enter this list from the ul
+      const focusedRow = event.target === event.currentTarget ? null : (event.target as HTMLElement).closest('li');
+      // Keys from content rendered inside a row's React subtree but OUTSIDE this list in the DOM (a
+      // portaled popover/modal) or from a nested list belong to that content, not to this list —
+      // otherwise ArrowDown inside a row's details popover moved focus onto the next row and closed it
+      if (focusedRow && focusedRow.parentElement !== event.currentTarget) {
+        return;
+      }
+      // The current row is whichever one actually has focus: the focusedItem state is reset whenever
+      // `items` changes identity (every toggle/expand/filter re-creates the array), so navigating from
+      // state jumped back to "first selected + 1" instead of continuing from the focused row
+      const domFocusedIndex = focusedRow
+        ? elRefs.current.findIndex((rowRef) => !!rowRef.current && focusedRow.contains(rowRef.current))
+        : -1;
+      const currFocusedItem = domFocusedIndex >= 0 ? domFocusedIndex : focusedItem;
 
-      // see if there is a selected item and start there
+      // Entering the list from the ul itself (no row focused yet): land ON the active row, else at the
+      // end the user is moving toward — not one past the active row
       if (!isNumber(currFocusedItem) && (isArrowUpKey(event) || isArrowDownKey(event))) {
         event.stopPropagation();
         event.preventDefault();
         const activeIndex = items.findIndex((item) => isActive(item));
-        if (activeIndex >= 0) {
-          currFocusedItem = activeIndex;
-        }
+        setFocusedItem(activeIndex >= 0 ? activeIndex : isArrowDownKey(event) ? 0 : items.length - 1);
+        return;
       }
 
       if (isArrowUpKey(event)) {
@@ -169,18 +241,22 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
         event.preventDefault();
         newFocusedItem = items.length - 1;
       } else if (isArrowRightKey(event) || isArrowLeftKey(event)) {
+        // A text-entry control inside a row (the related-object combobox in the field list) owns
+        // ArrowLeft/Right for caret movement — stepping between controls only starts from a non-text stop
+        if (isTextEntryElement(event.target)) {
+          return;
+        }
         // Row-local navigation (both list modes): ArrowRight steps through a row's secondary controls
         // (e.g. a details popover trigger), ArrowLeft steps back toward the row itself. This lets
         // those controls stay out of the page tab order without becoming keyboard-unreachable — in
         // listbox mode the focused option li matches [tabindex], so it is the natural first stop.
-        const rowElement = (event.target as HTMLElement).closest('li');
+        const rowElement = focusedRow;
         if (rowElement) {
-          const descendants = Array.from(
-            rowElement.querySelectorAll<HTMLElement>('input, button, a[href], select, textarea, [tabindex]'),
-          ).filter((el) => !el.hasAttribute('disabled') && el.closest('li') === rowElement);
+          const descendants = getRowSecondaryControls(rowElement);
           // querySelectorAll only returns descendants, so the focusable option li itself must be
-          // prepended explicitly — it is stop zero, the ArrowLeft target from the first control
-          const focusables = rowElement.matches('[tabindex]') ? [rowElement as HTMLElement, ...descendants] : descendants;
+          // prepended explicitly — it is stop zero, the ArrowLeft target from the first control. In
+          // checkbox mode the li is not an option (the checkbox is stop zero), so it is never a target.
+          const focusables = rowElement.matches('[role="option"]') ? [rowElement as HTMLElement, ...descendants] : descendants;
           const currentIndex = focusables.indexOf(event.target as HTMLElement);
           const next = isArrowRightKey(event) ? focusables[currentIndex + 1] : focusables[currentIndex - 1];
           if (next) {
@@ -201,11 +277,31 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
       }
       if (isNumber(newFocusedItem)) {
         event.stopPropagation();
+        // Focus can reach a row without going through focusedItem (focusListEntryRow, a click), so the
+        // state can already hold the target index — setting it again would not re-run the focus effect
+        if (newFocusedItem === focusedItem) {
+          focusListRow(elRefs.current, ref, newFocusedItem);
+        }
         setFocusedItem(newFocusedItem);
       }
     }
 
-    const hasTrailingActions = Array.isArray(items) && items.some((item) => !!getContent(item).trailingHeader);
+    // Discoverability hint, attached as the option takes focus and only when that row really holds a
+    // control ArrowRight can reach — trailing content can be purely decorative (a count badge, a status icon)
+    function handleFocus(event: FocusEvent<HTMLUListElement>) {
+      const { target } = event;
+      if (useCheckbox || !(target instanceof HTMLLIElement) || !target.matches('[role="option"]')) {
+        return;
+      }
+      if (getRowSecondaryControls(target).length > 0) {
+        target.setAttribute('aria-describedby', trailingHintId);
+      } else {
+        target.removeAttribute('aria-describedby');
+      }
+    }
+
+    // getContent builds each row's element tree, so call it once per item per render
+    const itemContents = Array.isArray(items) ? items.map((item) => getContent(item)) : [];
 
     return (
       // eslint-disable-next-line react/jsx-no-useless-fragment
@@ -227,6 +323,7 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
               className={classNames('slds-has-dividers_bottom-space', className)}
               tabIndex={0}
               onKeyDown={handleKeyDown}
+              onFocus={handleFocus}
               css={css`
                 /* Inset outlines: Safari paints no default focus ring on lists/items, and an outline
                  drawn outside the element is clipped left/right by the scrolling container */
@@ -238,7 +335,7 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
               `}
             >
               {items.map((item, i) => {
-                const { key, id, testId, label, heading, subheading, trailingHeader, children } = getContent(item);
+                const { key, id, testId, label, heading, subheading, trailingHeader, children } = itemContents[i];
                 return useCheckbox ? (
                   <ListItemCheckbox
                     inputRef={elRefs.current[i] as RefObject<HTMLInputElement>}
@@ -262,7 +359,6 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
                     key={key}
                     testId={testId}
                     liRef={elRefs.current[i] as RefObject<HTMLLIElement>}
-                    describedById={trailingHeader ? trailingHintId : undefined}
                     isActive={isActive(item)}
                     heading={heading}
                     subheading={subheading}
@@ -279,11 +375,10 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
               })}
             </ul>
           )}
-        {/* Discoverability hint for rows with trailing actions — read after the option's name/state.
-            Only rendered when some row actually has them, so lists without trailing controls don't
-            carry stray assistive text */}
-        {hasTrailingActions && (
-          <span id={trailingHintId} className="slds-assistive-text">
+        {/* Read after the option's name and state via aria-describedby (see handleFocus); `hidden` keeps it
+            out of the reading order, where it would be stray text */}
+        {!useCheckbox && Array.isArray(items) && items.length > 0 && (
+          <span id={trailingHintId} hidden>
             Press Right Arrow for additional actions
           </span>
         )}
