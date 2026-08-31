@@ -1,8 +1,31 @@
-import { useEffect, useRef } from 'react';
+import { MAIN_CONTENT_ID } from '@jetstream/ui';
+import { useEffect } from 'react';
 import { useLocation } from 'react-router';
 
-/** The app shell's main content container — the element focused after route navigation. */
-export const MAIN_CONTENT_ID = 'main-content';
+// Whether the user has interacted with the page yet. `navigator.userActivation` is the browser's own
+// record (Chrome 72+, Safari 16.4+, Firefox 120+); the listeners cover older browsers and are attached
+// lazily from the first mount so this module has no top-level side effects.
+let userInteracted = false;
+let interactionListenersAttached = false;
+function trackUserInteraction() {
+  if (interactionListenersAttached) {
+    return;
+  }
+  interactionListenersAttached = true;
+  const markInteracted = () => {
+    userInteracted = true;
+  };
+  window.addEventListener('pointerdown', markInteracted, { capture: true, once: true });
+  window.addEventListener('keydown', markInteracted, { capture: true, once: true });
+}
+function hasUserInteracted() {
+  const userActivation = (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }).userActivation;
+  return userInteracted || userActivation?.hasBeenActive === true;
+}
+
+// Re-exported so existing `import { MAIN_CONTENT_ID } from '@jetstream/ui-core'` call sites keep
+// working — the constant itself lives in @jetstream/ui next to SkipToContent, which targets it.
+export { MAIN_CONTENT_ID };
 
 /**
  * Moves keyboard focus to the main content container (`#main-content`) after route navigation, so a
@@ -24,18 +47,17 @@ export const MAIN_CONTENT_ID = 'main-content';
  */
 export function FocusMainContentOnRouteChange() {
   const { pathname, hash } = useLocation();
-  const isInitialRender = useRef(true);
+
+  useEffect(() => trackUserInteraction(), []);
 
   useEffect(() => {
-    if (isInitialRender.current) {
-      isInitialRender.current = false;
-      // The plain-pathname focus reset below must not run on app load (it would steal focus for no
-      // navigation), but a #hash deep link on a HARD load is exactly a request to land on that
-      // section — and the browser's native fragment scroll misses targets that mount after async
-      // data loads, which the polling below exists to handle. So only skip when there is no hash.
-      if (!hash) {
-        return;
-      }
+    // Until the user has interacted, every location change is app load or a redirect-on-load (`/app`
+    // → `/home`, the extension's `?url=` navigate) — the plain-pathname focus reset must not run there
+    // (it stole focus from the skip link/header on every cold load). A #hash deep link on a hard load
+    // IS a request to land on that section, and the browser's native fragment scroll misses targets
+    // that mount after async data loads, which the polling below handles — so only the hash proceeds.
+    if (!hash && !hasUserInteracted()) {
+      return;
     }
 
     if (hash) {

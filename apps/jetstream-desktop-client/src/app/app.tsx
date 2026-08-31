@@ -3,11 +3,10 @@ import { Announcement } from '@jetstream/types';
 import { AppToast, ConfirmationServiceProvider, SkipToContent, UserFeedbackWidget } from '@jetstream/ui';
 import {
   AppLoading,
+  AppMainContent,
   ErrorBoundaryEmptyFallback,
   ErrorBoundaryFallback,
-  FocusMainContentOnRouteChange,
   HeaderNavbar,
-  MAIN_CONTENT_ID,
   ThemeApplier,
   ViewEditCloneRecordWrapper,
 } from '@jetstream/ui-core';
@@ -35,6 +34,8 @@ export const App = () => {
           {({ onLogout, authInfo }) => (
             <AppInitializer authInfo={authInfo} onAnnouncements={setAnnouncements}>
               <ThemeApplier />
+              {/* First in DOM order so it is the first tab stop even while a toast or modal is mounted */}
+              <SkipToContent />
               <ModalContainer />
               <AppStateResetOnOrgChange />
               <AppToast />
@@ -42,9 +43,7 @@ export const App = () => {
               <NotificationsRequestModal loadDelay={10000} />
               <DownloadFileStreamDesktop />
               <ViewEditCloneRecordWrapper />
-              <FocusMainContentOnRouteChange />
               <div>
-                <SkipToContent />
                 <div
                   css={css`
                     app-region: drag;
@@ -61,20 +60,14 @@ export const App = () => {
                     onLogoutHandlerFn={onLogout}
                   />
                 </div>
-                <main
-                  id={MAIN_CONTENT_ID}
-                  tabIndex={-1}
-                  style={{ outline: 'none' }}
-                  className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small"
-                  data-testid="content"
-                >
+                <AppMainContent>
                   <AnnouncementAlerts announcements={announcements} />
                   <Suspense fallback={<AppLoading />}>
                     <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
                       <AppRoutes />
                     </ErrorBoundary>
                   </Suspense>
-                </main>
+                </AppMainContent>
               </div>
               {/* Rendered after the content so the floating button is the LAST tab stop on the page, not the first. */}
               <ErrorBoundary FallbackComponent={ErrorBoundaryEmptyFallback}>
