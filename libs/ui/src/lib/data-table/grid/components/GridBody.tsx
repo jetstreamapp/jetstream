@@ -6,7 +6,7 @@ import { CSSProperties, RefObject, useEffect, useMemo, useRef } from 'react';
 import { DEFAULT_ROW_HEIGHT, HEADER_ROW_ID, isSummaryRowId } from '../grid-constants';
 import { selectRowModelInputs } from '../grid-context';
 import { TanstackTable } from '../grid-types';
-import { GridInteractionSource, GridMode } from '../keyboard/useGridKeyboardNavigation';
+import { GRID_OVERLAY_SELECTOR, GridInteractionSource, GridMode } from '../keyboard/useGridKeyboardNavigation';
 import { getRowSelectionSpans } from '../selection/grid-selection';
 import { GridGroupRow } from './GridGroupRow';
 import { ActiveCell, GridRow } from './GridRow';
@@ -196,9 +196,7 @@ export function GridBody<TRow extends object>({
       // dropdown menu): keyboard activation re-applies the active cell, and without this guard the
       // effect's refocus raced the overlay's own focus management and yanked focus back to the cell.
       // An overlay that CONTAINS the grid (a modal hosting it) doesn't count.
-      const overlayWithFocus = (document.activeElement as HTMLElement | null)?.closest?.(
-        '.slds-popover, .slds-modal, .slds-dropdown, [role="dialog"]',
-      );
+      const overlayWithFocus = (document.activeElement as HTMLElement | null)?.closest?.(GRID_OVERLAY_SELECTOR);
       if (overlayWithFocus && (!scrollRef.current || !overlayWithFocus.contains(scrollRef.current))) {
         return;
       }
