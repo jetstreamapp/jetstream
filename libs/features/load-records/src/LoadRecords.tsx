@@ -6,6 +6,7 @@ import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { formatNumber, useGoBackShortcut, usePrimaryActionShortcut, useTitle } from '@jetstream/shared/ui-utils';
 import { FieldWithRelatedEntities, LocalOrGoogle, Maybe, Step } from '@jetstream/types';
 import {
+  ariaDisabledButtonProps,
   AutoFullHeightContainer,
   fireToast,
   getAriaKeyshortcuts,
@@ -466,10 +467,7 @@ export const LoadRecords = () => {
                 data-testid="prev-step-button"
                 className="slds-button slds-button_neutral"
                 aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'shift', 'enter'])}
-                // aria-disabled (not disabled) so the button keeps focus when clicking it disables it
-                // (reaching the first step) — a natively disabled element drops focus to <body>.
-                aria-disabled={currentStepIdx === 0 || loading ? true : undefined}
-                onClick={() => currentStepIdx !== 0 && !loading && handleGoBackToPrev()}
+                {...ariaDisabledButtonProps(currentStepIdx === 0 || loading, () => handleGoBackToPrev())}
               >
                 <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" />
                 Go Back To Previous Step
@@ -487,10 +485,7 @@ export const LoadRecords = () => {
                 data-testid="next-step-button"
                 className="slds-button slds-button_brand slds-is-relative"
                 aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
-                // aria-disabled (not disabled) so the button keeps focus when clicking it disables it
-                // (advancing to the final step) — a natively disabled element drops focus to <body>.
-                aria-disabled={nextStepDisabled || loading ? true : undefined}
-                onClick={() => !nextStepDisabled && !loading && changeStep(1)}
+                {...ariaDisabledButtonProps(nextStepDisabled || loading, () => changeStep(1))}
               >
                 {currentStepText}
                 <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />

@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { SalesforceOrgUi } from '@jetstream/types';
 import type { Column } from '@jetstream/ui';
-import { AssistiveStatus, AutoFullHeightContainer, DataTable, Icon, Modal, Spinner } from '@jetstream/ui';
+import { AssistiveStatus, AutoFullHeightContainer, DataTable, Icon, Modal, Spinner, ariaDisabledButtonProps } from '@jetstream/ui';
 import { ConfirmPageChange, useAmplitude } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { deployMetadata, getAutomationTypeLabel, preparePayloads } from './automation-control-data-utils';
@@ -314,18 +314,10 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
         onClose={() => handleCloseModal()}
         footer={
           <Fragment>
-            {/* aria-disabled (not disabled) keeps the footer buttons focusable while a deploy is in
+            {/* ariaDisabledButtonProps keeps the footer buttons focusable while a deploy is in
                 flight, so focus is not dropped mid-operation */}
             {!didDeploy && (
-              <button
-                className="slds-button slds-button_neutral"
-                aria-disabled={inProgress}
-                onClick={() => {
-                  if (!inProgress) {
-                    onClose();
-                  }
-                }}
-              >
+              <button className="slds-button slds-button_neutral" {...ariaDisabledButtonProps(inProgress, () => onClose())}>
                 Cancel
               </button>
             )}
@@ -333,16 +325,12 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
               <button
                 className="slds-button slds-button_neutral"
                 title="Revert all successfully deployed items"
-                aria-disabled={inProgress}
-                onClick={() => {
-                  if (inProgress) {
-                    return;
-                  }
+                {...ariaDisabledButtonProps(inProgress, () => {
                   handleRollbackMetadata();
                   // This button unmounts when the rollback finishes — hand focus to the primary
                   // button (which becomes "Close") so focus survives the removal
                   primaryButtonRef.current?.focus();
-                }}
+                })}
               >
                 <Icon type="utility" icon="undo" className="slds-button__icon slds-button__icon_left" omitContainer />
                 Rollback
@@ -351,12 +339,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
             <button
               ref={primaryButtonRef}
               className="slds-button slds-button_brand"
-              aria-disabled={inProgress}
-              onClick={() => {
-                if (!inProgress) {
-                  setCurrentStep(currentStep + 1);
-                }
-              }}
+              {...ariaDisabledButtonProps(inProgress, () => setCurrentStep(currentStep + 1))}
             >
               {nextButtonLabel}
             </button>

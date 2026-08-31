@@ -16,6 +16,7 @@ import {
   SalesforceRecord,
 } from '@jetstream/types';
 import {
+  ariaDisabledButtonProps,
   AutoFullHeightContainer,
   ComboboxWithItems,
   ConnectedSobjectList,
@@ -362,17 +363,12 @@ export const CreateRecords = () => {
                 </div>
               }
             >
-              {/* aria-disabled (not disabled) keeps the button focusable so keyboard users can reach
-                  the shortcut tooltip, and preserves focus while a save is in flight */}
+              {/* Stays focusable while disabled so keyboard users can reach the shortcut tooltip,
+                  and focus is preserved while a save is in flight */}
               <button
                 className="slds-button slds-button_brand"
-                aria-disabled={saveDisabled}
                 aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
-                onClick={() => {
-                  if (!saveDisabled) {
-                    handleSave();
-                  }
-                }}
+                {...ariaDisabledButtonProps(saveDisabled, () => handleSave())}
               >
                 Save
               </button>
