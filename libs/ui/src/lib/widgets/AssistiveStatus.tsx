@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react';
 
+/**
+ * Shared `debounceMs` for filter-result count announcements ("Showing X of Y ..."): the count changes
+ * on every keystroke, so announce once after the value settles.
+ */
+export const FILTER_COUNT_ANNOUNCE_DEBOUNCE_MS = 600;
+
 export interface AssistiveStatusProps {
   message: string;
   /**

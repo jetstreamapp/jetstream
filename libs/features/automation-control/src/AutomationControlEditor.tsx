@@ -4,7 +4,6 @@ import { formatNumber, useGoBackShortcut, usePrimaryActionShortcut, useTitle } f
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { FileExtAllTypes, ListMetadataResult, Maybe, MimeType, RetrievePackageFromListMetadataJob } from '@jetstream/types';
 import {
-  AssistiveStatus,
   AutoFullHeightContainer,
   Badge,
   ButtonGroupContainer,
@@ -22,6 +21,7 @@ import {
   Tooltip,
   getAriaKeyshortcuts,
   getModifierKey,
+  useAnnouncer,
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, fromAutomationControlState, fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
@@ -67,8 +67,9 @@ export const AutomationControlEditor = () => {
   const [quickFilterText, setQuickFilterText] = useState<string | null>(null);
 
   const [exportDataModalOpen, setExportDataModalOpen] = useState<boolean>(false);
-  const [toggleAllStatusMessage, setToggleAllStatusMessage] = useState('');
   const [exportDataModalData, setExportDataModalData] = useState<any[]>([]);
+
+  const { announce, announcer } = useAnnouncer();
 
   const [exportMetadataModalOpen, setExportMetadataModalOpen] = useState<boolean>(false);
 
@@ -244,8 +245,7 @@ export const AutomationControlEditor = () => {
   /** Toggling all rows gives sighted users flipped checkboxes + the modified-count badge — announce the same outcome */
   function handleToggleAll(value: boolean) {
     toggleAll(value);
-    setToggleAllStatusMessage('');
-    window.setTimeout(() => setToggleAllStatusMessage(`All visible items marked ${value ? 'active' : 'inactive'}`), 100);
+    announce(`All visible items marked ${value ? 'active' : 'inactive'}`);
   }
 
   return (
@@ -397,7 +397,7 @@ export const AutomationControlEditor = () => {
                 Disable All
               </button>
             </ButtonGroupContainer>
-            <AssistiveStatus message={toggleAllStatusMessage} />
+            {announcer}
             <Badge>
               {formatNumber(dirtyCount)} {pluralizeFromNumber('item', dirtyCount)} modified
             </Badge>
