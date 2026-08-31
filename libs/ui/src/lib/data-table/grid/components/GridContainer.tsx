@@ -36,7 +36,7 @@ import {
   RowWithKey,
   TanstackTable,
 } from '../grid-types';
-import { useGridKeyboardNavigation } from '../keyboard/useGridKeyboardNavigation';
+import { GRID_OVERLAY_SELECTOR, useGridKeyboardNavigation } from '../keyboard/useGridKeyboardNavigation';
 import { useGridTabOrderContainment } from '../keyboard/useGridTabOrderContainment';
 import { getActiveRangeRect, getSelectionBounds, hasMultiCellSelection } from '../selection/grid-selection';
 import { GridBody, RowHeightFn } from './GridBody';
@@ -163,7 +163,8 @@ export function GridContainer<TRow extends object = RowWithKey>({
     }
     // A popover/modal/dropdown menu opened from a cell (via Space/Enter or click) moves focus into its
     // portaled panel; keep the active cell so closing the overlay returns to a live grid coordinate.
-    return relatedTarget instanceof HTMLElement && !!relatedTarget.closest('.jgrid-editor, .slds-popover, .slds-modal, .slds-dropdown');
+    // `.jgrid-editor` (the in-grid popup editor) is specific to this blur guard.
+    return relatedTarget instanceof HTMLElement && !!relatedTarget.closest(`.jgrid-editor, ${GRID_OVERLAY_SELECTOR}`);
   }, []);
 
   // Paste/clear eligibility: `editable` alone (no `renderEditCell` required). Checkbox-style tables
