@@ -22,6 +22,7 @@ import {
   RadioGroup,
   Spinner,
   Tabs,
+  TabsRef,
 } from '@jetstream/ui';
 import {
   ConfirmPageChange,
@@ -114,6 +115,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   const { trackEvent } = useAnalytics();
   const isLoadTypeAllowed = useAllowedLoadTypes().includes(loadType);
   const runIdCounter = useRef(0);
+  const runTabsRef = useRef<TabsRef>(null);
 
   const [apiMode, setApiMode] = useAtom(fromLoadRecordsState.apiModeState);
   const [batchSize, setBatchSize] = useAtom(fromLoadRecordsState.batchSizeState);
@@ -417,9 +419,9 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
       trackEvent(ANALYTICS_KEYS.load_Submitted, runSnapshot);
       document.title = `Loading Records | ${TITLES.BAR_JETSTREAM}`;
       // The retry button the user activated unmounts with the old results view, which would drop
-      // focus to <body> — land on the new run's tab instead (Tab.tsx renders anchors as tab-<id>)
+      // focus to <body> — land on the new run's tab instead, once it has mounted
       window.setTimeout(() => {
-        document.getElementById(`tab-${newRunId}`)?.focus();
+        runTabsRef.current?.focusTab(String(newRunId));
       });
     },
     [activeRun, runs, onIsLoading, trackEvent, apiMode, batchSize, fieldMapping, inputZipFileData, startHistoryForRun],
@@ -729,6 +731,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
         {runTabs.length > 0 && (
           <div style={{ maxWidth: '100%', minWidth: 0 }}>
             <Tabs
+              ref={runTabsRef}
               tabs={runTabs}
               initialActiveId={activeRunId ?? undefined}
               onChange={setActiveRunId}

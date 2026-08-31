@@ -8,6 +8,8 @@ import Tab from './Tab';
 
 export interface TabsRef {
   changeTab: (id: string) => void;
+  /** Move keyboard focus to a tab by id — e.g. when the control the user activated unmounts */
+  focusTab: (id: string) => void;
 }
 
 export interface TabsProps {
@@ -71,11 +73,17 @@ export const Tabs = forwardRef<TabsRef, TabsProps>(
       () => (filterValue ? tabs.filter(multiWordObjectFilter(['titleText', 'title', 'id'], filterValue)) : tabs),
       [tabs, filterValue],
     );
+    // The roving tab stop must be a RENDERED tab: when the vertical filter hides the active tab, fall
+    // back to the first visible one so the tablist stays reachable with Tab
+    const rovingTabId = filteredTabs.some((tab) => tab.id === activeId) ? activeId : filteredTabs[0]?.id;
 
     useImperativeHandle<TabsRef, TabsRef>(ref, () => ({
       changeTab: (id: string) => {
         setActiveId(id);
         onChange?.(id);
+      },
+      focusTab: (id: string) => {
+        document.getElementById(`tab-${id}`)?.focus();
       },
     }));
 
@@ -210,6 +218,7 @@ export const Tabs = forwardRef<TabsRef, TabsProps>(
               isHorizontal={isHorizontal}
               truncateLabels={truncateLabels}
               activeId={activeId}
+              rovingTabId={rovingTabId}
               searchTerm={filterValue}
               highlightText
               handleTabClick={handleTabClick}
