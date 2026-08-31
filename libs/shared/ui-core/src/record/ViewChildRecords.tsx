@@ -101,16 +101,29 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
         key: '_groupByLabel',
         name: '',
         width: 40,
-        frozen: true,
-        renderGroupCell: ({ isExpanded }) => (
-          <Grid align="end" verticalAlign="center" className="h-100">
+        // Rows are grouped by this column, so the per-row value is redundant (the label is shown in the
+        // group header) — without this override the 40px chevron cell renders the truncated label text.
+        renderCell: () => null,
+        // In the group header this cell spans the full row so the chevron + label + count read as one wide
+        // expand/collapse target (same pattern as the deploy metadata table). The clamp in GridGroupRow caps
+        // the span at the remaining columns. Returns undefined for data rows (they keep this 40px cell).
+        colSpan: (args) => (args.type === 'GROUP' ? Number.MAX_SAFE_INTEGER : undefined),
+        renderGroupCell: ({ isExpanded, toggleGroup, groupKey, childRows }) => (
+          <button
+            type="button"
+            className="jgrid-group-toggle slds-button_reset slds-grid slds-grid_vertical-align-center h-100 w-100"
+            onClick={toggleGroup}
+            title="Toggle collapse"
+            tabIndex={-1}
+          >
             <Icon
               icon={isExpanded ? 'chevrondown' : 'chevronright'}
               type="utility"
-              className="slds-icon slds-icon-text-default slds-icon_x-small"
-              title="Toggle collapse"
+              className="slds-icon slds-icon-text-default slds-icon_x-small slds-m-right_xx-small"
             />
-          </Grid>
+            <span className="jgrid-group-toggle-label slds-truncate">{groupKey as string}</span>
+            <span className="slds-m-left_xx-small slds-text-body_small slds-text-color_weak">({childRows.length})</span>
+          </button>
         ),
       },
       {
@@ -133,17 +146,6 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
             </Grid>
           );
         },
-        renderGroupCell: ({ toggleGroup, groupKey }) => (
-          <button
-            css={css`
-              white-space: nowrap;
-            `}
-            className="slds-button"
-            onClick={toggleGroup}
-          >
-            {groupKey as string}
-          </button>
-        ),
       },
       {
         ...setColumnFromType('Name', 'text'),
@@ -323,7 +325,7 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
 
   if (loading) {
     return (
-      <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={155}>
+      <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={300}>
         <Spinner />
       </AutoFullHeightContainer>
     );
@@ -353,7 +355,7 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
           </button>
         </Tooltip>
       </Grid>
-      <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={155}>
+      <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={300}>
         <DataTree
           columns={columns}
           data={rows}
