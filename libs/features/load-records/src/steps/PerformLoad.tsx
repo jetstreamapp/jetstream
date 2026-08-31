@@ -10,7 +10,19 @@ import {
   SalesforceOrgUiType,
   UiTabSection,
 } from '@jetstream/types';
-import { Badge, Checkbox, ConfirmationModalPromise, Grid, Input, Radio, RadioButton, RadioGroup, Spinner, Tabs } from '@jetstream/ui';
+import {
+  ariaDisabledButtonProps,
+  Badge,
+  Checkbox,
+  ConfirmationModalPromise,
+  Grid,
+  Input,
+  Radio,
+  RadioButton,
+  RadioGroup,
+  Spinner,
+  Tabs,
+} from '@jetstream/ui';
 import {
   ConfirmPageChange,
   fromLoadRecordsState,
@@ -475,8 +487,8 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
     handleRetryFailedRecords,
   ]);
 
-  // Shared between each start button's aria-disabled and its onClick guard — aria-disabled is not
-  // browser-enforced, so the click handler must check the same condition.
+  // Disabled conditions for the start buttons, applied via ariaDisabledButtonProps so the
+  // aria-disabled attribute and the click guard can never drift apart
   const startTrialRunDisabled = hasDataInputError() || loadInProgressTrialRun || hasLoadResultsTrialRun || loadInProgress;
   const startLoadDisabled = hasDataInputError() || (trialRun && !hasLoadResultsTrialRun) || loadInProgress;
 
@@ -656,10 +668,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
               <button
                 data-testid="start-load"
                 className="slds-button slds-button_brand"
-                // aria-disabled (not disabled) so the button keeps focus after clicking it disables it —
-                // a natively disabled element drops focus to <body> and Tab restarts from the page top.
-                aria-disabled={startTrialRunDisabled ? true : undefined}
-                onClick={() => !startTrialRunDisabled && handleStartLoad(true)}
+                {...ariaDisabledButtonProps(startTrialRunDisabled, () => handleStartLoad(true))}
               >
                 {loadTypeLabel} <strong className="slds-m-horizontal_xx-small">{numRecordsImpactedTrialRunLabel}</strong>{' '}
                 {pluralizeIfMultiple('Record', inputFileDataTrialRun)} (Dry Run)
@@ -670,10 +679,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
             <button
               data-testid="start-load"
               className="slds-button slds-button_brand"
-              // aria-disabled (not disabled) so the button keeps focus after clicking it disables it —
-              // a natively disabled element drops focus to <body> and Tab restarts from the page top.
-              aria-disabled={startLoadDisabled ? true : undefined}
-              onClick={() => !startLoadDisabled && handleStartLoad()}
+              {...ariaDisabledButtonProps(startLoadDisabled, () => handleStartLoad())}
             >
               {loadTypeLabel} <strong className="slds-m-horizontal_xx-small">{numRecordsImpactedLabel}</strong>{' '}
               {pluralizeIfMultiple('Record', inputFileDataToLoad)}
