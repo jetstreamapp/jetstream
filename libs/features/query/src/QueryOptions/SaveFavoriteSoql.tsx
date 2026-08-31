@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { Maybe, QueryHistoryItem, SalesforceOrgUi } from '@jetstream/types';
-import { Grid, Icon, Input, Popover, PopoverRef, Spinner, Textarea } from '@jetstream/ui';
+import { ariaDisabledButtonProps, Grid, Icon, Input, Popover, PopoverRef, Spinner, Textarea } from '@jetstream/ui';
 import { fromQueryHistoryState, MonacoEditor, useAmplitude } from '@jetstream/ui-core';
 import { queryHistoryDb } from '@jetstream/ui/db';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
@@ -194,11 +194,8 @@ export const SaveFavoriteSoql: FunctionComponent<SaveFavoriteSoqlProps> = ({
               <button
                 form="save-favorite-form"
                 className="slds-button slds-button_brand"
-                // aria-disabled (not disabled): saving flips isDirty and a natively disabled button
-                // would drop the user's focus to <body>; handleSave guards on the same condition
-                aria-disabled={!isDirty ? true : undefined}
-                onClick={() => handleSave()}
                 type="submit"
+                {...ariaDisabledButtonProps(!isDirty, () => handleSave())}
               >
                 {isDirty ? (
                   'Save'

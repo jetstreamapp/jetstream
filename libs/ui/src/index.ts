@@ -38,6 +38,7 @@ export * from './lib/file-download-modal/download-modal-utils';
 export * from './lib/file-download-modal/FileDownloadModal';
 export * from './lib/file-download-modal/FileFauxDownloadModal';
 export * from './lib/file-download-modal/RecordDownloadModal';
+export * from './lib/form/button/aria-disabled-button.utils';
 export * from './lib/form/button/ButtonGroupContainer';
 export * from './lib/form/button/ButtonRowContainer';
 export * from './lib/form/button/ButtonRowItem';
