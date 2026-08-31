@@ -1,8 +1,16 @@
+import { MAIN_CONTENT_ID } from '@jetstream/ui';
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router';
 
-/** The app shell's main content container — the element focused after route navigation. */
-export const MAIN_CONTENT_ID = 'main-content';
+function browserRecordsUserActivation() {
+  // `navigator.userActivation` is the browser's own record (Chrome 72+, Safari 16.4+, Firefox 120+)
+  const userActivation = (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }).userActivation;
+  return userActivation?.hasBeenActive === true;
+}
+
+// Re-exported so existing `import { MAIN_CONTENT_ID } from '@jetstream/ui-core'` call sites keep
+// working — the constant itself lives in @jetstream/ui next to SkipToContent, which targets it.
+export { MAIN_CONTENT_ID };
 
 /**
  * Moves keyboard focus to the main content container (`#main-content`) after route navigation, so a
@@ -24,18 +32,32 @@ export const MAIN_CONTENT_ID = 'main-content';
  */
 export function FocusMainContentOnRouteChange() {
   const { pathname, hash } = useLocation();
-  const isInitialRender = useRef(true);
+  // Whether the user has interacted with the page yet. Instance state rather than module state: this
+  // component is mounted once per app shell, so the two are equivalent at runtime, and a ref resets
+  // with the render tree instead of leaking between tests. The listeners back up the browser's own
+  // `navigator.userActivation` record for older browsers.
+  const userInteractedRef = useRef(false);
 
   useEffect(() => {
-    if (isInitialRender.current) {
-      isInitialRender.current = false;
-      // The plain-pathname focus reset below must not run on app load (it would steal focus for no
-      // navigation), but a #hash deep link on a HARD load is exactly a request to land on that
-      // section — and the browser's native fragment scroll misses targets that mount after async
-      // data loads, which the polling below exists to handle. So only skip when there is no hash.
-      if (!hash) {
-        return;
-      }
+    const markInteracted = () => {
+      userInteractedRef.current = true;
+    };
+    window.addEventListener('pointerdown', markInteracted, { capture: true, once: true });
+    window.addEventListener('keydown', markInteracted, { capture: true, once: true });
+    return () => {
+      window.removeEventListener('pointerdown', markInteracted, { capture: true });
+      window.removeEventListener('keydown', markInteracted, { capture: true });
+    };
+  }, []);
+
+  useEffect(() => {
+    // Until the user has interacted, every location change is app load or a redirect-on-load (`/app`
+    // → `/home`, the extension's `?url=` navigate) — the plain-pathname focus reset must not run there
+    // (it stole focus from the skip link/header on every cold load). A #hash deep link on a hard load
+    // IS a request to land on that section, and the browser's native fragment scroll misses targets
+    // that mount after async data loads, which the polling below handles — so only the hash proceeds.
+    if (!hash && !userInteractedRef.current && !browserRecordsUserActivation()) {
+      return;
     }
 
     if (hash) {
@@ -67,8 +89,18 @@ export function FocusMainContentOnRouteChange() {
       return;
     }
     const activeElement = document.activeElement;
-    if (activeElement instanceof HTMLElement && container.contains(activeElement)) {
-      return;
+    if (activeElement instanceof HTMLElement) {
+      if (container.contains(activeElement)) {
+        return;
+      }
+      // A control still expanded after the navigation belongs to an interaction in progress — the header
+      // org switcher opened while the app was still redirecting on load (`/` → `/home`), a menu the user
+      // is arrowing through. Moving focus would collapse it under them. The control that triggered a
+      // navigation has always collapsed by the time this effect runs, so only the shell's persistent
+      // controls ever match.
+      if (activeElement.closest('[aria-expanded="true"], [role="listbox"], [role="menu"]')) {
+        return;
+      }
     }
     container.focus();
   }, [pathname, hash]);
