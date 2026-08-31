@@ -1,12 +1,12 @@
 import { axeScan } from '@jetstream/test-utils';
 import { fireEvent, render, screen } from '@testing-library/react';
-import SkipToContent from '../SkipToContent';
+import SkipToContent, { MAIN_CONTENT_ID } from '../SkipToContent';
 
 function renderWithTarget() {
   return render(
     <div>
       <SkipToContent />
-      <main id="main-content" tabIndex={-1}>
+      <main id={MAIN_CONTENT_ID} tabIndex={-1}>
         Content
       </main>
     </div>,
@@ -23,7 +23,7 @@ describe('SkipToContent', () => {
     const defaultNotPrevented = fireEvent.click(link);
 
     expect(defaultNotPrevented).toBe(false);
-    expect(document.activeElement?.id).toBe('main-content');
+    expect(document.activeElement?.id).toBe(MAIN_CONTENT_ID);
   });
 
   test('has no axe violations', async () => {

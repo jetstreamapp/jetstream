@@ -1,8 +1,10 @@
+import { MAIN_CONTENT_ID } from '@jetstream/ui';
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router';
 
-/** The app shell's main content container — the element focused after route navigation. */
-export const MAIN_CONTENT_ID = 'main-content';
+// Re-exported so existing `import { MAIN_CONTENT_ID } from '@jetstream/ui-core'` call sites keep
+// working — the constant itself lives in @jetstream/ui next to SkipToContent, which targets it.
+export { MAIN_CONTENT_ID };
 
 /**
  * Moves keyboard focus to the main content container (`#main-content`) after route navigation, so a

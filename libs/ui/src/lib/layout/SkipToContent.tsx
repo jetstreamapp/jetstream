@@ -1,6 +1,12 @@
 import { css } from '@emotion/react';
 import { MouseEvent } from 'react';
 
+/**
+ * The app shell's main content container — the element SkipToContent targets by default and the
+ * element focused after route navigation. Single source of truth for the `#main-content` contract.
+ */
+export const MAIN_CONTENT_ID = 'main-content';
+
 export interface SkipToContentProps {
   /** id of the main content container; the target should have tabIndex={-1} so focus moves reliably */
   targetId?: string;
@@ -14,7 +20,7 @@ export interface SkipToContentProps {
  * `<base href="/app">` makes a bare `#fragment` href resolve against the base URL, so following
  * the link would full-page-navigate to the home page instead of jumping within the current page.
  */
-export const SkipToContent = ({ targetId = 'main-content' }: SkipToContentProps) => {
+export const SkipToContent = ({ targetId = MAIN_CONTENT_ID }: SkipToContentProps) => {
   function handleClick(event: MouseEvent<HTMLAnchorElement>) {
     event.preventDefault();
     const target = document.getElementById(targetId);
