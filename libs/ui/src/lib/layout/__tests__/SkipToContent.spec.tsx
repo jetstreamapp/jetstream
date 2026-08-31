@@ -1,13 +1,13 @@
 import { axeScan } from '@jetstream/test-utils';
 import { fireEvent, render, screen } from '@testing-library/react';
-import SkipToContent from '../SkipToContent';
+import SkipToContent, { MAIN_CONTENT_ID } from '../SkipToContent';
 
 function renderWithTarget() {
   return render(
     <div>
       <SkipToContent />
-      <main id="main-content" tabIndex={-1}>
-        Content
+      <main id={MAIN_CONTENT_ID}>
+        Content <button type="button">Inside</button>
       </main>
     </div>,
   );
@@ -23,7 +23,17 @@ describe('SkipToContent', () => {
     const defaultNotPrevented = fireEvent.click(link);
 
     expect(defaultNotPrevented).toBe(false);
-    expect(document.activeElement?.id).toBe('main-content');
+    expect(document.activeElement?.id).toBe(MAIN_CONTENT_ID);
+  });
+
+  test('leaves the target unfocusable again once focus moves on', () => {
+    renderWithTarget();
+
+    fireEvent.click(screen.getByRole('link', { name: 'Skip to main content' }));
+    screen.getByRole('button', { name: 'Inside' }).focus();
+
+    // A permanent tabindex would make every click on page text focus the container
+    expect(document.getElementById(MAIN_CONTENT_ID)?.hasAttribute('tabindex')).toBe(false);
   });
 
   test('has no axe violations', async () => {

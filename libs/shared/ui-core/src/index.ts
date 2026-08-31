@@ -5,6 +5,7 @@ export * from './app/AnalysisToolsPaywall';
 export * from './app/AppHome/AppHome';
 export * from './app/AppHome/AppHomeBillingUser';
 export * from './app/AppLoading';
+export * from './app/AppMainContent';
 export * from './app/ConfirmPageChange';
 export * from './app/DataHistoryLinks';
 export * from './app/DownloadFileStream';
