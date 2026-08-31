@@ -126,12 +126,33 @@ describe('List row-local navigation (listbox mode)', () => {
     expect(document.activeElement).toBe(option);
   });
 
-  test('the Right Arrow discoverability hint renders only when a row has trailing actions', () => {
+  test('a focused option is described by the Right Arrow hint only when it holds a control', () => {
     const { unmount } = renderList({ withTrailing: false });
-    expect(screen.queryByText('Press Right Arrow for additional actions')).toBeNull();
+    const plainOption = screen.getByRole('option');
+    plainOption.focus();
+    expect(plainOption.hasAttribute('aria-describedby')).toBe(false);
     unmount();
 
     renderList();
-    expect(screen.getByText('Press Right Arrow for additional actions')).toBeTruthy();
+    const option = screen.getByRole('option');
+    option.focus();
+    const hintId = option.getAttribute('aria-describedby');
+    expect(hintId && document.getElementById(hintId)?.textContent).toBe('Press Right Arrow for additional actions');
   });
+
+  test('decorative trailing content does not earn the Right Arrow hint', () => {
+    render(
+      <List
+        ariaLabel="Org groups"
+        items={[{ key: 'group-1' }]}
+        isActive={() => false}
+        getContent={() => ({ key: 'group-1', heading: 'Production', trailingHeader: <span className="slds-badge">3 Orgs</span> })}
+        onSelected={() => undefined}
+      />,
+    );
+    const option = screen.getByRole('option');
+    option.focus();
+    expect(option.hasAttribute('aria-describedby')).toBe(false);
+  });
+
 });
