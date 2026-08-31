@@ -21,3 +21,14 @@
 .slds-notify_toast {
   app-region: no-drag;
 }
+
+/*
+ * The focused skip link shows in the top-left corner, where macOS draws the window controls over the
+ * page (hidden title bar) and the header drag region would turn a click on it into a window drag.
+ */
+.desktop-skip-to-content {
+  app-region: no-drag;
+}
+.desktop-skip-to-content:focus {
+  left: 88px;
+}
