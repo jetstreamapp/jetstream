@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { FieldMappingItemCsv, FieldWithRelatedEntities, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { Checkbox, ComboboxWithItems, Grid, Icon, Tooltip } from '@jetstream/ui';
+import { ariaDisabledButtonProps, Checkbox, ComboboxWithItems, Grid, Icon, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
 import isNil from 'lodash/isNil';
 import { Fragment, FunctionComponent, MouseEvent, useState } from 'react';
@@ -212,15 +212,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
               'slds-button_icon-error': fieldMappingItem.targetField,
             })}
             title="Clear mapping"
-            // aria-disabled (not disabled) so the button keeps focus after its own click disables it —
-            // a natively disabled element drops focus to <body> and Tab restarts from the page top.
-            aria-disabled={!fieldMappingItem.targetField ? true : undefined}
-            onClick={() => {
-              if (!fieldMappingItem.targetField) {
-                return;
-              }
-              handleSelectionChanged(null);
-            }}
+            {...ariaDisabledButtonProps(!fieldMappingItem.targetField, () => handleSelectionChanged(null))}
           >
             <Icon type="utility" icon="clear" className="slds-button__icon" omitContainer />
             <span className="slds-assistive-text">Clear Mapping</span>

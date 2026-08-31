@@ -12,6 +12,7 @@ import {
   PageHeaderRow,
   PageHeaderTitle,
   Tooltip,
+  ariaDisabledButtonProps,
   getAriaKeyshortcuts,
   getModifierKey,
 } from '@jetstream/ui';
@@ -109,12 +110,7 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
             {rows.length > 1 && (
               <button
                 className="slds-button slds-button_neutral"
-                aria-disabled={!allRowsValid}
-                onClick={() => {
-                  if (allRowsValid) {
-                    validateAllRowRecords();
-                  }
-                }}
+                {...ariaDisabledButtonProps(!allRowsValid, () => validateAllRowRecords())}
               >
                 Validate All
               </button>
@@ -136,16 +132,9 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
             >
               <Link
                 className="slds-button slds-button_brand"
-                aria-disabled={!allRowsValidated}
                 aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
                 to="deployment"
-                onClick={(event) => {
-                  if (!allRowsValidated) {
-                    event.preventDefault();
-                    return;
-                  }
-                  handleContinue();
-                }}
+                {...ariaDisabledButtonProps(!allRowsValidated, () => handleContinue())}
               >
                 Review Changes
               </Link>
