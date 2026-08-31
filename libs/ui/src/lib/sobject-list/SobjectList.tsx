@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { DescribeGlobalSObjectResult, Maybe, UpDown } from '@jetstream/types';
 import { ForwardedRef, forwardRef, Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
@@ -8,7 +8,7 @@ import EmptyState from '../illustrations/EmptyState';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import List from '../list/List';
 import Tabs from '../tabs/Tabs';
-import AssistiveStatus from '../widgets/AssistiveStatus';
+import ShowingCountStatus from '../widgets/ShowingCountStatus';
 import Spinner from '../widgets/Spinner';
 
 export interface SobjectListProps {
@@ -105,10 +105,7 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
                 onChange={setSearchTerm}
                 onArrowKeyUpDown={handleSearchKeyboard}
               />
-              <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
-                Showing {formatNumber(filteredSobjects.length)} of {formatNumber(sobjects.length)} objects
-                <AssistiveStatus debounceMs={600} message={`Showing ${filteredSobjects.length} of ${sobjects.length} objects`} />
-              </div>
+              <ShowingCountStatus filteredCount={filteredSobjects.length} totalCount={sobjects.length} noun="objects" />
             </div>
             {recentItemsEnabled ? (
               <Tabs
