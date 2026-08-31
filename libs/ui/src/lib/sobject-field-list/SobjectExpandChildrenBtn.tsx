@@ -95,7 +95,7 @@ export const SobjectExpandChildrenBtn: FunctionComponent<SobjectExpandChildrenBt
             />
           </div>
           {/* Out of the page tab order — reached with ArrowRight from the row checkbox */}
-          <button className="slds-button" tabIndex={-1} onClick={handleExpand}>
+          <button className="slds-button" tabIndex={-1} aria-expanded={isExpanded} onClick={handleExpand}>
             <Icon type="utility" icon={isExpanded ? 'dash' : 'add'} className="slds-button__icon slds-button__icon_left" />
             {isExpanded ? 'Hide' : 'View'} {selectedSObject} Fields
             {selectedChildFields ? (
@@ -107,7 +107,7 @@ export const SobjectExpandChildrenBtn: FunctionComponent<SobjectExpandChildrenBt
         </Fragment>
       )}
       {showWhich === 'single' && (
-        <button className="slds-button" tabIndex={-1} onClick={handleExpand}>
+        <button className="slds-button" tabIndex={-1} aria-expanded={isExpanded} onClick={handleExpand}>
           <Icon type="utility" icon={isExpanded ? 'dash' : 'add'} className="slds-button__icon slds-button__icon_left" />
           {isExpanded ? 'Hide' : 'View'} {selectedSObject} Fields{' '}
           {selectedChildFields ? (

@@ -1,18 +1,18 @@
 import { css } from '@emotion/react';
 import { MIME_TYPES } from '@jetstream/shared/constants';
-import { formatNumber, saveFile, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { isArrowDownKey, isArrowUpKey, saveFile, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { FieldWrapper, QueryFields, SalesforceOrgUi, UpDown } from '@jetstream/types';
 import isString from 'lodash/isString';
-import { Fragment, FunctionComponent, createRef, useEffect, useState } from 'react';
+import { Fragment, FunctionComponent, KeyboardEvent, createRef, useEffect, useState } from 'react';
 import Checkbox from '../form/checkbox/Checkbox';
 import DropDown from '../form/dropdown/DropDown';
 import SearchInput from '../form/search-input/SearchInput';
 import Grid from '../grid/Grid';
 import EmptyState from '../illustrations/EmptyState';
-import List from '../list/List';
-import AssistiveStatus from '../widgets/AssistiveStatus';
+import List, { focusListEntryRow } from '../list/List';
 import Icon from '../widgets/Icon';
 import SalesforceLogin from '../widgets/SalesforceLogin';
+import ShowingCountStatus from '../widgets/ShowingCountStatus';
 import Spinner from '../widgets/Spinner';
 import Tooltip from '../widgets/Tooltip';
 import { DEFAULT_FILTER_TYPES, FilterTypes, SobjectFieldListFilter } from './SobjectFieldListFilter';
@@ -145,9 +145,22 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
     };
   }
 
+  // ArrowDown from the filter lands directly on the active (else first) row — not on the list, which
+  // needed a second press
   function handleSearchKeyboard(_direction: UpDown) {
-    if (ulRef && ulRef.current) {
-      ulRef.current.focus();
+    focusListEntryRow(ulRef.current);
+  }
+
+  // Select All sits between the filter and the list, so it takes part in the same vertical hand-off:
+  // ArrowDown enters the list like the filter does, ArrowUp returns to the filter. A lone checkbox has
+  // no arrow behaviour of its own, so the keys otherwise just scrolled the panel.
+  function handleSelectAllKeyboard(event: KeyboardEvent<HTMLInputElement>) {
+    if (isArrowDownKey(event)) {
+      event.preventDefault();
+      focusListEntryRow(ulRef.current);
+    } else if (isArrowUpKey(event)) {
+      event.preventDefault();
+      document.getElementById(searchInputId)?.focus();
     }
   }
 
@@ -196,10 +209,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
                   onChange={handleSearchChange}
                   onArrowKeyUpDown={handleSearchKeyboard}
                 />
-                <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
-                  Showing {formatNumber(filteredFields.length)} of {formatNumber(fieldLength)} fields
-                  <AssistiveStatus debounceMs={600} message={`Showing ${filteredFields.length} of ${fieldLength} fields`} />
-                </div>
+                <ShowingCountStatus filteredCount={filteredFields.length} totalCount={fieldLength} noun="fields" />
               </div>
               {level === 0 && !!onUnselectAll && (
                 <div className="slds-p-horizontal_xx-small">
@@ -222,6 +232,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
                 checked={filteredFields.length > 0 && selectAll}
                 label={`Select All (${filteredFields.length})`}
                 disabled={filteredFields.length === 0}
+                inputProps={{ onKeyDown: handleSelectAllKeyboard }}
                 onChange={updateSelectAll}
               />
             </div>
