@@ -1,6 +1,5 @@
 import { css } from '@emotion/react';
-import { formatNumber } from '@jetstream/shared/ui-utils';
-import { multiWordObjectFilter, NOOP, orderValues, pluralizeIfMultiple } from '@jetstream/shared/utils';
+import { multiWordObjectFilter, NOOP, orderValues } from '@jetstream/shared/utils';
 import { ListItem as ListItemType, Maybe, UpDown } from '@jetstream/types';
 import uniqueId from 'lodash/uniqueId';
 import { createRef, Fragment, FunctionComponent, ReactNode, useEffect, useState } from 'react';
@@ -10,9 +9,9 @@ import Grid from '../grid/Grid';
 import EmptyState from '../illustrations/EmptyState';
 import { FishIllustration } from '../illustrations/FishIllustration';
 import AutoFullHeightContainer, { AutoFullHeightContainerProps } from '../layout/AutoFullHeightContainer';
-import AssistiveStatus from '../widgets/AssistiveStatus';
 import Icon from '../widgets/Icon';
 import ItemSelectionSummary from '../widgets/ItemSelectionSummary';
+import ShowingCountStatus from '../widgets/ShowingCountStatus';
 import Spinner from '../widgets/Spinner';
 import Tooltip from '../widgets/Tooltip';
 import List from './List';
@@ -180,11 +179,7 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
                 onChange={setSearchTerm}
                 onArrowKeyUpDown={handleSearchKeyboard}
               />
-              <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
-                Showing {formatNumber(filteredItems.length)} of {formatNumber(items.length)}{' '}
-                {pluralizeIfMultiple(labels.descriptorSingular, items)}
-              </div>
-              <AssistiveStatus debounceMs={600} message={`Showing ${filteredItems.length} of ${items.length} ${labels.descriptorPlural}`} />
+              <ShowingCountStatus filteredCount={filteredItems.length} totalCount={items.length} singularNoun={labels.descriptorSingular} />
               {allowSelectAll && (
                 <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
                   <Checkbox

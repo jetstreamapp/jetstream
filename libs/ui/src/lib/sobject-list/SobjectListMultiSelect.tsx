@@ -1,5 +1,4 @@
 import { css } from '@emotion/react';
-import { formatNumber } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter, orderValues } from '@jetstream/shared/utils';
 import { DescribeGlobalSObjectResult, Maybe, UpDown } from '@jetstream/types';
 import { ForwardedRef, forwardRef, Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
@@ -9,8 +8,8 @@ import EmptyState from '../illustrations/EmptyState';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import List from '../list/List';
 import Tabs from '../tabs/Tabs';
-import AssistiveStatus from '../widgets/AssistiveStatus';
 import ItemSelectionSummary from '../widgets/ItemSelectionSummary';
+import ShowingCountStatus from '../widgets/ShowingCountStatus';
 import Spinner from '../widgets/Spinner';
 
 export interface SobjectListMultiSelectProps {
@@ -128,10 +127,7 @@ export const SobjectListMultiSelect: FunctionComponent<SobjectListMultiSelectPro
                 onChange={setSearchTerm}
                 onArrowKeyUpDown={handleSearchKeyboard}
               />
-              <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
-                Showing {formatNumber(filteredSobjects.length)} of {formatNumber(sobjects.length)} objects
-                <AssistiveStatus debounceMs={600} message={`Showing ${filteredSobjects.length} of ${sobjects.length} objects`} />
-              </div>
+              <ShowingCountStatus filteredCount={filteredSobjects.length} totalCount={sobjects.length} noun="objects" />
               {allowSelectAll && (
                 <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
                   <Checkbox

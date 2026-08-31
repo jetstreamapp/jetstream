@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { MIME_TYPES } from '@jetstream/shared/constants';
-import { formatNumber, saveFile, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { saveFile, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { FieldWrapper, QueryFields, SalesforceOrgUi, UpDown } from '@jetstream/types';
 import isString from 'lodash/isString';
 import { Fragment, FunctionComponent, createRef, useEffect, useState } from 'react';
@@ -9,10 +9,10 @@ import DropDown from '../form/dropdown/DropDown';
 import SearchInput from '../form/search-input/SearchInput';
 import Grid from '../grid/Grid';
 import EmptyState from '../illustrations/EmptyState';
-import List from '../list/List';
-import AssistiveStatus from '../widgets/AssistiveStatus';
+import List, { focusListEntryRow } from '../list/List';
 import Icon from '../widgets/Icon';
 import SalesforceLogin from '../widgets/SalesforceLogin';
+import ShowingCountStatus from '../widgets/ShowingCountStatus';
 import Spinner from '../widgets/Spinner';
 import Tooltip from '../widgets/Tooltip';
 import { DEFAULT_FILTER_TYPES, FilterTypes, SobjectFieldListFilter } from './SobjectFieldListFilter';
@@ -145,10 +145,10 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
     };
   }
 
+  // ArrowDown from the filter lands directly on the active (else first) row — not on the list, which
+  // needed a second press
   function handleSearchKeyboard(_direction: UpDown) {
-    if (ulRef && ulRef.current) {
-      ulRef.current.focus();
-    }
+    focusListEntryRow(ulRef.current);
   }
 
   function handleFilterChange(selectedItems: FilterTypes) {
@@ -196,10 +196,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
                   onChange={handleSearchChange}
                   onArrowKeyUpDown={handleSearchKeyboard}
                 />
-                <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
-                  Showing {formatNumber(filteredFields.length)} of {formatNumber(fieldLength)} fields
-                  <AssistiveStatus debounceMs={600} message={`Showing ${filteredFields.length} of ${fieldLength} fields`} />
-                </div>
+                <ShowingCountStatus filteredCount={filteredFields.length} totalCount={fieldLength} noun="fields" />
               </div>
               {level === 0 && !!onUnselectAll && (
                 <div className="slds-p-horizontal_xx-small">

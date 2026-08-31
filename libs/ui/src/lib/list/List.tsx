@@ -24,6 +24,20 @@ import ListItemCheckbox from './ListItemCheckbox';
 
 type RefObjType = RefObject<HTMLLIElement>[] | RefObject<HTMLInputElement>[];
 
+/**
+ * Focus the row a keyboard user should land on when entering a List from outside (e.g. ArrowDown from
+ * the panel's filter input): the active/selected row, else the first row, else the list itself.
+ */
+export function focusListEntryRow(listElement: HTMLUListElement | null) {
+  if (!listElement) {
+    return;
+  }
+  const entryRow =
+    listElement.querySelector<HTMLElement>('[role="option"][aria-selected="true"], input[type="checkbox"]:checked') ??
+    listElement.querySelector<HTMLElement>('[role="option"], input[type="checkbox"]');
+  (entryRow ?? listElement).focus();
+}
+
 export interface ListProps {
   className?: string;
   /**
@@ -132,16 +146,29 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
 
     function handleKeyDown(event: KeyboardEvent<HTMLUListElement>) {
       let newFocusedItem;
-      let currFocusedItem = focusedItem;
+      const focusedRow = (event.target as HTMLElement).closest('li');
+      // Keys from content rendered inside a row's React subtree but OUTSIDE this list in the DOM (a
+      // portaled popover/modal) or from a nested list belong to that content, not to this list —
+      // otherwise ArrowDown inside a row's details popover moved focus onto the next row and closed it
+      if (focusedRow && focusedRow.parentElement !== event.currentTarget) {
+        return;
+      }
+      // The current row is whichever one actually has focus: the focusedItem state is reset whenever
+      // `items` changes identity (every toggle/expand/filter re-creates the array), so navigating from
+      // state jumped back to "first selected + 1" instead of continuing from the focused row
+      const domFocusedIndex = focusedRow
+        ? elRefs.current.findIndex((rowRef) => !!rowRef.current && focusedRow.contains(rowRef.current))
+        : -1;
+      const currFocusedItem = domFocusedIndex >= 0 ? domFocusedIndex : focusedItem;
 
-      // see if there is a selected item and start there
+      // Entering the list from the ul itself (no row focused yet): land ON the active row, else at the
+      // end the user is moving toward — not one past the active row
       if (!isNumber(currFocusedItem) && (isArrowUpKey(event) || isArrowDownKey(event))) {
         event.stopPropagation();
         event.preventDefault();
         const activeIndex = items.findIndex((item) => isActive(item));
-        if (activeIndex >= 0) {
-          currFocusedItem = activeIndex;
-        }
+        setFocusedItem(activeIndex >= 0 ? activeIndex : isArrowDownKey(event) ? 0 : items.length - 1);
+        return;
       }
 
       if (isArrowUpKey(event)) {
@@ -179,8 +206,9 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
             rowElement.querySelectorAll<HTMLElement>('input, button, a[href], select, textarea, [tabindex]'),
           ).filter((el) => !el.hasAttribute('disabled') && el.closest('li') === rowElement);
           // querySelectorAll only returns descendants, so the focusable option li itself must be
-          // prepended explicitly — it is stop zero, the ArrowLeft target from the first control
-          const focusables = rowElement.matches('[tabindex]') ? [rowElement as HTMLElement, ...descendants] : descendants;
+          // prepended explicitly — it is stop zero, the ArrowLeft target from the first control. In
+          // checkbox mode the li is not an option (the checkbox is stop zero), so it is never a target.
+          const focusables = rowElement.matches('[role="option"]') ? [rowElement as HTMLElement, ...descendants] : descendants;
           const currentIndex = focusables.indexOf(event.target as HTMLElement);
           const next = isArrowRightKey(event) ? focusables[currentIndex + 1] : focusables[currentIndex - 1];
           if (next) {
@@ -205,7 +233,10 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
       }
     }
 
-    const hasTrailingActions = Array.isArray(items) && items.some((item) => !!getContent(item).trailingHeader);
+    // getContent builds each row's element tree, so call it once per item per render (not once more
+    // for the trailing-actions check — that doubled the work on 500-field objects on every keystroke)
+    const itemContents = Array.isArray(items) ? items.map((item) => getContent(item)) : [];
+    const hasTrailingActions = itemContents.some((content) => !!content.trailingHeader);
 
     return (
       // eslint-disable-next-line react/jsx-no-useless-fragment
@@ -238,7 +269,7 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
               `}
             >
               {items.map((item, i) => {
-                const { key, id, testId, label, heading, subheading, trailingHeader, children } = getContent(item);
+                const { key, id, testId, label, heading, subheading, trailingHeader, children } = itemContents[i];
                 return useCheckbox ? (
                   <ListItemCheckbox
                     inputRef={elRefs.current[i] as RefObject<HTMLInputElement>}
