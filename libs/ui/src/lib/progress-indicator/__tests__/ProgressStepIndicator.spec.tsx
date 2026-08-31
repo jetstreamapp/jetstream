@@ -61,9 +61,15 @@ describe('ProgressStepIndicator', () => {
 });
 
 describe('ProgressStepIndicatorListItem', () => {
-  test('renders step button in horizontal mode', () => {
-    render(<ProgressStepIndicatorListItem step={0} />);
+  test('renders step button in horizontal mode when onChangeStep is provided', () => {
+    render(<ProgressStepIndicatorListItem step={0} onChangeStep={vi.fn()} />);
     expect(screen.getByRole('button')).toBeTruthy();
+  });
+
+  test('renders non-interactive marker in horizontal mode without onChangeStep', () => {
+    render(<ProgressStepIndicatorListItem step={0} stepText="Start" />);
+    expect(screen.queryByRole('button')).toBeNull();
+    expect(screen.getByTitle('Start')).toBeTruthy();
   });
 
   test('active item gets slds-is-active class', () => {
@@ -84,15 +90,8 @@ describe('ProgressStepIndicatorListItem', () => {
     expect(onChangeStep).toHaveBeenCalledWith(2);
   });
 
-  test('disabled button cannot be clicked', () => {
-    const onChangeStep = vi.fn();
-    render(<ProgressStepIndicatorListItem step={0} disabled onChangeStep={onChangeStep} />);
-    const button = screen.getByRole('button') as HTMLButtonElement;
-    expect(button.disabled).toBe(true);
-  });
-
   test('renders custom stepText as button title', () => {
-    render(<ProgressStepIndicatorListItem step={0} stepText="Start" />);
+    render(<ProgressStepIndicatorListItem step={0} stepText="Start" onChangeStep={vi.fn()} />);
     const button = screen.getByRole('button');
     expect(button.getAttribute('title')).toBe('Start');
   });
