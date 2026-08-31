@@ -12,12 +12,23 @@ export interface TabProps {
   /** Set false when the tab bar scrolls horizontally (labels stay full width and the bar scrolls) */
   truncateLabels?: boolean;
   activeId: string;
+  /** The tab carrying tabIndex=0 — the active tab, unless the filter hid it (then the first visible tab) */
+  rovingTabId?: string;
   searchTerm?: string;
   highlightText?: boolean;
   handleTabClick: (event: React.MouseEvent<HTMLAnchorElement, MouseEvent>, tab: UiTabSection) => void;
 }
 
-export const Tab = ({ tab, isHorizontal, truncateLabels = true, activeId, searchTerm, highlightText, handleTabClick }: TabProps) => {
+export const Tab = ({
+  tab,
+  isHorizontal,
+  truncateLabels = true,
+  activeId,
+  rovingTabId = activeId,
+  searchTerm,
+  highlightText,
+  handleTabClick,
+}: TabProps) => {
   const highlightedHeading = useHighlightedText(tab.title, searchTerm, { ignoreHighlight: !highlightText });
   return (
     <li
@@ -46,8 +57,8 @@ export const Tab = ({ tab, isHorizontal, truncateLabels = true, activeId, search
       <a
         className={classNames({ 'slds-tabs_default__link': isHorizontal, 'slds-vertical-tabs__link': !isHorizontal })}
         role="tab"
-        // Roving tabindex: only the active tab is in the page tab order; arrow keys move between tabs
-        tabIndex={activeId === tab.id ? 0 : -1}
+        // Roving tabindex: only one tab is in the page tab order; arrow keys move between tabs
+        tabIndex={rovingTabId === tab.id ? 0 : -1}
         aria-selected={activeId === tab.id}
         aria-controls={tab.id}
         id={`tab-${tab.id}`}
