@@ -35,7 +35,6 @@ import {
 } from '@jetstream/types';
 import type { RenderCellProps, RenderSummaryCellProps } from '@jetstream/ui';
 import {
-  AssistiveStatus,
   Checkbox,
   ColumnWithFilter,
   ContextAction,
@@ -1709,8 +1708,7 @@ export const PinnedSelectAllRendererWrapper = ({
   column,
   contextLabel,
 }: RenderSummaryCellProps<any, unknown> & { contextLabel?: string }) => {
-  const { onColumnAction } = useContext(DataTableGenericContext) as PermissionManagerTableContext;
-  const [statusMessage, setStatusMessage] = useState('');
+  const { onColumnAction, announce } = useContext(DataTableGenericContext) as PermissionManagerTableContext;
   // e.g. "Read for Admin (Profile)" — every column renders these same three buttons, so the
   // accessible names and the outcome announcement must say which column they act on
   const scopedSuffix = contextLabel ? `: ${contextLabel}` : '';
@@ -1723,8 +1721,7 @@ export const PinnedSelectAllRendererWrapper = ({
         : action === 'unselectAll'
           ? `Unselected all visible rows${scopedSuffix}`
           : `Reset visible rows to previous selection${scopedSuffix}`;
-    setStatusMessage('');
-    window.setTimeout(() => setStatusMessage(outcome), 100);
+    announce(outcome);
   }
 
   return (
@@ -1734,7 +1731,6 @@ export const PinnedSelectAllRendererWrapper = ({
         margin-top: 3px;
       `}
     >
-      <AssistiveStatus message={statusMessage} />
       <button
         className="slds-button slds-button_icon slds-button_icon-border"
         tabIndex={-1}

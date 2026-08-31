@@ -1,10 +1,9 @@
-import { formatNumber } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { HorizontalVertical, UiTabSection } from '@jetstream/types';
 import classNames from 'classnames';
 import React, { ReactNode, forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import SearchInput from '../form/search-input/SearchInput';
-import AssistiveStatus from '../widgets/AssistiveStatus';
+import ShowingCountStatus from '../widgets/ShowingCountStatus';
 import Tab from './Tab';
 
 export interface TabsRef {
@@ -201,10 +200,7 @@ export const Tabs = forwardRef<TabsRef, TabsProps>(
                 onChange={handleFilterChange}
                 // onArrowKeyUpDown={handleSearchKeyboard}
               />
-              <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
-                Showing {formatNumber(filteredTabs.length)} of {formatNumber(tabs.length)} items
-                <AssistiveStatus debounceMs={600} message={`Showing ${filteredTabs.length} of ${tabs.length} items`} />
-              </div>
+              <ShowingCountStatus filteredCount={filteredTabs.length} totalCount={tabs.length} noun="items" />
             </div>
           )}
           {filteredTabs.map((tab) => (

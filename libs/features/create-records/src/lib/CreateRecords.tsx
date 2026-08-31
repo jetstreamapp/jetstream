@@ -16,7 +16,6 @@ import {
   SalesforceRecord,
 } from '@jetstream/types';
 import {
-  AssistiveStatus,
   AutoFullHeightContainer,
   ComboboxWithItems,
   ConnectedSobjectList,
@@ -32,6 +31,7 @@ import {
   ScopedNotification,
   Spinner,
   Tooltip,
+  useAnnouncer,
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, useAmplitude } from '@jetstream/ui-core';
 import { EditFromErrors, handleEditFormErrorResponse, transformEditForm, validateEditForm } from '@jetstream/ui-core/shared';
@@ -67,22 +67,10 @@ export const CreateRecords = () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [createdRecord, setCreatedRecord] = useState<{ id: string; sobject: string; record: any } | null>(null);
 
-  const [assistiveMessage, setAssistiveMessage] = useState('');
+  // Announce async outcomes (form loaded, record created, save failed) to screen readers
+  const { announce, announcer } = useAnnouncer();
   // Ref (not state) so back-to-back Cmd+Enter presses can't double-submit before React re-renders
   const saveInProgress = useRef(false);
-
-  /**
-   * Announce async outcomes (form loaded, record created, save failed) to screen readers.
-   * Clear-then-set so repeating the same outcome (e.g. two saves failing identically) still announces.
-   */
-  function announce(message: string) {
-    setAssistiveMessage('');
-    window.setTimeout(() => {
-      if (isMounted.current) {
-        setAssistiveMessage(message);
-      }
-    }, 100);
-  }
 
   useEffect(() => {
     isMounted.current = true;
@@ -348,7 +336,7 @@ export const CreateRecords = () => {
   return (
     <Page key={selectedOrg.uniqueId} testId="manage-permissions-page">
       <RequireMetadataApiBanner />
-      <AssistiveStatus message={assistiveMessage} />
+      {announcer}
       <PageHeader>
         <PageHeaderRow>
           <PageHeaderTitle
