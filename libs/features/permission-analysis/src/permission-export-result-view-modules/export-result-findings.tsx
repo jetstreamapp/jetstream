@@ -1,4 +1,6 @@
 import { getPermissionExportFindingDefinition, PermissionExportFindingCode } from '@jetstream/shared/constants';
+import type { ColumnWithFilter } from '@jetstream/ui';
+import type { ReactNode } from 'react';
 
 import {
   FIELD_PERMISSION_BOOLEAN_COLUMN_KEYS,
@@ -296,6 +298,62 @@ export function fieldPermissionCellSeverity(
     return 'error';
   }
   return fromSpecific ?? fromScope;
+}
+
+/** `cellClass` for a highlighted issue cell; `--clickable` also opts the cell into the click delegate that opens the modal. */
+const FINDING_CELL_CLASS_BY_SEVERITY: Record<PermissionObjectFindingCellSeverity, string> = {
+  error: 'permission-finding-cell--error permission-finding-cell--clickable',
+  warning: 'permission-finding-severity-cell--warning permission-finding-cell--clickable',
+};
+
+interface WithFindingDetailsCellOptions {
+  /** Column header label appended to the sr-only button text (`View error details for {columnLabel}`). */
+  columnLabel?: string;
+}
+
+/**
+ * Decorates a grid column so rows with an issue get the severity highlight `cellClass` (merged with any
+ * class the column already computes) plus an accessible path to the issue details.
+ *
+ * Finding cells were mouse-only (a DOM click delegate opens the modal): an sr-only button gives
+ * keyboard/SR users the same path — grid Enter clicks it, the click bubbles to the same delegate,
+ * and the cell announces that details are available.
+ */
+export function withFindingDetailsCell<TRow extends object>(
+  column: ColumnWithFilter<TRow>,
+  severityForRow: (row: TRow) => PermissionObjectFindingCellSeverity | undefined,
+  { columnLabel }: WithFindingDetailsCellOptions = {},
+): ColumnWithFilter<TRow> {
+  const priorCellClass = column.cellClass;
+  const priorRenderCell = column.renderCell;
+  return {
+    ...column,
+    cellClass: (row: TRow) => {
+      const prior = typeof priorCellClass === 'function' ? priorCellClass(row) : priorCellClass;
+      const severity = severityForRow(row);
+      const merged = [prior, severity ? FINDING_CELL_CLASS_BY_SEVERITY[severity] : undefined].filter(Boolean).join(' ');
+      return merged.length > 0 ? merged : undefined;
+    },
+    renderCell: (props) => {
+      const base = priorRenderCell
+        ? priorRenderCell(props)
+        : (column.getValue?.({ row: props.row, column: props.column }) ??
+          ((props.row as Record<string, unknown>)[String(column.key)] as ReactNode) ??
+          null);
+      const severity = severityForRow(props.row);
+      if (!severity) {
+        return base;
+      }
+      return (
+        <>
+          {base}
+          <button type="button" className="slds-assistive-text">
+            {columnLabel == null ? `View ${severity} details` : `View ${severity} details for ${columnLabel}`}
+          </button>
+        </>
+      );
+    },
+  };
 }
 
 /**

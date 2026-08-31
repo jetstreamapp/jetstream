@@ -24,6 +24,7 @@ import {
   objectPermissionFindingRowKey,
   sortObjectPermissionExportRowsForAnalysisTree,
   sortedObjectPermissionBooleanKeys,
+  withFindingDetailsCell,
   type PermissionAnalysisFinding,
   type PermissionExportRow,
   type SobjectExportDetail,
@@ -294,43 +295,21 @@ export const PermissionAnalysisObjectPermissionsTree: FunctionComponent<Permissi
         const rowKey = objectPermissionFindingRowKey(parentId, sobjectType);
         return findingCellHighlights.get(rowKey)?.get(columnKey);
       };
-      permissionCols.push({
-        ...baseColumn,
-        name: headerLabel,
-        key,
-        field: key,
-        resizable: true,
-        width: TREE_COL_PERMISSION_BOOL,
-        minWidth: TREE_MIN_PERMISSION_BOOL,
-        cellClass: (row: ObjectPermissionTreeRow) => {
-          const severity = severityForRow(row);
-          if (severity === 'error') {
-            return 'permission-finding-cell--error permission-finding-cell--clickable';
-          }
-          if (severity === 'warning') {
-            return 'permission-finding-severity-cell--warning permission-finding-cell--clickable';
-          }
-          return undefined;
-        },
-        // Finding cells were mouse-only (a DOM click delegate opens the modal): an sr-only button
-        // gives keyboard/SR users the same path — grid Enter clicks it, the click bubbles to the
-        // same delegate, and the cell announces that details are available
-        renderCell: (props) => {
-          const base = baseColumn.renderCell ? baseColumn.renderCell(props) : ((props.row as Record<string, unknown>)[key] ?? null);
-          const severity = severityForRow(props.row);
-          if (!severity) {
-            return base;
-          }
-          return (
-            <>
-              {base}
-              <button type="button" className="slds-assistive-text">
-                {severity === 'error' ? `View error details for ${headerLabel}` : `View warning details for ${headerLabel}`}
-              </button>
-            </>
-          );
-        },
-      } as ColumnWithFilter<ObjectPermissionTreeRow>);
+      permissionCols.push(
+        withFindingDetailsCell(
+          {
+            ...baseColumn,
+            name: headerLabel,
+            key,
+            field: key,
+            resizable: true,
+            width: TREE_COL_PERMISSION_BOOL,
+            minWidth: TREE_MIN_PERMISSION_BOOL,
+          } as ColumnWithFilter<ObjectPermissionTreeRow>,
+          severityForRow,
+          { columnLabel: headerLabel },
+        ),
+      );
     }
 
     return [groupPermSetCol, objectCol, ...permissionCols];
