@@ -12,7 +12,6 @@ import {
 } from '@jetstream/shared/ui-utils';
 import { DataHistoryItem } from '@jetstream/types';
 import {
-  AssistiveStatus,
   AutoFullHeightContainer,
   ConfirmationModalPromise,
   EmptyState,
@@ -26,6 +25,7 @@ import {
   PageHeaderTitle,
   ScopedNotification,
   UpgradeToProButton,
+  useAnnouncer,
 } from '@jetstream/ui';
 import { openHistoryFolder, useDataHistoryStorage, useRequestPersistentStorage, useSetDataHistoryCaptureEnabled } from '@jetstream/ui-core';
 import { dataHistoryCaptureEnabledState, fromAppState } from '@jetstream/ui/app-state';
@@ -234,19 +234,20 @@ export const DataHistory: FunctionComponent = () => {
 
   // The grid activates the pin toggle while focus stays on the cell (single-control cells are
   // clicked in place), so the state change must be announced through a live region
-  const [pinStatusMessage, setPinStatusMessage] = useState('');
+  const { announce, announcer } = useAnnouncer();
 
-  const handleTogglePin = useCallback(async (item: DataHistoryItem) => {
-    try {
-      await setDataHistoryPinned(item.key, !item.pinned);
-      // Clear-then-set so toggling the same entry repeatedly still announces each change
-      setPinStatusMessage('');
-      window.setTimeout(() => setPinStatusMessage(!item.pinned ? 'Entry pinned' : 'Entry unpinned'), 100);
-    } catch (ex) {
-      logger.warn('[DATA_HISTORY] Error pinning entry', ex);
-      fireToast({ type: 'error', message: 'There was a problem updating the pinned state.' });
-    }
-  }, []);
+  const handleTogglePin = useCallback(
+    async (item: DataHistoryItem) => {
+      try {
+        await setDataHistoryPinned(item.key, !item.pinned);
+        announce(!item.pinned ? 'Entry pinned' : 'Entry unpinned');
+      } catch (ex) {
+        logger.warn('[DATA_HISTORY] Error pinning entry', ex);
+        fireToast({ type: 'error', message: 'There was a problem updating the pinned state.' });
+      }
+    },
+    [announce],
+  );
 
   const handleDelete = useCallback(async (item: DataHistoryItem) => {
     try {
@@ -275,7 +276,7 @@ export const DataHistory: FunctionComponent = () => {
 
   return (
     <Page testId="data-history-page">
-      <AssistiveStatus message={pinStatusMessage} />
+      {announcer}
       <PageHeader>
         <PageHeaderRow>
           <PageHeaderTitle
