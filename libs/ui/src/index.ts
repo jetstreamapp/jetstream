@@ -164,6 +164,7 @@ export * from './lib/toolbar/ToolbarItemGroup';
 export * from './lib/tree/Tree';
 export * from './lib/user-feedback-widget/UserFeedbackWidget';
 export * from './lib/utils/ErrorBoundaryWithoutContent';
+export * from './lib/utils/focus-container';
 export * from './lib/utils/monaco-escape';
 export * from './lib/utils/OutsideClickHandler';
 export * from './lib/widgets/AssistiveStatus';

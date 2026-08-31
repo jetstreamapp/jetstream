@@ -2,6 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import {
   AutoFullHeightContainer,
   CheckboxToggle,
+  focusContainer,
   Page,
   PageHeader,
   PageHeaderRow,
@@ -60,7 +61,7 @@ export function AdditionalSettings() {
       const target = document.getElementById(hash.slice(1));
       if (target) {
         target.scrollIntoView?.({ block: 'start' });
-        target.focus();
+        focusContainer(target);
         return;
       }
       attemptsRemaining--;

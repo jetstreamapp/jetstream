@@ -3,7 +3,7 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
-import { Badge, ConfirmationModalPromise, DropDown, Grid, Icon, ScopedNotification } from '@jetstream/ui';
+import { Badge, ConfirmationModalPromise, DropDown, focusContainer, Grid, Icon, ScopedNotification } from '@jetstream/ui';
 import { ConfirmPageChange, useAmplitude } from '@jetstream/ui-core';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent, useEffect, useMemo, useRef } from 'react';
@@ -123,7 +123,11 @@ export const LoadRecordsMultiObjectLoad: FunctionComponent<LoadRecordsMultiObjec
       if (active && active !== document.body) {
         return;
       }
-      (loading ? progressRegionRef.current : loadButtonRef.current)?.focus({ preventScroll: true });
+      if (!loading) {
+        loadButtonRef.current?.focus({ preventScroll: true });
+      } else if (progressRegionRef.current) {
+        focusContainer(progressRegionRef.current, { preventScroll: true });
+      }
     });
   }, [loading]);
 
@@ -190,7 +194,7 @@ export const LoadRecordsMultiObjectLoad: FunctionComponent<LoadRecordsMultiObjec
       </div>
 
       {(loading || runs.length > 0) && (
-        <div ref={progressRegionRef} tabIndex={-1} role="region" aria-label="Load progress and results" className="slds-p-around_small">
+        <div ref={progressRegionRef} role="region" aria-label="Load progress and results" className="slds-p-around_small">
           {loading && progress && (
             <div>
               <div className="slds-m-bottom_xx-small">
