@@ -5,6 +5,7 @@ import { formatNumber, useNonInitialEffect, usePrimaryActionShortcut } from '@je
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { AsyncJobNew, DescribeGlobalSObjectResult, FieldUsageAnalysisJob } from '@jetstream/types';
 import {
+  ariaDisabledButtonProps,
   AutoFullHeightContainer,
   ConnectedSobjectListMultiSelect,
   fireToast,
@@ -115,17 +116,12 @@ export const DataAnalysisSelection: FunctionComponent = () => {
                 </div>
               }
             >
-              {/* aria-disabled keeps the button focusable so the shortcut tooltip stays reachable */}
+              {/* Stays focusable while disabled so the shortcut tooltip stays reachable */}
               <button
                 type="button"
                 className="slds-button slds-button_brand"
-                aria-disabled={startDisabled}
                 aria-keyshortcuts={getAriaKeyshortcuts([getModifierKey(), 'enter'])}
-                onClick={() => {
-                  if (!startDisabled) {
-                    handleStartJob();
-                  }
-                }}
+                {...ariaDisabledButtonProps(startDisabled, () => handleStartJob())}
               >
                 Start Field Usage Analysis
                 <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" omitContainer />
