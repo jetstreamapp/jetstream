@@ -1,5 +1,5 @@
 import { ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { Grid, GridCol, Tooltip } from '@jetstream/ui';
+import { ariaDisabledButtonProps, Grid, GridCol, Tooltip } from '@jetstream/ui';
 import { MassUpdateRecordObjectHeading, MassUpdateRecordsObjectRow, MetadataRow } from '@jetstream/ui-core';
 import { FunctionComponent, useCallback } from 'react';
 import { useMassUpdateFieldItems } from './useMassUpdateFieldItems';
@@ -68,18 +68,13 @@ export const MassUpdateRecordsObject: FunctionComponent<MassUpdateRecordsObjectP
                     : 'Configure this object before you can validate the number of impacted records.'
                 }
               >
-                {/* aria-disabled (not disabled) keeps the button focusable so keyboard users can reach
-                    the tooltip explaining why validation is unavailable; the aria-label scopes the
-                    accessible name per object since every card renders this same button */}
+                {/* Stays focusable while disabled so keyboard users can reach the tooltip explaining
+                    why validation is unavailable; the aria-label scopes the accessible name per
+                    object since every card renders this same button */}
                 <button
                   className="slds-button slds-button_neutral"
-                  aria-disabled={!row.isValid}
                   aria-label={`Validate Results for ${row.sobject}`}
-                  onClick={() => {
-                    if (row.isValid) {
-                      validateRowRecords(row.sobject);
-                    }
-                  }}
+                  {...ariaDisabledButtonProps(!row.isValid, () => validateRowRecords(row.sobject))}
                 >
                   Validate Results
                 </button>
